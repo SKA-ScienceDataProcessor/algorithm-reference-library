@@ -2,7 +2,7 @@
 
 import numpy
 
-from synthesis import sortw, doimg, wslicimg, wslicfwd
+from .synthesis import sortw, doimg, wslicimg, wslicfwd
 
 def overlapIndices(a1, a2, 
                    shiftx, shifty):

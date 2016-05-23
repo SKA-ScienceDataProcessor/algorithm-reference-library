@@ -7,9 +7,9 @@ import numpy
 import scipy
 import scipy.special
 
-from clean import *
-from synthesis import *
-from simulate import *
+from crocodile.clean import *
+from crocodile.synthesis import *
+from crocodile.simulate import *
 
 from matplotlib import pylab
 

@@ -10,13 +10,13 @@ import numpy
 import scipy
 import scipy.special
 
-from clean import *
-from synthesis import *
-from simulate import *
+from crocodile.clean import *
+from crocodile.synthesis import *
+from crocodile.simulate import *
 
 from matplotlib import pylab
 
-vlas=numpy.genfromtxt("../test/VLA_A_hor_xyz.txt", delimiter=",")
+vlas=numpy.genfromtxt("../../data/layout/VLA_A_hor_xyz.txt", delimiter=",")
 vobs=genuv(vlas, numpy.arange(0,numpy.pi,0.04) ,  numpy.pi/4)
 
 # Wavelength: 5 metres 

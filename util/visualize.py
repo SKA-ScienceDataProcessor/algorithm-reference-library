@@ -1,5 +1,5 @@
 
-from synthesis import ucsBounds
+from crocodile.synthesis import ucsBounds
 
 import numpy
 import matplotlib.pyplot as pl

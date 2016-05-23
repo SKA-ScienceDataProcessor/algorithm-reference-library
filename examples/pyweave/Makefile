@@ -7,14 +7,14 @@ ifeq ($(OS),Windows_NT)
 	RST2HTML="python.exe" "C:\Users\Bojan\Anaconda\Scripts\rst2html.py"
 else
 	PWEAVE=Pweave
-	PPATH=../:${PYTHONPATH}
-	RST2HTML=rst2html
+	PPATH=../../:${PYTHONPATH}
+	RST2HTML=rst2html5
 endif
 
 
 default: docset.zip
 
-%.html: %.rstw ../synthesis.py
+%.html: %.rstw ../../crocodile/synthesis.py
 	PYTHONPATH=${PPATH} ${PWEAVE} $< ; ${RST2HTML} $(<:.rstw=.rst)  > $@
 
 clean:
