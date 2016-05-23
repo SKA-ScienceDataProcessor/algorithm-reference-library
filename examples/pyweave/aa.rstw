@@ -1,0 +1,107 @@
+=========================================
+Anti-Aliasing Functions in Interferometry
+=========================================
+
+Setup the data problem. Will use field of view of 0.002 radian. One
+source withing the field of view and a 5 times stronger just outside.
+
+<<>>=
+import numpy
+import scipy
+import scipy.special
+
+from clean import *
+from synthesis import *
+from simulate import *
+
+from matplotlib import pylab
+
+vlas=numpy.genfromtxt("../test/VLA_A_hor_xyz.txt", delimiter=",")
+vobs=genuv(vlas, numpy.arange(0,numpy.pi,0.04) ,  numpy.pi/4)
+yyone=genvis(vobs/5, 0.001, 0.001)
+yytwo=yyone+ genvis(vobs/5, 0.0025, 0.0025)*5
+@
+
+Simple imaging (no convolution) with single source within field of view:
+<<caption="Single source in field of view">>=
+d,p=doimg(0.002, 15000, vobs/5, yyone, simpleimg)
+pylab.matshow(d)  ; pylab.colorbar();  pylab.show()
+@
+
+Simple imaging (no convolution) with both sources, shows the strong
+source being "aliased" back into the field of view:
+<<term=True,caption="Single source in field of view and a strong source outside the field of view">>=
+d,p=doimg(0.002, 15000, vobs/5, yytwo, simpleimg)
+pylab.matshow(d)  ; pylab.colorbar();  pylab.show()
+print d[40:60,40:60].std()
+@
+
+Anti-aliasing function
+======================
+
+Thisis an example anti-aliasing function to use:
+<<caption="Anti aliasing fn">>=
+aa=aaf(numpy.zeros(shape=(120,120)), 0, 5)
+pylab.matshow(aa)  ; pylab.colorbar();  pylab.show()
+@
+
+After FFT-ing and extracting the middle this is what the anti-aliasing
+function looks like:
+<<caption="Real part of the an anti-aliasing fn extract">>=
+kv=pxoversample(aa, 120, 4, 7)
+pylab.matshow(kv[0][0].real)  ; pylab.colorbar();  pylab.show()
+@
+
+Imaginary part is close to nil:
+<<caption="Imaginary part of the an anti-aliasing fn extract">>=
+pylab.matshow(kv[0][0].imag)  ; pylab.colorbar();  pylab.show()
+@
+
+Gridding with the anti-aliasing function:
+=========================================
+
+This is the image of single source within field of view *without correcting the taper* . Note that the strength of the source is
+surpressed.
+
+<<caption="Grid with conv function and one source, not taper correction">>=
+d,p=doimg(0.002, 15000, vobs/5, yyone, lambda *x: convimg(*x, kv=kv))
+pylab.matshow(d)  ; pylab.colorbar();  pylab.show()
+@
+
+
+This is the image of single source within field of view. Note that the
+image is divided by the anti-aliasing funciton to correct for the
+taper introduced by it:
+<<caption="Grid with conv function and one source">>=
+d,p=doimg(0.002, 15000, vobs/5, yyone, lambda *x: convimg(*x, kv=kv))
+pylab.matshow(d/aa)  ; pylab.colorbar();  pylab.show()
+@
+
+This is the image with source outside of field of view also: note that
+is very strongly surprssed.
+<<term=True,caption="Grid with convolution function and with two sources">>=
+d,p=doimg(0.002, 15000, vobs/5, yytwo, lambda *x: convimg(*x, kv=kv))
+pylab.matshow(d/aa)  ; pylab.colorbar();  pylab.show()
+print (d/aa)[40:60,40:60].std()
+@
+
+As above but without correcting the taper.
+<<term=True,caption="Grid with convolution function and with two sources">>=
+d,p=doimg(0.002, 15000, vobs/5, yytwo, lambda *x: convimg(*x, kv=kv))
+pylab.matshow(d)  ; pylab.colorbar();  pylab.show()
+print (d)[40:60,40:60].std()
+@
+
+
+
+
+
+
+
+
+
+
+
+
+
+

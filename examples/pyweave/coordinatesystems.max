@@ -1,0 +1,106 @@
+/** From https://github.com/jkovacic/maxima-ht/blob/master/homogenous_transformation.mac
+* Rotation around an arbitrary non-zero vector.
+*
+* For mre details about the matrix, see:
+* http://en.wikipedia.org/wiki/Rotation_matrix#Rotation_matrix_from_axis_and_angle
+*
+* Rotations around cordinate system axes are derived from this function.
+*
+* @param rx - x component of the vector
+* @param ry - y component of the vector
+* @param rz - z component of the vector
+* @param theta - rotation angle around the vector
+*
+* @return homogenous rotation matrix
+*
+* @throw an error if r is a zero vector (rx=ry=rz=0)
+*/
+Rot(rx, ry, rz, theta) :=
+block (
+[u, ux, uy, uz, cth, c1, sth],
+cth: cos(theta),
+sth: sin(theta),
+c1: 1-cth,
+u: sqrt(rx^2 + ry^2 + rz^2),
+if u = 0 then
+error("A non-zero vector is required."),
+ux: rx/u,
+uy: ry/u,
+uz: rz/u,
+matrix([cth+ux^2*c1, ux*uy*c1-uz*sth, ux*uz*c1+uy*sth],
+[uy*ux*c1+uz*sth, cth+uy^2*c1, uy*uz*c1-ux*sth],
+[uz*ux*c1-uy*sth, uz*uy*c1+ux*sth, cth+uz^2*c1])
+)$
+/**
+* Rotation around an arbitrary non-zero vector.
+*
+* For more details about the matrix, see:
+* http://en.wikipedia.org/wiki/Rotation_matrix#Rotation_matrix_from_axis_and_angle
+*
+* @param v - a vector (a 3x1 matrix) representing the axis of rotation
+* @param theta - angle of rotation
+*
+* @return homogenous rotation matrix
+*
+* @throw an error if v's dimension is invalid or if it is a zero vector
+*/
+Rot_vector(v, theta) :=
+block (
+[dim],
+dim: matrix_size(v),
+if (not dim[1] = 3) or (dim[2] = 1) then
+error("Vector must be a 3x1 matrix."),
+Rot(v[1,1], v[2,1], v[3,1], theta)
+)$
+/**
+* Rotation around the x-axis
+*
+* @param alpha - angle of rotation
+*
+* @return homogenous rotation matrix
+*/
+Rotx(alpha) :=
+Rot(1, 0, 0, alpha)$
+/**
+* Rotation around the y-axis
+*
+* @param beta - angle of rotation
+*
+* @return homogenous rotation matrix
+*/
+Roty(beta) :=
+Rot(0, 1, 0, beta)$
+/**
+* Rotation around the z-axis
+*
+* @param gamma - angle of rotation
+*
+* @return homogenous rotation matrix
+*/
+Rotz(gamma) :=
+Rot(0, 0, 1, gamma)$
+
+/* XYZ to UVW transformation */
+
+RotUVW(ha, dec) := Rotx(dec-%pi/2  ) .Rotz(ha) $
+
+/* Check: when the direction of observation is the NCP
+(ha=0,dec=90), the UVW coordinates are aligned  with XYZ */
+RotUVW(ha, dec) . [x,y,z], dec=%pi/2, ha=0;
+
+/* Check: when the direction of observation is at # zero declination,
+an hour-angle of -6 hours makes W point due East */
+
+RotUVW(ha, dec) . [x,y,z], dec=0, ha=-%pi/2;
+
+
+
+/*UV projection, 1996A&AS..120..375S */
+
+a11: cos(pa-ga)*sin(pb)*sin(gb)+ cos(pb)*cos(gb);
+a12: -sin(pa-ga)*sin(ga);
+a21: sin(pa-pb)*sin( pb);
+a22: cos(pa-ga);
+n:   sin(gb)*sin(pb) + cos(pa-ga)*cos(pb)*cos(gb);
+
+
