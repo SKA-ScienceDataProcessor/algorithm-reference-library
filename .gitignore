@@ -15,3 +15,9 @@
 /examples/pyweave/figures
 /examples/pyweave/docset.zip
 /examples/anna/simulated_data.txt
+
+/docs/build
+/docs/pyweave
+/docs/notebooks
+/docs/anna
+/docs/ben
