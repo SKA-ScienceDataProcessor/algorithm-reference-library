@@ -7,9 +7,11 @@
 *.pyc
 /build
 
-/examples/pyweave/*.rst
-/examples/pyweave/*.html
+/examples/**/*.rst
+/examples/**/*.html
+/examples/*/figures
+/examples/*/*_files
+/examples/*/.ipynb_checkpoints
 /examples/pyweave/figures
 /examples/pyweave/docset.zip
-
 /examples/anna/simulated_data.txt

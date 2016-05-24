@@ -1,4 +1,5 @@
 PWs=   wimaging.rstw aa.rstw wkernel.rstw
+RSTs=  $(PWs:.rstw=.rst)
 HTMLs= $(PWs:.rstw=.html)
 
 ifeq ($(OS),Windows_NT)
@@ -11,14 +12,24 @@ else
 	RST2HTML=rst2html5
 endif
 
-
+.PHONY: default
 default: docset.zip
 
-%.html: %.rstw ../../crocodile/synthesis.py
-	PYTHONPATH=${PPATH} ${PWEAVE} $< ; ${RST2HTML} $(<:.rstw=.rst)  > $@
+%.rst: %.rstw ../../crocodile/synthesis.py
+	PYTHONPATH=${PPATH} ${PWEAVE} $<
 
+%.html: %.rst
+	${RST2HTML} $(<:.rstw=.rst)  > $@
+
+.PHONY: clean
 clean:
-	rm -f g${HTMLs} docset.zip
+	rm -f ${RSTs} ${HTMLs} docset.zip
+	rm -rf figures
 
-docset.zip: $(HTMLs)
+.PHONY: rst
+rst: $(RSTs)
+.PHONY: html
+html: $(HTMLs)
+
+docset.zip: html
 	zip -r $@ $^ figures

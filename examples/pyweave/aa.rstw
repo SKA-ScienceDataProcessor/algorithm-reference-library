@@ -16,7 +16,7 @@ from crocodile.simulate import *
 
 from matplotlib import pylab
 
-vlas=numpy.genfromtxt("../../data/layout/VLA_A_hor_xyz.txt", delimiter=",")
+vlas=numpy.genfromtxt("../../data/models/VLA_A_hor_xyz.txt", delimiter=",")
 vobs=genuv(vlas, numpy.arange(0,numpy.pi,0.04) ,  numpy.pi/4)
 yyone=genvis(vobs/5, 0.001, 0.001)
 yytwo=yyone+ genvis(vobs/5, 0.0025, 0.0025)*5

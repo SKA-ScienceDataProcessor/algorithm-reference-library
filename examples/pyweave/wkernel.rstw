@@ -67,7 +67,7 @@ Here is the corresponding w-kernel in the aperture field. It can be
 seen that we now again have enough pixels to capture the support of
 the w-kernel.
 <<caption="W kernel">>=
+print(ff.shape)
 af=pxoversample(ff, 256, 1, 257)
-pylab.matshow(af[0][0].real) ; pylab.colorbar();  pylab.show()
+#pylab.matshow(af[0][0].real) ; pylab.colorbar();  pylab.show()
 @
-
