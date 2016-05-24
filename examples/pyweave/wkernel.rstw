@@ -34,7 +34,7 @@ pylab.matshow(af[0][0].real) ; pylab.colorbar();  pylab.show()
 Example of when w is too large for the chosen N. Note the aliasing
 artifacts which are happening  because the pixels are too large:
 <<caption="W far-field">>=
-ff=wkernff(256, 0.1, 7000)
+ff=wkernff(256, 2*0.1, 7000)
 pylab.matshow(ff.real) ; pylab.colorbar();  pylab.show()
 @
 
@@ -67,7 +67,6 @@ Here is the corresponding w-kernel in the aperture field. It can be
 seen that we now again have enough pixels to capture the support of
 the w-kernel.
 <<caption="W kernel">>=
-print(ff.shape)
-af=pxoversample(ff, 256, 1, 257)
-#pylab.matshow(af[0][0].real) ; pylab.colorbar();  pylab.show()
+af=pxoversample(ff, 8*256, 1, 257)
+pylab.matshow(af[0][0].real) ; pylab.colorbar();  pylab.show()
 @

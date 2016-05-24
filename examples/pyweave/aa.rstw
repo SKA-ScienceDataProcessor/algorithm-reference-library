@@ -24,14 +24,14 @@ yytwo=yyone+ genvis(vobs/5, 0.0025, 0.0025)*5
 
 Simple imaging (no convolution) with single source within field of view:
 <<caption="Single source in field of view">>=
-d,p=doimg(0.002, 15000, vobs/5, yyone, simpleimg)
+d,p=doimg(2*0.002, 2*15000, vobs/5, yyone, simpleimg)
 pylab.matshow(d)  ; pylab.colorbar();  pylab.show()
 @
 
 Simple imaging (no convolution) with both sources, shows the strong
 source being "aliased" back into the field of view:
 <<term=True,caption="Single source in field of view and a strong source outside the field of view">>=
-d,p=doimg(0.002, 15000, vobs/5, yytwo, simpleimg)
+d,p=doimg(2*0.002, 2*15000, vobs/5, yytwo, simpleimg)
 pylab.matshow(d)  ; pylab.colorbar();  pylab.show()
 print d[40:60,40:60].std()
 @
@@ -64,7 +64,7 @@ This is the image of single source within field of view *without correcting the 
 surpressed.
 
 <<caption="Grid with conv function and one source, not taper correction">>=
-d,p=doimg(0.002, 15000, vobs/5, yyone, lambda *x: convimg(*x, kv=kv))
+d,p=doimg(2*0.002, 2*15000, vobs/5, yyone, lambda *x: convimg(*x, kv=kv))
 pylab.matshow(d)  ; pylab.colorbar();  pylab.show()
 @
 
@@ -73,21 +73,21 @@ This is the image of single source within field of view. Note that the
 image is divided by the anti-aliasing funciton to correct for the
 taper introduced by it:
 <<caption="Grid with conv function and one source">>=
-d,p=doimg(0.002, 15000, vobs/5, yyone, lambda *x: convimg(*x, kv=kv))
+d,p=doimg(2*0.002, 2*15000, vobs/5, yyone, lambda *x: convimg(*x, kv=kv))
 pylab.matshow(d/aa)  ; pylab.colorbar();  pylab.show()
 @
 
 This is the image with source outside of field of view also: note that
 is very strongly surprssed.
 <<term=True,caption="Grid with convolution function and with two sources">>=
-d,p=doimg(0.002, 15000, vobs/5, yytwo, lambda *x: convimg(*x, kv=kv))
+d,p=doimg(2*0.002, 2*15000, vobs/5, yytwo, lambda *x: convimg(*x, kv=kv))
 pylab.matshow(d/aa)  ; pylab.colorbar();  pylab.show()
 print (d/aa)[40:60,40:60].std()
 @
 
 As above but without correcting the taper.
 <<term=True,caption="Grid with convolution function and with two sources">>=
-d,p=doimg(0.002, 15000, vobs/5, yytwo, lambda *x: convimg(*x, kv=kv))
+d,p=doimg(2*0.002, 2*15000, vobs/5, yytwo, lambda *x: convimg(*x, kv=kv))
 pylab.matshow(d)  ; pylab.colorbar();  pylab.show()
 print (d)[40:60,40:60].std()
 @
