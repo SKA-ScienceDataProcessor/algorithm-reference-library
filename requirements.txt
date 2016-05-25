@@ -1,0 +1,4 @@
+jupyter>=1.0
+numpy>=1.9
+pyfits>=3.3
+matplotlib
