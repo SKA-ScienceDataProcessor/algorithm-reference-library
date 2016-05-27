@@ -17,13 +17,13 @@ from crocodile.simulate import *
 from matplotlib import pylab
 
 vlas=numpy.genfromtxt("../../data/models/VLA_A_hor_xyz.txt", delimiter=",")
-vobs=genuv(vlas, numpy.arange(0,numpy.pi,0.04) ,  numpy.pi/4)
+vobs=xyz_to_baselines(vlas, numpy.arange(0,numpy.pi,0.04) ,  numpy.pi/4)
 
 # Wavelength: 5 metres
 wvl=5
 
-yy=genvis(vobs/wvl, 0.000, 0.000)
-yy+= genvis(vobs/wvl, 0.05, 0.05)
+yy= simulate_point(vobs/wvl, 0.000, 0.000)
+yy+= simulate_point(vobs/wvl, 0.05, 0.05)
 @
 
 <<caption="Imaging without w-projection">>=

@@ -46,7 +46,7 @@ import numpy
 
 # ---------------------------------------------------------------------------------
 
-def rot(ants_xyz, ha, dec):
+def xyz_to_uvw(ants_xyz, ha, dec):
 
     """
     Rotate :math:`(x,y,z)` antenna positions in earth coordinates
@@ -56,16 +56,16 @@ def rot(ants_xyz, ha, dec):
     (see note on co-ordinate systems in header)
 
     :param ants_xyz: :math:`(x,y,z)` co-ordinates of antennas in array
-    :param ha: hour angle of source (:math:`ha = ra - lst`)
-    :param dec: declination of source
+    :param ha: hour angle of phase tracking centre (:math:`ha = ra - lst`)
+    :param dec: declination of phase tracking centre
     """
 
     x,y,z=numpy.hsplit(ants_xyz,3)
 
-    t=x*numpy.cos(ha) - y*numpy.sin(ha)
-    u=x*numpy.sin(ha) + y*numpy.cos(ha)
-    v=-1.*t*numpy.sin(dec)+ z*numpy.cos(dec)
-    w=t*numpy.cos(dec)+ z*numpy.sin(dec)
+    u  =  x*numpy.cos(ha)  - y*numpy.sin(ha)
+    v0 =  x*numpy.sin(ha)  + y*numpy.cos(ha)
+    v  =  z*numpy.cos(dec) + v0*numpy.sin(dec)
+    w  =  z*numpy.sin(dec) - v0*numpy.cos(dec)
 
     ants_uvw = numpy.hstack([u,v,w])
 
@@ -74,8 +74,7 @@ def rot(ants_xyz, ha, dec):
 
 # ---------------------------------------------------------------------------------
 
-def bls(ants_uvw):
-
+def baselines(ants_uvw):
     """
     Compute baselines in uvw co-ordinate system from
     uvw co-ordinate system station positions
@@ -96,8 +95,7 @@ def bls(ants_uvw):
 
 # ---------------------------------------------------------------------------------
 
-def genuv(ants_xyz, ha_range, dec):
-
+def xyz_to_baselines(ants_xyz, ha_range, dec):
     """
     Calculate baselines in :math:`(u,v,w)` co-ordinate system
     for a range of hour angles (i.e. non-snapshot observation)
@@ -109,33 +107,31 @@ def genuv(ants_xyz, ha_range, dec):
     :param dist_uvw: :math:`(u,v,w)` distribution of projected baselines
     """
 
-    dist_uvw = numpy.concatenate([bls(rot(ants_xyz,hax,dec)) for hax in ha_range])
-
+    dist_uvw = numpy.concatenate([baselines(xyz_to_uvw(ants_xyz,hax,dec)) for hax in ha_range])
     return dist_uvw
 
 
 # ---------------------------------------------------------------------------------
 
-def genvis(dist_uvw, l, m):
-
+def simulate_point(dist_uvw, l, m):
     """
     Simulate visibilities for unit amplitude point source at
-    angular position (l,m) relative to observed phase centre
-    defined at (ra,dec).
+    direction cosines (l,m) relative the phase centre.
 
-    Note that point source is delta function, therefore
-    FT relation ship becomes an exponential, evaluated at
+    Note that point source is delta function, therefore the
+    FT relationship becomes an exponential, evaluated at
     (uvw.lmn)
 
     :param dist_uvw: :math:`(u,v,w)` distribution of projected baselines
-    :param l: direction cosine relative to phase centre defined at :math:`(ra,dec)`
-    :param m: orthogonal directon cosine relative to phase centre defined at :math:`(ra,dec)`
-    :param s: :math:`(l,m,n)` vector direction to source
-    :param vis: complex valued visibility data
+    :param l: horizontal direction cosine relative to phase tracking centre
+    :param m: orthogonal directon cosine relative to phase tracking centre
     """
 
+    # vector direction to source
     s=numpy.array([l, m , numpy.sqrt(1 - l**2 - m**2)])
-    vis = numpy.exp(-2j*numpy.pi* numpy.dot(dist_uvw, s))
+    # complex valued visibility data
+    return numpy.exp(-2j*numpy.pi* numpy.dot(dist_uvw, s))
 
-    return vis
-
+if __name__ == '__main__':
+    import tests.test_simulate
+    unittest.main()

@@ -15,7 +15,7 @@ endif
 .PHONY: default
 default: docset.zip
 
-%.rst: %.rstw ../../crocodile/synthesis.py
+%.rst: %.rstw ../../crocodile/simulate.py ../../crocodile/synthesis.py
 	PYTHONPATH=${PPATH} ${PWEAVE} $<
 
 %.html: %.rst
