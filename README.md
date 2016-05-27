@@ -76,9 +76,10 @@ command line:
 Building documentation
 ----------------------
 
-For building the documentation you will need Sphinx. It will extract
-docstrings from the crocodile source code, evaluate all notebooks and
-compose the result to form the documentation package.
+For building the documentation you will need Sphinx as well as
+Pandoc. This will extract docstrings from the crocodile source code,
+evaluate all notebooks and compose the result to form the
+documentation package.
 
 You can build it as follows:
 
