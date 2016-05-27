@@ -9,12 +9,13 @@ Crocodile Documentation
    :maxdepth: 2
 
    source
+   notebooks/coordinates
+   notebooks/wkernel
+   notebooks/wimaging
    pyweave/wkernel
    pyweave/wimaging
    pyweave/aa
    pyweave/refs
-   notebooks/wkernel
-   notebooks/wimaging
    anna/Simulate_uvw
    anna/MakeDtyImg
    anna/MakeDtyImg_variableWsupport_A

@@ -1,3 +1,3 @@
 
-NBs = wimaging.ipynb wkernel.ipynb
+NBs = coordinates.ipynb wimaging.ipynb wkernel.ipynb
 include ../jupyter.mk

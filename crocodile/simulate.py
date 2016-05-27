@@ -46,6 +46,28 @@ import numpy
 
 # ---------------------------------------------------------------------------------
 
+def xyz_at_latitude(local_xyz, lat):
+    """
+    Rotate local XYZ coordinates into celestial XYZ coordinates. These
+    coordinate systems are very similar, with X pointing towards the
+    geographical east in both cases. However, before the rotation Z
+    points towards the zenith, whereas afterwards it will point towards
+    celestial north (parallel to the earth axis).
+
+    :param local_xyz: Array of local XYZ coordinates
+    :returns: Celestial XYZ coordinates
+    """
+
+    x,y,z = numpy.hsplit(local_xyz, 3)
+
+    lat2 = numpy.pi/2 - lat
+    y2 = -z*numpy.sin(lat2) + y*numpy.cos(lat2)
+    z2 =  z*numpy.cos(lat2) + y*numpy.sin(lat2)
+
+    return numpy.hstack([x,y2,z2])
+
+# ---------------------------------------------------------------------------------
+
 def xyz_to_uvw(ants_xyz, ha, dec):
 
     """
