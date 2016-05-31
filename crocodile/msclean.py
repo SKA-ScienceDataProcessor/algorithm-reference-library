@@ -2,9 +2,9 @@
 
 import numpy
 
-from synthesis import sortw, doimg, wslicimg, wslicfwd
+from crocodile.synthesis import sortw, doimg, wslicimg, wslicfwd
 
-from clean import overlapIndices, argmax
+from crocodile.clean import overlapIndices, argmax
 
 def majorcycle(T2, L2,
                p, v,
@@ -50,31 +50,34 @@ def msclean(dirty,
 
     :param niter: Maximum number of components to make if the
     threshold "thresh" is not hit
-    
-    :param scales: Scales (in pixels width) to be used    
-    
+
+    :param scales: Scales (in pixels width) to be used
+
     """
     comps=numpy.zeros(dirty.shape)
 
     pmax=psf.max()
     psfpeak=argmax(numpy.fabs(psf))
-    print "Peak of PSF = %s at %s" % (pmax, psfpeak)
+    print ("Peak of PSF = %s at %s" % (pmax, psfpeak))
     dmax=dirty.max()
     dpeak=argmax(dirty)
-    print "Peak of Dirty = %s at %s" % (dmax, dpeak)
+    print ("Peak of Dirty = %s at %s" % (dmax, dpeak))
     lpsf=psf/pmax
     ldirty=dirty/pmax
-    
-    """ Create the scale images and form all the various products we need
+
+    """ Create the scale images and form all the various products we need. We
+    use a third dimension to hold the scale-related images. scalestack is a 3D
+    cube holding the different scale images. convolvestack will take a 2D image
+    and add a third dimension holding the scale-convolved versions.
     """
     scaleshape=[ldirty.shape[0], ldirty.shape[1], len(scales)]
     scalescaleshape=[ldirty.shape[0], ldirty.shape[1], len(scales), len(scales)]
     scalestack=createscalestack(scaleshape,scales)
-    
+
     couplingMatrix=numpy.zeros([len(scales),len(scales)])
     psfscalestack=convolvescalestack(scalestack, numpy.array(lpsf))
     resscalestack=convolvescalestack(scalestack, numpy.array(ldirty))
-    """ Evaluate the coupling matrix
+    """ Evaluate the coupling matrix between the various scale sizes.
     """
     psfscalescalestack=numpy.zeros(scalescaleshape)
     for iscale in numpy.arange(len(scales)):
@@ -83,16 +86,17 @@ def msclean(dirty,
     for iscale in numpy.arange(len(scales)):
         for iscale1 in numpy.arange(len(scales)):
             couplingMatrix[iscale,iscale1]=numpy.max(psfscalescalestack[:,:,iscale,iscale1])
-    print "Coupling matrix = %s" % couplingMatrix
-    
+    print ("Coupling matrix = %s" % couplingMatrix)
+
     """ The window is scale dependent - we form it by smoothing and thresholding
-    the input window
+    the input window. This prevents components being placed too close to the
+    edge of the image.
     """
     if window is True:
         windowstack=numpy.ones(scalestack.shape, numpy.bool)
 #    windowstack=convolvescalestack(scalestack, window)>0.9
     window=numpy.ones(scalestack.shape, numpy.bool)
-    
+
     """ The minor cycle
     """
     for i in range(niter):
@@ -107,26 +111,26 @@ def msclean(dirty,
                 resmax=thismax
                 mscale=iscale
                 mx, my=numpy.unravel_index((numpy.fabs(resscalestack[:,:,iscale])).argmax(), dirty.shape)
-                
+
         """ Find the values to subtract, accounting for the coupling matrix
         """
         mval=numpy.zeros(len(scales))
         for iscale in numpy.arange(len(scales)):
             mval[iscale]=resscalestack[mx, my, iscale]*gain/couplingMatrix[iscale,iscale]
-        print "Iteration %d, peak %s at [%d, %d, %d]" % (i, mval, mx, my, mscale)
-        
-        """ Subtract from the residuals and add to the model
+        print ("Iteration %d, peak %s at [%d, %d, %d]" % (i, mval, mx, my, mscale))
+
+        """ Subtract from the residuals and add to the model.
         """
         a1o, a2o=overlapIndices(dirty, psf,
                                 mx-psfpeak[0],
                                 my-psfpeak[1])
         for iscale in numpy.arange(len(scales)):
-            resscalestack[a1o[0]:a1o[1],a1o[2]:a1o[3],iscale]-=psfscalestack[a2o[0]:a2o[1],a2o[2]:a2o[3],iscale]*mval[iscale]
+            resscalestack[a1o[0]:a1o[1],a1o[2]:a1o[3],iscale]-=psfscalescalestack[a2o[0]:a2o[1],a2o[2]:a2o[3],mscale,iscale]*mval[iscale]
             comps[a1o[0]:a1o[1],a1o[2]:a1o[3]]+=scalestack[a2o[0]:a2o[1],a2o[2]:a2o[3],iscale]*mval[iscale]
         if numpy.fabs(resscalestack[:,:,0]).max() < thresh:
             break
     return comps, resscalestack[:,:,0]
-    
+
 def createscalestack(scaleshape,scales):
     """ Create a cube consisting of the scales
     """
@@ -146,7 +150,7 @@ def createscalestack(scaleshape,scales):
             basis[x,y,iscale]=(1.0-r2*rscale2)
         basis[basis<0.0]=0.0
     return basis
-         
+
 def convolvescalestack(scalestack, img):
     """Convolve img by the specified scalestack, returning the resulting stack
     """
@@ -158,4 +162,4 @@ def convolvescalestack(scalestack, img):
         xscale=numpy.fft.fftshift(numpy.fft.fft2(numpy.fft.fftshift(scalestack[:,:,iscale])))
         xmult=ximg*xscale
         convolved[:,:,iscale]=numpy.real(numpy.fft.ifftshift(numpy.fft.ifft2(numpy.fft.ifftshift(xmult))))
-    return convolved    
+    return convolved
