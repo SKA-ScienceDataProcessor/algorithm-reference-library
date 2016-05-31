@@ -114,7 +114,7 @@ def visualise_uvw(latitude, hour_angle, declination):
         x, y, z = circular_to_xyz(numpy.outer(lons, numpy.ones(len(lats))),
                                   numpy.outer(numpy.ones(len(lons)), lats))
         ax.plot_surface(x, y, z, rstride=1, cstride=1, linewidth=0, alpha=0.4)
-        obs_x, obs_y, obs_z = circular_to_xyz(0, numpy.radians(latitude))
+        obs_x, obs_y, obs_z = obs = circular_to_xyz(0, numpy.radians(latitude))
         ax.plot([0, obs_x], [0, obs_y], [0, obs_z], color="black", lw=3)
         ax.text(obs_x+0.03, obs_y, obs_z, "Observer", color="black")
         wdir = circular_to_xyz(numpy.radians(hour_angle), numpy.radians(declination))
