@@ -88,9 +88,9 @@ class Arrow3D(FancyArrowPatch):
         FancyArrowPatch.draw(self, renderer)
 
 def make_arrow(ax, source, target, color, name):
-    ax.add_artist(Arrow3D(*numpy.transpose((source, target)),
-                          mutation_scale=20, lw=3, arrowstyle="-|>", color=color))
-    ax.text(*(numpy.array(target)+[0.03,0,0]), name, color=color)
+    xs, ys, zs = numpy.transpose((source, target))
+    ax.add_artist(Arrow3D(xs, ys, zs, mutation_scale=20, lw=3, arrowstyle="-|>", color=color))
+    ax.text(target[0]+0.03, target[1], target[2], name, color=color)
 
 def visualise_uvw(latitude, hour_angle, declination):
     """Shows a visualisation for the UVW coordinate system for an earth
@@ -114,9 +114,9 @@ def visualise_uvw(latitude, hour_angle, declination):
         x, y, z = circular_to_xyz(numpy.outer(lons, numpy.ones(len(lats))),
                                   numpy.outer(numpy.ones(len(lons)), lats))
         ax.plot_surface(x, y, z, rstride=1, cstride=1, linewidth=0, alpha=0.4)
-        obs = circular_to_xyz(0, numpy.radians(latitude))
-        ax.plot(*numpy.transpose([[0,0,0], obs]), color="black", lw=3)
-        ax.text(*(obs+[0.03,0,0]), "Observer", color="black")
+        obs_x, obs_y, obs_z = circular_to_xyz(0, numpy.radians(latitude))
+        ax.plot([0, obs_x], [0, obs_y], [0, obs_z], color="black", lw=3)
+        ax.text(obs_x+0.03, obs_y, obs_z, "Observer", color="black")
         wdir = circular_to_xyz(numpy.radians(hour_angle), numpy.radians(declination))
         vdir = circular_to_xyz(numpy.radians(hour_angle), numpy.radians(declination+90))
         udir = numpy.cross(vdir, wdir)
