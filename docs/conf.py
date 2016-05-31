@@ -53,8 +53,8 @@ master_doc = 'index'
 
 # General information about the project.
 project = 'crocodile'
-copyright = '2016, Tim Cornwell, Bojan Nikolic, Peter Wortmann'
-author = 'Tim Cornwell, Bojan Nikolic, Peter Wortmann'
+copyright = '2016, Bojan Nikolic, Peter Wortmann, Tim Cornwell'
+author = 'Bojan Nikolic, Peter Wortmann, Tim Cornwell'
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
