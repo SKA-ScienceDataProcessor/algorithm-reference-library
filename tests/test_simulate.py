@@ -75,5 +75,27 @@ class TestCoordinates(unittest.TestCase):
         for i in range(10):
             test(np.repeat(np.array(range(10+i)), 3))
 
+    def test_simulate_point(self):
+
+        # Prepare a synthetic layout
+        uvw = np.concatenate(np.concatenate(np.transpose(np.mgrid[-3:4, -3:4, 0:1])))
+        bls = baselines(uvw)
+
+        # Should have positive amplitude for the middle of the picture
+        vis = simulate_point(bls, 0,0)
+        assert_allclose(vis, np.ones(len(vis)))
+
+        # For the half-way point the result is either -1 or 1
+        # depending on whether the baseline length is even
+        bl_even = 1 - 2 * (numpy.sum(bls, axis=1) % 2)
+        vis = simulate_point(bls, 0.5,0.5)
+        assert_allclose(vis, bl_even)
+        vis = simulate_point(bls, -0.5,0.5)
+        assert_allclose(vis, bl_even)
+        vis = simulate_point(bls, 0.5,-0.5)
+        assert_allclose(vis, bl_even)
+        vis = simulate_point(bls, -0.5,-0.5)
+        assert_allclose(vis, bl_even)
+
 if __name__ == '__main__':
     unittest.main()
