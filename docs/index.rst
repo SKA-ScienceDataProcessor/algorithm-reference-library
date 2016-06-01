@@ -23,6 +23,7 @@ Crocodile Documentation
    ben/read_oskar_vis
    ben/simple_dirty_image
    ben/simple_dirty_image_sphfn
+   tim/msclean
 
 Indices and tables
 ==================

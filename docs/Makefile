@@ -56,12 +56,13 @@ clean:
 	make -C ../examples/notebooks clean
 	make -C ../examples/anna clean
 	make -C ../examples/ben clean
+	make -C ../examples/tim clean
 
 make_example_rst = \
  make -C ../examples/$1 rst; \
  if [ ! -d $1 ]; then mkdir $1; fi; \
- cp -u ../examples/$1/*.rst $1/; \
- cp -uR ../examples/$1/$2 $1/
+ cp ../examples/$1/*.rst $1/; \
+ cp -R ../examples/$1/$2 $1/
 
 .PHONY: prepare
 prepare:
@@ -72,6 +73,7 @@ prepare:
 	$(call make_example_rst,notebooks,*_files)
 	$(call make_example_rst,anna,*_files)
 	$(call make_example_rst,ben,*_files)
+	$(call make_example_rst,tim,*_files)
 
 .PHONY: html
 html: prepare

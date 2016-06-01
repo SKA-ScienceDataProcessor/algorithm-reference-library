@@ -106,7 +106,7 @@ def msclean(dirty,
         mscale=0
         for iscale in numpy.arange(len(scales)):
             mx, my=numpy.unravel_index(numpy.fabs((resscalestack)[:,:,iscale]).argmax(), dirty.shape)
-            thismax=resscalestack[mx,my,iscale]
+            thismax=resscalestack[mx,my,iscale]/couplingMatrix[iscale,iscale]
             if thismax>resmax:
                 resmax=thismax
                 mscale=iscale
@@ -129,7 +129,7 @@ def msclean(dirty,
             comps[a1o[0]:a1o[1],a1o[2]:a1o[3]]+=scalestack[a2o[0]:a2o[1],a2o[2]:a2o[3],iscale]*mval[iscale]
         if numpy.fabs(resscalestack[:,:,0]).max() < thresh:
             break
-    return comps, resscalestack[:,:,0]
+    return comps, pmax*resscalestack[:,:,0]
 
 def createscalestack(scaleshape,scales):
     """ Create a cube consisting of the scales
@@ -137,14 +137,14 @@ def createscalestack(scaleshape,scales):
     basis=numpy.zeros(scaleshape)
     nx=scaleshape[0]
     ny=scaleshape[1]
-    xcen=nx/2
-    ycen=ny/2
+    xcen=int(numpy.ceil(float(nx)/2.0))
+    ycen=int(numpy.ceil(float(ny)/2.0))
     for iscale in numpy.arange(0,len(scales)):
-        scale=scales[iscale]
-        rscale2=1.0/(float(scale)/2.0)**2
-        x=range(xcen-scale/2-1,xcen+scale/2+1)
+        halfscale=int(numpy.ceil(scales[iscale]/2.0))
+        rscale2=1.0/(float(scales[iscale])/2.0)**2
+        x=range(xcen-halfscale-1,xcen+halfscale+1)
         fx=numpy.array(x, 'float')-float(xcen)
-        for y in range(ycen-scale/2-1,ycen+scale/2+1):
+        for y in range(ycen-halfscale-1,ycen+halfscale+1):
             fy=float(y-ycen)
             r2=fx*fx+fy*fy
             basis[x,y,iscale]=(1.0-r2*rscale2)

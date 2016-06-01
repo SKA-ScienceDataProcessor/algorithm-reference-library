@@ -20,3 +20,8 @@ Clean
 .. automodule:: crocodile.clean
    :members:
 
+Multiscale Clean
+----------------
+
+.. automodule:: crocodile.clean
+  :members:

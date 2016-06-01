@@ -85,5 +85,5 @@ You can build it as follows:
 
     $ make -C docs [format]
 
-Emit [format] to view a list of documentation formats that Sphinx can
+Omit [format] to view a list of documentation formats that Sphinx can
 generate for you.

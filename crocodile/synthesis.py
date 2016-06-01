@@ -391,9 +391,16 @@ def wslicfwd(guv,
     p= sortw(p, None)
     nv=len(p)
     ii=range( 0, nv, wstep)
-    ir=zip(ii[:-1], ii[1:]) + [ (ii[-1], nv) ]
+    """ Make a tuple containing begin and end indices
+    """
+    ir1=zip(ii[:-1], ii[1:])
+    ir2=zip([ii[-1]], [nv])
     res=[]
-    for ilow, ihigh in ir:
+    for ilow, ihigh in ir1:
+        w=p[ilow:ihigh,2].mean()
+        wg=wkernaf(NpixFF, theta, w, NpixKern, Qpx)
+        res.append (convdegrid(guv,  p[ilow:ihigh]/lam, wg))
+    for ilow, ihigh in ir2:
         w=p[ilow:ihigh,2].mean()
         wg=wkernaf(NpixFF, theta, w, NpixKern, Qpx)
         res.append (convdegrid(guv,  p[ilow:ihigh]/lam, wg))
@@ -417,7 +424,3 @@ def doimg(theta, lam, p, v, imgfn):
     c=imgfn(theta, lam, p, numpy.ones(len(p)))
     p=inv(c)
     return (s,p)
-
-
-
-
