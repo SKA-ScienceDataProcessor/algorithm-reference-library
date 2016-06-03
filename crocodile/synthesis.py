@@ -2,7 +2,8 @@
 #
 # Synthetise and image interferometer data
 """Parameter name meanings:
-
+- p: The uvw coordinates [*,3] (m)
+- v: The visibility values [*] (Jy)
 - T2: Theta2, the half-width of the field of view to be synthetised (radian)
 - L2: Half-width of the uv-plane (unitless). Controls resolution of the images
 - Qpx: Oversampling of pixels by the convolution kernels -- there are
@@ -183,18 +184,39 @@ def grid(a, p, v):
     The zeroth frequency is at N/2 where N is the length on side of
     the grid.
     """
+    assert numpy.max(p) < 0.5
+
     x=numpy.around((0.5+p[:,0])*a.shape[0]).astype(int)
     y=numpy.around((0.5+p[:,1])*a.shape[1]).astype(int)
     for i in range(len(x)):
-        a[y[i],x[i]] += v[i]
+        a[x[i],y[i]] += v[i]
     return a
+
+def degrid(a, p):
+    """DeGrid visibilities (v) at positions (p) from (a) without convolution
+
+    The zeroth frequency is at N/2 where N is the length on side of
+    the grid.
+    :param a:   The uv plane to de-grid from
+    :param p:   The coordinates to degrid at (in fraction of grid)
+
+    :returns: Array of visibilities.
+    """
+    assert numpy.max(p) < 0.5
+
+    x=numpy.around((0.5+p[:,0])*a.shape[0]).astype(int)
+    y=numpy.around((0.5+p[:,1])*a.shape[1]).astype(int)
+    v=[]
+    for i in range(len(x)):
+        v.append(a[x[i], y[i]])
+    return numpy.array(v)
 
 def convgridone(a, pi, fi, gcf, v):
     """Convolve and grid one visibility sample"""
     sx, sy= gcf[0][0].shape[0]//2, gcf[0][0].shape[1]//2
     # NB the order of fi below
-    a[ int(pi[1])-sx: int(pi[1])+sx+1,
-       int(pi[0])-sy: int(pi[0])+sy+1 ] += gcf[fi[1]][fi[0]]*v
+    a[ int(pi[0])-sx: int(pi[0])+sx+1,
+       int(pi[1])-sy: int(pi[1])+sy+1 ] += gcf[fi[0]][fi[1]]*v
 
 def fraccoord(N, p, Qpx):
     """Compute whole and fractional parts of coordinates, rounded to Qpx-th fraction of pixel size
@@ -257,6 +279,9 @@ def exmid2(a, s):
     """Extract a section from middle of a map, suitable for zero
     frequencies at N/2. For even dimensions, this is the reverse
     operation to wkernpad.
+
+    param: a: array from which extract is taken
+    param: s: size of section is 2s+1
     """
     cx=a.shape[0]//2
     cy=a.shape[1]//2
@@ -290,6 +315,14 @@ def inv(g):
                   constant_values=0)
     return numpy.fft.fftshift(numpy.fft.irfft2(huv))
 
+def fullinv(g):
+    """Invert a complex two-dimensional grid.
+
+    :param g: The uv grid to invert. Note that the zero frequency is
+    expected at pixel N/2 where N is the size of the grid on the side.
+
+    """
+    return numpy.real(numpy.fft.ifftshift(numpy.fft.ifft2(g)))
 
 def rotv(p, l, m, v):
     """Rotate visibilities to direction (l,m)"""
@@ -320,9 +353,10 @@ def sortw(p, v):
 def doweight(theta, lam, p, v):
     """Re-weight visibilities
 
-    Note convolution kernels are not taken into account
+    Note that as is usual, convolution kernels are not taken into account
     """
     N = int(theta * lam)
+    assert N>1
     gw = numpy.zeros([N, N])
     x, xf, y, yf=convcoords(gw, p / lam, 1)
     for i in range(len(x)):
@@ -334,15 +368,26 @@ def doweight(theta, lam, p, v):
 
 def simpleimg(theta, lam, p, v):
     """Trivial function for imaging which does no convolution but simply
-    puts the visibilities into a grid cell"""
+    puts the visibilities into a grid cell i.e. boxcar gridding"""
     N = int(theta * lam)
+    assert N>1
     guv=numpy.zeros([N, N], dtype=complex)
     grid(guv, p/lam, v)
     return guv
 
+def simplepredict(guv, theta, lam, p):
+    """Trivial function for degridding which does no convolution but simply
+    extracts the visibilities from a grid cell i.e. boxcar degridding"""
+    N = int(theta * lam)
+    assert N>1
+    v=degrid(guv, p/lam)
+#    p[:,2]*=-1
+    return p, v
+
 def convimg(theta, lam, p, v, kv):
     """Convolve and grid with user-supplied kernels"""
     N = int(theta * lam)
+    assert N>1
     guv=numpy.zeros([N, N], dtype=complex)
     convgrid(guv, p/lam, v, kv)
     return guv
@@ -356,7 +401,7 @@ def wslicimg(theta, lam, p, v,
 
     :param p: UVWs of visiblities
     :param v: visibility values
-    :param wstep: The step between w-slices. W kernels are re-computed
+    :param wstep: The step between w-slices (pixels). W kernels are re-computed
       for each slice, for the mean of the w-coordinates of all
       visibilities falling into the slides.
     :param NpixFF: Size of the far-field for computing the
@@ -365,6 +410,7 @@ def wslicimg(theta, lam, p, v,
       kernels. Currently kernels are the same size for all w-values.
     """
     N = int(theta * lam)
+    assert N>1
     guv=numpy.zeros([N, N], dtype=complex)
     p, v = sortw(p, v)
     nv=len(v)
@@ -386,41 +432,77 @@ def wslicfwd(guv,
     """Predict visibilities using w-slices
 
     :param guv: Input uv plane to de-grid from
+    :param theta: Field of view in radians
+    :param lam: Observing wavelength (m)
+    :param p: UVWs of visiblities
+    :param v: visibility values
+    :param wstep: The step between w-slices (pixels). W kernels are re-computed
+      for each slice, for the mean of the w-coordinates of all
+      visibilities falling into the slices.
+    :param NpixFF: Size of the far-field for computing the
+      w-kernel. See doc/wkernel.
+    :param NpixKern: Size of the extracted convolution
+      kernels. Currently kernels are the same size for all w-values.
+
+    :returns w-sorted uvw, w-sorted degridded visibilities
     """
+    # Calculate number of pixels in the image
     N = int(theta * lam)
+    assert N > 1
+    # Sort the u,v,w coordinates
     p= sortw(p, None)
     nv=len(p)
     ii=range( 0, nv, wstep)
-    """ Make a tuple containing begin and end indices
-    """
-    ir1=zip(ii[:-1], ii[1:])
-    ir2=zip([ii[-1]], [nv])
+    # Make a tuple containing begin and end indices
     res=[]
-    for ilow, ihigh in ir1:
-        w=p[ilow:ihigh,2].mean()
-        wg=wkernaf(NpixFF, theta, w, NpixKern, Qpx)
-        res.append (convdegrid(guv,  p[ilow:ihigh]/lam, wg))
-    for ilow, ihigh in ir2:
+    ii=range( 0, nv, wstep)
+    ir=list(zip(ii[:-1], ii[1:])) + [ (ii[-1], nv) ]
+    # Loop over all visibilities in block of wstep
+    # average w to calculate the gridding kernel
+    for ilow, ihigh in ir:
         w=p[ilow:ihigh,2].mean()
         wg=wkernaf(NpixFF, theta, w, NpixKern, Qpx)
         res.append (convdegrid(guv,  p[ilow:ihigh]/lam, wg))
     v=numpy.concatenate(res)
-    pp=p.copy()
-    pp[:,2]*=-1
-    return (p, rotw(pp,v))
-
+    p[:,2]*=-1
+    # return (p, rotw(p,v))
+    return p, v
 
 def doimg(theta, lam, p, v, imgfn):
     """Do imaging with imaging function (imgfn)
 
-    Note: No longer move all visibilities to postivie v -- need to
+    Note: No longer move all visibilities to positive v -- need to
     check the convolution kernels
+
+    :param p: UVWs of visibilities (m)
+    :param v: Visibilities to be imaged
+    :param imgfn: imaging function e.g. wslicimg or w-slices
+
+    :returns dirty image, psf
     """
+    # add the conjugate points
     p=numpy.vstack([p, p*-1])
     v=numpy.hstack([v, numpy.conj(v)])
-    v=doweight(theta, lam, p, v)
-    c=imgfn(theta, lam, p, rotw(p, v))
-    s=inv(c)
-    c=imgfn(theta, lam, p, numpy.ones(len(p)))
-    p=inv(c)
-    return (s,p)
+    wt=doweight(theta, lam, p, numpy.ones(len(p)))
+    cdrt=imgfn(theta, lam, p, wt*v)
+    drt=numpy.real(numpy.fft.ifftshift(numpy.fft.ifft2(numpy.fft.ifftshift(cdrt))))
+    # drt=numpy.real(numpy.fft.fftshift(numpy.fft.fft2(cdrt)))
+    c=imgfn(theta, lam, p, wt)
+    psf=numpy.real(numpy.fft.ifftshift(numpy.fft.ifft2(numpy.fft.ifftshift(c))))
+    pmax=psf.max()
+    assert pmax>0.0
+    return drt/pmax,psf/pmax
+
+def dopredict(theta, lam, p, modelimage, predfn):
+    """
+    Predict visibilities for a model image at the phase centre using the
+    specified degridding function.
+
+    :param p: UVWs of visiblities (m)
+    :param modelimage: model image as numpy.array (phase center at Nx/2,Ny/2)
+    :param predfn: prediction function e.g. wslicfwd
+
+    :returns predicted visibilities
+    """
+    ximage=numpy.fft.fftshift(numpy.fft.fft2(numpy.fft.fftshift(modelimage.astype(complex))))
+    return predfn(ximage, theta, lam, p)
