@@ -87,10 +87,18 @@ class Arrow3D(FancyArrowPatch):
         self.set_positions((xs[0],ys[0]),(xs[1],ys[1]))
         FancyArrowPatch.draw(self, renderer)
 
-def make_arrow(ax, source, target, color, name):
+def make_arrow(ax, source, target, color, name=None, scale=20, lw=3):
     xs, ys, zs = numpy.transpose((source, target))
-    ax.add_artist(Arrow3D(xs, ys, zs, mutation_scale=20, lw=3, arrowstyle="-|>", color=color))
-    ax.text(target[0]+0.03, target[1], target[2], name, color=color)
+    ax.add_artist(Arrow3D(xs, ys, zs, mutation_scale=scale, lw=lw, arrowstyle="-|>", color=color))
+    if name is not None:
+        ax.text(target[0]+0.03, target[1], target[2], name, color=color)
+
+
+def circular_to_xyz(lon, lat):
+    """Circular coordinate transformation appropriate for visualisation"""
+    return numpy.array((numpy.sin(lon) * numpy.cos(lat),
+                        numpy.cos(lon) * numpy.cos(lat),
+                        numpy.sin(lat)))
 
 def visualise_uvw(latitude, hour_angle, declination):
     """Shows a visualisation for the UVW coordinate system for an earth
@@ -102,11 +110,6 @@ def visualise_uvw(latitude, hour_angle, declination):
     :param declination: Declination of the source. Should be -90-90 degrees.
     """
 
-    # Circular coordinate transformation appropriate for visualisation
-    def circular_to_xyz(lon, lat):
-        return numpy.array((numpy.sin(lon) * numpy.cos(lat),
-                            numpy.cos(lon) * numpy.cos(lat),
-                            numpy.sin(lat)))
     def draw():
         make_arrow(ax, [0,0,0],[0,0,1.1], "black", "Earth axis (towards celestial north)")
         lons = numpy.linspace(-numpy.pi/4, numpy.pi/4, 10)
@@ -134,3 +137,34 @@ def visualise_uvw(latitude, hour_angle, declination):
     ax.view_init(elev=declination, azim=90.-hour_angle)
     ax.set_title("view from phase centre")
     draw()
+
+def visualise_lmn(hour_angle, declination):
+    # Swap X and Y to get a right-handed coordinate system
+    def trans(coo):
+        x,y,z = coo
+        return (y,x,z)
+    def draw(ax):
+        ax.set_xlabel('y [$1$]'); ax.set_ylabel('x [$1$]'); ax.set_zlabel('z [$1$]')
+        make_arrow(ax, trans([0,0,0]),trans([0,0,1.1]), "black", "Celestial north")
+        make_arrow(ax, trans([0,0,0]),trans([1.1,0,0]), "black", "Geographical east")
+        lons = numpy.linspace(0, numpy.pi/2, 20)
+        lats = numpy.linspace(0, numpy.pi/2, 20)
+        x, y, z = circular_to_xyz(numpy.outer(lons, numpy.ones(len(lats))),
+                                  numpy.outer(numpy.ones(len(lons)), lats))
+        ax.plot_surface(y, x, z, rstride=1, cstride=1, linewidth=0, alpha=0.4, color='white')
+        t_x, t_y, t_z = ndir = circular_to_xyz(numpy.radians(-hour_angle), numpy.radians(declination))
+        make_arrow(ax, trans((0,0,0)),     trans((t_x,0,0)),     color="gray", lw=3)
+        make_arrow(ax, trans((t_x,0,0)),   trans((t_x,t_y,0)),   color="gray", lw=3)
+        make_arrow(ax, trans((t_x,t_y,0)), trans((t_x,t_y,t_z)), color="gray", lw=3)
+        make_arrow(ax, trans((0,0,0)),     trans((t_x,t_y,t_z)), color="black", name="phase centre", lw=3)
+        mdir = circular_to_xyz(numpy.radians(-hour_angle), numpy.radians(declination+90))
+        ldir = numpy.cross(ndir, mdir)
+        make_arrow(ax, trans(ndir), trans(ndir+ndir/3), "red", "n")
+        make_arrow(ax, trans(ndir), trans(ndir+ldir/3), "red", "l")
+        make_arrow(ax, trans(ndir), trans(ndir+mdir/3), "red", "m")
+        ax.set_title("Phase centre at $(%.2f,%.2f,%.2f)$" % (t_x, t_y, t_z))
+    fig = pl.figure()
+    ax = fig.add_subplot(121, projection='3d')
+    draw(ax)
+    ax.view_init(elev=35, azim=25)
+    pl.show()
