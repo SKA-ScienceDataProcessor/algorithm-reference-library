@@ -486,7 +486,6 @@ def doimg(theta, lam, p, v, imgfn):
     wt=doweight(theta, lam, p, numpy.ones(len(p)))
     cdrt=imgfn(theta, lam, p, wt*v)
     drt=numpy.real(numpy.fft.ifftshift(numpy.fft.ifft2(numpy.fft.ifftshift(cdrt))))
-    # drt=numpy.real(numpy.fft.fftshift(numpy.fft.fft2(cdrt)))
     c=imgfn(theta, lam, p, wt)
     psf=numpy.real(numpy.fft.ifftshift(numpy.fft.ifft2(numpy.fft.ifftshift(c))))
     pmax=psf.max()
