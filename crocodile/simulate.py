@@ -138,7 +138,10 @@ def xyz_to_baselines(ants_xyz, ha_range, dec):
 def simulate_point(dist_uvw, l, m):
     """
     Simulate visibilities for unit amplitude point source at
-    direction cosines (l,m) relative the phase centre.
+    direction cosines (l,m) relative to the phase centre.
+    
+    This includes phase tracking to the centre of the field (hence the minus 1
+    in the exponent.)
 
     Note that point source is delta function, therefore the
     FT relationship becomes an exponential, evaluated at
@@ -150,7 +153,7 @@ def simulate_point(dist_uvw, l, m):
     """
 
     # vector direction to source
-    s=numpy.array([l, m , numpy.sqrt(1 - l**2 - m**2)])
+    s=numpy.array([l, m , numpy.sqrt(1 - l**2 - m**2)-1.0])
     # complex valued visibility data
     return numpy.exp(-2j*numpy.pi* numpy.dot(dist_uvw, s))
 
