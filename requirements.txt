@@ -1,4 +1,8 @@
 jupyter>=1.0
 numpy>=1.9
+scipy
 pyfits>=3.3
 matplotlib
+pylru
+pweave
+Sphinx
