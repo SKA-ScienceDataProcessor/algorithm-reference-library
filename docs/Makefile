@@ -59,10 +59,10 @@ clean:
 	make -C ../examples/tim clean
 
 make_example_rst = \
- make -C ../examples/$1 rst; \
- if [ ! -d $1 ]; then mkdir $1; fi; \
- cp ../examples/$1/*.rst $1/; \
- if ls ../examples/$1/$2 1> /dev/null 2>&1; then cp -R ../examples/$1/$2 $1/; fi;
+ make -C ../examples/$1 rst && \
+ if [ ! -d $1 ]; then mkdir $1; fi && \
+ cp ../examples/$1/*.rst $1/ && \
+ if ls ../examples/$1/$2 1> /dev/null 2>&1; then cp -R ../examples/$1/$2 $1/; fi
 
 .PHONY: prepare
 prepare:
