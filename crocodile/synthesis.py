@@ -15,6 +15,8 @@ from __future__ import division
 
 import numpy
 import scipy.special
+import pylru
+
 
 def ceil2(x):
     """Find next greater power of 2"""
@@ -211,12 +213,26 @@ def degrid(a, p):
         v.append(a[x[i], y[i]])
     return numpy.array(v)
 
-def convgridone(a, pi, fi, gcf, v):
+def convgridone(a, p, gcf, v):
     """Convolve and grid one visibility sample"""
+    x, xf, y, yf=convcoordsone(a, p, len(gcf))
     sx, sy= gcf[0][0].shape[0]//2, gcf[0][0].shape[1]//2
-    # NB the order of fi below
-    a[ int(pi[0])-sx: int(pi[0])+sx+1,
-       int(pi[1])-sy: int(pi[1])+sy+1 ] += gcf[fi[0]][fi[1]]*v
+    sx, sy= gcf[0][0].shape[0]//2, gcf[0][0].shape[1]//2
+    a[ int(x)-sx: int(x)+sx+1,
+       int(y)-sy: int(y)+sy+1 ] += gcf[xf][yf]*v
+
+def convdegridone(a, p, gcf):
+    """Convolutional-degridding for one visibility sample
+
+    :param a:   The uv plane to de-grid from
+    :param p:   The coordinates to degrid at.
+    :param gcf: List of convolution kernels
+
+    :returns: Visibility valu
+    """
+    x, xf, y, yf=convcoordsone(a, p, len(gcf))
+    sx, sy= gcf[0][0].shape[0]//2, gcf[0][0].shape[1]//2
+    return (a[ x-sx: x+sx+1,  y-sy: y+sy+1 ] * gcf[xf][yf]).sum()
 
 def fraccoord(N, p, Qpx):
     """Compute whole and fractional parts of coordinates, rounded to Qpx-th fraction of pixel size
@@ -239,6 +255,17 @@ def convcoords(a, p, Qpx):
     integer index
     """
     (x, xf), (y, yf) = [fraccoord(a.shape[i], p[:,i], Qpx) for i in [0,1]]
+    return x, xf, y, yf
+
+def convcoordsone(a, p, Qpx):
+    """Compute grid coordinates and fractional values for convolutional
+    gridding for a single visibility
+
+    The fractional values are rounded to nearest 1/Qpx pixel value at
+    fractional values greater than (Qpx-0.5)/Qpx are roundeded to next
+    integer index
+    """
+    (x, xf), (y, yf) = [fraccoord(a.shape[i], p[i], Qpx) for i in [0,1]]
     return x, xf, y, yf
 
 def convgrid(a, p, v, gcf):
@@ -275,6 +302,7 @@ def convdegrid(a, p, gcf):
         v.append((a[ pi[0]-sx: pi[0]+sx+1,  pi[1]-sy: pi[1]+sy+1 ] * gcf[xf[i]][yf[i]]).sum())
     return numpy.array(v)
 
+
 def exmid2(a, s):
     """Extract a section from middle of a map, suitable for zero
     frequencies at N/2. For even dimensions, this is the reverse
@@ -294,7 +322,7 @@ def div0(a1, a2):
     res[m]/=a2[m]
     return res
 
-def inv(g):
+def halfinv(g):
     """Invert a hermitian-symetric two-dimensional grid.
 
     The hermitian symetric dimension is the second (last) index, like
@@ -315,7 +343,7 @@ def inv(g):
                   constant_values=0)
     return numpy.fft.fftshift(numpy.fft.irfft2(huv))
 
-def fullinv(g):
+def inv(g):
     """Invert a complex two-dimensional grid.
 
     :param g: The uv grid to invert. Note that the zero frequency is
@@ -466,6 +494,87 @@ def wslicfwd(guv,
     v=numpy.concatenate(res)
     p[:,2]*=-1
     # return (p, rotw(p,v))
+    return p, v
+
+def wcacheimg(theta, lam, p, v,
+            wcache=None,
+            wstep=2000,
+            cachesize=10000,
+            Qpx=4,
+            NpixFF=256,
+            NpixKern=15):
+    """Basic w-projection by caching convolution functions in w
+
+    The cache can be constructed externally and passed in:
+
+    wcache=pylru.FunctionCacheManager(lambda iw: wkernaf(NpixFF, theta, iw*wstep, NpixKern, Qpx), cachesize)
+
+    :param p: UVWs of visiblities
+    :param v: visibility values
+    :param cache: LRU cache, to be made if not existing
+    :param wstep: The binning of w values. W kernels are computed
+        for each bin, and then cached
+    :param cachesize=10000: Size of cache in number of key/value pairs
+    :param NpixFF: Size of the far-field for computing the
+      w-kernel. See doc/wkernel.
+    :param NpixKern: Size of the extracted convolution
+      kernels. Currently kernels are the same size for all w-values.
+    """
+    N = int(theta * lam)
+    assert N>1
+    p, v = sortw(p, v)
+    guv=numpy.zeros([N, N], dtype=complex)
+    if wcache == None:
+        print("Making w-kernel cache of %d kernels" % (cachesize))
+        wcache=pylru.FunctionCacheManager(lambda iw: wkernaf(NpixFF, theta, iw*wstep, NpixKern, Qpx), cachesize)
+    for iv in range(len(v)):
+        iw=int(round(p[iv,2]/wstep))
+        convgridone(guv, numpy.array(p[iv]/lam), wcache(iw), v[iv])
+    return guv
+
+def wcachefwd(guv,
+            theta, lam, p,
+            wcache=None,
+            wstep=2000,
+            cachesize=10000,
+            Qpx=4,
+            NpixFF=256,
+            NpixKern=15):
+    """Predict visibilities using w-kernel cache
+
+    The cache can be constructed externally and passed in:
+
+    wcache=pylru.FunctionCacheManager(lambda iw: wkernaf(NpixFF, theta, iw*wstep, NpixKern, Qpx), cachesize)
+
+    :param guv: Input uv plane to de-grid from
+    :param theta: Field of view in radians
+    :param lam: Observing wavelength (m)
+    :param p: UVWs of visiblities
+    :param cache: LRU cache, to be made if not existing
+    :param wstep: The binning of w values. W kernels are computed
+        for each bin, and then cached
+    :param cachesize=10000: Size of cache in number of key/value pairs
+    :param v: visibility valuesp    :param NpixFF: Size of the far-field for computing the
+      w-kernel. See doc/wkernel.
+    :param NpixKern: Size of the extracted convolution
+      kernels. Currently kernels are the same size for all w-values.
+
+    :returns degridded visibilities
+    """
+    # Calculate number of pixels in the image
+    N = int(theta * lam)
+    assert N > 1
+    p= sortw(p, None)
+    nv=p.shape[0]
+    if wcache == None:
+        print("Making w-kernel cache of %d kernels" % (cachesize))
+        wcache=pylru.FunctionCacheManager(lambda iw: wkernaf(NpixFF, theta, iw*wstep, NpixKern, Qpx), cachesize)
+    v=numpy.zeros(nv, dtype='complex')
+    print(v.shape)
+    for iv in range(nv):
+        iw=int(round(p[iv,2]/wstep))
+        v[iv]=convdegridone(guv, numpy.array(p[iv]/lam), wcache(iw))
+    p[:,2]*=-1
     return p, v
 
 def doimg(theta, lam, p, v, imgfn):
