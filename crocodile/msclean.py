@@ -1,18 +1,19 @@
 # Tim Cornwell <realtimcornwell@gmail.com>)
 
 import numpy as np
-import matplotlib.pyplot as plt
 
 from crocodile.synthesis import sortw, doimg, dopredict, wslicimg, wslicfwd, simplepredict, simpleimg
+
 from crocodile.clean import overlapIndices, argmax
+
+import matplotlib.pyplot as plt
 
 def majorcycle(T2, L2,
                p, v,
                gain,
                nmajor,
                nminor,
-               window=True,
-               scales=[0],
+               scales,
                thresh=0.0,
                fracthresh=0.1,
                predfn=simplepredict,
@@ -125,8 +126,7 @@ def msclean(dirty,
     if window is True:
         windowstack=np.ones(scalestack.shape, np.bool)
 #    windowstack=convolvescalestack(scalestack, window)>0.9
-    else:
-        windowstack=createwindowstack(scalestack.shape, window)
+    window=np.ones(scalestack.shape, np.bool)
 
     """ The minor cycle
     """
@@ -137,7 +137,7 @@ def msclean(dirty,
 
     for i in range(niter):
         # Find peak over all smoothed images
-        mx,my,mscale=findabsmaxstack(resscalestack, windowstack, couplingMatrix)
+        mx,my,mscale=findabsmaxstack(resscalestack, window, couplingMatrix)
         if mx == None or my == None or mscale == None:
             print("Error in finding peak")
             break
@@ -221,7 +221,7 @@ def convolvescalestack(scalestack, img):
         convolved[:,:,iscale]=np.real(np.fft.ifftshift(np.fft.ifft2(np.fft.ifftshift(xmult))))
     return convolved
 
-def findabsmaxstack(stack, windowstack, couplingmatrix):
+def findabsmaxstack(stack, window, couplingmatrix):
     """Find the location and value of the absolute maximum in this stack
     :param stack: stack to be searched
     :param window: Window for the searched
@@ -232,48 +232,16 @@ def findabsmaxstack(stack, windowstack, couplingmatrix):
     pscale=None
     px=None
     py=None
-    wstack = windowstack * stack
     pshape=[stack.shape[0],stack.shape[1]]
     for iscale in range(stack.shape[2]):
-        mx, my=np.unravel_index(np.fabs((wstack)[:,:,iscale]).argmax(), pshape)
+        mx, my=np.unravel_index(np.fabs((stack)[:,:,iscale]).argmax(), pshape)
         thisabsmax=stack[mx,my,iscale]/couplingmatrix[iscale,iscale]
         if abs(thisabsmax)>abs(pabsmax):
             px=mx
             py=my
             pscale=iscale
-            pabsmax=wstack[px,py,pscale]/couplingmatrix[iscale,iscale]
+            pabsmax=stack[px,py,pscale]/couplingmatrix[iscale,iscale]
     return px, py, pscale
-
-def createwindowstack(scalestack, window, threshold=0.9):
-    """Create a stack of windows. Generates a window stack by convolving
-    the window with the appropriate stack and then thresholding it.
-
-    :param scalestack: Stack of scale images
-    :param window: 2D window
-    :param threshold: threshold for conversion to window
-    """
-    windowstack=convolvescalestack(scalestack, window)
-    windowstack[windowstack<threshold]=0.0
-    windowstack[windowstack>threshold]=1.0
-    return windowstack
-
-def createquarterwindowstack(scalestack, threshold=0.9):
-    """Create a stack of windows. Generates a window stack by convolving
-    the window with the appropriate stack and then thresholding it.
-
-    :param scalestack: Stack of scale images
-    :param threshold: threshold for conversion to window
-    """
-    nx=scalestack.shape[0]
-    ny=scalestack.shape[1]
-    window=np.ones(nx, ny)
-    print(window.shape)
-    window[(nx/4+1):3*nx/4,(ny/4+1):3*ny/4]=1.0
-    windowstack=convolvescalestack(scalestack, window)
-    windowstack[windowstack<threshold]=0.0
-    windowstack[windowstack>threshold]=1.0
-    return windowstack
-
 
 def sphfn(vnu):
 
