@@ -277,12 +277,9 @@ def convgrid(a, p, v, gcf):
     :param v: Visibility values
     :param gcf: List  (shape Qpx, Qpx) of convolution kernels of
     """
-    x, xf, y, yf=convcoords(a, p, len(gcf))
     for i in range(len(x)):
-        convgridone(a,
-                    (x[i], y[i]),
-                    (xf[i], yf[i]),
-                    gcf, v[i])
+        convgridone(a, p[i], gcf, v[i])
+
     return a
 
 def convdegrid(a, p, gcf):
@@ -529,7 +526,7 @@ def wcacheimg(theta, lam, p, v,
         wcache=pylru.FunctionCacheManager(lambda iw: wkernaf(NpixFF, theta, iw*wstep, NpixKern, Qpx), cachesize)
     for iv in range(len(v)):
         iw=int(round(p[iv,2]/wstep))
-        convgridone(guv, numpy.array(p[iv]/lam), wcache(iw), v[iv])
+        convgridone(guv, p[iv]/lam, wcache(iw), v[iv])
     return guv
 
 def wcachefwd(guv,
