@@ -277,7 +277,7 @@ def convgrid(a, p, v, gcf):
     :param v: Visibility values
     :param gcf: List  (shape Qpx, Qpx) of convolution kernels of
     """
-    for i in range(len(x)):
+    for i in range(len(p)):
         convgridone(a, p[i], gcf, v[i])
 
     return a
