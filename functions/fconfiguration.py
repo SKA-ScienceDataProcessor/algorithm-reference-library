@@ -49,8 +49,7 @@ class fconfiguration(Table):
         :param meta: Any meta info
         """
         antxyz=numpy.genfromtxt(antfile, delimiter=",")
-        assert antxyz.shape[1] == 3, "Antenna array has wrong shape %s" % antxyz.shape
-
+        assert antxyz.shape[1] == 3, ("Antenna array has wrong shape %s" % antxyz.shape)
         nants=antxyz.shape[0]
         rot_xyz=xyz_at_latitude(antxyz, location.geodetic[1].to(u.rad).value)
         xyz=Column(rot_xyz, name="xyz")
@@ -91,7 +90,7 @@ class fconfiguration(Table):
         elif name == 'LOFAR':
             fconfiguration.__fromLOFAR(self, antfile="../data/configurations/LOFAR.csv")
         elif name == 'VLAA':
-            location = EarthLocation(lon="107.6184", lat="34.0784", height=2124.0)
+            location = EarthLocation(lon="-107.6184", lat="34.0784", height=2124.0)
             fconfiguration.fromfile(self, antfile="../data/configurations/VLA_A_hor_xyz.csv",
                                     location=location,
                                     mount='xy',
@@ -108,10 +107,7 @@ if __name__ == '__main__':
     print(os.getcwd())
 
     for telescope in fconfiguration().known():
+        print(telescope)
         config = fconfiguration()
         config.fromname(telescope)
         print(config.location.to_geodetic())
-        print(config['names'])
-        config['names'][4]='New name'
-        print(config['names'][0:10])
-        print(config)
