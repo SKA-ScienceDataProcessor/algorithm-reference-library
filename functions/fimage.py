@@ -5,21 +5,9 @@
 #
 import numpy as numpy
 
-from astropy.coordinates import SkyCoord, EarthLocation
 from astropy.wcs import WCS
 from astropy.nddata import NDData
-
 from astropy.io import fits
-
-class fcoordinate(SkyCoord):
-    """ Coordinates on the sky
-    """
-
-class fwcs(WCS):
-    """ World Coordinate System
-    """
-    def __init__(self, fitsfile: str):
-        super().__init__(fitfile)
 
 class fimage():
     """Image class with image data and coordinates
@@ -28,7 +16,6 @@ class fimage():
         assert len(image.shape) < 5, "Too many axes in image"
         self.data=image
         self.wcs=WCS
-
 
     def __init__(self, fitsfile: str):
         hdulist=fits.open(fitsfile)
