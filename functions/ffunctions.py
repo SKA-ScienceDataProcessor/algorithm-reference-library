@@ -3,17 +3,19 @@
 # Definition of the function interface. Although the data structures are classes,
 # we use stateless functions.
 #
-from fvistable import *
-from fconfiguration import *
-from fcomponents import *
-from fimage import *
-from fskymodel import *
-from fpolarisation import *
+from functions.fvistable import *
+from functions.fconfiguration import *
+from functions.fcomponent import *
+from functions.fimage import *
+from functions.fskymodel import *
+from functions.fpolarisation import *
+from functions.fgaintable import *
 
 def fsimulate(config: fconfiguration, sm: fskymodel, times: numpy.array, params: dict) -> fvistable:
     """ Simulate an observation from a configuration and a skymodel, over hour angle range
     """
     return fvistable()
+
 def finvert(vis: fvistable, template: fimage, params: dict) -> (fimage, fimage):
     """ Invert to make dirty image and PSF
     """
@@ -29,7 +31,7 @@ def fcalibrate(vis: fvistable, sm: fskymodel, params: dict) -> fgaintable:
     """
     return fgaintable()
 
-def fminorcycle(dirty: fimage, psf: fimage, params: dict) -> fimage:
+def fminorcycle(dirty: fimage, psf: fimage, window: fimage, params: dict) -> fimage:
     """ Perform minor cycles
     """
 

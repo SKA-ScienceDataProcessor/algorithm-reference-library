@@ -28,6 +28,7 @@ class fvistable(Table):
         :param weight:
         :param copy:
         :param meta:
+        :rtype: object
         """
         nrows = time.shape[0]
         assert uvw.shape[0]==nrows, "Discrepancy in number of rows"
@@ -45,6 +46,7 @@ class fvistable(Table):
         :param times: hour angles
         :param weight: weight of a single sample
         :param direction: direction of source
+        :rtype: object
         """
 
 
@@ -52,6 +54,6 @@ if __name__ == '__main__':
     import os
     print(os.getcwd())
     config = fconfiguration("../data/vis/VLA_A_hor_xyz.txt", location=EarthLocation.of_site('mro'))
-    times=numpy.pi*numpy.arange(-6.0,+6.0,0.1)/12.0
+    times=NDData(numpy.pi*numpy.arange(-6.0, +6.0, 0.1)/12.0)
     mrolocation=EarthLocation.of_site('mro')
     vt=fvistable(config, times, weight=1.0)

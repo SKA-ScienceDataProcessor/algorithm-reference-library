@@ -40,3 +40,4 @@ if __name__ == '__main__':
     print(os.getcwd())
     m31model = fimage("../data/models/m31.model.fits")
     print(m31model.data.shape)
+    print(m31model.wcs)
