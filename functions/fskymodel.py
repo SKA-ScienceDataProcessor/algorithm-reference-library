@@ -10,10 +10,26 @@ from astropy.table import Table, Row, Column, MaskedColumn, TableColumns, TableF
 from astropy.wcs import WCS
 from astropy.nddata import NDData
 
-class fskymodel(Table):
-    """ Sky components and images
+from functions.fcontext import fcontext
+from functions.fimage import fimage
+from functions.fcomponent import fcomponent
+
+class fskymodel():
     """
+    Sky components and images
+    """
+    def __init__(self, images: [] = None, components: [] = None) -> object:
+        """
+
+        :rtype: object
+        """
+        if images:
+            self.images=images
+        if components:
+            self.components=[]
 
 if __name__ == '__main__':
     import os
     print(os.getcwd())
+    m31image = fimage().from_fits("../data/models/m31.model.fits")
+    m31sm = fskymodel(m31image)

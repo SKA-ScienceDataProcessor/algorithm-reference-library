@@ -5,38 +5,83 @@
 #
 from functions.fvistable import *
 from functions.fconfiguration import *
-from functions.fcomponent import *
 from functions.fimage import *
 from functions.fskymodel import *
-from functions.fpolarisation import *
 from functions.fgaintable import *
+from functions.fcontext import fcontext
 
-def fsimulate(config: fconfiguration, sm: fskymodel, times: numpy.array, params: dict) -> fvistable:
-    """ Simulate an observation from a configuration and a skymodel, over hour angle range
+
+def fsimulate_config(config: fconfiguration, context: fcontext = None, **kwargs) -> fvistable:
     """
+    Simulate an observation from a configuration and a skymodel
+    """
+    print("Simulating vistable")
     return fvistable()
 
-def finvert(vis: fvistable, template: fimage, params: dict) -> (fimage, fimage):
-    """ Invert to make dirty image and PSF
-    """
-    return (fimage(template), fimage(template))
 
-def fpredict(vis: fvistable, sm: fskymodel, params: dict) -> fvistable:
-    """ Predict the visibility from a skymodel
+def finvert_vistable(vis: fvistable, context: fcontext = None, **kwargs) -> (fimage, fimage):
     """
-    return vis
+    Invert to make dirty image and PSF
+    """
+    print("Inverting vistable to make dirty and psf")
+    return (fimage(), fimage())
 
-def fcalibrate(vis: fvistable, sm: fskymodel, params: dict) -> fgaintable:
-    """ Selfcalibrate using a sky model
+
+def fpredict_vistable(vis: fvistable, sm: fskymodel, context: fcontext = None, **kwargs) -> fvistable:
     """
+    Predict the visibility from a skymodel
+    :type vis: fvistable
+    """
+    print("Predicting vistable from sky model")
+    return fvistable()
+
+
+def fcalibrate_vistable(vis: fvistable, sm: fskymodel, context: fcontext = None, **kwargs) -> fgaintable:
+    """
+    Calibrate using a sky model
+    """
+    print("Solving for calibration")
     return fgaintable()
 
-def fminorcycle(dirty: fimage, psf: fimage, window: fimage, params: dict) -> fimage:
-    """ Perform minor cycles
+def fcorrect_vistable(vis: fvistable, gt: fgaintable, context: fcontext = None, **kwargs) -> fvistable:
+    """
+    Correct a vistable using a gaintable
+    """
+    print("Applying gaintable")
+    return fgaintable()
+
+
+def fmajorcycles_vistable(vis: fvistable, sm: fskymodel, context: fcontext = None,
+                         **kwargs) -> (fvistable, fimage):
+    """
+    Perform major cycles
     """
 
-def fmajorcycle(vis: fvistable, sm: fskymodel, minorcycle: fminorcycle, params: dict) -> fvistable:
-    """ Perform major cycles
-    """
-    return vis
+    print("Performing %d major cycles" % kwargs.get('nmajor', 100))
+    return vistable(), fimage()
 
+
+def ffindcomponents_image(image: fimage, sm: fskymodel, context: fcontext = None, **kwargs) -> fskymodel:
+    """
+    Find components in image
+    """
+    print("Finding components in image")
+    return fskymodel()
+
+if __name__ == '__main__':
+
+    kwargs={}
+    context=fcontext()
+
+    vlaa = fconfiguration().fromname('VLAA')
+    times = numpy.arange(-3.0, +3.0, 3.0 / 60.0) * numpy.pi / 12.0
+    freq = numpy.arange(5e6, 150.0e6, 1e7)
+    direction = SkyCoord('00h42m30s', '-41d12m00s', frame='icrs')
+    vt=fvistable().observe(vlaa, times, freq, weight=1.0, direction=direction)
+    print(vt)
+    print(vt.freq)
+    m31image=fimage().from_fits("../data/models/m31.model.fits")
+    m31sm=fskymodel(m31image)
+    vt=fpredict_vistable(vt, m31sm, context, **kwargs)
+    dirty,psf=finvert_vistable(vt, context, **kwargs)
+    sm=ffindcomponents_image(dirty, m31sm, context, **kwargs)

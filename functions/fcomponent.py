@@ -9,10 +9,12 @@ from astropy.coordinates import SkyCoord, EarthLocation
 from astropy.table import Table, Row, Column, MaskedColumn, TableColumns, TableFormatter
 from astropy.nddata import NDData
 
+from functions.fcontext import fcontext
+
 class fcomponent():
     """ Component with SkyCoord, NDData
     """
-    def __init__(self, direction: SkyCoord, flux: NDData, shape: str = 'Point', params : dict={}):
+    def __init__(self, direction: SkyCoord, flux: NDData, shape: str = 'Point', context: fcontext = None, **kwargs):
         """
         A single component with direcction, flux, shape, and parameters for the shape
         :param dir:
@@ -23,7 +25,7 @@ class fcomponent():
         self.direction=direction
         self.flux=flux
         self.shape=shape
-        self.params=params
+        self.params=None
 
 
 if __name__ == '__main__':

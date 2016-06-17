@@ -10,6 +10,7 @@ from astropy.table import Table, Row, Column, MaskedColumn, TableColumns, TableF
 from astropy.nddata import NDData
 
 from functions.fconfiguration import fconfiguration
+from functions.fcontext import fcontext
 from crocodile.simulate import *
 
 
@@ -21,7 +22,7 @@ class fvistable(Table):
         pass
 
     def __construct(self, uvw: NDData, time: NDData, freq: NDData, antenna1: NDData, antenna2: NDData,
-                    vis: NDData, weight: NDData, meta={'phasecentre': None}):
+                    vis: NDData, weight: NDData, meta: dict, context: fcontext, **kwargs):
         nrows = time.shape[0]
         assert uvw.shape[0] == nrows, "Discrepancy in number of rows"
         assert len(antenna1) == nrows, "Discrepancy in number of rows"
@@ -33,9 +34,10 @@ class fvistable(Table):
                                         names=['uvw', 'time', 'antenna1', 'antenna2', 'vis', 'weight'],
                                         meta=meta)
         self.freq = freq
+        return self
 
     def observe(self, config: fconfiguration, times: numpy.array, freq: numpy.array, weight: float = 1,
-                direction: SkyCoord = None, meta: dict = {}):
+                direction: SkyCoord = None, meta: dict = None, context: fcontext = None, **kwargs):
         """
         Creat a vistable from configuration, hour angles, and direction of source
         :param config: Configuration of antennas
@@ -67,8 +69,8 @@ class fvistable(Table):
                     row += 1
         ruvw = xyz_to_baselines(ants_xyz, times, direction.dec)
         print(u"Created {0:d} rows".format(nrows))
-        self.__construct(ruvw, rtimes, freq, rantenna1, rantenna2, rvis, rweight)
         self.meta = meta
+        return self.__construct(ruvw, rtimes, freq, rantenna1, rantenna2, rvis, rweight, context, kwargs)
 
 
 if __name__ == '__main__':
