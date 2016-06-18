@@ -4,14 +4,12 @@
 # we use stateless functions.
 #
 from functions.fvistable import *
-from functions.fconfiguration import *
-from functions.fimage import *
-from functions.fskymodel import *
-from functions.fgaintable import *
-from functions.fcontext import fcontext
+from functions.fconfiguration import fconfiguration
+from functions.fimage import fimage
+from functions.fskymodel import fskymodel
+from functions.fgaintable import fgaintable
 
-
-def fsimulate_config(config: fconfiguration, context: fcontext = None, **kwargs) -> fvistable:
+def fsimulate_config(config: fconfiguration, **kwargs) -> fvistable:
     """
     Simulate an observation from a configuration and a skymodel
     """
@@ -19,7 +17,7 @@ def fsimulate_config(config: fconfiguration, context: fcontext = None, **kwargs)
     return fvistable()
 
 
-def finvert_vistable(vis: fvistable, context: fcontext = None, **kwargs) -> (fimage, fimage):
+def finvert_vistable(vis: fvistable, **kwargs) -> (fimage, fimage):
     """
     Invert to make dirty image and PSF
     """
@@ -27,7 +25,7 @@ def finvert_vistable(vis: fvistable, context: fcontext = None, **kwargs) -> (fim
     return (fimage(), fimage())
 
 
-def fpredict_vistable(vis: fvistable, sm: fskymodel, context: fcontext = None, **kwargs) -> fvistable:
+def fpredict_vistable(vis: fvistable, sm: fskymodel, **kwargs) -> fvistable:
     """
     Predict the visibility from a skymodel
     :type vis: fvistable
@@ -36,14 +34,14 @@ def fpredict_vistable(vis: fvistable, sm: fskymodel, context: fcontext = None, *
     return fvistable()
 
 
-def fcalibrate_vistable(vis: fvistable, sm: fskymodel, context: fcontext = None, **kwargs) -> fgaintable:
+def fcalibrate_vistable(vis: fvistable, sm: fskymodel, **kwargs) -> fgaintable:
     """
     Calibrate using a sky model
     """
     print("Solving for calibration")
     return fgaintable()
 
-def fcorrect_vistable(vis: fvistable, gt: fgaintable, context: fcontext = None, **kwargs) -> fvistable:
+def fcorrect_vistable(vis: fvistable, gt: fgaintable, **kwargs) -> fvistable:
     """
     Correct a vistable using a gaintable
     """
@@ -51,7 +49,7 @@ def fcorrect_vistable(vis: fvistable, gt: fgaintable, context: fcontext = None, 
     return fgaintable()
 
 
-def fmajorcycles_vistable(vis: fvistable, sm: fskymodel, context: fcontext = None,
+def fmajorcycles_vistable(vis: fvistable, sm: fskymodel,
                          **kwargs) -> (fvistable, fimage):
     """
     Perform major cycles
@@ -61,7 +59,7 @@ def fmajorcycles_vistable(vis: fvistable, sm: fskymodel, context: fcontext = Non
     return vistable(), fimage()
 
 
-def ffindcomponents_image(image: fimage, sm: fskymodel, context: fcontext = None, **kwargs) -> fskymodel:
+def ffindcomponents_image(image: fimage, sm: fskymodel, **kwargs) -> fskymodel:
     """
     Find components in image
     """

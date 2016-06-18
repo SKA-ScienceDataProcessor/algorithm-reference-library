@@ -8,11 +8,11 @@ from astropy.table import Table
 
 
 class fmkernel(Table):
-    """ Mueller kernel with NDData, antenna1, antenna2, time
+    """ Mueller kernel with numpy.array, antenna1, antenna2, time
     """
 
 class fjones(Table):
-    """ Jones kernel with NDData, antenna1, antenna2, time
+    """ Jones kernel with numpy.array, antenna1, antenna2, time
     """
 
 if __name__ == '__main__':
