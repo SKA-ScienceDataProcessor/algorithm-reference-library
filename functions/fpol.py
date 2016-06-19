@@ -7,11 +7,11 @@
 from astropy.table import Table
 
 
-class fmkernel(Table):
+class fmkernel():
     """ Mueller kernel with numpy.array, antenna1, antenna2, time
     """
 
-class fjones(Table):
+class fjones():
     """ Jones kernel with numpy.array, antenna1, antenna2, time
     """
 
