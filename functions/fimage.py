@@ -48,7 +48,7 @@ def fimage_add_wcs(im: fimage, wcs: WCS):
     return im
 
 
-def fimage_add_fimage(im1: fimage, im2: fimage, checkwcs=False):
+def fimage_add(im1: fimage, im2: fimage, checkwcs=False):
     assert not checkwcs, "Checking WCS not yet implemented"
     return fimage_from_array(im1.data + im2.data, im1.wcs)
 
@@ -58,10 +58,10 @@ if __name__ == '__main__':
     m31model = fimage_from_fits("../data/models/m31.model.fits")
     m31model_by_array = fimage_from_array(m31model.data, m31model.wcs)
     try:
-        m31modelsum = fimage_filter(fimage_add_fimage(m31model, m31model_by_array, checkwcs=True), **kwargs)
+        m31modelsum = fimage_filter(fimage_add(m31model, m31model_by_array, checkwcs=True), **kwargs)
     except:
         print("fimage: correctly failed on checkwcs=True")
         pass
-    m31modelsum = fimage_filter(fimage_add_fimage(m31model, m31model_by_array), **kwargs)
+    m31modelsum = fimage_filter(fimage_add(m31model, m31model_by_array), **kwargs)
     print(m31model.data.shape)
     print(m31model.wcs)

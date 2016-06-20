@@ -6,7 +6,7 @@
 from collections import namedtuple
 import numpy as numpy
 
-from astropy.table import Table, Row, Column, MaskedColumn, TableColumns, TableFormatter
+from astropy.table import Table, vstack, Row, Column, MaskedColumn, TableColumns, TableFormatter
 
 
 def fgaintab():
@@ -19,6 +19,18 @@ def fgaintab():
 def fgaintab_filter(fg: fgaintab, **kwargs):
     print("fgaintab: No filter implemented yet")
     return fg
+
+
+
+def fgaintab_add(fgt1: fgaintab, fgt2: fgaintab, **kwargs):
+    assert len(fgt1.frequency) == len(fgt2.frequency), "fgaintab: frequencies should be the same"
+    assert numpy.max(numpy.abs(fgt1.frequency - fgt2.frequency)) < 1.0, "fgaintab: frequencies should be the same"
+    print("fgaintab: adding tables with %d rows and %d rows" % (len(fgt1.data), len(fgt2.data)))
+    fgt = fgaintab()
+    fgt.data = vstack([fgt1.data, fgt2.data], join_type='exact')
+    print(u"Created table with {0:d} rows".format(len(fgt.data)))
+    assert(len(fgt.data)==(len(fgt1.data)+len(fgt2.data))), 'Length of output data table wrong'
+    return fgt
 
 
 def fgaintab_from_array(gain: numpy.array, time: numpy.array, antenna: numpy.array, weight: numpy.array,

@@ -7,7 +7,7 @@
 from collections import namedtuple
 
 from astropy.coordinates import EarthLocation
-from astropy.table import Table, Row, Column, MaskedColumn, TableColumns, TableFormatter
+from astropy.table import Table, Column, vstack
 import astropy.units as u
 
 from crocodile.simulate import *
@@ -19,6 +19,19 @@ def fconfig():
     Columns: name, antxyz, mount,
     """
     return namedtuple('fconfig', ['name', 'data', 'location'])
+
+
+def fconfig_add(fc1: fconfig, fc2: fconfig):
+    """
+    Add two configurations together
+    :param fc1:
+    :param fc2:
+    :return:
+    """
+    fc=fconfig()
+    fc.name = '%s+%s' % (fc1.name, fc2.name)
+    fc.data = vstack(fc1.data, fc2.data)
+    fc.location = None
 
 
 def fconfig_filter(fc: fconfig, **kwargs):
@@ -66,7 +79,6 @@ def fconfig_from_file(antfile: str, name: str = None, location: EarthLocation = 
     mounts = Column(numpy.repeat(mount, nants), name="mount")
     fc.data = Table(data=[anames, xyz, mounts], names=["names", "xyz", "mount"], meta=meta)
     return fc
-
 
 def fconfig_from_LOFAR(antfile: str, name: str = None, meta: dict = None, **kwargs):
     """
