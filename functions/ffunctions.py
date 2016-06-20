@@ -44,7 +44,7 @@ def fvistab_apply_gaintab(vis: fvistab, gt: fgaintab, **kwargs) -> fvistab:
     return fgaintab()
 
 
-def fvistab_interate_fskymod(vis: fvistab, sm: fskymod, **kwargs) -> (fvistab, fskymod):
+def fvistab_iterate_fskymod(vis: fvistab, sm: fskymod, **kwargs) -> (fvistab, fskymod):
     """
     Perform major cycles
     """
