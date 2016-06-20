@@ -10,69 +10,69 @@ import numpy
 
 from astropy.coordinates import SkyCoord
 
-from functions.fimage import fimage, fimage_from_fits
-from functions.fcomp import fcomp, fcomp_construct
+from functions.image import image, image_from_fits
+from functions.component import component
 
 
-def fskymod():
-    fsm = namedtuple("fskymod", ['images', 'components'])
-    fsm.images = []
-    fsm.components = []
+class skymodel():
+
+    def __init__(self):
+        self.images = []
+        self.components = []
+
+
+def skymodel_filter(fsm: skymodel, **kwargs):
+    print("skymodel: No filter implemented yet")
     return fsm
 
 
-def fskymod_filter(fsm: fskymod, **kwargs):
-    print("fskymod: No filter implemented yet")
-    return fsm
-
-
-def fskymod_add(fsm1: fskymod, fsm2: fskymod):
+def skymodel_add(fsm1: skymodel, fsm2: skymodel):
     """
     Add two configurations together
     :param fsm1:
     :param fsm2:
     :return:
     """
-    fsm=fskymod()
+    fsm=skymodel()
     fsm.images = [fsm1.images, fsm2.images]
     fsm.components = [fsm1.components, fsm2.components]
 
-def fskymod_from_fimage(images: fimage):
+def skymodel_from_image(images: image):
     """Add images
     """
-    sm = fskymod()
+    sm = skymodel()
     sm.images.append(images)
 
 
-def fskymod_add_fimage(sm: fskymod, images: fimage):
+def skymodel_add_image(sm: skymodel, images: image):
     """Add images
     """
     sm.images.append(images)
 
 
-def fskymod_from_fcomp(comp: fcomp):
+def skymodel_from_component(comp: component):
     """Add Component
     """
-    sm = fskymod()
+    sm = skymodel()
     sm.components.append(comp)
 
 
-def fskymod_add_fcomp(sm: fskymod, comp: fcomp):
+def skymodel_add_component(sm: skymodel, comp: component):
     """Add Component
     """
-    sm = fskymod()
+    sm = skymodel()
     sm.components.append(comp)
 
 
 if __name__ == '__main__':
     kwargs = {}
-    m31image = fskymod_filter(fimage_from_fits("../data/models/m31.model.fits"), **kwargs)
-    m31im = fskymod()
+    m31image = skymodel_filter(image_from_fits("../data/models/m31.model.fits"), **kwargs)
+    m31im = skymodel()
     m31im.images.append(m31image)
     flux = numpy.array([[1.0, 0.0, 0.0, 0.0], [1.0, 0.0, 0.0, 0.0]])
     direction = SkyCoord('00h42m30s', '+41d12m00s', frame='icrs')
-    comp = fcomp_construct(direction, flux, shape='Point', name="Mysource")
-    m31comp = fskymod()
+    comp = component_construct(direction, flux, shape='Point', name="Mysource")
+    m31comp = skymodel()
     m31comp.components.append(comp)
-    m31added=fskymod_add(m31im, m31comp)
+    m31added=skymodel_add(m31im, m31comp)
     print(dir(m31added))

@@ -13,51 +13,51 @@ import astropy.units as u
 from crocodile.simulate import *
 
 
-def fconfig():
+class configuration():
     """
     Describe a configuration
-    Columns: name, antxyz, mount,
     """
-    return namedtuple('fconfig', ['name', 'data', 'location'])
+    def __init__(self):
+        self.name = ''
+        self.data = None
+        self.location = None
 
-
-def fconfig_add(fc1: fconfig, fc2: fconfig):
+def configuration_add(fc1: configuration, fc2: configuration):
     """
     Add two configurations together
     :param fc1:
     :param fc2:
     :return:
     """
-    fc=fconfig()
+    fc=configuration()
     fc.name = '%s+%s' % (fc1.name, fc2.name)
     fc.data = vstack(fc1.data, fc2.data)
     fc.location = None
 
 
-def fconfig_filter(fc: fconfig, **kwargs):
-    print("fconfig: No filter implemented yet")
+def configuration_filter(fc: configuration, **kwargs):
+    print("configuration: No filter implemented yet")
     return fc
 
-
-def fconfig_from_array(antxyz: numpy.array, name: str = None, location: EarthLocation = None,
+def configuration_from_array(antxyz: numpy.array, name: str = None, location: EarthLocation = None,
                        mount: str = 'alt-az', names: str = '%d', meta: dict = None, **kwargs):
     """
     Define from an array
-    :rtype: fconfig
+    :rtype: configuration
     :param antxyz: locations of antennas
     :param location: Location of array centre (reference for antenna locations)
     :param mount: Mount type e.g. 'altaz'
     :param names: Generator for names e.g. 'SKA1_MID%d'
     :type meta: dict
     """
-    fc = fconfig()
+    fc = configuration()
     assert len(antxyz) == 2, "Antenna array has wrong shape"
-    fc.data = Table(data=[names, numpy.array(self.antxyz), mount], names=["names", "xyz", "mount"], meta=meta)
+    fc.data = Table(data=[names, antxyz, mount], names=["names", "xyz", "mount"], meta=meta)
     fc.location = location
     return fc
 
 
-def fconfig_from_file(antfile: str, name: str = None, location: EarthLocation = None, mount: str = 'altaz',
+def configuration_from_file(antfile: str, name: str = None, location: EarthLocation = None, mount: str = 'altaz',
                       names: str = "%d", meta: dict = None, **kwargs):
     """
     Define from a file
@@ -67,7 +67,7 @@ def fconfig_from_file(antfile: str, name: str = None, location: EarthLocation = 
     :param mount: mount type: 'altaz', 'xy'
     :param meta: Any meta info
     """
-    fc = fconfig()
+    fc = configuration()
     fc.name = name
     fc.location = location
     antxyz = numpy.genfromtxt(antfile, delimiter=",")
@@ -80,15 +80,15 @@ def fconfig_from_file(antfile: str, name: str = None, location: EarthLocation = 
     fc.data = Table(data=[anames, xyz, mounts], names=["names", "xyz", "mount"], meta=meta)
     return fc
 
-def fconfig_from_LOFAR(antfile: str, name: str = None, meta: dict = None, **kwargs):
+def configuration_from_LOFAR(antfile: str, name: str = None, meta: dict = None, **kwargs):
     """
     :param antfile:
     :param name:
     :param meta:
     :param kwargs:
-    :return fconfig:
+    :return configuration:
     """
-    fc = fconfig()
+    fc = configuration()
     antxyz = numpy.genfromtxt(antfile, skip_header=2, usecols=[1, 2, 3], delimiter=",")
     nants = antxyz.shape[0]
     assert antxyz.shape[1] == 3, "Antenna array has wrong shape %s" % antxyz.shape
@@ -99,39 +99,39 @@ def fconfig_from_LOFAR(antfile: str, name: str = None, meta: dict = None, **kwar
     return fc
 
 
-def fconfig_from_name(name: str = 'LOWBD2', **kwargs):
+def named_configuration(name: str = 'LOWBD2', **kwargs):
     """
     Standard configurations e.g. LOWBD2, MIDBD2
 
     :param name: str name of configuration
-    :rtype fconfig
+    :rtype configuration
     """
 
     if name == 'LOWBD2':
         location = EarthLocation(lon="116.4999", lat="-26.7000", height=300.0)
-        fc = fconfig_from_file(antfile="../data/configurations/LOWBD2.csv",
+        fc = configuration_from_file(antfile="../data/configurations/LOWBD2.csv",
                                location=location, mount='xy', names='LOWBD2_%d')
     elif name == 'LOWBD1':
         location = EarthLocation(lon="116.4999", lat="-26.7000", height=300.0)
-        fc = fconfig_from_file(antfile="../data/configurations/LOWBD1.csv",
+        fc = configuration_from_file(antfile="../data/configurations/LOWBD1.csv",
                                location=location, mount='xy', names='LOWBD1_%d')
     elif name == 'LOFAR':
-        fc = fconfig_from_LOFAR(antfile="../data/configurations/LOFAR.csv")
+        fc = configuration_from_LOFAR(antfile="../data/configurations/LOFAR.csv")
     elif name == 'VLAA':
         location = EarthLocation(lon="-107.6184", lat="34.0784", height=2124.0)
-        fc = fconfig_from_file(antfile="../data/configurations/VLA_A_hor_xyz.csv", location=location,
+        fc = configuration_from_file(antfile="../data/configurations/VLA_A_hor_xyz.csv", location=location,
                                mount='altaz',
                                names='VLA_%d')
     else:
-        fc = fconfig()
+        fc = configuration()
         raise UserWarning("No such configuration %s" % name)
     return fc
 
 
 if __name__ == '__main__':
     kwargs={}
-    fc = fconfig()
+    fc = configuration()
     for telescope in ['LOWBD1', 'LOWBD2', 'LOFAR', 'VLAA']:
         print(telescope)
-        config = fconfig_filter(fconfig_from_name(telescope), **kwargs)
+        config = configuration_filter(named_configuration(telescope), **kwargs)
         print(config.location)
