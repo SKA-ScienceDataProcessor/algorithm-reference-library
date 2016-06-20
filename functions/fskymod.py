@@ -17,6 +17,11 @@ def fskymod():
     return fsm
 
 
+def fskymod_filter(fsm: fskymod, **kwargs):
+    print("fskymod: No filter implemented yet")
+    return fsm
+
+
 def fskymod_from_fimage(images: fimage):
     """Add images
     """
@@ -45,7 +50,8 @@ def fskymod_add_fcomp(sm: fskymod, comp: fcomp):
 
 
 if __name__ == '__main__':
-    m31image = fimage_from_fits("../data/models/m31.model.fits")
+    kwargs = {}
+    m31image = fskymod_filter(fimage_from_fits("../data/models/m31.model.fits"), **kwargs)
     m31sm = fskymod()
     m31sm.images.append(m31image)
     print(dir(m31sm))

@@ -7,7 +7,7 @@ from astropy.coordinates import SkyCoord, EarthLocation
 import numpy
 #
 from functions.fvistab import fvistab, fvistab_from_fconfig
-from functions.fconfig import fconfig, fconfig_from_name
+from functions.fconfig import fconfig, fconfig_filter, fconfig_from_name
 from functions.fimage import fimage, fimage_from_fits
 from functions.fskymod import fskymod, fskymod_from_fimage
 from functions.fgaintab import fgaintab
@@ -64,7 +64,7 @@ if __name__ == '__main__':
 
     kwargs={}
 
-    vlaa = fconfig_from_name('VLAA')
+    vlaa = fconfig_filter(fconfig_from_name('VLAA'), **kwargs)
     times = numpy.arange(-3.0, +3.0, 3.0 / 60.0) * numpy.pi / 12.0
     freq = numpy.arange(5e6, 150.0e6, 1e7)
     direction = SkyCoord('00h42m30s', '-41d12m00s', frame='icrs')

@@ -6,10 +6,6 @@
 
 from collections import namedtuple
 
-import numpy as numpy
-
-import re
-
 from astropy.coordinates import EarthLocation
 from astropy.table import Table, Row, Column, MaskedColumn, TableColumns, TableFormatter
 import astropy.units as u
@@ -23,6 +19,11 @@ def fconfig():
     Columns: name, antxyz, mount,
     """
     return namedtuple('fconfig', ['name', 'data', 'location'])
+
+
+def fconfig_filter(fc: fconfig, **kwargs):
+    print("fconfig: No filter implemented yet")
+    return fc
 
 
 def fconfig_from_array(antxyz: numpy.array, name: str = None, location: EarthLocation = None,
@@ -75,7 +76,7 @@ def fconfig_from_LOFAR(antfile: str, name: str = None, meta: dict = None, **kwar
     :param kwargs:
     :return fconfig:
     """
-    fc= fconfig()
+    fc = fconfig()
     antxyz = numpy.genfromtxt(antfile, skip_header=2, usecols=[1, 2, 3], delimiter=",")
     nants = antxyz.shape[0]
     assert antxyz.shape[1] == 3, "Antenna array has wrong shape %s" % antxyz.shape
@@ -107,16 +108,18 @@ def fconfig_from_name(name: str = 'LOWBD2', **kwargs):
     elif name == 'VLAA':
         location = EarthLocation(lon="-107.6184", lat="34.0784", height=2124.0)
         fc = fconfig_from_file(antfile="../data/configurations/VLA_A_hor_xyz.csv", location=location,
-                 mount='altaz',
-                 names='VLA_%d')
+                               mount='altaz',
+                               names='VLA_%d')
     else:
-        fc=fconfig()
+        fc = fconfig()
         raise UserWarning("No such configuration %s" % name)
     return fc
 
+
 if __name__ == '__main__':
+    kwargs={}
     fc = fconfig()
     for telescope in ['LOWBD1', 'LOWBD2', 'LOFAR', 'VLAA']:
         print(telescope)
-        config=fconfig_from_name(telescope)
+        config = fconfig_filter(fconfig_from_name(telescope), **kwargs)
         print(config.location)

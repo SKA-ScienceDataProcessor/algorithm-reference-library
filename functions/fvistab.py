@@ -7,7 +7,7 @@ from collections import namedtuple
 
 import numpy as numpy
 
-from astropy.coordinates import SkyCoord, EarthLocation
+from astropy.coordinates import SkyCoord
 from astropy.table import Table, Row, Column, MaskedColumn, TableColumns, TableFormatter
 from functions.fconfig import fconfig, fconfig_from_name
 from crocodile.simulate import *
@@ -21,11 +21,17 @@ def fvistab():
     return namedtuple('fvistable', ['data', 'frequency', 'direction'])
 
 
+def fvistab_filter(fvis: fvistab, **kwargs):
+    print("vistab: No filter implemented yet")
+    return fvis
+
+
 def fvistab_from_array(uvw: numpy.array, time: numpy.array, freq: numpy.array, antenna1: numpy.array,
                        antenna2: numpy.array, vis: numpy.array, weight: numpy.array,
                        direction: SkyCoord, meta: dict, **kwargs):
     """
 
+    :type direction: SkyCoord
     :type meta: object
     """
     nrows = time.shape[0]

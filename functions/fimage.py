@@ -23,6 +23,11 @@ def fimage():
     return fim
 
 
+def fimage_filter(fim: fimage, **kwargs):
+    print("fimage: No filter implemented yet")
+    return fim
+
+
 def fimage_from_array(data: numpy.array, wcs: WCS = None):
     """
     :type image: numpy.array
@@ -49,8 +54,14 @@ def fimage_add_fimage(im1: fimage, im2: fimage, checkwcs=False):
 
 
 if __name__ == '__main__':
+    kwargs = {}
     m31model = fimage_from_fits("../data/models/m31.model.fits")
     m31model_by_array = fimage_from_array(m31model.data, m31model.wcs)
-    m31modelsum = fimage_add_fimage(m31model, m31model_by_array)
+    try:
+        m31modelsum = fimage_filter(fimage_add_fimage(m31model, m31model_by_array, checkwcs=True), **kwargs)
+    except:
+        print("fimage: correctly failed on checkwcs=True")
+        pass
+    m31modelsum = fimage_filter(fimage_add_fimage(m31model, m31model_by_array), **kwargs)
     print(m31model.data.shape)
     print(m31model.wcs)

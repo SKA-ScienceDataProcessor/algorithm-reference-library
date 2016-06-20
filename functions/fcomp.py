@@ -14,7 +14,7 @@ from functions.fimage import *
 
 
 def fcomp():
-    """ Component with SkyCoord, numpy.array
+    """ A single component with SkyCoord, numpy.array
     """
     fc=namedtuple('fcomp', ['direction', 'name', 'flux', 'shape', 'params'])
     fc.direction = SkyCoord(0.0 * u.rad, 0.0 * u.rad),
