@@ -40,7 +40,7 @@ class TestFunctions(unittest.TestCase):
         print(gaintable_from_array(gains, times, antennas, weight).data)
 
     def test_image(self):
-        m31model = image_from_fits("../data/models/m31.model.fits")
+        m31model = image_from_fits("./data/models/m31.model.fits")
         m31max = m31model.data.max()
         m31model_by_array = image()
         m31model_by_array = image_from_array(m31model.data, m31model.wcs)
@@ -48,7 +48,7 @@ class TestFunctions(unittest.TestCase):
         assert_allclose(m31model.data.max(), 2.0 * m31max, atol=1e-15)
 
     def test_skymodel(self):
-        m31image = image_from_fits("../data/models/m31.model.fits")
+        m31image = image_from_fits("./data/models/m31.model.fits")
         m31sm = skymodel_from_image(m31image)
         direction = SkyCoord('00h42m30s', '+41d12m00s', frame='icrs')
         flux = numpy.array([[1.0, 0.0, 0.0, 0.0], [1.0, 0.0, 0.0, 0.0]])

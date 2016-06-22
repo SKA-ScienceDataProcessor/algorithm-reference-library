@@ -30,7 +30,7 @@ def wcs_from_visibility(vt: visibility, **kwargs):
     phasecentre = kwargs.get("phasecentre", vt.direction)
     reffrequency = kwargs.get("reffrequency", numpy.average(vt.frequency)) * u.Hz
     deffaultbw = vt.frequency[0]
-    if len(vt.frequency)>1:
+    if len(vt.frequency) > 1:
         deffaultbw = vt.frequency[1] - vt.frequency[0]
     channelwidth = kwargs.get("channelwidth", deffaultbw) * u.Hz
     print("imaging.wcs_from_visibility: Defining image at %s, frequency %s Hz, and bandwidth %s Hz" % (phasecentre,
@@ -40,8 +40,6 @@ def wcs_from_visibility(vt: visibility, **kwargs):
     npixel = kwargs.get("npixel", 512)
     uvmax = (numpy.abs(vt.data['uvw']).max() * u.m * reffrequency / const.c).value
     cellsize = kwargs.get("cellsize", 1.0 / (4.0 * uvmax))
-    print("imaging.wcs_from_visibility: %d by %d pixels of cellsize %s" % (npixel, npixel, cellsize * u.rad))
-
     npol = 1
     # Beware of python indexing order! wcs and the array have opposite ordering
     shape = [len(vt.frequency), npol, npixel, npixel]
@@ -50,6 +48,7 @@ def wcs_from_visibility(vt: visibility, **kwargs):
     w.wcs.crpix = [npixel // 2, npixel // 2, 1.0, 1.0]
     w.wcs.ctype = ["RA---SIN", "DEC--SIN", 'STOKES', 'FREQ']
     w.wcs.crval = [phasecentre.ra.value, phasecentre.dec.value, 1.0, reffrequency.value]
+    w.naxis = 4
 
     return shape, uvmax, w
 
@@ -60,12 +59,12 @@ def invert(vt: visibility, **kwargs) -> (image, image):
     """
     print("imaging.invert: Inverting visibility to make dirty and psf")
     shape, uvmax, w = wcs_from_visibility(vt, **kwargs)
-    dirty = image_from_array(numpy.zeros(shape), w)
-    psf = image_from_array(numpy.zeros(shape), w)
 
     npixel = shape[3]
     cellsize = abs(w.wcs.cdelt[0])
     theta = npixel * cellsize
+
+    print("imaging.invert: npixel=%d, cellsize = %f, theta = %f" % (npixel, cellsize, theta))
 
     wstep = kwargs.get("wstep", 10000.0)
     wcachesize = int(numpy.ceil(numpy.abs(vt.data['uvw'][:, 2]).max() / wstep))
@@ -85,6 +84,7 @@ def invert(vt: visibility, **kwargs) -> (image, image):
 
     dirty = image_from_array(d, w)
     psf = image_from_array(p, w)
+    print("imaging.invert: Finished visibility to make dirty and psf")
     return (dirty, psf, pmax)
 
 
@@ -94,12 +94,18 @@ def predict(vt: visibility, sm: skymodel, **kwargs) -> visibility:
     :type vis: visibility
     """
     print("imaging.predict: Predicting visibility from sky model")
-    w = sm.images[0].wcs
-    shape, uvmax, w = wcs_from_visibility(vt, **kwargs)
+    shape, uvmax, wvis = wcs_from_visibility(vt, **kwargs)
 
+    wimage = sm.images[0].wcs
+
+    shape = sm.images[0].data.shape
     npixel = shape[3]
-    cellsize = abs(w.wcs.cdelt[0])
+    reffrequency = kwargs.get("reffrequency", numpy.average(vt.frequency)) * u.Hz
+    uvmax = (numpy.abs(vt.data['uvw']).max() * u.m * reffrequency / const.c).value
+    cellsize = abs(wimage.wcs.cdelt[0])
     theta = npixel * cellsize
+
+    print("imaging.predict: npixel=%d, cellsize = %f, theta = %f" % (npixel, cellsize, theta))
 
     wstep = kwargs.get("wstep", 10000.0)
     wcachesize = int(numpy.ceil(numpy.abs(vt.data['uvw'][:, 2]).max() / wstep))
@@ -108,9 +114,10 @@ def predict(vt: visibility, sm: skymodel, **kwargs) -> visibility:
     predfn = lambda *x: wcachefwd(*x, wstep=wstep, wcache=wcache)
 
     for channel in range(len(vt.frequency)):
-         vt.data['vis'][:, channel, 0] = dopredict(theta, 4.0 * uvmax, vt.data['uvw'] *
-                                                  (vt.frequency[channel] / const.c).value,
-                                                  sm.images[0].data[channel, 0, :, :], predfn=predfn)
+        puvw, vt.data['vis'][:, channel, 0] = dopredict(theta, 4.0 * uvmax, vt.data['uvw'] *
+                                                                  (vt.frequency[channel] / const.c).value,
+                                                                  sm.images[0].data[channel, 0, :, :], predfn=predfn)
+    print("imaging.predict: Finished predicting visibility from sky model")
     return vt
 
 

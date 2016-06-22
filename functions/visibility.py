@@ -13,7 +13,7 @@ from functions.configuration import configuration, named_configuration
 from crocodile.simulate import *
 
 
-def visibility():
+class visibility():
     """
     Visibility with uvw, time, a1, a2, vis, weight Columns in
     an astropy Table along with an attribute frequency to hold the frequencies
@@ -22,11 +22,11 @@ def visibility():
     visibility is defined to hold an observation with one set of frequencies and one
     direction.
     """
-    vt = namedtuple('visibilityle', ['data', 'frequency', 'direction'])
-    vt.data = None
-    vt.frequency = None
-    vt.direction = None
-    return vt
+    def __init__(self):
+        vt = namedtuple('visibilityle', ['data', 'frequency', 'direction'])
+        self.data = None
+        self.frequency = None
+        self.direction = None
 
 
 def visibility_add(fvt1: visibility, fvt2: visibility, **kwargs):
@@ -70,7 +70,7 @@ def visibility_from_array(uvw: numpy.array, time: numpy.array, freq: numpy.array
     return vt
 
 
-def visibility_from_configuration(config: configuration, times: numpy.array, freq: numpy.array, weight: float = 1.0,
+def simulate(config: configuration, times: numpy.array, freq: numpy.array, weight: float = 1.0,
                          direction: SkyCoord = None, meta: dict = None, **kwargs):
     """
     Creat a vistable from configuration, hour angles, and direction of source
@@ -89,8 +89,8 @@ def visibility_from_configuration(config: configuration, times: numpy.array, fre
     ntimes = len(times)
     nrows = nbaselines * ntimes
     row = 0
-    rvis = numpy.zeros([nrows, nch, 4], dtype='complex')
-    rweight = weight * numpy.zeros([nrows, nch, 4], dtype='float')
+    rvis = numpy.zeros([nrows, nch, 1], dtype='complex')
+    rweight = weight * numpy.zeros([nrows, nch, 1], dtype='float')
     rtimes = numpy.zeros([nrows])
     rantenna1 = numpy.zeros([nrows], dtype='int')
     rantenna2 = numpy.zeros([nrows], dtype='int')
@@ -114,15 +114,14 @@ if __name__ == '__main__':
     freq1 = numpy.arange(5e6, 150.0e6, 1e7)
     freq2 = numpy.arange(6e6, 150.0e6, 1e7)
     direction = SkyCoord(ra='00h42m30s', dec='-41d12m00s', frame='icrs')
-    vt1 = visibility_from_configuration(config, times1, freq1, weight=1.0, direction=direction)
-    print(type(namedtuple('visibilityle', ['data', 'frequency', 'direction'])))
-    vt2 = visibility_from_configuration(config, times2, freq2, weight=1.0, direction=direction)
+    vt1 = simulate(config, times1, freq1, weight=1.0, direction=direction)
+    vt2 = simulate(config, times2, freq2, weight=1.0, direction=direction)
     try:
         vtsum = visibility_add(vt1, vt2)
     except AssertionError:
         print("visibility: correctly threw AssertionError")
         pass
-    vt2 = visibility_from_configuration(config, times2, freq1, weight=1.0, direction=direction)
+    vt2 = simulate(config, times2, freq1, weight=1.0, direction=direction)
     vtsum = visibility_add(vt1, vt2)
     print(vtsum.data)
     print(vtsum.frequency)

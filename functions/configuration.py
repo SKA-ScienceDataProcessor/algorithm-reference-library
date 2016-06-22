@@ -4,7 +4,7 @@
 # subclasses of astropy classes.
 #
 
-from collections import namedtuple
+import numpy as numpy
 
 from astropy.coordinates import EarthLocation
 from astropy.table import Table, Column, vstack
@@ -58,7 +58,7 @@ def configuration_from_array(antxyz: numpy.array, name: str = None, location: Ea
 
 
 def configuration_from_file(antfile: str, name: str = None, location: EarthLocation = None, mount: str = 'altaz',
-                      names: str = "%d", meta: dict = None, **kwargs):
+                      names: str = "%d", frame: str = 'local', meta: dict = None, **kwargs):
     """
     Define from a file
     :param antfile: Antenna file name
@@ -73,11 +73,19 @@ def configuration_from_file(antfile: str, name: str = None, location: EarthLocat
     antxyz = numpy.genfromtxt(antfile, delimiter=",")
     assert antxyz.shape[1] == 3, ("Antenna array has wrong shape %s" % antxyz.shape)
     nants = antxyz.shape[0]
-    rot_xyz = xyz_at_latitude(antxyz, location.geodetic[1].to(u.rad).value)
-    xyz = Column(rot_xyz, name="xyz")
+    declination = location.geodetic[1].to(u.rad).value
+    if frame == 'local':
+        rot_xyz = xyz_to_uvw(antxyz, numpy.radians(0), numpy.radians(declination))
+        xyz = Column(rot_xyz, name="xyz")
+        xyz[:,1], xyz[:,2] = xyz[:,2], xyz[:,1]
+        print(rot_xyz)
+    else:
+        xyz = Column(antxyz, name="xyz")
+
     anames = [names % (ant) for ant in range(nants)]
     mounts = Column(numpy.repeat(mount, nants), name="mount")
     fc.data = Table(data=[anames, xyz, mounts], names=["names", "xyz", "mount"], meta=meta)
+    fc.frame=frame
     return fc
 
 def configuration_from_LOFAR(antfile: str, name: str = None, meta: dict = None, **kwargs):
@@ -108,18 +116,22 @@ def named_configuration(name: str = 'LOWBD2', **kwargs):
     """
 
     if name == 'LOWBD2':
+        # TODO: convert to XYZ
         location = EarthLocation(lon="116.4999", lat="-26.7000", height=300.0)
-        fc = configuration_from_file(antfile="../data/configurations/LOWBD2.csv",
+        fc = configuration_from_file(antfile="./data/configurations/LOWBD2.csv",
                                location=location, mount='xy', names='LOWBD2_%d')
     elif name == 'LOWBD1':
+        # TODO: convert to XYZ
         location = EarthLocation(lon="116.4999", lat="-26.7000", height=300.0)
-        fc = configuration_from_file(antfile="../data/configurations/LOWBD1.csv",
+        fc = configuration_from_file(antfile="./data/configurations/LOWBD1.csv",
                                location=location, mount='xy', names='LOWBD1_%d')
     elif name == 'LOFAR':
-        fc = configuration_from_LOFAR(antfile="../data/configurations/LOFAR.csv")
+        fc = configuration_from_LOFAR(antfile="./data/configurations/LOFAR.csv",
+                                      frame='geocentric')
     elif name == 'VLAA':
+        # TODO: convert to XYZ
         location = EarthLocation(lon="-107.6184", lat="34.0784", height=2124.0)
-        fc = configuration_from_file(antfile="../data/configurations/VLA_A_hor_xyz.csv", location=location,
+        fc = configuration_from_file(antfile="./data/configurations/VLA_A_hor_xyz.csv", location=location,
                                mount='altaz',
                                names='VLA_%d')
     else:
@@ -129,6 +141,9 @@ def named_configuration(name: str = 'LOWBD2', **kwargs):
 
 
 if __name__ == '__main__':
+    import os
+    os.chdir('../')
+    print(os.getcwd())
     kwargs={}
     fc = configuration()
     for telescope in ['LOWBD1', 'LOWBD2', 'LOFAR', 'VLAA']:

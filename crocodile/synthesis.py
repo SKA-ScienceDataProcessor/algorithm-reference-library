@@ -60,7 +60,7 @@ def aaf(a, m, c):
 
     """
     sx,sy=map(lambda i: scipy.special.pro_ang1(m,m,c,uax2(a.shape[i],eps=1e-10))[0],
-           [0,1])
+              [0,1])
     return numpy.outer(sx,sy)
 
 def pxoversample(ff, N, Qpx, s):
@@ -219,7 +219,7 @@ def convgridone(a, p, gcf, v):
     sx, sy= gcf[0][0].shape[0]//2, gcf[0][0].shape[1]//2
     sx, sy= gcf[0][0].shape[0]//2, gcf[0][0].shape[1]//2
     a[ int(x)-sx: int(x)+sx+1,
-       int(y)-sy: int(y)+sy+1 ] += gcf[xf][yf]*v
+    int(y)-sy: int(y)+sy+1 ] += gcf[xf][yf]*v
 
 def convdegridone(a, p, gcf):
     """Convolutional-degridding for one visibility sample
@@ -380,7 +380,7 @@ def doweight(theta, lam, p, v):
 
     Note that as is usual, convolution kernels are not taken into account
     """
-    N = int(theta * lam)
+    N = int(round(theta * lam))
     assert N>1
     gw = numpy.zeros([N, N])
     x, xf, y, yf=convcoords(gw, p / lam, 1)
@@ -394,7 +394,7 @@ def doweight(theta, lam, p, v):
 def simpleimg(theta, lam, p, v):
     """Trivial function for imaging which does no convolution but simply
     puts the visibilities into a grid cell i.e. boxcar gridding"""
-    N = int(theta * lam)
+    N = int(round(theta * lam))
     assert N>1
     guv=numpy.zeros([N, N], dtype=complex)
     grid(guv, p/lam, v)
@@ -403,15 +403,15 @@ def simpleimg(theta, lam, p, v):
 def simplepredict(guv, theta, lam, p):
     """Trivial function for degridding which does no convolution but simply
     extracts the visibilities from a grid cell i.e. boxcar degridding"""
-    N = int(theta * lam)
+    N = int(round(theta * lam))
     assert N>1
     v=degrid(guv, p/lam)
-#    p[:,2]*=-1
+    p[:,2]*=-1
     return p, v
 
 def convimg(theta, lam, p, v, kv):
     """Convolve and grid with user-supplied kernels"""
-    N = int(theta * lam)
+    N = int(round(theta * lam))
     assert N>1
     guv=numpy.zeros([N, N], dtype=complex)
     convgrid(guv, p/lam, v, kv)
@@ -434,7 +434,7 @@ def wslicimg(theta, lam, p, v,
     :param NpixKern: Size of the extracted convolution
       kernels. Currently kernels are the same size for all w-values.
     """
-    N = int(theta * lam)
+    N = int(round(theta * lam))
     assert N>1
     guv=numpy.zeros([N, N], dtype=complex)
     p, v = sortw(p, v)
@@ -472,7 +472,7 @@ def wslicfwd(guv,
     :returns w-sorted uvw, w-sorted degridded visibilities
     """
     # Calculate number of pixels in the image
-    N = int(theta * lam)
+    N = int(round(theta * lam))
     assert N > 1
     # Sort the u,v,w coordinates
     p= sortw(p, None)
@@ -490,16 +490,15 @@ def wslicfwd(guv,
         res.append (convdegrid(guv,  p[ilow:ihigh]/lam, wg))
     v=numpy.concatenate(res)
     p[:,2]*=-1
-    # return (p, rotw(p,v))
     return p, v
 
 def wcacheimg(theta, lam, p, v,
-            wcache=None,
-            wstep=2000,
-            cachesize=10000,
-            Qpx=4,
-            NpixFF=256,
-            NpixKern=15):
+              wcache=None,
+              wstep=2000,
+              cachesize=10000,
+              Qpx=4,
+              NpixFF=256,
+              NpixKern=15):
     """Basic w-projection by caching convolution functions in w
 
     The cache can be constructed externally and passed in:
@@ -517,7 +516,7 @@ def wcacheimg(theta, lam, p, v,
     :param NpixKern: Size of the extracted convolution
       kernels. Currently kernels are the same size for all w-values.
     """
-    N = int(theta * lam)
+    N = int(round(theta * lam))
     assert N>1
     p, v = sortw(p, v)
     guv=numpy.zeros([N, N], dtype=complex)
@@ -530,13 +529,13 @@ def wcacheimg(theta, lam, p, v,
     return guv
 
 def wcachefwd(guv,
-            theta, lam, p,
-            wcache=None,
-            wstep=2000,
-            cachesize=10000,
-            Qpx=4,
-            NpixFF=256,
-            NpixKern=15):
+              theta, lam, p,
+              wcache=None,
+              wstep=2000,
+              cachesize=10000,
+              Qpx=4,
+              NpixFF=256,
+              NpixKern=15):
     """Predict visibilities using w-kernel cache
 
     The cache can be constructed externally and passed in:
@@ -559,7 +558,7 @@ def wcachefwd(guv,
     :returns degridded visibilities
     """
     # Calculate number of pixels in the image
-    N = int(theta * lam)
+    N = int(round(theta * lam))
     assert N > 1
     p= sortw(p, None)
     nv=p.shape[0]
@@ -567,7 +566,6 @@ def wcachefwd(guv,
         print("Making w-kernel cache of %d kernels" % (cachesize))
         wcache=pylru.FunctionCacheManager(lambda iw: wkernaf(NpixFF, theta, iw*wstep, NpixKern, Qpx), cachesize)
     v=numpy.zeros(nv, dtype='complex')
-    print(v.shape)
     for iv in range(nv):
         iw=int(round(p[iv,2]/wstep))
         v[iv]=convdegridone(guv, numpy.array(p[iv]/lam), wcache(iw))
@@ -596,7 +594,7 @@ def doimg(theta, lam, p, v, imgfn):
     psf=numpy.real(numpy.fft.ifftshift(numpy.fft.ifft2(numpy.fft.ifftshift(c))))
     pmax=psf.max()
     assert pmax>0.0
-    return drt/pmax,psf/pmax
+    return drt/pmax, psf/pmax, pmax
 
 def dopredict(theta, lam, p, modelimage, predfn):
     """
