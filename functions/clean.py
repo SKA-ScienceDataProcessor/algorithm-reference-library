@@ -4,20 +4,21 @@
 # subclasses of astropy classes.
 #
 
-import matplotlib.pyplot as plt
-
 import numpy as numpy
 
-from astropy.wcs import WCS
-from astropy.io import fits
-
-from functions.image import image, image_from_array
 from crocodile.msclean import msclean
+from functions.image import Image, image_from_array
 
 
-def clean(dirty: image, psf: image, **kwargs):
+def clean(dirty: Image, psf: Image, **kwargs):
+    """
 
-    algorithm=kwargs.get('algorithm', 'msclean')
+    :param dirty:
+    :param psf:
+    :param kwargs:
+    :return:
+    """
+    algorithm = kwargs.get('algorithm', 'msclean')
     if algorithm == 'msclean':
 
         window = kwargs.get('window', None)

@@ -54,22 +54,23 @@ def xyz_at_latitude(local_xyz, lat):
     points towards the zenith, whereas afterwards it will point towards
     celestial north (parallel to the earth axis).
 
+    :param lat:
     :param local_xyz: Array of local XYZ coordinates
     :returns: Celestial XYZ coordinates
     """
 
-    x,y,z = numpy.hsplit(local_xyz, 3)
+    x, y, z = numpy.hsplit(local_xyz, 3)
 
-    lat2 = numpy.pi/2 - lat
-    y2 = -z*numpy.sin(lat2) + y*numpy.cos(lat2)
-    z2 =  z*numpy.cos(lat2) + y*numpy.sin(lat2)
+    lat2 = numpy.pi / 2 - lat
+    y2 = -z * numpy.sin(lat2) + y * numpy.cos(lat2)
+    z2 = z * numpy.cos(lat2) + y * numpy.sin(lat2)
 
-    return numpy.hstack([x,y2,z2])
+    return numpy.hstack([x, y2, z2])
+
 
 # ---------------------------------------------------------------------------------
 
 def xyz_to_uvw(ants_xyz, ha, dec):
-
     """
     Rotate :math:`(x,y,z)` antenna positions in earth coordinates
     to :math:`(u,v,w)` coordinates relative to
@@ -82,14 +83,14 @@ def xyz_to_uvw(ants_xyz, ha, dec):
     :param dec: declination of phase tracking centre
     """
 
-    x,y,z=numpy.hsplit(ants_xyz,3)
+    x, y, z = numpy.hsplit(ants_xyz, 3)
 
-    u  =  x*numpy.cos(ha)  - y*numpy.sin(ha)
-    v0 =  x*numpy.sin(ha)  + y*numpy.cos(ha)
-    v  =  z*numpy.cos(dec) + v0*numpy.sin(dec)
-    w  =  z*numpy.sin(dec) - v0*numpy.cos(dec)
+    u = x * numpy.cos(ha) - y * numpy.sin(ha)
+    v0 = x * numpy.sin(ha) + y * numpy.cos(ha)
+    v = z * numpy.cos(dec) + v0 * numpy.sin(dec)
+    w = z * numpy.sin(dec) - v0 * numpy.cos(dec)
 
-    ants_uvw = numpy.hstack([u,v,w])
+    ants_uvw = numpy.hstack([u, v, w])
 
     return ants_uvw
 
@@ -102,13 +103,12 @@ def baselines(ants_uvw):
     uvw co-ordinate system station positions
 
     :param ants_uvw: `(u,v,w)` co-ordinates of antennas in array
-    :param basel_uvw: delta-`(u,v,w)` values for baseline
     """
 
-    res=[]
+    res = []
     for i in range(ants_uvw.shape[0]):
-        for j in range(i+1, ants_uvw.shape[0]):
-            res.append(ants_uvw[j]-ants_uvw[i])
+        for j in range(i + 1, ants_uvw.shape[0]):
+            res.append(ants_uvw[j] - ants_uvw[i])
 
     basel_uvw = numpy.array(res)
 
@@ -126,10 +126,9 @@ def xyz_to_baselines(ants_xyz, ha_range, dec):
     :param ants_xyz: :math:`(x,y,z)` co-ordinates of antennas in array
     :param ha_range: list of hour angle values for astronomical source as function of time
     :param dec: declination of astronomical source [constant, not :math:`f(t)`]
-    :param dist_uvw: :math:`(u,v,w)` distribution of projected baselines
     """
 
-    dist_uvw = numpy.concatenate([baselines(xyz_to_uvw(ants_xyz,hax,dec)) for hax in ha_range])
+    dist_uvw = numpy.concatenate([baselines(xyz_to_uvw(ants_xyz, hax, dec)) for hax in ha_range])
     return dist_uvw
 
 
@@ -153,10 +152,12 @@ def simulate_point(dist_uvw, l, m):
     """
 
     # vector direction to source
-    s=numpy.array([l, m , numpy.sqrt(1 - l**2 - m**2)-1.0])
-    # complex valued visibility data
-    return numpy.exp(-2j*numpy.pi* numpy.dot(dist_uvw, s))
+    s = numpy.array([l, m, numpy.sqrt(1 - l ** 2 - m ** 2) - 1.0])
+    # complex valued Visibility data
+    return numpy.exp(-2j * numpy.pi * numpy.dot(dist_uvw, s))
+
 
 if __name__ == '__main__':
     import tests.test_simulate
+
     unittest.main()

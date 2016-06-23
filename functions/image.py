@@ -12,9 +12,9 @@ from astropy.wcs import WCS
 from astropy.io import fits
 
 
-class image():
+class Image():
     """
-    Image class with image data (as a numpy.array) and optionally WCS
+    Image class with Image data (as a numpy.array) and optionally WCS
     """
 
     def __init__(self):
@@ -22,9 +22,9 @@ class image():
         self.wcs = None
 
 
-def image_show(im: image, title: str = ''):
+def image_show(im: Image, title: str = ''):
     """
-    Show an image with coordinates using matplotlib
+    Show an Image with coordinates using matplotlib
     :param im:
     :param title:
     :return:
@@ -41,25 +41,33 @@ def image_show(im: image, title: str = ''):
     return fig
 
 
-def image_filter(fim: image, **kwargs):
+def image_filter(fim: Image, **kwargs):
+    """
+
+    :param fim:
+    :param kwargs:
+    :return:
+    """
     print("image_filter: No filter implemented yet")
     return fim
 
 
-def image_from_array(data: numpy.array, wcs: WCS = None) -> image:
+def image_from_array(data: numpy.array, wcs: WCS = None) -> Image:
     """
-    :type image: numpy.array
+    :param wcs:
+    :param data:
     """
-    fim = image()
+    fim = Image()
     fim.data = data
     fim.wcs = wcs
     return fim
 
 
-def image_to_fits(im: image, fitsfile: str = 'immaging.fits'):
+def image_to_fits(im: Image, fitsfile: str = 'imaging.fits'):
     """
     Write an image to fits
-    :type image: image
+    :param im:
+    :type image: Image
     :param fitsfile: Name of output fits file
     """
     return fits.writeto(fitsfile, im.data, im.wcs.to_header(), clobber=True)
@@ -67,21 +75,21 @@ def image_to_fits(im: image, fitsfile: str = 'immaging.fits'):
 
 def image_from_fits(fitsfile: str):
     """
-    Read an image from fits
+    Read an Image from fits
     :param fitsfile:
     :return:
     """
     hdulist = fits.open(fitsfile)
-    fim = image()
+    fim = Image()
     fim.data = hdulist[0].data
     fim.wcs = WCS(fitsfile)
     print("image_from_fits: Max, min in %s = %.6f, %.6f" % (fitsfile, fim.data.max(), fim.data.min()))
     return fim
 
 
-def image_add_wcs(im: image, w: WCS):
+def image_add_wcs(im: Image, w: WCS):
     """
-    Add a WCS to an image
+    Add a WCS to an Image
     :param im:
     :param wcs:
     :return:
@@ -90,9 +98,9 @@ def image_add_wcs(im: image, w: WCS):
     return im
 
 
-def image_replicate(im: image, shape: [] = [1, 1, 1, 1]):
+def image_replicate(im: Image, shape: [] = [1, 1, 1, 1]):
     """
-    Make a new canonical shape image, extended along third and fourth axes by replication. The order is
+    Make a new canonical shape Image, extended along third and fourth axes by replication. The order is
     [chan, pol, dec, ra]
 
     TODO: Fill in extra axes in wcs
@@ -102,7 +110,7 @@ def image_replicate(im: image, shape: [] = [1, 1, 1, 1]):
     :return:
     """
     if len(im.data.shape) == 2:
-        fim = image()
+        fim = Image()
         image_add_wcs(fim, im.wcs)
         fshape = [shape[3], shape[2], im.data.shape[1], im.data.shape[0]]
         fim.data = numpy.zeros(fshape)
@@ -112,12 +120,12 @@ def image_replicate(im: image, shape: [] = [1, 1, 1, 1]):
                 fim.data[i3, i2, :, :] = im.data[:, :]
         print(fim.wcs)
     elif len(im.data.shape) == 3:
-        fim = image()
+        fim = Image()
         image_add_wcs(fim, im.wcs)
         # TODO: fix this for non-square images!
         fshape = [shape[3], im.data.shape[2], im.data.shape[1], im.data.shape[0]]
         fim.data = numpy.array(fshape)
-        print("image: replicating shape %s to %s" % (im.data.shape, fim.data.shape))
+        print("Image: replicating shape %s to %s" % (im.data.shape, fim.data.shape))
         for i3 in range(shape[3]):
             fim.data[i3, :, :, :] = im.data[:, :, :]
 
@@ -127,7 +135,14 @@ def image_replicate(im: image, shape: [] = [1, 1, 1, 1]):
     return fim
 
 
-def image_add(im1: image, im2: image, checkwcs=False):
+def image_add(im1: Image, im2: Image, checkwcs=False):
+    """
+
+    :param im1:
+    :param im2:
+    :param checkwcs:
+    :return:
+    """
     assert not checkwcs, "Checking WCS not yet implemented"
     return image_from_array(im1.data + im2.data, im1.wcs)
 
@@ -142,7 +157,7 @@ if __name__ == '__main__':
     try:
         m31modelsum = image_filter(image_add(m31model, m31model_by_array, checkwcs=True), **kwargs)
     except:
-        print("image: correctly failed on checkwcs=True")
+        print("Image: correctly failed on checkwcs=True")
         pass
     m31modelsum = image_filter(image_add(m31model, m31model_by_array), **kwargs)
     print(m31model.data.shape)

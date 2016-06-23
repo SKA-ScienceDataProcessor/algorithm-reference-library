@@ -11,9 +11,9 @@ from astropy.table import Table, Column, vstack
 from crocodile.simulate import *
 
 
-class configuration():
+class Configuration():
     """
-    Describe a configuration
+    Describe a Configuration
     """
 
     def __init__(self):
@@ -22,21 +22,27 @@ class configuration():
         self.location = None
 
 
-def configuration_add(fc1: configuration, fc2: configuration):
+def configuration_add(fc1: Configuration, fc2: Configuration):
     """
     Add two configurations together
     :param fc1:
     :param fc2:
     :return:
     """
-    fc = configuration()
+    fc = Configuration()
     fc.name = '%s+%s' % (fc1.name, fc2.name)
     fc.data = vstack(fc1.data, fc2.data)
     fc.location = None
 
 
-def configuration_filter(fc: configuration, **kwargs):
-    print("configuration: No filter implemented yet")
+def configuration_filter(fc: Configuration, **kwargs):
+    """
+
+    :param fc:
+    :param kwargs:
+    :return:
+    """
+    print("Configuration: No filter implemented yet")
     return fc
 
 
@@ -44,14 +50,15 @@ def configuration_from_array(antxyz: numpy.array, name: str = None, location: Ea
                              mount: str = 'alt-az', names: str = '%d', meta: dict = None, **kwargs):
     """
     Define from an array
-    :rtype: configuration
+    :param name:
+    :rtype: Configuration
     :param antxyz: locations of antennas
     :param location: Location of array centre (reference for antenna locations)
     :param mount: Mount type e.g. 'altaz'
     :param names: Generator for names e.g. 'SKA1_MID%d'
     :type meta: dict
     """
-    fc = configuration()
+    fc = Configuration()
     assert len(antxyz) == 2, "Antenna array has wrong shape"
     fc.data = Table(data=[names, antxyz, mount], names=["names", "xyz", "mount"], meta=meta)
     fc.location = location
@@ -62,13 +69,15 @@ def configuration_from_file(antfile: str, name: str = None, location: EarthLocat
                             names: str = "%d", frame: str = 'local', meta: dict = None, **kwargs):
     """
     Define from a file
+    :param frame:
+    :param names:
     :param antfile: Antenna file name
     :param name: Name of array e.g. 'LOWBD2'
     :param location: locationa as EarthLocation
     :param mount: mount type: 'altaz', 'xy'
     :param meta: Any meta info
     """
-    fc = configuration()
+    fc = Configuration()
     fc.name = name
     fc.location = location
     antxyz = numpy.genfromtxt(antfile, delimiter=",")
@@ -95,9 +104,9 @@ def configuration_from_LOFAR(antfile: str, name: str = None, meta: dict = None, 
     :param name:
     :param meta:
     :param kwargs:
-    :return configuration:
+    :return Configuration:
     """
-    fc = configuration()
+    fc = Configuration()
     antxyz = numpy.genfromtxt(antfile, skip_header=2, usecols=[1, 2, 3], delimiter=",")
     nants = antxyz.shape[0]
     assert antxyz.shape[1] == 3, "Antenna array has wrong shape %s" % antxyz.shape
@@ -112,8 +121,8 @@ def named_configuration(name: str = 'LOWBD2', **kwargs):
     """
     Standard configurations e.g. LOWBD2, MIDBD2
 
-    :param name: str name of configuration
-    :rtype configuration
+    :param name: str name of Configuration
+    :rtype Configuration
     """
 
     if name == 'LOWBD2':
@@ -136,8 +145,8 @@ def named_configuration(name: str = 'LOWBD2', **kwargs):
                                      mount='altaz',
                                      names='VLA_%d')
     else:
-        fc = configuration()
-        raise UserWarning("No such configuration %s" % name)
+        fc = Configuration()
+        raise UserWarning("No such Configuration %s" % name)
     return fc
 
 
@@ -147,7 +156,7 @@ if __name__ == '__main__':
     os.chdir('../')
     print(os.getcwd())
     kwargs = {}
-    fc = configuration()
+    fc = Configuration()
     for telescope in ['LOWBD1', 'LOWBD2', 'LOFAR', 'VLAA']:
         print(telescope)
         config = configuration_filter(named_configuration(telescope), **kwargs)

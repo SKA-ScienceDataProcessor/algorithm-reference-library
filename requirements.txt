@@ -6,3 +6,5 @@ matplotlib
 pylru
 pweave
 Sphinx
+astropy
+

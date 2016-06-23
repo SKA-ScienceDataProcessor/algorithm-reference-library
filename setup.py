@@ -10,4 +10,4 @@ setup(name='crocodile',
       url='https://github.com/SKA-ScienceDataProcessor/crocodile',
       packages=['crocodile'],
       license='Apache License Version 2.0',
-     )
+      )

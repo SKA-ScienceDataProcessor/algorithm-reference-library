@@ -4,17 +4,18 @@
 # subclasses of astropy classes.
 #
 
-from astropy.table import Table
 
-
-class fmkernel():
+class MKernel():
     """ Mueller kernel with numpy.array, antenna1, antenna2, time
     """
 
-class fjones():
+
+class Jones():
     """ Jones kernel with numpy.array, antenna1, antenna2, time
     """
 
+
 if __name__ == '__main__':
     import os
+
     print(os.getcwd())

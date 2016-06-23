@@ -3,54 +3,72 @@
 # Visibility data structure: a Table with columns ['uvw', 'time', 'antenna1', 'antenna2', 'vis', 'weight']
 # and an attached attribute which is the frequency of each channel
 
-from collections import namedtuple
-
-import numpy as numpy
-
 from astropy.coordinates import SkyCoord
-from astropy.table import Table, vstack, Row, Column, MaskedColumn, TableColumns, TableFormatter
-from functions.configuration import configuration, named_configuration
+from astropy.table import Table, vstack
+
 from crocodile.simulate import *
+from functions.configuration import Configuration, named_configuration
 
 
-class visibility():
+class Visibility():
     """
     Visibility with uvw, time, a1, a2, vis, weight Columns in
     an astropy Table along with an attribute frequency to hold the frequencies
     and an attribute to hold the direction.
 
-    visibility is defined to hold an observation with one set of frequencies and one
+    Visibility is defined to hold an observation with one set of frequencies and one
     direction.
     """
+
     def __init__(self):
         self.data = None
         self.frequency = None
         self.direction = None
 
 
-def visibility_add(fvt1: visibility, fvt2: visibility, **kwargs) -> visibility:
-    assert len(fvt1.frequency) == len(fvt2.frequency), "visibility: frequencies should be the same"
-    assert numpy.max(numpy.abs(fvt1.frequency - fvt2.frequency)) < 1.0, "visibility: frequencies should be the same"
-    print("visibility.add: adding tables with %d rows and %d rows" % (len(fvt1.data), len(fvt2.data)))
-    fvt = visibility()
+def visibility_add(fvt1: Visibility, fvt2: Visibility, **kwargs) -> Visibility:
+    """
+
+    :param fvt1:
+    :param fvt2:
+    :param kwargs:
+    :return:
+    """
+    assert len(fvt1.frequency) == len(fvt2.frequency), "Visibility: frequencies should be the same"
+    assert numpy.max(numpy.abs(fvt1.frequency - fvt2.frequency)) < 1.0, "Visibility: frequencies should be the same"
+    print("Visibility.add: adding tables with %d rows and %d rows" % (len(fvt1.data), len(fvt2.data)))
+    fvt = Visibility()
     fvt.data = vstack([fvt1.data, fvt2.data], join_type='exact')
     fvt.direction = fvt1.direction
     fvt.frequency = fvt1.frequency
-    print(u"visibility.filter: Created table with {0:d} rows".format(len(fvt.data)))
-    assert(len(fvt.data)==(len(fvt1.data)+len(fvt2.data))), 'Length of output data table wrong'
+    print(u"Visibility.filter: Created table with {0:d} rows".format(len(fvt.data)))
+    assert (len(fvt.data) == (len(fvt1.data) + len(fvt2.data))), 'Length of output data table wrong'
     return fvt
 
 
-def visibility_filter(fvis: visibility, **kwargs) -> visibility:
-    print("visibility.filter: filter not implemented yet")
+def visibility_filter(fvis: Visibility, **kwargs) -> Visibility:
+    """
+
+    :param fvis:
+    :param kwargs:
+    :return:
+    """
+    print("Visibility.filter: filter not implemented yet")
     return fvis
 
 
 def visibility_from_array(uvw: numpy.array, time: numpy.array, freq: numpy.array, antenna1: numpy.array,
-                       antenna2: numpy.array, vis: numpy.array, weight: numpy.array,
-                       direction: SkyCoord, meta: dict, **kwargs) -> visibility:
+                          antenna2: numpy.array, vis: numpy.array, weight: numpy.array,
+                          direction: SkyCoord, meta: dict, **kwargs) -> Visibility:
     """
 
+    :param uvw:
+    :param time:
+    :param freq:
+    :param antenna1:
+    :param antenna2:
+    :param vis:
+    :param weight:
     :type direction: SkyCoord
     :type meta: object
     """
@@ -61,7 +79,7 @@ def visibility_from_array(uvw: numpy.array, time: numpy.array, freq: numpy.array
     assert vis.shape[0] == nrows, "Discrepancy in number of rows for vis"
     assert len(freq) == vis.shape[1], "Discrepancy between frequencies and number of channels"
     assert weight.shape[0] == nrows, "Discrepancy in number of rows"
-    vt = visibility()
+    vt = Visibility()
     vt.data = Table(data=[uvw, time, antenna1, antenna2, vis, weight],
                     names=['uvw', 'time', 'antenna1', 'antenna2', 'vis', 'weight'], meta=meta)
     vt.frequency = freq
@@ -69,10 +87,11 @@ def visibility_from_array(uvw: numpy.array, time: numpy.array, freq: numpy.array
     return vt
 
 
-def simulate(config: configuration, times: numpy.array, freq: numpy.array, weight: float = 1.0,
-                         direction: SkyCoord = None, meta: dict = None, **kwargs) -> visibility:
+def simulate(config: Configuration, times: numpy.array, freq: numpy.array, weight: float = 1.0,
+             direction: SkyCoord = None, meta: dict = None, **kwargs) -> Visibility:
     """
-    Creat a vistable from configuration, hour angles, and direction of source
+    Creat a vistable from Configuration, hour angles, and direction of source
+    :param meta:
     :param config: Configuration of antennas
     :param times: hour angles
     :param freq: frequencies (Hz]
@@ -80,7 +99,7 @@ def simulate(config: configuration, times: numpy.array, freq: numpy.array, weigh
     :param direction: direction of source
     :rtype: object
     """
-    assert direction != None, "Must specify direction"
+    assert direction is not None, "Must specify direction"
     nch = len(freq)
     ants_xyz = config.data['xyz']
     nants = len(config.data['names'])
@@ -101,15 +120,16 @@ def simulate(config: configuration, times: numpy.array, freq: numpy.array, weigh
                 rantenna2[row] = a2
                 row += 1
     ruvw = xyz_to_baselines(ants_xyz, times, direction.dec)
-    print(u"visibility.simulate: Created {0:d} rows".format(nrows))
+    print(u"Visibility.simulate: Created {0:d} rows".format(nrows))
     return visibility_from_array(ruvw, rtimes, freq, rantenna1, rantenna2, rvis, rweight, direction, meta)
 
 
 if __name__ == '__main__':
     import os
+
     print(os.getcwd())
     config = named_configuration('VLAA')
-    print("configuration has type %s" % type(config))
+    print("Configuration has type %s" % type(config))
     times1 = numpy.arange(-3.0, 0.0, 3.0 / 60.0) * numpy.pi / 12.0
     times2 = numpy.arange(0.0, +3.0, 3.0 / 60.0) * numpy.pi / 12.0
     freq1 = numpy.arange(5e6, 150.0e6, 1e7)
@@ -120,7 +140,7 @@ if __name__ == '__main__':
     try:
         vtsum = visibility_add(vt1, vt2)
     except AssertionError:
-        print("visibility: correctly threw AssertionError")
+        print("Visibility: correctly threw AssertionError")
         pass
     vt2 = simulate(config, times2, freq1, weight=1.0, direction=direction)
     vtsum = visibility_add(vt1, vt2)

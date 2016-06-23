@@ -4,22 +4,24 @@
 # subclasses of astropy classes.
 #
 
-from collections import namedtuple
 import numpy as numpy
 
 from astropy.coordinates import SkyCoord
-import astropy.units as u
 
-class component():
+
+class SkyComponent():
+    """
+
+    """
 
     def __init__(self, direction: SkyCoord, flux: numpy.array, shape: str = 'Point', name: str = 'Anon'):
         """
-        A single component with direcction, flux, shape, and parameters for the shape
+        A single SkyComponent with direction, flux, shape, and parameters for the shape
         :type name: str
-        :param dir: SkyCoord
+        :param direction: SkyCoord
         :param flux: numpy.array[4]
         :param shape: 'Point' or 'Gaussian'
-        :param params:
+        :param name: str
         """
         self.direction = direction
         self.name = name
@@ -31,5 +33,5 @@ class component():
 if __name__ == '__main__':
     flux = numpy.array([[1.0, 0.0, 0.0, 0.0], [1.0, 0.0, 0.0, 0.0]])
     direction = SkyCoord('00h42m30s', '+41d12m00s', frame='icrs')
-    comp = component(direction, flux, shape='Point', name="Mysource")
+    comp = SkyComponent(direction, flux, shape='Point', name="Mysource")
     print(dir(comp))
