@@ -119,7 +119,7 @@ def majorcycle(T2, L2,
     """
     ps, vs = sortw(p, v)
     for i in range(nmajor):
-        dirty, psf = doimg(T2, L2, ps, vs, lambda *x: wslicimg(*x, wstep=wstep, Qpx=1))
+        dirty, psf, _ = doimg(T2, L2, ps, vs, lambda *x: wslicimg(*x, wstep=wstep, Qpx=1))
         cc, rres = hogbom(dirty, psf, True, gain, 0,
                           nminor)
         xuv = numpy.fft.fftshift(numpy.fft.fft2(numpy.fft.ifftshift(cc)))
