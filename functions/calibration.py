@@ -31,9 +31,15 @@ def correct(vt: visibility, gt: gaintable, **kwargs) -> visibility:
 
 
 if __name__ == '__main__':
-    kwargs = {}
+    import os
+
+    os.chdir('../')
+    print(os.getcwd())
+
+    kwargs = {'wstep':100.0}
 
     vlaa = configuration_filter(named_configuration('VLAA'), **kwargs)
+    vlaa.data['xyz']*=1.0/30.0
     times = numpy.arange(-3.0, +3.0, 3.0 / 60.0) * numpy.pi / 12.0
     frequency = numpy.arange(1.0e8, 1.50e8, 1e7)
     direction = SkyCoord('00h42m30s', '-41d12m00s', frame='icrs')

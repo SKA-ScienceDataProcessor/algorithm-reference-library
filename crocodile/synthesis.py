@@ -560,7 +560,6 @@ def wcachefwd(guv,
     # Calculate number of pixels in the image
     N = int(round(theta * lam))
     assert N > 1
-    p= sortw(p, None)
     nv=p.shape[0]
     if wcache == None:
         print("Making w-kernel cache of %d kernels" % (cachesize))

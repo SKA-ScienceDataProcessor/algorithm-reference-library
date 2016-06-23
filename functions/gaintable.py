@@ -48,6 +48,9 @@ def gaintable_from_array(gain: numpy.array, time: numpy.array, antenna: numpy.ar
 
 
 if __name__ == '__main__':
+    import os
+    os.chdir('../')
+    print(os.getcwd())
     kwargs = {}
     nant = 27
     aantennas = numpy.arange(nant, dtype='int')

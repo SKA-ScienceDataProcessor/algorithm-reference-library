@@ -63,11 +63,12 @@ def invert(vt: visibility, **kwargs) -> (image, image):
     npixel = shape[3]
     cellsize = kwargs.get("cellsize", abs(w.wcs.cdelt[0]))
     criticalcellsize = 1.0/(4.0*uvmax)
+    if cellsize > criticalcellsize:
+        print("Resetting cellsize %f to criticalcellsize %f" %(cellsize, criticalcellsize))
     theta = npixel * cellsize
 
     print("imaging.invert: Specified npixel=%d, specified cellsize = %f, FOV = %f" % (npixel, cellsize, theta))
     print("imaging.invert: Critical cellsize = %f" % (1.0 / (2.0 *uvmax)))
-    assert (cellsize <= criticalcellsize), "Specified cellsize is above critical"
 
     wstep = kwargs.get("wstep", 10000.0)
     wcachesize = int(numpy.ceil(numpy.abs(vt.data['uvw'][:, 2]).max() / wstep))
@@ -80,14 +81,16 @@ def invert(vt: visibility, **kwargs) -> (image, image):
 
     pmax = 0.0
     for channel in range(len(vt.frequency)):
-        d[channel, 0, :, :], p[channel, 0, :, :], pmax = \
+        for pol in range(1):
+            print('imaging.invert: Inverting channel %d, polarisation %d' % (channel, pol))
+            d[channel, pol, :, :], p[channel, 0, :, :], pmax = \
             doimg(theta, 1.0 / cellsize, vt.data['uvw'] * (vt.frequency[channel] / const.c).value,
-                  vt.data['vis'][:, channel, 0], imgfn=imgfn)
+                  vt.data['vis'][:, channel, pol], imgfn=imgfn)
         assert pmax > 0.0, ("No data gridded for channel %d" % channel)
 
     dirty = image_from_array(d, w)
     psf = image_from_array(p, w)
-    print("imaging.invert: Finished visibility to make dirty and psf")
+    print("imaging.invert: Finished making dirty and psf")
     return (dirty, psf, pmax)
 
 
@@ -119,9 +122,11 @@ def predict(vt: visibility, sm: skymodel, **kwargs) -> visibility:
     predfn = lambda *x: wcachefwd(*x, wstep=wstep, wcache=wcache)
 
     for channel in range(len(vt.frequency)):
-        puvw, vt.data['vis'][:, channel, 0] = dopredict(theta, 1.0/cellsize, vt.data['uvw'] *
+        for pol in range(1):
+            print('imaging.invert: Predicting channel %d, polarisation %d' % (channel, pol))
+            puvw, vt.data['vis'][:, channel, pol] = dopredict(theta, 1.0/cellsize, vt.data['uvw'] *
                                                         (vt.frequency[channel] / const.c).value,
-                                                        sm.images[0].data[channel, 0, :, :], predfn=predfn)
+                                                        sm.images[0].data[channel, pol, :, :], predfn=predfn)
     print("imaging.predict: Finished predicting visibility from sky model")
     return vt
 
@@ -153,9 +158,13 @@ def fitcomponent(image: image, sm: skymodel, **kwargs) -> (skymodel, image):
 
 
 if __name__ == '__main__':
-    kwargs = {}
+    import os
+    os.chdir('../')
+    print(os.getcwd())
+    kwargs = {'wstep':100}
 
     vlaa = configuration_filter(named_configuration('VLAA'), **kwargs)
+    vlaa.data['xyz']*=1.0/30.0
     times = numpy.arange(-3.0, +3.0, 3.0 / 60.0) * numpy.pi / 12.0
     frequency = numpy.arange(1.0e8, 1.50e8, 1e7)
     direction = SkyCoord('00h42m30s', '-41d12m00s', frame='icrs')

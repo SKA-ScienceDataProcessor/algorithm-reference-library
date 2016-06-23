@@ -23,33 +23,32 @@ class visibility():
     direction.
     """
     def __init__(self):
-        vt = namedtuple('visibilityle', ['data', 'frequency', 'direction'])
         self.data = None
         self.frequency = None
         self.direction = None
 
 
-def visibility_add(fvt1: visibility, fvt2: visibility, **kwargs):
+def visibility_add(fvt1: visibility, fvt2: visibility, **kwargs) -> visibility:
     assert len(fvt1.frequency) == len(fvt2.frequency), "visibility: frequencies should be the same"
     assert numpy.max(numpy.abs(fvt1.frequency - fvt2.frequency)) < 1.0, "visibility: frequencies should be the same"
-    print("visibility: adding tables with %d rows and %d rows" % (len(fvt1.data), len(fvt2.data)))
+    print("visibility.add: adding tables with %d rows and %d rows" % (len(fvt1.data), len(fvt2.data)))
     fvt = visibility()
     fvt.data = vstack([fvt1.data, fvt2.data], join_type='exact')
     fvt.direction = fvt1.direction
     fvt.frequency = fvt1.frequency
-    print(u"Created table with {0:d} rows".format(len(fvt.data)))
+    print(u"visibility.filter: Created table with {0:d} rows".format(len(fvt.data)))
     assert(len(fvt.data)==(len(fvt1.data)+len(fvt2.data))), 'Length of output data table wrong'
     return fvt
 
 
-def visibility_filter(fvis: visibility, **kwargs):
-    print("vistab: No filter implemented yet")
+def visibility_filter(fvis: visibility, **kwargs) -> visibility:
+    print("visibility.filter: filter not implemented yet")
     return fvis
 
 
 def visibility_from_array(uvw: numpy.array, time: numpy.array, freq: numpy.array, antenna1: numpy.array,
                        antenna2: numpy.array, vis: numpy.array, weight: numpy.array,
-                       direction: SkyCoord, meta: dict, **kwargs):
+                       direction: SkyCoord, meta: dict, **kwargs) -> visibility:
     """
 
     :type direction: SkyCoord
@@ -71,7 +70,7 @@ def visibility_from_array(uvw: numpy.array, time: numpy.array, freq: numpy.array
 
 
 def simulate(config: configuration, times: numpy.array, freq: numpy.array, weight: float = 1.0,
-                         direction: SkyCoord = None, meta: dict = None, **kwargs):
+                         direction: SkyCoord = None, meta: dict = None, **kwargs) -> visibility:
     """
     Creat a vistable from configuration, hour angles, and direction of source
     :param config: Configuration of antennas
@@ -102,11 +101,13 @@ def simulate(config: configuration, times: numpy.array, freq: numpy.array, weigh
                 rantenna2[row] = a2
                 row += 1
     ruvw = xyz_to_baselines(ants_xyz, times, direction.dec)
-    print(u"Created {0:d} rows".format(nrows))
+    print(u"visibility.simulate: Created {0:d} rows".format(nrows))
     return visibility_from_array(ruvw, rtimes, freq, rantenna1, rantenna2, rvis, rweight, direction, meta)
 
 
 if __name__ == '__main__':
+    import os
+    print(os.getcwd())
     config = named_configuration('VLAA')
     print("configuration has type %s" % type(config))
     times1 = numpy.arange(-3.0, 0.0, 3.0 / 60.0) * numpy.pi / 12.0

@@ -16,18 +16,26 @@ class image():
     """
     Image class with image data (as a numpy.array) and optionally WCS
     """
+
     def __init__(self):
         self.data = None
         self.wcs = None
 
-def image_show(im:image, title: str = ''):
 
+def image_show(im: image, title: str = ''):
+    """
+    Show an image with coordinates using matplotlib
+    :param im:
+    :param title:
+    :return:
+    """
     plt.clf()
     fig = plt.figure()
     fig.add_subplot(111, projection=im.wcs.sub(['longitude', 'latitude']))
     plt.imshow(im.data[0, 0, :, :], origin='lower', cmap='rainbow')
     plt.xlabel('RA---SIN')
     plt.ylabel('DEC--SIN')
+    plt.title(title)
     plt.colorbar()
     plt.show()
     return fig
@@ -64,9 +72,9 @@ def image_from_fits(fitsfile: str):
     :return:
     """
     hdulist = fits.open(fitsfile)
-    fim=image()
-    fim.data=hdulist[0].data
-    fim.wcs=WCS(fitsfile)
+    fim = image()
+    fim.data = hdulist[0].data
+    fim.wcs = WCS(fitsfile)
     print("image_from_fits: Max, min in %s = %.6f, %.6f" % (fitsfile, fim.data.max(), fim.data.min()))
     return fim
 
@@ -81,7 +89,8 @@ def image_add_wcs(im: image, w: WCS):
     im.wcs = w.deepcopy()
     return im
 
-def image_replicate(im: image, shape: [] = [1,1,1,1]):
+
+def image_replicate(im: image, shape: [] = [1, 1, 1, 1]):
     """
     Make a new canonical shape image, extended along third and fourth axes by replication. The order is
     [chan, pol, dec, ra]
@@ -92,22 +101,22 @@ def image_replicate(im: image, shape: [] = [1,1,1,1]):
     :param shape: Extra axes (only axes 0 and 1 are heeded.
     :return:
     """
-    if len(im.data.shape)==2:
+    if len(im.data.shape) == 2:
         fim = image()
         image_add_wcs(fim, im.wcs)
-        fshape =[shape[3], shape[2], im.data.shape[1], im.data.shape[0]]
-        fim.data=numpy.zeros(fshape)
+        fshape = [shape[3], shape[2], im.data.shape[1], im.data.shape[0]]
+        fim.data = numpy.zeros(fshape)
         print("image_replicate: replicating shape %s to %s" % (im.data.shape, fim.data.shape))
         for i3 in range(shape[3]):
             for i2 in range(shape[2]):
-                fim.data[i3, i2, :, :]=im.data[:, :]
+                fim.data[i3, i2, :, :] = im.data[:, :]
         print(fim.wcs)
     elif len(im.data.shape) == 3:
         fim = image()
         image_add_wcs(fim, im.wcs)
         # TODO: fix this for non-square images!
-        fshape =[shape[3], im.data.shape[2], im.data.shape[1], im.data.shape[0]]
-        fim.data=numpy.array(fshape)
+        fshape = [shape[3], im.data.shape[2], im.data.shape[1], im.data.shape[0]]
+        fim.data = numpy.array(fshape)
         print("image: replicating shape %s to %s" % (im.data.shape, fim.data.shape))
         for i3 in range(shape[3]):
             fim.data[i3, :, :, :] = im.data[:, :, :]
@@ -124,6 +133,9 @@ def image_add(im1: image, im2: image, checkwcs=False):
 
 
 if __name__ == '__main__':
+    import os
+    os.chdir('../')
+    print(os.getcwd())
     kwargs = {}
     m31model = image_from_fits("./data/models/M31.MOD")
     m31model_by_array = image_from_array(m31model.data, m31model.wcs)

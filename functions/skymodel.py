@@ -71,8 +71,12 @@ def skymodel_add_component(sm: skymodel, comp: component):
 
 
 if __name__ == '__main__':
+    import os
+    os.chdir('../')
+    print(os.getcwd())
+
     kwargs = {}
-    m31image = skymodel_filter(image_from_fits("./data/models/m31.model.fits"), **kwargs)
+    m31image = skymodel_filter(image_from_fits("./data/models/M31.MOD"), **kwargs)
     m31im = skymodel()
     m31im.images.append(m31image)
     flux = numpy.array([[1.0, 0.0, 0.0, 0.0], [1.0, 0.0, 0.0, 0.0]])
@@ -81,4 +85,3 @@ if __name__ == '__main__':
     m31comp = skymodel()
     m31comp.components.append(comp)
     m31added=skymodel_add(m31im, m31comp)
-    print(dir(m31added))
