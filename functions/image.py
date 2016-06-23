@@ -108,12 +108,12 @@ def image_replicate(im: Image, shape: [] = [1, 1, 1, 1]):
     Make a new canonical shape Image, extended along third and fourth axes by replication. The order is
     [chan, pol, dec, ra]
 
-    TODO: Fill in extra axes in wcs
 
     :param im:
     :param shape: Extra axes (only axes 0 and 1 are heeded.
     :return:
     """
+    # TODO: Fill in extra axes in wcs
     if len(im.data.shape) == 2:
         fim = Image()
         image_add_wcs(fim, im.wcs)
@@ -142,12 +142,12 @@ def image_replicate(im: Image, shape: [] = [1, 1, 1, 1]):
 
 def image_add(im1: Image, im2: Image, checkwcs=False):
     """
-    TODO: Implement addition and stacking
     :param im1:
     :param im2:
     :param checkwcs:
     :return:
     """
+    # TODO: Implement addition and stacking
     assert not checkwcs, "Checking WCS not yet implemented"
     return image_from_array(im1.data + im2.data, im1.wcs)
 

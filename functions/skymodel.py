@@ -14,8 +14,8 @@ from functions.skycomponent import SkyComponent
 class SkyModel():
     """
     A skymodel consisting of list of images and lists of components
-    TODO: Fill out SkyModel
     """
+    # TODO: Fill out SkyModel
 
     def __init__(self):
         self.images = []

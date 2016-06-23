@@ -12,10 +12,12 @@ from functions.image import Image, image_from_array
 
 def clean(dirty: Image, psf: Image, **kwargs):
     """
-
-    :param dirty:
-    :param psf:
+    Clean using a variety of algorithms
+    :param dirty: Image dirty image
+    :param psf: Image Point Spread Function
     :param kwargs:
+    'algorithm': 'msclean'
+    'gain': loop gain
     :return:
     """
     algorithm = kwargs.get('algorithm', 'msclean')
@@ -23,10 +25,15 @@ def clean(dirty: Image, psf: Image, **kwargs):
 
         window = kwargs.get('window', None)
         gain = kwargs.get('gain', 0.7)
+        assert 0.0 < gain < 2.0, "Loop gain must be between 0 and 2"
         thresh = kwargs.get('threshold', 0.0)
+        assert thresh > 0.0
         niter = kwargs.get('niter', 100)
+        assert niter > 0
         scales = kwargs.get('scales', [0, 3, 10, 30])
         fracthresh = kwargs.get('fracthresh', 0.0)
+        assert 0.0 < fracthresh < 1.0
+
         comp_array = numpy.zeros(dirty.data.shape)
         residual_array = numpy.zeros(dirty.data.shape)
         for channel in range(dirty.data.shape[0]):

@@ -134,8 +134,8 @@ def predict(vt: Visibility, sm: SkyModel, **kwargs) -> Visibility:
 def majorcycle(vt: Visibility, sm: SkyModel, **kwargs) -> (Visibility, SkyModel):
     """
     Perform major cycles
-    TODO: Implement major cycles
     """
+    # TODO: Implement major cycles
 
     print("imaging.majorcycle: Stubbed: Performing %d major cycles" % kwargs.get('nmajor', 100))
     return vt, sm
@@ -144,8 +144,8 @@ def majorcycle(vt: Visibility, sm: SkyModel, **kwargs) -> (Visibility, SkyModel)
 def visibilitysum(vt: Visibility, direction: SkyCoord, **kwargs) -> SkyComponent:
     """
     Direct Fourier summation
-    TODO: Implement visibility sum
     """
+    # TODO: Implement visibility sum
 
     print("imaging.visibilitysum: Stubbed: Performing Direct Fourier Summation in direction %s")
     return None
@@ -154,8 +154,8 @@ def visibilitysum(vt: Visibility, direction: SkyCoord, **kwargs) -> SkyComponent
 def fitcomponent(image: Image, sm: SkyModel, **kwargs) -> (SkyModel, Image):
     """
     Find components in Image, return SkyModel and residual Image
-    TODO: Implement image fitting of components
     """
+    # TODO: Implement image fitting of components
     print("imaging.fitcomponent: Stubbed: Finding components in Image, adding to SkyModel")
     return sm, image
 
