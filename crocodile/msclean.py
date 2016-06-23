@@ -38,7 +38,7 @@ def majorcycle(T2, L2,
     # The model is added to each major cycle and then the visibilities are
     # calculated from the full model
     ps, vso = sortw(p, v)
-    dirty, psf = doimg(T2, L2, ps, vso, imgfn)
+    dirty, psf, sumwt = doimg(T2, L2, ps, vso, imgfn)
     comps = 0.0 * dirty.copy()
     for i in range(nmajor):
         print("Start of major cycle %d" % (i))
@@ -51,7 +51,7 @@ def majorcycle(T2, L2,
         # dopredict resorts the data
         pss, vsp = dopredict(T2, L2, ps, comps, predfn)
         vsr = vso - vsp
-        dirty, psf = doimg(T2, L2, ps, vsr, imgfn)
+        dirty, psf, sumwt = doimg(T2, L2, ps, vsr, imgfn)
         if np.abs(dirty).max() < 1.1 * thresh:
             print("Reached stopping threshold %.6f Jy" % thresh)
             break

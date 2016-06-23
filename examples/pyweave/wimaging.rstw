@@ -27,12 +27,12 @@ yy+= simulate_point(vobs/wvl, 0.05, 0.05)
 @
 
 <<caption="Imaging without w-projection">>=
-d,p=doimg(2*0.06, 2*15000, vobs/wvl, yy, simpleimg)
+d,p,_=doimg(2*0.06, 2*15000, vobs/wvl, yy, simpleimg)
 pylab.matshow(d[3200:3400,3200:3400]) ; pylab.colorbar();  pylab.show()
 @
 
 <<caption="Imaging with w-projection and oversampling">>=
-d,p=doimg(2*0.06, 2*15000, vobs/wvl, yy, lambda *x: wslicimg(*x, wstep=100, Qpx=4))
+d,p,_=doimg(2*0.06, 2*15000, vobs/wvl, yy, lambda *x: wslicimg(*x, wstep=100, Qpx=4))
 pylab.matshow(d[3200:3400,3200:3400]) ; pylab.colorbar();  pylab.show()
 @
 
