@@ -78,7 +78,6 @@ def configuration_from_file(antfile: str, name: str = None, location: EarthLocat
         rot_xyz = xyz_to_uvw(antxyz, numpy.radians(0), numpy.radians(declination))
         xyz = Column(rot_xyz, name="xyz")
         xyz[:,1], xyz[:,2] = xyz[:,2], xyz[:,1]
-        print(rot_xyz)
     else:
         xyz = Column(antxyz, name="xyz")
 

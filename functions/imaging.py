@@ -39,7 +39,7 @@ def wcs_from_visibility(vt: visibility, **kwargs):
 
     npixel = kwargs.get("npixel", 512)
     uvmax = (numpy.abs(vt.data['uvw']).max() * u.m * reffrequency / const.c).value
-    cellsize = kwargs.get("cellsize", 1.0 / (4.0 * uvmax))
+    cellsize = kwargs.get("cellsize", 1.0 / (2.0 * uvmax))
     npol = 1
     # Beware of python indexing order! wcs and the array have opposite ordering
     shape = [len(vt.frequency), npol, npixel, npixel]
@@ -61,10 +61,13 @@ def invert(vt: visibility, **kwargs) -> (image, image):
     shape, uvmax, w = wcs_from_visibility(vt, **kwargs)
 
     npixel = shape[3]
-    cellsize = abs(w.wcs.cdelt[0])
+    cellsize = kwargs.get("cellsize", abs(w.wcs.cdelt[0]))
+    criticalcellsize = 1.0/(4.0*uvmax)
     theta = npixel * cellsize
 
-    print("imaging.invert: npixel=%d, cellsize = %f, theta = %f" % (npixel, cellsize, theta))
+    print("imaging.invert: Specified npixel=%d, specified cellsize = %f, FOV = %f" % (npixel, cellsize, theta))
+    print("imaging.invert: Critical cellsize = %f" % (1.0 / (2.0 *uvmax)))
+    assert (cellsize <= criticalcellsize), "Specified cellsize is above critical"
 
     wstep = kwargs.get("wstep", 10000.0)
     wcachesize = int(numpy.ceil(numpy.abs(vt.data['uvw'][:, 2]).max() / wstep))
@@ -78,7 +81,7 @@ def invert(vt: visibility, **kwargs) -> (image, image):
     pmax = 0.0
     for channel in range(len(vt.frequency)):
         d[channel, 0, :, :], p[channel, 0, :, :], pmax = \
-            doimg(theta, 4.0 * uvmax, vt.data['uvw'] * (vt.frequency[channel] / const.c).value,
+            doimg(theta, 1.0 / cellsize, vt.data['uvw'] * (vt.frequency[channel] / const.c).value,
                   vt.data['vis'][:, channel, 0], imgfn=imgfn)
         assert pmax > 0.0, ("No data gridded for channel %d" % channel)
 
@@ -101,11 +104,13 @@ def predict(vt: visibility, sm: skymodel, **kwargs) -> visibility:
     shape = sm.images[0].data.shape
     npixel = shape[3]
     reffrequency = kwargs.get("reffrequency", numpy.average(vt.frequency)) * u.Hz
-    uvmax = (numpy.abs(vt.data['uvw']).max() * u.m * reffrequency / const.c).value
     cellsize = abs(wimage.wcs.cdelt[0])
+    criticalcellsize = 1.0/(4.0*uvmax)
     theta = npixel * cellsize
 
-    print("imaging.predict: npixel=%d, cellsize = %f, theta = %f" % (npixel, cellsize, theta))
+    print("imaging.predict: Image npixel=%d, Image cellsize = %f, Image FOV = %f" % (npixel, cellsize, theta))
+    print("imaging.predict: Critical cellsize = %f" % criticalcellsize)
+    assert (cellsize <= criticalcellsize), "Image cellsize is above critical"
 
     wstep = kwargs.get("wstep", 10000.0)
     wcachesize = int(numpy.ceil(numpy.abs(vt.data['uvw'][:, 2]).max() / wstep))
@@ -114,9 +119,9 @@ def predict(vt: visibility, sm: skymodel, **kwargs) -> visibility:
     predfn = lambda *x: wcachefwd(*x, wstep=wstep, wcache=wcache)
 
     for channel in range(len(vt.frequency)):
-        puvw, vt.data['vis'][:, channel, 0] = dopredict(theta, 4.0 * uvmax, vt.data['uvw'] *
-                                                                  (vt.frequency[channel] / const.c).value,
-                                                                  sm.images[0].data[channel, 0, :, :], predfn=predfn)
+        puvw, vt.data['vis'][:, channel, 0] = dopredict(theta, 1.0/cellsize, vt.data['uvw'] *
+                                                        (vt.frequency[channel] / const.c).value,
+                                                        sm.images[0].data[channel, 0, :, :], predfn=predfn)
     print("imaging.predict: Finished predicting visibility from sky model")
     return vt
 

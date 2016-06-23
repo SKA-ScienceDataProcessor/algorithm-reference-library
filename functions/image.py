@@ -4,7 +4,7 @@
 # subclasses of astropy classes.
 #
 
-import matplotlib as plt
+import matplotlib.pyplot as plt
 
 import numpy as numpy
 
