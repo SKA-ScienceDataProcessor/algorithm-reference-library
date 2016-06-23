@@ -11,7 +11,8 @@ from astropy.coordinates import SkyCoord
 
 class SkyComponent():
     """
-
+    A single SkyComponent with direction, flux, shape, and parameters for the shape
+    TODO: fill out SkyComponent
     """
 
     def __init__(self, direction: SkyCoord, flux: numpy.array, shape: str = 'Point', name: str = 'Anon'):

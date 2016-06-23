@@ -13,13 +13,12 @@ from functions.configuration import Configuration, named_configuration
 class Visibility():
     """
     Visibility with uvw, time, a1, a2, vis, weight Columns in
-    an astropy Table along with an attribute frequency to hold the frequencies
+    an astropy Table along with an attribute to hold the frequencies
     and an attribute to hold the direction.
 
     Visibility is defined to hold an observation with one set of frequencies and one
     direction.
     """
-
     def __init__(self):
         self.data = None
         self.frequency = None

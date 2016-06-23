@@ -134,6 +134,7 @@ def predict(vt: Visibility, sm: SkyModel, **kwargs) -> Visibility:
 def majorcycle(vt: Visibility, sm: SkyModel, **kwargs) -> (Visibility, SkyModel):
     """
     Perform major cycles
+    TODO: Implement major cycles
     """
 
     print("imaging.majorcycle: Stubbed: Performing %d major cycles" % kwargs.get('nmajor', 100))
@@ -143,6 +144,7 @@ def majorcycle(vt: Visibility, sm: SkyModel, **kwargs) -> (Visibility, SkyModel)
 def visibilitysum(vt: Visibility, direction: SkyCoord, **kwargs) -> SkyComponent:
     """
     Direct Fourier summation
+    TODO: Implement visibility sum
     """
 
     print("imaging.visibilitysum: Stubbed: Performing Direct Fourier Summation in direction %s")
@@ -152,16 +154,13 @@ def visibilitysum(vt: Visibility, direction: SkyCoord, **kwargs) -> SkyComponent
 def fitcomponent(image: Image, sm: SkyModel, **kwargs) -> (SkyModel, Image):
     """
     Find components in Image, return SkyModel and residual Image
+    TODO: Implement image fitting of components
     """
     print("imaging.fitcomponent: Stubbed: Finding components in Image, adding to SkyModel")
     return sm, image
 
 
 if __name__ == '__main__':
-    import os
-
-    os.chdir('../')
-    print(os.getcwd())
     kwargs = {'wstep': 100}
 
     vlaa = configuration_filter(named_configuration('VLAA'), **kwargs)

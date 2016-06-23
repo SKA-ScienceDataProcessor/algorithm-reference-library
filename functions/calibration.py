@@ -18,6 +18,7 @@ from functions.imaging import predict
 def calibrate(vis: Visibility, sm: SkyModel, **kwargs) -> GainTable:
     """
     Calibrate using a sky model
+    TODO: Implement calibration solution
     """
     print("calibration.calibrate: Stubbed: Solving for GainTable")
     return GainTable()
@@ -26,7 +27,8 @@ def calibrate(vis: Visibility, sm: SkyModel, **kwargs) -> GainTable:
 def correct(vt: Visibility, gt: GainTable, **kwargs) -> Visibility:
     """
     Correct a vistable using a GainTable
-    """
+    TODO: Implement calibration application
+   """
     print("calibration.correct: Stubbed: Applying gaintab")
     return vt
 

@@ -6,12 +6,14 @@
 
 
 class MKernel():
-    """ Mueller kernel with numpy.array, antenna1, antenna2, time
+    """
+    Mueller kernel with numpy.array, antenna1, antenna2, time
     """
 
 
 class Jones():
-    """ Jones kernel with numpy.array, antenna1, antenna2, time
+    """
+    Jones kernel with numpy.array, antenna1, antenna2, time
     """
 
 

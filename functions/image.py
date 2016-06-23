@@ -79,6 +79,11 @@ def image_from_fits(fitsfile: str):
     :param fitsfile:
     :return:
     """
+    # Deal with relative file names in a consistent way
+    if fitsfile[0] == '.':
+        import os
+        chome = os.environ['CROCODILE']
+        fitsfile="%s/%s" % (chome, fitsfile)
     hdulist = fits.open(fitsfile)
     fim = Image()
     fim.data = hdulist[0].data
@@ -137,7 +142,7 @@ def image_replicate(im: Image, shape: [] = [1, 1, 1, 1]):
 
 def image_add(im1: Image, im2: Image, checkwcs=False):
     """
-
+    TODO: Implement addition and stacking
     :param im1:
     :param im2:
     :param checkwcs:
@@ -149,10 +154,9 @@ def image_add(im1: Image, im2: Image, checkwcs=False):
 
 if __name__ == '__main__':
     import os
-    os.chdir('../')
-    print(os.getcwd())
+    chome=os.environ['CROCODILE']
     kwargs = {}
-    m31model = image_from_fits("./data/models/M31.MOD")
+    m31model = image_from_fits("%s/data/models/M31.MOD" % chome)
     m31model_by_array = image_from_array(m31model.data, m31model.wcs)
     try:
         m31modelsum = image_filter(image_add(m31model, m31model_by_array, checkwcs=True), **kwargs)

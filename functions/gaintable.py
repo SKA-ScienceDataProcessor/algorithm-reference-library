@@ -11,6 +11,7 @@ from astropy.table import Table, vstack
 class GainTable():
     """
     Gain table with time, antenna, gain[:,chan,pol] columns
+    TODO: Implement gaintables with Jones and Mueller matrices
     """
 
     def __init__(self):

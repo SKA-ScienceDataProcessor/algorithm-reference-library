@@ -125,23 +125,26 @@ def named_configuration(name: str = 'LOWBD2', **kwargs):
     :rtype Configuration
     """
 
+    import os
+    chome=os.environ['CROCODILE']
+
     if name == 'LOWBD2':
         # TODO: convert to XYZ
         location = EarthLocation(lon="116.4999", lat="-26.7000", height=300.0)
-        fc = configuration_from_file(antfile="./data/configurations/LOWBD2.csv",
+        fc = configuration_from_file(antfile="%s/data/configurations/LOWBD2.csv" % chome,
                                      location=location, mount='xy', names='LOWBD2_%d')
     elif name == 'LOWBD1':
         # TODO: convert to XYZ
         location = EarthLocation(lon="116.4999", lat="-26.7000", height=300.0)
-        fc = configuration_from_file(antfile="./data/configurations/LOWBD1.csv",
+        fc = configuration_from_file(antfile="%s/data/configurations/LOWBD1.csv" % chome,
                                      location=location, mount='xy', names='LOWBD1_%d')
     elif name == 'LOFAR':
-        fc = configuration_from_LOFAR(antfile="./data/configurations/LOFAR.csv",
+        fc = configuration_from_LOFAR(antfile="%s/data/configurations/LOFAR.csv" % chome,
                                       frame='geocentric')
     elif name == 'VLAA':
         # TODO: convert to XYZ
         location = EarthLocation(lon="-107.6184", lat="34.0784", height=2124.0)
-        fc = configuration_from_file(antfile="./data/configurations/VLA_A_hor_xyz.csv", location=location,
+        fc = configuration_from_file(antfile="%s/data/configurations/VLA_A_hor_xyz.csv" % chome, location=location,
                                      mount='altaz',
                                      names='VLA_%d')
     else:
@@ -151,10 +154,6 @@ def named_configuration(name: str = 'LOWBD2', **kwargs):
 
 
 if __name__ == '__main__':
-    import os
-
-    os.chdir('../')
-    print(os.getcwd())
     kwargs = {}
     fc = Configuration()
     for telescope in ['LOWBD1', 'LOWBD2', 'LOFAR', 'VLAA']:
