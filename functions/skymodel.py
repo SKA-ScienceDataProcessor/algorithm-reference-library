@@ -72,7 +72,6 @@ def skymodel_from_component(comp: SkyComponent):
 def skymodel_add_component(sm: SkyModel, comp: SkyComponent):
     """Add Component
     """
-    sm = SkyModel()
     sm.components.append(comp)
     return sm
 

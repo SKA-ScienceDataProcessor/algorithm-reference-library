@@ -10,15 +10,16 @@ import pylru
 from astropy import units as u
 from astropy import wcs
 from astropy import constants as const
-from astropy.coordinates import SkyCoord
 
-from functions.visibility import Visibility, simulate
+from functions.visibility import Visibility, simulate, phaserotate
 from functions.configuration import configuration_filter, named_configuration
 from functions.image import Image, image_from_fits, image_from_array, image_replicate, image_to_fits
-from functions.skymodel import SkyModel, skymodel_from_image
+from functions.skymodel import SkyModel, skymodel_from_image, skymodel_add_component, skymodel_from_component
 from functions.skycomponent import SkyComponent
+from astropy.coordinates import SkyCoord, CartesianRepresentation
 
 from crocodile.synthesis import wcacheimg, wcachefwd, wkernaf, doimg, dopredict
+from crocodile.simulate import simulate_point
 
 
 def wcs_from_visibility(vt: Visibility, **kwargs):
@@ -27,20 +28,21 @@ def wcs_from_visibility(vt: Visibility, **kwargs):
     from the Visibility
     """
     print("imaging.wcs_from_visibility: Parsing kwargs to get definition of WCS")
-    phasecentre = kwargs.get("phasecentre", vt.direction)
+    imagecentre = kwargs.get("imagecentre", vt.phasecentre)
+    phasecentre = kwargs.get("phasecentre", vt.phasecentre)
     reffrequency = kwargs.get("reffrequency", numpy.average(vt.frequency)) * u.Hz
     deffaultbw = vt.frequency[0]
     if len(vt.frequency) > 1:
         deffaultbw = vt.frequency[1] - vt.frequency[0]
     channelwidth = kwargs.get("channelwidth", deffaultbw) * u.Hz
-    print("imaging.wcs_from_visibility: Defining Image at %s, frequency %s Hz, and bandwidth %s Hz" % (phasecentre,
+    print("imaging.wcs_from_visibility: Defining Image at %s, frequency %s Hz, and bandwidth %s Hz" % (imagecentre,
                                                                                                        reffrequency,
                                                                                                        channelwidth))
 
     npixel = kwargs.get("npixel", 512)
     uvmax = (numpy.abs(vt.data['uvw']).max() * u.m * reffrequency / const.c).value
     cellsize = kwargs.get("cellsize", 1.0 / (2.0 * uvmax))
-    npol = 1
+    npol = 4
     # Beware of python indexing order! wcs and the array have opposite ordering
     shape = [len(vt.frequency), npol, npixel, npixel]
     w = wcs.WCS(naxis=4)
@@ -50,7 +52,7 @@ def wcs_from_visibility(vt: Visibility, **kwargs):
     w.wcs.crval = [phasecentre.ra.value, phasecentre.dec.value, 1.0, reffrequency.value]
     w.naxis = 4
 
-    return shape, uvmax, w
+    return shape, uvmax, w, imagecentre
 
 
 def invert(vt: Visibility, **kwargs) -> (Image, Image):
@@ -58,7 +60,7 @@ def invert(vt: Visibility, **kwargs) -> (Image, Image):
     Invert to make dirty Image and PSF
     """
     print("imaging.invert: Inverting Visibility to make dirty and psf")
-    shape, uvmax, w = wcs_from_visibility(vt, **kwargs)
+    shape, uvmax, w, imagecentre = wcs_from_visibility(vt, **kwargs)
 
     npixel = shape[3]
     cellsize = kwargs.get("cellsize", abs(w.wcs.cdelt[0]))
@@ -76,15 +78,21 @@ def invert(vt: Visibility, **kwargs) -> (Image, Image):
     wcache = pylru.FunctionCacheManager(lambda iw: wkernaf(N=256, theta=theta, w=iw * wstep, s=15, Qpx=4), 10000)
     imgfn = lambda *x: wcacheimg(*x, wstep=wstep, wcache=wcache)
 
+    # Apply a phase rotation from the visibility phase centre to the image phase centre
+#    vtphaserotate = phaserotate(vt, imagecentre)
+
     d = numpy.zeros(shape)
     p = numpy.zeros(shape)
 
     pmax = 0.0
-    for channel in range(len(vt.frequency)):
-        for pol in range(1):
+    nchan = shape[0]
+    npol = shape[1]
+    for channel in range(nchan):
+        for pol in range(npol):
             print('imaging.invert: Inverting channel %d, polarisation %d' % (channel, pol))
             d[channel, pol, :, :], p[channel, 0, :, :], pmax = \
-                doimg(theta, 1.0 / cellsize, vt.data['uvw'] * (vt.frequency[channel] / const.c).value,
+                doimg(theta, 1.0 / cellsize, vt.data['uvw'] *
+                      (vt.frequency[channel] / const.c).value,
                       vt.data['vis'][:, channel, pol], imgfn=imgfn)
         assert pmax > 0.0, ("No data gridded for channel %d" % channel)
 
@@ -99,89 +107,137 @@ def predict(vt: Visibility, sm: SkyModel, **kwargs) -> Visibility:
     Predict the visibility from a SkyModel
     :type vis: Visibility
     """
-    print("imaging.predict: Predicting Visibility from sky model")
-    shape, uvmax, wvis = wcs_from_visibility(vt, **kwargs)
+    vshape = vt.data['vis'].shape
+    shape, uvmax, wvis, imagecentre = wcs_from_visibility(vt, **kwargs)
 
-    wimage = sm.images[0].wcs
+    if len(sm.images):
+        print("imaging.predict: Predicting Visibility from sky model images")
 
-    shape = sm.images[0].data.shape
-    npixel = shape[3]
-    reffrequency = kwargs.get("reffrequency", numpy.average(vt.frequency)) * u.Hz
-    cellsize = abs(wimage.wcs.cdelt[0])
-    criticalcellsize = 1.0 / (4.0 * uvmax)
-    theta = npixel * cellsize
+        for im in sm.images:
+            wimage = im.wcs
 
-    print("imaging.predict: Image npixel=%d, Image cellsize = %f, Image FOV = %f" % (npixel, cellsize, theta))
-    print("imaging.predict: Critical cellsize = %f" % criticalcellsize)
-    assert (cellsize <= criticalcellsize), "Image cellsize is above critical"
+            vshape = vt.data['vis'].shape
 
-    wstep = kwargs.get("wstep", 10000.0)
-    wcachesize = int(numpy.ceil(numpy.abs(vt.data['uvw'][:, 2]).max() / wstep))
-    print("imaging.predict: Making w-kernel cache of %d kernels" % (wcachesize))
-    wcache = pylru.FunctionCacheManager(lambda iw: wkernaf(N=256, theta=theta, w=iw * wstep, s=15, Qpx=4), 10000)
-    predfn = lambda *x: wcachefwd(*x, wstep=wstep, wcache=wcache)
+            ishape = sm.images[0].data.shape
+            npixel = ishape[3]
+            nchan = ishape[0]
+            npol = ishape[1]
 
-    for channel in range(len(vt.frequency)):
-        for pol in range(1):
-            print('imaging.invert: Predicting channel %d, polarisation %d' % (channel, pol))
-            puvw, vt.data['vis'][:, channel, pol] = dopredict(theta, 1.0 / cellsize, vt.data['uvw'] *
-                                                              (vt.frequency[channel] / const.c).value,
-                                                              sm.images[0].data[channel, pol, :, :], predfn=predfn)
-    print("imaging.predict: Finished predicting Visibility from sky model")
+            assert ishape[1] == vshape[2], "Image %d and visibility %d have different number of polarisations" % (
+                ishape[1], vshape[2])
+            assert ishape[0] == len(vt.frequency), "Image %d and visibility %d have different number of channels" % \
+                                              (ishape[0], len(vt.frequency))
+            cellsize = abs(wimage.wcs.cdelt[0])
+            criticalcellsize = 1.0 / (4.0 * uvmax)
+            theta = npixel * cellsize
+
+            print("imaging.predict: Image npixel=%d, Image cellsize = %f, Image FOV = %f" % (npixel, cellsize, theta))
+            print("imaging.predict: Critical cellsize = %f" % criticalcellsize)
+            assert (cellsize <= criticalcellsize), "Image cellsize is above critical"
+
+            wstep = kwargs.get("wstep", 10000.0)
+            wcachesize = int(numpy.ceil(numpy.abs(vt.data['uvw'][:, 2]).max() / wstep))
+            print("imaging.predict: Making w-kernel cache of %d kernels" % (wcachesize))
+            wcache = pylru.FunctionCacheManager(lambda iw: wkernaf(N=256, theta=theta, w=iw * wstep, s=15, Qpx=4), 10000)
+            predfn = lambda *x: wcachefwd(*x, wstep=wstep, wcache=wcache)
+
+            for channel in range(nchan):
+                uvw = vt.data['uvw'] * (vt.frequency[channel] / const.c).value
+                for pol in range(npol):
+                    print('imaging.predict: Predicting from image channel %d, polarisation %d' % (channel, pol))
+                    puvw, vt.data['vis'][:, channel, pol] = dopredict(theta, 1.0 / cellsize, uvw,
+                                                                      sm.images[0].data[channel, pol, :, :], predfn=predfn)
+            print("imaging.predict: Finished predicting Visibility from sky model images")
+
+    vdc = vt.phasecentre.represent_as(CartesianRepresentation)
+
+    if len(sm.components):
+        print("imaging.predict: Predicting Visibility from sky model components")
+
+        for icomp in range(len(sm.components)):
+            comp = sm.components[icomp]
+            cshape = comp.flux.shape
+            nchan = cshape[0]
+            npol = cshape[1]
+
+            assert cshape[1] == vshape[2], "Component %d and visibility %d have different number of polarisations" % (
+                cshape[1], vshape[2])
+            assert cshape[0] == len(vt.frequency), "Component %d and visibility %d have different number of channels" % \
+                                              (cshape[0], len(vt.frequency))
+            dc = comp.direction.represent_as(CartesianRepresentation)
+            print('imaging.predict: Cartesian representation of component %d = (%f, %f)' % (icomp, dc.y, dc.z))
+            for channel in range(nchan):
+                uvw = vt.data['uvw'] * (vt.frequency[channel] / const.c).value
+                # Calculate the phasor needed to rotate from the visibility tracking centre
+                # to the component direction
+                phasor = simulate_point(uvw, dc.y, dc.z)
+                for pol in range(npol):
+                    print('imaging.predict: Predicting from component %d channel %d, polarisation %d' % (icomp, channel,
+                                                                                                         pol))
+                    vt.data['vis'][:, channel, pol] = vt.data['vis'][:, channel, pol] + \
+                                                      comp.flux[channel,pol] * numpy.conj(phasor)
+        print("imaging.predict: Finished predicting Visibility from sky model components")
+
     return vt
 
 
-def majorcycle(vt: Visibility, sm: SkyModel, **kwargs) -> (Visibility, SkyModel):
+def majorcycle(vt: Visibility, sm: SkyModel, cleaner, **kwargs) -> (Visibility, SkyModel):
     """
     Perform major cycles
     """
-    # TODO: Implement major cycles
+    nmajor = kwargs.get('nmajor', 5)
+    print("imaging.majorcycle: Performing %d major cycles" % nmajor)
 
-    print("imaging.majorcycle: Stubbed: Performing %d major cycles" % kwargs.get('nmajor', 100))
+    # The model is added to each major cycle and then the visibilities are
+    # calculated from the full model
+    dirty, psf, sumwt = invert(vt, **kwargs)
+    comp = Image(dirty)
+    comp.data = 0.0 * dirty.data.copy()
+    for i in range(nmajor):
+        print("Start of major cycle %d" % (i))
+        cc, res = cleaner(dirty, psf, **kwargs)
+        comp += cc
+        vtpred = predict(vt, sm, **kwargs)
+        vt.data['vis'] = vtobs.data['vis]'] - vtpred.data['vis']
+        dirty, psf, sumwt = invert(vt, **kwargs)
+        if numpy.abs(dirty.data).max() < 1.1 * thresh:
+            print("Reached stopping threshold %.6f Jy" % thresh)
+            break
+        print("End of major cycle")
+    print("End of major cycles")
     return vt, sm
 
-
-def visibilitysum(vt: Visibility, direction: SkyCoord, **kwargs) -> SkyComponent:
+def fitcomponent(im: Image, **kwargs) -> SkyComponent:
     """
-    Direct Fourier summation
+    Find components in Image, return SkyComponent, just find the peak for now
     """
-    # TODO: Implement visibility sum
+    # TODO: Implement full image fitting of components
+    print("imaging.fitcomponent: Finding components in Image")
 
-    print("imaging.visibilitysum: Stubbed: Performing Direct Fourier Summation in direction %s")
-    return None
+    # Beware: The index sequencing is opposite in wcs and Python!
+    locpeak = numpy.unravel_index((numpy.abs(im.data)).argmax(), im.data.shape)
+    print("imaging.fitcomponent: Peak is at pixel coordinates %s" % str(locpeak))
+    w = im.wcs.sub(['longitude', 'latitude'])
+    worldpeak = w.wcs_pix2world(locpeak[3], locpeak[2], 1)
+    sc=SkyCoord(worldpeak[0]*u.deg, worldpeak[1]*u.deg)
+    print("imaging.fitcomponent: Peak is at %s" % sc)
+    flux=im.data[:,:,locpeak[2],locpeak[3]]
+    print("imaging.fitcomponent: Flux is %s" % flux)
+    w = im.wcs.sub(['spectral'])
+    frequency = w.wcs_pix2world(range(im.data.shape[0]), 1)
+    return SkyComponent(direction=sc, flux=flux, frequency=frequency, shape='point')
 
 
-def fitcomponent(image: Image, sm: SkyModel, **kwargs) -> (SkyModel, Image):
+def findflux(im: Image, sc: SkyCoord, **kwargs) -> SkyComponent:
     """
-    Find components in Image, return SkyModel and residual Image
+    Find flux at a given direction, return SkyComponent
     """
-    # TODO: Implement image fitting of components
-    print("imaging.fitcomponent: Stubbed: Finding components in Image, adding to SkyModel")
-    return sm, image
-
-
-if __name__ == '__main__':
-    kwargs = {'wstep': 100}
-
-    vlaa = configuration_filter(named_configuration('VLAA'), **kwargs)
-    vlaa.data['xyz'] *= 1.0 / 30.0
-    times = numpy.arange(-3.0, +3.0, 3.0 / 60.0) * numpy.pi / 12.0
-    frequency = numpy.arange(1.0e8, 1.50e8, 1e7)
-    direction = SkyCoord('00h42m30s', '-41d12m00s', frame='icrs')
-    vt = simulate(vlaa, times, frequency, weight=1.0, direction=direction)
-    print(vt.frequency)
-    m31image = image_from_fits("./data/models/m31.MOD")
-    print("Max, min in m31 Image = %.6f, %.6f" % (m31image.data.max(), m31image.data.min()))
-    m31image = image_replicate(m31image, shape=[1, 1, 1, len(frequency)])
-    print("Max, min in m31 Image = %.6f, %.6f" % (m31image.data.max(), m31image.data.min()))
-    print(m31image.data.shape)
-    m31sm = skymodel_from_image(m31image)
-    vtpred = simulate(vlaa, times, frequency, weight=1.0, direction=direction)
-    vtpred = predict(vtpred, m31sm, **kwargs)
-    print(numpy.max(numpy.abs(vtpred.data['vis'])))
-    dirty, psf, sumwt = invert(vtpred, **kwargs)
-    print(dirty.wcs)
-    print("Max, min in dirty Image = %.6f, %.6f, sum of weights = %f" % (dirty.data.max(), dirty.data.min(), sumwt))
-    image_to_fits(dirty, 'dirty.fits')
-    image_to_fits(psf, 'psf.fits')
-    m31smnew, res = fitcomponent(dirty, m31sm, **kwargs)
+    print("imaging.findflux: Finding flux at a given direction in Image")
+    worldloc = [sc.ra, sc.dec]
+    print("imaging.findflux: Extracting flux at coordinates %s" % str(sc))
+    w = im.wcs.sub(['longitude', 'latitude'])
+    pixloc = w.wcs_world2pix(worldloc[0], worldloc[1], 1)
+    print(pixloc)
+    flux=im.data[:,:,int(pixloc[1]+0.5),int(pixloc[1]+0.5)]
+    print("imaging.findflux: Flux is %s" % flux)
+    return SkyComponent(direction=sc, flux=flux, frequency=[], shape='point')
