@@ -10,6 +10,10 @@ import numpy as numpy
 
 from astropy.wcs import WCS
 from astropy.io import fits
+from astropy.wcs.utils import skycoord_to_pixel, pixel_to_skycoord
+from astropy.coordinates import SkyCoord
+from functions.skycomponent import SkyComponent
+
 
 
 class Image():
@@ -22,22 +26,22 @@ class Image():
         self.wcs = None
 
 
-def image_show(im: Image, title: str = ''):
+def image_show(im: Image, fig = None, title: str = ''):
     """
     Show an Image with coordinates using matplotlib
     :param im:
     :param title:
     :return:
     """
-    plt.clf()
-    fig = plt.figure()
+    if not fig:
+        fig = plt.figure()
     fig.add_subplot(111, projection=im.wcs.sub(['longitude', 'latitude']))
+    plt.clf()
     plt.imshow(im.data[0, 0, :, :], origin='lower', cmap='rainbow')
     plt.xlabel('RA---SIN')
     plt.ylabel('DEC--SIN')
     plt.title(title)
     plt.colorbar()
-    plt.show()
     return fig
 
 
@@ -133,7 +137,6 @@ def image_replicate(im: Image, shape: [] = [1, 1, 1, 1]):
         print("Image: replicating shape %s to %s" % (im.data.shape, fim.data.shape))
         for i3 in range(shape[3]):
             fim.data[i3, :, :, :] = im.data[:, :, :]
-
     else:
         fim = im
 
@@ -151,6 +154,43 @@ def image_add(im1: Image, im2: Image, checkwcs=False):
     assert not checkwcs, "Checking WCS not yet implemented"
     return image_from_array(im1.data + im2.data, im1.wcs)
 
+def fitcomponent(im: Image, **kwargs) -> SkyComponent:
+    """
+    Find components in Image, return SkyComponent, just find the peak for now
+    """
+    # TODO: Implement full image fitting of components
+    print("imaging.fitcomponent: Finding components in Image")
+
+    # Beware: The index sequencing is opposite in wcs and Python!
+    locpeak = numpy.unravel_index((numpy.abs(im.data)).argmax(), im.data.shape)
+    print("imaging.fitcomponent: Found peak at pixel coordinates %s" % str(locpeak))
+    w = im.wcs.sub(['longitude', 'latitude'])
+    sc = pixel_to_skycoord(locpeak[3], locpeak[2], im.wcs, 0, 'wcs')
+    print("imaging.fitcomponent: Found peak at world coordinates %s" % str(sc))
+    flux=im.data[:,:,locpeak[2],locpeak[3]]
+    print("imaging.fitcomponent: Flux is %s" % flux)
+    # We also need the frequency values
+    w = im.wcs.sub(['spectral'])
+    frequency = w.wcs_pix2world(range(im.data.shape[0]), 1)
+    return SkyComponent(direction=sc, flux=flux, frequency=frequency, shape='point')
+
+
+def findflux(im: Image, sc: SkyCoord, **kwargs) -> SkyComponent:
+    """
+    Find flux at a given direction, return SkyComponent
+    """
+    print("imaging.findflux: Extracting flux at world coordinates %s" % str(sc))
+    w = im.wcs.sub(['longitude', 'latitude'])
+    pixloc = skycoord_to_pixel(sc, im.wcs, 0, 'wcs')
+    print("imaging.findflux: Extracting flux at pixel coordinates %d %d" % (pixloc[0], pixloc[1]))
+    flux=im.data[:,:,int(pixloc[1]+0.5),int(pixloc[0]+0.5)]
+    print("imaging.findflux: Flux is %s" % flux)
+
+    # We also need the frequency values
+    w = im.wcs.sub(['spectral'])
+    frequency = w.wcs_pix2world(range(im.data.shape[0]), 0)
+
+    return SkyComponent(direction=sc, flux=flux, frequency=frequency, shape='point')
 
 if __name__ == '__main__':
     import os
