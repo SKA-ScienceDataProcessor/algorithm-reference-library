@@ -185,7 +185,7 @@ def predict(vt: Visibility, sm: SkyModel, **kwargs) -> Visibility:
 
 def majorcycle(vt: Visibility, sm: SkyModel, cleaner, **kwargs) -> (Visibility, SkyModel):
     """
-    Perform major cycles
+    Perform major cycles using a variant of the cleaner
     """
     nmajor = kwargs.get('nmajor', 5)
     print("imaging.majorcycle: Performing %d major cycles" % nmajor)

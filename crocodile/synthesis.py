@@ -581,7 +581,7 @@ def wcacheimg(theta, lam, p, v,
         wcache = pylru.FunctionCacheManager(lambda iw: wkernaf(NpixFF, theta, iw * wstep, NpixKern, Qpx), cachesize)
     for iv in range(len(v)):
         iw = int(round(p[iv, 2] / wstep))
-        convgridone(guv, p[iv] / lam, wcache(iw), v[iv])
+        convgridone(guv, numpy.array([p[iv,0], -p[iv,1]]) / lam, wcache(iw), v[iv])
     return guv
 
 
@@ -624,7 +624,7 @@ def wcachefwd(guv,
     v = numpy.zeros(nv, dtype='complex')
     for iv in range(nv):
         iw = int(round(p[iv, 2] / wstep))
-        v[iv] = convdegridone(guv, numpy.array(p[iv] / lam), wcache(iw))
+        v[iv] = convdegridone(guv, numpy.array([p[iv,0], -p[iv,1]]) / lam, wcache(iw))
     p[:, 2] *= -1
     return p, v
 

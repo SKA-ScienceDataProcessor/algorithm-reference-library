@@ -15,8 +15,7 @@ class SkyComponent():
     """
     # TODO: fill out SkyComponent
 
-    def __init__(self, direction: SkyCoord, flux: numpy.array, frequency: numpy.array, shape: str = 'Point',
-                 name: str = 'Anon'):
+    def __init__(self, direction: SkyCoord, flux: numpy.array, frequency: numpy.array, shape: str = 'Point', name: str = ''):
         """
         A single SkyComponent with direction, flux, shape, and parameters for the shape
         :type name: str

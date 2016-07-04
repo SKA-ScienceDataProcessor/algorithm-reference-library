@@ -88,7 +88,7 @@ if __name__ == '__main__':
     m31im.images.append(m31image)
     flux = numpy.array([[1.0, 0.0, 0.0, 0.0], [1.0, 0.0, 0.0, 0.0]])
     direction = SkyCoord('00h42m30s', '+41d12m00s', frame='icrs')
-    comp = SkyComponent(direction, flux, shape='Point', name="Mysource")
+    comp = SkyComponent(direction, flux, shape='Point', name="Mysource", frequency=numpy.arange(5e6,300e6,1e7))
     m31comp = SkyModel()
     m31comp.components.append(comp)
     m31added = skymodel_add(m31im, m31comp)

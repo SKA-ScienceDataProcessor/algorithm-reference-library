@@ -18,7 +18,9 @@ def aaf_ns(a, m, c):
 
 
 if 1:
-    vlas=numpy.genfromtxt("test/VLA_A_hor_xyz.txt", delimiter=",")
+    import os
+    chome = os.environ['CROCODILE']
+    vlas=numpy.genfromtxt("%s/test/VLA_A_hor_xyz.txt" % chome, delimiter=",")
     vobs=genuv(vlas, numpy.arange(0,numpy.pi,0.1) ,  numpy.pi/4)
     yy=genvis(vobs/5, 0.01, 0.01)
 
