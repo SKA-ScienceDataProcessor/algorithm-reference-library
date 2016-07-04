@@ -1,3 +1,3 @@
 
-NBs = msclean.ipynb
+NBs =
 include ../jupyter.mk
