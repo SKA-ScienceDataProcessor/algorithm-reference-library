@@ -27,7 +27,7 @@ class SkyComponent():
         self.direction = direction
         self.frequency = frequency
         self.name = name
-        self.flux = flux
+        self.flux = numpy.array(flux)
         self.shape = shape
         self.params = None
         self.name = name

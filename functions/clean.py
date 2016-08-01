@@ -38,10 +38,13 @@ def clean(dirty: Image, psf: Image, **kwargs):
         residual_array = numpy.zeros(dirty.data.shape)
         for channel in range(dirty.data.shape[0]):
             for pol in range(dirty.data.shape[1]):
-                print("clean.clean: Processing pol %d, channel %d" % (pol, channel))
-                comp_array[channel, pol, :, :], residual_array[channel, pol, :, :] = \
-                    msclean(dirty.data[channel, pol, :, :], psf.data[channel, pol, :, :],
-                            window, gain, thresh, niter, scales, fracthresh)
+                if (psf.data[channel, pol, :, :].max()):
+                    print("clean.clean: Processing pol %d, channel %d" % (pol, channel))
+                    comp_array[channel, pol, :, :], residual_array[channel, pol, :, :] = \
+                       msclean(dirty.data[channel, pol, :, :], psf.data[channel, pol, :, :],
+                                window, gain, thresh, niter, scales, fracthresh)
+                else:
+                    print("clean.clean: Skipping pol %d, channel %d" % (pol, channel))
     else:
         raise ValueError('Unknown algorithm %s' % algorithm)
 

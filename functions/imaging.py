@@ -132,8 +132,11 @@ def predict(vt: Visibility, sm: SkyModel, **kwargs) -> Visibility:
                 ishape[1], vshape[2])
             assert ishape[0] == len(vt.frequency), "Image %d and visibility %d have different number of channels" % \
                                               (ishape[0], len(vt.frequency))
-            cellsize = abs(wimage.wcs.cdelt[0])
+            cellsize = abs(wimage.wcs.cdelt[0])*numpy.pi/180.0
             theta = npixel * cellsize
+            print("imaging.predict: Image cellsize %f radians" % (cellsize))
+            print("imaging.predict: Field of view %f radians" % (theta))
+            assert (theta/numpy.sqrt(2) < 1.0), "Field of view larger than celestial sphere"
 
             wstep = kwargs.get("wstep", 10000.0)
             wcachesize = int(numpy.ceil(numpy.abs(vt.data['uvw'][:, 2]).max()*reffrequency.value / const.c.value /
@@ -158,10 +161,11 @@ def predict(vt: Visibility, sm: SkyModel, **kwargs) -> Visibility:
         for icomp in range(len(sm.components)):
             comp = sm.components[icomp]
             cshape = comp.flux.shape
+            assert len(cshape)==2, "Flux should be two dimensional (pol, freq)"
             nchan = cshape[0]
             npol = cshape[1]
 
-            assert cshape[1] == vshape[2], "Component %d and visibility %d have different number of polarisations" % (
+            assert vshape[2] == 4, "Component %d and visibility %d have different number of polarisations" % (
                 cshape[1], vshape[2])
             assert cshape[0] == len(vt.frequency), "Component %d and visibility %d have different number of channels" % \
                                               (cshape[0], len(vt.frequency))
