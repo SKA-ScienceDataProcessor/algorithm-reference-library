@@ -73,7 +73,7 @@ prepare:
 	$(call make_example_rst,notebooks,*_files)
 	$(call make_example_rst,anna,*_files)
 	$(call make_example_rst,ben,*_files)
-	$(call make_example_rst,tim,*_files)
+#	$(call make_example_rst,tim,*_files)
 
 .PHONY: html
 html: prepare
