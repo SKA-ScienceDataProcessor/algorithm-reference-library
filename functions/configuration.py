@@ -126,7 +126,7 @@ def named_configuration(name: str = 'LOWBD2', **kwargs):
     """
 
     import os
-    chome=os.environ['CROCODILE']
+    chome=os.getenv('CROCODILE', './')
 
     if name == 'LOWBD2':
         # TODO: convert to XYZ
