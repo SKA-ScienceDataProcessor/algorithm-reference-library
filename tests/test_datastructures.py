@@ -18,7 +18,8 @@ class TestFunctions(unittest.TestCase):
     def test_component(self):
         flux = numpy.array([[1.0, 0.0, 0.0, 0.0], [1.0, 0.0, 0.0, 0.0]])
         direction = SkyCoord('00h42m30s', '+41d12m00s', frame='icrs')
-        comp = SkyComponent(direction, flux, shape='Point')
+        frequency=numpy.arange(1.0e8,1.5e8,3e7)
+        comp = SkyComponent(direction, flux, frequency=frequency, shape='Point')
 
     def test_configuration(self):
         for telescope in ['LOWBD1', 'LOWBD2', 'LOFAR', 'VLAA']:
@@ -52,7 +53,8 @@ class TestFunctions(unittest.TestCase):
         m31sm = skymodel_from_image(m31image)
         direction = SkyCoord('00h42m30s', '+41d12m00s', frame='icrs')
         flux = numpy.array([[1.0, 0.0, 0.0, 0.0], [1.0, 0.0, 0.0, 0.0]])
-        comp = SkyComponent(direction, flux, shape='Point')
+        frequency=numpy.arange(1.0e8,1.5e8,1.0e7)
+        comp = SkyComponent(direction, flux, frequency=frequency, shape='Point')
         m31sm = skymodel_add_component(m31sm, comp)
 
     def test_visibility(self):
@@ -61,7 +63,7 @@ class TestFunctions(unittest.TestCase):
         freq = numpy.arange(5e6, 150.0e6, 1e7)
         direction = SkyCoord('00h42m30s', '-41d12m00s', frame='icrs')
         vt = Visibility()
-        vt = simulate(config, times, freq, weight=1.0, direction=direction)
+        vt = simulate(config, times, freq, weight=1.0, phasecentre=direction)
         print(vt.data)
         print(vt.frequency)
         assert len(numpy.unique(vt.data['time'])) == len(times)
