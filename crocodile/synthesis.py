@@ -102,7 +102,9 @@ def wkernff(N, theta, w):
     """
 
     m, l = ucsN(N) * theta
-    ph = w * (1 - numpy.sqrt(1 - l ** 2 - m ** 2))
+    r2 = l**2 + m**2
+    assert r2.any() >= 1.0, "Error in image coordinate system: theta %f, N %f,l %s, m %s" % (theta, N, str(l), str(m))
+    ph = w * (1 - numpy.sqrt(1.0 - r2))
     cp = numpy.exp(2j * numpy.pi * ph)
     return cp
 
@@ -133,6 +135,8 @@ def wkernsinc(N, theta, over=1):
     :param over:
     :param N:     Size of the field in pixels
     :param theta: Width of far-field in radian
+    
+    NOT USED
     """
 
     # Note that theta actually cancels out here - the pattern only
@@ -156,6 +160,7 @@ def wextract(a, x, y, Qpx, s):
 
 def wkernaf2(N, lam, w):
     """
+    NOT USED
 
     :param N:
     :param lam:
@@ -194,6 +199,8 @@ def wkernaf(N, theta, w, s,
 def kinvert(a):
     """
     Pseudo-Invert a kernel: element-wise inversion (see RauThesis2010:Eq4.6)
+    
+    NOT USED
     """
     return numpy.conj(a) / (numpy.abs(a) ** 2)
 
@@ -202,6 +209,8 @@ def sample(a, p):
     """Take samples from array a
 
     This should use numpy.around as grid does.
+    
+    NOT USED
     """
     x = ((1 + p[:, 0]) * a.shape[0] / 2).astype(int)
     y = ((1 + p[:, 1]) * a.shape[1] / 2).astype(int)
@@ -263,6 +272,8 @@ def convdegridone(a, p, gcf):
     """
     x, xf, y, yf = convcoordsone(a, p, len(gcf))
     sx, sy = gcf[0][0].shape[0] // 2, gcf[0][0].shape[1] // 2
+    assert sx > 0
+    assert sy > 0
     return (a[x - sx: x + sx + 1, y - sy: y + sy + 1] * gcf[xf][yf]).sum()
 
 
@@ -305,7 +316,7 @@ def convcoordsone(a, p, Qpx):
 
 def convgrid(a, p, v, gcf):
     """Grid after convolving with gcf, taking into account fractional uv
-    cordinate values
+    coordinate values
 
     :param a: Grid to add to
     :param p: UVW positions
@@ -350,7 +361,10 @@ def exmid2(a, s):
 
 
 def div0(a1, a2):
-    """Divide a1 by a2 except pixels where a2 is zero"""
+    """Divide a1 by a2 except pixels where a2 is zero
+    
+    NOT USED
+    """
     m = (a2 != 0)
     res = a1.copy()
     res[m] /= a2[m]
@@ -401,7 +415,10 @@ def rotw(p, v):
 
 
 def posvv(p, v):
-    """Move all visibilities to the positive v half-plane"""
+    """Move all visibilities to the positive v half-plane
+    
+    NOT USED
+    """
     s = p[:, 1] < 0
     p[s] *= -1.0
     v[s] = numpy.conjugate(v[s])
@@ -484,6 +501,8 @@ def wslicimg(theta, lam, p, v,
       w-kernel. See doc/wkernel.
     :param NpixKern: Size of the extracted convolution
       kernels. Currently kernels are the same size for all w-values.
+      
+    DEPRECATED - see wslicfwd
     """
     N = int(round(theta * lam))
     assert N > 1
@@ -522,6 +541,8 @@ def wslicfwd(guv,
       kernels. Currently kernels are the same size for all w-values.
 
     :returns w-sorted uvw, w-sorted degridded visibilities
+    
+    DEPRECATED - has side-effects
     """
     # Calculate number of pixels in the Image
     N = int(round(theta * lam))
