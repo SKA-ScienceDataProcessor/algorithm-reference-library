@@ -7,4 +7,4 @@ pylru
 pweave
 Sphinx
 astropy
-
+wcsaxes
