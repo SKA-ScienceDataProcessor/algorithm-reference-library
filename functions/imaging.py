@@ -12,7 +12,7 @@ from astropy.coordinates import CartesianRepresentation
 
 from crocodile.simulate import simulate_point
 from crocodile.synthesis import wcacheimg, wcachefwd, wkernaf, doimg, dopredict
-from functions.image import Image, image_from_array
+from functions.image import image_from_array
 from functions.skymodel import SkyModel
 from functions.visibility import Visibility, visibility_combine
 
@@ -42,7 +42,7 @@ def wcs_from_visibility(vt: Visibility, **kwargs):
     print("imaging.wcs_from_visibility: uvmax = %f lambda" % uvmax)
     criticalcellsize = 1.0 / (uvmax * 2.0)
     print("imaging.wcs_from_visibility: Critical cellsize = %f radians, %f degrees" % (
-    criticalcellsize, criticalcellsize * 180.0 / numpy.pi))
+        criticalcellsize, criticalcellsize * 180.0 / numpy.pi))
     cellsize = kwargs.get("cellsize", 0.5 * criticalcellsize)
     print("imaging.wcs_from_visibility: Cellsize          = %f radians, %f degrees" % (cellsize,
                                                                                        cellsize * 180.0 / numpy.pi))
