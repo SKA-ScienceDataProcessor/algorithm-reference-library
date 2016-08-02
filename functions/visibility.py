@@ -224,6 +224,25 @@ def visibility_sum(vt: Visibility, direction: SkyCoord, **kwargs) -> numpy.array
     flux[weight <= 0.0] = 0.0
     return flux, weight
 
+def average_visibility(vt: Visibility, **kwargs) -> Visibility:
+    """
+    Average visibility in time and frequency
+    :param vt: Visibility to be averaged
+    :return: Visibility after averaging
+    """
+    print("average_visibility: Not yet implemented")
+    return vt
+
+def de_average_visibility(vt: Visibility, vttemplate: Visibility, **kwargs) -> Visibility:
+    """
+    De-average visibility in time and frequency i.e. replicate to template Visibility
+    :param vt: Visibility to be de-averaged
+    :param vttemplate: template Visibility
+    :return: Visibility after de-averaging
+    """
+    print("de_average_visibility: Not yet implemented")
+    return vt
+
 
 if __name__ == '__main__':
     config = named_configuration('VLAA')

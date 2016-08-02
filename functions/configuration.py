@@ -88,7 +88,7 @@ def configuration_from_file(antfile: str, name: str = None, location: EarthLocat
     nants = antxyz.shape[0]
     declination = location.geodetic[1].to(units.rad).value
     if frame == 'local':
-        rot_xyz = xyz_to_uvw(antxyz, numpy.radians(0), numpy.radians(declination))
+        rot_xyz = xyz_to_uvw(antxyz, numpy.radians(0.0), numpy.radians(declination))
         xyz = Column(rot_xyz, name="xyz")
         xyz[:, 1], xyz[:, 2] = xyz[:, 2], xyz[:, 1]
     else:
