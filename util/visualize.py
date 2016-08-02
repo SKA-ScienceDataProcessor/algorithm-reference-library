@@ -22,8 +22,8 @@ def show_image(img, name, theta, norm=None, extra_dep=None):
     # Determine size of image.
     size = img.shape[0]
     lm_lower, lm_upper = ucsBounds(size)
-    lm_lower = (lm_lower-1./size/2)*theta;
-    lm_upper = (lm_upper+1./size/2)*theta;
+    lm_lower = (lm_lower-1./size/2)*theta
+    lm_upper = (lm_upper+1./size/2)*theta
     extent = (lm_lower, lm_upper, lm_lower, lm_upper)
 
     # Format title
@@ -53,8 +53,8 @@ def show_grid(grid, name, lam, norm=None, size=None):
     # Determine size of image. See above.
     size = grid.shape[0]
     uv_lower, uv_upper = ucsBounds(size)
-    uv_lower = (uv_lower-1./size/2)*lam;
-    uv_upper = (uv_upper+1./size/2)*lam;
+    uv_lower = (uv_lower-1./size/2)*lam
+    uv_upper = (uv_upper+1./size/2)*lam
     extent = (uv_lower, uv_upper, uv_lower, uv_upper)
 
     # Determine normalisation for image.
@@ -142,7 +142,7 @@ def visualise_lmn(hour_angle, declination):
     # Swap X and Y to get a right-handed coordinate system
     def trans(coo):
         x,y,z = coo
-        return (y,x,z)
+        return y, x, z
     def draw(ax):
         ax.set_xlabel('y [$1$]'); ax.set_ylabel('x [$1$]'); ax.set_zlabel('z [$1$]')
         make_arrow(ax, trans([0,0,0]),trans([0,0,1.1]), "black", "Celestial north")

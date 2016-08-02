@@ -6,7 +6,7 @@
 import numpy
 import pylru
 from astropy import constants as const
-from astropy import units as u
+from astropy import units as units
 from astropy import wcs
 from astropy.coordinates import CartesianRepresentation
 
@@ -29,11 +29,11 @@ def wcs_from_visibility(vt: Visibility, **kwargs):
     print("imaging.wcs_from_visibility: Parsing kwargs to get definition of WCS")
     imagecentre = kwargs.get("imagecentre", vt.phasecentre)
     phasecentre = kwargs.get("phasecentre", vt.phasecentre)
-    reffrequency = kwargs.get("reffrequency", numpy.max(vt.frequency)) * u.Hz
+    reffrequency = kwargs.get("reffrequency", numpy.max(vt.frequency)) * units.Hz
     deffaultbw = vt.frequency[0]
     if len(vt.frequency) > 1:
         deffaultbw = vt.frequency[1] - vt.frequency[0]
-    channelwidth = kwargs.get("channelwidth", deffaultbw) * u.Hz
+    channelwidth = kwargs.get("channelwidth", deffaultbw) * units.Hz
     print("imaging.wcs_from_visibility: Defining Image at %s, frequency %s, and bandwidth %s"
           % (imagecentre, reffrequency, channelwidth))
     
@@ -84,7 +84,7 @@ def invert(vt: Visibility, **kwargs):
     
     wstep = kwargs.get("wstep", 10000.0)
     wcachesize = int(numpy.ceil(numpy.abs(vt.data['uvw'][:, 2]).max() * reffrequency.value / (const.c.value * wstep)))
-    print("imaging.invert: Making w-kernel cache of %d kernels" % (wcachesize))
+    print("imaging.invert: Making w-kernel cache of %d kernels" % wcachesize)
     wcache = pylru.FunctionCacheManager(lambda iw: wkernaf(N=256, theta=theta, w=iw * wstep, s=15, Qpx=4), 10000)
     imgfn = lambda *x: wcacheimg(*x, wstep=wstep, wcache=wcache)
     
@@ -109,7 +109,7 @@ def invert(vt: Visibility, **kwargs):
     dirty = image_from_array(d, w)
     psf = image_from_array(p, w)
     print("imaging.invert: Finished making dirty and psf")
-    return (dirty, psf, pmax)
+    return dirty, psf, pmax
 
 
 def predict(vt: Visibility, sm: SkyModel, **kwargs) -> Visibility:
@@ -141,14 +141,14 @@ def predict(vt: Visibility, sm: SkyModel, **kwargs) -> Visibility:
                                                    (ishape[0], len(vt.frequency))
             cellsize = abs(wimage.wcs.cdelt[0]) * numpy.pi / 180.0
             theta = npixel * cellsize
-            print("imaging.predict: Image cellsize %f radians" % (cellsize))
-            print("imaging.predict: Field of view %f radians" % (theta))
+            print("imaging.predict: Image cellsize %f radians" % cellsize)
+            print("imaging.predict: Field of view %f radians" % theta)
             assert (theta / numpy.sqrt(2) < 1.0), "Field of view larger than celestial sphere"
             
             wstep = kwargs.get("wstep", 10000.0)
             wcachesize = int(numpy.ceil(numpy.abs(vt.data['uvw'][:, 2]).max() * reffrequency.value / const.c.value /
                                         wstep))
-            print("imaging.predict: Making w-kernel cache of %d kernels" % (wcachesize))
+            print("imaging.predict: Making w-kernel cache of %d kernels" % wcachesize)
             wcache = pylru.FunctionCacheManager(lambda iw: wkernaf(N=256, theta=theta, w=iw * wstep, s=15, Qpx=4),
                                                 10000)
             predfn = lambda *x: wcachefwd(*x, wstep=wstep, wcache=wcache)
@@ -215,9 +215,9 @@ def majorcycle(vt: Visibility, sm: SkyModel, deconvolver, **kwargs):
     dirty, psf, sumwt = invert(vtres, **kwargs)
     thresh = kwargs.get("threshold", 0.0)
     
-    comp = Image(sm.images[0])
+    comp = sm.images[0]
     for i in range(nmajor):
-        print("Start of major cycle %d" % (i))
+        print("Start of major cycle %d" % i)
         cc, res = deconvolver(dirty, psf, **kwargs)
         comp += cc
         vtpred = predict(vt, sm, **kwargs)

@@ -15,7 +15,7 @@ Functions that define and manipulate a model of the sky: images and sky componen
 """
 
 
-class SkyModel():
+class SkyModel:
     """
     A skymodel consisting of list of images and lists of components
     """

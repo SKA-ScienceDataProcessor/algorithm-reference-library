@@ -45,7 +45,7 @@ def clean(dirty: Image, psf: Image, **kwargs):
         residual_array = numpy.zeros(dirty.data.shape)
         for channel in range(dirty.data.shape[0]):
             for pol in range(dirty.data.shape[1]):
-                if (psf.data[channel, pol, :, :].max()):
+                if psf.data[channel, pol, :, :].max():
                     print("clean.clean: Processing pol %d, channel %d" % (pol, channel))
                     comp_array[channel, pol, :, :], residual_array[channel, pol, :, :] = \
                        msclean(dirty.data[channel, pol, :, :], psf.data[channel, pol, :, :],
@@ -68,7 +68,7 @@ def clean(dirty: Image, psf: Image, **kwargs):
         residual_array = numpy.zeros(dirty.data.shape)
         for channel in range(dirty.data.shape[0]):
             for pol in range(dirty.data.shape[1]):
-                if (psf.data[channel, pol, :, :].max()):
+                if psf.data[channel, pol, :, :].max():
                     print("clean.clean: Processing pol %d, channel %d" % (pol, channel))
                     comp_array[channel, pol, :, :], residual_array[channel, pol, :, :] = \
                         hogbom(dirty.data[channel, pol, :, :], psf.data[channel, pol, :, :],

@@ -18,7 +18,7 @@ from functions.skycomponent import SkyComponent
 Functions that define and manipulate images. Images are just data and a World Coordinate System.
 """
 
-class Image():
+class Image:
     """
     Image class with Image data (as a numpy.array) and optionally the AstroPy WCS. Many operations can be done
     conveniently using numpy functions on Image.data.
@@ -107,18 +107,18 @@ def image_from_fits(fitsfile: str):
     return fim
 
 
-def image_add_wcs(im: Image, w: WCS):
+def image_add_wcs(im: Image, wcs: WCS):
     """
     Add a WCS to an Image
     :param im:
     :param wcs:
     :return:
     """
-    im.wcs = w.deepcopy()
+    im.wcs = wcs.deepcopy()
     return im
 
 
-def image_replicate(im: Image, shape: [] = [1, 1, 1, 1]):
+def image_replicate(im: Image, shape=None):
     """
     Make a new canonical shape Image, extended along third and fourth axes by replication. The order is
     [chan, pol, dec, ra]
@@ -129,6 +129,8 @@ def image_replicate(im: Image, shape: [] = [1, 1, 1, 1]):
     :return:
     """
     # TODO: Fill in extra axes in wcs
+    if shape is None:
+        shape = [1, 1, 1, 1]
     if len(im.data.shape) == 2:
         fim = Image()
         image_add_wcs(fim, im.wcs)

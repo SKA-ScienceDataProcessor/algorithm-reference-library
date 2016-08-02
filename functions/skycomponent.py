@@ -12,7 +12,7 @@ from astropy.coordinates import SkyCoord
 Functions that represent and manipulate single components of sky brightness e.g. point source, Gaussian"""
 
 
-class SkyComponent():
+class SkyComponent:
     """
     A single SkyComponent with direction, flux, shape, and parameters for the shape
     """

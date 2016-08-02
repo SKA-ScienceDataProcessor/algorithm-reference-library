@@ -8,13 +8,13 @@
 Functions that represent polarisation information.
 """
 
-class MKernel():
+class MKernel:
     """
     Mueller kernel with numpy.array, antenna1, antenna2, time
     """
 
 
-class Jones():
+class Jones:
     """
     Jones kernel with numpy.array, antenna1, antenna2, time
     """

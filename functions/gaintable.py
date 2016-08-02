@@ -11,7 +11,7 @@ from astropy.table import Table, vstack
 Functions that define and manipulate gain tables
 """
 
-class GainTable():
+class GainTable:
     """
     Gain table with time, antenna, gain[:,chan,pol] columns
     """
@@ -52,7 +52,7 @@ def gaintable_add(fgt1: GainTable, fgt2: GainTable, **kwargs):
 
 
 def gaintable_from_array(gain: numpy.array, time: numpy.array, antenna: numpy.array, weight: numpy.array,
-                         frequency: numpy.array, copy=False, meta={}, **kwargs):
+                         frequency: numpy.array, copy=False, meta=None, **kwargs):
     """
     Create a gaintable from arrays
     :param gain:
@@ -65,6 +65,8 @@ def gaintable_from_array(gain: numpy.array, time: numpy.array, antenna: numpy.ar
     :param kwargs:
     :return:
     """
+    if meta is None:
+        meta = {}
     nrows = time.shape[0]
     assert len(frequency) == gain.shape[1], "Discrepancy in frequency channels"
     assert len(antenna) == nrows, "Discrepancy in number of antenna rows"

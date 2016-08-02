@@ -39,11 +39,12 @@ def majorcycle(T2, L2,
 
     # The model is added to each major cycle and then the visibilities are
     # calculated from the full model
+    global vsp
     ps, vso = sortw(p, v)
     dirty, psf, sumwt = doimg(T2, L2, ps, vso, imgfn)
     comps = 0.0 * dirty.copy()
     for i in range(nmajor):
-        print("Start of major cycle %d" % (i))
+        print("Start of major cycle %d" % i)
         cc, res = msclean(dirty, psf, True, gain, thresh, nminor, scales, fracthresh)
         plt.clf()
         plt.imshow(res, cmap='rainbow', origin='lower')
@@ -245,7 +246,7 @@ def findabsmaxstack(stack, window, couplingmatrix):
     py = None
     pshape = [stack.shape[0], stack.shape[1]]
     for iscale in range(stack.shape[2]):
-        mx, my = np.unravel_index(np.fabs((stack)[:, :, iscale]).argmax(), pshape)
+        mx, my = np.unravel_index(np.fabs(stack[:, :, iscale]).argmax(), pshape)
         thisabsmax = stack[mx, my, iscale] / couplingmatrix[iscale, iscale]
         if abs(thisabsmax) > abs(pabsmax):
             px = mx
@@ -294,10 +295,10 @@ def sphfn(vnu):
 
     value = 0.
 
-    if ((vnu >= 0.) and (vnu < 0.75)):
+    if (vnu >= 0.) and (vnu < 0.75):
         part = 0
         nuend = 0.75
-    elif ((vnu >= 0.75) and (vnu <= 1.)):
+    elif (vnu >= 0.75) and (vnu <= 1.):
         part = 1
         nuend = 1.0
     else:
@@ -317,11 +318,11 @@ def sphfn(vnu):
         factor = delnusq ** k
         bot += q[part, k] * factor
 
-    if (bot != 0.):
+    if bot != 0.:
         value = top / bot
     else:
         value = 0.
 
-    if (value < 0.): value = 0.
+    if value < 0.: value = 0.
 
     return value

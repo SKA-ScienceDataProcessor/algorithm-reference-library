@@ -19,7 +19,7 @@ The data structure:
 - An attached attribute which is the phase centre as an AstroPy SkyCoord
 """
 
-class Visibility():
+class Visibility:
     """
     Visibility with uvw, time, a1, a2, vis, weight Columns in
     an astropy Table along with an attribute to hold the frequencies
@@ -128,8 +128,8 @@ def visibility_from_array(uvw: numpy.array, time: numpy.array, freq: numpy.array
     return vt
 
 
-def create_visibility(config: Configuration, times: numpy.array, freq: numpy.array, weight: float = 1.0,
-                      phasecentre: SkyCoord = None, meta: dict = None, **kwargs) -> Visibility:
+def create_visibility(config: Configuration, times: numpy.array, freq: numpy.array, weight: float,
+                      phasecentre: SkyCoord, meta: dict = None, **kwargs) -> Visibility:
     """
     Creat a vistable from Configuration, hour angles, and direction of source
     :param meta:

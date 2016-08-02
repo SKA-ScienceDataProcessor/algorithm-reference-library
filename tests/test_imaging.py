@@ -38,7 +38,8 @@ class TestImaging(unittest.TestCase):
         self.m31comp = SkyComponent(self.compreldirection, self.flux, frequency)
         self.m31sm = skymodel_from_component(self.m31comp)
 
-        vtpred = create_visibility(vlaa, times, frequency, weight=1.0, phasecentre=self.phasecentre, **self.kwargs)
+        vtpred = create_visibility(vlaa, times, frequency, weight=1.0, phasecentre=self.phasecentre,
+                                   meta= ** self.kwargs
         self.vtmodel = predict(vtpred, self.m31sm, **self.kwargs)
 
 

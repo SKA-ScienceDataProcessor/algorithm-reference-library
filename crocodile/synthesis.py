@@ -172,9 +172,9 @@ def wkernaf2(N, lam, w):
     """
     duv = T2 / N
     vs, us = ucsN(N) * lam
-    vs0 = vs - duv;
+    vs0 = vs - duv
     vs1 = vs + duv
-    us0 = vs - duv;
+    us0 = vs - duv
     us1 = us + duv
     from scipy.special import erf
     f = (1j - 1) * numpy.sqrt(numpy.pi / 2 / w)
@@ -411,7 +411,7 @@ def inv(g):
 def rotv(p, l, m, v):
     """Rotate visibilities to direction (l,m)"""
     s = numpy.array([l, m, numpy.sqrt(1 - l ** 2 - m ** 2)])
-    return (v * numpy.exp(2j * numpy.pi * numpy.dot(p, s)))
+    return v * numpy.exp(2j * numpy.pi * numpy.dot(p, s))
 
 
 def rotw(p, v):
@@ -603,7 +603,7 @@ def wcacheimg(theta, lam, p, v,
     p, v = sortw(p, v)
     guv = numpy.zeros([N, N], dtype=complex)
     if wcache is None:
-        print("Making w-kernel cache of %d kernels" % (cachesize))
+        print("Making w-kernel cache of %d kernels" % cachesize)
         wcache = pylru.FunctionCacheManager(lambda iw: wkernaf(NpixFF, theta, iw * wstep, NpixKern, Qpx), cachesize)
     for iv in range(len(v)):
         iw = int(round(p[iv, 2] / wstep))
@@ -645,7 +645,7 @@ def wcachefwd(guv,
     assert N > 1
     nv = p.shape[0]
     if wcache is None:
-        print("Making w-kernel cache of %d kernels" % (cachesize))
+        print("Making w-kernel cache of %d kernels" % cachesize)
         wcache = pylru.FunctionCacheManager(lambda iw: wkernaf(NpixFF, theta, iw * wstep, NpixKern, Qpx), cachesize)
     v = numpy.zeros(nv, dtype='complex')
     for iv in range(nv):

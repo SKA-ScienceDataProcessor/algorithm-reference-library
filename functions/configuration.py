@@ -4,7 +4,7 @@
 # subclasses of astropy classes.
 #
 
-import astropy.units as u
+import astropy.units as units
 from astropy.coordinates import EarthLocation
 from astropy.table import Table, Column, vstack
 
@@ -14,7 +14,7 @@ from crocodile.simulate import *
 Functions that define and manipulate telescope configurations. These are required for simulations.
 """
 
-class Configuration():
+class Configuration:
     """
     Describe a Configuration
     """
@@ -86,7 +86,7 @@ def configuration_from_file(antfile: str, name: str = None, location: EarthLocat
     antxyz = numpy.genfromtxt(antfile, delimiter=",")
     assert antxyz.shape[1] == 3, ("Antenna array has wrong shape %s" % antxyz.shape)
     nants = antxyz.shape[0]
-    declination = location.geodetic[1].to(u.rad).value
+    declination = location.geodetic[1].to(units.rad).value
     if frame == 'local':
         rot_xyz = xyz_to_uvw(antxyz, numpy.radians(0), numpy.radians(declination))
         xyz = Column(rot_xyz, name="xyz")
@@ -94,7 +94,7 @@ def configuration_from_file(antfile: str, name: str = None, location: EarthLocat
     else:
         xyz = Column(antxyz, name="xyz")
 
-    anames = [names % (ant) for ant in range(nants)]
+    anames = [names % ant for ant in range(nants)]
     mounts = Column(numpy.repeat(mount, nants), name="mount")
     fc.data = Table(data=[anames, xyz, mounts], names=["names", "xyz", "mount"], meta=meta)
     fc.frame = frame
@@ -117,7 +117,7 @@ def configuration_from_LOFAR(antfile: str, name: str = None, meta: dict = None, 
     anames = numpy.genfromtxt(antfile, dtype='str', skip_header=2, usecols=[0], delimiter=",")
     mounts = Column(numpy.repeat('XY', nants), name="mount")
     fc.data = Table(data=[anames, antxyz, mounts], names=["names", "xyz", "mount"], meta=meta)
-    fc.location = EarthLocation(x=[3826923.9] * u.m, y=[460915.1] * u.m, z=[5064643.2] * u.m)
+    fc.location = EarthLocation(x=[3826923.9] * units.m, y=[460915.1] * units.m, z=[5064643.2] * units.m)
     return fc
 
 

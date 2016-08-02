@@ -146,7 +146,7 @@ def sphfn(eta, exponent_id, support, gridding=True):
         psi /= (1.0 + x * (q4[0, j] + x * q4[1, j]))
     elif support == 5:
         x = eta2 - 1.0
-        psi = (p5[0, j] + x * (p5[1, j] + x * (p5[2, j] + x * (p5[3, j] + \
+        psi = (p5[0, j] + x * (p5[1, j] + x * (p5[2, j] + x * (p5[3, j] +
                                                                x * (p5[4, j] + x * (p5[5, j] + x * p5[6, j])))))) / (
                   1.0 +
                   x * q5[j])
