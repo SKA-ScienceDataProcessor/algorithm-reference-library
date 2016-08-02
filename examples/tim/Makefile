@@ -1,3 +1,0 @@
-
-NBs =
-include ../jupyter.mk

@@ -10,6 +10,10 @@ from astropy.coordinates import SkyCoord
 from functions.image import Image, image_from_fits
 from functions.skycomponent import SkyComponent
 
+"""
+Functions that define and manipulate a model of the sky: images and sky components
+"""
+
 
 class SkyModel():
     """

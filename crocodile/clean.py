@@ -115,6 +115,8 @@ def majorcycle(T2, L2,
     :param nmajor: Number of major cycles
     :param nminor: Number of minor cycles
     :param wstep: Step in w (pixels)
+    
+    NOT USED
 
     """
     ps, vs = sortw(p, v)

@@ -7,6 +7,9 @@ import numpy as numpy
 
 from astropy.table import Table, vstack
 
+"""
+Functions that define and manipulate gain tables
+"""
 
 class GainTable():
     """
@@ -32,7 +35,7 @@ def gaintable_filter(fg: GainTable, **kwargs):
 
 def gaintable_add(fgt1: GainTable, fgt2: GainTable, **kwargs):
     """
-
+    Add two gaintables
     :param fgt1:
     :param fgt2:
     :param kwargs:
@@ -51,7 +54,7 @@ def gaintable_add(fgt1: GainTable, fgt2: GainTable, **kwargs):
 def gaintable_from_array(gain: numpy.array, time: numpy.array, antenna: numpy.array, weight: numpy.array,
                          frequency: numpy.array, copy=False, meta={}, **kwargs):
     """
-
+    Create a gaintable from arrays
     :param gain:
     :param time:
     :param antenna:

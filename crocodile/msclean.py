@@ -33,6 +33,8 @@ def majorcycle(T2, L2,
     :param nminor: Number of minor cycles
     :print thresh: Stopping threshold (for scale=0)
     :print fracthresh: Minor Cycle stopping threshold (for scale=0) fraction of peak
+    
+    NOT USED
     """
 
     # The model is added to each major cycle and then the visibilities are

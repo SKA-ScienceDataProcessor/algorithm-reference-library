@@ -4,6 +4,9 @@
 # subclasses of astropy classes.
 #
 
+"""
+Functions that represent polarisation information.
+"""
 
 class MKernel():
     """

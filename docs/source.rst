@@ -5,7 +5,7 @@ Source Documentation
 Simulate
 --------
 
-.. automodule:: crocodile.simulate
+.. automodule:: crocodile.create_visibility
    :members:
 
 Synthesis
@@ -23,5 +23,5 @@ Clean
 Multiscale Clean
 ----------------
 
-.. automodule:: crocodile.clean
+.. automodule:: crocodile.msclean
   :members:

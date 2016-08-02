@@ -14,11 +14,22 @@ from astropy.wcs.utils import skycoord_to_pixel, pixel_to_skycoord
 from astropy.coordinates import SkyCoord
 from functions.skycomponent import SkyComponent
 
-
+"""
+Functions that define and manipulate images. Images are just data and a World Coordinate System.
+"""
 
 class Image():
     """
-    Image class with Image data (as a numpy.array) and optionally WCS
+    Image class with Image data (as a numpy.array) and optionally the AstroPy WCS. Many operations can be done
+    conveniently using numpy functions on Image.data.
+    
+    Most of the imaging functions require an image in canonical format:
+    - 4 axes: RA, DEC, POL, FREQ
+    
+    The conventions for indexing in WCS and numpy are opposite.
+    - In astropy.wcs, the order is (longitude, latitude, polarisation, frequency)
+    - in numpy, the order is (frequency, polarisation, latitude, longitude)
+    
     """
 
     def __init__(self):

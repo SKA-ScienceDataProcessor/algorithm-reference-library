@@ -10,6 +10,9 @@ from astropy.table import Table, Column, vstack
 
 from crocodile.simulate import *
 
+"""
+Functions that define and manipulate telescope configurations. These are required for simulations.
+"""
 
 class Configuration():
     """
@@ -37,7 +40,7 @@ def configuration_add(fc1: Configuration, fc2: Configuration):
 
 def configuration_filter(fc: Configuration, **kwargs):
     """
-
+    Filter a configuration e.g. remove certain antennas
     :param fc:
     :param kwargs:
     :return:
@@ -100,6 +103,7 @@ def configuration_from_file(antfile: str, name: str = None, location: EarthLocat
 
 def configuration_from_LOFAR(antfile: str, name: str = None, meta: dict = None, **kwargs):
     """
+    Define from the LOFAR configuration file
     :param antfile:
     :param name:
     :param meta:
@@ -121,8 +125,8 @@ def named_configuration(name: str = 'LOWBD2', **kwargs):
     """
     Standard configurations e.g. LOWBD2, MIDBD2
 
-    :param name: str name of Configuration
-    :rtype Configuration
+    :param name: str name of Configuration LOWBD2, LOWBD1, LOFAR, VLAA
+    :rtype Configuration:
     """
 
     import os

@@ -8,10 +8,12 @@ Crocodile Documentation
    :name: mastertoc
    :maxdepth: 2
 
+   functions
    source
    notebooks/coordinates
    notebooks/wkernel
    notebooks/wimaging
+   notebooks/imaging
    pyweave/wkernel
    pyweave/wimaging
    pyweave/aa
@@ -23,7 +25,6 @@ Crocodile Documentation
    ben/read_oskar_vis
    ben/simple_dirty_image
    ben/simple_dirty_image_sphfn
-   tim/msclean
 
 Indices and tables
 ==================

@@ -1,7 +1,8 @@
 # Bojan Nikolic <b.nikolic@mrao.cam.ac.uk>
 #
-# Synthetise and Image interferometer data
-"""Parameter name meanings:
+# Synthesise and Image interferometer data
+"""
+Parameter name meanings:
 - p: The uvw coordinates [*,3] (m)
 - v: The Visibility values [*] (Jy)
 - T2: Theta2, the half-width of the field of view to be synthetised (radian)
@@ -14,12 +15,14 @@
 from __future__ import division
 
 import numpy
-import scipy.special
 import pylru
+import scipy.special
 
 
 def ceil2(x):
-    """Find next greater power of 2"""
+    """Find next greater power of 2
+    NOT USED
+    """
     return 1 << (x - 1).bit_length()
 
 
@@ -382,6 +385,8 @@ def halfinv(g):
 
     This function is like doing `ifftshift` on the x axis but not on the
     y axis
+    
+    NOT USED
 
     """
     Nx, Ny = g.shape
