@@ -12,8 +12,8 @@ from functions.image import Image, image_from_array
 
 """
 Functions that clean a dirty image using a point spread function. The algorithms available are:
-- Hogbom CLEAN
-- MultiScale CLEAN
+- Hogbom CLEAN See: Hogbom CLEAN (1974A&AS...15..417H)
+- MultiScale CLEAN See: Multiscale CLEAN (IEEE Journal of Selected Topics in Sig Proc, 2008 vol. 2 pp. 793-801)
 """
 
 

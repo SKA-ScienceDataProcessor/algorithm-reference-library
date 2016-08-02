@@ -163,7 +163,6 @@ def image_add(im1: Image, im2: Image, checkwcs=False):
     :param checkwcs:
     :return:
     """
-    # TODO: Implement addition and stacking
     assert not checkwcs, "Checking WCS not yet implemented"
     return image_from_array(im1.data + im2.data, im1.wcs)
 

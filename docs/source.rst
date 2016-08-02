@@ -5,7 +5,7 @@ Source Documentation
 Simulate
 --------
 
-.. automodule:: crocodile.create_visibility
+.. automodule:: crocodile.simulate
    :members:
 
 Synthesis

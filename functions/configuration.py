@@ -133,12 +133,10 @@ def named_configuration(name: str = 'LOWBD2', **kwargs):
     chome=os.getenv('CROCODILE', './')
 
     if name == 'LOWBD2':
-        # TODO: convert to XYZ
         location = EarthLocation(lon="116.4999", lat="-26.7000", height=300.0)
         fc = configuration_from_file(antfile="%s/data/configurations/LOWBD2.csv" % chome,
                                      location=location, mount='xy', names='LOWBD2_%d')
     elif name == 'LOWBD1':
-        # TODO: convert to XYZ
         location = EarthLocation(lon="116.4999", lat="-26.7000", height=300.0)
         fc = configuration_from_file(antfile="%s/data/configurations/LOWBD1.csv" % chome,
                                      location=location, mount='xy', names='LOWBD1_%d')
@@ -146,7 +144,6 @@ def named_configuration(name: str = 'LOWBD2', **kwargs):
         fc = configuration_from_LOFAR(antfile="%s/data/configurations/LOFAR.csv" % chome,
                                       frame='geocentric')
     elif name == 'VLAA':
-        # TODO: convert to XYZ
         location = EarthLocation(lon="-107.6184", lat="34.0784", height=2124.0)
         fc = configuration_from_file(antfile="%s/data/configurations/VLA_A_hor_xyz.csv" % chome, location=location,
                                      mount='altaz',

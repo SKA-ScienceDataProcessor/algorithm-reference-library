@@ -378,10 +378,10 @@ def halfinv(g):
     """Invert a hermitian-symetric two-dimensional grid.
 
     The hermitian symetric dimension is the second (last) index, like
-    in `numpy.fft`
-
-    :param g: The uv grid to invert. Note that the zero frequency is
+    in `numpy.fft`. Note that the zero frequency is
     expected at pixel N/2 where N is the size of the grid on the side.
+
+    :param g: The uv grid to invert.
 
     This function is like doing `ifftshift` on the x axis but not on the
     y axis
@@ -399,11 +399,10 @@ def halfinv(g):
 
 
 def inv(g):
-    """Invert a complex two-dimensional grid.
-
-    :param g: The uv grid to invert. Note that the zero frequency is
+    """Invert a complex two-dimensional grid. Note that the zero frequency is
     expected at pixel N/2 where N is the size of the grid on the side.
 
+    :param g: The uv grid to invert.
     """
     return numpy.real(numpy.fft.ifftshift(numpy.fft.ifft2(g)))
 
