@@ -3,12 +3,12 @@ import unittest
 import numpy
 from numpy.testing import assert_allclose
 
-from functions.skycomponent import SkyComponent
-from functions.configuration import named_configuration
-from functions.gaintable import gaintable_from_array
-from functions.image import image_add, image_from_array, image_from_fits
-from functions.skymodel import skymodel_from_image, skymodel_add_component
-from functions.visibility import Visibility, create_visibility
+from arl.skycomponent import SkyComponent
+from arl.configuration import named_configuration
+from arl.gaintable import gaintable_from_array
+from arl.image import image_add, image_from_array, image_from_fits
+from arl.skymodel import skymodel_from_image, skymodel_add_component
+from arl.visibility import Visibility, create_visibility
 
 from astropy.coordinates import SkyCoord
 
@@ -19,7 +19,7 @@ class TestFunctions(unittest.TestCase):
         flux = numpy.array([[1.0, 0.0, 0.0, 0.0], [1.0, 0.0, 0.0, 0.0]])
         direction = SkyCoord('00h42m30s', '+41d12m00s', frame='icrs')
         frequency=numpy.arange(1.0e8,1.5e8,3e7)
-        comp = SkyComponent(direction, flux, frequency=frequency, shape='Point')
+        comp = create_skycomponent(flux, flux=frequency, frequency=frequency, shape='Point')
 
     def test_configuration(self):
         for telescope in ['LOWBD1', 'LOWBD2', 'LOFAR', 'VLAA']:
@@ -54,7 +54,7 @@ class TestFunctions(unittest.TestCase):
         direction = SkyCoord('00h42m30s', '+41d12m00s', frame='icrs')
         flux = numpy.array([[1.0, 0.0, 0.0, 0.0], [1.0, 0.0, 0.0, 0.0]])
         frequency=numpy.arange(1.0e8,1.5e8,1.0e7)
-        comp = SkyComponent(direction, flux, frequency=frequency, shape='Point')
+        comp = create_skycomponent(flux, flux=frequency, frequency=frequency, shape='Point')
         m31sm = skymodel_add_component(m31sm, comp)
 
     def test_visibility(self):

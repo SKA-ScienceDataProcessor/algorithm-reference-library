@@ -5,30 +5,40 @@ import numpy
 #
 from astropy.coordinates import SkyCoord
 
-from functions.visibility import Visibility, create_visibility
-from functions.configuration import configuration_filter, named_configuration
-from functions.image import image_from_fits, image_replicate
-from functions.skymodel import SkyModel, skymodel_from_image
-from functions.gaintable import GainTable
-from functions.imaging import predict
+from arl.visibility import Visibility, create_visibility
+from arl.configuration import configuration_filter, named_configuration
+from arl.image import image_from_fits, image_replicate
+from arl.skymodel import SkyModel, skymodel_from_image
+from arl.gaintable import GainTable
+from arl.imaging import predict
 
 """
 Functions that either solve for the calibration or apply it. On solution the gains are written into a gaintable. For
 correction, the gaintable is read and, if necessary, interpolated.
 """
 
-def solve(vis: Visibility, sm: SkyModel, **kwargs) -> GainTable:
+def solve(vt: Visibility, sm: SkyModel, **kwargs) -> GainTable:
+    """ Solve for calibration using a sky model
+    
+    :param vt:
+    :type Visibility:
+    :param sm:
+    :type SkyModel:
+    :returns: GainTable
     """
-    Calibrate using a sky model
-    """
-    # TODO: Implement calibration solution
+    #TODO: Implement calibration solution
     print("calibration.solve: Stubbed: Solving for GainTable")
     return GainTable()
 
 
 def correct(vt: Visibility, gt: GainTable, **kwargs) -> Visibility:
-    """
-    Correct a vistable using a GainTable
+    """ Correct a vistable using a GainTable
+    
+    :param vt:
+    :type Visibility:
+    :param gt:
+    :type GainTable:
+    :returns: Visibility
     """
     # TODO: Implement calibration application
     print("calibration.correct: Stubbed: Applying gaintab")

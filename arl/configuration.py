@@ -15,8 +15,7 @@ Functions that define and manipulate telescope configurations. These are require
 """
 
 class Configuration:
-    """
-    Describe a Configuration
+    """ Describe a Configuration
     """
 
     def __init__(self):
@@ -26,11 +25,13 @@ class Configuration:
 
 
 def configuration_add(fc1: Configuration, fc2: Configuration):
-    """
-    Add two configurations together
+    """ Add two configurations together
+    
     :param fc1:
+    :type Configuration:
     :param fc2:
-    :return:
+    :type Configuration:
+    :returns: Configuration
     """
     fc = Configuration()
     fc.name = '%s+%s' % (fc1.name, fc2.name)
@@ -39,11 +40,12 @@ def configuration_add(fc1: Configuration, fc2: Configuration):
 
 
 def configuration_filter(fc: Configuration, **kwargs):
-    """
-    Filter a configuration e.g. remove certain antennas
+    """ Filter a configuration e.g. remove certain antennas
+    
     :param fc:
+    :type Configuration:
     :param kwargs:
-    :return:
+    :returns: Configuration
     """
     print("Configuration: No filter implemented yet")
     return fc
@@ -51,15 +53,20 @@ def configuration_filter(fc: Configuration, **kwargs):
 
 def configuration_from_array(antxyz: numpy.array, name: str = None, location: EarthLocation = None,
                              mount: str = 'alt-az', names: str = '%d', meta: dict = None, **kwargs):
-    """
-    Define from an array
+    """ Define from parts
+    
     :param name:
-    :rtype: Configuration
-    :param antxyz: locations of antennas
+    :param antxyz: locations of antennas numpy.array[...,3]
+    :type numpy.array:
     :param location: Location of array centre (reference for antenna locations)
+    :type EarthLocation:
     :param mount: Mount type e.g. 'altaz'
+    :type str:
     :param names: Generator for names e.g. 'SKA1_MID%d'
-    :type meta: dict
+    :type generator:
+    :type meta:
+    :type dict:
+    :returns: Configuration
     """
     fc = Configuration()
     assert len(antxyz) == 2, "Antenna array has wrong shape"
@@ -70,15 +77,21 @@ def configuration_from_array(antxyz: numpy.array, name: str = None, location: Ea
 
 def configuration_from_file(antfile: str, name: str = None, location: EarthLocation = None, mount: str = 'altaz',
                             names: str = "%d", frame: str = 'local', meta: dict = None, **kwargs):
-    """
-    Define from a file
-    :param frame:
-    :param names:
+    """ Define from a file
+    
     :param antfile: Antenna file name
+    :type str:
     :param name: Name of array e.g. 'LOWBD2'
-    :param location: locationa as EarthLocation
+    :type str:
+    :param location:
+    :type EarthLocation:
     :param mount: mount type: 'altaz', 'xy'
+    :type str:
+    :param frame: 'local' | 'global'
+    :type str:
     :param meta: Any meta info
+    :type dict:
+    :returns: Configuration
     """
     fc = Configuration()
     fc.name = name
@@ -102,13 +115,16 @@ def configuration_from_file(antfile: str, name: str = None, location: EarthLocat
 
 
 def configuration_from_LOFAR(antfile: str, name: str = None, meta: dict = None, **kwargs):
-    """
-    Define from the LOFAR configuration file
+    """ Define from the LOFAR configuration file
+    
     :param antfile:
+    :type str:
     :param name:
+    :type str:
     :param meta:
+    :type dict:
     :param kwargs:
-    :return Configuration:
+    :returns: Configuration
     """
     fc = Configuration()
     antxyz = numpy.genfromtxt(antfile, skip_header=2, usecols=[1, 2, 3], delimiter=",")
@@ -122,11 +138,11 @@ def configuration_from_LOFAR(antfile: str, name: str = None, meta: dict = None, 
 
 
 def named_configuration(name: str = 'LOWBD2', **kwargs):
-    """
-    Standard configurations e.g. LOWBD2, MIDBD2
+    """ Standard configurations e.g. LOWBD2, MIDBD2
 
-    :param name: str name of Configuration LOWBD2, LOWBD1, LOFAR, VLAA
-    :rtype Configuration:
+    :param name: name of Configuration LOWBD2, LOWBD1, LOFAR, VLAA
+    :type str:
+    :returns: Configuration
     """
 
     import os

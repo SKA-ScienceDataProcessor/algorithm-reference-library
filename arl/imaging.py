@@ -1,6 +1,6 @@
 # Tim Cornwell <realtimcornwell@gmail.com>
 #
-# The imaging functions that have more than one data structure
+# The imaging arl that have more than one data structure
 #
 
 import numpy
@@ -12,9 +12,9 @@ from astropy.coordinates import CartesianRepresentation
 
 from crocodile.simulate import simulate_point
 from crocodile.synthesis import wcacheimg, wcachefwd, wkernaf, doimg, dopredict
-from functions.image import image_from_array
-from functions.skymodel import SkyModel
-from functions.visibility import Visibility, visibility_combine
+from arl.image import image_from_array
+from arl.skymodel import SkyModel
+from arl.visibility import Visibility, visibility_combine
 
 """
 Functions that perform imaging i.e. conversion of an Image to/from a Visibility
@@ -22,9 +22,11 @@ Functions that perform imaging i.e. conversion of an Image to/from a Visibility
 
 
 def wcs_from_visibility(vt: Visibility, **kwargs):
-    """
-    Make a world coordinate system from the keyword args, setting defaults
-    from the Visibility
+    """Make a world coordinate system from the keyword args and Visibility
+    
+    :param vt:
+    :type Visibility:
+    :returns: WCS
     """
     print("imaging.wcs_from_visibility: Parsing kwargs to get definition of WCS")
     imagecentre = kwargs.get("imagecentre", vt.phasecentre)
@@ -67,11 +69,11 @@ def wcs_from_visibility(vt: Visibility, **kwargs):
 
 
 def invert(vt: Visibility, **kwargs):
-    """
-    Invert to make dirty Image and PSF
-    :param vt: Visibility
-    :return: (dirty image, psf)
-
+    """Invert to make dirty Image and PSF
+    
+    :param vt:
+    :type Visibility:
+    :returns: (dirty image, psf)
     """
     print("imaging.invert: Inverting Visibility to make dirty and psf")
     shape, reffrequency, cellsize, w, imagecentre = wcs_from_visibility(vt, **kwargs)
@@ -113,11 +115,13 @@ def invert(vt: Visibility, **kwargs):
 
 
 def predict(vt: Visibility, sm: SkyModel, **kwargs) -> Visibility:
-    """
-    Predict the visibility (in place) from a SkyModel
-    :param vt: Visibility
-    :param sm: SkyModel
-    :return: Visibility
+    """Predict the visibility (in place) from a SkyModel
+    
+    :param vt:
+    :type Visibility:
+    :param sm:
+    :type SkyModel:
+    :returns: Visibility
     """
     vshape = vt.data['vis'].shape
     shape, reffrequency, cellsize, w, imagecentre = wcs_from_visibility(vt, **kwargs)
@@ -197,13 +201,15 @@ def predict(vt: Visibility, sm: SkyModel, **kwargs) -> Visibility:
 
 
 def majorcycle(vt: Visibility, sm: SkyModel, deconvolver, **kwargs):
-    """
-    Perform major cycles using a deconvolver. The interface of deconvolver is the same as clean.
+    """Perform major cycles using a deconvolver. The interface of deconvolver is the same as clean.
     
-    :param vt: Visibility
-    :param sm: SkyModel
+    :param vt:
+    :type Visibility:
+    :param sm:
+    :type SkyModel:
     :param deconvolver: Deconvolver to be used e.g. msclean
-    :return: Visibility, SkyModel
+    :arg function:
+    :returns: Visibility, SkyModel
     """
     nmajor = kwargs.get('nmajor', 5)
     print("imaging.majorcycle: Performing %d major cycles" % nmajor)

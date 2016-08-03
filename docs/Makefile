@@ -51,12 +51,11 @@ help:
 
 .PHONY: clean
 clean:
-	rm -rf $(BUILDDIR)/* pyweave notebooks anna ben
-	make -C ../examples/pyweave clean
+	rm -rf $(BUILDDIR)/* notebooks anna ben arl
 	make -C ../examples/notebooks clean
 	make -C ../examples/anna clean
 	make -C ../examples/ben clean
-	make -C ../examples/tim clean
+	make -C ../examples/arl clean
 
 make_example_rst = \
  make -C ../examples/$1 rst && \
@@ -69,11 +68,10 @@ prepare:
 
 	make -C ../data
 
-	$(call make_example_rst,pyweave,figures)
 	$(call make_example_rst,notebooks,*_files)
 	$(call make_example_rst,anna,*_files)
 	$(call make_example_rst,ben,*_files)
-#	$(call make_example_rst,tim,*_files)
+	$(call make_example_rst,arl,*_files)
 
 .PHONY: html
 html: prepare

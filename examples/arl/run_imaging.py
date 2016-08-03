@@ -1,7 +1,7 @@
 
 # coding: utf-8
 
-# This script works through the high level functions interface to crocodile, making a fake data set and then
+# This script works through the high level arl interface to crocodile, making a fake data set and then
 # deconvolving it. Finally the full and residual visibility are plotted.
 
 import sys, os
@@ -20,13 +20,13 @@ import scipy.special
 from matplotlib import pylab
 from matplotlib import pyplot as plt
 
-from functions.clean import clean
-from functions.visibility import create_visibility
-from functions.imaging import *
-from functions.skymodel import SkyModel, skymodel_from_image, skymodel_add_image, skymodel_add_component
-from functions.skycomponent import *
-from functions.image import image_show, image_from_fits, image_to_fits, image_replicate, fitcomponent
-from functions.configuration import configuration_filter, named_configuration
+from arl.clean import clean
+from arl.visibility import create_visibility
+from arl.imaging import *
+from arl.skymodel import SkyModel, skymodel_from_image, skymodel_add_image, skymodel_add_component
+from arl.skycomponent import *
+from arl.image import image_show, image_from_fits, image_to_fits, image_replicate, fitcomponent
+from arl.configuration import configuration_filter, named_configuration
 
 
 # We construct a VLA configuration and then shrink it to match our test image.
@@ -97,7 +97,7 @@ m31sm = skymodel_from_image(m31image4D)
 
 # In[ ]:
 
-comp1=SkyComponent(SkyCoord("05d00m00.0s", "02d00m0.0s"), numpy.array([[1.0,0.0,0.0,0.0]]), frequency)
+comp1= create_skycomponent(numpy.array([[1.0, 0.0, 0.0, 0.0]]), frequency)
 m31sm=skymodel_add_component(m31sm, comp1)
 
 

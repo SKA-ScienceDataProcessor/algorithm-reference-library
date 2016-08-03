@@ -21,6 +21,7 @@ import scipy.special
 
 def ceil2(x):
     """Find next greater power of 2
+    
     NOT USED
     """
     return 1 << (x - 1).bit_length()
@@ -62,8 +63,9 @@ def uax2(N, eps=0):
 
 
 def aaf(a, m, c):
-    """Compute the anti-aliasing function as separable product. See VLA
-    Scientific Memoranda 129, 131, 132
+    """Compute the anti-aliasing function as separable product.
+    
+    See VLA Scientific Memoranda 129, 131, 132
 
     """
     sx, sy = map(lambda i: scipy.special.pro_ang1(m, m, c, uax2(a.shape[i], eps=1e-10))[0],
@@ -72,12 +74,11 @@ def aaf(a, m, c):
 
 
 def pxoversample(ff, N, Qpx, s):
-    """Takes a farfield pattern and creates oversampled convolution
-    functions from it.
+    """Takes a farfield pattern and creates oversampled convolution function from it.
 
     :param ff: Far field pattern
     :param N:  Image size
-    :param Qpx: Factor to oversample by -- there will be Qpx x Qpx convolution functions
+    :param Qpx: Factor to oversample by -- there will be Qpx x Qpx convolution arl
     :param s: Size of convolution function to extract
     :returns: List of of shape (Qpx, Qpx), with the inner list on the
               u coordinate and outer indexed by j
@@ -168,7 +169,7 @@ def wkernaf2(N, lam, w):
     :param N:
     :param lam:
     :param w:
-    :return:
+    :returns:
     """
     duv = T2 / N
     vs, us = ucsN(N) * lam
@@ -193,7 +194,7 @@ def wkernaf(N, theta, w, s,
     :param Qpx: Oversampling, pixels will be Qpx smaller in aperture
       plane than required to minimially sample theta.
 
-    :return: (Qpx,Qpx) shaped list of convolution kernels
+    :returns: (Qpx,Qpx) shaped list of convolution kernels
     """
     wff = wkernff(N, theta, w)
     return pxoversample(wff, N, Qpx, s)
@@ -577,7 +578,7 @@ def wcacheimg(theta, lam, p, v,
               Qpx=4,
               NpixFF=256,
               NpixKern=15):
-    """Basic w-projection by caching convolution functions in w
+    """Basic w-projection by caching convolution arl in w
 
     The cache can be constructed externally and passed in:
 

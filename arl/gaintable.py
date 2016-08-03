@@ -23,23 +23,25 @@ class GainTable:
 
 
 def gaintable_filter(fg: GainTable, **kwargs):
-    """
+    """Filer a Gaintable
 
     :param fg:
-    :param kwargs:
-    :return:
+    :type GainTable:
+    :returns: GainTable
     """
     print("GainTable: Filter not implemented yet")
     return fg
 
 
 def gaintable_add(fgt1: GainTable, fgt2: GainTable, **kwargs):
-    """
-    Add two gaintables
+    """ Add two gaintables
+    
     :param fgt1:
+    :type GainTable:
     :param fgt2:
+    :type GainTable:
     :param kwargs:
-    :return:
+    :returns: GainTable
     """
     assert len(fgt1.frequency) == len(fgt2.frequency), "GainTable: frequencies should be the same"
     assert numpy.max(numpy.abs(fgt1.frequency - fgt2.frequency)) < 1.0, "GainTable: frequencies should be the same"
@@ -53,17 +55,24 @@ def gaintable_add(fgt1: GainTable, fgt2: GainTable, **kwargs):
 
 def gaintable_from_array(gain: numpy.array, time: numpy.array, antenna: numpy.array, weight: numpy.array,
                          frequency: numpy.array, copy=False, meta=None, **kwargs):
-    """
-    Create a gaintable from arrays
+    """ Create a gaintable from arrays
+    
     :param gain:
+    :type GainTable:
     :param time:
+    :type numpy.array:
     :param antenna:
+    :type numpy.array:
     :param weight:
+    :type numpy.array:
     :param frequency:
+    :type numpy.array:
     :param copy:
+    :type bool:
     :param meta:
+    :type dict:
     :param kwargs:
-    :return:
+    :returns: Gaintable
     """
     if meta is None:
         meta = {}

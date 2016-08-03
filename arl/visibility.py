@@ -8,7 +8,7 @@ from astropy.coordinates import SkyCoord, CartesianRepresentation
 from astropy.table import Table, vstack
 
 from crocodile.simulate import *
-from functions.configuration import Configuration, named_configuration
+from arl.configuration import Configuration, named_configuration
 
 """
 Functions that represent a visibility set.
@@ -20,7 +20,8 @@ The data structure:
 """
 
 class Visibility:
-    """
+    """ Visibility table class
+    
     Visibility with uvw, time, a1, a2, vis, weight Columns in
     an astropy Table along with an attribute to hold the frequencies
     and an attribute to hold the direction.
@@ -38,14 +39,18 @@ class Visibility:
 
 
 def visibility_combine(fvt1: Visibility, fvt2: Visibility, w1: float = 1.0, w2: float = 1.0, **kwargs) -> Visibility:
-    """
-    Linear combination of two visibility sets
+    """ Linear combination of two visibility sets
+    
     :param fvt1: Visibility set 1
+    :type Visibility:
     :param fvt2: Visibility set 2
+    :type Visibility:
     :param w1: Weight of visibility set 1
+    :type float:
     :param w2: Weight of visibility set 2
+    :type float:
     :param kwargs:
-    :return: Visibility
+    :returns: Visibility
     """
     assert len(fvt1.frequency) == len(fvt2.frequency), "Visibility: frequencies should be the same"
     assert numpy.max(numpy.abs(fvt1.frequency - fvt2.frequency)) < 1.0, "Visibility: frequencies should be the same"
@@ -66,12 +71,14 @@ def visibility_combine(fvt1: Visibility, fvt2: Visibility, w1: float = 1.0, w2: 
 
 def visibility_concatenate(fvt1: Visibility, fvt2: Visibility, **kwargs) -> \
         Visibility:
-    """
-    Concatentate the data sets in time, optionally phase rotating the second to the phasecenter of the first
+    """ Concatentate the data sets in time, optionally phase rotating the second to the phasecenter of the first
+    
     :param fvt1:
+    :type Visibility:
     :param fvt2:
+    :type Visibility:
     :param kwargs:
-    :return: Visibility
+    :returns: Visibility
     """
     assert len(fvt1.frequency) == len(fvt2.frequency), "Visibility: frequencies should be the same"
     assert numpy.max(numpy.abs(fvt1.frequency - fvt2.frequency)) < 1.0, "Visibility: frequencies should be the same"
@@ -87,11 +94,12 @@ def visibility_concatenate(fvt1: Visibility, fvt2: Visibility, **kwargs) -> \
 
 
 def visibility_filter(fvis: Visibility, **kwargs) -> Visibility:
-    """
-    Filter a visibility set
+    """ Filter a visibility set
+    
     :param fvis:
+    :type Visibility:
     :param kwargs:
-    :return: Visibility
+    :returns: Visibility
     """
     print("Visibility.filter: not implemented yet")
     return fvis
@@ -100,18 +108,27 @@ def visibility_filter(fvis: Visibility, **kwargs) -> Visibility:
 def visibility_from_array(uvw: numpy.array, time: numpy.array, freq: numpy.array, antenna1: numpy.array,
                           antenna2: numpy.array, vis: numpy.array, weight: numpy.array,
                           phasecentre: SkyCoord, meta: dict, **kwargs) -> Visibility:
-    """
-    Create a visibility set from parts
-    :param uvw: numpy complex array [...,3]
-    :param time: numpy array [...]
-    :param freq: numpy array [nfreq]
-    :param antenna1: numpy array [...]
-    :param antenna2: numpy array [...]
-    :param vis: numpy complex array [...,nchan,npol]
-    :param weight: numpy float array [...,nchan,npol]
-    :param phasecentre: SkyCoord
-    :param meta: object
-    :return: Visibility
+    """ Create a visibility set from parts
+    
+    :param uvw:
+    :type numpy complex array [...,3]:
+    :param time:
+    :type numpy array [...]:
+    :param freq:
+    :type numpy array [nfreq]:
+    :param antenna1:
+    :type numpy array [...]:
+    :param antenna2:
+    :type numpy array [...]:
+    :param vis:
+    :type numpy complex array [...,nchan,npol]:
+    :param weight:
+    :type numpy float array [...,nchan,npol]:
+    :param phasecentre:
+    :type SkyCoord:
+    :param meta:
+    :type dict:
+    :returns: Visibility
     """
     nrows = time.shape[0]
     assert uvw.shape[0] == nrows, "Discrepancy in number of rows in uvw"
@@ -130,15 +147,22 @@ def visibility_from_array(uvw: numpy.array, time: numpy.array, freq: numpy.array
 
 def create_visibility(config: Configuration, times: numpy.array, freq: numpy.array, weight: float,
                       phasecentre: SkyCoord, meta: dict = None, **kwargs) -> Visibility:
-    """
-    Creat a vistable from Configuration, hour angles, and direction of source
-    :param meta:
+    """ Create a vistable from Configuration, hour angles, and direction of source
+    
+
     :param config: Configuration of antennas
-    :param times: hour angles
-    :param freq: frequencies (Hz]
+    :type Configuration:
+    :param times: hour angles in radians
+    :type numpy.array:
+    :param freq: frequencies (Hz] Shape [nchan, npol]
+    :type numpy.array:
     :param weight: weight of a single sample
+    :type float:
     :param phasecentre: phasecentre of observation
-    :return: Visibility
+    :type SkyCoord:
+    :param meta:
+    :type dict:
+    :returns: Visibility
     """
     assert phasecentre is not None, "Must specify phase centre"
     nch = len(freq)
@@ -168,10 +192,11 @@ def create_visibility(config: Configuration, times: numpy.array, freq: numpy.arr
 
 
 def phaserotate(vt: Visibility, newphasecentre: SkyCoord, **kwargs) -> Visibility:
-    """
-    Phase rotate from the current phase centre to a new phase centre: works in place
+    """ Phase rotate from the current phase centre to a new phase centre: works in place
+    
     :param vt: Visibility to be rotated
-    :return: Visibility
+    :type Visibility:
+    :returns: Visibility
     """
     pcof = newphasecentre.skyoffset_frame()
     todc = vt.phasecentre.transform_to(pcof)
@@ -198,11 +223,13 @@ def phaserotate(vt: Visibility, newphasecentre: SkyCoord, **kwargs) -> Visibilit
 
 
 def visibility_sum(vt: Visibility, direction: SkyCoord, **kwargs) -> numpy.array:
-    """
-    Direct Fourier summation in a given direction
+    """ Direct Fourier summation in a given direction
+    
     :param vt: Visibility to be summed
+    :type Visibility:
     :param direction: Direction of summation
-    :return: flux[nch,npol], weight[nch,pol]
+    :type SkyCoord:
+    :returns: flux[nch,npol], weight[nch,pol]
     """
     dc = direction.represent_as(CartesianRepresentation)
     print('visibility.visibility_sum: Cartesian representation of direction = (%f, %f, %f)' % (dc.x, dc.y, dc.z))
@@ -225,20 +252,27 @@ def visibility_sum(vt: Visibility, direction: SkyCoord, **kwargs) -> numpy.array
     return flux, weight
 
 def average_visibility(vt: Visibility, **kwargs) -> Visibility:
-    """
-    Average visibility in time and frequency
+    """ Average visibility in time and frequency
+    
+    Creates new Visibility by averaging in time and frequency
     :param vt: Visibility to be averaged
-    :return: Visibility after averaging
+    :type Visibility:
+    :returns: Visibility after averaging
+    :type Visibility:
     """
     print("average_visibility: Not yet implemented")
     return vt
 
 def de_average_visibility(vt: Visibility, vttemplate: Visibility, **kwargs) -> Visibility:
-    """
-    De-average visibility in time and frequency i.e. replicate to template Visibility
+    """ De-average visibility in time and frequency i.e. replicate to template Visibility
+    
+    This is the opposite of averaging - the Visibility is expanded into the template format.
+    
     :param vt: Visibility to be de-averaged
+    :type Visibility:
     :param vttemplate: template Visibility
-    :return: Visibility after de-averaging
+    :type Visibility:
+    :returns: Visibility after de-averaging
     """
     print("de_average_visibility: Not yet implemented")
     return vt

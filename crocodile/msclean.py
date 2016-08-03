@@ -31,8 +31,8 @@ def majorcycle(T2, L2,
     :param v: Values of visibilities
     :param nmajor: Number of major cycles
     :param nminor: Number of minor cycles
-    :print thresh: Stopping threshold (for scale=0)
-    :print fracthresh: Minor Cycle stopping threshold (for scale=0) fraction of peak
+    :param thresh: Stopping threshold (for scale=0)
+    :param fracthresh: Minor Cycle stopping threshold (for scale=0) fraction of peak
     
     NOT USED
     """
@@ -71,7 +71,8 @@ def msclean(dirty,
             niter,
             scales,
             fracthresh):
-    """
+    """ Perform multiscale clean
+    
     Multiscale CLEAN (IEEE Journal of Selected Topics in Sig Proc, 2008 vol. 2 pp. 793-801)
 
     :param fracthresh:
@@ -87,7 +88,7 @@ def msclean(dirty,
     :param niter: Maximum number of components to make if the
     threshold "thresh" is not hit
     :param scales: Scales (in pixels width) to be used
-    :returns clean SkyComponent Image, residual Image
+    :returns: clean component Image, residual Image
     """
     assert 0.0 < gain < 2.0
     assert niter > 0
@@ -185,6 +186,7 @@ def createscalestack(scaleshape, scales, norm=True):
     :param scaleshape: desired shape of stack
     :param scales: scales (in pixels)
     :param norm: Normalise each plane to unity?
+    :returns: stack
     """
     assert scaleshape[2] == len(scales)
 
@@ -220,6 +222,7 @@ def convolvescalestack(scalestack, img):
 
     :param scalestack: stack containing the scales
     :param img: Image to be convolved
+    :returns: stack
     """
 
     convolved = np.zeros(scalestack.shape)
@@ -238,6 +241,7 @@ def findabsmaxstack(stack, window, couplingmatrix):
     :param stack: stack to be searched
     :param window: Window for the searched
     :param couplingmatrix: Coupling matrix between difference scales
+    :returns: x, y, scale
 
     """
     pabsmax = 0.0
@@ -257,8 +261,8 @@ def findabsmaxstack(stack, window, couplingmatrix):
 
 
 def sphfn(vnu):
-    """
-    Evaluates the PROLATE SPHEROIDAL WAVEFUNCTION with
+    """ Evaluates the PROLATE SPHEROIDAL WAVEFUNCTION
+    
     m=6, alpha = 1 from Schwab, Indirect Imaging (1984).
     This is one factor in the basis function.
     """

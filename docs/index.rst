@@ -1,30 +1,21 @@
-.. crocodile documentation master file
-
-Crocodile Documentation
-=======================
+.. Documentation master file
 
 .. toctree::
-   :caption: Table of Contents
    :name: mastertoc
    :maxdepth: 2
 
-   functions
-   source
-   notebooks/coordinates
-   notebooks/wkernel
-   notebooks/wimaging
-   notebooks/imaging
-   pyweave/wkernel
-   pyweave/wimaging
-   pyweave/aa
-   pyweave/refs
-   anna/Simulate_uvw
-   anna/MakeDtyImg
-   anna/MakeDtyImg_variableWsupport_A
-   anna/PSWF_Calculation
-   ben/read_oskar_vis
-   ben/simple_dirty_image
-   ben/simple_dirty_image_sphfn
+
+Algorithm Reference Library and Crocodile Documentation
+*******************************************************
+
+The `Algorithm Reference Library`_ is built using some capabilities from the original `Crocodile`_.
+
+ARL provides standard algorithms in an easy to follow coding style.
+
+.. include:: arl.rst
+
+.. include:: crocodile.rst
+
 
 Indices and tables
 ==================

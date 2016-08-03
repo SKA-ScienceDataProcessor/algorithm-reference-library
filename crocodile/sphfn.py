@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""Module to evaluate spheroidal functions.
+"""Module to evaluate spheroidal arl.
 
 Ported from AIPS 31DEC15, SPHFN.FOR
 """
@@ -9,7 +9,7 @@ import math
 
 
 def sphfn(eta, exponent_id, support, gridding=True):
-    """Evaluate approximations to zero-order spheroidal functions.
+    """Evaluate approximations to zero-order spheroidal arl.
 
     This is a port of AIPS SPHFN.FOR.
 

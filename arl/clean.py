@@ -8,24 +8,24 @@ import numpy as numpy
 
 from crocodile.msclean import msclean
 from crocodile.clean import hogbom
-from functions.image import Image, image_from_array
-
-"""
-Functions that clean a dirty image using a point spread function. The algorithms available are:
-- Hogbom CLEAN See: Hogbom CLEAN (1974A&AS...15..417H)
-- MultiScale CLEAN See: Multiscale CLEAN (IEEE Journal of Selected Topics in Sig Proc, 2008 vol. 2 pp. 793-801)
-"""
+from arl.image import Image, image_from_array
 
 
 def clean(dirty: Image, psf: Image, **kwargs):
-    """
-    Clean using a variety of algorithms
+    """ Clean using a variety of algorithms
+    
+    Functions that clean a dirty image using a point spread function. The algorithms available are:
+    
+    - Hogbom CLEAN See: Hogbom CLEAN (1974A&AS...15..417H)
+    
+    - MultiScale CLEAN See: Multiscale CLEAN (IEEE Journal of Selected Topics in Sig Proc, 2008 vol. 2 pp. 793-801)
+    
     :param dirty: Image dirty image
+    :type Image:
     :param psf: Image Point Spread Function
-    :param kwargs:
-    'algorithm': 'msclean'
-    'gain': loop gain
-    :return:
+    :type Image:
+    :param kwargs: 'algorithm': 'msclean'|'hogbom', 'gain': loop gain (float)
+    :returns: componentimage, residual
     """
     algorithm = kwargs.get('algorithm', 'msclean')
     if algorithm == 'msclean':
