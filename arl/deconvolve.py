@@ -11,7 +11,7 @@ from crocodile.clean import hogbom
 from arl.image import Image, image_from_array
 
 
-def clean(dirty: Image, psf: Image, **kwargs):
+def deconvolve(dirty: Image, psf: Image, **kwargs):
     """ Clean using a variety of algorithms
     
     Functions that clean a dirty image using a point spread function. The algorithms available are:

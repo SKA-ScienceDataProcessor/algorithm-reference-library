@@ -9,6 +9,7 @@ from astropy.table import Table, vstack
 
 from crocodile.simulate import *
 from arl.configuration import Configuration, named_configuration
+from arl.gaintable import GainTable
 
 """
 Functions that represent a visibility set.
@@ -93,9 +94,23 @@ def visibility_concatenate(fvt1: Visibility, fvt2: Visibility, **kwargs) -> \
     return fvt
 
 
+def visibility_flag(fvis: Visibility, gt: GainTable = None, **kwargs) -> Visibility:
+    """ Flags a visibility set, optionally using GainTable
+
+    :param fvis:
+    :type Visibility:
+    :param gt:
+    :type GainTable:
+    :param kwargs:
+    :returns: Visibility
+    """
+    print("Visibility.flag: not implemented yet")
+    return fvis
+
+
 def visibility_filter(fvis: Visibility, **kwargs) -> Visibility:
     """ Filter a visibility set
-    
+
     :param fvis:
     :type Visibility:
     :param kwargs:

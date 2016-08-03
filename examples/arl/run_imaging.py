@@ -20,12 +20,12 @@ import scipy.special
 from matplotlib import pylab
 from matplotlib import pyplot as plt
 
-from arl.clean import clean
+from arl.deconvolve import deconvolve
 from arl.visibility import create_visibility
 from arl.imaging import *
 from arl.skymodel import SkyModel, skymodel_from_image, skymodel_add_image, skymodel_add_component
 from arl.skycomponent import *
-from arl.image import image_show, image_from_fits, image_to_fits, image_replicate, fitcomponent
+from arl.image import image_show, image_from_fits, image_to_fits, image_replicate, point_source_find
 from arl.configuration import configuration_filter, named_configuration
 
 
@@ -137,13 +137,13 @@ print("Max, min in PSF         = %.6f, %.6f, sum of weights = %f" % (psf.data.ma
 
 image_to_fits(dirty, 'dirty.fits')
 image_to_fits(psf, 'psf.fits')
-m31compnew = fitcomponent(dirty, **kwargs)
+m31compnew = point_source_find(dirty, **kwargs)
 
 
 # In[ ]:
 
 kwargs={'niter':100, 'threshold':0.001, 'fracthresh':0.01}
-comp, residual = clean(dirty, psf, **kwargs)
+comp, residual = deconvolve(dirty, psf, **kwargs)
 
 
 # In[ ]:

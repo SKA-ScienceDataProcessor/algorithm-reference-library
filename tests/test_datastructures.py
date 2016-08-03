@@ -3,7 +3,7 @@ import unittest
 import numpy
 from numpy.testing import assert_allclose
 
-from arl.skycomponent import SkyComponent
+from arl.skycomponent import SkyComponent, create_skycomponent
 from arl.configuration import named_configuration
 from arl.gaintable import gaintable_from_array
 from arl.image import image_add, image_from_array, image_from_fits

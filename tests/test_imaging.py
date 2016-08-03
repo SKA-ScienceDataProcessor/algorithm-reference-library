@@ -8,7 +8,7 @@ from astropy import units as u
 
 from arl.skycomponent import SkyComponent, create_skycomponent
 from arl.configuration import named_configuration, configuration_filter
-from arl.image import image_to_fits, fitcomponent, findflux
+from arl.image import image_to_fits, point_source_find, flux_at_direction
 from arl.skymodel import skymodel_from_component
 from arl.visibility import create_visibility, visibility_sum
 from arl.imaging import predict, invert
@@ -57,7 +57,7 @@ class TestImaging(unittest.TestCase):
         print("Max, min in PSF         = %.6f, %.6f, sum of weights = %f" %
               (self.psf.data.max(), self.psf.data.min(), sumwt))
         # Find the flux at the location we put it at
-        newcomp = findflux(self.dirty, self.compabsdirection)
+        newcomp = flux_at_direction(self.dirty, self.compabsdirection)
         # TODO: Track down reason for terrible precision
         assert_allclose(self.flux, newcomp.flux, rtol=0.05)
 
@@ -71,7 +71,7 @@ class TestImaging(unittest.TestCase):
         print("Max, min in PSF         = %.6f, %.6f, sum of weights = %f" %
               (self.psf.data.max(), self.psf.data.min(), sumwt))
         # Find the peak
-        newcomp = fitcomponent(self.dirty, **self.kwargs)
+        newcomp = point_source_find(self.dirty, **self.kwargs)
         # TODO: Track down reason for terrible precision
         assert_allclose(self.flux, newcomp.flux , rtol=0.05)
         # Check that the returned direction is correct
