@@ -196,7 +196,7 @@ def fitcomponent(im: Image, **kwargs) -> SkyComponent:
     print("imaging.fitcomponent: Finding components in Image")
 
     # Beware: The index sequencing is opposite in wcs and Python!
-    locpeak = numpy.unravel_index((numpy.abs(im.data)).argmax(), im.data.shape)
+    locpeak = numpy.array(numpy.unravel_index((numpy.abs(im.data)).argmax(), im.data.shape))
     print("imaging.fitcomponent: Found peak at pixel coordinates %s" % str(locpeak))
     w = im.wcs.sub(['longitude', 'latitude'])
     sc = pixel_to_skycoord(locpeak[3], locpeak[2], im.wcs, 0, 'wcs')

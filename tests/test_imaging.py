@@ -6,12 +6,12 @@ from numpy.testing import assert_allclose
 from astropy.coordinates import SkyCoord
 from astropy import units as u
 
-from functions.skycomponent import SkyComponent
-from functions.configuration import named_configuration, configuration_filter
-from functions.image import image_to_fits, fitcomponent, findflux
-from functions.skymodel import skymodel_from_component
-from functions.visibility import create_visibility, visibility_sum
-from functions.imaging import predict, invert
+from arl.skycomponent import SkyComponent, create_skycomponent
+from arl.configuration import named_configuration, configuration_filter
+from arl.image import image_to_fits, fitcomponent, findflux
+from arl.skymodel import skymodel_from_component
+from arl.visibility import create_visibility, visibility_sum
+from arl.imaging import predict, invert
 
 
 class TestImaging(unittest.TestCase):
@@ -34,12 +34,11 @@ class TestImaging(unittest.TestCase):
         # TODO: convert entire mechanism to absolute coordinates
         pcof=self.phasecentre.skyoffset_frame()
         self.compreldirection = self.compabsdirection.transform_to(pcof)
-
-        self.m31comp = SkyComponent(self.compreldirection, self.flux, frequency)
+        self.m31comp = create_skycomponent(flux=self.flux, frequency=frequency, direction=self.compreldirection)
         self.m31sm = skymodel_from_component(self.m31comp)
 
         vtpred = create_visibility(vlaa, times, frequency, weight=1.0, phasecentre=self.phasecentre,
-                                   meta= ** self.kwargs
+                                   **self.kwargs)
         self.vtmodel = predict(vtpred, self.m31sm, **self.kwargs)
 
 

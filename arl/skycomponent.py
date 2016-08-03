@@ -21,11 +21,11 @@ def create_skycomponent(direction: SkyCoord, flux: numpy.array, frequency: numpy
                         param: dict = None, name: str = ''):
     """ A single SkyComponent with direction, flux, shape, and parameters for the shape
     
-    :param name:
-    :type str:
     :param direction:
     :type SkyCoord:
     :param flux:
+    :type numpy.array:
+    :param frequency:
     :type numpy.array:
     :param shape: 'Point' or 'Gaussian'
     :type str:
@@ -48,4 +48,4 @@ if __name__ == '__main__':
     flux = numpy.array([[1.0, 0.0, 0.0, 0.0], [10.5, 0.0, 0.0, 0.0]])
     frequency=numpy.array([1.0e8,1.5e8])
     direction = SkyCoord('00h42m30s', '+41d12m00s', frame='icrs')
-    comp = create_skycomponent(flux, frequency, frequency='Point', shape='Point', name="Mysource")
+    comp = create_skycomponent(direction, flux, frequency, frequency='Point', shape='Point', name="Mysource")

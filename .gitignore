@@ -24,3 +24,5 @@
 .ipynb_checkpoints
 out.fits
 dirty.fits
+/doc
+/.ipynb_checkpoints

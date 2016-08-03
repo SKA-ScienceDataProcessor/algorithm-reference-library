@@ -14,7 +14,7 @@ class TestCoordinates(unittest.TestCase):
             :param y:
             :param z:
             :param lat:
-            :return:
+            :returns:
             """
             res = xyz_at_latitude(np.array([x, y, z]), np.radians(lat))
             assert_allclose(np.linalg.norm(res), np.linalg.norm([x, y, z]))
@@ -44,7 +44,7 @@ class TestCoordinates(unittest.TestCase):
             :param z:
             :param ha:
             :param dec:
-            :return:
+            :returns:
             """
             res = xyz_to_uvw(np.array([x, y, z]), np.radians(ha), np.radians(dec))
             assert_allclose(np.linalg.norm(res), np.linalg.norm([x, y, z]))
