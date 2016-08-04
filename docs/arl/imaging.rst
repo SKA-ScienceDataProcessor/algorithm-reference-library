@@ -26,7 +26,7 @@ full and residual visibility are plotted.
     from matplotlib import pylab
     from matplotlib import pyplot as plt
     
-    from arl.clean import clean
+    from arl.deconvolve import deconvolve
     from arl.visibility import create_visibility
     from arl.imaging import *
     from arl.skymodel import SkyModel, skymodel_from_image, skymodel_add_image, skymodel_add_component
@@ -274,7 +274,7 @@ Make the dirty image and point spread function
     Max, min in dirty image = 20.858104, -1.150472, sum of weights = 0.038254
     Max, min in PSF         = 1.000000, -0.111255, sum of weights = 0.038254
     imaging.point_source_find: Finding components in Image
-    imaging.point_source_find: Found peak at pixel coordinates (0, 2, 281, 248)
+    imaging.point_source_find: Found peak at pixel coordinates [  0   2 281 248]
     imaging.point_source_find: Found peak at world coordinates <SkyCoord (ICRS): (ra, dec) in deg
         (0.06498543, 45.14322122)>
     imaging.point_source_find: Flux is [[ 20.85441456  20.84613299  20.85810395  20.84613299]]
@@ -287,7 +287,7 @@ Make the dirty image and point spread function
 .. code:: python
 
     kwargs={'niter':100, 'threshold':0.001, 'fracthresh':0.01}
-    comp, residual = clean(dirty, psf, **kwargs)
+    comp, residual = deconvolve(dirty, psf, **kwargs)
 
 
 .. parsed-literal::
@@ -319,7 +319,6 @@ Make the dirty image and point spread function
     clean.clean: Skipping pol 3, channel 0
 
 
-
 .. code:: python
 
     fig=image_show(comp)
@@ -327,11 +326,11 @@ Make the dirty image and point spread function
 
 
 
-.. image:: imaging_files/imaging_24_0.png
+.. image:: imaging_files/imaging_23_0.png
 
 
 
-.. image:: imaging_files/imaging_24_1.png
+.. image:: imaging_files/imaging_23_1.png
 
 
 .. code:: python
@@ -400,6 +399,6 @@ Now we will plot the original visibility and the residual visibility.
 
 
 
-.. image:: imaging_files/imaging_27_0.png
+.. image:: imaging_files/imaging_26_0.png
 
 
