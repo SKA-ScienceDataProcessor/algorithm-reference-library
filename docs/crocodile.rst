@@ -9,8 +9,8 @@ Crocodile is a collection of functions designed for low-level operations in radi
    :name: mastertoc
    :maxdepth: 2
 
-Crocodile-based Notebooks
--------------------------
+:index:`Crocodile-based Notebooks`
+----------------------------------
 
 .. toctree::
    :name: mastertoc
@@ -27,8 +27,8 @@ Crocodile-based Notebooks
    ben/simple_dirty_image
    ben/simple_dirty_image_sphfn
 
-Crocodile API
-+++++++++++++
+:index:`Crocodile API`
+----------------------
 
 Simulate
 ++++++++
