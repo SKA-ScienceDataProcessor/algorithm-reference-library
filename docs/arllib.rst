@@ -26,8 +26,8 @@ The Algorithm Reference Library is designed by the following principles:
 
    arl/imaging
 
-:index:`ARL-based API`
-----------------------
+:index:`ARL API`
+----------------
 
 Calibration
 +++++++++++

@@ -7,9 +7,8 @@ Parameter name meanings:
 - v: The Visibility values [*] (Jy)
 - T2: Theta2, the half-width of the field of view to be synthetised (radian)
 - L2: Half-width of the uv-plane (unitless). Controls resolution of the images
-- Qpx: Oversampling of pixels by the convolution kernels -- there are
-    (Qpx x Qpx) convolution kernels per pixels to account for fractional
-    pixel values.
+- Qpx: Oversampling of pixels by the convolution kernels -- there are (Qpx x Qpx) convolution kernels per pixels to
+account for fractional pixel values.
 """
 
 from __future__ import division
@@ -28,9 +27,9 @@ def ceil2(x):
 
 
 def ucsBounds(N):
-    r"""Returns the lowest and highest coordinates of the array if we
-    assume that it is centered consistently with `fftshift`. To be
-    concrete, this must satisfy two properties:
+    r"""Returns the lowest and highest coordinates of the array
+     
+    We assume that it is centered consistently with `fftshift`. To be concrete, this must satisfy two properties:
 
     1. A grid with bounds :math:`[high,low]` has step size :math:`1/N`:
 
@@ -114,10 +113,10 @@ def wkernff(N, theta, w):
 
 
 def wkernpad(ff, N):
-    """Pad a far field Image with zeroes to make it the given size. In
-    comparison of creating a far field of the full size right away,
-    this means that we "limit" the pattern, which would be a
-    convolution with a sinc pattern in the uv-grid.
+    """Pad a far field Image with zeroes to make it the given size.
+    
+    In comparison of creating a far field of the full size right away, this means that we "limit" the pattern,
+    which would be a convolution with a sinc pattern in the uv-grid.
 
     :param ff: The input far field. Should be smaller than NxN.
     :param N:  The desired far field size
@@ -133,8 +132,9 @@ def wkernpad(ff, N):
 
 
 def wkernsinc(N, theta, over=1):
-    """Pattern for sub-pixel averaging the Image on the uv-plane. This
-    conforms to convolving the uv-grid with a one-pixel box function.
+    """Pattern for sub-pixel averaging the Image on the uv-plane.
+    
+    This conforms to convolving the uv-grid with a one-pixel box function.
 
     :param over:
     :param N:     Size of the field in pixels
@@ -222,7 +222,7 @@ def sample(a, p):
 
 
 def grid(a, p, v):
-    """Grid visibilies (v) at positions (p) into (a) without convolution
+    """Grid visibilities (v) at positions (p) into (a) without convolution
 
     The zeroth frequency is at N/2 where N is the length on side of
     the grid.
@@ -258,6 +258,7 @@ def degrid(a, p):
 
 def convgridone(a, p, gcf, v):
     """Convolve and grid one Visibility sample"""
+    
     x, xf, y, yf = convcoordsone(a, p, len(gcf))
     sx, sy = gcf[0][0].shape[0] // 2, gcf[0][0].shape[1] // 2
     sx, sy = gcf[0][0].shape[0] // 2, gcf[0][0].shape[1] // 2
@@ -295,8 +296,7 @@ def fraccoord(N, p, Qpx):
 
 
 def convcoords(a, p, Qpx):
-    """Compute grid coordinates and fractional values for convolutional
-    gridding
+    """Compute grid coordinates and fractional values for convolutional gridding
 
     The fractional values are rounded to nearest 1/Qpx pixel value at
     fractional values greater than (Qpx-0.5)/Qpx are roundeded to next
@@ -307,8 +307,7 @@ def convcoords(a, p, Qpx):
 
 
 def convcoordsone(a, p, Qpx):
-    """Compute grid coordinates and fractional values for convolutional
-    gridding for a single Visibility
+    """Compute grid coordinates and fractional values for convolutional gridding for a single Visibility
 
     The fractional values are rounded to nearest 1/Qpx pixel value at
     fractional values greater than (Qpx-0.5)/Qpx are roundeded to next
@@ -319,8 +318,9 @@ def convcoordsone(a, p, Qpx):
 
 
 def convgrid(a, p, v, gcf):
-    """Grid after convolving with gcf, taking into account fractional uv
-    coordinate values
+    """Grid after convolving with gcf
+    
+    Takes into account fractional uv coordinate values
 
     :param a: Grid to add to
     :param p: UVW positions
@@ -352,9 +352,9 @@ def convdegrid(a, p, gcf):
 
 
 def exmid2(a, s):
-    """Extract a section from middle of a map, suitable for zero
-    frequencies at N/2. For even dimensions, this is the reverse
-    operation to wkernpad.
+    """Extract a section from middle of a map
+    
+    Suitable for zero frequencies at N/2. For even dimensions, this is the reverse operation to wkernpad.
 
     param: a: array from which extract is taken
     param: s: size of section is 2s+1
@@ -400,8 +400,9 @@ def halfinv(g):
 
 
 def inv(g):
-    """Invert a complex two-dimensional grid. Note that the zero frequency is
-    expected at pixel N/2 where N is the size of the grid on the side.
+    """Invert a complex two-dimensional grid.
+    
+    Note that the zero frequency is expected at pixel N/2 where N is the size of the grid on the side.
 
     :param g: The uv grid to invert.
     """
@@ -431,8 +432,8 @@ def posvv(p, v):
 
 
 def sortw(p, v):
-    """Sort on the w value. (p) are uvw coordinates and (v) are the
-    Visibility values
+    """Sort on the w value.
+    (p) are uvw coordinates and (v) are the Visibility values
     """
     zs = numpy.argsort(p[:, 2])
     if v is not None:
@@ -459,8 +460,9 @@ def doweight(theta, lam, p, v):
 
 
 def simpleimg(theta, lam, p, v):
-    """Trivial function for imaging which does no convolution but simply
-    puts the visibilities into a grid cell i.e. boxcar gridding"""
+    """Trivial function for imaging
+    
+    Does no convolution but simply puts the visibilities into a grid cell i.e. boxcar gridding"""
     N = int(round(theta * lam))
     assert N > 1
     guv = numpy.zeros([N, N], dtype=complex)
@@ -469,8 +471,9 @@ def simpleimg(theta, lam, p, v):
 
 
 def simplepredict(guv, theta, lam, p):
-    """Trivial function for degridding which does no convolution but simply
-    extracts the visibilities from a grid cell i.e. boxcar degridding"""
+    """Trivial function for degridding
+     
+    Does no convolution but simply extracts the visibilities from a grid cell i.e. boxcar degridding"""
     N = int(round(theta * lam))
     assert N > 1
     v = degrid(guv, p / lam)
@@ -499,13 +502,10 @@ def wslicimg(theta, lam, p, v,
     :param Qpx:
     :param p: UVWs of visiblities
     :param v: Visibility values
-    :param wstep: The step between w-slices (pixels). W kernels are re-computed
-      for each slice, for the mean of the w-coordinates of all
-      visibilities falling into the slides.
-    :param NpixFF: Size of the far-field for computing the
-      w-kernel. See doc/wkernel.
-    :param NpixKern: Size of the extracted convolution
-      kernels. Currently kernels are the same size for all w-values.
+    :param wstep: The step between w-slices (pixels). W kernels are re-computed for each slice, for the mean of the
+    w-coordinates of all visibilities falling into the slides.
+    :param NpixFF: Size of the far-field for computing the w-kernel. See doc/wkernel.
+    :param NpixKern: Size of the extracted convolution kernels. Currently kernels are the same size for all w-values.
       
     DEPRECATED - see wslicfwd
     """
@@ -537,13 +537,10 @@ def wslicfwd(guv,
     :param theta: Field of view in radians
     :param lam: Observing wavelength (m)
     :param p: UVWs of visiblities
-    :param wstep: The step between w-slices (pixels). W kernels are re-computed
-      for each slice, for the mean of the w-coordinates of all
-      visibilities falling into the slices.
-    :param NpixFF: Size of the far-field for computing the
-      w-kernel. See doc/wkernel.
-    :param NpixKern: Size of the extracted convolution
-      kernels. Currently kernels are the same size for all w-values.
+    :param wstep: The step between w-slices (pixels). W kernels are re-computed for each slice, for the mean of the
+    w-coordinates of all visibilities falling into the slices.
+    :param NpixFF: Size of the far-field for computing the w-kernel. See doc/wkernel.
+    :param NpixKern: Size of the extracted convolution kernels. Currently kernels are the same size for all w-values.
 
     :returns w-sorted uvw, w-sorted degridded visibilities
     
@@ -591,10 +588,8 @@ def wcacheimg(theta, lam, p, v,
     :param Qpx:
     :param p: UVWs of visiblities
     :param v: Visibility values
-    :param wstep: The binning of w values. W kernels are computed
-        for each bin, and then cached
-    :param NpixFF: Size of the far-field for computing the
-      w-kernel. See doc/wkernel.
+    :param wstep: The binning of w values. W kernels are computed for each bin, and then cached
+    :param NpixFF: Size of the far-field for computing the w-kernel. See doc/wkernel.
     :param NpixKern: Size of the extracted convolution
       kernels. Currently kernels are the same size for all w-values.
     """
@@ -633,10 +628,8 @@ def wcachefwd(guv,
     :param theta: Field of view in radians
     :param lam: Observing wavelength (m)
     :param p: UVWs of visiblities
-    :param wstep: The binning of w values. W kernels are computed
-        for each bin, and then cached
-    :param NpixKern: Size of the extracted convolution
-      kernels. Currently kernels are the same size for all w-values.
+    :param wstep: The binning of w values. W kernels are computed for each bin, and then cached
+    :param NpixKern: Size of the extracted convolution kernels. Currently kernels are the same size for all w-values.
 
     :returns degridded visibilities
     """

@@ -60,18 +60,14 @@ def hogbom(dirty,
 
     :param psf: The point spread-function
 
-    :param window: Regions where clean components are allowed. If
-      True, all of the dirty Image is assumed to be allowed for
-      clean components
+    :param window: Regions where clean components are allowed. If True, all of the dirty Image is assumed to be
+    allowed for clean components
 
-    :param gain: The "loop gain", i.e., the fraction of the brightest
-      pixel that is removed in each iteration
+    :param gain: The "loop gain", i.e., the fraction of the brightest pixel that is removed in each iteration
 
-    :param thresh: Cleaning stops when the maximum of the absolute
-      deviation of the residual is less than this value
+    :param thresh: Cleaning stops when the maximum of the absolute deviation of the residual is less than this value
 
-    :param niter: Maximum number of components to make if the
-      threshold `thresh` is not hit
+    :param niter: Maximum number of components to make if the threshold `thresh` is not hit
 
     :returns clean SkyComponent Image, residual Image
     """
