@@ -13,7 +13,7 @@ from arl.visibility import Visibility, create_visibility
 from astropy.coordinates import SkyCoord
 
 
-class TestFunctions(unittest.TestCase):
+class TestDataStructures(unittest.TestCase):
 
     def test_component(self):
         flux = numpy.array([[1.0, 0.0, 0.0, 0.0], [1.0, 0.0, 0.0, 0.0]])

@@ -1,10 +1,13 @@
 .. Documentation master
 
-:index:`Crocodile and Algorithm Reference Library Documentation`
-****************************************************************
 
-The libraries documented here contain reference algorithms for radio interferometric calibration and imaging. As well as
-API documentation, jupyter http://www.jupyter.org notebooks show how to use the libraries.
+:index:`Crocodile`
+******************
+
+Crocodile is a project to create a reference code in NumPy for radio interferometric aperture calibration and imaging.
+The libraries documented here, :doc:`Crocodile<crocodilelib>` and :doc:`Algorithm Reference Library<arllib>`, contain
+reference algorithms. In addition to the API's, jupyter http://www.jupyter.org notebooks show how to use the
+libraries.
 
 The :doc:`Crocodile<crocodilelib>` library represents imaging algorithms implemented in a stripped down form as numpy
 operations. Gridding/degridding and FFTs are present in a form suitable for single frequency processing.
@@ -15,6 +18,7 @@ packages. The functions are close (but not identical) to those in the SDP produc
 capabilities from :doc:`Crocodile<crocodilelib>`, as well as astronomical capabilities from Astropy http://www.astropy
 .org.
 
+In addition, there are :doc:`python unit tests<tests>`.
 
 Indices and tables
 ==================

@@ -4,7 +4,11 @@
 :index:`Algorithm Reference Library`
 ************************************
 
-The Algorithm Reference Library is designed by the following principles:
+The Algorithm Reference Library is used to capture radio interferometry calibration and imaging algorithms in a
+reference form for use by SDP contractors. The interfaces all operate with familiar data structures such as image,
+visibility table, gaintable, etc.
+
+The APL has been designed in line with the following principles:
 
 + Data are held in Classes
 + The data members of the classes are directly accessible by name e.g. .data, .name. .phasecentre
