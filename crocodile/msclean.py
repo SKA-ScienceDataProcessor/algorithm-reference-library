@@ -6,63 +6,6 @@ import numpy as np
 from crocodile.clean import overlapIndices, argmax
 from crocodile.synthesis import sortw, doimg, dopredict, simplepredict, simpleimg
 
-
-def majorcycle(T2, L2,
-               p, v,
-               gain,
-               nmajor,
-               nminor,
-               scales,
-               thresh=0.0,
-               fracthresh=0.1,
-               predfn=simplepredict,
-               imgfn=simpleimg):
-    """Major cycle for MultiScale Clean
-
-    :param gain:
-    :param scales:
-    :param thresh:
-    :param fracthresh:
-    :param predfn:
-    :param imgfn:
-    :param T2: Field of view in radians
-    :param L2: Maximum uv (for setting Image pixel sizes)
-    :param p: UVWs of visibilities (m)
-    :param v: Values of visibilities
-    :param nmajor: Number of major cycles
-    :param nminor: Number of minor cycles
-    :param thresh: Stopping threshold (for scale=0)
-    :param fracthresh: Minor Cycle stopping threshold (for scale=0) fraction of peak
-    
-    NOT USED
-    """
-
-    # The model is added to each major cycle and then the visibilities are
-    # calculated from the full model
-    global vsp
-    ps, vso = sortw(p, v)
-    dirty, psf, sumwt = doimg(T2, L2, ps, vso, imgfn)
-    comps = 0.0 * dirty.copy()
-    for i in range(nmajor):
-        print("Start of major cycle %d" % i)
-        cc, res = msclean(dirty, psf, True, gain, thresh, nminor, scales, fracthresh)
-        plt.clf()
-        plt.imshow(res, cmap='rainbow', origin='lower')
-        plt.colorbar()
-        plt.show()
-        comps += cc
-        # dopredict resorts the data
-        pss, vsp = dopredict(T2, L2, ps, comps, predfn)
-        vsr = vso - vsp
-        dirty, psf, sumwt = doimg(T2, L2, ps, vsr, imgfn)
-        if np.abs(dirty).max() < 1.1 * thresh:
-            print("Reached stopping threshold %.6f Jy" % thresh)
-            break
-        print("End of major cycle")
-    print("End of major cycles")
-    return ps, vsp, comps, dirty
-
-
 def msclean(dirty,
             psf,
             window,

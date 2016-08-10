@@ -2,9 +2,6 @@
 
 import numpy
 
-from .synthesis import sortw, doimg, wslicimg, wslicfwd
-
-
 def overlapIndices(a1, a2,
                    shiftx, shifty):
     """ Find the indices where two arrays overlapIndices
@@ -57,18 +54,12 @@ def hogbom(dirty,
     Hogbom CLEAN (1974A&AS...15..417H)
 
     :param dirty: The dirty Image, i.e., the Image to be deconvolved
-
     :param psf: The point spread-function
-
     :param window: Regions where clean components are allowed. If True, all of the dirty Image is assumed to be
     allowed for clean components
-
     :param gain: The "loop gain", i.e., the fraction of the brightest pixel that is removed in each iteration
-
     :param thresh: Cleaning stops when the maximum of the absolute deviation of the residual is less than this value
-
     :param niter: Maximum number of components to make if the threshold `thresh` is not hit
-
     :returns clean SkyComponent Image, residual Image
     """
 
@@ -93,34 +84,3 @@ def hogbom(dirty,
         if numpy.fabs(res).max() < thresh:
             break
     return comps, res
-
-
-def majorcycle(T2, L2,
-               p, v,
-               gain,
-               nmajor,
-               nminor,
-               wstep):
-    """Major cycle clean
-
-    :param v:
-    :param gain:
-    :param T2: Field of view in radians
-    :param L2: Observing wavelength (m)
-    :param p: UVWs of visiblities (m)
-    :param nmajor: Number of major cycles
-    :param nminor: Number of minor cycles
-    :param wstep: Step in w (pixels)
-    
-    NOT USED
-
-    """
-    ps, vs = sortw(p, v)
-    for i in range(nmajor):
-        dirty, psf, _ = doimg(T2, L2, ps, vs, lambda *x: wslicimg(*x, wstep=wstep, Qpx=1))
-        cc, rres = hogbom(dirty, psf, True, gain, 0,
-                          nminor)
-        xuv = numpy.fft.fftshift(numpy.fft.fft2(numpy.fft.ifftshift(cc)))
-        ps, vsp = wslicfwd(xuv, T2, L2, p, wstep=wstep)
-        vs = vs - vsp
-    return ps, vs, cc, res

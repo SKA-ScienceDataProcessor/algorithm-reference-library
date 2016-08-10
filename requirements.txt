@@ -8,3 +8,4 @@ pweave
 Sphinx
 astropy
 wcsaxes
+reproject

@@ -473,7 +473,16 @@ def simpleimg(theta, lam, p, v):
 def simplepredict(guv, theta, lam, p):
     """Trivial function for degridding
      
-    Does no convolution but simply extracts the visibilities from a grid cell i.e. boxcar degridding"""
+    Does no convolution but simply extracts the visibilities from a grid cell i.e. boxcar degridding
+    
+    :param theta: Field of view (radians)
+    :param lam: Maximum uv represented in the grid
+    :param Qpx: Oversampling of pixels by the convolution kernels -- there are (Qpx x Qpx) convolution kernels per
+    pixels to account for fractional pixel values.
+    :param p: UVWs of visibilities
+    :param v: Visibility values
+    :param kv: gridding kernel
+pip    """
     N = int(round(theta * lam))
     assert N > 1
     v = degrid(guv, p / lam)
@@ -482,7 +491,16 @@ def simplepredict(guv, theta, lam, p):
 
 
 def convimg(theta, lam, p, v, kv):
-    """Convolve and grid with user-supplied kernels"""
+    """Convolve and grid with user-supplied kernels
+    
+    :param theta: Field of view (radians)
+    :param lam: Maximum uv represented in the grid
+    :param Qpx: Oversampling of pixels by the convolution kernels -- there are (Qpx x Qpx) convolution kernels per
+    pixels to account for fractional pixel values.
+    :param p: UVWs of visibilities
+    :param v: Visibility values
+    :param kv: gridding kernel
+    """
     N = int(round(theta * lam))
     assert N > 1
     guv = numpy.zeros([N, N], dtype=complex)
@@ -497,10 +515,11 @@ def wslicimg(theta, lam, p, v,
              NpixKern=15):
     """Basic w-projection by w-sort and slicing in w
 
-    :param theta:
-    :param lam:
-    :param Qpx:
-    :param p: UVWs of visiblities
+    :param theta: Field of view (radians)
+    :param lam: Maximum uv represented in the grid
+    :param Qpx: Oversampling of pixels by the convolution kernels -- there are (Qpx x Qpx) convolution kernels per
+    pixels to account for fractional pixel values.
+    :param p: UVWs of visibilities
     :param v: Visibility values
     :param wstep: The step between w-slices (pixels). W kernels are re-computed for each slice, for the mean of the
     w-coordinates of all visibilities falling into the slides.
@@ -508,6 +527,7 @@ def wslicimg(theta, lam, p, v,
     :param NpixKern: Size of the extracted convolution kernels. Currently kernels are the same size for all w-values.
       
     DEPRECATED - see wslicfwd
+    
     """
     N = int(round(theta * lam))
     assert N > 1
@@ -541,10 +561,10 @@ def wslicfwd(guv,
     w-coordinates of all visibilities falling into the slices.
     :param NpixFF: Size of the far-field for computing the w-kernel. See doc/wkernel.
     :param NpixKern: Size of the extracted convolution kernels. Currently kernels are the same size for all w-values.
-
-    :returns w-sorted uvw, w-sorted degridded visibilities
+    :returns: w-sorted uvw, w-sorted degridded visibilities
     
     DEPRECATED - has side-effects
+    
     """
     # Calculate number of pixels in the Image
     N = int(round(theta * lam))

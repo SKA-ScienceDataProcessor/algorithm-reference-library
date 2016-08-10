@@ -8,14 +8,7 @@ The Algorithm Reference Library is used to capture radio interferometry calibrat
 reference form for use by SDP contractors. The interfaces all operate with familiar data structures such as image,
 visibility table, gaintable, etc.
 
-The APL has been designed in line with the following principles:
-
-+ Data are held in Classes
-+ The data members of the classes are directly accessible by name e.g. .data, .name. .phasecentre
-+ The data Classes correspond to familiar concepts in radio astronomy packages e.g. visibility, gaintable, image
-+ There are no methods attached to the data Classes apart from variant constructors as needed.
-+ All data manipulation is performed by stateless functions
-+ All function parameters are passed by the kwargs mechanism
+See also :doc:`Algorithm Reference Library Goals and Design<arllib_design>`
 
 .. toctree::
    :name: mastertoc

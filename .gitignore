@@ -26,3 +26,6 @@ out.fits
 dirty.fits
 /doc
 /.ipynb_checkpoints
+psf.fits
+.DS_Store
+/data
