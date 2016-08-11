@@ -1,16 +1,16 @@
 .. ARL documentation master file
 
+.. toctree::
+   :name: mastertoc
+   :maxdepth: 2
 
-:index:`Algorithm Reference Library Goals and Design`
-*****************************************************
+
+:index:`Algorithm Reference Library Goals`
+******************************************
 
 The Algorithm Reference Library is used to capture radio interferometry calibration and imaging algorithms in a
 reference form for use by SDP contractors. The interfaces all operate with familiar data structures such as image,
 visibility table, gaintable, etc.
-
-.. toctree::
-   :name: mastertoc
-   :maxdepth: 2
 
 Core motivations
 ----------------
@@ -125,28 +125,50 @@ Requirements
 Algorithms to be defined
 ------------------------
 The following list gives an initial set of algorithms to be defined. It is more important to have the overall
-framework in place expeditiously then to have each algorithm be state-of-the-art.
+framework in place expeditiously than to have each algorithm be state-of-the-art.
 
-  - Calibration
+   - Simulation
 
-    - Calibration solvers
-    - Calibration application
-    - Self-calibration
+      - Station/Antenna locations
+      - Illumination/Primary beam models
+      - Generation of visibility data
+      - Generation of gain tables
 
-  - Visibility plane
+   - Calibration
 
-    - Convolution kernels
+      - Calibration solvers
 
-      - Standard
-      - W Projection
-      - AW Projection
-      - AWI Projection
+         - Stefcal
 
-    - Degridding/Gridding
+      - Calibration application
 
-    - Preconditioning
+         - Gain interpolation
+         - Gain application
 
-    - Visibility plane to/from Image plane
+      - Self-calibration
+
+   - Visibility plane
+
+      - Convolution kernels
+
+         - Standard
+         - W Projection
+         - AW Projection
+         - AWI Projection
+
+      - Degridding/Gridding
+
+         - 2D
+         - W projection
+         - W slices
+         - W snapshots
+
+      - Preconditioning/Weighting
+
+         - Uniform
+         - Briggs
+
+   - Visibility plane to/from Image plane
 
       - DFT
       - Faceting
@@ -154,22 +176,23 @@ framework in place expeditiously then to have each algorithm be state-of-the-art
       - Averaging/deaveraging
       - Major cycles
 
-    - Image plane
+   - Image plane
 
       - Source finding
       - Source fitting
       - Reprojection
       - Interpolation
-      - MSClean minor (for spectral line)
-      - MSMFS minor cycle
+      - MSClean minor cycle (for spectral line)
+      - MSMFS minor cycle (for continuum)
 
 Testing
 -------
 
-- Testing philosophy: The essence of an algorithm reference library is that it should be used as these standard for
+- Testing philosophy: The essence of an algorithm reference library is that it should be used as the standard for
   the structure and execution of a particular algorithm.  This can only be done if the algorithm and the associated
   code are tested exhaustively.
-- We see three ways of performing exhaustive testing of the code
+
+- We will use three ways of performing testing of the code
 
   - Unit tests of all functions:
   - Regression tests of the complete algorithm over a complete set of inputs.
@@ -178,17 +201,9 @@ Testing
 - Test suite via Jenkins: The algorithm reference library will therefore come with a complete set of unit tests and
   regression tests. These should be run automatically, by, for example, a framework such as Jenkins, on any change to
   ensure their errors are caught quickly and not compounded.
-- Best practices: Soon after the initiation of the development of the reference library, a “best practices” document
-  will be delivered to ensure that further development by others proceeds in the same spirit.
 
-Design
-------
+Consistency
+-----------
 
-The ARL has been designed in line with the following principles:
-
-+ Data are held in Classes
-+ The data members of the classes are directly accessible by name e.g. .data, .name. .phasecentre
-+ The data Classes correspond to familiar concepts in radio astronomy packages e.g. visibility, gaintable, image
-+ There are no methods attached to the data classes apart from variant constructors as needed.
-+ All data manipulation functions are stateless
-+ All function parameters are passed by the kwargs mechanism
+  A :doc:`Best Practices<arllib_bestpractices>` document is available to ensure that development of the library
+  follows a consistent course.

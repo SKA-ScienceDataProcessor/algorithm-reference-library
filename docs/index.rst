@@ -19,9 +19,9 @@ capabilities from :doc:`Crocodile<crocodilelib>`, as well as astronomical capabi
 example, in Crocodile gridding is performed on a single frequency. In the ARL, a range of frequencies are treated
 together, thus capturing opportunities for optimisation.
 
-For more information on the ARL see :doc:`Algorithm Reference Library Goals and Design<arllib_design>`
+For more information on the ARL see :doc:`Algorithm Reference Library Goals<arllib_goals>`
 
-All data structures have :doc:`python unit tests<tests>`.
+All data structures and functions have :doc:`python unit tests<tests>`.
 
 Indices and tables
 ==================

@@ -8,7 +8,7 @@ The Algorithm Reference Library is used to capture radio interferometry calibrat
 reference form for use by SDP contractors. The interfaces all operate with familiar data structures such as image,
 visibility table, gaintable, etc.
 
-See also :doc:`Algorithm Reference Library Goals and Design<arllib_design>`
+See also :doc:`Algorithm Reference Library Goals<arllib_goals>`
 
 .. toctree::
    :name: mastertoc
