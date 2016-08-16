@@ -37,6 +37,7 @@ class Visibility:
         self.data = None
         self.frequency = None
         self.phasecentre = None
+        self.configuration = None
 
 
 def visibility_combine(fvt1: Visibility, fvt2: Visibility, w1: float = 1.0, w2: float = 1.0, **kwargs) -> Visibility:
@@ -120,7 +121,7 @@ def visibility_filter(fvis: Visibility, **kwargs) -> Visibility:
     return fvis
 
 
-def visibility_from_array(uvw: numpy.array, time: numpy.array, freq: numpy.array, antenna1: numpy.array,
+def _visibility_from_array(uvw: numpy.array, time: numpy.array, freq: numpy.array, antenna1: numpy.array,
                           antenna2: numpy.array, vis: numpy.array, weight: numpy.array,
                           phasecentre: SkyCoord, meta: dict, **kwargs) -> Visibility:
     """ Create a visibility set from parts
@@ -159,6 +160,39 @@ def visibility_from_array(uvw: numpy.array, time: numpy.array, freq: numpy.array
     vt.phasecentre = phasecentre
     return vt
 
+
+def visibility_to_gaintable(vt: Visibility, **kwargs):
+    """Create an empty gaintable from a visibilty set
+
+    :param vt: Visibility to be used as template
+    :type Visibility:
+    :returns: GainTable
+    """
+    print("gaintable.gaintable_from_visibility: not yet implemented")
+    return object()
+
+
+def visibility_from_ms(msfile: str,  **kwargs) -> Visibility:
+    """ Create a visibility set from a measurement set
+
+    :param msfile: Name of measurement set
+    :type str:
+    :returns: Visibility
+    """
+    print('visibility.visibilty_from_ms: not yet implemented')
+    return Visibility()
+
+
+def visibility_to_ms(vt: Visibility, msfile: str = None,  **kwargs) -> Visibility:
+    """ Write a visibility set to a measurement set
+
+    :param vt: Name of visibility set
+    :param Visibility:
+    :param msfile: Name of output measurement set
+    :type str:
+    :returns: Visibility
+    """
+    print('visibility.visibilty_from_ms: not yet implemented')
 
 def create_visibility(config: Configuration, times: numpy.array, freq: numpy.array, weight: float,
                       phasecentre: SkyCoord, meta: dict = None, **kwargs) -> Visibility:
@@ -202,9 +236,13 @@ def create_visibility(config: Configuration, times: numpy.array, freq: numpy.arr
                 row += 1
     ruvw = xyz_to_baselines(ants_xyz, times, phasecentre.dec)
     print(u"visibility.create_visibility: Created {0:d} rows".format(nrows))
-    vt = visibility_from_array(ruvw, rtimes, freq, rantenna1, rantenna2, rvis, rweight, phasecentre, meta)
+    vt = Visibility()
+    vt.data = Table(data=[ruvw, rtimes, rantenna1, rantenna2, rvis, rweight],
+                    names=['uvw', 'time', 'antenna1', 'antenna2', 'vis', 'weight'], meta=meta)
+    vt.frequency = freq
+    vt.phasecentre = phasecentre
+    vt.configuration = config
     return vt
-
 
 def phaserotate(vt: Visibility, newphasecentre: SkyCoord, **kwargs) -> Visibility:
     """ Phase rotate from the current phase centre to a new phase centre: works in place

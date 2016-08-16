@@ -126,6 +126,8 @@ def predict(vt: Visibility, sm: SkyModel, **kwargs) -> Visibility:
     vshape = vt.data['vis'].shape
     shape, reffrequency, cellsize, w, imagecentre = wcs_from_visibility(vt, **kwargs)
     
+    vt.data['vis']=numpy.zeros(vt.data['vis'].shape)
+    
     if len(sm.images):
         print("imaging.predict: Predicting Visibility from sky model images")
         
@@ -161,9 +163,9 @@ def predict(vt: Visibility, sm: SkyModel, **kwargs) -> Visibility:
                 uvw = vt.data['uvw'] * (vt.frequency[channel] / const.c).value
                 for pol in range(npol):
                     print('imaging.predict: Predicting from image channel %d, polarisation %d' % (channel, pol))
-                    puvw, vt.data['vis'][:, channel, pol] = dopredict(theta, 1.0 / cellsize, uvw,
-                                                                      sm.images[0].data[channel, pol, :, :],
-                                                                      predfn=predfn)
+                    puvw, dv = dopredict(theta, 1.0 / cellsize, uvw, sm.images[0].data[channel, pol, :, :],
+                                         predfn=predfn)
+                    vt.data['vis'][:, channel, pol] = vt.data['vis'][:, channel, pol] + dv
             print("imaging.predict: Finished predicting Visibility from sky model images")
     
     vdc = vt.phasecentre.represent_as(CartesianRepresentation)

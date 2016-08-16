@@ -6,6 +6,8 @@
 
 import os
 
+import numpy
+
 import astropy.units as units
 from astropy.coordinates import EarthLocation
 from astropy.table import Table, Column, vstack
@@ -78,7 +80,9 @@ def configuration_from_array(antxyz: numpy.array, name: str = None, location: Ea
 
 
 def configuration_from_file(antfile: str, name: str = None, location: EarthLocation = None, mount: str = 'altaz',
-                            names: str = "%d", frame: str = 'local', meta: dict = None, **kwargs):
+                            names: str = "%d", frame: str = 'local', beamparameters: numpy.array = None, meta: dict =
+                            None,
+**kwargs):
     """ Define from a file
     
     :param antfile: Antenna file name
@@ -116,7 +120,8 @@ def configuration_from_file(antfile: str, name: str = None, location: EarthLocat
     return fc
 
 
-def configuration_from_LOFAR(antfile: str, name: str = None, meta: dict = None, **kwargs):
+def configuration_from_LOFAR(antfile: str, name: str = None, beamparameters: numpy.array = None, meta: dict = None,
+                             **kwargs):
     """ Define from the LOFAR configuration file
     
     :param antfile:

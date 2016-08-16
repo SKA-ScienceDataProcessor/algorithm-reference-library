@@ -60,7 +60,7 @@ def hogbom(dirty,
     :param gain: The "loop gain", i.e., the fraction of the brightest pixel that is removed in each iteration
     :param thresh: Cleaning stops when the maximum of the absolute deviation of the residual is less than this value
     :param niter: Maximum number of components to make if the threshold `thresh` is not hit
-    :returns clean SkyComponent Image, residual Image
+    :returns: clean SkyComponent Image, residual Image
     """
 
     assert 0.0 < gain < 2.0

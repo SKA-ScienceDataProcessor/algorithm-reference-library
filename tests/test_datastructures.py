@@ -54,7 +54,7 @@ class TestDataStructures(unittest.TestCase):
         direction = SkyCoord('00h42m30s', '+41d12m00s', frame='icrs')
         flux = numpy.array([[1.0, 0.0, 0.0, 0.0], [1.0, 0.0, 0.0, 0.0]])
         frequency=numpy.arange(1.0e8,1.5e8,1.0e7)
-        comp = create_skycomponent(flux, flux=frequency, frequency=frequency, shape='Point')
+        comp = create_skycomponent(flux, direction=direction, frequency=frequency, shape='Point')
         m31sm = skymodel_add_component(m31sm, comp)
 
     def test_visibility(self):

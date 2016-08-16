@@ -11,16 +11,18 @@ from astropy.table import Table, vstack
 Functions that define and manipulate gain tables
 """
 
+
 class GainTable:
     """
     Gain table with time, antenna, gain[:,chan,pol] columns
     """
+    
     # TODO: Implement gaintables with Jones and Mueller matrices
-
+    
     def __init__(self):
         self.data = None
         self.frequency = None
-
+        
 
 def gaintable_filter(fg: GainTable, **kwargs):
     """Filer a Gaintable
@@ -82,16 +84,28 @@ def gaintable_from_array(gain: numpy.array, time: numpy.array, antenna: numpy.ar
     assert gain.shape[0] == nrows, "Discrepancy in number of gain rows"
     assert weight.shape[0] == nrows, "Discrepancy in number of weight rows"
     fg = GainTable()
-
+    
     fg.data = Table(data=[gain, time, antenna, weight], names=['gain', 'time', 'antenna', 'weight'], copy=copy,
                     meta=meta)
     fg.frequency = frequency
     return fg
 
 
+def interpolate_gaintable(gt: GainTable, **kwargs):
+    """ Interpolate a GainTable to new sampling
+
+    :param gt:
+    :type GainTable:
+    :param kwargs:
+    :returns: Gaintable
+    """
+    print('gaintable.interpolate_gaintable: not yet implemented')
+    return GainTable()
+
+
 if __name__ == '__main__':
     import os
-
+    
     os.chdir('../')
     print(os.getcwd())
     kwargs = {}

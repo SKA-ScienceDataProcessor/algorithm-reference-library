@@ -482,7 +482,8 @@ def simplepredict(guv, theta, lam, p):
     :param p: UVWs of visibilities
     :param v: Visibility values
     :param kv: gridding kernel
-pip    """
+    :returns: p, v
+    """
     N = int(round(theta * lam))
     assert N > 1
     v = degrid(guv, p / lam)
@@ -500,6 +501,7 @@ def convimg(theta, lam, p, v, kv):
     :param p: UVWs of visibilities
     :param v: Visibility values
     :param kv: gridding kernel
+    :returns: grid
     """
     N = int(round(theta * lam))
     assert N > 1
@@ -525,6 +527,7 @@ def wslicimg(theta, lam, p, v,
     w-coordinates of all visibilities falling into the slides.
     :param NpixFF: Size of the far-field for computing the w-kernel. See doc/wkernel.
     :param NpixKern: Size of the extracted convolution kernels. Currently kernels are the same size for all w-values.
+    :returns: grid
       
     DEPRECATED - see wslicfwd
     
@@ -651,7 +654,7 @@ def wcachefwd(guv,
     :param wstep: The binning of w values. W kernels are computed for each bin, and then cached
     :param NpixKern: Size of the extracted convolution kernels. Currently kernels are the same size for all w-values.
 
-    :returns degridded visibilities
+    :returns: degridded visibilities
     """
     # Calculate number of pixels in the Image
     N = int(round(theta * lam))
@@ -678,9 +681,9 @@ def doimg(theta, lam, p, v, imgfn):
     :param lam:
     :param p: UVWs of visibilities (m)
     :param v: Visibilities to be imaged
-    :param imgfn: imaging function e.g. wslicimg or w-slices
+    :param imgfn: imaging function e.g. wcacheimg or w-slices
 
-    :returns dirty Image, psf
+    :returns: dirty Image, psf
     """
     # add the conjugate points
     p = numpy.vstack([p, p * -1])
@@ -704,9 +707,9 @@ def dopredict(theta, lam, p, modelimage, predfn):
     :param lam:
     :param p: UVWs of visiblities (m)
     :param modelimage: model Image as numpy.array (phase center at Nx/2,Ny/2)
-    :param predfn: prediction function e.g. wslicfwd
+    :param predfn: prediction function e.g. wcachefwd
 
-    :returns predicted visibilities
+    :returns: predicted visibilities
     """
     ximage = numpy.fft.fftshift(numpy.fft.fft2(numpy.fft.fftshift(modelimage.astype(complex))))
     return predfn(ximage, theta, lam, p)

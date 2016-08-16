@@ -6,7 +6,7 @@ from numpy.testing import assert_allclose
 from astropy.coordinates import SkyCoord
 from astropy import units as u
 
-from arl.skycomponent import SkyComponent, create_skycomponent
+from arl.skycomponent import create_skycomponent
 from arl.configuration import named_configuration, configuration_filter
 from arl.image import image_to_fits, point_source_find, flux_at_direction
 from arl.skymodel import skymodel_from_component
