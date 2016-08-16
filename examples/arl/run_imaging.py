@@ -12,18 +12,15 @@ import pylab
 pylab.rcParams['figure.figsize'] = (12.0, 12.0)
 pylab.rcParams['image.cmap'] = 'rainbow'
 
-from astropy import constants as const
+from astropy.wcs.utils import skycoord_to_pixel, pixel_to_skycoord
 from astropy import units as u
-from astropy.coordinates import SkyCoord, CartesianRepresentation, SkyOffsetFrame
-import scipy.special
 
-from matplotlib import pylab
 from matplotlib import pyplot as plt
 
 from arl.deconvolve import deconvolve
 from arl.visibility import create_visibility
 from arl.imaging import *
-from arl.skymodel import SkyModel, skymodel_from_image, skymodel_add_image, skymodel_add_component
+from arl.skymodel import SkyModel, skymodel_from_image, skymodel_add_component
 from arl.skycomponent import *
 from arl.image import image_show, image_from_fits, image_to_fits, image_replicate, point_source_find
 from arl.configuration import configuration_filter, named_configuration
@@ -66,53 +63,41 @@ m31image.wcs.wcs.cdelt[1]=+cellsize
 m31image.wcs.wcs.radesys='ICRS'
 m31image.wcs.wcs.equinox=2000.00
 
-
+# Show the model image
 fig.add_subplot(111, projection=m31image.wcs)
 plt.imshow(m31image.data, origin='lower', cmap='rainbow')
 plt.xlabel('RA---SIN')
 plt.ylabel('DEC--SIN')
 plt.show()
 
+# This image is only 2 dimensional. We need extra axes frequency and stokes.
 
-from astropy.wcs.utils import skycoord_to_pixel, pixel_to_skycoord
+m31image4D=image_replicate(m31image, shape=[1, 1, 4, len(frequency)])
+m31sm = skymodel_from_image(m31image4D)
+
+# We need a linear reference frame to inset a model source. This is a bit involved die to the Astropy way of doing
+# things
 wall = m31image.wcs
 wall.wcs.radesys='ICRS'
 wall.wcs.equinox=2000.00
 print(wall.wcs.radesys)
 print(wall.wcs.equinox)
 sc=pixel_to_skycoord(128, 128, wall, 1, 'wcs')
-print(sc)
-pixloc = skycoord_to_pixel(SkyCoord("-1.0d", "37.0d", frame='icrs', equinox=2000.0), wall, 1)
-print(pixloc)
+compabsdirection=SkyCoord("-1.0d", "37.0d", frame='icrs', equinox=2000.0)
+pixloc = skycoord_to_pixel(compabsdirection, wall, 1)
 scrt = pixel_to_skycoord(pixloc[0], pixloc[1], wall, 1, 'wcs')
-print(scrt)
-
 sof=sc.skyoffset_frame()
+compreldirection = compabsdirection.transform_to(sof)
 
-# This image is only 2 dimensional. We need extra axes frequency and stokes.
-
-m31image4D=image_replicate(m31image, shape=[1, 1, 4, len(frequency)])
-m31sm = skymodel_from_image(m31image4D)
-
-
-# In[ ]:
-
-comp1= create_skycomponent(numpy.array([[1.0, 0.0, 0.0, 0.0]]), frequency)
+# Create a skycomponent and add it to the skymodel
+comp1= create_skycomponent(flux=numpy.array([[1.0, 0.0, 0.0, 0.0]]), frequency=frequency, direction=compreldirection)
 m31sm=skymodel_add_component(m31sm, comp1)
 
-
-# Now we can predict the visibility from this model
-
-# In[ ]:
-
+# Now we can predict the visibility from this skymodel
 kwargs={'wstep':100.0, 'npixel':256, 'cellsize':0.0001}
 vt = predict(vt, m31sm, **kwargs)
 
-
-# To check that we got it right, plot the amplitude of the visibility.
-
-# In[ ]:
-
+# To check that we got the prediction right, plot the amplitude of the visibility.
 uvdist=numpy.sqrt(vt.data['uvw'][:,0]**2+vt.data['uvw'][:,1]**2)
 plt.clf()
 plt.plot(uvdist, numpy.abs(vt.data['vis'][:,0,0]), '.')
@@ -122,8 +107,6 @@ plt.show()
 
 
 # Make the dirty image and point spread function
-
-# In[ ]:
 
 kwargs={}
 kwargs['npixel']=512
@@ -140,24 +123,18 @@ image_to_fits(psf, 'psf.fits')
 m31compnew = point_source_find(dirty, **kwargs)
 
 
-# In[ ]:
+# Deconvolve using clean
 
 kwargs={'niter':100, 'threshold':0.001, 'fracthresh':0.01}
 comp, residual = deconvolve(dirty, psf, **kwargs)
 
-
-# In[ ]:
-
-
-
-
-# In[ ]:
+# Show the results
 
 fig=image_show(comp)
 fig=image_show(residual)
 
 
-# In[ ]:
+# Predict the visibility of the model
 
 kwargs={'wstep':30.0}
 vt = predict(vt, m31sm, **kwargs)
@@ -169,8 +146,6 @@ vtmodel=predict(vtmodel, modelsm,**kwargs)
 
 # Now we will plot the original visibility and the residual visibility.
 
-# In[ ]:
-
 uvdist=numpy.sqrt(vt.data['uvw'][:,0]**2+vt.data['uvw'][:,1]**2)
 plt.clf()
 plt.plot(uvdist, numpy.abs(vt.data['vis'][:,0,0]), '.', color='b')
@@ -178,9 +153,3 @@ plt.plot(uvdist, numpy.abs(vt.data['vis'][:,0,0]-vtmodel.data['vis'][:,0,0]), '.
 plt.xlabel('uvdist')
 plt.ylabel('Amp Visibility')
 plt.show()
-
-
-# In[ ]:
-
-
-
