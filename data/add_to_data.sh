@@ -4,9 +4,11 @@
 make data.tar.gz
 
 # Unzip, add file(s), zip again
+cp data.tar.gz data.tar.gz.old
 gzip -d data.tar.gz
-tar rf data.tar $@
+tar -uf data.tar $@
 gzip data.tar
+rm data.tar.gz.old
 
 # Update MD5
 md5sum data.tar.gz > data.tar.gz.md5
