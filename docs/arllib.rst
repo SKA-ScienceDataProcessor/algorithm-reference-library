@@ -17,49 +17,51 @@ See also :doc:`Algorithm Reference Library Goals<arllib_goals>`
 :index:`ARL-based Notebooks`
 ----------------------------
 
-.. toctree::
-   :name: mastertoc
-   :maxdepth: 2
-
    arl/imaging
 
 :index:`ARL API`
 ----------------
 
-Calibration
-+++++++++++
+Define Visibility
++++++++++++++++++
 
-.. automodule:: arl.calibration
+.. automodule:: arl.define_visibility
    :members:
 
-Configuration
-+++++++++++++
+Simulate Visibility
++++++++++++++++++++
 
-.. automodule:: arl.configuration
+.. automodule:: arl.simulate_visibility
    :members:
 
-Deconvolve
-++++++++++
+Calibrate Visibility
+++++++++++++++++++++
 
-.. automodule:: arl.deconvolve
+.. automodule:: arl.calibrate_visibility
    :members:
 
-Gaintable
-+++++++++
+Weight Visibility
++++++++++++++++++
 
-.. automodule:: arl.gaintable
+.. automodule:: arl.weight_visibility
    :members:
 
-Image
-+++++
+Fourier Transform
++++++++++++++++++
 
-.. automodule:: arl.image
+.. automodule:: arl.fourier_transform
    :members:
 
-Imaging
-+++++++
+Deconvolve Image
+++++++++++++++++
 
-.. automodule:: arl.imaging
+.. automodule:: arl.deconvolve_image
+   :members:
+
+Define Image
+++++++++++++
+
+.. automodule:: arl.define_image
    :members:
 
 Polarisation
@@ -68,20 +70,14 @@ Polarisation
 .. automodule:: arl.polarisation
    :members:
 
-SkyComponent
-++++++++++++
+Define SkyModel
++++++++++++++++
 
-.. automodule:: arl.skycomponent
+.. automodule:: arl.define_skymodel
    :members:
 
-SkyModel
-++++++++
+Solve Combinations
+++++++++++++++++++
 
-.. automodule:: arl.skymodel
-   :members:
-
-Visibility
-++++++++++
-
-.. automodule:: arl.visibility
+.. automodule:: arl.solve_combinations
    :members:

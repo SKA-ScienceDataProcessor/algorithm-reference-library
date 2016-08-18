@@ -12,9 +12,9 @@ from astropy.coordinates import SkyCoord
 from astropy.io import fits
 from astropy.wcs import WCS
 from astropy.wcs.utils import skycoord_to_pixel, pixel_to_skycoord
+
 from reproject import reproject_interp
 
-from arl.skycomponent import SkyComponent, create_skycomponent
 
 """
 Functions that define and manipulate images. Images are just data and a World Coordinate System.
@@ -50,13 +50,13 @@ def create_test_image(canonical=True):
     :returns: Image
     """
     chome = os.environ['CROCODILE']
-    im = image_from_fits("%s/data/models/M31.MOD" % chome)
+    im = create_image_from_fits("%s/data/models/M31.MOD" % chome)
     if canonical:
-        im=image_replicate(im)
+        im=replicate_image(im)
     return im
 
 
-def image_show(im: Image, fig=None, title: str = ''):
+def show_image(im: Image, fig=None, title: str = ''):
     """ Show an Image with coordinates using matplotlib
     
     :param im:
@@ -83,7 +83,7 @@ def image_show(im: Image, fig=None, title: str = ''):
     return fig
 
 
-def image_filter(im: Image, **kwargs):
+def filter_image(im: Image, **kwargs):
     """ Filter an image
 
     :param im:
@@ -91,11 +91,11 @@ def image_filter(im: Image, **kwargs):
     :param kwargs:
     :returns:
     """
-    print("image_filter: No filter implemented yet")
+    print("filter_image: No filter implemented yet")
     return im
 
 
-def image_from_array(data: numpy.array, wcs: WCS = None) -> Image:
+def create_image_from_array(data: numpy.array, wcs: WCS = None) -> Image:
     """ Create an image from an array
     
     :param data:
@@ -110,7 +110,7 @@ def image_from_array(data: numpy.array, wcs: WCS = None) -> Image:
     return fim
 
 
-def image_to_fits(im: Image, fitsfile: str = 'imaging.fits'):
+def save_image_to_fits(im: Image, fitsfile: str = 'imaging.fits'):
     """ Write an image to fits
     
     :param im: Image
@@ -121,7 +121,7 @@ def image_to_fits(im: Image, fitsfile: str = 'imaging.fits'):
     return fits.writeto(filename=fitsfile, data=im.data, header=im.wcs.to_header(), clobber=True)
 
 
-def image_from_fits(fitsfile: str):
+def create_image_from_fits(fitsfile: str):
     """ Read an Image from fits
     
     :param fitsfile:
@@ -138,11 +138,11 @@ def image_from_fits(fitsfile: str):
     fim.data = hdulist[0].data
     fim.wcs = WCS(fitsfile)
     hdulist.close()
-    print("image_from_fits: Max, min in %s = %.6f, %.6f" % (fitsfile, fim.data.max(), fim.data.min()))
+    print("create_image_from_fits: Max, min in %s = %.6f, %.6f" % (fitsfile, fim.data.max(), fim.data.min()))
     return fim
 
 
-def image_add_wcs(im: Image, wcs: WCS):
+def add_wcs_to_image(im: Image, wcs: WCS):
     """ Add a WCS to an Image
     
     :param im:
@@ -155,7 +155,7 @@ def image_add_wcs(im: Image, wcs: WCS):
     return im
 
 
-def image_replicate(im: Image, shape=None, frequency=1.4e9):
+def replicate_image(im: Image, shape=None, frequency=1.4e9):
     """ Make a new canonical shape Image, extended along third and fourth axes by replication.
     
     The order is [chan, pol, dec, ra]
@@ -180,10 +180,10 @@ def image_replicate(im: Image, shape=None, frequency=1.4e9):
         newwcs.wcs.crval = [im.wcs.wcs.crval[0], im.wcs.wcs.crval[1], 1.0, frequency]
         newwcs.wcs.ctype = [im.wcs.wcs.ctype[0], im.wcs.wcs.ctype[1], 'STOKES', 'FREQ']
 
-        image_add_wcs(fim, newwcs)
+        add_wcs_to_image(fim, newwcs)
         fshape = [shape[3], shape[2], im.data.shape[1], im.data.shape[0]]
         fim.data = numpy.zeros(fshape)
-        print("image_replicate: replicating shape %s to %s" % (im.data.shape, fim.data.shape))
+        print("replicate_image: replicating shape %s to %s" % (im.data.shape, fim.data.shape))
         for i3 in range(shape[3]):
             for i2 in range(shape[2]):
                 fim.data[i3, i2, :, :] = im.data[:, :]
@@ -193,7 +193,7 @@ def image_replicate(im: Image, shape=None, frequency=1.4e9):
     return fim
 
 
-def image_reproject(im: Image, newwcs: WCS, shape=None):
+def reproject_image(im: Image, newwcs: WCS, shape=None):
     """ Reproject an image to a new coordinate system
     
     Currently uses the reproject python package.
@@ -207,22 +207,22 @@ def image_reproject(im: Image, newwcs: WCS, shape=None):
     """
     rep, foot = reproject_interp((im.data, im.wcs), newwcs, shape, order='bicubic',
                                  independent_celestial_slices=False)
-    return image_from_array(rep, newwcs), image_from_array(foot, newwcs)
+    return create_image_from_array(rep, newwcs), create_image_from_array(foot, newwcs)
 
 
-def image_FFT(im: Image, **kwargs):
+def fft_image(im: Image, **kwargs):
     """ FFT an image
 
     :param im:
     :type Image:
     :returns: Image
     """
-    print("image_fft: Not yet implemented")
+    print("fft_image: Not yet implemented")
     
     return im
 
 
-def image_add(im1: Image, im2: Image, checkwcs=False):
+def add_image(im1: Image, im2: Image, checkwcs=False):
     """ Add two images
     
     :param im1:
@@ -234,70 +234,23 @@ def image_add(im1: Image, im2: Image, checkwcs=False):
     :returns: Image
     """
     assert not checkwcs, "Checking WCS not yet implemented"
-    return image_from_array(im1.data + im2.data, im1.wcs)
-
-
-def point_source_find(im: Image, **kwargs) -> SkyComponent:
-    """ Find components in Image, return SkyComponent, just find the peak for now
-    
-    :param im: Image to be searched
-    :type Image:
-    :returns: SkyComponent
-    """
-    # TODO: Implement full image fitting of components
-    print("imaging.point_source_find: Finding components in Image")
-    
-    # Beware: The index sequencing is opposite in wcs and Python!
-    locpeak = numpy.array(numpy.unravel_index((numpy.abs(im.data)).argmax(), im.data.shape))
-    print("imaging.point_source_find: Found peak at pixel coordinates %s" % str(locpeak))
-    w = im.wcs.sub(['longitude', 'latitude'])
-    sc = pixel_to_skycoord(locpeak[3], locpeak[2], im.wcs, 0, 'wcs')
-    print("imaging.point_source_find: Found peak at world coordinates %s" % str(sc))
-    flux = im.data[:, :, locpeak[2], locpeak[3]]
-    print("imaging.point_source_find: Flux is %s" % flux)
-    # We also need the frequency values
-    w = im.wcs.sub(['spectral'])
-    frequency = w.wcs_pix2world(range(im.data.shape[0]), 1)
-    return create_skycomponent(direction=sc, flux=flux, frequency=frequency, shape='point')
-
-
-def flux_at_direction(im: Image, sc: SkyCoord, **kwargs) -> SkyComponent:
-    """ Find flux at a given direction, return SkyComponent
-    
-    :param im:
-    :type Image:
-    :param sc:
-    :type SkyCoord:
-    :returns: SkyComponent
-    
-    """
-    print("imaging.flux_at_direction: Extracting flux at world coordinates %s" % str(sc))
-    w = im.wcs.sub(['longitude', 'latitude'])
-    pixloc = skycoord_to_pixel(sc, im.wcs, 0, 'wcs')
-    print("imaging.flux_at_direction: Extracting flux at pixel coordinates %d %d" % (pixloc[0], pixloc[1]))
-    flux = im.data[:, :, int(pixloc[1] + 0.5), int(pixloc[0] + 0.5)]
-    print("imaging.flux_at_direction: Flux is %s" % flux)
-    
-    # We also need the frequency values
-    w = im.wcs.sub(['spectral'])
-    frequency = w.wcs_pix2world(range(im.data.shape[0]), 0)
-    
-    return create_skycomponent(direction=sc, flux=flux, frequency=frequency, shape='point')
+    return create_image_from_array(im1.data + im2.data, im1.wcs)
 
 
 if __name__ == '__main__':
     import os
-    
+    from arl.define_skymodel import create_skycomponent
+
     chome = os.environ['CROCODILE']
     kwargs = {}
-    m31model = image_from_fits("%s/data/models/M31.MOD" % chome)
-    m31model_by_array = image_from_array(m31model.data, m31model.wcs)
+    m31model = create_image_from_fits("%s/data/models/M31.MOD" % chome)
+    m31model_by_array = create_image_from_array(m31model.data, m31model.wcs)
     try:
-        m31modelsum = image_filter(image_add(m31model, m31model_by_array, checkwcs=True), **kwargs)
+        m31modelsum = filter_image(add_image(m31model, m31model_by_array, checkwcs=True), **kwargs)
     except:
         print("Image: correctly failed on checkwcs=True")
         pass
-    m31modelsum = image_filter(image_add(m31model, m31model_by_array), **kwargs)
+    m31modelsum = filter_image(add_image(m31model, m31model_by_array), **kwargs)
     print(m31model.data.shape)
     print(m31model.wcs)
-    print(image_to_fits(m31model, fitsfile='temp.fits'))
+    print(save_image_to_fits(m31model, fitsfile='temp.fits'))

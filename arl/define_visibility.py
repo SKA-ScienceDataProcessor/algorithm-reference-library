@@ -8,8 +8,7 @@ from astropy.coordinates import SkyCoord, CartesianRepresentation
 from astropy.table import Table, vstack
 
 from crocodile.simulate import *
-from arl.configuration import Configuration, named_configuration
-from arl.gaintable import GainTable
+from arl.simulate_visibility import Configuration, create_named_configuration
 
 """
 Functions that represent a visibility set.
@@ -19,6 +18,78 @@ The data structure:
 - An attached attribute which is the frequency of each channel as a numy array
 - An attached attribute which is the phase centre as an AstroPy SkyCoord
 """
+
+
+class GainTable:
+    """
+    Gain table with time, antenna, gain[:,chan,pol] columns
+    """
+    
+    # TODO: Implement gaintables with Jones and Mueller matrices
+    
+    def __init__(self):
+        self.data = None
+        self.frequency = None
+
+
+def filter_gaintable(fg: GainTable, **kwargs):
+    """Filer a Gaintable
+
+    :param fg:
+    :type GainTable:
+    :returns: GainTable
+    """
+    print("GainTable: Filter not implemented yet")
+    return fg
+
+
+def create_gaintable_from_array(gain: numpy.array, time: numpy.array, antenna: numpy.array, weight: numpy.array,
+                                frequency: numpy.array, copy=False, meta=None, **kwargs):
+    """ Create a gaintable from arrays
+
+    :param gain:
+    :type GainTable:
+    :param time:
+    :type numpy.array:
+    :param antenna:
+    :type numpy.array:
+    :param weight:
+    :type numpy.array:
+    :param frequency:
+    :type numpy.array:
+    :param copy:
+    :type bool:
+    :param meta:
+    :type dict:
+    :param kwargs:
+    :returns: Gaintable
+    """
+    if meta is None:
+        meta = {}
+    nrows = time.shape[0]
+    assert len(frequency) == gain.shape[1], "Discrepancy in frequency channels"
+    assert len(antenna) == nrows, "Discrepancy in number of antenna rows"
+    assert gain.shape[0] == nrows, "Discrepancy in number of gain rows"
+    assert weight.shape[0] == nrows, "Discrepancy in number of weight rows"
+    fg = GainTable()
+    
+    fg.data = Table(data=[gain, time, antenna, weight], names=['gain', 'time', 'antenna', 'weight'], copy=copy,
+                    meta=meta)
+    fg.frequency = frequency
+    return fg
+
+
+def interpolate_gaintable(gt: GainTable, **kwargs):
+    """ Interpolate a GainTable to new sampling
+
+    :param gt:
+    :type GainTable:
+    :param kwargs:
+    :returns: Gaintable
+    """
+    print('gaintable.interpolate_gaintable: not yet implemented')
+    return GainTable()
+
 
 class Visibility:
     """ Visibility table class
@@ -40,7 +111,7 @@ class Visibility:
         self.configuration = None
 
 
-def visibility_combine(fvt1: Visibility, fvt2: Visibility, w1: float = 1.0, w2: float = 1.0, **kwargs) -> Visibility:
+def combine_visibility(fvt1: Visibility, fvt2: Visibility, w1: float = 1.0, w2: float = 1.0, **kwargs) -> Visibility:
     """ Linear combination of two visibility sets
     
     :param fvt1: Visibility set 1
@@ -71,7 +142,7 @@ def visibility_combine(fvt1: Visibility, fvt2: Visibility, w1: float = 1.0, w2: 
     return fvt
 
 
-def visibility_concatenate(fvt1: Visibility, fvt2: Visibility, **kwargs) -> \
+def concatenate_visibility(fvt1: Visibility, fvt2: Visibility, **kwargs) -> \
         Visibility:
     """ Concatentate the data sets in time, optionally phase rotating the second to the phasecenter of the first
     
@@ -85,7 +156,7 @@ def visibility_concatenate(fvt1: Visibility, fvt2: Visibility, **kwargs) -> \
     assert len(fvt1.frequency) == len(fvt2.frequency), "Visibility: frequencies should be the same"
     assert numpy.max(numpy.abs(fvt1.frequency - fvt2.frequency)) < 1.0, "Visibility: frequencies should be the same"
     print("visibility.concatenate: combining two tables with %d rows and %d rows" % (len(fvt1.data), len(fvt2.data)))
-    fvt2rot = phaserotate(fvt2, fvt1.phasecentre)
+    fvt2rot = phaserotate_visibility(fvt2, fvt1.phasecentre)
     fvt = Visibility()
     fvt.data = vstack([fvt1.data, fvt2rot.data], join_type='exact')
     fvt.phasecentre = fvt1.phasecentre
@@ -95,7 +166,7 @@ def visibility_concatenate(fvt1: Visibility, fvt2: Visibility, **kwargs) -> \
     return fvt
 
 
-def visibility_flag(fvis: Visibility, gt: GainTable = None, **kwargs) -> Visibility:
+def flag_visibility(fvis: Visibility, gt: GainTable = None, **kwargs) -> Visibility:
     """ Flags a visibility set, optionally using GainTable
 
     :param fvis:
@@ -109,7 +180,7 @@ def visibility_flag(fvis: Visibility, gt: GainTable = None, **kwargs) -> Visibil
     return fvis
 
 
-def visibility_filter(fvis: Visibility, **kwargs) -> Visibility:
+def filter_visibility(fvis: Visibility, **kwargs) -> Visibility:
     """ Filter a visibility set
 
     :param fvis:
@@ -121,47 +192,7 @@ def visibility_filter(fvis: Visibility, **kwargs) -> Visibility:
     return fvis
 
 
-def _visibility_from_array(uvw: numpy.array, time: numpy.array, freq: numpy.array, antenna1: numpy.array,
-                          antenna2: numpy.array, vis: numpy.array, weight: numpy.array,
-                          phasecentre: SkyCoord, meta: dict, **kwargs) -> Visibility:
-    """ Create a visibility set from parts
-    
-    :param uvw:
-    :type numpy complex array [...,3]:
-    :param time:
-    :type numpy array [...]:
-    :param freq:
-    :type numpy array [nfreq]:
-    :param antenna1:
-    :type numpy array [...]:
-    :param antenna2:
-    :type numpy array [...]:
-    :param vis:
-    :type numpy complex array [...,nchan,npol]:
-    :param weight:
-    :type numpy float array [...,nchan,npol]:
-    :param phasecentre:
-    :type SkyCoord:
-    :param meta:
-    :type dict:
-    :returns: Visibility
-    """
-    nrows = time.shape[0]
-    assert uvw.shape[0] == nrows, "Discrepancy in number of rows in uvw"
-    assert len(antenna1) == nrows, "Discrepancy in number of rows in antenna1"
-    assert len(antenna2) == nrows, "Discrepancy in number of rows in antenna2"
-    assert vis.shape[0] == nrows, "Discrepancy in number of rows for vis"
-    assert len(freq) == vis.shape[1], "Discrepancy between frequencies and number of channels"
-    assert weight.shape[0] == nrows, "Discrepancy in number of rows"
-    vt = Visibility()
-    vt.data = Table(data=[uvw, time, antenna1, antenna2, vis, weight],
-                    names=['uvw', 'time', 'antenna1', 'antenna2', 'vis', 'weight'], meta=meta)
-    vt.frequency = freq
-    vt.phasecentre = phasecentre
-    return vt
-
-
-def visibility_to_gaintable(vt: Visibility, **kwargs):
+def create_gaintable_from_visibility(vt: Visibility, **kwargs):
     """Create an empty gaintable from a visibilty set
 
     :param vt: Visibility to be used as template
@@ -172,7 +203,7 @@ def visibility_to_gaintable(vt: Visibility, **kwargs):
     return object()
 
 
-def visibility_from_ms(msfile: str,  **kwargs) -> Visibility:
+def create_visibility_from_ms(msfile: str, **kwargs) -> Visibility:
     """ Create a visibility set from a measurement set
 
     :param msfile: Name of measurement set
@@ -183,7 +214,7 @@ def visibility_from_ms(msfile: str,  **kwargs) -> Visibility:
     return Visibility()
 
 
-def visibility_to_ms(vt: Visibility, msfile: str = None,  **kwargs) -> Visibility:
+def save_visibility_to_ms(vt: Visibility, msfile: str = None, **kwargs) -> Visibility:
     """ Write a visibility set to a measurement set
 
     :param vt: Name of visibility set
@@ -244,7 +275,8 @@ def create_visibility(config: Configuration, times: numpy.array, freq: numpy.arr
     vt.configuration = config
     return vt
 
-def phaserotate(vt: Visibility, newphasecentre: SkyCoord, **kwargs) -> Visibility:
+
+def phaserotate_visibility(vt: Visibility, newphasecentre: SkyCoord, **kwargs) -> Visibility:
     """ Phase rotate from the current phase centre to a new phase centre: works in place
     
     :param vt: Visibility to be rotated
@@ -254,7 +286,7 @@ def phaserotate(vt: Visibility, newphasecentre: SkyCoord, **kwargs) -> Visibilit
     pcof = newphasecentre.skyoffset_frame()
     todc = vt.phasecentre.transform_to(pcof)
     dc = todc.represent_as(CartesianRepresentation)
-    print('visibility.visibility_sum: Relative cartesian representation of direction = (%f, %f, %f)' % (dc.x, dc.y,
+    print('visibility.sum_visibility: Relative cartesian representation of direction = (%f, %f, %f)' % (dc.x, dc.y,
                                                                                                        dc.z))
 
     if numpy.abs(dc.x) > 1e-15 or numpy.abs(dc.y) > 1e-15:
@@ -275,7 +307,7 @@ def phaserotate(vt: Visibility, newphasecentre: SkyCoord, **kwargs) -> Visibilit
     return vt
 
 
-def visibility_sum(vt: Visibility, direction: SkyCoord, **kwargs) -> numpy.array:
+def sum_visibility(vt: Visibility, direction: SkyCoord, **kwargs) -> numpy.array:
     """ Direct Fourier summation in a given direction
     
     :param vt: Visibility to be summed
@@ -285,7 +317,7 @@ def visibility_sum(vt: Visibility, direction: SkyCoord, **kwargs) -> numpy.array
     :returns: flux[nch,npol], weight[nch,pol]
     """
     dc = direction.represent_as(CartesianRepresentation)
-    print('visibility.visibility_sum: Cartesian representation of direction = (%f, %f, %f)' % (dc.x, dc.y, dc.z))
+    print('visibility.sum_visibility: Cartesian representation of direction = (%f, %f, %f)' % (dc.x, dc.y, dc.z))
     nchan = vt.data['vis'].shape[1]
     npol = vt.data['vis'].shape[2]
     flux = numpy.zeros([nchan, npol])
@@ -295,7 +327,7 @@ def visibility_sum(vt: Visibility, direction: SkyCoord, **kwargs) -> numpy.array
         uvw[:, 2] *= -1.0
         phasor = numpy.conj(simulate_point(uvw, dc.z, dc.y))
         for pol in range(npol):
-            print('imaging.visibility_sum: Summing visibility for channel %d, polarisation %d' % (channel, pol))
+            print('imaging.sum_visibility: Summing visibility for channel %d, polarisation %d' % (channel, pol))
             flux[channel, pol] = flux[channel, pol] + \
                                  numpy.sum(numpy.real(vt.data['vis'][:, channel, pol] *
                                                       vt.data['weight'][:, channel, pol] * phasor))
@@ -311,7 +343,6 @@ def average_visibility(vt: Visibility, **kwargs) -> Visibility:
     :param vt: Visibility to be averaged
     :type Visibility:
     :returns: Visibility after averaging
-    :type Visibility:
     """
     print("average_visibility: Not yet implemented")
     return vt
@@ -331,8 +362,9 @@ def de_average_visibility(vt: Visibility, vttemplate: Visibility, **kwargs) -> V
     return vt
 
 
+
 if __name__ == '__main__':
-    config = named_configuration('VLAA')
+    config = create_named_configuration('VLAA')
     times1 = numpy.arange(-3.0, 0.0, 3.0 / 60.0) * numpy.pi / 12.0
     times2 = numpy.arange(0.0, +3.0, 3.0 / 60.0) * numpy.pi / 12.0
     freq1 = numpy.arange(5e6, 150.0e6, 1e7)
@@ -341,7 +373,9 @@ if __name__ == '__main__':
     phasecentre2 = SkyCoord(ra='04h56m10s', dec='+63d00m00s', frame='icrs', equinox=2000.0)
     vt1 = create_visibility(config, times1, freq1, weight=1.0, phasecentre=phasecentre1)
     vt2 = create_visibility(config, times2, freq1, weight=1.0, phasecentre=phasecentre2)
-    vtsum = visibility_concatenate(vt1, vt2)
+    vtsum = concatenate_visibility(vt1, vt2)
     print(vtsum.data)
     print(vtsum.frequency)
     print(numpy.unique(vtsum.data['time']))
+    
+    

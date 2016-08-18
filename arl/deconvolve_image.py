@@ -8,10 +8,10 @@ import numpy as numpy
 
 from crocodile.msclean import msclean
 from crocodile.clean import hogbom
-from arl.image import Image, image_from_array
+from arl.define_image import Image, create_image_from_array
 
 
-def deconvolve(dirty: Image, psf: Image, **kwargs):
+def deconvolve_cube(dirty: Image, psf: Image, **kwargs):
     """ Clean using a variety of algorithms
     
     Functions that clean a dirty image using a point spread function. The algorithms available are:
@@ -19,6 +19,7 @@ def deconvolve(dirty: Image, psf: Image, **kwargs):
     - Hogbom CLEAN See: Hogbom CLEAN (1974A&AS...15..417H)
     
     - MultiScale CLEAN See: Multiscale CLEAN (IEEE Journal of Selected Topics in Sig Proc, 2008 vol. 2 pp. 793-801)
+    
     
     :param dirty: Image dirty image
     :type Image:
@@ -78,4 +79,57 @@ def deconvolve(dirty: Image, psf: Image, **kwargs):
     else:
         raise ValueError('Unknown algorithm %s' % algorithm)
 
-    return image_from_array(comp_array, dirty.wcs), image_from_array(residual_array, dirty.wcs)
+    return create_image_from_array(comp_array, dirty.wcs), create_image_from_array(residual_array, dirty.wcs)
+
+
+def restore_cube(dirty: Image, clean: Image, psf: Image, **kwargs):
+    """ Restore a clean image
+
+    :param residual: Image residual image
+    :type Image:
+    :param clean: Image clean model (i.e. no smoothing)
+    :type Image:
+    :param psf: Image Point Spread Function
+    :type Image:
+    :param kwargs: 'algorithm': 'msclean'|'hogbom', 'gain': loop gain (float)
+    :returns: restored image
+    """
+    print("restore_image: not yet implemented")
+    return Image()
+
+
+def deconvolve_mfs(dirty: Image, psf: Image, **kwargs):
+    """ MFS Clean using a variety of algorithms
+
+    Functions that clean a dirty image using a point spread function. The algorithms available are:
+
+    - Hogbom CLEAN See: Hogbom CLEAN (1974A&AS...15..417H)
+
+    - MultiScale CLEAN See: Multiscale CLEAN (IEEE Journal of Selected Topics in Sig Proc, 2008 vol. 2 pp. 793-801)
+
+
+    :param dirty: Image dirty image
+    :type Image:
+    :param psf: Image Point Spread Function
+    :type Image:
+    :param kwargs: 'algorithm': 'msclean'|'hogbom', 'gain': loop gain (float)
+    :returns: componentimage, residual
+    """
+    print("deconvolve_image.deconvolve_mfs: not yet implemented")
+    return Image()
+
+
+def restore_mfs(dirty: Image, clean: Image, psf: Image, **kwargs):
+    """ Restore an MFS clean image
+
+    :param residual: Image residual image
+    :type Image:
+    :param clean: Image clean model (i.e. no smoothing)
+    :type Image:
+    :param psf: Image Point Spread Function
+    :type Image:
+    :param kwargs: 'algorithm': 'msclean'|'hogbom', 'gain': loop gain (float)
+    :returns: restored image
+    """
+    print("deconvolve_image.restore_mfs: not yet implemented")
+    return Image()

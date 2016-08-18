@@ -3,6 +3,9 @@
 # Definition of structures needed by the function interface. These are mostly
 # subclasses of astropy classes.
 #
+import numpy as numpy
+
+from astropy.table import Table
 
 import os
 
@@ -18,47 +21,33 @@ from crocodile.simulate import *
 Functions that define and manipulate telescope configurations. These are required for simulations.
 """
 
+
 class Configuration:
     """ Describe a Configuration
     """
-
+    
     def __init__(self):
         self.name = ''
         self.data = None
         self.location = None
 
 
-def configuration_add(fc1: Configuration, fc2: Configuration):
-    """ Add two configurations together
-    
-    :param fc1:
-    :type Configuration:
-    :param fc2:
-    :type Configuration:
-    :returns: Configuration
-    """
-    fc = Configuration()
-    fc.name = '%s+%s' % (fc1.name, fc2.name)
-    fc.data = vstack(fc1.data, fc2.data)
-    fc.location = None
-
-
-def configuration_filter(fc: Configuration, **kwargs):
+def filter_configuration(fc: Configuration, **kwargs):
     """ Filter a configuration e.g. remove certain antennas
-    
+
     :param fc:
     :type Configuration:
     :param kwargs:
     :returns: Configuration
     """
-    print("Configuration: No filter implemented yet")
+    print("filter_configuration: No filter implemented yet")
     return fc
 
 
-def configuration_from_array(antxyz: numpy.array, name: str = None, location: EarthLocation = None,
-                             mount: str = 'alt-az', names: str = '%d', meta: dict = None, **kwargs):
+def create_configuration_from_array(antxyz: numpy.array, name: str = None, location: EarthLocation = None,
+                                    mount: str = 'alt-az', names: str = '%d', meta: dict = None, **kwargs):
     """ Define from parts
-    
+
     :param name:
     :param antxyz: locations of antennas numpy.array[...,3]
     :type numpy.array:
@@ -79,12 +68,13 @@ def configuration_from_array(antxyz: numpy.array, name: str = None, location: Ea
     return fc
 
 
-def configuration_from_file(antfile: str, name: str = None, location: EarthLocation = None, mount: str = 'altaz',
-                            names: str = "%d", frame: str = 'local', beamparameters: numpy.array = None, meta: dict =
-                            None,
-**kwargs):
+def create_configuration_from_file(antfile: str, name: str = None, location: EarthLocation = None, mount: str = 'altaz',
+                                   names: str = "%d", frame: str = 'local', beamparameters: numpy.array = None,
+                                   meta: dict =
+                                   None,
+                                   **kwargs):
     """ Define from a file
-    
+
     :param antfile: Antenna file name
     :type str:
     :param name: Name of array e.g. 'LOWBD2'
@@ -112,7 +102,7 @@ def configuration_from_file(antfile: str, name: str = None, location: EarthLocat
         xyz[:, 1], xyz[:, 2] = xyz[:, 2], xyz[:, 1]
     else:
         xyz = Column(antxyz, name="xyz")
-
+    
     anames = [names % ant for ant in range(nants)]
     mounts = Column(numpy.repeat(mount, nants), name="mount")
     fc.data = Table(data=[anames, xyz, mounts], names=["names", "xyz", "mount"], meta=meta)
@@ -120,10 +110,10 @@ def configuration_from_file(antfile: str, name: str = None, location: EarthLocat
     return fc
 
 
-def configuration_from_LOFAR(antfile: str, name: str = None, beamparameters: numpy.array = None, meta: dict = None,
-                             **kwargs):
+def create_LOFAR_configuration(antfile: str, name: str = None, beamparameters: numpy.array = None, meta: dict = None,
+                               **kwargs):
     """ Define from the LOFAR configuration file
-    
+
     :param antfile:
     :type str:
     :param name:
@@ -144,42 +134,63 @@ def configuration_from_LOFAR(antfile: str, name: str = None, beamparameters: num
     return fc
 
 
-def named_configuration(name: str = 'LOWBD2', **kwargs):
+def create_named_configuration(name: str = 'LOWBD2', **kwargs):
     """ Standard configurations e.g. LOWBD2, MIDBD2
 
     :param name: name of Configuration LOWBD2, LOWBD1, LOFAR, VLAA
     :type str:
     :returns: Configuration
     """
-
-    chome=os.getenv('CROCODILE', './')
-
+    
+    chome = os.getenv('CROCODILE', './')
+    
     if name == 'LOWBD2':
         location = EarthLocation(lon="116.4999", lat="-26.7000", height=300.0)
-        fc = configuration_from_file(antfile="%s/data/configurations/LOWBD2.csv" % chome,
-                                     location=location, mount='xy', names='LOWBD2_%d')
+        fc = create_configuration_from_file(antfile="%s/data/configurations/LOWBD2.csv" % chome,
+                                            location=location, mount='xy', names='LOWBD2_%d')
     elif name == 'LOWBD1':
         location = EarthLocation(lon="116.4999", lat="-26.7000", height=300.0)
-        fc = configuration_from_file(antfile="%s/data/configurations/LOWBD1.csv" % chome,
-                                     location=location, mount='xy', names='LOWBD1_%d')
+        fc = create_configuration_from_file(antfile="%s/data/configurations/LOWBD1.csv" % chome,
+                                            location=location, mount='xy', names='LOWBD1_%d')
     elif name == 'LOFAR':
-        fc = configuration_from_LOFAR(antfile="%s/data/configurations/LOFAR.csv" % chome,
-                                      frame='geocentric')
+        fc = create_LOFAR_configuration(antfile="%s/data/configurations/LOFAR.csv" % chome,
+                                        frame='geocentric')
     elif name == 'VLAA':
         location = EarthLocation(lon="-107.6184", lat="34.0784", height=2124.0)
-        fc = configuration_from_file(antfile="%s/data/configurations/VLA_A_hor_xyz.csv" % chome, location=location,
-                                     mount='altaz',
-                                     names='VLA_%d')
+        fc = create_configuration_from_file(antfile="%s/data/configurations/VLA_A_hor_xyz.csv" % chome,
+                                            location=location,
+                                            mount='altaz',
+                                            names='VLA_%d')
     else:
         fc = Configuration()
         raise UserWarning("No such Configuration %s" % name)
     return fc
 
-
 if __name__ == '__main__':
+    import os
+    
+    os.chdir('../')
+    print(os.getcwd())
+
     kwargs = {}
     fc = Configuration()
     for telescope in ['LOWBD1', 'LOWBD2', 'LOFAR', 'VLAA']:
         print(telescope)
-        config = configuration_filter(named_configuration(telescope), **kwargs)
+        config = filter_configuration(create_named_configuration(telescope), **kwargs)
         print(config.location)
+        
+    kwargs = {}
+    nant = 27
+    aantennas = numpy.arange(nant, dtype='int')
+    npol = 4
+    freq = numpy.arange(5.e7, 15.e7, 2e7)
+    print(freq)
+    atimes = numpy.arange(-43200.0, 43200.0, 30.0)
+    ntimes = len(atimes)
+    times = numpy.repeat(atimes, nant)
+    antennas = numpy.array(ntimes * list(range(nant)))
+    nrows = len(times)
+    gains = numpy.ones([len(times), len(freq), npol], dtype='complex')
+    weight = numpy.ones([len(times), len(freq)], dtype='float')
+    gt = filter_gaintable(create_gaintable_from_array(gains, times, antennas, weight, freq), **kwargs)
+    print(gt.data['gain'].shape)

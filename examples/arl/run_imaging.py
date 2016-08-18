@@ -1,5 +1,4 @@
 
-# coding: utf-8
 
 # This script works through the high level arl interface to crocodile, making a fake data set and then
 # deconvolving it. Finally the full and residual visibility are plotted.
@@ -12,25 +11,25 @@ import pylab
 pylab.rcParams['figure.figsize'] = (12.0, 12.0)
 pylab.rcParams['image.cmap'] = 'rainbow'
 
+from astropy.coordinates import SkyCoord
 from astropy.wcs.utils import skycoord_to_pixel, pixel_to_skycoord
 from astropy import units as u
 
 from matplotlib import pyplot as plt
 
-from arl.deconvolve import deconvolve
-from arl.visibility import create_visibility
-from arl.imaging import *
-from arl.skymodel import SkyModel, skymodel_from_image, skymodel_add_component
-from arl.skycomponent import *
-from arl.image import image_show, image_from_fits, image_to_fits, image_replicate, point_source_find
-from arl.configuration import configuration_filter, named_configuration
+from arl.deconvolve_image import deconvolve_cube
+from arl.define_visibility import create_visibility
+from arl.fourier_transform import *
+from arl.define_skymodel import create_skymodel_from_image, add_component_to_skymodel, create_skycomponent, find_point_source
+from arl.define_image import show_image, create_image_from_fits, save_image_to_fits, replicate_image
+from arl.simulate_visibility import filter_configuration, create_named_configuration
 
 
 # We construct a VLA configuration and then shrink it to match our test image.
 
 kwargs = {}
 
-vlaa = configuration_filter(named_configuration('VLAA'), **kwargs)
+vlaa = filter_configuration(create_named_configuration('VLAA'), **kwargs)
 vlaa.data['xyz']=vlaa.data['xyz']/10.0
 
 
@@ -55,7 +54,7 @@ for f in frequency:
 
 # Read the venerable test image, constructing an image
 
-m31image = image_from_fits("./data/models/M31.MOD")
+m31image = create_image_from_fits("./data/models/M31.MOD")
 fig = plt.figure()
 cellsize=180.0*0.0001/numpy.pi
 m31image.wcs.wcs.cdelt[0]=-cellsize
@@ -72,8 +71,8 @@ plt.show()
 
 # This image is only 2 dimensional. We need extra axes frequency and stokes.
 
-m31image4D=image_replicate(m31image, shape=[1, 1, 4, len(frequency)])
-m31sm = skymodel_from_image(m31image4D)
+m31image4D=replicate_image(m31image, shape=[1, 1, 4, len(frequency)])
+m31sm = create_skymodel_from_image(m31image4D)
 
 # We need a linear reference frame to inset a model source. This is a bit involved die to the Astropy way of doing
 # things
@@ -91,11 +90,11 @@ compreldirection = compabsdirection.transform_to(sof)
 
 # Create a skycomponent and add it to the skymodel
 comp1= create_skycomponent(flux=numpy.array([[1.0, 0.0, 0.0, 0.0]]), frequency=frequency, direction=compreldirection)
-m31sm=skymodel_add_component(m31sm, comp1)
+m31sm=add_component_to_skymodel(m31sm, comp1)
 
-# Now we can predict the visibility from this skymodel
+# Now we can predict_visibility the visibility from this skymodel
 kwargs={'wstep':100.0, 'npixel':256, 'cellsize':0.0001}
-vt = predict(vt, m31sm, **kwargs)
+vt = predict_visibility(vt, m31sm, **kwargs)
 
 # To check that we got the prediction right, plot the amplitude of the visibility.
 uvdist=numpy.sqrt(vt.data['uvw'][:,0]**2+vt.data['uvw'][:,1]**2)
@@ -112,36 +111,36 @@ kwargs={}
 kwargs['npixel']=512
 kwargs['cellsize']=0.0001
 kwargs['wstep']=30.0
-dirty, psf, sumwt = invert(vt, **kwargs)
-image_show(dirty)
+dirty, psf, sumwt = invert_visibility(vt, **kwargs)
+show_image(dirty)
 print("Max, min in dirty image = %.6f, %.6f, sum of weights = %f" % (dirty.data.max(), dirty.data.min(), sumwt))
 
 print("Max, min in PSF         = %.6f, %.6f, sum of weights = %f" % (psf.data.max(), psf.data.min(), sumwt))
 
-image_to_fits(dirty, 'dirty.fits')
-image_to_fits(psf, 'psf.fits')
-m31compnew = point_source_find(dirty, **kwargs)
+save_image_to_fits(dirty, 'dirty.fits')
+save_image_to_fits(psf, 'psf.fits')
+m31compnew = find_point_source(dirty)
 
 
 # Deconvolve using clean
 
 kwargs={'niter':100, 'threshold':0.001, 'fracthresh':0.01}
-comp, residual = deconvolve(dirty, psf, **kwargs)
+comp, residual = deconvolve_cube(dirty, psf, **kwargs)
 
 # Show the results
 
-fig=image_show(comp)
-fig=image_show(residual)
+fig=show_image(comp)
+fig=show_image(residual)
 
 
 # Predict the visibility of the model
 
 kwargs={'wstep':30.0}
-vt = predict(vt, m31sm, **kwargs)
-modelsm=skymodel_from_image(comp)
+vt = predict_visibility(vt, m31sm, **kwargs)
+modelsm=create_skymodel_from_image(comp)
 vtmodel = create_visibility(vlaa, times, frequency, weight=1.0, phasecentre=phasecentre)
 vtmodel.data = vt.data.copy()
-vtmodel=predict(vtmodel, modelsm,**kwargs)
+vtmodel=predict_visibility(vtmodel, modelsm, **kwargs)
 
 
 # Now we will plot the original visibility and the residual visibility.
