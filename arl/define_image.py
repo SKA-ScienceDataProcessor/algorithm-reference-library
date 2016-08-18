@@ -217,8 +217,8 @@ def fft_image(im: Image, **kwargs):
     :type Image:
     :returns: Image
     """
-    print("fft_image: Not yet implemented")
-    
+    print("fft_image: not yet implemented")
+   
     return im
 
 

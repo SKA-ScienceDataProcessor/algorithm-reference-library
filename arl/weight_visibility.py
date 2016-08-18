@@ -32,7 +32,7 @@ def briggs_weight(vt, im, **kwargs):
     :param kwargs:
     :returns: Configuration
     """
-    print("weight_visibility.briggs_weight: not implemented yet")
+    print("weight_visibility.briggs_weight: not yet implemented")
     return vt
 
 
@@ -46,5 +46,5 @@ def uniform_weight(vt, im, **kwargs):
     :param kwargs:
     :returns: Configuration
     """
-    print("weight_visibility.briggs_weight: not implemented yet")
+    print("weight_visibility.briggs_weight: not yet implemented")
     return vt

@@ -39,7 +39,7 @@ def filter_gaintable(fg: GainTable, **kwargs):
     :type GainTable:
     :returns: GainTable
     """
-    print("GainTable: Filter not implemented yet")
+    print("define_visibility.filter_gain: not yet implemented")
     return fg
 
 
@@ -87,7 +87,7 @@ def interpolate_gaintable(gt: GainTable, **kwargs):
     :param kwargs:
     :returns: Gaintable
     """
-    print('gaintable.interpolate_gaintable: not yet implemented')
+    print('"define_visibility.interpolate_gaintable: not yet implemented')
     return GainTable()
 
 
@@ -176,7 +176,7 @@ def flag_visibility(fvis: Visibility, gt: GainTable = None, **kwargs) -> Visibil
     :param kwargs:
     :returns: Visibility
     """
-    print("Visibility.flag: not implemented yet")
+    print("define_visibility.flag_visibility: not yet implemented")
     return fvis
 
 
@@ -188,7 +188,7 @@ def filter_visibility(fvis: Visibility, **kwargs) -> Visibility:
     :param kwargs:
     :returns: Visibility
     """
-    print("Visibility.filter: not implemented yet")
+    print("define_visibility.filter_visibility: not yet implemented")
     return fvis
 
 
@@ -199,7 +199,7 @@ def create_gaintable_from_visibility(vt: Visibility, **kwargs):
     :type Visibility:
     :returns: GainTable
     """
-    print("gaintable.gaintable_from_visibility: not yet implemented")
+    print("define_visibility.create_gaintable_from_visibility: not yet implemented")
     return object()
 
 
@@ -210,7 +210,7 @@ def create_visibility_from_ms(msfile: str, **kwargs) -> Visibility:
     :type str:
     :returns: Visibility
     """
-    print('visibility.visibilty_from_ms: not yet implemented')
+    print('define_visibility.visibilty_from_ms: not yet implemented')
     return Visibility()
 
 
@@ -223,7 +223,7 @@ def save_visibility_to_ms(vt: Visibility, msfile: str = None, **kwargs) -> Visib
     :type str:
     :returns: Visibility
     """
-    print('visibility.visibilty_from_ms: not yet implemented')
+    print('define_visibility.visibilty_from_ms: not yet implemented')
 
 def create_visibility(config: Configuration, times: numpy.array, freq: numpy.array, weight: float,
                       phasecentre: SkyCoord, meta: dict = None, **kwargs) -> Visibility:
@@ -345,7 +345,7 @@ def average_visibility(vt: Visibility, **kwargs) -> Visibility:
     :type Visibility:
     :returns: Visibility after averaging
     """
-    print("average_visibility: Not yet implemented")
+    print("define_visibility.average_visibility: not yet implemented")
     return vt
 
 def de_average_visibility(vt: Visibility, vttemplate: Visibility, **kwargs) -> Visibility:
@@ -359,7 +359,7 @@ def de_average_visibility(vt: Visibility, vttemplate: Visibility, **kwargs) -> V
     :type Visibility:
     :returns: Visibility after de-averaging
     """
-    print("de_average_visibility: Not yet implemented")
+    print("define_visibility.de_average_visibility: not yet implemented")
     return vt
 
 
