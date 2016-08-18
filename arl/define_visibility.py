@@ -340,6 +340,7 @@ def average_visibility(vt: Visibility, **kwargs) -> Visibility:
     """ Average visibility in time and frequency
     
     Creates new Visibility by averaging in time and frequency
+    
     :param vt: Visibility to be averaged
     :type Visibility:
     :returns: Visibility after averaging
