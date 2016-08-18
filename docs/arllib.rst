@@ -10,6 +10,12 @@ visibility table, gaintable, etc.
 
 See also :doc:`Algorithm Reference Library Goals<arllib_goals>`
 
+The functions as arranged as in the folowing image:
+
+.. image:: ./Calibrate_and_Image.png
+      :width: 1024px
+
+
 .. toctree::
    :name: mastertoc
    :maxdepth: 2

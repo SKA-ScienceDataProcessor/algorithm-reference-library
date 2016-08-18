@@ -7,8 +7,7 @@ import numpy
 
 from arl.define_skymodel import SkyModel
 from arl.fourier_transform import predict_visibility, invert_visibility
-from arl.define_visibility import Visibility, combine_visibility
-from arl.simulate_visibility import GainTable
+from arl.define_visibility import Visibility, combine_visibility, GainTable
 
 """
 Functions that solve for combinations e.g. major cycle
