@@ -4,10 +4,10 @@ import numpy
 from numpy.testing import assert_allclose
 
 from arl.define_skymodel import SkyComponent, create_skycomponent
-from arl.simulate_visibility import create_named_configuration, create_gaintable_from_array
+from arl.simulate_visibility import create_named_configuration
 from arl.define_image import add_image, create_image_from_array, create_image_from_fits
 from arl.define_skymodel import create_skymodel_from_image, add_component_to_skymodel
-from arl.define_visibility import Visibility, create_visibility
+from arl.define_visibility import Visibility, create_visibility, create_gaintable_from_array
 
 from astropy.coordinates import SkyCoord
 
