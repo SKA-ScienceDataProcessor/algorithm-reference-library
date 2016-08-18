@@ -3,7 +3,7 @@
 from distutils.core import setup
 
 setup(name='crocodile',
-      version='0.2',
+      version='0.3',
       description='Algorithm Reference Library for Radio Interferometry',
       long_description=open('README.md').read(),
       author='Tim Cornwell, Bojan Nikolic, Peter Wortmann',

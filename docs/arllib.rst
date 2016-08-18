@@ -23,7 +23,12 @@ The functions as arranged as in the folowing image:
 :index:`ARL-based Notebooks`
 ----------------------------
 
-   arl/imaging
+.. toctree::
+   :name: mastertoc
+   :maxdepth: 2
+
+   Imaging Demonstration<arl/imaging>
+
 
 :index:`ARL API`
 ----------------
