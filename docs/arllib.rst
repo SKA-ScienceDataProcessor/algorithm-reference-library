@@ -92,3 +92,11 @@ Solve Combinations
 
 .. automodule:: arl.solve_combinations
    :members:
+
+Assess Quality
+++++++++++++++
+
+.. automodule:: arl.assess_quality
+   :members:
+
+

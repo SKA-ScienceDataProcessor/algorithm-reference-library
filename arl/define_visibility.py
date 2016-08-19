@@ -363,6 +363,19 @@ def de_average_visibility(vt: Visibility, vttemplate: Visibility, **kwargs) -> V
     return vt
 
 
+def weight_visibility(vt, im, **kwargs):
+    """ Reweight the visibility data in place a selected algorithm
+
+    :param vt:
+    :type Visibility:
+    :param im:
+    :type Image:
+    :param kwargs:
+    :returns: Configuration
+    """
+    print("define_visibility.weight_visibility: not yet implemented")
+    return vt
+
 
 if __name__ == '__main__':
     config = create_named_configuration('VLAA')
