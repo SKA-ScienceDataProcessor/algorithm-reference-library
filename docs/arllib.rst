@@ -51,12 +51,6 @@ Calibrate Visibility
 .. automodule:: arl.calibrate_visibility
    :members:
 
-Weight Visibility
-+++++++++++++++++
-
-.. automodule:: arl.weight_visibility
-   :members:
-
 Fourier Transform
 +++++++++++++++++
 

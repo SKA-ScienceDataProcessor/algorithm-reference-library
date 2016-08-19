@@ -54,7 +54,7 @@ def aq_image(im, **kwargs):
     return AQ()
 
 
-def aq_image(gt, **kwargs):
+def aq_gaintable(gt, **kwargs):
     """Assess the quality of a gaintable
 
     :param im:
