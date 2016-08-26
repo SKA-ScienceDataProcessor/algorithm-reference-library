@@ -9,8 +9,8 @@ import numpy
 from astropy.coordinates import SkyCoord
 from astropy.wcs.utils import skycoord_to_pixel, pixel_to_skycoord
 
-from arl.image_operations import Image, create_image_from_fits
-from arl.fourier_transform import predict_visibility, invert_visibility, combine_visibility
+from arl.image_operations import Image, import_image_from_fits
+from arl.fourier_transforms import predict_visibility, invert_visibility, combine_visibility
 from arl.data_models import *
 
 def create_skycomponent(direction: SkyCoord, flux: numpy.array, frequency: numpy.array, shape: str = 'Point',
@@ -40,7 +40,7 @@ def create_skycomponent(direction: SkyCoord, flux: numpy.array, frequency: numpy
     return sc
 
 
-def find_point_source(im: Image, **kwargs):
+def find_skycomponent(im: Image, **kwargs):
     """ Find components in Image, return SkyComponent, just find the peak for now
 
     :param im: Image to be searched
@@ -64,7 +64,7 @@ def find_point_source(im: Image, **kwargs):
     return create_skycomponent(direction=sc, flux=flux, frequency=frequency, shape='point')
 
 
-def find_flux_at_direction(im: Image, sc: SkyCoord, **kwargs):
+def fit_skycomponent(im: Image, sc: SkyCoord, **kwargs):
     """ Find flux at a given direction, return SkyComponent
 
     :param im:
@@ -88,20 +88,7 @@ def find_flux_at_direction(im: Image, sc: SkyCoord, **kwargs):
     return create_skycomponent(direction=sc, flux=flux, frequency=frequency, shape='point')
 
 
-
-def filter_skymodel(sm: SkyModel, **kwargs):
-    """Filter the sky model
-
-    :param sm:
-    :type SkyModel:
-    :param kwargs:
-    :returns: SkyModel
-    """
-    print("SkyModel: No filter implemented yet")
-    return sm
-
-
-def add_skymodel(sm1: SkyModel, sm2: SkyModel):
+def add_skymodels(sm1: SkyModel, sm2: SkyModel):
     """ Add two sky models together
     
     :param sm1:
@@ -233,7 +220,7 @@ if __name__ == '__main__':
     comp = create_skycomponent(direction, flux, frequency, shape='Point', name="Mysource")
 
     kwargs = {}
-    m31image = filter_skymodel(create_image_from_fits("./data/models/M31.MOD"), **kwargs)
+    m31image = import_image_from_fits("./data/models/M31.MOD")
     m31im = SkyModel()
     m31im.images.append(m31image)
     flux = numpy.array([[1.0, 0.0, 0.0, 0.0], [1.0, 0.0, 0.0, 0.0]])
@@ -242,4 +229,4 @@ if __name__ == '__main__':
                                name="Mysource")
     m31comp = SkyModel()
     m31comp.components.append(comp)
-    m31added = add_skymodel(m31im, m31comp)
+    m31added = add_skymodels(m31im, m31comp)

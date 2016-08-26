@@ -7,11 +7,11 @@ from astropy.coordinates import SkyCoord
 from astropy import units as u
 
 from arl.skymodel_operations import create_skycomponent
-from arl.visibility_simulation import create_named_configuration, filter_configuration
-from arl.image_operations import save_image_to_fits
-from arl.skymodel_operations import create_skymodel_from_component, find_point_source, find_flux_at_direction
+from arl.test_support import create_named_configuration, filter_configuration
+from arl.image_operations import export_image_to_fits
+from arl.skymodel_operations import create_skymodel_from_component, find_skycomponent, fit_skycomponent
 from arl.visibility_operations import create_visibility, sum_visibility
-from arl.fourier_transform import predict_visibility, invert_visibility
+from arl.fourier_transforms import predict_visibility, invert_visibility
 
 
 class TestImaging(unittest.TestCase):
@@ -51,13 +51,13 @@ class TestImaging(unittest.TestCase):
     def test_findflux(self):
         # Now make a dirty image
         self.dirty, self.psf, sumwt = invert_visibility(self.vtmodel, **self.kwargs)
-        save_image_to_fits(self.dirty, 'test_imaging_dirty.fits')
+        export_image_to_fits(self.dirty, 'test_imaging_dirty.fits')
         print("Max, min in dirty Image = %.6f, %.6f, sum of weights = %f" %
               (self.dirty.data.max(), self.dirty.data.min(), sumwt))
         print("Max, min in PSF         = %.6f, %.6f, sum of weights = %f" %
               (self.psf.data.max(), self.psf.data.min(), sumwt))
         # Find the flux at the location we put it at
-        newcomp = find_flux_at_direction(self.dirty, self.compabsdirection)
+        newcomp = fit_skycomponent(self.dirty, self.compabsdirection)
         # TODO: Track down reason for terrible precision
         assert_allclose(self.flux, newcomp.flux, rtol=0.05)
 
@@ -65,13 +65,13 @@ class TestImaging(unittest.TestCase):
     def test_fitcomponent(self):
         # Now make a dirty image
         self.dirty, self.psf, sumwt = invert_visibility(self.vtmodel, **self.kwargs)
-        save_image_to_fits(self.dirty, 'test_imaging_dirty.fits')
+        export_image_to_fits(self.dirty, 'test_imaging_dirty.fits')
         print("Max, min in dirty Image = %.6f, %.6f, sum of weights = %f" %
               (self.dirty.data.max(), self.dirty.data.min(), sumwt))
         print("Max, min in PSF         = %.6f, %.6f, sum of weights = %f" %
               (self.psf.data.max(), self.psf.data.min(), sumwt))
         # Find the peak
-        newcomp = find_point_source(self.dirty)
+        newcomp = find_skycomponent(self.dirty)
         # TODO: Track down reason for terrible precision
         assert_allclose(self.flux, newcomp.flux , rtol=0.05)
         # Check that the returned direction is correct_visibility

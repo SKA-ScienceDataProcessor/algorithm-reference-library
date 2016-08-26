@@ -4,6 +4,7 @@
 # subclasses of astropy classes.
 #
 
+
 class Configuration:
     """ Describe a Configuration
     """
@@ -90,7 +91,7 @@ class Visibility:
         self.configuration = None
 
 
-class AQ:
+class QA:
     """
     Quality assessment
     """

@@ -51,40 +51,46 @@ All components possess an API which is always of the form::
          return odatastruct1, odatastruct2,... other
 
 
-Define Visibility
-+++++++++++++++++
+Visibility Simulation
++++++++++++++++++++++
 
-.. automodule:: arl.define_visibility
+.. automodule:: arl.visibility_simulation
    :members:
 
-Simulate Visibility
+Visibility Operations
++++++++++++++++++++++
+
+.. automodule:: arl.visibility_operations
+   :members:
+
+Visibility Calibration
+++++++++++++++++++++++
+
+.. automodule:: arl.visibility_calibration
+   :members:
+
+Fourier Transforms
+++++++++++++++++++
+
+.. automodule:: arl.fourier_transforms
+   :members:
+
+SkyModel operations
 +++++++++++++++++++
 
-.. automodule:: arl.simulate_visibility
+.. automodule:: arl.skymodel_operations
    :members:
 
-Calibrate Visibility
-++++++++++++++++++++
+Image deconvolution
++++++++++++++++++++
 
-.. automodule:: arl.calibrate_visibility
+.. automodule:: arl.image_deconvolution
    :members:
 
-Fourier Transform
-+++++++++++++++++
-
-.. automodule:: arl.fourier_transform
-   :members:
-
-Deconvolve Image
+Image operations
 ++++++++++++++++
 
-.. automodule:: arl.deconvolve_image
-   :members:
-
-Define Image
-++++++++++++
-
-.. automodule:: arl.define_image
+.. automodule:: arl.image_operations
    :members:
 
 Polarisation
@@ -93,10 +99,10 @@ Polarisation
 .. automodule:: arl.polarisation
    :members:
 
-Define SkyModel
-+++++++++++++++
+Quality Assessment
+++++++++++++++++++
 
-.. automodule:: arl.define_skymodel
+.. automodule:: arl.quality_assessment
    :members:
 
 Pipelines
@@ -105,10 +111,5 @@ Pipelines
 .. automodule:: arl.pipelines
    :members:
 
-Assess Quality
-++++++++++++++
-
-.. automodule:: arl.assess_quality
-   :members:
 
 

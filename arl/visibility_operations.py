@@ -9,17 +9,8 @@ from astropy.table import Table, vstack
 
 from crocodile.simulate import *
 
-from arl.visibility_simulation import create_named_configuration
+from arl.test_support import create_named_configuration
 from arl.data_models import *
-
-"""
-Functions that represent a visibility set.
-
-The data structure:
-- an AstroPy Table with columns ['uvw', 'time', 'antenna1', 'antenna2', 'vis', 'weight']
-- An attached attribute which is the frequency of each channel as a numy array
-- An attached attribute which is the phase centre as an AstroPy SkyCoord
-"""
 
 
 def filter_gaintable(fg: GainTable, **kwargs):
@@ -29,7 +20,7 @@ def filter_gaintable(fg: GainTable, **kwargs):
     :type GainTable:
     :returns: GainTable
     """
-    print("define_visibility.filter_gain: not yet implemented")
+    print("visibility_operations.filter_gaintable: not yet implemented")
     return fg
 
 
@@ -77,9 +68,8 @@ def interpolate_gaintable(gt: GainTable, **kwargs):
     :param kwargs:
     :returns: Gaintable
     """
-    print('"define_visibility.interpolate_gaintable: not yet implemented')
+    print('"visibility_operations.interpolate_gaintable: not yet implemented')
     return GainTable()
-
 
 
 def combine_visibility(fvt1: Visibility, fvt2: Visibility, w1: float = 1.0, w2: float = 1.0, **kwargs) -> Visibility:
@@ -108,7 +98,7 @@ def combine_visibility(fvt1: Visibility, fvt2: Visibility, w1: float = 1.0, w2: 
     fvt.data['vis'][fvt.data['weight'] > 0.0] = 0.0
     fvt.phasecentre = fvt1.phasecentre
     fvt.frequency = fvt1.frequency
-    print(u"visibility.filter: Created table with {0:d} rows".format(len(fvt.data)))
+    print(u"visibility_operations.combine_visibility: Created table with {0:d} rows".format(len(fvt.data)))
     assert (len(fvt.data) == (len(fvt1.data) + len(fvt2.data))), 'Length of output data table wrong'
     return fvt
 
@@ -132,7 +122,7 @@ def concatenate_visibility(fvt1: Visibility, fvt2: Visibility, **kwargs) -> \
     fvt.data = vstack([fvt1.data, fvt2rot.data], join_type='exact')
     fvt.phasecentre = fvt1.phasecentre
     fvt.frequency = fvt1.frequency
-    print(u"visibility.concatenate: Created table with {0:d} rows".format(len(fvt.data)))
+    print(u"visibility_operations.concatenate_visibility: Created table with {0:d} rows".format(len(fvt.data)))
     assert (len(fvt.data) == (len(fvt1.data) + len(fvt2.data))), 'Length of output data table wrong'
     return fvt
 
@@ -147,7 +137,7 @@ def flag_visibility(fvis: Visibility, gt: GainTable = None, **kwargs) -> Visibil
     :param kwargs:
     :returns: Visibility
     """
-    print("define_visibility.flag_visibility: not yet implemented")
+    print("visibility_operations.flag_visibility: not yet implemented")
     return fvis
 
 
@@ -159,7 +149,7 @@ def filter_visibility(fvis: Visibility, **kwargs) -> Visibility:
     :param kwargs:
     :returns: Visibility
     """
-    print("define_visibility.filter_visibility: not yet implemented")
+    print("visibility_operations.filter_visibility: not yet implemented")
     return fvis
 
 
@@ -170,31 +160,9 @@ def create_gaintable_from_visibility(vt: Visibility, **kwargs):
     :type Visibility:
     :returns: GainTable
     """
-    print("define_visibility.create_gaintable_from_visibility: not yet implemented")
+    print("visibility_operations.create_gaintable_from_visibility: not yet implemented")
     return object()
 
-
-def create_visibility_from_ms(msfile: str, **kwargs) -> Visibility:
-    """ Create a visibility set from a measurement set
-
-    :param msfile: Name of measurement set
-    :type str:
-    :returns: Visibility
-    """
-    print('define_visibility.visibilty_from_ms: not yet implemented')
-    return Visibility()
-
-
-def save_visibility_to_ms(vt: Visibility, msfile: str = None, **kwargs) -> Visibility:
-    """ Write a visibility set to a measurement set
-
-    :param vt: Name of visibility set
-    :param Visibility:
-    :param msfile: Name of output measurement set
-    :type str:
-    :returns: Visibility
-    """
-    print('define_visibility.visibilty_from_ms: not yet implemented')
 
 def create_visibility(config: Configuration, times: numpy.array, freq: numpy.array, weight: float,
                       phasecentre: SkyCoord, meta: dict = None, **kwargs) -> Visibility:
@@ -237,7 +205,7 @@ def create_visibility(config: Configuration, times: numpy.array, freq: numpy.arr
                 rantenna2[row] = a2
                 row += 1
     ruvw = xyz_to_baselines(ants_xyz, times, phasecentre.dec)
-    print(u"visibility.create_visibility: Created {0:d} rows".format(nrows))
+    print(u"visibility_operations.create_visibility: Created {0:d} rows".format(nrows))
     vt = Visibility()
     vt.data = Table(data=[ruvw, rtimes, rantenna1, rantenna2, rvis, rweight],
                     names=['uvw', 'time', 'antenna1', 'antenna2', 'vis', 'weight'], meta=meta)
@@ -257,11 +225,12 @@ def phaserotate_visibility(vt: Visibility, newphasecentre: SkyCoord, **kwargs) -
     pcof = newphasecentre.skyoffset_frame()
     todc = vt.phasecentre.transform_to(pcof)
     dc = todc.represent_as(CartesianRepresentation)
-    print('visibility.sum_visibility: Relative cartesian representation of direction = (%f, %f, %f)' % (dc.x, dc.y,
-                                                                                                       dc.z))
-
+    print('visibility_operations.phaserotate_visibility: Relative cartesian representation of direction = (%f, %f, '
+          '%f)' % (dc.x, dc.y,
+                   dc.z))
+    
     if numpy.abs(dc.x) > 1e-15 or numpy.abs(dc.y) > 1e-15:
-        print('visibility.phaserotate: Phase rotation from %s to %s' % (vt.phasecentre, newphasecentre))
+        print('visibility_operations.phaserotate: Phase rotation from %s to %s' % (vt.phasecentre, newphasecentre))
         nchan = vt.data['vis'].shape[1]
         npol = vt.data['vis'].shape[2]
         for channel in range(nchan):
@@ -269,11 +238,11 @@ def phaserotate_visibility(vt: Visibility, newphasecentre: SkyCoord, **kwargs) -
             uvw[:, 2] *= -1.0
             phasor = simulate_point(uvw, dc.y, dc.z)
             for pol in range(npol):
-                print('visibility.phaserotate: Phaserotating visibility for channel %d, polarisation %d' %
+                print('visibility_operations.phaserotate: Phaserotating visibility for channel %d, polarisation %d' %
                       (channel, pol))
                 vt.data['vis'][:, channel, pol] = vt.data['vis'][:, channel, pol] * phasor
     # TODO: rotate uvw as well!!!
-
+    
     vt.phasecentre = newphasecentre
     return vt
 
@@ -288,7 +257,8 @@ def sum_visibility(vt: Visibility, direction: SkyCoord, **kwargs) -> numpy.array
     :returns: flux[nch,npol], weight[nch,pol]
     """
     dc = direction.represent_as(CartesianRepresentation)
-    print('visibility.sum_visibility: Cartesian representation of direction = (%f, %f, %f)' % (dc.x, dc.y, dc.z))
+    print('visibility_operations.sum_visibility: Cartesian representation of direction = (%f, %f, %f)' % (
+    dc.x, dc.y, dc.z))
     nchan = vt.data['vis'].shape[1]
     npol = vt.data['vis'].shape[2]
     flux = numpy.zeros([nchan, npol])
@@ -298,7 +268,8 @@ def sum_visibility(vt: Visibility, direction: SkyCoord, **kwargs) -> numpy.array
         uvw[:, 2] *= -1.0
         phasor = numpy.conj(simulate_point(uvw, dc.z, dc.y))
         for pol in range(npol):
-            print('imaging.sum_visibility: Summing visibility for channel %d, polarisation %d' % (channel, pol))
+            print('visibility_operations.sum_visibility: Summing visibility for channel %d, polarisation %d' % (
+            channel, pol))
             flux[channel, pol] = flux[channel, pol] + \
                                  numpy.sum(numpy.real(vt.data['vis'][:, channel, pol] *
                                                       vt.data['weight'][:, channel, pol] * phasor))
@@ -306,6 +277,7 @@ def sum_visibility(vt: Visibility, direction: SkyCoord, **kwargs) -> numpy.array
     flux[weight > 0.0] = flux[weight > 0.0] / weight[weight > 0.0]
     flux[weight <= 0.0] = 0.0
     return flux, weight
+
 
 def average_visibility(vt: Visibility, **kwargs) -> Visibility:
     """ Average visibility in time and frequency
@@ -316,8 +288,9 @@ def average_visibility(vt: Visibility, **kwargs) -> Visibility:
     :type Visibility:
     :returns: Visibility after averaging
     """
-    print("define_visibility.average_visibility: not yet implemented")
+    print("visibility_operations.average_visibility: not yet implemented")
     return vt
+
 
 def de_average_visibility(vt: Visibility, vttemplate: Visibility, **kwargs) -> Visibility:
     """ De-average visibility in time and frequency i.e. replicate to template Visibility
@@ -330,23 +303,11 @@ def de_average_visibility(vt: Visibility, vttemplate: Visibility, **kwargs) -> V
     :type Visibility:
     :returns: Visibility after de-averaging
     """
-    print("define_visibility.de_average_visibility: not yet implemented")
+    print("visibility_operations.de_average_visibility: not yet implemented")
     return vt
 
-
-def weight_visibility(vt, im, **kwargs):
-    """ Reweight the visibility data in place a selected algorithm
-
-    :param vt:
-    :type Visibility:
-    :param im:
-    :type Image:
-    :param kwargs:
-    :returns: Configuration
-    """
-    print("define_visibility.weight_visibility: not yet implemented")
-    return vt
-
+def more_visibility():
+    return True
 
 def aq_visibility(vt, **kwargs):
     """Assess the quality of an image
@@ -355,7 +316,7 @@ def aq_visibility(vt, **kwargs):
     :type Visibility:
     :returns: AQ
     """
-    print("assess_quality.aq_visibility: not yet implemented")
+    print("visibility_operations.aq_visibility: not yet implemented")
     return AQ()
 
 
@@ -373,5 +334,3 @@ if __name__ == '__main__':
     print(vtsum.data)
     print(vtsum.frequency)
     print(numpy.unique(vtsum.data['time']))
-    
-    

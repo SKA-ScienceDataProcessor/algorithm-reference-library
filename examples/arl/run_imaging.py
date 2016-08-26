@@ -7,8 +7,8 @@ import sys, os
 sys.path.append('../..') 
 print(os.getcwd())
 
-import sys
-sys.stdout = open('%s.txt'%(sys.argv[0]), 'w')
+# import sys
+# sys.stdout = open('%s.txt'%(sys.argv[0]), 'w')
 
 import pylab
 pylab.rcParams['figure.figsize'] = (12.0, 12.0)
@@ -22,10 +22,10 @@ from matplotlib import pyplot as plt
 
 from arl.image_deconvolution import deconvolve_cube
 from arl.visibility_operations import create_visibility
-from arl.fourier_transform import *
-from arl.skymodel_operations import create_skymodel_from_image, add_component_to_skymodel, create_skycomponent, find_point_source
-from arl.image_operations import show_image, create_image_from_fits, save_image_to_fits, replicate_image
-from arl.visibility_simulation import filter_configuration, create_named_configuration
+from arl.fourier_transforms import *
+from arl.skymodel_operations import create_skymodel_from_image, add_component_to_skymodel, create_skycomponent, find_skycomponent
+from arl.image_operations import show_image, import_image_from_fits, export_image_to_fits, replicate_image
+from arl.test_support import filter_configuration, create_named_configuration
 
 
 # We construct a VLA configuration and then shrink it to match our test image.
@@ -57,7 +57,7 @@ for f in frequency:
 
 # Read the venerable test image, constructing an image
 
-m31image = create_image_from_fits("./data/models/M31.MOD")
+m31image = import_image_from_fits("./data/models/M31.MOD")
 fig = plt.figure()
 cellsize=180.0*0.0001/numpy.pi
 m31image.wcs.wcs.cdelt[0]=-cellsize
@@ -120,9 +120,9 @@ print("Max, min in dirty image = %.6f, %.6f, sum of weights = %f" % (dirty.data.
 
 print("Max, min in PSF         = %.6f, %.6f, sum of weights = %f" % (psf.data.max(), psf.data.min(), sumwt))
 
-save_image_to_fits(dirty, 'dirty.fits')
-save_image_to_fits(psf, 'psf.fits')
-m31compnew = find_point_source(dirty)
+export_image_to_fits(dirty, 'dirty.fits')
+export_image_to_fits(psf, 'psf.fits')
+m31compnew = find_skycomponent(dirty)
 
 
 # Deconvolve using clean
