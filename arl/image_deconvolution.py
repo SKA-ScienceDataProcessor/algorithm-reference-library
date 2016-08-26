@@ -8,7 +8,7 @@ import numpy as numpy
 
 from crocodile.msclean import msclean
 from crocodile.clean import hogbom
-from arl.define_image import create_image_from_array
+from arl.image_operations import create_image_from_array
 from arl.data_models import *
 
 
@@ -53,7 +53,7 @@ def deconvolve_cube(dirty: Image, psf: Image, **kwargs):
                        msclean(dirty.data[channel, pol, :, :], psf.data[channel, pol, :, :],
                                 window, gain, thresh, niter, scales, fracthresh)
                 else:
-                    print("clean.clean: Skipping pol %d, channel %d" % (pol, channel))
+                    print("image_deconvolution.clean: Skipping pol %d, channel %d" % (pol, channel))
     elif algorithm == 'hogbom':
 
         window = kwargs.get('window', None)
@@ -76,9 +76,9 @@ def deconvolve_cube(dirty: Image, psf: Image, **kwargs):
                         hogbom(dirty.data[channel, pol, :, :], psf.data[channel, pol, :, :],
                                window, gain, thresh, niter)
                 else:
-                    print("clean.clean: Skipping pol %d, channel %d" % (pol, channel))
+                    print("image_deconvolution.clean: Skipping pol %d, channel %d" % (pol, channel))
     else:
-        raise ValueError('Unknown algorithm %s' % algorithm)
+        raise ValueError('image_deconvolution: Unknown algorithm %s' % algorithm)
 
     return create_image_from_array(comp_array, dirty.wcs), create_image_from_array(residual_array, dirty.wcs)
 
@@ -95,7 +95,7 @@ def restore_cube(dirty: Image, clean: Image, psf: Image, **kwargs):
     :param kwargs: 'algorithm': 'msclean'|'hogbom', 'gain': loop gain (float)
     :returns: restored image
     """
-    print("restore_image: not yet implemented")
+    print("image_deconvolution.restore_image: not yet implemented")
     return Image()
 
 

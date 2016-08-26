@@ -6,11 +6,11 @@ from numpy.testing import assert_allclose
 from astropy.coordinates import SkyCoord
 from astropy import units as u
 
-from arl.define_skymodel import create_skycomponent
-from arl.simulate_visibility import create_named_configuration, filter_configuration
-from arl.define_image import save_image_to_fits
-from arl.define_skymodel import create_skymodel_from_component, find_point_source, find_flux_at_direction
-from arl.define_visibility import create_visibility, sum_visibility
+from arl.skymodel_operations import create_skycomponent
+from arl.visibility_simulation import create_named_configuration, filter_configuration
+from arl.image_operations import save_image_to_fits
+from arl.skymodel_operations import create_skymodel_from_component, find_point_source, find_flux_at_direction
+from arl.visibility_operations import create_visibility, sum_visibility
 from arl.fourier_transform import predict_visibility, invert_visibility
 
 

@@ -4,9 +4,10 @@
 # subclasses of astropy classes.
 #
 
-import os
+import numpy
 
 import matplotlib.pyplot as plt
+
 from astropy.io import fits
 from astropy.wcs import WCS
 
@@ -229,7 +230,7 @@ def aq_image(im, **kwargs):
 
 if __name__ == '__main__':
     import os
-    from arl.define_skymodel import create_skycomponent
+    from arl.skymodel_operations import create_skycomponent
 
     chome = os.environ['CROCODILE']
     kwargs = {}

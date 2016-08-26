@@ -5,10 +5,10 @@ import numpy
 #
 from astropy.coordinates import SkyCoord
 
-from arl.define_visibility import create_visibility
-from arl.simulate_visibility import filter_configuration, create_named_configuration
-from arl.define_image import create_image_from_fits, replicate_image
-from arl.define_skymodel import create_skymodel_from_image
+from arl.visibility_operations import create_visibility
+from arl.visibility_simulation import filter_configuration, create_named_configuration
+from arl.image_operations import create_image_from_fits, replicate_image
+from arl.skymodel_operations import create_skymodel_from_image
 from arl.fourier_transform import predict_visibility
 from arl.data_models import *
 
@@ -41,7 +41,7 @@ def correct_visibility(vt: Visibility, gt: GainTable, **kwargs) -> Visibility:
     :returns: Visibility
     """
     # TODO: Implement calibration application
-    print("calibrate_visibility.correct_visibility: not yet implemented")
+    print("calibration.correct_visibility: not yet implemented")
     return vt
 
 
@@ -55,7 +55,7 @@ def peel_component_visibility(vt: Visibility, sc: SkyComponent, **kwargs) -> Vis
     :returns: Visibility, GainTable
     """
     # TODO: Implement peeling
-    print("calibrate_visibility.peel_component_visibility: not yet implemented")
+    print("calibration.peel_component_visibility: not yet implemented")
     return vt
 
 
@@ -66,7 +66,7 @@ def aq_gaintable(gt, **kwargs):
     :type GainTable:
     :returns: AQ
     """
-    print("calibrate_visibility.aq_gaintable: not yet implemented")
+    print("calibration.aq_gaintable: not yet implemented")
     return AQ()
 
 

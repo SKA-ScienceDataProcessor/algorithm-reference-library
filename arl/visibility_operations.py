@@ -8,7 +8,8 @@ from astropy.coordinates import SkyCoord, CartesianRepresentation
 from astropy.table import Table, vstack
 
 from crocodile.simulate import *
-from arl.simulate_visibility import create_named_configuration
+
+from arl.visibility_simulation import create_named_configuration
 from arl.data_models import *
 
 """

@@ -4,10 +4,6 @@
 # subclasses of astropy classes.
 #
 
-import numpy
-from astropy.coordinates import SkyCoord
-from astropy.wcs.utils import skycoord_to_pixel, pixel_to_skycoord
-
 class Configuration:
     """ Describe a Configuration
     """

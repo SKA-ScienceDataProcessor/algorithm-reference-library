@@ -14,8 +14,8 @@ from crocodile.simulate import simulate_point
 from crocodile.synthesis import wcacheimg, wcachefwd, wkernaf, doimg, dopredict
 
 from arl.data_models import *
-from arl.define_image import create_image_from_array
-from arl.define_visibility import combine_visibility
+from arl.image_operations import create_image_from_array
+from arl.visibility_operations import combine_visibility
 
 """
 Functions that perform imaging i.e. conversion of an Image to/from a Visibility

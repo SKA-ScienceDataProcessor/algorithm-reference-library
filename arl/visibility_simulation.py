@@ -159,7 +159,7 @@ def create_named_configuration(name: str = 'LOWBD2', **kwargs):
 
 if __name__ == '__main__':
     import os
-    from arl.define_visibility import create_gaintable_from_array, filter_gaintable
+    from arl.visibility_operations import create_gaintable_from_array, filter_gaintable
     
     os.chdir('../')
     print(os.getcwd())

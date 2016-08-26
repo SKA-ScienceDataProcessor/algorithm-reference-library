@@ -20,12 +20,12 @@ from astropy import units as u
 
 from matplotlib import pyplot as plt
 
-from arl.deconvolve_image import deconvolve_cube
-from arl.define_visibility import create_visibility
+from arl.image_deconvolution import deconvolve_cube
+from arl.visibility_operations import create_visibility
 from arl.fourier_transform import *
-from arl.define_skymodel import create_skymodel_from_image, add_component_to_skymodel, create_skycomponent, find_point_source
-from arl.define_image import show_image, create_image_from_fits, save_image_to_fits, replicate_image
-from arl.simulate_visibility import filter_configuration, create_named_configuration
+from arl.skymodel_operations import create_skymodel_from_image, add_component_to_skymodel, create_skycomponent, find_point_source
+from arl.image_operations import show_image, create_image_from_fits, save_image_to_fits, replicate_image
+from arl.visibility_simulation import filter_configuration, create_named_configuration
 
 
 # We construct a VLA configuration and then shrink it to match our test image.

@@ -3,7 +3,7 @@ import unittest
 import numpy
 from numpy.testing import assert_allclose
 
-from arl.define_image import *
+from arl.image_operations import *
 
 
 class TestImage(unittest.TestCase):

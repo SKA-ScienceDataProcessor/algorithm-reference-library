@@ -6,7 +6,10 @@
 
 import numpy
 
-from arl.define_image import Image, create_image_from_fits
+from astropy.coordinates import SkyCoord
+from astropy.wcs.utils import skycoord_to_pixel, pixel_to_skycoord
+
+from arl.image_operations import Image, create_image_from_fits
 from arl.fourier_transform import predict_visibility, invert_visibility, combine_visibility
 from arl.data_models import *
 
