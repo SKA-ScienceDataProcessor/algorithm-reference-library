@@ -8,7 +8,8 @@ import numpy as numpy
 
 from crocodile.msclean import msclean
 from crocodile.clean import hogbom
-from arl.define_image import Image, create_image_from_array
+from arl.define_image import create_image_from_array
+from arl.data_models import *
 
 
 def deconvolve_cube(dirty: Image, psf: Image, **kwargs):

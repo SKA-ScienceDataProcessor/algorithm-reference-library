@@ -8,59 +8,19 @@ from astropy.coordinates import SkyCoord, CartesianRepresentation
 from astropy.table import Table, vstack
 
 from crocodile.simulate import *
-from arl.simulate_visibility import Configuration, create_named_configuration
+
+from arl.simulate_visibility import create_named_configuration
+from arl.data_models import *
 
 """
-Functions that represent a visibility set.
-
+Holder for the Quality Assessment
 The data structure:
-- an AstroPy Table with columns ['uvw', 'time', 'antenna1', 'antenna2', 'vis', 'weight']
-- An attached attribute which is the frequency of each channel as a numy array
-- An attached attribute which is the phase centre as an AstroPy SkyCoord
+- TBC
 """
 
-
-class AQ:
+        
+def export_AQ(aq: AQ):
+    """Export the accumulate QA info
+        
     """
-    Gain table with time, antenna, gain[:,chan,pol] columns
-    """
-    
-    # TODO: Implement gaintables with Jones and Mueller matrices
-    
-    def __init__(self):
-        self.data = None
-        self.context = NONE
-
-
-def aq_visibility(vt, **kwargs):
-    """Assess the quality of an image
-
-    :param vt:
-    :type Visibility:
-    :returns: AQ
-    """
-    print("assess_quality.aq_visibility: not yet implemented")
-    return AQ()
-
-
-def aq_image(im, **kwargs):
-    """Assess the quality of an image
-
-    :param im:
-    :type Image:
-    :returns: AQ
-    """
-    print("assess_quality.aq_image: not yet implemented")
-    return AQ()
-
-
-def aq_gaintable(gt, **kwargs):
-    """Assess the quality of a gaintable
-
-    :param im:
-    :type GainTable:
-    :returns: AQ
-    """
-    print("assess_quality.aq_gaintable: not yet implemented")
-    return AQ()
-
+    print("assess_quality.export_AQ: not yet implemented")

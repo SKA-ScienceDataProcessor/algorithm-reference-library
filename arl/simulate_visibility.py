@@ -17,20 +17,11 @@ from astropy.table import Table, Column, vstack
 
 from crocodile.simulate import *
 
+from arl.data_models import *
+
 """
 Functions that define and manipulate telescope configurations. These are required for simulations.
 """
-
-
-class Configuration:
-    """ Describe a Configuration
-    """
-    
-    def __init__(self):
-        self.name = ''
-        self.data = None
-        self.location = None
-
 
 def filter_configuration(fc: Configuration, **kwargs):
     """ Filter a configuration e.g. remove certain antennas
@@ -69,7 +60,7 @@ def create_configuration_from_array(antxyz: numpy.array, name: str = None, locat
 
 
 def create_configuration_from_file(antfile: str, name: str = None, location: EarthLocation = None, mount: str = 'altaz',
-                                   names: str = "%d", frame: str = 'local', beamparameters: numpy.array = None,
+                                   names: str = "%d", frame: str = 'local',
                                    meta: dict =
                                    None,
                                    **kwargs):
@@ -110,7 +101,7 @@ def create_configuration_from_file(antfile: str, name: str = None, location: Ear
     return fc
 
 
-def create_LOFAR_configuration(antfile: str, name: str = None, beamparameters: numpy.array = None, meta: dict = None,
+def create_LOFAR_configuration(antfile: str, meta: dict = None,
                                **kwargs):
     """ Define from the LOFAR configuration file
 
@@ -168,6 +159,7 @@ def create_named_configuration(name: str = 'LOWBD2', **kwargs):
 
 if __name__ == '__main__':
     import os
+    from arl.define_visibility import create_gaintable_from_array, filter_gaintable
     
     os.chdir('../')
     print(os.getcwd())

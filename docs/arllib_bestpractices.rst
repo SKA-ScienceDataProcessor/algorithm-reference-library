@@ -21,3 +21,11 @@ The ARL has been designed in line with the following principles:
 + All function parameters are passed by the kwargs mechanism
 
 Additions and changes should adhere to these principles.
+
+Naming
+------
+
+* Names should obey the SIP guide.
+* For functions that move data in and out of ARL, use import/export.
+* For functions that provide persistent, use read/save.
+

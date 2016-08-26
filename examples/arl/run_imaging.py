@@ -7,6 +7,9 @@ import sys, os
 sys.path.append('../..') 
 print(os.getcwd())
 
+import sys
+sys.stdout = open('%s.txt'%(sys.argv[0]), 'w')
+
 import pylab
 pylab.rcParams['figure.figsize'] = (12.0, 12.0)
 pylab.rcParams['image.cmap'] = 'rainbow'

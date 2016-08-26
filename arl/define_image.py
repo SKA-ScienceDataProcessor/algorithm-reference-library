@@ -7,38 +7,17 @@
 import os
 
 import matplotlib.pyplot as plt
-import numpy as numpy
-from astropy.coordinates import SkyCoord
 from astropy.io import fits
 from astropy.wcs import WCS
-from astropy.wcs.utils import skycoord_to_pixel, pixel_to_skycoord
 
 from reproject import reproject_interp
+
+from arl.data_models import *
 
 
 """
 Functions that define and manipulate images. Images are just data and a World Coordinate System.
 """
-
-
-class Image:
-    """Image class with Image data (as a numpy.array) and optionally the AstroPy WCS.
-    
-    Many operations can be done conveniently using numpy arl on Image.data.
-    
-    Most of the imaging arl require an image in canonical format:
-    - 4 axes: RA, DEC, POL, FREQ
-    
-    The conventions for indexing in WCS and numpy are opposite.
-    - In astropy.wcs, the order is (longitude, latitude, polarisation, frequency)
-    - in numpy, the order is (frequency, polarisation, latitude, longitude)
-    
-    """
-    
-    def __init__(self):
-        self.data = None
-        self.wcs = None
-
 
 def create_test_image(canonical=True):
     """Create a useful test image
@@ -235,6 +214,17 @@ def add_image(im1: Image, im2: Image, checkwcs=False):
     """
     assert not checkwcs, "Checking WCS not yet implemented"
     return create_image_from_array(im1.data + im2.data, im1.wcs)
+
+
+def aq_image(im, **kwargs):
+    """Assess the quality of an image
+
+    :param im:
+    :type Image:
+    :returns: AQ
+    """
+    print("assess_quality.aq_image: not yet implemented")
+    return AQ()
 
 
 if __name__ == '__main__':

@@ -10,11 +10,6 @@ visibility table, gaintable, etc.
 
 See also :doc:`Algorithm Reference Library Goals<arllib_goals>`
 
-The functions as arranged as in the folowing image:
-
-.. image:: ./Calibrate_and_Image.png
-      :width: 1024px
-
 
 .. toctree::
    :name: mastertoc
@@ -29,9 +24,32 @@ The functions as arranged as in the folowing image:
 
    Imaging Demonstration<arl/imaging>
 
+:index:`Data Models`
+--------------------
+
+The data models are:
+
+.. image:: ./ARL_data.png
+
+.. automodule:: arl.data_models
+   :members:
+
 
 :index:`ARL API`
 ----------------
+
+
+Data structures operated on by state-less components as follows:
+
+.. image:: ./ARL_components.png
+      :width: 1024px
+
+All components possess an API which is always of the form::
+
+
+      def processing_function(idatastruct1, idatastruct2, ..., processingparameters):
+         return odatastruct1, odatastruct2,... other
+
 
 Define Visibility
 +++++++++++++++++
@@ -81,10 +99,10 @@ Define SkyModel
 .. automodule:: arl.define_skymodel
    :members:
 
-Solve Combinations
-++++++++++++++++++
+Pipelines
++++++++++
 
-.. automodule:: arl.solve_combinations
+.. automodule:: arl.pipelines
    :members:
 
 Assess Quality

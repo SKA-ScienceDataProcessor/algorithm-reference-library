@@ -5,12 +5,12 @@ import numpy
 #
 from astropy.coordinates import SkyCoord
 
-from arl.define_visibility import Visibility, create_visibility
+from arl.define_visibility import create_visibility
 from arl.simulate_visibility import filter_configuration, create_named_configuration
 from arl.define_image import create_image_from_fits, replicate_image
-from arl.define_skymodel import SkyModel, create_skymodel_from_image
-from arl.simulate_visibility import GainTable
+from arl.define_skymodel import create_skymodel_from_image
 from arl.fourier_transform import predict_visibility
+from arl.data_models import *
 
 """
 Functions that either solve_gains for the calibration or apply it. On solution the gains are written into a gaintable. For
@@ -33,7 +33,7 @@ def solve_gains(vt: Visibility, sm: SkyModel, **kwargs) -> GainTable:
 
 def correct_visibility(vt: Visibility, gt: GainTable, **kwargs) -> Visibility:
     """ Correct a vistable using a GainTable
-    
+
     :param vt:
     :type Visibility:
     :param gt:
@@ -41,8 +41,33 @@ def correct_visibility(vt: Visibility, gt: GainTable, **kwargs) -> Visibility:
     :returns: Visibility
     """
     # TODO: Implement calibration application
-    print("calibration.correct_visibility: Stubbed: Applying gaintab")
+    print("calibrate_visibility.correct_visibility: not yet implemented")
     return vt
+
+
+def peel_component_visibility(vt: Visibility, sc: SkyComponent, **kwargs) -> Visibility:
+    """ Correct a vistable using a GainTable
+
+    :param vt:
+    :type Visibility:
+    :param sc:
+    :type SkyComponent:
+    :returns: Visibility, GainTable
+    """
+    # TODO: Implement peeling
+    print("calibrate_visibility.peel_component_visibility: not yet implemented")
+    return vt
+
+
+def aq_gaintable(gt, **kwargs):
+    """Assess the quality of a gaintable
+
+    :param im:
+    :type GainTable:
+    :returns: AQ
+    """
+    print("calibrate_visibility.aq_gaintable: not yet implemented")
+    return AQ()
 
 
 if __name__ == '__main__':

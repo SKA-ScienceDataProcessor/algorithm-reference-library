@@ -8,7 +8,8 @@ from astropy.coordinates import SkyCoord, CartesianRepresentation
 from astropy.table import Table, vstack
 
 from crocodile.simulate import *
-from arl.simulate_visibility import Configuration, create_named_configuration
+from arl.simulate_visibility import create_named_configuration
+from arl.data_models import *
 
 """
 Functions that represent a visibility set.
@@ -18,18 +19,6 @@ The data structure:
 - An attached attribute which is the frequency of each channel as a numy array
 - An attached attribute which is the phase centre as an AstroPy SkyCoord
 """
-
-
-class GainTable:
-    """
-    Gain table with time, antenna, gain[:,chan,pol] columns
-    """
-    
-    # TODO: Implement gaintables with Jones and Mueller matrices
-    
-    def __init__(self):
-        self.data = None
-        self.frequency = None
 
 
 def filter_gaintable(fg: GainTable, **kwargs):
@@ -90,25 +79,6 @@ def interpolate_gaintable(gt: GainTable, **kwargs):
     print('"define_visibility.interpolate_gaintable: not yet implemented')
     return GainTable()
 
-
-class Visibility:
-    """ Visibility table class
-    
-    Visibility with uvw, time, a1, a2, vis, weight Columns in
-    an astropy Table along with an attribute to hold the frequencies
-    and an attribute to hold the direction.
-
-    Visibility is defined to hold an observation with one set of frequencies and one
-    direction.
-
-    The data column has vis:[row,nchan,npol], uvw:[row,3]
-    """
-
-    def __init__(self):
-        self.data = None
-        self.frequency = None
-        self.phasecentre = None
-        self.configuration = None
 
 
 def combine_visibility(fvt1: Visibility, fvt2: Visibility, w1: float = 1.0, w2: float = 1.0, **kwargs) -> Visibility:
@@ -375,6 +345,17 @@ def weight_visibility(vt, im, **kwargs):
     """
     print("define_visibility.weight_visibility: not yet implemented")
     return vt
+
+
+def aq_visibility(vt, **kwargs):
+    """Assess the quality of an image
+
+    :param vt:
+    :type Visibility:
+    :returns: AQ
+    """
+    print("assess_quality.aq_visibility: not yet implemented")
+    return AQ()
 
 
 if __name__ == '__main__':
