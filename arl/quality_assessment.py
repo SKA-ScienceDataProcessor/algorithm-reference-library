@@ -12,8 +12,8 @@ The data structure:
 """
 
         
-def export_AQ(aq: AQ):
+def export_QA(qa: QA):
     """Export the accumulate QA info
         
     """
-    print("assess_quality.export_AQ: not yet implemented")
+    print("assess_quality.export_QA: not yet implemented")

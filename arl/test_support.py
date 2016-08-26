@@ -14,13 +14,15 @@ import numpy
 import astropy.units as units
 from astropy.coordinates import EarthLocation
 from astropy.table import Table, Column, vstack
+from astropy.wcs import WCS
 
 from crocodile.simulate import *
 
 from arl.data_models import *
+from arl.image_operations import import_image_from_fits, add_wcs_to_image
 
 """
-Functions that define and manipulate telescope configurations. These are required for simulations.
+Functions that aid testing.
 """
 
 def filter_configuration(fc: Configuration, **kwargs):
@@ -156,6 +158,82 @@ def create_named_configuration(name: str = 'LOWBD2', **kwargs):
         fc = Configuration()
         raise UserWarning("No such Configuration %s" % name)
     return fc
+
+def import_visibility_from_ms(msfile: str, **kwargs) -> Visibility:
+    """ Import a visibility set from a measurement set
+
+    :param msfile: Name of measurement set
+    :type str:
+    :returns: Visibility
+    """
+    print('test_support.import_visibility_from_ms: not yet implemented')
+    return Visibility()
+
+
+def export_visibility_to_ms(vt: Visibility, msfile: str = None, **kwargs) -> Visibility:
+    """ Export a visibility set to a measurement set
+
+    :param vt: Name of visibility set
+    :param Visibility:
+    :param msfile: Name of output measurement set
+    :type str:
+    :returns: Visibility
+    """
+    print('test_support.visibility_from_ms: not yet implemented')
+
+def create_test_image(canonical=True):
+    """Create a useful test image
+
+    This is the test image M31 widely used in ALMA and other simulations. It is actually part of an Halpha region in
+    M31.
+
+    :param canonical: Make the image into a 4 dimensional image
+    :returns: Image
+    """
+    chome = os.environ['CROCODILE']
+    im = import_image_from_fits("%s/data/models/M31.MOD" % chome)
+    if canonical:
+        im = replicate_image(im)
+    return im
+
+
+def replicate_image(im: Image, shape=None, frequency=1.4e9):
+    """ Make a new canonical shape Image, extended along third and fourth axes by replication.
+
+    The order is [chan, pol, dec, ra]
+
+
+    :param im:
+    :type Image:
+    :param shape: Extra axes (only axes 0 and 1 are heeded.
+    :type 4-sequence:
+    :returns: Image
+    """
+    if shape == None:
+        shape = [1, 1, 1, 1]
+    
+    if len(im.data.shape) == 2:
+        fim = Image()
+        
+        newwcs = WCS(naxis=4)
+        
+        newwcs.wcs.crpix = [im.wcs.wcs.crpix[0], im.wcs.wcs.crpix[1], 1.0, 1.0]
+        newwcs.wcs.cdelt = [im.wcs.wcs.cdelt[0], im.wcs.wcs.cdelt[1], 1.0, 1.0]
+        newwcs.wcs.crval = [im.wcs.wcs.crval[0], im.wcs.wcs.crval[1], 1.0, frequency]
+        newwcs.wcs.ctype = [im.wcs.wcs.ctype[0], im.wcs.wcs.ctype[1], 'STOKES', 'FREQ']
+        
+        add_wcs_to_image(fim, newwcs)
+        fshape = [shape[3], shape[2], im.data.shape[1], im.data.shape[0]]
+        fim.data = numpy.zeros(fshape)
+        print("replicate_image: replicating shape %s to %s" % (im.data.shape, fim.data.shape))
+        for i3 in range(shape[3]):
+            for i2 in range(shape[2]):
+                fim.data[i3, i2, :, :] = im.data[:, :]
+    else:
+        fim = im
+    
+    return fim
+
 
 if __name__ == '__main__':
     import os

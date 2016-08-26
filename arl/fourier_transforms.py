@@ -203,38 +203,16 @@ def predict_visibility(vt: Visibility, sm: SkyModel, **kwargs) -> Visibility:
     return vt
 
 
-def solve_skymodel(vt: Visibility, sm: SkyModel, deconvolver, **kwargs):
-    """Perform major cycles using a deconvolver. The interface of deconvolver is the same as clean.
-    
+def weight_visibility(vt, im, **kwargs):
+    """ Reweight the visibility data in place a selected algorithm
+
     :param vt:
     :type Visibility:
-    :param sm:
-    :type SkyModel:
-    :param deconvolver: Deconvolver to be used e.g. msclean
-    :arg function:
-    :returns: Visibility, SkyModel
+    :param im:
+    :type Image:
+    :param kwargs:
+    :returns: Configuration
     """
-    nmajor = kwargs.get('nmajor', 5)
-    print("imaging.solve_skymodel: Performing %d major cycles" % nmajor)
-    
-    # The model is added to each major cycle and then the visibilities are
-    # calculated from the full model
-    vtpred = predict_visibility(vt, sm, **kwargs)
-    vtres = combine_visibility(vt, vtpred, 1.0, -1.0)
-    dirty, psf, sumwt = invert_visibility(vtres, **kwargs)
-    thresh = kwargs.get("threshold", 0.0)
-    
-    comp = sm.images[0]
-    for i in range(nmajor):
-        print("Start of major cycle %d" % i)
-        cc, res = deconvolver(dirty, psf, **kwargs)
-        comp += cc
-        vtpred = predict_visibility(vt, sm, **kwargs)
-        vtres = combine_visibility(vt, vtpred, 1.0, -1.0)
-        dirty, psf, sumwt = invert_visibility(vtres, **kwargs)
-        if numpy.abs(dirty.data).max() < 1.1 * thresh:
-            print("Reached stopping threshold %.6f Jy" % thresh)
-            break
-        print("End of major cycle")
-    print("End of major cycles")
-    return vtres, sm
+    print("visibility_operations.weight_visibility: not yet implemented")
+    return vt
+
