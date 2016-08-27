@@ -51,12 +51,6 @@ All components possess an API which is always of the form::
          return odatastruct1, odatastruct2,... other
 
 
-Visibility Simulation
-+++++++++++++++++++++
-
-.. automodule:: arl.visibility_simulation
-   :members:
-
 Visibility Operations
 +++++++++++++++++++++
 
@@ -109,6 +103,12 @@ Pipelines
 +++++++++
 
 .. automodule:: arl.pipelines
+   :members:
+
+Test Support
+++++++++++++
+
+.. automodule:: arl.test_support
    :members:
 
 
