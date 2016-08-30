@@ -9,7 +9,7 @@ import numpy
 from astropy.coordinates import SkyCoord
 from astropy.wcs.utils import skycoord_to_pixel, pixel_to_skycoord
 
-from arl.image_operations import Image, import_image_from_fits
+from arl.image_operations import import_image_from_fits
 from arl.fourier_transforms import predict_visibility, invert_visibility, combine_visibility
 from arl.data_models import *
 

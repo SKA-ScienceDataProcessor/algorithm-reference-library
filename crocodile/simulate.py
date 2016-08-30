@@ -158,6 +158,6 @@ def simulate_point(dist_uvw, l, m):
 
 
 if __name__ == '__main__':
-    import tests.test_simulate
+    import tests.test_test_support
 
     unittest.main()
