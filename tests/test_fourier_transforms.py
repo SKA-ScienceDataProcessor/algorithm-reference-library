@@ -1,3 +1,7 @@
+"""Unit tests for Fourier transforms
+
+realtimcornwell@gmail.com
+"""
 import unittest
 
 import numpy
@@ -14,7 +18,7 @@ from arl.visibility_operations import create_visibility, sum_visibility
 from arl.fourier_transforms import predict_visibility, invert_visibility
 
 
-class TestImaging(unittest.TestCase):
+class TestFourierTransforms(unittest.TestCase):
 
     def setUp(self):
         self.kwargs = {'wstep': 10.0, 'npixel': 512, 'cellsize':0.0002}

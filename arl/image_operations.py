@@ -1,8 +1,8 @@
 # Tim Cornwell <realtimcornwell@gmail.com>
 #
-# Definition of structures needed by the function interface. These are mostly
-# subclasses of astropy classes.
-#
+"""
+Functions that define and manipulate images. Images are just data and a World Coordinate System.
+"""
 
 import numpy
 
@@ -15,36 +15,6 @@ from reproject import reproject_interp
 
 from arl.data_models import *
 
-
-"""
-Functions that define and manipulate images. Images are just data and a World Coordinate System.
-"""
-
-def show_image(im: Image, fig=None, title: str = ''):
-    """ Show an Image with coordinates using matplotlib
-    
-    :param im:
-    :type Image:
-    :param fig:
-    :type Matplotlib.pyplot.figure:
-    :param title:
-    :type str:
-    :returns:
-    """
-    if not fig:
-        fig = plt.figure()
-    fig.add_subplot(111, projection=im.wcs.sub(['longitude', 'latitude']))
-    plt.clf()
-    if len(im.data.shape) == 4:
-        print(im.data[0, 0, :, :])
-        plt.imshow(im.data[0, 0, :, :], origin='lower', cmap='rainbow')
-    elif len(im.data.shape) == 2:
-        plt.imshow(im.data[:, :], origin='lower', cmap='rainbow')
-    plt.xlabel('RA---SIN')
-    plt.ylabel('DEC--SIN')
-    plt.title(title)
-    plt.colorbar()
-    return fig
 
 def create_image_from_array(data: numpy.array, wcs: WCS = None) -> Image:
     """ Create an image from an array
@@ -89,7 +59,7 @@ def import_image_from_fits(fitsfile: str):
     fim.data = hdulist[0].data
     fim.wcs = WCS(fitsfile)
     hdulist.close()
-    print("import_image_from_fits: Max, min in %s = %.6f, %.6f" % (fitsfile, fim.data.max(), fim.data.min()))
+    print("image_operations.import_image_from_fits: Max, min in %s = %.6f, %.6f" % (fitsfile, fim.data.max(), fim.data.min()))
     return fim
 
 
@@ -107,7 +77,7 @@ def add_wcs_to_image(im: Image, wcs: WCS):
 
 
 def reproject_image(im: Image, newwcs: WCS, shape=None):
-    """ Reproject an image to a new coordinate system
+    """ Re-project an image to a new coordinate system
     
     Currently uses the reproject python package.
     TODO: Write tailored reproject routine
@@ -130,8 +100,8 @@ def fft_image(im: Image, **kwargs):
     :type Image:
     :returns: Image
     """
-    print("fft_image: not yet implemented")
-   
+    print("image_operations.fft_image: not yet implemented")
+    
     return im
 
 
@@ -155,26 +125,34 @@ def aq_image(im, **kwargs):
 
     :param im:
     :type Image:
-    :returns: AQ
+    :returns: QA
     """
-    print("assess_quality.aq_image: not yet implemented")
-    return AQ()
+    print("image_operations.aq_image: not yet implemented")
+    return QA()
 
 
-if __name__ == '__main__':
-    import os
-    from arl.skymodel_operations import create_skycomponent
+def show_image(im: Image, fig=None, title: str = ''):
+    """ Show an Image with coordinates using matplotlib
 
-    chome = os.environ['CROCODILE']
-    kwargs = {}
-    m31model = import_image_from_fits("%s/data/models/M31.MOD" % chome)
-    m31model_by_array = create_image_from_array(m31model.data, m31model.wcs)
-    try:
-        m31modelsum = filter_image(add_image(m31model, m31model_by_array, checkwcs=True), **kwargs)
-    except:
-        print("Image: correctly failed on checkwcs=True")
-        pass
-    m31modelsum = filter_image(add_image(m31model, m31model_by_array), **kwargs)
-    print(m31model.data.shape)
-    print(m31model.wcs)
-    print(export_image_to_fits(m31model, fitsfile='temp.fits'))
+    :param im:
+    :type Image:
+    :param fig:
+    :type Matplotlib.pyplot.figure:
+    :param title:
+    :type str:
+    :returns:
+    """
+    if not fig:
+        fig = plt.figure()
+    fig.add_subplot(111, projection=im.wcs.sub(['longitude', 'latitude']))
+    plt.clf()
+    if len(im.data.shape) == 4:
+        print(im.data[0, 0, :, :])
+        plt.imshow(im.data[0, 0, :, :], origin='lower', cmap='rainbow')
+    elif len(im.data.shape) == 2:
+        plt.imshow(im.data[:, :], origin='lower', cmap='rainbow')
+    plt.xlabel('RA---SIN')
+    plt.ylabel('DEC--SIN')
+    plt.title(title)
+    plt.colorbar()
+    return fig

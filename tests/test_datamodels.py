@@ -12,13 +12,14 @@ from arl.visibility_operations import Visibility, create_visibility, create_gain
 from astropy.coordinates import SkyCoord
 
 
-class TestDataStructures(unittest.TestCase):
+class TestDataModels(unittest.TestCase):
 
     def test_component(self):
         flux = numpy.array([[1.0, 0.0, 0.0, 0.0], [1.0, 0.0, 0.0, 0.0]])
         direction = SkyCoord('00h42m30s', '+41d12m00s', frame='icrs')
         frequency=numpy.arange(1.0e8,1.5e8,3e7)
-        comp = create_skycomponent(flux, flux=frequency, frequency=frequency, shape='Point')
+        comp = create_skycomponent(direction=direction, flux=flux, frequency=frequency, shape='Point')
+        
 
     def test_configuration(self):
         for telescope in ['LOWBD1', 'LOWBD2', 'LOFAR', 'VLAA']:
