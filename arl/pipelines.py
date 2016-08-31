@@ -2,56 +2,90 @@
 #
 #
 
-from arl.visibility_calibration import solve_gains, qa_gaintable, create_visibility
-from arl.fourier_transforms import predict_visibility
+
+from arl_exceptions import *
+from arl.visibility_calibration import solve_gains, qa_gaintable
 from arl.quality_assessment import QA
 
-def RCAL(parameters, logfile=None):
-    """ Real-time calibration
-
-    """
-    print(parameters)
-    vt = parameters['RCAL']['visibility']
-    sm = parameters['RCAL']['skymodel']
+def get_parameters(parameters, funcname):
+    # Get parameters after checking for existence
+    if funcname not in parameters.keys():
+        raise ParameterMissing(funcname)
     
-    gains = solve_gains(vt, sm, **parameters)
+    vt = parameters[funcname]['visibility']
+    sm = parameters[funcname]['skymodel']
+    return vt, sm
+
+
+def RCAL(parameters):
+    """ Real-time calibration: single shot
+     
+    :param parameters:
+    :return:
+   """
+    funcname='RCAL'
+    vt, sm = get_parameters(parameters, funcname)
+    
+    gains = solve_gains(vt, sm, **(parameters[funcname]))
     qa = qa_gaintable(gains)
     if qa:
         print("pipelines.RCAL: Solution good")
     return qa
 
 
-def ICAL(parameters, logfile=None):
-    """ Self-calibration
-
+def ICAL(parameters):
+    """ Post observation image, deconvolve, and self-calibrate
+   
+    :param parameters:
+    :return:
     """
-    print(parameters)
-    vt = parameters['ICAL']['visibility']
-    sm = parameters['ICAL']['skymodel']
+    funcname='ICAL'
+    vt, sm = get_parameters(parameters, funcname)
     
-    gains = solve_gains(vt, sm, **parameters)
+    gains = solve_gains(vt, sm, **parameters[funcname])
     qa = qa_gaintable(gains)
     if qa:
-        print("pipelines.RCAL: Solution good")
+        print("pipelines.ICAL: Solution good")
     return qa
 
 
-def continuum_imaging(parameters, logfile=None):
+def continuum_imaging(**parameters):
+    """Continuum imaging from calibrated (DDE and DIE) data
 
-    print(parameters)
-    vt = parameters['continuum_imaging']['visibility']
-    sm = parameters['continuum_imaging']['skymodel']
+    
+    :param parameters:
+    :return:
+    """
+
+    funcname='continuum_imaging'
+    vt, sm = get_parameters(parameters, funcname)
     
     return QA()
     
 
-def spectral_line_imaging(parameters, logfile=None):
+def spectral_line_imaging(**parameters):
+    """Spectral line imaging from calibrated (DDE and DIE) data
     
-    print(parameters)
-    vt = parameters['spectral_line_imaging']['visibility']
-    sm = parameters['spectral_line_imaging']['skymodel']
+    :param parameters:
+    :return:
+    """
+    
+    funcname='spectral_line_imaging'
+    vt, sm = get_parameters(parameters, funcname)
+
+    return QA()
+
+
+def fast_imaging(parameters):
+    funcname = 'fast_imaging'
+    vt, sm = get_parameters(parameters, funcname)
     
     return QA()
 
 
-            
+def EOR(parameters):
+    funcname = 'EOR'
+    vt, sm = get_parameters(parameters, funcname)
+    
+    return QA()
+

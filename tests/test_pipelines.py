@@ -64,23 +64,23 @@ class TestPipelines(unittest.TestCase):
 
     def test_RCAL(self):
         parameters = {'RCAL': {'visibility': self.visibility, 'skymodel': self.m31sm}}
-        rcal = RCAL(**parameters)
+        rcal = RCAL(parameters)
 
 
     def test_ICAL(self):
         parameters = {'ICAL': {'visibility': self.visibility, 'skymodel': self.m31sm}}
-        ical = ICAL(**parameters)
+        ical = ICAL(parameters)
 
 
     def test_continuum_imaging(self):
         parameters = {'continuum_imaging': {'visibility': self.visibility, 'skymodel': self.m31sm, 'deconvolver':
             msclean }}
-        ci = continuum_imaging(**parameters)
+        ci = continuum_imaging(parameters)
 
 
     def test_spectral_line_imaging(self):
         parameters = {'spectral_line_imaging': {'visibility': self.visibility, 'skymodel': self.m31sm}}
-        sli = spectral_line_imaging(**parameters)
+        sli = spectral_line_imaging(parameters)
         
 
 if __name__ == '__main__':
