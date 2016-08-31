@@ -49,7 +49,8 @@ def hogbom(dirty,
            window,
            gain,
            thresh,
-           niter):
+           niter,
+           **kwargs):
     """
     Hogbom CLEAN (1974A&AS...15..417H)
 

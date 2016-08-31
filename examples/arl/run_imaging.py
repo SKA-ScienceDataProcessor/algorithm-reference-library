@@ -24,8 +24,8 @@ from arl.image_deconvolution import deconvolve_cube
 from arl.visibility_operations import create_visibility
 from arl.fourier_transforms import *
 from arl.skymodel_operations import create_skymodel_from_image, add_component_to_skymodel, create_skycomponent, find_skycomponent
-from arl.image_operations import show_image, import_image_from_fits, export_image_to_fits, replicate_image
-from arl.test_support import filter_configuration, create_named_configuration
+from arl.image_operations import show_image, import_image_from_fits, export_image_to_fits
+from arl.test_support import filter_configuration, create_named_configuration, replicate_image
 
 
 # We construct a VLA configuration and then shrink it to match our test image.

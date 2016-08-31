@@ -24,6 +24,14 @@ See also :doc:`Algorithm Reference Library Goals<arllib_goals>`
 
    Imaging Demonstration<arl/imaging>
 
+:index:`Functional Model`
+-------------------------
+
+The functional model corresponds to the pipelines:
+
+.. image:: ./ARL_functional.png
+
+
 :index:`Data Models`
 --------------------
 
@@ -50,6 +58,20 @@ All components possess an API which is always of the form::
       def processing_function(idatastruct1, idatastruct2, ..., processingparameters):
          return odatastruct1, odatastruct2,... other
 
+Processing Parameters
++++++++++++++++++++++
+
+Processing parameters are passed via the kwargs mechanism. The parameters for a given function are stored in a field
+named by the function. For example::
+
+   def spectral_line_imaging(**kwargs):
+
+      print(kwargs)
+      vt = kwargs['spectral_line_imaging'].get('visibility', None)
+      sm = kwargs['spectral_line_imaging'].get('skymodel', None)
+      deconvolver=kwargs['spectral_line_imaging'].get('deconvolver', None)
+
+Thus keywords can be defined for each function in the library. **kwargs must always be passed down.
 
 Visibility Operations
 +++++++++++++++++++++

@@ -98,8 +98,10 @@ def combine_visibility(fvt1: Visibility, fvt2: Visibility, w1: float = 1.0, w2: 
     fvt.data['vis'][fvt.data['weight'] > 0.0] = 0.0
     fvt.phasecentre = fvt1.phasecentre
     fvt.frequency = fvt1.frequency
+    fvt.data['uvw'] = fvt1.data['uvw']
+    fvt.configuration = fvt1.configuration
     print(u"visibility_operations.combine_visibility: Created table with {0:d} rows".format(len(fvt.data)))
-    assert (len(fvt.data) == (len(fvt1.data) + len(fvt2.data))), 'Length of output data table wrong'
+    assert len(fvt.data['vis']) == len(fvt1.data['vis']), 'Length of output data table wrong'
     return fvt
 
 
@@ -306,8 +308,6 @@ def de_average_visibility(vt: Visibility, vttemplate: Visibility, **kwargs) -> V
     print("visibility_operations.de_average_visibility: not yet implemented")
     return vt
 
-def more_visibility():
-    return True
 
 def aq_visibility(vt, **kwargs):
     """Assess the quality of an image

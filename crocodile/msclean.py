@@ -13,7 +13,8 @@ def msclean(dirty,
             thresh,
             niter,
             scales,
-            fracthresh):
+            fracthresh,
+            **kwargs):
     """ Perform multiscale clean
     
     Multiscale CLEAN (IEEE Journal of Selected Topics in Sig Proc, 2008 vol. 2 pp. 793-801)
