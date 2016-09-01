@@ -37,11 +37,11 @@ def deconvolve_cube(dirty: Image, psf: Image, parameters={}):
         gain = get_parameter(parameters, 'gain', 0.7)
         assert 0.0 < gain < 2.0, "Loop gain must be between 0 and 2"
         thresh = get_parameter(parameters, 'threshold', 0.0)
-        assert thresh > 0.0
+        assert thresh >= 0.0
         niter = get_parameter(parameters, 'niter', 100)
         assert niter > 0
         scales = get_parameter(parameters, 'scales', [0, 3, 10, 30])
-        fracthresh = get_parameter(parameters, 'fracthresh', 0.0)
+        fracthresh = get_parameter(parameters, 'fracthresh', 0.01)
         assert 0.0 < fracthresh < 1.0
 
         comp_array = numpy.zeros(dirty.data.shape)
