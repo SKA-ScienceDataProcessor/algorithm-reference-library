@@ -61,17 +61,24 @@ All components possess an API which is always of the form::
 Processing Parameters
 +++++++++++++++++++++
 
-Processing parameters are passed via the kwargs mechanism. The parameters for a given function are stored in a field
+Processing parameters are passed via a dictionary. The parameters for a given function are stored in a field
 named by the function. For example::
 
-   def spectral_line_imaging(**kwargs):
+   parameters = {'log': 'tims.log',
+      'RCAL': {'visibility': self.visibility, 'skymodel': self.m31sm}
+      'solve_gain': {'Gsolint': 300.0}}
 
-      print(kwargs)
-      vt = kwargs['spectral_line_imaging'].get('visibility', None)
-      sm = kwargs['spectral_line_imaging'].get('skymodel', None)
-      deconvolver=kwargs['spectral_line_imaging'].get('deconvolver', None)
+   qa = RCAL(parameters}
 
-Thus keywords can be defined for each function in the library. **kwargs must always be passed down.
+Inside a function, the values are retrieved thus::
+
+    log = get_parameter(parameters, 'log', None)
+    vt = get_parameter(parameters, 'visibility', None)
+    sm = get_parameter(parameters, 'skymodel', None)
+
+
+The search for a keyword is first in the keys of parameters and then in parameters[functioname]. Thus, if neccessary
+keywords can bedefined for each function in the library. 
 
 Visibility Operations
 +++++++++++++++++++++

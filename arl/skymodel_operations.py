@@ -12,6 +12,7 @@ from astropy.wcs.utils import skycoord_to_pixel, pixel_to_skycoord
 from arl.image_operations import import_image_from_fits
 from arl.fourier_transforms import predict_visibility, invert_visibility, combine_visibility
 from arl.data_models import *
+from arl.parameters import get_parameter
 
 def create_skycomponent(direction: SkyCoord, flux: numpy.array, frequency: numpy.array, shape: str = 'Point',
                         param: dict = None, name: str = ''):
@@ -40,7 +41,7 @@ def create_skycomponent(direction: SkyCoord, flux: numpy.array, frequency: numpy
     return sc
 
 
-def find_skycomponent(im: Image, **kwargs):
+def find_skycomponent(im: Image, parameters={}):
     """ Find components in Image, return SkyComponent, just find the peak for now
 
     :param im: Image to be searched
@@ -64,7 +65,7 @@ def find_skycomponent(im: Image, **kwargs):
     return create_skycomponent(direction=sc, flux=flux, frequency=frequency, shape='point')
 
 
-def fit_skycomponent(im: Image, sc: SkyCoord, **kwargs):
+def fit_skycomponent(im: Image, sc: SkyCoord, parameters={}):
     """ Find flux at a given direction, return SkyComponent
 
     :param im:
@@ -153,7 +154,7 @@ def add_component_to_skymodel(sm: SkyModel, comp: SkyComponent):
     return sm
 
 
-def solve_skymodel(vt: Visibility, sm: SkyModel, deconvolver, **kwargs):
+def solve_skymodel(vt: Visibility, sm: SkyModel, deconvolver, parameters={}):
     """Solve for SkyModel using a deconvolver. The interface of deconvolver is the same as clean.
 
     This is the same as a majorcycle.
@@ -166,24 +167,24 @@ def solve_skymodel(vt: Visibility, sm: SkyModel, deconvolver, **kwargs):
     :arg function:
     :returns: Visibility, SkyModel
     """
-    nmajor = kwargs.get('nmajor', 5)
+    nmajor = get_parameter(parameters, 'nmajor', 5)
     print("solve_combinations.solve_skymodel: Performing %d major cycles" % nmajor)
     
     # The model is added to each major cycle and then the visibilities are
     # calculated from the full model
-    vtpred = predict_visibility(vt, sm, **kwargs)
+    vtpred = predict_visibility(vt, sm, parameters={})
     vtres = combine_visibility(vt, vtpred, 1.0, -1.0)
-    dirty, psf, sumwt = invert_visibility(vtres, **kwargs)
-    thresh = kwargs.get("threshold", 0.0)
+    dirty, psf, sumwt = invert_visibility(vtres, parameters={})
+    thresh = get_parameter(parameters, "threshold", 0.0)
     
     comp = sm.images[0]
     for i in range(nmajor):
         print("solve_combinations.solve_skymodel: Start of major cycle %d" % i)
-        cc, res = deconvolver(dirty, psf, **kwargs)
+        cc, res = deconvolver(dirty, psf, parameters={})
         comp += cc
-        vtpred = predict_visibility(vt, sm, **kwargs)
+        vtpred = predict_visibility(vt, sm, parameters={})
         vtres = combine_visibility(vt, vtpred, 1.0, -1.0)
-        dirty, psf, sumwt = invert_visibility(vtres, **kwargs)
+        dirty, psf, sumwt = invert_visibility(vtres, parameters={})
         if numpy.abs(dirty.data).max() < 1.1 * thresh:
             print("Reached stopping threshold %.6f Jy" % thresh)
             break
@@ -191,7 +192,7 @@ def solve_skymodel(vt: Visibility, sm: SkyModel, deconvolver, **kwargs):
     print("solve_combinations.solve_skymodel: End of major cycles")
     return vtres, sm
 
-def solve_skymodel_gains(vt: Visibility, sm: SkyModel, deconvolver, **kwargs):
+def solve_skymodel_gains(vt: Visibility, sm: SkyModel, deconvolver, parameters={}):
     """Solve for SkyModel a deconvolver. The interface of deconvolver is the same as clean.
 
     This is the same as self-calibration

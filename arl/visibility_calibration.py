@@ -11,13 +11,14 @@ from arl.image_operations import import_image_from_fits
 from arl.skymodel_operations import create_skymodel_from_image
 from arl.fourier_transforms import predict_visibility
 from arl.data_models import *
+from arl.parameters import get_parameter
 
 """
 Functions that either solve_gains for the calibration or apply it. On solution the gains are written into a gaintable. For
 correction, the gaintable is read and, if necessary, interpolated.
 """
 
-def solve_gains(vt: Visibility, sm: SkyModel, **kwargs) -> GainTable:
+def solve_gains(vt: Visibility, sm: SkyModel, parameters={}) -> GainTable:
     """ Solve for calibration using a sky model
     
     :param vt:
@@ -31,7 +32,7 @@ def solve_gains(vt: Visibility, sm: SkyModel, **kwargs) -> GainTable:
     return GainTable()
 
 
-def correct_visibility(vt: Visibility, gt: GainTable, **kwargs) -> Visibility:
+def correct_visibility(vt: Visibility, gt: GainTable, parameters={}) -> Visibility:
     """ Correct a vistable using a GainTable
 
     :param vt:
@@ -45,7 +46,7 @@ def correct_visibility(vt: Visibility, gt: GainTable, **kwargs) -> Visibility:
     return vt
 
 
-def peel_skycomponent(vt: Visibility, sc: SkyComponent, **kwargs) -> Visibility:
+def peel_skycomponent(vt: Visibility, sc: SkyComponent, parameters={}) -> Visibility:
     """ Correct a vistable using a GainTable
 
     :param vt:
@@ -59,7 +60,7 @@ def peel_skycomponent(vt: Visibility, sc: SkyComponent, **kwargs) -> Visibility:
     return vt
 
 
-def qa_gaintable(gt, **kwargs):
+def qa_gaintable(gt, parameters={}):
     """Assess the quality of a gaintable
 
     :param im:
@@ -79,7 +80,7 @@ if __name__ == '__main__':
 
     kwargs = {'wstep': 100.0}
 
-    vlaa = filter_configuration(create_named_configuration('VLAA'), **kwargs)
+    vlaa = filter_configuration(create_named_configuration('VLAA'), parameters={})
     vlaa.data['xyz'] *= 1.0 / 30.0
     times = numpy.arange(-3.0, +3.0, 3.0 / 60.0) * numpy.pi / 12.0
     frequency = numpy.arange(1.0e8, 1.60e8, 1e7)
@@ -92,4 +93,4 @@ if __name__ == '__main__':
     m31imagerep = replicate_image(m31image, shape=[1, 1, 1, len(frequency)])
     m31sm = create_skymodel_from_image(m31imagerep)
     vtpred = create_visibility(vlaa, times, frequency, weight=1.0, phasecentre=direction)
-    vtpred = predict_visibility(vtpred, m31sm, **kwargs)
+    vtpred = predict_visibility(vtpred, m31sm, parameters={})

@@ -25,12 +25,12 @@ from arl.image_operations import import_image_from_fits, add_wcs_to_image
 Functions that aid testing.
 """
 
-def filter_configuration(fc: Configuration, **kwargs):
+def filter_configuration(fc: Configuration, parameters={}):
     """ Filter a configuration e.g. remove certain antennas
 
     :param fc:
     :type Configuration:
-    :param kwargs:
+    :param parameters:
     :returns: Configuration
     """
     print("filter_configuration: No filter implemented yet")
@@ -38,7 +38,7 @@ def filter_configuration(fc: Configuration, **kwargs):
 
 
 def create_configuration_from_array(antxyz: numpy.array, name: str = None, location: EarthLocation = None,
-                                    mount: str = 'alt-az', names: str = '%d', meta: dict = None, **kwargs):
+                                    mount: str = 'alt-az', names: str = '%d', meta: dict = None, parameters={}):
     """ Define from parts
 
     :param name:
@@ -65,7 +65,7 @@ def create_configuration_from_file(antfile: str, name: str = None, location: Ear
                                    names: str = "%d", frame: str = 'local',
                                    meta: dict =
                                    None,
-                                   **kwargs):
+                                   parameters={}):
     """ Define from a file
 
     :param antfile: Antenna file name
@@ -104,7 +104,7 @@ def create_configuration_from_file(antfile: str, name: str = None, location: Ear
 
 
 def create_LOFAR_configuration(antfile: str, meta: dict = None,
-                               **kwargs):
+                               parameters={}):
     """ Define from the LOFAR configuration file
 
     :param antfile:
@@ -113,7 +113,7 @@ def create_LOFAR_configuration(antfile: str, meta: dict = None,
     :type str:
     :param meta:
     :type dict:
-    :param kwargs:
+    :param parameters:
     :returns: Configuration
     """
     fc = Configuration()
@@ -127,7 +127,7 @@ def create_LOFAR_configuration(antfile: str, meta: dict = None,
     return fc
 
 
-def create_named_configuration(name: str = 'LOWBD2', **kwargs):
+def create_named_configuration(name: str = 'LOWBD2', parameters={}):
     """ Standard configurations e.g. LOWBD2, MIDBD2
 
     :param name: name of Configuration LOWBD2, LOWBD1, LOFAR, VLAA
@@ -146,8 +146,7 @@ def create_named_configuration(name: str = 'LOWBD2', **kwargs):
         fc = create_configuration_from_file(antfile="%s/data/configurations/LOWBD1.csv" % chome,
                                             location=location, mount='xy', names='LOWBD1_%d')
     elif name == 'LOFAR':
-        fc = create_LOFAR_configuration(antfile="%s/data/configurations/LOFAR.csv" % chome,
-                                        frame='geocentric')
+        fc = create_LOFAR_configuration(antfile="%s/data/configurations/LOFAR.csv" % chome)
     elif name == 'VLAA':
         location = EarthLocation(lon="-107.6184", lat="34.0784", height=2124.0)
         fc = create_configuration_from_file(antfile="%s/data/configurations/VLA_A_hor_xyz.csv" % chome,
@@ -159,7 +158,7 @@ def create_named_configuration(name: str = 'LOWBD2', **kwargs):
         raise UserWarning("No such Configuration %s" % name)
     return fc
 
-def import_visibility_from_ms(msfile: str, **kwargs) -> Visibility:
+def import_visibility_from_ms(msfile: str, parameters={}) -> Visibility:
     """ Import a visibility set from a measurement set
 
     :param msfile: Name of measurement set
@@ -170,7 +169,7 @@ def import_visibility_from_ms(msfile: str, **kwargs) -> Visibility:
     return Visibility()
 
 
-def export_visibility_to_ms(vt: Visibility, msfile: str = None, **kwargs) -> Visibility:
+def export_visibility_to_ms(vt: Visibility, msfile: str = None, parameters={}) -> Visibility:
     """ Export a visibility set to a measurement set
 
     :param vt: Name of visibility set
@@ -246,7 +245,7 @@ if __name__ == '__main__':
     fc = Configuration()
     for telescope in ['LOWBD1', 'LOWBD2', 'LOFAR', 'VLAA']:
         print(telescope)
-        config = filter_configuration(create_named_configuration(telescope), **kwargs)
+        config = filter_configuration(create_named_configuration(telescope), parameters={})
         print(config.location)
         
     kwargs = {}
@@ -262,5 +261,5 @@ if __name__ == '__main__':
     nrows = len(times)
     gains = numpy.ones([len(times), len(freq), npol], dtype='complex')
     weight = numpy.ones([len(times), len(freq)], dtype='float')
-    gt = filter_gaintable(create_gaintable_from_array(gains, times, antennas, weight, freq), **kwargs)
+    gt = filter_gaintable(create_gaintable_from_array(gains, times, antennas, weight, freq), parameters={})
     print(gt.data['gain'].shape)

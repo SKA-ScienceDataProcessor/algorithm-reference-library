@@ -27,7 +27,7 @@ class TestPipelines(unittest.TestCase):
 
     def setUp(self):
         
-        self.kwargs = {'wstep': 10.0, 'npixel': 512, 'cellsize': 0.0002}
+        self.parameters = {'wstep': 10.0, 'npixel': 512, 'cellsize': 0.0002}
         
         vlaa = create_named_configuration('VLAA')
         vlaa.data['xyz'] *= 1.0 / 10.0
@@ -54,16 +54,17 @@ class TestPipelines(unittest.TestCase):
         self.m31sm = create_skymodel_from_image(self.m31image)
         self.m31sm = add_component_to_skymodel(self.m31sm, self.m31comp)
 
-        self.kwargs={'wstep': 100.0, 'npixel': 256, 'cellsize': 0.0001}
+        self.parameters={'wstep': 100.0, 'npixel': 256, 'cellsize': 0.0001}
         vtpred = create_visibility(vlaa, times, frequency, weight=1.0, phasecentre=self.phasecentre,
-                                   **self.kwargs)
-        self.visibility = predict_visibility(vtpred, self.m31sm, **self.kwargs)
+                                   parameters=self.parameters)
+        self.visibility = predict_visibility(vtpred, self.m31sm, self.parameters)
         self.m31image.data = 0.0 * self.m31image.data
         self.m31sm = create_skymodel_from_image(self.m31image)
         self.m31sm = add_component_to_skymodel(self.m31sm, self.m31comp)
 
     def test_RCAL(self):
-        parameters = {'RCAL': {'visibility': self.visibility, 'skymodel': self.m31sm}}
+        parameters = {'RCAL': {'visibility': self.visibility, 'skymodel': self.m31sm},
+                      'solve_gain': {'Gsolint': 300.0}}
         rcal = RCAL(parameters)
 
 

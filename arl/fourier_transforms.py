@@ -16,38 +16,39 @@ from crocodile.synthesis import wcacheimg, wcachefwd, wkernaf, doimg, dopredict
 from arl.data_models import *
 from arl.image_operations import create_image_from_array
 from arl.visibility_operations import combine_visibility
+from arl.parameters import get_parameter
 
 """
 Functions that perform imaging i.e. conversion of an Image to/from a Visibility
 """
 
 
-def create_wcs_from_visibility(vt: Visibility, **kwargs):
+def create_wcs_from_visibility(vt: Visibility, parameters={}):
     """Make a world coordinate system from the keyword args and Visibility
     
     :param vt:
     :type Visibility:
     :returns: WCS
     """
-    print("imaging.create_wcs_from_visibility: Parsing kwargs to get definition of WCS")
-    imagecentre = kwargs.get("imagecentre", vt.phasecentre)
-    phasecentre = kwargs.get("phasecentre", vt.phasecentre)
-    reffrequency = kwargs.get("reffrequency", numpy.max(vt.frequency)) * units.Hz
+    print("fourier_transformscreate_wcs_from_visibility: Parsing kwargs to get definition of WCS")
+    imagecentre = get_parameter(parameters, "imagecentre", vt.phasecentre)
+    phasecentre = get_parameter(parameters, "phasecentre", vt.phasecentre)
+    reffrequency = get_parameter(parameters, "reffrequency", numpy.max(vt.frequency)) * units.Hz
     deffaultbw = vt.frequency[0]
     if len(vt.frequency) > 1:
         deffaultbw = vt.frequency[1] - vt.frequency[0]
-    channelwidth = kwargs.get("channelwidth", deffaultbw) * units.Hz
-    print("imaging.create_wcs_from_visibility: Defining Image at %s, frequency %s, and bandwidth %s"
+    channelwidth = get_parameter(parameters, "channelwidth", deffaultbw) * units.Hz
+    print("fourier_transforms.create_wcs_from_visibility: Defining Image at %s, frequency %s, and bandwidth %s"
           % (imagecentre, reffrequency, channelwidth))
     
-    npixel = kwargs.get("npixel", 512)
+    npixel = get_parameter(parameters, "npixel", 512)
     uvmax = (numpy.abs(vt.data['uvw']).max() * reffrequency / const.c).value
-    print("imaging.create_wcs_from_visibility: uvmax = %f lambda" % uvmax)
+    print("fourier_transforms.create_wcs_from_visibility: uvmax = %f lambda" % uvmax)
     criticalcellsize = 1.0 / (uvmax * 2.0)
-    print("imaging.create_wcs_from_visibility: Critical cellsize = %f radians, %f degrees" % (
+    print("fourier_transforms.create_wcs_from_visibility: Critical cellsize = %f radians, %f degrees" % (
         criticalcellsize, criticalcellsize * 180.0 / numpy.pi))
-    cellsize = kwargs.get("cellsize", 0.5 * criticalcellsize)
-    print("imaging.create_wcs_from_visibility: Cellsize          = %f radians, %f degrees" % (cellsize,
+    cellsize = get_parameter(parameters, "cellsize", 0.5 * criticalcellsize)
+    print("fourier_transforms.create_wcs_from_visibility: Cellsize          = %f radians, %f degrees" % (cellsize,
                                                                                        cellsize * 180.0 / numpy.pi))
     if cellsize > criticalcellsize:
         print("Resetting cellsize %f radians to criticalcellsize %f radians" % (cellsize, criticalcellsize))
@@ -63,31 +64,31 @@ def create_wcs_from_visibility(vt: Visibility, **kwargs):
     w.wcs.crval = [phasecentre.ra.value, phasecentre.dec.value, 1.0, reffrequency.value]
     w.naxis = 4
     
-    w.wcs.radesys = kwargs.get('frame', 'ICRS')
-    w.wcs.equinox = kwargs.get('equinox', 2000.0)
-    
+    w.wcs.radesys = get_parameter(parameters, 'frame', 'ICRS')
+    w.wcs.equinox = get_parameter(parameters, 'equinox', 2000.0)
+
     return shape, reffrequency, cellsize, w, imagecentre
 
 
-def invert_visibility(vt: Visibility, **kwargs):
+def invert_visibility(vt: Visibility, parameters={}):
     """Invert to make dirty Image and PSF
     
     :param vt:
     :type Visibility:
     :returns: (dirty image, psf)
     """
-    print("imaging.invert_visibility: Inverting Visibility to make dirty and psf")
-    shape, reffrequency, cellsize, w, imagecentre = create_wcs_from_visibility(vt, **kwargs)
+    print("fourier_transforms.invert_visibility: Inverting Visibility to make dirty and psf")
+    shape, reffrequency, cellsize, w, imagecentre = create_wcs_from_visibility(vt, parameters=parameters)
     
     npixel = shape[3]
     theta = npixel * cellsize
     
-    print("imaging.invert_visibility: Specified npixel=%d, cellsize = %f rad, FOV = %f rad" %
+    print("fourier_transforms.invert_visibility: Specified npixel=%d, cellsize = %f rad, FOV = %f rad" %
           (npixel, cellsize, theta))
     
-    wstep = kwargs.get("wstep", 10000.0)
+    wstep = get_parameter(parameters, "wstep", 10000.0)
     wcachesize = int(numpy.ceil(numpy.abs(vt.data['uvw'][:, 2]).max() * reffrequency.value / (const.c.value * wstep)))
-    print("imaging.invert_visibility: Making w-kernel cache of %d kernels" % wcachesize)
+    print("fourier_transforms.invert_visibility: Making w-kernel cache of %d kernels" % wcachesize)
     wcache = pylru.FunctionCacheManager(lambda iw: wkernaf(N=256, theta=theta, w=iw * wstep, s=15, Qpx=4), 10000)
     imgfn = lambda *x: wcacheimg(*x, wstep=wstep, wcache=wcache)
     
@@ -102,7 +103,7 @@ def invert_visibility(vt: Visibility, **kwargs):
     npol = shape[1]
     for channel in range(nchan):
         for pol in range(npol):
-            print('imaging.invert_visibility: Inverting channel %d, polarisation %d' % (channel, pol))
+            print('fourier_transforms.invert_visibility: Inverting channel %d, polarisation %d' % (channel, pol))
             d[channel, pol, :, :], p[channel, 0, :, :], pmax = \
                 doimg(theta, 1.0 / cellsize, vt.data['uvw'] *
                       (vt.frequency[channel] / const.c).value,
@@ -111,11 +112,11 @@ def invert_visibility(vt: Visibility, **kwargs):
     
     dirty = create_image_from_array(d, w)
     psf = create_image_from_array(p, w)
-    print("imaging.invert_visibility: Finished making dirty and psf")
+    print("fourier_transforms.invert_visibility: Finished making dirty and psf")
     return dirty, psf, pmax
 
 
-def predict_visibility(vt: Visibility, sm: SkyModel, **kwargs) -> Visibility:
+def predict_visibility(vt: Visibility, sm: SkyModel, parameters={}) -> Visibility:
     """Predict the visibility (in place) from a SkyModel
     
     :param vt:
@@ -125,12 +126,12 @@ def predict_visibility(vt: Visibility, sm: SkyModel, **kwargs) -> Visibility:
     :returns: Visibility
     """
     vshape = vt.data['vis'].shape
-    shape, reffrequency, cellsize, w, imagecentre = create_wcs_from_visibility(vt, **kwargs)
+    shape, reffrequency, cellsize, w, imagecentre = create_wcs_from_visibility(vt, parameters=parameters)
     
     vt.data['vis']=numpy.zeros(vt.data['vis'].shape)
     
     if len(sm.images):
-        print("imaging.predict_visibility: Predicting Visibility from sky model images")
+        print("fourier_transforms.predict_visibility: Predicting Visibility from sky model images")
         
         for im in sm.images:
             wimage = im.wcs
@@ -148,14 +149,14 @@ def predict_visibility(vt: Visibility, sm: SkyModel, **kwargs) -> Visibility:
                                                    (ishape[0], len(vt.frequency))
             cellsize = abs(wimage.wcs.cdelt[0]) * numpy.pi / 180.0
             theta = npixel * cellsize
-            print("imaging.predict_visibility: Image cellsize %f radians" % cellsize)
-            print("imaging.predict_visibility: Field of view %f radians" % theta)
+            print("fourier_transforms.predict_visibility: Image cellsize %f radians" % cellsize)
+            print("fourier_transforms.predict_visibility: Field of view %f radians" % theta)
             assert (theta / numpy.sqrt(2) < 1.0), "Field of view larger than celestial sphere"
             
-            wstep = kwargs.get("wstep", 10000.0)
+            wstep = get_parameter(parameters, "wstep", 10000.0)
             wcachesize = int(numpy.ceil(numpy.abs(vt.data['uvw'][:, 2]).max() * reffrequency.value / const.c.value /
                                         wstep))
-            print("imaging.predict_visibility: Making w-kernel cache of %d kernels" % wcachesize)
+            print("fourier_transforms.predict_visibility: Making w-kernel cache of %d kernels" % wcachesize)
             wcache = pylru.FunctionCacheManager(lambda iw: wkernaf(N=256, theta=theta, w=iw * wstep, s=15, Qpx=4),
                                                 10000)
             predfn = lambda *x: wcachefwd(*x, wstep=wstep, wcache=wcache)
@@ -163,16 +164,16 @@ def predict_visibility(vt: Visibility, sm: SkyModel, **kwargs) -> Visibility:
             for channel in range(nchan):
                 uvw = vt.data['uvw'] * (vt.frequency[channel] / const.c).value
                 for pol in range(npol):
-                    print('imaging.predict_visibility: Predicting from image channel %d, polarisation %d' % (channel, pol))
+                    print('fourier_transforms.predict_visibility: Predicting from image channel %d, polarisation %d' % (channel, pol))
                     puvw, dv = dopredict(theta, 1.0 / cellsize, uvw, sm.images[0].data[channel, pol, :, :],
                                          predfn=predfn)
                     vt.data['vis'][:, channel, pol] = vt.data['vis'][:, channel, pol] + dv
-            print("imaging.predict_visibility: Finished predicting Visibility from sky model images")
+            print("fourier_transforms.predict_visibility: Finished predicting Visibility from sky model images")
     
     vdc = vt.phasecentre.represent_as(CartesianRepresentation)
     
     if len(sm.components):
-        print("imaging.predict_visibility: Predicting Visibility from sky model components")
+        print("fourier_transforms.predict_visibility: Predicting Visibility from sky model components")
         
         for icomp in range(len(sm.components)):
             comp = sm.components[icomp]
@@ -187,30 +188,30 @@ def predict_visibility(vt: Visibility, sm: SkyModel, **kwargs) -> Visibility:
                                                    (cshape[0], len(vt.frequency))
             
             dc = comp.direction.represent_as(CartesianRepresentation)
-            print('imaging.predict_visibility: Cartesian representation of component %d = (%f, %f, %f)'
+            print('fourier_transforms.predict_visibility: Cartesian representation of component %d = (%f, %f, %f)'
                   % (icomp, dc.x, dc.y, dc.z))
             for channel in range(nchan):
                 uvw = vt.data['uvw'] * (vt.frequency[channel] / const.c).value
                 uvw[:, 2] *= -1.0  # TODO: Why is this needed?
                 phasor = simulate_point(uvw, dc.z, dc.y)
                 for pol in range(npol):
-                    print('imaging.predict_visibility: Predicting from component %d channel %d, polarisation %d' % (icomp, channel,
+                    print('fourier_transforms.predict_visibility: Predicting from component %d channel %d, polarisation %d' % (icomp, channel,
                                                                                                          pol))
                     vt.data['vis'][:, channel, pol] = vt.data['vis'][:, channel, pol] + \
                                                       comp.flux[channel, pol] * phasor
-        print("imaging.predict_visibility: Finished predicting Visibility from sky model components")
+        print("fourier_transforms.predict_visibility: Finished predicting Visibility from sky model components")
     
     return vt
 
 
-def weight_visibility(vt, im, **kwargs):
+def weight_visibility(vt, im, parameters={}):
     """ Reweight the visibility data in place a selected algorithm
 
     :param vt:
     :type Visibility:
     :param im:
     :type Image:
-    :param kwargs:
+    :param parameters:
     :returns: Configuration
     """
     print("visibility_operations.weight_visibility: not yet implemented")

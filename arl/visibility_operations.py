@@ -11,9 +11,10 @@ from crocodile.simulate import *
 
 from arl.test_support import create_named_configuration
 from arl.data_models import *
+from arl.parameters import get_parameter
 
 
-def filter_gaintable(fg: GainTable, **kwargs):
+def filter_gaintable(fg: GainTable, parameters={}):
     """Filer a Gaintable
 
     :param fg:
@@ -25,7 +26,7 @@ def filter_gaintable(fg: GainTable, **kwargs):
 
 
 def create_gaintable_from_array(gain: numpy.array, time: numpy.array, antenna: numpy.array, weight: numpy.array,
-                                frequency: numpy.array, copy=False, meta=None, **kwargs):
+                                frequency: numpy.array, copy=False, meta=None, parameters={}):
     """ Create a gaintable from arrays
 
     :param gain:
@@ -42,7 +43,7 @@ def create_gaintable_from_array(gain: numpy.array, time: numpy.array, antenna: n
     :type bool:
     :param meta:
     :type dict:
-    :param kwargs:
+    :param parameters:
     :returns: Gaintable
     """
     if meta is None:
@@ -60,19 +61,19 @@ def create_gaintable_from_array(gain: numpy.array, time: numpy.array, antenna: n
     return fg
 
 
-def interpolate_gaintable(gt: GainTable, **kwargs):
+def interpolate_gaintable(gt: GainTable, parameters={}):
     """ Interpolate a GainTable to new sampling
 
     :param gt:
     :type GainTable:
-    :param kwargs:
+    :param parameters:
     :returns: Gaintable
     """
     print('"visibility_operations.interpolate_gaintable: not yet implemented')
     return GainTable()
 
 
-def combine_visibility(fvt1: Visibility, fvt2: Visibility, w1: float = 1.0, w2: float = 1.0, **kwargs) -> Visibility:
+def combine_visibility(fvt1: Visibility, fvt2: Visibility, w1: float = 1.0, w2: float = 1.0, parameters={}) -> Visibility:
     """ Linear combination of two visibility sets
     
     :param fvt1: Visibility set 1
@@ -83,7 +84,7 @@ def combine_visibility(fvt1: Visibility, fvt2: Visibility, w1: float = 1.0, w2: 
     :type float:
     :param w2: Weight of visibility set 2
     :type float:
-    :param kwargs:
+    :param parameters:
     :returns: Visibility
     """
     assert len(fvt1.frequency) == len(fvt2.frequency), "Visibility: frequencies should be the same"
@@ -105,7 +106,7 @@ def combine_visibility(fvt1: Visibility, fvt2: Visibility, w1: float = 1.0, w2: 
     return fvt
 
 
-def concatenate_visibility(fvt1: Visibility, fvt2: Visibility, **kwargs) -> \
+def concatenate_visibility(fvt1: Visibility, fvt2: Visibility, parameters={}) -> \
         Visibility:
     """ Concatentate the data sets in time, optionally phase rotating the second to the phasecenter of the first
     
@@ -113,7 +114,7 @@ def concatenate_visibility(fvt1: Visibility, fvt2: Visibility, **kwargs) -> \
     :type Visibility:
     :param fvt2:
     :type Visibility:
-    :param kwargs:
+    :param parameters:
     :returns: Visibility
     """
     assert len(fvt1.frequency) == len(fvt2.frequency), "Visibility: frequencies should be the same"
@@ -129,33 +130,33 @@ def concatenate_visibility(fvt1: Visibility, fvt2: Visibility, **kwargs) -> \
     return fvt
 
 
-def flag_visibility(fvis: Visibility, gt: GainTable = None, **kwargs) -> Visibility:
+def flag_visibility(fvis: Visibility, gt: GainTable = None, parameters={}) -> Visibility:
     """ Flags a visibility set, optionally using GainTable
 
     :param fvis:
     :type Visibility:
     :param gt:
     :type GainTable:
-    :param kwargs:
+    :param parameters:
     :returns: Visibility
     """
     print("visibility_operations.flag_visibility: not yet implemented")
     return fvis
 
 
-def filter_visibility(fvis: Visibility, **kwargs) -> Visibility:
+def filter_visibility(fvis: Visibility, parameters={}) -> Visibility:
     """ Filter a visibility set
 
     :param fvis:
     :type Visibility:
-    :param kwargs:
+    :param parameters:
     :returns: Visibility
     """
     print("visibility_operations.filter_visibility: not yet implemented")
     return fvis
 
 
-def create_gaintable_from_visibility(vt: Visibility, **kwargs):
+def create_gaintable_from_visibility(vt: Visibility, parameters={}):
     """Create an empty gaintable from a visibilty set
 
     :param vt: Visibility to be used as template
@@ -167,7 +168,7 @@ def create_gaintable_from_visibility(vt: Visibility, **kwargs):
 
 
 def create_visibility(config: Configuration, times: numpy.array, freq: numpy.array, weight: float,
-                      phasecentre: SkyCoord, meta: dict = None, **kwargs) -> Visibility:
+                      phasecentre: SkyCoord, meta: dict = None, parameters={}) -> Visibility:
     """ Create a vistable from Configuration, hour angles, and direction of source
     
 
@@ -187,7 +188,7 @@ def create_visibility(config: Configuration, times: numpy.array, freq: numpy.arr
     """
     assert phasecentre is not None, "Must specify phase centre"
     nch = len(freq)
-    npol = kwargs.get("npol", 4)
+    npol = get_parameter(parameters, "npol", 4)
     ants_xyz = config.data['xyz']
     nants = len(config.data['names'])
     nbaselines = int(nants * (nants - 1) / 2)
@@ -217,7 +218,7 @@ def create_visibility(config: Configuration, times: numpy.array, freq: numpy.arr
     return vt
 
 
-def phaserotate_visibility(vt: Visibility, newphasecentre: SkyCoord, **kwargs) -> Visibility:
+def phaserotate_visibility(vt: Visibility, newphasecentre: SkyCoord, parameters={}) -> Visibility:
     """ Phase rotate from the current phase centre to a new phase centre: works in place
     
     :param vt: Visibility to be rotated
@@ -249,7 +250,7 @@ def phaserotate_visibility(vt: Visibility, newphasecentre: SkyCoord, **kwargs) -
     return vt
 
 
-def sum_visibility(vt: Visibility, direction: SkyCoord, **kwargs) -> numpy.array:
+def sum_visibility(vt: Visibility, direction: SkyCoord, parameters={}) -> numpy.array:
     """ Direct Fourier summation in a given direction
     
     :param vt: Visibility to be summed
@@ -281,7 +282,7 @@ def sum_visibility(vt: Visibility, direction: SkyCoord, **kwargs) -> numpy.array
     return flux, weight
 
 
-def average_visibility(vt: Visibility, **kwargs) -> Visibility:
+def average_visibility(vt: Visibility, parameters={}) -> Visibility:
     """ Average visibility in time and frequency
     
     Creates new Visibility by averaging in time and frequency
@@ -294,7 +295,7 @@ def average_visibility(vt: Visibility, **kwargs) -> Visibility:
     return vt
 
 
-def de_average_visibility(vt: Visibility, vttemplate: Visibility, **kwargs) -> Visibility:
+def de_average_visibility(vt: Visibility, vttemplate: Visibility, parameters={}) -> Visibility:
     """ De-average visibility in time and frequency i.e. replicate to template Visibility
     
     This is the opposite of averaging - the Visibility is expanded into the template format.
@@ -309,7 +310,7 @@ def de_average_visibility(vt: Visibility, vttemplate: Visibility, **kwargs) -> V
     return vt
 
 
-def aq_visibility(vt, **kwargs):
+def aq_visibility(vt, parameters={}):
     """Assess the quality of an image
 
     :param vt:

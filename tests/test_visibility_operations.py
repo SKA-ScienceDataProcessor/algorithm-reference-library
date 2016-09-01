@@ -22,9 +22,9 @@ from arl.fourier_transforms import predict_visibility, invert_visibility
 class TestVisibilityOperations(unittest.TestCase):
 
     def setUp(self):
-        self.kwargs = {'wstep': 10.0, 'npixel': 512, 'cellsize':0.0002}
+        self.parameters = {'wstep': 10.0, 'npixel': 512, 'cellsize':0.0002}
 
-        vlaa = filter_configuration(create_named_configuration('VLAA'), **self.kwargs)
+        vlaa = filter_configuration(create_named_configuration('VLAA'), self.parameters)
         vlaa.data['xyz'] *= 1.0 / 30.0
         times = numpy.arange(-3.0, +3.0, 6.0 / 60.0) * numpy.pi / 12.0
         frequency = numpy.arange(1.0e8, 1.50e8, 2.0e7)
@@ -43,8 +43,8 @@ class TestVisibilityOperations(unittest.TestCase):
         self.m31sm = create_skymodel_from_component(self.m31comp)
 
         vtpred = create_visibility(vlaa, times, frequency, weight=1.0, phasecentre=self.phasecentre,
-                                   **self.kwargs)
-        self.vtmodel = predict_visibility(vtpred, self.m31sm, **self.kwargs)
+                                   parameters=self.parameters)
+        self.vtmodel = predict_visibility(vtpred, self.m31sm, self.parameters)
 
 
     def test_visibilitysum(self):

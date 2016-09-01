@@ -14,6 +14,7 @@ from astropy.wcs import WCS
 from reproject import reproject_interp
 
 from arl.data_models import *
+from arl.parameters import get_parameter
 
 
 def create_image_from_array(data: numpy.array, wcs: WCS = None) -> Image:
@@ -93,7 +94,7 @@ def reproject_image(im: Image, newwcs: WCS, shape=None):
     return create_image_from_array(rep, newwcs), create_image_from_array(foot, newwcs)
 
 
-def fft_image(im: Image, **kwargs):
+def fft_image(im: Image, parameters={}):
     """ FFT an image
 
     :param im:
@@ -120,7 +121,7 @@ def add_image(im1: Image, im2: Image, checkwcs=False):
     return create_image_from_array(im1.data + im2.data, im1.wcs)
 
 
-def aq_image(im, **kwargs):
+def aq_image(im, parameters={}):
     """Assess the quality of an image
 
     :param im:

@@ -32,7 +32,7 @@ from arl.test_support import filter_configuration, create_named_configuration, r
 
 kwargs = {}
 
-vlaa = filter_configuration(create_named_configuration('VLAA'), **kwargs)
+vlaa = filter_configuration(create_named_configuration('VLAA'), parameters={})
 vlaa.data['xyz']=vlaa.data['xyz']/10.0
 
 
@@ -97,7 +97,7 @@ m31sm=add_component_to_skymodel(m31sm, comp1)
 
 # Now we can predict_visibility the visibility from this skymodel
 kwargs={'wstep':100.0, 'npixel':256, 'cellsize':0.0001}
-vt = predict_visibility(vt, m31sm, **kwargs)
+vt = predict_visibility(vt, m31sm, parameters={})
 
 # To check that we got the prediction right, plot the amplitude of the visibility.
 uvdist=numpy.sqrt(vt.data['uvw'][:,0]**2+vt.data['uvw'][:,1]**2)
@@ -114,7 +114,7 @@ kwargs={}
 kwargs['npixel']=512
 kwargs['cellsize']=0.0001
 kwargs['wstep']=30.0
-dirty, psf, sumwt = invert_visibility(vt, **kwargs)
+dirty, psf, sumwt = invert_visibility(vt, parameters={})
 show_image(dirty)
 print("Max, min in dirty image = %.6f, %.6f, sum of weights = %f" % (dirty.data.max(), dirty.data.min(), sumwt))
 
@@ -128,7 +128,7 @@ m31compnew = find_skycomponent(dirty)
 # Deconvolve using clean
 
 kwargs={'niter':100, 'threshold':0.001, 'fracthresh':0.01}
-comp, residual = deconvolve_cube(dirty, psf, **kwargs)
+comp, residual = deconvolve_cube(dirty, psf, parameters={})
 
 # Show the results
 
@@ -139,11 +139,11 @@ fig=show_image(residual)
 # Predict the visibility of the model
 
 kwargs={'wstep':30.0}
-vt = predict_visibility(vt, m31sm, **kwargs)
+vt = predict_visibility(vt, m31sm, parameters={})
 modelsm=create_skymodel_from_image(comp)
 vtmodel = create_visibility(vlaa, times, frequency, weight=1.0, phasecentre=phasecentre)
 vtmodel.data = vt.data.copy()
-vtmodel=predict_visibility(vtmodel, modelsm, **kwargs)
+vtmodel=predict_visibility(vtmodel, modelsm, parameters={})
 
 
 # Now we will plot the original visibility and the residual visibility.

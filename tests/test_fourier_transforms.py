@@ -21,9 +21,10 @@ from arl.fourier_transforms import predict_visibility, invert_visibility
 class TestFourierTransforms(unittest.TestCase):
 
     def setUp(self):
-        self.kwargs = {'wstep': 10.0, 'npixel': 512, 'cellsize':0.0002}
+        
+        self.parameters = {'wstep': 10.0, 'npixel': 512, 'cellsize':0.0002}
 
-        vlaa = filter_configuration(create_named_configuration('VLAA'), **self.kwargs)
+        vlaa = filter_configuration(create_named_configuration('VLAA'), self.parameters)
         vlaa.data['xyz'] *= 1.0 / 30.0
         times = numpy.arange(-3.0, +3.0, 6.0 / 60.0) * numpy.pi / 12.0
         frequency = numpy.arange(1.0e8, 1.50e8, 2.0e7)
@@ -40,10 +41,9 @@ class TestFourierTransforms(unittest.TestCase):
         self.compreldirection = self.compabsdirection.transform_to(pcof)
         self.m31comp = create_skycomponent(flux=self.flux, frequency=frequency, direction=self.compreldirection)
         self.m31sm = create_skymodel_from_component(self.m31comp)
-
         vtpred = create_visibility(vlaa, times, frequency, weight=1.0, phasecentre=self.phasecentre,
-                                   **self.kwargs)
-        self.vtmodel = predict_visibility(vtpred, self.m31sm, **self.kwargs)
+                                   parameters=self.parameters)
+        self.vtmodel = predict_visibility(vtpred, self.m31sm, self.parameters)
 
 
     def test_visibilitysum(self):
@@ -54,7 +54,7 @@ class TestFourierTransforms(unittest.TestCase):
 
     def test_findflux(self):
         # Now make a dirty image
-        self.dirty, self.psf, sumwt = invert_visibility(self.vtmodel, **self.kwargs)
+        self.dirty, self.psf, sumwt = invert_visibility(self.vtmodel, self.parameters)
         export_image_to_fits(self.dirty, 'test_imaging_dirty.fits')
         print("Max, min in dirty Image = %.6f, %.6f, sum of weights = %f" %
               (self.dirty.data.max(), self.dirty.data.min(), sumwt))
@@ -68,7 +68,7 @@ class TestFourierTransforms(unittest.TestCase):
 
     def test_fitcomponent(self):
         # Now make a dirty image
-        self.dirty, self.psf, sumwt = invert_visibility(self.vtmodel, **self.kwargs)
+        self.dirty, self.psf, sumwt = invert_visibility(self.vtmodel, self.parameters)
         export_image_to_fits(self.dirty, 'test_imaging_dirty.fits')
         print("Max, min in dirty Image = %.6f, %.6f, sum of weights = %f" %
               (self.dirty.data.max(), self.dirty.data.min(), sumwt))

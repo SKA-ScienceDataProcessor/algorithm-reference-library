@@ -50,7 +50,7 @@ def hogbom(dirty,
            gain,
            thresh,
            niter,
-           **kwargs):
+           parameters={}):
     """
     Hogbom CLEAN (1974A&AS...15..417H)
 
