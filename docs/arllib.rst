@@ -78,7 +78,7 @@ Inside a function, the values are retrieved thus::
 
 
 The search for a keyword is first in the keys of parameters and then in parameters[functioname]. Thus, if neccessary
-keywords can bedefined for each function in the library. 
+keywords can bedefined for each function in the library.
 
 Visibility Operations
 +++++++++++++++++++++

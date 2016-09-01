@@ -2,8 +2,6 @@
 #
 #
 
-
-from arl_exceptions import *
 from arl.visibility_calibration import solve_gains, qa_gaintable
 from arl.quality_assessment import QA
 from arl.parameters import get_parameter

@@ -3,8 +3,6 @@
 Tim Cornwell <realtimcornwell@gmail.com>
 """
 
-from arl_exceptions import *
-
 import sys
 
 # for current func name, specify 0 or no argument.
