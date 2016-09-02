@@ -16,17 +16,38 @@ Unit tests written in standard python style are available.
 :index:`ARL unit tests`
 -----------------------
 
-.. automodule:: tests.test_datastructures
+.. automodule:: tests.test_datamodels
    :members:
    :undoc-members:
 
-.. automodule:: tests.test_image
+.. automodule:: tests.test_fourier_transforms
    :members:
    :undoc-members:
 
-.. automodule:: tests.test_imaging
+.. automodule:: tests.test_image_deconvolution
    :members:
    :undoc-members:
+
+.. automodule:: tests.test_image_operations
+   :members:
+   :undoc-members:
+
+.. automodule:: tests.test_pipelines
+   :members:
+   :undoc-members:
+
+.. automodule:: tests.test_quality_assessment
+   :members:
+   :undoc-members:
+
+.. automodule:: tests.test_visibility_calibration
+   :members:
+   :undoc-members:
+
+.. automodule:: tests.test_visibility_operations
+   :members:
+   :undoc-members:
+
 
 Indices and tables
 ==================

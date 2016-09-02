@@ -30,7 +30,9 @@ from arl.test_support import filter_configuration, create_named_configuration, r
 
 # We construct a VLA configuration and then shrink it to match our test image.
 
-kwargs = {}
+parameters = {}
+
+doshow = False
 
 vlaa = filter_configuration(create_named_configuration('VLAA'), parameters={})
 vlaa.data['xyz']=vlaa.data['xyz']/10.0
@@ -48,17 +50,17 @@ vt = create_visibility(vlaa, times, frequency, weight=1.0, phasecentre=phasecent
 
 # Plot the synthesized uv coverage, including for MFS
 
-plt.clf()
-for f in frequency:
-    x=f/const.c
-    plt.plot(x*vt.data['uvw'][:,0], x*vt.data['uvw'][:,1], '.', color='b')
-    plt.plot(-x*vt.data['uvw'][:,0], -x*vt.data['uvw'][:,1], '.', color='r')
+if doshow:
+    plt.clf()
+    for f in frequency:
+        x=f/const.c
+        plt.plot(x*vt.data['uvw'][:,0], x*vt.data['uvw'][:,1], '.', color='b')
+        plt.plot(-x*vt.data['uvw'][:,0], -x*vt.data['uvw'][:,1], '.', color='r')
 
 
 # Read the venerable test image, constructing an image
 
 m31image = import_image_from_fits("./data/models/M31.MOD")
-fig = plt.figure()
 cellsize=180.0*0.0001/numpy.pi
 m31image.wcs.wcs.cdelt[0]=-cellsize
 m31image.wcs.wcs.cdelt[1]=+cellsize
@@ -66,12 +68,13 @@ m31image.wcs.wcs.radesys='ICRS'
 m31image.wcs.wcs.equinox=2000.00
 
 # Show the model image
-fig.add_subplot(111, projection=m31image.wcs)
-plt.imshow(m31image.data, origin='lower', cmap='rainbow')
-plt.xlabel('RA---SIN')
-plt.ylabel('DEC--SIN')
-plt.show()
-
+if doshow:
+    fig.add_subplot(111, projection=m31image.wcs)
+    plt.imshow(m31image.data, origin='lower', cmap='rainbow')
+    plt.xlabel('RA---SIN')
+    plt.ylabel('DEC--SIN')
+    plt.show()
+    
 # This image is only 2 dimensional. We need extra axes frequency and stokes.
 
 m31image4D=replicate_image(m31image, shape=[1, 1, 4, len(frequency)])
@@ -96,25 +99,23 @@ comp1= create_skycomponent(flux=numpy.array([[1.0, 0.0, 0.0, 0.0]]), frequency=f
 m31sm=add_component_to_skymodel(m31sm, comp1)
 
 # Now we can predict_visibility the visibility from this skymodel
-kwargs={'wstep':100.0, 'npixel':256, 'cellsize':0.0001}
-vt = predict_visibility(vt, m31sm, parameters={})
+parameters={'wstep':100.0, 'npixel':256, 'cellsize':0.0001}
+vt = predict_visibility(vt, m31sm, parameters=parameters)
 
 # To check that we got the prediction right, plot the amplitude of the visibility.
-uvdist=numpy.sqrt(vt.data['uvw'][:,0]**2+vt.data['uvw'][:,1]**2)
-plt.clf()
-plt.plot(uvdist, numpy.abs(vt.data['vis'][:,0,0]), '.')
-plt.xlabel('uvdist')
-plt.ylabel('Amp Visibility')
-plt.show()
+if doshow:
+    uvdist = numpy.sqrt(vt.data['uvw'][:, 0] ** 2 + vt.data['uvw'][:, 1] ** 2)
+    plt.clf()
+    plt.plot(uvdist, numpy.abs(vt.data['vis'][:,0,0]), '.')
+    plt.xlabel('uvdist')
+    plt.ylabel('Amp Visibility')
+    plt.show()
 
 
 # Make the dirty image and point spread function
 
-kwargs={}
-kwargs['npixel']=512
-kwargs['cellsize']=0.0001
-kwargs['wstep']=30.0
-dirty, psf, sumwt = invert_visibility(vt, parameters={})
+parameters={'wstep':30.0, 'npixel':512, 'cellsize':0.0001}
+dirty, psf, sumwt = invert_visibility(vt, parameters=parameters)
 show_image(dirty)
 print("Max, min in dirty image = %.6f, %.6f, sum of weights = %f" % (dirty.data.max(), dirty.data.min(), sumwt))
 
@@ -124,11 +125,10 @@ export_image_to_fits(dirty, 'dirty.fits')
 export_image_to_fits(psf, 'psf.fits')
 m31compnew = find_skycomponent(dirty)
 
-
 # Deconvolve using clean
 
-kwargs={'niter':100, 'threshold':0.001, 'fracthresh':0.01}
-comp, residual = deconvolve_cube(dirty, psf, parameters={})
+parameters={'niter':100, 'threshold':0.001, 'fracthresh':0.01}
+comp, residual = deconvolve_cube(dirty, psf, parameters=parameters)
 
 # Show the results
 
@@ -138,8 +138,8 @@ fig=show_image(residual)
 
 # Predict the visibility of the model
 
-kwargs={'wstep':30.0}
-vt = predict_visibility(vt, m31sm, parameters={})
+parameters={'wstep':30.0}
+vt = predict_visibility(vt, m31sm, parameters=parameters)
 modelsm=create_skymodel_from_image(comp)
 vtmodel = create_visibility(vlaa, times, frequency, weight=1.0, phasecentre=phasecentre)
 vtmodel.data = vt.data.copy()
@@ -148,10 +148,11 @@ vtmodel=predict_visibility(vtmodel, modelsm, parameters={})
 
 # Now we will plot the original visibility and the residual visibility.
 
-uvdist=numpy.sqrt(vt.data['uvw'][:,0]**2+vt.data['uvw'][:,1]**2)
-plt.clf()
-plt.plot(uvdist, numpy.abs(vt.data['vis'][:,0,0]), '.', color='b')
-plt.plot(uvdist, numpy.abs(vt.data['vis'][:,0,0]-vtmodel.data['vis'][:,0,0]), '.', color='r')
-plt.xlabel('uvdist')
-plt.ylabel('Amp Visibility')
-plt.show()
+if doshow:
+    uvdist=numpy.sqrt(vt.data['uvw'][:,0]**2+vt.data['uvw'][:,1]**2)
+    plt.clf()
+    plt.plot(uvdist, numpy.abs(vt.data['vis'][:,0,0]), '.', color='b')
+    plt.plot(uvdist, numpy.abs(vt.data['vis'][:,0,0]-vtmodel.data['vis'][:,0,0]), '.', color='r')
+    plt.xlabel('uvdist')
+    plt.ylabel('Amp Visibility')
+    plt.show()

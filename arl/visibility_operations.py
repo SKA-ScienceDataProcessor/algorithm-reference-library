@@ -3,6 +3,8 @@
 # Visibility data structure: a Table with columns ['uvw', 'time', 'antenna1', 'antenna2', 'vis', 'weight']
 # and an attached attribute which is the frequency of each channel
 
+import profile
+
 from astropy import constants as const
 from astropy.coordinates import SkyCoord, CartesianRepresentation
 from astropy.table import Table, vstack

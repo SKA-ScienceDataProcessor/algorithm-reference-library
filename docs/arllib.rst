@@ -61,8 +61,8 @@ All components possess an API which is always of the form::
 Processing Parameters
 +++++++++++++++++++++
 
-Processing parameters are passed via a dictionary. The parameters for a given function are stored in a field
-named by the function. For example::
+Processing parameters are passed via a dictionary. Universal parameters can be set at the top level of the
+dictionary. The parameters specific to a given function can stored in a field named by the function. For example::
 
    parameters = {'log': 'tims.log',
       'RCAL': {'visibility': self.visibility, 'skymodel': self.m31sm}
@@ -77,8 +77,14 @@ Inside a function, the values are retrieved thus::
     sm = get_parameter(parameters, 'skymodel', None)
 
 
-The search for a keyword is first in the keys of parameters and then in parameters[functioname]. Thus, if neccessary
-keywords can bedefined for each function in the library.
+The search for a keyword is first in the keys of parameters and then in parameters[functioname].
+
+Parameter handling
+++++++++++++++++++
+
+.. automodule:: arl.parameters
+   :members:
+
 
 Visibility Operations
 +++++++++++++++++++++

@@ -10,7 +10,8 @@ from astropy.coordinates import SkyCoord
 from astropy.wcs.utils import skycoord_to_pixel, pixel_to_skycoord
 
 from arl.image_operations import import_image_from_fits
-from arl.fourier_transforms import predict_visibility, invert_visibility, combine_visibility
+from arl.visibility_operations import combine_visibility
+from arl.fourier_transforms import predict_visibility, invert_visibility
 from arl.data_models import *
 from arl.parameters import get_parameter
 

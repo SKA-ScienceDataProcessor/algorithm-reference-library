@@ -21,10 +21,6 @@ from crocodile.simulate import *
 from arl.data_models import *
 from arl.image_operations import import_image_from_fits, add_wcs_to_image
 
-"""
-Functions that aid testing.
-"""
-
 def filter_configuration(fc: Configuration, parameters={}):
     """ Filter a configuration e.g. remove certain antennas
 
