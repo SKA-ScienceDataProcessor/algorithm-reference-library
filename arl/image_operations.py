@@ -94,7 +94,7 @@ def reproject_image(im: Image, newwcs: WCS, shape=None):
     return create_image_from_array(rep, newwcs), create_image_from_array(foot, newwcs)
 
 
-def fft_image(im: Image, parameters={}):
+def fft_image(im: Image, params={}):
     """ FFT an image
 
     :param im:
@@ -121,7 +121,7 @@ def add_image(im1: Image, im2: Image, checkwcs=False):
     return create_image_from_array(im1.data + im2.data, im1.wcs)
 
 
-def aq_image(im, parameters={}):
+def aq_image(im, params={}):
     """Assess the quality of an image
 
     :param im:

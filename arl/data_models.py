@@ -7,6 +7,7 @@
 
 class Configuration:
     """ Describe a Configuration
+    
     """
     
     def __init__(self):
@@ -16,8 +17,7 @@ class Configuration:
 
 
 class GainTable:
-    """
-    Gain table with time, antenna, gain[:,chan,pol] columns
+    """ Gain table with data: time, antenna, gain[:,chan,pol] columns
     """
     
     # TODO: Implement gaintables with Jones and Mueller matrices
@@ -47,17 +47,17 @@ class Image:
 
 
 class SkyComponent:
-    """ A single SkyComponent with direction, flux, shape, and parameters for the shape
+    """ A single SkyComponent with direction, flux, shape, and params for the shape
     
     """
     # TODO: fill out SkyComponent
     def __init__(self):
-        self.direction = None
-        self.frequency = None
-        self.name = None
-        self.flux = None
-        self.shape = None
-        self.params = None
+        self.direction = None   # SkyCoord
+        self.frequency = None   # numpy.array [nchan]
+        self.name = None        # user friendly name
+        self.flux = None        # numpy.array [nchan, npol]
+        self.shape = None       # str e.g. 'Point' 'Gaussian'
+        self.params = None      # numpy.array shape dependent parameters
 
 
 class SkyModel:
@@ -67,8 +67,8 @@ class SkyModel:
     # TODO: Fill out SkyModel
 
     def __init__(self):
-        self.images = []
-        self.components = []
+        self.images = []    # collection of numpy arrays
+        self.components = []    # collection of SkyComponents
 
 
 class Visibility:
@@ -85,10 +85,10 @@ class Visibility:
     """
     
     def __init__(self):
-        self.data = None
-        self.frequency = None
-        self.phasecentre = None
-        self.configuration = None
+        self.data = None            # Astropy.table with columns uvw, time, a1, a2, vis, weight
+        self.frequency = None       # numpy.array [nchan]
+        self.phasecentre = None     # Phase centre of observation
+        self.configuration = None   # Antenna/station configuration
 
 
 class QA:
@@ -99,5 +99,6 @@ class QA:
     # TODO: Implement some form of QA receipt and bundling
     
     def __init__(self):
-        self.data = None
-        self.context = None
+        self.origin = None      # Name of function originating QA assessment
+        self.data = None        # Dictionary containing standard fields
+        self.context = None     # Context string (TBD)

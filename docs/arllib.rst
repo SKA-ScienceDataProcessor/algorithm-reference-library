@@ -72,12 +72,49 @@ dictionary. The parameters specific to a given function can stored in a field na
 
 Inside a function, the values are retrieved thus::
 
-    log = get_parameter(parameters, 'log', None)
-    vt = get_parameter(parameters, 'visibility', None)
-    sm = get_parameter(parameters, 'skymodel', None)
+    log = get_parameter(params, 'log', None)
+    vis = get_parameter(params, 'visibility', None)
+    sm = get_parameter(params, 'skymodel', None)
 
 
 The search for a keyword is first in the keys of parameters and then in parameters[functioname].
+
+Function parameters should obey a consistent naming convention:
+
+=======  =======
+Name     Meaning
+=======  =======
+vis      Name of Visibility
+sm       Name of SkyModel
+sc       Name of SkyComponent
+gt       Name of GainTable
+conf     Name of Configuration
+im       Name of input image
+qa       Name of quality assessment
+params   Name of processing parameters
+log      Name of processing log
+=======  =======
+
+If a function argument has a better, more descriptive name e.g. normalised_gt, newphasecentre, use it.
+
+Keyword=value pairs should have descriptive names. The names should be lower case with underscores to separate words:
+
+====================    ==================================  ========================================================
+Name                    Meaning                             Example
+====================    ==================================  ========================================================
+loop_gain               Clean loop gain                     0.1
+niter                   Number of iterations                10000
+eps                     Fractional tolerance                1e-6
+threshold               Absolute threshold                  0.001
+fractional_threshold    Threshold as fraction of e.g. peak  0.1
+G_solution_interval     Solution interval for G term        100
+phaseonly               Do phase-only solutions             True
+phasecentre             Phase centre (usually as SkyCoord)  SkyCoord("-1.0d", "37.0d", frame='icrs', equinox=2000.0)
+spectral_mode           Visibility processing mode          'mfs' or 'channel'
+====================    ==================================  ========================================================
+
+
+
 
 Parameter handling
 ++++++++++++++++++

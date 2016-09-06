@@ -27,7 +27,7 @@ class TestPipelines(unittest.TestCase):
 
     def setUp(self):
         
-        self.parameters = {'wstep': 10.0, 'npixel': 512, 'cellsize': 0.0002}
+        self.params = {'wstep': 10.0, 'npixel': 512, 'cellsize': 0.0002}
         
         vlaa = create_named_configuration('VLAA')
         vlaa.data['xyz'] *= 1.0 / 10.0
@@ -54,34 +54,34 @@ class TestPipelines(unittest.TestCase):
         self.m31sm = create_skymodel_from_image(self.m31image)
         self.m31sm = add_component_to_skymodel(self.m31sm, self.m31comp)
 
-        self.parameters={'wstep': 100.0, 'npixel': 256, 'cellsize': 0.0001}
-        vtpred = create_visibility(vlaa, times, frequency, weight=1.0, phasecentre=self.phasecentre,
-                                   parameters=self.parameters)
-        self.visibility = predict_visibility(vtpred, self.m31sm, self.parameters)
+        self.params={'wstep': 100.0, 'npixel': 256, 'cellsize': 0.0001}
+        vispred = create_visibility(vlaa, times, frequency, weight=1.0, phasecentre=self.phasecentre,
+                                   params=self.params)
+        self.visibility = predict_visibility(vispred, self.m31sm, self.params)
         self.m31image.data = 0.0 * self.m31image.data
         self.m31sm = create_skymodel_from_image(self.m31image)
         self.m31sm = add_component_to_skymodel(self.m31sm, self.m31comp)
 
     def test_RCAL(self):
-        parameters = {'RCAL': {'visibility': self.visibility, 'skymodel': self.m31sm},
+        params = {'RCAL': {'visibility': self.visibility, 'skymodel': self.m31sm},
                       'solve_gain': {'Gsolint': 300.0}}
-        rcal = RCAL(parameters)
+        rcal = RCAL(params)
 
 
     def test_ICAL(self):
-        parameters = {'ICAL': {'visibility': self.visibility, 'skymodel': self.m31sm}}
-        ical = ICAL(parameters)
+        params = {'ICAL': {'visibility': self.visibility, 'skymodel': self.m31sm}}
+        ical = ICAL(params)
 
 
     def test_continuum_imaging(self):
-        parameters = {'continuum_imaging': {'visibility': self.visibility, 'skymodel': self.m31sm, 'deconvolver':
+        params = {'continuum_imaging': {'visibility': self.visibility, 'skymodel': self.m31sm, 'deconvolver':
             msclean }}
-        ci = continuum_imaging(parameters)
+        ci = continuum_imaging(params)
 
 
     def test_spectral_line_imaging(self):
-        parameters = {'spectral_line_imaging': {'visibility': self.visibility, 'skymodel': self.m31sm}}
-        sli = spectral_line_imaging(parameters)
+        params = {'spectral_line_imaging': {'visibility': self.visibility, 'skymodel': self.m31sm}}
+        sli = spectral_line_imaging(params)
         
 
 if __name__ == '__main__':

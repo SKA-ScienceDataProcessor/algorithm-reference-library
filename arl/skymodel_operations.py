@@ -17,7 +17,7 @@ from arl.parameters import get_parameter
 
 def create_skycomponent(direction: SkyCoord, flux: numpy.array, frequency: numpy.array, shape: str = 'Point',
                         param: dict = None, name: str = ''):
-    """ A single SkyComponent with direction, flux, shape, and parameters for the shape
+    """ A single SkyComponent with direction, flux, shape, and params for the shape
 
     :param direction:
     :type SkyCoord:
@@ -42,7 +42,7 @@ def create_skycomponent(direction: SkyCoord, flux: numpy.array, frequency: numpy
     return sc
 
 
-def find_skycomponent(im: Image, parameters={}):
+def find_skycomponent(im: Image, params={}):
     """ Find components in Image, return SkyComponent, just find the peak for now
 
     :param im: Image to be searched
@@ -66,7 +66,7 @@ def find_skycomponent(im: Image, parameters={}):
     return create_skycomponent(direction=sc, flux=flux, frequency=frequency, shape='point')
 
 
-def fit_skycomponent(im: Image, sc: SkyCoord, parameters={}):
+def fit_skycomponent(im: Image, sc: SkyCoord, params={}):
     """ Find flux at a given direction, return SkyComponent
 
     :param im:
@@ -155,12 +155,12 @@ def add_component_to_skymodel(sm: SkyModel, comp: SkyComponent):
     return sm
 
 
-def solve_skymodel(vt: Visibility, sm: SkyModel, deconvolver, parameters={}):
+def solve_skymodel(vis: Visibility, sm: SkyModel, deconvolver, params={}):
     """Solve for SkyModel using a deconvolver. The interface of deconvolver is the same as clean.
 
     This is the same as a majorcycle.
 
-    :param vt:
+    :param vis:
     :type Visibility:
     :param sm:
     :type SkyModel:
@@ -168,37 +168,37 @@ def solve_skymodel(vt: Visibility, sm: SkyModel, deconvolver, parameters={}):
     :arg function:
     :returns: Visibility, SkyModel
     """
-    nmajor = get_parameter(parameters, 'nmajor', 5)
+    nmajor = get_parameter(params, 'nmajor', 5)
     print("solve_combinations.solve_skymodel: Performing %d major cycles" % nmajor)
     
     # The model is added to each major cycle and then the visibilities are
     # calculated from the full model
-    vtpred = predict_visibility(vt, sm, parameters={})
-    vtres = combine_visibility(vt, vtpred, 1.0, -1.0)
-    dirty, psf, sumwt = invert_visibility(vtres, parameters={})
-    thresh = get_parameter(parameters, "threshold", 0.0)
+    vispred = predict_visibility(vis, sm, params={})
+    visres = combine_visibility(vis, vispred, 1.0, -1.0)
+    dirty, psf, sumwt = invert_visibility(visres, params={})
+    thresh = get_parameter(params, "threshold", 0.0)
     
     comp = sm.images[0]
     for i in range(nmajor):
         print("solve_combinations.solve_skymodel: Start of major cycle %d" % i)
-        cc, res = deconvolver(dirty, psf, parameters={})
+        cc, res = deconvolver(dirty, psf, params={})
         comp += cc
-        vtpred = predict_visibility(vt, sm, parameters={})
-        vtres = combine_visibility(vt, vtpred, 1.0, -1.0)
-        dirty, psf, sumwt = invert_visibility(vtres, parameters={})
+        vispred = predict_visibility(vis, sm, params={})
+        visres = combine_visibility(vis, vispred, 1.0, -1.0)
+        dirty, psf, sumwt = invert_visibility(visres, params={})
         if numpy.abs(dirty.data).max() < 1.1 * thresh:
             print("Reached stopping threshold %.6f Jy" % thresh)
             break
         print("solve_combinations.solve_skymodel: End of major cycle")
     print("solve_combinations.solve_skymodel: End of major cycles")
-    return vtres, sm
+    return visres, sm
 
-def solve_skymodel_gains(vt: Visibility, sm: SkyModel, deconvolver, parameters={}):
+def solve_skymodel_gains(vis: Visibility, sm: SkyModel, deconvolver, params={}):
     """Solve for SkyModel a deconvolver. The interface of deconvolver is the same as clean.
 
     This is the same as self-calibration
 
-    :param vt:
+    :param vis:
     :type Visibility:
     :param sm:
     :type SkyModel:
@@ -207,7 +207,7 @@ def solve_skymodel_gains(vt: Visibility, sm: SkyModel, deconvolver, parameters={
     :returns: Visibility, SkyModel, Gaintable
     """
     print("solve_combinations.solve_skymodel_gains: not implemeneted yet")
-    return vt, sm, GainTable()
+    return vis, sm, GainTable()
 
 
 if __name__ == '__main__':

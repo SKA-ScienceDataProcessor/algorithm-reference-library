@@ -6,86 +6,86 @@ from arl.visibility_calibration import solve_gains, qa_gaintable
 from arl.quality_assessment import QA
 from arl.parameters import get_parameter
 
-def RCAL(parameters):
+def RCAL(params):
     """ Real-time calibration: single shot
      
-    :param parameters:
+    :param params:
     :return:
    """
-    vt = get_parameter(parameters, 'visibility', None)
-    sm = get_parameter(parameters, 'skymodel', None)
+    vis = get_parameter(params, 'visibility', None)
+    sm = get_parameter(params, 'skymodel', None)
 
-    gains = solve_gains(vt, sm, parameters)
+    gains = solve_gains(vis, sm, params)
     qa = qa_gaintable(gains)
     if qa:
         print("pipelines.RCAL: Solution good")
     return qa
 
 
-def ICAL(parameters):
+def ICAL(params):
     """ Post observation image, deconvolve, and self-calibrate
    
-    :param parameters:
+    :param params:
     :return:
     """
-    vt = get_parameter(parameters, 'visibility')
-    sm = get_parameter(parameters, 'skymodel')
+    vis = get_parameter(params, 'visibility')
+    sm = get_parameter(params, 'skymodel')
 
-    gains = solve_gains(vt, sm, parameters)
+    gains = solve_gains(vis, sm, params)
     qa = qa_gaintable(gains)
     if qa:
         print("pipelines.ICAL: Solution good")
     return qa
 
 
-def continuum_imaging(parameters):
+def continuum_imaging(params):
     """Continuum imaging from calibrated (DDE and DIE) data
 
     
-    :param parameters:
+    :param params:
     :return:
     """
 
-    vt = get_parameter(parameters, 'visibility')
-    sm = get_parameter(parameters, 'skymodel')
+    vis = get_parameter(params, 'visibility')
+    sm = get_parameter(params, 'skymodel')
     
     return QA()
     
 
-def spectral_line_imaging(parameters):
+def spectral_line_imaging(params):
     """Spectral line imaging from calibrated (DDE and DIE) data
     
-    :param parameters:
+    :param params:
     :return:
     """
 
-    vt = get_parameter(parameters, 'visibility')
-    sm = get_parameter(parameters, 'skymodel')
+    vis = get_parameter(params, 'visibility')
+    sm = get_parameter(params, 'skymodel')
 
     return QA()
 
 
-def fast_imaging(parameters):
+def fast_imaging(params):
     """Fast imaging from calibrated (DIE only) data
 
-    :param parameters:
+    :param params:
     :return:
     """
     
-    vt = get_parameter(parameters, 'visibility')
-    sm = get_parameter(parameters, 'skymodel')
+    vis = get_parameter(params, 'visibility')
+    sm = get_parameter(params, 'skymodel')
     
     return QA()
 
 
-def EOR(parameters):
+def EOR(params):
     """EOR calibration and imaging
     
-    :param parameters:
+    :param params:
     :return:
     """
-    vt = get_parameter(parameters, 'visibility')
-    sm = get_parameter(parameters, 'skymodel')
+    vis = get_parameter(params, 'visibility')
+    sm = get_parameter(params, 'skymodel')
     
     return QA()
 

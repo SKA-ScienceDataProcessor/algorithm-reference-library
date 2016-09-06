@@ -22,9 +22,9 @@ class TestFourierTransforms(unittest.TestCase):
 
     def setUp(self):
         
-        self.parameters = {'wstep': 10.0, 'npixel': 512, 'cellsize':0.0002}
+        self.params = {'wstep': 10.0, 'npixel': 512, 'cellsize':0.0002, 'spectral_mode': 'channel'}
 
-        vlaa = filter_configuration(create_named_configuration('VLAA'), self.parameters)
+        vlaa = filter_configuration(create_named_configuration('VLAA'), self.params)
         vlaa.data['xyz'] *= 1.0 / 30.0
         times = numpy.arange(-3.0, +3.0, 6.0 / 60.0) * numpy.pi / 12.0
         frequency = numpy.arange(1.0e8, 1.50e8, 2.0e7)
@@ -32,6 +32,7 @@ class TestFourierTransforms(unittest.TestCase):
         # Define the component and give it some spectral behaviour
         f=numpy.array([100.0, 20.0, -10.0, 1.0])
         self.flux = numpy.array([f,0.8*f,0.6*f])
+        self.average = numpy.average(self.flux[:,0])
         # The phase centre is absolute and the component is specified relative (for now).
         # This means that the component should end up at the position phasecentre+compredirection
         self.phasecentre      = SkyCoord(ra=+15.0*u.deg, dec=+35.0*u.deg, frame='icrs', equinox=2000.0)
@@ -39,48 +40,40 @@ class TestFourierTransforms(unittest.TestCase):
         # TODO: convert entire mechanism to absolute coordinates
         pcof=self.phasecentre.skyoffset_frame()
         self.compreldirection = self.compabsdirection.transform_to(pcof)
-        self.m31comp = create_skycomponent(flux=self.flux, frequency=frequency, direction=self.compreldirection)
-        self.m31sm = create_skymodel_from_component(self.m31comp)
-        vtpred = create_visibility(vlaa, times, frequency, weight=1.0, phasecentre=self.phasecentre,
-                                   parameters=self.parameters)
-        self.vtmodel = predict_visibility(vtpred, self.m31sm, self.parameters)
+        self.comp = create_skycomponent(flux=self.flux, frequency=frequency, direction=self.compreldirection)
+        self.sm = create_skymodel_from_component(self.comp)
+        vispred = create_visibility(vlaa, times, frequency, weight=1.0, phasecentre=self.phasecentre,
+                                   params=self.params)
+        self.vismodel = predict_visibility(vispred, self.sm, self.params)
+        
 
-
-    def test_visibilitysum(self):
+    def test_all(self):
+        
         # Sum the visibilities in the correct_visibility direction. This is limited by numerical precision
-        summedflux, weight = sum_visibility(self.vtmodel, self.compreldirection)
+        summedflux, weight = sum_visibility(self.vismodel, self.compreldirection)
         assert_allclose(self.flux, summedflux , rtol=1e-7)
 
-
-    def test_findflux(self):
         # Now make a dirty image
-        self.dirty, self.psf, sumwt = invert_visibility(self.vtmodel, self.parameters)
-        export_image_to_fits(self.dirty, 'test_imaging_dirty.fits')
-        print("Max, min in dirty Image = %.6f, %.6f, sum of weights = %f" %
-              (self.dirty.data.max(), self.dirty.data.min(), sumwt))
-        print("Max, min in PSF         = %.6f, %.6f, sum of weights = %f" %
-              (self.psf.data.max(), self.psf.data.min(), sumwt))
-        # Find the flux at the location we put it at
-        newcomp = fit_skycomponent(self.dirty, self.compabsdirection)
-        # TODO: Track down reason for terrible precision
-        assert_allclose(self.flux, newcomp.flux, rtol=0.05)
-
-
-    def test_fitcomponent(self):
-        # Now make a dirty image
-        self.dirty, self.psf, sumwt = invert_visibility(self.vtmodel, self.parameters)
+        # Check that the flux at the peak is as expected
+        self.dirty, self.psf, sumwt = invert_visibility(self.vismodel, self.params)
         export_image_to_fits(self.dirty, 'test_imaging_dirty.fits')
         print("Max, min in dirty Image = %.6f, %.6f, sum of weights = %f" %
               (self.dirty.data.max(), self.dirty.data.min(), sumwt))
         print("Max, min in PSF         = %.6f, %.6f, sum of weights = %f" %
               (self.psf.data.max(), self.psf.data.min(), sumwt))
         # Find the peak
+        # Check that the returned component is correct
         newcomp = find_skycomponent(self.dirty)
-        # TODO: Track down reason for terrible precision
-        assert_allclose(self.flux, newcomp.flux , rtol=0.05)
-        # Check that the returned direction is correct_visibility
         assert_allclose(self.compabsdirection.ra.value,  newcomp.direction.ra.value,  atol=1e-2)
         assert_allclose(self.compabsdirection.dec.value, newcomp.direction.dec.value, atol=1e-2)
+        assert_allclose(self.flux, newcomp.flux , rtol=0.05)
+
+        # Check that the returned component is correct
+        newcomp = fit_skycomponent(self.dirty, self.compabsdirection)
+        # TODO: Track down reason for terrible precision
+        assert_allclose(self.compabsdirection.ra.value, newcomp.direction.ra.value, atol=1e-2)
+        assert_allclose(self.compabsdirection.dec.value, newcomp.direction.dec.value, atol=1e-2)
+        assert_allclose(self.flux, newcomp.flux, rtol=0.05)
 
 if __name__ == '__main__':
     unittest.main()

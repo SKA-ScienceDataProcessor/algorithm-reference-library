@@ -21,12 +21,12 @@ from crocodile.simulate import *
 from arl.data_models import *
 from arl.image_operations import import_image_from_fits, add_wcs_to_image
 
-def filter_configuration(fc: Configuration, parameters={}):
+def filter_configuration(fc: Configuration, params={}):
     """ Filter a configuration e.g. remove certain antennas
 
     :param fc:
     :type Configuration:
-    :param parameters:
+    :param params:
     :returns: Configuration
     """
     print("filter_configuration: No filter implemented yet")
@@ -34,7 +34,7 @@ def filter_configuration(fc: Configuration, parameters={}):
 
 
 def create_configuration_from_array(antxyz: numpy.array, name: str = None, location: EarthLocation = None,
-                                    mount: str = 'alt-az', names: str = '%d', meta: dict = None, parameters={}):
+                                    mount: str = 'alt-az', names: str = '%d', meta: dict = None, params={}):
     """ Define from parts
 
     :param name:
@@ -61,7 +61,7 @@ def create_configuration_from_file(antfile: str, name: str = None, location: Ear
                                    names: str = "%d", frame: str = 'local',
                                    meta: dict =
                                    None,
-                                   parameters={}):
+                                   params={}):
     """ Define from a file
 
     :param antfile: Antenna file name
@@ -100,7 +100,7 @@ def create_configuration_from_file(antfile: str, name: str = None, location: Ear
 
 
 def create_LOFAR_configuration(antfile: str, meta: dict = None,
-                               parameters={}):
+                               params={}):
     """ Define from the LOFAR configuration file
 
     :param antfile:
@@ -109,7 +109,7 @@ def create_LOFAR_configuration(antfile: str, meta: dict = None,
     :type str:
     :param meta:
     :type dict:
-    :param parameters:
+    :param params:
     :returns: Configuration
     """
     fc = Configuration()
@@ -123,7 +123,7 @@ def create_LOFAR_configuration(antfile: str, meta: dict = None,
     return fc
 
 
-def create_named_configuration(name: str = 'LOWBD2', parameters={}):
+def create_named_configuration(name: str = 'LOWBD2', params={}):
     """ Standard configurations e.g. LOWBD2, MIDBD2
 
     :param name: name of Configuration LOWBD2, LOWBD1, LOFAR, VLAA
@@ -154,7 +154,7 @@ def create_named_configuration(name: str = 'LOWBD2', parameters={}):
         raise UserWarning("No such Configuration %s" % name)
     return fc
 
-def import_visibility_from_ms(msfile: str, parameters={}) -> Visibility:
+def import_visibility_from_ms(msfile: str, params={}) -> Visibility:
     """ Import a visibility set from a measurement set
 
     :param msfile: Name of measurement set
@@ -165,10 +165,10 @@ def import_visibility_from_ms(msfile: str, parameters={}) -> Visibility:
     return Visibility()
 
 
-def export_visibility_to_ms(vt: Visibility, msfile: str = None, parameters={}) -> Visibility:
+def export_visibility_to_ms(vis: Visibility, msfile: str = None, params={}) -> Visibility:
     """ Export a visibility set to a measurement set
 
-    :param vt: Name of visibility set
+    :param vis: Name of visibility set
     :param Visibility:
     :param msfile: Name of output measurement set
     :type str:
@@ -241,7 +241,7 @@ if __name__ == '__main__':
     fc = Configuration()
     for telescope in ['LOWBD1', 'LOWBD2', 'LOFAR', 'VLAA']:
         print(telescope)
-        config = filter_configuration(create_named_configuration(telescope), parameters={})
+        config = filter_configuration(create_named_configuration(telescope), params={})
         print(config.location)
         
     kwargs = {}
@@ -257,5 +257,5 @@ if __name__ == '__main__':
     nrows = len(times)
     gains = numpy.ones([len(times), len(freq), npol], dtype='complex')
     weight = numpy.ones([len(times), len(freq)], dtype='float')
-    gt = filter_gaintable(create_gaintable_from_array(gains, times, antennas, weight, freq), parameters={})
+    gt = filter_gaintable(create_gaintable_from_array(gains, times, antennas, weight, freq), params={})
     print(gt.data['gain'].shape)

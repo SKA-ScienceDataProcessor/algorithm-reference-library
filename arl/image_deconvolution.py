@@ -13,7 +13,7 @@ from arl.data_models import *
 from arl.parameters import get_parameter
 
 
-def deconvolve_cube(dirty: Image, psf: Image, parameters={}):
+def deconvolve_cube(dirty: Image, psf: Image, params={}):
     """ Clean using a variety of algorithms
     
     Functions that clean a dirty image using a point spread function. The algorithms available are:
@@ -27,21 +27,21 @@ def deconvolve_cube(dirty: Image, psf: Image, parameters={}):
     :type Image:
     :param psf: Image Point Spread Function
     :type Image:
-    :param parameters: 'algorithm': 'msclean'|'hogbom', 'gain': loop gain (float)
+    :param params: 'algorithm': 'msclean'|'hogbom', 'gain': loop gain (float)
     :returns: componentimage, residual
     """
-    algorithm = get_parameter(parameters, 'algorithm', 'msclean')
+    algorithm = get_parameter(params, 'algorithm', 'msclean')
     if algorithm == 'msclean':
 
-        window = get_parameter(parameters, 'window', None)
-        gain = get_parameter(parameters, 'gain', 0.7)
+        window = get_parameter(params, 'window', None)
+        gain = get_parameter(params, 'gain', 0.7)
         assert 0.0 < gain < 2.0, "Loop gain must be between 0 and 2"
-        thresh = get_parameter(parameters, 'threshold', 0.0)
+        thresh = get_parameter(params, 'threshold', 0.0)
         assert thresh >= 0.0
-        niter = get_parameter(parameters, 'niter', 100)
+        niter = get_parameter(params, 'niter', 100)
         assert niter > 0
-        scales = get_parameter(parameters, 'scales', [0, 3, 10, 30])
-        fracthresh = get_parameter(parameters, 'fracthresh', 0.01)
+        scales = get_parameter(params, 'scales', [0, 3, 10, 30])
+        fracthresh = get_parameter(params, 'fracthresh', 0.01)
         assert 0.0 < fracthresh < 1.0
 
         comp_array = numpy.zeros(dirty.data.shape)
@@ -57,14 +57,14 @@ def deconvolve_cube(dirty: Image, psf: Image, parameters={}):
                     print("image_deconvolution.clean: Skipping pol %d, channel %d" % (pol, channel))
     elif algorithm == 'hogbom':
 
-        window = get_parameter(parameters, 'window', None)
-        gain = get_parameter(parameters, 'gain', 0.7)
+        window = get_parameter(params, 'window', None)
+        gain = get_parameter(params, 'gain', 0.7)
         assert 0.0 < gain < 2.0, "Loop gain must be between 0 and 2"
-        thresh = get_parameter(parameters, 'threshold', 0.0)
+        thresh = get_parameter(params, 'threshold', 0.0)
         assert thresh > 0.0
-        niter = get_parameter(parameters, 'niter', 100)
+        niter = get_parameter(params, 'niter', 100)
         assert niter > 0
-        fracthresh = get_parameter(parameters, 'fracthresh', 0.01)
+        fracthresh = get_parameter(params, 'fracthresh', 0.01)
         assert 0.0 < fracthresh < 1.0
 
         comp_array = numpy.zeros(dirty.data.shape)
@@ -84,7 +84,7 @@ def deconvolve_cube(dirty: Image, psf: Image, parameters={}):
     return create_image_from_array(comp_array, dirty.wcs), create_image_from_array(residual_array, dirty.wcs)
 
 
-def restore_cube(dirty: Image, clean: Image, psf: Image, parameters={}):
+def restore_cube(dirty: Image, clean: Image, psf: Image, params={}):
     """ Restore a clean image
 
     :param residual: Image residual image
@@ -93,14 +93,14 @@ def restore_cube(dirty: Image, clean: Image, psf: Image, parameters={}):
     :type Image:
     :param psf: Image Point Spread Function
     :type Image:
-    :param parameters: 'algorithm': 'msclean'|'hogbom', 'gain': loop gain (float)
+    :param params: 'algorithm': 'msclean'|'hogbom', 'gain': loop gain (float)
     :returns: restored image
     """
     print("image_deconvolution.restore_image: not yet implemented")
     return Image()
 
 
-def deconvolve_mfs(dirty: Image, psf: Image, parameters={}):
+def deconvolve_mfs(dirty: Image, psf: Image, params={}):
     """ MFS Clean using a variety of algorithms
 
     Functions that clean a dirty image using a point spread function. The algorithms available are:
@@ -114,14 +114,14 @@ def deconvolve_mfs(dirty: Image, psf: Image, parameters={}):
     :type Image:
     :param psf: Image Point Spread Function
     :type Image:
-    :param parameters: 'algorithm': 'msclean'|'hogbom', 'gain': loop gain (float)
+    :param params: 'algorithm': 'msclean'|'hogbom', 'gain': loop gain (float)
     :returns: componentimage, residual
     """
     print("deconvolve_image.deconvolve_mfs: not yet implemented")
     return Image()
 
 
-def restore_mfs(dirty: Image, clean: Image, psf: Image, parameters={}):
+def restore_mfs(dirty: Image, clean: Image, psf: Image, params={}):
     """ Restore an MFS clean image
 
     :param residual: Image residual image
@@ -130,7 +130,7 @@ def restore_mfs(dirty: Image, clean: Image, psf: Image, parameters={}):
     :type Image:
     :param psf: Image Point Spread Function
     :type Image:
-    :param parameters: 'algorithm': 'msclean'|'hogbom', 'gain': loop gain (float)
+    :param params: 'algorithm': 'msclean'|'hogbom', 'gain': loop gain (float)
     :returns: restored image
     """
     print("deconvolve_image.restore_mfs: not yet implemented")
