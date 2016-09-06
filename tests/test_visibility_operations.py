@@ -8,12 +8,11 @@ import unittest
 import numpy
 from numpy.testing import assert_allclose
 
-from astropy.coordinates import SkyCoord
+from astropy.coordinates import SkyCoord, CartesianRepresentation
 from astropy import units as u
 
 from arl.skymodel_operations import create_skycomponent
 from arl.test_support import create_named_configuration, filter_configuration
-from arl.image_operations import export_image_to_fits
 from arl.skymodel_operations import create_skymodel_from_component, find_skycomponent, fit_skycomponent
 from arl.visibility_operations import create_visibility, sum_visibility
 from arl.fourier_transforms import predict_visibility, invert_visibility
@@ -22,7 +21,7 @@ from arl.fourier_transforms import predict_visibility, invert_visibility
 class TestVisibilityOperations(unittest.TestCase):
 
     def setUp(self):
-        self.params = {'wstep': 10.0, 'npixel': 512, 'cellsize':0.0002}
+        self.params = {'wstep': 10.0, 'npixel': 512, 'cellsize':0.0002, 'spectral_mode':'channel'}
 
         vlaa = filter_configuration(create_named_configuration('VLAA'), self.params)
         vlaa.data['xyz'] *= 1.0 / 30.0

@@ -149,7 +149,7 @@ def predict_visibility(vis: Visibility, sm: SkyModel, params={}) -> Visibility:
     
     vis.data['vis'] = numpy.zeros(vis.data['vis'].shape)
     
-    spectral_mode = get_parameter(params, 'spectral_mode', 'mfs')
+    spectral_mode = get_parameter(params, 'spectral_mode', 'channel')
     print('fourier_transforms.predict_visibility: spectral mode is %s' % spectral_mode)
 
     if len(sm.images):
@@ -185,7 +185,7 @@ def predict_visibility(vis: Visibility, sm: SkyModel, params={}) -> Visibility:
                                                 10000)
             predfn = lambda *x: wcachefwd(*x, wstep=wstep, wcache=wcache)
 
-            spectral_mode = get_parameter(params, 'spectral_mode', 'mfs')
+            spectral_mode = get_parameter(params, 'spectral_mode', 'channel')
             print('fourier_transforms.predict_visibility: spectral mode is %s' % spectral_mode)
             
             if spectral_mode == 'channel':
