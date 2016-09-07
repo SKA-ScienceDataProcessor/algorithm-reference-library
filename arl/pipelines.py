@@ -9,7 +9,7 @@ from arl.parameters import get_parameter
 def RCAL(params):
     """ Real-time calibration: single shot
      
-    :param params:
+    :param params: Dictiorinary containing parameters
     :return:
    """
     vis = get_parameter(params, 'visibility', None)
@@ -25,7 +25,7 @@ def RCAL(params):
 def ICAL(params):
     """ Post observation image, deconvolve, and self-calibrate
    
-    :param params:
+    :param params: Dictiorinary containing parameters
     :return:
     """
     vis = get_parameter(params, 'visibility')
@@ -42,7 +42,7 @@ def continuum_imaging(params):
     """Continuum imaging from calibrated (DDE and DIE) data
 
     
-    :param params:
+    :param params: Dictiorinary containing parameters
     :return:
     """
 
@@ -55,7 +55,7 @@ def continuum_imaging(params):
 def spectral_line_imaging(params):
     """Spectral line imaging from calibrated (DDE and DIE) data
     
-    :param params:
+    :param params: Dictiorinary containing parameters
     :return:
     """
 
@@ -68,7 +68,7 @@ def spectral_line_imaging(params):
 def fast_imaging(params):
     """Fast imaging from calibrated (DIE only) data
 
-    :param params:
+    :param params: Dictiorinary containing parameters
     :return:
     """
     
@@ -81,7 +81,7 @@ def fast_imaging(params):
 def EOR(params):
     """EOR calibration and imaging
     
-    :param params:
+    :param params: Dictiorinary containing parameters
     :return:
     """
     vis = get_parameter(params, 'visibility')

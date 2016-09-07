@@ -5,10 +5,6 @@
 
 import sys
 
-# for current func name, specify 0 or no argument.
-# for name of caller of current func, specify 1.
-# for name of caller of caller of current func, specify 2. etc.
-currentFuncName = lambda n=0: sys._getframe(n + 1).f_code.co_name
 
 def get_parameter(params, key, default=None, level=1):
     """ Get a specified named value for this (calling) function
@@ -17,10 +13,15 @@ def get_parameter(params, key, default=None, level=1):
     
     :param params: Parameter dictionary
     :param key: Key e.g. 'loop_gain'
-    :param default: Default value if not specified
-    "param level: Level in stack: 1 parent, 2 parent of parent
+    :param default: Default value
+    :param level: Level in stack for function name: 0: self, 1 parent, 2 parent of parent
     :return: result
     """
+    # for current func name, specify 0 or no argument.
+    # for name of caller of current func, specify 1.
+    # for name of caller of caller of current func, specify 2. etc.
+    currentFuncName = lambda n=0: sys._getframe(n + 1).f_code.co_name
+
     # First look at the top level
     value = default
     if key in params.keys():

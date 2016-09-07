@@ -26,7 +26,7 @@ def create_wcs_from_visibility(vis: Visibility, params={}, level=1):
     """Make a world coordinate system from params and Visibility
     
     :param vis:
-    :type Visibility:
+    :type Visibility: Visibility to be processed
     :param params: keyword=value parameters
     :param level: level in params 0 = toplevel, 1 = parent, 2 = parent of parent.
     :returns: WCS
@@ -75,7 +75,7 @@ def invert_visibility(vis: Visibility, params={}):
     """Invert to make dirty Image and PSF
 
     :param vis:
-    :type Visibility:
+    :type Visibility: Visibility to be processed
     :returns: (dirty image, psf)
     """
     print("fourier_transforms.invert_visibility: Inverting Visibility to make dirty and psf")
@@ -139,7 +139,7 @@ def predict_visibility(vis: Visibility, sm: SkyModel, params={}) -> Visibility:
     """Predict the visibility (in place) from a SkyModel
 
     :param vis:
-    :type Visibility:
+    :type Visibility: Visibility to be processed
     :param sm:
     :type SkyModel:
     :returns: Visibility
@@ -249,10 +249,10 @@ def weight_visibility(vis, im, params={}):
     """ Reweight the visibility data in place a selected algorithm
 
     :param vis:
-    :type Visibility:
+    :type Visibility: Visibility to be processed
     :param im:
     :type Image:
-    :param params:
+    :param params: Dictiorinary containing parameters
     :returns: Configuration
     """
     print("visibility_operations.weight_visibility: not yet implemented")

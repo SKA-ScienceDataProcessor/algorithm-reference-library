@@ -161,7 +161,7 @@ def solve_skymodel(vis: Visibility, sm: SkyModel, deconvolver, params={}):
     This is the same as a majorcycle.
 
     :param vis:
-    :type Visibility:
+    :type Visibility: Visibility to be processed
     :param sm:
     :type SkyModel:
     :param deconvolver: Deconvolver to be used e.g. msclean
@@ -199,7 +199,7 @@ def solve_skymodel_gains(vis: Visibility, sm: SkyModel, deconvolver, params={}):
     This is the same as self-calibration
 
     :param vis:
-    :type Visibility:
+    :type Visibility: Visibility to be processed
     :param sm:
     :type SkyModel:
     :param deconvolver: Deconvolver to be used e.g. msclean

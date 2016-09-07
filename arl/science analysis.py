@@ -17,7 +17,7 @@ def rotation_measure_synthesis(im: Image, params={}):
     """ Perform rotation measure synthesis
     
     :param im:
-    :param params:
+    :param params: Dictiorinary containing parameters
     :return:
     """
     print("science_analysis.rotation_measure_synthesis: not yet implemented")

@@ -26,7 +26,7 @@ def filter_configuration(fc: Configuration, params={}):
 
     :param fc:
     :type Configuration:
-    :param params:
+    :param params: Dictiorinary containing parameters
     :returns: Configuration
     """
     print("filter_configuration: No filter implemented yet")
@@ -109,7 +109,7 @@ def create_LOFAR_configuration(antfile: str, meta: dict = None,
     :type str:
     :param meta:
     :type dict:
-    :param params:
+    :param params: Dictiorinary containing parameters
     :returns: Configuration
     """
     fc = Configuration()

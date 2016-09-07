@@ -22,7 +22,7 @@ def solve_gains(vis: Visibility, sm: SkyModel, params={}) -> GainTable:
     """ Solve for calibration using a sky model
     
     :param vis:
-    :type Visibility:
+    :type Visibility: Visibility to be processed
     :param sm:
     :type SkyModel:
     :returns: GainTable
@@ -35,9 +35,9 @@ def solve_gains(vis: Visibility, sm: SkyModel, params={}) -> GainTable:
 def correct_visibility(vis: Visibility, gt: GainTable, params={}) -> Visibility:
     """ Correct a vistable using a GainTable
 
-    :param vis:
+    :param vis: Visibility to be processed
     :type Visibility:
-    :param gt:
+    :param gt: GainTable
     :type GainTable:
     :returns: Visibility
     """
@@ -49,7 +49,7 @@ def correct_visibility(vis: Visibility, gt: GainTable, params={}) -> Visibility:
 def peel_skycomponent(vis: Visibility, sc: SkyComponent, params={}) -> Visibility:
     """ Correct a vistable using a GainTable
 
-    :param vis:
+    :param vis: Visibility to be processed
     :type Visibility:
     :param sc:
     :type SkyComponent:

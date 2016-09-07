@@ -45,7 +45,7 @@ def create_gaintable_from_array(gain: numpy.array, time: numpy.array, antenna: n
     :type bool:
     :param meta:
     :type dict:
-    :param params:
+    :param params: Dictiorinary containing parameters
     :returns: Gaintable
     """
     if meta is None:
@@ -66,9 +66,9 @@ def create_gaintable_from_array(gain: numpy.array, time: numpy.array, antenna: n
 def interpolate_gaintable(gt: GainTable, params={}):
     """ Interpolate a GainTable to new sampling
 
-    :param gt:
+    :param gt: GainTable
     :type GainTable:
-    :param params:
+    :param params: Dictiorinary containing parameters
     :returns: Gaintable
     """
     print('"visibility_operations.interpolate_gaintable: not yet implemented')
@@ -79,14 +79,14 @@ def combine_visibility(vis1: Visibility, vis2: Visibility, w1: float = 1.0, w2: 
     """ Linear combination of two visibility sets
     
     :param vis1: Visibility set 1
-    :type Visibility:
+    :type Visibility: Visibility to be processed
     :param vis2: Visibility set 2
-    :type Visibility:
+    :type Visibility: Visibility to be processed
     :param w1: Weight of visibility set 1
     :type float:
     :param w2: Weight of visibility set 2
     :type float:
-    :param params:
+    :param params: Dictiorinary containing parameters
     :returns: Visibility
     """
     assert len(vis1.frequency) == len(vis2.frequency), "Visibility: frequencies should be the same"
@@ -113,10 +113,10 @@ def concatenate_visibility(vis1: Visibility, vis2: Visibility, params={}) -> \
     """ Concatentate the data sets in time, optionally phase rotating the second to the phasecenter of the first
     
     :param vis1:
-    :type Visibility:
+    :type Visibility: Visibility to be processed
     :param vis2:
-    :type Visibility:
-    :param params:
+    :type Visibility: Visibility to be processed
+    :param params: Dictiorinary containing parameters
     :returns: Visibility
     """
     assert len(vis1.frequency) == len(vis2.frequency), "Visibility: frequencies should be the same"
@@ -136,10 +136,10 @@ def flag_visibility(vis: Visibility, gt: GainTable = None, params={}) -> Visibil
     """ Flags a visibility set, optionally using GainTable
 
     :param vis:
-    :type Visibility:
-    :param gt:
+    :type Visibility: Visibility to be processed
+    :param gt: GainTable
     :type GainTable:
-    :param params:
+    :param params: Dictiorinary containing parameters
     :returns: Visibility
     """
     print("visibility_operations.flag_visibility: not yet implemented")
@@ -150,23 +150,12 @@ def filter_visibility(vis: Visibility, params={}) -> Visibility:
     """ Filter a visibility set
 
     :param vis:
-    :type Visibility:
-    :param params:
+    :type Visibility: Visibility to be processed
+    :param params: Dictiorinary containing parameters
     :returns: Visibility
     """
     print("visibility_operations.filter_visibility: not yet implemented")
     return vis
-
-
-def create_gaintable_from_visibility(vis: Visibility, params={}):
-    """Create an empty gaintable from a visibilty set
-
-    :param vis: Visibility to be used as template
-    :type Visibility:
-    :returns: GainTable
-    """
-    print("visibility_operations.create_gaintable_from_visibility: not yet implemented")
-    return object()
 
 
 def create_visibility(config: Configuration, times: numpy.array, freq: numpy.array, weight: float,
@@ -224,7 +213,7 @@ def phaserotate_visibility(vis: Visibility, newphasecentre: SkyCoord, params={})
     """ Phase rotate from the current phase centre to a new phase centre: works in place
     
     :param vis: Visibility to be rotated
-    :type Visibility:
+    :type Visibility: Visibility to be processed
     :returns: Visibility
     """
     pcof = newphasecentre.skyoffset_frame()
@@ -256,7 +245,7 @@ def sum_visibility(vis: Visibility, direction: SkyCoord, params={}) -> numpy.arr
     """ Direct Fourier summation in a given direction
     
     :param vis: Visibility to be summed
-    :type Visibility:
+    :type Visibility: Visibility to be processed
     :param direction: Direction of summation
     :type SkyCoord:
     :returns: flux[nch,npol], weight[nch,pol]
@@ -303,9 +292,9 @@ def de_average_visibility(vis: Visibility, vistemplate: Visibility, params={}) -
     This is the opposite of averaging - the Visibility is expanded into the template format.
     
     :param vis: Visibility to be de-averaged
-    :type Visibility:
+    :type Visibility: Visibility
     :param vistemplate: template Visibility
-    :type Visibility:
+    :type Visibility: Visibility
     :returns: Visibility after de-averaging
     """
     print("visibility_operations.de_average_visibility: not yet implemented")
@@ -315,25 +304,9 @@ def de_average_visibility(vis: Visibility, vistemplate: Visibility, params={}) -
 def aq_visibility(vis, params={}):
     """Assess the quality of an image
 
-    :param vis:
+    :param vis: Visibility to be assessed
     :type Visibility:
     :returns: AQ
     """
     print("visibility_operations.aq_visibility: not yet implemented")
     return AQ()
-
-
-if __name__ == '__main__':
-    config = create_named_configuration('VLAA')
-    times1 = numpy.arange(-3.0, 0.0, 3.0 / 60.0) * numpy.pi / 12.0
-    times2 = numpy.arange(0.0, +3.0, 3.0 / 60.0) * numpy.pi / 12.0
-    freq1 = numpy.arange(5e6, 150.0e6, 1e7)
-    freq2 = numpy.arange(6e6, 150.0e6, 1e7)
-    phasecentre1 = SkyCoord(ra='00h42m30s', dec='+41d12m00s', frame='icrs', equinox=2000.0)
-    phasecentre2 = SkyCoord(ra='04h56m10s', dec='+63d00m00s', frame='icrs', equinox=2000.0)
-    vis1 = create_visibility(config, times1, freq1, weight=1.0, phasecentre=phasecentre1)
-    vis2 = create_visibility(config, times2, freq1, weight=1.0, phasecentre=phasecentre2)
-    vissum = concatenate_visibility(vis1, vis2)
-    print(vissum.data)
-    print(vissum.frequency)
-    print(numpy.unique(vissum.data['time']))
