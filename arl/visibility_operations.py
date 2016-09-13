@@ -11,7 +11,6 @@ from astropy.table import Table, vstack
 
 from crocodile.simulate import *
 
-from arl.test_support import create_named_configuration
 from arl.data_models import *
 from arl.parameters import get_parameter
 
@@ -273,40 +272,41 @@ def sum_visibility(vis: Visibility, direction: SkyCoord, params={}) -> numpy.arr
     return flux, weight
 
 
-def average_visibility(vis: Visibility, params={}) -> Visibility:
-    """ Average visibility in time and frequency
+def coalesce_visibility(vis: Visibility, params={}) -> Visibility:
+    """ Coalesce visibilities in time and frequency according to baseline length
     
     Creates new Visibility by averaging in time and frequency
     
-    :param vis: Visibility to be averaged
+    :param vis: Visibility to be coalesced
     :type Visibility:
-    :returns: Visibility after averaging
+    :returns: Visibility after coalescing
     """
-    print("visibility_operations.average_visibility: not yet implemented")
+    print("visibility_operations.coalesce_visibility: not yet implemented")
     return vis
 
 
-def de_average_visibility(vis: Visibility, vistemplate: Visibility, params={}) -> Visibility:
-    """ De-average visibility in time and frequency i.e. replicate to template Visibility
+def de_coalesce_visibility(vis: Visibility, vistemplate: Visibility, params={}) -> Visibility:
+    """ De-coalesce visibility in time and frequency i.e. replicate to template Visibility
     
-    This is the opposite of averaging - the Visibility is expanded into the template format.
+    This is the opposite of coalescing - the Visibility is expanded into sampling independent
+    of baseline length.
     
-    :param vis: Visibility to be de-averaged
+    :param vis: Visibility to be de-coalesced
     :type Visibility: Visibility
     :param vistemplate: template Visibility
     :type Visibility: Visibility
-    :returns: Visibility after de-averaging
+    :returns: Visibility after de-coalescing
     """
-    print("visibility_operations.de_average_visibility: not yet implemented")
+    print("visibility_operations.de_coalesce_visibility: not yet implemented")
     return vis
 
 
 def aq_visibility(vis, params={}):
-    """Assess the quality of an image
+    """Assess the quality of Visibility
 
     :param vis: Visibility to be assessed
     :type Visibility:
     :returns: AQ
     """
     print("visibility_operations.aq_visibility: not yet implemented")
-    return AQ()
+    return QA()
