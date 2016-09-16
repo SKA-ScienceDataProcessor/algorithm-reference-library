@@ -4,6 +4,7 @@
 # subclasses of astropy classes.
 #
 
+from astropy.table import Table
 
 class Configuration:
     """ Describe a Configuration
@@ -83,13 +84,37 @@ class Visibility:
 
     The data column has vis:[row,nchan,npol], uvw:[row,3]
     """
-    
-    def __init__(self):
-        self.data = None            # Astropy.table with columns uvw, time, a1, a2, vis, weight
-        self.frequency = None       # numpy.array [nchan]
-        self.phasecentre = None     # Phase centre of observation
-        self.configuration = None   # Antenna/station configuration
 
+    def __init__(self, data=None, frequency=None, phasecentre=None, configuration=None,
+                 uvw=None, time=None, a1=None, a2=None, vis=None, weight=None):
+
+        if data is None and not vis is None:
+            data = Table(      [ uvw,   time,   a1,   a2,   vis,   weight],
+                         names=['uvw', 'time', 'a1', 'a2', 'vis', 'weight'])
+
+        self.data = data            # Astropy.table with columns uvw, time, a1, a2, vis, weight
+        self.frequency = frequency  # numpy.array [nchan]
+        self.phasecentre = phasecentre # Phase centre of observation
+        self.configuration = configuration # Antenna/station configuration
+
+    @property
+    def uvw(self): return self.data['uvw']
+    @property
+    def u(self):   return self.data['uvw'][:,0]
+    @property
+    def v(self):   return self.data['uvw'][:,1]
+    @property
+    def w(self):   return self.data['uvw'][:,2]
+    @property
+    def time(self): return self.data['time']
+    @property
+    def a1(self):  return self.data['a1']
+    @property
+    def a2(self):  return self.data['a2']
+    @property
+    def vis(self): return self.data['vis']
+    @property
+    def weight(self): return self.data['weight']
 
 class QA:
     """

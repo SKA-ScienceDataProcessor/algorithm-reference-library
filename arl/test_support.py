@@ -12,14 +12,17 @@ import os
 import numpy
 
 import astropy.units as units
-from astropy.coordinates import EarthLocation
+from astropy.coordinates import SkyCoord, ICRS, EarthLocation
 from astropy.table import Table, Column, vstack
 from astropy.wcs import WCS
+from astropy import units
 
 from crocodile.simulate import *
 
 from arl.data_models import *
 from arl.image_operations import import_image_from_fits, add_wcs_to_image
+
+from util.read_oskar_vis import OskarVis
 
 def filter_configuration(fc: Configuration, params={}):
     """ Filter a configuration e.g. remove certain antennas
@@ -175,6 +178,32 @@ def export_visibility_to_ms(vis: Visibility, msfile: str = None, params={}) -> V
     :returns: Visibility
     """
     print('test_support.visibility_from_ms: not yet implemented')
+
+def import_visibility_from_oskar(oskar_file: str, params={}) -> Visibility:
+    """ Import a visibility set from a measurement set
+
+    :param oskar_file: Name of OSKAR visibility file
+    :type str:
+    :returns: Visibility
+    """
+
+    # Extract data from Oskar file
+    oskar_vis = OskarVis(oskar_file)
+    ra,dec = oskar_vis.phase_centre()
+    a1,a2 = oskar_vis.stations(flatten=True)
+
+    # Construct visibilities
+    return Visibility(
+        frequency     = [oskar_vis.frequency(i) for i in range(oskar_vis.num_channels)],
+        phasecentre   = SkyCoord(ICRS, ra=ra, dec=dec, unit=units.deg),
+        configuration = None, # ?
+        uvw           = numpy.transpose(oskar_vis.uvw(flatten=True)),
+        time          = oskar_vis.times(flatten=True),
+        a1            = a1,
+        a2            = a2,
+        vis           = oskar_vis.amplitudes(flatten=True),
+        weight        = numpy.ones(a1.shape))
+
 
 def create_test_image(canonical=True):
     """Create a useful test image
