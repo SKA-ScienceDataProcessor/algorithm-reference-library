@@ -5,17 +5,36 @@
 #
 
 from astropy.table import Table
+import numpy
 
 class Configuration:
     """ Describe a Configuration
     
     """
     
-    def __init__(self):
-        self.name = ''
-        self.data = None
-        self.location = None
+    def __init__(self, name='', data=None, location=None,
+                 names="%s", xyz=None, mount="alt-az"):
 
+        # Defaults
+        if data is None and not xyz is None:
+            nants = xyz.shape[0]
+            if isinstance(names, str):
+                names = [names % ant for ant in range(nants)]
+            if isinstance(mount, str):
+                mount = numpy.repeat(mount, nants)
+            data = Table(      [ names,   xyz,   mount],
+                         names=['names', 'xyz', 'mount'])
+
+        self.name = name
+        self.data = data
+        self.location = location
+
+    @property
+    def names(self): return self.data['names']
+    @property
+    def xyz(self): return self.data['xyz']
+    @property
+    def mount(self): return self.data['mount']
 
 class GainTable:
     """ Gain table with data: time, antenna, gain[:,chan,pol] columns

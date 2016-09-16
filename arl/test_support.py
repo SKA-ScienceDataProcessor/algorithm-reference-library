@@ -192,11 +192,24 @@ def import_visibility_from_oskar(oskar_file: str, params={}) -> Visibility:
     ra,dec = oskar_vis.phase_centre()
     a1,a2 = oskar_vis.stations(flatten=True)
 
+    # Make configuration
+    location = EarthLocation(lon = oskar_vis.telescope_lon,
+                             lat = oskar_vis.telescope_lat,
+                             height = oskar_vis.telescope_alt)
+    antxyz = numpy.transpose([oskar_vis.station_x,
+                              oskar_vis.station_y,
+                              oskar_vis.station_z])
+    config = Configuration(
+        name     = oskar_vis.telescope_path,
+        location = location,
+        xyz      = antxyz
+    )
+
     # Construct visibilities
     return Visibility(
         frequency     = [oskar_vis.frequency(i) for i in range(oskar_vis.num_channels)],
-        phasecentre   = SkyCoord(ICRS, ra=ra, dec=dec, unit=units.deg),
-        configuration = None, # ?
+        phasecentre   = SkyCoord(frame=ICRS, ra=ra, dec=dec, unit=units.deg),
+        configuration = config,
         uvw           = numpy.transpose(oskar_vis.uvw(flatten=True)),
         time          = oskar_vis.times(flatten=True),
         a1            = a1,

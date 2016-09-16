@@ -4,7 +4,7 @@ import numpy
 from numpy.testing import assert_allclose
 
 from arl.skymodel_operations import SkyComponent, create_skycomponent
-from arl.test_support import create_named_configuration
+from arl.test_support import create_named_configuration, import_visibility_from_oskar
 from arl.image_operations import add_image, create_image_from_array, import_image_from_fits
 from arl.skymodel_operations import create_skymodel_from_image, add_component_to_skymodel
 from arl.visibility_operations import Visibility, create_visibility, create_gaintable_from_array
@@ -62,12 +62,17 @@ class TestDataModels(unittest.TestCase):
         times = numpy.arange(-3.0, +3.0, 3.0 / 60.0) * numpy.pi / 12.0
         freq = numpy.arange(5e6, 150.0e6, 1e7)
         direction = SkyCoord('00h42m30s', '-41d12m00s', frame='icrs')
-        vis = Visibility()
         vis = create_visibility(config, times, freq, weight=1.0, phasecentre=direction)
         print(vis.data)
         print(vis.frequency)
-        assert len(numpy.unique(vis.data['time'])) == len(times)
+        self.assertEqual(len(numpy.unique(vis.data['time'])), len(times))
 
+    def test_visibility_from_oskar(self):
+        for oskar_file in ["./data/vis/vla_1src_6h/test_vla.vis",
+                           "./data/vis/vla_grid_6h/test_vla.vis"]:
+            vis = import_visibility_from_oskar(oskar_file)
+            self.assertEqual(len(numpy.unique(vis.a1))+1, len(vis.configuration.xyz))
+            self.assertEqual(len(numpy.unique(vis.a2))+1, len(vis.configuration.xyz))
 
 if __name__ == '__main__':
     unittest.main()

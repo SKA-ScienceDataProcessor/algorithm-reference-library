@@ -335,6 +335,15 @@ class OskarVis(OskarBinary):
         self._phase_centre = vis_header[self.VisHeader.PhaseCentre][0]['data']
         self._cross_correlation = vis_header[self.VisHeader.FlagCrossCorrelation][0]['data']
         self._auto_correlation = vis_header[self.VisHeader.FlagAutoCorrelation][0]['data']
+
+        self.telescope_path = vis_header[self.VisHeader.TelescopePath][0]['data'].tostring().decode()[:-1]
+        self.telescope_lon = vis_header[self.VisHeader.TelescopeLon][0]['data']
+        self.telescope_lat = vis_header[self.VisHeader.TelescopeLat][0]['data']
+        self.telescope_alt = vis_header[self.VisHeader.TelescopeAlt][0]['data']
+        self.station_x = vis_header[self.VisHeader.StationX][0]['data']
+        self.station_y = vis_header[self.VisHeader.StationY][0]['data']
+        self.station_z = vis_header[self.VisHeader.StationZ][0]['data']
+
         #
         # block_dims = self.data[self.Group.VisBlock][self.VisBlock.Dims]
         # for index in block_dims:
@@ -447,13 +456,10 @@ class OskarVis(OskarBinary):
         assert self._cross_correlation, \
             "Reading non-cross-correlation data not fully supported yet!"
 
-        # Order according to documentation is 0-1, 0-2, 0-3... 1-2,
-        # 1-3...  Auto-correlation isn't specified, but I guess we
-        # simply add 0-0, 1-1 etc in the appropriate place.
-        ac = 1-int(self._auto_correlation)
+        # Order according to documentation is 0-1, 0-2, 0-3... 1-2, ...
         station1 = numpy.repeat(numpy.arange(self.num_stations),
-                                self.num_stations - ac - numpy.arange(self.num_stations))
-        station2 = numpy.hstack([numpy.arange(start+ac, self.num_stations)
+                                self.num_stations-1 - numpy.arange(self.num_stations))
+        station2 = numpy.hstack([numpy.arange(start+1, self.num_stations)
                                  for start in numpy.arange(self.num_stations)])
         # Tile in one or two dimensions depending on whether we want a
         # flat result
