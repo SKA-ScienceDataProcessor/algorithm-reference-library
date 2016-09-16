@@ -98,7 +98,7 @@ def combine_visibility(vis1: Visibility, vis2: Visibility, w1: float = 1.0, w2: 
     vis.data['weight'] = w1 * vis1.data['weight'] + w2 * vis1.data['weight']
     vis.data['vis'][vis.data['weight'] > 0.0] = vis.data['vis'][vis.data['weight'] > 0.0] / \
                                                 vis.data['weight'][vis.data['weight'] > 0.0]
-    vis.data['vis'][vis.data['weight'] > 0.0] = 0.0
+    vis.data['vis'][vis.data['weight'] <= 0.0] = 0.0
     vis.phasecentre = vis1.phasecentre
     vis.frequency = vis1.frequency
     vis.data['uvw'] = vis1.data['uvw']
