@@ -42,7 +42,7 @@ Changes
 """
 
 import numpy
-
+from astropy.coordinates import SkyCoord, CartesianRepresentation
 
 # ---------------------------------------------------------------------------------
 
@@ -131,6 +131,28 @@ def xyz_to_baselines(ants_xyz, ha_range, dec):
     dist_uvw = numpy.concatenate([baselines(xyz_to_uvw(ants_xyz, hax, dec)) for hax in ha_range])
     return dist_uvw
 
+# ---------------------------------------------------------------------------------
+
+def skycoord_to_lmn(pos: SkyCoord, phasecentre: SkyCoord):
+    """
+    Convert astropy sky coordinates into the l,m,n coordinate system
+    relative to a phase centre.
+
+    The l,m,n is a RHS coordinate system with
+    * its origin on the sky sphere
+    * m,n and the celestial north on the same plane
+    * l,m a tangential plane of the sky sphere
+
+    Note that this means that l increases east-wards
+    """
+
+    # Determine relative sky position
+    todc = pos.transform_to(phasecentre.skyoffset_frame())
+    dc = todc.represent_as(CartesianRepresentation)
+
+    # Do coordinate transformation - astropy's relative coordinates do
+    # not quite follow imaging conventions
+    return dc.y, dc.z, dc.x-1
 
 # ---------------------------------------------------------------------------------
 

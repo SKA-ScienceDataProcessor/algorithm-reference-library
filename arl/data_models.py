@@ -5,6 +5,7 @@
 #
 
 from astropy.table import Table
+from astropy import constants as const
 import numpy
 
 class Configuration:
@@ -136,6 +137,10 @@ class Visibility:
     def vis(self): return self.data['vis']
     @property
     def weight(self): return self.data['weight']
+
+    def uvw_lambda(self, channel=0):
+        """ Calculates baseline coordinates in wavelengths. """
+        return self.data['uvw'] * (self.frequency[channel] / const.c).value
 
 class QA:
     """
