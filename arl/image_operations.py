@@ -11,7 +11,7 @@ import matplotlib.pyplot as plt
 from astropy.io import fits
 from astropy.wcs import WCS
 
-from reproject import reproject_interp
+# from reproject import reproject_interp
 
 from arl.data_models import *
 from arl.parameters import get_parameter
