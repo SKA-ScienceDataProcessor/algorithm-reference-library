@@ -215,8 +215,8 @@ def import_visibility_from_oskar(oskar_file: str, params={}) -> Visibility:
         configuration = config,
         uvw           = numpy.transpose(oskar_vis.uvw(flatten=True)),
         time          = oskar_vis.times(flatten=True),
-        a1            = a1,
-        a2            = a2,
+        antenna1      = a1,
+        antenna2      = a2,
         vis           = oskar_vis.amplitudes(flatten=True),
         weight        = numpy.ones(a1.shape))
 

@@ -105,11 +105,13 @@ class Visibility:
     """
 
     def __init__(self, data=None, frequency=None, phasecentre=None, configuration=None,
-                 uvw=None, time=None, a1=None, a2=None, vis=None, weight=None):
+                 uvw=None, time=None, antenna1=None, antenna2=None, vis=None, weight=None):
 
         if data is None and not vis is None:
-            data = Table(      [ uvw,   time,   a1,   a2,   vis,   weight],
-                         names=['uvw', 'time', 'a1', 'a2', 'vis', 'weight'])
+            data = Table({ 'uvw': uvw, 'time': time,
+                           'antenna1': antenna1, 'antenna2': antenna2,
+                           'vis': vis, 'weight': weight
+                        })
 
         self.data = data            # Astropy.table with columns uvw, time, a1, a2, vis, weight
         self.frequency = frequency  # numpy.array [nchan]
@@ -127,9 +129,9 @@ class Visibility:
     @property
     def time(self): return self.data['time']
     @property
-    def a1(self):  return self.data['a1']
+    def antenna1(self): return self.data['antenna1']
     @property
-    def a2(self):  return self.data['a2']
+    def antenna2(self): return self.data['antenna2']
     @property
     def vis(self): return self.data['vis']
     @property
