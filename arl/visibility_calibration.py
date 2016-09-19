@@ -13,6 +13,9 @@ from arl.fourier_transforms import predict_visibility
 from arl.data_models import *
 from arl.parameters import get_parameter
 
+import logging
+log = logging.getLogger("arl.visibility_calibration")
+
 """
 Functions that either solve_gains for the calibration or apply it. On solution the gains are written into a gaintable. For
 correction, the gaintable is read and, if necessary, interpolated.
@@ -28,7 +31,7 @@ def solve_gains(vis: Visibility, sm: SkyModel, params={}) -> GainTable:
     :returns: GainTable
     """
     #TODO: Implement calibration solution
-    print("visibility_calibration.solve_gains: not yet implemented")
+    log.error("visibility_calibration.solve_gains: not yet implemented")
     return GainTable()
 
 
@@ -42,7 +45,7 @@ def correct_visibility(vis: Visibility, gt: GainTable, params={}) -> Visibility:
     :returns: Visibility
     """
     # TODO: Implement calibration application
-    print("visibility_calibration.correct_visibility: not yet implemented")
+    log.error("visibility_calibration.correct_visibility: not yet implemented")
     return vis
 
 
@@ -56,7 +59,7 @@ def peel_skycomponent(vis: Visibility, sc: SkyComponent, params={}) -> Visibilit
     :returns: Visibility, GainTable
     """
     # TODO: Implement peeling
-    print("visibility_calibration.peel_skycomponent: not yet implemented")
+    log.error("visibility_calibration.peel_skycomponent: not yet implemented")
     return vis
 
 
@@ -67,7 +70,7 @@ def qa_gaintable(gt, params={}):
     :type GainTable:
     :returns: AQ
     """
-    print("visibility_calibration.qa_gaintable: not yet implemented")
+    log.error("visibility_calibration.qa_gaintable: not yet implemented")
     return QA()
 
 
@@ -76,7 +79,7 @@ if __name__ == '__main__':
     from arl.image_operations import import_image_from_fits, replicate_image
 
     os.chdir('../')
-    print(os.getcwd())
+    log.debug(os.getcwd())
 
     kwargs = {'wstep': 100.0}
 
@@ -86,10 +89,10 @@ if __name__ == '__main__':
     frequency = numpy.arange(1.0e8, 1.60e8, 1e7)
     direction = SkyCoord('00h42m30s', '-41d12m00s', frame='icrs')
     vis = create_visibility(vlaa, times, frequency, weight=1.0, phasecentre=direction)
-    print(vis.data)
-    print(vis.frequency)
+    log.debug(vis.data)
+    log.debug(vis.frequency)
     m31image = import_image_from_fits("data/models/m31.MOD")
-    print("Max, min in m31 Image = %.6f, %.6f" % (m31image.data.max(), m31image.data.min()))
+    log.debug("Max, min in m31 Image = %.6f, %.6f" % (m31image.data.max(), m31image.data.min()))
     m31imagerep = replicate_image(m31image, shape=[1, 1, 1, len(frequency)])
     m31sm = create_skymodel_from_image(m31imagerep)
     vispred = create_visibility(vlaa, times, frequency, weight=1.0, phasecentre=direction)

@@ -5,12 +5,15 @@ realtimcornwell@gmail.com
 import unittest
 
 import os
+import sys
 import numpy
 from numpy.testing import assert_allclose
 
 from arl.image_operations import *
 from arl.test_support import replicate_image
 
+import logging
+log = logging.getLogger("tests.TestImag")
 
 class TestImage(unittest.TestCase):
 
@@ -30,12 +33,12 @@ class TestImage(unittest.TestCase):
         try:
             m31modelsum = add_image(self.m31image, m31model_by_array, checkwcs=True)
         except:
-            print("Image: correctly failed on checkwcs=True")
+            log.debug("Image: correctly failed on checkwcs=True")
             pass
         m31modelsum = add_image(self.m31image, m31model_by_array)
-        print(self.m31image.data.shape)
-        print(self.m31image.wcs)
-        print(export_image_to_fits(self.m31image, fitsfile='temp.fits'))
+        log.debug(self.m31image.data.shape)
+        log.debug(self.m31image.wcs)
+        log.debug(export_image_to_fits(self.m31image, fitsfile='temp.fits'))
 
     def test_reproject(self):
         # Reproject an image
@@ -53,4 +56,6 @@ class TestImage(unittest.TestCase):
         export_image_to_fits(footprint, fitsfile='reproject_footprint.fits')
 
 if __name__ == '__main__':
+    log.setLevel(logging.DEBUG)
+    log.addHandler(logging.StreamHandler(sys.stdout))
     unittest.main()

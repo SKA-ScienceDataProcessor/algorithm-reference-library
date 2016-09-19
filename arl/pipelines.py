@@ -6,6 +6,9 @@ from arl.visibility_calibration import solve_gains, qa_gaintable
 from arl.quality_assessment import QA
 from arl.parameters import get_parameter
 
+import logging
+log = logging.getLogger("arl.pipelines")
+
 def RCAL(params):
     """ Real-time calibration: single shot
      
@@ -18,7 +21,7 @@ def RCAL(params):
     gains = solve_gains(vis, sm, params)
     qa = qa_gaintable(gains)
     if qa:
-        print("pipelines.RCAL: Solution good")
+        log.info("pipelines.RCAL: Solution good")
     return qa
 
 
@@ -34,7 +37,7 @@ def ICAL(params):
     gains = solve_gains(vis, sm, params)
     qa = qa_gaintable(gains)
     if qa:
-        print("pipelines.ICAL: Solution good")
+        log.info("pipelines.ICAL: Solution good")
     return qa
 
 
