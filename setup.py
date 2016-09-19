@@ -1,6 +1,9 @@
 #!/usr/bin/env python
 
-from distutils.core import setup
+from setuptools import setup
+import os
+
+os.environ['CROCODILE'] = os.getcwd()
 
 setup(name='crocodile',
       version='0.3',
@@ -11,4 +14,6 @@ setup(name='crocodile',
       url='https://github.com/SKA-ScienceDataProcessor/crocodile',
       license='Apache License Version 2.0',
       packages=['crocodile', 'arl', 'examples', 'tests'],
+      test_suite="tests",
+      tests_require=['pytest'],
       )
