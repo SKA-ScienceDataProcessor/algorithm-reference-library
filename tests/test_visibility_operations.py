@@ -52,4 +52,9 @@ class TestVisibilityOperations(unittest.TestCase):
         assert_allclose(self.flux, summedflux , rtol=1e-7)
 
 if __name__ == '__main__':
+    import sys
+    import logging
+    log = logging.getLogger()
+    log.setLevel(logging.DEBUG)
+    log.addHandler(logging.StreamHandler(sys.stdout))
     unittest.main()

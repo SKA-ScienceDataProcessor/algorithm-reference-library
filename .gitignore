@@ -3,6 +3,7 @@
 /.idea
 /.cproject
 /.project
+/.eggs
 
 *.pyc
 /build

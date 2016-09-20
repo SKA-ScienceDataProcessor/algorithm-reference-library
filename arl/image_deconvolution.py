@@ -12,6 +12,8 @@ from arl.image_operations import create_image_from_array
 from arl.data_models import *
 from arl.parameters import get_parameter
 
+import logging
+log = logging.getLogger("arl.image_deconvolution")
 
 def deconvolve_cube(dirty: Image, psf: Image, params={}):
     """ Clean using a variety of algorithms
@@ -49,12 +51,12 @@ def deconvolve_cube(dirty: Image, psf: Image, params={}):
         for channel in range(dirty.data.shape[0]):
             for pol in range(dirty.data.shape[1]):
                 if psf.data[channel, pol, :, :].max():
-                    print("clean.clean: Processing pol %d, channel %d" % (pol, channel))
+                    log.debug("clean.clean: Processing pol %d, channel %d" % (pol, channel))
                     comp_array[channel, pol, :, :], residual_array[channel, pol, :, :] = \
                        msclean(dirty.data[channel, pol, :, :], psf.data[channel, pol, :, :],
                                 window, gain, thresh, niter, scales, fracthresh)
                 else:
-                    print("image_deconvolution.clean: Skipping pol %d, channel %d" % (pol, channel))
+                    log.debug("image_deconvolution.clean: Skipping pol %d, channel %d" % (pol, channel))
     elif algorithm == 'hogbom':
 
         window = get_parameter(params, 'window', None)
@@ -72,12 +74,12 @@ def deconvolve_cube(dirty: Image, psf: Image, params={}):
         for channel in range(dirty.data.shape[0]):
             for pol in range(dirty.data.shape[1]):
                 if psf.data[channel, pol, :, :].max():
-                    print("clean.clean: Processing pol %d, channel %d" % (pol, channel))
+                    log.debug("clean.clean: Processing pol %d, channel %d" % (pol, channel))
                     comp_array[channel, pol, :, :], residual_array[channel, pol, :, :] = \
                         hogbom(dirty.data[channel, pol, :, :], psf.data[channel, pol, :, :],
                                window, gain, thresh, niter)
                 else:
-                    print("image_deconvolution.clean: Skipping pol %d, channel %d" % (pol, channel))
+                    log.debug("image_deconvolution.clean: Skipping pol %d, channel %d" % (pol, channel))
     else:
         raise ValueError('image_deconvolution: Unknown algorithm %s' % algorithm)
 
@@ -96,7 +98,7 @@ def restore_cube(dirty: Image, clean: Image, psf: Image, params={}):
     :param params: 'algorithm': 'msclean'|'hogbom', 'gain': loop gain (float)
     :returns: restored image
     """
-    print("image_deconvolution.restore_image: not yet implemented")
+    log.error("image_deconvolution.restore_image: not yet implemented")
     return Image()
 
 
@@ -117,7 +119,7 @@ def deconvolve_mfs(dirty: Image, psf: Image, params={}):
     :param params: 'algorithm': 'msclean'|'hogbom', 'gain': loop gain (float)
     :returns: componentimage, residual
     """
-    print("deconvolve_image.deconvolve_mfs: not yet implemented")
+    log.error("deconvolve_image.deconvolve_mfs: not yet implemented")
     return Image()
 
 
@@ -133,5 +135,5 @@ def restore_mfs(dirty: Image, clean: Image, psf: Image, params={}):
     :param params: 'algorithm': 'msclean'|'hogbom', 'gain': loop gain (float)
     :returns: restored image
     """
-    print("deconvolve_image.restore_mfs: not yet implemented")
+    log.error("deconvolve_image.restore_mfs: not yet implemented")
     return Image()

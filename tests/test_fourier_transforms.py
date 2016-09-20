@@ -17,6 +17,9 @@ from arl.skymodel_operations import create_skymodel_from_component, find_skycomp
 from arl.visibility_operations import create_visibility, sum_visibility
 from arl.fourier_transforms import predict_visibility, invert_visibility
 
+import logging
+log = logging.getLogger( "tests.test_fourier_transforms" )
+
 
 class TestFourierTransforms(unittest.TestCase):
 
@@ -57,10 +60,10 @@ class TestFourierTransforms(unittest.TestCase):
         # Check that the flux at the peak is as expected
         self.dirty, self.psf, sumwt = invert_visibility(self.vismodel, self.params)
         export_image_to_fits(self.dirty, 'test_imaging_dirty.fits')
-        print("Max, min in dirty Image = %.6f, %.6f, sum of weights = %f" %
-              (self.dirty.data.max(), self.dirty.data.min(), sumwt))
-        print("Max, min in PSF         = %.6f, %.6f, sum of weights = %f" %
-              (self.psf.data.max(), self.psf.data.min(), sumwt))
+        log.debug("Max, min in dirty Image = %.6f, %.6f, sum of weights = %f" %
+                  (self.dirty.data.max(), self.dirty.data.min(), sumwt))
+        log.debug("Max, min in PSF         = %.6f, %.6f, sum of weights = %f" %
+                  (self.psf.data.max(), self.psf.data.min(), sumwt))
         # Find the peak
         # Check that the returned component is correct
         newcomp = find_skycomponent(self.dirty)
@@ -76,4 +79,9 @@ class TestFourierTransforms(unittest.TestCase):
         assert_allclose(self.flux, newcomp.flux, rtol=0.05)
 
 if __name__ == '__main__':
+    import sys
+    import logging
+    log = logging.getLogger()
+    log.setLevel(logging.DEBUG)
+    log.addHandler(logging.StreamHandler(sys.stdout))
     unittest.main()

@@ -4,6 +4,8 @@ import unittest
 import numpy as np
 from numpy.testing import assert_allclose
 
+from astropy.coordinates import SkyCoord
+from astropy import units as u
 
 class TestCoordinates(unittest.TestCase):
     def test_xyz_at_latitude(self):
@@ -113,6 +115,23 @@ class TestCoordinates(unittest.TestCase):
         vis = simulate_point(bls, -0.5, -0.5)
         assert_allclose(vis, bl_even)
 
+    def test_skycoord_to_lmn(self):
+        center = SkyCoord(ra=  0, dec=  0, unit=u.deg)
+        north  = SkyCoord(ra=  0, dec= 90, unit=u.deg)
+        south  = SkyCoord(ra=  0, dec=-90, unit=u.deg)
+        east   = SkyCoord(ra= 90, dec=  0, unit=u.deg)
+        west   = SkyCoord(ra=-90, dec=  0, unit=u.deg)
+        assert_allclose(skycoord_to_lmn(center, center), ( 0, 0, 0))
+        assert_allclose(skycoord_to_lmn(north,  center), ( 0, 1,-1))
+        assert_allclose(skycoord_to_lmn(south,  center), ( 0,-1,-1))
+        assert_allclose(skycoord_to_lmn(south,  north),  ( 0, 0,-2), atol=1e-14)
+        assert_allclose(skycoord_to_lmn(east,   center), ( 1, 0,-1))
+        assert_allclose(skycoord_to_lmn(west,   center), (-1, 0,-1))
+        assert_allclose(skycoord_to_lmn(center, west),   ( 1, 0,-1))
+        assert_allclose(skycoord_to_lmn(north,  west),   ( 0, 1,-1), atol=1e-14)
+        assert_allclose(skycoord_to_lmn(south,  west),   ( 0,-1,-1), atol=1e-14)
+        assert_allclose(skycoord_to_lmn(north,  east),   ( 0, 1,-1), atol=1e-14)
+        assert_allclose(skycoord_to_lmn(south,  east),   ( 0,-1,-1), atol=1e-14)
 
 if __name__ == '__main__':
     unittest.main()

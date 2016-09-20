@@ -11,11 +11,13 @@ import matplotlib.pyplot as plt
 from astropy.io import fits
 from astropy.wcs import WCS
 
-from reproject import reproject_interp
+# from reproject import reproject_interp
 
 from arl.data_models import *
 from arl.parameters import get_parameter
 
+import logging
+log = logging.getLogger( "arl.image_operations" )
 
 def create_image_from_array(data: numpy.array, wcs: WCS = None) -> Image:
     """ Create an image from an array
@@ -60,7 +62,7 @@ def import_image_from_fits(fitsfile: str):
     fim.data = hdulist[0].data
     fim.wcs = WCS(fitsfile)
     hdulist.close()
-    print("image_operations.import_image_from_fits: Max, min in %s = %.6f, %.6f" % (fitsfile, fim.data.max(), fim.data.min()))
+    log.debug("image_operations.import_image_from_fits: Max, min in %s = %.6f, %.6f" % (fitsfile, fim.data.max(), fim.data.min()))
     return fim
 
 
@@ -101,7 +103,7 @@ def fft_image(im: Image, params={}):
     :type Image:
     :returns: Image
     """
-    print("image_operations.fft_image: not yet implemented")
+    log.error("image_operations.fft_image: not yet implemented")
     
     return im
 
@@ -128,7 +130,7 @@ def aq_image(im, params={}):
     :type Image:
     :returns: QA
     """
-    print("image_operations.aq_image: not yet implemented")
+    log.error("image_operations.aq_image: not yet implemented")
     return QA()
 
 
@@ -148,7 +150,7 @@ def show_image(im: Image, fig=None, title: str = ''):
     fig.add_subplot(111, projection=im.wcs.sub(['longitude', 'latitude']))
     plt.clf()
     if len(im.data.shape) == 4:
-        print(im.data[0, 0, :, :])
+        log.debug(im.data[0, 0, :, :])
         plt.imshow(im.data[0, 0, :, :], origin='lower', cmap='rainbow')
     elif len(im.data.shape) == 2:
         plt.imshow(im.data[:, :], origin='lower', cmap='rainbow')

@@ -4,17 +4,38 @@
 # subclasses of astropy classes.
 #
 
+from astropy.table import Table
+from astropy import constants as const
+import numpy
 
 class Configuration:
     """ Describe a Configuration
     
     """
     
-    def __init__(self):
-        self.name = ''
-        self.data = None
-        self.location = None
+    def __init__(self, name='', data=None, location=None,
+                 names="%s", xyz=None, mount="alt-az"):
 
+        # Defaults
+        if data is None and not xyz is None:
+            nants = xyz.shape[0]
+            if isinstance(names, str):
+                names = [names % ant for ant in range(nants)]
+            if isinstance(mount, str):
+                mount = numpy.repeat(mount, nants)
+            data = Table(      [ names,   xyz,   mount],
+                         names=['names', 'xyz', 'mount'])
+
+        self.name = name
+        self.data = data
+        self.location = location
+
+    @property
+    def names(self): return self.data['names']
+    @property
+    def xyz(self): return self.data['xyz']
+    @property
+    def mount(self): return self.data['mount']
 
 class GainTable:
     """ Gain table with data: time, antenna, gain[:,chan,pol] columns
@@ -83,13 +104,43 @@ class Visibility:
 
     The data column has vis:[row,nchan,npol], uvw:[row,3]
     """
-    
-    def __init__(self):
-        self.data = None            # Astropy.table with columns uvw, time, a1, a2, vis, weight
-        self.frequency = None       # numpy.array [nchan]
-        self.phasecentre = None     # Phase centre of observation
-        self.configuration = None   # Antenna/station configuration
 
+    def __init__(self, data=None, frequency=None, phasecentre=None, configuration=None,
+                 uvw=None, time=None, antenna1=None, antenna2=None, vis=None, weight=None):
+
+        if data is None and not vis is None:
+            data = Table({ 'uvw': uvw, 'time': time,
+                           'antenna1': antenna1, 'antenna2': antenna2,
+                           'vis': vis, 'weight': weight
+                        })
+
+        self.data = data            # Astropy.table with columns uvw, time, a1, a2, vis, weight
+        self.frequency = frequency  # numpy.array [nchan]
+        self.phasecentre = phasecentre # Phase centre of observation
+        self.configuration = configuration # Antenna/station configuration
+
+    @property
+    def uvw(self): return self.data['uvw']
+    @property
+    def u(self):   return self.data['uvw'][:,0]
+    @property
+    def v(self):   return self.data['uvw'][:,1]
+    @property
+    def w(self):   return self.data['uvw'][:,2]
+    @property
+    def time(self): return self.data['time']
+    @property
+    def antenna1(self): return self.data['antenna1']
+    @property
+    def antenna2(self): return self.data['antenna2']
+    @property
+    def vis(self): return self.data['vis']
+    @property
+    def weight(self): return self.data['weight']
+
+    def uvw_lambda(self, channel=0):
+        """ Calculates baseline coordinates in wavelengths. """
+        return self.data['uvw'] * (self.frequency[channel] / const.c).value
 
 class QA:
     """

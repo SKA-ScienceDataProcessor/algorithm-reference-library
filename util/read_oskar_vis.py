@@ -329,6 +329,21 @@ class OskarVis(OskarBinary):
         self.num_blocks = int(numpy.ceil(float(self.num_times) /
                                          self.block_length))
         self.pol_type = vis_header[self.VisHeader.PolarisationType][0]['data']
+        self._start_time = vis_header[self.VisHeader.StartTime][0]['data']
+        self._time_interval = vis_header[self.VisHeader.TimeInterval][0]['data']
+        self._phase_centre_type = vis_header[self.VisHeader.PhaseCentreCoordType][0]['data']
+        self._phase_centre = vis_header[self.VisHeader.PhaseCentre][0]['data']
+        self._cross_correlation = vis_header[self.VisHeader.FlagCrossCorrelation][0]['data']
+        self._auto_correlation = vis_header[self.VisHeader.FlagAutoCorrelation][0]['data']
+
+        self.telescope_path = vis_header[self.VisHeader.TelescopePath][0]['data'].tostring().decode()[:-1]
+        self.telescope_lon = vis_header[self.VisHeader.TelescopeLon][0]['data']
+        self.telescope_lat = vis_header[self.VisHeader.TelescopeLat][0]['data']
+        self.telescope_alt = vis_header[self.VisHeader.TelescopeAlt][0]['data']
+        self.station_x = vis_header[self.VisHeader.StationX][0]['data']
+        self.station_y = vis_header[self.VisHeader.StationY][0]['data']
+        self.station_z = vis_header[self.VisHeader.StationZ][0]['data']
+
         #
         # block_dims = self.data[self.Group.VisBlock][self.VisBlock.Dims]
         # for index in block_dims:
@@ -427,6 +442,35 @@ class OskarVis(OskarBinary):
             else:
                 raise RuntimeError('Unexpected polarisation type.')
         return amp
+
+    def times(self, flatten=False):
+        """ Returns visibility times in MDJ UTC """
+        time_interval_mjd = self._time_interval / (3600.0 * 24.0)
+        times = self._start_time + time_interval_mjd * numpy.arange(self.num_times)
+        if flatten:
+            return numpy.repeat(times, int(self.num_baselines))
+        else:
+            return numpy.transpose(numpy.tile(times, (int(self.num_baselines), 1)))
+
+    def stations(self, flatten=False):
+        assert self._cross_correlation, \
+            "Reading non-cross-correlation data not fully supported yet!"
+
+        # Order according to documentation is 0-1, 0-2, 0-3... 1-2, ...
+        station1 = numpy.repeat(numpy.arange(self.num_stations),
+                                self.num_stations-1 - numpy.arange(self.num_stations))
+        station2 = numpy.hstack([numpy.arange(start+1, self.num_stations)
+                                 for start in numpy.arange(self.num_stations)])
+        # Tile in one or two dimensions depending on whether we want a
+        # flat result
+        tiles = (int(self.num_times) if flatten else [int(self.num_times), 1])
+        return numpy.tile(station1, tiles), numpy.tile(station2, tiles)
+
+    def phase_centre(self, flatten=False):
+        """ Returns RA and DEC of the phase centre in degrees """
+        assert self._phase_centre_type == 0, \
+            "Unknown phase centre type %d!" % self._phase_centre_type
+        return (self._phase_centre[0], self._phase_centre[1])
 
     def frequency(self, channel=0):
         group = self.Group.VisHeader

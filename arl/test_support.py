@@ -12,14 +12,20 @@ import os
 import numpy
 
 import astropy.units as units
-from astropy.coordinates import EarthLocation
+from astropy.coordinates import SkyCoord, ICRS, EarthLocation
 from astropy.table import Table, Column, vstack
 from astropy.wcs import WCS
+from astropy import units
 
 from crocodile.simulate import *
 
 from arl.data_models import *
 from arl.image_operations import import_image_from_fits, add_wcs_to_image
+
+from util.read_oskar_vis import OskarVis
+
+import logging
+log = logging.getLogger("arl.test_support")
 
 def filter_configuration(fc: Configuration, params={}):
     """ Filter a configuration e.g. remove certain antennas
@@ -29,7 +35,7 @@ def filter_configuration(fc: Configuration, params={}):
     :param params: Dictiorinary containing parameters
     :returns: Configuration
     """
-    print("filter_configuration: No filter implemented yet")
+    log.error("filter_configuration: No filter implemented yet")
     return fc
 
 
@@ -91,7 +97,7 @@ def create_configuration_from_file(antfile: str, name: str = None, location: Ear
         xyz[:, 1], xyz[:, 2] = xyz[:, 2], xyz[:, 1]
     else:
         xyz = Column(antxyz, name="xyz")
-    
+
     anames = [names % ant for ant in range(nants)]
     mounts = Column(numpy.repeat(mount, nants), name="mount")
     fc.data = Table(data=[anames, xyz, mounts], names=["names", "xyz", "mount"], meta=meta)
@@ -161,7 +167,7 @@ def import_visibility_from_ms(msfile: str, params={}) -> Visibility:
     :type str:
     :returns: Visibility
     """
-    print('test_support.import_visibility_from_ms: not yet implemented')
+    log.error('test_support.import_visibility_from_ms: not yet implemented')
     return Visibility()
 
 
@@ -174,7 +180,46 @@ def export_visibility_to_ms(vis: Visibility, msfile: str = None, params={}) -> V
     :type str:
     :returns: Visibility
     """
-    print('test_support.visibility_from_ms: not yet implemented')
+    log.error('test_support.visibility_from_ms: not yet implemented')
+
+def import_visibility_from_oskar(oskar_file: str, params={}) -> Visibility:
+    """ Import a visibility set from a measurement set
+
+    :param oskar_file: Name of OSKAR visibility file
+    :type str:
+    :returns: Visibility
+    """
+
+    # Extract data from Oskar file
+    oskar_vis = OskarVis(oskar_file)
+    ra,dec = oskar_vis.phase_centre()
+    a1,a2 = oskar_vis.stations(flatten=True)
+
+    # Make configuration
+    location = EarthLocation(lon = oskar_vis.telescope_lon,
+                             lat = oskar_vis.telescope_lat,
+                             height = oskar_vis.telescope_alt)
+    antxyz = numpy.transpose([oskar_vis.station_x,
+                              oskar_vis.station_y,
+                              oskar_vis.station_z])
+    config = Configuration(
+        name     = oskar_vis.telescope_path,
+        location = location,
+        xyz      = antxyz
+    )
+
+    # Construct visibilities
+    return Visibility(
+        frequency     = [oskar_vis.frequency(i) for i in range(oskar_vis.num_channels)],
+        phasecentre   = SkyCoord(frame=ICRS, ra=ra, dec=dec, unit=units.deg),
+        configuration = config,
+        uvw           = numpy.transpose(oskar_vis.uvw(flatten=True)),
+        time          = oskar_vis.times(flatten=True),
+        antenna1      = a1,
+        antenna2      = a2,
+        vis           = oskar_vis.amplitudes(flatten=True),
+        weight        = numpy.ones(a1.shape))
+
 
 def create_test_image(canonical=True):
     """Create a useful test image
@@ -220,7 +265,7 @@ def replicate_image(im: Image, shape=None, frequency=1.4e9):
         add_wcs_to_image(fim, newwcs)
         fshape = [shape[3], shape[2], im.data.shape[1], im.data.shape[0]]
         fim.data = numpy.zeros(fshape)
-        print("replicate_image: replicating shape %s to %s" % (im.data.shape, fim.data.shape))
+        log.debug("replicate_image: replicating shape %s to %s" % (im.data.shape, fim.data.shape))
         for i3 in range(shape[3]):
             for i2 in range(shape[2]):
                 fim.data[i3, i2, :, :] = im.data[:, :]
