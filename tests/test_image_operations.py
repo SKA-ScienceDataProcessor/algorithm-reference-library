@@ -40,7 +40,6 @@ class TestImage(unittest.TestCase):
         log.debug(self.m31image.wcs)
         log.debug(export_image_to_fits(self.m31image, fitsfile='temp.fits'))
 
-    @unittest.skip("reprojection lacks definition")
     def test_reproject(self):
         # Reproject an image
         

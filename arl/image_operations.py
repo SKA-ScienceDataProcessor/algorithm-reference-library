@@ -10,6 +10,7 @@ import matplotlib.pyplot as plt
 
 from astropy.io import fits
 from astropy.wcs import WCS
+from reproject import reproject_interp
 
 # from reproject import reproject_interp
 
