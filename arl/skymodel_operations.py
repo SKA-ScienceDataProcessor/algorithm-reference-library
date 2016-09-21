@@ -211,27 +211,3 @@ def solve_skymodel_gains(vis: Visibility, sm: SkyModel, deconvolver, params={}):
     """
     log.debug("solve_combinations.solve_skymodel_gains: not implemeneted yet")
     return vis, sm, GainTable()
-
-
-if __name__ == '__main__':
-    import os
-
-    os.chdir('../')
-    print(os.getcwd())
-
-    flux = numpy.array([[1.0, 0.0, 0.0, 0.0], [1.5, 0.0, 0.0, 0.0]])
-    frequency = numpy.array([1.0e8, 1.5e8])
-    direction = SkyCoord('00h42m30s', '+41d12m00s', frame='icrs')
-    comp = create_skycomponent(direction, flux, frequency, shape='Point', name="Mysource")
-
-    kwargs = {}
-    m31image = import_image_from_fits("./data/models/M31.MOD")
-    m31im = SkyModel()
-    m31im.images.append(m31image)
-    flux = numpy.array([[1.0, 0.0, 0.0, 0.0], [1.0, 0.0, 0.0, 0.0]])
-    direction = SkyCoord('00h42m30s', '+41d12m00s', frame='icrs')
-    comp = create_skycomponent(direction, flux, frequency=numpy.arange(5e6, 300e6, 1e7), shape='Point',
-                               name="Mysource")
-    m31comp = SkyModel()
-    m31comp.components.append(comp)
-    m31added = add_skymodels(m31im, m31comp)

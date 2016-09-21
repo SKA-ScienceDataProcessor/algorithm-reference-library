@@ -274,33 +274,3 @@ def replicate_image(im: Image, shape=None, frequency=1.4e9):
     
     return fim
 
-
-if __name__ == '__main__':
-    import os
-    from arl.visibility_operations import create_gaintable_from_array, filter_gaintable
-    
-    os.chdir('../')
-    print(os.getcwd())
-
-    kwargs = {}
-    fc = Configuration()
-    for telescope in ['LOWBD1', 'LOWBD2', 'LOFAR', 'VLAA']:
-        print(telescope)
-        config = filter_configuration(create_named_configuration(telescope), params={})
-        print(config.location)
-        
-    kwargs = {}
-    nant = 27
-    aantennas = numpy.arange(nant, dtype='int')
-    npol = 4
-    freq = numpy.arange(5.e7, 15.e7, 2e7)
-    print(freq)
-    atimes = numpy.arange(-43200.0, 43200.0, 30.0)
-    ntimes = len(atimes)
-    times = numpy.repeat(atimes, nant)
-    antennas = numpy.array(ntimes * list(range(nant)))
-    nrows = len(times)
-    gains = numpy.ones([len(times), len(freq), npol], dtype='complex')
-    weight = numpy.ones([len(times), len(freq)], dtype='float')
-    gt = filter_gaintable(create_gaintable_from_array(gains, times, antennas, weight, freq), params={})
-    print(gt.data['gain'].shape)
