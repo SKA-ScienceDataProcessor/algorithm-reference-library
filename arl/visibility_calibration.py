@@ -72,28 +72,3 @@ def qa_gaintable(gt, params={}):
     """
     log.error("visibility_calibration.qa_gaintable: not yet implemented")
     return QA()
-
-
-if __name__ == '__main__':
-    import os
-    from arl.image_operations import import_image_from_fits, replicate_image
-
-    os.chdir('../')
-    log.debug(os.getcwd())
-
-    kwargs = {'wstep': 100.0}
-
-    vlaa = filter_configuration(create_named_configuration('VLAA'), params={})
-    vlaa.data['xyz'] *= 1.0 / 30.0
-    times = numpy.arange(-3.0, +3.0, 3.0 / 60.0) * numpy.pi / 12.0
-    frequency = numpy.arange(1.0e8, 1.60e8, 1e7)
-    direction = SkyCoord('00h42m30s', '-41d12m00s', frame='icrs')
-    vis = create_visibility(vlaa, times, frequency, weight=1.0, phasecentre=direction)
-    log.debug(vis.data)
-    log.debug(vis.frequency)
-    m31image = import_image_from_fits("data/models/m31.MOD")
-    log.debug("Max, min in m31 Image = %.6f, %.6f" % (m31image.data.max(), m31image.data.min()))
-    m31imagerep = replicate_image(m31image, shape=[1, 1, 1, len(frequency)])
-    m31sm = create_skymodel_from_image(m31imagerep)
-    vispred = create_visibility(vlaa, times, frequency, weight=1.0, phasecentre=direction)
-    vispred = predict_visibility(vispred, m31sm, params={})

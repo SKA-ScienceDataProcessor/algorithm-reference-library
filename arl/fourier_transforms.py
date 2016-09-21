@@ -34,7 +34,7 @@ def create_wcs_from_visibility(vis: Visibility, params={}, level=1):
     :param level: level in params 0 = toplevel, 1 = parent, 2 = parent of parent.
     :returns: WCS
     """
-    log.debug("fourier_transformscreate_wcs_from_visibility: Parsing kwargs to get definition of WCS")
+    log.debug("fourier_transformscreate_wcs_from_visibility: Parsing parameters to get definition of WCS")
     imagecentre = get_parameter(params, "imagecentre", vis.phasecentre, level)
     phasecentre = get_parameter(params, "phasecentre", vis.phasecentre, level)
     reffrequency = get_parameter(params, "reffrequency", numpy.max(vis.frequency), level) * units.Hz

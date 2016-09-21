@@ -183,7 +183,7 @@ def export_visibility_to_ms(vis: Visibility, msfile: str = None, params={}) -> V
     log.error('test_support.visibility_from_ms: not yet implemented')
 
 def import_visibility_from_oskar(oskar_file: str, params={}) -> Visibility:
-    """ Import a visibility set from a measurement set
+    """ Import a visibility set from an OSKAR visibility file
 
     :param oskar_file: Name of OSKAR visibility file
     :type str:

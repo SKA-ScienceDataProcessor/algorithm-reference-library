@@ -41,7 +41,7 @@ class OskarBinary(object):
     def __init__(self, file_name):
         """Constructor."""
         if not os.path.exists(file_name):
-            raise RuntimeError('Specified visibility file not found!')
+            raise RuntimeError('Specified visibility file %s not found!' % file_name)
         self.file_name = file_name
         self.file_handle = open(file_name, 'rb')
         self.bin_ver = 0
@@ -311,7 +311,10 @@ class OskarVis(OskarBinary):
         YY = 14
 
     def __init__(self, file_name):
-        OskarBinary.__init__(self, file_name)
+
+        chome = os.environ['CROCODILE']
+
+        OskarBinary.__init__(self, "%s/%s" % (chome, file_name))
         # super(OskarVis, self).print_summary()
         if not self.bin_ver == 2:
             raise ValueError("Only OSKAR binary format version-2.0 files "

@@ -19,7 +19,6 @@ class TestImage(unittest.TestCase):
 
     def setUp(self):
         chome = os.environ['CROCODILE']
-        kwargs = {}
         self.m31image = replicate_image(import_image_from_fits("%s/data/models/M31.MOD" % chome))
         self.cellsize = 180.0 * 0.0001 / numpy.pi
         self.m31image.wcs.wcs.cdelt[0] = -self.cellsize
