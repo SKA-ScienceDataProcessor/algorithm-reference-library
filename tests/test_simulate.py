@@ -50,6 +50,7 @@ class TestCoordinates(unittest.TestCase):
             """
             res = xyz_to_uvw(np.array([x, y, z]), np.radians(ha), np.radians(dec))
             assert_allclose(np.linalg.norm(res), np.linalg.norm([x, y, z]))
+            assert_allclose(uvw_to_xyz(res, np.radians(ha), np.radians(dec)), [x,y,z])
             return res
 
         # Derived from http://casa.nrao.edu/Memos/CoordConvention.pdf

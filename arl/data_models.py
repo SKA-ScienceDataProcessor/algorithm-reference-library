@@ -120,6 +120,11 @@ class Visibility:
         self.configuration = configuration # Antenna/station configuration
 
     @property
+    def nchan(self): return self.data['vis'].shape[1]
+    @property
+    def npol(self): return self.data['vis'].shape[2]
+
+    @property
     def uvw(self): return self.data['uvw']
     @property
     def u(self):   return self.data['uvw'][:,0]

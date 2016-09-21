@@ -74,7 +74,7 @@ def xyz_to_uvw(ants_xyz, ha, dec):
     """
     Rotate :math:`(x,y,z)` antenna positions in earth coordinates
     to :math:`(u,v,w)` coordinates relative to
-    astronomical source position :math:`(ra, dec)`.
+    astronomical source position :math:`(ha, dec)`.
 
     (see note on co-ordinate systems in header)
 
@@ -97,7 +97,30 @@ def xyz_to_uvw(ants_xyz, ha, dec):
 
 # ---------------------------------------------------------------------------------
 
+def uvw_to_xyz(uvw, ha, dec):
+    """Rotate :math:`(x,y,z)` antenna positions relative to a sky
+    position at :math:`(ha, dec)` to earth coordinates.
+
+    (see note on co-ordinate systems in header)
+
+    :param uvw: :math:`(u,v,w)` co-ordinates of antennas in array
+    :param ha: hour angle of phase tracking centre (:math:`ha = ra - lst`)
+    :param dec: declination of phase tracking centre
+    """
+
+    u, v, w = numpy.hsplit(uvw, 3)
+
+    z = v * numpy.cos(dec) + w * numpy.sin(dec)
+    v0 = v * numpy.sin(dec) - w * numpy.cos(dec)
+    x = u * numpy.cos(ha) + v0 * numpy.sin(ha)
+    y = -u * numpy.sin(ha) + v0 * numpy.cos(ha)
+
+    return numpy.hstack([x, y, z])
+
+# ---------------------------------------------------------------------------------
+
 def baselines(ants_uvw):
+
     """
     Compute baselines in uvw co-ordinate system from
     uvw co-ordinate system station positions

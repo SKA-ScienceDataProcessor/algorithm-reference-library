@@ -209,33 +209,30 @@ def create_visibility(config: Configuration, times: numpy.array, freq: numpy.arr
     return vis
 
 def phaserotate_visibility(vis: Visibility, newphasecentre: SkyCoord, params={}) -> Visibility:
-    """ Phase rotate from the current phase centre to a new phase centre: works in place
+    """ Phase rotate from the current phase centre to a new phase centre: works in place (FIXME!)
 
     :param vis: Visibility to be rotated
     :type Visibility: Visibility to be processed
     :returns: Visibility
     """
-    pcof = newphasecentre.skyoffset_frame()
-    todc = vis.phasecentre.transform_to(pcof)
-    dc = todc.represent_as(CartesianRepresentation)
 
+    l,m,n = skycoord_to_lmn(vis.phasecentre, newphasecentre)
     log.debug('visibility_operations.phaserotate_visibility: Relative cartesian representation of direction = (%f, %f, '
-          '%f)' % (dc.x, dc.y,
-                   dc.z))
-    
-    if numpy.abs(dc.x) > 1e-15 or numpy.abs(dc.y) > 1e-15:
+          '%f)' % (l,m,n))
+
+    if numpy.abs(l) > 1e-15 or numpy.abs(m) > 1e-15:
         log.debug('visibility_operations.phaserotate: Phase rotation from %s to %s' % (vis.phasecentre, newphasecentre))
-        nchan = vis.data['vis'].shape[1]
-        npol = vis.data['vis'].shape[2]
-        for channel in range(nchan):
-            uvw = vis.data['uvw'] * (vis.frequency[channel] / const.c).value
-            uvw[:, 2] *= -1.0
-            phasor = simulate_point(uvw, dc.y, dc.z)
-            for pol in range(npol):
+        for channel in range(vis.nchan):
+            uvw = vis.uvw_lambda(channel) * [1,1,-1] # TODO: Why negate w?
+            phasor = simulate_point(uvw, m, l) # TODO: Why flip l/m?
+            for pol in range(vis.npol):
                 log.debug('visibility_operations.phaserotate: Phaserotating visibility for channel %d, polarisation %d' %
                       (channel, pol))
-                vis.data['vis'][:, channel, pol] = vis.data['vis'][:, channel, pol] * phasor
-    # TODO: rotate uvw as well!!!
+                vis.vis[:, channel, pol] *= phasor
+
+        # To rotate UVW, rotate into the global XYZ coordinate system and back
+        xyz = uvw_to_xyz(vis.data['uvw'], ha=-vis.phasecentre.ra, dec=vis.phasecentre.dec)
+        vis.data['uvw'] = xyz_to_uvw(xyz, ha=-newphasecentre.ra, dec=newphasecentre.dec)
 
     vis.phasecentre = newphasecentre
     return vis

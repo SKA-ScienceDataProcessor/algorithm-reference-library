@@ -14,7 +14,7 @@ from astropy import units as u
 from arl.skymodel_operations import create_skycomponent
 from arl.test_support import create_named_configuration, filter_configuration
 from arl.skymodel_operations import create_skymodel_from_component, find_skycomponent, fit_skycomponent
-from arl.visibility_operations import create_visibility, sum_visibility
+from arl.visibility_operations import *
 from arl.fourier_transforms import predict_visibility, invert_visibility
 
 
@@ -50,6 +50,15 @@ class TestVisibilityOperations(unittest.TestCase):
         # Sum the visibilities in the correct_visibility direction. This is limited by numerical precision
         summedflux, weight = sum_visibility(self.vismodel, self.compreldirection)
         assert_allclose(self.flux, summedflux , rtol=1e-7)
+
+    def test_phase_rotation(self):
+        # Phase rotating back should not make a difference
+        original_vis = self.vismodel.vis.copy()
+        original_uvw = self.vismodel.uvw.copy()
+        rotatedvis = phaserotate_visibility(self.vismodel, self.compabsdirection)
+        rotatedvis2 = phaserotate_visibility(self.vismodel, self.phasecentre)
+        assert_allclose(rotatedvis2.uvw, original_uvw, rtol=1e-8)
+        assert_allclose(rotatedvis2.vis, original_vis, rtol=1e-2)
 
 if __name__ == '__main__':
     import sys
