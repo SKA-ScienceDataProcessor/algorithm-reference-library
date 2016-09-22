@@ -4,7 +4,7 @@
 
 from arl.visibility_calibration import solve_gains, qa_gaintable
 from arl.quality_assessment import QA
-from arl.parameters import get_parameter
+from arl.parameters import *
 
 import logging
 log = logging.getLogger("arl.pipelines")
@@ -21,7 +21,7 @@ def RCAL(params):
     gains = solve_gains(vis, sm, params)
     qa = qa_gaintable(gains)
     if qa:
-        log.info("pipelines.RCAL: Solution good")
+        log.info("RCAL: Solution good")
     return qa
 
 
@@ -37,7 +37,7 @@ def ICAL(params):
     gains = solve_gains(vis, sm, params)
     qa = qa_gaintable(gains)
     if qa:
-        log.info("pipelines.ICAL: Solution good")
+        log.info("ICAL: Solution good")
     return qa
 
 
@@ -49,6 +49,8 @@ def continuum_imaging(params):
     :return:
     """
 
+    log_parameters(params)
+    
     vis = get_parameter(params, 'visibility')
     sm = get_parameter(params, 'skymodel')
     

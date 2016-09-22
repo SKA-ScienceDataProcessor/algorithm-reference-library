@@ -63,7 +63,7 @@ def import_image_from_fits(fitsfile: str):
     fim.data = hdulist[0].data
     fim.wcs = WCS(fitsfile)
     hdulist.close()
-    log.debug("image_operations.import_image_from_fits: Max, min in %s = %.6f, %.6f" % (fitsfile, fim.data.max(), fim.data.min()))
+    log.debug("import_image_from_fits: Max, min in %s = %.6f, %.6f" % (fitsfile, fim.data.max(), fim.data.min()))
     return fim
 
 
@@ -104,7 +104,7 @@ def fft_image(im: Image, params={}):
     :type Image:
     :returns: Image
     """
-    log.error("image_operations.fft_image: not yet implemented")
+    log.error("fft_image: not yet implemented")
     
     return im
 
@@ -131,7 +131,7 @@ def aq_image(im, params={}):
     :type Image:
     :returns: QA
     """
-    log.error("image_operations.aq_image: not yet implemented")
+    log.error("aq_image: not yet implemented")
     return QA()
 
 

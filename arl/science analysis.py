@@ -20,5 +20,5 @@ def rotation_measure_synthesis(im: Image, params={}):
     :param params: Dictionary containing parameters
     :return:
     """
-    print("science_analysis.rotation_measure_synthesis: not yet implemented")
+    log.info("science_analysis.rotation_measure_synthesis: not yet implemented")
     return im

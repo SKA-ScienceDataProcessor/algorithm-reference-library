@@ -17,4 +17,4 @@ def export_QA(qa: QA):
     """Export the accumulate QA info
         
     """
-    print("assess_quality.export_QA: not yet implemented")
+    log.info("assess_quality.export_QA: not yet implemented")

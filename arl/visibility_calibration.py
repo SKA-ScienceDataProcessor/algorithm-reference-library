@@ -31,7 +31,7 @@ def solve_gains(vis: Visibility, sm: SkyModel, params={}) -> GainTable:
     :returns: GainTable
     """
     #TODO: Implement calibration solution
-    log.error("visibility_calibration.solve_gains: not yet implemented")
+    log.error("solve_gains: not yet implemented")
     return GainTable()
 
 
@@ -45,7 +45,7 @@ def correct_visibility(vis: Visibility, gt: GainTable, params={}) -> Visibility:
     :returns: Visibility
     """
     # TODO: Implement calibration application
-    log.error("visibility_calibration.correct_visibility: not yet implemented")
+    log.error("correct_visibility: not yet implemented")
     return vis
 
 
@@ -59,7 +59,7 @@ def peel_skycomponent(vis: Visibility, sc: SkyComponent, params={}) -> Visibilit
     :returns: Visibility, GainTable
     """
     # TODO: Implement peeling
-    log.error("visibility_calibration.peel_skycomponent: not yet implemented")
+    log.error("peel_skycomponent: not yet implemented")
     return vis
 
 
@@ -70,5 +70,5 @@ def qa_gaintable(gt, params={}):
     :type GainTable:
     :returns: AQ
     """
-    log.error("visibility_calibration.qa_gaintable: not yet implemented")
+    log.error("qa_gaintable: not yet implemented")
     return QA()

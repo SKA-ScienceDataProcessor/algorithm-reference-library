@@ -25,7 +25,7 @@ def filter_gaintable(fg: GainTable, params={}):
     :type GainTable:
     :returns: GainTable
     """
-    log.error("visibility_operations.filter_gaintable: not yet implemented")
+    log.error("filter_gaintable: not yet implemented")
     return fg
 
 
@@ -73,7 +73,7 @@ def interpolate_gaintable(gt: GainTable, params={}):
     :param params: Dictionary containing parameters
     :returns: Gaintable
     """
-    log.error('"visibility_operations.interpolate_gaintable: not yet implemented')
+    log.error('"interpolate_gaintable: not yet implemented')
     return GainTable()
 
 
@@ -105,7 +105,7 @@ def combine_visibility(vis1: Visibility, vis2: Visibility, w1: float = 1.0, w2: 
     vis.frequency = vis1.frequency
     vis.data['uvw'] = vis1.data['uvw']
     vis.configuration = vis1.configuration
-    log.debug(u"visibility_operations.combine_visibility: Created table with {0:d} rows".format(len(vis.data)))
+    log.debug(u"combine_visibility: Created table with {0:d} rows".format(len(vis.data)))
     assert len(vis.data['vis']) == len(vis1.data['vis']), 'Length of output data table wrong'
     return vis
 
@@ -129,7 +129,7 @@ def concatenate_visibility(vis1: Visibility, vis2: Visibility, params={}) -> \
     vis.data = vstack([vis1.data, fvis2rot.data], join_type='exact')
     vis.phasecentre = vis1.phasecentre
     vis.frequency = vis1.frequency
-    log.debug(u"visibility_operations.concatenate_visibility: Created table with {0:d} rows".format(len(vis.data)))
+    log.debug(u"concatenate_visibility: Created table with {0:d} rows".format(len(vis.data)))
     assert (len(vis.data) == (len(vis1.data) + len(vis2.data))), 'Length of output data table wrong'
     return vis
 
@@ -144,7 +144,7 @@ def flag_visibility(vis: Visibility, gt: GainTable = None, params={}) -> Visibil
     :param params: Dictionary containing parameters
     :returns: Visibility
     """
-    log.error("visibility_operations.flag_visibility: not yet implemented")
+    log.error("flag_visibility: not yet implemented")
     return vis
 
 
@@ -156,7 +156,7 @@ def filter_visibility(vis: Visibility, params={}) -> Visibility:
     :param params: Dictionary containing parameters
     :returns: Visibility
     """
-    log.error("visibility_operations.filter_visibility: not yet implemented")
+    log.error("filter_visibility: not yet implemented")
     return vis
 
 
@@ -200,7 +200,7 @@ def create_visibility(config: Configuration, times: numpy.array, freq: numpy.arr
                 rantenna2[row] = a2
                 row += 1
     ruvw = xyz_to_baselines(ants_xyz, times, phasecentre.dec)
-    log.debug(u"visibility_operations.create_visibility: Created {0:d} rows".format(nrows))
+    log.debug(u"create_visibility: Created {0:d} rows".format(nrows))
     vis = Visibility()
     vis.data = Table(data=[ruvw, rtimes, rantenna1, rantenna2, rvis, rweight],
                     names=['uvw', 'time', 'antenna1', 'antenna2', 'vis', 'weight'], meta=meta)
@@ -219,7 +219,7 @@ def phaserotate_visibility(vis: Visibility, newphasecentre: SkyCoord, params={})
     """
 
     l,m,n = skycoord_to_lmn(newphasecentre, vis.phasecentre)
-    log.debug('visibility_operations.phaserotate_visibility: Relative cartesian representation of direction = (%f, %f, '
+    log.debug('phaserotate_visibility: Relative cartesian representation of direction = (%f, %f, '
           '%f)' % (l,m,n))
 
     # Copy object and make a new table
@@ -228,7 +228,7 @@ def phaserotate_visibility(vis: Visibility, newphasecentre: SkyCoord, params={})
 
     # No significant change?
     if numpy.abs(l) > 1e-15 or numpy.abs(m) > 1e-15:
-        log.debug('visibility_operations.phaserotate: Phase rotation from %s to %s' % (vis.phasecentre, newphasecentre))
+        log.debug('phaserotate: Phase rotation from %s to %s' % (vis.phasecentre, newphasecentre))
 
         # We are going to update in-place, so make a copy
         vis.data['vis'] = vis.vis.copy()
@@ -236,7 +236,7 @@ def phaserotate_visibility(vis: Visibility, newphasecentre: SkyCoord, params={})
             uvw = vis.uvw_lambda(channel)
             phasor = simulate_point(uvw, l, m)
             for pol in range(vis.npol):
-                log.debug('visibility_operations.phaserotate: Phaserotating visibility for channel %d, polarisation %d' %
+                log.debug('phaserotate: Phaserotating visibility for channel %d, polarisation %d' %
                       (channel, pol))
                 vis.vis[:, channel, pol] *= phasor
 
@@ -258,7 +258,7 @@ def sum_visibility(vis: Visibility, direction: SkyCoord, params={}) -> numpy.arr
     :returns: flux[nch,npol], weight[nch,pol]
     """
     dc = direction.represent_as(CartesianRepresentation)
-    log.debug('visibility_operations.sum_visibility: Cartesian representation of direction = (%f, %f, %f)' % (
+    log.debug('sum_visibility: Cartesian representation of direction = (%f, %f, %f)' % (
     dc.x, dc.y, dc.z))
     nchan = vis.data['vis'].shape[1]
     npol = vis.data['vis'].shape[2]
@@ -269,7 +269,7 @@ def sum_visibility(vis: Visibility, direction: SkyCoord, params={}) -> numpy.arr
         uvw[:, 2] *= -1.0
         phasor = numpy.conj(simulate_point(uvw, dc.z, dc.y))
         for pol in range(npol):
-            log.debug('visibility_operations.sum_visibility: Summing visibility for channel %d, polarisation %d' % (
+            log.debug('sum_visibility: Summing visibility for channel %d, polarisation %d' % (
             channel, pol))
             flux[channel, pol] = flux[channel, pol] + \
                                  numpy.sum(numpy.real(vis.data['vis'][:, channel, pol] *
@@ -289,7 +289,7 @@ def coalesce_visibility(vis: Visibility, params={}) -> Visibility:
     :type Visibility:
     :returns: Visibility after coalescing
     """
-    log.error("visibility_operations.average_visibility: not yet implemented")
+    log.error("average_visibility: not yet implemented")
     return vis
 
 
@@ -305,7 +305,7 @@ def de_coalesce_visibility(vis: Visibility, vistemplate: Visibility, params={}) 
     :type Visibility: Visibility
     :returns: Visibility after de-coalescing
     """
-    log.error("visibility_operations.de_average_visibility: not yet implemented")
+    log.error("de_average_visibility: not yet implemented")
     return vis
 
 
@@ -316,5 +316,5 @@ def aq_visibility(vis, params={}):
     :type Visibility:
     :returns: AQ
     """
-    log.error("visibility_operations.aq_visibility: not yet implemented")
+    log.error("aq_visibility: not yet implemented")
     return AQ()

@@ -4,21 +4,31 @@
 # deconvolving it. Finally the full and residual visibility are plotted.
 
 import sys, os
-sys.path.append('../..') 
-print(os.getcwd())
+sys.path.append('../..')
 
-# import sys
-# sys.stdout = open('%s.txt'%(sys.argv[0]), 'w')
+##### Setup logging, matplotlib
+
+import logging
+log = logging.getLogger( "run_imaging" )
+logging.basicConfig(filename='./run_imaging.log',level=logging.DEBUG)
+# define a new Handler to log to console as well
+console = logging.StreamHandler()
+logging.getLogger('').addHandler(console)
+
+import matplotlib
+matplotlib.use('PDF')
+from matplotlib import pyplot as plt
 
 import pylab
 pylab.rcParams['figure.figsize'] = (12.0, 12.0)
 pylab.rcParams['image.cmap'] = 'rainbow'
 
+##### End of setup
+
+
 from astropy.coordinates import SkyCoord
 from astropy.wcs.utils import skycoord_to_pixel, pixel_to_skycoord
 from astropy import units as u
-
-from matplotlib import pyplot as plt
 
 from arl.image_deconvolution import deconvolve_cube
 from arl.visibility_operations import create_visibility
@@ -33,6 +43,8 @@ from arl.test_support import filter_configuration, create_named_configuration, r
 params = {}
 
 doshow = True
+
+log.info("run_imaging: Starting")
 
 vlaa = filter_configuration(create_named_configuration('VLAA'), params={})
 vlaa.data['xyz']=vlaa.data['xyz']/10.0
@@ -85,8 +97,6 @@ m31sm = create_skymodel_from_image(m31image4D)
 wall = m31image.wcs
 wall.wcs.radesys='ICRS'
 wall.wcs.equinox=2000.00
-print(wall.wcs.radesys)
-print(wall.wcs.equinox)
 sc=pixel_to_skycoord(128, 128, wall, 1, 'wcs')
 compabsdirection=SkyCoord("-1.0d", "37.0d", frame='icrs', equinox=2000.0)
 pixloc = skycoord_to_pixel(compabsdirection, wall, 1)
@@ -117,9 +127,9 @@ if doshow:
 params={'wstep':30.0, 'npixel':512, 'cellsize':0.0001}
 dirty, psf, sumwt = invert_visibility(vis, params=params)
 show_image(dirty)
-print("Max, min in dirty image = %.6f, %.6f, sum of weights = %f" % (dirty.data.max(), dirty.data.min(), sumwt))
+log.info("Max, min in dirty image = %.6f, %.6f, sum of weights = %f" % (dirty.data.max(), dirty.data.min(), sumwt))
 
-print("Max, min in PSF         = %.6f, %.6f, sum of weights = %f" % (psf.data.max(), psf.data.min(), sumwt))
+log.info("Max, min in PSF         = %.6f, %.6f, sum of weights = %f" % (psf.data.max(), psf.data.min(), sumwt))
 
 export_image_to_fits(dirty, 'run_imaging_dirty.fits')
 export_image_to_fits(psf, 'run_imaging_psf.fits')
@@ -128,7 +138,7 @@ m31compnew = find_skycomponent(dirty)
 
 # Deconvolve using clean
 
-params={'niter':100, 'threshold':0.001, 'fracthresh':0.01}
+params={'niter':1000, 'threshold':0.001, 'fracthresh':0.01}
 comp, residual = deconvolve_cube(dirty, psf, params=params)
 
 # Show the results
@@ -157,3 +167,5 @@ if doshow:
     plt.xlabel('uvdist')
     plt.ylabel('Amp Visibility')
     plt.show()
+
+log.info("run_imaging: End of processing")

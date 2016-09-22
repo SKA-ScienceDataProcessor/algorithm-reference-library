@@ -53,16 +53,16 @@ def find_skycomponent(im: Image, params={}):
     :returns: SkyComponent
     """
     # TODO: Implement full image fitting of components
-    log.debug("imaging.point_source_find: Finding components in Image")
+    log.debug("point_source_find: Finding components in Image")
     
     # Beware: The index sequencing is opposite in wcs and Python!
     locpeak = numpy.array(numpy.unravel_index((numpy.abs(im.data)).argmax(), im.data.shape))
-    log.debug("imaging.point_source_find: Found peak at pixel coordinates %s" % str(locpeak))
+    log.debug("point_source_find: Found peak at pixel coordinates %s" % str(locpeak))
     w = im.wcs.sub(['longitude', 'latitude'])
     sc = pixel_to_skycoord(locpeak[3], locpeak[2], im.wcs, 0, 'wcs')
-    log.debug("imaging.point_source_find: Found peak at world coordinates %s" % str(sc))
+    log.debug("point_source_find: Found peak at world coordinates %s" % str(sc))
     flux = im.data[:, :, locpeak[2], locpeak[3]]
-    log.debug("imaging.point_source_find: Flux is %s" % flux)
+    log.debug("point_source_find: Flux is %s" % flux)
     # We also need the frequency values
     w = im.wcs.sub(['spectral'])
     frequency = w.wcs_pix2world(range(im.data.shape[0]), 1)
@@ -79,12 +79,12 @@ def fit_skycomponent(im: Image, sc: SkyCoord, params={}):
     :returns: SkyComponent
 
     """
-    log.debug("imaging.find_flux_at_direction: Extracting flux at world coordinates %s" % str(sc))
+    log.debug("find_flux_at_direction: Extracting flux at world coordinates %s" % str(sc))
     w = im.wcs.sub(['longitude', 'latitude'])
     pixloc = skycoord_to_pixel(sc, im.wcs, 0, 'wcs')
-    log.debug("imaging.find_flux_at_direction: Extracting flux at pixel coordinates %d %d" % (pixloc[0], pixloc[1]))
+    log.debug("find_flux_at_direction: Extracting flux at pixel coordinates %d %d" % (pixloc[0], pixloc[1]))
     flux = im.data[:, :, int(pixloc[1] + 0.5), int(pixloc[0] + 0.5)]
-    log.debug("imaging.find_flux_at_direction: Flux is %s" % flux)
+    log.debug("find_flux_at_direction: Flux is %s" % flux)
     
     # We also need the frequency values
     w = im.wcs.sub(['spectral'])
@@ -183,7 +183,7 @@ def solve_skymodel(vis: Visibility, sm: SkyModel, deconvolver, params={}):
     
     comp = sm.images[0]
     for i in range(nmajor):
-        log.debug("solve_combinations.solve_skymodel: Start of major cycle %d" % i)
+        log.debug("solve_skymodel: Start of major cycle %d" % i)
         cc, res = deconvolver(dirty, psf, params={})
         comp += cc
         vispred = predict_visibility(vis, sm, params={})
@@ -192,8 +192,8 @@ def solve_skymodel(vis: Visibility, sm: SkyModel, deconvolver, params={}):
         if numpy.abs(dirty.data).max() < 1.1 * thresh:
             log.debug("Reached stopping threshold %.6f Jy" % thresh)
             break
-        log.debug("solve_combinations.solve_skymodel: End of major cycle")
-    log.debug("solve_combinations.solve_skymodel: End of major cycles")
+        log.debug("solve_skymodel: End of major cycle")
+    log.debug("solve_skymodel: End of major cycles")
     return visres, sm
 
 def solve_skymodel_gains(vis: Visibility, sm: SkyModel, deconvolver, params={}):
@@ -209,5 +209,5 @@ def solve_skymodel_gains(vis: Visibility, sm: SkyModel, deconvolver, params={}):
     :arg function:
     :returns: Visibility, SkyModel, Gaintable
     """
-    log.debug("solve_combinations.solve_skymodel_gains: not implemeneted yet")
+    log.debug("solve_skymodel_gains: not implemeneted yet")
     return vis, sm, GainTable()
