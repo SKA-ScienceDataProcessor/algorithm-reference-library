@@ -124,7 +124,6 @@ def add_image(im1: Image, im2: Image, checkwcs=False):
     :returns: Image
     """
     assert not checkwcs, "Checking WCS not yet implemented"
-    log_parameters(params)
     return create_image_from_array(im1.data + im2.data, im1.wcs)
 
 
