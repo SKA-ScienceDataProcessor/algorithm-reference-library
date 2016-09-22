@@ -5,6 +5,8 @@
 
 import sys
 
+import logging
+log = logging.getLogger( "arl.parameters" )
 
 def get_parameter(params, key, default=None, level=1):
     """ Get a specified named value for this (calling) function
@@ -26,12 +28,42 @@ def get_parameter(params, key, default=None, level=1):
     value = default
     if key in params.keys():
         value = params[key]
-    else:
-        # Now see if the function name is used
-        funcname = currentFuncName(level)
-        if funcname in params.keys():
-            if key in params[funcname]:
-                value = params[funcname]
+
+    # Now see if the function name is used
+    funcname = currentFuncName(level)
+    if funcname in params.keys():
+        if key in params[funcname]:
+            value = params[funcname]
     
     return value
 
+def import_parameters(paramsfile):
+    """Import parameters from a text file
+    
+    :param paramsfile: file to write to
+    :return: parameters as dict
+    """
+    f = open(paramsfile, 'r')
+    d = eval(f.read())
+    f.close()
+    log.info("Parameters read")
+    log_parameters(d)
+    return d
+
+def export_parameters(d, paramsfile):
+    """Export parameters to a textfile
+    
+    :param d: parameters as dict
+    :param paramsfile: file to write to
+    :return:
+    """
+    f = open(paramsfile, 'w')
+    log.info("Parameters written")
+    log_parameters(d)
+    f.write(str(d))
+    f.close()
+    
+def log_parameters(d):
+    for key in d.keys():
+        log.info('  %s  =   %s' % (key, d[key]))
+    

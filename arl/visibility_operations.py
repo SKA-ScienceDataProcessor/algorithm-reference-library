@@ -46,7 +46,7 @@ def create_gaintable_from_array(gain: numpy.array, time: numpy.array, antenna: n
     :type bool:
     :param meta:
     :type dict:
-    :param params: Dictiorinary containing parameters
+    :param params: Dictionary containing parameters
     :returns: Gaintable
     """
     if meta is None:
@@ -69,7 +69,7 @@ def interpolate_gaintable(gt: GainTable, params={}):
 
     :param gt: GainTable
     :type GainTable:
-    :param params: Dictiorinary containing parameters
+    :param params: Dictionary containing parameters
     :returns: Gaintable
     """
     log.error('"visibility_operations.interpolate_gaintable: not yet implemented')
@@ -87,7 +87,7 @@ def combine_visibility(vis1: Visibility, vis2: Visibility, w1: float = 1.0, w2: 
     :type float:
     :param w2: Weight of visibility set 2
     :type float:
-    :param params: Dictiorinary containing parameters
+    :param params: Dictionary containing parameters
     :returns: Visibility
     """
     assert len(vis1.frequency) == len(vis2.frequency), "Visibility: frequencies should be the same"
@@ -117,7 +117,7 @@ def concatenate_visibility(vis1: Visibility, vis2: Visibility, params={}) -> \
     :type Visibility: Visibility to be processed
     :param vis2:
     :type Visibility: Visibility to be processed
-    :param params: Dictiorinary containing parameters
+    :param params: Dictionary containing parameters
     :returns: Visibility
     """
     assert len(vis1.frequency) == len(vis2.frequency), "Visibility: frequencies should be the same"
@@ -140,7 +140,7 @@ def flag_visibility(vis: Visibility, gt: GainTable = None, params={}) -> Visibil
     :type Visibility: Visibility to be processed
     :param gt: GainTable
     :type GainTable:
-    :param params: Dictiorinary containing parameters
+    :param params: Dictionary containing parameters
     :returns: Visibility
     """
     log.error("visibility_operations.flag_visibility: not yet implemented")
@@ -152,7 +152,7 @@ def filter_visibility(vis: Visibility, params={}) -> Visibility:
 
     :param vis:
     :type Visibility: Visibility to be processed
-    :param params: Dictiorinary containing parameters
+    :param params: Dictionary containing parameters
     :returns: Visibility
     """
     log.error("visibility_operations.filter_visibility: not yet implemented")

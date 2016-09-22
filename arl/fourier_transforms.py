@@ -139,7 +139,7 @@ def invert_visibility(vis: Visibility, params={}):
 
 
 def predict_visibility(vis: Visibility, sm: SkyModel, params={}) -> Visibility:
-    """Predict the visibility (in place) from a SkyModel
+    """Predict the visibility (in place) from a SkyModel including both components and images
 
     :param vis:
     :type Visibility: Visibility to be processed
@@ -150,7 +150,7 @@ def predict_visibility(vis: Visibility, sm: SkyModel, params={}) -> Visibility:
     vshape = vis.data['vis'].shape
     shape, reffrequency, cellsize, w, imagecentre = create_wcs_from_visibility(vis, params=params)
 
-    vis.data['vis'] = numpy.zeros(vis.data['vis'].shape)
+    vis.data['vis'] = numpy.zeros(vshape)
 
     spectral_mode = get_parameter(params, 'spectral_mode', 'channel')
     log.debug('fourier_transforms.predict_visibility: spectral mode is %s' % spectral_mode)
@@ -254,7 +254,7 @@ def weight_visibility(vis, im, params={}):
     :type Visibility: Visibility to be processed
     :param im:
     :type Image:
-    :param params: Dictiorinary containing parameters
+    :param params: Dictionary containing parameters
     :returns: Configuration
     """
     log.error("visibility_operations.weight_visibility: not yet implemented")
