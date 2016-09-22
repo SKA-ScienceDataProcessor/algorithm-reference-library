@@ -54,7 +54,7 @@ def xyz_at_latitude(local_xyz, lat):
     points towards the zenith, whereas afterwards it will point towards
     celestial north (parallel to the earth axis).
 
-    :param lat:
+    :param lat: target latitude (radians or astropy quantity)
     :param local_xyz: Array of local XYZ coordinates
     :returns: Celestial XYZ coordinates
     """
@@ -70,38 +70,45 @@ def xyz_at_latitude(local_xyz, lat):
 
 # ---------------------------------------------------------------------------------
 
-def xyz_to_uvw(ants_xyz, ha, dec):
+def xyz_to_uvw(xyz, ha, dec):
     """
-    Rotate :math:`(x,y,z)` antenna positions in earth coordinates
-    to :math:`(u,v,w)` coordinates relative to
-    astronomical source position :math:`(ha, dec)`.
+    Rotate :math:`(x,y,z)` positions in earth coordinates to
+    :math:`(u,v,w)` coordinates relative to astronomical source
+    position :math:`(ha, dec)`. Can be used for both antenna positions
+    as well as for baselines.
 
-    (see note on co-ordinate systems in header)
+    Hour angle and declination can be given as single values or arrays
+    of the same length. Angles can be given as radians or astropy
+    quantities with a valid conversion.
 
-    :param ants_xyz: :math:`(x,y,z)` co-ordinates of antennas in array
+    :param xyz: :math:`(x,y,z)` co-ordinates of antennas in array
     :param ha: hour angle of phase tracking centre (:math:`ha = ra - lst`)
-    :param dec: declination of phase tracking centre
+    :param dec: declination of phase tracking centre.
     """
 
-    x, y, z = numpy.hsplit(ants_xyz, 3)
+    x, y, z = numpy.hsplit(xyz, 3)
 
+    # Two rotations:
+    #  1. by 'ha' along the z axis
+    #  2. by '90-dec' along the u axis
     u = x * numpy.cos(ha) - y * numpy.sin(ha)
     v0 = x * numpy.sin(ha) + y * numpy.cos(ha)
-    v = z * numpy.cos(dec) + v0 * numpy.sin(dec)
     w = z * numpy.sin(dec) - v0 * numpy.cos(dec)
+    v = z * numpy.cos(dec) + v0 * numpy.sin(dec)
 
-    ants_uvw = numpy.hstack([u, v, w])
-
-    return ants_uvw
-
+    return numpy.hstack([u, v, w])
 
 # ---------------------------------------------------------------------------------
 
 def uvw_to_xyz(uvw, ha, dec):
-    """Rotate :math:`(x,y,z)` antenna positions relative to a sky
-    position at :math:`(ha, dec)` to earth coordinates.
+    """
+    Rotate :math:`(x,y,z)` positions relative to a sky position at
+    :math:`(ha, dec)` to earth coordinates. Can be used for both
+    antenna positions as well as for baselines.
 
-    (see note on co-ordinate systems in header)
+    Hour angle and declination can be given as single values or arrays
+    of the same length. Angles can be given as radians or astropy
+    quantities with a valid conversion.
 
     :param uvw: :math:`(u,v,w)` co-ordinates of antennas in array
     :param ha: hour angle of phase tracking centre (:math:`ha = ra - lst`)
@@ -110,10 +117,13 @@ def uvw_to_xyz(uvw, ha, dec):
 
     u, v, w = numpy.hsplit(uvw, 3)
 
-    z = v * numpy.cos(dec) + w * numpy.sin(dec)
+    # Two rotations:
+    #  1. by 'dec-90' along the u axis
+    #  2. by '-ha' along the z axis
     v0 = v * numpy.sin(dec) - w * numpy.cos(dec)
-    x = u * numpy.cos(ha) + v0 * numpy.sin(ha)
-    y = -u * numpy.sin(ha) + v0 * numpy.cos(ha)
+    z =  v * numpy.cos(dec) + w * numpy.sin(dec)
+    x =  u * numpy.cos(ha)  + v0 * numpy.sin(ha)
+    y = -u * numpy.sin(ha)  + v0 * numpy.cos(ha)
 
     return numpy.hstack([x, y, z])
 
@@ -183,7 +193,7 @@ def simulate_point(dist_uvw, l, m):
     """
     Simulate visibilities for unit amplitude point source at
     direction cosines (l,m) relative to the phase centre.
-    
+
     This includes phase tracking to the centre of the field (hence the minus 1
     in the exponent.)
 

@@ -4,6 +4,7 @@
 # and an attached attribute which is the frequency of each channel
 
 import profile
+import copy
 
 from astropy import constants as const
 from astropy.coordinates import SkyCoord, CartesianRepresentation
@@ -209,22 +210,31 @@ def create_visibility(config: Configuration, times: numpy.array, freq: numpy.arr
     return vis
 
 def phaserotate_visibility(vis: Visibility, newphasecentre: SkyCoord, params={}) -> Visibility:
-    """ Phase rotate from the current phase centre to a new phase centre: works in place (FIXME!)
+    """
+    Phase rotate from the current phase centre to a new phase centre
 
     :param vis: Visibility to be rotated
     :type Visibility: Visibility to be processed
     :returns: Visibility
     """
 
-    l,m,n = skycoord_to_lmn(vis.phasecentre, newphasecentre)
+    l,m,n = skycoord_to_lmn(newphasecentre, vis.phasecentre)
     log.debug('visibility_operations.phaserotate_visibility: Relative cartesian representation of direction = (%f, %f, '
           '%f)' % (l,m,n))
 
+    # Copy object and make a new table
+    vis = copy.copy(vis)
+    vis.data = vis.data.copy()
+
+    # No significant change?
     if numpy.abs(l) > 1e-15 or numpy.abs(m) > 1e-15:
         log.debug('visibility_operations.phaserotate: Phase rotation from %s to %s' % (vis.phasecentre, newphasecentre))
+
+        # We are going to update in-place, so make a copy
+        vis.data['vis'] = vis.vis.copy()
         for channel in range(vis.nchan):
-            uvw = vis.uvw_lambda(channel) * [1,1,-1] # TODO: Why negate w?
-            phasor = simulate_point(uvw, m, l) # TODO: Why flip l/m?
+            uvw = vis.uvw_lambda(channel)
+            phasor = simulate_point(uvw, l, m)
             for pol in range(vis.npol):
                 log.debug('visibility_operations.phaserotate: Phaserotating visibility for channel %d, polarisation %d' %
                       (channel, pol))
