@@ -134,5 +134,36 @@ class TestCoordinates(unittest.TestCase):
         assert_allclose(skycoord_to_lmn(north,  east),   ( 0, 1,-1), atol=1e-14)
         assert_allclose(skycoord_to_lmn(south,  east),   ( 0,-1,-1), atol=1e-14)
 
+    def test_phase_rotate(self):
+
+        uvw = np.array( [(1,0,0), (0,1,0), (0,0,1)] )
+
+        pos = [ SkyCoord(17, 35, unit=u.deg), SkyCoord(17, 30, unit=u.deg),
+                SkyCoord(12, 30, unit=u.deg), SkyCoord(11, 35, unit=u.deg),
+                SkyCoord(51, 35, unit=u.deg), SkyCoord(15, 70, unit=u.deg)]
+
+        # Sky coordinates to reproject to
+        for phasecentre in pos:
+            for newphasecentre in pos:
+
+                # Rotate UVW
+                xyz = uvw_to_xyz(uvw, -phasecentre.ra, phasecentre.dec)
+                uvw_rotated = xyz_to_uvw(xyz, -newphasecentre.ra, newphasecentre.dec)
+
+                # Determine phasor
+                l_p,m_p,n_p = skycoord_to_lmn(phasecentre, newphasecentre)
+                phasor = simulate_point(uvw_rotated, l_p, m_p)
+
+                for sourcepos in pos:
+
+                    # Simulate visibility at old and new phase centre
+                    l,m,_ = skycoord_to_lmn(sourcepos, phasecentre)
+                    vis = simulate_point(uvw, l, m)
+                    l_r,m_r,_ = skycoord_to_lmn(sourcepos, newphasecentre)
+                    vis_rotated = simulate_point(uvw_rotated, l_r, m_r)
+
+                    # Difference should be given by phasor
+                    assert_allclose(vis * phasor, vis_rotated, atol=1e-10)
+
 if __name__ == '__main__':
     unittest.main()

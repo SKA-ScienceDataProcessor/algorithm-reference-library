@@ -10,7 +10,7 @@ from astropy import units as units
 from astropy import wcs
 from astropy.coordinates import CartesianRepresentation
 
-from crocodile.simulate import simulate_point
+from crocodile.simulate import simulate_point, skycoord_to_lmn
 from crocodile.synthesis import wcacheimg, wcachefwd, wkernaf, doimg, dopredict
 
 from arl.data_models import *
@@ -204,8 +204,6 @@ def predict_visibility(vis: Visibility, sm: SkyModel, params={}) -> Visibility:
 
                 log.debug("predict_visibility: Finished predicting Visibility from sky model images")
 
-    vdc = vis.phasecentre.represent_as(CartesianRepresentation)
-
     if len(sm.components):
         log.debug("predict_visibility: Predicting Visibility from sky model components")
 
@@ -223,21 +221,20 @@ def predict_visibility(vis: Visibility, sm: SkyModel, params={}) -> Visibility:
                                                     (cshape[0], len(vis.frequency))
             assert vshape[2] == npol, "Component %d and visibility %d have different number of polarisations" % (
                 npol, vshape[2])
-            dc = comp.direction.represent_as(CartesianRepresentation)
-            log.debug('predict_visibility: Cartesian representation of component %d = (%f, %f, %f)'
-                  % (icomp, dc.x, dc.y, dc.z))
+            # dc = comp.direction.represent_as(CartesianRepresentation)
+            l,m,n = skycoord_to_lmn(comp.direction, vis.phasecentre)
+            log.debug('fourier_transforms.predict_visibility: Cartesian representation of component %d = (%f, %f, %f)'
+                  % (icomp, l,m,n))
             if spectral_mode =='channel':
                 for channel in range(nchan):
-                    uvw = vis.data['uvw'] * (vis.frequency[channel] / const.c).value
-                    uvw[:, 2] *= -1.0  # TODO: Why is this needed?
-                    phasor = simulate_point(uvw, dc.z, dc.y)
+                    uvw = vis.uvw_lambda(channel)
+                    phasor = simulate_point(uvw, l, m)
                     for pol in range(npol):
                         log.debug(
                             'predict_visibility: Predicting from component %d channel %d, polarisation %d' % (
                             icomp, channel,
                             pol))
-                        vis.data['vis'][:, channel, pol] = vis.data['vis'][:, channel, pol] + \
-                                                          comp.flux[channel, pol] * phasor
+                        vis.vis[:, channel, pol] += comp.flux[channel, pol] * phasor
             else:
                 raise NotImplementedError("mode %s not supported" % spectral_mode)
 

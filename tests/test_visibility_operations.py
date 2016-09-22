@@ -69,19 +69,19 @@ class TestVisibilityOperations(unittest.TestCase):
             assert_allclose(rotatedvis.uvw, original_uvw, rtol=1e-11)
             assert_allclose(rotatedvis.vis, original_vis, rtol=1e-11)
 
-    @unittest.skip("disabled until we've had another good look at create_visibility")
     def test_phase_rotation(self):
 
         # Predict visibilities with new phase centre independently
-        vispred = create_visibility(self.vlaa, self.times, self.frequency,
+        ha_diff = -(self.compabsdirection.ra - self.phasecentre.ra).to(u.rad).value
+        vispred = create_visibility(self.vlaa, self.times + ha_diff, self.frequency,
                                     weight=1.0, phasecentre=self.compabsdirection,
                                     params=self.params)
         vismodel2 = predict_visibility(vispred, self.m31sm, self.params)
 
         # Should yield the same results as rotation
         rotatedvis = phaserotate_visibility(self.vismodel, self.compabsdirection)
-        assert_allclose(rotatedvis.uvw, vismodel2.uvw, rtol=1e-8)
-        assert_allclose(rotatedvis.vis, vismodel2.vis, rtol=1e-2)
+        assert_allclose(rotatedvis.uvw, vismodel2.uvw, rtol=1e-10)
+        assert_allclose(rotatedvis.vis, vismodel2.vis, rtol=1e-10)
 
 if __name__ == '__main__':
     import sys
