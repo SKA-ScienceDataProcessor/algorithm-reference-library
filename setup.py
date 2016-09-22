@@ -3,8 +3,6 @@
 from setuptools import setup
 import os
 
-os.environ['CROCODILE'] = os.getcwd()
-
 setup(name='crocodile',
       version='0.3',
       description='Algorithm Reference Library for Radio Interferometry',

@@ -8,6 +8,7 @@ from arl.test_support import create_named_configuration, import_visibility_from_
 from arl.image_operations import add_image, create_image_from_array, import_image_from_fits
 from arl.skymodel_operations import create_skymodel_from_image, add_component_to_skymodel
 from arl.visibility_operations import Visibility, create_visibility, create_gaintable_from_array
+from arl.parameters import crocodile_path
 
 from astropy.coordinates import SkyCoord
 
@@ -70,9 +71,9 @@ class TestDataModels(unittest.TestCase):
         self.assertEqual(len(numpy.unique(vis.data['time'])), len(times))
 
     def test_visibility_from_oskar(self):
-        for oskar_file in ["./data/vis/vla_1src_6h/test_vla.vis",
-                           "./data/vis/vla_grid_6h/test_vla.vis"]:
-            vis = import_visibility_from_oskar(oskar_file)
+        for oskar_file in ["data/vis/vla_1src_6h/test_vla.vis",
+                           "data/vis/vla_grid_6h/test_vla.vis"]:
+            vis = import_visibility_from_oskar(crocodile_path(oskar_file))
             self.assertEqual(len(numpy.unique(vis.antenna1))+1, len(vis.configuration.xyz))
             self.assertEqual(len(numpy.unique(vis.antenna2))+1, len(vis.configuration.xyz))
 

@@ -53,12 +53,7 @@ def import_image_from_fits(fitsfile: str):
     :type str:
     :returns: Image
     """
-    # Deal with relative file names in a consistent way
-    if fitsfile[0] == '.':
-        import os
-        chome = os.environ['CROCODILE']
-        fitsfile = "%s/%s" % (chome, fitsfile)
-    hdulist = fits.open(fitsfile)
+    hdulist = fits.open(crocodile_path(fitsfile))
     fim = Image()
     fim.data = hdulist[0].data
     fim.wcs = WCS(fitsfile)

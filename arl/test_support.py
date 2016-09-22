@@ -21,6 +21,7 @@ from crocodile.simulate import *
 
 from arl.data_models import *
 from arl.image_operations import import_image_from_fits, add_wcs_to_image
+from arl.parameters import crocodile_path
 
 from util.read_oskar_vis import OskarVis
 
@@ -137,21 +138,19 @@ def create_named_configuration(name: str = 'LOWBD2', params={}):
     :returns: Configuration
     """
     
-    chome = os.getenv('CROCODILE', './')
-    
     if name == 'LOWBD2':
         location = EarthLocation(lon="116.4999", lat="-26.7000", height=300.0)
-        fc = create_configuration_from_file(antfile="%s/data/configurations/LOWBD2.csv" % chome,
+        fc = create_configuration_from_file(antfile=crocodile_path("data/configurations/LOWBD2.csv"),
                                             location=location, mount='xy', names='LOWBD2_%d')
     elif name == 'LOWBD1':
         location = EarthLocation(lon="116.4999", lat="-26.7000", height=300.0)
-        fc = create_configuration_from_file(antfile="%s/data/configurations/LOWBD1.csv" % chome,
+        fc = create_configuration_from_file(antfile=crocodile_path("data/configurations/LOWBD1.csv"),
                                             location=location, mount='xy', names='LOWBD1_%d')
     elif name == 'LOFAR':
-        fc = create_LOFAR_configuration(antfile="%s/data/configurations/LOFAR.csv" % chome)
+        fc = create_LOFAR_configuration(antfile=crocodile_path("data/configurations/LOFAR.csv"))
     elif name == 'VLAA':
         location = EarthLocation(lon="-107.6184", lat="34.0784", height=2124.0)
-        fc = create_configuration_from_file(antfile="%s/data/configurations/VLA_A_hor_xyz.csv" % chome,
+        fc = create_configuration_from_file(antfile=crocodile_path("data/configurations/VLA_A_hor_xyz.csv"),
                                             location=location,
                                             mount='altaz',
                                             names='VLA_%d')
@@ -230,8 +229,7 @@ def create_test_image(canonical=True):
     :param canonical: Make the image into a 4 dimensional image
     :returns: Image
     """
-    chome = os.environ['CROCODILE']
-    im = import_image_from_fits("%s/data/models/M31.MOD" % chome)
+    im = import_image_from_fits(crocodile_path("%s/data/models/M31.MOD"))
     if canonical:
         im = replicate_image(im)
     return im

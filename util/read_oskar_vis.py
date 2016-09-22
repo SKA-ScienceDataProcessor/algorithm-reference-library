@@ -312,9 +312,7 @@ class OskarVis(OskarBinary):
 
     def __init__(self, file_name):
 
-        chome = os.environ['CROCODILE']
-
-        OskarBinary.__init__(self, "%s/%s" % (chome, file_name))
+        OskarBinary.__init__(self, file_name)
         # super(OskarVis, self).print_summary()
         if not self.bin_ver == 2:
             raise ValueError("Only OSKAR binary format version-2.0 files "

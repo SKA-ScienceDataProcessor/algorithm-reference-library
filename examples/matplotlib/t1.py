@@ -8,6 +8,8 @@ from simulate import *
 
 from matplotlib import pylab
 
+from arl.parameters import crocodile_path
+
 def aaf_ns(a, m, c):
     """
 
@@ -19,8 +21,7 @@ def aaf_ns(a, m, c):
 
 if 1:
     import os
-    chome = os.environ['CROCODILE']
-    vlas=numpy.genfromtxt("%s/test/VLA_A_hor_xyz.txt" % chome, delimiter=",")
+    vlas=numpy.genfromtxt(crocodile_path("test/VLA_A_hor_xyz.txt"), delimiter=",")
     vobs=genuv(vlas, numpy.arange(0,numpy.pi,0.1) ,  numpy.pi/4)
     yy=genvis(vobs/5, 0.01, 0.01)
 

@@ -4,9 +4,19 @@
 #
 
 import sys
+import os
 
 import logging
 log = logging.getLogger( "arl.parameters" )
+
+def crocodile_path(path):
+    """
+    Converts a path that might be relative to crocodile root into an
+    absolute path.
+    """
+    project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    crocodile = os.getenv('CROCODILE', project_root)
+    return os.path.join(crocodile, path)
 
 def get_parameter(params, key, default=None):
     """ Get a specified named value for this (calling) function
