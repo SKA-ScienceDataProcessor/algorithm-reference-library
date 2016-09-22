@@ -8,7 +8,7 @@ import numpy as numpy
 
 from arl.image_operations import create_image_from_array
 from arl.data_models import *
-from arl.parameters import get_parameter
+from arl.parameters import *
 
 import logging
 log = logging.getLogger("arl.image_deconvolution")
@@ -30,6 +30,7 @@ def deconvolve_cube(dirty: Image, psf: Image, params={}):
     :param params: 'algorithm': 'msclean'|'hogbom', 'gain': loop gain (float)
     :returns: componentimage, residual
     """
+    log_parameters(params)
     algorithm = get_parameter(params, 'algorithm', 'msclean')
     if algorithm == 'msclean':
 
@@ -49,12 +50,12 @@ def deconvolve_cube(dirty: Image, psf: Image, params={}):
         for channel in range(dirty.data.shape[0]):
             for pol in range(dirty.data.shape[1]):
                 if psf.data[channel, pol, :, :].max():
-                    log.debug("image_deconvolution: Processing pol %d, channel %d" % (pol, channel))
+                    log.debug("deconvolve_cube: Processing pol %d, channel %d" % (pol, channel))
                     comp_array[channel, pol, :, :], residual_array[channel, pol, :, :] = \
                        msclean(dirty.data[channel, pol, :, :], psf.data[channel, pol, :, :],
                                 window, gain, thresh, niter, scales, fracthresh)
                 else:
-                    log.debug("clean: Skipping pol %d, channel %d" % (pol, channel))
+                    log.debug("deconvolve_cube: Skipping pol %d, channel %d" % (pol, channel))
     elif algorithm == 'hogbom':
 
         window = get_parameter(params, 'window', None)
@@ -72,14 +73,14 @@ def deconvolve_cube(dirty: Image, psf: Image, params={}):
         for channel in range(dirty.data.shape[0]):
             for pol in range(dirty.data.shape[1]):
                 if psf.data[channel, pol, :, :].max():
-                    log.debug("clean.clean: Processing pol %d, channel %d" % (pol, channel))
+                    log.debug("deconvolve_cube: Processing pol %d, channel %d" % (pol, channel))
                     comp_array[channel, pol, :, :], residual_array[channel, pol, :, :] = \
                         hogbom(dirty.data[channel, pol, :, :], psf.data[channel, pol, :, :],
                                window, gain, thresh, niter)
                 else:
-                    log.debug("clean: Skipping pol %d, channel %d" % (pol, channel))
+                    log.debug("deconvolve_cube: Skipping pol %d, channel %d" % (pol, channel))
     else:
-        raise ValueError('image_deconvolution: Unknown algorithm %s' % algorithm)
+        raise ValueError('deconvolve_cube: Unknown algorithm %s' % algorithm)
 
     return create_image_from_array(comp_array, dirty.wcs), create_image_from_array(residual_array, dirty.wcs)
 
@@ -96,6 +97,7 @@ def restore_cube(dirty: Image, clean: Image, psf: Image, params={}):
     :param params: 'algorithm': 'msclean'|'hogbom', 'gain': loop gain (float)
     :returns: restored image
     """
+    log_parameters(params)
     log.error("restore_image: not yet implemented")
     return Image()
 
@@ -117,6 +119,7 @@ def deconvolve_mfs(dirty: Image, psf: Image, params={}):
     :param params: 'algorithm': 'msclean'|'hogbom', 'gain': loop gain (float)
     :returns: componentimage, residual
     """
+    log_parameters(params)
     log.error("deconvolve_mfs: not yet implemented")
     return Image()
 
@@ -133,6 +136,7 @@ def restore_mfs(dirty: Image, clean: Image, psf: Image, params={}):
     :param params: 'algorithm': 'msclean'|'hogbom', 'gain': loop gain (float)
     :returns: restored image
     """
+    log_parameters(params)
     log.error("restore_mfs: not yet implemented")
     return Image()
 
@@ -198,6 +202,7 @@ def hogbom(dirty,
     :param niter: Maximum number of components to make if the threshold `thresh` is not hit
     :returns: clean SkyComponent Image, residual Image
     """
+    log_parameters(params)
 
     assert 0.0 < gain < 2.0
     assert niter > 0
@@ -250,6 +255,7 @@ def msclean(dirty,
     :param scales: Scales (in pixels width) to be used
     :returns: clean component Image, residual Image
     """
+    log_parameters(params)
     assert 0.0 < gain < 2.0
     assert niter > 0
     assert len(scales) > 0
@@ -287,7 +293,7 @@ def msclean(dirty,
     for iscale in numpy.arange(len(scales)):
         for iscale1 in numpy.arange(len(scales)):
             couplingMatrix[iscale, iscale1] = numpy.max(psfscalescalestack[:, :, iscale, iscale1])
-    log.info("Coupling matrix =\n %s" % couplingMatrix)
+    log.info("msclean: Coupling matrix =\n %s" % couplingMatrix)
     
     # The window is scale dependent - we form it by smoothing and thresholding
     # the input window. This prevents components being placed too close to the

@@ -13,7 +13,7 @@ from arl.image_operations import import_image_from_fits
 from arl.visibility_operations import combine_visibility
 from arl.fourier_transforms import predict_visibility, invert_visibility
 from arl.data_models import *
-from arl.parameters import get_parameter
+from arl.parameters import *
 
 import logging
 log = logging.getLogger("arl.skymodel_operations")
@@ -53,6 +53,7 @@ def find_skycomponent(im: Image, params={}):
     :returns: SkyComponent
     """
     # TODO: Implement full image fitting of components
+    log_parameters(params)
     log.debug("point_source_find: Finding components in Image")
     
     # Beware: The index sequencing is opposite in wcs and Python!
@@ -79,6 +80,7 @@ def fit_skycomponent(im: Image, sc: SkyCoord, params={}):
     :returns: SkyComponent
 
     """
+    log_parameters(params)
     log.debug("find_flux_at_direction: Extracting flux at world coordinates %s" % str(sc))
     w = im.wcs.sub(['longitude', 'latitude'])
     pixloc = skycoord_to_pixel(sc, im.wcs, 0, 'wcs')
@@ -171,6 +173,7 @@ def solve_skymodel(vis: Visibility, sm: SkyModel, deconvolver, params={}):
     :arg function:
     :returns: Visibility, SkyModel
     """
+    log_parameters(params)
     nmajor = get_parameter(params, 'nmajor', 5)
     log.debug("solve_combinations.solve_skymodel: Performing %d major cycles" % nmajor)
     
@@ -209,5 +212,6 @@ def solve_skymodel_gains(vis: Visibility, sm: SkyModel, deconvolver, params={}):
     :arg function:
     :returns: Visibility, SkyModel, Gaintable
     """
+    log_parameters(params)
     log.debug("solve_skymodel_gains: not implemeneted yet")
     return vis, sm, GainTable()

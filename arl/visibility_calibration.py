@@ -11,7 +11,7 @@ from arl.image_operations import import_image_from_fits
 from arl.skymodel_operations import create_skymodel_from_image
 from arl.fourier_transforms import predict_visibility
 from arl.data_models import *
-from arl.parameters import get_parameter
+from arl.parameters import *
 
 import logging
 log = logging.getLogger("arl.visibility_calibration")
@@ -30,6 +30,7 @@ def solve_gains(vis: Visibility, sm: SkyModel, params={}) -> GainTable:
     :type SkyModel:
     :returns: GainTable
     """
+    log_parameters(params)
     #TODO: Implement calibration solution
     log.error("solve_gains: not yet implemented")
     return GainTable()
@@ -45,6 +46,7 @@ def correct_visibility(vis: Visibility, gt: GainTable, params={}) -> Visibility:
     :returns: Visibility
     """
     # TODO: Implement calibration application
+    log_parameters(params)
     log.error("correct_visibility: not yet implemented")
     return vis
 
@@ -59,6 +61,7 @@ def peel_skycomponent(vis: Visibility, sc: SkyComponent, params={}) -> Visibilit
     :returns: Visibility, GainTable
     """
     # TODO: Implement peeling
+    log_parameters(params)
     log.error("peel_skycomponent: not yet implemented")
     return vis
 
@@ -70,5 +73,6 @@ def qa_gaintable(gt, params={}):
     :type GainTable:
     :returns: AQ
     """
+    log_parameters(params)
     log.error("qa_gaintable: not yet implemented")
     return QA()

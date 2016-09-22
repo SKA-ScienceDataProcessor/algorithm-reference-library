@@ -15,7 +15,7 @@ from crocodile.synthesis import wcacheimg, wcachefwd, wkernaf, doimg, dopredict
 
 from arl.data_models import *
 from arl.image_operations import create_image_from_array
-from arl.parameters import get_parameter
+from arl.parameters import *
 
 import logging
 log = logging.getLogger("arl.fourier_transforms")
@@ -25,19 +25,19 @@ Functions that perform imaging i.e. conversion of an Image to/from a Visibility
 """
 
 
-def create_wcs_from_visibility(vis: Visibility, params={}, level=1):
+def create_wcs_from_visibility(vis: Visibility, params={}):
     """Make a world coordinate system from params and Visibility
 
     :param vis:
     :type Visibility: Visibility to be processed
     :param params: keyword=value parameters
-    :param level: level in params 0 = toplevel, 1 = parent, 2 = parent of parent.
     :returns: WCS
     """
+    log_parameters(params)
     log.debug("create_wcs_from_visibility: Parsing parameters to get definition of WCS")
-    imagecentre = get_parameter(params, "imagecentre", vis.phasecentre, level)
-    phasecentre = get_parameter(params, "phasecentre", vis.phasecentre, level)
-    reffrequency = get_parameter(params, "reffrequency", numpy.max(vis.frequency), level) * units.Hz
+    imagecentre = get_parameter(params, "imagecentre", vis.phasecentre)
+    phasecentre = get_parameter(params, "phasecentre", vis.phasecentre)
+    reffrequency = get_parameter(params, "reffrequency", numpy.max(vis.frequency)) * units.Hz
     deffaultbw = vis.frequency[0]
     if len(vis.frequency) > 1:
         deffaultbw = vis.frequency[1] - vis.frequency[0]
@@ -45,13 +45,13 @@ def create_wcs_from_visibility(vis: Visibility, params={}, level=1):
     log.debug("create_wcs_from_visibility: Defining Image at %s, frequency %s, and bandwidth %s"
           % (imagecentre, reffrequency, channelwidth))
 
-    npixel = get_parameter(params, "npixel", 512, level)
+    npixel = get_parameter(params, "npixel", 512)
     uvmax = (numpy.abs(vis.data['uvw']).max() * reffrequency / const.c).value
     log.debug("create_wcs_from_visibility: uvmax = %f lambda" % uvmax)
     criticalcellsize = 1.0 / (uvmax * 2.0)
     log.debug("create_wcs_from_visibility: Critical cellsize = %f radians, %f degrees" % (
         criticalcellsize, criticalcellsize * 180.0 / numpy.pi))
-    cellsize = get_parameter(params, "cellsize", 0.5 * criticalcellsize, level)
+    cellsize = get_parameter(params, "cellsize", 0.5 * criticalcellsize)
     log.debug("create_wcs_from_visibility: Cellsize          = %f radians, %f degrees" % (cellsize,
                                                                                        cellsize * 180.0 / numpy.pi))
     if cellsize > criticalcellsize:
@@ -81,6 +81,7 @@ def invert_visibility(vis: Visibility, params={}):
     :type Visibility: Visibility to be processed
     :returns: (dirty image, psf)
     """
+    log_parameters(params)
     log.debug("invert_visibility: Inverting Visibility to make dirty and psf")
     shape, reffrequency, cellsize, w, imagecentre = create_wcs_from_visibility(vis, params=params)
 
@@ -147,9 +148,9 @@ def predict_visibility(vis: Visibility, sm: SkyModel, params={}) -> Visibility:
     :type SkyModel:
     :returns: Visibility
     """
-    vshape = vis.data['vis'].shape
     shape, reffrequency, cellsize, w, imagecentre = create_wcs_from_visibility(vis, params=params)
 
+    vshape = vis.data['vis'].shape
     vis.data['vis'] = numpy.zeros(vshape)
 
     spectral_mode = get_parameter(params, 'spectral_mode', 'channel')
@@ -160,8 +161,6 @@ def predict_visibility(vis: Visibility, sm: SkyModel, params={}) -> Visibility:
 
         for im in sm.images:
             wimage = im.wcs
-
-            vshape = vis.data['vis'].shape
 
             ishape = sm.images[0].data.shape
             nchan = ishape[0]
@@ -253,6 +252,7 @@ def weight_visibility(vis, im, params={}):
     :param params: Dictionary containing parameters
     :returns: Configuration
     """
+    log_parameters(params)
     log.error("visibility_operations.weight_visibility: not yet implemented")
     return vis
 

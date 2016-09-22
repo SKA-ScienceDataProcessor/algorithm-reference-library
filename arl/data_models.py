@@ -154,7 +154,7 @@ class QA:
     
     # TODO: Implement some form of QA receipt and bundling
     
-    def __init__(self):
-        self.origin = None      # Name of function originating QA assessment
-        self.data = None        # Dictionary containing standard fields
-        self.context = None     # Context string (TBD)
+    def __init__(self, origin=None, data=None, context=None):
+        self.origin = origin      # Name of function originating QA assessment
+        self.data = data        # Dictionary containing standard fields
+        self.context = context     # Context string (TBD)

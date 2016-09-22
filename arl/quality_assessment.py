@@ -4,7 +4,7 @@
 # and an attached attribute which is the frequency of each channel
 
 from arl.data_models import *
-from arl.parameters import get_parameter
+from arl.parameters import *
 
 """
 Holder for the Quality Assessment

@@ -15,6 +15,7 @@ def RCAL(params):
     :param params: Dictionary containing parameters
     :return:
    """
+    log_parameters(params)
     vis = get_parameter(params, 'visibility', None)
     sm = get_parameter(params, 'skymodel', None)
 
@@ -31,6 +32,7 @@ def ICAL(params):
     :param params: Dictionary containing parameters
     :return:
     """
+    log_parameters(params)
     vis = get_parameter(params, 'visibility')
     sm = get_parameter(params, 'skymodel')
 
@@ -50,7 +52,6 @@ def continuum_imaging(params):
     """
 
     log_parameters(params)
-    
     vis = get_parameter(params, 'visibility')
     sm = get_parameter(params, 'skymodel')
     
@@ -63,7 +64,7 @@ def spectral_line_imaging(params):
     :param params: Dictionary containing parameters
     :return:
     """
-
+    log_parameters(params)
     vis = get_parameter(params, 'visibility')
     sm = get_parameter(params, 'skymodel')
 
@@ -76,7 +77,7 @@ def fast_imaging(params):
     :param params: Dictionary containing parameters
     :return:
     """
-    
+    log_parameters(params)
     vis = get_parameter(params, 'visibility')
     sm = get_parameter(params, 'skymodel')
     
@@ -89,6 +90,7 @@ def EOR(params):
     :param params: Dictionary containing parameters
     :return:
     """
+    log_parameters(params)
     vis = get_parameter(params, 'visibility')
     sm = get_parameter(params, 'skymodel')
     

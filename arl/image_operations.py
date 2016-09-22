@@ -15,7 +15,7 @@ from reproject import reproject_interp
 # from reproject import reproject_interp
 
 from arl.data_models import *
-from arl.parameters import get_parameter
+from arl.parameters import *
 
 import logging
 log = logging.getLogger( "arl.image_operations" )
@@ -80,7 +80,7 @@ def add_wcs_to_image(im: Image, wcs: WCS):
     return im
 
 
-def reproject_image(im: Image, newwcs: WCS, shape=None):
+def reproject_image(im: Image, newwcs: WCS, shape=None, params={}):
     """ Re-project an image to a new coordinate system
     
     Currently uses the reproject python package.
@@ -90,8 +90,10 @@ def reproject_image(im: Image, newwcs: WCS, shape=None):
     :type Image:
     :param newwcs: New WCS
     :type WCS:
+    :param params: Dictionary of parameters
     :returns: Reprojected Image, Footprint Image
     """
+    log_parameters(params)
     rep, foot = reproject_interp((im.data, im.wcs), newwcs, shape, order='bicubic',
                                  independent_celestial_slices=False)
     return create_image_from_array(rep, newwcs), create_image_from_array(foot, newwcs)
@@ -104,6 +106,7 @@ def fft_image(im: Image, params={}):
     :type Image:
     :returns: Image
     """
+    log_parameters(params)
     log.error("fft_image: not yet implemented")
     
     return im
@@ -121,6 +124,7 @@ def add_image(im1: Image, im2: Image, checkwcs=False):
     :returns: Image
     """
     assert not checkwcs, "Checking WCS not yet implemented"
+    log_parameters(params)
     return create_image_from_array(im1.data + im2.data, im1.wcs)
 
 
@@ -132,6 +136,7 @@ def aq_image(im, params={}):
     :returns: QA
     """
     log.error("aq_image: not yet implemented")
+    log_parameters(params)
     return QA()
 
 
@@ -151,7 +156,6 @@ def show_image(im: Image, fig=None, title: str = ''):
     fig.add_subplot(111, projection=im.wcs.sub(['longitude', 'latitude']))
     plt.clf()
     if len(im.data.shape) == 4:
-        log.debug(im.data[0, 0, :, :])
         plt.imshow(im.data[0, 0, :, :], origin='lower', cmap='rainbow')
     elif len(im.data.shape) == 2:
         plt.imshow(im.data[:, :], origin='lower', cmap='rainbow')

@@ -31,12 +31,11 @@ from astropy.wcs.utils import skycoord_to_pixel, pixel_to_skycoord
 from astropy import units as u
 
 from arl.image_deconvolution import deconvolve_cube
-from arl.visibility_operations import create_visibility
+from arl.visibility_operations import create_visibility, combine_visibility, aq_visibility
 from arl.fourier_transforms import *
 from arl.skymodel_operations import create_skymodel_from_image, add_component_to_skymodel, create_skycomponent, find_skycomponent
 from arl.image_operations import show_image, import_image_from_fits, export_image_to_fits
 from arl.test_support import filter_configuration, create_named_configuration, replicate_image
-
 
 # We construct a VLA configuration and then shrink it to match our test image.
 
@@ -110,6 +109,7 @@ m31sm=add_component_to_skymodel(m31sm, comp1)
 
 # Now we can predict_visibility the visibility from this skymodel
 params={'wstep':100.0, 'npixel':256, 'cellsize':0.0001}
+
 vis = predict_visibility(vis, m31sm, params=params)
 
 # To check that we got the prediction right, plot the amplitude of the visibility.
@@ -125,11 +125,12 @@ if doshow:
 # Make the dirty image and point spread function
 
 params={'wstep':30.0, 'npixel':512, 'cellsize':0.0001}
+
 dirty, psf, sumwt = invert_visibility(vis, params=params)
 show_image(dirty)
-log.info("Max, min in dirty image = %.6f, %.6f, sum of weights = %f" % (dirty.data.max(), dirty.data.min(), sumwt))
+log.info("run_imaging: Max, min in dirty image = %.6f, %.6f, sum of weights = %f" % (dirty.data.max(), dirty.data.min(), sumwt))
 
-log.info("Max, min in PSF         = %.6f, %.6f, sum of weights = %f" % (psf.data.max(), psf.data.min(), sumwt))
+log.info("run_imaging: Max, min in PSF         = %.6f, %.6f, sum of weights = %f" % (psf.data.max(), psf.data.min(), sumwt))
 
 export_image_to_fits(dirty, 'run_imaging_dirty.fits')
 export_image_to_fits(psf, 'run_imaging_psf.fits')
@@ -139,6 +140,7 @@ m31compnew = find_skycomponent(dirty)
 # Deconvolve using clean
 
 params={'niter':1000, 'threshold':0.001, 'fracthresh':0.01}
+
 comp, residual = deconvolve_cube(dirty, psf, params=params)
 
 # Show the results
@@ -150,12 +152,13 @@ fig=show_image(residual)
 # Predict the visibility of the model
 
 params={'wstep':30.0}
+
 vis = predict_visibility(vis, m31sm, params=params)
 modelsm=create_skymodel_from_image(comp)
 vismodel = create_visibility(vlaa, times, frequency, weight=1.0, phasecentre=phasecentre)
 vismodel.data = vis.data.copy()
 vismodel=predict_visibility(vismodel, modelsm, params={})
-
+visres=combine_visibility(vis, vismodel, 1.0, -1.0)
 
 # Now we will plot the original visibility and the residual visibility.
 
@@ -167,5 +170,10 @@ if doshow:
     plt.xlabel('uvdist')
     plt.ylabel('Amp Visibility')
     plt.show()
+    
+qa=aq_visibility(vis)
+qares=aq_visibility(visres)
+log.info("Observed visibility: %s" % (str(qa.data)))
+log.info("Residual visibility: %s" % (str(qares.data)))
 
 log.info("run_imaging: End of processing")
