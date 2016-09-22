@@ -238,7 +238,7 @@ def phaserotate_visibility(vis: Visibility, newphasecentre: SkyCoord, params={})
             for pol in range(vis.npol):
                 log.debug('visibility_operations.phaserotate: Phaserotating visibility for channel %d, polarisation %d' %
                       (channel, pol))
-                vis.vis[:, channel, pol] *= phasor
+                vis.vis[:, channel, pol] /= phasor
 
         # To rotate UVW, rotate into the global XYZ coordinate system and back
         xyz = uvw_to_xyz(vis.data['uvw'], ha=-vis.phasecentre.ra, dec=vis.phasecentre.dec)
