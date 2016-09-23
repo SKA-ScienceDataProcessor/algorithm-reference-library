@@ -208,8 +208,14 @@ Testing
   regression tests. These should be run automatically, by, for example, a framework such as Jenkins, on any change to
   ensure their errors are caught quickly and not compounded.
 
+Fourier Processing
+------------------
+
+We use a specially designed python :doc:`framework<arllib_fourier_processing>` to capture the commonalities of the
+various imaging algorithms. It also allow plug-and-play of new algorithms.
+
 Consistency
 -----------
 
-  A :doc:`Best Practices<arllib_bestpractices>` document is available to ensure that development of the library
-  follows a consistent course.
+A :doc:`Best Practices<arllib_bestpractices>` document is available to ensure that development of the library follows
+ a consistent course.
