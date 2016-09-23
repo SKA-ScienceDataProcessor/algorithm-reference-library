@@ -18,7 +18,9 @@ from arl.data_models import *
 from arl.parameters import *
 
 import logging
-log = logging.getLogger( "arl.image_operations" )
+
+log = logging.getLogger("arl.image_operations")
+
 
 def create_image_from_array(data: numpy.array, wcs: WCS = None) -> Image:
     """ Create an image from an array
@@ -88,6 +90,9 @@ def reproject_image(im: Image, newwcs: WCS, shape=None, params={}):
     :param params: Dictionary of parameters
     :returns: Reprojected Image, Footprint Image
     """
+    # TODO: implement
+    
+    
     log_parameters(params)
     rep, foot = reproject_interp((im.data, im.wcs), newwcs, shape, order='bicubic',
                                  independent_celestial_slices=False)
@@ -101,6 +106,9 @@ def fft_image(im: Image, params={}):
     :type Image:
     :returns: Image
     """
+    # TODO: implement
+    
+    
     log_parameters(params)
     log.error("fft_image: not yet implemented")
     
@@ -118,6 +126,9 @@ def add_image(im1: Image, im2: Image, checkwcs=False):
     :type bool:
     :returns: Image
     """
+    # TODO: implement
+    
+    
     assert not checkwcs, "Checking WCS not yet implemented"
     return create_image_from_array(im1.data + im2.data, im1.wcs)
 
@@ -129,6 +140,8 @@ def aq_image(im, params={}):
     :type Image:
     :returns: QA
     """
+    # TODO: implement
+     
     log.error("aq_image: not yet implemented")
     log_parameters(params)
     return QA()

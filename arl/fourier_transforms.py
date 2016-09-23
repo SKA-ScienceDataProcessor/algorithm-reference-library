@@ -244,7 +244,7 @@ def predict_visibility(vis: Visibility, sm: SkyModel, params={}) -> Visibility:
 
 def weight_visibility(vis, im, params={}):
     """ Reweight the visibility data in place a selected algorithm
-
+    
     :param vis:
     :type Visibility: Visibility to be processed
     :param im:
@@ -252,6 +252,8 @@ def weight_visibility(vis, im, params={}):
     :param params: Dictionary containing parameters
     :returns: Configuration
     """
+    # TODO: implement
+
     log_parameters(params)
     log.error("visibility_operations.weight_visibility: not yet implemented")
     return vis

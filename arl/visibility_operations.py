@@ -27,6 +27,8 @@ def filter_gaintable(fg: GainTable, params={}):
     :type GainTable:
     :returns: GainTable
     """
+    # TODO: implement
+
     log.error("filter_gaintable: not yet implemented")
     return fg
 
@@ -77,6 +79,8 @@ def interpolate_gaintable(gt: GainTable, params={}):
     :returns: Gaintable
     """
     log_parameters(params)
+    # TODO: implement
+
     log.error('"interpolate_gaintable: not yet implemented')
     return GainTable()
 
@@ -155,6 +159,8 @@ def flag_visibility(vis: Visibility, gt: GainTable = None, params={}) -> Visibil
     :param params: Dictionary containing parameters
     :returns: Visibility
     """
+    # TODO: implement
+
     log_parameters(params)
     log.error("flag_visibility: not yet implemented")
     return vis
@@ -168,6 +174,8 @@ def filter_visibility(vis: Visibility, params={}) -> Visibility:
     :param params: Dictionary containing parameters
     :returns: Visibility
     """
+    # TODO: implement
+
     log_parameters(params)
     log.error("filter_visibility: not yet implemented")
     return vis
@@ -305,6 +313,8 @@ def coalesce_visibility(vis: Visibility, params={}) -> Visibility:
     :type Visibility:
     :returns: Visibility after coalescing
     """
+    # TODO: implement
+
     log_parameters(params)
     log.error("coalesce_visibility: not yet implemented")
     return vis
@@ -322,6 +332,8 @@ def de_coalesce_visibility(vis: Visibility, vistemplate: Visibility, params={}) 
     :type Visibility: Visibility
     :returns: Visibility after de-coalescing
     """
+    # TODO: implement
+
     log_parameters(params)
     log.error("de_coalesce_visibility: not yet implemented")
     return vis

@@ -212,6 +212,8 @@ def solve_skymodel_gains(vis: Visibility, sm: SkyModel, deconvolver, params={}):
     :arg function:
     :returns: Visibility, SkyModel, Gaintable
     """
+    # TODO: implement
+
     log_parameters(params)
     log.debug("solve_skymodel_gains: not implemeneted yet")
     return vis, sm, GainTable()

@@ -73,6 +73,8 @@ def qa_gaintable(gt, params={}):
     :type GainTable:
     :returns: AQ
     """
+    # TODO: implement
+
     log_parameters(params)
     log.error("qa_gaintable: not yet implemented")
     return QA()
