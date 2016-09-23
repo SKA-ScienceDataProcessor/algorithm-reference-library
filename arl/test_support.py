@@ -229,7 +229,7 @@ def create_test_image(canonical=True):
     :param canonical: Make the image into a 4 dimensional image
     :returns: Image
     """
-    im = import_image_from_fits(crocodile_path("%s/data/models/M31.MOD"))
+    im = import_image_from_fits(crocodile_path("data/models/M31.MOD"))
     if canonical:
         im = replicate_image(im)
     return im
