@@ -91,13 +91,10 @@ def create_configuration_from_file(antfile: str, name: str = None, location: Ear
     antxyz = numpy.genfromtxt(antfile, delimiter=",")
     assert antxyz.shape[1] == 3, ("Antenna array has wrong shape %s" % antxyz.shape)
     nants = antxyz.shape[0]
-    declination = location.geodetic[1].to(units.rad).value
     if frame == 'local':
-        rot_xyz = xyz_to_uvw(antxyz, numpy.zeros(1), numpy.radians(declination))
-        xyz = Column(rot_xyz, name="xyz")
-        xyz[:, 1], xyz[:, 2] = xyz[:, 2], xyz[:, 1]
-    else:
-        xyz = Column(antxyz, name="xyz")
+        latitude = location.geodetic[1].to(units.rad).value
+        antxyz = xyz_at_latitude(antxyz, latitude)
+    xyz = Column(antxyz, name="xyz")
 
     anames = [names % ant for ant in range(nants)]
     mounts = Column(numpy.repeat(mount, nants), name="mount")
