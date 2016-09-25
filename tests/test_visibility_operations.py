@@ -67,8 +67,8 @@ class TestVisibilityOperations(unittest.TestCase):
             rotatedvis = phaserotate_visibility(
                              phaserotate_visibility(self.vismodel, newphasecentre),
                              self.phasecentre)
-            assert_allclose(rotatedvis.uvw, original_uvw, rtol=1e-11)
-            assert_allclose(rotatedvis.vis, original_vis, rtol=1e-11)
+            assert_allclose(rotatedvis.uvw, original_uvw, rtol=1e-10)
+            assert_allclose(rotatedvis.vis, original_vis, rtol=1e-10)
 
     def test_phase_rotation(self):
 

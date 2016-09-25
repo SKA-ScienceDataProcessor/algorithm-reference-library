@@ -85,4 +85,9 @@ class TestPipelines(unittest.TestCase):
         
 
 if __name__ == '__main__':
+    import sys
+    import logging
+    log = logging.getLogger()
+    log.setLevel(logging.DEBUG)
+    log.addHandler(logging.StreamHandler(sys.stdout))
     unittest.main()

@@ -73,6 +73,13 @@ class Image:
         self.data = None
         self.wcs = None
 
+    @property
+    def nchan(self): return self.data.shape[0]
+    @property
+    def npol(self): return self.data.shape[1]
+    @property
+    def npixel(self): return self.data.shape[3]
+
 
 class SkyComponent:
     """ A single SkyComponent with direction, flux, shape, and params for the shape
@@ -87,6 +94,11 @@ class SkyComponent:
         self.flux = None  # numpy.array [nchan, npol]
         self.shape = None  # str e.g. 'Point' 'Gaussian'
         self.params = None  # numpy.array shape dependent parameters
+
+    @property
+    def nchan(self): return self.flux.shape[0]
+    @property
+    def npol(self): return self.flux.shape[1]
 
 
 class SkyModel:
@@ -160,7 +172,7 @@ class Visibility:
     
     def uvw_lambda(self, channel=0):
         """ Calculates baseline coordinates in wavelengths. """
-        return self.data['uvw'] * (self.frequency[channel] / const.c).value
+        return self.data['uvw'] * self.frequency[channel] / const.c.value
 
 
 class QA:
@@ -174,3 +186,15 @@ class QA:
         self.origin = origin  # Name of function originating QA assessment
         self.data = data  # Dictionary containing standard fields
         self.context = context  # Context string (TBD)
+
+def assert_same_chan_pol(o1, o2):
+    """
+    Assert that two entities indexed over channels and polarisations
+    have the same number of them.
+    """
+    assert o1.npol == o2.npol, \
+        "%s and %s have different number of polarisations: %d != %d" % \
+        (type(o1).__name__, type(o2).__name__, o1.npol, o2.npol)
+    assert o1.nchan == o2.nchan, \
+        "%s and %s have different number of channels: %d != %d" % \
+        (type(o1).__name__, type(o2).__name__, o1.nchan, o2.nchan)

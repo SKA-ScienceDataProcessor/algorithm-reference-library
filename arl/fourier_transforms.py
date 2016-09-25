@@ -3,15 +3,17 @@
 # Synthesis imaging functions
 #
 
+import functools
 import numpy
 import pylru
+import copy
 from astropy import constants as const
 from astropy import units as units
 from astropy import wcs
 from astropy.coordinates import CartesianRepresentation
 
 from crocodile.simulate import simulate_point, skycoord_to_lmn
-from crocodile.synthesis import wcacheimg, wcachefwd, wkernaf, doimg, dopredict
+from crocodile.synthesis import w_cache_imaging, w_cache_predict, w_kernel, w_conj_kernel_fn, do_imaging, do_predict
 
 from arl.data_models import *
 from arl.image_operations import create_image_from_array
@@ -62,7 +64,7 @@ def create_wcs_from_visibility(vis: Visibility, params={}):
     # Beware of python indexing order! wcs and the array have opposite ordering
     shape = [len(vis.frequency), npol, npixel, npixel]
     w = wcs.WCS(naxis=4)
-    w.wcs.cdelt = [-cellsize * 180.0 / numpy.pi, cellsize * 180.0 / numpy.pi, 1.0, channelwidth.value]
+    w.wcs.cdelt = [cellsize * 180.0 / numpy.pi, cellsize * 180.0 / numpy.pi, 1.0, channelwidth.value]
     w.wcs.crpix = [npixel // 2 + 1, npixel // 2 + 1, 1.0, 1.0]
     w.wcs.ctype = ["RA---SIN", "DEC--SIN", 'STOKES', 'FREQ']
     w.wcs.crval = [phasecentre.ra.value, phasecentre.dec.value, 1.0, reffrequency.value]
@@ -72,6 +74,20 @@ def create_wcs_from_visibility(vis: Visibility, params={}):
     w.wcs.equinox = get_parameter(params, 'equinox', 2000.0)
 
     return shape, reffrequency, cellsize, w, imagecentre
+
+
+def w_cache_size(vis:Visibility, wstep, frequency=None):
+    """
+    Determine optimal w-kernel cache size for de/gridding the
+    given visibilities.
+    """
+
+    if frequency is None:
+        frequency = max(vis.frequency)
+
+    wmax = numpy.max(numpy.abs(vis.w))
+    wmax *= float(frequency) / const.c.value
+    return int(numpy.ceil(wmax / wstep))
 
 
 def invert_visibility(vis: Visibility, params={}):
@@ -98,11 +114,13 @@ def invert_visibility(vis: Visibility, params={}):
         log.debug("invert_visibility: Gridding by w projection")
 
         wstep = get_parameter(params, "wstep", 10000.0)
-
-        wcachesize = int(numpy.ceil(numpy.abs(vis.data['uvw'][:, 2]).max() * reffrequency.value / (const.c.value * wstep)))
+        wcachesize = w_cache_size(vis, wstep)
         log.debug("invert_visibility: Making w-kernel cache of %d kernels" % wcachesize)
-        wcache = pylru.FunctionCacheManager(lambda iw: wkernaf(N=256, theta=theta, w=iw * wstep, s=15, Qpx=4), 10000)
-        imgfn = lambda *x: wcacheimg(*x, wstep=wstep, wcache=wcache)
+
+        cache_fn = w_conj_kernel_fn(pylru.FunctionCacheManager(w_kernel, wcachesize))
+        imgfn = functools.partial(w_cache_imaging,
+                                  wstep=wstep, kernel_cache=cache_fn,
+                                  NpixFF=256, NpixKern=15, Qpx=4)
     else:
         raise NotImplementedError("gridding algorithm %s not supported" % gridding_algorithm)
 
@@ -123,9 +141,8 @@ def invert_visibility(vis: Visibility, params={}):
             for pol in range(npol):
                 log.debug('invert_visibility: Inverting channel %d, polarisation %d' % (channel, pol))
                 d[channel, pol, :, :], p[channel, 0, :, :], pmax = \
-                    doimg(theta, 1.0 / cellsize, vis.data['uvw'] *
-                          (vis.frequency[channel] / const.c).value,
-                          vis.data['vis'][:, channel, pol], imgfn=imgfn)
+                    do_imaging(theta, 1.0 / cellsize, vis.uvw_lambda(channel),
+                               vis.vis[:, channel, pol], imgfn=imgfn)
             assert pmax > 0.0, ("No data gridded for channel %d" % channel)
     else:
         raise NotImplementedError("mode %s not supported" % spectral_mode)
@@ -138,9 +155,8 @@ def invert_visibility(vis: Visibility, params={}):
 
     return dirty, psf, pmax
 
-
 def predict_visibility(vis: Visibility, sm: SkyModel, params={}) -> Visibility:
-    """Predict the visibility (in place) from a SkyModel including both components and images
+    """Predict the visibility from a SkyModel including both components and images
 
     :param vis:
     :type Visibility: Visibility to be processed
@@ -150,8 +166,10 @@ def predict_visibility(vis: Visibility, sm: SkyModel, params={}) -> Visibility:
     """
     shape, reffrequency, cellsize, w, imagecentre = create_wcs_from_visibility(vis, params=params)
 
-    vshape = vis.data['vis'].shape
-    vis.data['vis'] = numpy.zeros(vshape)
+    # Create copy of visibilities
+    vis = copy.copy(vis)
+    vis.data = copy.copy(vis.data)
+    vis.data['vis'] = numpy.zeros(vis.vis.shape)
 
     spectral_mode = get_parameter(params, 'spectral_mode', 'channel')
     log.debug('predict_visibility: spectral mode is %s' % spectral_mode)
@@ -160,75 +178,59 @@ def predict_visibility(vis: Visibility, sm: SkyModel, params={}) -> Visibility:
         log.debug("predict_visibility: Predicting Visibility from sky model images")
 
         for im in sm.images:
-            wimage = im.wcs
+            assert_same_chan_pol(vis, im)
 
-            ishape = sm.images[0].data.shape
-            nchan = ishape[0]
-            npol = ishape[1]
-            npixel = ishape[3]
-            vshape = vis.data['vis'].shape
-
-            assert ishape[0] == vshape[1], "Image and visibility have different number of polarisations: %d %d" % (
-                ishape[1], vshape[2])
-            assert ishape[0] == len(vis.frequency), "Image and visibility have different number of channels %d %d" % \
-                                                    (ishape[0], len(vis.frequency))
-            cellsize = abs(wimage.wcs.cdelt[0]) * numpy.pi / 180.0
-            theta = npixel * cellsize
+            # Determine image size
+            cellsize = abs(im.wcs.wcs.cdelt[0]) * numpy.pi / 180.0
+            theta = im.npixel * cellsize
             log.debug("predict_visibility: Image cellsize %f radians" % cellsize)
             log.debug("predict_visibility: Field of view %f radians" % theta)
             assert (theta / numpy.sqrt(2) < 1.0), "Field of view larger than celestial sphere"
 
+            # Parameterise imaging
             wstep = get_parameter(params, "wstep", 10000.0)
-            wcachesize = int(numpy.ceil(numpy.abs(vis.data['uvw'][:, 2]).max() * reffrequency.value / const.c.value /
-                                        wstep))
+            wcachesize = w_cache_size(vis, wstep)
             log.debug("predict_visibility: Making w-kernel cache of %d kernels" % wcachesize)
-            wcache = pylru.FunctionCacheManager(lambda iw: wkernaf(N=256, theta=theta, w=iw * wstep, s=15, Qpx=4),
-                                                10000)
-            predfn = lambda *x: wcachefwd(*x, wstep=wstep, wcache=wcache)
+
+            cache_fn = w_conj_kernel_fn(pylru.FunctionCacheManager(w_kernel, wcachesize))
+            predfn = functools.partial(w_cache_predict,
+                                       wstep=wstep, kernel_cache=cache_fn,
+                                       NpixFF=256, NpixKern=15, Qpx=4)
 
             spectral_mode = get_parameter(params, 'spectral_mode', 'channel')
             log.debug('predict_visibility: spectral mode is %s' % spectral_mode)
 
             if spectral_mode == 'channel':
-                for channel in range(nchan):
-                    uvw = vis.data['uvw'] * (vis.frequency[channel] / const.c).value
-                    for pol in range(npol):
+                for channel in range(im.nchan):
+                    uvw = vis.uvw_lambda(channel)
+                    for pol in range(im.npol):
                         log.debug('predict_visibility: Predicting from image channel %d, polarisation %d' % (
                         channel, pol))
-                        puvw, dv = dopredict(theta, 1.0 / cellsize, uvw, sm.images[0].data[channel, pol, :, :],
-                                             predfn=predfn)
-                        vis.data['vis'][:, channel, pol] = vis.data['vis'][:, channel, pol] + dv
+                        img = sm.images[0].data[channel, pol, :, :]
+                        dv = do_predict(theta, 1.0 / cellsize, uvw, img, predfn)
+                        vis.vis[:, channel, pol] += dv
             else:
                 raise NotImplementedError("mode %s not supported" % spectral_mode)
 
-                log.debug("predict_visibility: Finished predicting Visibility from sky model images")
+            log.debug("predict_visibility: Finished predicting Visibility from sky model images")
 
     if len(sm.components):
         log.debug("predict_visibility: Predicting Visibility from sky model components")
 
-        for icomp in range(len(sm.components)):
-            comp = sm.components[icomp]
-            cshape = comp.flux.shape
-            assert len(cshape) == 2, "Flux should be two dimensional (pol, freq)"
-            nchan = cshape[0]
-            npol  = cshape[1]
+        for icomp, comp in enumerate(sm.components):
 
-            vshape = vis.data['vis'].shape
-            log.debug("predict_visibility: visibility shape = %s" % str(vis.data['vis'].shape))
+            log.debug("predict_visibility: visibility shape = %s" % str(vis.vis.shape))
+            assert_same_chan_pol(vis, comp)
 
-            assert vshape[1] == nchan, "Component %d and visibility %d have different number of channels" % \
-                                                    (cshape[0], len(vis.frequency))
-            assert vshape[2] == npol, "Component %d and visibility %d have different number of polarisations" % (
-                npol, vshape[2])
-            # dc = comp.direction.represent_as(CartesianRepresentation)
             l,m,n = skycoord_to_lmn(comp.direction, vis.phasecentre)
             log.debug('fourier_transforms.predict_visibility: Cartesian representation of component %d = (%f, %f, %f)'
                   % (icomp, l,m,n))
+
             if spectral_mode =='channel':
-                for channel in range(nchan):
+                for channel in range(comp.nchan):
                     uvw = vis.uvw_lambda(channel)
                     phasor = simulate_point(uvw, l, m)
-                    for pol in range(npol):
+                    for pol in range(comp.npol):
                         log.debug(
                             'predict_visibility: Predicting from component %d channel %d, polarisation %d' % (
                             icomp, channel,

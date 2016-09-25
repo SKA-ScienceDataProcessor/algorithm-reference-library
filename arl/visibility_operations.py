@@ -281,24 +281,21 @@ def sum_visibility(vis: Visibility, direction: SkyCoord, params={}) -> numpy.arr
     :returns: flux[nch,npol], weight[nch,pol]
     """
     log_parameters(params)
-    dc = direction.represent_as(CartesianRepresentation)
+    l,m,n = skycoord_to_lmn(direction, vis.phasecentre)
     log.debug('sum_visibility: Cartesian representation of direction = (%f, %f, %f)' % (
-        dc.x, dc.y, dc.z))
-    nchan = vis.data['vis'].shape[1]
-    npol = vis.data['vis'].shape[2]
-    flux = numpy.zeros([nchan, npol])
-    weight = numpy.zeros([nchan, npol])
-    for channel in range(nchan):
-        uvw = vis.data['uvw'] * (vis.frequency[channel] / const.c).value
-        uvw[:, 2] *= -1.0
-        phasor = numpy.conj(simulate_point(uvw, dc.z, dc.y))
-        for pol in range(npol):
+        l,m,n))
+    flux = numpy.zeros([vis.nchan, vis.npol])
+    weight = numpy.zeros([vis.nchan, vis.npol])
+    for channel in range(vis.nchan):
+        uvw = vis.uvw_lambda(channel)
+        phasor = numpy.conj(simulate_point(uvw, l,m))
+        for pol in range(vis.npol):
             log.debug('sum_visibility: Summing visibility for channel %d, polarisation %d' % (
                 channel, pol))
-            flux[channel, pol] = flux[channel, pol] + \
-                                 numpy.sum(numpy.real(vis.data['vis'][:, channel, pol] *
-                                                      vis.data['weight'][:, channel, pol] * phasor))
-            weight[channel, pol] = weight[channel, pol] + numpy.sum(vis.data['weight'][:, channel, pol])
+            ws = vis.weight[:, channel, pol]
+            wvis = ws * vis.vis[:, channel, pol]
+            flux[channel, pol] += numpy.sum(numpy.real(wvis * phasor))
+            weight[channel, pol] += numpy.sum(ws)
     flux[weight > 0.0] = flux[weight > 0.0] / weight[weight > 0.0]
     flux[weight <= 0.0] = 0.0
     return flux, weight

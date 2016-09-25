@@ -151,6 +151,12 @@ def create_named_configuration(name: str = 'LOWBD2', params={}):
                                             location=location,
                                             mount='altaz',
                                             names='VLA_%d')
+    elif name == 'VLAA_north':
+        location = EarthLocation(lon="-107.6184", lat="90.000", height=2124.0)
+        fc = create_configuration_from_file(antfile=crocodile_path("data/configurations/VLA_A_hor_xyz.csv"),
+                                            location=location,
+                                            mount='altaz',
+                                            names='VLA_%d')
     else:
         fc = Configuration()
         raise UserWarning("No such Configuration %s" % name)
