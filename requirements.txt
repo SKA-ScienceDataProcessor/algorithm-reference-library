@@ -1,4 +1,13 @@
+six
+docutils
+jinja2
+babel
+imagesize
+markupsafe
+pytz
 jupyter>=1.0
+notebook
+ipywidgets
 numpy>=1.9
 scipy
 pyfits>=3.3
@@ -6,6 +15,7 @@ matplotlib
 pylru
 pweave
 Sphinx
-astropy
 wcsaxes
 reproject
+astropy
+alabaster
