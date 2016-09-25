@@ -1,5 +1,5 @@
 
-from crocodile.synthesis import ucsBounds
+from crocodile.synthesis import coordinateBounds
 
 import numpy
 import matplotlib.pyplot as pl
@@ -21,7 +21,7 @@ def show_image(img, name, theta, norm=None, extra_dep=None):
 
     # Determine size of image.
     size = img.shape[0]
-    lm_lower, lm_upper = ucsBounds(size)
+    lm_lower, lm_upper = coordinateBounds(size)
     lm_lower = (lm_lower-1./size/2)*theta
     lm_upper = (lm_upper+1./size/2)*theta
     extent = (lm_lower, lm_upper, lm_lower, lm_upper)
@@ -35,7 +35,10 @@ def show_image(img, name, theta, norm=None, extra_dep=None):
     else:
         norm = None
 
-    pl.subplot(121)
+    if numpy.any(numpy.iscomplex(img)):
+        pl.subplot(121)
+    else:
+        pl.subplot(111)
     pl.imshow(img.real, extent=extent, norm=norm, origin='lower')
     pl.title(r"$Re(%s)$" % title)
     pl.xlabel(r"L [$1$]"); pl.ylabel(r"M [$1$]")
@@ -52,7 +55,7 @@ def show_grid(grid, name, lam, norm=None, size=None):
 
     # Determine size of image. See above.
     size = grid.shape[0]
-    uv_lower, uv_upper = ucsBounds(size)
+    uv_lower, uv_upper = coordinateBounds(size)
     uv_lower = (uv_lower-1./size/2)*lam
     uv_upper = (uv_upper+1./size/2)*lam
     extent = (uv_lower, uv_upper, uv_lower, uv_upper)
