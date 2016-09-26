@@ -207,7 +207,7 @@ def predict_visibility(vis: Visibility, sm: SkyModel, params={}) -> Visibility:
                         log.debug('predict_visibility: Predicting from image channel %d, polarisation %d' % (
                         channel, pol))
                         img = sm.images[0].data[channel, pol, :, :]
-                        dv = do_predict(theta, 1.0 / cellsize, uvw, img, predfn)
+                        dv = do_predict(theta, 1.0 / cellsize, numpy.array(uvw), img, predfn)
                         vis.vis[:, channel, pol] += dv
             else:
                 raise NotImplementedError("mode %s not supported" % spectral_mode)
