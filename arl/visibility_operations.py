@@ -254,7 +254,7 @@ def phaserotate_visibility(vis: Visibility, newphasecentre: SkyCoord, params={})
         log.debug('phaserotate: Phase rotation from %s to %s' % (vis.phasecentre, newphasecentre))
         
         # We are going to update in-place, so make a copy
-        vis.data['vis'] = vis.vis.copy()
+        vis.data.replace_column('vis', vis.vis.copy())
         for channel in range(vis.nchan):
             uvw = vis.uvw_lambda(channel)
             phasor = simulate_point(uvw, l, m)
@@ -265,7 +265,7 @@ def phaserotate_visibility(vis: Visibility, newphasecentre: SkyCoord, params={})
         
         # To rotate UVW, rotate into the global XYZ coordinate system and back
         xyz = uvw_to_xyz(vis.data['uvw'], ha=-vis.phasecentre.ra, dec=vis.phasecentre.dec)
-        vis.data['uvw'] = xyz_to_uvw(xyz, ha=-newphasecentre.ra, dec=newphasecentre.dec)
+        vis.data.replace_column('uvw', xyz_to_uvw(xyz, ha=-newphasecentre.ra, dec=newphasecentre.dec))
     
     vis.phasecentre = newphasecentre
     return vis
