@@ -4,16 +4,13 @@
 #
 
 import functools
-import numpy
 import pylru
 import copy
-from astropy import constants as const
 from astropy import units as units
 from astropy import wcs
-from astropy.coordinates import CartesianRepresentation
 
 from crocodile.simulate import simulate_point, skycoord_to_lmn
-from crocodile.synthesis import w_cache_imaging, w_cache_predict, w_kernel, w_conj_kernel_fn, do_imaging, do_predict
+from arl.synthesis_support import w_cache_imaging, w_cache_predict, w_kernel, w_conj_kernel_fn, do_imaging, do_predict
 
 from arl.data_models import *
 from arl.image_operations import create_image_from_array

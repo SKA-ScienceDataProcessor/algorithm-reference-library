@@ -9,7 +9,7 @@ from numpy.testing import assert_allclose
 from arl.data_models import *
 from arl.visibility_calibration import *
 
-from arl.test_support import *
+from arl.testing_support import *
 
 class TestVisibilityCalibration(unittest.TestCase):
 

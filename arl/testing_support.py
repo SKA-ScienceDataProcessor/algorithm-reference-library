@@ -234,11 +234,11 @@ def create_test_image(canonical=True):
     """
     im = import_image_from_fits(crocodile_path("data/models/M31.MOD"))
     if canonical:
-        im = replicate_image(im)
+        im = replicate_image(im, npol=4)
     return im
 
 
-def replicate_image(im: Image, shape=None, frequency=1.4e9):
+def replicate_image(im: Image, npol = 4, nchan = 1, frequency=1.4e9):
     """ Make a new canonical shape Image, extended along third and fourth axes by replication.
 
     The order is [chan, pol, dec, ra]
@@ -246,12 +246,10 @@ def replicate_image(im: Image, shape=None, frequency=1.4e9):
 
     :param im:
     :type Image:
-    :param shape: Extra axes (only axes 0 and 1 are heeded.
-    :type 4-sequence:
+    :param npol: Number of polarisation axes
+    :param nchan: Number of spectral channels
     :returns: Image
     """
-    if shape == None:
-        shape = [1, 1, 1, 1]
     
     if len(im.data.shape) == 2:
         fim = Image()
@@ -264,11 +262,11 @@ def replicate_image(im: Image, shape=None, frequency=1.4e9):
         newwcs.wcs.ctype = [im.wcs.wcs.ctype[0], im.wcs.wcs.ctype[1], 'STOKES', 'FREQ']
         
         add_wcs_to_image(fim, newwcs)
-        fshape = [shape[3], shape[2], im.data.shape[1], im.data.shape[0]]
+        fshape = [nchan, npol, im.data.shape[1], im.data.shape[0]]
         fim.data = numpy.zeros(fshape)
         log.debug("replicate_image: replicating shape %s to %s" % (im.data.shape, fim.data.shape))
-        for i3 in range(shape[3]):
-            for i2 in range(shape[2]):
+        for i3 in range(nchan):
+            for i2 in range(npol):
                 fim.data[i3, i2, :, :] = im.data[:, :]
     else:
         fim = im

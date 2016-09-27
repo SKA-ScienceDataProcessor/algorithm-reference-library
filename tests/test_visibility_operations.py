@@ -12,7 +12,7 @@ from astropy.coordinates import SkyCoord, CartesianRepresentation
 from astropy import units as u
 
 from arl.skymodel_operations import create_skycomponent
-from arl.test_support import create_named_configuration, filter_configuration
+from arl.testing_support import create_named_configuration, filter_configuration
 from arl.skymodel_operations import create_skymodel_from_component, find_skycomponent, fit_skycomponent
 from arl.visibility_operations import *
 from arl.fourier_transforms import predict_visibility, invert_visibility

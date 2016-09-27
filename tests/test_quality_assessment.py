@@ -9,7 +9,7 @@ from numpy.testing import assert_allclose
 from arl.data_models import *
 from arl.quality_assessment import *
 
-from arl.test_support import create_named_configuration, filter_configuration
+from arl.testing_support import create_named_configuration, filter_configuration
 
 class TestQualityAssessment(unittest.TestCase):
 

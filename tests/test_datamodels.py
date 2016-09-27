@@ -4,7 +4,7 @@ import numpy
 from numpy.testing import assert_allclose
 
 from arl.skymodel_operations import SkyComponent, create_skycomponent
-from arl.test_support import create_named_configuration, import_visibility_from_oskar
+from arl.testing_support import create_named_configuration, import_visibility_from_oskar
 from arl.image_operations import add_image, create_image_from_array, import_image_from_fits
 from arl.skymodel_operations import create_skymodel_from_image, add_component_to_skymodel
 from arl.visibility_operations import Visibility, create_visibility, create_gaintable_from_array

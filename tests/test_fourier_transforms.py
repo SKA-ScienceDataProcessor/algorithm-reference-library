@@ -11,7 +11,7 @@ from astropy.coordinates import SkyCoord
 from astropy import units as u
 
 from arl.skymodel_operations import create_skycomponent
-from arl.test_support import create_named_configuration, filter_configuration
+from arl.testing_support import create_named_configuration, filter_configuration
 from arl.image_operations import export_image_to_fits
 from arl.skymodel_operations import create_skymodel_from_component, find_skycomponent, fit_skycomponent
 from arl.visibility_operations import create_visibility, sum_visibility

@@ -10,7 +10,7 @@ import numpy
 from numpy.testing import assert_allclose
 
 from arl.skymodel_operations import SkyComponent, create_skycomponent
-from arl.test_support import create_named_configuration, create_test_image, replicate_image
+from arl.testing_support import create_named_configuration, create_test_image
 from arl.skymodel_operations import create_skymodel_from_image, add_component_to_skymodel
 from arl.visibility_operations import Visibility, create_visibility, create_gaintable_from_array
 from arl.image_deconvolution import msclean
