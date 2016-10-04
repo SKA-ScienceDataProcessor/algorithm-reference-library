@@ -185,7 +185,7 @@ def skycoord_to_lmn(pos: SkyCoord, phasecentre: SkyCoord):
 
     # Do coordinate transformation - astropy's relative coordinates do
     # not quite follow imaging conventions
-    return dc.y, dc.z, dc.x-1
+    return dc.y.value, dc.z.value, dc.x.value-1
 
 # ---------------------------------------------------------------------------------
 
@@ -201,7 +201,7 @@ def simulate_point(dist_uvw, l, m):
     FT relationship becomes an exponential, evaluated at
     (uvw.lmn)
 
-    :param dist_uvw: :math:`(u,v,w)` distribution of projected baselines
+    :param dist_uvw: :math:`(u,v,w)` distribution of projected baselines (in wavelengths)
     :param l: horizontal direction cosine relative to phase tracking centre
     :param m: orthogonal directon cosine relative to phase tracking centre
     """
@@ -211,8 +211,52 @@ def simulate_point(dist_uvw, l, m):
     # complex valued Visibility data
     return numpy.exp(-2j * numpy.pi * numpy.dot(dist_uvw, s))
 
+# ---------------------------------------------------------------------------------
+
+def visibility_shift(uvw, vis, dl, dm):
+    """
+    Shift visibilities by the given image-space distance. This is
+    based on simple FFT laws. It will require kernels to be suitably
+    shifted as well to work correctly.
+
+    :param vis: :math:`(u,v,w)` distribution of projected baselines (in wavelengths)
+    :param vis: Input visibilities
+    :param dl: Horizontal shift distance as directional cosine
+    :param dm: Vertical shift distance as directional cosine
+    :returns: New visibilities
+
+    """
+
+    s = numpy.array([dl, dm])
+    return vis * numpy.exp(-2j * numpy.pi * numpy.dot(uvw[:,0:2], s))
+
+# ---------------------------------------------------------------------------------
+
+def uvw_transform(uvw, T):
+    """
+    Transforms UVW baseline coordinates such that the image is
+    transformed with the given matrix. Will require kernels to be
+    suitably transformed to work correctly.
+
+    Reference: Sault, R. J., L. Staveley-Smith, and W. N. Brouw. "An
+    approach to interferometric mosaicing." Astronomy and Astrophysics
+    Supplement Series 120 (1996): 375-384.
+
+    :param uvw: :math:`(u,v,w)` distribution of projected baselines (in wavelengths)
+    :param T: 2x2 matrix for image transformation
+    :returns: New baseline coordinates
+    """
+
+    # Calculate transformation matrix (see Sault)
+    Tt = numpy.linalg.inv(numpy.transpose(T))
+    # Apply to uv coordinates
+    uv1 = numpy.dot(uvw[:,0:2], Tt)
+    # Restack with original w values
+    return numpy.hstack([uv1, uvw[:,2:3]])
+
 
 if __name__ == '__main__':
     import tests.test_test_support
+    import tests.test_simulate
 
     unittest.main()

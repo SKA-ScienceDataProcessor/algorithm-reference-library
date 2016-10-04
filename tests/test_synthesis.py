@@ -107,10 +107,9 @@ class TestSynthesis(unittest.TestCase):
         # should gracefully degrade to a simple FFT. There is
         # especially no information loss, so we can test
         # exhaustively.
-        lam = 100
-        for lam in [1.5,1e15]:
+        for lam in [6, 1e15]:
           gcf = numpy.conj(w_kernel(1/lam, 0, 1, 1, 1))
-          for N in range(2,3):
+          for N in range(2,6):
             uvw = self._uvw(N)*lam
             xys = range(-(N//2),(N+1)//2)
             for x, y in itertools.product(xys, xys):
@@ -132,6 +131,57 @@ class TestSynthesis(unittest.TestCase):
                 assert_allclose(vis, vis_d)
                 vis_d = convdegrid(gcf, a, uvw/lam)
                 assert_allclose(vis, vis_d)
+
+    def test_grid_degrid_shift(self):
+        lam = 100
+        for N in range(3,7):
+          for dl, dm in [(1/lam, 1/lam), (-1/lam, 2/lam), (5/lam, 0)]:
+            uvw = self._uvw(N)*lam
+            xys = range(-(N//2),(N+1)//2)
+            for x, y in itertools.product(xys, xys):
+                # Simulate and grid a single off-centre point source,
+                # then shift back.
+                vis = simulate_point(uvw, x/lam-dl, y/lam-dm)
+                vis = visibility_shift(uvw, vis, dl, dm)
+                # Should give us a point where we originally placed it
+                a = numpy.zeros((N, N), dtype=complex)
+                grid(a, uvw/lam, vis)
+                img = numpy.real(ifft(a))
+                self.assertAlmostEqual(img[N//2+y,N//2+x], 1)
+
+    def test_grid_transform(self):
+        lam = 100
+        s = 1 / numpy.sqrt(2)
+        Ts = [ numpy.array([[1,0], [0,1]]),
+               numpy.array([[-1,0], [0,1]]),
+               numpy.array([[s,-s], [s,s]]),
+               numpy.array([[2,0], [0,3]]),
+               numpy.array([[1,2], [2,1]]) ]
+        for T in Ts:
+          # Invert transformation matrix
+          Ti = numpy.linalg.inv(T)
+          for N in range(3,7):
+            # We will grid after the transformation. To make this
+            # lossless we need to choose UVW such that they map
+            # exactly to grid points *after* the transformation. We
+            # can easily achieve this using the inverse transform.
+            uvwt = self._uvw(N)*lam
+            uvw = uvw_transform(uvwt, Ti)
+            assert_allclose(uvw_transform(uvw, T), uvwt)
+            xys = range(-(N//2),(N+1)//2)
+            for xt, yt in itertools.product(xys, xys):
+                # Same goes for grid positions: Determine position
+                # before transformation such that we end up with a
+                # point at x,y afterwards.
+                x, y = numpy.dot([xt,yt], Ti)
+                assert_allclose(numpy.dot([x,y], T), [xt,yt])
+                # Now simulate at (x/y) using uvw, then grid using
+                # the transformed uvwt, and the point should be at (xt/yt).
+                vis = simulate_point(uvw, x/lam, y/lam)
+                a = numpy.zeros((N, N), dtype=complex)
+                grid(a, uvwt/lam, vis)
+                img = numpy.real(ifft(a))
+                self.assertAlmostEqual(img[N//2+yt,N//2+xt], 1)
 
     def test_slice_vis(self):
         for N in range(2,10):
