@@ -182,23 +182,45 @@ def anti_aliasing_function(shape, m, c):
                for N in shape ]
     return numpy.outer(sy, sx)
 
+def kernel_coordinates(N, theta, dl=0, dm=0, T=None):
+    """
+    Returns (l,m) coordinates for generation of kernels
+    in a far-field of the given size.
 
-def w_kernel_function(N, theta, w):
+    If coordinate transformations are passed, they must be inverse to
+    the transformations applied to the visibilities using
+    visibility_shift/uvw_transform.
+
+    :param N: Desired far-field size
+    :param dl: Pattern horizontal shift (see visibility_shift)
+    :param dm: Pattern vertical shift (see visibility_shift)
+    :param T: Pattern transformation matrix (see uvw_transform)
+    :returns: Pair of (m,l) coordinates
+    """
+
+    m, l = coordinates2(N) * theta
+    if not T is None:
+        l,m = T[0,0]*l+T[1,0]*m, T[0,1]*l+T[1,1]*m
+    return m+dm, l+dl
+
+
+def w_kernel_function(l, m, w):
     """
     W beam, the fresnel diffraction pattern arising from non-coplanar baselines
 
+    :param l: Horizontal image coordinates
+    :param m: Vertical image coordinates
     :param N: Size of the grid in pixels
-    :param theta: Field of view
     :param w: Baseline distance to the projection plane
     :returns: N x N array with the far field
     """
 
-    m, l = coordinates2(N) * theta
     r2 = l**2 + m**2
-    assert numpy.all(r2 < 1.0), "Error in image coordinate system: theta %f, N %f,l %s, m %s" % (theta, N, l, m)
+    assert numpy.all(r2 < 1.0), "Error in image coordinate system: l %s, m %s" % (l, m)
     ph = w * (1 - numpy.sqrt(1.0 - r2))
     cp = numpy.exp(2j * numpy.pi * ph)
     return cp
+
 
 def kernel_oversample(ff, N, Qpx, s):
     """
@@ -227,7 +249,7 @@ def kernel_oversample(ff, N, Qpx, s):
     return numpy.array(res)
 
 
-def w_kernel(theta, w, NpixFF, NpixKern, Qpx):
+def w_kernel(theta, w, NpixFF, NpixKern, Qpx, **kwargs):
     """
     The middle s pixels of W convolution kernel. (W-KERNel-Aperture-Function)
 
@@ -241,7 +263,10 @@ def w_kernel(theta, w, NpixFF, NpixKern, Qpx):
     :returns: [Qpx,Qpx,s,s] shaped oversampled convolution kernels
     """
     assert NpixFF > NpixKern or (NpixFF == NpixKern and Qpx == 1)
-    return kernel_oversample(w_kernel_function(NpixFF, theta, w), NpixFF, Qpx, NpixKern)
+
+    l,m = kernel_coordinates(NpixFF, theta, **kwargs)
+    kern = w_kernel_function(l,m,w)
+    return kernel_oversample(kern, NpixFF, Qpx, NpixKern)
 
 
 def invert_kernel(a):
