@@ -5,7 +5,7 @@
 
 - p: The uvw coordinates [*,3] (m)
 - v: The Visibility values [*] (Jy)
-- theta: Width of the field of view to be synthetised, as directional
+- field_of_view: Width of the field of view to be synthetised, as directional
   cosines (approximately radians)
 - lam: Width of the uv-plane (in wavelengths). Controls resolution of the
   images.
@@ -21,26 +21,16 @@ e.g. for convolution kernels odd image sizes are preferred.
 
 This is implemented for reference in
 `coordinates`/`coordinates2`. Some noteworthy properties:
-- `ceil(theta * lam)` gives the image size `N` in pixels
+- `ceil(field_of_view * lam)` gives the image size `N` in pixels
 - `lam * coordinates2(N)` yields the `u,v` grid coordinate system
-- `theta * coordinates2(N)` yields the `l,m` image coordinate system
+- `field_of_view * coordinates2(N)` yields the `l,m` image coordinate system
    (radians, roughly)
 """
 
 from __future__ import division
 
 import numpy
-import pylru
 import scipy.special
-
-
-def ceil2(x):
-    """Find next greater power of 2
-
-    NOT USED
-    """
-    return 1 << (x - 1).bit_length()
-
 
 def coordinateBounds(N):
     r"""
@@ -61,10 +51,12 @@ def coordinateBounds(N):
     else:
         return -0.5 * (N - 1) / N, 0.5 * (N - 1) / N
 
+
 def coordinates(N):
     """1D array which spans [-.5,.5[ with 0 at position N/2"""
     low, high = coordinateBounds(N)
     return numpy.mgrid[low:high:(N * 1j)]
+
 
 def coordinates2(N):
     """Two dimensional grids of coordinates spanning -1 to 1 in each
@@ -107,14 +99,15 @@ def pad_mid(ff, N):
     :param N:  The desired far field size
 
     """
-
+    
     N0, N0w = ff.shape
     if N == N0: return ff
     assert N > N0 and N0 == N0w
     return numpy.pad(ff,
-                     pad_width=2*[(N//2-N0//2, (N+1)//2-(N0+1)//2)],
+                     pad_width=2 * [(N // 2 - N0 // 2, (N + 1) // 2 - (N0 + 1) // 2)],
                      mode='constant',
                      constant_values=0.0)
+
 
 def extract_mid(a, N):
     """
@@ -134,6 +127,7 @@ def extract_mid(a, N):
     else:
         return a[cx - s:cx + s, cy - s:cy + s]
 
+
 def extract_oversampled(a, xf, yf, Qpx, N):
     """
     Extract the (xf-th,yf-th) w-kernel from the oversampled parent
@@ -142,7 +136,7 @@ def extract_oversampled(a, xf, yf, Qpx, N):
     e.g. an offset of (xf,yf) results in the kernel for an (-xf,-yf)
     sub-grid offset.
 
-    We do not want to make assumptions about the source grid's symetry
+    We do not want to make assumptions about the source grid's symmetry
     here, which means that the grid's side length must be at least
     Qpx*(N+2) to contain enough information in all circumstances
 
@@ -152,22 +146,22 @@ def extract_oversampled(a, xf, yf, Qpx, N):
     :param Qpx: oversampling factor
     :param N: size of section
     """
-
+    
     assert xf >= 0 and xf < Qpx
     assert yf >= 0 and yf < Qpx
     # Determine start offset.
     Na = a.shape[0]
-    my = Na//2 - Qpx*(N//2) - yf
-    mx = Na//2 - Qpx*(N//2) - xf
+    my = Na // 2 - Qpx * (N // 2) - yf
+    mx = Na // 2 - Qpx * (N // 2) - xf
     assert mx >= 0 and my >= 0
     # Extract every Qpx-th pixel
-    mid = a[my : my+Qpx*N : Qpx,
-            mx : mx+Qpx*N : Qpx]
+    mid = a[my: my + Qpx * N: Qpx,
+          mx: mx + Qpx * N: Qpx]
     # normalise
     return Qpx * Qpx * mid
 
 
-def anti_aliasing_function(shape, m, c):
+def anti_aliasing_function(shape, m=0, c=10):
     """
     Compute the prolate spheroidal anti-aliasing function
 
@@ -176,29 +170,30 @@ def anti_aliasing_function(shape, m, c):
     :param m: mode parameter
     :param c: spheroidal parameter
     """
-
-    # 2D Prolate spheroidal angular function is seperable
-    sy, sx = [ scipy.special.pro_ang1(m, m, c, coordinates(N))[0]
-               for N in shape ]
+    
+    # 2D Prolate spheroidal angular function is separable
+    sy, sx = [scipy.special.pro_ang1(m, m, c, coordinates(N))[0]
+              for N in shape]
     return numpy.outer(sy, sx)
 
 
-def w_kernel_function(N, theta, w):
+def w_kernel_function(N, field_of_view, w):
     """
     W beam, the fresnel diffraction pattern arising from non-coplanar baselines
 
     :param N: Size of the grid in pixels
-    :param theta: Field of view
+    :param field_of_view: Field of view
     :param w: Baseline distance to the projection plane
     :returns: N x N array with the far field
     """
-
-    m, l = coordinates2(N) * theta
-    r2 = l**2 + m**2
-    assert numpy.all(r2 < 1.0), "Error in image coordinate system: theta %f, N %f,l %s, m %s" % (theta, N, l, m)
+    
+    m, l = coordinates2(N) * field_of_view
+    r2 = l ** 2 + m ** 2
+    assert numpy.all(r2 < 1.0), "Error in image coordinate system: theta %f, N %f,l %s, m %s" % (field_of_view, N, l, m)
     ph = w * (1 - numpy.sqrt(1.0 - r2))
     cp = numpy.exp(2j * numpy.pi * ph)
     return cp
+
 
 def kernel_oversample(ff, N, Qpx, s):
     """
@@ -215,66 +210,36 @@ def kernel_oversample(ff, N, Qpx, s):
     :returns: Numpy array of shape [ov, ou, v, u], e.g. with sub-pixel
       offsets as the outer coordinates.
     """
-
+    
     # Pad the far field to the required pixel size
-    padff = pad_mid(ff, N*Qpx)
-
+    padff = pad_mid(ff, N * Qpx)
+    
     # Obtain oversampled uv-grid
     af = ifft(padff)
-
+    
     # Extract kernels
     res = [[extract_oversampled(af, x, y, Qpx, s) for x in range(Qpx)] for y in range(Qpx)]
     return numpy.array(res)
 
 
-def w_kernel(theta, w, NpixFF, NpixKern, Qpx):
+def w_kernel(field_of_view, w, NpixFF, NpixKern, Qpx):
     """
     The middle s pixels of W convolution kernel. (W-KERNel-Aperture-Function)
 
-    :param theta: Field of view (directional cosines)
+    :param field_of_view: Field of view (directional cosines)
     :param w: Baseline distance to the projection plane
     :param NpixFF: Far field size. Must be at least NpixKern+1 if Qpx > 1, otherwise NpixKern.
     :param NpixKern: Size of convolution function to extract
     :param Qpx: Oversampling, pixels will be Qpx smaller in aperture
-      plane than required to minimially sample theta.
+      plane than required to minimially sample field_of_view.
 
     :returns: [Qpx,Qpx,s,s] shaped oversampled convolution kernels
     """
     assert NpixFF > NpixKern or (NpixFF == NpixKern and Qpx == 1)
-    return kernel_oversample(w_kernel_function(NpixFF, theta, w), NpixFF, Qpx, NpixKern)
+    return kernel_oversample(w_kernel_function(NpixFF, field_of_view, w), NpixFF, Qpx, NpixKern)
 
 
-def nearest_neighbour_grid(a, p, v):
-    """Grid visibilities (v) at positions (p) into (a) without convolution
-
-    :param a:   The uv plane to grid to (updated in-place!)
-    :param p:   The coordinates to grid to (in fraction [-.5,.5[ of grid)
-    :param v:   Visibilities to grid
-    """
-    assert numpy.max(p) < 0.5
-
-    N = a.shape[0]
-    xy = N//2 + numpy.floor(0.5 + N * p[:,0:2]).astype(int)
-    for (x, y), v in zip(xy, v):
-        a[y, x] += v
-
-
-def nearest_neighbour_degrid(a, p):
-    """DeGrid visibilities (v) at positions (p) from (a) without convolution
-
-    :param a:   The uv plane to de-grid from
-    :param p:   The coordinates to degrid at (in fraction of grid)
-    :returns: Array of visibilities.
-    """
-    assert numpy.max(p) < 0.5
-
-    N = a.shape[0]
-    xy = N//2 + numpy.floor(0.5 + p[:,0:2] * N).astype(int)
-    v = [ a[y,x] for x,y in xy ]
-    return numpy.array(v)
-
-
-def frac_coord(N, Qpx, p):
+def frac_coord(N, Qpx, uv):
     """
     Compute whole and fractional parts of coordinates, rounded to
     Qpx-th fraction of pixel size
@@ -287,47 +252,47 @@ def frac_coord(N, Qpx, p):
     :param Qpx: Fractional values to round to
     :param p: Coordinate in range [-.5,.5[
     """
-    assert (p >= -0.5).all() and (p < 0.5).all()
-    x = N//2 + p * N
+    assert (uv >= -0.5).all() and (uv < 0.5).all()
+    x = N // 2 + uv * N
     flx = numpy.floor(x + 0.5 / Qpx)
     fracx = numpy.around((x - flx) * Qpx)
     return flx.astype(int), fracx.astype(int)
 
 
-def frac_coords(shape, Qpx, p):
+def frac_coords(shape, Qpx, uv):
     """Compute grid coordinates and fractional values for convolutional
     gridding
 
     :param shape: (height,width) grid shape
     :param Qpx: Oversampling factor
-    :param p: array of (x,y) coordinates in range [-.5,.5[
+    :param uv: array of (x,y) coordinates in range [-.5,.5[
     """
-    h, w = shape # NB order (height,width) to match numpy!
-    x, xf = frac_coord(w, Qpx, p[:,0])
-    y, yf = frac_coord(h, Qpx, p[:,1])
-    return x,xf, y,yf
+    h, w = shape  # NB order (height,width) to match numpy!
+    x, xf = frac_coord(w, Qpx, uv[:, 0])
+    y, yf = frac_coord(h, Qpx, uv[:, 1])
+    return x, xf, y, yf
 
 
-def convolutional_grid(gcf, a, p, v):
+def convolutional_grid(gcf, a, uv, v):
     """Grid after convolving with gcf
 
     Takes into account fractional `uv` coordinate values where the GCF
     is oversampled
 
     :param a: Grid to add to
-    :param p: UVW positions
+    :param uv: UVW positions
     :param v: Visibility values
     :param gcf: Oversampled convolution kernel
     """
-
+    
     Qpx, _, gh, gw = gcf.shape
-    coords = frac_coords(a.shape, Qpx, p)
-    for v, x,xf, y,yf in zip(v, *coords):
-        a[y-gh//2 : y+(gh+1)//2,
-          x-gw//2 : x+(gw+1)//2] += gcf[yf,xf] * v
+    coords = frac_coords(a.shape, Qpx, uv)
+    for v, x, xf, y, yf in zip(v, *coords):
+        a[y - gh // 2: y + (gh + 1) // 2,
+        x - gw // 2: x + (gw + 1) // 2] += gcf[yf, xf] * v
 
 
-def convolutional_degrid(gcf, a, p):
+def convolutional_degrid(gcf, a, uv):
     """Convolutional degridding
 
     Takes into account fractional `uv` coordinate values where the GCF
@@ -339,24 +304,26 @@ def convolutional_degrid(gcf, a, p):
     :returns: Array of visibilities.
     """
     Qpx, _, gh, gw = gcf.shape
-    coords = frac_coords(a.shape, Qpx, p)
+    coords = frac_coords(a.shape, Qpx, uv)
     vis = [
-        numpy.sum(a[y-gh//2 : y+(gh+1)//2,
-                    x-gw//2 : x+(gw+1)//2] * gcf[yf,xf])
-        for x,xf, y,yf in zip(*coords)
-    ]
+        numpy.sum(a[y - gh // 2: y + (gh + 1) // 2,
+                  x - gw // 2: x + (gw + 1) // 2] * gcf[yf, xf])
+        for x, xf, y, yf in zip(*coords)
+        ]
     return numpy.array(vis)
 
 
-def doweight(theta, lam, p, v):
+def do_weight(field_of_view, uvmax, uv, v):
     """Re-weight visibilities
 
+    Incorrect for MFS
     Note that as is usual, convolution kernels are not taken into account
+    TODO: Replace by more general version
     """
-    N = int(round(theta * lam))
+    N = int(round(field_of_view * uvmax))
     assert N > 1
     gw = numpy.zeros([N, N])
-    x, xf, y, yf = frac_coords(gw.shape, 1, p / lam)
+    x, xf, y, yf = frac_coords(gw.shape, 1, uv / uvmax)
     for i in range(len(x)):
         gw[x[i], y[i]] += 1
     v = v.copy()
@@ -365,249 +332,137 @@ def doweight(theta, lam, p, v):
     return v
 
 
-def simple_imaging(theta, lam, p, v):
-    """Trivial function for imaging
-
-    Does no convolution but simply puts the visibilities into a grid cell i.e. nearest neighbour gridding"""
-    N = int(round(theta * lam))
-    assert N > 1
-    guv = numpy.zeros([N, N], dtype=complex)
-    nearest_neighbour_grid(guv, p / lam, v)
-    return guv
-
-
-def simple_predict(guv, theta, lam, p):
-    """Trivial function for degridding
-
-    Does no convolution but simply extracts the visibilities from a grid cell i.e. nearest neighbour degridding
-
-    :param theta: Field of view (directional cosines)
-    :param lam: Maximum uv represented in the grid
-    :param p: UVWs of visibilities
-    :param v: Visibility values
-    :param kv: gridding kernel
-    :returns: p, v
-    """
-    N = int(round(theta * lam))
-    assert N > 1
-    v = nearest_neighbour_degrid(guv, p / lam)
-    return p, v
-
-
-def convolutional_imaging(theta, lam, p, v, kv):
+def convolutional_imaging(field_of_view, uvmax, uv, v, kv):
     """Convolve and grid with user-supplied kernels
 
-    :param theta: Field of view (directional cosines))
-    :param lam: UV grid range
-    :param p: UVWs of visibilities
+    :param field_of_view: Field of view (directional cosines))
+    :param uvmax:UV grid range
+    :param uv: UVWs of visibilities
     :param v: Visibility values
     :param kv: Gridding kernel
     :returns: UV grid
     """
-    N = int(round(theta * lam))
+    N = int(round(field_of_view * uvmax))
     assert N > 1
     guv = numpy.zeros([N, N], dtype=complex)
-    convolutional_grid(kv, guv, p / lam, v)
+    convolutional_grid(kv, guv, uv / uvmax, v)
     return guv
 
 
-def w_slice_imaging(theta, lam, p, v,
-                    wstep=2000,
-                    kernel_fn=w_kernel,
-                    **kwargs):
-    """Basic w-projection imaging using slices
-
-    Sorts visibility by w value and splits into equally sized slices.
-    W-value used for kernels is mean w per slice. Uses the same size
-    for all kernels irrespective of w.
-
-    :param theta: Field of view (directional cosines)
-    :param lam: UV grid range (wavelenghts)
-    :param p: UVWs of visibilities
-    :param v: Visibility values
-    :param wstep: Size of w-slices
-    :param kernel_fn: Function for generating the kernels. Parameters
-      `(theta, w, **kwargs)`. Default `w_kernel`.
-    :returns: UV grid
+def simulate_point(dist_uvw, l, m):
     """
-N = int(round(theta * lam))
-assert N > 1
-slices = slice_vis(wstep, *sort_vis_w(p, v))
-guv = numpy.zeros([N, N], dtype=complex)
-for ps, vs in slices:
-    w = numpy.mean(ps[:, 2])
-    wg = numpy.conj(kernel_fn(theta, w, **kwargs))
-    convolutional_grid(wg, guv, ps / lam, vs)
-return guv
+    Simulate visibilities for unit amplitude point source at
+    direction cosines (l,m) relative to the phase centre.
 
+    This includes phase tracking to the centre of the field (hence the minus 1
+    in the exponent.)
 
-def w_slice_predict(theta, lam, p, guv,
-                    wstep=2000,
-                    kernel_fn=w_kernel,
-                    **kwargs):
-    """Basic w-projection predict using w-slices
+    Note that point source is delta function, therefore the
+    FT relationship becomes an exponential, evaluated at
+    (uvw.lmn)
 
-    Sorts visibility by w value and splits into equally sized slices.
-    W-value used for kernels is mean w per slice. Uses the same size
-    for all kernels irrespective of w.
-
-    :param theta: Field of view (directional cosines)
-    :param lam: UV grid range (wavelenghts)
-    :param p: UVWs of visiblities
-    :param guv: Input uv grid to de-grid from
-    :param wstep: Size of w-slices
-    :param kernel_fn: Function for generating the kernels. Parameters
-      `(theta, w, **kwargs)`. Default `w_kernel`.
-    :returns: Visibilities, same order as p
+    :param dist_uvw: :math:`(u,v,w)` distribution of projected baselines (in wavelengths)
+    :param l: horizontal direction cosine relative to phase tracking centre
+    :param m: orthogonal directon cosine relative to phase tracking centre
     """
-    # Calculate number of pixels in the Image
-    N = int(round(theta * lam))
-    assert N > 1
-    # Sort the u,v,w coordinates. We cheat a little and also pass
-    # visibility indices so we can easily undo the sort later.
-    nv = len(p)
-    slices = slice_vis(wstep, *sort_vis_w(p, numpy.arange(nv)))
-    v = numpy.ndarray(nv, dtype=complex)
-    for ps, ixs in slices:
-        w = numpy.mean(ps[:, 2])
-        wg = kernel_fn(theta, w, **kwargs)
-        v[ixs] = convolutional_degrid(wg, guv, ps / lam)
-    return v
+    
+    # vector direction to source
+    s = numpy.array([l, m, numpy.sqrt(1 - l ** 2 - m ** 2) - 1.0])
+    # complex valued Visibility data
+    return numpy.exp(-2j * numpy.pi * numpy.dot(dist_uvw, s))
 
 
-def w_conj_kernel_fn(kernel_fn):
-    """Wrap a kernel function for which we know that
-
-       kernel_fn(w) = conj(kernel_fn(-w))
-
-    Such that we only evaluate the function for positive w. This is
-    beneficial when the underlying kernel function does caching, as it
-    improves the cache hit rate.
-
-    :param kernel_fn: Kernel function to wrap
-    :returns: Wrapped kernel function
+def visibility_shift(uvw, vis, dl, dm):
     """
+    Shift visibilities by the given image-space distance. This is
+    based on simple FFT laws. It will require kernels to be suitably
+    shifted as well to work correctly.
 
-    def fn(theta, w, **kw):
-        if w < 0:
-            return numpy.conj(kernel_fn(theta, -w, **kw))
-        return kernel_fn(theta, w, **kw)
-    return fn
+    :param vis: :math:`(u,v,w)` distribution of projected baselines (in wavelengths)
+    :param vis: Input visibilities
+    :param dl: Horizontal shift distance as directional cosine
+    :param dm: Vertical shift distance as directional cosine
+    :returns: New visibilities
+
+    """
+    
+    s = numpy.array([dl, dm])
+    return vis * numpy.exp(-2j * numpy.pi * numpy.dot(uvw[:, 0:2], s))
 
 
-def w_cache_imaging(theta, lam, p, v,
-                    wstep=2000,
-                    kernel_cache=None,
-                    kernel_fn=w_kernel,
-                    **kwargs):
-    """Basic w-projection by caching convolution arl in w
+def uvw_transform(uvw, T):
+    """
+    Transforms UVW baseline coordinates such that the image is
+    transformed with the given matrix. Will require kernels to be
+    suitably transformed to work correctly.
 
-    A simple cache can be constructed externally and passed in:
+    Reference: Sault, R. J., L. Staveley-Smith, and W. N. Brouw. "An
+    approach to interferometric mosaicing." Astronomy and Astrophysics
+    Supplement Series 120 (1996): 375-384.
 
-      kernel_cache = pylru.FunctionCacheManager(w_kernel, cachesize)
+    :param uvw: :math:`(u,v,w)` distribution of projected baselines (in wavelengths)
+    :param T: 2x2 matrix for image transformation
+    :returns: New baseline coordinates
+    """
+    
+    # Calculate transformation matrix (see Sault)
+    Tt = numpy.linalg.inv(numpy.transpose(T))
+    # Apply to uv coordinates
+    uv1 = numpy.dot(uvw[:, 0:2], Tt)
+    # Restack with original w values
+    return numpy.hstack([uv1, uvw[:, 2:3]])
 
-    If applicable, consider wrapping in `w_conj_kernel_fn` to improve
-    effectiveness further.
 
-    :param theta: Field of view (directional cosines)
-    :param lam: UV grid range (wavelenghts)
-    :param p: UVWs of visibilities (wavelengths)
+def invert(field_of_view, uvmax, uv, v, ftprocessor, params={}):
+    """Basic imaging with specified gridding function
+
+    :param field_of_view: Field of view (directional cosines)
+    :param uvmax:UV grid range (wavelengths)
+    :param uv: UVWs of visibilities (wavelengths)
     :param v: Visibilities to be imaged
-    :param wstep: Size of w-bins (wavelengths)
-    :param kernel_cache: Kernel cache. If not passed, we fall back
-       to `kernel_fn`.
-    :param kernel_fn: Function for generating the kernels. Parameters
-       `(theta, w, **kwargs)`. Default `w_kernel`.
-    :returns: UV grid
+    :returns: dirty image, psf, sum of weights
 
     """
-
-    # Construct default cache, if needed. As visibilities are
-    # traversed in w-order it only needs to hold the last w-kernel.
-    if kernel_cache is None:
-        kernel_cache = pylru.FunctionCacheManager(kernel_fn, 1000)
-    # Bin w values, then run slice imager with slice size of 1
-    def kernel_binner(theta, w, **kw):
-        wbin = wstep * numpy.round(w / wstep)
-        return kernel_cache(theta, wbin, **kw)
-
-    N = int(round(theta * lam))
+    N = int(round(field_of_view * uvmax))
     assert N > 1
-    guv = numpy.zeros([N, N], dtype=complex)
-    for ps, vs in slices:
-        w = numpy.mean(ps[:, 2])
-        wg = numpy.conj(kernel_fn(theta, w, **kwargs))
-        convolutional_grid(wg, guv, ps / lam, vs)
-    return guv
-
-
-def w_cache_predict(theta, lam, p, guv,
-                    wstep=2000,
-                    kernel_cache=None,
-                    kernel_fn=w_kernel,
-                    **kwargs):
-    """Predict visibilities using w-kernel cache
-
-    :param theta: Field of view (directional cosines)
-    :param lam: UV grid range (wavelenghts)
-    :param p: UVWs of visibilities  (wavelengths)
-    :param guv: Input uv grid to de-grid from
-    :param wstep: Size of w-bins (wavelengths)
-    :param kernel_cache: Kernel cache. If not passed, we fall back
-       to `kernel_fn`. See `w_cache_imaging` for details.
-    :param kernel_fn: Function for generating the kernels. Parameters
-       `(theta, w, **kwargs)`. Default `w_kernel`.
-    :returns: degridded visibilities
-    """
-
-    if kernel_cache is None:
-        kernel_cache = pylru.FunctionCacheManager(kernel_fn, 1000)
-    def kernel_binner(theta, w, **kw):
-        wbin = wstep * numpy.round(w / wstep)
-        return kernel_cache(theta, wbin, **kw)
-    return w_slice_predict(theta, lam, p, guv, 1, kernel_binner, **kwargs)
-
-
-def do_imaging(theta, lam, p, v, imgfn, **kwargs):
-    """Do imaging with imaging function (imgfn)
-
-    :param theta: Field of view (directional cosines)
-    :param lam: UV grid range (wavelenghts)
-    :param p: UVWs of visibilities (wavelengths)
-    :param v: Visibilities to be imaged
-    :param imgfn: imaging function e.g. `simple_imaging`, `conv_imaging`,
-      `w_slice_imaging` or `w_cache_imaging`. All keyword parameters
-      are passed on to the imaging function.
-    :returns: dirty Image, psf
-    """
-    # Add the conjugate points
-    p = numpy.vstack([p, p * -1])
-    v = numpy.hstack([v, numpy.conj(v)])
+    
     # Determine weights
-    wt = doweight(theta, lam, p, numpy.ones(len(p)))
-    # Make image
-    cdrt = imgfn(theta, lam, p, wt * v, **kwargs)
-    drt = numpy.real(ifft(cdrt))
-    # Make point spread function
-    c = imgfn(theta, lam, p, wt, **kwargs)
-    psf = numpy.real(ifft(c))
-    # Normalise
+    wt = do_weight(field_of_view, uvmax, uv, numpy.ones(len(uv)))
+    
+    # Grid the data
+    cdrt = None
+    cpsf = None
+    f = ftprocessor(field_of_view, uvmax, uv, params)
+    with f.next():
+        wtvis = wt * f.vis()
+        cdrt = f.grid(cdrt, f.uv(), wtvis, params)
+        wtpsf = wt * numpy.ones_like(f.vis())
+        cpsf = f.grid(cpsf, f.uv(), wtpsf, params)
+    
+    # FT to image plane, keep only the real part
+    drt = ftprocessor.correct(numpy.real(ifft(cdrt)))
+    psf = ftprocessor.correct(numpy.real(ifft(cpsf)))
+    
+    # Normalise the peak of the psf to unity and pass out the
+    # sum of weights for subsequent operations
     pmax = psf.max()
     assert pmax > 0.0
     return drt / pmax, psf / pmax, pmax
 
 
-def do_predict(theta, lam, p, modelimage, predfn, **kwargs):
-    """Predict visibilities for a model Image at the phase centre using the
-    specified degridding function.
+def predict(modelimage, field_of_view, uvmax, uv, vis, ftprocessor, params={}):
+    """Predict visibilities using w-kernel cache
 
-    :param theta: Field of view (directional cosines)
-    :param lam: UV grid range (wavelenghts)
-    :param p: UVWs of visiblities (wavelengths)
-    :param modelimage: model image as numpy.array (phase center at Nx/2,Ny/2)
-    :param predfn: prediction function e.g. `simple_predict`,
-      `w_slice_predict` or `w_cache_predict`.
-    :returns: predicted visibilities
+    :param field_of_view: Field of view (directional cosines)
+    :param uvmax:UV grid range (wavelenghts)
+    :param p: UVWs of visibilities  (wavelengths)
+    :param guv: Input uv grid to de-grid from
+    :returns: degridded visibilities
     """
-    ximage = fft(modelimage.astype(complex))
-    return predfn(theta, lam, p, ximage, **kwargs)
+    
+    cvis = None
+    f = ftprocessor(field_of_view, uvmax, uv, vis, params=params)
+    with f.next():
+        cimage = fft(f.correct(f.image().astype(complex)))
+        cvis = f.degrid(cvis, f.uv(), cimage, params)
+    return cvis

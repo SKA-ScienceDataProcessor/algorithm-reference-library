@@ -7,14 +7,14 @@ from matplotlib import colors
 from matplotlib.patches import FancyArrowPatch
 from mpl_toolkits.mplot3d import Axes3D, proj3d
 
-def show_image(img, name, theta, norm=None, extra_dep=None):
+def show_image(img, name, field_of_view, norm=None, extra_dep=None):
     """Visualise quadratic image in the (L,M) plane (directional
     cosines). We assume (0,0) to be at the image center.
 
     :param img: Data to visualise as a two-dimensional numpy array
     :param name: Function name to show in the visualisation header
-    :param theta: Size of the image in radians. We will assume the
-       image to spans coordinates [theta/2;theta/2[ in both L and M.
+    :param field_of_view: Size of the image in radians. We will assume the
+       image to spans coordinates [field_of_view/2;field_of_view/2[ in both L and M.
     :param extra_dep: Extra functiona parameters to add to the
        title. Purely cosmetic.
     """
@@ -22,8 +22,8 @@ def show_image(img, name, theta, norm=None, extra_dep=None):
     # Determine size of image.
     size = img.shape[0]
     lm_lower, lm_upper = coordinateBounds(size)
-    lm_lower = (lm_lower-1./size/2)*theta
-    lm_upper = (lm_upper+1./size/2)*theta
+    lm_lower = (lm_lower-1./size/2)*field_of_view
+    lm_upper = (lm_upper+1./size/2)*field_of_view
     extent = (lm_lower, lm_upper, lm_lower, lm_upper)
 
     # Format title

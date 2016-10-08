@@ -10,8 +10,9 @@ from astropy import units as units
 from astropy import wcs
 
 from crocodile.simulate import simulate_point, skycoord_to_lmn
-from arl.synthesis_support import w_cache_imaging, w_cache_predict, w_kernel, w_conj_kernel_fn, do_imaging, do_predict
 
+from arl.synthesis_support import w_cache_imaging, w_cache_predict, do_imaging, do_predict
+from arl.kernel_support import w_kernel
 from arl.data_models import *
 from arl.image_operations import create_image_from_array
 from arl.parameters import *
@@ -22,7 +23,6 @@ log = logging.getLogger("arl.fourier_transforms")
 """
 Functions that perform imaging i.e. conversion of an Image to/from a Visibility
 """
-
 
 def create_wcs_from_visibility(vis: Visibility, params={}):
     """Make a world coordinate system from params and Visibility
@@ -61,7 +61,8 @@ def create_wcs_from_visibility(vis: Visibility, params={}):
     # Beware of python indexing order! wcs and the array have opposite ordering
     shape = [len(vis.frequency), npol, npixel, npixel]
     w = wcs.WCS(naxis=4)
-    w.wcs.cdelt = [cellsize * 180.0 / numpy.pi, cellsize * 180.0 / numpy.pi, 1.0, channelwidth.value]
+    # The negation in the longitude is needed by definition of RA, DEC
+    w.wcs.cdelt = [-cellsize * 180.0 / numpy.pi, cellsize * 180.0 / numpy.pi, 1.0, channelwidth.value]
     w.wcs.crpix = [npixel // 2 + 1, npixel // 2 + 1, 1.0, 1.0]
     w.wcs.ctype = ["RA---SIN", "DEC--SIN", 'STOKES', 'FREQ']
     w.wcs.crval = [phasecentre.ra.value, phasecentre.dec.value, 1.0, reffrequency.value]
@@ -77,6 +78,8 @@ def w_cache_size(vis:Visibility, wstep, frequency=None):
     """
     Determine optimal w-kernel cache size for de/gridding the
     given visibilities.
+    
+    Not sure in what sense this is optimal?
     """
 
     if frequency is None:
@@ -99,10 +102,10 @@ def invert_visibility(vis: Visibility, params={}):
     shape, reffrequency, cellsize, w, imagecentre = create_wcs_from_visibility(vis, params=params)
 
     npixel = shape[3]
-    theta = npixel * cellsize
+    field_of_view = npixel * cellsize
 
     log.debug("invert_visibility: Specified npixel=%d, cellsize = %f rad, FOV = %f rad" %
-          (npixel, cellsize, theta))
+          (npixel, cellsize, field_of_view))
 
     # Set up the gridding kernel. We try to use a cached version
     gridding_algorithm = get_parameter(params, 'gridding_algorithm', 'wprojection')
@@ -114,7 +117,7 @@ def invert_visibility(vis: Visibility, params={}):
         wcachesize = w_cache_size(vis, wstep)
         log.debug("invert_visibility: Making w-kernel cache of %d kernels" % wcachesize)
 
-        cache_fn = w_conj_kernel_fn(pylru.FunctionCacheManager(w_kernel, wcachesize))
+        cache_fn = pylru.FunctionCacheManager(w_kernel, wcachesize)
         imgfn = functools.partial(w_cache_imaging,
                                   wstep=wstep, kernel_cache=cache_fn,
                                   NpixFF=256, NpixKern=15, Qpx=4)
@@ -134,21 +137,20 @@ def invert_visibility(vis: Visibility, params={}):
         pmax = 0.0
         nchan = shape[0]
         npol = shape[1]
+        # These loops should ideally be at the bottom of the stack
         for channel in range(nchan):
             for pol in range(npol):
                 log.debug('invert_visibility: Inverting channel %d, polarisation %d' % (channel, pol))
                 d[channel, pol, :, :], p[channel, 0, :, :], pmax = \
-                    do_imaging(theta, 1.0 / cellsize, vis.uvw_lambda(channel),
+                    do_imaging(field_of_view, 1.0 / cellsize, vis.uvw_lambda(channel),
                                vis.vis[:, channel, pol], imgfn=imgfn)
             assert pmax > 0.0, ("No data gridded for channel %d" % channel)
     else:
         raise NotImplementedError("mode %s not supported" % spectral_mode)
 
-
     dirty = create_image_from_array(d, w)
     psf = create_image_from_array(p, w)
     log.debug("invert_visibility: Finished making dirty and psf")
-
 
     return dirty, psf, pmax
 
@@ -179,17 +181,17 @@ def predict_visibility(vis: Visibility, sm: SkyModel, params={}) -> Visibility:
 
             # Determine image size
             cellsize = abs(im.wcs.wcs.cdelt[0]) * numpy.pi / 180.0
-            theta = im.npixel * cellsize
+            field_of_view = im.npixel * cellsize
             log.debug("predict_visibility: Image cellsize %f radians" % cellsize)
-            log.debug("predict_visibility: Field of view %f radians" % theta)
-            assert (theta / numpy.sqrt(2) < 1.0), "Field of view larger than celestial sphere"
+            log.debug("predict_visibility: Field of view %f radians" % field_of_view)
+            assert (field_of_view / numpy.sqrt(2) < 1.0), "Field of view larger than celestial sphere"
 
             # Parameterise imaging
             wstep = get_parameter(params, "wstep", 10000.0)
             wcachesize = w_cache_size(vis, wstep)
             log.debug("predict_visibility: Making w-kernel cache of %d kernels" % wcachesize)
 
-            cache_fn = w_conj_kernel_fn(pylru.FunctionCacheManager(w_kernel, wcachesize))
+            cache_fn = pylru.FunctionCacheManager(w_kernel, wcachesize)
             predfn = functools.partial(w_cache_predict,
                                        wstep=wstep, kernel_cache=cache_fn,
                                        NpixFF=256, NpixKern=15, Qpx=4)
@@ -204,7 +206,7 @@ def predict_visibility(vis: Visibility, sm: SkyModel, params={}) -> Visibility:
                         log.debug('predict_visibility: Predicting from image channel %d, polarisation %d' % (
                         channel, pol))
                         img = sm.images[0].data[channel, pol, :, :]
-                        dv = do_predict(theta, 1.0 / cellsize, numpy.array(uvw), img, predfn)
+                        dv = do_predict(field_of_view, 1.0 / cellsize, numpy.array(uvw), img, predfn)
                         vis.vis[:, channel, pol] += dv
             else:
                 raise NotImplementedError("mode %s not supported" % spectral_mode)

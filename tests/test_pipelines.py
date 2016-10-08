@@ -3,16 +3,15 @@
 realtimcornwell@gmail.com
 """
 
-
 import unittest
 
 import numpy
 from numpy.testing import assert_allclose
 
-from arl.skymodel_operations import SkyComponent, create_skycomponent
+from arl.skymodel_operations import create_skycomponent
 from arl.testing_support import create_named_configuration, create_test_image
 from arl.skymodel_operations import create_skymodel_from_image, add_component_to_skymodel
-from arl.visibility_operations import Visibility, create_visibility, create_gaintable_from_array
+from arl.visibility_operations import create_visibility
 from arl.image_deconvolution import msclean
 from arl.fourier_transforms import predict_visibility
 
@@ -20,7 +19,6 @@ from astropy.coordinates import SkyCoord
 from astropy import units as u
 
 from arl.pipelines import *
-
 
 class TestPipelines(unittest.TestCase):
 

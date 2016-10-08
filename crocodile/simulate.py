@@ -230,8 +230,6 @@ def visibility_shift(uvw, vis, dl, dm):
     s = numpy.array([dl, dm])
     return vis * numpy.exp(-2j * numpy.pi * numpy.dot(uvw[:,0:2], s))
 
-# ---------------------------------------------------------------------------------
-
 def uvw_transform(uvw, T):
     """
     Transforms UVW baseline coordinates such that the image is

@@ -21,6 +21,15 @@ import logging
 
 log = logging.getLogger("arl.image_operations")
 
+def create_image_from_slice(im, slice):
+    """Create image from an image using a numpy.slice
+    
+    """
+    im = Image()
+    im.data = im.data[slice]
+    im.wcs = im.wcs(slice)
+    return im
+
 
 def create_image_from_array(data: numpy.array, wcs: WCS = None) -> Image:
     """ Create an image from an array
@@ -66,7 +75,7 @@ def import_image_from_fits(fitsfile: str):
 
 def add_wcs_to_image(im: Image, wcs: WCS):
     """ Add a WCS to an Image
-    
+
     :param im:
     :type Image:
     :param wcs:
@@ -75,6 +84,7 @@ def add_wcs_to_image(im: Image, wcs: WCS):
     """
     im.wcs = wcs.deepcopy()
     return im
+
 
 
 def reproject_image(im: Image, newwcs: WCS, shape=None, params={}):
@@ -114,6 +124,14 @@ def fft_image(im: Image, params={}):
     
     return im
 
+def checkwcs(wcs1, wcs2):
+    """ Check for compatbility of wcs
+    
+    :param wcs1:
+    :param wcs2:
+    """
+    # TODO: implement checkwcs
+    return True
 
 def add_image(im1: Image, im2: Image, checkwcs=False):
     """ Add two images
@@ -126,10 +144,11 @@ def add_image(im1: Image, im2: Image, checkwcs=False):
     :type bool:
     :returns: Image
     """
-    # TODO: implement
+
     
-    
-    assert not checkwcs, "Checking WCS not yet implemented"
+    if checkwcs:
+        assert not checkwcs(im1.wcs, im2.wcs), "Checking WCS not yet implemented"
+
     return create_image_from_array(im1.data + im2.data, im1.wcs)
 
 

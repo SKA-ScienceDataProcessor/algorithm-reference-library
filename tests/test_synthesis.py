@@ -1,14 +1,11 @@
 
-from crocodile.synthesis import *
+from arl.synthesis_support import *
 from crocodile.simulate import *
 
 import unittest
 import itertools
 import numpy as np
 from numpy.testing import assert_allclose
-
-from astropy.coordinates import SkyCoord
-from astropy import units as u
 
 class TestSynthesis(unittest.TestCase):
 
