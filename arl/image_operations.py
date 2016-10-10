@@ -33,7 +33,7 @@ def create_image_from_slice(im, slice):
 
 def create_image_from_array(data: numpy.array, wcs: WCS = None) -> Image:
     """ Create an image from an array
-    
+
     :param data:
     :type numpy.array:
     :param wcs:
@@ -43,6 +43,19 @@ def create_image_from_array(data: numpy.array, wcs: WCS = None) -> Image:
     fim = Image()
     fim.data = data
     fim.wcs = wcs
+    return fim
+
+
+def create_empty_image_like(im: Image) -> Image:
+    """ Create an image from an array
+
+    :param im:
+    :type Image:
+    :returns: Image
+    """
+    fim = Image()
+    fim.data = numpy.zeros_like(im.data)
+    fim.wcs = im.wcs.deepcopy()
     return fim
 
 

@@ -6,12 +6,13 @@
 import functools
 import pylru
 import copy
+
 from astropy import units as units
 from astropy import wcs
 
 from crocodile.simulate import simulate_point, skycoord_to_lmn
 
-from arl.synthesis_support import w_cache_imaging, w_cache_predict, do_imaging, do_predict
+from arl.synthesis_support import invert, predict
 from arl.kernel_support import w_kernel
 from arl.data_models import *
 from arl.image_operations import create_image_from_array
@@ -74,22 +75,6 @@ def create_wcs_from_visibility(vis: Visibility, params={}):
     return shape, reffrequency, cellsize, w, imagecentre
 
 
-def w_cache_size(vis:Visibility, wstep, frequency=None):
-    """
-    Determine optimal w-kernel cache size for de/gridding the
-    given visibilities.
-    
-    Not sure in what sense this is optimal?
-    """
-
-    if frequency is None:
-        frequency = max(vis.frequency)
-
-    wmax = numpy.max(numpy.abs(vis.w))
-    wmax *= float(frequency) / const.c.value
-    return int(numpy.ceil(wmax / wstep))
-
-
 def invert_visibility(vis: Visibility, params={}):
     """Invert to make dirty Image and PSF
 
@@ -108,13 +93,12 @@ def invert_visibility(vis: Visibility, params={}):
           (npixel, cellsize, field_of_view))
 
     # Set up the gridding kernel. We try to use a cached version
-    gridding_algorithm = get_parameter(params, 'gridding_algorithm', 'wprojection')
+    ftprocessor = get_parameter(params, 'ftprocessor', 'wprojection')
 
-    if gridding_algorithm == 'wprojection':
+    if ftprocessor == 'wprojection':
         log.debug("invert_visibility: Gridding by w projection")
 
         wstep = get_parameter(params, "wstep", 10000.0)
-        wcachesize = w_cache_size(vis, wstep)
         log.debug("invert_visibility: Making w-kernel cache of %d kernels" % wcachesize)
 
         cache_fn = pylru.FunctionCacheManager(w_kernel, wcachesize)

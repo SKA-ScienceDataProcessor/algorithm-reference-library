@@ -11,7 +11,7 @@ from astropy.coordinates import SkyCoord
 from astropy import units as u
 
 from arl.skymodel_operations import create_skycomponent
-from arl.testing_support import create_named_configuration, filter_configuration
+from arl.testing_support import create_named_configuration
 from arl.image_operations import export_image_to_fits
 from arl.skymodel_operations import create_skymodel_from_component, find_skycomponent, fit_skycomponent
 from arl.visibility_operations import create_visibility, sum_visibility
@@ -27,7 +27,7 @@ class TestFourierTransforms(unittest.TestCase):
         
         self.params = {'wstep': 10.0, 'npixel': 512, 'cellsize':0.0002, 'spectral_mode': 'channel'}
 
-        vlaa = filter_configuration(create_named_configuration('VLAA'), self.params)
+        vlaa = create_named_configuration('VLAA')
         vlaa.data['xyz'] *= 1.0 / 30.0
         times = numpy.arange(-3.0, +3.0, 6.0 / 60.0) * numpy.pi / 12.0
         frequency = numpy.arange(1.0e8, 1.50e8, 2.0e7)

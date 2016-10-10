@@ -36,6 +36,7 @@ import numpy
 from functools import lru_cache
 import scipy.special
 
+
 def coordinateBounds(N):
     r""" Returns lowest and highest coordinates of an image/grid given:
 
@@ -53,6 +54,7 @@ def coordinateBounds(N):
         return -0.5, 0.5 * (N - 2) / N
     else:
         return -0.5 * (N - 1) / N, 0.5 * (N - 1) / N
+
 
 def coordinates(N):
     """ 1D array which spans [-.5,.5[ with 0 at position N/2
@@ -102,12 +104,12 @@ def pad_mid(ff, N):
     :param N:  The desired far field size
 
     """
-
+    
     N0, N0w = ff.shape
     if N == N0: return ff
     assert N > N0 and N0 == N0w
     return numpy.pad(ff,
-                     pad_width=2*[(N//2-N0//2, (N+1)//2-(N0+1)//2)],
+                     pad_width=2 * [(N // 2 - N0 // 2, (N + 1) // 2 - (N0 + 1) // 2)],
                      mode='constant',
                      constant_values=0.0)
 
@@ -129,7 +131,7 @@ def extract_mid(a, N):
         return a[cx - s:cx + s + 1, cy - s:cy + s + 1]
     else:
         return a[cx - s:cx + s, cy - s:cy + s]
-    
+
 
 def extract_oversampled(a, xf, yf, Qpx, N):
     """
@@ -149,17 +151,17 @@ def extract_oversampled(a, xf, yf, Qpx, N):
     :param Qpx: oversampling factor
     :param N: size of section
     """
-
+    
     assert xf >= 0 and xf < Qpx
     assert yf >= 0 and yf < Qpx
     # Determine start offset.
     Na = a.shape[0]
-    my = Na//2 - Qpx*(N//2) - yf
-    mx = Na//2 - Qpx*(N//2) - xf
+    my = Na // 2 - Qpx * (N // 2) - yf
+    mx = Na // 2 - Qpx * (N // 2) - xf
     assert mx >= 0 and my >= 0
     # Extract every Qpx-th pixel
-    mid = a[my : my+Qpx*N : Qpx,
-            mx : mx+Qpx*N : Qpx]
+    mid = a[my: my + Qpx * N: Qpx,
+          mx: mx + Qpx * N: Qpx]
     # normalise
     return Qpx * Qpx * mid
 
@@ -173,9 +175,9 @@ def anti_aliasing_function(shape, m, c):
     :param m: mode parameter
     :param c: spheroidal parameter
     """
-
+    
     # 2D Prolate spheroidal angular function is separable
-    sy, sx = [ scipy.special.pro_ang1(m, m, c, coordinates(N))[0] for N in shape ]
+    sy, sx = [scipy.special.pro_ang1(m, m, c, coordinates(N))[0] for N in shape]
     return numpy.outer(sy, sx)
 
 
@@ -188,13 +190,14 @@ def w_kernel_function(N, field_of_view, w):
     :param w: Baseline distance to the projection plane
     :returns: N x N array with the far field
     """
-
+    
     m, l = coordinates2(N) * field_of_view
-    r2 = l**2 + m**2
+    r2 = l ** 2 + m ** 2
     assert numpy.all(r2 < 1.0), "Error in image coordinate system: theta %f, N %f,l %s, m %s" % (field_of_view, N, l, m)
     ph = w * (1 - numpy.sqrt(1.0 - r2))
     cp = numpy.exp(2j * numpy.pi * ph)
     return cp
+
 
 def kernel_oversample(ff, N, Qpx, s):
     """
@@ -211,13 +214,13 @@ def kernel_oversample(ff, N, Qpx, s):
     :returns: Numpy array of shape [ov, ou, v, u], e.g. with sub-pixel
       offsets as the outer coordinates.
     """
-
+    
     # Pad the far field to the required pixel size
-    padff = pad_mid(ff, N*Qpx)
-
+    padff = pad_mid(ff, N * Qpx)
+    
     # Obtain oversampled uv-grid
     af = ifft(padff)
-
+    
     # Extract kernels
     res = [[extract_oversampled(af, x, y, Qpx, s) for x in range(Qpx)] for y in range(Qpx)]
     return numpy.array(res)

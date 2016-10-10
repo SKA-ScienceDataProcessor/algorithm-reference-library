@@ -34,8 +34,8 @@ from arl.visibility_operations import create_visibility, combine_visibility, aq_
 from arl.fourier_transforms import *
 from arl.skymodel_operations import create_skymodel_from_image, add_component_to_skymodel, create_skycomponent, \
     find_skycomponent
-from arl.image_operations import show_image, import_image_from_fits, export_image_to_fits
-from arl.testing_support import filter_configuration, create_named_configuration, create_test_image
+from arl.image_operations import show_image, export_image_to_fits
+from arl.testing_support import create_named_configuration, create_test_image
 
 ##### End of setup
 params = {}
@@ -44,7 +44,7 @@ doshow = False
 log.info("run_imaging: Starting")
 
 # We construct a VLA configuration and then shrink it to match our test image.
-vlaa = filter_configuration(create_named_configuration('VLAA'), params={})
+vlaa = create_named_configuration('VLAA')
 
 # We create the visibility. This just makes the uvw, time, antenna1, antenna2, weight columns in a table
 vlaa.data['xyz'] = vlaa.data['xyz'] / 10.0

@@ -1,7 +1,5 @@
 # Tim Cornwell <realtimcornwell@gmail.com>
 #
-# Visibility data structure: a Table with columns ['uvw', 'time', 'antenna1', 'antenna2', 'vis', 'weight']
-# and an attached attribute which is the frequency of each channel
 
 import profile
 import copy
@@ -299,41 +297,6 @@ def sum_visibility(vis: Visibility, direction: SkyCoord, params={}) -> numpy.arr
     flux[weight > 0.0] = flux[weight > 0.0] / weight[weight > 0.0]
     flux[weight <= 0.0] = 0.0
     return flux, weight
-
-
-def coalesce_visibility(vis: Visibility, params={}) -> Visibility:
-    """ Coalesce visibilities in time and frequency according to baseline length
-    
-    Creates new Visibility by averaging in time and frequency
-    
-    :param vis: Visibility to be coalesced
-    :type Visibility:
-    :returns: Visibility after coalescing
-    """
-    # TODO: implement
-
-    log_parameters(params)
-    log.error("coalesce_visibility: not yet implemented")
-    return vis
-
-
-def de_coalesce_visibility(vis: Visibility, vistemplate: Visibility, params={}) -> Visibility:
-    """ De-coalesce visibility in time and frequency i.e. replicate to template Visibility
-    
-    This is the opposite of coalescing - the Visibility is expanded into sampling independent
-    of baseline length.
-    
-    :param vis: Visibility to be de-coalesced
-    :type Visibility: Visibility
-    :param vistemplate: template Visibility
-    :type Visibility: Visibility
-    :returns: Visibility after de-coalescing
-    """
-    # TODO: implement
-
-    log_parameters(params)
-    log.error("de_coalesce_visibility: not yet implemented")
-    return vis
 
 
 def aq_visibility(vis, params={}):

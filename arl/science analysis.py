@@ -22,5 +22,5 @@ def rotation_measure_synthesis(im: Image, params={}):
     """
     # TODO: implement
 
-    log.info("rotation_measure_synthesis: not yet implemented")
+    log.warn("rotation_measure_synthesis: not yet implemented")
     return im

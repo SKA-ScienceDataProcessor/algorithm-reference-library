@@ -5,11 +5,6 @@ import numpy
 #
 from astropy.coordinates import SkyCoord
 
-from arl.visibility_operations import create_visibility
-from arl.testing_support import filter_configuration, create_named_configuration
-from arl.image_operations import import_image_from_fits
-from arl.skymodel_operations import create_skymodel_from_image
-from arl.fourier_transforms import predict_visibility
 from arl.data_models import *
 from arl.parameters import *
 

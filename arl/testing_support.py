@@ -223,25 +223,27 @@ def import_visibility_from_oskar(oskar_file: str, params={}) -> Visibility:
         weight        = numpy.ones(a1.shape))
 
 
-def create_test_image(canonical=True):
+def create_test_image(canonical=True, npol=4, nchan=1):
     """Create a useful test image
 
     This is the test image M31 widely used in ALMA and other simulations. It is actually part of an Halpha region in
     M31.
 
     :param canonical: Make the image into a 4 dimensional image
+    :param npol: Number of polarisations
+    :param nchan: Number of channels
     :returns: Image
     """
     im = import_image_from_fits(crocodile_path("data/models/M31.MOD"))
     if canonical:
-        im = replicate_image(im, npol=4)
+        im = replicate_image(im, nchan=1, npol=4)
     return im
 
 
 def replicate_image(im: Image, npol = 4, nchan = 1, frequency=1.4e9):
     """ Make a new canonical shape Image, extended along third and fourth axes by replication.
 
-    The order is [chan, pol, dec, ra]
+    The order of the data is [chan, pol, dec, ra]
 
 
     :param im:
