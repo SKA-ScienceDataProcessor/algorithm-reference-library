@@ -53,10 +53,10 @@ class TestSynthesis(unittest.TestCase):
             self.assertAlmostEqual(aaf[shape[0]//2,shape[1]//2], 1)
 
     def test_w_kernel_function(self):
-        assert_allclose(w_kernel_function(5,0.1,0), 1)
-        self.assertAlmostEqual(w_kernel_function(5,0.1,100)[2,2], 1)
-        self.assertAlmostEqual(w_kernel_function(10,0.1,100)[5,5], 1)
-        self.assertAlmostEqual(w_kernel_function(11,0.1,1000)[5,5], 1)
+        assert_allclose(w_kernel_function(*kernel_coordinates(5,0.1),0), 1)
+        self.assertAlmostEqual(w_kernel_function(*kernel_coordinates(5,0.1),100)[2,2], 1)
+        self.assertAlmostEqual(w_kernel_function(*kernel_coordinates(10,0.1),100)[5,5], 1)
+        self.assertAlmostEqual(w_kernel_function(*kernel_coordinates(10,0.1),1000)[5,5], 1)
 
     def test_kernel_oversampled_subgrid(self):
         # Oversampling should produce the same values where sub-grids overlap
@@ -87,7 +87,8 @@ class TestSynthesis(unittest.TestCase):
         # Test w-kernel normalisation. This isn't quite perfect.
         for Qpx in [4,5,6]:
             for N in [3,5,9,16,20,24,32,64]:
-                k = kernel_oversample(w_kernel_function(N+2,0.1,N*10), N+2, Qpx, N)
+                l,m = kernel_coordinates(N+2,0.1)
+                k = kernel_oversample(w_kernel_function(l,m,N*10), N+2, Qpx, N)
                 assert_allclose(numpy.sum(k), Qpx**2,
                                 rtol=0.07)
 
@@ -129,7 +130,7 @@ class TestSynthesis(unittest.TestCase):
                 vis_d = convdegrid(gcf, a, uvw/lam)
                 assert_allclose(vis, vis_d)
 
-    def test_grid_degrid_shift(self):
+    def test_grid_shift(self):
         lam = 100
         for N in range(3,7):
           for dl, dm in [(1/lam, 1/lam), (-1/lam, 2/lam), (5/lam, 0)]:
@@ -149,11 +150,15 @@ class TestSynthesis(unittest.TestCase):
     def test_grid_transform(self):
         lam = 100
         s = 1 / numpy.sqrt(2)
-        Ts = [ numpy.array([[1,0], [0,1]]),
-               numpy.array([[-1,0], [0,1]]),
-               numpy.array([[s,-s], [s,s]]),
-               numpy.array([[2,0], [0,3]]),
-               numpy.array([[1,2], [2,1]]) ]
+        Ts = [
+            numpy.array([[1,0], [0,1]]),
+            numpy.array([[-1,0], [0,1]]),
+            numpy.array([[s,-s], [s,s]]),
+            numpy.array([[2,0], [0,3]]),
+            numpy.array([[1,2], [2,1]]),
+            numpy.array([[1e5,-5e3], [6e4,-1e6]]),
+            numpy.array([[0,.05], [-.05,0]])
+        ]
         for T in Ts:
           # Invert transformation matrix
           Ti = numpy.linalg.inv(T)
@@ -164,17 +169,57 @@ class TestSynthesis(unittest.TestCase):
             # can easily achieve this using the inverse transform.
             uvwt = self._uvw(N)*lam
             uvw = uvw_transform(uvwt, Ti)
-            assert_allclose(uvw_transform(uvw, T), uvwt)
+            assert_allclose(uvw_transform(uvw, T), uvwt, atol=1e-13)
             xys = range(-(N//2),(N+1)//2)
             for xt, yt in itertools.product(xys, xys):
                 # Same goes for grid positions: Determine position
                 # before transformation such that we end up with a
                 # point at x,y afterwards.
                 x, y = numpy.dot([xt,yt], Ti)
-                assert_allclose(numpy.dot([x,y], T), [xt,yt])
+                assert_allclose(numpy.dot([x,y], T), [xt,yt], atol=1e-13)
                 # Now simulate at (x/y) using uvw, then grid using
                 # the transformed uvwt, and the point should be at (xt/yt).
                 vis = simulate_point(uvw, x/lam, y/lam)
+                a = numpy.zeros((N, N), dtype=complex)
+                grid(a, uvwt/lam, vis)
+                img = numpy.real(ifft(a))
+                self.assertAlmostEqual(img[N//2+yt,N//2+xt], 1)
+
+    def test_grid_transform_shift(self):
+        lam = 100
+        s = 1 / numpy.sqrt(2)
+        Ts = [
+            numpy.array([[1,0], [0,1]]),
+            numpy.array([[-1,0], [0,1]]),
+            numpy.array([[s,-s], [s,s]]),
+            numpy.array([[2,0], [0,3]]),
+            numpy.array([[1,2], [2,1]]),
+            numpy.array([[1e5,-5e3], [6e4,-1e6]]),
+            numpy.array([[0,.05], [-.05,0]])
+        ]
+        for T in Ts:
+         for dl, dm in [(1/lam, 1/lam), (-1/lam, 2/lam), (5/lam, 0)]:
+          # Invert transformation matrix
+          Ti = numpy.linalg.inv(T)
+          for N in range(3,7):
+            # We will grid after the transformation. To make this
+            # lossless we need to choose UVW such that they map
+            # exactly to grid points *after* the transformation. We
+            # can easily achieve this using the inverse transform.
+            uvwt = self._uvw(N)*lam
+            uvw = uvw_transform(uvwt, Ti)
+            assert_allclose(uvw_transform(uvw, T), uvwt, atol=1e-13)
+            xys = range(-(N//2),(N+1)//2)
+            for xt, yt in itertools.product(xys, xys):
+                # Same goes for grid positions: Determine position
+                # before transformation such that we end up with a
+                # point at x,y afterwards.
+                x, y = numpy.dot([xt,yt], Ti)
+                assert_allclose(numpy.dot([x,y], T), [xt,yt], atol=1e-13)
+                # Now simulate at (x/y) using uvw, then grid using
+                # the transformed uvwt, and the point should be at (xt/yt).
+                vis = simulate_point(uvw, x/lam-dl, y/lam-dm)
+                vis = visibility_shift(uvw, vis, dl, dm)
                 a = numpy.zeros((N, N), dtype=complex)
                 grid(a, uvwt/lam, vis)
                 img = numpy.real(ifft(a))
@@ -211,11 +256,12 @@ class TestSynthesis(unittest.TestCase):
                 a_ref = numpy.vstack(2*[numpy.hstack(2*[a_ref])])
                 # Make grid for gridding
                 a = numpy.zeros((2*N, 2*N), dtype=complex)
+                assert a.shape == a_ref.shape
                 for uvw, gcf in zip(uvw_slices, gcfs):
                     # Degridding result should match direct fourier transform
                     vis = simulate_point(uvw, x/lam, y/lam)
                     vis_d = convdegrid(gcf, a_ref, uvw/lam/2)
-                    assert_allclose(vis, vis_d, rtol=0.1)
+                    assert_allclose(vis, vis_d)
                     # Grid
                     convgrid(numpy.conj(gcf), a, uvw/lam/2, vis)
                 # FFT halved generated grid (see above)
@@ -225,6 +271,80 @@ class TestSynthesis(unittest.TestCase):
                 # we're not sampling the same w-plane any more
                 assert_allclose(img[N//2+y,N//2+x], 1)
                 assert_allclose(img, img_ref, atol=2e-3)
+
+    def test_grid_shift_w(self):
+        lam = 10
+        for uw, vw in [(.5,0),(0,.5),(-1,0),(0,-1)]:
+         for N in range(1,6):
+          for dl, dm in [(1/lam, 1/lam), (-1/lam, 2/lam), (5/lam, 0)]:
+            uvw_all = self._uvw(N, uw, vw) * lam
+            uvw_slices = slice_vis(N, sort_vis_w(uvw_all))
+            gcfs = [ w_kernel(N/lam, numpy.mean(uvw[:,2]), N, N, 1, dl=-dl, dm=-dm)
+                     for uvw in uvw_slices ]
+            xys = range(-(N//2),(N+1)//2)
+            for x, y in itertools.product(xys, xys):
+                # Make grid for gridding
+                a = numpy.zeros((2*N, 2*N), dtype=complex)
+                for uvw, gcf in zip(uvw_slices, gcfs):
+                    vis = simulate_point(uvw, x/lam-dl, y/lam-dm)
+                    # Shift. Make sure it is reversible correctly
+                    # (This is enough to prove that degridding would
+                    # be consistent as well)
+                    viss = visibility_shift(uvw, vis, dl, dm)
+                    assert_allclose(visibility_shift(uvw, viss, -dl, -dm), vis)
+                    # Grid
+                    convgrid(numpy.conj(gcf), a, uvw/lam/2, viss)
+                # FFT halved generated grid
+                a2 = numpy.fft.fftshift(a[:N,:N]+a[:N,N:]+a[N:,:N]+a[N:,N:])
+                img = numpy.real(ifft(a2))
+                # Check peak
+                assert_allclose(img[N//2+y,N//2+x], 1)
+
+    def test_grid_transform_shift_w(self):
+        lam = 10
+        s = 1 / numpy.sqrt(2)
+        Ts = [
+            numpy.array([[1,0], [0,1]]),
+            numpy.array([[2,0], [0,3]]),
+            numpy.array([[0,1], [-1,0]]),
+            numpy.array([[s,s], [-s,s]]),
+            numpy.array([[1e5,-5e3], [6e4,-1e6]]),
+            numpy.array([[0,.5], [-.5,0]])
+        ]
+        for T in Ts:
+         Ti = numpy.linalg.inv(T)
+         for uw, vw in [(.5,0),(0,.5),(0,-1)]:
+          for dl, dm in [(0,0), (1/lam, 1/lam), (-1/lam, 4/lam)]:
+           for N in range(1,6):
+            # Generate transformed UVW with w != 0, generate a
+            # w-kernel for every unique w-value (should be exactly N
+            # by choice of uw,vw). Obtain "original" UVW using inverse
+            # transformation.
+            uvwt_all = self._uvw(N, uw, vw)*lam
+            uvw_all = uvw_transform(uvwt_all, Ti)
+            uvw_slices = slice_vis(N, *sort_vis_w(uvwt_all, uvw_all))
+            # Generate kernels for every w-value, using the same far
+            # field size and support as the grid size (perfect sampling).
+            gcfs = [ w_kernel(N/lam, numpy.mean(uvwt[:,2]), N, N, 1, T=Ti, dl=-dl, dm=-dm)
+                     for uvwt,_ in uvw_slices ]
+            xys = range(-(N//2),(N+1)//2)
+            for xt, yt in itertools.product(xys, xys):
+                x, y = numpy.dot([xt,yt], Ti)
+                assert_allclose(numpy.dot([x,y], T), [xt,yt], atol=1e-14)
+                # Make grid for gridding
+                a = numpy.zeros((2*N, 2*N), dtype=complex)
+                # Grid with shift *and* using transformed UVW. This
+                # should give us a point at the transformed (xt,yt)
+                # position, again.
+                for (uvwt, uvw), gcf in zip(uvw_slices, gcfs):
+                    vis = simulate_point(uvw, x/lam-dl, y/lam-dm)
+                    vis = visibility_shift(uvw, vis, dl, dm)
+                    convgrid(numpy.conj(gcf), a, uvwt/lam/2, vis)
+                # FFT halved generated grid
+                a = numpy.fft.fftshift(a[:N,:N]+a[:N,N:]+a[N:,:N]+a[N:,N:])
+                img = numpy.real(ifft(a))
+                # Check peak
+                assert_allclose(img[N//2+yt,N//2+xt], 1)
 
 if __name__ == '__main__':
     unittest.main()

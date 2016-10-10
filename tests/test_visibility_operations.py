@@ -49,7 +49,6 @@ class TestVisibilityOperations(unittest.TestCase):
         self.vismodel = predict_visibility(vispred, self.m31sm, self.params)
 
 
-    @unittest.skip("waiting for crocodile's imaging to get fixed...")
     def test_visibilitysum(self):
         # Sum the visibilities in the correct_visibility direction. This is limited by numerical precision
         summedflux, weight = sum_visibility(self.vismodel, self.compreldirection)
