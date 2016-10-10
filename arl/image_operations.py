@@ -25,10 +25,10 @@ def create_image_from_slice(im, slice):
     """Create image from an image using a numpy.slice
     
     """
-    im = Image()
-    im.data = im.data[slice]
-    im.wcs = im.wcs(slice)
-    return im
+    fim = Image()
+    fim.data = im.data[slice]
+    fim.wcs = im.wcs(slice)
+    return fim
 
 
 def create_image_from_array(data: numpy.array, wcs: WCS = None) -> Image:
@@ -55,7 +55,10 @@ def create_empty_image_like(im: Image) -> Image:
     """
     fim = Image()
     fim.data = numpy.zeros_like(im.data)
-    fim.wcs = im.wcs.deepcopy()
+    if im.wcs == None:
+        fim.wcs = None
+    else:
+        fim.wcs = im.wcs.deepcopy()
     return fim
 
 
@@ -145,6 +148,41 @@ def checkwcs(wcs1, wcs2):
     """
     # TODO: implement checkwcs
     return True
+
+
+class raster():
+    
+    def __init__(self, im, nraster=1):
+        """Create a raster generator, returning images
+        
+        The WCS is adjusted appropriately
+    
+        Provided we don't break reference semantics, memory should be conserved
+        """
+        self.dx = int(im.data.shape[3] // nraster)
+        self.dy = int(im.data.shape[2] // nraster)
+        self.im = im
+        self.nraster = nraster
+        self.location = 0
+    
+    def __iter__(self):
+        return self
+        
+    def __next__(self):
+        if self.location < self.nraster * self.nraster:
+            x = int(self.location // self.nraster)
+            y = int(self.location - x * self.nraster)
+            x *= int(self.dx)
+            y *= int(self.dy)
+            sl = slice(..., slice(y, y + self.dy), slice(x, x + self.dx))
+            self.location += 1
+            # We should be able to use a slice on the wcs but it fails.
+            wcs = self.im.wcs.deepcopy()
+            wcs.wcs.crpix[0] -= x
+            wcs.wcs.crpix[1] -= y
+            return create_image_from_array(self.im.data[...,y:(y + self.dy):1,x:(x + self.dx):1], wcs)
+        else:
+            raise StopIteration
 
 def add_image(im1: Image, im2: Image, checkwcs=False):
     """ Add two images

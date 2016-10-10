@@ -10,7 +10,7 @@ import numpy
 from numpy.testing import assert_allclose
 
 from arl.image_operations import *
-from arl.testing_support import replicate_image
+from arl.testing_support import replicate_image, create_test_image
 from arl.parameters import crocodile_path
 
 import logging
@@ -19,7 +19,7 @@ log = logging.getLogger("tests.TestImag")
 class TestImage(unittest.TestCase):
 
     def setUp(self):
-        self.m31image = replicate_image(import_image_from_fits(crocodile_path("data/models/M31.MOD")))
+        self.m31image = create_test_image()
         self.cellsize = 180.0 * 0.0001 / numpy.pi
         self.m31image.wcs.wcs.cdelt[0] = -self.cellsize
         self.m31image.wcs.wcs.cdelt[1] = +self.cellsize
@@ -38,6 +38,12 @@ class TestImage(unittest.TestCase):
         log.debug(self.m31image.data.shape)
         log.debug(self.m31image.wcs)
         log.debug(export_image_to_fits(self.m31image, fitsfile='temp.fits'))
+
+    def test_rasterise(self):
+    
+        m31model=create_test_image()
+        for patch in raster(m31model, nraster=2):
+            pass
 
     def test_reproject(self):
         # Reproject an image
