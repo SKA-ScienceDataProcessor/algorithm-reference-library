@@ -35,6 +35,7 @@ from __future__ import division
 import numpy
 import scipy.special
 
+from arl.fft_support import *
 
 def coordinateBounds(N):
     r""" Returns lowest and highest coordinates of an image/grid given:
