@@ -11,7 +11,7 @@ from astropy.coordinates import SkyCoord
 from astropy import units as u
 
 from arl.skymodel_operations import create_skycomponent
-from arl.testing_support import create_named_configuration
+from arl.testing_support import create_named_configuration, create_test_image
 from arl.image_operations import export_image_to_fits
 from arl.skymodel_operations import create_skymodel_from_component, find_skycomponent, fit_skycomponent
 from arl.visibility_operations import create_visibility, sum_visibility
@@ -33,6 +33,7 @@ class TestFourierTransforms(unittest.TestCase):
         frequency = numpy.arange(1.0e8, 1.50e8, 2.0e7)
 
         # Define the component and give it some spectral behaviour
+        self.model = create_test_image()
         f=numpy.array([100.0, 20.0, -10.0, 1.0])
         self.flux = numpy.array([f,0.8*f,0.6*f])
         self.average = numpy.average(self.flux[:,0])
@@ -58,14 +59,13 @@ class TestFourierTransforms(unittest.TestCase):
 
         # Now make a dirty image
         # Check that the flux at the peak is as expected
-        self.dirty, self.psf, sumwt = invert_visibility(self.vismodel, self.params)
+        self.dirty, self.psf, sumwt = invert_visibility(self.vismodel, self.model, self.params)
         export_image_to_fits(self.dirty, 'test_imaging_dirty.fits')
         log.debug("Max, min in dirty Image = %.6f, %.6f, sum of weights = %f" %
                   (self.dirty.data.max(), self.dirty.data.min(), sumwt))
         log.debug("Max, min in PSF         = %.6f, %.6f, sum of weights = %f" %
                   (self.psf.data.max(), self.psf.data.min(), sumwt))
-        # Find the peak
-        # Check that the returned component is correct
+        # Find the peak, and check that the returned component is correct
         newcomp = find_skycomponent(self.dirty)
         assert_allclose(self.compabsdirection.ra.value,  newcomp.direction.ra.value,  atol=1e-2)
         assert_allclose(self.compabsdirection.dec.value, newcomp.direction.dec.value, atol=1e-2)

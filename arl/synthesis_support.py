@@ -189,7 +189,7 @@ def w_kernel_function(N, field_of_view, w):
     
     m, l = coordinates2(N) * field_of_view
     r2 = l ** 2 + m ** 2
-    assert numpy.all(r2 < 1.0), "Error in image coordinate system: theta %f, N %f,l %s, m %s" % (field_of_view, N, l, m)
+    assert numpy.all(r2 < 1.0), "Error in image coordinate system: field_of_view %f, N %f,l %s, m %s" % (field_of_view, N, l, m)
     ph = w * (1 - numpy.sqrt(1.0 - r2))
     cp = numpy.exp(2j * numpy.pi * ph)
     return cp
@@ -413,13 +413,14 @@ def uvw_transform(uvw, T):
     return numpy.hstack([uv1, uvw[:, 2:3]])
 
 
-def invert(field_of_view, uvmax, uv, v, ftprocessor, params={}):
+def invert2d(field_of_view, uvmax, uv, vis, model, params={}):
     """Basic imaging with specified gridding function
 
     :param field_of_view: Field of view (directional cosines)
     :param uvmax:UV grid range (wavelengths)
     :param uv: UVWs of visibilities (wavelengths)
     :param v: Visibilities to be imaged
+    :param model: Template array
     :returns: dirty image, psf, sum of weights
 
     """
@@ -430,18 +431,16 @@ def invert(field_of_view, uvmax, uv, v, ftprocessor, params={}):
     wt = do_weight(field_of_view, uvmax, uv, numpy.ones(len(uv)))
     
     # Grid the data
-    cdrt = None
-    cpsf = None
-    f = ftprocessor(field_of_view, uvmax, uv, params)
-    with f.next():
-        wtvis = wt * f.vis()
-        cdrt = f.grid(cdrt, f.uv(), wtvis, params)
-        wtpsf = wt * numpy.ones_like(f.vis())
-        cpsf = f.grid(cpsf, f.uv(), wtpsf, params)
+    cdrt = numpy.zeros(model.data.shape, dtype='complex')
+    cpsf = numpy.zeros(model.data.shape, dtype='complex')
+    wtvis = wt * vis
+#    cdrt = convgrid(cdrt, uv, wtvis, params)
+    wtpsf = wt * numpy.ones_like(vis)
+#    cpsf = convgrid(cpsf, uv, wtpsf, params)
     
     # FT to image plane, keep only the real part
-    drt = ftprocessor.correct(numpy.real(ifft(cdrt)))
-    psf = ftprocessor.correct(numpy.real(ifft(cpsf)))
+    drt = numpy.real(ifft(cdrt))
+    psf = numpy.real(ifft(cpsf))
     
     # Normalise the peak of the psf to unity and pass out the
     # sum of weights for subsequent operations
@@ -450,7 +449,7 @@ def invert(field_of_view, uvmax, uv, v, ftprocessor, params={}):
     return drt / pmax, psf / pmax, pmax
 
 
-def predict(modelimage, field_of_view, uvmax, uv, vis, ftprocessor, params={}):
+def predict2d(model, field_of_view, uvmax, uv, vis, params={}):
     """Predict visibilities using w-kernel cache
 
     :param field_of_view: Field of view (directional cosines)
@@ -461,8 +460,7 @@ def predict(modelimage, field_of_view, uvmax, uv, vis, ftprocessor, params={}):
     """
     
     cvis = None
-    f = ftprocessor(field_of_view, uvmax, uv, vis, params=params)
-    with f.next():
-        cimage = fft(f.correct(f.image().astype(complex)))
-        cvis = f.degrid(cvis, f.uv(), cimage, params)
-    return cvis
+    cimage = fft(model.astype(complex))
+#    cvis = convdegrid(cimage, uv, None)
+    return vis
+

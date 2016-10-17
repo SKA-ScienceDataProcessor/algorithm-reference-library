@@ -12,6 +12,7 @@ import numpy
 class Configuration:
     """ Describe a Configuration
     
+    has a Table with locations in x,y,z, and names, and overall location
     """
     
     def __init__(self, name='', data=None, location=None,
@@ -72,11 +73,13 @@ class Image:
     def __init__(self):
         self.data = None
         self.wcs = None
-
+    
     @property
     def nchan(self): return self.data.shape[0]
+    
     @property
     def npol(self): return self.data.shape[1]
+    
     @property
     def npixel(self): return self.data.shape[3]
 
@@ -94,9 +97,10 @@ class SkyComponent:
         self.flux = None  # numpy.array [nchan, npol]
         self.shape = None  # str e.g. 'Point' 'Gaussian'
         self.params = None  # numpy.array shape dependent parameters
-
+    
     @property
     def nchan(self): return self.flux.shape[0]
+    
     @property
     def npol(self): return self.flux.shape[1]
 
@@ -186,6 +190,7 @@ class QA:
         self.origin = origin  # Name of function originating QA assessment
         self.data = data  # Dictionary containing standard fields
         self.context = context  # Context string (TBD)
+
 
 def assert_same_chan_pol(o1, o2):
     """

@@ -34,4 +34,6 @@ class TestParameters(unittest.TestCase):
         assert get_parameter(self.parameters, 'foo') == None
 
 if __name__ == '__main__':
+    log.setLevel(logging.DEBUG)
+    log.addHandler(logging.StreamHandler(sys.stdout))
     unittest.main()

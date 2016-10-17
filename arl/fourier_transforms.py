@@ -3,29 +3,24 @@
 # Synthesis imaging functions
 #
 
-import functools
-import pylru
-import copy
+import logging
 
 from astropy import units as units
 from astropy import wcs
 
+from arl.data_models import *
+from arl.image_operations import create_empty_image_like
+from arl.synthesis_support import invert2d, predict2d
+from arl.parameters import *
 from crocodile.simulate import simulate_point, skycoord_to_lmn
 
-from arl.synthesis_support import invert, predict
-from arl.kernel_support import w_kernel
-from arl.data_models import *
-from arl.image_operations import create_image_from_array
-from arl.parameters import *
-
-import logging
 log = logging.getLogger("arl.fourier_transforms")
 
 """
 Functions that perform imaging i.e. conversion of an Image to/from a Visibility
 """
 
-def create_wcs_from_visibility(vis: Visibility, params={}):
+def _create_wcs_from_visibility(vis, params={}):
     """Make a world coordinate system from params and Visibility
 
     :param vis:
@@ -34,7 +29,7 @@ def create_wcs_from_visibility(vis: Visibility, params={}):
     :returns: WCS
     """
     log_parameters(params)
-    log.debug("create_wcs_from_visibility: Parsing parameters to get definition of WCS")
+    log.debug("fourier_transforms.create_wcs_from_visibility: Parsing parameters to get definition of WCS")
     imagecentre = get_parameter(params, "imagecentre", vis.phasecentre)
     phasecentre = get_parameter(params, "phasecentre", vis.phasecentre)
     reffrequency = get_parameter(params, "reffrequency", numpy.max(vis.frequency)) * units.Hz
@@ -42,7 +37,7 @@ def create_wcs_from_visibility(vis: Visibility, params={}):
     if len(vis.frequency) > 1:
         deffaultbw = vis.frequency[1] - vis.frequency[0]
     channelwidth = get_parameter(params, "channelwidth", deffaultbw) * units.Hz
-    log.debug("create_wcs_from_visibility: Defining Image at %s, frequency %s, and bandwidth %s"
+    log.debug("fourier_transforms.create_wcs_from_visibility: Defining Image at %s, frequency %s, and bandwidth %s"
           % (imagecentre, reffrequency, channelwidth))
 
     npixel = get_parameter(params, "npixel", 512)
@@ -75,16 +70,19 @@ def create_wcs_from_visibility(vis: Visibility, params={}):
     return shape, reffrequency, cellsize, w, imagecentre
 
 
-def invert_visibility(vis: Visibility, params={}):
+def invert_visibility(vis, model, params={}):
     """Invert to make dirty Image and PSF
+    
+    This is the top level invert routine.
 
     :param vis:
     :type Visibility: Visibility to be processed
+    :param model: Template model
     :returns: (dirty image, psf)
     """
     log_parameters(params)
     log.debug("invert_visibility: Inverting Visibility to make dirty and psf")
-    shape, reffrequency, cellsize, w, imagecentre = create_wcs_from_visibility(vis, params=params)
+    shape, reffrequency, cellsize, wcs, imagecentre = _create_wcs_from_visibility(vis, params=params)
 
     npixel = shape[3]
     field_of_view = npixel * cellsize
@@ -92,27 +90,10 @@ def invert_visibility(vis: Visibility, params={}):
     log.debug("invert_visibility: Specified npixel=%d, cellsize = %f rad, FOV = %f rad" %
           (npixel, cellsize, field_of_view))
 
-    # Set up the gridding kernel. We try to use a cached version
-    ftprocessor = get_parameter(params, 'ftprocessor', 'wprojection')
-
-    if ftprocessor == 'wprojection':
-        log.debug("invert_visibility: Gridding by w projection")
-
-        wstep = get_parameter(params, "wstep", 10000.0)
-        log.debug("invert_visibility: Making w-kernel cache of %d kernels" % wcachesize)
-
-        cache_fn = pylru.FunctionCacheManager(w_kernel, wcachesize)
-        imgfn = functools.partial(w_cache_imaging,
-                                  wstep=wstep, kernel_cache=cache_fn,
-                                  NpixFF=256, NpixKern=15, Qpx=4)
-    else:
-        raise NotImplementedError("gridding algorithm %s not supported" % gridding_algorithm)
-
-    # Apply a phase rotation from the visibility phase centre to the image phase centre
-    #    visphaserotate = phaserotate(vis, imagecentre)
-
-    d = numpy.zeros(shape)
-    p = numpy.zeros(shape)
+    dirty = create_empty_image_like(model)
+    d = dirty.data
+    psf = create_empty_image_like(model)
+    p = psf.data
 
     spectral_mode = get_parameter(params, 'spectral_mode', 'channel')
     log.debug('invert_visibility: spectral mode is %s' % spectral_mode)
@@ -126,14 +107,12 @@ def invert_visibility(vis: Visibility, params={}):
             for pol in range(npol):
                 log.debug('invert_visibility: Inverting channel %d, polarisation %d' % (channel, pol))
                 d[channel, pol, :, :], p[channel, 0, :, :], pmax = \
-                    do_imaging(field_of_view, 1.0 / cellsize, vis.uvw_lambda(channel),
-                               vis.vis[:, channel, pol], imgfn=imgfn)
+                    invert2d(field_of_view, 1.0 / cellsize, vis.uvw_lambda(channel),
+                               vis.vis[:, channel, pol],  model, params=params)
             assert pmax > 0.0, ("No data gridded for channel %d" % channel)
     else:
         raise NotImplementedError("mode %s not supported" % spectral_mode)
 
-    dirty = create_image_from_array(d, w)
-    psf = create_image_from_array(p, w)
     log.debug("invert_visibility: Finished making dirty and psf")
 
     return dirty, psf, pmax
@@ -147,12 +126,9 @@ def predict_visibility(vis: Visibility, sm: SkyModel, params={}) -> Visibility:
     :type SkyModel:
     :returns: Visibility
     """
-    shape, reffrequency, cellsize, w, imagecentre = create_wcs_from_visibility(vis, params=params)
+    shape, reffrequency, cellsize, w, imagecentre = _create_wcs_from_visibility(vis, params=params)
 
-    # Create copy of visibilities
-    vis = copy.copy(vis)
-    vis.data = copy.copy(vis.data)
-    vis.data['vis'] = numpy.zeros(vis.vis.shape)
+    vis.data['vis'] = 0.0 * vis.data['vis']
 
     spectral_mode = get_parameter(params, 'spectral_mode', 'channel')
     log.debug('predict_visibility: spectral mode is %s' % spectral_mode)
@@ -170,16 +146,6 @@ def predict_visibility(vis: Visibility, sm: SkyModel, params={}) -> Visibility:
             log.debug("predict_visibility: Field of view %f radians" % field_of_view)
             assert (field_of_view / numpy.sqrt(2) < 1.0), "Field of view larger than celestial sphere"
 
-            # Parameterise imaging
-            wstep = get_parameter(params, "wstep", 10000.0)
-            wcachesize = w_cache_size(vis, wstep)
-            log.debug("predict_visibility: Making w-kernel cache of %d kernels" % wcachesize)
-
-            cache_fn = pylru.FunctionCacheManager(w_kernel, wcachesize)
-            predfn = functools.partial(w_cache_predict,
-                                       wstep=wstep, kernel_cache=cache_fn,
-                                       NpixFF=256, NpixKern=15, Qpx=4)
-
             spectral_mode = get_parameter(params, 'spectral_mode', 'channel')
             log.debug('predict_visibility: spectral mode is %s' % spectral_mode)
 
@@ -190,19 +156,20 @@ def predict_visibility(vis: Visibility, sm: SkyModel, params={}) -> Visibility:
                         log.debug('predict_visibility: Predicting from image channel %d, polarisation %d' % (
                         channel, pol))
                         img = sm.images[0].data[channel, pol, :, :]
-                        dv = do_predict(field_of_view, 1.0 / cellsize, numpy.array(uvw), img, predfn)
+                        dv = predict_image_partition(field_of_view, 1.0 / cellsize, numpy.array(uvw), img)
                         vis.vis[:, channel, pol] += dv
             else:
                 raise NotImplementedError("mode %s not supported" % spectral_mode)
 
-            log.debug("predict_visibility: Finished predicting Visibility from sky model images")
+            log.debug("fourier_transforms.predict_visibility: Finished predicting Visibility from sky model images")
 
+    # Now do the components (point sources only at the moment)
     if len(sm.components):
-        log.debug("predict_visibility: Predicting Visibility from sky model components")
+        log.debug("fourier_transforms.predict_visibility: Predicting Visibility from sky model components")
 
         for icomp, comp in enumerate(sm.components):
 
-            log.debug("predict_visibility: visibility shape = %s" % str(vis.vis.shape))
+            log.debug("fourier_transforms.predict_visibility: visibility shape = %s" % str(vis.vis.shape))
             assert_same_chan_pol(vis, comp)
 
             l,m,n = skycoord_to_lmn(comp.direction, vis.phasecentre)
@@ -215,14 +182,14 @@ def predict_visibility(vis: Visibility, sm: SkyModel, params={}) -> Visibility:
                     phasor = simulate_point(uvw, l, m)
                     for pol in range(comp.npol):
                         log.debug(
-                            'predict_visibility: Predicting from component %d channel %d, polarisation %d' % (
+                            'fourier_transforms.predict_visibility: Predicting from component %d channel %d, polarisation %d' % (
                             icomp, channel,
                             pol))
                         vis.vis[:, channel, pol] += comp.flux[channel, pol] * phasor
             else:
                 raise NotImplementedError("mode %s not supported" % spectral_mode)
 
-        log.debug("predict_visibility: Finished predicting Visibility from sky model components")
+        log.debug("fourier_transforms.predict_visibility: Finished predicting Visibility from sky model components")
 
     return vis
 
@@ -240,6 +207,6 @@ def weight_visibility(vis, im, params={}):
     # TODO: implement
 
     log_parameters(params)
-    log.error("visibility_operations.weight_visibility: not yet implemented")
+    log.error("fourier_transforms.weight_visibility: not yet implemented")
     return vis
 

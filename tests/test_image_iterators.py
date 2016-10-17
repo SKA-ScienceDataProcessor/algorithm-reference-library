@@ -23,8 +23,9 @@ class TestImageIterators(unittest.TestCase):
     def test_rasterise(self):
     
         m31model=create_test_image()
+        print(m31model.data.shape, m31model.wcs.wcs.crpix)
         for patch in raster(m31model, nraster=2):
-            pass
+            print(patch.data.shape, patch.wcs.wcs.crpix)
 
 if __name__ == '__main__':
     log.setLevel(logging.DEBUG)

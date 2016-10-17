@@ -24,6 +24,7 @@ class vis_iterator_base():
     def __init__(self, vis, params):
         """Initialise the iterator
         """
+        self.vis = vis
         self.maximum_index = 10
         self.index = 0
         self.params = params
@@ -34,32 +35,48 @@ class vis_iterator_base():
         return self
     
     def __next__(self):
-        try:
-            result = self.vis.select(self.index)
-        except IndexError:
+        if self.index < self.maximum_index:
+            result = self.vis
+            log.debug("Index %i" % (self.index))
+            self.index += 1
+        else:
             raise StopIteration
-        self.index += 1
         return result
 
 
 class vis_snapshot_iter(vis_iterator_base):
     def __init__(self, vis, params):
+        
         """Initialise the iterator
         """
-        super(vis_iterator_base, self).init(vis, params)
+        super(vis_iterator_base, self).__init__(vis, params)
         self.maximum_index = 10
-        self.index = 0
-        self.params = params
-    pass
+        pass
 
 
-class vis_wplane_iter(vis_iterator_base):
-    pass
+class vis_wslice_iter(vis_iterator_base):
+    def __init__(self, vis, params):
+        """Initialise the iterator
+        """
+        super(vis_wslice_iter, self).__init__(vis, params)
+        self.maximum_index = 10
+        pass
 
 
 class vis_frequency_iter(vis_iterator_base):
-    pass
+    def __init__(self, vis, params):
+        """Initialise the iterator
+        """
+        super(vis_iterator_base, self).__init__(vis, params)
+        self.maximum_index = 10
+        pass
 
 
 class vis_parallactic_angle_iter(vis_iterator_base):
-    pass
+    def __init__(self, vis, params):
+        """Initialise the iterator
+        """
+        super(vis_iterator_base, self).__init__(vis, params)
+        self.maximum_index = 10
+        pass
+

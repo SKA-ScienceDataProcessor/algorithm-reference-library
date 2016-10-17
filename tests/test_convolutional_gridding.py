@@ -1,6 +1,6 @@
 
 from arl.synthesis_support import *
-from crocodile.simulate import *
+from arl.convolutional_gridding import *
 
 import unittest
 import itertools
@@ -10,7 +10,7 @@ from numpy.testing import assert_allclose
 from astropy.coordinates import SkyCoord
 from astropy import units as u
 
-class TestKernel(unittest.TestCase):
+class TestConvolutionalGridding(unittest.TestCase):
 
     def test_coordinates(self):
         for N in [4,5,6,7,8,9]:

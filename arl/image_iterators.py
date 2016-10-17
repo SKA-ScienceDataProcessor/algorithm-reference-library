@@ -6,21 +6,11 @@ Functions that define and manipulate images. Images are just data and a World Co
 
 import numpy
 
-import matplotlib.pyplot as plt
-
-from astropy.io import fits
-from astropy.wcs import WCS
-from reproject import reproject_interp
-
-# from reproject import reproject_interp
-
-from arl.data_models import *
-from arl.parameters import *
 from arl.image_operations import create_image_from_array
 
 import logging
 
-log = logging.getLogger("arl.image_operations")
+log = logging.getLogger("arl.image_iterators")
 
 class raster():
     
@@ -41,6 +31,7 @@ class raster():
         return self
         
     def __next__(self):
+        """Returns an image that can be modified using references"""
         if self.location < self.nraster * self.nraster:
             x = int(self.location // self.nraster)
             y = int(self.location - x * self.nraster)

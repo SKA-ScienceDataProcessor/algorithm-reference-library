@@ -34,6 +34,7 @@ def create_image_from_slice(im, slice):
 def create_image_from_array(data: numpy.array, wcs: WCS = None) -> Image:
     """ Create an image from an array
 
+    :rtype: Image
     :param data:
     :type numpy.array:
     :param wcs:

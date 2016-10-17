@@ -1,7 +1,7 @@
 # Bojan Nikolic <b.nikolic@mrao.cam.ac.uk>
 #
 # Synthesise and Image interferometer data
-"""kernel support functions
+"""Convolutional gridding support functions
 
 Parameter name meanings:
 
@@ -33,7 +33,6 @@ This is implemented for reference in
 from __future__ import division
 
 import numpy
-from functools import lru_cache
 import scipy.special
 
 
@@ -74,98 +73,6 @@ def coordinates2(N):
     return numpy.mgrid[low:high:(N * 1j), low:high:(N * 1j)]
 
 
-def fft(a):
-    """ Fourier transformation from image to grid space
-
-    :param a: image in `lm` coordinate space
-    :returns: `uv` grid
-    """
-    return numpy.fft.fftshift(numpy.fft.fft2(numpy.fft.ifftshift(a)))
-
-
-def ifft(a):
-    """ Fourier transformation from grid to image space
-
-    :param a: `uv` grid to transform
-    :returns: an image in `lm` coordinate space
-    """
-    return numpy.fft.fftshift(numpy.fft.ifft2(numpy.fft.ifftshift(a)))
-
-
-def pad_mid(ff, N):
-    """
-    Pad a far field image with zeroes to make it the given size.
-
-    Effectively as if we were multiplying with a box function of the
-    original field's size, which is equivalent to a convolution with a
-    sinc pattern in the uv-grid.
-
-    :param ff: The input far field. Should be smaller than NxN.
-    :param N:  The desired far field size
-
-    """
-    
-    N0, N0w = ff.shape
-    if N == N0: return ff
-    assert N > N0 and N0 == N0w
-    return numpy.pad(ff,
-                     pad_width=2 * [(N // 2 - N0 // 2, (N + 1) // 2 - (N0 + 1) // 2)],
-                     mode='constant',
-                     constant_values=0.0)
-
-
-def extract_mid(a, N):
-    """
-    Extract a section from middle of a map
-
-    Suitable for zero frequencies at N/2. This is the reverse
-    operation to pad.
-
-    :param a: grid from which to extract
-    :param s: size of section
-    """
-    cx = a.shape[0] // 2
-    cy = a.shape[1] // 2
-    s = N // 2
-    if N % 2 != 0:
-        return a[cx - s:cx + s + 1, cy - s:cy + s + 1]
-    else:
-        return a[cx - s:cx + s, cy - s:cy + s]
-
-
-def extract_oversampled(a, xf, yf, Qpx, N):
-    """
-    Extract the (xf-th,yf-th) w-kernel from the oversampled parent
-
-    Offsets are suitable for correcting of fractional coordinates,
-    e.g. an offset of (xf,yf) results in the kernel for an (-xf,-yf)
-    sub-grid offset.
-
-    We do not want to make assumptions about the source grid's symmetry
-    here, which means that the grid's side length must be at least
-    Qpx*(N+2) to contain enough information in all circumstances
-
-    :param a: grid from which to extract
-    :param ox: x offset
-    :param oy: y offset
-    :param Qpx: oversampling factor
-    :param N: size of section
-    """
-    
-    assert xf >= 0 and xf < Qpx
-    assert yf >= 0 and yf < Qpx
-    # Determine start offset.
-    Na = a.shape[0]
-    my = Na // 2 - Qpx * (N // 2) - yf
-    mx = Na // 2 - Qpx * (N // 2) - xf
-    assert mx >= 0 and my >= 0
-    # Extract every Qpx-th pixel
-    mid = a[my: my + Qpx * N: Qpx,
-          mx: mx + Qpx * N: Qpx]
-    # normalise
-    return Qpx * Qpx * mid
-
-
 def anti_aliasing_function(shape, m, c):
     """
     Compute the prolate spheroidal anti-aliasing function
@@ -193,7 +100,8 @@ def w_kernel_function(N, field_of_view, w):
     
     m, l = coordinates2(N) * field_of_view
     r2 = l ** 2 + m ** 2
-    assert numpy.all(r2 < 1.0), "Error in image coordinate system: theta %f, N %f,l %s, m %s" % (field_of_view, N, l, m)
+    assert numpy.all(r2 < 1.0), \
+        "Error in image coordinate system: field_of_view %f, N %f,l %s, m %s" % (field_of_view, N, l, m)
     ph = w * (1 - numpy.sqrt(1.0 - r2))
     cp = numpy.exp(2j * numpy.pi * ph)
     return cp
@@ -241,3 +149,75 @@ def w_kernel(field_of_view, w, NpixFF, NpixKern, Qpx):
     """
     assert NpixFF > NpixKern or (NpixFF == NpixKern and Qpx == 1)
     return kernel_oversample(w_kernel_function(NpixFF, field_of_view, w), NpixFF, Qpx, NpixKern)
+
+
+def frac_coord(N, Qpx, p):
+    """
+    Compute whole and fractional parts of coordinates, rounded to
+    Qpx-th fraction of pixel size
+
+    The fractional values are rounded to nearest 1/Qpx pixel value. At
+    fractional values greater than (Qpx-0.5)/Qpx coordinates are
+    roundeded to next integer index.
+
+    :param N: Number of pixels in total
+    :param Qpx: Fractional values to round to
+    :param p: Coordinate in range [-.5,.5[
+    """
+    assert (p >= -0.5).all() and (p < 0.5).all()
+    x = N // 2 + p * N
+    flx = numpy.floor(x + 0.5 / Qpx)
+    fracx = numpy.around((x - flx) * Qpx)
+    return flx.astype(int), fracx.astype(int)
+
+
+def frac_coords(shape, Qpx, xycoords):
+    """Compute grid coordinates and fractional values for convolutional
+    gridding
+
+    :param shape: (height,width) grid shape
+    :param Qpx: Oversampling factor
+    :param xycoords: array of (x,y) coordinates in range [-.5,.5[
+    """
+    h, w = shape  # NB order (height,width) to match numpy!
+    x, xf = frac_coord(w, Qpx, xycoords[:, 0])
+    y, yf = frac_coord(h, Qpx, xycoords[:, 1])
+    return x, xf, y, yf
+
+
+def convdegrid(gcf, uvgrid, uv):
+    """Convolutional degridding with frequency and polarisation independent
+
+    Takes into account fractional `uv` coordinate values where the GCF
+    is oversampled
+
+    :param uv:
+    :param gcf: Oversampled convolution kernel
+    :param uvgrid:   The uv plane to de-grid from
+    :returns: Array of visibilities.
+    """
+    Qpx, _, gh, gw = gcf.shape
+    coords = frac_coords(uvgrid.shape, Qpx, p)
+    vis = [
+        numpy.sum(uvgrid[..., y - gh // 2: y + (gh + 1) // 2, x - gw // 2: x + (gw + 1) // 2] * gcf[yf, xf])
+        for x, xf, y, yf in zip(*coords)
+        ]
+    return numpy.array(vis)
+
+
+def convgrid(gcf, uvgrid, uv, vis):
+    """Grid after convolving with frequency and polarisation independent gcf
+
+    Takes into account fractional `uv` coordinate values where the GCF
+    is oversampled
+
+    :param gcf: Oversampled convolution kernel
+    :param uvgrid: Grid to add to
+    :param uv: UVW positions
+    :param vis: Visibility values
+    """
+    
+    Qpx, _, gh, gw = gcf.shape
+    coords = frac_coords(uvgrid.shape, Qpx, uv)
+    for vis, x, xf, y, yf in zip(vis, *coords):
+        uvgrid[..., y - gh // 2: y + (gh + 1) // 2, x - gw // 2: x + (gw + 1) // 2] += gcf[yf, xf] * vis

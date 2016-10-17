@@ -10,8 +10,8 @@ import numpy
 from numpy.testing import assert_allclose
 
 from arl.image_operations import *
-from arl.testing_support import replicate_image, create_test_image
-from arl.parameters import crocodile_path
+from arl.image_iterators import *
+from arl.testing_support import create_test_image
 
 import logging
 log = logging.getLogger("tests.TestImag")

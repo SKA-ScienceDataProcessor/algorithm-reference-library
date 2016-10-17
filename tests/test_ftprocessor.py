@@ -11,10 +11,10 @@ from astropy.coordinates import SkyCoord
 from astropy import units as u
 
 from arl.skymodel_operations import create_skycomponent
-from arl.testing_support import create_named_configuration, filter_configuration
+from arl.testing_support import create_named_configuration, create_test_image
+from arl.image_operations import create_empty_image_like
 from arl.skymodel_operations import create_skymodel_from_component
 from arl.visibility_operations import create_visibility
-#from arl.fourier_transforms import predict_visibility
 from arl.ftprocessor import *
 
 import logging
@@ -30,7 +30,7 @@ class TestFTProcessor(unittest.TestCase):
         self.field_of_view = self.params['npixel'] * self.params['cellsize']
         self.uvmax = 0.3 / self.params['cellsize']
         
-        vlaa = filter_configuration(create_named_configuration('VLAA'), self.params)
+        vlaa = create_named_configuration('VLAA')
         vlaa.data['xyz'] *= 1.0 / 30.0
         times = numpy.arange(-3.0, +3.0, 6.0 / 60.0) * numpy.pi / 12.0
         frequency = numpy.arange(1.0e8, 1.50e8, 2.0e7)
@@ -50,33 +50,22 @@ class TestFTProcessor(unittest.TestCase):
         self.sm = create_skymodel_from_component(self.comp)
         self.vis = create_visibility(vlaa, times, frequency, weight=1.0, phasecentre=self.phasecentre,
                                    params=self.params)
-#        self.vismodel = predict_visibility(self.vis, self.sm, self.params)
+        self.model = create_test_image()
+        self.dirty = create_empty_image_like(self.model)
+        self.psf = create_empty_image_like(self.model)
 
+    def test_predict(self):
+        for ftpfunc in [predict_wslice_partition, predict_image_partition, predict_fourier_partition]:
+            log.debug("ftpfunc %s" % (ftpfunc))
+            ftpfunc(model=self.model, vis=self.vis, predict_function=predict_2d, params=self.params)
 
-    # def test_2d(self):
-    #     ftp = ftprocessor_2d(self.field_of_view, self.uvmax, self.model, self.vis, kernel=None, params=self.params)
-    #     pass
-    #
-    def test_all(self):
-        vis = object()
-        model = object()
-        for ftpfunc in [ftprocessor_base, ftprocessor_2d, ftprocessor_wprojection, ftprocessor_image_partition]:
-            ftp = ftpfunc(field_of_view=self.field_of_view, uvmax=self.uvmax, model=model, vis=self.vis,
-                          kernel=None, params=self.params)
-            while ftp.next():
-                ftp.invert()
-                ftp.predict()
-
-    def test_image_partitioning(self):
-        pass
-
-
-    def test_uv_partitioning(self):
-        pass
-
-
-    def test_wprojection(self):
-        pass
+    def test_invert(self):
+        sumofweights = 0.0
+        for ftpfunc in [invert_wslice_partition, invert_image_partition, invert_fourier_partition]:
+            log.debug("ftpfunc %s" % (ftpfunc))
+            ftpfunc(vis=self.vis, dirty=self.dirty, psf=self.psf,
+                    sumofweights=sumofweights, invert_function=invert_2d,
+                    params=self.params)
 
 
 if __name__ == '__main__':

@@ -15,6 +15,7 @@ logging.basicConfig(filename='./run_imaging.log', level=logging.DEBUG)
 console = logging.StreamHandler()
 logging.getLogger('').addHandler(console)
 
+import numpy
 import matplotlib
 
 matplotlib.use('PDF')
@@ -31,10 +32,11 @@ from astropy import units as u
 
 from arl.image_deconvolution import deconvolve_cube
 from arl.visibility_operations import create_visibility, combine_visibility, aq_visibility
-from arl.fourier_transforms import *
+from arl.ftprocessor import predict_image_partition, invert_image_partition
+#from arl.fourier_transforms import *
 from arl.skymodel_operations import create_skymodel_from_image, add_component_to_skymodel, create_skycomponent, \
     find_skycomponent
-from arl.image_operations import show_image, export_image_to_fits
+from arl.image_operations import show_image, export_image_to_fits, create_empty_image_like
 from arl.testing_support import create_named_configuration, create_test_image
 
 ##### End of setup
@@ -98,7 +100,8 @@ m31sm = add_component_to_skymodel(m31sm, comp1)
 
 # Now we can predict_visibility the visibility from this skymodel
 params = {'wstep': 100.0, 'npixel': 256, 'cellsize': 0.0001}
-vis = predict_visibility(vis, m31sm, params=params)
+
+vis = predict_image_partition(vis, m31sm.images[0], params=params)
 
 # To check that we got the prediction right, plot the amplitude of the visibility.
 if doshow:
@@ -113,7 +116,11 @@ if doshow:
 
 params = {'wstep': 30.0, 'npixel': 512, 'cellsize': 0.0001}
 
-dirty, psf, sumwt = invert_visibility(vis, params=params)
+
+dirty = create_empty_image_like(m31image)
+psf = create_empty_image_like(m31image)
+sumwt = 0.0
+dirty, psf, sumwt = invert_image_partition(vis, dirty, psf, sumwt, params=params)
 show_image(dirty)
 log.info("run_imaging: Max, min in dirty image = %.6f, %.6f, sum of weights = %f" % (
 dirty.data.max(), dirty.data.min(), sumwt))
@@ -141,11 +148,11 @@ fig = show_image(residual)
 
 params = {'wstep': 30.0}
 
-vis = predict_visibility(vis, m31sm, params=params)
+vis = predict_image_partition(vis, m31sm.images[0], params=params)
 modelsm = create_skymodel_from_image(comp)
 vismodel = create_visibility(vlaa, times, frequency, weight=1.0, phasecentre=phasecentre)
 vismodel.data = vis.data.copy()
-vismodel = predict_visibility(vismodel, modelsm, params={})
+vismodel = predict_image_partition(vismodel, m31sm.images[0], params={})
 visres = combine_visibility(vis, vismodel, 1.0, -1.0)
 
 # Now we will plot the original visibility and the residual visibility.
