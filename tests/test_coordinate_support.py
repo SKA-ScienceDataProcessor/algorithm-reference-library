@@ -1,11 +1,10 @@
-from crocodile.simulate import *
-
 import unittest
 import numpy as np
 from numpy.testing import assert_allclose
 
-from astropy.coordinates import SkyCoord
 from astropy import units as u
+
+from arl.coordinate_support import *
 
 class TestCoordinates(unittest.TestCase):
     def test_xyz_at_latitude(self):
