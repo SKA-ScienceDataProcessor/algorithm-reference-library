@@ -10,7 +10,6 @@ from astropy import wcs
 
 from arl.data_models import *
 from arl.image_operations import create_empty_image_like
-from arl.synthesis_support import invert2d, predict2d
 from arl.parameters import *
 from crocodile.simulate import simulate_point, skycoord_to_lmn
 
@@ -106,9 +105,9 @@ def invert_visibility(vis, model, params={}):
         for channel in range(nchan):
             for pol in range(npol):
                 log.debug('invert_visibility: Inverting channel %d, polarisation %d' % (channel, pol))
-                d[channel, pol, :, :], p[channel, 0, :, :], pmax = \
-                    invert2d(field_of_view, 1.0 / cellsize, vis.uvw_lambda(channel),
-                               vis.vis[:, channel, pol],  model, params=params)
+                # d[channel, pol, :, :], p[channel, 0, :, :], pmax = \
+                #     invert2d(field_of_view, 1.0 / cellsize, vis.uvw_lambda(channel),
+                #                vis.vis[:, channel, pol],  model, params=params)
             assert pmax > 0.0, ("No data gridded for channel %d" % channel)
     else:
         raise NotImplementedError("mode %s not supported" % spectral_mode)
@@ -156,8 +155,8 @@ def predict_visibility(vis: Visibility, sm: SkyModel, params={}) -> Visibility:
                         log.debug('predict_visibility: Predicting from image channel %d, polarisation %d' % (
                         channel, pol))
                         img = sm.images[0].data[channel, pol, :, :]
-                        dv = predict_image_partition(field_of_view, 1.0 / cellsize, numpy.array(uvw), img)
-                        vis.vis[:, channel, pol] += dv
+            #             dv = predict_image_partition(field_of_view, 1.0 / cellsize, numpy.array(uvw), img)
+            #             vis.vis[:, channel, pol] += dv
             else:
                 raise NotImplementedError("mode %s not supported" % spectral_mode)
 

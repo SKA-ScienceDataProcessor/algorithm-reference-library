@@ -28,18 +28,6 @@ from util.read_oskar_vis import OskarVis
 import logging
 log = logging.getLogger("arl.test_support")
 
-def filter_configuration(fc: Configuration, params={}):
-    """ Filter a configuration e.g. remove certain antennas
-
-    :param fc:
-    :type Configuration:
-    :param params: Dictionary containing parameters
-    :returns: Configuration
-    """
-    log.error("filter_configuration: No filter implemented yet")
-    return fc
-
-
 def create_configuration_from_array(antxyz: numpy.array, name: str = None, location: EarthLocation = None,
                                     mount: str = 'alt-az', names: str = '%d', meta: dict = None, params={}):
     """ Define from parts
@@ -236,7 +224,7 @@ def create_test_image(canonical=True, npol=4, nchan=1):
     """
     im = import_image_from_fits(crocodile_path("data/models/M31.MOD"))
     if canonical:
-        im = replicate_image(im, nchan=1, npol=4)
+        im = replicate_image(im, nchan=nchan, npol=npol)
     return im
 
 

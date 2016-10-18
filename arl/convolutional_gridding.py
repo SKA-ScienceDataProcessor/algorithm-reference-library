@@ -37,7 +37,7 @@ import scipy.special
 
 from arl.fft_support import *
 
-def coordinateBounds(N):
+def _coordinateBounds(N):
     r""" Returns lowest and highest coordinates of an image/grid given:
 
     1. Step size is :math:`1/N`:
@@ -56,21 +56,21 @@ def coordinateBounds(N):
         return -0.5 * (N - 1) / N, 0.5 * (N - 1) / N
 
 
-def coordinates(N):
+def _coordinates(N):
     """ 1D array which spans [-.5,.5[ with 0 at position N/2
     
     """
-    low, high = coordinateBounds(N)
+    low, high = _coordinateBounds(N)
     return numpy.mgrid[low:high:(N * 1j)]
 
 
-def coordinates2(N):
+def _coordinates2(N):
     """Two dimensional grids of coordinates spanning -1 to 1 in each dimension
 
     1. a step size of 2/N and
     2. (0,0) at pixel (floor(n/2),floor(n/2))
     """
-    low, high = coordinateBounds(N)
+    low, high = _coordinateBounds(N)
     return numpy.mgrid[low:high:(N * 1j), low:high:(N * 1j)]
 
 
@@ -85,11 +85,11 @@ def anti_aliasing_function(shape, m, c):
     """
     
     # 2D Prolate spheroidal angular function is separable
-    sy, sx = [scipy.special.pro_ang1(m, m, c, coordinates(N))[0] for N in shape]
+    sy, sx = [scipy.special.pro_ang1(m, m, c, _coordinates(N))[0] for N in shape]
     return numpy.outer(sy, sx)
 
 
-def w_kernel_function(N, field_of_view, w):
+def _w_kernel_function(N, field_of_view, w):
     """
     W beam, the fresnel diffraction pattern arising from non-coplanar baselines
 
@@ -99,7 +99,7 @@ def w_kernel_function(N, field_of_view, w):
     :returns: N x N array with the far field
     """
     
-    m, l = coordinates2(N) * field_of_view
+    m, l = _coordinates2(N) * field_of_view
     r2 = l ** 2 + m ** 2
     assert numpy.all(r2 < 1.0), \
         "Error in image coordinate system: field_of_view %f, N %f,l %s, m %s" % (field_of_view, N, l, m)
@@ -107,8 +107,30 @@ def w_kernel_function(N, field_of_view, w):
     cp = numpy.exp(2j * numpy.pi * ph)
     return cp
 
+def kernel_coordinates(N, theta, dl=0, dm=0, T=None):
+    """
+    Returns (l,m) coordinates for generation of kernels
+    in a far-field of the given size.
 
-def kernel_oversample(ff, N, Qpx, s):
+    If coordinate transformations are passed, they must be inverse to
+    the transformations applied to the visibilities using
+    visibility_shift/uvw_transform.
+
+    :param N: Desired far-field size
+    :param dl: Pattern horizontal shift (see visibility_shift)
+    :param dm: Pattern vertical shift (see visibility_shift)
+    :param T: Pattern transformation matrix (see uvw_transform)
+    :returns: Pair of (m,l) coordinates
+    """
+
+    m, l = coordinates2(N) * theta
+    if not T is None:
+        l,m = T[0,0]*l+T[1,0]*m, T[0,1]*l+T[1,1]*m
+    return m+dm, l+dl
+
+
+
+def _kernel_oversample(ff, N, Qpx, s):
     """
     Takes a farfield pattern and creates an oversampled convolution
     function.
@@ -135,7 +157,7 @@ def kernel_oversample(ff, N, Qpx, s):
     return numpy.array(res)
 
 
-def w_kernel(field_of_view, w, NpixFF, NpixKern, Qpx):
+def _w_kernel(field_of_view, w, NpixFF, NpixKern, Qpx):
     """
     The middle s pixels of W convolution kernel. (W-KERNel-Aperture-Function)
 
@@ -149,10 +171,10 @@ def w_kernel(field_of_view, w, NpixFF, NpixKern, Qpx):
     :returns: [Qpx,Qpx,s,s] shaped oversampled convolution kernels
     """
     assert NpixFF > NpixKern or (NpixFF == NpixKern and Qpx == 1)
-    return kernel_oversample(w_kernel_function(NpixFF, field_of_view, w), NpixFF, Qpx, NpixKern)
+    return _kernel_oversample(_w_kernel_function(NpixFF, field_of_view, w), NpixFF, Qpx, NpixKern)
 
 
-def frac_coord(N, Qpx, p):
+def _frac_coord(N, Qpx, p):
     """
     Compute whole and fractional parts of coordinates, rounded to
     Qpx-th fraction of pixel size
@@ -172,7 +194,7 @@ def frac_coord(N, Qpx, p):
     return flx.astype(int), fracx.astype(int)
 
 
-def frac_coords(shape, Qpx, xycoords):
+def _frac_coords(shape, Qpx, xycoords):
     """Compute grid coordinates and fractional values for convolutional
     gridding
 
@@ -181,12 +203,12 @@ def frac_coords(shape, Qpx, xycoords):
     :param xycoords: array of (x,y) coordinates in range [-.5,.5[
     """
     h, w = shape  # NB order (height,width) to match numpy!
-    x, xf = frac_coord(w, Qpx, xycoords[:, 0])
-    y, yf = frac_coord(h, Qpx, xycoords[:, 1])
+    x, xf = _frac_coord(w, Qpx, xycoords[:, 0])
+    y, yf = _frac_coord(h, Qpx, xycoords[:, 1])
     return x, xf, y, yf
 
 
-def convdegrid(gcf, uvgrid, uv):
+def convolutional_degrid(gcf, uvgrid, uv):
     """Convolutional degridding with frequency and polarisation independent
 
     Takes into account fractional `uv` coordinate values where the GCF
@@ -198,7 +220,7 @@ def convdegrid(gcf, uvgrid, uv):
     :returns: Array of visibilities.
     """
     Qpx, _, gh, gw = gcf.shape
-    coords = frac_coords(uvgrid.shape, Qpx, p)
+    coords = _frac_coords(uvgrid.shape, Qpx, uv)
     vis = [
         numpy.sum(uvgrid[..., y - gh // 2: y + (gh + 1) // 2, x - gw // 2: x + (gw + 1) // 2] * gcf[yf, xf])
         for x, xf, y, yf in zip(*coords)
@@ -206,7 +228,7 @@ def convdegrid(gcf, uvgrid, uv):
     return numpy.array(vis)
 
 
-def convgrid(gcf, uvgrid, uv, vis):
+def convolutional_grid(gcf, uvgrid, uv, vis):
     """Grid after convolving with frequency and polarisation independent gcf
 
     Takes into account fractional `uv` coordinate values where the GCF
@@ -219,6 +241,6 @@ def convgrid(gcf, uvgrid, uv, vis):
     """
     
     Qpx, _, gh, gw = gcf.shape
-    coords = frac_coords(uvgrid.shape, Qpx, uv)
+    coords = _frac_coords(uvgrid.shape, Qpx, uv)
     for vis, x, xf, y, yf in zip(vis, *coords):
         uvgrid[..., y - gh // 2: y + (gh + 1) // 2, x - gw // 2: x + (gw + 1) // 2] += gcf[yf, xf] * vis

@@ -43,7 +43,7 @@ class TestPipelines(unittest.TestCase):
         self.compreldirection = self.compabsdirection.transform_to(pcof)
 
         self.m31comp = create_skycomponent(flux=self.flux, frequency=frequency, direction=self.compreldirection)
-        self.m31image = replicate_image(create_test_image(False), [1, 1, 4, 3])
+        self.m31image = create_test_image(nchan=3, npol=4)
         cellsize = 180.0 * 0.0001 / numpy.pi
         self.m31image.wcs.wcs.cdelt[0] = -cellsize
         self.m31image.wcs.wcs.cdelt[1] = +cellsize

@@ -10,7 +10,6 @@ import numpy
 from arl.parameters import get_parameter
 from arl.image_iterators import *
 from arl.visibility_iterators import *
-from arl.synthesis_support import invert2d, predict2d
 
 import logging
 
