@@ -1,5 +1,5 @@
 from crocodile.synthesis import *
-from crocodile.simulate import *
+from arl.coordinate_support import *
 
 import unittest
 import itertools

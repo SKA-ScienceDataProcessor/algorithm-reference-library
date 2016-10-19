@@ -51,7 +51,7 @@ class TestFourierTransforms(unittest.TestCase):
         self.vismodel = predict_visibility(vispred, self.sm, self.params)
         
 
-    @unittest.skip("Gridding not yest working")
+    @unittest.skip("Gridding not working yet")
     def test_all(self):
         
         # Sum the visibilities in the correct_visibility direction. This is limited by numerical precision

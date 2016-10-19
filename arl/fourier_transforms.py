@@ -11,7 +11,7 @@ from astropy import wcs
 from arl.data_models import *
 from arl.image_operations import create_empty_image_like
 from arl.parameters import *
-from crocodile.simulate import simulate_point, skycoord_to_lmn
+from arl.coordinate_support import simulate_point, skycoord_to_lmn
 
 log = logging.getLogger("arl.fourier_transforms")
 

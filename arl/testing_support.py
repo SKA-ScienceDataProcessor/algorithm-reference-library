@@ -17,7 +17,7 @@ from astropy.table import Table, Column, vstack
 from astropy.wcs import WCS
 from astropy import units
 
-from crocodile.simulate import *
+from arl.coordinate_support import *
 
 from arl.data_models import *
 from arl.image_operations import import_image_from_fits, add_wcs_to_image

@@ -1,11 +1,10 @@
 
 import unittest
 import itertools
-import numpy as np
 from numpy.testing import assert_allclose
 
-from arl.synthesis_support import *
-from arl.convolutional_gridding import _w_kernel_function, _kernel_oversample, _coordinates2
+from arl.convolutional_gridding import _w_kernel_function, _kernel_oversample, \
+    _coordinates2, anti_aliasing_function
 from arl.fft_support import *
 
 class TestConvolutionalGridding(unittest.TestCase):

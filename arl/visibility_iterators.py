@@ -10,7 +10,7 @@ from astropy import constants as const
 from astropy.coordinates import SkyCoord, CartesianRepresentation
 from astropy.table import Table, vstack
 
-from crocodile.simulate import *
+from arl.coordinate_support import *
 
 from arl.data_models import *
 from arl.parameters import *

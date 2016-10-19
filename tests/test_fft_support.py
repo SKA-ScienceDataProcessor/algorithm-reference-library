@@ -2,7 +2,7 @@ import unittest
 
 from numpy.testing import assert_allclose
 from arl.fft_support import *
-from crocodile.simulate import *
+from arl.coordinate_support import *
 
 from arl.convolutional_gridding import _w_kernel_function, _kernel_oversample, _coordinates2
 
