@@ -130,7 +130,7 @@ class Visibility:
     
     def __init__(self, data=None, frequency=None, phasecentre=None, configuration=None,
                  uvw=None, time=None, antenna1=None, antenna2=None, vis=None, weight=None):
-        if data is None and not vis is None:
+        if data is None and vis is not None:
             data = Table({'uvw': uvw, 'time': time,
                           'antenna1': antenna1, 'antenna2': antenna2,
                           'vis': vis, 'weight': weight

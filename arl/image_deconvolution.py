@@ -4,16 +4,16 @@
 # subclasses of astropy classes.
 #
 
-import numpy as numpy
+import logging
 
-from arl.image_operations import create_image_from_array
 from arl.data_models import *
+from arl.image_operations import create_image_from_array
 from arl.parameters import *
 
-import logging
 log = logging.getLogger("arl.image_deconvolution")
 
-def deconvolve_cube(dirty: Image, psf: Image, params={}):
+
+def deconvolve_cube(dirty: Image, psf: Image, params=None):
     """ Clean using a variety of algorithms
     
     Functions that clean a dirty image using a point spread function. The algorithms available are:
@@ -24,16 +24,16 @@ def deconvolve_cube(dirty: Image, psf: Image, params={}):
     
     
     :param dirty: Image dirty image
-    :type Image:
     :param psf: Image Point Spread Function
-    :type Image:
     :param params: 'algorithm': 'msclean'|'hogbom', 'gain': loop gain (float)
     :returns: componentimage, residual
     """
+    if params is None:
+        params = {}
     log_parameters(params)
     algorithm = get_parameter(params, 'algorithm', 'msclean')
     if algorithm == 'msclean':
-
+        
         window = get_parameter(params, 'window', None)
         gain = get_parameter(params, 'gain', 0.7)
         assert 0.0 < gain < 2.0, "Loop gain must be between 0 and 2"
@@ -44,7 +44,7 @@ def deconvolve_cube(dirty: Image, psf: Image, params={}):
         scales = get_parameter(params, 'scales', [0, 3, 10, 30])
         fracthresh = get_parameter(params, 'fracthresh', 0.01)
         assert 0.0 < fracthresh < 1.0
-
+        
         comp_array = numpy.zeros(dirty.data.shape)
         residual_array = numpy.zeros(dirty.data.shape)
         for channel in range(dirty.data.shape[0]):
@@ -52,12 +52,12 @@ def deconvolve_cube(dirty: Image, psf: Image, params={}):
                 if psf.data[channel, pol, :, :].max():
                     log.debug("deconvolve_cube: Processing pol %d, channel %d" % (pol, channel))
                     comp_array[channel, pol, :, :], residual_array[channel, pol, :, :] = \
-                       _msclean(dirty.data[channel, pol, :, :], psf.data[channel, pol, :, :],
-                                window, gain, thresh, niter, scales, fracthresh)
+                        _msclean(dirty.data[channel, pol, :, :], psf.data[channel, pol, :, :],
+                                 window, gain, thresh, niter, scales, fracthresh)
                 else:
                     log.debug("deconvolve_cube: Skipping pol %d, channel %d" % (pol, channel))
     elif algorithm == 'hogbom':
-
+        
         window = get_parameter(params, 'window', None)
         gain = get_parameter(params, 'gain', 0.7)
         assert 0.0 < gain < 2.0, "Loop gain must be between 0 and 2"
@@ -67,7 +67,7 @@ def deconvolve_cube(dirty: Image, psf: Image, params={}):
         assert niter > 0
         fracthresh = get_parameter(params, 'fracthresh', 0.01)
         assert 0.0 < fracthresh < 1.0
-
+        
         comp_array = numpy.zeros(dirty.data.shape)
         residual_array = numpy.zeros(dirty.data.shape)
         for channel in range(dirty.data.shape[0]):
@@ -81,28 +81,28 @@ def deconvolve_cube(dirty: Image, psf: Image, params={}):
                     log.debug("deconvolve_cube: Skipping pol %d, channel %d" % (pol, channel))
     else:
         raise ValueError('deconvolve_cube: Unknown algorithm %s' % algorithm)
-
+    
     return create_image_from_array(comp_array, dirty.wcs), create_image_from_array(residual_array, dirty.wcs)
 
 
-def restore_cube(dirty: Image, clean: Image, psf: Image, params={}):
+def restore_cube(dirty: Image, clean: Image, psf: Image, params=None):
     """ Restore a clean image
 
-    :param residual: Image residual image
-    :type Image:
+    :param dirty:
     :param clean: Image clean model (i.e. no smoothing)
-    :type Image:
     :param psf: Image Point Spread Function
     :type Image:
     :param params: 'algorithm': 'msclean'|'hogbom', 'gain': loop gain (float)
     :returns: restored image
     """
+    if params is None:
+        params = {}
     log_parameters(params)
     log.error("restore_image: not yet implemented")
     return Image()
 
 
-def deconvolve_mfs(dirty: Image, psf: Image, params={}):
+def deconvolve_mfs(dirty: Image, psf: Image, params=None):
     """ MFS Clean using a variety of algorithms
 
     Functions that clean a dirty image using a point spread function. The algorithms available are:
@@ -113,29 +113,29 @@ def deconvolve_mfs(dirty: Image, psf: Image, params={}):
 
 
     :param dirty: Image dirty image
-    :type Image:
     :param psf: Image Point Spread Function
-    :type Image:
     :param params: 'algorithm': 'msclean'|'hogbom', 'gain': loop gain (float)
     :returns: componentimage, residual
     """
+    if params is None:
+        params = {}
     log_parameters(params)
     log.error("deconvolve_mfs: not yet implemented")
     return Image()
 
 
-def restore_mfs(dirty: Image, clean: Image, psf: Image, params={}):
+def restore_mfs(dirty: Image, clean: Image, psf: Image, params=None):
     """ Restore an MFS clean image
 
-    :param residual: Image residual image
-    :type Image:
+    :param dirty:
     :param clean: Image clean model (i.e. no smoothing)
-    :type Image:
     :param psf: Image Point Spread Function
     :type Image:
     :param params: 'algorithm': 'msclean'|'hogbom', 'gain': loop gain (float)
     :returns: restored image
     """
+    if params is None:
+        params = {}
     log_parameters(params)
     log.error("restore_mfs: not yet implemented")
     return Image()
@@ -160,7 +160,7 @@ def _overlapIndices(a1, a2,
         a2xbeg = -shiftx
         a1xend = a1.shape[0] + shiftx
         a2xend = a1.shape[0]
-
+    
     if shifty >= 0:
         a1ybeg = shifty
         a2ybeg = 0
@@ -171,7 +171,7 @@ def _overlapIndices(a1, a2,
         a2ybeg = -shifty
         a1yend = a1.shape[1] + shifty
         a2yend = a1.shape[1]
-
+    
     return (a1xbeg, a1xend, a1ybeg, a1yend), (a2xbeg, a2xend, a2ybeg, a2yend)
 
 
@@ -189,7 +189,7 @@ def _hogbom(dirty,
             gain,
             thresh,
             niter,
-            params={}):
+            params=None):
     """
     Hogbom CLEAN (1974A&AS...15..417H)
 
@@ -202,11 +202,13 @@ def _hogbom(dirty,
     :param niter: Maximum number of components to make if the threshold `thresh` is not hit
     :returns: clean SkyComponent Image, residual Image
     """
+    if params is None:
+        params = {}
     log_parameters(params)
-
+    
     assert 0.0 < gain < 2.0
     assert niter > 0
-
+    
     comps = numpy.zeros(dirty.shape)
     res = numpy.array(dirty)
     pmax = psf.max()
@@ -235,7 +237,7 @@ def _msclean(dirty,
              niter,
              scales,
              fracthresh,
-             params={}):
+             params=None):
     """ Perform multiscale clean
 
     Multiscale CLEAN (IEEE Journal of Selected Topics in Sig Proc, 2008 vol. 2 pp. 793-801)
@@ -255,6 +257,8 @@ def _msclean(dirty,
     :param scales: Scales (in pixels width) to be used
     :returns: clean component Image, residual Image
     """
+    if params is None:
+        params = {}
     log_parameters(params)
     assert 0.0 < gain < 2.0
     assert niter > 0
@@ -303,7 +307,7 @@ def _msclean(dirty,
         windowstack = numpy.ones(scalestack.shape, numpy.bool)
     # windowstack=convolvescalestack(scalestack, window)>0.9
     window = numpy.ones(scalestack.shape, numpy.bool)
-
+    
     log.info("msclean: Max abs in dirty Image = %.6f" % numpy.fabs(resscalestack[:, :, 0]).max())
     absolutethresh = max(thresh, fracthresh * numpy.fabs(resscalestack[:, :, 0]).max())
     log.info("msclean: Start of minor cycle")
@@ -321,10 +325,10 @@ def _msclean(dirty,
         mval[mscale] = resscalestack[mx, my, mscale] / couplingMatrix[mscale, mscale]
         if i % 10 == 0:
             log.info("msclean: Minor cycle %d, peak %s at [%d, %d, %d]" % \
-                  (i, resscalestack[mx, my, :], mx, my, mscale))
+                     (i, resscalestack[mx, my, :], mx, my, mscale))
         if numpy.fabs(mval[mscale]) < absolutethresh:
             log.info("msclean: Absolute value of peak %.6f is below stopping threshold %.6f" \
-                  % (numpy.fabs(resscalestack[mx, my, mscale]), absolutethresh))
+                     % (numpy.fabs(resscalestack[mx, my, mscale]), absolutethresh))
             break
         
         # Update the cached residuals and add to the cached model.

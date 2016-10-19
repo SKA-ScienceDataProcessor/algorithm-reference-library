@@ -3,15 +3,13 @@
 # Synthesis imaging functions
 #
 
-import logging
-
 from astropy import units as units
 from astropy import wcs
 
+from arl.coordinate_support import simulate_point, skycoord_to_lmn
 from arl.data_models import *
 from arl.image_operations import create_empty_image_like
 from arl.parameters import *
-from arl.coordinate_support import simulate_point, skycoord_to_lmn
 
 log = logging.getLogger("arl.fourier_transforms")
 
@@ -19,14 +17,15 @@ log = logging.getLogger("arl.fourier_transforms")
 Functions that perform imaging i.e. conversion of an Image to/from a Visibility
 """
 
-def _create_wcs_from_visibility(vis, params={}):
+def _create_wcs_from_visibility(vis, params=None):
     """Make a world coordinate system from params and Visibility
 
     :param vis:
-    :type Visibility: Visibility to be processed
     :param params: keyword=value parameters
     :returns: WCS
     """
+    if params is None:
+        params = {}
     log_parameters(params)
     log.debug("fourier_transforms.create_wcs_from_visibility: Parsing parameters to get definition of WCS")
     imagecentre = get_parameter(params, "imagecentre", vis.phasecentre)
@@ -69,19 +68,21 @@ def _create_wcs_from_visibility(vis, params={}):
     return shape, reffrequency, cellsize, w, imagecentre
 
 
-def invert_visibility(vis, model, params={}):
+def invert_visibility(vis, model, params=None):
     """Invert to make dirty Image and PSF
     
     This is the top level invert routine.
 
+    :param params:
     :param vis:
-    :type Visibility: Visibility to be processed
     :param model: Template model
     :returns: (dirty image, psf)
     """
+    if params is None:
+        params = {}
     log_parameters(params)
     log.debug("invert_visibility: Inverting Visibility to make dirty and psf")
-    shape, reffrequency, cellsize, wcs, imagecentre = _create_wcs_from_visibility(vis, params=params)
+    shape, reffrequency, cellsize, image_wcs, imagecentre = _create_wcs_from_visibility(vis, params=params)
 
     npixel = shape[3]
     field_of_view = npixel * cellsize
@@ -116,18 +117,19 @@ def invert_visibility(vis, model, params={}):
 
     return dirty, psf, pmax
 
-def predict_visibility(vis: Visibility, sm: SkyModel, params={}) -> Visibility:
+def predict_visibility(vis: Visibility, sm: SkyModel, params=None) -> Visibility:
     """Predict the visibility from a SkyModel including both components and images
 
+    :param params:
     :param vis:
-    :type Visibility: Visibility to be processed
     :param sm:
-    :type SkyModel:
     :returns: Visibility
     """
+    if params is None:
+        params = {}
     shape, reffrequency, cellsize, w, imagecentre = _create_wcs_from_visibility(vis, params=params)
 
-    vis.data['vis'] = 0.0 * vis.data['vis']
+    vis.data['vis'] *= 0.0
 
     spectral_mode = get_parameter(params, 'spectral_mode', 'channel')
     log.debug('predict_visibility: spectral mode is %s' % spectral_mode)
@@ -193,18 +195,18 @@ def predict_visibility(vis: Visibility, sm: SkyModel, params={}) -> Visibility:
     return vis
 
 
-def weight_visibility(vis, im, params={}):
+def weight_visibility(vis, im, params=None):
     """ Reweight the visibility data in place a selected algorithm
     
     :param vis:
-    :type Visibility: Visibility to be processed
     :param im:
-    :type Image:
     :param params: Dictionary containing parameters
     :returns: Configuration
     """
     # TODO: implement
 
+    if params is None:
+        params = {}
     log_parameters(params)
     log.error("fourier_transforms.weight_visibility: not yet implemented")
     return vis

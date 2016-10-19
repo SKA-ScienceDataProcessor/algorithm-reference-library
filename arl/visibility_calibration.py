@@ -1,14 +1,13 @@
 # Tim Cornwell <realtimcornwell@gmail.com>
 #
 
-import numpy
 #
-from astropy.coordinates import SkyCoord
+
+import logging
 
 from arl.data_models import *
 from arl.parameters import *
 
-import logging
 log = logging.getLogger("arl.visibility_calibration")
 
 """
@@ -18,26 +17,23 @@ correction, the gaintable is read and, if necessary, interpolated.
 
 
 def create_gaintable_from_array(gain: numpy.array, time: numpy.array, antenna: numpy.array, weight: numpy.array,
-                                frequency: numpy.array, copy=False, meta=None, params={}):
+                                frequency: numpy.array, copy=False, meta=None, params=None):
     """ Create a gaintable from arrays
 
     :param gain:
-    :type GainTable:
     :param time:
-    :type numpy.array:
     :param antenna:
-    :type numpy.array:
     :param weight:
     :type numpy.array:
     :param frequency:
     :type numpy.array:
     :param copy:
-    :type bool:
     :param meta:
-    :type dict:
     :param params: Dictionary containing parameters
     :returns: Gaintable
     """
+    if params is None:
+        params = {}
     log_parameters(params)
     if meta is None:
         meta = {}
@@ -54,14 +50,15 @@ def create_gaintable_from_array(gain: numpy.array, time: numpy.array, antenna: n
     return fg
 
 
-def interpolate_gaintable(gt: GainTable, params={}):
+def interpolate_gaintable(gt: GainTable, params=None):
     """ Interpolate a GainTable to new sampling
 
     :param gt: GainTable
-    :type GainTable:
     :param params: Dictionary containing parameters
     :returns: Gaintable
     """
+    if params is None:
+        params = {}
     log_parameters(params)
     # TODO: implement
     
@@ -69,60 +66,65 @@ def interpolate_gaintable(gt: GainTable, params={}):
     return GainTable()
 
 
-def solve_gains(vis: Visibility, sm: SkyModel, params={}) -> GainTable:
+def solve_gains(vis: Visibility, sm: SkyModel, params=None) -> GainTable:
     """ Solve for calibration using a sky model
     
+    :param params:
     :param vis:
-    :type Visibility: Visibility to be processed
     :param sm:
-    :type SkyModel:
     :returns: GainTable
     """
+    if params is None:
+        params = {}
     log_parameters(params)
-    #TODO: Implement calibration solution
+    # TODO: Implement calibration solution
     log.error("solve_gains: not yet implemented")
     return GainTable()
 
 
-def correct_visibility(vis: Visibility, gt: GainTable, params={}) -> Visibility:
+def correct_visibility(vis: Visibility, gt: GainTable, params=None) -> Visibility:
     """ Correct a vistable using a GainTable
 
+    :param params:
     :param vis: Visibility to be processed
-    :type Visibility:
     :param gt: GainTable
-    :type GainTable:
     :returns: Visibility
     """
     # TODO: Implement calibration application
+    if params is None:
+        params = {}
     log_parameters(params)
     log.error("correct_visibility: not yet implemented")
     return vis
 
 
-def peel_skycomponent(vis: Visibility, sc: SkyComponent, params={}) -> Visibility:
+def peel_skycomponent(vis: Visibility, sc: SkyComponent, params=None) -> Visibility:
     """ Correct a vistable using a GainTable
 
+    :param params:
     :param vis: Visibility to be processed
-    :type Visibility:
     :param sc:
-    :type SkyComponent:
     :returns: Visibility, GainTable
     """
     # TODO: Implement peeling
+    if params is None:
+        params = {}
     log_parameters(params)
     log.error("peel_skycomponent: not yet implemented")
     return vis
 
 
-def qa_gaintable(gt, params={}):
+def qa_gaintable(gt, params=None):
     """Assess the quality of a gaintable
 
-    :param im:
-    :type GainTable:
+    :param gt:
+    :param params:
     :returns: AQ
     """
     # TODO: implement
-
+    
+    if params is None:
+        params = {}
     log_parameters(params)
     log.error("qa_gaintable: not yet implemented")
     return QA()

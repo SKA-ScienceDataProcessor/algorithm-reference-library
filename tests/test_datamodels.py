@@ -7,7 +7,8 @@ from arl.skymodel_operations import create_skycomponent
 from arl.testing_support import create_test_image, create_named_configuration, import_visibility_from_oskar
 from arl.image_operations import add_image, create_image_from_array
 from arl.skymodel_operations import create_skymodel_from_image, add_component_to_skymodel
-from arl.visibility_operations import create_visibility, create_gaintable_from_array
+from arl.visibility_operations import create_visibility
+from arl.visibility_calibration import create_gaintable_from_array
 from arl.parameters import crocodile_path
 
 from astropy.coordinates import SkyCoord

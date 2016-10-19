@@ -4,15 +4,13 @@
 Functions that define and manipulate images. Images are just data and a World Coordinate System.
 """
 
-import numpy
+import logging
 
 from arl.image_operations import create_image_from_array
 
-import logging
-
 log = logging.getLogger("arl.image_iterators")
 
-class raster_iter():
+class raster_iter:
     
     def __init__(self, im, nraster=1):
         """Create a raster_iter generator, returning images

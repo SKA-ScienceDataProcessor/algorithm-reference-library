@@ -3,11 +3,11 @@
 # Tim Cornwell <realtimcornwell@gmail.com>
 #
 
-import sys
+import logging
 import os
 
-import logging
-log = logging.getLogger( "arl.parameters" )
+log = logging.getLogger("arl.parameters")
+
 
 def crocodile_path(path):
     """
@@ -17,6 +17,7 @@ def crocodile_path(path):
     project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     crocodile = os.getenv('CROCODILE', project_root)
     return os.path.join(crocodile, path)
+
 
 def get_parameter(params, key, default=None):
     """ Get a specified named value for this (calling) function
@@ -28,11 +29,12 @@ def get_parameter(params, key, default=None):
     :param default: Default value
     :return: result
     """
-
+    
     value = default
     if key in params.keys():
         value = params[key]
     return value
+
 
 def import_parameters(paramsfile):
     """Import parameters from a text file
@@ -47,6 +49,7 @@ def import_parameters(paramsfile):
     log_parameters(d)
     return d
 
+
 def export_parameters(d, paramsfile):
     """Export parameters to a textfile
     
@@ -59,8 +62,8 @@ def export_parameters(d, paramsfile):
     log_parameters(d)
     f.write(str(d))
     f.close()
-    
+
+
 def log_parameters(d):
     for key in d.keys():
         log.debug('log_parameters:   %s      =       %s' % (key, d[key]))
-    

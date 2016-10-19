@@ -3,24 +3,14 @@
 # Visibility data structure: a Table with columns ['uvw', 'time', 'antenna1', 'antenna2', 'vis', 'weight']
 # and an attached attribute which is the frequency of each channel
 
-import profile
-import copy
-
-from astropy import constants as const
-from astropy.coordinates import SkyCoord, CartesianRepresentation
-from astropy.table import Table, vstack
-
-from arl.coordinate_support import *
-
-from arl.data_models import *
-from arl.parameters import *
-
 import logging
+
+from arl.parameters import *
 
 log = logging.getLogger("arl.visibility_iterators")
 
 
-class vis_iterator_base():
+class vis_iterator_base:
     def __init__(self, vis, params):
         """Initialise the iterator
         """
@@ -37,7 +27,7 @@ class vis_iterator_base():
     def __next__(self):
         if self.index < self.maximum_index:
             result = self.vis
-            log.debug("Index %i" % (self.index))
+            log.debug("Index %i" % self.index)
             self.index += 1
         else:
             raise StopIteration
@@ -49,7 +39,7 @@ class vis_snapshot_iter(vis_iterator_base):
         
         """Initialise the iterator
         """
-        super(vis_iterator_base, self).__init__(vis, params)
+        super(vis_snapshot_iter, self).__init__(vis, params)
         self.maximum_index = 10
         pass
 
@@ -67,7 +57,7 @@ class vis_frequency_iter(vis_iterator_base):
     def __init__(self, vis, params):
         """Initialise the iterator
         """
-        super(vis_iterator_base, self).__init__(vis, params)
+        super(vis_frequency_iter, self).__init__(vis, params)
         self.maximum_index = 10
         pass
 
@@ -76,7 +66,7 @@ class vis_parallactic_angle_iter(vis_iterator_base):
     def __init__(self, vis, params):
         """Initialise the iterator
         """
-        super(vis_iterator_base, self).__init__(vis, params)
+        super(vis_parallactic_angle_iter, self).__init__(vis, params)
         self.maximum_index = 10
         pass
 

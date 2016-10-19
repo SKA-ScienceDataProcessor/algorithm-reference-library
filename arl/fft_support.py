@@ -20,7 +20,6 @@ This is implemented for reference in
 from __future__ import division
 
 import numpy
-import scipy.special
 
 
 def fft(a):
@@ -55,8 +54,9 @@ def pad_mid(ff, N):
     """
     
     N0, N0w = ff.shape
-    if N == N0: return ff
-    assert N > N0 and N0 == N0w
+    if N == N0:
+        return ff
+    assert N > N0 == N0w
     return numpy.pad(ff,
                      pad_width=2 * [(N // 2 - N0 // 2, (N + 1) // 2 - (N0 + 1) // 2)],
                      mode='constant',
@@ -70,8 +70,8 @@ def extract_mid(a, N):
     Suitable for zero frequencies at N/2. This is the reverse
     operation to pad.
 
+    :param N:
     :param a: grid from which to extract
-    :param s: size of section
     """
     cx = a.shape[0] // 2
     cy = a.shape[1] // 2
@@ -94,15 +94,15 @@ def extract_oversampled(a, xf, yf, Qpx, N):
     here, which means that the grid's side length must be at least
     Qpx*(N+2) to contain enough information in all circumstances
 
+    :param xf:
+    :param yf:
     :param a: grid from which to extract
-    :param ox: x offset
-    :param oy: y offset
     :param Qpx: oversampling factor
     :param N: size of section
     """
     
-    assert xf >= 0 and xf < Qpx
-    assert yf >= 0 and yf < Qpx
+    assert 0 <= xf < Qpx
+    assert 0 <= yf < Qpx
     # Determine start offset.
     Na = a.shape[0]
     my = Na // 2 - Qpx * (N // 2) - yf

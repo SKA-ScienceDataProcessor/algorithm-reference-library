@@ -222,6 +222,7 @@ def visibility_shift(uvw, vis, dl, dm):
     based on simple FFT laws. It will require kernels to be suitably
     shifted as well to work correctly.
 
+    :param uvw:
     :param vis: :math:`(u,v,w)` distribution of projected baselines (in wavelengths)
     :param vis: Input visibilities
     :param dl: Horizontal shift distance as directional cosine

@@ -54,18 +54,31 @@ class TestFTProcessor(unittest.TestCase):
         self.dirty = create_empty_image_like(self.model)
         self.psf = create_empty_image_like(self.model)
 
-    def test_predict(self):
+    def test_predict_partition(self):
         for ftpfunc in [predict_wslice_partition, predict_image_partition, predict_fourier_partition]:
             log.debug("ftpfunc %s" % (ftpfunc))
             ftpfunc(model=self.model, vis=self.vis, predict_function=predict_2d, params=self.params)
 
-    def test_invert(self):
+    def test_invert_partition(self):
         sumofweights = 0.0
         for ftpfunc in [invert_wslice_partition, invert_image_partition, invert_fourier_partition]:
             log.debug("ftpfunc %s" % (ftpfunc))
             ftpfunc(vis=self.vis, dirty=self.dirty, psf=self.psf,
                     sumofweights=sumofweights, invert_function=invert_2d,
                     params=self.params)
+
+
+    def test_predict_kernel(self):
+        for ftpfunc in [predict_2d, predict_kernel]:
+            log.debug("ftpfunc %s" % (ftpfunc))
+            ftpfunc(model=self.model, vis=self.vis, kernel=None, params=self.params)
+
+    def test_invert_kernel(self):
+        sumofweights = 0.0
+        for ftpfunc in [invert_2d, invert_kernel]:
+            log.debug("ftpfunc %s" % (ftpfunc))
+            ftpfunc(vis=self.vis, dirty=self.dirty, psf=self.psf, sumofweights=sumofweights,
+                    kernel=None, params=self.params)
 
 
 if __name__ == '__main__':

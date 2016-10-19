@@ -4,30 +4,26 @@
 # subclasses of astropy classes.
 #
 
-import numpy
+import logging
 
 from astropy.coordinates import SkyCoord
 from astropy.wcs.utils import skycoord_to_pixel, pixel_to_skycoord
+
 from arl.data_models import *
 from arl.parameters import *
 
-import logging
 log = logging.getLogger("arl.skymodel_operations")
 
 def create_skycomponent(direction: SkyCoord, flux: numpy.array, frequency: numpy.array, shape: str = 'Point',
                         param: dict = None, name: str = ''):
     """ A single SkyComponent with direction, flux, shape, and params for the shape
 
+    :param param:
     :param direction:
-    :type SkyCoord:
     :param flux:
-    :type numpy.array:
     :param frequency:
-    :type numpy.array:
     :param shape: 'Point' or 'Gaussian'
-    :type str:
     :param name:
-    :type str:
     :returns: SkyComponent
     """
     sc = SkyComponent()
@@ -41,14 +37,16 @@ def create_skycomponent(direction: SkyCoord, flux: numpy.array, frequency: numpy
     return sc
 
 
-def find_skycomponent(im: Image, params={}):
+def find_skycomponent(im: Image, params=None):
     """ Find components in Image, return SkyComponent, just find the peak for now
 
+    :param params:
     :param im: Image to be searched
-    :type Image:
     :returns: SkyComponent
     """
     # TODO: Implement full image fitting of components
+    if params is None:
+        params = {}
     log_parameters(params)
     log.debug("point_source_find: Finding components in Image")
     
@@ -66,16 +64,17 @@ def find_skycomponent(im: Image, params={}):
     return create_skycomponent(direction=sc, flux=flux, frequency=frequency, shape='point')
 
 
-def fit_skycomponent(im: Image, sc: SkyCoord, params={}):
+def fit_skycomponent(im: Image, sc: SkyCoord, params=None):
     """ Find flux at a given direction, return SkyComponent
 
+    :param params:
     :param im:
-    :type Image:
     :param sc:
-    :type SkyCoord:
     :returns: SkyComponent
 
     """
+    if params is None:
+        params = {}
     log_parameters(params)
     log.debug("find_flux_at_direction: Extracting flux at world coordinates %s" % str(sc))
     w = im.wcs.sub(['longitude', 'latitude'])
@@ -95,9 +94,7 @@ def add_skymodels(sm1: SkyModel, sm2: SkyModel):
     """ Add two sky models together
     
     :param sm1:
-    :type SkyModel:
     :param sm2:
-    :type SkyModel:
     :returns: SkyModel
     """
     fsm = SkyModel()
@@ -110,7 +107,6 @@ def create_skymodel_from_image(im: Image):
     """ Create a skymodel from an image or image
     
     :param im:
-    :type Image:
     :returns: SkyModel
     """
     sm = SkyModel()
@@ -122,9 +118,7 @@ def add_image_to_skymodel(sm: SkyModel, im: Image):
     """Add images to a sky model
     
     :param sm:
-    :type SkyModel:
     :param im:
-    :type Image:
     :returns: SkyModel
     """
     sm.images.append(im)
@@ -135,7 +129,6 @@ def create_skymodel_from_component(comp: SkyComponent):
     """Create sky model from component
     
     :param comp:
-    :type SkyComponent:
     :returns: SkyModel
     """
     sm = SkyModel()
@@ -147,9 +140,7 @@ def add_component_to_skymodel(sm: SkyModel, comp: SkyComponent):
     """Add Component to a sky model
     
     :param sm:
-    :type SkyModel:
     :param comp:
-    :type SkyComponent:
     :returns: SkyModel
    """
     sm.components.append(comp)

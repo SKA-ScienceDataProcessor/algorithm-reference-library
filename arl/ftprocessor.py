@@ -5,28 +5,38 @@ Functions that aid fourier transform processing. These are built on top of the c
 functions in arl.fourier_transforms
 """
 
-import numpy
+import logging
 
-from arl.parameters import get_parameter
 from arl.image_iterators import *
 from arl.visibility_iterators import *
 
-import logging
-
 log = logging.getLogger("arl.ftprocessor")
     
-def predict_2d(vis, model, predict_function=None, params={}):
+def predict_2d(vis, model, kernel=None, params=None):
     """ Predict using image partitions, calling specified predict function
 
     """
+    if params is None:
+        params = {}
+    log.debug("ftprocessor.predict_2d: predicting")
+    return vis
+
+def predict_kernel(vis, model, kernel=None, params=None):
+    """ Predict using a specific kernel function
+
+    """
+    if params is None:
+        params = {}
     log.debug("ftprocessor.predict_2d: predicting")
     return vis
 
 
-def predict_image_partition(vis, model, predict_function=predict_2d, params={}):
+def predict_image_partition(vis, model, predict_function=predict_2d, params=None):
     """ Predict using image partitions, calling specified predict function
 
     """
+    if params is None:
+        params = {}
     log.debug("ftprocessor.predict_image_partition: predicting")
     nraster = get_parameter(params, "image_partitions", 3)
     for mpatch in raster_iter(model, nraster=nraster):
@@ -34,10 +44,12 @@ def predict_image_partition(vis, model, predict_function=predict_2d, params={}):
     return vis
 
 
-def predict_fourier_partition(vis, model, predict_function=predict_2d, params={}):
+def predict_fourier_partition(vis, model, predict_function=predict_2d, params=None):
     """ Predict using fourier partitions, calling specified predict function
 
     """
+    if params is None:
+        params = {}
     log.debug("ftprocessor.predict_fourier_partition: predicting")
     nraster = get_parameter(params, "fourier_partitions", 3)
     for fpatch in raster_iter(model, nraster=nraster):
@@ -45,10 +57,12 @@ def predict_fourier_partition(vis, model, predict_function=predict_2d, params={}
     return vis
 
 
-def predict_wslice_partition(vis, model, predict_function=predict_2d, params={}):
-    """ Predict using wslices
+def predict_wslice_partition(vis, model, predict_function=predict_2d, params=None):
+    """ Predict using partitions in w
 
     """
+    if params is None:
+        params = {}
     log.debug("ftprocessor.predict_wslice_partition: predicting")
     wslice = get_parameter(params, "wslice", 1000)
     for vslice in vis_wslice_iter(vis, wslice):
@@ -57,20 +71,35 @@ def predict_wslice_partition(vis, model, predict_function=predict_2d, params={})
     return vis
 
 
-def invert_2d(vis, dirty, psf, sumofweights, invert_function=None, params={}):
+def invert_2d(vis, dirty, psf, sumofweights, kernel=None, params=None):
     """ Predict using image partitions, calling specified predict function
 
     """
-    
+
+    if params is None:
+        params = {}
     log.debug("ftprocessor.invert_2d: inverting")
     return dirty, psf, sumofweights
 
 
-def invert_image_partition(vis, dirty, psf, sumofweights, invert_function=invert_2d, params={}):
+def invert_kernel(vis, dirty, psf, sumofweights, kernel=None, params=None):
     """ Predict using image partitions, calling specified predict function
 
     """
-    
+
+    if params is None:
+        params = {}
+    log.debug("ftprocessor.invert_kernel: inverting")
+    return dirty, psf, sumofweights
+
+
+def invert_image_partition(vis, dirty, psf, sumofweights, invert_function=invert_2d, params=None):
+    """ Predict using image partitions, calling specified predict function
+
+    """
+
+    if params is None:
+        params = {}
     log.debug("ftprocessor.invert_image_partition: inverting")
     nraster = get_parameter(params, "image_partitions", 3)
     for dpatch in raster_iter(dirty, nraster=nraster):
@@ -79,10 +108,12 @@ def invert_image_partition(vis, dirty, psf, sumofweights, invert_function=invert
     return dirty, psf, sumofweights
 
 
-def invert_fourier_partition(vis, dirty, psf, sumofweights, invert_function=invert_2d, params={}):
+def invert_fourier_partition(vis, dirty, psf, sumofweights, invert_function=invert_2d, params=None):
     """ Predict using fourier partitions, calling specified predict function
 
     """
+    if params is None:
+        params = {}
     log.debug("ftprocessor.invert_fourier_partition: inverting")
     nraster = get_parameter(params, "fourier_partitions", 3)
     for dpatch in raster_iter(dirty, nraster=nraster):
@@ -90,10 +121,12 @@ def invert_fourier_partition(vis, dirty, psf, sumofweights, invert_function=inve
     
     return dirty, psf, sumofweights
 
-def invert_wslice_partition(vis, dirty, psf, sumofweights, invert_function=invert_2d, params={}):
+def invert_wslice_partition(vis, dirty, psf, sumofweights, invert_function=invert_2d, params=None):
     """ Predict using wslices
 
     """
+    if params is None:
+        params = {}
     log.debug("ftprocessor.invert_wslice_partition: inverting")
     wstep = get_parameter(params, "wstep", 1000)
     for visslice in vis_wslice_iter(vis, wstep):

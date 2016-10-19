@@ -117,6 +117,7 @@ def kernel_coordinates(N, theta, dl=0, dm=0, T=None):
     the transformations applied to the visibilities using
     visibility_shift/uvw_transform.
 
+    :param theta:
     :param N: Desired far-field size
     :param dl: Pattern horizontal shift (see visibility_shift)
     :param dm: Pattern vertical shift (see visibility_shift)
@@ -124,8 +125,8 @@ def kernel_coordinates(N, theta, dl=0, dm=0, T=None):
     :returns: Pair of (m,l) coordinates
     """
     
-    m, l = coordinates2(N) * theta
-    if not T is None:
+    m, l = _coordinates2(N) * theta
+    if T is not None:
         l, m = T[0, 0] * l + T[1, 0] * m, T[0, 1] * l + T[1, 1] * m
     return m + dm, l + dl
 

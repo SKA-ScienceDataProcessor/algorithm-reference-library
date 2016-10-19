@@ -4,28 +4,28 @@
 # subclasses of astropy classes.
 #
 
-import numpy
+import logging
 
-from arl.visibility_operations import combine_visibility
 from arl.data_models import *
 from arl.parameters import *
+from arl.visibility_operations import combine_visibility
 
-import logging
 log = logging.getLogger("arl.skymodel_solvers")
 
-def solve_skymodel(vis: Visibility, sm: SkyModel, deconvolver, params={}):
+def solve_skymodel(vis: Visibility, sm: SkyModel, deconvolver, params=None):
     """Solve for SkyModel using a deconvolver. The interface of deconvolver is the same as clean.
 
     This is the same as a majorcycle.
 
+    :param params:
     :param vis:
-    :type Visibility: Visibility to be processed
     :param sm:
-    :type SkyModel:
     :param deconvolver: Deconvolver to be used e.g. msclean
     :arg function:
     :returns: Visibility, SkyModel
     """
+    if params is None:
+        params = {}
     log_parameters(params)
     nmajor = get_parameter(params, 'nmajor', 5)
     log.debug("solve_combinations.solve_skymodel: Performing %d major cycles" % nmajor)
