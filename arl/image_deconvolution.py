@@ -52,7 +52,7 @@ def deconvolve_cube(dirty: Image, psf: Image, params={}):
                 if psf.data[channel, pol, :, :].max():
                     log.debug("deconvolve_cube: Processing pol %d, channel %d" % (pol, channel))
                     comp_array[channel, pol, :, :], residual_array[channel, pol, :, :] = \
-                       msclean(dirty.data[channel, pol, :, :], psf.data[channel, pol, :, :],
+                       _msclean(dirty.data[channel, pol, :, :], psf.data[channel, pol, :, :],
                                 window, gain, thresh, niter, scales, fracthresh)
                 else:
                     log.debug("deconvolve_cube: Skipping pol %d, channel %d" % (pol, channel))
@@ -75,8 +75,8 @@ def deconvolve_cube(dirty: Image, psf: Image, params={}):
                 if psf.data[channel, pol, :, :].max():
                     log.debug("deconvolve_cube: Processing pol %d, channel %d" % (pol, channel))
                     comp_array[channel, pol, :, :], residual_array[channel, pol, :, :] = \
-                        hogbom(dirty.data[channel, pol, :, :], psf.data[channel, pol, :, :],
-                               window, gain, thresh, niter)
+                        _hogbom(dirty.data[channel, pol, :, :], psf.data[channel, pol, :, :],
+                                window, gain, thresh, niter)
                 else:
                     log.debug("deconvolve_cube: Skipping pol %d, channel %d" % (pol, channel))
     else:
@@ -141,8 +141,8 @@ def restore_mfs(dirty: Image, clean: Image, psf: Image, params={}):
     return Image()
 
 
-def overlapIndices(a1, a2,
-                   shiftx, shifty):
+def _overlapIndices(a1, a2,
+                    shiftx, shifty):
     """ Find the indices where two arrays overlapIndices
 
     :param a1: First array
@@ -175,7 +175,7 @@ def overlapIndices(a1, a2,
     return (a1xbeg, a1xend, a1ybeg, a1yend), (a2xbeg, a2xend, a2ybeg, a2yend)
 
 
-def argmax(a):
+def _argmax(a):
     """ Return unravelled index of the maximum
 
     param: a: array to be searched
@@ -183,13 +183,13 @@ def argmax(a):
     return numpy.unravel_index(a.argmax(), a.shape)
 
 
-def hogbom(dirty,
-           psf,
-           window,
-           gain,
-           thresh,
-           niter,
-           params={}):
+def _hogbom(dirty,
+            psf,
+            window,
+            gain,
+            thresh,
+            niter,
+            params={}):
     """
     Hogbom CLEAN (1974A&AS...15..417H)
 
@@ -211,31 +211,31 @@ def hogbom(dirty,
     res = numpy.array(dirty)
     pmax = psf.max()
     assert pmax > 0.0
-    psfpeak = argmax(numpy.fabs(psf))
+    psfpeak = _argmax(numpy.fabs(psf))
     if window is True:
         window = numpy.ones(dirty.shape, numpy.bool)
     for i in range(niter):
         mx, my = numpy.unravel_index((numpy.fabs(res[window])).argmax(), dirty.shape)
         mval = res[mx, my] * gain / pmax
         comps[mx, my] += mval
-        a1o, a2o = overlapIndices(dirty, psf,
-                                  mx - psfpeak[0],
-                                  my - psfpeak[1])
+        a1o, a2o = _overlapIndices(dirty, psf,
+                                   mx - psfpeak[0],
+                                   my - psfpeak[1])
         res[a1o[0]:a1o[1], a1o[2]:a1o[3]] -= psf[a2o[0]:a2o[1], a2o[2]:a2o[3]] * mval
         if numpy.fabs(res).max() < thresh:
             break
     return comps, res
 
 
-def msclean(dirty,
-            psf,
-            window,
-            gain,
-            thresh,
-            niter,
-            scales,
-            fracthresh,
-            params={}):
+def _msclean(dirty,
+             psf,
+             window,
+             gain,
+             thresh,
+             niter,
+             scales,
+             fracthresh,
+             params={}):
     """ Perform multiscale clean
 
     Multiscale CLEAN (IEEE Journal of Selected Topics in Sig Proc, 2008 vol. 2 pp. 793-801)
@@ -265,10 +265,10 @@ def msclean(dirty,
     pmax = psf.max()
     assert pmax > 0.0
     
-    psfpeak = argmax(numpy.fabs(psf))
+    psfpeak = _argmax(numpy.fabs(psf))
     log.info("msclean: Peak of PSF = %s at %s" % (pmax, psfpeak))
     dmax = dirty.max()
-    dpeak = argmax(dirty)
+    dpeak = _argmax(dirty)
     log.info("msclean: Peak of Dirty = %s at %s" % (dmax, dpeak))
     lpsf = psf / pmax
     ldirty = dirty / pmax
@@ -280,15 +280,15 @@ def msclean(dirty,
     
     scaleshape = [ldirty.shape[0], ldirty.shape[1], len(scales)]
     scalescaleshape = [ldirty.shape[0], ldirty.shape[1], len(scales), len(scales)]
-    scalestack = createscalestack(scaleshape, scales, norm=True)
+    scalestack = _createscalestack(scaleshape, scales, norm=True)
     
     couplingMatrix = numpy.zeros([len(scales), len(scales)])
-    psfscalestack = convolvescalestack(scalestack, numpy.array(lpsf))
-    resscalestack = convolvescalestack(scalestack, numpy.array(ldirty))
+    psfscalestack = _convolvescalestack(scalestack, numpy.array(lpsf))
+    resscalestack = _convolvescalestack(scalestack, numpy.array(ldirty))
     # Evaluate the coupling matrix between the various scale sizes.
     psfscalescalestack = numpy.zeros(scalescaleshape)
     for iscale in numpy.arange(len(scales)):
-        psfscalescalestack[:, :, :, iscale] = convolvescalestack(scalestack, psfscalestack[:, :, iscale])
+        psfscalescalestack[:, :, :, iscale] = _convolvescalestack(scalestack, psfscalestack[:, :, iscale])
         psfscalescalestack[:, :, iscale, :] = psfscalescalestack[:, :, :, iscale]
     for iscale in numpy.arange(len(scales)):
         for iscale1 in numpy.arange(len(scales)):
@@ -311,7 +311,7 @@ def msclean(dirty,
     
     for i in range(niter):
         # Find peak over all smoothed images
-        mx, my, mscale = findabsmaxstack(resscalestack, window, couplingMatrix)
+        mx, my, mscale = _findabsmaxstack(resscalestack, window, couplingMatrix)
         if mx is None or my is None or mscale is None:
             log.warning("msclean: Error in finding peak")
             break
@@ -328,7 +328,7 @@ def msclean(dirty,
             break
         
         # Update the cached residuals and add to the cached model.
-        a1o, a2o = overlapIndices(dirty, psf, mx - psfpeak[0], my - psfpeak[1])
+        a1o, a2o = _overlapIndices(dirty, psf, mx - psfpeak[0], my - psfpeak[1])
         if numpy.abs(mval[mscale]) > 0:
             # Cross subtract from other scales
             for iscale in range(len(scales)):
@@ -344,7 +344,7 @@ def msclean(dirty,
     return comps, pmax * resscalestack[:, :, 0]
 
 
-def createscalestack(scaleshape, scales, norm=True):
+def _createscalestack(scaleshape, scales, norm=True):
     """ Create a cube consisting of the scales
 
     :param scaleshape: desired shape of stack
@@ -372,7 +372,7 @@ def createscalestack(scaleshape, scales, norm=True):
                     fy = float(y - ycen)
                     r2 = rscale2 * (fx * fx + fy * fy)
                     r = numpy.sqrt(r2)
-                    basis[x, y, iscale] = sphfn(r) * (1.0 - r ** 2)
+                    basis[x, y, iscale] = _sphfn(r) * (1.0 - r ** 2)
             basis[basis < 0.0] = 0.0
             if norm:
                 basis[:, :, iscale] /= numpy.sum(basis[:, :, iscale])
@@ -381,7 +381,7 @@ def createscalestack(scaleshape, scales, norm=True):
     return basis
 
 
-def convolvescalestack(scalestack, img):
+def _convolvescalestack(scalestack, img):
     """Convolve img by the specified scalestack, returning the resulting stack
 
     :param scalestack: stack containing the scales
@@ -400,7 +400,7 @@ def convolvescalestack(scalestack, img):
     return convolved
 
 
-def findabsmaxstack(stack, window, couplingmatrix):
+def _findabsmaxstack(stack, window, couplingmatrix):
     """Find the location and value of the absolute maximum in this stack
     :param stack: stack to be searched
     :param window: Window for the searched
@@ -424,7 +424,7 @@ def findabsmaxstack(stack, window, couplingmatrix):
     return px, py, pscale
 
 
-def sphfn(vnu):
+def _sphfn(vnu):
     """ Evaluates the PROLATE SPHEROIDAL WAVEFUNCTION
 
     m=6, alpha = 1 from Schwab, Indirect Imaging (1984).

@@ -12,10 +12,10 @@ import logging
 
 log = logging.getLogger("arl.image_iterators")
 
-class raster():
+class raster_iter():
     
     def __init__(self, im, nraster=1):
-        """Create a raster generator, returning images
+        """Create a raster_iter generator, returning images
         
         The WCS is adjusted appropriately
     

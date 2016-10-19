@@ -42,7 +42,7 @@ class TestImage(unittest.TestCase):
     def test_rasterise(self):
     
         m31model=create_test_image()
-        for patch in raster(m31model, nraster=2):
+        for patch in raster_iter(m31model, nraster=2):
             pass
 
     def test_reproject(self):

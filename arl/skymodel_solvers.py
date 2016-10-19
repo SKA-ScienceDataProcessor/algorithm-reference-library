@@ -6,11 +6,7 @@
 
 import numpy
 
-from astropy.coordinates import SkyCoord
-from astropy.wcs.utils import skycoord_to_pixel, pixel_to_skycoord
-
 from arl.visibility_operations import combine_visibility
-from arl.fourier_transforms import predict_visibility, invert_visibility
 from arl.data_models import *
 from arl.parameters import *
 
@@ -36,9 +32,9 @@ def solve_skymodel(vis: Visibility, sm: SkyModel, deconvolver, params={}):
     
     # The model is added to each major cycle and then the visibilities are
     # calculated from the full model
-    vispred = predict_visibility(vis, sm, params={})
+#    vispred = predict_visibility(vis, sm, params={})
     visres = combine_visibility(vis, vispred, 1.0, -1.0)
-    dirty, psf, sumwt = invert_visibility(visres, params={})
+    # dirty, psf, sumwt = invert_visibility(visres, params={})
     thresh = get_parameter(params, "threshold", 0.0)
     
     comp = sm.images[0]
@@ -46,9 +42,9 @@ def solve_skymodel(vis: Visibility, sm: SkyModel, deconvolver, params={}):
         log.debug("solve_skymodel: Start of major cycle %d" % i)
         cc, res = deconvolver(dirty, psf, params={})
         comp += cc
-        vispred = predict_visibility(vis, sm, params={})
+#        vispred = predict_visibility(vis, sm, params={})
         visres = combine_visibility(vis, vispred, 1.0, -1.0)
-        dirty, psf, sumwt = invert_visibility(visres, params={})
+        # dirty, psf, sumwt = invert_visibility(visres, params={})
         if numpy.abs(dirty.data).max() < 1.1 * thresh:
             log.debug("Reached stopping threshold %.6f Jy" % thresh)
             break

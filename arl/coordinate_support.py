@@ -44,6 +44,7 @@ Changes
 import numpy
 from astropy.coordinates import SkyCoord, CartesianRepresentation
 
+
 # ---------------------------------------------------------------------------------
 
 def xyz_at_latitude(local_xyz, lat):
@@ -58,13 +59,13 @@ def xyz_at_latitude(local_xyz, lat):
     :param local_xyz: Array of local XYZ coordinates
     :returns: Celestial XYZ coordinates
     """
-
+    
     x, y, z = numpy.hsplit(local_xyz, 3)
-
+    
     lat2 = numpy.pi / 2 - lat
     y2 = -z * numpy.sin(lat2) + y * numpy.cos(lat2)
     z2 = z * numpy.cos(lat2) + y * numpy.sin(lat2)
-
+    
     return numpy.hstack([x, y2, z2])
 
 
@@ -85,9 +86,9 @@ def xyz_to_uvw(xyz, ha, dec):
     :param ha: hour angle of phase tracking centre (:math:`ha = ra - lst`)
     :param dec: declination of phase tracking centre.
     """
-
+    
     x, y, z = numpy.hsplit(xyz, 3)
-
+    
     # Two rotations:
     #  1. by 'ha' along the z axis
     #  2. by '90-dec' along the u axis
@@ -95,8 +96,9 @@ def xyz_to_uvw(xyz, ha, dec):
     v0 = x * numpy.sin(ha) + y * numpy.cos(ha)
     w = z * numpy.sin(dec) - v0 * numpy.cos(dec)
     v = z * numpy.cos(dec) + v0 * numpy.sin(dec)
-
+    
     return numpy.hstack([u, v, w])
+
 
 # ---------------------------------------------------------------------------------
 
@@ -114,37 +116,37 @@ def uvw_to_xyz(uvw, ha, dec):
     :param ha: hour angle of phase tracking centre (:math:`ha = ra - lst`)
     :param dec: declination of phase tracking centre
     """
-
+    
     u, v, w = numpy.hsplit(uvw, 3)
-
+    
     # Two rotations:
     #  1. by 'dec-90' along the u axis
     #  2. by '-ha' along the z axis
     v0 = v * numpy.sin(dec) - w * numpy.cos(dec)
-    z =  v * numpy.cos(dec) + w * numpy.sin(dec)
-    x =  u * numpy.cos(ha)  + v0 * numpy.sin(ha)
-    y = -u * numpy.sin(ha)  + v0 * numpy.cos(ha)
-
+    z = v * numpy.cos(dec) + w * numpy.sin(dec)
+    x = u * numpy.cos(ha) + v0 * numpy.sin(ha)
+    y = -u * numpy.sin(ha) + v0 * numpy.cos(ha)
+    
     return numpy.hstack([x, y, z])
+
 
 # ---------------------------------------------------------------------------------
 
 def baselines(ants_uvw):
-
     """
     Compute baselines in uvw co-ordinate system from
     uvw co-ordinate system station positions
 
     :param ants_uvw: `(u,v,w)` co-ordinates of antennas in array
     """
-
+    
     res = []
     for i in range(ants_uvw.shape[0]):
         for j in range(i + 1, ants_uvw.shape[0]):
             res.append(ants_uvw[j] - ants_uvw[i])
-
+    
     basel_uvw = numpy.array(res)
-
+    
     return basel_uvw
 
 
@@ -160,9 +162,10 @@ def xyz_to_baselines(ants_xyz, ha_range, dec):
     :param ha_range: list of hour angle values for astronomical source as function of time
     :param dec: declination of astronomical source [constant, not :math:`f(t)`]
     """
-
+    
     dist_uvw = numpy.concatenate([baselines(xyz_to_uvw(ants_xyz, hax, dec)) for hax in ha_range])
     return dist_uvw
+
 
 # ---------------------------------------------------------------------------------
 
@@ -178,14 +181,15 @@ def skycoord_to_lmn(pos: SkyCoord, phasecentre: SkyCoord):
 
     Note that this means that l increases east-wards
     """
-
+    
     # Determine relative sky position
     todc = pos.transform_to(phasecentre.skyoffset_frame())
     dc = todc.represent_as(CartesianRepresentation)
-
+    
     # Do coordinate transformation - astropy's relative coordinates do
     # not quite follow imaging conventions
-    return dc.y.value, dc.z.value, dc.x.value-1
+    return dc.y.value, dc.z.value, dc.x.value - 1
+
 
 # ---------------------------------------------------------------------------------
 
@@ -205,13 +209,12 @@ def simulate_point(dist_uvw, l, m):
     :param l: horizontal direction cosine relative to phase tracking centre
     :param m: orthogonal directon cosine relative to phase tracking centre
     """
-
+    
     # vector direction to source
     s = numpy.array([l, m, numpy.sqrt(1 - l ** 2 - m ** 2) - 1.0])
     # complex valued Visibility data
     return numpy.exp(-2j * numpy.pi * numpy.dot(dist_uvw, s))
 
-# ---------------------------------------------------------------------------------
 
 def visibility_shift(uvw, vis, dl, dm):
     """
@@ -226,9 +229,10 @@ def visibility_shift(uvw, vis, dl, dm):
     :returns: New visibilities
 
     """
-
+    
     s = numpy.array([dl, dm])
-    return vis * numpy.exp(-2j * numpy.pi * numpy.dot(uvw[:,0:2], s))
+    return vis * numpy.exp(-2j * numpy.pi * numpy.dot(uvw[:, 0:2], s))
+
 
 def uvw_transform(uvw, T):
     """
@@ -244,10 +248,10 @@ def uvw_transform(uvw, T):
     :param T: 2x2 matrix for image transformation
     :returns: New baseline coordinates
     """
-
+    
     # Calculate transformation matrix (see Sault)
     Tt = numpy.linalg.inv(numpy.transpose(T))
     # Apply to uv coordinates
-    uv1 = numpy.dot(uvw[:,0:2], Tt)
+    uv1 = numpy.dot(uvw[:, 0:2], Tt)
     # Restack with original w values
-    return numpy.hstack([uv1, uvw[:,2:3]])
+    return numpy.hstack([uv1, uvw[:, 2:3]])

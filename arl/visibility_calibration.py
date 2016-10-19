@@ -16,6 +16,59 @@ Functions that either solve_gains for the calibration or apply it. On solution t
 correction, the gaintable is read and, if necessary, interpolated.
 """
 
+
+def create_gaintable_from_array(gain: numpy.array, time: numpy.array, antenna: numpy.array, weight: numpy.array,
+                                frequency: numpy.array, copy=False, meta=None, params={}):
+    """ Create a gaintable from arrays
+
+    :param gain:
+    :type GainTable:
+    :param time:
+    :type numpy.array:
+    :param antenna:
+    :type numpy.array:
+    :param weight:
+    :type numpy.array:
+    :param frequency:
+    :type numpy.array:
+    :param copy:
+    :type bool:
+    :param meta:
+    :type dict:
+    :param params: Dictionary containing parameters
+    :returns: Gaintable
+    """
+    log_parameters(params)
+    if meta is None:
+        meta = {}
+    nrows = time.shape[0]
+    assert len(frequency) == gain.shape[1], "Discrepancy in frequency channels"
+    assert len(antenna) == nrows, "Discrepancy in number of antenna rows"
+    assert gain.shape[0] == nrows, "Discrepancy in number of gain rows"
+    assert weight.shape[0] == nrows, "Discrepancy in number of weight rows"
+    fg = GainTable()
+    
+    fg.data = Table(data=[gain, time, antenna, weight], names=['gain', 'time', 'antenna', 'weight'], copy=copy,
+                    meta=meta)
+    fg.frequency = frequency
+    return fg
+
+
+def interpolate_gaintable(gt: GainTable, params={}):
+    """ Interpolate a GainTable to new sampling
+
+    :param gt: GainTable
+    :type GainTable:
+    :param params: Dictionary containing parameters
+    :returns: Gaintable
+    """
+    log_parameters(params)
+    # TODO: implement
+    
+    log.error('"interpolate_gaintable: not yet implemented')
+    return GainTable()
+
+
 def solve_gains(vis: Visibility, sm: SkyModel, params={}) -> GainTable:
     """ Solve for calibration using a sky model
     

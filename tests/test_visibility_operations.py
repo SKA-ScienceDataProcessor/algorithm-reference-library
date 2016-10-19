@@ -5,10 +5,8 @@ realtimcornwell@gmail.com
 
 import unittest
 
-import numpy
 from numpy.testing import assert_allclose
 
-from astropy.coordinates import SkyCoord, CartesianRepresentation
 from astropy import units as u
 
 from arl.skymodel_operations import create_skycomponent

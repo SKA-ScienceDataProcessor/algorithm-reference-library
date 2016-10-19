@@ -24,7 +24,7 @@ class TestImageIterators(unittest.TestCase):
     
         m31model=create_test_image()
         print(m31model.data.shape, m31model.wcs.wcs.crpix)
-        for patch in raster(m31model, nraster=2):
+        for patch in raster_iter(m31model, nraster=2):
             print(patch.data.shape, patch.wcs.wcs.crpix)
 
 if __name__ == '__main__':

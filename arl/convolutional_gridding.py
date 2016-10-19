@@ -32,10 +32,10 @@ This is implemented for reference in
 
 from __future__ import division
 
-import numpy
 import scipy.special
 
 from arl.fft_support import *
+
 
 def _coordinateBounds(N):
     r""" Returns lowest and highest coordinates of an image/grid given:
@@ -107,6 +107,7 @@ def _w_kernel_function(N, field_of_view, w):
     cp = numpy.exp(2j * numpy.pi * ph)
     return cp
 
+
 def kernel_coordinates(N, theta, dl=0, dm=0, T=None):
     """
     Returns (l,m) coordinates for generation of kernels
@@ -122,12 +123,11 @@ def kernel_coordinates(N, theta, dl=0, dm=0, T=None):
     :param T: Pattern transformation matrix (see uvw_transform)
     :returns: Pair of (m,l) coordinates
     """
-
+    
     m, l = coordinates2(N) * theta
     if not T is None:
-        l,m = T[0,0]*l+T[1,0]*m, T[0,1]*l+T[1,1]*m
-    return m+dm, l+dl
-
+        l, m = T[0, 0] * l + T[1, 0] * m, T[0, 1] * l + T[1, 1] * m
+    return m + dm, l + dl
 
 
 def _kernel_oversample(ff, N, Qpx, s):

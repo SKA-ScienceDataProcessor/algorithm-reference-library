@@ -12,7 +12,7 @@ from arl.skymodel_operations import create_skycomponent
 from arl.testing_support import create_named_configuration, create_test_image
 from arl.skymodel_operations import create_skymodel_from_image, add_component_to_skymodel
 from arl.visibility_operations import create_visibility
-from arl.image_deconvolution import msclean
+from arl.image_deconvolution import _msclean
 from arl.fourier_transforms import predict_visibility
 
 from astropy.coordinates import SkyCoord
@@ -73,7 +73,7 @@ class TestPipelines(unittest.TestCase):
 
     def test_continuum_imaging(self):
         params = {'continuum_imaging': {'visibility': self.visibility, 'skymodel': self.m31sm, 'deconvolver':
-            msclean }}
+            _msclean}}
         ci = continuum_imaging(params)
 
 

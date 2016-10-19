@@ -29,7 +29,7 @@ def predict_image_partition(vis, model, predict_function=predict_2d, params={}):
     """
     log.debug("ftprocessor.predict_image_partition: predicting")
     nraster = get_parameter(params, "image_partitions", 3)
-    for mpatch in raster(model, nraster=nraster):
+    for mpatch in raster_iter(model, nraster=nraster):
         predict_function(vis, mpatch, params=params)
     return vis
 
@@ -40,7 +40,7 @@ def predict_fourier_partition(vis, model, predict_function=predict_2d, params={}
     """
     log.debug("ftprocessor.predict_fourier_partition: predicting")
     nraster = get_parameter(params, "fourier_partitions", 3)
-    for fpatch in raster(model, nraster=nraster):
+    for fpatch in raster_iter(model, nraster=nraster):
         predict_function(vis, fpatch, params=params)
     return vis
 
@@ -73,7 +73,7 @@ def invert_image_partition(vis, dirty, psf, sumofweights, invert_function=invert
     
     log.debug("ftprocessor.invert_image_partition: inverting")
     nraster = get_parameter(params, "image_partitions", 3)
-    for dpatch in raster(dirty, nraster=nraster):
+    for dpatch in raster_iter(dirty, nraster=nraster):
         invert_function(vis, dpatch, psf, sumofweights, params=params)
     
     return dirty, psf, sumofweights
@@ -85,7 +85,7 @@ def invert_fourier_partition(vis, dirty, psf, sumofweights, invert_function=inve
     """
     log.debug("ftprocessor.invert_fourier_partition: inverting")
     nraster = get_parameter(params, "fourier_partitions", 3)
-    for dpatch in raster(dirty, nraster=nraster):
+    for dpatch in raster_iter(dirty, nraster=nraster):
         invert_function(vis, dirty, psf, sumofweights, params=params)
     
     return dirty, psf, sumofweights
