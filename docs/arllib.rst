@@ -86,7 +86,7 @@ Name     Meaning
 =======  =======
 vis      Name of Visibility
 sm       Name of SkyModel
-sc       Name of SkyComponent
+sc       Name of Skycomponent
 gt       Name of GainTable
 conf     Name of Configuration
 im       Name of input image

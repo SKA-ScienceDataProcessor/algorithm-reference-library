@@ -1,18 +1,15 @@
 # Tim Cornwell <realtimcornwell@gmail.com>
-#
-# Definition of structures needed by the function interface. These are mostly
-# subclasses of astropy classes.
-#
+""" Data models used in ARL"""
 
+from astropy.constants import c
 from astropy.table import Table
-from astropy import constants as const
 import numpy
 
 
 class Configuration:
     """ Describe a Configuration
     
-    has a Table with locations in x,y,z, and names, and overall location
+    Has a Table with locations in x,y,z, and names, and overall location
     """
     
     def __init__(self, name='', data=None, location=None,
@@ -34,14 +31,19 @@ class Configuration:
     
     @property
     def names(self):
+        """ Names of the antennas/stations"""
         return self.data['names']
     
     @property
     def xyz(self):
+        """ XYZ locations of antennas/stations
+        """
         return self.data['xyz']
     
     @property
     def mount(self):
+        """ Mount type
+        """
         return self.data['mount']
 
 
@@ -71,6 +73,8 @@ class Image:
     """
     
     def __init__(self):
+        """ Empty image
+        """
         self.data = None
         self.wcs = None
     
@@ -84,13 +88,15 @@ class Image:
     def npixel(self): return self.data.shape[3]
 
 
-class SkyComponent:
-    """ A single SkyComponent with direction, flux, shape, and params for the shape
+class Skycomponent:
+    """ A single Skycomponent with direction, flux, shape, and params for the shape
     
     """
     
-    # TODO: fill out SkyComponent
+    # TODO: fill out Skycomponent
     def __init__(self):
+        """ Define the required structure
+        """
         self.direction = None  # SkyCoord
         self.frequency = None  # numpy.array [nchan]
         self.name = None  # user friendly name
@@ -105,7 +111,7 @@ class SkyComponent:
     def npol(self): return self.flux.shape[1]
 
 
-class SkyModel:
+class Skymodel:
     """ A skymodel consisting of a list of images and a list of skycomponents
     
     """
@@ -176,7 +182,7 @@ class Visibility:
     
     def uvw_lambda(self, channel=0):
         """ Calculates baseline coordinates in wavelengths. """
-        return self.data['uvw'] * self.frequency[channel] / const.c.value
+        return self.data['uvw'] * self.frequency[channel] / c.value
 
 
 class QA:

@@ -3,16 +3,16 @@
 """FFT support functions
 
 All grids and images are considered quadratic and centered around
-`N//2`, where `N` is the pixel width/height. This means that `N//2` is
+`npixel//2`, where `npixel` is the pixel width/height. This means that `npixel//2` is
 the zero frequency for FFT purposes, as is convention. Note that this
-means that for even `N` the grid is not symmetrical, which means that
+means that for even `npixel` the grid is not symmetrical, which means that
 e.g. for convolution kernels odd image sizes are preferred.
 
 This is implemented for reference in
 `coordinates`/`coordinates2`. Some noteworthy properties:
-- `ceil(field_of_view * lam)` gives the image size `N` in pixels
-- `lam * coordinates2(N)` yields the `u,v` grid coordinate system
-- `field_of_view * coordinates2(N)` yields the `l,m` image coordinate system
+- `ceil(field_of_view * lam)` gives the image size `npixel` in pixels
+- `lam * coordinates2(npixel)` yields the `u,v` grid coordinate system
+- `field_of_view * coordinates2(npixel)` yields the `l,m` image coordinate system
    (radians, roughly)
    
 """
@@ -40,7 +40,7 @@ def ifft(a):
     return numpy.fft.fftshift(numpy.fft.ifft2(numpy.fft.ifftshift(a)))
 
 
-def pad_mid(ff, N):
+def pad_mid(ff, npixel):
     """
     Pad a far field image with zeroes to make it the given size.
 
@@ -49,40 +49,40 @@ def pad_mid(ff, N):
     sinc pattern in the uv-grid.
 
     :param ff: The input far field. Should be smaller than NxN.
-    :param N:  The desired far field size
+    :param npixel:  The desired far field size
 
     """
     
-    N0, N0w = ff.shape
-    if N == N0:
+    npixel0, npixel0w = ff.shape
+    if npixel == npixel0:
         return ff
-    assert N > N0 == N0w
+    assert npixel > npixel0 == npixel0w
     return numpy.pad(ff,
-                     pad_width=2 * [(N // 2 - N0 // 2, (N + 1) // 2 - (N0 + 1) // 2)],
+                     pad_width=2 * [(npixel // 2 - npixel0 // 2, (npixel + 1) // 2 - (npixel0 + 1) // 2)],
                      mode='constant',
                      constant_values=0.0)
 
 
-def extract_mid(a, N):
+def extract_mid(a, npixel):
     """
     Extract a section from middle of a map
 
-    Suitable for zero frequencies at N/2. This is the reverse
+    Suitable for zero frequencies at npixel/2. This is the reverse
     operation to pad.
 
-    :param N:
+    :param npixel:
     :param a: grid from which to extract
     """
     cx = a.shape[0] // 2
     cy = a.shape[1] // 2
-    s = N // 2
-    if N % 2 != 0:
+    s = npixel // 2
+    if npixel % 2 != 0:
         return a[cx - s:cx + s + 1, cy - s:cy + s + 1]
     else:
         return a[cx - s:cx + s, cy - s:cy + s]
 
 
-def extract_oversampled(a, xf, yf, Qpx, N):
+def extract_oversampled(a, xf, yf, kernel_oversampling, npixel):
     """
     Extract the (xf-th,yf-th) w-kernel from the oversampled parent
 
@@ -92,24 +92,24 @@ def extract_oversampled(a, xf, yf, Qpx, N):
 
     We do not want to make assumptions about the source grid's symmetry
     here, which means that the grid's side length must be at least
-    Qpx*(N+2) to contain enough information in all circumstances
+    kernel_oversampling*(npixel+2) to contain enough information in all circumstances
 
     :param xf:
     :param yf:
     :param a: grid from which to extract
-    :param Qpx: oversampling factor
-    :param N: size of section
+    :param kernel_oversampling: oversampling factor
+    :param npixel: size of section
     """
     
-    assert 0 <= xf < Qpx
-    assert 0 <= yf < Qpx
+    assert 0 <= xf < kernel_oversampling
+    assert 0 <= yf < kernel_oversampling
     # Determine start offset.
-    Na = a.shape[0]
-    my = Na // 2 - Qpx * (N // 2) - yf
-    mx = Na // 2 - Qpx * (N // 2) - xf
+    npixela = a.shape[0]
+    my = npixela // 2 - kernel_oversampling * (npixel // 2) - yf
+    mx = npixela // 2 - kernel_oversampling * (npixel // 2) - xf
     assert mx >= 0 and my >= 0
-    # Extract every Qpx-th pixel
-    mid = a[my: my + Qpx * N: Qpx,
-          mx: mx + Qpx * N: Qpx]
+    # Extract every kernel_oversampling-th pixel
+    mid = a[my: my + kernel_oversampling * npixel: kernel_oversampling,
+          mx: mx + kernel_oversampling * npixel: kernel_oversampling]
     # normalise
-    return Qpx * Qpx * mid
+    return kernel_oversampling * kernel_oversampling * mid

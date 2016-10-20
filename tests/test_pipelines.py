@@ -56,7 +56,7 @@ class TestPipelines(unittest.TestCase):
         vispred = create_visibility(vlaa, times, frequency, weight=1.0, phasecentre=self.phasecentre,
                                    params=self.params)
         self.visibility = predict_visibility(vispred, self.m31sm, self.params)
-        self.m31image.data = 0.0 * self.m31image.data
+        self.m31image.data *= 0.0
         self.m31sm = create_skymodel_from_image(self.m31image)
         self.m31sm = add_component_to_skymodel(self.m31sm, self.m31comp)
 

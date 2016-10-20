@@ -29,8 +29,9 @@ class TestImage(unittest.TestCase):
     def test_create_image_from_array(self):
     
         m31model_by_array = create_image_from_array(self.m31image.data, self.m31image.wcs)
+        # noinspection PyBroadException
         try:
-            m31modelsum = add_image(self.m31image, m31model_by_array, checkwcs=True)
+            m31modelsum = add_image(self.m31image, m31model_by_array)
         except:
             log.debug("Image: correctly failed on checkwcs=True")
             pass

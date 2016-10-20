@@ -48,7 +48,7 @@ class TestDataModels(unittest.TestCase):
         m31max = m31model.data.max()
         m31model_by_array = create_image_from_array(m31model.data, m31model.wcs)
         m31model = add_image(m31model, m31model_by_array)
-        assert_allclose(m31model.data.max(), 2.0 * m31max, atol=1e-15)
+        self.assertAlmostEqual(m31model.data.max(), 2.0 * m31max, places=7)
 
     def test_skymodel(self):
         m31image = create_test_image()

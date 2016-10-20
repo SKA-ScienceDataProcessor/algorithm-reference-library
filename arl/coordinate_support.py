@@ -191,8 +191,6 @@ def skycoord_to_lmn(pos: SkyCoord, phasecentre: SkyCoord):
     return dc.y.value, dc.z.value, dc.x.value - 1
 
 
-# ---------------------------------------------------------------------------------
-
 def simulate_point(dist_uvw, l, m):
     """
     Simulate visibilities for unit amplitude point source at
@@ -235,7 +233,7 @@ def visibility_shift(uvw, vis, dl, dm):
     return vis * numpy.exp(-2j * numpy.pi * numpy.dot(uvw[:, 0:2], s))
 
 
-def uvw_transform(uvw, T):
+def uvw_transform(uvw, transform_matrix):
     """
     Transforms UVW baseline coordinates such that the image is
     transformed with the given matrix. Will require kernels to be
@@ -246,13 +244,13 @@ def uvw_transform(uvw, T):
     Supplement Series 120 (1996): 375-384.
 
     :param uvw: :math:`(u,v,w)` distribution of projected baselines (in wavelengths)
-    :param T: 2x2 matrix for image transformation
+    :param transform_matrix: 2x2 matrix for image transformation
     :returns: New baseline coordinates
     """
     
     # Calculate transformation matrix (see Sault)
-    Tt = numpy.linalg.inv(numpy.transpose(T))
+    tt = numpy.linalg.inv(numpy.transpose(transform_matrix))
     # Apply to uv coordinates
-    uv1 = numpy.dot(uvw[:, 0:2], Tt)
+    uv1 = numpy.dot(uvw[:, 0:2], transform_matrix)
     # Restack with original w values
     return numpy.hstack([uv1, uvw[:, 2:3]])

@@ -6,29 +6,29 @@ from arl.coordinate_support import *
 
 from arl.convolutional_gridding import _w_kernel_function, _kernel_oversample, _coordinates2
 
-class TestSynthesis(unittest.TestCase):
+class TestFFTSupport(unittest.TestCase):
     
-    def _pattern(self, N):
-        return _coordinates2(N)[0] + _coordinates2(N)[1] * 1j
+    def _pattern(self, npixel):
+        return _coordinates2(npixel)[0] + _coordinates2(npixel)[1] * 1j
     
     def test_pad_extract(self):
-        for N, N2 in [(1, 1), (1, 2), (2, 3), (3, 4), (2, 5), (4, 6)]:
-            cs = 1 + self._pattern(N)
+        for npixel, N2 in [(1, 1), (1, 2), (2, 3), (3, 4), (2, 5), (4, 6)]:
+            cs = 1 + self._pattern(npixel)
             cs_pad = pad_mid(cs, N2)
-            cs2 = 1 + self._pattern(N2) * N2 / N
+            cs2 = 1 + self._pattern(N2) * N2 / npixel
             # At this point all fields in cs2 and cs_pad should either
             # be equal or zero.
             equal = numpy.abs(cs_pad - cs2) < 1e-15
             zero = numpy.abs(cs_pad) < 1e-15
-            assert numpy.all(equal + zero)
+            assert (equal + zero).all()
             # And extracting the middle should recover the original data
-            assert_allclose(extract_mid(cs_pad, N), cs)
+            assert_allclose(extract_mid(cs_pad, npixel), cs)
     
     def test_extract_oversampled(self):
-        for N, Qpx in [(1, 2), (2, 3), (3, 2), (4, 2), (5, 3)]:
-            a = 1 + self._pattern(N * Qpx)
-            ex = extract_oversampled(a, 0, 0, Qpx, N) / Qpx ** 2
-            assert_allclose(ex, 1 + self._pattern(N))
+        for npixel, kernel_oversampling in [(1, 2), (2, 3), (3, 2), (4, 2), (5, 3)]:
+            a = 1 + self._pattern(npixel * kernel_oversampling)
+            ex = extract_oversampled(a, 0, 0, kernel_oversampling, npixel) / kernel_oversampling ** 2
+            assert_allclose(ex, 1 + self._pattern(npixel))
 
 if __name__ == '__main__':
     unittest.main()

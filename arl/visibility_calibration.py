@@ -5,10 +5,10 @@
 
 import logging
 
+log = logging.getLogger("arl.visibility_calibration")
+
 from arl.data_models import *
 from arl.parameters import *
-
-log = logging.getLogger("arl.visibility_calibration")
 
 """
 Functions that either solve_gains for the calibration or apply it. On solution the gains are written into a gaintable. For
@@ -24,9 +24,7 @@ def create_gaintable_from_array(gain: numpy.array, time: numpy.array, antenna: n
     :param time:
     :param antenna:
     :param weight:
-    :type numpy.array:
     :param frequency:
-    :type numpy.array:
     :param copy:
     :param meta:
     :param params: Dictionary containing parameters
@@ -66,7 +64,7 @@ def interpolate_gaintable(gt: GainTable, params=None):
     return GainTable()
 
 
-def solve_gains(vis: Visibility, sm: SkyModel, params=None) -> GainTable:
+def solve_gains(vis: Visibility, sm: Skymodel, params=None) -> GainTable:
     """ Solve for calibration using a sky model
     
     :param params:
@@ -98,7 +96,7 @@ def correct_visibility(vis: Visibility, gt: GainTable, params=None) -> Visibilit
     return vis
 
 
-def peel_skycomponent(vis: Visibility, sc: SkyComponent, params=None) -> Visibility:
+def peel_skycomponent(vis: Visibility, sc: Skycomponent, params=None) -> Visibility:
     """ Correct a vistable using a GainTable
 
     :param params:

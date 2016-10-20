@@ -6,7 +6,7 @@
 
 import logging
 
-from astropy import units
+from astropy import units as u
 from astropy.coordinates import ICRS, EarthLocation
 from astropy.table import Column
 from astropy.wcs import WCS
@@ -44,8 +44,7 @@ def create_configuration_from_array(antxyz: numpy.array, name: str = None, locat
 
 def create_configuration_from_file(antfile: str, name: str = None, location: EarthLocation = None, mount: str = 'altaz',
                                    names: str = "%d", frame: str = 'local',
-                                   meta: dict =
-                                   None,
+                                   meta: dict = None,
                                    params=None):
     """ Define from a file
 
@@ -55,9 +54,7 @@ def create_configuration_from_file(antfile: str, name: str = None, location: Ear
     :param name: Name of array e.g. 'LOWBD2'
     :param location:
     :param mount: mount type: 'altaz', 'xy'
-    :type str:
     :param frame: 'local' | 'global'
-    :type str:
     :param meta: Any meta info
     :returns: Configuration
     """
@@ -70,7 +67,7 @@ def create_configuration_from_file(antfile: str, name: str = None, location: Ear
     assert antxyz.shape[1] == 3, ("Antenna array has wrong shape %s" % antxyz.shape)
     nants = antxyz.shape[0]
     if frame == 'local':
-        latitude = location.geodetic[1].to(units.rad).value
+        latitude = location.geodetic[1].to(u.rad).value
         antxyz = xyz_at_latitude(antxyz, latitude)
     xyz = Column(antxyz, name="xyz")
     
@@ -99,7 +96,7 @@ def create_LOFAR_configuration(antfile: str, meta: dict = None,
     anames = numpy.genfromtxt(antfile, dtype='str', skip_header=2, usecols=[0], delimiter=",")
     mounts = Column(numpy.repeat('XY', nants), name="mount")
     fc.data = Table(data=[anames, antxyz, mounts], names=["names", "xyz", "mount"], meta=meta)
-    fc.location = EarthLocation(x=[3826923.9] * units.m, y=[460915.1] * units.m, z=[5064643.2] * units.m)
+    fc.location = EarthLocation(x=[3826923.9] * u.m, y=[460915.1] * u.m, z=[5064643.2] * u.m)
     return fc
 
 
@@ -198,7 +195,7 @@ def import_visibility_from_oskar(oskar_file: str, params=None) -> Visibility:
     # Construct visibilities
     return Visibility(
         frequency=[oskar_vis.frequency(i) for i in range(oskar_vis.num_channels)],
-        phasecentre=SkyCoord(frame=ICRS, ra=ra, dec=dec, unit=units.deg),
+        phasecentre=SkyCoord(frame=ICRS, ra=ra, dec=dec, unit=u.deg),
         configuration=config,
         uvw=numpy.transpose(oskar_vis.uvw(flatten=True)),
         time=oskar_vis.times(flatten=True),

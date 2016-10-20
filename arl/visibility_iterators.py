@@ -1,12 +1,10 @@
 # Tim Cornwell <realtimcornwell@gmail.com>
 #
-# Visibility data structure: a Table with columns ['uvw', 'time', 'antenna1', 'antenna2', 'vis', 'weight']
-# and an attached attribute which is the frequency of each channel
+""" Visibility iterators
+
+"""
 
 import logging
-
-from arl.parameters import *
-
 log = logging.getLogger("arl.visibility_iterators")
 
 

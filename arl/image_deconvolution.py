@@ -1,10 +1,7 @@
 # Tim Cornwell <realtimcornwell@gmail.com>
-#
-# Definition of structures needed by the function interface. These are mostly
-# subclasses of astropy classes.
-#
+""" Image Deconvolution functions
 
-import logging
+"""
 
 from arl.data_models import *
 from arl.image_operations import create_image_from_array
@@ -91,7 +88,6 @@ def restore_cube(dirty: Image, clean: Image, psf: Image, params=None):
     :param dirty:
     :param clean: Image clean model (i.e. no smoothing)
     :param psf: Image Point Spread Function
-    :type Image:
     :param params: 'algorithm': 'msclean'|'hogbom', 'gain': loop gain (float)
     :returns: restored image
     """
@@ -130,7 +126,6 @@ def restore_mfs(dirty: Image, clean: Image, psf: Image, params=None):
     :param dirty:
     :param clean: Image clean model (i.e. no smoothing)
     :param psf: Image Point Spread Function
-    :type Image:
     :param params: 'algorithm': 'msclean'|'hogbom', 'gain': loop gain (float)
     :returns: restored image
     """
@@ -200,7 +195,7 @@ def _hogbom(dirty,
     :param gain: The "loop gain", i.e., the fraction of the brightest pixel that is removed in each iteration
     :param thresh: Cleaning stops when the maximum of the absolute deviation of the residual is less than this value
     :param niter: Maximum number of components to make if the threshold `thresh` is not hit
-    :returns: clean SkyComponent Image, residual Image
+    :returns: clean Skycomponent Image, residual Image
     """
     if params is None:
         params = {}
@@ -286,7 +281,7 @@ def _msclean(dirty,
     scalescaleshape = [ldirty.shape[0], ldirty.shape[1], len(scales), len(scales)]
     scalestack = _createscalestack(scaleshape, scales, norm=True)
     
-    couplingMatrix = numpy.zeros([len(scales), len(scales)])
+    coupling_matrix = numpy.zeros([len(scales), len(scales)])
     psfscalestack = _convolvescalestack(scalestack, numpy.array(lpsf))
     resscalestack = _convolvescalestack(scalestack, numpy.array(ldirty))
     # Evaluate the coupling matrix between the various scale sizes.
@@ -296,8 +291,8 @@ def _msclean(dirty,
         psfscalescalestack[:, :, iscale, :] = psfscalescalestack[:, :, :, iscale]
     for iscale in numpy.arange(len(scales)):
         for iscale1 in numpy.arange(len(scales)):
-            couplingMatrix[iscale, iscale1] = numpy.max(psfscalescalestack[:, :, iscale, iscale1])
-    log.info("msclean: Coupling matrix =\n %s" % couplingMatrix)
+            coupling_matrix[iscale, iscale1] = numpy.max(psfscalescalestack[:, :, iscale, iscale1])
+    log.info("msclean: Coupling matrix =\n %s" % coupling_matrix)
     
     # The window is scale dependent - we form it by smoothing and thresholding
     # the input window. This prevents components being placed too close to the
@@ -315,14 +310,14 @@ def _msclean(dirty,
     
     for i in range(niter):
         # Find peak over all smoothed images
-        mx, my, mscale = _findabsmaxstack(resscalestack, window, couplingMatrix)
+        mx, my, mscale = _findabsmaxstack(resscalestack, window, coupling_matrix)
         if mx is None or my is None or mscale is None:
             log.warning("msclean: Error in finding peak")
             break
         
         # Find the values to subtract, accounting for the coupling matrix
         mval = numpy.zeros(len(scales))
-        mval[mscale] = resscalestack[mx, my, mscale] / couplingMatrix[mscale, mscale]
+        mval[mscale] = resscalestack[mx, my, mscale] / coupling_matrix[mscale, mscale]
         if i % 10 == 0:
             log.info("msclean: Minor cycle %d, peak %s at [%d, %d, %d]" % \
                      (i, resscalestack[mx, my, :], mx, my, mscale))
@@ -495,6 +490,7 @@ def _sphfn(vnu):
     else:
         value = 0.
     
-    if value < 0.: value = 0.
+    if value < 0.:
+        value = 0.
     
     return value

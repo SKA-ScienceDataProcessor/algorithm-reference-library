@@ -5,10 +5,9 @@ Functions that aid fourier transform processing. These are built on top of the c
 functions in arl.fourier_transforms
 """
 
-import logging
-
 from arl.image_iterators import *
 from arl.visibility_iterators import *
+from arl.parameters import get_parameter
 
 log = logging.getLogger("arl.ftprocessor")
     

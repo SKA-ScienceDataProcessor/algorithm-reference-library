@@ -81,7 +81,7 @@ class TestCoordinates(unittest.TestCase):
         assert_allclose(transform(1, 0, 0, 90, 0), [0, 0, -1], atol=1e-15)
 
     def test_baselines(self):
-        # There should be exactly N*(N-1)/2 baselines
+        # There should be exactly npixel*(npixel-1)/2 baselines
         def test(ants_uvw):
             """
 

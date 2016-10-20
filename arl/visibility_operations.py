@@ -1,17 +1,19 @@
 # Tim Cornwell <realtimcornwell@gmail.com>
 #
+""" Visibility operations
+
+"""
 
 import copy
 import logging
+
+log = logging.getLogger("arl.visibility_operations")
 
 from astropy.table import vstack
 
 from arl.coordinate_support import *
 from arl.data_models import *
 from arl.parameters import *
-
-log = logging.getLogger("arl.visibility_operations")
-
 
 
 def combine_visibility(vis1: Visibility, vis2: Visibility, w1: float = 1.0, w2: float = 1.0, params=None) -> Visibility:
@@ -85,7 +87,7 @@ def flag_visibility(vis: Visibility, gt: GainTable = None, params=None) -> Visib
     :returns: Visibility
     """
     # TODO: implement
-
+    
     if params is None:
         params = {}
     log_parameters(params)
@@ -101,7 +103,7 @@ def filter_visibility(vis: Visibility, params=None) -> Visibility:
     :returns: Visibility
     """
     # TODO: implement
-
+    
     if params is None:
         params = {}
     log_parameters(params)
@@ -210,14 +212,14 @@ def sum_visibility(vis: Visibility, direction: SkyCoord, params=None) -> numpy.a
     if params is None:
         params = {}
     log_parameters(params)
-    l,m,n = skycoord_to_lmn(direction, vis.phasecentre)
+    l, m, n = skycoord_to_lmn(direction, vis.phasecentre)
     log.debug('sum_visibility: Cartesian representation of direction = (%f, %f, %f)' % (
-        l,m,n))
+        l, m, n))
     flux = numpy.zeros([vis.nchan, vis.npol])
     weight = numpy.zeros([vis.nchan, vis.npol])
     for channel in range(vis.nchan):
         uvw = vis.uvw_lambda(channel)
-        phasor = numpy.conj(simulate_point(uvw, l,m))
+        phasor = numpy.conj(simulate_point(uvw, l, m))
         for pol in range(vis.npol):
             log.debug('sum_visibility: Summing visibility for channel %d, polarisation %d' % (
                 channel, pol))

@@ -4,16 +4,15 @@
 # subclasses of astropy classes.
 #
 
-import logging
-
 from arl.data_models import *
 from arl.parameters import *
+from arl.fourier_transforms import predict_visibility, invert_visibility
 from arl.visibility_operations import combine_visibility
 
 log = logging.getLogger("arl.skymodel_solvers")
 
-def solve_skymodel(vis: Visibility, sm: SkyModel, deconvolver, params=None):
-    """Solve for SkyModel using a deconvolver. The interface of deconvolver is the same as clean.
+def solve_skymodel(vis: Visibility, sm: Skymodel, deconvolver, params=None):
+    """Solve for Skymodel using a deconvolver. The interface of deconvolver is the same as clean.
 
     This is the same as a majorcycle.
 
@@ -22,7 +21,7 @@ def solve_skymodel(vis: Visibility, sm: SkyModel, deconvolver, params=None):
     :param sm:
     :param deconvolver: Deconvolver to be used e.g. msclean
     :arg function:
-    :returns: Visibility, SkyModel
+    :returns: Visibility, Skymodel
     """
     if params is None:
         params = {}
@@ -32,9 +31,9 @@ def solve_skymodel(vis: Visibility, sm: SkyModel, deconvolver, params=None):
     
     # The model is added to each major cycle and then the visibilities are
     # calculated from the full model
-#    vispred = predict_visibility(vis, sm, params={})
+    vispred = predict_visibility(vis, sm, params={})
     visres = combine_visibility(vis, vispred, 1.0, -1.0)
-    # dirty, psf, sumwt = invert_visibility(visres, params={})
+    dirty, psf, sumwt = invert_visibility(visres, model=sm.components[0], params={})
     thresh = get_parameter(params, "threshold", 0.0)
     
     comp = sm.images[0]
@@ -42,7 +41,7 @@ def solve_skymodel(vis: Visibility, sm: SkyModel, deconvolver, params=None):
         log.debug("solve_skymodel: Start of major cycle %d" % i)
         cc, res = deconvolver(dirty, psf, params={})
         comp += cc
-#        vispred = predict_visibility(vis, sm, params={})
+        vispred = predict_visibility(vis, sm, params={})
         visres = combine_visibility(vis, vispred, 1.0, -1.0)
         # dirty, psf, sumwt = invert_visibility(visres, params={})
         if numpy.abs(dirty.data).max() < 1.1 * thresh:

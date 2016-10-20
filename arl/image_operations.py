@@ -4,8 +4,6 @@
 Functions that define and manipulate images. Images are just data and a World Coordinate System.
 """
 
-import logging
-
 import matplotlib.pyplot as plt
 from astropy.io import fits
 from astropy.wcs import WCS

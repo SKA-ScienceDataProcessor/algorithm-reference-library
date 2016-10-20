@@ -1,4 +1,5 @@
-# Parameter handling for ARL functions
+"""Parameter handling for ARL functions
+"""
 #
 # Tim Cornwell <realtimcornwell@gmail.com>
 #

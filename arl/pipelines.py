@@ -1,3 +1,6 @@
+""" Pipeline definitions
+
+"""
 # Tim Cornwell <realtimcornwell@gmail.com>
 #
 #

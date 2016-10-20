@@ -31,7 +31,8 @@ class TestParameters(unittest.TestCase):
         assert get_parameter(self.parameters, 'spectral_mode', 'channels') == 'channels'
         assert get_parameter(self.parameters['invert'], 'spectral_mode') == 'mfs'
         assert get_parameter(self.parameters, 'foo', 'bar') == 'bar'
-        assert get_parameter(self.parameters, 'foo') == None
+        assert get_parameter(self.parameters, 'foo') is None
+
 
 if __name__ == '__main__':
     log.setLevel(logging.DEBUG)

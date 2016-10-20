@@ -4,8 +4,6 @@
 # subclasses of astropy classes.
 #
 
-import logging
-
 from astropy.coordinates import SkyCoord
 from astropy.wcs.utils import skycoord_to_pixel, pixel_to_skycoord
 
@@ -16,7 +14,7 @@ log = logging.getLogger("arl.skymodel_operations")
 
 def create_skycomponent(direction: SkyCoord, flux: numpy.array, frequency: numpy.array, shape: str = 'Point',
                         param: dict = None, name: str = ''):
-    """ A single SkyComponent with direction, flux, shape, and params for the shape
+    """ A single Skycomponent with direction, flux, shape, and params for the shape
 
     :param param:
     :param direction:
@@ -24,9 +22,9 @@ def create_skycomponent(direction: SkyCoord, flux: numpy.array, frequency: numpy
     :param frequency:
     :param shape: 'Point' or 'Gaussian'
     :param name:
-    :returns: SkyComponent
+    :returns: Skycomponent
     """
-    sc = SkyComponent()
+    sc = Skycomponent()
     sc.direction = direction
     sc.frequency = frequency
     sc.name = name
@@ -38,11 +36,11 @@ def create_skycomponent(direction: SkyCoord, flux: numpy.array, frequency: numpy
 
 
 def find_skycomponent(im: Image, params=None):
-    """ Find components in Image, return SkyComponent, just find the peak for now
+    """ Find components in Image, return Skycomponent, just find the peak for now
 
     :param params:
     :param im: Image to be searched
-    :returns: SkyComponent
+    :returns: Skycomponent
     """
     # TODO: Implement full image fitting of components
     if params is None:
@@ -53,7 +51,6 @@ def find_skycomponent(im: Image, params=None):
     # Beware: The index sequencing is opposite in wcs and Python!
     locpeak = numpy.array(numpy.unravel_index((numpy.abs(im.data)).argmax(), im.data.shape))
     log.debug("point_source_find: Found peak at pixel coordinates %s" % str(locpeak))
-    w = im.wcs.sub(['longitude', 'latitude'])
     sc = pixel_to_skycoord(locpeak[3], locpeak[2], im.wcs, 0, 'wcs')
     log.debug("point_source_find: Found peak at world coordinates %s" % str(sc))
     flux = im.data[:, :, locpeak[2], locpeak[3]]
@@ -65,19 +62,18 @@ def find_skycomponent(im: Image, params=None):
 
 
 def fit_skycomponent(im: Image, sc: SkyCoord, params=None):
-    """ Find flux at a given direction, return SkyComponent
+    """ Find flux at a given direction, return Skycomponent
 
     :param params:
     :param im:
     :param sc:
-    :returns: SkyComponent
+    :returns: Skycomponent
 
     """
     if params is None:
         params = {}
     log_parameters(params)
     log.debug("find_flux_at_direction: Extracting flux at world coordinates %s" % str(sc))
-    w = im.wcs.sub(['longitude', 'latitude'])
     pixloc = skycoord_to_pixel(sc, im.wcs, 0, 'wcs')
     log.debug("find_flux_at_direction: Extracting flux at pixel coordinates %d %d" % (pixloc[0], pixloc[1]))
     flux = im.data[:, :, int(pixloc[1] + 0.5), int(pixloc[0] + 0.5)]
@@ -90,14 +86,14 @@ def fit_skycomponent(im: Image, sc: SkyCoord, params=None):
     return create_skycomponent(direction=sc, flux=flux, frequency=frequency, shape='point')
 
 
-def add_skymodels(sm1: SkyModel, sm2: SkyModel):
+def add_skymodels(sm1: Skymodel, sm2: Skymodel):
     """ Add two sky models together
     
     :param sm1:
     :param sm2:
-    :returns: SkyModel
+    :returns: Skymodel
     """
-    fsm = SkyModel()
+    fsm = Skymodel()
     fsm.images = [sm1.images, sm2.images]
     fsm.components = [sm1.components, sm2.components]
     return fsm
@@ -107,41 +103,41 @@ def create_skymodel_from_image(im: Image):
     """ Create a skymodel from an image or image
     
     :param im:
-    :returns: SkyModel
+    :returns: Skymodel
     """
-    sm = SkyModel()
+    sm = Skymodel()
     sm.images.append(im)
     return sm
 
 
-def add_image_to_skymodel(sm: SkyModel, im: Image):
+def add_image_to_skymodel(sm: Skymodel, im: Image):
     """Add images to a sky model
     
     :param sm:
     :param im:
-    :returns: SkyModel
+    :returns: Skymodel
     """
     sm.images.append(im)
     return sm
 
 
-def create_skymodel_from_component(comp: SkyComponent):
+def create_skymodel_from_component(comp: Skycomponent):
     """Create sky model from component
     
     :param comp:
-    :returns: SkyModel
+    :returns: Skymodel
     """
-    sm = SkyModel()
+    sm = Skymodel()
     sm.components.append(comp)
     return sm
 
 
-def add_component_to_skymodel(sm: SkyModel, comp: SkyComponent):
+def add_component_to_skymodel(sm: Skymodel, comp: Skycomponent):
     """Add Component to a sky model
     
     :param sm:
     :param comp:
-    :returns: SkyModel
+    :returns: Skymodel
    """
     sm.components.append(comp)
     return sm
