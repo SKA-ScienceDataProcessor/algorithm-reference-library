@@ -198,8 +198,7 @@ def convolutional_degrid(gcf, uvgrid, uv):
     nchan, npol, ny, nx = uvgrid.shape
     nvis, _ = uv.shape
     coords = _frac_coords(uvgrid.shape, kernel_oversampling, uv)
-    print(coords)
-    vis = numpy.zeros([nchan, npol, nvis], dtype='complex')
+    vis = numpy.zeros([nchan, npol, nvis])
     wt = numpy.zeros([nchan, npol, nvis])
     for pol in range(npol):
         for chan in range(nchan):
@@ -209,10 +208,11 @@ def convolutional_degrid(gcf, uvgrid, uv):
                 for x, xf, y, yf in zip(*coords)
                 ]
             wt[chan, pol, ...] = [
-                numpy.sum(gcf[yf, xf].real)
+                numpy.sum(gcf[yf, xf])
                 for x, xf, y, yf in zip(*coords)
                 ]
     vis[wt > 0.0] = vis[wt > 0.0] / wt[wt > 0.0]
+    print(vis)
     return numpy.array(vis)
 
 

@@ -70,7 +70,7 @@ class TestConvolutionalGridding(unittest.TestCase):
         shape = (7, 7)
         npixel = 256
         kernel_oversampling = 16
-        nvis = 1000
+        nvis = 100
         nchan = 1
         npol = 4
         uvgrid = numpy.zeros([nchan, npol, npixel, npixel], dtype='complex')
@@ -83,12 +83,14 @@ class TestConvolutionalGridding(unittest.TestCase):
         # Make some visibilities, all complex unity
         vis = numpy.ones([nchan, npol, nvis], dtype='complex')
         convolutional_grid(gcf, uvgrid, uvcoords, vis)
+        # plt.imshow(numpy.abs(uvgrid))
+        # plt.show()
 
     def test_convolutional_degrid(self):
         shape = (7, 7)
         npixel = 256
         kernel_oversampling = 16
-        nvis = 1000
+        nvis = 100
         nchan = 1
         npol = 4
         uvgrid = numpy.ones([nchan, npol, npixel, npixel], dtype='complex')
