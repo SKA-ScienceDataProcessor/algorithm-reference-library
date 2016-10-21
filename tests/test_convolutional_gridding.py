@@ -1,10 +1,14 @@
 import unittest
 import itertools
 import numpy
+
+import random
+
+import matplotlib.pyplot as plt
 from numpy.testing import assert_allclose
 
 from arl.convolutional_gridding import _w_kernel_function, _kernel_oversample, \
-    _coordinates2, anti_aliasing_function
+    _coordinates2, anti_aliasing_function, convolutional_degrid, convolutional_grid
 from arl.fft_support import *
 
 
@@ -20,7 +24,7 @@ class TestConvolutionalGridding(unittest.TestCase):
         for shape in [(4, 4), (5, 5), (4, 6), (7, 3)]:
             aaf = anti_aliasing_function(shape, 0, 10)
             self.assertEqual(aaf.shape, shape)
-            self.assertAlmostEqual(aaf[shape[0] // 2, shape[1] // 2], 1)
+            self.assertAlmostEqual(aaf[shape[0] // 2, shape[1] // 2], 1.0)
     
     def test_w_kernel_function(self):
         assert_allclose(_w_kernel_function(5, 0.1, 0), 1.0)
@@ -60,16 +64,42 @@ class TestConvolutionalGridding(unittest.TestCase):
             for npixel in [3, 5, 9, 16, 20, 24, 32, 64]:
                 k = _kernel_oversample(_w_kernel_function(npixel + 2, 0.1, npixel * 10), npixel + 2,
                                        kernel_oversampling, npixel)
-                assert_allclose(numpy.sum(k), kernel_oversampling ** 2,
-                                rtol=0.07)
-    
-    def test_convolutional_grid(self):
-        # Test for
-        pass
-    
-    def test_convolutional_degrid(self):
-        pass
+                assert_allclose(numpy.sum(k), kernel_oversampling ** 2, rtol=0.07)
 
+    def test_convolutional_grid(self):
+        shape = (7, 7)
+        npixel = 256
+        kernel_oversampling = 16
+        nvis = 1000
+        nchan = 1
+        npol = 4
+        uvgrid = numpy.zeros([nchan, npol, npixel, npixel], dtype='complex')
+        aaf = anti_aliasing_function(shape, 0, 10)
+        # gcf has shape [kernel_oversampling, kernel_oversampling, npixel, npixel] The fractional
+        # part of the coordinate maps onto the first two axes.
+        gcf = _kernel_oversample(aaf, npixel, kernel_oversampling, 32)
+        # Make some uv coordinates with random locations
+        uvcoords = numpy.array([[random.uniform(-0.25, 0.25), random.uniform(-0.25, 0.25)] for ivis in range(nvis)])
+        # Make some visibilities, all complex unity
+        vis = numpy.ones([nchan, npol, nvis], dtype='complex')
+        convolutional_grid(gcf, uvgrid, uvcoords, vis)
+
+    def test_convolutional_degrid(self):
+        shape = (7, 7)
+        npixel = 256
+        kernel_oversampling = 16
+        nvis = 1000
+        nchan = 1
+        npol = 4
+        uvgrid = numpy.ones([nchan, npol, npixel, npixel], dtype='complex')
+        aaf = anti_aliasing_function(shape, 0, 10)
+        gcf = _kernel_oversample(aaf, npixel, kernel_oversampling, 32)
+        # gcf has shape [kernel_oversampling, kernel_oversampling, npixel, npixel] The fractional
+        # part of the coordinate maps onto the first two axes.
+        # Make some uv coordinates with random locations
+        uvcoords = numpy.array([[random.uniform(-0.25, 0.25), random.uniform(-0.25, 0.25)] for ivis in range(nvis)])
+        # Make some visibilities, all complex unity
+        vis = convolutional_degrid(gcf, uvgrid, uvcoords)
 
 if __name__ == '__main__':
     unittest.main()

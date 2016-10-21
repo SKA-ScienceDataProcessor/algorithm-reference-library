@@ -13,11 +13,11 @@ class TestImageDeconvolution(unittest.TestCase):
     def setUp(self):
         pass
 
-    @unittest.skip("No test for deconvolve and restore")
+    @unittest.skip("No test for deconvolve and restore cube")
     def test_deconvolve_and_restore_cube(self):
         pass
 
-    @unittest.skip("No test for deconvolve and restore_MSMFS")
+    @unittest.skip("No test for deconvolve and restore MSMFS")
     def test_deconvolve_and_restore_MSMFS(self):
         pass
     
