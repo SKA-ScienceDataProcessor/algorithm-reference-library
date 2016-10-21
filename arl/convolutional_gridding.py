@@ -3,31 +3,7 @@
 # Synthesise and Image interferometer data
 """Convolutional gridding support functions
 
-Parameter name meanings:
-
-- p: The uvw coordinates [*,3] (m)
-- v: The Visibility values [*] (Jy)
-- field_of_view: Width of the field of view to be synthesised, as directional
-  cosines (approximately radians)
-- lam: Width of the uv-plane (in wavelengths). Controls resolution of the
-  images.
-- kernel_oversampling: Oversampling of pixels by the convolution kernels -- there are
-  (kernel_oversampling x kernel_oversampling) convolution kernels per pixels to account for fractional
-  pixel values.
-
-All grids and images are considered quadratic and centered around
-`npixel//2`, where `npixel` is the pixel width/height. This means that `npixel//2` is
-the zero frequency for FFT purposes, as is convention. Note that this
-means that for even `npixel` the grid is not symetrical, which means that
-e.g. for convolution kernels odd image sizes are preferred.
-
-This is implemented for reference in
-`coordinates`/`coordinates2`. Some noteworthy properties:
-- `ceil(field_of_view * lam)` gives the image size `npixel` in pixels
-- `lam * coordinates2(npixel)` yields the `u,v` grid coordinate system
-- `field_of_view * coordinates2(npixel)` yields the `l,m` image coordinate system
-   (radians, roughly)
-   
+All functions that involve convolutional gridding are kept here.
 """
 
 from __future__ import division
@@ -108,10 +84,9 @@ def _w_kernel_function(npixel, field_of_view, w):
     return cp
 
 
-def kernel_coordinates(npixel, field_of_view, dl=0, dm=0, transformmatrix=None):
+def kernel_coordinates(npixel, field_of_view, dl=0, dm=0, transform_matrix=None):
     """
-    Returns (l,m) coordinates for generation of kernels
-    in a far-field of the given size.
+    Returns (l,m) coordinates for generation of kernels in a far-field of the given size.
 
     If coordinate transformations are passed, they must be inverse to
     the transformations applied to the visibilities using
@@ -126,26 +101,24 @@ def kernel_coordinates(npixel, field_of_view, dl=0, dm=0, transformmatrix=None):
     """
     
     m, l = _coordinates2(npixel) * field_of_view
-    if transformmatrix is not None:
-        l, m = transformmatrix[0, 0] * l + transformmatrix[1, 0] * m, transformmatrix[0, 1] * l + transformmatrix[
-            1, 1] * m
+    if transform_matrix is not None:
+        l, m = transform_matrix[0, 0] * l + transform_matrix[1, 0] * m, transform_matrix[0, 1] * l \
+               + transform_matrix[1, 1] * m
     return m + dm, l + dl
 
 
 def _kernel_oversample(ff, npixel, kernel_oversampling, s):
-    """
-    Takes a farfield pattern and creates an oversampled convolution
-    function.
+    """ Takes a farfield pattern and creates an oversampled convolution function.
 
     If the far field size is smaller than npixel*kernel_oversampling, we will pad it. This
     essentially means we apply a sinc anti-aliasing kernel by default.
 
     :param ff: Far field pattern
-    :param npixel:  Image size without oversampling
-    :param kernel_oversampling: Factor to oversample by -- there will be kernel_oversampling x kernel_oversampling convolution arl
+    :param npixel: Image size without oversampling
+    :param kernel_oversampling: Factor to oversample by -- there will be kernel_oversampling x kernel_oversampling
+    convolution functions
     :param s: Size of convolution function to extract
-    :returns: Numpy array of shape [ov, ou, v, u], e.g. with sub-pixel
-      offsets as the outer coordinates.
+    :returns: Numpy array of shape [ov, ou, v, u], e.g. with sub-pixel offsets as the outer coordinates.
     """
     
     # Pad the far field to the required pixel size
@@ -155,14 +128,14 @@ def _kernel_oversample(ff, npixel, kernel_oversampling, s):
     af = ifft(padff)
     
     # Extract kernels
-    res = [[extract_oversampled(af, x, y, kernel_oversampling, s) for x in range(kernel_oversampling)]
+    res = [[extract_oversampled(af, x, y, kernel_oversampling, s)
+            for x in range(kernel_oversampling)]
            for y in range(kernel_oversampling)]
     return numpy.array(res)
 
 
 def _w_kernel(field_of_view, w, npixel_farfield, npixel_kernel, kernel_oversampling):
-    """
-    The middle s pixels of W convolution kernel. (W-KERNel-Aperture-Function)
+    """ The middle s pixels of W convolution kernel. (W-KERNel-Aperture-Function)
 
     :param field_of_view: Field of view (directional cosines)
     :param w: Baseline distance to the projection plane
@@ -179,13 +152,12 @@ def _w_kernel(field_of_view, w, npixel_farfield, npixel_kernel, kernel_oversampl
 
 
 def _frac_coord(npixel, kernel_oversampling, p):
-    """
-    Compute whole and fractional parts of coordinates, rounded to
+    """ Compute whole and fractional parts of coordinates, rounded to
     kernel_oversampling-th fraction of pixel size
 
     The fractional values are rounded to nearest 1/kernel_oversampling pixel value. At
     fractional values greater than (kernel_oversampling-0.5)/kernel_oversampling coordinates are
-    roundeded to next integer index.
+    rounded to next integer index.
 
     :param npixel: Number of pixels in total
     :param kernel_oversampling: Fractional values to round to
@@ -199,16 +171,15 @@ def _frac_coord(npixel, kernel_oversampling, p):
 
 
 def _frac_coords(shape, kernel_oversampling, xycoords):
-    """Compute grid coordinates and fractional values for convolutional
-    gridding
+    """Compute grid coordinates and fractional values for convolutional gridding
 
     :param shape: (height,width) grid shape
     :param kernel_oversampling: Oversampling factor
     :param xycoords: array of (x,y) coordinates in range [-.5,.5[
     """
-    h, w = shape  # NB order (height,width) to match numpy!
-    x, xf = _frac_coord(w, kernel_oversampling, xycoords[:, 0])
+    _, _, h, w = shape  # NB order (height,width) to match numpy!
     y, yf = _frac_coord(h, kernel_oversampling, xycoords[:, 1])
+    x, xf = _frac_coord(w, kernel_oversampling, xycoords[:, 0])
     return x, xf, y, yf
 
 
@@ -224,11 +195,24 @@ def convolutional_degrid(gcf, uvgrid, uv):
     :returns: Array of visibilities.
     """
     kernel_oversampling, _, gh, gw = gcf.shape
+    nchan, npol, ny, nx = uvgrid.shape
+    nvis, _ = uv.shape
     coords = _frac_coords(uvgrid.shape, kernel_oversampling, uv)
-    vis = [
-        numpy.sum(uvgrid[..., y - gh // 2: y + (gh + 1) // 2, x - gw // 2: x + (gw + 1) // 2] * gcf[yf, xf])
-        for x, xf, y, yf in zip(*coords)
-        ]
+    vis = numpy.zeros([nchan, npol, nvis])
+    wt = numpy.zeros([nchan, npol, nvis])
+    for pol in range(npol):
+        for chan in range(nchan):
+            vis[chan, pol, ...] = [
+                numpy.sum(uvgrid[chan, pol, y - gh // 2: y + (gh + 1) // 2, x - gw // 2: x + (gw + 1) // 2]
+                          * gcf[yf, xf])
+                for x, xf, y, yf in zip(*coords)
+                ]
+            wt[chan, pol, ...] = [
+                numpy.sum(gcf[yf, xf])
+                for x, xf, y, yf in zip(*coords)
+                ]
+    vis[wt > 0.0] = vis[wt > 0.0] / wt[wt > 0.0]
+    print(vis)
     return numpy.array(vis)
 
 
@@ -245,6 +229,10 @@ def convolutional_grid(gcf, uvgrid, uv, vis):
     """
     
     kernel_oversampling, _, gh, gw = gcf.shape
+    nchan, npol, ny, nx = uvgrid.shape
     coords = _frac_coords(uvgrid.shape, kernel_oversampling, uv)
-    for vis, x, xf, y, yf in zip(vis, *coords):
-        uvgrid[..., y - gh // 2: y + (gh + 1) // 2, x - gw // 2: x + (gw + 1) // 2] += gcf[yf, xf] * vis
+    for pol in range(npol):
+        for chan in range(nchan):
+            for v, x, xf, y, yf in zip(vis[chan, pol, :], *coords):
+                uvgrid[chan, pol, (y - gh // 2):(y + (gh + 1) // 2), (x - gw // 2):(x + (gw + 1) // 2)] \
+                    += gcf[yf, xf] * v

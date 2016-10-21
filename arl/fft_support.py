@@ -107,7 +107,7 @@ def extract_oversampled(a, xf, yf, kernel_oversampling, npixel):
     npixela = a.shape[0]
     my = npixela // 2 - kernel_oversampling * (npixel // 2) - yf
     mx = npixela // 2 - kernel_oversampling * (npixel // 2) - xf
-    assert mx >= 0 and my >= 0
+    assert mx >= 0 and my >= 0, "mx %d and my %d" % (mx, my)
     # Extract every kernel_oversampling-th pixel
     mid = a[my: my + kernel_oversampling * npixel: kernel_oversampling,
           mx: mx + kernel_oversampling * npixel: kernel_oversampling]
