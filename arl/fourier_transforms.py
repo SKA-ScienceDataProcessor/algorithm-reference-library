@@ -10,6 +10,7 @@ from astropy import wcs
 from arl.coordinate_support import simulate_point, skycoord_to_lmn
 from arl.data_models import *
 from arl.image_operations import create_empty_image_like
+from arl.ftprocessor import *
 from arl.parameters import *
 
 log = logging.getLogger("arl.fourier_transforms")
@@ -73,7 +74,7 @@ def _create_wcs_from_visibility(vis, params=None):
 def invert_visibility(vis, model, params=None):
     """Invert to make dirty Image and PSF
     
-    This is the top level invert routine.
+    This is the top level invert routine. It's basically a switch yard for the low level routines
 
     :param params:
     :param vis:
@@ -85,131 +86,27 @@ def invert_visibility(vis, model, params=None):
     log_parameters(params)
     log.debug("invert_visibility: Inverting Visibility to make dirty and psf")
     shape, reffrequency, cellsize, image_wcs, imagecentre = _create_wcs_from_visibility(vis, params=params)
-    
-    npixel = shape[3]
+
+    nchan, npol, _, npixel = shape
     field_of_view = npixel * cellsize
     
     log.debug("invert_visibility: Specified npixel=%d, cellsize = %f rad, FOV = %f rad" %
               (npixel, cellsize, field_of_view))
     
     dirty = create_empty_image_like(model)
-    d = dirty.data
     psf = create_empty_image_like(model)
-    p = psf.data
+    sumofweights = 0.0
     
     spectral_mode = get_parameter(params, 'spectral_mode', 'channel')
     log.debug('invert_visibility: spectral mode is %s' % spectral_mode)
     
     if spectral_mode == 'channel':
-        pmax = 0.0
-        nchan = shape[0]
-        npol = shape[1]
-        # These loops should ideally be at the bottom of the stack
-        for channel in range(nchan):
-            for pol in range(npol):
-                log.debug('invert_visibility: Inverting channel %d, polarisation %d' % (channel, pol))
-                # d[channel, pol, :, :], p[channel, 0, :, :], pmax = \
-                #     invert2d(field_of_view, 1.0 / cellsize, vis.uvw_lambda(channel),
-                #                vis.vis[:, channel, pol],  model, params=params)
-            assert pmax > 0.0, ("No data gridded for channel %d" % channel)
+        dirty, psf, sumofweights = invert_2d(vis, dirty, psf, sumofweights, params=params)
+        assert sumofweights > 0.0, "No data gridded"
     else:
         raise NotImplementedError("mode %s not supported" % spectral_mode)
     
     log.debug("invert_visibility: Finished making dirty and psf")
     
-    return dirty, psf, pmax
+    return dirty, psf, sumofweights
 
-
-def predict_visibility(vis: Visibility, sm: Skymodel, params=None) -> Visibility:
-    """Predict the visibility from a Skymodel including both components and images
-
-    :param params:
-    :param vis:
-    :param sm:
-    :returns: Visibility
-    """
-    if params is None:
-        params = {}
-    shape, reffrequency, cellsize, w, imagecentre = _create_wcs_from_visibility(vis, params=params)
-    
-    vis.data['vis'] *= 0.0
-    
-    spectral_mode = get_parameter(params, 'spectral_mode', 'channel')
-    log.debug('predict_visibility: spectral mode is %s' % spectral_mode)
-    
-    if len(sm.images):
-        log.debug("predict_visibility: Predicting Visibility from sky model images")
-        
-        for im in sm.images:
-            assert_same_chan_pol(vis, im)
-            
-            # Determine image size
-            cellsize = abs(im.wcs.wcs.cdelt[0]) * numpy.pi / 180.0
-            field_of_view = im.npixel * cellsize
-            log.debug("predict_visibility: Image cellsize %f radians" % cellsize)
-            log.debug("predict_visibility: Field of view %f radians" % field_of_view)
-            assert (field_of_view / numpy.sqrt(2) < 1.0), "Field of view larger than celestial sphere"
-            
-            spectral_mode = get_parameter(params, 'spectral_mode', 'channel')
-            log.debug('predict_visibility: spectral mode is %s' % spectral_mode)
-            
-            if spectral_mode == 'channel':
-                for channel in range(im.nchan):
-                    uvw = vis.uvw_lambda(channel)
-                    for pol in range(im.npol):
-                        log.debug('predict_visibility: Predicting from image channel %d, polarisation %d' % (
-                            channel, pol))
-                        img = sm.images[0].data[channel, pol, :, :]
-            # dv = predict_image_partition(field_of_view, 1.0 / cellsize, numpy.array(uvw), img)
-            #             vis.vis[:, channel, pol] += dv
-            else:
-                raise NotImplementedError("mode %s not supported" % spectral_mode)
-            
-            log.debug("fourier_transforms.predict_visibility: Finished predicting Visibility from sky model images")
-    
-    # Now do the components (point sources only at the moment)
-    if len(sm.components):
-        log.debug("fourier_transforms.predict_visibility: Predicting Visibility from sky model components")
-        
-        for icomp, comp in enumerate(sm.components):
-            
-            log.debug("fourier_transforms.predict_visibility: visibility shape = %s" % str(vis.vis.shape))
-            assert_same_chan_pol(vis, comp)
-            
-            l, m, n = skycoord_to_lmn(comp.direction, vis.phasecentre)
-            log.debug('fourier_transforms.predict_visibility: Cartesian representation of component %d = (%f, %f, %f)'
-                      % (icomp, l, m, n))
-            
-            if spectral_mode == 'channel':
-                for channel in range(comp.nchan):
-                    uvw = vis.uvw_lambda(channel)
-                    phasor = simulate_point(uvw, l, m)
-                    for pol in range(comp.npol):
-                        log.debug(
-                            'fourier_transforms.predict_visibility: Predicting from component %d channel %d, polarisation %d' % (
-                                icomp, channel,
-                                pol))
-                        vis.vis[:, channel, pol] += comp.flux[channel, pol] * phasor
-            else:
-                raise NotImplementedError("mode %s not supported" % spectral_mode)
-        
-        log.debug("fourier_transforms.predict_visibility: Finished predicting Visibility from sky model components")
-    
-    return vis
-
-
-def weight_visibility(vis, im, params=None):
-    """ Reweight the visibility data in place a selected algorithm
-    
-    :param vis:
-    :param im:
-    :param params: Dictionary containing parameters
-    :returns: Configuration
-    """
-    # TODO: implement
-    
-    if params is None:
-        params = {}
-    log_parameters(params)
-    log.error("fourier_transforms.weight_visibility: not yet implemented")
-    return vis

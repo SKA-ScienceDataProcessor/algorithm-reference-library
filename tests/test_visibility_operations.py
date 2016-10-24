@@ -13,7 +13,7 @@ from arl.skymodel_operations import create_skycomponent
 from arl.testing_support import create_named_configuration
 from arl.skymodel_operations import create_skymodel_from_component, find_skycomponent, fit_skycomponent
 from arl.visibility_operations import *
-from arl.fourier_transforms import predict_visibility, invert_visibility
+from arl.ftprocessor import *
 
 
 class TestVisibilityOperations(unittest.TestCase):
@@ -43,7 +43,7 @@ class TestVisibilityOperations(unittest.TestCase):
         vispred = create_visibility(self.vlaa, self.times, self.frequency,
                                     weight=1.0, phasecentre=self.phasecentre,
                                     params=self.params)
-        self.vismodel = predict_visibility(vispred, self.m31sm, self.params)
+        self.vismodel = predict_skycomponent_visibility(vispred, self.m31comp, self.params)
     
     def test_visibilitysum(self):
         # Sum the visibilities in the correct_visibility direction. This is limited by numerical precision
@@ -69,7 +69,7 @@ class TestVisibilityOperations(unittest.TestCase):
         vispred = create_visibility(self.vlaa, self.times + ha_diff, self.frequency,
                                     weight=1.0, phasecentre=self.compabsdirection,
                                     params=self.params)
-        vismodel2 = predict_visibility(vispred, self.m31sm, self.params)
+        vismodel2 = predict_skycomponent_visibility(vispred, self.m31comp, self.params)
         
         # Should yield the same results as rotation
         rotatedvis = phaserotate_visibility(self.vismodel, self.compabsdirection)

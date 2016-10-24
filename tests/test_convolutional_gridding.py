@@ -1,14 +1,11 @@
 import unittest
 import itertools
-import numpy
-
 import random
 
-import matplotlib.pyplot as plt
 from numpy.testing import assert_allclose
 
 from arl.convolutional_gridding import _w_kernel_function, _kernel_oversample, \
-    _coordinates2, anti_aliasing_function, convolutional_degrid, convolutional_grid
+    _coordinates2, anti_aliasing_function, kernel_degrid, kernel_grid
 from arl.fft_support import *
 
 
@@ -82,9 +79,9 @@ class TestConvolutionalGridding(unittest.TestCase):
         uvcoords = numpy.array([[random.uniform(-0.25, 0.25), random.uniform(-0.25, 0.25)] for ivis in range(nvis)])
         # Make some visibilities, all complex unity
         vis = numpy.ones([nchan, npol, nvis], dtype='complex')
-        convolutional_grid(gcf, uvgrid, uvcoords, vis)
-        # plt.imshow(numpy.abs(uvgrid))
-        # plt.show()
+        visweights = numpy.ones([nchan, npol, nvis])
+        uvscale = numpy.array([1.0])
+        kernel_grid(gcf, uvgrid, uvcoords, uvscale, vis, visweights)
 
     def test_convolutional_degrid(self):
         shape = (7, 7)
@@ -100,8 +97,12 @@ class TestConvolutionalGridding(unittest.TestCase):
         # part of the coordinate maps onto the first two axes.
         # Make some uv coordinates with random locations
         uvcoords = numpy.array([[random.uniform(-0.25, 0.25), random.uniform(-0.25, 0.25)] for ivis in range(nvis)])
-        # Make some visibilities, all complex unity
-        vis = convolutional_degrid(gcf, uvgrid, uvcoords)
+        # Degrid the visibilities
+        uvscale = numpy.array([1.0])
+        vis = kernel_degrid(gcf, uvgrid, uvcoords, uvscale)
+        assert vis.shape[0] == nvis
+        assert vis.shape[1] == nchan
+        assert vis.shape[2] == npol
 
 if __name__ == '__main__':
     unittest.main()

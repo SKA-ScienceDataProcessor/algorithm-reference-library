@@ -13,7 +13,7 @@ from arl.testing_support import create_named_configuration, create_test_image
 from arl.skymodel_operations import create_skymodel_from_image, add_component_to_skymodel
 from arl.visibility_operations import create_visibility
 from arl.image_deconvolution import _msclean
-from arl.fourier_transforms import predict_visibility
+from arl.ftprocessor import *
 
 from astropy.coordinates import SkyCoord
 from astropy import units as u
@@ -55,7 +55,7 @@ class TestPipelines(unittest.TestCase):
         self.params={'wstep': 100.0, 'npixel': 256, 'cellsize': 0.0001}
         vispred = create_visibility(vlaa, times, frequency, weight=1.0, phasecentre=self.phasecentre,
                                    params=self.params)
-        self.visibility = predict_visibility(vispred, self.m31sm, self.params)
+        self.visibility = predict_2d(vispred, self.m31image, params=self.params)
         self.m31image.data *= 0.0
         self.m31sm = create_skymodel_from_image(self.m31image)
         self.m31sm = add_component_to_skymodel(self.m31sm, self.m31comp)

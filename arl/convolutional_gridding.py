@@ -163,7 +163,7 @@ def _frac_coord(npixel, kernel_oversampling, p):
     :param kernel_oversampling: Fractional values to round to
     :param p: Coordinate in range [-.5,.5[
     """
-    assert numpy.array(p >= -0.5).all() and numpy.array(p < 0.5).all()
+    assert numpy.array(p >= -0.5).all() and numpy.array(p < 0.5).all(), "uv overflows grid uv= %s" % str(p)
     x = npixel // 2 + p * npixel
     flx = numpy.floor(x + 0.5 / kernel_oversampling)
     fracx = numpy.around((x - flx) * kernel_oversampling)
@@ -183,56 +183,62 @@ def _frac_coords(shape, kernel_oversampling, xycoords):
     return x, xf, y, yf
 
 
-def convolutional_degrid(gcf, uvgrid, uv):
+def kernel_degrid(kernel, uvgrid, uv, uvscale):
     """Convolutional degridding with frequency and polarisation independent
 
     Takes into account fractional `uv` coordinate values where the GCF
     is oversampled
 
-    :param uv:
-    :param gcf: Oversampled convolution kernel
+    :param kernel: Oversampled convolution kernel
     :param uvgrid:   The uv plane to de-grid from
+    :param uv: fractional uv coordinates in range[-0.5,0.5[
+    :param uvscale: scaling for each channel
     :returns: Array of visibilities.
     """
-    kernel_oversampling, _, gh, gw = gcf.shape
+    kernel_oversampling, _, gh, gw = kernel.shape
     nchan, npol, ny, nx = uvgrid.shape
     nvis, _ = uv.shape
-    coords = _frac_coords(uvgrid.shape, kernel_oversampling, uv)
-    vis = numpy.zeros([nchan, npol, nvis])
-    wt = numpy.zeros([nchan, npol, nvis])
-    for pol in range(npol):
-        for chan in range(nchan):
-            vis[chan, pol, ...] = [
+    vis = numpy.zeros([nvis, nchan, npol], dtype='complex')
+    wt = numpy.zeros([nvis, nchan, npol])
+    for chan in range(nchan):
+        coords = _frac_coords(uvgrid.shape, kernel_oversampling, uv * uvscale[chan])
+        for pol in range(npol):
+            vis[..., chan, pol] = [
                 numpy.sum(uvgrid[chan, pol, y - gh // 2: y + (gh + 1) // 2, x - gw // 2: x + (gw + 1) // 2]
-                          * gcf[yf, xf])
+                          * kernel[yf, xf])
                 for x, xf, y, yf in zip(*coords)
                 ]
-            wt[chan, pol, ...] = [
-                numpy.sum(gcf[yf, xf])
+            wt[..., chan, pol] = [
+                numpy.sum(kernel[yf, xf].real)
                 for x, xf, y, yf in zip(*coords)
                 ]
-    vis[wt > 0.0] = vis[wt > 0.0] / wt[wt > 0.0]
-    print(vis)
+    vis[numpy.where(wt < 0)] = vis[numpy.where(wt < 0)]/wt[numpy.where(wt < 0)]
     return numpy.array(vis)
 
 
-def convolutional_grid(gcf, uvgrid, uv, vis):
+def kernel_grid(kernel, uvgrid, uv, uvscale, vis, visweights):
     """Grid after convolving with frequency and polarisation independent gcf
 
     Takes into account fractional `uv` coordinate values where the GCF
     is oversampled
 
-    :param gcf: Oversampled convolution kernel
+    :param kernel: Oversampled convolution kernel
     :param uvgrid: Grid to add to
     :param uv: UVW positions
     :param vis: Visibility values
+    :param vis: Visibility weights
     """
     
-    kernel_oversampling, _, gh, gw = gcf.shape
+    kernel_oversampling, _, gh, gw = kernel.shape
     nchan, npol, ny, nx = uvgrid.shape
-    coords = _frac_coords(uvgrid.shape, kernel_oversampling, uv)
-    for pol in range(npol):
-        for chan in range(nchan):
-            for v, x, xf, y, yf in zip(vis[chan, pol, :], *coords):
+    sumofweights = numpy.zeros([nchan, npol])
+    for chan in range(nchan):
+        coords = _frac_coords(uvgrid.shape, kernel_oversampling, uv * uvscale[chan])
+        for pol in range(npol):
+            for v, x, xf, y, yf in zip(visweights[..., chan, pol] * vis[..., chan, pol], *coords):
                 uvgrid[chan, pol, (y - gh // 2):(y + (gh + 1) // 2), (x - gw // 2):(x + (gw + 1) // 2)] \
-                    += gcf[yf, xf] * v
+                    += kernel[yf, xf] * v
+            sumofweights[chan, pol] = numpy.sum(visweights[..., chan, pol])
+            uvgrid[chan, pol, ...] /= sumofweights[chan, pol]
+
+    return uvgrid, sumofweights

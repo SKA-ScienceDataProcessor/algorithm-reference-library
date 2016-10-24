@@ -15,7 +15,7 @@ from arl.testing_support import create_named_configuration, create_test_image
 from arl.image_operations import export_image_to_fits
 from arl.skymodel_operations import create_skymodel_from_component, find_skycomponent, fit_skycomponent
 from arl.visibility_operations import create_visibility, sum_visibility
-from arl.fourier_transforms import predict_visibility, invert_visibility
+from arl.ftprocessor import *
 
 import logging
 
@@ -47,7 +47,7 @@ class TestFourierTransforms(unittest.TestCase):
         self.sm = create_skymodel_from_component(self.comp)
         vispred = create_visibility(vlaa, times, frequency, weight=1.0, phasecentre=self.phasecentre,
                                     params=self.params)
-        self.vismodel = predict_visibility(vispred, self.sm, self.params)
+        self.vismodel = predict_skycomponent_visibility(vispred, self.comp, self.params)
     
     @unittest.skip("Gridding not working yet")
     def test_all(self):
