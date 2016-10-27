@@ -8,9 +8,14 @@ All functions that involve convolutional gridding are kept here.
 
 from __future__ import division
 
+import logging
+
 import scipy.special
 
 from arl.fft_support import *
+from arl.parameters import get_parameter
+
+log = logging.getLogger("convolutional.gridding")
 
 
 def _coordinateBounds(npixel):
@@ -183,7 +188,7 @@ def _frac_coords(shape, kernel_oversampling, xycoords):
     return x, xf, y, yf
 
 
-def kernel_degrid(kernel, uvgrid, uv, uvscale):
+def fixed_kernel_degrid(kernel, uvgrid, uv, uvscale):
     """Convolutional degridding with frequency and polarisation independent
 
     Takes into account fractional `uv` coordinate values where the GCF
@@ -212,11 +217,12 @@ def kernel_degrid(kernel, uvgrid, uv, uvscale):
                 numpy.sum(kernel[yf, xf].real)
                 for x, xf, y, yf in zip(*coords)
                 ]
-    vis[numpy.where(wt < 0)] = vis[numpy.where(wt < 0)]/wt[numpy.where(wt < 0)]
+    vis[numpy.where(wt > 0)] = vis[numpy.where(wt > 0)]/wt[numpy.where(wt > 0)]
+    vis[numpy.where(wt < 0)] = 0.0
     return numpy.array(vis)
 
 
-def kernel_grid(kernel, uvgrid, uv, uvscale, vis, visweights):
+def fixed_kernel_grid(kernel, uvgrid, uv, uvscale, vis, visweights):
     """Grid after convolving with frequency and polarisation independent gcf
 
     Takes into account fractional `uv` coordinate values where the GCF
@@ -231,14 +237,47 @@ def kernel_grid(kernel, uvgrid, uv, uvscale, vis, visweights):
     
     kernel_oversampling, _, gh, gw = kernel.shape
     nchan, npol, ny, nx = uvgrid.shape
-    sumofweights = numpy.zeros([nchan, npol])
     for chan in range(nchan):
         coords = _frac_coords(uvgrid.shape, kernel_oversampling, uv * uvscale[chan])
         for pol in range(npol):
             for v, x, xf, y, yf in zip(visweights[..., chan, pol] * vis[..., chan, pol], *coords):
                 uvgrid[chan, pol, (y - gh // 2):(y + (gh + 1) // 2), (x - gw // 2):(x + (gw + 1) // 2)] \
                     += kernel[yf, xf] * v
-            sumofweights[chan, pol] = numpy.sum(visweights[..., chan, pol])
-            uvgrid[chan, pol, ...] /= sumofweights[chan, pol]
+    
+    return uvgrid
 
-    return uvgrid, sumofweights
+
+def weight_gridding(shape, uv, uvscale, visweights, params):
+    """Reweight data using one of a number of algorithms
+
+    Takes into account fractional `uv` coordinate values where the GCF
+    is oversampled
+
+    :param shape:
+    :param uv: UVW positions
+    :param uvscale: Scaling to uv (per channel)
+    :param vis: Visibility values
+    :param visweights: Visibility weights
+    """
+    weighting = get_parameter(params, 'weighting', 'uniform')
+    if weighting == 'uniform':
+        log.debug("convolutional_gridding.weight_gridding: Performing uniform weighting")
+        wtsgrid = numpy.zeros(shape)
+        nchan, npol, ny, nx = shape
+        for chan in range(nchan):
+            coords = _frac_coords(shape, 1.0, uv * uvscale[chan])
+            for pol in range(npol):
+                for wt, x, _, y, _ in zip(visweights[..., chan, pol], *coords):
+                    wtsgrid[chan, pol, y, x] += wt
+        newvisweights = numpy.zeros_like(visweights)
+        for chan in range(nchan):
+            coords = _frac_coords(shape, 1.0, uv * uvscale[chan])
+            for pol in range(npol):
+                for nwt, wt, x, _, y, _ in \
+                        zip(newvisweights[..., chan, pol], visweights[..., chan, pol], *coords):
+                    if wtsgrid[chan, pol, y, x] > 0.0:
+                        newvisweights[..., chan, pol] = visweights[..., chan, pol] / wtsgrid[chan, pol, y, x]
+    
+        return newvisweights
+    else:
+        return visweights

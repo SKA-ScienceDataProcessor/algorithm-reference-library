@@ -66,11 +66,11 @@ class TestFTProcessor(unittest.TestCase):
         sumofweights = 0.0
         for ftpfunc in [invert_2d]:
             log.debug("ftpfunc %s" % ftpfunc)
-            result, sumofweights = ftpfunc(vis=self.vis, im=self.model, dopsf=False, kernel=None,
+            result = ftpfunc(vis=self.vis, im=self.model, dopsf=False, kernel=None,
                                            params=self.params)
             self.dirty.data = result
 
-            result, sumofweights = ftpfunc(vis=self.vis, im=self.model, dopsf=True, kernel=None,
+            result = ftpfunc(vis=self.vis, im=self.model, dopsf=True, kernel=None,
                                            params=self.params)
             self.psf.data = result
 
@@ -86,11 +86,11 @@ class TestFTProcessor(unittest.TestCase):
         for ftpfunc in [invert_image_partition]:
             # [invert_wslice_partition, invert_image_partition, invert_fourier_partition]:
             log.debug("ftpfunc %s" % ftpfunc)
-            result, sumofweights = ftpfunc(vis=self.vis, im=self.model, dopsf=False, kernel=None,
+            result = ftpfunc(vis=self.vis, im=self.model, dopsf=False, kernel=None,
                                            invert_function=invert_2d, params=self.params)
             self.dirty.data = result
         
-            result, sumofweights = ftpfunc(vis=self.vis, im=self.model, dopsf=True,
+            result = ftpfunc(vis=self.vis, im=self.model, dopsf=True,
                                            invert_function=invert_2d, params=self.params)
             self.psf.data = result
 

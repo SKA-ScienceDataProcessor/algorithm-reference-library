@@ -4,6 +4,7 @@
 import sys, os
 
 sys.path.append('../..')
+sys.path.append('..')
 
 ##### Setup logging, matplotlib
 
@@ -27,21 +28,21 @@ pylab.rcParams['figure.figsize'] = (12.0, 12.0)
 pylab.rcParams['image.cmap'] = 'rainbow'
 
 from astropy.coordinates import SkyCoord
-from astropy.wcs.utils import skycoord_to_pixel, pixel_to_skycoord
 from astropy import units as u
+from astropy import constants as const
 
 from arl.image_deconvolution import deconvolve_cube
 from arl.visibility_operations import create_visibility, combine_visibility, aq_visibility
-from arl.ftprocessor import predict_image_partition, invert_image_partition
-#from arl.fourier_transforms import *
-from arl.skymodel_operations import create_skymodel_from_image, add_component_to_skymodel, create_skycomponent, \
-    find_skycomponent
 from arl.image_operations import show_image, export_image_to_fits, create_empty_image_like
 from arl.testing_support import create_named_configuration, create_test_image
+from arl.ftprocessor import *
+from arl.parameters import log_parameters
 
 ##### End of setup
-params = {}
-doshow = False
+cellsize = 2e-5
+params = {'wstep': 100.0, 'npixel': 512, 'cellsize': cellsize, 'niter': 1000, 'scales':[0,3,10,30],
+          'threshold': 0.001, 'fracthresh': 0.01, 'weighting':'uniform'}
+doshow = True
 
 log.info("run_imaging: Starting")
 
@@ -49,7 +50,7 @@ log.info("run_imaging: Starting")
 vlaa = create_named_configuration('VLAA')
 
 # We create the visibility. This just makes the uvw, time, antenna1, antenna2, weight columns in a table
-vlaa.data['xyz'] = vlaa.data['xyz'] / 10.0
+vlaa.data['xyz'] = vlaa.data['xyz']
 times = numpy.arange(-numpy.pi / 2.0, +numpy.pi / 2.0, 0.05)
 frequency = numpy.array([1e8])
 reffrequency = numpy.max(frequency)
@@ -65,43 +66,10 @@ if doshow:
         plt.plot(-x * vis.data['uvw'][:, 0], -x * vis.data['uvw'][:, 1], '.', color='r')
 
 # Read the venerable test image, constructing an image, and catch the axes for our purposes
-m31image = create_test_image()
-cellsize = 180.0 * 0.0001 / numpy.pi
-m31image.wcs.wcs.cdelt[0] = -cellsize
-m31image.wcs.wcs.cdelt[1] = +cellsize
-m31image.wcs.wcs.radesys = 'ICRS'
-m31image.wcs.wcs.equinox = 2000.00
-
-# Show the model image
-if doshow:
-    plt.clf()
-    plt.imshow(m31image.data, origin='lower', cmap='rainbow')
-    plt.xlabel('RA---SIN')
-    plt.ylabel('DEC--SIN')
-    plt.show()
-
-# We need a linear reference frame to inset a model source. This is a bit involved due to the Astropy way of doing
-# things
-wall = m31image.wcs
-wall.wcs.radesys = 'ICRS'
-wall.wcs.equinox = 2000.00
-sc = pixel_to_skycoord(128, 128, wall, 1, 'wcs')
-compabsdirection = SkyCoord("-1.0d", "37.0d", frame='icrs', equinox=2000.0)
-pixloc = skycoord_to_pixel(compabsdirection, wall, 1)
-scrt = pixel_to_skycoord(pixloc[0], pixloc[1], wall, 1, 'wcs')
-sof = sc.skyoffset_frame()
-compreldirection = compabsdirection.transform_to(sof)
-
-# Create a skycomponent and add it to the skymodel
-comp1 = create_skycomponent(flux=numpy.array([[30.0, 0.0, 0.0, 0.0]]), frequency=frequency,
-                            direction=compreldirection)
-m31sm = create_skymodel_from_image(m31image)
-m31sm = add_component_to_skymodel(m31sm, comp1)
+m31image = create_test_image(cellsize=cellsize)
 
 # Now we can predict_visibility the visibility from this skymodel
-params = {'wstep': 100.0, 'npixel': 256, 'cellsize': 0.0001}
-
-vis = predict_image_partition(vis, m31sm.images[0], params=params)
+vis = predict_2d(vis, m31image, params=params)
 
 # To check that we got the prediction right, plot the amplitude of the visibility.
 if doshow:
@@ -112,47 +80,42 @@ if doshow:
     plt.ylabel('Amp Visibility')
     plt.show()
 
-# Make the dirty image and point spread function
+# Make the dirty image and point spread function. They are empty at this point
+dirty = create_image_from_visibility (vis, params)
+psf =   create_image_from_visibility (vis, params)
 
-params = {'wstep': 30.0, 'npixel': 512, 'cellsize': 0.0001}
+# Reweight the data
+vis = weight_visibility(vis, dirty, params)
+
+psf = invert_2d(vis, psf, dopsf=True, params=params)
+show_image(psf)
+log.info("run_imaging: Max, min in PSF         = %.6f, %.6f" % (psf.data.max(), psf.data.min()))
 
 
-dirty = create_empty_image_like(m31image)
-psf = create_empty_image_like(m31image)
-sumwt = 0.0
-dirty, psf, sumwt = invert_image_partition(vis, dirty, psf, sumwt, params=params)
-show_image(dirty)
-log.info("run_imaging: Max, min in dirty image = %.6f, %.6f, sum of weights = %f" % (
-dirty.data.max(), dirty.data.min(), sumwt))
+# Now use straightforward 2D transform to make dirty image and psf.
+dirty = invert_2d(vis, dirty, params=params)
 
-log.info(
-    "run_imaging: Max, min in PSF         = %.6f, %.6f, sum of weights = %f" % (psf.data.max(), psf.data.min(), sumwt))
+psfmax = numpy.max(psf.data)
+dirty.data=dirty.data/psfmax
+psf.data=psf.data/psfmax
+
+log.info("run_imaging: Max, min in dirty image = %.6f, %.6f" % (dirty.data.max(), dirty.data.min()))
 
 export_image_to_fits(dirty, 'run_imaging_dirty.fits')
 export_image_to_fits(psf, 'run_imaging_psf.fits')
 
-m31compnew = find_skycomponent(dirty)
-
 # Deconvolve using clean
-
-params = {'niter': 1000, 'threshold': 0.001, 'fracthresh': 0.01}
-
-comp, residual = deconvolve_cube(dirty, psf, params=params)
+cleanimage, residual = deconvolve_cube(dirty, psf, params=params)
 
 # Show the results
-
-fig = show_image(comp)
+fig = show_image(cleanimage)
 fig = show_image(residual)
+export_image_to_fits(cleanimage, 'run_imaging_cleanimage.fits')
+export_image_to_fits(residual, 'run_imaging_residual.fits')
 
 # Predict the visibility of the model
-
-params = {'wstep': 30.0}
-
-vis = predict_image_partition(vis, m31sm.images[0], params=params)
-modelsm = create_skymodel_from_image(comp)
 vismodel = create_visibility(vlaa, times, frequency, weight=1.0, phasecentre=phasecentre)
-vismodel.data = vis.data.copy()
-vismodel = predict_image_partition(vismodel, m31sm.images[0], params={})
+vismodel = predict_2d(vismodel, cleanimage, params=params)
 visres = combine_visibility(vis, vismodel, 1.0, -1.0)
 
 # Now we will plot the original visibility and the residual visibility.

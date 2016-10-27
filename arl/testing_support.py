@@ -205,7 +205,7 @@ def import_visibility_from_oskar(oskar_file: str, params=None) -> Visibility:
         weight=numpy.ones(a1.shape))
 
 
-def create_test_image(canonical=True, npol=4, nchan=1):
+def create_test_image(canonical=True, npol=4, nchan=1, cellsize=None):
     """Create a useful test image
 
     This is the test image M31 widely used in ALMA and other simulations. It is actually part of an Halpha region in
@@ -219,6 +219,11 @@ def create_test_image(canonical=True, npol=4, nchan=1):
     im = import_image_from_fits(crocodile_path("data/models/M31.MOD"))
     if canonical:
         im = replicate_image(im, nchan=nchan, npol=npol)
+        if cellsize is not None:
+            im.wcs.wcs.cdelt[0] = -180.0 * cellsize / numpy.pi
+            im.wcs.wcs.cdelt[1] = +180.0 * cellsize / numpy.pi
+        im.wcs.wcs.radesys = 'ICRS'
+        im.wcs.wcs.equinox = 2000.00
     return im
 
 

@@ -4,17 +4,20 @@
 Functions that aid fourier transform processing. These are built on top of the core
 functions in arl.fourier_transforms
 """
-
+from astropy import units as units
 from astropy.constants import c
+from astropy import wcs
 
-from arl.convolutional_gridding import anti_aliasing_function, kernel_grid, \
-    kernel_degrid, _kernel_oversample
+from arl.convolutional_gridding import anti_aliasing_function, fixed_kernel_grid, \
+    fixed_kernel_degrid, _kernel_oversample, weight_gridding
 from arl.coordinate_support import simulate_point, skycoord_to_lmn
 from arl.data_models import *
 from arl.fft_support import fft, ifft
+
 from arl.image_iterators import *
-from arl.parameters import get_parameter, log_parameters
 from arl.visibility_iterators import *
+
+from arl.parameters import get_parameter, log_parameters
 
 log = logging.getLogger("arl.ftprocessor")
 
@@ -28,7 +31,7 @@ def predict_2d(vis, model, kernel=None, params=None):
     nchan, npol, ny, nx = model.data.shape
     if kernel is None:
         log.debug("ftprocessor.predict_2d: predicting using PSWF")
-        gcf = anti_aliasing_function((ny, nx), 0, 10)
+        gcf = anti_aliasing_function((ny, nx), 6, 0)
         kernel = _kernel_oversample(gcf, nx, 8, 32)
     else:
         log.debug("ftprocessor.predict_2d: predicting")
@@ -37,7 +40,7 @@ def predict_2d(vis, model, kernel=None, params=None):
     cellsize = abs(model.wcs.wcs.cdelt[0]) * numpy.pi / 180.0
     # uvw is in metres, v.frequency / c.value converts to wavelengths, the cellsize converts to phase
     uvscale = cellsize * vis.frequency / c.value
-    vis.data['vis'] = kernel_degrid(kernel, uvgrid, vis.data['uvw'], uvscale)
+    vis.data['vis'] = fixed_kernel_degrid(kernel, uvgrid, vis.data['uvw'], uvscale)
     return vis
 
 
@@ -112,13 +115,14 @@ def invert_2d(vis, im, dopsf=False, kernel=None, params=None):
     uvscale = cellsize * vis.frequency / c.value
     if dopsf:
         weights = numpy.ones_like(vis.data['vis'])
-        im.data, sumofweights = kernel_grid(kernel, imgrid, vis.data['uvw'], uvscale, weights, vis.data['weight'])
+        im.data = fixed_kernel_grid(kernel, imgrid, vis.data['uvw'], uvscale, weights,
+                                    vis.data['weight'])
     else:
-        im.data, sumofweights = kernel_grid(kernel, imgrid, vis.data['uvw'], uvscale, vis.data['vis'],
-                                            vis.data['weight'])
+        im.data = fixed_kernel_grid(kernel, imgrid, vis.data['uvw'], uvscale, vis.data['vis'],
+                                    vis.data['weight'])
     im.data = numpy.real(ifft(imgrid))
 
-    return im, sumofweights
+    return im
 
 
 def invert_image_partition(vis, im, dopsf=False, kernel=None, invert_function=invert_2d, params=None):
@@ -131,9 +135,9 @@ def invert_image_partition(vis, im, dopsf=False, kernel=None, invert_function=in
     nraster = get_parameter(params, "image_partitions", 1)
     log.debug("ftprocessor.invert_image_partition: inverting using %d x %d image partitions" % (nraster, nraster))
     for dpatch in raster_iter(im, nraster=nraster):
-        result, sumofweights = invert_function(vis, dpatch, dopsf, invert_function, params)
+        result = invert_function(vis, dpatch, dopsf, invert_function, params)
     
-    return result, sumofweights
+    return result
 
 
 def invert_fourier_partition(vis, im, dopsf=False, kernel=None, invert_function=invert_2d, params=None):
@@ -145,9 +149,9 @@ def invert_fourier_partition(vis, im, dopsf=False, kernel=None, invert_function=
     nraster = get_parameter(params, "fourier_partitions", 1)
     log.debug("ftprocessor.invert_fourier_partition: inverting using %d x %d fourier partitions" % (nraster, nraster))
     for dpatch in raster_iter(im, nraster=nraster):
-        result, sumofweights = invert_function(vis, dpatch, dopsf, invert_function, params)
+        result = invert_function(vis, dpatch, dopsf, invert_function, params)
     
-    return result, sumofweights
+    return result
 
 
 def invert_wslice_partition(vis, im, dopsf=False, kernel=None, invert_function=invert_2d, params=None):
@@ -159,9 +163,9 @@ def invert_wslice_partition(vis, im, dopsf=False, kernel=None, invert_function=i
     wstep = get_parameter(params, "wstep", 1000)
     log.debug("ftprocessor.invert_wslice_partition: inverting")
     for visslice in vis_wslice_iter(vis, wstep):
-        result, sumofweights = invert_function(visslice, im, dopsf, invert_function, params)
+        result = invert_function(visslice, im, dopsf, invert_function, params)
     
-    return result, sumofweights
+    return result
 
 
 def predict_skycomponent_visibility(vis: Visibility, sc: Skycomponent, params=None) -> Visibility:
@@ -218,6 +222,71 @@ def weight_visibility(vis, im, params=None):
     
     if params is None:
         params = {}
+    cellsize = abs(im.wcs.wcs.cdelt[0]) * numpy.pi / 180.0
+    # uvw is in metres, v.frequency / c.value converts to wavelengths, the cellsize converts to phase
+    uvscale = cellsize * vis.frequency / c.value
     log_parameters(params)
-    log.error("fourier_transforms.weight_visibility: not yet implemented")
+    vis.data['weight'] = weight_gridding(im.data.shape, vis.data['uvw'], uvscale, vis.data['weight'],
+                                          params)
     return vis
+
+
+def create_wcs_from_visibility(vis, params=None):
+    """Make a world coordinate system from params and Visibility
+
+    :param vis:
+    :param params: keyword=value parameters
+    :returns: WCS
+    """
+    if params is None:
+        params = {}
+    log.debug("fourier_transforms.create_wcs_from_visibility: Parsing parameters to get definition of WCS")
+    imagecentre = get_parameter(params, "imagecentre", vis.phasecentre)
+    phasecentre = get_parameter(params, "phasecentre", vis.phasecentre)
+    reffrequency = get_parameter(params, "reffrequency", numpy.max(vis.frequency)) * units.Hz
+    deffaultbw = vis.frequency[0]
+    if len(vis.frequency) > 1:
+        deffaultbw = vis.frequency[1] - vis.frequency[0]
+    channelwidth = get_parameter(params, "channelwidth", deffaultbw) * units.Hz
+    log.debug("fourier_transforms.create_wcs_from_visibility: Defining Image at %s, frequency %s, and bandwidth %s"
+              % (imagecentre, reffrequency, channelwidth))
+    
+    npixel = get_parameter(params, "npixel", 512)
+    uvmax = (numpy.abs(vis.data['uvw']).max() * reffrequency / c).value
+    log.debug("create_wcs_from_visibility: uvmax = %f lambda" % uvmax)
+    criticalcellsize = 1.0 / (uvmax * 2.0)
+    log.debug("create_wcs_from_visibility: Critical cellsize = %f radians, %f degrees" % (
+        criticalcellsize, criticalcellsize * 180.0 / numpy.pi))
+    cellsize = get_parameter(params, "cellsize", 0.5 * criticalcellsize)
+    log.debug("create_wcs_from_visibility: Cellsize          = %f radians, %f degrees" % (cellsize,
+                                                                                          cellsize * 180.0 / numpy.pi))
+    if cellsize > criticalcellsize:
+        log.debug("Resetting cellsize %f radians to criticalcellsize %f radians" % (cellsize, criticalcellsize))
+        cellsize = criticalcellsize
+    
+    npol = 4
+    # Beware of python indexing order! wcs and the array have opposite ordering
+    shape = [len(vis.frequency), npol, npixel, npixel]
+    w = wcs.WCS(naxis=4)
+    # The negation in the longitude is needed by definition of RA, DEC
+    w.wcs.cdelt = [-cellsize * 180.0 / numpy.pi, cellsize * 180.0 / numpy.pi, 1.0, channelwidth.value]
+    w.wcs.crpix = [npixel // 2 + 1, npixel // 2 + 1, 1.0, 1.0]
+    w.wcs.ctype = ["RA---SIN", "DEC--SIN", 'STOKES', 'FREQ']
+    w.wcs.crval = [phasecentre.ra.value, phasecentre.dec.value, 1.0, reffrequency.value]
+    w.naxis = 4
+    
+    w.wcs.radesys = get_parameter(params, 'frame', 'ICRS')
+    w.wcs.equinox = get_parameter(params, 'equinox', 2000.0)
+    
+    return shape, reffrequency, cellsize, w, imagecentre
+
+def create_image_from_visibility(vis, params=None):
+    """Make an empty imagefrom params and Visibility
+
+    :param vis:
+    :param params: keyword=value parameters
+    :returns: WCS
+    """
+    shape, _, _, w, _ = create_wcs_from_visibility(vis, params=params)
+    return create_image_from_array(numpy.zeros(shape), wcs=w)
+    
