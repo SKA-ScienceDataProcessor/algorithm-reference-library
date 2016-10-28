@@ -4,10 +4,11 @@
 # subclasses of astropy classes.
 #
 
-from arl.data_models import *
-from arl.parameters import *
 from arl.ftprocessor import invert_2d, predict_2d
-from arl.visibility_operations import combine_visibility
+
+from data.data_models import *
+from data.parameters import *
+from visibility.visibility_operations import combine_visibility
 
 log = logging.getLogger("arl.skymodel_solvers")
 

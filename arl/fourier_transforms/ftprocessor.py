@@ -4,20 +4,18 @@
 Functions that aid fourier transform processing. These are built on top of the core
 functions in arl.fourier_transforms
 """
+from arl.fourier_transforms.fft_support import fft, ifft
 from astropy import units as units
-from astropy.constants import c
 from astropy import wcs
+from astropy.constants import c
 
-from arl.convolutional_gridding import anti_aliasing_function, fixed_kernel_grid, \
+from arl.data.data_models import *
+from arl.data.parameters import get_parameter, log_parameters
+from arl.image.image_iterators import *
+from arl.util.convolutional_gridding import anti_aliasing_function, fixed_kernel_grid, \
     fixed_kernel_degrid, _kernel_oversample, weight_gridding
-from arl.coordinate_support import simulate_point, skycoord_to_lmn
-from arl.data_models import *
-from arl.fft_support import fft, ifft
-
-from arl.image_iterators import *
-from arl.visibility_iterators import *
-
-from arl.parameters import get_parameter, log_parameters
+from arl.util.coordinate_support import simulate_point, skycoord_to_lmn
+from arl.visibility.visibility_iterators import *
 
 log = logging.getLogger("arl.ftprocessor")
 

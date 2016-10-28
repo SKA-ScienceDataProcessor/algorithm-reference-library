@@ -11,9 +11,9 @@ from __future__ import division
 import logging
 
 import scipy.special
+from arl.fourier_transforms.fft_support import *
 
-from arl.fft_support import *
-from arl.parameters import get_parameter
+from data.parameters import get_parameter
 
 log = logging.getLogger("convolutional.gridding")
 
@@ -217,7 +217,7 @@ def fixed_kernel_degrid(kernel, uvgrid, uv, uvscale):
                 numpy.sum(kernel[yf, xf].real)
                 for x, xf, y, yf in zip(*coords)
                 ]
-    vis[numpy.where(wt > 0)] = vis[numpy.where(wt > 0)]/wt[numpy.where(wt > 0)]
+    vis[numpy.where(wt > 0)] = vis[numpy.where(wt > 0)] / wt[numpy.where(wt > 0)]
     vis[numpy.where(wt < 0)] = 0.0
     return numpy.array(vis)
 
@@ -264,20 +264,20 @@ def weight_gridding(shape, uv, uvscale, visweights, params):
         log.debug("convolutional_gridding.weight_gridding: Performing uniform weighting")
         wtsgrid = numpy.zeros(shape)
         nchan, npol, ny, nx = shape
+        # Add all visibility points to a float grid
         for chan in range(nchan):
             coords = _frac_coords(shape, 1.0, uv * uvscale[chan])
             for pol in range(npol):
                 for wt, x, _, y, _ in zip(visweights[..., chan, pol], *coords):
                     wtsgrid[chan, pol, y, x] += wt
+        # Normalise each visibility weight to sum to one in a grid cell
         newvisweights = numpy.zeros_like(visweights)
         for chan in range(nchan):
             coords = _frac_coords(shape, 1.0, uv * uvscale[chan])
             for pol in range(npol):
-                for nwt, wt, x, _, y, _ in \
-                        zip(newvisweights[..., chan, pol], visweights[..., chan, pol], *coords):
-                    if wtsgrid[chan, pol, y, x] > 0.0:
-                        newvisweights[..., chan, pol] = visweights[..., chan, pol] / wtsgrid[chan, pol, y, x]
-    
+                newvisweights[..., chan, pol] = [wt / wtsgrid[chan, pol, y, x]
+                                                 for wt, x, _, y, _ in zip(visweights[..., chan, pol], *coords)
+                                                 ]
         return newvisweights
     else:
         return visweights

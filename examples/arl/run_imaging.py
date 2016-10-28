@@ -1,7 +1,7 @@
 # This script works through the high level arl interface to crocodile, making a fake data set and then
 # deconvolving it. Finally the full and residual visibility are plotted.
 
-import sys, os
+import sys
 
 sys.path.append('../..')
 sys.path.append('..')
@@ -31,12 +31,11 @@ from astropy.coordinates import SkyCoord
 from astropy import units as u
 from astropy import constants as const
 
-from arl.image_deconvolution import deconvolve_cube
-from arl.visibility_operations import create_visibility, combine_visibility, aq_visibility
-from arl.image_operations import show_image, export_image_to_fits, create_empty_image_like
-from arl.testing_support import create_named_configuration, create_test_image
-from arl.ftprocessor import *
-from arl.parameters import log_parameters
+from arl.image.image_deconvolution import deconvolve_cube
+from arl.visibility.visibility_operations import create_visibility, combine_visibility, aq_visibility
+from arl.image.image_operations import show_image, export_image_to_fits
+from arl.util.testing_support import create_named_configuration, create_test_image
+from arl.fourier_transforms.ftprocessor import *
 
 ##### End of setup
 cellsize = 2e-5

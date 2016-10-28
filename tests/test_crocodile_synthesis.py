@@ -1,10 +1,11 @@
-from crocodile.synthesis import *
-from arl.coordinate_support import *
-
-import unittest
 import itertools
+import unittest
+
 import numpy as np
 from numpy.testing import assert_allclose
+
+from crocodile.synthesis import *
+from util.coordinate_support import *
 
 
 class TestSynthesis(unittest.TestCase):

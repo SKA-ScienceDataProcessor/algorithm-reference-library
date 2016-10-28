@@ -3,8 +3,8 @@
 
 # Tim Cornwell <realtimcornwell@gmail.com>
 
-from arl.data_models import *
-from arl.parameters import *
+from data.data_models import *
+from data.parameters import *
 
 """
 Holder for the Quality Assessment

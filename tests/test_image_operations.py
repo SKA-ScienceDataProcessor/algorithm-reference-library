@@ -2,18 +2,13 @@
 
 realtimcornwell@gmail.com
 """
+import sys
 import unittest
 
-import os
-import sys
-import numpy
-from numpy.testing import assert_allclose
+from image.image_iterators import *
+from image.image_operations import *
+from util.testing_support import create_test_image
 
-from arl.image_operations import *
-from arl.image_iterators import *
-from arl.testing_support import create_test_image
-
-import logging
 log = logging.getLogger("tests.TestImag")
 
 class TestImage(unittest.TestCase):

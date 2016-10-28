@@ -3,12 +3,10 @@
 realtimcornwell@gmail.com
 """
 
-import unittest
-import os
-
-from arl.parameters import *
-
 import logging
+import unittest
+
+from data.parameters import *
 log = logging.getLogger("arl.test_parameters")
 
 class TestParameters(unittest.TestCase):

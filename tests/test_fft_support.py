@@ -1,10 +1,10 @@
 import unittest
 
+from arl.fourier_transforms.fft_support import *
 from numpy.testing import assert_allclose
-from arl.fft_support import *
-from arl.coordinate_support import *
 
-from arl.convolutional_gridding import _w_kernel_function, _kernel_oversample, _coordinates2
+from util.convolutional_gridding import _coordinates2
+from util.coordinate_support import *
 
 class TestFFTSupport(unittest.TestCase):
     

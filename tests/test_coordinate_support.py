@@ -1,10 +1,10 @@
 import unittest
+
 import numpy as np
+from astropy import units as u
 from numpy.testing import assert_allclose
 
-from astropy import units as u
-
-from arl.coordinate_support import *
+from arl.util.coordinate_support import *
 
 
 class TestCoordinates(unittest.TestCase):

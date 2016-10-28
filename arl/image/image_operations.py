@@ -9,8 +9,8 @@ from astropy.io import fits
 from astropy.wcs import WCS
 from reproject import reproject_interp
 
-from arl.data_models import *
-from arl.parameters import *
+from data.data_models import *
+from data.parameters import *
 
 log = logging.getLogger("arl.image_operations")
 

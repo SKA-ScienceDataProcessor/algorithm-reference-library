@@ -11,11 +11,12 @@ from astropy.coordinates import ICRS, EarthLocation
 from astropy.table import Column
 from astropy.wcs import WCS
 
-from arl.coordinate_support import *
-from arl.data_models import *
-from arl.image_operations import import_image_from_fits, add_wcs_to_image
-from arl.parameters import crocodile_path
-from util.read_oskar_vis import OskarVis
+from read_oskar_vis import OskarVis
+
+from arl.data.data_models import *
+from arl.data.parameters import crocodile_path
+from arl.image.image_operations import import_image_from_fits, add_wcs_to_image
+from arl.util.coordinate_support import *
 
 log = logging.getLogger("arl.test_support")
 
@@ -255,8 +256,9 @@ def replicate_image(im: Image, npol=4, nchan=1, frequency=1.4e9):
         fim.data = numpy.zeros(fshape)
         log.debug("replicate_image: replicating shape %s to %s" % (im.data.shape, fim.data.shape))
         for i3 in range(nchan):
-            for i2 in range(npol):
-                fim.data[i3, i2, :, :] = im.data[:, :]
+            fim.data[i3, 0, :, :] = im.data[:, :]
+            for i2 in range(1, npol):
+                fim.data[i3, i2, :, :] = 0.0
     else:
         fim = im
     

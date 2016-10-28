@@ -1,12 +1,14 @@
-import unittest
 import itertools
 import random
+import unittest
 
+import numpy
+
+from arl.fourier_transforms.fft_support import *
 from numpy.testing import assert_allclose
 
-from arl.convolutional_gridding import _w_kernel_function, _kernel_oversample, \
+from arl.util.convolutional_gridding import _w_kernel_function, _kernel_oversample, \
     _coordinates2, anti_aliasing_function, fixed_kernel_degrid, fixed_kernel_grid
-from arl.fft_support import *
 
 
 class TestConvolutionalGridding(unittest.TestCase):

@@ -6,7 +6,7 @@ Functions that define and manipulate images. Images are just data and a World Co
 
 import logging
 
-from arl.image_operations import create_image_from_array
+from image.image_operations import create_image_from_array
 
 log = logging.getLogger("arl.image_iterators")
 

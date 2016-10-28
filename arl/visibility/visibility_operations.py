@@ -11,9 +11,9 @@ log = logging.getLogger("arl.visibility_operations")
 
 from astropy.table import vstack
 
-from arl.coordinate_support import *
-from arl.data_models import *
-from arl.parameters import *
+from arl.util.coordinate_support import *
+from arl.data.data_models import *
+from arl.data.parameters import *
 
 
 def combine_visibility(vis1: Visibility, vis2: Visibility, w1: float = 1.0, w2: float = 1.0, params=None) -> Visibility:

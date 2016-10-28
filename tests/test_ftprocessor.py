@@ -2,22 +2,20 @@
 
 realtimcornwell@gmail.com
 """
+import logging
 import unittest
 
 import numpy
-from numpy.testing import assert_allclose
 
-from astropy.coordinates import SkyCoord
+from arl.fourier_transforms.ftprocessor import *
 from astropy import units as u
+from astropy.coordinates import SkyCoord
 
-from arl.skymodel_operations import create_skycomponent
-from arl.testing_support import create_named_configuration, create_test_image
-from arl.image_operations import create_empty_image_like
-from arl.skymodel_operations import create_skymodel_from_component
-from arl.visibility_operations import create_visibility
-from arl.ftprocessor import *
-
-import logging
+from arl.image.image_operations import create_empty_image_like
+from arl.skymodel.skymodel_operations import create_skycomponent
+from arl.skymodel.skymodel_operations import create_skymodel_from_component
+from arl.util.testing_support import create_named_configuration, create_test_image
+from arl.visibility.visibility_operations import create_visibility
 
 log = logging.getLogger("tests.test_ftprocessor")
 
@@ -51,7 +49,7 @@ class TestFTProcessor(unittest.TestCase):
                                      params=self.params)
         self.model = create_test_image(npol=4, nchan=3)
         # Scale the image in x, y appropriately
-        self.model.wcs.wcs.cdelt[0:1]*=5.0
+        self.model.wcs.wcs.cdelt[0:1] *= 5.0
         self.dirty = create_empty_image_like(self.model)
         self.psf = create_empty_image_like(self.model)
         
@@ -67,31 +65,30 @@ class TestFTProcessor(unittest.TestCase):
         for ftpfunc in [invert_2d]:
             log.debug("ftpfunc %s" % ftpfunc)
             result = ftpfunc(vis=self.vis, im=self.model, dopsf=False, kernel=None,
-                                           params=self.params)
+                             params=self.params)
             self.dirty.data = result
-
+            
             result = ftpfunc(vis=self.vis, im=self.model, dopsf=True, kernel=None,
-                                           params=self.params)
+                             params=self.params)
             self.psf.data = result
-
-    @unittest.skip('Predict image partition not yet working') # Need to sort out coordinate and cellsizes
+    
+    @unittest.skip('Predict image partition not yet working')  # Need to sort out coordinate and cellsizes
     def test_predict_partition(self):
         for ftpfunc in [predict_image_partition]:
-            #[predict_wslice_partition, predict_image_partition, predict_fourier_partition]:
+            # [predict_wslice_partition, predict_image_partition, predict_fourier_partition]:
             log.debug("ftpfunc %s" % ftpfunc)
             ftpfunc(model=self.model, vis=self.vis, predict_function=predict_2d, params=self.params)
-
+    
     def test_invert_partition(self):
-        sumofweights = 0.0
         for ftpfunc in [invert_image_partition]:
             # [invert_wslice_partition, invert_image_partition, invert_fourier_partition]:
             log.debug("ftpfunc %s" % ftpfunc)
             result = ftpfunc(vis=self.vis, im=self.model, dopsf=False, kernel=None,
-                                           invert_function=invert_2d, params=self.params)
+                             invert_function=invert_2d, params=self.params)
             self.dirty.data = result
-        
+            
             result = ftpfunc(vis=self.vis, im=self.model, dopsf=True,
-                                           invert_function=invert_2d, params=self.params)
+                             invert_function=invert_2d, params=self.params)
             self.psf.data = result
 
 

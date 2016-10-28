@@ -5,11 +5,10 @@
 #
 #
 
-from arl.visibility_calibration import solve_gains, qa_gaintable
-from arl.quality_assessment import QA
-from arl.parameters import *
+from data.parameters import *
+from util.quality_assessment import QA
+from visibility.visibility_calibration import solve_gains, qa_gaintable
 
-import logging
 log = logging.getLogger("arl.pipelines")
 
 def RCAL(params):

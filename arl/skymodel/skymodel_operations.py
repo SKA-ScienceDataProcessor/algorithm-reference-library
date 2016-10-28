@@ -7,8 +7,8 @@
 from astropy.coordinates import SkyCoord
 from astropy.wcs.utils import skycoord_to_pixel, pixel_to_skycoord
 
-from arl.data_models import *
-from arl.parameters import *
+from data.data_models import *
+from data.parameters import *
 
 log = logging.getLogger("arl.skymodel_operations")
 
