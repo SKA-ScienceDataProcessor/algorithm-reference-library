@@ -9,10 +9,10 @@ from arl.fourier_transforms.ftprocessor import *
 from astropy import units as u
 from numpy.testing import assert_allclose
 
-from skymodel.skymodel_operations import create_skycomponent
-from skymodel.skymodel_operations import create_skymodel_from_component
+from skymodel.operations import create_skycomponent
+from skymodel.operations import create_skymodel_from_component
 from util.testing_support import create_named_configuration
-from visibility.visibility_operations import *
+from visibility.operations import *
 
 
 class TestVisibilityOperations(unittest.TestCase):

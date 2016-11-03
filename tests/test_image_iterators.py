@@ -5,7 +5,7 @@ realtimcornwell@gmail.com
 import sys
 import unittest
 
-from arl.image.image_iterators import *
+from arl.image.iterators import *
 from arl.util.testing_support import create_test_image
 
 log = logging.getLogger("tests.TestImageIterators")

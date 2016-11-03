@@ -5,8 +5,8 @@ realtimcornwell@gmail.com
 import sys
 import unittest
 
-from image.image_iterators import *
-from image.image_operations import *
+from image.iterators import *
+from image.operations import *
 from util.testing_support import create_test_image
 
 log = logging.getLogger("tests.TestImag")
