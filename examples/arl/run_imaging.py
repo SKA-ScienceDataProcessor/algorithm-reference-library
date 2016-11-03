@@ -31,15 +31,15 @@ from astropy.coordinates import SkyCoord
 from astropy import units as u
 from astropy import constants as const
 
-from arl.image.image_deconvolution import deconvolve_cube
-from arl.visibility.visibility_operations import create_visibility, combine_visibility, aq_visibility
-from arl.image.image_operations import show_image, export_image_to_fits
+from arl.image.deconvolution import deconvolve_cube
+from arl.visibility.operations import create_visibility, combine_visibility, aq_visibility
+from arl.image.operations import show_image, export_image_to_fits
 from arl.util.testing_support import create_named_configuration, create_test_image
 from arl.fourier_transforms.ftprocessor import *
 
 ##### End of setup
 cellsize = 2e-5
-params = {'wstep': 100.0, 'npixel': 512, 'cellsize': cellsize, 'niter': 1000, 'scales':[0,3,10,30],
+params = {'wstep': 100.0, 'npixel': 512, 'cellsize': cellsize, 'niter': 1000, 'scales':[0,10,30],
           'threshold': 0.001, 'fracthresh': 0.01, 'weighting':'uniform'}
 doshow = True
 
@@ -65,7 +65,7 @@ if doshow:
         plt.plot(-x * vis.data['uvw'][:, 0], -x * vis.data['uvw'][:, 1], '.', color='r')
 
 # Read the venerable test image, constructing an image, and catch the axes for our purposes
-m31image = create_test_image(cellsize=cellsize)
+m31image = create_test_image(cellsize=cellsize, npol=1, nchan=1)
 
 # Now we can predict_visibility the visibility from this skymodel
 vis = predict_2d(vis, m31image, params=params)
@@ -87,6 +87,8 @@ psf =   create_image_from_visibility (vis, params)
 vis = weight_visibility(vis, dirty, params)
 
 psf = invert_2d(vis, psf, dopsf=True, params=params)
+psfmax = numpy.max(psf.data)
+psf.data=psf.data/psfmax
 show_image(psf)
 log.info("run_imaging: Max, min in PSF         = %.6f, %.6f" % (psf.data.max(), psf.data.min()))
 
@@ -94,9 +96,7 @@ log.info("run_imaging: Max, min in PSF         = %.6f, %.6f" % (psf.data.max(), 
 # Now use straightforward 2D transform to make dirty image and psf.
 dirty = invert_2d(vis, dirty, params=params)
 
-psfmax = numpy.max(psf.data)
 dirty.data=dirty.data/psfmax
-psf.data=psf.data/psfmax
 
 log.info("run_imaging: Max, min in dirty image = %.6f, %.6f" % (dirty.data.max(), dirty.data.min()))
 

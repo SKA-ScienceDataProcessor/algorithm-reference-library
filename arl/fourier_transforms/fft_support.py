@@ -28,7 +28,10 @@ def fft(a):
     :param a: image in `lm` coordinate space
     :returns: `uv` grid
     """
-    return numpy.fft.fftshift(numpy.fft.fft2(numpy.fft.ifftshift(a)))
+    if(len(a.shape)==4):
+        return numpy.fft.fftshift(numpy.fft.fft2(numpy.fft.ifftshift(a, axes=[2,3])), axes=[2,3])
+    else:
+        return numpy.fft.fftshift(numpy.fft.fft2(numpy.fft.ifftshift(a)))
 
 
 def ifft(a):
@@ -37,7 +40,10 @@ def ifft(a):
     :param a: `uv` grid to transform
     :returns: an image in `lm` coordinate space
     """
-    return numpy.fft.fftshift(numpy.fft.ifft2(numpy.fft.ifftshift(a)))
+    if(len(a.shape)==4):
+        return numpy.fft.fftshift(numpy.fft.ifft2(numpy.fft.ifftshift(a,axes=[2,3])), axes=[2,3])
+    else:
+        return numpy.fft.fftshift(numpy.fft.ifft2(numpy.fft.ifftshift(a)))
 
 
 def pad_mid(ff, npixel):

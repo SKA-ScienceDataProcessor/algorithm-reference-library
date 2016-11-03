@@ -6,7 +6,7 @@ import unittest
 
 import numpy
 from numpy.testing import assert_allclose
-from arl.image.image_deconvolution import *
+from arl.image.deconvolution import *
 
 
 class TestImageDeconvolution(unittest.TestCase):

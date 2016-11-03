@@ -5,12 +5,12 @@ import numpy
 from astropy.coordinates import SkyCoord
 
 from arl.data.parameters import crocodile_path
-from arl.image.image_operations import add_image, create_image_from_array
-from arl.skymodel.skymodel_operations import create_skycomponent
-from arl.skymodel.skymodel_operations import create_skymodel_from_image, add_component_to_skymodel
+from arl.image.operations import add_image, create_image_from_array
+from arl.skymodel.operations import create_skycomponent
+from arl.skymodel.operations import create_skymodel_from_image, add_component_to_skymodel
 from arl.util.testing_support import create_test_image, create_named_configuration, import_visibility_from_oskar
-from arl.visibility.visibility_calibration import create_gaintable_from_array
-from arl.visibility.visibility_operations import create_visibility
+from arl.visibility.calibration import create_gaintable_from_array
+from arl.visibility.operations import create_visibility
 
 log = logging.getLogger("tests.TestDataModels")
 

@@ -5,7 +5,7 @@
 
 from data.data_models import *
 from data.parameters import *
-from image.image_operations import create_image_from_array
+from image.operations import create_image_from_array
 
 log = logging.getLogger("arl.image_deconvolution")
 
@@ -318,7 +318,7 @@ def _msclean(dirty,
         # Find the values to subtract, accounting for the coupling matrix
         mval = numpy.zeros(len(scales))
         mval[mscale] = resscalestack[mx, my, mscale] / coupling_matrix[mscale, mscale]
-        if i % 10 == 0:
+        if i % (niter // 10) == 0:
             log.info("msclean: Minor cycle %d, peak %s at [%d, %d, %d]" % \
                      (i, resscalestack[mx, my, :], mx, my, mscale))
         if numpy.fabs(mval[mscale]) < absolutethresh:

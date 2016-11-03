@@ -13,7 +13,7 @@ import logging
 import scipy.special
 from arl.fourier_transforms.fft_support import *
 
-from data.parameters import get_parameter
+from arl.data.parameters import get_parameter
 
 log = logging.getLogger("convolutional.gridding")
 
@@ -240,10 +240,10 @@ def fixed_kernel_grid(kernel, uvgrid, uv, uvscale, vis, visweights):
     for chan in range(nchan):
         coords = _frac_coords(uvgrid.shape, kernel_oversampling, uv * uvscale[chan])
         for pol in range(npol):
-            for v, x, xf, y, yf in zip(visweights[..., chan, pol] * vis[..., chan, pol], *coords):
+            viswt = (vis[..., chan, pol])
+            for v, x, xf, y, yf in zip(viswt, *coords):
                 uvgrid[chan, pol, (y - gh // 2):(y + (gh + 1) // 2), (x - gw // 2):(x + (gw + 1) // 2)] \
                     += kernel[yf, xf] * v
-    
     return uvgrid
 
 
