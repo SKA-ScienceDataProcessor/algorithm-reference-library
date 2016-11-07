@@ -1,4 +1,4 @@
-.. ARL documentation master file
+.. ARL goals file
 
 .. toctree::
    :name: mastertoc

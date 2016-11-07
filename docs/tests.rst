@@ -1,4 +1,4 @@
-.. Documentation master
+.. Tests documentation master
 
 
 :index:`Unit tests`
@@ -9,18 +9,30 @@ Unit tests written in standard python style are available.
 :index:`Crocodile unit tests`
 -----------------------------
 
-.. automodule:: tests.test_simulate
+.. automodule:: tests.test_crocodile_synthesis
    :members:
    :undoc-members:
 
 :index:`ARL unit tests`
 -----------------------
 
+.. automodule:: tests.test_convolutional_gridding
+   :members:
+   :undoc-members:
+
+.. automodule:: tests.test_coordinate_support
+   :members:
+   :undoc-members:
+
 .. automodule:: tests.test_datamodels
    :members:
    :undoc-members:
 
-.. automodule:: tests.test_fourier_transforms
+.. automodule:: tests.test_fft_support
+   :members:
+   :undoc-members:
+
+.. automodule:: tests.test_ftprocessor
    :members:
    :undoc-members:
 
@@ -28,7 +40,15 @@ Unit tests written in standard python style are available.
    :members:
    :undoc-members:
 
+.. automodule:: tests.test_image_iterators
+   :members:
+   :undoc-members:
+
 .. automodule:: tests.test_image_operations
+   :members:
+   :undoc-members:
+
+.. automodule:: tests.test_parameters
    :members:
    :undoc-members:
 

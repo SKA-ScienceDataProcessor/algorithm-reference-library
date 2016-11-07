@@ -1,4 +1,4 @@
-.. ARL documentation master file
+.. ARL best practices file
 
 .. toctree::
    :name: mastertoc

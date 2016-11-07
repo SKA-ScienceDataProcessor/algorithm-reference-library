@@ -13,7 +13,6 @@ Crocodile is a collection of functions designed for low-level operations in radi
 ----------------------------------
 
 .. toctree::
-   :name: mastertoc
    :maxdepth: 2
 
    notebooks/coordinates
@@ -41,16 +40,4 @@ Synthesis
 
 .. automodule:: crocodile.synthesis
    :members:
-
-Clean
-++++++++
-
-.. automodule:: crocodile.clean
-   :members:
-
-Multiscale Clean
-++++++++++++++++
-
-.. automodule:: crocodile.msclean
-  :members:
 

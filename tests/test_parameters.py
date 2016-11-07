@@ -6,7 +6,7 @@ realtimcornwell@gmail.com
 import logging
 import unittest
 
-from data.parameters import *
+from arl.data.parameters import *
 log = logging.getLogger("arl.test_parameters")
 
 class TestParameters(unittest.TestCase):

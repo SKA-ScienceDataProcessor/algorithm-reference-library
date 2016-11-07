@@ -6,12 +6,13 @@ import logging
 import unittest
 
 import numpy
+from numpy.testing import assert_allclose
 
 from arl.fourier_transforms.ftprocessor import *
 from astropy import units as u
 from astropy.coordinates import SkyCoord
 
-from arl.skymodel.operations import create_skycomponent, find_skycomponent, fit_skycomponent
+from arl.skymodel.operations import create_skycomponent, find_skycomponent, fit_skycomponent, insert_skycomponent
 from arl.util.testing_support import create_named_configuration, create_test_image
 from arl.visibility.operations import create_visibility
 from arl.image.operations import export_image_to_fits
@@ -22,7 +23,7 @@ log = logging.getLogger("tests.test_ftprocessor")
 class TestFTProcessor(unittest.TestCase):
     def setUp(self):
         
-        self.params = {'wstep': 10.0, 'npixel': 512, 'cellsize': 0.1, 'spectral_mode': 'channel',
+        self.params = {'wstep': 10.0, 'npixel': 1024, 'cellsize': 0.05, 'spectral_mode': 'channel',
                        'channelwidth':5e7, 'reffrequency':1e8}
         
         self.field_of_view = self.params['npixel'] * self.params['cellsize']
@@ -39,7 +40,7 @@ class TestFTProcessor(unittest.TestCase):
         # The phase centre is absolute and the component is specified relative (for now).
         # This means that the component should end up at the position phasecentre+compredirection
         self.phasecentre = SkyCoord(ra=+15.0 * u.deg, dec=+35.0 * u.deg, frame='icrs', equinox=2000.0)
-        self.compabsdirection = SkyCoord(ra=15.05 * u.deg, dec=+35.10 * u.deg, frame='icrs', equinox=2000.0)
+        self.compabsdirection = SkyCoord(ra=15.10 * u.deg, dec=+35.10 * u.deg, frame='icrs', equinox=2000.0)
         pcof = self.phasecentre.skyoffset_frame()
         self.compreldirection = self.compabsdirection.transform_to(pcof)
         self.comp = create_skycomponent(flux=self.flux, frequency=self.frequency, direction=self.compreldirection)
@@ -55,14 +56,37 @@ class TestFTProcessor(unittest.TestCase):
         self.dirty = create_image_from_visibility(self.vis)
         self.psf   = create_image_from_visibility(self.vis)
 
-    def test_predict_kernel(self):
-        for ftpfunc in [predict_2d]:
-            log.debug("ftpfunc %s" % ftpfunc)
-            self.vis=ftpfunc(model=self.model, vis=self.vis, kernel=None, params=self.params)
-            print (numpy.sum(abs(self.vis.data['vis']*numpy.conj(self.componentvis.data['vis']))))
-            print (numpy.sum(abs(self.vis.data['weight']*numpy.conj(self.componentvis.data['weight']))))
 
-    
+    def test_roundtrip_2d(self):
+        # Predict the visibility using direct evaluation with zero w
+        self.vis.data['uvw'][:, 2] = 0.0
+        self.componentvis = create_visibility(self.vlaa, self.times, self.frequency, weight=1.0,
+                                              phasecentre=self.phasecentre,
+                                              params=self.params)
+        self.componentvis = predict_skycomponent_visibility(self.componentvis, self.comp)
+
+        # Insert component into the model image
+        self.model = insert_skycomponent(self.model, self.comp)
+        export_image_to_fits(self.model, 'test_insert_component.fits')
+        
+
+        self.vis=predict_2d(model=self.model, vis=self.vis, kernel=None, params=self.params)
+        # Make images
+        self.dirty = invert_2d(vis=self.vis, im=self.model, dopsf=False, kernel=None, params=self.params)
+        self.psf = invert_2d(vis=self.vis, im=self.model, dopsf=True, kernel=None, params=self.params)
+        psfmax = self.psf.data.max()
+        self.dirty.data /= psfmax
+        self.psf.data /= psfmax
+        
+        
+        export_image_to_fits(self.dirty, 'test_roundtrip_2d_dirty.fits')
+        export_image_to_fits(self.psf, 'test_roundtrip_2d_psf.fits')
+        
+        
+        assert_allclose(self.comp.flux, find_skycomponent(self.dirty, self.params).flux, rtol=0.01)
+        assert_allclose(numpy.ones_like(self.comp.flux), find_skycomponent(self.psf, self.params).flux, rtol=2e-4)
+
+
     def test_invert_2d(self):
         # Set all w to zero
         self.vis.data['uvw'][:, 2] = 0.0
@@ -75,31 +99,15 @@ class TestFTProcessor(unittest.TestCase):
         self.dirty = invert_2d(vis=self.componentvis, im=self.model, dopsf=False, kernel=None, params=self.params)
         self.psf   = invert_2d(vis=self.componentvis, im=self.model, dopsf=True, kernel=None, params=self.params)
         psfmax = self.psf.data.max()
-        print (psfmax, numpy.sum(self.vis.data['weight']))
         self.dirty.data /= psfmax
         self.psf.data   /= psfmax
         export_image_to_fits(self.dirty, 'test_invert_kernel_dirty.fits')
         export_image_to_fits(self.psf,   'test_invert_kernel_psf.fits')
 
-        for comp in (self.comp, find_skycomponent(self.dirty, self.params), find_skycomponent(self.psf,
-                                                                                              self.params)):
-            print(comp.flux, comp.direction, comp.frequency)
-
-    def test_invert_kernel(self):
-        for ftpfunc in [invert_2d]:
-            log.debug("ftpfunc %s" % ftpfunc)
-            self.dirty = ftpfunc(vis=self.componentvis, im=self.model, dopsf=False, kernel=None, params=self.params)
-            self.psf   = ftpfunc(vis=self.componentvis, im=self.model, dopsf=True, kernel=None, params=self.params)
-            psfmax = self.psf.data.max()
-            print (psfmax, numpy.sum(self.vis.data['weight']))
-            self.dirty.data /= psfmax
-            self.psf.data   /= psfmax
-            export_image_to_fits(self.dirty, 'test_invert_kernel_dirty.fits')
-            export_image_to_fits(self.psf,   'test_invert_kernel_psf.fits')
-
-            for comp in (self.comp, find_skycomponent(self.dirty, self.params), find_skycomponent(self.psf,
-                                                                                                  self.params)):
-                print(comp.flux, comp.direction, comp.frequency)
+        # For some reason, the peak flux is only about 98.6% of what it should be.
+        assert_allclose(self.comp.flux, find_skycomponent(self.dirty, self.params).flux, rtol=5e-2)
+        assert_allclose(numpy.ones_like(self.comp.flux), find_skycomponent(self.psf, self.params).flux, rtol=2e-4)
+        
 
     @unittest.skip('Predict image partition not yet working')  # Need to sort out coordinate and cellsizes
     def test_predict_partition(self):

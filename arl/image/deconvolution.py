@@ -3,9 +3,9 @@
 
 """
 
-from data.data_models import *
-from data.parameters import *
-from image.operations import create_image_from_array
+from arl.data.data_models import *
+from arl.data.parameters import *
+from arl.image.operations import create_image_from_array
 
 log = logging.getLogger("arl.image_deconvolution")
 

@@ -4,18 +4,18 @@
 Functions that aid fourier transform processing. These are built on top of the core
 functions in arl.fourier_transforms
 """
-from arl.fourier_transforms.fft_support import fft, ifft
 from astropy import units as units
 from astropy import wcs
 from astropy.constants import c
 
 from arl.data.data_models import *
-from arl.data.parameters import get_parameter, log_parameters
+from arl.data.parameters import get_parameter
+from arl.fourier_transforms.fft_support import fft, ifft
 from arl.image.iterators import *
-from arl.util.convolutional_gridding import anti_aliasing_function, fixed_kernel_grid, \
-    fixed_kernel_degrid, _kernel_oversample, weight_gridding
 from arl.util.coordinate_support import simulate_point, skycoord_to_lmn
 from arl.visibility.iterators import *
+from fourier_transforms.convolutional_gridding import anti_aliasing_function, fixed_kernel_grid, \
+    fixed_kernel_degrid, _kernel_oversample, weight_gridding
 
 log = logging.getLogger("arl.ftprocessor")
 
@@ -30,11 +30,12 @@ def predict_2d(vis, model, kernel=None, params=None):
     if kernel is None:
         log.debug("ftprocessor.predict_2d: predicting using PSWF")
         gcf = anti_aliasing_function((ny, nx), 6, 0)
+        gcf = gcf / gcf.max()
         kernel = _kernel_oversample(gcf, nx, 8, 32)
     else:
         log.debug("ftprocessor.predict_2d: predicting")
     
-    uvgrid = fft(model.data.astype(dtype=complex))
+    uvgrid = fft((model.data/gcf).astype(dtype=complex))
     cellsize = abs(model.wcs.wcs.cdelt[0]) * numpy.pi / 180.0
     # uvw is in metres, v.frequency / c.value converts to wavelengths, the cellsize converts to phase
     uvscale = cellsize * vis.frequency / c.value
@@ -100,9 +101,12 @@ def invert_2d(vis, im, dopsf=False, kernel=None, params=None):
         params = {}
     nchan, npol, ny, nx = im.data.shape
     kernel = None
+    gcf = 1.0
     if kernel is None:
         log.debug("ftprocessor.invert_2d: inverting using PSWF")
+        # Make the gridding convolution function the size of the image
         gcf = anti_aliasing_function((ny, nx), 6, 0)
+        gcf = gcf / gcf.max()
         kernel = _kernel_oversample(gcf, nx, 8, 32)
     else:
         log.debug("ftprocessor.invert_2d: inverting using specified kernel")
@@ -114,11 +118,11 @@ def invert_2d(vis, im, dopsf=False, kernel=None, params=None):
         weights = numpy.ones_like(vis.data['vis'])
         imgrid = numpy.zeros_like(im.data, dtype='complex')
         imgrid = fixed_kernel_grid(kernel, imgrid, vis.data['uvw'], uvscale, weights, vis.data['weight'])
-        imgrid = numpy.real(ifft(imgrid))
+        imgrid = numpy.real(ifft(imgrid))/gcf
     else:
         imgrid = numpy.zeros_like(im.data, dtype='complex')
         imgrid = fixed_kernel_grid(kernel, imgrid, vis.data['uvw'], uvscale, vis.data['vis'], vis.data['weight'])
-        imgrid = numpy.real(ifft(imgrid))
+        imgrid = numpy.real(ifft(imgrid))/gcf
 
     return create_image_from_array(imgrid, im.wcs)
 
@@ -207,6 +211,12 @@ def predict_skycomponent_visibility(vis: Visibility, sc: Skycomponent, params=No
     
     return vis
 
+def calculate_delta_residual(deltamodel, vis, params):
+    """Calculate the delta in residual for a given delta in model
+    
+    This calculation does not require the original visibilities.
+    """
+    return deltamodel
 
 def weight_visibility(vis, im, params=None):
     """ Reweight the visibility data in place a selected algorithm

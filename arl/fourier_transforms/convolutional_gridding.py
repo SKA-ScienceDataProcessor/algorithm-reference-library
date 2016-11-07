@@ -12,7 +12,6 @@ import logging
 
 import scipy.special
 from arl.fourier_transforms.fft_support import *
-
 from arl.data.parameters import get_parameter
 
 log = logging.getLogger("convolutional.gridding")

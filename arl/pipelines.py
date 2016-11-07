@@ -5,9 +5,9 @@
 #
 #
 
-from data.parameters import *
-from util.quality_assessment import QA
-from visibility.calibration import solve_gains, qa_gaintable
+from arl.data.parameters import *
+from arl.util.quality_assessment import QA
+from arl.visibility.calibration import solve_gains, qa_gaintable
 
 log = logging.getLogger("arl.pipelines")
 

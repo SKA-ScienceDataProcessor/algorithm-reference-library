@@ -1,4 +1,4 @@
-.. ARL documentation master file
+.. ARL Fourier transforms file
 
 .. toctree::
    :name: mastertoc
@@ -7,7 +7,6 @@
 
 :index:`Fourier processing`
 ***************************
-
 
 Goals
 -----
@@ -22,6 +21,7 @@ There are many algorithms for imaging, using different approaches to correct for
 + A projection variants
 + Visibility coalescence and de-coalescence
 + MFS variants
++ Differential residuals calculations
 
 Approach
 --------

@@ -86,6 +86,30 @@ def fit_skycomponent(im: Image, sc: SkyCoord, params=None):
     return create_skycomponent(direction=sc, flux=flux, frequency=frequency, shape='point')
 
 
+def insert_skycomponent(im: Image, sc: Skycomponent, params=None):
+    """ Insert a Skycompoenet into an image
+
+    :param params:
+    :param im:
+    :param sc:
+    :returns: image
+
+    """
+    if params is None:
+        params = {}
+    assert sc.shape == 'Point', "Cannot handle shape %s"% sc.shape
+    log.debug("insert_skycomponent: Inserting flux at world coordinates %s" % str(sc))
+    pixloc = skycoord_to_pixel(sc.direction, im.wcs, 0, 'wcs')
+    log.debug("insert_skycomponent: Inserting flux at pixel coordinates %d %d" % (pixloc[0], pixloc[1]))
+    insert_method = get_parameter(params, "insert_method", "Lanczos")
+    if insert_method == "Lanczos":
+        _L2D(im.data, pixloc[1], pixloc[0], sc.flux)
+    else:
+        im.data[:, :, int(pixloc[1] + 0.5), int(pixloc[0] + 0.5)] += sc.flux
+       
+    return im
+
+
 def add_skymodels(sm1: Skymodel, sm2: Skymodel):
     """ Add two sky models together
     
@@ -141,3 +165,43 @@ def add_component_to_skymodel(sm: Skymodel, comp: Skycomponent):
    """
     sm.components.append(comp)
     return sm
+
+
+def _L2D(im, x, y, flux, a = 7):
+    """Perform Lanczos interpolation onto a grid
+    
+    """
+    
+    nchan, npol, ny, nx = im.shape
+    a=int(a)
+    intx = int(numpy.floor(x))
+    inty = int(numpy.floor(y))
+    fracx = x - intx
+    fracy = y - inty
+    gridx = numpy.arange(-a, a)
+    gridy = numpy.arange(-a, a)
+
+    insert = numpy.zeros([2 * a + 1, 2 * a + 1])
+    for iy in gridy:
+        insert[iy, gridx + a] = _L(gridx + fracx) * _L(iy + fracy)
+    insertsum = numpy.sum(insert)
+    assert insertsum > 0, "Sum of interpolation coefficients %g" % insertsum
+    insert = insert / insertsum
+
+    for chan in range(nchan):
+        for pol in range(npol):
+            for iy in gridy:
+                im[chan, pol, iy + inty, gridx + intx] += flux[chan,pol] * insert[iy,gridx+a]
+            
+    return im
+    
+
+def _sinc(x):
+    s = numpy.zeros_like(x)
+    s[x != 0.0] = numpy.sin(numpy.pi*x[x != 0.0])/(numpy.pi*x[x != 0.0])
+    return s
+
+
+def _L(x, a = 5):
+    L = _sinc(x) *_sinc(x/a)
+    return L

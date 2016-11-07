@@ -7,8 +7,8 @@ import logging
 
 log = logging.getLogger("arl.visibility_calibration")
 
-from data.data_models import *
-from data.parameters import *
+from arl.data.data_models import *
+from arl.data.parameters import *
 
 """
 Functions that either solve_gains for the calibration or apply it. On solution the gains are written into a gaintable. For

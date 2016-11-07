@@ -1,5 +1,9 @@
 .. ARL documentation master file
 
+.. toctree::
+   :name: mastertoc
+   :maxdepth: 2
+
 
 :index:`Algorithm Reference Library`
 ************************************
@@ -11,18 +15,13 @@ visibility table, gaintable, etc.
 See also :doc:`Algorithm Reference Library Goals<arllib_goals>`
 
 
-.. toctree::
-   :name: mastertoc
-   :maxdepth: 2
-
 :index:`ARL-based Notebooks`
 ----------------------------
 
 .. toctree::
-   :name: mastertoc
    :maxdepth: 2
 
-   Imaging Demonstration<arl/imaging>
+   arl/imaging
 
 :index:`Functional Model`
 -------------------------
@@ -39,17 +38,20 @@ The data models are:
 
 .. image:: ./ARL_data.png
 
-.. automodule:: arl.data_models
+.. automodule:: arl.data.data_models
    :members:
 
 
 :index:`ARL API`
 ----------------
 
+The data structures are operated on by state-less components arranged into the following modules:
 
-Data structures operated on by state-less components as follows:
+.. image:: ./ARL_modules.png
 
-.. image:: ./ARL_components.png
+The complete set of components is:
+
+.. image:: ./ARL_all.png
       :width: 1024px
 
 All components possess an API which is always of the form::
@@ -114,73 +116,106 @@ spectral_mode           Visibility processing mode          'mfs' or 'channel'
 ====================    ==================================  ========================================================
 
 
-
-
 Parameter handling
 ++++++++++++++++++
 
-.. automodule:: arl.parameters
-   :members:
-
-
-Visibility Operations
-+++++++++++++++++++++
-
-.. automodule:: arl.visibility_operations
-   :members:
-
-Visibility Calibration
-++++++++++++++++++++++
-
-.. automodule:: arl.visibility_calibration
-   :members:
-
-Fourier Transforms
-++++++++++++++++++
-
-.. automodule:: arl.fourier_transforms
-   :members:
-
-SkyModel operations
-+++++++++++++++++++
-
-.. automodule:: arl.skymodel_operations
-   :members:
-
-Image deconvolution
-+++++++++++++++++++
-
-.. automodule:: arl.image_deconvolution
-   :members:
-
-Image operations
-++++++++++++++++
-
-.. automodule:: arl.image_operations
+.. automodule:: arl.data.parameters
    :members:
 
 Polarisation
 ++++++++++++
 
-.. automodule:: arl.polarisation
+.. automodule:: arl.data.polarisation
+   :members:
+
+Image deconvolution
++++++++++++++++++++
+
+.. automodule:: arl.image.deconvolution
+   :members:
+
+Image operations
+++++++++++++++++
+
+.. automodule:: arl.image.operations
+   :members:
+
+Image iterators
++++++++++++++++
+
+.. automodule:: arl.image.iterators
+   :members:
+
+FFT support
++++++++++++
+
+.. automodule:: arl.fourier_transforms.fft_support
+   :members:
+
+FTProcessor
++++++++++++
+
+.. automodule:: arl.fourier_transforms.ftprocessor
+   :members:
+
+Convolutional Gridding
+++++++++++++++++++++++
+
+.. automodule:: arl.fourier_transforms.convolutional_gridding
+   :members:
+
+SkyModel operations
++++++++++++++++++++
+
+.. automodule:: arl.skymodel.operations
+   :members:
+
+SkyModel solvers
+++++++++++++++++
+
+.. automodule:: arl.skymodel.solvers
+   :members:
+
+Visibility Calibration
+++++++++++++++++++++++
+
+.. automodule:: arl.visibility.calibration
+   :members:
+
+Visibility Iterators
++++++++++++++++++++++
+
+.. automodule:: arl.visibility.iterators
+   :members:
+
+Visibility Operations
++++++++++++++++++++++
+
+.. automodule:: arl.visibility.operations
+   :members:
+
+Coordinate Support
+++++++++++++++++++
+
+.. automodule:: arl.util.coordinate_support
+   :members:
+
+Test Support
+++++++++++++
+
+.. automodule:: arl.util.testing_support
    :members:
 
 Quality Assessment
 ++++++++++++++++++
 
-.. automodule:: arl.quality_assessment
+.. automodule:: arl.util.quality_assessment
    :members:
 
 Pipelines
 +++++++++
 
 .. automodule:: arl.pipelines
-   :members:
-
-Test Support
-++++++++++++
-
-.. automodule:: arl.test_support
    :members:
 
 

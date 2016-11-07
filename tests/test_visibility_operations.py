@@ -5,14 +5,14 @@ realtimcornwell@gmail.com
 
 import unittest
 
-from arl.fourier_transforms.ftprocessor import *
 from astropy import units as u
 from numpy.testing import assert_allclose
 
-from skymodel.operations import create_skycomponent
-from skymodel.operations import create_skymodel_from_component
-from util.testing_support import create_named_configuration
-from visibility.operations import *
+from arl.skymodel.operations import create_skycomponent
+from arl.skymodel.operations import create_skymodel_from_component
+from arl.util.testing_support import create_named_configuration
+from arl.visibility.operations import *
+from arl.fourier_transforms.ftprocessor import *
 
 
 class TestVisibilityOperations(unittest.TestCase):
