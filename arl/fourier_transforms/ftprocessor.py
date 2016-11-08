@@ -14,7 +14,7 @@ from arl.fourier_transforms.fft_support import fft, ifft
 from arl.image.iterators import *
 from arl.util.coordinate_support import simulate_point, skycoord_to_lmn
 from arl.visibility.iterators import *
-from fourier_transforms.convolutional_gridding import anti_aliasing_function, fixed_kernel_grid, \
+from arl.fourier_transforms.convolutional_gridding import anti_aliasing_function, fixed_kernel_grid, \
     fixed_kernel_degrid, _kernel_oversample, weight_gridding
 
 log = logging.getLogger("arl.ftprocessor")
@@ -33,7 +33,7 @@ def predict_2d(vis, model, kernel=None, params=None):
         gcf = gcf / gcf.max()
         kernel = _kernel_oversample(gcf, nx, 8, 32)
     else:
-        log.debug("ftprocessor.predict_2d: predicting")
+        log.error("ftprocessor.predict_2d: unknown kernel")
     
     uvgrid = fft((model.data/gcf).astype(dtype=complex))
     cellsize = abs(model.wcs.wcs.cdelt[0]) * numpy.pi / 180.0
@@ -109,7 +109,7 @@ def invert_2d(vis, im, dopsf=False, kernel=None, params=None):
         gcf = gcf / gcf.max()
         kernel = _kernel_oversample(gcf, nx, 8, 32)
     else:
-        log.debug("ftprocessor.invert_2d: inverting using specified kernel")
+        log.error("ftprocessor.invert_2d: unknown kernel")
     
     cellsize = abs(im.wcs.wcs.cdelt[0]) * numpy.pi / 180.0
     # uvw is in metres, v.frequency / c.value converts to wavelengths, the cellsize converts to phase
