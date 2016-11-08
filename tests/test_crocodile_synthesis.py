@@ -7,7 +7,6 @@ from numpy.testing import assert_allclose
 from crocodile.synthesis import *
 from arl.util.coordinate_support import *
 
-
 class TestSynthesis(unittest.TestCase):
     def test_coordinates(self):
         for npixel in [4, 5, 6, 7, 8, 9]:
