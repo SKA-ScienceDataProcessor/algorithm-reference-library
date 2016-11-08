@@ -50,14 +50,15 @@ class TestSynthesis(unittest.TestCase):
             aaf = anti_aliasing_function(shape, 0, 10)
             self.assertEqual(aaf.shape, shape)
             self.assertAlmostEqual(aaf[shape[0] // 2, shape[1] // 2], 1)
-    
-    # @unittest.skip("Test not quite right yet")
-    # def test_w_kernel_function(self):
-    #     assert_allclose(w_kernel_function(*kernel_coordinates(5, 0.1), 0), 1)
-    #     self.assertAlmostEqual(w_kernel_function(*kernel_coordinates(5, 0.1), 100)[2, 2], 1)
-    #     self.assertAlmostEqual(w_kernel_function(*kernel_coordinates(10, 0.1), 100)[5, 5], 1)
-    #     self.assertAlmostEqual(w_kernel_function(*kernel_coordinates(10, 0.1), 1000)[5, 5], 1)
-    #
+
+    def test_w_kernel_function(self):
+         l,m = kernel_coordinates(5, 0.1)
+         assert_allclose(w_kernel_function(l,m, 0), 1)
+         self.assertAlmostEqual(w_kernel_function(l,m, 100)[2, 2], 1)
+         l,m = kernel_coordinates(10, 0.1)
+         self.assertAlmostEqual(w_kernel_function(l,m, 100)[5, 5], 1)
+         self.assertAlmostEqual(w_kernel_function(l,m, 1000)[5, 5], 1)
+
     def test_kernel_oversampled_subgrid(self):
         # Oversampling should produce the same values where sub-grids overlap
         for npixel in range(3, 30):

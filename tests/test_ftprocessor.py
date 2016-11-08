@@ -83,7 +83,7 @@ class TestFTProcessor(unittest.TestCase):
         export_image_to_fits(self.psf, 'test_roundtrip_2d_psf.fits')
         
         
-        assert_allclose(self.comp.flux, find_skycomponent(self.dirty, self.params).flux, rtol=0.01)
+        assert_allclose(self.comp.flux, find_skycomponent(self.dirty, self.params).flux, rtol=0.02)
         assert_allclose(numpy.ones_like(self.comp.flux), find_skycomponent(self.psf, self.params).flux, rtol=2e-4)
 
 

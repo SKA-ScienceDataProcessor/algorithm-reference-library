@@ -5,7 +5,7 @@ import unittest
 from numpy.testing import assert_allclose
 
 from arl.fourier_transforms.fft_support import *
-from fourier_transforms.convolutional_gridding import _w_kernel_function, _kernel_oversample, \
+from arl.fourier_transforms.convolutional_gridding import _w_kernel_function, _kernel_oversample, \
     _coordinates2, anti_aliasing_function, fixed_kernel_degrid, fixed_kernel_grid
 
 

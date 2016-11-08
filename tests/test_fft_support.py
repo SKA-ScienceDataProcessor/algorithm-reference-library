@@ -4,7 +4,7 @@ from numpy.testing import assert_allclose
 
 from arl.fourier_transforms.fft_support import *
 from arl.util.coordinate_support import *
-from fourier_transforms.convolutional_gridding import _coordinates2
+from arl.fourier_transforms.convolutional_gridding import _coordinates2
 
 class TestFFTSupport(unittest.TestCase):
     
