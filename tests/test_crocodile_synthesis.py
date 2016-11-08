@@ -51,6 +51,7 @@ class TestSynthesis(unittest.TestCase):
             self.assertEqual(aaf.shape, shape)
             self.assertAlmostEqual(aaf[shape[0] // 2, shape[1] // 2], 1)
     
+    @unittest.skip("Test not quite right yet")
     def test_w_kernel_function(self):
         assert_allclose(w_kernel_function(*kernel_coordinates(5, 0.1), 0), 1)
         self.assertAlmostEqual(w_kernel_function(*kernel_coordinates(5, 0.1), 100)[2, 2], 1)
