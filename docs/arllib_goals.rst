@@ -5,8 +5,8 @@
    :maxdepth: 2
 
 
-:index:`Algorithm Reference Library Goals`
-******************************************
+Algorithm Reference Library Goals
+*********************************
 
 The Algorithm Reference Library is used to capture radio interferometry calibration and imaging algorithms in a
 reference form for use by SDP contractors. The interfaces all operate with familiar data structures such as image,

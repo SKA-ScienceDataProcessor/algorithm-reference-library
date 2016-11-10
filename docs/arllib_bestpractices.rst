@@ -5,8 +5,8 @@
    :maxdepth: 2
 
 
-:index:`Best Practices`
-***********************
+Best Practices
+**************
 
 
 Coding and documentation

@@ -1,7 +1,7 @@
 .. Documentation master
 
-:index:`Glossary`
-*****************
+Glossary
+********
 
 .. glossary::
 

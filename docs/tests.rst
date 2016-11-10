@@ -1,20 +1,18 @@
-.. Tests documentation master
 
-
-:index:`Unit tests`
-*******************
+Unit tests
+**********
 
 Unit tests written in standard python style are available.
 
-:index:`Crocodile unit tests`
------------------------------
+Crocodile unit tests
+--------------------
 
 .. automodule:: tests.test_crocodile_synthesis
    :members:
    :undoc-members:
 
-:index:`ARL unit tests`
------------------------
+ARL unit tests
+--------------
 
 .. automodule:: tests.test_convolutional_gridding
    :members:

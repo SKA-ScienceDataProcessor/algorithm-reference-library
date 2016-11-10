@@ -14,7 +14,7 @@ from arl.skymodel.operations import create_skycomponent
 from arl.skymodel.operations import create_skymodel_from_image, add_component_to_skymodel
 from arl.util.testing_support import create_named_configuration, create_test_image
 from arl.visibility.operations import create_visibility
-from pipelines.functions import *
+from arl.pipelines.functions import *
 
 class TestPipelines(unittest.TestCase):
 
