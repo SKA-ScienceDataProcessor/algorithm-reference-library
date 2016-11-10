@@ -5,8 +5,8 @@
    :maxdepth: 2
 
 
-:index:`Fourier processing`
-***************************
+Fourier processing
+******************
 
 Goals
 -----

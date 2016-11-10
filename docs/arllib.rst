@@ -1,38 +1,29 @@
-.. ARL documentation master file
+.. ARL library documentation
 
 .. toctree::
-   :name: mastertoc
    :maxdepth: 2
 
-
-:index:`Algorithm Reference Library`
-************************************
+ARL
+***
 
 The Algorithm Reference Library is used to capture radio interferometry calibration and imaging algorithms in a
 reference form for use by SDP contractors. The interfaces all operate with familiar data structures such as image,
 visibility table, gaintable, etc.
 
-See also :doc:`Algorithm Reference Library Goals<arllib_goals>`
-
-
-:index:`ARL-based Notebooks`
-----------------------------
-
-.. toctree::
-   :maxdepth: 2
-
+ARL Notebooks
+-------------
    arl/imaging
 
-:index:`Functional Model`
--------------------------
+Functional Model
+----------------
 
 The functional model corresponds to the pipelines:
 
 .. image:: ./ARL_functional.png
 
 
-:index:`Data Models`
---------------------
+Data Models
+-----------
 
 The data models are:
 
@@ -42,8 +33,8 @@ The data models are:
    :members:
 
 
-:index:`ARL API`
-----------------
+ARL API
+-------
 
 The data structures are operated on by state-less components arranged into the following modules:
 
