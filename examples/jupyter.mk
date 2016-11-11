@@ -10,7 +10,7 @@ TIMEOUT = 600
 .PHONY: rst
 rst: $(RSTs)
 
-%.rst: %.ipynb ../../crocodile/synthesis.py
+%.rst: %.ipynb
 	jupyter nbconvert --execute --ExecutePreprocessor.timeout=$(TIMEOUT) --to rst $<
 
 %.html: %.rst

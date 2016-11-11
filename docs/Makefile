@@ -51,10 +51,10 @@ help:
 
 .PHONY: clean
 clean:
-	rm -rf $(BUILDDIR)/* notebooks anna ben arl
-	make -C ../examples/notebooks clean
-	make -C ../examples/anna clean
-	make -C ../examples/ben clean
+	rm -rf $(BUILDDIR)/* arl
+##	make -C ../examples/notebooks clean
+##	make -C ../examples/anna clean
+##	make -C ../examples/ben clean
 	make -C ../examples/arl clean
 
 make_example_rst = \
