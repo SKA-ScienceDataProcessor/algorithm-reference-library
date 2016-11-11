@@ -208,7 +208,7 @@ html_static_path = ['static']
 #html_search_scorer = 'scorer.js'
 
 # Output file base name for HTML help builder.
-htmlhelp_basename = 'crocodiledoc'
+htmlhelp_basename = 'arldoc'
 
 # -- Options for LaTeX output ---------------------------------------------
 
@@ -230,7 +230,7 @@ latex_elements = {
 # (source start file, target name, title,
 #  author, documentclass [howto, manual, or own class]).
 latex_documents = [
-    (master_doc, 'crocodile.tex', 'crocodile Documentation',
+    (master_doc, 'arl.tex', 'ARL Documentation',
      'Tim Cornwell, Bojan Nikolic, Peter Wortmann', 'manual'),
 ]
 
