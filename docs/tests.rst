@@ -4,16 +4,6 @@ Unit tests
 
 Unit tests written in standard python style are available.
 
-Crocodile unit tests
---------------------
-
-.. automodule:: tests.test_crocodile_synthesis
-   :members:
-   :undoc-members:
-
-ARL unit tests
---------------
-
 .. automodule:: tests.test_convolutional_gridding
    :members:
    :undoc-members:
@@ -66,9 +56,6 @@ ARL unit tests
    :members:
    :undoc-members:
 
-
-Indices and tables
-==================
 
 * :ref:`genindex`
 * :ref:`modindex`
