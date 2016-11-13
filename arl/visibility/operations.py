@@ -151,8 +151,8 @@ def create_visibility(config: Configuration, times: numpy.array, freq: numpy.arr
     ruvw = xyz_to_baselines(ants_xyz, times, phasecentre.dec)
     log.debug(u"create_visibility: Created {0:d} rows".format(nrows))
     vis = Visibility()
-    vis.data = Table(data=[ruvw, rtimes, rantenna1, rantenna2, rvis, rweight],
-                     names=['uvw', 'time', 'antenna1', 'antenna2', 'vis', 'weight'], meta=meta)
+    vis.data = Table(data=[ruvw, rtimes, rantenna1, rantenna2, rvis, rweight, rweight],
+                     names=['uvw', 'time', 'antenna1', 'antenna2', 'vis', 'weight', 'imaging_weight'], meta=meta)
     vis.frequency = freq
     vis.phasecentre = phasecentre
     vis.configuration = config

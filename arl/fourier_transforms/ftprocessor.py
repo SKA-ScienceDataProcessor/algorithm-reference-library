@@ -117,11 +117,12 @@ def invert_2d(vis, im, dopsf=False, kernel=None, params=None):
     if dopsf:
         weights = numpy.ones_like(vis.data['vis'])
         imgrid = numpy.zeros_like(im.data, dtype='complex')
-        imgrid = fixed_kernel_grid(kernel, imgrid, vis.data['uvw'], uvscale, weights, vis.data['weight'])
+        imgrid = fixed_kernel_grid(kernel, imgrid, vis.data['uvw'], uvscale, weights, vis.data['imaging_weight'])
         imgrid = numpy.real(ifft(imgrid))/gcf
     else:
         imgrid = numpy.zeros_like(im.data, dtype='complex')
-        imgrid = fixed_kernel_grid(kernel, imgrid, vis.data['uvw'], uvscale, vis.data['vis'], vis.data['weight'])
+        imgrid = fixed_kernel_grid(kernel, imgrid, vis.data['uvw'], uvscale, vis.data['vis'],
+                                   vis.data['imaging_weight'])
         imgrid = numpy.real(ifft(imgrid))/gcf
 
     return create_image_from_array(imgrid, im.wcs)
@@ -233,8 +234,7 @@ def weight_visibility(vis, im, params=None):
     cellsize = abs(im.wcs.wcs.cdelt[0]) * numpy.pi / 180.0
     # uvw is in metres, v.frequency / c.value converts to wavelengths, the cellsize converts to phase
     uvscale = cellsize * vis.frequency / c.value
-    vis.data['weight'] = weight_gridding(im.data.shape, vis.data['uvw'], uvscale, vis.data['weight'],
-                                          params)
+    vis.data['imaging_weight'] = weight_gridding(im.data.shape, vis.data['uvw'], uvscale, vis.data['weight'], params)
     return vis
 
 

@@ -135,14 +135,17 @@ class Visibility:
     """
     
     def __init__(self, data=None, frequency=None, phasecentre=None, configuration=None,
-                 uvw=None, time=None, antenna1=None, antenna2=None, vis=None, weight=None):
+                 uvw=None, time=None, antenna1=None, antenna2=None, vis=None, weight=None,
+                 imaging_weight=None):
         if data is None and vis is not None:
+            if imaging_weight is None:
+                imaging_weight = weight
             data = Table({'uvw': uvw, 'time': time,
                           'antenna1': antenna1, 'antenna2': antenna2,
-                          'vis': vis, 'weight': weight
+                          'vis': vis, 'weight': weight, 'imaging_weight' : imaging_weight
                           })
         
-        self.data = data  # Astropy.table with columns uvw, time, a1, a2, vis, weight
+        self.data = data  # Astropy.table with columns uvw, time, a1, a2, vis, weight, imaging_weight
         self.frequency = frequency  # numpy.array [nchan]
         self.phasecentre = phasecentre  # Phase centre of observation
         self.configuration = configuration  # Antenna/station configuration
@@ -176,10 +179,13 @@ class Visibility:
     
     @property
     def vis(self): return self.data['vis']
-    
+
     @property
     def weight(self): return self.data['weight']
-    
+
+    @property
+    def imaging_weight(self): return self.data['imaging_weight']
+
     def uvw_lambda(self, channel=0):
         """ Calculates baseline coordinates in wavelengths. """
         return self.data['uvw'] * self.frequency[channel] / c.value

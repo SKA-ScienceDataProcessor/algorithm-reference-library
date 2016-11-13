@@ -239,7 +239,7 @@ def fixed_kernel_grid(kernel, uvgrid, uv, uvscale, vis, visweights):
     for chan in range(nchan):
         coords = _frac_coords(uvgrid.shape, kernel_oversampling, uv * uvscale[chan])
         for pol in range(npol):
-            viswt = (vis[..., chan, pol])
+            viswt = vis[..., chan, pol] * visweights[..., chan, pol]
             for v, x, xf, y, yf in zip(viswt, *coords):
                 uvgrid[chan, pol, (y - gh // 2):(y + (gh + 1) // 2), (x - gw // 2):(x + (gw + 1) // 2)] \
                     += kernel[yf, xf] * v
