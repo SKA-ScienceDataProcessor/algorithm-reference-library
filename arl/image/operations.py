@@ -180,12 +180,12 @@ def show_image(im: Image, fig=None, title: str = ''):
     """
     if not fig:
         fig = plt.figure()
-    fig.add_subplot(111, projection=im.wcs.sub(['longitude', 'latitude']))
     plt.clf()
+    fig.add_subplot(111, projection=im.wcs.sub(['longitude', 'latitude']))
     if len(im.data.shape) == 4:
-        plt.imshow(im.data[0, 0, :, :], origin='lower', cmap='rainbow')
+        plt.imshow(numpy.real(im.data[0, 0, :, :]), origin='lower', cmap='rainbow')
     elif len(im.data.shape) == 2:
-        plt.imshow(im.data[:, :], origin='lower', cmap='rainbow')
+        plt.imshow(numpy.real(im.data[:, :]), origin='lower', cmap='rainbow')
     plt.xlabel('RA---SIN')
     plt.ylabel('DEC--SIN')
     plt.title(title)

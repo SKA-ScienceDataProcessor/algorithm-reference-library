@@ -651,6 +651,7 @@ ARL Notebooks
    :maxdepth: 2
 
    arl/imaging
+   arl/imaging-wterm
 
 References
 **********

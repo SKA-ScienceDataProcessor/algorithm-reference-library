@@ -10,12 +10,12 @@ from astropy.constants import c
 
 from arl.data.data_models import *
 from arl.data.parameters import get_parameter
+from arl.fourier_transforms.convolutional_gridding import anti_aliasing_function, fixed_kernel_grid, \
+    fixed_kernel_degrid, _kernel_oversample, weight_gridding, _w_kernel_function
 from arl.fourier_transforms.fft_support import fft, ifft
 from arl.image.iterators import *
 from arl.util.coordinate_support import simulate_point, skycoord_to_lmn
 from arl.visibility.iterators import *
-from arl.fourier_transforms.convolutional_gridding import anti_aliasing_function, fixed_kernel_grid, \
-    fixed_kernel_degrid, _kernel_oversample, weight_gridding
 
 log = logging.getLogger("arl.ftprocessor")
 
@@ -35,7 +35,7 @@ def predict_2d(vis, model, kernel=None, params=None):
     else:
         log.error("ftprocessor.predict_2d: unknown kernel")
     
-    uvgrid = fft((model.data/gcf).astype(dtype=complex))
+    uvgrid = fft((model.data / gcf).astype(dtype=complex))
     cellsize = abs(model.wcs.wcs.cdelt[0]) * numpy.pi / 180.0
     # uvw is in metres, v.frequency / c.value converts to wavelengths, the cellsize converts to phase
     uvscale = cellsize * vis.frequency / c.value
@@ -118,13 +118,13 @@ def invert_2d(vis, im, dopsf=False, kernel=None, params=None):
         weights = numpy.ones_like(vis.data['vis'])
         imgrid = numpy.zeros_like(im.data, dtype='complex')
         imgrid = fixed_kernel_grid(kernel, imgrid, vis.data['uvw'], uvscale, weights, vis.data['imaging_weight'])
-        imgrid = numpy.real(ifft(imgrid))/gcf
+        imgrid = numpy.real(ifft(imgrid)) / gcf
     else:
         imgrid = numpy.zeros_like(im.data, dtype='complex')
         imgrid = fixed_kernel_grid(kernel, imgrid, vis.data['uvw'], uvscale, vis.data['vis'],
                                    vis.data['imaging_weight'])
-        imgrid = numpy.real(ifft(imgrid))/gcf
-
+        imgrid = numpy.real(ifft(imgrid)) / gcf
+    
     return create_image_from_array(imgrid, im.wcs)
 
 
@@ -181,15 +181,9 @@ def predict_skycomponent_visibility(vis: Visibility, sc: Skycomponent, params=No
     """
     if params is None:
         params = {}
-
-    vis.data['vis'] *= 0.0
     
     spectral_mode = get_parameter(params, 'spectral_mode', 'channel')
-    log.debug('predict_visibility: spectral mode is %s' % spectral_mode)
     
-    log.debug("fourier_transforms.predict_visibility: Predicting Visibility from sky model components")
-    
-    log.debug("fourier_transforms.predict_visibility: visibility shape = %s" % str(vis.vis.shape))
     assert_same_chan_pol(vis, sc)
     
     l, m, n = skycoord_to_lmn(sc.direction, vis.phasecentre)
@@ -201,16 +195,12 @@ def predict_skycomponent_visibility(vis: Visibility, sc: Skycomponent, params=No
             uvw = vis.uvw_lambda(channel)
             phasor = simulate_point(uvw, l, m)
             for pol in range(sc.npol):
-                log.debug(
-                    'fourier_transforms.predict_visibility: Predicting from component for channel %d, polarisation '
-                    '%d' % (channel, pol))
                 vis.vis[:, channel, pol] += sc.flux[channel, pol] * phasor
     else:
         raise NotImplementedError("mode %s not supported" % spectral_mode)
     
-    log.debug("fourier_transforms.predict_visibility: Finished predicting Visibility from sky model components")
-    
     return vis
+
 
 def calculate_delta_residual(deltamodel, vis, params):
     """Calculate the delta in residual for a given delta in model
@@ -219,22 +209,33 @@ def calculate_delta_residual(deltamodel, vis, params):
     """
     return deltamodel
 
-def weight_visibility(vis, im, params=None):
-    """ Reweight the visibility data in place a selected algorithm
 
+def weight_visibility(vis, im, params=None):
+    """ Reweight the visibility data using a selected algorithm
+
+    Imaging uses the column "imaging_weight" when imaging. This function sets that column using a
+    variety of algorithms
+    
     :param vis:
     :param im:
     :param params: Dictionary containing parameters
     :returns: Configuration
     """
-    # TODO: implement
     
     if params is None:
         params = {}
     cellsize = abs(im.wcs.wcs.cdelt[0]) * numpy.pi / 180.0
     # uvw is in metres, v.frequency / c.value converts to wavelengths, the cellsize converts to phase
-    uvscale = cellsize * vis.frequency / c.value
-    vis.data['imaging_weight'] = weight_gridding(im.data.shape, vis.data['uvw'], uvscale, vis.data['weight'], params)
+    weighting = get_parameter(params, "weighting", "uniform")
+    if weighting == 'uniform':
+        uvscale = cellsize * vis.frequency / c.value
+        vis.data['imaging_weight'] = weight_gridding(im.data.shape, vis.data['uvw'], uvscale, vis.data['weight'],
+                                                     params)
+    elif weighting == 'natural':
+        vis.data['imaging_weight'] = vis.data['weight']
+    else:
+        log.error("Unknown gridding algorithm %s" % weighting)
+    
     return vis
 
 
@@ -287,6 +288,7 @@ def create_wcs_from_visibility(vis, params=None):
     
     return shape, reffrequency, cellsize, w, imagecentre
 
+
 def create_image_from_visibility(vis, params=None):
     """Make an empty imagefrom params and Visibility
 
@@ -296,4 +298,18 @@ def create_image_from_visibility(vis, params=None):
     """
     shape, _, _, w, _ = create_wcs_from_visibility(vis, params=params)
     return create_image_from_array(numpy.zeros(shape), wcs=w)
+
+
+def create_w_term_image(vis, w=None, params=None):
+    """Create an image with a w term phase term in it
     
+    """
+    if w is None:
+        w = numpy.median(numpy.abs(vis.data['uvw'][:,2]))
+        log.debug('ftprocessor.create_w_term_image: Creating w term image for median w %f' % w)
+        
+    im = create_image_from_visibility(vis, params)
+    cellsize = abs(im.wcs.wcs.cdelt[0]) * numpy.pi / 180.0
+    _, _, _, npixel = im.data.shape
+    im.data = _w_kernel_function(npixel, npixel * cellsize, w=w)
+    return im

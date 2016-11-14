@@ -118,6 +118,10 @@ def create_named_configuration(name: str = 'LOWBD2', params=None):
         location = EarthLocation(lon="116.4999", lat="-26.7000", height=300.0)
         fc = create_configuration_from_file(antfile=crocodile_path("data/configurations/LOWBD1.csv"),
                                             location=location, mount='xy', names='LOWBD1_%d')
+    elif name == 'LOWBD2-CORE':
+        location = EarthLocation(lon="116.4999", lat="-26.7000", height=300.0)
+        fc = create_configuration_from_file(antfile=crocodile_path("data/configurations/LOWBD2-CORE.csv"),
+                                            location=location, mount='xy', names='LOWBD2_%d')
     elif name == 'LOFAR':
         fc = create_LOFAR_configuration(antfile=crocodile_path("data/configurations/LOFAR.csv"))
     elif name == 'VLAA':
