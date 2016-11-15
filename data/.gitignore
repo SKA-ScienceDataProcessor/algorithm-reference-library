@@ -23,3 +23,5 @@ vis/vla_grid_6h/test_vla_dirty_s1024_f03.0_w000.fits
 /models/M31.MOD
 /models/M31.model.fits
 /models/VLA_A_hor_xyz.txt
+
+/configurations/LOWBD2-CORE.csv
