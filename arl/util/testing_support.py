@@ -257,7 +257,7 @@ def replicate_image(im: Image, npol=4, nchan=1, frequency=1.4e9):
         add_wcs_to_image(fim, newwcs)
         fshape = [nchan, npol, im.data.shape[1], im.data.shape[0]]
         fim.data = numpy.zeros(fshape)
-        log.debug("replicate_image: replicating shape %s to %s" % (im.data.shape, fim.data.shape))
+        log.info("replicate_image: replicating shape %s to %s" % (im.data.shape, fim.data.shape))
         for i3 in range(nchan):
             for i2 in range(npol):
                 fim.data[i3, i2, :, :] = im.data[:, :]

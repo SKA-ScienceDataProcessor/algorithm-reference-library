@@ -8,6 +8,8 @@ All functions that involve convolutional gridding are kept here.
 
 from __future__ import division
 
+import numpy
+
 import logging
 
 import scipy.special
@@ -54,7 +56,7 @@ def _coordinates2(npixel):
     return numpy.mgrid[low:high:(npixel * 1j), low:high:(npixel * 1j)]
 
 
-def anti_aliasing_function(shape, m, c):
+def anti_aliasing_function(shape, m=1, c=3.0*numpy.pi):
     """
     Compute the prolate spheroidal anti-aliasing function
 
@@ -260,7 +262,7 @@ def weight_gridding(shape, uv, uvscale, visweights, params):
     """
     weighting = get_parameter(params, 'weighting', 'uniform')
     if weighting == 'uniform':
-        log.debug("convolutional_gridding.weight_gridding: Performing uniform weighting")
+        log.info("convolutional_gridding.weight_gridding: Performing uniform weighting")
         wtsgrid = numpy.zeros(shape)
         nchan, npol, ny, nx = shape
         # Add all visibility points to a float grid

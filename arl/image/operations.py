@@ -73,7 +73,7 @@ def import_image_from_fits(fitsfile: str):
     fim.data = hdulist[0].data
     fim.wcs = WCS(crocodile_path(fitsfile))
     hdulist.close()
-    log.debug("import_image_from_fits: Max, min in %s = %.6f, %.6f" % (fitsfile, fim.data.max(), fim.data.min()))
+    log.info("import_image_from_fits: Max, min in %s = %.6f, %.6f" % (fitsfile, fim.data.max(), fim.data.min()))
     return fim
 
 

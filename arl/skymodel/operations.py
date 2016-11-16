@@ -45,16 +45,15 @@ def find_skycomponent(im: Image, params=None):
     # TODO: Implement full image fitting of components
     if params is None:
         params = {}
-    log_parameters(params)
-    log.debug("point_source_find: Finding components in Image")
+    log.info("point_source_find: Finding components in Image")
     
     # Beware: The index sequencing is opposite in wcs and Python!
     locpeak = numpy.array(numpy.unravel_index((numpy.abs(im.data)).argmax(), im.data.shape))
-    log.debug("point_source_find: Found peak at pixel coordinates %s" % str(locpeak))
+    log.info("point_source_find: Found peak at pixel coordinates %s" % str(locpeak))
     sc = pixel_to_skycoord(locpeak[3], locpeak[2], im.wcs, 0, 'wcs')
-    log.debug("point_source_find: Found peak at world coordinates %s" % str(sc))
+    log.info("point_source_find: Found peak at world coordinates %s" % str(sc))
     flux = im.data[:, :, locpeak[2], locpeak[3]]
-    log.debug("point_source_find: Flux is %s" % flux)
+    log.info("point_source_find: Flux is %s" % flux)
     # We also need the frequency values
     w = im.wcs.sub(['spectral'])
     frequency = w.wcs_pix2world(range(im.data.shape[0]), 1)
@@ -72,12 +71,11 @@ def fit_skycomponent(im: Image, sc: SkyCoord, params=None):
     """
     if params is None:
         params = {}
-    log_parameters(params)
-    log.debug("find_flux_at_direction: Extracting flux at world coordinates %s" % str(sc))
+    log.info("find_flux_at_direction: Extracting flux at world coordinates %s" % str(sc))
     pixloc = skycoord_to_pixel(sc, im.wcs, 0, 'wcs')
-    log.debug("find_flux_at_direction: Extracting flux at pixel coordinates %d %d" % (pixloc[0], pixloc[1]))
+    log.info("find_flux_at_direction: Extracting flux at pixel coordinates %d %d" % (pixloc[0], pixloc[1]))
     flux = im.data[:, :, int(pixloc[1] + 0.5), int(pixloc[0] + 0.5)]
-    log.debug("find_flux_at_direction: Flux is %s" % flux)
+    log.info("find_flux_at_direction: Flux is %s" % flux)
     
     # We also need the frequency values
     w = im.wcs.sub(['spectral'])
@@ -98,9 +96,9 @@ def insert_skycomponent(im: Image, sc: Skycomponent, params=None):
     if params is None:
         params = {}
     assert sc.shape == 'Point', "Cannot handle shape %s"% sc.shape
-    log.debug("insert_skycomponent: Inserting flux at world coordinates %s" % str(sc))
+    log.info("insert_skycomponent: Inserting flux at world coordinates %s" % str(sc))
     pixloc = skycoord_to_pixel(sc.direction, im.wcs, 0, 'wcs')
-    log.debug("insert_skycomponent: Inserting flux at pixel coordinates %d %d" % (pixloc[0], pixloc[1]))
+    log.info("insert_skycomponent: Inserting flux at pixel coordinates %d %d" % (pixloc[0], pixloc[1]))
     insert_method = get_parameter(params, "insert_method", "Lanczos")
     if insert_method == "Lanczos":
         _L2D(im.data, pixloc[1], pixloc[0], sc.flux)

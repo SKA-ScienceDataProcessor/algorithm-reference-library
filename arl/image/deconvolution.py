@@ -47,12 +47,12 @@ def deconvolve_cube(dirty: Image, psf: Image, params=None):
         for channel in range(dirty.data.shape[0]):
             for pol in range(dirty.data.shape[1]):
                 if psf.data[channel, pol, :, :].max():
-                    log.debug("deconvolve_cube: Processing pol %d, channel %d" % (pol, channel))
+                    log.info("deconvolve_cube: Processing pol %d, channel %d" % (pol, channel))
                     comp_array[channel, pol, :, :], residual_array[channel, pol, :, :] = \
                         _msclean(dirty.data[channel, pol, :, :], psf.data[channel, pol, :, :],
                                  window, gain, thresh, niter, scales, fracthresh)
                 else:
-                    log.debug("deconvolve_cube: Skipping pol %d, channel %d" % (pol, channel))
+                    log.info("deconvolve_cube: Skipping pol %d, channel %d" % (pol, channel))
     elif algorithm == 'hogbom':
         
         window = get_parameter(params, 'window', None)
@@ -70,12 +70,12 @@ def deconvolve_cube(dirty: Image, psf: Image, params=None):
         for channel in range(dirty.data.shape[0]):
             for pol in range(dirty.data.shape[1]):
                 if psf.data[channel, pol, :, :].max():
-                    log.debug("deconvolve_cube: Processing pol %d, channel %d" % (pol, channel))
+                    log.info("deconvolve_cube: Processing pol %d, channel %d" % (pol, channel))
                     comp_array[channel, pol, :, :], residual_array[channel, pol, :, :] = \
                         _hogbom(dirty.data[channel, pol, :, :], psf.data[channel, pol, :, :],
                                 window, gain, thresh, niter)
                 else:
-                    log.debug("deconvolve_cube: Skipping pol %d, channel %d" % (pol, channel))
+                    log.info("deconvolve_cube: Skipping pol %d, channel %d" % (pol, channel))
     else:
         raise ValueError('deconvolve_cube: Unknown algorithm %s' % algorithm)
     

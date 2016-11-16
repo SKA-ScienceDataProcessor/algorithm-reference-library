@@ -9,7 +9,7 @@ from arl.image.iterators import *
 from arl.image.operations import *
 from arl.util.testing_support import create_test_image
 
-log = logging.getLogger("tests.TestImag")
+log = logging.getLogger("tests.TestImage")
 
 class TestImage(unittest.TestCase):
 

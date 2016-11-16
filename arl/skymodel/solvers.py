@@ -28,7 +28,7 @@ def solve_skymodel(vis: Visibility, sm: Skymodel, deconvolver, params=None):
         params = {}
     log_parameters(params)
     nmajor = get_parameter(params, 'nmajor', 5)
-    log.debug("solve_combinations.solve_skymodel: Performing %d major cycles" % nmajor)
+    log.info("solve_combinations.solve_skymodel: Performing %d major cycles" % nmajor)
     
     # The model is added to each major cycle and then the visibilities are
     # calculated from the full model
@@ -40,15 +40,15 @@ def solve_skymodel(vis: Visibility, sm: Skymodel, deconvolver, params=None):
     
     comp = sm.images[0]
     for i in range(nmajor):
-        log.debug("solve_skymodel: Start of major cycle %d" % i)
+        log.info("solve_skymodel: Start of major cycle %d" % i)
         cc, res = deconvolver(dirty, psf, params={})
         comp += cc
         vispred = predict_2d(vis, sm.images[0], params={})
         visres = combine_visibility(vis, vispred, 1.0, -1.0)
         dirty, sumwt = invert_2d(visres, sm.images[0], params={})
         if numpy.abs(dirty.data).max() < 1.1 * thresh:
-            log.debug("Reached stopping threshold %.6f Jy" % thresh)
+            log.info("Reached stopping threshold %.6f Jy" % thresh)
             break
-        log.debug("solve_skymodel: End of major cycle")
-    log.debug("solve_skymodel: End of major cycles")
+        log.info("solve_skymodel: End of major cycle")
+    log.info("solve_skymodel: End of major cycles")
     return visres, sm

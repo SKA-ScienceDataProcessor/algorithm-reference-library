@@ -664,6 +664,10 @@ References
   SYNTHESIS IMAGING*, Urvashi Rao Venkata, New Mexico Institute of
   Mining and Technology, May, 2010
 
+* SAULT1996: Sault, R. J., L. Staveley-Smith, and W. N. Brouw. "An
+    approach to interferometric mosaicing." Astronomy and Astrophysics
+    Supplement Series 120 (1996): 375-384.
+
 Glossary
 ********
 
