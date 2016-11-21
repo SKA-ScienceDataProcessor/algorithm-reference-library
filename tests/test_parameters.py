@@ -11,7 +11,7 @@ log = logging.getLogger("arl.test_parameters")
 
 class TestParameters(unittest.TestCase):
     def setUp(self):
-        self.paramsfile = crocodile_path("tests/TestParameters.txt")
+        self.paramsfile = arl_path("tests/TestParameters.txt")
         self.parameters = {'npixel': 256, 'cellsize':0.1, 'predict':{'cellsize':0.2}, 'invert':{'spectral_mode':'mfs'}}
 
     def test_exportimport(self):

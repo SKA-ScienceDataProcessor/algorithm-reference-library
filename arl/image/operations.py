@@ -68,10 +68,10 @@ def import_image_from_fits(fitsfile: str):
     :param fitsfile:
     :returns: Image
     """
-    hdulist = fits.open(crocodile_path(fitsfile))
+    hdulist = fits.open(arl_path(fitsfile))
     fim = Image()
     fim.data = hdulist[0].data
-    fim.wcs = WCS(crocodile_path(fitsfile))
+    fim.wcs = WCS(arl_path(fitsfile))
     hdulist.close()
     log.info("import_image_from_fits: Max, min in %s = %.6f, %.6f" % (fitsfile, fim.data.max(), fim.data.min()))
     return fim
@@ -101,7 +101,6 @@ def reproject_image(im: Image, newwcs: WCS, shape=None, params=None):
     :param params: Dictionary of parameters
     :returns: Reprojected Image, Footprint Image
     """
-    # TODO: implement
 
 
     if params is None:

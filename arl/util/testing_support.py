@@ -12,7 +12,7 @@ from astropy.table import Column
 from astropy.wcs import WCS
 
 from arl.data.data_models import *
-from arl.data.parameters import crocodile_path
+from arl.data.parameters import arl_path
 from arl.image.operations import import_image_from_fits, add_wcs_to_image
 from arl.util.coordinate_support import *
 from arl.util.read_oskar_vis import OskarVis
@@ -112,27 +112,27 @@ def create_named_configuration(name: str = 'LOWBD2', params=None):
         params = {}
     if name == 'LOWBD2':
         location = EarthLocation(lon="116.4999", lat="-26.7000", height=300.0)
-        fc = create_configuration_from_file(antfile=crocodile_path("data/configurations/LOWBD2.csv"),
+        fc = create_configuration_from_file(antfile=arl_path("data/configurations/LOWBD2.csv"),
                                             location=location, mount='xy', names='LOWBD2_%d')
     elif name == 'LOWBD1':
         location = EarthLocation(lon="116.4999", lat="-26.7000", height=300.0)
-        fc = create_configuration_from_file(antfile=crocodile_path("data/configurations/LOWBD1.csv"),
+        fc = create_configuration_from_file(antfile=arl_path("data/configurations/LOWBD1.csv"),
                                             location=location, mount='xy', names='LOWBD1_%d')
     elif name == 'LOWBD2-CORE':
         location = EarthLocation(lon="116.4999", lat="-26.7000", height=300.0)
-        fc = create_configuration_from_file(antfile=crocodile_path("data/configurations/LOWBD2-CORE.csv"),
+        fc = create_configuration_from_file(antfile=arl_path("data/configurations/LOWBD2-CORE.csv"),
                                             location=location, mount='xy', names='LOWBD2_%d')
     elif name == 'LOFAR':
-        fc = create_LOFAR_configuration(antfile=crocodile_path("data/configurations/LOFAR.csv"))
+        fc = create_LOFAR_configuration(antfile=arl_path("data/configurations/LOFAR.csv"))
     elif name == 'VLAA':
         location = EarthLocation(lon="-107.6184", lat="34.0784", height=2124.0)
-        fc = create_configuration_from_file(antfile=crocodile_path("data/configurations/VLA_A_hor_xyz.csv"),
+        fc = create_configuration_from_file(antfile=arl_path("data/configurations/VLA_A_hor_xyz.csv"),
                                             location=location,
                                             mount='altaz',
                                             names='VLA_%d')
     elif name == 'VLAA_north':
         location = EarthLocation(lon="-107.6184", lat="90.000", height=2124.0)
-        fc = create_configuration_from_file(antfile=crocodile_path("data/configurations/VLA_A_hor_xyz.csv"),
+        fc = create_configuration_from_file(antfile=arl_path("data/configurations/VLA_A_hor_xyz.csv"),
                                             location=location,
                                             mount='altaz',
                                             names='VLA_%d')
@@ -220,7 +220,7 @@ def create_test_image(canonical=True, npol=4, nchan=1, cellsize=None):
     :param nchan: Number of channels
     :returns: Image
     """
-    im = import_image_from_fits(crocodile_path("data/models/M31.MOD"))
+    im = import_image_from_fits(arl_path("data/models/M31.MOD"))
     if canonical:
         im = replicate_image(im, nchan=nchan, npol=npol)
         if cellsize is not None:
