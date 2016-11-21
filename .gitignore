@@ -4,7 +4,7 @@
 /.cproject
 /.project
 /.eggs
-/crocodile.egg-info
+/algorithm_reference_library.egg-info
 
 *.pyc
 /build
@@ -43,3 +43,4 @@ reproject_footprint.fits
 reproject_image.fits
 temp.fits
 /tests/test_ftprocessor_results
+/.pydevproject
