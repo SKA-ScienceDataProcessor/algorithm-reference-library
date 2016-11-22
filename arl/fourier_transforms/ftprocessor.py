@@ -35,6 +35,8 @@ def _shiftvis(im, vis, params):
 
 def predict_2d(vis, model, kernel=None, params=None):
     """ Predict using image partitions, calling specified predict function
+    
+    This calls the convolutional gridding routine directly
 
     """
     if params is None:
@@ -52,20 +54,21 @@ def predict_2d(vis, model, kernel=None, params=None):
     cellsize = abs(model.wcs.wcs.cdelt[0]) * numpy.pi / 180.0
     # uvw is in metres, v.frequency / c.value converts to wavelengths, the cellsize converts to phase
     uvscale = cellsize * vis.frequency / c.value
-    vis.data['vis'] = fixed_kernel_degrid(kernel, uvgrid, vis.data['uvw'], uvscale)
+    vis.data['vis'] += fixed_kernel_degrid(kernel, uvgrid, vis.data['uvw'], uvscale)
     return vis
 
 
 def predict_image_partition(vis, model, predict_function=predict_2d, params=None):
     """ Predict using image partitions, calling specified predict function
 
+    This is layered on other proaitions
     """
     if params is None:
         params = {}
     nraster = get_parameter(params, "image_partitions", 3)
     log.info("ftprocessor.predict_image_partition: predicting using %d x %d image partitions" % (nraster, nraster))
     for mpatch in raster_iter(model, nraster=nraster):
-        vis = predict_function(vis, mpatch, params=params)
+        vis.data['vis'] = predict_function(vis, mpatch, params=params).data['vis']
     return vis
 
 
@@ -78,7 +81,7 @@ def predict_fourier_partition(vis, model, predict_function=predict_2d, params=No
     nraster = get_parameter(params, "fourier_partitions", 3)
     log.info("ftprocessor.predict_fourier_partition: predicting using %d x %d fourier partitions" % (nraster, nraster))
     for fpatch in raster_iter(model, nraster=nraster):
-        predict_function(vis, fpatch, params=params)
+        vis.data['vis'] = predict_function(vis, fpatch, params=params).data['vis']
     return vis
 
 
@@ -92,7 +95,6 @@ def predict_wslice_partition(vis, model, predict_function=predict_2d, params=Non
     wslice = get_parameter(params, "wslice", 1000)
     for vslice in vis_wslice_iter(vis, wslice):
         predict_function(vslice, model, params=params)
-    
     return vis
 
 

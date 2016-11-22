@@ -56,7 +56,7 @@ def _coordinates2(npixel):
     return numpy.mgrid[low:high:(npixel * 1j), low:high:(npixel * 1j)]
 
 
-def anti_aliasing_function(shape, m=1, c=3.0*numpy.pi):
+def anti_aliasing_function_pro_ang1(shape, m=0, c=6.0):
     """
     Compute the prolate spheroidal anti-aliasing function
 
@@ -69,6 +69,63 @@ def anti_aliasing_function(shape, m=1, c=3.0*numpy.pi):
     # 2D Prolate spheroidal angular function is separable
     sy, sx = [scipy.special.pro_ang1(m, m, c, _coordinates(npixel))[0] for npixel in shape]
     return numpy.outer(sy, sx)
+
+
+def anti_aliasing_function(shape):
+    """
+    Compute the prolate spheroidal anti-aliasing function
+
+    See VLA Scientific Memoranda 129, 131, 132
+    :param shape: (height, width) pair
+    """
+    
+    # 2D Prolate spheroidal angular function is separable
+    sy, sx = [grdsf(numpy.abs(_coordinates(npixel)))[0] for npixel in shape]
+    return numpy.outer(sy, sx)
+
+
+def grdsf(nu):
+    """"Calculate PSWF using an old SDE routine re-written in Python
+
+    Find Spheroidal function with M = 6, alpha = 1 using the rational
+    approximations discussed by Fred Schwab in 'Indirect Imaging'.
+    This routine was checked against Fred's SPHFN routine, and agreed
+    to about the 7th significant digit.
+    The gridding function is (1-NU**2)*GRDSF(NU) where NU is the distance
+    to the edge. The grid correction function is just 1/GRDSF(NU) where NU
+    is now the distance to the edge of the image.
+    """
+    p = numpy.array([[8.203343e-2, -3.644705e-1, 6.278660e-1, -5.335581e-1, 2.312756e-1],
+                     [4.028559e-3, -3.697768e-2, 1.021332e-1, -1.201436e-1, 6.412774e-2]])
+    q = numpy.array([[1.0000000e0, 8.212018e-1, 2.078043e-1],
+                     [1.0000000e0, 9.599102e-1, 2.918724e-1]])
+    
+    _, np = p.shape
+    _, nq = q.shape
+    
+    nuend = numpy.zeros_like(nu)
+    part = numpy.zeros(len(nu), dtype='int')
+    part[(nu >= 0.0) & (nu < 0.75)] = 0
+    part[(nu > 0.75) & (nu < 1.0)] = 1
+    nuend[(nu >= 0.0) & (nu <= 0.75)] = 0.75
+    nuend[(nu > 0.75) & (nu < 1.0)] = 1.0
+    
+    delnusq = nu ** 2 - nuend ** 2
+    
+    top = p[part, 0]
+    for k in range(1, np):
+        top += p[part, k] * numpy.power(delnusq, k)
+    
+    bot = q[part, 0]
+    for k in range(1, nq):
+        bot += q[part, k] * numpy.power(delnusq, k)
+    
+    grdsf = numpy.zeros_like(nu)
+    ok = (bot > 0.0)
+    grdsf[ok] = top[ok] / bot[ok]
+
+    # Return the gridding function and the grid correction function
+    return grdsf, (1-nu**2)*grdsf
 
 
 def _w_kernel_function(npixel, field_of_view, w):
