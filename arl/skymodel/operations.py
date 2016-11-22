@@ -96,13 +96,15 @@ def insert_skycomponent(im: Image, sc: Skycomponent, params=None):
     if params is None:
         params = {}
     assert sc.shape == 'Point', "Cannot handle shape %s"% sc.shape
-    log.info("insert_skycomponent: Inserting flux at world coordinates %s" % str(sc))
     pixloc = skycoord_to_pixel(sc.direction, im.wcs, 0, 'wcs')
-    log.info("insert_skycomponent: Inserting flux at pixel coordinates %d %d" % (pixloc[0], pixloc[1]))
-    insert_method = get_parameter(params, "insert_method", "Lanczos")
+    insert_method = get_parameter(params, "insert_method", "nearest")
     if insert_method == "Lanczos":
+        log.debug("image.operations.insert_skycomponent: Performing Lanczos interpolation of flux %s at [%.2f, %.2f] " %
+                  (str(sc.flux), pixloc[1], pixloc[0]))
         _L2D(im.data, pixloc[1], pixloc[0], sc.flux)
     else:
+        x, y = int(pixloc[1] + 0.5), int(pixloc[0] + 0.5)
+        log.debug("image.operations.insert_skycomponent: Inserting point flux %s at [%d, %d] " % (str(sc.flux), x, y))
         im.data[:, :, int(pixloc[1] + 0.5), int(pixloc[0] + 0.5)] += sc.flux
        
     return im

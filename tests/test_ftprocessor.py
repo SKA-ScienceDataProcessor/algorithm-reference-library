@@ -27,8 +27,20 @@ log.addHandler(logging.StreamHandler(sys.stdout))
 
 log = logging.getLogger("tests.test_ftprocessor")
 
-
 class TestFTProcessor(unittest.TestCase):
+    
+    def _checkdirty(self, vis, name='test_invert_2d_dirty', invert=invert_2d):
+        # Make the dirty image and PSF
+        dirty = create_image_from_visibility(vis, params=self.params)
+        dirty = invert(vis=vis, im=dirty, dopsf=False, kernel=None, params=self.params)
+        psf = create_image_from_visibility(vis, params=self.params)
+        psf = invert(vis=vis, im=psf, dopsf=True, kernel=None, params=self.params)
+        psfmax = psf.data.max()
+        dirty.data /= psfmax
+        psf.data /= psfmax
+        export_image_to_fits(dirty, '%s/%s_dirty.fits' % (self.dir, name))
+        export_image_to_fits(psf, '%s/%s_psf.fits' % (self.dir, name))
+
     def setUp(self):
         self.dir = './test_ftprocessor_results'
         os.makedirs(self.dir, exist_ok=True)
@@ -55,7 +67,8 @@ class TestFTProcessor(unittest.TestCase):
         self.model = create_image_from_visibility(self.componentvis, params=self.params)
         self.model.data *= 0.0
 
-        # Fill the visibility with exactly computed point sources
+        # Fill the visibility with exactly computed point sources. These are chosen to lie
+        # on grid points.
         spacing_pixels = self.params['npixel'] // self.params['image_partitions']
         log.info('Spacing in pixels = %s' % spacing_pixels)
         spacing = 180.0 * self.params['cellsize'] * spacing_pixels / numpy.pi
@@ -71,32 +84,18 @@ class TestFTProcessor(unittest.TestCase):
                 self.components.append(comp)
                 self.model.data[..., int(pra), int(pdec)] += self.flux
 
+        # Predict the visibility from the components exactly
         self.componentvis.data['vis'] *= 0.0
         for comp in self.components:
             predict_skycomponent_visibility(self.componentvis, comp)
         
-        export_image_to_fits(self.model, '%s/test_insert_component.fits' % self.dir)
-    
-    def test_roundtrip_2d(self):
-        # Predict the visibility using direct evaluation with zero w
-        self.componentvis.data['uvw'][:, 2] = 0.0
-        self.componentvis.data['vis'] *= 0.0
-        for comp in self.components:
-            predict_skycomponent_visibility(self.componentvis, comp)
-            insert_skycomponent(self.model, comp)
-        
-        self.componentvis = predict_2d(model=self.model, vis=self.componentvis, kernel=None, params=self.params)
-        # Make images
-        self.dirty = invert_2d(vis=self.componentvis, im=self.model, dopsf=False, kernel=None, params=self.params)
-        self.psf = invert_2d(vis=self.componentvis, im=self.model, dopsf=True, kernel=None, params=self.params)
-        psfmax = self.psf.data.max()
-        self.dirty.data /= psfmax
-        self.psf.data /= psfmax
-        
-        export_image_to_fits(self.dirty, '%s/test_roundtrip_dirty.fits' % self.dir)
-        export_image_to_fits(self.psf, '%s/test_roundtrip_psf.fits' % self.dir)
+        export_image_to_fits(self.model, '%s/test_model.fits' % self.dir)
     
     def test_predict_2d(self):
+        """Test if the 2D prediction works
+
+        Set w=0 so that the two-dimensional transform should agree exactly with the component transform.
+        Good check on the grid correction in the image->vis direction"""
         # Set all w to zero
         self.componentvis = create_visibility(self.lowcore, self.times, self.frequency, weight=1.0,
                                               phasecentre=self.phasecentre,
@@ -113,34 +112,36 @@ class TestFTProcessor(unittest.TestCase):
         self.residualvis = create_visibility(self.lowcore, self.times, self.frequency, weight=1.0,
                                               phasecentre=self.phasecentre,
                                               params=self.params)
+        self.residualvis.data['uvw'][:, 2] = 0.0
         self.residualvis.data['vis'] = self.modelvis.data['vis']- self.componentvis.data['vis']
-        self.dirty = invert_2d(vis=self.residualvis, im=self.model, dopsf=False, kernel=None, params=self.params)
-        export_image_to_fits(self.dirty, '%s/test_predict_2d_residual.fits' % self.dir)
+        self._checkdirty(self.residualvis, 'test_predict_2d')
 
         assert_allclose(self.modelvis.data['vis'].real, self.componentvis.data['vis'].real, atol=1.0)
         assert_allclose(self.modelvis.data['vis'].imag, self.componentvis.data['vis'].imag, atol=1.0)
 
     def test_invert_2d(self):
+        """Test if the 2D invert works
+
+        Set w=0 so that the two-dimensional transform should agree exactly with the model.
+        Good check on the grid correction in the vis->image direction
+        """
         # Set all w to zero
         self.componentvis = create_visibility(self.lowcore, self.times, self.frequency, weight=1.0,
                                               phasecentre=self.phasecentre,
                                               params=self.params)
         self.componentvis.data['uvw'][:, 2] = 0.0
+        self.componentvis.data['vis'] *= 0.0
         # Predict the visibility using direct evaluation
         for comp in self.components:
             predict_skycomponent_visibility(self.componentvis, comp)
         
-        self.dirty = create_image_from_visibility(self.componentvis, params=self.params)
-        self.dirty = invert_2d(vis=self.componentvis, im=self.model, dopsf=False, kernel=None, params=self.params)
-        self.psf = create_image_from_visibility(self.componentvis, params=self.params)
-        self.psf = invert_2d(vis=self.componentvis, im=self.model, dopsf=True, kernel=None, params=self.params)
-        psfmax = self.psf.data.max()
-        self.dirty.data /= psfmax
-        self.psf.data /= psfmax
-        export_image_to_fits(self.dirty, '%s/test_invert_2d_dirty.fits' % self.dir)
-        export_image_to_fits(self.psf, '%s/test_invert_2d_psf.fits' % self.dir)
+        self._checkdirty(self.componentvis, 'test_invert_2d')
     
     def test_invert_image_partition(self):
+        """Test if the image partition invert works
+
+        If the faceting is fine enough, the dirty image should agree with the model.
+        """
         dirtyFacet = create_image_from_visibility(self.componentvis, params=self.params)
         dirtyFacet = invert_image_partition(self.componentvis, dirtyFacet, params=self.params)
         psfFacet = create_image_from_visibility(self.componentvis, params=self.params)
@@ -150,12 +151,17 @@ class TestFTProcessor(unittest.TestCase):
         assert psfmax > 0.0
         dirtyFacet.data = dirtyFacet.data / psfmax
         
-        export_image_to_fits(dirtyFacet, '%s/test_image_partition_tdirty.fits' % self.dir)
-        export_image_to_fits(psfFacet, '%s/test_image_partition_psf.fits' % self.dir)
+        export_image_to_fits(dirtyFacet, '%s/test_invert_image_partition_dirty.fits' % self.dir)
+        export_image_to_fits(psfFacet, '%s/test_invert_image_partition_psf.fits' % self.dir)
         
     def test_predict_image_partition(self):
+        """Test if the image partition predict works
+
+        If the faceting is fine enough, the visibility should agree with the model visibility
+        """
         self.modelvis = create_visibility(self.lowcore, self.times, self.frequency, weight=1.0,
                                           phasecentre=self.phasecentre)
+        self.modelvis.data['vis'] *= 0.0
         predict_image_partition(self.modelvis, self.model, params=self.params)
         assert_allclose(self.modelvis.data['vis'].real, self.componentvis.data['vis'].real, atol=1.0)
         assert_allclose(self.modelvis.data['vis'].imag, self.componentvis.data['vis'].imag, atol=1.0)

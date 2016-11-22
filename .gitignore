@@ -42,3 +42,4 @@ functions_status.xlsx
 reproject_footprint.fits
 reproject_image.fits
 temp.fits
+/tests/test_ftprocessor_results
