@@ -4,7 +4,6 @@
 Functions that define and manipulate images. Images are just data and a World Coordinate System.
 """
 
-import matplotlib.pyplot as plt
 from astropy.io import fits
 from astropy.wcs import WCS
 from reproject import reproject_interp
@@ -177,6 +176,9 @@ def show_image(im: Image, fig=None, title: str = ''):
     :param title:
     :returns:
     """
+
+    import matplotlib.pyplot as plt
+
     if not fig:
         fig = plt.figure()
     plt.clf()
