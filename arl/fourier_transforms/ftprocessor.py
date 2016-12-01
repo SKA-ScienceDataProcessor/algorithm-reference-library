@@ -11,9 +11,9 @@ from astropy.constants import c
 
 from arl.data.data_models import *
 from arl.data.parameters import get_parameter
-from arl.fourier_transforms.convolutional_gridding import anti_aliasing_function, fixed_kernel_grid, \
-    fixed_kernel_degrid, _kernel_oversample, weight_gridding, _w_kernel_function
-from arl.fourier_transforms.fft_support import fft, ifft
+from arl.fourier_transforms.convolutional_gridding import anti_aliasing_transform, fixed_kernel_grid, \
+    fixed_kernel_degrid, kernel_oversample, weight_gridding, w_kernel_function, anti_aliasing_calculate
+from arl.fourier_transforms.fft_support import fft, ifft, pad_mid, extract_mid
 from arl.image.iterators import *
 from arl.util.coordinate_support import simulate_point, skycoord_to_lmn
 from arl.visibility.operations import phaserotate_visibility
@@ -33,7 +33,7 @@ def _shiftvis(im, vis, params):
     return vis
 
 
-def predict_2d(vis, model, kernel=None, params=None):
+def predict_2d(vis, model, params=None):
     """ Predict using image partitions, calling specified predict function
     
     This calls the convolutional gridding routine directly
@@ -41,16 +41,22 @@ def predict_2d(vis, model, kernel=None, params=None):
     """
     if params is None:
         params = {}
+        
+    padding = get_parameter(params, "padding", 1)
+    kernelname = get_parameter(params, "kernel", 'standard')
+    oversampling = get_parameter(params, "oversampling", 8)
+
     nchan, npol, ny, nx = model.data.shape
-    if kernel is None:
-        log.info("ftprocessor.predict_2d: predicting using PSWF")
-        gcf = anti_aliasing_function((ny, nx))
-        gcf = gcf / gcf.max()
-        kernel = _kernel_oversample(gcf, nx, 8, 8)
+    assert nx==ny, "Images must be square"
+
+    if kernelname == 'crocodile':
+        log.info("ftprocessor.predict_2d: predicting using transformed PSWF")
+        gcf, kernel = anti_aliasing_transform((padding * ny, padding * nx), oversampling)
     else:
-        log.error("ftprocessor.predict_2d: unknown kernel")
+        log.info("ftprocessor.predict_2d: predicting using calculated PSWF")
+        gcf, kernel = anti_aliasing_calculate((padding * ny, padding * nx), oversampling)
     
-    uvgrid = fft((model.data / gcf).astype(dtype=complex))
+    uvgrid = fft((pad_mid(model.data, padding * nx) / gcf).astype(dtype=complex))
     cellsize = abs(model.wcs.wcs.cdelt[0]) * numpy.pi / 180.0
     # uvw is in metres, v.frequency / c.value converts to wavelengths, the cellsize converts to phase
     uvscale = cellsize * vis.frequency / c.value
@@ -61,7 +67,7 @@ def predict_2d(vis, model, kernel=None, params=None):
 def predict_image_partition(vis, model, predict_function=predict_2d, params=None):
     """ Predict using image partitions, calling specified predict function
 
-    This is layered on other proaitions
+    This is layered on other partitions as appropriate
     """
     if params is None:
         params = {}
@@ -98,7 +104,7 @@ def predict_wslice_partition(vis, model, predict_function=predict_2d, params=Non
     return vis
 
 
-def invert_2d(vis, im, dopsf=False, kernel=None, params=None):
+def invert_2d(vis, im, dopsf=False, params=None):
     """ Invert using 2D convolution function
     
     Use the image im as a template. Do PSF in a separate call.
@@ -107,40 +113,39 @@ def invert_2d(vis, im, dopsf=False, kernel=None, params=None):
     :param im: image template (not changed)
     :param sumweights: sum of weights of visibilities
     :param dopsf: Make the psf instead of the dirty image
-    :param kernel: use this kernel instead of PSWF
     :param params: Parameters for processing
     
     """
     
     if params is None:
         params = {}
+    padding = get_parameter(params, "padding", 1.0)
+    kernelname = get_parameter(params, "kernel", "transform")
+    oversampling = get_parameter(params, "oversampling", 8)
+    support = get_parameter(params, "support", 3)
     nchan, npol, ny, nx = im.data.shape
-    kernel = None
     gcf = 1.0
-    if kernel is None:
-        log.info("ftprocessor.invert_2d: Two-dimensional invert using PSWF")
+    if kernelname == 'crocodile':
+        log.info("ftprocessor.invert_2d: Two-dimensional invert using transformed PSWF")
         # Make the gridding convolution function the size of the image
-        gcf = anti_aliasing_function((ny, nx))
-        gcf = gcf / gcf.max()
-        kernel = _kernel_oversample(gcf, nx, 8, 8)
-    elif kernel == 'wprojection':
-        log.error("ftprocessor.invert_2d: Two-dimensional invert using wprojection")
+        gcf, kernel = anti_aliasing_transform((padding * ny, padding * nx), oversampling)
     else:
-        log.error("ftprocessor.invert_2d: unknown kernel")
-    
+        log.info("ftprocessor.invert_2d: Two-dimensional invert using calculated PSWF")
+        gcf, kernel = anti_aliasing_calculate((padding * ny, padding * nx), oversampling, support)
+
     cellsize = abs(im.wcs.wcs.cdelt[0]) * numpy.pi / 180.0
     # uvw is in metres, v.frequency / c.value converts to wavelengths, the cellsize converts to phase
     uvscale = cellsize * vis.frequency / c.value
+    # Pad to twice the size to control aliasing
+    imgridpad = numpy.zeros([nchan, npol, padding * ny, padding * nx], dtype='complex')
     if dopsf:
         weights = numpy.ones_like(vis.data['vis'])
-        imgrid = numpy.zeros_like(im.data, dtype='complex')
-        imgrid = fixed_kernel_grid(kernel, imgrid, vis.data['uvw'], uvscale, weights, vis.data['imaging_weight'])
-        imgrid = numpy.real(ifft(imgrid)) / gcf
+        imgridpad = fixed_kernel_grid(kernel, imgridpad, vis.data['uvw'], uvscale, weights, vis.data['imaging_weight'])
     else:
-        imgrid = numpy.zeros_like(im.data, dtype='complex')
-        imgrid = fixed_kernel_grid(kernel, imgrid, vis.data['uvw'], uvscale, vis.data['vis'],
+        imgridpad = fixed_kernel_grid(kernel, imgridpad, vis.data['uvw'], uvscale, vis.data['vis'],
                                    vis.data['imaging_weight'])
-        imgrid = numpy.real(ifft(imgrid)) / gcf
+        
+    imgrid = extract_mid(numpy.real(ifft(imgridpad)) / gcf, npixel=nx)
     
     return create_image_from_array(imgrid, im.wcs)
 
@@ -335,7 +340,7 @@ def create_w_term_image(vis, w=None, params=None):
     im = create_image_from_visibility(vis, params)
     cellsize = abs(im.wcs.wcs.cdelt[0]) * numpy.pi / 180.0
     _, _, _, npixel = im.data.shape
-    im.data = _w_kernel_function(npixel, npixel * cellsize, w=w)
+    im.data = w_kernel_function(npixel, npixel * cellsize, w=w)
 
     fresnel = w * (0.5 * npixel * cellsize)**2
     log.info('ftprocessor.create_w_term_image: Fresnel number for this field of view and sampling = %.2f' % (fresnel))

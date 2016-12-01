@@ -32,14 +32,14 @@ class TestFTProcessor(unittest.TestCase):
     def _checkdirty(self, vis, name='test_invert_2d_dirty', invert=invert_2d):
         # Make the dirty image and PSF
         dirty = create_image_from_visibility(vis, params=self.params)
-        dirty = invert(vis=vis, im=dirty, dopsf=False, kernel=None, params=self.params)
+        dirty = invert(vis=vis, im=dirty, dopsf=False, params=self.params)
         psf = create_image_from_visibility(vis, params=self.params)
-        psf = invert(vis=vis, im=psf, dopsf=True, kernel=None, params=self.params)
+        psf = invert(vis=vis, im=psf, dopsf=True, params=self.params)
         psfmax = psf.data.max()
         dirty.data /= psfmax
         psf.data /= psfmax
-        export_image_to_fits(dirty, '%s/%s_dirty.fits' % (self.dir, name))
-        export_image_to_fits(psf, '%s/%s_psf.fits' % (self.dir, name))
+        export_image_to_fits(dirty, '%s/%s_%s_dirty.fits' % (self.dir, name, self.params['kernel']))
+        export_image_to_fits(psf,   '%s/%s_%s_psf.fits' % (self.dir, name, self.params['kernel']))
 
     def setUp(self):
         self.dir = './test_ftprocessor_results'
@@ -50,7 +50,10 @@ class TestFTProcessor(unittest.TestCase):
                        'spectral_mode': 'channel',
                        'channelwidth': 5e7,
                        'reffrequency': 1e8,
-                       'image_partitions': 5}
+                       'image_partitions': 5,
+                       'padding':1,
+                       'kernel':'transform',
+                       'oversampling':8}
         
         self.lowcore = create_named_configuration('LOWBD2-CORE')
         self.times = numpy.arange(-numpy.pi / 2.0, +numpy.pi / 2.0, 0.05)
@@ -71,7 +74,6 @@ class TestFTProcessor(unittest.TestCase):
         # on grid points.
         spacing_pixels = self.params['npixel'] // self.params['image_partitions']
         log.info('Spacing in pixels = %s' % spacing_pixels)
-        spacing = 180.0 * self.params['cellsize'] * spacing_pixels / numpy.pi
         centers = [-2.0, -1.0, 0.0, 1.0, 2.0]
         self.components = []
         for iy in centers:
@@ -114,7 +116,7 @@ class TestFTProcessor(unittest.TestCase):
                                               params=self.params)
         self.residualvis.data['uvw'][:, 2] = 0.0
         self.residualvis.data['vis'] = self.modelvis.data['vis']- self.componentvis.data['vis']
-        self._checkdirty(self.residualvis, 'test_predict_2d')
+        self._checkdirty(self.residualvis, 'test_predict_2d_residual')
 
         assert_allclose(self.modelvis.data['vis'].real, self.componentvis.data['vis'].real, atol=1.0)
         assert_allclose(self.modelvis.data['vis'].imag, self.componentvis.data['vis'].imag, atol=1.0)
@@ -135,7 +137,8 @@ class TestFTProcessor(unittest.TestCase):
         for comp in self.components:
             predict_skycomponent_visibility(self.componentvis, comp)
         
-        self._checkdirty(self.componentvis, 'test_invert_2d')
+        for self.params['kernel'] in ['transform']:
+            self._checkdirty(self.componentvis, 'test_invert_2d')
     
     def test_invert_image_partition(self):
         """Test if the image partition invert works
@@ -145,7 +148,7 @@ class TestFTProcessor(unittest.TestCase):
         dirtyFacet = create_image_from_visibility(self.componentvis, params=self.params)
         dirtyFacet = invert_image_partition(self.componentvis, dirtyFacet, params=self.params)
         psfFacet = create_image_from_visibility(self.componentvis, params=self.params)
-        psfFacet = invert_image_partition(vis=self.componentvis, im=psfFacet, dopsf=True, kernel=None,
+        psfFacet = invert_image_partition(vis=self.componentvis, im=psfFacet, dopsf=True,
                                           params=self.params)
         psfmax = psfFacet.data.max()
         assert psfmax > 0.0
@@ -163,6 +166,14 @@ class TestFTProcessor(unittest.TestCase):
                                           phasecentre=self.phasecentre)
         self.modelvis.data['vis'] *= 0.0
         predict_image_partition(self.modelvis, self.model, params=self.params)
+        
+        self.residualvis = create_visibility(self.lowcore, self.times, self.frequency, weight=1.0,
+                                              phasecentre=self.phasecentre,
+                                              params=self.params)
+        self.residualvis.data['uvw'][:, 2] = 0.0
+        self.residualvis.data['vis'] = self.modelvis.data['vis']- self.componentvis.data['vis']
+        self._checkdirty(self.residualvis, 'test_predict_image_partition_residual')
+
         assert_allclose(self.modelvis.data['vis'].real, self.componentvis.data['vis'].real, atol=1.0)
         assert_allclose(self.modelvis.data['vis'].imag, self.componentvis.data['vis'].imag, atol=1.0)
 

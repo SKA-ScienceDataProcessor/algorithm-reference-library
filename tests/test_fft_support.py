@@ -4,12 +4,12 @@ from numpy.testing import assert_allclose
 
 from arl.fourier_transforms.fft_support import *
 from arl.util.coordinate_support import *
-from arl.fourier_transforms.convolutional_gridding import _coordinates2
+from arl.fourier_transforms.convolutional_gridding import coordinates2
 
 class TestFFTSupport(unittest.TestCase):
     
     def _pattern(self, npixel):
-        return _coordinates2(npixel)[0] + _coordinates2(npixel)[1] * 1j
+        return coordinates2(npixel)[0] + coordinates2(npixel)[1] * 1j
     
     def test_pad_extract(self):
         for npixel, N2 in [(1, 1), (1, 2), (2, 3), (3, 4), (2, 5), (4, 6)]:

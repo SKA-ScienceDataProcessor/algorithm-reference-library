@@ -42,14 +42,30 @@ def pad_mid(ff, npixel):
 
     """
     
-    npixel0, npixel0w = ff.shape
-    if npixel == npixel0:
-        return ff
-    assert npixel > npixel0 == npixel0w
-    return numpy.pad(ff,
-                     pad_width=2 * [(npixel // 2 - npixel0 // 2, (npixel + 1) // 2 - (npixel0 + 1) // 2)],
-                     mode='constant',
-                     constant_values=0.0)
+    if len(ff.shape) == 4:
+        nchan, npol, ny, nx = ff.shape
+        if npixel == nx:
+            return ff
+        assert npixel > nx == ny
+        pw = ((0, 0), (0, 0),
+              (npixel // 2 - ny // 2, (npixel + 1) // 2 - (ny + 1) // 2),
+              (npixel // 2 - nx // 2, (npixel + 1) // 2 - (nx + 1) // 2))
+        return numpy.pad(ff,
+                         pad_width=pw,
+                         mode='constant',
+                         constant_values=0.0)
+    
+    else:
+        ny, nx = ff.shape
+        if npixel == nx:
+            return ff
+        assert npixel > nx == ny
+        pw = ((npixel // 2 - ny // 2, (npixel + 1) // 2 - (ny + 1) // 2),
+              (npixel // 2 - nx // 2, (npixel + 1) // 2 - (nx + 1) // 2))
+        return numpy.pad(ff,
+                         pad_width=pw,
+                         mode='constant',
+                         constant_values=0.0)
 
 
 def extract_mid(a, npixel):
@@ -62,16 +78,27 @@ def extract_mid(a, npixel):
     :param npixel:
     :param a: grid from which to extract
     """
-    cx = a.shape[0] // 2
-    cy = a.shape[1] // 2
-    s = npixel // 2
-    if npixel % 2 != 0:
-        return a[cx - s:cx + s + 1, cy - s:cy + s + 1]
+    if len(a.shape) == 4:
+        nchan, npol, ny, nx = a.shape
+        cx = nx // 2
+        cy = ny // 2
+        s = npixel // 2
+        if npixel % 2 != 0:
+            return a[..., cx - s:cx + s + 1, cy - s:cy + s + 1]
+        else:
+            return a[..., cx - s:cx + s, cy - s:cy + s]
     else:
-        return a[cx - s:cx + s, cy - s:cy + s]
+        ny, nx = a.shape
+        cx = nx // 2
+        cy = ny // 2
+        s = npixel // 2
+        if npixel % 2 != 0:
+            return a[cx - s:cx + s + 1, cy - s:cy + s + 1]
+        else:
+            return a[cx - s:cx + s, cy - s:cy + s]
 
 
-def extract_oversampled(a, xf, yf, kernel_oversampling, npixel):
+def extract_oversampled(a, xf, yf, kernel_oversampling, kernelwidth):
     """
     Extract the (xf-th,yf-th) w-kernel from the oversampled parent
 
@@ -87,18 +114,18 @@ def extract_oversampled(a, xf, yf, kernel_oversampling, npixel):
     :param yf:
     :param a: grid from which to extract
     :param kernel_oversampling: oversampling factor
-    :param npixel: size of section
+    :param kernelwidth: size of section
     """
     
     assert 0 <= xf < kernel_oversampling
     assert 0 <= yf < kernel_oversampling
     # Determine start offset.
     npixela = a.shape[0]
-    my = npixela // 2 - kernel_oversampling * (npixel // 2) - yf
-    mx = npixela // 2 - kernel_oversampling * (npixel // 2) - xf
+    my = npixela // 2 - kernel_oversampling * (kernelwidth // 2) - yf
+    mx = npixela // 2 - kernel_oversampling * (kernelwidth // 2) - xf
     assert mx >= 0 and my >= 0, "mx %d and my %d" % (mx, my)
     # Extract every kernel_oversampling-th pixel
-    mid = a[my: my + kernel_oversampling * npixel: kernel_oversampling,
-          mx: mx + kernel_oversampling * npixel: kernel_oversampling]
+    mid = a[my: my + kernel_oversampling * kernelwidth: kernel_oversampling,
+          mx: mx + kernel_oversampling * kernelwidth: kernel_oversampling]
     # normalise
     return kernel_oversampling * kernel_oversampling * mid

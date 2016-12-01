@@ -8,18 +8,17 @@ All functions that involve convolutional gridding are kept here.
 
 from __future__ import division
 
-import numpy
-
 import logging
 
 import scipy.special
-from arl.fourier_transforms.fft_support import *
+
 from arl.data.parameters import get_parameter
+from arl.fourier_transforms.fft_support import *
 
 log = logging.getLogger("convolutional.gridding")
 
 
-def _coordinateBounds(npixel):
+def coordinateBounds(npixel):
     r""" Returns lowest and highest coordinates of an image/grid given:
 
     1. Step size is :math:`1/npixel`:
@@ -38,50 +37,79 @@ def _coordinateBounds(npixel):
         return -0.5 * (npixel - 1) / npixel, 0.5 * (npixel - 1) / npixel
 
 
-def _coordinates(npixel):
+def coordinates(npixel: object) -> object:
     """ 1D array which spans [-.5,.5[ with 0 at position npixel/2
     
     """
-    low, high = _coordinateBounds(npixel)
+    low, high = coordinateBounds(npixel)
     return numpy.mgrid[low:high:(npixel * 1j)]
 
 
-def _coordinates2(npixel):
+def coordinates2(npixel):
     """Two dimensional grids of coordinates spanning -1 to 1 in each dimension
 
     1. a step size of 2/npixel and
     2. (0,0) at pixel (floor(n/2),floor(n/2))
     """
-    low, high = _coordinateBounds(npixel)
+    low, high = coordinateBounds(npixel)
     return numpy.mgrid[low:high:(npixel * 1j), low:high:(npixel * 1j)]
 
 
-def anti_aliasing_function_pro_ang1(shape, m=0, c=6.0):
+def anti_aliasing_transform(shape, oversampling=8, support=3, m=0, c=1.0):
     """
     Compute the prolate spheroidal anti-aliasing function
-
-    See VLA Scientific Memoranda 129, 131, 132
-    :param shape: (height, width) pair
-    :param m: mode parameter
-    :param c: spheroidal parameter
-    """
     
-    # 2D Prolate spheroidal angular function is separable
-    sy, sx = [scipy.special.pro_ang1(m, m, c, _coordinates(npixel))[0] for npixel in shape]
-    return numpy.outer(sy, sx)
-
-
-def anti_aliasing_function(shape):
-    """
-    Compute the prolate spheroidal anti-aliasing function
-
+    Return the 2D grid correction function, and the convolving kernel
+    
     See VLA Scientific Memoranda 129, 131, 132
     :param shape: (height, width) pair
     """
+    # 2D Prolate spheroidal angular function is separable
+    sy, sx = [scipy.special.pro_ang1(m, m, c, coordinates(npixel))[0] for npixel in shape]
+    gcf = numpy.outer(sy, sx)
+    gcf = gcf / gcf.max()
+    
+    # Calculate the gridding kernel by Fourier transform of the gcf
+    kernel = kernel_oversample(gcf, shape[0], oversampling, oversampling)
+    return gcf, kernel
+
+
+def anti_aliasing_calculate(shape, oversampling=8, support=3):
+    """
+    Compute the prolate spheroidal anti-aliasing function
+    
+    The kernel is to be used in gridding visibility data onto a grid on for degridding from a grid.
+    The gridding correction function (gcf) is used to correct the image for decorrelation due to
+    gridding.
+    
+    Return the 2D grid correction function (gcf), and the convolving kernel (kernel
+
+    See VLA Scientific Memoranda 129, 131, 132
+    :param shape: (height, width) pair
+    :param oversampling: Number of sub-samples per grid pixel
+    :param support: Support of kernel (in pixels) width is 2*support+2
+    """
     
     # 2D Prolate spheroidal angular function is separable
-    sy, sx = [grdsf(numpy.abs(_coordinates(npixel)))[0] for npixel in shape]
-    return numpy.outer(sy, sx)
+    ny, nx = shape
+    nu = numpy.abs(coordinates(nx))
+    gcf1d, _ = grdsf(nu)
+    gcf = numpy.outer(gcf1d, gcf1d)
+    gcf = gcf / gcf.max()
+
+    s1d = 2 * support + 2
+    nu = numpy.arange(-support, +support, 1.0 / oversampling)
+    kernel1d = grdsf(nu/support)[1]
+    l1d = len(kernel1d)
+    # Rearrange to get the convolution function isolated by (yf, xf). For this convolution function
+    # the result is heavily redundant but it does fit well into the general framework
+    kernel4d = numpy.zeros((oversampling, oversampling, s1d, s1d))
+    for yf in range(oversampling):
+        my = range(yf, l1d, oversampling)[::-1]
+        for xf in range(oversampling):
+            mx = range(xf, l1d, oversampling)[::-1]
+            kernel4d[yf, xf, 2:, 2:] = numpy.outer(kernel1d[my], kernel1d[mx])
+    return gcf, (kernel4d / kernel4d.max()).astype('complex')
 
 
 def grdsf(nu):
@@ -103,6 +131,8 @@ def grdsf(nu):
     _, np = p.shape
     _, nq = q.shape
     
+    nu = numpy.abs(nu)
+    
     nuend = numpy.zeros_like(nu)
     part = numpy.zeros(len(nu), dtype='int')
     part[(nu >= 0.0) & (nu < 0.75)] = 0
@@ -123,12 +153,25 @@ def grdsf(nu):
     grdsf = numpy.zeros_like(nu)
     ok = (bot > 0.0)
     grdsf[ok] = top[ok] / bot[ok]
-
+    ok = numpy.abs(nu > 1.0)
+    grdsf[ok]= 0.0
+    
     # Return the gridding function and the grid correction function
-    return grdsf, (1-nu**2)*grdsf
+    return grdsf, (1 - nu ** 2) * grdsf
 
 
-def _w_kernel_function(npixel, field_of_view, w):
+def correct_finite_oversampling(nu, oversampling=8):
+    """Correct for the loss incurred by finite oversampling
+    
+    This is just a correction for a boxcar of width 1/oversampling. For oversampling=8, it's about 0.65%
+    """
+    result = numpy.ones_like(nu)
+    nu_scaled = 0.5 * numpy.pi * nu / float(oversampling)
+    result[nu != 0.0] = numpy.sin(nu_scaled[nu != 0.0]) / nu_scaled[nu != 0.0]
+    return result
+
+
+def w_kernel_function(npixel, field_of_view, w):
     """
     W beam, the fresnel diffraction pattern arising from non-coplanar baselines
 
@@ -138,10 +181,11 @@ def _w_kernel_function(npixel, field_of_view, w):
     :returns: npixel x npixel array with the far field
     """
     
-    m, l = _coordinates2(npixel) * field_of_view
+    m, l = coordinates2(npixel) * field_of_view
     r2 = l ** 2 + m ** 2
     assert numpy.array(r2 < 1.0).all(), \
-        "Error in image coordinate system: field_of_view %f, npixel %f,l %s, m %s" % (field_of_view, npixel, l, m)
+        "Error in image coordinate system: field_of_view %f, npixel %f,l %s, m %s" % \
+        (field_of_view, npixel, l, m)
     ph = w * (1 - numpy.sqrt(1.0 - r2))
     cp = numpy.exp(2j * numpy.pi * ph)
     return cp
@@ -155,7 +199,7 @@ def kernel_coordinates(npixel, field_of_view, dl=0, dm=0, transform_matrix=None)
     the transformations applied to the visibilities using
     visibility_shift/uvw_transform.
 
-    :param field_of_view:
+    :param field_of_view: In radians
     :param npixel: Desired far-field size
     :param dl: Pattern horizontal shift (see visibility_shift)
     :param dm: Pattern vertical shift (see visibility_shift)
@@ -163,14 +207,14 @@ def kernel_coordinates(npixel, field_of_view, dl=0, dm=0, transform_matrix=None)
     :returns: Pair of (m,l) coordinates
     """
     
-    m, l = _coordinates2(npixel) * field_of_view
+    m, l = coordinates2(npixel) * field_of_view
     if transform_matrix is not None:
         l, m = transform_matrix[0, 0] * l + transform_matrix[1, 0] * m, transform_matrix[0, 1] * l \
                + transform_matrix[1, 1] * m
     return m + dm, l + dl
 
 
-def _kernel_oversample(ff, npixel, kernel_oversampling, s):
+def kernel_oversample(ff, npixel, kernel_oversampling, s):
     """ Takes a farfield pattern and creates an oversampled convolution function.
 
     If the far field size is smaller than npixel*kernel_oversampling, we will pad it. This
@@ -197,7 +241,7 @@ def _kernel_oversample(ff, npixel, kernel_oversampling, s):
     return numpy.array(res)
 
 
-def _w_kernel(field_of_view, w, npixel_farfield, npixel_kernel, kernel_oversampling):
+def w_kernel(field_of_view, w, npixel_farfield, npixel_kernel, kernel_oversampling):
     """ The middle s pixels of W convolution kernel. (W-KERNel-Aperture-Function)
 
     :param field_of_view: Field of view (directional cosines)
@@ -210,11 +254,11 @@ def _w_kernel(field_of_view, w, npixel_farfield, npixel_kernel, kernel_oversampl
     :returns: [kernel_oversampling,kernel_oversampling,s,s] shaped oversampled convolution kernels
     """
     assert npixel_farfield > npixel_kernel or (npixel_farfield == npixel_kernel and kernel_oversampling == 1)
-    return _kernel_oversample(_w_kernel_function(npixel_farfield, field_of_view, w), npixel_farfield,
-                              kernel_oversampling, npixel_kernel)
+    return kernel_oversample(w_kernel_function(npixel_farfield, field_of_view, w), npixel_farfield,
+                             kernel_oversampling, npixel_kernel)
 
 
-def _frac_coord(npixel, kernel_oversampling, p):
+def frac_coord(npixel, kernel_oversampling, p):
     """ Compute whole and fractional parts of coordinates, rounded to
     kernel_oversampling-th fraction of pixel size
 
@@ -233,7 +277,7 @@ def _frac_coord(npixel, kernel_oversampling, p):
     return flx.astype(int), fracx.astype(int)
 
 
-def _frac_coords(shape, kernel_oversampling, xycoords):
+def frac_coords(shape, kernel_oversampling, xycoords):
     """Compute grid coordinates and fractional values for convolutional gridding
 
     :param shape: (height,width) grid shape
@@ -241,8 +285,8 @@ def _frac_coords(shape, kernel_oversampling, xycoords):
     :param xycoords: array of (x,y) coordinates in range [-.5,.5[
     """
     _, _, h, w = shape  # NB order (height,width) to match numpy!
-    y, yf = _frac_coord(h, kernel_oversampling, xycoords[:, 1])
-    x, xf = _frac_coord(w, kernel_oversampling, xycoords[:, 0])
+    y, yf = frac_coord(h, kernel_oversampling, xycoords[:, 1])
+    x, xf = frac_coord(w, kernel_oversampling, xycoords[:, 0])
     return x, xf, y, yf
 
 
@@ -264,15 +308,15 @@ def fixed_kernel_degrid(kernel, uvgrid, uv, uvscale):
     vis = numpy.zeros([nvis, nchan, npol], dtype='complex')
     wt = numpy.zeros([nvis, nchan, npol])
     for chan in range(nchan):
-        coords = _frac_coords(uvgrid.shape, kernel_oversampling, uv * uvscale[chan])
+        coords = frac_coords(uvgrid.shape, kernel_oversampling, uv * uvscale[chan])
         for pol in range(npol):
             vis[..., chan, pol] = [
                 numpy.sum(uvgrid[chan, pol, y - gh // 2: y + (gh + 1) // 2, x - gw // 2: x + (gw + 1) // 2]
-                          * kernel[yf, xf])
+                          * kernel[yf, xf, :, :])
                 for x, xf, y, yf in zip(*coords)
                 ]
             wt[..., chan, pol] = [
-                numpy.sum(kernel[yf, xf].real)
+                numpy.sum(kernel[yf, xf, :, :].real)
                 for x, xf, y, yf in zip(*coords)
                 ]
     vis[numpy.where(wt > 0)] = vis[numpy.where(wt > 0)] / wt[numpy.where(wt > 0)]
@@ -294,14 +338,16 @@ def fixed_kernel_grid(kernel, uvgrid, uv, uvscale, vis, visweights):
     """
     
     kernel_oversampling, _, gh, gw = kernel.shape
+    assert gh % 2 == 0, "Convolution kernel must have even number of pixels"
+    assert gw % 2 == 0, "Convolution kernel must have even number of pixels"
     nchan, npol, ny, nx = uvgrid.shape
     for chan in range(nchan):
-        coords = _frac_coords(uvgrid.shape, kernel_oversampling, uv * uvscale[chan])
+        coords = frac_coords(uvgrid.shape, kernel_oversampling, uv * uvscale[chan])
         for pol in range(npol):
             viswt = vis[..., chan, pol] * visweights[..., chan, pol]
             for v, x, xf, y, yf in zip(viswt, *coords):
                 uvgrid[chan, pol, (y - gh // 2):(y + (gh + 1) // 2), (x - gw // 2):(x + (gw + 1) // 2)] \
-                    += kernel[yf, xf] * v
+                    += kernel[yf, xf, :, :] * v
     return uvgrid
 
 
@@ -324,14 +370,14 @@ def weight_gridding(shape, uv, uvscale, visweights, params):
         nchan, npol, ny, nx = shape
         # Add all visibility points to a float grid
         for chan in range(nchan):
-            coords = _frac_coords(shape, 1.0, uv * uvscale[chan])
+            coords = frac_coords(shape, 1.0, uv * uvscale[chan])
             for pol in range(npol):
                 for wt, x, _, y, _ in zip(visweights[..., chan, pol], *coords):
                     wtsgrid[chan, pol, y, x] += wt
         # Normalise each visibility weight to sum to one in a grid cell
         newvisweights = numpy.zeros_like(visweights)
         for chan in range(nchan):
-            coords = _frac_coords(shape, 1.0, uv * uvscale[chan])
+            coords = frac_coords(shape, 1.0, uv * uvscale[chan])
             for pol in range(npol):
                 newvisweights[..., chan, pol] = [wt / wtsgrid[chan, pol, y, x]
                                                  for wt, x, _, y, _ in zip(visweights[..., chan, pol], *coords)
