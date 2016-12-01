@@ -137,7 +137,7 @@ class TestFTProcessor(unittest.TestCase):
         for comp in self.components:
             predict_skycomponent_visibility(self.componentvis, comp)
         
-        for self.params['kernel'] in ['transform']:
+        for self.params['kernel'] in ['calculate']:
             self._checkdirty(self.componentvis, 'test_invert_2d')
     
     def test_invert_image_partition(self):

@@ -43,7 +43,7 @@ def predict_2d(vis, model, params=None):
         params = {}
         
     padding = get_parameter(params, "padding", 1)
-    kernelname = get_parameter(params, "kernel", 'standard')
+    kernelname = get_parameter(params, "kernel", 'transform')
     oversampling = get_parameter(params, "oversampling", 8)
 
     nchan, npol, ny, nx = model.data.shape
@@ -119,7 +119,7 @@ def invert_2d(vis, im, dopsf=False, params=None):
     
     if params is None:
         params = {}
-    padding = get_parameter(params, "padding", 1.0)
+    padding = get_parameter(params, "padding", 1)
     kernelname = get_parameter(params, "kernel", "transform")
     oversampling = get_parameter(params, "oversampling", 8)
     support = get_parameter(params, "support", 3)
@@ -136,7 +136,7 @@ def invert_2d(vis, im, dopsf=False, params=None):
     cellsize = abs(im.wcs.wcs.cdelt[0]) * numpy.pi / 180.0
     # uvw is in metres, v.frequency / c.value converts to wavelengths, the cellsize converts to phase
     uvscale = cellsize * vis.frequency / c.value
-    # Pad to twice the size to control aliasing
+    # Optionally pad to control aliasing
     imgridpad = numpy.zeros([nchan, npol, padding * ny, padding * nx], dtype='complex')
     if dopsf:
         weights = numpy.ones_like(vis.data['vis'])

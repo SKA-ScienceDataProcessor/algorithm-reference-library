@@ -55,7 +55,7 @@ def coordinates2(npixel):
     return numpy.mgrid[low:high:(npixel * 1j), low:high:(npixel * 1j)]
 
 
-def anti_aliasing_transform(shape, oversampling=8, support=3, m=0, c=1.0):
+def anti_aliasing_transform(shape, oversampling=8, support=3, m=6, c=0.0):
     """
     Compute the prolate spheroidal anti-aliasing function
     
@@ -65,7 +65,9 @@ def anti_aliasing_transform(shape, oversampling=8, support=3, m=0, c=1.0):
     :param shape: (height, width) pair
     """
     # 2D Prolate spheroidal angular function is separable
-    sy, sx = [scipy.special.pro_ang1(m, m, c, coordinates(npixel))[0] for npixel in shape]
+    sy, sx = [scipy.special.pro_ang1(m, m, c, 2.0 * coordinates(npixel))[0] for npixel in shape]
+    sx[0] = 0.0
+    sy[0] = 0.0
     gcf = numpy.outer(sy, sx)
     gcf = gcf / gcf.max()
     
@@ -92,7 +94,8 @@ def anti_aliasing_calculate(shape, oversampling=8, support=3):
     
     # 2D Prolate spheroidal angular function is separable
     ny, nx = shape
-    nu = numpy.abs(coordinates(nx))
+    nu = numpy.abs(2.0 * coordinates(nx))
+    print(nu)
     gcf1d, _ = grdsf(nu)
     gcf = numpy.outer(gcf1d, gcf1d)
     gcf = gcf / gcf.max()
