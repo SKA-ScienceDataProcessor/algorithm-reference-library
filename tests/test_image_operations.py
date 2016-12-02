@@ -14,6 +14,10 @@ log = logging.getLogger("tests.TestImage")
 class TestImage(unittest.TestCase):
 
     def setUp(self):
+    
+        self.dir = './test_results'
+        os.makedirs(self.dir, exist_ok=True)
+    
         self.m31image = create_test_image()
         self.cellsize = 180.0 * 0.0001 / numpy.pi
         self.m31image.wcs.wcs.cdelt[0] = -self.cellsize
@@ -33,7 +37,7 @@ class TestImage(unittest.TestCase):
         m31modelsum = add_image(self.m31image, m31model_by_array)
         log.debug(self.m31image.data.shape)
         log.debug(self.m31image.wcs)
-        log.debug(export_image_to_fits(self.m31image, fitsfile='temp.fits'))
+        log.debug(export_image_to_fits(self.m31image, fitsfile='%s/test_model.fits' % (self.dir)))
 
     def test_rasterise(self):
     
@@ -53,8 +57,8 @@ class TestImage(unittest.TestCase):
         
         newshape=(1,1,int(256//1.5),int(256//1.5))
         newimage, footprint=reproject_image(self.m31image, newwcs, shape=newshape)
-        export_image_to_fits(newimage, fitsfile='reproject_image.fits')
-        export_image_to_fits(footprint, fitsfile='reproject_footprint.fits')
+        export_image_to_fits(newimage, fitsfile='%s/reproject_image.fits' % (self.dir))
+        export_image_to_fits(footprint, fitsfile='%s/reproject_footprint.fits' % (self.dir))
 
 if __name__ == '__main__':
     log.setLevel(logging.DEBUG)

@@ -42,7 +42,7 @@ class TestFTProcessor(unittest.TestCase):
         export_image_to_fits(psf,   '%s/%s_%s_psf.fits' % (self.dir, name, self.params['kernel']))
 
     def setUp(self):
-        self.dir = './test_ftprocessor_results'
+        self.dir = './test_results'
         os.makedirs(self.dir, exist_ok=True)
         
         self.params = {'npixel': 512,

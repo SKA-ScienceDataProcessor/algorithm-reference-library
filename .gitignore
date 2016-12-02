@@ -44,3 +44,4 @@ reproject_image.fits
 temp.fits
 /tests/test_ftprocessor_results
 /.pydevproject
+/tests/test_results

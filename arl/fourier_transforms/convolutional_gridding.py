@@ -73,6 +73,7 @@ def anti_aliasing_transform(shape, oversampling=8, support=3, m=6, c=0.0):
     
     # Calculate the gridding kernel by Fourier transform of the gcf
     kernel = kernel_oversample(gcf, shape[0], oversampling, oversampling)
+    kernel = kernel / kernel.max()
     return gcf, kernel
 
 
@@ -95,7 +96,6 @@ def anti_aliasing_calculate(shape, oversampling=8, support=3):
     # 2D Prolate spheroidal angular function is separable
     ny, nx = shape
     nu = numpy.abs(2.0 * coordinates(nx))
-    print(nu)
     gcf1d, _ = grdsf(nu)
     gcf = numpy.outer(gcf1d, gcf1d)
     gcf = gcf / gcf.max()

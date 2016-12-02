@@ -49,11 +49,11 @@ def predict_2d(vis, model, params=None):
     nchan, npol, ny, nx = model.data.shape
     assert nx==ny, "Images must be square"
 
-    if kernelname == 'crocodile':
+    if kernelname == 'transform':
         log.info("ftprocessor.predict_2d: predicting using transformed PSWF")
         gcf, kernel = anti_aliasing_transform((padding * ny, padding * nx), oversampling)
     else:
-        log.info("ftprocessor.predict_2d: predicting using calculated PSWF")
+        log.info("ftprocessor.predict_2d: predicting using calculated spheroidal function")
         gcf, kernel = anti_aliasing_calculate((padding * ny, padding * nx), oversampling)
     
     uvgrid = fft((pad_mid(model.data, padding * nx) / gcf).astype(dtype=complex))
@@ -125,12 +125,12 @@ def invert_2d(vis, im, dopsf=False, params=None):
     support = get_parameter(params, "support", 3)
     nchan, npol, ny, nx = im.data.shape
     gcf = 1.0
-    if kernelname == 'crocodile':
+    if kernelname == 'transform':
         log.info("ftprocessor.invert_2d: Two-dimensional invert using transformed PSWF")
         # Make the gridding convolution function the size of the image
         gcf, kernel = anti_aliasing_transform((padding * ny, padding * nx), oversampling)
     else:
-        log.info("ftprocessor.invert_2d: Two-dimensional invert using calculated PSWF")
+        log.info("ftprocessor.invert_2d: Two-dimensional invert using calculated spheroidal function")
         gcf, kernel = anti_aliasing_calculate((padding * ny, padding * nx), oversampling, support)
 
     cellsize = abs(im.wcs.wcs.cdelt[0]) * numpy.pi / 180.0

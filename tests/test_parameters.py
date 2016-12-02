@@ -11,7 +11,9 @@ log = logging.getLogger("arl.test_parameters")
 
 class TestParameters(unittest.TestCase):
     def setUp(self):
-        self.paramsfile = arl_path("tests/TestParameters.txt")
+        self.dir = './test_results'
+        os.makedirs(self.dir, exist_ok=True)
+        self.paramsfile = "%s/TestParameters.txt" % (self.dir)
         self.parameters = {'npixel': 256, 'cellsize':0.1, 'predict':{'cellsize':0.2}, 'invert':{'spectral_mode':'mfs'}}
 
     def test_exportimport(self):
