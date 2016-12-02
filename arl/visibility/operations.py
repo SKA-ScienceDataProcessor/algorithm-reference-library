@@ -154,7 +154,7 @@ def phaserotate_visibility(vis: Visibility, newphasecentre: SkyCoord, params=Non
     log.info('phaserotate_visibility: Relative cartesian representation of direction = (%f, %f, '
               '%f)' % (l, m, n))
     
-    tangent = get_parameter(params, "tangent", True)
+    tangent = get_parameter(params, "tangent", False)
     
     # Copy object and make a new table
     vis = copy.copy(vis)

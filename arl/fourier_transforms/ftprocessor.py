@@ -29,6 +29,7 @@ def _shiftvis(im, vis, params):
     # Convert the FFT definition of the phase center to world coordinates
     sc = pixel_to_skycoord(ny // 2, nx // 2, im.wcs)
     log.debug("Pixel (%d, %d) converts to direction %s" % ( nx//2, ny//2, sc))
+    params['tangent'] = True
     vis = phaserotate_visibility(vis, sc, params)
     return vis
 
@@ -56,7 +57,7 @@ def predict_2d(vis, model, params=None):
         log.info("ftprocessor.predict_2d: predicting using calculated spheroidal function")
         gcf, kernel = anti_aliasing_calculate((padding * ny, padding * nx), oversampling)
     
-    uvgrid = fft((pad_mid(model.data, padding * nx) / gcf).astype(dtype=complex))
+    uvgrid = fft((pad_mid(model.data, padding * nx) * gcf).astype(dtype=complex))
     cellsize = abs(model.wcs.wcs.cdelt[0]) * numpy.pi / 180.0
     # uvw is in metres, v.frequency / c.value converts to wavelengths, the cellsize converts to phase
     uvscale = cellsize * vis.frequency / c.value
@@ -145,7 +146,7 @@ def invert_2d(vis, im, dopsf=False, params=None):
         imgridpad = fixed_kernel_grid(kernel, imgridpad, vis.data['uvw'], uvscale, vis.data['vis'],
                                    vis.data['imaging_weight'])
         
-    imgrid = extract_mid(numpy.real(ifft(imgridpad)) / gcf, npixel=nx)
+    imgrid = extract_mid(numpy.real(ifft(imgridpad)) * gcf, npixel=nx)
     
     return create_image_from_array(imgrid, im.wcs)
 

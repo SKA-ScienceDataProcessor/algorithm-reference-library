@@ -11,7 +11,7 @@ setup(name='algorithm-reference-library',
       author_email='realtimcornwell@gmail.com',
       url='https://github.com/SKA-ScienceDataProcessor/algorithm-reference-library',
       license='Apache License Version 2.0',
-      packages=['arl', 'examples', 'tests'],
+      packages=['arl', 'examples', 'tests', 'longtests'],
       test_suite="tests",
       tests_require=['pytest'],
       )
