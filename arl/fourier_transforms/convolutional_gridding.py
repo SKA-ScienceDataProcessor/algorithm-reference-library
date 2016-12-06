@@ -10,7 +10,9 @@ from __future__ import division
 
 import logging
 
+import pylru
 import scipy.special
+from astropy.constants import c
 
 from arl.data.parameters import get_parameter
 from arl.fourier_transforms.fft_support import *
@@ -102,7 +104,7 @@ def anti_aliasing_calculate(shape, oversampling=8, support=3):
     
     s1d = 2 * support + 2
     nu = numpy.arange(-support, +support, 1.0 / oversampling)
-    kernel1d = grdsf(nu/support)[1]
+    kernel1d = grdsf(nu / support)[1]
     l1d = len(kernel1d)
     # Rearrange to get the convolution function isolated by (yf, xf). For this convolution function
     # the result is heavily redundant but it does fit well into the general framework
@@ -157,7 +159,7 @@ def grdsf(nu):
     ok = (bot > 0.0)
     grdsf[ok] = top[ok] / bot[ok]
     ok = numpy.abs(nu > 1.0)
-    grdsf[ok]= 0.0
+    grdsf[ok] = 0.0
     
     # Return the gridding function and the grid correction function
     return grdsf, (1 - nu ** 2) * grdsf
@@ -166,7 +168,8 @@ def grdsf(nu):
 def correct_finite_oversampling(nu, oversampling=8):
     """Correct for the loss incurred by finite oversampling
     
-    This is just a correction for a boxcar of width 1/oversampling. For oversampling=8, it's about 0.65%
+    This is just a correction for a boxcar of width 1/oversampling. For oversampling=8, it's about 0.65% which is
+    less than the accuracy we have so far.
     """
     result = numpy.ones_like(nu)
     nu_scaled = 0.5 * numpy.pi * nu / float(oversampling)
@@ -174,9 +177,11 @@ def correct_finite_oversampling(nu, oversampling=8):
     return result
 
 
-def w_kernel_function(npixel, field_of_view, w):
-    """
-    W beam, the fresnel diffraction pattern arising from non-coplanar baselines
+def w_beam(npixel, field_of_view, w):
+    """ W beam, the fresnel diffraction pattern arising from non-coplanar baselines
+    
+    Note that we also include the anti-aliasing kernel since we will need to for
+    small values of w.
 
     :param npixel: Size of the grid in pixels
     :param field_of_view: Field of view
@@ -190,13 +195,12 @@ def w_kernel_function(npixel, field_of_view, w):
         "Error in image coordinate system: field_of_view %f, npixel %f,l %s, m %s" % \
         (field_of_view, npixel, l, m)
     ph = w * (1 - numpy.sqrt(1.0 - r2))
-    cp = numpy.exp(2j * numpy.pi * ph)
+    cp = numpy.exp(-2j * numpy.pi * ph)
     return cp
 
 
 def kernel_coordinates(npixel, field_of_view, dl=0, dm=0, transform_matrix=None):
-    """
-    Returns (l,m) coordinates for generation of kernels in a far-field of the given size.
+    """ Returns (l,m) coordinates for generation of kernels in a far-field of the given size.
 
     If coordinate transformations are passed, they must be inverse to
     the transformations applied to the visibilities using
@@ -256,8 +260,9 @@ def w_kernel(field_of_view, w, npixel_farfield, npixel_kernel, kernel_oversampli
 
     :returns: [kernel_oversampling,kernel_oversampling,s,s] shaped oversampled convolution kernels
     """
+    
     assert npixel_farfield > npixel_kernel or (npixel_farfield == npixel_kernel and kernel_oversampling == 1)
-    return kernel_oversample(w_kernel_function(npixel_farfield, field_of_view, w), npixel_farfield,
+    return kernel_oversample(w_beam(npixel_farfield, field_of_view, w), npixel_farfield,
                              kernel_oversampling, npixel_kernel)
 
 
@@ -288,8 +293,8 @@ def frac_coords(shape, kernel_oversampling, xycoords):
     :param xycoords: array of (x,y) coordinates in range [-.5,.5[
     """
     _, _, h, w = shape  # NB order (height,width) to match numpy!
-    y, yf = frac_coord(h, kernel_oversampling, xycoords[:, 1])
-    x, xf = frac_coord(w, kernel_oversampling, xycoords[:, 0])
+    y, yf = frac_coord(h, kernel_oversampling, xycoords[..., 1])
+    x, xf = frac_coord(w, kernel_oversampling, xycoords[..., 0])
     return x, xf, y, yf
 
 
@@ -306,6 +311,8 @@ def fixed_kernel_degrid(kernel, uvgrid, uv, uvscale):
     :returns: Array of visibilities.
     """
     kernel_oversampling, _, gh, gw = kernel.shape
+    assert gh % 2 == 0, "Convolution kernel must have even number of pixels"
+    assert gw % 2 == 0, "Convolution kernel must have even number of pixels"
     nchan, npol, ny, nx = uvgrid.shape
     nvis, _ = uv.shape
     vis = numpy.zeros([nvis, nchan, npol], dtype='complex')
