@@ -30,8 +30,13 @@ class raster_iter:
         """
         assert nraster <= im.data.shape[3], "Cannot have more raster elements than pixels"
         assert nraster <= im.data.shape[2], "Cannot have more raster elements than pixels"
+        assert im.data.shape[3] % nraster == 0, "The partitions must exactly fill the image"
+        assert im.data.shape[2] % nraster == 0, "The partitions must exactly fill the image"
+        self.shape = im.data.shape
+        self.centre = (self.shape[2] // 2, self.shape[3] // 2)
         self.dx = int(im.data.shape[3] // nraster)
         self.dy = int(im.data.shape[2] // nraster)
+        log.info('image_iterators.raster: spacing of raster (%d, %d)' % (self.dx, self.dy))
         self.im = im
         self.nraster = nraster
         self.location = 0
@@ -40,15 +45,18 @@ class raster_iter:
         return self
         
     def __next__(self):
-        """Returns an image that can be modified using references"""
+        """Returns an image that can be modified using references
+        
+        """
         if self.location < self.nraster * self.nraster:
             x = int(self.location // self.nraster)
             y = int(self.location - x * self.nraster)
-            log.info('image_iterators.raster: partition %d (%d, %d) of %d' % (self.location, x, y,
-                                                                              self.nraster*self.nraster))
+            log.info('image_iterators.raster: partition %d (%d, %d) of %d' %
+                     (self.location, x, y, self.nraster*self.nraster))
             x *= int(self.dx)
             y *= int(self.dy)
             sl = (..., slice(y, y + self.dy), slice(x, x + self.dx))
+            log.info('image_iterators.raster: slice is %s' % (str(sl)))
             self.location += 1
             # We should be able to use a slice on the wcs but it fails.
             wcs = self.im.wcs.deepcopy()

@@ -5,7 +5,7 @@ import unittest
 from numpy.testing import assert_allclose
 
 from arl.fourier_transforms.fft_support import *
-from arl.fourier_transforms.convolutional_gridding import w_kernel_function, kernel_oversample, \
+from arl.fourier_transforms.convolutional_gridding import w_beam, kernel_oversample, \
     coordinates2, anti_aliasing_transform, anti_aliasing_calculate, fixed_kernel_degrid, fixed_kernel_grid
 
 
@@ -30,10 +30,10 @@ class TestConvolutionalGridding(unittest.TestCase):
             self.assertAlmostEqual(numpy.max(aaf[..., aaf.shape[1] // 2, aaf.shape[0] // 2]), 1.0)
 
     def test_w_kernel_function(self):
-        assert_allclose(w_kernel_function(5, 0.1, 0), 1.0)
-        self.assertAlmostEqualScalar(w_kernel_function(5, 0.1, 100)[2, 2], 1)
-        self.assertAlmostEqualScalar(w_kernel_function(10, 0.1, 100)[5, 5], 1)
-        self.assertAlmostEqualScalar(w_kernel_function(11, 0.1, 1000)[5, 5], 1)
+        assert_allclose(w_beam(5, 0.1, 0), 1.0)
+        self.assertAlmostEqualScalar(w_beam(5, 0.1, 100)[2, 2], 1)
+        self.assertAlmostEqualScalar(w_beam(10, 0.1, 100)[5, 5], 1)
+        self.assertAlmostEqualScalar(w_beam(11, 0.1, 1000)[5, 5], 1)
     
     def test_kernel_oversampled_subgrid(self):
         # Oversampling should produce the same values where sub-grids overlap
@@ -65,7 +65,7 @@ class TestConvolutionalGridding(unittest.TestCase):
         # TODO: Address very poor normalisation.
         for kernel_oversampling in [4, 5, 6]:
             for npixel in [3, 5, 9, 16, 20, 24, 32, 64]:
-                k = kernel_oversample(w_kernel_function(npixel + 2, 0.1, npixel * 10), npixel + 2,
+                k = kernel_oversample(w_beam(npixel + 2, 0.1, npixel * 10), npixel + 2,
                                       kernel_oversampling, npixel)
                 assert_allclose(numpy.sum(k), kernel_oversampling ** 2, rtol=0.07)
 
@@ -107,6 +107,7 @@ class TestConvolutionalGridding(unittest.TestCase):
         assert vis.shape[0] == nvis
         assert vis.shape[1] == nchan
         assert vis.shape[2] == npol
+
 
 if __name__ == '__main__':
     unittest.main()

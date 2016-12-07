@@ -63,6 +63,8 @@ def anti_aliasing_transform(shape, oversampling=8, support=3, m=6, c=0.0):
     
     Return the 2D grid correction function, and the convolving kernel
     
+    This is not sufficiently accurate: use anti_aliasing_calculate instead.
+    
     See VLA Scientific Memoranda 129, 131, 132
     :param shape: (height, width) pair
     """

@@ -45,11 +45,13 @@ def w_kernel_lambda(vis, shape, fov, oversampling=8, wstep=100.0, npixel_kernel=
     :param cache_size: Size of cache in items
     :returns: Function to look up gridding kernel as function of row, and cache
     """
+    wmax = numpy.max(numpy.abs(vis.w)) * numpy.max(vis.frequency) / c.value
+    log.debug("variable_kernels.w_kernel_lambda: Maximum w = %f wavelengths" % (wmax))
     
     def cached_on_w(w_integral):
-        log.debug("variable_kernels.w_kernel_lambda: Cache miss on %d * %f" % (w_integral, wstep))
+        npixel_kernel_scaled = max(16, int(round(npixel_kernel*abs(w_integral*wstep)/wmax)))
         return w_kernel(field_of_view=fov, w=wstep * w_integral, npixel_farfield=shape[0],
-                        npixel_kernel=npixel_kernel, kernel_oversampling=oversampling)
+                        npixel_kernel=npixel_kernel_scaled, kernel_oversampling=oversampling)
     
     lrucache = pylru.FunctionCacheManager(cached_on_w, size=cache_size)
     
