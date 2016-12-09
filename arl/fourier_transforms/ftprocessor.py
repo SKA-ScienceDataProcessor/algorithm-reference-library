@@ -25,7 +25,7 @@ from arl.visibility.operations import phaserotate_visibility
 log = logging.getLogger("arl.ftprocessor")
 
 
-def _shiftvis(im, vis, params):
+def shiftvis(im, vis, params):
     """Shift visibility to the FFT phase centre of the image
     
     """
@@ -35,85 +35,6 @@ def _shiftvis(im, vis, params):
     log.debug("Pixel (%d, %d) converts to direction %s" % (nx // 2, ny // 2, sc))
     params['tangent'] = True
     vis = phaserotate_visibility(vis, sc, params)
-    return vis
-
-
-def predict_2d(vis, model, params=None):
-    """ Predict using convolutional degridding.
-    
-    This is at the bottom of the layering i.e. all transforms are eventually expressed in terms of this function.
-
-    :param vis: Visibility to be predicted
-    :param model: model image
-    :param params: Parameters for processing
-    :param predict_function: Function to be used for prediction (allows nesting)
-    :returns: resulting visibility (in place works)
-    """
-    nchan, npol, ny, nx, shape, gcf, kernel_type, kernel, padding, oversampling, support, cellsize, \
-    fov = get_2d_params(vis, model, params)
-    
-    uvgrid = fft((pad_mid(model.data, padding * nx) * gcf).astype(dtype=complex))
-    # uvw is in metres, v.frequency / c.value converts to wavelengths, the cellsize converts to phase
-    uvscale = cellsize * vis.frequency / c.value
-    if kernel_type == 'variable':
-        vis.data['vis'] += variable_kernel_degrid(kernel, uvgrid, vis.data['uvw'], uvscale)
-    else:
-        vis.data['vis'] += fixed_kernel_degrid(kernel, uvgrid, vis.data['uvw'], uvscale)
-    
-    return vis
-
-
-def predict_image_partition(vis, model, predict_function=predict_2d, params=None):
-    """ Predict using image partitions, calling specified predict function
-
-    :param vis: Visibility to be predicted
-    :param model: model image
-    :param params: Parameters for processing
-    :param predict_function: Function to be used for prediction (allows nesting)
-    :returns: resulting visibility (in place works)
-    """
-    if params is None:
-        params = {}
-    nraster = get_parameter(params, "image_partitions", 3)
-    log.info("ftprocessor.predict_image_partition: predicting using %d x %d image partitions" % (nraster, nraster))
-    for mpatch in raster_iter(model, nraster=nraster):
-        vis.data['vis'] = predict_function(vis, mpatch, params=params).data['vis']
-    return vis
-
-
-def predict_fourier_partition(vis, model, predict_function=predict_2d, params=None):
-    """ Predict using fourier partitions, calling specified predict function
-
-    :param vis: Visibility to be predicted
-    :param model: model image
-    :param params: Parameters for processing
-    :param predict_function: Function to be used for prediction (allows nesting)
-    :returns: resulting visibility (in place works)
-    """
-    if params is None:
-        params = {}
-    nraster = get_parameter(params, "fourier_partitions", 3)
-    log.info("ftprocessor.predict_fourier_partition: predicting using %d x %d fourier partitions" % (nraster, nraster))
-    for fpatch in raster_iter(model, nraster=nraster):
-        vis.data['vis'] = predict_function(vis, fpatch, params=params).data['vis']
-    return vis
-
-
-def predict_wslice_partition(vis, model, predict_function=predict_2d, params=None):
-    """ Predict using partitions in w
-    
-    :param vis: Visibility to be predicted
-    :param model: model image
-    :param params: Parameters for processing
-    :param predict_function: Function to be used for prediction (allows nesting)
-    :returns: resulting visibility (in place works)
-    """
-    if params is None:
-        params = {}
-    log.info("ftprocessor.predict_wslice_partition: predicting")
-    wslice = get_parameter(params, "wslice", 1000)
-    for vslice in vis_wslice_iter(vis, wslice):
-        predict_function(vslice, model, params=params)
     return vis
 
 
@@ -163,6 +84,31 @@ def get_2d_params(vis, model, params=None):
     return nchan, npol, ny, nx, shape, gcf, kernel_type, kernel, padding, oversampling, support, cellsize, fov
 
 
+def predict_2d(vis, model, params=None):
+    """ Predict using convolutional degridding.
+
+    This is at the bottom of the layering i.e. all transforms are eventually expressed in terms of this function.
+
+    :param vis: Visibility to be predicted
+    :param model: model image
+    :param params: Parameters for processing
+    :param predict_function: Function to be used for prediction (allows nesting)
+    :returns: resulting visibility (in place works)
+    """
+    nchan, npol, ny, nx, shape, gcf, kernel_type, kernel, padding, oversampling, support, cellsize, \
+    fov = get_2d_params(vis, model, params)
+    
+    uvgrid = fft((pad_mid(model.data, padding * nx) * gcf).astype(dtype=complex))
+    # uvw is in metres, v.frequency / c.value converts to wavelengths, the cellsize converts to phase
+    uvscale = cellsize * vis.frequency / c.value
+    if kernel_type == 'variable':
+        vis.data['vis'] += variable_kernel_degrid(kernel, uvgrid, vis.data['uvw'], uvscale)
+    else:
+        vis.data['vis'] += fixed_kernel_degrid(kernel, uvgrid, vis.data['uvw'], uvscale)
+    
+    return vis
+
+
 def invert_2d(vis, im, dopsf=False, params=None):
     """ Invert using 2D convolution function, including w projection
     
@@ -206,53 +152,60 @@ def invert_2d(vis, im, dopsf=False, params=None):
     return create_image_from_array(imgrid, im.wcs)
 
 
-def invert_image_partition(vis, im, dopsf=False, kernel=None, invert_function=invert_2d, params=None):
+def predict_by_image_partitions(vis, model, image_iterator=raster_iter, predict_function=predict_2d, params=None):
+    """ Predict using image partitions, calling specified predict function
+
+    :param vis: Visibility to be predicted
+    :param model: model image
+    :param image_iterator: Image iterator used to access the image
+    :param predict_function: Function to be used for prediction (allows nesting)
+    :param params: Parameters for processing
+    :returns: resulting visibility (in place works)
+    """
+    for mpatch in image_iterator(model, params):
+        vis.data['vis'] = predict_function(vis, mpatch, params=params).data['vis']
+    return vis
+
+
+def predict_by_vis_partitions(vis, model, vis_iterator, predict_function=predict_2d, params=None):
+    """ Predict using partitions in w
+
+    :param vis: Visibility to be predicted
+    :param model: model image
+    :param vis_iterator: Iterator to use for partitioning
+    :param params: Parameters for processing
+    :param predict_function: Function to be used for prediction (allows nesting)
+    :returns: resulting visibility (in place works)
+    """
+    for vslice in vis_iterator(vis, params):
+        predict_function(vslice, model, params=params)
+    return vis
+
+def invert_by_image_partitions(vis, im, image_iterator=raster_iter, dopsf=False, kernel=None,
+                               invert_function=invert_2d, params=None):
     """ Predict using image partitions, calling specified predict function
 
     :param vis: Visibility to be inverted
     :param im: image template (not changed)
+    :param image_iterator: Iterator to use for partitioning
     :param dopsf: Make the psf instead of the dirty image
     :param params: Parameters for processing
     :returns: resulting image
     """
     
-    if params is None:
-        params = {}
-    nraster = get_parameter(params, "image_partitions", 1)
-    log.info("ftprocessor.invert_image_partition: Two-dimensional invert using %d x %d image partitions" %
-             (nraster, nraster))
     i = 0
-    for dpatch in raster_iter(im, nraster=nraster):
-        result = invert_function(_shiftvis(dpatch, vis, params), dpatch, dopsf, params=params)
+    for dpatch in image_iterator(im, params):
+        result = invert_function(shiftvis(dpatch, vis, params), dpatch, dopsf, params=params)
         # Ensure that we fill in the elements of dpatch instead of creating a new numpy arrray
         dpatch.data[...] = result.data[...]
-        assert numpy.max(numpy.abs(dpatch.data)), "Raster image %d appears to be empty" % i
+        assert numpy.max(numpy.abs(dpatch.data)), "Partition image %d appears to be empty" % i
         i += 1
     assert numpy.max(numpy.abs(im.data)), "Output image appears to be empty"
     
     return im
 
 
-def invert_fourier_partition(vis, im, dopsf=False, kernel=None, invert_function=invert_2d, params=None):
-    """ Invert using fourier partitions
-
-    :param vis: Visibility to be inverted
-    :param im: image template (not changed)
-    :param dopsf: Make the psf instead of the dirty image
-    :param params: Parameters for processing
-    :returns: resulting image
-    """
-    if params is None:
-        params = {}
-    nraster = get_parameter(params, "fourier_partitions", 1)
-    log.info("ftprocessor.invert_fourier_partition: inverting using %d x %d fourier partitions" % (nraster, nraster))
-    for dpatch in raster_iter(im, nraster=nraster):
-        result = invert_function(vis, dpatch, dopsf, invert_function, params)
-    
-    return result
-
-
-def invert_wslice_partition(vis, im, dopsf=False, kernel=None, invert_function=invert_2d, params=None):
+def invert_by_vis_partitions(vis, im, vis_iterator, dopsf=False, kernel=None, invert_function=invert_2d, params=None):
     """ Invert using wslices
 
     :param vis: Visibility to be inverted
@@ -262,11 +215,7 @@ def invert_wslice_partition(vis, im, dopsf=False, kernel=None, invert_function=i
     :returns: resulting image
     
     """
-    if params is None:
-        params = {}
-    wstep = get_parameter(params, "wstep", 1000)
-    log.info("ftprocessor.invert_wslice_partition: inverting")
-    for visslice in vis_wslice_iter(vis, wstep):
+    for visslice in vis_iterator(vis, params):
         result = invert_function(visslice, im, dopsf, invert_function, params)
     
     return result
@@ -280,9 +229,6 @@ def predict_skycomponent_visibility(vis: Visibility, sc: Skycomponent, params=No
     :param sc:
     :returns: Visibility
     """
-    if params is None:
-        params = {}
-    
     spectral_mode = get_parameter(params, 'spectral_mode', 'channel')
     
     assert_same_chan_pol(vis, sc)
@@ -323,8 +269,6 @@ def weight_visibility(vis, im, params=None):
     :returns: Configuration
     """
     
-    if params is None:
-        params = {}
     cellsize = abs(im.wcs.wcs.cdelt[0]) * numpy.pi / 180.0
     # uvw is in metres, v.frequency / c.value converts to wavelengths, the cellsize converts to phase
     weighting = get_parameter(params, "weighting", "uniform")

@@ -31,6 +31,9 @@ def get_parameter(params, key, default=None):
     :return: result
     """
     
+    if params is None:
+        return default
+    
     value = default
     if key in params.keys():
         value = params[key]

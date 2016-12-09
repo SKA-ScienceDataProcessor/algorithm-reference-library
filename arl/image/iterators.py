@@ -7,6 +7,7 @@ Functions that define and manipulate images. Images are just data and a World Co
 import logging
 
 from arl.image.operations import create_image_from_array
+from arl.data.parameters import get_parameter
 
 log = logging.getLogger("arl.image_iterators")
 
@@ -19,7 +20,7 @@ class raster_iter:
     Provided we don't break reference semantics, memory should be conserved
     """
     
-    def __init__(self, im, nraster=1):
+    def __init__(self, im, params=None):
         """Create a raster_iter generator, returning images
         
         The WCS is adjusted appropriately
@@ -28,6 +29,8 @@ class raster_iter:
             for r in raster(im, nraster=2)::
                 r.data[...] = numpy.sqrt(r.data[...])
         """
+        nraster = get_parameter(params, "image_partitions", 2)
+        log.info("ftprocessor.predict_image_partition: predicting using %d x %d image partitions" % (nraster, nraster))
         assert nraster <= im.data.shape[3], "Cannot have more raster elements than pixels"
         assert nraster <= im.data.shape[2], "Cannot have more raster elements than pixels"
         assert im.data.shape[3] % nraster == 0, "The partitions must exactly fill the image"
