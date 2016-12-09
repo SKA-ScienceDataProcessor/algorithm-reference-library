@@ -76,22 +76,6 @@ def concatenate_visibility(vis1: Visibility, vis2: Visibility, params=None) -> \
     return vis
 
 
-def flag_visibility(vis: Visibility, gt: GainTable = None, params=None) -> Visibility:
-    """ Flags a visibility set, optionally using GainTable
-
-    :param vis:
-    :param gt: GainTable
-    :param params: Dictionary containing parameters
-    :returns: Visibility
-    """
-    # TODO: implement
-    
-    if params is None:
-        params = {}
-    log.error("flag_visibility: not yet implemented")
-    return vis
-
-
 def create_visibility(config: Configuration, times: numpy.array, freq: numpy.array, weight: float,
                       phasecentre: SkyCoord, meta: dict = None, params=None) -> Visibility:
     """ Create a Visibility from Configuration, hour angles, and direction of source

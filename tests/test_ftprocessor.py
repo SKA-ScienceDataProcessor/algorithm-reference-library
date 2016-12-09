@@ -14,8 +14,8 @@ from astropy.wcs.utils import pixel_to_skycoord
 from numpy.testing import assert_allclose
 
 from arl.fourier_transforms.ftprocessor import invert_2d, predict_2d, create_image_from_visibility, \
-    predict_skycomponent_visibility, invert_image_partition, \
-    predict_image_partition
+    predict_skycomponent_visibility, invert_by_image_partitions, \
+    predict_by_image_partitions
 from arl.image.operations import export_image_to_fits
 from arl.skymodel.operations import create_skycomponent, insert_skycomponent
 from arl.util.testing_support import create_named_configuration
@@ -92,7 +92,27 @@ class TestFTProcessor(unittest.TestCase):
             predict_skycomponent_visibility(self.componentvis, comp)
         
         export_image_to_fits(self.model, '%s/test_model.fits' % self.dir)
+
+    def test_predict_wprojection(self):
+        """Test if the w projection works
+
+        Set w=0 so that the two-dimensional transform should agree exactly with the component transform.
+        Good check on the grid correction in the image->vis direction"""
+        self.modelvis = create_visibility(self.lowcore, self.times, self.frequency, weight=1.0,
+                                          phasecentre=self.phasecentre)
+        self.modelvis.data['uvw'][:, 2] = 0.0
+        self.params['kernel']='wprojection'
+        predict_2d(self.modelvis, self.model, params=self.params)
+        self.residualvis = create_visibility(self.lowcore, self.times, self.frequency, weight=1.0,
+                                             phasecentre=self.phasecentre,
+                                             params=self.params)
+        self.residualvis.data['uvw'][:, 2] = 0.0
+        self.residualvis.data['vis'] = self.modelvis.data['vis'] - self.componentvis.data['vis']
+        self._checkdirty(self.residualvis, 'test_predict_wprojection_residual')
     
+        assert_allclose(self.modelvis.data['vis'].real, self.componentvis.data['vis'].real, atol=1.0)
+        assert_allclose(self.modelvis.data['vis'].imag, self.componentvis.data['vis'].imag, atol=1.0)
+
     def test_predict_2d(self):
         """Test if the 2D prediction works
 
@@ -106,18 +126,47 @@ class TestFTProcessor(unittest.TestCase):
         # Predict the visibility using direct evaluation
         for comp in self.components:
             predict_skycomponent_visibility(self.componentvis, comp)
-        
+    
         self.modelvis = create_visibility(self.lowcore, self.times, self.frequency, weight=1.0,
                                           phasecentre=self.phasecentre)
         self.modelvis.data['uvw'][:, 2] = 0.0
         predict_2d(self.modelvis, self.model, params=self.params)
         self.residualvis = create_visibility(self.lowcore, self.times, self.frequency, weight=1.0,
+                                             phasecentre=self.phasecentre,
+                                             params=self.params)
+        self.residualvis.data['uvw'][:, 2] = 0.0
+        self.residualvis.data['vis'] = self.modelvis.data['vis'] - self.componentvis.data['vis']
+        self._checkdirty(self.residualvis, 'test_predict_2d_residual')
+    
+        assert_allclose(self.modelvis.data['vis'].real, self.componentvis.data['vis'].real, atol=1.0)
+        assert_allclose(self.modelvis.data['vis'].imag, self.componentvis.data['vis'].imag, atol=1.0)
+
+    def test_predict_2d_byrows(self):
+        """Test if the 2D prediction works
+
+        Set w=0 so that the two-dimensional transform should agree exactly with the component transform.
+        Good check on the grid correction in the image->vis direction"""
+        # Set all w to zero
+        self.componentvis = create_visibility(self.lowcore, self.times, self.frequency, weight=1.0,
                                               phasecentre=self.phasecentre,
                                               params=self.params)
+        self.componentvis.data['uvw'][:, 2] = 0.0
+        # Predict the visibility using direct evaluation
+        for comp in self.components:
+            predict_skycomponent_visibility(self.componentvis, comp)
+    
+        self.modelvis = create_visibility(self.lowcore, self.times, self.frequency, weight=1.0,
+                                          phasecentre=self.phasecentre)
+        self.modelvis.data['uvw'][:, 2] = 0.0
+        self.params['kernel']='standard-by-row'
+        predict_2d(self.modelvis, self.model, params=self.params)
+        self.residualvis = create_visibility(self.lowcore, self.times, self.frequency, weight=1.0,
+                                             phasecentre=self.phasecentre,
+                                             params=self.params)
         self.residualvis.data['uvw'][:, 2] = 0.0
-        self.residualvis.data['vis'] = self.modelvis.data['vis']- self.componentvis.data['vis']
+        self.residualvis.data['vis'] = self.modelvis.data['vis'] - self.componentvis.data['vis']
         self._checkdirty(self.residualvis, 'test_predict_2d_residual')
-
+    
         assert_allclose(self.modelvis.data['vis'].real, self.componentvis.data['vis'].real, atol=1.0)
         assert_allclose(self.modelvis.data['vis'].imag, self.componentvis.data['vis'].imag, atol=1.0)
 
@@ -146,9 +195,9 @@ class TestFTProcessor(unittest.TestCase):
         If the faceting is fine enough, the dirty image should agree with the model.
         """
         dirtyFacet = create_image_from_visibility(self.componentvis, params=self.params)
-        dirtyFacet = invert_image_partition(self.componentvis, dirtyFacet, params=self.params)
+        dirtyFacet = invert_by_image_partitions(self.componentvis, dirtyFacet, params=self.params)
         psfFacet = create_image_from_visibility(self.componentvis, params=self.params)
-        psfFacet = invert_image_partition(vis=self.componentvis, im=psfFacet, dopsf=True,
+        psfFacet = invert_by_image_partitions(vis=self.componentvis, im=psfFacet, dopsf=True,
                                           params=self.params)
         psfmax = psfFacet.data.max()
         assert psfmax > 0.0
@@ -165,7 +214,7 @@ class TestFTProcessor(unittest.TestCase):
         self.modelvis = create_visibility(self.lowcore, self.times, self.frequency, weight=1.0,
                                           phasecentre=self.phasecentre)
         self.modelvis.data['vis'] *= 0.0
-        predict_image_partition(self.modelvis, self.model, params=self.params)
+        predict_by_image_partitions(self.modelvis, self.model, params=self.params)
         
         self.residualvis = create_visibility(self.lowcore, self.times, self.frequency, weight=1.0,
                                               phasecentre=self.phasecentre,
