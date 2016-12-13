@@ -87,6 +87,13 @@ class Image:
     @property
     def npixel(self): return self.data.shape[3]
 
+    @property
+    def frequency(self):
+        # Extracted from find_skycomponent. Not sure how generally
+        # applicable this is.
+        w = self.wcs.sub(['spectral'])
+        return w.wcs_pix2world(range(self.nchan), 1)[0]
+
 
 class Skycomponent:
     """ A single Skycomponent with direction, flux, shape, and params for the shape
@@ -94,16 +101,29 @@ class Skycomponent:
     """
     
     # TODO: fill out Skycomponent
-    def __init__(self):
+    def __init__(self,
+                 direction=None, frequency=None, name=None, flux=None, shape='Point', params=None):
         """ Define the required structure
+
+        :param direction: SkyCoord
+        :param frequency: numpy.array [nchan]
+        :param name: user friendly name
+        :param flux: numpy.array [nchan, npol]
+        :param shape: str e.g. 'Point' 'Gaussian'
+        :param params: numpy.array shape dependent parameters
         """
-        self.direction = None  # SkyCoord
-        self.frequency = None  # numpy.array [nchan]
-        self.name = None  # user friendly name
-        self.flux = None  # numpy.array [nchan, npol]
-        self.shape = None  # str e.g. 'Point' 'Gaussian'
-        self.params = None  # numpy.array shape dependent parameters
-    
+
+        self.direction = direction
+        self.frequency = numpy.array(frequency)
+        self.name = name
+        self.flux = numpy.array(flux)
+        self.shape = shape
+        self.params = params
+
+        assert len(self.frequency.shape) == 1
+        assert len(self.flux.shape) == 2
+        assert self.frequency.shape[0] == self.flux.shape[0]
+
     @property
     def nchan(self): return self.flux.shape[0]
     
@@ -134,7 +154,8 @@ class Visibility:
     The data column has vis:[row,nchan,npol], uvw:[row,3]
     """
     
-    def __init__(self, data=None, frequency=None, phasecentre=None, configuration=None,
+    def __init__(self,
+                 data=None, frequency=None, phasecentre=None, configuration=None,
                  uvw=None, time=None, antenna1=None, antenna2=None, vis=None, weight=None,
                  imaging_weight=None):
         if data is None and vis is not None:

@@ -10,6 +10,11 @@ from astropy.wcs.utils import skycoord_to_pixel, pixel_to_skycoord
 from arl.data.data_models import *
 from arl.data.parameters import *
 
+from astropy.convolution import Gaussian2DKernel
+from astropy.stats import gaussian_fwhm_to_sigma
+import astropy.units as u
+from photutils import segmentation
+
 log = logging.getLogger("arl.skymodel_operations")
 
 def create_skycomponent(direction: SkyCoord, flux: numpy.array, frequency: numpy.array, shape: str = 'Point',
@@ -24,29 +29,28 @@ def create_skycomponent(direction: SkyCoord, flux: numpy.array, frequency: numpy
     :param name:
     :returns: Skycomponent
     """
-    sc = Skycomponent()
-    sc.direction = direction
-    sc.frequency = frequency
-    sc.name = name
-    sc.flux = numpy.array(flux)
-    sc.shape = shape
-    sc.params = param
-    sc.name = name
-    return sc
+    return Skycomponent(
+        direction = direction,
+        frequency = frequency,
+        name = name,
+        flux = numpy.array(flux),
+        shape = shape,
+        params = param
+        )
 
 
 def find_skycomponent(im: Image, params=None):
-    """ Find components in Image, return Skycomponent, just find the peak for now
+    """ Find peak components in Image as SkyComponent
 
-    :param params:
     :param im: Image to be searched
+    :param params:
     :returns: Skycomponent
     """
     # TODO: Implement full image fitting of components
     if params is None:
         params = {}
-    log.info("point_source_find: Finding components in Image")
-    
+    log.info("point_source_find: Finding peak component in Image")
+
     # Beware: The index sequencing is opposite in wcs and Python!
     locpeak = numpy.array(numpy.unravel_index((numpy.abs(im.data)).argmax(), im.data.shape))
     log.info("point_source_find: Found peak at pixel coordinates %s" % str(locpeak))
@@ -55,9 +59,83 @@ def find_skycomponent(im: Image, params=None):
     flux = im.data[:, :, locpeak[2], locpeak[3]]
     log.info("point_source_find: Flux is %s" % flux)
     # We also need the frequency values
-    w = im.wcs.sub(['spectral'])
-    frequency = w.wcs_pix2world(range(im.data.shape[0]), 1)
-    return create_skycomponent(direction=sc, flux=flux, frequency=frequency, shape='point')
+    return create_skycomponent(direction=sc, flux=flux, frequency=im.frequency, shape='point')
+
+
+def find_skycomponents_segment(im: Image, fwhm=1.0, threshold=10.0, npixels=5, params=None):
+    """ Find gaussian components in Image above a certain treshold as Skycomponent
+
+    :param fwhm: Full width half maximum of gaussian
+    :param threshold: Threshold for component detection. Default: 10 standard deviations over median.
+    :param im: Image to be searched
+    :param params:
+    :returns: list of sky components
+    """
+
+    if params is None:
+        params = {}
+    log.info("find_skycomponents_segment: Finding components in Image by segmentation")
+
+    # We use photutils segmentation - this first segments the image
+    # into pieces that are thought to contain individual sources, then
+    # identifies the concrete source properties. Having these two
+    # steps makes it straightforward to extract polarisation and
+    # spectral information.
+
+    # Make filter kernel
+    sigma = fwhm * gaussian_fwhm_to_sigma
+    kernel = Gaussian2DKernel(sigma, x_size=int(1.5*fwhm), y_size=int(1.5*fwhm))
+    kernel.normalize()
+
+    # Segment the sum of the entire image cube
+    image_sum = numpy.sum(im.data, axis=(0,1))
+    segments = segmentation.detect_sources(image_sum, threshold, npixels=npixels, filter_kernel=kernel)
+    log.info("find_skycomponents_segment: Identified %d segments" % segments.nlabels)
+
+    # Now get source properties for all polarisations and frequencies
+    comp_tbl = [ [ segmentation.source_properties(im.data[chan, pol], segments,
+                                                  filter_kernel=kernel, wcs=im.wcs)
+                   for pol in range(im.npol) ]
+                 for chan in range(im.nchan) ]
+    def comp_prop(comp,prop_name):
+        return [ [ comp_tbl[chan][pol][comp][prop_name]
+                   for pol in range(im.npol) ]
+                 for chan in range(im.nchan) ]
+
+    # Generate components
+    comps = []
+    for segment in range(segments.nlabels):
+
+        # Get flux and position. Astropy's quantities make this
+        # unecesarily complicated.
+        flux = numpy.array(comp_prop(segment, "max_value"))
+        ras = u.Quantity(list(map(u.Quantity,
+                comp_prop(segment, "ra_icrs_centroid"))))
+        decs = u.Quantity(list(map(u.Quantity,
+                comp_prop(segment, "dec_icrs_centroid"))))
+
+        # Remove NaNs from RA/DEC (happens if there is no flux in that
+        # polarsiation/channel)
+        ras[numpy.isnan(ras)] = 0.0
+        decs[numpy.isnan(decs)] = 0.0
+
+        # Determine "true" position by weighting
+        flux_sum = numpy.sum(flux)
+        ra = numpy.sum(flux * ras) / flux_sum
+        dec = numpy.sum(flux * decs) / flux_sum
+        print(SkyCoord(ra=ra, dec=dec), flux)
+
+        # Add component
+        comps.append(Skycomponent(
+            direction = SkyCoord(ra=ra, dec=dec),
+            frequency = im.frequency,
+            name = "Segment %d" % segment,
+            flux = flux,
+            shape = 'Gaussian',
+            params = None # Table has lots of data, could add more in future
+            ))
+
+    return comps
 
 
 def fit_skycomponent(im: Image, sc: SkyCoord, params=None):

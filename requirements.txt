@@ -20,3 +20,5 @@ reproject
 astropy
 alabaster
 pandoc
+photutils
+scikit-image
