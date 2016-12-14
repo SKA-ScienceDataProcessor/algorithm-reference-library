@@ -16,6 +16,7 @@ from astropy.constants import c
 
 from arl.data.parameters import get_parameter
 from arl.fourier_transforms.fft_support import *
+from arl.core.c import gridder
 
 log = logging.getLogger("convolutional.gridding")
 
@@ -354,12 +355,13 @@ def fixed_kernel_grid(kernel, uvgrid, uv, uvscale, vis, visweights):
     assert gw % 2 == 0, "Convolution kernel must have even number of pixels"
     nchan, npol, ny, nx = uvgrid.shape
     for chan in range(nchan):
-        coords = frac_coords(uvgrid.shape, kernel_oversampling, uv * uvscale[chan])
+        xs, xfs, ys, yfs = frac_coords(uvgrid.shape, kernel_oversampling, uv * uvscale[chan])
         for pol in range(npol):
-            viswt = vis[..., chan, pol] * visweights[..., chan, pol]
-            for v, x, xf, y, yf in zip(viswt, *coords):
-                uvgrid[chan, pol, (y - gh // 2):(y + (gh + 1) // 2), (x - gw // 2):(x + (gw + 1) // 2)] \
-                    += kernel[yf, xf, :, :] * v
+            gridder(uvgrid[chan, pol],
+                    vis[..., chan, pol] * visweights[..., chan, pol],
+                    xs - gh//2, ys - gw//2,
+                    kernel,
+                    numpy.transpose([yfs, xfs]))
     return uvgrid
 
 

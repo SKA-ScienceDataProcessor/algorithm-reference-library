@@ -518,6 +518,13 @@ Operations
 Coordinate Support
 ------------------
 
+
+Internal Routines
+-----------------
+
+.. automodule:: arl.core.c
+   :members:
+
 Definition of coordinate systems
 ++++++++++++++++++++++++++++++++
 

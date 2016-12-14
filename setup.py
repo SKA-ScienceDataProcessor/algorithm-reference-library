@@ -1,7 +1,12 @@
 #!/usr/bin/env python
 
-from setuptools import setup
+from setuptools import setup, Extension
 import os
+import numpy
+
+gridmodule = Extension('arl.core.c',
+                       include_dirs = [numpy.get_include()],
+                       sources=['arl/core/cmodule.c'])
 
 setup(name='algorithm-reference-library',
       version='0.5',
@@ -14,4 +19,5 @@ setup(name='algorithm-reference-library',
       packages=['arl', 'examples', 'tests', 'longtests'],
       test_suite="tests",
       tests_require=['pytest'],
+      ext_modules = [gridmodule]
       )
