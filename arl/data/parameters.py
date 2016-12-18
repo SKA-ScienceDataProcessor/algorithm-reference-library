@@ -69,5 +69,6 @@ def export_parameters(d, paramsfile):
 
 
 def log_parameters(d):
-    for key in d.keys():
-        log.debug('log_parameters:   %s      =       %s' % (key, d[key]))
+    if d is not None:
+        for key in d.keys():
+            log.debug('log_parameters:   %s      =       %s' % (key, d[key]))

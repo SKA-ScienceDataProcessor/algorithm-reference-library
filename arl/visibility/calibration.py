@@ -30,9 +30,6 @@ def create_gaintable_from_array(gain: numpy.array, time: numpy.array, antenna: n
     :param params: Dictionary containing parameters
     :returns: Gaintable
     """
-    if params is None:
-        params = {}
-    log_parameters(params)
     if meta is None:
         meta = {}
     nrows = time.shape[0]
@@ -55,9 +52,6 @@ def interpolate_gaintable(gt: GainTable, params=None):
     :param params: Dictionary containing parameters
     :returns: Gaintable
     """
-    if params is None:
-        params = {}
-    log_parameters(params)
     # TODO: implement
     
     log.error('"interpolate_gaintable: not yet implemented')
@@ -72,9 +66,6 @@ def solve_gains(vis: Visibility, sm: Skymodel, params=None) -> GainTable:
     :param sm:
     :returns: GainTable
     """
-    if params is None:
-        params = {}
-    log_parameters(params)
     # TODO: Implement calibration solution
     log.error("solve_gains: not yet implemented")
     return GainTable()
@@ -89,9 +80,6 @@ def correct_visibility(vis: Visibility, gt: GainTable, params=None) -> Visibilit
     :returns: Visibility
     """
     # TODO: Implement calibration application
-    if params is None:
-        params = {}
-    log_parameters(params)
     log.error("correct_visibility: not yet implemented")
     return vis
 
@@ -105,9 +93,6 @@ def peel_skycomponent(vis: Visibility, sc: Skycomponent, params=None) -> Visibil
     :returns: Visibility, GainTable
     """
     # TODO: Implement peeling
-    if params is None:
-        params = {}
-    log_parameters(params)
     log.error("peel_skycomponent: not yet implemented")
     return vis
 
@@ -120,9 +105,5 @@ def qa_gaintable(gt, params=None):
     :returns: AQ
     """
     # TODO: implement
-    
-    if params is None:
-        params = {}
-    log_parameters(params)
     log.error("qa_gaintable: not yet implemented")
     return QA()

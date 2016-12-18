@@ -17,7 +17,7 @@ from arl.fourier_transforms.ftprocessor import *
 
 class TestVisibilityOperations(unittest.TestCase):
     def setUp(self):
-        self.params = {'wstep': 10.0, 'npixel': 512, 'cellsize': 0.0002, 'spectral_mode': 'channel'}
+        self.params = {'wstep': 10.0, 'npixel': 512, 'cellsize': 0.0002, 'spectral_mode': 'channel', 'npol':1}
         
         self.vlaa = create_named_configuration('VLAA')
         self.vlaa.data['xyz'] *= 1.0 / 30.0
@@ -26,6 +26,7 @@ class TestVisibilityOperations(unittest.TestCase):
         
         # Define the component and give it some spectral behaviour
         f = numpy.array([100.0, 20.0, -10.0, 1.0])
+        f = numpy.array([100.0])
         self.flux = numpy.array([f, 0.8 * f, 0.6 * f])
         
         # The phase centre is absolute and the component is specified relative (for now).

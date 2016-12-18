@@ -47,8 +47,6 @@ def find_skycomponent(im: Image, params=None):
     :returns: Skycomponent
     """
     # TODO: Implement full image fitting of components
-    if params is None:
-        params = {}
     log.info("point_source_find: Finding peak component in Image")
 
     # Beware: The index sequencing is opposite in wcs and Python!
@@ -72,8 +70,6 @@ def find_skycomponents_segment(im: Image, fwhm=1.0, threshold=10.0, npixels=5, p
     :returns: list of sky components
     """
 
-    if params is None:
-        params = {}
     log.info("find_skycomponents_segment: Finding components in Image by segmentation")
 
     # We use photutils segmentation - this first segments the image
@@ -147,8 +143,6 @@ def fit_skycomponent(im: Image, sc: SkyCoord, params=None):
     :returns: Skycomponent
 
     """
-    if params is None:
-        params = {}
     log.info("find_flux_at_direction: Extracting flux at world coordinates %s" % str(sc))
     pixloc = skycoord_to_pixel(sc, im.wcs, 0, 'wcs')
     log.info("find_flux_at_direction: Extracting flux at pixel coordinates %d %d" % (pixloc[0], pixloc[1]))
@@ -171,8 +165,6 @@ def insert_skycomponent(im: Image, sc: Skycomponent, params=None):
     :returns: image
 
     """
-    if params is None:
-        params = {}
     assert sc.shape == 'Point', "Cannot handle shape %s"% sc.shape
     pixloc = skycoord_to_pixel(sc.direction, im.wcs, 0, 'wcs')
     insert_method = get_parameter(params, "insert_method", "nearest")

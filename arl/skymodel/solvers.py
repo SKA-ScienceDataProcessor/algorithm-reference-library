@@ -24,9 +24,6 @@ def solve_skymodel(vis: Visibility, sm: Skymodel, deconvolver, params=None):
     :arg function:
     :returns: Visibility, Skymodel
     """
-    if params is None:
-        params = {}
-    log_parameters(params)
     nmajor = get_parameter(params, 'nmajor', 5)
     log.info("solve_combinations.solve_skymodel: Performing %d major cycles" % nmajor)
     

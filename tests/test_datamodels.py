@@ -53,7 +53,7 @@ class TestDataModels(unittest.TestCase):
         m31sm = create_skymodel_from_image(m31image)
         direction = SkyCoord('00h42m30s', '+41d12m00s', frame='icrs')
         flux = numpy.array([[1.0, 0.0, 0.0, 0.0], [1.0, 0.0, 0.0, 0.0]])
-        frequency=numpy.arange(1.0e8,1.5e8,1.0e7)
+        frequency=numpy.arange(1.0e8,1.5e8,2.5e7)
         comp = create_skycomponent(flux=flux, direction=direction, frequency=frequency, shape='Point')
         m31sm = add_component_to_skymodel(m31sm, comp)
 

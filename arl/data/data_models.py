@@ -93,6 +93,9 @@ class Image:
         # applicable this is.
         w = self.wcs.sub(['spectral'])
         return w.wcs_pix2world(range(self.nchan), 1)[0]
+    @property
+    def shape(self):
+        return self.data.shape
 
 
 class Skycomponent:

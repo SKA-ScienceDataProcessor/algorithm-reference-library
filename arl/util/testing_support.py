@@ -33,8 +33,6 @@ def create_configuration_from_array(antxyz: numpy.array, name: str = None, locat
     :type meta:
     :returns: Configuration
     """
-    if params is None:
-        params = {}
     fc = Configuration()
     assert len(antxyz) == 2, "Antenna array has wrong shape"
     fc.data = Table(data=[names, antxyz, mount], names=["names", "xyz", "mount"], meta=meta)
@@ -58,8 +56,6 @@ def create_configuration_from_file(antfile: str, name: str = None, location: Ear
     :param meta: Any meta info
     :returns: Configuration
     """
-    if params is None:
-        params = {}
     fc = Configuration()
     fc.name = name
     fc.location = location
@@ -87,8 +83,6 @@ def create_LOFAR_configuration(antfile: str, meta: dict = None,
     :param params: Dictionary containing parameters
     :returns: Configuration
     """
-    if params is None:
-        params = {}
     fc = Configuration()
     antxyz = numpy.genfromtxt(antfile, skip_header=2, usecols=[1, 2, 3], delimiter=",")
     nants = antxyz.shape[0]
@@ -108,8 +102,6 @@ def create_named_configuration(name: str = 'LOWBD2', params=None):
     :returns: Configuration
     """
     
-    if params is None:
-        params = {}
     if name == 'LOWBD2':
         location = EarthLocation(lon="116.4999", lat="-26.7000", height=300.0)
         fc = create_configuration_from_file(antfile=arl_path("data/configurations/LOWBD2.csv"),
@@ -149,8 +141,6 @@ def import_visibility_from_ms(msfile: str, params=None) -> Visibility:
     :param msfile: Name of measurement set
     :returns: Visibility
     """
-    if params is None:
-        params = {}
     log.error('test_support.import_visibility_from_ms: not yet implemented')
     return Visibility()
 
@@ -163,8 +153,6 @@ def export_visibility_to_ms(vis: Visibility, msfile: str = None, params=None) ->
     :param msfile: Name of output measurement set
     :returns: Visibility
     """
-    if params is None:
-        params = {}
     log.error('test_support.visibility_from_ms: not yet implemented')
 
 
@@ -177,8 +165,6 @@ def import_visibility_from_oskar(oskar_file: str, params=None) -> Visibility:
     """
     
     # Extract data from Oskar file
-    if params is None:
-        params = {}
     oskar_vis = OskarVis(oskar_file)
     ra, dec = oskar_vis.phase_centre()
     a1, a2 = oskar_vis.stations(flatten=True)

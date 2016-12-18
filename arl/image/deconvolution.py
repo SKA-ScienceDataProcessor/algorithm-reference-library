@@ -25,9 +25,7 @@ def deconvolve_cube(dirty: Image, psf: Image, params=None):
     :param params: 'algorithm': 'msclean'|'hogbom', 'gain': loop gain (float)
     :returns: componentimage, residual
     """
-    if params is None:
-        params = {}
-    log_parameters(params)
+
     algorithm = get_parameter(params, 'algorithm', 'msclean')
     if algorithm == 'msclean':
         
@@ -91,9 +89,6 @@ def restore_cube(dirty: Image, clean: Image, psf: Image, params=None):
     :param params: 'algorithm': 'msclean'|'hogbom', 'gain': loop gain (float)
     :returns: restored image
     """
-    if params is None:
-        params = {}
-    log_parameters(params)
     log.error("restore_image: not yet implemented")
     return Image()
 
@@ -113,9 +108,7 @@ def deconvolve_mfs(dirty: Image, psf: Image, params=None):
     :param params: 'algorithm': 'msclean'|'hogbom', 'gain': loop gain (float)
     :returns: componentimage, residual
     """
-    if params is None:
-        params = {}
-    log_parameters(params)
+
     log.error("deconvolve_mfs: not yet implemented")
     return Image()
 
@@ -129,9 +122,7 @@ def restore_mfs(dirty: Image, clean: Image, psf: Image, params=None):
     :param params: 'algorithm': 'msclean'|'hogbom', 'gain': loop gain (float)
     :returns: restored image
     """
-    if params is None:
-        params = {}
-    log_parameters(params)
+
     log.error("restore_mfs: not yet implemented")
     return Image()
 
@@ -197,9 +188,6 @@ def _hogbom(dirty,
     :param niter: Maximum number of components to make if the threshold `thresh` is not hit
     :returns: clean Skycomponent Image, residual Image
     """
-    if params is None:
-        params = {}
-    log_parameters(params)
     
     assert 0.0 < gain < 2.0
     assert niter > 0
@@ -252,9 +240,6 @@ def _msclean(dirty,
     :param scales: Scales (in pixels width) to be used
     :returns: clean component Image, residual Image
     """
-    if params is None:
-        params = {}
-    log_parameters(params)
     assert 0.0 < gain < 2.0
     assert niter > 0
     assert len(scales) > 0

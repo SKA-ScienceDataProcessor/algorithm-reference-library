@@ -26,8 +26,6 @@ def combine_visibility(vis1: Visibility, vis2: Visibility, w1: float = 1.0, w2: 
     :param params: Dictionary containing parameters
     :returns: Visibility
     """
-    if params is None:
-        params = {}
     assert len(vis1.frequency) == len(vis2.frequency), "Visibility: frequencies should be the same"
     assert numpy.max(numpy.abs(vis1.frequency - vis2.frequency)) < 1.0, "Visibility: frequencies should be the same"
     assert len(vis1.data['vis']) == len(vis2.data['vis']), 'Length of output data table wrong'
@@ -60,8 +58,6 @@ def concatenate_visibility(vis1: Visibility, vis2: Visibility, params=None) -> \
     :param params: Dictionary containing parameters
     :returns: Visibility
     """
-    if params is None:
-        params = {}
     assert len(vis1.frequency) == len(vis2.frequency), "Visibility: frequencies should be the same"
     assert numpy.max(numpy.abs(vis1.frequency - vis2.frequency)) < 1.0, "Visibility: frequencies should be the same"
     log.info(
@@ -89,8 +85,6 @@ def create_visibility(config: Configuration, times: numpy.array, freq: numpy.arr
     :param meta:
     :returns: Visibility
     """
-    if params is None:
-        params = {}
     assert phasecentre is not None, "Must specify phase centre"
     nch = len(freq)
     npol = get_parameter(params, "npol", 4)
@@ -132,8 +126,6 @@ def phaserotate_visibility(vis: Visibility, newphasecentre: SkyCoord, params=Non
     :param vis: Visibility to be rotated
     :returns: Visibility
     """
-    if params is None:
-        params = {}
     l, m, n = skycoord_to_lmn(newphasecentre, vis.phasecentre)
     log.info('phaserotate_visibility: Relative cartesian representation of direction = (%f, %f, '
               '%f)' % (l, m, n))
@@ -176,9 +168,7 @@ def sum_visibility(vis: Visibility, direction: SkyCoord, params=None) -> numpy.a
     :param direction: Direction of summation
     :returns: flux[nch,npol], weight[nch,pol]
     """
-    if params is None:
-        params = {}
-    log_parameters(params)
+
     l, m, n = skycoord_to_lmn(direction, vis.phasecentre)
     log.debug('sum_visibility: Cartesian representation of direction = (%f, %f, %f)' % (
         l, m, n))
@@ -206,8 +196,6 @@ def aq_visibility(vis, params=None):
     :param vis: Visibility to be assessed
     :returns: AQ
     """
-    if params is None:
-        params = {}
     context = get_parameter(params, 'context', None)
     log_parameters(params)
     avis = numpy.abs(vis.vis)

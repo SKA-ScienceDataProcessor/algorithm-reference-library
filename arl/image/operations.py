@@ -33,7 +33,7 @@ def create_image_from_array(data: numpy.array, wcs: WCS = None) -> Image:
     """
     fim = Image()
     fim.data = data
-    fim.wcs = wcs
+    fim.wcs = wcs.deepcopy()
     return fim
 
 
@@ -102,9 +102,9 @@ def reproject_image(im: Image, newwcs: WCS, shape=None, params=None):
     """
 
 
-    if params is None:
-        params = {}
     log_parameters(params)
+    log.debug("arl.image_operations.reproject_image: Converting SIN projection from %s to %s" %
+              (im.wcs.wcs.get_pv(), newwcs.wcs.get_pv()))
     rep, foot = reproject_interp((im.data, im.wcs), newwcs, shape, order='bicubic',
                                  independent_celestial_slices=False)
     return create_image_from_array(rep, newwcs), create_image_from_array(foot, newwcs)
@@ -120,9 +120,6 @@ def fft_image(im: Image, params=None):
     # TODO: implement
 
 
-    if params is None:
-        params = {}
-    log_parameters(params)
     log.error("fft_image: not yet implemented")
     
     return im
@@ -144,8 +141,6 @@ def add_image(im1: Image, im2: Image, docheckwcs=False):
     :param im2:
     :returns: Image
     """
-
-    
     if docheckwcs:
         assert not checkwcs(im1.wcs, im2.wcs), "Checking WCS not yet implemented"
 
@@ -161,10 +156,6 @@ def aq_image(im, params=None):
     """
     # TODO: implement
 
-    if params is None:
-        params = {}
-    log.error("aq_image: not yet implemented")
-    log_parameters(params)
     return QA()
 
 

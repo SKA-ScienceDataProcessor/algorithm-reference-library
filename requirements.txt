@@ -22,3 +22,4 @@ alabaster
 pandoc
 photutils
 scikit-image
+pymp-pypi
