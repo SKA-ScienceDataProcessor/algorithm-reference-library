@@ -30,13 +30,12 @@ class raster_iter:
                 r.data[...] = numpy.sqrt(r.data[...])
         """
         nraster = get_parameter(params, "image_partitions", 2)
-        log.info("ftprocessor.predict_image_partition: predicting using %d x %d image partitions" % (nraster, nraster))
+        log.info("image.iterators.raster: predicting using %d x %d image partitions" % (nraster, nraster))
         assert nraster <= im.data.shape[3], "Cannot have more raster elements than pixels"
         assert nraster <= im.data.shape[2], "Cannot have more raster elements than pixels"
         assert im.data.shape[3] % nraster == 0, "The partitions must exactly fill the image"
         assert im.data.shape[2] % nraster == 0, "The partitions must exactly fill the image"
         self.shape = im.data.shape
-        self.centre = (self.shape[2] // 2, self.shape[3] // 2)
         self.dx = int(im.data.shape[3] // nraster)
         self.dy = int(im.data.shape[2] // nraster)
         log.info('image_iterators.raster: spacing of raster (%d, %d)' % (self.dx, self.dy))

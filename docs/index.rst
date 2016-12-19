@@ -659,6 +659,7 @@ ARL Notebooks
 
    arl/imaging
    arl/imaging-wterm
+   arl/imaging-fits
 
 References
 **********

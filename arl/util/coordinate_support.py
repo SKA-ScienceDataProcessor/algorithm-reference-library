@@ -9,8 +9,6 @@ import numpy
 from astropy.coordinates import SkyCoord, CartesianRepresentation
 
 
-# ---------------------------------------------------------------------------------
-
 def xyz_at_latitude(local_xyz, lat):
     """
     Rotate local XYZ coordinates into celestial XYZ coordinates. These
@@ -32,8 +30,6 @@ def xyz_at_latitude(local_xyz, lat):
     
     return numpy.hstack([x, y2, z2])
 
-
-# ---------------------------------------------------------------------------------
 
 def xyz_to_uvw(xyz, ha, dec):
     """
@@ -64,8 +60,6 @@ def xyz_to_uvw(xyz, ha, dec):
     return numpy.hstack([u, v, w])
 
 
-# ---------------------------------------------------------------------------------
-
 def uvw_to_xyz(uvw, ha, dec):
     """
     Rotate :math:`(x,y,z)` positions relative to a sky position at
@@ -94,8 +88,6 @@ def uvw_to_xyz(uvw, ha, dec):
     return numpy.hstack([x, y, z])
 
 
-# ---------------------------------------------------------------------------------
-
 def baselines(ants_uvw):
     """
     Compute baselines in uvw co-ordinate system from
@@ -114,8 +106,6 @@ def baselines(ants_uvw):
     return basel_uvw
 
 
-# ---------------------------------------------------------------------------------
-
 def xyz_to_baselines(ants_xyz, ha_range, dec):
     """
     Calculate baselines in :math:`(u,v,w)` co-ordinate system
@@ -130,8 +120,6 @@ def xyz_to_baselines(ants_xyz, ha_range, dec):
     dist_uvw = numpy.concatenate([baselines(xyz_to_uvw(ants_xyz, hax, dec)) for hax in ha_range])
     return dist_uvw
 
-
-# ---------------------------------------------------------------------------------
 
 def skycoord_to_lmn(pos: SkyCoord, phasecentre: SkyCoord):
     """

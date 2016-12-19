@@ -106,7 +106,7 @@ def reproject_image(im: Image, newwcs: WCS, shape=None, params=None):
     log.debug("arl.image_operations.reproject_image: Converting SIN projection from %s to %s" %
               (im.wcs.wcs.get_pv(), newwcs.wcs.get_pv()))
     rep, foot = reproject_interp((im.data, im.wcs), newwcs, shape, order='bicubic',
-                                 independent_celestial_slices=False)
+                                 independent_celestial_slices=True)
     return create_image_from_array(rep, newwcs), create_image_from_array(foot, newwcs)
 
 
