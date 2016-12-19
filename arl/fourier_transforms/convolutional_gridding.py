@@ -17,6 +17,8 @@ from astropy.constants import c
 from arl.data.parameters import get_parameter
 from arl.fourier_transforms.fft_support import *
 
+# from arl.core.c import gridder
+
 log = logging.getLogger("convolutional.gridding")
 
 
@@ -335,6 +337,32 @@ def fixed_kernel_degrid(kernel, uvgrid, uv, uvscale):
     vis[numpy.where(wt < 0)] = 0.0
     return numpy.array(vis)
 
+def gridder(uvgrid, vis, xs, ys, kernel=numpy.ones((1,1)), kernel_ixs=None):
+    """Grids visibilities at given positions. Convolution kernels are selected per
+    visibility using ``kernel_ixs``.
+
+    :param uvgrid: Grid to update (two-dimensional :class:`complex` array)
+    :param vis: Visibility values (one-dimensional :class:`complex` array)
+    :param xs: Visibility position (one-dimensional :class:`int` array)
+    :param ys: Visibility values (one-dimensional :class:`int` array)
+    :param kernel: Convolution kernel (minimum two-dimensional :class:`complex` array).
+      If the kernel has more than two dimensions, additional indices must be passed
+      in ``kernel_ixs``. Default: Fixed one-pixel kernel with value 1.
+    :param kernel_ixs: Map of visibilities to kernel indices (maximum two-dimensional :class:`int` array).
+      Can be omitted if ``kernel`` requires no indices, and can be one-dimensional
+      if only one index is needed to identify kernels
+    """
+
+    if kernel_ixs is None:
+        kernel_ixs = numpy.zeroes((len(vis),0))
+    else:
+        kernel_ixs = numpy.array(kernel_ixs)
+        if len(kernel_ixs.shape) == 1:
+            kernel_ixs = kernel_ixs.reshape(len(kernel_ixs), 1)
+
+    gh, gw = kernel.shape[-2:]
+    for v, x, y, kern_ix in zip(vis, xs, ys, kernel_ixs):
+        uvgrid[y:y+gh, x:x+gw] += kernel[tuple(kern_ix)] * v
 
 def fixed_kernel_grid(kernel, uvgrid, uv, uvscale, vis, visweights):
     """Grid after convolving with frequency and polarisation independent gcf
