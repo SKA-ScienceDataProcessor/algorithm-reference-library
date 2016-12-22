@@ -30,7 +30,7 @@ def standard_kernel_lambda(vis, shape, oversampling=8, support=3):
     return lambda row, chan=0: sk
 
 
-def w_kernel_lambda(vis, shape, fov, oversampling=8, wstep=100.0, npixel_kernel=16, cache_size=10000):
+def w_kernel_lambda(vis, shape, fov, oversampling=32, wstep=100.0, npixel_kernel=16, cache_size=10000):
     """Return a lambda function to calculate the w term visibility kernel
 
     This function is called once. It uses an LRU cache to hold the convolution kernels. As a result,
@@ -49,10 +49,11 @@ def w_kernel_lambda(vis, shape, fov, oversampling=8, wstep=100.0, npixel_kernel=
     log.debug("variable_kernels.w_kernel_lambda: Maximum w = %f wavelengths" % (wmax))
     
     def cached_on_w(w_integral):
-        npixel_kernel_scaled = max(16, int(round(npixel_kernel*abs(w_integral*wstep)/wmax)))
-        return w_kernel(field_of_view=fov, w=wstep * w_integral, npixel_farfield=shape[0],
+        npixel_kernel_scaled = max(8, int(round(npixel_kernel*abs(w_integral*wstep)/wmax)))
+        result = w_kernel(field_of_view=fov, w=wstep * w_integral, npixel_farfield=shape[0],
                         npixel_kernel=npixel_kernel_scaled, kernel_oversampling=oversampling)
-    
+        return result
+        
     lrucache = pylru.FunctionCacheManager(cached_on_w, size=cache_size)
     
     # The lambda function has arguments row and chan so any gridding function can only depend on those

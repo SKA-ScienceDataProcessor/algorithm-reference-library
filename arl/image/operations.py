@@ -6,10 +6,14 @@ Functions that define and manipulate images. Images are just data and a World Co
 
 from astropy.io import fits
 from astropy.wcs import WCS
+from astropy.wcs.utils import pixel_to_skycoord
+
 from reproject import reproject_interp
 
 from arl.data.data_models import *
 from arl.data.parameters import *
+
+import matplotlib.pyplot as plt
 
 log = logging.getLogger("arl.image_operations")
 
@@ -101,10 +105,14 @@ def reproject_image(im: Image, newwcs: WCS, shape=None, params=None):
     :returns: Reprojected Image, Footprint Image
     """
 
-
-    log_parameters(params)
-    log.debug("arl.image_operations.reproject_image: Converting SIN projection from %s to %s" %
+    log.debug("arl.image_operations.reproject_image: Converting SIN projection from parameters %s to %s" %
               (im.wcs.wcs.get_pv(), newwcs.wcs.get_pv()))
+    before = pixel_to_skycoord(0.0, 0.0, wcs=im.wcs)
+    after  = pixel_to_skycoord(0.0, 0.0, wcs=newwcs)
+    sep = before.separation(after)
+    print('Oblique SIN conversion of edge: moved %.2f from %s, %s -> %s, %s' % (sep.deg, before.ra, before.dec,
+                                                                                after.ra, after.dec))
+
     rep, foot = reproject_interp((im.data, im.wcs), newwcs, shape, order='bicubic',
                                  independent_celestial_slices=True)
     return create_image_from_array(rep, newwcs), create_image_from_array(foot, newwcs)
@@ -118,11 +126,28 @@ def fft_image(im: Image, params=None):
     :returns: Image
     """
     # TODO: implement
-
-
+    
+    
     log.error("fft_image: not yet implemented")
     
     return im
+
+
+def ifft_image(imreal: Image, imimag: Image=None, params=None):
+    """ Inverse FFT an image
+
+    :param params:
+    :param imreal:
+    :param imimag:
+    :returns: Image
+    """
+    # TODO: implement
+    
+    
+    log.error("ifft_image: not yet implemented")
+    
+    return imreal
+
 
 def checkwcs(wcs1, wcs2):
     """ Check for compatbility of wcs

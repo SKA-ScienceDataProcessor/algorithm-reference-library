@@ -225,7 +225,7 @@ def kernel_coordinates(npixel, field_of_view, dl=0, dm=0, transform_matrix=None)
     return m + dm, l + dl
 
 
-def kernel_oversample(ff, npixel, kernel_oversampling, s):
+def kernel_oversample(ff, npixel, kernel_oversampling, kernelwidth):
     """ Takes a farfield pattern and creates an oversampled convolution function.
 
     If the far field size is smaller than npixel*kernel_oversampling, we will pad it. This
@@ -235,7 +235,7 @@ def kernel_oversample(ff, npixel, kernel_oversampling, s):
     :param npixel: Image size without oversampling
     :param kernel_oversampling: Factor to oversample by -- there will be kernel_oversampling x kernel_oversampling
     convolution functions
-    :param s: Size of convolution function to extract
+    :param kernelwidth: Size of convolution function to extract
     :returns: Numpy array of shape [ov, ou, v, u], e.g. with sub-pixel offsets as the outer coordinates.
     """
     
@@ -244,9 +244,9 @@ def kernel_oversample(ff, npixel, kernel_oversampling, s):
     
     # Obtain oversampled uv-grid
     af = ifft(padff)
-    
+
     # Extract kernels
-    res = [[extract_oversampled(af, x, y, kernel_oversampling, s)
+    res = [[extract_oversampled(af, x, y, kernel_oversampling, kernelwidth)
             for x in range(kernel_oversampling)]
            for y in range(kernel_oversampling)]
     return numpy.array(res)
@@ -266,8 +266,9 @@ def w_kernel(field_of_view, w, npixel_farfield, npixel_kernel, kernel_oversampli
     """
     
     assert npixel_farfield > npixel_kernel or (npixel_farfield == npixel_kernel and kernel_oversampling == 1)
-    return kernel_oversample(w_beam(npixel_farfield, field_of_view, w), npixel_farfield,
-                             kernel_oversampling, npixel_kernel)
+    gcf, _ = anti_aliasing_calculate((npixel_farfield, npixel_farfield), kernel_oversampling)
+    wbeamarray=w_beam(npixel_farfield, field_of_view, w) / gcf
+    return kernel_oversample(wbeamarray, npixel_farfield, kernel_oversampling, npixel_kernel)
 
 
 def frac_coord(npixel, kernel_oversampling, p):

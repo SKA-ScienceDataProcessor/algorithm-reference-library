@@ -18,7 +18,7 @@ from arl.fourier_transforms.fft_support import fft, ifft, pad_mid, extract_mid
 from arl.fourier_transforms.variable_kernels import variable_kernel_grid, variable_kernel_degrid, \
     standard_kernel_lambda, w_kernel_lambda
 from arl.image.iterators import *
-from arl.image.operations import reproject_image
+from arl.image.operations import reproject_image, show_image
 from arl.util.coordinate_support import simulate_point, skycoord_to_lmn
 from arl.visibility.iterators import *
 from arl.visibility.operations import phaserotate_visibility
@@ -54,7 +54,7 @@ def get_2d_params(vis, model, params=None):
     nchan, npol, ny, nx = model.data.shape
     shape = (padding * ny, padding * nx)
     cellsize = abs(model.wcs.wcs.cdelt[0]) * numpy.pi / 180.0
-    fov = nx * cellsize
+    fov = padding * nx * cellsize
     
     kernel_type = 'fixed'
     gcf = 1.0
@@ -73,11 +73,13 @@ def get_2d_params(vis, model, params=None):
         recommended_wstep = numpy.sqrt(2.0 * delA) / (numpy.pi * fov ** 2)
         log.info("ftprocessor.get_2d_params: Recommended wstep = %f" % (recommended_wstep))
         wstep = get_parameter(params, "wstep", recommended_wstep)
-        log.info("ftprocessor.get_2d_params: using w projection with wstep = %f" % (wstep))
+        log.info("ftprocessor.get_2d_params: Using w projection with wstep = %f" % (wstep))
         # Now calculate the maximum support for the w kernel
-        npixel_kernel = 4 * (int(round(numpy.sin(0.5 * fov) * nx)) // 2)
-        log.info("ftprocessor.get_2d_params: w support = %d" % (npixel_kernel))
-        kernel, _ = w_kernel_lambda(vis, shape, fov, wstep=wstep, npixel_kernel=npixel_kernel)
+        npixel_kernel = get_parameter(params, "kernelwidth", 4 * (int(round(numpy.sin(0.5 * fov) * nx)) // 2))
+        log.info("ftprocessor.get_2d_params: w kernel full width = %d pixels" % (npixel_kernel))
+        kernel, _ = w_kernel_lambda(vis, shape, fov, wstep=wstep, npixel_kernel=npixel_kernel,
+                                    oversampling=oversampling)
+        gcf, _ = anti_aliasing_calculate(shape, oversampling)
     else:
         log.info("ftprocessor.get_2d_params: using calculated spheroidal function")
         gcf, kernel = anti_aliasing_calculate(shape, oversampling)
@@ -109,6 +111,17 @@ def predict_2d(vis, model, params=None):
         vis.data['vis'] += fixed_kernel_degrid(kernel, uvgrid, vis.data['uvw'], uvscale)
     
     return vis
+
+def predict_wprojection(vis, model, params=None):
+    """ Predict using convolutional degridding and w projection
+    :param vis: Visibility to be predicted
+    :param model: model image
+    :param params: Parameters for processing
+    :param predict_function: Function to be used for prediction (allows nesting)
+    :returns: resulting visibility (in place works)
+    """
+    params['kernel']='wprojection'
+    return predict_2d(vis, model, params=params)
 
 
 def invert_2d(vis, im, dopsf=False, params=None):
@@ -155,6 +168,22 @@ def invert_2d(vis, im, dopsf=False, params=None):
     return create_image_from_array(imgrid, im.wcs)
 
 
+def invert_wprojection(vis, im, dopsf=False, params=None):
+    """ Predict using 2D convolution function, including w projection
+
+    Use the image im as a template. Do PSF in a separate call.
+
+    :param vis: Visibility to be inverted
+    :param im: image template (not changed)
+    :param dopsf: Make the psf instead of the dirty image
+    :param params: Parameters for processing
+    :returns: resulting image
+
+    """
+    params['kernel']='wprojection'
+    return invert_2d(vis, im, dopsf, params=params)
+
+
 def fit_uvwplane(vis):
     """ Fit and remove the best fitting plane p u + q v = w
 
@@ -184,19 +213,21 @@ def predict_timeslice(vis, model, params=None):
     """
     nchan, npol, ny, nx, shape, gcf, kernel_type, kernel, padding, oversampling, support, cellsize, \
     fov = get_2d_params(vis, model, params)
-    
+
+    model.wcs.wcs.set_pv([(0, 0, 0.0), (0, 1, 0.0)])
+
     workimage = copy.copy(model)
     
     for visslice in vis_timeslice_iter(vis, params):
         
         p, q = fit_uvwplane(visslice)
-        visslice.data['uvw'][:, 2] -= p * visslice.data['uvw'][:, 0] + q * visslice.data['uvw'][:, 1]
-        
-        # Find the parameters defining the SIN projection for this plane
-        pv = [(0, 0, q), (0, 1, p)]
-        workimage.wcs.wcs.set_pv(pv)
+        visslice.data['uvw'][:, 2] -= p * visslice.u + q * visslice.v
+
+        # Set the parameters defining the SIN projection for this plane
+        newwcs = model.wcs.deepcopy()
+        newwcs.wcs.wcs.set_pv([(0, 0, p), (0, 1, q)])
         # Reproject the model from the natural oblique SIN projection to the non-oblique SIN projection
-        workimage, footprintimage = reproject_image(model, workimage.wcs, shape=[nchan, npol, ny, nx])
+        workimage, footprintimage = reproject_image(model, newwcs, shape=[nchan, npol, ny, nx])
         workimage.data[footprintimage.data <= 0.0] = 0.0
         
         uvgrid = fft((pad_mid(workimage.data, padding * nx) * gcf).astype(dtype=complex))
@@ -241,7 +272,7 @@ def invert_timeslice(vis, im, dopsf=False, params=None):
             nslices += 1
             visslices.append(visslice)
         
-        log.debug("fourier_transforms: invert_timeslice.Processing %d time slices %d-way parallel" % (nslices,
+        log.debug("ftprocessor.invert_timeslice: Processing %d time slices %d-way parallel" % (nslices,
                                                                                                       nproc))
         with pymp.Parallel(nproc) as p:
             for index in p.range(0, nslices):
@@ -269,8 +300,13 @@ def invert_timeslice_single(visslice, im, dopsf, params):
     nchan, npol, ny, nx, shape, gcf, kernel_type, kernel, padding, oversampling, support, cellsize, \
     fov = get_2d_params(visslice, im, params)
 
+    nvis = len(visslice.data)
+    before = numpy.std(visslice.w)
     p, q = fit_uvwplane(visslice)
-    visslice.data['uvw'][:, 2] -= p * visslice.data['uvw'][:, 0] + q * visslice.data['uvw'][:, 1]
+    visslice.data['uvw'][:, 2] -= p * visslice.u + q * visslice.v
+    after = numpy.max(numpy.std(visslice.w))
+    log.debug('ftprocessor.invert_timeslice_single: Fit to %d rows reduces maximum w from %.1f to %.1f wavelengths'
+              % (nvis, before, after))
     # uvw is in metres, v.frequency / c.value converts to wavelengths, the cellsize converts to phase
     uvscale = cellsize * visslice.frequency / c.value
     assert uvscale[0] > 0.0, "Error in uv scaling"
@@ -295,11 +331,10 @@ def invert_timeslice_single(visslice, im, dopsf, params):
                                           visslice.data['imaging_weight'])
     imgrid = extract_mid(numpy.real(ifft(imgridpad)) * gcf, npixel=nx)
     workimage = create_image_from_array(imgrid, im.wcs)
-    pv = [(0, 0, q), (0, 1, p)]
-    workimage.wcs.wcs.set_pv(pv)
-    workimage, footprint = reproject_image(workimage, im.wcs, im.shape)
-    workimage.data[footprint.data <= 0.0] = 0.0
-    return workimage
+    workimage.wcs.wcs.set_pv([(0, 0, q), (0, 1, p)])
+    finalimage, footprint = reproject_image(workimage, im.wcs, im.shape)
+    finalimage.data[footprint.data <= 0.0] = 0.0
+    return finalimage
 
 
 def predict_by_image_partitions(vis, model, image_iterator=raster_iter, predict_function=predict_2d, params=None):
@@ -453,8 +488,8 @@ def create_wcs_from_visibility(vis, params=None):
              % (imagecentre, reffrequency, channelwidth))
     
     npixel = get_parameter(params, "npixel", 512)
-    uvmax = (numpy.abs(vis.data['uvw']).max() * numpy.max(vis.frequency) / c).value
-    log.info("create_wcs_from_visibility: uvmax = %f lambda" % uvmax)
+    uvmax = (numpy.abs(vis.data['uvw'][:,0:1]).max() * numpy.max(vis.frequency) / c).value
+    log.info("create_wcs_from_visibility: uvmax = %f wavelengths" % uvmax)
     criticalcellsize = 1.0 / (uvmax * 2.0)
     log.info("create_wcs_from_visibility: Critical cellsize = %f radians, %f degrees" % (
         criticalcellsize, criticalcellsize * 180.0 / numpy.pi))
@@ -476,6 +511,8 @@ def create_wcs_from_visibility(vis, params=None):
     w.wcs.ctype = ["RA---SIN", "DEC--SIN", 'STOKES', 'FREQ']
     w.wcs.crval = [phasecentre.ra.value, phasecentre.dec.value, 1.0, reffrequency.value]
     w.naxis = 4
+    w.wcs.latpole = 0.0
+    w.wcs.lonpole = 180.0
     
     w.wcs.radesys = get_parameter(params, 'frame', 'ICRS')
     w.wcs.equinox = get_parameter(params, 'equinox', 2000.0)

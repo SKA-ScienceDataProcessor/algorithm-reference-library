@@ -112,7 +112,6 @@ def find_skycomponents(im: Image, fwhm=1.0, threshold=10.0, npixels=5, params=No
         flux_sum = numpy.sum(flux)
         ra = numpy.sum(flux * ras) / flux_sum
         dec = numpy.sum(flux * decs) / flux_sum
-        print(SkyCoord(ra=ra, dec=dec), flux)
 
         # Add component
         comps.append(Skycomponent(
