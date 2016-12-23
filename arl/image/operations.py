@@ -184,7 +184,7 @@ def aq_image(im, params=None):
     return QA()
 
 
-def show_image(im: Image, fig=None, title: str = ''):
+def show_image(im: Image, fig=None, title: str = '', pol=0, chan=0):
     """ Show an Image with coordinates using matplotlib
 
     :param im:
@@ -200,7 +200,7 @@ def show_image(im: Image, fig=None, title: str = ''):
     plt.clf()
     fig.add_subplot(111, projection=im.wcs.sub(['longitude', 'latitude']))
     if len(im.data.shape) == 4:
-        plt.imshow(numpy.real(im.data[0, 0, :, :]), origin='lower', cmap='rainbow')
+        plt.imshow(numpy.real(im.data[chan, pol, :, :]), origin='lower', cmap='rainbow')
     elif len(im.data.shape) == 2:
         plt.imshow(numpy.real(im.data[:, :]), origin='lower', cmap='rainbow')
     plt.xlabel('RA---SIN')

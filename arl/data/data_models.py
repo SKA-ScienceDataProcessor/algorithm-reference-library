@@ -103,7 +103,6 @@ class Skycomponent:
     
     """
     
-    # TODO: fill out Skycomponent
     def __init__(self,
                  direction=None, frequency=None, name=None, flux=None, shape='Point', params=None):
         """ Define the required structure
