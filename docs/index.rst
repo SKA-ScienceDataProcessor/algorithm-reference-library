@@ -658,8 +658,8 @@ ARL Notebooks
    :maxdepth: 2
 
    arl/imaging
-   arl/imaging-wterm
    arl/imaging-fits
+   arl/imaging-wterm
 
 References
 **********

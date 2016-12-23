@@ -33,7 +33,6 @@ class TestVisibilityOperations(unittest.TestCase):
         # This means that the component should end up at the position phasecentre+compredirection
         self.phasecentre = SkyCoord(ra=+15.0 * u.deg, dec=+35.0 * u.deg, frame='icrs', equinox=2000.0)
         self.compabsdirection = SkyCoord(ra=+17.0 * u.deg, dec=+36.5 * u.deg, frame='icrs', equinox=2000.0)
-        # TODO: convert entire mechanism to absolute coordinates
         pcof = self.phasecentre.skyoffset_frame()
         self.compreldirection = self.compabsdirection.transform_to(pcof)
         self.m31comp = create_skycomponent(flux=self.flux,

@@ -134,28 +134,6 @@ def create_named_configuration(name: str = 'LOWBD2', params=None):
     return fc
 
 
-def import_visibility_from_ms(msfile: str, params=None) -> Visibility:
-    """ Import a visibility set from a measurement set
-
-    :param params:
-    :param msfile: Name of measurement set
-    :returns: Visibility
-    """
-    log.error('test_support.import_visibility_from_ms: not yet implemented')
-    return Visibility()
-
-
-def export_visibility_to_ms(vis: Visibility, msfile: str = None, params=None) -> Visibility:
-    """ Export a visibility set to a measurement set
-
-    :param params:
-    :param vis: Name of visibility set
-    :param msfile: Name of output measurement set
-    :returns: Visibility
-    """
-    log.error('test_support.visibility_from_ms: not yet implemented')
-
-
 def import_visibility_from_oskar(oskar_file: str, params=None) -> Visibility:
     """ Import a visibility set from an OSKAR visibility file
 

@@ -127,8 +127,6 @@ def phaserotate_visibility(vis: Visibility, newphasecentre: SkyCoord, params=Non
     :returns: Visibility
     """
     l, m, n = skycoord_to_lmn(newphasecentre, vis.phasecentre)
-    log.debug('phaserotate_visibility: Relative cartesian representation of direction = (%f, %f, '
-              '%f)' % (l, m, n))
     
     tangent = get_parameter(params, "tangent", False)
     
@@ -138,7 +136,6 @@ def phaserotate_visibility(vis: Visibility, newphasecentre: SkyCoord, params=Non
     
     # No significant change?
     if numpy.abs(l) > 1e-15 or numpy.abs(m) > 1e-15:
-        log.debug('phaserotate_visibility: Phase rotation from %s to %s' % (vis.phasecentre, newphasecentre))
         
         # We are going to update in-place, so make a copy
         vis.data.replace_column('vis', vis.vis.copy())
@@ -189,7 +186,7 @@ def sum_visibility(vis: Visibility, direction: SkyCoord, params=None) -> numpy.a
     return flux, weight
 
 
-def aq_visibility(vis, params=None):
+def qa_visibility(vis, params=None):
     """Assess the quality of Visibility
 
     :param params:

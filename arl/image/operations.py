@@ -6,16 +6,13 @@ Functions that define and manipulate images. Images are just data and a World Co
 
 from astropy.io import fits
 from astropy.wcs import WCS
-from astropy.wcs.utils import pixel_to_skycoord
-
 from reproject import reproject_interp
 
 from arl.data.data_models import *
 from arl.data.parameters import *
 
-import matplotlib.pyplot as plt
-
 log = logging.getLogger("arl.image_operations")
+
 
 def create_image_from_slice(im, imslice):
     """Create image from an image using a numpy.slice
@@ -91,7 +88,6 @@ def add_wcs_to_image(im: Image, wcs: WCS):
     return im
 
 
-
 def reproject_image(im: Image, newwcs: WCS, shape=None, params=None):
     """ Re-project an image to a new coordinate system
     
@@ -104,49 +100,12 @@ def reproject_image(im: Image, newwcs: WCS, shape=None, params=None):
     :param params: Dictionary of parameters
     :returns: Reprojected Image, Footprint Image
     """
-
+    
     log.debug("arl.image_operations.reproject_image: Converting SIN projection from parameters %s to %s" %
               (im.wcs.wcs.get_pv(), newwcs.wcs.get_pv()))
-    before = pixel_to_skycoord(0.0, 0.0, wcs=im.wcs)
-    after  = pixel_to_skycoord(0.0, 0.0, wcs=newwcs)
-    sep = before.separation(after)
-    print('Oblique SIN conversion of edge: moved %.2f from %s, %s -> %s, %s' % (sep.deg, before.ra, before.dec,
-                                                                                after.ra, after.dec))
-
     rep, foot = reproject_interp((im.data, im.wcs), newwcs, shape, order='bicubic',
                                  independent_celestial_slices=True)
     return create_image_from_array(rep, newwcs), create_image_from_array(foot, newwcs)
-
-
-def fft_image(im: Image, params=None):
-    """ FFT an image
-
-    :param params:
-    :param im:
-    :returns: Image
-    """
-    # TODO: implement
-    
-    
-    log.error("fft_image: not yet implemented")
-    
-    return im
-
-
-def ifft_image(imreal: Image, imimag: Image=None, params=None):
-    """ Inverse FFT an image
-
-    :param params:
-    :param imreal:
-    :param imimag:
-    :returns: Image
-    """
-    # TODO: implement
-    
-    
-    log.error("ifft_image: not yet implemented")
-    
-    return imreal
 
 
 def checkwcs(wcs1, wcs2):
@@ -155,8 +114,8 @@ def checkwcs(wcs1, wcs2):
     :param wcs1:
     :param wcs2:
     """
-    # TODO: implement checkwcs
-    return True
+    assert wcs1.compare(wcs2, comp=wcs2.WCSCOMPARE_ANCILLARY), "WCS's do not agree"
+
 
 def add_image(im1: Image, im2: Image, docheckwcs=False):
     """ Add two images
@@ -167,21 +126,27 @@ def add_image(im1: Image, im2: Image, docheckwcs=False):
     :returns: Image
     """
     if docheckwcs:
-        assert not checkwcs(im1.wcs, im2.wcs), "Checking WCS not yet implemented"
-
+        checkwcs(im1.wcs, im2.wcs)
+    
     return create_image_from_array(im1.data + im2.data, im1.wcs)
 
 
-def aq_image(im, params=None):
+def qa_image(im, params=None):
     """Assess the quality of an image
 
     :param params:
     :param im:
     :returns: QA
     """
-    # TODO: implement
-
-    return QA()
+    data = {'max': numpy.max(im.data),
+            'min': numpy.min(im.data),
+            'rms': numpy.std(im.data),
+            'medianabs': numpy.median(numpy.abs(im.data)),
+            'median': numpy.median(im.data)}
+    qa = QA(origin="qa_image",
+            data=data,
+            context=get_parameter(params, 'context', ""))
+    return qa
 
 
 def show_image(im: Image, fig=None, title: str = '', pol=0, chan=0):
@@ -192,9 +157,9 @@ def show_image(im: Image, fig=None, title: str = '', pol=0, chan=0):
     :param title:
     :returns:
     """
-
+    
     import matplotlib.pyplot as plt
-
+    
     if not fig:
         fig = plt.figure()
     plt.clf()

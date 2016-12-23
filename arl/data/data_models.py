@@ -218,13 +218,22 @@ class QA:
     """ Quality assessment
     
     """
-    
-    # TODO: Implement some form of QA receipt and bundling
-    
     def __init__(self, origin=None, data=None, context=None):
         self.origin = origin  # Name of function originating QA assessment
         self.data = data  # Dictionary containing standard fields
         self.context = context  # Context string (TBD)
+        
+    def __str__(self):
+        """Default printer for QA
+        
+        """
+        s = "Quality assessment:\n"
+        s += "\tOrigin: %s\n" % (self.origin)
+        s += "\tContext: %s\n" % (self.context)
+        s += "\tData:\n"
+        for dataname in self.data.keys():
+            s += "\t\t%s: %s\n" %(dataname, str(self.data[dataname]))
+        return s
 
 
 def assert_same_chan_pol(o1, o2):

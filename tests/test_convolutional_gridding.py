@@ -61,8 +61,7 @@ class TestConvolutionalGridding(unittest.TestCase):
         assert_allclose(k, k2)
     
     def test_w_kernel_normalisation(self):
-        # Test w-kernel normalisation. This isn't quite perfect.
-        # TODO: Address very poor normalisation.
+        # Test w-kernel normalisation.
         for kernel_oversampling in [4, 5, 6]:
             for npixel in [3, 5, 9, 16, 20, 24, 32, 64]:
                 k = kernel_oversample(w_beam(npixel + 2, 0.1, npixel * 10), npixel + 2,

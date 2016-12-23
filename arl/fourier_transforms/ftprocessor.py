@@ -215,8 +215,6 @@ def predict_timeslice(vis, model, params=None):
     fov = get_2d_params(vis, model, params)
 
     model.wcs.wcs.set_pv([(0, 0, 0.0), (0, 1, 0.0)])
-
-    workimage = copy.copy(model)
     
     for visslice in vis_timeslice_iter(vis, params):
         
@@ -263,29 +261,25 @@ def invert_timeslice(vis, im, dopsf=False, params=None):
     resultimage.data *= 0.0
     
     nproc = get_parameter(params, "nprocessor", 1)
-    
     if nproc > 1:
-        
+        # Extract the slices and run invert_timeslice_single on each one in parallel
         nslices = 0
         visslices = []
         for visslice in vis_timeslice_iter(vis, params):
             nslices += 1
             visslices.append(visslice)
         
-        log.debug("ftprocessor.invert_timeslice: Processing %d time slices %d-way parallel" % (nslices,
-                                                                                                      nproc))
+        log.debug("ftprocessor.invert_timeslice: Processing %d time slices %d-way parallel" % (nslices, nproc))
         with pymp.Parallel(nproc) as p:
             for index in p.range(0, nslices):
                 visslice = visslices[index]
-                
                 workimage = invert_timeslice_single(visslice, im, dopsf, params=params)
                 resultimage.data += workimage.data
     
     else:
-        
+        # Do each slice in turn
         for visslice in vis_timeslice_iter(vis, params):
             workimage = invert_timeslice_single(visslice, im, dopsf, params=params)
-            
             resultimage.data += workimage.data
     
     return resultimage
@@ -305,7 +299,7 @@ def invert_timeslice_single(visslice, im, dopsf, params):
     p, q = fit_uvwplane(visslice)
     visslice.data['uvw'][:, 2] -= p * visslice.u + q * visslice.v
     after = numpy.max(numpy.std(visslice.w))
-    log.debug('ftprocessor.invert_timeslice_single: Fit to %d rows reduces maximum w from %.1f to %.1f wavelengths'
+    log.debug('ftprocessor.invert_timeslice_single: Fit to %d rows reduces rms w from %.1f to %.1f wavelengths'
               % (nvis, before, after))
     # uvw is in metres, v.frequency / c.value converts to wavelengths, the cellsize converts to phase
     uvscale = cellsize * visslice.frequency / c.value
