@@ -10,7 +10,7 @@ from astropy.wcs.utils import skycoord_to_pixel, pixel_to_skycoord
 from arl.data.data_models import *
 from arl.data.parameters import *
 
-from astropy.convolution import Gaussian2DKernel
+from astropy.convolution import Gaussian2DKernel, Box2DKernel
 from astropy.stats import gaussian_fwhm_to_sigma
 import astropy.units as u
 from photutils import segmentation
@@ -75,7 +75,7 @@ def find_skycomponents(im: Image, fwhm=1.0, threshold=10.0, npixels=5, params=No
     sigma = fwhm * gaussian_fwhm_to_sigma
     kernel = Gaussian2DKernel(sigma, x_size=int(1.5*fwhm), y_size=int(1.5*fwhm))
     kernel.normalize()
-
+    
     # Segment the sum of the entire image cube
     image_sum = numpy.sum(im.data, axis=(0,1))
     segments = segmentation.detect_sources(image_sum, threshold, npixels=npixels, filter_kernel=kernel)
@@ -98,20 +98,31 @@ def find_skycomponents(im: Image, fwhm=1.0, threshold=10.0, npixels=5, params=No
         # Get flux and position. Astropy's quantities make this
         # unecesarily complicated.
         flux = numpy.array(comp_prop(segment, "max_value"))
-        ras = u.Quantity(list(map(u.Quantity,
-                comp_prop(segment, "ra_icrs_centroid"))))
-        decs = u.Quantity(list(map(u.Quantity,
-                comp_prop(segment, "dec_icrs_centroid"))))
+        # These values seem inconsistent with the xcentroid, and ycentroid values
+        # ras = u.Quantity(list(map(u.Quantity,
+        #         comp_prop(segment, "ra_icrs_centroid"))))
+        # decs = u.Quantity(list(map(u.Quantity,
+        #         comp_prop(segment, "dec_icrs_centroid"))))
+        xs = u.Quantity(list(map(u.Quantity,
+                comp_prop(segment, "xcentroid"))))
+        ys = u.Quantity(list(map(u.Quantity,
+                comp_prop(segment, "ycentroid"))))
+        
+        sc = pixel_to_skycoord(xs, ys, im.wcs)
+        ras = sc.ra
+        decs = sc.dec
 
         # Remove NaNs from RA/DEC (happens if there is no flux in that
         # polarsiation/channel)
-        ras[numpy.isnan(ras)] = 0.0
-        decs[numpy.isnan(decs)] = 0.0
+        # ras[numpy.isnan(ras)] = 0.0
+        # decs[numpy.isnan(decs)] = 0.0
 
         # Determine "true" position by weighting
         flux_sum = numpy.sum(flux)
         ra = numpy.sum(flux * ras) / flux_sum
         dec = numpy.sum(flux * decs) / flux_sum
+        xs = numpy.sum(flux * xs) / flux_sum
+        ys = numpy.sum(flux * ys) / flux_sum
 
         # Add component
         comps.append(Skycomponent(
@@ -119,8 +130,8 @@ def find_skycomponents(im: Image, fwhm=1.0, threshold=10.0, npixels=5, params=No
             frequency = im.frequency,
             name = "Segment %d" % segment,
             flux = flux,
-            shape = 'Gaussian',
-            params = None # Table has lots of data, could add more in future
+            shape = 'Point',
+            params = {'xpixel':xs, 'ypixel':ys} # Table has lots of data, could add more in future
             ))
 
     return comps
@@ -161,12 +172,12 @@ def insert_skycomponent(im: Image, sc: Skycomponent, params=None):
     pixloc = skycoord_to_pixel(sc.direction, im.wcs, 0, 'wcs')
     insert_method = get_parameter(params, "insert_method", "nearest")
     if insert_method == "Lanczos":
-        log.debug("image.operations.insert_skycomponent: Performing Lanczos interpolation of flux %s at [%.2f, %.2f] " %
+        log.debug("iinsert_skycomponent: Performing Lanczos interpolation of flux %s at [%.2f, %.2f] " %
                   (str(sc.flux), pixloc[1], pixloc[0]))
         _L2D(im.data, pixloc[1], pixloc[0], sc.flux)
     else:
         x, y = int(pixloc[1] + 0.5), int(pixloc[0] + 0.5)
-        log.debug("image.operations.insert_skycomponent: Inserting point flux %s at [%d, %d] " % (str(sc.flux), x, y))
+        log.debug("iinsert_skycomponent: Inserting point flux %s at [%d, %d] " % (str(sc.flux), x, y))
         im.data[:, :, int(pixloc[1] + 0.5), int(pixloc[0] + 0.5)] += sc.flux
        
     return im

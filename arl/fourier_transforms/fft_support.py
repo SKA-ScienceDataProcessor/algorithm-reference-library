@@ -44,12 +44,17 @@ def pad_mid(ff, npixel):
     
     if len(ff.shape) == 4:
         nchan, npol, ny, nx = ff.shape
+        cx = nx // 2
+        cy = ny // 2
         if npixel == nx:
             return ff
         assert npixel > nx == ny
+#        pw = ((0, 0), (0, 0),
+#              (npixel // 2 - cy, (npixel + 1) // 2 - (ny + 1) // 2),
+#              (npixel // 2 - cx, (npixel + 1) // 2 - (nx + 1) // 2))
         pw = ((0, 0), (0, 0),
-              (npixel // 2 - ny // 2, (npixel + 1) // 2 - (ny + 1) // 2),
-              (npixel // 2 - nx // 2, (npixel + 1) // 2 - (nx + 1) // 2))
+              (npixel // 2 - cy, npixel // 2 - cy),
+              (npixel // 2 - cx, npixel // 2 - cx))
         return numpy.pad(ff,
                          pad_width=pw,
                          mode='constant',
@@ -57,11 +62,13 @@ def pad_mid(ff, npixel):
     
     else:
         ny, nx = ff.shape
+        cx = nx // 2
+        cy = ny // 2
         if npixel == nx:
             return ff
         assert npixel > nx == ny
-        pw = ((npixel // 2 - ny // 2, (npixel + 1) // 2 - (ny + 1) // 2),
-              (npixel // 2 - nx // 2, (npixel + 1) // 2 - (nx + 1) // 2))
+        pw = ((npixel // 2 - cy, npixel // 2 - cy),
+              (npixel // 2 - cx, npixel // 2 - cx))
         return numpy.pad(ff,
                          pad_width=pw,
                          mode='constant',

@@ -6,6 +6,8 @@ Functions that define and manipulate images. Images are just data and a World Co
 
 import logging
 
+import numpy
+
 from arl.image.operations import create_image_from_array
 from arl.data.parameters import get_parameter
 

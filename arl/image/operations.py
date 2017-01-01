@@ -59,7 +59,7 @@ def export_image_to_fits(im: Image, fitsfile: str = 'imaging.fits'):
     :param im: Image
     :param fitsfile: Name of output fits file
     """
-    return fits.writeto(filename=fitsfile, data=im.data, header=im.wcs.to_header(), clobber=True)
+    return fits.writeto(filename=fitsfile, data=im.data, header=im.wcs.to_header(), overwrite=True)
 
 
 def import_image_from_fits(fitsfile: str):
@@ -101,7 +101,7 @@ def reproject_image(im: Image, newwcs: WCS, shape=None, params=None):
     :returns: Reprojected Image, Footprint Image
     """
     
-    log.debug("arl.image_operations.reproject_image: Converting SIN projection from parameters %s to %s" %
+    log.debug("reproject_image: Converting SIN projection from parameters %s to %s" %
               (im.wcs.wcs.get_pv(), newwcs.wcs.get_pv()))
     rep, foot = reproject_interp((im.data, im.wcs), newwcs, shape, order='bicubic',
                                  independent_celestial_slices=True)
@@ -141,6 +141,7 @@ def qa_image(im, params=None):
     data = {'max': numpy.max(im.data),
             'min': numpy.min(im.data),
             'rms': numpy.std(im.data),
+            'sum': numpy.sum(im.data),
             'medianabs': numpy.median(numpy.abs(im.data)),
             'median': numpy.median(im.data)}
     qa = QA(origin="qa_image",

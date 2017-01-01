@@ -46,7 +46,10 @@ def w_kernel_lambda(vis, shape, fov, oversampling=32, wstep=100.0, npixel_kernel
     :returns: Function to look up gridding kernel as function of row, and cache
     """
     wmax = numpy.max(numpy.abs(vis.w)) * numpy.max(vis.frequency) / c.value
-    log.debug("variable_kernels.w_kernel_lambda: Maximum w = %f wavelengths" % (wmax))
+    log.debug("w_kernel_lambda: Maximum w = %f wavelengths" % (wmax))
+    
+    warray = numpy.array(vis.w)
+    karray = numpy.array(vis.frequency) / (c.value * wstep)
     
     def cached_on_w(w_integral):
         npixel_kernel_scaled = max(8, int(round(npixel_kernel*abs(w_integral*wstep)/wmax)))
@@ -58,7 +61,7 @@ def w_kernel_lambda(vis, shape, fov, oversampling=32, wstep=100.0, npixel_kernel
     
     # The lambda function has arguments row and chan so any gridding function can only depend on those
     # parameters. Eventually we could extend that to include polarisation.
-    return lambda row, chan=0: lrucache(int(round(vis.w[row] * vis.frequency[chan] / (c.value * wstep)))), lrucache
+    return lambda row, chan=0: lrucache(int(round(warray[row] * karray[chan]))), lrucache
 
 
 def variable_kernel_degrid(kernel_function, uvgrid, uv, uvscale):
@@ -82,12 +85,13 @@ def variable_kernel_degrid(kernel_function, uvgrid, uv, uvscale):
         for chan in range(nchan):
             kernel = kernel_function(row, chan)
             kernel_oversampling, _, gh, gw = kernel.shape
-            x, xf, y, yf = frac_coords(uvgrid.shape, kernel_oversampling, uv[row, :] * uvscale[chan])
+            y, yf = frac_coord(nx, kernel_oversampling, uvscale[1, chan] * uv[row, 1])
+            x, xf = frac_coord(ny, kernel_oversampling, uvscale[0, chan] * uv[row, 0])
             for pol in range(npol):
-                vis[..., chan, pol] = numpy.sum(uvgrid[chan, pol, y - gh // 2: y + (gh + 1) // 2,
+                vis[row, chan, pol] = numpy.sum(uvgrid[chan, pol, y - gh // 2: y + (gh + 1) // 2,
                                                 x - gw // 2: x + (gw + 1) // 2] * kernel[yf, xf, :, :])
-                wt[..., chan, pol] = numpy.sum(kernel[yf, xf, :, :].real)
-        vis[numpy.where(wt > 0)] = vis[numpy.where(wt > 0)] / wt[numpy.where(wt > 0)]
+                wt[row, chan, pol] = numpy.sum(kernel[yf, xf, :, :].real)
+    vis[numpy.where(wt > 0)] = vis[numpy.where(wt > 0)] / wt[numpy.where(wt > 0)]
     vis[numpy.where(wt < 0)] = 0.0
     return numpy.array(vis)
 
@@ -111,7 +115,8 @@ def variable_kernel_grid(kernel_function, uvgrid, uv, uvscale, vis, visweights):
         for chan in range(nchan):
             kernel = kernel_function(row, chan)
             kernel_oversampling, _, gh, gw = kernel.shape
-            x, xf, y, yf = frac_coords(uvgrid.shape, kernel_oversampling, uv[row, :] * uvscale[chan])
+            y, yf = frac_coord(nx, kernel_oversampling, uvscale[1, chan] * uv[row, 1])
+            x, xf = frac_coord(ny, kernel_oversampling, uvscale[0, chan] * uv[row, 0])
             for pol in range(npol):
                 viswt = vis[row, chan, pol] * visweights[row, chan, pol]
                 uvgrid[chan, pol, (y - gh // 2):(y + (gh + 1) // 2), (x - gw // 2):(x + (gw + 1) // 2)] += \

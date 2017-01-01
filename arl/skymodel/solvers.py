@@ -4,7 +4,7 @@
 # subclasses of astropy classes.
 #
 
-from arl.fourier_transforms.ftprocessor import invert_2d, predict_2d
+from arl.fourier_transforms.ftprocessor import invert_2d_base, predict_2d_base
 
 from arl.data.data_models import *
 from arl.data.parameters import *
@@ -29,10 +29,10 @@ def solve_skymodel(vis: Visibility, sm: Skymodel, deconvolver, params=None):
     
     # The model is added to each major cycle and then the visibilities are
     # calculated from the full model
-    vispred = predict_2d(vis, sm, params={})
+    vispred = predict_2d_base(vis, sm, params={})
     visres = combine_visibility(vis, vispred, 1.0, -1.0)
-    dirty, sumwt = invert_2d(visres, sm.images[0], params={})
-    psf, sumwt = invert_2d(visres, sm.images[0], dopsf=True, params={})
+    dirty, sumwt = invert_2d_base(visres, sm.images[0], params={})
+    psf, sumwt = invert_2d_base(visres, sm.images[0], dopsf=True, params={})
     thresh = get_parameter(params, "threshold", 0.0)
     
     comp = sm.images[0]
@@ -40,9 +40,9 @@ def solve_skymodel(vis: Visibility, sm: Skymodel, deconvolver, params=None):
         log.info("solve_skymodel: Start of major cycle %d" % i)
         cc, res = deconvolver(dirty, psf, params={})
         comp += cc
-        vispred = predict_2d(vis, sm.images[0], params={})
+        vispred = predict_2d_base(vis, sm.images[0], params={})
         visres = combine_visibility(vis, vispred, 1.0, -1.0)
-        dirty, sumwt = invert_2d(visres, sm.images[0], params={})
+        dirty, sumwt = invert_2d_base(visres, sm.images[0], params={})
         if numpy.abs(dirty.data).max() < 1.1 * thresh:
             log.info("Reached stopping threshold %.6f Jy" % thresh)
             break

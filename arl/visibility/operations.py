@@ -30,8 +30,8 @@ def combine_visibility(vis1: Visibility, vis2: Visibility, w1: float = 1.0, w2: 
     assert numpy.max(numpy.abs(vis1.frequency - vis2.frequency)) < 1.0, "Visibility: frequencies should be the same"
     assert len(vis1.data['vis']) == len(vis2.data['vis']), 'Length of output data table wrong'
     
-    log.info("visibility.combine: combining tables with %d rows" % (len(vis1.data)))
-    log.info("visibility.combine: weights %f, %f" % (w1, w2))
+    log.info("combine_visibility: combining tables with %d rows" % (len(vis1.data)))
+    log.info("combine_visibility: weights %f, %f" % (w1, w2))
     vis = Visibility(vis=w1 * vis1.data['weight'] * vis1.data['vis'] + w2 * vis1.data['weight'] * vis2.data['vis'],
                      weight=numpy.sqrt((w1 * vis1.data['weight']) ** 2 + (w2 * vis2.data['weight']) ** 2),
                      uvw=vis1.uvw,
@@ -61,7 +61,7 @@ def concatenate_visibility(vis1: Visibility, vis2: Visibility, params=None) -> \
     assert len(vis1.frequency) == len(vis2.frequency), "Visibility: frequencies should be the same"
     assert numpy.max(numpy.abs(vis1.frequency - vis2.frequency)) < 1.0, "Visibility: frequencies should be the same"
     log.info(
-        "visibility.concatenate: combining two tables with %d rows and %d rows" % (len(vis1.data), len(vis2.data)))
+        "concatenate_visibility: combining two tables with %d rows and %d rows" % (len(vis1.data), len(vis2.data)))
     fvis2rot = phaserotate_visibility(vis2, vis1.phasecentre)
     vis = Visibility()
     vis.data = vstack([vis1.data, fvis2rot.data], join_type='exact')
@@ -107,7 +107,7 @@ def create_visibility(config: Configuration, times: numpy.array, freq: numpy.arr
                 rantenna2[row] = a2
                 row += 1
     ruvw = xyz_to_baselines(ants_xyz, times, phasecentre.dec)
-    log.info(u"create_visibility: Created {0:d} rows".format(nrows))
+    log.info(u"Create_visibility: Created {0:d} rows".format(nrows))
     vis = Visibility()
     vis.data = Table(data=[ruvw, rtimes, rantenna1, rantenna2, rvis, rweight, rweight],
                      names=['uvw', 'time', 'antenna1', 'antenna2', 'vis', 'weight', 'imaging_weight'], meta=meta)
@@ -167,16 +167,12 @@ def sum_visibility(vis: Visibility, direction: SkyCoord, params=None) -> numpy.a
     """
 
     l, m, n = skycoord_to_lmn(direction, vis.phasecentre)
-    log.debug('sum_visibility: Cartesian representation of direction = (%f, %f, %f)' % (
-        l, m, n))
     flux = numpy.zeros([vis.nchan, vis.npol])
     weight = numpy.zeros([vis.nchan, vis.npol])
     for channel in range(vis.nchan):
         uvw = vis.uvw_lambda(channel)
         phasor = numpy.conj(simulate_point(uvw, l, m))
         for pol in range(vis.npol):
-            log.debug('sum_visibility: Summing visibility for channel %d, polarisation %d' % (
-                channel, pol))
             ws = vis.weight[:, channel, pol]
             wvis = ws * vis.vis[:, channel, pol]
             flux[channel, pol] += numpy.sum(numpy.real(wvis * phasor))

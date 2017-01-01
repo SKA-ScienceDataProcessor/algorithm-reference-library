@@ -31,9 +31,9 @@ def shiftvis(im, vis, params):
     
     """
     nchan, npol, ny, nx = im.data.shape
-    # Convert the FFT definition of the phase center to world coordinates
-    sc = pixel_to_skycoord(ny // 2 - 1, nx // 2 - 1, im.wcs)
-    log.debug("Pixel (%d, %d) converts to direction %s" % (nx // 2 - 1, ny // 2 - 1, sc))
+    # Convert the FFT definition of the phase center to world coordinates (0 relative)
+    sc = pixel_to_skycoord(ny // 2, nx // 2, im.wcs)
+    log.debug("Pixel (%d, %d) [0-rel] converts to direction %s" % (nx // 2, ny // 2, sc))
     params['tangent'] = True
     vis = phaserotate_visibility(vis, sc, params)
     return vis
@@ -53,41 +53,43 @@ def get_2d_params(vis, model, params=None):
     support = get_parameter(params, "support", 3)
     nchan, npol, ny, nx = model.data.shape
     shape = (padding * ny, padding * nx)
-    cellsize = abs(model.wcs.wcs.cdelt[0]) * numpy.pi / 180.0
-    fov = padding * nx * cellsize
-    
+    cellsize = model.wcs.wcs.cdelt[0:2] * numpy.pi / 180.0
+    fov = padding * nx * numpy.max(numpy.abs(cellsize))
+    uvscale = numpy.outer(cellsize, vis.frequency / c.value)
+    assert uvscale[0,0] != 0.0, "Error in uv scaling"
+
     kernel_type = 'fixed'
     gcf = 1.0
     if kernelname == 'standard-by-row':
         kernel_type = 'variable'
-        log.info("ftprocessor.get_2d_params: using calculated spheroidal function by row")
+        log.info("get_2d_params: using calculated spheroidal function by row")
         kernel = standard_kernel_lambda(vis, shape)
     elif kernelname == 'wprojection':
         wmax = numpy.max(numpy.abs(vis.w))
         assert wmax > 0, "Maximum w must be > 0.0"
         kernel_type = 'variable'
-        r_f = (fov/2) ** 2 / cellsize
-        log.info("ftprocessor.get_2d_params: Fresnel number = %f" % (r_f))
+        r_f = (fov/2) ** 2 / numpy.abs(cellsize[0])
+        log.info("get_2d_params: Fresnel number = %f" % (r_f))
         delA = get_parameter(params, 'wloss', 0.02)
         # Following equation is from Cornwell, Humphreys, and Voronkov (2012) (equation 24)
         recommended_wstep = numpy.sqrt(2.0 * delA) / (numpy.pi * fov ** 2)
-        log.info("ftprocessor.get_2d_params: Recommended wstep = %f" % (recommended_wstep))
+        log.info("get_2d_params: Recommended wstep = %f" % (recommended_wstep))
         wstep = get_parameter(params, "wstep", recommended_wstep)
-        log.info("ftprocessor.get_2d_params: Using w projection with wstep = %f" % (wstep))
+        log.info("get_2d_params: Using w projection with wstep = %f" % (wstep))
         # Now calculate the maximum support for the w kernel
-        npixel_kernel = get_parameter(params, "kernelwidth", 4 * (int(round(numpy.sin(0.5 * fov) * nx)) // 2))
-        log.info("ftprocessor.get_2d_params: w kernel full width = %d pixels" % (npixel_kernel))
+        npixel_kernel = get_parameter(params, "kernelwidth", (int(round(numpy.sin(0.5 * fov) * nx)) // 2))
+        log.info("get_2d_params: w kernel full width = %d pixels" % (npixel_kernel))
         kernel, _ = w_kernel_lambda(vis, shape, fov, wstep=wstep, npixel_kernel=npixel_kernel,
                                     oversampling=oversampling)
         gcf, _ = anti_aliasing_calculate(shape, oversampling)
     else:
-        log.info("ftprocessor.get_2d_params: using calculated spheroidal function")
+        log.info("get_2d_params: using calculated spheroidal function")
         gcf, kernel = anti_aliasing_calculate(shape, oversampling)
     
-    return nchan, npol, ny, nx, shape, gcf, kernel_type, kernel, padding, oversampling, support, cellsize, fov
+    return nchan, npol, ny, nx, shape, gcf, kernel_type, kernel, padding, oversampling, support, cellsize, fov, uvscale
 
 
-def predict_2d(vis, model, params=None):
+def predict_2d_base(vis, model, params=None):
     """ Predict using convolutional degridding.
 
     This is at the bottom of the layering i.e. all transforms are eventually expressed in terms of this function.
@@ -99,18 +101,29 @@ def predict_2d(vis, model, params=None):
     :returns: resulting visibility (in place works)
     """
     nchan, npol, ny, nx, shape, gcf, kernel_type, kernel, padding, oversampling, support, cellsize, \
-    fov = get_2d_params(vis, model, params)
+    fov, uvscale = get_2d_params(vis, model, params)
     
     uvgrid = fft((pad_mid(model.data, padding * nx) * gcf).astype(dtype=complex))
     # uvw is in metres, v.frequency / c.value converts to wavelengths, the cellsize converts to phase
-    uvscale = cellsize * vis.frequency / c.value
-    assert uvscale[0] > 0.0, "Error in uv scaling"
+    uvw = vis.data['uvw']
     if kernel_type == 'variable':
-        vis.data['vis'] += variable_kernel_degrid(kernel, uvgrid, vis.data['uvw'], uvscale)
+        vis.data['vis'] += variable_kernel_degrid(kernel, uvgrid, uvw, uvscale)
     else:
-        vis.data['vis'] += fixed_kernel_degrid(kernel, uvgrid, vis.data['uvw'], uvscale)
+        vis.data['vis'] += fixed_kernel_degrid(kernel, uvgrid, uvw, uvscale)
     
     return vis
+
+def predict_2d(vis, model, params=None):
+    """ Predict using convolutional degridding and w projection
+    :param vis: Visibility to be predicted
+    :param model: model image
+    :param params: Parameters for processing
+    :param predict_function: Function to be used for prediction (allows nesting)
+    :returns: resulting visibility (in place works)
+    """
+    params['kernel']='2d'
+    return predict_2d_base(vis, model, params=params)
+
 
 def predict_wprojection(vis, model, params=None):
     """ Predict using convolutional degridding and w projection
@@ -121,10 +134,10 @@ def predict_wprojection(vis, model, params=None):
     :returns: resulting visibility (in place works)
     """
     params['kernel']='wprojection'
-    return predict_2d(vis, model, params=params)
+    return predict_2d_base(vis, model, params=params)
 
 
-def invert_2d(vis, im, dopsf=False, params=None):
+def invert_2d_base(vis, im, dopsf=False, params=None):
     """ Invert using 2D convolution function, including w projection
     
     Use the image im as a template. Do PSF in a separate call.
@@ -139,33 +152,48 @@ def invert_2d(vis, im, dopsf=False, params=None):
     
     """
     nchan, npol, ny, nx, shape, gcf, kernel_type, kernel, padding, oversampling, support, cellsize, \
-    fov = get_2d_params(vis, im, params)
+    fov, uvscale = get_2d_params(vis, im, params)
     
     # uvw is in metres, v.frequency / c.value converts to wavelengths, the cellsize converts to phase
-    uvscale = cellsize * vis.frequency / c.value
-    assert uvscale[0] > 0.0, "Error in uv scaling"
     # Optionally pad to control aliasing
     imgridpad = numpy.zeros([nchan, npol, padding * ny, padding * nx], dtype='complex')
+    uvw = vis.data['uvw']
     if kernel_type == 'variable':
         if dopsf:
             weights = numpy.ones_like(vis.data['vis'])
-            imgridpad = variable_kernel_grid(kernel, imgridpad, vis.data['uvw'], uvscale, weights,
+            imgridpad = variable_kernel_grid(kernel, imgridpad, uvw, uvscale, weights,
                                              vis.data['imaging_weight'])
         else:
-            imgridpad = variable_kernel_grid(kernel, imgridpad, vis.data['uvw'], uvscale, vis.data['vis'],
+            imgridpad = variable_kernel_grid(kernel, imgridpad, uvw, uvscale, vis.data['vis'],
                                              vis.data['imaging_weight'])
     else:
         if dopsf:
             weights = numpy.ones_like(vis.data['vis'])
-            imgridpad = fixed_kernel_grid(kernel, imgridpad, vis.data['uvw'], uvscale, weights,
+            imgridpad = fixed_kernel_grid(kernel, imgridpad, uvw, uvscale, weights,
                                           vis.data['imaging_weight'])
         else:
-            imgridpad = fixed_kernel_grid(kernel, imgridpad, vis.data['uvw'], uvscale, vis.data['vis'],
+            imgridpad = fixed_kernel_grid(kernel, imgridpad, uvw, uvscale, vis.data['vis'],
                                           vis.data['imaging_weight'])
     
     imgrid = extract_mid(numpy.real(ifft(imgridpad)) * gcf, npixel=nx)
     
     return create_image_from_array(imgrid, im.wcs)
+
+
+def invert_2d(vis, im, dopsf=False, params=None):
+    """ Predict using 2D convolution function
+
+    Use the image im as a template. Do PSF in a separate call.
+
+    :param vis: Visibility to be inverted
+    :param im: image template (not changed)
+    :param dopsf: Make the psf instead of the dirty image
+    :param params: Parameters for processing
+    :returns: resulting image
+
+    """
+    params['kernel']='2d'
+    return invert_2d_base(vis, im, dopsf, params=params)
 
 
 def invert_wprojection(vis, im, dopsf=False, params=None):
@@ -181,7 +209,7 @@ def invert_wprojection(vis, im, dopsf=False, params=None):
 
     """
     params['kernel']='wprojection'
-    return invert_2d(vis, im, dopsf, params=params)
+    return invert_2d_base(vis, im, dopsf, params=params)
 
 
 def fit_uvwplane(vis):
@@ -212,7 +240,7 @@ def predict_timeslice(vis, model, params=None):
     :returns: resulting visibility (in place works)
     """
     nchan, npol, ny, nx, shape, gcf, kernel_type, kernel, padding, oversampling, support, cellsize, \
-    fov = get_2d_params(vis, model, params)
+    fov, uvscale = get_2d_params(vis, model, params)
 
     model.wcs.wcs.set_pv([(0, 0, 0.0), (0, 1, 0.0)])
     
@@ -230,8 +258,6 @@ def predict_timeslice(vis, model, params=None):
         
         uvgrid = fft((pad_mid(workimage.data, padding * nx) * gcf).astype(dtype=complex))
         # uvw is in metres, v.frequency / c.value converts to wavelengths, the cellsize converts to phase
-        uvscale = cellsize * visslice.frequency / c.value
-        assert uvscale[0] > 0.0, "Error in uv scaling"
         if kernel_type == 'variable':
             visslice.data['vis'] += variable_kernel_degrid(kernel, uvgrid, visslice.data['uvw'], uvscale)
         else:
@@ -252,9 +278,6 @@ def invert_timeslice(vis, im, dopsf=False, params=None):
     :returns: resulting image
 
     """
-    nchan, npol, ny, nx, shape, gcf, kernel_type, kernel, padding, oversampling, support, cellsize, \
-    fov = get_2d_params(vis, im, params)
-    
     resultimage = create_image_from_array(im.data, im.wcs)
     resultimage.wcs.wcs.set_pv([])
     resultimage.data = pymp.shared.array(resultimage.data.shape)
@@ -269,7 +292,7 @@ def invert_timeslice(vis, im, dopsf=False, params=None):
             nslices += 1
             visslices.append(visslice)
         
-        log.debug("ftprocessor.invert_timeslice: Processing %d time slices %d-way parallel" % (nslices, nproc))
+        log.debug("invert_timeslice: Processing %d time slices %d-way parallel" % (nslices, nproc))
         with pymp.Parallel(nproc) as p:
             for index in p.range(0, nslices):
                 visslice = visslices[index]
@@ -292,19 +315,16 @@ def invert_timeslice_single(visslice, im, dopsf, params):
     :param params:
     """
     nchan, npol, ny, nx, shape, gcf, kernel_type, kernel, padding, oversampling, support, cellsize, \
-    fov = get_2d_params(visslice, im, params)
+    fov, uvscale = get_2d_params(visslice, im, params)
 
     nvis = len(visslice.data)
     before = numpy.std(visslice.w)
     p, q = fit_uvwplane(visslice)
     visslice.data['uvw'][:, 2] -= p * visslice.u + q * visslice.v
     after = numpy.max(numpy.std(visslice.w))
-    log.debug('ftprocessor.invert_timeslice_single: Fit to %d rows reduces rms w from %.1f to %.1f wavelengths'
+    log.debug('invert_timeslice_single: Fit to %d rows reduces rms w from %.1f to %.1f wavelengths'
               % (nvis, before, after))
-    # uvw is in metres, v.frequency / c.value converts to wavelengths, the cellsize converts to phase
-    uvscale = cellsize * visslice.frequency / c.value
-    assert uvscale[0] > 0.0, "Error in uv scaling"
-    # Optionally pad to control aliasing
+
     imgridpad = numpy.zeros([nchan, npol, padding * ny, padding * nx], dtype='complex')
     if kernel_type == 'variable':
         if dopsf:
@@ -325,13 +345,13 @@ def invert_timeslice_single(visslice, im, dopsf, params):
                                           visslice.data['imaging_weight'])
     imgrid = extract_mid(numpy.real(ifft(imgridpad)) * gcf, npixel=nx)
     workimage = create_image_from_array(imgrid, im.wcs)
-    workimage.wcs.wcs.set_pv([(0, 0, q), (0, 1, p)])
+    workimage.wcs.wcs.set_pv([(0, 0, -q), (0, 1, -p)])
     finalimage, footprint = reproject_image(workimage, im.wcs, im.shape)
     finalimage.data[footprint.data <= 0.0] = 0.0
     return finalimage
 
 
-def predict_by_image_partitions(vis, model, image_iterator=raster_iter, predict_function=predict_2d, params=None):
+def predict_by_image_partitions(vis, model, image_iterator=raster_iter, predict_function=predict_2d_base, params=None):
     """ Predict using image partitions, calling specified predict function
 
     :param vis: Visibility to be predicted
@@ -341,12 +361,13 @@ def predict_by_image_partitions(vis, model, image_iterator=raster_iter, predict_
     :param params: Parameters for processing
     :returns: resulting visibility (in place works)
     """
+    vis.data['vis']*=0.0
     for impatch in image_iterator(model, params):
-        predict_function(vis, impatch, params=params).data['vis']
+        vis.data['vis'] += predict_function(vis, impatch, params=params).data['vis']
     return vis
 
 
-def predict_by_vis_partitions(vis, model, vis_iterator, predict_function=predict_2d, params=None):
+def predict_by_vis_partitions(vis, model, vis_iterator, predict_function=predict_2d_base, params=None):
     """ Predict using partitions in w
 
     :param vis: Visibility to be predicted
@@ -361,7 +382,7 @@ def predict_by_vis_partitions(vis, model, vis_iterator, predict_function=predict
     return vis
 
 def invert_by_image_partitions(vis, im, image_iterator=raster_iter, dopsf=False, kernel=None,
-                               invert_function=invert_2d, params=None):
+                               invert_function=invert_2d_base, params=None):
     """ Predict using image partitions, calling specified predict function
 
     :param vis: Visibility to be inverted
@@ -384,7 +405,7 @@ def invert_by_image_partitions(vis, im, image_iterator=raster_iter, dopsf=False,
     return im
 
 
-def invert_by_vis_partitions(vis, im, vis_iterator, dopsf=False, kernel=None, invert_function=invert_2d, params=None):
+def invert_by_vis_partitions(vis, im, vis_iterator, dopsf=False, kernel=None, invert_function=invert_2d_base, params=None):
     """ Invert using wslices
 
     :param vis: Visibility to be inverted
@@ -413,8 +434,6 @@ def predict_skycomponent_visibility(vis: Visibility, sc: Skycomponent, params=No
     assert_same_chan_pol(vis, sc)
     
     l, m, n = skycoord_to_lmn(sc.direction, vis.phasecentre)
-    log.info('fourier_transforms.predict_visibility: Cartesian representation of component = (%f, %f, %f)'
-             % (l, m, n))
     # The data column has vis:[row,nchan,npol], uvw:[row,3]
     if spectral_mode == 'channel':
         for channel in range(sc.nchan):
@@ -447,18 +466,18 @@ def weight_visibility(vis, im, params=None):
     :param params: Dictionary containing parameters
     :returns: Configuration
     """
-    
-    cellsize = abs(im.wcs.wcs.cdelt[0]) * numpy.pi / 180.0
+    nchan, npol, ny, nx, shape, gcf, kernel_type, kernel, padding, oversampling, support, cellsize, \
+    fov, uvscale = get_2d_params(vis, im, params)
+
     # uvw is in metres, v.frequency / c.value converts to wavelengths, the cellsize converts to phase
     weighting = get_parameter(params, "weighting", "uniform")
     if weighting == 'uniform':
-        uvscale = cellsize * vis.frequency / c.value
         vis.data['imaging_weight'] = weight_gridding(im.data.shape, vis.data['uvw'], uvscale, vis.data['weight'],
                                                      params)
     elif weighting == 'natural':
         vis.data['imaging_weight'] = vis.data['weight']
     else:
-        log.error("Unknown gridding algorithm %s" % weighting)
+        log.error("Unknown visibility weighting algorithm %s" % weighting)
     
     return vis
 
@@ -470,7 +489,7 @@ def create_wcs_from_visibility(vis, params=None):
     :param params: keyword=value parameters
     :returns: WCS
     """
-    log.info("fourier_transforms.create_wcs_from_visibility: Parsing parameters to get definition of WCS")
+    log.info("create_wcs_from_visibility: Parsing parameters to get definition of WCS")
     imagecentre = get_parameter(params, "imagecentre", vis.phasecentre)
     phasecentre = get_parameter(params, "phasecentre", vis.phasecentre)
     reffrequency = get_parameter(params, "reffrequency", numpy.min(vis.frequency)) * units.Hz
@@ -478,7 +497,7 @@ def create_wcs_from_visibility(vis, params=None):
     if len(vis.frequency) > 1:
         deffaultbw = vis.frequency[1] - vis.frequency[0]
     channelwidth = get_parameter(params, "channelwidth", deffaultbw) * units.Hz
-    log.info("fourier_transforms.create_wcs_from_visibility: Defining Image at %s, frequency %s, and bandwidth %s"
+    log.info("create_wcs_from_visibility: Defining Image at %s, frequency %s, and bandwidth %s"
              % (imagecentre, reffrequency, channelwidth))
     
     npixel = get_parameter(params, "npixel", 512)
@@ -491,7 +510,7 @@ def create_wcs_from_visibility(vis, params=None):
     log.info("create_wcs_from_visibility: Cellsize          = %f radians, %f degrees" % (cellsize,
                                                                                          cellsize * 180.0 / numpy.pi))
     if cellsize > criticalcellsize:
-        log.info("Resetting cellsize %f radians to criticalcellsize %f radians" % (cellsize, criticalcellsize))
+        log.info("create_wcs_from_visibility: Resetting cellsize %f radians to criticalcellsize %f radians" % (cellsize, criticalcellsize))
         cellsize = criticalcellsize
     
     npol = get_parameter(params, "npol", vis.data['vis'].shape[2])
@@ -501,12 +520,12 @@ def create_wcs_from_visibility(vis, params=None):
     w = wcs.WCS(naxis=4)
     # The negation in the longitude is needed by definition of RA, DEC
     w.wcs.cdelt = [-cellsize * 180.0 / numpy.pi, cellsize * 180.0 / numpy.pi, 1.0, channelwidth.value]
-    w.wcs.crpix = [npixel // 2, npixel // 2, 1.0, 1.0]
+    # The numpy definition of the phase centre of an FFT is n // 2 so that's what we use for
+    # the reference pixel but we have to use 1-relative indxing for wcs (arghhh!)
+    w.wcs.crpix = [npixel // 2 + 1, npixel // 2 + 1, 1.0, 1.0]
     w.wcs.ctype = ["RA---SIN", "DEC--SIN", 'STOKES', 'FREQ']
     w.wcs.crval = [phasecentre.ra.value, phasecentre.dec.value, 1.0, reffrequency.value]
     w.naxis = 4
-    w.wcs.latpole = 0.0
-    w.wcs.lonpole = 180.0
     
     w.wcs.radesys = get_parameter(params, 'frame', 'ICRS')
     w.wcs.equinox = get_parameter(params, 'equinox', 2000.0)
@@ -531,7 +550,7 @@ def create_w_term_image(vis, w=None, params=None):
     """
     if w is None:
         w = numpy.median(numpy.abs(vis.data['uvw'][:, 2]))
-        log.info('ftprocessor.create_w_term_image: Creating w term image for median w %f' % w)
+        log.info('create_w_term_image: Creating w term image for median w %f' % w)
     
     im = create_image_from_visibility(vis, params)
     cellsize = abs(im.wcs.wcs.cdelt[0]) * numpy.pi / 180.0
@@ -539,7 +558,7 @@ def create_w_term_image(vis, w=None, params=None):
     im.data = w_beam(npixel, npixel * cellsize, w=w)
     
     fresnel = w * (0.5 * npixel * cellsize) ** 2
-    log.info('ftprocessor.create_w_term_image: Fresnel number for median w and this field of view and sampling = '
+    log.info('create_w_term_image: Fresnel number for median w and this field of view and sampling = '
              '%.2f' % (fresnel))
     
     return im

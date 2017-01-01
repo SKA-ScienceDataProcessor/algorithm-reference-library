@@ -1,8 +1,11 @@
 # Tim Cornwell <realtimcornwell@gmail.com>
 """ Data models used in ARL"""
 
-from astropy.constants import c
 from astropy.table import Table
+from astropy.constants import c
+from astropy import units as u
+from astropy.coordinates import SkyCoord
+
 import numpy
 
 
@@ -97,6 +100,8 @@ class Image:
     def shape(self):
         return self.data.shape
 
+    @property
+    def phasecentre(self): return SkyCoord(self.wcs.wcs.crval[0] * u.deg, self.wcs.wcs.crval[1] * u.deg)
 
 class Skycomponent:
     """ A single Skycomponent with direction, flux, shape, and params for the shape
@@ -131,6 +136,17 @@ class Skycomponent:
     
     @property
     def npol(self): return self.flux.shape[1]
+
+    def __str__(self):
+        """Default printer for Skycomponent
+
+        """
+        s = "Skycomponent:\n"
+        s += "\tFlux: %s\n" % (self.flux)
+        s += "\tDirection: %s\n" % (self.direction)
+        s += "\tShape: %s\n" % (self.shape)
+        s += "\tParams: %s\n" % (self.params)
+        return s
 
 
 class Skymodel:
