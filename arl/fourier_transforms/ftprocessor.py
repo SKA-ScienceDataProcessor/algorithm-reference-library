@@ -6,6 +6,9 @@ functions in arl.fourier_transforms.
 """
 
 import pymp
+
+from scipy.interpolate import griddata
+
 from astropy import units as units
 from astropy import wcs
 from astropy.constants import c
@@ -18,24 +21,43 @@ from arl.fourier_transforms.fft_support import fft, ifft, pad_mid, extract_mid
 from arl.fourier_transforms.variable_kernels import variable_kernel_grid, variable_kernel_degrid, \
     standard_kernel_lambda, w_kernel_lambda
 from arl.image.iterators import *
-from arl.image.operations import reproject_image, show_image
+from arl.image.operations import reproject_image, export_image_to_fits
 from arl.util.coordinate_support import simulate_point, skycoord_to_lmn
 from arl.visibility.iterators import *
 from arl.visibility.operations import phaserotate_visibility
 
-log = logging.getLogger("arl.ftprocessor")
+log = logging.getLogger("fourier_transforms.ftprocessor")
 
 
-def shiftvis(im, vis, params):
+def shift_vis_to_image(vis, im, params):
     """Shift visibility to the FFT phase centre of the image
     
     """
     nchan, npol, ny, nx = im.data.shape
     # Convert the FFT definition of the phase center to world coordinates (0 relative)
-    sc = pixel_to_skycoord(ny // 2, nx // 2, im.wcs)
-    log.debug("Pixel (%d, %d) [0-rel] converts to direction %s" % (nx // 2, ny // 2, sc))
+    image_phasecentre = pixel_to_skycoord(ny // 2, nx // 2, im.wcs)
     params['tangent'] = True
-    vis = phaserotate_visibility(vis, sc, params)
+    log.debug("shift_vis_from_image: shifting phasecentre from vis phase centre %s to image phasecentre %s" %
+              (vis.phasecentre, image_phasecentre))
+    vis = phaserotate_visibility(vis, image_phasecentre, params)
+    vis.phasecentre = im.phasecentre
+    return vis
+
+
+def shift_vis_from_image(vis, im, params):
+    """Shift visibility from the FFT phase centre of the image to the visibility phase centre
+
+    """
+    nchan, npol, ny, nx = im.data.shape
+    # Convert the FFT definition of the phase center to world coordinates (0 relative)
+    image_phasecentre = pixel_to_skycoord(ny // 2, nx // 2, im.wcs)
+    params['tangent'] = True
+    vis_phasecentre = vis.phasecentre
+    vis.phasecentre = image_phasecentre
+    log.debug("shift_vis_from_image: shifting phasecentre from image phase centre %s to vis phasecentre %s" %
+              (image_phasecentre, vis_phasecentre))
+    vis = phaserotate_visibility(vis, vis_phasecentre, params)
+    vis.phasecentre = vis_phasecentre
     return vis
 
 
@@ -92,7 +114,8 @@ def get_2d_params(vis, model, params=None):
 def predict_2d_base(vis, model, params=None):
     """ Predict using convolutional degridding.
 
-    This is at the bottom of the layering i.e. all transforms are eventually expressed in terms of this function.
+    This is at the bottom of the layering i.e. all transforms are eventually expressed in terms of
+    this function. Any shifting needed is performed here.
 
     :param vis: Visibility to be predicted
     :param model: model image
@@ -106,11 +129,16 @@ def predict_2d_base(vis, model, params=None):
     uvgrid = fft((pad_mid(model.data, padding * nx) * gcf).astype(dtype=complex))
     # uvw is in metres, v.frequency / c.value converts to wavelengths, the cellsize converts to phase
     uvw = vis.data['uvw']
-    if kernel_type == 'variable':
-        vis.data['vis'] += variable_kernel_degrid(kernel, uvgrid, uvw, uvscale)
-    else:
-        vis.data['vis'] += fixed_kernel_degrid(kernel, uvgrid, uvw, uvscale)
     
+    result = copy.copy(vis)
+    
+    if kernel_type == 'variable':
+        result.data['vis'] = variable_kernel_degrid(kernel, uvgrid, uvw, uvscale)
+    else:
+        result.data['vis'] = fixed_kernel_degrid(kernel, uvgrid, uvw, uvscale)
+        
+    vis.data['vis'] = numpy.conj(shift_vis_to_image(result, model, params).data['vis'])
+
     return vis
 
 def predict_2d(vis, model, params=None):
@@ -142,7 +170,8 @@ def invert_2d_base(vis, im, dopsf=False, params=None):
     
     Use the image im as a template. Do PSF in a separate call.
 
-    This is at the bottom of the layering i.e. all transforms are eventually expressed in terms of this function.
+    This is at the bottom of the layering i.e. all transforms are eventually expressed in terms
+    of this function. . Any shifting needed is performed here.
     
     :param vis: Visibility to be inverted
     :param im: image template (not changed)
@@ -151,6 +180,9 @@ def invert_2d_base(vis, im, dopsf=False, params=None):
     :returns: resulting image
     
     """
+    
+    svis = shift_vis_to_image(vis, im, params)
+    
     nchan, npol, ny, nx, shape, gcf, kernel_type, kernel, padding, oversampling, support, cellsize, \
     fov, uvscale = get_2d_params(vis, im, params)
     
@@ -160,20 +192,20 @@ def invert_2d_base(vis, im, dopsf=False, params=None):
     uvw = vis.data['uvw']
     if kernel_type == 'variable':
         if dopsf:
-            weights = numpy.ones_like(vis.data['vis'])
+            weights = numpy.ones_like(svis.data['vis'])
             imgridpad = variable_kernel_grid(kernel, imgridpad, uvw, uvscale, weights,
-                                             vis.data['imaging_weight'])
+                                             svis.data['imaging_weight'])
         else:
-            imgridpad = variable_kernel_grid(kernel, imgridpad, uvw, uvscale, vis.data['vis'],
-                                             vis.data['imaging_weight'])
+            imgridpad = variable_kernel_grid(kernel, imgridpad, uvw, uvscale, svis.data['vis'],
+                                             svis.data['imaging_weight'])
     else:
         if dopsf:
-            weights = numpy.ones_like(vis.data['vis'])
+            weights = numpy.ones_like(svis.data['vis'])
             imgridpad = fixed_kernel_grid(kernel, imgridpad, uvw, uvscale, weights,
-                                          vis.data['imaging_weight'])
+                                          svis.data['imaging_weight'])
         else:
-            imgridpad = fixed_kernel_grid(kernel, imgridpad, uvw, uvscale, vis.data['vis'],
-                                          vis.data['imaging_weight'])
+            imgridpad = fixed_kernel_grid(kernel, imgridpad, uvw, uvscale, svis.data['vis'],
+                                          svis.data['imaging_weight'])
     
     imgrid = extract_mid(numpy.real(ifft(imgridpad)) * gcf, npixel=nx)
     
@@ -218,6 +250,9 @@ def fit_uvwplane(vis):
     :param vis: visibility to be fitted
     :returns: direction cosines defining plane
     """
+    nvis = len(vis.data)
+    before = numpy.std(vis.w)
+
     su2 = numpy.sum(vis.u * vis.u)
     sv2 = numpy.sum(vis.v * vis.v)
     suv = numpy.sum(vis.u * vis.v)
@@ -227,7 +262,12 @@ def fit_uvwplane(vis):
     p = (sv2 * suw - suv * svw) / det
     q = (su2 * svw - suv * suw) / det
     
-    return p, q
+    vis.data['uvw'][:, 2] -= p * vis.u + q * vis.v
+    after = numpy.max(numpy.std(vis.w))
+    log.info('predict_timeslice: Fit to %d rows reduces rms w from %.1f to %.1f wavelengths'
+             % (nvis, before, after))
+    
+    return vis, p, q
 
 
 def predict_timeslice(vis, model, params=None):
@@ -242,27 +282,30 @@ def predict_timeslice(vis, model, params=None):
     nchan, npol, ny, nx, shape, gcf, kernel_type, kernel, padding, oversampling, support, cellsize, \
     fov, uvscale = get_2d_params(vis, model, params)
 
-    model.wcs.wcs.set_pv([(0, 0, 0.0), (0, 1, 0.0)])
-    
-    for visslice in vis_timeslice_iter(vis, params):
-        
-        p, q = fit_uvwplane(visslice)
-        visslice.data['uvw'][:, 2] -= p * visslice.u + q * visslice.v
+    vis.data['vis']*=0.0
 
-        # Set the parameters defining the SIN projection for this plane
-        newwcs = model.wcs.deepcopy()
-        newwcs.wcs.wcs.set_pv([(0, 0, p), (0, 1, q)])
-        # Reproject the model from the natural oblique SIN projection to the non-oblique SIN projection
-        workimage, footprintimage = reproject_image(model, newwcs, shape=[nchan, npol, ny, nx])
-        workimage.data[footprintimage.data <= 0.0] = 0.0
-        
-        uvgrid = fft((pad_mid(workimage.data, padding * nx) * gcf).astype(dtype=complex))
-        # uvw is in metres, v.frequency / c.value converts to wavelengths, the cellsize converts to phase
-        if kernel_type == 'variable':
-            visslice.data['vis'] += variable_kernel_degrid(kernel, uvgrid, visslice.data['uvw'], uvscale)
-        else:
-            visslice.data['vis'] += fixed_kernel_degrid(kernel, uvgrid, visslice.data['uvw'], uvscale)
-    
+    for rows in vis_timeslice_iter(vis, params):
+        visslice = vis.select_rows(rows)
+
+        visslice, p, q = fit_uvwplane(visslice)
+
+        lnominal, mnominal, ldistorted, mdistorted = lm_distortion(model, -p, -q)
+
+        workimage = create_image_from_array(model.data, model.wcs)
+
+        for chan in range(nchan):
+            for pol in range(npol):
+                workimage.data[chan, pol, ...] = \
+                    griddata((mnominal.flatten(), lnominal.flatten()),
+                             values=model.data[chan, pol, ...].flatten(),
+                             xi=(mdistorted.flatten(), ldistorted.flatten()),
+                             method='cubic',
+                             fill_value=0.0).reshape(workimage.data[chan, pol, ...].shape)
+        export_image_to_fits(workimage, "workimage_%s.fits" %(numpy.average(visslice.time)))
+        # Now we can do the transformation using a 2D transform
+        visslice = predict_2d(visslice, workimage, params=params)
+        vis.data['vis'][rows] += numpy.conj(visslice.data['vis'])
+
     return vis
 
 
@@ -288,7 +331,8 @@ def invert_timeslice(vis, im, dopsf=False, params=None):
         # Extract the slices and run invert_timeslice_single on each one in parallel
         nslices = 0
         visslices = []
-        for visslice in vis_timeslice_iter(vis, params):
+        for rows in vis_timeslice_iter(vis, params):
+            visslice=vis.select_rows(rows)
             nslices += 1
             visslices.append(visslice)
         
@@ -301,11 +345,33 @@ def invert_timeslice(vis, im, dopsf=False, params=None):
     
     else:
         # Do each slice in turn
-        for visslice in vis_timeslice_iter(vis, params):
+        for rows in vis_timeslice_iter(vis, params):
+            visslice=vis.select_rows(rows)
             workimage = invert_timeslice_single(visslice, im, dopsf, params=params)
             resultimage.data += workimage.data
     
     return resultimage
+
+
+def lm_distortion(im, a, b):
+    ny = im.shape[2]
+    nx = im.shape[3]
+    cy = im.wcs.wcs.crpix[1]
+    cx = im.wcs.wcs.crpix[0]
+    dy = im.wcs.wcs.cdelt[1] * numpy.pi / 180.0
+    dx = im.wcs.wcs.cdelt[0] * numpy.pi / 180.0
+    
+    lnominal1d = (numpy.arange(0, nx) - cx) * dx
+    mnominal1d = (numpy.arange(0, ny) - cy) * dy
+    
+    l2d, m2d = numpy.meshgrid(lnominal1d, mnominal1d)
+    
+    dn2d = numpy.sqrt(1.0 - (l2d * l2d + m2d * m2d)) - 1.0
+    
+    ldistorted = l2d + a * dn2d
+    mdistorted = m2d + b * dn2d
+    
+    return l2d, m2d, ldistorted, mdistorted
 
 
 def invert_timeslice_single(visslice, im, dopsf, params):
@@ -317,14 +383,8 @@ def invert_timeslice_single(visslice, im, dopsf, params):
     nchan, npol, ny, nx, shape, gcf, kernel_type, kernel, padding, oversampling, support, cellsize, \
     fov, uvscale = get_2d_params(visslice, im, params)
 
-    nvis = len(visslice.data)
-    before = numpy.std(visslice.w)
-    p, q = fit_uvwplane(visslice)
-    visslice.data['uvw'][:, 2] -= p * visslice.u + q * visslice.v
-    after = numpy.max(numpy.std(visslice.w))
-    log.debug('invert_timeslice_single: Fit to %d rows reduces rms w from %.1f to %.1f wavelengths'
-              % (nvis, before, after))
-
+    visslice, p, q = fit_uvwplane(visslice)
+    
     imgridpad = numpy.zeros([nchan, npol, padding * ny, padding * nx], dtype='complex')
     if kernel_type == 'variable':
         if dopsf:
@@ -345,13 +405,25 @@ def invert_timeslice_single(visslice, im, dopsf, params):
                                           visslice.data['imaging_weight'])
     imgrid = extract_mid(numpy.real(ifft(imgridpad)) * gcf, npixel=nx)
     workimage = create_image_from_array(imgrid, im.wcs)
-    workimage.wcs.wcs.set_pv([(0, 0, -q), (0, 1, -p)])
-    finalimage, footprint = reproject_image(workimage, im.wcs, im.shape)
-    finalimage.data[footprint.data <= 0.0] = 0.0
+
+    lnominal, mnominal, ldistorted, mdistorted = lm_distortion(workimage, -p, -q)
+
+    finalimage = create_image_from_array(im.data, im.wcs)
+    
+    for chan in range(nchan):
+        for pol in range(npol):
+            finalimage.data[chan, pol, ...] = \
+                griddata((mdistorted.flatten(), ldistorted.flatten()),
+                         values=workimage.data[chan, pol, ...].flatten(),
+                         method='cubic',
+                         xi=(mnominal.flatten(), lnominal.flatten()),
+                         fill_value=0.0).reshape(finalimage.data[chan, pol, ...].shape)
+
     return finalimage
 
 
-def predict_by_image_partitions(vis, model, image_iterator=raster_iter, predict_function=predict_2d_base, params=None):
+def predict_by_image_partitions(vis, model, image_iterator=raster_iter, predict_function=predict_2d,
+                                params=None):
     """ Predict using image partitions, calling specified predict function
 
     :param vis: Visibility to be predicted
@@ -362,13 +434,15 @@ def predict_by_image_partitions(vis, model, image_iterator=raster_iter, predict_
     :returns: resulting visibility (in place works)
     """
     vis.data['vis']*=0.0
-    for impatch in image_iterator(model, params):
-        vis.data['vis'] += predict_function(vis, impatch, params=params).data['vis']
+    result = copy.deepcopy(vis)
+    for dpatch in image_iterator(model, params):
+        result = predict_function(result, dpatch, params=params)
+        vis.data['vis'] += result.data['vis']
     return vis
 
 
-def predict_by_vis_partitions(vis, model, vis_iterator, predict_function=predict_2d_base, params=None):
-    """ Predict using partitions in w
+def predict_by_vis_partitions(vis, model, vis_iterator, predict_function=predict_2d, params=None):
+    """ Predict using vis partitions
 
     :param vis: Visibility to be predicted
     :param model: model image
@@ -378,11 +452,12 @@ def predict_by_vis_partitions(vis, model, vis_iterator, predict_function=predict
     :returns: resulting visibility (in place works)
     """
     for vslice in vis_iterator(vis, params):
-        predict_function(vslice, model, params=params)
+        vis.data['vis'] += predict_function(vslice, model, params=params).data['vis']
     return vis
 
+
 def invert_by_image_partitions(vis, im, image_iterator=raster_iter, dopsf=False, kernel=None,
-                               invert_function=invert_2d_base, params=None):
+                               invert_function=invert_2d, params=None):
     """ Predict using image partitions, calling specified predict function
 
     :param vis: Visibility to be inverted
@@ -395,7 +470,7 @@ def invert_by_image_partitions(vis, im, image_iterator=raster_iter, dopsf=False,
     
     i = 0
     for dpatch in image_iterator(im, params):
-        result = invert_function(shiftvis(dpatch, vis, params), dpatch, dopsf, params=params)
+        result = invert_function(vis, dpatch, dopsf, params=params)
         # Ensure that we fill in the elements of dpatch instead of creating a new numpy arrray
         dpatch.data[...] = result.data[...]
         assert numpy.max(numpy.abs(dpatch.data)), "Partition image %d appears to be empty" % i
@@ -405,7 +480,7 @@ def invert_by_image_partitions(vis, im, image_iterator=raster_iter, dopsf=False,
     return im
 
 
-def invert_by_vis_partitions(vis, im, vis_iterator, dopsf=False, kernel=None, invert_function=invert_2d_base, params=None):
+def invert_by_vis_partitions(vis, im, vis_iterator, dopsf=False, kernel=None, invert_function=invert_2d, params=None):
     """ Invert using wslices
 
     :param vis: Visibility to be inverted

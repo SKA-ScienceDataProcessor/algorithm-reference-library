@@ -5,7 +5,7 @@
 
 import logging
 
-log = logging.getLogger("arl.visibility_calibration")
+log = logging.getLogger("visibility.calibration")
 
 from arl.data.data_models import *
 from arl.data.parameters import *

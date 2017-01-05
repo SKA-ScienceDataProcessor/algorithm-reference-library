@@ -17,7 +17,7 @@ from arl.image.operations import import_image_from_fits, add_wcs_to_image
 from arl.util.coordinate_support import *
 from arl.util.read_oskar_vis import OskarVis
 
-log = logging.getLogger("arl.test_support")
+log = logging.getLogger("util.testing_support")
 
 
 def create_configuration_from_array(antxyz: numpy.array, name: str = None, location: EarthLocation = None,

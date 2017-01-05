@@ -228,6 +228,10 @@ class Visibility:
     def uvw_lambda(self, channel=0):
         """ Calculates baseline coordinates in wavelengths. """
         return self.data['uvw'] * self.frequency[channel] / c.value
+    
+    def select_rows(self, rows):
+        return Visibility(data=self.data[rows], phasecentre=self.phasecentre, configuration=self.configuration,
+                          frequency=self.frequency)
 
 
 class QA:

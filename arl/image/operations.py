@@ -11,7 +11,7 @@ from reproject import reproject_interp
 from arl.data.data_models import *
 from arl.data.parameters import *
 
-log = logging.getLogger("arl.image_operations")
+log = logging.getLogger("image.operations")
 
 
 def create_image_from_slice(im, imslice):
@@ -91,8 +91,8 @@ def add_wcs_to_image(im: Image, wcs: WCS):
 def reproject_image(im: Image, newwcs: WCS, shape=None, params=None):
     """ Re-project an image to a new coordinate system
     
-    Currently uses the reproject python package.
-    TODO: Write tailored reproject routine
+    Currently uses the reproject python package. This seems to have some features do be careful using this method.
+    For timeslice imaging I had to use griddata.
 
     :param shape:
     :param im: Image to be reprojected

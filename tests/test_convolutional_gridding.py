@@ -84,7 +84,7 @@ class TestConvolutionalGridding(unittest.TestCase):
         # Make some visibilities, all complex unity
         vis = numpy.ones([nchan, npol, nvis], dtype='complex')
         visweights = numpy.ones([nchan, npol, nvis])
-        uvscale = numpy.array([1.0])
+        uvscale = numpy.ones([2,1])
         fixed_kernel_grid(kernel, uvgrid, uvcoords, uvscale, vis, visweights)
 
     def test_convolutional_degrid(self):
@@ -101,7 +101,7 @@ class TestConvolutionalGridding(unittest.TestCase):
         # Make some uv coordinates with random locations
         uvcoords = numpy.array([[random.uniform(-0.25, 0.25), random.uniform(-0.25, 0.25)] for ivis in range(nvis)])
         # Degrid the visibilities
-        uvscale = numpy.array([1.0])
+        uvscale = numpy.ones([2,1])
         vis = fixed_kernel_degrid(kernel, uvgrid, uvcoords, uvscale)
         assert vis.shape[0] == nvis
         assert vis.shape[1] == nchan

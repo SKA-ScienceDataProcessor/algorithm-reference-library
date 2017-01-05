@@ -9,7 +9,7 @@ from arl.data.parameters import *
 from arl.util.quality_assessment import QA
 from arl.visibility.calibration import solve_gains, qa_gaintable
 
-log = logging.getLogger("arl.pipelines_functions")
+log = logging.getLogger("pipelines.functions")
 
 def RCAL(params):
     """ Real-time calibration: single shot

@@ -19,7 +19,7 @@ from arl.fourier_transforms.fft_support import *
 
 # from arl.core.c import gridder
 
-log = logging.getLogger("convolutional.gridding")
+log = logging.getLogger("fourier_transforms.convolutional_gridding")
 
 
 def coordinateBounds(npixel):
@@ -408,7 +408,7 @@ def weight_gridding(shape, uv, uvscale, visweights, params=None):
     """
     weighting = get_parameter(params, 'weighting', 'uniform')
     if weighting == 'uniform':
-        log.info("convolutional_gridding.weight_gridding: Performing uniform weighting")
+        log.info("weight_gridding: Performing uniform weighting")
         wtsgrid = numpy.zeros(shape)
         nchan, npol, ny, nx = shape
         # Add all visibility points to a float grid

@@ -15,7 +15,7 @@ from astropy.stats import gaussian_fwhm_to_sigma
 import astropy.units as u
 from photutils import segmentation
 
-log = logging.getLogger("arl.skymodel_operations")
+log = logging.getLogger("skymodel.operations")
 
 def create_skycomponent(direction: SkyCoord, flux: numpy.array, frequency: numpy.array, shape: str = 'Point',
                         param: dict = None, name: str = ''):
@@ -172,12 +172,12 @@ def insert_skycomponent(im: Image, sc: Skycomponent, params=None):
     pixloc = skycoord_to_pixel(sc.direction, im.wcs, 0, 'wcs')
     insert_method = get_parameter(params, "insert_method", "nearest")
     if insert_method == "Lanczos":
-        log.debug("iinsert_skycomponent: Performing Lanczos interpolation of flux %s at [%.2f, %.2f] " %
+        log.debug("insert_skycomponent: Performing Lanczos interpolation of flux %s at [%.2f, %.2f] " %
                   (str(sc.flux), pixloc[1], pixloc[0]))
         _L2D(im.data, pixloc[1], pixloc[0], sc.flux)
     else:
         x, y = int(pixloc[1] + 0.5), int(pixloc[0] + 0.5)
-        log.debug("iinsert_skycomponent: Inserting point flux %s at [%d, %d] " % (str(sc.flux), x, y))
+        log.debug("insert_skycomponent: Inserting point flux %s at [%d, %d] " % (str(sc.flux), x, y))
         im.data[:, :, int(pixloc[1] + 0.5), int(pixloc[0] + 0.5)] += sc.flux
        
     return im

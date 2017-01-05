@@ -7,7 +7,7 @@
 
 from arl.data.parameters import *
 
-log = logging.getLogger("arl.pipelines.support")
+log = logging.getLogger("pipelines.support")
 
 def import_pipeline_parameters(params):
     """ Import parameters to pipelines

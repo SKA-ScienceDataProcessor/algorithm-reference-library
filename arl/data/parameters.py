@@ -7,7 +7,7 @@
 import logging
 import os
 
-log = logging.getLogger("arl.parameters")
+log = logging.getLogger("data_models.parameters")
 
 
 def arl_path(path):

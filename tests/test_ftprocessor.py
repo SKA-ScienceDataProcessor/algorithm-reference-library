@@ -14,7 +14,8 @@ from numpy.testing import assert_allclose
 
 from arl.fourier_transforms.ftprocessor import *
 from arl.image.operations import export_image_to_fits
-from arl.skymodel.operations import create_skycomponent, find_skycomponents, find_nearest_component
+from arl.skymodel.operations import create_skycomponent, find_skycomponents, find_nearest_component, \
+    insert_skycomponent
 from arl.util.testing_support import create_named_configuration
 from arl.visibility.operations import create_visibility, sum_visibility
 
@@ -70,15 +71,15 @@ class TestFTProcessor(unittest.TestCase):
                        'reffrequency': 1e8,
                        'image_partitions': 4,
                        'padding': 2,
-                       'oversampling': 4,
-                       'wloss': 0.05}
+                       'oversampling': 16,
+                       'wstep': 2.0}
         
         self.lowcore = create_named_configuration('LOWBD2-CORE')
-        self.times = numpy.arange(-numpy.pi / 4.0, +numpy.pi * 1.001 / 4.0, numpy.pi / 8.0)
+        self.times = numpy.arange(- numpy.pi / 2.0, 1.001 * numpy.pi / 2.0, numpy.pi / 4.0)
         self.frequency = numpy.array([1e8])
         
         self.reffrequency = numpy.max(self.frequency)
-        self.phasecentre = SkyCoord(ra=+15.0 * u.deg, dec=-35.0 * u.deg, frame='icrs', equinox=2000.0)
+        self.phasecentre = SkyCoord(ra=+180.0 * u.deg, dec=-60.0 * u.deg, frame='icrs', equinox=2000.0)
         self.componentvis = create_visibility(self.lowcore, self.times, self.frequency, weight=1.0,
                                               phasecentre=self.phasecentre, params=self.params)
         self.uvw = self.componentvis.data['uvw']
@@ -105,7 +106,7 @@ class TestFTProcessor(unittest.TestCase):
                 log.info("Component at (%f, %f) %s" % (pra, pdec, str(sc)))
                 comp = create_skycomponent(flux=self.flux, frequency=self.frequency, direction=sc)
                 self.components.append(comp)
-                self.model.data[..., int(pra), int(pdec)] += self.flux
+                insert_skycomponent(self.model, comp, self.params)
         
         # Predict the visibility from the components exactly
         self.componentvis.data['vis'] *= 0.0
@@ -169,111 +170,52 @@ class TestFTProcessor(unittest.TestCase):
         export_image_to_fits(psf2d, '%s/test_invert_2d_psf.fits' % self.dir)
 
         self._checkcomponents(dirty2d, 'test_invert_2d')
-    
-    @unittest.skip("Positions and fluxes still in error for timeslice")
-    def test_invert_image_timeslice(self):
-        """Test if the timeslice invert works
-.
-        """
-        for nproc in [1]:
-            self.params['nprocessor'] = nproc
-            dirtyTimeslice = create_image_from_visibility(self.componentvis, params=self.params)
-            dirtyTimeslice = invert_timeslice(self.componentvis, dirtyTimeslice, params=self.params)
-            psfTimeslice = create_image_from_visibility(self.componentvis, params=self.params)
-            psfTimeslice = invert_timeslice(vis=self.componentvis, im=psfTimeslice, dopsf=True,
-                                            params=self.params)
-            psfmax = psfTimeslice.data.max()
-            assert psfmax > 0.0
-            dirtyTimeslice.data = dirtyTimeslice.data / psfmax
-            
-            export_image_to_fits(dirtyTimeslice, '%s/test_invert_timeslice_nproc%s_dirty.fits' % (self.dir, nproc))
-            export_image_to_fits(psfTimeslice, '%s/test_invert_timeslice_nproc%s_psf.fits' % (self.dir, nproc))
-            
-            self._checkcomponents(dirtyTimeslice, 'test_invert_timeslice')
 
-    @unittest.skip("Positions and fluxes still in error for timeslice")
-    def test_predict_timeslice(self):
-        """Test if the image partition predict works
+    def test_invert_by_image_partitions(self):
+        self._invert_base(invert_by_image_partitions)
 
-        """
-        self.modelvis = create_visibility(self.lowcore, self.times, self.frequency, weight=1.0,
-                                          phasecentre=self.phasecentre, params=self.params)
-        self.modelvis.data['vis'] *= 0.0
-        predict_timeslice(self.modelvis, self.model, params=self.params)
-    
-        self.residualvis = create_visibility(self.lowcore, self.times, self.frequency, weight=1.0,
-                                             phasecentre=self.phasecentre,
-                                             params=self.params)
-        self.residualvis.data['uvw'][:, 2] = 0.0
-        self.residualvis.data['vis'] = self.modelvis.data['vis'] - self.componentvis.data['vis']
-        self._checkdirty(self.residualvis, 'test_predict_image_partition_residual')
-    
+    def test_invert_timeslice(self):
+        self._invert_base(invert_timeslice)
 
-    def test_invert_image_partition(self):
-        """Test if the image partition invert works
+    def test_invert_wprojection(self):
+        self._invert_base(invert_wprojection)
 
-        """
+    def _invert_base(self, invert):
         dirtyFacet = create_image_from_visibility(self.componentvis, params=self.params)
-        dirtyFacet = invert_by_image_partitions(self.componentvis, dirtyFacet, params=self.params)
+        dirtyFacet = invert(self.componentvis, dirtyFacet, params=self.params)
         psfFacet = create_image_from_visibility(self.componentvis, params=self.params)
-        psfFacet = invert_by_image_partitions(vis=self.componentvis, im=psfFacet, dopsf=True,
-                                              params=self.params)
+        psfFacet = invert(vis=self.componentvis, im=psfFacet, dopsf=True,
+                          params=self.params)
         psfmax = psfFacet.data.max()
         assert psfmax > 0.0
         dirtyFacet.data = dirtyFacet.data / psfmax
-        
-        export_image_to_fits(dirtyFacet, '%s/test_invert_image_partition_dirty.fits' % self.dir)
-        export_image_to_fits(psfFacet, '%s/test_invert_image_partition_psf.fits' % self.dir)
-        
-        self._checkcomponents(dirtyFacet, 'test_invert_timeslice')
-    
-    def test_predict_image_partition(self):
-        """Test if the image partition predict works
+        export_image_to_fits(dirtyFacet, '%s/test_%s_dirty.fits' % (self.dir, invert.__name__))
+        export_image_to_fits(psfFacet, '%s/test_%s_psf.fits' % (self.dir, invert.__name__))
+        self._checkcomponents(dirtyFacet, 'test_%s' % (invert.__name__))
 
-        """
+            
+    def test_predict_by_image_partitions(self):
+        self._predict_base(predict_by_image_partitions)
+        
+    def test_predict_timeslice(self):
+        self._predict_base(predict_timeslice)
+
+    def test_predict_by_image_partitions(self):
+        self._predict_base(predict_by_image_partitions)
+
+
+
+    def _predict_base(self, predict):
         self.modelvis = create_visibility(self.lowcore, self.times, self.frequency, weight=1.0,
                                           phasecentre=self.phasecentre, params=self.params)
         self.modelvis.data['vis'] *= 0.0
-        predict_by_image_partitions(self.modelvis, self.model, params=self.params)
-        
+        predict(self.modelvis, self.model, params=self.params)
         self.residualvis = create_visibility(self.lowcore, self.times, self.frequency, weight=1.0,
                                              phasecentre=self.phasecentre,
                                              params=self.params)
         self.residualvis.data['uvw'][:, 2] = 0.0
         self.residualvis.data['vis'] = self.modelvis.data['vis'] - self.componentvis.data['vis']
-        self._checkdirty(self.residualvis, 'test_predict_image_partition_residual')
-        
-    
-    def test_predict_wprojection(self):
-        
-        self.modelvis = create_visibility(self.lowcore, self.times, self.frequency, weight=1.0,
-                                          phasecentre=self.phasecentre, params=self.params)
-        predict_wprojection(self.modelvis, self.model, params=self.params)
-        self.residualvis = create_visibility(self.lowcore, self.times, self.frequency, weight=1.0,
-                                             phasecentre=self.phasecentre,
-                                             params=self.params)
-        self.residualvis.data['uvw'][:, 2] = 0.0
-        self.residualvis.data['vis'] = self.modelvis.data['vis'] - self.componentvis.data['vis']
-        self._checkdirty(self.residualvis, 'test_predict_wprojection_residual')
-        
-    
-    def test_invert_wprojection(self):
-        """Test if the wprojection invert works
-
-        """
-        dirtyWProjection = create_image_from_visibility(self.componentvis, params=self.params)
-        dirtyWProjection = invert_wprojection(self.componentvis, dirtyWProjection, params=self.params)
-        psfWProjection = create_image_from_visibility(self.componentvis, params=self.params)
-        psfWProjection = invert_wprojection(vis=self.componentvis, im=psfWProjection, dopsf=True,
-                                            params=self.params)
-        psfmax = psfWProjection.data.max()
-        assert psfmax > 0.0
-        dirtyWProjection.data = dirtyWProjection.data / psfmax
-        
-        export_image_to_fits(dirtyWProjection, '%s/test_invert_wprojection_dirty.fits' % self.dir)
-        export_image_to_fits(psfWProjection, '%s/test_invert_wprojection_psf.fits' % self.dir)
-        
-        self._checkcomponents(dirtyWProjection, 'test_wprojection')
+        self._checkdirty(self.residualvis, 'test_%s_residual' % predict.__name__)
 
 
 if __name__ == '__main__':

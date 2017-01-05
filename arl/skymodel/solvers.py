@@ -10,7 +10,7 @@ from arl.data.data_models import *
 from arl.data.parameters import *
 from arl.visibility.operations import combine_visibility
 
-log = logging.getLogger("arl.skymodel_solvers")
+log = logging.getLogger("skymodel.solvers")
 
 def solve_skymodel(vis: Visibility, sm: Skymodel, deconvolver, params=None):
     """Solve for Skymodel using a deconvolver. The interface of deconvolver is the same as clean.

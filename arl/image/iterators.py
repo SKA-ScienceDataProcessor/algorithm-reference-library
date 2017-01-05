@@ -11,7 +11,7 @@ import numpy
 from arl.image.operations import create_image_from_array
 from arl.data.parameters import get_parameter
 
-log = logging.getLogger("arl.image_iterators")
+log = logging.getLogger("image.iterators")
 
 class raster_iter:
     """Create a raster_iter generator, returning images
@@ -32,7 +32,7 @@ class raster_iter:
                 r.data[...] = numpy.sqrt(r.data[...])
         """
         nraster = get_parameter(params, "image_partitions", 2)
-        log.info("image.iterators.raster: predicting using %d x %d image partitions" % (nraster, nraster))
+        log.info("raster: predicting using %d x %d image partitions" % (nraster, nraster))
         assert nraster <= im.data.shape[3], "Cannot have more raster elements than pixels"
         assert nraster <= im.data.shape[2], "Cannot have more raster elements than pixels"
         assert im.data.shape[3] % nraster == 0, "The partitions must exactly fill the image"
@@ -40,7 +40,7 @@ class raster_iter:
         self.shape = im.data.shape
         self.dx = int(im.data.shape[3] // nraster)
         self.dy = int(im.data.shape[2] // nraster)
-        log.info('image_iterators.raster: spacing of raster (%d, %d)' % (self.dx, self.dy))
+        log.info('raster: spacing of raster (%d, %d)' % (self.dx, self.dy))
         self.im = im
         self.nraster = nraster
         self.location = 0
@@ -55,12 +55,12 @@ class raster_iter:
         if self.location < self.nraster * self.nraster:
             x = int(self.location // self.nraster)
             y = int(self.location - x * self.nraster)
-            log.info('image_iterators.raster: partition %d (%d, %d) of %d' %
+            log.info('raster: partition %d (%d, %d) of %d' %
                      (self.location, x, y, self.nraster*self.nraster))
             x *= int(self.dx)
             y *= int(self.dy)
             sl = (..., slice(y, y + self.dy), slice(x, x + self.dx))
-            log.info('image_iterators.raster: slice is %s' % (str(sl)))
+            log.info('raster: slice is %s' % (str(sl)))
             self.location += 1
             # We should be able to use a slice on the wcs but it fails.
             wcs = self.im.wcs.deepcopy()

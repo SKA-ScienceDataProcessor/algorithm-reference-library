@@ -7,7 +7,7 @@ import logging
 import unittest
 
 from arl.data.parameters import *
-log = logging.getLogger("arl.test_parameters")
+log = logging.getLogger("test_parameters")
 
 class TestParameters(unittest.TestCase):
     def setUp(self):

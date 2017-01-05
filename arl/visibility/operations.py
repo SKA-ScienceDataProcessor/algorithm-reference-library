@@ -7,7 +7,7 @@
 import copy
 import logging
 
-log = logging.getLogger("arl.visibility_operations")
+log = logging.getLogger("visibility.operations")
 
 from astropy.table import vstack
 
@@ -144,7 +144,7 @@ def phaserotate_visibility(vis: Visibility, newphasecentre: SkyCoord, params=Non
             phasor = simulate_point(uvw, l, m)
             for pol in range(vis.npol):
                 vis.vis[:, channel, pol] /= phasor
-        
+ 
         # To rotate UVW, rotate into the global XYZ coordinate system and back. We have the option of
         # staying on the tangent plane or not. If we stay on the tangent then the raster will
         # join smoothly at the edges. If we change the tangent then we will have to reproject to get
