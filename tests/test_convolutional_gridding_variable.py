@@ -55,11 +55,8 @@ class TestConvolutionalGriddingVariable(unittest.TestCase):
     
     def test_w_kernel_lambda(self):
         shape = (self.params['npixel'], self.params['npixel'])
-        wkl = w_kernel_lambda(self.vis, shape, fov=0.1)[0]
+        wkl = w_kernel_lambda(self.vis, shape, fov=0.1, oversampling=4)[0]
         assert len(wkl(10,0).shape) == 4, "Shape is wrong: %s" % (wkl(10,0).shape)
-        for row in range(len(self.vis.data)):
-            assert len(wkl(row, 0).shape) == 4
-
 
 if __name__ == '__main__':
     unittest.main()

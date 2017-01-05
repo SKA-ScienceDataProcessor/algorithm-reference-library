@@ -13,31 +13,7 @@ import logging
 log = logging.getLogger("visibility.iterators")
 
 
-class vis_iterator_base:
-    def __init__(self, vis, params):
-        """Initialise the iterator
-        """
-        self.vis = copy.copy(vis)
-        self.maximum_index = 10
-        self.index = 0
-        self.params = params
-    
-    def __iter__(self):
-        """ Return the iterator itself
-        """
-        return self
-    
-    def __next__(self):
-        if self.index < self.maximum_index:
-            result = self.vis
-            log.debug("Index %i" % self.index)
-            self.index += 1
-        else:
-            raise StopIteration
-        return result
-
-
-class vis_timeslice_iter(vis_iterator_base):
+class vis_timeslice_iter():
     def __init__(self, vis, params):
         
         """Initialise the iterator
@@ -50,12 +26,15 @@ class vis_timeslice_iter(vis_iterator_base):
         self.starttime = numpy.min(self.vis.time)
         self.stoptime = numpy.max(self.vis.time)
         self.timecursor = self.starttime
-        super(vis_timeslice_iter, self).__init__(vis, params)
+
+    def __iter__(self):
+        """ Return the iterator itself
+        """
+        return self
 
     def __next__(self):
 
         nrows = 0
-        result = copy.copy(self.vis)
         while (nrows == 0) & (self.timecursor < self.stoptime):
             rows = ((self.vis.time >= (self.timecursor - self.timeslice / 2.0)) & \
                     (self.vis.time <  (self.timecursor + self.timeslice / 2.0)))

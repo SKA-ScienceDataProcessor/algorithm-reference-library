@@ -21,7 +21,7 @@ class TestVisibilityOperations(unittest.TestCase):
         
         self.vlaa = create_named_configuration('VLAA')
         self.vlaa.data['xyz'] *= 1.0 / 30.0
-        self.times = numpy.arange(-3.0, +3.0, 6.0 / 60.0) * numpy.pi / 12.0
+        self.times = numpy.arange(-3.0, +3.0, 1.0) * numpy.pi / 12.0
         self.frequency = numpy.arange(1.0e8, 1.50e8, 2.0e7)
         
         # Define the component and give it some spectral behaviour

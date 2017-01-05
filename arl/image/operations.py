@@ -101,8 +101,6 @@ def reproject_image(im: Image, newwcs: WCS, shape=None, params=None):
     :returns: Reprojected Image, Footprint Image
     """
     
-    log.debug("reproject_image: Converting SIN projection from parameters %s to %s" %
-              (im.wcs.wcs.get_pv(), newwcs.wcs.get_pv()))
     rep, foot = reproject_interp((im.data, im.wcs), newwcs, shape, order='bicubic',
                                  independent_celestial_slices=True)
     return create_image_from_array(rep, newwcs), create_image_from_array(foot, newwcs)

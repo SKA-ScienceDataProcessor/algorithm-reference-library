@@ -18,13 +18,9 @@ class TestImage(unittest.TestCase):
         self.dir = './test_results'
         os.makedirs(self.dir, exist_ok=True)
     
-        self.m31image = create_test_image()
+        self.m31image = create_test_image(cellsize=0.0001)
         self.cellsize = 180.0 * 0.0001 / numpy.pi
-        self.m31image.wcs.wcs.cdelt[0] = -self.cellsize
-        self.m31image.wcs.wcs.cdelt[1] = +self.cellsize
-        self.m31image.wcs.wcs.radesys = 'ICRS'
-        self.m31image.wcs.wcs.equinox = 2000.00
-        
+       
     def test_create_image_from_array(self):
     
         m31model_by_array = create_image_from_array(self.m31image.data, self.m31image.wcs)
@@ -51,13 +47,13 @@ class TestImage(unittest.TestCase):
         # Reproject an image
         
         cellsize=1.5*self.cellsize
-        newwcs=self.m31image.wcs
+        newwcs=self.m31image.wcs.deepcopy()
         newwcs.wcs.cdelt[0] = -cellsize
         newwcs.wcs.cdelt[1] = +cellsize
-        newwcs.wcs.radesys = 'ICRS'
-        newwcs.wcs.equinox = 2000.00
         
-        newshape=(1,1,int(256//1.5),int(256//1.5))
+        newshape=numpy.array(self.m31image.data.shape)
+        newshape[2] /= 1.5
+        newshape[3] /= 1.5
         newimage, footprint=reproject_image(self.m31image, newwcs, shape=newshape)
         export_image_to_fits(newimage, fitsfile='%s/reproject_image.fits' % (self.dir))
         export_image_to_fits(footprint, fitsfile='%s/reproject_footprint.fits' % (self.dir))

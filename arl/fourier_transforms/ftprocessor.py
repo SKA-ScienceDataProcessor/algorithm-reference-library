@@ -21,7 +21,6 @@ from arl.fourier_transforms.fft_support import fft, ifft, pad_mid, extract_mid
 from arl.fourier_transforms.variable_kernels import variable_kernel_grid, variable_kernel_degrid, \
     standard_kernel_lambda, w_kernel_lambda
 from arl.image.iterators import *
-from arl.image.operations import reproject_image, export_image_to_fits
 from arl.util.coordinate_support import simulate_point, skycoord_to_lmn
 from arl.visibility.iterators import *
 from arl.visibility.operations import phaserotate_visibility
@@ -301,7 +300,6 @@ def predict_timeslice(vis, model, params=None):
                              xi=(mdistorted.flatten(), ldistorted.flatten()),
                              method='cubic',
                              fill_value=0.0).reshape(workimage.data[chan, pol, ...].shape)
-        export_image_to_fits(workimage, "workimage_%s.fits" %(numpy.average(visslice.time)))
         # Now we can do the transformation using a 2D transform
         visslice = predict_2d(visslice, workimage, params=params)
         vis.data['vis'][rows] += numpy.conj(visslice.data['vis'])

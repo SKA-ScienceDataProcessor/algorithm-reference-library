@@ -30,7 +30,7 @@ def standard_kernel_lambda(vis, shape, oversampling=8, support=3):
     return lambda row, chan=0: sk
 
 
-def w_kernel_lambda(vis, shape, fov, oversampling=32, wstep=100.0, npixel_kernel=16, cache_size=10000):
+def w_kernel_lambda(vis, shape, fov, oversampling=4, wstep=100.0, npixel_kernel=16, cache_size=10000):
     """Return a lambda function to calculate the w term visibility kernel
 
     This function is called once. It uses an LRU cache to hold the convolution kernels. As a result,
