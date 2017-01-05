@@ -5,7 +5,7 @@
 RSTs=  $(NBs:.ipynb=.rst)
 
 JUPYTER ?= jupyter
-TIMEOUT = 1800
+TIMEOUT = 3600
 
 .PHONY: rst
 rst: $(RSTs)
