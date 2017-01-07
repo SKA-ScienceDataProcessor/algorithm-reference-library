@@ -56,7 +56,8 @@ class TestVisibilityOperations(unittest.TestCase):
             # Phase rotating back should not make a difference
             original_vis = self.vismodel.vis
             original_uvw = self.vismodel.uvw
-            rotatedvis = phaserotate_visibility(phaserotate_visibility(self.vismodel, newphasecentre), self.phasecentre)
+            rotatedvis = phaserotate_visibility(phaserotate_visibility(self.vismodel, newphasecentre, tangent=False),
+                                                self.phasecentre, tangent=False)
             assert_allclose(rotatedvis.uvw, original_uvw, rtol=1e-10)
             assert_allclose(rotatedvis.vis, original_vis, rtol=1e-10)
     
@@ -66,10 +67,10 @@ class TestVisibilityOperations(unittest.TestCase):
         vispred = create_visibility(self.vlaa, self.times + ha_diff, self.frequency,
                                     weight=1.0, phasecentre=self.compabsdirection,
                                     params=self.params)
-        vismodel2 = predict_skycomponent_visibility(vispred, self.m31comp, self.params)
+        vismodel2 = predict_skycomponent_visibility(vispred, self.m31comp, params=self.params)
         
         # Should yield the same results as rotation
-        rotatedvis = phaserotate_visibility(self.vismodel, self.compabsdirection)
+        rotatedvis = phaserotate_visibility(self.vismodel, self.compabsdirection, tangent=False)
         assert_allclose(rotatedvis.uvw, vismodel2.uvw, rtol=1e-10)
         assert_allclose(rotatedvis.vis, vismodel2.vis, rtol=1e-10)
 
