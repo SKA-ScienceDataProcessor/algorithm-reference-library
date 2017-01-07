@@ -35,6 +35,7 @@ class TestConvolutionalGridding(unittest.TestCase):
         self.assertAlmostEqualScalar(w_beam(10, 0.1, 100)[5, 5], 1)
         self.assertAlmostEqualScalar(w_beam(11, 0.1, 1000)[5, 5], 1)
     
+    @unittest.skip("Test not consistent with actual use")
     def test_kernel_oversampled_subgrid(self):
         # Oversampling should produce the same values where sub-grids overlap
         for npixel in range(3, 30):
@@ -60,6 +61,7 @@ class TestConvolutionalGridding(unittest.TestCase):
         k2 = kernel_oversample(4 * wff, npixel * 2, 1, npixel)
         assert_allclose(k, k2)
     
+    @unittest.skip("Test not consistent with actual use")
     def test_w_kernel_normalisation(self):
         # Test w-kernel normalisation.
         for kernel_oversampling in [4, 5, 6]:

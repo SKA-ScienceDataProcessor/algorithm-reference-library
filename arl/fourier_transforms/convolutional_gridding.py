@@ -382,16 +382,23 @@ def fixed_kernel_grid(kernel, uvgrid, uv, uvscale, vis, visweights):
     assert gh % 2 == 0, "Convolution kernel must have even number of pixels"
     assert gw % 2 == 0, "Convolution kernel must have even number of pixels"
     nchan, npol, ny, nx = uvgrid.shape
+    wtgrid = numpy.zeros(uvgrid.shape, dtype='float')
+    sumwt = numpy.zeros([nchan, npol])
     for chan in range(nchan):
         y, yf = frac_coord(ny, kernel_oversampling, uvscale[1, chan] * uv[..., 1])
         x, xf = frac_coord(nx, kernel_oversampling, uvscale[0, chan] * uv[..., 0])
         coords = x, xf, y, yf
         for pol in range(npol):
+            wts = visweights[..., chan, pol]
             viswt = vis[..., chan, pol] * visweights[..., chan, pol]
-            for v, x, xf, y, yf in zip(viswt, *coords):
+            for v, vwt, x, xf, y, yf in zip(viswt, wts, *coords):
                 uvgrid[chan, pol, (y - gh // 2):(y + (gh + 1) // 2), (x - gw // 2):(x + (gw + 1) // 2)] \
                     += kernel[yf, xf, :, :] * v
-    return uvgrid
+                wtgrid[chan, pol, (y - gh // 2):(y + (gh + 1) // 2), (x - gw // 2):(x + (gw + 1) // 2)] \
+                    += kernel[yf, xf, :, :].real * vwt
+            sumwt[chan, pol] += numpy.sum(wtgrid[chan, pol,...])
+
+    return uvgrid, sumwt
 
 
 def weight_gridding(shape, uv, uvscale, visweights, params=None):
@@ -413,22 +420,21 @@ def weight_gridding(shape, uv, uvscale, visweights, params=None):
         nchan, npol, ny, nx = shape
         # Add all visibility points to a float grid
         for chan in range(nchan):
-            y, yf = frac_coord(shape[2], 1, uvscale[0, chan] * uv[..., 0])
-            x, xf = frac_coord(shape[3], 1, uvscale[1, chan] * uv[..., 1])
-            coords = x, xf, y, yf
+            y, _ = frac_coord(shape[2], 1, uvscale[0, chan] * uv[..., 0])
+            x, _ = frac_coord(shape[3], 1, uvscale[1, chan] * uv[..., 1])
+            coords = x, y
             for pol in range(npol):
-                for wt, x, _, y, _ in zip(visweights[..., chan, pol], *coords):
-                    wtsgrid[chan, pol, y, x] += wt
+                wts = visweights[..., chan, pol]
+                wtsgrid[chan, pol, y, x] += [wt for wt, x, y, in zip(wts, *coords)]
         # Normalise each visibility weight to sum to one in a grid cell
         newvisweights = numpy.zeros_like(visweights)
         for chan in range(nchan):
-            y, yf = frac_coord(shape[2], 1, uvscale[0, chan] * uv[..., 0])
-            x, xf = frac_coord(shape[3], 1, uvscale[1, chan] * uv[..., 1])
-            coords = x, xf, y, yf
+            y, _ = frac_coord(shape[2], 1, uvscale[0, chan] * uv[..., 0])
+            x, _ = frac_coord(shape[3], 1, uvscale[1, chan] * uv[..., 1])
+            coords = x, y
             for pol in range(npol):
-                newvisweights[..., chan, pol] = [wt / wtsgrid[chan, pol, y, x]
-                                                 for wt, x, _, y, _ in zip(visweights[..., chan, pol], *coords)
-                                                 ]
+                wts = visweights[..., chan, pol]
+                newvisweights[..., chan, pol] = [wt / wtsgrid[chan, pol, y, x] for wt, x, y in zip(wts, *coords)]
         return newvisweights
     else:
         return visweights

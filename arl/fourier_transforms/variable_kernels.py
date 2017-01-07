@@ -83,7 +83,7 @@ def variable_kernel_degrid(kernel_function, uvgrid, uv, uvscale):
     wt = numpy.zeros([nvis, nchan, npol])
     for row in range(nvis):
         for chan in range(nchan):
-            kernel = kernel_function(row, chan)
+            kernel = numpy.conj(kernel_function(row, chan))
             kernel_oversampling, _, gh, gw = kernel.shape
             y, yf = frac_coord(nx, kernel_oversampling, uvscale[1, chan] * uv[row, 1])
             x, xf = frac_coord(ny, kernel_oversampling, uvscale[0, chan] * uv[row, 0])
@@ -111,6 +111,7 @@ def variable_kernel_grid(kernel_function, uvgrid, uv, uvscale, vis, visweights):
     
     nchan, npol, ny, nx = uvgrid.shape
     nvis, _ = uv.shape
+    sumwt = numpy.zeros([nchan, npol])
     for row in range(nvis):
         for chan in range(nchan):
             kernel = kernel_function(row, chan)
@@ -121,5 +122,6 @@ def variable_kernel_grid(kernel_function, uvgrid, uv, uvscale, vis, visweights):
                 viswt = vis[row, chan, pol] * visweights[row, chan, pol]
                 uvgrid[chan, pol, (y - gh // 2):(y + (gh + 1) // 2), (x - gw // 2):(x + (gw + 1) // 2)] += \
                     kernel[yf, xf, :, :] * viswt
-    
-    return uvgrid
+                sumwt[chan, pol] += numpy.sum(kernel[yf, xf, :, :].real) * visweights[row, chan, pol]
+
+    return uvgrid, sumwt

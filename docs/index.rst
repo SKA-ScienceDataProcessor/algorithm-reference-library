@@ -326,6 +326,7 @@ Naming
 * Names should obey the `SIP Coding and Documentation Guide <https://confluence.ska-sdp.org/display/SIP/Coding+and+Documentation+Guide+for+SIP/>`_ guide.
 * For functions that move data in and out of ARL, use import/export.
 * For functions that provide persistent, use read/save.
+* Function to be used internal to a module should have a _ prefix.
 
 ARL definition
 **************
@@ -663,6 +664,9 @@ ARL Notebooks
 
 References
 **********
+
+* Cornwelletal2012 : [1] T. J. Cornwell, M. A. Voronkov, and B. Humphreys,
+  “Wide field imaging for the Square Kilometre Array,” SPIE, p. 5861, 25-Jul-2012, arXiv 1207.5861
 
 * 1974A&AS...15..417H : *Aperture Synthesis with a Non-Regular
   Distribution of Interferometer Baselines*, Högbom, J. A.,

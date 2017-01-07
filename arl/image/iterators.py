@@ -55,12 +55,12 @@ class raster_iter:
         if self.location < self.nraster * self.nraster:
             x = int(self.location // self.nraster)
             y = int(self.location - x * self.nraster)
-            log.info('raster: partition %d (%d, %d) of %d' %
+            log.debug('raster: partition %d (%d, %d) of %d' %
                      (self.location, x, y, self.nraster*self.nraster))
             x *= int(self.dx)
             y *= int(self.dy)
             sl = (..., slice(y, y + self.dy), slice(x, x + self.dx))
-            log.info('raster: slice is %s' % (str(sl)))
+            log.debug('raster: slice is %s' % (str(sl)))
             self.location += 1
             # We should be able to use a slice on the wcs but it fails.
             wcs = self.im.wcs.deepcopy()

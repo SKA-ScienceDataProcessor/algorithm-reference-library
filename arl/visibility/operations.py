@@ -117,43 +117,56 @@ def create_visibility(config: Configuration, times: numpy.array, freq: numpy.arr
     return vis
 
 
-def phaserotate_visibility(vis: Visibility, newphasecentre: SkyCoord, params=None) -> Visibility:
+def phaserotate_visibility(vis: Visibility, newphasecentre: SkyCoord, tangent=True, inverse=False,
+                           params=None) -> Visibility:
     """
     Phase rotate from the current phase centre to a new phase centre
 
+    :param tangent:
     :param newphasecentre:
     :param params:
+    :param inverse: Actually do the opposite
     :param vis: Visibility to be rotated
     :returns: Visibility
     """
     l, m, n = skycoord_to_lmn(newphasecentre, vis.phasecentre)
     
-    tangent = get_parameter(params, "tangent", False)
-    
-    # Copy object and make a new table
-    vis = copy.copy(vis)
-    vis.data = vis.data.copy()
-    
     # No significant change?
     if numpy.abs(l) > 1e-15 or numpy.abs(m) > 1e-15:
-        
+    
+        # Copy object and make a new table
+        vis = copy.copy(vis)
+        vis.data = vis.data.copy()
+    
         # We are going to update in-place, so make a copy
         vis.data.replace_column('vis', vis.vis.copy())
         for channel in range(vis.nchan):
             uvw = vis.uvw_lambda(channel)
             phasor = simulate_point(uvw, l, m)
-            for pol in range(vis.npol):
-                vis.vis[:, channel, pol] /= phasor
- 
+            if inverse:
+                for pol in range(vis.npol):
+                    vis.vis[:, channel, pol] *= phasor
+            else:
+                for pol in range(vis.npol):
+                    vis.vis[:, channel, pol] *= numpy.conj(phasor)
+
         # To rotate UVW, rotate into the global XYZ coordinate system and back. We have the option of
         # staying on the tangent plane or not. If we stay on the tangent then the raster will
         # join smoothly at the edges. If we change the tangent then we will have to reproject to get
         # the results on the same image, in which case overlaps or gaps are difficult to deal with.
         if not tangent:
-            xyz = uvw_to_xyz(vis.data['uvw'], ha=-vis.phasecentre.ra, dec=vis.phasecentre.dec)
-            vis.data.replace_column('uvw', xyz_to_uvw(xyz, ha=-newphasecentre.ra, dec=newphasecentre.dec))
-    
+            if inverse:
+                xyz = uvw_to_xyz(vis.data['uvw'], ha=-vis.phasecentre.ra, dec=vis.phasecentre.dec)
+                vis.data.replace_column('uvw', xyz_to_uvw(xyz, ha=-newphasecentre.ra, dec=newphasecentre.dec))
+            else:
+                # This is the original (non-inverse) code
+                xyz = uvw_to_xyz(vis.data['uvw'], ha=-vis.phasecentre.ra, dec=vis.phasecentre.dec)
+                vis.data.replace_column('uvw', xyz_to_uvw(xyz, ha=-newphasecentre.ra, dec=newphasecentre.dec))
+    else:
+        log.warning("phaserotate_visibility: Null phase rotation")
+
     vis.phasecentre = newphasecentre
+
     return vis
 
 

@@ -49,9 +49,6 @@ def pad_mid(ff, npixel):
         if npixel == nx:
             return ff
         assert npixel > nx == ny
-#        pw = ((0, 0), (0, 0),
-#              (npixel // 2 - cy, (npixel + 1) // 2 - (ny + 1) // 2),
-#              (npixel // 2 - cx, (npixel + 1) // 2 - (nx + 1) // 2))
         pw = ((0, 0), (0, 0),
               (npixel // 2 - cy, npixel // 2 - cy),
               (npixel // 2 - cx, npixel // 2 - cx))

@@ -7,6 +7,8 @@ import os
 import unittest
 
 import numpy
+
+from astropy.convolution import Gaussian2DKernel, convolve
 from astropy import units as u
 from astropy.coordinates import SkyCoord
 from astropy.wcs.utils import pixel_to_skycoord
@@ -26,23 +28,16 @@ log = logging.getLogger("tests.test_ftprocessor")
 
 
 class TestFTProcessor(unittest.TestCase):
-    def _checkdirty(self, vis, name='test_invert_2d_dirty', invert=invert_2d, threshold=0.1):
-        # Make the dirty image and PSF
+    def _checkdirty(self, vis, name='test_invert_2d_dirty', invert=invert_2d, fluxthreshold=1.0):
+        # Make the dirty image
         dirty = create_image_from_visibility(vis, params=self.params)
-        dirty = invert(vis=vis, im=dirty, dopsf=False, params=self.params)
-        psf = create_image_from_visibility(vis, params=self.params)
-        psf = invert(vis=vis, im=psf, dopsf=True, params=self.params)
-        psfmax = psf.data.max()
-        dirty.data /= psfmax
-        psf.data /= psfmax
-        
+        dirty, sumwt = invert(vis=vis, im=dirty, dopsf=False, params=self.params)
+        dirty.data /= sumwt
         export_image_to_fits(dirty, '%s/%s_dirty.fits' % (self.dir, name))
-        export_image_to_fits(psf, '%s/%s_psf.fits' % (self.dir, name))
-        
         maxabs = numpy.max(numpy.abs(dirty.data))
-        assert maxabs < threshold, "%s, abs max %f exceeds threshold" % (name, maxabs)
+        assert maxabs < fluxthreshold, "%s, abs max %f exceeds flux threshold" % (name, maxabs)
     
-    def _checkcomponents(self, dirty, name, fluxthreshold=10.0, positionthreshold=0.2):
+    def _checkcomponents(self, dirty, name, fluxthreshold=10.0, positionthreshold=1.0):
         comps = find_skycomponents(dirty, fwhm=1.0, threshold=10.0, npixels=5, params=None)
         assert len(comps) == len(self.components), "Different number of components found"
         cellsize = abs(dirty.wcs.wcs.cdelt[0])
@@ -63,19 +58,20 @@ class TestFTProcessor(unittest.TestCase):
         self.dir = './test_results'
         os.makedirs(self.dir, exist_ok=True)
         
-        self.params = {'npixel': 256,
+        self.params = {'npixel': 512,
                        'npol': 1,
-                       'cellsize': 0.001,
+                       'cellsize': 0.0005,
                        'spectral_mode': 'channel',
                        'channelwidth': 5e7,
                        'reffrequency': 1e8,
-                       'image_partitions': 4,
+                       'image_partitions': 8,
                        'padding': 2,
-                       'oversampling': 16,
+                       'oversampling': 8,
+                       'timeslice':1.0,
                        'wstep': 2.0}
         
         self.lowcore = create_named_configuration('LOWBD2-CORE')
-        self.times = numpy.arange(- numpy.pi / 2.0, 1.001 * numpy.pi / 2.0, numpy.pi / 4.0)
+        self.times = numpy.arange(- numpy.pi / 4.0, 1.001 * numpy.pi / 4.0, numpy.pi / 16.0)
         self.frequency = numpy.array([1e8])
         
         self.reffrequency = numpy.max(self.frequency)
@@ -94,27 +90,35 @@ class TestFTProcessor(unittest.TestCase):
         spacing_pixels = self.params['npixel'] // self.params['image_partitions']
         log.info('Spacing in pixels = %s' % spacing_pixels)
 
-        centers = [-1.5, -0.5, 0.5, 1.5]
+        centers = [-3.5, -2.5, -1.5, -0.5, 0.5, 1.5, 2.5, 3.5]
+
+        rpix = self.model.wcs.wcs.crpix - 1
         self.components = []
         for iy in centers:
             for ix in centers:
-                # The phase center in 0-relative coordinates is n // 2 so we centre the grid of
-                # components on ny // 2, nx // 2. The wcs must be defined consistently.
-                pra, pdec = int(round(self.params['npixel'] // 2 + ix * spacing_pixels)), \
-                            int(round(self.params['npixel'] // 2 + iy * spacing_pixels))
-                sc = pixel_to_skycoord(pra, pdec, self.model.wcs)
-                log.info("Component at (%f, %f) %s" % (pra, pdec, str(sc)))
-                comp = create_skycomponent(flux=self.flux, frequency=self.frequency, direction=sc)
-                self.components.append(comp)
-                insert_skycomponent(self.model, comp, self.params)
-        
+                if ix >= iy:
+                    # The phase center in 0-relative coordinates is n // 2 so we centre the grid of
+                    # components on ny // 2, nx // 2. The wcs must be defined consistently.
+                    p = int(round(rpix[0] + ix * spacing_pixels * numpy.sign(self.model.wcs.wcs.cdelt[0]))), \
+                        int(round(rpix[1] + iy * spacing_pixels * numpy.sign(self.model.wcs.wcs.cdelt[1])))
+                    sc = pixel_to_skycoord(p[0], p[1], self.model.wcs)
+                    log.info("Component at (%f, %f) [0-rel] %s" % (p[0], p[1], str(sc)))
+                    flux = numpy.array([[100.0 + 2.0 * ix + iy * 20.0]])
+                    comp = create_skycomponent(flux=flux, frequency=self.frequency, direction=sc)
+                    self.components.append(comp)
+                    insert_skycomponent(self.model, comp, self.params)
+            
         # Predict the visibility from the components exactly
         self.componentvis.data['vis'] *= 0.0
         for comp in self.components:
             predict_skycomponent_visibility(self.componentvis, comp)
+
+        self.cmodel = create_image_from_array(convolve(self.model.data[0, 0, :, :], Gaussian2DKernel(3.0),
+                                                  normalize_kernel=True), self.model.wcs)
         
         export_image_to_fits(self.model, '%s/test_model.fits' % self.dir)
-    
+        export_image_to_fits(self.cmodel, '%s/test_cmodel.fits' % self.dir)
+
     def test_predict_2d(self):
         """Test if the 2D prediction works
 
@@ -139,10 +143,43 @@ class TestFTProcessor(unittest.TestCase):
         self.residualvis.data['uvw'][:, 2] = 0.0
         self.residualvis.data['vis'] = self.modelvis.data['vis'] - self.componentvis.data['vis']
 
-        self._checkdirty(self.residualvis, 'test_predict_2d_residual')
+        self._checkdirty(self.residualvis, 'test_predict_2d_residual', fluxthreshold=10.0)
+
+    def _predict_base(self, predict, fluxthreshold=10.0):
+        self.modelvis = create_visibility(self.lowcore, self.times, self.frequency, weight=1.0,
+                                          phasecentre=self.phasecentre, params=self.params)
+        self.modelvis.data['vis'] *= 0.0
+        predict(self.modelvis, self.model, params=self.params)
+        self.residualvis = create_visibility(self.lowcore, self.times, self.frequency, weight=1.0,
+                                             phasecentre=self.phasecentre,
+                                             params=self.params)
+        self.residualvis.data['uvw'][:, 2] = 0.0
+        self.residualvis.data['vis'] = self.modelvis.data['vis'] - self.componentvis.data['vis']
+        self._checkdirty(self.residualvis, 'test_%s_residual' % predict.__name__, fluxthreshold=fluxthreshold)
+
+
+    def test_predict_by_image_partitions(self):
+        self._predict_base(predict_by_image_partitions, fluxthreshold=1.0)
+        
+    def test_predict_timeslice(self):
+        # This works very poorly because of the poor interpolation accuracy for point sources
+        self._predict_base(predict_timeslice, fluxthreshold=20.0)
+
+    def test_predict_wprojection(self):
+        self.params = {'npixel': 512,
+                       'npol': 1,
+                       'cellsize': 0.0005,
+                       'spectral_mode': 'channel',
+                       'channelwidth': 5e7,
+                       'reffrequency': 1e8,
+                       'padding': 1,
+                       'oversampling': 8,
+                       'wstep': 2.0}
+
+        self._predict_base(predict_wprojection, fluxthreshold=4.0)
 
     def test_invert_2d(self):
-        """Test if the 2D invert works
+        """Test if the 2D invert works with w set to zero
 
         Set w=0 so that the two-dimensional transform should agree exactly with the model.
         Good check on the grid correction in the vis->image direction
@@ -156,66 +193,42 @@ class TestFTProcessor(unittest.TestCase):
         # Predict the visibility using direct evaluation
         for comp in self.components:
             predict_skycomponent_visibility(self.componentvis, comp)
-        
+    
         dirty2d = create_image_from_visibility(self.componentvis, params=self.params)
-        dirty2d = invert_2d(self.componentvis, dirty2d, params=self.params)
-        psf2d = create_image_from_visibility(self.componentvis, params=self.params)
-        psf2d = invert_2d(vis=self.componentvis, im=psf2d, dopsf=True,
-                                 params=self.params)
-        psfmax = psf2d.data.max()
-        assert psfmax > 0.0
-        dirty2d.data = dirty2d.data / psfmax
+        dirty2d, sumwt = invert_2d(self.componentvis, dirty2d, params=self.params)
 
+        dirty2d.data = dirty2d.data / sumwt
+    
         export_image_to_fits(dirty2d, '%s/test_invert_2d_dirty.fits' % self.dir)
-        export_image_to_fits(psf2d, '%s/test_invert_2d_psf.fits' % self.dir)
+    
+        self._checkcomponents(dirty2d, 'test_invert_2d', fluxthreshold=10.0, positionthreshold=1.0)
 
-        self._checkcomponents(dirty2d, 'test_invert_2d')
+    def _invert_base(self, invert, fluxthreshold=10.0, positionthreshold=1.0):
+        dirtyFacet = create_image_from_visibility(self.componentvis, params=self.params)
+        dirtyFacet, sumwt = invert(self.componentvis, dirtyFacet, params=self.params)
+        assert sumwt > 0.0
+        dirtyFacet.data = dirtyFacet.data / sumwt
+        export_image_to_fits(dirtyFacet, '%s/test_%s_dirty.fits' % (self.dir, invert.__name__))
+        self._checkcomponents(dirtyFacet, 'test_%s' % (invert.__name__), fluxthreshold,
+                              positionthreshold)
 
     def test_invert_by_image_partitions(self):
-        self._invert_base(invert_by_image_partitions)
+        self._invert_base(invert_by_image_partitions, fluxthreshold=10.0, positionthreshold=1.0)
 
     def test_invert_timeslice(self):
-        self._invert_base(invert_timeslice)
+        self._invert_base(invert_timeslice, fluxthreshold=10.0, positionthreshold=4.0)
 
     def test_invert_wprojection(self):
-        self._invert_base(invert_wprojection)
-
-    def _invert_base(self, invert):
-        dirtyFacet = create_image_from_visibility(self.componentvis, params=self.params)
-        dirtyFacet = invert(self.componentvis, dirtyFacet, params=self.params)
-        psfFacet = create_image_from_visibility(self.componentvis, params=self.params)
-        psfFacet = invert(vis=self.componentvis, im=psfFacet, dopsf=True,
-                          params=self.params)
-        psfmax = psfFacet.data.max()
-        assert psfmax > 0.0
-        dirtyFacet.data = dirtyFacet.data / psfmax
-        export_image_to_fits(dirtyFacet, '%s/test_%s_dirty.fits' % (self.dir, invert.__name__))
-        export_image_to_fits(psfFacet, '%s/test_%s_psf.fits' % (self.dir, invert.__name__))
-        self._checkcomponents(dirtyFacet, 'test_%s' % (invert.__name__))
-
-            
-    def test_predict_by_image_partitions(self):
-        self._predict_base(predict_by_image_partitions)
-        
-    def test_predict_timeslice(self):
-        self._predict_base(predict_timeslice)
-
-    def test_predict_by_image_partitions(self):
-        self._predict_base(predict_by_image_partitions)
-
-
-
-    def _predict_base(self, predict):
-        self.modelvis = create_visibility(self.lowcore, self.times, self.frequency, weight=1.0,
-                                          phasecentre=self.phasecentre, params=self.params)
-        self.modelvis.data['vis'] *= 0.0
-        predict(self.modelvis, self.model, params=self.params)
-        self.residualvis = create_visibility(self.lowcore, self.times, self.frequency, weight=1.0,
-                                             phasecentre=self.phasecentre,
-                                             params=self.params)
-        self.residualvis.data['uvw'][:, 2] = 0.0
-        self.residualvis.data['vis'] = self.modelvis.data['vis'] - self.componentvis.data['vis']
-        self._checkdirty(self.residualvis, 'test_%s_residual' % predict.__name__)
+        self.params = {'npixel': 512,
+                       'npol': 1,
+                       'cellsize': 0.0005,
+                       'spectral_mode': 'channel',
+                       'channelwidth': 5e7,
+                       'reffrequency': 1e8,
+                       'padding': 1,
+                       'oversampling': 4,
+                       'wstep': 2.0}
+        self._invert_base(invert_wprojection, fluxthreshold=10.0, positionthreshold=1.0)
 
 
 if __name__ == '__main__':
