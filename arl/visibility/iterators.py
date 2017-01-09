@@ -18,7 +18,6 @@ class vis_timeslice_iter():
         
         """Initialise the iterator
         
-        Assumes that the data are time ordered
         """
         # We have to make a copy or strange thing will happen!
         self.vis = copy.copy(vis)

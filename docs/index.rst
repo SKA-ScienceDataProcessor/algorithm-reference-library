@@ -661,6 +661,7 @@ ARL Notebooks
    arl/imaging
    arl/imaging-fits
    arl/imaging-wterm
+   arl/imaging-density
 
 References
 **********

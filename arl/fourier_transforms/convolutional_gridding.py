@@ -10,7 +10,6 @@ from __future__ import division
 
 import logging
 
-import pylru
 import scipy.special
 from astropy.constants import c
 
@@ -119,6 +118,24 @@ def anti_aliasing_calculate(shape, oversampling=8, support=3):
             mx = range(xf, l1d, oversampling)[::-1]
             kernel4d[yf, xf, 2:, 2:] = numpy.outer(kernel1d[my], kernel1d[mx])
     return gcf, (kernel4d / kernel4d.max()).astype('complex')
+
+
+def anti_aliasing_box(shape, oversampling=1, support=1):
+    """ The grid correction for a box car gridding
+
+    :param shape: (height, width) pair
+    :param oversampling: Number of sub-samples per grid pixel
+    :param support: Support of kernel (in pixels) width is 2*support+2
+    """
+    
+    # 2D Prolate spheroidal angular function is separable
+    ny, nx = shape
+    nu = numpy.abs(2.0 * coordinates(nx))
+    gcf1d = correct_finite_oversampling(nu, oversampling=1)
+    gcf = numpy.outer(gcf1d, gcf1d)
+    gcf[gcf > 0.0] = gcf.max() / gcf[gcf > 0.0]
+    
+    return gcf, None
 
 
 def grdsf(nu):
@@ -364,6 +381,7 @@ def gridder(uvgrid, vis, xs, ys, kernel=numpy.ones((1,1)), kernel_ixs=None):
     for v, x, y, kern_ix in zip(vis, xs, ys, kernel_ixs):
         uvgrid[y:y+gh, x:x+gw] += kernel[tuple(kern_ix)] * v
 
+
 def fixed_kernel_grid(kernel, uvgrid, uv, uvscale, vis, visweights):
     """Grid after convolving with frequency and polarisation independent gcf
 
@@ -396,8 +414,40 @@ def fixed_kernel_grid(kernel, uvgrid, uv, uvscale, vis, visweights):
                     += kernel[yf, xf, :, :] * v
                 wtgrid[chan, pol, (y - gh // 2):(y + (gh + 1) // 2), (x - gw // 2):(x + (gw + 1) // 2)] \
                     += kernel[yf, xf, :, :].real * vwt
-            sumwt[chan, pol] += numpy.sum(wtgrid[chan, pol,...])
+            sumwt[chan, pol] += numpy.sum(wtgrid[chan, pol, ...])
+    
+    return uvgrid, sumwt
 
+
+def box_grid(kernel, uvgrid, uv, uvscale, vis, visweights):
+    """Grid with a box function
+
+    Takes into account fractional `uv` coordinate values where the GCF
+    is oversampled
+
+    :param kernel: Oversampled convolution kernel
+    :param uvgrid: Grid to add to
+    :param uv: UVW positions
+    :param uvscale: Scaling for each axis (u,v) for each channel
+    :param vis: Visibility values
+    :param vis: Visibility weights
+    """
+    
+    nchan, npol, ny, nx = uvgrid.shape
+    wtgrid = numpy.zeros(uvgrid.shape, dtype='float')
+    sumwt = numpy.zeros([nchan, npol])
+    for chan in range(nchan):
+        y, _ = frac_coord(ny, 1, uvscale[1, chan] * uv[..., 1])
+        x, _ = frac_coord(nx, 1, uvscale[0, chan] * uv[..., 0])
+        coords = x, y
+        for pol in range(npol):
+            wts = visweights[..., chan, pol]
+            viswt = vis[..., chan, pol] * visweights[..., chan, pol]
+            for v, vwt, x, y in zip(viswt, wts, *coords):
+                uvgrid[chan, pol, y, x] += v
+                wtgrid[chan, pol, y, x] += vwt
+            sumwt[chan, pol] += numpy.sum(wtgrid[chan, pol, ...])
+    
     return uvgrid, sumwt
 
 
@@ -414,27 +464,34 @@ def weight_gridding(shape, uv, uvscale, visweights, params=None):
     :param visweights: Visibility weights
     """
     weighting = get_parameter(params, 'weighting', 'uniform')
+    densitygrid = numpy.zeros(shape)
+    density = numpy.zeros_like(visweights)
     if weighting == 'uniform':
         log.info("weight_gridding: Performing uniform weighting")
-        wtsgrid = numpy.zeros(shape)
         nchan, npol, ny, nx = shape
         # Add all visibility points to a float grid
         for chan in range(nchan):
-            y, _ = frac_coord(shape[2], 1, uvscale[0, chan] * uv[..., 0])
-            x, _ = frac_coord(shape[3], 1, uvscale[1, chan] * uv[..., 1])
+            y, _ = frac_coord(ny, 1, uvscale[1, chan] * uv[..., 1])
+            x, _ = frac_coord(nx, 1, uvscale[0, chan] * uv[..., 0])
             coords = x, y
             for pol in range(npol):
                 wts = visweights[..., chan, pol]
-                wtsgrid[chan, pol, y, x] += [wt for wt, x, y, in zip(wts, *coords)]
+                for wt, x, y, in zip(wts, *coords):
+                    densitygrid[chan, pol, y, x] += wt
+                # for i in range(visweights[..., chan, pol].shape[0]):
+                #     densitygrid[chan, pol, y[i], x[i]] += wts[i]
+
         # Normalise each visibility weight to sum to one in a grid cell
         newvisweights = numpy.zeros_like(visweights)
         for chan in range(nchan):
-            y, _ = frac_coord(shape[2], 1, uvscale[0, chan] * uv[..., 0])
-            x, _ = frac_coord(shape[3], 1, uvscale[1, chan] * uv[..., 1])
-            coords = x, y
+            coords = frac_coord(shape[3], 1, uvscale[1, chan] * uv[..., 1]), \
+                     frac_coord(shape[2], 1, uvscale[0, chan] * uv[..., 0])
             for pol in range(npol):
                 wts = visweights[..., chan, pol]
-                newvisweights[..., chan, pol] = [wt / wtsgrid[chan, pol, y, x] for wt, x, y in zip(wts, *coords)]
-        return newvisweights
+                for wt, x, y in zip(wts, *coords):
+                    density[..., chan, pol] += densitygrid[chan, pol, y, x]
+                    newvisweights[..., chan, pol][densitygrid[chan, pol, y, x] > 0.0] = \
+                        wt / densitygrid[chan, pol, y, x][densitygrid[chan, pol, y, x] > 0.0]
+        return newvisweights, density, densitygrid
     else:
-        return visweights
+        return visweights, density, densitygrid

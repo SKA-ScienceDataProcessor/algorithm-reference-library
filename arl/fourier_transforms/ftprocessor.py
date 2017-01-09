@@ -16,14 +16,15 @@ from astropy.wcs.utils import pixel_to_skycoord
 
 from arl.data.data_models import *
 from arl.fourier_transforms.convolutional_gridding import fixed_kernel_grid, \
-    fixed_kernel_degrid, weight_gridding, w_beam, anti_aliasing_calculate
+    fixed_kernel_degrid, weight_gridding, w_beam, anti_aliasing_calculate, anti_aliasing_box
 from arl.fourier_transforms.fft_support import fft, ifft, pad_mid, extract_mid
 from arl.fourier_transforms.variable_kernels import variable_kernel_grid, variable_kernel_degrid, \
-    standard_kernel_lambda, w_kernel_lambda
+    box_grid, standard_kernel_lambda, w_kernel_lambda
 from arl.image.iterators import *
 from arl.util.coordinate_support import simulate_point, skycoord_to_lmn
 from arl.visibility.iterators import *
 from arl.visibility.operations import phaserotate_visibility
+from arl.util.timing import timing
 
 log = logging.getLogger("fourier_transforms.ftprocessor")
 
@@ -62,7 +63,7 @@ def get_ftprocessor_params(vis, model, params=None):
     :param vis: Visibility data
     :param model: Image model used to determine sampling
     :param params: Processing parameters
-    :returns: nchan, npol, ny, nx, shape, gcf, kernel_type, kernel, padding, oversampling, support, cellsize, fov
+    :returns: nchan, npol, ny, nx, shape, gcf, kernel_type, kernelname, kernel,padding, oversampling, support, cellsize, fov
     """
     padding = get_parameter(params, "padding", 2)
     kernelname = get_parameter(params, "kernel", "calculate")
@@ -75,6 +76,7 @@ def get_ftprocessor_params(vis, model, params=None):
     uvscale = numpy.outer(cellsize, vis.frequency / c.value)
     assert uvscale[0,0] != 0.0, "Error in uv scaling"
 
+    log.debug("kernel is %s" % kernelname)
     kernel_type = 'fixed'
     gcf = 1.0
     if kernelname == 'standard-by-row':
@@ -86,7 +88,7 @@ def get_ftprocessor_params(vis, model, params=None):
         wmax = numpy.max(numpy.abs(vis.w))
         assert wmax > 0, "Maximum w must be > 0.0"
         kernel_type = 'variable'
-        r_f = (fov/2) ** 2 / numpy.abs(cellsize[0])
+        r_f = (fov / 2) ** 2 / numpy.abs(cellsize[0])
         log.info("get_ftprocessor_params: Fresnel number = %f" % (r_f))
         delA = get_parameter(params, 'wloss', 0.02)
         # Following equation is from Cornwell, Humphreys, and Voronkov (2012) (equation 24)
@@ -100,10 +102,16 @@ def get_ftprocessor_params(vis, model, params=None):
         kernel, _ = w_kernel_lambda(vis, shape, fov, wstep=wstep, npixel_kernel=npixel_kernel,
                                     oversampling=oversampling)
         gcf, _ = anti_aliasing_calculate(shape, oversampling)
+    elif kernelname == 'box':
+        log.info("get_ftprocessor_params: using box car convolution")
+        gcf, kernel = anti_aliasing_box(shape)
     else:
+        kernelname = '2d'
         gcf, kernel = anti_aliasing_calculate(shape, oversampling)
     
-    return nchan, npol, ny, nx, shape, gcf, kernel_type, kernel, padding, oversampling, support, cellsize, fov, uvscale
+    return nchan, npol, ny, nx, shape, gcf, kernel_type, kernelname, kernel, padding, oversampling, support, \
+           cellsize, fov, uvscale
+
 
 
 def predict_2d_base(vis, model, params=None):
@@ -118,7 +126,7 @@ def predict_2d_base(vis, model, params=None):
     :param predict_function: Function to be used for prediction (allows nesting)
     :returns: resulting visibility (in place works)
     """
-    nchan, npol, ny, nx, shape, gcf, kernel_type, kernel, padding, oversampling, support, cellsize, \
+    nchan, npol, ny, nx, shape, gcf, kernel_type, kernelname, kernel,padding, oversampling, support, cellsize, \
     fov, uvscale = get_ftprocessor_params(vis, model, params)
  
     uvgrid = fft((pad_mid(model.data, padding * nx) * gcf).astype(dtype=complex))
@@ -133,6 +141,7 @@ def predict_2d_base(vis, model, params=None):
 
     return vis
 
+
 def predict_2d(vis, model, params=None):
     """ Predict using convolutional degridding and w projection
     :param vis: Visibility to be predicted
@@ -142,8 +151,8 @@ def predict_2d(vis, model, params=None):
     :returns: resulting visibility (in place works)
     """
     log.debug("predict_2d: predict using 2d transform")
-    params['kernel']='2d'
     return predict_2d_base(vis, model, params=params)
+
 
 
 def predict_wprojection(vis, model, params=None):
@@ -157,6 +166,7 @@ def predict_wprojection(vis, model, params=None):
     log.debug("predict_wprojection: predict using wprojection")
     params['kernel']='wprojection'
     return predict_2d_base(vis, model, params=params)
+
 
 
 def invert_2d_base(vis, im, dopsf=False, params=None):
@@ -178,7 +188,7 @@ def invert_2d_base(vis, im, dopsf=False, params=None):
     
     svis = shift_vis_to_image(svis, im, tangent=True, inverse=False, params=params)
     
-    nchan, npol, ny, nx, shape, gcf, kernel_type, kernel, padding, oversampling, support, cellsize, \
+    nchan, npol, ny, nx, shape, gcf, kernel_type, kernelname, kernel,padding, oversampling, support, cellsize, \
     fov, uvscale = get_ftprocessor_params(vis, im, params)
     
     # uvw is in metres, v.frequency / c.value converts to wavelengths, the cellsize converts to phase
@@ -189,18 +199,25 @@ def invert_2d_base(vis, im, dopsf=False, params=None):
         if dopsf:
             weights = numpy.ones_like(svis.data['vis'])
             imgridpad, sumwt = variable_kernel_grid(kernel, imgridpad, uvw, uvscale, weights,
-                                             svis.data['imaging_weight'])
+                                                    svis.data['imaging_weight'])
         else:
             imgridpad, sumwt = variable_kernel_grid(kernel, imgridpad, uvw, uvscale, svis.data['vis'],
                                              svis.data['imaging_weight'])
     else:
         if dopsf:
             weights = numpy.ones_like(svis.data['vis'])
-            imgridpad, sumwt = fixed_kernel_grid(kernel, imgridpad, uvw, uvscale, weights,
-                                          svis.data['imaging_weight'])
+            if kernelname == 'box':
+                imgridpad, sumwt = box_grid(kernel, imgridpad, uvw, uvscale, weights, svis.data['imaging_weight'])
+            else:
+                imgridpad, sumwt = fixed_kernel_grid(kernel, imgridpad, uvw, uvscale, weights,
+                                            svis.data['imaging_weight'])
         else:
-            imgridpad, sumwt = fixed_kernel_grid(kernel, imgridpad, uvw, uvscale, svis.data['vis'],
-                                          svis.data['imaging_weight'])
+            if kernelname == 'box':
+                imgridpad, sumwt = box_grid(kernel, imgridpad, uvw, uvscale, svis.data['vis'],
+                                            svis.data['imaging_weight'])
+            else:
+                imgridpad, sumwt = fixed_kernel_grid(kernel, imgridpad, uvw, uvscale, svis.data['vis'],
+                                            svis.data['imaging_weight'])
     
     imgrid = extract_mid(numpy.real(ifft(imgridpad)) * gcf, npixel=nx)
     
@@ -212,6 +229,7 @@ def invert_2d_base(vis, im, dopsf=False, params=None):
     log.debug("invert_2d_base: Peak of normalised dirty image = %s" % (numpy.max(imgrid, axis=(2,3)) / sumwt))
 
     return create_image_from_array(imgrid, im.wcs), sumwt
+
 
 
 def invert_2d(vis, im, dopsf=False, params=None):
@@ -229,8 +247,8 @@ def invert_2d(vis, im, dopsf=False, params=None):
 
     """
     log.debug("invert_2d: inverting using 2d transform")
-    params['kernel']='2d'
     return invert_2d_base(vis, im, dopsf, params=params)
+
 
 
 def invert_wprojection(vis, im, dopsf=False, params=None):
@@ -276,6 +294,7 @@ def fit_uvwplane(vis):
     return vis, p, q
 
 
+
 def predict_timeslice(vis, model, params=None):
     """ Predict using time slices.
 
@@ -286,7 +305,7 @@ def predict_timeslice(vis, model, params=None):
     :returns: resulting visibility (in place works)
     """
     log.debug("predict_timeslice: predicting using time slices")
-    nchan, npol, ny, nx, shape, gcf, kernel_type, kernel, padding, oversampling, support, cellsize, \
+    nchan, npol, ny, nx, shape, gcf, kernel_type, kernelname, kernel,padding, oversampling, support, cellsize, \
     fov, uvscale = get_ftprocessor_params(vis, model, params)
 
     vis.data['vis']*=0.0
@@ -321,6 +340,7 @@ def predict_timeslice(vis, model, params=None):
         vis.data['vis'][rows] += visslice.data['vis']
 
     return vis
+
 
 
 def invert_timeslice(vis, im, dopsf=False, params=None):
@@ -405,7 +425,7 @@ def invert_timeslice_single(vis, im, dopsf, params):
     Extracted for re-use in parallel version
     :param params:
     """
-    nchan, npol, ny, nx, shape, gcf, kernel_type, kernel, padding, oversampling, support, cellsize, \
+    nchan, npol, ny, nx, shape, gcf, kernel_type, kernelname, kernel,padding, oversampling, support, cellsize, \
     fov, uvscale = get_ftprocessor_params(vis, im, params)
 
     vis, p, q = fit_uvwplane(vis)
@@ -429,6 +449,7 @@ def invert_timeslice_single(vis, im, dopsf, params):
                          fill_value=0.0).reshape(finalimage.data[chan, pol, ...].shape)
 
     return finalimage, sumwt
+
 
 
 def invert_by_image_partitions(vis, im, image_iterator=raster_iter, dopsf=False, kernel=None,
@@ -460,6 +481,7 @@ def invert_by_image_partitions(vis, im, image_iterator=raster_iter, dopsf=False,
     return im, sumwt
 
 
+
 def invert_by_vis_partitions(vis, im, vis_iterator, dopsf=False, kernel=None, invert_function=invert_2d, params=None):
     """ Invert using wslices
 
@@ -481,6 +503,7 @@ def invert_by_vis_partitions(vis, im, vis_iterator, dopsf=False, kernel=None, in
     return result, totalwt
 
 
+
 def predict_by_image_partitions(vis, model, image_iterator=raster_iter, predict_function=predict_2d,
                                 params=None):
     """ Predict using image partitions, calling specified predict function
@@ -499,6 +522,7 @@ def predict_by_image_partitions(vis, model, image_iterator=raster_iter, predict_
         result = predict_function(result, dpatch, params=params)
         vis.data['vis'] += result.data['vis']
     return vis
+
 
 
 def predict_by_vis_partitions(vis, model, vis_iterator, predict_function=predict_2d, params=None):
@@ -551,6 +575,7 @@ def calculate_delta_residual(deltamodel, vis, params):
     return deltamodel
 
 
+
 def weight_visibility(vis, im, params=None):
     """ Reweight the visibility data using a selected algorithm
 
@@ -562,20 +587,23 @@ def weight_visibility(vis, im, params=None):
     :param params: Dictionary containing parameters
     :returns: visibility with imaging_weights column added and filled
     """
-    nchan, npol, ny, nx, shape, gcf, kernel_type, kernel, padding, oversampling, support, cellsize, \
+    nchan, npol, ny, nx, shape, gcf, kernel_type, kernelname, kernel,padding, oversampling, support, cellsize, \
     fov, uvscale = get_ftprocessor_params(vis, im, params)
 
     # uvw is in metres, v.frequency / c.value converts to wavelengths, the cellsize converts to phase
+    density = None
+    densitygrid = None
+
     weighting = get_parameter(params, "weighting", "uniform")
     if weighting == 'uniform':
-        vis.data['imaging_weight'] = weight_gridding(im.data.shape, vis.data['uvw'], uvscale, vis.data['weight'],
-                                                     params)
+        vis.data['imaging_weight'], density, densitygrid = weight_gridding(im.data.shape, vis.data['uvw'], uvscale,
+                                                              vis.data['weight'], params)
     elif weighting == 'natural':
         vis.data['imaging_weight'] = vis.data['weight']
     else:
         log.error("Unknown visibility weighting algorithm %s" % weighting)
     
-    return vis
+    return vis, density, densitygrid
 
 
 def create_wcs_from_visibility(vis, params=None):
