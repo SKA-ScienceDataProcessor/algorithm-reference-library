@@ -12,6 +12,8 @@ from astropy.constants import c
 
 from arl.fourier_transforms.convolutional_gridding import *
 
+import pylru
+
 log = logging.getLogger("fourier_transforms.variable_kernels")
 
 
