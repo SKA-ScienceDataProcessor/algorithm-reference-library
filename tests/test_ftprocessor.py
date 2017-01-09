@@ -30,6 +30,7 @@ log = logging.getLogger("tests.test_ftprocessor")
 class TestFTProcessor(unittest.TestCase):
     def _checkdirty(self, vis, name='test_invert_2d_dirty', invert=invert_2d, fluxthreshold=1.0):
         # Make the dirty image
+        self.params['kernel']='2d'
         dirty = create_image_from_visibility(vis, params=self.params)
         dirty, sumwt = invert(vis=vis, im=dirty, dopsf=False, params=self.params)
         dirty.data /= sumwt
