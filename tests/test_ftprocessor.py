@@ -28,17 +28,17 @@ log = logging.getLogger("tests.test_ftprocessor")
 
 
 class TestFTProcessor(unittest.TestCase):
-    def _checkdirty(self, vis, name='test_invert_2d_dirty', invert=invert_2d, fluxthreshold=1.0):
+    def _checkdirty(self, vis, name='test_invert_2d_dirty', fluxthreshold=1.0):
         # Make the dirty image
         self.params['kernel']='2d'
         dirty = create_image_from_visibility(vis, params=self.params)
-        dirty, sumwt = invert(vis=vis, im=dirty, dopsf=False, params=self.params)
+        dirty, sumwt = invert_2d(vis=vis, im=dirty, dopsf=False, params=self.params)
         dirty.data /= sumwt
         export_image_to_fits(dirty, '%s/%s_dirty.fits' % (self.dir, name))
         maxabs = numpy.max(numpy.abs(dirty.data))
         assert maxabs < fluxthreshold, "%s, abs max %f exceeds flux threshold" % (name, maxabs)
     
-    def _checkcomponents(self, dirty, name, fluxthreshold=10.0, positionthreshold=1.0):
+    def _checkcomponents(self, dirty, fluxthreshold=10.0, positionthreshold=1.0):
         comps = find_skycomponents(dirty, fwhm=1.0, threshold=10.0, npixels=5, params=None)
         assert len(comps) == len(self.components), "Different number of components found"
         cellsize = abs(dirty.wcs.wcs.cdelt[0])
@@ -164,6 +164,12 @@ class TestFTProcessor(unittest.TestCase):
         
     def test_predict_timeslice(self):
         # This works very poorly because of the poor interpolation accuracy for point sources
+        self.params['nprocessor']=1
+        self._predict_base(predict_timeslice, fluxthreshold=20.0)
+
+    def test_predict_timeslice_parallel(self):
+        # This works very poorly because of the poor interpolation accuracy for point sources
+        self.params['nprocessor']=4
         self._predict_base(predict_timeslice, fluxthreshold=20.0)
 
     def test_predict_wprojection(self):
@@ -201,8 +207,8 @@ class TestFTProcessor(unittest.TestCase):
         dirty2d.data = dirty2d.data / sumwt
     
         export_image_to_fits(dirty2d, '%s/test_invert_2d_dirty.fits' % self.dir)
-    
-        self._checkcomponents(dirty2d, 'test_invert_2d', fluxthreshold=10.0, positionthreshold=1.0)
+
+        self._checkcomponents(dirty2d, fluxthreshold=10.0, positionthreshold=1.0)
 
     def _invert_base(self, invert, fluxthreshold=10.0, positionthreshold=1.0):
         dirtyFacet = create_image_from_visibility(self.componentvis, params=self.params)
@@ -210,13 +216,17 @@ class TestFTProcessor(unittest.TestCase):
         assert sumwt > 0.0
         dirtyFacet.data = dirtyFacet.data / sumwt
         export_image_to_fits(dirtyFacet, '%s/test_%s_dirty.fits' % (self.dir, invert.__name__))
-        self._checkcomponents(dirtyFacet, 'test_%s' % (invert.__name__), fluxthreshold,
-                              positionthreshold)
+        self._checkcomponents(dirtyFacet, fluxthreshold, positionthreshold)
 
     def test_invert_by_image_partitions(self):
         self._invert_base(invert_by_image_partitions, fluxthreshold=10.0, positionthreshold=1.0)
 
     def test_invert_timeslice(self):
+        self.params['nprocessor']=1
+        self._invert_base(invert_timeslice, fluxthreshold=10.0, positionthreshold=4.0)
+
+    def test_invert_timeslice_parallel(self):
+        self.params['nprocessor']=4
         self._invert_base(invert_timeslice, fluxthreshold=10.0, positionthreshold=4.0)
 
     def test_invert_wprojection(self):

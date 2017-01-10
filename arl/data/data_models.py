@@ -233,6 +233,11 @@ class Visibility:
         return self.data['uvw'] * self.frequency[channel] / c.value
     
     def select_rows(self, rows):
+        """
+        Returns a Visibility containing only the rows given
+
+        :rtype: Visibility
+        """
         return Visibility(data=self.data[rows], phasecentre=self.phasecentre, configuration=self.configuration,
                           frequency=self.frequency)
 

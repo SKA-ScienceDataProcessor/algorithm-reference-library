@@ -76,7 +76,6 @@ def get_ftprocessor_params(vis, model, params=None):
     uvscale = numpy.outer(cellsize, vis.frequency / c.value)
     assert uvscale[0,0] != 0.0, "Error in uv scaling"
 
-    log.debug("kernel is %s" % kernelname)
     kernel_type = 'fixed'
     gcf = 1.0
     if kernelname == 'standard-by-row':
@@ -295,7 +294,7 @@ def fit_uvwplane(vis):
 
 
 
-def predict_timeslice(vis, model, params=None):
+def predict_timeslice_serial(vis, model, params=None):
     """ Predict using time slices.
 
     :param vis: Visibility to be predicted
@@ -342,6 +341,100 @@ def predict_timeslice(vis, model, params=None):
     return vis
 
 
+def predict_timeslice(vis, model, params=None):
+    """ Predict using time slices.
+
+    :param vis: Visibility to be predicted
+    :param model: model image
+    :param params: Parameters for processing
+    :param predict_function: Function to be used for prediction (allows nesting)
+    :returns: resulting visibility (in place works)
+    """
+    log.debug("predict_timeslice: predicting using time slices")
+    
+    nproc = get_parameter(params, "nprocessor", 1)
+    
+    nchan, npol, _, _ = model.data.shape
+    
+    if nproc > 1:
+        
+        # Extract the slices and run predict_timeslice_single on each one in parallel
+        rowslices = []
+        for rows in vis_timeslice_iter(vis, params):
+            rowslices.append(rows)
+        nslices = len(rowslices)
+        
+        log.debug("predict_timeslice: Processing %d time slices %d-way parallel" % (nslices, nproc))
+
+        # The visibility column needs to be shared across all processes
+        # We have to work around lack of complex data in pymp. For the following trick, see
+        # http://stackoverflow.com/questions/2598734/numpy-creating-a-complex-array-from-2-real-ones
+
+        shape = vis.data['vis'].shape
+        shape = [shape[0], shape[1], shape[2], 2]
+        log.debug('Creating shared array of float type and shape %s for visibility' % (str(shape)))
+        shared_vis = pymp.shared.array(shape).view(dtype='complex128')[..., 0]
+
+        with pymp.Parallel(nproc) as p:
+            for slice in p.range(0, nslices):
+                rows = rowslices[slice]
+                visslice = vis.select_rows(rows)
+                visslice = predict_timeslice_single(visslice, model, params=params)
+                with p.lock:
+                    shared_vis[rows] = visslice.data['vis']
+        
+        vis.data.replace_column('vis', shared_vis)
+
+    else:
+        # Do each slice in turn
+        for rows in vis_timeslice_iter(vis, params):
+            visslice = vis.select_rows(rows)
+            visslice = predict_timeslice_single(visslice, model, params=params)
+            vis.data['vis'][rows] += visslice.data['vis']
+    
+    return vis
+
+
+def predict_timeslice_single(vis, model, params=None):
+    """ Predict using time slices.
+
+    :param vis: Visibility to be predicted
+    :param model: model image
+    :param params: Parameters for processing
+    :param predict_function: Function to be used for prediction (allows nesting)
+    :returns: resulting visibility (in place works)
+    """
+    log.debug("predict_timeslice: predicting using time slices")
+    nchan, npol, ny, nx, shape, gcf, kernel_type, kernelname, kernel, padding, oversampling, support, cellsize, \
+    fov, uvscale = get_ftprocessor_params(vis, model, params)
+    
+    vis.data['vis'] *= 0.0
+    
+    # Fit and remove best fitting plane for this slice
+    vis, p, q = fit_uvwplane(vis)
+    
+    # Calculate nominal and distorted coordinate systems. We will convert the model
+    # from nominal to distorted before predicting.
+    lnominal, mnominal, ldistorted, mdistorted = lm_distortion(model, -p, -q)
+    workimage = create_image_from_array(copy.deepcopy(model.data), model.wcs)
+    
+    # Use griddata to do the conversion. This could be improved. Only cubic is possible in griddata.
+    # The interpolation is ok for invert since the image is smooth but for clean images the
+    # interpolation is particularly poor, leading to speckle in the residual image.
+    for chan in range(nchan):
+        for pol in range(npol):
+            workimage.data[chan, pol, ...] = \
+                griddata((mnominal.flatten(), lnominal.flatten()),
+                         values=workimage.data[chan, pol, ...].flatten(),
+                         xi=(mdistorted.flatten(), ldistorted.flatten()),
+                         method='cubic',
+                         fill_value=0.0).reshape(workimage.data[chan, pol, ...].shape)
+    
+    # Now we can do the prediction for this slice using a 2d transform
+    vis = predict_2d(vis, workimage, params=params)
+    
+    return vis
+
 
 def invert_timeslice(vis, im, dopsf=False, params=None):
     """ Invert using time slices (top level function)
@@ -371,18 +464,18 @@ def invert_timeslice(vis, im, dopsf=False, params=None):
         resultimage.data = pymp.shared.array(resultimage.data.shape)
         resultimage.data *= 0.0
         totalwt = pymp.shared.array([nchan, npol])
+
         # Extract the slices and run invert_timeslice_single on each one in parallel
         nslices = 0
-        visslices = []
+        rowses = []
         for rows in vis_timeslice_iter(vis, params):
-            visslice=vis.select_rows(rows)
             nslices += 1
-            visslices.append(visslice)
+            rowses.append(rows)
         
         log.debug("invert_timeslice: Processing %d time slices %d-way parallel" % (nslices, nproc))
         with pymp.Parallel(nproc) as p:
             for index in p.range(0, nslices):
-                visslice = visslices[index]
+                visslice = vis.select_rows(rowses[index])
                 workimage, sumwt = invert_timeslice_single(visslice, im, dopsf, params=params)
                 resultimage.data += workimage.data
                 totalwt += sumwt
