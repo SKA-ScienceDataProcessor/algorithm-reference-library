@@ -1,12 +1,16 @@
 # Tim Cornwell <realtimcornwell@gmail.com>
 """ Data models used in ARL"""
 
+import logging
+
 from astropy.table import Table
 from astropy.constants import c
 from astropy import units as u
 from astropy.coordinates import SkyCoord
 
 import numpy
+
+log = logging.getLogger("data.data_models")
 
 
 class Configuration:
@@ -102,6 +106,10 @@ class Image:
 
     @property
     def phasecentre(self): return SkyCoord(self.wcs.wcs.crval[0] * u.deg, self.wcs.wcs.crval[1] * u.deg)
+    
+    def __exit__(self):
+        log.debug("Image:Exiting from image of shape: %s" % (self.data.shape))
+        
 
 class Skycomponent:
     """ A single Skycomponent with direction, flux, shape, and params for the shape

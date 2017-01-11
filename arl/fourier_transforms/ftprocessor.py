@@ -225,7 +225,8 @@ def invert_2d_base(vis, im, dopsf=False, params=None):
 
     log.debug("invert_2d_base: Peak of unnormalised dirty image = %s" % (numpy.max(imgrid, axis=(2,3))))
     log.debug("invert_2d_base: Sum of gridding weights = %s" % (sumwt))
-    log.debug("invert_2d_base: Peak of normalised dirty image = %s" % (numpy.max(imgrid, axis=(2,3)) / sumwt))
+    if sumwt.any() > 0.0:
+        log.debug("invert_2d_base: Peak of normalised dirty image = %s" % (numpy.max(imgrid, axis=(2,3)) / sumwt))
 
     return create_image_from_array(imgrid, im.wcs), sumwt
 
@@ -386,6 +387,7 @@ def predict_timeslice(vis, model, params=None):
         vis.data.replace_column('vis', shared_vis)
 
     else:
+        log.debug("predict_timeslice: Processing time slices serially")
         # Do each slice in turn
         for rows in vis_timeslice_iter(vis, params):
             visslice = vis.select_rows(rows)

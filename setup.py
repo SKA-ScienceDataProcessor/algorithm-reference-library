@@ -9,7 +9,7 @@ gridmodule = Extension('arl.core.c',
                        sources=['arl/core/cmodule.c'])
 
 setup(name='algorithm-reference-library',
-      version='0.5',
+      version='0.6',
       description='Algorithm Reference Library for Radio Interferometry',
       long_description=open('README.md').read(),
       author='Tim Cornwell, Peter Wortmann, Bojan Nikolic',

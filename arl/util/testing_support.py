@@ -13,12 +13,11 @@ from astropy.wcs import WCS
 
 from arl.data.data_models import *
 from arl.data.parameters import arl_path
-from arl.image.operations import import_image_from_fits, add_wcs_to_image
+from arl.image.operations import import_image_from_fits
 from arl.util.coordinate_support import *
 from arl.util.read_oskar_vis import OskarVis
 
 log = logging.getLogger("util.testing_support")
-
 
 def create_configuration_from_array(antxyz: numpy.array, name: str = None, location: EarthLocation = None,
                                     mount: str = 'alt-az', names: str = '%d', meta: dict = None, params=None):
@@ -218,7 +217,7 @@ def replicate_image(im: Image, npol=4, nchan=1, frequency=1.4e9):
         newwcs.wcs.crval = [im.wcs.wcs.crval[0], im.wcs.wcs.crval[1], 1.0, frequency]
         newwcs.wcs.ctype = [im.wcs.wcs.ctype[0], im.wcs.wcs.ctype[1], 'STOKES', 'FREQ']
         
-        add_wcs_to_image(fim, newwcs)
+        fim.wcs = newwcs
         fshape = [nchan, npol, im.data.shape[1], im.data.shape[0]]
         fim.data = numpy.zeros(fshape)
         log.info("replicate_image: replicating shape %s to %s" % (im.data.shape, fim.data.shape))

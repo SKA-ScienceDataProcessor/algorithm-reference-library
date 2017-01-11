@@ -60,7 +60,6 @@ class raster_iter:
             x *= int(self.dx)
             y *= int(self.dy)
             sl = (..., slice(y, y + self.dy), slice(x, x + self.dx))
-            log.debug('raster: slice is %s' % (str(sl)))
             self.location += 1
             # We should be able to use a slice on the wcs but it fails.
             wcs = self.im.wcs.deepcopy()

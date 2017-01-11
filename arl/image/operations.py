@@ -14,13 +14,18 @@ from arl.data.parameters import *
 log = logging.getLogger("image.operations")
 
 
+def create_memo(im):
+    log.debug("image.operations: created image of shape %s" % (str(im.shape)))
+
+
 def create_image_from_slice(im, imslice):
     """Create image from an image using a numpy.slice
     
     """
     fim = Image()
     fim.data = im.data[imslice]
-    fim.wcs = im.wcs(imslice)
+    fim.wcs = im.wcs(imslice).deepcopy()
+    create_memo(fim)
     return fim
 
 
@@ -35,6 +40,7 @@ def create_image_from_array(data: numpy.array, wcs: WCS = None) -> Image:
     fim = Image()
     fim.data = data
     fim.wcs = wcs.deepcopy()
+    create_memo(fim)
     return fim
 
 
@@ -50,6 +56,7 @@ def create_empty_image_like(im: Image) -> Image:
         fim.wcs = None
     else:
         fim.wcs = im.wcs.deepcopy()
+    create_memo(fim)
     return fim
 
 
@@ -74,18 +81,8 @@ def import_image_from_fits(fitsfile: str):
     fim.wcs = WCS(arl_path(fitsfile))
     hdulist.close()
     log.info("import_image_from_fits: Max, min in %s = %.6f, %.6f" % (fitsfile, fim.data.max(), fim.data.min()))
+    create_memo(fim)
     return fim
-
-
-def add_wcs_to_image(im: Image, wcs: WCS):
-    """ Add a WCS to an Image
-
-    :param im:
-    :param wcs:
-    :returns: Image
-    """
-    im.wcs = wcs.deepcopy()
-    return im
 
 
 def reproject_image(im: Image, newwcs: WCS, shape=None, params=None):

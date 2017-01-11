@@ -1,12 +1,9 @@
 
-Crocodile -- Interferometry Imaging Algorithm Reference Library
-===============================================================
+Algorithm Reference Library
+===========================
 
 This is a project to create a reference code in NumPy for somewhat
 simplified aperture synthesis imaging.
-
-Warning: The current code is an experimental proof-of-concept. More
-here soon.
 
 Motivation
 ----------
