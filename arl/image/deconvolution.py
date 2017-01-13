@@ -10,7 +10,7 @@ from arl.image.operations import create_image_from_array
 log = logging.getLogger("image.deconvolution")
 
 
-def deconvolve_cube(dirty: Image, psf: Image, params=None):
+def deconvolve_cube(dirty: Image, psf: Image, **kwargs):
     """ Clean using a variety of algorithms
     
     Functions that clean a dirty image using a point spread function. The algorithms available are:
@@ -22,22 +22,26 @@ def deconvolve_cube(dirty: Image, psf: Image, params=None):
     
     :param dirty: Image dirty image
     :param psf: Image Point Spread Function
-    :param params: 'algorithm': 'msclean'|'hogbom', 'gain': loop gain (float)
+    :param algorithm: Cleaning algorithm: 'msclean'|'hogbom'
+    :param gain: loop gain (float) 0.7
+    :param threshold: Clean threshold (0.0)
+    :param fracthres: Fractional threshold (0.01)
+    :param scales: Scales (in pixels) for multiscale ([0, 3, 10, 30])
     :returns: componentimage, residual
     """
 
-    algorithm = get_parameter(params, 'algorithm', 'msclean')
+    algorithm = get_parameter(kwargs, 'algorithm', 'msclean')
     if algorithm == 'msclean':
         
-        window = get_parameter(params, 'window', None)
-        gain = get_parameter(params, 'gain', 0.7)
+        window = get_parameter(kwargs, 'window', None)
+        gain = get_parameter(kwargs, 'gain', 0.7)
         assert 0.0 < gain < 2.0, "Loop gain must be between 0 and 2"
-        thresh = get_parameter(params, 'threshold', 0.0)
+        thresh = get_parameter(kwargs, 'threshold', 0.0)
         assert thresh >= 0.0
-        niter = get_parameter(params, 'niter', 100)
+        niter = get_parameter(kwargs, 'niter', 100)
         assert niter > 0
-        scales = get_parameter(params, 'scales', [0, 3, 10, 30])
-        fracthresh = get_parameter(params, 'fracthresh', 0.01)
+        scales = get_parameter(kwargs, 'scales', [0, 3, 10, 30])
+        fracthresh = get_parameter(kwargs, 'fracthresh', 0.01)
         assert 0.0 < fracthresh < 1.0
         
         comp_array = numpy.zeros(dirty.data.shape)
@@ -53,14 +57,14 @@ def deconvolve_cube(dirty: Image, psf: Image, params=None):
                     log.info("deconvolve_cube: Skipping pol %d, channel %d" % (pol, channel))
     elif algorithm == 'hogbom':
         
-        window = get_parameter(params, 'window', None)
-        gain = get_parameter(params, 'gain', 0.7)
+        window = get_parameter(kwargs, 'window', None)
+        gain = get_parameter(kwargs, 'gain', 0.7)
         assert 0.0 < gain < 2.0, "Loop gain must be between 0 and 2"
-        thresh = get_parameter(params, 'threshold', 0.0)
+        thresh = get_parameter(kwargs, 'threshold', 0.0)
         assert thresh > 0.0
-        niter = get_parameter(params, 'niter', 100)
+        niter = get_parameter(kwargs, 'niter', 100)
         assert niter > 0
-        fracthresh = get_parameter(params, 'fracthresh', 0.01)
+        fracthresh = get_parameter(kwargs, 'fracthresh', 0.01)
         assert 0.0 < fracthresh < 1.0
         
         comp_array = numpy.zeros(dirty.data.shape)
@@ -80,7 +84,7 @@ def deconvolve_cube(dirty: Image, psf: Image, params=None):
     return create_image_from_array(comp_array, dirty.wcs), create_image_from_array(residual_array, dirty.wcs)
 
 
-def restore_cube(dirty: Image, clean: Image, psf: Image, params=None):
+def restore_cube(dirty: Image, clean: Image, psf: Image, **kwargs):
     """ Restore a clean image
 
     :param dirty:
@@ -93,7 +97,7 @@ def restore_cube(dirty: Image, clean: Image, psf: Image, params=None):
     return Image()
 
 
-def deconvolve_mfs(dirty: Image, psf: Image, params=None):
+def deconvolve_mfs(dirty: Image, psf: Image, **kwargs):
     """ MFS Clean using a variety of algorithms
 
     Functions that clean a dirty image using a point spread function. The algorithms available are:
@@ -113,7 +117,7 @@ def deconvolve_mfs(dirty: Image, psf: Image, params=None):
     return Image()
 
 
-def restore_mfs(dirty: Image, clean: Image, psf: Image, params=None):
+def restore_mfs(dirty: Image, clean: Image, psf: Image, **kwargs):
     """ Restore an MFS clean image
 
     :param dirty:
@@ -175,7 +179,7 @@ def _hogbom(dirty,
             gain,
             thresh,
             niter,
-            params=None):
+            **kwargs):
     """
     Hogbom CLEAN (1974A&AS...15..417H)
 
@@ -220,7 +224,7 @@ def _msclean(dirty,
              niter,
              scales,
              fracthresh,
-             params=None):
+             **kwargs):
     """ Perform multiscale clean
 
     Multiscale CLEAN (IEEE Journal of Selected Topics in Sig Proc, 2008 vol. 2 pp. 793-801)

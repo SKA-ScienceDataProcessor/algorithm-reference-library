@@ -21,10 +21,9 @@ class TestImageIterators(unittest.TestCase):
         assert numpy.max(numpy.abs(m31original.data)), "Original is empty"
 
         params = {}
-        for nraster in [2, 4, 8, 256]:
+        for nraster in [2, 4, 8]:
             m31model = create_test_image(npol=4)
-            params['image_partitions'] = nraster
-            for patch in raster_iter(m31model, params):
+            for patch in raster_iter(m31model, image_partitions=nraster):
                 assert patch.data.shape[3] == (m31model.data.shape[3] // nraster), \
                     "Number of pixels in each patch: %d not as expected: %d" % (patch.data.shape[3],
                                                                                 (m31model.data.shape[3] // nraster))

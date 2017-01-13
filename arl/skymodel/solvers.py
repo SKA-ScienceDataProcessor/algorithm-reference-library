@@ -12,7 +12,7 @@ from arl.visibility.operations import combine_visibility
 
 log = logging.getLogger("skymodel.solvers")
 
-def solve_skymodel(vis: Visibility, sm: Skymodel, deconvolver, params=None):
+def solve_skymodel(vis: Visibility, sm: Skymodel, deconvolver, **kwargs):
     """Solve for Skymodel using a deconvolver. The interface of deconvolver is the same as clean.
 
     This is the same as a majorcycle.
@@ -24,25 +24,25 @@ def solve_skymodel(vis: Visibility, sm: Skymodel, deconvolver, params=None):
     :arg function:
     :returns: Visibility, Skymodel
     """
-    nmajor = get_parameter(params, 'nmajor', 5)
+    nmajor = get_parameter(kwargs, 'nmajor', 5)
     log.info("solve_combinations.solve_skymodel: Performing %d major cycles" % nmajor)
     
     # The model is added to each major cycle and then the visibilities are
     # calculated from the full model
-    vispred = predict_2d_base(vis, sm, params={})
+    vispred = predict_2d_base(vis, sm, **kwargs)
     visres = combine_visibility(vis, vispred, 1.0, -1.0)
-    dirty, sumwt = invert_2d_base(visres, sm.images[0], params={})
-    psf, sumwt = invert_2d_base(visres, sm.images[0], dopsf=True, params={})
-    thresh = get_parameter(params, "threshold", 0.0)
+    dirty, sumwt = invert_2d_base(visres, sm.images[0], **kwargs)
+    psf, sumwt = invert_2d_base(visres, sm.images[0], dopsf=True, **kwargs)
+    thresh = get_parameter(kwargs, "threshold", 0.0)
     
     comp = sm.images[0]
     for i in range(nmajor):
         log.info("solve_skymodel: Start of major cycle %d" % i)
-        cc, res = deconvolver(dirty, psf, params={})
+        cc, res = deconvolver(dirty, psf, **kwargs)
         comp += cc
-        vispred = predict_2d_base(vis, sm.images[0], params={})
+        vispred = predict_2d_base(vis, sm.images[0], **kwargs)
         visres = combine_visibility(vis, vispred, 1.0, -1.0)
-        dirty, sumwt = invert_2d_base(visres, sm.images[0], params={})
+        dirty, sumwt = invert_2d_base(visres, sm.images[0], **kwargs)
         if numpy.abs(dirty.data).max() < 1.1 * thresh:
             log.info("Reached stopping threshold %.6f Jy" % thresh)
             break

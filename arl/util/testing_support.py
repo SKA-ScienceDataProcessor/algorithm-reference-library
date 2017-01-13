@@ -20,7 +20,7 @@ from arl.util.read_oskar_vis import OskarVis
 log = logging.getLogger("util.testing_support")
 
 def create_configuration_from_array(antxyz: numpy.array, name: str = None, location: EarthLocation = None,
-                                    mount: str = 'alt-az', names: str = '%d', meta: dict = None, params=None):
+                                    mount: str = 'alt-az', names: str = '%d', meta: dict = None, **kwargs):
     """ Define from parts
 
     :param params:
@@ -42,7 +42,7 @@ def create_configuration_from_array(antxyz: numpy.array, name: str = None, locat
 def create_configuration_from_file(antfile: str, name: str = None, location: EarthLocation = None, mount: str = 'altaz',
                                    names: str = "%d", frame: str = 'local',
                                    meta: dict = None,
-                                   params=None):
+                                   **kwargs):
     """ Define from a file
 
     :param names:
@@ -74,7 +74,7 @@ def create_configuration_from_file(antfile: str, name: str = None, location: Ear
 
 
 def create_LOFAR_configuration(antfile: str, meta: dict = None,
-                               params=None):
+                               **kwargs):
     """ Define from the LOFAR configuration file
 
     :param antfile:
@@ -93,7 +93,7 @@ def create_LOFAR_configuration(antfile: str, meta: dict = None,
     return fc
 
 
-def create_named_configuration(name: str = 'LOWBD2', params=None):
+def create_named_configuration(name: str = 'LOWBD2', **kwargs):
     """ Standard configurations e.g. LOWBD2, MIDBD2
 
     :param params:
@@ -133,7 +133,7 @@ def create_named_configuration(name: str = 'LOWBD2', params=None):
     return fc
 
 
-def import_visibility_from_oskar(oskar_file: str, params=None) -> Visibility:
+def import_visibility_from_oskar(oskar_file: str, **kwargs) -> Visibility:
     """ Import a visibility set from an OSKAR visibility file
 
     :param params:

@@ -22,7 +22,7 @@ class raster_iter:
     Provided we don't break reference semantics, memory should be conserved
     """
     
-    def __init__(self, im, params=None):
+    def __init__(self, im, **kwargs):
         """Create a raster_iter generator, returning images
         
         The WCS is adjusted appropriately
@@ -30,8 +30,10 @@ class raster_iter:
         To update the image in place:
             for r in raster(im, nraster=2)::
                 r.data[...] = numpy.sqrt(r.data[...])
+                
+        :param image_partitions: Number of image partitions on each axis (2)
         """
-        nraster = get_parameter(params, "image_partitions", 2)
+        nraster = get_parameter(kwargs, "image_partitions", 2)
         log.info("raster: predicting using %d x %d image partitions" % (nraster, nraster))
         assert nraster <= im.data.shape[3], "Cannot have more raster elements than pixels"
         assert nraster <= im.data.shape[2], "Cannot have more raster elements than pixels"

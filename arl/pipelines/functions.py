@@ -11,7 +11,7 @@ from arl.visibility.calibration import solve_gains, qa_gaintable
 
 log = logging.getLogger("pipelines.functions")
 
-def RCAL(params):
+def RCAL(**kwargs):
     """ Real-time calibration: single shot
      
     :param params: Dictionary containing parameters
@@ -19,18 +19,10 @@ def RCAL(params):
    """
     # TODO: implement
 
-    log_parameters(params)
-    vis = get_parameter(params, 'visibility', None)
-    sm = get_parameter(params, 'skymodel', None)
+    log_parameters(**kwargs)
+    return True
 
-    gains = solve_gains(vis, sm, params)
-    qa = qa_gaintable(gains)
-    if qa:
-        log.info("RCAL: Solution good")
-    return qa
-
-
-def ICAL(params):
+def ICAL(**kwargs):
     """ Post observation image, deconvolve, and self-calibrate
    
     :param params: Dictionary containing parameters
@@ -38,18 +30,10 @@ def ICAL(params):
     """
     # TODO: implement
 
-    log_parameters(params)
-    vis = get_parameter(params, 'visibility')
-    sm = get_parameter(params, 'skymodel')
+    log_parameters(**kwargs)
+    return True
 
-    gains = solve_gains(vis, sm, params)
-    qa = qa_gaintable(gains)
-    if qa:
-        log.info("ICAL: Solution good")
-    return qa
-
-
-def continuum_imaging(params):
+def continuum_imaging(**kwargs):
     """Continuum imaging from calibrated (DDE and DIE) data
 
     
@@ -59,14 +43,11 @@ def continuum_imaging(params):
 
     # TODO: implement
 
-    log_parameters(params)
-    vis = get_parameter(params, 'visibility')
-    sm = get_parameter(params, 'skymodel')
-    
-    return QA()
+    log_parameters(**kwargs)
+    return True
     
 
-def spectral_line_imaging(params):
+def spectral_line_imaging(**kwargs):
     """Spectral line imaging from calibrated (DDE and DIE) data
     
     :param params: Dictionary containing parameters
@@ -74,14 +55,11 @@ def spectral_line_imaging(params):
     """
     # TODO: implement
 
-    log_parameters(params)
-    vis = get_parameter(params, 'visibility')
-    sm = get_parameter(params, 'skymodel')
-
-    return QA()
+    log_parameters(**kwargs)
+    return True
 
 
-def fast_imaging(params):
+def fast_imaging(**kwargs):
     """Fast imaging from calibrated (DIE only) data
 
     :param params: Dictionary containing parameters
@@ -89,14 +67,11 @@ def fast_imaging(params):
     """
     # TODO: implement
 
-    log_parameters(params)
-    vis = get_parameter(params, 'visibility')
-    sm = get_parameter(params, 'skymodel')
-    
-    return QA()
+    log_parameters(**kwargs)
+    return True
 
 
-def EOR(params):
+def EOR(**kwargs):
     """EOR calibration and imaging
     
     :param params: Dictionary containing parameters
@@ -104,9 +79,6 @@ def EOR(params):
     """
     # TODO: implement
 
-    log_parameters(params)
-    vis = get_parameter(params, 'visibility')
-    sm = get_parameter(params, 'skymodel')
-    
-    return QA()
+    log_parameters(**kwargs)
+    return True
 

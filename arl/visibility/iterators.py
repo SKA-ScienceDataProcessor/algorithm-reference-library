@@ -14,14 +14,19 @@ log = logging.getLogger("visibility.iterators")
 
 
 class vis_timeslice_iter():
-    def __init__(self, vis, params):
+    """ Time slice iterator
+          
+    :param timeslice: Timeslice (seconds) (1.0)
+    :returns: Boolean array with selected rows=True
+        
+    """
+    def __init__(self, vis, **kwargs):
         
         """Initialise the iterator
-        
         """
         # We have to make a copy or strange thing will happen!
         self.vis = copy.copy(vis)
-        self.timeslice = get_parameter(params, "timeslice", 1.0)
+        self.timeslice = get_parameter(kwargs, "timeslice", 1.0)
         self.starttime = numpy.min(self.vis.time)
         self.stoptime = numpy.max(self.vis.time)
         self.timecursor = self.starttime

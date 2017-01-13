@@ -20,7 +20,7 @@ def arl_path(path):
     return os.path.join(arlhome, path)
 
 
-def get_parameter(params, key, default=None):
+def get_parameter(kwargs, key, default=None):
     """ Get a specified named value for this (calling) function
     
     The parameter is searched for in params
@@ -31,12 +31,12 @@ def get_parameter(params, key, default=None):
     :return: result
     """
     
-    if params is None:
+    if kwargs is None:
         return default
     
     value = default
-    if key in params.keys():
-        value = params[key]
+    if key in kwargs.keys():
+        value = kwargs[key]
     return value
 
 
@@ -68,7 +68,7 @@ def export_parameters(d, paramsfile):
     f.close()
 
 
-def log_parameters(d):
-    if d is not None:
-        for key in d.keys():
-            log.debug('log_parameters:   %s      =       %s' % (key, d[key]))
+def log_parameters(**kwargs):
+    if kwargs is not None:
+        for key in kwargs.keys():
+            log.debug('log_parameters:   %s      =       %s' % (key, kwargs[key]))

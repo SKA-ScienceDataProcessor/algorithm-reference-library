@@ -53,7 +53,7 @@ def find_nearest_component(home, comps):
             best = comp
     return best
  
-def find_skycomponents(im: Image, fwhm=1.0, threshold=10.0, npixels=5, params=None):
+def find_skycomponents(im: Image, fwhm=1.0, threshold=10.0, npixels=5, **kwargs):
     """ Find gaussian components in Image above a certain threshold as Skycomponent
 
     :param fwhm: Full width half maximum of gaussian
@@ -137,7 +137,7 @@ def find_skycomponents(im: Image, fwhm=1.0, threshold=10.0, npixels=5, params=No
     return comps
 
 
-def fit_skycomponent(im: Image, sc: SkyCoord, params=None):
+def fit_skycomponent(im: Image, sc: SkyCoord, **kwargs):
     """ Find flux at a given direction, return Skycomponent
 
     :param params:
@@ -159,7 +159,7 @@ def fit_skycomponent(im: Image, sc: SkyCoord, params=None):
     return create_skycomponent(direction=sc, flux=flux, frequency=frequency[0], shape='point')
 
 
-def insert_skycomponent(im: Image, sc: Skycomponent, params=None):
+def insert_skycomponent(im: Image, sc: Skycomponent, **kwargs):
     """ Insert a Skycompoenet into an image
 
     :param params:
@@ -170,7 +170,7 @@ def insert_skycomponent(im: Image, sc: Skycomponent, params=None):
     """
     assert sc.shape == 'Point', "Cannot handle shape %s"% sc.shape
     pixloc = skycoord_to_pixel(sc.direction, im.wcs, 0, 'wcs')
-    insert_method = get_parameter(params, "insert_method", "nearest")
+    insert_method = get_parameter(kwargs, "insert_method", "nearest")
     if insert_method == "Lanczos":
         log.debug("insert_skycomponent: Performing Lanczos interpolation of flux %s at [%.2f, %.2f] " %
                   (str(sc.flux), pixloc[1], pixloc[0]))

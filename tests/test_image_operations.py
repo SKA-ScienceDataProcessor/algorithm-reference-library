@@ -35,14 +35,6 @@ class TestImage(unittest.TestCase):
         log.debug(self.m31image.wcs)
         log.debug(export_image_to_fits(self.m31image, fitsfile='%s/test_model.fits' % (self.dir)))
 
-    def test_rasterise(self):
-    
-        m31model=create_test_image()
-        params = {}
-        for params['nraster'] in [2, 4, 8, 256]:
-            for patch in raster_iter(m31model, params):
-                pass
-
     def test_reproject(self):
         # Reproject an image
         

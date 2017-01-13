@@ -2,13 +2,13 @@
 """ Data models used in ARL"""
 
 import logging
-
-from astropy.table import Table
-from astropy.constants import c
-from astropy import units as u
-from astropy.coordinates import SkyCoord
+import sys
 
 import numpy
+from astropy import units as u
+from astropy.constants import c
+from astropy.coordinates import SkyCoord
+from astropy.table import Table
 
 log = logging.getLogger("data.data_models")
 
@@ -35,6 +35,14 @@ class Configuration:
         self.name = name
         self.data = data
         self.location = location
+    
+    def __sizeof__(self):
+        """ Return size in GB
+        """
+        size = 0
+        for col in self.data.colnames:
+            size += self.data[col].size * sys.getsizeof(self.data[col])
+        return size / 1024.0 / 1024.0 / 1024.0
     
     @property
     def names(self):
@@ -85,6 +93,13 @@ class Image:
         self.data = None
         self.wcs = None
     
+    def __sizeof__(self):
+        """ Return size in GB
+        """
+        size = 0
+        size += self.data.size * sys.getsizeof(self.data.dtype)
+        return size / 1024.0 / 1024.0 / 1024.0
+    
     @property
     def nchan(self): return self.data.shape[0]
     
@@ -93,23 +108,24 @@ class Image:
     
     @property
     def npixel(self): return self.data.shape[3]
-
+    
     @property
     def frequency(self):
         # Extracted from find_skycomponent. Not sure how generally
         # applicable this is.
         w = self.wcs.sub(['spectral'])
         return w.wcs_pix2world(range(self.nchan), 1)[0]
+    
     @property
     def shape(self):
         return self.data.shape
-
+    
     @property
     def phasecentre(self): return SkyCoord(self.wcs.wcs.crval[0] * u.deg, self.wcs.wcs.crval[1] * u.deg)
     
     def __exit__(self):
         log.debug("Image:Exiting from image of shape: %s" % (self.data.shape))
-        
+
 
 class Skycomponent:
     """ A single Skycomponent with direction, flux, shape, and params for the shape
@@ -117,7 +133,7 @@ class Skycomponent:
     """
     
     def __init__(self,
-                 direction=None, frequency=None, name=None, flux=None, shape='Point', params=None):
+                 direction=None, frequency=None, name=None, flux=None, shape='Point', **kwargs):
         """ Define the required structure
 
         :param direction: SkyCoord
@@ -127,24 +143,24 @@ class Skycomponent:
         :param shape: str e.g. 'Point' 'Gaussian'
         :param params: numpy.array shape dependent parameters
         """
-
+        
         self.direction = direction
         self.frequency = numpy.array(frequency)
         self.name = name
         self.flux = numpy.array(flux)
         self.shape = shape
-        self.params = params
-
+        self.params = kwargs
+        
         assert len(self.frequency.shape) == 1
         assert len(self.flux.shape) == 2
         assert self.frequency.shape[0] == self.flux.shape[0]
-
+    
     @property
     def nchan(self): return self.flux.shape[0]
     
     @property
     def npol(self): return self.flux.shape[1]
-
+    
     def __str__(self):
         """Default printer for Skycomponent
 
@@ -189,7 +205,7 @@ class Visibility:
                 imaging_weight = weight
             data = Table({'uvw': uvw, 'time': time,
                           'antenna1': antenna1, 'antenna2': antenna2,
-                          'vis': vis, 'weight': weight, 'imaging_weight' : imaging_weight
+                          'vis': vis, 'weight': weight, 'imaging_weight': imaging_weight
                           })
         
         self.data = data  # Astropy.table with columns uvw, time, a1, a2, vis, weight, imaging_weight
@@ -197,68 +213,82 @@ class Visibility:
         self.phasecentre = phasecentre  # Phase centre of observation
         self.configuration = configuration  # Antenna/station configuration
     
-    @property
-    def nvis(self): return self.data['vis'].shape[0]
-
-    @property
-    def nchan(self): return self.data['vis'].shape[1]
+    def __sizeof__(self):
+        """ Return size in GB
+        """
+        size = 0
+        size += numpy.size(self.frequency)
+        for col in self.data.colnames:
+            size += self.data[col].size * sys.getsizeof(self.data[col])
+        return size / 1024.0 / 1024.0 / 1024.0
     
     @property
-    def npol(self): return self.data['vis'].shape[2]
+    def nvis(self):
+        return self.data['vis'].shape[0]
     
     @property
-    def uvw(self): return self.data['uvw']
+    def nchan(self):
+        return self.data['vis'].shape[1]
     
     @property
-    def u(self):   return self.data['uvw'][:, 0]
+    def npol(self):
+        return self.data['vis'].shape[2]
     
     @property
-    def v(self):   return self.data['uvw'][:, 1]
+    def uvw(self):
+        return self.data['uvw']
     
     @property
-    def w(self):   return self.data['uvw'][:, 2]
+    def u(self):
+        return self.data['uvw'][:, 0]
     
     @property
-    def time(self): return self.data['time']
+    def v(self):
+        return self.data['uvw'][:, 1]
     
     @property
-    def antenna1(self): return self.data['antenna1']
+    def w(self):
+        return self.data['uvw'][:, 2]
     
     @property
-    def antenna2(self): return self.data['antenna2']
+    def time(self):
+        return self.data['time']
     
     @property
-    def vis(self): return self.data['vis']
-
+    def antenna1(self):
+        return self.data['antenna1']
+    
     @property
-    def weight(self): return self.data['weight']
-
+    def antenna2(self):
+        return self.data['antenna2']
+    
     @property
-    def imaging_weight(self): return self.data['imaging_weight']
-
+    def vis(self):
+        return self.data['vis']
+    
+    @property
+    def weight(self):
+        return self.data['weight']
+    
+    @property
+    def imaging_weight(self):
+        return self.data['imaging_weight']
+    
     def uvw_lambda(self, channel=0):
         """ Calculates baseline coordinates in wavelengths. """
         return self.data['uvw'] * self.frequency[channel] / c.value
-    
-    def select_rows(self, rows):
-        """
-        Returns a Visibility containing only the rows given
-
-        :rtype: Visibility
-        """
-        return Visibility(data=self.data[rows], phasecentre=self.phasecentre, configuration=self.configuration,
-                          frequency=self.frequency)
 
 
 class QA:
     """ Quality assessment
     
     """
+    
     def __init__(self, origin=None, data=None, context=None):
         self.origin = origin  # Name of function originating QA assessment
         self.data = data  # Dictionary containing standard fields
         self.context = context  # Context string (TBD)
-        
+    
     def __str__(self):
         """Default printer for QA
         
@@ -268,7 +298,7 @@ class QA:
         s += "\tContext: %s\n" % (self.context)
         s += "\tData:\n"
         for dataname in self.data.keys():
-            s += "\t\t%s: %s\n" %(dataname, str(self.data[dataname]))
+            s += "\t\t%s: %s\n" % (dataname, str(self.data[dataname]))
         return s
 
 

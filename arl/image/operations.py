@@ -4,6 +4,7 @@
 Functions that define and manipulate images. Images are just data and a World Coordinate System.
 """
 
+import sys
 from astropy.io import fits
 from astropy.wcs import WCS
 from reproject import reproject_interp
@@ -14,8 +15,16 @@ from arl.data.parameters import *
 log = logging.getLogger("image.operations")
 
 
+def image_sizeof(im):
+    """ Return size in GB
+    """
+    size = 0
+    size += im.data.size * sys.getsizeof(im.data.dtype)
+    return size / 1024.0 / 1024.0 / 1024.0
+
+
 def create_memo(im):
-    log.debug("image.operations: created image of shape %s" % (str(im.shape)))
+    log.debug("image.operations: created image of shape %s, size %.3f (GB)" % (str(im.shape), image_sizeof(im)))
 
 
 def create_image_from_slice(im, imslice):
@@ -85,7 +94,7 @@ def import_image_from_fits(fitsfile: str):
     return fim
 
 
-def reproject_image(im: Image, newwcs: WCS, shape=None, params=None):
+def reproject_image(im: Image, newwcs: WCS, shape=None, **kwargs):
     """ Re-project an image to a new coordinate system
     
     Currently uses the reproject python package. This seems to have some features do be careful using this method.
@@ -126,7 +135,7 @@ def add_image(im1: Image, im2: Image, docheckwcs=False):
     return create_image_from_array(im1.data + im2.data, im1.wcs)
 
 
-def qa_image(im, params=None):
+def qa_image(im, **kwargs):
     """Assess the quality of an image
 
     :param params:
@@ -141,7 +150,7 @@ def qa_image(im, params=None):
             'median': numpy.median(im.data)}
     qa = QA(origin="qa_image",
             data=data,
-            context=get_parameter(params, 'context', ""))
+            context=get_parameter(kwargs, 'context', ""))
     return qa
 
 

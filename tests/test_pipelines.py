@@ -21,7 +21,6 @@ class TestPipelines(unittest.TestCase):
 
     def setUp(self):
         
-        self.params = {'wstep': 10.0, 'npixel': 512, 'cellsize': 0.0002}
         
         vlaa = create_named_configuration('VLAA')
         vlaa.data['xyz'] *= 1.0 / 10.0
@@ -48,34 +47,23 @@ class TestPipelines(unittest.TestCase):
         self.m31sm = create_skymodel_from_image(self.m31image)
         self.m31sm = add_component_to_skymodel(self.m31sm, self.m31comp)
 
-        self.params={'wstep': 100.0, 'npixel': 256, 'cellsize': 0.0001}
-        vispred = create_visibility(vlaa, times, frequency, weight=1.0, phasecentre=self.phasecentre,
-                                   params=self.params)
-        self.visibility = predict_2d(vispred, self.m31image, params=self.params)
+        vispred = create_visibility(vlaa, times, frequency, weight=1.0, phasecentre=self.phasecentre)
+        self.visibility = predict_2d(vispred, self.m31image, wstep=100.0, npixel=256, cellsize=0.0001)
         self.m31image.data *= 0.0
         self.m31sm = create_skymodel_from_image(self.m31image)
         self.m31sm = add_component_to_skymodel(self.m31sm, self.m31comp)
 
     def test_RCAL(self):
-        params = {'RCAL': {'visibility': self.visibility, 'skymodel': self.m31sm},
-                      'solve_gain': {'Gsolint': 300.0}}
-        rcal = RCAL(params)
-
+        rcal = RCAL(vis=self.visibility, skymodel=self.m31sm, Gsolinit=300.0)
 
     def test_ICAL(self):
-        params = {'ICAL': {'visibility': self.visibility, 'skymodel': self.m31sm}}
-        ical = ICAL(params)
-
+        ical = ICAL(vis=self.visibility, skymodel=self.m31sm, Gsolinit=300.0)
 
     def test_continuum_imaging(self):
-        params = {'continuum_imaging': {'visibility': self.visibility, 'skymodel': self.m31sm, 'deconvolver':
-            _msclean}}
-        ci = continuum_imaging(params)
-
+        ci = continuum_imaging(vis=self.visibility, skymodel=self.m31sm, algorithm='msclean')
 
     def test_spectral_line_imaging(self):
-        params = {'spectral_line_imaging': {'visibility': self.visibility, 'skymodel': self.m31sm}}
-        sli = spectral_line_imaging(params)
+        sli = spectral_line_imaging(vis=self.visibility, skymodel=self.m31sm, algorithm='msclean')
         
 
 if __name__ == '__main__':

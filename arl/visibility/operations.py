@@ -4,6 +4,7 @@
 
 """
 
+import sys
 import copy
 import logging
 
@@ -16,7 +17,13 @@ from arl.data.data_models import *
 from arl.data.parameters import *
 
 
-def combine_visibility(vis1: Visibility, vis2: Visibility, w1: float = 1.0, w2: float = 1.0, params=None) -> Visibility:
+def vis_summary(vis: Visibility):
+    """Return string summarizing the Visibility
+    
+    """
+    return "Visibility has %d rows, total size %.3f GB" % (vis.nvis, vis.__sizeof__())
+
+def combine_visibility(vis1: Visibility, vis2: Visibility, w1: float = 1.0, w2: float = 1.0, **kwargs) -> Visibility:
     """ Linear combination of two visibility sets
 
     :param vis1: Visibility set 1
@@ -44,12 +51,12 @@ def combine_visibility(vis1: Visibility, vis2: Visibility, w1: float = 1.0, w2: 
     vis.data['vis'][vis.data['weight'] > 0.0] = vis.data['vis'][vis.data['weight'] > 0.0] / \
                                                 vis.data['weight'][vis.data['weight'] > 0.0]
     vis.data['vis'][vis.data['weight'] <= 0.0] = 0.0
-    log.info(u"combine_visibility: Created table with {0:d} rows".format(len(vis.data)))
+    log.info("combine_visibility: %s" % (vis_summary(vis)))
     assert len(vis.data['vis']) == len(vis1.data['vis']), 'Length of output data table wrong'
     return vis
 
 
-def concatenate_visibility(vis1: Visibility, vis2: Visibility, params=None) -> \
+def concatenate_visibility(vis1: Visibility, vis2: Visibility, **kwargs) -> \
         Visibility:
     """ Concatentate the data sets in time, optionally phase rotating the second to the phasecenter of the first
 
@@ -67,13 +74,13 @@ def concatenate_visibility(vis1: Visibility, vis2: Visibility, params=None) -> \
     vis.data = vstack([vis1.data, fvis2rot.data], join_type='exact')
     vis.phasecentre = vis1.phasecentre
     vis.frequency = vis1.frequency
-    log.info(u"concatenate_visibility: Created table with {0:d} rows".format(len(vis.data)))
+    log.info("concatenate_visibility: %s" % (vis_summary(vis)))
     assert (len(vis.data) == (len(vis1.data) + len(vis2.data))), 'Length of output data table wrong'
     return vis
 
 
 def create_visibility(config: Configuration, times: numpy.array, freq: numpy.array, weight: float,
-                      phasecentre: SkyCoord, meta: dict = None, params=None) -> Visibility:
+                      phasecentre: SkyCoord, meta: dict = None, **kwargs) -> Visibility:
     """ Create a Visibility from Configuration, hour angles, and direction of source
 
     :param params:
@@ -87,7 +94,7 @@ def create_visibility(config: Configuration, times: numpy.array, freq: numpy.arr
     """
     assert phasecentre is not None, "Must specify phase centre"
     nch = len(freq)
-    npol = get_parameter(params, "npol", 4)
+    npol = get_parameter(kwargs, "npol", 4)
     ants_xyz = config.data['xyz']
     nants = len(config.data['names'])
     nbaselines = int(nants * (nants - 1) / 2)
@@ -113,12 +120,28 @@ def create_visibility(config: Configuration, times: numpy.array, freq: numpy.arr
     vis.frequency = freq
     vis.phasecentre = phasecentre
     vis.configuration = config
-    log.info("create_visibility: Created %d rows with vis shape %s" % (nrows, vis.vis.shape))
+    log.info("create_visibility: %s" % (vis_summary(vis)))
     return vis
 
 
+def create_visibility_from_rows(vis: Visibility, rows) -> Visibility:
+    """ Create a Visibility from selected rows
+
+    :param params:
+    :param vis: Visibility
+    :param rows: Boolean array of row selction
+    :returns: Visibility
+    """
+
+    newvis = Visibility(data=vis.data[rows], phasecentre=vis.phasecentre, configuration=vis.configuration,
+                        frequency=vis.frequency)
+    
+    log.info("create_visibility_from_rows: Created view into visibility table")
+    return newvis
+
+
 def phaserotate_visibility(vis: Visibility, newphasecentre: SkyCoord, tangent=True, inverse=False,
-                           params=None) -> Visibility:
+                           **kwargs) -> Visibility:
     """
     Phase rotate from the current phase centre to a new phase centre
 
@@ -170,7 +193,7 @@ def phaserotate_visibility(vis: Visibility, newphasecentre: SkyCoord, tangent=Tr
     return vis
 
 
-def sum_visibility(vis: Visibility, direction: SkyCoord, params=None) -> numpy.array:
+def sum_visibility(vis: Visibility, direction: SkyCoord, **kwargs) -> numpy.array:
     """ Direct Fourier summation in a given direction
 
     :param params:
@@ -195,15 +218,15 @@ def sum_visibility(vis: Visibility, direction: SkyCoord, params=None) -> numpy.a
     return flux, weight
 
 
-def qa_visibility(vis, params=None):
+def qa_visibility(vis, **kwargs):
     """Assess the quality of Visibility
 
     :param params:
     :param vis: Visibility to be assessed
     :returns: AQ
     """
-    context = get_parameter(params, 'context', None)
-    log_parameters(params)
+    context = get_parameter(kwargs, 'context', None)
+    log_parameters(**kwargs)
     avis = numpy.abs(vis.vis)
     data = {'maxabs': numpy.max(avis),
             'minabs': numpy.min(avis),
@@ -211,5 +234,5 @@ def qa_visibility(vis, params=None):
             'medianabs': numpy.median(avis)}
     qa = QA(origin=None,
             data=data,
-            context=get_parameter(params, 'context', None))
+            context=get_parameter(kwargs, 'context', None))
     return qa

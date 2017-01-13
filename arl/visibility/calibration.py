@@ -17,7 +17,7 @@ correction, the gaintable is read and, if necessary, interpolated.
 
 
 def create_gaintable_from_array(gain: numpy.array, time: numpy.array, antenna: numpy.array, weight: numpy.array,
-                                frequency: numpy.array, copy=False, meta=None, params=None):
+                                frequency: numpy.array, copy=False, meta=None, **kwargs):
     """ Create a gaintable from arrays
 
     :param gain:
@@ -45,7 +45,7 @@ def create_gaintable_from_array(gain: numpy.array, time: numpy.array, antenna: n
     return fg
 
 
-def interpolate_gaintable(gt: GainTable, params=None):
+def interpolate_gaintable(gt: GainTable, **kwargs):
     """ Interpolate a GainTable to new sampling
 
     :param gt: GainTable
@@ -58,7 +58,7 @@ def interpolate_gaintable(gt: GainTable, params=None):
     return GainTable()
 
 
-def solve_gains(vis: Visibility, sm: Skymodel, params=None) -> GainTable:
+def solve_gains(vis: Visibility, sm: Skymodel, **kwargs) -> GainTable:
     """ Solve for calibration using a sky model
     
     :param params:
@@ -71,7 +71,7 @@ def solve_gains(vis: Visibility, sm: Skymodel, params=None) -> GainTable:
     return GainTable()
 
 
-def correct_visibility(vis: Visibility, gt: GainTable, params=None) -> Visibility:
+def correct_visibility(vis: Visibility, gt: GainTable, **kwargs) -> Visibility:
     """ Correct a vistable using a GainTable
 
     :param params:
@@ -84,7 +84,7 @@ def correct_visibility(vis: Visibility, gt: GainTable, params=None) -> Visibilit
     return vis
 
 
-def peel_skycomponent(vis: Visibility, sc: Skycomponent, params=None) -> Visibility:
+def peel_skycomponent(vis: Visibility, sc: Skycomponent, **kwargs) -> Visibility:
     """ Correct a vistable using a GainTable
 
     :param params:
@@ -97,7 +97,7 @@ def peel_skycomponent(vis: Visibility, sc: Skycomponent, params=None) -> Visibil
     return vis
 
 
-def qa_gaintable(gt, params=None):
+def qa_gaintable(gt, **kwargs):
     """Assess the quality of a gaintable
 
     :param gt:

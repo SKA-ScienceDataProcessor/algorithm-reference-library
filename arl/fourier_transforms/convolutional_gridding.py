@@ -451,7 +451,7 @@ def box_grid(kernel, uvgrid, uv, uvscale, vis, visweights):
     return uvgrid, sumwt
 
 
-def weight_gridding(shape, uv, uvscale, visweights, params=None):
+def weight_gridding(shape, uv, uvscale, visweights, weighting='uniform'):
     """Reweight data using one of a number of algorithms
 
     Takes into account fractional `uv` coordinate values where the GCF
@@ -462,8 +462,8 @@ def weight_gridding(shape, uv, uvscale, visweights, params=None):
     :param uvscale: Scaling for each axis (u,v) for each channel
     :param vis: Visibility values
     :param visweights: Visibility weights
+    :param weighting: Weighting algorithm (natural|uniform) (uniform)
     """
-    weighting = get_parameter(params, 'weighting', 'uniform')
     densitygrid = numpy.zeros(shape)
     density = numpy.zeros_like(visweights)
     if weighting == 'uniform':

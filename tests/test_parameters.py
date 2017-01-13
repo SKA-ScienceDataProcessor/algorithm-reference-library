@@ -14,10 +14,10 @@ class TestParameters(unittest.TestCase):
         self.dir = './test_results'
         os.makedirs(self.dir, exist_ok=True)
         self.paramsfile = "%s/TestParameters.txt" % (self.dir)
-        self.parameters = {'npixel': 256, 'cellsize':0.1, 'predict':{'cellsize':0.2}, 'invert':{'spectral_mode':'mfs'}}
+        self.parameters = {'npixel': 256, 'cellsize':0.1, 'spectral_mode':'mfs'}
 
     def test_exportimport(self):
-        log_parameters(self.parameters)
+
         export_parameters(self.parameters, self.paramsfile)
         d = import_parameters(self.paramsfile)
         log_parameters(d)
@@ -26,12 +26,15 @@ class TestParameters(unittest.TestCase):
 
     def test_getparameter(self):
     
-        assert get_parameter(self.parameters, 'cellsize') == 0.1
-        assert get_parameter(self.parameters['predict'], 'cellsize') == 0.2
-        assert get_parameter(self.parameters, 'spectral_mode', 'channels') == 'channels'
-        assert get_parameter(self.parameters['invert'], 'spectral_mode') == 'mfs'
-        assert get_parameter(self.parameters, 'foo', 'bar') == 'bar'
-        assert get_parameter(self.parameters, 'foo') is None
+        def t1(**kwargs):
+            assert get_parameter(kwargs, 'cellsize') == 0.1
+            assert get_parameter(kwargs, 'spectral_mode', 'channels') == 'mfs'
+            assert get_parameter(kwargs, 'null_mode', 'mfs') == 'mfs'
+            assert get_parameter(kwargs, 'foo', 'bar') == 'bar'
+            assert get_parameter(kwargs, 'foo') is None
+        
+        kwargs = self.parameters
+        t1(**kwargs)
 
 
 if __name__ == '__main__':
