@@ -31,11 +31,9 @@ class TestVisibilityIterators(unittest.TestCase):
         self.vis = create_visibility(self.lowcore, times, frequency, weight=1.0, phasecentre=phasecentre)
     
     def test_vis_timeslice_iterator(self):
-        params = {}
-        params['timeslice'] = 100.0
         timemin = numpy.min(self.vis.time)
         timemax = numpy.max(self.vis.time)
-        for rows in vis_timeslice_iter(self.vis, params):
+        for rows in vis_timeslice_iter(self.vis, timeslice=100.0):
             slicemin = numpy.min(self.vis.data['time'])
             slicemax = numpy.max(self.vis.data['time'])
             assert slicemin >= timemin
@@ -47,11 +45,9 @@ class TestVisibilityIterators(unittest.TestCase):
             "Write back failed %s %s" % (numpy.max(numpy.abs(self.vis.data['vis'])), timemax)
 
     def test_vis_timeslice_iterator_all(self):
-        params = {}
-        params['timeslice'] = 86400.0
         timemin = numpy.min(self.vis.time)
         timemax = numpy.max(self.vis.time)
-        for rows in vis_timeslice_iter(self.vis, params):
+        for rows in vis_timeslice_iter(self.vis, timeslice=86400.0):
             slicemin = numpy.min(self.vis.data['time'])
             slicemax = numpy.max(self.vis.data['time'])
             assert slicemin >= timemin

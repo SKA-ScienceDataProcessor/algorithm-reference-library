@@ -17,8 +17,6 @@ from arl.fourier_transforms.ftprocessor import *
 
 class TestVisibilityOperations(unittest.TestCase):
     def setUp(self):
-        self.params = {'wstep': 10.0, 'npixel': 512, 'cellsize': 0.0002, 'spectral_mode': 'channel', 'npol':1}
-        
         self.vlaa = create_named_configuration('VLAA')
         self.vlaa.data['xyz'] *= 1.0 / 30.0
         self.times = numpy.arange(-3.0, +3.0, 1.0) * numpy.pi / 12.0
@@ -40,9 +38,8 @@ class TestVisibilityOperations(unittest.TestCase):
         self.m31sm = create_skymodel_from_component(self.m31comp)
         
         vispred = create_visibility(self.vlaa, self.times, self.frequency,
-                                    weight=1.0, phasecentre=self.phasecentre,
-                                    params=self.params)
-        self.vismodel = predict_skycomponent_visibility(vispred, self.m31comp, self.params)
+                                    weight=1.0, phasecentre=self.phasecentre, spectral_model='channel', npol=1)
+        self.vismodel = predict_skycomponent_visibility(vispred, self.m31comp)
     
     def test_visibilitysum(self):
         # Sum the visibilities in the correct_visibility direction. This is limited by numerical precision
@@ -65,9 +62,8 @@ class TestVisibilityOperations(unittest.TestCase):
         # Predict visibilities with new phase centre independently
         ha_diff = -(self.compabsdirection.ra - self.phasecentre.ra).to(u.rad).value
         vispred = create_visibility(self.vlaa, self.times + ha_diff, self.frequency,
-                                    weight=1.0, phasecentre=self.compabsdirection,
-                                    params=self.params)
-        vismodel2 = predict_skycomponent_visibility(vispred, self.m31comp, params=self.params)
+                                    weight=1.0, phasecentre=self.compabsdirection, spectral_model='channel', npol=1)
+        vismodel2 = predict_skycomponent_visibility(vispred, self.m31comp)
         
         # Should yield the same results as rotation
         rotatedvis = phaserotate_visibility(self.vismodel, self.compabsdirection, tangent=False)
