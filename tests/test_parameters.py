@@ -3,6 +3,7 @@
 realtimcornwell@gmail.com
 """
 
+import sys
 import logging
 import unittest
 
@@ -11,18 +12,7 @@ log = logging.getLogger("test_parameters")
 
 class TestParameters(unittest.TestCase):
     def setUp(self):
-        self.dir = './test_results'
-        os.makedirs(self.dir, exist_ok=True)
-        self.paramsfile = "%s/TestParameters.txt" % (self.dir)
         self.parameters = {'npixel': 256, 'cellsize':0.1, 'spectral_mode':'mfs'}
-
-    def test_exportimport(self):
-
-        export_parameters(self.parameters, self.paramsfile)
-        d = import_parameters(self.paramsfile)
-        log_parameters(d)
-        assert d == self.parameters
-
 
     def test_getparameter(self):
     

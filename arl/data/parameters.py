@@ -39,35 +39,6 @@ def get_parameter(kwargs, key, default=None):
         value = kwargs[key]
     return value
 
-
-def import_parameters(paramsfile):
-    """Import parameters from a text file
-    
-    :param paramsfile: file to write to
-    :return: parameters as dict
-    """
-    f = open(paramsfile, 'r')
-    d = eval(f.read())
-    f.close()
-    log.debug("Parameters read")
-    log_parameters(d)
-    return d
-
-
-def export_parameters(d, paramsfile):
-    """Export parameters to a textfile
-    
-    :param d: parameters as dict
-    :param paramsfile: file to write to
-    :return:
-    """
-    f = open(paramsfile, 'w')
-    log.debug("Parameters written")
-    log_parameters(d)
-    f.write(str(d))
-    f.close()
-
-
 def log_parameters(**kwargs):
     if kwargs is not None:
         for key in kwargs.keys():
