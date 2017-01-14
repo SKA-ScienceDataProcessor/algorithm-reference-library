@@ -80,26 +80,17 @@ Processing Parameters
 
 All components possess an API which is always of the form::
 
-      def processing_function(idatastruct1, idatastruct2, ..., processingparameters):
+      def processing_function(idatastruct1, idatastruct2, ..., *kwargs):
          return odatastruct1, odatastruct2,... other
 
-Processing parameters are passed via a dictionary. Universal parameters can be set at the top level of the
-dictionary. The parameters specific to a given function can stored in a field named by the function. For example::
+Processing parameters are passed via the standard Python **kwargs approach. ::
 
-   parameters = {'log': 'tims.log',
-      'RCAL': {'visibility': self.visibility, 'skymodel': self.m31sm}
-      'solve_gain': {'Gsolint': 300.0}}
+Inside a function, the values are retrieved can be accessed directly from the
+kwargs dictionary, or if a default is needed a function can be used::
 
-   qa = RCAL(parameters}
-
-Inside a function, the values are retrieved thus::
-
-    log = get_parameter(params, 'log', None)
-    vis = get_parameter(params, 'visibility', None)
-    sm = get_parameter(params, 'skymodel', None)
-
-
-The search for a keyword is first in the keys of parameters and then in parameters[functioname].
+    log = get_parameter(kwargs, 'log', None)
+    vis = get_parameter(kwargs, 'visibility', None)
+    sm = get_parameter(kwargs, 'skymodel', None)
 
 Function parameters should obey a consistent naming convention:
 
@@ -113,7 +104,6 @@ gt       Name of GainTable
 conf     Name of Configuration
 im       Name of input image
 qa       Name of quality assessment
-params   Name of processing parameters
 log      Name of processing log
 =======  =======
 
