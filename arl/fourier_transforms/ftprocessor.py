@@ -77,6 +77,7 @@ def get_ftprocessor_params(vis, model, **kwargs):
     fov = padding * nx * numpy.max(numpy.abs(cellsize))
     uvscale = numpy.outer(cellsize, vis.frequency / c.value)
     assert uvscale[0,0] != 0.0, "Error in uv scaling"
+    log.info("get_ftprocessor_params: effective uv cellsize is %.1f wavelengths" % (1.0 / fov))
 
     kernel_type = 'fixed'
     gcf = 1.0
@@ -240,7 +241,7 @@ def invert_2d(vis, im, dopsf=False, **kwargs):
 
     """
     log.debug("invert_2d: inverting using 2d transform")
-    kwargs['kernel'] = '2d'
+    kwargs['kernel'] = get_parameter(kwargs, "kernel", '2d')
     return invert_2d_base(vis, im, dopsf, **kwargs)
 
 
@@ -257,7 +258,7 @@ def invert_wprojection(vis, im, dopsf=False, **kwargs):
 
     """
     log.debug("invert_2d: inverting using wprojection")
-    kwargs['kernel'] = 'wprojection'
+    kwargs['kernel'] = "wprojection"
     return invert_2d_base(vis, im, dopsf, **kwargs)
 
 
