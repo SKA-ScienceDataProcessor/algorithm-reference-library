@@ -240,7 +240,8 @@ def invert_2d(vis, im, dopsf=False, **kwargs):
 
     """
     log.debug("invert_2d: inverting using 2d transform")
-    return invert_2d_base(vis, im, dopsf, kernel='2d', **kwargs)
+    kwargs['kernel'] = '2d'
+    return invert_2d_base(vis, im, dopsf, **kwargs)
 
 
 
@@ -256,7 +257,8 @@ def invert_wprojection(vis, im, dopsf=False, **kwargs):
 
     """
     log.debug("invert_2d: inverting using wprojection")
-    return invert_2d_base(vis, im, dopsf, kernel='wprojection', **kwargs)
+    kwargs['kernel'] = 'wprojection'
+    return invert_2d_base(vis, im, dopsf, **kwargs)
 
 
 def fit_uvwplane(vis):
@@ -510,7 +512,7 @@ def invert_timeslice_single(vis, im, dopsf, **kwargs):
     :param im: image template (not changed)
     :param dopsf: Make the psf instead of the dirty image
     """
-    nchan, npol, ny, nx, shape, gcf, kernel_type, kernelname, kernel,padding, oversampling, support, cellsize, \
+    nchan, npol, ny, nx, shape, gcf, kernel_type, kernelname, kernel, padding, oversampling, support, cellsize, \
     fov, uvscale = get_ftprocessor_params(vis, im, **kwargs)
 
     vis, p, q = fit_uvwplane(vis)
@@ -537,7 +539,7 @@ def invert_timeslice_single(vis, im, dopsf, **kwargs):
 
 
 
-def invert_by_image_partitions(vis, im, image_iterator=raster_iter, dopsf=False, kernel=None,
+def invert_by_image_partitions(vis, im, image_iterator=raster_iter, dopsf=False,
                                invert_function=invert_2d, **kwargs):
     """ Predict using image partitions, calling specified predict function
 
@@ -566,7 +568,7 @@ def invert_by_image_partitions(vis, im, image_iterator=raster_iter, dopsf=False,
 
 
 
-def invert_by_vis_partitions(vis, im, vis_iterator, dopsf=False, kernel=None, invert_function=invert_2d, **kwargs):
+def invert_by_vis_partitions(vis, im, vis_iterator, dopsf=False, invert_function=invert_2d, **kwargs):
     """ Invert using wslices
 
     :param vis: Visibility to be inverted
