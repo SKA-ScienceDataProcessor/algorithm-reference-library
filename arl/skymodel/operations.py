@@ -1,8 +1,9 @@
 # Tim Cornwell <realtimcornwell@gmail.com>
 #
-# Definition of structures needed by the function interface. These are mostly
-# subclasses of astropy classes.
-#
+"""
+Definition of structures needed by the function interface. These are mostly
+subclasses of astropy classes.
+"""
 
 from astropy.coordinates import SkyCoord
 from astropy.wcs.utils import skycoord_to_pixel, pixel_to_skycoord
@@ -15,7 +16,7 @@ from astropy.stats import gaussian_fwhm_to_sigma
 import astropy.units as u
 from photutils import segmentation
 
-log = logging.getLogger("skymodel.operations")
+log = logging.getLogger(__name__)
 
 def create_skycomponent(direction: SkyCoord, flux: numpy.array, frequency: numpy.array, shape: str = 'Point',
                         param: dict = None, name: str = ''):

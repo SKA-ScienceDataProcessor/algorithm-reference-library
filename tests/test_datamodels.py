@@ -12,7 +12,7 @@ from arl.util.testing_support import create_test_image, create_named_configurati
 from arl.visibility.calibration import create_gaintable_from_array
 from arl.visibility.operations import create_visibility
 
-log = logging.getLogger("tests.TestDataModels")
+log = logging.getLogger(__name__)
 
 class TestDataModels(unittest.TestCase):
 

@@ -1,8 +1,9 @@
 # Tim Cornwell <realtimcornwell@gmail.com>
 #
-# Definition of structures needed by the function interface. These are mostly
-# subclasses of astropy classes.
-#
+"""
+Definition of structures needed by the function interface. These are mostly
+subclasses of astropy classes.
+"""
 
 from arl.fourier_transforms.ftprocessor import invert_2d_base, predict_2d_base
 
@@ -10,7 +11,7 @@ from arl.data.data_models import *
 from arl.data.parameters import *
 from arl.visibility.operations import combine_visibility
 
-log = logging.getLogger("skymodel.solvers")
+log = logging.getLogger(__name__)
 
 def solve_skymodel(vis: Visibility, sm: Skymodel, deconvolver, **kwargs):
     """Solve for Skymodel using a deconvolver. The interface of deconvolver is the same as clean.

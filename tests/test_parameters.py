@@ -8,7 +8,8 @@ import logging
 import unittest
 
 from arl.data.parameters import *
-log = logging.getLogger("test_parameters")
+from arl.util.testing_support import create_test_image, run_unittests
+log = logging.getLogger(__name__)
 
 class TestParameters(unittest.TestCase):
     def setUp(self):
@@ -28,6 +29,4 @@ class TestParameters(unittest.TestCase):
 
 
 if __name__ == '__main__':
-    log.setLevel(logging.DEBUG)
-    log.addHandler(logging.StreamHandler(sys.stdout))
-    unittest.main()
+    run_unittests()

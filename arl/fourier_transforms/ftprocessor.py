@@ -26,7 +26,7 @@ from arl.visibility.iterators import *
 from arl.visibility.operations import phaserotate_visibility, create_visibility_from_rows
 from arl.util.timing import timing
 
-log = logging.getLogger("fourier_transforms.ftprocessor")
+log = logging.getLogger(__name__)
 
 
 def shift_vis_to_image(vis, im, tangent=True, inverse=False, **kwargs):

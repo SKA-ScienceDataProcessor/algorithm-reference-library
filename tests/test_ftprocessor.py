@@ -18,13 +18,10 @@ from arl.fourier_transforms.ftprocessor import *
 from arl.image.operations import export_image_to_fits
 from arl.skymodel.operations import create_skycomponent, find_skycomponents, find_nearest_component, \
     insert_skycomponent
-from arl.util.testing_support import create_named_configuration
+from arl.util.testing_support import create_named_configuration, run_unittests
 from arl.visibility.operations import create_visibility, sum_visibility
 
-log = logging.getLogger()
-log.setLevel(logging.DEBUG)
-
-log = logging.getLogger("tests.test_ftprocessor")
+log = logging.getLogger(__name__)
 
 
 class TestFTProcessor(unittest.TestCase):
@@ -240,10 +237,5 @@ class TestFTProcessor(unittest.TestCase):
                        'wstep': 2.0}
         self._invert_base(invert_wprojection, fluxthreshold=10.0, positionthreshold=1.0)
 
-
 if __name__ == '__main__':
-    import logging
-    
-    log = logging.getLogger()
-    log.setLevel(logging.DEBUG)
-    unittest.main()
+    run_unittests()

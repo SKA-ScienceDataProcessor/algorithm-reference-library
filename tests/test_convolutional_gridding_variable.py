@@ -6,12 +6,8 @@ from astropy.coordinates import SkyCoord
 
 from arl.fourier_transforms.convolutional_gridding import *
 from arl.fourier_transforms.variable_kernels import *
-from arl.util.testing_support import create_named_configuration
+from arl.util.testing_support import create_named_configuration, run_unittests
 from arl.visibility.operations import create_visibility
-
-log = logging.getLogger()
-log.setLevel(logging.DEBUG)
-log.addHandler(logging.StreamHandler(sys.stdout))
 
 log = logging.getLogger("tests.test_convolutional_gridding_kernel")
 
@@ -59,4 +55,4 @@ class TestConvolutionalGriddingVariable(unittest.TestCase):
         assert len(wkl(10,0).shape) == 4, "Shape is wrong: %s" % (wkl(10,0).shape)
 
 if __name__ == '__main__':
-    unittest.main()
+    run_unittests()

@@ -18,7 +18,7 @@ from arl.fourier_transforms.fft_support import *
 
 # from arl.core.c import gridder
 
-log = logging.getLogger("fourier_transforms.convolutional_gridding")
+log = logging.getLogger(__name__)
 
 
 def coordinateBounds(npixel):

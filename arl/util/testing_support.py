@@ -1,10 +1,13 @@
 # Tim Cornwell <realtimcornwell@gmail.com>
 #
-# Definition of structures needed by the function interface. These are mostly
-# subclasses of astropy classes.
-#
+"""
+Definition of structures needed by the function interface. These are mostly
+subclasses of astropy classes.
+"""
 
+import sys
 import logging
+import unittest
 
 from astropy import units as u
 from astropy.coordinates import ICRS, EarthLocation
@@ -17,7 +20,7 @@ from arl.image.operations import import_image_from_fits
 from arl.util.coordinate_support import *
 from arl.util.read_oskar_vis import OskarVis
 
-log = logging.getLogger("util.testing_support")
+log = logging.getLogger(__name__)
 
 def create_configuration_from_array(antxyz: numpy.array, name: str = None, location: EarthLocation = None,
                                     mount: str = 'alt-az', names: str = '%d', meta: dict = None, **kwargs):
@@ -228,3 +231,19 @@ def replicate_image(im: Image, npol=4, nchan=1, frequency=1.4e9):
         fim = im
     
     return fim
+
+def run_unittests(logLevel = logging.DEBUG, *args, **kwargs):
+    """Runs the unit tests in all loaded modules.
+
+    :param logLevel: The amount of logging to generate. By default, we
+      show all log messages (level DEBUG)
+    :param *args: Will be passed to `unittest.main`
+    """
+
+    # Set up logging environment
+    rootLog = logging.getLogger()
+    rootLog.setLevel(logLevel)
+    rootLog.addHandler(logging.StreamHandler(sys.stderr))
+
+    # Call unittest main
+    unittest.main(*args, **kwargs)

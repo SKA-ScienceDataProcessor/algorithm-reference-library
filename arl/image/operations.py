@@ -12,7 +12,7 @@ from reproject import reproject_interp
 from arl.data.data_models import *
 from arl.data.parameters import *
 
-log = logging.getLogger("image.operations")
+log = logging.getLogger(__name__)
 
 
 def image_sizeof(im):

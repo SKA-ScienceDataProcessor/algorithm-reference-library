@@ -7,7 +7,7 @@ from arl.data.data_models import *
 from arl.data.parameters import *
 from arl.image.operations import create_image_from_array
 
-log = logging.getLogger("image.deconvolution")
+log = logging.getLogger(__name__)
 
 
 def deconvolve_cube(dirty: Image, psf: Image, **kwargs):

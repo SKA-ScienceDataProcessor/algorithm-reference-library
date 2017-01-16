@@ -7,9 +7,9 @@ import unittest
 
 from arl.image.iterators import *
 from arl.image.operations import *
-from arl.util.testing_support import create_test_image
+from arl.util.testing_support import create_test_image, run_unittests
 
-log = logging.getLogger("tests.TestImage")
+log = logging.getLogger(__name__)
 
 class TestImage(unittest.TestCase):
 
@@ -51,6 +51,4 @@ class TestImage(unittest.TestCase):
         export_image_to_fits(footprint, fitsfile='%s/reproject_footprint.fits' % (self.dir))
 
 if __name__ == '__main__':
-    log.setLevel(logging.DEBUG)
-    log.addHandler(logging.StreamHandler(sys.stdout))
-    unittest.main()
+    run_unittests()

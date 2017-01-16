@@ -10,7 +10,7 @@ from astropy.constants import c
 from astropy.coordinates import SkyCoord
 from astropy.table import Table
 
-log = logging.getLogger("data.data_models")
+log = logging.getLogger(__name__)
 
 
 class Configuration:

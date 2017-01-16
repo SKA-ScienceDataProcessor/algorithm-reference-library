@@ -8,14 +8,13 @@ import sys
 import copy
 import logging
 
-log = logging.getLogger("visibility.operations")
-
 from astropy.table import vstack
 
 from arl.util.coordinate_support import *
 from arl.data.data_models import *
 from arl.data.parameters import *
 
+log = logging.getLogger(__name__)
 
 def vis_summary(vis: Visibility):
     """Return string summarizing the Visibility

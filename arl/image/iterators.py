@@ -11,7 +11,7 @@ import numpy
 from arl.image.operations import create_image_from_array
 from arl.data.parameters import get_parameter
 
-log = logging.getLogger("image.iterators")
+log = logging.getLogger(__name__)
 
 class raster_iter:
     """Create a raster_iter generator, returning images

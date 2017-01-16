@@ -1,20 +1,16 @@
 # Tim Cornwell <realtimcornwell@gmail.com>
 #
-
-#
-
-import logging
-
-log = logging.getLogger("visibility.calibration")
-
-from arl.data.data_models import *
-from arl.data.parameters import *
-
 """
-Functions that either solve_gains for the calibration or apply it. On solution the gains are written into a gaintable. For
+Functions that either solve_gains for the calibration or apply
+it. On solution the gains are written into a gaintable. For
 correction, the gaintable is read and, if necessary, interpolated.
 """
 
+import logging
+
+from arl.data.data_models import *
+from arl.data.parameters import *
+log = logging.getLogger("visibility.calibration")
 
 def create_gaintable_from_array(gain: numpy.array, time: numpy.array, antenna: numpy.array, weight: numpy.array,
                                 frequency: numpy.array, copy=False, meta=None, **kwargs):

@@ -8,9 +8,9 @@ import unittest
 import numpy
 
 from arl.image.iterators import *
-from arl.util.testing_support import create_test_image
+from arl.util.testing_support import create_test_image, run_unittests
 
-log = logging.getLogger("tests.TestImageIterators")
+log = logging.getLogger(__name__)
 
 
 class TestImageIterators(unittest.TestCase):
@@ -38,6 +38,4 @@ class TestImageIterators(unittest.TestCase):
 
 
 if __name__ == '__main__':
-    log.setLevel(logging.DEBUG)
-    log.addHandler(logging.StreamHandler(sys.stdout))
-    unittest.main()
+    run_unittests()

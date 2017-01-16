@@ -10,7 +10,7 @@ from numpy.testing import assert_allclose
 
 from arl.skymodel.operations import create_skycomponent
 from arl.skymodel.operations import create_skymodel_from_component
-from arl.util.testing_support import create_named_configuration
+from arl.util.testing_support import create_named_configuration, run_unittests
 from arl.visibility.operations import *
 from arl.fourier_transforms.ftprocessor import *
 
@@ -72,10 +72,4 @@ class TestVisibilityOperations(unittest.TestCase):
 
 
 if __name__ == '__main__':
-    import sys
-    import logging
-    
-    log = logging.getLogger()
-    log.setLevel(logging.DEBUG)
-    log.addHandler(logging.StreamHandler(sys.stdout))
-    unittest.main()
+    run_unittests()

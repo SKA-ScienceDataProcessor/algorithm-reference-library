@@ -3,21 +3,15 @@
 realtimcornwell@gmail.com
 """
 
-import logging
-import sys
 import unittest
 
 import numpy
 from astropy import units as u
 from astropy.coordinates import SkyCoord
 
-from arl.util.testing_support import create_named_configuration
+from arl.util.testing_support import create_named_configuration, run_unittests
 from arl.visibility.iterators import vis_timeslice_iter
 from arl.visibility.operations import create_visibility
-
-log = logging.getLogger()
-log.setLevel(logging.DEBUG)
-log.addHandler(logging.StreamHandler(sys.stdout))
 
 
 class TestVisibilityIterators(unittest.TestCase):
@@ -59,10 +53,4 @@ class TestVisibilityIterators(unittest.TestCase):
             "Write back failed %s %s" % (numpy.max(numpy.abs(self.vis.data['vis'])), timemax)
 
 if __name__ == '__main__':
-    import sys
-    import logging
-    
-    log = logging.getLogger()
-    log.setLevel(logging.DEBUG)
-    log.addHandler(logging.StreamHandler(sys.stdout))
-    unittest.main()
+    run_unittests()

@@ -10,7 +10,7 @@ import copy
 from arl.data.parameters import get_parameter
 from arl.data.data_models import Visibility
 import logging
-log = logging.getLogger("visibility.iterators")
+log = logging.getLogger(__name__)
 
 
 class vis_timeslice_iter():

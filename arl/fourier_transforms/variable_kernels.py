@@ -14,7 +14,7 @@ from arl.fourier_transforms.convolutional_gridding import *
 
 import pylru
 
-log = logging.getLogger("fourier_transforms.variable_kernels")
+log = logging.getLogger(__name__)
 
 
 def standard_kernel_lambda(vis, shape, oversampling=8, support=3):
