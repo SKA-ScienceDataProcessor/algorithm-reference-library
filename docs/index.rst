@@ -650,6 +650,69 @@ These can be nested as such::
 
 This will perform wslice transforms and inside those, image partition transforms.
 
+Parallel processing
+*******************
+
+ARL uses parallel processing to speed up some calculations. It is not intended to indicate a preference for how
+parallel processing should be implemented in SDP.
+
+We use an openMP-like package `pypm <https://github.com/classner/pymp/>`. An example is to be found in
+invert-timeslice. The data are divided into timeslices and then processed in parallel::
+
+   def invert_timeslice(vis, im, dopsf=False, **kwargs):
+       """ Invert using time slices (top level function)
+
+       Use the image im as a template. Do PSF in a separate call.
+
+       :param vis: Visibility to be inverted
+       :param im: image template (not changed)
+       :param dopsf: Make the psf instead of the dirty image
+       :param nprocessor: Number of processors to be used (1)
+       :returns: resulting image[nchan, npol, ny, nx], sum of weights[nchan, npol]
+
+       """
+       log.debug("invert_timeslice: inverting using time slices")
+       resultimage = create_image_from_array(im.data, im.wcs)
+       resultimage.data = pymp.shared.array(resultimage.data.shape)
+       resultimage.data *= 0.0
+
+       nproc = get_parameter(kwargs, "nprocessor", 1)
+
+       nchan, npol, _, _ = im.data.shape
+
+       totalwt = numpy.zeros([nchan, npol], dtype='float')
+
+       if nproc > 1:
+           # We need to tell pymp that some arrays are shared
+           resultimage.data = pymp.shared.array(resultimage.data.shape)
+           resultimage.data *= 0.0
+           totalwt = pymp.shared.array([nchan, npol])
+
+           # Extract the slices and run invert_timeslice_single on each one in parallel
+           nslices = 0
+           rowses = []
+           for rows in vis_timeslice_iter(vis, **kwargs):
+               nslices += 1
+               rowses.append(rows)
+
+           log.debug("invert_timeslice: Processing %d time slices %d-way parallel" % (nslices, nproc))
+           with pymp.Parallel(nproc) as p:
+               for index in p.range(0, nslices):
+                   visslice = create_visibility_from_rows(vis, rowses[index])
+                   workimage, sumwt = invert_timeslice_single(visslice, im, dopsf, **kwargs)
+                   resultimage.data += workimage.data
+                   totalwt += sumwt
+
+       else:
+           # Do each slice in turn
+           for rows in vis_timeslice_iter(vis, **kwargs):
+               visslice=create_visibility_from_rows(vis, rows)
+               workimage, sumwt = invert_timeslice_single(visslice, im, dopsf, **kwargs)
+               resultimage.data += workimage.data
+               totalwt += sumwt
+
+       return resultimage, totalwt
+
 Best Practices
 **************
 
@@ -683,6 +746,8 @@ Naming
 * Names should obey the `SIP Coding and Documentation Guide <https://confluence.ska-sdp.org/display/SIP/Coding+and+Documentation+Guide+for+SIP/>`_ guide.
 * For functions that move data in and out of ARL, use import/export.
 * For functions that provide persistent, use read/save.
+
+
 
 
 References

@@ -218,10 +218,10 @@ def invert_2d_base(vis, im, dopsf=False, **kwargs):
     # Normalise weights for consistency with transform
     sumwt /= float(padding * padding * nx * ny)
 
-    log.debug("invert_2d_base: Peak of unnormalised dirty image = %s" % (numpy.max(imgrid, axis=(2,3))))
-    log.debug("invert_2d_base: Sum of gridding weights = %s" % (sumwt))
-    if sumwt.any() > 0.0:
-        log.debug("invert_2d_base: Peak of normalised dirty image = %s" % (numpy.max(imgrid, axis=(2,3)) / sumwt))
+    # log.debug("invert_2d_base: Peak of unnormalised dirty image = %s" % (numpy.max(imgrid, axis=(2,3))))
+    # log.debug("invert_2d_base: Sum of gridding weights = %s" % (sumwt))
+    # if sumwt.any() > 0.0:
+    #     log.debug("invert_2d_base: Peak of normalised dirty image = %s" % (numpy.max(imgrid, axis=(2,3)) / sumwt))
 
     return create_image_from_array(imgrid, im.wcs), sumwt
 

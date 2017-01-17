@@ -142,7 +142,8 @@ def qa_image(im, **kwargs):
     :param im:
     :returns: QA
     """
-    data = {'max': numpy.max(im.data),
+    data = {'shape': str(im.data.shape),
+            'max': numpy.max(im.data),
             'min': numpy.min(im.data),
             'rms': numpy.std(im.data),
             'sum': numpy.sum(im.data),
