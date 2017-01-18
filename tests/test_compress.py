@@ -2,27 +2,11 @@
 
 realtimcornwell@gmail.com
 """
-import logging
-import os
 import unittest
 
-import numpy
-
-import matplotlib.pyplot as plt
-
-from astropy.convolution import Gaussian2DKernel, convolve
-from astropy import units as u
-from astropy.coordinates import SkyCoord
-from astropy.wcs.utils import pixel_to_skycoord
-from numpy.testing import assert_allclose
-
-from arl.fourier_transforms.ftprocessor import *
-from arl.fourier_transforms.compress import *
-from arl.image.operations import export_image_to_fits
-from arl.skymodel.operations import create_skycomponent, find_skycomponents, find_nearest_component, \
-    insert_skycomponent
 from arl.util.testing_support import create_named_configuration, run_unittests
-from arl.visibility.operations import create_visibility, sum_visibility
+from arl.visibility.operations import create_visibility
+from arl.visibility.compress import *
 
 log = logging.getLogger(__name__)
 
