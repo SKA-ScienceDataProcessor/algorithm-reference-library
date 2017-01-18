@@ -45,8 +45,11 @@ class TestCompress(unittest.TestCase):
                                               phasecentre=self.phasecentre, **self.params)
         self.model = create_image_from_visibility(self.vis, **self.params)
 
-    def test_compress_grid_vis(self):
+    def test_compress_decompress_grid_vis(self):
         """Test compression"""
-        newvis = compress_visibility(self.vis, self.model)
+        cvis = compress_visibility(self.vis, self.model)
+        dvis = decompress_visibility(cvis, self.vis, self.model)
+        assert dvis.nvis == self.vis.nvis
+        
 if __name__ == '__main__':
     run_unittests()
