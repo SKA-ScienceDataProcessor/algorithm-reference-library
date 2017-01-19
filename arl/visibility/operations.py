@@ -55,7 +55,7 @@ def combine_visibility(vis1: Visibility, vis2: Visibility, w1: float = 1.0, w2: 
     return vis
 
 
-def concatenate_visibility(vis1: Visibility, vis2: Visibility, **kwargs) -> \
+def concatenate_visibility(vis1: Visibility, vis2: Visibility) -> \
         Visibility:
     """ Concatentate the data sets in time, optionally phase rotating the second to the phasecenter of the first
 
@@ -79,21 +79,20 @@ def concatenate_visibility(vis1: Visibility, vis2: Visibility, **kwargs) -> \
 
 
 def create_visibility(config: Configuration, times: numpy.array, freq: numpy.array, weight: float,
-                      phasecentre: SkyCoord, meta: dict = None, **kwargs) -> Visibility:
+                      phasecentre: SkyCoord, meta: dict = None, npol=4) -> Visibility:
     """ Create a Visibility from Configuration, hour angles, and direction of source
 
     :param params:
     :param config: Configuration of antennas
     :param times: hour angles in radians
-    :param freq: frequencies (Hz] Shape [nchan, npol]
+    :param freq: frequencies (Hz] Shape [nchan]
     :param weight: weight of a single sample
     :param phasecentre: phasecentre of observation
-    :param meta:
+    :param npol: Number of polarizations
     :returns: Visibility
     """
     assert phasecentre is not None, "Must specify phase centre"
     nch = len(freq)
-    npol = get_parameter(kwargs, "npol", 4)
     ants_xyz = config.data['xyz']
     nants = len(config.data['names'])
     nbaselines = int(nants * (nants - 1) / 2)
@@ -115,7 +114,7 @@ def create_visibility(config: Configuration, times: numpy.array, freq: numpy.arr
     ruvw = xyz_to_baselines(ants_xyz, times, phasecentre.dec)
     vis = Visibility()
     vis.data = Table(data=[ruvw, rtimes, rantenna1, rantenna2, rvis, rweight, rweight],
-                     names=['uvw', 'time', 'antenna1', 'antenna2', 'vis', 'weight', 'imaging_weight'], meta=meta)
+                     names=['uvw', 'time', 'antenna1', 'antenna2', 'vis', 'weight', 'imaging_weight'], meta={})
     vis.frequency = freq
     vis.phasecentre = phasecentre
     vis.configuration = config
@@ -192,7 +191,7 @@ def phaserotate_visibility(vis: Visibility, newphasecentre: SkyCoord, tangent=Tr
     return vis
 
 
-def sum_visibility(vis: Visibility, direction: SkyCoord, **kwargs) -> numpy.array:
+def sum_visibility(vis: Visibility, direction: SkyCoord) -> numpy.array:
     """ Direct Fourier summation in a given direction
 
     :param params:
@@ -217,15 +216,13 @@ def sum_visibility(vis: Visibility, direction: SkyCoord, **kwargs) -> numpy.arra
     return flux, weight
 
 
-def qa_visibility(vis, **kwargs):
+def qa_visibility(vis, context = None):
     """Assess the quality of Visibility
 
     :param params:
     :param vis: Visibility to be assessed
     :returns: AQ
     """
-    context = get_parameter(kwargs, 'context', None)
-    log_parameters(**kwargs)
     avis = numpy.abs(vis.vis)
     data = {'maxabs': numpy.max(avis),
             'minabs': numpy.min(avis),
@@ -233,5 +230,5 @@ def qa_visibility(vis, **kwargs):
             'medianabs': numpy.median(avis)}
     qa = QA(origin=None,
             data=data,
-            context=get_parameter(kwargs, 'context', None))
+            context=context)
     return qa

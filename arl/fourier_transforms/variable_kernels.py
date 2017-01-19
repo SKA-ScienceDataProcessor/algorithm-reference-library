@@ -66,7 +66,7 @@ def w_kernel_lambda(vis, shape, fov, oversampling=4, wstep=100.0, npixel_kernel=
     return lambda row, chan=0: lrucache(int(round(warray[row] * karray[chan]))), lrucache
 
 
-def variable_kernel_degrid(kernel_function, uvgrid, uv, uvscale):
+def variable_kernel_degrid(kernel_function, vshape, uvgrid, uv, uvscale, vmap):
     """Convolutional degridding with frequency and polarisation independent
 
     Takes into account fractional `uv` coordinate values where the GCF
@@ -77,28 +77,31 @@ def variable_kernel_degrid(kernel_function, uvgrid, uv, uvscale):
     :param uv: fractional uv coordinates in range[-0.5,0.5[
     :param uvscale: scaling for each channel
     :param viscoords: list of visibility coordinates to use for kernel_function
+    :param vmap: Function to may image channels to visibility channels
     :returns: Array of visibilities.
     """
-    nchan, npol, ny, nx = uvgrid.shape
-    nvis, _ = uv.shape
-    vis = numpy.zeros([nvis, nchan, npol], dtype='complex')
-    wt = numpy.zeros([nvis, nchan, npol])
+    inchan, inpol, ny, nx = uvgrid.shape
+    nvis, vnchan, vnpol = vshape
+    assert vnpol == inpol, "Number of polarizations must be the same"
+    vis = numpy.zeros(vshape, dtype='complex')
+    wt = numpy.zeros(vshape)
     for row in range(nvis):
-        for chan in range(nchan):
-            kernel = numpy.conj(kernel_function(row, chan))
+        for vchan in range(vnchan):
+            ichan = vmap(vchan)
+            kernel = numpy.conj(kernel_function(row, vchan))
             kernel_oversampling, _, gh, gw = kernel.shape
-            y, yf = frac_coord(nx, kernel_oversampling, uvscale[1, chan] * uv[row, 1])
-            x, xf = frac_coord(ny, kernel_oversampling, uvscale[0, chan] * uv[row, 0])
-            for pol in range(npol):
-                vis[row, chan, pol] = numpy.sum(uvgrid[chan, pol, y - gh // 2: y + (gh + 1) // 2,
+            y, yf = frac_coord(nx, kernel_oversampling, uvscale[1, vchan] * uv[row, 1])
+            x, xf = frac_coord(ny, kernel_oversampling, uvscale[0, vchan] * uv[row, 0])
+            for vpol in range(vnpol):
+                vis[row, vchan, vpol] = numpy.sum(uvgrid[ichan, vpol, y - gh // 2: y + (gh + 1) // 2,
                                                 x - gw // 2: x + (gw + 1) // 2] * kernel[yf, xf, :, :])
-                wt[row, chan, pol] = numpy.sum(kernel[yf, xf, :, :].real)
+                wt[row, vchan, vpol] = numpy.sum(kernel[yf, xf, :, :].real)
     vis[numpy.where(wt > 0)] = vis[numpy.where(wt > 0)] / wt[numpy.where(wt > 0)]
     vis[numpy.where(wt < 0)] = 0.0
     return numpy.array(vis)
 
 
-def variable_kernel_grid(kernel_function, uvgrid, uv, uvscale, vis, visweights):
+def variable_kernel_grid(kernel_function, uvgrid, uv, uvscale, vis, visweights, vmap):
     """Grid after convolving with frequency and polarisation independent gcf
 
     Takes into account fractional `uv` coordinate values where the GCF
@@ -109,21 +112,24 @@ def variable_kernel_grid(kernel_function, uvgrid, uv, uvscale, vis, visweights):
     :param uv: UVW positions
     :param vis: Visibility values
     :param vis: Visibility weights
+    :param vmap: Function to map image channel to visibility channel
     """
     
-    nchan, npol, ny, nx = uvgrid.shape
-    nvis, _ = uv.shape
-    sumwt = numpy.zeros([nchan, npol])
+    inchan, inpol, ny, nx = uvgrid.shape
+    nvis, vnchan, vnpol = vis.shape
+    assert vnpol == inpol, "Number of polarizations must be the same"
+    sumwt = numpy.zeros([inchan, inpol])
     for row in range(nvis):
-        for chan in range(nchan):
-            kernel = kernel_function(row, chan)
+        for vchan in range(vnchan):
+            ichan = vmap(vchan)
+            kernel = kernel_function(row, vchan)
             kernel_oversampling, _, gh, gw = kernel.shape
-            y, yf = frac_coord(nx, kernel_oversampling, uvscale[1, chan] * uv[row, 1])
-            x, xf = frac_coord(ny, kernel_oversampling, uvscale[0, chan] * uv[row, 0])
-            for pol in range(npol):
-                viswt = vis[row, chan, pol] * visweights[row, chan, pol]
-                uvgrid[chan, pol, (y - gh // 2):(y + (gh + 1) // 2), (x - gw // 2):(x + (gw + 1) // 2)] += \
+            y, yf = frac_coord(nx, kernel_oversampling, uvscale[1, vchan] * uv[row, 1])
+            x, xf = frac_coord(ny, kernel_oversampling, uvscale[0, vchan] * uv[row, 0])
+            for vpol in range(vnpol):
+                viswt = vis[row, vchan, vpol] * visweights[row, vchan, vpol]
+                uvgrid[ichan, vpol, (y - gh // 2):(y + (gh + 1) // 2), (x - gw // 2):(x + (gw + 1) // 2)] += \
                     kernel[yf, xf, :, :] * viswt
-                sumwt[chan, pol] += numpy.sum(kernel[yf, xf, :, :].real) * visweights[row, chan, pol]
+                sumwt[ichan, vpol] += numpy.sum(kernel[yf, xf, :, :].real) * visweights[row, vchan, vpol]
 
     return uvgrid, sumwt

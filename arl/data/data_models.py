@@ -153,7 +153,8 @@ class Skycomponent:
         
         assert len(self.frequency.shape) == 1
         assert len(self.flux.shape) == 2
-        assert self.frequency.shape[0] == self.flux.shape[0]
+        assert self.frequency.shape[0] == self.flux.shape[0], "Frequency shape %s, flux shape %s" % (
+            self.frequency.shape, self.flux.shape)
     
     @property
     def nchan(self): return self.flux.shape[0]

@@ -54,7 +54,7 @@ def find_nearest_component(home, comps):
             best = comp
     return best
  
-def find_skycomponents(im: Image, fwhm=1.0, threshold=10.0, npixels=5, **kwargs):
+def find_skycomponents(im: Image, fwhm=1.0, threshold=10.0, npixels=5):
     """ Find gaussian components in Image above a certain threshold as Skycomponent
 
     :param fwhm: Full width half maximum of gaussian
@@ -138,29 +138,7 @@ def find_skycomponents(im: Image, fwhm=1.0, threshold=10.0, npixels=5, **kwargs)
     return comps
 
 
-def fit_skycomponent(im: Image, sc: SkyCoord, **kwargs):
-    """ Find flux at a given direction, return Skycomponent
-
-    :param params:
-    :param im:
-    :param sc:
-    :returns: Skycomponent
-
-    """
-    log.info("find_flux_at_direction: Extracting flux at world coordinates %s" % str(sc))
-    pixloc = skycoord_to_pixel(sc, im.wcs, 0, 'wcs')
-    log.info("find_flux_at_direction: Extracting flux at pixel coordinates %d %d" % (pixloc[0], pixloc[1]))
-    flux = im.data[:, :, int(pixloc[1] + 0.5), int(pixloc[0] + 0.5)]
-    log.info("find_flux_at_direction: Flux is %s" % flux)
-    
-    # We also need the frequency values
-    w = im.wcs.sub(['spectral'])
-    frequency = w.wcs_pix2world(range(im.data.shape[0]), 0)
-    
-    return create_skycomponent(direction=sc, flux=flux, frequency=frequency[0], shape='point')
-
-
-def insert_skycomponent(im: Image, sc: Skycomponent, **kwargs):
+def insert_skycomponent(im: Image, sc: Skycomponent, insert_method = ''):
     """ Insert a Skycompoenet into an image
 
     :param params:
@@ -171,7 +149,6 @@ def insert_skycomponent(im: Image, sc: Skycomponent, **kwargs):
     """
     assert sc.shape == 'Point', "Cannot handle shape %s"% sc.shape
     pixloc = skycoord_to_pixel(sc.direction, im.wcs, 0, 'wcs')
-    insert_method = get_parameter(kwargs, "insert_method", "nearest")
     if insert_method == "Lanczos":
         log.debug("insert_skycomponent: Performing Lanczos interpolation of flux %s at [%.2f, %.2f] " %
                   (str(sc.flux), pixloc[1], pixloc[0]))
@@ -277,5 +254,5 @@ def _sinc(x):
 
 
 def _L(x, a = 5):
-    L = _sinc(x) *_sinc(x/a)
+    L = _sinc(x) * _sinc(x/a)
     return L

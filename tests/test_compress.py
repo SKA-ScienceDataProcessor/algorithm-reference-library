@@ -25,14 +25,13 @@ class TestCompress(unittest.TestCase):
     
         self.reffrequency = numpy.max(self.frequency)
         self.phasecentre = SkyCoord(ra=+180.0 * u.deg, dec=-60.0 * u.deg, frame='icrs', equinox=2000.0)
-        self.vis = create_visibility(self.lowcore, self.times, self.frequency, weight=1.0,
-                                              phasecentre=self.phasecentre, **self.params)
+        self.vis = create_visibility(self.lowcore, self.times, self.frequency, phasecentre=self.phasecentre)
         self.model = create_image_from_visibility(self.vis, **self.params)
 
     def test_compress_decompress_grid_vis(self):
         """Test compression"""
-        cvis = compress_visibility(self.vis, self.model)
-        dvis = decompress_visibility(cvis, self.vis, self.model)
+        cvis = compress_visibility(self.vis, self.model, compression='uvgrid')
+        dvis = decompress_visibility(cvis, self.vis, self.model, compression='uvgrid')
         assert dvis.nvis == self.vis.nvis
         
 if __name__ == '__main__':
