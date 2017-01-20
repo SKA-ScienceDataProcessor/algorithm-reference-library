@@ -54,7 +54,7 @@ times = numpy.arange(-numpy.pi / 2.0, +numpy.pi / 2.0, 0.05)
 frequency = numpy.array([1e8])
 reffrequency = numpy.max(frequency)
 phasecentre = SkyCoord(0.0 * u.rad, u.rad * numpy.pi / 4, frame='icrs', equinox=2000.0)
-vis = create_visibility(vlaa, times, frequency, weight=1.0, phasecentre=phasecentre)
+vis = create_visibility(vlaa, times, frequency, phasecentre=phasecentre, weight=1.0)
 
 # Plot the synthesized uv coverage, including for MFS
 if doshow:
@@ -113,7 +113,7 @@ export_image_to_fits(cleanimage, 'run_imaging_cleanimage.fits')
 export_image_to_fits(residual, 'run_imaging_residual.fits')
 
 # Predict the visibility of the model
-vismodel = create_visibility(vlaa, times, frequency, weight=1.0, phasecentre=phasecentre)
+vismodel = create_visibility(vlaa, times, frequency, phasecentre=phasecentre, weight=1.0)
 vismodel = predict_2d(vismodel, cleanimage, params=params)
 visres = combine_visibility(vis, vismodel, 1.0, -1.0)
 

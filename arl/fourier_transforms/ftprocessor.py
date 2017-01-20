@@ -52,16 +52,18 @@ def shift_vis_to_image(vis, im, tangent=True, inverse=False, **kwargs):
     
     return vis
 
-def normalize_sumwt(im, sumwt):
+def normalize_sumwt(im: Image, sumwt):
     """Normalize out the sum of weights
     
     :param im: Image, im.data has shape [nchan, npol, ny, nx]
     :param sumwt: Sum of weights [nchan, npol]
     """
     nchan, npol, _, _ = im.data.shape
+    assert nchan == sumwt.shape[0]
+    assert npol == sumwt.shape[1]
     for chan in range(nchan):
         for pol in range(npol):
-            im.data /= sumwt[chan, pol]
+            im.data[chan, pol, :, :] /= sumwt[chan, pol]
     return im
 
 
@@ -730,9 +732,9 @@ def create_image_from_visibility(vis, **kwargs):
     
     imagecentre = get_parameter(kwargs, "imagecentre", vis.phasecentre)
     phasecentre = get_parameter(kwargs, "phasecentre", vis.phasecentre)
-    
-    inchan = get_parameter(kwargs, "image_channels", 1)
+
     vnchan = len(vis.frequency)
+    inchan = get_parameter(kwargs, "image_nchan", vnchan)
     reffrequency = get_parameter(kwargs, "reffrequency", numpy.min(vis.frequency)) * units.Hz
     deffaultbw = vis.frequency[0]
     if len(vis.frequency) > 1:

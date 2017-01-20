@@ -62,7 +62,7 @@ class TestDataModels(unittest.TestCase):
         times = numpy.arange(-3.0, +3.0, 3.0 / 60.0) * numpy.pi / 12.0
         freq = numpy.arange(5e6, 150.0e6, 1e7)
         direction = SkyCoord('00h42m30s', '-41d12m00s', frame='icrs')
-        vis = create_visibility(config, times, freq, weight=1.0, phasecentre=direction)
+        vis = create_visibility(config, times, freq, phasecentre=direction, weight=1.0)
         log.debug(vis.data)
         log.debug(vis.frequency)
         self.assertEqual(len(numpy.unique(vis.data['time'])), len(times))

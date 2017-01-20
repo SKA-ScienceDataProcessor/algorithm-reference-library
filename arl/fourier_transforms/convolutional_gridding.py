@@ -397,6 +397,7 @@ def fixed_kernel_grid(kernel, uvgrid, uv, uvscale, vis, visweights, vmap = lambd
     :param uvscale: Scaling for each axis (u,v) for each channel
     :param vis: Visibility values
     :param vis: Visibility weights
+    :returns: uv grid[nchan, npol, ny, nx], sumwt[nchan, npol]
     """
     
     kernel_oversampling, _, gh, gw = kernel.shape

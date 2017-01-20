@@ -37,8 +37,8 @@ class TestVisibilityOperations(unittest.TestCase):
                                            frequency=self.frequency, direction=self.compreldirection)
         self.m31sm = create_skymodel_from_component(self.m31comp)
         
-        vispred = create_visibility(self.vlaa, self.times, self.frequency,
-                                    weight=1.0, phasecentre=self.phasecentre, spectral_model='channel', npol=1)
+        vispred = create_visibility(self.vlaa, self.times, self.frequency, phasecentre=self.phasecentre, weight=1.0,
+                                    npol=1)
         self.vismodel = predict_skycomponent_visibility(vispred, self.m31comp)
     
     def test_visibilitysum(self):
@@ -61,8 +61,8 @@ class TestVisibilityOperations(unittest.TestCase):
     def test_phase_rotation(self):
         # Predict visibilities with new phase centre independently
         ha_diff = -(self.compabsdirection.ra - self.phasecentre.ra).to(u.rad).value
-        vispred = create_visibility(self.vlaa, self.times + ha_diff, self.frequency,
-                                    weight=1.0, phasecentre=self.compabsdirection, spectral_model='channel', npol=1)
+        vispred = create_visibility(self.vlaa, self.times + ha_diff, self.frequency, phasecentre=self.compabsdirection,
+                                    weight=1.0, npol=1)
         vismodel2 = predict_skycomponent_visibility(vispred, self.m31comp)
         
         # Should yield the same results as rotation

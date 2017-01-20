@@ -22,7 +22,7 @@ class TestVisibilityIterators(unittest.TestCase):
         times = numpy.arange(-numpy.pi / 4.0, +numpy.pi / 4.0, numpy.pi * 0.5 / 12.0)
         frequency = numpy.array([1e8])
         phasecentre = SkyCoord(ra=+15.0 * u.deg, dec=-35.0 * u.deg, frame='icrs', equinox=2000.0)
-        self.vis = create_visibility(self.lowcore, times, frequency, weight=1.0, phasecentre=phasecentre)
+        self.vis = create_visibility(self.lowcore, times, frequency, phasecentre=phasecentre, weight=1.0)
     
     def test_vis_timeslice_iterator(self):
         timemin = numpy.min(self.vis.time)

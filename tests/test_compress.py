@@ -25,7 +25,8 @@ class TestCompress(unittest.TestCase):
     
         self.reffrequency = numpy.max(self.frequency)
         self.phasecentre = SkyCoord(ra=+180.0 * u.deg, dec=-60.0 * u.deg, frame='icrs', equinox=2000.0)
-        self.vis = create_visibility(self.lowcore, self.times, self.frequency, phasecentre=self.phasecentre)
+        self.vis = create_visibility(self.lowcore, self.times, self.frequency, phasecentre=self.phasecentre,
+                                     weight=1.0, npol=1)
         self.model = create_image_from_visibility(self.vis, **self.params)
 
     def test_compress_decompress_grid_vis(self):

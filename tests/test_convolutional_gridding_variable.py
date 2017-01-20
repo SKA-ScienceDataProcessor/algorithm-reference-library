@@ -30,8 +30,7 @@ class TestConvolutionalGriddingVariable(unittest.TestCase):
         
         self.reffrequency = numpy.max(self.frequency)
         self.phasecentre = SkyCoord(ra=+15.0 * u.deg, dec=-35.0 * u.deg, frame='icrs', equinox=2000.0)
-        self.vis = create_visibility(self.lowcore, self.times, self.frequency, weight=1.0,
-                                     phasecentre=self.phasecentre)
+        self.vis = create_visibility(self.lowcore, self.times, self.frequency, phasecentre=self.phasecentre, weight=1.0)
 
 
     def assertAlmostEqualScalar(self, a, result=1.0):

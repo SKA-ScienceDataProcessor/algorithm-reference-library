@@ -78,8 +78,8 @@ def concatenate_visibility(vis1: Visibility, vis2: Visibility) -> \
     return vis
 
 
-def create_visibility(config: Configuration, times: numpy.array, freq: numpy.array, weight: float,
-                      phasecentre: SkyCoord, meta: dict = None, npol=4) -> Visibility:
+def create_visibility(config: Configuration, times: numpy.array, freq: numpy.array, phasecentre: SkyCoord,
+                      weight: float, meta: dict = None, npol=4) -> Visibility:
     """ Create a Visibility from Configuration, hour angles, and direction of source
 
     :param params:

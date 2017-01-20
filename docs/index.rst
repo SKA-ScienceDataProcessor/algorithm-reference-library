@@ -44,7 +44,7 @@ See the jupyter note books below:
    arl/imaging
    arl/imaging-fits
    arl/imaging-wterm
-   arl/imaging-twopart
+   arl/imaging-compress
 
 In addition, there are other notebooks in examples/arl that are not built as part of this documentation
 
