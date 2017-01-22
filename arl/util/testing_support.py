@@ -5,22 +5,21 @@ Definition of structures needed by the function interface. These are mostly
 subclasses of astropy classes.
 """
 
-import sys
-import logging
+import csv
 import unittest
 
-from astropy import units as u
 from astropy.coordinates import ICRS, EarthLocation
 from astropy.table import Column
 from astropy.wcs import WCS
 
 from arl.data.data_models import *
 from arl.data.parameters import arl_path
-from arl.image.operations import import_image_from_fits
+from arl.image.operations import import_image_from_fits, create_image_from_array
 from arl.util.coordinate_support import *
 from arl.util.read_oskar_vis import OskarVis
 
 log = logging.getLogger(__name__)
+
 
 def create_configuration_from_array(antxyz: numpy.array, name: str = None, location: EarthLocation = None,
                                     mount: str = 'alt-az', names: str = '%d', meta: dict = None, **kwargs):
@@ -197,6 +196,73 @@ def create_test_image(canonical=True, npol=4, nchan=1, cellsize=None):
     return im
 
 
+def create_low_test_image(npixel=16384, npol=1, nchan=1, cellsize=0.000015, frequency=1e8, channelwidth=1e6,
+                          phasecentre=None):
+    """Create LOW test image from S3
+    
+    The input catalog was generated at http://s-cubed.physics.ox.ac.uk/s3_sex using the following query
+    Database: s3_sex
+    SQL: select * from Galaxies where (pow(10,itot_151)*1000 > 1.0) and (right_ascension between -5 and 5) and (declination between -5 and 5);;
+    Number of rows returned: 29966
+    
+    :param npixel: Number of pixels
+    :param npol: Number of polarisations (all set to same value)
+    :param nchan: Number of channels (all set to same value)
+    :param cellsize: cellsize in radians
+    :param reffrequency: Reference frequency (Hz)
+    :param channelwidth: Channel width (Hz)
+    :param phasecentre: phasecentre (SkyCoord)
+    :returns: Image
+    """
+    
+    ras = []
+    decs = []
+    fluxes = []
+    
+    if phasecentre is None:
+        phasecentre = SkyCoord(ra=+180.0 * u.deg, dec=-60.0 * u.deg, frame='icrs', equinox=2000.0)
+    
+    shape = [nchan, npol, npixel, npixel]
+    w = WCS(naxis=4)
+    # The negation in the longitude is needed by definition of RA, DEC
+    w.wcs.cdelt = [-cellsize * 180.0 / numpy.pi, cellsize * 180.0 / numpy.pi, 1.0, channelwidth]
+    w.wcs.crpix = [npixel // 2 + 1, npixel // 2 + 1, 1.0, 1.0]
+    w.wcs.ctype = ["RA---SIN", "DEC--SIN", 'STOKES', 'FREQ']
+    w.wcs.crval = [phasecentre.ra.value, phasecentre.dec.value, 1.0, frequency]
+    w.naxis = 4
+    
+    w.wcs.radesys = 'ICRS'
+    w.wcs.equinox = 2000.0
+    
+    model = create_image_from_array(numpy.zeros(shape), w)
+    
+    with open(arl_path('data/models/S3_151MHz_10deg.csv')) as csvfile:
+        readCSV = csv.reader(csvfile, delimiter=',')
+        r = 0
+        for row in readCSV:
+            # Skip first row
+            if r > 0:
+                ra = float(row[4]) + 180.0
+                dec = float(row[5]) - 60.0
+                flux = numpy.power(10, float(row[9]))
+                ras.append(ra)
+                decs.append(dec)
+                fluxes.append(flux)
+            r += 1
+    
+    p = w.sub(2).wcs_world2pix(numpy.array(ras), numpy.array(decs), 0)
+    fluxes = numpy.array(fluxes)
+    ip = numpy.round(p).astype('int')
+    ok = numpy.where((0 <= ip[0,:]) & (npixel > ip[0,:]) & (0 <= ip[1,:]) & (npixel > ip[1,:]))[0]
+    ps = ip[:,ok]
+    log.info('create_low_test_image: %d sources inside the image' % (ps.shape[1]))
+    for chan in range(nchan):
+        for pol in range(npol):
+            model.data[chan, pol, ip[1,ok], ip[0,ok]] += fluxes[ok]
+    
+    return model
+
+
 def replicate_image(im: Image, npol=4, nchan=1, frequency=1.4e9):
     """ Make a new canonical shape Image, extended along third and fourth axes by replication.
 
@@ -232,18 +298,23 @@ def replicate_image(im: Image, npol=4, nchan=1, frequency=1.4e9):
     
     return fim
 
-def run_unittests(logLevel = logging.DEBUG, *args, **kwargs):
+
+def run_unittests(logLevel=logging.DEBUG, *args, **kwargs):
     """Runs the unit tests in all loaded modules.
 
     :param logLevel: The amount of logging to generate. By default, we
       show all log messages (level DEBUG)
     :param *args: Will be passed to `unittest.main`
     """
-
+    
     # Set up logging environment
     rootLog = logging.getLogger()
     rootLog.setLevel(logLevel)
     rootLog.addHandler(logging.StreamHandler(sys.stderr))
-
+    
     # Call unittest main
     unittest.main(*args, **kwargs)
+    
+if __name__ == '__main__':
+    im=create_low_test_image()
+
