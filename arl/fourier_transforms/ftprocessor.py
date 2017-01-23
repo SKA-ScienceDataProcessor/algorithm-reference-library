@@ -419,8 +419,8 @@ def predict_timeslice(vis, model, **kwargs):
                 with p.lock:
                     shared_vis[rows] = visslice.data['vis']
         
-        vis.data.replace_column('vis', shared_vis)
-    
+        vis.data['vis'][...] = shared_vis[...]
+
     else:
         log.debug("predict_timeslice: Processing time slices serially")
         # Do each slice in turn

@@ -8,7 +8,6 @@ import numpy
 from astropy import units as u
 from astropy.constants import c
 from astropy.coordinates import SkyCoord
-from astropy.table import Table
 
 log = logging.getLogger(__name__)
 
@@ -20,28 +19,34 @@ class Configuration:
     """
     
     def __init__(self, name='', data=None, location=None,
-                 names="%s", xyz=None, mount="alt-az"):
+                 names="%s", xyz=None, mount="alt-az", frame=None):
         
         # Defaults
         if data is None and not xyz is None:
+            desc = [('names', '<U6'),
+                    ('xyz', '<f8', (3,)),
+                    ('mount', '<U5')]
             nants = xyz.shape[0]
             if isinstance(names, str):
                 names = [names % ant for ant in range(nants)]
             if isinstance(mount, str):
                 mount = numpy.repeat(mount, nants)
-            data = Table([names, xyz, mount],
-                         names=['names', 'xyz', 'mount'])
+            data = numpy.zeros(shape=[nants], dtype=desc)
+            data['names'] = names
+            data['xyz'] = xyz
+            data['mount'] = mount
         
         self.name = name
         self.data = data
         self.location = location
+        self.frame = frame
     
     def __sizeof__(self):
         """ Return size in GB
         """
         size = 0
         for col in self.data.colnames:
-            size += self.data[col].size * sys.getsizeof(self.data[col])
+            size += self.data[col].size * self.data[col].itemsize
         return size / 1024.0 / 1024.0 / 1024.0
     
     @property
@@ -67,10 +72,27 @@ class GainTable:
     """
     
     # TODO: Implement gaintables with Jones and Mueller matrices
-    
-    def __init__(self):
-        self.data = None
-        self.frequency = None
+
+    def __init__(self, data=None, gain: numpy.array=None, time: numpy.array=None, antenna: numpy.array=None,
+                 weight: numpy.array=None, frequency: numpy.array=None):
+        """ Create a gaintable from arrays
+
+        :param gain: [npol, nchan]
+        :param time:
+        :param antenna:
+        :param weight:
+        :param frequency:
+        :returns: Gaintable
+        """
+        if data is None and not gain is None:
+            nrows = time.shape[0]
+            nchan = gain.shape[1]
+            npol = gain.shape[0]
+            assert len(frequency) == nchan, "Discrepancy in frequency channels"
+            desc = [('gain', '<c64', (nchan, npol)), ('time', '<f8'), ('antenna', '<i8'), ('weight', '<f8', (nchan, npol))]
+            self.data = numpy.array(shape=[nrows], desc=desc)
+        self.frequency = frequency
+        return self
 
 
 class Image:
@@ -97,7 +119,7 @@ class Image:
         """ Return size in GB
         """
         size = 0
-        size += self.data.size * sys.getsizeof(self.data.dtype)
+        size += numpy.product(self.data.shape) * self.data.dtype.itemsize
         return size / 1024.0 / 1024.0 / 1024.0
     
     @property
@@ -188,7 +210,7 @@ class Visibility:
     """ Visibility table class
 
     Visibility with uvw, time, a1, a2, vis, weight Columns in
-    an astropy Table along with an attribute to hold the frequencies
+    a numpy structured array along with an attribute to hold the frequencies
     and an attribute to hold the direction.
 
     Visibility is defined to hold an observation with one set of frequencies and one
@@ -204,12 +226,25 @@ class Visibility:
         if data is None and vis is not None:
             if imaging_weight is None:
                 imaging_weight = weight
-            data = Table({'uvw': uvw, 'time': time,
-                          'antenna1': antenna1, 'antenna2': antenna2,
-                          'vis': vis, 'weight': weight, 'imaging_weight': imaging_weight
-                          })
-        
-        self.data = data  # Astropy.table with columns uvw, time, a1, a2, vis, weight, imaging_weight
+            nvis = vis.shape[0]
+            nchan = vis.shape[1]
+            npol = vis.shape[2]
+            desc = [('uvw', '<f8', (3,)),
+                    ('time', '<f8'),
+                    ('antenna1', '<i8'),
+                    ('antenna2', '<i8'),
+                    ('vis', '<c16', (nchan, npol)),
+                    ('weight', '<f8', (nchan, npol)),
+                    ('imaging_weight', '<f8', (nchan, npol))]
+            data = numpy.zeros(shape=[nvis], dtype=desc)
+            data['uvw'] = uvw
+            data['time'] = time
+            data['antenna1'] = antenna1
+            data['antenna2'] = antenna2
+            data['vis'] = vis
+            data['weight'] = weight
+            data['imaging_weight'] = imaging_weight
+        self.data = data  # numpy structured array with columns uvw, time, a1, a2, vis, weight, imaging_weight
         self.frequency = frequency  # numpy.array [nchan]
         self.phasecentre = phasecentre  # Phase centre of observation
         self.configuration = configuration  # Antenna/station configuration
@@ -219,7 +254,7 @@ class Visibility:
         """
         size = 0
         size += numpy.size(self.frequency)
-        for col in self.data.colnames:
+        for col in self.data.dtype.fields.keys():
             size += self.data[col].size * sys.getsizeof(self.data[col])
         return size / 1024.0 / 1024.0 / 1024.0
     

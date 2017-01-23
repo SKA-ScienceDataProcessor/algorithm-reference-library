@@ -44,13 +44,13 @@ See the jupyter note books below:
    arl/imaging
    arl/imaging-fits
    arl/imaging-wterm
-   arl/imaging-compress
 
 In addition, there are other notebooks in examples/arl that are not built as part of this documentation
 
 .. toctree::
    :maxdepth: 2
 
+   examples/arl/imaging-compress
    examples/arl/imaging-low.ipynb
 
 ARL definition
@@ -656,8 +656,8 @@ Parallel processing
 ARL uses parallel processing to speed up some calculations. It is not intended to indicate a preference for how
 parallel processing should be implemented in SDP.
 
-We use an openMP-like package `pypm <https://github.com/classner/pymp/>`. An example is to be found in
-invert-timeslice. The data are divided into timeslices and then processed in parallel::
+We use an openMP-like package `pypm <https://github.com/classner/pymp/>`_. An example is to be found in
+arl/fourier_transforms/invert-timeslice. The data are divided into timeslices and then processed in parallel::
 
    def invert_timeslice(vis, im, dopsf=False, **kwargs):
        """ Invert using time slices (top level function)
@@ -746,8 +746,6 @@ Naming
 * Names should obey the `SIP Coding and Documentation Guide <https://confluence.ska-sdp.org/display/SIP/Coding+and+Documentation+Guide+for+SIP/>`_ guide.
 * For functions that move data in and out of ARL, use import/export.
 * For functions that provide persistent, use read/save.
-
-
 
 
 References

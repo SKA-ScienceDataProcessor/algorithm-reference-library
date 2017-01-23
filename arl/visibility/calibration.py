@@ -12,35 +12,6 @@ from arl.data.data_models import *
 from arl.data.parameters import *
 log = logging.getLogger("visibility.calibration")
 
-def create_gaintable_from_array(gain: numpy.array, time: numpy.array, antenna: numpy.array, weight: numpy.array,
-                                frequency: numpy.array, copy=False, meta=None, **kwargs):
-    """ Create a gaintable from arrays
-
-    :param gain:
-    :param time:
-    :param antenna:
-    :param weight:
-    :param frequency:
-    :param copy:
-    :param meta:
-    :param params: Dictionary containing parameters
-    :returns: Gaintable
-    """
-    if meta is None:
-        meta = {}
-    nrows = time.shape[0]
-    assert len(frequency) == gain.shape[1], "Discrepancy in frequency channels"
-    assert len(antenna) == nrows, "Discrepancy in number of antenna rows"
-    assert gain.shape[0] == nrows, "Discrepancy in number of gain rows"
-    assert weight.shape[0] == nrows, "Discrepancy in number of weight rows"
-    fg = GainTable()
-    
-    fg.data = Table(data=[gain, time, antenna, weight], names=['gain', 'time', 'antenna', 'weight'], copy=copy,
-                    meta=meta)
-    fg.frequency = frequency
-    return fg
-
-
 def interpolate_gaintable(gt: GainTable, **kwargs):
     """ Interpolate a GainTable to new sampling
 

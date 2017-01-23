@@ -21,26 +21,6 @@ from arl.util.read_oskar_vis import OskarVis
 log = logging.getLogger(__name__)
 
 
-def create_configuration_from_array(antxyz: numpy.array, name: str = None, location: EarthLocation = None,
-                                    mount: str = 'alt-az', names: str = '%d', meta: dict = None, **kwargs):
-    """ Define from parts
-
-    :param params:
-    :param name:
-    :param antxyz: locations of antennas numpy.array[...,3]
-    :param location: Location of array centre (reference for antenna locations)
-    :param mount: Mount type e.g. 'altaz'
-    :param names: Generator for names e.g. 'SKA1_MID%d'
-    :type meta:
-    :returns: Configuration
-    """
-    fc = Configuration()
-    assert len(antxyz) == 2, "Antenna array has wrong shape"
-    fc.data = Table(data=[names, antxyz, mount], names=["names", "xyz", "mount"], meta=meta)
-    fc.location = location
-    return fc
-
-
 def create_configuration_from_file(antfile: str, name: str = None, location: EarthLocation = None, mount: str = 'altaz',
                                    names: str = "%d", frame: str = 'local',
                                    meta: dict = None,
@@ -57,21 +37,15 @@ def create_configuration_from_file(antfile: str, name: str = None, location: Ear
     :param meta: Any meta info
     :returns: Configuration
     """
-    fc = Configuration()
-    fc.name = name
-    fc.location = location
     antxyz = numpy.genfromtxt(antfile, delimiter=",")
     assert antxyz.shape[1] == 3, ("Antenna array has wrong shape %s" % antxyz.shape)
     nants = antxyz.shape[0]
     if frame == 'local':
         latitude = location.geodetic[1].to(u.rad).value
         antxyz = xyz_at_latitude(antxyz, latitude)
-    xyz = Column(antxyz, name="xyz")
-    
     anames = [names % ant for ant in range(nants)]
     mounts = Column(numpy.repeat(mount, nants), name="mount")
-    fc.data = Table(data=[anames, xyz, mounts], names=["names", "xyz", "mount"], meta=meta)
-    fc.frame = frame
+    fc = Configuration(location=location, names=anames, mount=mounts, xyz=antxyz, frame = frame)
     return fc
 
 
@@ -84,14 +58,13 @@ def create_LOFAR_configuration(antfile: str, meta: dict = None,
     :param params: Dictionary containing parameters
     :returns: Configuration
     """
-    fc = Configuration()
     antxyz = numpy.genfromtxt(antfile, skip_header=2, usecols=[1, 2, 3], delimiter=",")
     nants = antxyz.shape[0]
     assert antxyz.shape[1] == 3, "Antenna array has wrong shape %s" % antxyz.shape
     anames = numpy.genfromtxt(antfile, dtype='str', skip_header=2, usecols=[0], delimiter=",")
-    mounts = Column(numpy.repeat('XY', nants), name="mount")
-    fc.data = Table(data=[anames, antxyz, mounts], names=["names", "xyz", "mount"], meta=meta)
-    fc.location = EarthLocation(x=[3826923.9] * u.m, y=[460915.1] * u.m, z=[5064643.2] * u.m)
+    mounts = numpy.repeat('XY', nants)
+    location = EarthLocation(x=[3826923.9] * u.m, y=[460915.1] * u.m, z=[5064643.2] * u.m)
+    fc = Configuration(location=location, names=anames, mount=mounts, xyz=antxyz, frame = 'global')
     return fc
 
 

@@ -112,9 +112,8 @@ def create_visibility(config: Configuration, times: numpy.array, freq: numpy.arr
                 rantenna2[row] = a2
                 row += 1
     ruvw = xyz_to_baselines(ants_xyz, times, phasecentre.dec)
-    vis = Visibility()
-    vis.data = Table(data=[ruvw, rtimes, rantenna1, rantenna2, rvis, rweight, rweight],
-                     names=['uvw', 'time', 'antenna1', 'antenna2', 'vis', 'weight', 'imaging_weight'], meta={})
+    vis = Visibility(uvw=ruvw, time=rtimes, antenna1=rantenna1, antenna2=rantenna2, vis=rvis, weight=rweight,
+                          imaging_weight=rweight)
     vis.frequency = freq
     vis.phasecentre = phasecentre
     vis.configuration = config
@@ -160,7 +159,7 @@ def phaserotate_visibility(vis: Visibility, newphasecentre: SkyCoord, tangent=Tr
         vis.data = vis.data.copy()
     
         # We are going to update in-place, so make a copy
-        vis.data.replace_column('vis', vis.vis.copy())
+        # vis.data.replace_column('vis', vis.vis.copy())
         for channel in range(vis.nchan):
             uvw = vis.uvw_lambda(channel)
             phasor = simulate_point(uvw, l, m)
@@ -178,11 +177,11 @@ def phaserotate_visibility(vis: Visibility, newphasecentre: SkyCoord, tangent=Tr
         if not tangent:
             if inverse:
                 xyz = uvw_to_xyz(vis.data['uvw'], ha=-vis.phasecentre.ra, dec=vis.phasecentre.dec)
-                vis.data.replace_column('uvw', xyz_to_uvw(xyz, ha=-newphasecentre.ra, dec=newphasecentre.dec))
+                vis.data['uvw'][...] = xyz_to_uvw(xyz, ha=-newphasecentre.ra, dec=newphasecentre.dec)[...]
             else:
                 # This is the original (non-inverse) code
                 xyz = uvw_to_xyz(vis.data['uvw'], ha=-vis.phasecentre.ra, dec=vis.phasecentre.dec)
-                vis.data.replace_column('uvw', xyz_to_uvw(xyz, ha=-newphasecentre.ra, dec=newphasecentre.dec))
+                vis.data['uvw'][...] = xyz_to_uvw(xyz, ha=-newphasecentre.ra, dec=newphasecentre.dec)[...]
     else:
         log.warning("phaserotate_visibility: Null phase rotation")
 

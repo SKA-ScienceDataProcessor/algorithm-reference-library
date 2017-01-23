@@ -1,3 +1,3 @@
 
-NBs = imaging.ipynb imaging-wterm.ipynb imaging-fits.ipynb imaging-compress.ipynb
+NBs = imaging.ipynb imaging-wterm.ipynb imaging-fits.ipynb
 include ../jupyter.mk
