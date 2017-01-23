@@ -27,6 +27,7 @@ class TestDataModels(unittest.TestCase):
             fc = create_named_configuration(telescope)
             log.debug(fc.location.to_geodetic())
 
+    @unittest.skip("Defer until development in this area")
     def test_gaintable(self):
         nant = 27
         npol = 4
