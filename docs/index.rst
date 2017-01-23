@@ -44,13 +44,13 @@ See the jupyter note books below:
    arl/imaging
    arl/imaging-fits
    arl/imaging-wterm
+   arl/imaging-compress
 
 In addition, there are other notebooks in examples/arl that are not built as part of this documentation
 
 .. toctree::
    :maxdepth: 2
 
-   examples/arl/imaging-compress
    examples/arl/imaging-low.ipynb
 
 ARL definition
