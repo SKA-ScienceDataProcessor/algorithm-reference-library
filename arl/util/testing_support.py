@@ -1,15 +1,13 @@
 # Tim Cornwell <realtimcornwell@gmail.com>
 #
 """
-Definition of structures needed by the function interface. These are mostly
-subclasses of astropy classes.
+Definition of structures needed by the function interface.
 """
 
 import csv
 import unittest
 
 from astropy.coordinates import ICRS, EarthLocation
-from astropy.table import Column
 from astropy.wcs import WCS
 
 from arl.data.data_models import *
@@ -44,7 +42,7 @@ def create_configuration_from_file(antfile: str, name: str = None, location: Ear
         latitude = location.geodetic[1].to(u.rad).value
         antxyz = xyz_at_latitude(antxyz, latitude)
     anames = [names % ant for ant in range(nants)]
-    mounts = Column(numpy.repeat(mount, nants), name="mount")
+    mounts = numpy.repeat(mount, nants)
     fc = Configuration(location=location, names=anames, mount=mounts, xyz=antxyz, frame = frame)
     return fc
 

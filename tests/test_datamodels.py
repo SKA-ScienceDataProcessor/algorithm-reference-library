@@ -30,7 +30,7 @@ class TestDataModels(unittest.TestCase):
     def test_gaintable(self):
         nant = 27
         npol = 4
-        atimes = numpy.arange(0.0, 43200.0, 10.0)
+        atimes = numpy.arange(0.0, 43200.0, 100.0)
         ntimes = len(atimes)
         times = numpy.repeat(atimes, nant)
         antennas = numpy.array(ntimes * list(range(nant)))
