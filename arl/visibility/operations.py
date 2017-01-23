@@ -8,8 +8,6 @@ import sys
 import copy
 import logging
 
-from astropy.table import vstack
-
 from arl.util.coordinate_support import *
 from arl.data.data_models import *
 from arl.data.parameters import *
@@ -111,7 +109,7 @@ def create_visibility(config: Configuration, times: numpy.array, freq: numpy.arr
                 rantenna1[row] = a1
                 rantenna2[row] = a2
                 row += 1
-    ruvw = xyz_to_baselines(ants_xyz, times, phasecentre.dec)
+    ruvw = xyz_to_baselines(ants_xyz, times, phasecentre.dec.value)
     vis = Visibility(uvw=ruvw, time=rtimes, antenna1=rantenna1, antenna2=rantenna2, vis=rvis, weight=rweight,
                           imaging_weight=rweight)
     vis.frequency = freq
