@@ -109,7 +109,7 @@ def create_visibility(config: Configuration, times: numpy.array, freq: numpy.arr
                 rantenna1[row] = a1
                 rantenna2[row] = a2
                 row += 1
-    ruvw = xyz_to_baselines(ants_xyz, times, phasecentre.dec.value)
+    ruvw = xyz_to_baselines(ants_xyz, times, phasecentre.dec)
     vis = Visibility(uvw=ruvw, time=rtimes, antenna1=rantenna1, antenna2=rantenna2, vis=rvis, weight=rweight,
                           imaging_weight=rweight)
     vis.frequency = freq
@@ -152,21 +152,18 @@ def phaserotate_visibility(vis: Visibility, newphasecentre: SkyCoord, tangent=Tr
     # No significant change?
     if numpy.abs(l) > 1e-15 or numpy.abs(m) > 1e-15:
     
-        # Copy object and make a new table
-        vis = copy.copy(vis)
-        vis.data = vis.data.copy()
-    
-        # We are going to update in-place, so make a copy
-        # vis.data.replace_column('vis', vis.vis.copy())
+        # Make a new copy
+        newvis = copy.copy(vis)
+
         for channel in range(vis.nchan):
-            uvw = vis.uvw_lambda(channel)
+            uvw = newvis.uvw_lambda(channel)
             phasor = simulate_point(uvw, l, m)
             if inverse:
                 for pol in range(vis.npol):
-                    vis.vis[:, channel, pol] *= phasor
+                    newvis.vis[:, channel, pol] *= phasor
             else:
                 for pol in range(vis.npol):
-                    vis.vis[:, channel, pol] *= numpy.conj(phasor)
+                    newvis.vis[:, channel, pol] *= numpy.conj(phasor)
 
         # To rotate UVW, rotate into the global XYZ coordinate system and back. We have the option of
         # staying on the tangent plane or not. If we stay on the tangent then the raster will
@@ -174,18 +171,20 @@ def phaserotate_visibility(vis: Visibility, newphasecentre: SkyCoord, tangent=Tr
         # the results on the same image, in which case overlaps or gaps are difficult to deal with.
         if not tangent:
             if inverse:
-                xyz = uvw_to_xyz(vis.data['uvw'], ha=-vis.phasecentre.ra, dec=vis.phasecentre.dec)
-                vis.data['uvw'][...] = xyz_to_uvw(xyz, ha=-newphasecentre.ra, dec=newphasecentre.dec)[...]
+                xyz = uvw_to_xyz(vis.data['uvw'], ha=-newvis.phasecentre.ra, dec=newvis.phasecentre.dec)
+                newvis.data['uvw'][...] = \
+                    xyz_to_uvw(xyz, ha=-newphasecentre.ra, dec=newphasecentre.dec)[...]
             else:
                 # This is the original (non-inverse) code
-                xyz = uvw_to_xyz(vis.data['uvw'], ha=-vis.phasecentre.ra, dec=vis.phasecentre.dec)
-                vis.data['uvw'][...] = xyz_to_uvw(xyz, ha=-newphasecentre.ra, dec=newphasecentre.dec)[...]
+                xyz = uvw_to_xyz(newvis.data['uvw'], ha=-newvis.phasecentre.ra, dec=newvis.phasecentre.dec)
+                newvis.data['uvw'][...] = xyz_to_uvw(xyz, ha=-newphasecentre.ra, dec=newphasecentre.dec)[
+                    ...]
     else:
         log.warning("phaserotate_visibility: Null phase rotation")
 
-    vis.phasecentre = newphasecentre
+    newvis.phasecentre = newphasecentre
 
-    return vis
+    return newvis
 
 
 def sum_visibility(vis: Visibility, direction: SkyCoord) -> numpy.array:
