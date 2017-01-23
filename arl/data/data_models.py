@@ -89,10 +89,10 @@ class GainTable:
             nchan = gain.shape[1]
             npol = gain.shape[0]
             assert len(frequency) == nchan, "Discrepancy in frequency channels"
-            desc = [('gain', '<c64', (nchan, npol)), ('time', '<f8'), ('antenna', '<i8'), ('weight', '<f8', (nchan, npol))]
-            self.data = numpy.array(shape=[nrows], desc=desc)
+            desc = [('gain', '<c16', (nchan, npol)), ('time', '<f8'), ('antenna', '<i8'), ('weight', '<f8', (nchan,
+                                                                                                            npol))]
+            self.data = numpy.zeros(shape=[nrows], dtype=desc)
         self.frequency = frequency
-        return self
 
 
 class Image:
