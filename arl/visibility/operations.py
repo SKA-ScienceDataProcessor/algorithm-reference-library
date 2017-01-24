@@ -109,7 +109,7 @@ def create_visibility(config: Configuration, times: numpy.array, freq: numpy.arr
                 rantenna1[row] = a1
                 rantenna2[row] = a2
                 row += 1
-    ruvw = xyz_to_baselines(ants_xyz, times, phasecentre.dec)
+    ruvw = xyz_to_baselines(ants_xyz, times, phasecentre.dec.rad)
     vis = Visibility(uvw=ruvw, time=rtimes, antenna1=rantenna1, antenna2=rantenna2, vis=rvis, weight=rweight,
                           imaging_weight=rweight)
     vis.frequency = freq
@@ -171,13 +171,13 @@ def phaserotate_visibility(vis: Visibility, newphasecentre: SkyCoord, tangent=Tr
         # the results on the same image, in which case overlaps or gaps are difficult to deal with.
         if not tangent:
             if inverse:
-                xyz = uvw_to_xyz(vis.data['uvw'], ha=-newvis.phasecentre.ra, dec=newvis.phasecentre.dec)
+                xyz = uvw_to_xyz(vis.data['uvw'], ha=-newvis.phasecentre.ra.rad, dec=newvis.phasecentre.dec.rad)
                 newvis.data['uvw'][...] = \
-                    xyz_to_uvw(xyz, ha=-newphasecentre.ra, dec=newphasecentre.dec)[...]
+                    xyz_to_uvw(xyz, ha=-newphasecentre.ra.rad, dec=newphasecentre.dec.rad)[...]
             else:
                 # This is the original (non-inverse) code
-                xyz = uvw_to_xyz(newvis.data['uvw'], ha=-newvis.phasecentre.ra, dec=newvis.phasecentre.dec)
-                newvis.data['uvw'][...] = xyz_to_uvw(xyz, ha=-newphasecentre.ra, dec=newphasecentre.dec)[
+                xyz = uvw_to_xyz(newvis.data['uvw'], ha=-newvis.phasecentre.ra.rad, dec=newvis.phasecentre.dec.rad)
+                newvis.data['uvw'][...] = xyz_to_uvw(xyz, ha=-newphasecentre.ra.rad, dec=newphasecentre.dec.rad)[
                     ...]
     else:
         log.warning("phaserotate_visibility: Null phase rotation")

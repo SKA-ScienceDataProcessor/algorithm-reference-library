@@ -147,8 +147,8 @@ class TestCoordinates(unittest.TestCase):
             for newphasecentre in pos:
                 
                 # Rotate UVW
-                xyz = uvw_to_xyz(uvw, -phasecentre.ra, phasecentre.dec)
-                uvw_rotated = xyz_to_uvw(xyz, -newphasecentre.ra, newphasecentre.dec)
+                xyz = uvw_to_xyz(uvw, -phasecentre.ra.rad, phasecentre.dec.rad)
+                uvw_rotated = xyz_to_uvw(xyz, -newphasecentre.ra.rad, newphasecentre.dec.rad)
                 
                 # Determine phasor
                 l_p, m_p, n_p = skycoord_to_lmn(phasecentre, newphasecentre)
