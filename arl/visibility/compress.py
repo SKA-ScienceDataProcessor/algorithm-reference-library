@@ -6,8 +6,7 @@ functions in arl.fourier_transforms.
 """
 
 from arl.fourier_transforms.convolutional_gridding import frac_coord
-from arl.fourier_transforms.fft_support import *
-from arl.fourier_transforms.ftprocessor import *
+from arl.fourier_transforms.ftprocessor_base import *
 
 log = logging.getLogger(__name__)
 
