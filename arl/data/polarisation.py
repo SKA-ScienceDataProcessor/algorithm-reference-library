@@ -7,9 +7,28 @@
 """
 Functions that represent polarisation information.
 """
+class Stokes:
+    """ Stokes representation I,Q,U,V
+    
+    """
+    
+class CircularComplexStokes:
+    """ Complex Stokes representation
+    XX, XY, YX, YY
+    
+    """
+
+
+class LinearComplexStokes:
+    """ Complex Stokes representation
+    XX, XY, YX, YY
+
+    """
+
 
 class MKernel:
     """ Mueller kernel with numpy.array, antenna1, antenna2, time
+    
     """
 
 

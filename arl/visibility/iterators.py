@@ -25,10 +25,20 @@ class vis_timeslice_iter():
         """Initialise the iterator
         """
         # We have to make a copy or strange thing will happen!
-        self.vis = copy.copy(vis)
-        self.timeslice = get_parameter(kwargs, "timeslice", 1.0)
-        self.starttime = numpy.min(self.vis.time)
-        self.stoptime = numpy.max(self.vis.time)
+        self.vis = vis
+        uniquetimes = numpy.unique(vis.time)
+        self.timeslice = get_parameter(kwargs, "timeslice", 'auto')
+        if self.timeslice == 'auto':
+            log.info('vis_timeslice_iter: Found %d unique times' % len(uniquetimes))
+            if len(uniquetimes) > 1:
+                self.timeslice = (uniquetimes[1] - uniquetimes[0])
+                log.debug('vis_timeslice_auto: Guessing time interval to be %.2f s' % self.timeslice)
+            else:
+                # Doesn't matter what we set it to.
+                self.timeslice = 1.0
+            
+        self.starttime = numpy.min(uniquetimes)
+        self.stoptime = numpy.max(uniquetimes)
         self.timecursor = self.starttime
 
     def __iter__(self):

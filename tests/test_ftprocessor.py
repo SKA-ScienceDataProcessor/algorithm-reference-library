@@ -8,6 +8,7 @@ import unittest
 from astropy.convolution import Gaussian2DKernel, convolve
 
 from arl.fourier_transforms.ftprocessor import *
+from arl.fourier_transforms.ftprocessor_timeslice import *
 from arl.image.operations import export_image_to_fits, create_empty_image_like
 from arl.skymodel.operations import create_skycomponent, find_skycomponents, find_nearest_component, \
     insert_skycomponent

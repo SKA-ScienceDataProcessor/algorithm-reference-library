@@ -45,9 +45,9 @@ class Configuration:
         """ Return size in GB
         """
         size = 0
-        for col in self.data.colnames:
-            size += self.data[col].size * self.data[col].itemsize
+        size += self.data.size * sys.getsizeof(self.data)
         return size / 1024.0 / 1024.0 / 1024.0
+
     
     @property
     def names(self):

@@ -222,11 +222,16 @@ def create_low_test_image(npixel=16384, npol=1, nchan=1, cellsize=0.000015, freq
             r += 1
     
     p = w.sub(2).wcs_world2pix(numpy.array(ras), numpy.array(decs), 0)
+    total_flux = numpy.sum(fluxes)
     fluxes = numpy.array(fluxes)
+    actual_flux = numpy.sum(fluxes)
     ip = numpy.round(p).astype('int')
     ok = numpy.where((0 <= ip[0,:]) & (npixel > ip[0,:]) & (0 <= ip[1,:]) & (npixel > ip[1,:]))[0]
     ps = ip[:,ok]
+    actual_flux = numpy.sum(fluxes[ok])
+
     log.info('create_low_test_image: %d sources inside the image' % (ps.shape[1]))
+    log.info('create_low_test_image: flux in S3 model = %.3f, actual flux in image = %.3f' % (total_flux, actual_flux))
     for chan in range(nchan):
         for pol in range(npol):
             model.data[chan, pol, ip[1,ok], ip[0,ok]] += fluxes[ok]
