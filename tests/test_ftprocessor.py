@@ -31,7 +31,7 @@ class TestFTProcessor(unittest.TestCase):
     
     def _checkcomponents(self, dirty, fluxthreshold=10.0, positionthreshold=1.0):
         comps = find_skycomponents(dirty, fwhm=1.0, threshold=10.0, npixels=5)
-        assert len(comps) == len(self.mfscomponents), "Different number of components found"
+        assert len(comps) == len(self.components), "Different number of components found"
         cellsize = abs(dirty.wcs.wcs.cdelt[0])
         # Check for agreement between image and DFT
         for comp in comps:
@@ -39,13 +39,13 @@ class TestFTProcessor(unittest.TestCase):
             assert abs(comp.flux[0, 0] - sflux[0, 0]) < fluxthreshold, \
                 "Fitted and DFT flux differ %s %s" % (comp.flux[0, 0], sflux[0, 0])
             # Check for agreement in direction
-            ocomp = find_nearest_component(comp.direction, self.mfscomponents)
+            ocomp = find_nearest_component(comp.direction, self.components)
             assert abs(comp.direction.ra.deg - ocomp.direction.ra.deg) / cellsize < \
                    positionthreshold, \
-                "Component differs in ra %s %s" % (comp.direction.ra.deg, ocomp.direction.ra.deg)
+                "Component differs in dec %.3f pixels" % (comp.direction.ra.deg - ocomp.direction.ra.deg) / cellsize
             assert abs(comp.direction.dec.deg - ocomp.direction.dec.deg) / cellsize < \
-                   positionthreshold, "Component differs in dec %s %s" % \
-                                      (comp.direction.dec.deg, ocomp.direction.dec.deg)
+                   positionthreshold, "Component differs in dec %.3f pixels" % \
+                                      (comp.direction.dec.deg - ocomp.direction.dec.deg) / cellsize
     
     def setUp(self):
         self.dir = './test_results'
@@ -53,45 +53,42 @@ class TestFTProcessor(unittest.TestCase):
         
         self.params = {'npixel': 512,
                        'npol': 1,
-                       'cellsize': 0.0005,
-                       'spectral_mode': 'channel',
-                       'channelwidth': 5e7,
+                       'image_nchan':1,
+                       'cellsize': 0.0015,
+                       'channelwidth': 5e6,
                        'reffrequency': 1e8,
                        'image_partitions': 8,
                        'padding': 2,
                        'oversampling': 8,
-                       'timeslice': 1.0,
+                       'timeslice': 'auto',
                        'wstep': 2.0}
         
         self.lowcore = create_named_configuration('LOWBD2-CORE')
-        self.times = numpy.arange(- numpy.pi / 4.0, 1.001 * numpy.pi / 4.0, numpy.pi / 16.0)
-        self.frequency = numpy.array([0.9e8, 1e8, 1.1e8])
-        self.mfsfrequency = numpy.array([1e8])
-        
-        self.reffrequency = numpy.max(self.frequency)
+        self.times = numpy.arange(- 3.0, 3.1, 1.0)
+        self.times = numpy.array([-0.0])
+        log.info("Times are %s" % (self.times))
+        self.times = (numpy.pi / 12.0) * self.times
+        self.frequency = numpy.array([1e8])
+
         self.phasecentre = SkyCoord(ra=+180.0 * u.deg, dec=-60.0 * u.deg, frame='icrs', equinox=2000.0)
         self.componentvis = create_visibility(self.lowcore, self.times, self.frequency, phasecentre=self.phasecentre,
                                               weight=1.0, npol=1)
         self.uvw = self.componentvis.data['uvw']
         self.componentvis.data['vis'] *= 0.0
         
-        self.model = create_image_from_visibility(self.componentvis, npixel=512, cellsize=0.0005)
-        self.model.data *= 0.0
-
-        self.mfsmodel = create_image_from_visibility(self.componentvis, npixel=512, cellsize=0.0005,
+        # Create model
+        self.model = create_image_from_visibility(self.componentvis, npixel=512, cellsize=0.0015,
                                                      image_nchan=1)
-        self.mfsmodel.data *= 0.0
 
         # Fill the visibility with exactly computed point sources. These are chosen to lie
         # on grid points.
         spacing_pixels = 64
         log.info('Spacing in pixels = %s' % spacing_pixels)
         
-        centers = [-3.5, -2.5, -1.5, -0.5, 0.5, 1.5, 2.5, 3.5]
+        centers = [-2.5, -1.5, -0.5, 0.5, 1.5, 2.5]
         
         rpix = self.model.wcs.wcs.crpix - 1
         self.components = []
-        self.mfscomponents = []
         for iy in centers:
             for ix in centers:
                 if ix >= iy:
@@ -104,28 +101,22 @@ class TestFTProcessor(unittest.TestCase):
                     
                     f = (100.0 + 1.0 * ix + iy * 10.0)
                     # Channel images
-                    flux = numpy.array([self.frequency * f * 1e-8]).transpose()
-                    comp = create_skycomponent(flux=flux, frequency=self.frequency, direction=sc)
+                    flux = numpy.array([[f]])
+                    comp = create_skycomponent(flux=flux, frequency=[numpy.average(self.frequency)], direction=sc)
                     self.components.append(comp)
                     insert_skycomponent(self.model, comp)
-
-                    # If we are testing MFS then we need the expected results
-                    mfsflux = numpy.array([[f]])
-                    mfscomp = create_skycomponent(flux=mfsflux, frequency=self.mfsfrequency,
-                                                  direction=sc)
-                    self.mfscomponents.append(mfscomp)
-                    insert_skycomponent(self.mfsmodel, mfscomp)
-        
-        # Predict the visibility from the components exactly
+       
+        # Predict the visibility from the components exactly. We always do this for each spectral channel
         self.componentvis.data['vis'] *= 0.0
         for comp in self.components:
             predict_skycomponent_visibility(self.componentvis, comp)
+
+        # Calculate the model convolved with a Gaussian.
+        cmodel = create_image_from_array(convolve(self.model.data[0, 0, :, :], Gaussian2DKernel(1.5),
+                                                       normalize_kernel=True), self.model.wcs)
         
-        self.cmfsmodel = create_image_from_array(convolve(self.mfsmodel.data[0, 0, :, :], Gaussian2DKernel(3.0),
-                                                       normalize_kernel=True), self.mfsmodel.wcs)
-        
-        export_image_to_fits(self.mfsmodel, '%s/test_mfsmodel.fits' % self.dir)
-        export_image_to_fits(self.cmfsmodel, '%s/test_cmfsmodel.fits' % self.dir)
+        export_image_to_fits(self.model, '%s/test_model.fits' % self.dir)
+        export_image_to_fits(cmodel, '%s/test_cmodel.fits' % self.dir)
     
     def test_predict_2d(self):
         """Test if the 2D prediction works
@@ -170,6 +161,7 @@ class TestFTProcessor(unittest.TestCase):
         self.params['nprocessor'] = 1
         self._predict_base(predict_timeslice, fluxthreshold=20.0)
     
+    @unittest.skip("Do not run in VM")
     def test_predict_timeslice_parallel(self):
         # This works very poorly because of the poor interpolation accuracy for point sources
         self.params['nprocessor'] = 4
@@ -178,8 +170,7 @@ class TestFTProcessor(unittest.TestCase):
     def test_predict_wprojection(self):
         self.params = {'npixel': 512,
                        'npol': 1,
-                       'cellsize': 0.0005,
-                       'spectral_mode': 'channel',
+                       'cellsize': 0.0015,
                        'channelwidth': 5e7,
                        'reffrequency': 1e8,
                        'padding': 1,
@@ -224,9 +215,9 @@ class TestFTProcessor(unittest.TestCase):
         self._invert_base(invert_by_image_partitions, fluxthreshold=10.0, positionthreshold=1.0)
     
     def test_invert_timeslice(self):
-        self._invert_base(invert_timeslice, fluxthreshold=10.0, positionthreshold=4.0)
+        self._invert_base(invert_timeslice, fluxthreshold=10.0, positionthreshold=8.0)
     
-    @unittest.skip("Configuration-dependent - skip for now")
+    @unittest.skip("Do not run in VM")
     def test_invert_timeslice_parallel(self):
         self.params['nprocessor'] = 4
         self._invert_base(invert_timeslice, fluxthreshold=10.0, positionthreshold=4.0)
@@ -234,8 +225,7 @@ class TestFTProcessor(unittest.TestCase):
     def test_invert_wprojection(self):
         self.params = {'npixel': 512,
                        'npol': 1,
-                       'cellsize': 0.0005,
-                       'spectral_mode': 'channel',
+                       'cellsize': 0.0015,
                        'channelwidth': 5e7,
                        'reffrequency': 1e8,
                        'padding': 1,

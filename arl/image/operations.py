@@ -5,6 +5,10 @@ Functions that define and manipulate images. Images are just data and a World Co
 """
 
 import sys
+
+import copy
+import matplotlib.pyplot as plt
+
 from astropy.io import fits
 from astropy.wcs import WCS
 from reproject import reproject_interp
@@ -15,16 +19,12 @@ from arl.data.parameters import *
 log = logging.getLogger(__name__)
 
 
-def image_sizeof(im):
+def image_sizeof(im: Image):
     """ Return size in GB
     """
-    size = 0
-    size += im.data.size * sys.getsizeof(im.data.dtype)
-    return size / 1024.0 / 1024.0 / 1024.0
+    return im.__sizeof__()
 
 
-def create_memo(im):
-    log.debug("image.operations: created image of shape %s, size %.3f (GB)" % (str(im.shape), image_sizeof(im)))
 
 
 def create_image_from_slice(im, imslice):
@@ -34,7 +34,7 @@ def create_image_from_slice(im, imslice):
     fim = Image()
     fim.data = im.data[imslice]
     fim.wcs = im.wcs(imslice).deepcopy()
-    create_memo(fim)
+    log.debug("create_image_from_slice: created image of shape %s, size %.3f (GB)" % (str(im.shape), image_sizeof(im)))
     return fim
 
 
@@ -49,9 +49,25 @@ def create_image_from_array(data: numpy.array, wcs: WCS = None) -> Image:
     fim = Image()
     fim.data = data
     fim.wcs = wcs.deepcopy()
-    create_memo(fim)
+    log.debug("create_image_from_array: created image of shape %s, size %.3f (GB)" % (str(fim.shape),
+                                                                                      image_sizeof(fim)))
     return fim
 
+
+def copy_image(im: Image) -> Image:
+    """ Create an image from an array
+
+    :param im:
+    :returns: Image
+    """
+    fim = Image()
+    fim.data = copy.deepcopy(im.data)
+    if im.wcs is None:
+        fim.wcs = None
+    else:
+        fim.wcs = copy.deepcopy(im.wcs)
+    log.debug("copy_image: created image of shape %s, size %.3f (GB)" % (str(fim.shape), image_sizeof(fim)))
+    return fim
 
 def create_empty_image_like(im: Image) -> Image:
     """ Create an image from an array
@@ -64,8 +80,9 @@ def create_empty_image_like(im: Image) -> Image:
     if im.wcs is None:
         fim.wcs = None
     else:
-        fim.wcs = im.wcs.deepcopy()
-    create_memo(fim)
+        fim.wcs = copy.deepcopy(im.wcs)
+    log.debug("create_empty_image_like: created image of shape %s, size %.3f (GB)" % (str(im.shape), image_sizeof(
+        im)))
     return fim
 
 
@@ -89,8 +106,9 @@ def import_image_from_fits(fitsfile: str):
     fim.data = hdulist[0].data
     fim.wcs = WCS(arl_path(fitsfile))
     hdulist.close()
+    log.info("import_image_from_fits: created image of shape %s, size %.3f (GB)" %
+             (str(fim.shape), image_sizeof(fim)))
     log.info("import_image_from_fits: Max, min in %s = %.6f, %.6f" % (fitsfile, fim.data.max(), fim.data.min()))
-    create_memo(fim)
     return fim
 
 
@@ -163,8 +181,6 @@ def show_image(im: Image, fig=None, title: str = '', pol=0, chan=0):
     :param title:
     :returns:
     """
-    
-    import matplotlib.pyplot as plt
     
     if not fig:
         fig = plt.figure()

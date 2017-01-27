@@ -216,13 +216,13 @@ class Visibility:
     Visibility is defined to hold an observation with one set of frequencies and one
     direction.
 
-    The data column has vis:[row,nchan,npol], uvw:[row,3]
+    The data column has vis:[row,nchan,npol], uvw:[row,3], time, integration_time
     """
     
     def __init__(self,
                  data=None, frequency=None, phasecentre=None, configuration=None,
                  uvw=None, time=None, antenna1=None, antenna2=None, vis=None, weight=None,
-                 imaging_weight=None):
+                 imaging_weight=None, integration_time=None):
         if data is None and vis is not None:
             if imaging_weight is None:
                 imaging_weight = weight
@@ -231,6 +231,7 @@ class Visibility:
             npol = vis.shape[2]
             desc = [('uvw', '<f8', (3,)),
                     ('time', '<f8'),
+                    ('integration_time', '<f8'),
                     ('antenna1', '<i8'),
                     ('antenna2', '<i8'),
                     ('vis', '<c16', (nchan, npol)),
@@ -239,6 +240,7 @@ class Visibility:
             data = numpy.zeros(shape=[nvis], dtype=desc)
             data['uvw'] = uvw
             data['time'] = time
+            data['integration_time'] = integration_time
             data['antenna1'] = antenna1
             data['antenna2'] = antenna2
             data['vis'] = vis
@@ -285,11 +287,15 @@ class Visibility:
     @property
     def w(self):
         return self.data['uvw'][:, 2]
-    
+
     @property
     def time(self):
         return self.data['time']
-    
+
+    @property
+    def integration_time(self):
+        return self.data['integration_time']
+
     @property
     def antenna1(self):
         return self.data['antenna1']

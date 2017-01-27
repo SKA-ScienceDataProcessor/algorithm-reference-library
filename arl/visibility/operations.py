@@ -30,7 +30,7 @@ def combine_visibility(vis1: Visibility, vis2: Visibility, w1: float = 1.0, w2: 
     :param params: Dictionary containing parameters
     :returns: Visibility
     """
-    assert len(vis1.frequency) == len(vis2.frequency), "Visibility: frequencies should be the same"
+    assert len(vis1.frequency) == len(vis2.frequency), "combine_visibility: frequencies should be the same"
     assert numpy.max(numpy.abs(vis1.frequency - vis2.frequency)) < 1.0, "Visibility: frequencies should be the same"
     assert len(vis1.data['vis']) == len(vis2.data['vis']), 'Length of output data table wrong'
     
@@ -77,8 +77,10 @@ def concatenate_visibility(vis1: Visibility, vis2: Visibility) -> \
 
 
 def create_visibility(config: Configuration, times: numpy.array, freq: numpy.array, phasecentre: SkyCoord,
-                      weight: float, meta: dict = None, npol=4) -> Visibility:
+                      weight: float, meta: dict = None, npol=4, integration_time = 'auto') -> Visibility:
     """ Create a Visibility from Configuration, hour angles, and direction of source
+    
+    Note that we keep track of the integration time for BDA purposes
 
     :param params:
     :param config: Configuration of antennas
@@ -87,6 +89,7 @@ def create_visibility(config: Configuration, times: numpy.array, freq: numpy.arr
     :param weight: weight of a single sample
     :param phasecentre: phasecentre of observation
     :param npol: Number of polarizations
+    :param integration_time: Integration time ('auto' or value in s)
     :returns: Visibility
     """
     assert phasecentre is not None, "Must specify phase centre"
@@ -110,8 +113,12 @@ def create_visibility(config: Configuration, times: numpy.array, freq: numpy.arr
                 rantenna2[row] = a2
                 row += 1
     ruvw = xyz_to_baselines(ants_xyz, times, phasecentre.dec.rad)
+    rintegration_time = numpy.ones(nrows)
+    # TODO: Actually calculate value of integration time
+    if integration_time == 'auto':
+        rintegration_time = numpy.ones(nrows)
     vis = Visibility(uvw=ruvw, time=rtimes, antenna1=rantenna1, antenna2=rantenna2, vis=rvis, weight=rweight,
-                          imaging_weight=rweight)
+                          imaging_weight=rweight, integration_time=rintegration_time)
     vis.frequency = freq
     vis.phasecentre = phasecentre
     vis.configuration = config
@@ -119,32 +126,34 @@ def create_visibility(config: Configuration, times: numpy.array, freq: numpy.arr
     return vis
 
 
-def create_visibility_from_rows(vis: Visibility, rows) -> Visibility:
+def create_visibility_from_rows(vis: Visibility, rows, makecopy=True) -> Visibility:
     """ Create a Visibility from selected rows
 
     :param params:
     :param vis: Visibility
     :param rows: Boolean array of row selction
+    :param makecopy: Make a deep copy (True)
     :returns: Visibility
     """
 
     newvis = Visibility(data=vis.data[rows], phasecentre=vis.phasecentre, configuration=vis.configuration,
                         frequency=vis.frequency)
-    
-    log.info("create_visibility_from_rows: Created view into visibility table")
+    if makecopy:
+        newvis = copy.deepcopy(newvis)
+        log.info("create_visibility_from_rows: Created new visibility table")
+    else:
+        log.info("create_visibility_from_rows: Created view into visibility table")
     return newvis
 
 
-def phaserotate_visibility(vis: Visibility, newphasecentre: SkyCoord, tangent=True, inverse=False,
-                           **kwargs) -> Visibility:
+def phaserotate_visibility(vis: Visibility, newphasecentre: SkyCoord, tangent=True, inverse=False) -> Visibility:
     """
     Phase rotate from the current phase centre to a new phase centre
 
-    :param tangent:
-    :param newphasecentre:
-    :param params:
-    :param inverse: Actually do the opposite
     :param vis: Visibility to be rotated
+    :param newphasecentre:
+    :param tangent: Stay on the same tangent plane? (True)
+    :param inverse: Actually do the opposite
     :returns: Visibility
     """
     l, m, n = skycoord_to_lmn(newphasecentre, vis.phasecentre)
@@ -179,10 +188,11 @@ def phaserotate_visibility(vis: Visibility, newphasecentre: SkyCoord, tangent=Tr
                 xyz = uvw_to_xyz(newvis.data['uvw'], ha=-newvis.phasecentre.ra.rad, dec=newvis.phasecentre.dec.rad)
                 newvis.data['uvw'][...] = xyz_to_uvw(xyz, ha=-newphasecentre.ra.rad, dec=newphasecentre.dec.rad)[
                     ...]
+        newvis.phasecentre = newphasecentre
     else:
+        newvis = vis
         log.warning("phaserotate_visibility: Null phase rotation")
 
-    newvis.phasecentre = newphasecentre
 
     return newvis
 
