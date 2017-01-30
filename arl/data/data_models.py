@@ -41,7 +41,7 @@ class Configuration:
         self.location = location
         self.frame = frame
     
-    def __sizeof__(self):
+    def size(self):
         """ Return size in GB
         """
         size = 0
@@ -115,7 +115,7 @@ class Image:
         self.data = None
         self.wcs = None
     
-    def __sizeof__(self):
+    def size(self):
         """ Return size in GB
         """
         size = 0
@@ -251,7 +251,7 @@ class Visibility:
         self.phasecentre = phasecentre  # Phase centre of observation
         self.configuration = configuration  # Antenna/station configuration
     
-    def __sizeof__(self):
+    def size(self):
         """ Return size in GB
         """
         size = 0

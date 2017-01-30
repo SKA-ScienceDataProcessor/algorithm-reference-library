@@ -22,7 +22,7 @@ log = logging.getLogger(__name__)
 def image_sizeof(im: Image):
     """ Return size in GB
     """
-    return im.__sizeof__()
+    return im.size()
 
 
 

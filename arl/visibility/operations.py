@@ -18,7 +18,7 @@ def vis_summary(vis: Visibility):
     """Return string summarizing the Visibility
     
     """
-    return "Visibility has %d rows, total size %.3f GB" % (vis.nvis, vis.__sizeof__())
+    return "Visibility: %d rows, %.3f GB" % (vis.nvis, vis.size())
 
 def combine_visibility(vis1: Visibility, vis2: Visibility, w1: float = 1.0, w2: float = 1.0, **kwargs) -> Visibility:
     """ Linear combination of two visibility sets
@@ -77,7 +77,7 @@ def concatenate_visibility(vis1: Visibility, vis2: Visibility) -> \
 
 
 def create_visibility(config: Configuration, times: numpy.array, freq: numpy.array, phasecentre: SkyCoord,
-                      weight: float, meta: dict = None, npol=4, integration_time = 'auto') -> Visibility:
+                      weight: float, meta: dict = None, npol=4, integration_time = 1.0) -> Visibility:
     """ Create a Visibility from Configuration, hour angles, and direction of source
     
     Note that we keep track of the integration time for BDA purposes
@@ -113,10 +113,7 @@ def create_visibility(config: Configuration, times: numpy.array, freq: numpy.arr
                 rantenna2[row] = a2
                 row += 1
     ruvw = xyz_to_baselines(ants_xyz, times, phasecentre.dec.rad)
-    rintegration_time = numpy.ones(nrows)
-    # TODO: Actually calculate value of integration time
-    if integration_time == 'auto':
-        rintegration_time = numpy.ones(nrows)
+    rintegration_time = numpy.full_like(rtimes, integration_time)
     vis = Visibility(uvw=ruvw, time=rtimes, antenna1=rantenna1, antenna2=rantenna2, vis=rvis, weight=rweight,
                           imaging_weight=rweight, integration_time=rintegration_time)
     vis.frequency = freq

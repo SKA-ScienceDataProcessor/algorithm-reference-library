@@ -27,7 +27,7 @@ class TestVisibilityIterators(unittest.TestCase):
     def test_vis_timeslice_iterator(self):
         timemin = numpy.min(self.vis.time)
         timemax = numpy.max(self.vis.time)
-        for rows in vis_timeslice_iter(self.vis, timeslice=100.0):
+        for rows in vis_timeslice_iter(self.vis):
             slicemin = numpy.min(self.vis.data['time'])
             slicemax = numpy.max(self.vis.data['time'])
             assert slicemin >= timemin
