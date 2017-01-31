@@ -5,15 +5,29 @@ import unittest
 from numpy.testing import assert_allclose
 
 from arl.fourier_transforms.fft_support import *
-from arl.fourier_transforms.convolutional_gridding import w_beam, kernel_oversample, \
-    coordinates2, anti_aliasing_transform, anti_aliasing_calculate, fixed_kernel_degrid, fixed_kernel_grid
+from arl.fourier_transforms.convolutional_gridding import *
 
 
 class TestConvolutionalGridding(unittest.TestCase):
     
     def assertAlmostEqualScalar(self, a, result=1.0):
         w = result * numpy.ones_like(result)
-        
+
+    def test_coordinates(self):
+        for N in [4,5,6,7,8,9,1000,1001,1002,1003]:
+            low, high = coordinateBounds(N)
+            c = coordinates(N)
+            cx, cy = coordinates2(N)
+            self.assertAlmostEqual(numpy.min(c), low)
+            self.assertAlmostEqual(numpy.max(c), high)
+            self.assertAlmostEqual(numpy.min(cx), low)
+            self.assertAlmostEqual(numpy.max(cx), high)
+            self.assertAlmostEqual(numpy.min(cy), low)
+            self.assertAlmostEqual(numpy.max(cy), high)
+            assert c[N//2] == 0
+            assert (cx[N//2,:] == 0).all()
+            assert (cy[:,N//2] == 0).all()
+
     def _test_pattern(self, npixel):
         return coordinates2(npixel)[0] + coordinates2(npixel)[1] * 1j
 

@@ -44,8 +44,7 @@ def coordinates(npixel: int) -> object:
     """ 1D array which spans [-.5,.5[ with 0 at position npixel/2
     
     """
-    low, high = coordinateBounds(npixel)
-    return numpy.mgrid[low:high:(npixel * 1j)]
+    return (numpy.arange(npixel) - npixel//2) / npixel
 
 
 def coordinates2(npixel: int):
@@ -54,8 +53,7 @@ def coordinates2(npixel: int):
     1. a step size of 2/npixel and
     2. (0,0) at pixel (floor(n/2),floor(n/2))
     """
-    low, high = coordinateBounds(npixel)
-    return numpy.mgrid[low:high:(npixel * 1j), low:high:(npixel * 1j)]
+    return (numpy.mgrid[0:npixel,0:npixel] - npixel//2) / npixel
 
 
 def anti_aliasing_transform(shape, oversampling=8, support=3, m=6, c=0.0):
