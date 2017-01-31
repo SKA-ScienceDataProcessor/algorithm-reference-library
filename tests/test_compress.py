@@ -37,9 +37,9 @@ class TestCompress(unittest.TestCase):
 
 
     def test_compress_decompress_tbgrid_vis(self):
-        cvis = compress_visibility(self.vis, self.model, compression='tb')
+        cvis, cindex = compress_visibility(self.vis, self.model, compression='tb')
         numpy.testing.assert_array_equal(cvis.vis[:,0,0].real, cvis.time)
-        dvis = decompress_visibility(cvis, self.vis, self.model, compression='tb')
+        dvis = decompress_visibility(cvis, self.vis, cindex=cindex, compression='tb')
         numpy.testing.assert_array_equal(self.vis.time, dvis.time)
         numpy.testing.assert_array_equal(self.vis.antenna1, dvis.antenna1)
         numpy.testing.assert_array_equal(self.vis.antenna2, dvis.antenna2)

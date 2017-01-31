@@ -9,9 +9,12 @@ import multiprocessing
 import pymp
 
 from scipy.interpolate import griddata
+from astropy.coordinates import AltAz, Angle
+from astropy.time import Time
 
 from arl.fourier_transforms.ftprocessor_base import *
 from arl.image.iterators import *
+from arl.image.operations import copy_image, create_empty_image_like, export_image_to_fits
 from arl.visibility.iterators import *
 from arl.visibility.operations import create_visibility_from_rows
 
@@ -23,8 +26,7 @@ def fit_uvwplane_only(vis):
     :param vis: visibility to be fitted
     :returns: direction cosines defining plane
     """
-    
-    
+        
     su2 = numpy.sum(vis.u * vis.u)
     sv2 = numpy.sum(vis.v * vis.v)
     suv = numpy.sum(vis.u * vis.v)
@@ -35,6 +37,20 @@ def fit_uvwplane_only(vis):
     q = (su2 * svw - suv * suw) / det
     return p, q
 
+def calculatepq(vis):
+    """ Calculate p and q exactly
+    
+    """
+    # Time is hourangle
+    ha = Time('2025-01-01 09:28:50.6', location=vis.configuration.location)
+    altaz=vis.phasecentre.transform_to(AltAz(obstime=ha, location=vis.configuration.location))
+    zenith = numpy.full_like(vis.time, 0.0)
+    pa = numpy.full_like(vis.time, 0.0)
+    print("calculatepq: In AltAz %s" % (altaz))
+    p = numpy.tan(zenith) * numpy.sin(pa)
+    q = - numpy.tan(zenith) * numpy.cos(pa)
+    return p, q
+    
 
 def fit_uvwplane(vis):
     """ Fit and remove the best fitting plane p u + q v = w
@@ -42,6 +58,7 @@ def fit_uvwplane(vis):
     :param vis: visibility to be fitted
     :returns: direction cosines defining plane
     """
+    assert numpy.std(vis.time) == 0.0
     nvis = len(vis.data)
     before = numpy.max(numpy.std(vis.w))
     p, q = fit_uvwplane_only(vis)
@@ -49,7 +66,6 @@ def fit_uvwplane(vis):
     after = numpy.max(numpy.std(vis.w))
     log.info('predict_timeslice: Fit to %d rows reduces rms w from %.1f to %.1f m'
              % (nvis, before, after))
-    
     return vis, p, q
 
 
@@ -76,7 +92,7 @@ def predict_timeslice_serial(vis, model, **kwargs):
         # Calculate nominal and distorted coordinate systems. We will convert the model
         # from nominal to distorted before predicting.
         lnominal, mnominal, ldistorted, mdistorted = lm_distortion(model, -p, -q)
-        workimage = create_image_from_array(copy.deepcopy(model.data), model.wcs)
+        workimage = create_empty_image_like(model)
         
         # Use griddata to do the conversion. This could be improved. Only cubic is possible in griddata.
         # The interpolation is ok for invert since the image is smooth but for clean images the
@@ -157,7 +173,9 @@ def predict_timeslice(vis, model, **kwargs):
 
 
 def predict_timeslice_single(vis, model, **kwargs):
-    """ Predict using time slices.
+    """ Predict using a single time slices.
+    
+    This fits a single plane and corrects the image geometry.
 
     :param vis: Visibility to be predicted
     :param model: model image
@@ -165,7 +183,7 @@ def predict_timeslice_single(vis, model, **kwargs):
     """
     log.debug("predict_timeslice: predicting using time slices")
     
-    nchan, npol, ny, nx = model.shape
+    inchan, inpol, ny, nx = model.shape
     
     vis.data['vis'] *= 0.0
     
@@ -175,24 +193,27 @@ def predict_timeslice_single(vis, model, **kwargs):
     # Calculate nominal and distorted coordinate systems. We will convert the model
     # from nominal to distorted before predicting.
     lnominal, mnominal, ldistorted, mdistorted = lm_distortion(model, -p, -q)
-    workimage = create_image_from_array(copy.deepcopy(model.data), model.wcs)
+    workimage = copy_image(model)
+    reprojected_image = copy_image(model)
     log.info("Reprojecting model from SIN projection to oblique SIN projection with params %.6f, %.6f" % (p, q))
     
     # Use griddata to do the conversion. This could be improved. Only cubic is possible in griddata.
     # The interpolation is ok for invert since the image is smooth but for clean images the
     # interpolation is particularly poor, leading to speckle in the residual image.
-    for chan in range(nchan):
-        for pol in range(npol):
-            workimage.data[chan, pol, ...] = \
+    for chan in range(inchan):
+        for pol in range(inpol):
+            reprojected_image.data[chan, pol, ...] = \
                 griddata((mnominal.flatten(), lnominal.flatten()),
                          values=workimage.data[chan, pol, ...].flatten(),
                          xi=(mdistorted.flatten(), ldistorted.flatten()),
                          method='cubic',
                          fill_value=0.0,
                          rescale=True).reshape(workimage.data[chan, pol, ...].shape)
+            
+    export_image_to_fits(reprojected_image, "reproject%s.fits" % (numpy.average(vis.time)))
     
     # Now we can do the prediction for this slice using a 2d transform
-    vis = predict_2d(vis, workimage, **kwargs)
+    vis = predict_2d(vis, reprojected_image, **kwargs)
     
     return vis
 
@@ -211,23 +232,22 @@ def invert_timeslice(vis, im, dopsf=False, **kwargs):
 
     """
     log.debug("invert_timeslice: inverting using time slices")
-    resultimage = create_image_from_array(im.data, im.wcs)
+    resultimage = create_empty_image_like(im)
     resultimage.data = pymp.shared.array(resultimage.data.shape)
-    resultimage.data *= 0.0
     
     nproc = get_parameter(kwargs, "nprocessor", 1)
     if nproc == "auto":
         nproc = multiprocessing.cpu_count()
 
-    nchan, npol, _, _ = im.data.shape
+    inchan, inpol, _, _ = im.data.shape
     
-    totalwt = numpy.zeros([nchan, npol], dtype='float')
+    totalwt = numpy.zeros([inchan, inpol], dtype='float')
     
     if nproc > 1:
         # We need to tell pymp that some arrays are shared
         resultimage.data = pymp.shared.array(resultimage.data.shape)
         resultimage.data *= 0.0
-        totalwt = pymp.shared.array([nchan, npol])
+        totalwt = pymp.shared.array([inchan, inpol])
         
         # Extract the slices and run invert_timeslice_single on each one in parallel
         nslices = 0
@@ -240,26 +260,36 @@ def invert_timeslice(vis, im, dopsf=False, **kwargs):
         with pymp.Parallel(nproc) as p:
             for index in p.range(0, nslices):
                 visslice = create_visibility_from_rows(vis, rowses[index])
-                workimage, sumwt = invert_timeslice_single(visslice, im, dopsf, **kwargs)
+                workimage, sumwt = invert_timeslice_single(visslice, workimage, dopsf, **kwargs)
                 resultimage.data += workimage.data
                 totalwt += sumwt
     
     else:
         # Do each slice in turn
+        i = 0
         for rows in vis_timeslice_iter(vis, **kwargs):
             visslice = create_visibility_from_rows(vis, rows)
             workimage, sumwt = invert_timeslice_single(visslice, im, dopsf, **kwargs)
             resultimage.data += workimage.data
             totalwt += sumwt
+            export_image_to_fits(resultimage, "resultimage%d.fits" % (int(numpy.average(visslice.time))))
+            export_image_to_fits(workimage, "workimage%d.fits" % (int(numpy.average(visslice.time))))
+            i+=1
     
     return resultimage, totalwt
 
 
-def lm_distortion(im, a, b):
+def lm_distortion(im: Image, a, b):
+    """Calculate the nominal and distorted coordinates for w=au+bv
+    
+    :param im: Image with the coordinate system
+    :param a, b: parameters in fit
+    :returns: meshgrids for l,m nominal and distorted
+    """
     ny = im.shape[2]
     nx = im.shape[3]
-    cy = im.wcs.wcs.crpix[1]
-    cx = im.wcs.wcs.crpix[0]
+    cy = im.wcs.wcs.crpix[1] - 1
+    cx = im.wcs.wcs.crpix[0] - 1
     dy = im.wcs.wcs.cdelt[1] * numpy.pi / 180.0
     dx = im.wcs.wcs.cdelt[0] * numpy.pi / 180.0
     
@@ -284,7 +314,7 @@ def invert_timeslice_single(vis, im, dopsf, **kwargs):
     :param im: image template (not changed)
     :param dopsf: Make the psf instead of the dirty image
     """
-    nchan, npol, ny, nx = im.shape
+    inchan, inpol, ny, nx = im.shape
     
     vis, p, q = fit_uvwplane(vis)
     
@@ -293,12 +323,13 @@ def invert_timeslice_single(vis, im, dopsf, **kwargs):
     # Calculate nominal and distorted coordinates. The image is in distorted coordinates so we
     # need to convert back to nominal
     lnominal, mnominal, ldistorted, mdistorted = lm_distortion(workimage, -p, -q)
-    finalimage = create_image_from_array(im.data, im.wcs)
+
+    finalimage = create_empty_image_like(im)
     
     # Use griddata to do the conversion. This could be improved. Only cubic is possible in griddata.
     # The interpolation is ok for invert since the image is smooth.
-    for chan in range(nchan):
-        for pol in range(npol):
+    for chan in range(inchan):
+        for pol in range(inpol):
             finalimage.data[chan, pol, ...] = \
                 griddata((mdistorted.flatten(), ldistorted.flatten()),
                          values=workimage.data[chan, pol, ...].flatten(),

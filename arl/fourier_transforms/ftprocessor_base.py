@@ -24,7 +24,7 @@ from arl.visibility.operations import phaserotate_visibility
 log = logging.getLogger(__name__)
 
 
-def shift_vis_to_image(vis, im, tangent=True, inverse=False, **kwargs):
+def shift_vis_to_image(vis, im, tangent=True, inverse=False):
     """Shift visibility to the FFT phase centre of the image in place
 
     :param vis: Visibility data
@@ -43,7 +43,7 @@ def shift_vis_to_image(vis, im, tangent=True, inverse=False, **kwargs):
         else:
             log.debug("shift_vis_from_image: shifting phasecentre from vis phasecentre %s to image phasecentre %s" %
                       (vis.phasecentre, image_phasecentre))
-        vis = phaserotate_visibility(vis, image_phasecentre, tangent=tangent, inverse=inverse, **kwargs)
+        vis = phaserotate_visibility(vis, image_phasecentre, tangent=tangent, inverse=inverse)
         vis.phasecentre = im.phasecentre
     
     assert type(vis) is Visibility, "after phase_rotation, vis is not a Visibility"
@@ -100,10 +100,10 @@ def get_ftprocessor_params(vis, model, **kwargs):
     
     # Figure out what type of processing we need to do. This is based on the number of channels in
     # the model and in the visibility
-    if inchan == 1 and vnchan > 1:
+    if inchan == 1 and vnchan >= 1:
         spectral_mode = 'mfs'
         log.debug('get_ftprocessor_params: Multi-frequency synthesis mode')
-    elif inchan == vnchan:
+    elif inchan == vnchan and vnchan > 1:
         spectral_mode = 'channel'
         log.debug('get_ftprocessor_params: Channel synthesis mode')
     else:
@@ -188,7 +188,7 @@ def predict_2d_base(vis, model, **kwargs):
         vis.data['vis'] = fixed_kernel_degrid(kernel, vis.data['vis'].shape, uvgrid, vis.uvw, uvscale, vmap)
     
     # Now we can shift the visibility from the image frame to the original visibility frame
-    vis = shift_vis_to_image(vis, model, tangent=True, inverse=True, **kwargs)
+    vis = shift_vis_to_image(vis, model, tangent=True, inverse=True)
     
     return vis
 
@@ -229,7 +229,7 @@ def invert_2d_base(vis, im, dopsf=False, **kwargs):
     """
     svis = copy.deepcopy(vis)
     
-    svis = shift_vis_to_image(svis, im, tangent=True, inverse=False, **kwargs)
+    svis = shift_vis_to_image(svis, im, tangent=True, inverse=False)
     
     nchan, npol, ny, nx = im.data.shape
     
@@ -444,13 +444,12 @@ def create_image_from_visibility(vis, **kwargs):
 
     :param vis:
     :param phasecentre: Phasecentre (Skycoord)
-    :param reffrequency: Reference frequency for WCS (Hz)
     :param channelwidth: Channel width (Hz)
     :param cellsize: Cellsize (radians)
     :param npixel: Number of pixels on each axis (512)
     :param frame: Coordinate frame for WCS (ICRS)
     :param equinox: Equinox for WCS (2000.0)
-    :param spectral_mode: 'channels'|'mfs'
+    :param image_nchan: Number of image channels (Default is 1 -> MFS)
     :returns: image
     """
     log.info("create_image_from_visibility: Parsing parameters to get definition of WCS")
@@ -459,8 +458,8 @@ def create_image_from_visibility(vis, **kwargs):
     phasecentre = get_parameter(kwargs, "phasecentre", vis.phasecentre)
     
     vnchan = len(vis.frequency)
-    inchan = get_parameter(kwargs, "image_nchan", vnchan)
-    reffrequency = get_parameter(kwargs, "reffrequency", numpy.min(vis.frequency)) * units.Hz
+    inchan = get_parameter(kwargs, "image_nchan", 1)
+    reffrequency = numpy.min(vis.frequency) * units.Hz
     deffaultbw = vis.frequency[0]
     if len(vis.frequency) > 1:
         deffaultbw = vis.frequency[1] - vis.frequency[0]
@@ -468,15 +467,16 @@ def create_image_from_visibility(vis, **kwargs):
     
     # Spectral processing options
     if (inchan == vnchan) and vnchan > 1:
-        log.info("create_image_from_visibility: Defining %d channel Image at %s, frequency %s, and bandwidth %s"
+        log.info("create_image_from_visibility: Defining %d channel Image at %s, starting frequency %s, and bandwidth %s"
                  % (inchan, imagecentre, reffrequency, channelwidth))
     elif (inchan == 1) and vnchan > 1:
         assert numpy.abs(channelwidth.value) > 0.0, "Channel width must be non-zero for mfs mode"
-        log.info("create_image_from_visibility: Defining MFS Image at %s, frequency %s, and bandwidth %s"
+        log.info("create_image_from_visibility: Defining MFS Image at %s, starting frequency %s, and bandwidth %s"
                  % (imagecentre, reffrequency, channelwidth))
     elif (inchan == 1) and (vnchan == 1):
         assert numpy.abs(channelwidth.value) > 0.0, "Channel width must be non-zero for mfs mode"
-        log.info("create_image_from_visibility: Defining single channel Image at %s, frequency %s, and bandwidth %s"
+        log.info("create_image_from_visibility: Defining single channel Image at %s, starting frequency %s, "
+                 "and bandwidth %s"
                  % (imagecentre, reffrequency, channelwidth))
     else:
         log.error("create_image_from_visibility: unknown spectral mode ")

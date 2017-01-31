@@ -212,11 +212,11 @@ def w_beam(npixel, field_of_view, w):
     
     m, l = coordinates2(npixel) * field_of_view
     r2 = l ** 2 + m ** 2
-    assert numpy.array(r2 < 1.0).all(), \
-        "Error in image coordinate system: field_of_view %f, npixel %f,l %s, m %s" % \
-        (field_of_view, npixel, l, m)
-    ph = w * (1 - numpy.sqrt(1.0 - r2))
-    cp = numpy.exp(-2j * numpy.pi * ph)
+    n2 = 1.0 - r2
+    ph = numpy.zeros_like(n2)
+    ph[n2 < 1.0] = w * (1 - numpy.sqrt(1.0 - r2[n2 < 1.0]))
+    cp = numpy.zeros_like(n2, dtype='complex')
+    cp[n2 < 1.0] = numpy.exp(-2j * numpy.pi * ph[n2 < 1.0])
     return cp
 
 
