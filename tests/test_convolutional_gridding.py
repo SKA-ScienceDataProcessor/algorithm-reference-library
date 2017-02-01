@@ -30,7 +30,7 @@ class TestConvolutionalGridding(unittest.TestCase):
             self.assertAlmostEqual(numpy.max(aaf[..., aaf.shape[1] // 2, aaf.shape[0] // 2]), 1.0)
 
     def test_w_kernel_function(self):
-        assert_allclose(w_beam(5, 0.1, 0), 1.0)
+        assert_allclose(numpy.real(w_beam(5, 0.1, 0))[0,0], 1.0)
         self.assertAlmostEqualScalar(w_beam(5, 0.1, 100)[2, 2], 1)
         self.assertAlmostEqualScalar(w_beam(10, 0.1, 100)[5, 5], 1)
         self.assertAlmostEqualScalar(w_beam(11, 0.1, 1000)[5, 5], 1)

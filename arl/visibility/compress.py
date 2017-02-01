@@ -77,7 +77,7 @@ def compress_visibility(vis, im=None, **kwargs):
         log.error("Unknown visibility compression algorithm %s" % compression)
         
     log.info('compress_visibility: Original %s, compressed %s' % (vis_summary(vis), vis_summary(compressed_vis)))
-    return compressed_vis, cindex
+    return compressed_vis
 
 
 def decompress_visibility(vis, template_vis, im=None, cindex=None, **kwargs):
