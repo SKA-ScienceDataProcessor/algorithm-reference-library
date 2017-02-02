@@ -31,7 +31,7 @@ class TestCompress(unittest.TestCase):
         self.model = create_image_from_visibility(self.vis, **self.params)
 
     def test_compress_decompress_uvgrid_vis(self):
-        cvis = compress_visibility(self.vis, self.model, compression='uv')
+        cvis, _ = compress_visibility(self.vis, self.model, compression='uv')
         dvis = decompress_visibility(cvis, self.vis, self.model, compression='uv')
         assert dvis.nvis == self.vis.nvis
 
