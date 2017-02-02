@@ -121,9 +121,10 @@ def decompress_visibility(vis, template_vis, im=None, cindex=None, **kwargs):
                  'rows (%d channels)' %
                  (vis.nvis, len(template_vis.frequency), template_vis.nvis, len(template_vis.frequency)))
         decomp_vis = copy.deepcopy(template_vis)
-        decomp_vis.data['vis'] = \
+        decomp_vis.data['vis'], decomp_vis.data['uvw'] = \
             decompress_tbgrid_vis(template_vis.data['vis'].shape,
                                   vis.data['vis'],
+                                  vis.data['uvw'],
                                   cindex)
 
     else:
@@ -287,7 +288,7 @@ def compress_tbgrid_vis(vis, time, antenna1, antenna2, uvw, visweights, integrat
     utimes = numpy.unique(time)
     ntimes = len(utimes)
     nant = numpy.max(antenna2) + 1
-    nbaselines = nant * (nant + 1)
+    nbaselines = nant * (nant - 1)
     
     log.info('compress_tbgrid_vis: Compressing %d unique times and %d baselines' % (ntimes, nbaselines))
     
@@ -358,7 +359,7 @@ def compress_tbgrid_vis(vis, time, antenna1, antenna2, uvw, visweights, integrat
             if (a1 < a2) & (sample_width[a2,a1] > 0):
                 time_chunks, wts = average_chunks(timegrid[a2, a1, :], wtsgrid[a2, a1, :, 0, 0], sample_width[a2, a1])
                 len_time_chunks[a2, a1] = len(time_chunks)
-            cnvis += len_time_chunks[a2, a1]
+                cnvis += len_time_chunks[a2, a1]
    
     # Now we know enough to define the output compressed arrays
     ctime = numpy.zeros([cnvis])
@@ -402,7 +403,7 @@ def compress_tbgrid_vis(vis, time, antenna1, antenna2, uvw, visweights, integrat
     return cvis, cuvw, ctime, cwts, ca1, ca2, cintegration_time, cindex
 
 
-def decompress_tbgrid_vis(vshape, cvis, cindex):
+def decompress_tbgrid_vis(vshape, cvis, cuvw, cindex):
     """Decompress data using Time-Baseline
     
     We use the index into the compressed data. For every output row, this gives the
@@ -414,7 +415,9 @@ def decompress_tbgrid_vis(vshape, cvis, cindex):
     :returns: uncompressed vis
     """
     dvis = numpy.zeros(vshape, dtype='complex')
+    duvw = numpy.zeros([vshape[0], 3])
     for ind in range(vshape[0]):
         dvis[ind,:,:] = cvis[cindex[ind],:,:]
-    
-    return dvis
+        duvw[ind,:] = cuvw[cindex[ind],:]
+
+    return dvis, duvw

@@ -27,7 +27,7 @@ class TestCompress(unittest.TestCase):
         self.phasecentre = SkyCoord(ra=+180.0 * u.deg, dec=-60.0 * u.deg, frame='icrs', equinox=2000.0)
         self.vis = create_visibility(self.lowcore, self.times, self.frequency, phasecentre=self.phasecentre,
                                      weight=1.0, npol=1)
-        self.vis.data['vis'][:,0,0] = self.vis.data['time']
+        self.vis.data['vis'][:,0,0] = range(self.vis.nvis)
         self.model = create_image_from_visibility(self.vis, **self.params)
 
     def test_compress_decompress_uvgrid_vis(self):
@@ -35,16 +35,31 @@ class TestCompress(unittest.TestCase):
         dvis = decompress_visibility(cvis, self.vis, self.model, compression='uv')
         assert dvis.nvis == self.vis.nvis
 
-
     def test_compress_decompress_tbgrid_vis(self):
-        cvis, cindex = compress_visibility(self.vis, self.model, compression='tb')
-        numpy.testing.assert_array_equal(cvis.vis[:,0,0].real, cvis.time)
+        cvis, cindex = compress_visibility(self.vis, self.model, compression='tb', compression_factor=1.0)
         dvis = decompress_visibility(cvis, self.vis, cindex=cindex, compression='tb')
         numpy.testing.assert_array_equal(self.vis.time, dvis.time)
         numpy.testing.assert_array_equal(self.vis.antenna1, dvis.antenna1)
         numpy.testing.assert_array_equal(self.vis.antenna2, dvis.antenna2)
         assert dvis.nvis == self.vis.nvis
-        
+
+    def test_compress_decompress_tbgrid_vis_null(self):
+        cvis, cindex = compress_visibility(self.vis, self.model, compression='tb', compression_factor=0.0)
+        numpy.testing.assert_array_equal(cvis.vis[cindex, 0, 0].real, numpy.arange(self.vis.nvis))
+        dvis = decompress_visibility(cvis, self.vis, cindex=cindex, compression='tb')
+        # Since there is no compression, we can test the index as well
+        numpy.testing.assert_array_equal(self.vis.time, cvis.time[cindex])
+        numpy.testing.assert_array_equal(self.vis.time, dvis.time)
+        numpy.testing.assert_array_equal(self.vis.antenna1, cvis.antenna1[cindex])
+        numpy.testing.assert_array_equal(self.vis.antenna1, dvis.antenna1)
+        numpy.testing.assert_array_equal(self.vis.antenna1, cvis.antenna1[cindex])
+        numpy.testing.assert_array_equal(self.vis.antenna2, dvis.antenna2)
+        numpy.testing.assert_array_equal(self.vis.uvw, cvis.uvw[cindex,:])
+        numpy.testing.assert_array_equal(self.vis.uvw, dvis.uvw)
+        numpy.testing.assert_array_equal(self.vis.vis, dvis.vis)
+
+        assert dvis.nvis == self.vis.nvis
+
     def test_average_chunks(self):
         
         arr = numpy.linspace(0.0, 100.0, 11)
