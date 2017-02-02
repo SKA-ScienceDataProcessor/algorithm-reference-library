@@ -37,6 +37,7 @@ def compress_visibility(vis, im=None, **kwargs):
 
         cvis, cuvw, cvisweights, rowmask = compress_uvgrid_vis(im.data.shape, vis.data['vis'], vis.data['uvw'], uvscale,
                                                                vis.data['weight'], vmap)
+        cindex = None
         newfrequency = numpy.array(im.wcs.wcs.crval[3])
         nrows = cvis.shape[0]
         ca1 = numpy.zeros([nrows])
@@ -77,7 +78,7 @@ def compress_visibility(vis, im=None, **kwargs):
         log.error("Unknown visibility compression algorithm %s" % compression)
         
     log.info('compress_visibility: Original %s, compressed %s' % (vis_summary(vis), vis_summary(compressed_vis)))
-    return compressed_vis
+    return compressed_vis, cindex
 
 
 def decompress_visibility(vis, template_vis, im=None, cindex=None, **kwargs):
