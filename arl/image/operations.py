@@ -11,6 +11,8 @@ import matplotlib.pyplot as plt
 
 from astropy.io import fits
 from astropy.wcs import WCS
+from astropy.wcs.utils import pixel_to_skycoord
+
 from reproject import reproject_interp
 
 from arl.data.data_models import *
@@ -153,24 +155,61 @@ def add_image(im1: Image, im2: Image, docheckwcs=False):
     return create_image_from_array(im1.data + im2.data, im1.wcs)
 
 
-def qa_image(im, **kwargs):
+def qa_image(im, mask=None, **kwargs):
     """Assess the quality of an image
 
     :param params:
     :param im:
     :returns: QA
     """
-    data = {'shape': str(im.data.shape),
-            'max': numpy.max(im.data),
-            'min': numpy.min(im.data),
-            'rms': numpy.std(im.data),
-            'sum': numpy.sum(im.data),
-            'medianabs': numpy.median(numpy.abs(im.data)),
-            'median': numpy.median(im.data)}
+    if mask == None:
+        data = {'shape': str(im.data.shape),
+                'max': numpy.max(im.data),
+                'min': numpy.min(im.data),
+                'rms': numpy.std(im.data),
+                'sum': numpy.sum(im.data),
+                'medianabs': numpy.median(numpy.abs(im.data)),
+                'median': numpy.median(im.data)}
+    else:
+        mdata = im.data[mask.data>0.0]
+        data = {'shape': str(im.data.shape),
+                'max': numpy.max(mdata),
+                'min': numpy.min(mdata),
+                'rms': numpy.std(mdata),
+                'sum': numpy.sum(mdata),
+                'medianabs': numpy.median(numpy.abs(mdata)),
+                'median': numpy.median(mdata)}
+        mask
     qa = QA(origin="qa_image",
             data=data,
             context=get_parameter(kwargs, 'context', ""))
     return qa
+
+
+def reproject_image_oblique(im: Image, newwcs: WCS, shape=None, params=None):
+    """ Re-project an image to a new coordinate system
+
+    Currently uses the reproject python package.
+    TODO: Write tailored reproject routine
+
+    :param shape:
+    :param im: Image to be reprojected
+    :param newwcs: New WCS
+    :param params: Dictionary of parameters
+    :returns: Reprojected Image, Footprint Image
+    """
+    
+    log.debug("arl.image_operations.reproject_image: Converting SIN projection from parameters %s to %s" %
+              (im.wcs.wcs.get_pv(), newwcs.wcs.get_pv()))
+    before = pixel_to_skycoord(0.0, 0.0, wcs=im.wcs)
+    after = pixel_to_skycoord(0.0, 0.0, wcs=newwcs)
+    sep = before.separation(after)
+    print('Oblique SIN conversion of edge: moved %.2f from %s, %s -> %s, %s' % (sep.deg, before.ra, before.dec,
+                                                                                after.ra, after.dec))
+    
+    rep, foot = reproject_interp((im.data, im.wcs), newwcs, shape, order='bicubic',
+                                 independent_celestial_slices=True)
+    return create_image_from_array(rep, newwcs), create_image_from_array(foot, newwcs)
 
 
 def show_image(im: Image, fig=None, title: str = '', pol=0, chan=0):

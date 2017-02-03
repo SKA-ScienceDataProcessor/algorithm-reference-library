@@ -12,7 +12,7 @@ from astropy.wcs import WCS
 
 from arl.data.data_models import *
 from arl.data.parameters import arl_path
-from arl.image.operations import import_image_from_fits, create_image_from_array
+from arl.image.operations import import_image_from_fits, create_image_from_array, reproject_image
 from arl.util.coordinate_support import *
 from arl.util.read_oskar_vis import OskarVis
 
@@ -213,8 +213,8 @@ def create_low_test_image(npixel=16384, npol=1, nchan=1, cellsize=0.000015, freq
         for row in readCSV:
             # Skip first row
             if r > 0:
-                ra = float(row[4]) + 180.0
-                dec = float(row[5]) - 60.0
+                ra = float(row[4]) + phasecentre.ra.deg
+                dec = float(row[5]) + phasecentre.dec.deg
                 flux = numpy.power(10, float(row[9]))
                 ras.append(ra)
                 decs.append(dec)
@@ -237,6 +237,38 @@ def create_low_test_image(npixel=16384, npol=1, nchan=1, cellsize=0.000015, freq
             model.data[chan, pol, ip[1,ok], ip[0,ok]] += fluxes[ok]
     
     return model
+
+
+def create_low_test_beam(model):
+    """Create a test power beam for LOW using an image from OSKAR
+    
+    This is in progress. Currently uses the wrong beam!
+    
+    :param model: Template image
+    :returns: Image
+    """
+    
+    beam = import_image_from_fits(arl_path('data/models/beam-low.fits'))
+    
+    # Scale the image cellsize to account for the different in frequencies. Eventually we will want to
+    # use a frequency cube
+    log.info("create_low_test_beam: primary beam is defined at %.3f MHz" % (beam.wcs.wcs.crval[2]*1e-6))
+    log.info("create_low_test_beam: scaling to model frequency %.3f MHz" % (model.wcs.wcs.crval[3]*1e-6))
+    fscale = model.wcs.wcs.crval[3] / beam.wcs.wcs.crval[2]
+    beam.wcs.wcs.crval[0] *= fscale
+    beam.wcs.wcs.crval[1] *= fscale
+    
+    # Adjust for the different ordering of axes. When this includes a range of frequencies, we will need
+    # to reshape the array as well
+    beam.wcs.wcs.ctype[2], beam.wcs.wcs.ctype[3] = model.wcs.wcs.ctype[2], model.wcs.wcs.ctype[3]
+    beam.wcs.wcs.cdelt[2], beam.wcs.wcs.cdelt[3] = model.wcs.wcs.cdelt[2], model.wcs.wcs.cdelt[2]
+    beam.wcs.wcs.crval[2], beam.wcs.wcs.crval[3] = 1, model.wcs.wcs.crval[3]
+    beam.wcs.wcs.cunit = model.wcs.wcs.cunit
+    
+    reprojected_beam, footprint = reproject_image(beam, model.wcs, shape=model.shape)
+    reprojected_beam.data *= reprojected_beam.data
+    
+    return reprojected_beam
 
 
 def replicate_image(im: Image, npol=4, nchan=1, frequency=1.4e9):
