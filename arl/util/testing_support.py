@@ -248,7 +248,7 @@ def create_low_test_beam(model):
     :returns: Image
     """
     
-    beam = import_image_from_fits(arl_path('data/models/beam-low.fits'))
+    beam = import_image_from_fits(arl_path('data/models/SKA1_LOW_beam.fits'))
     
     # Scale the image cellsize to account for the different in frequencies. Eventually we will want to
     # use a frequency cube
