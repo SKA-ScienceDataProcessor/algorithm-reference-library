@@ -30,7 +30,7 @@ def compress_visibility(vis, im=None, **kwargs):
         assert im, "uv compression needs an image"
         nchan, npol, ny, nx = im.data.shape
         vmap, gcf, kernel_type, kernelname, kernel, padding, oversampling, support, \
-        cellsize, fov, uvscale = get_ftprocessor_params(vis, im, **kwargs)
+        cellsize, fov, uvscale, _ = get_ftprocessor_params(vis, im, **kwargs)
 
         assert nx == im.data.shape[3], "Discrepancy between npixel and size of model image"
         assert ny == im.data.shape[2], "Discrepancy between npixel and size of model image"
@@ -97,7 +97,7 @@ def decompress_visibility(vis, template_vis, im=None, cindex=None, **kwargs):
         assert im is not None, "UV decompression needs an image"
         nchan, npol, ny, nx = im.data.shape
         vmap, gcf, kernel_type, kernelname, kernel, padding, oversampling, support, \
-        cellsize, fov, uvscale = get_ftprocessor_params(vis, im, **kwargs)
+        cellsize, fov, uvscale, _ = get_ftprocessor_params(vis, im, **kwargs)
     
         assert nx == im.data.shape[3], "Discrepancy between npixel and size of model image"
         assert ny == im.data.shape[2], "Discrepancy between npixel and size of model image"
