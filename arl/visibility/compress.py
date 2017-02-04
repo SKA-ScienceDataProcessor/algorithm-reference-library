@@ -121,11 +121,8 @@ def decompress_visibility(vis, template_vis, im=None, cindex=None, **kwargs):
                  'rows (%d channels)' %
                  (vis.nvis, len(template_vis.frequency), template_vis.nvis, len(template_vis.frequency)))
         decomp_vis = copy.deepcopy(template_vis)
-        decomp_vis.data['vis'], decomp_vis.data['uvw'] = \
-            decompress_tbgrid_vis(template_vis.data['vis'].shape,
-                                  vis.data['vis'],
-                                  vis.data['uvw'],
-                                  cindex)
+        decomp_vis.data['vis'] = \
+            decompress_tbgrid_vis(template_vis.data['vis'].shape, vis.data['vis'], cindex)
 
     else:
         log.error("Unknown visibility compression algorithm %s" % compression)
@@ -393,7 +390,7 @@ def compress_tbgrid_vis(vis, time, antenna1, antenna2, uvw, visweights, integrat
     return cvis, cuvw, ctime, cwts, ca1, ca2, cintegration_time, cindex
 
 
-def decompress_tbgrid_vis(vshape, cvis, cuvw, cindex):
+def decompress_tbgrid_vis(vshape, cvis, cindex):
     """Decompress data using Time-Baseline
     
     We use the index into the compressed data. For every output row, this gives the
@@ -408,6 +405,5 @@ def decompress_tbgrid_vis(vshape, cvis, cuvw, cindex):
     duvw = numpy.zeros([vshape[0], 3])
     for ind in range(vshape[0]):
         dvis[ind,:,:] = cvis[cindex[ind],:,:]
-        duvw[ind,:] = cuvw[cindex[ind],:]
 
-    return dvis, duvw
+    return dvis
