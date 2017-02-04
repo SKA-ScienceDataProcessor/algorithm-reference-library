@@ -12,7 +12,7 @@ from astropy.constants import c
 
 from arl.fourier_transforms.convolutional_gridding import *
 
-import pylru
+from functools import lru_cache
 
 log = logging.getLogger(__name__)
 
@@ -53,17 +53,16 @@ def w_kernel_lambda(vis, shape, fov, oversampling=4, wstep=100.0, npixel_kernel=
     warray = numpy.array(vis.w)
     karray = numpy.array(vis.frequency) / (c.value * wstep)
     
+    @lru_cache(maxsize=None)
     def cached_on_w(w_integral):
         npixel_kernel_scaled = max(8, int(round(npixel_kernel*abs(w_integral*wstep)/wmax)))
         result = w_kernel(field_of_view=fov, w=wstep * w_integral, npixel_farfield=shape[0],
                         npixel_kernel=npixel_kernel_scaled, kernel_oversampling=oversampling)
         return result
-        
-    lrucache = pylru.FunctionCacheManager(cached_on_w, size=cache_size)
     
     # The lambda function has arguments row and chan so any gridding function can only depend on those
     # parameters. Eventually we could extend that to include polarisation.
-    return lambda row, chan=0: lrucache(int(round(warray[row] * karray[chan]))), lrucache
+    return lambda row, chan=0: cached_on_w(int(round(warray[row] * karray[chan]))), cached_on_w
 
 
 def variable_kernel_degrid(kernel_function, vshape, uvgrid, uv, uvscale, vmap):

@@ -115,6 +115,7 @@ def get_ftprocessor_params(vis, model, **kwargs):
     
     kernel_type = 'fixed'
     gcf = 1.0
+    cache = None
     if kernelname == 'wprojection':
         # wprojection needs a lot of commentary!
         log.info("get_ftprocessor_params: using wprojection kernel")
@@ -132,7 +133,7 @@ def get_ftprocessor_params(vis, model, **kwargs):
         # Now calculate the maximum support for the w kernel
         npixel_kernel = get_parameter(kwargs, "kernelwidth", (int(round(numpy.sin(0.5 * fov) * nx)) // 2))
         log.info("get_ftprocessor_params: w kernel full width = %d pixels" % (npixel_kernel))
-        kernel, _ = w_kernel_lambda(vis, shape, fov, wstep=wstep, npixel_kernel=npixel_kernel,
+        kernel, cache = w_kernel_lambda(vis, shape, fov, wstep=wstep, npixel_kernel=npixel_kernel,
                                     oversampling=oversampling)
         gcf, _ = anti_aliasing_calculate(shape, oversampling)
     elif kernelname == 'box':
@@ -143,7 +144,7 @@ def get_ftprocessor_params(vis, model, **kwargs):
         gcf, kernel = anti_aliasing_calculate(shape, oversampling)
     
     return vmap, gcf, kernel_type, kernelname, kernel, padding, oversampling, support, \
-           cellsize, fov, uvscale
+           cellsize, fov, uvscale, cache
 
 
 def get_channel_map(vis, im, spectral_mode='channel'):
@@ -164,6 +165,12 @@ def get_channel_map(vis, im, spectral_mode='channel'):
     
     return vis_to_im, vnchan
 
+def log_cacheinfo(cache):
+    """ Log info about cache
+    
+    """
+    if cache is not None:
+        log.info("log_cacheinfo: final cache statistics = %s" % str(cache.cache_info()))
 
 def predict_2d_base(vis, model, **kwargs):
     """ Predict using convolutional degridding.
@@ -178,7 +185,7 @@ def predict_2d_base(vis, model, **kwargs):
     _, _, ny, nx = model.data.shape
     
     vmap, gcf, kernel_type, kernelname, kernel, padding, oversampling, support, cellsize, fov, \
-    uvscale = get_ftprocessor_params(vis, model, **kwargs)
+    uvscale, cache = get_ftprocessor_params(vis, model, **kwargs)
     
     uvgrid = fft((pad_mid(model.data, padding * nx) * gcf).astype(dtype=complex))
     
@@ -189,6 +196,8 @@ def predict_2d_base(vis, model, **kwargs):
     
     # Now we can shift the visibility from the image frame to the original visibility frame
     vis = shift_vis_to_image(vis, model, tangent=True, inverse=True)
+    
+    log_cacheinfo(cache)
     
     return vis
 
@@ -234,7 +243,7 @@ def invert_2d_base(vis, im, dopsf=False, **kwargs):
     nchan, npol, ny, nx = im.data.shape
     
     vmap, gcf, kernel_type, kernelname, kernel, padding, oversampling, support, cellsize, \
-    fov, uvscale = get_ftprocessor_params(vis, im, **kwargs)
+    fov, uvscale, cache = get_ftprocessor_params(vis, im, **kwargs)
     
     # uvw is in metres, v.frequency / c.value converts to wavelengths, the cellsize converts to phase
     # Optionally pad to control aliasing
@@ -268,7 +277,9 @@ def invert_2d_base(vis, im, dopsf=False, **kwargs):
     
     # Normalise weights for consistency with transform
     sumwt /= float(padding * padding * nx * ny)
-    
+
+    log_cacheinfo(cache)
+
     return create_image_from_array(imgrid, im.wcs), sumwt
 
 
@@ -421,7 +432,7 @@ def weight_visibility(vis, im, **kwargs):
     :returns: visibility with imaging_weights column added and filled
     """
     
-    vmap, _, _, _, _, _, _, _, _, _, uvscale = get_ftprocessor_params(vis, im, **kwargs)
+    vmap, _, _, _, _, _, _, _, _, _, uvscale, _ = get_ftprocessor_params(vis, im, **kwargs)
     
     # uvw is in metres, v.frequency / c.value converts to wavelengths, the cellsize converts to phase
     density = None
