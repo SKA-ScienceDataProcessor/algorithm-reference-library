@@ -247,21 +247,11 @@ def average_chunks(arr, wts, chunksize):
         return arr, wts
     elif chunksize <= 1:
         return arr, wts
-    
-    nchunks, rem = divmod(len(arr), chunksize)
-    if rem:
-        nchunks += 1
-    
-    chunks = numpy.zeros(nchunks, dtype=arr.dtype)
-    weights = numpy.zeros(nchunks, dtype=wts.dtype)
-    
-    ichunk = 0
-    for i in range(0, len(arr), chunksize):
-        ind = slice(i, min(i + chunksize, len(arr)))
-        weights[ichunk] = numpy.sum(wts[ind])
-        chunks[ichunk] = numpy.sum(wts[ind] * arr[ind])
-        ichunk += 1
         
+    places = range(0, len(arr), chunksize)
+    chunks = numpy.add.reduceat(wts*arr, places)
+    weights = numpy.add.reduceat(wts, places)
+
     chunks[weights>0.0] = chunks[weights>0.0] / weights[weights>0.0]
     
     return chunks, weights
