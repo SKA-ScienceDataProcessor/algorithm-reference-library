@@ -53,7 +53,7 @@ class TestFTProcessor(unittest.TestCase):
         os.makedirs(self.dir, exist_ok=True)
 
     def actualSetUp(self, time=None, frequency=None):
-        self.params = {'npixel': 512,
+        self.params = {'npixel': 256,
                        'npol': 1,
                        'image_nchan':1,
                        'cellsize': 0.001,
@@ -66,11 +66,9 @@ class TestFTProcessor(unittest.TestCase):
                        'wstep': 2.0}
         
         self.lowcore = create_named_configuration('LOWBD2-CORE')
-        self.times = numpy.linspace(0.0, 300.0, 11)
+        self.times = (numpy.pi / (12.0)) * numpy.linspace(-3.0, 3.0, 7)
 
-        if time is None:
-            self.times = (numpy.pi / (12.0)) * numpy.linspace(-3.0, 3.0, 7)
-        else:
+        if time is not None:
             self.times = time
         log.info("Times are %s" % (self.times))
         
@@ -86,12 +84,12 @@ class TestFTProcessor(unittest.TestCase):
         self.componentvis.data['vis'] *= 0.0
         
         # Create model
-        self.model = create_image_from_visibility(self.componentvis, npixel=512, cellsize=0.001,
+        self.model = create_image_from_visibility(self.componentvis, npixel=256, cellsize=0.001,
                                                      image_nchan=1)
 
         # Fill the visibility with exactly computed point sources. These are chosen to lie
         # on grid points.
-        spacing_pixels = 64
+        spacing_pixels = 32
         log.info('Spacing in pixels = %s' % spacing_pixels)
         
         centers = [-2.5, -1.5, -0.5, 0.5, 1.5, 2.5]
@@ -176,7 +174,7 @@ class TestFTProcessor(unittest.TestCase):
         
     def test_predict_wprojection(self):
         self.actualSetUp()
-        self.params = {'npixel': 512,
+        self.params = {'npixel': 256,
                        'npol': 1,
                        'cellsize': 0.001,
                        'channelwidth': 5e7,
@@ -235,13 +233,13 @@ class TestFTProcessor(unittest.TestCase):
         self._invert_base(invert_wprojection, positionthreshold=1.0)
 
     def test_invert_by_image_partitions_with_compression(self):
-        time = (numpy.pi / (12.0)) * numpy.linspace(0.0, 30.0, 11)
+        time = (numpy.pi / (12.0 * 3600.0)) * numpy.linspace(0.0, 30.0, 11)
         self.actualSetUp(time=time)
         self.params['compression_factor']=1.0
         self._invert_base(invert_by_image_partitions, positionthreshold=1.0)
 
     def test_predict_by_image_partitions_with_compression(self):
-        time = (numpy.pi / (12.0)) * numpy.linspace(0.0, 30.0, 11)
+        time = (numpy.pi / (12.0 * 3600.0)) * numpy.linspace(0.0, 30.0, 11)
         self.actualSetUp(time=time)
         self.params['compression_factor']=1.0
         self._predict_base(predict_by_image_partitions, fluxthreshold=10.0)

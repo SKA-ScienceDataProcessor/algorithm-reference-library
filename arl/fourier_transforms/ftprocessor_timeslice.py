@@ -92,6 +92,7 @@ def predict_timeslice_serial(vis, model, **kwargs):
             workimage.data[footprintimage.data <= 0.0] = 0.0
 
         else:
+            # This is much slower than reproject
             log.debug('predict_timeslice: Using griddata to convert projection')
             for chan in range(nchan):
                 for pol in range(npol):
@@ -195,15 +196,17 @@ def predict_timeslice_single(vis, model, **kwargs):
     # Use griddata to do the conversion. This could be improved. Only cubic is possible in griddata.
     # The interpolation is ok for invert since the image is smooth but for clean images the
     # interpolation is particularly poor, leading to speckle in the residual image.
-    usereproject = get_parameter(kwargs, "usereproject", True)
+    usereproject = get_parameter(kwargs, "usereproject", False)
     if usereproject:
         log.debug('predict_timeslice: Using reproject to convert projection')
         # Set the parameters defining the SIN projection for this plane
         newwcs = model.wcs.deepcopy()
-        newwcs.wcs.set_pv([(0, 0, q), (0, 1, p)])
-        # Reproject the model from the natural oblique SIN projection to the non-oblique SIN projection
+        model.wcs.wcs.set_pv([(0, 0, 0.0), (0, 1, 0.0)])
+        newwcs.wcs.set_pv([(0, 0, -q), (0, 1, -p)])
+        # Reproject the model from the natural SIN projection to the oblique SIN projection
         workimage, footprintimage = reproject_image(model, newwcs, shape=[inchan, inpol, ny, nx])
         workimage.data[footprintimage.data <= 0.0] = 0.0
+        # export_image_to_fits(reprojected_image, "reproject%s.fits" % (numpy.average(vis.time)))
 
     else:
         lnominal, mnominal, ldistorted, mdistorted = lm_distortion(model, -p, -q)
@@ -218,7 +221,6 @@ def predict_timeslice_single(vis, model, **kwargs):
                              fill_value=0.0,
                              rescale=True).reshape(workimage.data[chan, pol, ...].shape)
 
-    export_image_to_fits(reprojected_image, "reproject%s.fits" % (numpy.average(vis.time)))
     
     # Now we can do the prediction for this slice using a 2d transform
     vis = predict_2d(vis, workimage, **kwargs)
@@ -280,8 +282,8 @@ def invert_timeslice(vis, im, dopsf=False, **kwargs):
             workimage, sumwt = invert_timeslice_single(visslice, im, dopsf, **kwargs)
             resultimage.data += workimage.data
             totalwt += sumwt
-            export_image_to_fits(resultimage, "resultimage%d.fits" % (int(numpy.average(visslice.time))))
-            export_image_to_fits(workimage, "workimage%d.fits" % (int(numpy.average(visslice.time))))
+            # export_image_to_fits(resultimage, "cumulative_image%d.fits" % (int(numpy.average(visslice.time))))
+            # export_image_to_fits(workimage, "corrected_snapshot_image%d.fits" % (int(numpy.average(visslice.time))))
             i+=1
     
     return resultimage, totalwt
@@ -328,24 +330,30 @@ def invert_timeslice_single(vis, im, dopsf, **kwargs):
     vis, p, q = fit_uvwplane(vis)
     
     workimage, sumwt = invert_2d(vis, im, dopsf, **kwargs)
-    
-    # Calculate nominal and distorted coordinates. The image is in distorted coordinates so we
-    # need to convert back to nominal
-    lnominal, mnominal, ldistorted, mdistorted = lm_distortion(workimage, -p, -q)
+    # We don't normalise since that will be done after summing all images
+    # export_image_to_fits(workimage, "uncorrected_snapshot_image%d.fits" % (int(numpy.average(vis.time))))
 
     finalimage = create_empty_image_like(im)
+    
+    log.debug("Time=%f, p=%.3f, q=%.3f" % (numpy.average(vis.time), p, q))
 
-    usereproject = get_parameter(kwargs, "usereproject", True)
+    usereproject = get_parameter(kwargs, "usereproject", False)
     if usereproject:
         # Set the parameters defining the SIN projection for this plane
         newwcs = im.wcs.deepcopy()
-        newwcs.wcs.set_pv([(0, 0, p), (0, 1, q)])
+        newwcs.wcs.set_pv([(0, 0, 0.0), (0, 1, 0.0)])
+        workimage.wcs.wcs.set_pv([(0, 0, -p), (0, 1, -q)])
         # Reproject the model from the natural oblique SIN projection to the non-oblique SIN projection
-        workimage, footprintimage = reproject_image(im, newwcs, shape=[inchan, inpol, ny, nx])
-        workimage.data[footprintimage.data <= 0.0] = 0.0
+        finalimage, footprintimage = reproject_image(workimage, newwcs, shape=[inchan, inpol, ny, nx])
+        finalimage.data[footprintimage.data <= 0.0] = 0.0
     else:
         # Use griddata to do the conversion. This could be improved. Only cubic is possible in griddata.
         # The interpolation is ok for invert since the image is smooth.
+        
+        # Calculate nominal and distorted coordinates. The image is in distorted coordinates so we
+        # need to convert back to nominal
+        lnominal, mnominal, ldistorted, mdistorted = lm_distortion(workimage, -p, -q)
+
         for chan in range(inchan):
             for pol in range(inpol):
                 finalimage.data[chan, pol, ...] = \

@@ -316,7 +316,9 @@ def compress_tbgrid_vis(vis, time, antenna1, antenna2, uvw, visweights, integrat
     nbaselines = nant * (nant - 1)
     
     log.info('compress_tbgrid_vis: Compressing %d unique times and %d baselines' % (ntimes, nbaselines))
-    
+    time_integration = utimes[1] - utimes[0]
+    log.info('compress_tbgrid_vis: Time step between integrations seems to be %.2f (seconds)' % time_integration)
+
     visshape = nant, nant, ntimes, vnchan, vnpol
     visgrid = numpy.zeros(visshape, dtype='complex')
     wtsgrid = numpy.zeros(visshape)
@@ -360,9 +362,6 @@ def compress_tbgrid_vis(vis, time, antenna1, antenna2, uvw, visweights, integrat
 
     visgrid[wtsgrid > 0.0] /= wtsgrid[wtsgrid > 0.0]
     visgrid[wtsgrid <= 0.0] = 0.0
-    
-    time_integration = utimes[1] - utimes[0]
-    log.info('compress_tbgrid_vis: Time step between integrations seems to be %.2f (seconds)' % time_integration)
     
     # Calculate the scaled integration time making it the same for all times for this baseline
     sample_width = numpy.zeros([nant, nant], dtype='int')
