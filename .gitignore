@@ -11,6 +11,7 @@
 
 /examples/**/*.rst
 /examples/**/*.html
+/examples/**/*.fits
 /examples/*/figures
 /examples/*/*_files
 /examples/*/.ipynb_checkpoints
@@ -44,4 +45,4 @@ temp.fits
 /tests/test_ftprocessor_results
 /.pydevproject
 /tests/test_results
-*.fits
+/test_results
