@@ -6,6 +6,7 @@ import unittest
 
 from arl.util.testing_support import create_named_configuration, run_unittests
 from arl.visibility.operations import create_visibility
+from arl.fourier_transforms.ftprocessor_base import create_image_from_visibility
 from arl.visibility.compress import *
 
 log = logging.getLogger(__name__)
@@ -37,6 +38,7 @@ class TestCompress(unittest.TestCase):
 
     def test_compress_decompress_tbgrid_vis(self):
         cvis, cindex = compress_visibility(self.vis, self.model, compression='tb', compression_factor=1.0)
+        assert cvis.compressed == True
         dvis = decompress_visibility(cvis, self.vis, cindex=cindex, compression='tb')
         numpy.testing.assert_array_equal(self.vis.time, dvis.time)
         numpy.testing.assert_array_equal(self.vis.antenna1, dvis.antenna1)
@@ -45,20 +47,9 @@ class TestCompress(unittest.TestCase):
 
     def test_compress_decompress_tbgrid_vis_null(self):
         cvis, cindex = compress_visibility(self.vis, self.model, compression='tb', compression_factor=0.0)
-        numpy.testing.assert_array_equal(cvis.vis[cindex, 0, 0].real, numpy.arange(self.vis.nvis))
+        assert cvis.compressed == False
+        assert cindex is None
         dvis = decompress_visibility(cvis, self.vis, cindex=cindex, compression='tb')
-        # Since there is no compression, we can test the index as well
-        numpy.testing.assert_array_equal(self.vis.time, cvis.time[cindex])
-        numpy.testing.assert_array_equal(self.vis.time, dvis.time)
-        numpy.testing.assert_array_equal(self.vis.antenna1, cvis.antenna1[cindex])
-        numpy.testing.assert_array_equal(self.vis.antenna1, dvis.antenna1)
-        numpy.testing.assert_array_equal(self.vis.antenna1, cvis.antenna1[cindex])
-        numpy.testing.assert_array_equal(self.vis.antenna2, dvis.antenna2)
-        numpy.testing.assert_array_equal(self.vis.uvw, cvis.uvw[cindex,:])
-        numpy.testing.assert_array_equal(self.vis.uvw, dvis.uvw)
-        numpy.testing.assert_array_equal(self.vis.vis, dvis.vis)
-
-        assert dvis.nvis == self.vis.nvis
 
     def test_average_chunks(self):
         

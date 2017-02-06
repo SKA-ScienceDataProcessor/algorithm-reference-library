@@ -93,7 +93,7 @@ def restore_cube(dirty: Image, clean: Image, psf: Image, **kwargs):
     :param params: 'algorithm': 'msclean'|'hogbom', 'gain': loop gain (float)
     :returns: restored image
     """
-    log.error("restore_image: not yet implemented")
+    raise RuntimeError("restore_image: not yet implemented")
     return Image()
 
 
@@ -113,7 +113,7 @@ def deconvolve_mfs(dirty: Image, psf: Image, **kwargs):
     :returns: componentimage, residual
     """
 
-    log.error("deconvolve_mfs: not yet implemented")
+    raise RuntimeError("deconvolve_mfs: not yet implemented")
     return Image()
 
 
@@ -127,7 +127,7 @@ def restore_mfs(dirty: Image, clean: Image, psf: Image, **kwargs):
     :returns: restored image
     """
 
-    log.error("restore_mfs: not yet implemented")
+    raise RuntimeError("restore_mfs: not yet implemented")
     return Image()
 
 

@@ -21,7 +21,7 @@ def interpolate_gaintable(gt: GainTable, **kwargs):
     """
     # TODO: implement
     
-    log.error('"interpolate_gaintable: not yet implemented')
+    raise RuntimeError('"interpolate_gaintable: not yet implemented')
     return GainTable()
 
 
@@ -34,7 +34,7 @@ def solve_gains(vis: Visibility, sm: Skymodel, **kwargs) -> GainTable:
     :returns: GainTable
     """
     # TODO: Implement calibration solution
-    log.error("solve_gains: not yet implemented")
+    raise RuntimeError("solve_gains: not yet implemented")
     return GainTable()
 
 
@@ -47,7 +47,7 @@ def correct_visibility(vis: Visibility, gt: GainTable, **kwargs) -> Visibility:
     :returns: Visibility
     """
     # TODO: Implement calibration application
-    log.error("correct_visibility: not yet implemented")
+    raise RuntimeError("correct_visibility: not yet implemented")
     return vis
 
 
@@ -60,7 +60,7 @@ def peel_skycomponent(vis: Visibility, sc: Skycomponent, **kwargs) -> Visibility
     :returns: Visibility, GainTable
     """
     # TODO: Implement peeling
-    log.error("peel_skycomponent: not yet implemented")
+    raise RuntimeError("peel_skycomponent: not yet implemented")
     return vis
 
 
@@ -72,5 +72,5 @@ def qa_gaintable(gt, **kwargs):
     :returns: AQ
     """
     # TODO: implement
-    log.error("qa_gaintable: not yet implemented")
+    raise RuntimeError("qa_gaintable: not yet implemented")
     return QA()

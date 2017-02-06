@@ -250,6 +250,7 @@ class Visibility:
         self.frequency = frequency  # numpy.array [nchan]
         self.phasecentre = phasecentre  # Phase centre of observation
         self.configuration = configuration  # Antenna/station configuration
+        self.compressed = False # Is this a compressed visibility set?
     
     def size(self):
         """ Return size in GB
