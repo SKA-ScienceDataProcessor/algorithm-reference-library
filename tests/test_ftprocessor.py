@@ -230,6 +230,15 @@ class TestFTProcessor(unittest.TestCase):
     
     def test_invert_wprojection(self):
         self.actualSetUp()
+        self.params = {'npixel': 256,
+                       'npol': 1,
+                       'cellsize': 0.001,
+                       'channelwidth': 5e7,
+                       'reffrequency': 1e8,
+                       'padding': 2,
+                       'oversampling': 4,
+                       'wstep': 1.0}
+
         self._invert_base(invert_wprojection, positionthreshold=1.0)
 
     def test_invert_by_image_partitions_with_compression(self):
