@@ -7,4 +7,3 @@ functions in arl.fourier_transforms.
 from arl.fourier_transforms.ftprocessor_params import *
 from arl.fourier_transforms.ftprocessor_base import *
 from arl.fourier_transforms.ftprocessor_timeslice import *
-from arl.fourier_transforms.ftprocessor_nested import *
