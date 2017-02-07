@@ -207,7 +207,7 @@ def create_low_test_image(npixel=16384, npol=1, nchan=1, cellsize=0.000015, freq
     
     model = create_image_from_array(numpy.zeros(shape), w)
     
-    with open(arl_path('data/models/S3_151MHz_20deg.csv')) as csvfile:
+    with open(arl_path('data/models/S3_151MHz_10deg.csv')) as csvfile:
         readCSV = csv.reader(csvfile, delimiter=',')
         r = 0
         for row in readCSV:
