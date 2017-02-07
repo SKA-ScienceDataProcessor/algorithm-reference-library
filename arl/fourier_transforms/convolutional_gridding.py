@@ -339,16 +339,25 @@ def fixed_kernel_degrid(kernel, vshape, uvgrid, uv, uvscale, vmap = lambda chan:
     assert vnpol == inpol, "Number of polarizations must be the same"
     vis = numpy.zeros([nvis, vnchan, inpol], dtype='complex')
     wt  = numpy.zeros([nvis, vnchan, inpol])
+    # Each channel must be done separately because the uvw changes
     for vchan in range(vnchan):
         ichan = vmap(vchan)
+        # Calculate grid point and fractional part for scaled u and v
         y, yf = frac_coord(uvgrid.shape[2], kernel_oversampling, uvscale[1, vchan] * uv[..., 1])
         x, xf = frac_coord(uvgrid.shape[3], kernel_oversampling, uvscale[0, vchan] * uv[..., 0])
-        coords = x, xf, y, yf
+        # Now calculate slices for the footprint of each sample
+        slicey = []
+        slicex = []
+        for xx in x:
+            slicex.append(slice((xx - gw // 2), (xx + (gw + 1) // 2)))
+        for yy in y:
+            slicey.append(slice((yy - gh // 2), (yy + (gh + 1) // 2)))
+        coords = slicex, xf, slicey, yf
+        # Now we can degrid the points and accumulate weight as well
         for vpol in range(vnpol):
             vis[..., vchan, vpol] = [
-                numpy.sum(uvgrid[ichan, vpol, y - gh // 2: y + (gh + 1) // 2, x - gw // 2: x + (gw + 1) // 2]
-                          * kernel[yf, xf, :, :])
-                for x, xf, y, yf in zip(*coords)
+                numpy.sum(uvgrid[ichan, vpol, sly, slx] * kernel[yf, xf, :, :])
+                for slx, xf, sly, yf in zip(*coords)
                 ]
             wt[..., vchan, vpol] = [numpy.sum(kernel[yf, xf, :, :].real) for x, xf, y, yf in zip(*coords)]
     vis[numpy.where(wt > 0)] = vis[numpy.where(wt > 0)] / wt[numpy.where(wt > 0)]
@@ -410,15 +419,19 @@ def fixed_kernel_grid(kernel, uvgrid, uv, uvscale, vis, visweights, vmap = lambd
         ichan = vmap(vchan)
         y, yf = frac_coord(ny, kernel_oversampling, uvscale[1, vchan] * uv[..., 1])
         x, xf = frac_coord(nx, kernel_oversampling, uvscale[0, vchan] * uv[..., 0])
-        coords = x, xf, y, yf
+        slicey = []
+        slicex = []
+        for xx in x:
+            slicex.append(slice((xx - gw // 2), (xx + (gw + 1) // 2)))
+        for yy in y:
+            slicey.append(slice((yy - gh // 2), (yy + (gh + 1) // 2)))
+        coords = slicex, xf, slicey, yf
         for pol in range(vnpol):
             wts = visweights[..., vchan, pol]
             viswt = vis[..., vchan, pol] * visweights[..., vchan, pol]
-            for v, vwt, x, xf, y, yf in zip(viswt, wts, *coords):
-                uvgrid[ichan, pol, (y - gh // 2):(y + (gh + 1) // 2), (x - gw // 2):(x + (gw + 1) // 2)] \
-                    += kernel[yf, xf, :, :] * v
-                wtgrid[ichan, pol, (y - gh // 2):(y + (gh + 1) // 2), (x - gw // 2):(x + (gw + 1) // 2)] \
-                    += kernel[yf, xf, :, :].real * vwt
+            for v, vwt, slx, xf, sly, yf in zip(viswt, wts, *coords):
+                uvgrid[ichan, pol, sly, slx] += kernel[yf, xf, :, :] * v
+                wtgrid[ichan, pol, sly, slx] += kernel[yf, xf, :, :].real * vwt
             sumwt[ichan, pol] += numpy.sum(wtgrid[ichan, pol, ...])
     
     return uvgrid, sumwt

@@ -13,6 +13,7 @@ from arl.data.data_models import *
 from arl.fourier_transforms.convolutional_gridding import frac_coord
 from arl.fourier_transforms.ftprocessor_params import get_ftprocessor_params
 from arl.visibility.operations import vis_summary
+from arl.util.array_functions import average_chunks
 
 import logging
 
@@ -272,23 +273,6 @@ def decompress_uvgrid_vis(shape, tuvw, vis, visweights, uvw, uvscale, vmap):
             twts[..., vchan, vpol] = wtsgrid[y, x, ichan, vpol]
     
     return tvis, twts
-
-
-def average_chunks(arr, wts, chunksize):
-    """ Average the array arr with weights by chunks
-    """
-    if chunksize > len(arr):
-        return arr, wts
-    elif chunksize <= 1:
-        return arr, wts
-        
-    places = range(0, len(arr), chunksize)
-    chunks = numpy.add.reduceat(wts*arr, places)
-    weights = numpy.add.reduceat(wts, places)
-
-    chunks[weights>0.0] = chunks[weights>0.0] / weights[weights>0.0]
-    
-    return chunks, weights
 
 
 def compress_tbgrid_vis(vis, time, antenna1, antenna2, uvw, visweights, integration_time, max_compression=10,

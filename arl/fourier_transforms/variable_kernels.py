@@ -84,16 +84,27 @@ def variable_kernel_degrid(kernel_function, vshape, uvgrid, uv, uvscale, vmap):
     assert vnpol == inpol, "Number of polarizations must be the same"
     vis = numpy.zeros(vshape, dtype='complex')
     wt = numpy.zeros(vshape)
+
+    # Initialise the kernels.
+    kmap = []
     for row in range(nvis):
+        krow = []
         for vchan in range(vnchan):
+            krow.append(kernel_function(row, vchan))
+        kmap.append(krow)
+
+    for row in range(nvis):
+        krow = kmap[row]
+        for vchan in range(vnchan):
+            kernel = numpy.conjugate(krow[vchan])
             ichan = vmap(vchan)
-            kernel = numpy.conj(kernel_function(row, vchan))
             kernel_oversampling, _, gh, gw = kernel.shape
             y, yf = frac_coord(nx, kernel_oversampling, uvscale[1, vchan] * uv[row, 1])
             x, xf = frac_coord(ny, kernel_oversampling, uvscale[0, vchan] * uv[row, 0])
+            slicey = slice(y - gh // 2, y + (gh + 1) // 2)
+            slicex = slice(x - gw // 2, x + (gw + 1) // 2)
             for vpol in range(vnpol):
-                vis[row, vchan, vpol] = numpy.sum(uvgrid[ichan, vpol, y - gh // 2: y + (gh + 1) // 2,
-                                                x - gw // 2: x + (gw + 1) // 2] * kernel[yf, xf, :, :])
+                vis[row, vchan, vpol] = numpy.sum(uvgrid[ichan, vpol, slicey, slicex] * kernel[yf, xf, :, :])
                 wt[row, vchan, vpol] = numpy.sum(kernel[yf, xf, :, :].real)
     vis[numpy.where(wt > 0)] = vis[numpy.where(wt > 0)] / wt[numpy.where(wt > 0)]
     vis[numpy.where(wt < 0)] = 0.0
@@ -118,17 +129,28 @@ def variable_kernel_grid(kernel_function, uvgrid, uv, uvscale, vis, visweights, 
     nvis, vnchan, vnpol = vis.shape
     assert vnpol == inpol, "Number of polarizations must be the same"
     sumwt = numpy.zeros([inchan, inpol])
+    
+    # Initialise the kernels.
+    kmap=[]
     for row in range(nvis):
+        krow = []
         for vchan in range(vnchan):
+            krow.append(kernel_function(row, vchan))
+        kmap.append(krow)
+
+    for row in range(nvis):
+        krow = kmap[row]
+        for vchan in range(vnchan):
+            kernel = krow[vchan]
             ichan = vmap(vchan)
-            kernel = kernel_function(row, vchan)
             kernel_oversampling, _, gh, gw = kernel.shape
             y, yf = frac_coord(nx, kernel_oversampling, uvscale[1, vchan] * uv[row, 1])
             x, xf = frac_coord(ny, kernel_oversampling, uvscale[0, vchan] * uv[row, 0])
+            slicey = slice(y - gh // 2, y + (gh + 1) // 2)
+            slicex = slice(x - gw // 2, x + (gw + 1) // 2)
             for vpol in range(vnpol):
                 viswt = vis[row, vchan, vpol] * visweights[row, vchan, vpol]
-                uvgrid[ichan, vpol, (y - gh // 2):(y + (gh + 1) // 2), (x - gw // 2):(x + (gw + 1) // 2)] += \
-                    kernel[yf, xf, :, :] * viswt
+                uvgrid[ichan, vpol, slicey, slicex] += kernel[yf, xf, :, :] * viswt
                 sumwt[ichan, vpol] += numpy.sum(kernel[yf, xf, :, :].real) * visweights[row, vchan, vpol]
 
     return uvgrid, sumwt
