@@ -39,7 +39,7 @@ def get_channel_map(vis, im, spectral_mode='channel'):
 def get_ftprocessor_params(vis, model, **kwargs):
     """ Common interface to params for predict and invert
 
-    :param vis: Visibility data
+    :param vis: CompressedVisibility data
     :param model: Image model used to determine sampling
     :param padding: Pad images by this factor during processing (2)
     :param kernel: kernel to use {2d|wprojection} (2d)
@@ -47,7 +47,9 @@ def get_ftprocessor_params(vis, model, **kwargs):
     :param support: Support of convolution function (width = 2*support+2) (3)
     :returns: nchan, npol, ny, nx, shape, spectral_mode, gcf,kernel_type, kernelname, kernel,padding, oversampling, support, cellsize, fov
     """
-    
+
+    assert type(vis) is CompressedVisibility, "vis is not a CompressedVisibility: %r" % vis
+
     # Transform parameters
     padding = get_parameter(kwargs, "padding", 2)
     kernelname = get_parameter(kwargs, "kernel", "2d")
@@ -58,12 +60,12 @@ def get_ftprocessor_params(vis, model, **kwargs):
     inchan, inpol, ny, nx = model.data.shape
     shape = (padding * ny, padding * nx)
     
-    # Visibility information
+    # CompressedVisibility information
     nvis, vnchan, vnpol = vis.data['vis'].shape
     
     # UV sampling information
     cellsize = model.wcs.wcs.cdelt[0:2] * numpy.pi / 180.0
-    uvscale = numpy.outer(cellsize, vis.frequency / c.value)
+    uvscale = cellsize
     assert uvscale[0, 0] != 0.0, "Error in uv scaling"
     fov = padding * nx * numpy.abs(cellsize[0])
     log.info("get_ftprocessor_params: effective uv cellsize is %.1f wavelengths" % (1.0 / fov))
@@ -89,7 +91,7 @@ def get_ftprocessor_params(vis, model, **kwargs):
     if kernelname == 'wprojection':
         # wprojection needs a lot of commentary!
         log.info("get_ftprocessor_params: using wprojection kernel")
-        wmax = numpy.max(numpy.abs(vis.w)) * numpy.max(vis.frequency) / c
+        wmax = numpy.max(numpy.abs(vis.w))
         assert wmax > 0, "Maximum w must be > 0.0"
         kernel_type = 'variable'
         r_f = (fov / 2) ** 2 / numpy.abs(cellsize[0])

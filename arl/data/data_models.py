@@ -216,41 +216,42 @@ class Visibility:
     Visibility is defined to hold an observation with one set of frequencies and one
     direction.
 
-    The data column has vis:[row,nchan,npol], uvw:[row,3], time, integration_time
+    The data column has vis:[a2,a1,nchan,npol], uvw:[3], time, integration_time
     """
     
     def __init__(self,
-                 data=None, frequency=None, phasecentre=None, configuration=None,
-                 uvw=None, time=None, antenna1=None, antenna2=None, vis=None, weight=None,
+                 data=None, time=None, frequency=None, polarisation=None, phasecentre=None, configuration=None,
+                 uvw=None, antenna1=None, antenna2=None, vis=None, weight=None,
                  imaging_weight=None, integration_time=None):
         if data is None and vis is not None:
             if imaging_weight is None:
                 imaging_weight = weight
             nvis = vis.shape[0]
-            nchan = vis.shape[1]
-            npol = vis.shape[2]
-            desc = [('uvw', '<f8', (3,)),
+            nants2 = vis.shape[1]
+            nants1 = vis.shape[2]
+            nchan = vis.shape[3]
+            npol = vis.shape[4]
+            desc = [('uvw', '<f8', (nants3,)),
                     ('time', '<f8'),
                     ('integration_time', '<f8'),
                     ('antenna1', '<i8'),
                     ('antenna2', '<i8'),
-                    ('vis', '<c16', (nchan, npol)),
-                    ('weight', '<f8', (nchan, npol)),
-                    ('imaging_weight', '<f8', (nchan, npol))]
+                    ('vis', '<c16', (nants2, nants1, nchan, npol)),
+                    ('weight', '<f8', (nants2, nants1, nchan, npol)),
+                    ('imaging_weight', '<f8', (nants2, nants1, nchan, npol))]
             data = numpy.zeros(shape=[nvis], dtype=desc)
             data['uvw'] = uvw
             data['time'] = time
             data['integration_time'] = integration_time
-            data['antenna1'] = antenna1
-            data['antenna2'] = antenna2
             data['vis'] = vis
             data['weight'] = weight
             data['imaging_weight'] = imaging_weight
+        self.frequency = frequency
+        self.polarisation = polarisation
         self.data = data  # numpy structured array with columns uvw, time, a1, a2, vis, weight, imaging_weight
         self.frequency = frequency  # numpy.array [nchan]
         self.phasecentre = phasecentre  # Phase centre of observation
         self.configuration = configuration  # Antenna/station configuration
-        self.compressed = False # Is this a compressed visibility set?
     
     def size(self):
         """ Return size in GB
@@ -321,6 +322,116 @@ class Visibility:
         """ Calculates baseline coordinates in wavelengths. """
         return self.data['uvw'] * self.frequency[channel] / c.value
 
+
+class CompressedVisibility:
+    """ Visibility table class
+
+    Visibility with uvw, time, frequency, pol, a1, a2, vis, weight Columns in
+    a numpy structured array along an attribute to hold the direction.
+
+    Visibility is defined to hold an observation with one direction.
+
+    The data column has vis:[row,nchan,npol], uvw:[row,3], time, integration_time
+    """
+    
+    def __init__(self,
+                 data=None, frequency=None, channel_bandwidth=None, phasecentre=None, configuration=None,
+                 uvw=None, time=None, antenna1=None, antenna2=None, polarisation=None,
+                 vis=None, weight=None,
+                 imaging_weight=None, integration_time=None):
+        if data is None and vis is not None:
+            if imaging_weight is None:
+                imaging_weight = weight
+            nvis = vis.shape[0]
+            desc = [('uvw', '<f8', (3,)),
+                    ('time', '<f8'),
+                    ('frequency', '<f8'),
+                    ('channel_bandwidth', '<f8'),
+                    ('polarisation', '<i8'),
+                    ('integration_time', '<f8'),
+                    ('antenna1', '<i8'),
+                    ('antenna2', '<i8'),
+                    ('vis', '<c16'),
+                    ('weight', '<f8'),
+                    ('imaging_weight', '<f8')]
+            data = numpy.zeros(shape=[nvis], dtype=desc)
+            data['uvw'] = uvw
+            data['time'] = time
+            data['frequency'] = frequency
+            data['channel_bandwidth'] = channel_bandwidth
+            data['polarisation'] = polarisation
+            data['integration_time'] = integration_time
+            data['antenna1'] = antenna1
+            data['antenna2'] = antenna2
+            data['vis'] = vis
+            data['weight'] = weight
+            data['imaging_weight'] = imaging_weight
+            
+        self.data = data  # numpy structured array with columns uvw, time, a1, a2, vis, weight, imaging_weight
+        self.phasecentre = phasecentre  # Phase centre of observation
+        self.configuration = configuration  # Antenna/station configuration
+    
+    def size(self):
+        """ Return size in GB
+        """
+        size = 0
+        size += numpy.size(self.frequency)
+        for col in self.data.dtype.fields.keys():
+            size += self.data[col].size * sys.getsizeof(self.data[col])
+        return size / 1024.0 / 1024.0 / 1024.0
+    
+    @property
+    def nvis(self):
+        return self.data['vis'].shape[0]
+    
+    @property
+    def uvw(self): # In wavelengths
+        return self.data['uvw']
+    
+    @property
+    def u(self):
+        return self.data['uvw'][:, 0]
+    
+    @property
+    def v(self):
+        return self.data['uvw'][:, 1]
+    
+    @property
+    def w(self):
+        return self.data['uvw'][:, 2]
+
+    @property
+    def time(self):
+        return self.data['time']
+
+    @property
+    def frequency(self):
+        return self.data['frequency']
+
+    @property
+    def integration_time(self):
+        return self.data['integration_time']
+    
+    @property
+    def antenna1(self):
+        return self.data['antenna1']
+    
+    @property
+    def antenna2(self):
+        return self.data['antenna2']
+    
+    @property
+    def vis(self):
+        return self.data['vis']
+    
+    @property
+    def weight(self):
+        return self.data['weight']
+    
+    @property
+    def imaging_weight(self):
+        return self.data['imaging_weight']
+    
 
 class QA:
     """ Quality assessment

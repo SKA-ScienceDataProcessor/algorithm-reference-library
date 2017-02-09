@@ -11,7 +11,7 @@ from astropy.coordinates import SkyCoord
 
 from arl.util.testing_support import create_named_configuration, run_unittests
 from arl.visibility.iterators import vis_timeslice_iter
-from arl.visibility.operations import create_visibility
+from arl.visibility.operations import create_compressedvisibility
 
 
 class TestVisibilityIterators(unittest.TestCase):
@@ -22,7 +22,7 @@ class TestVisibilityIterators(unittest.TestCase):
         times = numpy.arange(-numpy.pi / 4.0, +numpy.pi / 4.0, numpy.pi * 0.5 / 12.0)
         frequency = numpy.array([1e8])
         phasecentre = SkyCoord(ra=+15.0 * u.deg, dec=-35.0 * u.deg, frame='icrs', equinox=2000.0)
-        self.vis = create_visibility(self.lowcore, times, frequency, phasecentre=phasecentre, weight=1.0)
+        self.vis = create_compressedvisibility(self.lowcore, times, frequency, phasecentre=phasecentre, weight=1.0)
     
     def test_vis_timeslice_iterator(self):
         timemin = numpy.min(self.vis.time)

@@ -20,7 +20,7 @@ from arl.fourier_transforms.ftprocessor_params import get_ftprocessor_params
 from arl.image.iterators import *
 from arl.util.coordinate_support import simulate_point, skycoord_to_lmn
 from arl.visibility.iterators import *
-from arl.visibility.operations import phaserotate_visibility
+from arl.visibility.operations import phaserotate_compressedvisibility
 from arl.visibility.compress import compress_visibility, decompress_visibility
 
 log = logging.getLogger(__name__)
@@ -29,11 +29,13 @@ log = logging.getLogger(__name__)
 def shift_vis_to_image(vis, im, tangent=True, inverse=False):
     """Shift visibility to the FFT phase centre of the image in place
 
-    :param vis: Visibility data
+    :param vis: CompressedVisibility data
     :param model: Image model used to determine phase centre
     :returns: visibility with phase shift applied and phasecentre updated
 
     """
+    assert type(vis) is CompressedVisibility, "vis is not a CompressedVisibility: %r" % vis
+
     nchan, npol, ny, nx = im.data.shape
     # Convert the FFT definition of the phase center to world coordinates (0 relative)
     image_phasecentre = pixel_to_skycoord(ny // 2, nx // 2, im.wcs)
@@ -45,10 +47,10 @@ def shift_vis_to_image(vis, im, tangent=True, inverse=False):
         else:
             log.debug("shift_vis_from_image: shifting phasecentre from vis phasecentre %s to image phasecentre %s" %
                       (vis.phasecentre, image_phasecentre))
-        vis = phaserotate_visibility(vis, image_phasecentre, tangent=tangent, inverse=inverse)
+        vis = phaserotate_compressedvisibility(vis, image_phasecentre, tangent=tangent, inverse=inverse)
         vis.phasecentre = im.phasecentre
     
-    assert type(vis) is Visibility, "after phase_rotation, vis is not a Visibility"
+    assert type(vis) is CompressedVisibility, "after phase_rotation, vis is not a CompressedVisibility"
     
     return vis
 
@@ -80,10 +82,12 @@ def predict_2d_base(vis, model, **kwargs):
     This is at the bottom of the layering i.e. all transforms are eventually expressed in terms of
     this function. Any shifting needed is performed here.
 
-    :param vis: Visibility to be predicted
+    :param vis: CompressedVisibility to be predicted
     :param model: model image
     :returns: resulting visibility (in place works)
     """
+    assert type(vis) is CompressedVisibility, "vis is not a CompressedVisibility: %r" % vis
+
     _, _, ny, nx = model.data.shape
     
     vmap, gcf, kernel_type, kernelname, kernel, padding, oversampling, support, cellsize, fov, \
@@ -110,7 +114,7 @@ def predict_2d_base(vis, model, **kwargs):
 
 def predict_2d(vis, model, **kwargs):
     """ Predict using convolutional degridding and w projection
-    :param vis: Visibility to be predicted
+    :param vis: CompressedVisibility to be predicted
     :param model: model image
     :returns: resulting visibility (in place works)
     """
@@ -120,7 +124,7 @@ def predict_2d(vis, model, **kwargs):
 
 def predict_wprojection(vis, model, **kwargs):
     """ Predict using convolutional degridding and w projection
-    :param vis: Visibility to be predicted
+    :param vis: CompressedVisibility to be predicted
     :param model: model image
     :returns: resulting visibility (in place works)
     """
@@ -136,12 +140,14 @@ def invert_2d_base(vis, im, dopsf=False, **kwargs):
     This is at the bottom of the layering i.e. all transforms are eventually expressed in terms
     of this function. . Any shifting needed is performed here.
 
-    :param vis: Visibility to be inverted
+    :param vis: CompressedVisibility to be inverted
     :param im: image template (not changed)
     :param dopsf: Make the psf instead of the dirty image
     :returns: resulting image
 
     """
+    assert type(vis) is CompressedVisibility, "vis is not a CompressedVisibility: %r" % vis
+
     svis = copy.deepcopy(vis)
     
     # Shift and then compress to cut down on gridding costs
@@ -198,7 +204,7 @@ def invert_2d(vis, im, dopsf=False, **kwargs):
 
     Note that the image is not normalised but the sum of the weights. This is for ease of use in partitioning.
 
-    :param vis: Visibility to be inverted
+    :param vis: CompressedVisibility to be inverted
     :param im: image template (not changed)
     :param dopsf: Make the psf instead of the dirty image
     :returns: resulting image[nchan, npol, ny, nx], sum of weights[nchan, npol]
@@ -214,7 +220,7 @@ def invert_wprojection(vis, im, dopsf=False, **kwargs):
 
     Use the image im as a template. Do PSF in a separate call.
 
-    :param vis: Visibility to be inverted
+    :param vis: CompressedVisibility to be inverted
     :param im: image template (not changed)
     :param dopsf: Make the psf instead of the dirty image
     :returns: resulting image[nchan, npol, ny, nx], sum of weights[nchan, npol]
@@ -229,7 +235,7 @@ def invert_by_image_partitions(vis, im, image_iterator=raster_iter, dopsf=False,
                                invert_function=invert_2d, **kwargs):
     """ Predict using image partitions, calling specified predict function
 
-    :param vis: Visibility to be inverted
+    :param vis: CompressedVisibility to be inverted
     :param im: image template (not changed)
     :param image_iterator: Iterator to use for partitioning
     :param dopsf: Make the psf instead of the dirty image
@@ -256,7 +262,7 @@ def invert_by_image_partitions(vis, im, image_iterator=raster_iter, dopsf=False,
 def invert_by_vis_partitions(vis, im, vis_iterator, dopsf=False, invert_function=invert_2d, **kwargs):
     """ Invert using wslices
 
-    :param vis: Visibility to be inverted
+    :param vis: CompressedVisibility to be inverted
     :param im: image template (not changed)
     :param dopsf: Make the psf instead of the dirty image
     :returns: resulting image
@@ -278,7 +284,7 @@ def predict_by_image_partitions(vis, model, image_iterator=raster_iter, predict_
                                 **kwargs):
     """ Predict using image partitions, calling specified predict function
 
-    :param vis: Visibility to be predicted
+    :param vis: CompressedVisibility to be predicted
     :param model: model image
     :param image_iterator: Image iterator used to access the image
     :param predict_function: Function to be used for prediction (allows nesting)
@@ -296,7 +302,7 @@ def predict_by_image_partitions(vis, model, image_iterator=raster_iter, predict_
 def predict_by_vis_partitions(vis, model, vis_iterator, predict_function=predict_2d, **kwargs):
     """ Predict using vis partitions
 
-    :param vis: Visibility to be predicted
+    :param vis: CompressedVisibility to be predicted
     :param model: model image
     :param vis_iterator: Iterator to use for partitioning
     :param predict_function: Function to be used for prediction (allows nesting)
@@ -308,23 +314,21 @@ def predict_by_vis_partitions(vis, model, vis_iterator, predict_function=predict
     return vis
 
 
-def predict_skycomponent_visibility(vis: Visibility, sc: Skycomponent, **kwargs) -> Visibility:
+def predict_skycomponent_visibility(vis: CompressedVisibility, sc: Skycomponent, **kwargs) -> CompressedVisibility:
     """Predict the visibility from a Skycomponent, add to existing visibility
 
-    :param vis: Visibility
+    :param vis: CompressedVisibility
     :param sc: Skycomponent
     :param spectral_mode: {mfs|channel} (channel)
-    :returns: Visibility
+    :returns: CompressedVisibility
     """
-    assert_same_chan_pol(vis, sc)
-    
+#    assert_same_chan_pol(vis, sc)
+    assert type(vis) is CompressedVisibility, "vis is not a CompressedVisibility: %r" % vis
+
     l, m, n = skycoord_to_lmn(sc.direction, vis.phasecentre)
-    # The data column has vis:[row,nchan,npol], uvw:[row,3]
-    for channel in range(sc.nchan):
-        uvw = vis.uvw_lambda(channel)
-        phasor = simulate_point(uvw, l, m)
-        for pol in range(sc.npol):
-            vis.vis[:, channel, pol] += sc.flux[channel, pol] * phasor
+    phasor = simulate_point(vis.uvw, l, m)
+    # Need to put correct mapping here
+    vis.vis[:] += sc.flux[0,0] * phasor
     
     return vis
 
@@ -339,7 +343,8 @@ def weight_visibility(vis, im, **kwargs):
     :param im:
     :returns: visibility with imaging_weights column added and filled
     """
-    
+    assert type(vis) is CompressedVisibility, "vis is not a CompressedVisibility: %r" % vis
+
     vmap, _, _, _, _, _, _, _, _, _, uvscale, _ = get_ftprocessor_params(vis, im, **kwargs)
     
     # uvw is in metres, v.frequency / c.value converts to wavelengths, the cellsize converts to phase
@@ -359,7 +364,7 @@ def weight_visibility(vis, im, **kwargs):
 
 
 def create_image_from_visibility(vis, **kwargs):
-    """Make an from params and Visibility
+    """Make an from params and CompressedVisibility
 
     :param vis:
     :param phasecentre: Phasecentre (Skycoord)
@@ -371,20 +376,19 @@ def create_image_from_visibility(vis, **kwargs):
     :param image_nchan: Number of image channels (Default is 1 -> MFS)
     :returns: image
     """
+    assert type(vis) is CompressedVisibility, "vis is not a CompressedVisibility: %r" % vis
+
     log.info("create_image_from_visibility: Parsing parameters to get definition of WCS")
     
     imagecentre = get_parameter(kwargs, "imagecentre", vis.phasecentre)
     phasecentre = get_parameter(kwargs, "phasecentre", vis.phasecentre)
     
-    vnchan = len(vis.frequency)
+    # Spectral processing options
+    vnchan = len(numpy.unique(vis.frequency))
     inchan = get_parameter(kwargs, "image_nchan", 1)
     reffrequency = numpy.min(vis.frequency) * units.Hz
-    deffaultbw = vis.frequency[0]
-    if len(vis.frequency) > 1:
-        deffaultbw = vis.frequency[1] - vis.frequency[0]
-    channelwidth = get_parameter(kwargs, "channelwidth", deffaultbw) * units.Hz
-    
-    # Spectral processing options
+    channelwidth = get_parameter(kwargs, "channelwidth", 1e6) * units.Hz
+
     if (inchan == vnchan) and vnchan > 1:
         log.info("create_image_from_visibility: Defining %d channel Image at %s, starting frequency %s, and bandwidth %s"
                  % (inchan, imagecentre, reffrequency, channelwidth))
@@ -402,7 +406,7 @@ def create_image_from_visibility(vis, **kwargs):
     
     # Image sampling options
     npixel = get_parameter(kwargs, "npixel", 512)
-    uvmax = (numpy.abs(vis.data['uvw'][:, 0:1]).max() * numpy.max(vis.frequency) / c).value
+    uvmax = numpy.max((numpy.abs(vis.data['uvw'][:, 0:1])))
     log.info("create_image_from_visibility: uvmax = %f wavelengths" % uvmax)
     criticalcellsize = 1.0 / (uvmax * 2.0)
     log.info("create_image_from_visibility: Critical cellsize = %f radians, %f degrees" % (
@@ -415,7 +419,7 @@ def create_image_from_visibility(vis, **kwargs):
             cellsize, criticalcellsize))
         cellsize = criticalcellsize
     
-    inpol = get_parameter(kwargs, "npol", vis.data['vis'].shape[2])
+    inpol = get_parameter(kwargs, "npol", 1)
     
     # Now we can define the WCS, which is a convenient place to hold the info above
     # Beware of python indexing order! wcs and the array have opposite ordering
@@ -439,7 +443,7 @@ def create_image_from_visibility(vis, **kwargs):
 def create_w_term_image(vis, w=None, **kwargs):
     """Create an image with a w term phase term in it
 
-    :param vis: Visibility
+    :param vis: CompressedVisibility
     :param w: w value to evaluate (default is median abs)
     :returns: Image
     """

@@ -33,6 +33,8 @@ def solve_gains(vis: Visibility, sm: Skymodel, **kwargs) -> GainTable:
     :param sm:
     :returns: GainTable
     """
+    assert type(vis) is Visibility, "vis is not a Visibility: %r" % vis
+
     # TODO: Implement calibration solution
     raise RuntimeError("solve_gains: not yet implemented")
     return GainTable()
@@ -46,6 +48,8 @@ def correct_visibility(vis: Visibility, gt: GainTable, **kwargs) -> Visibility:
     :param gt: GainTable
     :returns: Visibility
     """
+    assert type(vis) is Visibility, "vis is not a Visibility: %r" % vis
+
     # TODO: Implement calibration application
     raise RuntimeError("correct_visibility: not yet implemented")
     return vis
@@ -60,6 +64,8 @@ def peel_skycomponent(vis: Visibility, sc: Skycomponent, **kwargs) -> Visibility
     :returns: Visibility, GainTable
     """
     # TODO: Implement peeling
+    assert type(vis) is Visibility, "vis is not a Visibility: %r" % vis
+
     raise RuntimeError("peel_skycomponent: not yet implemented")
     return vis
 

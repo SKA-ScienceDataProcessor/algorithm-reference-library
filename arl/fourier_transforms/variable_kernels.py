@@ -99,8 +99,8 @@ def variable_kernel_degrid(kernel_function, vshape, uvgrid, uv, uvscale, vmap):
             kernel = numpy.conjugate(krow[vchan])
             ichan = vmap(vchan)
             kernel_oversampling, _, gh, gw = kernel.shape
-            y, yf = frac_coord(nx, kernel_oversampling, uvscale[1, vchan] * uv[row, 1])
-            x, xf = frac_coord(ny, kernel_oversampling, uvscale[0, vchan] * uv[row, 0])
+            y, yf = frac_coord(nx, kernel_oversampling, uvscale[1] * uv[row, 1])
+            x, xf = frac_coord(ny, kernel_oversampling, uvscale[0] * uv[row, 0])
             slicey = slice(y - gh // 2, y + (gh + 1) // 2)
             slicex = slice(x - gw // 2, x + (gw + 1) // 2)
             for vpol in range(vnpol):
@@ -120,8 +120,8 @@ def variable_kernel_grid(kernel_function, uvgrid, uv, uvscale, vis, visweights, 
     :param kernel_function: Function to return oversampled convolution kernel for given row
     :param uvgrid: Grid to add to
     :param uv: UVW positions
-    :param vis: Visibility values
-    :param vis: Visibility weights
+    :param vis: CompressedVisibility values
+    :param vis: CompressedVisibility weights
     :param vmap: Function to map image channel to visibility channel
     """
     
@@ -144,8 +144,8 @@ def variable_kernel_grid(kernel_function, uvgrid, uv, uvscale, vis, visweights, 
             kernel = krow[vchan]
             ichan = vmap(vchan)
             kernel_oversampling, _, gh, gw = kernel.shape
-            y, yf = frac_coord(nx, kernel_oversampling, uvscale[1, vchan] * uv[row, 1])
-            x, xf = frac_coord(ny, kernel_oversampling, uvscale[0, vchan] * uv[row, 0])
+            y, yf = frac_coord(nx, kernel_oversampling, uvscale[1] * uv[row, 1])
+            x, xf = frac_coord(ny, kernel_oversampling, uvscale[0] * uv[row, 0])
             slicey = slice(y - gh // 2, y + (gh + 1) // 2)
             slicex = slice(x - gw // 2, x + (gw + 1) // 2)
             for vpol in range(vnpol):

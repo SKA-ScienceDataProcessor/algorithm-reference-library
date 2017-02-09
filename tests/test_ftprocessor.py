@@ -13,7 +13,7 @@ from arl.image.operations import export_image_to_fits, create_empty_image_like
 from arl.skymodel.operations import create_skycomponent, find_skycomponents, find_nearest_component, \
     insert_skycomponent
 from arl.util.testing_support import create_named_configuration, run_unittests
-from arl.visibility.operations import create_visibility, sum_visibility
+from arl.visibility.operations import create_compressedvisibility, sum_visibility
 
 log = logging.getLogger(__name__)
 
@@ -78,8 +78,8 @@ class TestFTProcessor(unittest.TestCase):
             self.frequency = frequency
 
         self.phasecentre = SkyCoord(ra=+180.0 * u.deg, dec=-60.0 * u.deg, frame='icrs', equinox=2000.0)
-        self.componentvis = create_visibility(self.lowcore, self.times, self.frequency, phasecentre=self.phasecentre,
-                                              weight=1.0, npol=1)
+        self.componentvis = create_compressedvisibility(self.lowcore, self.times, self.frequency,
+                                                        phasecentre=self.phasecentre, weight=1.0, npol=1)
         self.uvw = self.componentvis.data['uvw']
         self.componentvis.data['vis'] *= 0.0
         
@@ -132,18 +132,18 @@ class TestFTProcessor(unittest.TestCase):
         Good check on the grid correction in the image->vis direction"""
         # Set all w to zero
         self.actualSetUp()
-        self.componentvis = create_visibility(self.lowcore, self.times, self.frequency, phasecentre=self.phasecentre,
+        self.componentvis = create_compressedvisibility(self.lowcore, self.times, self.frequency, phasecentre=self.phasecentre,
                                               weight=1.0, npol=1)
         self.componentvis.data['uvw'][:, 2] = 0.0
         # Predict the visibility using direct evaluation
         for comp in self.components:
             predict_skycomponent_visibility(self.componentvis, comp)
         
-        self.modelvis = create_visibility(self.lowcore, self.times, self.frequency, phasecentre=self.phasecentre,
+        self.modelvis = create_compressedvisibility(self.lowcore, self.times, self.frequency, phasecentre=self.phasecentre,
                                           weight=1.0, npol=1)
         self.modelvis.data['uvw'][:, 2] = 0.0
         predict_2d(self.modelvis, self.model, **self.params)
-        self.residualvis = create_visibility(self.lowcore, self.times, self.frequency, phasecentre=self.phasecentre,
+        self.residualvis = create_compressedvisibility(self.lowcore, self.times, self.frequency, phasecentre=self.phasecentre,
                                              weight=1.0, npol=1)
         self.residualvis.data['uvw'][:, 2] = 0.0
         self.residualvis.data['vis'] = self.modelvis.data['vis'] - self.componentvis.data['vis']
@@ -151,11 +151,11 @@ class TestFTProcessor(unittest.TestCase):
         self._checkdirty(self.residualvis, 'test_predict_2d_residual', fluxthreshold=10.0)
     
     def _predict_base(self, predict, fluxthreshold=10.0):
-        self.modelvis = create_visibility(self.lowcore, self.times, self.frequency, phasecentre=self.phasecentre,
+        self.modelvis = create_compressedvisibility(self.lowcore, self.times, self.frequency, phasecentre=self.phasecentre,
                                           weight=1.0, npol=1)
         self.modelvis.data['vis'] *= 0.0
         predict(self.modelvis, self.model, **self.params)
-        self.residualvis = create_visibility(self.lowcore, self.times, self.frequency, phasecentre=self.phasecentre,
+        self.residualvis = create_compressedvisibility(self.lowcore, self.times, self.frequency, phasecentre=self.phasecentre,
                                              weight=1.0, npol=1)
         self.residualvis.data['uvw'][:, 2] = 0.0
         self.residualvis.data['vis'] = self.modelvis.data['vis'] - self.componentvis.data['vis']
@@ -193,7 +193,7 @@ class TestFTProcessor(unittest.TestCase):
         """
         # Set all w to zero
         self.actualSetUp()
-        self.componentvis = create_visibility(self.lowcore, self.times, self.frequency, phasecentre=self.phasecentre,
+        self.componentvis = create_compressedvisibility(self.lowcore, self.times, self.frequency, phasecentre=self.phasecentre,
                                               weight=1.0, npol=1)
         self.componentvis.data['uvw'][:, 2] = 0.0
         self.componentvis.data['vis'] *= 0.0

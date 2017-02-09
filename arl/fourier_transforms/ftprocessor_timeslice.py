@@ -56,7 +56,7 @@ def fit_uvwplane(vis):
 def predict_timeslice_serial(vis, model, **kwargs):
     """ Predict using time slices.
 
-    :param vis: Visibility to be predicted
+    :param vis: CompressedVisibility to be predicted
     :param model: model image
     :returns: resulting visibility (in place works)
     """
@@ -115,7 +115,7 @@ def predict_timeslice_serial(vis, model, **kwargs):
 def predict_timeslice(vis, model, **kwargs):
     """ Predict using time slices.
 
-    :param vis: Visibility to be predicted
+    :param vis: CompressedVisibility to be predicted
     :param model: model image
     :param timeslice: Timeslice in seconds. If 'auto' will find plausible value
     :param nprocessor: Number of processors to be used (1)
@@ -174,7 +174,7 @@ def predict_timeslice_single(vis, model, **kwargs):
     
     This fits a single plane and corrects the image geometry.
 
-    :param vis: Visibility to be predicted
+    :param vis: CompressedVisibility to be predicted
     :param model: model image
     :returns: resulting visibility (in place works)
     """
@@ -233,7 +233,7 @@ def invert_timeslice(vis, im, dopsf=False, **kwargs):
 
     Use the image im as a template. Do PSF in a separate call.
 
-    :param vis: Visibility to be inverted
+    :param vis: CompressedVisibility to be inverted
     :param im: image template (not changed)
     :param dopsf: Make the psf instead of the dirty image
     :param timeslice: Timeslice in seconds. If 'auto' will find plausible value
@@ -321,7 +321,7 @@ def invert_timeslice_single(vis, im, dopsf, **kwargs):
     """Process single time slice
     
     Extracted for re-use in parallel version
-    :param vis: Visibility to be inverted
+    :param vis: CompressedVisibility to be inverted
     :param im: image template (not changed)
     :param dopsf: Make the psf instead of the dirty image
     """

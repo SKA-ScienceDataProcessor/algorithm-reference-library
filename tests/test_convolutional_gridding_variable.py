@@ -7,7 +7,7 @@ from astropy.coordinates import SkyCoord
 from arl.fourier_transforms.convolutional_gridding import *
 from arl.fourier_transforms.variable_kernels import *
 from arl.util.testing_support import create_named_configuration, run_unittests
-from arl.visibility.operations import create_visibility
+from arl.visibility.operations import create_compressedvisibility
 
 log = logging.getLogger("tests.test_convolutional_gridding_kernel")
 
@@ -30,7 +30,8 @@ class TestConvolutionalGriddingVariable(unittest.TestCase):
         
         self.reffrequency = numpy.max(self.frequency)
         self.phasecentre = SkyCoord(ra=+15.0 * u.deg, dec=-35.0 * u.deg, frame='icrs', equinox=2000.0)
-        self.vis = create_visibility(self.lowcore, self.times, self.frequency, phasecentre=self.phasecentre, weight=1.0)
+        self.vis = create_compressedvisibility(self.lowcore, self.times, self.frequency, phasecentre=self.phasecentre,
+                                      weight=1.0)
 
 
     def assertAlmostEqualScalar(self, a, result=1.0):

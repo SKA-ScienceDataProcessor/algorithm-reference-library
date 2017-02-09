@@ -318,7 +318,8 @@ def frac_coords(shape, kernel_oversampling, xycoords):
     return x, xf, y, yf
 
 
-def fixed_kernel_degrid(kernel, vshape, uvgrid, uv, uvscale, vmap = lambda chan: chan):
+def fixed_kernel_degrid(kernel, vshape, uvgrid, uv, frequency, polarisation, uvscale, vpolmap = lambda pol: pol,
+                        vchanmap = lambda frequency: 0):
     """Convolutional degridding with frequency and polarisation independent
 
     Takes into account fractional `uv` coordinate values where the GCF
@@ -337,29 +338,28 @@ def fixed_kernel_degrid(kernel, vshape, uvgrid, uv, uvscale, vmap = lambda chan:
     inchan, inpol, ny, nx = uvgrid.shape
     nvis, vnchan, vnpol = vshape
     assert vnpol == inpol, "Number of polarizations must be the same"
-    vis = numpy.zeros([nvis, vnchan, inpol], dtype='complex')
-    wt  = numpy.zeros([nvis, vnchan, inpol])
-    # Each channel must be done separately because the uvw changes
-    for vchan in range(vnchan):
-        ichan = vmap(vchan)
-        # Calculate grid point and fractional part for scaled u and v
-        y, yf = frac_coord(uvgrid.shape[2], kernel_oversampling, uvscale[1, vchan] * uv[..., 1])
-        x, xf = frac_coord(uvgrid.shape[3], kernel_oversampling, uvscale[0, vchan] * uv[..., 0])
-        # Now calculate slices for the footprint of each sample
-        slicey = []
-        slicex = []
-        for xx in x:
-            slicex.append(slice((xx - gw // 2), (xx + (gw + 1) // 2)))
-        for yy in y:
-            slicey.append(slice((yy - gh // 2), (yy + (gh + 1) // 2)))
-        coords = slicex, xf, slicey, yf
-        # Now we can degrid the points and accumulate weight as well
-        for vpol in range(vnpol):
-            vis[..., vchan, vpol] = [
-                numpy.sum(uvgrid[ichan, vpol, sly, slx] * kernel[yf, xf, :, :])
-                for slx, xf, sly, yf in zip(*coords)
-                ]
-            wt[..., vchan, vpol] = [numpy.sum(kernel[yf, xf, :, :].real) for x, xf, y, yf in zip(*coords)]
+    vis = numpy.zeros([nvis], dtype='complex')
+    wt  = numpy.zeros([nvis])
+    
+    ichan = vchanmap(frequency)
+    ipol = vpolmap(polarisation)
+    # Calculate grid point and fractional part for scaled u and v
+    y, yf = frac_coord(uvgrid.shape[2], kernel_oversampling, uvscale[1] * uv[..., 1])
+    x, xf = frac_coord(uvgrid.shape[3], kernel_oversampling, uvscale[0] * uv[..., 0])
+    # Now calculate slices for the footprint of each sample
+    slicey = []
+    slicex = []
+    for xx in x:
+        slicex.append(slice((xx - gw // 2), (xx + (gw + 1) // 2)))
+    for yy in y:
+        slicey.append(slice((yy - gh // 2), (yy + (gh + 1) // 2)))
+    coords = slicex, xf, slicey, yf
+    # Now we can degrid the points and accumulate weight as well
+    vis[...] = [
+        numpy.sum(uvgrid[ichan, ipol, sly, slx] * kernel[yf, xf, :, :])
+        for slx, xf, sly, yf in zip(*coords)
+        ]
+    wt[...] = [numpy.sum(kernel[yf, xf, :, :].real) for x, xf, y, yf in zip(*coords)]
     vis[numpy.where(wt > 0)] = vis[numpy.where(wt > 0)] / wt[numpy.where(wt > 0)]
     vis[numpy.where(wt < 0)] = 0.0
     return numpy.array(vis)
@@ -369,9 +369,9 @@ def gridder(uvgrid, vis, xs, ys, kernel=numpy.ones((1,1)), kernel_ixs=None):
     visibility using ``kernel_ixs``.
 
     :param uvgrid: Grid to update (two-dimensional :class:`complex` array)
-    :param vis: Visibility values (one-dimensional :class:`complex` array)
-    :param xs: Visibility position (one-dimensional :class:`int` array)
-    :param ys: Visibility values (one-dimensional :class:`int` array)
+    :param vis: CompressedVisibility values (one-dimensional :class:`complex` array)
+    :param xs: CompressedVisibility position (one-dimensional :class:`int` array)
+    :param ys: CompressedVisibility values (one-dimensional :class:`int` array)
     :param kernel: Convolution kernel (minimum two-dimensional :class:`complex` array).
       If the kernel has more than two dimensions, additional indices must be passed
       in ``kernel_ixs``. Default: Fixed one-pixel kernel with value 1.
@@ -392,7 +392,8 @@ def gridder(uvgrid, vis, xs, ys, kernel=numpy.ones((1,1)), kernel_ixs=None):
         uvgrid[y:y+gh, x:x+gw] += kernel[tuple(kern_ix)] * v
 
 
-def fixed_kernel_grid(kernel, uvgrid, uv, uvscale, vis, visweights, vmap = lambda chan: chan):
+def fixed_kernel_grid(kernel, uvgrid, uv, frequency, polarisation, uvscale, vis, visweights,
+                      vpolmap = lambda pol: pol, vchanmap = lambda frequency: 0):
     """Grid after convolving with frequency and polarisation independent gcf
 
     Takes into account fractional `uv` coordinate values where the GCF
@@ -402,8 +403,8 @@ def fixed_kernel_grid(kernel, uvgrid, uv, uvscale, vis, visweights, vmap = lambd
     :param uvgrid: Grid to add to
     :param uv: UVW positions
     :param uvscale: Scaling for each axis (u,v) for each channel
-    :param vis: Visibility values
-    :param vis: Visibility weights
+    :param vis: CompressedVisibility values
+    :param vis: CompressedVisibility weights
     :returns: uv grid[nchan, npol, ny, nx], sumwt[nchan, npol]
     """
     
@@ -415,29 +416,30 @@ def fixed_kernel_grid(kernel, uvgrid, uv, uvscale, vis, visweights, vmap = lambd
     assert vnpol == inpol, "Number of polarizations must be the same"
     wtgrid = numpy.zeros(uvgrid.shape, dtype='float')
     sumwt = numpy.zeros([inchan, inpol])
-    for vchan in range(vnchan):
-        ichan = vmap(vchan)
-        y, yf = frac_coord(ny, kernel_oversampling, uvscale[1, vchan] * uv[..., 1])
-        x, xf = frac_coord(nx, kernel_oversampling, uvscale[0, vchan] * uv[..., 0])
-        slicey = []
-        slicex = []
-        for xx in x:
-            slicex.append(slice((xx - gw // 2), (xx + (gw + 1) // 2)))
-        for yy in y:
-            slicey.append(slice((yy - gh // 2), (yy + (gh + 1) // 2)))
-        coords = slicex, xf, slicey, yf
-        for pol in range(vnpol):
-            wts = visweights[..., vchan, pol]
-            viswt = vis[..., vchan, pol] * visweights[..., vchan, pol]
-            for v, vwt, slx, xf, sly, yf in zip(viswt, wts, *coords):
-                uvgrid[ichan, pol, sly, slx] += kernel[yf, xf, :, :] * v
-                wtgrid[ichan, pol, sly, slx] += kernel[yf, xf, :, :].real * vwt
-            sumwt[ichan, pol] += numpy.sum(wtgrid[ichan, pol, ...])
+    ichan = vchanmap(frequency)
+    ipol = vpolmap(polarisation)
+    y, yf = frac_coord(ny, kernel_oversampling, uvscale[1] * uv[..., 1])
+    x, xf = frac_coord(nx, kernel_oversampling, uvscale[0] * uv[..., 0])
+    slicey = []
+    slicex = []
+    for xx in x:
+        slicex.append(slice((xx - gw // 2), (xx + (gw + 1) // 2)))
+    for yy in y:
+        slicey.append(slice((yy - gh // 2), (yy + (gh + 1) // 2)))
+    coords = slicex, xf, slicey, yf
+    wts = visweights[...]
+    viswt = vis[...] * visweights[...]
+    coords = ichan, ipol, slicex, xf, slicey, yf
+    for v, vwt, ic, ip, slx, xf, sly, yf in zip(viswt, wts, *coords):
+        uvgrid[ic, ip, sly, slx] += kernel[yf, xf, :, :] * v
+        wtgrid[ic, ip, sly, slx] += kernel[yf, xf, :, :].real * vwt
+    sumwt[ichan, ipol] += numpy.sum(wtgrid[ichan, ipol, ...])
     
     return uvgrid, sumwt
 
 
-def box_grid(kernel, uvgrid, uv, uvscale, vis, visweights, vmap = lambda chan: chan):
+def box_grid(kernel, uvgrid, uv, frequency, polarisation, uvscale, vis, visweights, vpolmap = lambda pol: pol,
+             vchanmap = lambda chan: chan):
     """Grid with a box function
 
     Takes into account fractional `uv` coordinate values where the GCF
@@ -447,9 +449,9 @@ def box_grid(kernel, uvgrid, uv, uvscale, vis, visweights, vmap = lambda chan: c
     :param uvgrid: Grid to add to
     :param uv: UVW positions
     :param uvscale: Scaling for each axis (u,v) for each channel
-    :param vis: Visibility values
-    :param vis: Visibility weights
-    :param vmap: function to map visibility channels to image channels
+    :param vis: CompressedVisibility values
+    :param vis: CompressedVisibility weights
+    :param chanmap: function to map visibility channels to image channels
     """
     
     inchan, inpol, ny, nx = uvgrid.shape
@@ -457,24 +459,23 @@ def box_grid(kernel, uvgrid, uv, uvscale, vis, visweights, vmap = lambda chan: c
     assert vnpol == inpol, "Number of polarizations must be the same"
     wtgrid = numpy.zeros(uvgrid.shape, dtype='float')
     sumwt = numpy.zeros([inchan, inpol])
-    for vchan in range(vnchan):
-        ichan = vmap(vchan)
-        y, _ = frac_coord(ny, 1, uvscale[1, vchan] * uv[..., 1])
-        x, _ = frac_coord(nx, 1, uvscale[0, vchan] * uv[..., 0])
-        coords = x, y
-        for pol in range(vnpol):
-            wts = visweights[..., vchan, pol]
-            viswt = vis[..., vchan, pol] * visweights[..., vchan, pol]
-            for v, vwt, x, y in zip(viswt, wts, *coords):
-                uvgrid[ichan, pol, y, x] += v
-                wtgrid[ichan, pol, y, x] += vwt
-            sumwt[ichan, pol] += numpy.sum(wtgrid[ichan, pol, ...])
+    ichan = vchanmap(frequency)
+    ipol = vpolmap(polarisation)
+    y, _ = frac_coord(ny, 1, uvscale[1] * uv[..., 1])
+    x, _ = frac_coord(nx, 1, uvscale[0] * uv[..., 0])
+    coords = frequency, polarisation, x, y
+    wts = visweights[...]
+    viswt = vis[...] * visweights[...]
+    for v, vwt, ic, ip, x, y in zip(viswt, wts, *coords):
+        uvgrid[ic, ip, y, x] += v
+        wtgrid[ic, ip, y, x] += vwt
+    sumwt = numpy.sum(wtgrid, axis=(2,3))
     
     return uvgrid, sumwt
 
 
 def weight_gridding(shape, uv, uvscale, visweights, weighting='uniform',
-                    vmap = lambda chan: chan):
+                    vpolmap = lambda pol: pol, vchanmap = lambda chan: chan):
     """Reweight data using one of a number of algorithms
 
     Takes into account fractional `uv` coordinate values where the GCF
@@ -483,10 +484,10 @@ def weight_gridding(shape, uv, uvscale, visweights, weighting='uniform',
     :param shape:
     :param uv: UVW positions
     :param uvscale: Scaling for each axis (u,v) for each channel
-    :param vis: Visibility values
-    :param visweights: Visibility weights
+    :param vis: CompressedVisibility values
+    :param visweights: CompressedVisibility weights
     :param weighting: Weighting algorithm (natural|uniform) (uniform)
-    :param vmap: function to map visibility channels to image channels
+    :param vpolmap = lambda pol: pol, vchanmap: function to map visibility channels to image channels
     """
     densitygrid = numpy.zeros(shape)
     density = numpy.zeros_like(visweights)
@@ -496,9 +497,9 @@ def weight_gridding(shape, uv, uvscale, visweights, weighting='uniform',
         nvis, vnchan, vnpol = visweights.shape
         # Add all visibility points to a float grid
         for vchan in range(vnchan):
-            ichan = vmap(vchan)
-            y, _ = frac_coord(ny, 1, uvscale[1, vchan] * uv[..., 1])
-            x, _ = frac_coord(nx, 1, uvscale[0, vchan] * uv[..., 0])
+            ichan = vpolmap = lambda pol: pol, vchanmap(vchan)
+            y, _ = frac_coord(ny, 1, uvscale[1] * uv[..., 1])
+            x, _ = frac_coord(nx, 1, uvscale[0] * uv[..., 0])
             coords = x, y
             for pol in range(vnpol):
                 wts = visweights[..., vchan, pol]
@@ -510,9 +511,9 @@ def weight_gridding(shape, uv, uvscale, visweights, weighting='uniform',
         # Normalise each visibility weight to sum to one in a grid cell
         newvisweights = numpy.zeros_like(visweights)
         for vchan in range(vnchan):
-            ichan = vmap(vchan)
-            coords = frac_coord(shape[3], 1, uvscale[1, vchan] * uv[..., 1]), \
-                     frac_coord(shape[2], 1, uvscale[0, vchan] * uv[..., 0])
+            ichan = vpolmap = lambda pol: pol, vchanmap(vchan)
+            coords = frac_coord(shape[3], 1, uvscale[1] * uv[..., 1]), \
+                     frac_coord(shape[2], 1, uvscale[0] * uv[..., 0])
             for pol in range(vnpol):
                 wts = visweights[..., vchan, pol]
                 for wt, x, y in zip(wts, *coords):
