@@ -25,21 +25,16 @@ class TestCompress(unittest.TestCase):
         # Fill in the vis values so each can be uniquely identified
         self.vis.data['vis'] = range(self.vis.nvis)
  
-    def test_compress_decompress_uvgrid_vis(self):
-        model = create_image_from_visibility(self.vis, npixel=128, npol=1, cellsize=0.001)
-        cvis, _ = compress_visibility(self.vis, model, compression='uv')
-        dvis = decompress_visibility(cvis, self.vis, model, compression='uv')
-        assert dvis.nvis == self.vis.nvis
-
     def test_compress_decompress_tbgrid_vis(self):
-        cvis, cindex = compress_visibility(self.vis, compression='tb', compression_factor=1.0)
-        dvis = decompress_visibility(cvis, self.vis, cindex=cindex, compression='tb')
+        cvis, cindex = compress_visibility(self.vis, compression_factor=1.0)
+        dvis = decompress_visibility(cvis, self.vis, cindex=cindex)
         assert dvis.nvis == self.vis.nvis
 
     def test_compress_decompress_tbgrid_vis_null(self):
-        cvis, cindex = compress_visibility(self.vis, compression='tb', compression_factor=0.0)
-        assert cvis.compressed == False
+        cvis, cindex = compress_visibility(self.vis, compression_factor=0.0)
         assert cindex is None
-        dvis = decompress_visibility(cvis, self.vis, cindex=cindex, compression='tb')
+        with self.assertRaises(RuntimeError) as context:
+            decompress_visibility(cvis, self.vis, cindex=cindex)
+            self.assertTrue("decompression requires an index from the compression step" in str(context.exception))
 if __name__ == '__main__':
     run_unittests()

@@ -13,6 +13,7 @@ import astropy.constants as constants
 from arl.util.coordinate_support import *
 from arl.data.data_models import *
 from arl.data.parameters import *
+from arl.fourier_transforms.ftprocessor_params import *
 
 log = logging.getLogger(__name__)
 
@@ -22,58 +23,14 @@ def vis_summary(vis: Visibility):
     """
     return "Visibility: %d rows, %.3f GB" % (vis.nvis, vis.size())
 
-def combine_visibility(vis1: Visibility, vis2: Visibility, w1: float = 1.0, w2: float = 1.0, **kwargs) -> Visibility:
-    """ Linear combination of two visibility sets
-
-    :param vis1: Visibility set 1
-    :param vis2: Visibility set 2
-    :param w1: Weight of visibility set 1
-    :param w2: Weight of visibility set 2
-    :param params: Dictionary containing parameters
-    :returns: Visibility
-    """
-    assert len(vis1.frequency) == len(vis2.frequency), "combine_visibility: frequencies should be the same"
-    assert numpy.max(numpy.abs(vis1.frequency - vis2.frequency)) < 1.0, "Visibility: frequencies should be the same"
-    assert len(vis1.data['vis']) == len(vis2.data['vis']), 'Length of output data table wrong'
+def copy_visibility(vis):
+    """Copy a visibility
     
-    log.info("combine_visibility: combining tables with %d rows" % (len(vis1.data)))
-    log.info("combine_visibility: weights %f, %f" % (w1, w2))
-    vis = Visibility(vis=w1 * vis1.data['weight'] * vis1.data['vis'] + w2 * vis1.data['weight'] * vis2.data['vis'],
-                     weight=numpy.sqrt((w1 * vis1.data['weight']) ** 2 + (w2 * vis2.data['weight']) ** 2),
-                     uvw=vis1.uvw,
-                     time=vis1.time,
-                     antenna1=vis1.antenna1,
-                     antenna2=vis1.antenna2,
-                     phasecentre=vis1.phasecentre,
-                     frequency=vis1.frequency,
-                     configuration=vis1.configuration)
-    vis.data['vis'][vis.data['weight'] > 0.0] = vis.data['vis'][vis.data['weight'] > 0.0] / \
-                                                vis.data['weight'][vis.data['weight'] > 0.0]
-    vis.data['vis'][vis.data['weight'] <= 0.0] = 0.0
-    log.info("combine_visibility: %s" % (vis_summary(vis)))
-    assert len(vis.data['vis']) == len(vis1.data['vis']), 'Length of output data table wrong'
-    return vis
-
-
-def concatenate_visibility(vis1: Visibility, vis2: Visibility) -> \
-        Visibility:
-    """ Concatentate the data sets in time, optionally phase rotating the second to the phasecenter of the first
-
-    :param vis1:
-    :param vis2:
-    :param params: Dictionary containing parameters
-    :returns: Visibility
+    Performs a deepcopy of the data array
     """
-    log.info(
-        "concatenate_visibility: combining two tables with %d rows and %d rows" % (len(vis1.data), len(vis2.data)))
-    fvis2rot = phaserotate_compressedvisibility(vis2, vis1.phasecentre)
-    vis = CompressedVisibility()
-    vis.data = numpy.vstack([vis1.data, fvis2rot.data], join_type='exact')
-    vis.phasecentre = vis1.phasecentre
-    log.info("concatenate_visibility: %s" % (vis_summary(vis)))
-    assert (len(vis.data) == (len(vis1.data) + len(vis2.data))), 'Length of output data table wrong'
-    return vis
-
+    newvis = copy.copy(vis)
+    newvis.data = copy.deepcopy(vis.data)
+    return newvis
 
 def create_visibility(config: Configuration, times: numpy.array, freq: numpy.array, phasecentre: SkyCoord,
                       weight: float, meta: dict = None, npol=4, integration_time = 1.0) -> Visibility:
@@ -124,6 +81,7 @@ def create_visibility(config: Configuration, times: numpy.array, freq: numpy.arr
 
 def create_compressedvisibility(config: Configuration, times: numpy.array, freq: numpy.array,
                                 phasecentre: SkyCoord, weight: float, npol=4,
+                                pol_frame=Polarisation_Frame.linear,
                                 integration_time=1.0) -> CompressedVisibility:
     """ Create a Visibility from Configuration, hour angles, and direction of source
 
@@ -176,7 +134,8 @@ def create_compressedvisibility(config: Configuration, times: numpy.array, freq:
     rintegration_time = numpy.full_like(rtimes, integration_time)
     vis = CompressedVisibility(uvw=ruvw, time=rtimes, antenna1=rantenna1, antenna2=rantenna2,
                                frequency=rfrequency, polarisation=rpolarisation, vis=rvis,
-                               weight=rweight, imaging_weight=rweight, integration_time=rintegration_time)
+                               weight=rweight, imaging_weight=rweight, integration_time=rintegration_time,
+                               polarisation_frame=pol_frame)
     vis.phasecentre = phasecentre
     vis.configuration = config
     log.info("create_visibility: %s" % (vis_summary(vis)))
@@ -290,16 +249,26 @@ def sum_visibility(vis: Visibility, direction: SkyCoord) -> numpy.array:
     assert type(vis) is CompressedVisibility, "vis is not a CompressedVisibility: %r" % vis
 
     l, m, n = skycoord_to_lmn(direction, vis.phasecentre)
-    flux = numpy.zeros([vis.nchan, vis.npol])
-    weight = numpy.zeros([vis.nchan, vis.npol])
-    for channel in range(vis.nchan):
-        uvw = vis.uvw_lambda(channel)
-        phasor = numpy.conj(simulate_point(uvw, l, m))
-        for pol in range(vis.npol):
-            ws = vis.weight[:, channel, pol]
-            wvis = ws * vis.vis[:, channel, pol]
-            flux[channel, pol] += numpy.sum(numpy.real(wvis * phasor))
-            weight[channel, pol] += numpy.sum(ws)
+    phasor = numpy.conjugate(simulate_point(vis.uvw, l, m))
+    
+    # Need to put correct mapping here
+    _, ipol = get_polarisation_map(vis)
+    _, ichan = get_frequency_map(vis)
+
+    channels = ichan(vis.data['frequency'])
+    polarisations = ipol(vis.data['polarisation'])
+
+    nchan = max(channels)+1
+    npol = max(polarisations)+1
+    
+    flux = numpy.zeros([nchan, npol])
+    weight = numpy.zeros([nchan, npol])
+
+    coords = vis.vis, vis.weight, phasor, channels, polarisations
+    for v, wt, p, ic, ip in zip(*coords):
+        flux[ic,ip] += numpy.real(wt * v * p)
+        weight[ic,ip] += wt
+
     flux[weight > 0.0] = flux[weight > 0.0] / weight[weight > 0.0]
     flux[weight <= 0.0] = 0.0
     return flux, weight

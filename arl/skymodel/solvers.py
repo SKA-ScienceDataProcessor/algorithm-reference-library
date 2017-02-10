@@ -5,11 +5,12 @@ Definition of structures needed by the function interface. These are mostly
 subclasses of astropy classes.
 """
 
+import copy
 from arl.fourier_transforms.ftprocessor import invert_2d_base, predict_2d_base
 
 from arl.data.data_models import *
 from arl.data.parameters import *
-from arl.visibility.operations import combine_visibility
+from arl.visibility.operations import copy_visibility
 
 log = logging.getLogger(__name__)
 
@@ -31,7 +32,8 @@ def solve_skymodel(vis: CompressedVisibility, sm: Skymodel, deconvolver, **kwarg
     # The model is added to each major cycle and then the visibilities are
     # calculated from the full model
     vispred = predict_2d_base(vis, sm, **kwargs)
-    visres = combine_visibility(vis, vispred, 1.0, -1.0)
+    visres = copy_visibility(vispred)
+    visres.data['vis'] = vis.data['vis'] - vispred.data['vis']
     dirty, sumwt = invert_2d_base(visres, sm.images[0], **kwargs)
     psf, sumwt = invert_2d_base(visres, sm.images[0], dopsf=True, **kwargs)
     thresh = get_parameter(kwargs, "threshold", 0.0)
@@ -42,7 +44,7 @@ def solve_skymodel(vis: CompressedVisibility, sm: Skymodel, deconvolver, **kwarg
         cc, res = deconvolver(dirty, psf, **kwargs)
         comp += cc
         vispred = predict_2d_base(vis, sm.images[0], **kwargs)
-        visres = combine_visibility(vis, vispred, 1.0, -1.0)
+        visres.data['vis'] = vis.data['vis'] - vispred.data['vis']
         dirty, sumwt = invert_2d_base(visres, sm.images[0], **kwargs)
         if numpy.abs(dirty.data).max() < 1.1 * thresh:
             log.info("Reached stopping threshold %.6f Jy" % thresh)

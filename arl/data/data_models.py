@@ -9,8 +9,9 @@ from astropy import units as u
 from astropy.constants import c
 from astropy.coordinates import SkyCoord
 
-log = logging.getLogger(__name__)
+from arl.data.polarisation import *
 
+log = logging.getLogger(__name__)
 
 class Configuration:
     """ Describe a Configuration
@@ -74,7 +75,8 @@ class GainTable:
     # TODO: Implement gaintables with Jones and Mueller matrices
 
     def __init__(self, data=None, gain: numpy.array=None, time: numpy.array=None, antenna: numpy.array=None,
-                 weight: numpy.array=None, frequency: numpy.array=None):
+                 weight: numpy.array=None, frequency: numpy.array=None,
+                 polarisation_frame: Polarisation_Frame=None):
         """ Create a gaintable from arrays
 
         :param gain: [npol, nchan]
@@ -85,14 +87,18 @@ class GainTable:
         :returns: Gaintable
         """
         if data is None and not gain is None:
+            npol = len(polarisation_frame.keys())
             nrows = time.shape[0]
             nchan = gain.shape[1]
-            npol = gain.shape[0]
             assert len(frequency) == nchan, "Discrepancy in frequency channels"
-            desc = [('gain', '<c16', (nchan, npol)), ('time', '<f8'), ('antenna', '<i8'), ('weight', '<f8', (nchan,
-                                                                                                            npol))]
+            desc = [('gain', '<c16', (nchan, npol)),
+                    ('time', '<f8'),
+                    ('frequency', '<f8'),
+                    ('antenna', '<i8'),
+                    ('weight', '<f8', (nchan, npol))]
             self.data = numpy.zeros(shape=[nrows], dtype=desc)
         self.frequency = frequency
+        self.polarisation_frame = polarisation_frame
 
 
 class Image:
@@ -231,7 +237,7 @@ class Visibility:
             nants1 = vis.shape[2]
             nchan = vis.shape[3]
             npol = vis.shape[4]
-            desc = [('uvw', '<f8', (nants3,)),
+            desc = [('uvw', '<f8', (nants2,3)),
                     ('time', '<f8'),
                     ('integration_time', '<f8'),
                     ('antenna1', '<i8'),
@@ -326,19 +332,18 @@ class Visibility:
 class CompressedVisibility:
     """ Visibility table class
 
-    Visibility with uvw, time, frequency, pol, a1, a2, vis, weight Columns in
-    a numpy structured array along an attribute to hold the direction.
-
+    Visibility with uvw, time, integration_time, frequency, channel_width, pol, a1, a2, vis, weight Columns in
+    a numpy structured array
     Visibility is defined to hold an observation with one direction.
-
-    The data column has vis:[row,nchan,npol], uvw:[row,3], time, integration_time
+    Polarisation frame is the same for the entire data set and can be stokes, circular, linear
+    The configuration is also an attribute
     """
     
     def __init__(self,
                  data=None, frequency=None, channel_bandwidth=None, phasecentre=None, configuration=None,
                  uvw=None, time=None, antenna1=None, antenna2=None, polarisation=None,
-                 vis=None, weight=None,
-                 imaging_weight=None, integration_time=None):
+                 vis=None, weight=None, imaging_weight=None, integration_time=None,
+                 polarisation_frame = Polarisation_Frame.linear):
         if data is None and vis is not None:
             if imaging_weight is None:
                 imaging_weight = weight
@@ -367,9 +372,10 @@ class CompressedVisibility:
             data['weight'] = weight
             data['imaging_weight'] = imaging_weight
             
-        self.data = data  # numpy structured array with columns uvw, time, a1, a2, vis, weight, imaging_weight
+        self.data = data  # numpy structured array
         self.phasecentre = phasecentre  # Phase centre of observation
         self.configuration = configuration  # Antenna/station configuration
+        self.polarisation_frame = polarisation_frame
     
     def size(self):
         """ Return size in GB
@@ -385,7 +391,7 @@ class CompressedVisibility:
         return self.data['vis'].shape[0]
     
     @property
-    def uvw(self): # In wavelengths
+    def uvw(self): # In wavelengths in CompressedVisibility
         return self.data['uvw']
     
     @property
@@ -407,6 +413,10 @@ class CompressedVisibility:
     @property
     def frequency(self):
         return self.data['frequency']
+
+    @property
+    def channel_width(self):
+        return self.data['channel_width']
 
     @property
     def integration_time(self):

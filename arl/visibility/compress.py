@@ -20,7 +20,7 @@ import logging
 log = logging.getLogger(__name__)
 
 
-def compress_visibility(vis, im=None, **kwargs):
+def compress_visibility(vis, **kwargs):
     """ Compress the visibility data
 
     'tb': Compress by baseline-dependent averaging. The number of integrations averaged goes as the ration of the
@@ -32,8 +32,6 @@ def compress_visibility(vis, im=None, **kwargs):
     in each polarisation-frequency plane i.e. nx, ny
 
     :param vis: Visibility to be compressed
-    :param im: Only needed for uv compression
-    :param compression: 'uv'|'tb'
     :returns: Compressed visibility, dindex
     """
     # No-op if already compressed
@@ -42,71 +40,38 @@ def compress_visibility(vis, im=None, **kwargs):
 
     cindex = None
     
-    compression = get_parameter(kwargs, "compression", "tb")
-    compressed_vis = None
-    if compression == 'uv':
-        assert im, "uv compression needs an image"
-        nchan, npol, ny, nx = im.data.shape
-        vmap, gcf, kernel_type, kernelname, kernel, padding, oversampling, support, \
-        cellsize, fov, uvscale, _ = get_ftprocessor_params(vis, im, **kwargs)
-
-        assert nx == im.data.shape[3], "Discrepancy between npixel and size of model image"
-        assert ny == im.data.shape[2], "Discrepancy between npixel and size of model image"
-
-        cvis, cuvw, cvisweights, rowmask = compress_uvgrid_vis(im.data.shape, vis.data['vis'], vis.data['uvw'], uvscale,
-                                                               vis.data['weight'], vmap)
-        cindex = None
-        newfrequency = numpy.array(im.wcs.wcs.crval[3])
-        nrows = cvis.shape[0]
-        ca1 = numpy.zeros([nrows])
-        ca2 = numpy.zeros([nrows])
-        cimwt = numpy.ones(cvis.shape)
-        ctime = numpy.ones(nrows) * numpy.average(vis.data['time'])
-        compressed_vis = CompressedVisibility(uvw=cuvw, time=ctime, frequency=newfrequency, phasecentre=vis.phasecentre,
-                                    antenna1=ca1, antenna2=ca2, vis=cvis, weight=cvisweights,
-                                    imaging_weight=cimwt, configuration=vis.configuration)
-        assert rowmask.shape[0] == compressed_vis.nvis, "Discrepancy in number of rows: rowmask %s, nvis %s" \
-                                                        % (rowmask.shape[0], compressed_vis.nvis)
-        log.info('compress_visibility: Created new CompressedVisibility for compressed data')
-        log.info('compress_visibility: Compressed %d visibility rows (%d channels) into %d rows (%d channels)' %
-                 (vis.nvis, len(vis.frequency), compressed_vis.nvis, nchan))
-    
-    elif compression == 'tb':
-        compression_factor = get_parameter(kwargs, "compression_factor", 0.0)
-        if compression_factor > 0.0:
-            max_compression    = get_parameter(kwargs, "max_compression", 10)
-            cvis, cuvw, cvisweights, ctime, cfrequency, cpolarisation, ca1, ca2, cintegration_time, cindex = \
-                compress_tbgrid_vis(vis.data['vis'], vis.data['time'], vis.data['frequency'],
-                                    vis.data['polarisation'],
-                                    vis.data['antenna1'], vis.data['antenna2'],
-                                    vis.data['uvw'], vis.data['weight'], vis.data['integration_time'],
-                                    max_compression=max_compression, compression_factor=compression_factor)
-            
-            cimwt = numpy.ones(cvis.shape)
-            nrows = cvis.shape[0]
-            cintegration_time = numpy.ones(nrows)
-            cchannel_width = cfrequency
-            compressed_vis = CompressedVisibility(uvw=cuvw, time=ctime, frequency=cfrequency,
-                                                  channel_bandwidth=cchannel_width, polarisation=cpolarisation,
-                                                  phasecentre=vis.phasecentre, antenna1=ca1, antenna2=ca2, vis=cvis,
-                                                  weight=cvisweights, imaging_weight=cimwt,
-                                                  configuration=vis.configuration, integration_time=cintegration_time)
-            
-            log.info('compress_visibility: Created new CompressedVisibility for compressed data, compression factor = %.3f' % (
-                compression_factor))
-            log.info('compress_visibility: Compressed %d visibility rows (%d channels) into %d rows (%d channels)' %
-                     (vis.nvis, len(vis.frequency), compressed_vis.nvis, len(vis.frequency)))
-        else:
-            return vis, None
-    else:
-        raise RuntimeError("Unknown visibility compression algorithm %s" % compression)
+    compression_factor = get_parameter(kwargs, "compression_factor", 0.0)
+    if compression_factor > 0.0:
+        max_compression    = get_parameter(kwargs, "max_compression", 10)
+        cvis, cuvw, cvisweights, ctime, cfrequency, cpolarisation, ca1, ca2, cintegration_time, cindex = \
+            compress_tbgrid_vis(vis.data['vis'], vis.data['time'], vis.data['frequency'],
+                                vis.data['polarisation'],
+                                vis.data['antenna1'], vis.data['antenna2'],
+                                vis.data['uvw'], vis.data['weight'], vis.data['integration_time'],
+                                max_compression=max_compression, compression_factor=compression_factor)
         
-    log.info('compress_visibility: Original %s, compressed %s' % (vis_summary(vis), vis_summary(compressed_vis)))
-    compressed_vis.compressed = True
+        cimwt = numpy.ones(cvis.shape)
+        nrows = cvis.shape[0]
+        cintegration_time = numpy.ones(nrows)
+        cchannel_width = cfrequency
+        compressed_vis = CompressedVisibility(uvw=cuvw, time=ctime, frequency=cfrequency,
+                                              channel_bandwidth=cchannel_width, polarisation=cpolarisation,
+                                              phasecentre=vis.phasecentre, antenna1=ca1, antenna2=ca2, vis=cvis,
+                                              weight=cvisweights, imaging_weight=cimwt,
+                                              configuration=vis.configuration, integration_time=cintegration_time)
+        
+        log.info('compress_visibility: Created new CompressedVisibility for compressed data, compression factor = %.3f' % (
+            compression_factor))
+        log.info('compress_visibility: Compressed %d visibility rows (%d channels) into %d rows (%d channels)' %
+                 (vis.nvis, len(vis.frequency), compressed_vis.nvis, len(vis.frequency)))
+        log.info('compress_visibility: Original %s, compressed %s' % (vis_summary(vis), vis_summary(compressed_vis)))
+    else:
+        return vis, None
+
     return compressed_vis, cindex
 
 
-def decompress_visibility(vis, template_vis, im=None, cindex=None, **kwargs):
+def decompress_visibility(vis, template_vis, cindex=None, **kwargs):
     """ Decompress the visibilities to the original values (opposite of compress_visibility)
     
     The template Visibility must always be given. This is the Visibility that was compressed.
@@ -116,8 +81,7 @@ def decompress_visibility(vis, template_vis, im=None, cindex=None, **kwargs):
 
     :param vis: (Compressed visibility)
     :param template_vis: Template visibility to be filled in
-    :param im: Image specifying coordinates of image (must be consistent with vis)
-    :param compression: 'uv'|'tb'
+    :param cindex: Index created by compress
     :returns: New visibility with vis and weight columns overwritten
     """
 
@@ -125,160 +89,22 @@ def decompress_visibility(vis, template_vis, im=None, cindex=None, **kwargs):
 
     assert type(template_vis) is CompressedVisibility, "template_vis is not a CompressedVisibility: %r" % vis
 
-    compression = get_parameter(kwargs, "compression", "tb")
-    decomp_vis = template_vis
-    if compression == 'uv':
-        # No-op if not compressed
-        if not vis.compressed:
-            return vis
+    if cindex is None:
+        raise RuntimeError("decompression requires an index from the compression step")
     
-        assert im is not None, "UV decompression needs an image"
-        nchan, npol, ny, nx = im.data.shape
-        vmap, gcf, kernel_type, kernelname, kernel, padding, oversampling, support, \
-        cellsize, fov, uvscale, _ = get_ftprocessor_params(vis, im, **kwargs)
+    log.info('decompress_visibility: Created new Visibility for decompressed data')
+    log.info('decompress_visibility: Decompressing %d visibility rows (%d channels) into %d '
+             'rows (%d channels)' %
+             (vis.nvis, len(template_vis.frequency), template_vis.nvis, len(template_vis.frequency)))
     
-        assert nx == im.data.shape[3], "Discrepancy between npixel and size of model image"
-        assert ny == im.data.shape[2], "Discrepancy between npixel and size of model image"
-    
-        log.info('decompress_visibility: Created new Visibility for decompressed data')
-        log.info('decompress_visibility: Decompressing %d visibility rows (%d channels) into %d '
-                 'rows (%d channels)' %
-                 (vis.nvis, nchan, template_vis.nvis, len(template_vis.frequency)))
-        decomp_vis = copy.deepcopy(template_vis)
-        decomp_vis.data['vis'], decomp_vis.data['weight'] = \
-            decompress_uvgrid_vis(im.data.shape,
-                                  template_vis.data['uvw'],
-                                  vis.data['vis'],
-                                  vis.data['weight'],
-                                  vis.data['uvw'],
-                                  uvscale,
-                                  vmap)
-    elif compression == 'tb':
-        # No-op if not compressed
-        if not vis.compressed or (cindex is None):
-            return vis
-    
-        log.info('decompress_visibility: Created new Visibility for decompressed data')
-        log.info('decompress_visibility: Decompressing %d visibility rows (%d channels) into %d '
-                 'rows (%d channels)' %
-                 (vis.nvis, len(template_vis.frequency), template_vis.nvis, len(template_vis.frequency)))
-        decomp_vis = copy.deepcopy(template_vis)
-        decomp_vis.data['vis'] = \
-            decompress_tbgrid_vis(template_vis.data['vis'].shape, vis.data['vis'], cindex)
+    decomp_vis = copy.copy(template_vis)
 
-    else:
-        raise RuntimeError("Unknown visibility compression algorithm %s" % compression)
-    log.info('compress_visibility: Original %s, decompressed %s' % (vis_summary(vis), vis_summary(decomp_vis)))
+    decomp_vis.data['vis'] = \
+        decompress_tbgrid_vis(template_vis.data['vis'].shape, vis.data['vis'], cindex)
+
+    log.info('compress_visibility: Compressed %s, decompressed %s' % (vis_summary(vis), vis_summary(decomp_vis)))
     
-    decomp_vis.compressed = False
     return decomp_vis
-
-
-def compress_uvgrid_vis(shape, vis, uvw, uvscale, visweights, vmap):
-    """Compress data by gridding with box and then converting the grid to visibilities, uvw, and weights
-    
-    :param shape: Shape of grid to be used => shape of output visibilities
-    :param uv: Input UVW positions
-    :param uvscale: Scaling for each axis (u,v) for each channel
-    :param vis: CompressedVisibility values
-    :param visweights: CompressedVisibility weights
-    :returns: vis, uvw, visweights
-    """
-    inchan, inpol, ny, nx = shape
-    nvis, vnchan, vnpol = vis.shape
-    rshape = ny, nx, inchan, inpol
-    visgrid = numpy.zeros(rshape, dtype='complex')
-    wtsgrid = numpy.zeros(rshape)
-    # Add all visibility points to a float grid
-    for vchan in range(vnchan):
-        ichan = vmap(vchan)
-        y, _ = frac_coord(ny, 1, uvscale[1, vchan] * uvw[..., 1])
-        x, _ = frac_coord(nx, 1, uvscale[0, vchan] * uvw[..., 0])
-        coords = x, y
-        for vpol in range(vnpol):
-            vs = vis[..., vchan, vpol]
-            wts = visweights[..., vchan, vpol]
-            for v, wt, x, y, in zip(vs, wts, *coords):
-                # Note that this ordering is different from that in other gridding
-                # functions because we want to do a reshape to get the result into
-                # the correct order
-                visgrid[y, x, ichan, vpol] += v
-                wtsgrid[y, x, ichan, vpol] += wt
-    
-    visgrid[wtsgrid > 0.0] /= wtsgrid[wtsgrid > 0.0]
-    visgrid[wtsgrid <= 0.0] = 0.0
-    
-    # These just need a reshape
-    nvis = nx * ny
-    cvis = visgrid.reshape(nvis, inchan, inpol)
-    cvisweights = wtsgrid.reshape(nvis, inchan, inpol)
-    
-    # Need to convert back to metres at the first frequency
-    cu = (numpy.arange(nx) - nx // 2) / (nx * uvscale[0, 0])
-    cv = (numpy.arange(ny) - ny // 2) / (ny * uvscale[1, 0])
-    cuvw = numpy.zeros([nx * ny, 3])
-    for v in range(len(cv)):
-        for u in range(len(cu)):
-            cuvw[u + len(cu) * v, 0] = cu[u]
-            cuvw[u + len(cu) * v, 1] = cv[v]
-    
-    # Construct row mask
-    rowmask = numpy.where(cvisweights > 0)[0]
-    return cvis[rowmask, ...], cuvw[rowmask, ...], cvisweights[rowmask, ...], rowmask
-
-
-def decompress_uvgrid_vis(shape, tuvw, vis, visweights, uvw, uvscale, vmap):
-    """Decompress data using one of a number of algorithms
-
-    :param tvis: Template visibility
-    :param twts: Template weights
-    :param tuvw: Template UVW positions
-    :param vis: CompressedVisibility values
-    :param visweights: CompressedVisibility weights
-    :param uvscale: Scaling for each axis (u,v) for each channel
-    """
-
-    inchan, inpol, ny, nx = shape
-    rshape = ny, nx, inchan, inpol
-    nvis, vnchan, vnpol = vis.shape
-    visgrid = numpy.zeros(rshape, dtype='complex')
-    wtsgrid = numpy.zeros(rshape)
-    # First rebuild the full grid. We could have kept it cached.
-    for vchan in range(vnchan):
-        ichan = vmap(vchan)
-        yy, _ = frac_coord(ny, 1, uvscale[1, vchan] * uvw[..., 1])
-        xx, _ = frac_coord(nx, 1, uvscale[0, vchan] * uvw[..., 0])
-        coords = xx, yy
-        for vpol in range(vnpol):
-            vs = vis[..., vchan, vpol]
-            wts = visweights[..., vchan, vpol]
-            for v, wt, x, y, in zip(vs, wts, *coords):
-                # Note that this ordering is different from that in other gridding
-                # functions because we want to do a reshape to get the result into
-                # the correct order
-                # Note also that this is a one-to-one mapping
-                visgrid[y, x, ichan, vpol] = v
-                wtsgrid[y, x, ichan, vpol] = wt
-
- 
-    dvshape = tuvw.shape[0], vnchan, vnpol
-    tvis = numpy.zeros(dvshape, dtype='complex')
-    twts = numpy.zeros(dvshape)
-    
-    for vchan in range(vnchan):
-        ichan = vmap(vchan)
-        y, _ = frac_coord(ny, 1, uvscale[1, vchan] * tuvw[..., 1])
-        x, _ = frac_coord(nx, 1, uvscale[0, vchan] * tuvw[..., 0])
-        for vpol in range(vnpol):
-            # Note that this ordering is different from that in other gridding
-            # functions because we want to do a reshape to get the result into
-            # the correct order
-            # Note also that this is a one-to-many mapping so the results
-            # can be redundant
-            tvis[..., vchan, vpol] = visgrid[y, x, ichan, vpol]
-            twts[..., vchan, vpol] = wtsgrid[y, x, ichan, vpol]
-    
-    return tvis, twts
 
 
 def compress_tbgrid_vis(vis, time, frequency, polarisation, antenna1, antenna2, uvw, visweights, integration_time,
