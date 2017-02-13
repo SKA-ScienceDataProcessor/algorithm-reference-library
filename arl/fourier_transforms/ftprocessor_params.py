@@ -70,11 +70,6 @@ def get_uvw_map(vis, im, **kwargs):
     fov = padding * nx * numpy.abs(uvwscale[0])
     log.info("get_ftprocessor_params: effective uv cellsize is %.1f wavelengths" % (1.0 / fov))
     
-    nvis = len(vis.polarisation)
-    
-    # vuvwmap = []
-    # for axis in range(3):
-    #     vuvwmap.append(((uvwscale[axis] * vis.uvw[row, axis]) for row in range(nvis)))
     vuvwmap = uvwscale * vis.uvw
     uvw_mode = "2d"
     

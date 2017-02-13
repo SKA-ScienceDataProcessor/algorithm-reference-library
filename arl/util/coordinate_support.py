@@ -163,7 +163,7 @@ def simulate_point(dist_uvw, l, m):
     
     # vector direction to source
     s = numpy.array([l, m, numpy.sqrt(1 - l ** 2 - m ** 2) - 1.0])
-    # complex valued CompressedVisibility data
+    # complex valued Visibility data
     return numpy.exp(-2j * numpy.pi * numpy.dot(dist_uvw, s))
 
 

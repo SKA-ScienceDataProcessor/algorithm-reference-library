@@ -1,6 +1,6 @@
 # Tim Cornwell <realtimcornwell@gmail.com>
 #
-""" Visibility operations
+""" BlockVisibility operations
 
 """
 
@@ -15,8 +15,8 @@ from arl.util.coordinate_support import *
 log = logging.getLogger(__name__)
 
 
-def vis_summary(vis: Visibility):
-    """Return string summarizing the Visibility
+def vis_summary(vis):
+    """Return string summarizing the BlockVisibility
     
     """
     return "Visibility: %d rows, %.3f GB" % (vis.nvis, vis.size())
@@ -32,9 +32,9 @@ def copy_visibility(vis):
     return newvis
 
 
-def create_visibility(config: Configuration, times: numpy.array, freq: numpy.array, phasecentre: SkyCoord,
-                      weight: float, meta: dict = None, npol=4, integration_time=1.0) -> Visibility:
-    """ Create a Visibility from Configuration, hour angles, and direction of source
+def create_blockvisibility(config: Configuration, times: numpy.array, freq: numpy.array, phasecentre: SkyCoord,
+                      weight: float, meta: dict = None, npol=4, integration_time=1.0) -> BlockVisibility:
+    """ Create a BlockVisibility from Configuration, hour angles, and direction of source
     
     Note that we keep track of the integration time for BDA purposes
 
@@ -46,7 +46,7 @@ def create_visibility(config: Configuration, times: numpy.array, freq: numpy.arr
     :param phasecentre: phasecentre of observation
     :param npol: Number of polarizations
     :param integration_time: Integration time ('auto' or value in s)
-    :returns: Visibility
+    :returns: BlockVisibility
     """
     assert phasecentre is not None, "Must specify phase centre"
     nch = len(freq)
@@ -70,20 +70,20 @@ def create_visibility(config: Configuration, times: numpy.array, freq: numpy.arr
                 row += 1
     ruvw = xyz_to_baselines(ants_xyz, times, phasecentre.dec.rad)
     rintegration_time = numpy.full_like(rtimes, integration_time)
-    vis = Visibility(uvw=ruvw, time=rtimes, antenna1=rantenna1, antenna2=rantenna2, vis=rvis, weight=rweight,
-                     imaging_weight=rweight, integration_time=rintegration_time)
+    vis = BlockVisibility(uvw=ruvw, time=rtimes, antenna1=rantenna1, antenna2=rantenna2, vis=rvis, weight=rweight,
+                          imaging_weight=rweight, integration_time=rintegration_time)
     vis.frequency = freq
     vis.phasecentre = phasecentre
     vis.configuration = config
-    log.info("create_visibility: %s" % (vis_summary(vis)))
+    log.info("create_blockvisibility: %s" % (vis_summary(vis)))
     return vis
 
 
-def create_compressedvisibility(config: Configuration, times: numpy.array, freq: numpy.array,
+def create_visibility(config: Configuration, times: numpy.array, freq: numpy.array,
                                 phasecentre: SkyCoord, weight: float, npol=4,
                                 pol_frame=Polarisation_Frame.linear,
-                                integration_time=1.0) -> CompressedVisibility:
-    """ Create a Visibility from Configuration, hour angles, and direction of source
+                                integration_time=1.0) -> Visibility:
+    """ Create a BlockVisibility from Configuration, hour angles, and direction of source
 
     Note that we keep track of the integration time for BDA purposes
 
@@ -95,7 +95,7 @@ def create_compressedvisibility(config: Configuration, times: numpy.array, freq:
     :param phasecentre: phasecentre of observation
     :param npol: Number of polarizations
     :param integration_time: Integration time ('auto' or value in s)
-    :returns: CompressedVisibility
+    :returns: Visibility
     """
     assert phasecentre is not None, "Must specify phase centre"
     nch = len(freq)
@@ -130,20 +130,44 @@ def create_compressedvisibility(config: Configuration, times: numpy.array, freq:
     
     assert row == nrows
     rintegration_time = numpy.full_like(rtimes, integration_time)
-    vis = CompressedVisibility(uvw=ruvw, time=rtimes, antenna1=rantenna1, antenna2=rantenna2,
+    vis = Visibility(uvw=ruvw, time=rtimes, antenna1=rantenna1, antenna2=rantenna2,
                                frequency=rfrequency, polarisation=rpolarisation, vis=rvis,
                                weight=rweight, imaging_weight=rweight, integration_time=rintegration_time,
                                polarisation_frame=pol_frame)
     vis.phasecentre = phasecentre
     vis.configuration = config
-    log.info("create_compressedvisibility: %s" % (vis_summary(vis)))
-    assert type(vis) is CompressedVisibility, "vis is not a CompressedVisibility: %r" % vis
+    log.info("create_visibility: %s" % (vis_summary(vis)))
+    assert type(vis) is Visibility, "vis is not a Visibility: %r" % vis
     
     return vis
 
 
+def create_blockvisibility_from_rows(vis: BlockVisibility, rows, makecopy=True) -> BlockVisibility:
+    """ Create a BlockVisibility from selected rows
+
+    :param params:
+    :param vis: BlockVisibility
+    :param rows: Boolean array of row selction
+    :param makecopy: Make a deep copy (True)
+    :returns: BlockVisibility
+    """
+    assert type(vis) is BlockVisibility, "vis is not a BlockVisibility: %r" % vis
+    
+    if makecopy:
+        newvis = copy_visibility(vis)
+        newvis.data = copy.deepcopy(vis.data[rows])
+        log.info("create_visibility_from_rows: Created new compressed visibility table")
+        assert len(newvis.data) == numpy.sum(rows)
+        return newvis
+    else:
+        vis.data = copy.deepcopy(vis.data[rows])
+        log.info("create_visibility_from_rows: Created view into compressed visibility table")
+        assert len(vis.data) == numpy.sum(rows)
+        return vis
+
+
 def create_visibility_from_rows(vis: Visibility, rows, makecopy=True) -> Visibility:
-    """ Create a Visibility from selected rows
+    """ Create a BlockVisibility from selected rows
 
     :param params:
     :param vis: Visibility
@@ -151,58 +175,34 @@ def create_visibility_from_rows(vis: Visibility, rows, makecopy=True) -> Visibil
     :param makecopy: Make a deep copy (True)
     :returns: Visibility
     """
+    
     assert type(vis) is Visibility, "vis is not a Visibility: %r" % vis
     
     if makecopy:
         newvis = copy_visibility(vis)
         newvis.data = copy.deepcopy(vis.data[rows])
-        log.info("create_compressedvisibility_from_rows: Created new compressed visibility table")
+        log.info("create_visibility_from_rows: Created new compressed visibility table")
         assert len(newvis.data) == numpy.sum(rows)
         return newvis
     else:
         vis.data = copy.deepcopy(vis.data[rows])
-        log.info("create_compressedvisibility_from_rows: Created view into compressed visibility table")
+        log.info("create_visibility_from_rows: Created view into compressed visibility table")
         assert len(vis.data) == numpy.sum(rows)
         return vis
 
 
-def create_compressedvisibility_from_rows(vis: CompressedVisibility, rows, makecopy=True) -> CompressedVisibility:
-    """ Create a Visibility from selected rows
-
-    :param params:
-    :param vis: CompressedVisibility
-    :param rows: Boolean array of row selction
-    :param makecopy: Make a deep copy (True)
-    :returns: CompressedVisibility
-    """
-    
-    assert type(vis) is CompressedVisibility, "vis is not a CompressedVisibility: %r" % vis
-    
-    if makecopy:
-        newvis = copy_visibility(vis)
-        newvis.data = copy.deepcopy(vis.data[rows])
-        log.info("create_compressedvisibility_from_rows: Created new compressed visibility table")
-        assert len(newvis.data) == numpy.sum(rows)
-        return newvis
-    else:
-        vis.data = copy.deepcopy(vis.data[rows])
-        log.info("create_compressedvisibility_from_rows: Created view into compressed visibility table")
-        assert len(vis.data) == numpy.sum(rows)
-        return vis
-
-
-def phaserotate_compressedvisibility(vis: CompressedVisibility, newphasecentre: SkyCoord, tangent=True,
-                                     inverse=False) -> CompressedVisibility:
+def phaserotate_visibility(vis: Visibility, newphasecentre: SkyCoord, tangent=True,
+                                     inverse=False) -> Visibility:
     """
     Phase rotate from the current phase centre to a new phase centre
 
-    :param vis: CompressedVisibility to be rotated
+    :param vis: Visibility to be rotated
     :param newphasecentre:
     :param tangent: Stay on the same tangent plane? (True)
     :param inverse: Actually do the opposite
-    :returns: CompressedVisibility
+    :returns: Visibility
     """
-    assert type(vis) is CompressedVisibility, "vis is not a CompressedVisibility: %r" % vis
+    assert type(vis) is Visibility, "vis is not a Visibility: %r" % vis
     
     l, m, n = skycoord_to_lmn(newphasecentre, vis.phasecentre)
     
@@ -236,22 +236,22 @@ def phaserotate_compressedvisibility(vis: CompressedVisibility, newphasecentre: 
         newvis.phasecentre = newphasecentre
     else:
         newvis = vis
-        log.warning("phaserotate_compressedvisibility: Null phase rotation")
+        log.warning("phaserotate_visibility: Null phase rotation")
     
     return newvis
 
 
-def sum_visibility(vis: Visibility, direction: SkyCoord) -> numpy.array:
+def sum_visibility(vis: BlockVisibility, direction: SkyCoord) -> numpy.array:
     """ Direct Fourier summation in a given direction
 
     :param params:
-    :param vis: Visibility to be summed
+    :param vis: BlockVisibility to be summed
     :param direction: Direction of summation
     :returns: flux[nch,npol], weight[nch,pol]
     """
-    # TODO: Convert to CompressedVisibility or remove?
+    # TODO: Convert to Visibility or remove?
     
-    assert type(vis) is CompressedVisibility, "vis is not a CompressedVisibility: %r" % vis
+    assert type(vis) is Visibility, "vis is not a Visibility: %r" % vis
     
     l, m, n = skycoord_to_lmn(direction, vis.phasecentre)
     phasor = numpy.conjugate(simulate_point(vis.uvw, l, m))
@@ -280,10 +280,10 @@ def sum_visibility(vis: Visibility, direction: SkyCoord) -> numpy.array:
 
 
 def qa_visibility(vis, context=None):
-    """Assess the quality of Visibility
+    """Assess the quality of BlockVisibility
 
     :param params:
-    :param vis: Visibility to be assessed
+    :param vis: BlockVisibility to be assessed
     :returns: AQ
     """
     avis = numpy.abs(vis.vis)

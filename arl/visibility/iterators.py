@@ -1,6 +1,6 @@
 # Tim Cornwell <realtimcornwell@gmail.com>
 #
-""" Visibility iterators
+""" BlockVisibility iterators
 
 """
 

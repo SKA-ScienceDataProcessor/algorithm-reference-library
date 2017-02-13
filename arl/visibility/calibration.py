@@ -25,7 +25,7 @@ def interpolate_gaintable(gt: GainTable, **kwargs):
     return GainTable()
 
 
-def solve_gains(vis: Visibility, sm: Skymodel, **kwargs) -> GainTable:
+def solve_gains(vis: BlockVisibility, sm: Skymodel, **kwargs) -> GainTable:
     """ Solve for calibration using a sky model
     
     :param params:
@@ -33,38 +33,38 @@ def solve_gains(vis: Visibility, sm: Skymodel, **kwargs) -> GainTable:
     :param sm:
     :returns: GainTable
     """
-    assert type(vis) is Visibility, "vis is not a Visibility: %r" % vis
+    assert type(vis) is BlockVisibility, "vis is not a BlockVisibility: %r" % vis
 
     # TODO: Implement calibration solution
     raise RuntimeError("solve_gains: not yet implemented")
     return GainTable()
 
 
-def correct_visibility(vis: Visibility, gt: GainTable, **kwargs) -> Visibility:
+def correct_blockvisibility(vis: BlockVisibility, gt: GainTable, **kwargs) -> BlockVisibility:
     """ Correct a vistable using a GainTable
 
     :param params:
-    :param vis: Visibility to be processed
+    :param vis: BlockVisibility to be processed
     :param gt: GainTable
-    :returns: Visibility
+    :returns: BlockVisibility
     """
-    assert type(vis) is Visibility, "vis is not a Visibility: %r" % vis
+    assert type(vis) is BlockVisibility, "vis is not a BlockVisibility: %r" % vis
 
     # TODO: Implement calibration application
-    raise RuntimeError("correct_visibility: not yet implemented")
+    raise RuntimeError("correct_blockvisibility: not yet implemented")
     return vis
 
 
-def peel_skycomponent(vis: Visibility, sc: Skycomponent, **kwargs) -> Visibility:
+def peel_skycomponent(vis: BlockVisibility, sc: Skycomponent, **kwargs) -> BlockVisibility:
     """ Correct a vistable using a GainTable
 
     :param params:
-    :param vis: Visibility to be processed
+    :param vis: BlockVisibility to be processed
     :param sc:
-    :returns: Visibility, GainTable
+    :returns: BlockVisibility, GainTable
     """
     # TODO: Implement peeling
-    assert type(vis) is Visibility, "vis is not a Visibility: %r" % vis
+    assert type(vis) is BlockVisibility, "vis is not a BlockVisibility: %r" % vis
 
     raise RuntimeError("peel_skycomponent: not yet implemented")
     return vis

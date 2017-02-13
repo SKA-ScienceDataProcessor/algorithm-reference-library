@@ -13,7 +13,7 @@ from arl.image.deconvolution import _msclean
 from arl.skymodel.operations import create_skycomponent
 from arl.skymodel.operations import create_skymodel_from_image, add_component_to_skymodel
 from arl.util.testing_support import create_named_configuration, create_test_image, run_unittests
-from arl.visibility.operations import create_compressedvisibility
+from arl.visibility.operations import create_visibility
 from arl.pipelines.functions import *
 
 class TestPipelines(unittest.TestCase):
@@ -46,7 +46,7 @@ class TestPipelines(unittest.TestCase):
         self.m31sm = create_skymodel_from_image(self.m31image)
         self.m31sm = add_component_to_skymodel(self.m31sm, self.m31comp)
 
-        vispred = create_compressedvisibility(vlaa, times, frequency, phasecentre=self.phasecentre, weight=1.0)
+        vispred = create_visibility(vlaa, times, frequency, phasecentre=self.phasecentre, weight=1.0)
         self.visibility = predict_2d(vispred, self.m31image, wstep=100.0, npixel=256, cellsize=0.0001)
         self.m31image.data *= 0.0
         self.m31sm = create_skymodel_from_image(self.m31image)

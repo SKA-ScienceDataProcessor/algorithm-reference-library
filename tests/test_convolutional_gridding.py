@@ -84,7 +84,7 @@ class TestConvolutionalGridding(unittest.TestCase):
                                       kernel_oversampling, npixel)
                 assert_allclose(numpy.sum(k), kernel_oversampling ** 2, rtol=0.07)
 
-    @unittest.skip("Update to compressedvisibility")
+    @unittest.skip("Update to visibility")
     def test_convolutional_grid(self):
         shape = (7, 7)
         npixel = 256
@@ -104,7 +104,7 @@ class TestConvolutionalGridding(unittest.TestCase):
         uvscale = numpy.ones([2,1])
         fixed_kernel_grid([kernel], uvgrid, uvcoords, uvscale, vis, visweights)
 
-    @unittest.skip("Update to compressedvisibility")
+    @unittest.skip("Update to visibility")
     def test_convolutional_degrid(self):
         shape = (7, 7)
         npixel = 256

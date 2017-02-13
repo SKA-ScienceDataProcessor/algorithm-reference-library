@@ -14,7 +14,7 @@ from arl.visibility.operations import copy_visibility
 
 log = logging.getLogger(__name__)
 
-def solve_skymodel(vis: CompressedVisibility, sm: Skymodel, deconvolver, **kwargs):
+def solve_skymodel(vis: Visibility, sm: Skymodel, deconvolver, **kwargs):
     """Solve for Skymodel using a deconvolver. The interface of deconvolver is the same as clean.
 
     This is the same as a majorcycle.
@@ -24,7 +24,7 @@ def solve_skymodel(vis: CompressedVisibility, sm: Skymodel, deconvolver, **kwarg
     :param sm:
     :param deconvolver: Deconvolver to be used e.g. msclean
     :arg function:
-    :returns: CompressedVisibility, Skymodel
+    :returns: Visibility, Skymodel
     """
     nmajor = get_parameter(kwargs, 'nmajor', 5)
     log.info("solve_combinations.solve_skymodel: Performing %d major cycles" % nmajor)

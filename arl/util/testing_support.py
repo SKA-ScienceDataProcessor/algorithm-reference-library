@@ -106,12 +106,12 @@ def create_named_configuration(name: str = 'LOWBD2', **kwargs):
     return fc
 
 
-def import_visibility_from_oskar(oskar_file: str, **kwargs) -> Visibility:
+def import_blockvisibility_from_oskar(oskar_file: str, **kwargs) -> BlockVisibility:
     """ Import a visibility set from an OSKAR visibility file
 
     :param params:
     :param oskar_file: Name of OSKAR visibility file
-    :returns: Visibility
+    :returns: BlockVisibility
     """
     
     # Extract data from Oskar file
@@ -133,7 +133,7 @@ def import_visibility_from_oskar(oskar_file: str, **kwargs) -> Visibility:
     )
     
     # Construct visibilities
-    return Visibility(
+    return BlockVisibility(
         frequency=[oskar_vis.frequency(i) for i in range(oskar_vis.num_channels)],
         phasecentre=SkyCoord(frame=ICRS, ra=ra, dec=dec, unit=u.deg),
         configuration=config,

@@ -212,14 +212,14 @@ class Skymodel:
         self.components = []  # collection of SkyComponents
 
 
-class Visibility:
-    """ Visibility table class
+class BlockVisibility:
+    """ BlockVisibility table class
 
-    Visibility with uvw, time, a1, a2, vis, weight Columns in
+    BlockVisibility with uvw, time, a1, a2, vis, weight Columns in
     a numpy structured array along with an attribute to hold the frequencies
     and an attribute to hold the direction.
 
-    Visibility is defined to hold an observation with one set of frequencies and one
+    BlockVisibility is defined to hold an observation with one set of frequencies and one
     direction.
 
     The data column has vis:[a2,a1,nchan,npol], uvw:[3], time, integration_time
@@ -329,7 +329,7 @@ class Visibility:
         return self.data['uvw'] * self.frequency[channel] / c.value
 
 
-class CompressedVisibility:
+class Visibility:
     """ Visibility table class
 
     Visibility with uvw, time, integration_time, frequency, channel_width, pol, a1, a2, vis, weight Columns in
@@ -391,7 +391,7 @@ class CompressedVisibility:
         return self.data['vis'].shape[0]
     
     @property
-    def uvw(self): # In wavelengths in CompressedVisibility
+    def uvw(self): # In wavelengths in Visibility
         return self.data['uvw']
     
     @property

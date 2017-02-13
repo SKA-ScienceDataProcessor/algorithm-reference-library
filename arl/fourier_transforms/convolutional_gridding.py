@@ -342,7 +342,6 @@ def fixed_kernel_degrid(kernels, vshape, uvgrid, vuvwmap, vfrequencymap, vpolari
     vis = numpy.zeros([nvis], dtype='complex')
     wt  = numpy.zeros([nvis])
 
-   # uvw -> fraction of grid ampping
     # uvw -> fraction of grid mapping
     y, yf = frac_coord(ny, kernel_oversampling, vuvwmap[:,1])
     x, xf = frac_coord(nx, kernel_oversampling, vuvwmap[:,0])
@@ -390,9 +389,9 @@ def gridder(uvgrid, vis, xs, ys, kernel=numpy.ones((1,1)), kernel_ixs=None):
     visibility using ``kernel_ixs``.
 
     :param uvgrid: Grid to update (two-dimensional :class:`complex` array)
-    :param vis: CompressedVisibility values (one-dimensional :class:`complex` array)
-    :param xs: CompressedVisibility position (one-dimensional :class:`int` array)
-    :param ys: CompressedVisibility values (one-dimensional :class:`int` array)
+    :param vis: Visibility values (one-dimensional :class:`complex` array)
+    :param xs: Visibility position (one-dimensional :class:`int` array)
+    :param ys: Visibility values (one-dimensional :class:`int` array)
     :param kernel: Convolution kernel (minimum two-dimensional :class:`complex` array).
       If the kernel has more than two dimensions, additional indices must be passed
       in ``kernel_ixs``. Default: Fixed one-pixel kernel with value 1.
@@ -423,8 +422,8 @@ def fixed_kernel_grid(kernels, uvgrid, vis, visweights, vuvwmap, vfrequencymap,
     :param kernel: List of versampled convolution kernels
     :param uvgrid: Grid to add to
     :param uvw: UVW positions
-    :param vis: CompressedVisibility values
-    :param vis: CompressedVisibility weights
+    :param vis: Visibility values
+    :param vis: Visibility weights
     :param vuvwmap: map uvw to grid fractions
     :param vfrequencymap: map frequency to image channels
     :param vpolarisationwmap: map polarisation to image polarisation
@@ -487,8 +486,8 @@ def weight_gridding(shape, visweights, vuvwmap, vfrequencymap, vpolarisationmap,
 
     :param shape:
     :param uvw: UVW positions
-    :param vis: CompressedVisibility values
-    :param vis: CompressedVisibility weights
+    :param vis: Visibility values
+    :param vis: Visibility weights
     :param vuvwmap: map uvw to grid fractions
     :param vfrequencymap: map frequency to image channels
     :param vpolarisationwmap: map polarisation to image polarisation
