@@ -133,7 +133,13 @@ class Image:
     
     @property
     def npol(self): return self.data.shape[1]
-    
+
+    @property
+    def nheight(self): return self.data.shape[2]
+
+    @property
+    def nwidth(self): return self.data.shape[3]
+
     @property
     def npixel(self): return self.data.shape[3]
     
