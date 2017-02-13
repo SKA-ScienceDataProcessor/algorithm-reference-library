@@ -1,6 +1,6 @@
 # Tim Cornwell <realtimcornwell@gmail.com>
 #
-""" BlockVisibility operations
+""" Visibility operations
 
 """
 
@@ -16,10 +16,10 @@ log = logging.getLogger(__name__)
 
 
 def vis_summary(vis):
-    """Return string summarizing the BlockVisibility
+    """Return string summarizing the Visibility
     
     """
-    return "Visibility: %d rows, %.3f GB" % (vis.nvis, vis.size())
+    return "%d rows, %.3f GB" % (vis.nvis, vis.size())
 
 
 def copy_visibility(vis):
@@ -82,8 +82,8 @@ def create_blockvisibility(config: Configuration, times: numpy.array, freq: nump
 def create_visibility(config: Configuration, times: numpy.array, freq: numpy.array,
                                 phasecentre: SkyCoord, weight: float, npol=4,
                                 pol_frame=Polarisation_Frame.linear,
-                                integration_time=1.0) -> Visibility:
-    """ Create a BlockVisibility from Configuration, hour angles, and direction of source
+                                integration_time=1.0, channel_bandwidth=1e6) -> Visibility:
+    """ Create a Visibility from Configuration, hour angles, and direction of source
 
     Note that we keep track of the integration time for BDA purposes
 
@@ -114,26 +114,37 @@ def create_visibility(config: Configuration, times: numpy.array, freq: numpy.arr
     rantenna1 = numpy.zeros([nrows], dtype='int')
     rantenna2 = numpy.zeros([nrows], dtype='int')
     ruvw = numpy.zeros([nrows, 3])
+    
+    # Do each hour angle in turn
     for iha, ha in enumerate(times):
+        
+        # Calculate the positions of the antennas as seen for this hour angle
+        # and declination
         ant_pos = xyz_to_uvw(ants_xyz, ha, phasecentre.dec.value)
-        rtimes[row:row + nbaselines * npol * nch] = ha * 43200.0 / numpy.pi
+        rtimes[row:row + nrowsperintegration] = ha * 43200.0 / numpy.pi
+        
+        # Loop over all pairs of antennas. Note that a2>a1
         for a1 in range(nants):
             for a2 in range(a1 + 1, nants):
                 rantenna1[row:row + npol * nch] = a1
                 rantenna2[row:row + npol * nch] = a2
+                
+                # Loop over all frequencies and polarisations
                 for ch in range(nch):
                     k = freq[ch] / constants.c.value
-                    ruvw[row:row + npol, :] = (ant_pos[a1,:] - ant_pos[a2,:]) * k
+                    ruvw[row:row + npol, :] = (ant_pos[a2,:] - ant_pos[a1,:]) * k
                     rpolarisation[row:row + npol] = range(npol)
                     rfrequency[row:row + npol] = freq[ch]
                     row += npol
     
     assert row == nrows
     rintegration_time = numpy.full_like(rtimes, integration_time)
+    rchannel_bandwidth = numpy.full_like(rfrequency, channel_bandwidth)
     vis = Visibility(uvw=ruvw, time=rtimes, antenna1=rantenna1, antenna2=rantenna2,
-                               frequency=rfrequency, polarisation=rpolarisation, vis=rvis,
-                               weight=rweight, imaging_weight=rweight, integration_time=rintegration_time,
-                               polarisation_frame=pol_frame)
+                     frequency=rfrequency, polarisation=rpolarisation, vis=rvis,
+                     weight=rweight, imaging_weight=rweight,
+                     integration_time=rintegration_time, channel_bandwidth=rchannel_bandwidth,
+                     polarisation_frame=pol_frame)
     vis.phasecentre = phasecentre
     vis.configuration = config
     log.info("create_visibility: %s" % (vis_summary(vis)))
@@ -167,7 +178,7 @@ def create_blockvisibility_from_rows(vis: BlockVisibility, rows, makecopy=True) 
 
 
 def create_visibility_from_rows(vis: Visibility, rows, makecopy=True) -> Visibility:
-    """ Create a BlockVisibility from selected rows
+    """ Create a Visibility from selected rows
 
     :param params:
     :param vis: Visibility
@@ -210,7 +221,7 @@ def phaserotate_visibility(vis: Visibility, newphasecentre: SkyCoord, tangent=Tr
     if numpy.abs(l) > 1e-15 or numpy.abs(m) > 1e-15:
         
         # Make a new copy
-        newvis = copy.copy(vis)
+        newvis = copy_visibility(vis)
         
         phasor = simulate_point(newvis.uvw, l, m)
         
@@ -241,11 +252,11 @@ def phaserotate_visibility(vis: Visibility, newphasecentre: SkyCoord, tangent=Tr
     return newvis
 
 
-def sum_visibility(vis: BlockVisibility, direction: SkyCoord) -> numpy.array:
+def sum_visibility(vis: Visibility, direction: SkyCoord) -> numpy.array:
     """ Direct Fourier summation in a given direction
 
     :param params:
-    :param vis: BlockVisibility to be summed
+    :param vis: Visibility to be summed
     :param direction: Direction of summation
     :returns: flux[nch,npol], weight[nch,pol]
     """
@@ -280,10 +291,10 @@ def sum_visibility(vis: BlockVisibility, direction: SkyCoord) -> numpy.array:
 
 
 def qa_visibility(vis, context=None):
-    """Assess the quality of BlockVisibility
+    """Assess the quality of Visibility
 
     :param params:
-    :param vis: BlockVisibility to be assessed
+    :param vis: Visibility to be assessed
     :returns: AQ
     """
     avis = numpy.abs(vis.vis)
