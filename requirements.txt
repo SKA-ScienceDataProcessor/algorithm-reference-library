@@ -13,13 +13,11 @@ scipy
 pyfits>=3.3
 matplotlib
 pylru
-pweave
 Sphinx
 wcsaxes
 reproject
 astropy
 alabaster
-pandoc
 photutils
 scikit-image
 pymp-pypi

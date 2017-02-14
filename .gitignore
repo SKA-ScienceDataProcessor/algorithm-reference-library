@@ -11,6 +11,7 @@
 
 /examples/**/*.rst
 /examples/**/*.html
+/examples/**/*.fits
 /examples/*/figures
 /examples/*/*_files
 /examples/*/.ipynb_checkpoints
@@ -33,7 +34,6 @@ psf.fits
 /doc
 /.ipynb_checkpoints
 .DS_Store
-/data
 ~$functions_status.xlsx
 arl_fourier_processing.xlsx
 functions_status.xlsx
@@ -45,4 +45,4 @@ temp.fits
 /tests/test_ftprocessor_results
 /.pydevproject
 /tests/test_results
-*.fits
+/test_results

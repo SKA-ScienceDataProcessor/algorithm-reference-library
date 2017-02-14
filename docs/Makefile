@@ -63,8 +63,6 @@ make_example_rst = \
 .PHONY: prepare
 prepare:
 
-	make -C ../data
-
 	$(call make_example_rst,arl,*_files)
 
 .PHONY: html
