@@ -10,7 +10,7 @@ from arl.image.operations import add_image, create_image_from_array
 from arl.skymodel.operations import create_skycomponent
 from arl.skymodel.operations import create_skymodel_from_image, add_component_to_skymodel
 from arl.util.testing_support import create_test_image, create_named_configuration, import_visibility_from_oskar
-from arl.visibility.operations import create_visibility
+from arl.visibility.operations import create_compressedvisibility
 
 log = logging.getLogger(__name__)
 
@@ -63,7 +63,7 @@ class TestDataModels(unittest.TestCase):
         times = numpy.arange(-3.0, +3.0, 3.0 / 60.0) * numpy.pi / 12.0
         freq = numpy.arange(5e6, 150.0e6, 1e7)
         direction = SkyCoord('00h42m30s', '-41d12m00s', frame='icrs')
-        vis = create_visibility(config, times, freq, phasecentre=direction, weight=1.0)
+        vis = create_compressedvisibility(config, times, freq, phasecentre=direction, weight=1.0)
         log.debug(vis.data)
         log.debug(vis.frequency)
         self.assertEqual(len(numpy.unique(vis.data['time'])), len(times))

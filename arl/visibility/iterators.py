@@ -8,7 +8,6 @@ import numpy
 import copy
 
 from arl.data.parameters import get_parameter
-from arl.data.data_models import Visibility
 import logging
 log = logging.getLogger(__name__)
 

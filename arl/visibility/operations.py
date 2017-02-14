@@ -4,24 +4,23 @@
 
 """
 
-import sys
 import copy
-import logging
 
 import astropy.constants as constants
 
-from arl.util.coordinate_support import *
-from arl.data.data_models import *
 from arl.data.parameters import *
 from arl.fourier_transforms.ftprocessor_params import *
+from arl.util.coordinate_support import *
 
 log = logging.getLogger(__name__)
+
 
 def vis_summary(vis: Visibility):
     """Return string summarizing the Visibility
     
     """
     return "Visibility: %d rows, %.3f GB" % (vis.nvis, vis.size())
+
 
 def copy_visibility(vis):
     """Copy a visibility
@@ -32,8 +31,9 @@ def copy_visibility(vis):
     newvis.data = copy.deepcopy(vis.data)
     return newvis
 
+
 def create_visibility(config: Configuration, times: numpy.array, freq: numpy.array, phasecentre: SkyCoord,
-                      weight: float, meta: dict = None, npol=4, integration_time = 1.0) -> Visibility:
+                      weight: float, meta: dict = None, npol=4, integration_time=1.0) -> Visibility:
     """ Create a Visibility from Configuration, hour angles, and direction of source
     
     Note that we keep track of the integration time for BDA purposes
@@ -71,7 +71,7 @@ def create_visibility(config: Configuration, times: numpy.array, freq: numpy.arr
     ruvw = xyz_to_baselines(ants_xyz, times, phasecentre.dec.rad)
     rintegration_time = numpy.full_like(rtimes, integration_time)
     vis = Visibility(uvw=ruvw, time=rtimes, antenna1=rantenna1, antenna2=rantenna2, vis=rvis, weight=rweight,
-                          imaging_weight=rweight, integration_time=rintegration_time)
+                     imaging_weight=rweight, integration_time=rintegration_time)
     vis.frequency = freq
     vis.phasecentre = phasecentre
     vis.configuration = config
@@ -113,23 +113,21 @@ def create_compressedvisibility(config: Configuration, times: numpy.array, freq:
     rpolarisation = numpy.zeros([nrows], dtype='int')
     rantenna1 = numpy.zeros([nrows], dtype='int')
     rantenna2 = numpy.zeros([nrows], dtype='int')
-    suvw = xyz_to_baselines(ants_xyz, times, phasecentre.dec.rad)
     ruvw = numpy.zeros([nrows, 3])
-    for ha in times:
-        ha_sec = ha * 43200.0 / numpy.pi
+    for iha, ha in enumerate(times):
+        ant_pos = xyz_to_uvw(ants_xyz, ha, phasecentre.dec.value)
+        rtimes[row:row + nbaselines * npol * nch] = ha * 43200.0 / numpy.pi
         for a1 in range(nants):
             for a2 in range(a1 + 1, nants):
-                baseline = a1 * nants + a2
+                rantenna1[row:row + npol * nch] = a1
+                rantenna2[row:row + npol * nch] = a2
                 for ch in range(nch):
                     k = freq[ch] / constants.c.value
-                    for pol in range(npol):
-                        rtimes[row] = ha_sec
-                        rpolarisation[row] = pol
-                        rantenna1[row] = a1
-                        rantenna2[row] = a2
-                        rfrequency[row] = freq[ch]
-                        ruvw[row, :] = suvw[baseline, :] * k
-                        row += 1
+                    ruvw[row:row + npol, :] = (ant_pos[a1,:] - ant_pos[a2,:]) * k
+                    rpolarisation[row:row + npol] = range(npol)
+                    rfrequency[row:row + npol] = freq[ch]
+                    row += npol
+    
     assert row == nrows
     rintegration_time = numpy.full_like(rtimes, integration_time)
     vis = CompressedVisibility(uvw=ruvw, time=rtimes, antenna1=rantenna1, antenna2=rantenna2,
@@ -138,9 +136,9 @@ def create_compressedvisibility(config: Configuration, times: numpy.array, freq:
                                polarisation_frame=pol_frame)
     vis.phasecentre = phasecentre
     vis.configuration = config
-    log.info("create_visibility: %s" % (vis_summary(vis)))
+    log.info("create_compressedvisibility: %s" % (vis_summary(vis)))
     assert type(vis) is CompressedVisibility, "vis is not a CompressedVisibility: %r" % vis
-
+    
     return vis
 
 
@@ -154,15 +152,19 @@ def create_visibility_from_rows(vis: Visibility, rows, makecopy=True) -> Visibil
     :returns: Visibility
     """
     assert type(vis) is Visibility, "vis is not a Visibility: %r" % vis
-
-    newvis = Visibility(data=vis.data[rows], phasecentre=vis.phasecentre, configuration=vis.configuration,
-                        frequency=vis.frequency)
+    
     if makecopy:
-        newvis = copy.deepcopy(newvis)
-        log.info("create_visibility_from_rows: Created new visibility table")
+        newvis = copy_visibility(vis)
+        newvis.data = copy.deepcopy(vis.data[rows])
+        log.info("create_compressedvisibility_from_rows: Created new compressed visibility table")
+        assert len(newvis.data) == numpy.sum(rows)
+        return newvis
     else:
-        log.info("create_visibility_from_rows: Created view into visibility table")
-    return newvis
+        vis.data = copy.deepcopy(vis.data[rows])
+        log.info("create_compressedvisibility_from_rows: Created view into compressed visibility table")
+        assert len(vis.data) == numpy.sum(rows)
+        return vis
+
 
 def create_compressedvisibility_from_rows(vis: CompressedVisibility, rows, makecopy=True) -> CompressedVisibility:
     """ Create a Visibility from selected rows
@@ -173,16 +175,20 @@ def create_compressedvisibility_from_rows(vis: CompressedVisibility, rows, makec
     :param makecopy: Make a deep copy (True)
     :returns: CompressedVisibility
     """
-
+    
     assert type(vis) is CompressedVisibility, "vis is not a CompressedVisibility: %r" % vis
-
-    newvis = CompressedVisibility(data=vis.data[rows], phasecentre=vis.phasecentre, configuration=vis.configuration)
+    
     if makecopy:
-        newvis = copy.deepcopy(newvis)
+        newvis = copy_visibility(vis)
+        newvis.data = copy.deepcopy(vis.data[rows])
         log.info("create_compressedvisibility_from_rows: Created new compressed visibility table")
+        assert len(newvis.data) == numpy.sum(rows)
+        return newvis
     else:
+        vis.data = copy.deepcopy(vis.data[rows])
         log.info("create_compressedvisibility_from_rows: Created view into compressed visibility table")
-    return newvis
+        assert len(vis.data) == numpy.sum(rows)
+        return vis
 
 
 def phaserotate_compressedvisibility(vis: CompressedVisibility, newphasecentre: SkyCoord, tangent=True,
@@ -197,22 +203,22 @@ def phaserotate_compressedvisibility(vis: CompressedVisibility, newphasecentre: 
     :returns: CompressedVisibility
     """
     assert type(vis) is CompressedVisibility, "vis is not a CompressedVisibility: %r" % vis
-
+    
     l, m, n = skycoord_to_lmn(newphasecentre, vis.phasecentre)
     
     # No significant change?
     if numpy.abs(l) > 1e-15 or numpy.abs(m) > 1e-15:
-    
+        
         # Make a new copy
         newvis = copy.copy(vis)
-
+        
         phasor = simulate_point(newvis.uvw, l, m)
         
         if inverse:
             newvis.data['vis'] *= phasor
         else:
             newvis.data['vis'] *= numpy.conj(phasor)
-
+        
         # To rotate UVW, rotate into the global XYZ coordinate system and back. We have the option of
         # staying on the tangent plane or not. If we stay on the tangent then the raster will
         # join smoothly at the edges. If we change the tangent then we will have to reproject to get
@@ -231,8 +237,7 @@ def phaserotate_compressedvisibility(vis: CompressedVisibility, newphasecentre: 
     else:
         newvis = vis
         log.warning("phaserotate_compressedvisibility: Null phase rotation")
-
-
+    
     return newvis
 
 
@@ -245,36 +250,36 @@ def sum_visibility(vis: Visibility, direction: SkyCoord) -> numpy.array:
     :returns: flux[nch,npol], weight[nch,pol]
     """
     # TODO: Convert to CompressedVisibility or remove?
-
+    
     assert type(vis) is CompressedVisibility, "vis is not a CompressedVisibility: %r" % vis
-
+    
     l, m, n = skycoord_to_lmn(direction, vis.phasecentre)
     phasor = numpy.conjugate(simulate_point(vis.uvw, l, m))
     
     # Need to put correct mapping here
-    _, ipol = get_polarisation_map(vis)
-    _, ichan = get_frequency_map(vis)
-
-    channels = ichan(vis.data['frequency'])
-    polarisations = ipol(vis.data['polarisation'])
-
-    nchan = max(channels)+1
-    npol = max(polarisations)+1
+    _, polarisations = get_polarisation_map(vis)
+    _, frequency = get_frequency_map(vis)
+    
+    frequency = list(frequency)
+    polarisations = list(polarisations)
+    
+    nchan = max(frequency) + 1
+    npol = max(polarisations) + 1
     
     flux = numpy.zeros([nchan, npol])
     weight = numpy.zeros([nchan, npol])
-
-    coords = vis.vis, vis.weight, phasor, channels, polarisations
+    
+    coords = vis.vis, vis.weight, phasor, list(frequency), list(polarisations)
     for v, wt, p, ic, ip in zip(*coords):
-        flux[ic,ip] += numpy.real(wt * v * p)
-        weight[ic,ip] += wt
-
+        flux[ic, ip] += numpy.real(wt * v * p)
+        weight[ic, ip] += wt
+    
     flux[weight > 0.0] = flux[weight > 0.0] / weight[weight > 0.0]
     flux[weight <= 0.0] = 0.0
     return flux, weight
 
 
-def qa_visibility(vis, context = None):
+def qa_visibility(vis, context=None):
     """Assess the quality of Visibility
 
     :param params:

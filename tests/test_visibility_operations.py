@@ -4,7 +4,6 @@ realtimcornwell@gmail.com
 """
 
 import unittest
-import copy
 
 from astropy import units as u
 from numpy.testing import assert_allclose

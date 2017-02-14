@@ -33,8 +33,5 @@ class TestCompress(unittest.TestCase):
     def test_compress_decompress_tbgrid_vis_null(self):
         cvis, cindex = compress_visibility(self.vis, compression_factor=0.0)
         assert cindex is None
-        with self.assertRaises(RuntimeError) as context:
-            decompress_visibility(cvis, self.vis, cindex=cindex)
-            self.assertTrue("decompression requires an index from the compression step" in str(context.exception))
 if __name__ == '__main__':
     run_unittests()

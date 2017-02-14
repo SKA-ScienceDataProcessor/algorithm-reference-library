@@ -12,15 +12,14 @@ from astropy.wcs.utils import pixel_to_skycoord
 
 from arl.data.data_models import *
 from arl.fourier_transforms.convolutional_gridding import fixed_kernel_grid, \
-    fixed_kernel_degrid, weight_gridding, w_beam, anti_aliasing_calculate, anti_aliasing_box
+    fixed_kernel_degrid, weight_gridding, w_beam
 from arl.fourier_transforms.fft_support import fft, ifft, pad_mid, extract_mid
-from arl.fourier_transforms.variable_kernels import variable_kernel_grid, variable_kernel_degrid, \
-    box_grid, w_kernel_lambda
-from arl.fourier_transforms.ftprocessor_params import get_ftprocessor_params
+from arl.fourier_transforms.ftprocessor_params import get_frequency_map, \
+    get_polarisation_map, get_uvw_map, get_kernel_list
 from arl.image.iterators import *
 from arl.util.coordinate_support import simulate_point, skycoord_to_lmn
 from arl.visibility.iterators import *
-from arl.visibility.operations import phaserotate_compressedvisibility
+from arl.visibility.operations import phaserotate_compressedvisibility, copy_visibility
 from arl.visibility.compress import compress_visibility, decompress_visibility
 
 log = logging.getLogger(__name__)
@@ -69,13 +68,6 @@ def normalize_sumwt(im: Image, sumwt):
             im.data[chan, pol, :, :] /= sumwt[chan, pol]
     return im
 
-def log_cacheinfo(cache):
-    """ Log info about cache
-    
-    """
-    if cache is not None:
-        log.info("log_cacheinfo: final cache statistics = %s" % str(cache.cache_info()))
-
 def predict_2d_base(vis, model, **kwargs):
     """ Predict using convolutional degridding.
 
@@ -89,26 +81,24 @@ def predict_2d_base(vis, model, **kwargs):
     assert type(vis) is CompressedVisibility, "vis is not a CompressedVisibility: %r" % vis
 
     _, _, ny, nx = model.data.shape
-    
-    vmap, gcf, kernel_type, kernelname, kernel, padding, oversampling, support, cellsize, fov, \
-    uvscale, cache = get_ftprocessor_params(vis, model, **kwargs)
 
-    cvis, cindex = compress_visibility(vis, model, **kwargs)
+    spectral_mode, vfrequencymap = get_frequency_map(vis, model, **kwargs)
+    polarisation_mode, vpolarisationmap = get_polarisation_map(vis, model, **kwargs)
+    uvw_mode, shape, padding, vuvwmap = get_uvw_map(vis, model, **kwargs)
+    kernel_name, gcf, vkernellist = get_kernel_list(vis, model, **kwargs)
+
+    cvis, cindex = compress_visibility(vis)
 
     uvgrid = fft((pad_mid(model.data, padding * nx) * gcf).astype(dtype=complex))
     
-    if kernel_type == 'variable':
-        cvis.data['vis'] = variable_kernel_degrid(kernel, cvis.data['vis'].shape, uvgrid, cvis.uvw, uvscale, vmap)
-    else:
-        cvis.data['vis'] = fixed_kernel_degrid(kernel, cvis.data['vis'].shape, uvgrid, cvis.uvw, uvscale, vmap)
+    cvis.data['vis'] = fixed_kernel_degrid(vkernellist, cvis.data['vis'].shape, uvgrid, vuvwmap, vfrequencymap,
+                                           vpolarisationmap)
     
-    dvis = decompress_visibility(cvis, vis, model, cindex=cindex, **kwargs)
+    dvis = decompress_visibility(cvis, vis, cindex=cindex)
 
     # Now we can shift the visibility from the image frame to the original visibility frame
     svis = shift_vis_to_image(dvis, model, tangent=True, inverse=True)
 
-    log_cacheinfo(cache)
-    
     return svis
 
 
@@ -148,51 +138,34 @@ def invert_2d_base(vis, im, dopsf=False, **kwargs):
     """
     assert type(vis) is CompressedVisibility, "vis is not a CompressedVisibility: %r" % vis
 
-    svis = copy.deepcopy(vis)
+    svis = copy_visibility(vis)
     
     # Shift and then compress to cut down on gridding costs
     shvis = shift_vis_to_image(svis, im, tangent=True, inverse=False)
-    svis, _ = compress_visibility(shvis, im, dopsf=dopsf, **kwargs)
+    svis, _ = compress_visibility(shvis, dopsf=dopsf)
     
     nchan, npol, ny, nx = im.data.shape
     
-    vmap, gcf, kernel_type, kernelname, kernel, padding, oversampling, support, cellsize, \
-    fov, uvscale, cache = get_ftprocessor_params(vis, im, **kwargs)
-    
-    # uvw is in metres, v.frequency / c.value converts to wavelengths, the cellsize converts to phase
+    spectral_mode, vfrequencymap = get_frequency_map(vis, im, **kwargs)
+    polarisation_mode, vpolarisationmap = get_polarisation_map(vis, im, **kwargs)
+    uvw_mode, shape, padding, vuvwmap = get_uvw_map(vis, im, **kwargs)
+    kernel_name, gcf, vkernellist = get_kernel_list(vis, im, **kwargs)
+
+   
     # Optionally pad to control aliasing
     imgridpad = numpy.zeros([nchan, npol, padding * ny, padding * nx], dtype='complex')
-    uvw = svis.data['uvw']
-    if kernel_type == 'variable':
-        if dopsf:
-            weights = numpy.ones_like(svis.data['vis'])
-            imgridpad, sumwt = variable_kernel_grid(kernel, imgridpad, uvw, uvscale, weights,
-                                                    svis.data['imaging_weight'], vmap)
-        else:
-            imgridpad, sumwt = variable_kernel_grid(kernel, imgridpad, uvw, uvscale, svis.data['vis'],
-                                                    svis.data['imaging_weight'], vmap)
+    if dopsf:
+        lvis = numpy.ones_like(svis.data['vis'])
     else:
-        if dopsf:
-            weights = numpy.ones_like(svis.data['vis'])
-            if kernelname == 'box':
-                imgridpad, sumwt = box_grid(kernel, imgridpad, uvw, uvscale, weights, svis.data['imaging_weight'])
-            else:
-                imgridpad, sumwt = fixed_kernel_grid(kernel, imgridpad, uvw, uvscale, weights,
-                                                     svis.data['imaging_weight'], vmap)
-        else:
-            if kernelname == 'box':
-                imgridpad, sumwt = box_grid(kernel, imgridpad, uvw, uvscale, svis.data['vis'],
-                                            svis.data['imaging_weight'])
-            else:
-                imgridpad, sumwt = fixed_kernel_grid(kernel, imgridpad, uvw, uvscale, svis.data['vis'],
-                                                     svis.data['imaging_weight'], vmap)
+        lvis = svis.vis
+        
+    imgridpad, sumwt = fixed_kernel_grid(vkernellist, imgridpad, lvis, svis.data['imaging_weight'], vuvwmap,
+                                         vfrequencymap, vpolarisationmap)
     
     imgrid = extract_mid(numpy.real(ifft(imgridpad)) * gcf, npixel=nx)
     
     # Normalise weights for consistency with transform
     sumwt /= float(padding * padding * nx * ny)
-
-    log_cacheinfo(cache)
 
     return create_image_from_array(imgrid, im.wcs), sumwt
 
@@ -292,7 +265,7 @@ def predict_by_image_partitions(vis, model, image_iterator=raster_iter, predict_
     """
     log.debug("predict_by_image_partitions: Predicting by image partitions")
     vis.data['vis'] *= 0.0
-    result = copy.deepcopy(vis)
+    result = copy_visibility(vis)
     for dpatch in image_iterator(model, **kwargs):
         result = predict_function(result, dpatch, **kwargs)
         vis.data['vis'] += result.data['vis']
@@ -322,13 +295,16 @@ def predict_skycomponent_visibility(vis: CompressedVisibility, sc: Skycomponent,
     :param spectral_mode: {mfs|channel} (channel)
     :returns: CompressedVisibility
     """
-#    assert_same_chan_pol(vis, sc)
     assert type(vis) is CompressedVisibility, "vis is not a CompressedVisibility: %r" % vis
 
     l, m, n = skycoord_to_lmn(sc.direction, vis.phasecentre)
     phasor = simulate_point(vis.uvw, l, m)
-    # Need to put correct mapping here
-    vis.vis[:] += sc.flux[0,0] * phasor
+
+    _, ipol = get_polarisation_map(vis)
+    _, ichan = get_frequency_map(vis)
+    
+    coords = phasor, list(ichan), list(ipol)
+    vis.data['vis'] += [sc.flux[ic,ip] * p for p, ic, ip in zip(*coords)]
     
     return vis
 
@@ -345,7 +321,10 @@ def weight_visibility(vis, im, **kwargs):
     """
     assert type(vis) is CompressedVisibility, "vis is not a CompressedVisibility: %r" % vis
 
-    vmap, _, _, _, _, _, _, _, _, _, uvscale, _ = get_ftprocessor_params(vis, im, **kwargs)
+    spectral_mode, vfrequencymap = get_frequency_map(vis, im, **kwargs)
+    polarisation_mode, vpolarisationmap = get_polarisation_map(vis, im, **kwargs)
+    uvw_mode, shape, padding, vuvwmap = get_uvw_map(vis, im, **kwargs)
+
     
     # uvw is in metres, v.frequency / c.value converts to wavelengths, the cellsize converts to phase
     density = None
@@ -353,8 +332,10 @@ def weight_visibility(vis, im, **kwargs):
     
     weighting = get_parameter(kwargs, "weighting", "uniform")
     if weighting == 'uniform':
-        vis.data['imaging_weight'], density, densitygrid = weight_gridding(im.data.shape, vis.data['uvw'], uvscale,
-                                                                           vis.data['weight'], weighting, vmap)
+        vis.data['imaging_weight'], density, densitygrid = weight_gridding(im.data.shape,
+                                                                           vis.data['weight'],
+                                                                           vuvwmap, vfrequencymap, vpolarisationmap,
+                                                                           weighting)
     elif weighting == 'natural':
         vis.data['imaging_weight'] = vis.data['weight']
     else:
@@ -416,7 +397,7 @@ def create_image_from_visibility(vis, **kwargs):
                                                                                            cellsize * 180.0 / numpy.pi))
     if cellsize > criticalcellsize:
         log.info("create_image_from_visibility: Resetting cellsize %f radians to criticalcellsize %f radians" % (
-            cellsize, criticalcellsize))
+            cellsize[1], criticalcellsize[1]))
         cellsize = criticalcellsize
     
     inpol = get_parameter(kwargs, "npol", 1)

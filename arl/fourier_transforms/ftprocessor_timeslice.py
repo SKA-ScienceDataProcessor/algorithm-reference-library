@@ -15,7 +15,7 @@ from arl.fourier_transforms.ftprocessor_base import *
 from arl.image.iterators import *
 from arl.image.operations import copy_image, create_empty_image_like, export_image_to_fits, reproject_image
 from arl.visibility.iterators import *
-from arl.visibility.operations import create_visibility_from_rows
+from arl.visibility.operations import create_compressedvisibility_from_rows
 
 log = logging.getLogger(__name__)
 
@@ -67,7 +67,7 @@ def predict_timeslice_serial(vis, model, **kwargs):
     
     for rows in vis_timeslice_iter(vis, **kwargs):
         
-        visslice = create_visibility_from_rows(vis, rows)
+        visslice = create_compressedvisibility_from_rows(vis, rows)
         
         # Fit and remove best fitting plane for this slice
         visslice, p, q = fit_uvwplane(visslice)
@@ -151,7 +151,7 @@ def predict_timeslice(vis, model, **kwargs):
         with pymp.Parallel(nproc) as p:
             for slice in p.range(0, nslices):
                 rows = rowslices[slice]
-                visslice = create_visibility_from_rows(vis, rows)
+                visslice = create_compressedvisibility_from_rows(vis, rows)
                 visslice = predict_timeslice_single(visslice, model, **kwargs)
                 with p.lock:
                     shared_vis[rows] = visslice.data['vis']
@@ -162,7 +162,7 @@ def predict_timeslice(vis, model, **kwargs):
         log.debug("predict_timeslice: Processing time slices serially")
         # Do each slice in turn
         for rows in vis_timeslice_iter(vis, **kwargs):
-            visslice = create_visibility_from_rows(vis, rows)
+            visslice = create_compressedvisibility_from_rows(vis, rows)
             visslice = predict_timeslice_single(visslice, model, **kwargs)
             vis.data['vis'][rows] += visslice.data['vis']
     
@@ -269,7 +269,7 @@ def invert_timeslice(vis, im, dopsf=False, **kwargs):
         log.debug("invert_timeslice: Processing %d time slices %d-way parallel" % (nslices, nproc))
         with pymp.Parallel(nproc) as p:
             for index in p.range(0, nslices):
-                visslice = create_visibility_from_rows(vis, rowses[index])
+                visslice = create_compressedvisibility_from_rows(vis, rowses[index])
                 workimage, sumwt = invert_timeslice_single(visslice, workimage, dopsf, **kwargs)
                 resultimage.data += workimage.data
                 totalwt += sumwt
@@ -278,7 +278,7 @@ def invert_timeslice(vis, im, dopsf=False, **kwargs):
         # Do each slice in turn
         i = 0
         for rows in vis_timeslice_iter(vis, **kwargs):
-            visslice = create_visibility_from_rows(vis, rows)
+            visslice = create_compressedvisibility_from_rows(vis, rows)
             workimage, sumwt = invert_timeslice_single(visslice, im, dopsf, **kwargs)
             resultimage.data += workimage.data
             totalwt += sumwt

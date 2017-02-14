@@ -298,7 +298,7 @@ def frac_coord(npixel, kernel_oversampling, p):
     :param kernel_oversampling: Fractional values to round to
     :param p: Coordinate in range [-.5,.5[
     """
-    assert numpy.array(p >= -0.5).all() and numpy.array(p < 0.5).all(), "uv overflows grid uv= %s" % str(p)
+    assert numpy.array(p >= -0.5).all() and numpy.array(p < 0.5).all(), "Cellsize is too large: uv overflows grid uv= %s" % str(p)
     x = npixel // 2 + p * npixel
     flx = numpy.floor(x + 0.5 / kernel_oversampling)
     fracx = numpy.around((x - flx) * kernel_oversampling)
@@ -318,34 +318,35 @@ def frac_coords(shape, kernel_oversampling, xycoords):
     return x, xf, y, yf
 
 
-def fixed_kernel_degrid(kernel, vshape, uvgrid, uv, frequency, polarisation, uvscale, vpolmap = lambda pol: pol,
-                        vchanmap = lambda frequency: 0):
+def fixed_kernel_degrid(kernels, vshape, uvgrid, vuvwmap, vfrequencymap, vpolarisationmap):
     """Convolutional degridding with frequency and polarisation independent
 
     Takes into account fractional `uv` coordinate values where the GCF
     is oversampled
 
-    :param kernel: Oversampled convolution kernel
+    :param kernel: list of oversampled convolution kernel
     :param vshape: Shape of visibility
     :param uvgrid:   The uv plane to de-grid from
-    :param uv: fractional uv coordinates in range[-0.5,0.5[
-    :param uvscale: scaling for each channel
+    :param uvw: fractional uvw coordinates in range[-0.5,0.5[
+    :param vuvwmap: function to map uvw to grid fractions
+    :param vfrequencymap: function to map frequency to image channels
+    :param vpolarisationwmap: function to map polarisation to image polarisation
     :returns: Array of visibilities.
     """
-    kernel_oversampling, _, gh, gw = kernel.shape
+    kernels = numpy.conjugate(list(kernels))
+    kernel_oversampling, _, gh, gw = kernels[0].shape
     assert gh % 2 == 0, "Convolution kernel must have even number of pixels"
     assert gw % 2 == 0, "Convolution kernel must have even number of pixels"
     inchan, inpol, ny, nx = uvgrid.shape
-    nvis, vnchan, vnpol = vshape
-    assert vnpol == inpol, "Number of polarizations must be the same"
+    nvis = vshape[0]
     vis = numpy.zeros([nvis], dtype='complex')
     wt  = numpy.zeros([nvis])
-    
-    ichan = vchanmap(frequency)
-    ipol = vpolmap(polarisation)
-    # Calculate grid point and fractional part for scaled u and v
-    y, yf = frac_coord(uvgrid.shape[2], kernel_oversampling, uvscale[1] * uv[..., 1])
-    x, xf = frac_coord(uvgrid.shape[3], kernel_oversampling, uvscale[0] * uv[..., 0])
+
+   # uvw -> fraction of grid ampping
+    # uvw -> fraction of grid mapping
+    y, yf = frac_coord(ny, kernel_oversampling, vuvwmap[:,1])
+    x, xf = frac_coord(nx, kernel_oversampling, vuvwmap[:,0])
+
     # Now calculate slices for the footprint of each sample
     slicey = []
     slicex = []
@@ -353,13 +354,33 @@ def fixed_kernel_degrid(kernel, vshape, uvgrid, uv, frequency, polarisation, uvs
         slicex.append(slice((xx - gw // 2), (xx + (gw + 1) // 2)))
     for yy in y:
         slicey.append(slice((yy - gh // 2), (yy + (gh + 1) // 2)))
-    coords = slicex, xf, slicey, yf
+    
     # Now we can degrid the points and accumulate weight as well
-    vis[...] = [
-        numpy.sum(uvgrid[ichan, ipol, sly, slx] * kernel[yf, xf, :, :])
-        for slx, xf, sly, yf in zip(*coords)
-        ]
-    wt[...] = [numpy.sum(kernel[yf, xf, :, :].real) for x, xf, y, yf in zip(*coords)]
+    if len(kernels) > 1:
+
+        coords = list(vfrequencymap), list(vpolarisationmap), slicex, xf, slicey, yf
+        vis[...] = [
+            numpy.sum(uvgrid[ic, ip, sly, slx] * kernel[yf, xf, :, :])
+            for kernel, ic, ip, slx, xf, sly, yf in zip(kernels, *coords)
+            ]
+
+        wt[...] = [
+            numpy.sum(kernel[yf, xf, :, :].real)
+            for kernel, ic, ip, slx, xf, sly, yf in zip(kernels, *coords)
+            ]
+    else:
+        kernel = kernels[0]
+
+        coords = list(vfrequencymap), list(vpolarisationmap), slicex, xf, slicey, yf
+        vis[...] = [
+            numpy.sum(uvgrid[ic, ip, sly, slx] * kernel[yf, xf, :, :])
+            for ic, ip, slx, xf, sly, yf in zip(*coords)
+            ]
+        wt[...] = [
+            numpy.sum(kernel[yf, xf, :, :].real)
+            for ic, ip, slx, xf, sly, yf in zip(*coords)
+            ]
+
     vis[numpy.where(wt > 0)] = vis[numpy.where(wt > 0)] / wt[numpy.where(wt > 0)]
     vis[numpy.where(wt < 0)] = 0.0
     return numpy.array(vis)
@@ -381,7 +402,7 @@ def gridder(uvgrid, vis, xs, ys, kernel=numpy.ones((1,1)), kernel_ixs=None):
     """
 
     if kernel_ixs is None:
-        kernel_ixs = numpy.zeroes((len(vis),0))
+        kernel_ixs = numpy.zeros((len(vis),0))
     else:
         kernel_ixs = numpy.array(kernel_ixs)
         if len(kernel_ixs.shape) == 1:
@@ -392,134 +413,107 @@ def gridder(uvgrid, vis, xs, ys, kernel=numpy.ones((1,1)), kernel_ixs=None):
         uvgrid[y:y+gh, x:x+gw] += kernel[tuple(kern_ix)] * v
 
 
-def fixed_kernel_grid(kernel, uvgrid, uv, frequency, polarisation, uvscale, vis, visweights,
-                      vpolmap = lambda pol: pol, vchanmap = lambda frequency: 0):
+def fixed_kernel_grid(kernels, uvgrid, vis, visweights, vuvwmap, vfrequencymap,
+                      vpolarisationmap):
     """Grid after convolving with frequency and polarisation independent gcf
 
     Takes into account fractional `uv` coordinate values where the GCF
     is oversampled
 
-    :param kernel: Oversampled convolution kernel
+    :param kernel: List of versampled convolution kernels
     :param uvgrid: Grid to add to
-    :param uv: UVW positions
-    :param uvscale: Scaling for each axis (u,v) for each channel
+    :param uvw: UVW positions
     :param vis: CompressedVisibility values
     :param vis: CompressedVisibility weights
+    :param vuvwmap: map uvw to grid fractions
+    :param vfrequencymap: map frequency to image channels
+    :param vpolarisationwmap: map polarisation to image polarisation
     :returns: uv grid[nchan, npol, ny, nx], sumwt[nchan, npol]
     """
     
-    kernel_oversampling, _, gh, gw = kernel.shape
+    kernels = list(kernels)
+    kernel_oversampling, _, gh, gw = kernels[0].shape
     assert gh % 2 == 0, "Convolution kernel must have even number of pixels"
     assert gw % 2 == 0, "Convolution kernel must have even number of pixels"
     inchan, inpol, ny, nx = uvgrid.shape
-    nvis, vnchan, vnpol = vis.shape
-    assert vnpol == inpol, "Number of polarizations must be the same"
-    wtgrid = numpy.zeros(uvgrid.shape, dtype='float')
+
+    # Construct output grids (in uv space)
     sumwt = numpy.zeros([inchan, inpol])
-    ichan = vchanmap(frequency)
-    ipol = vpolmap(polarisation)
-    y, yf = frac_coord(ny, kernel_oversampling, uvscale[1] * uv[..., 1])
-    x, xf = frac_coord(nx, kernel_oversampling, uvscale[0] * uv[..., 0])
+    
+    # uvw -> fraction of grid mapping
+    # vuvwmap is a list of generators, one per axis so we need to
+    # select a generator and then instantiate it by making it into
+    # a list, and finally use the values. This defers filling out
+    # the arrays until they are needed.
+    y, yf = frac_coord(ny, kernel_oversampling, vuvwmap[:,1])
+    x, xf = frac_coord(nx, kernel_oversampling, vuvwmap[:,0])
+    
+    # Construct all the slices that we will need: trade off memory to
+    # simplify loop
     slicey = []
     slicex = []
     for xx in x:
         slicex.append(slice((xx - gw // 2), (xx + (gw + 1) // 2)))
     for yy in y:
         slicey.append(slice((yy - gh // 2), (yy + (gh + 1) // 2)))
-    coords = slicex, xf, slicey, yf
+        
+    # Now we can loop over all rows
     wts = visweights[...]
     viswt = vis[...] * visweights[...]
-    coords = ichan, ipol, slicex, xf, slicey, yf
-    for v, vwt, ic, ip, slx, xf, sly, yf in zip(viswt, wts, *coords):
-        uvgrid[ic, ip, sly, slx] += kernel[yf, xf, :, :] * v
-        wtgrid[ic, ip, sly, slx] += kernel[yf, xf, :, :].real * vwt
-    sumwt[ichan, ipol] += numpy.sum(wtgrid[ichan, ipol, ...])
-    
+    # There are two cases:row independent and row dependent kernel. We try to make these as
+    # similar as possible
+    if len(kernels) > 1:
+
+        coords = list(vfrequencymap), list(vpolarisationmap), slicex, xf, slicey, yf
+        for v, vwt, kernel, ic, ip, slx, xf, sly, yf in zip(viswt, wts, kernels, *coords):
+            uvgrid[ic, ip, sly, slx] += kernel[yf, xf, :, :] * v
+            sumwt[ic, ip] += numpy.sum(kernel[yf, xf, :, :].real * vwt)
+    else:
+        kernel = kernels[0]
+
+        coords = list(vfrequencymap), list(vpolarisationmap), slicex, xf, slicey, yf
+        for v, vwt, ic, ip, slx, xf, sly, yf in zip(viswt, wts, *coords):
+            uvgrid[ic, ip, sly, slx] += kernel[yf, xf, :, :] * v
+            sumwt[ic, ip] += numpy.sum(kernel[yf, xf, :, :].real * vwt)
+
     return uvgrid, sumwt
 
 
-def box_grid(kernel, uvgrid, uv, frequency, polarisation, uvscale, vis, visweights, vpolmap = lambda pol: pol,
-             vchanmap = lambda chan: chan):
-    """Grid with a box function
-
-    Takes into account fractional `uv` coordinate values where the GCF
-    is oversampled
-
-    :param kernel: Oversampled convolution kernel
-    :param uvgrid: Grid to add to
-    :param uv: UVW positions
-    :param uvscale: Scaling for each axis (u,v) for each channel
-    :param vis: CompressedVisibility values
-    :param vis: CompressedVisibility weights
-    :param chanmap: function to map visibility channels to image channels
-    """
-    
-    inchan, inpol, ny, nx = uvgrid.shape
-    nvis, vnchan, vnpol = vis.shape
-    assert vnpol == inpol, "Number of polarizations must be the same"
-    wtgrid = numpy.zeros(uvgrid.shape, dtype='float')
-    sumwt = numpy.zeros([inchan, inpol])
-    ichan = vchanmap(frequency)
-    ipol = vpolmap(polarisation)
-    y, _ = frac_coord(ny, 1, uvscale[1] * uv[..., 1])
-    x, _ = frac_coord(nx, 1, uvscale[0] * uv[..., 0])
-    coords = frequency, polarisation, x, y
-    wts = visweights[...]
-    viswt = vis[...] * visweights[...]
-    for v, vwt, ic, ip, x, y in zip(viswt, wts, *coords):
-        uvgrid[ic, ip, y, x] += v
-        wtgrid[ic, ip, y, x] += vwt
-    sumwt = numpy.sum(wtgrid, axis=(2,3))
-    
-    return uvgrid, sumwt
-
-
-def weight_gridding(shape, uv, uvscale, visweights, weighting='uniform',
-                    vpolmap = lambda pol: pol, vchanmap = lambda chan: chan):
+def weight_gridding(shape, visweights, vuvwmap, vfrequencymap, vpolarisationmap, weighting='uniform'):
     """Reweight data using one of a number of algorithms
 
     Takes into account fractional `uv` coordinate values where the GCF
     is oversampled
 
     :param shape:
-    :param uv: UVW positions
-    :param uvscale: Scaling for each axis (u,v) for each channel
+    :param uvw: UVW positions
     :param vis: CompressedVisibility values
-    :param visweights: CompressedVisibility weights
-    :param weighting: Weighting algorithm (natural|uniform) (uniform)
-    :param vpolmap = lambda pol: pol, vchanmap: function to map visibility channels to image channels
+    :param vis: CompressedVisibility weights
+    :param vuvwmap: map uvw to grid fractions
+    :param vfrequencymap: map frequency to image channels
+    :param vpolarisationwmap: map polarisation to image polarisation
+    :returns: visweights, density, desnitygrid
     """
-    densitygrid = numpy.zeros(shape)
+    wtgrid = numpy.zeros(shape)
     density = numpy.zeros_like(visweights)
     if weighting == 'uniform':
         log.info("weight_gridding: Performing uniform weighting")
         inchan, inpol, ny, nx = shape
-        nvis, vnchan, vnpol = visweights.shape
-        # Add all visibility points to a float grid
-        for vchan in range(vnchan):
-            ichan = vpolmap = lambda pol: pol, vchanmap(vchan)
-            y, _ = frac_coord(ny, 1, uvscale[1] * uv[..., 1])
-            x, _ = frac_coord(nx, 1, uvscale[0] * uv[..., 0])
-            coords = x, y
-            for pol in range(vnpol):
-                wts = visweights[..., vchan, pol]
-                for wt, x, y, in zip(wts, *coords):
-                    densitygrid[ichan, pol, y, x] += wt
-                # for i in range(visweights[..., chan, pol].shape[0]):
-                #     densitygrid[chan, pol, y[i], x[i]] += wts[i]
-
+        
+        # uvw -> fraction of grid mapping
+        # uvw -> fraction of grid mapping
+        y, yf = frac_coord(ny, 1.0, vuvwmap[:, 1])
+        x, xf = frac_coord(nx, 1.0, vuvwmap[:, 0])
+        wts = visweights[...]
+        coords = list(vfrequencymap), list(vpolarisationmap), x, y
+        for vwt, ic, ip, x, y in zip(wts, *coords):
+            wtgrid[ic, ip, y, x] += vwt
+    
         # Normalise each visibility weight to sum to one in a grid cell
         newvisweights = numpy.zeros_like(visweights)
-        for vchan in range(vnchan):
-            ichan = vpolmap = lambda pol: pol, vchanmap(vchan)
-            coords = frac_coord(shape[3], 1, uvscale[1] * uv[..., 1]), \
-                     frac_coord(shape[2], 1, uvscale[0] * uv[..., 0])
-            for pol in range(vnpol):
-                wts = visweights[..., vchan, pol]
-                for wt, x, y in zip(wts, *coords):
-                    density[..., vchan, pol] += densitygrid[ichan, pol, y, x]
-                    newvisweights[..., vchan, pol][densitygrid[ichan, pol, y, x] > 0.0] = \
-                        wt / densitygrid[ichan, pol, y, x][densitygrid[ichan, pol, y, x] > 0.0]
-        return newvisweights, density, densitygrid
+        for wt, ic, ip, x, y in zip(wts, *coords):
+            density[...] += wtgrid[ic, ip, y, x]
+            newvisweights[...] = wt / wtgrid[ic, ip, y, x][wtgrid[ic, ip, y, x] > 0.0]
+        return newvisweights, density, wtgrid
     else:
-        return visweights, density, densitygrid
+        return visweights, density, wtgrid

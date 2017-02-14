@@ -10,8 +10,6 @@ import copy
 
 from arl.data.parameters import get_parameter
 from arl.data.data_models import *
-from arl.fourier_transforms.convolutional_gridding import frac_coord
-from arl.fourier_transforms.ftprocessor_params import get_ftprocessor_params
 from arl.visibility.operations import vis_summary
 from arl.util.array_functions import average_chunks2
 
@@ -39,6 +37,7 @@ def compress_visibility(vis, **kwargs):
     assert type(vis) is CompressedVisibility, "vis is not a CompressedVisibility: %r" % vis
 
     cindex = None
+    # Default is no-op
     
     compression_factor = get_parameter(kwargs, "compression_factor", 0.0)
     if compression_factor > 0.0:
@@ -90,7 +89,8 @@ def decompress_visibility(vis, template_vis, cindex=None, **kwargs):
     assert type(template_vis) is CompressedVisibility, "template_vis is not a CompressedVisibility: %r" % vis
 
     if cindex is None:
-        raise RuntimeError("decompression requires an index from the compression step")
+        log.warning("decompress_visibility: Decompression requires an index from the compression step - continuing")
+        return vis
     
     log.info('decompress_visibility: Created new Visibility for decompressed data')
     log.info('decompress_visibility: Decompressing %d visibility rows (%d channels) into %d '
@@ -205,7 +205,7 @@ def compress_tbgrid_vis(vis, time, frequency, polarisation, antenna1, antenna2, 
     for a2 in ua2:
         for a1 in ua1:
             if (a1 < a2) & (allpwtsgrid[a2, a1, ...].any() > 0.0):
-                uvdist = numpy.max(numpy.sqrt(uvwgrid[a2, a1, :, 0] ** 2 + uvwgrid[a2, a1, :, 1] ** 2))
+                uvdist = numpy.max(numpy.sqrt(uvwgrid[a2, a1, :, :, 0] ** 2 + uvwgrid[a2, a1, :, :, 1] ** 2))
                 if uvdist > 0.0:
                     time_average[a2, a1]      = min(max_compression,
                                                     max(1, int(round((compression_factor * uvmax / uvdist)))))

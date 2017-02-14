@@ -411,6 +411,10 @@ class CompressedVisibility:
         return self.data['time']
 
     @property
+    def integration_time(self):
+        return self.data['integration_time']
+
+    @property
     def frequency(self):
         return self.data['frequency']
 
@@ -419,9 +423,9 @@ class CompressedVisibility:
         return self.data['channel_width']
 
     @property
-    def integration_time(self):
-        return self.data['integration_time']
-    
+    def polarisation(self):
+        return self.data['polarisation']
+
     @property
     def antenna1(self):
         return self.data['antenna1']

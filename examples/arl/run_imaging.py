@@ -32,7 +32,7 @@ from astropy import units as u
 from astropy import constants as const
 
 from arl.image.deconvolution import deconvolve_cube
-from arl.visibility.operations import create_visibility, combine_visibility, aq_visibility
+from arl.visibility.operations import create_compressedvisibility, combine_visibility, aq_visibility
 from arl.image.operations import show_image, export_image_to_fits
 from arl.util.testing_support import create_named_configuration, create_test_image
 from arl.fourier_transforms.ftprocessor import *
@@ -54,7 +54,7 @@ times = numpy.arange(-numpy.pi / 2.0, +numpy.pi / 2.0, 0.05)
 frequency = numpy.array([1e8])
 reffrequency = numpy.max(frequency)
 phasecentre = SkyCoord(0.0 * u.rad, u.rad * numpy.pi / 4, frame='icrs', equinox=2000.0)
-vis = create_visibility(vlaa, times, frequency, phasecentre=phasecentre, weight=1.0)
+vis = create_compressedvisibility(vlaa, times, frequency, phasecentre=phasecentre, weight=1.0)
 
 # Plot the synthesized uv coverage, including for MFS
 if doshow:
@@ -113,7 +113,7 @@ export_image_to_fits(cleanimage, 'run_imaging_cleanimage.fits')
 export_image_to_fits(residual, 'run_imaging_residual.fits')
 
 # Predict the visibility of the model
-vismodel = create_visibility(vlaa, times, frequency, phasecentre=phasecentre, weight=1.0)
+vismodel = create_compressedvisibility(vlaa, times, frequency, phasecentre=phasecentre, weight=1.0)
 vismodel = predict_2d(vismodel, cleanimage, params=params)
 visres = combine_visibility(vis, vismodel, 1.0, -1.0)
 

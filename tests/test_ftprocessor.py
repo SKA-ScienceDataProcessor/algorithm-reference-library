@@ -19,7 +19,6 @@ log = logging.getLogger(__name__)
 
 
 class TestFTProcessor(unittest.TestCase):
-    
     def _checkdirty(self, vis, name='test_invert_2d_dirty', fluxthreshold=1.0):
         # Make the dirty image
         dirty = create_empty_image_like(self.model)
@@ -47,27 +46,25 @@ class TestFTProcessor(unittest.TestCase):
             assert abs(comp.direction.dec.deg - ocomp.direction.dec.deg) / cellsize < \
                    positionthreshold, "Component differs in dec %.3f pixels" % \
                                       (comp.direction.dec.deg - ocomp.direction.dec.deg) / cellsize
-            
+    
     def setUp(self):
         self.dir = './test_results'
         os.makedirs(self.dir, exist_ok=True)
-
+    
     def actualSetUp(self, time=None, frequency=None):
         self.params = {'npixel': 256,
                        'npol': 1,
-                       'image_nchan':1,
-                       'cellsize': 0.001,
-                       'channelwidth': 5e6,
+                       'image_nchan': 1,
                        'reffrequency': 1e8,
                        'image_partitions': 8,
                        'padding': 2,
                        'oversampling': 8,
                        'timeslice': 'auto',
-                       'wstep': 2.0}
+                       'wstep': 1.0}
         
         self.lowcore = create_named_configuration('LOWBD2-CORE')
         self.times = (numpy.pi / (12.0)) * numpy.linspace(-3.0, 3.0, 7)
-
+        
         if time is not None:
             self.times = time
         log.info("Times are %s" % (self.times))
@@ -76,7 +73,7 @@ class TestFTProcessor(unittest.TestCase):
             self.frequency = numpy.array([1e8])
         else:
             self.frequency = frequency
-
+        
         self.phasecentre = SkyCoord(ra=+180.0 * u.deg, dec=-60.0 * u.deg, frame='icrs', equinox=2000.0)
         self.componentvis = create_compressedvisibility(self.lowcore, self.times, self.frequency,
                                                         phasecentre=self.phasecentre, weight=1.0, npol=1)
@@ -85,8 +82,8 @@ class TestFTProcessor(unittest.TestCase):
         
         # Create model
         self.model = create_image_from_visibility(self.componentvis, npixel=256, cellsize=0.001,
-                                                     image_nchan=1)
-
+                                                  image_nchan=1)
+        
         # Fill the visibility with exactly computed point sources. These are chosen to lie
         # on grid points.
         spacing_pixels = 32
@@ -112,15 +109,15 @@ class TestFTProcessor(unittest.TestCase):
                     comp = create_skycomponent(flux=flux, frequency=[numpy.average(self.frequency)], direction=sc)
                     self.components.append(comp)
                     insert_skycomponent(self.model, comp)
-       
+        
         # Predict the visibility from the components exactly. We always do this for each spectral channel
         self.componentvis.data['vis'] *= 0.0
         for comp in self.components:
             predict_skycomponent_visibility(self.componentvis, comp)
-
+        
         # Calculate the model convolved with a Gaussian.
         cmodel = create_image_from_array(convolve(self.model.data[0, 0, :, :], Gaussian2DKernel(1.0),
-                                                       normalize_kernel=True), self.model.wcs)
+                                                  normalize_kernel=True), self.model.wcs)
         
         export_image_to_fits(self.model, '%s/test_model.fits' % self.dir)
         export_image_to_fits(cmodel, '%s/test_cmodel.fits' % self.dir)
@@ -132,31 +129,36 @@ class TestFTProcessor(unittest.TestCase):
         Good check on the grid correction in the image->vis direction"""
         # Set all w to zero
         self.actualSetUp()
-        self.componentvis = create_compressedvisibility(self.lowcore, self.times, self.frequency, phasecentre=self.phasecentre,
-                                              weight=1.0, npol=1)
+        self.componentvis = create_compressedvisibility(self.lowcore, self.times, self.frequency,
+                                                        phasecentre=self.phasecentre,
+                                                        weight=1.0, npol=1)
         self.componentvis.data['uvw'][:, 2] = 0.0
         # Predict the visibility using direct evaluation
         for comp in self.components:
             predict_skycomponent_visibility(self.componentvis, comp)
         
-        self.modelvis = create_compressedvisibility(self.lowcore, self.times, self.frequency, phasecentre=self.phasecentre,
-                                          weight=1.0, npol=1)
+        self.modelvis = create_compressedvisibility(self.lowcore, self.times, self.frequency,
+                                                    phasecentre=self.phasecentre,
+                                                    weight=1.0, npol=1)
         self.modelvis.data['uvw'][:, 2] = 0.0
         predict_2d(self.modelvis, self.model, **self.params)
-        self.residualvis = create_compressedvisibility(self.lowcore, self.times, self.frequency, phasecentre=self.phasecentre,
-                                             weight=1.0, npol=1)
+        self.residualvis = create_compressedvisibility(self.lowcore, self.times, self.frequency,
+                                                       phasecentre=self.phasecentre,
+                                                       weight=1.0, npol=1)
         self.residualvis.data['uvw'][:, 2] = 0.0
         self.residualvis.data['vis'] = self.modelvis.data['vis'] - self.componentvis.data['vis']
         
         self._checkdirty(self.residualvis, 'test_predict_2d_residual', fluxthreshold=10.0)
     
     def _predict_base(self, predict, fluxthreshold=10.0):
-        self.modelvis = create_compressedvisibility(self.lowcore, self.times, self.frequency, phasecentre=self.phasecentre,
-                                          weight=1.0, npol=1)
+        self.modelvis = create_compressedvisibility(self.lowcore, self.times, self.frequency,
+                                                    phasecentre=self.phasecentre,
+                                                    weight=1.0, npol=1)
         self.modelvis.data['vis'] *= 0.0
         predict(self.modelvis, self.model, **self.params)
-        self.residualvis = create_compressedvisibility(self.lowcore, self.times, self.frequency, phasecentre=self.phasecentre,
-                                             weight=1.0, npol=1)
+        self.residualvis = create_compressedvisibility(self.lowcore, self.times, self.frequency,
+                                                       phasecentre=self.phasecentre,
+                                                       weight=1.0, npol=1)
         self.residualvis.data['uvw'][:, 2] = 0.0
         self.residualvis.data['vis'] = self.modelvis.data['vis'] - self.componentvis.data['vis']
         self._checkdirty(self.residualvis, 'test_%s_residual' % predict.__name__, fluxthreshold=fluxthreshold)
@@ -171,20 +173,18 @@ class TestFTProcessor(unittest.TestCase):
         self.params['nprocessor'] = 1
         self.params['usereproject'] = False
         self._predict_base(predict_timeslice, fluxthreshold=20.0)
-        
+    
     def test_predict_wprojection(self):
         self.actualSetUp()
         self.params = {'npixel': 256,
                        'npol': 1,
                        'cellsize': 0.001,
-                       'channelwidth': 5e7,
-                       'reffrequency': 1e8,
                        'padding': 2,
-                       'oversampling': 4,
+                       'oversampling': 8,
                        'wstep': 1.0}
         
         self._predict_base(predict_wprojection, fluxthreshold=10.0)
-
+    
     def test_invert_2d(self):
         """Test if the 2D invert works with w set to zero
 
@@ -193,8 +193,8 @@ class TestFTProcessor(unittest.TestCase):
         """
         # Set all w to zero
         self.actualSetUp()
-        self.componentvis = create_compressedvisibility(self.lowcore, self.times, self.frequency, phasecentre=self.phasecentre,
-                                              weight=1.0, npol=1)
+        self.componentvis = create_compressedvisibility(self.lowcore, self.times, self.frequency,
+                                                        phasecentre=self.phasecentre, weight=1.0, npol=1)
         self.componentvis.data['uvw'][:, 2] = 0.0
         self.componentvis.data['vis'] *= 0.0
         # Predict the visibility using direct evaluation
@@ -226,31 +226,29 @@ class TestFTProcessor(unittest.TestCase):
     def test_invert_timeslice(self):
         self.actualSetUp()
         self.params['usereproject'] = False
-        self._invert_base(invert_timeslice,  positionthreshold=8.0)
+        self._invert_base(invert_timeslice, positionthreshold=8.0)
     
     def test_invert_wprojection(self):
         self.actualSetUp()
         self.params = {'npixel': 256,
                        'npol': 1,
                        'cellsize': 0.001,
-                       'channelwidth': 5e7,
-                       'reffrequency': 1e8,
                        'padding': 2,
                        'oversampling': 4,
-                       'wstep': 1.0}
-
+                       'wstep': 10.0}
+        
         self._invert_base(invert_wprojection, positionthreshold=1.0)
-
+    
     def test_invert_by_image_partitions_with_compression(self):
         time = (numpy.pi / (12.0 * 3600.0)) * numpy.linspace(0.0, 30.0, 11)
         self.actualSetUp(time=time)
-        self.params['compression_factor']=1.0
+        self.params['compression_factor'] = 1.0
         self._invert_base(invert_by_image_partitions, positionthreshold=1.0)
-
+    
     def test_predict_by_image_partitions_with_compression(self):
         time = (numpy.pi / (12.0 * 3600.0)) * numpy.linspace(0.0, 30.0, 11)
         self.actualSetUp(time=time)
-        self.params['compression_factor']=1.0
+        self.params['compression_factor'] = 1.0
         self._predict_base(predict_by_image_partitions, fluxthreshold=10.0)
 
 
