@@ -12,7 +12,7 @@ import logging
 log = logging.getLogger(__name__)
 
 
-class vis_timeslice_iter():
+def vis_timeslice_iter(vis, **kwargs):
     """ Time slice iterator
     
     If timeslice='auto' then timeslice is taken to be the difference between the first two
@@ -22,40 +22,37 @@ class vis_timeslice_iter():
     :returns: Boolean array with selected rows=True
         
     """
-    def __init__(self, vis, **kwargs):
+    uniquetimes = numpy.unique(vis.time)
+    timeslice = get_parameter(kwargs, "timeslice", 'auto')
+    if timeslice == 'auto':
+        log.info('vis_timeslice_iter: Found %d unique times' % len(uniquetimes))
+        if len(uniquetimes) > 1:
+            timeslice = (uniquetimes[1] - uniquetimes[0])
+            log.debug('vis_timeslice_auto: Guessing time interval to be %.2f s' % timeslice)
+        else:
+            # Doesn't matter what we set it to.
+            timeslice = vis.integration_time[0]
+    boxes = timeslice * numpy.round(uniquetimes / timeslice).astype('int')
         
-        """Initialise the iterator
-        
-        """
-        self.vis = vis
-        self.uniquetimes = numpy.unique(vis.time)
-        self.timeslice = get_parameter(kwargs, "timeslice", 'auto')
-        if self.timeslice == 'auto':
-            log.info('vis_timeslice_iter: Found %d unique times' % len(self.uniquetimes))
-            if len(self.uniquetimes) > 1:
-                self.timeslice = (self.uniquetimes[1] - self.uniquetimes[0])
-                log.debug('vis_timeslice_auto: Guessing time interval to be %.2f s' % self.timeslice)
-            else:
-                # Doesn't matter what we set it to.
-                self.timeslice = vis.integration_time[0]
-            
-        self.cursor = 0
+    for box in boxes:
+        rows = numpy.abs(vis.time - box) < 0.5 * timeslice
+        yield rows
 
-    def __iter__(self):
-        """ Return the iterator itself
-        """
-        return self
 
-    def __next__(self):
+def vis_wslice_iter(vis, wslice, **kwargs):
+    """ W slice iterator
 
-        nrows = 0
-        while (nrows == 0) & (self.cursor < len(self.uniquetimes)):
-            self.timecursor = self.uniquetimes[self.cursor]
-            rows = numpy.abs(self.vis.time - self.timecursor) < 0.001
-            nrows = numpy.sum(rows)
-            self.cursor += 1
-            
-        if nrows == 0:
-            raise StopIteration
+    :param wslice: wslice (wavelengths) (must be specified)
+    :returns: Boolean array with selected rows=True
 
-        return rows
+    """
+    assert wslice is not None, "wslice must be specified"
+    wmaxabs = (numpy.max(numpy.abs(vis.w)))
+    nboxes = 1 + 2 * numpy.round(wmaxabs / wslice).astype('int')
+    boxes = - wmaxabs + wslice * numpy.arange(nboxes)
+    
+    for box in boxes:
+        rows = numpy.abs(vis.w - box) < 0.5 * wslice
+        if numpy.sum(rows) > 0:
+            yield rows
+

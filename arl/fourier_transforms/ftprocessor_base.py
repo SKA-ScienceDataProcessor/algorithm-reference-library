@@ -17,6 +17,7 @@ from arl.fourier_transforms.fft_support import fft, ifft, pad_mid, extract_mid
 from arl.fourier_transforms.ftprocessor_params import get_frequency_map, \
     get_polarisation_map, get_uvw_map, get_kernel_list
 from arl.image.iterators import *
+from arl.image.operations import copy_image
 from arl.util.coordinate_support import simulate_point, skycoord_to_lmn
 from arl.visibility.iterators import *
 from arl.visibility.operations import phaserotate_visibility, copy_visibility
@@ -423,6 +424,26 @@ def create_image_from_visibility(vis, **kwargs):
     return create_image_from_array(numpy.zeros(shape), wcs=w)
 
 
+def create_w_term_like(im, w=None, **kwargs):
+    """Create an image with a w term phase term in it
+
+    :param im: template image
+    :param w: w value to evaluate (default is median abs)
+    :returns: Image
+    """
+    
+    fim =  copy_image(im)
+    cellsize = abs(fim.wcs.wcs.cdelt[0]) * numpy.pi / 180.0
+    _, _, _, npixel = fim.data.shape
+    fim.data = w_beam(npixel, npixel * cellsize, w=w)
+    
+    fresnel = w * (0.5 * npixel * cellsize) ** 2
+    log.info('create_w_term_image: Fresnel number for median w and this field of view and sampling = '
+             '%.2f' % (fresnel))
+    
+    return fim
+
+
 def create_w_term_image(vis, w=None, **kwargs):
     """Create an image with a w term phase term in it
 
@@ -434,7 +455,7 @@ def create_w_term_image(vis, w=None, **kwargs):
         w = numpy.median(numpy.abs(vis.data['uvw'][:, 2]))
         log.info('create_w_term_image: Creating w term image for median w %f' % w)
     
-    im = create_image_from_blockvisibility(vis, **kwargs)
+    im = create_image_from_visibility(vis, **kwargs)
     cellsize = abs(im.wcs.wcs.cdelt[0]) * numpy.pi / 180.0
     _, _, _, npixel = im.data.shape
     im.data = w_beam(npixel, npixel * cellsize, w=w)

@@ -9,6 +9,7 @@ from astropy.convolution import Gaussian2DKernel, convolve
 
 from arl.fourier_transforms.ftprocessor import *
 from arl.fourier_transforms.ftprocessor_timeslice import *
+from arl.fourier_transforms.ftprocessor_wslice import *
 from arl.image.operations import export_image_to_fits, create_empty_image_like
 from arl.skymodel.operations import create_skycomponent, find_skycomponents, find_nearest_component, \
     insert_skycomponent
@@ -60,7 +61,8 @@ class TestFTProcessor(unittest.TestCase):
                        'padding': 2,
                        'oversampling': 8,
                        'timeslice': 'auto',
-                       'wstep': 1.0}
+                       'wstep': 10.0,
+                       'wslice': 10.0}
         
         self.lowcore = create_named_configuration('LOWBD2-CORE')
         self.times = (numpy.pi / (12.0)) * numpy.linspace(-3.0, 3.0, 7)
@@ -166,14 +168,18 @@ class TestFTProcessor(unittest.TestCase):
     def test_predict_by_image_partitions(self):
         self.actualSetUp()
         self._predict_base(predict_by_image_partitions, fluxthreshold=1.0)
-    
+
     def test_predict_timeslice(self):
         # This works very poorly because of the poor interpolation accuracy for point sources
         self.actualSetUp()
         self.params['nprocessor'] = 1
         self.params['usereproject'] = False
         self._predict_base(predict_timeslice, fluxthreshold=20.0)
-    
+
+    def test_predict_wslice(self):
+        self.actualSetUp()
+        self._predict_base(predict_wslice, fluxthreshold=20.0)
+
     def test_predict_wprojection(self):
         self.actualSetUp()
         self.params = {'npixel': 256,
@@ -181,7 +187,7 @@ class TestFTProcessor(unittest.TestCase):
                        'cellsize': 0.001,
                        'padding': 2,
                        'oversampling': 8,
-                       'wstep': 1.0}
+                       'wstep': 10.0}
         
         self._predict_base(predict_wprojection, fluxthreshold=10.0)
     
@@ -222,12 +228,16 @@ class TestFTProcessor(unittest.TestCase):
         self.actualSetUp()
         self.params['usereproject'] = False
         self._invert_base(invert_by_image_partitions, positionthreshold=1.0)
-    
+
+    def test_invert_wslice(self):
+        self.actualSetUp()
+        self._invert_base(invert_wslice, positionthreshold=8.0)
+
     def test_invert_timeslice(self):
         self.actualSetUp()
         self.params['usereproject'] = False
         self._invert_base(invert_timeslice, positionthreshold=8.0)
-    
+
     def test_invert_wprojection(self):
         self.actualSetUp()
         self.params = {'npixel': 256,

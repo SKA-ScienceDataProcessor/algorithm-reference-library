@@ -10,6 +10,7 @@ from astropy.constants import c
 from arl.data.data_models import *
 from arl.fourier_transforms.convolutional_gridding import anti_aliasing_calculate, w_kernel
 from arl.image.iterators import *
+from arl.data.parameters import *
 
 log = logging.getLogger(__name__)
 
@@ -68,7 +69,7 @@ def get_uvw_map(vis, im, **kwargs):
     uvwscale[0:2] = im.wcs.wcs.cdelt[0:2] * numpy.pi / 180.0
     assert uvwscale[0] != 0.0, "Error in uv scaling"
     fov = padding * nx * numpy.abs(uvwscale[0])
-    log.info("get_ftprocessor_params: effective uv cellsize is %.1f wavelengths" % (1.0 / fov))
+    log.info("get_uvw_map: effective uv cellsize is %.1f wavelengths" % (1.0 / fov))
     
     vuvwmap = uvwscale * vis.uvw
     uvw_mode = "2d"
@@ -141,25 +142,25 @@ def get_kernel_list(vis, im, **kwargs):
     if kernelname == 'wprojection':
         
         # wprojection needs a lot of commentary!
-        log.info("get_ftprocessor_params: Using wprojection kernel")
+        log.info("get_kernel_list: Using wprojection kernel")
         wmax = numpy.max(numpy.abs(vis.w))
         assert wmax > 0, "Maximum w must be > 0.0"
         
         # The field of view must be as padded!
         fov = cellsize * npixel * padding
-        r_f = (fov / 2) ** 2 / cellsize
-        log.info("get_ftprocessor_params: Fresnel number = %f" % (r_f))
+        r_f = (fov / 2) ** 2 / abs(cellsize)
+        log.info("get_kernel_list: Fresnel number = %f" % (r_f))
         delA = get_parameter(kwargs, 'wloss', 0.02)
         
         # Following equation is from Cornwell, Humphreys, and Voronkov (2012) (equation 24)
         recommended_wstep = numpy.sqrt(2.0 * delA) / (numpy.pi * fov ** 2)
-        log.info("get_ftprocessor_params: Recommended wstep = %f" % (recommended_wstep))
+        log.info("get_kernel_list: Recommended wstep = %f" % (recommended_wstep))
         wstep = get_parameter(kwargs, "wstep", recommended_wstep)
-        log.info("get_ftprocessor_params: Using w projection with wstep = %f" % (wstep))
+        log.info("get_kernel_list: Using w projection with wstep = %f" % (wstep))
         
         # Now calculate the maximum support for the w kernel
         npixel_kernel = get_parameter(kwargs, "kernelwidth", (int(round(numpy.sin(0.5 * fov) * npixel)) // 2))
-        log.info("get_ftprocessor_params: Maximum w kernel full width = %d pixels" % (npixel_kernel))
+        log.info("get_kernel_list: Maximum w kernel full width = %d pixels" % (npixel_kernel))
         kernel_list = w_kernel_list(vis, (npixel, npixel), fov, wstep=wstep,
                                     npixel_kernel=npixel_kernel, oversampling=oversampling)
     else:
