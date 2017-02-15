@@ -5,12 +5,10 @@ Functions that aid fourier transform processing. These are built on top of the c
 functions in arl.fourier_transforms.
 """
 
-from astropy.constants import c
-
 from arl.data.data_models import *
+from arl.data.parameters import *
 from arl.fourier_transforms.convolutional_gridding import anti_aliasing_calculate, w_kernel
 from arl.image.iterators import *
-from arl.data.parameters import *
 
 log = logging.getLogger(__name__)
 
@@ -99,9 +97,7 @@ def w_kernel_list(vis, shape, fov, oversampling=4, wstep=100.0, npixel_kernel=16
     :param shape: tuple with 2D shape of grid
     :param fov: Field of view in radians
     :param oversampling: Oversampling factor
-    :param support: Support of kernel
     :param wstep: Step in w between cached functions
-    :param cache_size: Size of cache in items
     :returns: Function to look up gridding kernel as function of row, and cache
     """
     wmax = numpy.max(numpy.abs(vis.w))

@@ -7,12 +7,12 @@ import unittest
 from arl.util.testing_support import create_named_configuration, run_unittests
 from arl.visibility.operations import create_visibility
 from arl.fourier_transforms.ftprocessor_base import create_image_from_visibility
-from arl.visibility.compress import *
+from arl.visibility.coalesce import *
 
 log = logging.getLogger(__name__)
 
 
-class TestCompress(unittest.TestCase):
+class TestCoalesce(unittest.TestCase):
 
     def setUp(self):
     
@@ -25,13 +25,13 @@ class TestCompress(unittest.TestCase):
         # Fill in the vis values so each can be uniquely identified
         self.vis.data['vis'] = range(self.vis.nvis)
  
-    def test_compress_decompress_tbgrid_vis(self):
-        cvis, cindex = compress_visibility(self.vis, compression_factor=1.0)
-        dvis = decompress_visibility(cvis, self.vis, cindex=cindex)
+    def test_coalesce_decoalesce_tbgrid_vis(self):
+        cvis, cindex = coalesce_visibility(self.vis, coalescence_factor=1.0)
+        dvis = decoalesce_visibility(cvis, self.vis, cindex=cindex)
         assert dvis.nvis == self.vis.nvis
 
-    def test_compress_decompress_tbgrid_vis_null(self):
-        cvis, cindex = compress_visibility(self.vis, compression_factor=0.0)
+    def test_coalesce_decoalesce_tbgrid_vis_null(self):
+        cvis, cindex = coalesce_visibility(self.vis, coalescence_factor=0.0)
         assert cindex is None
 if __name__ == '__main__':
     run_unittests()

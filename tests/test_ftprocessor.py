@@ -59,7 +59,7 @@ class TestFTProcessor(unittest.TestCase):
                        'reffrequency': 1e8,
                        'image_partitions': 8,
                        'padding': 2,
-                       'oversampling': 8,
+                       'oversampling': 4,
                        'timeslice': 'auto',
                        'wstep': 10.0,
                        'wslice': 10.0}
@@ -91,7 +91,8 @@ class TestFTProcessor(unittest.TestCase):
         spacing_pixels = 32
         log.info('Spacing in pixels = %s' % spacing_pixels)
         
-        centers = [-2.5, -1.5, -0.5, 0.5, 1.5, 2.5]
+        centers = [-2.5, -0.5, 0.5, 2.5]
+        
         
         rpix = self.model.wcs.wcs.crpix - 1
         self.components = []
@@ -178,6 +179,13 @@ class TestFTProcessor(unittest.TestCase):
 
     def test_predict_wslice(self):
         self.actualSetUp()
+        self.params = {'npixel': 256,
+                       'npol': 1,
+                       'cellsize': 0.001,
+                       'padding': 2,
+                       'oversampling': 4,
+                       'wstep': 10.0,
+                       'wslice': 10.0}
         self._predict_base(predict_wslice, fluxthreshold=20.0)
 
     def test_predict_wprojection(self):
@@ -186,7 +194,7 @@ class TestFTProcessor(unittest.TestCase):
                        'npol': 1,
                        'cellsize': 0.001,
                        'padding': 2,
-                       'oversampling': 8,
+                       'oversampling': 4,
                        'wstep': 10.0}
         
         self._predict_base(predict_wprojection, fluxthreshold=10.0)
@@ -231,6 +239,14 @@ class TestFTProcessor(unittest.TestCase):
 
     def test_invert_wslice(self):
         self.actualSetUp()
+        self.params = {'npixel': 256,
+                       'npol': 1,
+                       'cellsize': 0.001,
+                       'padding': 2,
+                       'oversampling': 4,
+                       'wslice': 1.0,
+                       'imaginary': True}
+
         self._invert_base(invert_wslice, positionthreshold=8.0)
 
     def test_invert_timeslice(self):
@@ -249,16 +265,16 @@ class TestFTProcessor(unittest.TestCase):
         
         self._invert_base(invert_wprojection, positionthreshold=1.0)
     
-    def test_invert_by_image_partitions_with_compression(self):
+    def test_invert_by_image_partitions_with_coalescence(self):
         time = (numpy.pi / (12.0 * 3600.0)) * numpy.linspace(0.0, 30.0, 11)
         self.actualSetUp(time=time)
-        self.params['compression_factor'] = 1.0
+        self.params['coalesceion_factor'] = 1.0
         self._invert_base(invert_by_image_partitions, positionthreshold=1.0)
     
-    def test_predict_by_image_partitions_with_compression(self):
+    def test_predict_by_image_partitions_with_coalescence(self):
         time = (numpy.pi / (12.0 * 3600.0)) * numpy.linspace(0.0, 30.0, 11)
         self.actualSetUp(time=time)
-        self.params['compression_factor'] = 1.0
+        self.params['coalesceion_factor'] = 1.0
         self._predict_base(predict_by_image_partitions, fluxthreshold=10.0)
 
 

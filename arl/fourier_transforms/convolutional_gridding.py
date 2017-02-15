@@ -11,9 +11,7 @@ from __future__ import division
 import logging
 
 import scipy.special
-from astropy.constants import c
 
-from arl.data.parameters import get_parameter
 from arl.fourier_transforms.fft_support import *
 
 # from arl.core.c import gridder
@@ -184,7 +182,7 @@ def grdsf(nu):
     return grdsf, (1 - nu ** 2) * grdsf
 
 
-def correct_finite_oversampling(nu, oversampling=8):
+def correct_finite_oversampling(nu: numpy.ndarray, oversampling=8):
     """Correct for the loss incurred by finite oversampling
     
     This is just a correction for a boxcar of width 1/oversampling. For oversampling=8, it's about 0.65% which is
@@ -215,29 +213,8 @@ def w_beam(npixel, field_of_view, w):
     ph[n2 < 1.0] = w * (1 - numpy.sqrt(1.0 - r2[n2 < 1.0]))
     cp = numpy.zeros_like(n2, dtype='complex')
     cp[n2 < 1.0] = numpy.exp(-2j * numpy.pi * ph[n2 < 1.0])
+    cp[npixel//2, npixel//2] = 1.0+0j
     return cp
-
-
-def kernel_coordinates(npixel, field_of_view, dl=0, dm=0, transform_matrix=None):
-    """ Returns (l,m) coordinates for generation of kernels in a far-field of the given size.
-
-    If coordinate transformations are passed, they must be inverse to
-    the transformations applied to the visibilities using
-    visibility_shift/uvw_transform.
-
-    :param field_of_view: In radians
-    :param npixel: Desired far-field size
-    :param dl: Pattern horizontal shift (see visibility_shift)
-    :param dm: Pattern vertical shift (see visibility_shift)
-    :param transformmatrix: Pattern transformation matrix (see uvw_transform)
-    :returns: Pair of (m,l) coordinates
-    """
-    
-    m, l = coordinates2(npixel) * field_of_view
-    if transform_matrix is not None:
-        l, m = transform_matrix[0, 0] * l + transform_matrix[1, 0] * m, transform_matrix[0, 1] * l \
-               + transform_matrix[1, 1] * m
-    return m + dm, l + dl
 
 
 def kernel_oversample(ff, npixel, kernel_oversampling, kernelwidth):
@@ -324,16 +301,15 @@ def fixed_kernel_degrid(kernels, vshape, uvgrid, vuvwmap, vfrequencymap, vpolari
     Takes into account fractional `uv` coordinate values where the GCF
     is oversampled
 
-    :param kernel: list of oversampled convolution kernel
+    :param kernels: list of oversampled convolution kernel
     :param vshape: Shape of visibility
     :param uvgrid:   The uv plane to de-grid from
-    :param uvw: fractional uvw coordinates in range[-0.5,0.5[
     :param vuvwmap: function to map uvw to grid fractions
     :param vfrequencymap: function to map frequency to image channels
-    :param vpolarisationwmap: function to map polarisation to image polarisation
+    :param vpolarisationmap: function to map polarisation to image polarisation
     :returns: Array of visibilities.
     """
-    kernels = numpy.conjugate(list(kernels))
+    kernels = list(kernels)
     kernel_oversampling, _, gh, gw = kernels[0].shape
     assert gh % 2 == 0, "Convolution kernel must have even number of pixels"
     assert gw % 2 == 0, "Convolution kernel must have even number of pixels"
@@ -359,7 +335,8 @@ def fixed_kernel_degrid(kernels, vshape, uvgrid, vuvwmap, vfrequencymap, vpolari
 
         coords = list(vfrequencymap), list(vpolarisationmap), slicex, xf, slicey, yf
         vis[...] = [
-            numpy.sum(uvgrid[ic, ip, sly, slx] * kernel[yf, xf, :, :])
+            numpy.sum(uvgrid[ic, ip, sly, slx] *
+                      numpy.conjugate(kernel[yf, xf, :, :]))
             for kernel, ic, ip, slx, xf, sly, yf in zip(kernels, *coords)
             ]
 
@@ -372,7 +349,8 @@ def fixed_kernel_degrid(kernels, vshape, uvgrid, vuvwmap, vfrequencymap, vpolari
 
         coords = list(vfrequencymap), list(vpolarisationmap), slicex, xf, slicey, yf
         vis[...] = [
-            numpy.sum(uvgrid[ic, ip, sly, slx] * kernel[yf, xf, :, :])
+            numpy.sum(uvgrid[ic, ip, sly, slx] *
+                      numpy.conjugate(kernel[yf, xf, :, :]))
             for ic, ip, slx, xf, sly, yf in zip(*coords)
             ]
         wt[...] = [
@@ -419,14 +397,13 @@ def fixed_kernel_grid(kernels, uvgrid, vis, visweights, vuvwmap, vfrequencymap,
     Takes into account fractional `uv` coordinate values where the GCF
     is oversampled
 
-    :param kernel: List of versampled convolution kernels
+    :param kernels: List of versampled convolution kernels
     :param uvgrid: Grid to add to
-    :param uvw: UVW positions
     :param vis: Visibility values
-    :param vis: Visibility weights
+    :param visweights: Visibility weights
     :param vuvwmap: map uvw to grid fractions
     :param vfrequencymap: map frequency to image channels
-    :param vpolarisationwmap: map polarisation to image polarisation
+    :param vpolarisationmap: map polarisation to image polarisation
     :returns: uv grid[nchan, npol, ny, nx], sumwt[nchan, npol]
     """
     
@@ -485,13 +462,12 @@ def weight_gridding(shape, visweights, vuvwmap, vfrequencymap, vpolarisationmap,
     is oversampled
 
     :param shape:
-    :param uvw: UVW positions
-    :param vis: Visibility values
-    :param vis: Visibility weights
+    :param visweights: Visibility weights
     :param vuvwmap: map uvw to grid fractions
     :param vfrequencymap: map frequency to image channels
-    :param vpolarisationwmap: map polarisation to image polarisation
-    :returns: visweights, density, desnitygrid
+    :param vpolarisationmap: map polarisation to image polarisation
+    :param weighting: '' | 'uniform'
+    :returns: visweights, density, densitygrid
     """
     wtgrid = numpy.zeros(shape)
     density = numpy.zeros_like(visweights)

@@ -14,7 +14,6 @@ from arl.data.data_models import *
 from arl.data.parameters import arl_path
 from arl.image.operations import import_image_from_fits, create_image_from_array, reproject_image
 from arl.util.coordinate_support import *
-from arl.util.read_oskar_vis import OskarVis
 
 log = logging.getLogger(__name__)
 
@@ -26,7 +25,6 @@ def create_configuration_from_file(antfile: str, name: str = None, location: Ear
     """ Define from a file
 
     :param names:
-    :param params:
     :param antfile: Antenna file name
     :param name: Name of array e.g. 'LOWBD2'
     :param location:
@@ -47,13 +45,13 @@ def create_configuration_from_file(antfile: str, name: str = None, location: Ear
     return fc
 
 
+# noinspection PyUnresolvedReferences,PyUnresolvedReferences,PyUnresolvedReferences
 def create_LOFAR_configuration(antfile: str, meta: dict = None,
                                **kwargs):
     """ Define from the LOFAR configuration file
 
     :param antfile:
     :param meta:
-    :param params: Dictionary containing parameters
     :returns: Configuration
     """
     antxyz = numpy.genfromtxt(antfile, skip_header=2, usecols=[1, 2, 3], delimiter=",")
@@ -69,7 +67,6 @@ def create_LOFAR_configuration(antfile: str, meta: dict = None,
 def create_named_configuration(name: str = 'LOWBD2', **kwargs):
     """ Standard configurations e.g. LOWBD2, MIDBD2
 
-    :param params:
     :param name: name of Configuration LOWBD2, LOWBD1, LOFAR, VLAA
     :returns: Configuration
     """
@@ -106,44 +103,6 @@ def create_named_configuration(name: str = 'LOWBD2', **kwargs):
     return fc
 
 
-def import_blockvisibility_from_oskar(oskar_file: str, **kwargs) -> BlockVisibility:
-    """ Import a visibility set from an OSKAR visibility file
-
-    :param params:
-    :param oskar_file: Name of OSKAR visibility file
-    :returns: BlockVisibility
-    """
-    
-    # Extract data from Oskar file
-    oskar_vis = OskarVis(oskar_file)
-    ra, dec = oskar_vis.phase_centre()
-    a1, a2 = oskar_vis.stations(flatten=True)
-    
-    # Make configuration
-    location = EarthLocation(lon=oskar_vis.telescope_lon,
-                             lat=oskar_vis.telescope_lat,
-                             height=oskar_vis.telescope_alt)
-    antxyz = numpy.transpose([oskar_vis.station_x,
-                              oskar_vis.station_y,
-                              oskar_vis.station_z])
-    config = Configuration(
-        name=oskar_vis.telescope_path,
-        location=location,
-        xyz=antxyz
-    )
-    
-    # Construct visibilities
-    return BlockVisibility(
-        frequency=[oskar_vis.frequency(i) for i in range(oskar_vis.num_channels)],
-        phasecentre=SkyCoord(frame=ICRS, ra=ra, dec=dec, unit=u.deg),
-        configuration=config,
-        uvw=numpy.transpose(oskar_vis.uvw(flatten=True)),
-        time=oskar_vis.times(flatten=True),
-        antenna1=a1,
-        antenna2=a2,
-        vis=oskar_vis.amplitudes(flatten=True),
-        weight=numpy.ones(a1.shape))
-
 
 def create_test_image(canonical=True, npol=4, nchan=1, cellsize=None):
     """Create a useful test image
@@ -151,6 +110,7 @@ def create_test_image(canonical=True, npol=4, nchan=1, cellsize=None):
     This is the test image M31 widely used in ALMA and other simulations. It is actually part of an Halpha region in
     M31.
 
+    :param cellsize:
     :param canonical: Make the image into a 4 dimensional image
     :param npol: Number of polarisations
     :param nchan: Number of channels
@@ -167,6 +127,7 @@ def create_test_image(canonical=True, npol=4, nchan=1, cellsize=None):
     return im
 
 
+# noinspection PyUnresolvedReferences,PyUnresolvedReferences,PyUnresolvedReferences,PyUnresolvedReferences,PyUnresolvedReferences,PyUnresolvedReferences
 def create_low_test_image(npixel=16384, npol=1, nchan=1, cellsize=0.000015, frequency=1e8, channelwidth=1e6,
                           phasecentre=None):
     """Create LOW test image from S3
@@ -176,11 +137,11 @@ def create_low_test_image(npixel=16384, npol=1, nchan=1, cellsize=0.000015, freq
     SQL: select * from Galaxies where (pow(10,itot_151)*1000 > 1.0) and (right_ascension between -5 and 5) and (declination between -5 and 5);;
     Number of rows returned: 29966
     
+    :param frequency:
     :param npixel: Number of pixels
     :param npol: Number of polarisations (all set to same value)
     :param nchan: Number of channels (all set to same value)
     :param cellsize: cellsize in radians
-    :param reffrequency: Reference frequency (Hz)
     :param channelwidth: Channel width (Hz)
     :param phasecentre: phasecentre (SkyCoord)
     :returns: Image
@@ -225,13 +186,13 @@ def create_low_test_image(npixel=16384, npol=1, nchan=1, cellsize=0.000015, freq
     p = w.sub(2).wcs_world2pix(numpy.array(ras), numpy.array(decs), 0)
     total_flux = numpy.sum(fluxes)
     fluxes = numpy.array(fluxes)
-    actual_flux = numpy.sum(fluxes)
     ip = numpy.round(p).astype('int')
     ok = numpy.where((0 <= ip[0,:]) & (npixel > ip[0,:]) & (0 <= ip[1,:]) & (npixel > ip[1,:]))[0]
     ps = ip[:,ok]
     actual_flux = numpy.sum(fluxes[ok])
 
     log.info('create_low_test_image: %d sources inside the image' % (ps.shape[1]))
+    # noinspection PyStringFormat,PyStringFormat
     log.info('create_low_test_image: flux in S3 model = %.3f, actual flux in image = %.3f' % (total_flux, actual_flux))
     for chan in range(nchan):
         for pol in range(npol):
@@ -313,7 +274,6 @@ def run_unittests(logLevel=logging.DEBUG, *args, **kwargs):
 
     :param logLevel: The amount of logging to generate. By default, we
       show all log messages (level DEBUG)
-    :param *args: Will be passed to `unittest.main`
     """
     
     # Set up logging environment

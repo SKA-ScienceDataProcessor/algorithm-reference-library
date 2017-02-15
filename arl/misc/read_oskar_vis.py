@@ -1,13 +1,16 @@
 # -*- coding: utf-8 -*-
 """Read OSKAR binary files from python."""
 
-from __future__ import print_function
-from __future__ import division
-
 import struct
 import collections
 import numpy
 import os
+
+from astropy.coordinates import ICRS, EarthLocation
+from astropy.wcs import WCS
+
+from arl.data.data_models import *
+
 
 class OskarBinary(object):
 
@@ -21,10 +24,14 @@ class OskarBinary(object):
           files and make reading a sub-set of the data faster.
     """
 
+    # noinspection PyRedeclaration
     class DataType:
+        # noinspection PyRedeclaration
         Char, Int, Single, Double, _, Complex, Matrix, _ = range(8)
 
+    # noinspection PyRedeclaration,PyRedeclaration,PyRedeclaration,PyRedeclaration
     class Group:
+        # noinspection PyRedeclaration,PyRedeclaration,PyRedeclaration,PyRedeclaration
         _, Standard, _, Settings, RunInfo, _, _,\
             Sky, _, Spline, Element, VisHeader, VisBlock = range(13)
 
@@ -505,6 +512,44 @@ class OskarVis(OskarBinary):
                         if block['flag_crc']:
                             print('crc', end=' ')
                         print('')
+
+
+def import_blockvisibility_from_oskar(oskar_file: str, **kwargs) -> BlockVisibility:
+    """ Import a visibility set from an OSKAR visibility file
+
+    :param oskar_file: Name of OSKAR visibility file
+    :returns: BlockVisibility
+    """
+    
+    # Extract data from Oskar file
+    oskar_vis = OskarVis(oskar_file)
+    ra, dec = oskar_vis.phase_centre()
+    a1, a2 = oskar_vis.stations(flatten=True)
+    
+    # Make configuration
+    location = EarthLocation(lon=oskar_vis.telescope_lon,
+                             lat=oskar_vis.telescope_lat,
+                             height=oskar_vis.telescope_alt)
+    antxyz = numpy.transpose([oskar_vis.station_x,
+                              oskar_vis.station_y,
+                              oskar_vis.station_z])
+    config = Configuration(
+        name=oskar_vis.telescope_path,
+        location=location,
+        xyz=antxyz
+    )
+    
+    # Construct visibilities
+    return BlockVisibility(
+        frequency=[oskar_vis.frequency(i) for i in range(oskar_vis.num_channels)],
+        phasecentre=SkyCoord(frame=ICRS, ra=ra, dec=dec, unit=u.deg),
+        configuration=config,
+        uvw=numpy.transpose(oskar_vis.uvw(flatten=True)),
+        time=oskar_vis.times(flatten=True),
+        antenna1=a1,
+        antenna2=a2,
+        vis=oskar_vis.amplitudes(flatten=True),
+        weight=numpy.ones(a1.shape))
 
 
 

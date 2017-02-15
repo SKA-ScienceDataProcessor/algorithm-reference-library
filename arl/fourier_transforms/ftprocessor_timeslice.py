@@ -6,14 +6,11 @@ Functions that aid fourier transform processing.
 import multiprocessing
 
 import pymp
-
 from scipy.interpolate import griddata
-from astropy.coordinates import AltAz, Angle
-from astropy.time import Time
 
 from arl.fourier_transforms.ftprocessor_base import *
 from arl.image.iterators import *
-from arl.image.operations import copy_image, create_empty_image_like, export_image_to_fits, reproject_image
+from arl.image.operations import copy_image, create_empty_image_like, reproject_image
 from arl.visibility.iterators import *
 from arl.visibility.operations import create_visibility_from_rows
 
@@ -53,6 +50,7 @@ def fit_uvwplane(vis):
     return vis, p, q
 
 
+# noinspection PyStringFormat,PyStringFormat
 def predict_timeslice_serial(vis, model, **kwargs):
     """ Predict using time slices.
 
@@ -169,6 +167,7 @@ def predict_timeslice(vis, model, **kwargs):
     return vis
 
 
+# noinspection PyStringFormat,PyStringFormat
 def predict_timeslice_single(vis, model, **kwargs):
     """ Predict using a single time slices.
     
@@ -270,7 +269,7 @@ def invert_timeslice(vis, im, dopsf=False, **kwargs):
         with pymp.Parallel(nproc) as p:
             for index in p.range(0, nslices):
                 visslice = create_visibility_from_rows(vis, rowses[index])
-                workimage, sumwt = invert_timeslice_single(visslice, workimage, dopsf, **kwargs)
+                workimage, sumwt = invert_timeslice_single(visslice, im, dopsf, **kwargs)
                 resultimage.data += workimage.data
                 totalwt += sumwt
     
@@ -317,6 +316,7 @@ def lm_distortion(im: Image, a, b):
     return l2d, m2d, ldistorted, mdistorted
 
 
+# noinspection PyStringFormat,PyStringFormat
 def invert_timeslice_single(vis, im, dopsf, **kwargs):
     """Process single time slice
     

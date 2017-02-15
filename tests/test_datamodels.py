@@ -9,7 +9,7 @@ from arl.data.parameters import arl_path
 from arl.image.operations import add_image, create_image_from_array
 from arl.skymodel.operations import create_skycomponent
 from arl.skymodel.operations import create_skymodel_from_image, add_component_to_skymodel
-from arl.util.testing_support import create_test_image, create_named_configuration, import_blockvisibility_from_oskar
+from arl.util.testing_support import create_test_image, create_named_configuration
 from arl.visibility.operations import create_visibility
 
 log = logging.getLogger(__name__)

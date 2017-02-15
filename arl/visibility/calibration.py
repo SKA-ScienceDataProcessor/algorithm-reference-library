@@ -6,12 +6,12 @@ it. On solution the gains are written into a gaintable. For
 correction, the gaintable is read and, if necessary, interpolated.
 """
 
-import logging
-
 from arl.data.data_models import *
 from arl.data.parameters import *
 log = logging.getLogger("visibility.calibration")
 
+
+# noinspection PyUnreachableCode
 def interpolate_gaintable(gt: GainTable, **kwargs):
     """ Interpolate a GainTable to new sampling
 
@@ -25,6 +25,7 @@ def interpolate_gaintable(gt: GainTable, **kwargs):
     return GainTable()
 
 
+# noinspection PyUnreachableCode
 def solve_gains(vis: BlockVisibility, sm: Skymodel, **kwargs) -> GainTable:
     """ Solve for calibration using a sky model
     
@@ -40,6 +41,7 @@ def solve_gains(vis: BlockVisibility, sm: Skymodel, **kwargs) -> GainTable:
     return GainTable()
 
 
+# noinspection PyUnreachableCode
 def correct_blockvisibility(vis: BlockVisibility, gt: GainTable, **kwargs) -> BlockVisibility:
     """ Correct a vistable using a GainTable
 
@@ -55,6 +57,7 @@ def correct_blockvisibility(vis: BlockVisibility, gt: GainTable, **kwargs) -> Bl
     return vis
 
 
+# noinspection PyUnreachableCode
 def peel_skycomponent(vis: BlockVisibility, sc: Skycomponent, **kwargs) -> BlockVisibility:
     """ Correct a vistable using a GainTable
 
@@ -70,6 +73,7 @@ def peel_skycomponent(vis: BlockVisibility, sc: Skycomponent, **kwargs) -> Block
     return vis
 
 
+# noinspection PyUnreachableCode
 def qa_gaintable(gt, **kwargs):
     """Assess the quality of a gaintable
 

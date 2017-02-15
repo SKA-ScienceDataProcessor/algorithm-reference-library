@@ -5,16 +5,13 @@ Definition of structures needed by the function interface. These are mostly
 subclasses of astropy classes.
 """
 
-from astropy.coordinates import SkyCoord
+from astropy.convolution import Gaussian2DKernel
+from astropy.stats import gaussian_fwhm_to_sigma
 from astropy.wcs.utils import skycoord_to_pixel, pixel_to_skycoord
+from photutils import segmentation
 
 from arl.data.data_models import *
 from arl.data.parameters import *
-
-from astropy.convolution import Gaussian2DKernel, Box2DKernel
-from astropy.stats import gaussian_fwhm_to_sigma
-import astropy.units as u
-from photutils import segmentation
 
 log = logging.getLogger(__name__)
 
@@ -139,11 +136,11 @@ def find_skycomponents(im: Image, fwhm=1.0, threshold=10.0, npixels=5):
 
 
 def insert_skycomponent(im: Image, sc: Skycomponent, insert_method = ''):
-    """ Insert a Skycompoenet into an image
+    """ Insert a Skycomponent into an image
 
-    :param params:
     :param im:
     :param sc:
+    :param insert_method: " | 'Lanczos'
     :returns: image
 
     """
@@ -237,7 +234,7 @@ def _L2D(im, x, y, flux, a = 7):
         insert[iy, gridx + a] = _L(gridx + fracx) * _L(iy + fracy)
     insertsum = numpy.sum(insert)
     assert insertsum > 0, "Sum of interpolation coefficients %g" % insertsum
-    insert = insert / insertsum
+    insert /= insertsum
 
     for chan in range(nchan):
         for pol in range(npol):

@@ -87,7 +87,7 @@ class GainTable:
         :returns: Gaintable
         """
         if data is None and not gain is None:
-            npol = len(polarisation_frame.keys())
+            npol = len(polarisation_frame)
             nrows = time.shape[0]
             nchan = gain.shape[1]
             assert len(frequency) == nchan, "Discrepancy in frequency channels"
@@ -101,6 +101,7 @@ class GainTable:
         self.polarisation_frame = polarisation_frame
 
 
+# noinspection PyUnresolvedReferences,PyUnresolvedReferences
 class Image:
     """Image class with Image data (as a numpy.array) and optionally the AstroPy WCS.
 
@@ -153,7 +154,8 @@ class Image:
     @property
     def shape(self):
         return self.data.shape
-    
+
+    # noinspection PyUnresolvedReferences,PyUnresolvedReferences
     @property
     def phasecentre(self): return SkyCoord(self.wcs.wcs.crval[0] * u.deg, self.wcs.wcs.crval[1] * u.deg)
     

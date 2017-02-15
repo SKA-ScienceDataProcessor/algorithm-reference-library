@@ -4,15 +4,12 @@
 Functions that define and manipulate images. Images are just data and a World Coordinate System.
 """
 
-import sys
-
 import copy
-import matplotlib.pyplot as plt
 
+import matplotlib.pyplot as plt
 from astropy.io import fits
 from astropy.wcs import WCS
 from astropy.wcs.utils import pixel_to_skycoord
-
 from reproject import reproject_interp
 
 from arl.data.data_models import *
@@ -32,6 +29,12 @@ def image_sizeof(im: Image):
 def create_image_from_slice(im, imslice):
     """Create image from an image using a numpy.slice
     
+    Both data and wcs are  sliced
+    
+    :param im: Image to be sliced
+    :param imslice: Slice to be applied
+    :returns: Sliced image
+    
     """
     fim = Image()
     fim.data = im.data[imslice]
@@ -41,7 +44,7 @@ def create_image_from_slice(im, imslice):
 
 
 def create_image_from_array(data: numpy.array, wcs: WCS = None) -> Image:
-    """ Create an image from an array
+    """ Create an image from an array and optional wcs
 
     :rtype: Image
     :param data:
@@ -58,6 +61,8 @@ def create_image_from_array(data: numpy.array, wcs: WCS = None) -> Image:
 
 def copy_image(im: Image) -> Image:
     """ Create an image from an array
+    
+    Performs deepcopy of data, breaking reference semantics
 
     :param im:
     :returns: Image
@@ -72,7 +77,7 @@ def copy_image(im: Image) -> Image:
     return fim
 
 def create_empty_image_like(im: Image) -> Image:
-    """ Create an image from an array
+    """ Create an empty image like another in shape and wcs
 
     :param im:
     :returns: Image
@@ -114,16 +119,16 @@ def import_image_from_fits(fitsfile: str):
     return fim
 
 
-def reproject_image(im: Image, newwcs: WCS, shape=None, **kwargs):
+def reproject_image(im: Image, newwcs: WCS, shape=None):
     """ Re-project an image to a new coordinate system
     
     Currently uses the reproject python package. This seems to have some features do be careful using this method.
     For timeslice imaging I had to use griddata.
 
-    :param shape:
+
     :param im: Image to be reprojected
     :param newwcs: New WCS
-    :param params: Dictionary of parameters
+    :param shape:
     :returns: Reprojected Image, Footprint Image
     """
     
@@ -162,7 +167,7 @@ def qa_image(im, mask=None, **kwargs):
     :param im:
     :returns: QA
     """
-    if mask == None:
+    if mask is None:
         data = {'shape': str(im.data.shape),
                 'max': numpy.max(im.data),
                 'min': numpy.min(im.data),
@@ -179,37 +184,11 @@ def qa_image(im, mask=None, **kwargs):
                 'sum': numpy.sum(mdata),
                 'medianabs': numpy.median(numpy.abs(mdata)),
                 'median': numpy.median(mdata)}
-        mask
+
     qa = QA(origin="qa_image",
             data=data,
             context=get_parameter(kwargs, 'context', ""))
     return qa
-
-
-def reproject_image_oblique(im: Image, newwcs: WCS, shape=None, params=None):
-    """ Re-project an image to a new coordinate system
-
-    Currently uses the reproject python package.
-    TODO: Write tailored reproject routine
-
-    :param shape:
-    :param im: Image to be reprojected
-    :param newwcs: New WCS
-    :param params: Dictionary of parameters
-    :returns: Reprojected Image, Footprint Image
-    """
-    
-    log.debug("arl.image_operations.reproject_image: Converting SIN projection from parameters %s to %s" %
-              (im.wcs.wcs.get_pv(), newwcs.wcs.get_pv()))
-    before = pixel_to_skycoord(0.0, 0.0, wcs=im.wcs)
-    after = pixel_to_skycoord(0.0, 0.0, wcs=newwcs)
-    sep = before.separation(after)
-    print('Oblique SIN conversion of edge: moved %.2f from %s, %s -> %s, %s' % (sep.deg, before.ra, before.dec,
-                                                                                after.ra, after.dec))
-    
-    rep, foot = reproject_interp((im.data, im.wcs), newwcs, shape, order='bicubic',
-                                 independent_celestial_slices=True)
-    return create_image_from_array(rep, newwcs), create_image_from_array(foot, newwcs)
 
 
 def show_image(im: Image, fig=None, title: str = '', pol=0, chan=0):

@@ -4,11 +4,11 @@
 
 """
 
+import logging
+
 import numpy
-import copy
 
 from arl.data.parameters import get_parameter
-import logging
 log = logging.getLogger(__name__)
 
 
@@ -49,7 +49,7 @@ def vis_wslice_iter(vis, wslice, **kwargs):
     assert wslice is not None, "wslice must be specified"
     wmaxabs = (numpy.max(numpy.abs(vis.w)))
     nboxes = 1 + 2 * numpy.round(wmaxabs / wslice).astype('int')
-    boxes = - wmaxabs + wslice * numpy.arange(nboxes)
+    boxes = numpy.linspace(- wmaxabs, +wmaxabs, nboxes)
     
     for box in boxes:
         rows = numpy.abs(vis.w - box) < 0.5 * wslice

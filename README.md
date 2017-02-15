@@ -2,8 +2,7 @@
 Algorithm Reference Library
 ===========================
 
-This is a project to create a reference code in NumPy for somewhat
-simplified aperture synthesis imaging.
+This is a project to create a reference code in NumPy for aperture synthesis imaging.
 
 Motivation
 ----------
@@ -13,7 +12,7 @@ application code itself. Although the underlying algorithm may be
 documented (e.g. published), the implementation tends to diverge
 overtime, making this method of documentation less effective.
 
-The Crocodile algorithm reference library is designed to present
+The Algorithm Reference Library is designed to present calibration and
 imaging algorithms in a simple Python-based form. This is so that the
 implemented functions can be seen and understood without resorting to
 interpreting source code shaped by real-world concerns such as
@@ -53,11 +52,11 @@ the `data` folder.
 Orientation
 -----------
 
-The content of this project is meant for learning and experimentation,
+The prime focus of the ARL is on learning and experimentation,
 not usage. If you are here to learn about the process of imaging, here
 is a quick guide to the project:
 
-  * `crocodile`: The main Python source code
+  * `arl`: The main Python source code
   * `examples`: Usage examples, mainly using Jupyter notebooks.
   * `docs`: Complete documentation. Includes non-interactive output of examples.
   * `data`: Data used

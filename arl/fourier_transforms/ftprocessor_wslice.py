@@ -9,7 +9,7 @@ import pymp
 
 from arl.fourier_transforms.ftprocessor_base import *
 from arl.image.iterators import *
-from arl.image.operations import copy_image, create_empty_image_like, export_image_to_fits, reproject_image
+from arl.image.operations import copy_image, create_empty_image_like
 from arl.visibility.iterators import *
 from arl.visibility.operations import create_visibility_from_rows
 
@@ -89,13 +89,20 @@ def predict_wslice_single(vis, model, **kwargs):
     log.debug("predict_wslice: predicting using w slices")
     
     vis.data['vis'] *= 0.0
-    
+    tempvis = copy_visibility(vis)
+
     # Calculate w beam and apply to the model. The imaginary part is not needed
     workimage = copy_image(model)
     w_beam = create_w_term_like(model, numpy.average(vis.w))
-    workimage.data = (w_beam.data.real * workimage.data)
     
+    # Do the real part
+    workimage.data = w_beam.data.real * model.data
     vis = predict_2d(vis, workimage, **kwargs)
+    
+    # and now the imaginary part
+    workimage.data = w_beam.data.imag * model.data
+    tempvis = predict_2d(tempvis, workimage, **kwargs)
+    vis.data['vis'] -= 1j * tempvis.data['vis']
     
     return vis
 
@@ -142,7 +149,7 @@ def invert_wslice(vis, im, dopsf=False, **kwargs):
         with pymp.Parallel(nproc) as p:
             for index in p.range(0, nslices):
                 visslice = create_visibility_from_rows(vis, rowses[index])
-                workimage, sumwt = invert_wslice_single(visslice, workimage, dopsf, **kwargs)
+                workimage, sumwt = invert_wslice_single(visslice, im, dopsf, **kwargs)
                 resultimage.data += workimage.data
                 totalwt += sumwt
     
@@ -169,12 +176,13 @@ def invert_wslice_single(vis, im, dopsf, **kwargs):
     :param im: image template (not changed)
     :param dopsf: Make the psf instead of the dirty image
     """
-    workimage, sumwt = invert_2d(vis, im, dopsf, **kwargs)
+    kwargs['imaginary'] = True
+    reWorkimage, sumwt, imWorkimage = invert_2d(vis, im, dopsf, **kwargs)
     # We don't normalise since that will be done after summing all images
     # export_image_to_fits(workimage, "uncorrected_snapshot_image%d.fits" % (int(numpy.average(vis.w))))
 
     # Calculate w beam and apply to the model. The imaginary part is not needed
     w_beam = create_w_term_like(im, numpy.average(vis.w))
-    workimage.data = (w_beam.data.real * workimage.data)
+    reWorkimage.data = w_beam.data.real * reWorkimage.data - w_beam.data.imag * imWorkimage.data
     
-    return workimage, sumwt
+    return reWorkimage, sumwt

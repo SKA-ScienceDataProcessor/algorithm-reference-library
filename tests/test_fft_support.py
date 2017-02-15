@@ -8,7 +8,8 @@ from arl.fourier_transforms.convolutional_gridding import coordinates2
 
 class TestFFTSupport(unittest.TestCase):
     
-    def _pattern(self, npixel):
+    @staticmethod
+    def _pattern(npixel):
         return coordinates2(npixel)[0] + coordinates2(npixel)[1] * 1j
     
     @unittest.skip("Uncertain about logic of this test")

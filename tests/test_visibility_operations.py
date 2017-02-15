@@ -69,8 +69,8 @@ class TestVisibilityOperations(unittest.TestCase):
             original_uvw = self.vismodel.uvw
             rotatedvis = phaserotate_visibility(phaserotate_visibility(self.vismodel, newphasecentre, tangent=False),
                                                 self.phasecentre, tangent=False)
-            assert_allclose(rotatedvis.uvw, original_uvw, rtol=1e-10)
-            assert_allclose(rotatedvis.vis, original_vis, rtol=1e-10)
+            assert_allclose(rotatedvis.uvw, original_uvw, rtol=1e-7)
+            assert_allclose(rotatedvis.vis, original_vis, rtol=1e-7)
     
     def test_phase_rotation(self):
         self.vis = create_visibility(self.lowcore, self.times, self.frequency, phasecentre=self.phasecentre,
@@ -84,8 +84,8 @@ class TestVisibilityOperations(unittest.TestCase):
         
         # Should yield the same results as rotation
         rotatedvis = phaserotate_visibility(self.vismodel, newphasecentre=self.compabsdirection, tangent=False)
-        assert_allclose(rotatedvis.vis, vismodel2.vis, rtol=1e-10)
-        assert_allclose(rotatedvis.uvw, vismodel2.uvw, rtol=1e-10)
+        assert_allclose(rotatedvis.vis, vismodel2.vis, rtol=1e-7)
+        assert_allclose(rotatedvis.uvw, vismodel2.uvw, rtol=1e-7)
      
 
 if __name__ == '__main__':

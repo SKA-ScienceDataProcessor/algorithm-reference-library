@@ -7,7 +7,6 @@ functions in arl.fourier_transforms.
 
 from astropy import units as units
 from astropy import wcs
-from astropy.constants import c
 from astropy.wcs.utils import pixel_to_skycoord
 
 from arl.data.data_models import *
@@ -19,9 +18,9 @@ from arl.fourier_transforms.ftprocessor_params import get_frequency_map, \
 from arl.image.iterators import *
 from arl.image.operations import copy_image
 from arl.util.coordinate_support import simulate_point, skycoord_to_lmn
+from arl.visibility.coalesce import coalesce_visibility, decoalesce_visibility
 from arl.visibility.iterators import *
 from arl.visibility.operations import phaserotate_visibility, copy_visibility
-from arl.visibility.compress import compress_visibility, decompress_visibility
 
 log = logging.getLogger(__name__)
 
@@ -30,7 +29,9 @@ def shift_vis_to_image(vis, im, tangent=True, inverse=False):
     """Shift visibility to the FFT phase centre of the image in place
 
     :param vis: Visibility data
-    :param model: Image model used to determine phase centre
+    :param im: Image model used to determine phase centre
+    :param tangent: Is the shift purely on the tangent plane True|False
+    :param inverse: Do the inverse operation True|False
     :returns: visibility with phase shift applied and phasecentre updated
 
     """
@@ -88,14 +89,14 @@ def predict_2d_base(vis, model, **kwargs):
     uvw_mode, shape, padding, vuvwmap = get_uvw_map(vis, model, **kwargs)
     kernel_name, gcf, vkernellist = get_kernel_list(vis, model, **kwargs)
 
-    cvis, cindex = compress_visibility(vis)
+    cvis, cindex = coalesce_visibility(vis)
 
     uvgrid = fft((pad_mid(model.data, padding * nx) * gcf).astype(dtype=complex))
     
     cvis.data['vis'] = fixed_kernel_degrid(vkernellist, cvis.data['vis'].shape, uvgrid, vuvwmap, vfrequencymap,
                                            vpolarisationmap)
     
-    dvis = decompress_visibility(cvis, vis, cindex=cindex)
+    dvis = decoalesce_visibility(cvis, vis, cindex=cindex)
 
     # Now we can shift the visibility from the image frame to the original visibility frame
     svis = shift_vis_to_image(dvis, model, tangent=True, inverse=True)
@@ -141,9 +142,9 @@ def invert_2d_base(vis, im, dopsf=False, **kwargs):
 
     svis = copy_visibility(vis)
     
-    # Shift and then compress to cut down on gridding costs
+    # Shift and then coalesce to cut down on gridding costs
     shvis = shift_vis_to_image(svis, im, tangent=True, inverse=False)
-    svis, _ = compress_visibility(shvis, dopsf=dopsf)
+    svis, _ = coalesce_visibility(shvis, dopsf=dopsf)
     
     nchan, npol, ny, nx = im.data.shape
     
@@ -165,12 +166,19 @@ def invert_2d_base(vis, im, dopsf=False, **kwargs):
     
     # Fourier transform the padded grid to image, multiply by the gridding correction
     # function, and extract the unpadded inner part.
-    imgrid = extract_mid(numpy.real(ifft(imgridpad)) * gcf, npixel=nx)
-    
+
     # Normalise weights for consistency with transform
     sumwt /= float(padding * padding * nx * ny)
 
-    return create_image_from_array(imgrid, im.wcs), sumwt
+    imaginary = get_parameter(kwargs, "imaginary", False)
+    if imaginary:
+        log.debug("invert_2d_base: retaining imaginary part of dirty image")
+        result = extract_mid(ifft(imgridpad) * gcf, npixel=nx)
+        return create_image_from_array(result.real, im.wcs), sumwt, create_image_from_array(result.imag, im.wcs)
+    else:
+        result = extract_mid(numpy.real(ifft(imgridpad)) * gcf, npixel=nx)
+        return create_image_from_array(result, im.wcs), sumwt
+
 
 
 def invert_2d(vis, im, dopsf=False, **kwargs):
@@ -347,6 +355,7 @@ def weight_visibility(vis, im, **kwargs):
     return vis, density, densitygrid
 
 
+# noinspection PyStringFormat,PyStringFormat
 def create_image_from_visibility(vis, **kwargs):
     """Make an from params and Visibility
 
@@ -436,10 +445,10 @@ def create_w_term_like(im, w=None, **kwargs):
     cellsize = abs(fim.wcs.wcs.cdelt[0]) * numpy.pi / 180.0
     _, _, _, npixel = fim.data.shape
     fim.data = w_beam(npixel, npixel * cellsize, w=w)
-    
-    fresnel = w * (0.5 * npixel * cellsize) ** 2
-    log.info('create_w_term_image: Fresnel number for median w and this field of view and sampling = '
-             '%.2f' % (fresnel))
+
+    fov = npixel * cellsize
+    fresnel = numpy.abs(w) * (0.5 * fov) ** 2
+    log.info('create_w_term_image: For w = %.1f, field of view = %.6f, Fresnel number = %.2f' % (w, fov, fresnel))
     
     return fim
 
@@ -459,9 +468,9 @@ def create_w_term_image(vis, w=None, **kwargs):
     cellsize = abs(im.wcs.wcs.cdelt[0]) * numpy.pi / 180.0
     _, _, _, npixel = im.data.shape
     im.data = w_beam(npixel, npixel * cellsize, w=w)
-    
-    fresnel = w * (0.5 * npixel * cellsize) ** 2
-    log.info('create_w_term_image: Fresnel number for median w and this field of view and sampling = '
-             '%.2f' % (fresnel))
-    
+
+    fov = npixel * cellsize
+    fresnel = numpy.abs(w) * (0.5 * fov) ** 2
+    log.info('create_w_term_image: For w = %.1f, field of view = %.6f, Fresnel number = %.2f' % (w, fov, fresnel))
+
     return im

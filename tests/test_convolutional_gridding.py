@@ -10,7 +10,8 @@ from arl.fourier_transforms.convolutional_gridding import *
 
 class TestConvolutionalGridding(unittest.TestCase):
     
-    def assertAlmostEqualScalar(self, a, result=1.0):
+    @staticmethod
+    def assertAlmostEqualScalar(a, result=1.0):
         w = result * numpy.ones_like(result)
 
     def test_coordinates(self):
@@ -28,7 +29,8 @@ class TestConvolutionalGridding(unittest.TestCase):
             assert (cx[N//2,:] == 0).all()
             assert (cy[:,N//2] == 0).all()
 
-    def _test_pattern(self, npixel):
+    @staticmethod
+    def _test_pattern(npixel):
         return coordinates2(npixel)[0] + coordinates2(npixel)[1] * 1j
 
     

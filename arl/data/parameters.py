@@ -25,7 +25,7 @@ def get_parameter(kwargs, key, default=None):
     
     The parameter is searched for in params
     
-    :param params: Parameter dictionary
+    :param kwargs: Parameter dictionary
     :param key: Key e.g. 'loop_gain'
     :param default: Default value
     :return: result

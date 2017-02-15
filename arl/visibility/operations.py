@@ -8,7 +8,6 @@ import copy
 
 import astropy.constants as constants
 
-from arl.data.parameters import *
 from arl.fourier_transforms.ftprocessor_params import *
 from arl.util.coordinate_support import *
 
@@ -38,7 +37,6 @@ def create_blockvisibility(config: Configuration, times: numpy.array, freq: nump
     
     Note that we keep track of the integration time for BDA purposes
 
-    :param params:
     :param config: Configuration of antennas
     :param times: hour angles in radians
     :param freq: frequencies (Hz] Shape [nchan]
@@ -87,7 +85,6 @@ def create_visibility(config: Configuration, times: numpy.array, freq: numpy.arr
 
     Note that we keep track of the integration time for BDA purposes
 
-    :param params:
     :param config: Configuration of antennas
     :param times: hour angles in radians
     :param freq: frequencies (Hz] Shape [nchan]
@@ -120,7 +117,7 @@ def create_visibility(config: Configuration, times: numpy.array, freq: numpy.arr
         
         # Calculate the positions of the antennas as seen for this hour angle
         # and declination
-        ant_pos = xyz_to_uvw(ants_xyz, ha, phasecentre.dec.value)
+        ant_pos = xyz_to_uvw(ants_xyz, ha, phasecentre.dec.rad)
         rtimes[row:row + nrowsperintegration] = ha * 43200.0 / numpy.pi
         
         # Loop over all pairs of antennas. Note that a2>a1
@@ -131,6 +128,7 @@ def create_visibility(config: Configuration, times: numpy.array, freq: numpy.arr
                 
                 # Loop over all frequencies and polarisations
                 for ch in range(nch):
+                    # noinspection PyUnresolvedReferences
                     k = freq[ch] / constants.c.value
                     ruvw[row:row + npol, :] = (ant_pos[a2,:] - ant_pos[a1,:]) * k
                     rpolarisation[row:row + npol] = range(npol)
@@ -156,7 +154,6 @@ def create_visibility(config: Configuration, times: numpy.array, freq: numpy.arr
 def create_blockvisibility_from_rows(vis: BlockVisibility, rows, makecopy=True) -> BlockVisibility:
     """ Create a BlockVisibility from selected rows
 
-    :param params:
     :param vis: BlockVisibility
     :param rows: Boolean array of row selction
     :param makecopy: Make a deep copy (True)
@@ -167,12 +164,12 @@ def create_blockvisibility_from_rows(vis: BlockVisibility, rows, makecopy=True) 
     if makecopy:
         newvis = copy_visibility(vis)
         newvis.data = copy.deepcopy(vis.data[rows])
-        log.info("create_visibility_from_rows: Created new compressed visibility table")
+        log.info("create_visibility_from_rows: Created new visibility table")
         assert len(newvis.data) == numpy.sum(rows)
         return newvis
     else:
         vis.data = copy.deepcopy(vis.data[rows])
-        log.info("create_visibility_from_rows: Created view into compressed visibility table")
+        log.info("create_visibility_from_rows: Created view into visibility table")
         assert len(vis.data) == numpy.sum(rows)
         return vis
 
@@ -180,7 +177,6 @@ def create_blockvisibility_from_rows(vis: BlockVisibility, rows, makecopy=True) 
 def create_visibility_from_rows(vis: Visibility, rows, makecopy=True) -> Visibility:
     """ Create a Visibility from selected rows
 
-    :param params:
     :param vis: Visibility
     :param rows: Boolean array of row selction
     :param makecopy: Make a deep copy (True)
@@ -192,12 +188,12 @@ def create_visibility_from_rows(vis: Visibility, rows, makecopy=True) -> Visibil
     if makecopy:
         newvis = copy_visibility(vis)
         newvis.data = copy.deepcopy(vis.data[rows])
-        log.info("create_visibility_from_rows: Created new compressed visibility table")
+        log.info("create_visibility_from_rows: Created new visibility table")
         assert len(newvis.data) == numpy.sum(rows)
         return newvis
     else:
         vis.data = copy.deepcopy(vis.data[rows])
-        log.info("create_visibility_from_rows: Created view into compressed visibility table")
+        log.info("create_visibility_from_rows: Created view into visibility table")
         assert len(vis.data) == numpy.sum(rows)
         return vis
 
@@ -255,7 +251,6 @@ def phaserotate_visibility(vis: Visibility, newphasecentre: SkyCoord, tangent=Tr
 def sum_visibility(vis: Visibility, direction: SkyCoord) -> numpy.array:
     """ Direct Fourier summation in a given direction
 
-    :param params:
     :param vis: Visibility to be summed
     :param direction: Direction of summation
     :returns: flux[nch,npol], weight[nch,pol]
@@ -293,7 +288,6 @@ def sum_visibility(vis: Visibility, direction: SkyCoord) -> numpy.array:
 def qa_visibility(vis, context=None):
     """Assess the quality of Visibility
 
-    :param params:
     :param vis: Visibility to be assessed
     :returns: AQ
     """

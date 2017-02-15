@@ -84,6 +84,7 @@ def deconvolve_cube(dirty: Image, psf: Image, **kwargs):
     return create_image_from_array(comp_array, dirty.wcs), create_image_from_array(residual_array, dirty.wcs)
 
 
+# noinspection PyUnreachableCode
 def restore_cube(dirty: Image, clean: Image, psf: Image, **kwargs):
     """ Restore a clean image
 
@@ -97,6 +98,7 @@ def restore_cube(dirty: Image, clean: Image, psf: Image, **kwargs):
     return Image()
 
 
+# noinspection PyUnreachableCode
 def deconvolve_mfs(dirty: Image, psf: Image, **kwargs):
     """ MFS Clean using a variety of algorithms
 
@@ -117,6 +119,7 @@ def deconvolve_mfs(dirty: Image, psf: Image, **kwargs):
     return Image()
 
 
+# noinspection PyUnreachableCode
 def restore_mfs(dirty: Image, clean: Image, psf: Image, **kwargs):
     """ Restore an MFS clean image
 

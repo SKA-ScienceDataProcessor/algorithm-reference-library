@@ -13,7 +13,8 @@ class Polarisation_Frame:
     def circular(self):
         return 'circular', {'RR': 0, 'RL': 1, 'LR': 2, 'LL': 3}
 
-    def circularnp(self):
+    @staticmethod
+    def circularnp():
         return 'circularnp', {'RR': 0, 'LL': 3}
 
     @property
@@ -51,9 +52,6 @@ def convert_stokes_to_circular(inpol, inverse=False):
     return inpol
 
 def convert_linear_to_circular(inpol, inverse=False):
-    return inpol
-
-def convert_polarisation_frame(inpol, inframe=Polarisation_Frame.stokes, outframe=Polarisation_Frame.linear):
     return inpol
 
 def convert_polarisation_frame(inpol, inframe=Polarisation_Frame.stokes, outframe=Polarisation_Frame.linear):

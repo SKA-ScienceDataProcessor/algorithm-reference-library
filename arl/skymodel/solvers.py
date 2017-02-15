@@ -5,11 +5,9 @@ Definition of structures needed by the function interface. These are mostly
 subclasses of astropy classes.
 """
 
-import copy
-from arl.fourier_transforms.ftprocessor import invert_2d_base, predict_2d_base
-
 from arl.data.data_models import *
 from arl.data.parameters import *
+from arl.fourier_transforms.ftprocessor_base import invert_2d_base, predict_2d_base
 from arl.visibility.operations import copy_visibility
 
 log = logging.getLogger(__name__)
