@@ -3,9 +3,13 @@
 
 """
 
+from astropy.convolution import Gaussian2DKernel, convolve
+
 from arl.data.data_models import *
 from arl.data.parameters import *
-from arl.image.operations import create_image_from_array
+from arl.image.operations import create_image_from_array, copy_image
+
+from arl.misc.gaussian_fit import *
 
 log = logging.getLogger(__name__)
 
@@ -486,3 +490,43 @@ def _sphfn(vnu):
         value = 0.
     
     return value
+
+
+def fit_psf(psf):
+    """ Fit a Gaussian to the PSF
+
+    :params psf: Input PSF
+    :returns: major axis, minor axis (in cells), position angle (in radians)
+
+    """
+    npixel = psf.data.shape[3]
+    sl = slice(npixel // 2 - 7, npixel // 2 + 8)
+    params = fitgaussian(psf.data[0, 0, sl, sl])
+    cellsize = abs(psf.wcs.wcs.cdelt[1]) * numpy.pi / 180.0
+    log.info('fit_psf: Fitted PSF = %.1f by %.1f cells at pa %.2f radians' % (params[1], params[2], params[3]))
+    log.info('fit_psf: Fitted PSF = %.1f by %.1f degrees at pa %.2f degrees' %
+             (cellsize * params[1], cellsize * params[2], 180.0 * params[3] / numpy.pi))
+    return params[1], params[2], params[3]
+
+
+def restore_cube(model, psf, residual=None):
+    """ Restore the model image to the residuals
+
+    :params psf: Input PSF
+    :returns: major axis, minor axis, position angle (in radians)
+
+    """
+    restored = copy_image(model)
+    
+    params = fit_psf(psf)
+    gk = Gaussian2DKernel(params[0])
+    
+    norm = params[0] **2
+    
+    for chan in range(model.shape[0]):
+        for pol in range(model.shape[1]):
+            restored.data[chan, pol, :, :] = norm * convolve(model.data[chan, pol, :, :], gk, normalize_kernel=False)
+    if residual is not None:
+        restored.data += residual.data
+    return restored
+

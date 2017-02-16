@@ -39,7 +39,3 @@ def get_parameter(kwargs, key, default=None):
         value = kwargs[key]
     return value
 
-def log_parameters(**kwargs):
-    if kwargs is not None:
-        for key in kwargs.keys():
-            log.debug('log_parameters:   %s      =       %s' % (key, kwargs[key]))

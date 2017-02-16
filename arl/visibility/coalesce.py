@@ -10,7 +10,7 @@ import copy
 from arl.data.data_models import *
 from arl.data.parameters import get_parameter
 from arl.util.array_functions import average_chunks2
-from arl.visibility.operations import vis_summary
+from arl.visibility.operations import vis_summary, copy_visibility
 
 log = logging.getLogger(__name__)
 
@@ -88,12 +88,12 @@ def decoalesce_visibility(vis, template_vis, cindex=None, **kwargs):
     
     log.info('decoalesce_visibility: Created new Visibility for decoalesced data')
     
-    decomp_vis = copy.copy(template_vis)
+    decomp_vis = copy_visibility(template_vis)
 
     decomp_vis.data['vis'] = \
         decoalesce_tbgrid_vis(template_vis.data['vis'].shape, vis.data['vis'], cindex)
 
-    log.info('coalesce_visibility: Coalesced %s, decoalesced %s' % (vis_summary(vis), vis_summary(decomp_vis)))
+    log.info('decoalesce_visibility: Coalesced %s, decoalesced %s' % (vis_summary(vis), vis_summary(decomp_vis)))
     
     return decomp_vis
 
@@ -134,7 +134,7 @@ def coalesce_tbgrid_vis(vis, time, frequency, polarisation, antenna1, antenna2, 
     polarisationmap, upolarisation = construct_map(polarisation)
     npolarisation = len(upolarisation)
 
-    log.info('coalesce_tbgrid_vis: Coalesceing %d unique times, %d frequencies and %d baselines' % (ntime,
+    log.info('coalesce_tbgrid_vis: Coalescing %d unique times, %d frequencies and %d baselines' % (ntime,
                                                                                                     nfrequency,
                                                                                                     nbaselines))
     # Now that we have the maps, we can define grids to hold the various data

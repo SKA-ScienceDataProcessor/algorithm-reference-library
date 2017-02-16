@@ -18,12 +18,15 @@ class TestDataModels(unittest.TestCase):
 
     def test_component(self):
         flux = numpy.array([[1.0, 0.0, 0.0, 0.0], [1.0, 0.0, 0.0, 0.0]])
-        direction = SkyCoord('00h42m30s', '+41d12m00s', frame='icrs')
+        direction = SkyCoord('00h42m30s', '-41d12m00s', frame='icrs')
         frequency=numpy.arange(1.0e8,1.5e8,3e7)
         comp = create_skycomponent(direction=direction, flux=flux, frequency=frequency, shape='Point')
+        assert comp.flux.shape == [2,4]
+        assert comp.direction.separation(direction) == 0.0
+        assert comp.shape == 'Point'
 
     def test_configuration(self):
-        for telescope in ['LOWBD1', 'LOWBD2', 'LOFAR', 'VLAA']:
+        for telescope in ['LOWBD1', 'LOWBD2', 'LOWBD2-CORE', 'LOFAR', 'VLAA', 'VLAA-north']:
             fc = create_named_configuration(telescope)
             log.debug(fc.location.to_geodetic())
 
@@ -67,14 +70,6 @@ class TestDataModels(unittest.TestCase):
         log.debug(vis.data)
         log.debug(vis.frequency)
         self.assertEqual(len(numpy.unique(vis.data['time'])), len(times))
-
-    @unittest.skip("OSKAR conversion not compliant with vis data model")
-    def test_blockvisibility_from_oskar(self):
-        for oskar_file in ["data/vis/vla_1src_6h/test_vla.vis",
-                           "data/vis/vla_grid_6h/test_vla.vis"]:
-            vis = import_blockvisibility_from_oskar(arl_path(oskar_file))
-            self.assertEqual(len(numpy.unique(vis.antenna1))+1, len(vis.configuration.xyz))
-            self.assertEqual(len(numpy.unique(vis.antenna2))+1, len(vis.configuration.xyz))
 
 if __name__ == '__main__':
     unittest.main()

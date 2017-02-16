@@ -19,17 +19,20 @@ log = logging.getLogger(__name__)
 
 
 class TestVisibilityIterators(unittest.TestCase):
-    def setUp(self):
+    def actualSetUp(self, times=None):
         
         self.lowcore = create_named_configuration('LOWBD2-CORE')
         
-        times = numpy.linspace(-300.0, 300.0, 11) * numpy.pi / 43200.0
+        if times is None:
+            times = numpy.linspace(-300.0, 300.0, 11) * numpy.pi / 43200.0
+            
         frequency = numpy.array([1e8])
         phasecentre = SkyCoord(ra=+15.0 * u.deg, dec=-35.0 * u.deg, frame='icrs', equinox=2000.0)
         self.vis = create_visibility(self.lowcore, times, frequency, phasecentre=phasecentre, weight=1.0)
         self.vis.data['vis'] = self.vis.time
 
     def test_vis_timeslice_iterator(self):
+        self.actualSetUp()
         nchunks = len(list(vis_timeslice_iter(self.vis)))
         log.debug('Found %d chunks' % (nchunks))
         assert nchunks > 1
@@ -39,7 +42,17 @@ class TestVisibilityIterators(unittest.TestCase):
             assert len(rows)
             assert numpy.sum(rows) < self.vis.nvis
 
+    def test_vis_timeslice_iterator_single(self):
+        self.actualSetUp(times=numpy.zeros([1]))
+        nchunks = len(list(vis_timeslice_iter(self.vis)))
+        log.debug('Found %d chunks' % (nchunks))
+        for chunk, rows in enumerate(vis_timeslice_iter(self.vis)):
+            visslice = create_visibility_from_rows(self.vis, rows)
+            assert visslice.vis[0].real == visslice.time[0]
+            assert len(rows)
+
     def test_vis_wslice_iterator(self):
+        self.actualSetUp()
         nchunks = len(list(vis_wslice_iter(self.vis, wslice=1.0)))
         log.debug('Found %d chunks' % (nchunks))
         assert nchunks > 1

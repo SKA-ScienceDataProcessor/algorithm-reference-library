@@ -9,6 +9,9 @@ from astropy import units as units
 from astropy import wcs
 from astropy.wcs.utils import pixel_to_skycoord
 
+
+
+
 from arl.data.data_models import *
 from arl.fourier_transforms.convolutional_gridding import fixed_kernel_grid, \
     fixed_kernel_degrid, weight_gridding, w_beam
@@ -21,6 +24,7 @@ from arl.util.coordinate_support import simulate_point, skycoord_to_lmn
 from arl.visibility.coalesce import coalesce_visibility, decoalesce_visibility
 from arl.visibility.iterators import *
 from arl.visibility.operations import phaserotate_visibility, copy_visibility
+
 
 log = logging.getLogger(__name__)
 
@@ -243,27 +247,6 @@ def invert_by_image_partitions(vis, im, image_iterator=raster_iter, dopsf=False,
     return im, totalwt
 
 
-def invert_by_vis_partitions(vis, im, vis_iterator, dopsf=False, invert_function=invert_2d, **kwargs):
-    """ Invert using wslices
-
-    :param vis: Visibility to be inverted
-    :param im: image template (not changed)
-    :param dopsf: Make the psf instead of the dirty image
-    :returns: resulting image
-
-    """
-    log.debug("invert_by_vis_partitions: Inverting by vis partitions")
-    nchan, npol, _, _ = im.shape
-    result = None
-    totalwt = numpy.zeros([nchan, npol])
-    
-    for visslice in vis_iterator(vis, **kwargs):
-        result, sumwt = invert_function(visslice, im, dopsf, invert_function, **kwargs)
-        totalwt += sumwt
-    
-    return result, totalwt
-
-
 def predict_by_image_partitions(vis, model, image_iterator=raster_iter, predict_function=predict_2d,
                                 **kwargs):
     """ Predict using image partitions, calling specified predict function
@@ -280,21 +263,6 @@ def predict_by_image_partitions(vis, model, image_iterator=raster_iter, predict_
     for dpatch in image_iterator(model, **kwargs):
         result = predict_function(result, dpatch, **kwargs)
         vis.data['vis'] += result.data['vis']
-    return vis
-
-
-def predict_by_vis_partitions(vis, model, vis_iterator, predict_function=predict_2d, **kwargs):
-    """ Predict using vis partitions
-
-    :param vis: Visibility to be predicted
-    :param model: model image
-    :param vis_iterator: Iterator to use for partitioning
-    :param predict_function: Function to be used for prediction (allows nesting)
-    :returns: resulting visibility (in place works)
-    """
-    log.debug("predict_by_vis_partitions: Predicting by vis partitions")
-    for vslice in vis_iterator(vis, **kwargs):
-        vis.data['vis'] += predict_function(vslice, model, **kwargs).data['vis']
     return vis
 
 
@@ -366,49 +334,49 @@ def create_image_from_visibility(vis, **kwargs):
     :param npixel: Number of pixels on each axis (512)
     :param frame: Coordinate frame for WCS (ICRS)
     :param equinox: Equinox for WCS (2000.0)
-    :param image_nchan: Number of image channels (Default is 1 -> MFS)
+    :param nchan: Number of image channels (Default is 1 -> MFS)
     :returns: image
     """
     assert type(vis) is Visibility, "vis is not a Visibility: %r" % vis
 
-    log.info("create_image_from_blockvisibility: Parsing parameters to get definition of WCS")
+    log.info("create_image_from_visibility: Parsing parameters to get definition of WCS")
     
     imagecentre = get_parameter(kwargs, "imagecentre", vis.phasecentre)
     phasecentre = get_parameter(kwargs, "phasecentre", vis.phasecentre)
     
     # Spectral processing options
     vnchan = len(numpy.unique(vis.frequency))
-    inchan = get_parameter(kwargs, "image_nchan", 1)
+    inchan = get_parameter(kwargs, "nchan", 1)
     reffrequency = numpy.min(vis.frequency) * units.Hz
     channelwidth = get_parameter(kwargs, "channelwidth", 1e6) * units.Hz
 
     if (inchan == vnchan) and vnchan > 1:
-        log.info("create_image_from_blockvisibility: Defining %d channel Image at %s, starting frequency %s, and bandwidth %s"
+        log.info("create_image_from_visibility: Defining %d channel Image at %s, starting frequency %s, and bandwidth %s"
                  % (inchan, imagecentre, reffrequency, channelwidth))
     elif (inchan == 1) and vnchan > 1:
         assert numpy.abs(channelwidth.value) > 0.0, "Channel width must be non-zero for mfs mode"
-        log.info("create_image_from_blockvisibility: Defining MFS Image at %s, starting frequency %s, and bandwidth %s"
+        log.info("create_image_from_visibility: Defining MFS Image at %s, starting frequency %s, and bandwidth %s"
                  % (imagecentre, reffrequency, channelwidth))
     elif (inchan == 1) and (vnchan == 1):
         assert numpy.abs(channelwidth.value) > 0.0, "Channel width must be non-zero for mfs mode"
-        log.info("create_image_from_blockvisibility: Defining single channel Image at %s, starting frequency %s, "
+        log.info("create_image_from_visibility: Defining single channel Image at %s, starting frequency %s, "
                  "and bandwidth %s"
                  % (imagecentre, reffrequency, channelwidth))
     else:
-        raise RuntimeError("create_image_from_blockvisibility: unknown spectral mode ")
+        raise RuntimeError("create_image_from_visibility: unknown spectral mode ")
     
     # Image sampling options
     npixel = get_parameter(kwargs, "npixel", 512)
     uvmax = numpy.max((numpy.abs(vis.data['uvw'][:, 0:1])))
-    log.info("create_image_from_blockvisibility: uvmax = %f wavelengths" % uvmax)
+    log.info("create_image_from_visibility: uvmax = %f wavelengths" % uvmax)
     criticalcellsize = 1.0 / (uvmax * 2.0)
-    log.info("create_image_from_blockvisibility: Critical cellsize = %f radians, %f degrees" % (
+    log.info("create_image_from_visibility: Critical cellsize = %f radians, %f degrees" % (
         criticalcellsize, criticalcellsize * 180.0 / numpy.pi))
     cellsize = get_parameter(kwargs, "cellsize", 0.5 * criticalcellsize)
-    log.info("create_image_from_blockvisibility: Cellsize          = %f radians, %f degrees" % (cellsize,
+    log.info("create_image_from_visibility: Cellsize          = %f radians, %f degrees" % (cellsize,
                                                                                            cellsize * 180.0 / numpy.pi))
     if cellsize > criticalcellsize:
-        log.info("create_image_from_blockvisibility: Resetting cellsize %f radians to criticalcellsize %f radians" % (
+        log.info("create_image_from_visibility: Resetting cellsize %f radians to criticalcellsize %f radians" % (
             cellsize[1], criticalcellsize[1]))
         cellsize = criticalcellsize
     
@@ -474,3 +442,4 @@ def create_w_term_image(vis, w=None, **kwargs):
     log.info('create_w_term_image: For w = %.1f, field of view = %.6f, Fresnel number = %.2f' % (w, fov, fresnel))
 
     return im
+

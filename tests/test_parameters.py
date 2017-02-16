@@ -23,6 +23,7 @@ class TestParameters(unittest.TestCase):
             assert get_parameter(kwargs, 'null_mode', 'mfs') == 'mfs'
             assert get_parameter(kwargs, 'foo', 'bar') == 'bar'
             assert get_parameter(kwargs, 'foo') is None
+            assert get_parameter(None, 'foo', 'bar') == 'bar'
         
         kwargs = self.parameters
         t1(**kwargs)

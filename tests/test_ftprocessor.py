@@ -55,7 +55,7 @@ class TestFTProcessor(unittest.TestCase):
     def actualSetUp(self, time=None, frequency=None):
         self.params = {'npixel': 256,
                        'npol': 1,
-                       'image_nchan': 1,
+                       'nchan': 1,
                        'reffrequency': 1e8,
                        'image_partitions': 8,
                        'padding': 2,
@@ -84,7 +84,7 @@ class TestFTProcessor(unittest.TestCase):
         
         # Create model
         self.model = create_image_from_visibility(self.componentvis, npixel=256, cellsize=0.001,
-                                                  image_nchan=1)
+                                                  nchan=1)
         
         # Fill the visibility with exactly computed point sources. These are chosen to lie
         # on grid points.
@@ -153,7 +153,7 @@ class TestFTProcessor(unittest.TestCase):
         
         self._checkdirty(self.residualvis, 'test_predict_2d_residual', fluxthreshold=10.0)
     
-    def _predict_base(self, predict, fluxthreshold=10.0):
+    def _predict_base(self, predict, fluxthreshold=1.0):
         self.modelvis = create_visibility(self.lowcore, self.times, self.frequency,
                                                     phasecentre=self.phasecentre,
                                                     weight=1.0, npol=1)
@@ -168,14 +168,19 @@ class TestFTProcessor(unittest.TestCase):
     
     def test_predict_by_image_partitions(self):
         self.actualSetUp()
-        self._predict_base(predict_by_image_partitions, fluxthreshold=1.0)
+        self._predict_base(predict_by_image_partitions, fluxthreshold=1e-7)
 
     def test_predict_timeslice(self):
-        # This works very poorly because of the poor interpolation accuracy for point sources
         self.actualSetUp()
-        self.params['nprocessor'] = 1
-        self.params['usereproject'] = False
-        self._predict_base(predict_timeslice, fluxthreshold=20.0)
+        # This works very poorly because of the poor interpolation accuracy for point sources
+        for self.params['usereproject'] in [True, False]:
+            self.actualSetUp()
+            self.params['nprocessor'] = 1
+            self._predict_base(predict_timeslice, fluxthreshold=10.0)
+        for self.params['nprocessor'] in [1, 4]:
+            self.actualSetUp()
+            self.params['usereproject'] = False
+            self._predict_base(predict_timeslice, fluxthreshold=10.0)
 
     def test_predict_wslice(self):
         self.actualSetUp()
@@ -183,10 +188,12 @@ class TestFTProcessor(unittest.TestCase):
                        'npol': 1,
                        'cellsize': 0.001,
                        'padding': 2,
-                       'oversampling': 4,
+                       'oversampling': 8,
                        'wstep': 10.0,
                        'wslice': 10.0}
-        self._predict_base(predict_wslice, fluxthreshold=20.0)
+        for self.params['nprocessor'] in [1, 4]:
+            self.actualSetUp()
+            self._predict_base(predict_wslice, fluxthreshold=2.0)
 
     def test_predict_wprojection(self):
         self.actualSetUp()
@@ -197,7 +204,7 @@ class TestFTProcessor(unittest.TestCase):
                        'oversampling': 4,
                        'wstep': 10.0}
         
-        self._predict_base(predict_wprojection, fluxthreshold=10.0)
+        self._predict_base(predict_wprojection, fluxthreshold=2.0)
     
     def test_invert_2d(self):
         """Test if the 2D invert works with w set to zero
@@ -246,13 +253,16 @@ class TestFTProcessor(unittest.TestCase):
                        'oversampling': 4,
                        'wslice': 1.0,
                        'imaginary': True}
-
-        self._invert_base(invert_wslice, positionthreshold=8.0)
+        for self.params['nprocessor'] in [1, 4]:
+            self.actualSetUp()
+            self._invert_base(invert_wslice, positionthreshold=8.0)
 
     def test_invert_timeslice(self):
         self.actualSetUp()
         self.params['usereproject'] = False
-        self._invert_base(invert_timeslice, positionthreshold=8.0)
+        for self.params['nprocessor'] in [1, 4]:
+            self.actualSetUp()
+            self._invert_base(invert_timeslice, positionthreshold=8.0)
 
     def test_invert_wprojection(self):
         self.actualSetUp()
@@ -268,14 +278,34 @@ class TestFTProcessor(unittest.TestCase):
     def test_invert_by_image_partitions_with_coalescence(self):
         time = (numpy.pi / (12.0 * 3600.0)) * numpy.linspace(0.0, 30.0, 11)
         self.actualSetUp(time=time)
-        self.params['coalesceion_factor'] = 1.0
+        self.params['coalescence_factor'] = 1.0
         self._invert_base(invert_by_image_partitions, positionthreshold=1.0)
     
     def test_predict_by_image_partitions_with_coalescence(self):
         time = (numpy.pi / (12.0 * 3600.0)) * numpy.linspace(0.0, 30.0, 11)
         self.actualSetUp(time=time)
-        self.params['coalesceion_factor'] = 1.0
+        self.params['coalescence_factor'] = 1.0
         self._predict_base(predict_by_image_partitions, fluxthreshold=10.0)
+
+    def test_weighting(self):
+        self.actualSetUp()
+        vis, density, densitygrid = weight_visibility(self.componentvis, self.model, weighting='uniform')
+        assert vis.nvis == self.componentvis.nvis
+        assert len(density) == vis.nvis
+        assert densitygrid.data.shape == self.model.data.shape
+        vis, density, densitygrid = weight_visibility(self.componentvis, self.model, weighting='natural')
+        assert density is None
+        assert densitygrid is None
+        
+    def test_create_image_from_visibility(self):
+        self.actualSetUp()
+        im = create_image_from_visibility(self.componentvis, nchan=1, npol=1, npixel=128)
+        assert im.data.shape == [1, 1, 128, 128]
+        im = create_image_from_visibility(self.componentvis, nchan=1, npol=4, npixel=128)
+        assert im.data.shape == [1, 4, 128, 128]
+        im = create_image_from_visibility(self.componentvis, nchan=4, npol=4, npixel=128)
+        assert im.data.shape == [5, 4, 128, 128]
+
 
 
 if __name__ == '__main__':

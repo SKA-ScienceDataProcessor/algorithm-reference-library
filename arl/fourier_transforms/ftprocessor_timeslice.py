@@ -50,66 +50,6 @@ def fit_uvwplane(vis):
     return vis, p, q
 
 
-# noinspection PyStringFormat,PyStringFormat
-def predict_timeslice_serial(vis, model, **kwargs):
-    """ Predict using time slices.
-
-    :param vis: Visibility to be predicted
-    :param model: model image
-    :returns: resulting visibility (in place works)
-    """
-    log.debug("predict_timeslice: predicting using time slices")
-    nchan, npol, ny, nx = model.data.shape
-    
-    vis.data['vis'] *= 0.0
-    
-    for rows in vis_timeslice_iter(vis, **kwargs):
-        
-        visslice = create_visibility_from_rows(vis, rows)
-        
-        # Fit and remove best fitting plane for this slice
-        visslice, p, q = fit_uvwplane(visslice)
-        
-        log.info("Creating image from oblique SIN projection with params %.6f, %.6f to SIN projection" % (p, q))
-        # Calculate nominal and distorted coordinate systems. We will convert the model
-        # from nominal to distorted before predicting.
-        lnominal, mnominal, ldistorted, mdistorted = lm_distortion(model, -p, -q)
-        workimage = create_empty_image_like(model)
-        
-        # Use griddata to do the conversion. This could be improved. Only cubic is possible in griddata.
-        # The interpolation is ok for invert since the image is smooth but for clean images the
-        # interpolation is particularly poor, leading to speckle in the residual image.
-        usereproject = get_parameter(kwargs, "usereproject", False)
-        if usereproject:
-            log.debug('predict_timeslice: Using reproject to convert projection')
-            # Set the parameters defining the SIN projection for this plane
-            newwcs = model.wcs.deepcopy()
-            newwcs.wcs.wcs.set_pv([(0, 0, p), (0, 1, q)])
-            # Reproject the model from the natural oblique SIN projection to the non-oblique SIN projection
-            workimage, footprintimage = reproject_image(model, newwcs, shape=[nchan, npol, ny, nx])
-            workimage.data[footprintimage.data <= 0.0] = 0.0
-
-        else:
-            # This is much slower than reproject
-            log.debug('predict_timeslice: Using griddata to convert projection')
-            for chan in range(nchan):
-                for pol in range(npol):
-                    workimage.data[chan, pol, ...] = \
-                        griddata((mnominal.flatten(), lnominal.flatten()),
-                                 values=workimage.data[chan, pol, ...].flatten(),
-                                 xi=(mdistorted.flatten(), ldistorted.flatten()),
-                                 method='cubic',
-                                 fill_value=0.0,
-                                 rescale=True).reshape(workimage.data[chan, pol, ...].shape)
-        
-        # Now we can do the prediction for this slice using a 2d transform
-        visslice = predict_2d(visslice, workimage, **kwargs)
-        
-        vis.data['vis'][rows] += visslice.data['vis']
-    
-    return vis
-
-
 def predict_timeslice(vis, model, **kwargs):
     """ Predict using time slices.
 

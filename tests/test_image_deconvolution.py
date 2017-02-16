@@ -22,6 +22,9 @@ class TestImageDeconvolution(unittest.TestCase):
     def test_deconvolve_and_restore_MSMFS(self):
         pass
     
+    def test_restore(self):
+        pass
+    
     
 if __name__ == '__main__':
     unittest.main()

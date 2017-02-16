@@ -116,23 +116,6 @@ def anti_aliasing_calculate(shape, oversampling=8, support=3):
     return gcf, (kernel4d / kernel4d.max()).astype('complex')
 
 
-def anti_aliasing_box(shape, oversampling=1, support=1):
-    """ The grid correction for a box car gridding
-
-    :param shape: (height, width) pair
-    :param oversampling: Number of sub-samples per grid pixel
-    :param support: Support of kernel (in pixels) width is 2*support+2
-    """
-    
-    # 2D Prolate spheroidal angular function is separable
-    ny, nx = shape
-    nu = numpy.abs(2.0 * coordinates(nx))
-    gcf1d = correct_finite_oversampling(nu, oversampling=1)
-    gcf = numpy.outer(gcf1d, gcf1d)
-    gcf[gcf > 0.0] = gcf.max() / gcf[gcf > 0.0]
-    
-    return gcf, None
-
 
 def grdsf(nu):
     """"Calculate PSWF using an old SDE routine re-written in Python
@@ -180,18 +163,6 @@ def grdsf(nu):
     
     # Return the gridding function and the grid correction function
     return grdsf, (1 - nu ** 2) * grdsf
-
-
-def correct_finite_oversampling(nu: numpy.ndarray, oversampling=8):
-    """Correct for the loss incurred by finite oversampling
-    
-    This is just a correction for a boxcar of width 1/oversampling. For oversampling=8, it's about 0.65% which is
-    less than the accuracy we have so far.
-    """
-    result = numpy.ones_like(nu)
-    nu_scaled = 0.5 * numpy.pi * nu / float(oversampling)
-    result[nu != 0.0] = numpy.sin(nu_scaled[nu != 0.0]) / nu_scaled[nu != 0.0]
-    return result
 
 
 def w_beam(npixel, field_of_view, w):
@@ -280,19 +251,6 @@ def frac_coord(npixel, kernel_oversampling, p):
     flx = numpy.floor(x + 0.5 / kernel_oversampling)
     fracx = numpy.around((x - flx) * kernel_oversampling)
     return flx.astype(int), fracx.astype(int)
-
-
-def frac_coords(shape, kernel_oversampling, xycoords):
-    """Compute grid coordinates and fractional values for convolutional gridding
-
-    :param shape: (height,width) grid shape
-    :param kernel_oversampling: Oversampling factor
-    :param xycoords: array of (x,y) coordinates in range [-.5,.5[
-    """
-    _, _, h, w = shape  # NB order (height,width) to match numpy!
-    y, yf = frac_coord(h, kernel_oversampling, xycoords[..., 1])
-    x, xf = frac_coord(w, kernel_oversampling, xycoords[..., 0])
-    return x, xf, y, yf
 
 
 def fixed_kernel_degrid(kernels, vshape, uvgrid, vuvwmap, vfrequencymap, vpolarisationmap):

@@ -40,8 +40,9 @@ class TestTesting_Support(unittest.TestCase):
         for config in ['LOWBD2', 'LOWBD2-CORE', 'LOWBD1', 'LOFAR']:
             self.createVis(config)
         
+        self.createVis('VLAA', +35.0)
         self.createVis('VLAA_north', +35.0)
-        
+
     def test_create_test_image(self):
         im = create_test_image(canonical=False)
         assert len(im.data.shape) == 2

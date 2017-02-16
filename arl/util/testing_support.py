@@ -168,7 +168,7 @@ def create_low_test_image(npixel=16384, npol=1, nchan=1, cellsize=0.000015, freq
     
     model = create_image_from_array(numpy.zeros(shape), w)
     
-    with open(arl_path('data/models/S3_151MHz_10deg.csv')) as csvfile:
+    with open(arl_path('data/models/S3_151MHz_20deg.csv')) as csvfile:
         readCSV = csv.reader(csvfile, delimiter=',')
         r = 0
         for row in readCSV:
@@ -217,18 +217,20 @@ def create_low_test_beam(model):
     log.info("create_low_test_beam: primary beam is defined at %.3f MHz" % (beam.wcs.wcs.crval[2]*1e-6))
     log.info("create_low_test_beam: scaling to model frequency %.3f MHz" % (model.wcs.wcs.crval[3]*1e-6))
     fscale = model.wcs.wcs.crval[3] / beam.wcs.wcs.crval[2]
-    beam.wcs.wcs.crval[0] *= fscale
-    beam.wcs.wcs.crval[1] *= fscale
+    beam.wcs.wcs.cdelt[0] *= fscale
+    beam.wcs.wcs.cdelt[1] *= fscale
     
     # Adjust for the different ordering of axes. When this includes a range of frequencies, we will need
     # to reshape the array as well
     beam.wcs.wcs.ctype[2], beam.wcs.wcs.ctype[3] = model.wcs.wcs.ctype[2], model.wcs.wcs.ctype[3]
     beam.wcs.wcs.cdelt[2], beam.wcs.wcs.cdelt[3] = model.wcs.wcs.cdelt[2], model.wcs.wcs.cdelt[2]
     beam.wcs.wcs.crval[2], beam.wcs.wcs.crval[3] = 1, model.wcs.wcs.crval[3]
+    beam.wcs.wcs.crval[0], beam.wcs.wcs.crval[1] = model.wcs.wcs.crval[0], model.wcs.wcs.crval[1]
     beam.wcs.wcs.cunit = model.wcs.wcs.cunit
     
     reprojected_beam, footprint = reproject_image(beam, model.wcs, shape=model.shape)
     reprojected_beam.data *= reprojected_beam.data
+    reprojected_beam.data[footprint.data<=0.0] = 0.0
     
     return reprojected_beam
 
@@ -283,7 +285,3 @@ def run_unittests(logLevel=logging.DEBUG, *args, **kwargs):
     
     # Call unittest main
     unittest.main(*args, **kwargs)
-    
-if __name__ == '__main__':
-    im=create_low_test_image()
-

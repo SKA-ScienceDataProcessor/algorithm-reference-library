@@ -17,7 +17,6 @@ def RCAL(**kwargs):
    """
     # TODO: implement
 
-    log_parameters(**kwargs)
     return True
 
 def ICAL(**kwargs):
@@ -28,7 +27,6 @@ def ICAL(**kwargs):
     """
     # TODO: implement
 
-    log_parameters(**kwargs)
     return True
 
 def continuum_imaging(**kwargs):
@@ -41,7 +39,6 @@ def continuum_imaging(**kwargs):
 
     # TODO: implement
 
-    log_parameters(**kwargs)
     return True
     
 
@@ -53,7 +50,6 @@ def spectral_line_imaging(**kwargs):
     """
     # TODO: implement
 
-    log_parameters(**kwargs)
     return True
 
 
@@ -65,7 +61,6 @@ def fast_imaging(**kwargs):
     """
     # TODO: implement
 
-    log_parameters(**kwargs)
     return True
 
 
@@ -77,6 +72,5 @@ def EOR(**kwargs):
     """
     # TODO: implement
 
-    log_parameters(**kwargs)
     return True
 

@@ -9,7 +9,7 @@ from astropy import units as u
 from astropy.constants import c
 from astropy.coordinates import SkyCoord
 
-from arl.data.polarisation import *
+from arl.data.polarisation import Polarisation_Frame
 
 log = logging.getLogger(__name__)
 
@@ -76,7 +76,7 @@ class GainTable:
 
     def __init__(self, data=None, gain: numpy.array=None, time: numpy.array=None, antenna: numpy.array=None,
                  weight: numpy.array=None, frequency: numpy.array=None,
-                 polarisation_frame: Polarisation_Frame=None):
+                 polarisation_frame: Polarisation_Frame=Polarisation_Frame.stokesI):
         """ Create a gaintable from arrays
 
         :param gain: [npol, nchan]
@@ -87,7 +87,7 @@ class GainTable:
         :returns: Gaintable
         """
         if data is None and not gain is None:
-            npol = len(polarisation_frame)
+            npol = len(polarisation_frame[1])
             nrows = time.shape[0]
             nchan = gain.shape[1]
             assert len(frequency) == nchan, "Discrepancy in frequency channels"
@@ -389,7 +389,6 @@ class Visibility:
         """ Return size in GB
         """
         size = 0
-        size += numpy.size(self.frequency)
         for col in self.data.dtype.fields.keys():
             size += self.data[col].size * sys.getsizeof(self.data[col])
         return size / 1024.0 / 1024.0 / 1024.0
