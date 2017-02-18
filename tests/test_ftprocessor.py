@@ -41,13 +41,11 @@ class TestFTProcessor(unittest.TestCase):
                 "Fitted and DFT flux differ %s %s" % (comp.flux[0, 0], sflux[0, 0])
             # Check for agreement in direction
             ocomp = find_nearest_component(comp.direction, self.components)
-            assert abs(comp.direction.ra.deg - ocomp.direction.ra.deg) / cellsize < \
-                   positionthreshold, \
-                "Component differs in dec %.3f pixels" % (comp.direction.ra.deg - ocomp.direction.ra.deg) / cellsize
-            assert abs(comp.direction.dec.deg - ocomp.direction.dec.deg) / cellsize < \
-                   positionthreshold, "Component differs in dec %.3f pixels" % \
-                                      (comp.direction.dec.deg - ocomp.direction.dec.deg) / cellsize
-    
+            radiff = abs(comp.direction.ra.deg - ocomp.direction.ra.deg) / cellsize
+            assert radiff  < positionthreshold, "Component differs in dec %.3f pixels" % radiff
+            decdiff = abs(comp.direction.dec.deg - ocomp.direction.dec.deg) / cellsize
+            assert decdiff  < positionthreshold, "Component differs in dec %.3f pixels" % decdiff
+
     def setUp(self):
         self.dir = './test_results'
         os.makedirs(self.dir, exist_ok=True)
@@ -103,7 +101,7 @@ class TestFTProcessor(unittest.TestCase):
                     # components on ny // 2, nx // 2. The wcs must be defined consistently.
                     p = int(round(rpix[0] + ix * spacing_pixels * numpy.sign(self.model.wcs.wcs.cdelt[0]))), \
                         int(round(rpix[1] + iy * spacing_pixels * numpy.sign(self.model.wcs.wcs.cdelt[1])))
-                    sc = pixel_to_skycoord(p[0], p[1], self.model.wcs)
+                    sc = pixel_to_skycoord(p[0], p[1], self.model.wcs, origin=0)
                     log.info("Component at (%f, %f) [0-rel] %s" % (p[0], p[1], str(sc)))
                     
                     f = (100.0 + 1.0 * ix + iy * 10.0)
@@ -151,7 +149,7 @@ class TestFTProcessor(unittest.TestCase):
         self.residualvis.data['uvw'][:, 2] = 0.0
         self.residualvis.data['vis'] = self.modelvis.data['vis'] - self.componentvis.data['vis']
         
-        self._checkdirty(self.residualvis, 'test_predict_2d_residual', fluxthreshold=10.0)
+        self._checkdirty(self.residualvis, 'test_predict_2d_residual', fluxthreshold=0.2)
     
     def _predict_base(self, predict, fluxthreshold=1.0):
         self.modelvis = create_visibility(self.lowcore, self.times, self.frequency,
@@ -292,6 +290,7 @@ class TestFTProcessor(unittest.TestCase):
         vis, density, densitygrid = weight_visibility(self.componentvis, self.model, weighting='uniform')
         assert vis.nvis == self.componentvis.nvis
         assert len(density) == vis.nvis
+        assert numpy.std(vis.imaging_weight) > 0.0
         assert densitygrid.data.shape == self.model.data.shape
         vis, density, densitygrid = weight_visibility(self.componentvis, self.model, weighting='natural')
         assert density is None
@@ -300,11 +299,9 @@ class TestFTProcessor(unittest.TestCase):
     def test_create_image_from_visibility(self):
         self.actualSetUp()
         im = create_image_from_visibility(self.componentvis, nchan=1, npol=1, npixel=128)
-        assert im.data.shape == [1, 1, 128, 128]
+        assert im.data.shape == (1, 1, 128, 128)
         im = create_image_from_visibility(self.componentvis, nchan=1, npol=4, npixel=128)
-        assert im.data.shape == [1, 4, 128, 128]
-        im = create_image_from_visibility(self.componentvis, nchan=4, npol=4, npixel=128)
-        assert im.data.shape == [5, 4, 128, 128]
+        assert im.data.shape == (1, 4, 128, 128)
 
 
 

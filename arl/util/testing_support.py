@@ -104,7 +104,7 @@ def create_named_configuration(name: str = 'LOWBD2', **kwargs):
 
 
 
-def create_test_image(canonical=True, npol=4, nchan=1, cellsize=None):
+def create_test_image(canonical=True, npol=4, cellsize=None, frequency=None, phasecentre=None):
     """Create a useful test image
 
     This is the test image M31 widely used in ALMA and other simulations. It is actually part of an Halpha region in
@@ -118,16 +118,31 @@ def create_test_image(canonical=True, npol=4, nchan=1, cellsize=None):
     """
     im = import_image_from_fits(arl_path("data/models/M31.MOD"))
     if canonical:
+        if frequency is None:
+            nchan = 1
+        else:
+            nchan = len(frequency)
+    
         im = replicate_image(im, nchan=nchan, npol=npol)
         if cellsize is not None:
             im.wcs.wcs.cdelt[0] = -180.0 * cellsize / numpy.pi
             im.wcs.wcs.cdelt[1] = +180.0 * cellsize / numpy.pi
+        if frequency is not None:
+            im.wcs.wcs.crval[3] = frequency[0]
+            if len(frequency) > 1:
+                im.wcs.wcs.cdelt[3] = frequency[1] - frequency[0]
+            else:
+                im.wcs.wcs.cdelt[3] = 0.001 * frequency[0]
         im.wcs.wcs.radesys = 'ICRS'
         im.wcs.wcs.equinox = 2000.00
+    if phasecentre is not None:
+        im.wcs.wcs.crval[0] = phasecentre.ra.deg
+        im.wcs.wcs.crval[1] = phasecentre.dec.deg
+        im.wcs.wcs.crpix[0] = im.data.shape[3] // 2
+        im.wcs.wcs.crpix[1] = im.data.shape[2] // 2
+
     return im
 
-
-# noinspection PyUnresolvedReferences,PyUnresolvedReferences,PyUnresolvedReferences,PyUnresolvedReferences,PyUnresolvedReferences,PyUnresolvedReferences
 def create_low_test_image(npixel=16384, npol=1, nchan=1, cellsize=0.000015, frequency=1e8, channelwidth=1e6,
                           phasecentre=None):
     """Create LOW test image from S3
@@ -160,7 +175,7 @@ def create_low_test_image(npixel=16384, npol=1, nchan=1, cellsize=0.000015, freq
     w.wcs.cdelt = [-cellsize * 180.0 / numpy.pi, cellsize * 180.0 / numpy.pi, 1.0, channelwidth]
     w.wcs.crpix = [npixel // 2 + 1, npixel // 2 + 1, 1.0, 1.0]
     w.wcs.ctype = ["RA---SIN", "DEC--SIN", 'STOKES', 'FREQ']
-    w.wcs.crval = [phasecentre.ra.value, phasecentre.dec.value, 1.0, frequency]
+    w.wcs.crval = [phasecentre.ra.deg, phasecentre.dec.deg, 1.0, frequency]
     w.naxis = 4
     
     w.wcs.radesys = 'ICRS'

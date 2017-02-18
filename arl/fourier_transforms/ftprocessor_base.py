@@ -9,9 +9,6 @@ from astropy import units as units
 from astropy import wcs
 from astropy.wcs.utils import pixel_to_skycoord
 
-
-
-
 from arl.data.data_models import *
 from arl.fourier_transforms.convolutional_gridding import fixed_kernel_grid, \
     fixed_kernel_degrid, weight_gridding, w_beam
@@ -42,10 +39,14 @@ def shift_vis_to_image(vis, im, tangent=True, inverse=False):
     assert type(vis) is Visibility, "vis is not a Visibility: %r" % vis
 
     nchan, npol, ny, nx = im.data.shape
-    # Convert the FFT definition of the phase center to world coordinates (0 relative)
-    image_phasecentre = pixel_to_skycoord(ny // 2, nx // 2, im.wcs)
     
-    if vis.phasecentre.separation(image_phasecentre).value > 1e-15:
+    # Convert the FFT definition of the phase center to world coordinates (1 relative)
+    # This is the only place the relationship between the image and visibility
+    # frames is defined.
+    
+    image_phasecentre = pixel_to_skycoord(nx // 2, ny // 2, im.wcs, origin=1)
+    
+    if vis.phasecentre.separation(image_phasecentre).rad > 1e-15:
         if inverse:
             log.debug("shift_vis_from_image: shifting phasecentre from image phase centre %s to visibility phasecentre "
                       "%s" % (image_phasecentre, vis.phasecentre))
@@ -129,7 +130,7 @@ def predict_wprojection(vis, model, **kwargs):
 
 
 def invert_2d_base(vis, im, dopsf=False, **kwargs):
-    """ Invert using 2D convolution function, including w projection
+    """ Invert using 2D convolution function, including w projection optionally
 
     Use the image im as a template. Do PSF in a separate call.
 
@@ -220,7 +221,7 @@ def invert_wprojection(vis, im, dopsf=False, **kwargs):
 
 
 def invert_by_image_partitions(vis, im, image_iterator=raster_iter, dopsf=False,
-                               invert_function=invert_2d, **kwargs):
+                               invert_function=invert_2d_base, **kwargs):
     """ Predict using image partitions, calling specified predict function
 
     :param vis: Visibility to be inverted
@@ -247,7 +248,7 @@ def invert_by_image_partitions(vis, im, image_iterator=raster_iter, dopsf=False,
     return im, totalwt
 
 
-def predict_by_image_partitions(vis, model, image_iterator=raster_iter, predict_function=predict_2d,
+def predict_by_image_partitions(vis, model, image_iterator=raster_iter, predict_function=predict_2d_base,
                                 **kwargs):
     """ Predict using image partitions, calling specified predict function
 
@@ -377,7 +378,7 @@ def create_image_from_visibility(vis, **kwargs):
                                                                                            cellsize * 180.0 / numpy.pi))
     if cellsize > criticalcellsize:
         log.info("create_image_from_visibility: Resetting cellsize %f radians to criticalcellsize %f radians" % (
-            cellsize[1], criticalcellsize[1]))
+            cellsize, criticalcellsize))
         cellsize = criticalcellsize
     
     inpol = get_parameter(kwargs, "npol", 1)
@@ -388,11 +389,11 @@ def create_image_from_visibility(vis, **kwargs):
     w = wcs.WCS(naxis=4)
     # The negation in the longitude is needed by definition of RA, DEC
     w.wcs.cdelt = [-cellsize * 180.0 / numpy.pi, cellsize * 180.0 / numpy.pi, 1.0, channelwidth.value]
-    # The numpy definition of the phase centre of an FFT is n // 2 so that's what we use for
-    # the reference pixel but we have to use 1-relative indxing for wcs (arghhh!)
-    w.wcs.crpix = [npixel // 2 + 1, npixel // 2 + 1, 1.0, 1.0]
+    # The numpy definition of the phase centre of an FFT is n // 2 (0 - rel) so that's what we use for
+    # the reference pixel. We have to use 0 rel everywhere.
+    w.wcs.crpix = [npixel // 2, npixel // 2, 1.0, 1.0]
     w.wcs.ctype = ["RA---SIN", "DEC--SIN", 'STOKES', 'FREQ']
-    w.wcs.crval = [phasecentre.ra.value, phasecentre.dec.value, 1.0, reffrequency.value]
+    w.wcs.crval = [phasecentre.ra.deg, phasecentre.dec.deg, 1.0, reffrequency.value]
     w.naxis = 4
     
     w.wcs.radesys = get_parameter(kwargs, 'frame', 'ICRS')

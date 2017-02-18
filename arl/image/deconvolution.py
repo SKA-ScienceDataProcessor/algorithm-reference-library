@@ -4,12 +4,11 @@
 """
 
 from astropy.convolution import Gaussian2DKernel, convolve
+from photutils import fit_2dgaussian
 
 from arl.data.data_models import *
 from arl.data.parameters import *
 from arl.image.operations import create_image_from_array, copy_image
-
-from arl.misc.gaussian_fit import *
 
 log = logging.getLogger(__name__)
 
@@ -45,7 +44,7 @@ def deconvolve_cube(dirty: Image, psf: Image, **kwargs):
         niter = get_parameter(kwargs, 'niter', 100)
         assert niter > 0
         scales = get_parameter(kwargs, 'scales', [0, 3, 10, 30])
-        fracthresh = get_parameter(kwargs, 'fracthresh', 0.01)
+        fracthresh = get_parameter(kwargs, 'fractional_threshold', 0.01)
         assert 0.0 < fracthresh < 1.0
         
         comp_array = numpy.zeros(dirty.data.shape)
@@ -86,20 +85,6 @@ def deconvolve_cube(dirty: Image, psf: Image, **kwargs):
         raise ValueError('deconvolve_cube: Unknown algorithm %s' % algorithm)
     
     return create_image_from_array(comp_array, dirty.wcs), create_image_from_array(residual_array, dirty.wcs)
-
-
-# noinspection PyUnreachableCode
-def restore_cube(dirty: Image, clean: Image, psf: Image, **kwargs):
-    """ Restore a clean image
-
-    :param dirty:
-    :param clean: Image clean model (i.e. no smoothing)
-    :param psf: Image Point Spread Function
-    :param params: 'algorithm': 'msclean'|'hogbom', 'gain': loop gain (float)
-    :returns: restored image
-    """
-    raise RuntimeError("restore_image: not yet implemented")
-    return Image()
 
 
 # noinspection PyUnreachableCode
@@ -491,24 +476,6 @@ def _sphfn(vnu):
     
     return value
 
-
-def fit_psf(psf):
-    """ Fit a Gaussian to the PSF
-
-    :params psf: Input PSF
-    :returns: major axis, minor axis (in cells), position angle (in radians)
-
-    """
-    npixel = psf.data.shape[3]
-    sl = slice(npixel // 2 - 7, npixel // 2 + 8)
-    params = fitgaussian(psf.data[0, 0, sl, sl])
-    cellsize = abs(psf.wcs.wcs.cdelt[1]) * numpy.pi / 180.0
-    log.info('fit_psf: Fitted PSF = %.1f by %.1f cells at pa %.2f radians' % (params[1], params[2], params[3]))
-    log.info('fit_psf: Fitted PSF = %.1f by %.1f degrees at pa %.2f degrees' %
-             (cellsize * params[1], cellsize * params[2], 180.0 * params[3] / numpy.pi))
-    return params[1], params[2], params[3]
-
-
 def restore_cube(model, psf, residual=None):
     """ Restore the model image to the residuals
 
@@ -518,11 +485,17 @@ def restore_cube(model, psf, residual=None):
     """
     restored = copy_image(model)
     
-    params = fit_psf(psf)
-    gk = Gaussian2DKernel(params[0])
+    npixel = psf.data.shape[3]
+    sl = slice(npixel // 2 - 7, npixel // 2 + 8)
+    fit = fit_2dgaussian(psf.data[0, 0, sl, sl])
     
-    norm = params[0] **2
     
+    # isotropic at the moment!
+    size = min(fit.x_stddev, fit.y_stddev)
+    
+    # By convention, we normalise the peak not the integral so this is the volume of the Gaussian
+    norm = 1.1331 * size**2
+    gk = Gaussian2DKernel(size)
     for chan in range(model.shape[0]):
         for pol in range(model.shape[1]):
             restored.data[chan, pol, :, :] = norm * convolve(model.data[chan, pol, :, :], gk, normalize_kernel=False)

@@ -67,7 +67,6 @@ def get_uvw_map(vis, im, **kwargs):
     uvwscale[0:2] = im.wcs.wcs.cdelt[0:2] * numpy.pi / 180.0
     assert uvwscale[0] != 0.0, "Error in uv scaling"
     fov = padding * nx * numpy.abs(uvwscale[0])
-    log.info("get_uvw_map: effective uv cellsize is %.1f wavelengths" % (1.0 / fov))
     
     vuvwmap = uvwscale * vis.uvw
     uvw_mode = "2d"
@@ -130,7 +129,6 @@ def get_kernel_list(vis, im, **kwargs):
     
     kernelname = get_parameter(kwargs, "kernel", "2d")
     oversampling = get_parameter(kwargs, "oversampling", 8)
-    support = get_parameter(kwargs, "support", 3)
     padding = get_parameter(kwargs, "padding", 2)
     
     gcf, _ = anti_aliasing_calculate((padding * npixel, padding * npixel), oversampling)

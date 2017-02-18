@@ -164,12 +164,10 @@ def create_blockvisibility_from_rows(vis: BlockVisibility, rows, makecopy=True) 
     if makecopy:
         newvis = copy_visibility(vis)
         newvis.data = copy.deepcopy(vis.data[rows])
-        log.info("create_visibility_from_rows: Created new visibility table")
         assert len(newvis.data) == numpy.sum(rows)
         return newvis
     else:
         vis.data = copy.deepcopy(vis.data[rows])
-        log.info("create_visibility_from_rows: Created view into visibility table")
         assert len(vis.data) == numpy.sum(rows)
         return vis
 
@@ -188,12 +186,10 @@ def create_visibility_from_rows(vis: Visibility, rows, makecopy=True) -> Visibil
     if makecopy:
         newvis = copy_visibility(vis)
         newvis.data = copy.deepcopy(vis.data[rows])
-        log.info("create_visibility_from_rows: Created new visibility table")
         assert len(newvis.data) == numpy.sum(rows)
         return newvis
     else:
         vis.data = copy.deepcopy(vis.data[rows])
-        log.info("create_visibility_from_rows: Created view into visibility table")
         assert len(vis.data) == numpy.sum(rows)
         return vis
 

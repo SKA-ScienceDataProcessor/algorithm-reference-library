@@ -416,9 +416,6 @@ def fixed_kernel_grid(kernels, uvgrid, vis, visweights, vuvwmap, vfrequencymap,
 def weight_gridding(shape, visweights, vuvwmap, vfrequencymap, vpolarisationmap, weighting='uniform'):
     """Reweight data using one of a number of algorithms
 
-    Takes into account fractional `uv` coordinate values where the GCF
-    is oversampled
-
     :param shape:
     :param visweights: Visibility weights
     :param vuvwmap: map uvw to grid fractions
@@ -427,26 +424,24 @@ def weight_gridding(shape, visweights, vuvwmap, vfrequencymap, vpolarisationmap,
     :param weighting: '' | 'uniform'
     :returns: visweights, density, densitygrid
     """
-    wtgrid = numpy.zeros(shape)
+    densitygrid = numpy.zeros(shape)
     density = numpy.zeros_like(visweights)
     if weighting == 'uniform':
         log.info("weight_gridding: Performing uniform weighting")
         inchan, inpol, ny, nx = shape
         
         # uvw -> fraction of grid mapping
-        # uvw -> fraction of grid mapping
         y, yf = frac_coord(ny, 1.0, vuvwmap[:, 1])
         x, xf = frac_coord(nx, 1.0, vuvwmap[:, 0])
         wts = visweights[...]
         coords = list(vfrequencymap), list(vpolarisationmap), x, y
         for vwt, ic, ip, x, y in zip(wts, *coords):
-            wtgrid[ic, ip, y, x] += vwt
+            densitygrid[ic, ip, y, x] += vwt
     
         # Normalise each visibility weight to sum to one in a grid cell
         newvisweights = numpy.zeros_like(visweights)
-        for wt, ic, ip, x, y in zip(wts, *coords):
-            density[...] += wtgrid[ic, ip, y, x]
-            newvisweights[...] = wt / wtgrid[ic, ip, y, x][wtgrid[ic, ip, y, x] > 0.0]
-        return newvisweights, density, wtgrid
+        density[...] += [densitygrid[ic, ip, x, y] for ic, ip, x, y in zip(*coords)]
+        newvisweights[density>0.0] = visweights[density>0.0]/density[density>0.0]
+        return newvisweights, density, densitygrid
     else:
-        return visweights, density, wtgrid
+        return visweights, density, densitygrid

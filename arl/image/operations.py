@@ -9,7 +9,6 @@ import copy
 import matplotlib.pyplot as plt
 from astropy.io import fits
 from astropy.wcs import WCS
-from astropy.wcs.utils import pixel_to_skycoord
 from reproject import reproject_interp
 
 from arl.data.data_models import *
@@ -22,8 +21,6 @@ def image_sizeof(im: Image):
     """ Return size in GB
     """
     return im.size()
-
-
 
 
 def create_image_from_slice(im, imslice):
@@ -39,7 +36,9 @@ def create_image_from_slice(im, imslice):
     fim = Image()
     fim.data = im.data[imslice]
     fim.wcs = im.wcs(imslice).deepcopy()
-    log.debug("create_image_from_slice: created image of shape %s, size %.3f (GB)" % (str(im.shape), image_sizeof(im)))
+    if image_sizeof(im) > 1.0:
+        log.debug(
+            "create_image_from_slice: created image of shape %s, size %.3f (GB)" % (str(im.shape), image_sizeof(im)))
     return fim
 
 
@@ -54,8 +53,9 @@ def create_image_from_array(data: numpy.array, wcs: WCS = None) -> Image:
     fim = Image()
     fim.data = data
     fim.wcs = wcs.deepcopy()
-    log.debug("create_image_from_array: created image of shape %s, size %.3f (GB)" % (str(fim.shape),
-                                                                                      image_sizeof(fim)))
+    if image_sizeof(fim):
+        log.debug("create_image_from_array: created image of shape %s, size %.3f (GB)" % (str(fim.shape),
+                                                                                          image_sizeof(fim)))
     return fim
 
 
@@ -73,8 +73,10 @@ def copy_image(im: Image) -> Image:
         fim.wcs = None
     else:
         fim.wcs = copy.deepcopy(im.wcs)
-    log.debug("copy_image: created image of shape %s, size %.3f (GB)" % (str(fim.shape), image_sizeof(fim)))
+    if image_sizeof(fim) >= 1.0:
+        log.debug("copy_image: created image of shape %s, size %.3f (GB)" % (str(fim.shape), image_sizeof(fim)))
     return fim
+
 
 def create_empty_image_like(im: Image) -> Image:
     """ Create an empty image like another in shape and wcs
@@ -88,8 +90,9 @@ def create_empty_image_like(im: Image) -> Image:
         fim.wcs = None
     else:
         fim.wcs = copy.deepcopy(im.wcs)
-    log.debug("create_empty_image_like: created image of shape %s, size %.3f (GB)" % (str(im.shape), image_sizeof(
-        im)))
+    if image_sizeof(im) >= 1.0:
+        log.debug("create_empty_image_like: created image of shape %s, size %.3f (GB)" % (str(im.shape),
+                                                                                          image_sizeof(im)))
     return fim
 
 
@@ -176,7 +179,7 @@ def qa_image(im, mask=None, **kwargs):
                 'medianabs': numpy.median(numpy.abs(im.data)),
                 'median': numpy.median(im.data)}
     else:
-        mdata = im.data[mask.data>0.0]
+        mdata = im.data[mask.data > 0.0]
         data = {'shape': str(im.data.shape),
                 'max': numpy.max(mdata),
                 'min': numpy.min(mdata),
@@ -184,7 +187,7 @@ def qa_image(im, mask=None, **kwargs):
                 'sum': numpy.sum(mdata),
                 'medianabs': numpy.median(numpy.abs(mdata)),
                 'median': numpy.median(mdata)}
-
+    
     qa = QA(origin="qa_image",
             data=data,
             context=get_parameter(kwargs, 'context', ""))

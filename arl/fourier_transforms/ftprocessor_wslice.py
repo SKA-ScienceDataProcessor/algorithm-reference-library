@@ -101,7 +101,7 @@ def predict_wslice_single(vis, model, **kwargs):
     
     # and now the imaginary part
     workimage.data = w_beam.data.imag * model.data
-    tempvis = predict_2d(tempvis, workimage, **kwargs)
+    tempvis = predict_2d_base(tempvis, workimage, **kwargs)
     vis.data['vis'] -= 1j * tempvis.data['vis']
     
     return vis
@@ -177,7 +177,7 @@ def invert_wslice_single(vis, im, dopsf, **kwargs):
     :param dopsf: Make the psf instead of the dirty image
     """
     kwargs['imaginary'] = True
-    reWorkimage, sumwt, imWorkimage = invert_2d(vis, im, dopsf, **kwargs)
+    reWorkimage, sumwt, imWorkimage = invert_2d_base(vis, im, dopsf, **kwargs)
     # We don't normalise since that will be done after summing all images
     # export_image_to_fits(workimage, "uncorrected_snapshot_image%d.fits" % (int(numpy.average(vis.w))))
 
