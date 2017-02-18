@@ -197,7 +197,7 @@ def kernel_oversample(ff, npixel, kernel_oversampling, kernelwidth):
     :param ff: Far field pattern
     :param npixel: Image size without oversampling
     :param kernel_oversampling: Factor to oversample by -- there will be kernel_oversampling x kernel_oversampling
-    convolution functions
+        convolution functions
     :param kernelwidth: Size of convolution function to extract
     :returns: Numpy array of shape [ov, ou, v, u], e.g. with sub-pixel offsets as the outer coordinates.
     """
