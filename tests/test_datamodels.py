@@ -21,12 +21,12 @@ class TestDataModels(unittest.TestCase):
         direction = SkyCoord('00h42m30s', '-41d12m00s', frame='icrs')
         frequency=numpy.arange(1.0e8,1.5e8,3e7)
         comp = create_skycomponent(direction=direction, flux=flux, frequency=frequency, shape='Point')
-        assert comp.flux.shape == [2,4]
+        assert comp.flux.shape == (2,4)
         assert comp.direction.separation(direction) == 0.0
         assert comp.shape == 'Point'
 
     def test_configuration(self):
-        for telescope in ['LOWBD1', 'LOWBD2', 'LOWBD2-CORE', 'LOFAR', 'VLAA', 'VLAA-north']:
+        for telescope in ['LOWBD1', 'LOWBD2', 'LOWBD2-CORE', 'LOFAR', 'VLAA', 'VLAA_north']:
             fc = create_named_configuration(telescope)
             log.debug(fc.location.to_geodetic())
 
