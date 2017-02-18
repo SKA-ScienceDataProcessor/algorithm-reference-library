@@ -9,9 +9,9 @@ import numpy
 from astropy import units as u
 from astropy.coordinates import SkyCoord
 
-from arl.util.testing_support import *
+from arl.util.testing_support import create_low_test_image, create_named_configuration, create_test_image
 from arl.visibility.iterators import *
-from arl.visibility.operations import create_visibility, create_visibility_from_rows
+from arl.visibility.operations import create_visibility
 
 import logging
 
@@ -20,6 +20,7 @@ log = logging.getLogger(__name__)
 
 class TestTesting_Support(unittest.TestCase):
     def setUp(self):
+        self.frequency = numpy.array([1e8])
         self.phasecentre = SkyCoord(ra=+15.0 * u.deg, dec=-35.0 * u.deg, frame='icrs', equinox=2000.0)
     
     def createVis(self, config, dec = -35.0):
@@ -32,9 +33,8 @@ class TestTesting_Support(unittest.TestCase):
 
 
         times = numpy.linspace(-300.0, 300.0, 11) * numpy.pi / 43200.0
-        frequency = numpy.array([1e8])
-        self.phasecentre = SkyCoord(ra=+15.0 * u.deg, dec=dec * u.deg, frame='icrs', equinox=2000.0)
-        self.vis = create_visibility(self.config, times, frequency, phasecentre=self.phasecentre, weight=1.0)
+        self.vis = create_visibility(self.config, times, self.frequency,
+                                     phasecentre=self.phasecentre, weight=1.0)
         
     def test_named_configurations(self):
         for config in ['LOWBD2', 'LOWBD2-CORE', 'LOWBD1', 'LOFAR']:
@@ -48,18 +48,16 @@ class TestTesting_Support(unittest.TestCase):
         assert len(im.data.shape) == 2
         im = create_test_image(canonical=True)
         assert len(im.data.shape) == 4
-        im = create_test_image(canonical=True, npol=4, nchan=3)
+        im = create_test_image(canonical=True, npol=4, frequency=numpy.array([1e8]))
         assert len(im.data.shape) == 4
-        assert im.data.shape[0] == 3
+        assert im.data.shape[0] == 1
         assert im.data.shape[1] == 4
 
     def test_create_low_test_image(self):
-        im = create_low_test_image(npixel=1024, channelwidth=1e5, nchan=1,
+        im = create_low_test_image(npixel=1024, channelwidth=1e5,
+                                   frequency=numpy.array([1e8]),
                                    phasecentre=self.phasecentre)
         assert im.data.shape[0] == 1
         assert im.data.shape[1] == 1
         assert im.data.shape[2] == 1024
         assert im.data.shape[3] == 1024
-
-if __name__ == '__main__':
-    run_unittests()

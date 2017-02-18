@@ -5,9 +5,8 @@ Definition of structures needed by the function interface.
 """
 
 import csv
-import unittest
 
-from astropy.coordinates import ICRS, EarthLocation
+from astropy.coordinates import EarthLocation
 from astropy.wcs import WCS
 
 from arl.data.data_models import *
@@ -18,7 +17,8 @@ from arl.util.coordinate_support import *
 log = logging.getLogger(__name__)
 
 
-def create_configuration_from_file(antfile: str, name: str = None, location: EarthLocation = None, mount: str = 'altaz',
+def create_configuration_from_file(antfile: str, name: str = None, location: EarthLocation = None,
+                                   mount: str = 'altaz',
                                    names: str = "%d", frame: str = 'local',
                                    meta: dict = None,
                                    **kwargs):
@@ -183,7 +183,7 @@ def create_low_test_image(npixel=16384, npol=1, nchan=1, cellsize=0.000015, freq
     
     model = create_image_from_array(numpy.zeros(shape), w)
     
-    with open(arl_path('data/models/S3_151MHz_20deg.csv')) as csvfile:
+    with open(arl_path('data/models/S3_151MHz_10deg.csv')) as csvfile:
         readCSV = csv.reader(csvfile, delimiter=',')
         r = 0
         for row in readCSV:
@@ -204,14 +204,16 @@ def create_low_test_image(npixel=16384, npol=1, nchan=1, cellsize=0.000015, freq
     ip = numpy.round(p).astype('int')
     ok = numpy.where((0 <= ip[0,:]) & (npixel > ip[0,:]) & (0 <= ip[1,:]) & (npixel > ip[1,:]))[0]
     ps = ip[:,ok]
-    actual_flux = numpy.sum(fluxes[ok])
+    fluxes = fluxes[ok]
+    actual_flux = numpy.sum(fluxes)
 
     log.info('create_low_test_image: %d sources inside the image' % (ps.shape[1]))
     # noinspection PyStringFormat,PyStringFormat
     log.info('create_low_test_image: flux in S3 model = %.3f, actual flux in image = %.3f' % (total_flux, actual_flux))
     for chan in range(nchan):
         for pol in range(npol):
-            model.data[chan, pol, ip[1,ok], ip[0,ok]] += fluxes[ok]
+            for iflux, flux in enumerate(fluxes):
+                model.data[chan, pol, ps[1, iflux], ps[0, iflux]] = flux
     
     return model
 
@@ -285,18 +287,18 @@ def replicate_image(im: Image, npol=4, nchan=1, frequency=1.4e9):
     
     return fim
 
-
-def run_unittests(logLevel=logging.DEBUG, *args, **kwargs):
-    """Runs the unit tests in all loaded modules.
-
-    :param logLevel: The amount of logging to generate. By default, we
-      show all log messages (level DEBUG)
-    """
-    
-    # Set up logging environment
-    rootLog = logging.getLogger()
-    rootLog.setLevel(logLevel)
-    rootLog.addHandler(logging.StreamHandler(sys.stderr))
-    
-    # Call unittest main
-    unittest.main(*args, **kwargs)
+#
+# def run_unittests(logLevel=logging.DEBUG, *args, **kwargs):
+#     """Runs the unit tests in all loaded modules.
+#
+#     :param logLevel: The amount of logging to generate. By default, we
+#       show all log messages (level DEBUG)
+#     """
+#
+#     # Set up logging environment
+#     rootLog = logging.getLogger()
+#     rootLog.setLevel(logLevel)
+#     rootLog.addHandler(logging.StreamHandler(sys.stderr))
+#
+#     # Call unittest main
+#     unittest.main(*args, **kwargs)
