@@ -4,6 +4,8 @@
 Definition of structures needed by the function interface.
 """
 
+import unittest
+
 import csv
 
 from astropy.coordinates import EarthLocation
@@ -144,7 +146,7 @@ def create_test_image(canonical=True, npol=4, cellsize=None, frequency=None, pha
     return im
 
 def create_low_test_image(npixel=16384, npol=1, nchan=1, cellsize=0.000015, frequency=1e8, channelwidth=1e6,
-                          phasecentre=None):
+                          phasecentre=None, fov=20):
     """Create LOW test image from S3
     
     The input catalog was generated at http://s-cubed.physics.ox.ac.uk/s3_sex using the following query
@@ -183,7 +185,8 @@ def create_low_test_image(npixel=16384, npol=1, nchan=1, cellsize=0.000015, freq
     
     model = create_image_from_array(numpy.zeros(shape), w)
     
-    with open(arl_path('data/models/S3_151MHz_10deg.csv')) as csvfile:
+    assert fov in [10, 20, 40], "Field of view invalid: use one of %s" % ([10, 20, 40])
+    with open(arl_path('data/models/S3_151MHz_%ddeg.csv' % (fov))) as csvfile:
         readCSV = csv.reader(csvfile, delimiter=',')
         r = 0
         for row in readCSV:
@@ -287,18 +290,18 @@ def replicate_image(im: Image, npol=4, nchan=1, frequency=1.4e9):
     
     return fim
 
-#
-# def run_unittests(logLevel=logging.DEBUG, *args, **kwargs):
-#     """Runs the unit tests in all loaded modules.
-#
-#     :param logLevel: The amount of logging to generate. By default, we
-#       show all log messages (level DEBUG)
-#     """
-#
-#     # Set up logging environment
-#     rootLog = logging.getLogger()
-#     rootLog.setLevel(logLevel)
-#     rootLog.addHandler(logging.StreamHandler(sys.stderr))
-#
-#     # Call unittest main
-#     unittest.main(*args, **kwargs)
+
+def run_unittests(logLevel=logging.DEBUG, *args, **kwargs):
+    """Runs the unit tests in all loaded modules.
+
+    :param logLevel: The amount of logging to generate. By default, we
+      show all log messages (level DEBUG)
+    """
+
+    # Set up logging environment
+    rootLog = logging.getLogger()
+    rootLog.setLevel(logLevel)
+    rootLog.addHandler(logging.StreamHandler(sys.stderr))
+
+    # Call unittest main
+    unittest.main(*args, **kwargs)

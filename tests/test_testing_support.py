@@ -56,7 +56,7 @@ class TestTesting_Support(unittest.TestCase):
     def test_create_low_test_image(self):
         im = create_low_test_image(npixel=1024, channelwidth=1e5,
                                    frequency=numpy.array([1e8]),
-                                   phasecentre=self.phasecentre)
+                                   phasecentre=self.phasecentre, fov=10)
         assert im.data.shape[0] == 1
         assert im.data.shape[1] == 1
         assert im.data.shape[2] == 1024
