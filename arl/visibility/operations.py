@@ -186,11 +186,9 @@ def create_visibility_from_rows(vis: Visibility, rows, makecopy=True) -> Visibil
     if makecopy:
         newvis = copy_visibility(vis)
         newvis.data = copy.deepcopy(vis.data[rows])
-        assert len(newvis.data) == numpy.sum(rows)
         return newvis
     else:
         vis.data = copy.deepcopy(vis.data[rows])
-        assert len(vis.data) == numpy.sum(rows)
         return vis
 
 

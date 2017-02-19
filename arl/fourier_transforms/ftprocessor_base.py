@@ -16,11 +16,12 @@ from arl.fourier_transforms.fft_support import fft, ifft, pad_mid, extract_mid
 from arl.fourier_transforms.ftprocessor_params import get_frequency_map, \
     get_polarisation_map, get_uvw_map, get_kernel_list
 from arl.image.iterators import *
-from arl.image.operations import copy_image
+from arl.image.operations import copy_image, create_empty_image_like
 from arl.util.coordinate_support import simulate_point, skycoord_to_lmn
 from arl.visibility.coalesce import coalesce_visibility, decoalesce_visibility
-from arl.visibility.iterators import *
-from arl.visibility.operations import phaserotate_visibility, copy_visibility
+from arl.visibility.iterators import vis_slice_iter, vis_wslice_iter, vis_timeslice_iter
+from arl.visibility.operations import phaserotate_visibility, copy_visibility, create_visibility_from_rows
+from arl.data.parameters import get_parameter
 
 
 log = logging.getLogger(__name__)
@@ -98,8 +99,8 @@ def predict_2d_base(vis, model, **kwargs):
 
     uvgrid = fft((pad_mid(model.data, padding * nx) * gcf).astype(dtype=complex))
     
-    cvis.data['vis'] = fixed_kernel_degrid(vkernellist, cvis.data['vis'].shape, uvgrid, vuvwmap, vfrequencymap,
-                                           vpolarisationmap)
+    cvis.data['vis'] = fixed_kernel_degrid(vkernellist, cvis.data['vis'].shape, uvgrid,
+                                           vuvwmap, vfrequencymap, vpolarisationmap)
     
     dvis = decoalesce_visibility(cvis, vis, cindex=cindex)
 
@@ -443,4 +444,3 @@ def create_w_term_image(vis, w=None, **kwargs):
     log.info('create_w_term_image: For w = %.1f, field of view = %.6f, Fresnel number = %.2f' % (w, fov, fresnel))
 
     return im
-

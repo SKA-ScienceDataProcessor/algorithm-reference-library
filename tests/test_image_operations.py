@@ -47,8 +47,8 @@ class TestImage(unittest.TestCase):
         newshape[2] /= 1.5
         newshape[3] /= 1.5
         newimage, footprint=reproject_image(self.m31image, newwcs, shape=newshape)
-        export_image_to_fits(newimage, fitsfile='%s/reproject_image.fits' % (self.dir))
-        export_image_to_fits(footprint, fitsfile='%s/reproject_footprint.fits' % (self.dir))
+        # export_image_to_fits(newimage, fitsfile='%s/reproject_image.fits' % (self.dir))
+        # export_image_to_fits(footprint, fitsfile='%s/reproject_footprint.fits' % (self.dir))
 
 if __name__ == '__main__':
     run_unittests()

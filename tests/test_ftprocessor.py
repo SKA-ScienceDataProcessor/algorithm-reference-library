@@ -22,6 +22,7 @@ log = logging.getLogger(__name__)
 class TestFTProcessor(unittest.TestCase):
     def _checkdirty(self, vis, name='test_invert_2d_dirty', fluxthreshold=1.0):
         # Make the dirty image
+        self.params['imaginary'] = False
         dirty = create_empty_image_like(self.model)
         dirty, sumwt = invert_2d(vis=vis, im=dirty, dopsf=False, **self.params)
         dirty = normalize_sumwt(dirty, sumwt)
@@ -169,29 +170,17 @@ class TestFTProcessor(unittest.TestCase):
         self._predict_base(predict_by_image_partitions, fluxthreshold=1e-7)
 
     def test_predict_timeslice(self):
-        self.actualSetUp()
         # This works very poorly because of the poor interpolation accuracy for point sources
-        for self.params['usereproject'] in [True, False]:
-            self.actualSetUp()
-            self.params['nprocessor'] = 1
-            self._predict_base(predict_timeslice, fluxthreshold=10.0)
-        for self.params['nprocessor'] in [1, 4]:
-            self.actualSetUp()
-            self.params['usereproject'] = False
-            self._predict_base(predict_timeslice, fluxthreshold=10.0)
+        self.actualSetUp()
+        self.params['nprocessor']=1
+        self.params['usereproject'] = False
+        self._predict_base(predict_timeslice, fluxthreshold=10.0)
 
     def test_predict_wslice(self):
         self.actualSetUp()
-        self.params = {'npixel': 256,
-                       'npol': 1,
-                       'cellsize': 0.001,
-                       'padding': 2,
-                       'oversampling': 8,
-                       'wstep': 10.0,
-                       'wslice': 10.0}
-        for self.params['nprocessor'] in [1, 4]:
-            self.actualSetUp()
-            self._predict_base(predict_wslice, fluxthreshold=2.0)
+        self.params['wslice']=10.0
+        self.params['imaginary'] = True
+        self._predict_base(predict_wslice, fluxthreshold=2.0)
 
     def test_predict_wprojection(self):
         self.actualSetUp()
@@ -303,6 +292,16 @@ class TestFTProcessor(unittest.TestCase):
         im = create_image_from_visibility(self.componentvis, nchan=1, npol=4, npixel=128)
         assert im.data.shape == (1, 4, 128, 128)
 
+    def test_create_w_term_image(self):
+        self.actualSetUp()
+        im = create_w_term_image(self.componentvis, nchan=1, npol=1, npixel=128)
+        assert im.data.dtype == 'complex128'
+        assert im.data.shape == (128, 128)
+        self.assertAlmostEqual(numpy.max(im.data.real), 1.0, 7)
+        im = create_w_term_image(self.componentvis, w=10.0, nchan=1, npol=1, npixel=128)
+        assert im.data.shape == (128, 128)
+        assert im.data.dtype == 'complex128'
+        self.assertAlmostEqual(numpy.max(im.data.real), 1.0, 7)
 
 
 if __name__ == '__main__':

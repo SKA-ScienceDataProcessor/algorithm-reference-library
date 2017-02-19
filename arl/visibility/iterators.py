@@ -44,7 +44,6 @@ def vis_wslice_iter(vis, wslice, **kwargs):
 
     :param wslice: wslice (wavelengths) (must be specified)
     :returns: Boolean array with selected rows=True
-
     """
     assert wslice is not None, "wslice must be specified"
     wmaxabs = (numpy.max(numpy.abs(vis.w)))
@@ -56,3 +55,14 @@ def vis_wslice_iter(vis, wslice, **kwargs):
         if numpy.sum(rows) > 0:
             yield rows
 
+
+def vis_slice_iter(vis, step, **kwargs):
+    """ Iterates in slices
+
+    :param step: Size of step to be iterated over (in rows)
+    :returns: Boolean array with selected rows=True
+
+    """
+    assert step > 0
+    for row in range(0, vis.nvis, step):
+            yield range(row, min(row+step, vis.nvis))
