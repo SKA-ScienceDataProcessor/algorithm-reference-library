@@ -11,7 +11,7 @@ from arl.data.parameters import *
 log = logging.getLogger("visibility.calibration")
 
 
-# noinspection PyUnreachableCode
+
 def interpolate_gaintable(gt: GainTable, **kwargs):
     """ Interpolate a GainTable to new sampling
 
@@ -25,8 +25,8 @@ def interpolate_gaintable(gt: GainTable, **kwargs):
     return GainTable()
 
 
-# noinspection PyUnreachableCode
-def solve_gains(vis: BlockVisibility, sm: Skymodel, **kwargs) -> GainTable:
+
+def solve_gains(vis: Visibility, sm: Skymodel, **kwargs) -> GainTable:
     """ Solve for calibration using a sky model
     
     :param params:
@@ -34,46 +34,46 @@ def solve_gains(vis: BlockVisibility, sm: Skymodel, **kwargs) -> GainTable:
     :param sm:
     :returns: GainTable
     """
-    assert type(vis) is BlockVisibility, "vis is not a BlockVisibility: %r" % vis
+    assert type(vis) is Visibility, "vis is not a Visibility: %r" % vis
 
     # TODO: Implement calibration solution
     raise RuntimeError("solve_gains: not yet implemented")
     return GainTable()
 
 
-# noinspection PyUnreachableCode
-def correct_blockvisibility(vis: BlockVisibility, gt: GainTable, **kwargs) -> BlockVisibility:
+
+def correct_visibility(vis: Visibility, gt: GainTable, **kwargs) -> Visibility:
     """ Correct a vistable using a GainTable
 
     :param params:
-    :param vis: BlockVisibility to be processed
+    :param vis: Visibility to be processed
     :param gt: GainTable
-    :returns: BlockVisibility
+    :returns: Visibility
     """
-    assert type(vis) is BlockVisibility, "vis is not a BlockVisibility: %r" % vis
+    assert type(vis) is Visibility, "vis is not a Visibility: %r" % vis
 
     # TODO: Implement calibration application
-    raise RuntimeError("correct_blockvisibility: not yet implemented")
+    raise RuntimeError("correct_visibility: not yet implemented")
     return vis
 
 
-# noinspection PyUnreachableCode
-def peel_skycomponent(vis: BlockVisibility, sc: Skycomponent, **kwargs) -> BlockVisibility:
+
+def peel_skycomponent(vis: Visibility, sc: Skycomponent, **kwargs) -> Visibility:
     """ Correct a vistable using a GainTable
 
     :param params:
-    :param vis: BlockVisibility to be processed
+    :param vis: Visibility to be processed
     :param sc:
-    :returns: BlockVisibility, GainTable
+    :returns: Visibility, GainTable
     """
     # TODO: Implement peeling
-    assert type(vis) is BlockVisibility, "vis is not a BlockVisibility: %r" % vis
+    assert type(vis) is Visibility, "vis is not a Visibility: %r" % vis
 
     raise RuntimeError("peel_skycomponent: not yet implemented")
     return vis
 
 
-# noinspection PyUnreachableCode
+
 def qa_gaintable(gt, **kwargs):
     """Assess the quality of a gaintable
 

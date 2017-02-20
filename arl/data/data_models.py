@@ -76,7 +76,7 @@ class GainTable:
 
     def __init__(self, data=None, gain: numpy.array=None, time: numpy.array=None, antenna: numpy.array=None,
                  weight: numpy.array=None, frequency: numpy.array=None,
-                 polarisation_frame: Polarisation_Frame=Polarisation_Frame.stokesI):
+                 polarisation_frame: Polarisation_Frame=Polarisation_Frame('stokesI')):
         """ Create a gaintable from arrays
 
         :param gain: [npol, nchan]
@@ -220,123 +220,6 @@ class Skymodel:
         self.components = []  # collection of SkyComponents
 
 
-class BlockVisibility:
-    """ BlockVisibility table class
-
-    BlockVisibility with uvw, time, a1, a2, vis, weight Columns in
-    a numpy structured array along with an attribute to hold the frequencies
-    and an attribute to hold the direction.
-
-    BlockVisibility is defined to hold an observation with one set of frequencies and one
-    direction.
-
-    The data column has vis:[a2,a1,nchan,npol], uvw:[3], time, integration_time
-    """
-    
-    def __init__(self,
-                 data=None, time=None, frequency=None, polarisation=None, phasecentre=None, configuration=None,
-                 uvw=None, antenna1=None, antenna2=None, vis=None, weight=None,
-                 imaging_weight=None, integration_time=None):
-        if data is None and vis is not None:
-            if imaging_weight is None:
-                imaging_weight = weight
-            nvis = vis.shape[0]
-            nants2 = vis.shape[1]
-            nants1 = vis.shape[2]
-            nchan = vis.shape[3]
-            npol = vis.shape[4]
-            desc = [('uvw', '<f8', (nants2,3)),
-                    ('time', '<f8'),
-                    ('integration_time', '<f8'),
-                    ('antenna1', '<i8'),
-                    ('antenna2', '<i8'),
-                    ('vis', '<c16', (nants2, nants1, nchan, npol)),
-                    ('weight', '<f8', (nants2, nants1, nchan, npol)),
-                    ('imaging_weight', '<f8', (nants2, nants1, nchan, npol))]
-            data = numpy.zeros(shape=[nvis], dtype=desc)
-            data['uvw'] = uvw
-            data['time'] = time
-            data['integration_time'] = integration_time
-            data['vis'] = vis
-            data['weight'] = weight
-            data['imaging_weight'] = imaging_weight
-        self.frequency = frequency
-        self.polarisation = polarisation
-        self.data = data  # numpy structured array with columns uvw, time, a1, a2, vis, weight, imaging_weight
-        self.frequency = frequency  # numpy.array [nchan]
-        self.phasecentre = phasecentre  # Phase centre of observation
-        self.configuration = configuration  # Antenna/station configuration
-    
-    def size(self):
-        """ Return size in GB
-        """
-        size = 0
-        size += numpy.size(self.frequency)
-        for col in self.data.dtype.fields.keys():
-            size += self.data[col].size * sys.getsizeof(self.data[col])
-        return size / 1024.0 / 1024.0 / 1024.0
-    
-    @property
-    def nvis(self):
-        return self.data['vis'].shape[0]
-    
-    @property
-    def nchan(self):
-        return self.data['vis'].shape[1]
-    
-    @property
-    def npol(self):
-        return self.data['vis'].shape[2]
-    
-    @property
-    def uvw(self):
-        return self.data['uvw']
-    
-    @property
-    def u(self):
-        return self.data['uvw'][:, 0]
-    
-    @property
-    def v(self):
-        return self.data['uvw'][:, 1]
-    
-    @property
-    def w(self):
-        return self.data['uvw'][:, 2]
-
-    @property
-    def time(self):
-        return self.data['time']
-
-    @property
-    def integration_time(self):
-        return self.data['integration_time']
-
-    @property
-    def antenna1(self):
-        return self.data['antenna1']
-    
-    @property
-    def antenna2(self):
-        return self.data['antenna2']
-    
-    @property
-    def vis(self):
-        return self.data['vis']
-    
-    @property
-    def weight(self):
-        return self.data['weight']
-    
-    @property
-    def imaging_weight(self):
-        return self.data['imaging_weight']
-    
-    def uvw_lambda(self, channel=0):
-        """ Calculates baseline coordinates in wavelengths. """
-        return self.data['uvw'] * self.frequency[channel] / c.value
-
-
 class Visibility:
     """ Visibility table class
 
@@ -351,7 +234,7 @@ class Visibility:
                  data=None, frequency=None, channel_bandwidth=None, phasecentre=None, configuration=None,
                  uvw=None, time=None, antenna1=None, antenna2=None, polarisation=None,
                  vis=None, weight=None, imaging_weight=None, integration_time=None,
-                 polarisation_frame = Polarisation_Frame.linear):
+                 polarisation_frame = Polarisation_Frame('stokesI')):
         if data is None and vis is not None:
             if imaging_weight is None:
                 imaging_weight = weight

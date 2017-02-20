@@ -31,55 +31,9 @@ def copy_visibility(vis):
     return newvis
 
 
-def create_blockvisibility(config: Configuration, times: numpy.array, freq: numpy.array, phasecentre: SkyCoord,
-                      weight: float, meta: dict = None, npol=4, integration_time=1.0) -> BlockVisibility:
-    """ Create a BlockVisibility from Configuration, hour angles, and direction of source
-    
-    Note that we keep track of the integration time for BDA purposes
-
-    :param config: Configuration of antennas
-    :param times: hour angles in radians
-    :param freq: frequencies (Hz] Shape [nchan]
-    :param weight: weight of a single sample
-    :param phasecentre: phasecentre of observation
-    :param npol: Number of polarizations
-    :param integration_time: Integration time ('auto' or value in s)
-    :returns: BlockVisibility
-    """
-    assert phasecentre is not None, "Must specify phase centre"
-    nch = len(freq)
-    ants_xyz = config.data['xyz']
-    nants = len(config.data['names'])
-    nbaselines = int(nants * (nants - 1) / 2)
-    ntimes = len(times)
-    nrows = nbaselines * ntimes
-    row = 0
-    rvis = numpy.zeros([nrows, nch, npol], dtype='complex')
-    rweight = weight * numpy.ones([nrows, nch, npol])
-    rtimes = numpy.zeros([nrows])
-    rantenna1 = numpy.zeros([nrows], dtype='int')
-    rantenna2 = numpy.zeros([nrows], dtype='int')
-    for ha in times:
-        rtimes[row:row + nbaselines] = ha * 43200.0 / numpy.pi
-        for a1 in range(nants):
-            for a2 in range(a1 + 1, nants):
-                rantenna1[row] = a1
-                rantenna2[row] = a2
-                row += 1
-    ruvw = xyz_to_baselines(ants_xyz, times, phasecentre.dec.rad)
-    rintegration_time = numpy.full_like(rtimes, integration_time)
-    vis = BlockVisibility(uvw=ruvw, time=rtimes, antenna1=rantenna1, antenna2=rantenna2, vis=rvis, weight=rweight,
-                          imaging_weight=rweight, integration_time=rintegration_time)
-    vis.frequency = freq
-    vis.phasecentre = phasecentre
-    vis.configuration = config
-    log.info("create_blockvisibility: %s" % (vis_summary(vis)))
-    return vis
-
-
 def create_visibility(config: Configuration, times: numpy.array, freq: numpy.array,
                                 phasecentre: SkyCoord, weight: float, npol=4,
-                                pol_frame=Polarisation_Frame.linear,
+                                pol_frame=Polarisation_Frame('stokesI'),
                                 integration_time=1.0, channel_bandwidth=1e6) -> Visibility:
     """ Create a Visibility from Configuration, hour angles, and direction of source
 
@@ -149,27 +103,6 @@ def create_visibility(config: Configuration, times: numpy.array, freq: numpy.arr
     assert type(vis) is Visibility, "vis is not a Visibility: %r" % vis
     
     return vis
-
-
-def create_blockvisibility_from_rows(vis: BlockVisibility, rows, makecopy=True) -> BlockVisibility:
-    """ Create a BlockVisibility from selected rows
-
-    :param vis: BlockVisibility
-    :param rows: Boolean array of row selction
-    :param makecopy: Make a deep copy (True)
-    :returns: BlockVisibility
-    """
-    assert type(vis) is BlockVisibility, "vis is not a BlockVisibility: %r" % vis
-    
-    if makecopy:
-        newvis = copy_visibility(vis)
-        newvis.data = copy.deepcopy(vis.data[rows])
-        assert len(newvis.data) == numpy.sum(rows)
-        return newvis
-    else:
-        vis.data = copy.deepcopy(vis.data[rows])
-        assert len(vis.data) == numpy.sum(rows)
-        return vis
 
 
 def create_visibility_from_rows(vis: Visibility, rows, makecopy=True) -> Visibility:

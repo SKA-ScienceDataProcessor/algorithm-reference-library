@@ -55,34 +55,16 @@ The pattern used in these algorithms is abstracted in the following diagram:
 .. image:: ./ARL_fourier_processing.png
       :width: 1024px
 
-These can be defined as stateless functions::
+The layering of predict and invert classes is shown below:
 
-    def predict_image_partition(vis, model, predict_function, params):
-        """ Predict using image partitions
+.. image:: ARL_predict_layering.png
+      :width: 1024px
 
-        """
-        nraster = get_parameter(params, "image_partitions", 3)
-        for ipatch in raster(model, nraster=nraster):
-            predict_function(vis, ipatch, params)
+.. image:: ARL_invert_layering.png
+      :width: 1024px
 
-        return vis
+The top level functions are in green. All capability is therefore layered on two functions, predict_2d and invert_2d.
 
-
-    def predict_wslices(vis, model, predict_function, params):
-        """ Predict using image partitions
-
-        """
-        wstep = get_parameter(params, "wstep", 1000)
-        for ipatch in wslice(model, wstep):
-            predict_function(vis, ipatch, params)
-
-        return vis
-
-These can be nested as such::
-
-    predict_wslices(vis, model, predict_function=predict_image_partition)
-
-This will perform wslice transforms and inside those, image partition transforms.
 
 Parallel processing
 *******************
@@ -91,59 +73,57 @@ ARL uses parallel processing to speed up some calculations. It is not intended t
 parallel processing should be implemented in SDP.
 
 We use an openMP-like package `pypm <https://github.com/classner/pymp/>`_. An example is to be found in
-arl/fourier_transforms/invert-timeslice. The data are divided into timeslices and then processed in parallel::
+arl/fourier_transforms/invert_with_iterator. The data are divided into timeslices and then processed in parallel::
 
-   def invert_timeslice(vis, im, dopsf=False, **kwargs):
-       """ Invert using time slices (top level function)
+      def invert_with_iterator(vis, im, dopsf=False, vis_iter=vis_slice_iter, invert=invert_2d, **kwargs):
+          """ Invert using a specified iterator and invert
 
-       Use the image im as a template. Do PSF in a separate call.
+          This knows about the structure of invert in different execution frameworks but not
+          anything about the actual processing. This version support pymp and serial processing
 
-       :param vis: Visibility to be inverted
-       :param im: image template (not changed)
-       :param dopsf: Make the psf instead of the dirty image
-       :param nprocessor: Number of processors to be used (1)
-       :returns: resulting image[nchan, npol, ny, nx], sum of weights[nchan, npol]
+          :param vis:
+          :param im:
+          :param dopsf:
+          :param kwargs:
+          :return:
+          """
+          resultimage = create_empty_image_like(im)
 
-       """
-       log.debug("invert_timeslice: inverting using time slices")
-       resultimage = create_image_from_array(im.data, im.wcs)
-       resultimage.data = pymp.shared.array(resultimage.data.shape)
-       resultimage.data *= 0.0
+          nproc = get_parameter(kwargs, "nprocessor", 1)
+          if nproc == "auto":
+              nproc = multiprocessing.cpu_count()
+          inchan, inpol, _, _ = im.data.shape
+          totalwt = numpy.zeros([inchan, inpol], dtype='float')
+          if nproc > 1:
+              # We need to tell pymp that some arrays are shared
+              resultimage.data = pymp.shared.array(resultimage.data.shape)
+              resultimage.data *= 0.0
+              totalwt = pymp.shared.array([inchan, inpol])
 
-       nproc = get_parameter(kwargs, "nprocessor", 1)
+              # Extract the slices and run  on each one in parallel
+              nslices = 0
+              rowses = []
+              for rows in vis_iter(vis, **kwargs):
+                  nslices += 1
+                  rowses.append(rows)
 
-       nchan, npol, _, _ = im.data.shape
+              log.debug("invert_iteratoe: Processing %d chunks %d-way parallel" % (nslices, nproc))
+              with pymp.Parallel(nproc) as p:
+                  for index in p.range(0, nslices):
+                      visslice = create_visibility_from_rows(vis, rowses[index])
+                      workimage, sumwt = invert(visslice, im, dopsf, **kwargs)
+                      resultimage.data += workimage.data
+                      totalwt += sumwt
 
-       totalwt = numpy.zeros([nchan, npol], dtype='float')
+          else:
+              # Do each slice in turn
+              i = 0
+              for rows in vis_iter(vis, **kwargs):
+                  visslice = create_visibility_from_rows(vis, rows)
+                  workimage, sumwt = invert(visslice, im, dopsf, **kwargs)
+                  resultimage.data += workimage.data
+                  totalwt += sumwt
+                  i += 1
+          return resultimage, totalwt
 
-       if nproc > 1:
-           # We need to tell pymp that some arrays are shared
-           resultimage.data = pymp.shared.array(resultimage.data.shape)
-           resultimage.data *= 0.0
-           totalwt = pymp.shared.array([nchan, npol])
-
-           # Extract the slices and run invert_timeslice_single on each one in parallel
-           nslices = 0
-           rowses = []
-           for rows in vis_timeslice_iter(vis, **kwargs):
-               nslices += 1
-               rowses.append(rows)
-
-           log.debug("invert_timeslice: Processing %d time slices %d-way parallel" % (nslices, nproc))
-           with pymp.Parallel(nproc) as p:
-               for index in p.range(0, nslices):
-                   visslice = create_visibility_from_rows(vis, rowses[index])
-                   workimage, sumwt = invert_timeslice_single(visslice, im, dopsf, **kwargs)
-                   resultimage.data += workimage.data
-                   totalwt += sumwt
-
-       else:
-           # Do each slice in turn
-           for rows in vis_timeslice_iter(vis, **kwargs):
-               visslice=create_visibility_from_rows(vis, rows)
-               workimage, sumwt = invert_timeslice_single(visslice, im, dopsf, **kwargs)
-               resultimage.data += workimage.data
-               totalwt += sumwt
-
-       return resultimage, totalwt
 

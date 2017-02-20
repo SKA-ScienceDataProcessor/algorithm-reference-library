@@ -8,38 +8,28 @@ class Polarisation_Frame:
     """ Define polarisation frames
 
     """
-    
+    def __init__(self, name):
+
+        self.pol_frames = {
+            'circular': {'RR': 0, 'RL': 1, 'LR': 2, 'LL': 3},
+            'circularnp': {'RR': 0, 'LL': 1},
+            'linear': {'XX': 0, 'XY': 1, 'YX': 2, 'YY': 3},
+            'linearnp': {'XX': 0, 'YY': 1},
+            'stokesIQUV': {'I': 0, 'Q': 1, 'U': 2, 'V': 3},
+            'stokesIV': {'I': 0, 'V': 1},
+            'stokesIQ': {'I': 0, 'Q': 1},
+            'stokesI':  {'I': 0}
+        }
+        if name in self.pol_frames.keys():
+            self.type = name
+            self.translations = self.pol_frames[name]
+        else:
+            raise RuntimeError("Unknown polarisation frame %s" % str(name))
+        
     @property
-    def circular(self):
-        return 'circular', {'RR': 0, 'RL': 1, 'LR': 2, 'LL': 3}
-    
-    @staticmethod
-    def circularnp():
-        return 'circularnp', {'RR': 0, 'LL': 3}
-    
-    @property
-    def linear(self):
-        return 'linear', {'XX': 0, 'XY': 1, 'YX': 2, 'YY': 3}
-    
-    @property
-    def linearnp(self):
-        return 'linearnp', {'XX': 0, 'YY': 3}
-    
-    @property
-    def stokesIQUV(self):
-        return 'stokes', {'I': 0, 'Q': 1, 'U': 2, 'V': 3}
-    
-    @property
-    def stokesIV(self):
-        return 'stokes', {'I': 0, 'V': 3}
-    
-    @property
-    def stokesIQ(self):
-        return 'stokes', {'I': 0, 'Q': 1}
-    
-    @property
-    def stokesI(self):
-        return 'stokes', {'I': 0}
+    def npol(self):
+        return len(self.translations.keys())
+
 
 
 def convert_stokes_to_linear(inpol, inverse=False):
@@ -54,7 +44,7 @@ def convert_linear_to_circular(inpol, inverse=False):
     return inpol
 
 
-def convert_polarisation_frame(inpol, inframe=Polarisation_Frame.stokesIQ, outframe=Polarisation_Frame.linear):
+def convert_polarisation_frame(inpol, inframe, outframe):
     return inpol
 
 

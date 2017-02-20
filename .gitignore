@@ -46,3 +46,4 @@ temp.fits
 /.pydevproject
 /tests/test_results
 /test_results
+/test_coverage

@@ -175,7 +175,7 @@ def create_low_test_image(npixel=16384, npol=1, nchan=1, cellsize=0.000015, freq
     w = WCS(naxis=4)
     # The negation in the longitude is needed by definition of RA, DEC
     w.wcs.cdelt = [-cellsize * 180.0 / numpy.pi, cellsize * 180.0 / numpy.pi, 1.0, channelwidth]
-    w.wcs.crpix = [npixel // 2 + 1, npixel // 2 + 1, 1.0, 1.0]
+    w.wcs.crpix = [npixel // 2, npixel // 2, 1.0, 1.0]
     w.wcs.ctype = ["RA---SIN", "DEC--SIN", 'STOKES', 'FREQ']
     w.wcs.crval = [phasecentre.ra.deg, phasecentre.dec.deg, 1.0, frequency]
     w.naxis = 4
@@ -201,7 +201,7 @@ def create_low_test_image(npixel=16384, npol=1, nchan=1, cellsize=0.000015, freq
                 fluxes.append(flux)
             r += 1
     
-    p = w.sub(2).wcs_world2pix(numpy.array(ras), numpy.array(decs), 0)
+    p = w.sub(2).wcs_world2pix(numpy.array(ras), numpy.array(decs), 1)
     total_flux = numpy.sum(fluxes)
     fluxes = numpy.array(fluxes)
     ip = numpy.round(p).astype('int')

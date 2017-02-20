@@ -514,11 +514,11 @@ class OskarVis(OskarBinary):
                         print('')
 
 
-def import_blockvisibility_from_oskar(oskar_file: str, **kwargs) -> BlockVisibility:
+def import_visibility_from_oskar(oskar_file: str, **kwargs) -> Visibility:
     """ Import a visibility set from an OSKAR visibility file
 
     :param oskar_file: Name of OSKAR visibility file
-    :returns: BlockVisibility
+    :returns: Visibility
     """
     
     # Extract data from Oskar file
@@ -540,7 +540,7 @@ def import_blockvisibility_from_oskar(oskar_file: str, **kwargs) -> BlockVisibil
     )
     
     # Construct visibilities
-    return BlockVisibility(
+    return Visibility(
         frequency=[oskar_vis.frequency(i) for i in range(oskar_vis.num_channels)],
         phasecentre=SkyCoord(frame=ICRS, ra=ra, dec=dec, unit=u.deg),
         configuration=config,

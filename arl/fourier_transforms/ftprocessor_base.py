@@ -324,8 +324,6 @@ def weight_visibility(vis, im, **kwargs):
     
     return vis, density, densitygrid
 
-
-# noinspection PyStringFormat,PyStringFormat
 def create_image_from_visibility(vis, **kwargs):
     """Make an from params and Visibility
 

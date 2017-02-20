@@ -31,7 +31,7 @@ class TestVisibilityIterators(unittest.TestCase):
         self.vis = create_visibility(self.lowcore, times, frequency, phasecentre=phasecentre, weight=1.0)
         self.vis.data['vis'] = self.vis.time
 
-    def test_vis_step_iterator(self):
+    def test_vis_slice_iterator(self):
         self.actualSetUp()
         for chunk, rows in enumerate(vis_slice_iter(self.vis, step=10000)):
             visslice = create_visibility_from_rows(self.vis, rows)

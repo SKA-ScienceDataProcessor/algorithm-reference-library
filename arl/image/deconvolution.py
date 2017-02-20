@@ -32,7 +32,7 @@ def deconvolve_cube(dirty: Image, psf: Image, **kwargs):
     :param scales: Scales (in pixels) for multiscale ([0, 3, 10, 30])
     :returns: componentimage, residual
     """
-
+    
     algorithm = get_parameter(kwargs, 'algorithm', 'msclean')
     if algorithm == 'msclean':
         
@@ -87,7 +87,6 @@ def deconvolve_cube(dirty: Image, psf: Image, **kwargs):
     return create_image_from_array(comp_array, dirty.wcs), create_image_from_array(residual_array, dirty.wcs)
 
 
-# noinspection PyUnreachableCode
 def deconvolve_mfs(dirty: Image, psf: Image, **kwargs):
     """ MFS Clean using a variety of algorithms
 
@@ -103,12 +102,11 @@ def deconvolve_mfs(dirty: Image, psf: Image, **kwargs):
     :param params: 'algorithm': 'msclean'|'hogbom', 'gain': loop gain (float)
     :returns: componentimage, residual
     """
-
+    
     raise RuntimeError("deconvolve_mfs: not yet implemented")
     return Image()
 
 
-# noinspection PyUnreachableCode
 def restore_mfs(dirty: Image, clean: Image, psf: Image, **kwargs):
     """ Restore an MFS clean image
 
@@ -118,7 +116,7 @@ def restore_mfs(dirty: Image, clean: Image, psf: Image, **kwargs):
     :param params: 'algorithm': 'msclean'|'hogbom', 'gain': loop gain (float)
     :returns: restored image
     """
-
+    
     raise RuntimeError("restore_mfs: not yet implemented")
     return Image()
 
@@ -476,6 +474,7 @@ def _sphfn(vnu):
     
     return value
 
+
 def restore_cube(model, psf, residual=None):
     """ Restore the model image to the residuals
 
@@ -489,12 +488,11 @@ def restore_cube(model, psf, residual=None):
     sl = slice(npixel // 2 - 7, npixel // 2 + 8)
     fit = fit_2dgaussian(psf.data[0, 0, sl, sl])
     
-    
     # isotropic at the moment!
     size = min(fit.x_stddev, fit.y_stddev)
     
     # By convention, we normalise the peak not the integral so this is the volume of the Gaussian
-    norm = 1.1331 * size**2
+    norm = 1.1331 * size ** 2
     gk = Gaussian2DKernel(size)
     for chan in range(model.shape[0]):
         for pol in range(model.shape[1]):
@@ -502,4 +500,3 @@ def restore_cube(model, psf, residual=None):
     if residual is not None:
         restored.data += residual.data
     return restored
-
