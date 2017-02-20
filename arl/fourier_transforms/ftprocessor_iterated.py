@@ -19,7 +19,7 @@ from arl.data.parameters import get_parameter
 
 log = logging.getLogger(__name__)
 
-def invert_with_iterator(vis, im, dopsf=False, vis_iter=vis_slice_iter, invert=invert_2d, **kwargs):
+def invert_with_vis_iterator(vis, im, dopsf=False, vis_iter=vis_slice_iter, invert=invert_2d, **kwargs):
     """ Invert using a specified iterator and invert
     
     This knows about the structure of invert in different execution frameworks but not
@@ -71,7 +71,7 @@ def invert_with_iterator(vis, im, dopsf=False, vis_iter=vis_slice_iter, invert=i
     return resultimage, totalwt
 
 
-def predict_with_iterator(vis, model, vis_iter=vis_slice_iter, predict=predict_2d, **kwargs):
+def predict_with_vis_iterator(vis, model, vis_iter=vis_slice_iter, predict=predict_2d, **kwargs):
     """Iterate through prediction in chunks
     
     This knows about the structure of predict in different execution frameworks but not
@@ -90,7 +90,7 @@ def predict_with_iterator(vis, model, vis_iter=vis_slice_iter, predict=predict_2
             rowslices.append(rows)
         nslices = len(rowslices)
         
-        log.debug("predict_with_iterator: Processing %d chunks %d-way parallel" % (nslices, nproc))
+        log.debug("predict_with_vis_iterator: Processing %d chunks %d-way parallel" % (nslices, nproc))
         
         # The visibility column needs to be shared across all processes
         # We have to work around lack of complex data in pymp. For the following trick, see
@@ -112,11 +112,60 @@ def predict_with_iterator(vis, model, vis_iter=vis_slice_iter, predict=predict_2
         vis.data['vis'][...] = shared_vis[...]
     
     else:
-        log.debug("predict_with_iterator: Processing chunks serially")
+        log.debug("predict_with_vis_iterator: Processing chunks serially")
         # Do each chunk in turn
         for rows in vis_iter(vis, **kwargs):
             visslice = create_visibility_from_rows(vis, rows)
             visslice = predict(visslice, model, **kwargs)
             vis.data['vis'][rows] += visslice.data['vis']
     return vis
+
+
+def predict_with_image_iterator(vis, model, image_iterator=raster_iter, predict_function=predict_2d_base,
+                                **kwargs):
+    """ Predict using image partitions, calling specified predict function
+
+    :param vis: Visibility to be predicted
+    :param model: model image
+    :param image_iterator: Image iterator used to access the image
+    :param predict_function: Function to be used for prediction (allows nesting)
+    :returns: resulting visibility (in place works)
+    """
+    log.debug("predict_with_image_iterator: Predicting by image partitions")
+    vis.data['vis'] *= 0.0
+    result = copy_visibility(vis)
+    for dpatch in image_iterator(model, **kwargs):
+        result = predict_function(result, dpatch, **kwargs)
+        vis.data['vis'] += result.data['vis']
+    return vis
+
+
+def invert_with_image_iterator(vis, im, image_iterator=raster_iter, dopsf=False,
+                               invert_function=invert_2d_base, **kwargs):
+    """ Predict using image partitions, calling specified predict function
+
+    :param vis: Visibility to be inverted
+    :param im: image template (not changed)
+    :param image_iterator: Iterator to use for partitioning
+    :param dopsf: Make the psf instead of the dirty image
+    :returns: resulting image[nchan, npol, ny, nx], sum of weights[nchan, npol]
+    """
+    
+    log.debug("invert_with_image_iterator: Inverting by image partitions")
+    i = 0
+    nchan, npol, _, _ = im.shape
+    totalwt = numpy.zeros([nchan, npol])
+    for dpatch in image_iterator(im, **kwargs):
+        result, sumwt = invert_function(vis, dpatch, dopsf, **kwargs)
+        totalwt = sumwt
+        # Ensure that we fill in the elements of dpatch instead of creating a new numpy arrray
+        dpatch.data[...] = result.data[...]
+        assert numpy.max(numpy.abs(dpatch.data)), "Partition image %d appears to be empty" % i
+        i += 1
+    assert numpy.max(numpy.abs(im.data)), "Output image appears to be empty"
+    
+    # Loose thread here: we have to assume that all patchs have the same sumwt
+    return im, totalwt
+
+
 

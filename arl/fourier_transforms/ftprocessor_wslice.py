@@ -28,8 +28,8 @@ def predict_wslice(vis, model, **kwargs):
     """
     log.debug("predict_wslice: predicting using w slices")
 
-    return predict_with_iterator(vis, model, vis_iter=vis_wslice_iter,
-                                 predict=predict_wslice_single, **kwargs)
+    return predict_with_vis_iterator(vis, model, vis_iter=vis_wslice_iter,
+                                     predict=predict_wslice_single, **kwargs)
 
 
 def predict_wslice_single(vis, model, **kwargs):
@@ -76,8 +76,8 @@ def invert_wslice(vis, im, dopsf=False, **kwargs):
 
     """
     log.debug("invert_wslice: inverting using w slices")
-    return invert_with_iterator(vis, im, dopsf, vis_iter=vis_wslice_iter,
-                                invert=invert_wslice_single, **kwargs)
+    return invert_with_vis_iterator(vis, im, dopsf, vis_iter=vis_wslice_iter,
+                                    invert=invert_wslice_single, **kwargs)
 
 def invert_wslice_single(vis, im, dopsf, **kwargs):
     """Process single w slice

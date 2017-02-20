@@ -221,53 +221,6 @@ def invert_wprojection(vis, im, dopsf=False, **kwargs):
     return invert_2d_base(vis, im, dopsf, **kwargs)
 
 
-def invert_by_image_partitions(vis, im, image_iterator=raster_iter, dopsf=False,
-                               invert_function=invert_2d_base, **kwargs):
-    """ Predict using image partitions, calling specified predict function
-
-    :param vis: Visibility to be inverted
-    :param im: image template (not changed)
-    :param image_iterator: Iterator to use for partitioning
-    :param dopsf: Make the psf instead of the dirty image
-    :returns: resulting image[nchan, npol, ny, nx], sum of weights[nchan, npol]
-    """
-    
-    log.debug("invert_by_image_partitions: Inverting by image partitions")
-    i = 0
-    nchan, npol, _, _ = im.shape
-    totalwt = numpy.zeros([nchan, npol])
-    for dpatch in image_iterator(im, **kwargs):
-        result, sumwt = invert_function(vis, dpatch, dopsf, **kwargs)
-        totalwt = sumwt
-        # Ensure that we fill in the elements of dpatch instead of creating a new numpy arrray
-        dpatch.data[...] = result.data[...]
-        assert numpy.max(numpy.abs(dpatch.data)), "Partition image %d appears to be empty" % i
-        i += 1
-    assert numpy.max(numpy.abs(im.data)), "Output image appears to be empty"
-    
-    # Loose thread here: we have to assume that all patchs have the same sumwt
-    return im, totalwt
-
-
-def predict_by_image_partitions(vis, model, image_iterator=raster_iter, predict_function=predict_2d_base,
-                                **kwargs):
-    """ Predict using image partitions, calling specified predict function
-
-    :param vis: Visibility to be predicted
-    :param model: model image
-    :param image_iterator: Image iterator used to access the image
-    :param predict_function: Function to be used for prediction (allows nesting)
-    :returns: resulting visibility (in place works)
-    """
-    log.debug("predict_by_image_partitions: Predicting by image partitions")
-    vis.data['vis'] *= 0.0
-    result = copy_visibility(vis)
-    for dpatch in image_iterator(model, **kwargs):
-        result = predict_function(result, dpatch, **kwargs)
-        vis.data['vis'] += result.data['vis']
-    return vis
-
-
 def predict_skycomponent_visibility(vis: Visibility, sc: Skycomponent, **kwargs) -> Visibility:
     """Predict the visibility from a Skycomponent, add to existing visibility
 

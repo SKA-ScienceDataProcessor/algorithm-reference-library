@@ -8,8 +8,6 @@ import unittest
 from astropy.convolution import Gaussian2DKernel, convolve
 
 from arl.fourier_transforms.ftprocessor import *
-from arl.fourier_transforms.ftprocessor_timeslice import *
-from arl.fourier_transforms.ftprocessor_wslice import *
 from arl.image.operations import export_image_to_fits, create_empty_image_like
 from arl.skymodel.operations import create_skycomponent, find_skycomponents, find_nearest_component, \
     insert_skycomponent
@@ -56,7 +54,7 @@ class TestFTProcessor(unittest.TestCase):
                        'npol': 1,
                        'nchan': 1,
                        'reffrequency': 1e8,
-                       'image_partitions': 8,
+                       'facets': 8,
                        'padding': 2,
                        'oversampling': 4,
                        'timeslice': 'auto',
@@ -165,9 +163,9 @@ class TestFTProcessor(unittest.TestCase):
         self.residualvis.data['vis'] = self.modelvis.data['vis'] - self.componentvis.data['vis']
         self._checkdirty(self.residualvis, 'test_%s_residual' % predict.__name__, fluxthreshold=fluxthreshold)
     
-    def test_predict_by_image_partitions(self):
+    def test_predict_facets(self):
         self.actualSetUp()
-        self._predict_base(predict_by_image_partitions, fluxthreshold=1e-7)
+        self._predict_base(predict_facets, fluxthreshold=1e-7)
 
     def test_predict_timeslice(self):
         # This works very poorly because of the poor interpolation accuracy for point sources
@@ -229,7 +227,7 @@ class TestFTProcessor(unittest.TestCase):
     def test_invert_by_image_partitions(self):
         self.actualSetUp()
         self.params['usereproject'] = False
-        self._invert_base(invert_by_image_partitions, positionthreshold=1.0)
+        self._invert_base(invert_with_image_iterator, positionthreshold=1.0)
 
     def test_invert_wslice(self):
         self.actualSetUp()
@@ -266,13 +264,13 @@ class TestFTProcessor(unittest.TestCase):
         time = (numpy.pi / (12.0 * 3600.0)) * numpy.linspace(0.0, 30.0, 11)
         self.actualSetUp(time=time)
         self.params['coalescence_factor'] = 1.0
-        self._invert_base(invert_by_image_partitions, positionthreshold=1.0)
+        self._invert_base(invert_facets, positionthreshold=1.0)
     
     def test_predict_by_image_partitions_with_coalescence(self):
         time = (numpy.pi / (12.0 * 3600.0)) * numpy.linspace(0.0, 30.0, 11)
         self.actualSetUp(time=time)
         self.params['coalescence_factor'] = 1.0
-        self._predict_base(predict_by_image_partitions, fluxthreshold=10.0)
+        self._predict_base(predict_with_image_iterator, fluxthreshold=10.0)
 
     def test_weighting(self):
         self.actualSetUp()

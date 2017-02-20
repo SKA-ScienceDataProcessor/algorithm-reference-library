@@ -23,7 +23,7 @@ class TestImageIterators(unittest.TestCase):
         params = {}
         for nraster in [2, 4, 8]:
             m31model = create_test_image(npol=4)
-            for patch in raster_iter(m31model, image_partitions=nraster):
+            for patch in raster_iter(m31model, facets=nraster):
                 assert patch.data.shape[3] == (m31model.data.shape[3] // nraster), \
                     "Number of pixels in each patch: %d not as expected: %d" % (patch.data.shape[3],
                                                                                 (m31model.data.shape[3] // nraster))

@@ -53,7 +53,7 @@ def create_image_from_array(data: numpy.array, wcs: WCS = None) -> Image:
     fim = Image()
     fim.data = data
     fim.wcs = wcs.deepcopy()
-    if image_sizeof(fim):
+    if image_sizeof(fim) >= 1.0:
         log.debug("create_image_from_array: created image of shape %s, size %.3f (GB)" % (str(fim.shape),
                                                                                           image_sizeof(fim)))
     return fim

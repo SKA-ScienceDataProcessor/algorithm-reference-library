@@ -6,7 +6,7 @@ Functions that aid fourier transform processing.
 from scipy.interpolate import griddata
 
 from arl.fourier_transforms.ftprocessor_base import *
-from arl.fourier_transforms.ftprocessor_iterated import predict_with_iterator, invert_with_iterator
+from arl.fourier_transforms.ftprocessor_iterated import predict_with_vis_iterator, invert_with_vis_iterator
 from arl.image.iterators import *
 from arl.image.operations import copy_image, create_empty_image_like, reproject_image
 from arl.visibility.iterators import *
@@ -58,8 +58,8 @@ def invert_timeslice(vis, im, dopsf=False, **kwargs):
 
     """
     log.debug("invert_timeslice: inverting using time slices")
-    return invert_with_iterator(vis, im, dopsf, vis_iter=vis_timeslice_iter,
-                                invert=invert_timeslice_single, **kwargs)
+    return invert_with_vis_iterator(vis, im, dopsf, vis_iter=vis_timeslice_iter,
+                                    invert=invert_timeslice_single, **kwargs)
 
 
 def predict_timeslice(vis, model, **kwargs):
@@ -71,8 +71,8 @@ def predict_timeslice(vis, model, **kwargs):
     """
     log.debug("predict_timeslice: predicting using time slices")
 
-    return predict_with_iterator(vis, model, vis_iter=vis_timeslice_iter,
-                                 predict=predict_timeslice_single, **kwargs)
+    return predict_with_vis_iterator(vis, model, vis_iter=vis_timeslice_iter,
+                                     predict=predict_timeslice_single, **kwargs)
 
 
 def predict_timeslice_single(vis, model, **kwargs):

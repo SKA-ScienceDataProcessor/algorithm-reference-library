@@ -9,7 +9,8 @@ import numpy
 from astropy import units as u
 from astropy.coordinates import SkyCoord
 
-from arl.util.testing_support import create_low_test_image, create_named_configuration, create_test_image
+from arl.util.testing_support import create_low_test_image, create_named_configuration, create_test_image, \
+    create_low_test_beam
 from arl.visibility.iterators import *
 from arl.visibility.operations import create_visibility
 
@@ -61,3 +62,13 @@ class TestTesting_Support(unittest.TestCase):
         assert im.data.shape[1] == 1
         assert im.data.shape[2] == 1024
         assert im.data.shape[3] == 1024
+
+    def test_create_low_test_beam(self):
+        im = create_low_test_image(npixel=1024, channelwidth=1e5,
+                                   frequency=numpy.array([1e8]),
+                                   phasecentre=self.phasecentre, fov=10)
+        bm = create_low_test_beam(im)
+        assert bm.data.shape[0] == 1
+        assert bm.data.shape[1] == 1
+        assert bm.data.shape[2] == 1024
+        assert bm.data.shape[3] == 1024

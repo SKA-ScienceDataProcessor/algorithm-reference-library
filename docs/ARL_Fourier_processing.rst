@@ -73,9 +73,9 @@ ARL uses parallel processing to speed up some calculations. It is not intended t
 parallel processing should be implemented in SDP.
 
 We use an openMP-like package `pypm <https://github.com/classner/pymp/>`_. An example is to be found in
-arl/fourier_transforms/invert_with_iterator. The data are divided into timeslices and then processed in parallel::
+arl/fourier_transforms/invert_with_vis_iterator. The data are divided into timeslices and then processed in parallel::
 
-      def invert_with_iterator(vis, im, dopsf=False, vis_iter=vis_slice_iter, invert=invert_2d, **kwargs):
+      def invert_with_vis_iterator(vis, im, dopsf=False, vis_iter=vis_slice_iter, invert=invert_2d, **kwargs):
           """ Invert using a specified iterator and invert
 
           This knows about the structure of invert in different execution frameworks but not
