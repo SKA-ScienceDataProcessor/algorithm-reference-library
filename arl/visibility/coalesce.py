@@ -49,9 +49,9 @@ def coalesce_visibility(vis, **kwargs):
         cimwt = numpy.ones(cvis.shape)
         nrows = cvis.shape[0]
         cintegration_time = numpy.ones(nrows)
-        cchannel_width = cfrequency
+        cchannel_bandwidth = cfrequency
         coalesced_vis = Visibility(uvw=cuvw, time=ctime, frequency=cfrequency,
-                                              channel_bandwidth=cchannel_width, polarisation=cpolarisation,
+                                              channel_bandwidth=cchannel_bandwidth, polarisation=cpolarisation,
                                               phasecentre=vis.phasecentre, antenna1=ca1, antenna2=ca2, vis=cvis,
                                               weight=cvisweights, imaging_weight=cimwt,
                                               configuration=vis.configuration, integration_time=cintegration_time)
@@ -141,8 +141,11 @@ def coalesce_tbgrid_vis(vis, time, frequency, polarisation, antenna1, antenna2, 
     timeshape = nant, nant, ntime, nfrequency
     timegrid = numpy.zeros(timeshape)
 
-    time_integration = utime[1] - utime[0]
-    log.info('coalesce_tbgrid_vis: Time step between integrations seems to be %.2f (seconds)' % time_integration)
+    if ntime > 1:
+        time_integration = utime[1] - utime[0]
+        log.info('coalesce_tbgrid_vis: Time step between integrations seems to be %.2f (seconds)' % time_integration)
+    else:
+        time_integration = integration_time[0]
 
     integration_time_grid = numpy.zeros(timeshape)
     
@@ -209,14 +212,19 @@ def coalesce_tbgrid_vis(vis, time, frequency, polarisation, antenna1, antenna2, 
     len_frequency_chunks = numpy.ones([nant, nant], dtype='int')
     for a2 in ua2:
         for a1 in ua1:
-            if (a1 < a2) & (time_average[a2,a1] > 0) & (frequency_average[a2,a1] > 0):
-                time_chunks, wts = average_chunks2(timegrid[a2, a1, :, :],
-                                                   allpwtsgrid[a2, a1, :, :],
-                                                   (time_average[a2, a1], frequency_average[a2, a1]))
-                len_time_chunks[a2, a1] = time_chunks.shape[0]
-                len_frequency_chunks[a2, a1] = time_chunks.shape[1]
+            if (a1 < a2) &  (time_average[a2,a1] > 0) & (frequency_average[a2,a1] > 0 & \
+                    (allpwtsgrid[a2, a1, ...].any() > 0.0)):
+                def average_from_grid(arr):
+                    return average_chunks2(arr, allpwtsgrid[a2, a1, :, :], \
+                                           (time_average[a2, a1], frequency_average[a2, a1]))
 
+                time_chunks, wts = average_from_grid(timegrid[a2, a1, :, :])
+                len_time_chunks[a2, a1] = time_chunks.shape[0]
+                frequency_chunks, wts = average_from_grid(frequencygrid[a2, a1, :, :])
+                len_frequency_chunks[a2, a1] = frequency_chunks.shape[1]
                 cnvis += len_time_chunks[a2, a1] * len_frequency_chunks[a2, a1]
+
+    
    
     # Now we know enough to define the output coalesced arrays
     ctime = numpy.zeros([cnvis])
@@ -234,7 +242,8 @@ def coalesce_tbgrid_vis(vis, time, frequency, polarisation, antenna1, antenna2, 
     visstart = 0
     for a2 in ua2:
         for a1 in ua1:
-            if (a1 < a2) & (len_time_chunks[a2,a1] > 0) & (len_frequency_chunks[a2,a1] > 0):
+            if (a1 < a2) & (len_time_chunks[a2,a1] > 0) & (len_frequency_chunks[a2,a1] > 0) & \
+                    (allpwtsgrid[a2, a1, ...].any() > 0.0):
                 nrows = len_time_chunks[a2, a1] * len_frequency_chunks[a2, a1]
                 rows = slice(visstart, visstart + nrows)
                 cindex[rowgrid[a2,a1,:]] = numpy.array(range(visstart, visstart + nrows))
@@ -243,29 +252,26 @@ def coalesce_tbgrid_vis(vis, time, frequency, polarisation, antenna1, antenna2, 
                 ca2[rows] = a2
                 cpolarisation[rows] = 0
                 
-                cintegration_time[rows] = average_chunks2(integration_time_grid[a2, a1, :, :],
-                                                          allpwtsgrid[a2, a1, :, :],
-                                                          (time_average[a2, a1], frequency_average[a2, a1]))[0].flatten()
-
-                ctime[rows] = average_chunks2(timegrid[a2, a1, :, :], allpwtsgrid[a2, a1, :, :],
-                                                 (time_average[a2, a1], frequency_average[a2, a1]))[0].flatten()
-                ctime[rows] = average_chunks2(timegrid[a2, a1, :, :], allpwtsgrid[a2, a1, :, :],
-                                                 (time_average[a2, a1], frequency_average[a2, a1]))[0].flatten()
-                cfrequency[rows] = average_chunks2(frequencygrid[a2, a1, :, :], allpwtsgrid[a2, a1, :, :],
-                                                 (time_average[a2, a1], frequency_average[a2, a1]))[0].flatten()
-
-                cuvw[rows, 0] = average_chunks2(uvwgrid[a2, a1, :, :, 0], allpwtsgrid[a2, a1, :, :],
-                                                   (time_average[a2, a1], frequency_average[a2, a1]))[0].flatten()
-                cuvw[rows, 1] = average_chunks2(uvwgrid[a2, a1, :, :, 1], allpwtsgrid[a2, a1, :, :],
-                                                   (time_average[a2, a1], frequency_average[a2, a1]))[0].flatten()
-                cuvw[rows, 2] = average_chunks2(uvwgrid[a2, a1, :, :, 2], allpwtsgrid[a2, a1, :, :],
-                                                   (time_average[a2, a1], frequency_average[a2, a1]))[0].flatten()
+                # Simplify code by defining repeatedly called function
+                def average_from_grid(arr):
+                    return average_chunks2(arr, allpwtsgrid[a2, a1, :, :], \
+                                           (time_average[a2, a1], frequency_average[a2, a1]))[0]
+                # Average over time and frequency for case where polarisation isn't an issue
+                cintegration_time[rows] = average_from_grid(integration_time_grid[a2, a1, :, :]).flatten()
+                ctime[rows] = average_from_grid(timegrid[a2, a1, :, :]).flatten()
+                cfrequency[rows] = average_from_grid(frequencygrid[a2, a1, :, :]).flatten()
+                cuvw[rows, 0] = average_from_grid(uvwgrid[a2, a1, :, :, 0]).flatten()
+                cuvw[rows, 1] = average_from_grid(uvwgrid[a2, a1, :, :, 1]).flatten()
+                cuvw[rows, 2] = average_from_grid(uvwgrid[a2, a1, :, :, 2]).flatten()
                 
+                # For the polarisations we have to perform the time-frequency average separately for each polarisation
                 result = average_chunks2(visgrid[a2, a1, :, :, :], wtsgrid[a2, a1, :, :, :],
                                          (time_average[a2, a1], frequency_average[a2, a1]))
                 cvis[rows], cwts[rows] = result[0].flatten(), result[1].flatten()
 
-                visstart += len_time_chunks[a2, a1]
+                visstart += nrows
+                
+    assert visstart == cnvis
     
     return cvis, cuvw, cwts, ctime, cfrequency, cpolarisation, ca1, ca2, cintegration_time, cindex
 

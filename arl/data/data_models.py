@@ -223,7 +223,7 @@ class Skymodel:
 class Visibility:
     """ Visibility table class
 
-    Visibility with uvw, time, integration_time, frequency, channel_width, pol, a1, a2, vis, weight Columns in
+    Visibility with uvw, time, integration_time, frequency, channel_bandwidth, pol, a1, a2, vis, weight Columns in
     a numpy structured array
     Visibility is defined to hold an observation with one direction.
     Polarisation frame is the same for the entire data set and can be stokes, circular, linear
@@ -309,8 +309,8 @@ class Visibility:
         return self.data['frequency']
 
     @property
-    def channel_width(self):
-        return self.data['channel_width']
+    def channel_bandwidth(self):
+        return self.data['channel_bandwidth']
 
     @property
     def polarisation(self):

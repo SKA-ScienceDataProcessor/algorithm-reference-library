@@ -163,18 +163,6 @@ def insert_skycomponent(im: Image, sc: Skycomponent, insert_method = ''):
     return im
 
 
-def add_skymodels(sm1: Skymodel, sm2: Skymodel):
-    """ Add two sky models together
-    
-    :param sm1:
-    :param sm2:
-    :returns: Skymodel
-    """
-    fsm = Skymodel()
-    fsm.images = [sm1.images, sm2.images]
-    fsm.components = [sm1.components, sm2.components]
-    return fsm
-
 
 def create_skymodel_from_image(im: Image):
     """ Create a skymodel from an image or image
@@ -184,39 +172,6 @@ def create_skymodel_from_image(im: Image):
     """
     sm = Skymodel()
     sm.images.append(im)
-    return sm
-
-
-def add_image_to_skymodel(sm: Skymodel, im: Image):
-    """Add images to a sky model
-    
-    :param sm:
-    :param im:
-    :returns: Skymodel
-    """
-    sm.images.append(im)
-    return sm
-
-
-def create_skymodel_from_component(comp: Skycomponent):
-    """Create sky model from component
-    
-    :param comp:
-    :returns: Skymodel
-    """
-    sm = Skymodel()
-    sm.components.append(comp)
-    return sm
-
-
-def add_component_to_skymodel(sm: Skymodel, comp: Skycomponent):
-    """Add Component to a sky model
-    
-    :param sm:
-    :param comp:
-    :returns: Skymodel
-   """
-    sm.components.append(comp)
     return sm
 
 

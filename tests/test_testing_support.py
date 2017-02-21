@@ -21,18 +21,16 @@ log = logging.getLogger(__name__)
 
 class TestTesting_Support(unittest.TestCase):
     def setUp(self):
-        self.frequency = numpy.array([1e8])
+        self.frequency = numpy.linspace(1e8, 1.5e8, 3)
         self.phasecentre = SkyCoord(ra=+15.0 * u.deg, dec=-35.0 * u.deg, frame='icrs', equinox=2000.0)
-    
-    def createVis(self, config, dec = -35.0):
-        
-        self.config = create_named_configuration(config)
+        self.config = create_named_configuration('LOWBD2-CORE')
         nants = self.config.xyz.shape[0]
         assert nants > 1
         assert len(self.config.names) == nants
         assert len(self.config.mount) == nants
 
-
+    def createVis(self, config, dec = -35.0):
+        self.phasecentre = SkyCoord(ra=+15 * u.deg, dec=dec * u.deg, frame='icrs', equinox=2000.0)
         times = numpy.linspace(-300.0, 300.0, 11) * numpy.pi / 43200.0
         self.vis = create_visibility(self.config, times, self.frequency,
                                      phasecentre=self.phasecentre, weight=1.0)
@@ -72,3 +70,4 @@ class TestTesting_Support(unittest.TestCase):
         assert bm.data.shape[1] == 1
         assert bm.data.shape[2] == 1024
         assert bm.data.shape[3] == 1024
+        

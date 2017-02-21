@@ -8,7 +8,7 @@ from arl.data.data_models import *
 from arl.data.parameters import arl_path
 from arl.image.operations import add_image, create_image_from_array
 from arl.skymodel.operations import create_skycomponent
-from arl.skymodel.operations import create_skymodel_from_image, add_component_to_skymodel
+from arl.skymodel.operations import create_skymodel_from_image
 from arl.util.testing_support import create_test_image, create_named_configuration
 from arl.visibility.operations import create_visibility
 
@@ -59,7 +59,6 @@ class TestDataModels(unittest.TestCase):
         flux = numpy.array([[1.0, 0.0, 0.0, 0.0], [1.0, 0.0, 0.0, 0.0]])
         frequency=numpy.arange(1.0e8,1.5e8,2.5e7)
         comp = create_skycomponent(flux=flux, direction=direction, frequency=frequency, shape='Point')
-        m31sm = add_component_to_skymodel(m31sm, comp)
 
     def test_visibility(self):
         config = create_named_configuration('VLAA')

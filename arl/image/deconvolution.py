@@ -492,7 +492,7 @@ def restore_cube(model, psf, residual=None):
     size = min(fit.x_stddev, fit.y_stddev)
     
     # By convention, we normalise the peak not the integral so this is the volume of the Gaussian
-    norm = 1.1331 * size ** 2
+    norm = 2.0 * numpy.pi * size ** 2
     gk = Gaussian2DKernel(size)
     for chan in range(model.shape[0]):
         for pol in range(model.shape[1]):

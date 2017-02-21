@@ -24,11 +24,13 @@ class TestVisibilityIterators(unittest.TestCase):
         self.lowcore = create_named_configuration('LOWBD2-CORE')
         
         if times is None:
-            times = numpy.linspace(-300.0, 300.0, 11) * numpy.pi / 43200.0
+            self.times = numpy.linspace(-300.0, 300.0, 11) * numpy.pi / 43200.0
+        else:
+            self.times = times
             
-        frequency = numpy.array([1e8])
-        phasecentre = SkyCoord(ra=+15.0 * u.deg, dec=-35.0 * u.deg, frame='icrs', equinox=2000.0)
-        self.vis = create_visibility(self.lowcore, times, frequency, phasecentre=phasecentre, weight=1.0)
+        self.frequency = numpy.array([1e8])
+        self.phasecentre = SkyCoord(ra=+15.0 * u.deg, dec=-35.0 * u.deg, frame='icrs', equinox=2000.0)
+        self.vis = create_visibility(self.lowcore, times, self.frequency, phasecentre=self.phasecentre, weight=1.0)
         self.vis.data['vis'] = self.vis.time
 
     def test_vis_slice_iterator(self):
@@ -67,6 +69,14 @@ class TestVisibilityIterators(unittest.TestCase):
             assert len(rows)
             visslice = create_visibility_from_rows(self.vis, rows)
             assert numpy.sum(visslice.nvis) < self.vis.nvis
+    
+    def test_create_vis_iter(self):
+        vis_iter = vis_create_iter(self.lowcore, self.times, self.frequency, phasecentre=self.phasecentre, weight=1.0,
+                                   npol=1, integration_time=30.0, number_integrations=3)
+        for i, vis in enumerate(vis_iter):
+            assert numpy.std(vis.time[vis.weight>0])== 0.0
+            assert (vis.time[vis.weight>0][0] * numpy.pi / 43200.0)== self.times[i]
+
 
 
 if __name__ == '__main__':
