@@ -8,7 +8,9 @@ import unittest
 import numpy
 
 from arl.image.iterators import *
-from arl.util.testing_support import create_test_image, run_unittests
+from arl.util.testing_support import create_test_image
+from arl.util.run_unittests import run_unittests
+
 
 log = logging.getLogger(__name__)
 

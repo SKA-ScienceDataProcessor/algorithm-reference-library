@@ -20,6 +20,18 @@ def vis_summary(vis):
     """
     return "%d rows, %.3f GB" % (vis.nvis, vis.size())
 
+def append_visibility(vis: Visibility, othervis: Visibility):
+    """Append othervis to vis
+    
+    :param vis:
+    :param othervis:
+    :returns: Visibility vis + othervis
+    """
+    assert vis.polarisation_frame == othervis.polarisation_frame
+    assert vis.phasecentre == othervis.phasecentre
+    vis.data = numpy.hstack((vis.data, othervis.data))
+    return vis
+
 
 def copy_visibility(vis):
     """Copy a visibility

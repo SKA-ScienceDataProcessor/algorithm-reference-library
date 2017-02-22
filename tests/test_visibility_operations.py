@@ -8,7 +8,9 @@ import unittest
 from numpy.testing import assert_allclose
 
 from arl.fourier_transforms.ftprocessor import *
-from arl.util.testing_support import create_named_configuration, run_unittests
+from arl.util.testing_support import create_named_configuration
+from arl.util.run_unittests import run_unittests
+
 from arl.visibility.operations import *
 
 
@@ -36,7 +38,17 @@ class TestVisibilityOperations(unittest.TestCase):
                                      weight=1.0, npol=1)
         assert self.vis.nvis == len(self.vis.time)
         assert self.vis.nvis == len(self.vis.frequency)
-    
+
+    def test_append_visibility(self):
+        self.vis = create_visibility(self.lowcore, self.times, self.frequency, phasecentre=self.phasecentre,
+                                     weight=1.0, npol=1)
+        othertimes = (numpy.pi / 43200.0) * numpy.arange(300.0, 600.0, 30.0)
+        self.othervis = create_visibility(self.lowcore, othertimes, self.frequency, phasecentre=self.phasecentre,
+                                     weight=1.0, npol=1)
+        self.vis = append_visibility(self.vis, self.othervis)
+        assert self.vis.nvis == len(self.vis.time)
+        assert self.vis.nvis == len(self.vis.frequency)
+
     def test_copy_visibility(self):
         self.vis = create_visibility(self.lowcore, self.times, self.frequency,
                                      phasecentre=self.phasecentre, weight=1.0, npol=self.flux.shape[1])

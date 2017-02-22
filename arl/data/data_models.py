@@ -126,7 +126,7 @@ class Image:
         """ Return size in GB
         """
         size = 0
-        size += numpy.product(self.data.shape) * self.data.dtype.itemsize
+        size += self.data.nbytes
         return size / 1024.0 / 1024.0 / 1024.0
     
     @property
@@ -273,7 +273,7 @@ class Visibility:
         """
         size = 0
         for col in self.data.dtype.fields.keys():
-            size += self.data[col].size * sys.getsizeof(self.data[col])
+            size += self.data[col].nbytes
         return size / 1024.0 / 1024.0 / 1024.0
     
     @property

@@ -3,18 +3,13 @@
 realtimcornwell@gmail.com
 """
 
+import logging
 import unittest
 
-import numpy
-from astropy import units as u
-from astropy.coordinates import SkyCoord
-
 from arl.util.testing_support import create_low_test_image, create_named_configuration, create_test_image, \
-    create_low_test_beam
+    create_low_test_beam, create_visibility_iterator
 from arl.visibility.iterators import *
-from arl.visibility.operations import create_visibility
-
-import logging
+from arl.visibility.operations import create_visibility, append_visibility
 
 log = logging.getLogger(__name__)
 
@@ -24,16 +19,16 @@ class TestTesting_Support(unittest.TestCase):
         self.frequency = numpy.linspace(1e8, 1.5e8, 3)
         self.phasecentre = SkyCoord(ra=+15.0 * u.deg, dec=-35.0 * u.deg, frame='icrs', equinox=2000.0)
         self.config = create_named_configuration('LOWBD2-CORE')
+        self.times = numpy.linspace(-300.0, 300.0, 11) * numpy.pi / 43200.0
         nants = self.config.xyz.shape[0]
         assert nants > 1
         assert len(self.config.names) == nants
         assert len(self.config.mount) == nants
 
     def createVis(self, config, dec = -35.0):
+        self.config = create_named_configuration(config)
         self.phasecentre = SkyCoord(ra=+15 * u.deg, dec=dec * u.deg, frame='icrs', equinox=2000.0)
-        times = numpy.linspace(-300.0, 300.0, 11) * numpy.pi / 43200.0
-        self.vis = create_visibility(self.config, times, self.frequency,
-                                     phasecentre=self.phasecentre, weight=1.0)
+        self.vis = create_visibility(self.config, self.times, self.frequency, phasecentre=self.phasecentre, weight=1.0)
         
     def test_named_configurations(self):
         for config in ['LOWBD2', 'LOWBD2-CORE', 'LOWBD1', 'LOFAR']:
@@ -69,3 +64,19 @@ class TestTesting_Support(unittest.TestCase):
         assert bm.data.shape[2] == im.data.shape[2]
         assert bm.data.shape[3] == im.data.shape[3]
         
+    def test_create_vis_iter(self):
+        vis_iter = create_visibility_iterator(self.config, self.times, self.frequency, phasecentre=self.phasecentre,
+                                              weight=1.0, npol=1, integration_time=30.0, number_integrations=3)
+
+        fullvis = None
+        totalnvis = 0
+        for i, vis in enumerate(vis_iter):
+            assert vis.nvis
+            if i == 0:
+                fullvis = vis
+                totalnvis = vis.nvis
+            else:
+                fullvis = append_visibility(fullvis, vis)
+                totalnvis += vis.nvis
+
+        assert fullvis.nvis == totalnvis

@@ -5,6 +5,7 @@ Functions that aid fourier transform processing. These are built on top of the c
 functions in arl.fourier_transforms.
 """
 
+import collections
 from astropy import units as units
 from astropy import wcs
 from astropy.wcs.utils import pixel_to_skycoord
@@ -225,21 +226,26 @@ def predict_skycomponent_visibility(vis: Visibility, sc: Skycomponent, **kwargs)
     """Predict the visibility from a Skycomponent, add to existing visibility
 
     :param vis: Visibility
-    :param sc: Skycomponent
+    :param sc: Skycomponent or list of SkyComponents
     :param spectral_mode: {mfs|channel} (channel)
     :returns: Visibility
     """
     assert type(vis) is Visibility, "vis is not a Visibility: %r" % vis
 
-    l, m, n = skycoord_to_lmn(sc.direction, vis.phasecentre)
-    phasor = simulate_point(vis.uvw, l, m)
+    if not isinstance(sc, collections.Iterable):
+        sc = [sc]
+        
+    for comp in sc:
+    
+        l, m, n = skycoord_to_lmn(comp.direction, vis.phasecentre)
+        phasor = simulate_point(vis.uvw, l, m)
+    
+        _, ipol = get_polarisation_map(vis)
+        _, ichan = get_frequency_map(vis)
+    
+        coords = phasor, list(ichan), list(ipol)
+        vis.data['vis'] += [comp.flux[ic, ip] * p for p, ic, ip in zip(*coords)]
 
-    _, ipol = get_polarisation_map(vis)
-    _, ichan = get_frequency_map(vis)
-    
-    coords = phasor, list(ichan), list(ipol)
-    vis.data['vis'] += [sc.flux[ic,ip] * p for p, ic, ip in zip(*coords)]
-    
     return vis
 
 

@@ -25,20 +25,20 @@ def predict_facets(vis, model, predict_function=predict_2d_base, **kwargs):
 
     :param vis: Visibility to be predicted
     :param model: model image
-    :param predict_function: Function to be used for prediction (allows nesting)
+    :param predict_function: Function to be used for prediction (allows nesting) (default predict_2d)
     :returns: resulting visibility (in place works)
     """
     log.debug("predict_facets: Predicting by image facets")
     return predict_with_image_iterator(vis, model, image_iterator=raster_iter, predict_function=predict_2d_base,
                                 **kwargs)
 
-def invert_facets(vis, im, opsf=False, invert_function=invert_2d_base, **kwargs):
-    """ Predict using image partitions, calling specified predict function
+def invert_facets(vis, im, dopsf=False, invert_function=invert_2d_base, **kwargs):
+    """ Invert using image partitions, calling specified Invert function
 
     :param vis: Visibility to be inverted
     :param im: image template (not changed)
-    :param image_iterator: Iterator to use for partitioning
     :param dopsf: Make the psf instead of the dirty image
+    :param invert_function: Function to be used for inverting (allows nesting) (default invert_2d)
     :returns: resulting image[nchan, npol, ny, nx], sum of weights[nchan, npol]
     """
     

@@ -75,25 +75,3 @@ def vis_slice_iter(vis, step, **kwargs):
             yield range(row, min(row+step, vis.nvis))
 
 
-def vis_create_iter(config: Configuration, times: numpy.array, freq: numpy.array, phasecentre: SkyCoord,
-                    weight: float=1, npol=4, pol_frame=Polarisation_Frame('stokesI'), integration_time=1.0,
-                    number_integrations=1, channel_bandwidth=1e6, coalescence_factor=1.0):
-    """ Create a sequence of Visibiliites
-    
-    :param config: Configuration of antennas
-    :param times: hour angles in radians
-    :param freq: frequencies (Hz] Shape [nchan]
-    :param weight: weight of a single sample
-    :param phasecentre: phasecentre of observation
-    :param npol: Number of polarizations
-    :param integration_time: Integration time ('auto' or value in s)
-    :returns: Visibility
-
-    """
-    for time in times:
-        actualtimes = time + numpy.arange(0, number_integrations) * integration_time * numpy.pi / 43200.0
-        vis = create_visibility(config, actualtimes, freq=freq, phasecentre=phasecentre,
-                                npol=npol, pol_frame=pol_frame, weight=weight, integration_time=integration_time,
-                                channel_bandwidth=channel_bandwidth)
-        cvis = coalesce_visibility(vis, coalescence_factor=coalescence_factor)[0]
-        yield cvis

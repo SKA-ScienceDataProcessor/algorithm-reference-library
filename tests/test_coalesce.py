@@ -4,7 +4,8 @@ realtimcornwell@gmail.com
 """
 import unittest
 
-from arl.util.testing_support import create_named_configuration, run_unittests
+from arl.util.testing_support import create_named_configuration
+from arl.util.run_unittests import run_unittests
 from arl.visibility.operations import create_visibility
 from arl.fourier_transforms.ftprocessor_base import create_image_from_visibility
 from arl.visibility.coalesce import *

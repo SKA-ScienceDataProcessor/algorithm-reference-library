@@ -4,8 +4,6 @@
 Definition of structures needed by the function interface.
 """
 
-import unittest
-
 import csv
 
 from astropy.coordinates import EarthLocation
@@ -13,8 +11,11 @@ from astropy.wcs import WCS
 
 from arl.data.data_models import *
 from arl.data.parameters import arl_path
+from arl.fourier_transforms.ftprocessor_base import predict_2d, predict_skycomponent_visibility
 from arl.image.operations import import_image_from_fits, create_image_from_array, reproject_image
 from arl.util.coordinate_support import *
+from arl.visibility.coalesce import coalesce_visibility
+from arl.visibility.operations import create_visibility
 
 log = logging.getLogger(__name__)
 
@@ -115,7 +116,6 @@ def create_test_image(canonical=True, npol=4, cellsize=None, frequency=None, pha
     :param cellsize:
     :param canonical: Make the image into a 4 dimensional image
     :param npol: Number of polarisations
-    :param nchan: Number of channels
     :returns: Image
     """
     im = import_image_from_fits(arl_path("data/models/M31.MOD"))
@@ -290,18 +290,48 @@ def replicate_image(im: Image, npol=4, nchan=1, frequency=1.4e9):
     
     return fim
 
+def create_visibility_iterator(config: Configuration, times: numpy.array, freq: numpy.array, phasecentre: SkyCoord,
+                    weight: float = 1, npol=4, pol_frame=Polarisation_Frame('stokesI'), integration_time=1.0,
+                    number_integrations=1, channel_bandwidth=1e6, coalescence_factor=1.0, predict=predict_2d,
+                    model=None, components=None):
+    """ Create a sequence of Visibiliites and optionally predicting and coalescing
 
-def run_unittests(logLevel=logging.DEBUG, *args, **kwargs):
-    """Runs the unit tests in all loaded modules.
+    This is useful mainly for performing large simulations. Do something like::
+    
+        vis_iter = create_visibility_iterator(config, times, frequency, phasecentre=phasecentre,
+                                              weight=1.0, npol=1, integration_time=30.0, number_integrations=3)
 
-    :param logLevel: The amount of logging to generate. By default, we
-      show all log messages (level DEBUG)
+        for i, vis in enumerate(vis_iter):
+        if i == 0:
+            fullvis = vis
+        else:
+            fullvis = append_visibility(fullvis, vis)
+
+
+    :param config: Configuration of antennas
+    :param times: hour angles in radians
+    :param freq: frequencies (Hz] Shape [nchan]
+    :param weight: weight of a single sample
+    :param phasecentre: phasecentre of observation
+    :param npol: Number of polarizations
+    :param integration_time: Integration time ('auto' or value in s)
+    :param number_integrations: Number of integrations to be created at each time.
+    :returns: Visibility
+
     """
+    for time in times:
+        actualtimes = time + numpy.arange(0, number_integrations) * integration_time * numpy.pi / 43200.0
+        vis = create_visibility(config, actualtimes, freq=freq, phasecentre=phasecentre,
+                                npol=npol, pol_frame=pol_frame, weight=weight, integration_time=integration_time,
+                                channel_bandwidth=channel_bandwidth)
+    
+        if model is not None:
+            vis = predict(vis, model)
+    
+        if components is not None:
+            vis = predict_skycomponent_visibility(vis, components)
 
-    # Set up logging environment
-    rootLog = logging.getLogger()
-    rootLog.setLevel(logLevel)
-    rootLog.addHandler(logging.StreamHandler(sys.stderr))
+        # We don't return the index since it's no use
+        cvis, _ = coalesce_visibility(vis, coalescence_factor=coalescence_factor)
+        yield cvis
 
-    # Call unittest main
-    unittest.main(*args, **kwargs)

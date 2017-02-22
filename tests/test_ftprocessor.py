@@ -11,7 +11,9 @@ from arl.fourier_transforms.ftprocessor import *
 from arl.image.operations import export_image_to_fits, create_empty_image_like
 from arl.skymodel.operations import create_skycomponent, find_skycomponents, find_nearest_component, \
     insert_skycomponent
-from arl.util.testing_support import create_named_configuration, run_unittests
+from arl.util.testing_support import create_named_configuration
+from arl.util.run_unittests import run_unittests
+
 from arl.visibility.operations import create_visibility, sum_visibility
 
 log = logging.getLogger(__name__)
@@ -90,7 +92,7 @@ class TestFTProcessor(unittest.TestCase):
         
         centers = [-2.5, -0.5, 0.5, 2.5]
         
-        
+        # Make the list of components
         rpix = self.model.wcs.wcs.crpix - 1
         self.components = []
         for iy in centers:
@@ -108,20 +110,26 @@ class TestFTProcessor(unittest.TestCase):
                     flux = numpy.array([[f]])
                     comp = create_skycomponent(flux=flux, frequency=[numpy.average(self.frequency)], direction=sc)
                     self.components.append(comp)
-                    insert_skycomponent(self.model, comp)
         
         # Predict the visibility from the components exactly. We always do this for each spectral channel
         self.componentvis.data['vis'] *= 0.0
-        for comp in self.components:
-            predict_skycomponent_visibility(self.componentvis, comp)
-        
+        predict_skycomponent_visibility(self.componentvis, self.components)
+        insert_skycomponent(self.model, self.components)
+
         # Calculate the model convolved with a Gaussian.
-        cmodel = create_image_from_array(convolve(self.model.data[0, 0, :, :], Gaussian2DKernel(1.0),
-                                                  normalize_kernel=True), self.model.wcs)
-        
+        norm = 2.0 * numpy.pi
+        self.cmodel = copy_image(self.model)
+        self.cmodel.data[0, 0, :, :] = norm * convolve(self.model.data[0, 0, :, :], Gaussian2DKernel(1.0),
+                                                      normalize_kernel=False)
         export_image_to_fits(self.model, '%s/test_model.fits' % self.dir)
-        export_image_to_fits(cmodel, '%s/test_cmodel.fits' % self.dir)
-    
+        export_image_to_fits(self.cmodel, '%s/test_cmodel.fits' % self.dir)
+
+    def test_findcomponents(self):
+        # Check that the components are where we expected them to be after insertion
+        self.actualSetUp()
+        self._checkcomponents(self.cmodel)
+
+
     def test_predict_2d(self):
         """Test if the 2D prediction works
 
@@ -300,6 +308,7 @@ class TestFTProcessor(unittest.TestCase):
         assert im.data.shape == (128, 128)
         assert im.data.dtype == 'complex128'
         self.assertAlmostEqual(numpy.max(im.data.real), 1.0, 7)
+        
 
 
 if __name__ == '__main__':

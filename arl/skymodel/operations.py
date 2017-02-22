@@ -5,6 +5,8 @@ Definition of structures needed by the function interface. These are mostly
 subclasses of astropy classes.
 """
 
+import collections
+
 from astropy.coordinates import SkyCoord
 from astropy.wcs.utils import skycoord_to_pixel, pixel_to_skycoord
 
@@ -139,26 +141,32 @@ def find_skycomponents(im: Image, fwhm=1.0, threshold=10.0, npixels=5):
 
 
 def insert_skycomponent(im: Image, sc: Skycomponent, insert_method = ''):
-    """ Insert a Skycompoenet into an image
+    """ Insert a Skycomponet into an image
 
     :param params:
     :param im:
-    :param sc:
+    :param sc: SkyComponent or list of SkyComponents
     :returns: image
 
     """
-    assert sc.shape == 'Point', "Cannot handle shape %s"% sc.shape
+
+    if not isinstance(sc, collections.Iterable):
+        sc = [sc]
+
+    for comp in sc:
+
+        assert comp.shape == 'Point', "Cannot handle shape %s"% comp.shape
     
-    if insert_method == "Lanczos":
-        pixloc = skycoord_to_pixel(sc.direction, im.wcs, 0, 'wcs')
-        log.debug("insert_skycomponent: Performing Lanczos interpolation of flux %s at [%.2f, %.2f] (0 rel) " %
-                  (str(sc.flux), pixloc[1], pixloc[0]))
-        _L2D(im.data, pixloc[1], pixloc[0], sc.flux)
-    else:
-        pixloc = numpy.round(skycoord_to_pixel(sc.direction, im.wcs, 1, 'wcs')).astype('int')
-        x, y = pixloc[0], pixloc[1]
-        log.debug("insert_skycomponent: Inserting point flux %s at [%d, %d] (0 rel) " % (str(sc.flux), x, y))
-        im.data[:, :, y, x] += sc.flux
+        if insert_method == "Lanczos":
+            pixloc = skycoord_to_pixel(comp.direction, im.wcs, 0, 'wcs')
+            log.debug("insert_skycomponent: Performing Lanczos interpolation of flux %s at [%.2f, %.2f] (0 rel) " %
+                     (str(comp.flux), pixloc[1], pixloc[0]))
+            _L2D(im.data, pixloc[1], pixloc[0], comp.flux)
+        else:
+            pixloc = numpy.round(skycoord_to_pixel(comp.direction, im.wcs, 1, 'wcs')).astype('int')
+            x, y = pixloc[0], pixloc[1]
+            log.debug("insert_skycomponent: Inserting point flux %s at [%d, %d] (0 rel) " % (str(comp.flux), x, y))
+            im.data[:, :, y, x] += comp.flux
        
     return im
 

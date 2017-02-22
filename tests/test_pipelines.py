@@ -11,7 +11,9 @@ from astropy.coordinates import SkyCoord
 from arl.fourier_transforms.ftprocessor import *
 from arl.skymodel.operations import create_skycomponent
 from arl.skymodel.operations import create_skymodel_from_image
-from arl.util.testing_support import create_named_configuration, create_test_image, run_unittests
+from arl.util.testing_support import create_named_configuration, create_test_image
+from arl.util.run_unittests import run_unittests
+
 from arl.visibility.operations import create_visibility
 from arl.pipelines.functions import *
 

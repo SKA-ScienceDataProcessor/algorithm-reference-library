@@ -8,7 +8,7 @@ import logging
 
 from arl.util.array_functions import average_chunks, average_chunks2
 
-from arl.util.testing_support import run_unittests
+from arl.util.run_unittests import run_unittests
 
 log = logging.getLogger(__name__)
 
