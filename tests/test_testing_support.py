@@ -62,12 +62,10 @@ class TestTesting_Support(unittest.TestCase):
         assert im.data.shape[3] == 1024
 
     def test_create_low_test_beam(self):
-        im = create_low_test_image(npixel=1024, channelwidth=1e5,
-                                   frequency=numpy.array([1e8]),
-                                   phasecentre=self.phasecentre, fov=10)
+        im = create_test_image(canonical=True, npol=1, frequency=numpy.array([1e8]), phasecentre=self.phasecentre)
         bm = create_low_test_beam(im)
         assert bm.data.shape[0] == 1
         assert bm.data.shape[1] == 1
-        assert bm.data.shape[2] == 1024
-        assert bm.data.shape[3] == 1024
+        assert bm.data.shape[2] == im.data.shape[2]
+        assert bm.data.shape[3] == im.data.shape[3]
         
