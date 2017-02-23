@@ -19,7 +19,7 @@ class TestTesting_Support(unittest.TestCase):
         self.frequency = numpy.linspace(1e8, 1.5e8, 3)
         self.phasecentre = SkyCoord(ra=+15.0 * u.deg, dec=-35.0 * u.deg, frame='icrs', equinox=2000.0)
         self.config = create_named_configuration('LOWBD2-CORE')
-        self.times = numpy.linspace(-300.0, 300.0, 11) * numpy.pi / 43200.0
+        self.times = numpy.linspace(-300.0, 300.0, 3) * numpy.pi / 43200.0
         nants = self.config.xyz.shape[0]
         assert nants > 1
         assert len(self.config.names) == nants

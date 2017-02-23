@@ -57,4 +57,4 @@ def solve_skymodel(vis: Visibility, model: Image, components=[], predict=predict
             break
         log.info("solve_skymodel: End of major cycle")
     log.info("solve_skymodel: End of major cycles")
-    return visres, model
+    return visres, model, dirty
