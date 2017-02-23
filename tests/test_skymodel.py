@@ -11,7 +11,7 @@ import numpy
 from astropy.coordinates import SkyCoord
 import astropy.units as u
 
-from arl.fourier_transforms.ftprocessor import invert_2d, predict_2d, normalize_sumwt
+from arl.fourier_transforms.ftprocessor import invert_2d, predict_2d, normalize_sumwt, create_image_from_visibility
 from arl.image.operations import export_image_to_fits, create_empty_image_like
 from arl.image.deconvolution import restore_cube
 from arl.skymodel.solvers import solve_skymodel
@@ -42,39 +42,35 @@ class TestSkymodel(unittest.TestCase):
         self.vis = predict_2d(self.vis, self.model)
         assert numpy.max(numpy.abs(self.vis.vis)) > 0.0
         export_image_to_fits(self.model, '%s/test_solve_skymodel_model.fits' % (self.dir))
+        self.bigmodel = create_image_from_visibility(self.vis, cellsize=0.0015, npol=1, npixel=512)
         
         
     def test_deconvolve_and_restore_cube_msclean(self):
-        self.model.data *= 0.0
-        visres, model = solve_skymodel(self.vis, self.model, nmajor=10, threshold=0.01, fractional_threshold=0.1,
-                                       algorithm = 'msclean')
+        self.bigmodel.data *= 0.0
+        visres, model, residual = solve_skymodel(self.vis, self.bigmodel, nmajor=3, niter=1000, threshold=0.01,
+                                                 gain=0.7,
+                                                fractional_threshold=0.1, algorithm = 'msclean')
         export_image_to_fits(model, '%s/test_solve_skymodel_msclean_solution.fits' % (self.dir))
-        residual = create_empty_image_like(model)
-        residual, sumwt = invert_2d(visres, residual)
-        residual = normalize_sumwt(residual, sumwt)
         export_image_to_fits(residual, '%s/test_solve_skymodel_msclean_residual.fits' % (self.dir))
-        psf, sumwt = invert_2d(self.vis, self.model, dopsf=True)
+        psf, sumwt = invert_2d(self.vis, model, dopsf=True)
         psf = normalize_sumwt(psf, sumwt)
         export_image_to_fits(psf, '%s/test_solve_skymodel_msclean_psf.fits' % (self.dir))
         restored = restore_cube(model=model, psf=psf, residual=residual)
         export_image_to_fits(restored, '%s/test_solve_skymodel_msclean_restored.fits' % (self.dir))
-        assert numpy.max(numpy.abs(residual.data)) < 0.4
+        assert numpy.max(numpy.abs(residual.data)) < 1.2
 
     def test_deconvolve_and_restore_cube_hogbom(self):
-        self.model.data *= 0.0
-        visres, model = solve_skymodel(self.vis, self.model, nmajor=10, threshold=0.01, fractional_threshold=0.1,
-                                       gain=0.1, algorithm = 'hogbom')
+        self.bigmodel.data *= 0.0
+        visres, model, residual = solve_skymodel(self.vis, self.bigmodel, niter=1000, nmajor=5, threshold=0.01,
+                                               fractional_threshold=0.1, gain=0.1, algorithm = 'hogbom')
         export_image_to_fits(model, '%s/test_solve_skymodel_hogbom_solution.fits' % (self.dir))
-        residual = create_empty_image_like(model)
-        residual, sumwt = invert_2d(visres, residual)
-        residual = normalize_sumwt(residual, sumwt)
         export_image_to_fits(residual, '%s/test_solve_skymodel_hogbom_residual.fits' % (self.dir))
-        psf, sumwt = invert_2d(self.vis, self.model, dopsf=True)
+        psf, sumwt = invert_2d(self.vis, model, dopsf=True)
         psf = normalize_sumwt(psf, sumwt)
         export_image_to_fits(psf, '%s/test_solve_skymodel_hogbom_psf.fits' % (self.dir))
         restored = restore_cube(model=model, psf=psf, residual=residual)
         export_image_to_fits(restored, '%s/test_solve_skymodel_hogbom_restored.fits' % (self.dir))
-        assert numpy.max(numpy.abs(residual.data)) < 0.9
+        assert numpy.max(numpy.abs(residual.data)) < 0.5
 
     def test_insert_skycomponent(self):
         sc = create_skycomponent(direction=self.phasecentre, flux=numpy.array([[1.0]]), frequency=self.frequency)

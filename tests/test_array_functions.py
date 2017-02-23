@@ -6,7 +6,9 @@ import unittest
 import numpy
 import logging
 
-from arl.util.array_functions import average_chunks, average_chunks2
+from arl.util.array_functions import average_chunks_jit as average_chunks
+
+from arl.util.array_functions import average_chunks2, average_chunks_jit
 
 from arl.util.run_unittests import run_unittests
 
@@ -63,6 +65,16 @@ class TestArray_functions(unittest.TestCase):
         answerwts = numpy.array([5.,  5.,  1.])
         numpy.testing.assert_array_equal(carr[:,5], answerarr)
         numpy.testing.assert_array_equal(cwts[:,5], answerwts)
+
+    def test_average_chunks_jit(self):
+        arr = numpy.linspace(0.0, 100.0, 11)
+        wts = numpy.ones_like(arr)
+        carr, cwts = average_chunks(arr, wts, 2)
+        print(arr.dtype)
+        carr_jit, cwts_jit = average_chunks_jit(arr, wts, 2)
+        numpy.testing.assert_array_equal(carr, carr_jit)
+        numpy.testing.assert_array_equal(cwts, cwts_jit)
+
 
 if __name__ == '__main__':
     run_unittests()

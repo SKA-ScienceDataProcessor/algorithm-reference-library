@@ -19,6 +19,10 @@ Installation
 
    python setup.py install
 
+# Get the data files form Git LFS::
+
+   git-lfs pull
+
 Quick start
 ===========
 
