@@ -40,7 +40,7 @@ def coalesce_visibility(vis, **kwargs):
     if coalescence_factor > 0.0:
         max_coalescence    = get_parameter(kwargs, "max_coalescence", 10)
         cvis, cuvw, cvisweights, ctime, cfrequency, cpolarisation, ca1, ca2, cintegration_time, cindex = \
-            coalesce_tbgrid_vis(vis.data['vis'], vis.data['time'], vis.data['frequency'],
+            coalesce_vis(vis.data['vis'], vis.data['time'], vis.data['frequency'],
                                 vis.data['polarisation'],
                                 vis.data['antenna1'], vis.data['antenna2'],
                                 vis.data['uvw'], vis.data['weight'], vis.data['integration_time'],
@@ -91,14 +91,14 @@ def decoalesce_visibility(vis, template_vis, cindex=None, **kwargs):
     decomp_vis = copy_visibility(template_vis)
 
     decomp_vis.data['vis'] = \
-        decoalesce_tbgrid_vis(template_vis.data['vis'].shape, vis.data['vis'], cindex)
+        decoalesce_vis(template_vis.data['vis'].shape, vis.data['vis'], cindex)
 
     log.info('decoalesce_visibility: Coalesced %s, decoalesced %s' % (vis_summary(vis), vis_summary(decomp_vis)))
     
     return decomp_vis
 
 
-def coalesce_tbgrid_vis(vis, time, frequency, polarisation, antenna1, antenna2, uvw, visweights, integration_time,
+def coalesce_vis(vis, time, frequency, polarisation, antenna1, antenna2, uvw, visweights, integration_time,
                         max_coalescence=10,
                         coalescence_factor=1.0):
     """Coalesce data by gridding onto a time baseline grid
@@ -111,18 +111,15 @@ def coalesce_tbgrid_vis(vis, time, frequency, polarisation, antenna1, antenna2, 
     :param coalescence_factor: Boost factor for coalescence > 1 implies more averaging
     :returns: vis, uvw, visweights
     """
-
-    # Find the maximum possible baseline and then scale to this.
-    uvmax = numpy.sqrt(numpy.max(uvw[:, 0] ** 2 + uvw[:, 1] ** 2 + uvw[:, 1] ** 2))
-    
     
     nvis = vis.shape[0]
     
     nant = numpy.max(antenna2) + 1
     nbaselines = nant * (nant - 1)
     
-    # We first contruct maps to unique inputs e.g. for times i.e. 0 refers to the first unique time, 1 to the second
-    # unique time
+    # We first construct maps to unique inputs e.g. for times i.e. 0 refers to the first unique time, 1 to the second
+    # unique time. Note that the times do not have to lie on a regular grid. The fragmentation could be large if
+    # the time stamps are not coordinated. Hence running coalesce twice is not a good idea!
     timemap, utime = construct_map(time)
     ntime = len(utime)
 
@@ -134,16 +131,15 @@ def coalesce_tbgrid_vis(vis, time, frequency, polarisation, antenna1, antenna2, 
     polarisationmap, upolarisation = construct_map(polarisation)
     npolarisation = len(upolarisation)
 
-    log.info('coalesce_tbgrid_vis: Coalescing %d unique times, %d frequencies and %d baselines' % (ntime,
-                                                                                                    nfrequency,
-                                                                                                    nbaselines))
+    log.info('coalesce_vis: Coalescing %d unique times, %d frequencies and %d baselines' % (ntime, nfrequency,
+                                                                                            nbaselines))
     # Now that we have the maps, we can define grids to hold the various data
     timeshape = nant, nant, ntime, nfrequency
     timegrid = numpy.zeros(timeshape)
 
     if ntime > 1:
         time_integration = utime[1] - utime[0]
-        log.info('coalesce_tbgrid_vis: Time step between integrations seems to be %.2f (seconds)' % time_integration)
+        log.info('coalesce_vis: Time step between integrations seems to be %.2f (seconds)' % time_integration)
     else:
         time_integration = integration_time[0]
 
@@ -191,6 +187,9 @@ def coalesce_tbgrid_vis(vis, time, frequency, polarisation, antenna1, antenna2, 
     
     # Calculate the averaging factors for time and frequency making them the same for all times
     # for this baseline
+    # Find the maximum possible baseline and then scale to this.
+    uvmax = numpy.sqrt(numpy.max(uvw[:, 0] ** 2 + uvw[:, 1] ** 2 + uvw[:, 1] ** 2))
+
     time_average = numpy.zeros([nant, nant], dtype='int')
     frequency_average = numpy.zeros([nant, nant], dtype='int')
     ua2 = numpy.unique(antenna2)
@@ -246,7 +245,7 @@ def coalesce_tbgrid_vis(vis, time, frequency, polarisation, antenna1, antenna2, 
                     (allpwtsgrid[a2, a1, ...].any() > 0.0):
                 nrows = len_time_chunks[a2, a1] * len_frequency_chunks[a2, a1]
                 rows = slice(visstart, visstart + nrows)
-                cindex[rowgrid[a2,a1,:]] = numpy.array(range(visstart, visstart + nrows))
+                cindex.flat[rowgrid[a2,a1,:]] = numpy.array(range(visstart, visstart + nrows))
 
                 ca1[rows] = a1
                 ca2[rows] = a2
@@ -285,7 +284,7 @@ def construct_map(x):
     return xmap, unique_x
 
 
-def decoalesce_tbgrid_vis(vshape, cvis, cindex):
+def decoalesce_vis(vshape, cvis, cindex):
     """Decoalesce data using Time-Baseline
     
     We use the index into the coalesced data. For every output row, this gives the
