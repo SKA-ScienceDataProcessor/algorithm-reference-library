@@ -3,7 +3,6 @@
 realtimcornwell@gmail.com
 """
 
-import logging
 import unittest
 
 from arl.util.testing_support import create_low_test_image, create_named_configuration, create_test_image, \
@@ -11,6 +10,7 @@ from arl.util.testing_support import create_low_test_image, create_named_configu
 from arl.visibility.iterators import *
 from arl.visibility.operations import create_visibility, append_visibility
 
+import logging
 log = logging.getLogger(__name__)
 
 

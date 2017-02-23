@@ -39,12 +39,12 @@ def coalesce_visibility(vis, **kwargs):
     coalescence_factor = get_parameter(kwargs, "coalescence_factor", 0.0)
     if coalescence_factor > 0.0:
         max_coalescence    = get_parameter(kwargs, "max_coalescence", 10)
-        cvis, cuvw, cvisweights, ctime, cfrequency, cpolarisation, ca1, ca2, cintegration_time, cindex = \
+        cvis, cuvw, cvisweights, ctime, cfrequency, cchannel_bandwidth, cpolarisation, ca1, ca2, \
+            cintegration_time, cindex = \
             coalesce_vis(vis.data['vis'], vis.data['time'], vis.data['frequency'],
-                                vis.data['polarisation'],
-                                vis.data['antenna1'], vis.data['antenna2'],
-                                vis.data['uvw'], vis.data['weight'], vis.data['integration_time'],
-                                max_coalescence=max_coalescence, coalescence_factor=coalescence_factor)
+                         vis.data['channel_bandwidth'], vis.data['polarisation'], vis.data['antenna1'],
+                         vis.data['antenna2'], vis.data['uvw'], vis.data['weight'], vis.data['integration_time'],
+                         max_coalescence=max_coalescence, coalescence_factor=coalescence_factor)
         
         cimwt = numpy.ones(cvis.shape)
         nrows = cvis.shape[0]
@@ -98,7 +98,8 @@ def decoalesce_visibility(vis, template_vis, cindex=None, **kwargs):
     return decomp_vis
 
 
-def coalesce_vis(vis, time, frequency, polarisation, antenna1, antenna2, uvw, visweights, integration_time,
+def coalesce_vis(vis, time, frequency, channel_bandwidth, polarisation, antenna1, antenna2, uvw, visweights,
+                 integration_time,
                         max_coalescence=10,
                         coalescence_factor=1.0):
     """Coalesce data by gridding onto a time baseline grid
@@ -111,79 +112,15 @@ def coalesce_vis(vis, time, frequency, polarisation, antenna1, antenna2, uvw, vi
     :param coalescence_factor: Boost factor for coalescence > 1 implies more averaging
     :returns: vis, uvw, visweights
     """
-    
+
     nvis = vis.shape[0]
-    
     nant = numpy.max(antenna2) + 1
-    nbaselines = nant * (nant - 1)
     
-    # We first construct maps to unique inputs e.g. for times i.e. 0 refers to the first unique time, 1 to the second
-    # unique time. Note that the times do not have to lie on a regular grid. The fragmentation could be large if
-    # the time stamps are not coordinated. Hence running coalesce twice is not a good idea!
-    timemap, utime = construct_map(time)
-    ntime = len(utime)
+    # Put the visibility data onto a regular grid
 
-    integration_timemap, uintegration_time = construct_map(integration_time)
-
-    frequencymap, ufrequency = construct_map(frequency)
-    nfrequency = len(ufrequency)
-    
-    polarisationmap, upolarisation = construct_map(polarisation)
-    npolarisation = len(upolarisation)
-
-    log.info('coalesce_vis: Coalescing %d unique times, %d frequencies and %d baselines' % (ntime, nfrequency,
-                                                                                            nbaselines))
-    # Now that we have the maps, we can define grids to hold the various data
-    timeshape = nant, nant, ntime, nfrequency
-    timegrid = numpy.zeros(timeshape)
-
-    if ntime > 1:
-        time_integration = utime[1] - utime[0]
-        log.info('coalesce_vis: Time step between integrations seems to be %.2f (seconds)' % time_integration)
-    else:
-        time_integration = integration_time[0]
-
-    integration_time_grid = numpy.zeros(timeshape)
-    
-    frequencyshape = nant, nant, ntime, nfrequency
-    frequencygrid = numpy.zeros(frequencyshape)
-
-    visshape = nant, nant, ntime, nfrequency, npolarisation
-    visgrid = numpy.zeros(visshape, dtype='complex')
-    wtsgrid = numpy.zeros(visshape)
-
-    uvwshape = nant, nant, ntime, nfrequency, 3
-    uvwgrid = numpy.zeros(uvwshape)
-
-    coords = timemap, frequencymap, polarisationmap, antenna2, antenna1
-  
-    # Assume that a2 > a1. We rearrange the visibility data to be per time per baseline/frequency/polarisation
-    # i.e. antenna2, antenna1, time, chan, pol instead of
-    #      time, antenna2, antenna2, chan, pol
-    for v, wt, tm, fm, pm, a2, a1 in zip(vis, visweights, *coords):
-        visgrid[a2, a1, tm, fm, pm] = v
-        wtsgrid[a2, a1, tm, fm, pm] = wt
-
-    # For some uses, we need to know that there are any visibilities
-    allpwtsgrid = numpy.sum(wtsgrid, axis=4)
-    
-    # To facilitate decoalescence, we will keep the mapping between input row numbers
-    rowgrid = numpy.zeros(timeshape, dtype='int')
-    
-    rows = range(nvis)
-    coords = rows, timemap, time, frequencymap, frequency, integration_timemap, integration_time, \
-             antenna2, antenna1, uvw[:, 0], uvw[:, 1], uvw[:, 2]
-    for row, tm, tg, fm, fg, itm, it, a2, a1, uu, vv, ww in zip(*coords):
-        uvwgrid[a2, a1, tm, fm, 0] = uu
-        uvwgrid[a2, a1, tm, fm, 1] = vv
-        uvwgrid[a2, a1, tm, fm, 2] = ww
-        timegrid[a2, a1, tm, fm] = tg
-        frequencygrid[a2, a1, tm, fm] = fg
-        integration_time_grid[a2, a1, tm, fm] = itm
-        rowgrid[a2, a1, tm, fm] = row
-
-    visgrid[wtsgrid > 0.0] /= wtsgrid[wtsgrid > 0.0]
-    visgrid[wtsgrid <= 0.0] = 0.0
+    allpwtsgrid, frequencygrid, channel_bandwidthgrid, integration_time_grid, rowgrid, timegrid, uvwgrid, \
+    visgrid, wtsgrid = grid_all_vis(antenna1, antenna2, frequency, channel_bandwidth, integration_time, polarisation,
+                                time, uvw, vis, visweights)
     
     # Calculate the averaging factors for time and frequency making them the same for all times
     # for this baseline
@@ -228,6 +165,7 @@ def coalesce_vis(vis, time, frequency, polarisation, antenna1, antenna2, uvw, vi
     # Now we know enough to define the output coalesced arrays
     ctime = numpy.zeros([cnvis])
     cfrequency = numpy.zeros([cnvis])
+    cchannel_bandwidth = numpy.zeros([cnvis])
     cpolarisation = numpy.zeros([cnvis], dtype='int')
     cvis = numpy.zeros([cnvis], dtype='complex')
     cwts = numpy.zeros([cnvis])
@@ -255,10 +193,17 @@ def coalesce_vis(vis, time, frequency, polarisation, antenna1, antenna2, uvw, vi
                 def average_from_grid(arr):
                     return average_chunks2(arr, allpwtsgrid[a2, a1, :, :], \
                                            (time_average[a2, a1], frequency_average[a2, a1]))[0]
+                
+                # For some variables, we need the sum not the average: TODO: still not quite right
+                def sum_from_grid(arr):
+                    result = average_chunks2(arr, allpwtsgrid[a2, a1, :, :], \
+                                           (time_average[a2, a1], frequency_average[a2, a1]))
+                    return result[0] * result[1]
                 # Average over time and frequency for case where polarisation isn't an issue
-                cintegration_time[rows] = average_from_grid(integration_time_grid[a2, a1, :, :]).flatten()
+                cintegration_time[rows] = sum_from_grid(integration_time_grid[a2, a1, :, :]).flatten()
                 ctime[rows] = average_from_grid(timegrid[a2, a1, :, :]).flatten()
                 cfrequency[rows] = average_from_grid(frequencygrid[a2, a1, :, :]).flatten()
+                cchannel_bandwidth[rows] = sum_from_grid(channel_bandwidthgrid[a2, a1, :, :]).flatten()
                 cuvw[rows, 0] = average_from_grid(uvwgrid[a2, a1, :, :, 0]).flatten()
                 cuvw[rows, 1] = average_from_grid(uvwgrid[a2, a1, :, :, 1]).flatten()
                 cuvw[rows, 2] = average_from_grid(uvwgrid[a2, a1, :, :, 2]).flatten()
@@ -272,7 +217,98 @@ def coalesce_vis(vis, time, frequency, polarisation, antenna1, antenna2, uvw, vi
                 
     assert visstart == cnvis
     
-    return cvis, cuvw, cwts, ctime, cfrequency, cpolarisation, ca1, ca2, cintegration_time, cindex
+    return cvis, cuvw, cwts, ctime, cfrequency, cchannel_bandwidth, cpolarisation, ca1, ca2, cintegration_time, cindex
+
+
+def grid_all_vis(antenna1, antenna2, frequency, channel_bandwidth, integration_time, polarisation, time, uvw, vis,
+             visweights):
+    """ Put the visibility and associated data onto regular grids
+    
+    Useful for averaging and calibration
+    
+    :params antenna1:
+    :params antenna2:
+    :params frequency:
+    :params channel_bandwidth:
+    :params integration_time:
+    :params polarisation:
+    :params time:
+    :params uvw:
+    :params vis:
+    :params visweights:
+    :returns: allpwtsgrid, frequencygrid, channel_bandwidth_grid, integration_time_grid, rowgrid, timegrid,
+    uvwgrid, visgrid, wtsgrid
+    
+    This is the price we pay for an atomic visibility format.
+    """
+    nvis = vis.shape[0]
+    nant = numpy.max(antenna2) + 1
+    nbaselines = nant * (nant - 1)
+    
+    # We first construct maps to unique inputs e.g. for times i.e. 0 refers to the first unique time, 1 to the second
+    # unique time. Note that the times do not have to lie on a regular grid. The fragmentation could be large if
+    # the time stamps are not coordinated. Hence running coalesce twice is not a good idea!
+    timemap, utime = construct_map(time)
+    ntime = len(utime)
+    integration_timemap, uintegration_time = construct_map(integration_time)
+    nintegration_time = len(uintegration_time)
+    
+    frequencymap, ufrequency = construct_map(frequency)
+    nfrequency = len(ufrequency)
+    channel_bandwidthmap, uchannel_bandwidth = construct_map(channel_bandwidth)
+    nchannel_bandwidth = len(uchannel_bandwidth)
+
+    polarisationmap, upolarisation = construct_map(polarisation)
+    npolarisation = len(upolarisation)
+    
+    log.info('coalesce_vis: Coalescing %d unique times, %d frequencies and %d baselines' % (ntime, nfrequency,
+                                                                                            nbaselines))
+    # Now that we have the maps, we can define grids to hold the various data
+    timeshape = nant, nant, ntime, nfrequency
+    timegrid = numpy.zeros(timeshape)
+    if ntime > 1:
+        time_integration = utime[1] - utime[0]
+        log.info('coalesce_vis: Time step between integrations seems to be %.2f (seconds)' % time_integration)
+    else:
+        time_integration = integration_time[0]
+    integration_time_grid = numpy.zeros(timeshape)
+    frequencyshape = nant, nant, ntime, nfrequency
+    frequencygrid = numpy.zeros(frequencyshape)
+    channel_bandwidthgrid = numpy.zeros(frequencyshape)
+    visshape = nant, nant, ntime, nfrequency, npolarisation
+    visgrid = numpy.zeros(visshape, dtype='complex')
+    wtsgrid = numpy.zeros(visshape)
+    uvwshape = nant, nant, ntime, nfrequency, 3
+    uvwgrid = numpy.zeros(uvwshape)
+    coords = timemap, frequencymap, polarisationmap, antenna2, antenna1
+    # Assume that a2 > a1. We rearrange the visibility data to be per time per baseline/frequency/polarisation
+    # i.e. antenna2, antenna1, time, chan, pol instead of
+    #      time, antenna2, antenna2, chan, pol
+    for v, wt, tm, fm, pm, a2, a1 in zip(vis, visweights, *coords):
+        visgrid[a2, a1, tm, fm, pm] = v
+        wtsgrid[a2, a1, tm, fm, pm] = wt
+    
+    # For some uses, we need to know that there are any visibilities
+    allpwtsgrid = numpy.sum(wtsgrid, axis=4)
+    
+    # To facilitate decoalescence, we will keep the mapping between input row numbers
+    rowgrid = numpy.zeros(timeshape, dtype='int')
+    rows = range(nvis)
+    coords = rows, timemap, time, frequencymap, frequency, channel_bandwidthmap, channel_bandwidth, \
+             integration_timemap, integration_time, antenna2, antenna1, uvw[:, 0], uvw[:, 1], uvw[:, 2]
+    for row, tm, tg, fm, fg, cbm, cb, itm, it, a2, a1, uu, vv, ww in zip(*coords):
+        uvwgrid[a2, a1, tm, fm, 0] = uu
+        uvwgrid[a2, a1, tm, fm, 1] = vv
+        uvwgrid[a2, a1, tm, fm, 2] = ww
+        timegrid[a2, a1, tm, fm] = tg
+        frequencygrid[a2, a1, tm, fm] = fg
+        channel_bandwidthgrid[a2, a1, tm, fm] = cb
+        integration_time_grid[a2, a1, tm, fm] = itm
+        rowgrid[a2, a1, tm, fm] = row
+    visgrid[wtsgrid > 0.0] /= wtsgrid[wtsgrid > 0.0]
+    visgrid[wtsgrid <= 0.0] = 0.0
+    return allpwtsgrid, frequencygrid, channel_bandwidthgrid, integration_time_grid, rowgrid, timegrid, uvwgrid, \
+           visgrid, wtsgrid
 
 
 def construct_map(x):

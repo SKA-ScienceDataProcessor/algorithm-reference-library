@@ -146,7 +146,7 @@ def checkwcs(wcs1, wcs2):
     :param wcs1:
     :param wcs2:
     """
-    assert wcs1.compare(wcs2, comp=wcs2.WCSCOMPARE_ANCILLARY), "WCS's do not agree"
+    assert wcs1.wcs.compare(wcs2.wcs), "WCS's do not agree"
 
 
 def add_image(im1: Image, im2: Image, docheckwcs=False):
