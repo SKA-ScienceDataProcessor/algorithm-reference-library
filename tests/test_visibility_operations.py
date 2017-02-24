@@ -39,6 +39,11 @@ class TestVisibilityOperations(unittest.TestCase):
         assert self.vis.nvis == len(self.vis.time)
         assert self.vis.nvis == len(self.vis.frequency)
 
+    def test_create_blockvisibility(self):
+        self.vis = create_blockvisibility(self.lowcore, self.times, self.frequency, phasecentre=self.phasecentre,
+                                          weight=1.0, npol=1)
+        assert self.vis.nvis == len(self.vis.time)
+
     def test_append_visibility(self):
         self.vis = create_visibility(self.lowcore, self.times, self.frequency, phasecentre=self.phasecentre,
                                      weight=1.0, npol=1)

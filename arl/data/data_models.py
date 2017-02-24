@@ -6,12 +6,12 @@ import sys
 
 import numpy
 from astropy import units as u
-from astropy.constants import c
 from astropy.coordinates import SkyCoord
 
 from arl.data.polarisation import Polarisation_Frame
 
 log = logging.getLogger(__name__)
+
 
 class Configuration:
     """ Describe a Configuration
@@ -48,7 +48,6 @@ class Configuration:
         size = 0
         size += self.data.size * sys.getsizeof(self.data)
         return size / 1024.0 / 1024.0 / 1024.0
-
     
     @property
     def names(self):
@@ -72,11 +71,9 @@ class GainTable:
     """ Gain table with data: time, antenna, gain[:,chan,pol] columns
     """
     
-    # TODO: Implement gaintables with Jones and Mueller matrices
-
-    def __init__(self, data=None, gain: numpy.array=None, time: numpy.array=None, antenna: numpy.array=None,
-                 weight: numpy.array=None, frequency: numpy.array=None,
-                 polarisation_frame: Polarisation_Frame=Polarisation_Frame('stokesI')):
+    def __init__(self, data=None, gain: numpy.array = None, time: numpy.array = None, antenna: numpy.array = None,
+                 weight: numpy.array = None, frequency: numpy.array = None,
+                 polarisation_frame: Polarisation_Frame = Polarisation_Frame('stokesI')):
         """ Create a gaintable from arrays
 
         :param gain: [npol, nchan]
@@ -87,18 +84,40 @@ class GainTable:
         :returns: Gaintable
         """
         if data is None and not gain is None:
-            npol = len(polarisation_frame[1])
-            nrows = time.shape[0]
-            nchan = gain.shape[1]
+            npol = polarisation_frame.npol
+            nrows = gain.shape[0]
+            nants = gain.shape[1]
+            nchan = gain.shape[2]
             assert len(frequency) == nchan, "Discrepancy in frequency channels"
-            desc = [('gain', '<c16', (nchan, npol)),
-                    ('time', '<f8'),
-                    ('frequency', '<f8'),
-                    ('antenna', '<i8'),
-                    ('weight', '<f8', (nchan, npol))]
+            desc = [('gain', '<c16', (nants, nchan, npol)), ('weight', '<f8', (nants, nchan, npol)), ('time', '<f8')]
             self.data = numpy.zeros(shape=[nrows], dtype=desc)
+            self.data['gain'] = gain
+            self.data['weight'] = weight
+            self.data['time'] = time
         self.frequency = frequency
         self.polarisation_frame = polarisation_frame
+    
+    def size(self):
+        """ Return size in GB
+        """
+        size = 0
+        size += self.data.size * sys.getsizeof(self.data)
+        return size / 1024.0 / 1024.0 / 1024.0
+
+    @property
+    def time(self):
+        return self.data['time']
+    
+    @property
+    def gain(self):
+        return self.data['gain']
+
+    @property
+    def nants(self):
+        return self.data['gain'].shape[1]
+
+
+
 
 
 # noinspection PyUnresolvedReferences,PyUnresolvedReferences
@@ -335,7 +354,93 @@ class Visibility:
     @property
     def imaging_weight(self):
         return self.data['imaging_weight']
+
+
+class BlockVisibility:
+    """ Block Visibility table class
     
+    Visibility with uvw, time, integration_time, frequency, channel_bandwidth, pol, a1, a2, vis, weight Columns in
+    a numpy structured array
+    Visibility is defined to hold an observation with one direction.
+    Polarisation frame is the same for the entire data set and can be stokes, circular, linear
+    The configuration is also an attribute
+    """
+    
+    def __init__(self,
+                 data=None, frequency=None, channel_bandwidth=None, phasecentre=None, configuration=None,
+                 uvw=None, time=None,
+                 vis=None, weight=None, integration_time=None,
+                 polarisation_frame=Polarisation_Frame('stokesI')):
+        if data is None and vis is not None:
+            ntimes = len(time)
+            assert vis.shape[0] == ntimes
+            nants = vis.shape[1]
+            assert vis.shape[2] == nants
+            nchan = vis.shape[3]
+            npol = vis.shape[4]
+            desc = [('uvw', '<f8', (nants, nants, 3,)),
+                    ('time', '<f8'),
+                    ('integration_time', '<f8'),
+                    ('vis', '<c16', (nants, nants, nchan, npol)),
+                    ('weight', '<f8', (nants, nants, nchan, npol))]
+            data = numpy.zeros(shape=[ntimes], dtype=desc)
+            data['uvw'] = uvw
+            data['time'] = time
+            data['integration_time'] = integration_time
+            data['vis'] = vis
+            data['weight'] = weight
+        
+        self.data = data  # numpy structured array
+        self.time = time
+        self.frequency = frequency
+        self.phasecentre = phasecentre  # Phase centre of observation
+        self.configuration = configuration  # Antenna/station configuration
+        self.polarisation_frame = polarisation_frame
+    
+    def size(self):
+        """ Return size in GB
+        """
+        size = 0
+        for col in self.data.dtype.fields.keys():
+            size += self.data[col].nbytes
+        return size / 1024.0 / 1024.0 / 1024.0
+    
+    @property
+    def nants(self):
+        return self.data['vis'].shape[1]
+    
+    @property
+    def uvw(self):  # In wavelengths meters
+        return self.data['uvw']
+    
+    @property
+    def u(self):
+        return self.data['uvw'][:, 0]
+    
+    @property
+    def v(self):
+        return self.data['uvw'][:, 1]
+    
+    @property
+    def w(self):
+        return self.data['uvw'][:, 2]
+    
+    @property
+    def vis(self):
+        return self.data['vis']
+
+    @property
+    def weight(self):
+        return self.data['weight']
+
+    @property
+    def integration_time(self):
+        return self.data['integration_time']
+
+    @property
+    def nvis(self):
+        return self.data.size
+
 
 class QA:
     """ Quality assessment

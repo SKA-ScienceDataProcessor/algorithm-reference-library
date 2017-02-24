@@ -21,6 +21,15 @@ The data models are:
 .. automodule:: arl.data.data_models
    :members:
 
+The principal transitions between the data models:
+
+.. image:: ./ARL_transitions.png
+   :scale: 75 %
+
+We distinguish between two types of visibility structure: block-oriented as needed for calibration, and a more atomic
+ form needed to represent visibility data that has been through baseline-dependent averaging, and no longer has the
+ regularity of the block form.
+
 Processing Parameters
 =====================
 
@@ -44,7 +53,6 @@ Function parameters should obey a consistent naming convention:
 Name     Meaning
 =======  =======
 vis      Name of Visibility
-sm       Name of SkyModel
 sc       Name of Skycomponent
 gt       Name of GainTable
 conf     Name of Configuration

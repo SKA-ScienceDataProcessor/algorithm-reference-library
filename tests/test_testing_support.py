@@ -58,7 +58,7 @@ class TestTesting_Support(unittest.TestCase):
 
     def test_create_low_test_beam(self):
         im = create_test_image(canonical=True, npol=1, frequency=numpy.array([1e8]), phasecentre=self.phasecentre)
-        bm = create_low_test_beam(im)
+        bm = create_low_test_beam(model=im)
         assert bm.data.shape[0] == 1
         assert bm.data.shape[1] == 1
         assert bm.data.shape[2] == im.data.shape[2]

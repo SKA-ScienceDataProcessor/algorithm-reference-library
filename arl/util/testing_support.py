@@ -10,6 +10,7 @@ from astropy.coordinates import EarthLocation
 from astropy.wcs import WCS
 
 from arl.data.data_models import *
+from arl.calibration.gaintable import *
 from arl.data.parameters import arl_path
 from arl.fourier_transforms.ftprocessor_base import predict_2d, predict_skycomponent_visibility
 from arl.image.operations import import_image_from_fits, create_image_from_array, reproject_image
@@ -335,3 +336,10 @@ def create_visibility_iterator(config: Configuration, times: numpy.array, freq: 
         cvis, _ = coalesce_visibility(vis, coalescence_factor=coalescence_factor)
         yield cvis
 
+def simulate_gaintable(gt: GainTable, phase_error=0.1, **kwargs):
+    """ Simulate a gain table
+    
+    """
+    gt.data['gain'] = numpy.exp((0+1j)*numpy.random.normal(0, phase_error, gt.data['gain'].shape))
+        
+    return gt
