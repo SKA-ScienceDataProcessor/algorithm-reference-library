@@ -10,6 +10,7 @@ from arl.fourier_transforms.ftprocessor_params import *
 from arl.visibility.operations import create_blockvisibility_from_rows
 from arl.visibility.iterators import vis_timeslice_iter
 from arl.util.coordinate_support import *
+from arl.calibration.stefcal import stefcal
 
 log = logging.getLogger(__name__)
 
@@ -47,11 +48,16 @@ def create_gaintable_from_blockvisibility(vis: BlockVisibility, time_width: floa
     
     return gt
 
-def apply_gaintable(vis: BlockVisibility, gt: GainTable, inverse=False, **kwargs):
+def apply_gaintable(vis: BlockVisibility, gt: GainTable, inverse=False):
     """Apply a gain table to a block visibility
     
     """
     assert type(vis) is BlockVisibility, "vis is not a BlockVisibility: %r" % vis
+    
+    if inverse:
+        log.info('apply_gaintable: Apply inverse gaintable')
+    else:
+        log.info('apply_gaintable: Apply gaintable')
 
     if vis.polarisation_frame.type == Polarisation_Frame('stokesI').type:
         for chunk, rows in enumerate(vis_timeslice_iter(vis)):
@@ -60,29 +66,35 @@ def apply_gaintable(vis: BlockVisibility, gt: GainTable, inverse=False, **kwargs
             integration_time = numpy.average(visslice.integration_time)
             gaintable_rows = abs(gt.time - vistime) < integration_time / 2.0
             
-            # Find the gain for this set of visibilities
+            # Lookup the gain for this set of visibilities
             gain = gt.data['gain'][gaintable_rows]
             gwt = gt.data['weight'][gaintable_rows]
-            if inverse:
+            if inverse: # TODO: Make this true inverse for polarisation
                 gain[gwt>0.0] = 1.0 / gain[gwt>0.0]
                 
             original = visslice.data['vis']
             applied = copy.deepcopy(original)
             for a1 in range(visslice.nants-1):
                 for a2 in range(a1+1, visslice.nants):
-                    applied[:, a2, a1, :, :] = gain[0, a1,:,:] * numpy.conjugate(gain[0, a2,:,:]) * \
+                    applied[:, a2, a1, :, :] = gain[:, a1,:,:] * numpy.conjugate(gain[:, a2,:,:]) * \
                                                original[:, a2, a1, :, :]
                                                          
             vis.data['vis'][rows] = applied
     return vis
 
 
-def solve_gaintable(vis: BlockVisibility, modelvis: BlockVisibility,**kwargs):
+def solve_gaintable(vis: BlockVisibility, modelvis: BlockVisibility, phase_only=True):
     """Solve a gain table to a block visibility
 
     """
     assert type(vis) is BlockVisibility, "vis is not a BlockVisibility: %r" % vis
-    
+
+    if phase_only:
+        log.info('solve_gaintable: Solving for phase only')
+    else:
+        log.info('solve_gaintable: Solving for complex gain')
+
+
     gt = create_gaintable_from_blockvisibility(vis)
     
     if vis.polarisation_frame.type == Polarisation_Frame('stokesI').type:
@@ -104,11 +116,12 @@ def solve_gaintable(vis: BlockVisibility, modelvis: BlockVisibility,**kwargs):
             mask = XwtAve>0.0
             Xave[mask] = Xave[mask]/XwtAve[mask]
             
-            gt.data['gain'][chunk,...], gt.data['weight'][chunk,...] = solve_station_gains(Xave, XwtAve)
+            gt.data['gain'][chunk,...], gt.data['weight'][chunk,...], residual = \
+                solve_station_gains_itsubs(Xave, XwtAve, phase_only=phase_only)
 
     return gt
 
-def solve_station_gains(X, Xwt, niter=10, tol=1e-12, phase_only=True, refant=0):
+def solve_station_gains_itsubs(X, Xwt, niter=30, tol=1e-12, phase_only=True, refant=0):
     """Solve for the antenna gains
     
     X(antenna2, antenna1) = gain(antenna1) conj(gain(antenna2))
@@ -131,23 +144,37 @@ def solve_station_gains(X, Xwt, niter=10, tol=1e-12, phase_only=True, refant=0):
             X[ant1, ant2, ...] = numpy.conjugate(X[ant2, ant1, ...])
             Xwt[ant1, ant2, ...] = Xwt[ant2, ant1, ...]
 
-    def gain_substitution(gain, v, wt):
+    def gain_substitution(gain, X, Xwt):
 
         nants = gain.shape[0]
         g = copy.deepcopy(gain)
         gwt = numpy.zeros_like(g, dtype='float')
 
-        g2 = (g * numpy.conjugate(g)).real
         for ant1 in range(nants):
             top = 0.0
             bot = 0.0
             for ant2 in range(nants):
-                top += g[ant2,...] * v[ant2,ant1,...] * wt[ant2,ant1,...]
-                bot += g2[ant2,...] * wt[ant2,ant1,...]
-            gain[ant1,...] = top / bot
+                top += gain[ant2,...] * X[ant2,ant1,...]                       * Xwt[ant2,ant1,...]
+                bot += (gain[ant2,...] * numpy.conjugate(gain[ant2,...])).real * Xwt[ant2,ant1,...]
+            g[ant1,...] = top / bot
             gwt[ant1,...] = bot
-        return gain, gwt
-    
+        return g, gwt
+    def solution_residual(gain, X, Xwt):
+
+        nants = gain.shape[0]
+        g = copy.deepcopy(gain)
+        gwt = numpy.zeros_like(g, dtype='float')
+
+        residual = 0.0
+        sumwt = 0.0
+        for ant1 in range(nants):
+            for ant2 in range(nants):
+                residual += numpy.abs(X[ant2,ant1,...] - gain[ant1,...] * numpy.conjugate(gain[ant2,...]))**2 \
+                                      * Xwt[ant2,ant1,...]
+                sumwt += Xwt[ant2,ant1,...]
+        residual = numpy.sqrt(residual/sumwt)
+        return residual
+
     gainshape = X.shape[1:]
     gain = numpy.ones(shape=gainshape, dtype=X.dtype)
     for iter in range(niter):
@@ -155,11 +182,65 @@ def solve_station_gains(X, Xwt, niter=10, tol=1e-12, phase_only=True, refant=0):
         gain, gwt = gain_substitution(gain, X, Xwt)
         if phase_only:
             gain = gain / numpy.abs(gain)
-        # gref = numpy.conjugate(gain[0,...]/numpy.abs(gain[0,...]))
-        # gain *= gref
-        # gain += 0.5 * gainLast
+        gain *= numpy.conjugate(gain[refant,...]) / numpy.abs(gain[refant,...])
+        gain = 0.5 * (gain + gainLast)
         change = numpy.max(numpy.abs(gain-gainLast))
         if change < tol:
-            return gain, gwt
+            residual = solution_residual(gain, X, Xwt)
+            return gain, gwt, residual
+        residual = solution_residual(gain, X, Xwt)
+
+    return gain, gwt, residual
+
+
+def solve_station_gains_stefcal(X, Xwt, niter=10, tol=1e-12, phase_only=True, refant=0):
+    """Solve for the antenna gains
+
+    X(antenna2, antenna1) = gain(antenna1) conj(gain(antenna2))
+
+    This uses Stefcal
+
+    :param X: Equivalent point source visibility[ nants, nants, ...]
+    :param Xwt: Equivalent point source weight [nants, nants, ...]
+    :param niter: Number of iterations
+    :param tol: tolerance on solution change
+    :returns: gain [nants, ...], weight [nants, ...]
+    """
     
-    return gain, gwt
+    nants = X.shape[0]
+    for ant1 in range(nants):
+        X[ant1, ant1, ...] = 0.0
+        Xwt[ant1, ant1, ...] = 0.0
+        for ant2 in range(ant1 + 1, nants):
+            X[ant1, ant2, ...] = numpy.conjugate(X[ant2, ant1, ...])
+            Xwt[ant1, ant2, ...] = Xwt[ant2, ant1, ...]
+    
+    
+    def solution_residual(gain, X, Xwt):
+        
+        nants = gain.shape[0]
+        g = copy.deepcopy(gain)
+        gwt = numpy.zeros_like(g, dtype='float')
+        
+        residual = 0.0
+        sumwt = 0.0
+        for ant1 in range(nants):
+            for ant2 in range(nants):
+                residual += numpy.abs(X[ant2, ant1, ...] - gain[ant1, ...] * numpy.conjugate(gain[ant2, ...])) ** 2 \
+                            * Xwt[ant2, ant1, ...]
+                sumwt += Xwt[ant2, ant1, ...]
+        residual = numpy.sqrt(residual / sumwt)
+        return residual
+
+    _, nants, nchan, npol = X.shape
+    antA = enumerate(range(nants))
+    antB = enumerate(range(nants))
+    gain = numpy.ones(shape=[nants, nchan, npol], dtype='complex')
+    gwt = numpy.zeros(shape=[nants, nchan, npol])
+    for chan in range(nchan):
+        for pol in range(npol):
+            gain[:,chan,pol] = stefcal(X, nants, antA, antB, weights=1.0, num_iters=niter, ref_ant=refant,
+                                       init_gain=None)
+    residual = solution_residual(gain, X, Xwt)
+    
+    return gain, gwt, residual

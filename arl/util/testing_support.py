@@ -336,11 +336,22 @@ def create_visibility_iterator(config: Configuration, times: numpy.array, freq: 
         cvis, _ = coalesce_visibility(vis, coalescence_factor=coalescence_factor)
         yield cvis
 
-def simulate_gaintable(gt: GainTable, phase_error=0.1, refant=0, **kwargs):
+def simulate_gaintable(gt: GainTable, phase_error=0.1, amplitude_error=0.0, **kwargs):
     """ Simulate a gain table
     
+    :param phase_error: std of normal distribution, zero mean
+    :param amplitude_error: std of log normal distribution
+    
     """
-    gt.data['gain'] = numpy.exp((0+1j)*numpy.random.normal(0, phase_error, gt.data['gain'].shape))
-    gt.data['gain'][:, ...] *= numpy.conjugate(gt.data['gain'][refant, ...]) / numpy.abs(gt.data['gain'][refant, ...])
+    log.info("simulate_gaintable: Simulating amplitude error = %.4f, phase error = %.4f"
+             % (amplitude_error, phase_error))
+    amp = 1.0
+    phasor = 1.0
+    if phase_error:
+        phasor = numpy.random.normal(0, phase_error, gt.data['gain'].shape)
+    if amplitude_error > 0.0:
+        amp = numpy.random.lognormal(mean=0.0, sigma=amplitude_error, size=gt.data['gain'].shape)
+        
+    gt.data['gain'] = amp * numpy.exp(1j * phasor)
 
     return gt

@@ -89,7 +89,9 @@ class GainTable:
             nants = gain.shape[1]
             nchan = gain.shape[2]
             assert len(frequency) == nchan, "Discrepancy in frequency channels"
-            desc = [('gain', '<c16', (nants, nchan, npol)), ('weight', '<f8', (nants, nchan, npol)), ('time', '<f8')]
+            desc = [('gain', '<c16', (nants, nchan, npol)),
+                    ('weight', '<f8', (nants, nchan, npol)),
+                    ('time', '<f8')]
             self.data = numpy.zeros(shape=[nrows], dtype=desc)
             self.data['gain'] = gain
             self.data['weight'] = weight
@@ -122,9 +124,6 @@ class GainTable:
 
 
 
-
-
-# noinspection PyUnresolvedReferences,PyUnresolvedReferences
 class Image:
     """Image class with Image data (as a numpy.array) and optionally the AstroPy WCS.
 
