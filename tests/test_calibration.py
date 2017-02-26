@@ -23,7 +23,7 @@ class TestCalibration(unittest.TestCase):
         # Define the component and give it some spectral behaviour
         f = numpy.array([100.0, 20.0, -10.0, 1.0])
         self.flux = numpy.array([f, 0.8 * f, 0.6 * f])
-        
+
         # The phase centre is absolute and the component is specified relative (for now).
         # This means that the component should end up at the position phasecentre+compredirection
         self.phasecentre = SkyCoord(ra=+180.0 * u.deg, dec=-35.0 * u.deg, frame='icrs', equinox=2000.0)
@@ -40,6 +40,28 @@ class TestCalibration(unittest.TestCase):
         original = copy_visibility(self.vis)
         vis = apply_gaintable(self.vis, gt)
         assert numpy.max(numpy.abs(vis.vis-original.vis)) > 0.0
+
+    def test_apply_gaintable_and_inverse(self):
+        gt = create_gaintable_from_blockvisibility(self.vis)
+        log.info("Created gain table: %s" % (gaintable_summary(gt)))
+        gt = simulate_gaintable(gt, phase_error=0.1)
+        original = copy_visibility(self.vis)
+        vis = apply_gaintable(self.vis, gt)
+        vis = apply_gaintable(self.vis, gt, inverse=True)
+        error = numpy.max(numpy.abs(vis.vis-original.vis))
+        assert error < 1e-15, "Error = %f" % (error)
+
+    def test_solve_gaintable(self):
+        gt = create_gaintable_from_blockvisibility(self.vis)
+        log.info("Created gain table: %s" % (gaintable_summary(gt)))
+        gt = simulate_gaintable(gt, phase_error=0.1)
+        original = copy_visibility(self.vis)
+        vis = apply_gaintable(self.vis, gt)
+        gtsol = solve_gaintable(self.vis, original)
+        vis = apply_gaintable(vis, gtsol, inverse=True)
+        error = numpy.max(numpy.abs(vis.vis-original.vis))
+        assert error < 1e-8, "Error = %f" % (error)
+
 
 if __name__ == '__main__':
     unittest.main()

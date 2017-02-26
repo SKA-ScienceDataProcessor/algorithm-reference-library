@@ -47,7 +47,7 @@ def create_gaintable_from_blockvisibility(vis: BlockVisibility, time_width: floa
     
     return gt
 
-def apply_gaintable(vis: BlockVisibility, gt: GainTable, **kwargs):
+def apply_gaintable(vis: BlockVisibility, gt: GainTable, inverse=False, **kwargs):
     """Apply a gain table to a block visibility
     
     """
@@ -62,6 +62,10 @@ def apply_gaintable(vis: BlockVisibility, gt: GainTable, **kwargs):
             
             # Find the gain for this set of visibilities
             gain = gt.data['gain'][gaintable_rows]
+            gwt = gt.data['weight'][gaintable_rows]
+            if inverse:
+                gain[gwt>0.0] = 1.0 / gain[gwt>0.0]
+                
             original = visslice.data['vis']
             applied = copy.deepcopy(original)
             for a1 in range(visslice.nants-1):
@@ -71,3 +75,91 @@ def apply_gaintable(vis: BlockVisibility, gt: GainTable, **kwargs):
                                                          
             vis.data['vis'][rows] = applied
     return vis
+
+
+def solve_gaintable(vis: BlockVisibility, modelvis: BlockVisibility,**kwargs):
+    """Solve a gain table to a block visibility
+
+    """
+    assert type(vis) is BlockVisibility, "vis is not a BlockVisibility: %r" % vis
+    
+    gt = create_gaintable_from_blockvisibility(vis)
+    
+    if vis.polarisation_frame.type == Polarisation_Frame('stokesI').type:
+        for chunk, rows in enumerate(vis_timeslice_iter(vis)):
+            visslice = create_blockvisibility_from_rows(vis, rows)
+            mvisslice = create_blockvisibility_from_rows(modelvis, rows)
+
+            # Form the point source equivalent visibility
+            X = numpy.zeros_like(visslice.data['vis'])
+            Xwt = numpy.abs(mvisslice.data['vis'])**2 * mvisslice.data['weight']
+            mask = Xwt > 0.0
+            X[mask]= visslice.data['vis'][mask]/mvisslice.data['vis'][mask]
+                        
+            # Now average over time, chan. The axes of X are time, antenna2, antenna1, chan, pol
+            
+            Xave = numpy.average(X * Xwt, axis=(0))
+            XwtAve = numpy.average(Xwt, axis=(0))
+            
+            mask = XwtAve>0.0
+            Xave[mask] = Xave[mask]/XwtAve[mask]
+            
+            gt.data['gain'][chunk,...], gt.data['weight'][chunk,...] = solve_station_gains(Xave, XwtAve)
+
+    return gt
+
+def solve_station_gains(X, Xwt, niter=10, tol=1e-12, phase_only=True, refant=0):
+    """Solve for the antenna gains
+    
+    X(antenna2, antenna1) = gain(antenna1) conj(gain(antenna2))
+    
+    This uses an iterative substitution algorithm due to Larry D'Addario c 1980'ish. Used
+    in the original Dec-10 Antsol
+    
+    :param X: Equivalent point source visibility[ nants, nants, ...]
+    :param Xwt: Equivalent point source weight [nants, nants, ...]
+    :param niter: Number of iterations
+    :param tol: tolerance on solution change
+    :returns: gain [nants, ...], weight [nants, ...]
+    """
+
+    nants = X.shape[0]
+    for ant1 in range(nants):
+        X[ant1, ant1, ...] = 0.0
+        Xwt[ant1, ant1, ...] = 0.0
+        for ant2 in range(ant1+1,nants):
+            X[ant1, ant2, ...] = numpy.conjugate(X[ant2, ant1, ...])
+            Xwt[ant1, ant2, ...] = Xwt[ant2, ant1, ...]
+
+    def gain_substitution(gain, v, wt):
+
+        nants = gain.shape[0]
+        g = copy.deepcopy(gain)
+        gwt = numpy.zeros_like(g, dtype='float')
+
+        g2 = (g * numpy.conjugate(g)).real
+        for ant1 in range(nants):
+            top = 0.0
+            bot = 0.0
+            for ant2 in range(nants):
+                top += g[ant2,...] * v[ant2,ant1,...] * wt[ant2,ant1,...]
+                bot += g2[ant2,...] * wt[ant2,ant1,...]
+            gain[ant1,...] = top / bot
+            gwt[ant1,...] = bot
+        return gain, gwt
+    
+    gainshape = X.shape[1:]
+    gain = numpy.ones(shape=gainshape, dtype=X.dtype)
+    for iter in range(niter):
+        gainLast = gain
+        gain, gwt = gain_substitution(gain, X, Xwt)
+        if phase_only:
+            gain = gain / numpy.abs(gain)
+        # gref = numpy.conjugate(gain[0,...]/numpy.abs(gain[0,...]))
+        # gain *= gref
+        # gain += 0.5 * gainLast
+        change = numpy.max(numpy.abs(gain-gainLast))
+        if change < tol:
+            return gain, gwt
+    
+    return gain, gwt

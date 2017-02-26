@@ -113,6 +113,10 @@ class GainTable:
         return self.data['gain']
 
     @property
+    def weight(self):
+        return self.data['weight']
+
+    @property
     def nants(self):
         return self.data['gain'].shape[1]
 
