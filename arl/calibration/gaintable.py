@@ -123,7 +123,7 @@ def solve_gaintable(vis: BlockVisibility, modelvis: BlockVisibility, phase_only=
     return gt
 
 
-def solve_station_gains_itsubs(X, Xwt, niter=30, tol=1e-8, phase_only=True, refant=0):
+def solve_station_gains_itsubs(X, Xwt, niter=30, tol=1e-10, phase_only=True, refant=0):
     """Solve for the antenna gains
     
     X(antenna2, antenna1) = gain(antenna1) conj(gain(antenna2))
