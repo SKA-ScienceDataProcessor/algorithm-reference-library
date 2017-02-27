@@ -259,9 +259,6 @@ def phaserotate_visibility(vis: Visibility, newphasecentre: SkyCoord, tangent=Tr
                 newvis.data['uvw'][...] = xyz_to_uvw(xyz, ha=-newphasecentre.ra.rad, dec=newphasecentre.dec.rad)[
                     ...]
         newvis.phasecentre = newphasecentre
-    else:
-        newvis = vis
-        log.warning("phaserotate_visibility: Null phase rotation")
     
     return newvis
 

@@ -39,20 +39,38 @@ class TestVisibilityOperations(unittest.TestCase):
         assert self.vis.nvis == len(self.vis.time)
         assert self.vis.nvis == len(self.vis.frequency)
 
+    def test_create_visibility_from_rows(self):
+        self.vis = create_visibility(self.lowcore, self.times, self.frequency, phasecentre=self.phasecentre,
+                                     weight=1.0, npol=1)
+        rows = self.vis.time > 150.0
+        for makecopy in [True, False]:
+            selected_vis = create_visibility_from_rows(self.vis, rows, makecopy=makecopy)
+            assert selected_vis.nvis == numpy.sum(rows)
+            
     def test_create_blockvisibility(self):
         self.vis = create_blockvisibility(self.lowcore, self.times, self.frequency, phasecentre=self.phasecentre,
                                           weight=1.0, npol=1)
         assert self.vis.nvis == len(self.vis.time)
 
+    def test_create_blockvisibility_from_rows(self):
+        self.vis = create_blockvisibility(self.lowcore, self.times, self.frequency, phasecentre=self.phasecentre,
+                                          weight=1.0, npol=1)
+        rows = self.vis.time > 150.0
+        for makecopy in [True, False]:
+            selected_vis = create_blockvisibility_from_rows(self.vis, rows, makecopy=makecopy)
+            assert selected_vis.nvis == numpy.sum(rows)
+
+
+
     def test_append_visibility(self):
-        self.vis = create_visibility(self.lowcore, self.times, self.frequency, phasecentre=self.phasecentre,
-                                     weight=1.0, npol=1)
-        othertimes = (numpy.pi / 43200.0) * numpy.arange(300.0, 600.0, 30.0)
-        self.othervis = create_visibility(self.lowcore, othertimes, self.frequency, phasecentre=self.phasecentre,
-                                     weight=1.0, npol=1)
-        self.vis = append_visibility(self.vis, self.othervis)
-        assert self.vis.nvis == len(self.vis.time)
-        assert self.vis.nvis == len(self.vis.frequency)
+            self.vis = create_visibility(self.lowcore, self.times, self.frequency, phasecentre=self.phasecentre,
+                                         weight=1.0, npol=1)
+            othertimes = (numpy.pi / 43200.0) * numpy.arange(300.0, 600.0, 30.0)
+            self.othervis = create_visibility(self.lowcore, othertimes, self.frequency, phasecentre=self.phasecentre,
+                                         weight=1.0, npol=1)
+            self.vis = append_visibility(self.vis, self.othervis)
+            assert self.vis.nvis == len(self.vis.time)
+            assert self.vis.nvis == len(self.vis.frequency)
 
     def test_copy_visibility(self):
         self.vis = create_visibility(self.lowcore, self.times, self.frequency,
@@ -102,6 +120,29 @@ class TestVisibilityOperations(unittest.TestCase):
         rotatedvis = phaserotate_visibility(self.vismodel, newphasecentre=self.compabsdirection, tangent=False)
         assert_allclose(rotatedvis.vis, vismodel2.vis, rtol=1e-7)
         assert_allclose(rotatedvis.uvw, vismodel2.uvw, rtol=1e-7)
+
+    def test_phase_rotation_inverse(self):
+        self.vis = create_visibility(self.lowcore, self.times, self.frequency, phasecentre=self.phasecentre,
+                                     weight=1.0, npol=self.flux.shape[1])
+        self.vismodel = predict_skycomponent_visibility(self.vis, self.comp)
+        there = SkyCoord(ra=+250.0 * u.deg, dec=-60.0 * u.deg, frame='icrs', equinox=2000.0)
+        # Phase rotating back should not make a difference
+        original_vis = self.vismodel.vis
+        original_uvw = self.vismodel.uvw
+        rotatedvis = phaserotate_visibility(phaserotate_visibility(self.vismodel, there, tangent=False,
+                                                                   inverse=True),
+                                            self.phasecentre, tangent=False, inverse=True)
+        assert_allclose(rotatedvis.uvw, original_uvw, rtol=1e-7)
+        assert_allclose(rotatedvis.vis, original_vis, rtol=1e-7)
+
+    def test_qa(self):
+        self.vis = create_visibility(self.lowcore, self.times, self.frequency, phasecentre=self.phasecentre,
+                                     weight=1.0, npol=self.flux.shape[1])
+        self.vismodel = predict_skycomponent_visibility(self.vis, self.comp)
+        qa = qa_visibility(self.vis, context='test_qa')
+        self.assertAlmostEqual(qa.data['maxabs'], 100.0, 7)
+        self.assertAlmostEqual(qa.data['medianabs'], 11.0, 7)
+        assert qa.context == 'test_qa'
 
 
 if __name__ == '__main__':

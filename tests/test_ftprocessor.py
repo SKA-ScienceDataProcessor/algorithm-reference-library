@@ -186,7 +186,9 @@ class TestFTProcessor(unittest.TestCase):
         self.actualSetUp()
         self.params['wslice']=10.0
         self.params['imaginary'] = True
-        self._predict_base(predict_wslice, fluxthreshold=2.0)
+        for self.params['nprocessor'] in [1, 4]:
+            self.actualSetUp()
+            self._predict_base(predict_wslice, fluxthreshold=2.0)
 
     def test_predict_wprojection(self):
         self.actualSetUp()

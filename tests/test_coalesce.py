@@ -7,7 +7,6 @@ import unittest
 from arl.util.testing_support import create_named_configuration
 from arl.util.run_unittests import run_unittests
 from arl.visibility.operations import create_visibility
-from arl.fourier_transforms.ftprocessor_base import create_image_from_visibility
 from arl.visibility.coalesce import *
 
 log = logging.getLogger(__name__)
@@ -31,6 +30,8 @@ class TestCoalesce(unittest.TestCase):
         assert numpy.min(cvis.frequency) == numpy.min(self.frequency)
         assert numpy.min(cvis.frequency) > 0.0
         dvis = decoalesce_visibility(cvis, self.vis, cindex=cindex)
+        assert dvis.nvis == self.vis.nvis
+        dvis = decoalesce_visibility(cvis, self.vis, cindex=cindex, overwrite=True)
         assert dvis.nvis == self.vis.nvis
 
     def test_coalesce_decoalesce_singletime(self):

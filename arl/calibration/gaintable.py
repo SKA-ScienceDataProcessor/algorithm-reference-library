@@ -6,11 +6,9 @@
 
 import copy
 
-from arl.calibration.stefcal import stefcal
 from arl.fourier_transforms.ftprocessor_params import *
 from arl.util.coordinate_support import *
 from arl.visibility.iterators import vis_timeslice_iter
-from arl.visibility.operations import create_blockvisibility_from_rows
 
 log = logging.getLogger(__name__)
 
@@ -164,6 +162,7 @@ def solve_station_gains_itsubs(X, Xwt, niter=30, tol=1e-12, phase_only=True, ref
     
     gainshape = X.shape[1:]
     gain = numpy.ones(shape=gainshape, dtype=X.dtype)
+    gwt = numpy.zeros(shape=gainshape, dtype=Xwt.dtype)
     for iter in range(niter):
         gainLast = gain
         gain, gwt = gain_substitution(gain, X, Xwt)
@@ -174,10 +173,9 @@ def solve_station_gains_itsubs(X, Xwt, niter=30, tol=1e-12, phase_only=True, ref
         change = numpy.max(numpy.abs(gain - gainLast))
         if change < tol:
             residual = solution_residual(gain, X, Xwt)
-            return gain, gwt, residual
-        residual = solution_residual(gain, X, Xwt)
-    
-    return gain, gwt, residual
+            return gain, gwt, solution_residual(gain, X, Xwt)
+
+    return gain, gwt, solution_residual(gain, X, Xwt)
 
 def solution_residual(gain, X, Xwt):
     """Calculate residual across all baselines of gain for point source equivalent visibilities
@@ -200,39 +198,3 @@ def solution_residual(gain, X, Xwt):
                               * Xwt[:, ant1, ...], axis=0)
     residual = numpy.sqrt(residual / sumwt)
     return residual
-
-
-def solve_station_gains_stefcal(X, Xwt, niter=10, tol=1e-12, phase_only=True, refant=0):
-    """Solve for the antenna gains
-
-    X(antenna2, antenna1) = gain(antenna1) conj(gain(antenna2))
-
-    This uses Stefcal
-
-    :param X: Equivalent point source visibility[ nants, nants, ...]
-    :param Xwt: Equivalent point source weight [nants, nants, ...]
-    :param niter: Number of iterations
-    :param tol: tolerance on solution change
-    :returns: gain [nants, ...], weight [nants, ...]
-    """
-    
-    nants = X.shape[0]
-    for ant1 in range(nants):
-        X[ant1, ant1, ...] = 0.0
-        Xwt[ant1, ant1, ...] = 0.0
-        for ant2 in range(ant1 + 1, nants):
-            X[ant1, ant2, ...] = numpy.conjugate(X[ant2, ant1, ...])
-            Xwt[ant1, ant2, ...] = Xwt[ant2, ant1, ...]
-        
-    _, nants, nchan, npol = X.shape
-    antA = enumerate(range(nants))
-    antB = enumerate(range(nants))
-    gain = numpy.ones(shape=[nants, nchan, npol], dtype='complex')
-    gwt = numpy.zeros(shape=[nants, nchan, npol])
-    for chan in range(nchan):
-        for pol in range(npol):
-            gain[:, chan, pol] = stefcal(X, nants, antA, antB, weights=1.0, num_iters=niter, ref_ant=refant,
-                                         init_gain=None)
-    residual = solution_residual(gain, X, Xwt)
-    
-    return gain, gwt, residual

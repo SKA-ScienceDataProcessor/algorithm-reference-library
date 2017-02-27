@@ -30,20 +30,6 @@ class TestDataModels(unittest.TestCase):
             fc = create_named_configuration(telescope)
             log.debug(fc.location.to_geodetic())
 
-    @unittest.skip("Defer until development in this area")
-    def test_gaintable(self):
-        nant = 27
-        npol = 4
-        atimes = numpy.arange(0.0, 43200.0, 100.0)
-        ntimes = len(atimes)
-        times = numpy.repeat(atimes, nant)
-        antennas = numpy.array(ntimes * list(range(nant)))
-        frequency=numpy.arange(1.0e8,1.5e8,1.0e7)
-        gain = numpy.ones([len(times), len(frequency), npol], dtype='complex')
-        weight = numpy.ones([len(times), len(frequency)], dtype='float')
-        gaintab = GainTable(gain=gain, time=times, antenna=antennas, weight=weight,
-                                              frequency=frequency)
-        log.debug(gaintab.data)
 
     def test_image(self):
         m31model = create_test_image()

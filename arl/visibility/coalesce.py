@@ -63,7 +63,7 @@ def coalesce_visibility(vis, **kwargs):
     return coalesced_vis, cindex
 
 
-def decoalesce_visibility(vis, template_vis, cindex=None, **kwargs):
+def decoalesce_visibility(vis, template_vis, cindex=None, overwrite=False):
     """ Decoalesce the visibilities to the original values (opposite of coalesce_visibility)
     
     The template Visibility must always be given. This is the Visibility that was coalesced.
@@ -74,7 +74,8 @@ def decoalesce_visibility(vis, template_vis, cindex=None, **kwargs):
     :param vis: (Coalesced visibility)
     :param template_vis: Template visibility to be filled in
     :param cindex: Index created by coalesce
-    :returns: New visibility with vis and weight columns overwritten
+    :param overwrite: Overwrite the template vis? [default=False]
+    :returns: Visibility with vis and weight columns overwritten
     """
     
     assert type(vis) is Visibility, "vis is not a Visibility: %r" % vis
@@ -84,9 +85,12 @@ def decoalesce_visibility(vis, template_vis, cindex=None, **kwargs):
     if cindex is None:
         return vis
     
-    log.info('decoalesce_visibility: Created new Visibility for decoalesced data')
-    
-    decomp_vis = copy_visibility(template_vis)
+    if overwrite:
+        log.info('decoalesce_visibility: Created new Visibility for decoalesced data')
+        decomp_vis = copy_visibility(template_vis)
+    else:
+        log.info('decoalesce_visibility: Filled decoalesced data into template')
+        decomp_vis = template_vis
     
     decomp_vis.data['vis'] = \
         decoalesce_vis(template_vis.data['vis'].shape, vis.data['vis'], cindex)

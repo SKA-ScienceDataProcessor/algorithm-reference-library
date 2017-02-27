@@ -26,6 +26,25 @@ class TestArray_functions(unittest.TestCase):
         numpy.testing.assert_array_equal(carr, answerarr)
         numpy.testing.assert_array_equal(cwts, answerwts)
 
+    def test_average_chunks_exact(self):
+        arr = numpy.linspace(0.0, 90.0, 10)
+        wts = numpy.ones_like(arr)
+        carr, cwts = average_chunks(arr, wts, 2)
+        assert len(carr) == len(cwts)
+        answerarr = numpy.array([5., 25., 45., 65.0, 85.0])
+        answerwts = numpy.array([2.0, 2.0, 2.0, 2.0, 2.0])
+        numpy.testing.assert_array_equal(carr, answerarr)
+        numpy.testing.assert_array_equal(cwts, answerwts)
+
+
+    def test_average_chunks_zero(self):
+        arr = numpy.linspace(0.0, 90.0, 10)
+        wts = numpy.ones_like(arr)
+        carr, cwts = average_chunks(arr, wts, 0)
+        assert len(carr) == len(cwts)
+        numpy.testing.assert_array_equal(carr, arr)
+        numpy.testing.assert_array_equal(cwts, wts)
+
     def test_average_chunks_single(self):
         arr = numpy.linspace(0.0, 100.0, 11)
         wts = numpy.ones_like(arr)
