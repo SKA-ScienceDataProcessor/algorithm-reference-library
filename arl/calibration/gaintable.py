@@ -68,9 +68,8 @@ def apply_gaintable(vis: BlockVisibility, gt: GainTable, inverse=False):
     
     if vis.polarisation_frame.type == Polarisation_Frame('stokesI').type:
         for chunk, rows in enumerate(vis_timeslice_iter(vis)):
-            visslice = create_blockvisibility_from_rows(vis, rows)
-            vistime = numpy.average(visslice.time)
-            integration_time = numpy.average(visslice.integration_time)
+            vistime = numpy.average(vis.time[rows])
+            integration_time = numpy.average(vis.integration_time[rows])
             gaintable_rows = abs(gt.time - vistime) < integration_time / 2.0
             
             # Lookup the gain for this set of visibilities
@@ -79,10 +78,10 @@ def apply_gaintable(vis: BlockVisibility, gt: GainTable, inverse=False):
             if inverse:  # TODO: Make this true inverse for polarisation
                 gain[gwt > 0.0] = 1.0 / gain[gwt > 0.0]
             
-            original = visslice.data['vis']
+            original = vis.vis[rows]
             applied = copy.deepcopy(original)
-            for a1 in range(visslice.nants - 1):
-                for a2 in range(a1 + 1, visslice.nants):
+            for a1 in range(vis.nants - 1):
+                for a2 in range(a1 + 1, vis.nants):
                     applied[:, a2, a1, :, :] = gain[:, a1, :, :] * numpy.conjugate(gain[:, a2, :, :]) * \
                                                original[:, a2, a1, :, :]
             
@@ -105,14 +104,12 @@ def solve_gaintable(vis: BlockVisibility, modelvis: BlockVisibility, phase_only=
     
     if vis.polarisation_frame.type == Polarisation_Frame('stokesI').type:
         for chunk, rows in enumerate(vis_timeslice_iter(vis)):
-            visslice = create_blockvisibility_from_rows(vis, rows)
-            mvisslice = create_blockvisibility_from_rows(modelvis, rows)
             
             # Form the point source equivalent visibility
-            X = numpy.zeros_like(visslice.data['vis'])
-            Xwt = numpy.abs(mvisslice.data['vis']) ** 2 * mvisslice.data['weight']
+            X = numpy.zeros_like(vis.vis[rows])
+            Xwt = numpy.abs(modelvis.vis[rows]) ** 2 * modelvis.weight[rows]
             mask = Xwt > 0.0
-            X[mask] = visslice.data['vis'][mask] / mvisslice.data['vis'][mask]
+            X[mask] = vis.vis[rows][mask] / modelvis.vis[rows][mask]
             
             # Now average over time, chan. The axes of X are time, antenna2, antenna1, chan, pol
             
