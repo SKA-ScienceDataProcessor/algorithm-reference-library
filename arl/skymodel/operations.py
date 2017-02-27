@@ -156,6 +156,8 @@ def insert_skycomponent(im: Image, sc: Skycomponent, insert_method = ''):
     for comp in sc:
 
         assert comp.shape == 'Point', "Cannot handle shape %s"% comp.shape
+        
+        assert_same_chan_pol(im, comp)
     
         if insert_method == "Lanczos":
             pixloc = skycoord_to_pixel(comp.direction, im.wcs, 0, 'wcs')

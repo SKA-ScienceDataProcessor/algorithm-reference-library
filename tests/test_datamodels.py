@@ -29,6 +29,7 @@ class TestDataModels(unittest.TestCase):
         for telescope in ['LOWBD1', 'LOWBD2', 'LOWBD2-CORE', 'LOFAR', 'VLAA', 'VLAA_north']:
             fc = create_named_configuration(telescope)
             log.debug(fc.location.to_geodetic())
+            log.debug(fc.size())
 
 
     def test_image(self):
@@ -45,6 +46,7 @@ class TestDataModels(unittest.TestCase):
         flux = numpy.array([[1.0, 0.0, 0.0, 0.0], [1.0, 0.0, 0.0, 0.0]])
         frequency=numpy.arange(1.0e8,1.5e8,2.5e7)
         comp = create_skycomponent(flux=flux, direction=direction, frequency=frequency, shape='Point')
+        log.debug("%d %d" % (comp.nchan, comp.npol))
 
     def test_visibility(self):
         config = create_named_configuration('VLAA')

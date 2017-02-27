@@ -167,14 +167,9 @@ class Image:
 
     @property
     def nwidth(self): return self.data.shape[3]
-
-    @property
-    def npixel(self): return self.data.shape[3]
     
     @property
     def frequency(self):
-        # Extracted from find_skycomponent. Not sure how generally
-        # applicable this is.
         w = self.wcs.sub(['spectral'])
         return w.wcs_pix2world(range(self.nchan), 1)[0]
     
@@ -186,9 +181,6 @@ class Image:
     @property
     def phasecentre(self): return SkyCoord(self.wcs.wcs.crval[0] * u.deg, self.wcs.wcs.crval[1] * u.deg)
     
-    def __exit__(self):
-        log.debug("Image:Exiting from image of shape: %s" % (self.data.shape))
-
 
 class Skycomponent:
     """ A single Skycomponent with direction, flux, shape, and params for the shape

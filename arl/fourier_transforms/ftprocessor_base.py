@@ -271,15 +271,8 @@ def weight_visibility(vis, im, **kwargs):
     densitygrid = None
     
     weighting = get_parameter(kwargs, "weighting", "uniform")
-    if weighting == 'uniform':
-        vis.data['imaging_weight'], density, densitygrid = weight_gridding(im.data.shape,
-                                                                           vis.data['weight'],
-                                                                           vuvwmap, vfrequencymap, vpolarisationmap,
-                                                                           weighting)
-    elif weighting == 'natural':
-        vis.data['imaging_weight'] = vis.data['weight']
-    else:
-        raise RuntimeError("Unknown visibility weighting algorithm %s" % weighting)
+    vis.data['imaging_weight'], density, densitygrid = weight_gridding(im.data.shape, vis.data['weight'], vuvwmap,
+                                                                       vfrequencymap, vpolarisationmap, weighting)
     
     return vis, density, densitygrid
 

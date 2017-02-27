@@ -444,4 +444,4 @@ def weight_gridding(shape, visweights, vuvwmap, vfrequencymap, vpolarisationmap,
         newvisweights[density>0.0] = visweights[density>0.0]/density[density>0.0]
         return newvisweights, density, densitygrid
     else:
-        return visweights, density, densitygrid
+        return visweights, None, None

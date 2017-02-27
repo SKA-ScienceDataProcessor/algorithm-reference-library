@@ -40,8 +40,7 @@ class TestPipelines(unittest.TestCase):
         self.m31image = create_test_image(frequency=frequency, npol=4, phasecentre=self.phasecentre, cellsize=0.001)
         self.m31sm = create_skymodel_from_image(self.m31image)
 
-        vispred = create_visibility(lowcore, times, frequency, phasecentre=self.phasecentre, weight=1.0)
-        self.visibility = predict_2d(vispred, self.m31image, wstep=100.0, npixel=256, cellsize=0.0001)
+        self.visibility = create_visibility(lowcore, times, frequency, phasecentre=self.phasecentre, weight=1.0)
         self.m31image.data *= 0.0
         self.m31sm = create_skymodel_from_image(self.m31image)
 
@@ -56,7 +55,14 @@ class TestPipelines(unittest.TestCase):
 
     def test_spectral_line_imaging(self):
         sli = spectral_line_imaging(vis=self.visibility, skymodel=self.m31sm, algorithm='msclean')
-        
+
+    def test_fast_imaging(self):
+        fi = fast_imaging(vis=self.visibility, skymodel=self.m31sm, Gsolinit=300.0)
+
+    def test_EOR(self):
+        eor = EOR(vis=self.visibility, skymodel=self.m31sm, Gsolinit=300.0)
+
+
 
 if __name__ == '__main__':
     run_unittests()

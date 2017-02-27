@@ -30,6 +30,7 @@ class TestImage(unittest.TestCase):
         log.debug(self.m31image.data.shape)
         log.debug(self.m31image.wcs)
         log.debug(export_image_to_fits(self.m31image, fitsfile='%s/test_model.fits' % (self.dir)))
+        log.debug(qa_image(m31model_by_array, context='test_create_from_image'))
 
     def test_checkwcs(self):
     
@@ -53,6 +54,9 @@ class TestImage(unittest.TestCase):
         newshape[3] /= 1.5
         newimage, footprint = reproject_image(self.m31image, newwcs, shape=newshape)
         checkwcs(newimage.wcs, newwcs)
+        
+    def test_show_image(self):
+        show_image(self.m31image)
 
 if __name__ == '__main__':
     run_unittests()

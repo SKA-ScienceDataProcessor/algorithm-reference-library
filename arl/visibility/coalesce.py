@@ -128,8 +128,6 @@ def coalesce_vis(vis, time, frequency, channel_bandwidth, polarisation, antenna1
                              frequencygrid, integration_time_grid, max_coalescence, nant, nvis, rowgrid,
                              timegrid, uvw, uvwgrid, visgrid, wtsgrid)
     
-    return cvis, cuvw, cwts, ctime, cfrequency, cchannel_bandwidth, cpolarisation, ca1, ca2, cintegration_time, cindex
-
 
 def average_vis_block(allpwtsgrid, antenna1, antenna2, channel_bandwidthgrid, coalescence_factor, frequencygrid,
                       integration_time_grid, max_coalescence, nant, nvis, rowgrid, timegrid, uvw, uvwgrid, visgrid,

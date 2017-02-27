@@ -31,13 +31,17 @@ class TestTesting_Support(unittest.TestCase):
         self.phasecentre = SkyCoord(ra=+15 * u.deg, dec=dec * u.deg, frame='icrs', equinox=2000.0)
         self.vis = create_visibility(self.config, self.times, self.frequency, phasecentre=self.phasecentre, weight=1.0,
                                      npol=1)
-        
+
     def test_named_configurations(self):
         for config in ['LOWBD2', 'LOWBD2-CORE', 'LOWBD1', 'LOFAR']:
             self.createVis(config)
-        
+    
         self.createVis('VLAA', +35.0)
         self.createVis('VLAA_north', +35.0)
+
+    def test_unknown_configuration(self):
+        with self.assertRaises(UserWarning):
+            self.config = create_named_configuration("SKA1-OWL")
 
     def test_create_test_image(self):
         im = create_test_image(canonical=False)
@@ -53,6 +57,16 @@ class TestTesting_Support(unittest.TestCase):
         im = create_low_test_image(npixel=1024, channelwidth=1e5,
                                    frequency=numpy.array([1e8]),
                                    phasecentre=self.phasecentre, fov=10)
+        assert im.data.shape[0] == 1
+        assert im.data.shape[1] == 1
+        assert im.data.shape[2] == 1024
+        assert im.data.shape[3] == 1024
+
+    def test_create_low_test_image_no_phasecentre(self):
+    
+        im = create_low_test_image(npixel=1024, channelwidth=1e5,
+                                   frequency=numpy.array([1e8]),
+                                   fov=10)
         assert im.data.shape[0] == 1
         assert im.data.shape[1] == 1
         assert im.data.shape[2] == 1024

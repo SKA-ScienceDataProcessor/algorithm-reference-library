@@ -286,10 +286,9 @@ def replicate_image(im: Image, npol=4, nchan=1, frequency=1.4e9):
         for i3 in range(nchan):
             for i2 in range(npol):
                 fim.data[i3, i2, :, :] = im.data[:, :]
+        return fim
     else:
-        fim = im
-    
-    return fim
+        return im
 
 def create_visibility_iterator(config: Configuration, times: numpy.array, freq: numpy.array, phasecentre: SkyCoord,
                     weight: float = 1, npol=4, pol_frame=Polarisation_Frame('stokesI'), integration_time=1.0,
