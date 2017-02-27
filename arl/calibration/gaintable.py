@@ -53,6 +53,11 @@ def create_gaintable_from_blockvisibility(vis: BlockVisibility, time_width: floa
 def apply_gaintable(vis: BlockVisibility, gt: GainTable, inverse=False):
     """Apply a gain table to a block visibility
     
+    :param vis: Visibility to have gains applied
+    :param gt: Gaintable to be applied
+    :param inverse: Apply the inverse (default=False)
+    :returns: input vis with gains applied
+    
     """
     assert type(vis) is BlockVisibility, "vis is not a BlockVisibility: %r" % vis
     
@@ -149,37 +154,16 @@ def solve_station_gains_itsubs(X, Xwt, niter=30, tol=1e-12, phase_only=True, ref
     def gain_substitution(gain, X, Xwt):
         
         nants = gain.shape[0]
-        g = copy.deepcopy(gain)
-        gwt = numpy.zeros_like(g, dtype='float')
+        g = numpy.ones_like(gain, dtype='complex')
+        gwt = numpy.zeros_like(gain, dtype='float')
         
         for ant1 in range(nants):
-            top = 0.0
-            bot = 0.0
-            # for ant2 in range(nants):
-            #     top += gain[ant2,...] * X[ant2,ant1,...]                       * Xwt[ant2,ant1,...]
-            #     bot += (gain[ant2,...] * numpy.conjugate(gain[ant2,...])).real * Xwt[ant2,ant1,...]
             top = numpy.sum(gain[:, ...] * X[:, ant1, ...] * Xwt[:, ant1, ...], axis=0)
             bot = numpy.sum((gain[:, ...] * numpy.conjugate(gain[:, ...])).real * Xwt[:, ant1, ...], axis=0)
             g[ant1, ...] = top / bot
             gwt[ant1, ...] = bot
         return g, gwt
     
-    def solution_residual(gain, X, Xwt):
-        
-        nants = gain.shape[0]
-        g = copy.deepcopy(gain)
-        gwt = numpy.zeros_like(g, dtype='float')
-        
-        residual = 0.0
-        sumwt = 0.0
-        for ant1 in range(nants):
-            # residual += numpy.abs(X[ant2, ant1, ...] - gain[ant1, ...] * numpy.conjugate(gain[ant2, ...])) ** 2 \
-            #             * Xwt[ant2, ant1, ...]
-            sumwt += numpy.sum(Xwt[:, ant1, ...], axis=0)
-            residual += numpy.sum(numpy.abs(X[:, ant1, ...] - gain[ant1, ...] * numpy.conjugate(gain[:, ...])) ** 2 \
-                                 * Xwt[:, ant1, ...], axis=0)
-        residual = numpy.sqrt(residual / sumwt)
-        return residual
     
     gainshape = X.shape[1:]
     gain = numpy.ones(shape=gainshape, dtype=X.dtype)
@@ -197,6 +181,28 @@ def solve_station_gains_itsubs(X, Xwt, niter=30, tol=1e-12, phase_only=True, ref
         residual = solution_residual(gain, X, Xwt)
     
     return gain, gwt, residual
+
+def solution_residual(gain, X, Xwt):
+    """Calculate residual across all baselines of gain for point source equivalent visibilities
+    
+    :param gain: gain [nant, ...]
+    :param X: Point source equivalent visibility [nant, ...]
+    :param Xwt: Point source equivalent weight [nant, ...]
+    :returns: residual[...]
+    """
+
+    nants = gain.shape[0]
+
+    residual = 0.0
+    sumwt = 0.0
+    for ant1 in range(nants):
+        # residual += numpy.abs(X[ant2, ant1, ...] - gain[ant1, ...] * numpy.conjugate(gain[ant2, ...])) ** 2 \
+        #             * Xwt[ant2, ant1, ...]
+        sumwt += numpy.sum(Xwt[:, ant1, ...], axis=0)
+        residual += numpy.sum(numpy.abs(X[:, ant1, ...] - gain[ant1, ...] * numpy.conjugate(gain[:, ...])) ** 2 \
+                              * Xwt[:, ant1, ...], axis=0)
+    residual = numpy.sqrt(residual / sumwt)
+    return residual
 
 
 def solve_station_gains_stefcal(X, Xwt, niter=10, tol=1e-12, phase_only=True, refant=0):
@@ -220,23 +226,7 @@ def solve_station_gains_stefcal(X, Xwt, niter=10, tol=1e-12, phase_only=True, re
         for ant2 in range(ant1 + 1, nants):
             X[ant1, ant2, ...] = numpy.conjugate(X[ant2, ant1, ...])
             Xwt[ant1, ant2, ...] = Xwt[ant2, ant1, ...]
-    
-    def solution_residual(gain, X, Xwt):
         
-        nants = gain.shape[0]
-        g = copy.deepcopy(gain)
-        gwt = numpy.zeros_like(g, dtype='float')
-        
-        residual = 0.0
-        sumwt = 0.0
-        for ant1 in range(nants):
-            for ant2 in range(nants):
-                residual += numpy.abs(X[ant2, ant1, ...] - gain[ant1, ...] * numpy.conjugate(gain[ant2, ...])) ** 2 \
-                            * Xwt[ant2, ant1, ...]
-                sumwt += Xwt[ant2, ant1, ...]
-        residual = numpy.sqrt(residual / sumwt)
-        return residual
-    
     _, nants, nchan, npol = X.shape
     antA = enumerate(range(nants))
     antB = enumerate(range(nants))

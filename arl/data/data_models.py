@@ -68,13 +68,18 @@ class Configuration:
 
 
 class GainTable:
-    """ Gain table with data: time, antenna, gain[:,chan,pol] columns
+    """ Gain table with data: time, antenna, gain[:,chan,pol], weight columns
+    
+    The weight is usually that output from gain solvers.
     """
     
     def __init__(self, data=None, gain: numpy.array = None, time: numpy.array = None, antenna: numpy.array = None,
                  weight: numpy.array = None, frequency: numpy.array = None,
                  polarisation_frame: Polarisation_Frame = Polarisation_Frame('stokesI')):
         """ Create a gaintable from arrays
+        
+        The definition of gain is:
+            Vobs = g_i g_j^* Vmodel
 
         :param gain: [npol, nchan]
         :param time:
