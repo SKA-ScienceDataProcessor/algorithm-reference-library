@@ -8,6 +8,7 @@ import copy
 
 import astropy.constants as constants
 
+from arl.data.polarisation import Receptor_Frame, correlate_polarisation
 from arl.fourier_transforms.ftprocessor_params import *
 from arl.util.coordinate_support import *
 
@@ -61,6 +62,10 @@ def create_visibility(config: Configuration, times: numpy.array, freq: numpy.arr
     :returns: Visibility
     """
     assert phasecentre is not None, "Must specify phase centre"
+
+    if pol_frame is None:
+        pol_frame = correlate_polarisation(config.receptor_frame)
+
     nch = len(freq)
     ants_xyz = config.data['xyz']
     nants = len(config.data['names'])
@@ -119,7 +124,7 @@ def create_visibility(config: Configuration, times: numpy.array, freq: numpy.arr
 
 def create_blockvisibility(config: Configuration, times: numpy.array, freq: numpy.array,
                       phasecentre: SkyCoord, weight: float,
-                      pol_frame=Polarisation_Frame('stokesI'),
+                      pol_frame=None,
                       integration_time=1.0, channel_bandwidth=1e6) -> Visibility:
     """ Create a BlockVisibility from Configuration, hour angles, and direction of source
 
@@ -135,6 +140,10 @@ def create_blockvisibility(config: Configuration, times: numpy.array, freq: nump
     :returns: Visibility
     """
     assert phasecentre is not None, "Must specify phase centre"
+    
+    if pol_frame is None:
+        pol_frame = correlate_polarisation(config.receptor_frame)
+        
     nch = len(freq)
     ants_xyz = config.data['xyz']
     nants = len(config.data['names'])

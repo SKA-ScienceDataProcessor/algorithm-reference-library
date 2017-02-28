@@ -7,6 +7,7 @@ import unittest
 
 from numpy.testing import assert_allclose
 
+from arl.data.polarisation import Polarisation_Frame
 from arl.fourier_transforms.ftprocessor import *
 from arl.util.testing_support import create_named_configuration
 from arl.util.run_unittests import run_unittests
@@ -39,6 +40,12 @@ class TestVisibilityOperations(unittest.TestCase):
         assert self.vis.nvis == len(self.vis.time)
         assert self.vis.nvis == len(self.vis.frequency)
 
+    def test_create_visibility_polarisation(self):
+        self.vis = create_visibility(self.lowcore, self.times, self.frequency, phasecentre=self.phasecentre,
+                                     weight=1.0, npol=1, pol_frame=Polarisation_Frame("linear"))
+        assert self.vis.nvis == len(self.vis.time)
+        assert self.vis.nvis == len(self.vis.frequency)
+
     def test_create_visibility_from_rows(self):
         self.vis = create_visibility(self.lowcore, self.times, self.frequency, phasecentre=self.phasecentre,
                                      weight=1.0, npol=1)
@@ -49,12 +56,12 @@ class TestVisibilityOperations(unittest.TestCase):
             
     def test_create_blockvisibility(self):
         self.vis = create_blockvisibility(self.lowcore, self.times, self.frequency, phasecentre=self.phasecentre,
-                                          weight=1.0, npol=1)
+                                          weight=1.0)
         assert self.vis.nvis == len(self.vis.time)
 
     def test_create_blockvisibility_from_rows(self):
         self.vis = create_blockvisibility(self.lowcore, self.times, self.frequency, phasecentre=self.phasecentre,
-                                          weight=1.0, npol=1)
+                                          weight=1.0)
         rows = self.vis.time > 150.0
         for makecopy in [True, False]:
             selected_vis = create_blockvisibility_from_rows(self.vis, rows, makecopy=makecopy)
@@ -64,7 +71,7 @@ class TestVisibilityOperations(unittest.TestCase):
 
     def test_append_visibility(self):
             self.vis = create_visibility(self.lowcore, self.times, self.frequency, phasecentre=self.phasecentre,
-                                         weight=1.0, npol=1)
+                                         weight=1.0)
             othertimes = (numpy.pi / 43200.0) * numpy.arange(300.0, 600.0, 30.0)
             self.othervis = create_visibility(self.lowcore, othertimes, self.frequency, phasecentre=self.phasecentre,
                                          weight=1.0, npol=1)

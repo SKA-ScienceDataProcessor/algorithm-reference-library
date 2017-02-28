@@ -40,19 +40,19 @@ class TestPipelines(unittest.TestCase):
             print("Chunk %d, gaintable size %.3f (GB)" % (igt, gt.size()))
     
     def test_ICAL(self):
-        ical = ICAL(vis=self.visibility, skymodel=self.sm, Gsolinit=300.0)
+        ical = ICAL(vis=self.vis, components=self.comp)
     
     def test_continuum_imaging(self):
-        ci = continuum_imaging(vis=self.visibility, skymodel=self.sm, algorithm='msclean')
+        ci = continuum_imaging(vis=self.vis, components=self.comp, algorithm='msclean')
     
     def test_spectral_line_imaging(self):
-        sli = spectral_line_imaging(vis=self.visibility, skymodel=self.sm, algorithm='msclean')
+        sli = spectral_line_imaging(vis=self.vis, components=self.comp, algorithm='msclean')
     
     def test_fast_imaging(self):
-        fi = fast_imaging(vis=self.visibility, skymodel=self.sm, Gsolinit=300.0)
+        fi = fast_imaging(vis=self.vis, components=self.comp, Gsolinit=300.0)
     
     def test_EOR(self):
-        eor = EOR(vis=self.visibility, skymodel=self.sm, Gsolinit=300.0)
+        eor = EOR(vis=self.vis, components=self.comp, Gsolinit=300.0)
 
 
 if __name__ == '__main__':

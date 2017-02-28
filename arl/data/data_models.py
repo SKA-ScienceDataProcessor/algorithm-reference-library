@@ -8,7 +8,7 @@ import numpy
 from astropy import units as u
 from astropy.coordinates import SkyCoord
 
-from arl.data.polarisation import Polarisation_Frame
+from arl.data.polarisation import Polarisation_Frame, Receptor_Frame
 
 log = logging.getLogger(__name__)
 
@@ -20,7 +20,7 @@ class Configuration:
     """
     
     def __init__(self, name='', data=None, location=None,
-                 names="%s", xyz=None, mount="alt-az", frame=None):
+                 names="%s", xyz=None, mount="alt-az", frame=None, receptor_frame=Receptor_Frame("linear")):
         
         # Defaults
         if data is None and not xyz is None:
@@ -41,6 +41,7 @@ class Configuration:
         self.data = data
         self.location = location
         self.frame = frame
+        self.receptor_frame = receptor_frame
     
     def size(self):
         """ Return size in GB
@@ -75,7 +76,7 @@ class GainTable:
     
     def __init__(self, data=None, gain: numpy.array = None, time: numpy.array = None, antenna: numpy.array = None,
                  weight: numpy.array = None, frequency: numpy.array = None,
-                 polarisation_frame: Polarisation_Frame = Polarisation_Frame('stokesI')):
+                 receptor_frame: Receptor_Frame = Receptor_Frame("linear")):
         """ Create a gaintable from arrays
         
         The definition of gain is:
@@ -89,7 +90,7 @@ class GainTable:
         :returns: Gaintable
         """
         if data is None and not gain is None:
-            npol = polarisation_frame.npol
+            npol = receptor_frame.npol
             nrows = gain.shape[0]
             nants = gain.shape[1]
             nchan = gain.shape[2]
@@ -102,7 +103,7 @@ class GainTable:
             self.data['weight'] = weight
             self.data['time'] = time
         self.frequency = frequency
-        self.polarisation_frame = polarisation_frame
+        self.receptor_frame = receptor_frame
     
     def size(self):
         """ Return size in GB
@@ -177,7 +178,6 @@ class Image:
     def shape(self):
         return self.data.shape
 
-    # noinspection PyUnresolvedReferences,PyUnresolvedReferences
     @property
     def phasecentre(self): return SkyCoord(self.wcs.wcs.crval[0] * u.deg, self.wcs.wcs.crval[1] * u.deg)
     

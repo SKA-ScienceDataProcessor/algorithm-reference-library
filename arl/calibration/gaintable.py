@@ -43,7 +43,7 @@ def create_gaintable_from_blockvisibility(vis: BlockVisibility, time_width: floa
     gain_antenna = range(nants)
     
     gt = GainTable(gain=gain, time=gain_time, antenna=gain_antenna, weight=gain_weight, frequency=gain_frequency,
-                   polarisation_frame=vis.polarisation_frame)
+                   receptor_frame=vis.polarisation_frame)
     
     return gt
 

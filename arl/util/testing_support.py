@@ -291,7 +291,7 @@ def replicate_image(im: Image, npol=4, nchan=1, frequency=1.4e9):
 
 
 def create_blockvisibility_iterator(config: Configuration, times: numpy.array, freq: numpy.array, phasecentre: SkyCoord,
-                                    weight: float = 1, pol_frame=Polarisation_Frame('stokesI'),
+                                    weight: float = 1, pol_frame=None,
                                     integration_time=1.0,
                                     number_integrations=1, channel_bandwidth=1e6, predict=predict_2d,
                                     model=None, components=None, phase_error=0.0, amplitude_error=0.0):
