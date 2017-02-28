@@ -272,8 +272,6 @@ def predict_skycomponent_visibility(vis: Visibility, sc: Skycomponent, **kwargs)
     
     for comp in sc:
         
-        assert_same_chan_pol(vis, comp)
-        
         l, m, n = skycoord_to_lmn(comp.direction, vis.phasecentre)
         phasor = simulate_point(vis.uvw, l, m)
         
