@@ -4,7 +4,8 @@
 Algorithm Reference Library
 ***************************
 
-The Algorithm Reference Library expresses radio interferometry calibration and imaging algorithms.
+The Algorithm Reference Library expresses radio interferometry calibration and imaging algorithms. The emphasis is on
+ capturing the key algorithms and data models.
 
 The interfaces all operate with familiar data structures such as image,
 visibility table, gaintable, etc.
