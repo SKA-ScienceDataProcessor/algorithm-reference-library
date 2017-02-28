@@ -12,52 +12,6 @@ log = logging.getLogger("visibility.calibration")
 
 
 
-def interpolate_gaintable(gt: GainTable, **kwargs):
-    """ Interpolate a GainTable to new sampling
-
-    :param gt: GainTable
-    :param params: Dictionary containing parameters
-    :returns: Gaintable
-    """
-    # TODO: implement
-    
-    raise RuntimeError('"interpolate_gaintable: not yet implemented')
-    return GainTable()
-
-
-
-def solve_gains(vis: Visibility, sm: Skymodel, **kwargs) -> GainTable:
-    """ Solve for calibration using a sky model
-    
-    :param params:
-    :param vis:
-    :param sm:
-    :returns: GainTable
-    """
-    assert type(vis) is Visibility, "vis is not a Visibility: %r" % vis
-
-    # TODO: Implement calibration solution
-    raise RuntimeError("solve_gains: not yet implemented")
-    return GainTable()
-
-
-
-def correct_visibility(vis: Visibility, gt: GainTable, **kwargs) -> Visibility:
-    """ Correct a vistable using a GainTable
-
-    :param params:
-    :param vis: Visibility to be processed
-    :param gt: GainTable
-    :returns: Visibility
-    """
-    assert type(vis) is Visibility, "vis is not a Visibility: %r" % vis
-
-    # TODO: Implement calibration application
-    raise RuntimeError("correct_visibility: not yet implemented")
-    return vis
-
-
-
 def peel_skycomponent(vis: Visibility, sc: Skycomponent, **kwargs) -> Visibility:
     """ Correct a vistable using a GainTable
 

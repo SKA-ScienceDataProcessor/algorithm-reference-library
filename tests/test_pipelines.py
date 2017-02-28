@@ -5,23 +5,15 @@ realtimcornwell@gmail.com
 
 import unittest
 
-from astropy import units as u
-from astropy.coordinates import SkyCoord
-
 from arl.fourier_transforms.ftprocessor import *
-from arl.skymodel.operations import create_skycomponent
-from arl.skymodel.operations import create_skymodel_from_image
-from arl.util.testing_support import create_named_configuration, create_test_image
-from arl.util.run_unittests import run_unittests
-
-from arl.visibility.operations import create_visibility
 from arl.pipelines.functions import *
+from arl.skymodel.operations import create_skycomponent
+from arl.util.run_unittests import run_unittests
+from arl.util.testing_support import create_named_configuration, create_test_image, create_blockvisibility_iterator
+
 
 class TestPipelines(unittest.TestCase):
-
     def setUp(self):
-        
-        
         lowcore = create_named_configuration('LOWBD2-CORE')
         times = numpy.arange(-3.0, +3.0, 1.0) * numpy.pi / 12.0
         frequency = numpy.linspace(1.0e8, 1.50e8, 3)
@@ -33,35 +25,34 @@ class TestPipelines(unittest.TestCase):
         # This means that the component should end up at the position phasecentre+compredirection
         self.phasecentre = SkyCoord(ra=+15.0 * u.deg, dec=-35.0 * u.deg, frame='icrs', equinox=2000.0)
         self.compabsdirection = SkyCoord(ra=17.0 * u.deg, dec=-36.5 * u.deg, frame='icrs', equinox=2000.0)
-        pcof = self.phasecentre.skyoffset_frame()
-        self.compreldirection = self.compabsdirection.transform_to(pcof)
-
-        self.m31comp = create_skycomponent(flux=self.flux, frequency=frequency, direction=self.compreldirection)
-        self.m31image = create_test_image(frequency=frequency, npol=4, phasecentre=self.phasecentre, cellsize=0.001)
-        self.m31sm = create_skymodel_from_image(self.m31image)
-
-        self.visibility = create_visibility(lowcore, times, frequency, phasecentre=self.phasecentre, weight=1.0)
-        self.m31image.data *= 0.0
-        self.m31sm = create_skymodel_from_image(self.m31image)
-
+        
+        self.comp = create_skycomponent(flux=self.flux, frequency=frequency, direction=self.compabsdirection)
+        self.image = create_test_image(frequency=frequency, npol=1, phasecentre=self.phasecentre, cellsize=0.001)
+        
+        self.vis = create_blockvisibility_iterator(lowcore, times=times, freq=frequency, phasecentre=self.phasecentre,
+                                                   weight=1, pol_frame=Polarisation_Frame('stokesIQUV'),
+                                                   integration_time=1.0, number_integrations=1, channel_bandwidth=1e6,
+                                                   predict=predict_2d, components=self.comp,
+                                                   phase_error=0.1, amplitude_error=0.01)
+    
     def test_RCAL(self):
-        rcal = RCAL(vis=self.visibility, skymodel=self.m31sm, Gsolinit=300.0)
-
+        for igt, gt in enumerate(RCAL(vis=self.vis, components=self.comp)):
+            print("Chunk %d, gaintable size %.3f (GB)" % (igt, gt.size()))
+    
     def test_ICAL(self):
-        ical = ICAL(vis=self.visibility, skymodel=self.m31sm, Gsolinit=300.0)
-
+        ical = ICAL(vis=self.visibility, skymodel=self.sm, Gsolinit=300.0)
+    
     def test_continuum_imaging(self):
-        ci = continuum_imaging(vis=self.visibility, skymodel=self.m31sm, algorithm='msclean')
-
+        ci = continuum_imaging(vis=self.visibility, skymodel=self.sm, algorithm='msclean')
+    
     def test_spectral_line_imaging(self):
-        sli = spectral_line_imaging(vis=self.visibility, skymodel=self.m31sm, algorithm='msclean')
-
+        sli = spectral_line_imaging(vis=self.visibility, skymodel=self.sm, algorithm='msclean')
+    
     def test_fast_imaging(self):
-        fi = fast_imaging(vis=self.visibility, skymodel=self.m31sm, Gsolinit=300.0)
-
+        fi = fast_imaging(vis=self.visibility, skymodel=self.sm, Gsolinit=300.0)
+    
     def test_EOR(self):
-        eor = EOR(vis=self.visibility, skymodel=self.m31sm, Gsolinit=300.0)
-
+        eor = EOR(vis=self.visibility, skymodel=self.sm, Gsolinit=300.0)
 
 
 if __name__ == '__main__':

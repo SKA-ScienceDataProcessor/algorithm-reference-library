@@ -4,20 +4,32 @@
 # Tim Cornwell <realtimcornwell@gmail.com>
 #
 #
+import collections
 
+from arl.visibility.operations import *
+from arl.fourier_transforms.ftprocessor import predict_skycomponent_blockvisibility
 from arl.data.parameters import *
+from arl.calibration.gaintable import solve_gaintable
 
 log = logging.getLogger(__name__)
 
-def RCAL(**kwargs):
-    """ Real-time calibration: single shot
-     
-    :param params: Dictionary containing parameters
-    :return:
+def RCAL(vis: BlockVisibility, components, **kwargs):
+    """ Real-time calibration pipeline.
+    
+    :param vis: Visibility or Union(Visibility, Iterable)
+    :param comp: Component-based sky model
+    :return: gaintable
    """
-    # TODO: implement
 
-    return True
+    if not isinstance(vis, collections.Iterable):
+        vis = [vis]
+
+    for ichunk, vischunk in enumerate(vis):
+        vispred = copy_visibility(vischunk)
+        vispred.data['vis'][...] = 0.0
+        vispred = predict_skycomponent_blockvisibility(vispred, components)
+        gt = solve_gaintable(vischunk, vispred, phase_only=False)
+        yield gt
 
 def ICAL(**kwargs):
     """ Post observation image, deconvolve, and self-calibrate

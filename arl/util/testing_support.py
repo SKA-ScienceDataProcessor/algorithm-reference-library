@@ -9,14 +9,13 @@ import csv
 from astropy.coordinates import EarthLocation
 from astropy.wcs import WCS
 
-from arl.data.data_models import *
 from arl.calibration.gaintable import *
 from arl.data.parameters import arl_path
-from arl.fourier_transforms.ftprocessor_base import predict_2d, predict_skycomponent_visibility
+from arl.fourier_transforms.ftprocessor_base import predict_2d, predict_skycomponent_blockvisibility
 from arl.image.operations import import_image_from_fits, create_image_from_array, reproject_image
 from arl.util.coordinate_support import *
 from arl.visibility.coalesce import coalesce_visibility
-from arl.visibility.operations import create_visibility
+from arl.visibility.operations import create_blockvisibility, copy_visibility
 
 log = logging.getLogger(__name__)
 
@@ -45,7 +44,7 @@ def create_configuration_from_file(antfile: str, name: str = None, location: Ear
         antxyz = xyz_at_latitude(antxyz, latitude)
     anames = [names % ant for ant in range(nants)]
     mounts = numpy.repeat(mount, nants)
-    fc = Configuration(location=location, names=anames, mount=mounts, xyz=antxyz, frame = frame)
+    fc = Configuration(location=location, names=anames, mount=mounts, xyz=antxyz, frame=frame)
     return fc
 
 
@@ -64,7 +63,7 @@ def create_LOFAR_configuration(antfile: str, meta: dict = None,
     anames = numpy.genfromtxt(antfile, dtype='str', skip_header=2, usecols=[0], delimiter=",")
     mounts = numpy.repeat('XY', nants)
     location = EarthLocation(x=[3826923.9] * u.m, y=[460915.1] * u.m, z=[5064643.2] * u.m)
-    fc = Configuration(location=location, names=anames, mount=mounts, xyz=antxyz, frame = 'global')
+    fc = Configuration(location=location, names=anames, mount=mounts, xyz=antxyz, frame='global')
     return fc
 
 
@@ -107,7 +106,6 @@ def create_named_configuration(name: str = 'LOWBD2', **kwargs):
     return fc
 
 
-
 def create_test_image(canonical=True, npol=4, cellsize=None, frequency=None, phasecentre=None):
     """Create a useful test image
 
@@ -125,7 +123,7 @@ def create_test_image(canonical=True, npol=4, cellsize=None, frequency=None, pha
             nchan = 1
         else:
             nchan = len(frequency)
-    
+        
         im = replicate_image(im, nchan=nchan, npol=npol)
         if cellsize is not None:
             im.wcs.wcs.cdelt[0] = -180.0 * cellsize / numpy.pi
@@ -143,8 +141,9 @@ def create_test_image(canonical=True, npol=4, cellsize=None, frequency=None, pha
         im.wcs.wcs.crval[1] = phasecentre.dec.deg
         im.wcs.wcs.crpix[0] = im.data.shape[3] // 2
         im.wcs.wcs.crpix[1] = im.data.shape[2] // 2
-
+    
     return im
+
 
 def create_low_test_image(npixel=16384, npol=1, nchan=1, cellsize=0.000015, frequency=1e8, channelwidth=1e6,
                           phasecentre=None, fov=20):
@@ -195,7 +194,7 @@ def create_low_test_image(npixel=16384, npol=1, nchan=1, cellsize=0.000015, freq
             if r > 0:
                 ra = float(row[4]) + phasecentre.ra.deg
                 dec = float(row[5]) + phasecentre.dec.deg
-                alpha = (float(row[10])-float(row[9]))/numpy.log10(610.0/151.0)
+                alpha = (float(row[10]) - float(row[9])) / numpy.log10(610.0 / 151.0)
                 flux = numpy.power(10, float(row[9])) * numpy.power(frequency / 1.51e8, alpha)
                 ras.append(ra)
                 decs.append(dec)
@@ -206,11 +205,11 @@ def create_low_test_image(npixel=16384, npol=1, nchan=1, cellsize=0.000015, freq
     total_flux = numpy.sum(fluxes)
     fluxes = numpy.array(fluxes)
     ip = numpy.round(p).astype('int')
-    ok = numpy.where((0 <= ip[0,:]) & (npixel > ip[0,:]) & (0 <= ip[1,:]) & (npixel > ip[1,:]))[0]
-    ps = ip[:,ok]
+    ok = numpy.where((0 <= ip[0, :]) & (npixel > ip[0, :]) & (0 <= ip[1, :]) & (npixel > ip[1, :]))[0]
+    ps = ip[:, ok]
     fluxes = fluxes[ok]
     actual_flux = numpy.sum(fluxes)
-
+    
     log.info('create_low_test_image: %d sources inside the image' % (ps.shape[1]))
     # noinspection PyStringFormat,PyStringFormat
     log.info('create_low_test_image: flux in S3 model = %.3f, actual flux in image = %.3f' % (total_flux, actual_flux))
@@ -235,8 +234,8 @@ def create_low_test_beam(model):
     
     # Scale the image cellsize to account for the different in frequencies. Eventually we will want to
     # use a frequency cube
-    log.info("create_low_test_beam: primary beam is defined at %.3f MHz" % (beam.wcs.wcs.crval[2]*1e-6))
-    log.info("create_low_test_beam: scaling to model frequency %.3f MHz" % (model.wcs.wcs.crval[3]*1e-6))
+    log.info("create_low_test_beam: primary beam is defined at %.3f MHz" % (beam.wcs.wcs.crval[2] * 1e-6))
+    log.info("create_low_test_beam: scaling to model frequency %.3f MHz" % (model.wcs.wcs.crval[3] * 1e-6))
     fscale = model.wcs.wcs.crval[3] / beam.wcs.wcs.crval[2]
     beam.wcs.wcs.cdelt[0] *= fscale
     beam.wcs.wcs.cdelt[1] *= fscale
@@ -251,7 +250,7 @@ def create_low_test_beam(model):
     
     reprojected_beam, footprint = reproject_image(beam, model.wcs, shape=model.shape)
     reprojected_beam.data *= reprojected_beam.data
-    reprojected_beam.data[footprint.data<=0.0] = 0.0
+    reprojected_beam.data[footprint.data <= 0.0] = 0.0
     
     return reprojected_beam
 
@@ -290,15 +289,17 @@ def replicate_image(im: Image, npol=4, nchan=1, frequency=1.4e9):
     else:
         return im
 
-def create_visibility_iterator(config: Configuration, times: numpy.array, freq: numpy.array, phasecentre: SkyCoord,
-                    weight: float = 1, npol=4, pol_frame=Polarisation_Frame('stokesI'), integration_time=1.0,
-                    number_integrations=1, channel_bandwidth=1e6, coalescence_factor=1.0, predict=predict_2d,
-                    model=None, components=None):
+
+def create_blockvisibility_iterator(config: Configuration, times: numpy.array, freq: numpy.array, phasecentre: SkyCoord,
+                                    weight: float = 1, pol_frame=Polarisation_Frame('stokesI'),
+                                    integration_time=1.0,
+                                    number_integrations=1, channel_bandwidth=1e6, predict=predict_2d,
+                                    model=None, components=None, phase_error=0.0, amplitude_error=0.0):
     """ Create a sequence of Visibiliites and optionally predicting and coalescing
 
     This is useful mainly for performing large simulations. Do something like::
     
-        vis_iter = create_visibility_iterator(config, times, frequency, phasecentre=phasecentre,
+        vis_iter = create_blockvisibility_iterator(config, times, frequency, phasecentre=phasecentre,
                                               weight=1.0, npol=1, integration_time=30.0, number_integrations=3)
 
         for i, vis in enumerate(vis_iter):
@@ -316,28 +317,34 @@ def create_visibility_iterator(config: Configuration, times: numpy.array, freq: 
     :param npol: Number of polarizations
     :param integration_time: Integration time ('auto' or value in s)
     :param number_integrations: Number of integrations to be created at each time.
+    :param model: Model image to be inserted
+    :param components: Components to be inserted
     :returns: Visibility
 
     """
     for time in times:
         actualtimes = time + numpy.arange(0, number_integrations) * integration_time * numpy.pi / 43200.0
-        vis = create_visibility(config, actualtimes, freq=freq, phasecentre=phasecentre,
-                                npol=npol, pol_frame=pol_frame, weight=weight, integration_time=integration_time,
-                                channel_bandwidth=channel_bandwidth)
-    
-        if model is not None:
-            vis = predict(vis, model)
-    
+        vis = create_blockvisibility(config, actualtimes, freq=freq, phasecentre=phasecentre,
+                                     pol_frame=pol_frame, weight=weight, integration_time=integration_time,
+                                     channel_bandwidth=channel_bandwidth)
+        
         if components is not None:
-            vis = predict_skycomponent_visibility(vis, components)
+            vis = predict_skycomponent_blockvisibility(vis, components)
+        
+        # Add phase errors
+        if phase_error > 0.0 or amplitude_error > 0.0:
+            gt = create_gaintable_from_blockvisibility(vis)
+            gt = simulate_gaintable(gt=gt, vis=vis, phase_error=phase_error, amplitude_error=amplitude_error)
+            original = copy_visibility(vis)
+            vis = apply_gaintable(vis, gt)
+        
+        yield vis
 
-        # We don't return the index since it's no use
-        cvis, _ = coalesce_visibility(vis, coalescence_factor=coalescence_factor)
-        yield cvis
 
 def simulate_gaintable(gt: GainTable, phase_error=0.1, amplitude_error=0.0, **kwargs):
     """ Simulate a gain table
     
+    :type gt: GainTable
     :param phase_error: std of normal distribution, zero mean
     :param amplitude_error: std of log normal distribution
     
@@ -347,10 +354,10 @@ def simulate_gaintable(gt: GainTable, phase_error=0.1, amplitude_error=0.0, **kw
     amp = 1.0
     phasor = 1.0
     if phase_error:
-        phasor = numpy.random.normal(0, phase_error, gt.data['gain'].shape)
+        phasor = numpy.exp(1j * numpy.random.normal(0, phase_error, gt.data['gain'].shape))
     if amplitude_error > 0.0:
         amp = numpy.random.lognormal(mean=0.0, sigma=amplitude_error, size=gt.data['gain'].shape)
         
-    gt.data['gain'] = amp * numpy.exp(1j * phasor)
+    gt.data['gain'] = amp * phasor
 
     return gt

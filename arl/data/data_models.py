@@ -404,7 +404,15 @@ class BlockVisibility:
         for col in self.data.dtype.fields.keys():
             size += self.data[col].nbytes
         return size / 1024.0 / 1024.0 / 1024.0
-    
+
+    @property
+    def nchan(self):
+        return self.data['vis'].shape[3]
+
+    @property
+    def npol(self):
+        return self.data['vis'].shape[4]
+
     @property
     def nants(self):
         return self.data['vis'].shape[1]

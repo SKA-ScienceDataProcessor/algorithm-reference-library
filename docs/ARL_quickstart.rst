@@ -38,6 +38,7 @@ See the jupyter note books below:
    arl/imaging
    arl/imaging-fits
    arl/imaging-wterm
+   arl/RCAL.ipynb
 
 In addition, there are other notebooks in examples/arl that are not built as part of this documentation. See e.g.
 examples/arl/imaging-low.ipynb, examples/arl/imaging-compress

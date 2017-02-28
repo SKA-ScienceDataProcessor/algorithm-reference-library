@@ -30,7 +30,7 @@ class TestCalibration(unittest.TestCase):
         self.compabsdirection = SkyCoord(ra=+181.0 * u.deg, dec=-35.0 * u.deg, frame='icrs', equinox=2000.0)
         self.comp = Skycomponent(direction=self.compabsdirection, frequency=self.frequency, flux=self.flux)
         self.vis = create_blockvisibility(self.lowcore, self.times, self.frequency, phasecentre=self.phasecentre,
-                                     weight=1.0, npol=1)
+                                     weight=1.0)
         self.vis.data['vis'][...] = 1+0j
 
     def test_create_gaintable_from_visibility(self):
@@ -40,6 +40,15 @@ class TestCalibration(unittest.TestCase):
         original = copy_visibility(self.vis)
         vis = apply_gaintable(self.vis, gt)
         assert numpy.max(numpy.abs(vis.vis-original.vis)) > 0.0
+
+    def test_apply_gaintable_only(self):
+        gt = create_gaintable_from_blockvisibility(self.vis)
+        log.info("Created gain table: %s" % (gaintable_summary(gt)))
+        gt = simulate_gaintable(gt, phase_error=0.1, amplitude_error=0.01)
+        original = copy_visibility(self.vis)
+        vis = apply_gaintable(self.vis, gt)
+        error = numpy.max(numpy.abs(vis.vis-original.vis))
+        assert error > 0.5, "Error = %f" % (error)
 
     def test_apply_gaintable_and_inverse_phase_only(self):
         gt = create_gaintable_from_blockvisibility(self.vis)

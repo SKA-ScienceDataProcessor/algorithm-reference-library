@@ -20,8 +20,8 @@ def gaintable_summary(gt):
     return "%s rows, %.3f GB" % (gt.data.shape, gt.size())
 
 
-def create_gaintable_from_blockvisibility(vis: BlockVisibility, time_width: float = None, frequency_width: float = None,
-                                          **kwargs):
+def create_gaintable_from_blockvisibility(vis: BlockVisibility, time_width: float = None,
+                                          frequency_width: float = None)  -> GainTable:
     """ Create gain table from visibility
     
     """
@@ -33,9 +33,9 @@ def create_gaintable_from_blockvisibility(vis: BlockVisibility, time_width: floa
     ufrequency = numpy.unique(vis.frequency)
     nfrequency = len(ufrequency)
     
-    npolarisation = vis.polarisation_frame.npol
+    npol = vis.polarisation_frame.npol
     
-    gainshape = [ntimes, nants, nfrequency, npolarisation]
+    gainshape = [ntimes, nants, nfrequency, npol]
     gain = numpy.ones(gainshape, dtype='complex')
     gain_weight = numpy.ones(gainshape)
     gain_time = utimes
@@ -48,7 +48,7 @@ def create_gaintable_from_blockvisibility(vis: BlockVisibility, time_width: floa
     return gt
 
 
-def apply_gaintable(vis: BlockVisibility, gt: GainTable, inverse=False):
+def apply_gaintable(vis: BlockVisibility, gt: GainTable, inverse=False) -> BlockVisibility:
     """Apply a gain table to a block visibility
     
     :param vis: Visibility to have gains applied
@@ -64,35 +64,35 @@ def apply_gaintable(vis: BlockVisibility, gt: GainTable, inverse=False):
     else:
         log.info('apply_gaintable: Apply gaintable')
     
-    if vis.polarisation_frame.type == Polarisation_Frame('stokesI').type:
-        for chunk, rows in enumerate(vis_timeslice_iter(vis)):
-            vistime = numpy.average(vis.time[rows])
-            integration_time = numpy.average(vis.integration_time[rows])
-            gaintable_rows = abs(gt.time - vistime) < integration_time / 2.0
-            
-            # Lookup the gain for this set of visibilities
-            gain = gt.data['gain'][gaintable_rows]
-            gwt = gt.data['weight'][gaintable_rows]
-            if inverse:  # TODO: Make this true inverse for polarisation
-                gain[gwt > 0.0] = 1.0 / gain[gwt > 0.0]
-            
-            original = vis.vis[rows]
-            applied = copy.deepcopy(original)
-            for a1 in range(vis.nants - 1):
-                for a2 in range(a1 + 1, vis.nants):
-                    applied[:, a2, a1, :, :] = gain[:, a1, :, :] * numpy.conjugate(gain[:, a2, :, :]) * \
-                                               original[:, a2, a1, :, :]
-            
-            vis.data['vis'][rows] = applied
+    for chunk, rows in enumerate(vis_timeslice_iter(vis)):
+        vistime = numpy.average(vis.time[rows])
+        integration_time = numpy.average(vis.integration_time[rows])
+        gaintable_rows = abs(gt.time - vistime) < integration_time / 2.0
+        
+        # Lookup the gain for this set of visibilities
+        gain = gt.data['gain'][gaintable_rows]
+        gwt = gt.data['weight'][gaintable_rows]
+        if inverse:  # TODO: Make this true inverse for polarisation
+            gain[gwt > 0.0] = 1.0 / gain[gwt > 0.0]
+        
+        original = vis.vis[rows]
+        applied = copy.deepcopy(original)
+        for a1 in range(vis.nants - 1):
+            for a2 in range(a1 + 1, vis.nants):
+                applied[:, a2, a1, :, :] = gain[:, a1, :, :] * numpy.conjugate(gain[:, a2, :, :]) * \
+                                           original[:, a2, a1, :, :]
+        
+        vis.data['vis'][rows] = applied
     return vis
 
 
-def solve_gaintable(vis: BlockVisibility, modelvis: BlockVisibility, phase_only=True):
+def solve_gaintable(vis: BlockVisibility, modelvis: BlockVisibility, phase_only=True) -> GainTable:
     """Solve a gain table to a block visibility
 
     """
     assert type(vis) is BlockVisibility, "vis is not a BlockVisibility: %r" % vis
-    
+    assert type(modelvis) is BlockVisibility, "modelvis is not a BlockVisibility: %r" % vis
+
     if phase_only:
         log.info('solve_gaintable: Solving for phase only')
     else:
@@ -100,25 +100,24 @@ def solve_gaintable(vis: BlockVisibility, modelvis: BlockVisibility, phase_only=
     
     gt = create_gaintable_from_blockvisibility(vis)
     
-    if vis.polarisation_frame.type == Polarisation_Frame('stokesI').type:
-        for chunk, rows in enumerate(vis_timeslice_iter(vis)):
-            
-            # Form the point source equivalent visibility
-            X = numpy.zeros_like(vis.vis[rows])
-            Xwt = numpy.abs(modelvis.vis[rows]) ** 2 * modelvis.weight[rows]
-            mask = Xwt > 0.0
-            X[mask] = vis.vis[rows][mask] / modelvis.vis[rows][mask]
-            
-            # Now average over time, chan. The axes of X are time, antenna2, antenna1, chan, pol
-            
-            Xave = numpy.average(X * Xwt, axis=(0))
-            XwtAve = numpy.average(Xwt, axis=(0))
-            
-            mask = XwtAve > 0.0
-            Xave[mask] = Xave[mask] / XwtAve[mask]
-            
-            gt.data['gain'][chunk, ...], gt.data['weight'][chunk, ...], residual = \
-                solve_station_gains_itsubs(Xave, XwtAve, phase_only=phase_only)
+    for chunk, rows in enumerate(vis_timeslice_iter(vis)):
+        
+        # Form the point source equivalent visibility
+        X = numpy.zeros_like(vis.vis[rows])
+        Xwt = numpy.abs(modelvis.vis[rows]) ** 2 * modelvis.weight[rows]
+        mask = Xwt > 0.0
+        X[mask] = vis.vis[rows][mask] / modelvis.vis[rows][mask]
+        
+        # Now average over time, chan. The axes of X are time, antenna2, antenna1, chan, pol
+        
+        Xave = numpy.average(X * Xwt, axis=(0))
+        XwtAve = numpy.average(Xwt, axis=(0))
+        
+        mask = XwtAve > 0.0
+        Xave[mask] = Xave[mask] / XwtAve[mask]
+        
+        gt.data['gain'][chunk, ...], gt.data['weight'][chunk, ...], residual = \
+            solve_station_gains_itsubs(Xave, XwtAve, phase_only=phase_only)
     
     return gt
 
@@ -172,7 +171,6 @@ def solve_station_gains_itsubs(X, Xwt, niter=30, tol=1e-10, phase_only=True, ref
         gain = 0.5 * (gain + gainLast)
         change = numpy.max(numpy.abs(gain - gainLast))
         if change < tol:
-            residual = solution_residual(gain, X, Xwt)
             return gain, gwt, solution_residual(gain, X, Xwt)
 
     return gain, gwt, solution_residual(gain, X, Xwt)

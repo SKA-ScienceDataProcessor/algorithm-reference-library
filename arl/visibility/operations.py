@@ -118,7 +118,7 @@ def create_visibility(config: Configuration, times: numpy.array, freq: numpy.arr
 
 
 def create_blockvisibility(config: Configuration, times: numpy.array, freq: numpy.array,
-                      phasecentre: SkyCoord, weight: float, npol=4,
+                      phasecentre: SkyCoord, weight: float,
                       pol_frame=Polarisation_Frame('stokesI'),
                       integration_time=1.0, channel_bandwidth=1e6) -> Visibility:
     """ Create a BlockVisibility from Configuration, hour angles, and direction of source
@@ -140,6 +140,7 @@ def create_blockvisibility(config: Configuration, times: numpy.array, freq: nump
     nants = len(config.data['names'])
     nbaselines = int(nants * (nants - 1) / 2)
     ntimes = len(times)
+    npol = pol_frame.npol
     visshape = [ntimes, nants, nants, nch, npol]
     rvis = numpy.zeros(visshape, dtype='complex')
     rweight = weight * numpy.ones(visshape)
@@ -158,7 +159,8 @@ def create_blockvisibility(config: Configuration, times: numpy.array, freq: nump
         for a1 in range(nants):
             for a2 in range(a1 + 1, nants):
                 ruvw[iha, a2, a1, :] = (ant_pos[a2, :] - ant_pos[a1, :])
-    
+                ruvw[iha, a1, a2, :] = (ant_pos[a1, :] - ant_pos[a2, :])
+
     rintegration_time = numpy.full_like(rtimes, integration_time)
     rchannel_bandwidth = numpy.full_like(freq, channel_bandwidth)
     vis = BlockVisibility(uvw=ruvw, time=rtimes, frequency=freq, vis=rvis, weight=rweight,

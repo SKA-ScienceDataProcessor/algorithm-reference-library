@@ -7,6 +7,7 @@ functions in arl.fourier_transforms.
 
 import collections
 from astropy import units as units
+from astropy import constants
 from astropy import wcs
 from astropy.wcs.utils import pixel_to_skycoord
 
@@ -222,6 +223,40 @@ def invert_wprojection(vis, im, dopsf=False, **kwargs):
     return invert_2d_base(vis, im, dopsf, **kwargs)
 
 
+def predict_skycomponent_blockvisibility(vis: BlockVisibility, sc: Skycomponent, **kwargs) -> BlockVisibility:
+    """Predict the visibility from a Skycomponent, add to existing visibility
+
+    :param vis: Visibility
+    :param sc: Skycomponent or list of SkyComponents
+    :param spectral_mode: {mfs|channel} (channel)
+    :returns: Visibility
+    """
+    assert type(vis) is BlockVisibility, "vis is not a BlockVisibility: %r" % vis
+    
+    if not isinstance(sc, collections.Iterable):
+        sc = [sc]
+    
+    nchan = vis.nchan
+    npol = vis.npol
+
+    if not isinstance(sc, collections.Iterable):
+        sc = [sc]
+    
+    k = vis.frequency / constants.c.value
+    for comp in sc:
+    
+        assert_same_chan_pol(vis, comp)
+    
+
+        l, m, n = skycoord_to_lmn(comp.direction, vis.phasecentre)
+        for chan in range(nchan):
+            phasor = simulate_point(vis.uvw * k, l, m)
+            for pol in range(npol):
+                vis.data['vis'][...,chan,pol] += comp.flux[chan, pol] * phasor[...]
+    
+    return vis
+
+
 def predict_skycomponent_visibility(vis: Visibility, sc: Skycomponent, **kwargs) -> Visibility:
     """Predict the visibility from a Skycomponent, add to existing visibility
 
@@ -231,21 +266,23 @@ def predict_skycomponent_visibility(vis: Visibility, sc: Skycomponent, **kwargs)
     :returns: Visibility
     """
     assert type(vis) is Visibility, "vis is not a Visibility: %r" % vis
-
+    
     if not isinstance(sc, collections.Iterable):
         sc = [sc]
-        
-    for comp in sc:
     
+    for comp in sc:
+        
+        assert_same_chan_pol(vis, comp)
+        
         l, m, n = skycoord_to_lmn(comp.direction, vis.phasecentre)
         phasor = simulate_point(vis.uvw, l, m)
-    
+        
         _, ipol = get_polarisation_map(vis)
         _, ichan = get_frequency_map(vis)
-    
+        
         coords = phasor, list(ichan), list(ipol)
         vis.data['vis'] += [comp.flux[ic, ip] * p for p, ic, ip in zip(*coords)]
-
+    
     return vis
 
 
