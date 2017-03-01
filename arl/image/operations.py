@@ -23,25 +23,6 @@ def image_sizeof(im: Image):
     return im.size()
 
 
-def create_image_from_slice(im, imslice):
-    """Create image from an image using a numpy.slice
-    
-    Both data and wcs are  sliced
-    
-    :param im: Image to be sliced
-    :param imslice: Slice to be applied
-    :returns: Sliced image
-    
-    """
-    fim = Image()
-    fim.data = im.data[imslice]
-    fim.wcs = im.wcs(imslice).deepcopy()
-    if image_sizeof(im) > 1.0:
-        log.debug(
-            "create_image_from_slice: created image of shape %s, size %.3f (GB)" % (str(im.shape), image_sizeof(im)))
-    return fim
-
-
 def create_image_from_array(data: numpy.array, wcs: WCS = None) -> Image:
     """ Create an image from an array and optional wcs
 
@@ -52,7 +33,11 @@ def create_image_from_array(data: numpy.array, wcs: WCS = None) -> Image:
     """
     fim = Image()
     fim.data = data
-    fim.wcs = wcs.deepcopy()
+    if wcs is None:
+        fim.wcs = None
+    else:
+        fim.wcs = wcs.deepcopy()
+        
     if image_sizeof(fim) >= 1.0:
         log.debug("create_image_from_array: created image of shape %s, size %.3f (GB)" % (str(fim.shape),
                                                                                           image_sizeof(fim)))
@@ -149,15 +134,15 @@ def checkwcs(wcs1, wcs2):
     assert wcs1.wcs.compare(wcs2.wcs), "WCS's do not agree"
 
 
-def add_image(im1: Image, im2: Image, docheckwcs=False):
+def add_image(im1: Image, im2: Image, checkwcs=False):
     """ Add two images
     
-    :param docheckwcs:
+    :param checkwcs:
     :param im1:
     :param im2:
     :returns: Image
     """
-    if docheckwcs:
+    if checkwcs:
         checkwcs(im1.wcs, im2.wcs)
     
     return create_image_from_array(im1.data + im2.data, im1.wcs)

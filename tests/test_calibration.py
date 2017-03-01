@@ -58,7 +58,7 @@ class TestCalibration(unittest.TestCase):
         vis = apply_gaintable(self.vis, gt)
         vis = apply_gaintable(self.vis, gt, inverse=True)
         error = numpy.max(numpy.abs(vis.vis-original.vis))
-        assert error < 1e-15, "Error = %f" % (error)
+        assert error < 1e-15, "Error = %s" % (error)
 
 
     def test_apply_gaintable_and_inverse_both(self):
@@ -69,7 +69,7 @@ class TestCalibration(unittest.TestCase):
         vis = apply_gaintable(self.vis, gt)
         vis = apply_gaintable(self.vis, gt, inverse=True)
         error = numpy.max(numpy.abs(vis.vis-original.vis))
-        assert error < 1e-15, "Error = %f" % (error)
+        assert error < 1e-15, "Error = %s" % (error)
 
     def test_solve_gaintable_phase_only(self):
         gt = create_gaintable_from_blockvisibility(self.vis)
@@ -80,20 +80,31 @@ class TestCalibration(unittest.TestCase):
         gtsol = solve_gaintable(self.vis, original)
         vis = apply_gaintable(vis, gtsol, inverse=True)
         error = numpy.max(numpy.abs(vis.vis-original.vis))
-        assert error < 1e-8, "Error = %f" % (error)
+        assert error < 3e-8, "Error = %s" % (error)
 
 
-    def test_solve_gaintable_both(self):
+    def test_solve_gaintable_both_big(self):
         gt = create_gaintable_from_blockvisibility(self.vis)
         log.info("Created gain table: %s" % (gaintable_summary(gt)))
-        gt = simulate_gaintable(gt, phase_error=0.1, amplitude_error=0.01)
+        gt = simulate_gaintable(gt, phase_error=10.0, amplitude_error=0.1)
         original = copy_visibility(self.vis)
         vis = apply_gaintable(self.vis, gt)
-        gtsol = solve_gaintable(self.vis, original, phase_only=False)
+        gtsol = solve_gaintable(self.vis, original, phase_only=False, niter=200)
         vis = apply_gaintable(vis, gtsol, inverse=True)
         error = numpy.max(numpy.abs(vis.vis-original.vis))
-        assert error < 1e-8, "Error = %f" % (error)
+        assert error < 3e-8, "Error = %s" % (error)
 
+
+    def test_solve_gaintable_big_phase(self):
+        gt = create_gaintable_from_blockvisibility(self.vis)
+        log.info("Created gain table: %s" % (gaintable_summary(gt)))
+        gt = simulate_gaintable(gt, phase_error=10.0, amplitude_error=0.0)
+        original = copy_visibility(self.vis)
+        vis = apply_gaintable(self.vis, gt)
+        gtsol = solve_gaintable(self.vis, original, phase_only=True, niter=200)
+        vis = apply_gaintable(vis, gtsol, inverse=True)
+        error = numpy.max(numpy.abs(vis.vis-original.vis))
+        assert error < 3e-8, "Error = %s" % (error)
 
 if __name__ == '__main__':
     unittest.main()

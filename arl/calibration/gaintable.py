@@ -22,7 +22,14 @@ def gaintable_summary(gt):
 
 def create_gaintable_from_blockvisibility(vis: BlockVisibility, time_width: float = None,
                                           frequency_width: float = None)  -> GainTable:
-    """ Create gain table from visibility
+    """ Create gain table from visibility.
+    
+    This makes an empty gain table consistent with the BlockVisibility.
+    
+    :param vis: BlockVisibilty
+    :param time_interval: Time interval between solutions (s)
+    :param frequency_width: Frequency solution width (Hz)
+    :returns: GainTable
     
     """
     assert type(vis) is BlockVisibility, "vis is not a BlockVisibility: %r" % vis
@@ -40,16 +47,25 @@ def create_gaintable_from_blockvisibility(vis: BlockVisibility, time_width: floa
     gain_weight = numpy.ones(gainshape)
     gain_time = utimes
     gain_frequency = ufrequency
-    gain_antenna = range(nants)
+    gain_residual = numpy.zeros([ntimes, nfrequency, npol])
     
-    gt = GainTable(gain=gain, time=gain_time, antenna=gain_antenna, weight=gain_weight, frequency=gain_frequency,
+    gt = GainTable(gain=gain, time=gain_time, weight=gain_weight, residual=gain_residual, frequency=gain_frequency,
                    receptor_frame=vis.polarisation_frame)
-    
+
+    assert type(gt) is GainTable, "gt is not a GainTable: %r" % gt
+
     return gt
 
 
 def apply_gaintable(vis: BlockVisibility, gt: GainTable, inverse=False) -> BlockVisibility:
     """Apply a gain table to a block visibility
+    
+    The corrected visibility is::
+    
+        V_corrected = {g_i * g_j^*}^-1 V_obs
+        
+    If the visibility data are polarised e.g. polarisation_frame("linear") then the inverse operator
+    represents an actual inverse of the gains.
     
     :param vis: Visibility to have gains applied
     :param gt: Gaintable to be applied
@@ -58,7 +74,8 @@ def apply_gaintable(vis: BlockVisibility, gt: GainTable, inverse=False) -> Block
     
     """
     assert type(vis) is BlockVisibility, "vis is not a BlockVisibility: %r" % vis
-    
+    assert type(gt) is GainTable, "gt is not a GainTable: %r" % gt
+
     if inverse:
         log.info('apply_gaintable: Apply inverse gaintable')
     else:
@@ -86,9 +103,16 @@ def apply_gaintable(vis: BlockVisibility, gt: GainTable, inverse=False) -> Block
     return vis
 
 
-def solve_gaintable(vis: BlockVisibility, modelvis: BlockVisibility, phase_only=True) -> GainTable:
+def solve_gaintable(vis: BlockVisibility, modelvis: BlockVisibility, phase_only=True, niter=30, tol=1e-8) -> GainTable:
     """Solve a gain table to a block visibility
-
+    
+    :param vis: BlockVisibility containing the observed data
+    :param modelvis: BlockVisibility containing the visibility predicted by a model
+    :param phase_only: Solve only for the phases (default=True)
+    :param niter: Number of iterations (default 30)
+    :param tol: Iteration stops when the fractional change in the gain solution is below this tolerance
+    :returns: GainTable containing solution
+    
     """
     assert type(vis) is BlockVisibility, "vis is not a BlockVisibility: %r" % vis
     assert type(modelvis) is BlockVisibility, "modelvis is not a BlockVisibility: %r" % vis
@@ -116,21 +140,23 @@ def solve_gaintable(vis: BlockVisibility, modelvis: BlockVisibility, phase_only=
         mask = XwtAve > 0.0
         Xave[mask] = Xave[mask] / XwtAve[mask]
         
-        gt.data['gain'][chunk, ...], gt.data['weight'][chunk, ...], residual = \
-            solve_station_gains_itsubs(Xave, XwtAve, phase_only=phase_only)
-    
+        gt.data['gain'][chunk, ...], gt.data['weight'][chunk, ...], gt.data['residual'][chunk, ...] = \
+            solve_antenna_gains_itsubs(Xave, XwtAve, phase_only=phase_only, niter=niter, tol=tol)
+
+    assert type(gt) is GainTable, "gt is not a GainTable: %r" % gt
+
     return gt
 
 
-def solve_station_gains_itsubs(X, Xwt, niter=30, tol=1e-10, phase_only=True, refant=0):
+def solve_antenna_gains_itsubs(X, Xwt, niter=30, tol=1e-8, phase_only=True, refant=0):
     """Solve for the antenna gains
     
     X(antenna2, antenna1) = gain(antenna1) conj(gain(antenna2))
     
     This uses an iterative substitution algorithm due to Larry D'Addario c 1980'ish. Used
-    in the original Dec-10 Antsol
+    in the original VLA Dec-10 Antsol.
     
-    :param X: Equivalent point source visibility[ nants, nants, ...]
+    :param X: Equivalent point source visibility[nants, nants, ...]
     :param Xwt: Equivalent point source weight [nants, nants, ...]
     :param niter: Number of iterations
     :param tol: tolerance on solution change
@@ -188,9 +214,8 @@ def solution_residual(gain, X, Xwt):
 
     residual = 0.0
     sumwt = 0.0
+
     for ant1 in range(nants):
-        # residual += numpy.abs(X[ant2, ant1, ...] - gain[ant1, ...] * numpy.conjugate(gain[ant2, ...])) ** 2 \
-        #             * Xwt[ant2, ant1, ...]
         sumwt += numpy.sum(Xwt[:, ant1, ...], axis=0)
         residual += numpy.sum(numpy.abs(X[:, ant1, ...] - gain[ant1, ...] * numpy.conjugate(gain[:, ...])) ** 2 \
                               * Xwt[:, ant1, ...], axis=0)

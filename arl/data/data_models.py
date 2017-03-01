@@ -74,17 +74,17 @@ class GainTable:
     The weight is usually that output from gain solvers.
     """
     
-    def __init__(self, data=None, gain: numpy.array = None, time: numpy.array = None, antenna: numpy.array = None,
-                 weight: numpy.array = None, frequency: numpy.array = None,
-                 receptor_frame: Receptor_Frame = Receptor_Frame("linear")):
+    def __init__(self, data=None, gain: numpy.array = None, time: numpy.array = None, weight: numpy.array = None,
+                 residual: numpy.array = None, frequency: numpy.array = None, receptor_frame: Receptor_Frame = \
+        Receptor_Frame("linear")):
         """ Create a gaintable from arrays
         
         The definition of gain is:
+        
             Vobs = g_i g_j^* Vmodel
 
         :param gain: [npol, nchan]
         :param time:
-        :param antenna:
         :param weight:
         :param frequency:
         :returns: Gaintable
@@ -97,11 +97,13 @@ class GainTable:
             assert len(frequency) == nchan, "Discrepancy in frequency channels"
             desc = [('gain', '<c16', (nants, nchan, npol)),
                     ('weight', '<f8', (nants, nchan, npol)),
+                    ('residual', '<f8', (nchan, npol)),
                     ('time', '<f8')]
             self.data = numpy.zeros(shape=[nrows], dtype=desc)
             self.data['gain'] = gain
             self.data['weight'] = weight
             self.data['time'] = time
+            self.data['residual'] = residual
         self.frequency = frequency
         self.receptor_frame = receptor_frame
     
@@ -123,6 +125,10 @@ class GainTable:
     @property
     def weight(self):
         return self.data['weight']
+    
+    @property
+    def residual(self):
+        return self.data['residual']
 
     @property
     def nants(self):
