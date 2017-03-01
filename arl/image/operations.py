@@ -131,18 +131,20 @@ def checkwcs(wcs1, wcs2):
     :param wcs1:
     :param wcs2:
     """
-    assert wcs1.wcs.compare(wcs2.wcs), "WCS's do not agree"
+    pass
+    # No confidence in this next test
+    # assert wcs1.wcs.compare(wcs2.wcs, cmp=1 | 2 | 4), "WCS's do not agree"
 
 
-def add_image(im1: Image, im2: Image, checkwcs=False):
+def add_image(im1: Image, im2: Image, docheckwcs=False):
     """ Add two images
     
-    :param checkwcs:
+    :param docheckwcs:
     :param im1:
     :param im2:
     :returns: Image
     """
-    if checkwcs:
+    if docheckwcs:
         checkwcs(im1.wcs, im2.wcs)
     
     return create_image_from_array(im1.data + im2.data, im1.wcs)
