@@ -5,6 +5,9 @@ realtimcornwell@gmail.com
 import sys
 import unittest
 
+import numpy
+from numpy.testing import *
+
 from arl.image.iterators import *
 from arl.image.operations import *
 from arl.util.testing_support import create_test_image
@@ -62,7 +65,51 @@ class TestImage(unittest.TestCase):
         newshape[3] /= 1.5
         newimage, footprint = reproject_image(self.m31image, newwcs, shape=newshape)
         checkwcs(newimage.wcs, newwcs)
-              
+
+    def test_stokes_conversion(self):
+        assert self.m31image.polarisation_frame == Polarisation_Frame("stokesI")
+        stokes = create_test_image(cellsize=0.0001, polarisation_frame=Polarisation_Frame("stokesIQUV"))
+        assert stokes.polarisation_frame == Polarisation_Frame("stokesIQUV")
+
+        for pol_name in ['circular', 'linear']:
+            polarisation_frame = Polarisation_Frame(pol_name)
+            polimage = convert_stokes_to_polimage(stokes, polarisation_frame=polarisation_frame)
+            assert polimage.polarisation_frame == polarisation_frame
+            pf = polarisation_frame_from_wcs(polimage.wcs, polimage.shape)
+            rstokes = convert_polimage_to_stokes(polimage)
+            assert polimage.data.dtype == 'complex'
+            assert rstokes.data.dtype == 'complex'
+            numpy.testing.assert_array_almost_equal(stokes.data, rstokes.data.real, 12)
+            
+    def test_polarisation_frame_from_wcs(self):
+        assert self.m31image.polarisation_frame == Polarisation_Frame("stokesI")
+        stokes = create_test_image(cellsize=0.0001, polarisation_frame=Polarisation_Frame("stokesIQUV"))
+        wcs = stokes.wcs.deepcopy()
+        shape = stokes.shape
+        assert polarisation_frame_from_wcs(wcs, shape) == Polarisation_Frame("stokesIQUV")
+        
+        wcs = stokes.wcs.deepcopy().sub(['stokes'])
+        wcs.wcs.crpix[0] = 1.0
+        wcs.wcs.crval[0] = -1.0
+        wcs.wcs.cdelt[0] = -1.0
+        assert polarisation_frame_from_wcs(wcs, shape) == Polarisation_Frame('circular')
+
+        wcs.wcs.crpix[0] = 1.0
+        wcs.wcs.crval[0] = -5.0
+        wcs.wcs.cdelt[0] = -1.0
+        assert polarisation_frame_from_wcs(wcs, shape) == Polarisation_Frame('linear')
+
+        wcs.wcs.crpix[0] = 1.0
+        wcs.wcs.crval[0] = -1.0
+        wcs.wcs.cdelt[0] = -1.0
+        assert polarisation_frame_from_wcs(wcs, shape) == Polarisation_Frame('circular')
+
+        with self.assertRaises(ValueError):
+            wcs.wcs.crpix[0] = 1.0
+            wcs.wcs.crval[0] = -100.0
+            wcs.wcs.cdelt[0] = -1.0
+            pf = polarisation_frame_from_wcs(wcs, shape)
+
     def test_show_image(self):
         show_image(self.m31image)
 

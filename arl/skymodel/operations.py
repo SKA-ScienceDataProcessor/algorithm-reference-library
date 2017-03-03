@@ -21,7 +21,7 @@ from photutils import segmentation
 log = logging.getLogger(__name__)
 
 def create_skycomponent(direction: SkyCoord, flux: numpy.array, frequency: numpy.array, shape: str = 'Point',
-                        param: dict = None, name: str = ''):
+                        polarisation_frame=Polarisation_Frame("stokesIQUV"), param: dict=None, name: str = ''):
     """ A single Skycomponent with direction, flux, shape, and params for the shape
 
     :param param:
@@ -38,7 +38,8 @@ def create_skycomponent(direction: SkyCoord, flux: numpy.array, frequency: numpy
         name = name,
         flux = numpy.array(flux),
         shape = shape,
-        params = param
+        params = param,
+        polarisation_frame = polarisation_frame
         )
 
 def find_nearest_component(home, comps):
@@ -134,6 +135,7 @@ def find_skycomponents(im: Image, fwhm=1.0, threshold=10.0, npixels=5):
             name = "Segment %d" % segment,
             flux = flux,
             shape = 'Point',
+            polarisation_frame=im.polarisation_frame,
             params = {'xpixel':xs, 'ypixel':ys} # Table has lots of data, could add more in future
             ))
 

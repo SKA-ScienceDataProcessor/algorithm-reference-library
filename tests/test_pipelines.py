@@ -27,13 +27,13 @@ class TestPipelines(unittest.TestCase):
         self.compabsdirection = SkyCoord(ra=17.0 * u.deg, dec=-36.5 * u.deg, frame='icrs', equinox=2000.0)
         
         self.comp = create_skycomponent(flux=self.flux, frequency=frequency, direction=self.compabsdirection)
-        self.image = create_test_image(frequency=frequency, npol=1, phasecentre=self.phasecentre, cellsize=0.001)
+        self.image = create_test_image(frequency=frequency, phasecentre=self.phasecentre, cellsize=0.001)
         
         self.vis = create_blockvisibility_iterator(lowcore, times=times, freq=frequency, phasecentre=self.phasecentre,
-                                                   weight=1, pol_frame=Polarisation_Frame('stokesIQUV'),
+                                                   weight=1, polarisation_frame=Polarisation_Frame('stokesIQUV'),
                                                    integration_time=1.0, number_integrations=1, channel_bandwidth=1e6,
-                                                   predict=predict_2d, components=self.comp,
-                                                   phase_error=0.1, amplitude_error=0.01)
+                                                   predict=predict_2d, components=self.comp, phase_error=0.1,
+                                                   amplitude_error=0.01)
     
     def test_RCAL(self):
         for igt, gt in enumerate(RCAL(vis=self.vis, components=self.comp)):

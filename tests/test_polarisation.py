@@ -6,10 +6,10 @@ from numpy.testing import *
 
 
 class TestPolarisation(unittest.TestCase):
-    def test_pol_frame(self):
+    def test_polarisation_frame(self):
         for frame in ['circular', 'circularnp', 'linear', 'linearnp', 'stokesIQUV', 'stokesIV', 'stokesIQ', 'stokesI']:
-            pol_frame = Polarisation_Frame(frame)
-            assert pol_frame.type == frame
+            polarisation_frame = Polarisation_Frame(frame)
+            assert polarisation_frame.type == frame
             
         assert Polarisation_Frame("circular").npol == 4
         assert Polarisation_Frame("circularnp").npol == 2
@@ -19,7 +19,7 @@ class TestPolarisation(unittest.TestCase):
         assert Polarisation_Frame("stokesI").npol == 1
 
         with self.assertRaises(RuntimeError):
-            pol_frame = Polarisation_Frame("circuloid")
+            polarisation_frame = Polarisation_Frame("circuloid")
     
     def test_rec_frame(self):
         rec_frame = Receptor_Frame("linear")
@@ -91,10 +91,19 @@ class TestPolarisation(unittest.TestCase):
         circular = convert_stokes_to_circular(stokes)
         assert_array_almost_equal(convert_circular_to_stokes(circular).real, stokes)
 
-    # def test_bulk_conversion(self):
-    #
-    #     stokes = random.uniform(-1.0, 1.0, [4,10])
-    #     assert_array_almost_equal(convert_circular_to_stokes(convert_stokes_to_circular(stokes)).real, stokes)
+    def test_image_conversion(self):
+
+        stokes = numpy.array(random.uniform(-1.0, 1.0, [3,4,128,128]))
+        cir = convert_stokes_to_circular(stokes)
+        st = convert_circular_to_stokes(cir)
+        assert_array_almost_equal(st.real, stokes)
+        
+    def test_vis_conversion(self):
+
+        stokes = numpy.array(random.uniform(-1.0, 1.0, [1000,3,4]))
+        cir = convert_stokes_to_circular(stokes, polaxis=2)
+        st = convert_circular_to_stokes(cir, polaxis=2)
+        assert_array_almost_equal(st.real, stokes)
 
 if __name__ == '__main__':
     unittest.main()

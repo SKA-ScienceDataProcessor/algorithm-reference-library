@@ -3,18 +3,24 @@
 realtimcornwell@gmail.com
 """
 
+
+import os
 import unittest
 
 from arl.util.testing_support import create_low_test_image, create_named_configuration, create_test_image, \
     create_low_test_beam, create_blockvisibility_iterator
 from arl.visibility.iterators import *
 from arl.visibility.operations import create_visibility, append_visibility
+from arl.image.operations import export_image_to_fits
 
 log = logging.getLogger(__name__)
 
 
 class TestTesting_Support(unittest.TestCase):
     def setUp(self):
+        self.dir = './test_results'
+        os.makedirs(self.dir, exist_ok=True)
+
         self.frequency = numpy.linspace(1e8, 1.5e8, 3)
         self.flux = numpy.array([[100.0], [100.0], [100.0]])
         self.phasecentre = SkyCoord(ra=+15.0 * u.deg, dec=-35.0 * u.deg, frame='icrs', equinox=2000.0)
@@ -29,7 +35,7 @@ class TestTesting_Support(unittest.TestCase):
         self.config = create_named_configuration(config)
         self.phasecentre = SkyCoord(ra=+15 * u.deg, dec=dec * u.deg, frame='icrs', equinox=2000.0)
         self.vis = create_visibility(self.config, self.times, self.frequency, phasecentre=self.phasecentre, weight=1.0,
-                                     npol=1)
+                                     polarisation_frame=Polarisation_Frame('stokesI'))
     
     def test_named_configurations(self):
         for config in ['LOWBD2', 'LOWBD2-CORE', 'LOWBD1', 'LOFAR']:
@@ -47,43 +53,72 @@ class TestTesting_Support(unittest.TestCase):
         assert len(im.data.shape) == 2
         im = create_test_image(canonical=True)
         assert len(im.data.shape) == 4
-        im = create_test_image(canonical=True, npol=4, frequency=numpy.array([1e8]))
+        im = create_test_image(canonical=True, frequency=numpy.array([1e8]),  polarisation_frame=Polarisation_Frame(
+            'stokesI'))
+        assert len(im.data.shape) == 4
+        assert im.data.shape[0] == 1
+        assert im.data.shape[1] == 1
+        im = create_test_image(canonical=True, frequency=numpy.array([1e8]),  polarisation_frame=Polarisation_Frame(
+            'stokesIQUV'))
         assert len(im.data.shape) == 4
         assert im.data.shape[0] == 1
         assert im.data.shape[1] == 4
     
     def test_create_low_test_image(self):
-        im = create_low_test_image(npixel=1024, channelwidth=1e5,
+        im = create_low_test_image(npixel=1024, channel_bandwidth=numpy.array([1e6]),
                                    frequency=numpy.array([1e8]),
                                    phasecentre=self.phasecentre, fov=10)
         assert im.data.shape[0] == 1
         assert im.data.shape[1] == 1
         assert im.data.shape[2] == 1024
         assert im.data.shape[3] == 1024
-    
-    def test_create_low_test_image_no_phasecentre(self):
-        
-        im = create_low_test_image(npixel=1024, channelwidth=1e5,
-                                   frequency=numpy.array([1e8]),
-                                   fov=10)
-        assert im.data.shape[0] == 1
+
+    def test_create_low_test_image_spectral(self):
+        im = create_low_test_image(npixel=1024, channel_bandwidth=numpy.array([1e6, 1e6, 1e6]),
+                                   frequency=numpy.array([1e8-1e6, 1e8, 1e8+1e6]),
+                                   phasecentre=self.phasecentre, fov=10)
+        assert im.data.shape[0] == 3
         assert im.data.shape[1] == 1
+        assert im.data.shape[2] == 1024
+        assert im.data.shape[3] == 1024
+
+    def test_create_low_test_image_spectral_polarisation(self):
+        
+        im = create_low_test_image(npixel=1024, channel_bandwidth=numpy.array([1e6, 1e6, 1e6]),
+                                   polarisation_frame=Polarisation_Frame("stokesIQUV"),
+                                   frequency=numpy.array([1e8-1e6, 1e8, 1e8+1e6]), fov=10)
+        assert im.data.shape[0] == 3
+        assert im.data.shape[1] == 4
         assert im.data.shape[2] == 1024
         assert im.data.shape[3] == 1024
     
     def test_create_low_test_beam(self):
-        im = create_test_image(canonical=True, npol=1, frequency=numpy.array([1e8]), phasecentre=self.phasecentre)
+        im = create_test_image(canonical=True, cellsize=0.002,
+                               frequency=numpy.array([1e8-5e7, 1e8, 1e8+5e7]),
+                               channel_bandwidth=numpy.array([5e7, 5e7, 5e7]),
+                               polarisation_frame=Polarisation_Frame("stokesIQUV"),
+                               phasecentre=self.phasecentre)
         bm = create_low_test_beam(model=im)
-        assert bm.data.shape[0] == 1
-        assert bm.data.shape[1] == 1
+        export_image_to_fits(bm, '%s/test_low_beam.fits' % (self.dir))
+
+        assert bm.data.shape[0] == 3
+        assert bm.data.shape[1] == 4
         assert bm.data.shape[2] == im.data.shape[2]
         assert bm.data.shape[3] == im.data.shape[3]
+        # Check to see if the beam scales as expected
+        for i in [30, 40]:
+            assert numpy.max(numpy.abs(bm.data[0, 0, 128, 128 - 2 * i] - bm.data[1, 0, 128, 128 - i])) < 0.02
+            assert numpy.max(numpy.abs(bm.data[0, 0, 128, 128 - 3 * i] - bm.data[2, 0, 128, 128 - i])) < 0.02
+            assert numpy.max(numpy.abs(bm.data[0, 0, 128 - 2 * i, 128] - bm.data[1, 0, 128 - i, 128])) < 0.02
+            assert numpy.max(numpy.abs(bm.data[0, 0, 128 - 3 * i, 128] - bm.data[2, 0, 128 - i, 128])) < 0.02
+
+
     
     def test_create_vis_iter(self):
         vis_iter = create_blockvisibility_iterator(self.config, self.times, self.frequency,
-                                                   phasecentre=self.phasecentre,
-                                                   pol_frame=Polarisation_Frame('stokesI'),
-                                                   weight=1.0, integration_time=30.0, number_integrations=3)
+                                                   phasecentre=self.phasecentre, weight=1.0,
+                                                   polarisation_frame=Polarisation_Frame('stokesI'),
+                                                   integration_time=30.0, number_integrations=3)
         
         fullvis = None
         totalnvis = 0
@@ -99,14 +134,15 @@ class TestTesting_Support(unittest.TestCase):
         assert fullvis.nvis == totalnvis
     
     def test_create_vis_iter_with_model(self):
-        model = create_test_image(canonical=True, cellsize=0.001, npol=1, frequency=self.frequency,
+        model = create_test_image(canonical=True, cellsize=0.001, frequency=self.frequency,
                                   phasecentre=self.phasecentre)
-        comp = Skycomponent(direction=self.phasecentre, frequency=self.frequency, flux=self.flux)
+        comp = Skycomponent(direction=self.phasecentre, frequency=self.frequency, flux=self.flux,
+                            polarisation_frame=Polarisation_Frame('stokesI'))
         vis_iter = create_blockvisibility_iterator(self.config, self.times, self.frequency,
-                                                   phasecentre=self.phasecentre,
-                                                   pol_frame=Polarisation_Frame('stokesI'),
-                                                   weight=1.0, integration_time=30.0, number_integrations=3,
-                                                   model=model, components=comp)
+                                                   phasecentre=self.phasecentre, weight=1.0,
+                                                   polarisation_frame=Polarisation_Frame('stokesI'),
+                                                   integration_time=30.0, number_integrations=3, model=model,
+                                                   components=comp)
         
         fullvis = None
         totalnvis = 0

@@ -11,8 +11,11 @@ from astropy.io import fits
 from astropy.wcs import WCS
 from reproject import reproject_interp
 
+from astropy.convolution import Kernel2D, Gaussian2DKernel, convolve
+
 from arl.data.data_models import *
 from arl.data.parameters import *
+from arl.data.polarisation import *
 
 log = logging.getLogger(__name__)
 
@@ -23,15 +26,20 @@ def image_sizeof(im: Image):
     return im.size()
 
 
-def create_image_from_array(data: numpy.array, wcs: WCS = None) -> Image:
+def create_image_from_array(data: numpy.array, wcs: WCS = None,
+                            polarisation_frame=Polarisation_Frame('stokesI')) -> \
+        Image:
     """ Create an image from an array and optional wcs
 
     :rtype: Image
     :param data:
     :param wcs:
+    :param polarisation_frame
     :returns: Image
     """
     fim = Image()
+    fim.polarisation_frame = polarisation_frame
+    
     fim.data = data
     if wcs is None:
         fim.wcs = None
@@ -53,6 +61,7 @@ def copy_image(im: Image) -> Image:
     :returns: Image
     """
     fim = Image()
+    fim.polarisation_frame = im.polarisation_frame
     fim.data = copy.deepcopy(im.data)
     if im.wcs is None:
         fim.wcs = None
@@ -70,6 +79,7 @@ def create_empty_image_like(im: Image) -> Image:
     :returns: Image
     """
     fim = Image()
+    fim.polarisation_frame = im.polarisation_frame
     fim.data = numpy.zeros_like(im.data)
     if im.wcs is None:
         fim.wcs = None
@@ -79,6 +89,52 @@ def create_empty_image_like(im: Image) -> Image:
         log.debug("create_empty_image_like: created image of shape %s, size %.3f (GB)" % (str(im.shape),
                                                                                           image_sizeof(im)))
     return fim
+
+
+def polarisation_frame_from_wcs(wcs, shape):
+    """Convert wcs to polarisation_frame
+
+    See FITS definition in Table 29 of https://fits.gsfc.nasa.gov/standard40/fits_standard40draft1.pdf
+    or subsequent revision
+
+        1 I Standard Stokes unpolarized
+        2 Q Standard Stokes linear
+        3 U Standard Stokes linear
+        4 V Standard Stokes circular
+        −1 RR Right-right circular
+        −2 LL Left-left circular
+        −3 RL Right-left cross-circular
+        −4 LR Left-right cross-circular
+        −5 XX X parallel linear
+        −6 YY Y parallel linear
+        −7 XY XY cross linear
+        −8 YX YX cross linear
+
+        stokesI [1]
+        stokesIQUV [1,2,3,4]
+        circular [-1,-2,-3,-4]
+        linear [-5,-6,-7,-8]
+
+    """
+    # The third axis should be stokes:
+    
+    polarisation_frame = None
+    
+    if len(shape) == 2:
+        polarisation_frame = Polarisation_Frame("stokesI")
+    else:
+        npol = shape[1]
+        pol = wcs.sub(['stokes']).wcs_pix2world(range(npol), 0)[0]
+        pol = numpy.array(pol, dtype='int')
+        for key in Polarisation_Frame.fits_codes.keys():
+            keypol = numpy.array(Polarisation_Frame.fits_codes[key])
+            if numpy.array_equal(pol, keypol):
+                polarisation_frame = Polarisation_Frame(key)
+                return polarisation_frame
+    if polarisation_frame is None:
+        raise ValueError("Cannot determine polarisation code")
+    
+    return polarisation_frame
 
 
 def export_image_to_fits(im: Image, fitsfile: str = 'imaging.fits'):
@@ -100,6 +156,14 @@ def import_image_from_fits(fitsfile: str):
     fim = Image()
     fim.data = hdulist[0].data
     fim.wcs = WCS(arl_path(fitsfile))
+    if len(fim.data) == 2:
+        fim.polarisation_frame = Polarisation_Frame('stokesI')
+    else:
+        try:
+            fim.polarisation_frame = polarisation_frame_from_wcs(fim.wcs, fim.data.shape)
+        except:
+            fim.polarisation_frame = Polarisation_Frame('stokesI')
+            
     hdulist.close()
     log.info("import_image_from_fits: created image of shape %s, size %.3f (GB)" %
              (str(fim.shape), image_sizeof(fim)))
@@ -147,7 +211,9 @@ def add_image(im1: Image, im2: Image, docheckwcs=False):
     if docheckwcs:
         checkwcs(im1.wcs, im2.wcs)
     
-    return create_image_from_array(im1.data + im2.data, im1.wcs)
+    assert im1.polarisation_frame == im2.polarisation_frame
+    
+    return create_image_from_array(im1.data + im2.data, im1.wcs, im1.polarisation_frame)
 
 
 def qa_image(im, mask=None, **kwargs):
@@ -203,3 +269,50 @@ def show_image(im: Image, fig=None, title: str = '', pol=0, chan=0):
     plt.title(title)
     plt.colorbar()
     return fig
+
+
+def convert_stokes_to_polimage(im: Image, polarisation_frame: Polarisation_Frame):
+    """Convert a stokes image to polarisation_frame
+
+    """
+    
+    assert type(polarisation_frame) == Polarisation_Frame
+    
+    if polarisation_frame == Polarisation_Frame('linear'):
+        cimarr = convert_stokes_to_linear(im.data)
+        return create_image_from_array(cimarr, im.wcs, polarisation_frame)
+    elif polarisation_frame == Polarisation_Frame('circular'):
+        cimarr = convert_stokes_to_circular(im.data)
+        return create_image_from_array(cimarr, im.wcs, polarisation_frame)
+    else:
+        raise RuntimeError("Cannot convert stokes to %s" % (polarisation_frame.type))
+
+
+def convert_polimage_to_stokes(im: Image):
+    """Convert a polarisation image to stokes (complex)
+    
+    """
+    assert im.data.dtype == 'complex'
+    
+    if im.polarisation_frame == Polarisation_Frame('linear'):
+        cimarr = convert_linear_to_stokes(im.data)
+        return create_image_from_array(cimarr, im.wcs, Polarisation_Frame('stokesIQUV'))
+    elif im.polarisation_frame == Polarisation_Frame('circular'):
+        cimarr = convert_circular_to_stokes(im.data)
+        return create_image_from_array(cimarr, im.wcs, Polarisation_Frame('stokesIQUV'))
+    else:
+        raise RuntimeError("Cannot convert %s to stokes" % (im.polarisation_frame.type))
+
+def smooth_image(model: Image, width=1.0):
+    """ Smooth an image with a kernel
+    
+    """
+    
+    kernel=Gaussian2DKernel(width)
+    
+    cmodel = create_empty_image_like(model)
+    cmodel.data[..., :, :] = convolve(model.data[0, 0, :, :], kernel, normalize_kernel=False)
+    if type(kernel) is Gaussian2DKernel:
+        cmodel.data *= 2 * numpy.pi * 1.5 ** 2
+    
+    return cmodel

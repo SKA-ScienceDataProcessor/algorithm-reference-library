@@ -31,18 +31,17 @@ class TestSkymodel(unittest.TestCase):
         self.times = (numpy.pi / (12.0)) * numpy.linspace(-3.0, 3.0, 7)
         self.frequency = numpy.array([1e8])
         self.phasecentre = SkyCoord(ra=+180.0 * u.deg, dec=-60.0 * u.deg, frame='icrs', equinox=2000.0)
-        self.vis = create_visibility(self.lowcore, self.times, self.frequency, phasecentre=self.phasecentre,
-                                     weight=1.0, npol=1)
+        self.vis = create_visibility(self.lowcore, self.times, self.frequency, phasecentre=self.phasecentre, weight=1.0)
         self.vis.data['vis'] *= 0.0
         
         # Create model
-        self.model = create_test_image(cellsize=0.0015, phasecentre=self.vis.phasecentre, npol=1,
+        self.model = create_test_image(cellsize=0.0015, phasecentre=self.vis.phasecentre,
                                        frequency=self.frequency)
         self.model.data[self.model.data > 1.0] = 1.0
         self.vis = predict_2d(self.vis, self.model)
         assert numpy.max(numpy.abs(self.vis.vis)) > 0.0
         export_image_to_fits(self.model, '%s/test_solve_skymodel_model.fits' % (self.dir))
-        self.bigmodel = create_image_from_visibility(self.vis, cellsize=0.0015, npol=1, npixel=512)
+        self.bigmodel = create_image_from_visibility(self.vis, cellsize=0.0015, npixel=512)
         
         
     def test_deconvolve_and_restore_cube_msclean(self):

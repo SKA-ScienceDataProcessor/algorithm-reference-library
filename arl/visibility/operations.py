@@ -44,10 +44,9 @@ def copy_visibility(vis):
     return newvis
 
 
-def create_visibility(config: Configuration, times: numpy.array, freq: numpy.array,
-                      phasecentre: SkyCoord, weight: float, npol=4,
-                      pol_frame=Polarisation_Frame('stokesI'),
-                      integration_time=1.0, channel_bandwidth=1e6) -> Visibility:
+def create_visibility(config: Configuration, times: numpy.array, freq: numpy.array, phasecentre: SkyCoord,
+                      weight: float, polarisation_frame=Polarisation_Frame('stokesI'), integration_time=1.0,
+                      channel_bandwidth=1e6) -> Visibility:
     """ Create a Visibility from Configuration, hour angles, and direction of source
 
     Note that we keep track of the integration time for BDA purposes
@@ -63,14 +62,15 @@ def create_visibility(config: Configuration, times: numpy.array, freq: numpy.arr
     """
     assert phasecentre is not None, "Must specify phase centre"
 
-    if pol_frame is None:
-        pol_frame = correlate_polarisation(config.receptor_frame)
+    if polarisation_frame is None:
+        polarisation_frame = correlate_polarisation(config.receptor_frame)
 
     nch = len(freq)
     ants_xyz = config.data['xyz']
     nants = len(config.data['names'])
     nbaselines = int(nants * (nants - 1) / 2)
     ntimes = len(times)
+    npol = polarisation_frame.npol
     nrows = nbaselines * ntimes * nch * npol
     nrowsperintegration = nbaselines * nch * npol
     row = 0
@@ -113,7 +113,7 @@ def create_visibility(config: Configuration, times: numpy.array, freq: numpy.arr
                      frequency=rfrequency, polarisation=rpolarisation, vis=rvis,
                      weight=rweight, imaging_weight=rweight,
                      integration_time=rintegration_time, channel_bandwidth=rchannel_bandwidth,
-                     polarisation_frame=pol_frame)
+                     polarisation_frame=polarisation_frame)
     vis.phasecentre = phasecentre
     vis.configuration = config
     log.info("create_visibility: %s" % (vis_summary(vis)))
@@ -124,7 +124,7 @@ def create_visibility(config: Configuration, times: numpy.array, freq: numpy.arr
 
 def create_blockvisibility(config: Configuration, times: numpy.array, freq: numpy.array,
                       phasecentre: SkyCoord, weight: float,
-                      pol_frame=None,
+                      polarisation_frame=None,
                       integration_time=1.0, channel_bandwidth=1e6) -> Visibility:
     """ Create a BlockVisibility from Configuration, hour angles, and direction of source
 
@@ -141,15 +141,15 @@ def create_blockvisibility(config: Configuration, times: numpy.array, freq: nump
     """
     assert phasecentre is not None, "Must specify phase centre"
     
-    if pol_frame is None:
-        pol_frame = correlate_polarisation(config.receptor_frame)
+    if polarisation_frame is None:
+        polarisation_frame = correlate_polarisation(config.receptor_frame)
         
     nch = len(freq)
     ants_xyz = config.data['xyz']
     nants = len(config.data['names'])
     nbaselines = int(nants * (nants - 1) / 2)
     ntimes = len(times)
-    npol = pol_frame.npol
+    npol = polarisation_frame.npol
     visshape = [ntimes, nants, nants, nch, npol]
     rvis = numpy.zeros(visshape, dtype='complex')
     rweight = weight * numpy.ones(visshape)
@@ -174,7 +174,7 @@ def create_blockvisibility(config: Configuration, times: numpy.array, freq: nump
     rchannel_bandwidth = numpy.full_like(freq, channel_bandwidth)
     vis = BlockVisibility(uvw=ruvw, time=rtimes, frequency=freq, vis=rvis, weight=rweight,
                           integration_time=rintegration_time, channel_bandwidth=rchannel_bandwidth,
-                          polarisation_frame=pol_frame)
+                          polarisation_frame=polarisation_frame)
     vis.phasecentre = phasecentre
     vis.configuration = config
     log.info("create_blockvisibility: %s" % (vis_summary(vis)))

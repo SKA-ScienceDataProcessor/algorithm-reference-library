@@ -20,8 +20,7 @@ class TestCoalesce(unittest.TestCase):
         self.times = (numpy.pi / 43200.0) * numpy.arange(0.0, 300.0, 30.0)
         self.frequency = numpy.linspace(1.0e8, 1.1e8, 5)
         self.phasecentre = SkyCoord(ra=+180.0 * u.deg, dec=-60.0 * u.deg, frame='icrs', equinox=2000.0)
-        self.vis = create_visibility(self.lowcore, self.times, self.frequency,
-                                               phasecentre=self.phasecentre, weight=1.0, npol=1)
+        self.vis = create_visibility(self.lowcore, self.times, self.frequency, phasecentre=self.phasecentre, weight=1.0)
         # Fill in the vis values so each can be uniquely identified
         self.vis.data['vis'] = range(self.vis.nvis)
  
@@ -36,8 +35,7 @@ class TestCoalesce(unittest.TestCase):
 
     def test_coalesce_decoalesce_singletime(self):
         self.times = numpy.array([0.0])
-        self.vis = create_visibility(self.lowcore, self.times, self.frequency,
-                                               phasecentre=self.phasecentre, weight=1.0, npol=1)
+        self.vis = create_visibility(self.lowcore, self.times, self.frequency, phasecentre=self.phasecentre, weight=1.0)
         # Fill in the vis values so each can be uniquely identified
         self.vis.data['vis'] = range(self.vis.nvis)
         cvis, cindex = coalesce_visibility(self.vis, coalescence_factor=1.0)

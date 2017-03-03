@@ -12,11 +12,13 @@ class TestFFTSupport(unittest.TestCase):
     def _pattern(npixel):
         return coordinates2(npixel)[0] + coordinates2(npixel)[1] * 1j
     
-    @unittest.skip("Uncertain about logic of this test")
     def test_pad_extract(self):
-        for npixel, N2 in [(1, 1), (1, 2), (2, 3), (3, 4), (2, 5), (4, 6)]:
+         for npixel, N2 in [(100,128),(128,256),(126,128)]:
+            # Make a 2D complex image of size (npixel, npixel) centred on (npixel//2, npixel//2)
             cs = 1 + self._pattern(npixel)
+            # Pad it and extract npixel pixels around the centre
             cs_pad = pad_mid(cs, N2)
+            # Now create the pattern we expect directly
             cs2 = 1 + self._pattern(N2) * N2 / npixel
             # At this point all fields in cs2 and cs_pad should either
             # be equal or zero.

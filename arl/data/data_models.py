@@ -155,6 +155,7 @@ class Image:
         """
         self.data = None
         self.wcs = None
+        self.polarisation_frame = None
     
     def size(self):
         """ Return size in GB
@@ -186,7 +187,6 @@ class Image:
 
     @property
     def phasecentre(self): return SkyCoord(self.wcs.wcs.crval[0] * u.deg, self.wcs.wcs.crval[1] * u.deg)
-    
 
 class Skycomponent:
     """ A single Skycomponent with direction, flux, shape, and params for the shape
@@ -194,7 +194,8 @@ class Skycomponent:
     """
     
     def __init__(self,
-                 direction=None, frequency=None, name=None, flux=None, shape='Point', **kwargs):
+                 direction=None, frequency=None, name=None, flux=None, shape='Point',
+                 polarisation_frame=Polarisation_Frame('stokesIQUV'), **kwargs):
         """ Define the required structure
 
         :param direction: SkyCoord
@@ -203,6 +204,7 @@ class Skycomponent:
         :param flux: numpy.array [nchan, npol]
         :param shape: str e.g. 'Point' 'Gaussian'
         :param params: numpy.array shape dependent parameters
+        :param polarisation_frame: Polarisation_frame
         """
         
         self.direction = direction
@@ -211,11 +213,14 @@ class Skycomponent:
         self.flux = numpy.array(flux)
         self.shape = shape
         self.params = kwargs
+        self.polarisation_frame = polarisation_frame
         
         assert len(self.frequency.shape) == 1
         assert len(self.flux.shape) == 2
         assert self.frequency.shape[0] == self.flux.shape[0], "Frequency shape %s, flux shape %s" % (
             self.frequency.shape, self.flux.shape)
+        assert polarisation_frame.npol == self.flux.shape[1], "Polarisation is %s,, flux shape %s" % (
+            polarisation_frame.type, self.flux.shape)
     
     @property
     def nchan(self): return self.flux.shape[0]
@@ -232,6 +237,7 @@ class Skycomponent:
         s += "\tDirection: %s\n" % (self.direction)
         s += "\tShape: %s\n" % (self.shape)
         s += "\tParams: %s\n" % (self.params)
+        s += "\tPolaristation frame %s\n" %(self.polarisation_frame)
         return s
 
 

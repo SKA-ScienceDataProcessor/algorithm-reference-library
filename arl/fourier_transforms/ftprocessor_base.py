@@ -21,8 +21,7 @@ from arl.image.iterators import *
 from arl.image.operations import copy_image, create_empty_image_like
 from arl.util.coordinate_support import simulate_point, skycoord_to_lmn
 from arl.visibility.coalesce import coalesce_visibility, decoalesce_visibility
-from arl.visibility.iterators import vis_slice_iter, vis_wslice_iter, vis_timeslice_iter
-from arl.visibility.operations import phaserotate_visibility, copy_visibility, create_visibility_from_rows
+from arl.visibility.operations import phaserotate_visibility, copy_visibility
 from arl.data.parameters import get_parameter
 
 
@@ -316,7 +315,7 @@ def create_image_from_visibility(vis, **kwargs):
 
     :param vis:
     :param phasecentre: Phasecentre (Skycoord)
-    :param channelwidth: Channel width (Hz)
+    :param channel_bandwidth: Channel width (Hz)
     :param cellsize: Cellsize (radians)
     :param npixel: Number of pixels on each axis (512)
     :param frame: Coordinate frame for WCS (ICRS)
@@ -335,20 +334,20 @@ def create_image_from_visibility(vis, **kwargs):
     vnchan = len(numpy.unique(vis.frequency))
     inchan = get_parameter(kwargs, "nchan", 1)
     reffrequency = numpy.min(vis.frequency) * units.Hz
-    channelwidth = get_parameter(kwargs, "channelwidth", 1e6) * units.Hz
+    channel_bandwidth = get_parameter(kwargs, "channel_bandwidth", 1e6) * units.Hz
 
     if (inchan == vnchan) and vnchan > 1:
         log.info("create_image_from_visibility: Defining %d channel Image at %s, starting frequency %s, and bandwidth %s"
-                 % (inchan, imagecentre, reffrequency, channelwidth))
+                 % (inchan, imagecentre, reffrequency, channel_bandwidth))
     elif (inchan == 1) and vnchan > 1:
-        assert numpy.abs(channelwidth.value) > 0.0, "Channel width must be non-zero for mfs mode"
+        assert numpy.abs(channel_bandwidth.value) > 0.0, "Channel width must be non-zero for mfs mode"
         log.info("create_image_from_visibility: Defining MFS Image at %s, starting frequency %s, and bandwidth %s"
-                 % (imagecentre, reffrequency, channelwidth))
+                 % (imagecentre, reffrequency, channel_bandwidth))
     elif (inchan == 1) and (vnchan == 1):
-        assert numpy.abs(channelwidth.value) > 0.0, "Channel width must be non-zero for mfs mode"
+        assert numpy.abs(channel_bandwidth.value) > 0.0, "Channel width must be non-zero for mfs mode"
         log.info("create_image_from_visibility: Defining single channel Image at %s, starting frequency %s, "
                  "and bandwidth %s"
-                 % (imagecentre, reffrequency, channelwidth))
+                 % (imagecentre, reffrequency, channel_bandwidth))
     else:
         raise RuntimeError("create_image_from_visibility: unknown spectral mode ")
     
@@ -374,7 +373,7 @@ def create_image_from_visibility(vis, **kwargs):
     shape = [inchan, inpol, npixel, npixel]
     w = wcs.WCS(naxis=4)
     # The negation in the longitude is needed by definition of RA, DEC
-    w.wcs.cdelt = [-cellsize * 180.0 / numpy.pi, cellsize * 180.0 / numpy.pi, 1.0, channelwidth.value]
+    w.wcs.cdelt = [-cellsize * 180.0 / numpy.pi, cellsize * 180.0 / numpy.pi, 1.0, channel_bandwidth.value]
     # The numpy definition of the phase centre of an FFT is n // 2 (0 - rel) so that's what we use for
     # the reference pixel. We have to use 0 rel everywhere.
     w.wcs.crpix = [npixel // 2, npixel // 2, 1.0, 1.0]

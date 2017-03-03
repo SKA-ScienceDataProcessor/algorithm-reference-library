@@ -237,7 +237,7 @@ def vis_to_block(antenna1, antenna2, frequency, channel_bandwidth, integration_t
     :params frequency: frequency values [:]
     :params channel_bandwidth: channel bandwidth values [:]
     :params integration_time: integration time values [:]
-    :params polarisation: polarisation indices relative to pol_frame [:]
+    :params polarisation: polarisation indices relative to polarisation_frame [:]
     :params time: time values [:]
     :params uvw: uvw values [:,3]
     :params vis: visibility values, complex [:]
