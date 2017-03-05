@@ -11,6 +11,8 @@ import numpy
 from astropy.coordinates import SkyCoord
 import astropy.units as u
 
+from arl.data.polarisation import Polarisation_Frame
+
 from arl.fourier_transforms.ftprocessor import invert_2d, predict_2d, normalize_sumwt, create_image_from_visibility
 from arl.image.operations import export_image_to_fits, create_empty_image_like
 from arl.image.deconvolution import restore_cube
@@ -31,7 +33,8 @@ class TestSkymodel(unittest.TestCase):
         self.times = (numpy.pi / (12.0)) * numpy.linspace(-3.0, 3.0, 7)
         self.frequency = numpy.array([1e8])
         self.phasecentre = SkyCoord(ra=+180.0 * u.deg, dec=-60.0 * u.deg, frame='icrs', equinox=2000.0)
-        self.vis = create_visibility(self.lowcore, self.times, self.frequency, phasecentre=self.phasecentre, weight=1.0)
+        self.vis = create_visibility(self.lowcore, self.times, self.frequency, phasecentre=self.phasecentre,
+                                     weight=1.0, polarisation_frame=Polarisation_Frame('stokesI'))
         self.vis.data['vis'] *= 0.0
         
         # Create model
@@ -72,7 +75,8 @@ class TestSkymodel(unittest.TestCase):
         assert numpy.max(numpy.abs(residual.data)) < 0.5
 
     def test_insert_skycomponent(self):
-        sc = create_skycomponent(direction=self.phasecentre, flux=numpy.array([[1.0]]), frequency=self.frequency)
+        sc = create_skycomponent(direction=self.phasecentre, flux=numpy.array([[1.0]]), frequency=self.frequency,
+                                 polarisation_frame = Polarisation_Frame('stokesI'))
         
         log.debug(self.model.wcs)
         # The actual phase centre of a numpy FFT is at nx //2, nx //2 (0 rel).
@@ -87,10 +91,12 @@ class TestSkymodel(unittest.TestCase):
         assert self.vis.vis.imag.all() == 0.0
 
     def test_insert_skycomponent_lanczos(self):
-        sc = create_skycomponent(direction=self.phasecentre, flux=numpy.array([[1.0]]), frequency=self.frequency)
+        sc = create_skycomponent(direction=self.phasecentre, flux=numpy.array([[1.0]]), frequency=self.frequency,
+                                 polarisation_frame=Polarisation_Frame('stokesI'))
 
         dphasecentre = SkyCoord(ra=+181.0 * u.deg, dec=-58.0 * u.deg, frame='icrs', equinox=2000.0)
-        sc = create_skycomponent(direction=dphasecentre, flux=numpy.array([[1.0]]), frequency=self.frequency)
+        sc = create_skycomponent(direction=dphasecentre, flux=numpy.array([[1.0]]), frequency=self.frequency,
+                                 polarisation_frame=Polarisation_Frame('stokesI'))
         self.model.data *= 0.0
         insert_skycomponent(self.model, sc, insert_method='Lanczos')
         npixel = self.model.shape[3]
