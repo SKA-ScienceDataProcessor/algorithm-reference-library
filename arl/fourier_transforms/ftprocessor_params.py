@@ -14,19 +14,29 @@ log = logging.getLogger(__name__)
 
 
 def get_frequency_map(vis, im=None, **kwargs):
-    """ Get a generator to map channels between image and visibilities
+    """ Map channels from visibilities to image
 
     """
     
+    # Find the unique frequencies in the visibility
     ufrequency = numpy.unique(vis.frequency)
     vnchan = len(ufrequency)
-    
-    if im is not None and im.data.shape[1] == 1 and vnchan >= 1:
+
+    if im is None:
+        spectral_mode = 'channel'
+        vfrequencymap = get_rowmap(vis.frequency, ufrequency)
+        
+    elif im.data.shape[0] == 1 and vnchan >= 1:
         spectral_mode = 'mfs'
         vfrequencymap = numpy.zeros_like(vis.frequency, dtype='int')
     else:
+        # We can map these to image channels
+        v2im_map = im.wcs.sub(['spectral']).wcs_world2pix(ufrequency, 0)[0].astype('int')
+    
         spectral_mode = 'channel'
-        vfrequencymap = get_rowmap(vis.frequency)
+        nrows = len(vis.frequency)
+        row2vis = numpy.array(get_rowmap(vis.frequency, ufrequency))
+        vfrequencymap = [v2im_map[row2vis[row]] for row in range(nrows)]
     
     return spectral_mode, vfrequencymap
 
@@ -38,17 +48,23 @@ def get_polarisation_map(vis, im=None, **kwargs):
     return "direct", get_rowmap(vis.polarisation)
 
 
-def get_rowmap(col):
-    """ Get a generator to map unique cols"""
+def get_rowmap(col, ucol=None):
+    """ Get a generator to map unique cols
+    
+    :param col: Data column
+    :param ucol: Unique values in col
+    """
     pdict = {}
     
     def phash(f):
         return numpy.round(f).astype('int')
     
-    ucol = numpy.unique(col)
+    if ucol is None:
+        ucol = numpy.unique(col)
+        
     for i, f in enumerate(ucol):
         pdict[phash(f)] = i
-    vmap = (pdict[phash(p)] for p in col)
+    vmap = [pdict[phash(p)] for p in col]
     return vmap
 
 

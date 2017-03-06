@@ -8,7 +8,8 @@ import os
 import unittest
 
 from arl.util.testing_support import create_low_test_image, create_named_configuration, create_test_image, \
-    create_low_test_beam, create_blockvisibility_iterator
+    create_low_test_beam, create_blockvisibility_iterator, create_low_test_image_from_gleam,  \
+    create_low_test_skycomponents_from_gleam
 from arl.visibility.iterators import *
 from arl.visibility.operations import create_visibility, append_visibility
 from arl.image.operations import export_image_to_fits
@@ -22,6 +23,7 @@ class TestTesting_Support(unittest.TestCase):
         os.makedirs(self.dir, exist_ok=True)
 
         self.frequency = numpy.linspace(1e8, 1.5e8, 3)
+        self.channel_bandwidth = numpy.array([2.5e7, 2.5e7, 2.5e7])
         self.flux = numpy.array([[100.0], [100.0], [100.0]])
         self.phasecentre = SkyCoord(ra=+15.0 * u.deg, dec=-35.0 * u.deg, frame='icrs', equinox=2000.0)
         self.config = create_named_configuration('LOWBD2-CORE')
@@ -34,7 +36,9 @@ class TestTesting_Support(unittest.TestCase):
     def createVis(self, config, dec=-35.0):
         self.config = create_named_configuration(config)
         self.phasecentre = SkyCoord(ra=+15 * u.deg, dec=dec * u.deg, frame='icrs', equinox=2000.0)
-        self.vis = create_visibility(self.config, self.times, self.frequency, phasecentre=self.phasecentre, weight=1.0,
+        self.vis = create_visibility(self.config, self.times, self.frequency,
+                                     channel_bandwidth=self.channel_bandwidth,
+                                     phasecentre=self.phasecentre, weight=1.0,
                                      polarisation_frame=Polarisation_Frame('stokesI'))
     
     def test_named_configurations(self):
@@ -63,16 +67,35 @@ class TestTesting_Support(unittest.TestCase):
         assert len(im.data.shape) == 4
         assert im.data.shape[0] == 1
         assert im.data.shape[1] == 4
+
+    def test_create_low_test_image_from_gleam(self):
+        im = create_low_test_image_from_gleam(npixel=256, cellsize=0.001,
+                                              channel_bandwidth=numpy.array([1e6, 1e6, 1e6]),
+                                              frequency=numpy.array([1e8 - 1e6, 1e8, 1e8 + 1e6]),
+                                              phasecentre=self.phasecentre, kind='cubic')
+        assert im.data.shape[0] == 3
+        assert im.data.shape[1] == 1
+        assert im.data.shape[2] == 256
+        assert im.data.shape[3] == 256
+        export_image_to_fits(im, '%s/test_low_gleam.fits' % (self.dir))
+
+
+    def test_create_low_test_skycomponents_from_gleam(self):
+        sc = create_low_test_skycomponents_from_gleam(frequency=numpy.array([1e8 - 1e6, 1e8, 1e8 + 1e6]),
+                                                      flux_limit=10.0, kind='cubic')
+        assert len(sc) > 1
+        assert sc[190].name == 'GLEAM J172031-005845'
+        self.assertAlmostEqual(sc[190].flux[0,0], 304.1335144, 7)
     
     def test_create_low_test_image(self):
-        im = create_low_test_image(npixel=1024, channel_bandwidth=numpy.array([1e6]),
-                                   frequency=numpy.array([1e8]),
-                                   phasecentre=self.phasecentre, fov=10)
-        assert im.data.shape[0] == 1
-        assert im.data.shape[1] == 1
-        assert im.data.shape[2] == 1024
-        assert im.data.shape[3] == 1024
-
+            im = create_low_test_image(npixel=1024, channel_bandwidth=numpy.array([1e6]),
+                                       frequency=numpy.array([1e8]),
+                                       phasecentre=self.phasecentre, fov=10)
+            assert im.data.shape[0] == 1
+            assert im.data.shape[1] == 1
+            assert im.data.shape[2] == 1024
+            assert im.data.shape[3] == 1024
+    
     def test_create_low_test_image_spectral(self):
         im = create_low_test_image(npixel=1024, channel_bandwidth=numpy.array([1e6, 1e6, 1e6]),
                                    frequency=numpy.array([1e8-1e6, 1e8, 1e8+1e6]),
@@ -91,7 +114,8 @@ class TestTesting_Support(unittest.TestCase):
         assert im.data.shape[1] == 4
         assert im.data.shape[2] == 1024
         assert im.data.shape[3] == 1024
-    
+        export_image_to_fits(im, '%s/test_low_sex.fits' % (self.dir))
+
     def test_create_low_test_beam(self):
         im = create_test_image(canonical=True, cellsize=0.002,
                                frequency=numpy.array([1e8-5e7, 1e8, 1e8+5e7]),

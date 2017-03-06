@@ -6,12 +6,10 @@ Definition of structures needed by the function interface.
 
 import csv
 
-import numpy
-
-from reproject import reproject_interp
-
 from astropy.coordinates import EarthLocation
+from astropy.io import fits
 from astropy.wcs import WCS
+from scipy import interpolate
 
 from arl.calibration.gaintable import *
 from arl.data.parameters import arl_path
@@ -19,7 +17,6 @@ from arl.fourier_transforms.ftprocessor_base import predict_2d, predict_skycompo
 from arl.image.operations import import_image_from_fits, create_image_from_array, \
     reproject_image, create_empty_image_like
 from arl.util.coordinate_support import *
-from arl.visibility.coalesce import coalesce_visibility
 from arl.visibility.operations import create_blockvisibility, copy_visibility
 
 log = logging.getLogger(__name__)
@@ -132,9 +129,9 @@ def create_test_image(canonical=True, cellsize=None, frequency=[1e8], channel_ba
             nchan = 1
         else:
             nchan = len(frequency)
-
+        
         if polarisation_frame is None:
-            im.polarisation_frame=Polarisation_Frame("stokesI")
+            im.polarisation_frame = Polarisation_Frame("stokesI")
         elif type(polarisation_frame) == Polarisation_Frame:
             im.polarisation_frame = polarisation_frame
         else:
@@ -155,7 +152,7 @@ def create_test_image(canonical=True, cellsize=None, frequency=[1e8], channel_ba
                 im.wcs.wcs.cdelt[3] = 0.001 * frequency[0]
         im.wcs.wcs.radesys = 'ICRS'
         im.wcs.wcs.equinox = 2000.00
-        
+    
     if phasecentre is not None:
         im.wcs.wcs.crval[0] = phasecentre.ra.deg
         im.wcs.wcs.crval[1] = phasecentre.dec.deg
@@ -167,26 +164,25 @@ def create_test_image(canonical=True, cellsize=None, frequency=[1e8], channel_ba
 
 def create_low_test_image(npixel=16384, polarisation_frame=Polarisation_Frame("stokesI"), cellsize=0.000015,
                           frequency=numpy.array([1e8]), channel_bandwidth=numpy.array([1e6]), phasecentre=None, fov=20):
-    
     """Create LOW test image from S3
-    
+
     The input catalog was generated at http://s-cubed.physics.ox.ac.uk/s3_sex using the following query::
         Database: s3_sex
         SQL: select * from Galaxies where (pow(10,itot_151)*1000 > 1.0) and (right_ascension between -5 and 5) and (declination between -5 and 5);;
-    
+
     Number of rows returned: 29966
-    
+
     There are three possible tables to use::
-    
+
         data/models/S3_151MHz_10deg.csv, use fov=10
         data/models/S3_151MHz_20deg.csv, use fov=20
         data/models/S3_151MHz_40deg.csv, use fov=40
-            
+
     The component spectral index is calculated from the 610MHz and 151MHz, and then calculated for the specified
     frequencies.
-    
+
     If polarisation_frame is not stokesI then the image will a polarised axis but the values will be zero.
-    
+
     :param npixel: Number of pixels
     :param polarisation_frame: Polarisation frame (default Polarisation_Frame("stokesI"))
     :param cellsize: cellsize in radians
@@ -203,10 +199,10 @@ def create_low_test_image(npixel=16384, polarisation_frame=Polarisation_Frame("s
     
     if phasecentre is None:
         phasecentre = SkyCoord(ra=+180.0 * u.deg, dec=-60.0 * u.deg, frame='icrs', equinox=2000.0)
-
+    
     if polarisation_frame is None:
         polarisation_frame = Polarisation_Frame("I")
-
+    
     npol = polarisation_frame.npol
     
     nchan = len(frequency)
@@ -224,7 +220,6 @@ def create_low_test_image(npixel=16384, polarisation_frame=Polarisation_Frame("s
     w.wcs.equinox = 2000.0
     
     model = create_image_from_array(numpy.zeros(shape), w, polarisation_frame=polarisation_frame)
-    
     
     assert fov in [10, 20, 40], "Field of view invalid: use one of %s" % ([10, 20, 40])
     with open(arl_path('data/models/S3_151MHz_%ddeg.csv' % (fov))) as csvfile:
@@ -252,7 +247,7 @@ def create_low_test_image(npixel=16384, polarisation_frame=Polarisation_Frame("s
     actual_flux = numpy.sum(fluxes)
     
     log.info('create_low_test_image: %d sources inside the image' % (ps.shape[1]))
-
+    
     log.info('create_low_test_image: flux in S3 model = %.3f, actual flux in image = %.3f' % (total_flux, actual_flux))
     for chan in range(nchan):
         for iflux, flux in enumerate(fluxes):
@@ -263,9 +258,9 @@ def create_low_test_image(npixel=16384, polarisation_frame=Polarisation_Frame("s
 
 def create_low_test_beam(model):
     """Create a test power beam for LOW using an image from OSKAR
-    
+
     This is in progress. Currently uses the wrong beam!
-    
+
     :param model: Template image
     :returns: Image
     """
@@ -277,20 +272,19 @@ def create_low_test_beam(model):
     log.info("create_low_test_beam: primary beam is defined at %.3f MHz" % (beam.wcs.wcs.crval[2] * 1e-6))
     log.info("create_low_test_beam: scaling to model frequency %.3f MHz" % (model.wcs.wcs.crval[3] * 1e-6))
     
-    
     nchan, npol, ny, nx = model.shape
     
     # We need to interpolate each frequency channel separately. The beam is assumed to just scale with
     # frequency.
     
     reprojected_beam = create_empty_image_like(model)
-
-    for chan in range(nchan):
     
+    for chan in range(nchan):
+        
         model2dwcs = model.wcs.sub(2).deepcopy()
         model2dshape = [model.shape[2], model.shape[3]]
         beam2dwcs = beam.wcs.sub(2).deepcopy()
-    
+        
         # The frequency axis is the second to last in the beam
         frequency = model.wcs.sub(['spectral']).wcs_pix2world([chan], 0)[0]
         fscale = beam.wcs.wcs.crval[2] / frequency
@@ -300,8 +294,8 @@ def create_low_test_beam(model):
         beam2dwcs.wcs.crval = model.wcs.sub(2).wcs.crval
         beam2dwcs.wcs.ctype = model.wcs.sub(2).wcs.ctype
         model2dwcs.wcs.crpix = [model.shape[2] // 2, model.shape[3] // 2]
-
-        beam2d = create_image_from_array(beam.data[0,0,:,:], beam2dwcs)
+        
+        beam2d = create_image_from_array(beam.data[0, 0, :, :], beam2dwcs)
         print(beam2dwcs)
         print(model2dwcs)
         reprojected_beam2d, footprint = reproject_image(beam2d, model2dwcs, shape=model2dshape)
@@ -310,8 +304,331 @@ def create_low_test_beam(model):
         reprojected_beam2d.data *= reprojected_beam2d.data
         reprojected_beam2d.data[footprint.data <= 0.0] = 0.0
         for pol in range(npol):
-            reprojected_beam.data[chan, pol, :, :] = reprojected_beam2d.data[:,:]
+            reprojected_beam.data[chan, pol, :, :] = reprojected_beam2d.data[:, :]
+    
+    return reprojected_beam
 
+
+def create_low_test_image(npixel=16384, polarisation_frame=Polarisation_Frame("stokesI"), cellsize=0.000015,
+                          frequency=numpy.array([1e8]), channel_bandwidth=numpy.array([1e6]), phasecentre=None, fov=20):
+    """Create LOW test image from S3
+
+    The input catalog was generated at http://s-cubed.physics.ox.ac.uk/s3_sex using the following query::
+        Database: s3_sex
+        SQL: select * from Galaxies where (pow(10,itot_151)*1000 > 1.0) and (right_ascension between -5 and 5) and (declination between -5 and 5);;
+
+    Number of rows returned: 29966
+
+    There are three possible tables to use::
+
+        data/models/S3_151MHz_10deg.csv, use fov=10
+        data/models/S3_151MHz_20deg.csv, use fov=20
+        data/models/S3_151MHz_40deg.csv, use fov=40
+
+    The component spectral index is calculated from the 610MHz and 151MHz, and then calculated for the specified
+    frequencies.
+
+    If polarisation_frame is not stokesI then the image will a polarised axis but the values will be zero.
+
+    :param npixel: Number of pixels
+    :param polarisation_frame: Polarisation frame (default Polarisation_Frame("stokesI"))
+    :param cellsize: cellsize in radians
+    :param frequency:
+    :param channel_bandwidth: Channel width (Hz)
+    :param phasecentre: phasecentre (SkyCoord)
+    :param fov: fov table to use
+    :returns: Image
+    """
+    
+    ras = []
+    decs = []
+    fluxes = []
+    
+    if phasecentre is None:
+        phasecentre = SkyCoord(ra=+180.0 * u.deg, dec=-60.0 * u.deg, frame='icrs', equinox=2000.0)
+    
+    if polarisation_frame is None:
+        polarisation_frame = Polarisation_Frame("I")
+    
+    npol = polarisation_frame.npol
+    
+    nchan = len(frequency)
+    
+    shape = [nchan, npol, npixel, npixel]
+    w = WCS(naxis=4)
+    # The negation in the longitude is needed by definition of RA, DEC
+    w.wcs.cdelt = [-cellsize * 180.0 / numpy.pi, cellsize * 180.0 / numpy.pi, 1.0, channel_bandwidth[0]]
+    w.wcs.crpix = [npixel // 2, npixel // 2, 1.0, 1.0]
+    w.wcs.ctype = ["RA---SIN", "DEC--SIN", 'STOKES', 'FREQ']
+    w.wcs.crval = [phasecentre.ra.deg, phasecentre.dec.deg, 1.0, frequency[0]]
+    w.naxis = 4
+    
+    w.wcs.radesys = 'ICRS'
+    w.wcs.equinox = 2000.0
+    
+    model = create_image_from_array(numpy.zeros(shape), w, polarisation_frame=polarisation_frame)
+    
+    assert fov in [10, 20, 40], "Field of view invalid: use one of %s" % ([10, 20, 40])
+    with open(arl_path('data/models/S3_151MHz_%ddeg.csv' % (fov))) as csvfile:
+        readCSV = csv.reader(csvfile, delimiter=',')
+        r = 0
+        for row in readCSV:
+            # Skip first row
+            if r > 0:
+                ra = float(row[4]) + phasecentre.ra.deg
+                dec = float(row[5]) + phasecentre.dec.deg
+                alpha = (float(row[10]) - float(row[9])) / numpy.log10(610.0 / 151.0)
+                flux = numpy.power(10, float(row[9])) * numpy.power(frequency / 1.51e8, alpha)
+                ras.append(ra)
+                decs.append(dec)
+                fluxes.append(flux)
+            r += 1
+    
+    p = w.sub(2).wcs_world2pix(numpy.array(ras), numpy.array(decs), 1)
+    total_flux = numpy.sum(fluxes)
+    fluxes = numpy.array(fluxes)
+    ip = numpy.round(p).astype('int')
+    ok = numpy.where((0 <= ip[0, :]) & (npixel > ip[0, :]) & (0 <= ip[1, :]) & (npixel > ip[1, :]))[0]
+    ps = ip[:, ok]
+    fluxes = fluxes[ok]
+    actual_flux = numpy.sum(fluxes)
+    
+    log.info('create_low_test_image: %d sources inside the image' % (ps.shape[1]))
+    
+    log.info('create_low_test_image: flux in S3 model = %.3f, actual flux in image = %.3f' % (total_flux, actual_flux))
+    for chan in range(nchan):
+        for iflux, flux in enumerate(fluxes):
+            model.data[chan, 0, ps[1, iflux], ps[0, iflux]] = flux[chan]
+    
+    return model
+
+
+def create_low_test_image_from_gleam(npixel=16384, polarisation_frame=Polarisation_Frame("stokesI"), cellsize=0.000015,
+                                     frequency=numpy.array([1e8]), channel_bandwidth=numpy.array([1e6]),
+                                     phasecentre=None, kind='linear'):
+    """Create LOW test image from the GLEAM survey
+
+    Stokes I is estimated from a linear fit to the measured fluxes. The polarised flux is always zero.
+    
+    VIII/100   GaLactic and Extragalactic All-sky MWA survey  (Hurley-Walker+, 2016)
+    ================================================================================
+    GaLactic and Extragalactic All-sky Murchison Wide Field Array (GLEAM) survey.
+    I: A low-frequency extragalactic catalogue.
+        Hurley-Walker N., Callingham J.R., Hancock P.J., Franzen T.M.O.,
+        Hindson L., Kapinska A.D., Morgan J., Offringa A.R., Wayth R.B., Wu C.,
+        Zheng Q., Murphy T., Bell M.E., Dwarakanath K.S., For B., Gaensler B.M.,
+        Johnston-Hollitt M., Lenc E., Procopio P., Staveley-Smith L., Ekers R.,
+        Bowman J.D., Briggs F., Cappallo R.J., Deshpande A.A., Greenhill L.,
+        Hazelton B.J., Kaplan D.L., Lonsdale C.J., McWhirter S.R., Mitchell D.A.,
+        Morales M.F., Morgan E., Oberoi D., Ord S.M., Prabu T., Udaya Shankar N.,
+        Srivani K.S., Subrahmanyan R., Tingay S.J., Webster R.L., Williams A.,
+        Williams C.L.
+       <Mon. Not. R. Astron. Soc., 464, 1146-1167 (2017)>
+       =2017MNRAS.464.1146H
+       =2016yCat.8100....0H
+
+    
+
+    :param npixel: Number of pixels
+    :param polarisation_frame: Polarisation frame (default Polarisation_Frame("stokesI"))
+    :param cellsize: cellsize in radians
+    :param frequency:
+    :param channel_bandwidth: Channel width (Hz)
+    :param phasecentre: phasecentre (SkyCoord)
+    :param kind: Kind of interpolation (see scipy.interpolate.interp1d) Default: linear
+    :returns: Image
+    """
+    
+    fitsfile = arl_path("data/models/GLEAM_EGC.fits")
+    
+    hdulist = fits.open(fitsfile)
+    recs = hdulist[1].data[0].array
+    ras = recs['RAJ2000']
+    decs = recs['DEJ2000']
+    
+    if phasecentre is None:
+        phasecentre = SkyCoord(ra=+15.0 * u.deg, dec=-35.0 * u.deg, frame='icrs', equinox=2000.0)
+    
+    if polarisation_frame is None:
+        polarisation_frame = Polarisation_Frame("stokesI")
+    
+    npol = polarisation_frame.npol
+    
+    nchan = len(frequency)
+    
+    shape = [nchan, npol, npixel, npixel]
+    w = WCS(naxis=4)
+    # The negation in the longitude is needed by definition of RA, DEC
+    w.wcs.cdelt = [-cellsize * 180.0 / numpy.pi, cellsize * 180.0 / numpy.pi, 1.0, channel_bandwidth[0]]
+    w.wcs.crpix = [npixel // 2, npixel // 2, 1.0, 1.0]
+    w.wcs.ctype = ["RA---SIN", "DEC--SIN", 'STOKES', 'FREQ']
+    w.wcs.crval = [phasecentre.ra.deg, phasecentre.dec.deg, 1.0, frequency[0]]
+    w.naxis = 4
+    
+    w.wcs.radesys = 'ICRS'
+    w.wcs.equinox = 2000.0
+    
+    model = create_image_from_array(numpy.zeros(shape), w, polarisation_frame=polarisation_frame)
+    
+    p = w.sub(2).wcs_world2pix(numpy.array(ras), numpy.array(decs), 1)
+    
+    p = numpy.array(p)
+    mask = numpy.isfinite(p[0, :])
+    p = [p[0, mask], p[1, mask]]
+
+    ip = numpy.round(p).astype('int')
+    ok = numpy.where((0 <= ip[0, :]) & (npixel > ip[0, :]) & (0 <= ip[1, :]) & (npixel > ip[1, :]))[0]
+    ps = ip[:, ok]
+
+    # For every source, we read all measured fluxes and interpolate to the
+    # required frequencies
+    fluxes = []
+    gleam_freqs = numpy.array([76, 84, 92, 99, 107, 115, 122, 130, 143, 151, 158, 166, 174, 181, 189, 197, 204,
+                               212, 220, 227])
+    for source in ok:
+        this_source_fluxes = numpy.zeros(len(gleam_freqs))
+
+        for i, f in enumerate(gleam_freqs):
+            this_source_fluxes[i] = recs['int_flux_%03d' % (f)][source]
+
+        fint = interpolate.interp1d(gleam_freqs * 1.0e6, this_source_fluxes, kind=kind)
+        
+        fluxes.append(fint(frequency))
+
+    fluxes = numpy.array(fluxes)
+    actual_flux = numpy.sum(fluxes)
+    
+    log.info('create_low_test_image_from_gleam: %d sources inside the image' % (ps.shape[1]))
+    
+    log.info('create_low_test_image_from_gleam: Flux in image = %.3f' % (actual_flux))
+    for iflux, flux in enumerate(fluxes):
+        if not numpy.isnan(flux).any() and flux.all() > 0.0:
+            model.data[:, 0, ps[1, iflux], ps[0, iflux]] = flux[:]
+    
+    return model
+
+
+def create_low_test_skycomponents_from_gleam(flux_limit=0.1, polarisation_frame=Polarisation_Frame("stokesI"),
+                                     frequency=numpy.array([1e8]), kind='linear'):
+    """Create sky components from the GLEAM survey
+
+    Stokes I is estimated from a linear fit to the measured fluxes. The polarised flux is always zero.
+    
+    VIII/100   GaLactic and Extragalactic All-sky MWA survey  (Hurley-Walker+, 2016)
+    ================================================================================
+    GaLactic and Extragalactic All-sky Murchison Wide Field Array (GLEAM) survey.
+    I: A low-frequency extragalactic catalogue.
+        Hurley-Walker N., Callingham J.R., Hancock P.J., Franzen T.M.O.,
+        Hindson L., Kapinska A.D., Morgan J., Offringa A.R., Wayth R.B., Wu C.,
+        Zheng Q., Murphy T., Bell M.E., Dwarakanath K.S., For B., Gaensler B.M.,
+        Johnston-Hollitt M., Lenc E., Procopio P., Staveley-Smith L., Ekers R.,
+        Bowman J.D., Briggs F., Cappallo R.J., Deshpande A.A., Greenhill L.,
+        Hazelton B.J., Kaplan D.L., Lonsdale C.J., McWhirter S.R., Mitchell D.A.,
+        Morales M.F., Morgan E., Oberoi D., Ord S.M., Prabu T., Udaya Shankar N.,
+        Srivani K.S., Subrahmanyan R., Tingay S.J., Webster R.L., Williams A.,
+        Williams C.L.
+       <Mon. Not. R. Astron. Soc., 464, 1146-1167 (2017)>
+       =2017MNRAS.464.1146H
+       =2016yCat.8100....0H
+
+    :param flux_limit: Only write components brighter than this (Jy)
+    :param polarisation_frame: Polarisation frame (default Polarisation_Frame("stokesI"))
+    :param frequency: Frequencies at which the flux will be estimated
+    :param kind: Kind of interpolation (see scipy.interpolate.interp1d) Default: linear
+    :returns: List of Skycomponents
+    """
+    
+    fitsfile = arl_path("data/models/GLEAM_EGC.fits")
+    
+    hdulist = fits.open(fitsfile)
+    recs = hdulist[1].data[0].array
+    ras = recs['RAJ2000']
+    decs = recs['DEJ2000']
+    fluxes = recs['peak_flux_wide']
+    names = recs['Name']
+    
+    if polarisation_frame is None:
+        polarisation_frame = Polarisation_Frame("stokesI")
+    
+    npol = polarisation_frame.npol
+    
+    nchan = len(frequency)
+    
+   # For every source, we read all measured fluxes and interpolate to the
+    # required frequencies
+    gleam_freqs = numpy.array([76, 84, 92, 99, 107, 115, 122, 130, 143, 151, 158, 166, 174, 181, 189, 197, 204,
+                               212, 220, 227])
+    
+    skycomps = []
+        
+    for isource, name in enumerate(names):
+        if fluxes[isource] > flux_limit:
+            this_source_fluxes = numpy.zeros(len(gleam_freqs))
+            
+            for i, f in enumerate(gleam_freqs):
+                this_source_fluxes[i] = recs['int_flux_%03d' % (f)][isource]
+            
+            fint = interpolate.interp1d(gleam_freqs * 1.0e6, this_source_fluxes, kind=kind)
+            flux = numpy.zeros([nchan, npol])
+            flux[:,0]=fint(frequency)
+            if not numpy.isnan(flux).any():
+                direction = SkyCoord(ra = ras[isource]*u.deg, dec = decs[isource]*u.deg)
+                skycomps.append(Skycomponent(direction=direction, flux=flux, frequency=frequency, name=name,
+                                polarisation_frame=polarisation_frame))
+    
+    log.info('create_low_test_skycomponents_from_gleam: %d sources above flux limit %.3f' % (len(skycomps), flux_limit))
+    
+    return skycomps
+
+
+def create_low_test_beam(model):
+    """Create a test power beam for LOW using an image from OSKAR
+
+    This is in progress. Currently uses the wrong beam!
+
+    :param model: Template image
+    :returns: Image
+    """
+    
+    beam = import_image_from_fits(arl_path('data/models/SKA1_LOW_beam.fits'))
+    
+    # Scale the image cellsize to account for the different in frequencies. Eventually we will want to
+    # use a frequency cube
+    log.info("create_low_test_beam: primary beam is defined at %.3f MHz" % (beam.wcs.wcs.crval[2] * 1e-6))
+    log.info("create_low_test_beam: scaling to model frequency %.3f MHz" % (model.wcs.wcs.crval[3] * 1e-6))
+    
+    nchan, npol, ny, nx = model.shape
+    
+    # We need to interpolate each frequency channel separately. The beam is assumed to just scale with
+    # frequency.
+    
+    reprojected_beam = create_empty_image_like(model)
+    
+    for chan in range(nchan):
+        
+        model2dwcs = model.wcs.sub(2).deepcopy()
+        model2dshape = [model.shape[2], model.shape[3]]
+        beam2dwcs = beam.wcs.sub(2).deepcopy()
+        
+        # The frequency axis is the second to last in the beam
+        frequency = model.wcs.sub(['spectral']).wcs_pix2world([chan], 0)[0]
+        fscale = beam.wcs.wcs.crval[2] / frequency
+        
+        beam2dwcs.wcs.cdelt = fscale * beam.wcs.sub(2).wcs.cdelt
+        beam2dwcs.wcs.crpix = beam.wcs.sub(2).wcs.crpix
+        beam2dwcs.wcs.crval = model.wcs.sub(2).wcs.crval
+        beam2dwcs.wcs.ctype = model.wcs.sub(2).wcs.ctype
+        model2dwcs.wcs.crpix = [model.shape[2] // 2, model.shape[3] // 2]
+        
+        beam2d = create_image_from_array(beam.data[0, 0, :, :], beam2dwcs)
+        reprojected_beam2d, footprint = reproject_image(beam2d, model2dwcs, shape=model2dshape)
+        assert numpy.max(footprint.data) > 0.0, "No overlap between beam and model"
+        
+        reprojected_beam2d.data *= reprojected_beam2d.data
+        reprojected_beam2d.data[footprint.data <= 0.0] = 0.0
+        for pol in range(npol):
+            reprojected_beam.data[chan, pol, :, :] = reprojected_beam2d.data[:, :]
+    
     return reprojected_beam
 
 
@@ -388,7 +705,8 @@ def create_blockvisibility_iterator(config: Configuration, times: numpy.array, f
     for time in times:
         actualtimes = time + numpy.arange(0, number_integrations) * integration_time * numpy.pi / 43200.0
         vis = create_blockvisibility(config, actualtimes, freq=freq, phasecentre=phasecentre,
-                                     polarisation_frame=polarisation_frame, weight=weight, integration_time=integration_time,
+                                     polarisation_frame=polarisation_frame, weight=weight,
+                                     integration_time=integration_time,
                                      channel_bandwidth=channel_bandwidth)
         
         if components is not None:
@@ -420,7 +738,7 @@ def simulate_gaintable(gt: GainTable, phase_error=0.1, amplitude_error=0.0, **kw
         phasor = numpy.exp(1j * numpy.random.normal(0, phase_error, gt.data['gain'].shape))
     if amplitude_error > 0.0:
         amp = numpy.random.lognormal(mean=0.0, sigma=amplitude_error, size=gt.data['gain'].shape)
-        
+    
     gt.data['gain'] = amp * phasor
-
+    
     return gt

@@ -20,6 +20,7 @@ class TestDataModels(unittest.TestCase):
         flux = numpy.array([[1.0, 0.0, 0.0, 0.0], [1.0, 0.0, 0.0, 0.0]])
         direction = SkyCoord('00h42m30s', '-41d12m00s', frame='icrs')
         frequency=numpy.arange(1.0e8,1.5e8,3e7)
+        channel_bandwidth=numpy.array([3e7,3e7])
         comp = create_skycomponent(direction=direction, flux=flux, frequency=frequency, shape='Point')
         assert comp.flux.shape == (2,4)
         assert comp.direction.separation(direction) == 0.0
@@ -52,8 +53,10 @@ class TestDataModels(unittest.TestCase):
         config = create_named_configuration('VLAA')
         times = numpy.arange(-3.0, +3.0, 3.0 / 60.0) * numpy.pi / 12.0
         freq = numpy.arange(5e6, 150.0e6, 1e7)
+        channel_bandwidth = numpy.full_like(freq, 1e7)
         direction = SkyCoord('00h42m30s', '-41d12m00s', frame='icrs')
-        vis = create_visibility(config, times, freq, phasecentre=direction, weight=1.0)
+        vis = create_visibility(config, times, freq, channel_bandwidth=channel_bandwidth, phasecentre=direction,
+                                weight=1.0)
         log.debug(vis.data)
         log.debug(vis.frequency)
         self.assertEqual(len(numpy.unique(vis.data['time'])), len(times))

@@ -6,12 +6,13 @@
 #
 import collections
 
-from arl.visibility.operations import *
-from arl.fourier_transforms.ftprocessor import predict_skycomponent_blockvisibility
-from arl.data.parameters import *
 from arl.calibration.gaintable import solve_gaintable
+from arl.data.parameters import *
+from arl.fourier_transforms.ftprocessor import predict_skycomponent_blockvisibility
+from arl.visibility.operations import *
 
 log = logging.getLogger(__name__)
+
 
 def RCAL(vis: BlockVisibility, components, **kwargs):
     """ Real-time calibration pipeline.
@@ -20,10 +21,10 @@ def RCAL(vis: BlockVisibility, components, **kwargs):
     :param comp: Component-based sky model
     :return: gaintable
    """
-
+    
     if not isinstance(vis, collections.Iterable):
         vis = [vis]
-
+    
     for ichunk, vischunk in enumerate(vis):
         vispred = copy_visibility(vischunk)
         vispred.data['vis'][...] = 0.0

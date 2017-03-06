@@ -23,7 +23,6 @@ class TestImageIterators(unittest.TestCase):
         m31original = create_test_image(polarisation_frame=Polarisation_Frame('stokesI'))
         assert numpy.max(numpy.abs(m31original.data)), "Original is empty"
 
-        params = {}
         for nraster in [2, 4, 8]:
             m31model = create_test_image(polarisation_frame=Polarisation_Frame('stokesI'))
             for patch in raster_iter(m31model, facets=nraster):

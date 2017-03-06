@@ -44,7 +44,7 @@ def copy_visibility(vis):
     return newvis
 
 
-def create_visibility(config: Configuration, times: numpy.array, freq: numpy.array, phasecentre: SkyCoord,
+def create_visibility(config: Configuration, times: numpy.array, frequency: numpy.array, phasecentre: SkyCoord,
                       weight: float, polarisation_frame=Polarisation_Frame('stokesI'), integration_time=1.0,
                       channel_bandwidth=1e6) -> Visibility:
     """ Create a Visibility from Configuration, hour angles, and direction of source
@@ -53,7 +53,7 @@ def create_visibility(config: Configuration, times: numpy.array, freq: numpy.arr
 
     :param config: Configuration of antennas
     :param times: hour angles in radians
-    :param freq: frequencies (Hz] Shape [nchan]
+    :param frequency: frequencies (Hz] Shape [nchan]
     :param weight: weight of a single sample
     :param phasecentre: phasecentre of observation
     :param npol: Number of polarizations
@@ -65,7 +65,7 @@ def create_visibility(config: Configuration, times: numpy.array, freq: numpy.arr
     if polarisation_frame is None:
         polarisation_frame = correlate_polarisation(config.receptor_frame)
 
-    nch = len(freq)
+    nch = len(frequency)
     ants_xyz = config.data['xyz']
     nants = len(config.data['names'])
     nbaselines = int(nants * (nants - 1) / 2)
@@ -78,6 +78,7 @@ def create_visibility(config: Configuration, times: numpy.array, freq: numpy.arr
     rweight = weight * numpy.ones([nrows])
     rtimes = numpy.zeros([nrows])
     rfrequency = numpy.zeros([nrows])
+    rchannel_bandwidth = numpy.zeros([nrows])
     rpolarisation = numpy.zeros([nrows], dtype='int')
     rantenna1 = numpy.zeros([nrows], dtype='int')
     rantenna2 = numpy.zeros([nrows], dtype='int')
@@ -100,15 +101,15 @@ def create_visibility(config: Configuration, times: numpy.array, freq: numpy.arr
                 # Loop over all frequencies and polarisations
                 for ch in range(nch):
                     # noinspection PyUnresolvedReferences
-                    k = freq[ch] / constants.c.value
+                    k = frequency[ch] / constants.c.value
                     ruvw[row:row + npol, :] = (ant_pos[a2, :] - ant_pos[a1, :]) * k
                     rpolarisation[row:row + npol] = range(npol)
-                    rfrequency[row:row + npol] = freq[ch]
+                    rfrequency[row:row + npol] = frequency[ch]
+                    rchannel_bandwidth[row:row+npol] = channel_bandwidth[ch]
                     row += npol
     
     assert row == nrows
     rintegration_time = numpy.full_like(rtimes, integration_time)
-    rchannel_bandwidth = numpy.full_like(rfrequency, channel_bandwidth)
     vis = Visibility(uvw=ruvw, time=rtimes, antenna1=rantenna1, antenna2=rantenna2,
                      frequency=rfrequency, polarisation=rpolarisation, vis=rvis,
                      weight=rweight, imaging_weight=rweight,
@@ -290,7 +291,7 @@ def sum_visibility(vis: Visibility, direction: SkyCoord) -> numpy.array:
     
     # Need to put correct mapping here
     _, polarisations = get_polarisation_map(vis)
-    _, frequency = get_frequency_map(vis)
+    _, frequency = get_frequency_map(vis, None)
     
     frequency = list(frequency)
     polarisations = list(polarisations)

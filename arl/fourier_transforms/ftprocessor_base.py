@@ -91,7 +91,7 @@ def predict_2d_base(vis, model, **kwargs):
 
     _, _, ny, nx = model.data.shape
 
-    spectral_mode, vfrequencymap = get_frequency_map(vis, model, **kwargs)
+    spectral_mode, vfrequencymap = get_frequency_map(vis, model)
     polarisation_mode, vpolarisationmap = get_polarisation_map(vis, model, **kwargs)
     uvw_mode, shape, padding, vuvwmap = get_uvw_map(vis, model, **kwargs)
     kernel_name, gcf, vkernellist = get_kernel_list(vis, model, **kwargs)
@@ -155,7 +155,7 @@ def invert_2d_base(vis, im, dopsf=False, **kwargs):
     
     nchan, npol, ny, nx = im.data.shape
     
-    spectral_mode, vfrequencymap = get_frequency_map(vis, im, **kwargs)
+    spectral_mode, vfrequencymap = get_frequency_map(vis, im)
     polarisation_mode, vpolarisationmap = get_polarisation_map(vis, im, **kwargs)
     uvw_mode, shape, padding, vuvwmap = get_uvw_map(vis, im, **kwargs)
     kernel_name, gcf, vkernellist = get_kernel_list(vis, im, **kwargs)
@@ -275,7 +275,7 @@ def predict_skycomponent_visibility(vis: Visibility, sc: Skycomponent, **kwargs)
         phasor = simulate_point(vis.uvw, l, m)
         
         _, ipol = get_polarisation_map(vis)
-        _, ichan = get_frequency_map(vis)
+        _, ichan = get_frequency_map(vis, None)
         
         coords = phasor, list(ichan), list(ipol)
         vis.data['vis'] += [comp.flux[ic, ip] * p for p, ic, ip in zip(*coords)]
@@ -295,7 +295,7 @@ def weight_visibility(vis, im, **kwargs):
     """
     assert type(vis) is Visibility, "vis is not a Visibility: %r" % vis
 
-    spectral_mode, vfrequencymap = get_frequency_map(vis, im, **kwargs)
+    spectral_mode, vfrequencymap = get_frequency_map(vis, im)
     polarisation_mode, vpolarisationmap = get_polarisation_map(vis, im, **kwargs)
     uvw_mode, shape, padding, vuvwmap = get_uvw_map(vis, im, **kwargs)
 
@@ -310,7 +310,7 @@ def weight_visibility(vis, im, **kwargs):
     
     return vis, density, densitygrid
 
-def create_image_from_visibility(vis, **kwargs):
+def create_image_from_visibility(vis: Visibility, **kwargs) -> Image:
     """Make an from params and Visibility
 
     :param vis:
@@ -333,15 +333,21 @@ def create_image_from_visibility(vis, **kwargs):
     # Spectral processing options
     vnchan = len(numpy.unique(vis.frequency))
     inchan = get_parameter(kwargs, "nchan", 1)
-    reffrequency = numpy.min(vis.frequency) * units.Hz
-    channel_bandwidth = get_parameter(kwargs, "channel_bandwidth", 1e6) * units.Hz
+    reffrequency = get_parameter(kwargs, "frequency", vis.frequency[0]) * units.Hz
+    channel_bandwidth = get_parameter(kwargs, "channel_bandwidth", vis.channel_bandwidth[0]) * units.Hz
 
     if (inchan == vnchan) and vnchan > 1:
         log.info("create_image_from_visibility: Defining %d channel Image at %s, starting frequency %s, and bandwidth %s"
                  % (inchan, imagecentre, reffrequency, channel_bandwidth))
     elif (inchan == 1) and vnchan > 1:
         assert numpy.abs(channel_bandwidth.value) > 0.0, "Channel width must be non-zero for mfs mode"
-        log.info("create_image_from_visibility: Defining MFS Image at %s, starting frequency %s, and bandwidth %s"
+        log.info("create_image_from_visibility: Defining single channel MFS Image at %s, starting frequency %s, "
+                 "and bandwidth %s"
+                 % (imagecentre, reffrequency, channel_bandwidth))
+    elif inchan > 1 and vnchan > 1:
+        assert numpy.abs(channel_bandwidth.value) > 0.0, "Channel width must be non-zero for mfs mode"
+        log.info("create_image_from_visibility: Defining multi-channel MFS Image at %s, starting frequency %s, "
+                 "and bandwidth %s"
                  % (imagecentre, reffrequency, channel_bandwidth))
     elif (inchan == 1) and (vnchan == 1):
         assert numpy.abs(channel_bandwidth.value) > 0.0, "Channel width must be non-zero for mfs mode"
@@ -373,12 +379,12 @@ def create_image_from_visibility(vis, **kwargs):
     shape = [inchan, inpol, npixel, npixel]
     w = wcs.WCS(naxis=4)
     # The negation in the longitude is needed by definition of RA, DEC
-    w.wcs.cdelt = [-cellsize * 180.0 / numpy.pi, cellsize * 180.0 / numpy.pi, 1.0, channel_bandwidth.value]
+    w.wcs.cdelt = [-cellsize * 180.0 / numpy.pi, cellsize * 180.0 / numpy.pi, 1.0, channel_bandwidth.to(u.Hz).value]
     # The numpy definition of the phase centre of an FFT is n // 2 (0 - rel) so that's what we use for
     # the reference pixel. We have to use 0 rel everywhere.
     w.wcs.crpix = [npixel // 2, npixel // 2, 1.0, 1.0]
     w.wcs.ctype = ["RA---SIN", "DEC--SIN", 'STOKES', 'FREQ']
-    w.wcs.crval = [phasecentre.ra.deg, phasecentre.dec.deg, 1.0, reffrequency.value]
+    w.wcs.crval = [phasecentre.ra.deg, phasecentre.dec.deg, 1.0, reffrequency.to(u.Hz).value]
     w.naxis = 4
     
     w.wcs.radesys = get_parameter(kwargs, 'frame', 'ICRS')

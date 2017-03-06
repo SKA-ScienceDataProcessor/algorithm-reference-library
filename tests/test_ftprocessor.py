@@ -71,11 +71,17 @@ class TestFTProcessor(unittest.TestCase):
         
         if frequency is None:
             self.frequency = numpy.array([1e8])
+            self.channel_bandwidth = numpy.array([1e7])
         else:
             self.frequency = frequency
+            if len(self.frequency) < 1:
+                self.channel_bandwidth = numpy.full_like(self.frequency, self.frequency[1] - self.frequency[0])
+            else:
+                self.channel_bandwidth = numpy.array([1e6])
         
         self.phasecentre = SkyCoord(ra=+180.0 * u.deg, dec=-60.0 * u.deg, frame='icrs', equinox=2000.0)
-        self.componentvis = create_visibility(self.lowcore, self.times, self.frequency, phasecentre=self.phasecentre,
+        self.componentvis = create_visibility(self.lowcore, self.times, self.frequency,
+                                              channel_bandwidth=self.channel_bandwidth, phasecentre=self.phasecentre,
                                               weight=1.0, polarisation_frame=Polarisation_Frame('stokesI'))
         self.uvw = self.componentvis.data['uvw']
         self.componentvis.data['vis'] *= 0.0
@@ -137,18 +143,21 @@ class TestFTProcessor(unittest.TestCase):
         Good check on the grid correction in the image->vis direction"""
         # Set all w to zero
         self.actualSetUp()
-        self.componentvis = create_visibility(self.lowcore, self.times, self.frequency, phasecentre=self.phasecentre,
-                                              weight=1.0)
+        self.componentvis = create_visibility(self.lowcore, self.times, self.frequency, channel_bandwidth = \
+            self.channel_bandwidth, phasecentre=self.phasecentre, weight=1.0)
         self.componentvis.data['uvw'][:, 2] = 0.0
         # Predict the visibility using direct evaluation
         for comp in self.components:
             predict_skycomponent_visibility(self.componentvis, comp)
         
-        self.modelvis = create_visibility(self.lowcore, self.times, self.frequency, phasecentre=self.phasecentre,
+        self.modelvis = create_visibility(self.lowcore, self.times, self.frequency,
+                                          channel_bandwidth=self.channel_bandwidth, phasecentre=self.phasecentre,
                                           weight=1.0, polarisation_frame=Polarisation_Frame('stokesI'))
         self.modelvis.data['uvw'][:, 2] = 0.0
         predict_2d(self.modelvis, self.model, **self.params)
-        self.residualvis = create_visibility(self.lowcore, self.times, self.frequency, phasecentre=self.phasecentre,
+        self.residualvis = create_visibility(self.lowcore, self.times, self.frequency,
+                                             channel_bandwidth=self.channel_bandwidth,
+                                             phasecentre=self.phasecentre,
                                              weight=1.0, polarisation_frame=Polarisation_Frame('stokesI'))
         self.residualvis.data['uvw'][:, 2] = 0.0
         self.residualvis.data['vis'] = self.modelvis.data['vis'] - self.componentvis.data['vis']
@@ -156,11 +165,14 @@ class TestFTProcessor(unittest.TestCase):
         self._checkdirty(self.residualvis, 'test_predict_2d_residual', fluxthreshold=0.2)
     
     def _predict_base(self, predict, fluxthreshold=1.0):
-        self.modelvis = create_visibility(self.lowcore, self.times, self.frequency, phasecentre=self.phasecentre,
+        self.modelvis = create_visibility(self.lowcore, self.times, self.frequency,
+                                             channel_bandwidth=self.channel_bandwidth, phasecentre=self.phasecentre,
                                           weight=1.0, polarisation_frame=Polarisation_Frame('stokesI'))
         self.modelvis.data['vis'] *= 0.0
         predict(self.modelvis, self.model, **self.params)
-        self.residualvis = create_visibility(self.lowcore, self.times, self.frequency, phasecentre=self.phasecentre,
+        self.residualvis = create_visibility(self.lowcore, self.times, self.frequency,
+                                             channel_bandwidth=self.channel_bandwidth,
+                                             phasecentre=self.phasecentre,
                                              weight=1.0, polarisation_frame=Polarisation_Frame('stokesI'))
         self.residualvis.data['uvw'][:, 2] = 0.0
         self.residualvis.data['vis'] = self.modelvis.data['vis'] - self.componentvis.data['vis']
@@ -204,7 +216,8 @@ class TestFTProcessor(unittest.TestCase):
         """
         # Set all w to zero
         self.actualSetUp()
-        self.componentvis = create_visibility(self.lowcore, self.times, self.frequency, phasecentre=self.phasecentre,
+        self.componentvis = create_visibility(self.lowcore, self.times, self.frequency,
+                                              channel_bandwidth=self.channel_bandwidth, phasecentre=self.phasecentre,
                                               weight=1.0, polarisation_frame=Polarisation_Frame('stokesI'))
         self.componentvis.data['uvw'][:, 2] = 0.0
         self.componentvis.data['vis'] *= 0.0
