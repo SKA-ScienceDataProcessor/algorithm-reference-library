@@ -44,9 +44,10 @@ def copy_visibility(vis):
     return newvis
 
 
-def create_visibility(config: Configuration, times: numpy.array, frequency: numpy.array, phasecentre: SkyCoord,
+def create_visibility(config: Configuration, times: numpy.array, frequency: numpy.array,
+                      channel_bandwidth, phasecentre: SkyCoord,
                       weight: float, polarisation_frame=Polarisation_Frame('stokesI'), integration_time=1.0,
-                      channel_bandwidth=1e6) -> Visibility:
+                      ) -> Visibility:
     """ Create a Visibility from Configuration, hour angles, and direction of source
 
     Note that we keep track of the integration time for BDA purposes

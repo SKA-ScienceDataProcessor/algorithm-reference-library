@@ -29,13 +29,16 @@ class TestVisibilityIterators(unittest.TestCase):
         self.times = numpy.linspace(-300.0, 300.0, 11) * numpy.pi / 43200.0
     
         self.frequency = numpy.array([1e8])
+        self.channel_bandwidth = numpy.array([1e8])
         self.phasecentre = SkyCoord(ra=+15.0 * u.deg, dec=-35.0 * u.deg, frame='icrs', equinox=2000.0)
 
     def actualSetUp(self, times=None):
         if times is not None:
             self.times = times
             
-        self.vis = create_visibility(self.lowcore, self.times, self.frequency, phasecentre=self.phasecentre, weight=1.0)
+        self.vis = create_visibility(self.lowcore, self.times, self.frequency,
+                                     channel_bandwidth=self.channel_bandwidth, phasecentre=self.phasecentre,
+                                     weight=1.0)
         self.vis.data['vis'] = self.vis.time
 
     def test_vis_slice_iterator(self):
