@@ -670,16 +670,16 @@ def replicate_image(im: Image, polarisation_frame=Polarisation_Frame('stokesI'),
         return im
 
 
-def create_blockvisibility_iterator(config: Configuration, times: numpy.array, freq: numpy.array, phasecentre: SkyCoord,
-                                    weight: float = 1, polarisation_frame=Polarisation_Frame('stokesI'),
-                                    integration_time=1.0, number_integrations=1, channel_bandwidth=1e6,
-                                    predict=predict_2d, model=None, components=None, phase_error=0.0,
-                                    amplitude_error=0.0):
+def create_blockvisibility_iterator(config: Configuration, times: numpy.array, frequency: numpy.array,
+                                    channel_bandwidth, phasecentre: SkyCoord, weight: float = 1,
+                                    polarisation_frame=Polarisation_Frame('stokesI'), integration_time=1.0,
+                                    number_integrations=1, predict=predict_2d, model=None, components=None,
+                                    phase_error=0.0, amplitude_error=0.0):
     """ Create a sequence of Visibiliites and optionally predicting and coalescing
 
     This is useful mainly for performing large simulations. Do something like::
     
-        vis_iter = create_blockvisibility_iterator(config, times, frequency, phasecentre=phasecentre,
+        vis_iter = create_blockvisibility_iterator(config, times, frequency, channel_bandwidth, phasecentre=phasecentre,
                                               weight=1.0, integration_time=30.0, number_integrations=3)
 
         for i, vis in enumerate(vis_iter):
@@ -691,7 +691,7 @@ def create_blockvisibility_iterator(config: Configuration, times: numpy.array, f
 
     :param config: Configuration of antennas
     :param times: hour angles in radians
-    :param freq: frequencies (Hz] Shape [nchan]
+    :param frequency: frequencies (Hz] Shape [nchan]
     :param weight: weight of a single sample
     :param phasecentre: phasecentre of observation
     :param npol: Number of polarizations
@@ -704,7 +704,7 @@ def create_blockvisibility_iterator(config: Configuration, times: numpy.array, f
     """
     for time in times:
         actualtimes = time + numpy.arange(0, number_integrations) * integration_time * numpy.pi / 43200.0
-        vis = create_blockvisibility(config, actualtimes, freq=freq, phasecentre=phasecentre,
+        vis = create_blockvisibility(config, actualtimes, freq=frequency, phasecentre=phasecentre,
                                      polarisation_frame=polarisation_frame, weight=weight,
                                      integration_time=integration_time,
                                      channel_bandwidth=channel_bandwidth)

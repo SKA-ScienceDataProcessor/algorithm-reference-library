@@ -41,4 +41,4 @@ See the jupyter note books below:
    arl/RCAL
 
 In addition, there are other notebooks in examples/arl that are not built as part of this documentation. See e.g.
-examples/arl/imaging-low.ipynb, examples/arl/imaging-compress
+examples/arl/imaging-low.ipynb, examples/arl/imaging-coalesce

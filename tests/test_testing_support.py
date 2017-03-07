@@ -70,8 +70,8 @@ class TestTesting_Support(unittest.TestCase):
 
     def test_create_low_test_image_from_gleam(self):
         im = create_low_test_image_from_gleam(npixel=256, cellsize=0.001,
-                                              channel_bandwidth=numpy.array([1e6, 1e6, 1e6]),
-                                              frequency=numpy.array([1e8 - 1e6, 1e8, 1e8 + 1e6]),
+                                              channel_bandwidth=self.channel_bandwidth,
+                                              frequency=self.frequency,
                                               phasecentre=self.phasecentre, kind='cubic')
         assert im.data.shape[0] == 3
         assert im.data.shape[1] == 1
@@ -81,11 +81,11 @@ class TestTesting_Support(unittest.TestCase):
 
 
     def test_create_low_test_skycomponents_from_gleam(self):
-        sc = create_low_test_skycomponents_from_gleam(frequency=numpy.array([1e8 - 1e6, 1e8, 1e8 + 1e6]),
+        sc = create_low_test_skycomponents_from_gleam(frequency=self.frequency,
                                                       flux_limit=10.0, kind='cubic')
         assert len(sc) > 1
         assert sc[190].name == 'GLEAM J172031-005845'
-        self.assertAlmostEqual(sc[190].flux[0,0], 304.1335144, 7)
+        self.assertAlmostEqual(sc[190].flux[0,0], 301.4964434927922, 7)
     
     def test_create_low_test_image(self):
             im = create_low_test_image(npixel=1024, channel_bandwidth=numpy.array([1e6]),
@@ -140,8 +140,9 @@ class TestTesting_Support(unittest.TestCase):
     
     def test_create_vis_iter(self):
         vis_iter = create_blockvisibility_iterator(self.config, self.times, self.frequency,
-                                                   phasecentre=self.phasecentre, weight=1.0,
-                                                   polarisation_frame=Polarisation_Frame('stokesI'),
+                                                   channel_bandwidth=self.channel_bandwidth,
+                                                   phasecentre=self.phasecentre,
+                                                   weight=1.0, polarisation_frame=Polarisation_Frame('stokesI'),
                                                    integration_time=30.0, number_integrations=3)
         
         fullvis = None
@@ -163,6 +164,7 @@ class TestTesting_Support(unittest.TestCase):
         comp = Skycomponent(direction=self.phasecentre, frequency=self.frequency, flux=self.flux,
                             polarisation_frame=Polarisation_Frame('stokesI'))
         vis_iter = create_blockvisibility_iterator(self.config, self.times, self.frequency,
+                                                   channel_bandwidth=self.channel_bandwidth,
                                                    phasecentre=self.phasecentre, weight=1.0,
                                                    polarisation_frame=Polarisation_Frame('stokesI'),
                                                    integration_time=30.0, number_integrations=3, model=model,

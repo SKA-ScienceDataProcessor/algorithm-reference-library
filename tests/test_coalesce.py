@@ -19,8 +19,11 @@ class TestCoalesce(unittest.TestCase):
         self.lowcore = create_named_configuration('LOWBD2-CORE')
         self.times = (numpy.pi / 43200.0) * numpy.arange(0.0, 300.0, 30.0)
         self.frequency = numpy.linspace(1.0e8, 1.1e8, 5)
+        self.channel_bandwidth = numpy.array([1e7,1e7,1e7,1e7,1e7])
         self.phasecentre = SkyCoord(ra=+180.0 * u.deg, dec=-60.0 * u.deg, frame='icrs', equinox=2000.0)
-        self.vis = create_visibility(self.lowcore, self.times, self.frequency, phasecentre=self.phasecentre, weight=1.0)
+        self.vis = create_visibility(self.lowcore, self.times, self.frequency,
+                                     channel_bandwidth=self.channel_bandwidth,
+                                     phasecentre=self.phasecentre, weight=1.0)
         # Fill in the vis values so each can be uniquely identified
         self.vis.data['vis'] = range(self.vis.nvis)
  
@@ -35,7 +38,9 @@ class TestCoalesce(unittest.TestCase):
 
     def test_coalesce_decoalesce_singletime(self):
         self.times = numpy.array([0.0])
-        self.vis = create_visibility(self.lowcore, self.times, self.frequency, phasecentre=self.phasecentre, weight=1.0)
+        self.vis = create_visibility(self.lowcore, self.times, self.frequency,
+                                     channel_bandwidth=self.channel_bandwidth,
+                                     phasecentre=self.phasecentre, weight=1.0)
         # Fill in the vis values so each can be uniquely identified
         self.vis.data['vis'] = range(self.vis.nvis)
         cvis, cindex = coalesce_visibility(self.vis, coalescence_factor=1.0)
