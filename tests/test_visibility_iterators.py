@@ -39,7 +39,7 @@ class TestVisibilityIterators(unittest.TestCase):
         self.vis = create_visibility(self.lowcore, self.times, self.frequency,
                                      channel_bandwidth=self.channel_bandwidth, phasecentre=self.phasecentre,
                                      weight=1.0)
-        self.vis.data['vis'] = self.vis.time
+        self.vis.data['vis'][:,0] = self.vis.time
 
     def test_vis_slice_iterator(self):
         self.actualSetUp()

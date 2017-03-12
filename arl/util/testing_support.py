@@ -163,7 +163,8 @@ def create_test_image(canonical=True, cellsize=None, frequency=[1e8], channel_ba
 
 
 def create_low_test_image(npixel=16384, polarisation_frame=Polarisation_Frame("stokesI"), cellsize=0.000015,
-                          frequency=numpy.array([1e8]), channel_bandwidth=numpy.array([1e6]), phasecentre=None, fov=20):
+                          frequency=numpy.array([1e8]), channel_bandwidth=numpy.array([1e6]), phasecentre=None,
+                          fov=20):
     """Create LOW test image from S3
 
     The input catalog was generated at http://s-cubed.physics.ox.ac.uk/s3_sex using the following query::
@@ -403,12 +404,46 @@ def create_low_test_image(npixel=16384, polarisation_frame=Polarisation_Frame("s
     return model
 
 
+def create_low_test_image_composite(npixel=16384, polarisation_frame=Polarisation_Frame("stokesI"),
+                                    cellsize=0.000015,
+                                    frequency=numpy.array([1e8]), channel_bandwidth=numpy.array([1e6]),
+                                    phasecentre=None, kind='cubic', fov=20, threshold=0.050):
+    """Create LOW test image from merge of S3 and GLEAM test images
+    
+    :param npixel: Number of pixels
+    :param polarisation_frame: Polarisation frame (default Polarisation_Frame("stokesI"))
+    :param cellsize: cellsize in radians
+    :param frequency:
+    :param channel_bandwidth: Channel width (Hz)
+    :param phasecentre: phasecentre (SkyCoord)
+    :param kind: Kind of interpolation (see scipy.interpolate.interp1d) Default: cubic
+    :param fov: Field of view to use in S3
+    :param threshold: Below threshold S3, above threshold GLEAM
+    :returns: Image
+    """
+    img = create_low_test_image_from_gleam(npixel=npixel, polarisation_frame=polarisation_frame,
+                                           cellsize=cellsize,
+                                           frequency=frequency, channel_bandwidth=channel_bandwidth,
+                                           phasecentre=phasecentre, kind=kind)
+    img.data[img.data < threshold] = 0.0
+    ims3 = create_low_test_image(npixel=npixel, polarisation_frame=polarisation_frame,
+                                 cellsize=cellsize,
+                                 frequency=frequency, channel_bandwidth=channel_bandwidth,
+                                 phasecentre=phasecentre, fov=fov)
+    ims3.data[ims3.data >= threshold] = 0.0
+    
+    ims3.data += img.data
+    return ims3
+
+
 def create_low_test_image_from_gleam(npixel=16384, polarisation_frame=Polarisation_Frame("stokesI"), cellsize=0.000015,
                                      frequency=numpy.array([1e8]), channel_bandwidth=numpy.array([1e6]),
-                                     phasecentre=None, kind='linear'):
+                                     phasecentre=None, kind='cubic'):
     """Create LOW test image from the GLEAM survey
 
-    Stokes I is estimated from a linear fit to the measured fluxes. The polarised flux is always zero.
+    Stokes I is estimated from a cubic spline fit to the measured fluxes. The polarised flux is always zero.
+    
+    See http://www.mwatelescope.org/science/gleam-survey The catalog is available from Vizier.
     
     VIII/100   GaLactic and Extragalactic All-sky MWA survey  (Hurley-Walker+, 2016)
     ================================================================================
@@ -475,11 +510,11 @@ def create_low_test_image_from_gleam(npixel=16384, polarisation_frame=Polarisati
     p = numpy.array(p)
     mask = numpy.isfinite(p[0, :])
     p = [p[0, mask], p[1, mask]]
-
+    
     ip = numpy.round(p).astype('int')
     ok = numpy.where((0 <= ip[0, :]) & (npixel > ip[0, :]) & (0 <= ip[1, :]) & (npixel > ip[1, :]))[0]
     ps = ip[:, ok]
-
+    
     # For every source, we read all measured fluxes and interpolate to the
     # required frequencies
     fluxes = []
@@ -487,14 +522,14 @@ def create_low_test_image_from_gleam(npixel=16384, polarisation_frame=Polarisati
                                212, 220, 227])
     for source in ok:
         this_source_fluxes = numpy.zeros(len(gleam_freqs))
-
+        
         for i, f in enumerate(gleam_freqs):
             this_source_fluxes[i] = recs['int_flux_%03d' % (f)][source]
-
+        
         fint = interpolate.interp1d(gleam_freqs * 1.0e6, this_source_fluxes, kind=kind)
         
         fluxes.append(fint(frequency))
-
+    
     fluxes = numpy.array(fluxes)
     actual_flux = numpy.sum(fluxes)
     
@@ -509,10 +544,12 @@ def create_low_test_image_from_gleam(npixel=16384, polarisation_frame=Polarisati
 
 
 def create_low_test_skycomponents_from_gleam(flux_limit=0.1, polarisation_frame=Polarisation_Frame("stokesI"),
-                                     frequency=numpy.array([1e8]), kind='linear'):
+                                             frequency=numpy.array([1e8]), kind='cubic'):
     """Create sky components from the GLEAM survey
 
-    Stokes I is estimated from a linear fit to the measured fluxes. The polarised flux is always zero.
+    Stokes I is estimated from a cubic spline fit to the measured fluxes. The polarised flux is always zero.
+    
+    See http://www.mwatelescope.org/science/gleam-survey The catalog is available from Vizier.
     
     VIII/100   GaLactic and Extragalactic All-sky MWA survey  (Hurley-Walker+, 2016)
     ================================================================================
@@ -554,13 +591,13 @@ def create_low_test_skycomponents_from_gleam(flux_limit=0.1, polarisation_frame=
     
     nchan = len(frequency)
     
-   # For every source, we read all measured fluxes and interpolate to the
+    # For every source, we read all measured fluxes and interpolate to the
     # required frequencies
     gleam_freqs = numpy.array([76, 84, 92, 99, 107, 115, 122, 130, 143, 151, 158, 166, 174, 181, 189, 197, 204,
                                212, 220, 227])
     
     skycomps = []
-        
+    
     for isource, name in enumerate(names):
         if fluxes[isource] > flux_limit:
             this_source_fluxes = numpy.zeros(len(gleam_freqs))
@@ -570,11 +607,11 @@ def create_low_test_skycomponents_from_gleam(flux_limit=0.1, polarisation_frame=
             
             fint = interpolate.interp1d(gleam_freqs * 1.0e6, this_source_fluxes, kind=kind)
             flux = numpy.zeros([nchan, npol])
-            flux[:,0]=fint(frequency)
+            flux[:, 0] = fint(frequency)
             if not numpy.isnan(flux).any():
-                direction = SkyCoord(ra = ras[isource]*u.deg, dec = decs[isource]*u.deg)
+                direction = SkyCoord(ra=ras[isource] * u.deg, dec=decs[isource] * u.deg)
                 skycomps.append(Skycomponent(direction=direction, flux=flux, frequency=frequency, name=name,
-                                polarisation_frame=polarisation_frame))
+                                             polarisation_frame=polarisation_frame))
     
     log.info('create_low_test_skycomponents_from_gleam: %d sources above flux limit %.3f' % (len(skycomps), flux_limit))
     
@@ -740,5 +777,10 @@ def simulate_gaintable(gt: GainTable, phase_error=0.1, amplitude_error=0.0, **kw
         amp = numpy.random.lognormal(mean=0.0, sigma=amplitude_error, size=gt.data['gain'].shape)
     
     gt.data['gain'] = amp * phasor
+    # Don't simulate leakages (yet)
+    nrec = gt.data['gain'].shape[-1]
+    if nrec > 1:
+        gt.data['gain'][..., 0, 1] = 0.0
+        gt.data['gain'][..., 1, 0] = 0.0
     
     return gt

@@ -72,15 +72,14 @@ def create_visibility(config: Configuration, times: numpy.array, frequency: nump
     nbaselines = int(nants * (nants - 1) / 2)
     ntimes = len(times)
     npol = polarisation_frame.npol
-    nrows = nbaselines * ntimes * nch * npol
-    nrowsperintegration = nbaselines * nch * npol
+    nrows = nbaselines * ntimes * nch
+    nrowsperintegration = nbaselines * nch
     row = 0
-    rvis = numpy.zeros([nrows], dtype='complex')
-    rweight = weight * numpy.ones([nrows])
+    rvis = numpy.zeros([nrows, npol], dtype='complex')
+    rweight = weight * numpy.ones([nrows, npol])
     rtimes = numpy.zeros([nrows])
     rfrequency = numpy.zeros([nrows])
     rchannel_bandwidth = numpy.zeros([nrows])
-    rpolarisation = numpy.zeros([nrows], dtype='int')
     rantenna1 = numpy.zeros([nrows], dtype='int')
     rantenna2 = numpy.zeros([nrows], dtype='int')
     ruvw = numpy.zeros([nrows, 3])
@@ -96,23 +95,22 @@ def create_visibility(config: Configuration, times: numpy.array, frequency: nump
         # Loop over all pairs of antennas. Note that a2>a1
         for a1 in range(nants):
             for a2 in range(a1 + 1, nants):
-                rantenna1[row:row + npol * nch] = a1
-                rantenna2[row:row + npol * nch] = a2
+                rantenna1[row:row + nch] = a1
+                rantenna2[row:row + nch] = a2
                 
                 # Loop over all frequencies and polarisations
                 for ch in range(nch):
                     # noinspection PyUnresolvedReferences
                     k = frequency[ch] / constants.c.value
-                    ruvw[row:row + npol, :] = (ant_pos[a2, :] - ant_pos[a1, :]) * k
-                    rpolarisation[row:row + npol] = range(npol)
-                    rfrequency[row:row + npol] = frequency[ch]
-                    rchannel_bandwidth[row:row+npol] = channel_bandwidth[ch]
-                    row += npol
+                    ruvw[row, :] = (ant_pos[a2, :] - ant_pos[a1, :]) * k
+                    rfrequency[row] = frequency[ch]
+                    rchannel_bandwidth[row] = channel_bandwidth[ch]
+                    row += 1
     
     assert row == nrows
     rintegration_time = numpy.full_like(rtimes, integration_time)
     vis = Visibility(uvw=ruvw, time=rtimes, antenna1=rantenna1, antenna2=rantenna2,
-                     frequency=rfrequency, polarisation=rpolarisation, vis=rvis,
+                     frequency=rfrequency, vis=rvis,
                      weight=rweight, imaging_weight=rweight,
                      integration_time=rintegration_time, channel_bandwidth=rchannel_bandwidth,
                      polarisation_frame=polarisation_frame)
@@ -127,7 +125,7 @@ def create_visibility(config: Configuration, times: numpy.array, frequency: nump
 def create_blockvisibility(config: Configuration, times: numpy.array, freq: numpy.array,
                       phasecentre: SkyCoord, weight: float,
                       polarisation_frame=None,
-                      integration_time=1.0, channel_bandwidth=1e6) -> Visibility:
+                      integration_time=1.0, channel_bandwidth=1e6) -> BlockVisibility:
     """ Create a BlockVisibility from Configuration, hour angles, and direction of source
 
     Note that we keep track of the integration time for BDA purposes
@@ -253,9 +251,11 @@ def phaserotate_visibility(vis: Visibility, newphasecentre: SkyCoord, tangent=Tr
         phasor = simulate_point(newvis.uvw, l, m)
         
         if inverse:
-            newvis.data['vis'] *= phasor
+            for pol in range(vis.polarisation_frame.npol):
+                newvis.data['vis'][...,pol] *= phasor
         else:
-            newvis.data['vis'] *= numpy.conj(phasor)
+            for pol in range(vis.polarisation_frame.npol):
+                newvis.data['vis'][...,pol] *= numpy.conj(phasor)
         
         # To rotate UVW, rotate into the global XYZ coordinate system and back. We have the option of
         # staying on the tangent plane or not. If we stay on the tangent then the raster will
@@ -291,22 +291,21 @@ def sum_visibility(vis: Visibility, direction: SkyCoord) -> numpy.array:
     phasor = numpy.conjugate(simulate_point(vis.uvw, l, m))
     
     # Need to put correct mapping here
-    _, polarisations = get_polarisation_map(vis)
     _, frequency = get_frequency_map(vis, None)
     
     frequency = list(frequency)
-    polarisations = list(polarisations)
     
     nchan = max(frequency) + 1
-    npol = max(polarisations) + 1
+    npol = vis.polarisation_frame.npol
     
     flux = numpy.zeros([nchan, npol])
     weight = numpy.zeros([nchan, npol])
     
-    coords = vis.vis, vis.weight, phasor, list(frequency), list(polarisations)
-    for v, wt, p, ic, ip in zip(*coords):
-        flux[ic, ip] += numpy.real(wt * v * p)
-        weight[ic, ip] += wt
+    coords = vis.vis, vis.weight, phasor, list(frequency)
+    for v, wt, p, ic in zip(*coords):
+        for pol in range(npol):
+            flux[ic, pol] += numpy.real(wt[pol] * v[pol] * p)
+            weight[ic, pol] += wt[pol]
     
     flux[weight > 0.0] = flux[weight > 0.0] / weight[weight > 0.0]
     flux[weight <= 0.0] = 0.0

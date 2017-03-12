@@ -31,7 +31,7 @@ class TestPipelines(unittest.TestCase):
         
         self.vis = create_blockvisibility_iterator(lowcore, times=times, frequency=frequency, channel_bandwidth=1e6,
                                                    phasecentre=self.phasecentre, weight=1,
-                                                   polarisation_frame=Polarisation_Frame('stokesIQUV'),
+                                                   polarisation_frame=Polarisation_Frame('linear'),
                                                    integration_time=1.0, number_integrations=1, predict=predict_2d,
                                                    components=self.comp, phase_error=0.1, amplitude_error=0.01)
     

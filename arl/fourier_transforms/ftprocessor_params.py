@@ -41,11 +41,17 @@ def get_frequency_map(vis, im=None, **kwargs):
     return spectral_mode, vfrequencymap
 
 
-def get_polarisation_map(vis, im=None, **kwargs):
+def get_polarisation_map(vis: Visibility, im: Image=None, **kwargs):
     """ Get the mapping of visibility polarisations to image polarisations
     
     """
-    return "direct", get_rowmap(vis.polarisation)
+    if vis.polarisation_frame == im.polarisation_frame:
+        if vis.polarisation_frame == Polarisation_Frame('stokesI'):
+            return "stokesI->stokesI", lambda pol: 0
+        elif vis.polarisation_frame == Polarisation_Frame('stokesIQUV'):
+            return "stokesIQUV->stokesIQUV", lambda pol: pol
+
+    return "unknown", lambda pol: pol
 
 
 def get_rowmap(col, ucol=None):

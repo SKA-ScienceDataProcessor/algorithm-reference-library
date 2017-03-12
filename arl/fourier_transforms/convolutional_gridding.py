@@ -272,9 +272,10 @@ def fixed_kernel_degrid(kernels, vshape, uvgrid, vuvwmap, vfrequencymap, vpolari
     assert gh % 2 == 0, "Convolution kernel must have even number of pixels"
     assert gw % 2 == 0, "Convolution kernel must have even number of pixels"
     inchan, inpol, ny, nx = uvgrid.shape
+    vnpol = vshape[-1]
     nvis = vshape[0]
-    vis = numpy.zeros([nvis], dtype='complex')
-    wt  = numpy.zeros([nvis])
+    vis = numpy.zeros([nvis, vnpol], dtype='complex')
+    wt  = numpy.zeros([nvis, vnpol])
 
     # uvw -> fraction of grid mapping
     y, yf = frac_coord(ny, kernel_oversampling, vuvwmap[:,1])
@@ -287,34 +288,36 @@ def fixed_kernel_degrid(kernels, vshape, uvgrid, vuvwmap, vfrequencymap, vpolari
         slicex.append(slice((xx - gw // 2), (xx + (gw + 1) // 2)))
     for yy in y:
         slicey.append(slice((yy - gh // 2), (yy + (gh + 1) // 2)))
-    
+
     # Now we can degrid the points and accumulate weight as well
     if len(kernels) > 1:
 
-        coords = list(vfrequencymap), list(vpolarisationmap), slicex, xf, slicey, yf
-        vis[...] = [
-            numpy.sum(uvgrid[ic, ip, sly, slx] *
-                      numpy.conjugate(kernel[yf, xf, :, :]))
-            for kernel, ic, ip, slx, xf, sly, yf in zip(kernels, *coords)
-            ]
+        coords = list(vfrequencymap), slicex, xf, slicey, yf
+        for pol in range(vnpol):
+            vis[...,pol] = [
+                numpy.sum(uvgrid[ic, pol, sly, slx] *
+                          numpy.conjugate(kernel[yf, xf, :, :]))
+                for kernel, ic, slx, xf, sly, yf in zip(kernels, *coords)
+                ]
 
-        wt[...] = [
-            numpy.sum(kernel[yf, xf, :, :].real)
-            for kernel, ic, ip, slx, xf, sly, yf in zip(kernels, *coords)
+            wt[...,pol] = [
+                numpy.sum(kernel[yf, xf, :, :].real)
+                for kernel, ic, slx, xf, sly, yf in zip(kernels, *coords)
             ]
     else:
         kernel = kernels[0]
 
-        coords = list(vfrequencymap), list(vpolarisationmap), slicex, xf, slicey, yf
-        vis[...] = [
-            numpy.sum(uvgrid[ic, ip, sly, slx] *
-                      numpy.conjugate(kernel[yf, xf, :, :]))
-            for ic, ip, slx, xf, sly, yf in zip(*coords)
-            ]
-        wt[...] = [
-            numpy.sum(kernel[yf, xf, :, :].real)
-            for ic, ip, slx, xf, sly, yf in zip(*coords)
-            ]
+        coords = list(vfrequencymap), slicex, xf, slicey, yf
+        for pol in range(vnpol):
+            vis[..., pol] = [
+                numpy.sum(uvgrid[ic, pol, sly, slx] *
+                        numpy.conjugate(kernel[yf, xf, :, :]))
+                for ic, slx, xf, sly, yf in zip(*coords)
+                ]
+            wt[..., pol] = [
+                numpy.sum(kernel[yf, xf, :, :].real)
+                for ic, slx, xf, sly, yf in zip(*coords)
+                ]
 
     vis[numpy.where(wt > 0)] = vis[numpy.where(wt > 0)] / wt[numpy.where(wt > 0)]
     vis[numpy.where(wt < 0)] = 0.0
@@ -348,8 +351,7 @@ def gridder(uvgrid, vis, xs, ys, kernel=numpy.ones((1,1)), kernel_ixs=None):
         uvgrid[y:y+gh, x:x+gw] += kernel[tuple(kern_ix)] * v
 
 
-def fixed_kernel_grid(kernels, uvgrid, vis, visweights, vuvwmap, vfrequencymap,
-                      vpolarisationmap):
+def fixed_kernel_grid(kernels, uvgrid, vis, visweights, vuvwmap, vfrequencymap, vpolarisationmap):
     """Grid after convolving with frequency and polarisation independent gcf
 
     Takes into account fractional `uv` coordinate values where the GCF
@@ -394,21 +396,26 @@ def fixed_kernel_grid(kernels, uvgrid, vis, visweights, vuvwmap, vfrequencymap,
     # Now we can loop over all rows
     wts = visweights[...]
     viswt = vis[...] * visweights[...]
+    
+    npol = vis.shape[-1]
+    
     # There are two cases:row independent and row dependent kernel. We try to make these as
     # similar as possible
     if len(kernels) > 1:
 
-        coords = list(vfrequencymap), list(vpolarisationmap), slicex, xf, slicey, yf
-        for v, vwt, kernel, ic, ip, slx, xf, sly, yf in zip(viswt, wts, kernels, *coords):
-            uvgrid[ic, ip, sly, slx] += kernel[yf, xf, :, :] * v
-            sumwt[ic, ip] += numpy.sum(kernel[yf, xf, :, :].real * vwt)
+        coords = list(vfrequencymap), slicex, xf, slicey, yf
+        for pol in range(npol):
+            for v, vwt, kernel, ic, slx, xf, sly, yf in zip(viswt[...,pol], wts[...,pol], kernels, *coords):
+                uvgrid[ic, pol, sly, slx] += kernel[yf, xf, :, :] * v
+                sumwt[ic, pol] += numpy.sum(kernel[yf, xf, :, :].real * vwt)
     else:
         kernel = kernels[0]
 
-        coords = list(vfrequencymap), list(vpolarisationmap), slicex, xf, slicey, yf
-        for v, vwt, ic, ip, slx, xf, sly, yf in zip(viswt, wts, *coords):
-            uvgrid[ic, ip, sly, slx] += kernel[yf, xf, :, :] * v
-            sumwt[ic, ip] += numpy.sum(kernel[yf, xf, :, :].real * vwt)
+        coords = list(vfrequencymap), slicex, xf, slicey, yf
+        for pol in range(npol):
+            for v, vwt, ic, slx, xf, sly, yf in zip(viswt[...,pol], wts[...,pol], *coords):
+                uvgrid[ic, pol, sly, slx] += kernel[yf, xf, :, :] * v
+                sumwt[ic, pol] += numpy.sum(kernel[yf, xf, :, :].real * vwt)
 
     return uvgrid, sumwt
 
@@ -434,13 +441,15 @@ def weight_gridding(shape, visweights, vuvwmap, vfrequencymap, vpolarisationmap,
         y, yf = frac_coord(ny, 1.0, vuvwmap[:, 1])
         x, xf = frac_coord(nx, 1.0, vuvwmap[:, 0])
         wts = visweights[...]
-        coords = list(vfrequencymap), list(vpolarisationmap), x, y
-        for vwt, ic, ip, x, y in zip(wts, *coords):
-            densitygrid[ic, ip, y, x] += vwt
+        coords = list(vfrequencymap), x, y
+        for pol in range(inpol):
+            for vwt, ic, x, y in zip(wts, *coords):
+                densitygrid[ic, pol, y, x] += vwt[..., pol]
     
         # Normalise each visibility weight to sum to one in a grid cell
         newvisweights = numpy.zeros_like(visweights)
-        density[...] += [densitygrid[ic, ip, x, y] for ic, ip, x, y in zip(*coords)]
+        for pol in range(inpol):
+            density[..., pol] += [densitygrid[ic, pol, x, y] for ic, x, y in zip(*coords)]
         newvisweights[density>0.0] = visweights[density>0.0]/density[density>0.0]
         return newvisweights, density, densitygrid
     else:

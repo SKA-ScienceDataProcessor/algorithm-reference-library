@@ -12,6 +12,7 @@ from astropy import wcs
 from astropy.wcs.utils import pixel_to_skycoord
 
 from arl.data.data_models import *
+from arl.data.polarisation import convert_pol_frame
 from arl.fourier_transforms.convolutional_gridding import fixed_kernel_grid, \
     fixed_kernel_degrid, weight_gridding, w_beam
 from arl.fourier_transforms.fft_support import fft, ifft, pad_mid, extract_mid
@@ -96,17 +97,13 @@ def predict_2d_base(vis, model, **kwargs):
     uvw_mode, shape, padding, vuvwmap = get_uvw_map(vis, model, **kwargs)
     kernel_name, gcf, vkernellist = get_kernel_list(vis, model, **kwargs)
 
-    cvis, cindex = coalesce_visibility(vis)
-
     uvgrid = fft((pad_mid(model.data, padding * nx) * gcf).astype(dtype=complex))
     
-    cvis.data['vis'] = fixed_kernel_degrid(vkernellist, cvis.data['vis'].shape, uvgrid,
+    vis.data['vis'] = fixed_kernel_degrid(vkernellist, vis.data['vis'].shape, uvgrid,
                                            vuvwmap, vfrequencymap, vpolarisationmap)
     
-    dvis = decoalesce_visibility(cvis, vis, cindex=cindex)
-
     # Now we can shift the visibility from the image frame to the original visibility frame
-    svis = shift_vis_to_image(dvis, model, tangent=True, inverse=True)
+    svis = shift_vis_to_image(vis, model, tangent=True, inverse=True)
 
     return svis
 
@@ -149,9 +146,8 @@ def invert_2d_base(vis, im, dopsf=False, **kwargs):
 
     svis = copy_visibility(vis)
     
-    # Shift and then coalesce to cut down on gridding costs
-    shvis = shift_vis_to_image(svis, im, tangent=True, inverse=False)
-    svis, _ = coalesce_visibility(shvis, dopsf=dopsf)
+    # Shift
+    svis = shift_vis_to_image(svis, im, tangent=True, inverse=False)
     
     nchan, npol, ny, nx = im.data.shape
     
@@ -241,17 +237,21 @@ def predict_skycomponent_blockvisibility(vis: BlockVisibility, sc: Skycomponent,
     if not isinstance(sc, collections.Iterable):
         sc = [sc]
     
-    k = vis.frequency / constants.c.value
+    k = vis.frequency / constants.c.to('m/s').value
+    
     for comp in sc:
     
         assert_same_chan_pol(vis, comp)
-    
+        
+        flux = comp.flux
+        if comp.polarisation_frame != vis.polarisation_frame:
+            flux = convert_pol_frame(flux, comp.polarisation_frame, vis.polarisation_frame)
 
         l, m, n = skycoord_to_lmn(comp.direction, vis.phasecentre)
         for chan in range(nchan):
             phasor = simulate_point(vis.uvw * k, l, m)
             for pol in range(npol):
-                vis.data['vis'][...,chan,pol] += comp.flux[chan, pol] * phasor[...]
+                vis.data['vis'][...,chan,pol] += flux[chan, pol] * phasor[...]
     
     return vis
 
@@ -268,17 +268,18 @@ def predict_skycomponent_visibility(vis: Visibility, sc: Skycomponent, **kwargs)
     
     if not isinstance(sc, collections.Iterable):
         sc = [sc]
-    
+        
+    npol = vis.polarisation_frame.npol
     for comp in sc:
         
         l, m, n = skycoord_to_lmn(comp.direction, vis.phasecentre)
         phasor = simulate_point(vis.uvw, l, m)
         
-        _, ipol = get_polarisation_map(vis)
         _, ichan = get_frequency_map(vis, None)
         
-        coords = phasor, list(ichan), list(ipol)
-        vis.data['vis'] += [comp.flux[ic, ip] * p for p, ic, ip in zip(*coords)]
+        coords = phasor, list(ichan)
+        for pol in range(npol):
+            vis.data['vis'][:,pol] += [comp.flux[ic, pol] * p for p, ic in zip(*coords)]
     
     return vis
 

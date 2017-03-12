@@ -94,9 +94,9 @@ class TestVisibilityOperations(unittest.TestCase):
         vis = copy_visibility(self.vis)
         self.vis.data['vis'] = 0.0
         vis.data['vis'] = 1.0
-        log.debug(self.vis.data['vis'][0].real)
-        assert (vis.data['vis'][0].real == 1.0)
-        assert (self.vis.data['vis'][0].real == 0.0)
+        log.debug(self.vis.data['vis'][0,0].real)
+        assert (vis.data['vis'][0,0].real == 1.0)
+        assert (self.vis.data['vis'][0,0].real == 0.0)
     
     def test_visibilitysum(self):
         self.vis = create_visibility(self.lowcore, self.times, self.frequency,

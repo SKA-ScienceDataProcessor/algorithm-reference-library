@@ -275,18 +275,6 @@ class TestFTProcessor(unittest.TestCase):
                        'wstep': 10.0}
         
         self._invert_base(invert_wprojection, positionthreshold=1.0)
-    
-    def test_invert_by_image_partitions_with_coalescence(self):
-        time = (numpy.pi / (12.0 * 3600.0)) * numpy.linspace(0.0, 30.0, 11)
-        self.actualSetUp(time=time)
-        self.params['coalescence_factor'] = 1.0
-        self._invert_base(invert_facets, positionthreshold=1.0)
-    
-    def test_predict_by_image_partitions_with_coalescence(self):
-        time = (numpy.pi / (12.0 * 3600.0)) * numpy.linspace(0.0, 30.0, 11)
-        self.actualSetUp(time=time)
-        self.params['coalescence_factor'] = 1.0
-        self._predict_base(predict_with_image_iterator, fluxthreshold=10.0)
 
     def test_weighting(self):
         self.actualSetUp()

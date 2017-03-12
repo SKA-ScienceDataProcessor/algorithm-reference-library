@@ -90,14 +90,14 @@ class GainTable:
         :returns: Gaintable
         """
         if data is None and not gain is None:
-            npol = receptor_frame.npol
+            nrec = receptor_frame.nrec
             nrows = gain.shape[0]
             nants = gain.shape[1]
             nchan = gain.shape[2]
             assert len(frequency) == nchan, "Discrepancy in frequency channels"
-            desc = [('gain', '<c16', (nants, nchan, npol)),
-                    ('weight', '<f8', (nants, nchan, npol)),
-                    ('residual', '<f8', (nchan, npol)),
+            desc = [('gain', '<c16', (nants, nchan, nrec, nrec)),
+                    ('weight', '<f8', (nants, nchan, nrec, nrec)),
+                    ('residual', '<f8', (nchan, nrec, nrec)),
                     ('time', '<f8')]
             self.data = numpy.zeros(shape=[nrows], dtype=desc)
             self.data['gain'] = gain
@@ -254,8 +254,9 @@ class Skymodel:
 class Visibility:
     """ Visibility table class
 
-    Visibility with uvw, time, integration_time, frequency, channel_bandwidth, pol, a1, a2, vis, weight Columns in
-    a numpy structured array
+    Visibility with uvw, time, integration_time, frequency, channel_bandwidth, a1, a2, vis, weight Columns in
+    a numpy structured array, The fundemental unit is a complex vector of polarisation.
+    
     Visibility is defined to hold an observation with one direction.
     Polarisation frame is the same for the entire data set and can be stokes, circular, linear
     The configuration is also an attribute
@@ -270,23 +271,22 @@ class Visibility:
             if imaging_weight is None:
                 imaging_weight = weight
             nvis = vis.shape[0]
+            npol = polarisation_frame.npol
             desc = [('uvw', '<f8', (3,)),
                     ('time', '<f8'),
                     ('frequency', '<f8'),
                     ('channel_bandwidth', '<f8'),
-                    ('polarisation', '<i8'),
                     ('integration_time', '<f8'),
                     ('antenna1', '<i8'),
                     ('antenna2', '<i8'),
-                    ('vis', '<c16'),
-                    ('weight', '<f8'),
-                    ('imaging_weight', '<f8')]
+                    ('vis', '<c16', (npol,)),
+                    ('weight', '<f8', (npol,)),
+                    ('imaging_weight', '<f8', (npol,))]
             data = numpy.zeros(shape=[nvis], dtype=desc)
             data['uvw'] = uvw
             data['time'] = time
             data['frequency'] = frequency
             data['channel_bandwidth'] = channel_bandwidth
-            data['polarisation'] = polarisation
             data['integration_time'] = integration_time
             data['antenna1'] = antenna1
             data['antenna2'] = antenna2
@@ -344,10 +344,6 @@ class Visibility:
         return self.data['channel_bandwidth']
 
     @property
-    def polarisation(self):
-        return self.data['polarisation']
-
-    @property
     def antenna1(self):
         return self.data['antenna1']
     
@@ -385,6 +381,7 @@ class BlockVisibility:
                  polarisation_frame=Polarisation_Frame('stokesI')):
         if data is None and vis is not None:
             ntimes = len(time)
+            assert vis.shape == weight.shape
             assert vis.shape[0] == ntimes
             nants = vis.shape[1]
             assert vis.shape[2] == nants
@@ -405,6 +402,7 @@ class BlockVisibility:
         self.data = data  # numpy structured array
         self.time = time
         self.frequency = frequency
+        self.channel_bandwidth = channel_bandwidth
         self.phasecentre = phasecentre  # Phase centre of observation
         self.configuration = configuration  # Antenna/station configuration
         self.polarisation_frame = polarisation_frame

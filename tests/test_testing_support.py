@@ -9,7 +9,7 @@ import unittest
 
 from arl.util.testing_support import create_low_test_image, create_named_configuration, create_test_image, \
     create_low_test_beam, create_blockvisibility_iterator, create_low_test_image_from_gleam,  \
-    create_low_test_skycomponents_from_gleam
+    create_low_test_skycomponents_from_gleam, create_low_test_image_composite
 from arl.visibility.iterators import *
 from arl.visibility.operations import create_visibility, append_visibility
 from arl.image.operations import export_image_to_fits
@@ -79,6 +79,18 @@ class TestTesting_Support(unittest.TestCase):
         assert im.data.shape[3] == 256
         export_image_to_fits(im, '%s/test_low_gleam.fits' % (self.dir))
 
+    def test_create_low_test_image_composite(self):
+        im = create_low_test_image_composite(npixel=256, cellsize=0.001,
+                                              channel_bandwidth=self.channel_bandwidth,
+                                              frequency=self.frequency,
+                                              phasecentre=self.phasecentre, kind='cubic',
+                                              threshold=0.050, fov=20)
+        assert im.data.shape[0] == 3
+        assert im.data.shape[1] == 1
+        assert im.data.shape[2] == 256
+        assert im.data.shape[3] == 256
+        export_image_to_fits(im, '%s/test_low_composite.fits' % (self.dir))
+        
 
     def test_create_low_test_skycomponents_from_gleam(self):
         sc = create_low_test_skycomponents_from_gleam(frequency=self.frequency,

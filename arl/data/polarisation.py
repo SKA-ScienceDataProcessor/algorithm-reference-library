@@ -5,15 +5,21 @@
 
 import numpy
 
+import logging
+
+log = logging.getLogger(__name__)
+
 
 class Receptor_Frame:
     """ Define polarisation frames for receptors
 
+    circular, linear, and stokesI. The latter is non-physical but useful for some types of testing.
     """
 
     rec_frames = {
         'circular': {'R': 0, 'L': 1},
         'linear': {'X': 0, 'Y': 1},
+        'stokesI': {'I': 0}
     }
 
     def __init__(self, name):
@@ -108,7 +114,7 @@ def convert_stokes_to_linear(stokes, polaxis=1):
     """ Convert Stokes IQUV to Linear
 
     :param stokes: [...,4] Stokes vector in I,Q,U,V (can be complex)
-    :param polaxis: Axis with polarisation (default 1)
+    :param polaxis: Axis of stokes with polarisation (default 1)
     :returns: linear vector in XX, XY, YX, YY sequence
 
     Equation 4.58 TMS
@@ -125,7 +131,7 @@ def convert_linear_to_stokes(linear, polaxis=1):
     """ Convert Linear to Stokes IQUV
 
     :param linear: [...,4] linear vector in XX, XY, YX, YY sequence
-    :param polaxis: Axis with polarisation (default 1)
+    :param polaxis: Axis of linear with polarisation (default 1)
     :returns: Complex I,Q,U,V
 
     Equation 4.58 TMS, inverted with numpy.linalg.inv
@@ -142,7 +148,7 @@ def convert_stokes_to_circular(stokes, polaxis=1):
     """ Convert Stokes IQUV to Circular
 
     :param stokes: [...,4] Stokes vector in I,Q,U,V (can be complex)
-    :param polaxis: Axis with polarisation (default 1)
+    :param polaxis: Axis of stokes with polarisation (default 1)
     :returns: circular vector in RR, RL, LR, LL sequence
 
     Equation 4.59 TMS
@@ -159,7 +165,7 @@ def convert_circular_to_stokes(circular, polaxis=1):
     """ Convert Circular to Stokes IQUV
 
     :param Circular: [...,4] linear vector in RR, RL, LR, LL sequence
-    :param polaxis: Axis with polarisation (default 1)
+    :param polaxis: Axis of circular with polarisation (default 1)
     :returns: Complex I,Q,U,V
 
     Equation 4.58 TMS, inverted with numpy.linalg.inv
@@ -172,6 +178,38 @@ def convert_circular_to_stokes(circular, polaxis=1):
     
     return polmatrixmultiply(conversion_matrix, circular, polaxis)
 
+def convert_pol_frame(polvec, ipf: Polarisation_Frame, opf: Polarisation_Frame, polaxis=1):
+    
+    if ipf == opf:
+        return polvec
+    
+    if ipf == Polarisation_Frame("linear"):
+        if opf == Polarisation_Frame("stokesIQUV"):
+            return convert_linear_to_stokes(polvec, polaxis)
+        else:
+            log.error("Unknown polarisation conversion")
+
+    if ipf == Polarisation_Frame("circular"):
+        if opf == Polarisation_Frame("stokesIQUV"):
+            return convert_circular_to_stokes(polvec, polaxis)
+        else:
+            log.error("Unknown polarisation conversion")
+
+
+    if ipf == Polarisation_Frame("stokesIQUV"):
+        if opf == Polarisation_Frame("linear"):
+            return convert_stokes_to_linear(polvec, polaxis)
+        elif opf == Polarisation_Frame("circular"):
+            return convert_stokes_to_circular(polvec, polaxis)
+        else:
+            log.error("Unknown polarisation conversion")
+            
+    if ipf == Polarisation_Frame("stokesI"):
+        if opf == Polarisation_Frame("stokesI"):
+            return polvec
+
+    log.error("Unknown polarisation conversion")
+
 
 def correlate_polarisation(rec_frame: Receptor_Frame):
     """ Gives the polarisation frame corresponding to a receptor frame
@@ -183,6 +221,8 @@ def correlate_polarisation(rec_frame: Receptor_Frame):
         correlation = Polarisation_Frame("circular")
     elif rec_frame == Receptor_Frame("linear"):
         correlation = Polarisation_Frame("linear")
+    elif rec_frame == Receptor_Frame("stokesI"):
+        correlation = Polarisation_Frame("stokesI")
     else:
         raise RuntimeError("Unknown receptor frame %s for correlation" % rec_frame)
     
@@ -197,6 +237,8 @@ def congruent_polarisation(rec_frame: Receptor_Frame, polarisation_frame: Polari
         return polarisation_frame.type in ["linear", "linearnp"]
     elif rec_frame.type == "circular":
         return polarisation_frame.type in ["circular", "circularnp"]
+    elif rec_frame.type == "stokesI":
+        return polarisation_frame.type == "stokesI"
     
     return False
 
