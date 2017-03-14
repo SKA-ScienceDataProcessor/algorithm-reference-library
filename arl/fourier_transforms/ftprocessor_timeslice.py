@@ -179,8 +179,6 @@ def invert_timeslice_single(vis, im, dopsf, **kwargs):
 
     finalimage = create_empty_image_like(im)
     
-    log.debug("Time=%f, p=%.3f, q=%.3f" % (numpy.average(vis.time), p, q))
-
     usereproject = get_parameter(kwargs, "usereproject", False)
     if usereproject:
         # Set the parameters defining the SIN projection for this plane

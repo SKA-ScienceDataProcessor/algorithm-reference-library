@@ -31,7 +31,7 @@ class TestFTProcessorParams(unittest.TestCase):
         self.phasecentre = SkyCoord(ra=+180.0 * u.deg, dec=-60.0 * u.deg, frame='icrs', equinox=2000.0)
         self.vis = create_visibility(self.lowcore, times=self.times, frequency=self.frequency,
                                      phasecentre=self.phasecentre, weight=1.0,
-                                     polarisation_frame=Polarisation_Frame('stokesI'),
+                                     polarisation_frame=PolarisationFrame('stokesI'),
                                      channel_bandwidth=self.channel_bandwidth)
         self.model = create_image_from_visibility(self.vis, npixel=256, cellsize=0.001, nchan=self.vnchan,
                                                   frequency=self.frequency[0])

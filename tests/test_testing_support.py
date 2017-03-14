@@ -10,9 +10,12 @@ import unittest
 from arl.util.testing_support import create_low_test_image, create_named_configuration, create_test_image, \
     create_low_test_beam, create_blockvisibility_iterator, create_low_test_image_from_gleam,  \
     create_low_test_skycomponents_from_gleam, create_low_test_image_composite
+from arl.visibility.coalesce import coalesce_visibility, decoalesce_vis
 from arl.visibility.iterators import *
-from arl.visibility.operations import create_visibility, append_visibility
+from arl.visibility.operations import create_visibility, create_blockvisibility, append_visibility
 from arl.image.operations import export_image_to_fits
+from arl.skycomponent.operations import apply_beam_to_skycomponent
+from arl.fourier_transforms.ftprocessor_base import predict_skycomponent_blockvisibility
 
 log = logging.getLogger(__name__)
 
@@ -39,7 +42,7 @@ class TestTesting_Support(unittest.TestCase):
         self.vis = create_visibility(self.config, self.times, self.frequency,
                                      channel_bandwidth=self.channel_bandwidth,
                                      phasecentre=self.phasecentre, weight=1.0,
-                                     polarisation_frame=Polarisation_Frame('stokesI'))
+                                     polarisation_frame=PolarisationFrame('stokesI'))
     
     def test_named_configurations(self):
         for config in ['LOWBD2', 'LOWBD2-CORE', 'LOWBD1', 'LOFAR']:
@@ -57,12 +60,14 @@ class TestTesting_Support(unittest.TestCase):
         assert len(im.data.shape) == 2
         im = create_test_image(canonical=True)
         assert len(im.data.shape) == 4
-        im = create_test_image(canonical=True, frequency=numpy.array([1e8]),  polarisation_frame=Polarisation_Frame(
+        im = create_test_image(canonical=True, frequency=numpy.array([1e8]),
+                               polarisation_frame=PolarisationFrame(
             'stokesI'))
         assert len(im.data.shape) == 4
         assert im.data.shape[0] == 1
         assert im.data.shape[1] == 1
-        im = create_test_image(canonical=True, frequency=numpy.array([1e8]),  polarisation_frame=Polarisation_Frame(
+        im = create_test_image(canonical=True, frequency=numpy.array([1e8]),
+                               polarisation_frame=PolarisationFrame(
             'stokesIQUV'))
         assert len(im.data.shape) == 4
         assert im.data.shape[0] == 1
@@ -90,15 +95,32 @@ class TestTesting_Support(unittest.TestCase):
         assert im.data.shape[2] == 256
         assert im.data.shape[3] == 256
         export_image_to_fits(im, '%s/test_low_composite.fits' % (self.dir))
-        
 
-    def test_create_low_test_skycomponents_from_gleam(self):
-        sc = create_low_test_skycomponents_from_gleam(frequency=self.frequency,
-                                                      flux_limit=10.0, kind='cubic')
+    def test_create_low_test_skycomponents_from_gleam_apply_beam(self):
+        sc = create_low_test_skycomponents_from_gleam(flux_limit=10.0,
+                                                      polarisation_frame=PolarisationFrame("stokesI"),
+                                                      frequency=self.frequency, kind='cubic')
         assert len(sc) > 1
         assert sc[190].name == 'GLEAM J172031-005845'
-        self.assertAlmostEqual(sc[190].flux[0,0], 301.4964434927922, 7)
-    
+        #        self.assertAlmostEqual(sc[190].flux[0,0], 301.4964434927922, 7)
+        im = create_test_image(canonical=True, cellsize=0.002,
+                               frequency=self.frequency,
+                               channel_bandwidth=self.channel_bandwidth,
+                               polarisation_frame=PolarisationFrame("stokesI"),
+                               phasecentre=self.phasecentre)
+        bm = create_low_test_beam(model=im)
+        sc = apply_beam_to_skycomponent(sc, bm)
+        assert len(sc) > 1, "No components inside image"
+
+    def test_create_low_test_skycomponents_from_gleam_apply_filter(self):
+        sc = create_low_test_skycomponents_from_gleam(flux_limit=10.0,
+                                                      polarisation_frame=PolarisationFrame("stokesI"),
+                                                      frequency=self.frequency, kind='cubic',
+                                                      phasecentre=SkyCoord("17h20m31s", "-00d58m45s"),
+                                                      radius=0.1)
+        assert len(sc) == 1
+        assert sc[0].name == 'GLEAM J172031-005845'
+
     def test_create_low_test_image(self):
             im = create_low_test_image(npixel=1024, channel_bandwidth=numpy.array([1e6]),
                                        frequency=numpy.array([1e8]),
@@ -120,19 +142,19 @@ class TestTesting_Support(unittest.TestCase):
     def test_create_low_test_image_spectral_polarisation(self):
         
         im = create_low_test_image(npixel=1024, channel_bandwidth=numpy.array([1e6, 1e6, 1e6]),
-                                   polarisation_frame=Polarisation_Frame("stokesIQUV"),
+                                   polarisation_frame=PolarisationFrame("stokesIQUV"),
                                    frequency=numpy.array([1e8-1e6, 1e8, 1e8+1e6]), fov=10)
         assert im.data.shape[0] == 3
         assert im.data.shape[1] == 4
         assert im.data.shape[2] == 1024
         assert im.data.shape[3] == 1024
-        export_image_to_fits(im, '%s/test_low_sex.fits' % (self.dir))
+        export_image_to_fits(im, '%s/test_low_s3.fits' % (self.dir))
 
     def test_create_low_test_beam(self):
         im = create_test_image(canonical=True, cellsize=0.002,
                                frequency=numpy.array([1e8-5e7, 1e8, 1e8+5e7]),
                                channel_bandwidth=numpy.array([5e7, 5e7, 5e7]),
-                               polarisation_frame=Polarisation_Frame("stokesIQUV"),
+                               polarisation_frame=PolarisationFrame("stokesIQUV"),
                                phasecentre=self.phasecentre)
         bm = create_low_test_beam(model=im)
         export_image_to_fits(bm, '%s/test_low_beam.fits' % (self.dir))
@@ -154,7 +176,7 @@ class TestTesting_Support(unittest.TestCase):
         vis_iter = create_blockvisibility_iterator(self.config, self.times, self.frequency,
                                                    channel_bandwidth=self.channel_bandwidth,
                                                    phasecentre=self.phasecentre,
-                                                   weight=1.0, polarisation_frame=Polarisation_Frame('stokesI'),
+                                                   weight=1.0, polarisation_frame=PolarisationFrame('stokesI'),
                                                    integration_time=30.0, number_integrations=3)
         
         fullvis = None
@@ -174,11 +196,11 @@ class TestTesting_Support(unittest.TestCase):
         model = create_test_image(canonical=True, cellsize=0.001, frequency=self.frequency,
                                   phasecentre=self.phasecentre)
         comp = Skycomponent(direction=self.phasecentre, frequency=self.frequency, flux=self.flux,
-                            polarisation_frame=Polarisation_Frame('stokesI'))
+                            polarisation_frame=PolarisationFrame('stokesI'))
         vis_iter = create_blockvisibility_iterator(self.config, self.times, self.frequency,
                                                    channel_bandwidth=self.channel_bandwidth,
                                                    phasecentre=self.phasecentre, weight=1.0,
-                                                   polarisation_frame=Polarisation_Frame('stokesI'),
+                                                   polarisation_frame=PolarisationFrame('stokesI'),
                                                    integration_time=30.0, number_integrations=3, model=model,
                                                    components=comp)
         
@@ -195,3 +217,22 @@ class TestTesting_Support(unittest.TestCase):
                 totalnvis += vis.nvis
         
         assert fullvis.nvis == totalnvis
+
+    def test_predict_sky_components_coalesce(self):
+        sc = create_low_test_skycomponents_from_gleam(flux_limit=10.0,
+                                                      polarisation_frame=PolarisationFrame("stokesI"),
+                                                      frequency=self.frequency, kind='cubic',
+                                                      phasecentre=SkyCoord("17h20m31s", "-00d58m45s"),
+                                                      radius=0.1)
+        self.config = create_named_configuration('LOWBD2-CORE')
+        self.phasecentre = SkyCoord("17h20m31s", "-00d58m45s")
+        sampling_time = 3.76
+        self.times = numpy.arange(0.0, + 300 * sampling_time, sampling_time)
+        self.vis = create_blockvisibility(self.config, self.times, self.frequency,
+                                          channel_bandwidth=self.channel_bandwidth,
+                                          phasecentre=self.phasecentre, weight=1.0,
+                                          polarisation_frame=PolarisationFrame('stokesI'))
+        original = copy_visibility(self.vis)
+        self.vis = predict_skycomponent_blockvisibility(self.vis, sc)
+        cvt, cindex =coalesce_visibility(self.vis, coalescence_factor=1.0)
+        assert cindex is not None

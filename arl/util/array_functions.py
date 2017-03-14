@@ -41,6 +41,7 @@ def average_chunks_jit(arr, wts, chunksize):
     
     return chunks, weights
 
+
 def average_chunks(arr, wts, chunksize):
     """ Average the array arr with weights by chunks
 

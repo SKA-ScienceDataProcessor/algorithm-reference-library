@@ -7,7 +7,7 @@ import unittest
 
 from arl.fourier_transforms.ftprocessor import *
 from arl.pipelines.functions import *
-from arl.skymodel.operations import create_skycomponent
+from arl.skycomponent.operations import create_skycomponent
 from arl.util.run_unittests import run_unittests
 from arl.util.testing_support import create_named_configuration, create_test_image, create_blockvisibility_iterator
 
@@ -31,7 +31,7 @@ class TestPipelines(unittest.TestCase):
         
         self.vis = create_blockvisibility_iterator(lowcore, times=times, frequency=frequency, channel_bandwidth=1e6,
                                                    phasecentre=self.phasecentre, weight=1,
-                                                   polarisation_frame=Polarisation_Frame('linear'),
+                                                   polarisation_frame=PolarisationFrame('linear'),
                                                    integration_time=1.0, number_integrations=1, predict=predict_2d,
                                                    components=self.comp, phase_error=0.1, amplitude_error=0.01)
     

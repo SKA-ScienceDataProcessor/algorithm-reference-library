@@ -28,9 +28,9 @@ class TestCalibration(unittest.TestCase):
         
     def actualSetup(self, sky_pol_frame='stokesIQUV', data_pol_frame='linear'):
         self.comp = Skycomponent(direction=self.compabsdirection, frequency=self.frequency, flux=self.flux,
-                                 polarisation_frame=Polarisation_Frame(sky_pol_frame))
+                                 polarisation_frame=PolarisationFrame(sky_pol_frame))
         self.vis = create_blockvisibility(self.lowcore, self.times, self.frequency, phasecentre=self.phasecentre,
-                                     weight=1.0, polarisation_frame=Polarisation_Frame(data_pol_frame))
+                                          weight=1.0, polarisation_frame=PolarisationFrame(data_pol_frame))
         self.vis = predict_skycomponent_blockvisibility(self.vis, self.comp)
 
     def test_create_gaintable_from_visibility(self):

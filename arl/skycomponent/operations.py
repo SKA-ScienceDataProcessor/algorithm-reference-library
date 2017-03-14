@@ -21,7 +21,7 @@ from photutils import segmentation
 log = logging.getLogger(__name__)
 
 def create_skycomponent(direction: SkyCoord, flux: numpy.array, frequency: numpy.array, shape: str = 'Point',
-                        polarisation_frame=Polarisation_Frame("stokesIQUV"), param: dict=None, name: str = ''):
+                        polarisation_frame=PolarisationFrame("stokesIQUV"), param: dict=None, name: str = ''):
     """ A single Skycomponent with direction, flux, shape, and params for the shape
 
     :param param:
@@ -142,8 +142,8 @@ def find_skycomponents(im: Image, fwhm=1.0, threshold=10.0, npixels=5):
     return comps
 
 
-def insert_skycomponent(im: Image, sc: Skycomponent, insert_method = ''):
-    """ Insert a Skycomponet into an image
+def insert_skycomponent(im: Image, sc: Skycomponent, insert_method=''):
+    """ Insert a Skycomponent into an image
 
     :param params:
     :param im:
@@ -151,41 +151,71 @@ def insert_skycomponent(im: Image, sc: Skycomponent, insert_method = ''):
     :returns: image
 
     """
-
+    
+    assert type(im) == Image
+    
     if not isinstance(sc, collections.Iterable):
         sc = [sc]
-
+    
     for comp in sc:
+        
 
-        assert comp.shape == 'Point', "Cannot handle shape %s"% comp.shape
+        assert comp.shape == 'Point', "Cannot handle shape %s" % comp.shape
         
         assert_same_chan_pol(im, comp)
-    
+        
         if insert_method == "Lanczos":
             pixloc = skycoord_to_pixel(comp.direction, im.wcs, 0, 'wcs')
-            log.debug("insert_skycomponent: Performing Lanczos interpolation of flux %s at [%.2f, %.2f] (0 rel) " %
-                     (str(comp.flux), pixloc[1], pixloc[0]))
             _L2D(im.data, pixloc[1], pixloc[0], comp.flux)
         else:
             pixloc = numpy.round(skycoord_to_pixel(comp.direction, im.wcs, 1, 'wcs')).astype('int')
             x, y = pixloc[0], pixloc[1]
-            log.debug("insert_skycomponent: Inserting point flux %s at [%d, %d] (0 rel) " % (str(comp.flux), x, y))
             im.data[:, :, y, x] += comp.flux
-       
+    
     return im
 
 
+def apply_beam_to_skycomponent(sc: Skycomponent, beam: Image):
+    """ Insert a Skycomponet into an image
 
-def create_skymodel_from_image(im: Image):
-    """ Create a skymodel from an image or image
-    
-    :param im:
-    :returns: Skymodel
+    :param beam:
+    :param sc: SkyComponent or list of SkyComponents
+    :returns: List of skycomponents
+
     """
-    sm = Skymodel()
-    sm.images.append(im)
-    return sm
+    single = not isinstance(sc, collections.Iterable)
+    
+    if single:
+        sc = [sc]
+    
+    nchan, npol, ny, nx = beam.shape
 
+    log.debug('apply_beam_to_skycomponent: Processing %d components' % (len(sc)))
+
+    newsc = []
+    total_flux = numpy.zeros([nchan, npol])
+    for comp in sc:
+        
+        assert comp.shape == 'Point', "Cannot handle shape %s" % comp.shape
+        
+        assert_same_chan_pol(beam, comp)
+        
+        pixloc = skycoord_to_pixel(comp.direction, beam.wcs, 0, 'wcs')
+        if not numpy.isnan(pixloc).any():
+            x, y = int(round(float(pixloc[0]))), int(round(float(pixloc[1])))
+            if x >= 0 and x < nx and y >= 0 and y < ny:
+                comp.flux[:,:] *= beam.data[:,:,y,x]
+                total_flux += comp.flux
+                newsc.append(Skycomponent(comp.direction,comp.frequency,comp.name,comp.flux,
+                                          shape=comp.shape,
+                                          polarisation_frame=comp.polarisation_frame))
+
+    log.debug('apply_beam_to_skycomponent: %d components with total flux %s' %
+              (len(newsc), total_flux))
+    if single:
+        return newsc[0]
+    else:
+        return newsc
 
 def _L2D(im, x, y, flux, a = 7):
     """Perform Lanczos interpolation onto a grid

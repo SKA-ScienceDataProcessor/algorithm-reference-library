@@ -10,18 +10,18 @@ import logging
 log = logging.getLogger(__name__)
 
 
-class Receptor_Frame:
+class ReceptorFrame:
     """ Define polarisation frames for receptors
 
     circular, linear, and stokesI. The latter is non-physical but useful for some types of testing.
     """
-
+    
     rec_frames = {
         'circular': {'R': 0, 'L': 1},
         'linear': {'X': 0, 'Y': 1},
         'stokesI': {'I': 0}
     }
-
+    
     def __init__(self, name):
         
         if name in self.rec_frames.keys():
@@ -35,18 +35,16 @@ class Receptor_Frame:
         """ Number of receptors (should be 2)
         
         """
-        return len(self.translations.keys())
+        return len(list(self.translations.keys()))
     
     def valid(self, name):
         return name in self.rec_frames.keys()
-    
     
     def __eq__(self, a):
         return self.type == a.type
 
 
-
-class Polarisation_Frame:
+class PolarisationFrame:
     """ Define polarisation frames post correlation
 
     """
@@ -70,7 +68,7 @@ class Polarisation_Frame:
         'stokesIQ': {'I': 0, 'Q': 1},
         'stokesI': {'I': 0}
     }
-
+    
     def __init__(self, name):
         
         if name in self.polarisation_frames.keys():
@@ -87,7 +85,7 @@ class Polarisation_Frame:
     @property
     def npol(self):
         """ Number of correlated polarisations"""
-        return len(self.translations.keys())
+        return len(list(self.translations.keys()))
 
 
 def polmatrixmultiply(cm, vec, polaxis=1):
@@ -98,7 +96,8 @@ def polmatrixmultiply(cm, vec, polaxis=1):
     
     :param cm: matrix to apply
     :param vec: array to be multiplied [...,:]
-    
+    :param polaxis: which axis contains the polarisation
+    :returns: multiplied vec
     """
     if len(vec.shape) == 1:
         return numpy.dot(cm, vec)
@@ -164,7 +163,7 @@ def convert_stokes_to_circular(stokes, polaxis=1):
 def convert_circular_to_stokes(circular, polaxis=1):
     """ Convert Circular to Stokes IQUV
 
-    :param Circular: [...,4] linear vector in RR, RL, LR, LL sequence
+    :param circular: [...,4] linear vector in RR, RL, LR, LL sequence
     :param polaxis: Axis of circular with polarisation (default 1)
     :returns: Complex I,Q,U,V
 
@@ -178,58 +177,57 @@ def convert_circular_to_stokes(circular, polaxis=1):
     
     return polmatrixmultiply(conversion_matrix, circular, polaxis)
 
-def convert_pol_frame(polvec, ipf: Polarisation_Frame, opf: Polarisation_Frame, polaxis=1):
-    
+
+def convert_pol_frame(polvec, ipf: PolarisationFrame, opf: PolarisationFrame, polaxis=1):
     if ipf == opf:
         return polvec
     
-    if ipf == Polarisation_Frame("linear"):
-        if opf == Polarisation_Frame("stokesIQUV"):
+    if ipf == PolarisationFrame("linear"):
+        if opf == PolarisationFrame("stokesIQUV"):
             return convert_linear_to_stokes(polvec, polaxis)
         else:
             log.error("Unknown polarisation conversion")
-
-    if ipf == Polarisation_Frame("circular"):
-        if opf == Polarisation_Frame("stokesIQUV"):
+    
+    if ipf == PolarisationFrame("circular"):
+        if opf == PolarisationFrame("stokesIQUV"):
             return convert_circular_to_stokes(polvec, polaxis)
         else:
             log.error("Unknown polarisation conversion")
-
-
-    if ipf == Polarisation_Frame("stokesIQUV"):
-        if opf == Polarisation_Frame("linear"):
+    
+    if ipf == PolarisationFrame("stokesIQUV"):
+        if opf == PolarisationFrame("linear"):
             return convert_stokes_to_linear(polvec, polaxis)
-        elif opf == Polarisation_Frame("circular"):
+        elif opf == PolarisationFrame("circular"):
             return convert_stokes_to_circular(polvec, polaxis)
         else:
             log.error("Unknown polarisation conversion")
-            
-    if ipf == Polarisation_Frame("stokesI"):
-        if opf == Polarisation_Frame("stokesI"):
+    
+    if ipf == PolarisationFrame("stokesI"):
+        if opf == PolarisationFrame("stokesI"):
             return polvec
-
+    
     log.error("Unknown polarisation conversion")
 
 
-def correlate_polarisation(rec_frame: Receptor_Frame):
+def correlate_polarisation(rec_frame: ReceptorFrame):
     """ Gives the polarisation frame corresponding to a receptor frame
     
     :param rec_frame: Receptor frame
-    :returns: Polarisation_Frame
+    :returns: PolarisationFrame
     """
-    if rec_frame == Receptor_Frame("circular"):
-        correlation = Polarisation_Frame("circular")
-    elif rec_frame == Receptor_Frame("linear"):
-        correlation = Polarisation_Frame("linear")
-    elif rec_frame == Receptor_Frame("stokesI"):
-        correlation = Polarisation_Frame("stokesI")
+    if rec_frame == ReceptorFrame("circular"):
+        correlation = PolarisationFrame("circular")
+    elif rec_frame == ReceptorFrame("linear"):
+        correlation = PolarisationFrame("linear")
+    elif rec_frame == ReceptorFrame("stokesI"):
+        correlation = PolarisationFrame("stokesI")
     else:
         raise RuntimeError("Unknown receptor frame %s for correlation" % rec_frame)
     
     return correlation
 
 
-def congruent_polarisation(rec_frame: Receptor_Frame, polarisation_frame: Polarisation_Frame):
+def congruent_polarisation(rec_frame: ReceptorFrame, polarisation_frame: PolarisationFrame):
     """Are these receptor and polarisation frames congruent?
     
     """
@@ -241,5 +239,3 @@ def congruent_polarisation(rec_frame: Receptor_Frame, polarisation_frame: Polari
         return polarisation_frame.type == "stokesI"
     
     return False
-
-

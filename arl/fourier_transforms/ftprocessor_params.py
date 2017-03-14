@@ -46,9 +46,9 @@ def get_polarisation_map(vis: Visibility, im: Image=None, **kwargs):
     
     """
     if vis.polarisation_frame == im.polarisation_frame:
-        if vis.polarisation_frame == Polarisation_Frame('stokesI'):
+        if vis.polarisation_frame == PolarisationFrame('stokesI'):
             return "stokesI->stokesI", lambda pol: 0
-        elif vis.polarisation_frame == Polarisation_Frame('stokesIQUV'):
+        elif vis.polarisation_frame == PolarisationFrame('stokesIQUV'):
             return "stokesIQUV->stokesIQUV", lambda pol: pol
 
     return "unknown", lambda pol: pol

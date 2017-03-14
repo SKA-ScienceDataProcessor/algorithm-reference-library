@@ -7,7 +7,6 @@
 import collections
 
 from arl.calibration.gaintable import solve_gaintable
-from arl.data.parameters import *
 from arl.fourier_transforms.ftprocessor import predict_skycomponent_blockvisibility
 from arl.visibility.operations import *
 
@@ -32,6 +31,7 @@ def RCAL(vis: BlockVisibility, components, **kwargs):
         gt = solve_gaintable(vischunk, vispred, phase_only=False)
         yield gt
 
+
 def ICAL(**kwargs):
     """ Post observation image, deconvolve, and self-calibrate
    
@@ -39,8 +39,9 @@ def ICAL(**kwargs):
     :return:
     """
     # TODO: implement
-
+    
     return True
+
 
 def continuum_imaging(**kwargs):
     """Continuum imaging from calibrated (DDE and DIE) data
@@ -49,11 +50,11 @@ def continuum_imaging(**kwargs):
     :param params: Dictionary containing parameters
     :return:
     """
-
-    # TODO: implement
-
-    return True
     
+    # TODO: implement
+    
+    return True
+
 
 def spectral_line_imaging(**kwargs):
     """Spectral line imaging from calibrated (DDE and DIE) data
@@ -62,7 +63,7 @@ def spectral_line_imaging(**kwargs):
     :return:
     """
     # TODO: implement
-
+    
     return True
 
 
@@ -73,7 +74,7 @@ def fast_imaging(**kwargs):
     :return:
     """
     # TODO: implement
-
+    
     return True
 
 
@@ -84,6 +85,5 @@ def EOR(**kwargs):
     :return:
     """
     # TODO: implement
-
+    
     return True
-

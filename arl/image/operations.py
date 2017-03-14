@@ -7,11 +7,10 @@ Functions that define and manipulate images. Images are just data and a World Co
 import copy
 
 import matplotlib.pyplot as plt
+from astropy.convolution import Gaussian2DKernel, convolve
 from astropy.io import fits
 from astropy.wcs import WCS
 from reproject import reproject_interp
-
-from astropy.convolution import Kernel2D, Gaussian2DKernel, convolve
 
 from arl.data.data_models import *
 from arl.data.parameters import *
@@ -27,7 +26,7 @@ def image_sizeof(im: Image):
 
 
 def create_image_from_array(data: numpy.array, wcs: WCS = None,
-                            polarisation_frame=Polarisation_Frame('stokesI')) -> \
+                            polarisation_frame=PolarisationFrame('stokesI')) -> \
         Image:
     """ Create an image from an array and optional wcs
 
@@ -121,15 +120,15 @@ def polarisation_frame_from_wcs(wcs, shape):
     polarisation_frame = None
     
     if len(shape) == 2:
-        polarisation_frame = Polarisation_Frame("stokesI")
+        polarisation_frame = PolarisationFrame("stokesI")
     else:
         npol = shape[1]
         pol = wcs.sub(['stokes']).wcs_pix2world(range(npol), 0)[0]
         pol = numpy.array(pol, dtype='int')
-        for key in Polarisation_Frame.fits_codes.keys():
-            keypol = numpy.array(Polarisation_Frame.fits_codes[key])
+        for key in PolarisationFrame.fits_codes.keys():
+            keypol = numpy.array(PolarisationFrame.fits_codes[key])
             if numpy.array_equal(pol, keypol):
-                polarisation_frame = Polarisation_Frame(key)
+                polarisation_frame = PolarisationFrame(key)
                 return polarisation_frame
     if polarisation_frame is None:
         raise ValueError("Cannot determine polarisation code")
@@ -157,12 +156,12 @@ def import_image_from_fits(fitsfile: str):
     fim.data = hdulist[0].data
     fim.wcs = WCS(arl_path(fitsfile))
     if len(fim.data) == 2:
-        fim.polarisation_frame = Polarisation_Frame('stokesI')
+        fim.polarisation_frame = PolarisationFrame('stokesI')
     else:
         try:
             fim.polarisation_frame = polarisation_frame_from_wcs(fim.wcs, fim.data.shape)
         except:
-            fim.polarisation_frame = Polarisation_Frame('stokesI')
+            fim.polarisation_frame = PolarisationFrame('stokesI')
             
     hdulist.close()
     log.info("import_image_from_fits: created image of shape %s, size %.3f (GB)" %
@@ -271,17 +270,17 @@ def show_image(im: Image, fig=None, title: str = '', pol=0, chan=0):
     return fig
 
 
-def convert_stokes_to_polimage(im: Image, polarisation_frame: Polarisation_Frame):
+def convert_stokes_to_polimage(im: Image, polarisation_frame: PolarisationFrame):
     """Convert a stokes image to polarisation_frame
 
     """
     
-    assert type(polarisation_frame) == Polarisation_Frame
+    assert type(polarisation_frame) == PolarisationFrame
     
-    if polarisation_frame == Polarisation_Frame('linear'):
+    if polarisation_frame == PolarisationFrame('linear'):
         cimarr = convert_stokes_to_linear(im.data)
         return create_image_from_array(cimarr, im.wcs, polarisation_frame)
-    elif polarisation_frame == Polarisation_Frame('circular'):
+    elif polarisation_frame == PolarisationFrame('circular'):
         cimarr = convert_stokes_to_circular(im.data)
         return create_image_from_array(cimarr, im.wcs, polarisation_frame)
     else:
@@ -294,12 +293,12 @@ def convert_polimage_to_stokes(im: Image):
     """
     assert im.data.dtype == 'complex'
     
-    if im.polarisation_frame == Polarisation_Frame('linear'):
+    if im.polarisation_frame == PolarisationFrame('linear'):
         cimarr = convert_linear_to_stokes(im.data)
-        return create_image_from_array(cimarr, im.wcs, Polarisation_Frame('stokesIQUV'))
-    elif im.polarisation_frame == Polarisation_Frame('circular'):
+        return create_image_from_array(cimarr, im.wcs, PolarisationFrame('stokesIQUV'))
+    elif im.polarisation_frame == PolarisationFrame('circular'):
         cimarr = convert_circular_to_stokes(im.data)
-        return create_image_from_array(cimarr, im.wcs, Polarisation_Frame('stokesIQUV'))
+        return create_image_from_array(cimarr, im.wcs, PolarisationFrame('stokesIQUV'))
     else:
         raise RuntimeError("Cannot convert %s to stokes" % (im.polarisation_frame.type))
 

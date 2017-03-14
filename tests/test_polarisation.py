@@ -8,43 +8,43 @@ from numpy.testing import *
 class TestPolarisation(unittest.TestCase):
     def test_polarisation_frame(self):
         for frame in ['circular', 'circularnp', 'linear', 'linearnp', 'stokesIQUV', 'stokesIV', 'stokesIQ', 'stokesI']:
-            polarisation_frame = Polarisation_Frame(frame)
+            polarisation_frame = PolarisationFrame(frame)
             assert polarisation_frame.type == frame
             
-        assert Polarisation_Frame("circular").npol == 4
-        assert Polarisation_Frame("circularnp").npol == 2
-        assert Polarisation_Frame("linear").npol == 4
-        assert Polarisation_Frame("linearnp").npol == 2
-        assert Polarisation_Frame("circular").npol == 4
-        assert Polarisation_Frame("stokesI").npol == 1
+        assert PolarisationFrame("circular").npol == 4
+        assert PolarisationFrame("circularnp").npol == 2
+        assert PolarisationFrame("linear").npol == 4
+        assert PolarisationFrame("linearnp").npol == 2
+        assert PolarisationFrame("circular").npol == 4
+        assert PolarisationFrame("stokesI").npol == 1
 
         with self.assertRaises(RuntimeError):
-            polarisation_frame = Polarisation_Frame("circuloid")
+            polarisation_frame = PolarisationFrame("circuloid")
     
     def test_rec_frame(self):
-        rec_frame = Receptor_Frame("linear")
+        rec_frame = ReceptorFrame("linear")
         assert rec_frame.nrec == 2
         
-        rec_frame = Receptor_Frame("circular")
+        rec_frame = ReceptorFrame("circular")
         assert rec_frame.nrec == 2
 
-        rec_frame = Receptor_Frame("stokesI")
+        rec_frame = ReceptorFrame("stokesI")
         assert rec_frame.nrec == 1
 
         with self.assertRaises(RuntimeError):
-            rec_frame = Receptor_Frame("circuloid")
+            rec_frame = ReceptorFrame("circuloid")
     
     def test_correlate(self):
         
         for frame in ["linear", "circular", "stokesI"]:
-            rec_frame = Receptor_Frame(frame)
-            assert correlate_polarisation(rec_frame) == Polarisation_Frame(frame)
+            rec_frame = ReceptorFrame(frame)
+            assert correlate_polarisation(rec_frame) == PolarisationFrame(frame)
 
     def test_congruent(self):
     
         for frame in ["linear", "circular", "stokesI"]:
-            assert congruent_polarisation(Receptor_Frame(frame), Polarisation_Frame(frame))
-            assert not congruent_polarisation(Receptor_Frame(frame), Polarisation_Frame("stokesIQUV"))
+            assert congruent_polarisation(ReceptorFrame(frame), PolarisationFrame(frame))
+            assert not congruent_polarisation(ReceptorFrame(frame), PolarisationFrame("stokesIQUV"))
 
     def test_stokes_linear_conversion(self):
     
@@ -104,8 +104,8 @@ class TestPolarisation(unittest.TestCase):
     def test_image_auto_conversion(self):
     
         stokes = numpy.array(random.uniform(-1.0, 1.0, [3, 4, 128, 128]))
-        ipf = Polarisation_Frame('stokesIQUV')
-        opf = Polarisation_Frame('circular')
+        ipf = PolarisationFrame('stokesIQUV')
+        opf = PolarisationFrame('circular')
         cir = convert_pol_frame(stokes, ipf, opf)
         st = convert_pol_frame(cir, opf, ipf)
         assert_array_almost_equal(st.real, stokes, 15)
@@ -113,8 +113,8 @@ class TestPolarisation(unittest.TestCase):
     def test_image_auto_conversion_I(self):
     
         stokes = numpy.array(random.uniform(-1.0, 1.0, [3, 4, 128, 128]))
-        ipf = Polarisation_Frame('stokesI')
-        opf = Polarisation_Frame('stokesI')
+        ipf = PolarisationFrame('stokesI')
+        opf = PolarisationFrame('stokesI')
         cir = convert_pol_frame(stokes, ipf, opf)
         st = convert_pol_frame(cir, opf, ipf)
         assert_array_almost_equal(st.real, stokes, 15)
@@ -130,8 +130,8 @@ class TestPolarisation(unittest.TestCase):
     def test_vis_auto_conversion(self):
 
         stokes = numpy.array(random.uniform(-1.0, 1.0, [1000,3,4]))
-        ipf = Polarisation_Frame('stokesIQUV')
-        opf = Polarisation_Frame('circular')
+        ipf = PolarisationFrame('stokesIQUV')
+        opf = PolarisationFrame('circular')
         cir = convert_pol_frame(stokes, ipf, opf, polaxis=2)
         st = convert_pol_frame(cir, opf, ipf, polaxis=2)
         assert_array_almost_equal(st.real, stokes, 15)
@@ -139,8 +139,8 @@ class TestPolarisation(unittest.TestCase):
     def test_vis_auto_conversion_I(self):
 
         stokes = numpy.array(random.uniform(-1.0, 1.0, [1000,3,1]))
-        ipf = Polarisation_Frame('stokesI')
-        opf = Polarisation_Frame('stokesI')
+        ipf = PolarisationFrame('stokesI')
+        opf = PolarisationFrame('stokesI')
         cir = convert_pol_frame(stokes, ipf, opf, polaxis=2)
         st = convert_pol_frame(cir, opf, ipf, polaxis=2)
         assert_array_almost_equal(st.real, stokes, 15)

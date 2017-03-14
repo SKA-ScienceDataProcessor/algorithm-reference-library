@@ -9,6 +9,7 @@ from arl.data.parameters import *
 
 log = logging.getLogger(__name__)
 
+
 def import_pipeline_parameters(**kwargs):
     """ Import parameters to pipelines
     

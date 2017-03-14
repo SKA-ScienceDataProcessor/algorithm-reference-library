@@ -109,7 +109,7 @@ def create_named_configuration(name: str = 'LOWBD2', **kwargs):
 
 
 def create_test_image(canonical=True, cellsize=None, frequency=[1e8], channel_bandwidth=numpy.array([1e6]),
-                      phasecentre=None, polarisation_frame=Polarisation_Frame("stokesI")):
+                      phasecentre=None, polarisation_frame=PolarisationFrame("stokesI")):
     """Create a useful test image
 
     This is the test image M31 widely used in ALMA and other simulations. It is actually part of an Halpha region in
@@ -131,8 +131,8 @@ def create_test_image(canonical=True, cellsize=None, frequency=[1e8], channel_ba
             nchan = len(frequency)
         
         if polarisation_frame is None:
-            im.polarisation_frame = Polarisation_Frame("stokesI")
-        elif type(polarisation_frame) == Polarisation_Frame:
+            im.polarisation_frame = PolarisationFrame("stokesI")
+        elif type(polarisation_frame) == PolarisationFrame:
             im.polarisation_frame = polarisation_frame
         else:
             raise RuntimeError("polarisation_frame is not valid")
@@ -162,7 +162,7 @@ def create_test_image(canonical=True, cellsize=None, frequency=[1e8], channel_ba
     return im
 
 
-def create_low_test_image(npixel=16384, polarisation_frame=Polarisation_Frame("stokesI"), cellsize=0.000015,
+def create_low_test_image(npixel=16384, polarisation_frame=PolarisationFrame("stokesI"), cellsize=0.000015,
                           frequency=numpy.array([1e8]), channel_bandwidth=numpy.array([1e6]), phasecentre=None,
                           fov=20):
     """Create LOW test image from S3
@@ -185,7 +185,7 @@ def create_low_test_image(npixel=16384, polarisation_frame=Polarisation_Frame("s
     If polarisation_frame is not stokesI then the image will a polarised axis but the values will be zero.
 
     :param npixel: Number of pixels
-    :param polarisation_frame: Polarisation frame (default Polarisation_Frame("stokesI"))
+    :param polarisation_frame: Polarisation frame (default PolarisationFrame("stokesI"))
     :param cellsize: cellsize in radians
     :param frequency:
     :param channel_bandwidth: Channel width (Hz)
@@ -202,7 +202,7 @@ def create_low_test_image(npixel=16384, polarisation_frame=Polarisation_Frame("s
         phasecentre = SkyCoord(ra=+180.0 * u.deg, dec=-60.0 * u.deg, frame='icrs', equinox=2000.0)
     
     if polarisation_frame is None:
-        polarisation_frame = Polarisation_Frame("I")
+        polarisation_frame = PolarisationFrame("I")
     
     npol = polarisation_frame.npol
     
@@ -310,7 +310,7 @@ def create_low_test_beam(model):
     return reprojected_beam
 
 
-def create_low_test_image(npixel=16384, polarisation_frame=Polarisation_Frame("stokesI"), cellsize=0.000015,
+def create_low_test_image(npixel=16384, polarisation_frame=PolarisationFrame("stokesI"), cellsize=0.000015,
                           frequency=numpy.array([1e8]), channel_bandwidth=numpy.array([1e6]), phasecentre=None, fov=20):
     """Create LOW test image from S3
 
@@ -332,7 +332,7 @@ def create_low_test_image(npixel=16384, polarisation_frame=Polarisation_Frame("s
     If polarisation_frame is not stokesI then the image will a polarised axis but the values will be zero.
 
     :param npixel: Number of pixels
-    :param polarisation_frame: Polarisation frame (default Polarisation_Frame("stokesI"))
+    :param polarisation_frame: Polarisation frame (default PolarisationFrame("stokesI"))
     :param cellsize: cellsize in radians
     :param frequency:
     :param channel_bandwidth: Channel width (Hz)
@@ -349,7 +349,7 @@ def create_low_test_image(npixel=16384, polarisation_frame=Polarisation_Frame("s
         phasecentre = SkyCoord(ra=+180.0 * u.deg, dec=-60.0 * u.deg, frame='icrs', equinox=2000.0)
     
     if polarisation_frame is None:
-        polarisation_frame = Polarisation_Frame("I")
+        polarisation_frame = PolarisationFrame("I")
     
     npol = polarisation_frame.npol
     
@@ -404,14 +404,14 @@ def create_low_test_image(npixel=16384, polarisation_frame=Polarisation_Frame("s
     return model
 
 
-def create_low_test_image_composite(npixel=16384, polarisation_frame=Polarisation_Frame("stokesI"),
+def create_low_test_image_composite(npixel=16384, polarisation_frame=PolarisationFrame("stokesI"),
                                     cellsize=0.000015,
                                     frequency=numpy.array([1e8]), channel_bandwidth=numpy.array([1e6]),
                                     phasecentre=None, kind='cubic', fov=20, threshold=0.050):
     """Create LOW test image from merge of S3 and GLEAM test images
     
     :param npixel: Number of pixels
-    :param polarisation_frame: Polarisation frame (default Polarisation_Frame("stokesI"))
+    :param polarisation_frame: Polarisation frame (default PolarisationFrame("stokesI"))
     :param cellsize: cellsize in radians
     :param frequency:
     :param channel_bandwidth: Channel width (Hz)
@@ -436,7 +436,7 @@ def create_low_test_image_composite(npixel=16384, polarisation_frame=Polarisatio
     return ims3
 
 
-def create_low_test_image_from_gleam(npixel=16384, polarisation_frame=Polarisation_Frame("stokesI"), cellsize=0.000015,
+def create_low_test_image_from_gleam(npixel=16384, polarisation_frame=PolarisationFrame("stokesI"), cellsize=0.000015,
                                      frequency=numpy.array([1e8]), channel_bandwidth=numpy.array([1e6]),
                                      phasecentre=None, kind='cubic'):
     """Create LOW test image from the GLEAM survey
@@ -465,7 +465,7 @@ def create_low_test_image_from_gleam(npixel=16384, polarisation_frame=Polarisati
     
 
     :param npixel: Number of pixels
-    :param polarisation_frame: Polarisation frame (default Polarisation_Frame("stokesI"))
+    :param polarisation_frame: Polarisation frame (default PolarisationFrame("stokesI"))
     :param cellsize: cellsize in radians
     :param frequency:
     :param channel_bandwidth: Channel width (Hz)
@@ -485,7 +485,7 @@ def create_low_test_image_from_gleam(npixel=16384, polarisation_frame=Polarisati
         phasecentre = SkyCoord(ra=+15.0 * u.deg, dec=-35.0 * u.deg, frame='icrs', equinox=2000.0)
     
     if polarisation_frame is None:
-        polarisation_frame = Polarisation_Frame("stokesI")
+        polarisation_frame = PolarisationFrame("stokesI")
     
     npol = polarisation_frame.npol
     
@@ -543,8 +543,8 @@ def create_low_test_image_from_gleam(npixel=16384, polarisation_frame=Polarisati
     return model
 
 
-def create_low_test_skycomponents_from_gleam(flux_limit=0.1, polarisation_frame=Polarisation_Frame("stokesI"),
-                                             frequency=numpy.array([1e8]), kind='cubic'):
+def create_low_test_skycomponents_from_gleam(flux_limit=0.1, polarisation_frame=PolarisationFrame("stokesI"),
+                                             frequency=numpy.array([1e8]), kind='cubic', phasecentre=None, radius=1.0):
     """Create sky components from the GLEAM survey
 
     Stokes I is estimated from a cubic spline fit to the measured fluxes. The polarised flux is always zero.
@@ -569,9 +569,11 @@ def create_low_test_skycomponents_from_gleam(flux_limit=0.1, polarisation_frame=
        =2016yCat.8100....0H
 
     :param flux_limit: Only write components brighter than this (Jy)
-    :param polarisation_frame: Polarisation frame (default Polarisation_Frame("stokesI"))
+    :param polarisation_frame: Polarisation frame (default PolarisationFrame("stokesI"))
     :param frequency: Frequencies at which the flux will be estimated
     :param kind: Kind of interpolation (see scipy.interpolate.interp1d) Default: linear
+    :param phasecentre: Desired phase centre (SkyCoord) default None implies all sources
+    :param radius: Radius of sources selected around phasecentre (default 1.0 rad)
     :returns: List of Skycomponents
     """
     
@@ -585,7 +587,7 @@ def create_low_test_skycomponents_from_gleam(flux_limit=0.1, polarisation_frame=
     names = recs['Name']
     
     if polarisation_frame is None:
-        polarisation_frame = Polarisation_Frame("stokesI")
+        polarisation_frame = PolarisationFrame("stokesI")
     
     npol = polarisation_frame.npol
     
@@ -610,8 +612,10 @@ def create_low_test_skycomponents_from_gleam(flux_limit=0.1, polarisation_frame=
             flux[:, 0] = fint(frequency)
             if not numpy.isnan(flux).any():
                 direction = SkyCoord(ra=ras[isource] * u.deg, dec=decs[isource] * u.deg)
-                skycomps.append(Skycomponent(direction=direction, flux=flux, frequency=frequency, name=name,
-                                             polarisation_frame=polarisation_frame))
+                if phasecentre is None or direction.separation(phasecentre).to('rad').value < radius:
+                    skycomps.append(Skycomponent(direction=direction, flux=flux, frequency=frequency,
+                                                name=name, shape='Point',
+                                                polarisation_frame=polarisation_frame))
     
     log.info('create_low_test_skycomponents_from_gleam: %d sources above flux limit %.3f' % (len(skycomps), flux_limit))
     
@@ -669,7 +673,7 @@ def create_low_test_beam(model):
     return reprojected_beam
 
 
-def replicate_image(im: Image, polarisation_frame=Polarisation_Frame('stokesI'), frequency=1e8):
+def replicate_image(im: Image, polarisation_frame=PolarisationFrame('stokesI'), frequency=1e8):
     """ Make a new canonical shape Image, extended along third and fourth axes by replication.
 
     The order of the data is [chan, pol, dec, ra]
@@ -709,7 +713,7 @@ def replicate_image(im: Image, polarisation_frame=Polarisation_Frame('stokesI'),
 
 def create_blockvisibility_iterator(config: Configuration, times: numpy.array, frequency: numpy.array,
                                     channel_bandwidth, phasecentre: SkyCoord, weight: float = 1,
-                                    polarisation_frame=Polarisation_Frame('stokesI'), integration_time=1.0,
+                                    polarisation_frame=PolarisationFrame('stokesI'), integration_time=1.0,
                                     number_integrations=1, predict=predict_2d, model=None, components=None,
                                     phase_error=0.0, amplitude_error=0.0):
     """ Create a sequence of Visibiliites and optionally predicting and coalescing

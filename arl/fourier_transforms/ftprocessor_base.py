@@ -219,12 +219,12 @@ def invert_wprojection(vis, im, dopsf=False, **kwargs):
 
 
 def predict_skycomponent_blockvisibility(vis: BlockVisibility, sc: Skycomponent, **kwargs) -> BlockVisibility:
-    """Predict the visibility from a Skycomponent, add to existing visibility
+    """Predict the visibility from a Skycomponent, add to existing visibility, for BlockVisibility
 
-    :param vis: Visibility
+    :param vis: BlockVisibility
     :param sc: Skycomponent or list of SkyComponents
     :param spectral_mode: {mfs|channel} (channel)
-    :returns: Visibility
+    :returns: BlockVisibility
     """
     assert type(vis) is BlockVisibility, "vis is not a BlockVisibility: %r" % vis
     
@@ -257,7 +257,7 @@ def predict_skycomponent_blockvisibility(vis: BlockVisibility, sc: Skycomponent,
 
 
 def predict_skycomponent_visibility(vis: Visibility, sc: Skycomponent, **kwargs) -> Visibility:
-    """Predict the visibility from a Skycomponent, add to existing visibility
+    """Predict the visibility from a Skycomponent, add to existing visibility, for Visibility
 
     :param vis: Visibility
     :param sc: Skycomponent or list of SkyComponents
@@ -324,7 +324,8 @@ def create_image_from_visibility(vis: Visibility, **kwargs) -> Image:
     :param nchan: Number of image channels (Default is 1 -> MFS)
     :returns: image
     """
-    assert type(vis) is Visibility, "vis is not a Visibility: %r" % vis
+    assert type(vis) is Visibility or type(vis) is BlockVisibility, \
+        "vis is not a Visibility or a BlockVisibility: %r" % (vis)
 
     log.info("create_image_from_visibility: Parsing parameters to get definition of WCS")
     
@@ -332,9 +333,12 @@ def create_image_from_visibility(vis: Visibility, **kwargs) -> Image:
     phasecentre = get_parameter(kwargs, "phasecentre", vis.phasecentre)
     
     # Spectral processing options
-    vnchan = len(numpy.unique(vis.frequency))
-    inchan = get_parameter(kwargs, "nchan", 1)
-    reffrequency = get_parameter(kwargs, "frequency", vis.frequency[0]) * units.Hz
+    ufrequency = numpy.unique(vis.frequency)
+    vnchan = len(ufrequency)
+
+    frequency = get_parameter(kwargs, "frequency", vis.frequency)
+    inchan = get_parameter(kwargs, "nchan", vnchan)
+    reffrequency = numpy.min(frequency) * units.Hz
     channel_bandwidth = get_parameter(kwargs, "channel_bandwidth", vis.channel_bandwidth[0]) * units.Hz
 
     if (inchan == vnchan) and vnchan > 1:

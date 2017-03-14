@@ -29,7 +29,7 @@ def create_gaintable_from_blockvisibility(vis: BlockVisibility, time_width: floa
     This makes an empty gain table consistent with the BlockVisibility.
     
     :param vis: BlockVisibilty
-    :param time_interval: Time interval between solutions (s)
+    :param time_width: Time interval between solutions (s)
     :param frequency_width: Frequency solution width (Hz)
     :returns: GainTable
     
@@ -42,7 +42,7 @@ def create_gaintable_from_blockvisibility(vis: BlockVisibility, time_width: floa
     ufrequency = numpy.unique(vis.frequency)
     nfrequency = len(ufrequency)
     
-    receptor_frame = Receptor_Frame(vis.polarisation_frame.type)
+    receptor_frame = ReceptorFrame(vis.polarisation_frame.type)
     nrec = receptor_frame.nrec
     vnpol = vis.polarisation_frame.npol
     
@@ -151,8 +151,8 @@ def solve_gaintable(vis: BlockVisibility, modelvis: BlockVisibility, phase_only=
         
         # Now average over time, chan. The axes of X are time, antenna2, antenna1, chan, pol
         
-        Xave = numpy.average(X * Xwt, axis=(0))
-        XwtAve = numpy.average(Xwt, axis=(0))
+        Xave = numpy.average(X * Xwt, axis=0)
+        XwtAve = numpy.average(Xwt, axis=0)
         
         mask = XwtAve > 0.0
         Xave[mask] = Xave[mask] / XwtAve[mask]
@@ -225,26 +225,26 @@ def gain_substitution_scalar(gain, X, Xwt):
     nants, nchan, nrec, _ = gain.shape
     newgain = numpy.ones_like(gain, dtype='complex')
     gwt = numpy.zeros_like(gain, dtype='float')
-
+    
     # We are going to work with Jones 2x2 matrix formalism so everything has to be
     # converted to that format
     X = X.reshape(nants, nants, nchan, nrec, nrec)
     Xwt = Xwt.reshape(nants, nants, nchan, nrec, nrec)
-
+    
     for ant1 in range(nants):
         for chan in range(nchan):
             # Loop over e.g. 'RR', 'LL, or 'XX', 'YY' ignoring cross terms
-                top = numpy.sum(X[:, ant1, chan, 0, 0] \
-                                * gain[:, chan, 0, 0] * Xwt[:, ant1, chan, 0, 0], axis=0)
-                bot = numpy.sum((gain[:, chan, 0, 0] * numpy.conjugate(gain[:, chan, 0, 0])
-                                 * Xwt[:, ant1, chan, 0, 0]).real, axis=0)
+            top = numpy.sum(X[:, ant1, chan, 0, 0] \
+                            * gain[:, chan, 0, 0] * Xwt[:, ant1, chan, 0, 0], axis=0)
+            bot = numpy.sum((gain[:, chan, 0, 0] * numpy.conjugate(gain[:, chan, 0, 0])
+                             * Xwt[:, ant1, chan, 0, 0]).real, axis=0)
             
-                if bot > 0.0:
-                    newgain[ant1, chan, 0, 0] = top / bot
-                    gwt[ant1, chan, 0, 0] = bot
-                else:
-                    newgain[ant1, chan, 0, 0] = 0.0
-                    gwt[ant1, chan, 0, 0] = 0.0
+            if bot > 0.0:
+                newgain[ant1, chan, 0, 0] = top / bot
+                gwt[ant1, chan, 0, 0] = bot
+            else:
+                newgain[ant1, chan, 0, 0] = 0.0
+                gwt[ant1, chan, 0, 0] = 0.0
     return newgain, gwt
 
 
@@ -307,7 +307,7 @@ def gain_substitution_vector(gain, X, Xwt):
     if nrec > 0:
         newgain[..., 0, 1] = 0.0
         newgain[..., 1, 0] = 0.0
-        
+    
     gwt = numpy.zeros_like(gain, dtype='float')
     
     # We are going to work with Jones 2x2 matrix formalism so everything has to be
@@ -349,6 +349,7 @@ def solve_antenna_gains_itsubs_matrix(gainshape, X, Xwt, niter=30, tol=1e-8, pha
     scalar self-calibration: Self-alignment, dynamic range and polarimetric fidelity,” Astronomy
     and Astrophysics Supplement Series, vol. 143, no. 3, pp. 515–534, May 2000.
 
+    :param gainshape: Shape of gaintable
     :param X: Equivalent point source visibility[nants, nants, ...]
     :param Xwt: Equivalent point source weight [nants, nants, ...]
     :param niter: Number of iterations
@@ -432,12 +433,12 @@ def solution_residual_scalar(gain, X, Xwt):
     
     nants, nchan, nrec, _ = gain.shape
     X = X.reshape(nants, nants, nchan, nrec, nrec)
-
+    
     Xwt = Xwt.reshape(nants, nants, nchan, nrec, nrec)
-
+    
     residual = numpy.zeros([nchan, nrec, nrec])
     sumwt = numpy.zeros([nchan, nrec, nrec])
-
+    
     for ant1 in range(nants):
         for ant2 in range(nants):
             for chan in range(nchan):
@@ -445,7 +446,7 @@ def solution_residual_scalar(gain, X, Xwt):
                         gain[ant1, chan, 0, 0] * numpy.conjugate(gain[ant2, chan, 0, 0])
                 residual += (error * Xwt[ant2, ant1, chan, 0, 0] * numpy.conjugate(error)).real
                 sumwt += Xwt[ant2, ant1, chan, 0, 0]
-
+    
     residual = numpy.sqrt(residual / sumwt)
     return residual
 

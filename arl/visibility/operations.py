@@ -8,7 +8,7 @@ import copy
 
 import astropy.constants as constants
 
-from arl.data.polarisation import Receptor_Frame, correlate_polarisation
+from arl.data.polarisation import ReceptorFrame, correlate_polarisation
 from arl.fourier_transforms.ftprocessor_params import *
 from arl.util.coordinate_support import *
 
@@ -46,7 +46,7 @@ def copy_visibility(vis):
 
 def create_visibility(config: Configuration, times: numpy.array, frequency: numpy.array,
                       channel_bandwidth, phasecentre: SkyCoord,
-                      weight: float, polarisation_frame=Polarisation_Frame('stokesI'), integration_time=1.0,
+                      weight: float, polarisation_frame=PolarisationFrame('stokesI'), integration_time=1.0,
                       ) -> Visibility:
     """ Create a Visibility from Configuration, hour angles, and direction of source
 

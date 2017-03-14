@@ -7,7 +7,7 @@ import unittest
 
 import numpy
 
-from arl.data.polarisation import Polarisation_Frame
+from arl.data.polarisation import PolarisationFrame
 from arl.image.iterators import *
 from arl.util.testing_support import create_test_image
 from arl.util.run_unittests import run_unittests
@@ -20,11 +20,11 @@ class TestImageIterators(unittest.TestCase):
     
     def test_rasterise(self):
     
-        m31original = create_test_image(polarisation_frame=Polarisation_Frame('stokesI'))
+        m31original = create_test_image(polarisation_frame=PolarisationFrame('stokesI'))
         assert numpy.max(numpy.abs(m31original.data)), "Original is empty"
 
         for nraster in [2, 4, 8]:
-            m31model = create_test_image(polarisation_frame=Polarisation_Frame('stokesI'))
+            m31model = create_test_image(polarisation_frame=PolarisationFrame('stokesI'))
             for patch in raster_iter(m31model, facets=nraster):
                 assert patch.data.shape[3] == (m31model.data.shape[3] // nraster), \
                     "Number of pixels in each patch: %d not as expected: %d" % (patch.data.shape[3],

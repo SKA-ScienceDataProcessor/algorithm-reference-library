@@ -8,7 +8,7 @@ import numpy
 from astropy import units as u
 from astropy.coordinates import SkyCoord
 
-from arl.data.polarisation import Polarisation_Frame, Receptor_Frame
+from arl.data.polarisation import PolarisationFrame, ReceptorFrame
 
 log = logging.getLogger(__name__)
 
@@ -20,10 +20,10 @@ class Configuration:
     """
     
     def __init__(self, name='', data=None, location=None,
-                 names="%s", xyz=None, mount="alt-az", frame=None, receptor_frame=Receptor_Frame("linear")):
+                 names="%s", xyz=None, mount="alt-az", frame=None, receptor_frame=ReceptorFrame("linear")):
         
         # Defaults
-        if data is None and not xyz is None:
+        if data is None and xyz is not None:
             desc = [('names', '<U6'),
                     ('xyz', '<f8', (3,)),
                     ('mount', '<U5')]
@@ -75,8 +75,8 @@ class GainTable:
     """
     
     def __init__(self, data=None, gain: numpy.array = None, time: numpy.array = None, weight: numpy.array = None,
-                 residual: numpy.array = None, frequency: numpy.array = None, receptor_frame: Receptor_Frame = \
-        Receptor_Frame("linear")):
+                 residual: numpy.array = None, frequency: numpy.array = None,
+                 receptor_frame: ReceptorFrame = ReceptorFrame("linear")):
         """ Create a gaintable from arrays
         
         The definition of gain is:
@@ -89,7 +89,7 @@ class GainTable:
         :param frequency:
         :returns: Gaintable
         """
-        if data is None and not gain is None:
+        if data is None and gain is not None:
             nrec = receptor_frame.nrec
             nrows = gain.shape[0]
             nants = gain.shape[1]
@@ -113,7 +113,7 @@ class GainTable:
         size = 0
         size += self.data.size * sys.getsizeof(self.data)
         return size / 1024.0 / 1024.0 / 1024.0
-
+    
     @property
     def time(self):
         return self.data['time']
@@ -121,7 +121,7 @@ class GainTable:
     @property
     def gain(self):
         return self.data['gain']
-
+    
     @property
     def weight(self):
         return self.data['weight']
@@ -129,11 +129,10 @@ class GainTable:
     @property
     def residual(self):
         return self.data['residual']
-
+    
     @property
     def nants(self):
         return self.data['gain'].shape[1]
-
 
 
 class Image:
@@ -169,10 +168,10 @@ class Image:
     
     @property
     def npol(self): return self.data.shape[1]
-
+    
     @property
     def nheight(self): return self.data.shape[2]
-
+    
     @property
     def nwidth(self): return self.data.shape[3]
     
@@ -184,9 +183,10 @@ class Image:
     @property
     def shape(self):
         return self.data.shape
-
+    
     @property
     def phasecentre(self): return SkyCoord(self.wcs.wcs.crval[0] * u.deg, self.wcs.wcs.crval[1] * u.deg)
+
 
 class Skycomponent:
     """ A single Skycomponent with direction, flux, shape, and params for the shape
@@ -195,7 +195,7 @@ class Skycomponent:
     
     def __init__(self,
                  direction=None, frequency=None, name=None, flux=None, shape='Point',
-                 polarisation_frame=Polarisation_Frame('stokesIQUV'), **kwargs):
+                 polarisation_frame=PolarisationFrame('stokesIQUV'), **kwargs):
         """ Define the required structure
 
         :param direction: SkyCoord
@@ -233,23 +233,12 @@ class Skycomponent:
 
         """
         s = "Skycomponent:\n"
-        s += "\tFlux: %s\n" % (self.flux)
-        s += "\tDirection: %s\n" % (self.direction)
-        s += "\tShape: %s\n" % (self.shape)
-        s += "\tParams: %s\n" % (self.params)
-        s += "\tPolaristation frame %s\n" %(self.polarisation_frame)
+        s += "\tFlux: %s\n" % self.flux
+        s += "\tDirection: %s\n" % self.direction
+        s += "\tShape: %s\n" % self.shape
+        s += "\tParams: %s\n" % self.params
+        s += "\tPolarisation frame %s\n" % self.polarisation_frame
         return s
-
-
-class Skymodel:
-    """ A skymodel consisting of a list of images and a list of skycomponents
-    
-    """
-    
-    def __init__(self):
-        self.images = []  # collection of numpy arrays
-        self.components = []  # collection of SkyComponents
-
 
 class Visibility:
     """ Visibility table class
@@ -264,9 +253,8 @@ class Visibility:
     
     def __init__(self,
                  data=None, frequency=None, channel_bandwidth=None, phasecentre=None, configuration=None,
-                 uvw=None, time=None, antenna1=None, antenna2=None, polarisation=None,
-                 vis=None, weight=None, imaging_weight=None, integration_time=None,
-                 polarisation_frame = Polarisation_Frame('stokesI')):
+                 uvw=None, time=None, antenna1=None, antenna2=None, vis=None, weight=None, imaging_weight=None,
+                 integration_time=None, polarisation_frame=PolarisationFrame('stokesI')):
         if data is None and vis is not None:
             if imaging_weight is None:
                 imaging_weight = weight
@@ -293,7 +281,7 @@ class Visibility:
             data['vis'] = vis
             data['weight'] = weight
             data['imaging_weight'] = imaging_weight
-            
+        
         self.data = data  # numpy structured array
         self.phasecentre = phasecentre  # Phase centre of observation
         self.configuration = configuration  # Antenna/station configuration
@@ -312,7 +300,7 @@ class Visibility:
         return self.data['vis'].shape[0]
     
     @property
-    def uvw(self): # In wavelengths in Visibility
+    def uvw(self):  # In wavelengths in Visibility
         return self.data['uvw']
     
     @property
@@ -326,23 +314,23 @@ class Visibility:
     @property
     def w(self):
         return self.data['uvw'][:, 2]
-
+    
     @property
     def time(self):
         return self.data['time']
-
+    
     @property
     def integration_time(self):
         return self.data['integration_time']
-
+    
     @property
     def frequency(self):
         return self.data['frequency']
-
+    
     @property
     def channel_bandwidth(self):
         return self.data['channel_bandwidth']
-
+    
     @property
     def antenna1(self):
         return self.data['antenna1']
@@ -378,7 +366,7 @@ class BlockVisibility:
                  data=None, frequency=None, channel_bandwidth=None, phasecentre=None, configuration=None,
                  uvw=None, time=None,
                  vis=None, weight=None, integration_time=None,
-                 polarisation_frame=Polarisation_Frame('stokesI')):
+                 polarisation_frame=PolarisationFrame('stokesI')):
         if data is None and vis is not None:
             ntimes = len(time)
             assert vis.shape == weight.shape
@@ -400,7 +388,6 @@ class BlockVisibility:
             data['weight'] = weight
         
         self.data = data  # numpy structured array
-        self.time = time
         self.frequency = frequency
         self.channel_bandwidth = channel_bandwidth
         self.phasecentre = phasecentre  # Phase centre of observation
@@ -414,15 +401,15 @@ class BlockVisibility:
         for col in self.data.dtype.fields.keys():
             size += self.data[col].nbytes
         return size / 1024.0 / 1024.0 / 1024.0
-
+    
     @property
     def nchan(self):
         return self.data['vis'].shape[3]
-
+    
     @property
     def npol(self):
         return self.data['vis'].shape[4]
-
+    
     @property
     def nants(self):
         return self.data['vis'].shape[1]
@@ -446,15 +433,15 @@ class BlockVisibility:
     @property
     def vis(self):
         return self.data['vis']
-
+    
     @property
     def weight(self):
         return self.data['weight']
-
+    
     @property
     def integration_time(self):
         return self.data['integration_time']
-
+    
     @property
     def nvis(self):
         return self.data.size
@@ -475,8 +462,8 @@ class QA:
         
         """
         s = "Quality assessment:\n"
-        s += "\tOrigin: %s\n" % (self.origin)
-        s += "\tContext: %s\n" % (self.context)
+        s += "\tOrigin: %s\n" % self.origin
+        s += "\tContext: %s\n" % self.context
         s += "\tData:\n"
         for dataname in self.data.keys():
             s += "\t\t%s: %s\n" % (dataname, str(self.data[dataname]))
