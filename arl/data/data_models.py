@@ -368,14 +368,13 @@ class BlockVisibility:
                  vis=None, weight=None, integration_time=None,
                  polarisation_frame=PolarisationFrame('stokesI')):
         if data is None and vis is not None:
-            ntimes = len(time)
+            ntimes = vis.shape[0]
             assert vis.shape == weight.shape
-            assert vis.shape[0] == ntimes
             nants = vis.shape[1]
             assert vis.shape[2] == nants
             nchan = vis.shape[3]
             npol = vis.shape[4]
-            desc = [('uvw', '<f8', (nants, nants, 3,)),
+            desc = [('uvw', '<f8', (nants, nants, 3)),
                     ('time', '<f8'),
                     ('integration_time', '<f8'),
                     ('vis', '<c16', (nants, nants, nchan, npol)),

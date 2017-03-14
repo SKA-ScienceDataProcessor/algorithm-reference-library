@@ -12,7 +12,7 @@ from arl.image.operations import export_image_to_fits, create_empty_image_like
 from arl.skycomponent.operations import create_skycomponent, find_skycomponents, find_nearest_component, \
     insert_skycomponent
 from arl.util.testing_support import create_named_configuration
-from arl.util.run_unittests import run_unittests
+import logging
 
 from arl.visibility.operations import create_visibility, create_blockvisibility, sum_visibility
 
@@ -320,4 +320,4 @@ class TestFTProcessor(unittest.TestCase):
 
 
 if __name__ == '__main__':
-    run_unittests()
+    unittest.main()

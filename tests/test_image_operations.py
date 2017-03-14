@@ -114,4 +114,4 @@ class TestImage(unittest.TestCase):
         show_image(self.m31image)
 
 if __name__ == '__main__':
-    run_unittests()
+    unittest.main()

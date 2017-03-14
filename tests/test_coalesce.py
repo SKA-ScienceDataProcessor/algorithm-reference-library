@@ -16,7 +16,7 @@ class TestCoalesce(unittest.TestCase):
     def setUp(self):
 
         self.lowcore = create_named_configuration('LOWBD2-CORE')
-        self.times = (numpy.pi / 43200.0) * numpy.arange(0.0, 300 * 3.76, 3.76)
+        self.times = (numpy.pi / 43200.0) * numpy.arange(0.0, 30 * 3.76, 3.76)
         df = 27343.75000
         self.frequency = numpy.array([1e8-df, 1e8, 1e8+df])
         self.channel_bandwidth = numpy.array([27343.75, 27343.75, 27343.75])
@@ -55,4 +55,4 @@ class TestCoalesce(unittest.TestCase):
         assert numpy.min(cvis.frequency) > 0.0
 
 if __name__ == '__main__':
-    run_unittests()
+    unittest.main()

@@ -81,4 +81,4 @@ class TestVisibilityIterators(unittest.TestCase):
 
 
 if __name__ == '__main__':
-    run_unittests()
+    unittest.main()

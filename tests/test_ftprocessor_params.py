@@ -5,15 +5,20 @@ realtimcornwell@gmail.com
 import os
 import unittest
 
-from astropy.convolution import Gaussian2DKernel, convolve
+import numpy
 
-from arl.fourier_transforms.ftprocessor import *
-from arl.image.operations import export_image_to_fits, create_empty_image_like
+from astropy.coordinates import SkyCoord
+from astropy import units as u
+from arl.data.polarisation import PolarisationFrame
+from arl.fourier_transforms.ftprocessor import create_image_from_visibility
+from arl.fourier_transforms.ftprocessor_params import get_frequency_map
 from arl.util.testing_support import create_named_configuration, create_low_test_image, \
     create_low_test_image_from_gleam
 from arl.util.run_unittests import run_unittests
 
 from arl.visibility.operations import create_visibility
+
+import logging
 
 log = logging.getLogger(__name__)
 
@@ -65,7 +70,7 @@ class TestFTProcessorParams(unittest.TestCase):
         assert spectral_mode == 'channel'
 
 
-    def test_get_frequency_map_sex(self):
+    def test_get_frequency_map_s3(self):
         self.model = create_low_test_image(npixel=64, cellsize=0.001, frequency=self.frequency,
                                                       channel_bandwidth=self.channel_bandwidth)
         spectral_mode, vfrequency_map = get_frequency_map(self.vis, self.model)
@@ -74,4 +79,4 @@ class TestFTProcessorParams(unittest.TestCase):
 
 
 if __name__ == '__main__':
-    run_unittests()
+    unittest.main()
