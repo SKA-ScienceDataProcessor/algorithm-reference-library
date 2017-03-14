@@ -437,11 +437,15 @@ class BlockVisibility:
     @property
     def weight(self):
         return self.data['weight']
-    
+
+    @property
+    def time(self):
+        return self.data['time']
+
     @property
     def integration_time(self):
         return self.data['integration_time']
-    
+
     @property
     def nvis(self):
         return self.data.size
