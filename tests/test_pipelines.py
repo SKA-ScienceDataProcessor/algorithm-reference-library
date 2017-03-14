@@ -8,7 +8,6 @@ import unittest
 from arl.fourier_transforms.ftprocessor import *
 from arl.pipelines.functions import *
 from arl.skycomponent.operations import create_skycomponent
-from arl.util.run_unittests import run_unittests
 from arl.util.testing_support import create_named_configuration, create_test_image, create_blockvisibility_iterator
 
 
@@ -57,4 +56,3 @@ class TestPipelines(unittest.TestCase):
 
 if __name__ == '__main__':
     unittest.main()
-#    unittest.main()

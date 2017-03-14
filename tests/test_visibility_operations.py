@@ -10,7 +10,6 @@ from numpy.testing import assert_allclose
 from arl.data.polarisation import PolarisationFrame
 from arl.fourier_transforms.ftprocessor import *
 from arl.util.testing_support import create_named_configuration
-from arl.util.run_unittests import run_unittests
 
 from arl.visibility.operations import *
 

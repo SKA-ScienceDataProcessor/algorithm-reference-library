@@ -108,4 +108,7 @@ class Testskycomponent(unittest.TestCase):
         self.assertAlmostEqual(self.model.data[0,0,119,150],  0.887186883218, 7)
         self.assertAlmostEqual(self.model.data[0,0,119,151], -0.145093950704, 7)
 
-        
+
+
+if __name__ == '__main__':
+    unittest.main()

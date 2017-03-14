@@ -10,7 +10,6 @@ from astropy import units as u
 from astropy.coordinates import SkyCoord
 
 from arl.util.testing_support import create_named_configuration
-from arl.util.run_unittests import run_unittests
 
 from arl.visibility.iterators import *
 from arl.visibility.operations import create_visibility, create_visibility_from_rows

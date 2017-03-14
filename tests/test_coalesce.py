@@ -4,7 +4,6 @@ realtimcornwell@gmail.com
 """
 import unittest
 
-from arl.util.run_unittests import run_unittests
 from arl.util.testing_support import create_named_configuration
 from arl.visibility.coalesce import *
 from arl.visibility.operations import create_blockvisibility

@@ -10,8 +10,6 @@ from arl.util.array_functions import average_chunks_jit as average_chunks
 
 from arl.util.array_functions import average_chunks2, average_chunks_jit
 
-from arl.util.run_unittests import run_unittests
-
 log = logging.getLogger(__name__)
 
 

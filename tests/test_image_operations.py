@@ -5,14 +5,10 @@ realtimcornwell@gmail.com
 import sys
 import unittest
 
-import numpy
-from numpy.testing import *
 
 from arl.image.iterators import *
 from arl.image.operations import *
 from arl.util.testing_support import create_test_image
-from arl.util.run_unittests import run_unittests
-
 
 log = logging.getLogger(__name__)
 

@@ -2,7 +2,6 @@
 
 realtimcornwell@gmail.com
 """
-import os
 import unittest
 
 from astropy.convolution import Gaussian2DKernel, convolve

@@ -10,7 +10,9 @@ import numpy
 from arl.data.polarisation import PolarisationFrame
 from arl.image.iterators import *
 from arl.util.testing_support import create_test_image
-from arl.util.run_unittests import run_unittests
+
+
+import logging
 
 
 log = logging.getLogger(__name__)

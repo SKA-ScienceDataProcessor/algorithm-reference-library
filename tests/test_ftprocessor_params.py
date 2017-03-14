@@ -14,7 +14,6 @@ from arl.fourier_transforms.ftprocessor import create_image_from_visibility
 from arl.fourier_transforms.ftprocessor_params import get_frequency_map
 from arl.util.testing_support import create_named_configuration, create_low_test_image, \
     create_low_test_image_from_gleam
-from arl.util.run_unittests import run_unittests
 
 from arl.visibility.operations import create_visibility
 

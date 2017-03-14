@@ -4,7 +4,6 @@ import unittest
 
 from numpy.testing import assert_allclose
 
-from arl.fourier_transforms.fft_support import *
 from arl.fourier_transforms.convolutional_gridding import *
 
 
