@@ -217,12 +217,10 @@ def create_blockvisibility_from_rows(vis: BlockVisibility, rows, makecopy=True) 
     if makecopy:
         newvis = copy_visibility(vis)
         newvis.data = copy.deepcopy(vis.data[rows])
-        newvis.time = copy.deepcopy(vis.time[rows])
 
         return newvis
     else:
         vis.data = copy.deepcopy(vis.data[rows])
-        vis.time = copy.deepcopy(vis.time[rows])
         
         return vis
 

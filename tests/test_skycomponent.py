@@ -18,7 +18,7 @@ from arl.image.operations import export_image_to_fits
 from arl.skycomponent.operations import insert_skycomponent, create_skycomponent
 from arl.util.testing_support import create_test_image, create_named_configuration
 from arl.visibility.operations import create_visibility
-from solvers import solve_image
+from arl.image.solvers import solve_image
 
 log = logging.getLogger(__name__)
 
@@ -107,8 +107,6 @@ class Testskycomponent(unittest.TestCase):
         # These test a regression but are not known a priori to be correct
         self.assertAlmostEqual(self.model.data[0,0,119,150],  0.887186883218, 7)
         self.assertAlmostEqual(self.model.data[0,0,119,151], -0.145093950704, 7)
-
-
 
 if __name__ == '__main__':
     unittest.main()
