@@ -239,6 +239,8 @@ def create_low_test_image(npixel=16384, polarisation_frame=PolarisationFrame("st
                 decs.append(dec)
                 fluxes.append(flux)
             r += 1
+            
+    csvfile.close()
     
     p = w.sub(2).wcs_world2pix(numpy.array(ras), numpy.array(decs), 1)
     total_flux = numpy.sum(fluxes)
@@ -331,7 +333,7 @@ def create_low_test_image_from_gleam(npixel=16384, polarisation_frame=Polarisati
     
     fitsfile = arl_path("data/models/GLEAM_EGC.fits")
     
-    hdulist = fits.open(fitsfile)
+    hdulist = fits.open(fitsfile, lazy_load_hdus=False)
     recs = hdulist[1].data[0].array
     ras = recs['RAJ2000']
     decs = recs['DEJ2000']
@@ -394,6 +396,8 @@ def create_low_test_image_from_gleam(npixel=16384, polarisation_frame=Polarisati
     for iflux, flux in enumerate(fluxes):
         if not numpy.isnan(flux).any() and flux.all() > 0.0:
             model.data[:, 0, ps[1, iflux], ps[0, iflux]] = flux[:]
+            
+    hdulist.close()
     
     return model
 
@@ -434,7 +438,7 @@ def create_low_test_skycomponents_from_gleam(flux_limit=0.1, polarisation_frame=
     
     fitsfile = arl_path("data/models/GLEAM_EGC.fits")
     
-    hdulist = fits.open(fitsfile)
+    hdulist = fits.open(fitsfile, lazy_load_hdus=False)
     recs = hdulist[1].data[0].array
     ras = recs['RAJ2000']
     decs = recs['DEJ2000']
@@ -474,6 +478,8 @@ def create_low_test_skycomponents_from_gleam(flux_limit=0.1, polarisation_frame=
     
     log.info('create_low_test_skycomponents_from_gleam: %d sources above flux limit %.3f' % (len(skycomps), flux_limit))
     
+    hdulist.close()
+
     return skycomps
 
 

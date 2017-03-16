@@ -15,7 +15,7 @@ from arl.visibility.operations import copy_visibility
 log = logging.getLogger(__name__)
 
 
-def solve_image(vis: Visibility, model: Image, components=[], predict=predict_2d, invert=invert_2d, **kwargs):
+def solve_image(vis: Visibility, model: Image, predict=predict_2d, invert=invert_2d, **kwargs):
     """Solve for image using deconvolve_cube and specified predict, invert
 
     This is the same as a majorcycle/minorcycle algorithm. The components are removed prior to deconvolution.
@@ -32,11 +32,10 @@ def solve_image(vis: Visibility, model: Image, components=[], predict=predict_2d
     # The model is added to each major cycle and then the visibilities are
     # calculated from the full model
     vispred = copy_visibility(vis)
+    visres = copy_visibility(vis)
+
     vispred = predict(vispred, model, **kwargs)
-    for sc in components:
-        vispred = predict_skycomponent_visibility(vis, sc)
     
-    visres = copy_visibility(vispred)
     visres.data['vis'] = vis.data['vis'] - vispred.data['vis']
     dirty, sumwt = invert(visres, model, **kwargs)
     dirty = normalize_sumwt(dirty, sumwt)
@@ -48,6 +47,7 @@ def solve_image(vis: Visibility, model: Image, components=[], predict=predict_2d
     for i in range(nmajor):
         log.info("solve_image: Start of major cycle %d" % i)
         cc, res = deconvolve_cube(dirty, psf, **kwargs)
+        res = None
         model.data += cc.data
         vispred = predict(vispred, model, **kwargs)
         visres.data['vis'] = vis.data['vis'] - vispred.data['vis']

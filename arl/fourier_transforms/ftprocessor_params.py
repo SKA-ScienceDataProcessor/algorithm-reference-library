@@ -83,12 +83,12 @@ def get_uvw_map(vis, im, **kwargs):
     
     # Model image information
     inchan, inpol, ny, nx = im.data.shape
-    shape = (1, padding * ny, padding * nx)
+    shape = (1, int(round(padding * ny)), int(round(padding * nx)))
     # UV sampling information
     uvwscale = numpy.zeros([3])
     uvwscale[0:2] = im.wcs.wcs.cdelt[0:2] * numpy.pi / 180.0
     assert uvwscale[0] != 0.0, "Error in uv scaling"
-    fov = padding * nx * numpy.abs(uvwscale[0])
+    fov = int(round(padding * nx)) * numpy.abs(uvwscale[0])
     
     vuvwmap = uvwscale * vis.uvw
     uvw_mode = "2d"

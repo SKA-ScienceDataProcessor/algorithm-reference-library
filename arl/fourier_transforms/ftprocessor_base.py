@@ -97,7 +97,7 @@ def predict_2d_base(vis, model, **kwargs):
     uvw_mode, shape, padding, vuvwmap = get_uvw_map(vis, model, **kwargs)
     kernel_name, gcf, vkernellist = get_kernel_list(vis, model, **kwargs)
 
-    uvgrid = fft((pad_mid(model.data, padding * nx) * gcf).astype(dtype=complex))
+    uvgrid = fft((pad_mid(model.data, int(round(padding * nx))) * gcf).astype(dtype=complex))
     
     vis.data['vis'] = fixed_kernel_degrid(vkernellist, vis.data['vis'].shape, uvgrid,
                                            vuvwmap, vfrequencymap, vpolarisationmap)
@@ -158,7 +158,7 @@ def invert_2d_base(vis, im, dopsf=False, **kwargs):
 
    
     # Optionally pad to control aliasing
-    imgridpad = numpy.zeros([nchan, npol, padding * ny, padding * nx], dtype='complex')
+    imgridpad = numpy.zeros([nchan, npol, int(round(padding * ny)), int(round(padding * nx))], dtype='complex')
     if dopsf:
         lvis = numpy.ones_like(svis.data['vis'])
     else:
@@ -171,7 +171,7 @@ def invert_2d_base(vis, im, dopsf=False, **kwargs):
     # function, and extract the unpadded inner part.
 
     # Normalise weights for consistency with transform
-    sumwt /= float(padding * padding * nx * ny)
+    sumwt /= float(padding * int(round(padding * nx)) * ny)
 
     imaginary = get_parameter(kwargs, "imaginary", False)
     if imaginary:

@@ -199,7 +199,7 @@ def hogbom(dirty,
                                    mx - psfpeak[0],
                                    my - psfpeak[1])
         res[a1o[0]:a1o[1], a1o[2]:a1o[3]] -= psf[a2o[0]:a2o[1], a2o[2]:a2o[3]] * mval
-        if i % (niter // 100) == 0:
+        if i % (niter // 10) == 0:
             log.info("hogbom: Minor cycle %d, peak %s at [%d, %d]" % (i, res[mx, my], mx, my))
         if numpy.fabs(res).max() < thresh:
             break
