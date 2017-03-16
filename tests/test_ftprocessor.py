@@ -300,7 +300,7 @@ class TestFTProcessor(unittest.TestCase):
         im = create_image_from_visibility(self.componentvis, nchan=1, npixel=128)
         assert im.data.shape == (1, 1, 128, 128)
         im = create_image_from_visibility(self.componentvis, frequency=self.frequency, npixel=128)
-        assert im.data.shape == (len(self.frequency), 4, 128, 128)
+        assert im.data.shape == (len(self.frequency), 1, 128, 128)
         im = create_image_from_visibility(self.componentvis, frequency=self.frequency, npixel=128,
                                           nchan=1)
         assert im.data.shape == (1, 1, 128, 128)
