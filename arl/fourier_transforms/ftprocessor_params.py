@@ -175,7 +175,8 @@ def get_kernel_list(vis, im, **kwargs):
         log.info("get_kernel_list: Using w projection with wstep = %f" % (wstep))
         
         # Now calculate the maximum support for the w kernel
-        npixel_kernel = get_parameter(kwargs, "kernelwidth", (int(round(numpy.sin(0.5 * fov) * npixel)) // 2))
+        npixel_kernel = get_parameter(kwargs, "kernelwidth", (2 * int(round(numpy.sin(0.5 * fov) * npixel/4.0))))
+        assert npixel_kernel % 2 == 0
         log.info("get_kernel_list: Maximum w kernel full width = %d pixels" % (npixel_kernel))
         kernel_list = w_kernel_list(vis, (npixel, npixel), fov, wstep=wstep,
                                     npixel_kernel=npixel_kernel, oversampling=oversampling)

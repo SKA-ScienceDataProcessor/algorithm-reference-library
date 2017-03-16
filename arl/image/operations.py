@@ -246,7 +246,7 @@ def qa_image(im, mask=None, **kwargs):
     return qa
 
 
-def show_image(im: Image, fig=None, title: str = '', pol=0, chan=0):
+def show_image(im: Image, fig=None, title: str = '', pol=0, chan=0, cm='Greys'):
     """ Show an Image with coordinates using matplotlib
 
     :param im:
@@ -260,9 +260,9 @@ def show_image(im: Image, fig=None, title: str = '', pol=0, chan=0):
     plt.clf()
     fig.add_subplot(111, projection=im.wcs.sub(['longitude', 'latitude']))
     if len(im.data.shape) == 4:
-        plt.imshow(numpy.real(im.data[chan, pol, :, :]), origin='lower', cmap='rainbow')
+        plt.imshow(numpy.real(im.data[chan, pol, :, :]), origin='lower', cmap=cm)
     elif len(im.data.shape) == 2:
-        plt.imshow(numpy.real(im.data[:, :]), origin='lower', cmap='rainbow')
+        plt.imshow(numpy.real(im.data[:, :]), origin='lower', cmap=cm)
     plt.xlabel('RA---SIN')
     plt.ylabel('DEC--SIN')
     plt.title(title)

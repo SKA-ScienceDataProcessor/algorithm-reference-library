@@ -4,13 +4,22 @@ realtimcornwell@gmail.com
 """
 import unittest
 
-from arl.calibration.gaintable import *
-from arl.fourier_transforms.ftprocessor import *
+
+import numpy
+
+from astropy.coordinates import SkyCoord
+from arl.data.data_models import Skycomponent
+from arl.data.polarisation import PolarisationFrame
+from arl.calibration.operations import create_gaintable_from_blockvisibility
+from arl.fourier_transforms.ftprocessor import create_image_from_visibility, predict_skycomponent_blockvisibility
 from arl.util.testing_support import create_named_configuration, simulate_gaintable
-from arl.visibility.operations import create_blockvisibility
+from arl.visibility.operations import create_blockvisibility, copy_visibility
+from arl.calibration.operations import *
 
+import logging
+log = logging.getLogger(__name__)
 
-class TestCalibration(unittest.TestCase):
+class TestCalibrationOperations(unittest.TestCase):
     
     def setUp(self):
         self.lowcore = create_named_configuration('LOWBD2-CORE')
@@ -79,60 +88,6 @@ class TestCalibration(unittest.TestCase):
             error = numpy.max(numpy.abs(vis.vis-original.vis))
             assert error < 1e-12, "Error = %s" % (error)
     
-    def test_solve_gaintable_phase_only(self):
-        for spf, dpf in[('stokesIQUV', 'linear'), ('stokesIQUV', 'circular') ]:
-            self.actualSetup(spf, dpf)
-            gt = create_gaintable_from_blockvisibility(self.vis)
-            log.info("Created gain table: %s" % (gaintable_summary(gt)))
-            gt = simulate_gaintable(gt, phase_error=0.1)
-            original = copy_visibility(self.vis)
-            vis = apply_gaintable(self.vis, gt)
-            gtsol = solve_gaintable(self.vis, original)
-            vis = apply_gaintable(vis, gtsol, inverse=True)
-            residual = numpy.max(gtsol.residual)
-            assert residual < 1e-8, "Max residual = %s" % (residual)
-
-
-    def test_solve_gaintable_both_big(self):
-        for crosspol in [False, True]:
-            for spf, dpf in[('stokesIQUV', 'linear'), ('stokesIQUV', 'circular')]:
-                self.actualSetup(spf, dpf)
-                gt = create_gaintable_from_blockvisibility(self.vis)
-                log.info("Created gain table: %s" % (gaintable_summary(gt)))
-                gt = simulate_gaintable(gt, phase_error=10.0, amplitude_error=0.1)
-                original = copy_visibility(self.vis)
-                vis = apply_gaintable(self.vis, gt)
-                error = numpy.max(numpy.abs(vis.vis-original.vis))
-                assert error > 100, "Error = %s" % (error)
-                gtsol = solve_gaintable(self.vis, original, phase_only=False, niter=200, crosspol=crosspol)
-                residual = numpy.max(gtsol.residual)
-                assert residual < 3e-8, "Crosspol %s %s %s Max residual = %s < 1e-8" % (crosspol, spf, dpf, residual)
-    
-
-    def test_solve_gaintable_big_phase(self):
-        for spf, dpf in[('stokesIQUV', 'linear'), ('stokesIQUV', 'circular') ]:
-            self.actualSetup(spf, dpf)
-            gt = create_gaintable_from_blockvisibility(self.vis)
-            log.info("Created gain table: %s" % (gaintable_summary(gt)))
-            gt = simulate_gaintable(gt, phase_error=10.0, amplitude_error=0.0)
-            original = copy_visibility(self.vis)
-            vis = apply_gaintable(self.vis, gt)
-            gtsol = solve_gaintable(self.vis, original, phase_only=True, niter=200)
-            residual = numpy.max(gtsol.residual)
-            assert residual < 3e-8, "Max residual = %s" % (residual)
-
-    def test_solve_gaintable_scalar(self):
-        self.flux = numpy.array([[self.flux[0,0]]])
-        self.frequency = numpy.array([self.frequency[0]])
-        self.actualSetup('stokesI', 'stokesI')
-        gt = create_gaintable_from_blockvisibility(self.vis)
-        log.info("Created gain table: %s" % (gaintable_summary(gt)))
-        gt = simulate_gaintable(gt, phase_error=10.0, amplitude_error=0.0)
-        original = copy_visibility(self.vis)
-        vis = apply_gaintable(self.vis, gt)
-        gtsol = solve_gaintable(self.vis, original, phase_only=True, niter=200)
-        residual = numpy.max(gtsol.residual)
-        assert residual < 3e-8, "Max residual = %s" % (residual)
 
 if __name__ == '__main__':
     unittest.main()

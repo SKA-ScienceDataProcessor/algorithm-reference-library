@@ -55,13 +55,21 @@ class TestVisibilityOperations(unittest.TestCase):
         rows = self.vis.time > 150.0
         for makecopy in [True, False]:
             selected_vis = create_visibility_from_rows(self.vis, rows, makecopy=makecopy)
-            assert selected_vis.nvis == numpy.sum(rows)
+            assert selected_vis.nvis == numpy.sum(numpy.array(rows))
             
     def test_create_blockvisibility(self):
         self.vis = create_blockvisibility(self.lowcore, self.times, self.frequency,
                                           channel_bandwidth=self.channel_bandwidth,  phasecentre=self.phasecentre,
                                           weight=1.0)
         assert self.vis.nvis == len(self.vis.time)
+
+    def test_cconvert_blockvisibility(self):
+        self.vis = create_blockvisibility(self.lowcore, self.times, self.frequency,
+                                          channel_bandwidth=self.channel_bandwidth,  phasecentre=self.phasecentre,
+                                          weight=1.0)
+        vis = convert_blockvisibility_to_visibility(self.vis)
+        assert vis.nvis == len(vis.time)
+        assert numpy.unique(vis.time).size == self.vis.time.size
 
     def test_create_blockvisibility_from_rows(self):
         self.vis = create_blockvisibility(self.lowcore, self.times, self.frequency,
@@ -70,7 +78,7 @@ class TestVisibilityOperations(unittest.TestCase):
         rows = self.vis.time > 150.0
         for makecopy in [True, False]:
             selected_vis = create_blockvisibility_from_rows(self.vis, rows, makecopy=makecopy)
-            assert selected_vis.nvis == numpy.sum(rows)
+            assert selected_vis.nvis == numpy.sum(numpy.array(rows))
 
 
 

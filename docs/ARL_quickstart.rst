@@ -28,7 +28,7 @@ Quick start
 
 The best way to run ARL is via jupyter notebooks. For example::
 
-   jupyter notebook imaging.ipynb
+   jupyter-notebook imaging.ipynb
 
 See the jupyter note books below:
 
@@ -39,6 +39,7 @@ See the jupyter note books below:
    arl/imaging-fits
    arl/imaging-wterm
    arl/RCAL
+   arl/peeling
 
 In addition, there are other notebooks in examples/arl that are not built as part of this documentation. See e.g.
 examples/arl/imaging-low.ipynb, examples/arl/imaging-coalesce

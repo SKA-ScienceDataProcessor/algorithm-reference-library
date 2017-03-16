@@ -6,14 +6,14 @@
 #
 import collections
 
-from arl.calibration.gaintable import solve_gaintable
+from arl.calibration.solvers import solve_gaintable
 from arl.fourier_transforms.ftprocessor import predict_skycomponent_blockvisibility
 from arl.visibility.operations import *
 
 log = logging.getLogger(__name__)
 
 
-def RCAL(vis: BlockVisibility, components, **kwargs):
+def rcal(vis: BlockVisibility, components, **kwargs):
     """ Real-time calibration pipeline.
     
     :param vis: Visibility or Union(Visibility, Iterable)
@@ -32,7 +32,7 @@ def RCAL(vis: BlockVisibility, components, **kwargs):
         yield gt
 
 
-def ICAL(**kwargs):
+def ical(**kwargs):
     """ Post observation image, deconvolve, and self-calibrate
    
     :param params: Dictionary containing parameters
@@ -78,8 +78,8 @@ def fast_imaging(**kwargs):
     return True
 
 
-def EOR(**kwargs):
-    """EOR calibration and imaging
+def eor(**kwargs):
+    """eor calibration and imaging
     
     :param params: Dictionary containing parameters
     :return:

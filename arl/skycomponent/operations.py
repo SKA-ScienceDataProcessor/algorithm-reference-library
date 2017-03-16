@@ -154,6 +154,8 @@ def insert_skycomponent(im: Image, sc: Skycomponent, insert_method=''):
     
     assert type(im) == Image
     
+    nchan, npol, ny, nx = im.data.shape
+    
     if not isinstance(sc, collections.Iterable):
         sc = [sc]
     
@@ -170,7 +172,8 @@ def insert_skycomponent(im: Image, sc: Skycomponent, insert_method=''):
         else:
             pixloc = numpy.round(skycoord_to_pixel(comp.direction, im.wcs, 1, 'wcs')).astype('int')
             x, y = pixloc[0], pixloc[1]
-            im.data[:, :, y, x] += comp.flux
+            if x >= 0 and x < nx and y >= 0 and y < ny:
+                im.data[:, :, y, x] += comp.flux
     
     return im
 

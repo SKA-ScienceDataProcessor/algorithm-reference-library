@@ -35,23 +35,23 @@ class TestPipelines(unittest.TestCase):
                                                    components=self.comp, phase_error=0.1, amplitude_error=0.01)
     
     def test_RCAL(self):
-        for igt, gt in enumerate(RCAL(vis=self.vis, components=self.comp)):
+        for igt, gt in enumerate(rcal(vis=self.vis, components=self.comp)):
             print("Chunk %d, gaintable size %.3f (GB)" % (igt, gt.size()))
     
     def test_ICAL(self):
-        ical = ICAL(vis=self.vis, components=self.comp)
+        icalpipe = ical(vis=self.vis, components=self.comp)
     
     def test_continuum_imaging(self):
-        ci = continuum_imaging(vis=self.vis, components=self.comp, algorithm='msclean')
+        cipipe = continuum_imaging(vis=self.vis, components=self.comp, algorithm='msclean')
     
     def test_spectral_line_imaging(self):
-        sli = spectral_line_imaging(vis=self.vis, components=self.comp, algorithm='msclean')
+        slipipe = spectral_line_imaging(vis=self.vis, components=self.comp, algorithm='msclean')
     
     def test_fast_imaging(self):
-        fi = fast_imaging(vis=self.vis, components=self.comp, Gsolinit=300.0)
+        fipipe = fast_imaging(vis=self.vis, components=self.comp, Gsolinit=300.0)
     
     def test_EOR(self):
-        eor = EOR(vis=self.vis, components=self.comp, Gsolinit=300.0)
+        eorpipe = eor(vis=self.vis, components=self.comp, Gsolinit=300.0)
 
 
 if __name__ == '__main__':

@@ -49,9 +49,9 @@ def solve_image(vis: Visibility, model: Image, components=[], predict=predict_2d
         log.info("solve_image: Start of major cycle %d" % i)
         cc, res = deconvolve_cube(dirty, psf, **kwargs)
         model.data += cc.data
-        vispred = predict_2d(vispred, model, **kwargs)
+        vispred = predict(vispred, model, **kwargs)
         visres.data['vis'] = vis.data['vis'] - vispred.data['vis']
-        dirty, sumwt = invert_2d(visres, model, **kwargs)
+        dirty, sumwt = invert(visres, model, **kwargs)
         if numpy.abs(dirty.data).max() < 1.1 * thresh:
             log.info("Reached stopping threshold %.6f Jy" % thresh)
             break

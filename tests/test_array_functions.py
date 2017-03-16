@@ -87,7 +87,6 @@ class TestArray_functions(unittest.TestCase):
         arr = numpy.linspace(0.0, 100.0, 11)
         wts = numpy.ones_like(arr)
         carr, cwts = average_chunks(arr, wts, 2)
-        print(arr.dtype)
         carr_jit, cwts_jit = average_chunks_jit(arr, wts, 2)
         numpy.testing.assert_array_equal(carr, carr_jit)
         numpy.testing.assert_array_equal(cwts, cwts_jit)

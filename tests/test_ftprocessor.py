@@ -87,7 +87,7 @@ class TestFTProcessor(unittest.TestCase):
         
         # Create model
         self.model = create_image_from_visibility(self.componentvis, npixel=256, cellsize=0.001,
-                                                  nchan=1)
+                                                  nchan=1, polarisation_frame=PolarisationFrame('stokesI'))
         
         # Fill the visibility with exactly computed point sources. These are chosen to lie
         # on grid points.
@@ -289,7 +289,7 @@ class TestFTProcessor(unittest.TestCase):
     def test_create_image_from_visibility(self):
         self.actualSetUp()
         im = create_image_from_visibility(self.componentvis, nchan=1, npixel=128)
-        assert im.data.shape == (1, 1, 128, 128)
+        assert im.data.shape == (1, 4, 128, 128)
 
     def test_create_image_from_blockvisibility(self):
         self.actualSetUp()
@@ -298,12 +298,12 @@ class TestFTProcessor(unittest.TestCase):
                                                    phasecentre=self.phasecentre, weight=1.0,
                                                    polarisation_frame=PolarisationFrame('stokesI'))
         im = create_image_from_visibility(self.componentvis, nchan=1, npixel=128)
-        assert im.data.shape == (1, 1, 128, 128)
+        assert im.data.shape == (1, 4, 128, 128)
         im = create_image_from_visibility(self.componentvis, frequency=self.frequency, npixel=128)
-        assert im.data.shape == (len(self.frequency), 1, 128, 128)
+        assert im.data.shape == (len(self.frequency), 4, 128, 128)
         im = create_image_from_visibility(self.componentvis, frequency=self.frequency, npixel=128,
                                           nchan=1)
-        assert im.data.shape == (1, 1, 128, 128)
+        assert im.data.shape == (1, 4, 128, 128)
 
     def test_create_w_term_image(self):
         self.actualSetUp()

@@ -238,3 +238,14 @@ def decoalesce_vis(vshape, cvis, cindex):
         dvis.flat[i:i+npol] = cvis[cindex[i]]
     
     return dvis
+
+
+def convert_blockvisibility_to_visibility(vis: BlockVisibility) -> Visibility:
+    """ Convert a BlockVisibility to Visibility format
+
+    This does no averaging. See coalesce_visibility for averaging.
+
+    :param vis: Visibility
+
+    """
+    return coalesce_visibility(vis, max_coalescence=1)[0]

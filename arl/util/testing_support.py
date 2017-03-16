@@ -7,17 +7,21 @@ Definition of structures needed by the function interface.
 import csv
 
 from astropy.coordinates import EarthLocation
+import astropy.units as u
 from astropy.io import fits
 from astropy.wcs import WCS
 from scipy import interpolate
 
-from arl.calibration.gaintable import *
+from arl.data.data_models import Configuration, Image, GainTable, Skycomponent
+from arl.data.polarisation import PolarisationFrame
+from arl.calibration.operations import create_gaintable_from_blockvisibility, apply_gaintable
 from arl.data.parameters import arl_path
 from arl.fourier_transforms.ftprocessor_base import predict_2d, predict_skycomponent_blockvisibility
 from arl.image.operations import import_image_from_fits, create_image_from_array, \
     reproject_image, create_empty_image_like
 from arl.util.coordinate_support import *
 from arl.visibility.operations import create_blockvisibility, copy_visibility
+import logging
 
 log = logging.getLogger(__name__)
 
@@ -50,7 +54,6 @@ def create_configuration_from_file(antfile: str, name: str = None, location: Ear
     return fc
 
 
-# noinspection PyUnresolvedReferences,PyUnresolvedReferences,PyUnresolvedReferences
 def create_LOFAR_configuration(antfile: str, meta: dict = None,
                                **kwargs):
     """ Define from the LOFAR configuration file
@@ -160,154 +163,6 @@ def create_test_image(canonical=True, cellsize=None, frequency=[1e8], channel_ba
         im.wcs.wcs.crpix[1] = im.data.shape[2] // 2
     
     return im
-
-
-def create_low_test_image(npixel=16384, polarisation_frame=PolarisationFrame("stokesI"), cellsize=0.000015,
-                          frequency=numpy.array([1e8]), channel_bandwidth=numpy.array([1e6]), phasecentre=None,
-                          fov=20):
-    """Create LOW test image from S3
-
-    The input catalog was generated at http://s-cubed.physics.ox.ac.uk/s3_sex using the following query::
-        Database: s3_sex
-        SQL: select * from Galaxies where (pow(10,itot_151)*1000 > 1.0) and (right_ascension between -5 and 5) and (declination between -5 and 5);;
-
-    Number of rows returned: 29966
-
-    There are three possible tables to use::
-
-        data/models/S3_151MHz_10deg.csv, use fov=10
-        data/models/S3_151MHz_20deg.csv, use fov=20
-        data/models/S3_151MHz_40deg.csv, use fov=40
-
-    The component spectral index is calculated from the 610MHz and 151MHz, and then calculated for the specified
-    frequencies.
-
-    If polarisation_frame is not stokesI then the image will a polarised axis but the values will be zero.
-
-    :param npixel: Number of pixels
-    :param polarisation_frame: Polarisation frame (default PolarisationFrame("stokesI"))
-    :param cellsize: cellsize in radians
-    :param frequency:
-    :param channel_bandwidth: Channel width (Hz)
-    :param phasecentre: phasecentre (SkyCoord)
-    :param fov: fov table to use
-    :returns: Image
-    """
-    
-    ras = []
-    decs = []
-    fluxes = []
-    
-    if phasecentre is None:
-        phasecentre = SkyCoord(ra=+180.0 * u.deg, dec=-60.0 * u.deg, frame='icrs', equinox=2000.0)
-    
-    if polarisation_frame is None:
-        polarisation_frame = PolarisationFrame("I")
-    
-    npol = polarisation_frame.npol
-    
-    nchan = len(frequency)
-    
-    shape = [nchan, npol, npixel, npixel]
-    w = WCS(naxis=4)
-    # The negation in the longitude is needed by definition of RA, DEC
-    w.wcs.cdelt = [-cellsize * 180.0 / numpy.pi, cellsize * 180.0 / numpy.pi, 1.0, channel_bandwidth[0]]
-    w.wcs.crpix = [npixel // 2, npixel // 2, 1.0, 1.0]
-    w.wcs.ctype = ["RA---SIN", "DEC--SIN", 'STOKES', 'FREQ']
-    w.wcs.crval = [phasecentre.ra.deg, phasecentre.dec.deg, 1.0, frequency[0]]
-    w.naxis = 4
-    
-    w.wcs.radesys = 'ICRS'
-    w.wcs.equinox = 2000.0
-    
-    model = create_image_from_array(numpy.zeros(shape), w, polarisation_frame=polarisation_frame)
-    
-    assert fov in [10, 20, 40], "Field of view invalid: use one of %s" % ([10, 20, 40])
-    with open(arl_path('data/models/S3_151MHz_%ddeg.csv' % (fov))) as csvfile:
-        readCSV = csv.reader(csvfile, delimiter=',')
-        r = 0
-        for row in readCSV:
-            # Skip first row
-            if r > 0:
-                ra = float(row[4]) + phasecentre.ra.deg
-                dec = float(row[5]) + phasecentre.dec.deg
-                alpha = (float(row[10]) - float(row[9])) / numpy.log10(610.0 / 151.0)
-                flux = numpy.power(10, float(row[9])) * numpy.power(frequency / 1.51e8, alpha)
-                ras.append(ra)
-                decs.append(dec)
-                fluxes.append(flux)
-            r += 1
-    
-    p = w.sub(2).wcs_world2pix(numpy.array(ras), numpy.array(decs), 1)
-    total_flux = numpy.sum(fluxes)
-    fluxes = numpy.array(fluxes)
-    ip = numpy.round(p).astype('int')
-    ok = numpy.where((0 <= ip[0, :]) & (npixel > ip[0, :]) & (0 <= ip[1, :]) & (npixel > ip[1, :]))[0]
-    ps = ip[:, ok]
-    fluxes = fluxes[ok]
-    actual_flux = numpy.sum(fluxes)
-    
-    log.info('create_low_test_image: %d sources inside the image' % (ps.shape[1]))
-    
-    log.info('create_low_test_image: flux in S3 model = %.3f, actual flux in image = %.3f' % (total_flux, actual_flux))
-    for chan in range(nchan):
-        for iflux, flux in enumerate(fluxes):
-            model.data[chan, 0, ps[1, iflux], ps[0, iflux]] = flux[chan]
-    
-    return model
-
-
-def create_low_test_beam(model):
-    """Create a test power beam for LOW using an image from OSKAR
-
-    This is in progress. Currently uses the wrong beam!
-
-    :param model: Template image
-    :returns: Image
-    """
-    
-    beam = import_image_from_fits(arl_path('data/models/SKA1_LOW_beam.fits'))
-    
-    # Scale the image cellsize to account for the different in frequencies. Eventually we will want to
-    # use a frequency cube
-    log.info("create_low_test_beam: primary beam is defined at %.3f MHz" % (beam.wcs.wcs.crval[2] * 1e-6))
-    log.info("create_low_test_beam: scaling to model frequency %.3f MHz" % (model.wcs.wcs.crval[3] * 1e-6))
-    
-    nchan, npol, ny, nx = model.shape
-    
-    # We need to interpolate each frequency channel separately. The beam is assumed to just scale with
-    # frequency.
-    
-    reprojected_beam = create_empty_image_like(model)
-    
-    for chan in range(nchan):
-        
-        model2dwcs = model.wcs.sub(2).deepcopy()
-        model2dshape = [model.shape[2], model.shape[3]]
-        beam2dwcs = beam.wcs.sub(2).deepcopy()
-        
-        # The frequency axis is the second to last in the beam
-        frequency = model.wcs.sub(['spectral']).wcs_pix2world([chan], 0)[0]
-        fscale = beam.wcs.wcs.crval[2] / frequency
-        
-        beam2dwcs.wcs.cdelt = fscale * beam.wcs.sub(2).wcs.cdelt
-        beam2dwcs.wcs.crpix = beam.wcs.sub(2).wcs.crpix
-        beam2dwcs.wcs.crval = model.wcs.sub(2).wcs.crval
-        beam2dwcs.wcs.ctype = model.wcs.sub(2).wcs.ctype
-        model2dwcs.wcs.crpix = [model.shape[2] // 2, model.shape[3] // 2]
-        
-        beam2d = create_image_from_array(beam.data[0, 0, :, :], beam2dwcs)
-        print(beam2dwcs)
-        print(model2dwcs)
-        reprojected_beam2d, footprint = reproject_image(beam2d, model2dwcs, shape=model2dshape)
-        assert numpy.max(footprint.data) > 0.0, "No overlap between beam and model"
-        
-        reprojected_beam2d.data *= reprojected_beam2d.data
-        reprojected_beam2d.data[footprint.data <= 0.0] = 0.0
-        for pol in range(npol):
-            reprojected_beam.data[chan, pol, :, :] = reprojected_beam2d.data[:, :]
-    
-    return reprojected_beam
 
 
 def create_low_test_image(npixel=16384, polarisation_frame=PolarisationFrame("stokesI"), cellsize=0.000015,
@@ -757,7 +612,6 @@ def create_blockvisibility_iterator(config: Configuration, times: numpy.array, f
         if phase_error > 0.0 or amplitude_error > 0.0:
             gt = create_gaintable_from_blockvisibility(vis)
             gt = simulate_gaintable(gt=gt, vis=vis, phase_error=phase_error, amplitude_error=amplitude_error)
-            original = copy_visibility(vis)
             vis = apply_gaintable(vis, gt)
         
         yield vis

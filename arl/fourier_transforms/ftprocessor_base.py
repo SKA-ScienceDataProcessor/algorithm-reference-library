@@ -376,8 +376,8 @@ def create_image_from_visibility(vis: Visibility, **kwargs) -> Image:
         log.info("create_image_from_visibility: Resetting cellsize %f radians to criticalcellsize %f radians" % (
             cellsize, criticalcellsize))
         cellsize = criticalcellsize
-    
-    inpol = get_parameter(kwargs, "npol", 1)
+    pol_frame = get_parameter(kwargs, "polarisation_frame", PolarisationFrame("stokesI"))
+    inpol = pol_frame.npol
     
     # Now we can define the WCS, which is a convenient place to hold the info above
     # Beware of python indexing order! wcs and the array have opposite ordering

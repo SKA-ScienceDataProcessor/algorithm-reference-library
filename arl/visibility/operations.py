@@ -8,10 +8,9 @@ import copy
 
 import astropy.constants as constants
 
-from arl.data.polarisation import ReceptorFrame, correlate_polarisation
+from arl.data.polarisation import correlate_polarisation
 from arl.fourier_transforms.ftprocessor_params import *
 from arl.util.coordinate_support import *
-
 log = logging.getLogger(__name__)
 
 
@@ -308,6 +307,7 @@ def sum_visibility(vis: Visibility, direction: SkyCoord) -> numpy.array:
     flux[weight > 0.0] = flux[weight > 0.0] / weight[weight > 0.0]
     flux[weight <= 0.0] = 0.0
     return flux, weight
+
 
 
 def qa_visibility(vis, context=None):

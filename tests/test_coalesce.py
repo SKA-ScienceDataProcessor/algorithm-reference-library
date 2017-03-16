@@ -4,9 +4,16 @@ realtimcornwell@gmail.com
 """
 import unittest
 
+import numpy
+
+from astropy.coordinates import SkyCoord
+import astropy.units as u
+from arl.data.polarisation import PolarisationFrame
 from arl.util.testing_support import create_named_configuration
-from arl.visibility.coalesce import *
+from arl.visibility.coalesce import coalesce_visibility, decoalesce_visibility
 from arl.visibility.operations import create_blockvisibility
+
+import logging
 
 log = logging.getLogger(__name__)
 
