@@ -1,3 +1,3 @@
 
-NBs = imaging.ipynb imaging-wterm.ipynb imaging-fits.ipynb RCAL.ipynb peeling.ipynb
+NBs = imaging.ipynb imaging-wterm.ipynb imaging-fits.ipynb rcal.ipynb peeling.ipynb
 include ../jupyter.mk
