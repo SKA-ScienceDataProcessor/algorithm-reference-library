@@ -8,13 +8,14 @@ functions in arl.fourier_transforms.
 from astropy import constants
 from arl.data.data_models import *
 from arl.data.parameters import get_parameter
-from arl.util.array_functions import average_chunks2
+from arl.util.array_functions import average_chunks, average_chunks2
 from arl.visibility.operations import vis_summary, copy_visibility
 
 log = logging.getLogger(__name__)
 
 
-def coalesce_visibility(vis: BlockVisibility, coalescence_factor=0.0, max_coalescence=10) -> Visibility:
+def coalesce_visibility(vis: BlockVisibility, time_coal=1.0, max_time_coal=100, frequency_coal=1.0,
+                        max_frequency_coal=100) -> (Visibility, numpy.ndarray):
     """ Coalesce the BlockVisibility data. The output format is a Visibility, as needed for imaging
 
     Coalesce by baseline-dependent averaging (optional). The number of integrations averaged goes as the ratio of the
@@ -23,7 +24,10 @@ def coalesce_visibility(vis: BlockVisibility, coalescence_factor=0.0, max_coales
     
     If coalescence_factor=0.0 then just a format conversion is done
 
+    :param frequency_coal:
+    :param max_frequency_coal:
     :param vis: BlockVisibility to be coalesced
+    :param time_coal: Coalescence in time (integer)
     :returns: Coalesced visibility, cindex
     """
     
@@ -33,10 +37,9 @@ def coalesce_visibility(vis: BlockVisibility, coalescence_factor=0.0, max_coales
     # Default is no-op
     
     cvis, cuvw, cwts, ctime, cfrequency, cchannel_bandwidth, ca1, ca2, cintegration_time, cindex\
-        = average_in_blocks(vis.data['vis'], vis.data['uvw'], vis.data['weight'],
-                            vis.time, vis.integration_time,
-                            vis.frequency, vis.channel_bandwidth,
-                            coalescence_factor, max_coalescence)
+        = average_in_blocks(vis.data['vis'], vis.data['uvw'], vis.data['weight'], vis.time, vis.integration_time,
+                            vis.frequency, vis.channel_bandwidth, time_coal, max_time_coal,
+                            frequency_coal, max_frequency_coal)
     cimwt = numpy.ones(cvis.shape)
     coalesced_vis = Visibility(uvw=cuvw, time=ctime, frequency=cfrequency,
                                channel_bandwidth=cchannel_bandwidth,
@@ -45,8 +48,9 @@ def coalesce_visibility(vis: BlockVisibility, coalescence_factor=0.0, max_coales
                                configuration=vis.configuration, integration_time=cintegration_time,
                                polarisation_frame=vis.polarisation_frame)
         
-    log.info('coalesce_visibility: Created new Visibility for coalesced data, coalescence factor = %.3f' % (
-        coalescence_factor))
+    log.info('coalesce_visibility: Created new Visibility for coalesced data, coalescence factors (t,f) = (%.3f,%.3f)'
+             % (time_coal, frequency_coal))
+    log.info('coalesce_visibility: Maximum coalescence (t,f) = (%d, %d)' % (max_time_coal, max_frequency_coal))
     log.info('coalesce_visibility: Original %s, coalesced %s' % (vis_summary(vis), vis_summary(coalesced_vis)))
     
     return coalesced_vis, cindex
@@ -90,8 +94,8 @@ def decoalesce_visibility(vis, template_vis, cindex=None, overwrite=False):
 
 
 
-def average_in_blocks(vis, uvw, wts, times, integration_time, frequency, channel_bandwidth,
-                      coalescence_factor, max_coalescence):
+def average_in_blocks(vis, uvw, wts, times, integration_time, frequency, channel_bandwidth, time_coal=1.0,
+                      max_time_coal=100, frequency_coal=1.0, max_frequency_coal=100):
     # Calculate the averaging factors for time and frequency making them the same for all times
     # for this baseline
     # Find the maximum possible baseline and then scale to this.
@@ -103,48 +107,55 @@ def average_in_blocks(vis, uvw, wts, times, integration_time, frequency, channel
     
     # Pol independent weighting
     allpwtsgrid = numpy.sum(wts, axis=4)
-    # Channel and polarisation independent weighting
+    # Pol and frequency independent weighting
     allcpwtsgrid = numpy.sum(allpwtsgrid, axis=3)
+    # Pol and time independent weighting
+    alltpwtsgrid = numpy.sum(allpwtsgrid, axis=0)
 
     # Now calculate on a baseline basis the time and frequency averaging. We do this by looking at
     # the maximum uv distance for all data and for a given baseline. The integration time and
     # channel bandwidth are scale appropriately.
-    uvmax = numpy.sqrt(numpy.max(uvw[:, 0] ** 2 + uvw[:, 1] ** 2 + uvw[:, 1] ** 2))
+    uvmax = numpy.sqrt(numpy.max(uvw[:, 0] ** 2 + uvw[:, 1] ** 2 + uvw[:, 2] ** 2))
     time_average = numpy.zeros([nant, nant], dtype='int')
     frequency_average = numpy.zeros([nant, nant], dtype='int')
     ua1 = numpy.arange(nant-1)
     ua2 = ua1 + 1
     for a2 in ua2:
         for a1 in ua1:
-            if allpwtsgrid[:, a2, a1, :].any() > 0.0:
+            if (a1 < a2) & allpwtsgrid[:, a2, a1, :].any() > 0.0:
                 uvdist = numpy.max(numpy.sqrt(uvw[:, a2, a1, 0] ** 2 + uvw[:, a2, a1, 1] ** 2), axis=0)
                 if uvdist > 0.0:
-                    time_average[a2, a1] = min(max_coalescence,
-                                               max(1, int(round((coalescence_factor * uvmax / uvdist)))))
-                    frequency_average[a2, a1] = min(max_coalescence,
-                                                    max(1, int(round((coalescence_factor * uvmax / uvdist)))))
+                    time_average[a2, a1] = min(max_time_coal,
+                                               max(1, int(round((time_coal * uvmax / uvdist)))))
+                    frequency_average[a2, a1] = min(max_frequency_coal,
+                                                    max(1, int(round(frequency_coal * uvmax / uvdist))))
+                    time_average[a1, a2] = time_average[a2, a1]
+                    frequency_average[a1, a2] = frequency_average[a2, a1]
     
     # See how many time chunks and frequency we need for each baseline. To do this we use the same averaging that
     # we will use later for the actual data. This tells us the number of chunks required for each baseline.
-    timesgrid, frequencygrid = numpy.meshgrid(times, frequency)
-    integrationtimegrid, channelbandwidthgrid = numpy.meshgrid(integration_time, channel_bandwidth)
-
+    frequency_grid, time_grid = numpy.meshgrid(frequency, times)
+    channel_bandwidth_grid, integration_time_grid = numpy.meshgrid(channel_bandwidth, integration_time)
     cnvis = 0
-    len_time_chunks = numpy.ones([nant, nant], dtype='int')
-    len_frequency_chunks = numpy.ones([nant, nant], dtype='int')
+    time_chunk_len = numpy.ones([nant, nant], dtype='int')
+    frequency_chunk_len = numpy.ones([nant, nant], dtype='int')
     for a2 in ua2:
         for a1 in ua1:
-            if (a1 < a2) & (time_average[a2, a1] > 0) & (frequency_average[a2, a1] > 0 & \
+            if (a1 < a2) & (time_average[a2, a1] > 0) & (frequency_average[a2, a1] > 0 &
                     (allpwtsgrid[:, a2, a1, ...].any() > 0.0)):
                 def average_from_grid(arr):
-                    return average_chunks2(arr, allpwtsgrid[:, a2, a1, :], \
+                    return average_chunks2(arr, allpwtsgrid[:, a2, a1, :],
                                            (time_average[a2, a1], frequency_average[a2, a1]))
 
-                time_chunks, _ = average_from_grid(timesgrid)
-                len_time_chunks[a2, a1] = time_chunks.shape[0]
-                frequency_chunks, _ = average_from_grid(frequencygrid)
-                len_frequency_chunks[a2, a1] = frequency_chunks.shape[1]
-                cnvis += len_time_chunks[a2, a1] * len_frequency_chunks[a2, a1]
+                # time_chunks, _ = average_from_grid(timesgrid)
+                time_chunks, _ = average_chunks(times, allcpwtsgrid[:, a2, a1], time_average[a2, a1])
+                time_chunk_len[a2, a1] = time_chunks.shape[0]
+                time_chunk_len[a1, a2] = time_chunk_len[a2, a1]
+                # frequency_chunks, _ = average_from_grid(frequencygrid)
+                frequency_chunks, _ = average_chunks(frequency, alltpwtsgrid[a2, a1, :], frequency_average[a2, a1])
+                frequency_chunk_len[a2, a1] = frequency_chunks.shape[0]
+                frequency_chunk_len[a1, a2] = frequency_chunk_len[a2, a1]
+                cnvis += time_chunk_len[a2, a1] * frequency_chunk_len[a2, a1]
     
     # Now we know enough to define the output coalesced arrays. The shape will be
     # succesive a1, a2: [len_time_chunks[a2,a1], a2, a1, len_frequency_chunks[a2,a1]]
@@ -174,16 +185,12 @@ def average_in_blocks(vis, uvw, wts, times, integration_time, frequency, channel
     visstart = 0
     for a2 in ua2:
         for a1 in ua1:
-            if (a1 < a2) & (len_time_chunks[a2, a1] > 0) & (len_frequency_chunks[a2, a1] > 0) & \
+            if (a1 < a2) & (time_chunk_len[a2, a1] > 0) & (frequency_chunk_len[a2, a1] > 0) & \
                     (allpwtsgrid[:, a2, a1, :].any() > 0.0):
                 
-                nrows = len_time_chunks[a2, a1] * len_frequency_chunks[a2, a1]
+                nrows = time_chunk_len[a2, a1] * frequency_chunk_len[a2, a1]
                 rows = slice(visstart, visstart + nrows)
 
-                # # cindex is the map of output coalesced rows to input original coordinates
-                # for tm in range(vis.shape[0]):
-                #     cindex[tm, a2, a1, :] = numpy.array(range(visstart+tm*len_frequency_chunks[a2, a1],
-                #                                               visstart+(tm+1)*len_frequency_chunks[a2, a1]))
                 cindex.flat[rowgrid[:, a2, a1, :]] = numpy.array(range(visstart, visstart + nrows))
 
                 ca1[rows] = a1
@@ -194,11 +201,11 @@ def average_in_blocks(vis, uvw, wts, times, integration_time, frequency, channel
                     return average_chunks2(arr, allpwtsgrid[:, a2, a1, :], \
                                            (time_average[a2, a1], frequency_average[a2, a1]))[0]
                 
-                ctime[rows] = average_from_grid(timesgrid).flatten()
-                cfrequency[rows] = average_from_grid(frequencygrid).flatten()
+                ctime[rows] = average_from_grid(time_grid).flatten()
+                cfrequency[rows] = average_from_grid(frequency_grid).flatten()
 
                 for axis in range(3):
-                    uvwgrid = numpy.outer(uvw[:, a1, a2, axis], frequency / constants.c.to('m/s').value)
+                    uvwgrid = numpy.outer(uvw[:, a2, a1, axis], frequency / constants.c.to('m/s').value)
                     cuvw[rows, axis] = average_from_grid(uvwgrid).flatten()
                 
                 # For some variables, we need the sum not the average
@@ -207,8 +214,8 @@ def average_in_blocks(vis, uvw, wts, times, integration_time, frequency, channel
                                              (time_average[a2, a1], frequency_average[a2, a1]))
                     return result[0] * result[0].size
                 
-                cintegration_time[rows] = sum_from_grid(integrationtimegrid).flatten()
-                cchannel_bandwidth[rows] = sum_from_grid(channelbandwidthgrid).flatten()
+                cintegration_time[rows] = sum_from_grid(integration_time_grid).flatten()
+                cchannel_bandwidth[rows] = sum_from_grid(channel_bandwidth_grid).flatten()
                 
                 # For the polarisations we have to perform the time-frequency average separately for each polarisation
                 for pol in range(npol):
@@ -248,4 +255,4 @@ def convert_blockvisibility_to_visibility(vis: BlockVisibility) -> Visibility:
     :param vis: Visibility
 
     """
-    return coalesce_visibility(vis, max_coalescence=1)[0]
+    return coalesce_visibility(vis, time_coal=1.0, max_time_coal=1, frequency_coal=1.0, max_frequency_coal=1)[0]

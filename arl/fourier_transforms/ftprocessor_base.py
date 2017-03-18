@@ -249,37 +249,39 @@ def predict_skycomponent_blockvisibility(vis: BlockVisibility, sc: Skycomponent,
 
         l, m, n = skycoord_to_lmn(comp.direction, vis.phasecentre)
         for chan in range(nchan):
-            phasor = simulate_point(vis.uvw * k, l, m)
+            phasor = simulate_point(vis.uvw * k[chan], l, m)
             for pol in range(npol):
                 vis.data['vis'][...,chan,pol] += flux[chan, pol] * phasor[...]
     
     return vis
 
 
-def predict_skycomponent_visibility(vis: Visibility, sc: Skycomponent, **kwargs) -> Visibility:
+def predict_skycomponent_visibility(vis: Visibility, sc: Skycomponent) -> Visibility:
     """Predict the visibility from a Skycomponent, add to existing visibility, for Visibility
 
     :param vis: Visibility
     :param sc: Skycomponent or list of SkyComponents
-    :param spectral_mode: {mfs|channel} (channel)
     :returns: Visibility
     """
     assert type(vis) is Visibility, "vis is not a Visibility: %r" % vis
     
     if not isinstance(sc, collections.Iterable):
         sc = [sc]
-        
+
+    _, ichan = list(get_frequency_map(vis, None))
+
     npol = vis.polarisation_frame.npol
+    
     for comp in sc:
         
         l, m, n = skycoord_to_lmn(comp.direction, vis.phasecentre)
         phasor = simulate_point(vis.uvw, l, m)
-        
-        _, ichan = get_frequency_map(vis, None)
-        
-        coords = phasor, list(ichan)
         for pol in range(npol):
-            vis.data['vis'][:,pol] += [comp.flux[ic, pol] * p for p, ic in zip(*coords)]
+            vis.data['vis'][:, pol] += comp.flux[ichan[:], pol] * phasor[:]
+        
+                # coords = phasor, ichan
+        # for pol in range(npol):
+        #     vis.data['vis'][:,pol] += [comp.flux[ic, pol] * p for p, ic in zip(*coords)]
     
     return vis
 

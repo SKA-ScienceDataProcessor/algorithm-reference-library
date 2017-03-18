@@ -70,7 +70,11 @@ def get_rowmap(col, ucol=None):
         
     for i, f in enumerate(ucol):
         pdict[phash(f)] = i
-    vmap = [pdict[phash(p)] for p in col]
+#    vmap = [pdict[phash(p)] for p in col]
+    vmap = []
+    for p in col:
+        vmap.append(pdict[phash(p)])
+
     return vmap
 
 

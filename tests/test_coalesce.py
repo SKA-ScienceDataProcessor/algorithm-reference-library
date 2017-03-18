@@ -31,16 +31,44 @@ class TestCoalesce(unittest.TestCase):
                                                channel_bandwidth=self.channel_bandwidth,
                                                phasecentre=self.phasecentre, weight=1.0,
                                                polarisation_frame=PolarisationFrame('stokesI'))
-    
-    def test_coalesce_decoalesce(self):
-        cvis, cindex = coalesce_visibility(self.blockvis, coalescence_factor=1.0)
+
+    def test_coalesce_decoalesce_zero(self):
+        cvis, cindex = coalesce_visibility(self.blockvis, time_coal=0.0, frequency_coal=0.0)
         assert numpy.min(cvis.frequency) == numpy.min(self.frequency)
         assert numpy.min(cvis.frequency) > 0.0
         dvis = decoalesce_visibility(cvis, self.blockvis, cindex=cindex)
         assert dvis.nvis == self.blockvis.nvis
         dvis = decoalesce_visibility(cvis, self.blockvis, cindex=cindex, overwrite=True)
         assert dvis.nvis == self.blockvis.nvis
-    
+
+
+    def test_coalesce_decoalesce(self):
+        cvis, cindex = coalesce_visibility(self.blockvis, time_coal=1.0, frequency_coal=1.0)
+        assert numpy.min(cvis.frequency) == numpy.min(self.frequency)
+        assert numpy.min(cvis.frequency) > 0.0
+        dvis = decoalesce_visibility(cvis, self.blockvis, cindex=cindex)
+        assert dvis.nvis == self.blockvis.nvis
+        dvis = decoalesce_visibility(cvis, self.blockvis, cindex=cindex, overwrite=True)
+        assert dvis.nvis == self.blockvis.nvis
+
+    def test_coalesce_decoalesce_frequency(self):
+        cvis, cindex = coalesce_visibility(self.blockvis, time_coal=0.0, max_time_coal=1, frequency_coal=1.0)
+        assert numpy.min(cvis.frequency) == numpy.min(self.frequency)
+        assert numpy.min(cvis.frequency) > 0.0
+        dvis = decoalesce_visibility(cvis, self.blockvis, cindex=cindex)
+        assert dvis.nvis == self.blockvis.nvis
+        dvis = decoalesce_visibility(cvis, self.blockvis, cindex=cindex, overwrite=True)
+        assert dvis.nvis == self.blockvis.nvis
+
+    def test_coalesce_decoalesce_time(self):
+        cvis, cindex = coalesce_visibility(self.blockvis, time_coal=1.0, frequency_coal=0.0, max_frequency_coal=1)
+        assert numpy.min(cvis.frequency) == numpy.min(self.frequency)
+        assert numpy.min(cvis.frequency) > 0.0
+        dvis = decoalesce_visibility(cvis, self.blockvis, cindex=cindex)
+        assert dvis.nvis == self.blockvis.nvis
+        dvis = decoalesce_visibility(cvis, self.blockvis, cindex=cindex, overwrite=True)
+        assert dvis.nvis == self.blockvis.nvis
+
     def test_coalesce_decoalesce_singletime(self):
         self.times = numpy.array([0.0])
         self.blockvis = create_blockvisibility(self.lowcore, self.times, self.frequency,
@@ -49,14 +77,14 @@ class TestCoalesce(unittest.TestCase):
                                                polarisation_frame=PolarisationFrame('stokesI'))
         # Fill in the vis values so each can be uniquely identified
         self.blockvis.data['vis'] = range(self.blockvis.nvis)
-        cvis, cindex = coalesce_visibility(self.blockvis, coalescence_factor=1.0)
+        cvis, cindex = coalesce_visibility(self.blockvis, time_coal=1.0)
         assert numpy.min(cvis.frequency) == numpy.min(self.frequency)
         assert numpy.min(cvis.frequency) > 0.0
         dvis = decoalesce_visibility(cvis, self.blockvis, cindex=cindex)
         assert dvis.nvis == self.blockvis.nvis
     
     def test_coalesce_decoalesce_tbgrid_vis_null(self):
-        cvis, cindex = coalesce_visibility(self.blockvis, coalescence_factor=0.0)
+        cvis, cindex = coalesce_visibility(self.blockvis, time_coal=0.0)
         assert numpy.min(cvis.frequency) == numpy.min(self.frequency)
         assert numpy.min(cvis.frequency) > 0.0
 

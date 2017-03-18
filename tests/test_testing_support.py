@@ -230,5 +230,5 @@ class TestTesting_Support(unittest.TestCase):
                                           polarisation_frame=PolarisationFrame('stokesI'))
         original = copy_visibility(self.vis)
         self.vis = predict_skycomponent_blockvisibility(self.vis, sc)
-        cvt, cindex = coalesce_visibility(self.vis, coalescence_factor=1.0)
+        cvt, cindex = coalesce_visibility(self.vis, time_coal=1.0)
         assert cindex is not None

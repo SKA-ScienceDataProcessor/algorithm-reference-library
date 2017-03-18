@@ -3,6 +3,8 @@
 
 """
 
+import warnings
+
 from astropy.convolution import Gaussian2DKernel, convolve
 from photutils import fit_2dgaussian
 
@@ -486,10 +488,20 @@ def restore_cube(model, psf, residual=None):
     
     npixel = psf.data.shape[3]
     sl = slice(npixel // 2 - 7, npixel // 2 + 8)
-    fit = fit_2dgaussian(psf.data[0, 0, sl, sl])
     
     # isotropic at the moment!
-    size = min(fit.x_stddev, fit.y_stddev)
+    try:
+        fit = fit_2dgaussian(psf.data[0, 0, sl, sl])
+        print(fit)
+        if fit.x_stddev <= 0.0 or fit.y_stddev <= 0.0:
+            log.debug('restore_cube: error in fitting to psf, using 1 pixel stddev')
+            size = 1.0
+        else:
+            size = max(fit.x_stddev, fit.y_stddev)
+            log.debug('restore_cube: psfwidth = %s' %(size))
+    except:
+        log.debug('restore_cube: warning in fit to psf, using 1 pixel stddev')
+        size = 1.0
     
     # By convention, we normalise the peak not the integral so this is the volume of the Gaussian
     norm = 2.0 * numpy.pi * size ** 2

@@ -4,6 +4,8 @@
 Functions that define and manipulate images. Images are just data and a World Coordinate System.
 """
 
+import warnings
+
 import copy
 
 import matplotlib.pyplot as plt
@@ -145,16 +147,20 @@ def export_image_to_fits(im: Image, fitsfile: str = 'imaging.fits'):
     return fits.writeto(filename=fitsfile, data=im.data, header=im.wcs.to_header(), overwrite=True)
 
 
-def import_image_from_fits(fitsfile: str):
+def import_image_from_fits(fitsfile: str, mute_warnings = True):
     """ Read an Image from fits
     
     :param fitsfile:
     :returns: Image
     """
-    hdulist = fits.open(arl_path(fitsfile))
     fim = Image()
-    fim.data = hdulist[0].data
-    fim.wcs = WCS(arl_path(fitsfile))
+    with warnings.catch_warnings():
+        warnings.simplefilter('ignore')
+        hdulist = fits.open(arl_path(fitsfile))
+        fim.data = hdulist[0].data
+        fim.wcs = WCS(arl_path(fitsfile))
+        hdulist.close()
+    
     if len(fim.data) == 2:
         fim.polarisation_frame = PolarisationFrame('stokesI')
     else:
@@ -163,7 +169,7 @@ def import_image_from_fits(fitsfile: str):
         except:
             fim.polarisation_frame = PolarisationFrame('stokesI')
             
-    hdulist.close()
+
     log.info("import_image_from_fits: created image of shape %s, size %.3f (GB)" %
              (str(fim.shape), image_sizeof(fim)))
     log.info("import_image_from_fits: Max, min in %s = %.6f, %.6f" % (fitsfile, fim.data.max(), fim.data.min()))
@@ -246,7 +252,7 @@ def qa_image(im, mask=None, **kwargs):
     return qa
 
 
-def show_image(im: Image, fig=None, title: str = '', pol=0, chan=0, cm='Greys'):
+def show_image(im: Image, fig=None, title: str = '', pol=0, chan=0, cm='rainbow'):
     """ Show an Image with coordinates using matplotlib
 
     :param im:
