@@ -97,7 +97,11 @@ def predict_with_vis_iterator(vis, model, vis_iter=vis_slice_iter, predict=predi
         # http://stackoverflow.com/questions/2598734/numpy-creating-a-complex-array-from-2-real-ones
         
         shape = vis.data['vis'].shape
-        shape = [shape[0], shape[1], shape[2], 2]
+        if len(shape) == 2:
+            shape = [shape[0], shape[1], 2]
+        else:
+            raise RuntimeError("Visibility is the wrong shape")
+        
         log.debug('Creating shared array of float type and shape %s for visibility' % (str(shape)))
         shared_vis = pymp.shared.array(shape).view(dtype='complex128')[..., 0]
         

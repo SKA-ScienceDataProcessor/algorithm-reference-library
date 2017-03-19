@@ -183,16 +183,15 @@ class TestFTProcessor(unittest.TestCase):
     def test_predict_timeslice(self):
         # This works very poorly because of the poor interpolation accuracy for point sources
         self.actualSetUp()
-        self.params['nprocessor']=1
-        self._predict_base(predict_timeslice, fluxthreshold=10.0)
+        for self.params['nprocessor'] in [1, 4]:
+            self._predict_base(predict_timeslice, fluxthreshold=10.0)
 
     def test_predict_wslice(self):
         self.actualSetUp()
         self.params['wslice']=10.0
         self.params['imaginary'] = True
-        for self.params['nprocessor'] in [1, 4]:
-            self.actualSetUp()
-            self._predict_base(predict_wslice, fluxthreshold=2.0)
+        self.actualSetUp()
+        self._predict_base(predict_wslice, fluxthreshold=2.0)
 
     def test_predict_wprojection(self):
         self.actualSetUp()
@@ -239,9 +238,8 @@ class TestFTProcessor(unittest.TestCase):
         export_image_to_fits(dirtyFacet, '%s/test_%s_dirty.fits' % (self.dir, invert.__name__))
         self._checkcomponents(dirtyFacet, fluxthreshold, positionthreshold)
     
-    def test_invert_by_facets(self):
+    def test_invert_facets(self):
         self.actualSetUp()
-        self.params['usereproject'] = False
         self._invert_base(invert_facets, positionthreshold=1.0)
 
     def test_invert_wslice(self):
