@@ -1,8 +1,9 @@
 import logging
 import unittest
 
+from util.read_oskar_vis import *
+
 from arl.data.parameters import arl_path
-from arl.misc.read_oskar_vis import *
 
 log = logging.getLogger(__name__)
 

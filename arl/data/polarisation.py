@@ -28,7 +28,7 @@ class ReceptorFrame:
             self.type = name
             self.translations = self.rec_frames[name]
         else:
-            raise RuntimeError("Unknown receptor frame %s" % str(name))
+            raise ValueError("Unknown receptor frame %s" % str(name))
     
     @property
     def nrec(self):
@@ -75,7 +75,7 @@ class PolarisationFrame:
             self.type = name
             self.translations = self.polarisation_frames[name]
         else:
-            raise RuntimeError("Unknown polarisation frame %s" % str(name))
+            raise ValueError("Unknown polarisation frame %s" % str(name))
     
     def __eq__(self, a):
         if a is None:
@@ -186,13 +186,13 @@ def convert_pol_frame(polvec, ipf: PolarisationFrame, opf: PolarisationFrame, po
         if opf == PolarisationFrame("stokesIQUV"):
             return convert_linear_to_stokes(polvec, polaxis)
         else:
-            log.error("Unknown polarisation conversion")
+            raise ValueError("Unknown polarisation conversion")
     
     if ipf == PolarisationFrame("circular"):
         if opf == PolarisationFrame("stokesIQUV"):
             return convert_circular_to_stokes(polvec, polaxis)
         else:
-            log.error("Unknown polarisation conversion")
+            raise ValueError("Unknown polarisation conversion")
     
     if ipf == PolarisationFrame("stokesIQUV"):
         if opf == PolarisationFrame("linear"):
@@ -200,13 +200,13 @@ def convert_pol_frame(polvec, ipf: PolarisationFrame, opf: PolarisationFrame, po
         elif opf == PolarisationFrame("circular"):
             return convert_stokes_to_circular(polvec, polaxis)
         else:
-            log.error("Unknown polarisation conversion")
+            raise ValueError("Unknown polarisation conversion")
     
     if ipf == PolarisationFrame("stokesI"):
         if opf == PolarisationFrame("stokesI"):
             return polvec
-    
-    log.error("Unknown polarisation conversion")
+
+    raise ValueError("Unknown polarisation conversion")
 
 
 def correlate_polarisation(rec_frame: ReceptorFrame):
@@ -222,7 +222,7 @@ def correlate_polarisation(rec_frame: ReceptorFrame):
     elif rec_frame == ReceptorFrame("stokesI"):
         correlation = PolarisationFrame("stokesI")
     else:
-        raise RuntimeError("Unknown receptor frame %s for correlation" % rec_frame)
+        raise ValueError("Unknown receptor frame %s for correlation" % rec_frame)
     
     return correlation
 

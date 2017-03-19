@@ -102,30 +102,17 @@ def predict_timeslice_single(vis, model, **kwargs):
     # Use griddata to do the conversion. This could be improved. Only cubic is possible in griddata.
     # The interpolation is ok for invert since the image is smooth but for clean images the
     # interpolation is particularly poor, leading to speckle in the residual image.
-    usereproject = get_parameter(kwargs, "usereproject", False)
-    if usereproject:
-        log.debug('predict_timeslice: Using reproject to convert projection')
-        # Set the parameters defining the SIN projection for this plane
-        newwcs = model.wcs.deepcopy()
-        model.wcs.wcs.set_pv([(0, 0, 0.0), (0, 1, 0.0)])
-        newwcs.wcs.set_pv([(0, 0, -q), (0, 1, -p)])
-        # Reproject the model from the natural SIN projection to the oblique SIN projection
-        workimage, footprintimage = reproject_image(model, newwcs, shape=[inchan, inpol, ny, nx])
-        workimage.data[footprintimage.data <= 0.0] = 0.0
-        # export_image_to_fits(reprojected_image, "reproject%s.fits" % (numpy.average(vis.time)))
-
-    else:
-        lnominal, mnominal, ldistorted, mdistorted = lm_distortion(model, -p, -q)
-        log.debug('predict_timeslice: Using griddata to convert projection')
-        for chan in range(inchan):
-            for pol in range(inpol):
-                workimage.data[chan, pol, ...] = \
-                    griddata((mnominal.flatten(), lnominal.flatten()),
-                             values=workimage.data[chan, pol, ...].flatten(),
-                             xi=(mdistorted.flatten(), ldistorted.flatten()),
-                             method='cubic',
-                             fill_value=0.0,
-                             rescale=True).reshape(workimage.data[chan, pol, ...].shape)
+    lnominal, mnominal, ldistorted, mdistorted = lm_distortion(model, -p, -q)
+    log.debug('predict_timeslice: Using griddata to convert projection')
+    for chan in range(inchan):
+        for pol in range(inpol):
+            workimage.data[chan, pol, ...] = \
+                griddata((mnominal.flatten(), lnominal.flatten()),
+                         values=workimage.data[chan, pol, ...].flatten(),
+                         xi=(mdistorted.flatten(), ldistorted.flatten()),
+                         method='cubic',
+                         fill_value=0.0,
+                         rescale=True).reshape(workimage.data[chan, pol, ...].shape)
 
     
     # Now we can do the prediction for this slice using a 2d transform
@@ -179,31 +166,21 @@ def invert_timeslice_single(vis, im, dopsf, **kwargs):
 
     finalimage = create_empty_image_like(im)
     
-    usereproject = get_parameter(kwargs, "usereproject", False)
-    if usereproject:
-        # Set the parameters defining the SIN projection for this plane
-        newwcs = im.wcs.deepcopy()
-        newwcs.wcs.set_pv([(0, 0, 0.0), (0, 1, 0.0)])
-        workimage.wcs.wcs.set_pv([(0, 0, -p), (0, 1, -q)])
-        # Reproject the model from the natural oblique SIN projection to the non-oblique SIN projection
-        finalimage, footprintimage = reproject_image(workimage, newwcs, shape=[inchan, inpol, ny, nx])
-        finalimage.data[footprintimage.data <= 0.0] = 0.0
-    else:
-        # Use griddata to do the conversion. This could be improved. Only cubic is possible in griddata.
-        # The interpolation is ok for invert since the image is smooth.
-        
-        # Calculate nominal and distorted coordinates. The image is in distorted coordinates so we
-        # need to convert back to nominal
-        lnominal, mnominal, ldistorted, mdistorted = lm_distortion(workimage, -p, -q)
+    # Use griddata to do the conversion. This could be improved. Only cubic is possible in griddata.
+    # The interpolation is ok for invert since the image is smooth.
+    
+    # Calculate nominal and distorted coordinates. The image is in distorted coordinates so we
+    # need to convert back to nominal
+    lnominal, mnominal, ldistorted, mdistorted = lm_distortion(workimage, -p, -q)
 
-        for chan in range(inchan):
-            for pol in range(inpol):
-                finalimage.data[chan, pol, ...] = \
-                    griddata((mdistorted.flatten(), ldistorted.flatten()),
-                             values=workimage.data[chan, pol, ...].flatten(),
-                             method='cubic',
-                             xi=(mnominal.flatten(), lnominal.flatten()),
-                             fill_value=0.0,
-                             rescale=True).reshape(finalimage.data[chan, pol, ...].shape)
+    for chan in range(inchan):
+        for pol in range(inpol):
+            finalimage.data[chan, pol, ...] = \
+                griddata((mdistorted.flatten(), ldistorted.flatten()),
+                         values=workimage.data[chan, pol, ...].flatten(),
+                         method='cubic',
+                         xi=(mnominal.flatten(), lnominal.flatten()),
+                         fill_value=0.0,
+                         rescale=True).reshape(finalimage.data[chan, pol, ...].shape)
     
     return finalimage, sumwt

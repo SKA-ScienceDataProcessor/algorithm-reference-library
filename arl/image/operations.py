@@ -48,8 +48,8 @@ def create_image_from_array(data: numpy.array, wcs: WCS = None,
         fim.wcs = wcs.deepcopy()
         
     if image_sizeof(fim) >= 1.0:
-        log.debug("create_image_from_array: created image of shape %s, size %.3f (GB)" % (str(fim.shape),
-                                                                                          image_sizeof(fim)))
+        log.debug("create_image_from_array: created %s image of shape %s, size %.3f (GB)" %
+                  (fim.data.dtype, str(fim.shape), image_sizeof(fim)))
     return fim
 
 
@@ -69,7 +69,8 @@ def copy_image(im: Image) -> Image:
     else:
         fim.wcs = copy.deepcopy(im.wcs)
     if image_sizeof(fim) >= 1.0:
-        log.debug("copy_image: created image of shape %s, size %.3f (GB)" % (str(fim.shape), image_sizeof(fim)))
+        log.debug("copy_image: copied %s image of shape %s, size %.3f (GB)" %
+                  (fim.data.dtype, str(fim.shape), image_sizeof(fim)))
     return fim
 
 
@@ -87,8 +88,8 @@ def create_empty_image_like(im: Image) -> Image:
     else:
         fim.wcs = copy.deepcopy(im.wcs)
     if image_sizeof(im) >= 1.0:
-        log.debug("create_empty_image_like: created image of shape %s, size %.3f (GB)" % (str(im.shape),
-                                                                                          image_sizeof(im)))
+        log.debug("create_empty_image_like: created %s image of shape %s, size %.3f (GB)" %
+                  (fim.data.dtype, str(fim.shape), image_sizeof(fim)))
     return fim
 
 
@@ -168,10 +169,9 @@ def import_image_from_fits(fitsfile: str, mute_warnings = True):
             fim.polarisation_frame = polarisation_frame_from_wcs(fim.wcs, fim.data.shape)
         except:
             fim.polarisation_frame = PolarisationFrame('stokesI')
-            
 
-    log.info("import_image_from_fits: created image of shape %s, size %.3f (GB)" %
-             (str(fim.shape), image_sizeof(fim)))
+    log.debug("import_image_from_fits: created %s image of shape %s, size %.3f (GB)" %
+              (fim.data.dtype, str(fim.shape), image_sizeof(fim)))
     log.info("import_image_from_fits: Max, min in %s = %.6f, %.6f" % (fitsfile, fim.data.max(), fim.data.min()))
     return fim
 
@@ -290,7 +290,7 @@ def convert_stokes_to_polimage(im: Image, polarisation_frame: PolarisationFrame)
         cimarr = convert_stokes_to_circular(im.data)
         return create_image_from_array(cimarr, im.wcs, polarisation_frame)
     else:
-        raise RuntimeError("Cannot convert stokes to %s" % (polarisation_frame.type))
+        raise ValueError("Cannot convert stokes to %s" % (polarisation_frame.type))
 
 
 def convert_polimage_to_stokes(im: Image):
@@ -306,7 +306,7 @@ def convert_polimage_to_stokes(im: Image):
         cimarr = convert_circular_to_stokes(im.data)
         return create_image_from_array(cimarr, im.wcs, PolarisationFrame('stokesIQUV'))
     else:
-        raise RuntimeError("Cannot convert %s to stokes" % (im.polarisation_frame.type))
+        raise ValueError("Cannot convert %s to stokes" % (im.polarisation_frame.type))
 
 def smooth_image(model: Image, width=1.0):
     """ Smooth an image with a kernel

@@ -53,6 +53,7 @@ class Testskycomponent(unittest.TestCase):
                                  polarisation_frame = PolarisationFrame('stokesI'))
         
         log.debug(self.model.wcs)
+        log.debug(str(sc))
         # The actual phase centre of a numpy FFT is at nx //2, nx //2 (0 rel).
         self.model.data *= 0.0
         insert_skycomponent(self.model, sc)

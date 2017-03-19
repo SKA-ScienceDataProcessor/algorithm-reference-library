@@ -49,8 +49,6 @@ class TestFTProcessor(unittest.TestCase):
     def setUp(self):
         self.dir = './test_results'
         os.makedirs(self.dir, exist_ok=True)
-    
-    def actualSetUp(self, time=None, frequency=None):
         self.params = {'npixel': 256,
                        'nchan': 1,
                        'reffrequency': 1e8,
@@ -60,7 +58,8 @@ class TestFTProcessor(unittest.TestCase):
                        'timeslice': 'auto',
                        'wstep': 10.0,
                        'wslice': 10.0}
-        
+
+    def actualSetUp(self, time=None, frequency=None):
         self.lowcore = create_named_configuration('LOWBD2-CORE')
         self.times = (numpy.pi / (12.0)) * numpy.linspace(-3.0, 3.0, 7)
         
@@ -185,7 +184,6 @@ class TestFTProcessor(unittest.TestCase):
         # This works very poorly because of the poor interpolation accuracy for point sources
         self.actualSetUp()
         self.params['nprocessor']=1
-        self.params['usereproject'] = False
         self._predict_base(predict_timeslice, fluxthreshold=10.0)
 
     def test_predict_wslice(self):
@@ -241,10 +239,10 @@ class TestFTProcessor(unittest.TestCase):
         export_image_to_fits(dirtyFacet, '%s/test_%s_dirty.fits' % (self.dir, invert.__name__))
         self._checkcomponents(dirtyFacet, fluxthreshold, positionthreshold)
     
-    def test_invert_by_image_partitions(self):
+    def test_invert_by_facets(self):
         self.actualSetUp()
         self.params['usereproject'] = False
-        self._invert_base(invert_with_image_iterator, positionthreshold=1.0)
+        self._invert_base(invert_facets, positionthreshold=1.0)
 
     def test_invert_wslice(self):
         self.actualSetUp()
@@ -260,7 +258,6 @@ class TestFTProcessor(unittest.TestCase):
 
     def test_invert_timeslice(self):
         self.actualSetUp()
-        self.params['usereproject'] = False
         for self.params['nprocessor'] in [1, 4]:
             self.actualSetUp()
             self._invert_base(invert_timeslice, positionthreshold=8.0)

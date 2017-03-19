@@ -48,7 +48,7 @@ class OskarBinary(object):
     def __init__(self, file_name):
         """Constructor."""
         if not os.path.exists(file_name):
-            raise RuntimeError('Specified visibility file %s not found!' % file_name)
+            raise ValueError('Specified visibility file %s not found!' % file_name)
         self.file_name = file_name
         self.file_handle = open(file_name, 'rb')
         self.bin_ver = 0
@@ -64,10 +64,10 @@ class OskarBinary(object):
         f = self.file_handle
         name = f.read(9)
         if name[0:8] != b'OSKARBIN':
-            raise RuntimeError('Not a valid OSKAR binary file.')
+            raise ValueError('Not a valid OSKAR binary file.')
         bin_ver = struct.unpack('B', f.read(1))[0]
         if not (bin_ver == 1 or bin_ver == 2):
-            raise RuntimeError('The class can only read OSKAR binary '
+            raise ValueError('The class can only read OSKAR binary '
                                'format version 1 or 2.')
         self.bin_ver = bin_ver
 
@@ -181,7 +181,7 @@ class OskarBinary(object):
             data = struct.unpack('d ' * n, f.read(data_size))
 
         else:
-            raise RuntimeError('ERROR: Unknown binary data type detected.')
+            raise ValueError('ERROR: Unknown binary data type detected.')
 
         # Add the data block into the block dictionary.
         block['data_type_name'] = name
@@ -448,7 +448,7 @@ class OskarVis(OskarBinary):
             if self.pol_type == self.PolarisationType.Linear:
                 amp = 0.5 * (amp[:, 0, 0] + amp[:, 1, 1])
             else:
-                raise RuntimeError('Unexpected polarisation type.')
+                raise ValueError('Unexpected polarisation type.')
         return amp
 
     def times(self, flatten=False):

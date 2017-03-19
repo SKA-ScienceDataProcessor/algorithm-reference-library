@@ -105,7 +105,7 @@ def deconvolve_mfs(dirty: Image, psf: Image, **kwargs):
     :returns: componentimage, residual
     """
     
-    raise RuntimeError("deconvolve_mfs: not yet implemented")
+    raise ValueError("deconvolve_mfs: not yet implemented")
 
 
 def restore_mfs(dirty: Image, clean: Image, psf: Image, **kwargs):
@@ -118,7 +118,7 @@ def restore_mfs(dirty: Image, clean: Image, psf: Image, **kwargs):
     :returns: restored image
     """
     
-    raise RuntimeError("restore_mfs: not yet implemented")
+    raise ValueError("restore_mfs: not yet implemented")
 
 
 def _overlapIndices(a1, a2,

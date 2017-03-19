@@ -109,5 +109,9 @@ class TestImage(unittest.TestCase):
     def test_show_image(self):
         show_image(self.m31image)
 
+    def test_smooth_image(self):
+        smooth = smooth_image(self.m31image)
+        assert numpy.max(smooth.data) > numpy.max(self.m31image.data)
+
 if __name__ == '__main__':
     unittest.main()

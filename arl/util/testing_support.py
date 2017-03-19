@@ -107,7 +107,7 @@ def create_named_configuration(name: str = 'LOWBD2', **kwargs):
                                             names='VLA_%d')
     else:
         fc = Configuration()
-        raise UserWarning("No such Configuration %s" % name)
+        raise ValueError("No such Configuration %s" % name)
     return fc
 
 
@@ -138,7 +138,7 @@ def create_test_image(canonical=True, cellsize=None, frequency=[1e8], channel_ba
         elif type(polarisation_frame) == PolarisationFrame:
             im.polarisation_frame = polarisation_frame
         else:
-            raise RuntimeError("polarisation_frame is not valid")
+            raise ValueError("polarisation_frame is not valid")
         
         im = replicate_image(im, frequency=frequency, polarisation_frame=im.polarisation_frame)
         if cellsize is not None:

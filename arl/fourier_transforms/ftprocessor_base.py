@@ -362,7 +362,7 @@ def create_image_from_visibility(vis: Visibility, **kwargs) -> Image:
                  "and bandwidth %s"
                  % (imagecentre, reffrequency, channel_bandwidth))
     else:
-        raise RuntimeError("create_image_from_visibility: unknown spectral mode ")
+        raise ValueError("create_image_from_visibility: unknown spectral mode ")
     
     # Image sampling options
     npixel = get_parameter(kwargs, "npixel", 512)

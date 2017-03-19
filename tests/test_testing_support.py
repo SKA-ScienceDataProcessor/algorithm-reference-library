@@ -45,12 +45,14 @@ class TestTesting_Support(unittest.TestCase):
     def test_named_configurations(self):
         for config in ['LOWBD2', 'LOWBD2-CORE', 'LOWBD1', 'LOFAR']:
             self.createVis(config)
+            assert self.config.size() > 0.0
+            
         
         self.createVis('VLAA', +35.0)
         self.createVis('VLAA_north', +35.0)
     
     def test_unknown_configuration(self):
-        with self.assertRaises(UserWarning):
+        with self.assertRaises(ValueError):
             self.config = create_named_configuration("SKA1-OWL")
     
     def test_create_test_image(self):

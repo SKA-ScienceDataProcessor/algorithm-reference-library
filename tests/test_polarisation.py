@@ -18,9 +18,13 @@ class TestPolarisation(unittest.TestCase):
         assert PolarisationFrame("circular").npol == 4
         assert PolarisationFrame("stokesI").npol == 1
 
-        with self.assertRaises(RuntimeError):
+        with self.assertRaises(ValueError):
             polarisation_frame = PolarisationFrame("circuloid")
-    
+            
+        assert PolarisationFrame("linear") != PolarisationFrame("stokesI")
+        assert PolarisationFrame("linear") != PolarisationFrame("circular")
+        assert PolarisationFrame("circular") != PolarisationFrame("stokesI")
+
     def test_rec_frame(self):
         rec_frame = ReceptorFrame("linear")
         assert rec_frame.nrec == 2
@@ -31,8 +35,9 @@ class TestPolarisation(unittest.TestCase):
         rec_frame = ReceptorFrame("stokesI")
         assert rec_frame.nrec == 1
 
-        with self.assertRaises(RuntimeError):
+        with self.assertRaises(ValueError):
             rec_frame = ReceptorFrame("circuloid")
+
     
     def test_correlate(self):
         
@@ -101,11 +106,20 @@ class TestPolarisation(unittest.TestCase):
         st = convert_circular_to_stokes(cir)
         assert_array_almost_equal(st.real, stokes, 15)
 
-    def test_image_auto_conversion(self):
+    def test_image_auto_conversion_circular(self):
     
         stokes = numpy.array(random.uniform(-1.0, 1.0, [3, 4, 128, 128]))
         ipf = PolarisationFrame('stokesIQUV')
         opf = PolarisationFrame('circular')
+        cir = convert_pol_frame(stokes, ipf, opf)
+        st = convert_pol_frame(cir, opf, ipf)
+        assert_array_almost_equal(st.real, stokes, 15)
+
+    def test_image_auto_conversion_linear(self):
+    
+        stokes = numpy.array(random.uniform(-1.0, 1.0, [3, 4, 128, 128]))
+        ipf = PolarisationFrame('stokesIQUV')
+        opf = PolarisationFrame('linear')
         cir = convert_pol_frame(stokes, ipf, opf)
         st = convert_pol_frame(cir, opf, ipf)
         assert_array_almost_equal(st.real, stokes, 15)
@@ -144,6 +158,16 @@ class TestPolarisation(unittest.TestCase):
         cir = convert_pol_frame(stokes, ipf, opf, polaxis=2)
         st = convert_pol_frame(cir, opf, ipf, polaxis=2)
         assert_array_almost_equal(st.real, stokes, 15)
+        
+        
+    def test_circular_to_linear(self):
+        stokes = numpy.array(random.uniform(-1.0, 1.0, [3, 4, 128, 128]))
+        ipf = PolarisationFrame('stokesIQUV')
+        opf = PolarisationFrame('circular')
+        cir = convert_pol_frame(stokes, ipf, opf)
+        wrong_pf = PolarisationFrame('linear')
+        with self.assertRaises(ValueError):
+            lin = convert_pol_frame(cir, opf, wrong_pf)
 
 
 
