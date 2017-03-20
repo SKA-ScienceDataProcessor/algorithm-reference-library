@@ -144,28 +144,22 @@ Convolutional Gridding
 .. automodule:: arl.fourier_transforms.convolutional_gridding
    :members:
 
-SkyModel
---------
+Skycomponent
+------------
 
 Operations
 ++++++++++
 
-.. automodule:: arl.skymodel.operations
-   :members:
-
-Solvers
-+++++++
-
-.. automodule:: arl.skymodel.solvers
+.. automodule:: arl.skycomponent.operations
    :members:
 
 Visibility
 ----------
 
-Calibration
-+++++++++++
+Coalesce
+++++++++
 
-.. automodule:: arl.visibility.calibration
+.. automodule:: arl.visibility.coalesce
    :members:
 
 Iterators
@@ -180,15 +174,51 @@ Operations
 .. automodule:: arl.visibility.operations
    :members:
 
-Coordinate Support
-------------------
+Util
+----
 
+Array Functions
++++++++++++++++
 
-Internal Routines
------------------
-
-.. automodule:: arl.core.c
+.. automodule:: arl.util.array_functions
    :members:
+
+Coordinate Support
+++++++++++++++++++
+
+.. automodule:: arl.util.coordinate_support
+   :members:
+
+Quality assessment
+++++++++++++++++++
+
+.. automodule:: arl.util.quality_assessment
+   :members:
+
+
+Testing Support
++++++++++++++++
+
+.. automodule:: arl.util.testing_support
+   :members:
+
+Pipelines
+---------
+
+Functions
++++++++++
+
+.. automodule:: arl.pipelines.functions
+   :members:
+
+Support
++++++++
+
+.. automodule:: arl.pipelines.support
+   :members:
+
+
+
 
 Definition of coordinate systems
 ++++++++++++++++++++++++++++++++
