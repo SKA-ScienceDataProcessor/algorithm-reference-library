@@ -293,6 +293,27 @@ Unit tests
 
 Unit tests written in standard python style are available.
 
+
+.. automodule:: tests.test_array_functions
+   :members:
+   :undoc-members:
+
+.. automodule:: tests.test_calibration_functions
+   :members:
+   :undoc-members:
+
+.. automodule:: tests.test_calibration_peeling
+   :members:
+   :undoc-members:
+
+.. automodule:: tests.test_calibration_solvers
+   :members:
+   :undoc-members:
+
+.. automodule:: tests.test_coalesce
+   :members:
+   :undoc-members:
+
 .. automodule:: tests.test_convolutional_gridding
    :members:
    :undoc-members:
@@ -301,15 +322,15 @@ Unit tests written in standard python style are available.
    :members:
    :undoc-members:
 
-.. automodule:: tests.test_datamodels
-   :members:
-   :undoc-members:
-
 .. automodule:: tests.test_fft_support
    :members:
    :undoc-members:
 
 .. automodule:: tests.test_ftprocessor
+   :members:
+   :undoc-members:
+
+.. automodule:: tests.test_ftprocessor_params
    :members:
    :undoc-members:
 
@@ -325,6 +346,10 @@ Unit tests written in standard python style are available.
    :members:
    :undoc-members:
 
+.. automodule:: tests.test_image_solvers
+   :members:
+   :undoc-members:
+
 .. automodule:: tests.test_parameters
    :members:
    :undoc-members:
@@ -333,11 +358,19 @@ Unit tests written in standard python style are available.
    :members:
    :undoc-members:
 
+.. automodule:: tests.test_polarisation
+   :members:
+   :undoc-members:
+
 .. automodule:: tests.test_quality_assessment
    :members:
    :undoc-members:
 
-.. automodule:: tests.test_visibility_calibration
+.. automodule:: tests.test_visibility_iterators
+   :members:
+   :undoc-members:
+
+.. automodule:: tests.test_skycomponent
    :members:
    :undoc-members:
 
