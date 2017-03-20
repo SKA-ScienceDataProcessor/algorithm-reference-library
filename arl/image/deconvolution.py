@@ -27,6 +27,7 @@ def deconvolve_cube(dirty: Image, psf: Image, **kwargs):
     
     :param dirty: Image dirty image
     :param psf: Image Point Spread Function
+    :param window: Window image (Bool) - clean where True
     :param algorithm: Cleaning algorithm: 'msclean'|'hogbom'
     :param gain: loop gain (float) 0.7
     :param threshold: Clean threshold (0.0)
@@ -49,6 +50,9 @@ def deconvolve_cube(dirty: Image, psf: Image, **kwargs):
         fracthresh = get_parameter(kwargs, 'fractional_threshold', 0.01)
         assert 0.0 < fracthresh < 1.0
         
+        if window is None:
+            window = create_image_from_array(numpy.ones(dirty.data.shape), dirty.wcs)
+            
         comp_array = numpy.zeros(dirty.data.shape)
         residual_array = numpy.zeros(dirty.data.shape)
         for channel in range(dirty.data.shape[0]):
@@ -57,7 +61,7 @@ def deconvolve_cube(dirty: Image, psf: Image, **kwargs):
                     log.info("deconvolve_cube: Processing pol %d, channel %d" % (pol, channel))
                     comp_array[channel, pol, :, :], residual_array[channel, pol, :, :] = \
                         msclean(dirty.data[channel, pol, :, :], psf.data[channel, pol, :, :],
-                                window, gain, thresh, niter, scales, fracthresh)
+                                window.data[channel, pol, :, :], gain, thresh, niter, scales, fracthresh)
                 else:
                     log.info("deconvolve_cube: Skipping pol %d, channel %d" % (pol, channel))
     elif algorithm == 'hogbom':
@@ -66,12 +70,15 @@ def deconvolve_cube(dirty: Image, psf: Image, **kwargs):
         gain = get_parameter(kwargs, 'gain', 0.7)
         assert 0.0 < gain < 2.0, "Loop gain must be between 0 and 2"
         thresh = get_parameter(kwargs, 'threshold', 0.0)
-        assert thresh > 0.0
+        assert thresh >= 0.0
         niter = get_parameter(kwargs, 'niter', 100)
         assert niter > 0
         fracthresh = get_parameter(kwargs, 'fracthresh', 0.01)
-        assert 0.0 < fracthresh < 1.0
-        
+        assert 0.0 <= fracthresh < 1.0
+
+        if window is None:
+            window = create_image_from_array(numpy.ones(dirty.data.shape), dirty.wcs)
+
         comp_array = numpy.zeros(dirty.data.shape)
         residual_array = numpy.zeros(dirty.data.shape)
         for channel in range(dirty.data.shape[0]):
@@ -80,7 +87,7 @@ def deconvolve_cube(dirty: Image, psf: Image, **kwargs):
                     log.info("deconvolve_cube: Processing pol %d, channel %d" % (pol, channel))
                     comp_array[channel, pol, :, :], residual_array[channel, pol, :, :] = \
                         hogbom(dirty.data[channel, pol, :, :], psf.data[channel, pol, :, :],
-                               window, gain, thresh, niter)
+                               window.data[channel, pol, :, :], gain, thresh, niter)
                 else:
                     log.info("deconvolve_cube: Skipping pol %d, channel %d" % (pol, channel))
     else:
@@ -121,8 +128,8 @@ def restore_mfs(dirty: Image, clean: Image, psf: Image, **kwargs):
     raise ValueError("restore_mfs: not yet implemented")
 
 
-def _overlapIndices(a1, a2,
-                    shiftx, shifty):
+def overlapIndices(a1, a2,
+                   shiftx, shifty):
     """ Find the indices where two arrays overlapIndices
 
     :param a1: First array
@@ -134,23 +141,23 @@ def _overlapIndices(a1, a2,
         a1xbeg = shiftx
         a2xbeg = 0
         a1xend = a1.shape[0]
-        a2xend = a1.shape[0] - shiftx
+        a2xend = a2.shape[0] - shiftx
     else:
         a1xbeg = 0
         a2xbeg = -shiftx
         a1xend = a1.shape[0] + shiftx
-        a2xend = a1.shape[0]
+        a2xend = a2.shape[0]
     
     if shifty >= 0:
         a1ybeg = shifty
         a2ybeg = 0
         a1yend = a1.shape[1]
-        a2yend = a1.shape[1] - shifty
+        a2yend = a2.shape[1] - shifty
     else:
         a1ybeg = 0
         a2ybeg = -shifty
         a1yend = a1.shape[1] + shifty
-        a2yend = a1.shape[1]
+        a2yend = a2.shape[1]
     
     return (a1xbeg, a1xend, a1ybeg, a1yend), (a2xbeg, a2xend, a2ybeg, a2yend)
 
@@ -192,14 +199,15 @@ def hogbom(dirty,
     assert pmax > 0.0
     psfpeak = argmax(numpy.fabs(psf))
     if window is True:
-        window = numpy.ones(dirty.shape, numpy.bool)
+        window = 1.0
     for i in range(niter):
-        mx, my = numpy.unravel_index((numpy.fabs(res[window])).argmax(), dirty.shape)
+        res *= window
+        mx, my = numpy.unravel_index((numpy.fabs(res)).argmax(), dirty.shape)
         mval = res[mx, my] * gain / pmax
         comps[mx, my] += mval
-        a1o, a2o = _overlapIndices(dirty, psf,
-                                   mx - psfpeak[0],
-                                   my - psfpeak[1])
+        a1o, a2o = overlapIndices(dirty, psf,
+                                  mx - psfpeak[0],
+                                  my - psfpeak[1])
         res[a1o[0]:a1o[1], a1o[2]:a1o[3]] -= psf[a2o[0]:a2o[1], a2o[2]:a2o[3]] * mval
         if i % (niter // 10) == 0:
             log.info("hogbom: Minor cycle %d, peak %s at [%d, %d]" % (i, res[mx, my], mx, my))
@@ -281,8 +289,7 @@ def msclean(dirty,
     
     if window is True:
         windowstack = numpy.ones(scalestack.shape, numpy.bool)
-    # windowstack=convolvescalestack(scalestack, window)>0.9
-    window = numpy.ones(scalestack.shape, numpy.bool)
+    windowstack=convolvescalestack(scalestack, window)>0.9
     
     log.info("msclean: Max abs in dirty Image = %.6f" % numpy.fabs(resscalestack[:, :, 0]).max())
     absolutethresh = max(thresh, fracthresh * numpy.fabs(resscalestack[:, :, 0]).max())
@@ -291,7 +298,7 @@ def msclean(dirty,
     
     for i in range(niter):
         # Find peak over all smoothed images
-        mx, my, mscale = findabsmaxstack(resscalestack, window, coupling_matrix)
+        mx, my, mscale = findabsmaxstack(resscalestack, windowstack, coupling_matrix)
         if mx is None or my is None or mscale is None:
             log.warning("msclean: Error in finding peak")
             break
@@ -308,7 +315,7 @@ def msclean(dirty,
             break
         
         # Update the cached residuals and add to the cached model.
-        a1o, a2o = _overlapIndices(dirty, psf, mx - psfpeak[0], my - psfpeak[1])
+        a1o, a2o = overlapIndices(dirty, psf, mx - psfpeak[0], my - psfpeak[1])
         if numpy.abs(mval[mscale]) > 0:
             # Cross subtract from other scales
             for iscale in range(len(scales)):
@@ -380,10 +387,10 @@ def convolvescalestack(scalestack, img):
     return convolved
 
 
-def findabsmaxstack(stack, window, couplingmatrix):
+def findabsmaxstack(stack, windowstack, couplingmatrix):
     """Find the location and value of the absolute maximum in this stack
     :param stack: stack to be searched
-    :param window: Window for the searched
+    :param windowstack: Window for the search
     :param couplingmatrix: Coupling matrix between difference scales
     :returns: x, y, scale
 
@@ -394,7 +401,8 @@ def findabsmaxstack(stack, window, couplingmatrix):
     py = None
     pshape = [stack.shape[0], stack.shape[1]]
     for iscale in range(stack.shape[2]):
-        mx, my = numpy.unravel_index(numpy.fabs(stack[:, :, iscale]).argmax(), pshape)
+        resid = stack[:, :, iscale] * windowstack[: , :, iscale]
+        mx, my = numpy.unravel_index(numpy.fabs(resid).argmax(), pshape)
         thisabsmax = stack[mx, my, iscale] / couplingmatrix[iscale, iscale]
         if abs(thisabsmax) > abs(pabsmax):
             px = mx
@@ -492,7 +500,6 @@ def restore_cube(model, psf, residual=None):
     # isotropic at the moment!
     try:
         fit = fit_2dgaussian(psf.data[0, 0, sl, sl])
-        print(fit)
         if fit.x_stddev <= 0.0 or fit.y_stddev <= 0.0:
             log.debug('restore_cube: error in fitting to psf, using 1 pixel stddev')
             size = 1.0

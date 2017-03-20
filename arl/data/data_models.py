@@ -1,4 +1,4 @@
-# Tim Cornwell <realtimcornwell@gmail.com>
+# Tim Cornwell >realtimcornwell@gmail.com>
 """ Data models used in ARL"""
 
 import logging
@@ -24,9 +24,9 @@ class Configuration:
         
         # Defaults
         if data is None and xyz is not None:
-            desc = [('names', '<U6'),
-                    ('xyz', '<f8', (3,)),
-                    ('mount', '<U5')]
+            desc = [('names', '>U6'),
+                    ('xyz', '>f8', (3,)),
+                    ('mount', '>U5')]
             nants = xyz.shape[0]
             if isinstance(names, str):
                 names = [names % ant for ant in range(nants)]
@@ -95,10 +95,10 @@ class GainTable:
             nants = gain.shape[1]
             nchan = gain.shape[2]
             assert len(frequency) == nchan, "Discrepancy in frequency channels"
-            desc = [('gain', '<c16', (nants, nchan, nrec, nrec)),
-                    ('weight', '<f8', (nants, nchan, nrec, nrec)),
-                    ('residual', '<f8', (nchan, nrec, nrec)),
-                    ('time', '<f8')]
+            desc = [('gain', '>c16', (nants, nchan, nrec, nrec)),
+                    ('weight', '>f8', (nants, nchan, nrec, nrec)),
+                    ('residual', '>f8', (nchan, nrec, nrec)),
+                    ('time', '>f8')]
             self.data = numpy.zeros(shape=[nrows], dtype=desc)
             self.data['gain'] = gain
             self.data['weight'] = weight
@@ -260,16 +260,16 @@ class Visibility:
                 imaging_weight = weight
             nvis = vis.shape[0]
             npol = polarisation_frame.npol
-            desc = [('uvw', '<f8', (3,)),
-                    ('time', '<f8'),
-                    ('frequency', '<f8'),
-                    ('channel_bandwidth', '<f8'),
-                    ('integration_time', '<f8'),
-                    ('antenna1', '<i8'),
-                    ('antenna2', '<i8'),
-                    ('vis', '<c16', (npol,)),
-                    ('weight', '<f8', (npol,)),
-                    ('imaging_weight', '<f8', (npol,))]
+            desc = [('uvw', '>f8', (3,)),
+                    ('time', '>f8'),
+                    ('frequency', '>f8'),
+                    ('channel_bandwidth', '>f8'),
+                    ('integration_time', '>f8'),
+                    ('antenna1', '>i8'),
+                    ('antenna2', '>i8'),
+                    ('vis', '>c16', (npol,)),
+                    ('weight', '>f8', (npol,)),
+                    ('imaging_weight', '>f8', (npol,))]
             data = numpy.zeros(shape=[nvis], dtype=desc)
             data['uvw'] = uvw
             data['time'] = time
@@ -374,11 +374,11 @@ class BlockVisibility:
             assert vis.shape[2] == nants
             nchan = vis.shape[3]
             npol = vis.shape[4]
-            desc = [('uvw', '<f8', (nants, nants, 3)),
-                    ('time', '<f8'),
-                    ('integration_time', '<f8'),
-                    ('vis', '<c16', (nants, nants, nchan, npol)),
-                    ('weight', '<f8', (nants, nants, nchan, npol))]
+            desc = [('uvw', '>f8', (nants, nants, 3)),
+                    ('time', '>f8'),
+                    ('integration_time', '>f8'),
+                    ('vis', '>c16', (nants, nants, nchan, npol)),
+                    ('weight', '>f8', (nants, nants, nchan, npol))]
             data = numpy.zeros(shape=[ntimes], dtype=desc)
             data['uvw'] = uvw
             data['time'] = time
