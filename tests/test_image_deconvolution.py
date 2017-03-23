@@ -56,59 +56,79 @@ class TestImageDeconvolution(unittest.TestCase):
         a2[s2[0]:s2[1], s2[2]:s2[3]] = 1
         return numpy.sum(a1) == numpy.sum(a2)
     
-    def test_overlapindices_same(self):
-        a1 = numpy.zeros([256, 256], dtype='int')
-        a2 = numpy.zeros([256, 256], dtype='int')
-        shiftx = 20
-        shifty = -12
-        s1, s2 = overlapIndices(a1, a2, shiftx, shifty)
+
+    def test_overlap(self):
+        res = numpy.zeros([512, 512])
+        psf = numpy.zeros([100, 100])
+        peak = (499, 249)
+        s1, s2 = overlapIndices(res, psf, peak[0], peak[1])
         assert len(s1) == 4
         assert len(s2) == 4
-        assert s1 == (20, 256, 0, 244)
-        assert s2 == (0, 236, 12, 256)
-        self.overlaptest(a1, a2, s1, s2)
-    
-    def test_overlapindices_differ(self):
-        a1 = numpy.zeros([256, 256], dtype='int')
-        a2 = numpy.zeros([32, 32], dtype='int')
-        shiftx = 20
-        shifty = -12
-        s1, s2 = overlapIndices(a1, a2, shiftx, shifty)
-        assert len(s1) == 4
-        assert len(s2) == 4
-        assert s1 == (20, 256, 0, 244)
-        assert s2 == (0, 12, 12, 32)
-        self.overlaptest(a1, a2, s1, s2)
-    
+        self.overlaptest(res, psf, s1, s2)
+        assert s1 == (449, 512, 199, 299)
+        assert s2 == (0, 63, 0, 100)
+
     def test_deconvolve_hogbom(self):
         self.comp, self.residual = deconvolve_cube(self.dirty, self.psf, niter=10000, gain=0.1, algorithm='hogbom',
                                                    threshold=0.01)
         export_image_to_fits(self.residual, "%s/test_deconvolve_hogbom-residual.fits" % (self.dir))
         self.cmodel = restore_cube(self.comp, self.psf, self.residual)
         export_image_to_fits(self.cmodel, "%s/test_deconvolve_hogbom-clean.fits" % (self.dir))
-        assert numpy.max(self.residual.data) < 0.25
-    
+        assert numpy.max(self.residual.data) < 0.6
+
     def test_deconvolve_msclean(self):
         self.comp, self.residual = deconvolve_cube(self.dirty, self.psf, niter=1000,
-                                                   gain=0.7, algorithm='msclean', scales=[0, 30, 10, 30],
+                                                   gain=0.7, algorithm='msclean', scales=[0, 3, 10, 30],
                                                    threshold=0.01)
+        export_image_to_fits(self.comp, "%s/test_deconvolve_msclean-comp.fits" % (self.dir))
         export_image_to_fits(self.residual, "%s/test_deconvolve_msclean-residual.fits" % (self.dir))
         self.cmodel = restore_cube(self.comp, self.psf, self.residual)
         export_image_to_fits(self.cmodel, "%s/test_deconvolve_msclean-clean.fits" % (self.dir))
         assert numpy.max(self.residual.data) < 0.7
-    
+
+    def test_deconvolve_msclean_1scale(self):
+        self.comp, self.residual = deconvolve_cube(self.dirty, self.psf, niter=10000,
+                                                   gain=0.1, algorithm='msclean', scales=[0],
+                                                   threshold=0.01)
+        export_image_to_fits(self.comp, "%s/test_deconvolve_msclean_1scale-comp.fits" % (self.dir))
+        export_image_to_fits(self.residual, "%s/test_deconvolve_msclean_1scale-residual.fits" % (self.dir))
+        self.cmodel = restore_cube(self.comp, self.psf, self.residual)
+        export_image_to_fits(self.cmodel, "%s/test_deconvolve_msclean_1scale-clean.fits" % (self.dir))
+        assert numpy.max(self.residual.data) < 0.7
+
     def test_deconvolve_hogbom_inner_quarter(self):
         self.comp, self.residual = deconvolve_cube(self.dirty, self.psf, window=self.innerquarter, niter=10000,
                                                    gain=0.1, algorithm='hogbom', threshold=0.01)
         export_image_to_fits(self.residual, "%s/test_deconvolve_hogbom_innerquarter-residual.fits" % (self.dir))
         self.cmodel = restore_cube(self.comp, self.psf, self.residual)
         export_image_to_fits(self.cmodel, "%s/test_deconvolve_hogbom_innerquarter-clean.fits" % (self.dir))
-        assert numpy.max(self.residual.data) < 0.25
+        assert numpy.max(self.residual.data) < 0.5
     
     def test_deconvolve_msclean_inner_quarter(self):
-        self.comp, self.residual = deconvolve_cube(self.dirty, self.psf, window=self.innerquarter, niter=1000, gain=0.7,
-                                                   algorithm='msclean', scales=[0, 30, 10, 30], threshold=0.01)
+        self.comp, self.residual = deconvolve_cube(self.dirty, self.psf, window=self.innerquarter, niter=1000,
+                                                    gain=0.7,
+                                                   algorithm='msclean', scales=[0, 3, 10, 30], threshold=0.01)
+        export_image_to_fits(self.comp, "%s/test_deconvolve_msclean_innerquarter-comp.fits" % (self.dir))
         export_image_to_fits(self.residual, "%s/test_deconvolve_msclean_innerquarter-residual.fits" % (self.dir))
         self.cmodel = restore_cube(self.comp, self.psf, self.residual)
         export_image_to_fits(self.cmodel, "%s/test_deconvolve_msclean_innerquarter-clean.fits" % (self.dir))
         assert numpy.max(self.residual.data) < 0.5
+
+    def test_deconvolve_hogbom_subpsf(self):
+        subpsf = create_image_from_array(self.psf.data[...,56:456, 56:456], self.psf.wcs)
+        self.comp, self.residual = deconvolve_cube(self.dirty, subpsf, window=self.innerquarter, niter=10000,
+                                                   gain=0.1, algorithm='hogbom', threshold=0.01)
+        export_image_to_fits(self.residual, "%s/test_deconvolve_hogbom_subpsf-residual.fits" % (self.dir))
+        self.cmodel = restore_cube(self.comp, self.psf, self.residual)
+        export_image_to_fits(self.cmodel, "%s/test_deconvolve_hogbom_subpsf-clean.fits" % (self.dir))
+        assert numpy.max(self.residual.data[...,56:456, 56:456]) < 0.6
+
+    def test_deconvolve_msclean_subpsf(self):
+        subpsf = create_image_from_array(self.psf.data[...,56:456, 56:456], self.psf.wcs)
+        self.comp, self.residual = deconvolve_cube(self.dirty, subpsf, window=self.innerquarter, niter=1000, gain=0.7,
+                                                   algorithm='msclean', scales=[0, 3, 10, 30], threshold=0.01)
+        export_image_to_fits(self.comp, "%s/test_deconvolve_msclean_subpsf-comp.fits" % (self.dir))
+        export_image_to_fits(self.residual, "%s/test_deconvolve_msclean_subpsf-residual.fits" % (self.dir))
+        self.cmodel = restore_cube(self.comp, self.psf, self.residual)
+        export_image_to_fits(self.cmodel, "%s/test_deconvolve_msclean_subpsf-clean.fits" % (self.dir))
+        assert numpy.max(self.residual.data[...,56:456, 56:456]) < 0.5
