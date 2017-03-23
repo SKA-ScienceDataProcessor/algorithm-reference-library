@@ -35,11 +35,27 @@ def deconvolve_cube(dirty: Image, psf: Image, **kwargs):
     :param scales: Scales (in pixels) for multiscale ([0, 3, 10, 30])
     :returns: componentimage, residual
     """
-    
+
+    window = get_parameter(kwargs, 'window', None)
+    if window == 'quarter':
+        qx = dirty.shape[3] // 4
+        qy = dirty.shape[2] // 4
+        window = numpy.zeros_like(dirty.data)
+        window[...,(qy+1):3*qy,(qx+1):3*qx] = 1.0
+        log.info('deconvolve_cube: Cleaning inner quarter of each sky plane')
+    else:
+        window = None
+        
+    psf_support = get_parameter(kwargs, 'psf_support', dirty.shape[3])
+    if isinstance(psf_support, int):
+        if (psf_support < psf.shape[2] // 2) and ((psf_support < psf.shape[3] // 2)):
+            centre=[psf.shape[2] // 2, psf.shape[3] // 2]
+            psf.data = psf.data[...,(centre[0]-psf_support):(centre[0]+psf_support),
+                    (centre[1]-psf_support):(centre[1]+psf_support)]
+        
     algorithm = get_parameter(kwargs, 'algorithm', 'msclean')
     if algorithm == 'msclean':
-        
-        window = get_parameter(kwargs, 'window', None)
+
         gain = get_parameter(kwargs, 'gain', 0.7)
         assert 0.0 < gain < 2.0, "Loop gain must be between 0 and 2"
         thresh = get_parameter(kwargs, 'threshold', 0.0)
@@ -63,7 +79,7 @@ def deconvolve_cube(dirty: Image, psf: Image, **kwargs):
                     else:
                         comp_array[channel, pol, :, :], residual_array[channel, pol, :, :] = \
                             msclean(dirty.data[channel, pol, :, :], psf.data[channel, pol, :, :],
-                                    window.data[channel, pol, :, :], gain, thresh, niter, scales, fracthresh)
+                                    window[channel, pol, :, :], gain, thresh, niter, scales, fracthresh)
                 else:
                     log.info("deconvolve_cube: Skipping pol %d, channel %d" % (pol, channel))
     elif algorithm == 'hogbom':
@@ -76,8 +92,6 @@ def deconvolve_cube(dirty: Image, psf: Image, **kwargs):
         assert niter > 0
         fracthresh = get_parameter(kwargs, 'fracthresh', 0.01)
         assert 0.0 <= fracthresh < 1.0
-
-        window = get_parameter(kwargs, 'window', None)
 
         comp_array = numpy.zeros(dirty.data.shape)
         residual_array = numpy.zeros(dirty.data.shape)
@@ -92,7 +106,7 @@ def deconvolve_cube(dirty: Image, psf: Image, **kwargs):
                     else:
                         comp_array[channel, pol, :, :], residual_array[channel, pol, :, :] = \
                             hogbom(dirty.data[channel, pol, :, :], psf.data[channel, pol, :, :],
-                                   window.data[channel, pol, :, :], gain, thresh, niter)
+                                   window[channel, pol, :, :], gain, thresh, niter)
                 else:
                     log.info("deconvolve_cube: Skipping pol %d, channel %d" % (pol, channel))
     else:
@@ -169,8 +183,7 @@ def hogbom(dirty,
            window,
            gain,
            thresh,
-           niter,
-           **kwargs):
+           niter):
     """
     Hogbom CLEAN (1974A&AS...15..417H)
 
@@ -321,7 +334,7 @@ def msclean(dirty,
                 res_scalestack[iscale, a1o[0]:a1o[1], a1o[2]:a1o[3]] -= \
                     psf_scalescalestack[iscale, mscale, a2o[0]:a2o[1], a2o[2]:a2o[3]] * gain * mval[mscale]
             comps[a1o[0]:a1o[1], a1o[2]:a1o[3]] += \
-                scalestack[mscale, a2o[0]:a2o[1], a2o[2]:a2o[3]] * gain * mval[mscale]
+                pscalestack[mscale, a2o[0]:a2o[1], a2o[2]:a2o[3]] * gain * mval[mscale]
         else:
             break
     log.info("msclean: End of minor cycles")
