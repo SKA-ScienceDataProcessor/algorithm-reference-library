@@ -32,16 +32,17 @@ def predict_facets(vis, model, predict_function=predict_2d_base, **kwargs):
     return predict_with_image_iterator(vis, model, image_iterator=raster_iter, predict_function=predict_function,
                                 **kwargs)
 
-def invert_facets(vis, im, dopsf=False, invert_function=invert_2d_base, **kwargs):
+def invert_facets(vis, im, dopsf=False, normalize=True, invert_function=invert_2d_base, **kwargs):
     """ Invert using image partitions, calling specified Invert function
 
     :param vis: Visibility to be inverted
     :param im: image template (not changed)
     :param dopsf: Make the psf instead of the dirty image
+    :param normalize: Normalize by the sum of weights (True)
     :param invert_function: Function to be used for inverting (allows nesting) (default invert_2d)
     :returns: resulting image[nchan, npol, ny, nx], sum of weights[nchan, npol]
     """
     
     log.debug("invert_facets: Inverting by image facets")
-    return invert_with_image_iterator(vis, im, image_iterator=raster_iter, dopsf=False,
+    return invert_with_image_iterator(vis, im, normalize=normalize, image_iterator=raster_iter, dopsf=dopsf,
                                       invert_function=invert_function, **kwargs)

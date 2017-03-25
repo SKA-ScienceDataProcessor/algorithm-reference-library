@@ -7,8 +7,7 @@ subclasses of astropy classes.
 
 from arl.data.data_models import *
 from arl.data.parameters import *
-from arl.fourier_transforms.ftprocessor_base import invert_2d, predict_2d, predict_skycomponent_visibility, \
-    normalize_sumwt
+from arl.fourier_transforms.ftprocessor_base import invert_2d, predict_2d
 from arl.image.deconvolution import deconvolve_cube
 from arl.visibility.operations import copy_visibility
 
@@ -40,9 +39,7 @@ def solve_image(vis: Visibility, model: Image, predict=predict_2d, invert=invert
     
     visres.data['vis'] = vis.data['vis'] - vispred.data['vis']
     dirty, sumwt = invert(visres, model, **kwargs)
-    dirty = normalize_sumwt(dirty, sumwt)
     psf, sumwt = invert(visres, model, dopsf=True, **kwargs)
-    psf = normalize_sumwt(psf, sumwt)
     
     thresh = get_parameter(kwargs, "threshold", 0.0)
     

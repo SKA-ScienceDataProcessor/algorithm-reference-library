@@ -5,21 +5,22 @@ Functions that distributes predict and invert using either just loops or paralle
 """
 
 import multiprocessing
+
 import pymp
 
-
-from arl.fourier_transforms.ftprocessor_params import *
+from arl.data.parameters import get_parameter
 from arl.fourier_transforms.ftprocessor_base import *
+from arl.fourier_transforms.ftprocessor_params import *
 from arl.image.iterators import *
 from arl.image.operations import create_empty_image_like
 from arl.visibility.iterators import vis_slice_iter
 from arl.visibility.operations import create_visibility_from_rows
-from arl.data.parameters import get_parameter
-
 
 log = logging.getLogger(__name__)
 
-def invert_with_vis_iterator(vis, im, dopsf=False, vis_iter=vis_slice_iter, invert=invert_2d, **kwargs):
+
+def invert_with_vis_iterator(vis, im, dopsf=False, normalize=True, vis_iter=vis_slice_iter,
+                             invert=invert_2d, **kwargs):
     """ Invert using a specified iterator and invert
     
     This knows about the structure of invert in different execution frameworks but not
@@ -27,7 +28,8 @@ def invert_with_vis_iterator(vis, im, dopsf=False, vis_iter=vis_slice_iter, inve
 
     :param vis:
     :param im:
-    :param dopsf:
+    :param dopsf: Make the psf instead of the dirty image
+    :param normalize: Normalize by the sum of weights (True)
     :param kwargs:
     :return:
     """
@@ -51,11 +53,11 @@ def invert_with_vis_iterator(vis, im, dopsf=False, vis_iter=vis_slice_iter, inve
             nslices += 1
             rowses.append(rows)
         
-        log.debug("invert_iteratoe: Processing %d chunks %d-way parallel" % (nslices, nproc))
+        log.debug("invert_iterator: Processing %d chunks %d-way parallel" % (nslices, nproc))
         with pymp.Parallel(nproc) as p:
             for index in p.range(0, nslices):
                 visslice = create_visibility_from_rows(vis, rowses[index])
-                workimage, sumwt = invert(visslice, im, dopsf, **kwargs)
+                workimage, sumwt = invert(visslice, im, dopsf, normalize=False, **kwargs)
                 resultimage.data += workimage.data
                 totalwt += sumwt
     
@@ -64,10 +66,14 @@ def invert_with_vis_iterator(vis, im, dopsf=False, vis_iter=vis_slice_iter, inve
         i = 0
         for rows in vis_iter(vis, **kwargs):
             visslice = create_visibility_from_rows(vis, rows)
-            workimage, sumwt = invert(visslice, im, dopsf, **kwargs)
+            workimage, sumwt = invert(visslice, im, dopsf, normalize=False, **kwargs)
             resultimage.data += workimage.data
             totalwt += sumwt
             i += 1
+    
+    if normalize:
+        resultimage = normalize_sumwt(resultimage, totalwt)
+    
     return resultimage, totalwt
 
 
@@ -145,13 +151,14 @@ def predict_with_image_iterator(vis, model, image_iterator=raster_iter, predict_
 
 
 def invert_with_image_iterator(vis, im, image_iterator=raster_iter, dopsf=False,
-                               invert_function=invert_2d_base, **kwargs):
+                               normalize=True, invert_function=invert_2d_base, **kwargs):
     """ Predict using image partitions, calling specified predict function
 
     :param vis: Visibility to be inverted
     :param im: image template (not changed)
     :param image_iterator: Iterator to use for partitioning
     :param dopsf: Make the psf instead of the dirty image
+    :param normalize: Normalize by the sum of weights (True)
     :returns: resulting image[nchan, npol, ny, nx], sum of weights[nchan, npol]
     """
     
@@ -160,7 +167,7 @@ def invert_with_image_iterator(vis, im, image_iterator=raster_iter, dopsf=False,
     nchan, npol, _, _ = im.shape
     totalwt = numpy.zeros([nchan, npol])
     for dpatch in image_iterator(im, **kwargs):
-        result, sumwt = invert_function(vis, dpatch, dopsf, **kwargs)
+        result, sumwt = invert_function(vis, dpatch, dopsf, normalize=False, **kwargs)
         totalwt = sumwt
         # Ensure that we fill in the elements of dpatch instead of creating a new numpy arrray
         dpatch.data[...] = result.data[...]
@@ -168,8 +175,7 @@ def invert_with_image_iterator(vis, im, image_iterator=raster_iter, dopsf=False,
         i += 1
     assert numpy.max(numpy.abs(im.data)), "Output image appears to be empty"
     
-    # Loose thread here: we have to assume that all patchs have the same sumwt
+    if normalize:
+        im = normalize_sumwt(im, totalwt)
+    
     return im, totalwt
-
-
-

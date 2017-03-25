@@ -46,7 +46,7 @@ def fit_uvwplane(vis):
              % (nvis, before, after))
     return vis, p, q
 
-def invert_timeslice(vis, im, dopsf=False, **kwargs):
+def invert_timeslice(vis, im, dopsf=False, normalize=True, **kwargs):
     """ Invert using time slices (top level function)
 
     Use the image im as a template. Do PSF in a separate call.
@@ -54,12 +54,13 @@ def invert_timeslice(vis, im, dopsf=False, **kwargs):
     :param vis: Visibility to be inverted
     :param im: image template (not changed)
     :param dopsf: Make the psf instead of the dirty image
+    :param normalize: Normalize by the sum of weights (True)
     :returns: resulting image[nchan, npol, ny, nx], sum of weights[nchan, npol]
 
     """
     log.debug("invert_timeslice: inverting using time slices")
     return invert_with_vis_iterator(vis, im, dopsf, vis_iter=vis_timeslice_iter,
-                                    invert=invert_timeslice_single, **kwargs)
+                                    normalize=normalize, invert=invert_timeslice_single, **kwargs)
 
 
 def predict_timeslice(vis, model, **kwargs):
@@ -148,21 +149,20 @@ def lm_distortion(im: Image, a, b):
     return l2d, m2d, ldistorted, mdistorted
 
 
-def invert_timeslice_single(vis, im, dopsf, **kwargs):
+def invert_timeslice_single(vis, im, dopsf, normalize=True, **kwargs):
     """Process single time slice
     
     Extracted for re-use in parallel version
     :param vis: Visibility to be inverted
     :param im: image template (not changed)
     :param dopsf: Make the psf instead of the dirty image
+    :param normalize: Normalize by the sum of weights (True)
     """
     inchan, inpol, ny, nx = im.shape
     
     vis, p, q = fit_uvwplane(vis)
     
-    workimage, sumwt = invert_2d(vis, im, dopsf, **kwargs)
-    # We don't normalise since that will be done after summing all images
-    # export_image_to_fits(workimage, "uncorrected_snapshot_image%d.fits" % (int(numpy.average(vis.time))))
+    workimage, sumwt = invert_2d(vis, im, dopsf, normalize=normalize, **kwargs)
 
     finalimage = create_empty_image_like(im)
     

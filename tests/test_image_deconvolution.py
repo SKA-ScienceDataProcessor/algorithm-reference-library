@@ -11,7 +11,7 @@ import numpy
 from astropy.coordinates import SkyCoord
 
 from arl.data.polarisation import PolarisationFrame
-from arl.fourier_transforms.ftprocessor_base import predict_2d, invert_2d, create_image_from_visibility, normalize_sumwt
+from arl.fourier_transforms.ftprocessor_base import predict_2d, invert_2d, create_image_from_visibility
 from arl.image.deconvolution import overlapIndices, deconvolve_cube, restore_cube
 from arl.image.operations import export_image_to_fits, create_image_from_array
 from arl.util.testing_support import create_test_image, create_named_configuration
@@ -43,9 +43,7 @@ class TestImageDeconvolution(unittest.TestCase):
         self.model = create_image_from_visibility(self.vis, npixel=512, cellsize=0.001,
                                                   polarisation_frame=PolarisationFrame('stokesI'))
         self.dirty, sumwt = invert_2d(self.vis, self.model)
-        self.dirty = normalize_sumwt(self.dirty, sumwt)
         self.psf, sumwt = invert_2d(self.vis, self.model, dopsf=True)
-        self.psf = normalize_sumwt(self.psf, sumwt)
         window = numpy.zeros(shape=self.model.shape, dtype=numpy.bool)
         window[..., 129:384, 129:384] = True
         self.innerquarter = create_image_from_array(window, self.model.wcs)

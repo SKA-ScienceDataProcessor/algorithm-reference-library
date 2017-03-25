@@ -23,8 +23,7 @@ class TestFTProcessor(unittest.TestCase):
         # Make the dirty image
         self.params['imaginary'] = False
         dirty = create_empty_image_like(self.model)
-        dirty, sumwt = invert_2d(vis=vis, im=dirty, dopsf=False, **self.params)
-        dirty = normalize_sumwt(dirty, sumwt)
+        dirty, sumwt = invert_2d(vis=vis, im=dirty, dopsf=False, normalize=True, **self.params)
         export_image_to_fits(dirty, '%s/%s_dirty.fits' % (self.dir, name))
         maxabs = numpy.max(numpy.abs(dirty.data))
         assert maxabs < fluxthreshold, "%s, abs max %f exceeds flux threshold" % (name, maxabs)
@@ -224,8 +223,6 @@ class TestFTProcessor(unittest.TestCase):
         dirty2d = create_empty_image_like(self.model)
         dirty2d, sumwt = invert_2d(self.componentvis, dirty2d, **self.params)
         
-        dirty2d = normalize_sumwt(dirty2d, sumwt)
-        
         export_image_to_fits(dirty2d, '%s/test_invert_2d_dirty.fits' % self.dir)
         
         self._checkcomponents(dirty2d, fluxthreshold=20.0, positionthreshold=1.0)
@@ -234,7 +231,6 @@ class TestFTProcessor(unittest.TestCase):
         dirtyFacet = create_empty_image_like(self.model)
         dirtyFacet, sumwt = invert(self.componentvis, dirtyFacet, **self.params)
         assert sumwt.all() > 0.0
-        dirtyFacet = normalize_sumwt(dirtyFacet, sumwt)
         export_image_to_fits(dirtyFacet, '%s/test_%s_dirty.fits' % (self.dir, invert.__name__))
         self._checkcomponents(dirtyFacet, fluxthreshold, positionthreshold)
     

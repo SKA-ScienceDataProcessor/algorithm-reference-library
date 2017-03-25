@@ -12,7 +12,7 @@ import numpy
 from astropy.coordinates import SkyCoord
 
 from arl.data.polarisation import PolarisationFrame
-from arl.fourier_transforms.ftprocessor import invert_2d, predict_2d, normalize_sumwt, create_image_from_visibility
+from arl.fourier_transforms.ftprocessor import invert_2d, predict_2d, create_image_from_visibility
 from arl.image.deconvolution import restore_cube
 from arl.image.operations import export_image_to_fits
 from arl.skycomponent.operations import insert_skycomponent, create_skycomponent

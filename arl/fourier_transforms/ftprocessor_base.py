@@ -6,12 +6,14 @@ functions in arl.fourier_transforms.
 """
 
 import collections
-from astropy import units as units
+
 from astropy import constants
+from astropy import units as units
 from astropy import wcs
 from astropy.wcs.utils import pixel_to_skycoord
 
 from arl.data.data_models import *
+from arl.data.parameters import get_parameter
 from arl.data.polarisation import convert_pol_frame
 from arl.fourier_transforms.convolutional_gridding import fixed_kernel_grid, \
     fixed_kernel_degrid, weight_gridding, w_beam
@@ -19,12 +21,9 @@ from arl.fourier_transforms.fft_support import fft, ifft, pad_mid, extract_mid
 from arl.fourier_transforms.ftprocessor_params import get_frequency_map, \
     get_polarisation_map, get_uvw_map, get_kernel_list
 from arl.image.iterators import *
-from arl.image.operations import copy_image, create_empty_image_like
+from arl.image.operations import copy_image
 from arl.util.coordinate_support import simulate_point, skycoord_to_lmn
-from arl.visibility.coalesce import coalesce_visibility, decoalesce_visibility
 from arl.visibility.operations import phaserotate_visibility, copy_visibility
-from arl.data.parameters import get_parameter
-
 
 log = logging.getLogger(__name__)
 
@@ -40,7 +39,7 @@ def shift_vis_to_image(vis, im, tangent=True, inverse=False):
 
     """
     assert type(vis) is Visibility, "vis is not a Visibility: %r" % vis
-
+    
     nchan, npol, ny, nx = im.data.shape
     
     # Convert the FFT definition of the phase center to world coordinates (1 relative)
@@ -78,6 +77,7 @@ def normalize_sumwt(im: Image, sumwt):
             im.data[chan, pol, :, :] /= sumwt[chan, pol]
     return im
 
+
 def predict_2d_base(vis, model, **kwargs):
     """ Predict using convolutional degridding.
 
@@ -89,22 +89,22 @@ def predict_2d_base(vis, model, **kwargs):
     :returns: resulting visibility (in place works)
     """
     assert type(vis) is Visibility, "vis is not a Visibility: %r" % vis
-
+    
     _, _, ny, nx = model.data.shape
-
+    
     spectral_mode, vfrequencymap = get_frequency_map(vis, model)
     polarisation_mode, vpolarisationmap = get_polarisation_map(vis, model, **kwargs)
     uvw_mode, shape, padding, vuvwmap = get_uvw_map(vis, model, **kwargs)
     kernel_name, gcf, vkernellist = get_kernel_list(vis, model, **kwargs)
-
+    
     uvgrid = fft((pad_mid(model.data, int(round(padding * nx))) * gcf).astype(dtype=complex))
     
     vis.data['vis'] = fixed_kernel_degrid(vkernellist, vis.data['vis'].shape, uvgrid,
-                                           vuvwmap, vfrequencymap, vpolarisationmap)
+                                          vuvwmap, vfrequencymap, vpolarisationmap)
     
     # Now we can shift the visibility from the image frame to the original visibility frame
     svis = shift_vis_to_image(vis, model, tangent=True, inverse=True)
-
+    
     return svis
 
 
@@ -128,7 +128,7 @@ def predict_wprojection(vis, model, **kwargs):
     return predict_2d_base(vis, model, kernel='wprojection', **kwargs)
 
 
-def invert_2d_base(vis, im, dopsf=False, **kwargs):
+def invert_2d_base(vis, im, dopsf=False, normalize=True, **kwargs):
     """ Invert using 2D convolution function, including w projection optionally
 
     Use the image im as a template. Do PSF in a separate call.
@@ -139,11 +139,12 @@ def invert_2d_base(vis, im, dopsf=False, **kwargs):
     :param vis: Visibility to be inverted
     :param im: image template (not changed)
     :param dopsf: Make the psf instead of the dirty image
+    :param normalize: Normalize by the sum of weights (True)
     :returns: resulting image
 
     """
     assert type(vis) is Visibility, "vis is not a Visibility: %r" % vis
-
+    
     svis = copy_visibility(vis)
     
     # Shift
@@ -155,36 +156,42 @@ def invert_2d_base(vis, im, dopsf=False, **kwargs):
     polarisation_mode, vpolarisationmap = get_polarisation_map(vis, im, **kwargs)
     uvw_mode, shape, padding, vuvwmap = get_uvw_map(vis, im, **kwargs)
     kernel_name, gcf, vkernellist = get_kernel_list(vis, im, **kwargs)
-
-   
+    
     # Optionally pad to control aliasing
     imgridpad = numpy.zeros([nchan, npol, int(round(padding * ny)), int(round(padding * nx))], dtype='complex')
     if dopsf:
         lvis = numpy.ones_like(svis.data['vis'])
     else:
         lvis = svis.vis
-        
+    
     imgridpad, sumwt = fixed_kernel_grid(vkernellist, imgridpad, lvis, svis.data['imaging_weight'], vuvwmap,
                                          vfrequencymap, vpolarisationmap)
     
     # Fourier transform the padded grid to image, multiply by the gridding correction
     # function, and extract the unpadded inner part.
-
+    
     # Normalise weights for consistency with transform
     sumwt /= float(padding * int(round(padding * nx)) * ny)
-
+    
     imaginary = get_parameter(kwargs, "imaginary", False)
     if imaginary:
         log.debug("invert_2d_base: retaining imaginary part of dirty image")
         result = extract_mid(ifft(imgridpad) * gcf, npixel=nx)
-        return create_image_from_array(result.real, im.wcs), sumwt, create_image_from_array(result.imag, im.wcs)
+        resultreal = create_image_from_array(result.real, im.wcs)
+        resultimag = create_image_from_array(result.imag, im.wcs)
+        if normalize:
+            resultreal = normalize_sumwt(resultreal, sumwt)
+            resultimag = normalize_sumwt(resultimag, sumwt)
+        return resultreal, sumwt, resultimag
     else:
         result = extract_mid(numpy.real(ifft(imgridpad)) * gcf, npixel=nx)
-        return create_image_from_array(result, im.wcs), sumwt
+        resultimage = create_image_from_array(result, im.wcs)
+        if normalize:
+            resultimage = normalize_sumwt(resultimage, sumwt)
+        return resultimage, sumwt
 
 
-
-def invert_2d(vis, im, dopsf=False, **kwargs):
+def invert_2d(vis, im, dopsf=False, normalize=True, **kwargs):
     """ Invert using prolate spheroidal gridding function
 
     Use the image im as a template. Do PSF in a separate call.
@@ -194,15 +201,16 @@ def invert_2d(vis, im, dopsf=False, **kwargs):
     :param vis: Visibility to be inverted
     :param im: image template (not changed)
     :param dopsf: Make the psf instead of the dirty image
+    :param normalize: Normalize by the sum of weights (True)
     :returns: resulting image[nchan, npol, ny, nx], sum of weights[nchan, npol]
 
     """
     log.debug("invert_2d: inverting using 2d transform")
     kwargs['kernel'] = get_parameter(kwargs, "kernel", '2d')
-    return invert_2d_base(vis, im, dopsf, **kwargs)
+    return invert_2d_base(vis, im, dopsf, normalize=normalize, **kwargs)
 
 
-def invert_wprojection(vis, im, dopsf=False, **kwargs):
+def invert_wprojection(vis, im, dopsf=False, normalize=True, **kwargs):
     """ Predict using 2D convolution function, including w projection
 
     Use the image im as a template. Do PSF in a separate call.
@@ -215,7 +223,7 @@ def invert_wprojection(vis, im, dopsf=False, **kwargs):
     """
     log.debug("invert_2d: inverting using wprojection")
     kwargs['kernel'] = "wprojection"
-    return invert_2d_base(vis, im, dopsf, **kwargs)
+    return invert_2d_base(vis, im, dopsf, normalize=normalize, **kwargs)
 
 
 def predict_skycomponent_blockvisibility(vis: BlockVisibility, sc: Skycomponent, **kwargs) -> BlockVisibility:
@@ -233,25 +241,25 @@ def predict_skycomponent_blockvisibility(vis: BlockVisibility, sc: Skycomponent,
     
     nchan = vis.nchan
     npol = vis.npol
-
+    
     if not isinstance(sc, collections.Iterable):
         sc = [sc]
     
     k = vis.frequency / constants.c.to('m/s').value
     
     for comp in sc:
-    
+        
         assert_same_chan_pol(vis, comp)
         
         flux = comp.flux
         if comp.polarisation_frame != vis.polarisation_frame:
             flux = convert_pol_frame(flux, comp.polarisation_frame, vis.polarisation_frame)
-
+        
         l, m, n = skycoord_to_lmn(comp.direction, vis.phasecentre)
         for chan in range(nchan):
             phasor = simulate_point(vis.uvw * k[chan], l, m)
             for pol in range(npol):
-                vis.data['vis'][...,chan,pol] += flux[chan, pol] * phasor[...]
+                vis.data['vis'][..., chan, pol] += flux[chan, pol] * phasor[...]
     
     return vis
 
@@ -267,9 +275,9 @@ def predict_skycomponent_visibility(vis: Visibility, sc: Skycomponent) -> Visibi
     
     if not isinstance(sc, collections.Iterable):
         sc = [sc]
-
+    
     _, ichan = list(get_frequency_map(vis, None))
-
+    
     npol = vis.polarisation_frame.npol
     
     for comp in sc:
@@ -278,10 +286,10 @@ def predict_skycomponent_visibility(vis: Visibility, sc: Skycomponent) -> Visibi
         phasor = simulate_point(vis.uvw, l, m)
         for pol in range(npol):
             vis.data['vis'][:, pol] += comp.flux[ichan[:], pol] * phasor[:]
-        
-                # coords = phasor, ichan
-        # for pol in range(npol):
-        #     vis.data['vis'][:,pol] += [comp.flux[ic, pol] * p for p, ic in zip(*coords)]
+            
+            # coords = phasor, ichan
+            # for pol in range(npol):
+            #     vis.data['vis'][:,pol] += [comp.flux[ic, pol] * p for p, ic in zip(*coords)]
     
     return vis
 
@@ -297,11 +305,10 @@ def weight_visibility(vis, im, **kwargs):
     :returns: visibility with imaging_weights column added and filled
     """
     assert type(vis) is Visibility, "vis is not a Visibility: %r" % vis
-
+    
     spectral_mode, vfrequencymap = get_frequency_map(vis, im)
     polarisation_mode, vpolarisationmap = get_polarisation_map(vis, im, **kwargs)
     uvw_mode, shape, padding, vuvwmap = get_uvw_map(vis, im, **kwargs)
-
     
     # uvw is in metres, v.frequency / c.value converts to wavelengths, the cellsize converts to phase
     density = None
@@ -312,6 +319,7 @@ def weight_visibility(vis, im, **kwargs):
                                                                        vfrequencymap, vpolarisationmap, weighting)
     
     return vis, density, densitygrid
+
 
 def create_image_from_visibility(vis: Visibility, **kwargs) -> Image:
     """Make an from params and Visibility
@@ -328,7 +336,7 @@ def create_image_from_visibility(vis: Visibility, **kwargs) -> Image:
     """
     assert type(vis) is Visibility or type(vis) is BlockVisibility, \
         "vis is not a Visibility or a BlockVisibility: %r" % (vis)
-
+    
     log.info("create_image_from_visibility: Parsing parameters to get definition of WCS")
     
     imagecentre = get_parameter(kwargs, "imagecentre", vis.phasecentre)
@@ -337,15 +345,16 @@ def create_image_from_visibility(vis: Visibility, **kwargs) -> Image:
     # Spectral processing options
     ufrequency = numpy.unique(vis.frequency)
     vnchan = len(ufrequency)
-
+    
     frequency = get_parameter(kwargs, "frequency", vis.frequency)
     inchan = get_parameter(kwargs, "nchan", vnchan)
     reffrequency = numpy.min(frequency) * units.Hz
     channel_bandwidth = get_parameter(kwargs, "channel_bandwidth", vis.channel_bandwidth[0]) * units.Hz
-
+    
     if (inchan == vnchan) and vnchan > 1:
-        log.info("create_image_from_visibility: Defining %d channel Image at %s, starting frequency %s, and bandwidth %s"
-                 % (inchan, imagecentre, reffrequency, channel_bandwidth))
+        log.info(
+            "create_image_from_visibility: Defining %d channel Image at %s, starting frequency %s, and bandwidth %s"
+            % (inchan, imagecentre, reffrequency, channel_bandwidth))
     elif (inchan == 1) and vnchan > 1:
         assert numpy.abs(channel_bandwidth.value) > 0.0, "Channel width must be non-zero for mfs mode"
         log.info("create_image_from_visibility: Defining single channel MFS Image at %s, starting frequency %s, "
@@ -408,11 +417,11 @@ def create_w_term_like(im, w=None, **kwargs):
     :returns: Image
     """
     
-    fim =  copy_image(im)
+    fim = copy_image(im)
     cellsize = abs(fim.wcs.wcs.cdelt[0]) * numpy.pi / 180.0
     _, _, _, npixel = fim.data.shape
     fim.data = w_beam(npixel, npixel * cellsize, w=w)
-
+    
     fov = npixel * cellsize
     fresnel = numpy.abs(w) * (0.5 * fov) ** 2
     log.info('create_w_term_image: For w = %.1f, field of view = %.6f, Fresnel number = %.2f' % (w, fov, fresnel))
@@ -435,9 +444,9 @@ def create_w_term_image(vis, w=None, **kwargs):
     cellsize = abs(im.wcs.wcs.cdelt[0]) * numpy.pi / 180.0
     _, _, _, npixel = im.data.shape
     im.data = w_beam(npixel, npixel * cellsize, w=w)
-
+    
     fov = npixel * cellsize
     fresnel = numpy.abs(w) * (0.5 * fov) ** 2
     log.info('create_w_term_image: For w = %.1f, field of view = %.6f, Fresnel number = %.2f' % (w, fov, fresnel))
-
+    
     return im

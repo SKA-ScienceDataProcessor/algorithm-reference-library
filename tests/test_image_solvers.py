@@ -12,7 +12,7 @@ import numpy
 from astropy.coordinates import SkyCoord
 
 from arl.data.polarisation import PolarisationFrame
-from arl.fourier_transforms.ftprocessor import invert_2d, predict_2d, normalize_sumwt, create_image_from_visibility
+from arl.fourier_transforms.ftprocessor import invert_2d, predict_2d, create_image_from_visibility
 from arl.image.deconvolution import restore_cube
 from arl.image.operations import export_image_to_fits
 from arl.skycomponent.operations import insert_skycomponent, create_skycomponent
@@ -56,7 +56,6 @@ class TestImageSolvers(unittest.TestCase):
         export_image_to_fits(model, '%s/test_solve_skycomponent_msclean_solution.fits' % (self.dir))
         export_image_to_fits(residual, '%s/test_solve_skycomponent_msclean_residual.fits' % (self.dir))
         psf, sumwt = invert_2d(self.vis, model, dopsf=True)
-        psf = normalize_sumwt(psf, sumwt)
         export_image_to_fits(psf, '%s/test_solve_skycomponent_msclean_psf.fits' % (self.dir))
         restored = restore_cube(model=model, psf=psf, residual=residual)
         export_image_to_fits(restored, '%s/test_solve_skycomponent_msclean_restored.fits' % (self.dir))
@@ -70,7 +69,6 @@ class TestImageSolvers(unittest.TestCase):
         export_image_to_fits(model, '%s/test_solve_skycomponent_hogbom_solution.fits' % (self.dir))
         export_image_to_fits(residual, '%s/test_solve_skycomponent_hogbom_residual.fits' % (self.dir))
         psf, sumwt = invert_2d(self.vis, model, dopsf=True)
-        psf = normalize_sumwt(psf, sumwt)
         export_image_to_fits(psf, '%s/test_solve_skycomponent_hogbom_psf.fits' % (self.dir))
         restored = restore_cube(model=model, psf=psf, residual=residual)
         export_image_to_fits(restored, '%s/test_solve_skycomponent_hogbom_restored.fits' % (self.dir))

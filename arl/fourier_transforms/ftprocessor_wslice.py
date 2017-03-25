@@ -62,7 +62,7 @@ def predict_wslice_single(vis, model, **kwargs):
     return vis
 
 
-def invert_wslice(vis, im, dopsf=False, **kwargs):
+def invert_wslice(vis, im, dopsf=False, normalize=True, **kwargs):
     """ Invert using w slices (top level function)
 
     Use the image im as a template. Do PSF in a separate call.
@@ -70,27 +70,27 @@ def invert_wslice(vis, im, dopsf=False, **kwargs):
     :param vis: Visibility to be inverted
     :param im: image template (not changed)
     :param dopsf: Make the psf instead of the dirty image
+    :param normalize: Normalize by the sum of weights (True)
     :param wslice: wslice in seconds. If 'auto' will find plausible value
     :param nprocessor: Number of processors to be used (1)
     :returns: resulting image[nchan, npol, ny, nx], sum of weights[nchan, npol]
 
     """
     log.debug("invert_wslice: inverting using w slices")
-    return invert_with_vis_iterator(vis, im, dopsf, vis_iter=vis_wslice_iter,
+    return invert_with_vis_iterator(vis, im, dopsf, normalize=normalize, vis_iter=vis_wslice_iter,
                                     invert=invert_wslice_single, **kwargs)
 
-def invert_wslice_single(vis, im, dopsf, **kwargs):
+def invert_wslice_single(vis, im, dopsf, normalize=True, **kwargs):
     """Process single w slice
     
     Extracted for re-use in parallel version
     :param vis: Visibility to be inverted
     :param im: image template (not changed)
     :param dopsf: Make the psf instead of the dirty image
+    :param normalize: Normalize by the sum of weights (True)
     """
     kwargs['imaginary'] = True
-    reWorkimage, sumwt, imWorkimage = invert_2d_base(vis, im, dopsf, **kwargs)
-    # We don't normalise since that will be done after summing all images
-    # export_image_to_fits(workimage, "uncorrected_snapshot_image%d.fits" % (int(numpy.average(vis.w))))
+    reWorkimage, sumwt, imWorkimage = invert_2d_base(vis, im, dopsf, normalize=normalize, **kwargs)
 
     # Calculate w beam and apply to the model. The imaginary part is not needed
     w_beam = create_w_term_like(im, numpy.average(vis.w))
