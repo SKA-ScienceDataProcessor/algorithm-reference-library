@@ -41,7 +41,7 @@ implemented by a python generator::
 This relies upon the data objects (model and vis) possessing sufficient meta data to enable operations such as phase
 rotation from one frame to another.
 
-In addition, iteration through the visibility data must tbe varied:
+In addition, iteration through the visibility data can be on various orders::
 
 + By time
 + By frequency

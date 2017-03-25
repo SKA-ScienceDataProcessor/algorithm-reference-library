@@ -26,9 +26,16 @@ The principal transitions between the data models:
 .. image:: ./ARL_transitions.png
    :scale: 75 %
 
-We distinguish between two types of visibility structure: block-oriented as needed for calibration, and a more atomic
- form needed to represent visibility data that has been through baseline-dependent averaging, and no longer has the
- regularity of the block form.
+There are two visibility formats:
+
+* BlockVisibility is conceived as an ingest and calibration format. The visibility
+data are kept in block of shape (number antennas, number antennas, number channels, number polarisation). One block
+is kept per integration. The other columns are time and uvw. The sampling in time is therefore the same for
+all baselines.
+* Visibility is designed to hold coalesced data where the integration time and channel bandwidth can vary with
+baseline length. The visibility data are kept in a visibility vector of length equal to the number of polarisations.
+Everything else is a separate column: time, frequency, uvw, channel_bandwidth, integration time.
+
 
 Processing Parameters
 =====================
@@ -82,7 +89,7 @@ spectral_mode           Visibility processing mode          'mfs' or 'channel'
 ARL API
 =======
 
-The data structures are operated on by state-less components. The complete set of components is:
+The data structures are operated on by state-less functions. The complete set of functions is:
 
 .. image:: ./ARL_all.png
    :width: 1024px
@@ -251,42 +258,11 @@ towards the source. With this convention, images will have Right
 Ascension increasing from Right to Left, and Declination increasing
 from Bottom to Top.
 
-Util
-----
-
-Coordinate Support
-++++++++++++++++++
-
-.. automodule:: arl.util.coordinate_support
-   :members:
-
-Testing Support
-+++++++++++++++
-
-.. automodule:: arl.util.testing_support
-   :members:
-
 Quality Assessment
 ++++++++++++++++++
 
 .. automodule:: arl.util.quality_assessment
    :members:
-
-Pipelines
----------
-
-Functions
-+++++++++
-
-.. automodule:: arl.pipelines.functions
-   :members:
-
-Support
-+++++++
-
-.. automodule:: arl.pipelines.support
-   :members:
-
 
 Unit tests
 **********

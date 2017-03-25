@@ -29,7 +29,7 @@ def predict_facets(vis, model, predict_function=predict_2d_base, **kwargs):
     :returns: resulting visibility (in place works)
     """
     log.debug("predict_facets: Predicting by image facets")
-    return predict_with_image_iterator(vis, model, image_iterator=raster_iter, predict_function=predict_2d_base,
+    return predict_with_image_iterator(vis, model, image_iterator=raster_iter, predict_function=predict_function,
                                 **kwargs)
 
 def invert_facets(vis, im, dopsf=False, invert_function=invert_2d_base, **kwargs):
@@ -44,4 +44,4 @@ def invert_facets(vis, im, dopsf=False, invert_function=invert_2d_base, **kwargs
     
     log.debug("invert_facets: Inverting by image facets")
     return invert_with_image_iterator(vis, im, image_iterator=raster_iter, dopsf=False,
-                                      invert_function=invert_2d_base, **kwargs)
+                                      invert_function=invert_function, **kwargs)

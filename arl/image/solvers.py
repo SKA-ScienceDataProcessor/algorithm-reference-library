@@ -19,6 +19,8 @@ def solve_image(vis: Visibility, model: Image, predict=predict_2d, invert=invert
     """Solve for image using deconvolve_cube and specified predict, invert
 
     This is the same as a majorcycle/minorcycle algorithm. The components are removed prior to deconvolution.
+    
+    See also arguments for predict, invert, deconvolve_cube functions.2d
 
     :param vis:
     :param model: Model image

@@ -50,6 +50,7 @@ class TestCalibrationSolvers(unittest.TestCase):
             vis = apply_gaintable(vis, gtsol, inverse=True)
             residual = numpy.max(gtsol.residual)
             assert residual < 1e-8, "Max residual = %s" % (residual)
+            log.debug(qa_gaintable(gt))
 
 
     def test_solve_gaintable_both_big(self):
@@ -69,16 +70,17 @@ class TestCalibrationSolvers(unittest.TestCase):
     
 
     def test_solve_gaintable_big_phase(self):
-        for spf, dpf in[('stokesIQUV', 'linear'), ('stokesIQUV', 'circular') ]:
-            self.actualSetup(spf, dpf)
-            gt = create_gaintable_from_blockvisibility(self.vis)
-            log.info("Created gain table: %s" % (gaintable_summary(gt)))
-            gt = simulate_gaintable(gt, phase_error=10.0, amplitude_error=0.0)
-            original = copy_visibility(self.vis)
-            vis = apply_gaintable(self.vis, gt)
-            gtsol = solve_gaintable(self.vis, original, phase_only=True, niter=200)
-            residual = numpy.max(gtsol.residual)
-            assert residual < 3e-8, "Max residual = %s" % (residual)
+        for crosspol in [True, False]:
+            for spf, dpf in[('stokesIQUV', 'linear'), ('stokesIQUV', 'circular') ]:
+                self.actualSetup(spf, dpf)
+                gt = create_gaintable_from_blockvisibility(self.vis)
+                log.info("Created gain table: %s" % (gaintable_summary(gt)))
+                gt = simulate_gaintable(gt, phase_error=10.0, amplitude_error=0.0, crosspol=crosspol)
+                original = copy_visibility(self.vis)
+                vis = apply_gaintable(self.vis, gt)
+                gtsol = solve_gaintable(self.vis, original, phase_only=True, niter=200)
+                residual = numpy.max(gtsol.residual)
+                assert residual < 3e-8, "Max residual = %s" % (residual)
 
     def test_solve_gaintable_scalar(self):
         self.flux = numpy.array([[self.flux[0,0]]])
