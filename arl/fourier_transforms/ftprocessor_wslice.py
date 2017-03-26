@@ -71,12 +71,13 @@ def invert_wslice(vis, im, dopsf=False, normalize=True, **kwargs):
     :param im: image template (not changed)
     :param dopsf: Make the psf instead of the dirty image
     :param normalize: Normalize by the sum of weights (True)
-    :param wslice: wslice in seconds. If 'auto' will find plausible value
+    :param wslice: wslice in wavelenngths. If None or omitted will find plausible value
     :param nprocessor: Number of processors to be used (1)
     :returns: resulting image[nchan, npol, ny, nx], sum of weights[nchan, npol]
 
     """
     log.debug("invert_wslice: inverting using w slices")
+    
     return invert_with_vis_iterator(vis, im, dopsf, normalize=normalize, vis_iter=vis_wslice_iter,
                                     invert=invert_wslice_single, **kwargs)
 

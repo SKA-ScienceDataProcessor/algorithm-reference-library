@@ -20,12 +20,14 @@ class Configuration:
     """
     
     def __init__(self, name='', data=None, location=None,
-                 names="%s", xyz=None, mount="alt-az", frame=None, receptor_frame=ReceptorFrame("linear")):
+                 names="%s", xyz=None, mount="alt-az", frame=None, receptor_frame=ReceptorFrame("linear"),
+                 diameter = None):
         
         # Defaults
         if data is None and xyz is not None:
             desc = [('names', '>U6'),
                     ('xyz', '>f8', (3,)),
+                    ('diameter', '>f8'),
                     ('mount', '>U5')]
             nants = xyz.shape[0]
             if isinstance(names, str):
@@ -36,6 +38,7 @@ class Configuration:
             data['names'] = names
             data['xyz'] = xyz
             data['mount'] = mount
+            data['diameter'] = diameter
         
         self.name = name
         self.data = data
@@ -56,11 +59,17 @@ class Configuration:
         return self.data['names']
     
     @property
+    def diameter(self):
+        """ diameter of antennas/stations
+        """
+        return self.data['diameter']
+
+    @property
     def xyz(self):
         """ XYZ locations of antennas/stations
         """
         return self.data['xyz']
-    
+
     @property
     def mount(self):
         """ Mount type

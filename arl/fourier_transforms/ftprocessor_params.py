@@ -168,12 +168,15 @@ def get_kernel_list(vis, im, **kwargs):
         
         # The field of view must be as padded!
         fov = cellsize * npixel * padding
-        r_f = (fov / 2) ** 2 / abs(cellsize)
+        r_f = (cellsize * npixel / 2) ** 2 / abs(cellsize)
         log.info("get_kernel_list: Fresnel number = %f" % (r_f))
         delA = get_parameter(kwargs, 'wloss', 0.02)
         
         # Following equation is from Cornwell, Humphreys, and Voronkov (2012) (equation 24)
-        recommended_wstep = numpy.sqrt(2.0 * delA) / (numpy.pi * fov ** 2)
+        # We will assume that the constraint holds at one quarter the entire FOV i.e. that
+        # the full field of view includes the entire primary beam
+        fiducial_fov = cellsize * npixel / 4
+        recommended_wstep = numpy.sqrt(2.0 * delA) / (numpy.pi * fiducial_fov ** 2)
         log.info("get_kernel_list: Recommended wstep = %f" % (recommended_wstep))
         wstep = get_parameter(kwargs, "wstep", recommended_wstep)
         log.info("get_kernel_list: Using w projection with wstep = %f" % (wstep))
