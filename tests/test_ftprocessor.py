@@ -180,9 +180,10 @@ class TestFTProcessor(unittest.TestCase):
         self._predict_base(predict_facets, fluxthreshold=1e-7)
 
     def test_predict_timeslice(self):
-        # This works very poorly because of the poor interpolation accuracy for point sources
+        # This works poorly because of the poor interpolation accuracy for point sources. The corresponding
+        # invert works well particularly if the beam sampling is high
         self.actualSetUp()
-        for self.params['nprocessor'] in [1, 4]:
+        for self.params['nprocessor'] in [1, 'auto', 4]:
             self._predict_base(predict_timeslice, fluxthreshold=10.0)
 
     def test_predict_wslice(self):
@@ -246,13 +247,13 @@ class TestFTProcessor(unittest.TestCase):
                        'oversampling': 4,
                        'wslice': 1.0,
                        'imaginary': True}
-        for self.params['nprocessor'] in [1, 4]:
+        for self.params['nprocessor'] in [1, 'auto', 4]:
             self.actualSetUp()
             self._invert_base(invert_wslice, positionthreshold=8.0)
 
     def test_invert_timeslice(self):
         self.actualSetUp()
-        for self.params['nprocessor'] in [1, 4]:
+        for self.params['nprocessor'] in [1, 'auto', 4]:
             self.actualSetUp()
             self._invert_base(invert_timeslice, positionthreshold=8.0)
 
