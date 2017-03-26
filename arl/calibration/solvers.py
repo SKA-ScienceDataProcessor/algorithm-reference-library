@@ -269,7 +269,7 @@ def solve_antenna_gains_itsubs_matrix(gainshape, x, xwt, niter=30, tol=1e-8, pha
     
     for iter in range(niter):
         gainLast = gain
-        gain, gwt = gain_substitution_vector(gain, x, xwt)
+        gain, gwt = gain_substitution_matrix(gain, x, xwt)
         if phase_only:
             gain = gain / numpy.abs(gain)
         # mask = numpy.abs(gain) > 0.0
@@ -277,9 +277,9 @@ def solve_antenna_gains_itsubs_matrix(gainshape, x, xwt, niter=30, tol=1e-8, pha
         gain = 0.5 * (gain + gainLast)
         change = numpy.max(numpy.abs(gain - gainLast))
         if change < tol:
-            return gain, gwt, solution_residual_vector(gain, x, xwt)
+            return gain, gwt, solution_residual_matrix(gain, x, xwt)
     
-    return gain, gwt, solution_residual_vector(gain, x, xwt)
+    return gain, gwt, solution_residual_matrix(gain, x, xwt)
 
 
 def gain_substitution_matrix(gain, x, xwt):
