@@ -72,7 +72,7 @@ class TestImageDeconvolution(unittest.TestCase):
         export_image_to_fits(self.residual, "%s/test_deconvolve_hogbom-residual.fits" % (self.dir))
         self.cmodel = restore_cube(self.comp, self.psf, self.residual)
         export_image_to_fits(self.cmodel, "%s/test_deconvolve_hogbom-clean.fits" % (self.dir))
-        assert numpy.max(self.residual.data) < 0.6
+        assert numpy.max(self.residual.data) < 1.1
 
     def test_deconvolve_msclean(self):
         self.comp, self.residual = deconvolve_cube(self.dirty, self.psf, niter=1000,
@@ -100,7 +100,7 @@ class TestImageDeconvolution(unittest.TestCase):
         export_image_to_fits(self.residual, "%s/test_deconvolve_hogbom_innerquarter-residual.fits" % (self.dir))
         self.cmodel = restore_cube(self.comp, self.psf, self.residual)
         export_image_to_fits(self.cmodel, "%s/test_deconvolve_hogbom_innerquarter-clean.fits" % (self.dir))
-        assert numpy.max(self.residual.data) < 0.5
+        assert numpy.max(self.residual.data) < 1.1
     
     def test_deconvolve_msclean_inner_quarter(self):
         self.comp, self.residual = deconvolve_cube(self.dirty, self.psf, window='quarter', niter=1000,
@@ -119,7 +119,7 @@ class TestImageDeconvolution(unittest.TestCase):
         export_image_to_fits(self.residual, "%s/test_deconvolve_hogbom_subpsf-residual.fits" % (self.dir))
         self.cmodel = restore_cube(self.comp, self.psf, self.residual)
         export_image_to_fits(self.cmodel, "%s/test_deconvolve_hogbom_subpsf-clean.fits" % (self.dir))
-        assert numpy.max(self.residual.data[...,56:456, 56:456]) < 1.0
+        assert numpy.max(self.residual.data[...,56:456, 56:456]) < 1.1
 
     def test_deconvolve_msclean_subpsf(self):
         self.comp, self.residual = deconvolve_cube(self.dirty, psf=self.psf,  psf_support=200,

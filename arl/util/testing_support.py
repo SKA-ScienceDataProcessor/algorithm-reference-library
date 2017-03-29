@@ -627,7 +627,7 @@ def create_blockvisibility_iterator(config: Configuration, times: numpy.array, f
         # Add phase errors
         if phase_error > 0.0 or amplitude_error > 0.0:
             gt = create_gaintable_from_blockvisibility(vis)
-            gt = simulate_gaintable(gt=gt, vis=vis, phase_error=phase_error, amplitude_error=amplitude_error)
+            gt = simulate_gaintable(gt=gt, phase_error=phase_error, amplitude_error=amplitude_error)
             vis = apply_gaintable(vis, gt)
         
         yield vis
