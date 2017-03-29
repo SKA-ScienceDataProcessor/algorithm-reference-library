@@ -35,19 +35,17 @@ def solve_gaintable(vis: BlockVisibility, modelvis: BlockVisibility, phase_only=
     gt = create_gaintable_from_blockvisibility(vis)
     
     for chunk, rows in enumerate(vis_timeslice_iter(vis)):
-        # Form the point source equivalent visibility
-        x = numpy.zeros_like(vis.vis[rows])
-        xwt = numpy.abs(modelvis.vis[rows]) ** 2 * modelvis.weight[rows]
-        mask = xwt > 0.0
-        x[mask] = vis.vis[rows][mask] / modelvis.vis[rows][mask]
+        
+        x, xwt = remove_model(vis.vis[rows], vis.weight[rows], modelvis.vis[rows],
+                              isscalar=vis.polarisation_frame.npol == 1, crosspol=crosspol)
         
         # Now average over time, chan. The axes of x are time, antenna2, antenna1, chan, pol
         
-        xave = numpy.average(x * xwt, axis=0)
+        xave = numpy.average(x, axis=0)
         xwtAve = numpy.average(xwt, axis=0)
         
-        mask = xwtAve > 0.0
-        xave[mask] = xave[mask] / xwtAve[mask]
+        mask = xwtAve <= 0.0
+        xave[mask] = 0.0
         
         gainshape = gt.data['gain'][chunk, ...].shape
         if vis.polarisation_frame.npol > 1:
@@ -68,6 +66,37 @@ def solve_gaintable(vis: BlockVisibility, modelvis: BlockVisibility, phase_only=
     assert type(gt) is GainTable, "gt is not a GainTable: %r" % gt
     
     return gt
+
+
+def remove_model(vis, weight, modelvis, isscalar, crosspol):
+    # Form the point source equivalent visibility
+ 
+    # Different for scalar and vector/matrix cases
+    
+    if isscalar:
+        # Scalar case is straightforward
+        x = numpy.zeros_like(vis)
+        xwt = numpy.abs(modelvis) ** 2 * weight
+        mask = xwt > 0.0
+        x[mask] = vis[mask] / modelvis[mask]
+    else:
+        nrows, nants, _, nchan, npol = vis.shape
+        nrec = 2
+        assert nrec * nrec == npol
+        xshape = (nrows, nants, nants, nchan, nrec, nrec)
+        x = numpy.zeros(xshape, dtype='complex')
+        xwt = numpy.zeros(xshape)
+        for row in range(nrows):
+            for ant1 in range(nants):
+                for ant2 in range(ant1+1, nants):
+                    for chan in range(nchan):
+                        ovis = numpy.matrix(vis[row, ant2, ant1, chan].reshape([2,2]))
+                        mvis = numpy.matrix(modelvis[row, ant2, ant1, chan].reshape([2,2]))
+                        wt = numpy.matrix(weight[row, ant2, ant1, chan].reshape([2,2]))
+                        x[row, ant2, ant1, chan] = numpy.matmul(numpy.linalg.inv(mvis), ovis)
+                        xwt[row, ant2, ant1, chan] = numpy.dot(mvis, numpy.multiply(wt, mvis.H)).real
+                        
+    return x, xwt
 
 
 def solve_antenna_gains_itsubs_scalar(gainshape, x, xwt, niter=30, tol=1e-8, phase_only=True, refant=0):
@@ -161,16 +190,13 @@ def solve_antenna_gains_itsubs_vector(gainshape, x, xwt, niter=30, tol=1e-8, pha
     :returns: gain [nants, ...], weight [nants, ...]
     """
     
-    nants, _, nchan, npol = x.shape
+    nants, _, nchan, nrec, _ = x.shape
     for ant1 in range(nants):
         x[ant1, ant1, ...] = 0.0
         xwt[ant1, ant1, ...] = 0.0
         for ant2 in range(ant1 + 1, nants):
             x[ant1, ant2, ...] = numpy.conjugate(x[ant2, ant1, ...])
             xwt[ant1, ant2, ...] = xwt[ant2, ant1, ...]
-    
-    nrec = gainshape[-1]
-    assert npol == nrec * nrec
     
     gain = numpy.ones(shape=gainshape, dtype=x.dtype)
     gain[..., 0, 1] = 0.0
@@ -185,8 +211,8 @@ def solve_antenna_gains_itsubs_vector(gainshape, x, xwt, niter=30, tol=1e-8, pha
             if phase_only:
                 gain[..., rec, rec] = gain[..., rec, rec] / numpy.abs(gain[..., rec, rec])
             gain[..., rec, rec] *= numpy.conjugate(gain[refant, ..., rec, rec]) / numpy.abs(gain[refant, ..., rec, rec])
-        gain = 0.5 * (gain + gainLast)
         change = numpy.max(numpy.abs(gain - gainLast))
+        gain = 0.5 * (gain + gainLast)
         if change < tol:
             return gain, gwt, solution_residual_vector(gain, x, xwt)
     
@@ -251,17 +277,14 @@ def solve_antenna_gains_itsubs_matrix(gainshape, x, xwt, niter=30, tol=1e-8, pha
     :returns: gain [nants, ...], weight [nants, ...]
     """
     
-    nants, _, nchan, npol = x.shape
+    nants, _, nchan, nrec, _ = x.shape
     for ant1 in range(nants):
         x[ant1, ant1, ...] = 0.0
         xwt[ant1, ant1, ...] = 0.0
         for ant2 in range(ant1 + 1, nants):
             x[ant1, ant2, ...] = numpy.conjugate(x[ant2, ant1, ...])
             xwt[ant1, ant2, ...] = xwt[ant2, ant1, ...]
-    
-    nrec = gainshape[-1]
-    assert npol == nrec * nrec
-    
+        
     gain = numpy.ones(shape=gainshape, dtype=x.dtype)
     gain[..., 0, 1] = 0.0
     gain[..., 1, 0] = 0.0
@@ -272,10 +295,8 @@ def solve_antenna_gains_itsubs_matrix(gainshape, x, xwt, niter=30, tol=1e-8, pha
         gain, gwt = gain_substitution_matrix(gain, x, xwt)
         if phase_only:
             gain = gain / numpy.abs(gain)
-        # mask = numpy.abs(gain) > 0.0
-        # gain[mask] *= numpy.conjugate(gain[mask][refant, ...]) / numpy.abs(gain[refant, ...][mask])
-        gain = 0.5 * (gain + gainLast)
         change = numpy.max(numpy.abs(gain - gainLast))
+        gain = 0.5 * (gain + gainLast)
         if change < tol:
             return gain, gwt, solution_residual_matrix(gain, x, xwt)
     
@@ -300,16 +321,14 @@ def gain_substitution_matrix(gain, x, xwt):
             top = 0.0
             bot = 0.0
             for ant2 in range(nants):
-                # xmat = numpy.matrix(x[ant2, ant1, chan]).reshape([2,2])
-                # xwtmat = numpy.matrix(xwt[ant2, ant1, chan]).reshape([2,2])
-                # g = numpy.matrix(gain[ant2, chan])
-                # top += numpy.matmul(numpy.matmul(xmat, g), xwtmat)
-                # bot += numpy.matmul(numpy.matmul(g, g.H), xwtmat)
-                top += numpy.dot(numpy.dot(x[ant2, ant1, chan], gain[ant2, chan]), xwt[ant2, ant1, chan])
-                bot += numpy.dot(numpy.dot(gain[ant2, chan], numpy.conjugate(gain[ant2, chan])),
-                                 xwt[ant2, ant1, chan]).real
-            
-            newgain[ant1, chan] = numpy.dot(numpy.linalg.inv(numpy.matrix(bot)), top)
+                if ant1 != ant2:
+                    xmat = x[ant2, ant1, chan]
+                    xwtmat = xwt[ant2, ant1, chan]
+                    g2 = gain[ant2, chan]
+                    top += xmat * xwtmat * g2
+                    bot += numpy.conjugate(g2) * xwtmat * g2
+            newgain[ant1, chan][bot>0.0] = top[bot>0.0] / bot[bot>0.0]
+            newgain[ant1, chan][bot<=0.0] = 0.0
             gwt[ant1, chan] = bot.real
     return newgain, gwt
 
@@ -394,17 +413,24 @@ def solution_residual_matrix(gain, x, xwt):
     
     residual = numpy.zeros([nchan, nrec, nrec])
     sumwt = numpy.zeros([nchan, nrec, nrec])
-    
+
+
+    # This is written out in long winded form but should be optimised for
+    # production code!
     for ant1 in range(nants):
         for ant2 in range(nants):
             for chan in range(nchan):
-                error = x[ant2, ant1, chan] - numpy.dot(gain[ant1, chan], numpy.conjugate(gain[ant2, chan]))
-                residual += (numpy.dot(numpy.dot(error, xwt[ant2, ant1, chan]), numpy.conjugate(error))).real
-                sumwt += xwt[ant2, ant1, chan]
-    
-    residual = numpy.sqrt(residual / sumwt)
-    return residual
+                for rec1 in range(nrec):
+                    for rec2 in range(nrec):
+                        error = x[ant2, ant1, chan, rec2, rec1] - \
+                                gain[ant1, chan, rec2, rec1] * numpy.conjugate(gain[ant2, chan, rec2, rec1])
+                        residual[chan, rec2, rec1] += (error * xwt[ant2, ant1, chan, rec2, rec1] * numpy.conjugate(
+                            error)).real
+                        sumwt[chan, rec2, rec1] += xwt[ant2, ant1, chan, rec2, rec1]
 
+    residual[sumwt>0.0] = numpy.sqrt(residual[sumwt>0.0] / sumwt[sumwt>0.0])
+    residual[sumwt <= 0.0] = 0.0
+    return residual
 
 def peel_skycomponent_blockvisibility(vis: BlockVisibility, sc: Skycomponent, remove=True) -> \
         BlockVisibility:

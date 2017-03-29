@@ -633,12 +633,13 @@ def create_blockvisibility_iterator(config: Configuration, times: numpy.array, f
         yield vis
 
 
-def simulate_gaintable(gt: GainTable, phase_error=0.1, amplitude_error=0.0, **kwargs):
+def simulate_gaintable(gt: GainTable, phase_error=0.1, amplitude_error=0.0, leakage=0.0) -> GainTable:
     """ Simulate a gain table
     
     :type gt: GainTable
     :param phase_error: std of normal distribution, zero mean
     :param amplitude_error: std of log normal distribution
+    :param leakage: std of cross hand leakage
     
     """
     log.info("simulate_gaintable: Simulating amplitude error = %.4f, phase error = %.4f"
@@ -651,10 +652,17 @@ def simulate_gaintable(gt: GainTable, phase_error=0.1, amplitude_error=0.0, **kw
         amp = numpy.random.lognormal(mean=0.0, sigma=amplitude_error, size=gt.data['gain'].shape)
     
     gt.data['gain'] = amp * phasor
-    # Don't simulate leakages (yet)
     nrec = gt.data['gain'].shape[-1]
     if nrec > 1:
-        gt.data['gain'][..., 0, 1] = 0.0
-        gt.data['gain'][..., 1, 0] = 0.0
-    
+        if leakage > 0.0:
+            leak = numpy.random.normal(0, leakage, gt.data['gain'][..., 0, 0].shape) + 1j *  \
+                   numpy.random.normal(0, leakage, gt.data['gain'][..., 0, 0].shape)
+            gt.data['gain'][..., 0, 1] = gt.data['gain'][..., 0, 0] * leak
+            leak = numpy.random.normal(0, leakage, gt.data['gain'][..., 1, 1].shape) + 1j * \
+                   numpy.random.normal(0, leakage, gt.data['gain'][..., 1, 1].shape)
+            gt.data['gain'][..., 1, 0] = gt.data['gain'][..., 1, 1] * leak
+        else:
+            gt.data['gain'][..., 0, 1] = 0.0
+            gt.data['gain'][..., 1, 0] = 0.0
+            
     return gt
