@@ -5,6 +5,8 @@ Functions that aid fourier transform processing. These are built on top of the c
 functions in arl.fourier_transforms.
 """
 
+import astropy.constants as constants
+
 from arl.data.data_models import *
 from arl.data.parameters import *
 from arl.fourier_transforms.convolutional_gridding import anti_aliasing_calculate, w_kernel
@@ -144,7 +146,7 @@ def w_kernel_list(vis, shape, fov, oversampling=4, wstep=100.0, npixel_kernel=16
     return w_kernels
 
 
-def get_kernel_list(vis, im, **kwargs):
+def get_kernel_list(vis: Visibility, im, **kwargs):
     """Get the list of kernels, one per visibility
     
     """
@@ -175,7 +177,10 @@ def get_kernel_list(vis, im, **kwargs):
         # Following equation is from Cornwell, Humphreys, and Voronkov (2012) (equation 24)
         # We will assume that the constraint holds at one quarter the entire FOV i.e. that
         # the full field of view includes the entire primary beam
-        fiducial_fov = cellsize * npixel / 4
+        diameter = numpy.min(vis.configuration.diameter)
+        wavelength = constants.c.to('m/s').value / numpy.min(vis.frequency)
+        fiducial_fov = wavelength / (2.0 * diameter)
+        log.info("get_kernel_list: FOV (HWHM) = %.3f (rad)" % (fiducial_fov))
         recommended_wstep = numpy.sqrt(2.0 * delA) / (numpy.pi * fiducial_fov ** 2)
         log.info("get_kernel_list: Recommended wstep = %f" % (recommended_wstep))
         wstep = get_parameter(kwargs, "wstep", recommended_wstep)

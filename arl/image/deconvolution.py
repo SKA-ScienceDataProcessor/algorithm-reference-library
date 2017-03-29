@@ -46,12 +46,13 @@ def deconvolve_cube(dirty: Image, psf: Image, **kwargs):
     else:
         window = None
         
-    psf_support = get_parameter(kwargs, 'psf_support', dirty.shape[3])
+    psf_support = get_parameter(kwargs, 'psf_support', None)
     if isinstance(psf_support, int):
         if (psf_support < psf.shape[2] // 2) and ((psf_support < psf.shape[3] // 2)):
             centre=[psf.shape[2] // 2, psf.shape[3] // 2]
             psf.data = psf.data[...,(centre[0]-psf_support):(centre[0]+psf_support),
                     (centre[1]-psf_support):(centre[1]+psf_support)]
+            log.info('deconvolve_cube: PSF support = +/- %d pixels' % (psf_support))
         
     algorithm = get_parameter(kwargs, 'algorithm', 'msclean')
     if algorithm == 'msclean':
@@ -90,7 +91,7 @@ def deconvolve_cube(dirty: Image, psf: Image, **kwargs):
         assert thresh >= 0.0
         niter = get_parameter(kwargs, 'niter', 100)
         assert niter > 0
-        fracthresh = get_parameter(kwargs, 'fracthresh', 0.01)
+        fracthresh = get_parameter(kwargs, 'fractional_threshold', 0.1)
         assert 0.0 <= fracthresh < 1.0
 
         comp_array = numpy.zeros(dirty.data.shape)
@@ -102,11 +103,11 @@ def deconvolve_cube(dirty: Image, psf: Image, **kwargs):
                     if window is None:
                         comp_array[channel, pol, :, :], residual_array[channel, pol, :, :] = \
                             hogbom(dirty.data[channel, pol, :, :], psf.data[channel, pol, :, :],
-                                 None, gain, thresh, niter)
+                                 None, gain, thresh, niter, fracthresh)
                     else:
                         comp_array[channel, pol, :, :], residual_array[channel, pol, :, :] = \
                             hogbom(dirty.data[channel, pol, :, :], psf.data[channel, pol, :, :],
-                                   window[channel, pol, :, :], gain, thresh, niter)
+                                   window[channel, pol, :, :], gain, thresh, niter, fracthresh)
                 else:
                     log.info("deconvolve_cube: Skipping pol %d, channel %d" % (pol, channel))
     else:
@@ -183,7 +184,8 @@ def hogbom(dirty,
            window,
            gain,
            thresh,
-           niter):
+           niter,
+           fracthresh):
     """
     Hogbom CLEAN (1974A&AS...15..417H)
 
@@ -200,6 +202,11 @@ def hogbom(dirty,
     assert 0.0 < gain < 2.0
     assert niter > 0
     
+    log.info("hogbom: Max abs in dirty Image = %.6f" % numpy.fabs(dirty).max())
+    absolutethresh = max(thresh, fracthresh * numpy.fabs(dirty).max())
+    log.info("hogbom: Start of minor cycle")
+    log.info("hogbom: This minor cycle will stop at %d iterations or peak < %s" % (niter, absolutethresh))
+
     comps = numpy.zeros(dirty.shape)
     res = numpy.array(dirty)
     pmax = psf.max()
@@ -218,7 +225,7 @@ def hogbom(dirty,
         res[a1o[0]:a1o[1], a1o[2]:a1o[3]] -= psf[a2o[0]:a2o[1], a2o[2]:a2o[3]] * mval
         if i % (niter // 10) == 0:
             log.info("hogbom: Minor cycle %d, peak %s at [%d, %d]" % (i, res[mx, my], mx, my))
-        if numpy.fabs(res).max() < thresh:
+        if numpy.fabs(res).max() < absolutethresh:
             break
     return comps, res
 
@@ -249,6 +256,7 @@ def msclean(dirty,
     :param niter: Maximum number of components to make if the
     threshold "thresh" is not hit
     :param scales: Scales (in pixels width) to be used
+    :param fracthres: Fractional stopping threshold
     :returns: clean component Image, residual Image
     """
     assert 0.0 < gain < 2.0
