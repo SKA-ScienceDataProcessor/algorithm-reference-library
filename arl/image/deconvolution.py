@@ -214,6 +214,7 @@ def hogbom(dirty,
     psfpeak = argmax(numpy.fabs(psf))
     if window is True:
         window = 1.0
+    log.info("hogbom: Max abs in dirty Image = %.6f" % numpy.fabs(res).max())
     for i in range(niter):
         if window is not None:
             mx, my = numpy.unravel_index((numpy.fabs(res*window)).argmax(), dirty.shape)

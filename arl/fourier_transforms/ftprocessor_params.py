@@ -174,16 +174,9 @@ def get_kernel_list(vis: Visibility, im, **kwargs):
         log.info("get_kernel_list: Fresnel number = %f" % (r_f))
         delA = get_parameter(kwargs, 'wloss', 0.02)
         
-        # Following equation is from Cornwell, Humphreys, and Voronkov (2012) (equation 24)
-        # We will assume that the constraint holds at one quarter the entire FOV i.e. that
-        # the full field of view includes the entire primary beam
-        diameter = numpy.min(vis.configuration.diameter)
-        wavelength = constants.c.to('m/s').value / numpy.min(vis.frequency)
-        fiducial_fov = wavelength / (2.0 * diameter)
-        log.info("get_kernel_list: FOV (HWHM) = %.3f (rad)" % (fiducial_fov))
-        recommended_wstep = numpy.sqrt(2.0 * delA) / (numpy.pi * fiducial_fov ** 2)
-        log.info("get_kernel_list: Recommended wstep = %f" % (recommended_wstep))
-        wstep = get_parameter(kwargs, "wstep", recommended_wstep)
+        advice = advise_wide_field(vis, delA)
+        wstep = get_parameter(kwargs, "wstep", advice['w_sampling_primary_beam'])
+        
         log.info("get_kernel_list: Using w projection with wstep = %f" % (wstep))
         
         # Now calculate the maximum support for the w kernel
@@ -197,3 +190,52 @@ def get_kernel_list(vis: Visibility, im, **kwargs):
         kernel_list = standard_kernel_list(vis, (padding * npixel, padding * npixel), oversampling=8, support=3)
     
     return kernelname, gcf, kernel_list
+
+def advise_wide_field(vis, delA=0.02, oversampling_synthesised_beam=3.0, guard_band_image=6.0):
+    """ Advise on parameters for wide field imaging
+    
+    :param vis:
+    :returns: dict of advice
+    """
+    maximum_baseline = numpy.max(numpy.abs(vis.uvw)) # Wavelengths
+    log.info("advise_wide_field: Maximum baseline %.1f (wavelengths)" % (maximum_baseline))
+    
+    diameter = numpy.min(vis.configuration.diameter)
+    log.info("advise_wide_field: Station/antenna diameter %.1f (meters)" % (diameter))
+
+    wavelength = constants.c.to('m/s').value / numpy.min(vis.frequency)
+    log.info("advise_wide_field: Maximum wavelength %.3f (meters)" %(wavelength))
+
+    primary_beam_fov = wavelength / diameter
+    log.info("advise_wide_field: Primary beam %s" % (rad_and_deg(primary_beam_fov)))
+
+    image_fov = primary_beam_fov * guard_band_image
+    log.info("advise_wide_field: Image field of view %s" % (rad_and_deg(image_fov)))
+
+    synthesized_beam = 1.0 / (maximum_baseline)
+    log.info("advise_wide_field: Synthesized beam %s" % (rad_and_deg(synthesized_beam)))
+
+    cellsize = synthesized_beam/oversampling_synthesised_beam
+    log.info("advise_wide_field: Cellsize %s" % (rad_and_deg(cellsize)))
+
+    npixels = int(round(image_fov/cellsize))
+    log.info("advice_wide_field: Npixels per side = %d" % (npixels))
+
+    # Following equation is from Cornwell, Humphreys, and Voronkov (2012) (equation 24)
+    # We will assume that the constraint holds at one quarter the entire FOV i.e. that
+    # the full field of view includes the entire primary beam
+
+    w_sampling_primary_beam = numpy.sqrt(2.0 * delA) / (numpy.pi * primary_beam_fov ** 2)
+    log.info("advice_wide_field: W sampling for primary beam = %.1f (wavelengths)" % (w_sampling_primary_beam))
+
+    w_sampling_image = numpy.sqrt(2.0 * delA) / (numpy.pi * image_fov ** 2)
+    log.info("advice_wide_field: W sampling for full image = %.1f (wavelengths)" % (w_sampling_image))
+    
+    return locals()
+
+def rad_and_deg(x):
+    """ Stringify x in radian and degress forms
+    
+    """
+    return "%.6f (rad) %.3f (deg)" % (x, 180.0 * x / numpy.pi)
+

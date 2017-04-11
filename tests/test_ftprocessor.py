@@ -54,9 +54,7 @@ class TestFTProcessor(unittest.TestCase):
                        'facets': 8,
                        'padding': 2,
                        'oversampling': 4,
-                       'timeslice': 'auto',
-                       'wstep': 10.0,
-                       'wslice': 10.0}
+                       'timeslice': 'auto'}
 
     def actualSetUp(self, time=None, frequency=None):
         self.lowcore = create_named_configuration('LOWBD2-CORE')
@@ -82,6 +80,11 @@ class TestFTProcessor(unittest.TestCase):
                                               weight=1.0, polarisation_frame=PolarisationFrame('stokesI'))
         self.uvw = self.componentvis.data['uvw']
         self.componentvis.data['vis'] *= 0.0
+
+        self.advice = advise_wide_field(self.componentvis)
+        
+        self.params['wstep'] = self.advice['w_sampling_primary_beam']
+        self.params['wslice'] = self.advice['w_sampling_primary_beam']
         
         # Create model
         self.model = create_image_from_visibility(self.componentvis, npixel=256, cellsize=0.001,
@@ -126,7 +129,7 @@ class TestFTProcessor(unittest.TestCase):
                                                       normalize_kernel=False)
         export_image_to_fits(self.model, '%s/test_model.fits' % self.dir)
         export_image_to_fits(self.cmodel, '%s/test_cmodel.fits' % self.dir)
-
+        
     def test_findcomponents(self):
         # Check that the components are where we expected them to be after insertion
         self.actualSetUp()
@@ -134,10 +137,10 @@ class TestFTProcessor(unittest.TestCase):
 
 
     def test_predict_2d(self):
-        """Test if the 2D prediction works
-
-        Set w=0 so that the two-dimensional transform should agree exactly with the component transform.
-        Good check on the grid correction in the image->vis direction"""
+        # Test if the 2D prediction works
+        #
+        # Set w=0 so that the two-dimensional transform should agree exactly with the component transform.
+        # Good check on the grid correction in the image->vis direction
         # Set all w to zero
         self.actualSetUp()
         self.componentvis = create_visibility(self.lowcore, self.times, self.frequency, channel_bandwidth = \
@@ -188,29 +191,18 @@ class TestFTProcessor(unittest.TestCase):
 
     def test_predict_wslice(self):
         self.actualSetUp()
-        self.params['wslice']=10.0
         self.params['imaginary'] = True
-        self.actualSetUp()
         self._predict_base(predict_wslice, fluxthreshold=2.0)
 
     def test_predict_wprojection(self):
         self.actualSetUp()
-        self.params = {'npixel': 256,
-                       'npol': 1,
-                       'cellsize': 0.001,
-                       'padding': 2,
-                       'oversampling': 4,
-                       'wstep': 10.0}
-        
         self._predict_base(predict_wprojection, fluxthreshold=2.0)
     
     def test_invert_2d(self):
-        """Test if the 2D invert works with w set to zero
+        # Test if the 2D invert works with w set to zero
+        # Set w=0 so that the two-dimensional transform should agree exactly with the model.
+        # Good check on the grid correction in the vis->image direction
 
-        Set w=0 so that the two-dimensional transform should agree exactly with the model.
-        Good check on the grid correction in the vis->image direction
-        """
-        # Set all w to zero
         self.actualSetUp()
         self.componentvis = create_visibility(self.lowcore, self.times, self.frequency,
                                               channel_bandwidth=self.channel_bandwidth, phasecentre=self.phasecentre,
@@ -240,15 +232,10 @@ class TestFTProcessor(unittest.TestCase):
         self._invert_base(invert_facets, positionthreshold=1.0)
 
     def test_invert_wslice(self):
-        self.actualSetUp()
-        self.params = {'npixel': 256,
-                       'cellsize': 0.001,
-                       'padding': 2,
-                       'oversampling': 4,
-                       'wslice': 1.0,
-                       'imaginary': True}
-        for self.params['nprocessor'] in [1, 'auto', 4]:
+        for nprocessor in [1, 'auto', 4]:
             self.actualSetUp()
+            self.params['imaginary']=True
+            self.params['nprocessor'] = nprocessor
             self._invert_base(invert_wslice, positionthreshold=8.0)
 
     def test_invert_timeslice(self):
@@ -259,12 +246,6 @@ class TestFTProcessor(unittest.TestCase):
 
     def test_invert_wprojection(self):
         self.actualSetUp()
-        self.params = {'npixel': 256,
-                      'cellsize': 0.001,
-                       'padding': 2,
-                       'oversampling': 4,
-                       'wstep': 10.0}
-        
         self._invert_base(invert_wprojection, positionthreshold=1.0)
 
     def test_weighting(self):

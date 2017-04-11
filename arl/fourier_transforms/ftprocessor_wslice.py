@@ -28,6 +28,10 @@ def predict_wslice(vis, model, **kwargs):
     """
     log.debug("predict_wslice: predicting using w slices")
 
+    delA = get_parameter(kwargs, 'wloss', 0.02)
+    advice = advise_wide_field(vis, delA)
+    kwargs['wslice'] = get_parameter(kwargs, "wstep", advice['w_sampling_primary_beam'])
+
     return predict_with_vis_iterator(vis, model, vis_iter=vis_wslice_iter,
                                      predict=predict_wslice_single, **kwargs)
 
@@ -77,7 +81,12 @@ def invert_wslice(vis, im, dopsf=False, normalize=True, **kwargs):
 
     """
     log.debug("invert_wslice: inverting using w slices")
-    
+
+    delA = get_parameter(kwargs, 'wloss', 0.02)
+    advice = advise_wide_field(vis, delA)
+    wslice = get_parameter(kwargs, "wstep", advice['w_sampling_primary_beam'])
+    kwargs['wslice'] = wslice
+
     return invert_with_vis_iterator(vis, im, dopsf, normalize=normalize, vis_iter=vis_wslice_iter,
                                     invert=invert_wslice_single, **kwargs)
 

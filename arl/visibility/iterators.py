@@ -46,13 +46,15 @@ def vis_timeslice_iter(vis, **kwargs):
         yield rows
 
 
-def vis_wslice_iter(vis, wslice, **kwargs):
+def vis_wslice_iter(vis, **kwargs):
     """ W slice iterator
 
     :param wslice: wslice (wavelengths) (must be specified)
     :returns: Boolean array with selected rows=True
     """
+    wslice = get_parameter(kwargs, "wslice", None)
     assert wslice is not None, "wslice must be specified"
+
     wmaxabs = (numpy.max(numpy.abs(vis.w)))
     nboxes = 1 + 2 * numpy.round(wmaxabs / wslice).astype('int')
     boxes = numpy.linspace(- wmaxabs, +wmaxabs, nboxes)
