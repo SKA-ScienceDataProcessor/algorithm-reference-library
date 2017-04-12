@@ -4,9 +4,8 @@
 Functions that define and manipulate images. Images are just data and a World Coordinate System.
 """
 
-import warnings
-
 import copy
+import warnings
 
 import matplotlib.pyplot as plt
 from astropy.convolution import Gaussian2DKernel, convolve
@@ -46,7 +45,7 @@ def create_image_from_array(data: numpy.array, wcs: WCS = None,
         fim.wcs = None
     else:
         fim.wcs = wcs.deepcopy()
-        
+    
     if image_sizeof(fim) >= 1.0:
         log.debug("create_image_from_array: created %s image of shape %s, size %.3f (GB)" %
                   (fim.data.dtype, str(fim.shape), image_sizeof(fim)))
@@ -148,7 +147,7 @@ def export_image_to_fits(im: Image, fitsfile: str = 'imaging.fits'):
     return fits.writeto(filename=fitsfile, data=im.data, header=im.wcs.to_header(), overwrite=True)
 
 
-def import_image_from_fits(fitsfile: str, mute_warnings = True):
+def import_image_from_fits(fitsfile: str, mute_warnings=True):
     """ Read an Image from fits
     
     :param fitsfile:
@@ -169,7 +168,7 @@ def import_image_from_fits(fitsfile: str, mute_warnings = True):
             fim.polarisation_frame = polarisation_frame_from_wcs(fim.wcs, fim.data.shape)
         except:
             fim.polarisation_frame = PolarisationFrame('stokesI')
-
+    
     log.debug("import_image_from_fits: created %s image of shape %s, size %.3f (GB)" %
               (fim.data.dtype, str(fim.shape), image_sizeof(fim)))
     log.info("import_image_from_fits: Max, min in %s = %.6f, %.6f" % (fitsfile, fim.data.max(), fim.data.min()))
@@ -308,12 +307,13 @@ def convert_polimage_to_stokes(im: Image):
     else:
         raise ValueError("Cannot convert %s to stokes" % (im.polarisation_frame.type))
 
+
 def smooth_image(model: Image, width=1.0):
     """ Smooth an image with a kernel
     
     """
     
-    kernel=Gaussian2DKernel(width)
+    kernel = Gaussian2DKernel(width)
     
     cmodel = create_empty_image_like(model)
     cmodel.data[..., :, :] = convolve(model.data[0, 0, :, :], kernel, normalize_kernel=False)
@@ -322,14 +322,23 @@ def smooth_image(model: Image, width=1.0):
     
     return cmodel
 
-def calculate_image_frequency_moments(im: Image, reference_frequency=None, nmoments=3):
+
+def calculate_image_frequency_moments(im: Image, reference_frequency=None, nmoments=3) -> Image:
     """Calculate frequency weighted moments
     
+    Weights are ((freq-reference_frequency)/reference_frequency)**moment
+    
+    Note that the spectral axis is replaced by a MOMENT axis.
+    
+    :param im: Image cube
+    :param reference_frequency: Reference frequency (default None uses average)
+    :param nmoments: Number of moments to calculate
+    :returns: Moments image
     """
     nchan, npol, ny, nx = im.shape
     channels = numpy.arange(nchan)
     freq = im.wcs.sub(['spectral']).wcs_pix2world(channels, 0)[0]
-
+    
     if reference_frequency is None:
         reference_frequency = numpy.average(freq)
     log.info("Reference frequency = %.3f (MHz)" % (reference_frequency))
@@ -337,18 +346,55 @@ def calculate_image_frequency_moments(im: Image, reference_frequency=None, nmome
     moment_data = numpy.zeros([nmoments, npol, ny, nx])
     
     for moment in range(nmoments):
-        weights = numpy.power((freq - reference_frequency) / reference_frequency, moment)
         for chan in range(nchan):
-            moment_data[moment,...] += im.data[chan,...] * weights[chan]
-        
-    moment_wcs = im.wcs
+            weight = numpy.power((freq[chan] - reference_frequency) / reference_frequency, moment)
+            moment_data[moment, ...] += im.data[chan, ...] * weight
+    
+    moment_wcs = copy.deepcopy(im.wcs)
     moment_wcs.wcs.ctype[3] = 'MOMENT'
     moment_wcs.wcs.crval[3] = 0.0
     moment_wcs.wcs.crpix[3] = 1.0
     moment_wcs.wcs.cdelt[3] = 1.0
     moment_wcs.wcs.cunit[3] = ''
-
+    
     return create_image_from_array(moment_data, moment_wcs, im.polarisation_frame)
-    
-    
 
+
+def calculate_image_from_frequency_moments(im: Image, moment_image: Image, reference_frequency=None) -> Image:
+    """Calculate image from frequency weighted moments
+
+    Weights are ((freq-reference_frequency)/reference_frequency)**moment
+
+    Note that a new image is created
+
+    :param im: Image cube to be reconstructed
+    :param moment_image: Moment cube (constructed using calculate_image_frequency_moments)
+    :param reference_frequency: Reference frequency (default None uses average)
+    :returns: reconstructed image
+    """
+    nchan, npol, ny, nx = im.shape
+    nmoments, mnpol, mny, mnx = moment_image.shape
+    
+    assert npol == mnpol
+    assert ny == mny
+    assert nx == mnx
+    
+    assert moment_image.wcs.wcs.ctype[3] == 'MOMENT', "Second image should be a moment image"
+    
+    channels = numpy.arange(nchan)
+    freq = im.wcs.sub(['spectral']).wcs_pix2world(channels, 0)[0]
+    
+    if reference_frequency is None:
+        reference_frequency = numpy.average(freq)
+    log.info("Reference frequency = %.3f (MHz)" % (reference_frequency))
+    
+    newim = copy_image(im)
+    
+    newim.data[...] = 0.0
+    
+    for moment in range(nmoments):
+        for chan in range(nchan):
+            weight = numpy.power((freq[chan] - reference_frequency) / reference_frequency, moment)
+            newim.data[chan, ...] += moment_image.data[moment, ...] * weight
+    
+    return newim
