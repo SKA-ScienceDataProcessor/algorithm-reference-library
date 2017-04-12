@@ -112,6 +112,11 @@ class TestImage(unittest.TestCase):
     def test_smooth_image(self):
         smooth = smooth_image(self.m31image)
         assert numpy.max(smooth.data) > numpy.max(self.m31image.data)
+        
+    def test_calculate_image_frequency_moments(self):
+        cube=create_test_image(cellsize=0.0001, frequency=numpy.linspace(0.9e8, 1.1e8, 5))
+        moment_image=calculate_image_frequency_moments(cube)
+        
 
 if __name__ == '__main__':
     unittest.main()

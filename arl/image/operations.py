@@ -321,3 +321,34 @@ def smooth_image(model: Image, width=1.0):
         cmodel.data *= 2 * numpy.pi * 1.5 ** 2
     
     return cmodel
+
+def calculate_image_frequency_moments(im: Image, reference_frequency=None, nmoments=3):
+    """Calculate frequency weighted moments
+    
+    """
+    nchan, npol, ny, nx = im.shape
+    channels = numpy.arange(nchan)
+    freq = im.wcs.sub(['spectral']).wcs_pix2world(channels, 0)[0]
+
+    if reference_frequency is None:
+        reference_frequency = numpy.average(freq)
+    log.info("Reference frequency = %.3f (MHz)" % (reference_frequency))
+    
+    moment_data = numpy.zeros([nmoments, npol, ny, nx])
+    
+    for moment in range(nmoments):
+        weights = numpy.power((freq - reference_frequency) / reference_frequency, moment)
+        for chan in range(nchan):
+            moment_data[moment,...] += im.data[chan,...] * weights[chan]
+        
+    moment_wcs = im.wcs
+    moment_wcs.wcs.ctype[3] = 'MOMENT'
+    moment_wcs.wcs.crval[3] = 0.0
+    moment_wcs.wcs.crpix[3] = 1.0
+    moment_wcs.wcs.cdelt[3] = 1.0
+    moment_wcs.wcs.cunit[3] = ''
+
+    return create_image_from_array(moment_data, moment_wcs, im.polarisation_frame)
+    
+    
+
