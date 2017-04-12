@@ -348,7 +348,7 @@ def create_image_from_visibility(vis: Visibility, **kwargs) -> Image:
     
     frequency = get_parameter(kwargs, "frequency", vis.frequency)
     inchan = get_parameter(kwargs, "nchan", vnchan)
-    reffrequency = numpy.min(frequency) * units.Hz
+    reffrequency = frequency[0] * units.Hz
     channel_bandwidth = get_parameter(kwargs, "channel_bandwidth", vis.channel_bandwidth[0]) * units.Hz
     
     if (inchan == vnchan) and vnchan > 1:

@@ -121,7 +121,7 @@ def create_named_configuration(name: str = 'LOWBD2', **kwargs):
     return fc
 
 
-def create_test_image(canonical=True, cellsize=None, frequency=[1e8], channel_bandwidth=numpy.array([1e6]),
+def create_test_image(canonical=True, cellsize=None, frequency=[1e8], channel_bandwidth=None,
                       phasecentre=None, polarisation_frame=PolarisationFrame("stokesI")):
     """Create a useful test image
 
@@ -175,8 +175,8 @@ def create_test_image(canonical=True, cellsize=None, frequency=[1e8], channel_ba
     return im
 
 
-def create_low_test_image(npixel=16384, polarisation_frame=PolarisationFrame("stokesI"), cellsize=0.000015,
-                          frequency=numpy.array([1e8]), channel_bandwidth=numpy.array([1e6]), phasecentre=None, fov=20):
+def create_low_test_image_from_s3(npixel=16384, polarisation_frame=PolarisationFrame("stokesI"), cellsize=0.000015,
+                                  frequency=numpy.array([1e8]), channel_bandwidth=numpy.array([1e6]), phasecentre=None, fov=20):
     """Create LOW test image from S3
 
     The input catalog was generated at http://s-cubed.physics.ox.ac.uk/s3_sex using the following query::
@@ -261,9 +261,10 @@ def create_low_test_image(npixel=16384, polarisation_frame=PolarisationFrame("st
     fluxes = fluxes[ok]
     actual_flux = numpy.sum(fluxes)
     
-    log.info('create_low_test_image: %d sources inside the image' % (ps.shape[1]))
+    log.info('create_low_test_image_from_s3: %d sources inside the image' % (ps.shape[1]))
     
-    log.info('create_low_test_image: flux in S3 model = %.3f, actual flux in image = %.3f' % (total_flux, actual_flux))
+    log.info('create_low_test_image_from_s3: average channel flux in S3 model = %.3f, actual average channel flux in '
+             'image = %.3f' % (total_flux/float(nchan), actual_flux/float(nchan)))
     for chan in range(nchan):
         for iflux, flux in enumerate(fluxes):
             model.data[chan, 0, ps[1, iflux], ps[0, iflux]] = flux[chan]
@@ -293,10 +294,10 @@ def create_low_test_image_composite(npixel=16384, polarisation_frame=Polarisatio
                                            frequency=frequency, channel_bandwidth=channel_bandwidth,
                                            phasecentre=phasecentre, kind=kind)
     img.data[img.data < threshold] = 0.0
-    ims3 = create_low_test_image(npixel=npixel, polarisation_frame=polarisation_frame,
-                                 cellsize=cellsize,
-                                 frequency=frequency, channel_bandwidth=channel_bandwidth,
-                                 phasecentre=phasecentre, fov=fov)
+    ims3 = create_low_test_image_from_s3(npixel=npixel, polarisation_frame=polarisation_frame,
+                                         cellsize=cellsize,
+                                         frequency=frequency, channel_bandwidth=channel_bandwidth,
+                                         phasecentre=phasecentre, fov=fov)
     ims3.data[ims3.data >= threshold] = 0.0
     
     ims3.data += img.data
@@ -402,7 +403,7 @@ def create_low_test_image_from_gleam(npixel=16384, polarisation_frame=Polarisati
     
     log.info('create_low_test_image_from_gleam: %d sources inside the image' % (ps.shape[1]))
     
-    log.info('create_low_test_image_from_gleam: Flux in image = %.3f' % (actual_flux))
+    log.info('create_low_test_image_from_gleam: Average flux per channel in image = %.3f' % (actual_flux/float(nchan)))
     for iflux, flux in enumerate(fluxes):
         if not numpy.isnan(flux).any() and flux.all() > 0.0:
             model.data[:, 0, ps[1, iflux], ps[0, iflux]] = flux[:]

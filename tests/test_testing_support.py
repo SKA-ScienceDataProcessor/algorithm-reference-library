@@ -9,7 +9,7 @@ import unittest
 from arl.fourier_transforms.ftprocessor_base import predict_skycomponent_blockvisibility
 from arl.image.operations import export_image_to_fits
 from arl.skycomponent.operations import apply_beam_to_skycomponent
-from arl.util.testing_support import create_low_test_image, create_named_configuration, create_test_image, \
+from arl.util.testing_support import create_low_test_image_from_s3, create_named_configuration, create_test_image, \
     create_low_test_beam, create_blockvisibility_iterator, create_low_test_image_from_gleam, \
     create_low_test_skycomponents_from_gleam, create_low_test_image_composite
 from arl.visibility.iterators import *
@@ -122,18 +122,18 @@ class TestTesting_Support(unittest.TestCase):
         assert sc[0].name == 'GLEAM J172031-005845'
     
     def test_create_low_test_image(self):
-        im = create_low_test_image(npixel=1024, channel_bandwidth=numpy.array([1e6]),
-                                   frequency=numpy.array([1e8]),
-                                   phasecentre=self.phasecentre, fov=10)
+        im = create_low_test_image_from_s3(npixel=1024, channel_bandwidth=numpy.array([1e6]),
+                                           frequency=numpy.array([1e8]),
+                                           phasecentre=self.phasecentre, fov=10)
         assert im.data.shape[0] == 1
         assert im.data.shape[1] == 1
         assert im.data.shape[2] == 1024
         assert im.data.shape[3] == 1024
     
     def test_create_low_test_image_spectral(self):
-        im = create_low_test_image(npixel=1024, channel_bandwidth=numpy.array([1e6, 1e6, 1e6]),
-                                   frequency=numpy.array([1e8 - 1e6, 1e8, 1e8 + 1e6]),
-                                   phasecentre=self.phasecentre, fov=10)
+        im = create_low_test_image_from_s3(npixel=1024, channel_bandwidth=numpy.array([1e6, 1e6, 1e6]),
+                                           frequency=numpy.array([1e8 - 1e6, 1e8, 1e8 + 1e6]),
+                                           phasecentre=self.phasecentre, fov=10)
         assert im.data.shape[0] == 3
         assert im.data.shape[1] == 1
         assert im.data.shape[2] == 1024
@@ -141,9 +141,9 @@ class TestTesting_Support(unittest.TestCase):
     
     def test_create_low_test_image_spectral_polarisation(self):
         
-        im = create_low_test_image(npixel=1024, channel_bandwidth=numpy.array([1e6, 1e6, 1e6]),
-                                   polarisation_frame=PolarisationFrame("stokesIQUV"),
-                                   frequency=numpy.array([1e8 - 1e6, 1e8, 1e8 + 1e6]), fov=10)
+        im = create_low_test_image_from_s3(npixel=1024, channel_bandwidth=numpy.array([1e6, 1e6, 1e6]),
+                                           polarisation_frame=PolarisationFrame("stokesIQUV"),
+                                           frequency=numpy.array([1e8 - 1e6, 1e8, 1e8 + 1e6]), fov=10)
         assert im.data.shape[0] == 3
         assert im.data.shape[1] == 4
         assert im.data.shape[2] == 1024

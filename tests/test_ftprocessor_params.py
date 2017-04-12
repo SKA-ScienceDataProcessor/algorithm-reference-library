@@ -12,7 +12,7 @@ from astropy import units as u
 from arl.data.polarisation import PolarisationFrame
 from arl.fourier_transforms.ftprocessor import create_image_from_visibility
 from arl.fourier_transforms.ftprocessor_params import get_frequency_map
-from arl.util.testing_support import create_named_configuration, create_low_test_image, \
+from arl.util.testing_support import create_named_configuration, create_low_test_image_from_s3, \
     create_low_test_image_from_gleam
 
 from arl.visibility.operations import create_visibility
@@ -70,8 +70,8 @@ class TestFTProcessorParams(unittest.TestCase):
 
 
     def test_get_frequency_map_s3(self):
-        self.model = create_low_test_image(npixel=64, cellsize=0.001, frequency=self.frequency,
-                                                      channel_bandwidth=self.channel_bandwidth)
+        self.model = create_low_test_image_from_s3(npixel=64, cellsize=0.001, frequency=self.frequency,
+                                                   channel_bandwidth=self.channel_bandwidth)
         spectral_mode, vfrequency_map = get_frequency_map(self.vis, self.model)
         assert numpy.max(vfrequency_map) == self.model.nchan - 1
         assert spectral_mode == 'channel'
