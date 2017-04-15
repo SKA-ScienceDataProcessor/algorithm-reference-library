@@ -11,10 +11,12 @@ from photutils import fit_2dgaussian
 
 from arl.data.data_models import Image
 from arl.data.parameters import get_parameter
-from arl.image.operations import create_image_from_array, copy_image, calculate_image_frequency_moments, smooth_image
+from arl.image.operations import create_image_from_array, copy_image, \
+    calculate_image_frequency_moments, calculate_image_from_frequency_moments
 
 from arl.image.hogbom import hogbom
 from arl.image.msclean import msclean
+from arl.image.msmfsclean import msmfsclean
 
 log = logging.getLogger(__name__)
 
@@ -23,10 +25,13 @@ def deconvolve_cube(dirty: Image, psf: Image, **kwargs):
     
     Functions that clean a dirty image using a point spread function. The algorithms available are:
     
-    - Hogbom CLEAN See: Hogbom CLEAN (1974A&AS...15..417H)
+    - Hogbom CLEAN See: Hogbom CLEAN A&A Suppl, 15, 417, (1974)
     
-    - MultiScale CLEAN See: Multiscale CLEAN (IEEE Journal of Selected Topics in Sig Proc, 2008 vol. 2 pp. 793-801)
-    
+    - MultiScale CLEAN See: Cornwell, T.J., Multiscale CLEAN (IEEE Journal of Selected Topics in Sig Proc, 2008 vol. 2
+    pp. 793-801)
+
+    - MultiScale Multi-Frequency See: U. Rau and T. J. Cornwell, “A multi-scale multi-frequency deconvolution
+    algorithm for synthesis imaging in radio interferometry,” A&A 532, A71 (2011).
     
     :param dirty: Image dirty image
     :param psf: Image Point Spread Function
@@ -36,6 +41,7 @@ def deconvolve_cube(dirty: Image, psf: Image, **kwargs):
     :param threshold: Clean threshold (0.0)
     :param fracthres: Fractional threshold (0.01)
     :param scales: Scales (in pixels) for multiscale ([0, 3, 10, 30])
+    :param nmoments: Number of frequency moments (default 3)
     :returns: componentimage, residual
     """
     
@@ -58,8 +64,9 @@ def deconvolve_cube(dirty: Image, psf: Image, **kwargs):
             log.info('deconvolve_cube: PSF support = +/- %d pixels' % (psf_support))
     
     algorithm = get_parameter(kwargs, 'algorithm', 'msclean')
+    
     if algorithm == 'msclean':
-        
+        log.info("deconvolve_cube: Multi-scale clean of each polarisation and channel separately")
         gain = get_parameter(kwargs, 'gain', 0.7)
         assert 0.0 < gain < 2.0, "Loop gain must be between 0 and 2"
         thresh = get_parameter(kwargs, 'threshold', 0.0)
@@ -69,7 +76,7 @@ def deconvolve_cube(dirty: Image, psf: Image, **kwargs):
         scales = get_parameter(kwargs, 'scales', [0, 3, 10, 30])
         fracthresh = get_parameter(kwargs, 'fractional_threshold', 0.01)
         assert 0.0 < fracthresh < 1.0
-        
+    
         comp_array = numpy.zeros(dirty.data.shape)
         residual_array = numpy.zeros(dirty.data.shape)
         for channel in range(dirty.data.shape[0]):
@@ -86,8 +93,52 @@ def deconvolve_cube(dirty: Image, psf: Image, **kwargs):
                                     window[channel, pol, :, :], gain, thresh, niter, scales, fracthresh)
                 else:
                     log.info("deconvolve_cube: Skipping pol %d, channel %d" % (pol, channel))
-    elif algorithm == 'hogbom':
+                    
+        comp_image = create_image_from_array(comp_array, dirty.wcs)
+        residual_image = create_image_from_array(residual_array, dirty.wcs)
+
+    elif algorithm == 'msmfsclean':
         
+        log.info("deconvolve_cube: Multi-scale multi-frequency clean of each polarisation separately")
+        nmoments = get_parameter(kwargs, "nmoments", 3)
+        assert nmoments > 0, "Number of frequency moments must be greater than zero"
+        dirty_taylor = calculate_image_frequency_moments(dirty, nmoments=nmoments)
+        psf_taylor = calculate_image_frequency_moments(psf, nmoments=2 * nmoments)
+    
+        gain = get_parameter(kwargs, 'gain', 0.7)
+        assert 0.0 < gain < 2.0, "Loop gain must be between 0 and 2"
+        thresh = get_parameter(kwargs, 'threshold', 0.0)
+        assert thresh >= 0.0
+        niter = get_parameter(kwargs, 'niter', 100)
+        assert niter > 0
+        scales = get_parameter(kwargs, 'scales', [0, 3, 10, 30])
+        fracthresh = get_parameter(kwargs, 'fractional_threshold', 0.01)
+        assert 0.0 < fracthresh < 1.0
+    
+        comp_array = numpy.zeros(dirty_taylor.data.shape)
+        residual_array = numpy.zeros(dirty_taylor.data.shape)
+        for pol in range(dirty_taylor.data.shape[1]):
+            if psf_taylor.data[0, pol, :, :].max():
+                log.info("deconvolve_cube: Processing pol %d" % (pol))
+                if window is None:
+                    comp_array[:, pol, :, :], residual_array[:, pol, :, :] = \
+                        msmfsclean(dirty_taylor.data[:, pol, :, :], psf_taylor.data[:, pol, :, :],
+                                None, gain, thresh, niter, scales, fracthresh)
+                else:
+                    comp_array[:, pol, :, :], residual_array[:, pol, :, :] = \
+                        msmfsclean(dirty_taylor.data[:, pol, :, :], psf_taylor.data[:, pol, :, :],
+                                window[:, pol, :, :], gain, thresh, niter, scales, fracthresh)
+            else:
+                log.info("deconvolve_cube: Skipping pol %d" % (pol))
+                
+        comp_image = create_image_from_array(comp_array, dirty_taylor.wcs)
+        residual_image = create_image_from_array(residual_array, dirty_taylor.wcs)
+        
+        comp_image = calculate_image_from_frequency_moments(dirty, comp_image)
+        residual_image = calculate_image_from_frequency_moments(dirty, residual_image)
+
+    elif algorithm == 'hogbom':
+        log.info("deconvolve_cube: Hogbom clean of each polarisation and channel separately")
         gain = get_parameter(kwargs, 'gain', 0.7)
         assert 0.0 < gain < 2.0, "Loop gain must be between 0 and 2"
         thresh = get_parameter(kwargs, 'threshold', 0.0)
@@ -113,45 +164,14 @@ def deconvolve_cube(dirty: Image, psf: Image, **kwargs):
                                    window[channel, pol, :, :], gain, thresh, niter, fracthresh)
                 else:
                     log.info("deconvolve_cube: Skipping pol %d, channel %d" % (pol, channel))
+        
+        comp_image = create_image_from_array(comp_array, dirty.wcs)
+        residual_image = create_image_from_array(residual_array, dirty.wcs)
     else:
         raise ValueError('deconvolve_cube: Unknown algorithm %s' % algorithm)
     
-    return create_image_from_array(comp_array, dirty.wcs), create_image_from_array(residual_array, dirty.wcs)
+    return comp_image, residual_image
 
-
-def deconvolve_mfs(dirty: Image, psf: Image, **kwargs):
-    """ MFS Clean using a variety of algorithms
-
-    Functions that clean a dirty image using a point spread function. The algorithms available are:
-
-    - Hogbom CLEAN See: Hogbom CLEAN (1974A&AS...15..417H)
-
-    - MultiScale CLEAN See: Multiscale CLEAN (IEEE Journal of Selected Topics in Sig Proc, 2008 vol. 2 pp. 793-801)
-
-
-    :param dirty: Image dirty image
-    :param psf: Image Point Spread Function
-    :param params: 'algorithm': 'msclean'|'hogbom', 'gain': loop gain (float)
-    :returns: componentimage, residual
-    """
-    nmoments = get_parameter(kwargs, "nmoments", 3)
-    dirty_taylor = calculate_image_frequency_moments(dirty, nmoments=nmoments)
-    psf_taylor = calculate_image_frequency_moments(psf, nmoments=nmoments)
-
-    raise ValueError("deconvolve_mfs: not yet implemented")
-
-
-def restore_mfs(dirty: Image, clean: Image, psf: Image, **kwargs):
-    """ Restore an MFS clean image
-
-    :param dirty:
-    :param clean: Image clean model (i.e. no smoothing)
-    :param psf: Image Point Spread Function
-    :param params: 'algorithm': 'msclean'|'hogbom', 'gain': loop gain (float)
-    :returns: restored image
-    """
-    
-    raise ValueError("restore_mfs: not yet implemented")
 
 
 def restore_cube(model, psf, residual=None):

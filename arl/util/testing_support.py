@@ -304,7 +304,7 @@ def create_low_test_image_composite(npixel=16384, polarisation_frame=Polarisatio
     return ims3
 
 
-def create_low_test_image_from_gleam(npixel=16384, polarisation_frame=PolarisationFrame("stokesI"), cellsize=0.000015,
+def create_low_test_image_from_gleam(npixel=512, polarisation_frame=PolarisationFrame("stokesI"), cellsize=0.000015,
                                      frequency=numpy.array([1e8]), channel_bandwidth=numpy.array([1e6]),
                                      phasecentre=None, kind='cubic'):
     """Create LOW test image from the GLEAM survey
@@ -314,7 +314,7 @@ def create_low_test_image_from_gleam(npixel=16384, polarisation_frame=Polarisati
     See http://www.mwatelescope.org/science/gleam-survey The catalog is available from Vizier.
     
     VIII/100   GaLactic and Extragalactic All-sky MWA survey  (Hurley-Walker+, 2016)
-    ================================================================================
+
     GaLactic and Extragalactic All-sky Murchison Wide Field Array (GLEAM) survey.
     I: A low-frequency extragalactic catalogue.
         Hurley-Walker N., Callingham J.R., Hancock P.J., Franzen T.M.O.,
@@ -363,7 +363,7 @@ def create_low_test_image_from_gleam(npixel=16384, polarisation_frame=Polarisati
     w = WCS(naxis=4)
     # The negation in the longitude is needed by definition of RA, DEC
     w.wcs.cdelt = [-cellsize * 180.0 / numpy.pi, cellsize * 180.0 / numpy.pi, 1.0, channel_bandwidth[0]]
-    w.wcs.crpix = [npixel // 2, npixel // 2, 1.0, 1.0]
+    w.wcs.crpix = [npixel // 2, npixel // 2, 1.0, 0.0]
     w.wcs.ctype = ["RA---SIN", "DEC--SIN", 'STOKES', 'FREQ']
     w.wcs.crval = [phasecentre.ra.deg, phasecentre.dec.deg, 1.0, frequency[0]]
     w.naxis = 4
@@ -422,7 +422,7 @@ def create_low_test_skycomponents_from_gleam(flux_limit=0.1, polarisation_frame=
     See http://www.mwatelescope.org/science/gleam-survey The catalog is available from Vizier.
     
     VIII/100   GaLactic and Extragalactic All-sky MWA survey  (Hurley-Walker+, 2016)
-    ================================================================================
+
     GaLactic and Extragalactic All-sky Murchison Wide Field Array (GLEAM) survey.
     I: A low-frequency extragalactic catalogue.
         Hurley-Walker N., Callingham J.R., Hancock P.J., Franzen T.M.O.,
@@ -497,8 +497,6 @@ def create_low_test_skycomponents_from_gleam(flux_limit=0.1, polarisation_frame=
 def create_low_test_beam(model):
     """Create a test power beam for LOW using an image from OSKAR
 
-    This is in progress. Currently uses the wrong beam!
-
     :param model: Template image
     :returns: Image
     """
@@ -524,7 +522,7 @@ def create_low_test_beam(model):
         beam2dwcs = beam.wcs.sub(2).deepcopy()
         
         # The frequency axis is the second to last in the beam
-        frequency = model.wcs.sub(['spectral']).wcs_pix2world([chan], 0)[0]
+        frequency = model.wcs.sub(['spectral']).wcs_pix2world([chan], 1)[0]
         fscale = beam.wcs.wcs.crval[2] / frequency
         
         beam2dwcs.wcs.cdelt = fscale * beam.wcs.sub(2).wcs.cdelt

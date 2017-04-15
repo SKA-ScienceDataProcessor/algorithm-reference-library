@@ -42,6 +42,7 @@ def msclean(dirty, psf, window, gain, thresh, niter, scales, fracthresh):
     pmax = psf.max()
     assert pmax > 0.0
     
+    # Rescale to unit peak PSF. We undo this at the end of iteration
     psfpeak = argmax(numpy.fabs(psf))
     log.info("msclean: Peak of PSF = %s at %s" % (pmax, psfpeak))
     dmax = dirty.max()
@@ -51,24 +52,24 @@ def msclean(dirty, psf, window, gain, thresh, niter, scales, fracthresh):
     ldirty = dirty / pmax
     
     # Create the scale images and form all the various products we need. We
-    # use a third dimension to hold the scale-related images. scalestack is a 3D
+    # use an extra dimension to hold the scale-related images. scalestack is a 3D
     # cube holding the different scale images. convolvestack will take a 2D Image
     # and add a third dimension holding the scale-convolved versions.
     
     scaleshape = [len(scales), ldirty.shape[0], ldirty.shape[1]]
-    scalestack = createscalestack(scaleshape, scales, norm=True)
+    scalestack = create_scalestack(scaleshape, scales, norm=True)
     
     pscaleshape = [len(scales), lpsf.shape[0], lpsf.shape[1]]
     pscalescaleshape = [len(scales), len(scales), lpsf.shape[0], lpsf.shape[1]]
-    pscalestack = createscalestack(pscaleshape, scales, norm=True)
+    pscalestack = create_scalestack(pscaleshape, scales, norm=True)
     
-    psf_scalestack = convolvescalestack(pscalestack, numpy.array(lpsf))
-    res_scalestack = convolvescalestack(scalestack, numpy.array(ldirty))
+    psf_scalestack = convolve_scalestack(pscalestack, numpy.array(lpsf))
+    res_scalestack = convolve_scalestack(scalestack, numpy.array(ldirty))
     
     # Evaluate the coupling matrix between the various scale sizes.
     psf_scalescalestack = numpy.zeros(pscalescaleshape)
     for iscale in numpy.arange(len(scales)):
-        psf_scalescalestack[:, iscale, :, :] = convolvescalestack(pscalestack, psf_scalestack[iscale, :, :])
+        psf_scalescalestack[:, iscale, :, :] = convolve_scalestack(pscalestack, psf_scalestack[iscale, :, :])
         psf_scalescalestack[iscale, :, :, :] = psf_scalescalestack[:, iscale, :, :]
     coupling_matrix = numpy.zeros([len(scales), len(scales)])
     for iscale in numpy.arange(len(scales)):
@@ -84,7 +85,7 @@ def msclean(dirty, psf, window, gain, thresh, niter, scales, fracthresh):
         windowstack = None
     else:
         windowstack = numpy.zeros_like(scalestack)
-        windowstack[convolvescalestack(scalestack, window) > 0.9] = 1.0
+        windowstack[convolve_scalestack(scalestack, window) > 0.9] = 1.0
     
     log.info("msclean: Max abs in dirty Image = %.6f" % numpy.fabs(res_scalestack[0, :, :]).max())
     absolutethresh = max(thresh, fracthresh * numpy.fabs(res_scalestack[0, :, :]).max())
@@ -93,7 +94,7 @@ def msclean(dirty, psf, window, gain, thresh, niter, scales, fracthresh):
     
     for i in range(niter):
         # Find peak over all smoothed images
-        mx, my, mscale = findabsmaxstack(res_scalestack, windowstack, coupling_matrix)
+        mx, my, mscale = find_max_abs_stack(res_scalestack, windowstack, coupling_matrix)
         if mx is None or my is None or mscale is None:
             raise RuntimeError("msclean: Error in finding peak")
         
@@ -123,7 +124,7 @@ def msclean(dirty, psf, window, gain, thresh, niter, scales, fracthresh):
     return comps, pmax * res_scalestack[0, :, :]
 
 
-def createscalestack(scaleshape, scales, norm=True):
+def create_scalestack(scaleshape, scales, norm=True):
     """ Create a cube consisting of the scales
 
     :param scaleshape: desired shape of stack
@@ -144,14 +145,14 @@ def createscalestack(scaleshape, scales, norm=True):
             rscale2 = 1.0 / (float(scales[iscale]) / 2.0) ** 2
             x = range(xcen - halfscale - 1, xcen + halfscale + 1)
             fx = numpy.array(x, 'float') - float(xcen)
-            # Unroll this since sphfn needs a scalar
+            # Unroll this since spheroidal_function needs a scalar
             for y in range(ycen - halfscale - 1, ycen + halfscale + 1):
                 for x in range(xcen - halfscale - 1, xcen + halfscale + 1):
                     fx = float(x - xcen)
                     fy = float(y - ycen)
                     r2 = rscale2 * (fx * fx + fy * fy)
                     r = numpy.sqrt(r2)
-                    basis[iscale, x, y] = sphfn(r) * (1.0 - r ** 2)
+                    basis[iscale, x, y] = spheroidal_function(r) * (1.0 - r ** 2)
             basis[basis < 0.0] = 0.0
             if norm:
                 basis[iscale, :, :] /= numpy.sum(basis[iscale, :, :])
@@ -160,7 +161,7 @@ def createscalestack(scaleshape, scales, norm=True):
     return basis
 
 
-def convolvescalestack(scalestack, img):
+def convolve_scalestack(scalestack, img):
     """Convolve img by the specified scalestack, returning the resulting stack
 
     :param scalestack: stack containing the scales
@@ -179,7 +180,32 @@ def convolvescalestack(scalestack, img):
     return convolved
 
 
-def findabsmaxstack(stack, windowstack, couplingmatrix):
+def convolve_convolve_scalestack(scalestack, img):
+    """Convolve img by the specified scalestack, returning the resulting stack
+
+    :param scalestack: stack containing the scales
+    :param img: Image to be convolved
+    :returns: Twice convolved image [nscales, nscales, nx, ny]
+    """
+    
+    nscales, nx, ny = scalestack.shape
+    convolved_shape = [nscales, nscales, nx, ny]
+    convolved = numpy.zeros(convolved_shape)
+    ximg = numpy.fft.fftshift(numpy.fft.fft2(numpy.fft.fftshift(img)))
+
+    xscaleshape = [nscales, nx, ny]
+    xscale = numpy.zeros(xscaleshape, dtype='complex')
+    for s in range(nscales):
+        xscale[s] = numpy.fft.fftshift(numpy.fft.fft2(numpy.fft.fftshift(scalestack[s,...])))
+
+    for s in range(nscales):
+        for p in range(nscales):
+            xmult = ximg * xscale[p] * xscale[s]
+            convolved[s, p, ...] = numpy.real(numpy.fft.ifftshift(numpy.fft.ifft2(numpy.fft.ifftshift(xmult))))
+    return convolved
+
+
+def find_max_abs_stack(stack, windowstack, couplingmatrix):
     """Find the location and value of the absolute maximum in this stack
     :param stack: stack to be searched
     :param windowstack: Window for the search
@@ -208,7 +234,7 @@ def findabsmaxstack(stack, windowstack, couplingmatrix):
     return px, py, pscale
 
 
-def sphfn(vnu):
+def spheroidal_function(vnu):
     """ Evaluates the PROLATE SPHEROIDAL WAVEFUNCTION
 
     m=6, alpha = 1 from Schwab, Indirect Imaging (1984).
