@@ -31,24 +31,25 @@ class TestFTProcessorParams(unittest.TestCase):
         self.lowcore = create_named_configuration('LOWBD2-CORE')
         self.times = (numpy.pi / 12.0) * numpy.linspace(-3.0, 3.0, 7)
         self.frequency = numpy.linspace(8e7, 1.2e8, self.vnchan)
-        self.channel_bandwidth = numpy.array([1e7, 1e7, 1e7, 1e7, 1e7])
+        self.startfrequency = numpy.array([8e7])
+        self.channel_bandwidth = numpy.array(self.vnchan * [self.frequency[1]-self.frequency[0]])
         self.phasecentre = SkyCoord(ra=+180.0 * u.deg, dec=-60.0 * u.deg, frame='icrs', equinox=2000.0)
         self.vis = create_visibility(self.lowcore, times=self.times, frequency=self.frequency,
                                      phasecentre=self.phasecentre, weight=1.0,
                                      polarisation_frame=PolarisationFrame('stokesI'),
                                      channel_bandwidth=self.channel_bandwidth)
         self.model = create_image_from_visibility(self.vis, npixel=256, cellsize=0.001, nchan=self.vnchan,
-                                                  frequency=self.frequency[0])
+                                                  frequency=self.startfrequency)
     def test_get_frequency_map_channel(self):
         self.model = create_image_from_visibility(self.vis, npixel=256, cellsize=0.001, nchan=self.vnchan,
-                                                  frequency=self.frequency[0])
+                                                  frequency=self.startfrequency)
         spectral_mode, vfrequency_map = get_frequency_map(self.vis, self.model)
         assert numpy.max(vfrequency_map) == self.model.nchan - 1
         assert spectral_mode == 'channel'
 
     def test_get_frequency_map_different_channel(self):
         self.model = create_image_from_visibility(self.vis, npixel=256, cellsize=0.001,
-                                                  frequency=self.frequency[0], nchan=3,
+                                                  frequency=self.startfrequency, nchan=3,
                                                   channel_bandwidth=2e7)
         spectral_mode, vfrequency_map = get_frequency_map(self.vis, self.model)
         assert numpy.max(vfrequency_map) == self.model.nchan - 1
@@ -56,7 +57,7 @@ class TestFTProcessorParams(unittest.TestCase):
 
     def test_get_frequency_map_mfs(self):
         self.model = create_image_from_visibility(self.vis, npixel=256, cellsize=0.001, nchan=1,
-                                                  frequency=self.frequency[0])
+                                                  frequency=self.startfrequency)
         spectral_mode, vfrequency_map = get_frequency_map(self.vis, self.model)
         assert numpy.max(vfrequency_map) == 0
         assert spectral_mode == 'mfs'

@@ -65,12 +65,9 @@ def msclean(dirty, psf, window, gain, thresh, niter, scales, fracthresh):
     
     psf_scalestack = convolve_scalestack(pscalestack, numpy.array(lpsf))
     res_scalestack = convolve_scalestack(scalestack, numpy.array(ldirty))
-    
+    psf_scalescalestack = convolve_convolve_scalestack(pscalestack, numpy.array(lpsf))
+
     # Evaluate the coupling matrix between the various scale sizes.
-    psf_scalescalestack = numpy.zeros(pscalescaleshape)
-    for iscale in numpy.arange(len(scales)):
-        psf_scalescalestack[:, iscale, :, :] = convolve_scalestack(pscalestack, psf_scalestack[iscale, :, :])
-        psf_scalescalestack[iscale, :, :, :] = psf_scalescalestack[:, iscale, :, :]
     coupling_matrix = numpy.zeros([len(scales), len(scales)])
     for iscale in numpy.arange(len(scales)):
         for iscale1 in numpy.arange(len(scales)):
@@ -99,25 +96,24 @@ def msclean(dirty, psf, window, gain, thresh, niter, scales, fracthresh):
             raise RuntimeError("msclean: Error in finding peak")
         
         # Find the values to subtract, accounting for the coupling matrix
-        mval = numpy.zeros(len(scales))
-        mval[mscale] = res_scalestack[mscale, mx, my] / coupling_matrix[mscale, mscale]
+        mval = res_scalestack[mscale, mx, my] / coupling_matrix[mscale, mscale]
         if i % (niter // 10) == 0:
             log.info("msclean: Minor cycle %d, peak %s at [%d, %d, %d]" % \
                      (i, res_scalestack[:, mx, my], mx, my, mscale))
-        if numpy.fabs(mval[mscale]) < absolutethresh:
+        if numpy.fabs(mval) < absolutethresh:
             log.info("msclean: Absolute value of peak %.6f is below stopping threshold %.6f" \
                      % (numpy.fabs(res_scalestack[mscale, mx, my]), absolutethresh))
             break
         
         # Update the cached residuals and add to the cached model.
-        a1o, a2o = overlapIndices(dirty, psf, mx, my)
-        if numpy.abs(mval[mscale]) > 0:
+        lhs, rhs = overlapIndices(dirty, psf, mx, my)
+        if numpy.abs(mval) > 0:
             # Cross subtract from other scales
             for iscale in range(len(scales)):
-                res_scalestack[iscale, a1o[0]:a1o[1], a1o[2]:a1o[3]] -= \
-                    psf_scalescalestack[iscale, mscale, a2o[0]:a2o[1], a2o[2]:a2o[3]] * gain * mval[mscale]
-            comps[a1o[0]:a1o[1], a1o[2]:a1o[3]] += \
-                pscalestack[mscale, a2o[0]:a2o[1], a2o[2]:a2o[3]] * gain * mval[mscale]
+                res_scalestack[iscale, lhs[0]:lhs[1], lhs[2]:lhs[3]] -= \
+                    psf_scalescalestack[iscale, mscale, rhs[0]:rhs[1], rhs[2]:rhs[3]] * gain * mval
+            comps[lhs[0]:lhs[1], lhs[2]:lhs[3]] += \
+                pscalestack[mscale, rhs[0]:rhs[1], rhs[2]:rhs[3]] * gain * mval
         else:
             break
     log.info("msclean: End of minor cycles")
@@ -175,7 +171,7 @@ def convolve_scalestack(scalestack, img):
     nscales = scalestack.shape[0]
     for iscale in range(nscales):
         xscale = numpy.fft.fftshift(numpy.fft.fft2(numpy.fft.fftshift(scalestack[iscale, :, :])))
-        xmult = ximg * xscale
+        xmult = ximg * numpy.conjugate(xscale)
         convolved[iscale, :, :] = numpy.real(numpy.fft.ifftshift(numpy.fft.ifft2(numpy.fft.ifftshift(xmult))))
     return convolved
 
@@ -200,7 +196,7 @@ def convolve_convolve_scalestack(scalestack, img):
 
     for s in range(nscales):
         for p in range(nscales):
-            xmult = ximg * xscale[p] * xscale[s]
+            xmult = ximg * xscale[p] * numpy.conjugate(xscale[s])
             convolved[s, p, ...] = numpy.real(numpy.fft.ifftshift(numpy.fft.ifft2(numpy.fft.ifftshift(xmult))))
     return convolved
 

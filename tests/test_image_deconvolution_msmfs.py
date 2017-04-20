@@ -25,6 +25,7 @@ class TestImageDeconvolutionMSMFS(unittest.TestCase):
     def setUp(self):
         self.dir = './test_results'
         os.makedirs(self.dir, exist_ok=True)
+        self.niter=1000
         self.lowcore = create_named_configuration('LOWBD2-CORE')
         self.nchan = 5
         self.times = (numpy.pi / (12.0)) * numpy.linspace(-3.0, 3.0, 7)
@@ -37,7 +38,7 @@ class TestImageDeconvolutionMSMFS(unittest.TestCase):
         self.vis.data['vis'] *= 0.0
         
         # Create model
-        self.test_model = create_low_test_image_from_gleam(npixel=256, cellsize=0.001,
+        self.test_model = create_low_test_image_from_gleam(npixel=512, cellsize=0.001,
                                                            phasecentre=self.vis.phasecentre,
                                                            frequency=self.frequency,
                                                            channel_bandwidth=self.channel_bandwidth)
@@ -47,47 +48,81 @@ class TestImageDeconvolutionMSMFS(unittest.TestCase):
         export_image_to_fits(self.test_model, "%s/test_deconvolve_msmfsclean_model.fits" % (self.dir))
         self.vis = predict_2d(self.vis, self.test_model)
         assert numpy.max(numpy.abs(self.vis.vis)) > 0.0
-        self.model = create_image_from_visibility(self.vis, npixel=256, cellsize=0.001,
+        self.model = create_image_from_visibility(self.vis, npixel=512, cellsize=0.001,
                                                   polarisation_frame=PolarisationFrame('stokesI'))
         self.dirty, sumwt = invert_2d(self.vis, self.model)
         self.psf, sumwt = invert_2d(self.vis, self.model, dopsf=True)
         export_image_to_fits(self.dirty, "%s/test_deconvolve_msmfsclean_dirty.fits" % (self.dir))
         export_image_to_fits(self.psf, "%s/test_deconvolve_msmfsclean_psf.fits" % (self.dir))
-        window = numpy.zeros(shape=self.model.shape, dtype=numpy.bool)
-        window[..., 97:192, 97:192] = True
+        window = numpy.ones(shape=self.model.shape, dtype=numpy.bool)
+        window[..., 129:384, 129:384] = True
         self.innerquarter = create_image_from_array(window, self.model.wcs)
 
     
     def test_deconvolve_msmfsclean_no_taylor(self):
 
-        self.comp, self.residual = deconvolve_cube(self.dirty, self.psf, niter=1000, gain=0.7, algorithm='msmfsclean',
-                                                   scales=[0, 3, 10], threshold=0.01, nmoments=1)
+        self.comp, self.residual = deconvolve_cube(self.dirty, self.psf, niter=self.niter, gain=0.1, algorithm='msmfsclean',
+                                                   scales=[0, 3, 10], threshold=0.01, nmoments=1, findpeak='ARL',
+                                                   fractional_threshold=0.01,  window=self.innerquarter)
         export_image_to_fits(self.comp, "%s/test_deconvolve_msmfsclean_notaylor-comp.fits" % (self.dir))
         export_image_to_fits(self.residual, "%s/test_deconvolve_msmfsclean_notaylor-residual.fits" % (self.dir))
         self.cmodel = restore_cube(self.comp, self.psf, self.residual)
         export_image_to_fits(self.cmodel, "%s/test_deconvolve_msmfsclean_notaylor-clean.fits" % (self.dir))
-        assert numpy.max(self.residual.data) < 1.0
-        
-    def test_deconvolve_msmfsclean_linear(self):
+        assert numpy.max(self.residual.data) < 1.5
 
-        self.comp, self.residual = deconvolve_cube(self.dirty, self.psf, niter=1000, gain=0.7, algorithm='msmfsclean',
-                                                   scales=[0, 3, 10], threshold=0.01, nmoments=2)
+    def test_deconvolve_msmfsclean_no_taylor_noscales(self):
+
+        self.comp, self.residual = deconvolve_cube(self.dirty, self.psf, niter=self.niter, gain=0.1, algorithm='msmfsclean',
+                                                   scales=[0], threshold=0.01, nmoments=1, findpeak='ARL',
+                                                   fractional_threshold=0.01,  window=self.innerquarter) 
+        export_image_to_fits(self.comp, "%s/test_deconvolve_msmfsclean_notaylor_noscales-comp.fits" % (self.dir))
+        export_image_to_fits(self.residual, "%s/test_deconvolve_msmfsclean_notaylor_noscales-residual.fits" % (self.dir))
+        self.cmodel = restore_cube(self.comp, self.psf, self.residual)
+        export_image_to_fits(self.cmodel, "%s/test_deconvolve_msmfsclean_notaylor_noscales-clean.fits" % (self.dir))
+        assert numpy.max(self.residual.data) < 1.5
+
+    def test_deconvolve_msmfsclean_linear(self):
+        self.comp, self.residual = deconvolve_cube(self.dirty, self.psf, niter=self.niter, gain=0.1, algorithm='msmfsclean',
+                                                   scales=[0, 3, 10], threshold=0.01, nmoments=2, findpeak='ARL',
+                                                   fractional_threshold=0.01,  window=self.innerquarter) 
         export_image_to_fits(self.comp, "%s/test_deconvolve_msmfsclean_linear-comp.fits" % (self.dir))
         export_image_to_fits(self.residual, "%s/test_deconvolve_msmfsclean_linear-residual.fits" % (self.dir))
         self.cmodel = restore_cube(self.comp, self.psf, self.residual)
         export_image_to_fits(self.cmodel, "%s/test_deconvolve_msmfsclean_linear-clean.fits" % (self.dir))
-        assert numpy.max(self.residual.data) < 1.0
+        assert numpy.max(self.residual.data) < 1.3
+
+    def test_deconvolve_msmfsclean_linear_noscales(self):
+        self.comp, self.residual = deconvolve_cube(self.dirty, self.psf, niter=self.niter, gain=0.1, algorithm='msmfsclean',
+                                                   scales=[0], threshold=0.01, nmoments=2, findpeak='ARL',
+                                                   fractional_threshold=0.01,  window=self.innerquarter) 
+        export_image_to_fits(self.comp, "%s/test_deconvolve_msmfsclean_linear_noscales-comp.fits" % (self.dir))
+        export_image_to_fits(self.residual, "%s/test_deconvolve_msmfsclean_linear_noscales-residual.fits" % (self.dir))
+        self.cmodel = restore_cube(self.comp, self.psf, self.residual)
+        export_image_to_fits(self.cmodel, "%s/test_deconvolve_msmfsclean_linear_noscales-clean.fits" % (self.dir))
+        assert numpy.max(self.residual.data) < 1.3
 
     def test_deconvolve_msmfsclean_quadratic(self):
 
-        self.comp, self.residual = deconvolve_cube(self.dirty, self.psf, niter=1000, gain=0.7, algorithm='msmfsclean',
-                                                   scales=[0, 3, 10], threshold=0.01, nmoments=2)
+        self.comp, self.residual = deconvolve_cube(self.dirty, self.psf, niter=self.niter, gain=0.1, algorithm='msmfsclean',
+                                                   scales=[0, 3, 10], threshold=0.01, nmoments=2, findpeak='ARL',
+                                                   fractional_threshold=0.01,  window=self.innerquarter) 
         export_image_to_fits(self.comp, "%s/test_deconvolve_msmfsclean_quadratic-comp.fits" % (self.dir))
         export_image_to_fits(self.residual, "%s/test_deconvolve_msmfsclean_quadratic-residual.fits" % (self.dir))
         self.cmodel = restore_cube(self.comp, self.psf, self.residual)
         export_image_to_fits(self.cmodel, "%s/test_deconvolve_msmfsclean_quadratic-clean.fits" % (self.dir))
-        assert numpy.max(self.residual.data) < 1.0
+        assert numpy.max(self.residual.data) < 1.3
 
+
+    def test_deconvolve_msmfsclean_quadratic_noscales(self):
+
+        self.comp, self.residual = deconvolve_cube(self.dirty, self.psf, niter=self.niter, gain=0.1, algorithm='msmfsclean',
+                                                   scales=[0], threshold=0.01, nmoments=2, findpeak='ARL',
+                                                   fractional_threshold=0.01,  window=self.innerquarter) 
+        export_image_to_fits(self.comp, "%s/test_deconvolve_msmfsclean_quadratic_noscales-comp.fits" % (self.dir))
+        export_image_to_fits(self.residual, "%s/test_deconvolve_msmfsclean_quadratic_noscales-residual.fits" % (self.dir))
+        self.cmodel = restore_cube(self.comp, self.psf, self.residual)
+        export_image_to_fits(self.cmodel, "%s/test_deconvolve_msmfsclean_quadratic_noscales-clean.fits" % (self.dir))
+        assert numpy.max(self.residual.data) < 1.3
 
 
 if __name__ == '__main__':

@@ -28,10 +28,9 @@ The principal transitions between the data models:
 
 There are two visibility formats:
 
-* BlockVisibility is conceived as an ingest and calibration format. The visibility
-data are kept in block of shape (number antennas, number antennas, number channels, number polarisation). One block
-is kept per integration. The other columns are time and uvw. The sampling in time is therefore the same for
-all baselines.
+* BlockVisibility is conceived as an ingest and calibration format. The visibility data are kept in block of shape
+(number antennas, number antennas, number channels, number polarisation). One block is kept per integration. The
+other columns are time and uvw. The sampling in time is therefore the same for all baselines.
 * Visibility is designed to hold coalesced data where the integration time and channel bandwidth can vary with
 baseline length. The visibility data are kept in a visibility vector of length equal to the number of polarisations.
 Everything else is a separate column: time, frequency, uvw, channel_bandwidth, integration time.
@@ -258,12 +257,6 @@ towards the source. With this convention, images will have Right
 Ascension increasing from Right to Left, and Declination increasing
 from Bottom to Top.
 
-Quality Assessment
-++++++++++++++++++
-
-.. automodule:: arl.util.quality_assessment
-   :members:
-
 Unit tests
 **********
 
@@ -274,7 +267,7 @@ Unit tests written in standard python style are available.
    :members:
    :undoc-members:
 
-.. automodule:: tests.test_calibration_functions
+.. automodule:: tests.test_calibration_operations
    :members:
    :undoc-members:
 

@@ -38,6 +38,7 @@ See the jupyter note books below:
    arl/imaging
    arl/imaging-fits
    arl/imaging-wterm
+   arl/imaging-mfs
    arl/rcal
    arl/peeling
 

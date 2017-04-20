@@ -25,13 +25,13 @@ def deconvolve_cube(dirty: Image, psf: Image, **kwargs):
     
     Functions that clean a dirty image using a point spread function. The algorithms available are:
     
-    - Hogbom CLEAN See: Hogbom CLEAN A&A Suppl, 15, 417, (1974)
+    - hogbom: Hogbom CLEAN See: Hogbom CLEAN A&A Suppl, 15, 417, (1974)
     
-    - MultiScale CLEAN See: Cornwell, T.J., Multiscale CLEAN (IEEE Journal of Selected Topics in Sig Proc, 2008 vol. 2
-    pp. 793-801)
+    - msclean: MultiScale CLEAN See: Cornwell, T.J., Multiscale CLEAN (IEEE Journal of Selected Topics in Sig Proc,
+    2008 vol. 2 pp. 793-801)
 
-    - MultiScale Multi-Frequency See: U. Rau and T. J. Cornwell, “A multi-scale multi-frequency deconvolution
-    algorithm for synthesis imaging in radio interferometry,” A&A 532, A71 (2011).
+    - mfmfsclean: MultiScale Multi-Frequency See: U. Rau and T. J. Cornwell, “A multi-scale multi-frequency
+    deconvolution algorithm for synthesis imaging in radio interferometry,” A&A 532, A71 (2011).
     
     :param dirty: Image dirty image
     :param psf: Image Point Spread Function
@@ -42,7 +42,9 @@ def deconvolve_cube(dirty: Image, psf: Image, **kwargs):
     :param fracthres: Fractional threshold (0.01)
     :param scales: Scales (in pixels) for multiscale ([0, 3, 10, 30])
     :param nmoments: Number of frequency moments (default 3)
+    :param findpeak: Method of finding peak in mfsclean: 'Algorithm1'|'ASKAPSoft'|'CASA'|'ARL', Default is ARL.
     :returns: componentimage, residual
+    
     """
     
     window = get_parameter(kwargs, 'window', None)
@@ -98,6 +100,7 @@ def deconvolve_cube(dirty: Image, psf: Image, **kwargs):
         residual_image = create_image_from_array(residual_array, dirty.wcs)
 
     elif algorithm == 'msmfsclean':
+        findpeak = get_parameter(kwargs, "findpeak", 'ARL')
         
         log.info("deconvolve_cube: Multi-scale multi-frequency clean of each polarisation separately")
         nmoments = get_parameter(kwargs, "nmoments", 3)
@@ -112,7 +115,7 @@ def deconvolve_cube(dirty: Image, psf: Image, **kwargs):
         niter = get_parameter(kwargs, 'niter', 100)
         assert niter > 0
         scales = get_parameter(kwargs, 'scales', [0, 3, 10, 30])
-        fracthresh = get_parameter(kwargs, 'fractional_threshold', 0.01)
+        fracthresh = get_parameter(kwargs, 'fractional_threshold', 0.1)
         assert 0.0 < fracthresh < 1.0
     
         comp_array = numpy.zeros(dirty_taylor.data.shape)
@@ -123,19 +126,25 @@ def deconvolve_cube(dirty: Image, psf: Image, **kwargs):
                 if window is None:
                     comp_array[:, pol, :, :], residual_array[:, pol, :, :] = \
                         msmfsclean(dirty_taylor.data[:, pol, :, :], psf_taylor.data[:, pol, :, :],
-                                None, gain, thresh, niter, scales, fracthresh)
+                                None, gain, thresh, niter, scales, fracthresh, findpeak)
                 else:
                     comp_array[:, pol, :, :], residual_array[:, pol, :, :] = \
                         msmfsclean(dirty_taylor.data[:, pol, :, :], psf_taylor.data[:, pol, :, :],
-                                window[:, pol, :, :], gain, thresh, niter, scales, fracthresh)
+                                window[:, pol, :, :], gain, thresh, niter, scales, fracthresh, findpeak)
             else:
                 log.info("deconvolve_cube: Skipping pol %d" % (pol))
                 
         comp_image = create_image_from_array(comp_array, dirty_taylor.wcs)
         residual_image = create_image_from_array(residual_array, dirty_taylor.wcs)
         
-        comp_image = calculate_image_from_frequency_moments(dirty, comp_image)
-        residual_image = calculate_image_from_frequency_moments(dirty, residual_image)
+        return_moments = get_parameter(kwargs, "return_moments", False)
+        if not return_moments:
+            log.info("Deconvolve_cube: calculating spectral cubes")
+            comp_image = calculate_image_from_frequency_moments(dirty, comp_image)
+            residual_image = calculate_image_from_frequency_moments(dirty, residual_image)
+        else:
+            log.info("Deconvolve_cube: constructed moment cubes")
+            
 
     elif algorithm == 'hogbom':
         log.info("deconvolve_cube: Hogbom clean of each polarisation and channel separately")

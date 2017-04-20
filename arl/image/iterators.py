@@ -10,7 +10,7 @@ from arl.image.operations import create_image_from_array
 
 log = logging.getLogger(__name__)
 
-def raster_iter(im, facets=2):
+def raster_iter(im, facets=2, **kwargs):
     """Create a raster_iter generator, returning images
 
     The WCS is adjusted appropriately for each raster element. Hence this is a coordinate-aware

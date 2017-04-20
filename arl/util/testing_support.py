@@ -315,22 +315,8 @@ def create_low_test_image_from_gleam(npixel=512, polarisation_frame=Polarisation
     
     VIII/100   GaLactic and Extragalactic All-sky MWA survey  (Hurley-Walker+, 2016)
 
-    GaLactic and Extragalactic All-sky Murchison Wide Field Array (GLEAM) survey.
-    I: A low-frequency extragalactic catalogue.
-        Hurley-Walker N., Callingham J.R., Hancock P.J., Franzen T.M.O.,
-        Hindson L., Kapinska A.D., Morgan J., Offringa A.R., Wayth R.B., Wu C.,
-        Zheng Q., Murphy T., Bell M.E., Dwarakanath K.S., For B., Gaensler B.M.,
-        Johnston-Hollitt M., Lenc E., Procopio P., Staveley-Smith L., Ekers R.,
-        Bowman J.D., Briggs F., Cappallo R.J., Deshpande A.A., Greenhill L.,
-        Hazelton B.J., Kaplan D.L., Lonsdale C.J., McWhirter S.R., Mitchell D.A.,
-        Morales M.F., Morgan E., Oberoi D., Ord S.M., Prabu T., Udaya Shankar N.,
-        Srivani K.S., Subrahmanyan R., Tingay S.J., Webster R.L., Williams A.,
-        Williams C.L.
-       <Mon. Not. R. Astron. Soc., 464, 1146-1167 (2017)>
-       =2017MNRAS.464.1146H
-       =2016yCat.8100....0H
-
-    
+    GaLactic and Extragalactic All-sky Murchison Wide Field Array (GLEAM) survey. I: A low-frequency extragalactic
+    catalogue. Hurley-Walker N., et al., Mon. Not. R. Astron. Soc., 464, 1146-1167 (2017), 2017MNRAS.464.1146H
 
     :param npixel: Number of pixels
     :param polarisation_frame: Polarisation frame (default PolarisationFrame("stokesI"))
@@ -340,6 +326,7 @@ def create_low_test_image_from_gleam(npixel=512, polarisation_frame=Polarisation
     :param phasecentre: phasecentre (SkyCoord)
     :param kind: Kind of interpolation (see scipy.interpolate.interp1d) Default: linear
     :returns: Image
+    
     """
     
     fitsfile = arl_path("data/models/GLEAM_EGC.fits")
@@ -363,7 +350,7 @@ def create_low_test_image_from_gleam(npixel=512, polarisation_frame=Polarisation
     w = WCS(naxis=4)
     # The negation in the longitude is needed by definition of RA, DEC
     w.wcs.cdelt = [-cellsize * 180.0 / numpy.pi, cellsize * 180.0 / numpy.pi, 1.0, channel_bandwidth[0]]
-    w.wcs.crpix = [npixel // 2, npixel // 2, 1.0, 0.0]
+    w.wcs.crpix = [npixel // 2, npixel // 2, 1.0, 1.0]
     w.wcs.ctype = ["RA---SIN", "DEC--SIN", 'STOKES', 'FREQ']
     w.wcs.crval = [phasecentre.ra.deg, phasecentre.dec.deg, 1.0, frequency[0]]
     w.naxis = 4
@@ -423,20 +410,9 @@ def create_low_test_skycomponents_from_gleam(flux_limit=0.1, polarisation_frame=
     
     VIII/100   GaLactic and Extragalactic All-sky MWA survey  (Hurley-Walker+, 2016)
 
-    GaLactic and Extragalactic All-sky Murchison Wide Field Array (GLEAM) survey.
-    I: A low-frequency extragalactic catalogue.
-        Hurley-Walker N., Callingham J.R., Hancock P.J., Franzen T.M.O.,
-        Hindson L., Kapinska A.D., Morgan J., Offringa A.R., Wayth R.B., Wu C.,
-        Zheng Q., Murphy T., Bell M.E., Dwarakanath K.S., For B., Gaensler B.M.,
-        Johnston-Hollitt M., Lenc E., Procopio P., Staveley-Smith L., Ekers R.,
-        Bowman J.D., Briggs F., Cappallo R.J., Deshpande A.A., Greenhill L.,
-        Hazelton B.J., Kaplan D.L., Lonsdale C.J., McWhirter S.R., Mitchell D.A.,
-        Morales M.F., Morgan E., Oberoi D., Ord S.M., Prabu T., Udaya Shankar N.,
-        Srivani K.S., Subrahmanyan R., Tingay S.J., Webster R.L., Williams A.,
-        Williams C.L.
-       <Mon. Not. R. Astron. Soc., 464, 1146-1167 (2017)>
-       =2017MNRAS.464.1146H
-       =2016yCat.8100....0H
+    GaLactic and Extragalactic All-sky Murchison Wide Field Array (GLEAM) survey. I: A low-frequency extragalactic
+    catalogue. Hurley-Walker N., et al., Mon. Not. R. Astron. Soc., 464, 1146-1167 (2017), 2017MNRAS.464.1146H
+
 
     :param flux_limit: Only write components brighter than this (Jy)
     :param polarisation_frame: Polarisation frame (default PolarisationFrame("stokesI"))

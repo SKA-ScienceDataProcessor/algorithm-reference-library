@@ -27,15 +27,14 @@ def image_sizeof(im: Image):
 
 
 def create_image_from_array(data: numpy.array, wcs: WCS = None,
-                            polarisation_frame=PolarisationFrame('stokesI')) -> \
-        Image:
+                            polarisation_frame=PolarisationFrame('stokesI')) -> Image:
     """ Create an image from an array and optional wcs
 
-    :rtype: Image
-    :param data:
-    :param wcs:
-    :param polarisation_frame
+    :param data: Numpy.array
+    :param wcs: World coordinate system
+    :param polarisation_frame: Polarisation Frame
     :returns: Image
+    
     """
     fim = Image()
     fim.polarisation_frame = polarisation_frame
@@ -59,6 +58,7 @@ def copy_image(im: Image) -> Image:
 
     :param im:
     :returns: Image
+    
     """
     fim = Image()
     fim.polarisation_frame = im.polarisation_frame
@@ -78,6 +78,7 @@ def create_empty_image_like(im: Image) -> Image:
 
     :param im:
     :returns: Image
+    
     """
     fim = Image()
     fim.polarisation_frame = im.polarisation_frame
@@ -341,7 +342,7 @@ def calculate_image_frequency_moments(im: Image, reference_frequency=None, nmome
     
     if reference_frequency is None:
         reference_frequency = numpy.average(freq)
-    log.info("Reference frequency = %.3f (MHz)" % (reference_frequency))
+    log.info("calculate_image_frequency_moments: Reference frequency = %.3f (MHz)" % (reference_frequency))
     
     moment_data = numpy.zeros([nmoments, npol, ny, nx])
     
@@ -386,7 +387,7 @@ def calculate_image_from_frequency_moments(im: Image, moment_image: Image, refer
     
     if reference_frequency is None:
         reference_frequency = numpy.average(freq)
-    log.info("Reference frequency = %.3f (MHz)" % (reference_frequency))
+    log.info("calculate_image_from_frequency_moments: Reference frequency = %.3f (MHz)" % (reference_frequency))
     
     newim = copy_image(im)
     
