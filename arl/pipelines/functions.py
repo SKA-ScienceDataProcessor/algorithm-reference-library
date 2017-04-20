@@ -16,6 +16,9 @@ log = logging.getLogger(__name__)
 def rcal(vis: BlockVisibility, components, **kwargs):
     """ Real-time calibration pipeline.
     
+    Reads visibilities through a BlockVisibility iterator, calculates model visibilities according to a
+    component-based sky model, and performans a calibration, writing a gaintable for each chunk of visibilities.
+    
     :param vis: Visibility or Union(Visibility, Iterable)
     :param comp: Component-based sky model
     :return: gaintable
