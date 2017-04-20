@@ -498,7 +498,7 @@ def create_low_test_beam(model):
         beam2dwcs = beam.wcs.sub(2).deepcopy()
         
         # The frequency axis is the second to last in the beam
-        frequency = model.wcs.sub(['spectral']).wcs_pix2world([chan], 1)[0]
+        frequency = model.wcs.sub(['spectral']).wcs_pix2world([chan], 0)[0]
         fscale = beam.wcs.wcs.crval[2] / frequency
         
         beam2dwcs.wcs.cdelt = fscale * beam.wcs.sub(2).wcs.cdelt

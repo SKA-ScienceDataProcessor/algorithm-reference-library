@@ -203,7 +203,7 @@ def update_moment_model(m_model, scalestack, lhs, rhs, gain, mscale, mval):
 
 
 def calculate_scale_moment_psf(psf, scalestack):
-    """ Calculate scale-dependent moment residuals
+    """ Calculate scale-dependent moment point spread function
 
     Part of the initialisation for Algorithm 1: lines 12 - 17
 
