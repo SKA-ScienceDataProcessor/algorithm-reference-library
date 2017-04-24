@@ -52,7 +52,7 @@ master_doc = 'index'
 
 # General information about the project.
 project = 'arl'
-copyright = '2016 Tim Cornwell, Peter Wortmann, Bojan Nikolic'
+copyright = '2016-2017 Tim Cornwell, Peter Wortmann, Bojan Nikolic'
 author = 'Tim Cornwell, Peter Wortmann, Bojan Nikolic'
 
 # The version info for the project you're documenting, acts as replacement for
@@ -153,7 +153,7 @@ html_static_path = ['static']
 # If not None, a 'Last updated on:' timestamp is inserted at every page
 # bottom, using the given strftime format.
 # The empty string is equivalent to '%b %d, %Y'.
-#html_last_updated_fmt = None
+html_last_updated_fmt = ''
 
 # If true, SmartyPants will be used to convert quotes and dashes to
 # typographically correct entities.
@@ -231,7 +231,7 @@ latex_elements = {
 #  author, documentclass [howto, manual, or own class]).
 latex_documents = [
     (master_doc, 'arl.tex', 'ARL Documentation',
-     'Tim Cornwell, Bojan Nikolic, Peter Wortmann', 'manual'),
+     'Tim Cornwell, Peter Wortmann, Bojan Nikolic', 'manual'),
 ]
 
 # The name of an image file (relative to this directory) to place at the top of
@@ -260,7 +260,7 @@ latex_documents = [
 # One entry per manual page. List of tuples
 # (source start file, name, description, authors, manual section).
 man_pages = [
-    (master_doc, 'ARL', 'ARK Documentation',
+    (master_doc, 'ARL', 'ARL Documentation',
      [author], 1)
 ]
 

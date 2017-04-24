@@ -1,7 +1,7 @@
 """ Quality Assessment functions
 """
 
-# Tim Cornwell <realtimcornwell@gmail.com>
+
 
 from arl.data.data_models import *
 from arl.data.parameters import *

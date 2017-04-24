@@ -1,4 +1,4 @@
-# Tim Cornwell <realtimcornwell@gmail.com>
+
 #
 # Polarisation functions
 #

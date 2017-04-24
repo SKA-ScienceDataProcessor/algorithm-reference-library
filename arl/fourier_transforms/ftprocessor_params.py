@@ -1,4 +1,4 @@
-# Tim Cornwell <realtimcornwell@gmail.com>
+
 #
 """
 Functions that aid fourier transform processing. These are built on top of the core
@@ -27,10 +27,13 @@ def get_frequency_map(vis, im=None, **kwargs):
     if im is None:
         spectral_mode = 'channel'
         vfrequencymap = get_rowmap(vis.frequency, ufrequency)
-        
+        assert min(vfrequencymap) >= 0, "Invalid frequency map: visibility channel < 0"
+
+
     elif im.data.shape[0] == 1 and vnchan >= 1:
         spectral_mode = 'mfs'
         vfrequencymap = numpy.zeros_like(vis.frequency, dtype='int')
+
     else:
         # We can map these to image channels
         v2im_map = im.wcs.sub(['spectral']).wcs_world2pix(ufrequency, 0)[0].astype('int')
@@ -39,6 +42,9 @@ def get_frequency_map(vis, im=None, **kwargs):
         nrows = len(vis.frequency)
         row2vis = numpy.array(get_rowmap(vis.frequency, ufrequency))
         vfrequencymap = [v2im_map[row2vis[row]] for row in range(nrows)]
+        
+        assert min(vfrequencymap) >= 0, "Invalid frequency map: image channel < 0"
+        assert max(vfrequencymap) < im.shape[0], "Invalid frequency mape: image channel > number image channels"
     
     return spectral_mode, vfrequencymap
 
@@ -57,7 +63,7 @@ def get_polarisation_map(vis: Visibility, im: Image=None, **kwargs):
 
 
 def get_rowmap(col, ucol=None):
-    """ Get a generator to map unique cols
+    """ Map to unique cols
     
     :param col: Data column
     :param ucol: Unique values in col
@@ -72,7 +78,6 @@ def get_rowmap(col, ucol=None):
         
     for i, f in enumerate(ucol):
         pdict[phash(f)] = i
-#    vmap = [pdict[phash(p)] for p in col]
     vmap = []
     for p in col:
         vmap.append(pdict[phash(p)])

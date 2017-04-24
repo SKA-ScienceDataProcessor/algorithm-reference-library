@@ -1,3 +1,7 @@
+""" Unit tests for FFT support
+
+
+"""
 import unittest
 
 from numpy.testing import assert_allclose

@@ -1,4 +1,4 @@
-# Tim Cornwell <realtimcornwell@gmail.com>
+
 #
 """
 Definition of structures needed by the function interface.

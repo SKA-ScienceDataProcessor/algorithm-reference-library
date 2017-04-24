@@ -1,6 +1,6 @@
 """Unit tests for visibility operations
 
-realtimcornwell@gmail.com
+
 """
 
 import unittest

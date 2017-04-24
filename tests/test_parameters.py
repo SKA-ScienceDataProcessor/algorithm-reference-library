@@ -1,6 +1,6 @@
-"""Unit tests for parameters
+"""Unit tests for pipelines
 
-realtimcornwell@gmail.com
+
 """
 
 import unittest

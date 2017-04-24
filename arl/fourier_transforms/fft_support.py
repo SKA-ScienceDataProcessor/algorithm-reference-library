@@ -1,6 +1,7 @@
-# Tim Cornwell realtimcornwell@gmail.com
-#
-from __future__ import division
+""" FFT support functions
+
+
+"""
 
 import numpy
 

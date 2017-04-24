@@ -1,6 +1,6 @@
-"""Unit tests for image deconvolution
+"""Unit tests for image deconvolution vis MSMFS
 
-realtimcornwell@gmail.com
+
 """
 import logging
 import os

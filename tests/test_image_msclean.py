@@ -1,6 +1,6 @@
-"""Unit tests for image deconvolution
+"""Unit tests for image deconvolution via MSClean
 
-realtimcornwell@gmail.com
+
 """
 import unittest
 

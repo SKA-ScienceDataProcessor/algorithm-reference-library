@@ -1,6 +1,6 @@
-"""Unit tests for visibility calibrations
+"""Unit tests for visibility calibration
 
-realtimcornwell@gmail.com
+
 """
 import unittest
 

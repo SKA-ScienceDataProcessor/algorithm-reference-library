@@ -1,6 +1,5 @@
 """Useful array functions
 
-realtimcornwell@gmail.com
 """
 # import numba
 import numpy
@@ -15,6 +14,11 @@ def average_chunks_jit(arr, wts, chunksize):
     
     This is a version written for numba. When used with numba.jit, it's about 25 - 30% faster than the
     numpy version without jit.
+    
+    :param arr: 1D array of values
+    :param wts: 1D array of weights
+    :param chunksize: averaging size
+    :returns: 1D array of averaged data, 1d array of weights
     """
     if chunksize <= 1:
         return arr, wts
@@ -50,6 +54,11 @@ def average_chunks(arr, wts, chunksize):
     This version is optimised for plain numpy. It is roughly ten times faster that average_chunks_jit when used
     without numba jit. It cannot (yet) be used with numba because the add.reduceat is not support in numba
     0.31
+    
+    :param arr: 1D array of values
+    :param wts: 1D array of weights
+    :param chunksize: averaging size
+    :returns: 1D array of averaged data, 1d array of weights
     """
     if chunksize <= 1:
         return arr, wts
@@ -66,7 +75,12 @@ def average_chunks(arr, wts, chunksize):
 def average_chunks2(arr, wts, chunksize):
     """ Average the two dimensional array arr with weights by chunks
 
-    Array len does not have to be multiple of chunksize
+    Array len does not have to be multiple of chunksize.
+    
+    :param arr: 2D array of values
+    :param wts: 2D array of weights
+    :param chunksize: 2-tuple of averaging region e.g. (2,3)
+    :returns: 2D array of averaged data, 2d array of weights
     """
     # Do each axis to determine length
     #    assert arr.shape == wts.shape, "Shapes of arrays must be the same"

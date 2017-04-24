@@ -1,6 +1,5 @@
-"""Unit tests for sky model solution
+"""Unit tests for skycomponents
 
-realtimcornwell@gmail.com
 """
 
 import logging

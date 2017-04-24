@@ -1,7 +1,7 @@
-""" Pipeline support
+""" Pipeline support functions
 
 """
-# Tim Cornwell <realtimcornwell@gmail.com>
+
 #
 #
 

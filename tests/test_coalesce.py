@@ -1,6 +1,6 @@
-"""Unit tests for Fourier transforms
+"""Unit tests for Visibility coalescence
 
-realtimcornwell@gmail.com
+
 """
 import unittest
 

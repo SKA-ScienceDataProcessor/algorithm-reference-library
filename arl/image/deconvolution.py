@@ -1,5 +1,4 @@
-# Tim Cornwell <realtimcornwell@gmail.com>
-""" Image Deconvolution functions
+""" Image deconvolution functions
 
 """
 
@@ -25,12 +24,12 @@ def deconvolve_cube(dirty: Image, psf: Image, **kwargs):
     
     Functions that clean a dirty image using a point spread function. The algorithms available are:
     
-    - hogbom: Hogbom CLEAN See: Hogbom CLEAN A&A Suppl, 15, 417, (1974)
+    hogbom: Hogbom CLEAN See: Hogbom CLEAN A&A Suppl, 15, 417, (1974)
     
-    - msclean: MultiScale CLEAN See: Cornwell, T.J., Multiscale CLEAN (IEEE Journal of Selected Topics in Sig Proc,
+    msclean: MultiScale CLEAN See: Cornwell, T.J., Multiscale CLEAN (IEEE Journal of Selected Topics in Sig Proc,
     2008 vol. 2 pp. 793-801)
 
-    - mfmfsclean: MultiScale Multi-Frequency See: U. Rau and T. J. Cornwell, “A multi-scale multi-frequency
+    mfmfsclean: MultiScale Multi-Frequency See: U. Rau and T. J. Cornwell, “A multi-scale multi-frequency
     deconvolution algorithm for synthesis imaging in radio interferometry,” A&A 532, A71 (2011).
     
     :param dirty: Image dirty image

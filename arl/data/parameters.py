@@ -1,7 +1,7 @@
 """Parameter handling for ARL functions
 """
 #
-# Tim Cornwell <realtimcornwell@gmail.com>
+
 #
 
 import logging

@@ -1,6 +1,6 @@
-"""Unit tests for Fourier transforms
+"""Unit tests for Fourier transform processors
 
-realtimcornwell@gmail.com
+
 """
 import unittest
 

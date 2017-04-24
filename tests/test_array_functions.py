@@ -1,6 +1,6 @@
-"""Unit tests for Fourier transforms
+"""Unit tests for Array functions
 
-realtimcornwell@gmail.com
+
 """
 import unittest
 import numpy

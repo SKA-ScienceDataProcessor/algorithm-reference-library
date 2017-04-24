@@ -1,8 +1,5 @@
-# Tim Cornwell <realtimcornwell@gmail.com>
-#
 """
-Functions that aid fourier transform processing. These are built on top of the core
-functions in arl.fourier_transforms.
+Functions for visibility coalescence
 """
 
 from astropy import constants

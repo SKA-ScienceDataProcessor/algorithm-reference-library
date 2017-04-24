@@ -1,4 +1,4 @@
-# Tim Cornwell <realtimcornwell@gmail.com>
+
 #
 """
 Definition of structures needed by the function interface.
@@ -138,10 +138,6 @@ def create_test_image(canonical=True, cellsize=None, frequency=[1e8], channel_ba
     """
     im = import_image_from_fits(arl_path("data/models/M31.MOD"))
     if canonical:
-        if frequency is None:
-            nchan = 1
-        else:
-            nchan = len(frequency)
         
         if polarisation_frame is None:
             im.polarisation_frame = PolarisationFrame("stokesI")
@@ -537,7 +533,7 @@ def replicate_image(im: Image, polarisation_frame=PolarisationFrame('stokesI'), 
         
         newwcs = WCS(naxis=4)
         
-        newwcs.wcs.crpix = [im.wcs.wcs.crpix[0], im.wcs.wcs.crpix[1], 1.0, 1.0]
+        newwcs.wcs.crpix = [im.wcs.wcs.crpix[0], im.wcs.wcs.crpix[1], 1.0, 0.0]
         newwcs.wcs.cdelt = [im.wcs.wcs.cdelt[0], im.wcs.wcs.cdelt[1], 1.0, 1.0]
         newwcs.wcs.crval = [im.wcs.wcs.crval[0], im.wcs.wcs.crval[1], 1.0, frequency[0]]
         newwcs.wcs.ctype = [im.wcs.wcs.ctype[0], im.wcs.wcs.ctype[1], 'STOKES', 'FREQ']

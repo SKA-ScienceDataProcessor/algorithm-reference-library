@@ -28,12 +28,15 @@ The principal transitions between the data models:
 
 There are two visibility formats:
 
-* BlockVisibility is conceived as an ingest and calibration format. The visibility data are kept in block of shape
+BlockVisibility is conceived as an ingest and calibration format. The visibility data are kept in block of shape
 (number antennas, number antennas, number channels, number polarisation). One block is kept per integration. The
 other columns are time and uvw. The sampling in time is therefore the same for all baselines.
-* Visibility is designed to hold coalesced data where the integration time and channel bandwidth can vary with
+
+
+Visibility is designed to hold coalesced data where the integration time and channel bandwidth can vary with
 baseline length. The visibility data are kept in a visibility vector of length equal to the number of polarisations.
 Everything else is a separate column: time, frequency, uvw, channel_bandwidth, integration time.
+
 
 
 Processing Parameters
@@ -141,7 +144,22 @@ FFT support
 FTProcessor
 +++++++++++
 
-.. automodule:: arl.fourier_transforms.ftprocessor
+.. automodule:: arl.fourier_transforms.ftprocessor_base
+   :members:
+
+.. automodule:: arl.fourier_transforms.ftprocessor_facets
+   :members:
+
+.. automodule:: arl.fourier_transforms.ftprocessor_wslice
+   :members:
+
+.. automodule:: arl.fourier_transforms.ftprocessor_timeslice
+   :members:
+
+.. automodule:: arl.fourier_transforms.ftprocessor_params
+   :members:
+
+.. automodule:: arl.fourier_transforms.ftprocessor_iterated
    :members:
 
 Convolutional Gridding

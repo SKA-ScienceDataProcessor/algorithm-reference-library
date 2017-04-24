@@ -1,52 +1,88 @@
 """Unit tests for pipelines
 
-realtimcornwell@gmail.com
+
 """
 
 import unittest
 
 from arl.fourier_transforms.ftprocessor import *
+from arl.image.operations import export_image_to_fits
 from arl.pipelines.functions import *
 from arl.skycomponent.operations import create_skycomponent
 from arl.util.testing_support import create_named_configuration, create_test_image, create_blockvisibility_iterator
+from arl.visibility.coalesce import coalesce_visibility
 
 
 class TestPipelines(unittest.TestCase):
     def setUp(self):
+        self.dir = './test_results'
+        os.makedirs(self.dir, exist_ok=True)
         lowcore = create_named_configuration('LOWBD2-CORE')
         times = numpy.arange(-3.0, +3.0, 1.0) * numpy.pi / 12.0
-        frequency = numpy.linspace(1.0e8, 1.50e8, 3)
+        vnchan = 3
+        frequency = numpy.linspace(0.8e8, 1.20e8, vnchan)
+        channel_bandwidth = numpy.array(vnchan * [frequency[1] - frequency[0]])
         
         # Define the component and give it some polarisation and spectral behaviour
         f = numpy.array([100.0, 20.0, -10.0, 1.0])
         self.flux = numpy.array([f, 0.8 * f, 0.6 * f])
-        # The phase centre is absolute and the component is specified relative (for now).
-        # This means that the component should end up at the position phasecentre+compredirection
+
         self.phasecentre = SkyCoord(ra=+15.0 * u.deg, dec=-35.0 * u.deg, frame='icrs', equinox=2000.0)
         self.compabsdirection = SkyCoord(ra=17.0 * u.deg, dec=-36.5 * u.deg, frame='icrs', equinox=2000.0)
         
         self.comp = create_skycomponent(flux=self.flux, frequency=frequency, direction=self.compabsdirection)
-        self.image = create_test_image(frequency=frequency, phasecentre=self.phasecentre, cellsize=0.001)
+        self.image = create_test_image(frequency=frequency, phasecentre=self.phasecentre, cellsize=0.001,
+                                       polarisation_frame=PolarisationFrame('stokesIQUV'))
         
-        self.vis = create_blockvisibility_iterator(lowcore, times=times, frequency=frequency, channel_bandwidth=1e6,
-                                                   phasecentre=self.phasecentre, weight=1,
-                                                   polarisation_frame=PolarisationFrame('linear'),
-                                                   integration_time=1.0, number_integrations=1, predict=predict_2d,
-                                                   components=self.comp, phase_error=0.1, amplitude_error=0.01)
+        self.blockvis = create_blockvisibility_iterator(lowcore, times=times, frequency=frequency,
+                                                        channel_bandwidth=channel_bandwidth,
+                                                        phasecentre=self.phasecentre, weight=1,
+                                                        polarisation_frame=PolarisationFrame('linear'),
+                                                        integration_time=1.0, number_integrations=1, predict=predict_2d,
+                                                        components=self.comp, phase_error=0.1, amplitude_error=0.01)
+        
+        self.vis = create_visibility(lowcore, times=times, frequency=frequency,
+                                     channel_bandwidth=channel_bandwidth,
+                                     phasecentre=self.phasecentre, weight=1,
+                                     polarisation_frame=PolarisationFrame('stokesIQUV'),
+                                     integration_time=1.0)
+        
+        self.vis = predict_2d(self.vis, self.image)
+    
+    def ingest(self):
+        vis = None
+        for iv, subvis in enumerate(self.blockvis):
+            if iv == 0:
+                vis = subvis
+            else:
+                vis = append_visibility(vis, subvis)
+        
+        return coalesce_visibility(vis)[0]
     
     def test_RCAL(self):
-        for igt, gt in enumerate(rcal(vis=self.vis, components=self.comp)):
+        for igt, gt in enumerate(rcal(vis=self.blockvis, components=self.comp)):
             print("Chunk %d, gaintable size %.3f (GB)" % (igt, gt.size()))
     
     def test_ICAL(self):
         icalpipe = ical(vis=self.vis, components=self.comp)
     
     def test_continuum_imaging(self):
-        cipipe = continuum_imaging(vis=self.vis, components=self.comp, algorithm='msclean')
+        model = create_empty_image_like(self.image)
+        visres, comp, residual = continuum_imaging(self.vis, model, algorithm='msmfsclean')
+        export_image_to_fits(comp, "%s/test_pipelines-continuum-imaging-comp.fits" % (self.dir))
     
-    def test_spectral_line_imaging(self):
-        slipipe = spectral_line_imaging(vis=self.vis, components=self.comp, algorithm='msclean')
-    
+    def test_spectral_line_imaging_no_deconvolution(self):
+        model = create_empty_image_like(self.image)
+        visres, comp, residual = spectral_line_imaging(self.vis, continuum_model=model,
+                                                       spectral_model=model, deconvolve_spectral=False)
+        export_image_to_fits(comp, "%s/test_pipelines-spectral-no-deconvolution-imaging-comp.fits" % (self.dir))
+
+    def test_spectral_line_imaging_with_deconvolution(self):
+        model = create_empty_image_like(self.image)
+        visres, comp, residual = spectral_line_imaging(self.vis, continuum_model=model, algorithm='hogbom',
+                                                       deconvolve_spectral=True)
+        export_image_to_fits(comp, "%s/test_pipelines-spectral-with-deconvolution-imaging-comp.fits" % (self.dir))
+
     def test_fast_imaging(self):
         fipipe = fast_imaging(vis=self.vis, components=self.comp, Gsolinit=300.0)
     

@@ -1,3 +1,7 @@
+""" Unit tests for coordinate support
+
+"""
+
 import unittest
 
 import numpy as np

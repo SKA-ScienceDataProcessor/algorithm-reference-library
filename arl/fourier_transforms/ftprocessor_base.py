@@ -1,4 +1,4 @@
-# Tim Cornwell <realtimcornwell@gmail.com>
+
 #
 """
 Functions that aid fourier transform processing. These are built on top of the core
@@ -110,6 +110,7 @@ def predict_2d_base(vis, model, **kwargs):
 
 def predict_2d(vis, model, **kwargs):
     """ Predict using convolutional degridding and w projection
+    
     :param vis: Visibility to be predicted
     :param model: model image
     :returns: resulting visibility (in place works)
@@ -120,6 +121,7 @@ def predict_2d(vis, model, **kwargs):
 
 def predict_wprojection(vis, model, **kwargs):
     """ Predict using convolutional degridding and w projection
+    
     :param vis: Visibility to be predicted
     :param model: model image
     :returns: resulting visibility (in place works)

@@ -1,3 +1,7 @@
+""" Unit tests for convolutional Gridding
+
+
+"""
 import itertools
 import random
 import unittest

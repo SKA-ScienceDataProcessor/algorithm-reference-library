@@ -1,6 +1,6 @@
-"""Unit tests for visibility operations
+"""Unit tests for visibility iterators
 
-realtimcornwell@gmail.com
+
 """
 
 import unittest

@@ -1,6 +1,6 @@
 """Unit tests for quality assessment
 
-realtimcornwell@gmail.com
+
 """
 import unittest
 import logging

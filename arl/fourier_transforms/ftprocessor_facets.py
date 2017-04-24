@@ -1,4 +1,4 @@
-# Tim Cornwell <realtimcornwell@gmail.com>
+
 #
 """
 Functions that distributes predict and invert using either just loops or parallel execution

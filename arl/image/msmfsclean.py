@@ -1,4 +1,4 @@
-# Tim Cornwell <realtimcornwell@gmail.com>
+
 """ Image Deconvolution functions
 
 """
@@ -26,9 +26,8 @@ def msmfsclean(dirty, psf, window, gain, thresh, niter, scales, fracthresh, find
     :param fracthresh:
     :param dirty: The dirty image, i.e., the image to be deconvolved
     :param psf: The point spread-function
-    :param window: Regions where clean components are allowed. If
-    True, then all of the dirty image is assumed to be allowed for
-    clean components
+    :param window: Regions where clean components are allowed. If True, then all of the dirty image is assumed to be
+    allowed for clean components
     :param gain: The "loop gain", i.e., the fraction of the brightest
     pixel that is removed in each iteration
     :param thresh: Cleaning stops when the maximum of the absolute
@@ -38,6 +37,7 @@ def msmfsclean(dirty, psf, window, gain, thresh, niter, scales, fracthresh, find
     :param scales: Scales (in pixels width) to be used
     :param fracthres: Fractional stopping threshold
     :param ntaylor: Number of Taylor terms
+    :param findpeak: Method of finding peak in mfsclean: 'Algorithm1'|'CASA'|'ARL', Default is ARL.
     :returns: clean component image, residual image
     """
     assert 0.0 < gain < 2.0
@@ -142,14 +142,6 @@ def find_global_optimum(hsmmpsf, ihsmmpsf, smresidual, windowstack, findpeak):
         # Now find the location and scale
         mx, my, mscale = find_optimum_scale_zero_moment(smpsol, windowstack)
         mval = smpsol[mscale, :, mx, my]
-    elif findpeak == 'ASKAP':
-        # Calculate the approximate principal solution in moment-moment axes. This decouples the moments and
-        # addresses the scaling in scale.
-        smpsol = calculate_scale_moment_approximate_principal_solution(smresidual, hsmmpsf)
-        
-        # Now find the location and scale
-        mx, my, mscale = find_optimum_scale_zero_moment(smpsol, windowstack)
-        mval = smpsol[mscale, :, mx, my]
     elif findpeak == 'CASA' :
         # CASA 4.7 version
         smpsol = calculate_scale_moment_principal_solution(smresidual, ihsmmpsf)
@@ -200,25 +192,6 @@ def update_moment_model(m_model, scalestack, lhs, rhs, gain, mscale, mval):
             scalestack[mscale, rhs[0]:rhs[1], rhs[2]:rhs[3]] * gain * mval[t]
     
     return m_model
-
-
-def calculate_scale_moment_psf(psf, scalestack):
-    """ Calculate scale-dependent moment point spread function
-
-    Part of the initialisation for Algorithm 1: lines 12 - 17
-
-    :param psf: psf [nmoments, nx, ny]
-    :returns scale-dependent moment psf [nscales, nmoments, nx, ny]
-    """
-    nmoments2, nx, ny = psf.shape
-    nmoments = nmoments2 // 2
-    nscales = scalestack.shape[0]
-    
-    # Lines 12 - 17 from Algorithm 1
-    scale_moment_psf = numpy.zeros([nscales, nmoments, nx, ny])
-    for t in range(nmoments):
-        scale_moment_psf[:, t, ...] = convolve_scalestack(scalestack, psf[t, ...])
-    return scale_moment_psf
 
 
 def calculate_scale_moment_residual(residual, scalestack):
@@ -294,26 +267,6 @@ def calculate_scale_moment_principal_solution(smresidual, ihsmmpsf):
     return smpsol
 
 
-def calculate_scale_moment_approximate_principal_solution(smresidual, hsmmpsf):
-    """ Calculate approximate principal solution in moment space for each scale
-
-    Equivalent of lines 20 - 26 in ASAPsoft
-
-    :param smresidual: scale-dependent moment residual [nscales, nmoments, nx, ny]
-    :param mhsmmpsf: scale dependent moment moment Hessian
-    :returns: Decoupled residual images for each scale and moment
-    """
-    nscales, nmoments, nx, ny = smresidual.shape
-    smpsol = numpy.zeros_like(smresidual)
-    # We use the inverse of the diagonal elements hessian in moment space to calculate
-    # the approximate principal solution in moment space
-    for s in range(nscales):
-        for moment in range(nmoments):
-            smpsol[s, moment] = smresidual[s, moment] / hsmmpsf[s, moment, moment]
-    
-    return smpsol
-
-
 def find_optimum_scale_zero_moment(smpsol, windowstack):
     """Find the optimum scale for moment zero
     
@@ -323,9 +276,9 @@ def find_optimum_scale_zero_moment(smpsol, windowstack):
     :returns: x, y, optimum scale for peak
     """
     nscales, nmoments, nx, ny = smpsol.shape
-    sscale = None
-    sx = None
-    sy = None
+    sscale = 0
+    sx = 0
+    sy = 0
     optimum = 0.0
     
     for scale in range(nscales):
@@ -340,8 +293,5 @@ def find_optimum_scale_zero_moment(smpsol, windowstack):
             optimum = this_max
             sscale = scale
             sx, sy = argmax(smpsol[scale, 0, ...])
-    
-    if sx is None or sy is None or sscale is None:
-        raise RuntimeError("find_optimum_scale_zero_moment: Error in finding peak")
-    
+        
     return sx, sy, sscale

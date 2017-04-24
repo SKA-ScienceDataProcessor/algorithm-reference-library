@@ -1,6 +1,6 @@
-"""Unit tests for visibility operations
+"""Unit tests for testing support
 
-realtimcornwell@gmail.com
+
 """
 
 import os

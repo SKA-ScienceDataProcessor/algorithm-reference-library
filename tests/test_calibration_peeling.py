@@ -1,6 +1,6 @@
 """Unit tests for peeling
 
-realtimcornwell@gmail.com
+
 """
 import unittest
 

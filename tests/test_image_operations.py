@@ -1,6 +1,6 @@
 """Unit tests for image operations
 
-realtimcornwell@gmail.com
+
 """
 import sys
 import unittest

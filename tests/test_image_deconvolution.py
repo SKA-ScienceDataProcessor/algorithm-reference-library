@@ -1,6 +1,6 @@
 """Unit tests for image deconvolution
 
-realtimcornwell@gmail.com
+
 """
 import logging
 import os

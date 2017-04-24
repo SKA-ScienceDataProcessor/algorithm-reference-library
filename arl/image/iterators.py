@@ -1,4 +1,4 @@
-# Tim Cornwell <realtimcornwell@gmail.com>
+
 #
 """
 Functions that define and manipulate images. Images are just data and a World Coordinate System.

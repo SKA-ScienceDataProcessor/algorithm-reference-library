@@ -1,4 +1,4 @@
-# Tim Cornwell <realtimcornwell@gmail.com>
+
 """ Image Deconvolution functions
 
 """
@@ -84,6 +84,9 @@ def msclean(dirty, psf, window, gain, thresh, niter, scales, fracthresh):
         windowstack = numpy.zeros_like(scalestack)
         windowstack[convolve_scalestack(scalestack, window) > 0.9] = 1.0
     
+    if windowstack is not None:
+        assert numpy.sum(windowstack) > 0
+    
     log.info("msclean: Max abs in dirty Image = %.6f" % numpy.fabs(res_scalestack[0, :, :]).max())
     absolutethresh = max(thresh, fracthresh * numpy.fabs(res_scalestack[0, :, :]).max())
     log.info("msclean: Start of minor cycle")
@@ -92,9 +95,6 @@ def msclean(dirty, psf, window, gain, thresh, niter, scales, fracthresh):
     for i in range(niter):
         # Find peak over all smoothed images
         mx, my, mscale = find_max_abs_stack(res_scalestack, windowstack, coupling_matrix)
-        if mx is None or my is None or mscale is None:
-            raise RuntimeError("msclean: Error in finding peak")
-        
         # Find the values to subtract, accounting for the coupling matrix
         mval = res_scalestack[mscale, mx, my] / coupling_matrix[mscale, mscale]
         if i % (niter // 10) == 0:
@@ -210,23 +210,29 @@ def find_max_abs_stack(stack, windowstack, couplingmatrix):
 
     """
     pabsmax = 0.0
-    pscale = None
-    px = None
-    py = None
+    pscale = 0
+    px = 0
+    py = 0
+    nscales = stack.shape[0]
+    assert nscales > 0
     pshape = [stack.shape[1], stack.shape[2]]
-    for iscale in range(stack.shape[0]):
+    for iscale in range(nscales):
         if windowstack is not None:
-            resid = stack[iscale, :, :] * windowstack[iscale, :, :]
+            resid = stack[iscale, :, :] * windowstack[iscale, :, :] / couplingmatrix[iscale, iscale]
         else:
-            resid = stack[iscale, :, :]
+            resid = stack[iscale, :, :] / couplingmatrix[iscale, iscale]
         
-        mx, my = numpy.unravel_index(numpy.fabs(resid).argmax(), pshape)
-        thisabsmax = stack[iscale, mx, my] / couplingmatrix[iscale, iscale]
-        if abs(thisabsmax) > abs(pabsmax):
+        # Find the peak in the scaled residual image
+        mx, my = numpy.unravel_index(numpy.abs(resid).argmax(), pshape)
+
+        # Is this the peak over all scales?
+        thisabsmax = numpy.abs(resid[mx, my])
+        if thisabsmax > pabsmax:
             px = mx
             py = my
             pscale = iscale
-            pabsmax = stack[pscale, px, py] / couplingmatrix[iscale, iscale]
+            pabsmax = thisabsmax
+    
     return px, py, pscale
 
 

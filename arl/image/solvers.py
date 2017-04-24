@@ -1,4 +1,4 @@
-# Tim Cornwell <realtimcornwell@gmail.com>
+
 #
 """
 Definition of structures needed by the function interface. These are mostly
@@ -7,14 +7,14 @@ subclasses of astropy classes.
 
 from arl.data.data_models import *
 from arl.data.parameters import *
-from arl.fourier_transforms.ftprocessor_base import invert_2d, predict_2d
+from arl.fourier_transforms.ftprocessor_base import invert_2d, predict_2d, predict_skycomponent_visibility
 from arl.image.deconvolution import deconvolve_cube
 from arl.visibility.operations import copy_visibility
 
 log = logging.getLogger(__name__)
 
 
-def solve_image(vis: Visibility, model: Image, predict=predict_2d, invert=invert_2d, **kwargs):
+def solve_image(vis: Visibility, model: Image, components=None, predict=predict_2d, invert=invert_2d, **kwargs):
     """Solve for image using deconvolve_cube and specified predict, invert
 
     This is the same as a majorcycle/minorcycle algorithm. The components are removed prior to deconvolution.
@@ -37,6 +37,9 @@ def solve_image(vis: Visibility, model: Image, predict=predict_2d, invert=invert
 
     vispred = predict(vispred, model, **kwargs)
     
+    if components is not None:
+        vispred = predict_skycomponent_visibility(vispred, components)
+    
     visres.data['vis'] = vis.data['vis'] - vispred.data['vis']
     dirty, sumwt = invert(visres, model, **kwargs)
     psf, sumwt = invert(visres, model, dopsf=True, **kwargs)
@@ -55,5 +58,6 @@ def solve_image(vis: Visibility, model: Image, predict=predict_2d, invert=invert
             log.info("Reached stopping threshold %.6f Jy" % thresh)
             break
         log.info("solve_image: End of major cycle")
+
     log.info("solve_image: End of major cycles")
     return visres, model, dirty
