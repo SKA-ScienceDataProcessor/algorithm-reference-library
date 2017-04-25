@@ -515,7 +515,7 @@ def create_low_test_beam(model):
     return reprojected_beam
 
 
-def replicate_image(im: Image, polarisation_frame=PolarisationFrame('stokesI'), frequency=1e8):
+def replicate_image(im: Image, polarisation_frame=PolarisationFrame('stokesI'), frequency=numpy.array([1e8])):
     """ Make a new canonical shape Image, extended along third and fourth axes by replication.
 
     The order of the data is [chan, pol, dec, ra]
@@ -533,7 +533,7 @@ def replicate_image(im: Image, polarisation_frame=PolarisationFrame('stokesI'), 
         
         newwcs = WCS(naxis=4)
         
-        newwcs.wcs.crpix = [im.wcs.wcs.crpix[0], im.wcs.wcs.crpix[1], 1.0, 0.0]
+        newwcs.wcs.crpix = [im.wcs.wcs.crpix[0], im.wcs.wcs.crpix[1], 1.0, 1.0]
         newwcs.wcs.cdelt = [im.wcs.wcs.cdelt[0], im.wcs.wcs.cdelt[1], 1.0, 1.0]
         newwcs.wcs.crval = [im.wcs.wcs.crval[0], im.wcs.wcs.crval[1], 1.0, frequency[0]]
         newwcs.wcs.ctype = [im.wcs.wcs.ctype[0], im.wcs.wcs.ctype[1], 'STOKES', 'FREQ']

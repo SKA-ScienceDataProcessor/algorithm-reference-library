@@ -79,7 +79,7 @@ class TestPipelines(unittest.TestCase):
 
     def test_spectral_line_imaging_with_deconvolution(self):
         model = create_empty_image_like(self.image)
-        visres, comp, residual = spectral_line_imaging(self.vis, continuum_model=model, algorithm='hogbom',
+        visres, comp, residual = spectral_line_imaging(self.vis, model, continuum_model=self.image, algorithm='hogbom',
                                                        deconvolve_spectral=True)
         export_image_to_fits(comp, "%s/test_pipelines-spectral-with-deconvolution-imaging-comp.fits" % (self.dir))
 

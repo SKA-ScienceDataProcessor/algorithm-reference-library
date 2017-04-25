@@ -66,8 +66,8 @@ def continuum_imaging(vis: Visibility, model: Image, components=None, **kwargs):
     return solve_image(vis, model, components, **kwargs)
 
 
-def spectral_line_imaging(vis: Visibility, continuum_model: Image, continuum_components=None,
-                          spectral_model=None, predict=predict_2d, invert=invert_2d, deconvolve_spectral=False,
+def spectral_line_imaging(vis: Visibility, model=None, continuum_model: Image=None, continuum_components=None,
+                          predict=predict_2d, invert=invert_2d, deconvolve_spectral=False,
                           **kwargs):
     """Spectral line imaging from calibrated (DIE) data
     
@@ -95,11 +95,11 @@ def spectral_line_imaging(vis: Visibility, continuum_model: Image, continuum_com
     if deconvolve_spectral:
         log.info("spectral_line_imaging: Deconvolving continuum subtracted visibility")
         vis_no_continuum, spectral_model, spectral_residual = solve_image(vis_no_continuum,
-                                                                          spectral_model, **kwargs)
+                                                                          model, **kwargs)
     else:
         log.info("spectral_line_imaging: Making dirty image from continuum subtracted visibility")
         spectral_model, spectral_residual = \
-            invert(vis_no_continuum, spectral_model, **kwargs)
+            invert(vis_no_continuum, model, **kwargs)
     
     return vis_no_continuum, spectral_model, spectral_residual
 
