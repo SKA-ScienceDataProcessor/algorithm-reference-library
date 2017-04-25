@@ -452,3 +452,19 @@ def create_w_term_image(vis, w=None, **kwargs):
     log.info('create_w_term_image: For w = %.1f, field of view = %.6f, Fresnel number = %.2f' % (w, fov, fresnel))
     
     return im
+
+def residual_image(vis, model, invert_residual=invert_2d, predict_residual=predict_2d, normalize=True, **kwargs):
+    """Calculate residual image and visibility
+
+    :param vis: Visibility to be inverted
+    :param im: image template (not changed)
+    :param invert: invert to be used (default invert_2d)
+    :param predict: predict to be used (default predict_2d)
+    :returns: residual visibility, residual image, sum of weights
+    """
+    visres = copy_visibility(vis)
+    visres.data['vis'][...] = 0.0
+    visres = predict_residual(visres, model, **kwargs)
+    visres.data['vis'] = vis.data['vis'] - visres.data['vis']
+    dirty, sumwt = invert_residual(visres, model, dopsf=False, normalize=normalize, **kwargs)
+    return visres, dirty, sumwt

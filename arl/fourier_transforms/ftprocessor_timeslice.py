@@ -31,8 +31,8 @@ def fit_uvwplane_only(vis):
     return p, q
 
 
-def fit_uvwplane(vis):
-    """ Fit and remove the best fitting plane p u + q v = w
+def fit_uvwplane(vis, remove=False):
+    """ Fit and optionally remove the best fitting plane p u + q v = w
 
     :param vis: visibility to be fitted
     :returns: direction cosines defining plane
@@ -40,9 +40,11 @@ def fit_uvwplane(vis):
     nvis = len(vis.data)
     before = numpy.max(numpy.std(vis.w))
     p, q = fit_uvwplane_only(vis)
-    vis.data['uvw'][:, 2] -= p * vis.u + q * vis.v
-    after = numpy.max(numpy.std(vis.w))
-    log.info('predict_timeslice: Fit to %d rows reduces rms w from %.1f to %.1f m'
+    if remove:
+        vis.data['uvw'][:, 2] -= p * vis.u + q * vis.v
+    residual = vis.data['uvw'][:, 2] - (p * vis.u + q * vis.v)
+    after = numpy.max(numpy.std(residual))
+    log.info('fit_uvwplane: Fit to %d rows reduces rms w from %.1f to %.1f m'
              % (nvis, before, after))
     return vis, p, q
 
@@ -85,7 +87,6 @@ def predict_timeslice_single(vis, model, **kwargs):
     :param model: model image
     :returns: resulting visibility (in place works)
     """
-    log.debug("predict_timeslice: predicting using time slices")
     
     inchan, inpol, ny, nx = model.shape
     
@@ -97,14 +98,11 @@ def predict_timeslice_single(vis, model, **kwargs):
     # Calculate nominal and distorted coordinate systems. We will convert the model
     # from nominal to distorted before predicting.
     workimage = copy_image(model)
-    reprojected_image = copy_image(model)
-    log.info("Reprojecting model from SIN projection to oblique SIN projection with params %.6f, %.6f" % (p, q))
     
     # Use griddata to do the conversion. This could be improved. Only cubic is possible in griddata.
     # The interpolation is ok for invert since the image is smooth but for clean images the
     # interpolation is particularly poor, leading to speckle in the residual image.
     lnominal, mnominal, ldistorted, mdistorted = lm_distortion(model, -p, -q)
-    log.debug('predict_timeslice: Using griddata to convert projection')
     for chan in range(inchan):
         for pol in range(inpol):
             workimage.data[chan, pol, ...] = \

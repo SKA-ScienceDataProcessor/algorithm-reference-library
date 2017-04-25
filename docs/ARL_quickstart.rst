@@ -41,6 +41,7 @@ See the jupyter note books below:
    arl/imaging-mfs
    arl/rcal
    arl/peeling
+   arl/imaging-dask
 
 In addition, there are other notebooks in examples/arl that are not built as part of this documentation. See e.g.
 examples/arl/imaging-low.ipynb, examples/arl/imaging-coalesce

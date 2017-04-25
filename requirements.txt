@@ -13,7 +13,6 @@ numpy>=1.9
 scipy
 pyfits>=3.3
 matplotlib
-pylru
 Sphinx
 wcsaxes
 reproject
@@ -21,3 +20,5 @@ astropy
 alabaster
 photutils
 scikit-image
+dask
+graphviz
