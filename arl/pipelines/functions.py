@@ -66,7 +66,7 @@ def continuum_imaging(vis: Visibility, model: Image, components=None, **kwargs):
     return solve_image(vis, model, components, **kwargs)
 
 
-def spectral_line_imaging(vis: Visibility, model=None, continuum_model: Image=None, continuum_components=None,
+def spectral_line_imaging(vis: Visibility, model, continuum_model: Image=None, continuum_components=None,
                           predict=predict_2d, invert=invert_2d, deconvolve_spectral=False,
                           **kwargs):
     """Spectral line imaging from calibrated (DIE) data

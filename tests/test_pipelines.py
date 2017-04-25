@@ -73,8 +73,8 @@ class TestPipelines(unittest.TestCase):
     
     def test_spectral_line_imaging_no_deconvolution(self):
         model = create_empty_image_like(self.image)
-        visres, comp, residual = spectral_line_imaging(self.vis, continuum_model=model,
-                                                       spectral_model=model, deconvolve_spectral=False)
+        visres, comp, residual = spectral_line_imaging(self.vis, model, continuum_model=model,
+                                                       deconvolve_spectral=False)
         export_image_to_fits(comp, "%s/test_pipelines-spectral-no-deconvolution-imaging-comp.fits" % (self.dir))
 
     def test_spectral_line_imaging_with_deconvolution(self):
