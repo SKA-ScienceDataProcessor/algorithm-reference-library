@@ -21,4 +21,5 @@ alabaster
 photutils
 scikit-image
 dask
+toolz
 graphviz
