@@ -33,13 +33,15 @@ def append_visibility(vis: Visibility, othervis: Visibility):
     return vis
 
 
-def copy_visibility(vis):
+def copy_visibility(vis, zero=False):
     """Copy a visibility
     
     Performs a deepcopy of the data array
     """
     newvis = copy.copy(vis)
     newvis.data = copy.deepcopy(vis.data)
+    if zero:
+        newvis.data['vis'][...] = 0.0
     return newvis
 
 

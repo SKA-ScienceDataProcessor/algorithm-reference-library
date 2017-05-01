@@ -47,11 +47,14 @@ def hogbom(dirty, psf, window, gain, thresh, niter, fracthresh):
         mval = res[mx, my] * gain / pmax
         comps[mx, my] += mval
         a1o, a2o = overlapIndices(dirty, psf, mx, my)
-        res[a1o[0]:a1o[1], a1o[2]:a1o[3]] -= psf[a2o[0]:a2o[1], a2o[2]:a2o[3]] * mval
         if i % (niter // 10) == 0:
             log.info("hogbom: Minor cycle %d, peak %s at [%d, %d]" % (i, res[mx, my], mx, my))
+        res[a1o[0]:a1o[1], a1o[2]:a1o[3]] -= psf[a2o[0]:a2o[1], a2o[2]:a2o[3]] * mval
         if numpy.fabs(res).max() < absolutethresh:
+            log.info("hogbom: Stopped at minor cycle %d, peak %s at [%d, %d]" % (i, res[mx, my], mx, my))
             break
+    log.info("hogbom: End of minor cycles")
+
     return comps, res
 
 
