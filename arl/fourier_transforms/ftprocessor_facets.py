@@ -28,7 +28,7 @@ def predict_facets(vis, model, predict_function=predict_2d_base, **kwargs):
     :param predict_function: Function to be used for prediction (allows nesting) (default predict_2d)
     :returns: resulting visibility (in place works)
     """
-    log.debug("predict_facets: Predicting by image facets")
+    log.info("predict_facets: Predicting by image facets")
     return predict_with_image_iterator(vis, model, image_iterator=raster_iter, predict_function=predict_function,
                                 **kwargs)
 
@@ -43,6 +43,6 @@ def invert_facets(vis, im, dopsf=False, normalize=True, invert_function=invert_2
     :returns: resulting image[nchan, npol, ny, nx], sum of weights[nchan, npol]
     """
     
-    log.debug("invert_facets: Inverting by image facets")
+    log.info("invert_facets: Inverting by image facets")
     return invert_with_image_iterator(vis, im, normalize=normalize, image_iterator=raster_iter, dopsf=dopsf,
                                       invert_function=invert_function, **kwargs)

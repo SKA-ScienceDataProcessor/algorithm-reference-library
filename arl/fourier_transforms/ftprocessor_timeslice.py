@@ -44,7 +44,7 @@ def fit_uvwplane(vis, remove=False):
         vis.data['uvw'][:, 2] -= p * vis.u + q * vis.v
     residual = vis.data['uvw'][:, 2] - (p * vis.u + q * vis.v)
     after = numpy.max(numpy.std(residual))
-    log.info('fit_uvwplane: Fit to %d rows reduces rms w from %.1f to %.1f m'
+    log.debug('fit_uvwplane: Fit to %d rows reduces rms w from %.1f to %.1f m'
              % (nvis, before, after))
     return vis, p, q
 
@@ -60,7 +60,7 @@ def invert_timeslice(vis, im, dopsf=False, normalize=True, **kwargs):
     :returns: resulting image[nchan, npol, ny, nx], sum of weights[nchan, npol]
 
     """
-    log.debug("invert_timeslice: inverting using time slices")
+    log.info("invert_timeslice: inverting using time slices")
     return invert_with_vis_iterator(vis, im, dopsf, vis_iter=vis_timeslice_iter,
                                     normalize=normalize, invert=invert_timeslice_single, **kwargs)
 
@@ -72,7 +72,7 @@ def predict_timeslice(vis, model, **kwargs):
     :param model: model image
     :returns: resulting visibility (in place works)
     """
-    log.debug("predict_timeslice: predicting using time slices")
+    log.info("predict_timeslice: predicting using time slices")
 
     return predict_with_vis_iterator(vis, model, vis_iter=vis_timeslice_iter,
                                      predict=predict_timeslice_single, **kwargs)

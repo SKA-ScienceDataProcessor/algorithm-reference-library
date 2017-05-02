@@ -141,7 +141,7 @@ def predict_with_image_iterator(vis, model, image_iterator=raster_iter, predict_
     :param predict_function: Function to be used for prediction (allows nesting)
     :returns: resulting visibility (in place works)
     """
-    log.debug("predict_with_image_iterator: Predicting by image partitions")
+    log.info("predict_with_image_iterator: Predicting by image partitions")
     vis.data['vis'] *= 0.0
     result = copy_visibility(vis)
     for dpatch in image_iterator(model, **kwargs):
@@ -162,7 +162,7 @@ def invert_with_image_iterator(vis, im, image_iterator=raster_iter, dopsf=False,
     :returns: resulting image[nchan, npol, ny, nx], sum of weights[nchan, npol]
     """
     
-    log.debug("invert_with_image_iterator: Inverting by image partitions")
+    log.info("invert_with_image_iterator: Inverting by image partitions")
     i = 0
     nchan, npol, _, _ = im.shape
     totalwt = numpy.zeros([nchan, npol])

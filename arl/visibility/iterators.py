@@ -30,7 +30,7 @@ def vis_timeslice_iter(vis, **kwargs):
     uniquetimes = numpy.unique(vis.time)
     timeslice = get_parameter(kwargs, "timeslice", 'auto')
     if timeslice == 'auto':
-        log.info('vis_timeslice_iter: Found %d unique times' % len(uniquetimes))
+        log.debug('vis_timeslice_iter: Found %d unique times' % len(uniquetimes))
         if len(uniquetimes) > 1:
             timeslice = (uniquetimes[1] - uniquetimes[0])
             log.debug('vis_timeslice_auto: Guessing time interval to be %.2f s' % timeslice)

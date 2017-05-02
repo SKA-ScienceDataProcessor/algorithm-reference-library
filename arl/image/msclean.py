@@ -116,7 +116,7 @@ def msclean(dirty, psf, window, gain, thresh, niter, scales, fracthresh):
                 pscalestack[mscale, rhs[0]:rhs[1], rhs[2]:rhs[3]] * gain * mval
         else:
             break
-    log.info("msclean: End of minor cycles")
+    log.info("msclean: End of minor cycle")
     return comps, pmax * res_scalestack[0, :, :]
 
 

@@ -61,7 +61,7 @@ class TestPipelines(unittest.TestCase):
     
     def test_RCAL(self):
         for igt, gt in enumerate(rcal(vis=self.blockvis, components=self.comp)):
-            print("Chunk %d, gaintable size %.3f (GB)" % (igt, gt.size()))
+            log.info("Chunk %d, gaintable size %.3f (GB)" % (igt, gt.size()))
     
     def test_ICAL(self):
         icalpipe = ical(vis=self.vis, components=self.comp)

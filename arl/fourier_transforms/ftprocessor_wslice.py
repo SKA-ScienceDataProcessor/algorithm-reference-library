@@ -26,7 +26,7 @@ def predict_wslice(vis, model, **kwargs):
     :param nprocessor: Number of processors to be used (1)
     :returns: resulting visibility (in place works)
     """
-    log.debug("predict_wslice: predicting using w slices")
+    log.info("predict_wslice: predicting using w slices")
 
     delA = get_parameter(kwargs, 'wloss', 0.02)
     advice = advise_wide_field(vis, delA)
@@ -45,8 +45,6 @@ def predict_wslice_single(vis, model, **kwargs):
     :param model: model image
     :returns: resulting visibility (in place works)
     """
-    log.debug("predict_wslice: predicting using w slices")
-    
     vis.data['vis'] *= 0.0
     tempvis = copy_visibility(vis)
 
@@ -80,7 +78,7 @@ def invert_wslice(vis, im, dopsf=False, normalize=True, **kwargs):
     :returns: resulting image[nchan, npol, ny, nx], sum of weights[nchan, npol]
 
     """
-    log.debug("invert_wslice: inverting using w slices")
+    log.info("invert_wslice: inverting using w slices")
 
     delA = get_parameter(kwargs, 'wloss', 0.02)
     advice = advise_wide_field(vis, delA)

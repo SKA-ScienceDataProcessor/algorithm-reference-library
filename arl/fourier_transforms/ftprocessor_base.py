@@ -223,7 +223,7 @@ def invert_wprojection(vis, im, dopsf=False, normalize=True, **kwargs):
     :returns: resulting image[nchan, npol, ny, nx], sum of weights[nchan, npol]
 
     """
-    log.debug("invert_2d: inverting using wprojection")
+    log.info("invert_2d: inverting using wprojection")
     kwargs['kernel'] = "wprojection"
     return invert_2d_base(vis, im, dopsf, normalize=normalize, **kwargs)
 
@@ -426,7 +426,7 @@ def create_w_term_like(im, w=None, **kwargs):
     
     fov = npixel * cellsize
     fresnel = numpy.abs(w) * (0.5 * fov) ** 2
-    log.info('create_w_term_image: For w = %.1f, field of view = %.6f, Fresnel number = %.2f' % (w, fov, fresnel))
+    log.debug('create_w_term_image: For w = %.1f, field of view = %.6f, Fresnel number = %.2f' % (w, fov, fresnel))
     
     return fim
 
@@ -449,7 +449,7 @@ def create_w_term_image(vis, w=None, **kwargs):
     
     fov = npixel * cellsize
     fresnel = numpy.abs(w) * (0.5 * fov) ** 2
-    log.info('create_w_term_image: For w = %.1f, field of view = %.6f, Fresnel number = %.2f' % (w, fov, fresnel))
+    log.debug('create_w_term_image: For w = %.1f, field of view = %.6f, Fresnel number = %.2f' % (w, fov, fresnel))
     
     return im
 
