@@ -78,8 +78,8 @@ def deconvolve_cube(dirty: Image, psf: Image, **kwargs):
         fracthresh = get_parameter(kwargs, 'fractional_threshold', 0.01)
         assert 0.0 < fracthresh < 1.0
     
-        comp_array = numpy.zeros_like(dirty)
-        residual_array = numpy.zeros_like(dirty)
+        comp_array = numpy.zeros_like(dirty.data)
+        residual_array = numpy.zeros_like(dirty.data)
         for channel in range(dirty.data.shape[0]):
             for pol in range(dirty.data.shape[1]):
                 if psf.data[channel, pol, :, :].max():
