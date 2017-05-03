@@ -114,6 +114,18 @@ def apply_gaintable(vis: BlockVisibility, gt: GainTable, inverse=False) -> Block
     return vis
 
 
+def append_gaintable(gt: GainTable, othergt: GainTable):
+    """Append othergt to gt
+
+    :param gt:
+    :param othergt:
+    :returns: GainTable gt + othergt
+    """
+    assert gt.receptor_frame == othergt.receptor_frame
+    gt.data = numpy.hstack((gt.data, othergt.data))
+    return gt
+
+
 def qa_gaintable(gt, context=None):
     """Assess the quality of a gaintable
 

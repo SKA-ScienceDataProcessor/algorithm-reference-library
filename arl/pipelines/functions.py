@@ -5,10 +5,10 @@
 #
 import collections
 
-from arl.calibration.solvers import solve_gaintable
 from arl.fourier_transforms.ftprocessor import predict_2d, invert_2d, predict_skycomponent_blockvisibility, \
     predict_skycomponent_visibility
 from arl.image.solvers import solve_image
+from arl.pipelines.dask_graphs import create_solve_gain_graph
 
 from arl.visibility.operations import *
 
@@ -31,10 +31,8 @@ def rcal(vis: BlockVisibility, components, **kwargs):
         vis = [vis]
     
     for ichunk, vischunk in enumerate(vis):
-        vispred = copy_visibility(vischunk)
-        vispred.data['vis'][...] = 0.0
-        vispred = predict_skycomponent_blockvisibility(vispred, components)
-        gt = solve_gaintable(vischunk, vispred, phase_only=False)
+        solve_gain_graph = create_solve_gain_graph(vischunk, components, **kwargs)
+        gt = solve_gain_graph.compute()
         yield gt
 
 

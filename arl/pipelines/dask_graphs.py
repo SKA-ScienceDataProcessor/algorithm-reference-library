@@ -2,15 +2,17 @@ import collections
 
 from dask import delayed
 
-from arl.calibration.solvers import solve_gaintable
-from arl.data.data_models import BlockVisibility
+from arl.calibration.solvers import solve_gaintable, apply_gaintable
+from arl.calibration.operations import append_gaintable
+from arl.data.data_models import BlockVisibility, GainTable
 from arl.data.parameters import get_parameter
 from arl.fourier_transforms.ftprocessor import invert_2d, residual_image, \
     predict_skycomponent_blockvisibility, \
     invert_timeslice_single, predict_timeslice_single, normalize_sumwt
 from arl.image.deconvolution import deconvolve_cube, restore_cube
 from arl.visibility.iterators import vis_timeslice_iter
-from arl.visibility.operations import create_visibility_from_rows, copy_visibility
+from arl.visibility.operations import create_visibility_from_rows, \
+    copy_visibility, create_blockvisibility_from_rows
 
 
 def create_invert_graph(vt, model_graph, dopsf=False, normalize=True, invert_single=invert_2d,
@@ -112,10 +114,9 @@ def create_residual_graph(vis, model_graph, iterator=vis_timeslice_iter, **kwarg
     return delayed(accumulate_results, pure=True)(results, rowses)
 
 
-def create_predict_graph(vis, model, predict_single=predict_timeslice_single, iterator=vis_timeslice_iter,
-                         **kwargs):
-    """
-    
+def create_calibrate_graph(vis: BlockVisibility, components, iterator=vis_timeslice_iter, **kwargs):
+    """ Calibrate data. Predict visibilities, solve, and apply
+
     :param vis:
     :param model:
     :param predict_single:
@@ -123,6 +124,74 @@ def create_predict_graph(vis, model, predict_single=predict_timeslice_single, it
     :param kwargs:
     :return:
     """
+    
+    def calibrate_single(vis: BlockVisibility, components, **kwargs):
+        vispred = copy_visibility(vis, True)
+        vispred = predict_skycomponent_blockvisibility(vispred, components, **kwargs)
+        gtsol = solve_gaintable(vispred, vis, **kwargs)
+        return apply_gaintable(vis, gtsol, inverse=True)
+    
+    def accumulate_results(results):
+        i = 0
+        for rows in iterator(vis, **kwargs):
+            vis.data['vis'][rows] += results[i].data['vis']
+            i += 1
+        return vis
+    
+    results = list()
+    
+    for rows in iterator(vis, **kwargs):
+        visslice = copy_visibility(create_blockvisibility_from_rows(vis, rows))
+        result = delayed(calibrate_single, pure=True)(visslice, components, **kwargs)
+        results.append(result)
+    return delayed(accumulate_results, pure=True)(results)
+
+
+def create_solve_gain_graph(vis: BlockVisibility, components, iterator=vis_timeslice_iter, **kwargs):
+    """ Calibrate data. Predict visibilities, solve, and return gaintables
+    
+    This works only on BlockVisibilty format
+
+    :param vis: Measured visibility
+    :param components: components or list of components
+    :param iterator: iterator to traverse data
+    :param kwargs:
+    :return: gaintable
+    """
+    
+    def calibrate_single(vis: BlockVisibility, components, **kwargs):
+        vispred = copy_visibility(vis, True)
+        vispred = predict_skycomponent_blockvisibility(vispred, components, **kwargs)
+        return solve_gaintable(vispred, vis, **kwargs)
+    
+    def accumulate_results(results):
+        i = 0
+        fullgt = results[0]
+        for gt in results:
+            fullgt = append_gaintable(fullgt, gt)
+        return fullgt
+    
+    results = list()
+    
+    for rows in iterator(vis, **kwargs):
+        visslice = copy_visibility(create_blockvisibility_from_rows(vis, rows))
+        result = delayed(calibrate_single, pure=True)(visslice, components, **kwargs)
+        results.append(result)
+    return delayed(accumulate_results, pure=True)(results)
+
+
+def create_predict_graph(vis, model, predict_single=predict_timeslice_single, iterator=vis_timeslice_iter,
+                         **kwargs):
+    """
+
+    :param vis:
+    :param model:
+    :param predict_single:
+    :param iterator:
+    :param kwargs:
+    :return:
+    """
+    
     def accumulate_results(results):
         i = 0
         for rows in iterator(vis, **kwargs):
