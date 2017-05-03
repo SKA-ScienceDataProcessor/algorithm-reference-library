@@ -365,7 +365,7 @@ Unit tests written in standard python style are available.
    :members:
    :undoc-members:
 
-.. automodule:: tests.testing_support
+.. automodule:: tests.test_testing_support
    :members:
    :undoc-members:
 

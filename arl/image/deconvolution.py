@@ -182,11 +182,11 @@ def deconvolve_cube(dirty: Image, psf: Image, **kwargs):
 
 
 
-def restore_cube(model, psf, residual=None):
+def restore_cube(model, psf, residual=None, **kwargs):
     """ Restore the model image to the residuals
 
     :params psf: Input PSF
-    :returns: major axis, minor axis, position angle (in radians)
+    :returns: restored image
 
     """
     restored = copy_image(model)
