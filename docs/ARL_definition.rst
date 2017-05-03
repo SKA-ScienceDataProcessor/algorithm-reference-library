@@ -325,6 +325,14 @@ Unit tests written in standard python style are available.
    :members:
    :undoc-members:
 
+.. automodule:: tests.test_image_deconvolution_msmfs
+   :members:
+   :undoc-members:
+
+.. automodule:: tests.test_image_msclean
+   :members:
+   :undoc-members:
+
 .. automodule:: tests.test_image_iterators
    :members:
    :undoc-members:
@@ -353,11 +361,15 @@ Unit tests written in standard python style are available.
    :members:
    :undoc-members:
 
-.. automodule:: tests.test_visibility_iterators
+.. automodule:: tests.test_skycomponent
    :members:
    :undoc-members:
 
-.. automodule:: tests.test_skycomponent
+.. automodule:: tests.testing_support
+   :members:
+   :undoc-members:
+
+.. automodule:: tests.test_visibility_iterators
    :members:
    :undoc-members:
 
