@@ -8,11 +8,6 @@ import numpy
 
 from arl.data.parameters import get_parameter
 from arl.data.data_models import *
-from arl.data.polarisation import *
-
-from arl.visibility.operations import create_visibility
-
-from arl.visibility.coalesce import *
 
 log = logging.getLogger(__name__)
 

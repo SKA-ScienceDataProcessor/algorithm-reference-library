@@ -478,7 +478,6 @@ def create_low_test_beam(model):
     # Scale the image cellsize to account for the different in frequencies. Eventually we will want to
     # use a frequency cube
     log.info("create_low_test_beam: primary beam is defined at %.3f MHz" % (beam.wcs.wcs.crval[2] * 1e-6))
-    log.info("create_low_test_beam: scaling to model frequency %.3f MHz" % (model.wcs.wcs.crval[3] * 1e-6))
     
     nchan, npol, ny, nx = model.shape
     

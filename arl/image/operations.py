@@ -399,3 +399,37 @@ def calculate_image_from_frequency_moments(im: Image, moment_image: Image, refer
             newim.data[chan, ...] += moment_image.data[moment, ...] * weight
     
     return newim
+
+
+def remove_continuum_image(im: Image, deg=1, mask=None, **kwargs):
+    """ Fit and remove continuum visibility in place
+
+    :param im:
+    :param deg:
+    :param mask:
+    :param kwargs:
+    :return:
+    """
+
+    if mask is not None:
+        assert numpy.sum(mask) > 2 * deg, "Insufficient channels for fit"
+
+    nchan, npol, ny, nx = im.shape
+    channels = numpy.arange(nchan)
+    frequency = im.wcs.sub(['spectral']).wcs_pix2world(channels, 0)[0]
+    frequency -= frequency[nchan//2]
+    frequency /= numpy.max(frequency)
+    wt = numpy.ones_like(frequency)
+    if mask is not None:
+        wt[mask] = 0.0
+
+    for pol in range(npol):
+        for y in range(ny):
+            for x in range(nx):
+
+                    fit = numpy.polyfit(frequency, im.data[:, pol, y, x], w=wt, deg=deg)
+                    prediction = numpy.polyval(fit, frequency)
+                    im.data[:, pol, y, x] -= prediction
+    return im
+
+

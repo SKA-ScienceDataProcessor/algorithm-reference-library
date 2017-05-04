@@ -304,12 +304,3 @@ def rcal_dask(vis: BlockVisibility, components, **kwargs):
         gt = solve_gaintable(vischunk, vispred, phase_only=False)
         yield gt
 
-
-def create_calibrate_graph(vis, model_graph, **kwargs):
-    """ Solve and apply calibration
-    
-    :param vis:
-    :param model_graph:
-    :param kwargs:
-    :return:
-    """
