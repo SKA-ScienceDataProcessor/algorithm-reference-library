@@ -66,7 +66,7 @@ def vis_wslice_iter(vis, **kwargs):
             yield rows
 
 
-def vis_slice_iter(vis, step, **kwargs):
+def vis_slice_iter(vis, **kwargs):
     """ Iterates in slices
 
     :param step: Size of step to be iterated over (in rows)

@@ -581,7 +581,7 @@ def create_blockvisibility_iterator(config: Configuration, times: numpy.array, f
                                     polarisation_frame=PolarisationFrame('stokesI'), integration_time=1.0,
                                     number_integrations=1, predict=predict_2d, model=None, components=None,
                                     phase_error=0.0, amplitude_error=0.0):
-    """ Create a sequence of Visibiliites and optionally predicting and coalescing
+    """ Create a sequence of Visibilities and optionally predicting and coalescing
 
     This is useful mainly for performing large simulations. Do something like::
     

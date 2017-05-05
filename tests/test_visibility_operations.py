@@ -69,7 +69,7 @@ class TestVisibilityOperations(unittest.TestCase):
         self.vis = create_blockvisibility(self.lowcore, self.times, self.frequency,
                                           channel_bandwidth=self.channel_bandwidth,  phasecentre=self.phasecentre,
                                           weight=1.0)
-        vis = convert_blockvisibility_to_visibility(self.vis)
+        vis, _ = convert_blockvisibility_to_visibility(self.vis)
         assert vis.nvis == len(vis.time)
         assert numpy.unique(vis.time).size == self.vis.time.size
 

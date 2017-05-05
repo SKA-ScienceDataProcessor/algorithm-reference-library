@@ -70,7 +70,7 @@ class TestCalibrationPeeling(unittest.TestCase):
 
         assert len(peel_gts) == 1
         residual = numpy.max(peel_gts[0].residual)
-        assert residual < 0.5, "Peak residual %.6f too large" % (residual)
+        assert residual < 0.6, "Peak residual %.6f too large" % (residual)
 
 
 if __name__ == '__main__':
