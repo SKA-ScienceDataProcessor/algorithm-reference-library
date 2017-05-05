@@ -1,8 +1,5 @@
-
-#
 """
-Functions that aid fourier transform processing. These are built on top of the core
-functions in arl.fourier_transforms.
+Functions that aid definition of fourier transform processing.
 """
 
 import astropy.constants as constants
@@ -197,9 +194,18 @@ def get_kernel_list(vis: Visibility, im, **kwargs):
     return kernelname, gcf, kernel_list
 
 def advise_wide_field(vis, delA=0.02, oversampling_synthesised_beam=3.0, guard_band_image=6.0):
-    """ Advise on parameters for wide field imaging
+    """ Advise on parameters for wide field imaging.
+    
+    For example::
+    
+        advice = advise_wide_field(vis, delA)
+        wstep = get_parameter(kwargs, "wstep", advice['w_sampling_primary_beam'])
+
     
     :param vis:
+    :param delA: Allowed coherence loss (def: 0.02)
+    :param oversampling_synthesised_beam: Oversampling of the synthesized beam (def: 3.0)
+    :param guard_band_image: Number of primary beam half-widths-to-half-maximum to image (def: 6)
     :returns: dict of advice
     """
     maximum_baseline = numpy.max(numpy.abs(vis.uvw)) # Wavelengths

@@ -1,7 +1,32 @@
-# Bojan Nikolic <b.nikolic@mrao.cam.ac.uk>
-
 """Coordinate support
 
+We follow the casa definition of coordinate systems http://casa.nrao.edu/Memos/CoordConvention.pdf :
+
+UVW is a right-handed coordinate system, with W pointing towards the
+source, and a baseline convention of :math:`ant2 - ant1` where
+:math:`index(ant1) < index(ant2)`.  Consider an XYZ Celestial
+coordinate system centered at the location of the interferometer, with
+:math:`X` towards the East, :math:`Z` towards the NCP and :math:`Y` to
+complete a right-handed system. The UVW coordinate system is then
+defined by the hour-angle and declination of the phase-reference
+direction such that
+
+1. when the direction of observation is the NCP (`ha=0,dec=90`),
+   the UVW coordinates are aligned with XYZ,
+
+2. V, W and the NCP are always on a Great circle,
+
+3. when W is on the local meridian, U points East
+
+4. when the direction of observation is at zero declination, an
+   hour-angle of -6 hours makes W point due East.
+
+The :math:`(l,m,n)` coordinates are parallel to :math:`(u,v,w)` such
+that :math:`l` increases with Right-Ascension (or increasing longitude
+coordinate), :math:`m` increases with Declination, and :math:`n` is
+towards the source. With this convention, images will have Right
+Ascension increasing from Right to Left, and Declination increasing
+from Bottom to Top.
 
 """
 

@@ -1,7 +1,31 @@
-
-#
 """
-Definition of structures needed by the function interface.
+Functions that aid testing in various ways. A typical use would be::
+
+        lowcore = create_named_configuration('LOWBD2-CORE')
+        times = numpy.linspace(-3, +3, 13) * (numpy.pi / 12.0)
+        
+        frequency = numpy.array([1e8])
+        channel_bandwidth = numpy.array([1e7])
+        
+        # Define the component and give it some polarisation and spectral behaviour
+        f = numpy.array([100.0])
+        flux = numpy.array([f])
+        
+        phasecentre = SkyCoord(ra=+15.0 * u.deg, dec=-35.0 * u.deg, frame='icrs', equinox=2000.0)
+        compabsdirection = SkyCoord(ra=17.0 * u.deg, dec=-36.5 * u.deg, frame='icrs', equinox=2000.0)
+        
+        comp = create_skycomponent(flux=flux, frequency=frequency, direction=compabsdirection,
+                                        polarisation_frame=PolarisationFrame('stokesI'))
+        image_graph = create_test_image)(frequency=frequency, phasecentre=phasecentre,
+                                                      cellsize=0.001,
+                                                      polarisation_frame=PolarisationFrame('stokesI')
+        
+        vis = create_visibility(lowcore, times=times, frequency=frequency,
+                                     channel_bandwidth=channel_bandwidth,
+                                     phasecentre=phasecentre, weight=1,
+                                     polarisation_frame=PolarisationFrame('stokesI'),
+                                     integration_time=1.0)
+
 """
 
 import csv

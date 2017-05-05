@@ -1,7 +1,12 @@
-
-#
 """
-Functions that aid fourier transform processing.
+The w-stacking or w-slicing approach is to partition the visibility data by slices in w. The measurement equation is 
+approximated as:
+
+.. math::
+
+    V(u,v,w) =\\sum_i \\int \\frac{ I(l,m) e^{-2 \\pi j (w_i(\\sqrt{1-l^2-m^2}-1))})}{\\sqrt{1-l^2-m^2}} e^{-2 \\pi j (ul+um)} dl dm
+
+If images constructed from slices in w are added after applying a w-dependent image plane correction, the w term will be corrected. 
 """
 import multiprocessing
 

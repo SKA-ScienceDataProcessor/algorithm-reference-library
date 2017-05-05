@@ -1,3 +1,30 @@
+""" Common functions converted to Dask.delayed graphs. `Dask <http://dask.pydata.org/>`_ is a python-based flexible
+parallel computing library for analytic computing. Dask.delayed can be used to wrap functions for deferred execution
+thus allowing construction of graphs. For example, to build a graph for a major/minor cycle algorithm::
+
+    model_graph = delayed(create_image_from_visibility)(vt, npixel=512, cellsize=0.001, npol=1)
+    solution_graph = create_solve_image_graph(vt, model_graph=model_graph, psf_graph=psf_graph,
+                                            invert_residual=invert_timeslice_single,
+                                            predict_residual=predict_timeslice_single,
+                                            iterator=vis_timeslice_iter, algorithm='hogbom',
+                                            niter=1000, fractional_threshold=0.1,
+                                            threshold=1.0, nmajor=3, gain=0.1)
+    solution_graph.visualize()
+
+The visualize step produces the following graph:
+
+.. image:: ./deconvolution_dask.png
+    :align: center
+    :width: 1024px
+
+The graph is executed as follows::
+
+    solution_graph.compute()
+
+As well as the specific graphs constructed by functions in this module, there are generic versions in the module
+:mod:`arl.pipelines.generic_dask_graphs`.
+"""
+
 import collections
 
 from dask import delayed

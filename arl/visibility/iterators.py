@@ -1,4 +1,12 @@
-""" Visibility iterators
+""" Visibility iterators for iterating through a BlockVisibility or Visibility.
+
+A typical use would be to make a sequence of snapshot images::
+
+    for rows in vis_timeslice_iter(vt):
+        visslice = create_visibility_from_rows(vt, rows)
+        dirtySnapshot = create_image_from_visibility(visslice, npixel=512, cellsize=0.001, npol=1)
+        dirtySnapshot, sumwt = invert_2d(visslice, dirtySnapshot)
+
 
 """
 
@@ -65,6 +73,8 @@ def vis_slice_iter(vis, step, **kwargs):
     :returns: Boolean array with selected rows=True
 
     """
+    step = get_parameter(kwargs, "step", None)
+    assert step is not None, "step must be specified"
     assert step > 0
     for row in range(0, vis.nvis, step):
             yield range(row, min(row+step, vis.nvis))

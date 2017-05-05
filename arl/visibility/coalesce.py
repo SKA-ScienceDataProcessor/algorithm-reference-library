@@ -1,5 +1,21 @@
 """
-Functions for visibility coalescence
+Functions for visibility coalescence and decoalescence.
+
+The BlockVisibility format describes the visibility
+data as it would come from the correlator: [time, ant2, ant1, channel, pol]. This is well-suited to
+calibration and some visibility processing such as continuum removal. However the BlockVisibility format
+is vastly oversampled on the short spacings where the visibility (after calibration) varies slowly compared to
+the longest baselines. The coalescence operation resamples the visibility at a rate inversely proportional
+to baseline length. This cannot be held in the BlockVIsibility format so it is stored in the Visibility
+format. For e.g. SKA1-LOW, coalescing typically reduces the number of visibilities by a factor between 10 and 30.
+
+A typical use might be::
+
+    vt = predict_skycomponent_blockvisibility(vt, comps)
+    cvt, cindex = coalesce_visibility(vt, time_coal=1.0, max_time_coal=100, frequency_coal=0.0,
+        max_frequency_coal=1)
+    dirtyimage, sumwt = invert_2d(cvt, model)
+    
 """
 
 from astropy import constants
@@ -250,6 +266,7 @@ def convert_blockvisibility_to_visibility(vis: BlockVisibility) -> Visibility:
     This does no averaging. See coalesce_visibility for averaging.
 
     :param vis: Visibility
-
+    :returns: Coalesced visibility, cindex
     """
-    return coalesce_visibility(vis, time_coal=1.0, max_time_coal=1, frequency_coal=1.0, max_frequency_coal=1)[0]
+    cvis, cindex = coalesce_visibility(vis, time_coal=1.0, max_time_coal=1, frequency_coal=1.0, max_frequency_coal=1)
+    return cvis, cindex

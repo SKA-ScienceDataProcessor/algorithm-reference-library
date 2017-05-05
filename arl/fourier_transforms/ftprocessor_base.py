@@ -3,6 +3,22 @@
 """
 Functions that aid fourier transform processing. These are built on top of the core
 functions in arl.fourier_transforms.
+
+The measurement equation for a sufficently narrow field of view interferometer is:
+
+.. math::
+
+    V(u,v,w) =\\int I(l,m) e^{-2 \\pi j (ul+um)} dl dm
+
+
+The measurement equation for a wide field of view interferometer is:
+
+.. math::
+
+    V(u,v,w) =\\int \\frac{I(l,m)}{\\sqrt{1-l^2-m^2}} e^{-2 \\pi j (ul+um + w(\\sqrt{1-l^2-m^2}-1))} dl dm
+
+This and related modules contain various approachs for dealing with the wide-field problem where the
+extra phase term in the Fourier transform cannot be ignored.
 """
 
 import collections
@@ -120,7 +136,22 @@ def predict_2d(vis, model, **kwargs):
 
 
 def predict_wprojection(vis, model, **kwargs):
-    """ Predict using convolutional degridding and w projection
+    """ Predict using convolutional degridding and w projection.
+    
+    For a fixed w, the measurement equation can be stated as as a convolution in Fourier space. 
+    
+    .. math::
+
+        V(u,v,w) =G_w(u,v) \\ast \\int \\frac{I(l,m)}{\\sqrt{1-l^2-m^2}} e^{-2 \\pi j (ul+um)} dl dm$$
+
+    where the convolution function is:
+    
+    .. math::
+
+        G_w(u,v) = \\int \\frac{1}{\\sqrt{1-l^2-m^2}} e^{-2 \\pi j (ul+um + w(\\sqrt{1-l^2-m^2}-1))} dl dm
+
+
+    Hence when degridding, we can use the transform of the w beam to correct this effect.
     
     :param vis: Visibility to be predicted
     :param model: model image
@@ -215,6 +246,21 @@ def invert_2d(vis, im, dopsf=False, normalize=True, **kwargs):
 def invert_wprojection(vis, im, dopsf=False, normalize=True, **kwargs):
     """ Predict using 2D convolution function, including w projection
 
+    For a fixed w, the measurement equation can be stated as as a convolution in Fourier space.
+    
+    .. math::
+
+        V(u,v,w) =G_w(u,v) \\ast \\int \\frac{I(l,m)}{\\sqrt{1-l^2-m^2}} e^{-2 \\pi j (ul+um)} dl dm$$
+
+    where the convolution function is:
+    
+    .. math::
+
+        G_w(u,v) = \\int \\frac{1}{\\sqrt{1-l^2-m^2}} e^{-2 \\pi j (ul+um + w(\\sqrt{1-l^2-m^2}-1))} dl dm
+
+
+    Hence when degridding, we can use the transform of the w beam to correct this effect.
+    
     Use the image im as a template. Do PSF in a separate call.
 
     :param vis: Visibility to be inverted

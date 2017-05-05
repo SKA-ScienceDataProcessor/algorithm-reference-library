@@ -13,7 +13,9 @@ from arl.util.testing_support import create_low_test_image_from_s3, create_named
     create_low_test_beam, create_blockvisibility_iterator, create_low_test_image_from_gleam, \
     create_low_test_skycomponents_from_gleam, create_low_test_image_composite
 from arl.visibility.iterators import *
-from arl.visibility.operations import create_visibility, create_blockvisibility, append_visibility
+from arl.visibility.operations import create_visibility, create_blockvisibility, \
+    append_visibility, copy_visibility
+from arl.visibility.coalesce import coalesce_visibility
 
 log = logging.getLogger(__name__)
 
@@ -230,7 +232,6 @@ class TestTesting_Support(unittest.TestCase):
                                           channel_bandwidth=self.channel_bandwidth,
                                           phasecentre=self.phasecentre, weight=1.0,
                                           polarisation_frame=PolarisationFrame('stokesI'))
-        original = copy_visibility(self.vis)
         self.vis = predict_skycomponent_blockvisibility(self.vis, sc)
         cvt, cindex = coalesce_visibility(self.vis, time_coal=1.0)
         assert cindex is not None

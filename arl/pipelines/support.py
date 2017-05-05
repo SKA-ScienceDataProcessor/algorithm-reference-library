@@ -2,9 +2,6 @@
 
 """
 
-#
-#
-
 from arl.data.parameters import *
 
 log = logging.getLogger(__name__)

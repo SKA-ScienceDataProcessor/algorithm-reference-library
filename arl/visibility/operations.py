@@ -1,4 +1,3 @@
-#
 """ Visibility operations
 
 """
@@ -328,8 +327,11 @@ def qa_visibility(vis, context=None):
     return qa
 
 
-def remove_continuum_blockvisibility(vis: BlockVisibility, deg=1, mask=None, **kwargs):
+def remove_continuum_blockvisibility(vis: BlockVisibility, degree=1, mask=None, **kwargs):
     """ Fit and remove continuum visibility
+
+    Fit a polynomial in frequency of the specified degree where mask is True
+
     
     :param vis:
     :param deg:
@@ -338,7 +340,7 @@ def remove_continuum_blockvisibility(vis: BlockVisibility, deg=1, mask=None, **k
     :return:
     """
     if mask is not None:
-        assert numpy.sum(mask) > 2 * deg, "Insufficient channels for fit"
+        assert numpy.sum(mask) > 2 * degree, "Insufficient channels for fit"
     
     nchan = len(vis.frequency)
     x = (vis.frequency - vis.frequency[nchan//2])/(vis.frequency[0] - vis.frequency[nchan//2])
@@ -349,8 +351,7 @@ def remove_continuum_blockvisibility(vis: BlockVisibility, deg=1, mask=None, **k
                     wt = numpy.sqrt(vis.data['weight'][row, ant2, ant1, :, pol])
                     if mask is not None:
                         wt[mask] = 0.0
-                    fit = numpy.polyfit(x, vis.data['vis'][row, ant2, ant1, :, pol], w=wt,
-                                        deg=deg)
+                    fit = numpy.polyfit(x, vis.data['vis'][row, ant2, ant1, :, pol], w=wt, deg=degree)
                     prediction = numpy.polyval(fit, x)
                     vis.data['vis'][row, ant2, ant1, :, pol] -= prediction
     return vis

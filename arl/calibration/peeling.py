@@ -1,10 +1,14 @@
+""" Functions for peeling known sources (represented as Skycomponents) from visibility sets.
+
+"""
+
+
 import numpy
 import logging
 import collections
 
 from arl.data.data_models import GainTable, BlockVisibility, Skycomponent
 from arl.visibility.operations import copy_visibility
-from arl.calibration.operations import create_gaintable_from_blockvisibility
 from arl.fourier_transforms.ftprocessor_base import predict_skycomponent_blockvisibility
 from arl.calibration.solvers import solve_gaintable
 from arl.calibration.operations import apply_gaintable

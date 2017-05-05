@@ -10,7 +10,8 @@ from astropy.coordinates import SkyCoord
 import astropy.units as u
 from arl.data.polarisation import PolarisationFrame
 from arl.util.testing_support import create_named_configuration
-from arl.visibility.coalesce import coalesce_visibility, decoalesce_visibility
+from arl.visibility.coalesce import coalesce_visibility, decoalesce_visibility, \
+    convert_blockvisibility_to_visibility
 from arl.visibility.operations import create_blockvisibility
 
 import logging
@@ -34,6 +35,15 @@ class TestCoalesce(unittest.TestCase):
 
     def test_coalesce_decoalesce_zero(self):
         cvis, cindex = coalesce_visibility(self.blockvis, time_coal=0.0, frequency_coal=0.0)
+        assert numpy.min(cvis.frequency) == numpy.min(self.frequency)
+        assert numpy.min(cvis.frequency) > 0.0
+        dvis = decoalesce_visibility(cvis, self.blockvis, cindex=cindex)
+        assert dvis.nvis == self.blockvis.nvis
+        dvis = decoalesce_visibility(cvis, self.blockvis, cindex=cindex, overwrite=True)
+        assert dvis.nvis == self.blockvis.nvis
+
+    def test_convert_decoalesce_zero(self):
+        cvis, cindex = convert_blockvisibility_to_visibility(self.blockvis)
         assert numpy.min(cvis.frequency) == numpy.min(self.frequency)
         assert numpy.min(cvis.frequency) > 0.0
         dvis = decoalesce_visibility(cvis, self.blockvis, cindex=cindex)

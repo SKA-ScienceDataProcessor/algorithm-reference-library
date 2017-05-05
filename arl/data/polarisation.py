@@ -1,7 +1,19 @@
+""" Functions for polarisation processing. These include definitions via classes and conversion functions.
 
-#
-# Polarisation functions
-#
+For example::
+
+    stokes = numpy.array(random.uniform(-1.0, 1.0, [3, 4, 128, 128]))
+    ipf = PolarisationFrame('stokesIQUV')
+    opf = PolarisationFrame('circular')
+    cir = convert_pol_frame(stokes, ipf, opf)
+    st = convert_pol_frame(cir, opf, ipf)
+    
+or::
+    
+    stokes = numpy.array([1, 0.5, 0.2, -0.1])
+    circular = convert_stokes_to_circular(stokes)
+
+"""
 
 import numpy
 
@@ -84,7 +96,9 @@ class PolarisationFrame:
     
     @property
     def npol(self):
-        """ Number of correlated polarisations"""
+        """ Number of correlated polarisations
+        
+        """
         return len(list(self.translations.keys()))
 
 

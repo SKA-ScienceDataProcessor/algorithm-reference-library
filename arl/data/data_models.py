@@ -1,5 +1,23 @@
-# Tim Cornwell >realtimcornwell@gmail.com>
-""" Data models used in ARL"""
+"""The data models used in ARL are:
+
+.. image:: ./ARL_data.png
+   :scale: 75 %
+
+The principle transitions between the data models:
+
+.. image:: ./ARL_transitions.png
+   :scale: 75 %
+
+.. note::
+    There are two visibility formats:
+
+    :class:`BlockVisibility` is conceived as an ingest and calibration format. The visibility data are kept in a block
+    of shape (number antennas, number antennas, number channels, number polarisation). One block is kept per integration. The other columns are time and uvw. The sampling in time is therefore the same for all baselines.
+
+    :class:`Visibility` is designed to hold coalesced data where the integration time and channel width can vary with baseline length. The visibility data are kept in a visibility vector of length equal to the number of polarisations. Everything else is a separate column: time, frequency, uvw, channel_bandwidth, integration time.
+
+
+"""
 
 import logging
 import sys
@@ -14,14 +32,12 @@ log = logging.getLogger(__name__)
 
 
 class Configuration:
-    """ Describe a Configuration
-    
-    Has a Table with locations in x,y,z, and names, and overall location
+    """ Describe a Configuration as locations in x,y,z, mount type, diameter, names, and overall location
     """
     
     def __init__(self, name='', data=None, location=None,
                  names="%s", xyz=None, mount="alt-az", frame=None, receptor_frame=ReceptorFrame("linear"),
-                 diameter = None):
+                 diameter=None):
         
         # Defaults
         if data is None and xyz is not None:
@@ -63,13 +79,13 @@ class Configuration:
         """ diameter of antennas/stations
         """
         return self.data['diameter']
-
+    
     @property
     def xyz(self):
         """ XYZ locations of antennas/stations
         """
         return self.data['xyz']
-
+    
     @property
     def mount(self):
         """ Mount type
@@ -145,7 +161,8 @@ class GainTable:
 
 
 class Image:
-    """Image class with Image data (as a numpy.array) and optionally the AstroPy WCS.
+    """Image class with Image data (as a numpy.array) and the AstroPy `implementation of
+    a World Coodinate System <http://docs.astropy.org/en/stable/wcs>`_
 
     Many operations can be done conveniently using numpy arl on Image.data.
 
@@ -156,6 +173,10 @@ class Image:
     - In astropy.wcs, the order is (longitude, latitude, polarisation, frequency)
     - in numpy, the order is (frequency, polarisation, latitude, longitude)
 
+    .. warning::
+        The polarisation_frame is kept in two places, the WCS and the polarisation_frame
+        variable. The latter should be considered definitive.
+        
     """
     
     def __init__(self):
@@ -198,8 +219,23 @@ class Image:
 
 
 class Skycomponent:
-    """ A single Skycomponent with direction, flux, shape, and params for the shape
+    """Skycomponents are used to represent compact sources on the sky. They possess direction, flux as a function of
+    frequency and polarisation, shape (with params), and polarisation frame.
     
+    For example, the following creates and predicts the visibility from a collection of point sources
+    drawn from the GLEAM catalog::
+    
+        sc = create_low_test_skycomponents_from_gleam(flux_limit=1.0,
+                                                    polarisation_frame=PolarisationFrame("stokesIQUV"),
+                                                    frequency=frequency, kind='cubic',
+                                                    phasecentre=phasecentre,
+                                                    radius=0.1)
+        model = create_image_from_visibility(vis, cellsize=0.001, npixel=512, frequency=frequency,
+                                            polarisation_frame=PolarisationFrame('stokesIQUV'))
+    
+        bm = create_low_test_beam(model=model)
+        sc = apply_beam_to_skycomponent(sc, bm)
+        vis = predict_skycomponent_blockvisibility(vis, sc)
     """
     
     def __init__(self,
@@ -248,6 +284,7 @@ class Skycomponent:
         s += "\tParams: %s\n" % self.params
         s += "\tPolarisation frame %s\n" % self.polarisation_frame
         return s
+
 
 class Visibility:
     """ Visibility table class
@@ -445,15 +482,15 @@ class BlockVisibility:
     @property
     def weight(self):
         return self.data['weight']
-
+    
     @property
     def time(self):
         return self.data['time']
-
+    
     @property
     def integration_time(self):
         return self.data['integration_time']
-
+    
     @property
     def nvis(self):
         return self.data.size

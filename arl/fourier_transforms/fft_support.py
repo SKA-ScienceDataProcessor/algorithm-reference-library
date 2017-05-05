@@ -1,6 +1,8 @@
 """ FFT support functions
 
 
+
+
 """
 
 import numpy
@@ -8,6 +10,10 @@ import numpy
 
 def fft(a):
     """ Fourier transformation from image to grid space
+    
+    .. note::
+    
+        If there are four axes then the last outer axes are not transformed
 
     :param a: image in `lm` coordinate space
     :returns: `uv` grid
@@ -20,6 +26,10 @@ def fft(a):
 
 def ifft(a):
     """ Fourier transformation from grid to image space
+
+    .. note::
+    
+        If there are four axes then the last outer axes are not transformed
 
     :param a: `uv` grid to transform
     :returns: an image in `lm` coordinate space
@@ -37,6 +47,10 @@ def pad_mid(ff, npixel):
     Effectively as if we were multiplying with a box function of the
     original field's size, which is equivalent to a convolution with a
     sinc pattern in the uv-grid.
+
+    .. note::
+    
+        If there are four axes then the last outer axes are not transformed
 
     :param ff: The input far field. Should be smaller than NxN.
     :param npixel:  The desired far field size
@@ -79,6 +93,10 @@ def extract_mid(a, npixel):
 
     Suitable for zero frequencies at npixel/2. This is the reverse
     operation to pad.
+
+    .. note::
+    
+        If there are four axes then the last outer axes are not transformed
 
     :param npixel:
     :param a: grid from which to extract

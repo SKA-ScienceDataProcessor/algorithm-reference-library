@@ -1,3 +1,17 @@
+""" Functions to solve for antenna/station gain
+
+This uses an iterative substitution algorithm due to Larry D'Addario c 1980'ish. Used
+in the original VLA Dec-10 Antsol.
+
+
+For example::
+
+    gtsol = solve_gaintable(vis, originalvis, phase_only=True, niter=niter, crosspol=False, tol=1e-6)
+    vis = apply_gaintable(vis, gtsol, inverse=True)
+ 
+
+"""
+
 import numpy
 import logging
 import collections

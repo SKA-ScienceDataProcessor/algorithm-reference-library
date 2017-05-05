@@ -1,4 +1,5 @@
-""" Visibility operations
+""" Functions for calibration, including creation of gaintables, application of gaintables, and
+merging gaintables.
 
 """
 

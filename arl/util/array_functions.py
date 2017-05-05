@@ -1,4 +1,4 @@
-"""Useful array functions
+"""Useful array functions.
 
 """
 # import numba

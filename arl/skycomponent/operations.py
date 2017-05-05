@@ -1,8 +1,5 @@
+"""Function to manage skycomponents.
 
-#
-"""
-Definition of structures needed by the function interface. These are mostly
-subclasses of astropy classes.
 """
 
 import collections

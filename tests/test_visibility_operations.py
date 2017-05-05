@@ -11,6 +11,8 @@ from arl.data.polarisation import PolarisationFrame
 from arl.fourier_transforms.ftprocessor import *
 from arl.util.testing_support import create_named_configuration
 
+from arl.visibility.coalesce import convert_blockvisibility_to_visibility
+
 from arl.visibility.operations import *
 
 
@@ -63,7 +65,7 @@ class TestVisibilityOperations(unittest.TestCase):
                                           weight=1.0)
         assert self.vis.nvis == len(self.vis.time)
 
-    def test_cconvert_blockvisibility(self):
+    def test_convert_blockvisibility(self):
         self.vis = create_blockvisibility(self.lowcore, self.times, self.frequency,
                                           channel_bandwidth=self.channel_bandwidth,  phasecentre=self.phasecentre,
                                           weight=1.0)

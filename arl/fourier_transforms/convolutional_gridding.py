@@ -1,9 +1,11 @@
-# Bojan Nikolic <b.nikolic@mrao.cam.ac.uk>
-#
-# Synthesise and Image interferometer data
-"""Convolutional gridding support functions
+""" Imaging is based on used of the FFT to perform Fourier transforms efficiently. Since the observed visibility data
+do not arrive naturally on grid points, the sampled points are resampled on the FFT grid using a convolution function to
+smear out the sample points. The resulting grid points are then FFT'ed. The result can be corrected for the gridding
+convolution function by division in the image plane of the transform.
 
-All functions that involve convolutional gridding are kept here.
+This approach may be extended to include image plane effect such as the w term and the antenna/station primary beam.
+
+This module contains functions for performing the gridding process and the inverse degridding process.
 """
 
 from __future__ import division
@@ -17,7 +19,6 @@ from arl.fourier_transforms.fft_support import *
 # from arl.core.c import gridder
 
 log = logging.getLogger(__name__)
-
 
 def coordinateBounds(npixel):
     r""" Returns lowest and highest coordinates of an image/grid given:
@@ -118,7 +119,7 @@ def anti_aliasing_calculate(shape, oversampling=8, support=3):
 
 
 def grdsf(nu):
-    """"Calculate PSWF using an old SDE routine re-written in Python
+    """Calculate PSWF using an old SDE routine re-written in Python
 
     Find Spheroidal function with M = 6, alpha = 1 using the rational
     approximations discussed by Fred Schwab in 'Indirect Imaging'.

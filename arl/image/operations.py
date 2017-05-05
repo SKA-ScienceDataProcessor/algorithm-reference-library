@@ -331,6 +331,11 @@ def calculate_image_frequency_moments(im: Image, reference_frequency=None, nmome
     
     Note that the spectral axis is replaced by a MOMENT axis.
     
+    For example, to find the moments and then reconstruct from just the moments::
+    
+        moment_cube = calculate_image_frequency_moments(model_multichannel, nmoments=5)
+        reconstructed_cube = calculate_image_from_frequency_moments(model_multichannel, moment_cube)
+
     :param im: Image cube
     :param reference_frequency: Reference frequency (default None uses average)
     :param nmoments: Number of moments to calculate
@@ -367,6 +372,12 @@ def calculate_image_from_frequency_moments(im: Image, moment_image: Image, refer
     Weights are ((freq-reference_frequency)/reference_frequency)**moment
 
     Note that a new image is created
+    
+    For example, to find the moments and then reconstruct from just the moments::
+    
+        moment_cube = calculate_image_frequency_moments(model_multichannel, nmoments=5)
+        reconstructed_cube = calculate_image_from_frequency_moments(model_multichannel, moment_cube)
+
 
     :param im: Image cube to be reconstructed
     :param moment_image: Moment cube (constructed using calculate_image_frequency_moments)
@@ -401,8 +412,10 @@ def calculate_image_from_frequency_moments(im: Image, moment_image: Image, refer
     return newim
 
 
-def remove_continuum_image(im: Image, deg=1, mask=None, **kwargs):
+def remove_continuum_image(im: Image, degree=1, mask=None, **kwargs):
     """ Fit and remove continuum visibility in place
+    
+    Fit a polynomial in frequency of the specified degree where mask is True
 
     :param im:
     :param deg:
@@ -412,7 +425,7 @@ def remove_continuum_image(im: Image, deg=1, mask=None, **kwargs):
     """
 
     if mask is not None:
-        assert numpy.sum(mask) > 2 * deg, "Insufficient channels for fit"
+        assert numpy.sum(mask) > 2 * degree, "Insufficient channels for fit"
 
     nchan, npol, ny, nx = im.shape
     channels = numpy.arange(nchan)
@@ -427,7 +440,7 @@ def remove_continuum_image(im: Image, deg=1, mask=None, **kwargs):
         for y in range(ny):
             for x in range(nx):
 
-                    fit = numpy.polyfit(frequency, im.data[:, pol, y, x], w=wt, deg=deg)
+                    fit = numpy.polyfit(frequency, im.data[:, pol, y, x], w=wt, deg=degree)
                     prediction = numpy.polyval(fit, frequency)
                     im.data[:, pol, y, x] -= prediction
     return im

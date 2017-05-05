@@ -1,14 +1,34 @@
-
-#
 """
-Functions that aid fourier transform processing.
+The w-term can be viewed as a time-variable distortion. Approximating the array as instantaneously
+co-planar, we have that w can be expressed in terms of u,v:
+
+.. math::
+    w = a u + b v
+
+Transforming to a new coordinate system:
+
+.. math::
+
+    l' = l + a ( \\sqrt{1-l^2-m^2}-1))
+
+.. math::
+
+    m' = m + b ( \\sqrt{1-l^2-m^2}-1))
+
+Ignoring changes in the normalisation term, we have:
+
+.. math::
+
+    V(u,v,w) =\\int \\frac{ I(l',m')} { \\sqrt{1-l'^2-m'^2}} e^{-2 \\pi j (ul'+um')} dl' dm'
+
+
 """
 from scipy.interpolate import griddata
 
 from arl.fourier_transforms.ftprocessor_base import *
 from arl.fourier_transforms.ftprocessor_iterated import predict_with_vis_iterator, invert_with_vis_iterator
 from arl.image.iterators import *
-from arl.image.operations import copy_image, create_empty_image_like, reproject_image
+from arl.image.operations import copy_image, create_empty_image_like
 from arl.visibility.iterators import *
 
 log = logging.getLogger(__name__)

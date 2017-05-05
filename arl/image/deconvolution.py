@@ -1,5 +1,26 @@
 """ Image deconvolution functions
 
+The standard deconvolution algorithms are provided:
+
+    hogbom: Hogbom CLEAN See: Hogbom CLEAN A&A Suppl, 15, 417, (1974)
+    
+    msclean: MultiScale CLEAN See: Cornwell, T.J., Multiscale CLEAN (IEEE Journal of Selected Topics in Sig Proc,
+    2008 vol. 2 pp. 793-801)
+
+    mfsmsclean: MultiScale Multi-Frequency See: U. Rau and T. J. Cornwell, “A multi-scale multi-frequency
+    deconvolution algorithm for synthesis imaging in radio interferometry,” A&A 532, A71 (2011).
+
+For example to make dirty image and PSF, deconvolve, and then restore::
+
+    model = create_image_from_visibility(vt, cellsize=0.001, npixel=256)
+    dirty, sumwt = invert_2d(vt, model)
+    psf, sumwt = invert_2d(vt, model, dopsf=True)
+
+    comp, residual = deconvolve_cube(dirty, psf, niter=1000, threshold=0.001, fracthresh=0.01, window='quarter',
+                                 gain=0.7, algorithm='msclean', scales=[0, 3, 10, 30])
+
+    restored = restore_cube(comp, psf, residual)
+
 """
 
 import numpy
@@ -29,13 +50,18 @@ def deconvolve_cube(dirty: Image, psf: Image, **kwargs):
     msclean: MultiScale CLEAN See: Cornwell, T.J., Multiscale CLEAN (IEEE Journal of Selected Topics in Sig Proc,
     2008 vol. 2 pp. 793-801)
 
-    mfmfsclean: MultiScale Multi-Frequency See: U. Rau and T. J. Cornwell, “A multi-scale multi-frequency
+    mfsmsclean: MultiScale Multi-Frequency See: U. Rau and T. J. Cornwell, “A multi-scale multi-frequency
     deconvolution algorithm for synthesis imaging in radio interferometry,” A&A 532, A71 (2011).
+    
+    For example::
+    
+        comp, residual = deconvolve_cube(dirty, psf, niter=1000, gain=0.7, algorithm='msclean',
+                                         scales=[0, 3, 10, 30], threshold=0.01)
     
     :param dirty: Image dirty image
     :param psf: Image Point Spread Function
     :param window: Window image (Bool) - clean where True
-    :param algorithm: Cleaning algorithm: 'msclean'|'hogbom'
+    :param algorithm: Cleaning algorithm: 'msclean'|'hogbom'|'mfsmsclean'
     :param gain: loop gain (float) 0.7
     :param threshold: Clean threshold (0.0)
     :param fracthres: Fractional threshold (0.01)
@@ -98,7 +124,7 @@ def deconvolve_cube(dirty: Image, psf: Image, **kwargs):
         comp_image = create_image_from_array(comp_array, dirty.wcs)
         residual_image = create_image_from_array(residual_array, dirty.wcs)
 
-    elif algorithm == 'msmfsclean':
+    elif algorithm == 'msmfsclean' or algorithm == 'mfsmsclean':
         findpeak = get_parameter(kwargs, "findpeak", 'ARL')
         
         log.info("deconvolve_cube: Multi-scale multi-frequency clean of each polarisation separately")
