@@ -53,12 +53,6 @@ Polarisation
 Image
 -----
 
-Deconvolution
-+++++++++++++
-
-.. automodule:: arl.image.deconvolution
-   :members:
-
 Operations
 ++++++++++
 
@@ -69,6 +63,12 @@ Iterators
 +++++++++
 
 .. automodule:: arl.image.iterators
+   :members:
+
+Deconvolution
++++++++++++++
+
+.. automodule:: arl.image.deconvolution
    :members:
 
 Fourier transform
