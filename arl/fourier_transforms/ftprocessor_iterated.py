@@ -6,8 +6,6 @@ Functions that distributes predict and invert using either just loops or paralle
 
 import multiprocessing
 
-import pymp
-
 from arl.data.parameters import get_parameter
 from arl.fourier_transforms.ftprocessor_base import *
 from arl.fourier_transforms.ftprocessor_params import *
@@ -24,7 +22,7 @@ def invert_with_vis_iterator(vis, im, dopsf=False, normalize=True, vis_iter=vis_
     """ Invert using a specified iterator and invert
     
     This knows about the structure of invert in different execution frameworks but not
-    anything about the actual processing. This version support pymp and serial processing
+    anything about the actual processing.
 
     :param vis:
     :param im:
@@ -35,41 +33,16 @@ def invert_with_vis_iterator(vis, im, dopsf=False, normalize=True, vis_iter=vis_
     """
     resultimage = create_empty_image_like(im)
     
-    nproc = get_parameter(kwargs, "nprocessor", 1)
-    if nproc == "auto":
-        nproc = multiprocessing.cpu_count()
-    inchan, inpol, _, _ = im.data.shape
-    totalwt = numpy.zeros([inchan, inpol], dtype='float')
-    if nproc > 1:
-        # We need to tell pymp that some arrays are shared
-        resultimage.data = pymp.shared.array(resultimage.data.shape)
-        resultimage.data *= 0.0
-        totalwt = pymp.shared.array([inchan, inpol])
-        
-        # Extract the slices and run  on each one in parallel
-        nslices = 0
-        rowses = []
-        for rows in vis_iter(vis, **kwargs):
-            nslices += 1
-            rowses.append(rows)
-        
-        log.debug("invert_iterator: Processing %d chunks %d-way parallel" % (nslices, nproc))
-        with pymp.Parallel(nproc) as p:
-            for index in p.range(0, nslices):
-                visslice = create_visibility_from_rows(vis, rowses[index])
-                workimage, sumwt = invert(visslice, im, dopsf, normalize=False, **kwargs)
-                resultimage.data += workimage.data
-                totalwt += sumwt
-    
-    else:
-        # Do each slice in turn
-        i = 0
-        for rows in vis_iter(vis, **kwargs):
-            visslice = create_visibility_from_rows(vis, rows)
-            workimage, sumwt = invert(visslice, im, dopsf, normalize=False, **kwargs)
-            resultimage.data += workimage.data
+    i = 0
+    for rows in vis_iter(vis, **kwargs):
+        visslice = create_visibility_from_rows(vis, rows)
+        workimage, sumwt = invert(visslice, im, dopsf, normalize=False, **kwargs)
+        resultimage.data += workimage.data
+        if i == 0:
+            totalwt = sumwt
+        else:
             totalwt += sumwt
-            i += 1
+        i += 1
     
     if normalize:
         resultimage = normalize_sumwt(resultimage, totalwt)
@@ -81,53 +54,15 @@ def predict_with_vis_iterator(vis, model, vis_iter=vis_slice_iter, predict=predi
     """Iterate through prediction in chunks
     
     This knows about the structure of predict in different execution frameworks but not
-    anything about the actual processing. This version support pymp and serial processing
+    anything about the actual processing.
     
     """
-    nproc = get_parameter(kwargs, "nprocessor", 1)
-    if nproc == "auto":
-        nproc = multiprocessing.cpu_count()
-    nchan, npol, _, _ = model.data.shape
-    if nproc > 1:
-        
-        # Extract the slices and run predict on each one in parallel
-        rowslices = []
-        for rows in vis_iter(vis, **kwargs):
-            rowslices.append(rows)
-        nslices = len(rowslices)
-        
-        log.debug("predict_with_vis_iterator: Processing %d chunks %d-way parallel" % (nslices, nproc))
-        
-        # The visibility column needs to be shared across all processes
-        # We have to work around lack of complex data in pymp. For the following trick, see
-        # http://stackoverflow.com/questions/2598734/numpy-creating-a-complex-array-from-2-real-ones
-        
-        shape = vis.data['vis'].shape
-        if len(shape) == 2:
-            shape = [shape[0], shape[1], 2]
-        else:
-            raise RuntimeError("Visibility is the wrong shape")
-        
-        log.debug('Creating shared array of float type and shape %s for visibility' % (str(shape)))
-        shared_vis = pymp.shared.array(shape).view(dtype='complex128')[..., 0]
-        
-        with pymp.Parallel(nproc) as p:
-            for slice in p.range(0, nslices):
-                rows = rowslices[slice]
-                visslice = create_visibility_from_rows(vis, rows)
-                visslice = predict(visslice, model, **kwargs)
-                with p.lock:
-                    shared_vis[rows] = visslice.data['vis']
-        
-        vis.data['vis'][...] = shared_vis[...]
-    
-    else:
-        log.debug("predict_with_vis_iterator: Processing chunks serially")
-        # Do each chunk in turn
-        for rows in vis_iter(vis, **kwargs):
-            visslice = create_visibility_from_rows(vis, rows)
-            visslice = predict(visslice, model, **kwargs)
-            vis.data['vis'][rows] += visslice.data['vis']
+    log.debug("predict_with_vis_iterator: Processing chunks serially")
+    # Do each chunk in turn
+    for rows in vis_iter(vis, **kwargs):
+        visslice = create_visibility_from_rows(vis, rows)
+        visslice = predict(visslice, model, **kwargs)
+        vis.data['vis'][rows] += visslice.data['vis']
     return vis
 
 

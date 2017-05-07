@@ -8,10 +8,8 @@ approximated as:
 
 If images constructed from slices in w are added after applying a w-dependent image plane correction, the w term will be corrected. 
 """
-import multiprocessing
 
-import pymp
-
+from arl.fourier_transforms.ftprocessor_base import *
 from arl.fourier_transforms.ftprocessor_base import *
 from arl.fourier_transforms.ftprocessor_iterated import *
 from arl.image.iterators import *

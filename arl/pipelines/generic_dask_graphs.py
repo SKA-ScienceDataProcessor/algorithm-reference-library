@@ -8,7 +8,7 @@ For example, consider a trivial example to take the square root of an image::
         def imagerooter(im, **kwargs):
             im.data = numpy.sqrt(numpy.abs(im.data))
             return im
-        root = create_generic_image_graph(imagerooter)(self.image, raster_iter, facets=4).compute()
+        root = create_generic_image_graph(imagerooter)(myimage, raster_iter, facets=4).compute()
 
 We create the graph and execute it immediately. We are using the raster_iter so the image will be divided into 16
 subimages and passed to processing by imagerooter, and then the answers are reassembled.
@@ -38,7 +38,9 @@ def create_generic_blockvisibility_graph(visfunction):
     
     def create_generic_blockvisibility_graph_visfunction(vis: BlockVisibility,
                                                          iterator, *args, **kwargs):
-        """ Definition of interface for create_generic_blockvisibility_graph_visfunction
+        """ Definition of interface for create_generic_blockvisibility_graph_visfunction.
+        
+        Note that vis cannot be a graph.
         
         :param vis:
         :param iterator:
@@ -80,7 +82,7 @@ def create_generic_image_graph(imagefunction):
     def create_generic_image_graph_imagefunction(im: Image, iterator, **kwargs):
         """ Definition of interface for create_generic_image_graph
         
-        This generates a graph for imagefunction.
+        This generates a graph for imagefunction. Note that im cannot be a graph itself.
 
         :param im: Image to be processed
         :param iterator: iterator e.g. raster_iter
@@ -100,6 +102,7 @@ def create_generic_image_graph(imagefunction):
 
         for dpatch in iterator(im, **kwargs):
             results.append(delayed(imagefunction(copy_image(dpatch), **kwargs)))
+            
         return delayed(accumulate_results, pure=True)(results, **kwargs)
 
     return create_generic_image_graph_imagefunction

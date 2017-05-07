@@ -33,18 +33,19 @@ class TestPipelinesGenericDask(unittest.TestCase):
         
         self.comp = create_skycomponent(flux=self.flux, frequency=self.frequency, direction=self.compabsdirection,
                                         polarisation_frame=PolarisationFrame('stokesI'))
-        self.image=create_test_image(frequency=self.frequency, phasecentre=self.phasecentre,
-                                                      cellsize=0.001,
-                                                      polarisation_frame=PolarisationFrame('stokesI'))
-        
+        self.image = create_test_image(frequency=self.frequency, phasecentre=self.phasecentre,
+                                       cellsize=0.001,
+                                       polarisation_frame=PolarisationFrame('stokesI'))
+
+        self.image_graph = delayed(create_test_image)(frequency=self.frequency, phasecentre=self.phasecentre,
+                                                      cellsize=0.001, polarisation_frame=PolarisationFrame('stokesI'))
+
         self.vis = create_visibility(self.lowcore, times=self.times, frequency=self.frequency,
                                      channel_bandwidth=self.channel_bandwidth,
                                      phasecentre=self.phasecentre, weight=1,
                                      polarisation_frame=PolarisationFrame('stokesI'),
                                      integration_time=1.0)
         
-        self.predict_graph = create_predict_graph(self.vis, self.image)
-        self.vis = self.predict_graph.compute()
     
     def test_create_generic_blockvisibility_graph(self):
         self.blockvis = create_blockvisibility(self.lowcore, self.times, self.frequency,
@@ -62,7 +63,8 @@ class TestPipelinesGenericDask(unittest.TestCase):
         def imagerooter(im, **kwargs):
             im.data = numpy.sqrt(numpy.abs(im.data))
             return im
-        root = create_generic_image_graph(imagerooter)(self.image, raster_iter, facets=4).compute()
+        root_graph = create_generic_image_graph(imagerooter)
+        root = root_graph(self.image, raster_iter, facets=2).compute()
         numpy.testing.assert_array_almost_equal_nulp(root.data**2, numpy.abs(self.image.data), 7)
     
 

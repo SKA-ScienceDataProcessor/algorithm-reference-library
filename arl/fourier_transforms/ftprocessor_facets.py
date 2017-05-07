@@ -7,9 +7,6 @@
 
 """
 
-import multiprocessing
-import pymp
-
 
 from arl.fourier_transforms.ftprocessor_params import *
 from arl.fourier_transforms.ftprocessor_base import *

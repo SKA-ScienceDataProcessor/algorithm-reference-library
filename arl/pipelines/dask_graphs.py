@@ -265,7 +265,7 @@ def create_solve_image_graph(vis, model_graph,
         model_graph_list.append(create_deconvolve_graph(res_graph_list[-1], psf_graph,
                                                         model_graph_list[cycle - 1], **kwargs))
     
-    return model_graph_list[-1]
+    return delayed(model_graph_list[-1])
 
 
 def create_restore_graph(solution_graph, psf_graph, residual_graph, **kwargs):
@@ -305,8 +305,8 @@ def create_continuum_imaging_graph(vis, model_graph,
                                                      invert_residual=invert_residual,
                                                      iterator=vis_timeslice_iter)
     
-    return create_restore_graph(solution_graph=solution_graph, psf_graph=psf_graph,
-                                residual_graph=residual_timeslice_graph, **kwargs)
+    return delayed(create_restore_graph(solution_graph=solution_graph, psf_graph=psf_graph,
+                                        residual_graph=residual_timeslice_graph, **kwargs))
 
 
 def rcal_dask(vis: BlockVisibility, components, **kwargs):
