@@ -34,10 +34,9 @@ class TestCalibrationPeeling(unittest.TestCase):
         times = numpy.linspace(-3.0, 3.0, 7) * numpy.pi / 12.0
 
         # Make the visibility
-        vis = create_blockvisibility(config, times, frequency,
-                                          channel_bandwidth=channel_bandwidth,
-                                          phasecentre=phasecentre, weight=1.0,
-                                          polarisation_frame=PolarisationFrame('linear'))
+        vis = create_blockvisibility(config, times, frequency, phasecentre=phasecentre, weight=1.0,
+                                     polarisation_frame=PolarisationFrame('linear'),
+                                     channel_bandwidth=channel_bandwidth)
         vis.data['vis'][...]=0.0
 
         # First add in the source to be peeled.

@@ -48,12 +48,17 @@ def predict_wslice_single(vis, model, **kwargs):
     :param model: model image
     :returns: resulting visibility (in place works)
     """
-    vis.data['vis'] *= 0.0
+    if type(vis) is not Visibility:
+        avis = coalesce_visibility(vis, **kwargs)
+    else:
+        avis = vis
+        
+    avis.data['vis'] *= 0.0
     tempvis = copy_visibility(vis)
 
     # Calculate w beam and apply to the model. The imaginary part is not needed
     workimage = copy_image(model)
-    w_beam = create_w_term_like(model, numpy.average(vis.w))
+    w_beam = create_w_term_like(model, numpy.average(avis.w))
     
     # Do the real part
     workimage.data = w_beam.data.real * model.data

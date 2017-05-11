@@ -40,6 +40,7 @@ from arl.image.iterators import *
 from arl.image.operations import copy_image
 from arl.util.coordinate_support import simulate_point, skycoord_to_lmn
 from arl.visibility.operations import phaserotate_visibility, copy_visibility
+from arl.visibility.coalesce import coalesce_visibility, decoalesce_visibility
 
 log = logging.getLogger(__name__)
 
@@ -104,24 +105,30 @@ def predict_2d_base(vis, model, **kwargs):
     :param model: model image
     :returns: resulting visibility (in place works)
     """
-    assert type(vis) is Visibility, "vis is not a Visibility: %r" % vis
+    if type(vis) is not Visibility:
+        avis = coalesce_visibility(vis, **kwargs)
+    else:
+        avis = vis
     
     _, _, ny, nx = model.data.shape
     
-    spectral_mode, vfrequencymap = get_frequency_map(vis, model)
-    polarisation_mode, vpolarisationmap = get_polarisation_map(vis, model, **kwargs)
-    uvw_mode, shape, padding, vuvwmap = get_uvw_map(vis, model, **kwargs)
-    kernel_name, gcf, vkernellist = get_kernel_list(vis, model, **kwargs)
+    spectral_mode, vfrequencymap = get_frequency_map(avis, model)
+    polarisation_mode, vpolarisationmap = get_polarisation_map(avis, model, **kwargs)
+    uvw_mode, shape, padding, vuvwmap = get_uvw_map(avis, model, **kwargs)
+    kernel_name, gcf, vkernellist = get_kernel_list(avis, model, **kwargs)
     
     uvgrid = fft((pad_mid(model.data, int(round(padding * nx))) * gcf).astype(dtype=complex))
     
-    vis.data['vis'] = fixed_kernel_degrid(vkernellist, vis.data['vis'].shape, uvgrid,
+    avis.data['vis'] = fixed_kernel_degrid(vkernellist, avis.data['vis'].shape, uvgrid,
                                           vuvwmap, vfrequencymap, vpolarisationmap)
     
     # Now we can shift the visibility from the image frame to the original visibility frame
-    svis = shift_vis_to_image(vis, model, tangent=True, inverse=True)
-    
-    return svis
+    svis = shift_vis_to_image(avis, model, tangent=True, inverse=True)
+
+    if type(vis) is not Visibility:
+        return decoalesce_visibility(svis)
+    else:
+        return svis
 
 
 def predict_2d(vis, model, **kwargs):
@@ -176,19 +183,22 @@ def invert_2d_base(vis, im, dopsf=False, normalize=True, **kwargs):
     :returns: resulting image
 
     """
-    assert type(vis) is Visibility, "vis is not a Visibility: %r" % vis
-    
-    svis = copy_visibility(vis)
+    if type(vis) is not Visibility:
+        avis = coalesce_visibility(vis, **kwargs)
+    else:
+        avis = vis
+        
+    svis = copy_visibility(avis)
     
     # Shift
     svis = shift_vis_to_image(svis, im, tangent=True, inverse=False)
     
     nchan, npol, ny, nx = im.data.shape
     
-    spectral_mode, vfrequencymap = get_frequency_map(vis, im)
-    polarisation_mode, vpolarisationmap = get_polarisation_map(vis, im, **kwargs)
-    uvw_mode, shape, padding, vuvwmap = get_uvw_map(vis, im, **kwargs)
-    kernel_name, gcf, vkernellist = get_kernel_list(vis, im, **kwargs)
+    spectral_mode, vfrequencymap = get_frequency_map(avis, im)
+    polarisation_mode, vpolarisationmap = get_polarisation_map(avis, im, **kwargs)
+    uvw_mode, shape, padding, vuvwmap = get_uvw_map(avis, im, **kwargs)
+    kernel_name, gcf, vkernellist = get_kernel_list(avis, im, **kwargs)
     
     # Optionally pad to control aliasing
     imgridpad = numpy.zeros([nchan, npol, int(round(padding * ny)), int(round(padding * nx))], dtype='complex')
@@ -499,7 +509,9 @@ def create_w_term_image(vis, w=None, **kwargs):
     
     return im
 
-def residual_image(vis, model, invert_residual=invert_2d, predict_residual=predict_2d, normalize=True, **kwargs):
+
+def residual_image(vis: Visibility, model: Image, invert_residual=invert_2d, predict_residual=predict_2d,
+                   **kwargs):
     """Calculate residual image and visibility
 
     :param vis: Visibility to be inverted
@@ -508,9 +520,8 @@ def residual_image(vis, model, invert_residual=invert_2d, predict_residual=predi
     :param predict: predict to be used (default predict_2d)
     :returns: residual visibility, residual image, sum of weights
     """
-    visres = copy_visibility(vis)
-    visres.data['vis'][...] = 0.0
+    visres = copy_visibility(vis, zero=True)
     visres = predict_residual(visres, model, **kwargs)
     visres.data['vis'] = vis.data['vis'] - visres.data['vis']
-    dirty, sumwt = invert_residual(visres, model, dopsf=False, normalize=normalize, **kwargs)
+    dirty, sumwt = invert_residual(visres, model, dopsf=False, **kwargs)
     return visres, dirty, sumwt

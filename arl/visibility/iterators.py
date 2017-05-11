@@ -30,6 +30,9 @@ def vis_timeslice_iter(vis, **kwargs):
     :returns: Boolean array with selected rows=True
         
     """
+    
+    assert type(vis) == Visibility or type(vis) == BlockVisibility
+    
     uniquetimes = numpy.unique(vis.time)
     timeslice = get_parameter(kwargs, "timeslice", 'auto')
     if timeslice == 'auto':
@@ -53,6 +56,8 @@ def vis_wslice_iter(vis, **kwargs):
     :param wslice: wslice (wavelengths) (must be specified)
     :returns: Boolean array with selected rows=True
     """
+    assert type(vis) == Visibility or type(vis) == BlockVisibility
+
     wslice = get_parameter(kwargs, "wslice", None)
     assert wslice is not None, "wslice must be specified"
 
@@ -73,6 +78,8 @@ def vis_slice_iter(vis, **kwargs):
     :returns: Boolean array with selected rows=True
 
     """
+    assert type(vis) == Visibility or type(vis) == BlockVisibility
+
     step = get_parameter(kwargs, "step", None)
     assert step is not None, "step must be specified"
     assert step > 0

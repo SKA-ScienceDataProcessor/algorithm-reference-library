@@ -29,26 +29,26 @@ import collections
 
 from dask import delayed
 
-from arl.calibration.solvers import solve_gaintable, apply_gaintable
-from arl.calibration.operations import append_gaintable
-from arl.data.data_models import BlockVisibility, GainTable
+from arl.calibration.calibration import calibrate_visibility
+from arl.calibration.operations import apply_gaintable
+from arl.calibration.solvers import solve_gaintable
+from arl.data.data_models import BlockVisibility, Visibility
 from arl.data.parameters import get_parameter
-from arl.fourier_transforms.ftprocessor import invert_2d, residual_image, \
-    predict_skycomponent_blockvisibility, \
-    invert_timeslice_single, predict_timeslice_single, normalize_sumwt
+from arl.fourier_transforms.ftprocessor import invert_2d, predict_skycomponent_blockvisibility, \
+    invert_timeslice_single, predict_timeslice_single, normalize_sumwt, residual_image
 from arl.image.deconvolution import deconvolve_cube, restore_cube
 from arl.visibility.iterators import vis_timeslice_iter
 from arl.visibility.operations import create_visibility_from_rows, \
-    copy_visibility, create_blockvisibility_from_rows
+    copy_visibility, create_visibility_from_rows, create_visibility
 
 
-def create_invert_graph(vt, model_graph, dopsf=False, normalize=True, invert_single=invert_2d,
+def create_invert_graph(vis, model_graph, dopsf=False, normalize=True, invert_single=invert_2d,
                         iterator=vis_timeslice_iter, **kwargs):
     """ Create a graph to perform an invert
-    
+
     The graph is constructed by iteration across the visibility
-    
-    :param vt: Visibility
+
+    :param vis: Visibility or BlockVisibility
     :param model_graph: Model graph
     :param dopsf: Make a PSF?
     :param normalize: Normalise the inversion?
@@ -75,8 +75,8 @@ def create_invert_graph(vt, model_graph, dopsf=False, normalize=True, invert_sin
     
     results = list()
     
-    for rows in iterator(vt, **kwargs):
-        v = copy_visibility(create_visibility_from_rows(vt, rows))
+    for rows in iterator(vis, **kwargs):
+        v = copy_visibility(create_visibility_from_rows(vis, rows))
         result = delayed(invert_single, pure=True)(v, model_graph, dopsf=dopsf, normalize=False, **kwargs)
         results.append(result)
     
@@ -100,8 +100,20 @@ def create_deconvolve_graph(dirty_graph, psf_graph, model_graph, **kwargs):
     
     return delayed(deconvolve_model_only, pure=True)(dirty_graph[0], psf_graph[0], model_graph, **kwargs)
 
+def create_apply_calibration(vis, gt_graph, **kwargs):
+    """ Apply gaintables to visibility
+    
+    :param vis:
+    :param gt_graph:
+    :param kwargs:
+    :return:
+    """
+    def apply_calibration(vis, gt):
+        return apply_gaintable(vis, gt)
+    
+    return delayed(apply_calibration)(vis, gt_graph, **kwargs)
 
-def create_residual_graph(vis, model_graph, iterator=vis_timeslice_iter, **kwargs):
+def create_residual_graph(vis: Visibility, model_graph, iterator=vis_timeslice_iter, **kwargs):
     """ Create a graph to calculate residual visibility
 
     :param vt: Visibility
@@ -110,7 +122,7 @@ def create_residual_graph(vis, model_graph, iterator=vis_timeslice_iter, **kwarg
     :param kwargs: Other arguments for ftprocessor.residual
     :returns: residual visibility graph
     """
-    
+
     def accumulate_results(results, rowses):
         
         acc = []
@@ -141,70 +153,21 @@ def create_residual_graph(vis, model_graph, iterator=vis_timeslice_iter, **kwarg
     return delayed(accumulate_results, pure=True)(results, rowses)
 
 
-def create_calibrate_graph(vis: BlockVisibility, components, iterator=vis_timeslice_iter, **kwargs):
-    """ Calibrate data. Predict visibilities, solve, and apply
-
-    :param vis:
-    :param model:
-    :param predict_single:
-    :param iterator:
-    :param kwargs:
-    :return:
-    """
+def create_solve_gain_graph(vis: BlockVisibility, vispred: Visibility, **kwargs):
+    """ Calibrate data. Solve and return gaintables
     
-    def calibrate_single(vis: BlockVisibility, components, **kwargs):
-        vispred = copy_visibility(vis, True)
-        vispred = predict_skycomponent_blockvisibility(vispred, components, **kwargs)
-        gtsol = solve_gaintable(vispred, vis, **kwargs)
-        return apply_gaintable(vis, gtsol, inverse=True)
-    
-    def accumulate_results(results):
-        i = 0
-        for rows in iterator(vis, **kwargs):
-            vis.data['vis'][rows] += results[i].data['vis']
-            i += 1
-        return vis
-    
-    results = list()
-    
-    for rows in iterator(vis, **kwargs):
-        visslice = copy_visibility(create_blockvisibility_from_rows(vis, rows))
-        result = delayed(calibrate_single, pure=True)(visslice, components, **kwargs)
-        results.append(result)
-    return delayed(accumulate_results, pure=True)(results)
-
-
-def create_solve_gain_graph(vis: BlockVisibility, components, iterator=vis_timeslice_iter, **kwargs):
-    """ Calibrate data. Predict visibilities, solve, and return gaintables
-    
-    This works only on BlockVisibilty format
-
     :param vis: Measured visibility
-    :param components: components or list of components
-    :param iterator: iterator to traverse data
     :param kwargs:
     :return: gaintable
     """
+
+    assert type(vis) == BlockVisibility, "vis is not a BlockVisibility"
+    assert type(vispred) == BlockVisibility, "vispred is not a BlockVisibility"
+
+    def calibrate_single(vis: BlockVisibility, vispred: BlockVisibility, **kwargs):
+        return solve_gaintable(vis, vispred, **kwargs)
     
-    def calibrate_single(vis: BlockVisibility, components, **kwargs):
-        vispred = copy_visibility(vis, True)
-        vispred = predict_skycomponent_blockvisibility(vispred, components, **kwargs)
-        return solve_gaintable(vispred, vis, **kwargs)
-    
-    def accumulate_results(results):
-        i = 0
-        fullgt = results[0]
-        for gt in results:
-            fullgt = append_gaintable(fullgt, gt)
-        return fullgt
-    
-    results = list()
-    
-    for rows in iterator(vis, **kwargs):
-        visslice = copy_visibility(create_blockvisibility_from_rows(vis, rows))
-        result = delayed(calibrate_single, pure=True)(visslice, components, **kwargs)
-        results.append(result)
-    return delayed(accumulate_results, pure=True)(results)
+    return delayed(calibrate_single, pure=True)(vis, vispred, **kwargs)
 
 
 def create_predict_graph(vis, model, predict_single=predict_timeslice_single, iterator=vis_timeslice_iter,
@@ -218,7 +181,7 @@ def create_predict_graph(vis, model, predict_single=predict_timeslice_single, it
     :param kwargs:
     :return:
     """
-    
+
     def accumulate_results(results):
         i = 0
         for rows in iterator(vis, **kwargs):
@@ -243,29 +206,26 @@ def create_solve_image_graph(vis, model_graph,
     
 
     :param vt: Visibility
-    :param model_graph: Model graph
+    :param model_graph: Model or model graph
     :param residual_graph: Residual graph used for residual visibilities
     :param invert_graph: Invert graph used for PSF
     :param iterator: visibility iterator
+    :param first_selfcal: First cycle to selfcal, None for none
     :param kwargs: Other arguments for ftprocessor.residual
     :returns: residual visibility graph
     """
     psf_graph = create_invert_graph(vis, model_graph, dopsf=True, **kwargs)
     
-    res_graph_list = list()
-    model_graph_list = list()
-    
     nmajor = get_parameter(kwargs, "nmajor", 5)
     
-    res_graph_list.append(create_residual_graph(vis, model_graph, **kwargs))
-    model_graph_list.append(create_deconvolve_graph(res_graph_list[-1], psf_graph, model_graph, **kwargs))
+    res_graph = create_residual_graph(vis, model_graph, **kwargs)
+    model_graph = create_deconvolve_graph(res_graph, psf_graph, model_graph, **kwargs)
     
     for cycle in range(1, nmajor):
-        res_graph_list.append(create_residual_graph(vis, model_graph_list[-1], **kwargs))
-        model_graph_list.append(create_deconvolve_graph(res_graph_list[-1], psf_graph,
-                                                        model_graph_list[cycle - 1], **kwargs))
+        res_graph = create_residual_graph(vis, model_graph, **kwargs)
+        model_graph = create_deconvolve_graph(res_graph, psf_graph, model_graph, **kwargs)
     
-    return delayed(model_graph_list[-1])
+    return delayed(model_graph)
 
 
 def create_restore_graph(solution_graph, psf_graph, residual_graph, **kwargs):
@@ -285,15 +245,17 @@ def create_continuum_imaging_graph(vis, model_graph,
                                    predict_residual=predict_timeslice_single, **kwargs):
     """ Continuum imaging in dask format.
     
-    :param vis: Actual visibility
+    :param vis: Actual Visibility
     :param model_graph: graph for the model
     :param invert_residual: function used in ftprocessor.residual
     :param predict_residual: function used in ftprocessor.residual
     :param kwargs:
     :return:
     """
-    psf_graph = create_invert_graph(vis, model_graph, dopsf=True, invert_single=invert_residual,
-                                    iterator=vis_timeslice_iter, normalize=False, timeslice=10.0)
+    
+    psf_graph = create_invert_graph(vis, model_graph, dopsf=True, normalize=False,
+                                    invert_single=invert_residual, iterator=vis_timeslice_iter,
+                                    timeslice=10.0)
     
     solution_graph = create_solve_image_graph(vis, model_graph=model_graph,
                                               invert_residual=invert_residual,
@@ -307,27 +269,4 @@ def create_continuum_imaging_graph(vis, model_graph,
     
     return delayed(create_restore_graph(solution_graph=solution_graph, psf_graph=psf_graph,
                                         residual_graph=residual_timeslice_graph, **kwargs))
-
-
-def rcal_dask(vis: BlockVisibility, components, **kwargs):
-    """ Real-time calibration pipeline.
-
-    Reads visibilities through a BlockVisibility iterator, calculates model visibilities according to a
-    component-based sky model, and performans a calibration, writing a gaintable for each chunk of visibilities.
-
-    :param vis: Visibility or Union(Visibility, Iterable)
-    :param components: Component-based sky model
-    :param kwargs: Parameters
-    :returns: gaintable
-   """
-    
-    if not isinstance(vis, collections.Iterable):
-        vis = [vis]
-    
-    for ichunk, vischunk in enumerate(vis):
-        vispred = copy_visibility(vischunk)
-        vispred.data['vis'][...] = 0.0
-        vispred = predict_skycomponent_blockvisibility(vispred, components)
-        gt = solve_gaintable(vischunk, vispred, phase_only=False)
-        yield gt
 

@@ -610,9 +610,8 @@ def create_blockvisibility_iterator(config: Configuration, times: numpy.array, f
     """
     for time in times:
         actualtimes = time + numpy.arange(0, number_integrations) * integration_time * numpy.pi / 43200.0
-        vis = create_blockvisibility(config, actualtimes, freq=frequency, phasecentre=phasecentre,
-                                     polarisation_frame=polarisation_frame, weight=weight,
-                                     integration_time=integration_time,
+        vis = create_blockvisibility(config, actualtimes, frequency=frequency, phasecentre=phasecentre, weight=weight,
+                                     polarisation_frame=polarisation_frame, integration_time=integration_time,
                                      channel_bandwidth=channel_bandwidth)
         
         if components is not None:

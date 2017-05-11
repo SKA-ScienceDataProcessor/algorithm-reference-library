@@ -24,7 +24,9 @@ class TestCalibrationOperations(unittest.TestCase):
     def setUp(self):
         self.lowcore = create_named_configuration('LOWBD2-CORE')
         self.times = (numpy.pi / 43200.0) * numpy.arange(0.0, 300.0, 30.0)
-        self.frequency = numpy.linspace(1.0e8, 1.1e8, 3)
+        vnchan = 3
+        self.frequency = numpy.linspace(1.0e8, 1.1e8, vnchan)
+        self.channel_bandwidth = numpy.array(vnchan * [self.frequency[1] - self.frequency[0]])
         
         # Define the component and give it some spectral behaviour
         f = numpy.array([100.0, 20.0, -10.0, 1.0])
@@ -39,6 +41,7 @@ class TestCalibrationOperations(unittest.TestCase):
         self.comp = Skycomponent(direction=self.compabsdirection, frequency=self.frequency, flux=self.flux,
                                  polarisation_frame=PolarisationFrame(sky_pol_frame))
         self.vis = create_blockvisibility(self.lowcore, self.times, self.frequency, phasecentre=self.phasecentre,
+                                     channel_bandwidth=self.channel_bandwidth,
                                           weight=1.0, polarisation_frame=PolarisationFrame(data_pol_frame))
         self.vis = predict_skycomponent_blockvisibility(self.vis, self.comp)
 

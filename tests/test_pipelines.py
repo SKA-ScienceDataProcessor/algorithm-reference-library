@@ -9,7 +9,7 @@ from arl.fourier_transforms.ftprocessor import *
 from arl.image.operations import export_image_to_fits
 from arl.pipelines.functions import *
 from arl.skycomponent.operations import create_skycomponent
-from arl.util.testing_support import create_named_configuration, create_test_image, create_blockvisibility_iterator
+from arl.util.testing_support import create_named_configuration, create_test_image, create_visibility_iterator
 from arl.visibility.coalesce import coalesce_visibility
 
 
@@ -34,7 +34,7 @@ class TestPipelines(unittest.TestCase):
         self.image = create_test_image(frequency=frequency, phasecentre=self.phasecentre, cellsize=0.001,
                                        polarisation_frame=PolarisationFrame('stokesIQUV'))
         
-        self.blockvis = create_blockvisibility_iterator(lowcore, times=times, frequency=frequency,
+        self.blockvis = create_visibility_iterator(lowcore, times=times, frequency=frequency,
                                                         channel_bandwidth=channel_bandwidth,
                                                         phasecentre=self.phasecentre, weight=1,
                                                         polarisation_frame=PolarisationFrame('linear'),

@@ -13,7 +13,7 @@ from arl.skycomponent.operations import create_skycomponent, find_skycomponents,
 from arl.util.testing_support import create_named_configuration
 import logging
 
-from arl.visibility.operations import create_visibility, create_blockvisibility, sum_visibility
+from arl.visibility.operations import create_visibility, create_visibility, sum_visibility
 
 log = logging.getLogger(__name__)
 
@@ -266,10 +266,10 @@ class TestFTProcessor(unittest.TestCase):
 
     def test_create_image_from_blockvisibility(self):
         self.actualSetUp()
-        self.componentvis = create_blockvisibility(self.lowcore, self.times, self.frequency,
-                                                   channel_bandwidth=self.channel_bandwidth,
+        self.componentvis = create_visibility(self.lowcore, self.times, self.frequency,
                                                    phasecentre=self.phasecentre, weight=1.0,
-                                                   polarisation_frame=PolarisationFrame('stokesI'))
+                                                   polarisation_frame=PolarisationFrame('stokesI'),
+                                                   channel_bandwidth=self.channel_bandwidth)
         im = create_image_from_visibility(self.componentvis, nchan=1, npixel=128)
         assert im.data.shape == (1, 1, 128, 128)
         im = create_image_from_visibility(self.componentvis, frequency=self.frequency, npixel=128)

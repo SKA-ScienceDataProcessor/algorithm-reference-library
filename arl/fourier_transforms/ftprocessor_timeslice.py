@@ -112,8 +112,13 @@ def predict_timeslice_single(vis, model, **kwargs):
     
     vis.data['vis'] *= 0.0
     
+    if type(vis) is not Visibility:
+        avis = coalesce_visibility(vis, **kwargs)
+    else:
+        avis = vis
+
     # Fit and remove best fitting plane for this slice
-    vis, p, q = fit_uvwplane(vis)
+    avis, p, q = fit_uvwplane(vis)
     
     # Calculate nominal and distorted coordinate systems. We will convert the model
     # from nominal to distorted before predicting.
@@ -177,10 +182,15 @@ def invert_timeslice_single(vis, im, dopsf, normalize=True, **kwargs):
     :param normalize: Normalize by the sum of weights (True)
     """
     inchan, inpol, ny, nx = im.shape
+
+    if type(vis) is not Visibility:
+        avis = coalesce_visibility(vis, **kwargs)
+    else:
+        avis = vis
+
+    avis, p, q = fit_uvwplane(avis)
     
-    vis, p, q = fit_uvwplane(vis)
-    
-    workimage, sumwt = invert_2d(vis, im, dopsf, normalize=normalize, **kwargs)
+    workimage, sumwt = invert_2d(avis, im, dopsf, normalize=normalize, **kwargs)
 
     finalimage = create_empty_image_like(im)
     

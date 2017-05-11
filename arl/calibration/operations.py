@@ -7,10 +7,10 @@ import copy
 
 import numpy.linalg
 
+from arl.data.data_models import QA
 from arl.fourier_transforms.ftprocessor_params import *
 from arl.util.coordinate_support import *
 from arl.visibility.iterators import vis_timeslice_iter
-from arl.data.data_models import QA
 
 log = logging.getLogger(__name__)
 
@@ -139,7 +139,4 @@ def qa_gaintable(gt, context=None):
             'rms': numpy.std(agt),
             'medianabs': numpy.median(agt),
             'residual': numpy.max(gt.residual)}
-    qa = QA(origin=None,
-            data=data,
-            context=context)
-    return qa
+    return QA(origin='qa_gaintable', data=data, context=context)

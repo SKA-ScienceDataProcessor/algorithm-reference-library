@@ -23,7 +23,7 @@ from dask import delayed
 from arl.data.data_models import BlockVisibility, GainTable, Image
 from arl.image.operations import copy_image
 from arl.visibility.operations import create_visibility_from_rows, \
-    copy_visibility, create_blockvisibility_from_rows
+    copy_visibility, create_visibility_from_rows
 
 
 def create_generic_blockvisibility_graph(visfunction):
@@ -59,7 +59,7 @@ def create_generic_blockvisibility_graph(visfunction):
         results = list()
 
         for rows in iterator(vis, **kwargs):
-            visslice = copy_visibility(create_blockvisibility_from_rows(vis, rows))
+            visslice = copy_visibility(create_visibility_from_rows(vis, rows))
             results.append(delayed(visfunction, pure=True)(visslice, *args, **kwargs))
         return delayed(accumulate_results, pure=True)(results, **kwargs)
 

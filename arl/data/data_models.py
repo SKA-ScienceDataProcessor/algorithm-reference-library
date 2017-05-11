@@ -295,16 +295,28 @@ class Visibility:
     Visibility is defined to hold an observation with one direction.
     Polarisation frame is the same for the entire data set and can be stokes, circular, linear
     The configuration is also an attribute
+    
+    If a visibility is created by coalescence then the cindex column is filled with a pointer to the
+    row in the original block visibility that this row has a value for. The original blockvisibility
+    is also preserves as n attribute so that decoalescence is expedited. If you don't need that then
+    the storage can be released by setting self.blockvis to None
     """
     
     def __init__(self,
                  data=None, frequency=None, channel_bandwidth=None, phasecentre=None, configuration=None,
                  uvw=None, time=None, antenna1=None, antenna2=None, vis=None, weight=None, imaging_weight=None,
-                 integration_time=None, polarisation_frame=PolarisationFrame('stokesI')):
+                 integration_time=None, polarisation_frame=PolarisationFrame('stokesI'), cindex=None,
+                 blockvis=None):
         if data is None and vis is not None:
             if imaging_weight is None:
                 imaging_weight = weight
             nvis = vis.shape[0]
+            assert len(time) == nvis
+            assert len(frequency) == nvis
+            assert len(channel_bandwidth) == nvis
+            assert len(antenna1) == nvis
+            assert len(antenna2) == nvis
+
             npol = polarisation_frame.npol
             desc = [('uvw', '>f8', (3,)),
                     ('time', '>f8'),
@@ -329,6 +341,8 @@ class Visibility:
             data['imaging_weight'] = imaging_weight
         
         self.data = data  # numpy structured array
+        self.cindex = cindex
+        self.blockvis = blockvis
         self.phasecentre = phasecentre  # Phase centre of observation
         self.configuration = configuration  # Antenna/station configuration
         self.polarisation_frame = polarisation_frame
@@ -340,11 +354,11 @@ class Visibility:
         for col in self.data.dtype.fields.keys():
             size += self.data[col].nbytes
         return size / 1024.0 / 1024.0 / 1024.0
-    
+
     @property
     def nvis(self):
         return self.data['vis'].shape[0]
-    
+
     @property
     def uvw(self):  # In wavelengths in Visibility
         return self.data['uvw']

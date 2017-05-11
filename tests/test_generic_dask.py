@@ -39,18 +39,11 @@ class TestPipelinesGenericDask(unittest.TestCase):
 
         self.image_graph = delayed(create_test_image)(frequency=self.frequency, phasecentre=self.phasecentre,
                                                       cellsize=0.001, polarisation_frame=PolarisationFrame('stokesI'))
-
-        self.vis = create_visibility(self.lowcore, times=self.times, frequency=self.frequency,
-                                     channel_bandwidth=self.channel_bandwidth,
-                                     phasecentre=self.phasecentre, weight=1,
-                                     polarisation_frame=PolarisationFrame('stokesI'),
-                                     integration_time=1.0)
-        
     
     def test_create_generic_blockvisibility_graph(self):
-        self.blockvis = create_blockvisibility(self.lowcore, self.times, self.frequency,
-                                               phasecentre=self.phasecentre, weight=1.0,
-                                               polarisation_frame=PolarisationFrame('stokesI'))
+        self.blockvis = create_blockvisibility(self.lowcore, self.times, self.frequency, phasecentre=self.phasecentre,
+                                          channel_bandwidth=self.channel_bandwidth,
+                                          weight=1.0, polarisation_frame=PolarisationFrame('stokesI'))
         self.blockvis = \
             create_generic_blockvisibility_graph(predict_skycomponent_blockvisibility)(self.blockvis,
                                                                                        vis_timeslice_iter,
@@ -64,7 +57,7 @@ class TestPipelinesGenericDask(unittest.TestCase):
             im.data = numpy.sqrt(numpy.abs(im.data))
             return im
         root_graph = create_generic_image_graph(imagerooter)
-        root = root_graph(self.image, raster_iter, facets=2).compute()
+        root = root_graph(self.image, raster_iter, facets=16).compute()
         numpy.testing.assert_array_almost_equal_nulp(root.data**2, numpy.abs(self.image.data), 7)
     
 

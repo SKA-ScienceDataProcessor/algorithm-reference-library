@@ -46,8 +46,8 @@ def copy_visibility(vis, zero=False):
 
 def create_visibility(config: Configuration, times: numpy.array, frequency: numpy.array,
                       channel_bandwidth, phasecentre: SkyCoord,
-                      weight: float, polarisation_frame=PolarisationFrame('stokesI'), integration_time=1.0,
-                      ) -> Visibility:
+                      weight: float, polarisation_frame=PolarisationFrame('stokesI'),
+                      integration_time=1.0) -> Visibility:
     """ Create a Visibility from Configuration, hour angles, and direction of source
 
     Note that we keep track of the integration time for BDA purposes
@@ -122,29 +122,28 @@ def create_visibility(config: Configuration, times: numpy.array, frequency: nump
     return vis
 
 
-def create_blockvisibility(config: Configuration, times: numpy.array, freq: numpy.array,
-                           phasecentre: SkyCoord, weight: float,
-                           polarisation_frame=None,
-                           integration_time=1.0, channel_bandwidth=1e6) -> BlockVisibility:
+def create_blockvisibility(config: Configuration, times: numpy.array, frequency: numpy.array, phasecentre: SkyCoord,
+                           weight: float, polarisation_frame=None, integration_time=1.0,
+                           channel_bandwidth=1e6) -> BlockVisibility:
     """ Create a BlockVisibility from Configuration, hour angles, and direction of source
 
     Note that we keep track of the integration time for BDA purposes
 
     :param config: Configuration of antennas
     :param times: hour angles in radians
-    :param freq: frequencies (Hz] Shape [nchan]
+    :param frequency: frequencies (Hz] Shape [nchan]
     :param weight: weight of a single sample
     :param phasecentre: phasecentre of observation
     :param npol: Number of polarizations
     :param integration_time: Integration time ('auto' or value in s)
-    :returns: Visibility
+    :returns: BlockVisibility
     """
     assert phasecentre is not None, "Must specify phase centre"
     
     if polarisation_frame is None:
         polarisation_frame = correlate_polarisation(config.receptor_frame)
     
-    nch = len(freq)
+    nch = len(frequency)
     ants_xyz = config.data['xyz']
     nants = len(config.data['names'])
     nbaselines = int(nants * (nants - 1) / 2)
@@ -171,20 +170,20 @@ def create_blockvisibility(config: Configuration, times: numpy.array, freq: nump
                 ruvw[iha, a1, a2, :] = (ant_pos[a1, :] - ant_pos[a2, :])
     
     rintegration_time = numpy.full_like(rtimes, integration_time)
-    rchannel_bandwidth = numpy.full_like(freq, channel_bandwidth)
-    vis = BlockVisibility(uvw=ruvw, time=rtimes, frequency=freq, vis=rvis, weight=rweight,
+    rchannel_bandwidth = numpy.full_like(frequency, channel_bandwidth)
+    vis = BlockVisibility(uvw=ruvw, time=rtimes, frequency=frequency, vis=rvis, weight=rweight,
                           integration_time=rintegration_time, channel_bandwidth=rchannel_bandwidth,
                           polarisation_frame=polarisation_frame)
     vis.phasecentre = phasecentre
     vis.configuration = config
-    log.info("create_blockvisibility: %s" % (vis_summary(vis)))
+    log.info("create_visibility: %s" % (vis_summary(vis)))
     assert type(vis) is BlockVisibility, "vis is not a BlockVisibility: %r" % vis
     
     return vis
 
 
 def create_visibility_from_rows(vis: Visibility, rows, makecopy=True) -> Visibility:
-    """ Create a Visibility from selected rows
+    """ Create a Visibility or BlockVisibility from selected rows
 
     :param vis: Visibility
     :param rows: Boolean array of row selction
@@ -192,37 +191,25 @@ def create_visibility_from_rows(vis: Visibility, rows, makecopy=True) -> Visibil
     :returns: Visibility
     """
     
-    assert type(vis) is Visibility, "vis is not a Visibility: %r" % vis
+    if type(vis) is Visibility:
     
-    if makecopy:
-        newvis = copy_visibility(vis)
-        newvis.data = copy.deepcopy(vis.data[rows])
-        return newvis
+        if makecopy:
+            newvis = copy_visibility(vis)
+            newvis.data = copy.deepcopy(vis.data[rows])
+            return newvis
+        else:
+            vis.data = copy.deepcopy(vis.data[rows])
+            return vis
     else:
-        vis.data = copy.deepcopy(vis.data[rows])
-        return vis
 
-
-def create_blockvisibility_from_rows(vis: BlockVisibility, rows, makecopy=True) -> Visibility:
-    """ Create a BlockVisibility from selected rows
-
-    :param vis: BlockVisibility
-    :param rows: Boolean array of row selction
-    :param makecopy: Make a deep copy (True)
-    :returns: Visibility
-    """
-    
-    assert type(vis) is BlockVisibility, "vis is not a BlockVisibility: %r" % vis
-    
-    if makecopy:
-        newvis = copy_visibility(vis)
-        newvis.data = copy.deepcopy(vis.data[rows])
-        
-        return newvis
-    else:
-        vis.data = copy.deepcopy(vis.data[rows])
-        
-        return vis
+        if makecopy:
+            newvis = copy_visibility(vis)
+            newvis.data = copy.deepcopy(vis.data[rows])
+            return newvis
+        else:
+            vis.data = copy.deepcopy(vis.data[rows])
+            
+            return vis
 
 
 def phaserotate_visibility(vis: Visibility, newphasecentre: SkyCoord, tangent=True,

@@ -17,7 +17,9 @@ class TestCalibrationSolvers(unittest.TestCase):
     def setUp(self):
         self.lowcore = create_named_configuration('LOWBD2-CORE')
         self.times = (numpy.pi / 43200.0) * numpy.arange(0.0, 60.0, 30.0)
-        self.frequency = numpy.linspace(1.0e8, 1.1e8, 3)
+        vnchan = 3
+        self.frequency = numpy.linspace(1.0e8, 1.1e8, vnchan)
+        self.channel_bandwidth = numpy.array(vnchan * [self.frequency[1] - self.frequency[0]])
         
     
     def actualSetup(self, sky_pol_frame='stokesIQUV', data_pol_frame='linear', f=[100.0, 50.0, -10.0, 40.0]):
@@ -31,7 +33,8 @@ class TestCalibrationSolvers(unittest.TestCase):
         self.comp = Skycomponent(direction=self.compabsdirection, frequency=self.frequency, flux=self.flux,
                                  polarisation_frame=PolarisationFrame(sky_pol_frame))
         self.vis = create_blockvisibility(self.lowcore, self.times, self.frequency, phasecentre=self.phasecentre,
-                                          weight=1.0, polarisation_frame=PolarisationFrame(data_pol_frame))
+                                     channel_bandwidth=self.channel_bandwidth, weight=1.0,
+                                     polarisation_frame=PolarisationFrame(data_pol_frame))
         self.vis = predict_skycomponent_blockvisibility(self.vis, self.comp)
     
     def test_solve_gaintable_scalar(self):

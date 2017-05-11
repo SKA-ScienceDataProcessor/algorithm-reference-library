@@ -13,7 +13,7 @@ from arl.util.testing_support import create_named_configuration
 
 from arl.visibility.coalesce import convert_blockvisibility_to_visibility
 
-from arl.visibility.operations import *
+from arl.visibility.operations import create_blockvisibility, create_visibility, append_visibility, qa_visibility
 
 
 class TestVisibilityOperations(unittest.TestCase):
@@ -59,27 +59,24 @@ class TestVisibilityOperations(unittest.TestCase):
             selected_vis = create_visibility_from_rows(self.vis, rows, makecopy=makecopy)
             assert selected_vis.nvis == numpy.sum(numpy.array(rows))
             
-    def test_create_blockvisibility(self):
-        self.vis = create_blockvisibility(self.lowcore, self.times, self.frequency,
-                                          channel_bandwidth=self.channel_bandwidth,  phasecentre=self.phasecentre,
-                                          weight=1.0)
+    def test_create_visibility(self):
+        self.vis = create_visibility(self.lowcore, self.times, self.frequency, phasecentre=self.phasecentre,
+                                          weight=1.0, channel_bandwidth=self.channel_bandwidth)
         assert self.vis.nvis == len(self.vis.time)
 
     def test_convert_blockvisibility(self):
-        self.vis = create_blockvisibility(self.lowcore, self.times, self.frequency,
-                                          channel_bandwidth=self.channel_bandwidth,  phasecentre=self.phasecentre,
-                                          weight=1.0)
-        vis, _ = convert_blockvisibility_to_visibility(self.vis)
+        self.vis = create_blockvisibility(self.lowcore, self.times, self.frequency, phasecentre=self.phasecentre,
+                                          weight=1.0, channel_bandwidth=self.channel_bandwidth)
+        vis = convert_blockvisibility_to_visibility(self.vis)
         assert vis.nvis == len(vis.time)
         assert numpy.unique(vis.time).size == self.vis.time.size
 
-    def test_create_blockvisibility_from_rows(self):
-        self.vis = create_blockvisibility(self.lowcore, self.times, self.frequency,
-                                          channel_bandwidth=self.channel_bandwidth,  phasecentre=self.phasecentre,
-                                          weight=1.0)
+    def test_create_visibility_from_rows(self):
+        self.vis = create_visibility(self.lowcore, self.times, self.frequency, phasecentre=self.phasecentre,
+                                          weight=1.0, channel_bandwidth=self.channel_bandwidth)
         rows = self.vis.time > 150.0
         for makecopy in [True, False]:
-            selected_vis = create_blockvisibility_from_rows(self.vis, rows, makecopy=makecopy)
+            selected_vis = create_visibility_from_rows(self.vis, rows, makecopy=makecopy)
             assert selected_vis.nvis == numpy.sum(numpy.array(rows))
 
 
