@@ -13,7 +13,8 @@ from arl.util.testing_support import create_named_configuration
 
 from arl.visibility.coalesce import convert_blockvisibility_to_visibility
 
-from arl.visibility.operations import create_blockvisibility, create_visibility, append_visibility, qa_visibility
+from arl.visibility.operations import create_blockvisibility, create_visibility, append_visibility, qa_visibility, \
+    sum_visibility
 
 
 class TestVisibilityOperations(unittest.TestCase):
