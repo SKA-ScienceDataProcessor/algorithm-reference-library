@@ -31,7 +31,9 @@ def rcal(vis: BlockVisibility, components, **kwargs):
         vis = [vis]
     
     for ichunk, vischunk in enumerate(vis):
-        solve_gain_graph = create_solve_gain_graph(vischunk, components, **kwargs)
+        vispred = copy_visibility(vischunk, zero=True)
+        vispred = predict_skycomponent_blockvisibility(vispred, components, **kwargs)
+        solve_gain_graph = create_solve_gain_graph(vischunk, vispred, **kwargs)
         gt = solve_gain_graph.compute()
         yield gt
 

@@ -23,3 +23,4 @@ scikit-image
 dask
 toolz
 graphviz
+pandoc
