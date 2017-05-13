@@ -310,7 +310,8 @@ def convert_blocks(vis, uvw, wts, times, integration_time, frequency, channel_ba
                     ca2[row] = a2
                     cfrequency[row] = frequency[chan]
                     ctime[row] = times[itime]
-                    cuvw[row, :] = uvw[itime, a2, a1, :] * frequency / constants.c.value
+                    
+                    cuvw[row, :] = uvw[itime, a2, a1, :] * frequency[chan] / constants.c.value
                     
                     cindex.flat[rowgrid[itime, a2, a1, chan]] = row
                     cintegration_time[row] = integration_time[itime]
