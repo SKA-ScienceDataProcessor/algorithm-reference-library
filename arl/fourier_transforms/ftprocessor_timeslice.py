@@ -118,7 +118,7 @@ def predict_timeslice_single(vis, model, **kwargs):
         avis = vis
 
     # Fit and remove best fitting plane for this slice
-    avis, p, q = fit_uvwplane(vis)
+    avis, p, q = fit_uvwplane(avis)
     
     # Calculate nominal and distorted coordinate systems. We will convert the model
     # from nominal to distorted before predicting.

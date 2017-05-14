@@ -11,7 +11,7 @@ from arl.pipelines.generic_dask_graphs import create_generic_blockvisibility_gra
 from arl.pipelines.dask_graphs import create_predict_graph
 from arl.pipelines.functions import *
 from arl.skycomponent.operations import create_skycomponent
-from arl.util.testing_support import create_named_configuration, create_test_image, simulate_gaintable
+from arl.util.testing_support import create_named_configuration, create_test_image
 
 
 class TestPipelinesGenericDask(unittest.TestCase):

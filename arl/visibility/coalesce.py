@@ -64,10 +64,10 @@ def coalesce_visibility(vis: BlockVisibility, **kwargs) -> Visibility:
                                polarisation_frame=vis.polarisation_frame, cindex=cindex,
                                blockvis=vis)
     
-    log.info('coalesce_visibility: Created new Visibility for coalesced data, coalescence factors (t,f) = (%.3f,%.3f)'
+    log.debug('coalesce_visibility: Created new Visibility for coalesced data, coalescence factors (t,f) = (%.3f,%.3f)'
              % (time_coal, frequency_coal))
-    log.info('coalesce_visibility: Maximum coalescence (t,f) = (%d, %d)' % (max_time_coal, max_frequency_coal))
-    log.info('coalesce_visibility: Original %s, coalesced %s' % (vis_summary(vis), vis_summary(coalesced_vis)))
+    log.debug('coalesce_visibility: Maximum coalescence (t,f) = (%d, %d)' % (max_time_coal, max_frequency_coal))
+    log.debug('coalesce_visibility: Original %s, coalesced %s' % (vis_summary(vis), vis_summary(coalesced_vis)))
     
     return coalesced_vis
 
@@ -93,7 +93,7 @@ def convert_blockvisibility_to_visibility(vis: BlockVisibility) -> Visibility:
                                polarisation_frame=vis.polarisation_frame, cindex=cindex,
                                blockvis=vis)
     
-    log.info('convert_visibility: Original %s, converted %s' % (vis_summary(vis), vis_summary(converted_vis)))
+    log.debug('convert_visibility: Original %s, converted %s' % (vis_summary(vis), vis_summary(converted_vis)))
     
     return converted_vis
 
@@ -115,10 +115,10 @@ def decoalesce_visibility(vis, overwrite=False):
     assert vis.cindex is not None, "No reverse index in Visibility"
     
     if overwrite:
-        log.info('decoalesce_visibility: Created new Visibility for decoalesced data')
+        log.debug('decoalesce_visibility: Created new Visibility for decoalesced data')
         decomp_vis = copy_visibility(vis.blockvis)
     else:
-        log.info('decoalesce_visibility: Filled decoalesced data into template')
+        log.debug('decoalesce_visibility: Filled decoalesced data into template')
         decomp_vis = vis.blockvis
     
     vshape = decomp_vis.data['vis'].shape
@@ -129,7 +129,7 @@ def decoalesce_visibility(vis, overwrite=False):
     for i in range(dvis.size // npol):
         decomp_vis.data['vis'].flat[i:i + npol] = vis.data['vis'][vis.cindex[i]]
     
-    log.info('decoalesce_visibility: Coalesced %s, decoalesced %s' % (vis_summary(vis), vis_summary(decomp_vis)))
+    log.debug('decoalesce_visibility: Coalesced %s, decoalesced %s' % (vis_summary(vis), vis_summary(decomp_vis)))
     
     return decomp_vis
 
