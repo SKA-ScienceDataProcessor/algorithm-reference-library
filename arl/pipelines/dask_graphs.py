@@ -41,6 +41,10 @@ from arl.visibility.iterators import vis_timeslice_iter
 from arl.visibility.operations import create_visibility_from_rows, \
     copy_visibility, create_visibility_from_rows, create_visibility
 
+import logging
+
+log = logging.getLogger(__name__)
+
 
 def create_invert_graph(vis, model_graph, dopsf=False, normalize=True, invert_single=invert_2d,
                         iterator=vis_timeslice_iter, **kwargs):
@@ -58,6 +62,7 @@ def create_invert_graph(vis, model_graph, dopsf=False, normalize=True, invert_si
     """
     
     def accumulate_results(results, normalize=normalize):
+        log.debug('invert_graph: accumulating results')
         acc = []
         sumwt = 0.0
         for i, result in enumerate(results):
@@ -94,8 +99,10 @@ def create_deconvolve_graph(dirty_graph, psf_graph, model_graph, **kwargs):
     """
     
     def deconvolve_model_only(dirty, psf, model, **kwargs):
+        log.debug('deconvolve_graph: initiating deconvolution')
         result = deconvolve_cube(dirty, psf, **kwargs)[0]
         result.data += model.data
+        log.debug('deconvolve_graph: finished')
         return result
     
     return delayed(deconvolve_model_only, pure=True)(dirty_graph[0], psf_graph[0], model_graph, **kwargs)
@@ -124,6 +131,7 @@ def create_residual_graph(vis: Visibility, model_graph, iterator=vis_timeslice_i
     """
 
     def accumulate_results(results, rowses):
+        log.debug('residual_graph: accumulating results')
         
         acc = []
         sumwt = 0.0
@@ -165,6 +173,7 @@ def create_solve_gain_graph(vis: BlockVisibility, vispred: Visibility, **kwargs)
     assert type(vispred) == BlockVisibility, "vispred is not a BlockVisibility"
 
     def calibrate_single(vis: BlockVisibility, vispred: BlockVisibility, **kwargs):
+        log.debug('solve_gain_graph: solving for gain')
         return solve_gaintable(vis, vispred, **kwargs)
     
     return delayed(calibrate_single, pure=True)(vis, vispred, **kwargs)
@@ -183,6 +192,7 @@ def create_predict_graph(vis, model, predict_single=predict_timeslice_single, it
     """
 
     def accumulate_results(results):
+        log.debug('predict_graph: accumulating results')
         i = 0
         for rows in iterator(vis, **kwargs):
             vis.data['vis'][rows] += results[i].data['vis']
@@ -220,7 +230,8 @@ def create_solve_image_graph(vis, model_graph,
     
     res_graph = create_residual_graph(vis, model_graph, **kwargs)
     model_graph = create_deconvolve_graph(res_graph, psf_graph, model_graph, **kwargs)
-    
+
+    log.debug('solve_image_graph: defining graph')
     for cycle in range(1, nmajor):
         res_graph = create_residual_graph(vis, model_graph, **kwargs)
         model_graph = create_deconvolve_graph(res_graph, psf_graph, model_graph, **kwargs)

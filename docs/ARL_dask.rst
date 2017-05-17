@@ -1,0 +1,150 @@
+
+Using ARL and dask on Darwin
+****************************
+
+Running ARL and Dask on a single machine is very straightforward. First define a graph and then compute it.
+
+Running on a cluster is quite a bit more complicated, mostly because of the ways that clusters are operated. Darwin
+uses SLURM for scheduling. There is python binding of DRMAA that could in principle be used to queue the processing.
+However in the end, a simple edited job submission script was sufficient.
+
+After quite a bit of experimentation I decided to avoid a virtual environment because of apparent problems using
+those on worker nodes.
+
+* PATH=~/python/bin:$PATH
+* cd $ARL; pip install --prefix=~/python -r requirements.txt
+* pip install --prefix=~/python paramiko
+
+Ensure that the .bashrc file has the same definition as .bash_profile. If not, ssh will give strange errors!
+
+You can start a scheduler and workers by hand. Set the environment variable ARL_DASK_SCHEDULER appropriately::
+
+    export ARL_DASK_SCHEDULER=192.168.2.10:8786
+
+If you do this, remember to start the workers as well. dask-ssh is useful for this::
+
+    c=get_dask_Client(timeout=30)
+    c.scheduler_info()
+
+get_dask_Client will look for a scheduler via the environment variable ARL_DASK_SCHEDULER. It that does not exist, it
+ will start a Client using the default Dask approach.
+
+On darwin, each node has 16 cores, and each core has 4GB. Usually this is insufficient for ARL and so some cores must be
+ not used so the memory can be used by other cores. To run 7 workers and one scheduler on 4 nodes, the SLURM batch
+ file should look something like::
+
+    #!/bin/bash
+    #!
+    #! Dask job script for Darwin (Sandy Bridge, ConnectX3)
+    #! Tim Cornwell
+    #!
+
+    #!#############################################################
+    #!#### Modify the options in this section as appropriate ######
+    #!#############################################################
+
+    #! sbatch directives begin here ###############################
+    #! Name of the job:
+    #SBATCH -J SDP_ARL
+    #! Which project should be charged:
+    #SBATCH -A SKA-SDP
+    #! How many whole nodes should be allocated?
+    #SBATCH --nodes=4
+    #! How many (MPI) tasks will there be in total? (<= nodes*16)
+    #SBATCH --ntasks=8
+    #! How much wallclock time will be required?
+    #SBATCH --time=00:10:00
+    #! What types of email messages do you wish to receive?
+    #SBATCH --mail-type=FAIL
+    #! Uncomment this to prevent the job from being requeued (e.g. if
+    #! interrupted by node failure or system downtime):
+    ##SBATCH --no-requeue
+
+    #! Do not change:
+    #SBATCH -p sandybridge
+
+    #! sbatch directives end here (put any additional directives above this line)
+
+    #! Notes:
+    #! Charging is determined by core number*walltime.
+
+    #! ############################################################
+    #! Modify the settings below to specify the application's environment, location
+    #! and launch method:
+
+    #! Optionally modify the environment seen by the application
+    #! (note that SLURM reproduces the environment at submission irrespective of ~/.bashrc):
+    . /etc/profile.d/modules.sh                # Leave this line (enables the module command)
+    module purge                               # Removes all modules still loaded
+    module load default-impi                   # REQUIRED - loads the basic environment
+
+    #! Set up python
+    echo -e "Running python: `which python`"
+    . $HOME/arlenv/bin/activate
+    export PYTHONPATH=$PYTHONPATH:$ARL
+    echo "PYTHONPATH is ${PYTHONPATH}"
+    module load python
+    echo -e "Running python: `which python`"
+    echo -e "Running dask-scheduler: `which dask-scheduler`"
+
+    #! Work directory (i.e. where the job will run):
+    workdir="$SLURM_SUBMIT_DIR"  # The value of SLURM_SUBMIT_DIR sets workdir to the directory
+                                 # in which sbatch is run.
+
+    #! Are you using OpenMP (NB this is unrelated to OpenMPI)? If so increase this
+    #! safe value to no more than 16:
+    export OMP_NUM_THREADS=1
+
+    #CMD="jupyter nbconvert --execute --ExecutePreprocessor.timeout=3600 --to rst simple-dask.ipynb"
+    #CMD="python dask_minimal.py"
+    CMD="python3 imaging-distributed.py"
+
+    cd $workdir
+    echo -e "Changed directory to `pwd`.\n"
+
+    JOBID=$SLURM_JOB_ID
+
+    if [ "$SLURM_JOB_NODELIST" ]; then
+            #! Create a hostfile:
+            export NODEFILE=`generate_pbs_nodefile`
+            cat $NODEFILE | uniq > hostfile.$JOBID
+            echo -e "\nNodes allocated:\n================"
+            echo `cat hostfile.$JOBID | sed -e 's/\..*$//g'`
+    fi
+
+
+    echo -e "JobID: $JOBID\n======"
+    echo "Time: `date`"
+    echo "Master node: `hostname`"
+    echo "Current directory: `pwd`"
+
+    # dask-worker --preload distributed_setup.py $scheduler &
+    scheduler="`hostname`:8786"
+    echo "About to dask-ssh on:"
+    cat hostfile.$JOBID
+
+    #! dask-ssh related options:
+    #!  --nthreads INTEGER        Number of threads per worker process. Defaults to
+    #!                            number of cores divided by the number of processes
+    #!                            per host.
+    #!  --nprocs INTEGER          Number of worker processes per host.  Defaults to
+    #!                            one.
+    #!  --hostfile PATH           Textfile with hostnames/IP addresses
+    #!
+    dask-ssh --nprocs 2 --nthreads 1 --scheduler-port 8786 --log-directory `pwd` --hostfile hostfile.$JOBID &
+    sleep 10
+
+    #! We need to tell dask Client (inside python) where the scheduler is running
+    scheduler="`hostname`:8786"
+    echo "Scheduler is running at ${scheduler}"
+    export ARL_DASK_SCHEDULER=${scheduler}
+
+    echo "About to execute $CMD"
+
+    eval $CMD
+
+    #! Wait for dash-ssh to be shutdown from the python
+    wait %1
+
+In the command CMD remember to shutdown the Client so the batch script will close the background dask-ssh and then exit.
+
