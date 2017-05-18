@@ -18,4 +18,20 @@ def get_dask_Client(timeout=30):
         return Client(scheduler, timeout=timeout)
     else:
         print("Creating Dask Client")
-        return Client()
+        return Client(timeout=timeout)
+    
+def kill_dask_Scheduler(client):
+    """ Kill the process dask-ssh"""
+    import psutil, signal
+    for proc in psutil.process_iter():
+        # check whether the process name matches
+        if proc.name() == "dask-ssh":
+            proc.send_signal(signal.SIGHUP)
+            
+def kill_dask_Client(c):
+    """ Kill the Client"""
+    c.loop.add_callback(c.scheduler.retire_workers, close_workers=True)
+    c.loop.add_callback(c.scheduler.terminate)
+    c.run_on_scheduler(lambda dask_scheduler: dask_scheduler.loop.stop())
+    c.shutdown()
+

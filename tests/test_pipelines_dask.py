@@ -15,6 +15,7 @@ from arl.pipelines.functions import *
 from arl.skycomponent.operations import create_skycomponent
 from arl.util.testing_support import create_named_configuration, create_test_image, simulate_gaintable
 from arl.fourier_transforms.ftprocessor import invert_timeslice_single
+from arl.pipelines.dask_init import kill_dask_Client, get_dask_Client
 
 
 class TestPipelines_dask(unittest.TestCase):
@@ -46,19 +47,35 @@ class TestPipelines_dask(unittest.TestCase):
                                           channel_bandwidth=self.channel_bandwidth)
         self.predict_graph = create_predict_graph(self.vis, self.image_graph)
         self.vis = self.predict_graph.compute()
-    
+
     def test_invert_graph(self):
         vis = create_visibility(self.lowcore, times=self.times, frequency=self.frequency,
-                                               channel_bandwidth=self.channel_bandwidth,
-                                               phasecentre=self.phasecentre, weight=1,
-                                               polarisation_frame=PolarisationFrame('stokesI'),
-                                               integration_time=1.0)
-        
+                                channel_bandwidth=self.channel_bandwidth,
+                                phasecentre=self.phasecentre, weight=1,
+                                polarisation_frame=PolarisationFrame('stokesI'),
+                                integration_time=1.0)
+    
         make_graph = create_invert_graph(vis, self.image_graph, dopsf=True, invert_single=invert_timeslice_single,
-                                     iterator=vis_timeslice_iter, normalize=True, timeslice='auto', context='')
+                                         iterator=vis_timeslice_iter, normalize=True, timeslice='auto', context='')
         psf, sumwt = make_graph.compute()
         assert numpy.max(psf.data) > 0.0
         export_image_to_fits(psf, "%s/test_pipelines-invert-graph-psf.fits" % (self.dir))
+
+    def test_invert_graph_with_client(self):
+        vis = create_visibility(self.lowcore, times=self.times, frequency=self.frequency,
+                                channel_bandwidth=self.channel_bandwidth,
+                                phasecentre=self.phasecentre, weight=1,
+                                polarisation_frame=PolarisationFrame('stokesI'),
+                                integration_time=1.0)
+    
+        make_graph = create_invert_graph(vis, self.image_graph, dopsf=True, invert_single=invert_timeslice_single,
+                                         iterator=vis_timeslice_iter, normalize=True, timeslice='auto', context='')
+        c=get_dask_Client()
+        future = c.compute(make_graph)
+        psf, sumwt = future.result()
+        assert numpy.max(psf.data) > 0.0
+        export_image_to_fits(psf, "%s/test_pipelines-invert-graph-psf.fits" % (self.dir))
+        c.shutdown()
 
     def test_continuum_imaging_graph_directmodel(self):
         continuum_imaging_graph = delayed(create_continuum_imaging_graph)(self.vis,
