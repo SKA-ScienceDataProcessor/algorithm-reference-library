@@ -6,7 +6,6 @@
 import unittest
 
 from dask import delayed
-
 from arl.calibration.operations import apply_gaintable, create_gaintable_from_blockvisibility
 from arl.image.operations import export_image_to_fits
 from arl.pipelines.dask_graphs import create_continuum_imaging_graph, create_predict_graph, \
@@ -61,6 +60,7 @@ class TestPipelines_dask(unittest.TestCase):
         assert numpy.max(psf.data) > 0.0
         export_image_to_fits(psf, "%s/test_pipelines-invert-graph-psf.fits" % (self.dir))
 
+    @unittest.skip("Does bad things to jenkins build")
     def test_invert_graph_with_client(self):
         vis = create_visibility(self.lowcore, times=self.times, frequency=self.frequency,
                                 channel_bandwidth=self.channel_bandwidth,
