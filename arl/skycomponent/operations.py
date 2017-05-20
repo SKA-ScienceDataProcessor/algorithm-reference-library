@@ -64,6 +64,7 @@ def find_skycomponents(im: Image, fwhm=1.0, threshold=10.0, npixels=5):
     :returns: list of sky components
     """
 
+    assert type(im) == Image
     log.info("find_skycomponents: Finding components in Image by segmentation")
 
     # We use photutils segmentation - this first segments the image
@@ -183,6 +184,7 @@ def apply_beam_to_skycomponent(sc: Skycomponent, beam: Image):
     :returns: List of skycomponents
 
     """
+    assert type(beam) == Image
     single = not isinstance(sc, collections.Iterable)
     
     if single:

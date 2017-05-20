@@ -2,6 +2,11 @@
 Using ARL and dask on Darwin
 ****************************
 
+Dask is a python package for distributed processing:
+
+    http://dask.pydata.org/en/latest/
+    https://github.com/dask/dask-tutorial
+
 Running ARL and Dask on a single machine is very straightforward. First define a graph and then compute it.
 
 Running on a cluster is quite a bit more complicated, mostly because of the ways that clusters are operated. Darwin
