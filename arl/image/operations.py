@@ -324,7 +324,7 @@ def smooth_image(model: Image, width=1.0):
     
     """
     
-    assert type(im) == Image
+    assert type(model) == Image
     kernel = Gaussian2DKernel(width)
     
     cmodel = create_empty_image_like(model)
