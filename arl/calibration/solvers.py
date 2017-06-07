@@ -140,10 +140,11 @@ def solve_antenna_gains_itsubs_scalar(gainshape, x, xwt, niter=30, tol=1e-8, pha
     for iter in range(niter):
         gainLast = gain
         gain, gwt = gain_substitution_scalar(gain, x, xwt)
+        mask = numpy.abs(gain) > 0.0
         if phase_only:
-            mask = numpy.abs(gain) > 0.0
             gain[mask] = gain[mask] / numpy.abs(gain[mask])
-        gain *= numpy.conjugate(gain[refant, ...]) / numpy.abs(gain[refant, ...])
+        angles = numpy.angle(gain)
+        gain *= numpy.exp(-1j*angles)[refant, ...]
         gain = 0.5 * (gain + gainLast)
         change = numpy.max(numpy.abs(gain - gainLast))
         if change < tol:

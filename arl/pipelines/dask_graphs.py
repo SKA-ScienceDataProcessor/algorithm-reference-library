@@ -25,249 +25,172 @@ As well as the specific graphs constructed by functions in this module, there ar
 :mod:`arl.pipelines.generic_dask_graphs`.
 """
 
-import collections
-
 from dask import delayed
 
-from arl.calibration.calibration import calibrate_visibility
 from arl.calibration.operations import apply_gaintable
 from arl.calibration.solvers import solve_gaintable
-from arl.data.data_models import BlockVisibility, Visibility
+
 from arl.data.parameters import get_parameter
-from arl.fourier_transforms.ftprocessor import invert_2d, predict_skycomponent_blockvisibility, \
-    invert_timeslice_single, predict_timeslice_single, normalize_sumwt, residual_image
+from arl.fourier_transforms.ftprocessor import invert_2d, invert_timeslice_single, predict_timeslice_single, \
+    normalize_sumwt, residual_image
 from arl.image.deconvolution import deconvolve_cube, restore_cube
-from arl.visibility.iterators import vis_timeslice_iter
-from arl.visibility.operations import create_visibility_from_rows, \
-    copy_visibility, create_visibility_from_rows, create_visibility
+from arl.image.operations import copy_image
+from arl.visibility.operations import copy_visibility
 
-import logging
 
-def create_invert_graph(vis, model_graph, dopsf=False, normalize=True, invert_single=invert_2d,
-                        iterator=vis_timeslice_iter, **kwargs):
-    """ Create a graph to perform an invert
+def create_invert_graph(vis_graph_list, template_model_graph, dopsf=True, invert_single=invert_timeslice_single,
+                        normalize=True, **kwargs):
+    """ Sum results from invert, weighting appropriately
 
-    The graph is constructed by iteration across the visibility
-
-    :param vis: Visibility or BlockVisibility
-    :param model_graph: Model graph
-    :param dopsf: Make a PSF?
-    :param normalize: Normalise the inversion?
-    :param invert_single: Function to do a single invert
-    :param iterator: visibility iterator
-    :returns: Graph in dask.delayed format
     """
     
-    def accumulate_results(results, normalize=normalize):
-        acc = []
-        sumwt = 0.0
-        for i, result in enumerate(results):
-            if i > 0:
-                acc.data += result[0].data
-                sumwt += result[1]
+    def sum_invert_results(image_list):
+        for i, arg in enumerate(image_list):
+            if i == 0:
+                im = copy_image(arg[0])
+                im.data *= arg[1]
+                sumwt = arg[1]
             else:
-                acc = result[0]
-                sumwt = result[1]
+                im.data += arg[1] * arg[0].data
+                sumwt += arg[1]
         
-        if normalize:
-            acc = normalize_sumwt(acc, sumwt)
-        
-        return acc, sumwt
+        im = normalize_sumwt(im, sumwt)
+        return im, sumwt
     
-    results = list()
+    name = 'dirty'
+    if dopsf:
+        name = 'psf'
+    image_graph_list = list()
+    for vis_graph in vis_graph_list:
+        image_graph_list.append(delayed(invert_single, pure=True, name=name,
+                                        nout=2)(vis_graph, template_model_graph,
+                                                dopsf=dopsf, normalize=normalize,
+                                                **kwargs))
     
-    for rows in iterator(vis, **kwargs):
-        v = copy_visibility(create_visibility_from_rows(vis, rows))
-        result = delayed(invert_single, pure=True)(v, model_graph, dopsf=dopsf, normalize=False, **kwargs)
-        results.append(result)
-    
-    return delayed(accumulate_results, pure=True)(results, normalize)
-
+    return delayed(sum_invert_results)(image_graph_list)
 
 def create_deconvolve_graph(dirty_graph, psf_graph, model_graph, **kwargs):
-    """ Create a graph to perform a deconvolution
+    def deconvolve(dirty, psf, model, **kwargs):
+        result = deconvolve_cube(dirty, psf, **kwargs)
+        result[0].data += model.data
+        return result[0]
+    return delayed(deconvolve, pure=True, nout=2)(dirty_graph[0], psf_graph[0], model_graph, **kwargs)
 
-    :param dirty_graph: Dirty image graph
-    :param psf_graph: PSF graph
-    :param model_graph: Model graph
-    :param kwargs: Other arguments for deconvolve_cube
-    :returns: model graph
+
+def create_residual_graph(vis_graph_list, model_graph, **kwargs):
+    """ Sum results from invert, weighting appropriately
+
     """
     
-    def deconvolve_model_only(dirty, psf, model, **kwargs):
-        result = deconvolve_cube(dirty, psf, **kwargs)[0]
-        result.data += model.data
-        return result
-    
-    return delayed(deconvolve_model_only, pure=True)(dirty_graph[0], psf_graph[0], model_graph, **kwargs)
-
-def create_apply_calibration(vis, gt_graph, **kwargs):
-    """ Apply gaintables to visibility
-    
-    :param vis:
-    :param gt_graph:
-    :param kwargs:
-    :return:
-    """
-    def apply_calibration(vis, gt):
-        return apply_gaintable(vis, gt)
-    
-    return delayed(apply_calibration)(vis, gt_graph, **kwargs)
-
-def create_residual_graph(vis: Visibility, model_graph, iterator=vis_timeslice_iter, **kwargs):
-    """ Create a graph to calculate residual visibility
-
-    :param vt: Visibility
-    :param model_graph: Model graph
-    :param iterator: visibility iterator
-    :param kwargs: Other arguments for ftprocessor.residual
-    :returns: residual visibility graph
-    """
-
-    def accumulate_results(results, rowses):
-        
-        acc = []
-        sumwt = 0.0
-        
-        for i, result in enumerate(results):
-            if i > 0:
-                acc.data += result[1].data
-                sumwt += result[2]
+    def sum_residual(image_list):
+        for i, arg in enumerate(image_list):
+            if i == 0:
+                im = copy_image(arg[1])
+                im.data *= arg[2]
+                sumwt = arg[2]
             else:
-                acc = result[1]
-                sumwt = result[2]
+                im.data += arg[2] * arg[1].data
+                sumwt += arg[2]
         
-        acc = normalize_sumwt(acc, sumwt)
-        return acc, sumwt
+        im = normalize_sumwt(im, sumwt)
+        return im, sumwt
     
-    results = list()
-    rowses = list()
+    image_graph_list = list()
+    for vis_graph in vis_graph_list:
+        image_graph_list.append(delayed(residual_image, pure=True,
+                                        nout=3, name='residual')(vis_graph, model_graph, **kwargs))
     
-    for rows in iterator(vis, **kwargs):
-        rowses.append(rows)
-        visslice = copy_visibility(create_visibility_from_rows(vis, rows))
-        # Each result is tuple: resid vis, resid image, sumwt
-        result = delayed(residual_image, pure=True)(visslice, model_graph, normalize=False, **kwargs)
-        results.append(result)
+    return delayed(sum_residual)(image_graph_list)
     
-    # We return a tuple: resid vis, residual image, sumwt
-    return delayed(accumulate_results, pure=True)(results, rowses)
-
-
-def create_solve_gain_graph(vis: BlockVisibility, vispred: Visibility, **kwargs):
-    """ Calibrate data. Solve and return gaintables
+def create_continuum_imaging_graph(vis_graph_list, model_graph, psf_graph,
+                                   create_residual_graph=create_residual_graph,
+                                   create_deconvolve_graph=create_deconvolve_graph, **kwargs):
+    """Create graph for continuum imaging pipeline
     
-    :param vis: Measured visibility
-    :param kwargs:
-    :return: gaintable
-    """
-
-    assert type(vis) == BlockVisibility, "vis is not a BlockVisibility"
-    assert type(vispred) == BlockVisibility, "vispred is not a BlockVisibility"
-
-    def calibrate_single(vis: BlockVisibility, vispred: BlockVisibility, **kwargs):
-        return solve_gaintable(vis, vispred, **kwargs)
-    
-    return delayed(calibrate_single, pure=True)(vis, vispred, **kwargs)
-
-
-def create_predict_graph(vis, model, predict_single=predict_timeslice_single, iterator=vis_timeslice_iter,
-                         **kwargs):
-    """
-
-    :param vis:
-    :param model:
-    :param predict_single:
-    :param iterator:
+    :param vis_graph_list:
+    :param model_graph:
+    :param psf_graph:
+    :param create_residual_graph:
+    :param create_deconvolve_graph:
     :param kwargs:
     :return:
     """
-
-    def accumulate_results(results):
-        i = 0
-        for rows in iterator(vis, **kwargs):
-            vis.data['vis'][rows] += results[i].data['vis']
-            i += 1
-        return vis
-    
-    results = list()
-    
-    for rows in iterator(vis, **kwargs):
-        visslice = copy_visibility(create_visibility_from_rows(vis, rows))
-        result = delayed(predict_single, pure=True)(visslice, model, **kwargs)
-        results.append(result)
-    return delayed(accumulate_results, pure=True)(results)
-
-
-def create_solve_image_graph(vis, model_graph,
-                             create_residual_graph=create_residual_graph,
-                             create_invert_graph=create_invert_graph,
-                             create_deconvolve_graph=create_deconvolve_graph, **kwargs):
-    """ Create a graph to perform major/minor cycle deconvolution
-    
-
-    :param vt: Visibility
-    :param model_graph: Model or model graph
-    :param residual_graph: Residual graph used for residual visibilities
-    :param invert_graph: Invert graph used for PSF
-    :param iterator: visibility iterator
-    :param first_selfcal: First cycle to selfcal, None for none
-    :param kwargs: Other arguments for ftprocessor.residual
-    :returns: residual visibility graph
-    """
-    psf_graph = create_invert_graph(vis, model_graph, dopsf=True, **kwargs)
-    
     nmajor = get_parameter(kwargs, "nmajor", 5)
     
-    res_graph = create_residual_graph(vis, model_graph, **kwargs)
-    model_graph = create_deconvolve_graph(res_graph, psf_graph, model_graph, **kwargs)
-
-    for cycle in range(1, nmajor):
-        res_graph = create_residual_graph(vis, model_graph, **kwargs)
-        model_graph = create_deconvolve_graph(res_graph, psf_graph, model_graph, **kwargs)
+    res_graph = create_residual_graph(vis_graph_list, model_graph, **kwargs)
+    deconvolve_model_graph = create_deconvolve_graph(res_graph, psf_graph, model_graph, **kwargs)
     
-    return delayed(model_graph)
-
-
-def create_restore_graph(solution_graph, psf_graph, residual_graph, **kwargs):
-    """ Create a graph to restore an image
+    if nmajor > 1:
+        for cycle in range(1, nmajor):
+            res_graph = create_residual_graph(vis_graph_list, deconvolve_model_graph, **kwargs)
+            deconvolve_model_graph = create_deconvolve_graph(res_graph, psf_graph,
+                                                             deconvolve_model_graph, **kwargs)
     
-    :param solution_graph: Graph to make the deconvolve model
-    :param psf_graph: Graph to make the PSF
-    :param residual_graph: Graph to calculate residuals
+    residual_graph = create_residual_graph(vis_graph_list, deconvolve_model_graph, **kwargs)
+    restored_graph = delayed(restore_cube, pure=True, nout=1)(deconvolve_model_graph, psf_graph[0], residual_graph[0],
+                                                              **kwargs)
+    return deconvolve_model_graph, restored_graph, residual_graph
+
+
+def create_selfcal_graph_list(vis_graph_list, model_graph, predict_single=predict_timeslice_single,
+                              **kwargs):
+    """ Create a set of graphs for selfcalibration of a list of visibilities
+    
+    :param vis_graph_list:
+    :param model_graph:
+    :param predict_single:
     :param kwargs:
     :return:
     """
-    return delayed(restore_cube, pure=True)(solution_graph, psf_graph[0], residual_graph[0], **kwargs)
-
-
-def create_continuum_imaging_graph(vis, model_graph,
-                                   invert_residual=invert_timeslice_single,
-                                   predict_residual=predict_timeslice_single, **kwargs):
-    """ Continuum imaging in dask format.
+    def selfcal_single(vis_graph, model_graph):
+        predicted = copy_visibility(vis_graph)
+        predicted = predict_single(predicted, model_graph, **kwargs)
+        gtsol = solve_gaintable(vis_graph, predicted, **kwargs)
+        vis_graph = apply_gaintable(vis_graph, gtsol, inverse=True, **kwargs)
+        return vis_graph
     
-    :param vis: Actual Visibility
-    :param model_graph: graph for the model
-    :param invert_residual: function used in ftprocessor.residual
-    :param predict_residual: function used in ftprocessor.residual
+    return [delayed(selfcal_single, pure=True, nout=1)(v, model_graph, **kwargs) for v in vis_graph_list]
+
+
+def create_ical_graph(vis_graph_list, model_graph, psf_graph,
+                      create_selfcal_graph_list=create_selfcal_graph_list,
+                      create_residual_graph=create_residual_graph,
+                      create_deconvolve_graph=create_deconvolve_graph, **kwargs):
+    """Create graph for ICAL pipeline
+    
+    :param vis_graph_list:
+    :param model_graph:
+    :param psf_graph:
+    :param create_selfcal_graph_list:
+    :param create_residual_graph:
+    :param create_deconvolve_graph:
     :param kwargs:
     :return:
     """
+    first_selfcal = get_parameter(kwargs, "first_selfcal", 2)
     
-    psf_graph = create_invert_graph(vis, model_graph, dopsf=True, normalize=False,
-                                    invert_single=invert_residual, iterator=vis_timeslice_iter,
-                                    timeslice=10.0)
+    if first_selfcal == 0:
+        selfcal_vis_graph_list = create_selfcal_graph_list(vis_graph_list, model_graph)
+        residual_graph = create_residual_graph(selfcal_vis_graph_list, model_graph)
+    else:
+        residual_graph = create_residual_graph(vis_graph_list, model_graph)
     
-    solution_graph = create_solve_image_graph(vis, model_graph=model_graph,
-                                              invert_residual=invert_residual,
-                                              predict_residual=predict_residual,
-                                              iterator=vis_timeslice_iter, **kwargs)
+    deconvolve_model_graph = create_deconvolve_graph(residual_graph, psf_graph, model_graph)
     
-    residual_timeslice_graph = create_residual_graph(vis, model_graph=solution_graph,
-                                                     predict_residual=predict_residual,
-                                                     invert_residual=invert_residual,
-                                                     iterator=vis_timeslice_iter)
+    nmajor = get_parameter(kwargs, "nmajor", 5)
+    if nmajor > 1:
+        for cycle in range(nmajor):
+            
+            if cycle >= first_selfcal:
+                selfcal_vis_graph_list = create_selfcal_graph_list(vis_graph_list, deconvolve_model_graph)
+                residual_graph = create_residual_graph(selfcal_vis_graph_list, deconvolve_model_graph)
+            
+            else:
+                residual_graph = create_residual_graph(vis_graph_list, deconvolve_model_graph)
+            
+            deconvolve_model_graph = create_deconvolve_graph(residual_graph, psf_graph, deconvolve_model_graph)
     
-    return delayed(create_restore_graph(solution_graph=solution_graph, psf_graph=psf_graph,
-                                        residual_graph=residual_timeslice_graph, **kwargs))
-
+    residual_graph = create_residual_graph(selfcal_vis_graph_list, deconvolve_model_graph, **kwargs)
+    restored_graph = delayed(restore_cube, pure=True, nout=1)(deconvolve_model_graph, psf_graph[0], residual_graph[0],
+                                                              **kwargs)
+    return deconvolve_model_graph, restored_graph, residual_graph

@@ -1,5 +1,3 @@
-
-#
 """
 Functions that aid fourier transform processing. These are built on top of the core
 functions in arl.fourier_transforms.
@@ -434,6 +432,8 @@ def create_image_from_visibility(vis: Visibility, **kwargs) -> Image:
     # Image sampling options
     npixel = get_parameter(kwargs, "npixel", 512)
     uvmax = numpy.max((numpy.abs(vis.data['uvw'][:, 0:1])))
+    if type(vis) is BlockVisibility:
+        uvmax *= numpy.max(frequency) / constants.c.to('m/s').value
     log.info("create_image_from_visibility: uvmax = %f wavelengths" % uvmax)
     criticalcellsize = 1.0 / (uvmax * 2.0)
     log.info("create_image_from_visibility: Critical cellsize = %f radians, %f degrees" % (

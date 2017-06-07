@@ -53,6 +53,8 @@ def predict_wslice_single(vis, model, **kwargs):
     else:
         avis = vis
         
+    log.info("predict_wslice_single: predicting using single w slice")
+
     avis.data['vis'] *= 0.0
     tempvis = copy_visibility(vis)
 
@@ -105,6 +107,8 @@ def invert_wslice_single(vis, im, dopsf, normalize=True, **kwargs):
     :param dopsf: Make the psf instead of the dirty image
     :param normalize: Normalize by the sum of weights (True)
     """
+    log.info("invert_wslice_single: predicting using single w slice")
+    
     kwargs['imaginary'] = True
     reWorkimage, sumwt, imWorkimage = invert_2d_base(vis, im, dopsf, normalize=normalize, **kwargs)
 

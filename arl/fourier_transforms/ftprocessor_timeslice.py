@@ -51,7 +51,7 @@ def fit_uvwplane_only(vis):
     return p, q
 
 
-def fit_uvwplane(vis, remove=False):
+def fit_uvwplane(vis, remove=True):
     """ Fit and optionally remove the best fitting plane p u + q v = w
 
     :param vis: visibility to be fitted
@@ -60,12 +60,12 @@ def fit_uvwplane(vis, remove=False):
     nvis = len(vis.data)
     before = numpy.max(numpy.std(vis.w))
     p, q = fit_uvwplane_only(vis)
-    if remove:
-        vis.data['uvw'][:, 2] -= p * vis.u + q * vis.v
     residual = vis.data['uvw'][:, 2] - (p * vis.u + q * vis.v)
     after = numpy.max(numpy.std(residual))
     log.debug('fit_uvwplane: Fit to %d rows reduces rms w from %.1f to %.1f m'
              % (nvis, before, after))
+    if remove:
+        vis.data['uvw'][:, 2] -= p * vis.u + q * vis.v
     return vis, p, q
 
 def invert_timeslice(vis, im, dopsf=False, normalize=True, **kwargs):
@@ -107,7 +107,8 @@ def predict_timeslice_single(vis, model, **kwargs):
     :param model: model image
     :returns: resulting visibility (in place works)
     """
-    
+    log.info("predict_timeslice_single: predicting using single time slice")
+
     inchan, inpol, ny, nx = model.shape
     
     vis.data['vis'] *= 0.0
@@ -140,7 +141,7 @@ def predict_timeslice_single(vis, model, **kwargs):
 
     
     # Now we can do the prediction for this slice using a 2d transform
-    vis = predict_2d(vis, workimage, **kwargs)
+    vis = predict_2d_base(vis, workimage, **kwargs)
     
     return vis
 
@@ -188,9 +189,11 @@ def invert_timeslice_single(vis, im, dopsf, normalize=True, **kwargs):
     else:
         avis = vis
 
+    log.info("invert_timeslice_single: inverting using single time slice")
+
     avis, p, q = fit_uvwplane(avis)
     
-    workimage, sumwt = invert_2d(avis, im, dopsf, normalize=normalize, **kwargs)
+    workimage, sumwt = invert_2d_base(avis, im, dopsf, normalize=normalize, **kwargs)
 
     finalimage = create_empty_image_like(im)
     
