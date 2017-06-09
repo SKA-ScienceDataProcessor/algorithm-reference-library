@@ -16,93 +16,60 @@ subimages and passed to processing by imagerooter, and then the answers are reas
 We  could keep the graph and use it in  other graphs. See the imaging-dask note book for more detail.
 """
 
-import collections
-
 from dask import delayed
 
-from arl.data.data_models import BlockVisibility, GainTable, Image
+from arl.data.data_models import Image
 from arl.image.operations import copy_image
-from arl.visibility.operations import create_visibility_from_rows, \
-    copy_visibility, create_visibility_from_rows
 
 
-def create_generic_blockvisibility_graph(visfunction):
-    
-    """ Wrap a generic function into a graph
+def create_generic_blockvisibility_graph(visfunction, vis_graph_list, additive=True, *args, **kwargs):
+    """ Definition of interface for create_generic_blockvisibility_graph_visfunction.
 
-    This returns a graph for a generic visibility function distributed via the iterator.
-    
-    :param visfunction: Visibility function
-    :returns: function to generate a graph
-   """
-    
-    def create_generic_blockvisibility_graph_visfunction(vis: BlockVisibility,
-                                                         iterator, *args, **kwargs):
-        """ Definition of interface for create_generic_blockvisibility_graph_visfunction.
-        
-        Note that vis cannot be a graph.
-        
-        :param vis:
-        :param iterator:
-        :param args:
-        :param kwargs:
-        :return:
-        """
-    
-        def accumulate_results(results, **kwargs):
-            i = 0
-            for rows in iterator(vis, **kwargs):
-                vis.data['vis'][rows] += results[i].data['vis']
-                i += 1
-            return vis
-
-        results = list()
-
-        for rows in iterator(vis, **kwargs):
-            visslice = copy_visibility(create_visibility_from_rows(vis, rows))
-            results.append(delayed(visfunction, pure=True)(visslice, *args, **kwargs))
-        return delayed(accumulate_results, pure=True)(results, **kwargs)
-
-    return create_generic_blockvisibility_graph_visfunction
-
-def create_generic_image_graph(imagefunction):
-    """ Wrap an image function into a function that returns a graph
-    
-    This works just as Dask.delayed. It returns a function that can be called
-    to return a graph.
-    
-    An iterator, e.g. raster_iter, is used to iterate over the image. The image function is
-    called and the result inserted into the image.
-    
-    :param imagefunction: Function to be turned into a graph
-    :return: function to create a graph
-    
+    :param visfunction: Function to be applied
+    :param vis_graph_list: List of vis_graphs
+    :param additive: Add to existing visibility? (True)
+    :param args:
+    :param kwargs:
+    :return: List of graphs
     """
-
-    def create_generic_image_graph_imagefunction(im: Image, iterator, **kwargs):
-        """ Definition of interface for create_generic_image_graph
-        
-        This generates a graph for imagefunction. Note that im cannot be a graph itself.
-
-        :param im: Image to be processed
-        :param iterator: iterator e.g. raster_iter
-        :param kwargs:
-        :return: graph
-        """
     
-        def accumulate_results(results, **kwargs):
-            newim = copy_image(im)
-            i=0
-            for dpatch in iterator(newim, **kwargs):
-                dpatch.data[...] = results[i].data[...]
-                i+=1
-            return newim
+    def accumulate_results(results, **kwargs):
+        for i, result in enumerate(results):
+            if additive:
+                vis_graph_list[i].data['vis'] += result.data['vis']
+            else:
+                vis_graph_list[i].data['vis'] = result.data['vis']
+        return vis_graph_list
+    
+    results = list()
+    for vis_graph in vis_graph_list:
+        results.append(delayed(visfunction, pure=True)(vis_graph, *args, **kwargs))
+    return [delayed(accumulate_results, pure=True)(results, **kwargs)]
 
-        results = list()
 
-        for dpatch in iterator(im, **kwargs):
-            results.append(delayed(imagefunction(copy_image(dpatch), **kwargs)))
-            
-        return delayed(accumulate_results, pure=True)(results, **kwargs)
+def create_generic_image_graph(imagefunction, im: Image, iterator, **kwargs):
+    """ Definition of interface for create_generic_image_graph
+    
+    This generates a graph for imagefunction. Note that im cannot be a graph itself.
 
-    return create_generic_image_graph_imagefunction
+    :param im: Image to be processed
+    :param iterator: iterator e.g. raster_iter
+    :param kwargs:
+    :return: graph
+    """
+    
+    def accumulate_results(results, **kwargs):
+        newim = copy_image(im)
+        i = 0
+        for dpatch in iterator(newim, **kwargs):
+            dpatch.data[...] = results[i].data[...]
+            i += 1
+        return newim
+    
+    results = list()
+    
+    for dpatch in iterator(im, **kwargs):
+        results.append(delayed(imagefunction(copy_image(dpatch), **kwargs)))
+    
+    return delayed(accumulate_results, pure=True)(results, **kwargs)
+   

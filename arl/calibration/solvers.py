@@ -22,7 +22,7 @@ from arl.calibration.operations import create_gaintable_from_blockvisibility
 log = logging.getLogger(__name__)
 
 def solve_gaintable(vis: BlockVisibility, modelvis: BlockVisibility, phase_only=True, niter=30, tol=1e-8,
-                    crosspol=False) -> GainTable:
+                    crosspol=False, **kwargs) -> GainTable:
     """Solve a gain table to a block visibility
     
     :param vis: BlockVisibility containing the observed data
