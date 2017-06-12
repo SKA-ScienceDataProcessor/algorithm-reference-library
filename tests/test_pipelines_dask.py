@@ -3,25 +3,21 @@
 
 """
 import os
-import numpy
-
 import unittest
 
-from dask import delayed
-
-from astropy.coordinates import SkyCoord
 import astropy.units as u
+import numpy
+from astropy.coordinates import SkyCoord
 
 from arl.data.polarisation import PolarisationFrame
-from arl.data.data_models import BlockVisibility
-
 from arl.fourier_transforms.ftprocessor import invert_timeslice_single
 from arl.image.operations import export_image_to_fits
-from arl.pipelines.dask_graphs import create_continuum_imaging_graph, create_invert_graph, create_predict_graph, \
-    create_ical_graph
-from arl.pipelines.dask_init import get_dask_Client
-from arl.visibility.operations import create_blockvisibility
 from arl.util.testing_support import create_named_configuration, create_test_image
+from arl.visibility.operations import create_blockvisibility
+from dask import delayed
+from graphs.dask_graphs import create_continuum_imaging_pipeline_graph, create_invert_graph, create_predict_graph, \
+    create_ical_pipeline_graph
+from graphs.dask_init import get_dask_Client
 
 
 class TestPipelinesDask(unittest.TestCase):
@@ -69,25 +65,25 @@ class TestPipelinesDask(unittest.TestCase):
         c.shutdown()
     
     def test_continuum_imaging_graph(self):
-        continuum_imaging_graph = create_continuum_imaging_graph(self.vis, model_graph=self.image_graph,
-                                                                 algorithm='hogbom',
-                                                                 niter=1000, fractional_threshold=0.1,
-                                                                 threshold=1.0, nmajor=3, gain=0.1)
+        continuum_imaging_graph = create_continuum_imaging_pipeline_graph(self.vis, model_graph=self.image_graph,
+                                                                          algorithm='hogbom',
+                                                                          niter=1000, fractional_threshold=0.1,
+                                                                          threshold=1.0, nmajor=3, gain=0.1)
         comp = continuum_imaging_graph.compute()
-        export_image_to_fits(comp[0], "%s/test_pipelines-continuum-imaging-dask-comp.fits" % (self.dir))
-        export_image_to_fits(comp[1][0], "%s/test_pipelines-continuum-imaging-dask-residual.fits" % (self.dir))
-        export_image_to_fits(comp[2], "%s/test_pipelines-continuum-imaging-dask-restored.fits" % (self.dir))
+        export_image_to_fits(comp[0], "%s/test_pipelines-continuum-imaging-graphs-comp.fits" % (self.dir))
+        export_image_to_fits(comp[1][0], "%s/test_pipelines-continuum-imaging-graphs-residual.fits" % (self.dir))
+        export_image_to_fits(comp[2], "%s/test_pipelines-continuum-imaging-graphs-restored.fits" % (self.dir))
 
     def test_ical_graph(self):
-        ical_graph = create_ical_graph(self.vis, model_graph=self.image_graph,
-                                       algorithm='hogbom',
-                                       niter=1000, fractional_threshold=0.1,
-                                       threshold=1.0, nmajor=3, first_selfcal=1,
-                                       gain=0.1)
+        ical_graph = create_ical_pipeline_graph(self.vis, model_graph=self.image_graph,
+                                                algorithm='hogbom',
+                                                niter=1000, fractional_threshold=0.1,
+                                                threshold=1.0, nmajor=3, first_selfcal=1,
+                                                gain=0.1)
         comp = ical_graph.compute()
-        export_image_to_fits(comp[0], "%s/test_pipelines-ical-dask-comp.fits" % (self.dir))
-        export_image_to_fits(comp[1][0], "%s/test_pipelines-ical-dask-residual.fits" % (self.dir))
-        export_image_to_fits(comp[2], "%s/test_pipelines-ical-dask-restored.fits" % (self.dir))
+        export_image_to_fits(comp[0], "%s/test_pipelines-ical-graphs-comp.fits" % (self.dir))
+        export_image_to_fits(comp[1][0], "%s/test_pipelines-ical-graphs-residual.fits" % (self.dir))
+        export_image_to_fits(comp[2], "%s/test_pipelines-ical-graphs-restored.fits" % (self.dir))
 
 if __name__ == '__main__':
     unittest.main()

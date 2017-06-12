@@ -10,7 +10,6 @@ from arl.image.operations import export_image_to_fits
 from arl.pipelines.functions import *
 from arl.skycomponent.operations import create_skycomponent
 from arl.util.testing_support import create_named_configuration, create_test_image, create_blockvisibility_iterator
-from arl.visibility.coalesce import coalesce_visibility
 
 
 class TestPipelines(unittest.TestCase):
@@ -39,7 +38,8 @@ class TestPipelines(unittest.TestCase):
                                                         phasecentre=self.phasecentre, weight=1,
                                                         polarisation_frame=PolarisationFrame('linear'),
                                                         integration_time=1.0, number_integrations=1, predict=predict_2d,
-                                                        components=self.comp, phase_error=0.1, amplitude_error=0.01)
+                                                        components=self.comp, phase_error=0.1, amplitude_error=0.01,
+                                                        sleep=1.0)
         
         self.vis = create_blockvisibility(lowcore, times=times, frequency=frequency,
                                      channel_bandwidth=channel_bandwidth,
@@ -57,12 +57,12 @@ class TestPipelines(unittest.TestCase):
             else:
                 vis = append_visibility(vis, subvis)
         
-        return coalesce_visibility(vis)[0]
+        return vis
     
-    # def test_RCAL(self):
-    #     for igt, gt in enumerate(rcal(vis=self.blockvis, components=self.comp)):
-    #         log.info("Chunk %d, gaintable size %.3f (GB)" % (igt, gt.size()))
-    #
+    def test_RCAL(self):
+        for igt, gt in enumerate(rcal(vis=self.blockvis, components=self.comp)):
+            log.info("Chunk %d, gaintable size %.3f (GB)" % (igt, gt.size()))
+    
     def test_ICAL(self):
         icalpipe = ical(vis=self.vis, components=self.comp)
     

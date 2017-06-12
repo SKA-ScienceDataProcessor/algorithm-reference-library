@@ -26,37 +26,6 @@ from arl.calibration.solvers import solve_gaintable
 
 log = logging.getLogger(__name__)
 
-def peel_skycomponent_blockvisibility(vis: BlockVisibility, sc: Skycomponent, remove=True) -> \
-        BlockVisibility:
-    """ Peel a collection of component.
-    
-    Sequentially solve the gain towards each Skycomponent and optionally remove from the visibility.
-
-    :param params:
-    :param vis: Visibility to be processed
-    :param sc: Skycomponent or list of Skycomponents
-    :returns: subtracted visibility and list of GainTables
-    """
-    # TODO: Implement peeling
-    assert type(vis) is BlockVisibility, "vis is not a BlockVisibility: %r" % vis
-
-    if not isinstance(sc, collections.Iterable):
-        sc = [sc]
-
-    gtlist = []
-    for comp in sc:
-        assert comp.shape == 'Point', "Cannot handle shape %s" % comp.shape
-        
-        modelvis = copy_visibility(vis)
-        modelvis = predict_skycomponent_blockvisibility(modelvis, comp)
-        gt = solve_gaintable(vis, modelvis)
-        modelvis = apply_gaintable(modelvis, gt)
-        if remove:
-            vis.data -= modelvis.data
-        gtlist.append(gt)
-        
-    return vis, gtlist
-
 
 def calibrate_blockvisibility(bvt: BlockVisibility, model=None, components=None,
                               predict=predict_2d, **kwargs):

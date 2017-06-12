@@ -8,9 +8,8 @@ import collections
 from arl.fourier_transforms.ftprocessor import predict_2d, invert_2d, predict_skycomponent_blockvisibility, \
     predict_skycomponent_visibility
 from arl.image.solvers import solve_image
-from arl.pipelines.dask_graphs import create_solve_gain_graph
-
 from arl.visibility.operations import *
+from arl.graphs.dask_graphs import create_solve_gain_graph
 
 log = logging.getLogger(__name__)
 

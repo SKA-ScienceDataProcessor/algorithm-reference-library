@@ -41,6 +41,7 @@ See the jupyter note books below:
    arl/imaging-mfs
    arl/rcal
    arl/peeling
+   arl/simple-dask
    arl/imaging-dask
    arl/imaging-spectral
 

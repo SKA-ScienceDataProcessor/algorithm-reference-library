@@ -3,8 +3,11 @@
 
 """
 import unittest
+import numpy
+import logging
 
-from arl.image.msclean import *
+from arl.image.cleaners import create_scalestack, convolve_scalestack, convolve_convolve_scalestack,\
+    argmax
 
 log = logging.getLogger(__name__)
 

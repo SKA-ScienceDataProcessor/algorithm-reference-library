@@ -40,7 +40,7 @@ from arl.data.data_models import Configuration, Image, GainTable, Skycomponent
 from arl.data.polarisation import PolarisationFrame
 from arl.calibration.operations import create_gaintable_from_blockvisibility, apply_gaintable
 from arl.data.parameters import arl_path
-from arl.fourier_transforms.ftprocessor_base import predict_2d, predict_skycomponent_blockvisibility
+from arl.fourier_transforms.ftprocessor import predict_timeslice, predict_skycomponent_blockvisibility
 from arl.image.operations import import_image_from_fits, create_image_from_array, \
     reproject_image, create_empty_image_like
 from arl.util.coordinate_support import *
@@ -579,8 +579,8 @@ def replicate_image(im: Image, polarisation_frame=PolarisationFrame('stokesI'), 
 def create_blockvisibility_iterator(config: Configuration, times: numpy.array, frequency: numpy.array,
                                     channel_bandwidth, phasecentre: SkyCoord, weight: float = 1,
                                     polarisation_frame=PolarisationFrame('stokesI'), integration_time=1.0,
-                                    number_integrations=1, predict=predict_2d, model=None, components=None,
-                                    phase_error=0.0, amplitude_error=0.0):
+                                    number_integrations=1, predict=predict_timeslice, model=None, components=None,
+                                    phase_error=0.0, amplitude_error=0.0, sleep=0.0, **kwargs):
     """ Create a sequence of Visibilities and optionally predicting and coalescing
 
     This is useful mainly for performing large simulations. Do something like::
@@ -605,6 +605,7 @@ def create_blockvisibility_iterator(config: Configuration, times: numpy.array, f
     :param number_integrations: Number of integrations to be created at each time.
     :param model: Model image to be inserted
     :param components: Components to be inserted
+    :param sleep_time: Time to sleep between yields
     :returns: Visibility
 
     """
@@ -614,6 +615,9 @@ def create_blockvisibility_iterator(config: Configuration, times: numpy.array, f
                                      polarisation_frame=polarisation_frame, integration_time=integration_time,
                                      channel_bandwidth=channel_bandwidth)
         
+        if model is not None:
+            vis = predict(vis, model, **kwargs)
+        
         if components is not None:
             vis = predict_skycomponent_blockvisibility(vis, components)
         
@@ -622,6 +626,9 @@ def create_blockvisibility_iterator(config: Configuration, times: numpy.array, f
             gt = create_gaintable_from_blockvisibility(vis)
             gt = simulate_gaintable(gt=gt, phase_error=phase_error, amplitude_error=amplitude_error)
             vis = apply_gaintable(vis, gt)
+        
+        import time
+        time.sleep(sleep)
         
         yield vis
 

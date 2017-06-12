@@ -34,9 +34,7 @@ from arl.data.parameters import get_parameter
 from arl.image.operations import create_image_from_array, copy_image, \
     calculate_image_frequency_moments, calculate_image_from_frequency_moments
 
-from arl.image.hogbom import hogbom
-from arl.image.msclean import msclean
-from arl.image.msmfsclean import msmfsclean
+from arl.image.cleaners import hogbom, msclean, msmfsclean
 
 log = logging.getLogger(__name__)
 

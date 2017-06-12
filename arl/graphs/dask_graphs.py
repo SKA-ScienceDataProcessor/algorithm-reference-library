@@ -114,21 +114,6 @@ def create_residual_graph(vis_graph_list, model_graph, **kwargs):
     return delayed(sum_residual)(image_graph_list)
 
 
-def create_restore_graph(vis_graph_list, model_graph, **kwargs):
-    """Create graph for continuum imaging pipeline
-
-    :param vis_graph_list:
-    :param model_graph:
-    :param kwargs:
-    :return:
-    """
-    
-    psf_graph = create_invert_graph(vis_graph_list, model_graph, dopsf=True, **kwargs)
-    residual_graph = create_residual_graph(vis_graph_list, model_graph, **kwargs)
-    return delayed(restore_cube, pure=True, nout=1)(model_graph, psf_graph[0], residual_graph[0],
-                                                    **kwargs)
-
-
 def create_solve_gain_graph(vis: BlockVisibility, vispred: Visibility, **kwargs):
     """ Calibrate data. Solve and return gaintables
 
@@ -167,13 +152,13 @@ def create_selfcal_graph_list(vis_graph_list, model_graph, predict_single=predic
     return [delayed(selfcal_single, pure=True, nout=1)(v, model_graph, **kwargs) for v in vis_graph_list]
 
 
-def create_continuum_imaging_graph(vis_graph_list, model_graph, **kwargs):
+def create_continuum_imaging_pipeline_graph(vis_graph_list, model_graph, **kwargs):
     """Create graph for continuum imaging pipeline
 
     :param vis_graph_list:
     :param model_graph:
     :param kwargs:
-    :return:
+    :return: graphs of (deconvolved model, residual, restored)
     """
     psf_graph = create_invert_graph(vis_graph_list, model_graph, dopsf=True, **kwargs)
     residual_graph = create_residual_graph(vis_graph_list, model_graph, **kwargs)
@@ -191,7 +176,37 @@ def create_continuum_imaging_graph(vis_graph_list, model_graph, **kwargs):
                                                              **kwargs)
     return delayed((deconvolve_model_graph, residual_graph, restore_graph))
 
-def create_ical_graph(vis_graph_list, model_graph, **kwargs):
+
+def create_spectral_line_imaging_pipeline_graph(vis_graph_list, model_graph, continuum_model_graph=None, **kwargs):
+    """Create graph for spectral line imaging pipeline
+
+    :param vis_graph_list: List of visibility graphs
+    :param model_graph: Spectral line model graph
+    :param continuum_model_graph: Continuum model graph
+    :param kwargs:
+    :return: graphs of (deconvolved model, residual, restored)
+    """
+    if continuum_model_graph is not None:
+        vis_graph_list = create_predict_graph(vis_graph_list, continuum_model_graph, **kwargs)
+        
+    psf_graph = create_invert_graph(vis_graph_list, model_graph, dopsf=True, **kwargs)
+    residual_graph = create_residual_graph(vis_graph_list, model_graph, **kwargs)
+    deconvolve_model_graph = create_deconvolve_graph(residual_graph, psf_graph, model_graph, **kwargs)
+
+    nmajor = get_parameter(kwargs, "nmajor", 5)
+    if nmajor > 1:
+        for cycle in range(1, nmajor):
+            residual_graph = create_residual_graph(vis_graph_list, deconvolve_model_graph, **kwargs)
+            deconvolve_model_graph = create_deconvolve_graph(residual_graph, psf_graph,
+                                                             deconvolve_model_graph, **kwargs)
+
+    residual_graph = create_residual_graph(vis_graph_list, deconvolve_model_graph, **kwargs)
+    restore_graph = delayed(restore_cube, pure=True, nout=1)(deconvolve_model_graph, psf_graph[0], residual_graph[0],
+                                                             **kwargs)
+    return delayed((deconvolve_model_graph, residual_graph, restore_graph))
+
+
+def create_ical_pipeline_graph(vis_graph_list, model_graph, **kwargs):
     """Create graph for ICAL pipeline
     
     :param vis_graph_list:
@@ -230,7 +245,7 @@ def create_ical_graph(vis_graph_list, model_graph, **kwargs):
     return delayed((deconvolve_model_graph, residual_graph, restore_graph))
 
 
-def create_predict_graph(vis_graph_list, model_graph, predict_single=predict_timeslice_single,
+def create_predict_graph(vis_graph_list, model_graph, predict_single=predict_timeslice_single, subtractive=False,
                          **kwargs):
     """
 
@@ -245,7 +260,10 @@ def create_predict_graph(vis_graph_list, model_graph, predict_single=predict_tim
     def accumulate_results(results):
         i = 0
         for result in results:
-            vis_graph_list[i].data['vis'] += result.data['vis']
+            if subtractive:
+                vis_graph_list[i].data['vis'] -= result.data['vis']
+            else:
+                vis_graph_list[i].data['vis'] += result.data['vis']
             i += 1
         return vis_graph_list
     

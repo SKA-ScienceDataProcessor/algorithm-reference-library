@@ -8,7 +8,7 @@ log = logging.getLogger(__name__)
 from distributed import Client
 
 def get_dask_Client(timeout=30):
-    """ Get a dask Client. the dask scheduler defined externally, otherwise create
+    """ Get a graphs Client. the graphs scheduler defined externally, otherwise create
     
     :return:
     """
@@ -21,11 +21,11 @@ def get_dask_Client(timeout=30):
         return Client(timeout=timeout)
     
 def kill_dask_Scheduler(client):
-    """ Kill the process dask-ssh"""
+    """ Kill the process graphs-ssh"""
     import psutil, signal
     for proc in psutil.process_iter():
         # check whether the process name matches
-        if proc.name() == "dask-ssh":
+        if proc.name() == "graphs-ssh":
             proc.send_signal(signal.SIGHUP)
             
 def kill_dask_Client(c):

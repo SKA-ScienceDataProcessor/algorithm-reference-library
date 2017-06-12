@@ -7,10 +7,10 @@ import unittest
 
 from dask import delayed
 
-from arl.pipelines.generic_dask_graphs import create_generic_blockvisibility_graph, create_generic_image_graph
 from arl.pipelines.functions import *
 from arl.skycomponent.operations import create_skycomponent
 from arl.util.testing_support import create_named_configuration, create_test_image
+from arl.graphs.generic_dask_graphs import create_generic_blockvisibility_graph, create_generic_image_graph
 
 
 class TestPipelinesGenericDask(unittest.TestCase):
