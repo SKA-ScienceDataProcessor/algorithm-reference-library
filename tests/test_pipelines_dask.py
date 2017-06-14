@@ -17,7 +17,7 @@ from arl.visibility.operations import create_blockvisibility
 from dask import delayed
 from arl.graphs.dask_graphs import create_continuum_imaging_pipeline_graph, create_invert_graph, create_predict_graph, \
     create_ical_pipeline_graph
-from graphs.dask_init import get_dask_Client
+from arl.graphs.dask_init import get_dask_Client
 
 
 class TestPipelinesDask(unittest.TestCase):
