@@ -15,7 +15,7 @@ from arl.image.operations import export_image_to_fits
 from arl.util.testing_support import create_named_configuration, create_test_image
 from arl.visibility.operations import create_blockvisibility
 from dask import delayed
-from graphs.dask_graphs import create_continuum_imaging_pipeline_graph, create_invert_graph, create_predict_graph, \
+from arl.graphs.dask_graphs import create_continuum_imaging_pipeline_graph, create_invert_graph, create_predict_graph, \
     create_ical_pipeline_graph
 from graphs.dask_init import get_dask_Client
 

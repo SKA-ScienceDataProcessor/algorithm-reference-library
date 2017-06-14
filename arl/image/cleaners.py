@@ -143,7 +143,6 @@ def msclean(dirty, psf, window, gain, thresh, niter, scales, fracthresh):
     pscalescaleshape = [len(scales), len(scales), lpsf.shape[0], lpsf.shape[1]]
     pscalestack = create_scalestack(pscaleshape, scales, norm=True)
     
-    psf_scalestack = convolve_scalestack(pscalestack, numpy.array(lpsf))
     res_scalestack = convolve_scalestack(scalestack, numpy.array(ldirty))
     psf_scalescalestack = convolve_convolve_scalestack(pscalestack, numpy.array(lpsf))
     
