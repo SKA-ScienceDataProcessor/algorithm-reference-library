@@ -19,9 +19,10 @@ def raster_iter(im, facets=2, **kwargs):
     Provided we don't break reference semantics, memory should be conserved
 
     To update the image in place:
-        for r in raster(im, image_parititions=2)::
+        for r in raster(im, facets=2)::
             r.data[...] = numpy.sqrt(r.data[...])
 
+    :param im: Image
     :param facets: Number of image partitions on each axis (2)
     """
 
