@@ -254,7 +254,7 @@ def frac_coord(npixel, kernel_oversampling, p):
     return flx.astype(int), fracx.astype(int)
 
 
-def fixed_kernel_degrid(kernels, vshape, uvgrid, vuvwmap, vfrequencymap, vpolarisationmap):
+def convolutional_degrid(kernels, vshape, uvgrid, vuvwmap, vfrequencymap, vpolarisationmap):
     """Convolutional degridding with frequency and polarisation independent
 
     Takes into account fractional `uv` coordinate values where the GCF
@@ -352,7 +352,7 @@ def gridder(uvgrid, vis, xs, ys, kernel=numpy.ones((1,1)), kernel_ixs=None):
         uvgrid[y:y+gh, x:x+gw] += kernel[tuple(kern_ix)] * v
 
 
-def fixed_kernel_grid(kernels, uvgrid, vis, visweights, vuvwmap, vfrequencymap, vpolarisationmap):
+def convolutional_grid(kernels, uvgrid, vis, visweights, vuvwmap, vfrequencymap, vpolarisationmap):
     """Grid after convolving with frequency and polarisation independent gcf
 
     Takes into account fractional `uv` coordinate values where the GCF

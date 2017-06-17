@@ -29,8 +29,8 @@ from astropy.wcs.utils import pixel_to_skycoord
 from arl.data.data_models import *
 from arl.data.parameters import get_parameter
 from arl.data.polarisation import convert_pol_frame
-from arl.fourier_transforms.convolutional_gridding import fixed_kernel_grid, \
-    fixed_kernel_degrid, weight_gridding, w_beam
+from arl.fourier_transforms.convolutional_gridding import convolutional_grid, \
+    convolutional_degrid, weight_gridding, w_beam
 from arl.fourier_transforms.fft_support import fft, ifft, pad_mid, extract_mid
 from arl.fourier_transforms.ftprocessor_params import get_frequency_map, \
     get_polarisation_map, get_uvw_map, get_kernel_list
@@ -117,8 +117,8 @@ def predict_2d_base(vis, model, **kwargs):
     
     uvgrid = fft((pad_mid(model.data, int(round(padding * nx))) * gcf).astype(dtype=complex))
     
-    avis.data['vis'] = fixed_kernel_degrid(vkernellist, avis.data['vis'].shape, uvgrid,
-                                          vuvwmap, vfrequencymap, vpolarisationmap)
+    avis.data['vis'] = convolutional_degrid(vkernellist, avis.data['vis'].shape, uvgrid,
+                                            vuvwmap, vfrequencymap, vpolarisationmap)
     
     # Now we can shift the visibility from the image frame to the original visibility frame
     svis = shift_vis_to_image(avis, model, tangent=True, inverse=True)
@@ -205,8 +205,8 @@ def invert_2d_base(vis, im, dopsf=False, normalize=True, **kwargs):
     else:
         lvis = svis.vis
     
-    imgridpad, sumwt = fixed_kernel_grid(vkernellist, imgridpad, lvis, svis.data['imaging_weight'], vuvwmap,
-                                         vfrequencymap, vpolarisationmap)
+    imgridpad, sumwt = convolutional_grid(vkernellist, imgridpad, lvis, svis.data['imaging_weight'], vuvwmap,
+                                          vfrequencymap, vpolarisationmap)
     
     # Fourier transform the padded grid to image, multiply by the gridding correction
     # function, and extract the unpadded inner part.

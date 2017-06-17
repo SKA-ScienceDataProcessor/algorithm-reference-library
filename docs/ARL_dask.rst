@@ -9,6 +9,16 @@ Dask is a python package for distributed processing:
 
 Running ARL and Dask on a single machine is very straightforward. First define a graph and then compute it.
 
+A typical graph will flow from a set of input visibility sets to an image or set of images. In the course
+of constructing a graph, we will need to know the data elements and the functions transforming brtween them.
+These are well-modeled in ARL.
+
+Conceptually we can think of one visibility set, which may be decomposed into different subsets in processing, and
+one image, which also may be subsetted for processing.
+
+Using ARL and dask on Darwin
+****************************
+
 Running on a cluster is quite a bit more complicated, mostly because of the ways that clusters are operated. Darwin
 uses SLURM for scheduling. There is python binding of DRMAA that could in principle be used to queue the processing.
 However in the end, a simple edited job submission script was sufficient.

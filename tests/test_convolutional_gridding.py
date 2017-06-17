@@ -107,7 +107,7 @@ class TestConvolutionalGridding(unittest.TestCase):
         vis = numpy.ones([nvis, nchan, npol], dtype='complex')
         visweights = numpy.ones([nchan, npol, nvis])
         uvscale = numpy.ones([2,1])
-        fixed_kernel_grid([kernel], uvgrid, uvcoords, uvscale, vis, visweights)
+        convolutional_grid([kernel], uvgrid, uvcoords, uvscale, vis, visweights)
 
     @unittest.skip("Update to visibility")
     def test_convolutional_degrid(self):
@@ -126,7 +126,7 @@ class TestConvolutionalGridding(unittest.TestCase):
         # Degrid the visibilities
         uvscale = numpy.ones([2,1])
         vshape = [nvis, nchan, npol]
-        vis = fixed_kernel_degrid(kernel, vshape, uvgrid, uvcoords, uvscale)
+        vis = convolutional_degrid(kernel, vshape, uvgrid, uvcoords, uvscale)
         assert vis.shape[0] == nvis
         assert vis.shape[1] == nchan
         assert vis.shape[2] == npol
