@@ -19,7 +19,8 @@ We  could keep the graph and use it in  other graphs. See the imaging-dask note 
 from dask import delayed
 
 from arl.data.data_models import Image
-from arl.image.operations import copy_image
+from arl.image.operations import copy_image, create_empty_image_like
+from arl.image.gather_scatter import image_gather, image_scatter
 
 
 def create_generic_blockvisibility_graph(visfunction, vis_graph_list, additive=True, *args, **kwargs):
@@ -47,7 +48,7 @@ def create_generic_blockvisibility_graph(visfunction, vis_graph_list, additive=T
     return [delayed(accumulate_results, pure=True)(results, **kwargs)]
 
 
-def create_generic_image_graph(imagefunction, im: Image, iterator, **kwargs):
+def create_generic_image_iterator_graph(imagefunction, im: Image, iterator, **kwargs):
     """ Definition of interface for create_generic_image_graph
     
     This generates a graph for imagefunction. Note that im cannot be a graph itself.
@@ -73,3 +74,17 @@ def create_generic_image_graph(imagefunction, im: Image, iterator, **kwargs):
     
     return delayed(accumulate_results, pure=True)(results, **kwargs)
    
+def create_generic_image_graph(image_unary_function, im, facets=4, **kwargs):
+    """ Definition of interface for create_generic_image_graph using scatter/gather
+
+    This generates a graph for imagefunction. Note that im cannot be a graph itself.
+
+    :param im: Image to be processed
+    :param facets: Number of facets on each axis
+    :param kwargs:
+    :return: graph
+    """
+    output = delayed(create_empty_image_like, nout=1, pure=True)(im)
+    scattered = delayed(image_scatter, pure=True, nout=facets**2)(im, facets=facets)
+    result = [delayed(image_unary_function)(s) for s in scattered]
+    return delayed(image_gather, nout=1, pure=True)(result, output, facets=facets)

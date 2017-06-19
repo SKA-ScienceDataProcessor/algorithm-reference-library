@@ -29,12 +29,13 @@ from dask import delayed
 
 from arl.calibration.operations import apply_gaintable
 from arl.calibration.solvers import solve_gaintable
-from arl.data.data_models import Visibility, BlockVisibility
+from arl.data.data_models import Visibility, BlockVisibility, Image
 from arl.data.parameters import get_parameter
 from arl.fourier_transforms.ftprocessor import invert_timeslice_single, predict_timeslice_single, \
     normalize_sumwt, residual_image
 from arl.image.deconvolution import deconvolve_cube, restore_cube
-from arl.image.operations import copy_image
+from arl.image.operations import copy_image, create_empty_image_like
+from arl.image.gather_scatter import image_scatter, image_gather
 from arl.visibility.operations import copy_visibility
 
 
@@ -72,7 +73,7 @@ def create_invert_graph(vis_graph_list, template_model_graph, dopsf=True, invert
 
 def create_deconvolve_graph(dirty_graph, psf_graph, model_graph, **kwargs):
     """Create a graph for deconvolution, adding to the model
-    
+
     :param dirty_graph:
     :param psf_graph:
     :param model_graph:
@@ -86,6 +87,41 @@ def create_deconvolve_graph(dirty_graph, psf_graph, model_graph, **kwargs):
         return result[0]
     
     return delayed(deconvolve, pure=True, nout=2)(dirty_graph[0], psf_graph[0], model_graph, **kwargs)
+
+
+def create_deconvolve_facet_graph(dirty_graph, psf_graph, model_graph, **kwargs):
+    """Create a graph for deconvolution, adding to the model
+    
+    Does deconvolution facet-by-facet. Currently does nothing very sensible about the
+    edges.
+
+    :param dirty_graph:
+    :param psf_graph: Must be the size of a facet
+    :param model_graph: Current model
+    :param facets: Number of facets on each axis
+    :param kwargs:
+    :return:
+    """
+    
+    facets = get_parameter(kwargs, 'facets', 4)
+    
+    def deconvolve(dirty, psf, **kwargs):
+        assert type(dirty) == Image
+        assert type(psf) == Image
+        result = deconvolve_cube(dirty, psf, **kwargs)
+        return result[0]
+    
+    def add_model(output, model):
+        assert type(output) == Image
+        assert type(model) == Image
+        output.data += model.data
+        return output
+    
+    output = delayed(create_empty_image_like, nout=1, pure=True)(model_graph)
+    dirty_graphs = delayed(image_scatter, nout=facets ** 2, pure=True)(dirty_graph[0], facets=facets)
+    results = [delayed(deconvolve)(dg, psf_graph[0], **kwargs) for dg in dirty_graphs]
+    result = delayed(image_gather, nout=1, pure=True)(results, output, facets=facets)
+    return delayed(add_model, nout=1, pure=True)(result, model_graph)
 
 
 def create_residual_graph(vis_graph_list, model_graph, **kwargs):
@@ -152,7 +188,9 @@ def create_selfcal_graph_list(vis_graph_list, model_graph, predict_single=predic
     return [delayed(selfcal_single, pure=True, nout=1)(v, model_graph, **kwargs) for v in vis_graph_list]
 
 
-def create_continuum_imaging_pipeline_graph(vis_graph_list, model_graph, **kwargs):
+def create_continuum_imaging_pipeline_graph(vis_graph_list, model_graph,
+                                            create_deconvolve_graph=create_deconvolve_graph,
+                                            **kwargs):
     """Create graph for continuum imaging pipeline
 
     :param vis_graph_list:
@@ -177,7 +215,9 @@ def create_continuum_imaging_pipeline_graph(vis_graph_list, model_graph, **kwarg
     return delayed((deconvolve_model_graph, residual_graph, restore_graph))
 
 
-def create_spectral_line_imaging_pipeline_graph(vis_graph_list, model_graph, continuum_model_graph=None, **kwargs):
+def create_spectral_line_imaging_pipeline_graph(vis_graph_list, model_graph, continuum_model_graph=None,
+                                                create_deconvolve_graph=create_deconvolve_graph,
+                                                **kwargs):
     """Create graph for spectral line imaging pipeline
 
     :param vis_graph_list: List of visibility graphs
@@ -206,7 +246,9 @@ def create_spectral_line_imaging_pipeline_graph(vis_graph_list, model_graph, con
     return delayed((deconvolve_model_graph, residual_graph, restore_graph))
 
 
-def create_ical_pipeline_graph(vis_graph_list, model_graph, **kwargs):
+def create_ical_pipeline_graph(vis_graph_list, model_graph,
+                               create_deconvolve_graph=create_deconvolve_graph,
+                               **kwargs):
     """Create graph for ICAL pipeline
     
     :param vis_graph_list:
@@ -216,6 +258,7 @@ def create_ical_pipeline_graph(vis_graph_list, model_graph, **kwargs):
     """
     first_selfcal = get_parameter(kwargs, "first_selfcal", 2)
     
+    selfcal_vis_graph_list = None
     psf_graph = create_invert_graph(vis_graph_list, model_graph, dopsf=True, **kwargs)
     if first_selfcal == 0:
         selfcal_vis_graph_list = create_selfcal_graph_list(vis_graph_list, model_graph)
@@ -238,10 +281,13 @@ def create_ical_pipeline_graph(vis_graph_list, model_graph, **kwargs):
             
             deconvolve_model_graph = create_deconvolve_graph(residual_graph, psf_graph, deconvolve_model_graph,
                                                              **kwargs)
-    
-    residual_graph = create_residual_graph(vis_graph_list, deconvolve_model_graph, **kwargs)
-    restore_graph = delayed(restore_cube, pure=True, nout=1)(deconvolve_model_graph, psf_graph[0], residual_graph[0],
-                                                             **kwargs)
+    if selfcal_vis_graph_list is not None:
+        residual_graph = create_residual_graph(selfcal_vis_graph_list, deconvolve_model_graph, **kwargs)
+    else:
+        residual_graph = create_residual_graph(vis_graph_list, deconvolve_model_graph, **kwargs)
+
+    restore_graph = delayed(restore_cube, pure=True, nout=1)(deconvolve_model_graph, psf_graph[0],
+                                                             residual_graph[0], **kwargs)
     return delayed((deconvolve_model_graph, residual_graph, restore_graph))
 
 

@@ -10,7 +10,8 @@ from dask import delayed
 from arl.pipelines.functions import *
 from arl.skycomponent.operations import create_skycomponent
 from arl.util.testing_support import create_named_configuration, create_test_image
-from arl.graphs.generic_dask_graphs import create_generic_blockvisibility_graph, create_generic_image_graph
+from arl.graphs.generic_dask_graphs import create_generic_blockvisibility_graph, create_generic_image_graph, \
+    create_generic_image_iterator_graph
 
 
 class TestPipelinesGenericDask(unittest.TestCase):
@@ -35,6 +36,7 @@ class TestPipelinesGenericDask(unittest.TestCase):
         self.image = create_test_image(frequency=self.frequency, phasecentre=self.phasecentre,
                                        cellsize=0.001,
                                        polarisation_frame=PolarisationFrame('stokesI'))
+        self.image.data[self.image.data<0.0]=0.0
 
         self.image_graph = delayed(create_test_image)(frequency=self.frequency, phasecentre=self.phasecentre,
                                                       cellsize=0.001, polarisation_frame=PolarisationFrame('stokesI'))
@@ -49,14 +51,22 @@ class TestPipelinesGenericDask(unittest.TestCase):
         
         assert numpy.max(numpy.abs(self.blockvis[0].vis)) > 0.0
 
-    def test_create_generic_image_graph(self):
-
+    def test_create_generic_image_iterator_graph(self):
         def imagerooter(im, **kwargs):
             im.data = numpy.sqrt(numpy.abs(im.data))
             return im
-        root = create_generic_image_graph(imagerooter, self.image, raster_iter, facets=16).compute()
-        numpy.testing.assert_array_almost_equal_nulp(root.data**2, numpy.abs(self.image.data), 7)
     
+        root = create_generic_image_iterator_graph(imagerooter, self.image, raster_iter, facets=16).compute()
+        numpy.testing.assert_array_almost_equal_nulp(root.data ** 2, numpy.abs(self.image.data), 7)
+
+    def test_create_generic_image_graph(self):
+        def imagerooter(im, **kwargs):
+            im.data = numpy.sqrt(numpy.abs(im.data))
+            return im
+    
+        root = create_generic_image_graph(imagerooter, self.image, facets=16).compute()
+        numpy.testing.assert_array_almost_equal_nulp(root.data ** 2, numpy.abs(self.image.data), 7)
+
 
 if __name__ == '__main__':
     unittest.main()
