@@ -242,29 +242,29 @@ def advise_wide_field(vis, delA=0.02, oversampling_synthesised_beam=3.0, guard_b
     w_sampling_image = numpy.sqrt(2.0 * delA) / (numpy.pi * image_fov ** 2)
     log.info("advice_wide_field: W sampling for full image = %.1f (wavelengths)" % (w_sampling_image))
 
-    w_sampling_primary_beam = numpy.sqrt(2.0 * delA) / (numpy.pi * primary_beam_fov ** 2)
-    log.info("advice_wide_field: W sampling for primary beam = %.1f (wavelengths)" % (w_sampling_primary_beam))
-
     w_sampling_facet = numpy.sqrt(2.0 * delA) / (numpy.pi * facet_fov ** 2)
     log.info("advice_wide_field: W sampling for facet = %.1f (wavelengths)" % (w_sampling_image))
 
-    time_sampling_image =  86400.0 * w_sampling_image / (numpy.pi * maximum_baseline)
-    log.info("advice_wide_field: Time sampling for image = %.1f (s)" % (time_sampling_image))
+    w_sampling_primary_beam = numpy.sqrt(2.0 * delA) / (numpy.pi * primary_beam_fov ** 2)
+    log.info("advice_wide_field: W sampling for primary beam = %.1f (wavelengths)" % (w_sampling_primary_beam))
 
-    time_sampling_primary_beam =  86400.0 * w_sampling_primary_beam / (numpy.pi * maximum_baseline)
-    log.info("advice_wide_field: Time sampling for primary beam = %.1f (s)" % (time_sampling_primary_beam))
+    time_sampling_image =  86400.0 * w_sampling_image / (numpy.pi * maximum_baseline)
+    log.info("advice_wide_field: Time sampling for full image = %.1f (s)" % (time_sampling_image))
 
     time_sampling_facet =  86400.0 * w_sampling_facet / (numpy.pi * maximum_baseline)
     log.info("advice_wide_field: Time sampling for facet = %.1f (s)" % (time_sampling_facet))
 
-    freq_sampling_image =  numpy.max(vis.frequency) * w_sampling_image / (numpy.pi * maximum_baseline)
-    log.info("advice_wide_field: Frequency sampling for image = %.1f (Hz)" % (freq_sampling_image))
+    time_sampling_primary_beam =  86400.0 * w_sampling_primary_beam / (numpy.pi * maximum_baseline)
+    log.info("advice_wide_field: Time sampling for primary beam = %.1f (s)" % (time_sampling_primary_beam))
 
-    freq_sampling_primary_beam =  numpy.max(vis.frequency) * w_sampling_primary_beam / (numpy.pi * maximum_baseline)
-    log.info("advice_wide_field: Frequency sampling for primary beam = %.1f (Hz)" % (freq_sampling_primary_beam))
+    freq_sampling_image =  numpy.max(vis.frequency) * w_sampling_image / (numpy.pi * maximum_baseline)
+    log.info("advice_wide_field: Frequency sampling for full image = %.1f (Hz)" % (freq_sampling_image))
 
     freq_sampling_facet =  numpy.max(vis.frequency) * w_sampling_facet / (numpy.pi * maximum_baseline)
     log.info("advice_wide_field: Frequency sampling for facet = %.1f (Hz)" % (freq_sampling_facet))
+
+    freq_sampling_primary_beam =  numpy.max(vis.frequency) * w_sampling_primary_beam / (numpy.pi * maximum_baseline)
+    log.info("advice_wide_field: Frequency sampling for primary beam = %.1f (Hz)" % (freq_sampling_primary_beam))
 
     return locals()
 

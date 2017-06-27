@@ -15,7 +15,7 @@ from dask import delayed
 from arl.calibration.operations import apply_gaintable, create_gaintable_from_blockvisibility
 from arl.data.polarisation import PolarisationFrame
 from arl.fourier_transforms.ftprocessor import create_image_from_visibility, predict_skycomponent_blockvisibility, \
-    invert_timeslice_single, predict_timeslice_single
+    invert_wprojection, predict_wprojection
 from arl.graphs.dask_graphs import create_invert_facet_graph, create_predict_facet_graph, \
     create_zero_vis_graph_list, create_subtract_vis_graph_list, create_continuum_imaging_pipeline_graph, \
     create_ical_pipeline_graph, create_deconvolve_facet_graph, create_invert_graph, \
@@ -103,8 +103,9 @@ class TestImagingDask(unittest.TestCase):
                                                  flux=100.0)
         zero_vis_graph_list = create_zero_vis_graph_list(self.vis_graph_list)
         predicted_vis_graph_list = create_predict_facet_graph(zero_vis_graph_list, flux_model_graph,
-                                                              invert_single=invert_timeslice_single,
-                                                              predict_single=predict_timeslice_single,
+                                                              invert_single=invert_wprojection,
+                                                              predict_single=predict_wprojection,
+                                                              wstep=25,
                                                               facets=self.facets)
         residual_vis_graph_list = create_subtract_vis_graph_list(self.vis_graph_list,
                                                                  predicted_vis_graph_list)
@@ -124,6 +125,8 @@ class TestImagingDask(unittest.TestCase):
         for facets in [1, 2, 4]:
             dirty_graph = create_invert_facet_graph(self.vis_graph_list, self.model_graph,
                                                     dopsf=False, normalize=True,
+                                                    invert_single=invert_wprojection,
+                                                    wstep=25,
                                                     facets=facets, padding=2 * facets)
             
             dirty = dirty_graph.compute()
@@ -147,6 +150,9 @@ class TestImagingDask(unittest.TestCase):
                                                  npixel=self.npixel, flux=100.0)
         for facets in [1, 2, 4]:
             dirty_graph = create_residual_facet_graph(self.vis_graph_list, self.model_graph, facets=facets,
+                                                      predict_single=predict_wprojection,
+                                                      invert_single=invert_wprojection,
+                                                      wstep=25,
                                                       padding=2 * facets)
             
             dirty = dirty_graph.compute()
@@ -170,7 +176,9 @@ class TestImagingDask(unittest.TestCase):
         for facets in [1, 2, 4]:
             model_graph = delayed(self.get_LSM)(self.vis_graph_list[self.nvis // 2],
                                                 npixel=self.npixel, flux=0.0)
-            dirty_graph = create_invert_facet_graph(self.vis_graph_list, model_graph, facets=facets,
+            dirty_graph = create_invert_facet_graph(self.vis_graph_list, model_graph,
+                                                    invert_single=invert_wprojection,
+                                                    wstep=25,
                                                     dopsf=False)
             
             export_image_to_fits(dirty_graph.compute()[0],
@@ -178,7 +186,9 @@ class TestImagingDask(unittest.TestCase):
                                  (self.results_dir, facets))
             psf_model_graph = delayed(self.get_LSM)(self.vis_graph_list[self.nvis // 2],
                                                     npixel=self.npixel // facets, flux=0.0)
-            psf_graph = create_invert_graph(self.vis_graph_list, psf_model_graph, facets=facets,
+            psf_graph = create_invert_graph(self.vis_graph_list, psf_model_graph,
+                                            invert_single=invert_wprojection,
+                                            wstep=25,
                                             dopsf=True)
             export_image_to_fits(psf_graph.compute()[0],
                                  '%s/test_imaging_dask_deconvolution_facets%d.psf.fits' %
@@ -208,11 +218,13 @@ class TestImagingDask(unittest.TestCase):
         continuum_imaging_graph = \
             create_continuum_imaging_pipeline_graph(self.vis_graph_list, model_graph=self.model_graph,
                                                     c_deconvolve_graph=create_deconvolve_facet_graph,
-                                                    c_invert_graph=create_invert_facet_graph,
-                                                    c_residual_graph=create_residual_facet_graph,
-                                                    predict_single=predict_timeslice_single,
-                                                    invert_single=invert_timeslice_single, facets=2,
+                                                    c_invert_graph=create_invert_graph,
+                                                    c_residual_graph=create_residual_graph,
+                                                    predict_single=predict_wprojection,
+                                                    invert_single=invert_wprojection,
+                                                    facets=2,
                                                     niter=1000, fractional_threshold=0.1,
+                                                    wstep=25,
                                                     threshold=2.0, nmajor=3, gain=0.1)
         clean, residual, restored = continuum_imaging_graph.compute()
         export_image_to_fits(clean, '%s/test_imaging_dask_continuum_imaging_pipeline_clean.fits' % (self.results_dir))
@@ -231,12 +243,13 @@ class TestImagingDask(unittest.TestCase):
             create_ical_pipeline_graph(self.vis_graph_list, model_graph=self.model_graph,
                                        c_deconvolve_graph=create_deconvolve_facet_graph,
                                        c_invert_graph=create_invert_graph,
-                                       c_residual_graph=create_residual_facet_graph,
-                                       predict_single=predict_timeslice_single,
-                                       invert_single=invert_timeslice_single, facets=2,
+                                       c_residual_graph=create_residual_graph,
+                                       predict_single=predict_wprojection,
+                                       invert_single=invert_wprojection, facets=2,
                                        niter=1000, fractional_threshold=0.1,
-                                       threshold=2.0, nmajor=1,
-                                       gain=0.1, first_selfcal=4)
+                                       threshold=2.0, nmajor=2,
+                                       wstep=25,
+                                       gain=0.1, first_selfcal=1)
         clean, residual, restored = ical_graph.compute()
         export_image_to_fits(clean, '%s/test_imaging_dask_ical_pipeline_clean.fits' % (self.results_dir))
         export_image_to_fits(residual[0], '%s/test_imaging_dask_ical_pipeline_residual.fits' % (self.results_dir))
