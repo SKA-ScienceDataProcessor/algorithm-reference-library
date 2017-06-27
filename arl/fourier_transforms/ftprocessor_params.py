@@ -193,7 +193,7 @@ def get_kernel_list(vis: Visibility, im, **kwargs):
     
     return kernelname, gcf, kernel_list
 
-def advise_wide_field(vis, delA=0.02, oversampling_synthesised_beam=3.0, guard_band_image=6.0):
+def advise_wide_field(vis, delA=0.02, oversampling_synthesised_beam=3.0, guard_band_image=6.0, facets=1.0):
     """ Advise on parameters for wide field imaging.
     
     For example::
@@ -223,6 +223,9 @@ def advise_wide_field(vis, delA=0.02, oversampling_synthesised_beam=3.0, guard_b
     image_fov = primary_beam_fov * guard_band_image
     log.info("advise_wide_field: Image field of view %s" % (rad_and_deg(image_fov)))
 
+    facet_fov = primary_beam_fov * guard_band_image / facets
+    log.info("advise_wide_field: Facet field of view %s" % (rad_and_deg(facet_fov)))
+
     synthesized_beam = 1.0 / (maximum_baseline)
     log.info("advise_wide_field: Synthesized beam %s" % (rad_and_deg(synthesized_beam)))
 
@@ -236,12 +239,33 @@ def advise_wide_field(vis, delA=0.02, oversampling_synthesised_beam=3.0, guard_b
     # We will assume that the constraint holds at one quarter the entire FOV i.e. that
     # the full field of view includes the entire primary beam
 
+    w_sampling_image = numpy.sqrt(2.0 * delA) / (numpy.pi * image_fov ** 2)
+    log.info("advice_wide_field: W sampling for full image = %.1f (wavelengths)" % (w_sampling_image))
+
     w_sampling_primary_beam = numpy.sqrt(2.0 * delA) / (numpy.pi * primary_beam_fov ** 2)
     log.info("advice_wide_field: W sampling for primary beam = %.1f (wavelengths)" % (w_sampling_primary_beam))
 
-    w_sampling_image = numpy.sqrt(2.0 * delA) / (numpy.pi * image_fov ** 2)
-    log.info("advice_wide_field: W sampling for full image = %.1f (wavelengths)" % (w_sampling_image))
-    
+    w_sampling_facet = numpy.sqrt(2.0 * delA) / (numpy.pi * facet_fov ** 2)
+    log.info("advice_wide_field: W sampling for facet = %.1f (wavelengths)" % (w_sampling_image))
+
+    time_sampling_image =  86400.0 * w_sampling_image / (numpy.pi * maximum_baseline)
+    log.info("advice_wide_field: Time sampling for image = %.1f (s)" % (time_sampling_image))
+
+    time_sampling_primary_beam =  86400.0 * w_sampling_primary_beam / (numpy.pi * maximum_baseline)
+    log.info("advice_wide_field: Time sampling for primary beam = %.1f (s)" % (time_sampling_primary_beam))
+
+    time_sampling_facet =  86400.0 * w_sampling_facet / (numpy.pi * maximum_baseline)
+    log.info("advice_wide_field: Time sampling for facet = %.1f (s)" % (time_sampling_facet))
+
+    freq_sampling_image =  numpy.max(vis.frequency) * w_sampling_image / (numpy.pi * maximum_baseline)
+    log.info("advice_wide_field: Frequency sampling for image = %.1f (Hz)" % (freq_sampling_image))
+
+    freq_sampling_primary_beam =  numpy.max(vis.frequency) * w_sampling_primary_beam / (numpy.pi * maximum_baseline)
+    log.info("advice_wide_field: Frequency sampling for primary beam = %.1f (Hz)" % (freq_sampling_primary_beam))
+
+    freq_sampling_facet =  numpy.max(vis.frequency) * w_sampling_facet / (numpy.pi * maximum_baseline)
+    log.info("advice_wide_field: Frequency sampling for facet = %.1f (Hz)" % (freq_sampling_facet))
+
     return locals()
 
 def rad_and_deg(x):

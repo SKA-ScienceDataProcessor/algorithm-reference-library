@@ -7,7 +7,6 @@ Functions that define and manipulate images. Images are just data and a World Co
 import copy
 import warnings
 
-import matplotlib.pyplot as plt
 from astropy.convolution import Gaussian2DKernel, convolve
 from astropy.io import fits
 from astropy.wcs import WCS
@@ -267,7 +266,8 @@ def show_image(im: Image, fig=None, title: str = '', pol=0, chan=0, cm='rainbow'
     :param title:
     :returns:
     """
-    
+
+    import matplotlib.pyplot as plt
     assert type(im) == Image
     if not fig:
         fig = plt.figure()

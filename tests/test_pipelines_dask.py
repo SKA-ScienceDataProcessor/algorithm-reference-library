@@ -66,19 +66,17 @@ class TestPipelinesDask(unittest.TestCase):
     
     def test_continuum_imaging_graph(self):
         continuum_imaging_graph = create_continuum_imaging_pipeline_graph(self.vis, model_graph=self.image_graph,
-                                                                          algorithm='hogbom',
-                                                                          niter=1000, fractional_threshold=0.1,
-                                                                          threshold=1.0, nmajor=3, gain=0.1)
+                                                                          algorithm='hogbom', niter=1000,
+                                                                          fractional_threshold=0.1, threshold=1.0,
+                                                                          nmajor=3, gain=0.1)
         comp = continuum_imaging_graph.compute()
         export_image_to_fits(comp[0], "%s/test_pipelines-continuum-imaging-graphs-comp.fits" % (self.dir))
         export_image_to_fits(comp[1][0], "%s/test_pipelines-continuum-imaging-graphs-residual.fits" % (self.dir))
         export_image_to_fits(comp[2], "%s/test_pipelines-continuum-imaging-graphs-restored.fits" % (self.dir))
 
     def test_ical_graph(self):
-        ical_graph = create_ical_pipeline_graph(self.vis, model_graph=self.image_graph,
-                                                algorithm='hogbom',
-                                                niter=1000, fractional_threshold=0.1,
-                                                threshold=1.0, nmajor=3, first_selfcal=1,
+        ical_graph = create_ical_pipeline_graph(self.vis, model_graph=self.image_graph, algorithm='hogbom', niter=1000,
+                                                fractional_threshold=0.1, threshold=1.0, nmajor=3, first_selfcal=1,
                                                 gain=0.1)
         comp = ical_graph.compute()
         export_image_to_fits(comp[0], "%s/test_pipelines-ical-graphs-comp.fits" % (self.dir))

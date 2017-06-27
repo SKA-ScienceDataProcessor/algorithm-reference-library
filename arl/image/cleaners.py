@@ -37,8 +37,6 @@ def hogbom(dirty, psf, window, gain, thresh, niter, fracthresh):
     res = numpy.array(dirty)
     pmax = psf.max()
     assert pmax > 0.0
-    if window is True:
-        window = 1.0
     log.info("hogbom: Max abs in dirty Image = %.6f" % numpy.fabs(res).max())
     for i in range(niter):
         if window is not None:
@@ -48,7 +46,7 @@ def hogbom(dirty, psf, window, gain, thresh, niter, fracthresh):
         mval = res[mx, my] * gain / pmax
         comps[mx, my] += mval
         a1o, a2o = overlapIndices(dirty, psf, mx, my)
-        if i % (niter // 10) == 0:
+        if niter < 10 or i % (niter // 10) == 0:
             log.info("hogbom: Minor cycle %d, peak %s at [%d, %d]" % (i, res[mx, my], mx, my))
         res[a1o[0]:a1o[1], a1o[2]:a1o[3]] -= psf[a2o[0]:a2o[1], a2o[2]:a2o[3]] * mval
         if numpy.fabs(res).max() < absolutethresh:
@@ -176,7 +174,7 @@ def msclean(dirty, psf, window, gain, thresh, niter, scales, fracthresh):
         mx, my, mscale = find_max_abs_stack(res_scalestack, windowstack, coupling_matrix)
         # Find the values to subtract, accounting for the coupling matrix
         mval = res_scalestack[mscale, mx, my] / coupling_matrix[mscale, mscale]
-        if i % (niter // 10) == 0:
+        if niter < 10 or i % (niter // 10) == 0:
             log.info("msclean: Minor cycle %d, peak %s at [%d, %d, %d]" % \
                      (i, res_scalestack[:, mx, my], mx, my, mscale))
         if numpy.fabs(mval) < absolutethresh:
@@ -483,7 +481,7 @@ def msmfsclean(dirty, psf, window, gain, thresh, niter, scales, fracthresh, find
         
         # Report on progress
         raw_mval = smresidual[mscale, :, mx, my]
-        if i % (niter // 10) == 0:
+        if niter < 10 or i % (niter // 10) == 0:
             log.info("msmfsclean: Minor cycle %d, peak %s at [%d, %d, %d]" % (i, mval, mx, my, mscale))
         
         # Are we ready to stop yet?

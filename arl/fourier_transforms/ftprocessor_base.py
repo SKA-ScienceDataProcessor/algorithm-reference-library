@@ -187,7 +187,10 @@ def invert_2d_base(vis, im, dopsf=False, normalize=True, **kwargs):
         avis = vis
         
     svis = copy_visibility(avis)
-    
+
+    if dopsf:
+        svis.data['vis'] = numpy.ones_like(svis.data['vis'])
+
     # Shift
     svis = shift_vis_to_image(svis, im, tangent=True, inverse=False)
     
@@ -200,12 +203,9 @@ def invert_2d_base(vis, im, dopsf=False, normalize=True, **kwargs):
     
     # Optionally pad to control aliasing
     imgridpad = numpy.zeros([nchan, npol, int(round(padding * ny)), int(round(padding * nx))], dtype='complex')
-    if dopsf:
-        lvis = numpy.ones_like(svis.data['vis'])
-    else:
-        lvis = svis.vis
-    
-    imgridpad, sumwt = convolutional_grid(vkernellist, imgridpad, lvis, svis.data['imaging_weight'], vuvwmap,
+    imgridpad, sumwt = convolutional_grid(vkernellist, imgridpad, svis.data['vis'],
+                                          svis.data['imaging_weight'],
+                                          vuvwmap,
                                           vfrequencymap, vpolarisationmap)
     
     # Fourier transform the padded grid to image, multiply by the gridding correction

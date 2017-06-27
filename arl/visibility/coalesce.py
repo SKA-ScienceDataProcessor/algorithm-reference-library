@@ -34,6 +34,8 @@ def coalesce_visibility(vis: BlockVisibility, **kwargs) -> Visibility:
     Coalesce by baseline-dependent averaging (optional). The number of integrations averaged goes as the ratio of the
     maximum possible baseline length to that for this baseline. This number can be scaled by coalescence_factor and
     limited by max_coalescence.
+    
+    When faceting, the coalescence factors should be roughly the same as the number of facets on one axis.
 
     If coalescence_factor=0.0 then just a format conversion is done
 
