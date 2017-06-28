@@ -40,9 +40,6 @@ class TestImagingDask(unittest.TestCase):
         self.facets = 2
         self.model_graph = delayed(self.get_LSM)(self.vis_graph_list[self.nvis // 2], npixel=self.npixel)
     
-    def tearDown(self):
-        pass
-    
     def setupVis(self, add_errors=False):
         self.freqwin = 3
         self.vis_graph_list = list()
@@ -105,7 +102,7 @@ class TestImagingDask(unittest.TestCase):
         predicted_vis_graph_list = create_predict_facet_graph(zero_vis_graph_list, flux_model_graph,
                                                               invert_single=invert_wprojection,
                                                               predict_single=predict_wprojection,
-                                                              wstep=25,
+                                                              wstep=50,
                                                               facets=self.facets)
         residual_vis_graph_list = create_subtract_vis_graph_list(self.vis_graph_list,
                                                                  predicted_vis_graph_list)
@@ -126,14 +123,13 @@ class TestImagingDask(unittest.TestCase):
             dirty_graph = create_invert_facet_graph(self.vis_graph_list, self.model_graph,
                                                     dopsf=False, normalize=True,
                                                     invert_single=invert_wprojection,
-                                                    wstep=25,
+                                                    wstep=50,
                                                     facets=facets, padding=2 * facets)
             
             dirty = dirty_graph.compute()
             export_image_to_fits(dirty[0], '%s/test_imaging_dask_invert_dirty_facets%d.fits' %
                                  (self.results_dir, facets))
             qa = qa_image(dirty[0])
-            print(qa)
 
             if qa_bench is None:
                 qa_bench = qa
@@ -152,7 +148,7 @@ class TestImagingDask(unittest.TestCase):
             dirty_graph = create_residual_facet_graph(self.vis_graph_list, self.model_graph, facets=facets,
                                                       predict_single=predict_wprojection,
                                                       invert_single=invert_wprojection,
-                                                      wstep=25,
+                                                      wstep=50,
                                                       padding=2 * facets)
             
             dirty = dirty_graph.compute()
@@ -160,7 +156,6 @@ class TestImagingDask(unittest.TestCase):
                                  (self.results_dir, facets))
 
             qa = qa_image(dirty[0])
-            print(qa)
 
             if qa_bench is None:
                 qa_bench = qa
@@ -178,7 +173,7 @@ class TestImagingDask(unittest.TestCase):
                                                 npixel=self.npixel, flux=0.0)
             dirty_graph = create_invert_facet_graph(self.vis_graph_list, model_graph,
                                                     invert_single=invert_wprojection,
-                                                    wstep=25,
+                                                    wstep=50,
                                                     dopsf=False)
             
             export_image_to_fits(dirty_graph.compute()[0],
@@ -188,7 +183,7 @@ class TestImagingDask(unittest.TestCase):
                                                     npixel=self.npixel // facets, flux=0.0)
             psf_graph = create_invert_graph(self.vis_graph_list, psf_model_graph,
                                             invert_single=invert_wprojection,
-                                            wstep=25,
+                                            wstep=50,
                                             dopsf=True)
             export_image_to_fits(psf_graph.compute()[0],
                                  '%s/test_imaging_dask_deconvolution_facets%d.psf.fits' %
@@ -204,7 +199,6 @@ class TestImagingDask(unittest.TestCase):
                                  (self.results_dir, facets))
 
             qa = qa_image(result)
-            print(qa)
 
             if qa_bench is None:
                 qa_bench = qa
@@ -224,7 +218,7 @@ class TestImagingDask(unittest.TestCase):
                                                     invert_single=invert_wprojection,
                                                     facets=2,
                                                     niter=1000, fractional_threshold=0.1,
-                                                    wstep=25,
+                                                    wstep=50,
                                                     threshold=2.0, nmajor=3, gain=0.1)
         clean, residual, restored = continuum_imaging_graph.compute()
         export_image_to_fits(clean, '%s/test_imaging_dask_continuum_imaging_pipeline_clean.fits' % (self.results_dir))
@@ -232,7 +226,6 @@ class TestImagingDask(unittest.TestCase):
         export_image_to_fits(restored, '%s/test_imaging_dask_continuum_imaging_pipeline_restored.fits' % (self.results_dir))
 
         qa = qa_image(restored)
-        print(qa)
         assert numpy.abs(qa.data['max'] - 100.0) < 5.0
         assert numpy.abs(qa.data['min'] + 1.3) < 5.0
 
@@ -248,7 +241,7 @@ class TestImagingDask(unittest.TestCase):
                                        invert_single=invert_wprojection, facets=2,
                                        niter=1000, fractional_threshold=0.1,
                                        threshold=2.0, nmajor=2,
-                                       wstep=25,
+                                       wstep=50,
                                        gain=0.1, first_selfcal=1)
         clean, residual, restored = ical_graph.compute()
         export_image_to_fits(clean, '%s/test_imaging_dask_ical_pipeline_clean.fits' % (self.results_dir))
@@ -256,6 +249,5 @@ class TestImagingDask(unittest.TestCase):
         export_image_to_fits(restored, '%s/test_imaging_dask_ical_pipeline_restored.fits' % (self.results_dir))
 
         qa = qa_image(restored)
-        print(qa)
         assert numpy.abs(qa.data['max'] - 100.0) < 5.0
         assert numpy.abs(qa.data['min'] + 1.3) < 5.0
