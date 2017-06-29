@@ -112,7 +112,7 @@ def create_invert_graph(vis_graph_list, template_model_graph, dopsf=False,
 
 def create_invert_wstack_graph(vis_graph_list, template_model_graph, dopsf=False,
                                vis_slices=1, normalize=True, **kwargs):
-    """ Sum results from invert, weighting appropriately
+    """ Sum results from invert_wstack, weighting appropriately
 
     :param vis_graph_list:
     :param model_graph:
