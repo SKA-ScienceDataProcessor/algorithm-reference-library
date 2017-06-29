@@ -183,9 +183,9 @@ class TestFTProcessor(unittest.TestCase):
         self.actualSetUp()
         self._predict_base(predict_timeslice, fluxthreshold=10.0)
 
-    def test_predict_wslice(self):
+    def test_predict_wstack(self):
         self.actualSetUp()
-        self._predict_base(predict_wslice, fluxthreshold=2.0)
+        self._predict_base(predict_wstack, fluxthreshold=2.0)
 
     def test_predict_wprojection(self):
         self.actualSetUp()
@@ -224,9 +224,9 @@ class TestFTProcessor(unittest.TestCase):
         self.actualSetUp()
         self._invert_base(invert_facets, positionthreshold=1.0)
 
-    def test_invert_wslice(self):
+    def test_invert_wstack(self):
         self.actualSetUp()
-        self._invert_base(invert_wslice, positionthreshold=8.0)
+        self._invert_base(invert_wstack, positionthreshold=8.0)
 
     def test_invert_timeslice(self):
         self.actualSetUp()

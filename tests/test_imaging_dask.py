@@ -15,7 +15,7 @@ from dask import delayed
 from arl.calibration.operations import apply_gaintable, create_gaintable_from_blockvisibility
 from arl.data.polarisation import PolarisationFrame
 from arl.fourier_transforms.ftprocessor import create_image_from_visibility, predict_skycomponent_blockvisibility, \
-    invert_wslice_single, predict_wslice_single
+    invert_wstack_single, predict_wstack_single
 from arl.graphs.dask_graphs import create_invert_facet_graph, create_predict_facet_graph, \
     create_zero_vis_graph_list, create_subtract_vis_graph_list, create_continuum_imaging_pipeline_graph, \
     create_ical_pipeline_graph, create_deconvolve_facet_graph, create_invert_wstack_graph, \
@@ -32,8 +32,8 @@ class TestImagingDask(unittest.TestCase):
         self.results_dir = './results'
         os.makedirs(self.results_dir, exist_ok=True)
         
-        self.invert = invert_wslice_single
-        self.predict = predict_wslice_single
+        self.invert = invert_wstack_single
+        self.predict = predict_wstack_single
         
         # In[3]:
 

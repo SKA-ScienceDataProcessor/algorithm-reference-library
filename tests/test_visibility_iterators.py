@@ -67,23 +67,23 @@ class TestVisibilityIterators(unittest.TestCase):
             assert visslice.vis[0].real == visslice.time[0]
             assert len(rows)
 
-    def test_vis_wslice_iterator(self):
+    def test_vis_wstack_iterator(self):
         self.actualSetUp()
-        nchunks = len(list(vis_wslice_iter(self.vis, wslice=10.0)))
+        nchunks = len(list(vis_wstack_iter(self.vis, wstack=10.0)))
         log.debug('Found %d chunks' % (nchunks))
         assert nchunks > 1
-        for chunk, rows in enumerate(vis_wslice_iter(self.vis, wslice=10.0)):
+        for chunk, rows in enumerate(vis_wstack_iter(self.vis, wstack=10.0)):
             assert len(rows)
             visslice = create_visibility_from_rows(self.vis, rows)
             assert numpy.sum(visslice.nvis) < self.vis.nvis
 
-    def test_vis_wslice_iterator_vis_slices(self):
+    def test_vis_wstack_iterator_vis_slices(self):
         self.actualSetUp()
-        nchunks = len(list(vis_wslice_iter(self.vis, vis_slices=11)))
+        nchunks = len(list(vis_wstack_iter(self.vis, vis_slices=11)))
         assert nchunks == 11
         log.debug('Found %d chunks' % (nchunks))
         assert nchunks > 1
-        for chunk, rows in enumerate(vis_wslice_iter(self.vis, vis_slices=11)):
+        for chunk, rows in enumerate(vis_wstack_iter(self.vis, vis_slices=11)):
             assert len(rows)
             visslice = create_visibility_from_rows(self.vis, rows)
             assert numpy.sum(visslice.nvis) < self.vis.nvis

@@ -89,7 +89,7 @@ FTProcessor
 .. automodule:: arl.fourier_transforms.ftprocessor_facets
    :members:
 
-.. automodule:: arl.fourier_transforms.ftprocessor_wslice
+.. automodule:: arl.fourier_transforms.ftprocessor_wstack
    :members:
 
 .. automodule:: arl.fourier_transforms.ftprocessor_timeslice

@@ -50,27 +50,27 @@ def vis_timeslice_iter(vis, **kwargs):
         yield rows
 
 
-def vis_wslice_iter(vis, **kwargs):
+def vis_wstack_iter(vis, **kwargs):
     """ W slice iterator
 
-    :param wslice: wslice (wavelengths)
-    :param vis_slices: Number of slices (second in precedence to wslice)
+    :param wstack: wstack (wavelengths)
+    :param vis_slices: Number of slices (second in precedence to wstack)
     :returns: Boolean array with selected rows=True
     """
     assert type(vis) == Visibility or type(vis) == BlockVisibility
     wmaxabs = (numpy.max(numpy.abs(vis.w)))
 
-    wslice = get_parameter(kwargs, "wslice", None)
-    if wslice is None:
+    wstack = get_parameter(kwargs, "wstack", None)
+    if wstack is None:
         vis_slices = get_parameter(kwargs, "vis_slices", 1)
         boxes = numpy.linspace(- wmaxabs, +wmaxabs, vis_slices)
-        wslice = 2 * wmaxabs / vis_slices
+        wstack = 2 * wmaxabs / vis_slices
     else:
-        vis_slices = 1 + 2 * numpy.round(wmaxabs / wslice).astype('int')
+        vis_slices = 1 + 2 * numpy.round(wmaxabs / wstack).astype('int')
         boxes = numpy.linspace(- wmaxabs, +wmaxabs, vis_slices)
     
     for box in boxes:
-        rows = numpy.abs(vis.w - box) < 0.5 * wslice
+        rows = numpy.abs(vis.w - box) < 0.5 * wstack
         if numpy.sum(rows) > 0:
             yield rows
         else:

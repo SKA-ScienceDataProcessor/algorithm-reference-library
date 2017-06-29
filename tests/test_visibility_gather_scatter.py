@@ -48,10 +48,10 @@ class TestVisibilityGatherScatter(unittest.TestCase):
         assert self.vis.nvis == newvis.nvis
 
 
-    def test_vis_scatter_gather_wslice(self):
+    def test_vis_scatter_gather_wstack(self):
         self.actualSetUp()
-        vis_list = visibility_scatter_w(self.vis, wslice=10.0)
-        newvis = visibility_gather_w(vis_list, self.vis, wslice=10.0)
+        vis_list = visibility_scatter_w(self.vis, wstack=10.0)
+        newvis = visibility_gather_w(vis_list, self.vis, wstack=10.0)
         assert self.vis.nvis == newvis.nvis
 
     def test_vis_scatter_gather_timeslice(self):

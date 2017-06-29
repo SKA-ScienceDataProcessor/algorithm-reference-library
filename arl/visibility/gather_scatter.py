@@ -17,7 +17,7 @@ import numpy
 from arl.visibility.operations import create_visibility_from_rows
 from arl.visibility.coalesce import coalesce_visibility, decoalesce_visibility
 from arl.data.data_models import *
-from arl.visibility.iterators import vis_slice_iter, vis_timeslice_iter, vis_wslice_iter
+from arl.visibility.iterators import vis_slice_iter, vis_timeslice_iter, vis_wstack_iter
 
 log = logging.getLogger(__name__)
 
@@ -61,9 +61,9 @@ def visibility_scatter_index(vis, **kwargs):
 def visibility_scatter_w(vis, **kwargs):
     if type(vis) == BlockVisibility:
         avis = coalesce_visibility(vis, **(kwargs))
-        return visibility_scatter(avis, vis_iter=vis_wslice_iter, **kwargs)
+        return visibility_scatter(avis, vis_iter=vis_wstack_iter, **kwargs)
     else:
-        return visibility_scatter(vis, vis_iter=vis_wslice_iter, **kwargs)
+        return visibility_scatter(vis, vis_iter=vis_wstack_iter, **kwargs)
 
 def visibility_scatter_time(vis, **kwargs):
     return visibility_scatter(vis, vis_iter=vis_timeslice_iter, **kwargs)
@@ -74,10 +74,10 @@ def visibility_gather_index(visibility_list, vis, **kwargs):
 def visibility_gather_w(visibility_list, vis, **kwargs):
     if type(vis) == BlockVisibility:
         cvis = coalesce_visibility(vis, **kwargs)
-        return decoalesce_visibility(visibility_gather(visibility_list, cvis, vis_iter=vis_wslice_iter,
+        return decoalesce_visibility(visibility_gather(visibility_list, cvis, vis_iter=vis_wstack_iter,
                                                        **kwargs))
     else:
-        return visibility_gather(visibility_list, vis, vis_iter=vis_wslice_iter, **kwargs)
+        return visibility_gather(visibility_list, vis, vis_iter=vis_wstack_iter, **kwargs)
 
 def visibility_gather_time(visibility_list, vis, **kwargs):
     return visibility_gather(visibility_list, vis, vis_iter=vis_timeslice_iter, **kwargs)

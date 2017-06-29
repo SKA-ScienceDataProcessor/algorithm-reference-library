@@ -23,8 +23,8 @@ def solve_image(vis: Visibility, model: Image, components=None, predict=predict_
 
     :param vis:
     :param model: Model image
-    :param predict: Predict function e.g. predict_2d, predict_wslice
-    :param invert: Invert function e.g. invert_2d, invert_wslice
+    :param predict: Predict function e.g. predict_2d, predict_wstack
+    :param invert: Invert function e.g. invert_2d, invert_wstack
     :returns: Visibility, model
     """
     nmajor = get_parameter(kwargs, 'nmajor', 5)

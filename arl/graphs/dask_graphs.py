@@ -33,7 +33,7 @@ from arl.calibration.solvers import solve_gaintable
 from arl.data.data_models import Visibility, BlockVisibility, Image
 from arl.data.parameters import get_parameter
 from arl.fourier_transforms.ftprocessor import invert_timeslice_single, predict_timeslice_single, \
-    invert_wslice_single, predict_wslice_single, normalize_sumwt, residual_image
+    invert_wstack_single, predict_wstack_single, normalize_sumwt, residual_image
 from arl.image.deconvolution import deconvolve_cube, restore_cube
 from arl.image.gather_scatter import image_scatter, image_gather
 from arl.image.operations import copy_image, create_empty_image_like
@@ -139,7 +139,7 @@ def create_invert_wstack_graph(vis_graph_list, template_model_graph, dopsf=False
     
     def invert_ignore_None(vis, *args, **kwargs):
         if vis is not None:
-            return invert_wslice_single(vis, *args, **kwargs)
+            return invert_wstack_single(vis, *args, **kwargs)
         else:
             return None
     
@@ -209,7 +209,7 @@ def create_predict_graph(vis_graph_list, model_graph, predict_single=predict_tim
     return [delayed(predict_and_sum, pure=True, nout=1)(v, model_graph, **kwargs) for v in vis_graph_list]
 
 
-def create_predict_wstack_graph(vis_graph_list, model_graph, predict_single=predict_wslice_single,
+def create_predict_wstack_graph(vis_graph_list, model_graph, predict_single=predict_wstack_single,
                                 vis_slices=1, **kwargs):
     """
 
@@ -231,7 +231,7 @@ def create_predict_wstack_graph(vis_graph_list, model_graph, predict_single=pred
     
     def predict_ignore_None(vis, *args, **kwargs):
         if vis is not None:
-            return predict_wslice_single(vis, *args, **kwargs)
+            return predict_wstack_single(vis, *args, **kwargs)
         else:
             return None
     
@@ -247,7 +247,7 @@ def create_predict_wstack_graph(vis_graph_list, model_graph, predict_single=pred
     return predicted_vis_list
 
 
-def create_predict_facet_graph(vis_graph_list, model_graph, predict_single=predict_wslice_single,
+def create_predict_facet_graph(vis_graph_list, model_graph, predict_single=predict_wstack_single,
                                facets=2, **kwargs):
     """ Predict visibility from a model using facets
 
