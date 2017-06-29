@@ -13,7 +13,7 @@ from arl.skycomponent.operations import create_skycomponent, find_skycomponents,
 from arl.util.testing_support import create_named_configuration
 import logging
 
-from arl.visibility.operations import create_visibility, create_visibility, sum_visibility
+from arl.visibility.operations import create_visibility, sum_visibility
 
 log = logging.getLogger(__name__)
 
@@ -81,11 +81,6 @@ class TestFTProcessor(unittest.TestCase):
         self.uvw = self.componentvis.data['uvw']
         self.componentvis.data['vis'] *= 0.0
 
-        self.advice = advise_wide_field(self.componentvis)
-        
-        self.params['wstep'] = self.advice['w_sampling_primary_beam']
-        self.params['wslice'] = self.advice['w_sampling_primary_beam']
-        
         # Create model
         self.model = create_image_from_visibility(self.componentvis, npixel=256, cellsize=0.001,
                                                   nchan=1, polarisation_frame=PolarisationFrame('stokesI'))
@@ -186,12 +181,10 @@ class TestFTProcessor(unittest.TestCase):
         # This works poorly because of the poor interpolation accuracy for point sources. The corresponding
         # invert works well particularly if the beam sampling is high
         self.actualSetUp()
-        for self.params['nprocessor'] in [1, 'auto', 4]:
-            self._predict_base(predict_timeslice, fluxthreshold=10.0)
+        self._predict_base(predict_timeslice, fluxthreshold=10.0)
 
     def test_predict_wslice(self):
         self.actualSetUp()
-        self.params['imaginary'] = True
         self._predict_base(predict_wslice, fluxthreshold=2.0)
 
     def test_predict_wprojection(self):
@@ -232,17 +225,13 @@ class TestFTProcessor(unittest.TestCase):
         self._invert_base(invert_facets, positionthreshold=1.0)
 
     def test_invert_wslice(self):
-        for nprocessor in [1, 'auto', 4]:
-            self.actualSetUp()
-            self.params['imaginary']=True
-            self.params['nprocessor'] = nprocessor
-            self._invert_base(invert_wslice, positionthreshold=8.0)
+        self.actualSetUp()
+        self._invert_base(invert_wslice, positionthreshold=8.0)
 
     def test_invert_timeslice(self):
         self.actualSetUp()
-        for self.params['nprocessor'] in [1, 'auto', 4]:
-            self.actualSetUp()
-            self._invert_base(invert_timeslice, positionthreshold=8.0)
+        self.actualSetUp()
+        self._invert_base(invert_timeslice, positionthreshold=8.0)
 
     def test_invert_wprojection(self):
         self.actualSetUp()

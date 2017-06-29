@@ -35,15 +35,16 @@ def invert_with_vis_iterator(vis, im, dopsf=False, normalize=True, vis_iter=vis_
     
     i = 0
     for rows in vis_iter(vis, **kwargs):
-        visslice = create_visibility_from_rows(vis, rows)
-        workimage, sumwt = invert(visslice, im, dopsf, normalize=False, **kwargs)
-        resultimage.data += workimage.data
-        if i == 0:
-            totalwt = sumwt
-        else:
-            totalwt += sumwt
-        i += 1
-    
+        if rows is not None:
+            visslice = create_visibility_from_rows(vis, rows)
+            workimage, sumwt = invert(visslice, im, dopsf, normalize=False, **kwargs)
+            resultimage.data += workimage.data
+            if i == 0:
+                totalwt = sumwt
+            else:
+                totalwt += sumwt
+            i += 1
+        
     if normalize:
         resultimage = normalize_sumwt(resultimage, totalwt)
     
@@ -57,12 +58,13 @@ def predict_with_vis_iterator(vis, model, vis_iter=vis_slice_iter, predict=predi
     anything about the actual processing.
     
     """
-    log.debug("predict_with_vis_iterator: Processing chunks serially")
+    log.debug("predict_with_vis_iterator: Processing chunks")
     # Do each chunk in turn
     for rows in vis_iter(vis, **kwargs):
-        visslice = create_visibility_from_rows(vis, rows)
-        visslice = predict(visslice, model, **kwargs)
-        vis.data['vis'][rows] += visslice.data['vis']
+        if rows is not None:
+            visslice = create_visibility_from_rows(vis, rows)
+            visslice = predict(visslice, model, **kwargs)
+            vis.data['vis'][rows] += visslice.data['vis']
     return vis
 
 
