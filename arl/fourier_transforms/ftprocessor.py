@@ -8,7 +8,7 @@ For example::
     dirty, sumwt = invert_2d(vt, model)
     psf, sumwt = invert_2d(vt, model, dopsf=True)
 
-The principle transitions between the data models are:
+The principal transitions between the data models are:
 
 .. image:: ./ARL_transitions.png
    :scale: 75 %
@@ -19,5 +19,6 @@ from arl.fourier_transforms.ftprocessor_params import *
 from arl.fourier_transforms.ftprocessor_base import *
 from arl.fourier_transforms.ftprocessor_timeslice import *
 from arl.fourier_transforms.ftprocessor_wstack import *
+from arl.fourier_transforms.ftprocessor_wprojection import *
 from arl.fourier_transforms.ftprocessor_iterated import *
 from arl.fourier_transforms.ftprocessor_facets import *

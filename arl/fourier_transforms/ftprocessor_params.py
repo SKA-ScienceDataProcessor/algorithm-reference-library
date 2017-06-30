@@ -162,13 +162,12 @@ def get_kernel_list(vis: Visibility, im, **kwargs):
     padding = get_parameter(kwargs, "padding", 2)
     
     gcf, _ = anti_aliasing_calculate((padding * npixel, padding * npixel), oversampling)
-    
-    if kernelname == 'wprojection':
+
+    wabsmax = numpy.max(numpy.abs(vis.w))
+    if kernelname == 'wprojection' and wabsmax > 0.0:
         
         # wprojection needs a lot of commentary!
         log.debug("get_kernel_list: Using wprojection kernel")
-        wmax = numpy.max(numpy.abs(vis.w))
-        assert wmax > 0, "Maximum w must be > 0.0"
         
         # The field of view must be as padded!
         fov = cellsize * npixel * padding
