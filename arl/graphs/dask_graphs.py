@@ -4,8 +4,8 @@ thus allowing construction of graphs. For example, to build a graph for a major/
 
     model_graph = delayed(create_image_from_visibility)(vt, npixel=512, cellsize=0.001, npol=1)
     solution_graph = create_solve_image_graph(vt, model_graph=model_graph, psf_graph=psf_graph,
-                                            invert_residual=invert_timeslice_single,
-                                            predict_residual=predict_timeslice_single,
+                                            invert_residual=invert_timeslice,
+                                            predict_residual=predict_timeslice,
                                             iterator=vis_timeslice_iter, algorithm='hogbom',
                                             niter=1000, fractional_threshold=0.1,
                                             threshold=1.0, nmajor=3, gain=0.1)
@@ -23,6 +23,11 @@ The graph is executed as follows::
 
 As well as the specific graphs constructed by functions in this module, there are generic versions in the module
 :mod:`arl.pipelines.generic_dask_graphs`.
+
+Note that all parameters here should be passed using the kwargs mechanism. The exceptions
+are those needed to define the size of a graph. Since delayed graphs are not Iterable
+by default, it is necessary to use the nout= parameter to delayed to specify the
+graph size.
 """
 
 import numpy
@@ -31,10 +36,9 @@ from dask import delayed
 from arl.calibration.operations import apply_gaintable
 from arl.calibration.solvers import solve_gaintable
 from arl.data.data_models import Visibility, BlockVisibility, Image
-from arl.data.parameters import get_parameter
-from arl.fourier_transforms.ftprocessor import invert_timeslice_single, predict_timeslice_single, \
-    invert_wstack_single, predict_wstack_single, normalize_sumwt, residual_image
-from arl.image.deconvolution import deconvolve_cube, restore_cube
+from arl.fourier_transforms.ftprocessor import predict_2d, invert_2d, invert_wstack_single, predict_wstack_single, \
+    normalize_sumwt
+from arl.image.deconvolution import deconvolve_cube
 from arl.image.gather_scatter import image_scatter, image_gather
 from arl.image.operations import copy_image, create_empty_image_like
 from arl.visibility.gather_scatter import visibility_scatter_w, visibility_gather_w
@@ -83,9 +87,8 @@ def create_subtract_vis_graph_list(vis_graph_list, model_vis_graph_list, **kwarg
 
 
 def create_invert_graph(vis_graph_list, template_model_graph, dopsf=False,
-                        invert_single=invert_timeslice_single,
-                        normalize=True, **kwargs):
-    """ Sum results from invert, weighting appropriately
+                        invert=invert_2d, normalize=True, **kwargs):
+    """ Sum results from invert iterating over the vis_graph_list
 
     :param vis_graph_list:
     :param model_graph:
@@ -110,20 +113,20 @@ def create_invert_graph(vis_graph_list, template_model_graph, dopsf=False,
     image_graph_list = list()
     for vis_graph in vis_graph_list:
         if vis_graph is not None:
-            image_graph_list.append(delayed(invert_single, pure=True, nout=2)(vis_graph, template_model_graph,
-                                                                              dopsf=dopsf, normalize=normalize,
-                                                                              **kwargs))
+            image_graph_list.append(delayed(invert, pure=True, nout=2)(vis_graph, template_model_graph,
+                                                                       dopsf=dopsf, normalize=normalize,
+                                                                       **kwargs))
     
     return delayed(sum_invert_results)(image_graph_list)
 
 
-def create_invert_wstack_graph(vis_graph_list, template_model_graph, dopsf=False,
-                               vis_slices=1, normalize=True, **kwargs):
-    """ Sum results from invert_wstack, weighting appropriately
-
+def create_invert_wstack_graph(vis_graph_list, template_model_graph, dopsf=False, vis_slices=1, normalize=True,
+                               **kwargs):
+    """ Sum invert results using wstacking, iterating over the vis_graph_list and w
     :param vis_graph_list:
     :param model_graph:
-    :param vis_slices: Number of visibility slices in w
+    :param dopsf: Make psf (False)
+    :param vis_slices: Number of visibility slices in w stacking
     :param kwargs:
     :returns: Graph for invert
     """
@@ -166,9 +169,8 @@ def create_invert_wstack_graph(vis_graph_list, template_model_graph, dopsf=False
 
 
 def create_invert_facet_graph(vis_graph_list, template_model_graph, dopsf=False,
-                              invert_single=invert_timeslice_single,
-                              facets=1, normalize=True, **kwargs):
-    """ Sum results from invert, weighting appropriately, allows faceting
+                              c_invert_graph=create_invert_graph, facets=1, normalize=True, **kwargs):
+    """ Sum results from invert, iterating over the vis_graph_list, allows faceting
 
     :param vis_graph_list:
     :param model_graph:
@@ -177,7 +179,7 @@ def create_invert_facet_graph(vis_graph_list, template_model_graph, dopsf=False,
     :returns: Graph for invert
    """
     
-    def gather(results, template_model, facets, **kwargs):
+    def gather_invert_results(results, template_model, facets, **kwargs):
         # Results contains the images for each facet, after adding across vis_graphs
         image_results = create_empty_image_like(template_model)
         image_results = image_gather([result[0] for result in results], image_results,
@@ -188,21 +190,57 @@ def create_invert_facet_graph(vis_graph_list, template_model_graph, dopsf=False,
         return image_results, sumwt
     
     # Scatter the model in facets
-    model_graphs = delayed(image_scatter, nout=facets ** 2, pure=True)(template_model_graph,
-                                                                       facets=facets)
+    model_graphs = delayed(image_scatter, nout=facets ** 2, pure=True)(template_model_graph, facets=facets)
     
     # For each facet, invert over the vis_graph
-    results = [create_invert_graph(vis_graph_list, model_graph, dopsf=dopsf,
-                                   invert_single=invert_single, normalize=normalize, **kwargs)
+    results = [c_invert_graph(vis_graph_list, model_graph, dopsf=dopsf, normalize=normalize, **kwargs)
                for model_graph in model_graphs]
     # Now we have a list containing the facet images added over vis_graph. We can now
     # gather those images into one image
-    return delayed(gather, nout=2, pure=True)(results, template_model_graph, facets=facets, **kwargs)
+    return delayed(gather_invert_results, nout=2, pure=True)(results, template_model_graph, facets=facets, **kwargs)
 
 
-def create_predict_graph(vis_graph_list, model_graph, predict_single=predict_timeslice_single,
-                         **kwargs):
+def create_invert_all_graph(vis_graph_list, template_model_graph, dopsf=False, vis_slices=1,
+                            normalize=True, **kwargs):
+    """ Sum invert results using wstacking and faceting, while iterating over the vis_graph_list
+    :param vis_graph_list:
+    :param model_graph:
+    :param vis_slices: Number of visibility slices in w
+    :param kwargs:
+    :returns: Graph for invert
     """
+    
+    def sum_invert_results(image_list):
+        first = True
+        for i, arg in enumerate(image_list):
+            if arg is not None:
+                if first:
+                    im = copy_image(arg[0])
+                    im.data *= arg[1]
+                    sumwt = arg[1]
+                    first = False
+                else:
+                    im.data += arg[1] * arg[0].data
+                    sumwt += arg[1]
+        assert numpy.sum(sumwt) > 0.0
+        im = normalize_sumwt(im, sumwt)
+        return im, sumwt
+    
+    image_graph_list = list()
+    for vis_graph in vis_graph_list:
+        if vis_graph is not None:
+            scatter_vis_graphs = delayed(visibility_scatter_w, nout=vis_slices)(vis_graph, vis_slices=vis_slices,
+                                                                                **kwargs)
+            image_graph_list.append(create_invert_facet_graph(scatter_vis_graphs, template_model_graph,
+                                                              invert=invert_wstack_single,
+                                                              dopsf=dopsf, normalize=normalize,
+                                                              **kwargs))
+    
+    return delayed(sum_invert_results)(image_graph_list)
+
+def create_predict_graph(vis_graph_list, model_graph, predict=predict_2d,
+                         **kwargs):
+    """Predict from model_graph, iterating over the vis_graph_list
 
     :param vis_graph_list:
     :param model_graph:
@@ -214,7 +252,7 @@ def create_predict_graph(vis_graph_list, model_graph, predict_single=predict_tim
     def predict_and_sum(vis, model, **kwargs):
         if vis is not None:
             predicted = copy_visibility(vis)
-            predicted = predict_single(predicted, model, predict_single=predict_single, **kwargs)
+            predicted = predict(predicted, model, **kwargs)
             predicted.data['vis'] = vis.data['vis'] + predicted.data['vis']
             return predicted
         else:
@@ -223,9 +261,9 @@ def create_predict_graph(vis_graph_list, model_graph, predict_single=predict_tim
     return [delayed(predict_and_sum, pure=True, nout=1)(v, model_graph, **kwargs) for v in vis_graph_list]
 
 
-def create_predict_wstack_graph(vis_graph_list, model_graph, predict_single=predict_wstack_single,
+def create_predict_wstack_graph(vis_graph_list, model_graph, predict=predict_wstack_single,
                                 vis_slices=1, **kwargs):
-    """
+    """Predict using wstacking, iterating over the vis_graph_list and w
 
     :param vis_graph_list:
     :param model_graph:
@@ -234,18 +272,12 @@ def create_predict_wstack_graph(vis_graph_list, model_graph, predict_single=pred
     :return: List of vis_graphs
    """
     
-    def predict_and_sum(vis, model, **kwargs):
+    def predict_and_sum_wstack(vis, model, **kwargs):
         if vis is not None:
             predicted = copy_visibility(vis)
-            predicted = predict_single(predicted, model, predict_single=predict_single, **kwargs)
+            predicted = predict(predicted, model, **kwargs)
             predicted.data['vis'] = vis.data['vis'] + predicted.data['vis']
             return predicted
-        else:
-            return None
-    
-    def predict_ignore_None(vis, *args, **kwargs):
-        if vis is not None:
-            return predict_wstack_single(vis, *args, **kwargs)
         else:
             return None
     
@@ -254,15 +286,15 @@ def create_predict_wstack_graph(vis_graph_list, model_graph, predict_single=pred
         predict_list = list()
         scatter_vis_graphs = delayed(visibility_scatter_w, nout=vis_slices)(vis_graph, vis_slices=vis_slices, **kwargs)
         for scatter_vis_graph in scatter_vis_graphs:
-            predict_list.append(delayed(predict_and_sum, pure=True, nout=1)(scatter_vis_graph, model_graph, **kwargs))
+            predict_list.append(delayed(predict_and_sum_wstack, pure=True, nout=1)(scatter_vis_graph, model_graph,
+                                                                                   **kwargs))
         predicted_vis_list.append(delayed(visibility_gather_w, nout=1)(predict_list, vis_graph, vis_slices=vis_slices,
                                                                        **kwargs))
     
     return predicted_vis_list
 
 
-def create_predict_facet_graph(vis_graph_list, model_graph, predict_single=predict_wstack_single,
-                               facets=2, **kwargs):
+def create_predict_facet_graph(vis_graph_list, model_graph, predict=predict_2d, facets=2, **kwargs):
     """ Predict visibility from a model using facets
 
     :param vis_graph_list:
@@ -273,15 +305,16 @@ def create_predict_facet_graph(vis_graph_list, model_graph, predict_single=predi
     :return: List of vis_graphs
     """
     
-    def predict_and_accumulate(vis, model, **kwargs):
+    def predict_facets_and_accumulate(vis, model, **kwargs):
         if vis is not None:
             predicted = copy_visibility(vis)
-            predicted = predict_single(predicted, model, predict_single=predict_single, **kwargs)
+            predicted = predict(predicted, model, **kwargs)
             vis.data['vis'] += predicted.data['vis']
             return vis
         else:
             return None
     
+    # Note that we need to know the number of facets in order to define the size of facet_model_graphs
     facet_model_graphs = delayed(image_scatter, nout=facets ** 2, pure=True)(model_graph,
                                                                              facets=facets)
     # There is a dependency issue here so we chain the predicts
@@ -290,69 +323,48 @@ def create_predict_facet_graph(vis_graph_list, model_graph, predict_single=predi
         if vis_graph is not None:
             for ifacet, facet_model_graph in enumerate(facet_model_graphs):
                 if ifacet == 0:
-                    accumulate_vis_graph = delayed(predict_and_accumulate, pure=True, nout=1)(vis_graph,
-                                                                                              facet_model_graph,
-                                                                                              **kwargs)
+                    accumulate_vis_graph = delayed(predict_facets_and_accumulate, pure=True, nout=1)(vis_graph,
+                                                                                                     facet_model_graph,
+                                                                                                     **kwargs)
                 else:
-                    accumulate_vis_graph = delayed(predict_and_accumulate, pure=True, nout=1)(accumulate_vis_graph,
-                                                                                              facet_model_graph,
-                                                                                              **kwargs)
+                    accumulate_vis_graph = delayed(predict_facets_and_accumulate, pure=True, nout=1)(
+                        accumulate_vis_graph,
+                        facet_model_graph,
+                        **kwargs)
         accumulate_vis_graphs.append(accumulate_vis_graph)
     return accumulate_vis_graphs
 
 
-def create_residual_graph(vis_graph_list, model_graph,
-                          invert_residual=invert_timeslice_single,
-                          predict_residual=predict_timeslice_single,
-                          **kwargs):
-    """ Create a graph to calculate residual image
-    
+def create_predict_all_graph(vis_graph_list, model_graph, predict=predict_wstack_single,
+                             vis_slices=1, **kwargs):
+    """Predict using wstacking, iterating over the vis_graph_list and w
+
     :param vis_graph_list:
     :param model_graph:
-    :param c_invert_facet_graph:
-    :param c_predict_facet_graph:
-    :param predict_single:
-    :param invert_single:
+    :param predict_single: Predict function to be used (predict_time_slice_single)
     :param kwargs:
-    :return: graph
-    """
-    
-    def sum_residual(image_list):
-        for i, arg in enumerate(image_list):
-            if i == 0:
-                im = copy_image(arg[1])
-                im.data *= arg[2]
-                sumwt = arg[2]
-            else:
-                im.data += arg[2] * arg[1].data
-                sumwt += arg[2]
-        
-        im = normalize_sumwt(im, sumwt)
-        return im, sumwt
-    
-    image_graph_list = list()
+    :return: List of vis_graphs
+   """
+    predicted_vis_list = list()
     for vis_graph in vis_graph_list:
-        if vis_graph_list is not None:
-            image_graph_list.append(delayed(residual_image, pure=True,
-                                            nout=3, name='residual')(vis_graph, model_graph,
-                                                                    invert_residual=invert_residual,
-                                                                    predict_residual=predict_residual,
-                                                                    **kwargs))
+        predict_list = list()
+        scatter_vis_graphs = delayed(visibility_scatter_w, nout=vis_slices)(vis_graph, vis_slices=vis_slices, **kwargs)
+        facet_predict = create_predict_facet_graph(scatter_vis_graphs, model_graph, **kwargs)
+        predicted_vis_list.append(delayed(visibility_gather_w, nout=1)(facet_predict,
+                                                                       vis_graph,
+                                                                       vis_slices=vis_slices,
+                                                                       **kwargs))
     
-    return delayed(sum_residual)(image_graph_list)
-
-
-def create_residual_graph(vis_graph_list, model_graph, facets=4,
-                                c_invert_graph=create_invert_graph,
-                                c_predict_graph=create_predict_graph,
-                                predict_single=predict_timeslice_single,
-                                invert_single=invert_timeslice_single,
-                                **kwargs):
+    return predicted_vis_list
+    
+def create_residual_graph(vis_graph_list, model_graph,
+                          c_invert_graph=create_invert_graph,
+                          c_predict_graph=create_predict_graph,
+                          **kwargs):
     """ Create a graph to calculate residual image using facets
 
     :param vis_graph_list:
     :param model_graph:
-    :param facets: Number of facets on each axis
     :param c_invert_graph:
     :param c_predict_graph:
     :param predict_single:
@@ -361,34 +373,53 @@ def create_residual_graph(vis_graph_list, model_graph, facets=4,
     :return:
     """
     model_vis_graph_list = create_zero_vis_graph_list(vis_graph_list)
-    model_vis_graph_list = c_predict_graph(model_vis_graph_list, model_graph, facets=facets,
-                                                 predict_single=predict_single,
-                                                 **kwargs)
+    model_vis_graph_list = c_predict_graph(model_vis_graph_list, model_graph, **kwargs)
     residual_vis_graph_list = create_subtract_vis_graph_list(vis_graph_list, model_vis_graph_list)
-    return c_invert_graph(residual_vis_graph_list, model_graph, dopsf=False, normalize=True,
-                                facets=facets, invert_single=invert_single, **kwargs)
+    return c_invert_graph(residual_vis_graph_list, model_graph, dopsf=False, normalize=True, **kwargs)
 
 
-def create_residual_wstack_graph(vis_graph_list, model_graph, vis_slices=1,
+def create_residual_wstack_graph(vis_graph_list, model_graph,
                                  c_invert_graph=create_invert_wstack_graph,
                                  c_predict_graph=create_predict_wstack_graph,
                                  **kwargs):
-    """ Create a graph to calculate residual image using facets
+    """ Create a graph to calculate residual image using w stacking
 
     :param vis_graph_list:
     :param model_graph:
-    :param vis_slices: Number of fw planes
+    :param vis_slices: Number of w planes
     :param c_invert_facet_graph:
     :param c_predict_facet_graph:
     :param kwargs:
     :return:
     """
     model_vis_graph_list = create_zero_vis_graph_list(vis_graph_list)
-    model_vis_graph_list = c_predict_graph(model_vis_graph_list, model_graph, vis_slices=vis_slices,
+    model_vis_graph_list = c_predict_graph(model_vis_graph_list, model_graph,
                                            **kwargs)
     residual_vis_graph_list = create_subtract_vis_graph_list(vis_graph_list, model_vis_graph_list)
     return c_invert_graph(residual_vis_graph_list, model_graph, dopsf=False, normalize=True,
-                          vis_slices=vis_slices, **kwargs)
+                          **kwargs)
+
+
+def create_residual_all_graph(vis_graph_list, model_graph,
+                                 c_invert_graph=create_invert_all_graph,
+                                 c_predict_graph=create_predict_all_graph,
+                                 **kwargs):
+    """ Create a graph to calculate residual image using w stacking
+
+    :param vis_graph_list:
+    :param model_graph:
+    :param vis_slices: Number of w planes
+    :param c_invert_facet_graph:
+    :param c_predict_facet_graph:
+    :param kwargs:
+    :return:
+    """
+    model_vis_graph_list = create_zero_vis_graph_list(vis_graph_list)
+    model_vis_graph_list = c_predict_graph(model_vis_graph_list, model_graph,
+                                           **kwargs)
+    residual_vis_graph_list = create_subtract_vis_graph_list(vis_graph_list, model_vis_graph_list)
+    return c_invert_graph(residual_vis_graph_list, model_graph, dopsf=False, normalize=True,
+                          **kwargs)
 
 
 def create_deconvolve_graph(dirty_graph, psf_graph, model_graph, **kwargs):
@@ -409,9 +440,8 @@ def create_deconvolve_graph(dirty_graph, psf_graph, model_graph, **kwargs):
     return delayed(deconvolve, pure=True, nout=2)(dirty_graph[0], psf_graph[0], model_graph, **kwargs)
 
 
-def create_deconvolve_facet_graph(dirty_graph, psf_graph, model_graph,
-                                  facets=2, **kwargs):
-    """Create a graph for deconvolution, adding to the model
+def create_deconvolve_facet_graph(dirty_graph, psf_graph, model_graph, facets=2, **kwargs):
+    """Create a graph for deconvolution by facets, adding to the model
     
     Does deconvolution facet-by-facet. Currently does nothing very sensible about the
     edges.
@@ -424,7 +454,7 @@ def create_deconvolve_facet_graph(dirty_graph, psf_graph, model_graph,
     :return:
     """
     
-    def deconvolve(dirty, psf, **kwargs):
+    def deconvolve_facet(dirty, psf, **kwargs):
         assert type(dirty) == Image
         assert type(psf) == Image
         result = deconvolve_cube(dirty, psf, **kwargs)
@@ -438,7 +468,7 @@ def create_deconvolve_facet_graph(dirty_graph, psf_graph, model_graph,
     
     output = delayed(create_empty_image_like, nout=1, pure=True)(model_graph)
     dirty_graphs = delayed(image_scatter, nout=facets ** 2, pure=True)(dirty_graph[0], facets=facets)
-    results = [delayed(deconvolve)(dirty_graph, psf_graph[0], **kwargs)
+    results = [delayed(deconvolve_facet)(dirty_graph, psf_graph[0], **kwargs)
                for dirty_graph in dirty_graphs]
     result = delayed(image_gather, nout=1, pure=True)(results, output, facets=facets)
     return delayed(add_model, nout=1, pure=True)(result, model_graph)
@@ -462,8 +492,7 @@ def create_solve_gain_graph(vis: BlockVisibility, vispred: Visibility, **kwargs)
     return delayed(calibrate_single, pure=True)(vis, vispred, **kwargs)
 
 
-def create_selfcal_graph_list(vis_graph_list, model_graph, predict_single=predict_timeslice_single,
-                              **kwargs):
+def create_selfcal_graph_list(vis_graph_list, model_graph, predict=predict_2d, **kwargs):
     """ Create a set of graphs for selfcalibration of a list of visibilities
     
     :param vis_graph_list:
@@ -476,7 +505,7 @@ def create_selfcal_graph_list(vis_graph_list, model_graph, predict_single=predic
     def selfcal_single(vis, model, **kwargs):
         if vis is not None:
             predicted = copy_visibility(vis)
-            predicted = predict_single(predicted, model, **kwargs)
+            predicted = predict(predicted, model, **kwargs)
             gtsol = solve_gaintable(vis, predicted, **kwargs)
             vis = apply_gaintable(vis, gtsol, inverse=True, **kwargs)
             return vis
@@ -484,111 +513,3 @@ def create_selfcal_graph_list(vis_graph_list, model_graph, predict_single=predic
             return None
     
     return [delayed(selfcal_single, pure=True, nout=1)(v, model_graph, **kwargs) for v in vis_graph_list]
-
-
-def create_continuum_imaging_pipeline_graph(vis_graph_list, model_graph,
-                                            c_deconvolve_graph=create_deconvolve_graph,
-                                            c_invert_graph=create_invert_graph,
-                                            c_residual_graph=create_residual_graph,
-                                            **kwargs):
-    """ Create graph for the continuum imaging pipeline using facets
-    
-    :param vis_graph_list:
-    :param model_graph:
-    :param c_deconvolve_graph:
-    :param c_invert_graph:
-    :param c_residual_graph:
-    :param facets:
-    :param kwargs:
-    :return:
-    """
-    psf_graph = c_invert_graph(vis_graph_list, model_graph, dopsf=True, **kwargs)
-    residual_graph = c_residual_graph(vis_graph_list, model_graph, **kwargs)
-    deconvolve_model_graph = c_deconvolve_graph(residual_graph, psf_graph, model_graph, **kwargs)
-    
-    nmajor = get_parameter(kwargs, "nmajor", 5)
-    if nmajor > 1:
-        for cycle in range(1, nmajor):
-            residual_graph = c_residual_graph(vis_graph_list, deconvolve_model_graph, **kwargs)
-            deconvolve_model_graph = c_deconvolve_graph(residual_graph, psf_graph,
-                                                        deconvolve_model_graph, **kwargs)
-    
-    residual_graph = c_residual_graph(vis_graph_list, deconvolve_model_graph, **kwargs)
-    restore_graph = delayed(restore_cube, pure=True, nout=1)(deconvolve_model_graph,
-                                                             psf_graph[0], residual_graph[0],
-                                                             **kwargs)
-    return delayed((deconvolve_model_graph, residual_graph, restore_graph))
-
-
-def create_spectral_line_imaging_pipeline_graph(vis_graph_list, model_graph, continuum_model_graph=None,
-                                                c_deconvolve_graph=create_deconvolve_graph,
-                                                c_invert_graph=create_invert_graph,
-                                                c_predict_graph=create_predict_graph,
-                                                c_residual_graph=create_residual_graph,
-                                                vis_slices=1, facets=2, **kwargs):
-    """Create graph for spectral line imaging pipeline
-
-    :param vis_graph_list: List of visibility graphs
-    :param model_graph: Spectral line model graph
-    :param continuum_model_graph: Continuum model graph
-    :param kwargs:
-    :return: graphs of (deconvolved model, residual, restored)
-    """
-    if continuum_model_graph is not None:
-        vis_graph_list = c_predict_graph(vis_graph_list, continuum_model_graph, vis_slices=vis_slices, **kwargs)
-    
-    psf_graph = c_invert_graph(vis_graph_list, model_graph, dopsf=True, **kwargs)
-    residual_graph = c_residual_graph(vis_graph_list, model_graph, **kwargs)
-    deconvolve_model_graph = c_deconvolve_graph(residual_graph, psf_graph, model_graph, **kwargs)
-    
-    nmajor = get_parameter(kwargs, "nmajor", 5)
-    if nmajor > 1:
-        for cycle in range(1, nmajor):
-            residual_graph = c_residual_graph(vis_graph_list, deconvolve_model_graph, **kwargs)
-            deconvolve_model_graph = c_deconvolve_graph(residual_graph, psf_graph, deconvolve_model_graph, **kwargs)
-    
-    residual_graph = c_residual_graph(vis_graph_list, deconvolve_model_graph, **kwargs)
-    restore_graph = delayed(restore_cube, pure=True, nout=1)(deconvolve_model_graph, psf_graph[0],
-                                                             residual_graph[0],
-                                                             **kwargs)
-    return delayed((deconvolve_model_graph, residual_graph, restore_graph))
-
-
-def create_ical_pipeline_graph(vis_graph_list, model_graph,
-                               c_deconvolve_graph=create_deconvolve_graph,
-                               c_invert_graph=create_invert_graph,
-                               c_residual_graph=create_residual_graph,
-                               vis_slices=1, facets=2, **kwargs):
-    """Create graph for ICAL pipeline
-    
-    :param vis_graph_list:
-    :param model_graph:
-    :param kwargs:
-    :return:
-    """
-    psf_graph = c_invert_graph(vis_graph_list, model_graph, dopsf=True, **kwargs)
-    
-    first_selfcal = get_parameter(kwargs, "first_selfcal", 2)
-    if first_selfcal == 0:
-        vis_graph_list = create_selfcal_graph_list(vis_graph_list, model_graph, **kwargs)
-    residual_graph = c_residual_graph(vis_graph_list, model_graph, **kwargs)
-    deconvolve_model_graph = c_deconvolve_graph(residual_graph, psf_graph, model_graph, **kwargs)
-    
-    nmajor = get_parameter(kwargs, "nmajor", 5)
-    if nmajor > 1:
-        for cycle in range(nmajor):
-            if cycle >= first_selfcal:
-                vis_graph_list = create_selfcal_graph_list(vis_graph_list,
-                                                           deconvolve_model_graph, **kwargs)
-            residual_graph = c_residual_graph(vis_graph_list, deconvolve_model_graph, **kwargs)
-            
-            deconvolve_model_graph = c_deconvolve_graph(residual_graph, psf_graph,
-                                                        deconvolve_model_graph, **kwargs)
-        residual_graph = c_residual_graph(vis_graph_list, deconvolve_model_graph,
-                                          vis_slices=vis_slices, facets=facets,
-                                          **kwargs)
-    
-    restore_graph = delayed(restore_cube, pure=True, nout=1)(deconvolve_model_graph,
-                                                             psf_graph[0], residual_graph[0],
-                                                             **kwargs)
-    return delayed((deconvolve_model_graph, residual_graph, restore_graph))
