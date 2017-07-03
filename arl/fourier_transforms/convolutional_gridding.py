@@ -254,7 +254,7 @@ def frac_coord(npixel, kernel_oversampling, p):
     return flx.astype(int), fracx.astype(int)
 
 
-def convolutional_degrid(kernels, vshape, uvgrid, vuvwmap, vfrequencymap, vpolarisationmap):
+def convolutional_degrid(kernel_list, vshape, uvgrid, vuvwmap, vfrequencymap, vpolarisationmap):
     """Convolutional degridding with frequency and polarisation independent
 
     Takes into account fractional `uv` coordinate values where the GCF
@@ -268,7 +268,7 @@ def convolutional_degrid(kernels, vshape, uvgrid, vuvwmap, vfrequencymap, vpolar
     :param vpolarisationmap: function to map polarisation to image polarisation
     :returns: Array of visibilities.
     """
-    kernels = list(kernels)
+    kernel_indices, kernels = kernel_list
     kernel_oversampling, _, gh, gw = kernels[0].shape
     assert gh % 2 == 0, "Convolution kernel must have even number of pixels"
     assert gw % 2 == 0, "Convolution kernel must have even number of pixels"
@@ -290,36 +290,18 @@ def convolutional_degrid(kernels, vshape, uvgrid, vuvwmap, vfrequencymap, vpolar
     for yy in y:
         slicey.append(slice((yy - gh // 2), (yy + (gh + 1) // 2)))
 
-    # Now we can degrid the points and accumulate weight as well
-    if len(kernels) > 1:
-
-        coords = list(vfrequencymap), slicex, xf, slicey, yf
-        for pol in range(vnpol):
-            vis[...,pol] = [
-                numpy.sum(uvgrid[ic, pol, sly, slx] *
-                          numpy.conjugate(kernel[yf, xf, :, :]))
-                for kernel, ic, slx, xf, sly, yf in zip(kernels, *coords)
-                ]
-
-            wt[...,pol] = [
-                numpy.sum(kernel[yf, xf, :, :].real)
-                for kernel, ic, slx, xf, sly, yf in zip(kernels, *coords)
+    coords = kernel_indices, list(vfrequencymap), xf, yf
+    for pol in range(vnpol):
+        vis[...,pol] = [
+            numpy.sum(uvgrid[ic, pol, sly, slx] *
+                      numpy.conjugate(kernels[kernel_index][yf, xf, :, :]))
+            for slx, sly, kernel_index, ic, xf, yf in zip(slicex, slicey, *coords)
             ]
-    else:
-        kernel = kernels[0]
 
-        coords = list(vfrequencymap), slicex, xf, slicey, yf
-        for pol in range(vnpol):
-            vis[..., pol] = [
-                numpy.sum(uvgrid[ic, pol, sly, slx] *
-                        numpy.conjugate(kernel[yf, xf, :, :]))
-                for ic, slx, xf, sly, yf in zip(*coords)
-                ]
-            wt[..., pol] = [
-                numpy.sum(kernel[yf, xf, :, :].real)
-                for ic, slx, xf, sly, yf in zip(*coords)
-                ]
-
+        wt[...,pol] = [
+            numpy.sum(kernels[kernel_index][yf, xf, :, :].real)
+            for kernel_index, ic, xf, yf in zip(*coords)
+            ]
     vis[numpy.where(wt > 0)] = vis[numpy.where(wt > 0)] / wt[numpy.where(wt > 0)]
     vis[numpy.where(wt < 0)] = 0.0
     return numpy.array(vis)
@@ -352,7 +334,7 @@ def gridder(uvgrid, vis, xs, ys, kernel=numpy.ones((1,1)), kernel_ixs=None):
         uvgrid[y:y+gh, x:x+gw] += kernel[tuple(kern_ix)] * v
 
 
-def convolutional_grid(kernels, uvgrid, vis, visweights, vuvwmap, vfrequencymap, vpolarisationmap):
+def convolutional_grid(kernel_list, uvgrid, vis, visweights, vuvwmap, vfrequencymap, vpolarisationmap):
     """Grid after convolving with frequency and polarisation independent gcf
 
     Takes into account fractional `uv` coordinate values where the GCF
@@ -368,7 +350,7 @@ def convolutional_grid(kernels, uvgrid, vis, visweights, vuvwmap, vfrequencymap,
     :returns: uv grid[nchan, npol, ny, nx], sumwt[nchan, npol]
     """
     
-    kernels = list(kernels)
+    kernel_indices, kernels = kernel_list
     kernel_oversampling, _, gh, gw = kernels[0].shape
     assert gh % 2 == 0, "Convolution kernel must have even number of pixels"
     assert gw % 2 == 0, "Convolution kernel must have even number of pixels"
@@ -400,23 +382,11 @@ def convolutional_grid(kernels, uvgrid, vis, visweights, vuvwmap, vfrequencymap,
     
     npol = vis.shape[-1]
     
-    # There are two cases:row independent and row dependent kernel. We try to make these as
-    # similar as possible
-    if len(kernels) > 1:
-
-        coords = list(vfrequencymap), slicex, xf, slicey, yf
-        for pol in range(npol):
-            for v, vwt, kernel, ic, slx, xf, sly, yf in zip(viswt[...,pol], wts[...,pol], kernels, *coords):
-                uvgrid[ic, pol, sly, slx] += kernel[yf, xf, :, :] * v
-                sumwt[ic, pol] += numpy.sum(kernel[yf, xf, :, :].real * vwt)
-    else:
-        kernel = kernels[0]
-
-        coords = list(vfrequencymap), slicex, xf, slicey, yf
-        for pol in range(npol):
-            for v, vwt, ic, slx, xf, sly, yf in zip(viswt[...,pol], wts[...,pol], *coords):
-                uvgrid[ic, pol, sly, slx] += kernel[yf, xf, :, :] * v
-                sumwt[ic, pol] += numpy.sum(kernel[yf, xf, :, :].real * vwt)
+    coords = kernel_indices, list(vfrequencymap), xf, yf
+    for pol in range(npol):
+        for v, vwt, slx, sly, kind, ic,  xf, yf in zip(viswt[...,pol], wts[...,pol], slicex,  slicey, *coords):
+            uvgrid[ic, pol, sly, slx] += kernels[kind][yf, xf, :, :] * v
+            sumwt[ic, pol] += numpy.sum(kernels[kind][yf, xf, :, :].real * vwt)
 
     return uvgrid, sumwt
 

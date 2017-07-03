@@ -34,6 +34,8 @@ def predict_wstack(vis, model, **kwargs):
     :param model: model image
     :returns: resulting visibility (in place works)
     """
+    assert type(vis) == Visibility
+
     log.info("predict_wstack: predicting using wstack")
 
     delA = get_parameter(kwargs, 'wloss', 0.02)
@@ -52,6 +54,8 @@ def predict_wstack_single(vis, model, predict_inner=predict_2d_base, **kwargs):
     :param model: model image
     :returns: resulting visibility (in place works)
     """
+    assert type(vis) == Visibility
+
     if type(vis) is not Visibility:
         avis = coalesce_visibility(vis, **kwargs)
     else:
@@ -102,6 +106,8 @@ def invert_wstack(vis, im, dopsf=False, normalize=True, **kwargs):
     :returns: resulting image[nchan, npol, ny, nx], sum of weights[nchan, npol]
 
     """
+    assert type(vis) == Visibility
+
     log.info("invert_wstack: inverting using wstack")
 
     delA = get_parameter(kwargs, 'wloss', 0.02)
@@ -123,6 +129,8 @@ def invert_wstack_single(vis, im, dopsf, normalize=True, invert_inner=invert_2d_
     log.info("invert_wstack_single: predicting using single w slice")
     
     kwargs['imaginary'] = True
+    
+    assert type(vis) == Visibility
     
     # We might want to do wprojection so we remove the average w
     w_average = numpy.average(vis.w)

@@ -113,7 +113,7 @@ def standard_kernel_list(vis, shape, oversampling=8, support=3):
     :param support: Support of kernel
     :returns: Function to look up gridding kernel
     """
-    return [anti_aliasing_calculate(shape, oversampling, support)[1]]
+    return numpy.zeros_like(vis.w, dtype='int'), [anti_aliasing_calculate(shape, oversampling, support)[1]]
 
 
 def w_kernel_list(vis, shape, fov, oversampling=4, wstep=100.0, npixel_kernel=16):
@@ -129,23 +129,29 @@ def w_kernel_list(vis, shape, fov, oversampling=4, wstep=100.0, npixel_kernel=16
     :param wstep: Step in w between cached functions
     :returns: Function to look up gridding kernel as function of row, and cache
     """
-    wmax = numpy.max(numpy.abs(vis.w))
-    log.debug("w_kernel_list: Maximum w = %.1f , step is %.1f wavelengths" % (wmax, wstep))
+    wmax = numpy.max(vis.w)
+    wmin = numpy.min(vis.w)
+    log.debug("w_kernel_list: Maximum w = %.1f , minimum w = %.1f , step is %.1f wavelengths" % (wmax, wmin, wstep))
+
+    def digitise(w, wstep):
+        return numpy.ceil((w - wmin)/ wstep).astype('int')
     
-    def digitise_w(w):
-        return numpy.round(w / wstep).astype('int')
-    
-    # Use a dictionary but look at performance
-    kernels = {}
-    wint_list = numpy.unique(digitise_w(vis.w))
-    for wint in wint_list:
-        kernels[wint] = w_kernel(field_of_view=fov, w=wstep * wint, npixel_farfield=shape[0],
-                                 npixel_kernel=npixel_kernel, kernel_oversampling=oversampling)
-    # We will return a generator that can be instantiated at the last moment. The memory for
-    # the kernels is needed but the pointer per row can be deferred.
-    w_kernels = (kernels[digitise_w(w)] for w in vis.w)
-    
-    return w_kernels
+    # Find all the unique indices for which we need a kernel
+    nwsteps = digitise(wmax, wstep) + 1
+    assert digitise(wmin, wstep) == 0
+    assert digitise(wmax, wstep) == nwsteps - 1
+
+    w_list = numpy.linspace(wmin, wmax, nwsteps)
+    # For all the unique indices, calculate the corresponding w kernel
+    kernels = list()
+    for w in w_list:
+        kernels.append(w_kernel(field_of_view=fov, w=w, npixel_farfield=shape[0],
+                                 npixel_kernel=npixel_kernel, kernel_oversampling=oversampling))
+    # Now make a lookup table from row number of vis to the kernel
+    kernel_indices = digitise(vis.w, wstep)
+    assert numpy.max(kernel_indices) < len(kernels), "wmin %f, wmax %f wstep %f" % (wmin, wmax, wstep)
+    assert numpy.min(kernel_indices) >= 0, "wmin %f, wmax %f wstep %f" % (wmin, wmax, wstep)
+    return kernel_indices, kernels
 
 
 def get_kernel_list(vis: Visibility, im, **kwargs):

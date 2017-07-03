@@ -7,7 +7,6 @@ import copy
 from arl.data.polarisation import correlate_polarisation
 from arl.fourier_transforms.ftprocessor_params import *
 from arl.util.coordinate_support import *
-from arl.visibility.iterators import vis_timeslice_iter
 
 log = logging.getLogger(__name__)
 
@@ -270,23 +269,27 @@ def sum_visibility(vis: Visibility, direction: SkyCoord) -> numpy.array:
     """
     # TODO: Convert to Visibility or remove?
     
-    assert type(vis) is Visibility, "vis is not a Visibility: %r" % vis
-    
-    l, m, n = skycoord_to_lmn(direction, vis.phasecentre)
-    phasor = numpy.conjugate(simulate_point(vis.uvw, l, m))
+    if type(vis) is not Visibility:
+        from arl.visibility.coalesce import coalesce_visibility
+        svis = coalesce_visibility(vis)
+    else:
+        svis = copy_visibility(vis)
+
+    l, m, n = skycoord_to_lmn(direction, svis.phasecentre)
+    phasor = numpy.conjugate(simulate_point(svis.uvw, l, m))
     
     # Need to put correct mapping here
-    _, frequency = get_frequency_map(vis, None)
+    _, frequency = get_frequency_map(svis, None)
     
     frequency = list(frequency)
     
     nchan = max(frequency) + 1
-    npol = vis.polarisation_frame.npol
+    npol = svis.polarisation_frame.npol
     
     flux = numpy.zeros([nchan, npol])
     weight = numpy.zeros([nchan, npol])
     
-    coords = vis.vis, vis.weight, phasor, list(frequency)
+    coords = svis.vis, svis.weight, phasor, list(frequency)
     for v, wt, p, ic in zip(*coords):
         for pol in range(npol):
             flux[ic, pol] += numpy.real(wt[pol] * v[pol] * p)

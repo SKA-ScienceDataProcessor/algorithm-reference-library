@@ -16,8 +16,8 @@ from arl.calibration.operations import apply_gaintable, create_gaintable_from_bl
 from arl.data.polarisation import PolarisationFrame
 from arl.fourier_transforms.ftprocessor import create_image_from_visibility, predict_skycomponent_blockvisibility, \
     invert_wstack_single, predict_wstack_single
-from arl.graphs.dask_graphs import create_deconvolve_facet_graph, create_invert_wstack_graph, \
-    create_residual_wstack_graph
+from arl.graphs.dask_graphs import create_deconvolve_facet_graph, create_invert_all_graph, \
+    create_residual_all_graph
 from arl.pipelines.pipeline_dask_graphs import create_continuum_imaging_pipeline_graph, \
     create_ical_pipeline_graph
 from arl.image.operations import qa_image, export_image_to_fits
@@ -104,8 +104,8 @@ class TestImagingDask(unittest.TestCase):
         continuum_imaging_graph = \
             create_continuum_imaging_pipeline_graph(self.vis_graph_list, model_graph=self.model_graph,
                                                     c_deconvolve_graph=create_deconvolve_facet_graph,
-                                                    c_invert_graph=create_invert_wstack_graph,
-                                                    c_residual_graph=create_residual_wstack_graph,
+                                                    c_invert_graph=create_invert_all_graph,
+                                                    c_residual_graph=create_residual_all_graph,
                                                     vis_slices=self.vis_slices, facets=2,
                                                     niter=1000, fractional_threshold=0.1,
                                                     threshold=2.0, nmajor=3, gain=0.1)
@@ -125,8 +125,8 @@ class TestImagingDask(unittest.TestCase):
         ical_graph = \
             create_ical_pipeline_graph(self.vis_graph_list, model_graph=self.model_graph,
                                        c_deconvolve_graph=create_deconvolve_facet_graph,
-                                       c_invert_graph=create_invert_wstack_graph,
-                                       c_residual_graph=create_residual_wstack_graph,
+                                       c_invert_graph=create_invert_all_graph,
+                                       c_residual_graph=create_residual_all_graph,
                                        vis_slices=self.vis_slices, facets=2,
                                        niter=1000, fractional_threshold=0.1,
                                        threshold=2.0, nmajor=5, gain=0.1, first_selfcal=2)

@@ -182,11 +182,9 @@ def invert_2d_base(vis, im, dopsf=False, normalize=True, **kwargs):
 
     """
     if type(vis) is not Visibility:
-        avis = coalesce_visibility(vis, **kwargs)
+        svis = coalesce_visibility(vis, **kwargs)
     else:
-        avis = vis
-        
-    svis = copy_visibility(avis)
+        svis = copy_visibility(vis)
 
     if dopsf:
         svis.data['vis'] = numpy.ones_like(svis.data['vis'])
@@ -196,10 +194,10 @@ def invert_2d_base(vis, im, dopsf=False, normalize=True, **kwargs):
     
     nchan, npol, ny, nx = im.data.shape
     
-    spectral_mode, vfrequencymap = get_frequency_map(avis, im)
-    polarisation_mode, vpolarisationmap = get_polarisation_map(avis, im, **kwargs)
-    uvw_mode, shape, padding, vuvwmap = get_uvw_map(avis, im, **kwargs)
-    kernel_name, gcf, vkernellist = get_kernel_list(avis, im, **kwargs)
+    spectral_mode, vfrequencymap = get_frequency_map(svis, im)
+    polarisation_mode, vpolarisationmap = get_polarisation_map(svis, im, **kwargs)
+    uvw_mode, shape, padding, vuvwmap = get_uvw_map(svis, im, **kwargs)
+    kernel_name, gcf, vkernellist = get_kernel_list(svis, im, **kwargs)
     
     # Optionally pad to control aliasing
     imgridpad = numpy.zeros([nchan, npol, int(round(padding * ny)), int(round(padding * nx))], dtype='complex')

@@ -2,6 +2,7 @@
 
 
 """
+import logging
 import unittest
 
 from astropy.convolution import Gaussian2DKernel, convolve
@@ -11,9 +12,7 @@ from arl.image.operations import export_image_to_fits, create_empty_image_like
 from arl.skycomponent.operations import create_skycomponent, find_skycomponents, find_nearest_component, \
     insert_skycomponent
 from arl.util.testing_support import create_named_configuration
-import logging
-
-from arl.visibility.operations import create_visibility, sum_visibility
+from arl.visibility.operations import create_visibility, sum_visibility, vis_summary
 
 log = logging.getLogger(__name__)
 
@@ -41,10 +40,10 @@ class TestFTProcessor(unittest.TestCase):
             # Check for agreement in direction
             ocomp = find_nearest_component(comp.direction, self.components)
             radiff = abs(comp.direction.ra.deg - ocomp.direction.ra.deg) / cellsize
-            assert radiff  < positionthreshold, "Component differs in dec %.3f pixels" % radiff
+            assert radiff < positionthreshold, "Component differs in dec %.3f pixels" % radiff
             decdiff = abs(comp.direction.dec.deg - ocomp.direction.dec.deg) / cellsize
-            assert decdiff  < positionthreshold, "Component differs in dec %.3f pixels" % decdiff
-
+            assert decdiff < positionthreshold, "Component differs in dec %.3f pixels" % decdiff
+    
     def setUp(self):
         self.dir = './test_results'
         os.makedirs(self.dir, exist_ok=True)
@@ -55,7 +54,7 @@ class TestFTProcessor(unittest.TestCase):
                        'padding': 2,
                        'oversampling': 4,
                        'timeslice': 'auto'}
-
+    
     def actualSetUp(self, time=None, frequency=None):
         self.lowcore = create_named_configuration('LOWBD2-CORE')
         self.times = (numpy.pi / (12.0)) * numpy.linspace(-3.0, 3.0, 7)
@@ -80,7 +79,7 @@ class TestFTProcessor(unittest.TestCase):
                                               weight=1.0, polarisation_frame=PolarisationFrame('stokesI'))
         self.uvw = self.componentvis.data['uvw']
         self.componentvis.data['vis'] *= 0.0
-
+        
         # Create model
         self.model = create_image_from_visibility(self.componentvis, npixel=256, cellsize=0.001,
                                                   nchan=1, polarisation_frame=PolarisationFrame('stokesI'))
@@ -116,21 +115,20 @@ class TestFTProcessor(unittest.TestCase):
         self.componentvis.data['vis'] *= 0.0
         predict_skycomponent_visibility(self.componentvis, self.components)
         insert_skycomponent(self.model, self.components)
-
+        
         # Calculate the model convolved with a Gaussian.
         norm = 2.0 * numpy.pi
         self.cmodel = copy_image(self.model)
         self.cmodel.data[0, 0, :, :] = norm * convolve(self.model.data[0, 0, :, :], Gaussian2DKernel(1.0),
-                                                      normalize_kernel=False)
+                                                       normalize_kernel=False)
         export_image_to_fits(self.model, '%s/test_model.fits' % self.dir)
         export_image_to_fits(self.cmodel, '%s/test_cmodel.fits' % self.dir)
-        
+    
     def test_findcomponents(self):
         # Check that the components are where we expected them to be after insertion
         self.actualSetUp()
         self._checkcomponents(self.cmodel)
-
-
+    
     def test_predict_2d(self):
         # Test if the 2D prediction works
         #
@@ -138,7 +136,7 @@ class TestFTProcessor(unittest.TestCase):
         # Good check on the grid correction in the image->vis direction
         # Set all w to zero
         self.actualSetUp()
-        self.componentvis = create_visibility(self.lowcore, self.times, self.frequency, channel_bandwidth = \
+        self.componentvis = create_visibility(self.lowcore, self.times, self.frequency, channel_bandwidth= \
             self.channel_bandwidth, phasecentre=self.phasecentre, weight=1.0)
         self.componentvis.data['uvw'][:, 2] = 0.0
         # Predict the visibility using direct evaluation
@@ -176,24 +174,24 @@ class TestFTProcessor(unittest.TestCase):
     def test_predict_facets(self):
         self.actualSetUp()
         self._predict_base(predict_facets, fluxthreshold=1e-7)
-
+    
     def test_predict_timeslice(self):
         # This works poorly because of the poor interpolation accuracy for point sources. The corresponding
         # invert works well particularly if the beam sampling is high
         self.actualSetUp()
         self._predict_base(predict_timeslice, fluxthreshold=10.0)
-
+    
     def test_predict_wstack(self):
         self.actualSetUp()
         self._predict_base(predict_wstack, fluxthreshold=2.0)
-
+    
     def test_predict_wstack_wprojection(self):
         self.actualSetUp()
         self.params['vis_slices'] = 10
         self.params['wstep'] = 2.0
         self.params['kernel'] = 'wprojection'
         self._predict_base(predict_wstack, fluxthreshold=2.0)
-
+    
     def test_predict_wprojection(self):
         self.actualSetUp()
         self._predict_base(predict_wprojection, fluxthreshold=2.0)
@@ -202,7 +200,7 @@ class TestFTProcessor(unittest.TestCase):
         # Test if the 2D invert works with w set to zero
         # Set w=0 so that the two-dimensional transform should agree exactly with the model.
         # Good check on the grid correction in the vis->image direction
-
+        
         self.actualSetUp()
         self.componentvis = create_visibility(self.lowcore, self.times, self.frequency,
                                               channel_bandwidth=self.channel_bandwidth, phasecentre=self.phasecentre,
@@ -230,27 +228,27 @@ class TestFTProcessor(unittest.TestCase):
     def test_invert_facets(self):
         self.actualSetUp()
         self._invert_base(invert_facets, positionthreshold=1.0)
-
+    
     def test_invert_wstack(self):
         self.actualSetUp()
         self._invert_base(invert_wstack, positionthreshold=8.0)
-
+    
     def test_invert_wstack_wprojection(self):
         self.actualSetUp()
         self.params['wstack'] = 16.0
         self.params['wstep'] = 2.0
         self.params['kernel'] = 'wprojection'
         self._invert_base(invert_wstack, positionthreshold=8.0)
-
+    
     def test_invert_timeslice(self):
         self.actualSetUp()
         self.actualSetUp()
         self._invert_base(invert_timeslice, positionthreshold=8.0)
-
+    
     def test_invert_wprojection(self):
         self.actualSetUp()
         self._invert_base(invert_wprojection, positionthreshold=1.0)
-
+    
     def test_weighting(self):
         self.actualSetUp()
         vis, density, densitygrid = weight_visibility(self.componentvis, self.model, weighting='uniform')
@@ -261,18 +259,18 @@ class TestFTProcessor(unittest.TestCase):
         vis, density, densitygrid = weight_visibility(self.componentvis, self.model, weighting='natural')
         assert density is None
         assert densitygrid is None
-        
+    
     def test_create_image_from_visibility(self):
         self.actualSetUp()
         im = create_image_from_visibility(self.componentvis, nchan=1, npixel=128)
         assert im.data.shape == (1, 1, 128, 128)
-
-    def test_create_image_from_blockvisibility(self):
+    
+    def test_create_image_from_visibility(self):
         self.actualSetUp()
         self.componentvis = create_visibility(self.lowcore, self.times, self.frequency,
-                                                   phasecentre=self.phasecentre, weight=1.0,
-                                                   polarisation_frame=PolarisationFrame('stokesI'),
-                                                   channel_bandwidth=self.channel_bandwidth)
+                                              phasecentre=self.phasecentre, weight=1.0,
+                                              polarisation_frame=PolarisationFrame('stokesI'),
+                                              channel_bandwidth=self.channel_bandwidth)
         im = create_image_from_visibility(self.componentvis, nchan=1, npixel=128)
         assert im.data.shape == (1, 1, 128, 128)
         im = create_image_from_visibility(self.componentvis, frequency=self.frequency, npixel=128)
@@ -280,7 +278,7 @@ class TestFTProcessor(unittest.TestCase):
         im = create_image_from_visibility(self.componentvis, frequency=self.frequency, npixel=128,
                                           nchan=1)
         assert im.data.shape == (1, 1, 128, 128)
-
+    
     def test_create_w_term_image(self):
         self.actualSetUp()
         im = create_w_term_image(self.componentvis, nchan=1, npixel=128)
@@ -291,7 +289,6 @@ class TestFTProcessor(unittest.TestCase):
         assert im.data.shape == (128, 128)
         assert im.data.dtype == 'complex128'
         self.assertAlmostEqual(numpy.max(im.data.real), 1.0, 7)
-        
 
 
 if __name__ == '__main__':
