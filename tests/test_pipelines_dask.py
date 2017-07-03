@@ -16,8 +16,8 @@ from arl.calibration.operations import apply_gaintable, create_gaintable_from_bl
 from arl.data.polarisation import PolarisationFrame
 from arl.fourier_transforms.ftprocessor import create_image_from_visibility, predict_skycomponent_blockvisibility, \
     invert_wstack_single, predict_wstack_single
-from arl.graphs.dask_graphs import create_deconvolve_facet_graph, create_invert_all_graph, \
-    create_residual_all_graph
+from arl.graphs.dask_graphs import create_deconvolve_facet_graph, create_invert_wstack_graph, \
+    create_residual_wstack_graph
 from arl.pipelines.pipeline_dask_graphs import create_continuum_imaging_pipeline_graph, \
     create_ical_pipeline_graph
 from arl.image.operations import qa_image, export_image_to_fits
@@ -34,8 +34,6 @@ class TestImagingDask(unittest.TestCase):
         
         self.invert = invert_wstack_single
         self.predict = predict_wstack_single
-        
-        # In[3]:
         
         self.npixel = 256
         self.facets = 2
@@ -104,8 +102,8 @@ class TestImagingDask(unittest.TestCase):
         continuum_imaging_graph = \
             create_continuum_imaging_pipeline_graph(self.vis_graph_list, model_graph=self.model_graph,
                                                     c_deconvolve_graph=create_deconvolve_facet_graph,
-                                                    c_invert_graph=create_invert_all_graph,
-                                                    c_residual_graph=create_residual_all_graph,
+                                                    c_invert_graph=create_invert_wstack_graph,
+                                                    c_residual_graph=create_residual_wstack_graph,
                                                     vis_slices=self.vis_slices, facets=2,
                                                     niter=1000, fractional_threshold=0.1,
                                                     threshold=2.0, nmajor=3, gain=0.1)
@@ -117,16 +115,16 @@ class TestImagingDask(unittest.TestCase):
                              '%s/test_pipelines_dask_continuum_imaging_pipeline_restored.fits' % (self.results_dir))
         
         qa = qa_image(restored)
-        assert numpy.abs(qa.data['max'] - 101.4) < 1.0
-        assert numpy.abs(qa.data['min'] + 1.2) < 1.0
+        assert numpy.abs(qa.data['max'] - 101.4) < 1.0, str(qa)
+        assert numpy.abs(qa.data['min'] + 1.2) < 1.0, str(qa)
     
     def test_ical_pipeline(self):
         self.setupVis(add_errors=True)
         ical_graph = \
             create_ical_pipeline_graph(self.vis_graph_list, model_graph=self.model_graph,
                                        c_deconvolve_graph=create_deconvolve_facet_graph,
-                                       c_invert_graph=create_invert_all_graph,
-                                       c_residual_graph=create_residual_all_graph,
+                                       c_invert_graph=create_invert_wstack_graph,
+                                       c_residual_graph=create_residual_wstack_graph,
                                        vis_slices=self.vis_slices, facets=2,
                                        niter=1000, fractional_threshold=0.1,
                                        threshold=2.0, nmajor=5, gain=0.1, first_selfcal=2)
@@ -136,5 +134,5 @@ class TestImagingDask(unittest.TestCase):
         export_image_to_fits(restored, '%s/test_pipelines_dask_ical_pipeline_restored.fits' % (self.results_dir))
         
         qa = qa_image(restored)
-        assert numpy.abs(qa.data['max'] - 94.0) < 1.0
-        assert numpy.abs(qa.data['min'] + 2.5) < 1.0
+        assert numpy.abs(qa.data['max'] - 102.5) < 1.0, str(qa)
+        assert numpy.abs(qa.data['min'] + 3.6) < 1.0, str(qa)

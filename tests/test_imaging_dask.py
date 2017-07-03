@@ -253,7 +253,7 @@ class TestImagingDask(unittest.TestCase):
                              (self.results_dir))
     
         qa = qa_image(dirty[0])
-        assert numpy.abs(qa.data['max'] - 105.8) < 1.0, str(qa)
+        assert numpy.abs(qa.data['max'] - 103.0) < 1.0, str(qa)
         assert numpy.abs(qa.data['min'] + 11.13) < 1.0, str(qa)
     
     def test_deconvolution_facet_graph(self):
