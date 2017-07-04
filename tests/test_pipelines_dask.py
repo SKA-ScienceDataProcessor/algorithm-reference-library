@@ -134,5 +134,5 @@ class TestImagingDask(unittest.TestCase):
         export_image_to_fits(restored, '%s/test_pipelines_dask_ical_pipeline_restored.fits' % (self.results_dir))
         
         qa = qa_image(restored)
-        assert numpy.abs(qa.data['max'] - 102.5) < 1.0, str(qa)
-        assert numpy.abs(qa.data['min'] + 3.6) < 1.0, str(qa)
+        assert numpy.abs(qa.data['max'] - 101.3) < 1.0, str(qa)
+        assert numpy.abs(qa.data['min'] + 4.3) < 1.0, str(qa)
