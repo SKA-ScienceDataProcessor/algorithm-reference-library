@@ -9,6 +9,7 @@ from arl.calibration.operations import apply_gaintable, create_gaintable_from_bl
 from arl.data.persist import arl_dump, arl_load
 from arl.data.polarisation import PolarisationFrame
 from arl.graphs.dask_graphs import create_predict_wstack_graph
+from arl.graphs.generic_dask_graphs import create_generic_image_graph
 from arl.util.testing_support import create_named_configuration, simulate_gaintable, \
     create_low_test_image_from_gleam, create_low_test_beam
 from arl.visibility.operations import create_blockvisibility
@@ -27,7 +28,7 @@ def create_simulate_vis_graph(config='LOWBD2-CORE',
     :param channel_bandwidth: def [1e6]
     :param times: Observing times in radians: def [0.0]
     :param polarisation_frame: def PolarisationFrame("stokesI")
-    :param order: 'time'|'frequency': def 'frequency'
+    :param order: 'time'|'frequency'|'both': def 'frequency'
     :param kwargs:
     :return: vis_graph_list with different frequencies in different elements
     """
@@ -40,6 +41,15 @@ def create_simulate_vis_graph(config='LOWBD2-CORE',
                                                                 channel_bandwidth=channel_bandwidth[i],
                                                                 weight=1.0, phasecentre=phasecentre,
                                                                 polarisation_frame=polarisation_frame, **kwargs))
+    elif order =='both':
+        vis_graph_list = list()
+        for i, time in enumerate(times):
+            for j, freq in enumerate(frequency):
+                vis_graph_list.append(delayed(create_blockvisibility, nout=1)(conf, [time[i]], frequency=[frequency[j]],
+                                                                    channel_bandwidth=[channel_bandwidth[j]],
+                                                                    weight=1.0, phasecentre=phasecentre,
+                                                                    polarisation_frame=polarisation_frame, **kwargs))
+
 
     else:
         vis_graph_list = list()
@@ -71,19 +81,22 @@ def create_predict_gleam_model_graph(vis_graph_list, npixel=512, cellsize=0.001,
     
     predicted_vis_graph_list = list()
     for i, vis_graph in enumerate(vis_graph_list):
-        model_graph = create_gleam_model_graph([vis_graph], npixel=npixel, cellsize=cellsize, **kwargs)
-        predicted_vis_graph_list.append(c_predict_graph([vis_graph], model_graph[0], **kwargs)[0])
+        model_graph = create_gleam_model_graph(vis_graph, npixel=npixel, cellsize=cellsize, **kwargs)
+        predicted_vis_graph_list.append(c_predict_graph([vis_graph], model_graph, **kwargs)[0])
     return predicted_vis_graph_list
 
 
-def create_gleam_model_graph(vis_graph_list, npixel=512, cellsize=0.001, **kwargs):
+def create_gleam_model_graph(vis_graph, npixel=512, cellsize=0.001, facets=4, **kwargs):
     """ Create a graph to fill in a model with the gleam sources
+    
+    This spreads the work over facet**2 nodes
 
-    :param vis_graph_list:
+    :param vis_graph: Single vis_graph
     :param npixel: 512
     :param cellsize: 0.001
+    :param facets: def 4
     :param kwargs:
-    :return: vis_graph_list
+    :return: graph
     """
     
     def calculate_model(vis):
@@ -93,10 +106,9 @@ def create_gleam_model_graph(vis_graph_list, npixel=512, cellsize=0.001, **kwarg
         beam = create_low_test_beam(model)
         model.data *= beam.data
         return model
+        
+    return delayed(calculate_model, nout=1)(vis_graph)
     
-    return [delayed(calculate_model, nout=1)(vis_graph) for vis_graph in vis_graph_list]
-
-
 def create_corrupt_vis_graph(vis_graph_list, gt_graph=None, **kwargs):
     """ Create a graph to apply gain errors to a vis_graph_list
     

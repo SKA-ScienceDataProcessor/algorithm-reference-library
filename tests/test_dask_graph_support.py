@@ -10,9 +10,7 @@ import numpy
 from astropy import units as u
 from astropy.coordinates import SkyCoord
 
-from dask import get
-
-from arl.data.data_models import BlockVisibility, Image
+from arl.data.data_models import BlockVisibility
 from arl.util.dask_graph_support import create_simulate_vis_graph, create_corrupt_vis_graph, \
     create_load_vis_graph, create_dump_vis_graph, create_predict_gleam_model_graph, create_gleam_model_graph
 from arl.graphs.dask_graphs import create_predict_wstack_graph
@@ -48,8 +46,8 @@ class TestTestingDaskGraphSupport(unittest.TestCase):
 
     def test_gleam_model_graph(self):
         vis_graph_list = create_simulate_vis_graph(frequency=self.frequency, channel_bandwidth=self.channel_bandwidth)
-        model_list = create_gleam_model_graph(vis_graph_list, npixel=256)
-        qa= qa_image(model_list[0].compute())
+        model_list = create_gleam_model_graph(vis_graph_list[0], npixel=256)
+        qa= qa_image(model_list.compute())
         assert qa.data['max'] > 0.0
 
     def test_corrupt_vis_graph(self):

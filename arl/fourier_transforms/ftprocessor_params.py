@@ -198,7 +198,8 @@ def get_kernel_list(vis: Visibility, im, **kwargs):
     
     return kernelname, gcf, kernel_list
 
-def advise_wide_field(vis, delA=0.02, oversampling_synthesised_beam=3.0, guard_band_image=6.0, facets=1.0):
+def advise_wide_field(vis, delA=0.02, oversampling_synthesised_beam=3.0, guard_band_image=6.0, facets=1.0,
+                      wprojection_planes=4):
     """ Advise on parameters for wide field imaging.
     
     For example::
@@ -211,16 +212,19 @@ def advise_wide_field(vis, delA=0.02, oversampling_synthesised_beam=3.0, guard_b
     :param delA: Allowed coherence loss (def: 0.02)
     :param oversampling_synthesised_beam: Oversampling of the synthesized beam (def: 3.0)
     :param guard_band_image: Number of primary beam half-widths-to-half-maximum to image (def: 6)
+    :param stack_project_ratio:
     :returns: dict of advice
     """
+    wavelength = constants.c.to('m/s').value / numpy.min(vis.frequency)
+    log.info("advise_wide_field: Maximum wavelength %.3f (meters)" %(wavelength))
+
     maximum_baseline = numpy.max(numpy.abs(vis.uvw)) # Wavelengths
+    if type(vis) == BlockVisibility:
+        maximum_baseline = maximum_baseline / wavelength
     log.info("advise_wide_field: Maximum baseline %.1f (wavelengths)" % (maximum_baseline))
     
     diameter = numpy.min(vis.configuration.diameter)
     log.info("advise_wide_field: Station/antenna diameter %.1f (meters)" % (diameter))
-
-    wavelength = constants.c.to('m/s').value / numpy.min(vis.frequency)
-    log.info("advise_wide_field: Maximum wavelength %.3f (meters)" %(wavelength))
 
     primary_beam_fov = wavelength / diameter
     log.info("advise_wide_field: Primary beam %s" % (rad_and_deg(primary_beam_fov)))
@@ -270,6 +274,17 @@ def advise_wide_field(vis, delA=0.02, oversampling_synthesised_beam=3.0, guard_b
 
     freq_sampling_primary_beam =  numpy.max(vis.frequency) * w_sampling_primary_beam / (numpy.pi * maximum_baseline)
     log.info("advice_wide_field: Frequency sampling for primary beam = %.1f (Hz)" % (freq_sampling_primary_beam))
+
+    wstep = w_sampling_primary_beam
+    vis_slices = max(1, int(maximum_baseline / (wstep * wprojection_planes)))
+    log.info('advice_wide_field: Number of planes in w stack %d' % (vis_slices))
+    log.info('advice_wide_field: Number of planes in w projection %d' % wprojection_planes)
+    if wprojection_planes > 1:
+        log.info('advice_wide_field: Recommend wprojection gridding')
+        kernel = 'wprojection'
+    else:
+        log.info('advice_wide_field: Recommend 2d gridding')
+        kernel = '2d'
 
     return locals()
 

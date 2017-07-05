@@ -367,7 +367,7 @@ def create_deconvolve_graph(dirty_graph, psf_graph, model_graph, **kwargs):
     return delayed(deconvolve, pure=True, nout=2)(dirty_graph[0], psf_graph[0], model_graph, **kwargs)
 
 
-def create_deconvolve_facet_graph(dirty_graph, psf_graph, model_graph, facets=2, **kwargs):
+def create_deconvolve_facet_graph(dirty_graph, psf_graph, model_graph, facets=1, **kwargs):
     """Create a graph for deconvolution by facets, adding to the model
     
     Does deconvolution facet-by-facet. Currently does nothing very sensible about the
