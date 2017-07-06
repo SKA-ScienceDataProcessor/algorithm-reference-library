@@ -15,11 +15,19 @@ def get_dask_Client(timeout=30):
     scheduler = os.getenv('ARL_DASK_SCHEDULER', None)
     if scheduler is not None:
         print("Creating Dask Client using externally defined scheduler")
-        return Client(scheduler, timeout=timeout)
+        c = Client(scheduler, timeout=timeout)
+        print(c)
     else:
         print("Creating Dask Client")
-        return Client(timeout=timeout)
-    
+        c = Client(timeout=timeout)
+        print(c)
+        
+    addr = c.scheduler_info()['address']
+    bokeh_addr = 'http:%s:%s' % (addr.split(':')[1], c.scheduler_info()['services']['bokeh'])
+    print('Diagnostic pages available on port %s' % bokeh_addr)
+    return c
+
+
 def kill_dask_Scheduler(client):
     """ Kill the process graphs-ssh"""
     import psutil, signal

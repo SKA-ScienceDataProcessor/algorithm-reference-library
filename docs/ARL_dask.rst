@@ -16,6 +16,21 @@ These are well-modeled in ARL.
 Conceptually we can think of one visibility set, which may be decomposed into different subsets in processing, and
 one image, which also may be subsetted for processing.
 
+Dask is supported in various ways:
+
+    - arl/graphs/dask_graphs: Graphs to perform various types of prediction and inversion of visibility data
+    - arl/graphs/generic_dask_graphs: Graphs to perform generic image or visibility unary operations
+    - arl/util/dask_graph_support: Graphs to support testing and simulations
+    - arl/pipelines/pipeline_dask_graphs: Graphs to implement the canonical pipelines (ICAL and Continuum imaging
+    currently).
+
+In addition there are notebooks:
+
+    - imaging-dask: General imaging example
+    - imaging-pipelines: Pipelines run on small LOW observation (core only)
+
+These notebooks are scaled to run on my laptop (4 cores, 16GB) but can be changed to larger scales.
+
 Using ARL and dask on Darwin
 ****************************
 

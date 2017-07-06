@@ -43,6 +43,7 @@ See the jupyter note books below:
    arl/peeling
    arl/simple-dask
    arl/imaging-dask
+   arl/imaging-pipelines
    arl/imaging-spectral
 
 In addition, there are other notebooks in examples/arl that are not built as part of this documentation. See e.g.
