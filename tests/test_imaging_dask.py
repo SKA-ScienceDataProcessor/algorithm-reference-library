@@ -137,7 +137,7 @@ class TestImagingDask(unittest.TestCase):
         qa = qa_visibility(predicted_vis_graph_list[0].compute())
         numpy.testing.assert_almost_equal(qa.data['maxabs'], 100.064844507, 0)
         qa = qa_visibility(residual_vis_graph_list[0].compute())
-        numpy.testing.assert_almost_equal(qa.data['maxabs'], 1667.11457634410614, 0)
+        numpy.testing.assert_almost_equal(qa.data['maxabs'], 1676.156836484616, 0)
 
     def test_predict_facet_graph(self):
         flux_model_graph = delayed(self.get_LSM)(self.vis_graph_list[self.nvis // 2],
@@ -246,15 +246,15 @@ class TestImagingDask(unittest.TestCase):
         self.model_graph = delayed(self.get_LSM)(self.vis_graph_list[self.nvis // 2], flux=100.0)
     
         dirty_graph = create_residual_wstack_graph(self.vis_graph_list, self.model_graph,
-                                                   kernel='wprojection', wstep=10.0)
+                                                   kernel='wprojection', vis_slices=11, wstep=10.0)
     
         dirty = dirty_graph.compute()
         export_image_to_fits(dirty[0], '%s/test_imaging_dask_residual_wprojection.fits' %
                              (self.results_dir))
     
         qa = qa_image(dirty[0])
-        assert numpy.abs(qa.data['max'] - 103.0) < 1.0, str(qa)
-        assert numpy.abs(qa.data['min'] + 11.13) < 1.0, str(qa)
+        assert numpy.abs(qa.data['max'] - 101.7) < 1.0, str(qa)
+        assert numpy.abs(qa.data['min'] + 8.9) < 1.0, str(qa)
     
     def test_deconvolution_facet_graph(self):
         

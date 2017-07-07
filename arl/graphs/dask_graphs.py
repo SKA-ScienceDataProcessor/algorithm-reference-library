@@ -127,7 +127,7 @@ def create_invert_graph(vis_graph_list, template_model_graph, dopsf=False, inver
     return delayed(sum_invert_results)(image_graph_list)
 
 
-def create_invert_wstack_graph(vis_graph_list, template_model_graph, dopsf=False, vis_slices=1, normalize=True,
+def create_invert_wstack_graph(vis_graph_list, template_model_graph, vis_slices, dopsf=False, normalize=True,
                                **kwargs):
     """ Sum invert results using wstacking, iterating over the vis_graph_list and w
     :param vis_graph_list:
@@ -270,7 +270,7 @@ def create_predict_facet_graph(vis_graph_list, model_graph, predict=predict_2d, 
     return accumulate_vis_graphs
 
 
-def create_predict_wstack_graph(vis_graph_list, model_graph, vis_slices=1, **kwargs):
+def create_predict_wstack_graph(vis_graph_list, model_graph, vis_slices, **kwargs):
     """Predict using wstacking, iterating over the vis_graph_list and w
 
     :param vis_graph_list:

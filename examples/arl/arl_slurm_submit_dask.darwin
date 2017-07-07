@@ -14,13 +14,13 @@
 #! Which project should be charged:
 #SBATCH -A SKA-SDP
 #! How many whole nodes should be allocated?
-#SBATCH --nodes=4
+#SBATCH --nodes=8
 #! How many (MPI) tasks will there be in total? (<= nodes*16)
-#SBATCH --ntasks=4
+#SBATCH --ntasks=16
 #! Memory limit
 #SBATCH --mem 32000
 #! How much wallclock time will be required?
-#SBATCH --time=00:10:00
+#SBATCH --time=00:30:00
 #! What types of email messages do you wish to receive?
 #SBATCH --mail-type=FAIL
 #! Uncomment this to prevent the job from being requeued (e.g. if
@@ -62,9 +62,9 @@ workdir="$SLURM_SUBMIT_DIR"  # The value of SLURM_SUBMIT_DIR sets workdir to the
 #! safe value to no more than 16:
 export OMP_NUM_THREADS=1
 
-#CMD="jupyter nbconvert --execute --ExecutePreprocessor.timeout=3600 --to rst imaging-dask.ipynb"
+CMD="jupyter nbconvert --execute --ExecutePreprocessor.timeout=3600 --to rst imaging-pipelines.ipynb"
 #CMD="python dask_minimal.py"
-CMD="python3 imaging-distributed.py"
+#CMD="python3 imaging-distributed.py"
 
 cd $workdir
 echo -e "Changed directory to `pwd`.\n"

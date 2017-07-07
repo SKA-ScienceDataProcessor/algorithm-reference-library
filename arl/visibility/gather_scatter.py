@@ -50,6 +50,7 @@ def visibility_gather(visibility_list, vis, vis_iter, **kwargs):
     """
     
     for i, rows in enumerate(vis_iter(vis, **kwargs)):
+        assert i < len(visibility_list), "Gather not consistent with scatter"
         if rows is not None and visibility_list[i] is not None:
             vis.data[rows] = visibility_list[i].data[...]
     

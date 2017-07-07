@@ -2,13 +2,23 @@
 
 
 """
+import numpy
 import logging
 import unittest
 
+from astropy.coordinates import SkyCoord
+from astropy.wcs.utils import pixel_to_skycoord
 from astropy.convolution import Gaussian2DKernel, convolve
+from astropy import units as u
 
-from arl.fourier_transforms.ftprocessor import *
-from arl.image.operations import export_image_to_fits, create_empty_image_like
+from arl.data.polarisation import PolarisationFrame
+from arl.fourier_transforms.ftprocessor import predict_2d, predict_wstack, predict_wprojection, predict_wstack_single, \
+    predict_facets, predict_timeslice, predict_timeslice_single, predict_wstack_wprojection, \
+    invert_2d, invert_wstack, invert_wprojection, invert_wstack_single, \
+    invert_facets, invert_timeslice, invert_timeslice_single, invert_wstack_wprojection, \
+    create_image_from_visibility, predict_skycomponent_blockvisibility, predict_skycomponent_visibility, \
+    advise_wide_field, weight_visibility, create_w_term_image, create_w_term_like
+from arl.image.operations import export_image_to_fits, create_empty_image_like, copy_image
 from arl.skycomponent.operations import create_skycomponent, find_skycomponents, find_nearest_component, \
     insert_skycomponent
 from arl.util.testing_support import create_named_configuration
@@ -45,6 +55,7 @@ class TestFTProcessor(unittest.TestCase):
             assert decdiff < positionthreshold, "Component differs in dec %.3f pixels" % decdiff
     
     def setUp(self):
+        import os
         self.dir = './test_results'
         os.makedirs(self.dir, exist_ok=True)
         self.params = {'npixel': 256,
@@ -183,17 +194,26 @@ class TestFTProcessor(unittest.TestCase):
     
     def test_predict_wstack(self):
         self.actualSetUp()
+        wprojection_planes=1
+        advice = advise_wide_field(self.componentvis, wprojection_planes=wprojection_planes)
+        self.params['wstep'] = advice['w_sampling_primary_beam']
+        self.params['vis_slices'] = advice['vis_slices']
         self._predict_base(predict_wstack, fluxthreshold=2.0)
     
     def test_predict_wstack_wprojection(self):
         self.actualSetUp()
-        self.params['vis_slices'] = 10
-        self.params['wstep'] = 2.0
-        self.params['kernel'] = 'wprojection'
-        self._predict_base(predict_wstack, fluxthreshold=2.0)
+        wprojection_planes=8
+        advice = advise_wide_field(self.componentvis, wprojection_planes=wprojection_planes)
+        self.params['wstep'] = advice['w_sampling_primary_beam']
+        self.params['vis_slices'] = advice['vis_slices']
+        self._predict_base(predict_wstack_wprojection, fluxthreshold=2.0)
     
     def test_predict_wprojection(self):
         self.actualSetUp()
+        wprojection_planes=65
+        advice = advise_wide_field(self.componentvis, wprojection_planes=wprojection_planes)
+        self.params['vis_slices'] = 1
+        self.params['wstep'] = advice['w_sampling_primary_beam']
         self._predict_base(predict_wprojection, fluxthreshold=2.0)
     
     def test_invert_2d(self):
@@ -231,24 +251,33 @@ class TestFTProcessor(unittest.TestCase):
     
     def test_invert_wstack(self):
         self.actualSetUp()
+        wprojection_planes=1
+        advice = advise_wide_field(self.componentvis, wprojection_planes=wprojection_planes)
+        self.params['wstep'] = advice['w_sampling_primary_beam']
+        self.params['vis_slices'] = advice['vis_slices']
         self._invert_base(invert_wstack, positionthreshold=8.0)
     
     def test_invert_wstack_wprojection(self):
         self.actualSetUp()
-        self.params['wstack'] = 16.0
-        self.params['wstep'] = 2.0
-        self.params['kernel'] = 'wprojection'
-        self._invert_base(invert_wstack, positionthreshold=8.0)
+        wprojection_planes=8
+        advice = advise_wide_field(self.componentvis, wprojection_planes=wprojection_planes)
+        self.params['wstep'] = advice['w_sampling_primary_beam']
+        self.params['vis_slices'] = advice['vis_slices']
+        self._invert_base(invert_wstack_wprojection, positionthreshold=8.0)
     
+    def test_invert_wprojection(self):
+        self.actualSetUp()
+        wprojection_planes=65
+        advice = advise_wide_field(self.componentvis, wprojection_planes=wprojection_planes)
+        self.params['vis_slices'] = 1
+        self.params['wstep'] = advice['w_sampling_primary_beam']
+        self._invert_base(invert_wprojection, positionthreshold=1.0)
+
     def test_invert_timeslice(self):
         self.actualSetUp()
         self.actualSetUp()
         self._invert_base(invert_timeslice, positionthreshold=8.0)
-    
-    def test_invert_wprojection(self):
-        self.actualSetUp()
-        self._invert_base(invert_wprojection, positionthreshold=1.0)
-    
+
     def test_weighting(self):
         self.actualSetUp()
         vis, density, densitygrid = weight_visibility(self.componentvis, self.model, weighting='uniform')

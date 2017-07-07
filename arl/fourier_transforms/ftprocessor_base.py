@@ -163,7 +163,8 @@ def predict_wprojection(vis, model, **kwargs):
     :returns: resulting visibility (in place works)
     """
     log.debug("predict_wprojection: predict using wprojection")
-    return predict_2d_base(vis, model, kernel='wprojection', **kwargs)
+    kwargs['kernel'] = 'wprojection'
+    return predict_2d_base(vis, model, **kwargs)
 
 
 def invert_2d_base(vis, im, dopsf=False, normalize=True, **kwargs):

@@ -227,7 +227,7 @@ def phaserotate_visibility(vis: Visibility, newphasecentre: SkyCoord, tangent=Tr
     l, m, n = skycoord_to_lmn(newphasecentre, vis.phasecentre)
     
     # No significant change?
-    if numpy.abs(l) > 1e-15 or numpy.abs(m) > 1e-15:
+    if numpy.abs(n) > 1e-15:
         
         # Make a new copy
         newvis = copy_visibility(vis)
@@ -256,8 +256,9 @@ def phaserotate_visibility(vis: Visibility, newphasecentre: SkyCoord, tangent=Tr
                 newvis.data['uvw'][...] = xyz_to_uvw(xyz, ha=-newphasecentre.ra.rad, dec=newphasecentre.dec.rad)[
                     ...]
         newvis.phasecentre = newphasecentre
-    
-    return newvis
+        return newvis
+    else:
+        return vis
 
 
 def sum_visibility(vis: Visibility, direction: SkyCoord) -> numpy.array:

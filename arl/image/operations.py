@@ -4,16 +4,19 @@
 Functions that define and manipulate images. Images are just data and a World Coordinate System.
 """
 
+import os
 import copy
 import warnings
 
-from astropy.convolution import Gaussian2DKernel, convolve
+import matplotlib.pyplot as plt
+
 from astropy.io import fits
 from astropy.wcs import WCS
 from reproject import reproject_interp
 
-from arl.data.data_models import *
-from arl.data.parameters import *
+from arl.data.parameters import arl_path
+from arl.data.data_models import Image, QA
+from arl.data.parameters import get_parameter
 from arl.data.polarisation import *
 
 log = logging.getLogger(__name__)
@@ -267,7 +270,6 @@ def show_image(im: Image, fig=None, title: str = '', pol=0, chan=0, cm='rainbow'
     :returns:
     """
 
-    import matplotlib.pyplot as plt
     assert type(im) == Image
     if not fig:
         fig = plt.figure()
@@ -323,13 +325,14 @@ def smooth_image(model: Image, width=1.0):
     """ Smooth an image with a kernel
     
     """
+    import astropy.convolution
     
     assert type(model) == Image
-    kernel = Gaussian2DKernel(width)
+    kernel = astropy.convolution.kernels.Gaussian2DKernel(width)
     
     cmodel = create_empty_image_like(model)
-    cmodel.data[..., :, :] = convolve(model.data[0, 0, :, :], kernel, normalize_kernel=False)
-    if type(kernel) is Gaussian2DKernel:
+    cmodel.data[..., :, :] = astropy.convolution.convolve(model.data[0, 0, :, :], kernel, normalize_kernel=False)
+    if type(kernel) is astropy.convolution.kernels.Gaussian2DKernel:
         cmodel.data *= 2 * numpy.pi * 1.5 ** 2
     
     return cmodel

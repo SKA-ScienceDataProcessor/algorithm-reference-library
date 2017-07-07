@@ -129,19 +129,16 @@ def w_kernel_list(vis, shape, fov, oversampling=4, wstep=100.0, npixel_kernel=16
     :param wstep: Step in w between cached functions
     :returns: Function to look up gridding kernel as function of row, and cache
     """
-    wmax = numpy.max(vis.w)
-    wmin = numpy.min(vis.w)
-    log.debug("w_kernel_list: Maximum w = %.1f , minimum w = %.1f , step is %.1f wavelengths" % (wmax, wmin, wstep))
+    wmaxabs = numpy.max(numpy.abs(vis.w))
+    log.debug("w_kernel_list: Maximum absolute w = %.1f, step is %.1f wavelengths" % (wmaxabs, wstep))
 
     def digitise(w, wstep):
-        return numpy.ceil((w - wmin)/ wstep).astype('int')
+        return numpy.ceil((w + wmaxabs)/ wstep).astype('int')
     
     # Find all the unique indices for which we need a kernel
-    nwsteps = digitise(wmax, wstep) + 1
-    assert digitise(wmin, wstep) == 0
-    assert digitise(wmax, wstep) == nwsteps - 1
+    nwsteps = digitise(wmaxabs, wstep) + 1
 
-    w_list = numpy.linspace(wmin, wmax, nwsteps)
+    w_list = numpy.linspace(-wmaxabs, +wmaxabs, nwsteps)
     # For all the unique indices, calculate the corresponding w kernel
     kernels = list()
     for w in w_list:
@@ -149,8 +146,8 @@ def w_kernel_list(vis, shape, fov, oversampling=4, wstep=100.0, npixel_kernel=16
                                  npixel_kernel=npixel_kernel, kernel_oversampling=oversampling))
     # Now make a lookup table from row number of vis to the kernel
     kernel_indices = digitise(vis.w, wstep)
-    assert numpy.max(kernel_indices) < len(kernels), "wmin %f, wmax %f wstep %f" % (wmin, wmax, wstep)
-    assert numpy.min(kernel_indices) >= 0, "wmin %f, wmax %f wstep %f" % (wmin, wmax, wstep)
+    assert numpy.max(kernel_indices) < len(kernels), "wabsmax %f wstep %f" % (wmaxabs, wstep)
+    assert numpy.min(kernel_indices) >= 0, "wabsmax %f wstep %f" % (wmaxabs, wstep)
     return kernel_indices, kernels
 
 
