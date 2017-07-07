@@ -23,8 +23,10 @@ def get_dask_Client(timeout=30):
         print(c)
         
     addr = c.scheduler_info()['address']
-    bokeh_addr = 'http:%s:%s' % (addr.split(':')[1], c.scheduler_info()['services']['bokeh'])
-    print('Diagnostic pages available on port %s' % bokeh_addr)
+    services = c.scheduler_info()['services']
+    if 'bokeh' in services.keys():
+        bokeh_addr = 'http:%s:%s' % (addr.split(':')[1], services['bokeh'])
+        print('Diagnostic pages available on port %s' % bokeh_addr)
     return c
 
 
