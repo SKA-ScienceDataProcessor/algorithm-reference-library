@@ -55,6 +55,22 @@ def coordinates2(npixel: int):
     return (numpy.mgrid[0:npixel,0:npixel] - npixel//2) / npixel
 
 
+def coordinates2Offset(npixel: int, cx: int, cy: int):
+    """Two dimensional grids of coordinates centred on an arbitrary point.
+    
+    This is used for A and w beams.
+
+    1. a step size of 2/npixel and
+    2. (0,0) at pixel (cx, cy,floor(n/2))
+    """
+    if cx is None:
+        cx = npixel//2
+    if cy is None:
+        cy == npixel//2
+    mg = numpy.mgrid[0:npixel,0:npixel]
+    return ((mg[0]-cy)/npixel, (mg[1]-cx)/npixel)
+
+
 def anti_aliasing_transform(shape, oversampling=8, support=3, m=6, c=0.0):
     """
     Compute the prolate spheroidal anti-aliasing function
@@ -166,26 +182,30 @@ def grdsf(nu):
     return grdsf, (1 - nu ** 2) * grdsf
 
 
-def w_beam(npixel, field_of_view, w):
+def w_beam(npixel, field_of_view, w, cx=None, cy=None):
     """ W beam, the fresnel diffraction pattern arising from non-coplanar baselines
     
-    Note that we also include the anti-aliasing kernel since we will need to for
-    small values of w.
-
+    :param cx:
+    :param cy:
     :param npixel: Size of the grid in pixels
     :param field_of_view: Field of view
     :param w: Baseline distance to the projection plane
     :returns: npixel x npixel array with the far field
     """
-    
-    m, l = coordinates2(npixel) * field_of_view
+    if cx is None:
+        cx = npixel // 2
+    if cy is None:
+        cy = npixel // 2
+    m, l = coordinates2Offset(npixel, cx, cy)
+    m *= field_of_view
+    l *= field_of_view
     r2 = l ** 2 + m ** 2
     n2 = 1.0 - r2
     ph = numpy.zeros_like(n2)
     ph[n2 < 1.0] = w * (1 - numpy.sqrt(1.0 - r2[n2 < 1.0]))
     cp = numpy.zeros_like(n2, dtype='complex')
     cp[n2 < 1.0] = numpy.exp(-2j * numpy.pi * ph[n2 < 1.0])
-    cp[npixel//2, npixel//2] = 1.0+0j
+    cp[r2==0] = 1.0+0j
     return cp
 
 
@@ -216,7 +236,7 @@ def kernel_oversample(ff, npixel, kernel_oversampling, kernelwidth):
     return numpy.array(res)
 
 
-def w_kernel(field_of_view, w, npixel_farfield, npixel_kernel, kernel_oversampling):
+def w_kernel(field_of_view, w, npixel_farfield, npixel_kernel, kernel_oversampling, cx, cy):
     """ The middle s pixels of W convolution kernel. (W-KERNel-Aperture-Function)
 
     :param field_of_view: Field of view (directional cosines)
@@ -231,7 +251,7 @@ def w_kernel(field_of_view, w, npixel_farfield, npixel_kernel, kernel_oversampli
     
     assert npixel_farfield > npixel_kernel or (npixel_farfield == npixel_kernel and kernel_oversampling == 1)
     gcf, _ = anti_aliasing_calculate((npixel_farfield, npixel_farfield), kernel_oversampling)
-    wbeamarray=w_beam(npixel_farfield, field_of_view, w) / gcf
+    wbeamarray= w_beam(npixel_farfield, field_of_view, w, cx, cy) / gcf
     return kernel_oversample(wbeamarray, npixel_farfield, kernel_oversampling, npixel_kernel)
 
 
@@ -382,6 +402,7 @@ def convolutional_grid(kernel_list, uvgrid, vis, visweights, vuvwmap, vfrequency
     
     npol = vis.shape[-1]
     
+    # About 57k samples per second for standard kernel so about 2.5 million CMACs per second
     coords = kernel_indices, list(vfrequencymap), xf, yf
     for pol in range(npol):
         for v, vwt, slx, sly, kind, ic,  xf, yf in zip(viswt[...,pol], wts[...,pol], slicex,  slicey, *coords):

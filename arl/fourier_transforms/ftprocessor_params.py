@@ -116,7 +116,7 @@ def standard_kernel_list(vis, shape, oversampling=8, support=3):
     return numpy.zeros_like(vis.w, dtype='int'), [anti_aliasing_calculate(shape, oversampling, support)[1]]
 
 
-def w_kernel_list(vis, shape, fov, oversampling=4, wstep=100.0, npixel_kernel=16):
+def w_kernel_list(vis, shape, fov, oversampling=4, wstep=100.0, npixel_kernel=16, cy=None, cx=None):
     """Return a generator for the w kernel for each row
 
     This function is called once. It uses an LRU cache to hold the convolution kernels. As a result,
@@ -143,7 +143,7 @@ def w_kernel_list(vis, shape, fov, oversampling=4, wstep=100.0, npixel_kernel=16
     kernels = list()
     for w in w_list:
         kernels.append(w_kernel(field_of_view=fov, w=w, npixel_farfield=shape[0],
-                                 npixel_kernel=npixel_kernel, kernel_oversampling=oversampling))
+                                 npixel_kernel=npixel_kernel, kernel_oversampling=oversampling, cx=cx, cy=cy))
     # Now make a lookup table from row number of vis to the kernel
     kernel_indices = digitise(vis.w, wstep)
     assert numpy.max(kernel_indices) < len(kernels), "wabsmax %f wstep %f" % (wmaxabs, wstep)
@@ -187,8 +187,9 @@ def get_kernel_list(vis: Visibility, im, **kwargs):
         npixel_kernel = get_parameter(kwargs, "kernelwidth", (2 * int(round(numpy.sin(0.5 * fov) * npixel/4.0))))
         assert npixel_kernel % 2 == 0
         log.debug("get_kernel_list: Maximum w kernel full width = %d pixels" % (npixel_kernel))
-        kernel_list = w_kernel_list(vis, (npixel, npixel), fov, wstep=wstep,
-                                    npixel_kernel=npixel_kernel, oversampling=oversampling)
+        wcentre = vis.phasecentre.to_pixel(im.wcs)
+        kernel_list = w_kernel_list(vis, (npixel, npixel), fov, oversampling=oversampling, wstep=wstep,
+                                    npixel_kernel=npixel_kernel, cx=wcentre[0], cy=wcentre[1])
     else:
         kernelname = '2d'
         kernel_list = standard_kernel_list(vis, (padding * npixel, padding * npixel), oversampling=8, support=3)
@@ -229,8 +230,8 @@ def advise_wide_field(vis, delA=0.02, oversampling_synthesised_beam=3.0, guard_b
     image_fov = primary_beam_fov * guard_band_image
     log.info("advise_wide_field: Image field of view %s" % (rad_and_deg(image_fov)))
 
+    facet_fov = primary_beam_fov * guard_band_image / facets
     if facets > 1:
-        facet_fov = primary_beam_fov * guard_band_image / facets
         log.info("advise_wide_field: Facet field of view %s" % (rad_and_deg(facet_fov)))
 
     synthesized_beam = 1.0 / (maximum_baseline)
@@ -251,7 +252,7 @@ def advise_wide_field(vis, delA=0.02, oversampling_synthesised_beam=3.0, guard_b
 
     if facets > 1:
         w_sampling_facet = numpy.sqrt(2.0 * delA) / (numpy.pi * facet_fov ** 2)
-        log.info("advice_wide_field: W sampling for facet = %.1f (wavelengths)" % (w_sampling_image))
+        log.info("advice_wide_field: W sampling for facet = %.1f (wavelengths)" % (w_sampling_facet))
 
     w_sampling_primary_beam = numpy.sqrt(2.0 * delA) / (numpy.pi * primary_beam_fov ** 2)
     log.info("advice_wide_field: W sampling for primary beam = %.1f (wavelengths)" % (w_sampling_primary_beam))

@@ -4,7 +4,7 @@ approximated as:
 
 .. math::
 
-    V(u,v,w) =\\sum_i \\int \\frac{ I(l,m) e^{-2 \\pi j (w_i(\\sqrt{1-l^2-m^2}-1))})}{\\sqrt{1-l^2-m^2}} e^{-2 \\pi j (ul+um)} dl dm
+    V(u,v,w) =\\sum_i \\int \\frac{ I(l,m) e^{-2 \\pi j (w_i(\\sqrt{1-l^2-m^2}-1))})}{\\sqrt{1-l^2-m^2}} e^{-2 \\pi j (ul+vm)} dl dm
 
 If images constructed from slices in w are added after applying a w-dependent image plane correction, the w term will be corrected. 
 """
@@ -67,7 +67,7 @@ def predict_wstack_single(vis, model, predict_inner=predict_2d_base, **kwargs):
 
     # Calculate w beam and apply to the model. The imaginary part is not needed
     workimage = copy_image(model)
-    w_beam = create_w_term_like(model, w_average)
+    w_beam = create_w_term_like(vis, model, w_average)
     
     # Do the real part
     workimage.data = w_beam.data.real * model.data
@@ -90,13 +90,13 @@ def predict_wstack_wprojection(vis, model, **kwargs):
 
     .. math::
 
-        V(u,v,w) =G_w(u,v) \\ast \\int \\frac{I(l,m)}{\\sqrt{1-l^2-m^2}} e^{-2 \\pi j (ul+um)} dl dm$$
+        V(u,v,w) =G_w(u,v) \\ast \\int \\frac{I(l,m)}{\\sqrt{1-l^2-m^2}} e^{-2 \\pi j (ul+vm)} dl dm$$
 
     where the convolution function is:
 
     .. math::
 
-        G_w(u,v) = \\int \\frac{1}{\\sqrt{1-l^2-m^2}} e^{-2 \\pi j (ul+um + w(\\sqrt{1-l^2-m^2}-1))} dl dm
+        G_w(u,v) = \\int \\frac{1}{\\sqrt{1-l^2-m^2}} e^{-2 \\pi j (ul+vm + w(\\sqrt{1-l^2-m^2}-1))} dl dm
 
 
     Hence when degridding, we can use the transform of the w beam to correct this effect.
@@ -156,7 +156,7 @@ def invert_wstack_single(vis, im, dopsf, normalize=True, invert_inner=invert_2d_
     vis.data['uvw'][...,2] += w_average
 
     # Calculate w beam and apply to the model. The imaginary part is not needed
-    w_beam = create_w_term_like(im, w_average)
+    w_beam = create_w_term_like(vis, im, w_average)
     reWorkimage.data = w_beam.data.real * reWorkimage.data - w_beam.data.imag * imWorkimage.data
     
     return reWorkimage, sumwt
@@ -169,13 +169,13 @@ def invert_wstack_wprojection(vis, im, dopsf=False, normalize=True, **kwargs):
 
     .. math::
 
-        V(u,v,w) =G_w(u,v) \\ast \\int \\frac{I(l,m)}{\\sqrt{1-l^2-m^2}} e^{-2 \\pi j (ul+um)} dl dm$$
+        V(u,v,w) =G_w(u,v) \\ast \\int \\frac{I(l,m)}{\\sqrt{1-l^2-m^2}} e^{-2 \\pi j (ul+vm)} dl dm$$
 
     where the convolution function is:
 
     .. math::
 
-        G_w(u,v) = \\int \\frac{1}{\\sqrt{1-l^2-m^2}} e^{-2 \\pi j (ul+um + w(\\sqrt{1-l^2-m^2}-1))} dl dm
+        G_w(u,v) = \\int \\frac{1}{\\sqrt{1-l^2-m^2}} e^{-2 \\pi j (ul+vm + w(\\sqrt{1-l^2-m^2}-1))} dl dm
 
 
     Hence when degridding, we can use the transform of the w beam to correct this effect.

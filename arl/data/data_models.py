@@ -296,6 +296,10 @@ class Visibility:
     Polarisation frame is the same for the entire data set and can be stokes, circular, linear
     The configuration is also an attribute
     
+    The phasecentre is the direct of delay tracking i.e. n=0. If uvw are rotated then this
+    should be updated with the new delay tracking centre. This is important for wstack and wproject
+    algorithms.
+    
     If a visibility is created by coalescence then the cindex column is filled with a pointer to the
     row in the original block visibility that this row has a value for. The original blockvisibility
     is also preserves as n attribute so that decoalescence is expedited. If you don't need that then
@@ -418,6 +422,11 @@ class BlockVisibility:
     Visibility with uvw, time, integration_time, frequency, channel_bandwidth, pol, a1, a2, vis, weight Columns in
     a numpy structured array
     Visibility is defined to hold an observation with one direction.
+
+    The phasecentre is the direct of delay tracking i.e. n=0. If uvw are rotated then this
+    should be updated with the new delay tracking centre. This is important for wstack and wproject
+    algorithms.
+    
     Polarisation frame is the same for the entire data set and can be stokes, circular, linear
     The configuration is also an attribute
     """

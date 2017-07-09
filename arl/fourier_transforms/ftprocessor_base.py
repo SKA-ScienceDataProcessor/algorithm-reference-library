@@ -6,14 +6,14 @@ The measurement equation for a sufficently narrow field of view interferometer i
 
 .. math::
 
-    V(u,v,w) =\\int I(l,m) e^{-2 \\pi j (ul+um)} dl dm
+    V(u,v,w) =\\int I(l,m) e^{-2 \\pi j (ul+vm)} dl dm
 
 
 The measurement equation for a wide field of view interferometer is:
 
 .. math::
 
-    V(u,v,w) =\\int \\frac{I(l,m)}{\\sqrt{1-l^2-m^2}} e^{-2 \\pi j (ul+um + w(\\sqrt{1-l^2-m^2}-1))} dl dm
+    V(u,v,w) =\\int \\frac{I(l,m)}{\\sqrt{1-l^2-m^2}} e^{-2 \\pi j (ul+vm + w(\\sqrt{1-l^2-m^2}-1))} dl dm
 
 This and related modules contain various approachs for dealing with the wide-field problem where the
 extra phase term in the Fourier transform cannot be ignored.
@@ -147,13 +147,13 @@ def predict_wprojection(vis, model, **kwargs):
     
     .. math::
 
-        V(u,v,w) =G_w(u,v) \\ast \\int \\frac{I(l,m)}{\\sqrt{1-l^2-m^2}} e^{-2 \\pi j (ul+um)} dl dm$$
+        V(u,v,w) =G_w(u,v) \\ast \\int \\frac{I(l,m)}{\\sqrt{1-l^2-m^2}} e^{-2 \\pi j (ul+vm)} dl dm$$
 
     where the convolution function is:
     
     .. math::
 
-        G_w(u,v) = \\int \\frac{1}{\\sqrt{1-l^2-m^2}} e^{-2 \\pi j (ul+um + w(\\sqrt{1-l^2-m^2}-1))} dl dm
+        G_w(u,v) = \\int \\frac{1}{\\sqrt{1-l^2-m^2}} e^{-2 \\pi j (ul+vm + w(\\sqrt{1-l^2-m^2}-1))} dl dm
 
 
     Hence when degridding, we can use the transform of the w beam to correct this effect.
@@ -257,13 +257,13 @@ def invert_wprojection(vis, im, dopsf=False, normalize=True, **kwargs):
     
     .. math::
 
-        V(u,v,w) =G_w(u,v) \\ast \\int \\frac{I(l,m)}{\\sqrt{1-l^2-m^2}} e^{-2 \\pi j (ul+um)} dl dm$$
+        V(u,v,w) =G_w(u,v) \\ast \\int \\frac{I(l,m)}{\\sqrt{1-l^2-m^2}} e^{-2 \\pi j (ul+vm)} dl dm$$
 
     where the convolution function is:
     
     .. math::
 
-        G_w(u,v) = \\int \\frac{1}{\\sqrt{1-l^2-m^2}} e^{-2 \\pi j (ul+um + w(\\sqrt{1-l^2-m^2}-1))} dl dm
+        G_w(u,v) = \\int \\frac{1}{\\sqrt{1-l^2-m^2}} e^{-2 \\pi j (ul+vm + w(\\sqrt{1-l^2-m^2}-1))} dl dm
 
 
     Hence when degridding, we can use the transform of the w beam to correct this effect.
@@ -466,7 +466,7 @@ def create_image_from_visibility(vis: Visibility, **kwargs) -> Image:
     return create_image_from_array(numpy.zeros(shape), wcs=w)
 
 
-def create_w_term_like(im, w=None, **kwargs):
+def create_w_term_like(vis, im, w, **kwargs):
     """Create an image with a w term phase term in it
 
     :param im: template image
@@ -477,37 +477,14 @@ def create_w_term_like(im, w=None, **kwargs):
     fim = copy_image(im)
     cellsize = abs(fim.wcs.wcs.cdelt[0]) * numpy.pi / 180.0
     _, _, _, npixel = fim.data.shape
-    fim.data = w_beam(npixel, npixel * cellsize, w=w)
+    wcentre = vis.phasecentre.to_pixel(im.wcs)
+    fim.data = w_beam(npixel, npixel * cellsize, w=w, cx=wcentre[0], cy=wcentre[1])
     
     fov = npixel * cellsize
     fresnel = numpy.abs(w) * (0.5 * fov) ** 2
     log.debug('create_w_term_image: For w = %.1f, field of view = %.6f, Fresnel number = %.2f' % (w, fov, fresnel))
     
     return fim
-
-
-def create_w_term_image(vis, w=None, **kwargs):
-    """Create an image with a w term phase term in it
-
-    :param vis: Visibility
-    :param w: w value to evaluate (default is median abs)
-    :returns: Image
-    """
-    if w is None:
-        w = numpy.median(numpy.abs(vis.data['uvw'][:, 2]))
-        log.info('create_w_term_image: Creating w term image for median w %f' % w)
-    
-    im = create_image_from_visibility(vis, **kwargs)
-    cellsize = abs(im.wcs.wcs.cdelt[0]) * numpy.pi / 180.0
-    _, _, _, npixel = im.data.shape
-    im.data = w_beam(npixel, npixel * cellsize, w=w)
-    
-    fov = npixel * cellsize
-    fresnel = numpy.abs(w) * (0.5 * fov) ** 2
-    log.debug('create_w_term_image: For w = %.1f, field of view = %.6f, Fresnel number = %.2f' % (w, fov, fresnel))
-    
-    return im
-
 
 def residual_image(vis: Visibility, model: Image, invert_residual=invert_2d, predict_residual=predict_2d,
                    **kwargs):

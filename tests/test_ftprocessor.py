@@ -2,27 +2,26 @@
 
 
 """
-import numpy
 import logging
 import unittest
 
+import numpy
+from astropy import units as u
+from astropy.convolution import Gaussian2DKernel, convolve
 from astropy.coordinates import SkyCoord
 from astropy.wcs.utils import pixel_to_skycoord
-from astropy.convolution import Gaussian2DKernel, convolve
-from astropy import units as u
 
 from arl.data.polarisation import PolarisationFrame
-from arl.fourier_transforms.ftprocessor import predict_2d, predict_wstack, predict_wprojection, predict_wstack_single, \
-    predict_facets, predict_timeslice, predict_timeslice_single, predict_wstack_wprojection, \
-    invert_2d, invert_wstack, invert_wprojection, invert_wstack_single, \
-    invert_facets, invert_timeslice, invert_timeslice_single, invert_wstack_wprojection, \
-    create_image_from_visibility, predict_skycomponent_blockvisibility, predict_skycomponent_visibility, \
-    advise_wide_field, weight_visibility, create_w_term_image, create_w_term_like
+from arl.fourier_transforms.ftprocessor import predict_2d, predict_wstack, predict_wprojection, predict_facets, \
+    predict_timeslice, predict_wstack_wprojection, \
+    invert_2d, invert_wstack, invert_wprojection, invert_facets, invert_timeslice, invert_wstack_wprojection, \
+    create_image_from_visibility, predict_skycomponent_visibility, \
+    advise_wide_field, weight_visibility, create_w_term_like
 from arl.image.operations import export_image_to_fits, create_empty_image_like, copy_image
 from arl.skycomponent.operations import create_skycomponent, find_skycomponents, find_nearest_component, \
     insert_skycomponent
 from arl.util.testing_support import create_named_configuration
-from arl.visibility.operations import create_visibility, sum_visibility, vis_summary
+from arl.visibility.operations import create_visibility, sum_visibility
 
 log = logging.getLogger(__name__)
 
@@ -194,27 +193,19 @@ class TestFTProcessor(unittest.TestCase):
     
     def test_predict_wstack(self):
         self.actualSetUp()
-        wprojection_planes=1
-        advice = advise_wide_field(self.componentvis, wprojection_planes=wprojection_planes)
-        self.params['wstep'] = advice['w_sampling_primary_beam']
-        self.params['vis_slices'] = advice['vis_slices']
-        self._predict_base(predict_wstack, fluxthreshold=2.0)
+        self.params['wstack'] = 4.0
+        self._predict_base(predict_wstack, fluxthreshold=2.1)
     
     def test_predict_wstack_wprojection(self):
         self.actualSetUp()
-        wprojection_planes=8
-        advice = advise_wide_field(self.componentvis, wprojection_planes=wprojection_planes)
-        self.params['wstep'] = advice['w_sampling_primary_beam']
-        self.params['vis_slices'] = advice['vis_slices']
-        self._predict_base(predict_wstack_wprojection, fluxthreshold=2.0)
+        self.params['wstack'] = 5 * 4.0
+        self.params['wstep'] = 4.0
+        self._predict_base(predict_wstack_wprojection, fluxthreshold=2.1)
     
     def test_predict_wprojection(self):
         self.actualSetUp()
-        wprojection_planes=65
-        advice = advise_wide_field(self.componentvis, wprojection_planes=wprojection_planes)
-        self.params['vis_slices'] = 1
-        self.params['wstep'] = advice['w_sampling_primary_beam']
-        self._predict_base(predict_wprojection, fluxthreshold=2.0)
+        self.params['wstep'] = 4.0
+        self._predict_base(predict_wprojection, fluxthreshold=4.0)
     
     def test_invert_2d(self):
         # Test if the 2D invert works with w set to zero
@@ -251,33 +242,25 @@ class TestFTProcessor(unittest.TestCase):
     
     def test_invert_wstack(self):
         self.actualSetUp()
-        wprojection_planes=1
-        advice = advise_wide_field(self.componentvis, wprojection_planes=wprojection_planes)
-        self.params['wstep'] = advice['w_sampling_primary_beam']
-        self.params['vis_slices'] = advice['vis_slices']
+        self.params['wstack'] = 4.0
         self._invert_base(invert_wstack, positionthreshold=8.0)
     
     def test_invert_wstack_wprojection(self):
         self.actualSetUp()
-        wprojection_planes=8
-        advice = advise_wide_field(self.componentvis, wprojection_planes=wprojection_planes)
-        self.params['wstep'] = advice['w_sampling_primary_beam']
-        self.params['vis_slices'] = advice['vis_slices']
+        self.params['wstack'] = 5 * 4.0
+        self.params['wstep'] = 4.0
         self._invert_base(invert_wstack_wprojection, positionthreshold=8.0)
     
     def test_invert_wprojection(self):
         self.actualSetUp()
-        wprojection_planes=65
-        advice = advise_wide_field(self.componentvis, wprojection_planes=wprojection_planes)
-        self.params['vis_slices'] = 1
-        self.params['wstep'] = advice['w_sampling_primary_beam']
+        self.params['wstep'] = 4.0
         self._invert_base(invert_wprojection, positionthreshold=1.0)
-
+    
     def test_invert_timeslice(self):
         self.actualSetUp()
         self.actualSetUp()
         self._invert_base(invert_timeslice, positionthreshold=8.0)
-
+    
     def test_weighting(self):
         self.actualSetUp()
         vis, density, densitygrid = weight_visibility(self.componentvis, self.model, weighting='uniform')
@@ -310,11 +293,8 @@ class TestFTProcessor(unittest.TestCase):
     
     def test_create_w_term_image(self):
         self.actualSetUp()
-        im = create_w_term_image(self.componentvis, nchan=1, npixel=128)
-        assert im.data.dtype == 'complex128'
-        assert im.data.shape == (128, 128)
-        self.assertAlmostEqual(numpy.max(im.data.real), 1.0, 7)
-        im = create_w_term_image(self.componentvis, w=10.0, nchan=1, npixel=128)
+        fim = create_image_from_visibility(self.componentvis, nchan=1, npixel=128)
+        im = create_w_term_like(self.componentvis, fim, w=10.0, nchan=1, npixel=128)
         assert im.data.shape == (128, 128)
         assert im.data.dtype == 'complex128'
         self.assertAlmostEqual(numpy.max(im.data.real), 1.0, 7)
