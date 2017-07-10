@@ -182,14 +182,15 @@ def grdsf(nu):
     return grdsf, (1 - nu ** 2) * grdsf
 
 
-def w_beam(npixel, field_of_view, w, cx=None, cy=None):
+def w_beam(npixel, field_of_view, w, cx=None, cy=None, remove_shift=False):
     """ W beam, the fresnel diffraction pattern arising from non-coplanar baselines
     
-    :param cx:
-    :param cy:
     :param npixel: Size of the grid in pixels
     :param field_of_view: Field of view
     :param w: Baseline distance to the projection plane
+    :param cx: location of delay centre def :npixel//2
+    :param cy: location of delay centre def :npixel//2
+    :param remove_shift: Remove overall phase shift
     :returns: npixel x npixel array with the far field
     """
     if cx is None:
@@ -206,6 +207,9 @@ def w_beam(npixel, field_of_view, w, cx=None, cy=None):
     cp = numpy.zeros_like(n2, dtype='complex')
     cp[n2 < 1.0] = numpy.exp(-2j * numpy.pi * ph[n2 < 1.0])
     cp[r2==0] = 1.0+0j
+    # Correct for linear phase shift in faceting
+    if remove_shift:
+        cp /= cp[npixel//2, npixel//2]
     return cp
 
 
@@ -236,9 +240,10 @@ def kernel_oversample(ff, npixel, kernel_oversampling, kernelwidth):
     return numpy.array(res)
 
 
-def w_kernel(field_of_view, w, npixel_farfield, npixel_kernel, kernel_oversampling, cx, cy):
+def w_kernel(field_of_view, w, npixel_farfield, npixel_kernel, kernel_oversampling, cx, cy, remove_shift):
     """ The middle s pixels of W convolution kernel. (W-KERNel-Aperture-Function)
 
+    :param remove_shift:
     :param field_of_view: Field of view (directional cosines)
     :param w: Baseline distance to the projection plane
     :param npixel_farfield: Far field size. Must be at least npixel_kernel+1 if kernel_oversampling > 1, otherwise npixel_kernel.
@@ -251,7 +256,7 @@ def w_kernel(field_of_view, w, npixel_farfield, npixel_kernel, kernel_oversampli
     
     assert npixel_farfield > npixel_kernel or (npixel_farfield == npixel_kernel and kernel_oversampling == 1)
     gcf, _ = anti_aliasing_calculate((npixel_farfield, npixel_farfield), kernel_oversampling)
-    wbeamarray= w_beam(npixel_farfield, field_of_view, w, cx, cy) / gcf
+    wbeamarray= w_beam(npixel_farfield, field_of_view, w, cx, cy, remove_shift=remove_shift) / gcf
     return kernel_oversample(wbeamarray, npixel_farfield, kernel_oversampling, npixel_kernel)
 
 

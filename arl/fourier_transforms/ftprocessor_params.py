@@ -116,12 +116,14 @@ def standard_kernel_list(vis, shape, oversampling=8, support=3):
     return numpy.zeros_like(vis.w, dtype='int'), [anti_aliasing_calculate(shape, oversampling, support)[1]]
 
 
-def w_kernel_list(vis, shape, fov, oversampling=4, wstep=100.0, npixel_kernel=16, cy=None, cx=None):
+def w_kernel_list(vis, shape, fov, oversampling=4, wstep=100.0, npixel_kernel=16, cy=None, cx=None,
+                  remove_shift=False):
     """Return a generator for the w kernel for each row
 
     This function is called once. It uses an LRU cache to hold the convolution kernels. As a result,
     initially progress is slow as the cache is filled. Then it speeds up.
 
+    :param remove_shift:
     :param vis: visibility
     :param shape: tuple with 2D shape of grid
     :param fov: Field of view in radians
@@ -142,8 +144,8 @@ def w_kernel_list(vis, shape, fov, oversampling=4, wstep=100.0, npixel_kernel=16
     # For all the unique indices, calculate the corresponding w kernel
     kernels = list()
     for w in w_list:
-        kernels.append(w_kernel(field_of_view=fov, w=w, npixel_farfield=shape[0],
-                                 npixel_kernel=npixel_kernel, kernel_oversampling=oversampling, cx=cx, cy=cy))
+        kernels.append(w_kernel(field_of_view=fov, w=w, npixel_farfield=shape[0], npixel_kernel=npixel_kernel,
+                                kernel_oversampling=oversampling, cx=cx, cy=cy, remove_shift=remove_shift))
     # Now make a lookup table from row number of vis to the kernel
     kernel_indices = digitise(vis.w, wstep)
     assert numpy.max(kernel_indices) < len(kernels), "wabsmax %f wstep %f" % (wmaxabs, wstep)
@@ -163,7 +165,8 @@ def get_kernel_list(vis: Visibility, im, **kwargs):
     kernelname = get_parameter(kwargs, "kernel", "2d")
     oversampling = get_parameter(kwargs, "oversampling", 8)
     padding = get_parameter(kwargs, "padding", 2)
-    
+    facets = get_parameter(kwargs, "facets", 1)
+
     gcf, _ = anti_aliasing_calculate((padding * npixel, padding * npixel), oversampling)
 
     wabsmax = numpy.max(numpy.abs(vis.w))
@@ -188,8 +191,10 @@ def get_kernel_list(vis: Visibility, im, **kwargs):
         assert npixel_kernel % 2 == 0
         log.debug("get_kernel_list: Maximum w kernel full width = %d pixels" % (npixel_kernel))
         wcentre = vis.phasecentre.to_pixel(im.wcs)
+        remove_shift=get_parameter(kwargs, "remove_shift", False)
         kernel_list = w_kernel_list(vis, (npixel, npixel), fov, oversampling=oversampling, wstep=wstep,
-                                    npixel_kernel=npixel_kernel, cx=wcentre[0], cy=wcentre[1])
+                                    npixel_kernel=npixel_kernel, cy=wcentre[1], cx=wcentre[0],
+                                    remove_shift=remove_shift)
     else:
         kernelname = '2d'
         kernel_list = standard_kernel_list(vis, (padding * npixel, padding * npixel), oversampling=8, support=3)

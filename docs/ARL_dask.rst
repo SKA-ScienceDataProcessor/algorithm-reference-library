@@ -1,6 +1,6 @@
 
-Using ARL and dask on Darwin
-****************************
+ARL and DASK
+************
 
 Dask is a python package for distributed processing:
 
@@ -21,8 +21,8 @@ Dask is supported in various ways:
     - arl/graphs/dask_graphs: Graphs to perform various types of prediction and inversion of visibility data
     - arl/graphs/generic_dask_graphs: Graphs to perform generic image or visibility unary operations
     - arl/util/dask_graph_support: Graphs to support testing and simulations
-    - arl/pipelines/pipeline_dask_graphs: Graphs to implement the canonical pipelines (ICAL and Continuum imaging
-    currently).
+    - arl/pipelines/pipeline_dask_graphs: Graphs to implement the canonical pipelines
+
 
 In addition there are notebooks:
 

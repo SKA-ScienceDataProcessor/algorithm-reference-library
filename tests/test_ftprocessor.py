@@ -16,7 +16,7 @@ from arl.fourier_transforms.ftprocessor import predict_2d, predict_wstack, predi
     predict_timeslice, predict_wstack_wprojection, \
     invert_2d, invert_wstack, invert_wprojection, invert_facets, invert_timeslice, invert_wstack_wprojection, \
     create_image_from_visibility, predict_skycomponent_visibility, \
-    advise_wide_field, weight_visibility, create_w_term_like
+    advise_wide_field, weight_visibility, create_w_term_like, predict_wstack_facets, invert_wstack_facets
 from arl.image.operations import export_image_to_fits, create_empty_image_like, copy_image
 from arl.skycomponent.operations import create_skycomponent, find_skycomponents, find_nearest_component, \
     insert_skycomponent
@@ -190,12 +190,19 @@ class TestFTProcessor(unittest.TestCase):
         # invert works well particularly if the beam sampling is high
         self.actualSetUp()
         self._predict_base(predict_timeslice, fluxthreshold=10.0)
-    
+
     def test_predict_wstack(self):
         self.actualSetUp()
         self.params['wstack'] = 4.0
         self._predict_base(predict_wstack, fluxthreshold=2.1)
-    
+
+#    @unittest.skip("TODO: Fix needed")
+    def test_predict_wstack_facets(self):
+        self.actualSetUp()
+        self.params['wstack'] = 8.0
+        self.params['facets'] = 8
+        self._predict_base(predict_wstack_facets, fluxthreshold=2.1)
+
     def test_predict_wstack_wprojection(self):
         self.actualSetUp()
         self.params['wstack'] = 5 * 4.0
@@ -235,16 +242,30 @@ class TestFTProcessor(unittest.TestCase):
         assert sumwt.all() > 0.0
         export_image_to_fits(dirtyFacet, '%s/test_%s_dirty.fits' % (self.dir, invert.__name__))
         self._checkcomponents(dirtyFacet, fluxthreshold, positionthreshold)
-    
+
     def test_invert_facets(self):
         self.actualSetUp()
         self._invert_base(invert_facets, positionthreshold=1.0)
-    
+
+    @unittest.skip("Does not work yet")
+    def test_invert_facets_wprojection(self):
+        self.actualSetUp()
+        self.params['wstep'] = 4.0
+        self.params['kernel']='wprojection'
+        self.params['remove_shift']=True
+        self._invert_base(invert_facets, positionthreshold=1.0)
+
     def test_invert_wstack(self):
         self.actualSetUp()
         self.params['wstack'] = 4.0
         self._invert_base(invert_wstack, positionthreshold=8.0)
-    
+
+    def test_invert_wstack_facets(self):
+        self.actualSetUp()
+        self.params['wstack'] = 8.0
+        self.params['facets'] = 2
+        self._invert_base(invert_wstack_facets, positionthreshold=8.0)
+
     def test_invert_wstack_wprojection(self):
         self.actualSetUp()
         self.params['wstack'] = 5 * 4.0
@@ -254,6 +275,7 @@ class TestFTProcessor(unittest.TestCase):
     def test_invert_wprojection(self):
         self.actualSetUp()
         self.params['wstep'] = 4.0
+        self.params['remove_shift']=True
         self._invert_base(invert_wprojection, positionthreshold=1.0)
     
     def test_invert_timeslice(self):

@@ -190,7 +190,6 @@ def invert_2d_base(vis, im, dopsf=False, normalize=True, **kwargs):
     if dopsf:
         svis.data['vis'] = numpy.ones_like(svis.data['vis'])
 
-    # Shift
     svis = shift_vis_to_image(svis, im, tangent=True, inverse=False)
     
     nchan, npol, ny, nx = im.data.shape
@@ -468,7 +467,15 @@ def create_image_from_visibility(vis: Visibility, **kwargs) -> Image:
 
 def create_w_term_like(vis, im, w, **kwargs):
     """Create an image with a w term phase term in it
+    
+    .. math::
 
+    e^{-2 \\pi j (w(\\sqrt{1-l^2-m^2}-1)}
+
+    
+    The vis phasecentre is used as the delay centre for the w term (i.e. where n==0)
+
+    :param vis: Visibility
     :param im: template image
     :param w: w value to evaluate (default is median abs)
     :returns: Image
@@ -478,7 +485,8 @@ def create_w_term_like(vis, im, w, **kwargs):
     cellsize = abs(fim.wcs.wcs.cdelt[0]) * numpy.pi / 180.0
     _, _, _, npixel = fim.data.shape
     wcentre = vis.phasecentre.to_pixel(im.wcs)
-    fim.data = w_beam(npixel, npixel * cellsize, w=w, cx=wcentre[0], cy=wcentre[1])
+    remove_shift=get_parameter(kwargs, "remove_shift", False)
+    fim.data = w_beam(npixel, npixel * cellsize, w=w, cx=wcentre[0], cy=wcentre[1], remove_shift=remove_shift)
     
     fov = npixel * cellsize
     fresnel = numpy.abs(w) * (0.5 * fov) ** 2

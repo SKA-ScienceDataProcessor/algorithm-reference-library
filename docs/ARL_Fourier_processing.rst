@@ -46,7 +46,6 @@ In addition, iteration through the visibility data can be on various orders::
 + By time
 + By frequency
 + By w
-+ By parallactic angle
 
 The Visibility API should support these forms of iteration.
 
@@ -64,3 +63,12 @@ The layering of predict and invert classes is shown below:
       :width: 1024px
 
 The top level functions are in green. All capability is therefore layered on two functions, predict_2d and invert_2d.
+
+Not all combinations currently work. The following are supported:
+
++ W Projection: {predict | invert}_wprojection
++ W Stacking:  {predict | invert}_wstack
++ Image plane facets:  {predict | invert}_wfacets
++ W Stacking + W Projection: {predict | invert}_wstack_wprojection
++ W Stacking + Image plane facets:
+

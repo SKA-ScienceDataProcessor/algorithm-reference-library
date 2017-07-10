@@ -22,3 +22,4 @@ from arl.fourier_transforms.ftprocessor_wstack import *
 from arl.fourier_transforms.ftprocessor_wprojection import *
 from arl.fourier_transforms.ftprocessor_iterated import *
 from arl.fourier_transforms.ftprocessor_facets import *
+from arl.fourier_transforms.ftprocessor_wstack_facets import *
