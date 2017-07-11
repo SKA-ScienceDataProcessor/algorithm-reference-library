@@ -31,7 +31,7 @@ class TestImageSolvers(unittest.TestCase):
         self.times = (numpy.pi / (12.0)) * numpy.linspace(-3.0, 3.0, 7)
         self.frequency = numpy.array([1e8])
         self.channel_bandwidth = numpy.array([1e6])
-        self.phasecentre = SkyCoord(ra=+180.0 * u.deg, dec=-60.0 * u.deg, frame='icrs', equinox=2000.0)
+        self.phasecentre = SkyCoord(ra=+180.0 * u.deg, dec=-60.0 * u.deg, frame='icrs', equinox='J2000')
         self.vis = create_visibility(self.lowcore, self.times, self.frequency,
                                      channel_bandwidth=self.channel_bandwidth,
                                      phasecentre=self.phasecentre, weight=1.0,

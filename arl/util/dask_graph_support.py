@@ -16,14 +16,14 @@ from arl.visibility.operations import create_blockvisibility
 
 
 def create_simulate_vis_graph(config='LOWBD2-CORE',
-                              phasecentre=SkyCoord(ra=+15.0 * u.deg, dec=-60.0 * u.deg, frame='icrs', equinox=2000.0),
+                              phasecentre=SkyCoord(ra=+15.0 * u.deg, dec=-60.0 * u.deg, frame='icrs', equinox='J2000'),
                               frequency=[1e8], channel_bandwidth=[1e6],times=[0.0],
                               polarisation_frame=PolarisationFrame("stokesI"), order='frequency',
                               **kwargs):
     """ Create a graph to simulate an observation
     
     :param config: Name of configuration: def LOWBDS-CORE
-    :param phasecentre: Phase centre as SkyCoord def: SkyCoord(ra=+15.0 * u.deg, dec=-60.0 * u.deg, frame='icrs', equinox=2000.0)
+    :param phasecentre: Phase centre as SkyCoord def: SkyCoord(ra=+15.0 * u.deg, dec=-60.0 * u.deg, frame='icrs', equinox='J2000')
     :param frequency: def [1e8]
     :param channel_bandwidth: def [1e6]
     :param times: Observing times in radians: def [0.0]

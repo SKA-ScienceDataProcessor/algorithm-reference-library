@@ -28,7 +28,7 @@ class TestTesting_Support(unittest.TestCase):
         self.frequency = numpy.linspace(1e8, 1.5e8, 3)
         self.channel_bandwidth = numpy.array([2.5e7, 2.5e7, 2.5e7])
         self.flux = numpy.array([[100.0], [100.0], [100.0]])
-        self.phasecentre = SkyCoord(ra=+15.0 * u.deg, dec=-35.0 * u.deg, frame='icrs', equinox=2000.0)
+        self.phasecentre = SkyCoord(ra=+15.0 * u.deg, dec=-35.0 * u.deg, frame='icrs', equinox='J2000')
         self.config = create_named_configuration('LOWBD2-CORE')
         self.times = numpy.linspace(-300.0, 300.0, 3) * numpy.pi / 43200.0
         nants = self.config.xyz.shape[0]
@@ -38,7 +38,7 @@ class TestTesting_Support(unittest.TestCase):
     
     def createVis(self, config, dec=-35.0):
         self.config = create_named_configuration(config)
-        self.phasecentre = SkyCoord(ra=+15 * u.deg, dec=dec * u.deg, frame='icrs', equinox=2000.0)
+        self.phasecentre = SkyCoord(ra=+15 * u.deg, dec=dec * u.deg, frame='icrs', equinox='J2000')
         self.vis = create_visibility(self.config, self.times, self.frequency,
                                      channel_bandwidth=self.channel_bandwidth,
                                      phasecentre=self.phasecentre, weight=1.0,

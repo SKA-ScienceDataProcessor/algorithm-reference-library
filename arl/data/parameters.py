@@ -47,7 +47,7 @@ threshold               Absolute threshold                  0.001
 fractional_threshold    Threshold as fraction of e.g. peak  0.1
 G_solution_interval     Solution interval for G term        100
 phaseonly               Do phase-only solutions             True
-phasecentre             Phase centre (usually as SkyCoord)  SkyCoord("-1.0d", "37.0d", frame='icrs', equinox=2000.0)
+phasecentre             Phase centre (usually as SkyCoord)  SkyCoord("-1.0d", "37.0d", frame='icrs', equinox='J2000')
 spectral_mode           Visibility processing mode          'mfs' or 'channel'
 ====================    ==================================  ========================================================
 

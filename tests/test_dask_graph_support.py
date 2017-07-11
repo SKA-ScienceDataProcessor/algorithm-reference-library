@@ -26,7 +26,7 @@ class TestTestingDaskGraphSupport(unittest.TestCase):
         
         self.frequency = numpy.linspace(1e8, 1.5e8, 3)
         self.channel_bandwidth = numpy.array([2.5e7, 2.5e7, 2.5e7])
-        self.phasecentre = SkyCoord(ra=+15.0 * u.deg, dec=-60.0 * u.deg, frame='icrs', equinox=2000.0)
+        self.phasecentre = SkyCoord(ra=+15.0 * u.deg, dec=-60.0 * u.deg, frame='icrs', equinox='J2000')
         self.times = numpy.linspace(-300.0, 300.0, 3) * numpy.pi / 43200.0
         
     def test_create_simulate_vis_graph(self):

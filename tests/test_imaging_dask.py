@@ -59,9 +59,9 @@ class TestImagingDask(unittest.TestCase):
         frequency = numpy.array([freq])
         channel_bandwidth = numpy.array([chan_width])
         
-        #        phasecentre = SkyCoord(ra=+180.0 * u.deg, dec=-60.0 * u.deg, frame='icrs', equinox=2000.0)
+        #        phasecentre = SkyCoord(ra=+180.0 * u.deg, dec=-60.0 * u.deg, frame='icrs', equinox='J2000')
         # Observe at zenith to ensure that timeslicing works well. We test that elsewhere.
-        phasecentre = SkyCoord(ra=+180.0 * u.deg, dec=-60.0 * u.deg, frame='icrs', equinox=2000.0)
+        phasecentre = SkyCoord(ra=+180.0 * u.deg, dec=-60.0 * u.deg, frame='icrs', equinox='J2000')
         vt = create_blockvisibility(lowcore, times, frequency, channel_bandwidth=channel_bandwidth,
                                     weight=1.0, phasecentre=phasecentre,
                                     polarisation_frame=PolarisationFrame("stokesI"))

@@ -29,9 +29,9 @@ class TestVisibilityOperations(unittest.TestCase):
         
         # The phase centre is absolute and the component is specified relative (for now).
         # This means that the component should end up at the position phasecentre+compredirection
-        self.phasecentre = SkyCoord(ra=+180.0 * u.deg, dec=-35.0 * u.deg, frame='icrs', equinox=2000.0)
-        self.compabsdirection = SkyCoord(ra=+181.0 * u.deg, dec=-35.0 * u.deg, frame='icrs', equinox=2000.0)
-        #        self.compabsdirection = SkyCoord(ra=+182 * u.deg, dec=-36.5 * u.deg, frame='icrs', equinox=2000.0)
+        self.phasecentre = SkyCoord(ra=+180.0 * u.deg, dec=-35.0 * u.deg, frame='icrs', equinox='J2000')
+        self.compabsdirection = SkyCoord(ra=+181.0 * u.deg, dec=-35.0 * u.deg, frame='icrs', equinox='J2000')
+        #        self.compabsdirection = SkyCoord(ra=+182 * u.deg, dec=-36.5 * u.deg, frame='icrs', equinox='J2000')
         pcof = self.phasecentre.skyoffset_frame()
         self.compreldirection = self.compabsdirection.transform_to(pcof)
         self.comp = Skycomponent(direction=self.compreldirection, frequency=self.frequency, flux=self.flux)
@@ -157,7 +157,7 @@ class TestVisibilityOperations(unittest.TestCase):
                                      phasecentre=self.phasecentre, weight=1.0,
                                      polarisation_frame=PolarisationFrame("stokesIQUV"))
         self.vismodel = predict_skycomponent_visibility(self.vis, self.comp)
-        there = SkyCoord(ra=+250.0 * u.deg, dec=-60.0 * u.deg, frame='icrs', equinox=2000.0)
+        there = SkyCoord(ra=+250.0 * u.deg, dec=-60.0 * u.deg, frame='icrs', equinox='J2000')
         # Phase rotating back should not make a difference
         original_vis = self.vismodel.vis
         original_uvw = self.vismodel.uvw

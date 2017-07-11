@@ -6,8 +6,9 @@ import logging
 import os
 import unittest
 
-import astropy.units as u
 import numpy
+
+import astropy.units as u
 from astropy.coordinates import SkyCoord
 
 from arl.data.polarisation import PolarisationFrame
@@ -30,7 +31,7 @@ class TestImageDeconvolutionMSMFS(unittest.TestCase):
         self.times = (numpy.pi / 12.0) * numpy.linspace(-3.0, 3.0, 7)
         self.frequency = numpy.linspace(0.9e8, 1.1e8, self.nchan)
         self.channel_bandwidth = numpy.array(self.nchan * [self.frequency[1] - self.frequency[0]])
-        self.phasecentre = SkyCoord(ra=+0.0 * u.deg, dec=-45.0 * u.deg, frame='icrs', equinox=2000.0)
+        self.phasecentre = SkyCoord(ra=+0.0 * u.deg, dec=-45.0 * u.deg, frame='icrs', equinox='J2000')
         self.vis = create_visibility(self.lowcore, self.times, self.frequency, self.channel_bandwidth,
                                      phasecentre=self.phasecentre, weight=1.0,
                                      polarisation_frame=PolarisationFrame('stokesI'))

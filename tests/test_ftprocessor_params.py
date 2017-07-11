@@ -33,7 +33,7 @@ class TestFTProcessorParams(unittest.TestCase):
         self.frequency = numpy.linspace(8e7, 1.2e8, self.vnchan)
         self.startfrequency = numpy.array([8e7])
         self.channel_bandwidth = numpy.array(self.vnchan * [self.frequency[1]-self.frequency[0]])
-        self.phasecentre = SkyCoord(ra=+180.0 * u.deg, dec=-60.0 * u.deg, frame='icrs', equinox=2000.0)
+        self.phasecentre = SkyCoord(ra=+180.0 * u.deg, dec=-60.0 * u.deg, frame='icrs', equinox='J2000')
         self.vis = create_visibility(self.lowcore, times=self.times, frequency=self.frequency,
                                      phasecentre=self.phasecentre, weight=1.0,
                                      polarisation_frame=PolarisationFrame('stokesI'),

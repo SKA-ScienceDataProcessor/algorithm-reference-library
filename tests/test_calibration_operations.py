@@ -34,8 +34,8 @@ class TestCalibrationOperations(unittest.TestCase):
 
         # The phase centre is absolute and the component is specified relative (for now).
         # This means that the component should end up at the position phasecentre+compredirection
-        self.phasecentre = SkyCoord(ra=+180.0 * u.deg, dec=-35.0 * u.deg, frame='icrs', equinox=2000.0)
-        self.compabsdirection = SkyCoord(ra=+181.0 * u.deg, dec=-35.0 * u.deg, frame='icrs', equinox=2000.0)
+        self.phasecentre = SkyCoord(ra=+180.0 * u.deg, dec=-35.0 * u.deg, frame='icrs', equinox='J2000')
+        self.compabsdirection = SkyCoord(ra=+181.0 * u.deg, dec=-35.0 * u.deg, frame='icrs', equinox='J2000')
         
     def actualSetup(self, sky_pol_frame='stokesIQUV', data_pol_frame='linear'):
         self.comp = Skycomponent(direction=self.compabsdirection, frequency=self.frequency, flux=self.flux,

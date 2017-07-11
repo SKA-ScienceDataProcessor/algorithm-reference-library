@@ -28,7 +28,7 @@ class TestCoalesce(unittest.TestCase):
         df = 27343.75000
         self.frequency = numpy.array([1e8-df, 1e8, 1e8+df])
         self.channel_bandwidth = numpy.array([27343.75, 27343.75, 27343.75])
-        self.phasecentre = SkyCoord(ra=+0.0 * u.deg, dec=-35.0 * u.deg, frame='icrs', equinox=2000.0)
+        self.phasecentre = SkyCoord(ra=+0.0 * u.deg, dec=-35.0 * u.deg, frame='icrs', equinox='J2000')
         self.blockvis = create_blockvisibility(self.lowcore, self.times, self.frequency, phasecentre=self.phasecentre,
                                                weight=1.0, polarisation_frame=PolarisationFrame('stokesI'),
                                                channel_bandwidth=self.channel_bandwidth)

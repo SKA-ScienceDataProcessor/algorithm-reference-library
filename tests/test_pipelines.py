@@ -26,8 +26,8 @@ class TestPipelines(unittest.TestCase):
         f = numpy.array([100.0, 20.0, -10.0, 1.0])
         self.flux = numpy.array([f, 0.8 * f, 0.6 * f])
 
-        self.phasecentre = SkyCoord(ra=+15.0 * u.deg, dec=-35.0 * u.deg, frame='icrs', equinox=2000.0)
-        self.compabsdirection = SkyCoord(ra=17.0 * u.deg, dec=-36.5 * u.deg, frame='icrs', equinox=2000.0)
+        self.phasecentre = SkyCoord(ra=+15.0 * u.deg, dec=-35.0 * u.deg, frame='icrs', equinox='J2000')
+        self.compabsdirection = SkyCoord(ra=17.0 * u.deg, dec=-36.5 * u.deg, frame='icrs', equinox='J2000')
         
         self.comp = create_skycomponent(flux=self.flux, frequency=frequency, direction=self.compabsdirection)
         self.image = create_test_image(frequency=frequency, phasecentre=self.phasecentre, cellsize=0.001,

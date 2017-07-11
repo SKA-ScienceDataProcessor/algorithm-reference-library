@@ -11,8 +11,8 @@ Functions that aid testing in various ways. A typical use would be::
         f = numpy.array([100.0])
         flux = numpy.array([f])
         
-        phasecentre = SkyCoord(ra=+15.0 * u.deg, dec=-35.0 * u.deg, frame='icrs', equinox=2000.0)
-        compabsdirection = SkyCoord(ra=17.0 * u.deg, dec=-36.5 * u.deg, frame='icrs', equinox=2000.0)
+        phasecentre = SkyCoord(ra=+15.0 * u.deg, dec=-35.0 * u.deg, frame='icrs', equinox='J2000')
+        compabsdirection = SkyCoord(ra=17.0 * u.deg, dec=-36.5 * u.deg, frame='icrs', equinox='J2000')
         
         comp = create_skycomponent(flux=flux, frequency=frequency, direction=compabsdirection,
                                         polarisation_frame=PolarisationFrame('stokesI'))
@@ -231,7 +231,7 @@ def create_low_test_image_from_s3(npixel=16384, polarisation_frame=PolarisationF
     fluxes = []
     
     if phasecentre is None:
-        phasecentre = SkyCoord(ra=+180.0 * u.deg, dec=-60.0 * u.deg, frame='icrs', equinox=2000.0)
+        phasecentre = SkyCoord(ra=+180.0 * u.deg, dec=-60.0 * u.deg, frame='icrs', equinox='J2000')
     
     if polarisation_frame is None:
         polarisation_frame = PolarisationFrame("I")
@@ -357,7 +357,7 @@ def create_low_test_image_from_gleam(npixel=512, polarisation_frame=Polarisation
     decs = recs['DEJ2000']
     
     if phasecentre is None:
-        phasecentre = SkyCoord(ra=+15.0 * u.deg, dec=-35.0 * u.deg, frame='icrs', equinox=2000.0)
+        phasecentre = SkyCoord(ra=+15.0 * u.deg, dec=-35.0 * u.deg, frame='icrs', equinox='J2000')
     
     if polarisation_frame is None:
         polarisation_frame = PolarisationFrame("stokesI")

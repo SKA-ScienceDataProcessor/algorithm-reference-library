@@ -22,7 +22,7 @@ class TestVisibilityIterators(unittest.TestCase):
         
         self.frequency = numpy.array([1e8])
         self.channel_bandwidth = numpy.array([1e8])
-        self.phasecentre = SkyCoord(ra=+15.0 * u.deg, dec=-35.0 * u.deg, frame='icrs', equinox=2000.0)
+        self.phasecentre = SkyCoord(ra=+15.0 * u.deg, dec=-35.0 * u.deg, frame='icrs', equinox='J2000')
     
     def actualSetUp(self, times=None):
         if times is not None:
