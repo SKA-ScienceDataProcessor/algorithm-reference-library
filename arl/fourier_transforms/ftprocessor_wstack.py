@@ -82,34 +82,6 @@ def predict_wstack_single(vis, model, predict_inner=predict_2d_base, **kwargs):
 
     return avis
 
-
-def predict_wstack_wprojection(vis, model, **kwargs):
-    """ Predict using convolutional degridding with w projection and wstacking
-
-    For a fixed w, the measurement equation can be stated as as a convolution in Fourier space.
-
-    .. math::
-
-        V(u,v,w) =G_w(u,v) \\ast \\int \\frac{I(l,m)}{\\sqrt{1-l^2-m^2}} e^{-2 \\pi j (ul+vm)} dl dm$$
-
-    where the convolution function is:
-
-    .. math::
-
-        G_w(u,v) = \\int \\frac{1}{\\sqrt{1-l^2-m^2}} e^{-2 \\pi j (ul+vm + w(\\sqrt{1-l^2-m^2}-1))} dl dm
-
-
-    Hence when degridding, we can use the transform of the w beam to correct this effect.
-
-    :param vis: Visibility to be predicted
-    :param model: model image
-    :returns: resulting visibility (in place works)
-    """
-    log.debug("predict_wprojection: predict using wstack and wprojection")
-    kwargs['kernel'] = 'wprojection'
-    return predict_wstack(vis, model, **kwargs)
-
-
 def invert_wstack(vis, im, dopsf=False, normalize=True, **kwargs):
     """ Invert using w stacking
 
@@ -160,35 +132,3 @@ def invert_wstack_single(vis, im, dopsf, normalize=True, invert_inner=invert_2d_
     reWorkimage.data = w_beam.data.real * reWorkimage.data - w_beam.data.imag * imWorkimage.data
     
     return reWorkimage, sumwt
-
-
-def invert_wstack_wprojection(vis, im, dopsf=False, normalize=True, **kwargs):
-    """ Predict using 2D convolution function, including w projection and stacking
-
-    For a fixed w, the measurement equation can be stated as as a convolution in Fourier space.
-
-    .. math::
-
-        V(u,v,w) =G_w(u,v) \\ast \\int \\frac{I(l,m)}{\\sqrt{1-l^2-m^2}} e^{-2 \\pi j (ul+vm)} dl dm$$
-
-    where the convolution function is:
-
-    .. math::
-
-        G_w(u,v) = \\int \\frac{1}{\\sqrt{1-l^2-m^2}} e^{-2 \\pi j (ul+vm + w(\\sqrt{1-l^2-m^2}-1))} dl dm
-
-
-    Hence when degridding, we can use the transform of the w beam to correct this effect.
-
-    Use the image im as a template. Do PSF in a separate call.
-
-    :param vis: Visibility to be inverted
-    :param im: image template (not changed)
-    :param dopsf: Make the psf instead of the dirty image
-    :returns: resulting image[nchan, npol, ny, nx], sum of weights[nchan, npol]
-
-    """
-    log.info("invert_2d: inverting using wstack and wprojection")
-    kwargs['kernel'] = "wprojection"
-    return invert_wstack(vis, im, dopsf, normalize=normalize, **kwargs)
-

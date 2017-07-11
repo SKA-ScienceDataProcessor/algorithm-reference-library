@@ -44,10 +44,10 @@ rotation from one frame to another.
 In addition, iteration through the visibility data can be on various orders::
 
 + By time
-+ By frequency
++ By row
 + By w
 
-The Visibility API should support these forms of iteration.
+The Visibility API supports these forms of iteration.
 
 The pattern used in these algorithms is abstracted in the following diagram:
 
@@ -69,6 +69,6 @@ Not all combinations currently work. The following are supported:
 + W Projection: {predict | invert}_wprojection
 + W Stacking:  {predict | invert}_wstack
 + Image plane facets:  {predict | invert}_wfacets
-+ W Stacking + W Projection: {predict | invert}_wstack_wprojection
-+ W Stacking + Image plane facets:
++ W Stacking + W Projection: {predict | invert}_wprojection_wstack
++ W Stacking + Image plane facets: {predict | invert}_facets_wstack
 

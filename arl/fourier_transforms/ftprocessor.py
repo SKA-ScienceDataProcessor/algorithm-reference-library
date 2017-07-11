@@ -20,6 +20,7 @@ from arl.fourier_transforms.ftprocessor_base import *
 from arl.fourier_transforms.ftprocessor_timeslice import *
 from arl.fourier_transforms.ftprocessor_wstack import *
 from arl.fourier_transforms.ftprocessor_wprojection import *
+from arl.fourier_transforms.ftprocessor_wprojection_wstack import *
 from arl.fourier_transforms.ftprocessor_iterated import *
 from arl.fourier_transforms.ftprocessor_facets import *
-from arl.fourier_transforms.ftprocessor_wstack_facets import *
+from arl.fourier_transforms.ftprocessor_facets_wstack import *

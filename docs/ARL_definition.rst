@@ -89,10 +89,19 @@ FTProcessor
 .. automodule:: arl.fourier_transforms.ftprocessor_facets
    :members:
 
-.. automodule:: arl.fourier_transforms.ftprocessor_wstack
+.. automodule:: arl.fourier_transforms.ftprocessor_facets_wstack
    :members:
 
 .. automodule:: arl.fourier_transforms.ftprocessor_timeslice
+   :members:
+
+.. automodule:: arl.fourier_transforms.ftprocessor_wprojection
+   :members:
+
+.. automodule:: arl.fourier_transforms.ftprocessor_wprojection_wstack
+   :members:
+
+.. automodule:: arl.fourier_transforms.ftprocessor_wstack
    :members:
 
 .. automodule:: arl.fourier_transforms.ftprocessor_params
@@ -100,6 +109,7 @@ FTProcessor
 
 .. automodule:: arl.fourier_transforms.ftprocessor_iterated
    :members:
+
 
 Convolutional Gridding
 ++++++++++++++++++++++

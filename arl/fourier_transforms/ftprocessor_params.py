@@ -165,7 +165,6 @@ def get_kernel_list(vis: Visibility, im, **kwargs):
     kernelname = get_parameter(kwargs, "kernel", "2d")
     oversampling = get_parameter(kwargs, "oversampling", 8)
     padding = get_parameter(kwargs, "padding", 2)
-    facets = get_parameter(kwargs, "facets", 1)
 
     gcf, _ = anti_aliasing_calculate((padding * npixel, padding * npixel), oversampling)
 
@@ -191,13 +190,14 @@ def get_kernel_list(vis: Visibility, im, **kwargs):
         assert npixel_kernel % 2 == 0
         log.debug("get_kernel_list: Maximum w kernel full width = %d pixels" % (npixel_kernel))
         wcentre = vis.phasecentre.to_pixel(im.wcs)
-        remove_shift=get_parameter(kwargs, "remove_shift", False)
+        remove_shift=get_parameter(kwargs, "remove_shift", True)
         kernel_list = w_kernel_list(vis, (npixel, npixel), fov, oversampling=oversampling, wstep=wstep,
                                     npixel_kernel=npixel_kernel, cy=wcentre[1], cx=wcentre[0],
                                     remove_shift=remove_shift)
     else:
         kernelname = '2d'
-        kernel_list = standard_kernel_list(vis, (padding * npixel, padding * npixel), oversampling=8, support=3)
+        kernel_list = standard_kernel_list(vis, (padding * npixel, padding * npixel), oversampling=oversampling,
+                                           support=3)
     
     return kernelname, gcf, kernel_list
 

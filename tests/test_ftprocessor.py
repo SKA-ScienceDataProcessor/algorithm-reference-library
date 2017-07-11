@@ -244,15 +244,17 @@ class TestFTProcessor(unittest.TestCase):
         self._checkcomponents(dirtyFacet, fluxthreshold, positionthreshold)
 
     def test_invert_facets(self):
+        self.params['facets'] = 2
         self.actualSetUp()
         self._invert_base(invert_facets, positionthreshold=1.0)
 
-    @unittest.skip("Does not work yet")
     def test_invert_facets_wprojection(self):
         self.actualSetUp()
-        self.params['wstep'] = 4.0
-        self.params['kernel']='wprojection'
+        self.params['facets'] = 8
+        self.params['kernel'] = 'wprojection'
+        self.params['wstep'] = 8.0
         self.params['remove_shift']=True
+        self.params['padding'] = 4
         self._invert_base(invert_facets, positionthreshold=1.0)
 
     def test_invert_wstack(self):
