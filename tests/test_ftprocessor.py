@@ -196,7 +196,7 @@ class TestFTProcessor(unittest.TestCase):
         self.params['wstack'] = 4.0
         self._predict_base(predict_wstack, fluxthreshold=2.1)
 
-#    @unittest.skip("TODO: Fix needed")
+    @unittest.skip("TODO: Fix needed")
     def test_predict_wstack_facets(self):
         self.actualSetUp()
         self.params['wstack'] = 8.0
