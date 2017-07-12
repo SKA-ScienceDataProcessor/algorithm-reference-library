@@ -460,7 +460,7 @@ def create_image_from_visibility(vis: Visibility, **kwargs) -> Image:
     w.naxis = 4
     
     w.wcs.radesys = get_parameter(kwargs, 'frame', 'ICRS')
-    w.wcs.equinox = get_parameter(kwargs, 'equinox', 'J2000')
+    w.wcs.equinox = get_parameter(kwargs, 'equinox', 2000.0)
     
     return create_image_from_array(numpy.zeros(shape), wcs=w)
 
