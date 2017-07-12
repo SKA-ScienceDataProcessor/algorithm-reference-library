@@ -2,19 +2,20 @@
 
 """
 
+from typing import Union, List, Tuple
 import collections
 import logging
 
 from arl.calibration.operations import apply_gaintable
 from arl.calibration.solvers import solve_gaintable
-from arl.data.data_models import BlockVisibility, Skycomponent
+from arl.data.data_models import BlockVisibility, Skycomponent, GainTable
 from arl.visibility.operations import copy_visibility
 from arl.imaging.base import predict_skycomponent_blockvisibility
 
 log = logging.getLogger(__name__)
 
-def peel_skycomponent_blockvisibility(vis: BlockVisibility, sc: Skycomponent, remove=True) -> \
-        BlockVisibility:
+def peel_skycomponent_blockvisibility(vis: BlockVisibility, sc: Union[Skycomponent, List[Skycomponent]], remove=True)\
+        -> (BlockVisibility, List[GainTable]):
     """ Peel a collection of components.
     
     Sequentially solve the gain towards each Skycomponent and optionally remove from the visibility.

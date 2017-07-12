@@ -14,7 +14,7 @@ from arl.imaging.params import *
 log = logging.getLogger(__name__)
 
 
-def gaintable_summary(gt):
+def gaintable_summary(gt: GainTable):
     """Return string summarizing the Gaintable
 
     """
@@ -126,7 +126,7 @@ def append_gaintable(gt: GainTable, othergt: GainTable) -> GainTable:
     return gt
 
 
-def qa_gaintable(gt, context=None) -> QA:
+def qa_gaintable(gt: GainTable, context=None) -> QA:
     """Assess the quality of a gaintable
 
     :param gt:

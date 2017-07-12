@@ -3,6 +3,8 @@
 
 """
 
+import os
+
 import unittest
 
 from dask import delayed

@@ -1,9 +1,6 @@
 
-""" The wide field imaging equation can be approximated by partitioning the image plane into small regions, treating each separately and then glueing the resulting partitions into one image. We call this image plane partitioning image plane faceting.
-
-.. math::
-    V(u,v,w) = \\sum_{i,j} \\frac{1}{\\sqrt{1- l_{i,j}^2- m_{i,j}^2}} e^{-2 \\pi j (ul_{i,j}+um_{i,j} + w(\\sqrt{
-    1-l_{i,j}^2-m_{i,j}^2}-1))} \\int  I(\\Delta l, \\Delta m) e^{-2 \\pi j (u\\Delta l_{i,j}+u \\Delta m_{i,j})} dl dm
+"""
+This is a combination of facets and wstacks. The outer iteration is over facet and the inner is over w.
 
 """
 

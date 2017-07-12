@@ -30,6 +30,7 @@ by default, it is necessary to use the nout= parameter to delayed to specify the
 graph size.
 """
 
+from typing import List
 import numpy
 from dask import delayed
 
@@ -44,7 +45,7 @@ from arl.visibility.operations import copy_visibility
 from arl.imaging import predict_2d, invert_2d, invert_wstack_single, predict_wstack_single, normalize_sumwt
 
 
-def create_zero_vis_graph_list(vis_graph_list, **kwargs):
+def create_zero_vis_graph_list(vis_graph_list: List[delayed], **kwargs) -> List[delayed]:
     """ Initialise vis to zero: creates new data holders
 
     :param vis_graph_list:
@@ -63,7 +64,8 @@ def create_zero_vis_graph_list(vis_graph_list, **kwargs):
     return [delayed(zerovis, pure=True, nout=1)(v) for v in vis_graph_list]
 
 
-def create_subtract_vis_graph_list(vis_graph_list, model_vis_graph_list, **kwargs):
+def create_subtract_vis_graph_list(vis_graph_list: List[delayed], model_vis_graph_list: List[delayed], 
+                                   **kwargs) -> List[delayed]:
     """ Initialise vis to zero
 
     :param vis_graph_list:
@@ -85,7 +87,8 @@ def create_subtract_vis_graph_list(vis_graph_list, model_vis_graph_list, **kwarg
             for i in range(len(vis_graph_list))]
 
 
-def create_invert_graph(vis_graph_list, template_model_graph, dopsf=False, invert=invert_2d, normalize=True, **kwargs):
+def create_invert_graph(vis_graph_list: List[delayed], template_model_graph: delayed, dopsf=False, invert=invert_2d, 
+                        normalize=True, **kwargs) -> delayed:
     """ Sum results from invert iterating over the vis_graph_list
 
     :param vis_graph_list:
@@ -126,8 +129,8 @@ def create_invert_graph(vis_graph_list, template_model_graph, dopsf=False, inver
     return delayed(sum_invert_results)(image_graph_list)
 
 
-def create_invert_wstack_graph(vis_graph_list, template_model_graph, vis_slices, dopsf=False, normalize=True,
-                               invert=invert_wstack_single, **kwargs):
+def create_invert_wstack_graph(vis_graph_list: List[delayed], template_model_graph: delayed, vis_slices, 
+                               dopsf=False, normalize=True, invert=invert_wstack_single, **kwargs) -> delayed:
     """ Sum invert results using wstacking, iterating over the vis_graph_list and w
     :param vis_graph_list:
     :param model_graph:
@@ -174,8 +177,8 @@ def create_invert_wstack_graph(vis_graph_list, template_model_graph, vis_slices,
     return delayed(sum_invert_wstack_results)(image_graph_list)
 
 
-def create_invert_facet_graph(vis_graph_list, template_model_graph, dopsf=False, normalize=True,
-                              facets=1, **kwargs):
+def create_invert_facet_graph(vis_graph_list: List[delayed], template_model_graph, dopsf=False, normalize=True,
+                              facets=1, **kwargs) -> delayed:
     """ Sum results from invert, iterating over the vis_graph_list, allows faceting
 
     :param vis_graph_list:
@@ -199,16 +202,15 @@ def create_invert_facet_graph(vis_graph_list, template_model_graph, dopsf=False,
     model_graphs = delayed(image_scatter, nout=facets ** 2, pure=True)(template_model_graph, facets=facets)
     
     # For each facet, invert over the vis_graph
-    results = [create_invert_graph(vis_graph_list, model_graph, dopsf=dopsf, normalize=normalize,
-                                   **kwargs)
+    results = [create_invert_graph(vis_graph_list, model_graph, dopsf=dopsf, normalize=normalize, **kwargs)
                for model_graph in model_graphs]
     # Now we have a list containing the facet images added over vis_graph. We can now
     # gather those images into one image
     return delayed(gather_invert_results, nout=2, pure=True)(results, template_model_graph, facets=facets, **kwargs)
 
 
-def create_invert_facet_wstack_graph(vis_graph_list, template_model_graph, dopsf=False, normalize=True, facets=2,
-                                     **kwargs):
+def create_invert_facet_wstack_graph(vis_graph_list: List[delayed], template_model_graph, dopsf=False,
+                                     normalize=True, facets=2, **kwargs) -> delayed:
     """ Sum results from invert, iterating over the vis_graph_list, allows faceting
 
     :param vis_graph_list:
@@ -239,7 +241,8 @@ def create_invert_facet_wstack_graph(vis_graph_list, template_model_graph, dopsf
     return delayed(gather_invert_results, nout=2, pure=True)(results, template_model_graph, facets=facets, **kwargs)
 
 
-def create_predict_graph(vis_graph_list, model_graph, predict=predict_2d, **kwargs):
+def create_predict_graph(vis_graph_list: List[delayed] , model_graph: delayed, predict=predict_2d, **kwargs) -> \
+        List[delayed]:
     """Predict from model_graph, iterating over the vis_graph_list
 
     :param vis_graph_list:
@@ -261,7 +264,8 @@ def create_predict_graph(vis_graph_list, model_graph, predict=predict_2d, **kwar
     return [delayed(predict_and_sum, pure=True, nout=1)(v, model_graph, **kwargs) for v in vis_graph_list]
 
 
-def create_predict_facet_graph(vis_graph_list, model_graph, predict=predict_2d, facets=2, **kwargs):
+def create_predict_facet_graph(vis_graph_list: List[delayed], model_graph: delayed, predict=predict_2d, facets=2,
+                               **kwargs) -> List[delayed]:
     """ Predict visibility from a model using facets
 
     :param vis_graph_list:
@@ -302,8 +306,8 @@ def create_predict_facet_graph(vis_graph_list, model_graph, predict=predict_2d, 
     return accumulate_vis_graphs
 
 
-def create_predict_wstack_graph(vis_graph_list, model_graph, vis_slices, predict=predict_wstack_single,
-                                **kwargs):
+def create_predict_wstack_graph(vis_graph_list: List[delayed], model_graph: delayed, vis_slices,
+                                predict=predict_wstack_single, **kwargs) -> List[delayed]:
     """Predict using wstacking, iterating over the vis_graph_list and w
 
     :param vis_graph_list:
@@ -335,8 +339,8 @@ def create_predict_wstack_graph(vis_graph_list, model_graph, vis_slices, predict
     return predicted_vis_list
 
 
-def create_predict_facet_wstack_graph(vis_graph_list, model_graph, vis_slices, facets, predict=predict_wstack_single,
-                                      **kwargs):
+def create_predict_facet_wstack_graph(vis_graph_list: List[delayed], model_graph: delayed, vis_slices, facets,
+                                      predict=predict_wstack_single, **kwargs) -> List[delayed]:
     """Predict using wstacking, iterating over the vis_graph_list and w
 
     :param vis_graph_list:
@@ -383,7 +387,7 @@ def create_predict_facet_wstack_graph(vis_graph_list, model_graph, vis_slices, f
     return predicted_vis_list
 
 
-def create_residual_graph(vis_graph_list, model_graph, **kwargs):
+def create_residual_graph(vis_graph_list: List[delayed], model_graph: delayed, **kwargs) -> delayed:
     """ Create a graph to calculate residual image using facets
 
     :param vis_graph_list:
@@ -398,7 +402,7 @@ def create_residual_graph(vis_graph_list, model_graph, **kwargs):
     return create_invert_graph(residual_vis_graph_list, model_graph, dopsf=False, normalize=True, **kwargs)
 
 
-def create_residual_facet_graph(vis_graph_list, model_graph, **kwargs):
+def create_residual_facet_graph(vis_graph_list: List[delayed], model_graph: delayed, **kwargs) -> delayed:
     """ Create a graph to calculate residual image using facets
 
     :param vis_graph_list:
@@ -413,7 +417,7 @@ def create_residual_facet_graph(vis_graph_list, model_graph, **kwargs):
                                      **kwargs)
 
 
-def create_residual_wstack_graph(vis_graph_list, model_graph, **kwargs):
+def create_residual_wstack_graph(vis_graph_list: List[delayed], model_graph: delayed, **kwargs) -> delayed:
     """ Create a graph to calculate residual image using w stacking
 
     :param vis_graph_list:
@@ -429,7 +433,7 @@ def create_residual_wstack_graph(vis_graph_list, model_graph, **kwargs):
                                       **kwargs)
 
 
-def create_residual_facet_wstack_graph(vis_graph_list, model_graph, **kwargs):
+def create_residual_facet_wstack_graph(vis_graph_list: List[delayed], model_graph: delayed, **kwargs) -> delayed:
     """ Create a graph to calculate residual image using w stacking and faceting
 
     :param vis_graph_list:
@@ -445,7 +449,7 @@ def create_residual_facet_wstack_graph(vis_graph_list, model_graph, **kwargs):
                                       **kwargs)
 
 
-def create_deconvolve_graph(dirty_graph, psf_graph, model_graph, **kwargs):
+def create_deconvolve_graph(dirty_graph: delayed, psf_graph: delayed, model_graph: delayed, **kwargs) -> delayed:
     """Create a graph for deconvolution, adding to the model
 
     :param dirty_graph:
@@ -463,7 +467,8 @@ def create_deconvolve_graph(dirty_graph, psf_graph, model_graph, **kwargs):
     return delayed(deconvolve, pure=True, nout=2)(dirty_graph[0], psf_graph[0], model_graph, **kwargs)
 
 
-def create_deconvolve_facet_graph(dirty_graph, psf_graph, model_graph, facets=1, **kwargs):
+def create_deconvolve_facet_graph(dirty_graph: delayed, psf_graph: delayed, model_graph: delayed, facets=1,
+                                  **kwargs) -> delayed:
     """Create a graph for deconvolution by facets, adding to the model
     
     Does deconvolution facet-by-facet. Currently does nothing very sensible about the
@@ -497,25 +502,8 @@ def create_deconvolve_facet_graph(dirty_graph, psf_graph, model_graph, facets=1,
     return delayed(add_model, nout=1, pure=True)(result, model_graph)
 
 
-def create_solve_gain_graph(vis: BlockVisibility, vispred: Visibility, **kwargs):
-    """ Create a graph to solve for gain table
-
-    :param vis: Measured visibility
-    :param vispred: Predicted visibility
-    :param kwargs:
-    :return: gaintable
-    """
-    
-    assert type(vis) == BlockVisibility, "vis is not a BlockVisibility"
-    assert type(vispred) == BlockVisibility, "vispred is not a BlockVisibility"
-    
-    def calibrate_single(vis: BlockVisibility, vispred: BlockVisibility, **kwargs):
-        return solve_gaintable(vis, vispred, **kwargs)
-    
-    return delayed(calibrate_single, pure=True)(vis, vispred, **kwargs)
-
-
-def create_selfcal_graph_list(vis_graph_list, model_graph, predict=predict_2d, **kwargs):
+def create_selfcal_graph_list(vis_graph_list: List[delayed], model_graph: delayed, predict=predict_2d, **kwargs)\
+        -> delayed :
     """ Create a set of graphs for selfcalibration of a list of visibilities
     
     :param vis_graph_list:

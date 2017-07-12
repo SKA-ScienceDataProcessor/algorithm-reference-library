@@ -264,7 +264,7 @@ class Skycomponent:
         assert len(self.flux.shape) == 2
         assert self.frequency.shape[0] == self.flux.shape[0], "Frequency shape %s, flux shape %s" % (
             self.frequency.shape, self.flux.shape)
-        assert polarisation_frame.npol == self.flux.shape[1], "Polarisation is %s,, flux shape %s" % (
+        assert polarisation_frame.npol == self.flux.shape[1], "Polarisation is %s, flux shape %s" % (
             polarisation_frame.type, self.flux.shape)
     
     @property

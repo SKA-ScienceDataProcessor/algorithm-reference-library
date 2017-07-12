@@ -17,7 +17,7 @@ Functional Model
 The top-level functional model corresponds to the major SDP pipelines:
 
 .. image:: ./ARL_functional.png
-   :scale: 50 %
+   :scale: 100 %
 
 
 ARL API
@@ -71,6 +71,33 @@ Deconvolution
 .. automodule:: arl.image.deconvolution
    :members:
 
+Calibration
+-----------
+
+Calibration
++++++++++++
+
+.. automodule:: arl.calibration.calibration
+   :members:
+
+Operations
+++++++++++
+
+.. automodule:: arl.calibration.operations
+   :members:
+
+Peeling
++++++++
+
+.. automodule:: arl.calibration.peeling
+   :members:
+
+Solvers
++++++++
+
+.. automodule:: arl.calibration.solvers
+   :members:
+
 Fourier transform
 -----------------
 
@@ -90,29 +117,56 @@ Convolutional Gridding
 Imaging
 -------
 
+Base
+++++
+
 .. automodule:: arl.imaging.base
    :members:
+
+Facets
+++++++
 
 .. automodule:: arl.imaging.facets
    :members:
 
+Facets and Wstack
++++++++++++++++++
+
 .. automodule:: arl.imaging.facets_wstack
    :members:
+
+Timeslice
++++++++++
 
 .. automodule:: arl.imaging.timeslice
    :members:
 
+Wprojection
++++++++++++
+
 .. automodule:: arl.imaging.wprojection
    :members:
+
+Wprojection and Wstack
+++++++++++++++++++++++
 
 .. automodule:: arl.imaging.wprojection_wstack
    :members:
 
+Wstack
+++++++
+
 .. automodule:: arl.imaging.wstack
    :members:
 
+Parameters
+++++++++++
+
 .. automodule:: arl.imaging.params
    :members:
+
+Iterated
+++++++++
 
 .. automodule:: arl.imaging.iterated
    :members:

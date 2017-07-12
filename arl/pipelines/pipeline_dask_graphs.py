@@ -1,6 +1,7 @@
 """ Pipelines expressed as dask graphs
 """
 
+from typing import List, Union
 import numpy
 from dask import delayed
 
@@ -9,7 +10,7 @@ from arl.image.deconvolution import deconvolve_cube, restore_cube
 from arl.graphs.dask_graphs import create_deconvolve_graph, create_invert_graph, create_residual_graph, \
     create_selfcal_graph_list, create_predict_graph
 
-def create_continuum_imaging_pipeline_graph(vis_graph_list, model_graph,
+def create_continuum_imaging_pipeline_graph(vis_graph_list: List[delayed], model_graph: delayed,
                                             c_deconvolve_graph=create_deconvolve_graph,
                                             c_invert_graph=create_invert_graph,
                                             c_residual_graph=create_residual_graph,
@@ -34,11 +35,12 @@ def create_continuum_imaging_pipeline_graph(vis_graph_list, model_graph,
                                       **kwargs)
 
 
-def create_spectral_line_imaging_pipeline_graph(vis_graph_list, model_graph, continuum_model_graph=None,
+def create_spectral_line_imaging_pipeline_graph(vis_graph_list: List[delayed], model_graph: delayed,
+                                                continuum_model_graph=None,
                                                 c_deconvolve_graph=create_deconvolve_graph,
                                                 c_invert_graph=create_invert_graph,
                                                 c_predict_graph=create_predict_graph,
-                                                c_residual_graph=create_residual_graph, **kwargs):
+                                                c_residual_graph=create_residual_graph, **kwargs) -> delayed:
     """Create graph for spectral line imaging pipeline
 
     Uses the ical pipeline after subtraction of a continuum model
@@ -63,12 +65,11 @@ def create_spectral_line_imaging_pipeline_graph(vis_graph_list, model_graph, con
                                       **kwargs)
 
 
-def create_ical_pipeline_graph(vis_graph_list, model_graph,
+def create_ical_pipeline_graph(vis_graph_list: List[delayed], model_graph: delayed,
                                c_deconvolve_graph=create_deconvolve_graph,
                                c_invert_graph=create_invert_graph,
                                c_residual_graph=create_residual_graph,
-                               first_selfcal=None,
-                               **kwargs):
+                               first_selfcal=None, **kwargs) -> delayed:
     """Create graph for ICAL pipeline
     
     :param vis_graph_list:

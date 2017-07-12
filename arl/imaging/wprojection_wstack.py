@@ -1,12 +1,7 @@
 """
-The w-stacking or w-slicing approach is to partition the visibility data by slices in w. The measurement equation is 
-approximated as:
+This is a combination of wprojection and wstacks. The explicit iteration is over wplanes. Wprojection is just
+an option in the normal gridding for each plane.
 
-.. math::
-
-    V(u,v,w) =\\sum_i \\int \\frac{ I(l,m) e^{-2 \\pi j (w_i(\\sqrt{1-l^2-m^2}-1))})}{\\sqrt{1-l^2-m^2}} e^{-2 \\pi j (ul+vm)} dl dm
-
-If images constructed from slices in w are added after applying a w-dependent image plane correction, the w term will be corrected. 
 """
 
 from arl.imaging.iterated import *
@@ -22,21 +17,6 @@ log = logging.getLogger(__name__)
 def predict_wprojection_wstack(vis: Visibility, model: Image, **kwargs) -> Visibility:
     """ Predict using convolutional degridding with w projection and wstacking
 
-    For a fixed w, the measurement equation can be stated as as a convolution in Fourier space.
-
-    .. math::
-
-        V(u,v,w) =G_w(u,v) \\ast \\int \\frac{I(l,m)}{\\sqrt{1-l^2-m^2}} e^{-2 \\pi j (ul+vm)} dl dm$$
-
-    where the convolution function is:
-
-    .. math::
-
-        G_w(u,v) = \\int \\frac{1}{\\sqrt{1-l^2-m^2}} e^{-2 \\pi j (ul+vm + w(\\sqrt{1-l^2-m^2}-1))} dl dm
-
-
-    Hence when degridding, we can use the transform of the w beam to correct this effect.
-
     :param vis: Visibility to be predicted
     :param model: model image
     :returns: resulting visibility (in place works)
@@ -48,21 +28,6 @@ def predict_wprojection_wstack(vis: Visibility, model: Image, **kwargs) -> Visib
 
 def invert_wprojection_wstack(vis: Visibility, im: Image, dopsf=False, normalize=True, **kwargs) -> (Image, numpy.ndarray):
     """ Predict using 2D convolution function, including w projection and stacking
-
-    For a fixed w, the measurement equation can be stated as as a convolution in Fourier space.
-
-    .. math::
-
-        V(u,v,w) =G_w(u,v) \\ast \\int \\frac{I(l,m)}{\\sqrt{1-l^2-m^2}} e^{-2 \\pi j (ul+vm)} dl dm$$
-
-    where the convolution function is:
-
-    .. math::
-
-        G_w(u,v) = \\int \\frac{1}{\\sqrt{1-l^2-m^2}} e^{-2 \\pi j (ul+vm + w(\\sqrt{1-l^2-m^2}-1))} dl dm
-
-
-    Hence when degridding, we can use the transform of the w beam to correct this effect.
 
     Use the image im as a template. Do PSF in a separate call.
 

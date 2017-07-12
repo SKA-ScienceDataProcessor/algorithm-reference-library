@@ -376,7 +376,7 @@ def weight_visibility(vis: Visibility, im: Image,  **kwargs) -> Visibility:
 
 
 def create_image_from_visibility(vis: Visibility, **kwargs) -> Image:
-    """Make an from params and Visibility
+    """Make an empty image from params and Visibility
 
     :param vis:
     :param phasecentre: Phasecentre (Skycoord)
@@ -460,7 +460,7 @@ def create_image_from_visibility(vis: Visibility, **kwargs) -> Image:
     w.naxis = 4
     
     w.wcs.radesys = get_parameter(kwargs, 'frame', 'ICRS')
-    w.wcs.equinox = get_parameter(kwargs, 'equinox', 2000.0)
+    w.wcs.equinox = get_parameter(kwargs, 'equinox', 'J2000')
     
     return create_image_from_array(numpy.zeros(shape), wcs=w)
 

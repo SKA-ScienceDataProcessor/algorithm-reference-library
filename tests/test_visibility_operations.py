@@ -5,13 +5,20 @@
 
 import unittest
 
+import numpy
+
 from numpy.testing import assert_allclose
 
+from astropy.coordinates import SkyCoord
+import astropy.units as u
+
+from arl.data.data_models import Skycomponent
 from arl.data.polarisation import PolarisationFrame
 from arl.util.testing_support import create_named_configuration
+from arl.imaging import predict_skycomponent_visibility
 from arl.visibility.coalesce import convert_blockvisibility_to_visibility
 from arl.visibility.operations import create_blockvisibility, create_visibility, append_visibility, qa_visibility, \
-    sum_visibility
+    sum_visibility, create_visibility_from_rows, copy_visibility, phaserotate_visibility
 
 
 class TestVisibilityOperations(unittest.TestCase):
@@ -98,7 +105,6 @@ class TestVisibilityOperations(unittest.TestCase):
         vis = copy_visibility(self.vis)
         self.vis.data['vis'] = 0.0
         vis.data['vis'] = 1.0
-        log.debug(self.vis.data['vis'][0,0].real)
         assert (vis.data['vis'][0,0].real == 1.0)
         assert (self.vis.data['vis'][0,0].real == 0.0)
     

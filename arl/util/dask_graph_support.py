@@ -1,6 +1,7 @@
 """ Pipelines expressed as dask graphs
 """
 
+from typing import List, Union
 from astropy import units as u
 from astropy.coordinates import SkyCoord
 from dask import delayed
@@ -19,7 +20,7 @@ def create_simulate_vis_graph(config='LOWBD2-CORE',
                               phasecentre=SkyCoord(ra=+15.0 * u.deg, dec=-60.0 * u.deg, frame='icrs', equinox='J2000'),
                               frequency=None, channel_bandwidth=None, times=None,
                               polarisation_frame=PolarisationFrame("stokesI"), order='frequency',
-                              **kwargs):
+                              **kwargs) -> delayed:
     """ Create a graph to simulate an observation
     
     :param config: Name of configuration: def LOWBDS-CORE
@@ -68,8 +69,8 @@ def create_simulate_vis_graph(config='LOWBD2-CORE',
     return vis_graph_list
 
 
-def create_predict_gleam_model_graph(vis_graph_list, npixel=512, cellsize=0.001,
-                                     c_predict_graph=create_predict_wstack_graph, **kwargs):
+def create_predict_gleam_model_graph(vis_graph_list: List[delayed], npixel=512, cellsize=0.001,
+                                     c_predict_graph=create_predict_wstack_graph, **kwargs) -> List[delayed]:
     """ Create a graph to fill in a model with the gleam sources and predict into a vis_graph_list
 
     :param vis_graph_list:
@@ -92,7 +93,7 @@ def create_predict_gleam_model_graph(vis_graph_list, npixel=512, cellsize=0.001,
     return predicted_vis_graph_list
 
 
-def create_gleam_model_graph(vis_graph, npixel=512, cellsize=0.001, facets=4, **kwargs):
+def create_gleam_model_graph(vis_graph: delayed, npixel=512, cellsize=0.001, facets=4, **kwargs) -> delayed:
     """ Create a graph to fill in a model with the gleam sources
     
     This spreads the work over facet**2 nodes
@@ -115,7 +116,7 @@ def create_gleam_model_graph(vis_graph, npixel=512, cellsize=0.001, facets=4, **
         
     return delayed(calculate_model, nout=1)(vis_graph)
     
-def create_corrupt_vis_graph(vis_graph_list, gt_graph=None, **kwargs):
+def create_corrupt_vis_graph(vis_graph_list: List[delayed], gt_graph=None, **kwargs) -> List[delayed]:
     """ Create a graph to apply gain errors to a vis_graph_list
     
     :param vis_graph_list:
@@ -133,7 +134,7 @@ def create_corrupt_vis_graph(vis_graph_list, gt_graph=None, **kwargs):
     return [delayed(corrupt_vis, nout=1)(vis_graph, gt_graph, **kwargs) for vis_graph in vis_graph_list]
 
 
-def create_dump_vis_graph(vis_graph_list, name='imaging_dask'):
+def create_dump_vis_graph(vis_graph_list: List[delayed], name='imaging_dask') -> delayed:
     """ Create a graph to save a vis_graph_list
     
     :param vis_graph_list:
@@ -146,10 +147,10 @@ def create_dump_vis_graph(vis_graph_list, name='imaging_dask'):
             
     return delayed(save_all)(vis_graph_list)
 
-def create_load_vis_graph(name='imaging_dask'):
-    """ Load's pickled data with the glob name
+def create_load_vis_graph(name='imaging_dask') -> List[delayed]:
+    """ Load's pickled data with the glob of "%s_*.pickle" % (name)
     
-    :param name: Unix style wildcard name
+    :param name: Root of name
     :return: vis_graph_list
     """
     import glob
