@@ -8,19 +8,14 @@
 """
 
 
-from arl.fourier_transforms.ftprocessor_params import *
-from arl.fourier_transforms.ftprocessor_base import *
-from arl.fourier_transforms.ftprocessor_iterated import *
-from arl.image.iterators import *
-from arl.image.operations import create_empty_image_like
-from arl.visibility.iterators import vis_slice_iter
-from arl.visibility.operations import create_visibility_from_rows
-from arl.data.parameters import get_parameter
+from arl.imaging.wstack import predict_wstack, invert_wstack
 
+from arl.image.iterators import raster_iter
+from arl.imaging.iterated import *
 
 log = logging.getLogger(__name__)
 
-def predict_facets(vis, model, predict_function=predict_2d_base, **kwargs):
+def predict_facets_wstack(vis: Visibility, model: Image, predict_function=predict_wstack, **kwargs)  -> Visibility:
     """ Predict using image facets, calling specified predict function
 
     :param vis: Visibility to be predicted
@@ -28,11 +23,12 @@ def predict_facets(vis, model, predict_function=predict_2d_base, **kwargs):
     :param predict_function: Function to be used for prediction (allows nesting) (default predict_2d)
     :returns: resulting visibility (in place works)
     """
-    log.info("predict_facets: Predicting by image facets")
+    log.info("predict_facets_wstack: Predicting by image facets and w stacking")
     return predict_with_image_iterator(vis, model, image_iterator=raster_iter, predict_function=predict_function,
                                 **kwargs)
 
-def invert_facets(vis, im, dopsf=False, normalize=True, invert_function=invert_2d_base, **kwargs):
+def invert_facets_wstack(vis: Visibility, im: Image, dopsf=False, normalize=True, invert_function=invert_wstack,
+                         **kwargs)  -> (Image, numpy.ndarray):
     """ Invert using image partitions, calling specified Invert function
 
     :param vis: Visibility to be inverted
@@ -43,6 +39,6 @@ def invert_facets(vis, im, dopsf=False, normalize=True, invert_function=invert_2
     :returns: resulting image[nchan, npol, ny, nx], sum of weights[nchan, npol]
     """
     
-    log.info("invert_facets: Inverting by image facets")
+    log.info("invert_facets_wstack: Inverting by image facets and w stacking")
     return invert_with_image_iterator(vis, im, normalize=normalize, image_iterator=raster_iter, dopsf=dopsf,
                                       invert_function=invert_function, **kwargs)

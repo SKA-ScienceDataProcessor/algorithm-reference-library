@@ -2,6 +2,7 @@
 
 """
 
+from typing import Union, List
 import collections
 
 from astropy.coordinates import SkyCoord
@@ -18,7 +19,8 @@ from photutils import segmentation
 log = logging.getLogger(__name__)
 
 def create_skycomponent(direction: SkyCoord, flux: numpy.array, frequency: numpy.array, shape: str = 'Point',
-                        polarisation_frame=PolarisationFrame("stokesIQUV"), param: dict=None, name: str = ''):
+                        polarisation_frame=PolarisationFrame("stokesIQUV"), param: dict=None, name: str = '')\
+        -> Skycomponent:
     """ A single Skycomponent with direction, flux, shape, and params for the shape
 
     :param param:
@@ -39,7 +41,7 @@ def create_skycomponent(direction: SkyCoord, flux: numpy.array, frequency: numpy
         polarisation_frame = polarisation_frame
         )
 
-def find_nearest_component(home, comps):
+def find_nearest_component(home, comps) -> Skycomponent:
     """ Find nearest component to a given direction
     :param home: Home direction
     :param comps: list of skycomponents
@@ -54,7 +56,7 @@ def find_nearest_component(home, comps):
             best = comp
     return best
  
-def find_skycomponents(im: Image, fwhm=1.0, threshold=10.0, npixels=5):
+def find_skycomponents(im: Image, fwhm=1.0, threshold=10.0, npixels=5) -> List[Skycomponent]:
     """ Find gaussian components in Image above a certain threshold as Skycomponent
 
     :param fwhm: Full width half maximum of gaussian
@@ -140,7 +142,7 @@ def find_skycomponents(im: Image, fwhm=1.0, threshold=10.0, npixels=5):
     return comps
 
 
-def insert_skycomponent(im: Image, sc: Skycomponent, insert_method=''):
+def insert_skycomponent(im: Image, sc: Union[Skycomponent, List[Skycomponent]], insert_method='') -> Image:
     """ Insert a Skycomponent into an image
 
     :param params:
@@ -176,7 +178,8 @@ def insert_skycomponent(im: Image, sc: Skycomponent, insert_method=''):
     return im
 
 
-def apply_beam_to_skycomponent(sc: Skycomponent, beam: Image):
+def apply_beam_to_skycomponent(sc: Union[Skycomponent, List[Skycomponent]], beam: Image)\
+        -> Union[Skycomponent, List[Skycomponent]]:
     """ Insert a Skycomponet into an image
 
     :param beam:

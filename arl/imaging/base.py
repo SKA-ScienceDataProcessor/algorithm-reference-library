@@ -32,18 +32,17 @@ from arl.data.polarisation import convert_pol_frame
 from arl.fourier_transforms.convolutional_gridding import convolutional_grid, \
     convolutional_degrid, weight_gridding, w_beam
 from arl.fourier_transforms.fft_support import fft, ifft, pad_mid, extract_mid
-from arl.fourier_transforms.ftprocessor_params import get_frequency_map, \
-    get_polarisation_map, get_uvw_map, get_kernel_list
 from arl.image.iterators import *
 from arl.image.operations import copy_image
 from arl.util.coordinate_support import simulate_point, skycoord_to_lmn
-from arl.visibility.operations import phaserotate_visibility, copy_visibility
 from arl.visibility.coalesce import coalesce_visibility, decoalesce_visibility
+from arl.visibility.operations import phaserotate_visibility, copy_visibility
+from arl.imaging.params import get_frequency_map, get_polarisation_map, get_uvw_map, get_kernel_list
 
 log = logging.getLogger(__name__)
 
 
-def shift_vis_to_image(vis, im, tangent=True, inverse=False):
+def shift_vis_to_image(vis: Visibility, im: Image, tangent: bool = True, inverse: bool = False) -> Visibility:
     """Shift visibility to the FFT phase centre of the image in place
 
     :param vis: Visibility data
@@ -78,7 +77,7 @@ def shift_vis_to_image(vis, im, tangent=True, inverse=False):
     return vis
 
 
-def normalize_sumwt(im: Image, sumwt):
+def normalize_sumwt(im: Image, sumwt) -> Image:
     """Normalize out the sum of weights
 
     :param im: Image, im.data has shape [nchan, npol, ny, nx]
@@ -93,7 +92,7 @@ def normalize_sumwt(im: Image, sumwt):
     return im
 
 
-def predict_2d_base(vis, model, **kwargs):
+def predict_2d_base(vis: Visibility, model: Image, **kwargs) -> Visibility:
     """ Predict using convolutional degridding.
 
     This is at the bottom of the layering i.e. all transforms are eventually expressed in terms of
@@ -129,7 +128,7 @@ def predict_2d_base(vis, model, **kwargs):
         return svis
 
 
-def predict_2d(vis, model, **kwargs):
+def predict_2d(vis: Visibility, im: Image, **kwargs) -> Visibility:
     """ Predict using convolutional degridding and w projection
     
     :param vis: Visibility to be predicted
@@ -137,10 +136,10 @@ def predict_2d(vis, model, **kwargs):
     :returns: resulting visibility (in place works)
     """
     log.debug("predict_2d: predict using 2d transform")
-    return predict_2d_base(vis, model, **kwargs)
+    return predict_2d_base(vis, im, **kwargs)
 
 
-def predict_wprojection(vis, model, **kwargs):
+def predict_wprojection(vis: Visibility, model: Image, **kwargs) -> Visibility:
     """ Predict using convolutional degridding and w projection.
     
     For a fixed w, the measurement equation can be stated as as a convolution in Fourier space. 
@@ -167,7 +166,8 @@ def predict_wprojection(vis, model, **kwargs):
     return predict_2d_base(vis, model, **kwargs)
 
 
-def invert_2d_base(vis, im, dopsf=False, normalize=True, **kwargs):
+def invert_2d_base(vis: Visibility, im: Image, dopsf: bool = False, normalize: bool = True, **kwargs) \
+        -> (Image, numpy.ndarray):
     """ Invert using 2D convolution function, including w projection optionally
 
     Use the image im as a template. Do PSF in a separate call.
@@ -230,7 +230,7 @@ def invert_2d_base(vis, im, dopsf=False, normalize=True, **kwargs):
         return resultimage, sumwt
 
 
-def invert_2d(vis, im, dopsf=False, normalize=True, **kwargs):
+def invert_2d(vis: Visibility, im: Image, dopsf=False, normalize=True, **kwargs)  -> (Image, numpy.ndarray):
     """ Invert using prolate spheroidal gridding function
 
     Use the image im as a template. Do PSF in a separate call.
@@ -249,7 +249,7 @@ def invert_2d(vis, im, dopsf=False, normalize=True, **kwargs):
     return invert_2d_base(vis, im, dopsf, normalize=normalize, **kwargs)
 
 
-def invert_wprojection(vis, im, dopsf=False, normalize=True, **kwargs):
+def invert_wprojection(vis: Visibility, im: Image, dopsf=False, normalize=True, **kwargs)  -> (Image, numpy.ndarray):
     """ Predict using 2D convolution function, including w projection
 
     For a fixed w, the measurement equation can be stated as as a convolution in Fourier space.
@@ -348,7 +348,7 @@ def predict_skycomponent_visibility(vis: Visibility, sc: Skycomponent) -> Visibi
     return vis
 
 
-def weight_visibility(vis, im, **kwargs):
+def weight_visibility(vis: Visibility, im: Image,  **kwargs) -> Visibility:
     """ Reweight the visibility data using a selected algorithm
 
     Imaging uses the column "imaging_weight" when imaging. This function sets that column using a
@@ -465,7 +465,7 @@ def create_image_from_visibility(vis: Visibility, **kwargs) -> Image:
     return create_image_from_array(numpy.zeros(shape), wcs=w)
 
 
-def create_w_term_like(vis, im, w, **kwargs):
+def create_w_term_like(vis: Visibility, im: Image, w, **kwargs) -> Image:
     """Create an image with a w term phase term in it
     
     .. math::
@@ -495,7 +495,7 @@ def create_w_term_like(vis, im, w, **kwargs):
     return fim
 
 def residual_image(vis: Visibility, model: Image, invert_residual=invert_2d, predict_residual=predict_2d,
-                   **kwargs):
+                   **kwargs) -> Image:
     """Calculate residual image and visibility
 
     :param vis: Visibility to be inverted

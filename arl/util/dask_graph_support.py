@@ -17,7 +17,7 @@ from arl.visibility.operations import create_blockvisibility
 
 def create_simulate_vis_graph(config='LOWBD2-CORE',
                               phasecentre=SkyCoord(ra=+15.0 * u.deg, dec=-60.0 * u.deg, frame='icrs', equinox='J2000'),
-                              frequency=[1e8], channel_bandwidth=[1e6],times=[0.0],
+                              frequency=None, channel_bandwidth=None, times=None,
                               polarisation_frame=PolarisationFrame("stokesI"), order='frequency',
                               **kwargs):
     """ Create a graph to simulate an observation
@@ -33,6 +33,12 @@ def create_simulate_vis_graph(config='LOWBD2-CORE',
     :return: vis_graph_list with different frequencies in different elements
     """
 
+    if times is None:
+        times = [0.0]
+    if channel_bandwidth is None:
+        channel_bandwidth = [1e6]
+    if frequency is None:
+        frequency = [1e8]
     conf = create_named_configuration(config)
     if order =='time':
         vis_graph_list = list()

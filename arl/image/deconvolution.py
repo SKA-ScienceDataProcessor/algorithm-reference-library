@@ -38,7 +38,7 @@ from arl.image.cleaners import hogbom, msclean, msmfsclean
 
 log = logging.getLogger(__name__)
 
-def deconvolve_cube(dirty: Image, psf: Image, **kwargs):
+def deconvolve_cube(dirty: Image, psf: Image, **kwargs) -> (Image, Image):
     """ Clean using a variety of algorithms
     
     Functions that clean a dirty image using a point spread function. The algorithms available are:
@@ -208,7 +208,7 @@ def deconvolve_cube(dirty: Image, psf: Image, **kwargs):
 
 
 
-def restore_cube(model, psf, residual=None, **kwargs):
+def restore_cube(model: Image, psf: Image, residual=None, **kwargs) -> Image:
     """ Restore the model image to the residuals
 
     :params psf: Input PSF

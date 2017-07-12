@@ -59,7 +59,7 @@ def visibility_gather(visibility_list, vis, vis_iter, **kwargs):
 def visibility_scatter_index(vis, **kwargs):
     return visibility_scatter(vis, vis_iter=vis_slice_iter, **kwargs)
 
-def visibility_scatter_w(vis, **kwargs):
+def visibility_scatter_w(vis: Visibility, **kwargs):
     if type(vis) == BlockVisibility:
         avis = coalesce_visibility(vis, **(kwargs))
         return visibility_scatter(avis, vis_iter=vis_wstack_iter, **kwargs)
@@ -72,7 +72,7 @@ def visibility_scatter_time(vis, **kwargs):
 def visibility_gather_index(visibility_list, vis, **kwargs):
     return visibility_gather(visibility_list, vis, vis_iter=vis_slice_iter, **kwargs)
 
-def visibility_gather_w(visibility_list, vis, **kwargs):
+def visibility_gather_w(visibility_list, vis: Visibility, **kwargs):
     if type(vis) == BlockVisibility:
         cvis = coalesce_visibility(vis, **kwargs)
         return decoalesce_visibility(visibility_gather(visibility_list, cvis, vis_iter=vis_wstack_iter,

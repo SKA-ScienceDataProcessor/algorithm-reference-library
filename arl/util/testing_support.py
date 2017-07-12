@@ -29,23 +29,24 @@ Functions that aid testing in various ways. A typical use would be::
 """
 
 import csv
+import logging
+from typing import List, Union
 
-from astropy.coordinates import EarthLocation
 import astropy.units as u
+from astropy.coordinates import EarthLocation
 from astropy.io import fits
 from astropy.wcs import WCS
 from scipy import interpolate
 
-from arl.data.data_models import Configuration, Image, GainTable, Skycomponent
-from arl.data.polarisation import PolarisationFrame
 from arl.calibration.operations import create_gaintable_from_blockvisibility, apply_gaintable
+from arl.data.data_models import Configuration, Image, GainTable, Skycomponent, BlockVisibility
 from arl.data.parameters import arl_path
-from arl.fourier_transforms.ftprocessor import predict_timeslice, predict_skycomponent_blockvisibility
+from arl.data.polarisation import PolarisationFrame
 from arl.image.operations import import_image_from_fits, create_image_from_array, \
     reproject_image, create_empty_image_like
 from arl.util.coordinate_support import *
-from arl.visibility.operations import create_blockvisibility, copy_visibility
-import logging
+from arl.visibility.operations import create_blockvisibility
+from arl.imaging import predict_timeslice, predict_skycomponent_blockvisibility
 
 log = logging.getLogger(__name__)
 
@@ -55,7 +56,7 @@ def create_configuration_from_file(antfile: str, name: str = None, location: Ear
                                    names: str = "%d", frame: str = 'local',
                                    diameter = 35.0,
                                    meta: dict = None,
-                                   **kwargs):
+                                   **kwargs) -> Configuration:
     """ Define from a file
 
     :param names:
@@ -82,7 +83,7 @@ def create_configuration_from_file(antfile: str, name: str = None, location: Ear
 
 
 def create_LOFAR_configuration(antfile: str, meta: dict = None,
-                               **kwargs):
+                               **kwargs) -> Configuration:
     """ Define from the LOFAR configuration file
 
     :param antfile:
@@ -100,7 +101,7 @@ def create_LOFAR_configuration(antfile: str, meta: dict = None,
     return fc
 
 
-def create_named_configuration(name: str = 'LOWBD2', **kwargs):
+def create_named_configuration(name: str = 'LOWBD2', **kwargs) -> Configuration:
     """ Standard configurations e.g. LOWBD2, MIDBD2
 
     :param name: name of Configuration LOWBD2, LOWBD1, LOFAR, VLAA
@@ -145,8 +146,8 @@ def create_named_configuration(name: str = 'LOWBD2', **kwargs):
     return fc
 
 
-def create_test_image(canonical=True, cellsize=None, frequency=[1e8], channel_bandwidth=None,
-                      phasecentre=None, polarisation_frame=PolarisationFrame("stokesI")):
+def create_test_image(canonical=True, cellsize=None, frequency=None, channel_bandwidth=None,
+                      phasecentre=None, polarisation_frame=PolarisationFrame("stokesI")) -> Image:
     """Create a useful test image
 
     This is the test image M31 widely used in ALMA and other simulations. It is actually part of an Halpha region in
@@ -160,6 +161,8 @@ def create_test_image(canonical=True, cellsize=None, frequency=[1e8], channel_ba
     :param polarisation_frame: Polarisation frame
     :returns: Image
     """
+    if frequency is None:
+        frequency = [1e8]
     im = import_image_from_fits(arl_path("data/models/M31.MOD"))
     if canonical:
         
@@ -196,7 +199,8 @@ def create_test_image(canonical=True, cellsize=None, frequency=[1e8], channel_ba
 
 
 def create_low_test_image_from_s3(npixel=16384, polarisation_frame=PolarisationFrame("stokesI"), cellsize=0.000015,
-                                  frequency=numpy.array([1e8]), channel_bandwidth=numpy.array([1e6]), phasecentre=None, fov=20):
+                                  frequency=numpy.array([1e8]), channel_bandwidth=numpy.array([1e6]),
+                                  phasecentre=None, fov=20) -> Image:
     """Create LOW test image from S3
 
     The input catalog was generated at http://s-cubed.physics.ox.ac.uk/s3_sex using the following query::
@@ -295,7 +299,7 @@ def create_low_test_image_from_s3(npixel=16384, polarisation_frame=PolarisationF
 def create_low_test_image_composite(npixel=16384, polarisation_frame=PolarisationFrame("stokesI"),
                                     cellsize=0.000015,
                                     frequency=numpy.array([1e8]), channel_bandwidth=numpy.array([1e6]),
-                                    phasecentre=None, kind='cubic', fov=20, threshold=0.050):
+                                    phasecentre=None, kind='cubic', fov=20, threshold=0.050) -> Image:
     """Create LOW test image from merge of S3 and GLEAM test images
     
     :param npixel: Number of pixels
@@ -326,7 +330,7 @@ def create_low_test_image_composite(npixel=16384, polarisation_frame=Polarisatio
 
 def create_low_test_image_from_gleam(npixel=512, polarisation_frame=PolarisationFrame("stokesI"), cellsize=0.000015,
                                      frequency=numpy.array([1e8]), channel_bandwidth=numpy.array([1e6]),
-                                     phasecentre=None, kind='cubic'):
+                                     phasecentre=None, kind='cubic') -> Image:
     """Create LOW test image from the GLEAM survey
 
     Stokes I is estimated from a cubic spline fit to the measured fluxes. The polarised flux is always zero.
@@ -421,7 +425,8 @@ def create_low_test_image_from_gleam(npixel=512, polarisation_frame=Polarisation
 
 
 def create_low_test_skycomponents_from_gleam(flux_limit=0.1, polarisation_frame=PolarisationFrame("stokesI"),
-                                             frequency=numpy.array([1e8]), kind='cubic', phasecentre=None, radius=1.0):
+                                             frequency=numpy.array([1e8]), kind='cubic', phasecentre=None, radius=1.0)\
+        -> List[Skycomponent]:
     """Create sky components from the GLEAM survey
 
     Stokes I is estimated from a cubic spline fit to the measured fluxes. The polarised flux is always zero.
@@ -490,7 +495,7 @@ def create_low_test_skycomponents_from_gleam(flux_limit=0.1, polarisation_frame=
     return skycomps
 
 
-def create_low_test_beam(model):
+def create_low_test_beam(model: Image) -> Image:
     """Create a test power beam for LOW using an image from OSKAR
 
     :param model: Template image
@@ -538,7 +543,8 @@ def create_low_test_beam(model):
     return reprojected_beam
 
 
-def replicate_image(im: Image, polarisation_frame=PolarisationFrame('stokesI'), frequency=numpy.array([1e8])):
+def replicate_image(im: Image, polarisation_frame=PolarisationFrame('stokesI'), frequency=numpy.array([1e8]))\
+        -> Image:
     """ Make a new canonical shape Image, extended along third and fourth axes by replication.
 
     The order of the data is [chan, pol, dec, ra]
@@ -580,7 +586,7 @@ def create_blockvisibility_iterator(config: Configuration, times: numpy.array, f
                                     channel_bandwidth, phasecentre: SkyCoord, weight: float = 1,
                                     polarisation_frame=PolarisationFrame('stokesI'), integration_time=1.0,
                                     number_integrations=1, predict=predict_timeslice, model=None, components=None,
-                                    phase_error=0.0, amplitude_error=0.0, sleep=0.0, **kwargs):
+                                    phase_error=0.0, amplitude_error=0.0, sleep=0.0, **kwargs) -> BlockVisibility:
     """ Create a sequence of Visibilities and optionally predicting and coalescing
 
     This is useful mainly for performing large simulations. Do something like::

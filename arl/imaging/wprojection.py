@@ -15,14 +15,17 @@ W projection functions
 
 """
 
-from arl.fourier_transforms.ftprocessor_base import predict_2d_base, invert_2d_base
-from arl.image.iterators import *
+import numpy
+from arl.data.data_models import Visibility, Image
+from arl.imaging.base import predict_2d_base, invert_2d_base
+
+import logging
 
 log = logging.getLogger(__name__)
 
 
 
-def predict_wprojection(vis, model, **kwargs):
+def predict_wprojection(vis: Visibility, model: Image, **kwargs) -> Visibility:
     """ Predict using convolutional degridding and w projection.
     
     For a fixed w, the measurement equation can be stated as as a convolution in Fourier space. 
@@ -47,7 +50,7 @@ def predict_wprojection(vis, model, **kwargs):
     log.debug("predict_wprojection: predict using wprojection")
     return predict_2d_base(vis, model, kernel='wprojection', **kwargs)
 
-def invert_wprojection(vis, im, dopsf=False, normalize=True, **kwargs):
+def invert_wprojection(vis: Visibility, im: Image, dopsf=False, normalize=True, **kwargs) -> (Image, numpy.ndarray):
     """ Predict using 2D convolution function, including w projection
 
     For a fixed w, the measurement equation can be stated as as a convolution in Fourier space.

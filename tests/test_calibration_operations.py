@@ -2,21 +2,16 @@
 
 
 """
+import logging
 import unittest
 
-
-import numpy
-
-from astropy.coordinates import SkyCoord
+from arl.calibration.operations import *
 from arl.data.data_models import Skycomponent
 from arl.data.polarisation import PolarisationFrame
-from arl.calibration.operations import create_gaintable_from_blockvisibility
-from arl.fourier_transforms.ftprocessor import create_image_from_visibility, predict_skycomponent_blockvisibility
 from arl.util.testing_support import create_named_configuration, simulate_gaintable
 from arl.visibility.operations import create_blockvisibility, copy_visibility
-from arl.calibration.operations import *
+from arl.imaging import predict_skycomponent_blockvisibility
 
-import logging
 log = logging.getLogger(__name__)
 
 class TestCalibrationOperations(unittest.TestCase):

@@ -5,12 +5,12 @@ Functions that define and manipulate images. Images are just data and a World Co
 """
 
 import logging
-
+from arl.data.data_models import Image
 from arl.image.operations import create_image_from_array
 
 log = logging.getLogger(__name__)
 
-def raster_iter(im, facets=2, **kwargs):
+def raster_iter(im: Image, facets=2, **kwargs) -> Image:
     """Create a raster_iter generator, returning images
 
     The WCS is adjusted appropriately for each raster element. Hence this is a coordinate-aware

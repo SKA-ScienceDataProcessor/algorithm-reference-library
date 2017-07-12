@@ -4,20 +4,18 @@
 Functions that distributes predict and invert using either just loops or parallel execution
 """
 
-import multiprocessing
+from arl.imaging.params import *
 
-from arl.data.parameters import get_parameter
-from arl.fourier_transforms.ftprocessor_base import *
-from arl.fourier_transforms.ftprocessor_params import *
 from arl.image.iterators import *
 from arl.image.operations import create_empty_image_like
 from arl.visibility.iterators import vis_slice_iter
 from arl.visibility.operations import create_visibility_from_rows
+from arl.imaging.base import *
 
 log = logging.getLogger(__name__)
 
 
-def invert_with_vis_iterator(vis, im, dopsf=False, normalize=True, vis_iter=vis_slice_iter,
+def invert_with_vis_iterator(vis: Visibility, im: Image, dopsf=False, normalize=True, vis_iter=vis_slice_iter,
                              invert=invert_2d, **kwargs):
     """ Invert using a specified iterator and invert
     
@@ -51,7 +49,7 @@ def invert_with_vis_iterator(vis, im, dopsf=False, normalize=True, vis_iter=vis_
     return resultimage, totalwt
 
 
-def predict_with_vis_iterator(vis, model, vis_iter=vis_slice_iter, predict=predict_2d, **kwargs):
+def predict_with_vis_iterator(vis: Visibility, model: Image, vis_iter=vis_slice_iter, predict=predict_2d, **kwargs):
     """Iterate through prediction in chunks
     
     This knows about the structure of predict in different execution frameworks but not
@@ -68,8 +66,9 @@ def predict_with_vis_iterator(vis, model, vis_iter=vis_slice_iter, predict=predi
     return vis
 
 
-def predict_with_image_iterator(vis, model, image_iterator=raster_iter, predict_function=predict_2d_base,
-                                **kwargs):
+def predict_with_image_iterator(vis: Visibility, model: Image, image_iterator=raster_iter,
+                                predict_function=predict_2d_base,
+                                **kwargs) -> Visibility:
     """ Predict using image partitions, calling specified predict function
 
     :param vis: Visibility to be predicted
@@ -88,7 +87,7 @@ def predict_with_image_iterator(vis, model, image_iterator=raster_iter, predict_
 
 
 def invert_with_image_iterator(vis, im, image_iterator=raster_iter, dopsf=False,
-                               normalize=True, invert_function=invert_2d_base, **kwargs):
+                               normalize=True, invert_function=invert_2d_base, **kwargs) -> (Image, numpy.ndarray):
     """ Predict using image partitions, calling specified predict function
 
     :param vis: Visibility to be inverted

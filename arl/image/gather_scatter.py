@@ -5,13 +5,14 @@ Functions that define and manipulate images. Images are just data and a World Co
 """
 
 import logging
+from typing import List
 
-from arl.image.operations import create_image_from_array
+from arl.data.data_models import Image
 from arl.image.iterators import raster_iter
 
 log = logging.getLogger(__name__)
 
-def image_scatter(im, **kwargs):
+def image_scatter(im: Image, **kwargs) -> List[Image]:
     """Scatter an image into a list of subimages using the raster_iterator
 
     :param im: Image
@@ -26,7 +27,7 @@ def image_scatter(im, **kwargs):
     return image_list
 
 
-def image_gather(image_list, im, **kwargs):
+def image_gather(image_list: List[Image], im: Image, **kwargs) -> Image:
     """Gather a list of subimages back into an image using the raster_iterator
 
     :param image_list: List of subimages

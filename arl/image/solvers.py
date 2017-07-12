@@ -7,14 +7,15 @@ subclasses of astropy classes.
 
 from arl.data.data_models import *
 from arl.data.parameters import *
-from arl.fourier_transforms.ftprocessor_base import invert_2d, predict_2d, predict_skycomponent_visibility
 from arl.image.deconvolution import deconvolve_cube
 from arl.visibility.operations import copy_visibility
+from arl.imaging.base import invert_2d, predict_2d, predict_skycomponent_visibility
 
 log = logging.getLogger(__name__)
 
 
-def solve_image(vis: Visibility, model: Image, components=None, predict=predict_2d, invert=invert_2d, **kwargs):
+def solve_image(vis: Visibility, model: Image, components=None, predict=predict_2d, invert=invert_2d,
+                **kwargs) -> (Visibility, Image, Image):
     """Solve for image using deconvolve_cube and specified predict, invert
 
     This is the same as a majorcycle/minorcycle algorithm. The components are removed prior to deconvolution.

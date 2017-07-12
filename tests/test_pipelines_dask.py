@@ -14,16 +14,16 @@ from dask import delayed
 
 from arl.calibration.operations import apply_gaintable, create_gaintable_from_blockvisibility
 from arl.data.polarisation import PolarisationFrame
-from arl.fourier_transforms.ftprocessor import create_image_from_visibility, predict_skycomponent_blockvisibility, \
-    invert_wstack_single, predict_wstack_single
 from arl.graphs.dask_graphs import create_deconvolve_facet_graph, create_invert_wstack_graph, \
     create_residual_wstack_graph
+from arl.image.operations import qa_image, export_image_to_fits
 from arl.pipelines.pipeline_dask_graphs import create_continuum_imaging_pipeline_graph, \
     create_ical_pipeline_graph
-from arl.image.operations import qa_image, export_image_to_fits
 from arl.skycomponent.operations import create_skycomponent, insert_skycomponent
 from arl.util.testing_support import create_named_configuration, simulate_gaintable
 from arl.visibility.operations import create_blockvisibility
+from arl.imaging import create_image_from_visibility, predict_skycomponent_blockvisibility, \
+    invert_wstack_single, predict_wstack_single
 
 
 class TestImagingDask(unittest.TestCase):

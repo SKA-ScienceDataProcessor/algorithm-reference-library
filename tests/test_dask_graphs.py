@@ -9,24 +9,23 @@ import unittest
 import numpy
 from astropy import units as u
 from astropy.coordinates import SkyCoord
-
 from astropy.wcs.utils import pixel_to_skycoord
 from dask import delayed
 
 from arl.calibration.operations import apply_gaintable, create_gaintable_from_blockvisibility
 from arl.data.polarisation import PolarisationFrame
-from arl.fourier_transforms.ftprocessor import create_image_from_visibility, predict_skycomponent_blockvisibility, \
-    invert_wstack_single, predict_wstack_single
 from arl.graphs.dask_graphs import create_invert_facet_graph, create_predict_facet_graph, \
     create_zero_vis_graph_list, create_subtract_vis_graph_list, create_deconvolve_facet_graph, \
     create_invert_wstack_graph, create_residual_wstack_graph, create_predict_wstack_graph, \
-    create_predict_graph, create_invert_graph, create_residual_facet_graph, \
+    create_predict_graph, create_invert_graph, create_residual_facet_graph, create_residual_facet_wstack_graph, \
     create_predict_facet_wstack_graph, create_invert_facet_wstack_graph
 from arl.image.operations import qa_image, export_image_to_fits
 from arl.skycomponent.operations import create_skycomponent, insert_skycomponent
 from arl.util.testing_support import create_named_configuration, simulate_gaintable
 from arl.visibility.operations import create_blockvisibility
 from arl.visibility.operations import qa_visibility
+from arl.imaging import create_image_from_visibility, predict_skycomponent_blockvisibility, \
+    invert_wstack_single, predict_wstack_single
 
 
 class TestImagingDask(unittest.TestCase):
@@ -258,6 +257,24 @@ class TestImagingDask(unittest.TestCase):
     
         dirty_graph = create_residual_wstack_graph(self.vis_graph_list, self.model_graph,
                                                    vis_slices=self.vis_slices)
+    
+        dirty = dirty_graph.compute()
+        export_image_to_fits(dirty[0], '%s/test_imaging_dask_residual_wstack_slices%d.fits' %
+                             (self.results_dir, self.vis_slices))
+    
+        qa = qa_image(dirty[0])
+    
+        assert numpy.abs(qa.data['max'] - 104.0) < 1.0, str(qa)
+        assert numpy.abs(qa.data['min'] + 5.0) < 1.0, str(qa)
+
+
+    def test_residual_facet_wstack_graph(self):
+    
+        self.model_graph = delayed(self.get_LSM)(self.vis_graph_list[self.nvis // 2],
+                                                 flux=100.0)
+    
+        dirty_graph = create_residual_facet_wstack_graph(self.vis_graph_list, self.model_graph,
+                                                   facets=4, vis_slices=self.vis_slices)
     
         dirty = dirty_graph.compute()
         export_image_to_fits(dirty[0], '%s/test_imaging_dask_residual_wstack_slices%d.fits' %

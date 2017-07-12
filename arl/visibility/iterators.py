@@ -14,13 +14,15 @@ import logging
 
 import numpy
 
+from typing import Union
+
 from arl.data.parameters import get_parameter
 from arl.data.data_models import *
 
 log = logging.getLogger(__name__)
 
 
-def vis_timeslice_iter(vis, **kwargs):
+def vis_timeslice_iter(vis: Union[Visibility, BlockVisibility], **kwargs) -> numpy.ndarray:
     """ Time slice iterator
     
     If timeslice='auto' then timeslice is taken to be the difference between the first two
@@ -50,7 +52,7 @@ def vis_timeslice_iter(vis, **kwargs):
         yield rows
 
 
-def vis_wstack_iter(vis, **kwargs):
+def vis_wstack_iter(vis: Visibility, **kwargs) -> numpy.ndarray:
     """ W slice iterator
 
     :param wstack: wstack (wavelengths)
@@ -77,7 +79,7 @@ def vis_wstack_iter(vis, **kwargs):
             yield None
 
 
-def vis_slice_iter(vis, **kwargs):
+def vis_slice_iter(vis: Union[Visibility, BlockVisibility], **kwargs) -> numpy.ndarray:
     """ Iterates in slices
 
     :param step: Size of step to be iterated over (in rows)

@@ -23,13 +23,13 @@ Ignoring changes in the normalisation term, we have:
 
 
 """
+from arl.imaging.iterated import predict_with_vis_iterator, invert_with_vis_iterator
 from scipy.interpolate import griddata
 
-from arl.fourier_transforms.ftprocessor_base import *
-from arl.fourier_transforms.ftprocessor_iterated import predict_with_vis_iterator, invert_with_vis_iterator
 from arl.image.iterators import *
 from arl.image.operations import copy_image, create_empty_image_like
 from arl.visibility.iterators import *
+from arl.imaging.base import *
 
 log = logging.getLogger(__name__)
 
@@ -68,7 +68,7 @@ def fit_uvwplane(vis, remove=True):
         vis.data['uvw'][:, 2] -= p * vis.u + q * vis.v
     return vis, p, q
 
-def invert_timeslice(vis, im, dopsf=False, normalize=True, **kwargs):
+def invert_timeslice(vis: Visibility, im: Image, dopsf=False, normalize=True, **kwargs) -> (Image, numpy.ndarray):
     """ Invert using time slices (top level function)
 
     Use the image im as a template. Do PSF in a separate call.
@@ -85,7 +85,7 @@ def invert_timeslice(vis, im, dopsf=False, normalize=True, **kwargs):
                                     normalize=normalize, invert=invert_timeslice_single, **kwargs)
 
 
-def predict_timeslice(vis, model, **kwargs):
+def predict_timeslice(vis: Visibility, model: Image, **kwargs):
     """ Predict using time slices.
 
     :param vis: Visibility to be predicted
@@ -98,7 +98,7 @@ def predict_timeslice(vis, model, **kwargs):
                                      predict=predict_timeslice_single, **kwargs)
 
 
-def predict_timeslice_single(vis, model, **kwargs):
+def predict_timeslice_single(vis: Visibility, model: Image, **kwargs):
     """ Predict using a single time slices.
     
     This fits a single plane and corrects the image geometry.
@@ -173,7 +173,7 @@ def lm_distortion(im: Image, a, b):
     return l2d, m2d, ldistorted, mdistorted
 
 
-def invert_timeslice_single(vis, im, dopsf, normalize=True, **kwargs):
+def invert_timeslice_single(vis: Visibility, im: Image, dopsf, normalize=True, **kwargs) -> (Image, numpy.ndarray):
     """Process single time slice
     
     Extracted for re-use in parallel version

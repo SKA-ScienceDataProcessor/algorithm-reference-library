@@ -6,9 +6,9 @@ import unittest
 
 from arl.calibration.operations import *
 from arl.calibration.solvers import solve_gaintable
-from arl.fourier_transforms.ftprocessor import predict_skycomponent_blockvisibility
 from arl.util.testing_support import create_named_configuration, simulate_gaintable
 from arl.visibility.operations import create_blockvisibility, copy_visibility
+from arl.imaging import predict_skycomponent_blockvisibility
 
 log = logging.getLogger(__name__)
 

@@ -8,11 +8,8 @@ import unittest
 from numpy.testing import assert_allclose
 
 from arl.data.polarisation import PolarisationFrame
-from arl.fourier_transforms.ftprocessor import *
 from arl.util.testing_support import create_named_configuration
-
 from arl.visibility.coalesce import convert_blockvisibility_to_visibility
-
 from arl.visibility.operations import create_blockvisibility, create_visibility, append_visibility, qa_visibility, \
     sum_visibility
 

@@ -11,12 +11,12 @@ import numpy
 from astropy.coordinates import SkyCoord
 
 from arl.data.polarisation import PolarisationFrame
-from arl.fourier_transforms.ftprocessor_base import predict_2d, invert_2d, create_image_from_visibility
-from arl.image.deconvolution import deconvolve_cube, restore_cube
 from arl.image.cleaners import overlapIndices
+from arl.image.deconvolution import deconvolve_cube, restore_cube
 from arl.image.operations import export_image_to_fits, create_image_from_array
-from arl.util.testing_support import create_low_test_image_from_gleam, create_test_image, create_named_configuration
+from arl.util.testing_support import create_test_image, create_named_configuration
 from arl.visibility.operations import create_visibility
+from arl.imaging.base import predict_2d, invert_2d, create_image_from_visibility
 
 log = logging.getLogger(__name__)
 

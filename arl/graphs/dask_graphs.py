@@ -36,13 +36,12 @@ from dask import delayed
 from arl.calibration.operations import apply_gaintable
 from arl.calibration.solvers import solve_gaintable
 from arl.data.data_models import Visibility, BlockVisibility, Image
-from arl.fourier_transforms.ftprocessor import predict_2d, invert_2d, invert_wstack_single, predict_wstack_single, \
-    normalize_sumwt
 from arl.image.deconvolution import deconvolve_cube
 from arl.image.gather_scatter import image_scatter, image_gather
 from arl.image.operations import copy_image, create_empty_image_like
 from arl.visibility.gather_scatter import visibility_scatter_w, visibility_gather_w
 from arl.visibility.operations import copy_visibility
+from arl.imaging import predict_2d, invert_2d, invert_wstack_single, predict_wstack_single, normalize_sumwt
 
 
 def create_zero_vis_graph_list(vis_graph_list, **kwargs):
@@ -427,6 +426,22 @@ def create_residual_wstack_graph(vis_graph_list, model_graph, **kwargs):
     model_vis_graph_list = create_predict_wstack_graph(model_vis_graph_list, model_graph, **kwargs)
     residual_vis_graph_list = create_subtract_vis_graph_list(vis_graph_list, model_vis_graph_list)
     return create_invert_wstack_graph(residual_vis_graph_list, model_graph, dopsf=False, normalize=True,
+                                      **kwargs)
+
+
+def create_residual_facet_wstack_graph(vis_graph_list, model_graph, **kwargs):
+    """ Create a graph to calculate residual image using w stacking and faceting
+
+    :param vis_graph_list:
+    :param model_graph:
+    :param vis_slices: Number of w planes
+    :param kwargs:
+    :return:
+    """
+    model_vis_graph_list = create_zero_vis_graph_list(vis_graph_list)
+    model_vis_graph_list = create_predict_facet_wstack_graph(model_vis_graph_list, model_graph, **kwargs)
+    residual_vis_graph_list = create_subtract_vis_graph_list(vis_graph_list, model_vis_graph_list)
+    return create_invert_facet_wstack_graph(residual_vis_graph_list, model_graph, dopsf=False, normalize=True,
                                       **kwargs)
 
 

@@ -7,10 +7,9 @@ import copy
 
 import numpy.linalg
 
-from arl.data.data_models import QA
-from arl.fourier_transforms.ftprocessor_params import *
 from arl.util.coordinate_support import *
 from arl.visibility.iterators import vis_timeslice_iter
+from arl.imaging.params import *
 
 log = logging.getLogger(__name__)
 
@@ -115,7 +114,7 @@ def apply_gaintable(vis: BlockVisibility, gt: GainTable, inverse=False, **kwargs
     return vis
 
 
-def append_gaintable(gt: GainTable, othergt: GainTable):
+def append_gaintable(gt: GainTable, othergt: GainTable) -> GainTable:
     """Append othergt to gt
 
     :param gt:
@@ -127,7 +126,7 @@ def append_gaintable(gt: GainTable, othergt: GainTable):
     return gt
 
 
-def qa_gaintable(gt, context=None):
+def qa_gaintable(gt, context=None) -> QA:
     """Assess the quality of a gaintable
 
     :param gt:

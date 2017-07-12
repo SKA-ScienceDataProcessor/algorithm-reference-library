@@ -201,9 +201,11 @@ def get_kernel_list(vis: Visibility, im, **kwargs):
     
     return kernelname, gcf, kernel_list
 
-def advise_wide_field(vis, delA=0.02, oversampling_synthesised_beam=3.0, guard_band_image=6.0, facets=1.0,
-                      wprojection_planes=4):
+def advise_wide_field(vis, delA=0.02, oversampling_synthesised_beam=3.0, guard_band_image=6.0, facets=1,
+                      wprojection_planes=1):
     """ Advise on parameters for wide field imaging.
+    
+    Calculate sampling requirements on various parameters
     
     For example::
     
@@ -215,7 +217,8 @@ def advise_wide_field(vis, delA=0.02, oversampling_synthesised_beam=3.0, guard_b
     :param delA: Allowed coherence loss (def: 0.02)
     :param oversampling_synthesised_beam: Oversampling of the synthesized beam (def: 3.0)
     :param guard_band_image: Number of primary beam half-widths-to-half-maximum to image (def: 6)
-    :param stack_project_ratio:
+    :param facets: Number of facets on each axis
+    :param wprojection_planes: Number of planes in wprojection
     :returns: dict of advice
     """
     wavelength = constants.c.to('m/s').value / numpy.min(vis.frequency)

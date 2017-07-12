@@ -97,7 +97,7 @@ def create_empty_image_like(im: Image) -> Image:
     return fim
 
 
-def polarisation_frame_from_wcs(wcs, shape):
+def polarisation_frame_from_wcs(wcs, shape) -> PolarisationFrame:
     """Convert wcs to polarisation_frame
 
     See FITS definition in Table 29 of https://fits.gsfc.nasa.gov/standard40/fits_standard40draft1.pdf
@@ -153,7 +153,7 @@ def export_image_to_fits(im: Image, fitsfile: str = 'imaging.fits'):
     return fits.writeto(filename=fitsfile, data=im.data, header=im.wcs.to_header(), overwrite=True)
 
 
-def import_image_from_fits(fitsfile: str, mute_warnings=True):
+def import_image_from_fits(fitsfile: str, mute_warnings=True) -> Image:
     """ Read an Image from fits
     
     :param fitsfile:
@@ -181,7 +181,7 @@ def import_image_from_fits(fitsfile: str, mute_warnings=True):
     return fim
 
 
-def reproject_image(im: Image, newwcs: WCS, shape=None):
+def reproject_image(im: Image, newwcs: WCS, shape=None) -> (Image, Image):
     """ Re-project an image to a new coordinate system
     
     Currently uses the reproject python package. This seems to have some features do be careful using this method.
@@ -211,7 +211,7 @@ def checkwcs(wcs1, wcs2):
     # assert wcs1.wcs.compare(wcs2.wcs, cmp=1 | 2 | 4), "WCS's do not agree"
 
 
-def add_image(im1: Image, im2: Image, docheckwcs=False):
+def add_image(im1: Image, im2: Image, docheckwcs=False) -> Image:
     """ Add two images
     
     :param docheckwcs:
@@ -229,7 +229,7 @@ def add_image(im1: Image, im2: Image, docheckwcs=False):
     return create_image_from_array(im1.data + im2.data, im1.wcs, im1.polarisation_frame)
 
 
-def qa_image(im, mask=None, **kwargs):
+def qa_image(im, mask=None, **kwargs) -> QA:
     """Assess the quality of an image
 
     :param params:

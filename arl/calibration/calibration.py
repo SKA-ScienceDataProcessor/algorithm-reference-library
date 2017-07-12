@@ -11,24 +11,20 @@ For example::
 
 """
 
-import numpy
 import logging
-import collections
 
-from arl.data.data_models import Visibility, BlockVisibility, Skycomponent, Image
-from arl.visibility.iterators import vis_timeslice_iter
-from arl.visibility.operations import copy_visibility
-from arl.fourier_transforms.ftprocessor_base import predict_skycomponent_blockvisibility, predict_2d, \
-    predict_skycomponent_visibility, invert_2d, predict_2d
-from arl.visibility.coalesce import convert_blockvisibility_to_visibility, decoalesce_visibility
 from arl.calibration.operations import apply_gaintable
 from arl.calibration.solvers import solve_gaintable
+from arl.data.data_models import Visibility, BlockVisibility, Image
+from arl.visibility.coalesce import convert_blockvisibility_to_visibility, decoalesce_visibility
+from arl.visibility.operations import copy_visibility
+from arl.imaging import predict_skycomponent_blockvisibility, predict_skycomponent_visibility, predict_2d
 
 log = logging.getLogger(__name__)
 
 
-def calibrate_blockvisibility(bvt: BlockVisibility, model=None, components=None,
-                              predict=predict_2d, **kwargs):
+def calibrate_blockvisibility(bvt: BlockVisibility, model: Image=None, components=None,
+                              predict=predict_2d, **kwargs) -> BlockVisibility:
     """ calibrate BlockVisibility with respect to model and optionally components
 
     :param bvt: BlockVisibility
@@ -53,8 +49,8 @@ def calibrate_blockvisibility(bvt: BlockVisibility, model=None, components=None,
     return apply_gaintable(bvt, gt, **kwargs)
 
 
-def calibrate_visibility(vt: Visibility, model=None, components=None, predict=predict_2d,
-                         **kwargs):
+def calibrate_visibility(vt: Visibility, model: Image =None, components=None, predict=predict_2d,
+                         **kwargs) -> Visibility:
     """ calibrate Visibility with respect to model and optionally components
 
     :param vt: Visibility

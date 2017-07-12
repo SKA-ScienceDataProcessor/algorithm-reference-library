@@ -9,18 +9,17 @@ approximated as:
 If images constructed from slices in w are added after applying a w-dependent image plane correction, the w term will be corrected. 
 """
 
-from arl.fourier_transforms.ftprocessor_base import *
-from arl.fourier_transforms.ftprocessor_base import *
-from arl.fourier_transforms.ftprocessor_iterated import *
+from arl.imaging.iterated import *
+
 from arl.image.iterators import *
-from arl.image.operations import copy_image, create_empty_image_like
+from arl.image.operations import copy_image
 from arl.visibility.iterators import *
-from arl.visibility.operations import create_visibility_from_rows
+from arl.imaging.base import *
 
 log = logging.getLogger(__name__)
 
 
-def predict_wstack(vis, model, **kwargs):
+def predict_wstack(vis: Visibility, model: Image, **kwargs) -> Visibility:
     """ Predict using w stacking.
 
     Note that wprojection can be performed inside wstacking by e.g. ::
@@ -41,7 +40,7 @@ def predict_wstack(vis, model, **kwargs):
     return predict_with_vis_iterator(vis, model, vis_iter=vis_wstack_iter, predict=predict_wstack_single, **kwargs)
 
 
-def predict_wstack_single(vis, model, predict_inner=predict_2d_base, **kwargs):
+def predict_wstack_single(vis, model, predict_inner=predict_2d_base, **kwargs) -> Visibility:
     """ Predict using a single w slices.
     
     This processes a single w plane, rotating out the w beam for the average w
@@ -82,7 +81,7 @@ def predict_wstack_single(vis, model, predict_inner=predict_2d_base, **kwargs):
 
     return avis
 
-def invert_wstack(vis, im, dopsf=False, normalize=True, **kwargs):
+def invert_wstack(vis: Visibility, im: Image, dopsf=False, normalize=True, **kwargs) -> (Image, numpy.ndarray):
     """ Invert using w stacking
 
     Use the image im as a template. Do PSF in a separate call.
@@ -107,7 +106,7 @@ def invert_wstack(vis, im, dopsf=False, normalize=True, **kwargs):
     return invert_with_vis_iterator(vis, im, dopsf, normalize=normalize, vis_iter=vis_wstack_iter,
                                     invert=invert_wstack_single, **kwargs)
 
-def invert_wstack_single(vis, im, dopsf, normalize=True, invert_inner=invert_2d_base, **kwargs):
+def invert_wstack_single(vis: Visibility, im: Image, dopsf, normalize=True, invert_inner=invert_2d_base, **kwargs) -> (Image, numpy.ndarray):
     """Process single w slice
     
     :param vis: Visibility to be inverted

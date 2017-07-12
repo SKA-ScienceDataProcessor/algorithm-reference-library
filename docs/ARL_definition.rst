@@ -80,42 +80,43 @@ FFT support
 .. automodule:: arl.fourier_transforms.fft_support
    :members:
 
-FTProcessor
-+++++++++++
-
-.. automodule:: arl.fourier_transforms.ftprocessor_base
-   :members:
-
-.. automodule:: arl.fourier_transforms.ftprocessor_facets
-   :members:
-
-.. automodule:: arl.fourier_transforms.ftprocessor_facets_wstack
-   :members:
-
-.. automodule:: arl.fourier_transforms.ftprocessor_timeslice
-   :members:
-
-.. automodule:: arl.fourier_transforms.ftprocessor_wprojection
-   :members:
-
-.. automodule:: arl.fourier_transforms.ftprocessor_wprojection_wstack
-   :members:
-
-.. automodule:: arl.fourier_transforms.ftprocessor_wstack
-   :members:
-
-.. automodule:: arl.fourier_transforms.ftprocessor_params
-   :members:
-
-.. automodule:: arl.fourier_transforms.ftprocessor_iterated
-   :members:
-
-
 Convolutional Gridding
 ++++++++++++++++++++++
 
 .. automodule:: arl.fourier_transforms.convolutional_gridding
    :members:
+
+
+Imaging
+-------
+
+.. automodule:: arl.imaging.base
+   :members:
+
+.. automodule:: arl.imaging.facets
+   :members:
+
+.. automodule:: arl.imaging.facets_wstack
+   :members:
+
+.. automodule:: arl.imaging.timeslice
+   :members:
+
+.. automodule:: arl.imaging.wprojection
+   :members:
+
+.. automodule:: arl.imaging.wprojection_wstack
+   :members:
+
+.. automodule:: arl.imaging.wstack
+   :members:
+
+.. automodule:: arl.imaging.params
+   :members:
+
+.. automodule:: arl.imaging.iterated
+   :members:
+
 
 Skycomponent
 ------------
@@ -252,11 +253,11 @@ Unit tests written in standard python style are available.
    :members:
    :undoc-members:
 
-.. automodule:: tests.test_ftprocessor
+.. automodule:: tests.test_imaging
    :members:
    :undoc-members:
 
-.. automodule:: tests.test_ftprocessor_params
+.. automodule:: tests.test_imaging_params
    :members:
    :undoc-members:
 

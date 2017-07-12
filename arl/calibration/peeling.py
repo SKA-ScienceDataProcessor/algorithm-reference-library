@@ -2,16 +2,14 @@
 
 """
 
-
-import numpy
-import logging
 import collections
+import logging
 
-from arl.data.data_models import GainTable, BlockVisibility, Skycomponent
-from arl.visibility.operations import copy_visibility
-from arl.fourier_transforms.ftprocessor_base import predict_skycomponent_blockvisibility
-from arl.calibration.solvers import solve_gaintable
 from arl.calibration.operations import apply_gaintable
+from arl.calibration.solvers import solve_gaintable
+from arl.data.data_models import BlockVisibility, Skycomponent
+from arl.visibility.operations import copy_visibility
+from arl.imaging.base import predict_skycomponent_blockvisibility
 
 log = logging.getLogger(__name__)
 

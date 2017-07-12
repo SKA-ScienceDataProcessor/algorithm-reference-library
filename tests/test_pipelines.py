@@ -5,7 +5,6 @@
 
 import unittest
 
-from arl.fourier_transforms.ftprocessor import *
 from arl.image.operations import export_image_to_fits
 from arl.pipelines.functions import *
 from arl.skycomponent.operations import create_skycomponent

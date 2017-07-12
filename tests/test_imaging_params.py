@@ -2,22 +2,20 @@
 
 
 """
+import logging
 import os
 import unittest
 
 import numpy
-
-from astropy.coordinates import SkyCoord
+from arl.imaging.params import get_frequency_map
 from astropy import units as u
+from astropy.coordinates import SkyCoord
+
 from arl.data.polarisation import PolarisationFrame
-from arl.fourier_transforms.ftprocessor import create_image_from_visibility
-from arl.fourier_transforms.ftprocessor_params import get_frequency_map
 from arl.util.testing_support import create_named_configuration, create_low_test_image_from_s3, \
     create_low_test_image_from_gleam
-
 from arl.visibility.operations import create_visibility
-
-import logging
+from arl.imaging import create_image_from_visibility
 
 log = logging.getLogger(__name__)
 

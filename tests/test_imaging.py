@@ -12,16 +12,16 @@ from astropy.coordinates import SkyCoord
 from astropy.wcs.utils import pixel_to_skycoord
 
 from arl.data.polarisation import PolarisationFrame
-from arl.fourier_transforms.ftprocessor import predict_2d, predict_wstack, predict_wprojection, predict_facets, \
-    predict_timeslice, predict_wstack_wprojection, \
-    invert_2d, invert_wstack, invert_wprojection, invert_facets, invert_timeslice, invert_wstack_wprojection, \
-    create_image_from_visibility, predict_skycomponent_visibility, \
-    advise_wide_field, weight_visibility, create_w_term_like, predict_wstack_facets, invert_wstack_facets
 from arl.image.operations import export_image_to_fits, create_empty_image_like, copy_image
 from arl.skycomponent.operations import create_skycomponent, find_skycomponents, find_nearest_component, \
     insert_skycomponent
 from arl.util.testing_support import create_named_configuration
 from arl.visibility.operations import create_visibility, sum_visibility
+from arl.imaging import predict_2d, predict_wstack, predict_wprojection, predict_facets, \
+    predict_timeslice, predict_wprojection_wstack, invert_wprojection_wstack, \
+    invert_2d, invert_wstack, invert_wprojection, invert_facets, invert_timeslice, \
+    create_image_from_visibility, predict_skycomponent_visibility, \
+    weight_visibility, create_w_term_like, predict_facets_wstack, invert_facets_wstack
 
 log = logging.getLogger(__name__)
 
@@ -150,8 +150,7 @@ class TestFTProcessor(unittest.TestCase):
             self.channel_bandwidth, phasecentre=self.phasecentre, weight=1.0)
         self.componentvis.data['uvw'][:, 2] = 0.0
         # Predict the visibility using direct evaluation
-        for comp in self.components:
-            predict_skycomponent_visibility(self.componentvis, comp)
+        predict_skycomponent_visibility(self.componentvis, self.components)
         
         self.modelvis = create_visibility(self.lowcore, self.times, self.frequency,
                                           channel_bandwidth=self.channel_bandwidth, phasecentre=self.phasecentre,
@@ -165,7 +164,7 @@ class TestFTProcessor(unittest.TestCase):
         self.residualvis.data['uvw'][:, 2] = 0.0
         self.residualvis.data['vis'] = self.modelvis.data['vis'] - self.componentvis.data['vis']
         
-        self._checkdirty(self.residualvis, 'test_predict_2d_residual', fluxthreshold=0.2)
+        self._checkdirty(self.residualvis, 'test_predict_2d_residual', fluxthreshold=0.7)
     
     def _predict_base(self, predict, fluxthreshold=1.0):
         self.modelvis = create_visibility(self.lowcore, self.times, self.frequency,
@@ -201,13 +200,13 @@ class TestFTProcessor(unittest.TestCase):
         self.actualSetUp()
         self.params['wstack'] = 8.0
         self.params['facets'] = 8
-        self._predict_base(predict_wstack_facets, fluxthreshold=2.1)
+        self._predict_base(predict_facets_wstack, fluxthreshold=2.1)
 
     def test_predict_wstack_wprojection(self):
         self.actualSetUp()
         self.params['wstack'] = 5 * 4.0
         self.params['wstep'] = 4.0
-        self._predict_base(predict_wstack_wprojection, fluxthreshold=2.1)
+        self._predict_base(predict_wprojection_wstack, fluxthreshold=2.4)
     
     def test_predict_wprojection(self):
         self.actualSetUp()
@@ -244,17 +243,15 @@ class TestFTProcessor(unittest.TestCase):
         self._checkcomponents(dirtyFacet, fluxthreshold, positionthreshold)
 
     def test_invert_facets(self):
-        self.params['facets'] = 2
         self.actualSetUp()
         self._invert_base(invert_facets, positionthreshold=1.0)
 
+    @unittest.skip("Not supported")
     def test_invert_facets_wprojection(self):
         self.actualSetUp()
-        self.params['facets'] = 8
         self.params['kernel'] = 'wprojection'
         self.params['wstep'] = 8.0
         self.params['remove_shift']=True
-        self.params['padding'] = 4
         self._invert_base(invert_facets, positionthreshold=1.0)
 
     def test_invert_wstack(self):
@@ -262,17 +259,17 @@ class TestFTProcessor(unittest.TestCase):
         self.params['wstack'] = 4.0
         self._invert_base(invert_wstack, positionthreshold=8.0)
 
-    def test_invert_wstack_facets(self):
+    def test_invert_facets_wstack(self):
         self.actualSetUp()
         self.params['wstack'] = 8.0
         self.params['facets'] = 2
-        self._invert_base(invert_wstack_facets, positionthreshold=8.0)
+        self._invert_base(invert_facets_wstack, positionthreshold=8.0)
 
-    def test_invert_wstack_wprojection(self):
+    def test_invert_wprojection_wstack(self):
         self.actualSetUp()
         self.params['wstack'] = 5 * 4.0
         self.params['wstep'] = 4.0
-        self._invert_base(invert_wstack_wprojection, positionthreshold=8.0)
+        self._invert_base(invert_wprojection_wstack, positionthreshold=8.0)
     
     def test_invert_wprojection(self):
         self.actualSetUp()

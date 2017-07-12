@@ -26,3 +26,5 @@ toolz
 graphviz
 pandoc
 sphinx_rtd_theme
+psutil
+cloudpickle

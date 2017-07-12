@@ -66,7 +66,7 @@ def coordinates2Offset(npixel: int, cx: int, cy: int):
     if cx is None:
         cx = npixel//2
     if cy is None:
-        cy == npixel//2
+        cy = npixel//2
     mg = numpy.mgrid[0:npixel,0:npixel]
     return ((mg[0]-cy)/npixel, (mg[1]-cx)/npixel)
 

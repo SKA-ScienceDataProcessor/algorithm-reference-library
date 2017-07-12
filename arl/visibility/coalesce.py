@@ -100,7 +100,7 @@ def convert_blockvisibility_to_visibility(vis: BlockVisibility) -> Visibility:
     return converted_vis
 
 
-def decoalesce_visibility(vis, overwrite=False):
+def decoalesce_visibility(vis: Visibility, overwrite=False) -> BlockVisibility:
     """ Decoalesce the visibilities to the original values (opposite of coalesce_visibility)
     
     This relies upon the block vis and the index being part of the vis.
@@ -238,7 +238,7 @@ def average_in_blocks(vis, uvw, wts, times, integration_time, frequency, channel
                 
                 # Average over time and frequency for case where polarisation isn't an issue
                 def average_from_grid(arr):
-                    return average_chunks2(arr, allpwtsgrid[:, a2, a1, :], \
+                    return average_chunks2(arr, allpwtsgrid[:, a2, a1, :],
                                            (time_average[a2, a1], frequency_average[a2, a1]))[0]
                 
                 ctime[rows] = average_from_grid(time_grid).flatten()
@@ -250,7 +250,7 @@ def average_in_blocks(vis, uvw, wts, times, integration_time, frequency, channel
                 
                 # For some variables, we need the sum not the average
                 def sum_from_grid(arr):
-                    result = average_chunks2(arr, allpwtsgrid[:, a2, a1, :], \
+                    result = average_chunks2(arr, allpwtsgrid[:, a2, a1, :],
                                              (time_average[a2, a1], frequency_average[a2, a1]))
                     return result[0] * result[0].size
                 

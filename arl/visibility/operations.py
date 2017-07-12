@@ -2,23 +2,25 @@
 
 """
 
+from typing import Union
 import copy
 
 from arl.data.polarisation import correlate_polarisation
-from arl.fourier_transforms.ftprocessor_params import *
 from arl.util.coordinate_support import *
+from arl.imaging.params import *
 
 log = logging.getLogger(__name__)
 
 
-def vis_summary(vis):
+def vis_summary(vis: Union[Visibility, BlockVisibility]):
     """Return string summarizing the Visibility
     
     """
     return "%d rows, %.3f GB" % (vis.nvis, vis.size())
 
 
-def append_visibility(vis: Visibility, othervis: Visibility):
+def append_visibility(vis: Union[Visibility, BlockVisibility], othervis: Union[Visibility, BlockVisibility])\
+        -> Union[Visibility, BlockVisibility]:
     """Append othervis to vis
     
     :param vis:
@@ -31,7 +33,7 @@ def append_visibility(vis: Visibility, othervis: Visibility):
     return vis
 
 
-def copy_visibility(vis, zero=False):
+def copy_visibility(vis: Union[Visibility, BlockVisibility], zero=False) -> Union[Visibility, BlockVisibility]:
     """Copy a visibility
     
     Performs a deepcopy of the data array
@@ -182,7 +184,7 @@ def create_blockvisibility(config: Configuration, times: numpy.array, frequency:
 
 
 def create_visibility_from_rows(vis: Visibility, rows, makecopy=True) -> Visibility:
-    """ Create a Visibility or BlockVisibility from selected rows
+    """ Create a Visibility from selected rows
 
     :param vis: Visibility
     :param rows: Boolean array of row selction
@@ -301,7 +303,7 @@ def sum_visibility(vis: Visibility, direction: SkyCoord) -> numpy.array:
     return flux, weight
 
 
-def qa_visibility(vis, context=None):
+def qa_visibility(vis:Union[Visibility, BlockVisibility], context=None) -> QA:
     """Assess the quality of Visibility
 
     :param vis: Visibility to be assessed
@@ -318,7 +320,7 @@ def qa_visibility(vis, context=None):
     return qa
 
 
-def remove_continuum_blockvisibility(vis: BlockVisibility, degree=1, mask=None, **kwargs):
+def remove_continuum_blockvisibility(vis: BlockVisibility, degree=1, mask=None, **kwargs) -> BlockVisibility:
     """ Fit and remove continuum visibility
 
     Fit a polynomial in frequency of the specified degree where mask is True

@@ -9,18 +9,17 @@ approximated as:
 If images constructed from slices in w are added after applying a w-dependent image plane correction, the w term will be corrected. 
 """
 
-from arl.fourier_transforms.ftprocessor_base import *
-from arl.fourier_transforms.ftprocessor_iterated import *
-from arl.fourier_transforms.ftprocessor_wstack import *
+from arl.imaging.iterated import *
+from arl.imaging.wstack import *
+
 from arl.image.iterators import *
-from arl.image.operations import copy_image, create_empty_image_like
 from arl.visibility.iterators import *
-from arl.visibility.operations import create_visibility_from_rows
+from arl.imaging.base import *
 
 log = logging.getLogger(__name__)
 
 
-def predict_wstack_wprojection(vis, model, **kwargs):
+def predict_wprojection_wstack(vis: Visibility, model: Image, **kwargs) -> Visibility:
     """ Predict using convolutional degridding with w projection and wstacking
 
     For a fixed w, the measurement equation can be stated as as a convolution in Fourier space.
@@ -47,7 +46,7 @@ def predict_wstack_wprojection(vis, model, **kwargs):
     return predict_wstack(vis, model, **kwargs)
 
 
-def invert_wstack_wprojection(vis, im, dopsf=False, normalize=True, **kwargs):
+def invert_wprojection_wstack(vis: Visibility, im: Image, dopsf=False, normalize=True, **kwargs) -> (Image, numpy.ndarray):
     """ Predict using 2D convolution function, including w projection and stacking
 
     For a fixed w, the measurement equation can be stated as as a convolution in Fourier space.

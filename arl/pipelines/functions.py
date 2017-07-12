@@ -4,17 +4,18 @@
 #
 #
 import collections
+import logging
 
-from arl.fourier_transforms.ftprocessor import predict_2d, invert_2d, predict_skycomponent_blockvisibility, \
-    predict_skycomponent_visibility
-from arl.image.solvers import solve_image
-from arl.visibility.operations import *
+from arl.data.data_models import Image, Visibility, BlockVisibility, GainTable
 from arl.graphs.dask_graphs import create_solve_gain_graph
+from arl.image.solvers import solve_image
+from arl.visibility.operations import copy_visibility
+from arl.imaging import predict_2d, invert_2d, predict_skycomponent_blockvisibility, predict_skycomponent_visibility
 
 log = logging.getLogger(__name__)
 
 
-def rcal(vis: BlockVisibility, components, **kwargs):
+def rcal(vis: BlockVisibility, components, **kwargs) -> GainTable:
     """ Real-time calibration pipeline.
     
     Reads visibilities through a BlockVisibility iterator, calculates model visibilities according to a
@@ -48,7 +49,7 @@ def ical(**kwargs):
     return True
 
 
-def continuum_imaging(vis: Visibility, model: Image, components=None, **kwargs):
+def continuum_imaging(vis: Visibility, model: Image, components=None, **kwargs) -> (Image, Image, Image):
     """Continuum imaging from calibrated (DDE and DIE) and coalesced data
 
     The model image is used as the starting point, and also to determine the imagesize and sampling. Components
@@ -65,9 +66,9 @@ def continuum_imaging(vis: Visibility, model: Image, components=None, **kwargs):
     return solve_image(vis, model, components, **kwargs)
 
 
-def spectral_line_imaging(vis: Visibility, model, continuum_model: Image=None, continuum_components=None,
+def spectral_line_imaging(vis: Visibility, model: Image, continuum_model: Image=None, continuum_components=None,
                           predict=predict_2d, invert=invert_2d, deconvolve_spectral=False,
-                          **kwargs):
+                          **kwargs) -> (Image, Image, Image):
     """Spectral line imaging from calibrated (DIE) data
     
     A continuum model can be subtracted, and deconvolution is optional.
@@ -103,7 +104,7 @@ def spectral_line_imaging(vis: Visibility, model, continuum_model: Image=None, c
     return vis_no_continuum, spectral_model, spectral_residual
 
 
-def fast_imaging(**kwargs):
+def fast_imaging(**kwargs) -> (Image, Image, Image):
     """Fast imaging from calibrated (DIE only) data
 
     :param kwargs: Dictionary containing parameters
@@ -114,7 +115,7 @@ def fast_imaging(**kwargs):
     return True
 
 
-def eor(**kwargs):
+def eor(**kwargs) -> (Image, Image, Image):
     """eor calibration and imaging
     
     :param kwargs: Dictionary containing parameters
