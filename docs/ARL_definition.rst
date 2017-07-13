@@ -230,8 +230,8 @@ Testing Support
 .. automodule:: arl.util.testing_support
    :members:
 
-Dask
-----
+Graphs
+------
 
 Dask Graphs
 +++++++++++
@@ -254,6 +254,12 @@ Dask init
 
 Pipelines
 ---------
+
+Pipeline Graphs
++++++++++++++++
+
+.. automodule:: arl.pipelines.pipeline_dask_graphs
+   :members:
 
 Functions
 +++++++++

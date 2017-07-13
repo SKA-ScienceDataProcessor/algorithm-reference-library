@@ -181,9 +181,7 @@ framework in place expeditiously than to have each algorithm be state-of-the-art
       - MSMFS minor cycle (for continuum)
 
 
-To test and demonstrate completeness, the main pipelines will be implemented:
-
-.. image:: ./ARL_pipelines.png
+To test and demonstrate completeness, the main pipelines will be implemented.
 
 Testing
 -------

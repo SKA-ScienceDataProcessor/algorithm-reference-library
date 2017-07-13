@@ -49,11 +49,6 @@ In addition, iteration through the visibility data can be on various orders::
 
 The Visibility API supports these forms of iteration.
 
-The pattern used in these algorithms is abstracted in the following diagram:
-
-.. image:: ./ARL_fourier_processing.png
-      :width: 1024px
-
 The layering of predict and invert classes is shown below:
 
 .. image:: ARL_predict_layering.png
@@ -71,4 +66,6 @@ Not all combinations currently work. The following are supported:
 + Image plane facets:  {predict | invert}_wfacets
 + W Stacking + W Projection: {predict | invert}_wprojection_wstack
 + W Stacking + Image plane facets: {predict | invert}_facets_wstack
+
+In particular, the combination of faceting and wprojection is not yet supported.
 

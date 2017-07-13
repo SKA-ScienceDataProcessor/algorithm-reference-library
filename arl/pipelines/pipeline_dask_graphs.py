@@ -1,8 +1,8 @@
 """ Pipelines expressed as dask graphs
 """
 
-from typing import List, Union
-import numpy
+from typing import List
+
 from dask import delayed
 
 from arl.data.parameters import get_parameter
@@ -14,7 +14,7 @@ def create_continuum_imaging_pipeline_graph(vis_graph_list: List[delayed], model
                                             c_deconvolve_graph=create_deconvolve_graph,
                                             c_invert_graph=create_invert_graph,
                                             c_residual_graph=create_residual_graph,
-                                            **kwargs):
+                                            **kwargs) -> delayed:
     """ Create graph for the continuum imaging pipeline.
     
     Same as ICAL but with no selfcal.

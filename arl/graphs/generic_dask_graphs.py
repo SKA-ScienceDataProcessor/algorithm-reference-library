@@ -16,6 +16,7 @@ subimages and passed to processing by imagerooter, and then the answers are reas
 We  could keep the graph and use it in  other graphs. See the imaging-dask note book for more detail.
 """
 
+import numpy
 from typing import List
 from dask import delayed
 
