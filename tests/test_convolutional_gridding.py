@@ -2,13 +2,16 @@
 
 
 """
+import numpy
 import itertools
 import random
 import unittest
 
 from numpy.testing import assert_allclose
 
-from arl.fourier_transforms.convolutional_gridding import *
+from arl.fourier_transforms.convolutional_gridding import w_kernel, w_beam, kernel_oversample, coordinates, \
+    coordinates2, coordinateBounds, anti_aliasing_calculate, anti_aliasing_transform, \
+    convolutional_degrid, convolutional_grid
 
 
 class TestConvolutionalGridding(unittest.TestCase):

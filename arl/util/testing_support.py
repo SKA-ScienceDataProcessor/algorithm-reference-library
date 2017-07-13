@@ -28,12 +28,12 @@ Functions that aid testing in various ways. A typical use would be::
 
 """
 
+import numpy
 import csv
-import logging
-from typing import List, Union
+from typing import List
 
 import astropy.units as u
-from astropy.coordinates import EarthLocation
+from astropy.coordinates import EarthLocation, SkyCoord
 from astropy.io import fits
 from astropy.wcs import WCS
 from scipy import interpolate
@@ -44,10 +44,11 @@ from arl.data.parameters import arl_path
 from arl.data.polarisation import PolarisationFrame
 from arl.image.operations import import_image_from_fits, create_image_from_array, \
     reproject_image, create_empty_image_like
-from arl.util.coordinate_support import *
+from arl.util.coordinate_support import xyz_at_latitude
 from arl.visibility.operations import create_blockvisibility
 from arl.imaging import predict_timeslice, predict_skycomponent_blockvisibility
 
+import logging
 log = logging.getLogger(__name__)
 
 

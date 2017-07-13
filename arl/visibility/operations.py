@@ -2,12 +2,19 @@
 
 """
 
+import numpy
+
 from typing import Union
 import copy
 
-from arl.data.polarisation import correlate_polarisation
-from arl.util.coordinate_support import *
-from arl.imaging.params import *
+import astropy.constants as constants
+from astropy.coordinates import SkyCoord
+from arl.data.data_models import BlockVisibility, Visibility, Configuration, QA
+from arl.data.polarisation import correlate_polarisation, PolarisationFrame
+from arl.util.coordinate_support import xyz_to_uvw, uvw_to_xyz, skycoord_to_lmn, simulate_point
+from arl.imaging.params import get_frequency_map
+
+import logging
 
 log = logging.getLogger(__name__)
 
@@ -55,10 +62,10 @@ def create_visibility(config: Configuration, times: numpy.array, frequency: nump
 
     :param config: Configuration of antennas
     :param times: hour angles in radians
-    :param frequency: frequencies (Hz] Shape [nchan]
+    :param frequency: frequencies (Hz] [nchan]
     :param weight: weight of a single sample
     :param phasecentre: phasecentre of observation
-    :param npol: Number of polarizations
+    :param channel_bandwidth: channel bandwidths: (Hz] [nchan]
     :param integration_time: Integration time ('auto' or value in s)
     :returns: Visibility
     """
@@ -123,8 +130,13 @@ def create_visibility(config: Configuration, times: numpy.array, frequency: nump
     return vis
 
 
-def create_blockvisibility(config: Configuration, times: numpy.array, frequency: numpy.array, phasecentre: SkyCoord,
-                           weight: float, polarisation_frame=None, integration_time=1.0,
+def create_blockvisibility(config: Configuration,
+                           times: numpy.array,
+                           frequency: numpy.array,
+                           phasecentre: SkyCoord,
+                           weight: float,
+                           polarisation_frame: PolarisationFrame=None,
+                           integration_time=1.0,
                            channel_bandwidth=1e6) -> BlockVisibility:
     """ Create a BlockVisibility from Configuration, hour angles, and direction of source
 
@@ -132,10 +144,10 @@ def create_blockvisibility(config: Configuration, times: numpy.array, frequency:
 
     :param config: Configuration of antennas
     :param times: hour angles in radians
-    :param frequency: frequencies (Hz] Shape [nchan]
+    :param frequency: frequencies (Hz] [nchan]
     :param weight: weight of a single sample
     :param phasecentre: phasecentre of observation
-    :param npol: Number of polarizations
+    :param channel_bandwidth: channel bandwidths: (Hz] [nchan]
     :param integration_time: Integration time ('auto' or value in s)
     :returns: BlockVisibility
     """
@@ -183,7 +195,7 @@ def create_blockvisibility(config: Configuration, times: numpy.array, frequency:
     return vis
 
 
-def create_visibility_from_rows(vis: Visibility, rows, makecopy=True) -> Visibility:
+def create_visibility_from_rows(vis: Visibility, rows: numpy.ndarray, makecopy=True) -> Visibility:
     """ Create a Visibility from selected rows
 
     :param vis: Visibility
@@ -213,16 +225,18 @@ def create_visibility_from_rows(vis: Visibility, rows, makecopy=True) -> Visibil
             return vis
 
 
-def phaserotate_visibility(vis: Visibility, newphasecentre: SkyCoord, tangent=True,
-                           inverse=False) -> Visibility:
+def phaserotate_visibility(vis: Visibility, newphasecentre: SkyCoord, tangent=True, inverse=False) -> Visibility:
     """
     Phase rotate from the current phase centre to a new phase centre
-
+    
+    If tangent is False the uvw are recomputed and the visibility phasecentre is updated.
+    Otherwise only the visibility phases are adjusted
+ 
     :param vis: Visibility to be rotated
     :param newphasecentre:
     :param tangent: Stay on the same tangent plane? (True)
     :param inverse: Actually do the opposite
-    :returns: Visibility
+    :return: Visibility
     """
     assert type(vis) is Visibility, "vis is not a Visibility: %r" % vis
     
@@ -257,7 +271,7 @@ def phaserotate_visibility(vis: Visibility, newphasecentre: SkyCoord, tangent=Tr
                 xyz = uvw_to_xyz(newvis.data['uvw'], ha=-newvis.phasecentre.ra.rad, dec=newvis.phasecentre.dec.rad)
                 newvis.data['uvw'][...] = xyz_to_uvw(xyz, ha=-newphasecentre.ra.rad, dec=newphasecentre.dec.rad)[
                     ...]
-        newvis.phasecentre = newphasecentre
+            newvis.phasecentre = newphasecentre
         return newvis
     else:
         return vis
@@ -272,11 +286,7 @@ def sum_visibility(vis: Visibility, direction: SkyCoord) -> numpy.array:
     """
     # TODO: Convert to Visibility or remove?
     
-    if type(vis) is not Visibility:
-        from arl.visibility.coalesce import coalesce_visibility
-        svis = coalesce_visibility(vis)
-    else:
-        svis = copy_visibility(vis)
+    svis = copy_visibility(vis)
 
     l, m, n = skycoord_to_lmn(direction, svis.phasecentre)
     phasor = numpy.conjugate(simulate_point(svis.uvw, l, m))

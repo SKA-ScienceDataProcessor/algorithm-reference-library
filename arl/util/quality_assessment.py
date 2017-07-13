@@ -1,15 +1,10 @@
 """ Quality Assessment functions
 """
 
+from arl.data.data_models import QA
 
-
-from arl.data.data_models import *
-from arl.data.parameters import *
-
-"""
-Holder for the Quality Assessment
-
-"""
+import logging
+log = logging.getLogger(__name__)
 
         
 def export_QA(qa: QA):

@@ -2,19 +2,23 @@
 
 """
 
+import numpy
 from typing import Union, List
 import collections
 
 from astropy.coordinates import SkyCoord
 from astropy.wcs.utils import skycoord_to_pixel, pixel_to_skycoord
 
-from arl.data.data_models import *
-from arl.data.parameters import *
+from arl.data.data_models import Image, Skycomponent, assert_same_chan_pol
+from arl.data.parameters import get_parameter
+from arl.data.polarisation import PolarisationFrame
 
 from astropy.convolution import Gaussian2DKernel, Box2DKernel
 from astropy.stats import gaussian_fwhm_to_sigma
 import astropy.units as u
 from photutils import segmentation
+
+import logging
 
 log = logging.getLogger(__name__)
 

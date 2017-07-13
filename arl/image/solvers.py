@@ -5,11 +5,14 @@ Definition of structures needed by the function interface. These are mostly
 subclasses of astropy classes.
 """
 
-from arl.data.data_models import *
-from arl.data.parameters import *
+import numpy
+from arl.data.data_models import Visibility, Image
+from arl.data.parameters import get_parameter
 from arl.image.deconvolution import deconvolve_cube
 from arl.visibility.operations import copy_visibility
 from arl.imaging.base import invert_2d, predict_2d, predict_skycomponent_visibility
+
+import logging
 
 log = logging.getLogger(__name__)
 

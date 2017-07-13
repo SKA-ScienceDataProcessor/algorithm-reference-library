@@ -17,7 +17,7 @@ We  could keep the graph and use it in  other graphs. See the imaging-dask note 
 """
 
 import numpy
-from typing import List
+from typing import List, Callable
 from dask import delayed
 
 from arl.data.data_models import Image
@@ -25,15 +25,15 @@ from arl.image.operations import copy_image, create_empty_image_like
 from arl.image.gather_scatter import image_gather, image_scatter
 
 
-def create_generic_blockvisibility_graph(visfunction, vis_graph_list: List[delayed], additive=True, *args,
+def create_generic_blockvisibility_graph(visfunction: Callable, vis_graph_list: List[delayed], additive=True, *args,
                                          **kwargs) -> List[delayed]:
     """ Definition of interface for create_generic_blockvisibility_graph_visfunction.
 
-    :param visfunction: Function to be applied
+    :func visfunction: Function to be applied
     :param vis_graph_list: List of vis_graphs
     :param additive: Add to existing visibility? (True)
     :param args:
-    :param kwargs:
+    :param kwargs: Parameters for functions in graphs
     :return: List of graphs
     """
     
@@ -51,14 +51,15 @@ def create_generic_blockvisibility_graph(visfunction, vis_graph_list: List[delay
     return [delayed(accumulate_results, pure=True)(results, **kwargs)]
 
 
-def create_generic_image_iterator_graph(imagefunction, im: Image, iterator, **kwargs) -> delayed:
+def create_generic_image_iterator_graph(imagefunction: Callable, im: Image, iterator, **kwargs) -> delayed:
     """ Definition of interface for create_generic_image_graph
     
     This generates a graph for imagefunction. Note that im cannot be a graph itself.
 
+    :func imagefunction: Function to be applied to all pixels
     :param im: Image to be processed
     :param iterator: iterator e.g. raster_iter
-    :param kwargs:
+    :param kwargs: Parameters for functions in graphs
     :return: graph
     """
     
@@ -77,14 +78,15 @@ def create_generic_image_iterator_graph(imagefunction, im: Image, iterator, **kw
     
     return delayed(accumulate_results, pure=True)(results, **kwargs)
    
-def create_generic_image_graph(image_unary_function, im: Image, facets=4, **kwargs) -> delayed:
+def create_generic_image_graph(image_unary_function: Callable, im: Image, facets=4, **kwargs) -> delayed:
     """ Definition of interface for create_generic_image_graph using scatter/gather
 
     This generates a graph for imagefunction. Note that im cannot be a graph itself.
 
+    :func image_unary_function: Function to be applied to all pixels
     :param im: Image to be processed
     :param facets: Number of facets on each axis
-    :param kwargs:
+    :param kwargs: Parameters for functions in graphs
     :return: graph
     """
     output = delayed(create_empty_image_like, nout=1, pure=True)(im)

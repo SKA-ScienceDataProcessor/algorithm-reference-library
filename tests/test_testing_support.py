@@ -3,20 +3,26 @@
 
 """
 
+import numpy
 import os
 import unittest
 
+from astropy.coordinates import SkyCoord
+import astropy.units as u
+
+from arl.data.data_models import Skycomponent
+from arl.data.polarisation import PolarisationFrame
 from arl.image.operations import export_image_to_fits
 from arl.skycomponent.operations import apply_beam_to_skycomponent
 from arl.util.testing_support import create_low_test_image_from_s3, create_named_configuration, create_test_image, \
     create_low_test_beam, create_blockvisibility_iterator, create_low_test_image_from_gleam, \
     create_low_test_skycomponents_from_gleam, create_low_test_image_composite
 from arl.visibility.coalesce import coalesce_visibility
-from arl.visibility.iterators import *
 from arl.visibility.operations import create_blockvisibility, create_visibility, \
     append_visibility
 from arl.imaging.base import predict_skycomponent_blockvisibility
 
+import logging
 log = logging.getLogger(__name__)
 
 

@@ -6,7 +6,7 @@ from typing import List
 from dask import delayed
 
 from arl.data.parameters import get_parameter
-from arl.image.deconvolution import deconvolve_cube, restore_cube
+from arl.image.deconvolution import restore_cube
 from arl.graphs.dask_graphs import create_deconvolve_graph, create_invert_graph, create_residual_graph, \
     create_selfcal_graph_list, create_predict_graph
 
@@ -24,7 +24,7 @@ def create_continuum_imaging_pipeline_graph(vis_graph_list: List[delayed], model
     :param c_deconvolve_graph: Default: create_deconvolve_graph
     :param c_invert_graph: Default: create_invert_graph
     :param c_residual_graph: Default: Default: create_residual graph
-    :param kwargs:
+    :param kwargs: Parameters for functions in graphs
     :return:
     """
     return create_ical_pipeline_graph(vis_graph_list, model_graph,
@@ -51,7 +51,7 @@ def create_spectral_line_imaging_pipeline_graph(vis_graph_list: List[delayed], m
     :param c_deconvolve_graph: Default: create_deconvolve_graph
     :param c_invert_graph: Default: create_invert_graph,
     :param c_residual_graph: Default: Default: create_residual graph
-    :param kwargs:
+    :param kwargs: Parameters for functions in graphs
     :return: graphs of (deconvolved model, residual, restored)
     """
     if continuum_model_graph is not None:
@@ -77,7 +77,7 @@ def create_ical_pipeline_graph(vis_graph_list: List[delayed], model_graph: delay
     :param c_deconvolve_graph: Default: create_deconvolve_graph
     :param c_invert_graph: Default: create_invert_graph,
     :param c_residual_graph: Default: Default: create_residual graph
-    :param kwargs:
+    :param kwargs: Parameters for functions in graphs
     :return:
     """
     psf_graph = c_invert_graph(vis_graph_list, model_graph, dopsf=True, **kwargs)

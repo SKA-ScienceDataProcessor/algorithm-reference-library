@@ -4,6 +4,7 @@
 Functions that define and manipulate images. Images are just data and a World Coordinate System.
 """
 
+import numpy
 import os
 import copy
 import warnings
@@ -17,7 +18,10 @@ from reproject import reproject_interp
 from arl.data.parameters import arl_path
 from arl.data.data_models import Image, QA
 from arl.data.parameters import get_parameter
-from arl.data.polarisation import *
+from arl.data.polarisation import PolarisationFrame, convert_circular_to_stokes, convert_linear_to_stokes, \
+    convert_stokes_to_circular, convert_stokes_to_linear
+
+import logging
 
 log = logging.getLogger(__name__)
 

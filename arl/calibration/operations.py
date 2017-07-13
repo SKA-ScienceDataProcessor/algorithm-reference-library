@@ -7,9 +7,11 @@ import copy
 
 import numpy.linalg
 
-from arl.util.coordinate_support import *
+from arl.data.data_models import GainTable, BlockVisibility, QA
+from arl.data.data_models import ReceptorFrame
 from arl.visibility.iterators import vis_timeslice_iter
-from arl.imaging.params import *
+
+import logging
 
 log = logging.getLogger(__name__)
 

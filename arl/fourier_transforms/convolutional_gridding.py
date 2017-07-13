@@ -8,15 +8,16 @@ This approach may be extended to include image plane effect such as the w term a
 This module contains functions for performing the gridding process and the inverse degridding process.
 """
 
-from __future__ import division
+import numpy
 
 import logging
 
 import scipy.special
 
-from arl.fourier_transforms.fft_support import *
+from arl.fourier_transforms.fft_support import pad_mid, extract_oversampled, extract_mid, fft, ifft
 
 # from arl.core.c import gridder
+
 
 log = logging.getLogger(__name__)
 

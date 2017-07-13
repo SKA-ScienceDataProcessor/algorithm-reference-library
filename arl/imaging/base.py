@@ -19,25 +19,29 @@ This and related modules contain various approachs for dealing with the wide-fie
 extra phase term in the Fourier transform cannot be ignored.
 """
 
+from typing import List, Union
+import numpy
+
 import collections
 
-from astropy import constants
+from astropy import constants as constants
 from astropy import units as units
 from astropy import wcs
 from astropy.wcs.utils import pixel_to_skycoord
 
-from arl.data.data_models import *
+from arl.data.data_models import Visibility, BlockVisibility, Image, Skycomponent, assert_same_chan_pol
 from arl.data.parameters import get_parameter
-from arl.data.polarisation import convert_pol_frame
+from arl.data.polarisation import convert_pol_frame, PolarisationFrame
 from arl.fourier_transforms.convolutional_gridding import convolutional_grid, \
     convolutional_degrid, weight_gridding, w_beam
 from arl.fourier_transforms.fft_support import fft, ifft, pad_mid, extract_mid
-from arl.image.iterators import *
-from arl.image.operations import copy_image
+from arl.image.operations import copy_image, create_image_from_array, create_empty_image_like
 from arl.util.coordinate_support import simulate_point, skycoord_to_lmn
 from arl.visibility.coalesce import coalesce_visibility, decoalesce_visibility
-from arl.visibility.operations import phaserotate_visibility, copy_visibility
 from arl.imaging.params import get_frequency_map, get_polarisation_map, get_uvw_map, get_kernel_list
+
+import arl.visibility.operations
+import logging
 
 log = logging.getLogger(__name__)
 
@@ -69,7 +73,7 @@ def shift_vis_to_image(vis: Visibility, im: Image, tangent: bool = True, inverse
         else:
             log.debug("shift_vis_from_image: shifting phasecentre from vis phasecentre %s to image phasecentre %s" %
                       (vis.phasecentre, image_phasecentre))
-        vis = phaserotate_visibility(vis, image_phasecentre, tangent=tangent, inverse=inverse)
+        vis = arl.visibility.operations.phaserotate_visibility(vis, image_phasecentre, tangent=tangent, inverse=inverse)
         vis.phasecentre = im.phasecentre
     
     assert type(vis) is Visibility, "after phase_rotation, vis is not a Visibility"
@@ -139,33 +143,6 @@ def predict_2d(vis: Visibility, im: Image, **kwargs) -> Visibility:
     return predict_2d_base(vis, im, **kwargs)
 
 
-def predict_wprojection(vis: Visibility, model: Image, **kwargs) -> Visibility:
-    """ Predict using convolutional degridding and w projection.
-    
-    For a fixed w, the measurement equation can be stated as as a convolution in Fourier space. 
-    
-    .. math::
-
-        V(u,v,w) =G_w(u,v) \\ast \\int \\frac{I(l,m)}{\\sqrt{1-l^2-m^2}} e^{-2 \\pi j (ul+vm)} dl dm$$
-
-    where the convolution function is:
-    
-    .. math::
-
-        G_w(u,v) = \\int \\frac{1}{\\sqrt{1-l^2-m^2}} e^{-2 \\pi j (ul+vm + w(\\sqrt{1-l^2-m^2}-1))} dl dm
-
-
-    Hence when degridding, we can use the transform of the w beam to correct this effect.
-    
-    :param vis: Visibility to be predicted
-    :param model: model image
-    :returns: resulting visibility (in place works)
-    """
-    log.debug("predict_wprojection: predict using wprojection")
-    kwargs['kernel'] = 'wprojection'
-    return predict_2d_base(vis, model, **kwargs)
-
-
 def invert_2d_base(vis: Visibility, im: Image, dopsf: bool = False, normalize: bool = True, **kwargs) \
         -> (Image, numpy.ndarray):
     """ Invert using 2D convolution function, including w projection optionally
@@ -185,7 +162,7 @@ def invert_2d_base(vis: Visibility, im: Image, dopsf: bool = False, normalize: b
     if type(vis) is not Visibility:
         svis = coalesce_visibility(vis, **kwargs)
     else:
-        svis = copy_visibility(vis)
+        svis = arl.visibility.operations.copy_visibility(vis)
 
     if dopsf:
         svis.data['vis'] = numpy.ones_like(svis.data['vis'])
@@ -248,39 +225,8 @@ def invert_2d(vis: Visibility, im: Image, dopsf=False, normalize=True, **kwargs)
     kwargs['kernel'] = get_parameter(kwargs, "kernel", '2d')
     return invert_2d_base(vis, im, dopsf, normalize=normalize, **kwargs)
 
-
-def invert_wprojection(vis: Visibility, im: Image, dopsf=False, normalize=True, **kwargs)  -> (Image, numpy.ndarray):
-    """ Predict using 2D convolution function, including w projection
-
-    For a fixed w, the measurement equation can be stated as as a convolution in Fourier space.
-    
-    .. math::
-
-        V(u,v,w) =G_w(u,v) \\ast \\int \\frac{I(l,m)}{\\sqrt{1-l^2-m^2}} e^{-2 \\pi j (ul+vm)} dl dm$$
-
-    where the convolution function is:
-    
-    .. math::
-
-        G_w(u,v) = \\int \\frac{1}{\\sqrt{1-l^2-m^2}} e^{-2 \\pi j (ul+vm + w(\\sqrt{1-l^2-m^2}-1))} dl dm
-
-
-    Hence when degridding, we can use the transform of the w beam to correct this effect.
-    
-    Use the image im as a template. Do PSF in a separate call.
-
-    :param vis: Visibility to be inverted
-    :param im: image template (not changed)
-    :param dopsf: Make the psf instead of the dirty image
-    :returns: resulting image[nchan, npol, ny, nx], sum of weights[nchan, npol]
-
-    """
-    log.info("invert_2d: inverting using wprojection")
-    kwargs['kernel'] = "wprojection"
-    return invert_2d_base(vis, im, dopsf, normalize=normalize, **kwargs)
-
-
-def predict_skycomponent_blockvisibility(vis: BlockVisibility, sc: Skycomponent, **kwargs) -> BlockVisibility:
+def predict_skycomponent_blockvisibility(vis: BlockVisibility,
+                                         sc: Union[Skycomponent, List[Skycomponent]], **kwargs) -> BlockVisibility:
     """Predict the visibility from a Skycomponent, add to existing visibility, for BlockVisibility
 
     :param vis: BlockVisibility
@@ -318,7 +264,7 @@ def predict_skycomponent_blockvisibility(vis: BlockVisibility, sc: Skycomponent,
     return vis
 
 
-def predict_skycomponent_visibility(vis: Visibility, sc: Skycomponent) -> Visibility:
+def predict_skycomponent_visibility(vis: Visibility, sc: Union[Skycomponent, List[Skycomponent]]) -> Visibility:
     """Predict the visibility from a Skycomponent, add to existing visibility, for Visibility
 
     :param vis: Visibility
@@ -451,12 +397,12 @@ def create_image_from_visibility(vis: Visibility, **kwargs) -> Image:
     shape = [inchan, inpol, npixel, npixel]
     w = wcs.WCS(naxis=4)
     # The negation in the longitude is needed by definition of RA, DEC
-    w.wcs.cdelt = [-cellsize * 180.0 / numpy.pi, cellsize * 180.0 / numpy.pi, 1.0, channel_bandwidth.to(u.Hz).value]
+    w.wcs.cdelt = [-cellsize * 180.0 / numpy.pi, cellsize * 180.0 / numpy.pi, 1.0, channel_bandwidth.to(units.Hz).value]
     # The numpy definition of the phase centre of an FFT is n // 2 (0 - rel) so that's what we use for
     # the reference pixel. We have to use 0 rel everywhere.
     w.wcs.crpix = [npixel // 2, npixel // 2, 1.0, 1.0]
     w.wcs.ctype = ["RA---SIN", "DEC--SIN", 'STOKES', 'FREQ']
-    w.wcs.crval = [phasecentre.ra.deg, phasecentre.dec.deg, 1.0, reffrequency.to(u.Hz).value]
+    w.wcs.crval = [phasecentre.ra.deg, phasecentre.dec.deg, 1.0, reffrequency.to(units.Hz).value]
     w.naxis = 4
     
     w.wcs.radesys = get_parameter(kwargs, 'frame', 'ICRS')
@@ -504,7 +450,7 @@ def residual_image(vis: Visibility, model: Image, invert_residual=invert_2d, pre
     :param predict: predict to be used (default predict_2d)
     :returns: residual visibility, residual image, sum of weights
     """
-    visres = copy_visibility(vis, zero=True)
+    visres = arl.visibility.operations.copy_visibility(vis, zero=True)
     visres = predict_residual(visres, model, **kwargs)
     visres.data['vis'] = vis.data['vis'] - visres.data['vis']
     dirty, sumwt = invert_residual(visres, model, dopsf=False, **kwargs)

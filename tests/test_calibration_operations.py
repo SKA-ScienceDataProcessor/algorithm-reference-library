@@ -2,10 +2,15 @@
 
 
 """
+
+import numpy
 import logging
 import unittest
 
-from arl.calibration.operations import *
+from astropy.coordinates import SkyCoord
+import astropy.units as u
+from arl.calibration.operations import gaintable_summary, apply_gaintable, create_gaintable_from_blockvisibility
+
 from arl.data.data_models import Skycomponent
 from arl.data.polarisation import PolarisationFrame
 from arl.util.testing_support import create_named_configuration, simulate_gaintable

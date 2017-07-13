@@ -2,14 +2,16 @@
 
 
 """
-
-import logging
+import numpy
 import unittest
 
+from astropy.coordinates import SkyCoord
+import astropy.units as u
 from arl.util.testing_support import create_named_configuration
-from arl.visibility.iterators import *
+from arl.visibility.iterators import vis_timeslice_iter, vis_wstack_iter, vis_slice_iter
 from arl.visibility.operations import create_visibility, create_visibility_from_rows
 
+import logging
 log = logging.getLogger(__name__)
 
 

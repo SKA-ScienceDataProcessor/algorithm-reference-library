@@ -21,12 +21,13 @@ from arl.imaging import predict_2d, predict_wstack, predict_wprojection, predict
     predict_timeslice, predict_wprojection_wstack, invert_wprojection_wstack, \
     invert_2d, invert_wstack, invert_wprojection, invert_facets, invert_timeslice, \
     create_image_from_visibility, predict_skycomponent_visibility, \
-    weight_visibility, create_w_term_like, predict_facets_wstack, invert_facets_wstack
+    weight_visibility, create_w_term_like, predict_facets_wstack, invert_facets_wstack, \
+    predict_facets_wprojection, invert_facets_wprojection
 
 log = logging.getLogger(__name__)
 
 
-class TestFTProcessor(unittest.TestCase):
+class TestImaging(unittest.TestCase):
     def _checkdirty(self, vis, name='test_invert_2d_dirty', fluxthreshold=1.0):
         # Make the dirty image
         self.params['imaginary'] = False
@@ -36,7 +37,7 @@ class TestFTProcessor(unittest.TestCase):
         maxabs = numpy.max(numpy.abs(dirty.data))
         assert maxabs < fluxthreshold, "%s, abs max %f exceeds flux threshold" % (name, maxabs)
     
-    def _checkcomponents(self, dirty, fluxthreshold=20.0, positionthreshold=1.0):
+    def _checkcomponents(self, dirty, fluxthreshold=5.0, positionthreshold=1.0):
         comps = find_skycomponents(dirty, fwhm=1.0, threshold=fluxthreshold, npixels=5)
         assert len(comps) == len(self.components), "Different number of components found: original %d, recovered %d" % \
                                                    (len(self.components), len(comps))
@@ -196,7 +197,7 @@ class TestFTProcessor(unittest.TestCase):
         self._predict_base(predict_wstack, fluxthreshold=2.1)
 
     @unittest.skip("TODO: Fix needed")
-    def test_predict_wstack_facets(self):
+    def test_predict_facets_wstack(self):
         self.actualSetUp()
         self.params['wstack'] = 8.0
         self.params['facets'] = 8
@@ -207,7 +208,14 @@ class TestFTProcessor(unittest.TestCase):
         self.params['wstack'] = 5 * 4.0
         self.params['wstep'] = 4.0
         self._predict_base(predict_wprojection_wstack, fluxthreshold=2.4)
-    
+
+    @unittest.skip("TODO: Fix facets/wprojection")
+    def test_predict_facets_wprojection(self):
+        self.actualSetUp()
+        self.params['wstack'] = 5 * 4.0
+        self.params['wstep'] = 4.0
+        self._predict_base(predict_facets_wprojection, fluxthreshold=2.4)
+
     def test_predict_wprojection(self):
         self.actualSetUp()
         self.params['wstep'] = 4.0
@@ -236,49 +244,47 @@ class TestFTProcessor(unittest.TestCase):
         self._checkcomponents(dirty2d, fluxthreshold=20.0, positionthreshold=1.0)
     
     def _invert_base(self, invert, fluxthreshold=20.0, positionthreshold=1.0):
-        dirtyFacet = create_empty_image_like(self.model)
-        dirtyFacet, sumwt = invert(self.componentvis, dirtyFacet, **self.params)
+        dirty = create_empty_image_like(self.model)
+        dirty, sumwt = invert(self.componentvis, dirty, **self.params)
         assert sumwt.all() > 0.0
-        export_image_to_fits(dirtyFacet, '%s/test_%s_dirty.fits' % (self.dir, invert.__name__))
-        self._checkcomponents(dirtyFacet, fluxthreshold, positionthreshold)
+        export_image_to_fits(dirty, '%s/test_%s_dirty.fits' % (self.dir, invert.__name__))
+        self._checkcomponents(dirty, fluxthreshold, positionthreshold)
 
     def test_invert_facets(self):
         self.actualSetUp()
         self._invert_base(invert_facets, positionthreshold=1.0)
 
-    @unittest.skip("Not supported")
+
+    @unittest.skip("TODO: Fix facets/wprojection")
     def test_invert_facets_wprojection(self):
         self.actualSetUp()
-        self.params['kernel'] = 'wprojection'
+        self.params['facets'] = 2
         self.params['wstep'] = 8.0
-        self.params['remove_shift']=True
-        self._invert_base(invert_facets, positionthreshold=1.0)
+        self._invert_base(invert_facets_wprojection, positionthreshold=1.0)
 
     def test_invert_wstack(self):
         self.actualSetUp()
         self.params['wstack'] = 4.0
-        self._invert_base(invert_wstack, positionthreshold=8.0)
+        self._invert_base(invert_wstack, positionthreshold=1.0)
 
     def test_invert_facets_wstack(self):
         self.actualSetUp()
         self.params['wstack'] = 8.0
         self.params['facets'] = 2
-        self._invert_base(invert_facets_wstack, positionthreshold=8.0)
+        self._invert_base(invert_facets_wstack, positionthreshold=1.0)
 
     def test_invert_wprojection_wstack(self):
         self.actualSetUp()
         self.params['wstack'] = 5 * 4.0
         self.params['wstep'] = 4.0
-        self._invert_base(invert_wprojection_wstack, positionthreshold=8.0)
+        self._invert_base(invert_wprojection_wstack, positionthreshold=1.0)
     
     def test_invert_wprojection(self):
         self.actualSetUp()
         self.params['wstep'] = 4.0
-        self.params['remove_shift']=True
         self._invert_base(invert_wprojection, positionthreshold=1.0)
     
     def test_invert_timeslice(self):
-        self.actualSetUp()
         self.actualSetUp()
         self._invert_base(invert_timeslice, positionthreshold=8.0)
     

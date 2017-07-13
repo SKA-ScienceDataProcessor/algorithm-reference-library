@@ -8,7 +8,7 @@ import unittest
 import numpy
 
 from arl.data.polarisation import PolarisationFrame
-from arl.image.iterators import *
+from arl.image.iterators import raster_iter
 from arl.util.testing_support import create_test_image
 
 

@@ -17,6 +17,7 @@ import logging
 
 from arl.data.data_models import GainTable, BlockVisibility, Skycomponent
 from arl.visibility.iterators import vis_timeslice_iter
+from arl.visibility.operations import create_visibility_from_rows
 from arl.calibration.operations import create_gaintable_from_blockvisibility
 
 log = logging.getLogger(__name__)
@@ -45,52 +46,73 @@ def solve_gaintable(vis: BlockVisibility, modelvis: BlockVisibility, phase_only=
     gt = create_gaintable_from_blockvisibility(vis)
     
     for chunk, rows in enumerate(vis_timeslice_iter(vis)):
-        
-        x, xwt = remove_model(vis.vis[rows], vis.weight[rows], modelvis.vis[rows],
-                              isscalar=vis.polarisation_frame.npol == 1, crosspol=crosspol)
-        
-        # Now average over time, chan. The axes of x are time, antenna2, antenna1, chan, pol
-        
-        xave = numpy.average(x, axis=0)
-        xwtAve = numpy.average(xwt, axis=0)
-        
-        mask = xwtAve <= 0.0
-        xave[mask] = 0.0
-        
-        gainshape = gt.data['gain'][chunk, ...].shape
-        if vis.polarisation_frame.npol > 1:
-            if crosspol:
-                gt.data['gain'][chunk, ...], gt.data['weight'][chunk, ...], gt.data['residual'][chunk, ...] = \
-                    solve_antenna_gains_itsubs_matrix(gainshape, xave, xwtAve, phase_only=phase_only, niter=niter,
-                                                      tol=tol)
-            else:
-                gt.data['gain'][chunk, ...], gt.data['weight'][chunk, ...], gt.data['residual'][chunk, ...] = \
-                    solve_antenna_gains_itsubs_vector(gainshape, xave, xwtAve, phase_only=phase_only, niter=niter,
-                                                      tol=tol)
-        
-        else:
-            gt.data['gain'][chunk, ...], gt.data['weight'][chunk, ...], gt.data['residual'][chunk, ...] = \
-                solve_antenna_gains_itsubs_scalar(gainshape, xave, xwtAve, phase_only=phase_only, niter=niter,
-                                                  tol=tol)
+        subvis = create_visibility_from_rows(vis, rows)
+        model_subvis = create_visibility_from_rows(vis, rows)
+        xAve, xwtAve = visibility_divide_and_average(subvis, model_subvis, isscalar=vis.polarisation_frame.npol == 1,
+                                                     crosspol=crosspol)
+
+        gt = solve_from_X(gt, xAve, xwtAve, chunk, crosspol, niter, phase_only, tol, npol=vis.polarisation_frame.npol)
     
     assert type(gt) is GainTable, "gt is not a GainTable: %r" % gt
     
     return gt
 
 
-def remove_model(vis, weight, modelvis, isscalar, crosspol):
+def solve_from_X(gt: GainTable, x: numpy.ndarray, xwt:numpy.ndarray, chunk, crosspol, niter, phase_only, tol, npol)\
+        -> GainTable:
+    """ Solve for gains from the point source equivavlents
+    
+    :param gt:
+    :param x:
+    :param xwt:
+    :param chunk:
+    :param crosspol:
+    :param niter:
+    :param phase_only:
+    :param tol:
+    :param npol:
+    :return:
+    """
+    gainshape = gt.data['gain'][chunk, ...].shape
+    if  npol > 1:
+        if crosspol:
+            gt.data['gain'][chunk, ...], gt.data['weight'][chunk, ...], gt.data['residual'][chunk, ...] = \
+                solve_antenna_gains_itsubs_matrix(gainshape, x, xwt, phase_only=phase_only, niter=niter,
+                                                  tol=tol)
+        else:
+            gt.data['gain'][chunk, ...], gt.data['weight'][chunk, ...], gt.data['residual'][chunk, ...] = \
+                solve_antenna_gains_itsubs_vector(gainshape, x, xwt, phase_only=phase_only, niter=niter,
+                                                  tol=tol)
+    
+    else:
+        gt.data['gain'][chunk, ...], gt.data['weight'][chunk, ...], gt.data['residual'][chunk, ...] = \
+            solve_antenna_gains_itsubs_scalar(gainshape, x, xwt, phase_only=phase_only, niter=niter,
+                                              tol=tol)
+    return gt
+
+def visibility_divide_and_average(vis: BlockVisibility, modelvis: BlockVisibility, isscalar, crosspol):
+    """ Divide visibility by model and average
+    
+    :param vis:
+    :param modelvis:
+    :param isscalar:
+    :param crosspol:
+    :return:
+    """
     # Form the point source equivalent visibility
  
     # Different for scalar and vector/matrix cases
     
+    weight = vis.weight
+    
     if isscalar:
         # Scalar case is straightforward
-        x = numpy.zeros_like(vis)
-        xwt = numpy.abs(modelvis) ** 2 * weight
+        x = numpy.zeros_like(vis.vis)
+        xwt = numpy.abs(modelvis.vis) ** 2 * weight
         mask = xwt > 0.0
-        x[mask] = vis[mask] / modelvis[mask]
+        x[mask] = vis.vis[mask] / modelvis.vis[mask]
     else:
-        nrows, nants, _, nchan, npol = vis.shape
+        nrows, nants, _, nchan, npol = vis.vis.shape
         nrec = 2
         assert nrec * nrec == npol
         xshape = (nrows, nants, nants, nchan, nrec, nrec)
@@ -100,13 +122,18 @@ def remove_model(vis, weight, modelvis, isscalar, crosspol):
             for ant1 in range(nants):
                 for ant2 in range(ant1+1, nants):
                     for chan in range(nchan):
-                        ovis = numpy.matrix(vis[row, ant2, ant1, chan].reshape([2,2]))
-                        mvis = numpy.matrix(modelvis[row, ant2, ant1, chan].reshape([2,2]))
+                        ovis = numpy.matrix(vis.vis[row, ant2, ant1, chan].reshape([2,2]))
+                        mvis = numpy.matrix(modelvis.vis[row, ant2, ant1, chan].reshape([2,2]))
                         wt = numpy.matrix(weight[row, ant2, ant1, chan].reshape([2,2]))
                         x[row, ant2, ant1, chan] = numpy.matmul(numpy.linalg.inv(mvis), ovis)
                         xwt[row, ant2, ant1, chan] = numpy.dot(mvis, numpy.multiply(wt, mvis.H)).real
-                        
-    return x, xwt
+
+    xAve = numpy.average(x, axis=0)
+    xwtAve = numpy.average(xwt, axis=0)
+    mask = xwtAve <= 0.0
+    xAve[mask] = 0.0
+
+    return xAve, xwtAve
 
 
 def solve_antenna_gains_itsubs_scalar(gainshape, x, xwt, niter=30, tol=1e-8, phase_only=True, refant=0):

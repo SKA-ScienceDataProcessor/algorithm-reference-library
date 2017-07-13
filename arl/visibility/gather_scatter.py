@@ -16,7 +16,7 @@ import numpy
 
 from arl.visibility.operations import create_visibility_from_rows
 from arl.visibility.coalesce import coalesce_visibility, decoalesce_visibility
-from arl.data.data_models import *
+from arl.data.data_models import Visibility, BlockVisibility
 from arl.visibility.iterators import vis_slice_iter, vis_timeslice_iter, vis_wstack_iter
 
 log = logging.getLogger(__name__)

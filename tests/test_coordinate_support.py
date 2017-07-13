@@ -4,11 +4,13 @@
 
 import unittest
 
-import numpy as np
+import numpy
 from astropy import units as u
+from astropy.coordinates import SkyCoord
 from numpy.testing import assert_allclose
 
-from arl.util.coordinate_support import *
+from arl.util.coordinate_support import xyz_to_uvw, xyz_at_latitude, simulate_point, baselines, uvw_to_xyz, \
+    uvw_transform, skycoord_to_lmn
 
 
 class TestCoordinates(unittest.TestCase):
@@ -22,8 +24,8 @@ class TestCoordinates(unittest.TestCase):
             :param lat:
             :returns:
             """
-            res = xyz_at_latitude(np.array([x, y, z]), np.radians(lat))
-            assert_allclose(np.linalg.norm(res), np.linalg.norm([x, y, z]))
+            res = xyz_at_latitude(numpy.array([x, y, z]), numpy.radians(lat))
+            assert_allclose(numpy.linalg.norm(res), numpy.linalg.norm([x, y, z]))
             return res
         
         # At the north pole the zenith is the celestial north
@@ -52,9 +54,9 @@ class TestCoordinates(unittest.TestCase):
             :param dec:
             :returns:
             """
-            res = xyz_to_uvw(np.array([x, y, z]), np.radians(ha), np.radians(dec))
-            assert_allclose(np.linalg.norm(res), np.linalg.norm([x, y, z]))
-            assert_allclose(uvw_to_xyz(res, np.radians(ha), np.radians(dec)), [x, y, z])
+            res = xyz_to_uvw(numpy.array([x, y, z]), numpy.radians(ha), numpy.radians(dec))
+            assert_allclose(numpy.linalg.norm(res), numpy.linalg.norm([x, y, z]))
+            assert_allclose(uvw_to_xyz(res, numpy.radians(ha), numpy.radians(dec)), [x, y, z])
             return res
         
         # Derived from http://casa.nrao.edu/Memos/CoordConvention.pdf
@@ -97,16 +99,16 @@ class TestCoordinates(unittest.TestCase):
             self.assertEqual(len(bls), l * (l - 1) // 2)
         
         for i in range(10):
-            test(np.repeat(np.array(range(10 + i)), 3))
+            test(numpy.repeat(numpy.array(range(10 + i)), 3))
     
     def test_simulate_point(self):
         # Prepare a synthetic layout
-        uvw = np.concatenate(np.concatenate(np.transpose(np.mgrid[-3:4, -3:4, 0:1])))
+        uvw = numpy.concatenate(numpy.concatenate(numpy.transpose(numpy.mgrid[-3:4, -3:4, 0:1])))
         bls = baselines(uvw)
         
         # Should have positive amplitude for the middle of the picture
         vis = simulate_point(bls, 0, 0)
-        assert_allclose(vis, np.ones(len(vis)))
+        assert_allclose(vis, numpy.ones(len(vis)))
         
         # For the half-way point the result is either -1 or 1
         # depending on whether the baseline length is even
@@ -140,7 +142,7 @@ class TestCoordinates(unittest.TestCase):
     
     def test_phase_rotate(self):
         
-        uvw = np.array([(1, 0, 0), (0, 1, 0), (0, 0, 1)])
+        uvw = numpy.array([(1, 0, 0), (0, 1, 0), (0, 0, 1)])
         
         pos = [SkyCoord(17, 35, unit=u.deg), SkyCoord(17, 30, unit=u.deg),
                SkyCoord(12, 30, unit=u.deg), SkyCoord(11, 35, unit=u.deg),

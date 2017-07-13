@@ -1,4 +1,7 @@
 """
+
+Simple visualization of dask graphs
+
 From J Crist gist
 <script src="https://gist.github.com/jcrist/dc5b7cedfddff123f2177e5238e566e5.js"></script>
 """

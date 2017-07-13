@@ -23,13 +23,25 @@ Ignoring changes in the normalisation term, we have:
 
 
 """
+
+import numpy
+
+import astropy.constants as constants
+
+from arl.data.data_models import Visibility, BlockVisibility, Image
+
+from arl.image.operations import copy_image
+
+from arl.imaging.base import predict_2d_base, invert_2d_base
 from arl.imaging.iterated import predict_with_vis_iterator, invert_with_vis_iterator
 from scipy.interpolate import griddata
 
-from arl.image.iterators import *
-from arl.image.operations import copy_image, create_empty_image_like
-from arl.visibility.iterators import *
-from arl.imaging.base import *
+from arl.image.operations import create_empty_image_like
+from arl.visibility.iterators import vis_timeslice_iter
+from arl.visibility.coalesce import coalesce_visibility, decoalesce_visibility
+
+
+import logging
 
 log = logging.getLogger(__name__)
 

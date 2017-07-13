@@ -2,12 +2,12 @@
 
 
 """
+import numpy
 import unittest
 
 from numpy.testing import assert_allclose
 
-from arl.fourier_transforms.fft_support import *
-from arl.util.coordinate_support import *
+from arl.fourier_transforms.fft_support import extract_mid, pad_mid, extract_oversampled
 from arl.fourier_transforms.convolutional_gridding import coordinates2
 
 class TestFFTSupport(unittest.TestCase):

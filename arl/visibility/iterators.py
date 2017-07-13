@@ -17,7 +17,7 @@ import numpy
 from typing import Union
 
 from arl.data.parameters import get_parameter
-from arl.data.data_models import *
+from arl.data.data_models import Visibility, BlockVisibility
 
 log = logging.getLogger(__name__)
 
