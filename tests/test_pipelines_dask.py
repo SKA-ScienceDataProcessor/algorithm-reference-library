@@ -5,6 +5,7 @@
 
 import os
 import unittest
+import random
 
 import numpy
 from astropy import units as u
@@ -86,6 +87,7 @@ class TestImagingDask(unittest.TestCase):
         export_image_to_fits(model, '%s/test_pipelines_dask_model.fits' % (self.results_dir))
         
         if add_errors:
+            random.seed(7481406601)
             gt = create_gaintable_from_blockvisibility(vt)
             gt = simulate_gaintable(gt, phase_error=1.0, amplitude_error=0.0)
             vt = apply_gaintable(vt, gt)
@@ -127,12 +129,12 @@ class TestImagingDask(unittest.TestCase):
                                        c_residual_graph=create_residual_wstack_graph,
                                        vis_slices=self.vis_slices, facets=2,
                                        niter=1000, fractional_threshold=0.1,
-                                       threshold=2.0, nmajor=5, gain=0.1, first_selfcal=2)
+                                       threshold=2.0, nmajor=5, gain=0.1, first_selfcal=1)
         clean, residual, restored = ical_graph.compute()
         export_image_to_fits(clean, '%s/test_pipelines_dask_ical_pipeline_clean.fits' % (self.results_dir))
         export_image_to_fits(residual[0], '%s/test_pipelines_dask_ical_pipeline_residual.fits' % (self.results_dir))
         export_image_to_fits(restored, '%s/test_pipelines_dask_ical_pipeline_restored.fits' % (self.results_dir))
         
         qa = qa_image(restored)
-        assert numpy.abs(qa.data['max'] - 39.4) < 1.0, str(qa)
-        assert numpy.abs(qa.data['min'] + 4.3) < 1.0, str(qa)
+        assert numpy.abs(qa.data['max'] - 102.5) < 1.0, str(qa)
+        assert numpy.abs(qa.data['min'] + 4.2) < 1.0, str(qa)

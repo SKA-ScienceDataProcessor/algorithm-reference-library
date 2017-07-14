@@ -3,6 +3,7 @@
 
 """
 import numpy
+import random
 
 import unittest
 
@@ -26,6 +27,7 @@ log = logging.getLogger(__name__)
 
 class TestCalibrationSolvers(unittest.TestCase):
     def setUp(self):
+        random.seed(7481406601)
         self.lowcore = create_named_configuration('LOWBD2-CORE')
         self.times = (numpy.pi / 43200.0) * numpy.arange(0.0, 60.0, 30.0)
         vnchan = 3
@@ -58,6 +60,7 @@ class TestCalibrationSolvers(unittest.TestCase):
         gtsol = solve_gaintable(self.vis, original, phase_only=True, niter=200)
         residual = numpy.max(gtsol.residual)
         assert residual < 3e-8, "Max residual = %s" % (residual)
+        assert numpy.max(numpy.abs(gtsol.gain - 1.0)) > 0.1
     
     def core_solve(self, spf, dpf, phase_error=0.1, amplitude_error=0.0, leakage=0.0,
                    phase_only=True, niter=200, crosspol=False,residual_tol=1e-6, f=[100.0,50.0,-10.0, 40.0]):
@@ -72,7 +75,8 @@ class TestCalibrationSolvers(unittest.TestCase):
         residual = numpy.max(gtsol.residual)
         assert residual < residual_tol, "%s %s Max residual = %s" % (spf, dpf, residual)
         log.debug(qa_gaintable(gt))
-    
+        assert numpy.max(numpy.abs(gtsol.gain - 1.0)) > 0.1
+
     def test_solve_gaintable_vector_phase_only_linear(self):
         self.core_solve('stokesIQUV', 'linear', phase_error=0.1, phase_only=True, f=[100.0, 50.0, 0.0, 0.0])
     

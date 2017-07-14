@@ -47,7 +47,7 @@ def solve_gaintable(vis: BlockVisibility, modelvis: BlockVisibility, phase_only=
     
     for chunk, rows in enumerate(vis_timeslice_iter(vis)):
         subvis = create_visibility_from_rows(vis, rows)
-        model_subvis = create_visibility_from_rows(vis, rows)
+        model_subvis = create_visibility_from_rows(modelvis, rows)
         xAve, xwtAve = visibility_divide_and_average(subvis, model_subvis, isscalar=vis.polarisation_frame.npol == 1,
                                                      crosspol=crosspol)
 
