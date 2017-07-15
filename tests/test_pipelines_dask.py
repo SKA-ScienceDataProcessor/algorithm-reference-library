@@ -87,7 +87,7 @@ class TestImagingDask(unittest.TestCase):
         export_image_to_fits(model, '%s/test_pipelines_dask_model.fits' % (self.results_dir))
         
         if add_errors:
-            random.seed(7481406601)
+            numpy.random.seed(180555)
             gt = create_gaintable_from_blockvisibility(vt)
             gt = simulate_gaintable(gt, phase_error=1.0, amplitude_error=0.0)
             vt = apply_gaintable(vt, gt)
@@ -136,5 +136,5 @@ class TestImagingDask(unittest.TestCase):
         export_image_to_fits(restored, '%s/test_pipelines_dask_ical_pipeline_restored.fits' % (self.results_dir))
         
         qa = qa_image(restored)
-        assert numpy.abs(qa.data['max'] - 102.5) < 1.0, str(qa)
+        assert numpy.abs(qa.data['max'] - 100.9) < 1.0, str(qa)
         assert numpy.abs(qa.data['min'] + 4.2) < 1.0, str(qa)

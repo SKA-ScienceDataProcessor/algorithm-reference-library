@@ -27,7 +27,7 @@ log = logging.getLogger(__name__)
 
 class TestCalibrationSolvers(unittest.TestCase):
     def setUp(self):
-        random.seed(7481406601)
+        numpy.random.seed(180555)
         self.lowcore = create_named_configuration('LOWBD2-CORE')
         self.times = (numpy.pi / 43200.0) * numpy.arange(0.0, 60.0, 30.0)
         vnchan = 3
