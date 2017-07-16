@@ -283,6 +283,7 @@ def convert_blocks(vis, uvw, wts, times, integration_time, frequency, channel_ba
     # into rows like vis[npol] and with additional columns antenna1, antenna2, frequency
     
     ntimes, nant, _, nchan, npol = vis.shape
+    assert nchan == len(frequency)
     
     cnvis = ntimes * nant * (nant - 1) * nchan // 2
     

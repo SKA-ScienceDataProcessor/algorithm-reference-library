@@ -117,8 +117,8 @@ class TestImagingDask(unittest.TestCase):
                              '%s/test_pipelines_dask_continuum_imaging_pipeline_restored.fits' % (self.results_dir))
         
         qa = qa_image(restored)
-        assert numpy.abs(qa.data['max'] - 102.7) < 1.0, str(qa)
-        assert numpy.abs(qa.data['min'] + 5.4) < 1.0, str(qa)
+        assert numpy.abs(qa.data['max'] - 100.0) < 5.0, str(qa)
+        assert numpy.abs(qa.data['min'] + 5.0) < 5.0, str(qa)
     
     def test_ical_pipeline(self):
         self.setupVis(add_errors=True)
@@ -136,5 +136,5 @@ class TestImagingDask(unittest.TestCase):
         export_image_to_fits(restored, '%s/test_pipelines_dask_ical_pipeline_restored.fits' % (self.results_dir))
         
         qa = qa_image(restored)
-        assert numpy.abs(qa.data['max'] - 102.1) < 1.0, str(qa)
-        assert numpy.abs(qa.data['min'] + 3.7) < 1.0, str(qa)
+        assert numpy.abs(qa.data['max'] - 100.0) < 5.0, str(qa)
+        assert numpy.abs(qa.data['min'] + 5.0) < 5.0, str(qa)

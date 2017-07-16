@@ -345,10 +345,9 @@ class TestDaskGraphs(unittest.TestCase):
         export_image_to_fits(dirty[0], '%s/test_imaging_dask_graphs_selfcal_dirty.fits' % (self.results_dir))
         qa = qa_image(dirty[0])
         
-        assert numpy.abs(qa.data['max'] - 103.8) < 1.0, str(qa)
-        assert numpy.abs(qa.data['min'] + 5.3) < 1.0, str(qa)
+        assert numpy.abs(qa.data['max'] - 103.7) < 1.0, str(qa)
+        assert numpy.abs(qa.data['min'] + 5.4) < 1.0, str(qa)
     
-    @unittest.skip("TODO: Global calibration not yet working")
     def test_global_selfcal_graph(self):
         
         corrupted_vis_graph_list = self.setupVis(add_errors=True)
@@ -358,12 +357,12 @@ class TestDaskGraphs(unittest.TestCase):
                                                            global_solution=True,
                                                            vis_slices=self.vis_slices)
         
-        dirty_graph = create_invert_wstack_graph(selfcal_vis_graph_list, self.model_graph,
+        dirty_graph = create_invert_graph(selfcal_vis_graph_list, self.model_graph,
                                                  dopsf=False, normalize=True,
                                                  vis_slices=self.vis_slices)
         dirty = dirty_graph.compute()
         export_image_to_fits(dirty[0], '%s/test_imaging_dask_graphs_global_selfcal_dirty.fits' % (self.results_dir))
         qa = qa_image(dirty[0])
         
-        assert numpy.abs(qa.data['max'] - 102.6) < 1.0, str(qa)
+        assert numpy.abs(qa.data['max'] - 103.7) < 1.0, str(qa)
         assert numpy.abs(qa.data['min'] + 5.4) < 1.0, str(qa)

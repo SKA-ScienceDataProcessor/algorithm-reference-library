@@ -42,8 +42,18 @@ from arl.image.deconvolution import deconvolve_cube
 from arl.image.gather_scatter import image_scatter, image_gather
 from arl.image.operations import copy_image, create_empty_image_like
 from arl.imaging import predict_2d, invert_2d, invert_wstack_single, predict_wstack_single, normalize_sumwt
-from arl.visibility.gather_scatter import visibility_scatter_w, visibility_gather_w
+from arl.visibility.gather_scatter import visibility_scatter_w, visibility_gather_w, \
+    visibility_scatter_channel, visibility_gather_channel
 from arl.visibility.operations import copy_visibility
+
+
+def compute_list(vis_graph_list: List[delayed]):
+    """ Compute all elements in list
+    
+    :param vis_graph_list:
+    :return: list
+    """
+    return [v.compute() for v in vis_graph_list]
 
 
 def create_zero_vis_graph_list(vis_graph_list: List[delayed], **kwargs) -> List[delayed]:
@@ -369,7 +379,6 @@ def create_predict_facet_wstack_graph(vis_graph_list: List[delayed], model_graph
         scatter_vis_graphs = delayed(visibility_scatter_w, nout=vis_slices)(vis_graph, vis_slices=vis_slices,
                                                                             **kwargs)
         
-        scatter_predict_list = list()
         accumulate_vis_graphs = list()
         for scatter_vis_graph in scatter_vis_graphs:
             for ifacet, facet_model_graph in enumerate(facet_model_graphs):
@@ -504,49 +513,37 @@ def create_deconvolve_facet_graph(dirty_graph: delayed, psf_graph: delayed, mode
     return delayed(add_model, nout=1, pure=True)(result, model_graph)
 
 
-def create_selfcal_graph_list(vis_graph_list: List[delayed], model_graph: delayed, predict=predict_2d, **kwargs) \
-        -> List[delayed]:
-    """ Create a set of graphs for selfcalibration of a list of visibilities
+def create_selfcal_graph_list(vis_graph_list: List[delayed], model_graph: delayed,
+                              vis_slices, global_solution=False,
+                              c_predict_vis_graph=create_predict_wstack_graph, **kwargs) -> List[delayed]:
+    """ Create a set of graphs for (optionally global) selfcalibration of a list of visibilities
     
+    The visibilities are gathered to a single visibility data set which is then self-calibrated. The result is
+    then scattered.
+
     :param vis_graph_list:
     :param model_graph:
-    :param predict_single:
+    :param vis_slices:
+    :param c_predict_vis_graph: create_predict_wstack_graph
     :param kwargs: Parameters for functions in graphs
     :return:
     """
     
-    def selfcal_single(vis, model, **kwargs):
-        if vis is not None:
-            predicted = copy_visibility(vis)
-            predicted = predict(predicted, model, **kwargs)
-            gtsol = solve_gaintable(vis, predicted, **kwargs)
-            vis = apply_gaintable(vis, gtsol, inverse=True, **kwargs)
-            return vis
-        else:
-            return None
+    def selfcal_single(vis, model_vis, **kwargs):
+        gtsol = solve_gaintable(vis, model_vis, **kwargs)
+        vis = apply_gaintable(vis, gtsol, inverse=True, **kwargs)
+        return vis
     
-    return [delayed(selfcal_single, pure=True, nout=1)(v, model_graph, **kwargs) for v in vis_graph_list]
-
-
-def create_selfcal_expanded_graph_list(vis_graph_list: List[delayed], model_graph: delayed,
-                                       c_predict_vis_graph=create_predict_wstack_graph, **kwargs) -> List[delayed]:
-    """ Create a set of graphs for selfcalibration of a list of visibilities
-
-    :param vis_graph_list:
-    :param model_graph:
-    :param kwargs: Parameters for functions in graphs
-    :return:
-    """
+    model_vis_graph_list = create_zero_vis_graph_list(vis_graph_list)
+    model_vis_graph_list = c_predict_vis_graph(model_vis_graph_list, model_graph, vis_slices=vis_slices, **kwargs)
     
-    def selfcal_single(vis, modelvis, **kwargs):
-        if vis is not None:
-            gtsol = solve_gaintable(vis, modelvis, **kwargs)
-            vis = apply_gaintable(vis, gtsol, inverse=True, **kwargs)
-            return vis
-        else:
-            return None
-    
-    model_vis_graph_list = c_predict_vis_graph(vis_graph_list, model_graph, **kwargs)
-    
-    return [delayed(selfcal_single, pure=True, nout=1)(vis_graph_list[i], model_vis_graph_list[i], **kwargs)
-            for i, v in enumerate(vis_graph_list)]
+    if global_solution:
+        
+        global_vis_graph = delayed(visibility_gather_channel, nout=1)(vis_graph_list)
+        global_model_vis_graph = delayed(visibility_gather_channel, nout=1)(model_vis_graph_list)
+        
+        solve_graph = delayed(selfcal_single, pure=True, nout=1)(global_vis_graph, global_model_vis_graph, **kwargs)
+        return delayed(visibility_scatter_channel, pure=True, nout=len(vis_graph_list))(solve_graph)
+    else:
+        return [delayed(selfcal_single, pure=True, nout=1)(vis_graph_list[i], model_vis_graph_list[i], **kwargs)
+                for i, _ in enumerate(vis_graph_list)]

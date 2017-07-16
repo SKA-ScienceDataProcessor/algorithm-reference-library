@@ -39,7 +39,18 @@ class Configuration:
                  names="%s", xyz=None, mount="alt-az", frame=None, receptor_frame=ReceptorFrame("linear"),
                  diameter=None):
         
-        # Defaults
+        """
+
+        :param name:
+        :param data:
+        :param location:
+        :param names:
+        :param xyz:
+        :param mount:
+        :param frame:
+        :param receptor_frame:
+        :param diameter:
+        """
         if data is None and xyz is not None:
             desc = [('names', '>U6'),
                     ('xyz', '>f8', (3,)),
@@ -108,11 +119,14 @@ class GainTable:
         
             Vobs = g_i g_j^* Vmodel
 
+        :param data:
         :param gain: [npol, nchan]
         :param time:
         :param weight:
+        :param residual:
         :param frequency:
-        :returns: Gaintable
+        :param receptor_frame:
+        :return: Gaintable
         """
         if data is None and gain is not None:
             nrec = receptor_frame.nrec
@@ -311,6 +325,25 @@ class Visibility:
                  uvw=None, time=None, antenna1=None, antenna2=None, vis=None, weight=None, imaging_weight=None,
                  integration_time=None, polarisation_frame=PolarisationFrame('stokesI'), cindex=None,
                  blockvis=None):
+        """
+
+        :param data:
+        :param frequency:
+        :param channel_bandwidth:
+        :param phasecentre:
+        :param configuration:
+        :param uvw:
+        :param time:
+        :param antenna1:
+        :param antenna2:
+        :param vis:
+        :param weight:
+        :param imaging_weight:
+        :param integration_time:
+        :param polarisation_frame:
+        :param cindex:
+        :param blockvis:
+        """
         if data is None and vis is not None:
             if imaging_weight is None:
                 imaging_weight = weight
@@ -433,16 +466,27 @@ class BlockVisibility:
     
     def __init__(self,
                  data=None, frequency=None, channel_bandwidth=None, phasecentre=None, configuration=None,
-                 uvw=None, time=None,
-                 vis=None, weight=None, integration_time=None,
+                 uvw=None, time=None, vis=None, weight=None, integration_time=None,
                  polarisation_frame=PolarisationFrame('stokesI')):
+        """
+
+        :param data:
+        :param frequency:
+        :param channel_bandwidth:
+        :param phasecentre:
+        :param configuration:
+        :param uvw:
+        :param time:
+        :param vis:
+        :param weight:
+        :param integration_time:
+        :param polarisation_frame:
+        """
         if data is None and vis is not None:
-            ntimes = vis.shape[0]
+            ntimes, nants, _, nchan, npol = vis.shape
             assert vis.shape == weight.shape
-            nants = vis.shape[1]
-            assert vis.shape[2] == nants
-            nchan = vis.shape[3]
-            npol = vis.shape[4]
+            assert len(frequency) == nchan
+            assert len(channel_bandwidth) == nchan
             desc = [('uvw', '>f8', (nants, nants, 3)),
                     ('time', '>f8'),
                     ('integration_time', '>f8'),
@@ -525,6 +569,12 @@ class QA:
     """
     
     def __init__(self, origin=None, data=None, context=None):
+        """
+
+        :param origin:
+        :param data:
+        :param context:
+        """
         self.origin = origin  # Name of function originating QA assessment
         self.data = data  # Dictionary containing standard fields
         self.context = context  # Context string (TBD)

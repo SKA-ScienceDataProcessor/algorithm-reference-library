@@ -67,7 +67,8 @@ def create_visibility(config: Configuration, times: numpy.array, frequency: nump
     :param phasecentre: phasecentre of observation
     :param channel_bandwidth: channel bandwidths: (Hz] [nchan]
     :param integration_time: Integration time ('auto' or value in s)
-    :returns: Visibility
+    :param polarisation_frame: PolarisationFrame('stokesI')
+    :return: Visibility
     """
     assert phasecentre is not None, "Must specify phase centre"
     
@@ -149,6 +150,7 @@ def create_blockvisibility(config: Configuration,
     :param phasecentre: phasecentre of observation
     :param channel_bandwidth: channel bandwidths: (Hz] [nchan]
     :param integration_time: Integration time ('auto' or value in s)
+    :param polarisation_frame:
     :returns: BlockVisibility
     """
     assert phasecentre is not None, "Must specify phase centre"
@@ -201,7 +203,7 @@ def create_visibility_from_rows(vis: Visibility, rows: numpy.ndarray, makecopy=T
     :param vis: Visibility
     :param rows: Boolean array of row selction
     :param makecopy: Make a deep copy (True)
-    :returns: Visibility
+    :return: Visibility
     """
     
     if type(vis) is Visibility:
@@ -282,7 +284,7 @@ def sum_visibility(vis: Visibility, direction: SkyCoord) -> numpy.array:
 
     :param vis: Visibility to be summed
     :param direction: Direction of summation
-    :returns: flux[nch,npol], weight[nch,pol]
+    :return: flux[nch,npol], weight[nch,pol]
     """
     # TODO: Convert to Visibility or remove?
     
@@ -316,8 +318,9 @@ def sum_visibility(vis: Visibility, direction: SkyCoord) -> numpy.array:
 def qa_visibility(vis:Union[Visibility, BlockVisibility], context=None) -> QA:
     """Assess the quality of Visibility
 
+    :param context:
     :param vis: Visibility to be assessed
-    :returns: AQ
+    :return: QA
     """
     avis = numpy.abs(vis.vis)
     data = {'maxabs': numpy.max(avis),
@@ -334,10 +337,9 @@ def remove_continuum_blockvisibility(vis: BlockVisibility, degree=1, mask=None, 
     """ Fit and remove continuum visibility
 
     Fit a polynomial in frequency of the specified degree where mask is True
-
-    
+  
     :param vis:
-    :param deg:
+    :param degree: Degree of polynomial
     :param mask:
     :param kwargs:
     :return:
