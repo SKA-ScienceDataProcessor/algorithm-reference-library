@@ -653,7 +653,7 @@ def simulate_gaintable(gt: GainTable, phase_error=0.1, amplitude_error=0.0, leak
              % (amplitude_error, phase_error))
     amp = 1.0
     phasor = 1.0
-    if phase_error:
+    if phase_error > 0.0:
         phasor = numpy.exp(1j * numpy.random.normal(0, phase_error, gt.data['gain'].shape))
     if amplitude_error > 0.0:
         amp = numpy.random.lognormal(mean=0.0, sigma=amplitude_error, size=gt.data['gain'].shape)

@@ -33,7 +33,7 @@ graph size.
 from typing import List
 
 import numpy
-from dask import delayed
+from dask import delayed, bag
 
 from arl.calibration.operations import apply_gaintable
 from arl.calibration.solvers import solve_gaintable
@@ -53,7 +53,7 @@ def compute_list(vis_graph_list: List[delayed]):
     :param vis_graph_list:
     :return: list
     """
-    return [v.compute() for v in vis_graph_list]
+    return bag.from_sequence(vis_graph_list).compute()
 
 
 def create_zero_vis_graph_list(vis_graph_list: List[delayed], **kwargs) -> List[delayed]:

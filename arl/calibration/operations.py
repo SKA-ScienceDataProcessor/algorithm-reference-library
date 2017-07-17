@@ -24,7 +24,7 @@ def gaintable_summary(gt: GainTable):
 
 
 def create_gaintable_from_blockvisibility(vis: BlockVisibility, time_width: float = None,
-                                          frequency_width: float = None) -> GainTable:
+                                          frequency_width: float = None, **kwargs) -> GainTable:
     """ Create gain table from visibility.
     
     This makes an empty gain table consistent with the BlockVisibility.
