@@ -17,7 +17,7 @@ import logging
 
 from arl.data.data_models import GainTable, BlockVisibility, Skycomponent
 from arl.visibility.iterators import vis_timeslice_iter
-from arl.visibility.operations import create_visibility_from_rows
+from arl.visibility.operations import create_visibility_from_rows, copy_visibility
 from arl.calibration.operations import create_gaintable_from_blockvisibility
 
 log = logging.getLogger(__name__)
@@ -48,8 +48,10 @@ def solve_gaintable(vis: BlockVisibility, modelvis: BlockVisibility, phase_only=
     for chunk, rows in enumerate(vis_timeslice_iter(vis)):
         subvis = create_visibility_from_rows(vis, rows)
         model_subvis = create_visibility_from_rows(modelvis, rows)
-        xAve, xwtAve = visibility_divide_and_average(subvis, model_subvis, isscalar=vis.polarisation_frame.npol == 1,
+        pointVis = visibility_divide_and_average(subvis, model_subvis, isscalar=vis.polarisation_frame.npol == 1,
                                                      crosspol=crosspol)
+        xAve = pointVis.vis[0,...]
+        xwtAve = pointVis.weight[0,...]
 
         gt = solve_from_X(gt, xAve, xwtAve, chunk, crosspol, niter, phase_only, tol, npol=vis.polarisation_frame.npol)
     
@@ -91,7 +93,11 @@ def solve_from_X(gt: GainTable, x: numpy.ndarray, xwt:numpy.ndarray, chunk, cros
     return gt
 
 def visibility_divide_and_average(vis: BlockVisibility, modelvis: BlockVisibility, isscalar, crosspol):
-    """ Divide visibility by model and average
+    """ Divide visibility by model and average, forming visibility for equivalent point source
+    
+    This is a useful intermedidate product for calibration. Variation of the visibility in time and
+    frequency due to the model structure is removed and the data can be averaged to a loimit determined
+    by the instrumental stability
     
     :param vis:
     :param modelvis:
@@ -99,8 +105,6 @@ def visibility_divide_and_average(vis: BlockVisibility, modelvis: BlockVisibilit
     :param crosspol:
     :return:
     """
-    # Form the point source equivalent visibility
- 
     # Different for scalar and vector/matrix cases
     
     weight = vis.weight
@@ -127,13 +131,22 @@ def visibility_divide_and_average(vis: BlockVisibility, modelvis: BlockVisibilit
                         wt = numpy.matrix(weight[row, ant2, ant1, chan].reshape([2,2]))
                         x[row, ant2, ant1, chan] = numpy.matmul(numpy.linalg.inv(mvis), ovis)
                         xwt[row, ant2, ant1, chan] = numpy.dot(mvis, numpy.multiply(wt, mvis.H)).real
+        x = x.reshape((nrows, nants, nants, nchan, nrec*nrec))
+        xwt = xwt.reshape((nrows, nants, nants, nchan, nrec*nrec))
 
-    xAve = numpy.average(x, axis=0)
-    xwtAve = numpy.average(xwt, axis=0)
-    mask = xwtAve <= 0.0
-    xAve[mask] = 0.0
+    visAve = numpy.average(x, axis=0)[numpy.newaxis,...]
+    weightAve = numpy.average(xwt, axis=0)[numpy.newaxis,...]
+    mask = weightAve <= 0.0
+    visAve[mask] = 0.0
+    uvwAve=numpy.average(vis.uvw,axis=0)[numpy.newaxis,...]
+    timeAve=[numpy.average(vis.time)]
+    integrationAve=[numpy.average(vis.integration_time)]
 
-    return xAve, xwtAve
+    pointsource_vis = BlockVisibility(data=None, frequency=vis.frequency, channel_bandwidth=vis.channel_bandwidth,
+                                      phasecentre=vis.phasecentre, configuration=vis.configuration,
+                                      uvw=uvwAve, time=timeAve, integration_time=integrationAve, vis=visAve,
+                                      weight=weightAve)
+    return pointsource_vis
 
 
 def solve_antenna_gains_itsubs_scalar(gainshape, x, xwt, niter=30, tol=1e-8, phase_only=True, refant=0):
@@ -228,7 +241,12 @@ def solve_antenna_gains_itsubs_vector(gainshape, x, xwt, niter=30, tol=1e-8, pha
     :returns: gain [nants, ...], weight [nants, ...]
     """
     
-    nants, _, nchan, nrec, _ = x.shape
+    nants, _, nchan, npol = x.shape
+    assert npol == 4
+    newshape = (nants, nants, nchan, 2, 2)
+    x=x.reshape(newshape)
+    xwt=xwt.reshape(newshape)
+
     for ant1 in range(nants):
         x[ant1, ant1, ...] = 0.0
         xwt[ant1, ant1, ...] = 0.0
@@ -315,7 +333,12 @@ def solve_antenna_gains_itsubs_matrix(gainshape, x, xwt, niter=30, tol=1e-8, pha
     :returns: gain [nants, ...], weight [nants, ...]
     """
     
-    nants, _, nchan, nrec, _ = x.shape
+    nants, _, nchan, npol = x.shape
+    assert npol == 4
+    newshape = (nants, nants, nchan, 2, 2)
+    x=x.reshape(newshape)
+    xwt=xwt.reshape(newshape)
+
     for ant1 in range(nants):
         x[ant1, ant1, ...] = 0.0
         xwt[ant1, ant1, ...] = 0.0
@@ -445,9 +468,7 @@ def solution_residual_matrix(gain, x, xwt):
     :returns: residual[...]
     """
     
-    nants, nchan, nrec, _ = gain.shape
-    x = x.reshape(nants, nants, nchan, nrec, nrec)
-    xwt = xwt.reshape(nants, nants, nchan, nrec, nrec)
+    nants, _, nchan, nrec, _ = x.shape
     
     residual = numpy.zeros([nchan, nrec, nrec])
     sumwt = numpy.zeros([nchan, nrec, nrec])
