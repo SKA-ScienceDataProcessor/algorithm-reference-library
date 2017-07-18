@@ -29,7 +29,9 @@ In addition there are notebooks:
     - imaging-dask: General imaging example
     - imaging-pipelines: Pipelines run on small LOW observation (core only)
 
-These notebooks are scaled to run on my laptop (4 cores, 16GB) but can be changed to larger scales.
+These notebooks are scaled to run on my laptop (4 cores, 16GB) but can be changed to larger scales. Both explicitly
+create a client and output the URL (usually http://127.0.0.1:8787) for the Dask diagnostics. Of these the status page
+is most useful. If you shrink the browser size enough laterally all of the information can be seen on one page.
 
 Using ARL and dask on Darwin
 ****************************

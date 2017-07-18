@@ -135,9 +135,15 @@ def qa_gaintable(gt: GainTable, context=None) -> QA:
     :return: AQ
     """
     agt = numpy.abs(gt.gain)
-    data = {'maxabs': numpy.max(agt),
-            'minabs': numpy.min(agt),
-            'rms': numpy.std(agt),
-            'medianabs': numpy.median(agt),
-            'residual': numpy.max(gt.residual)}
+    pgt = numpy.angle(gt.gain)
+    data = {'maxabs-amp': numpy.max(agt),
+            'minabs-amp': numpy.min(agt),
+            'rms-amp': numpy.std(agt),
+            'medianabs-amp': numpy.median(agt),
+            'maxabs-phase': numpy.max(pgt),
+            'minabs-phase': numpy.min(pgt),
+            'rms-phase': numpy.std(pgt),
+            'medianabs-phase': numpy.median(pgt),
+            'residual': numpy.max(gt.residual)
+            }
     return QA(origin='qa_gaintable', data=data, context=context)
