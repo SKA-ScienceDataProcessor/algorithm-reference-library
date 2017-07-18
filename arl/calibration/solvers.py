@@ -12,20 +12,24 @@ For example::
 
 """
 
-import numpy
 import logging
 
-from arl.data.data_models import GainTable, BlockVisibility, Skycomponent
-from arl.visibility.iterators import vis_timeslice_iter
-from arl.visibility.operations import create_visibility_from_rows, copy_visibility
+import numpy
+
 from arl.calibration.operations import create_gaintable_from_blockvisibility
+from arl.data.data_models import GainTable, BlockVisibility
+from arl.visibility.iterators import vis_timeslice_iter
+from arl.visibility.operations import create_visibility_from_rows, divide_visibility
 
 log = logging.getLogger(__name__)
 
-def solve_gaintable(vis: BlockVisibility, modelvis: BlockVisibility, phase_only=True, niter=30, tol=1e-8,
+
+def solve_gaintable(vis: BlockVisibility, modelvis: BlockVisibility=None, phase_only=True, niter=30, tol=1e-8,
                     crosspol=False, **kwargs) -> GainTable:
-    """Solve a gain table to a block visibility
+    """Solve a gain table by fitting an observed visibility to a model visibility
     
+    If modelvis is None, a point source model is assumed.
+
     :param vis: BlockVisibility containing the observed data
     :param modelvis: BlockVisibility containing the visibility predicted by a model
     :param phase_only: Solve only for the phases (default=True)
@@ -33,10 +37,11 @@ def solve_gaintable(vis: BlockVisibility, modelvis: BlockVisibility, phase_only=
     :param tol: Iteration stops when the fractional change in the gain solution is below this tolerance
     :param crosspol: Do solutions including cross polarisations i.e. XY, YX or RL, LR
     :return: GainTable containing solution
-    
+
     """
     assert type(vis) is BlockVisibility, "vis is not a BlockVisibility: %r" % vis
-    assert type(modelvis) is BlockVisibility, "modelvis is not a BlockVisibility: %r" % vis
+    assert type(modelvis) is BlockVisibility or type(modelvis) is not None, "modelvis is not None or a " \
+                                                                            "BlockVisibility: %r" % vis
     
     if phase_only:
         log.info('solve_gaintable: Solving for phase only')
@@ -45,27 +50,28 @@ def solve_gaintable(vis: BlockVisibility, modelvis: BlockVisibility, phase_only=
     
     gt = create_gaintable_from_blockvisibility(vis)
     
-    for chunk, rows in enumerate(vis_timeslice_iter(vis)):
+    for chunk, rows in enumerate(vis_timeslice_iter(vis, **kwargs)):
         subvis = create_visibility_from_rows(vis, rows)
-        model_subvis = create_visibility_from_rows(modelvis, rows)
-        pointVis = visibility_divide_and_average(subvis, model_subvis, isscalar=vis.polarisation_frame.npol == 1,
-                                                     crosspol=crosspol)
-        xAve = pointVis.vis[0,...]
-        xwtAve = pointVis.weight[0,...]
+        if modelvis is not None:
+            model_subvis = create_visibility_from_rows(modelvis, rows)
+            pointvis = divide_visibility(subvis, model_subvis)
+            x = numpy.average(pointvis.vis, axis=0)
+            xwt = numpy.average(pointvis.weight, axis=0)
+        else:
+            x = numpy.average(subvis.vis, axis=0)
+            xwt = numpy.average(subvis.weight, axis=0)
+            
+        gt = solve_from_X(gt, x, xwt, chunk, crosspol, niter, phase_only,
+                        tol, npol=vis.polarisation_frame.npol)
 
-        gt = solve_from_X(gt, xAve, xwtAve, chunk, crosspol, niter, phase_only, tol, npol=vis.polarisation_frame.npol)
-    
     assert type(gt) is GainTable, "gt is not a GainTable: %r" % gt
     
     return gt
 
-
-def solve_from_X(gt: GainTable, x: numpy.ndarray, xwt:numpy.ndarray, chunk, crosspol, niter, phase_only, tol, npol)\
+def solve_from_X(gt: GainTable, x: numpy.ndarray, xwt: numpy.ndarray, chunk, crosspol, niter, phase_only, tol, npol) \
         -> GainTable:
     """ Solve for gains from the point source equivavlents
-    
-    :param gt:
-    :param x:
+   :param x:
     :param xwt:
     :param chunk:
     :param crosspol:
@@ -76,7 +82,7 @@ def solve_from_X(gt: GainTable, x: numpy.ndarray, xwt:numpy.ndarray, chunk, cros
     :return:
     """
     gainshape = gt.data['gain'][chunk, ...].shape
-    if  npol > 1:
+    if npol > 1:
         if crosspol:
             gt.data['gain'][chunk, ...], gt.data['weight'][chunk, ...], gt.data['residual'][chunk, ...] = \
                 solve_antenna_gains_itsubs_matrix(gainshape, x, xwt, phase_only=phase_only, niter=niter,
@@ -91,62 +97,6 @@ def solve_from_X(gt: GainTable, x: numpy.ndarray, xwt:numpy.ndarray, chunk, cros
             solve_antenna_gains_itsubs_scalar(gainshape, x, xwt, phase_only=phase_only, niter=niter,
                                               tol=tol)
     return gt
-
-def visibility_divide_and_average(vis: BlockVisibility, modelvis: BlockVisibility, isscalar, crosspol):
-    """ Divide visibility by model and average, forming visibility for equivalent point source
-    
-    This is a useful intermedidate product for calibration. Variation of the visibility in time and
-    frequency due to the model structure is removed and the data can be averaged to a loimit determined
-    by the instrumental stability
-    
-    :param vis:
-    :param modelvis:
-    :param isscalar:
-    :param crosspol:
-    :return:
-    """
-    # Different for scalar and vector/matrix cases
-    
-    weight = vis.weight
-    
-    if isscalar:
-        # Scalar case is straightforward
-        x = numpy.zeros_like(vis.vis)
-        xwt = numpy.abs(modelvis.vis) ** 2 * weight
-        mask = xwt > 0.0
-        x[mask] = vis.vis[mask] / modelvis.vis[mask]
-    else:
-        nrows, nants, _, nchan, npol = vis.vis.shape
-        nrec = 2
-        assert nrec * nrec == npol
-        xshape = (nrows, nants, nants, nchan, nrec, nrec)
-        x = numpy.zeros(xshape, dtype='complex')
-        xwt = numpy.zeros(xshape)
-        for row in range(nrows):
-            for ant1 in range(nants):
-                for ant2 in range(ant1+1, nants):
-                    for chan in range(nchan):
-                        ovis = numpy.matrix(vis.vis[row, ant2, ant1, chan].reshape([2,2]))
-                        mvis = numpy.matrix(modelvis.vis[row, ant2, ant1, chan].reshape([2,2]))
-                        wt = numpy.matrix(weight[row, ant2, ant1, chan].reshape([2,2]))
-                        x[row, ant2, ant1, chan] = numpy.matmul(numpy.linalg.inv(mvis), ovis)
-                        xwt[row, ant2, ant1, chan] = numpy.dot(mvis, numpy.multiply(wt, mvis.H)).real
-        x = x.reshape((nrows, nants, nants, nchan, nrec*nrec))
-        xwt = xwt.reshape((nrows, nants, nants, nchan, nrec*nrec))
-
-    visAve = numpy.average(x, axis=0)[numpy.newaxis,...]
-    weightAve = numpy.average(xwt, axis=0)[numpy.newaxis,...]
-    mask = weightAve <= 0.0
-    visAve[mask] = 0.0
-    uvwAve=numpy.average(vis.uvw,axis=0)[numpy.newaxis,...]
-    timeAve=[numpy.average(vis.time)]
-    integrationAve=[numpy.average(vis.integration_time)]
-
-    pointsource_vis = BlockVisibility(data=None, frequency=vis.frequency, channel_bandwidth=vis.channel_bandwidth,
-                                      phasecentre=vis.phasecentre, configuration=vis.configuration,
-                                      uvw=uvwAve, time=timeAve, integration_time=integrationAve, vis=visAve,
-                                      weight=weightAve)
-    return pointsource_vis
 
 
 def solve_antenna_gains_itsubs_scalar(gainshape, x, xwt, niter=30, tol=1e-8, phase_only=True, refant=0):
@@ -184,7 +134,7 @@ def solve_antenna_gains_itsubs_scalar(gainshape, x, xwt, niter=30, tol=1e-8, pha
         if phase_only:
             gain[mask] = gain[mask] / numpy.abs(gain[mask])
         angles = numpy.angle(gain)
-        gain *= numpy.exp(-1j*angles)[refant, ...]
+        gain *= numpy.exp(-1j * angles)[refant, ...]
         gain = 0.5 * (gain + gainLast)
         change = numpy.max(numpy.abs(gain - gainLast))
         if change < tol:
@@ -244,9 +194,9 @@ def solve_antenna_gains_itsubs_vector(gainshape, x, xwt, niter=30, tol=1e-8, pha
     nants, _, nchan, npol = x.shape
     assert npol == 4
     newshape = (nants, nants, nchan, 2, 2)
-    x=x.reshape(newshape)
-    xwt=xwt.reshape(newshape)
-
+    x = x.reshape(newshape)
+    xwt = xwt.reshape(newshape)
+    
     for ant1 in range(nants):
         x[ant1, ant1, ...] = 0.0
         xwt[ant1, ant1, ...] = 0.0
@@ -336,16 +286,16 @@ def solve_antenna_gains_itsubs_matrix(gainshape, x, xwt, niter=30, tol=1e-8, pha
     nants, _, nchan, npol = x.shape
     assert npol == 4
     newshape = (nants, nants, nchan, 2, 2)
-    x=x.reshape(newshape)
-    xwt=xwt.reshape(newshape)
-
+    x = x.reshape(newshape)
+    xwt = xwt.reshape(newshape)
+    
     for ant1 in range(nants):
         x[ant1, ant1, ...] = 0.0
         xwt[ant1, ant1, ...] = 0.0
         for ant2 in range(ant1 + 1, nants):
             x[ant1, ant2, ...] = numpy.conjugate(x[ant2, ant1, ...])
             xwt[ant1, ant2, ...] = xwt[ant2, ant1, ...]
-        
+    
     gain = numpy.ones(shape=gainshape, dtype=x.dtype)
     gain[..., 0, 1] = 0.0
     gain[..., 1, 0] = 0.0
@@ -388,8 +338,8 @@ def gain_substitution_matrix(gain, x, xwt):
                     g2 = gain[ant2, chan]
                     top += xmat * xwtmat * g2
                     bot += numpy.conjugate(g2) * xwtmat * g2
-            newgain[ant1, chan][bot>0.0] = top[bot>0.0] / bot[bot>0.0]
-            newgain[ant1, chan][bot<=0.0] = 0.0
+            newgain[ant1, chan][bot > 0.0] = top[bot > 0.0] / bot[bot > 0.0]
+            newgain[ant1, chan][bot <= 0.0] = 0.0
             gwt[ant1, chan] = bot.real
     return newgain, gwt
 
@@ -472,8 +422,7 @@ def solution_residual_matrix(gain, x, xwt):
     
     residual = numpy.zeros([nchan, nrec, nrec])
     sumwt = numpy.zeros([nchan, nrec, nrec])
-
-
+    
     # This is written out in long winded form but should be optimised for
     # production code!
     for ant1 in range(nants):
@@ -486,8 +435,7 @@ def solution_residual_matrix(gain, x, xwt):
                         residual[chan, rec2, rec1] += (error * xwt[ant2, ant1, chan, rec2, rec1] * numpy.conjugate(
                             error)).real
                         sumwt[chan, rec2, rec1] += xwt[ant2, ant1, chan, rec2, rec1]
-
-    residual[sumwt>0.0] = numpy.sqrt(residual[sumwt>0.0] / sumwt[sumwt>0.0])
+    
+    residual[sumwt > 0.0] = numpy.sqrt(residual[sumwt > 0.0] / sumwt[sumwt > 0.0])
     residual[sumwt <= 0.0] = 0.0
     return residual
-

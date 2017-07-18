@@ -197,7 +197,8 @@ def create_blockvisibility(config: Configuration,
     return vis
 
 
-def create_visibility_from_rows(vis: Visibility, rows: numpy.ndarray, makecopy=True) -> Visibility:
+def create_visibility_from_rows(vis: Union[Visibility, BlockVisibility], rows: numpy.ndarray, makecopy=True) \
+        -> Union[Visibility, BlockVisibility]:
     """ Create a Visibility from selected rows
 
     :param vis: Visibility
@@ -360,3 +361,52 @@ def remove_continuum_blockvisibility(vis: BlockVisibility, degree=1, mask=None, 
                     prediction = numpy.polyval(fit, x)
                     vis.data['vis'][row, ant2, ant1, :, pol] -= prediction
     return vis
+
+
+def divide_visibility(vis: BlockVisibility, modelvis: BlockVisibility):
+    """ Divide visibility by model forming visibility for equivalent point source
+
+    This is a useful intermediate product for calibration. Variation of the visibility in time and
+    frequency due to the model structure is removed and the data can be averaged to a limit determined
+    by the instrumental stability. The weight is adjusted to compensate for the division.
+    
+    Zero divisions are avoided and the corresponding weight set to zero.
+
+    :param vis:
+    :param modelvis:
+    :return:
+    """
+    # Different for scalar and vector/matrix cases
+    isscalar = vis.polarisation_frame.npol == 1
+    
+    if isscalar:
+        # Scalar case is straightforward
+        x = numpy.zeros_like(vis.vis)
+        xwt = numpy.abs(modelvis.vis) ** 2 * vis.weight
+        mask = xwt > 0.0
+        x[mask] = vis.vis[mask] / modelvis.vis[mask]
+    else:
+        nrows, nants, _, nchan, npol = vis.vis.shape
+        nrec = 2
+        assert nrec * nrec == npol
+        xshape = (nrows, nants, nants, nchan, nrec, nrec)
+        x = numpy.zeros(xshape, dtype='complex')
+        xwt = numpy.zeros(xshape)
+        for row in range(nrows):
+            for ant1 in range(nants):
+                for ant2 in range(ant1 + 1, nants):
+                    for chan in range(nchan):
+                        ovis = numpy.matrix(vis.vis[row, ant2, ant1, chan].reshape([2, 2]))
+                        mvis = numpy.matrix(modelvis.vis[row, ant2, ant1, chan].reshape([2, 2]))
+                        wt = numpy.matrix(vis.weight[row, ant2, ant1, chan].reshape([2, 2]))
+                        x[row, ant2, ant1, chan] = numpy.matmul(numpy.linalg.inv(mvis), ovis)
+                        xwt[row, ant2, ant1, chan] = numpy.dot(mvis, numpy.multiply(wt, mvis.H)).real
+        x = x.reshape((nrows, nants, nants, nchan, nrec * nrec))
+        xwt = xwt.reshape((nrows, nants, nants, nchan, nrec * nrec))
+    
+    pointsource_vis = BlockVisibility(data=None, frequency=vis.frequency, channel_bandwidth=vis.channel_bandwidth,
+                                      phasecentre=vis.phasecentre, configuration=vis.configuration,
+                                      uvw=vis.uvw, time=vis.time, integration_time=vis.integration_time, vis=x,
+                                      weight=xwt)
+    return pointsource_vis
+

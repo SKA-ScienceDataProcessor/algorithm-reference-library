@@ -3,7 +3,6 @@
 
 """
 import numpy
-import random
 
 import unittest
 
@@ -17,7 +16,7 @@ from arl.calibration.operations import apply_gaintable, create_gaintable_from_bl
     qa_gaintable
 from arl.calibration.solvers import solve_gaintable
 from arl.util.testing_support import create_named_configuration, simulate_gaintable
-from arl.visibility.operations import create_blockvisibility, copy_visibility
+from arl.visibility.operations import create_blockvisibility, copy_visibility, divide_visibility
 from arl.imaging import predict_skycomponent_blockvisibility
 
 import logging
@@ -29,7 +28,7 @@ class TestCalibrationSolvers(unittest.TestCase):
     def setUp(self):
         numpy.random.seed(180555)
         self.lowcore = create_named_configuration('LOWBD2-CORE')
-        self.times = (numpy.pi / 43200.0) * numpy.arange(0.0, 60.0, 30.0)
+        self.times = (numpy.pi / 43200.0) * numpy.linspace(0.0, 30.0, 3)
         vnchan = 3
         self.frequency = numpy.linspace(1.0e8, 1.1e8, vnchan)
         self.channel_bandwidth = numpy.array(vnchan * [self.frequency[1] - self.frequency[0]])
@@ -56,8 +55,21 @@ class TestCalibrationSolvers(unittest.TestCase):
         log.info("Created gain table: %s" % (gaintable_summary(gt)))
         gt = simulate_gaintable(gt, phase_error=10.0, amplitude_error=0.0)
         original = copy_visibility(self.vis)
-        vis = apply_gaintable(self.vis, gt)
+        self.vis = apply_gaintable(self.vis, gt)
         gtsol = solve_gaintable(self.vis, original, phase_only=True, niter=200)
+        residual = numpy.max(gtsol.residual)
+        assert residual < 3e-8, "Max residual = %s" % (residual)
+        assert numpy.max(numpy.abs(gtsol.gain - 1.0)) > 0.1
+
+    def test_solve_gaintable_scalar_pointsource(self):
+        self.actualSetup('stokesI', 'stokesI', f=[100.0])
+        gt = create_gaintable_from_blockvisibility(self.vis)
+        log.info("Created gain table: %s" % (gaintable_summary(gt)))
+        gt = simulate_gaintable(gt, phase_error=10.0, amplitude_error=0.0)
+        original = copy_visibility(self.vis)
+        self.vis = apply_gaintable(self.vis, gt)
+        point_vis = divide_visibility(self.vis, original)
+        gtsol = solve_gaintable(point_vis, phase_only=True, niter=200)
         residual = numpy.max(gtsol.residual)
         assert residual < 3e-8, "Max residual = %s" % (residual)
         assert numpy.max(numpy.abs(gtsol.gain - 1.0)) > 0.1
