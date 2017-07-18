@@ -78,7 +78,7 @@ def predict_with_image_iterator(vis: Visibility, model: Image, image_iterator=ra
     :param model: model image
     :param image_iterator: Image iterator used to access the image
     :param predict_function: Function to be used for prediction (allows nesting)
-    :returns: resulting visibility (in place works)
+    :return: resulting visibility (in place works)
     """
     log.info("predict_with_image_iterator: Predicting by image partitions")
     vis.data['vis'] *= 0.0
@@ -98,7 +98,7 @@ def invert_with_image_iterator(vis, im, image_iterator=raster_iter, dopsf=False,
     :param image_iterator: Iterator to use for partitioning
     :param dopsf: Make the psf instead of the dirty image
     :param normalize: Normalize by the sum of weights (True)
-    :returns: resulting image[nchan, npol, ny, nx], sum of weights[nchan, npol]
+    :return: resulting image[nchan, npol, ny, nx], sum of weights[nchan, npol]
     """
     
     log.info("invert_with_image_iterator: Inverting by image partitions")

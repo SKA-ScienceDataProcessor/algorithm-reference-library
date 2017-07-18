@@ -17,7 +17,7 @@ def image_scatter(im: Image, **kwargs) -> List[Image]:
 
     :param im: Image
     :param facets: Number of image partitions on each axis (2)
-    :returns: list of subimages
+    :return: list of subimages
     """
     
     image_list = list()
@@ -33,7 +33,7 @@ def image_gather(image_list: List[Image], im: Image, **kwargs) -> Image:
     :param image_list: List of subimages
     :param im: Output image
     :param facets: Number of image partitions on each axis (2)
-    :returns: list of subimages
+    :return: list of subimages
     """
     
     for i, facet in enumerate(raster_iter(im, **kwargs)):

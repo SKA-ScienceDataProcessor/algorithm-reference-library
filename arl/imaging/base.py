@@ -53,7 +53,7 @@ def shift_vis_to_image(vis: Visibility, im: Image, tangent: bool = True, inverse
     :param im: Image model used to determine phase centre
     :param tangent: Is the shift purely on the tangent plane True|False
     :param inverse: Do the inverse operation True|False
-    :returns: visibility with phase shift applied and phasecentre updated
+    :return: visibility with phase shift applied and phasecentre updated
 
     """
     assert type(vis) is Visibility, "vis is not a Visibility: %r" % vis
@@ -104,7 +104,7 @@ def predict_2d_base(vis: Visibility, model: Image, **kwargs) -> Visibility:
 
     :param vis: Visibility to be predicted
     :param model: model image
-    :returns: resulting visibility (in place works)
+    :return: resulting visibility (in place works)
     """
     if type(vis) is not Visibility:
         avis = coalesce_visibility(vis, **kwargs)
@@ -137,7 +137,7 @@ def predict_2d(vis: Visibility, im: Image, **kwargs) -> Visibility:
     
     :param vis: Visibility to be predicted
     :param model: model image
-    :returns: resulting visibility (in place works)
+    :return: resulting visibility (in place works)
     """
     log.debug("predict_2d: predict using 2d transform")
     return predict_2d_base(vis, im, **kwargs)
@@ -156,7 +156,7 @@ def invert_2d_base(vis: Visibility, im: Image, dopsf: bool = False, normalize: b
     :param im: image template (not changed)
     :param dopsf: Make the psf instead of the dirty image
     :param normalize: Normalize by the sum of weights (True)
-    :returns: resulting image
+    :return: resulting image
 
     """
     if type(vis) is not Visibility:
@@ -218,7 +218,7 @@ def invert_2d(vis: Visibility, im: Image, dopsf=False, normalize=True, **kwargs)
     :param im: image template (not changed)
     :param dopsf: Make the psf instead of the dirty image
     :param normalize: Normalize by the sum of weights (True)
-    :returns: resulting image[nchan, npol, ny, nx], sum of weights[nchan, npol]
+    :return: resulting image[nchan, npol, ny, nx], sum of weights[nchan, npol]
 
     """
     log.debug("invert_2d: inverting using 2d transform")
@@ -232,7 +232,7 @@ def predict_skycomponent_blockvisibility(vis: BlockVisibility,
     :param vis: BlockVisibility
     :param sc: Skycomponent or list of SkyComponents
     :param spectral_mode: {mfs|channel} (channel)
-    :returns: BlockVisibility
+    :return: BlockVisibility
     """
     assert type(vis) is BlockVisibility, "vis is not a BlockVisibility: %r" % vis
     
@@ -269,7 +269,7 @@ def predict_skycomponent_visibility(vis: Visibility, sc: Union[Skycomponent, Lis
 
     :param vis: Visibility
     :param sc: Skycomponent or list of SkyComponents
-    :returns: Visibility
+    :return: Visibility
     """
     assert type(vis) is Visibility, "vis is not a Visibility: %r" % vis
     
@@ -302,7 +302,7 @@ def weight_visibility(vis: Visibility, im: Image,  **kwargs) -> Visibility:
 
     :param vis:
     :param im:
-    :returns: visibility with imaging_weights column added and filled
+    :return: visibility with imaging_weights column added and filled
     """
     assert type(vis) is Visibility, "vis is not a Visibility: %r" % vis
     
@@ -332,7 +332,7 @@ def create_image_from_visibility(vis: Visibility, **kwargs) -> Image:
     :param frame: Coordinate frame for WCS (ICRS)
     :param equinox: Equinox for WCS (2000.0)
     :param nchan: Number of image channels (Default is 1 -> MFS)
-    :returns: image
+    :return: image
     """
     assert type(vis) is Visibility or type(vis) is BlockVisibility, \
         "vis is not a Visibility or a BlockVisibility: %r" % (vis)
@@ -424,7 +424,7 @@ def create_w_term_like(vis: Visibility, im: Image, w, **kwargs) -> Image:
     :param vis: Visibility
     :param im: template image
     :param w: w value to evaluate (default is median abs)
-    :returns: Image
+    :return: Image
     """
     
     fim = copy_image(im)
@@ -448,7 +448,7 @@ def residual_image(vis: Visibility, model: Image, invert_residual=invert_2d, pre
     :param im: image template (not changed)
     :param invert: invert to be used (default invert_2d)
     :param predict: predict to be used (default predict_2d)
-    :returns: residual visibility, residual image, sum of weights
+    :return: residual visibility, residual image, sum of weights
     """
     visres = arl.visibility.operations.copy_visibility(vis, zero=True)
     visres = predict_residual(visres, model, **kwargs)

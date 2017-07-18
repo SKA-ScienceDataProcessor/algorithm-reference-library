@@ -192,7 +192,7 @@ def w_beam(npixel, field_of_view, w, cx=None, cy=None, remove_shift=False):
     :param cx: location of delay centre def :npixel//2
     :param cy: location of delay centre def :npixel//2
     :param remove_shift: Remove overall phase shift
-    :returns: npixel x npixel array with the far field
+    :return: npixel x npixel array with the far field
     """
     if cx is None:
         cx = npixel // 2
@@ -225,7 +225,7 @@ def kernel_oversample(ff, npixel, kernel_oversampling, kernelwidth):
     :param kernel_oversampling: Factor to oversample by -- there will be kernel_oversampling x kernel_oversampling
         convolution functions
     :param kernelwidth: Size of convolution function to extract
-    :returns: Numpy array of shape [ov, ou, v, u], e.g. with sub-pixel offsets as the outer coordinates.
+    :return: Numpy array of shape [ov, ou, v, u], e.g. with sub-pixel offsets as the outer coordinates.
     """
     
     # Pad the far field to the required pixel size
@@ -252,7 +252,7 @@ def w_kernel(field_of_view, w, npixel_farfield, npixel_kernel, kernel_oversampli
     :param kernel_oversampling: Oversampling, pixels will be kernel_oversampling smaller in aperture
       plane than required to minimially sample field_of_view.
 
-    :returns: [kernel_oversampling,kernel_oversampling,s,s] shaped oversampled convolution kernels
+    :return: [kernel_oversampling,kernel_oversampling,s,s] shaped oversampled convolution kernels
     """
     
     assert npixel_farfield > npixel_kernel or (npixel_farfield == npixel_kernel and kernel_oversampling == 1)
@@ -292,7 +292,7 @@ def convolutional_degrid(kernel_list, vshape, uvgrid, vuvwmap, vfrequencymap, vp
     :param vuvwmap: function to map uvw to grid fractions
     :param vfrequencymap: function to map frequency to image channels
     :param vpolarisationmap: function to map polarisation to image polarisation
-    :returns: Array of visibilities.
+    :return: Array of visibilities.
     """
     kernel_indices, kernels = kernel_list
     kernel_oversampling, _, gh, gw = kernels[0].shape
@@ -373,7 +373,7 @@ def convolutional_grid(kernel_list, uvgrid, vis, visweights, vuvwmap, vfrequency
     :param vuvwmap: map uvw to grid fractions
     :param vfrequencymap: map frequency to image channels
     :param vpolarisationmap: map polarisation to image polarisation
-    :returns: uv grid[nchan, npol, ny, nx], sumwt[nchan, npol]
+    :return: uv grid[nchan, npol, ny, nx], sumwt[nchan, npol]
     """
     
     kernel_indices, kernels = kernel_list
@@ -427,7 +427,7 @@ def weight_gridding(shape, visweights, vuvwmap, vfrequencymap, vpolarisationmap,
     :param vfrequencymap: map frequency to image channels
     :param vpolarisationmap: map polarisation to image polarisation
     :param weighting: '' | 'uniform'
-    :returns: visweights, density, densitygrid
+    :return: visweights, density, densitygrid
     """
     densitygrid = numpy.zeros(shape)
     density = numpy.zeros_like(visweights)

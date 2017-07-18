@@ -49,7 +49,7 @@ def fit_uvwplane_only(vis):
     """ Fit the best fitting plane p u + q v = w
 
     :param vis: visibility to be fitted
-    :returns: direction cosines defining plane
+    :return: direction cosines defining plane
     """
         
     su2 = numpy.sum(vis.u * vis.u)
@@ -67,7 +67,7 @@ def fit_uvwplane(vis, remove=True):
     """ Fit and optionally remove the best fitting plane p u + q v = w
 
     :param vis: visibility to be fitted
-    :returns: direction cosines defining plane
+    :return: direction cosines defining plane
     """
     nvis = len(vis.data)
     before = numpy.max(numpy.std(vis.w))
@@ -89,7 +89,7 @@ def invert_timeslice(vis: Visibility, im: Image, dopsf=False, normalize=True, **
     :param im: image template (not changed)
     :param dopsf: Make the psf instead of the dirty image
     :param normalize: Normalize by the sum of weights (True)
-    :returns: resulting image[nchan, npol, ny, nx], sum of weights[nchan, npol]
+    :return: resulting image[nchan, npol, ny, nx], sum of weights[nchan, npol]
 
     """
     log.info("invert_timeslice: inverting using time slices")
@@ -102,7 +102,7 @@ def predict_timeslice(vis: Visibility, model: Image, **kwargs):
 
     :param vis: Visibility to be predicted
     :param model: model image
-    :returns: resulting visibility (in place works)
+    :return: resulting visibility (in place works)
     """
     log.info("predict_timeslice: predicting using time slices")
 
@@ -117,7 +117,7 @@ def predict_timeslice_single(vis: Visibility, model: Image, **kwargs):
 
     :param vis: Visibility to be predicted
     :param model: model image
-    :returns: resulting visibility (in place works)
+    :return: resulting visibility (in place works)
     """
     log.info("predict_timeslice_single: predicting using single time slice")
 
@@ -162,7 +162,7 @@ def lm_distortion(im: Image, a, b):
     
     :param im: Image with the coordinate system
     :param a, b: parameters in fit
-    :returns: meshgrids for l,m nominal and distorted
+    :return: meshgrids for l,m nominal and distorted
     """
     ny = im.shape[2]
     nx = im.shape[3]

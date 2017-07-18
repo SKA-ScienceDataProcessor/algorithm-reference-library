@@ -111,7 +111,7 @@ def polmatrixmultiply(cm, vec, polaxis=1):
     :param cm: matrix to apply
     :param vec: array to be multiplied [...,:]
     :param polaxis: which axis contains the polarisation
-    :returns: multiplied vec
+    :return: multiplied vec
     """
     if len(vec.shape) == 1:
         return numpy.dot(cm, vec)
@@ -128,7 +128,7 @@ def convert_stokes_to_linear(stokes, polaxis=1):
 
     :param stokes: [...,4] Stokes vector in I,Q,U,V (can be complex)
     :param polaxis: Axis of stokes with polarisation (default 1)
-    :returns: linear vector in XX, XY, YX, YY sequence
+    :return: linear vector in XX, XY, YX, YY sequence
 
     Equation 4.58 TMS
     """
@@ -145,7 +145,7 @@ def convert_linear_to_stokes(linear, polaxis=1):
 
     :param linear: [...,4] linear vector in XX, XY, YX, YY sequence
     :param polaxis: Axis of linear with polarisation (default 1)
-    :returns: Complex I,Q,U,V
+    :return: Complex I,Q,U,V
 
     Equation 4.58 TMS, inverted with numpy.linalg.inv
     """
@@ -162,7 +162,7 @@ def convert_stokes_to_circular(stokes, polaxis=1):
 
     :param stokes: [...,4] Stokes vector in I,Q,U,V (can be complex)
     :param polaxis: Axis of stokes with polarisation (default 1)
-    :returns: circular vector in RR, RL, LR, LL sequence
+    :return: circular vector in RR, RL, LR, LL sequence
 
     Equation 4.59 TMS
     """
@@ -179,7 +179,7 @@ def convert_circular_to_stokes(circular, polaxis=1):
 
     :param circular: [...,4] linear vector in RR, RL, LR, LL sequence
     :param polaxis: Axis of circular with polarisation (default 1)
-    :returns: Complex I,Q,U,V
+    :return: Complex I,Q,U,V
 
     Equation 4.58 TMS, inverted with numpy.linalg.inv
     """
@@ -227,7 +227,7 @@ def correlate_polarisation(rec_frame: ReceptorFrame):
     """ Gives the polarisation frame corresponding to a receptor frame
     
     :param rec_frame: Receptor frame
-    :returns: PolarisationFrame
+    :return: PolarisationFrame
     """
     if rec_frame == ReceptorFrame("circular"):
         correlation = PolarisationFrame("circular")

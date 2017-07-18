@@ -23,7 +23,7 @@ def predict_facets_wprojection(vis: Visibility, model: Image, predict_function=p
     :param vis: Visibility to be predicted
     :param model: model image
     :param predict_function: Function to be used for prediction (allows nesting) (default predict_2d)
-    :returns: resulting visibility (in place works)
+    :return: resulting visibility (in place works)
     """
     log.info("predict_facets_wprojection: Predicting by image facets and w projection")
     return predict_with_image_iterator(vis, model, image_iterator=raster_iter, predict_function=predict_function,
@@ -39,7 +39,7 @@ def invert_facets_wprojection(vis: Visibility, im: Image, dopsf=False, normalize
     :param dopsf: Make the psf instead of the dirty image
     :param normalize: Normalize by the sum of weights (True)
     :param invert_function: Function to be used for inverting (allows nesting) (default invert_2d)
-    :returns: resulting image[nchan, npol, ny, nx], sum of weights[nchan, npol]
+    :return: resulting image[nchan, npol, ny, nx], sum of weights[nchan, npol]
     """
     
     log.info("invert_facets_wprojection: Inverting by image facets and w projection")

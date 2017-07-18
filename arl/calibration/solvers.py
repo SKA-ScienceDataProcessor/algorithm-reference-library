@@ -32,7 +32,7 @@ def solve_gaintable(vis: BlockVisibility, modelvis: BlockVisibility, phase_only=
     :param niter: Number of iterations (default 30)
     :param tol: Iteration stops when the fractional change in the gain solution is below this tolerance
     :param crosspol: Do solutions including cross polarisations i.e. XY, YX or RL, LR
-    :returns: GainTable containing solution
+    :return: GainTable containing solution
     
     """
     assert type(vis) is BlockVisibility, "vis is not a BlockVisibility: %r" % vis
@@ -164,7 +164,7 @@ def solve_antenna_gains_itsubs_scalar(gainshape, x, xwt, niter=30, tol=1e-8, pha
     :param tol: tolerance on solution change
     :param phase_only: Do solution for only the phase? (default True)
     :param refant: Reference antenna for phase (default=0.0)
-    :returns: gain [nants, ...], weight [nants, ...]
+    :return: gain [nants, ...], weight [nants, ...]
     """
     
     nants = x.shape[0]
@@ -238,7 +238,7 @@ def solve_antenna_gains_itsubs_vector(gainshape, x, xwt, niter=30, tol=1e-8, pha
     :param tol: tolerance on solution change
     :param phase_only: Do solution for only the phase? (default True)
     :param refant: Reference antenna for phase (default=0.0)
-    :returns: gain [nants, ...], weight [nants, ...]
+    :return: gain [nants, ...], weight [nants, ...]
     """
     
     nants, _, nchan, npol = x.shape
@@ -330,7 +330,7 @@ def solve_antenna_gains_itsubs_matrix(gainshape, x, xwt, niter=30, tol=1e-8, pha
     :param tol: tolerance on solution change
     :param phase_only: Do solution for only the phase? (default True)
     :param refant: Reference antenna for phase (default=0.0)
-    :returns: gain [nants, ...], weight [nants, ...]
+    :return: gain [nants, ...], weight [nants, ...]
     """
     
     nants, _, nchan, npol = x.shape
@@ -400,7 +400,7 @@ def solution_residual_scalar(gain, x, xwt):
     :param gain: gain [nant, ...]
     :param x: Point source equivalent visibility [nant, ...]
     :param xwt: Point source equivalent weight [nant, ...]
-    :returns: residual[...]
+    :return: residual[...]
     """
     
     nants, nchan, nrec, _ = gain.shape
@@ -431,7 +431,7 @@ def solution_residual_vector(gain, x, xwt):
     :param gain: gain [nant, ...]
     :param x: Point source equivalent visibility [nant, ...]
     :param xwt: Point source equivalent weight [nant, ...]
-    :returns: residual[...]
+    :return: residual[...]
     """
     
     nants, nchan, nrec, _ = gain.shape
@@ -465,7 +465,7 @@ def solution_residual_matrix(gain, x, xwt):
     :param gain: gain [nant, ...]
     :param x: Point source equivalent visibility [nant, ...]
     :param xwt: Point source equivalent weight [nant, ...]
-    :returns: residual[...]
+    :return: residual[...]
     """
     
     nants, _, nchan, nrec, _ = x.shape

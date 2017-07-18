@@ -36,7 +36,7 @@ def predict_wstack(vis: Visibility, model: Image, **kwargs) -> Visibility:
     :param vis_slices: Number of slices in the wstack
     :param wstack: size of stack slice in wavelengths (used in vis_slices is not set)
     :param model: model image
-    :returns: resulting visibility (in place works)
+    :return: resulting visibility (in place works)
     """
     assert type(vis) == Visibility
 
@@ -52,7 +52,7 @@ def predict_wstack_single(vis, model, predict_inner=predict_2d_base, **kwargs) -
 
     :param vis: Visibility to be predicted
     :param model: model image
-    :returns: resulting visibility (in place works)
+    :return: resulting visibility (in place works)
     """
     assert type(vis) == Visibility
 
@@ -101,7 +101,7 @@ def invert_wstack(vis: Visibility, im: Image, dopsf=False, normalize=True, **kwa
     :param dopsf: Make the psf instead of the dirty image
     :param normalize: Normalize by the sum of weights (True)
     :param vis_slices: Number of slices in the wstack
-    :returns: resulting image[nchan, npol, ny, nx], sum of weights[nchan, npol]
+    :return: resulting image[nchan, npol, ny, nx], sum of weights[nchan, npol]
 
     """
     assert type(vis) == Visibility

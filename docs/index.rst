@@ -21,7 +21,9 @@ structures such as image, visibility table, gaintable, etc.
    ARL_references
    ARL_glossary
 
+Indices and tables
+==================
+
 * :ref:`genindex`
 * :ref:`modindex`
 * :ref:`search`
-

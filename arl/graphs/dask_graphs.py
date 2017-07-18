@@ -47,15 +47,6 @@ from arl.visibility.gather_scatter import visibility_scatter_w, visibility_gathe
 from arl.visibility.operations import copy_visibility
 
 
-def compute_list(vis_graph_list: List[delayed]):
-    """ Compute all elements in list
-    
-    :param vis_graph_list:
-    :return: list
-    """
-    return bag.from_sequence(vis_graph_list).compute()
-
-
 def create_zero_vis_graph_list(vis_graph_list: List[delayed], **kwargs) -> List[delayed]:
     """ Initialise vis to zero: creates new data holders
 
@@ -106,7 +97,7 @@ def create_invert_graph(vis_graph_list: List[delayed], template_model_graph: del
     :param model_graph:
     :param invert: Invert for a single Visibility set
     :param kwargs: Parameters for functions in graphs
-    :returns: delayed for invert
+    :return: delayed for invert
     """
     
     def sum_invert_results(image_list):
@@ -149,7 +140,7 @@ def create_invert_wstack_graph(vis_graph_list: List[delayed], template_model_gra
     :param dopsf: Make psf (False)
     :param vis_slices: Number of visibility slices in w stacking
     :param kwargs: Parameters for functions in graphs
-    :returns: delayed for invert
+    :return: delayed for invert
     """
     
     def sum_invert_wstack_results(image_list):
@@ -197,7 +188,7 @@ def create_invert_facet_graph(vis_graph_list: List[delayed], template_model_grap
     :param model_graph:
     :param invert: Invert for a single Visibility
     :param kwargs: Parameters for functions in graphs
-    :returns: delayed for invert
+    :return: delayed for invert
    """
     
     def gather_invert_results(results, template_model, facets, **kwargs):
@@ -229,7 +220,7 @@ def create_invert_facet_wstack_graph(vis_graph_list: List[delayed], template_mod
     :param model_graph:
     :param invert_single: Invert for a single Visibility
     :param kwargs: Parameters for functions in graphs
-    :returns: delayed for invert
+    :return: delayed for invert
    """
     
     def gather_invert_results(results, template_model, facets, **kwargs):

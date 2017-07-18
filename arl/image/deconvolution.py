@@ -66,7 +66,7 @@ def deconvolve_cube(dirty: Image, psf: Image, **kwargs) -> (Image, Image):
     :param scales: Scales (in pixels) for multiscale ([0, 3, 10, 30])
     :param nmoments: Number of frequency moments (default 3)
     :param findpeak: Method of finding peak in mfsclean: 'Algorithm1'|'ASKAPSoft'|'CASA'|'ARL', Default is ARL.
-    :returns: componentimage, residual
+    :return: componentimage, residual
     
     """
     assert type(dirty) == Image, "Type is %s" % (type(dirty))
@@ -212,7 +212,7 @@ def restore_cube(model: Image, psf: Image, residual=None, **kwargs) -> Image:
     """ Restore the model image to the residuals
 
     :params psf: Input PSF
-    :returns: restored image
+    :return: restored image
 
     """
     assert type(model) == Image, "Type is %s" % (type(model))

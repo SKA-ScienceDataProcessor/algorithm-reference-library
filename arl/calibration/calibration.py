@@ -30,7 +30,7 @@ def calibrate_blockvisibility(bvt: BlockVisibility, model: Image=None, component
     :param bvt: BlockVisibility
     :param model: Model image
     :param components: Sky components
-    :returns: Calibrated BlockVisibility
+    :return: Calibrated BlockVisibility
 
     """
     assert model is not None or components is not None, "calibration requires a model or skycomponents"
@@ -56,7 +56,7 @@ def calibrate_visibility(vt: Visibility, model: Image =None, components=None, pr
     :param vt: Visibility
     :param model: Model image
     :param components: Sky components
-    :returns: Calibrated visibility
+    :return: Calibrated visibility
     """
     assert model is not None or components is not None, "calibration requires a model or skycomponents"
     

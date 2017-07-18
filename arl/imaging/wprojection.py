@@ -45,7 +45,7 @@ def predict_wprojection(vis: Visibility, model: Image, **kwargs) -> Visibility:
     
     :param vis: Visibility to be predicted
     :param model: model image
-    :returns: resulting visibility (in place works)
+    :return: resulting visibility (in place works)
     """
     log.debug("predict_wprojection: predict using wprojection")
     return predict_2d_base(vis, model, kernel='wprojection', **kwargs)
@@ -73,7 +73,7 @@ def invert_wprojection(vis: Visibility, im: Image, dopsf=False, normalize=True, 
     :param vis: Visibility to be inverted
     :param im: image template (not changed)
     :param dopsf: Make the psf instead of the dirty image
-    :returns: resulting image[nchan, npol, ny, nx], sum of weights[nchan, npol]
+    :return: resulting image[nchan, npol, ny, nx], sum of weights[nchan, npol]
 
     """
     log.info("invert_2d: inverting using wprojection")

@@ -17,12 +17,11 @@ def hogbom(dirty, psf, window, gain, thresh, niter, fracthresh):
 
     :param dirty: The dirty Image, i.e., the Image to be deconvolved
     :param psf: The point spread-function
-    :param window: Regions where clean components are allowed. If True, all of the dirty Image is assumed to be
-    allowed for clean components
+    :param window: Regions where clean components are allowed. If True, entire dirty Image is allowed
     :param gain: The "loop gain", i.e., the fraction of the brightest pixel that is removed in each iteration
     :param thresh: Cleaning stops when the maximum of the absolute deviation of the residual is less than this value
     :param niter: Maximum number of components to make if the threshold `thresh` is not hit
-    :returns: clean component Image, residual Image
+    :return: clean component Image, residual Image
     """
     
     assert 0.0 < gain < 2.0
@@ -64,7 +63,7 @@ def overlapIndices(res, psf, peakx, peaky):
     :param a2: Second array
     :param shiftx: Shift in x applied to a1
     :param shifty: Shift in y applied to a2
-    :returns (limits in a1, limits in a2)
+    :return: (limits in a1, limits in a2)
     """
     nx, ny = res.shape[0], res.shape[1]
     psfwidthx, psfwidthy = psf.shape[0] // 2, psf.shape[1] // 2
@@ -98,18 +97,13 @@ def msclean(dirty, psf, window, gain, thresh, niter, scales, fracthresh):
     :param fracthresh:
     :param dirty: The dirty image, i.e., the image to be deconvolved
     :param psf: The point spread-function
-    :param window: Regions where clean components are allowed. If
-    True, then all of the dirty image is assumed to be allowed for
-    clean components
-    :param gain: The "loop gain", i.e., the fraction of the brightest
-    pixel that is removed in each iteration
-    :param thresh: Cleaning stops when the maximum of the absolute
-    deviation of the residual is less than this value
-    :param niter: Maximum number of components to make if the
-    threshold "thresh" is not hit
+    :param window: Regions where clean components are allowed. If True, all of the dirty image is allowed
+    :param gain: The "loop gain", i.e., the fraction of the brightest pixel that is removed in each iteration
+    :param thresh: Cleaning stops when the maximum of the absolute deviation of the residual is less than this value
+    :param niter: Maximum number of components to make if the threshold "thresh" is not hit
     :param scales: Scales (in pixels width) to be used
     :param fracthres: Fractional stopping threshold
-    :returns: clean component image, residual image
+    :return: clean component image, residual image
     """
     assert 0.0 < gain < 2.0
     assert niter > 0
@@ -203,7 +197,7 @@ def create_scalestack(scaleshape, scales, norm=True):
     :param scaleshape: desired shape of stack
     :param scales: scales (in pixels)
     :param norm: Normalise each plane to unity?
-    :returns: stack
+    :return: stack
     """
     assert scaleshape[0] == len(scales)
     
@@ -239,7 +233,7 @@ def convolve_scalestack(scalestack, img):
 
     :param scalestack: stack containing the scales
     :param img: Image to be convolved
-    :returns: stack
+    :return: stack
     """
     
     convolved = numpy.zeros(scalestack.shape)
@@ -258,7 +252,7 @@ def convolve_convolve_scalestack(scalestack, img):
 
     :param scalestack: stack containing the scales
     :param img: Image to be convolved
-    :returns: Twice convolved image [nscales, nscales, nx, ny]
+    :return: Twice convolved image [nscales, nscales, nx, ny]
     """
     
     nscales, nx, ny = scalestack.shape
@@ -283,7 +277,7 @@ def find_max_abs_stack(stack, windowstack, couplingmatrix):
     :param stack: stack to be searched
     :param windowstack: Window for the search
     :param couplingmatrix: Coupling matrix between difference scales
-    :returns: x, y, scale
+    :return: x, y, scale
 
     """
     pabsmax = 0.0
@@ -400,19 +394,15 @@ def msmfsclean(dirty, psf, window, gain, thresh, niter, scales, fracthresh, find
     :param fracthresh:
     :param dirty: The dirty image, i.e., the image to be deconvolved
     :param psf: The point spread-function
-    :param window: Regions where clean components are allowed. If True, then all of the dirty image is assumed to be
-    allowed for clean components
-    :param gain: The "loop gain", i.e., the fraction of the brightest
-    pixel that is removed in each iteration
-    :param thresh: Cleaning stops when the maximum of the absolute
-    deviation of the residual is less than this value
-    :param niter: Maximum number of components to make if the
-    threshold "thresh" is not hit
+    :param window: Regions where clean components are allowed. If True, all of the dirty image is allowed
+    :param gain: The "loop gain", i.e., the fraction of the brightest pixel that is removed in each iteration
+    :param thresh: Cleaning stops when the maximum of the absolute deviation of the residual is less than this value
+    :param niter: Maximum number of components to make if the threshold "thresh" is not hit
     :param scales: Scales (in pixels width) to be used
     :param fracthres: Fractional stopping threshold
     :param ntaylor: Number of Taylor terms
     :param findpeak: Method of finding peak in mfsclean: 'Algorithm1'|'CASA'|'ARL', Default is ARL.
-    :returns: clean component image, residual image
+    :return: clean component image, residual image
     """
     assert 0.0 < gain < 2.0
     assert niter > 0
@@ -574,7 +564,7 @@ def calculate_scale_moment_residual(residual, scalestack):
     Part of the initialisation for Algorithm 1: lines 12 - 17
 
     :param residual: residual [nmoments, nx, ny]
-    :returns scale-dependent moment residual [nscales, nmoments, nx, ny]
+    :return: scale-dependent moment residual [nscales, nmoments, nx, ny]
     """
     nmoments, nx, ny = residual.shape
     nscales = scalestack.shape[0]
@@ -592,7 +582,7 @@ def calculate_scale_scale_moment_moment_psf(psf, scalestack):
     Part of the initialisation for Algorithm 1
 
     :param psf: psf
-    :returns scale-dependent moment psf [nscales, nscales, nmoments, nmoments, nx, ny]
+    :return: scale-dependent moment psf [nscales, nscales, nmoments, nmoments, nx, ny]
     """
     nmoments2, nx, ny = psf.shape
     nmoments = nmoments2 // 2
@@ -612,7 +602,7 @@ def calculate_scale_inverse_moment_moment_hessian(scale_scale_moment_moment_psf)
     Part of the initialisation for Algorithm 1. Lines 7 - 9
 
     :param scale_scale_moment_moment_psf: scale_moment_psf [nscales, nscales, nmoments, nmoments]
-    :returns: scale-dependent moment-moment inverse hessian
+    :return: scale-dependent moment-moment inverse hessian
     """
     nscales, _, nmoments, _, nx, ny = scale_scale_moment_moment_psf.shape
     hessian_shape = [nscales, nmoments, nmoments]
@@ -632,7 +622,7 @@ def calculate_scale_moment_principal_solution(smresidual, ihsmmpsf):
 
     :param smresidual: scale-dependent moment residual [nscales, nmoments, nx, ny]
     :param imhsmmpsf: Inverse of scale dependent moment moment Hessian
-    :returns: Decoupled residual images [nscales, nmoments, nx, ny]
+    :return: Decoupled residual images [nscales, nmoments, nx, ny]
     """
     # ihsmmpsf: nscales, nmoments, nmoments
     # smresidual: nscales, nmoments, nx, ny
@@ -647,7 +637,7 @@ def find_optimum_scale_zero_moment(smpsol, windowstack):
     Line 27 of Algorithm 1
 
     :param smpsol: Decoupled residual images for each scale and moment
-    :returns: x, y, optimum scale for peak
+    :return: x, y, optimum scale for peak
     """
     nscales, nmoments, nx, ny = smpsol.shape
     sscale = 0

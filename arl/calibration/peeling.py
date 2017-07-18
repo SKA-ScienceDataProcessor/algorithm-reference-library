@@ -23,7 +23,7 @@ def peel_skycomponent_blockvisibility(vis: BlockVisibility, sc: Union[Skycompone
     :param params:
     :param vis: Visibility to be processed
     :param sc: Skycomponent or list of Skycomponents
-    :returns: subtracted visibility and list of GainTables
+    :return: subtracted visibility and list of GainTables
     """
     assert type(vis) is BlockVisibility, "vis is not a BlockVisibility: %r" % vis
 

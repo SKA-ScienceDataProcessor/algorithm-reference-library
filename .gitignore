@@ -47,3 +47,4 @@ temp.fits
 /tests/test_results
 /test_results
 /test_coverage
+/tests/test_data

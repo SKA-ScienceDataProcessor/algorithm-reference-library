@@ -25,7 +25,7 @@ def rcal(vis: BlockVisibility, components, **kwargs) -> GainTable:
     :param vis: Visibility or Union(Visibility, Iterable)
     :param components: Component-based sky model
     :param kwargs: Parameters
-    :returns: gaintable
+    :return: gaintable
    """
     
     if not isinstance(vis, collections.Iterable):
@@ -42,7 +42,7 @@ def ical(**kwargs):
     """ Post observation image, deconvolve, and self-calibrate
    
     :param kwargs: Dictionary containing parameters
-    :returns:
+    :return:
     """
     # TODO: implement
     
@@ -61,7 +61,7 @@ def continuum_imaging(vis: Visibility, model: Image, components=None, **kwargs) 
     :param model: model image
     :param components: Component-based sky model
     :param kwargs: Parameters
-    :returns:
+    :return:
     """
     return solve_image(vis, model, components, **kwargs)
 
@@ -82,7 +82,7 @@ def spectral_line_imaging(vis: Visibility, model: Image, continuum_model: Image=
     :param spectral_model: model spectral image
     :param predict: Predict fumction e.g. predict_2d
     :param invert: Invert function e.g. invert_wprojection
-    :returns: Residual visibility, spectral model image, spectral residual image
+    :return: Residual visibility, spectral model image, spectral residual image
     """
 
     vis_no_continuum = copy_visibility(vis)
@@ -108,7 +108,7 @@ def fast_imaging(**kwargs) -> (Image, Image, Image):
     """Fast imaging from calibrated (DIE only) data
 
     :param kwargs: Dictionary containing parameters
-    :returns:
+    :return:
     """
     # TODO: implement
     
@@ -119,7 +119,7 @@ def eor(**kwargs) -> (Image, Image, Image):
     """eor calibration and imaging
     
     :param kwargs: Dictionary containing parameters
-    :returns:
+    :return:
     """
     # TODO: implement
     

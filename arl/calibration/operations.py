@@ -32,7 +32,7 @@ def create_gaintable_from_blockvisibility(vis: BlockVisibility, time_width: floa
     :param vis: BlockVisibilty
     :param time_width: Time interval between solutions (s)
     :param frequency_width: Frequency solution width (Hz)
-    :returns: GainTable
+    :return: GainTable
     
     """
     assert type(vis) is BlockVisibility, "vis is not a BlockVisibility: %r" % vis
@@ -78,7 +78,7 @@ def apply_gaintable(vis: BlockVisibility, gt: GainTable, inverse=False, **kwargs
     :param vis: Visibility to have gains applied
     :param gt: Gaintable to be applied
     :param inverse: Apply the inverse (default=False)
-    :returns: input vis with gains applied
+    :return: input vis with gains applied
     
     """
     assert type(vis) is BlockVisibility, "vis is not a BlockVisibility: %r" % vis
@@ -121,7 +121,7 @@ def append_gaintable(gt: GainTable, othergt: GainTable) -> GainTable:
 
     :param gt:
     :param othergt:
-    :returns: GainTable gt + othergt
+    :return: GainTable gt + othergt
     """
     assert gt.receptor_frame == othergt.receptor_frame
     gt.data = numpy.hstack((gt.data, othergt.data))
@@ -132,7 +132,7 @@ def qa_gaintable(gt: GainTable, context=None) -> QA:
     """Assess the quality of a gaintable
 
     :param gt:
-    :returns: AQ
+    :return: AQ
     """
     agt = numpy.abs(gt.gain)
     data = {'maxabs': numpy.max(agt),

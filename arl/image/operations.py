@@ -37,7 +37,7 @@ def create_image_from_array(data: numpy.array, wcs: WCS = None,
     :param data: Numpy.array
     :param wcs: World coordinate system
     :param polarisation_frame: Polarisation Frame
-    :returns: Image
+    :return: Image
     
     """
     fim = Image()
@@ -61,7 +61,7 @@ def copy_image(im: Image) -> Image:
     Performs deepcopy of data, breaking reference semantics
 
     :param im:
-    :returns: Image
+    :return: Image
     
     """
     assert type(im) == Image
@@ -82,7 +82,7 @@ def create_empty_image_like(im: Image) -> Image:
     """ Create an empty image like another in shape and wcs
 
     :param im:
-    :returns: Image
+    :return: Image
     
     """
     assert type(im) == Image
@@ -159,7 +159,7 @@ def import_image_from_fits(fitsfile: str, mute_warnings=True) -> Image:
     """ Read an Image from fits
     
     :param fitsfile:
-    :returns: Image
+    :return: Image
     """
     fim = Image()
     with warnings.catch_warnings():
@@ -193,7 +193,7 @@ def reproject_image(im: Image, newwcs: WCS, shape=None) -> (Image, Image):
     :param im: Image to be reprojected
     :param newwcs: New WCS
     :param shape:
-    :returns: Reprojected Image, Footprint Image
+    :return: Reprojected Image, Footprint Image
     """
     
     assert type(im) == Image
@@ -219,7 +219,7 @@ def add_image(im1: Image, im2: Image, docheckwcs=False) -> Image:
     :param docheckwcs:
     :param im1:
     :param im2:
-    :returns: Image
+    :return: Image
     """
     assert type(im1) == Image
     assert type(im2) == Image
@@ -236,7 +236,7 @@ def qa_image(im, mask=None, **kwargs) -> QA:
 
     :param params:
     :param im:
-    :returns: QA
+    :return: QA
     """
     assert type(im) == Image
     if mask is None:
@@ -269,7 +269,7 @@ def show_image(im: Image, fig=None, title: str = '', pol=0, chan=0, cm='rainbow'
     :param im:
     :param fig:
     :param title:
-    :returns:
+    :return:
     """
     import matplotlib.pyplot as plt
 
@@ -356,7 +356,7 @@ def calculate_image_frequency_moments(im: Image, reference_frequency=None, nmome
     :param im: Image cube
     :param reference_frequency: Reference frequency (default None uses average)
     :param nmoments: Number of moments to calculate
-    :returns: Moments image
+    :return: Moments image
     """
     assert type(im) == Image
     nchan, npol, ny, nx = im.shape
@@ -400,7 +400,7 @@ def calculate_image_from_frequency_moments(im: Image, moment_image: Image, refer
     :param im: Image cube to be reconstructed
     :param moment_image: Moment cube (constructed using calculate_image_frequency_moments)
     :param reference_frequency: Reference frequency (default None uses average)
-    :returns: reconstructed image
+    :return: reconstructed image
     """
     assert type(im) == Image
     nchan, npol, ny, nx = im.shape

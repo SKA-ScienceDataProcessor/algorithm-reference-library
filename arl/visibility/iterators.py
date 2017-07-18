@@ -29,7 +29,7 @@ def vis_timeslice_iter(vis: Union[Visibility, BlockVisibility], **kwargs) -> num
     unique elements of the vis time.
           
     :param timeslice: Timeslice (seconds) ('auto')
-    :returns: Boolean array with selected rows=True
+    :return: Boolean array with selected rows=True
         
     """
     
@@ -57,7 +57,7 @@ def vis_wstack_iter(vis: Visibility, **kwargs) -> numpy.ndarray:
 
     :param wstack: wstack (wavelengths)
     :param vis_slices: Number of slices (second in precedence to wstack)
-    :returns: Boolean array with selected rows=True
+    :return: Boolean array with selected rows=True
     """
     assert type(vis) == Visibility or type(vis) == BlockVisibility
     wmaxabs = (numpy.max(numpy.abs(vis.w)))
@@ -84,7 +84,7 @@ def vis_slice_iter(vis: Union[Visibility, BlockVisibility], **kwargs) -> numpy.n
 
     :param step: Size of step to be iterated over (in rows)
     :param vis_slices: Number of slices (second in precedence to step)
-    :returns: Boolean array with selected rows=True
+    :return: Boolean array with selected rows=True
 
     """
     assert type(vis) == Visibility or type(vis) == BlockVisibility

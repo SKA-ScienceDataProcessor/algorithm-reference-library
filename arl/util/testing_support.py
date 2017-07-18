@@ -68,7 +68,7 @@ def create_configuration_from_file(antfile: str, name: str = None, location: Ear
     :param frame: 'local' | 'global'
     :param diameter: Effective diameter of station or antenna
     :param meta: Any meta info
-    :returns: Configuration
+    :return: Configuration
     """
     antxyz = numpy.genfromtxt(antfile, delimiter=",")
     assert antxyz.shape[1] == 3, ("Antenna array has wrong shape %s" % antxyz.shape)
@@ -89,7 +89,7 @@ def create_LOFAR_configuration(antfile: str, meta: dict = None,
 
     :param antfile:
     :param meta:
-    :returns: Configuration
+    :return: Configuration
     """
     antxyz = numpy.genfromtxt(antfile, skip_header=2, usecols=[1, 2, 3], delimiter=",")
     nants = antxyz.shape[0]
@@ -106,7 +106,7 @@ def create_named_configuration(name: str = 'LOWBD2', **kwargs) -> Configuration:
     """ Standard configurations e.g. LOWBD2, MIDBD2
 
     :param name: name of Configuration LOWBD2, LOWBD1, LOFAR, VLAA
-    :returns: Configuration
+    :return: Configuration
     """
     
     if name == 'LOWBD2':
@@ -160,7 +160,7 @@ def create_test_image(canonical=True, cellsize=None, frequency=None, channel_ban
     :param channel_bandwidth: Channel bandwidth (array) in Hz
     :param phasecentre: Phase centre of image (SkyCoord)
     :param polarisation_frame: Polarisation frame
-    :returns: Image
+    :return: Image
     """
     if frequency is None:
         frequency = [1e8]
@@ -228,7 +228,7 @@ def create_low_test_image_from_s3(npixel=16384, polarisation_frame=PolarisationF
     :param channel_bandwidth: Channel width (Hz)
     :param phasecentre: phasecentre (SkyCoord)
     :param fov: fov table to use
-    :returns: Image
+    :return: Image
     """
     
     ras = []
@@ -312,7 +312,7 @@ def create_low_test_image_composite(npixel=16384, polarisation_frame=Polarisatio
     :param kind: Kind of interpolation (see scipy.interpolate.interp1d) Default: cubic
     :param fov: Field of view to use in S3
     :param threshold: Below threshold S3, above threshold GLEAM
-    :returns: Image
+    :return: Image
     """
     img = create_low_test_image_from_gleam(npixel=npixel, polarisation_frame=polarisation_frame,
                                            cellsize=cellsize,
@@ -350,7 +350,7 @@ def create_low_test_image_from_gleam(npixel=512, polarisation_frame=Polarisation
     :param channel_bandwidth: Channel width (Hz)
     :param phasecentre: phasecentre (SkyCoord)
     :param kind: Kind of interpolation (see scipy.interpolate.interp1d) Default: linear
-    :returns: Image
+    :return: Image
     
     """
     
@@ -446,7 +446,7 @@ def create_low_test_skycomponents_from_gleam(flux_limit=0.1, polarisation_frame=
     :param kind: Kind of interpolation (see scipy.interpolate.interp1d) Default: linear
     :param phasecentre: Desired phase centre (SkyCoord) default None implies all sources
     :param radius: Radius of sources selected around phasecentre (default 1.0 rad)
-    :returns: List of Skycomponents
+    :return: List of Skycomponents
     """
     
     fitsfile = arl_path("data/models/GLEAM_EGC.fits")
@@ -500,7 +500,7 @@ def create_low_test_beam(model: Image) -> Image:
     """Create a test power beam for LOW using an image from OSKAR
 
     :param model: Template image
-    :returns: Image
+    :return: Image
     """
     
     beam = import_image_from_fits(arl_path('data/models/SKA1_LOW_beam.fits'))
@@ -555,7 +555,7 @@ def replicate_image(im: Image, polarisation_frame=PolarisationFrame('stokesI'), 
     :param im:
     :param polarisation_frame: Polarisation_frame
     :param nchan: Number of spectral channels
-    :returns: Image
+    :return: Image
     """
     
     if len(im.data.shape) == 2:
@@ -613,7 +613,7 @@ def create_blockvisibility_iterator(config: Configuration, times: numpy.array, f
     :param model: Model image to be inserted
     :param components: Components to be inserted
     :param sleep_time: Time to sleep between yields
-    :returns: Visibility
+    :return: Visibility
 
     """
     for time in times:

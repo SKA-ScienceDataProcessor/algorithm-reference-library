@@ -113,7 +113,7 @@ def standard_kernel_list(vis, shape, oversampling=8, support=3):
     :param shape: tuple with 2D shape of grid
     :param oversampling: Oversampling factor
     :param support: Support of kernel
-    :returns: Function to look up gridding kernel
+    :return: Function to look up gridding kernel
     """
     return numpy.zeros_like(vis.w, dtype='int'), [anti_aliasing_calculate(shape, oversampling, support)[1]]
 
@@ -131,7 +131,7 @@ def w_kernel_list(vis, shape, fov, oversampling=4, wstep=100.0, npixel_kernel=16
     :param fov: Field of view in radians
     :param oversampling: Oversampling factor
     :param wstep: Step in w between cached functions
-    :returns: Function to look up gridding kernel as function of row, and cache
+    :return: Function to look up gridding kernel as function of row, and cache
     """
     wmaxabs = numpy.max(numpy.abs(vis.w))
     log.debug("w_kernel_list: Maximum absolute w = %.1f, step is %.1f wavelengths" % (wmaxabs, wstep))
@@ -221,7 +221,7 @@ def advise_wide_field(vis, delA=0.02, oversampling_synthesised_beam=3.0, guard_b
     :param guard_band_image: Number of primary beam half-widths-to-half-maximum to image (def: 6)
     :param facets: Number of facets on each axis
     :param wprojection_planes: Number of planes in wprojection
-    :returns: dict of advice
+    :return: dict of advice
     """
     wavelength = constants.c.to('m/s').value / numpy.min(vis.frequency)
     log.info("advise_wide_field: Maximum wavelength %.3f (meters)" %(wavelength))

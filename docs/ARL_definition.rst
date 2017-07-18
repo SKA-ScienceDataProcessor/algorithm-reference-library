@@ -59,6 +59,12 @@ Operations
 .. automodule:: arl.image.operations
    :members:
 
+Gather/Scatter
+++++++++++++++
+
+.. automodule:: arl.image.gather_scatter
+   :members:
+
 Iterators
 +++++++++
 
@@ -69,6 +75,18 @@ Deconvolution
 +++++++++++++
 
 .. automodule:: arl.image.deconvolution
+   :members:
+
+Cleaners
+++++++++
+
+.. automodule:: arl.image.cleaners
+   :members:
+
+Solvers
++++++++
+
+.. automodule:: arl.image.solvers
    :members:
 
 Calibration
@@ -190,6 +208,12 @@ Coalesce
 .. automodule:: arl.visibility.coalesce
    :members:
 
+Gather/Scatter
+++++++++++++++
+
+.. automodule:: arl.visibility.gather_scatter
+   :members:
+
 Iterators
 +++++++++
 
@@ -217,17 +241,28 @@ Coordinate Support
 .. automodule:: arl.util.coordinate_support
    :members:
 
+Dask graph support
+++++++++++++++++++
+
+.. automodule:: arl.util.dask_graph_support
+   :members:
+
 Quality assessment
 ++++++++++++++++++
 
 .. automodule:: arl.util.quality_assessment
    :members:
 
-
 Testing Support
 +++++++++++++++
 
 .. automodule:: arl.util.testing_support
+   :members:
+
+Timing
+++++++
+
+.. automodule:: arl.util.timing
    :members:
 
 Graphs
@@ -251,6 +286,11 @@ Dask init
 .. automodule:: arl.graphs.dask_init
    :members:
 
+Vis
++++
+
+.. automodule:: arl.graphs.vis
+   :members:
 
 Pipelines
 ---------
@@ -313,11 +353,7 @@ Unit tests written in standard python style are available.
    :members:
    :undoc-members:
 
-.. automodule:: tests.test_imaging
-   :members:
-   :undoc-members:
-
-.. automodule:: tests.test_imaging_params
+.. automodule:: tests.test_generic_dask
    :members:
    :undoc-members:
 
@@ -329,11 +365,15 @@ Unit tests written in standard python style are available.
    :members:
    :undoc-members:
 
-.. automodule:: tests.test_image_msclean
+.. automodule:: tests.test_image_gather_scatter
    :members:
    :undoc-members:
 
 .. automodule:: tests.test_image_iterators
+   :members:
+   :undoc-members:
+
+.. automodule:: tests.test_image_msclean
    :members:
    :undoc-members:
 
@@ -342,6 +382,14 @@ Unit tests written in standard python style are available.
    :undoc-members:
 
 .. automodule:: tests.test_image_solvers
+   :members:
+   :undoc-members:
+
+.. automodule:: tests.test_imaging
+   :members:
+   :undoc-members:
+
+.. automodule:: tests.test_imaging_params
    :members:
    :undoc-members:
 

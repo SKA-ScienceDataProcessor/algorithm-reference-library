@@ -29,7 +29,7 @@ def solve_image(vis: Visibility, model: Image, components=None, predict=predict_
     :param model: Model image
     :param predict: Predict function e.g. predict_2d, predict_wstack
     :param invert: Invert function e.g. invert_2d, invert_wstack
-    :returns: Visibility, model
+    :return: Visibility, model
     """
     nmajor = get_parameter(kwargs, 'nmajor', 5)
     log.info("solve_image: Performing %d major cycles" % nmajor)

@@ -32,7 +32,7 @@ def append_visibility(vis: Union[Visibility, BlockVisibility], othervis: Union[V
     
     :param vis:
     :param othervis:
-    :returns: Visibility vis + othervis
+    :return: Visibility vis + othervis
     """
     assert vis.polarisation_frame == othervis.polarisation_frame
     assert vis.phasecentre == othervis.phasecentre
@@ -151,7 +151,7 @@ def create_blockvisibility(config: Configuration,
     :param channel_bandwidth: channel bandwidths: (Hz] [nchan]
     :param integration_time: Integration time ('auto' or value in s)
     :param polarisation_frame:
-    :returns: BlockVisibility
+    :return: BlockVisibility
     """
     assert phasecentre is not None, "Must specify phase centre"
     

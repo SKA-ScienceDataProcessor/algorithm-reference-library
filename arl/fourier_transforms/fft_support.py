@@ -16,7 +16,7 @@ def fft(a):
         If there are four axes then the last outer axes are not transformed
 
     :param a: image in `lm` coordinate space
-    :returns: `uv` grid
+    :return: `uv` grid
     """
     if (len(a.shape) == 4):
         return numpy.fft.fftshift(numpy.fft.fft2(numpy.fft.ifftshift(a, axes=[2, 3])), axes=[2, 3])
@@ -32,7 +32,7 @@ def ifft(a):
         If there are four axes then the last outer axes are not transformed
 
     :param a: `uv` grid to transform
-    :returns: an image in `lm` coordinate space
+    :return: an image in `lm` coordinate space
     """
     if (len(a.shape) == 4):
         return numpy.fft.fftshift(numpy.fft.ifft2(numpy.fft.ifftshift(a, axes=[2, 3])), axes=[2, 3])

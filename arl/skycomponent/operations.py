@@ -33,7 +33,7 @@ def create_skycomponent(direction: SkyCoord, flux: numpy.array, frequency: numpy
     :param frequency:
     :param shape: 'Point' or 'Gaussian'
     :param name:
-    :returns: Skycomponent
+    :return: Skycomponent
     """
     return Skycomponent(
         direction = direction,
@@ -67,7 +67,7 @@ def find_skycomponents(im: Image, fwhm=1.0, threshold=10.0, npixels=5) -> List[S
     :param threshold: Threshold for component detection. Default: 10 standard deviations over median.
     :param im: Image to be searched
     :param params:
-    :returns: list of sky components
+    :return: list of sky components
     """
 
     assert type(im) == Image
@@ -152,7 +152,7 @@ def insert_skycomponent(im: Image, sc: Union[Skycomponent, List[Skycomponent]], 
     :param params:
     :param im:
     :param sc: SkyComponent or list of SkyComponents
-    :returns: image
+    :return: image
 
     """
     
@@ -188,7 +188,7 @@ def apply_beam_to_skycomponent(sc: Union[Skycomponent, List[Skycomponent]], beam
 
     :param beam:
     :param sc: SkyComponent or list of SkyComponents
-    :returns: List of skycomponents
+    :return: List of skycomponents
 
     """
     assert type(beam) == Image

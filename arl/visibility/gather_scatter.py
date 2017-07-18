@@ -28,7 +28,7 @@ def visibility_scatter(vis: Visibility, vis_iter, **kwargs) -> List[Visibility]:
 
     :param vis: Visibility
     :param vis_iter: visibility iterator
-    :returns: list of subvisibilitys
+    :return: list of subvisibilitys
     """
     
     visibility_list = list()
@@ -48,7 +48,7 @@ def visibility_gather(visibility_list: List[Visibility], vis: Visibility, vis_it
     :param visibility_list: List of subvisibilities
     :param vis: Output visibility
     :param vis_iter: visibility iterator
-    :returns: vis
+    :return: vis
     """
     
     for i, rows in enumerate(vis_iter(vis, **kwargs)):

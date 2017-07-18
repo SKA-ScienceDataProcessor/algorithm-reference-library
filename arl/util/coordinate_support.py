@@ -44,7 +44,7 @@ def xyz_at_latitude(local_xyz, lat):
 
     :param lat: target latitude (radians or astropy quantity)
     :param local_xyz: Array of local XYZ coordinates
-    :returns: Celestial XYZ coordinates
+    :return: Celestial XYZ coordinates
     """
     
     x, y, z = numpy.hsplit(local_xyz, 3)
@@ -203,7 +203,7 @@ def visibility_shift(uvw, vis, dl, dm):
     :param vis: Input visibilities
     :param dl: Horizontal shift distance as directional cosine
     :param dm: Vertical shift distance as directional cosine
-    :returns: New visibilities
+    :return: New visibilities
 
     """
     
@@ -223,7 +223,7 @@ def uvw_transform(uvw, transform_matrix):
 
     :param uvw: :math:`(u,v,w)` distribution of projected baselines (in wavelengths)
     :param transform_matrix: 2x2 matrix for image transformation
-    :returns: New baseline coordinates
+    :return: New baseline coordinates
     """
     
     # Calculate transformation matrix (see Sault)
