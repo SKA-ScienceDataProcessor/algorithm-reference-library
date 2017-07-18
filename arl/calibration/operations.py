@@ -7,7 +7,7 @@ import copy
 
 import numpy.linalg
 
-from arl.data.data_models import GainTable, BlockVisibility, QA
+from arl.data.data_models import GainTable, BlockVisibility, QA, assert_vis_gt_compatible
 from arl.data.data_models import ReceptorFrame
 from arl.visibility.iterators import vis_timeslice_iter
 
@@ -61,7 +61,8 @@ def create_gaintable_from_blockvisibility(vis: BlockVisibility, time_width: floa
                    receptor_frame=receptor_frame)
     
     assert type(gt) is GainTable, "gt is not a GainTable: %r" % gt
-    
+    assert_vis_gt_compatible(vis, gt)
+
     return gt
 
 
@@ -83,6 +84,8 @@ def apply_gaintable(vis: BlockVisibility, gt: GainTable, inverse=False, **kwargs
     """
     assert type(vis) is BlockVisibility, "vis is not a BlockVisibility: %r" % vis
     assert type(gt) is GainTable, "gt is not a GainTable: %r" % gt
+
+    assert_vis_gt_compatible(vis, gt)
     
     if inverse:
         log.info('apply_gaintable: Apply inverse gaintable')

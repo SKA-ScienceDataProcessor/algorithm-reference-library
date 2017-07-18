@@ -21,6 +21,7 @@ The principle transitions between the data models:
 
 import logging
 import sys
+from typing import Union
 
 import numpy
 from astropy import units as u
@@ -105,7 +106,7 @@ class Configuration:
 
 
 class GainTable:
-    """ Gain table with data: time, antenna, gain[:,chan,pol], weight columns
+    """ Gain table with data: time, antenna, gain[:, chan, rec, rec], weight columns
     
     The weight is usually that output from gain solvers.
     """
@@ -120,7 +121,7 @@ class GainTable:
             Vobs = g_i g_j^* Vmodel
 
         :param data:
-        :param gain: [npol, nchan]
+        :param gain: [:, nchan, nrec, nrec]
         :param time:
         :param weight:
         :param residual:
@@ -172,6 +173,14 @@ class GainTable:
     @property
     def nants(self):
         return self.data['gain'].shape[1]
+    
+    @property
+    def nchan(self):
+        return self.data['gain'].shape[2]
+    
+    @property
+    def nrec(self):
+        return self.receptor_frame.nrec
 
 
 class Image:
@@ -353,7 +362,7 @@ class Visibility:
             assert len(channel_bandwidth) == nvis
             assert len(antenna1) == nvis
             assert len(antenna2) == nvis
-
+            
             npol = polarisation_frame.npol
             desc = [('uvw', '>f8', (3,)),
                     ('time', '>f8'),
@@ -391,11 +400,11 @@ class Visibility:
         for col in self.data.dtype.fields.keys():
             size += self.data[col].nbytes
         return size / 1024.0 / 1024.0 / 1024.0
-
+    
     @property
     def nvis(self):
         return self.data['vis'].shape[0]
-
+    
     @property
     def uvw(self):  # In wavelengths in Visibility
         return self.data['uvw']
@@ -603,3 +612,14 @@ def assert_same_chan_pol(o1, o2):
     assert o1.nchan == o2.nchan, \
         "%s and %s have different number of channels: %d != %d" % \
         (type(o1).__name__, type(o2).__name__, o1.nchan, o2.nchan)
+
+
+def assert_vis_gt_compatible(vis: Union[Visibility, BlockVisibility], gt: GainTable):
+    """ Check if visibility and gaintable are compatible
+    
+    :param vis:
+    :param gt:
+    :return:
+    """
+    assert vis.nchan == gt.nchan
+    assert vis.npol == gt.nrec * gt.nrec

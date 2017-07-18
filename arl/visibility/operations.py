@@ -2,19 +2,18 @@
 
 """
 
-import numpy
-
-from typing import Union
 import copy
+import logging
+from typing import Union
 
 import astropy.constants as constants
+import numpy
 from astropy.coordinates import SkyCoord
+
 from arl.data.data_models import BlockVisibility, Visibility, Configuration, QA
 from arl.data.polarisation import correlate_polarisation, PolarisationFrame
-from arl.util.coordinate_support import xyz_to_uvw, uvw_to_xyz, skycoord_to_lmn, simulate_point
 from arl.imaging.params import get_frequency_map
-
-import logging
+from arl.util.coordinate_support import xyz_to_uvw, uvw_to_xyz, skycoord_to_lmn, simulate_point
 
 log = logging.getLogger(__name__)
 
@@ -26,7 +25,7 @@ def vis_summary(vis: Union[Visibility, BlockVisibility]):
     return "%d rows, %.3f GB" % (vis.nvis, vis.size())
 
 
-def append_visibility(vis: Union[Visibility, BlockVisibility], othervis: Union[Visibility, BlockVisibility])\
+def append_visibility(vis: Union[Visibility, BlockVisibility], othervis: Union[Visibility, BlockVisibility]) \
         -> Union[Visibility, BlockVisibility]:
     """Append othervis to vis
     
@@ -136,7 +135,7 @@ def create_blockvisibility(config: Configuration,
                            frequency: numpy.array,
                            phasecentre: SkyCoord,
                            weight: float,
-                           polarisation_frame: PolarisationFrame=None,
+                           polarisation_frame: PolarisationFrame = None,
                            integration_time=1.0,
                            channel_bandwidth=1e6) -> BlockVisibility:
     """ Create a BlockVisibility from Configuration, hour angles, and direction of source
@@ -208,7 +207,7 @@ def create_visibility_from_rows(vis: Union[Visibility, BlockVisibility], rows: n
     """
     
     if type(vis) is Visibility:
-    
+        
         if makecopy:
             newvis = copy_visibility(vis)
             newvis.data = copy.deepcopy(vis.data[rows])
@@ -217,7 +216,7 @@ def create_visibility_from_rows(vis: Union[Visibility, BlockVisibility], rows: n
             vis.data = copy.deepcopy(vis.data[rows])
             return vis
     else:
-
+        
         if makecopy:
             newvis = copy_visibility(vis)
             newvis.data = copy.deepcopy(vis.data[rows])
@@ -290,7 +289,7 @@ def sum_visibility(vis: Visibility, direction: SkyCoord) -> numpy.array:
     # TODO: Convert to Visibility or remove?
     
     svis = copy_visibility(vis)
-
+    
     l, m, n = skycoord_to_lmn(direction, svis.phasecentre)
     phasor = numpy.conjugate(simulate_point(svis.uvw, l, m))
     
@@ -316,7 +315,7 @@ def sum_visibility(vis: Visibility, direction: SkyCoord) -> numpy.array:
     return flux, weight
 
 
-def qa_visibility(vis:Union[Visibility, BlockVisibility], context=None) -> QA:
+def qa_visibility(vis: Union[Visibility, BlockVisibility], context=None) -> QA:
     """Assess the quality of Visibility
 
     :param context:
@@ -349,7 +348,7 @@ def remove_continuum_blockvisibility(vis: BlockVisibility, degree=1, mask=None, 
         assert numpy.sum(mask) > 2 * degree, "Insufficient channels for fit"
     
     nchan = len(vis.frequency)
-    x = (vis.frequency - vis.frequency[nchan//2])/(vis.frequency[0] - vis.frequency[nchan//2])
+    x = (vis.frequency - vis.frequency[nchan // 2]) / (vis.frequency[0] - vis.frequency[nchan // 2])
     for row in range(vis.nvis):
         for ant2 in range(vis.nants):
             for ant1 in range(vis.nants):
@@ -410,3 +409,33 @@ def divide_visibility(vis: BlockVisibility, modelvis: BlockVisibility):
                                       weight=xwt)
     return pointsource_vis
 
+
+def integrate_visibility_by_channel(vis: BlockVisibility, **kwargs) -> BlockVisibility:
+    """ Integrate visibility across channels, returning new visibility
+    
+    :param vis:
+    :param kwargs:
+    :return: BlockVisibility
+    """
+    
+    vis_shape = list(vis.vis.shape)
+    ntimes, nants, _, nchan, npol = vis_shape
+    vis_shape[-2] = 1
+    newvis = BlockVisibility(data=None,
+                             frequency=numpy.ones([1]) * numpy.average(vis.frequency),
+                             channel_bandwidth=numpy.ones([1]) * numpy.sum(vis.channel_bandwidth),
+                             phasecentre=vis.phasecentre,
+                             configuration=vis.configuration,
+                             uvw=vis.uvw,
+                             time=vis.time,
+                             vis=numpy.zeros(vis_shape, dtype='complex'),
+                             weight=numpy.ones(vis_shape, dtype='float'),
+                             integration_time=vis.integration_time,
+                             polarisation_frame=vis.polarisation_frame)
+    
+    newvis.data['vis'][..., 0, :] = numpy.sum(vis.data['vis'] * vis.data['weight'], axis=-2)
+    newvis.data['weight'][..., 0, :] = numpy.sum(vis.data['weight'], axis=-2)
+    mask = newvis.data['weight'] > 0.0
+    newvis.data['vis'][mask] = newvis.data['vis'][mask] / newvis.data['weight'][mask]
+    
+    return newvis

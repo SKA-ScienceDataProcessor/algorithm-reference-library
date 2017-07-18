@@ -17,7 +17,8 @@ import logging
 import numpy
 
 from arl.calibration.operations import create_gaintable_from_blockvisibility
-from arl.data.data_models import GainTable, BlockVisibility
+from arl.data.data_models import GainTable, BlockVisibility, assert_vis_gt_compatible
+
 from arl.visibility.iterators import vis_timeslice_iter
 from arl.visibility.operations import create_visibility_from_rows, divide_visibility
 
@@ -65,6 +66,9 @@ def solve_gaintable(vis: BlockVisibility, modelvis: BlockVisibility=None, phase_
                         tol, npol=vis.polarisation_frame.npol)
 
     assert type(gt) is GainTable, "gt is not a GainTable: %r" % gt
+    
+    assert_vis_gt_compatible(vis, gt)
+
     
     return gt
 

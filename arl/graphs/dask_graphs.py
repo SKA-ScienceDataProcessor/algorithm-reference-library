@@ -44,7 +44,7 @@ from arl.image.operations import copy_image, create_empty_image_like
 from arl.imaging import predict_2d, invert_2d, invert_wstack_single, predict_wstack_single, normalize_sumwt
 from arl.visibility.gather_scatter import visibility_scatter_w, visibility_gather_w, \
     visibility_scatter_channel, visibility_gather_channel
-from arl.visibility.operations import copy_visibility
+from arl.visibility.operations import copy_visibility, divide_visibility, integrate_visibility_by_channel
 
 
 def create_zero_vis_graph_list(vis_graph_list: List[delayed], **kwargs) -> List[delayed]:
@@ -538,3 +538,43 @@ def create_selfcal_graph_list(vis_graph_list: List[delayed], model_graph: delaye
     else:
         return [delayed(selfcal_single, pure=True, nout=1)(vis_graph_list[i], model_vis_graph_list[i], **kwargs)
                 for i, _ in enumerate(vis_graph_list)]
+
+
+def create_selfcal_point_graph_list(vis_graph_list: List[delayed], model_graph: delayed,
+                              vis_slices, global_solution=False,
+                              c_predict_vis_graph=create_predict_wstack_graph, **kwargs) -> List[delayed]:
+    """ Create a set of graphs for (optionally global) selfcalibration of a list of visibilities
+
+    The visibilities are gathered to a single visibility data set which is then self-calibrated. The resulting
+    gaintable is then effectively scattered out.
+    then scattered.
+
+    :param vis_graph_list:
+    :param model_graph:
+    :param vis_slices:
+    :param c_predict_vis_graph: create_predict_wstack_graph
+    :param kwargs: Parameters for functions in graphs
+    :return:
+    """
+    
+    def selfcal_single(vis, **kwargs):
+        gtsol = solve_gaintable(vis, None, **kwargs)
+        vis = apply_gaintable(vis, gtsol, inverse=True, **kwargs)
+        return vis
+    
+    model_vis_graph_list = create_zero_vis_graph_list(vis_graph_list)
+    model_vis_graph_list = c_predict_vis_graph(model_vis_graph_list, model_graph, vis_slices=vis_slices, **kwargs)
+    point_vis_graph_list = [delayed(divide_visibility, nout=len(vis_graph_list))(vis_graph_list[i],
+                                                                                 model_vis_graph_list[i])
+                            for i, _ in enumerate(vis_graph_list)]
+    
+    if global_solution:
+        global_point_vis_graph = delayed(visibility_gather_channel, nout=1)(point_vis_graph_list)
+        global_point_vis_graph = delayed(integrate_visibility_by_channel, nout=1)(global_point_vis_graph)
+        gt_graph = delayed(solve_gaintable, pure=True, nout=1)(global_point_vis_graph, **kwargs)
+        return [delayed(apply_gaintable, nout=len(vis_graph_list))(v, gt_graph, inverse=True, **kwargs)
+                for v in vis_graph_list]
+    else:
+        return [delayed(selfcal_single, pure=True, nout=1)(point_vis_graph_list[i], **kwargs)
+                for i, _ in enumerate(vis_graph_list)]
+

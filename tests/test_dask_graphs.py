@@ -12,13 +12,14 @@ from astropy.coordinates import SkyCoord
 from astropy.wcs.utils import pixel_to_skycoord
 from dask import delayed
 
-from arl.calibration.operations import apply_gaintable, create_gaintable_from_blockvisibility
+from arl.calibration.operations import apply_gaintable, create_gaintable_from_blockvisibility, qa_gaintable
 from arl.data.polarisation import PolarisationFrame
 from arl.graphs.dask_graphs import create_invert_facet_graph, create_predict_facet_graph, \
     create_zero_vis_graph_list, create_subtract_vis_graph_list, create_deconvolve_facet_graph, \
     create_invert_wstack_graph, create_residual_wstack_graph, create_predict_wstack_graph, \
     create_predict_graph, create_invert_graph, create_residual_facet_graph, create_residual_facet_wstack_graph, \
-    create_predict_facet_wstack_graph, create_invert_facet_wstack_graph, create_selfcal_graph_list
+    create_predict_facet_wstack_graph, create_invert_facet_wstack_graph, create_selfcal_graph_list, \
+    create_selfcal_point_graph_list
 from arl.image.operations import qa_image, export_image_to_fits, copy_image
 from arl.imaging import create_image_from_visibility, predict_skycomponent_blockvisibility, \
     invert_wstack_single, predict_wstack_single
@@ -89,6 +90,7 @@ class TestDaskGraphs(unittest.TestCase):
         self.actualmodel = copy_image(model)
         export_image_to_fits(model, '%s/test_imaging_dask_model.fits' % (self.results_dir))
         if add_errors:
+            # These will be the same for all calls
             numpy.random.seed(180555)
             gt = create_gaintable_from_blockvisibility(vt)
             gt = simulate_gaintable(gt, phase_error=1.0, amplitude_error=0.0)
@@ -347,22 +349,41 @@ class TestDaskGraphs(unittest.TestCase):
         
         assert numpy.abs(qa.data['max'] - 103.7) < 1.0, str(qa)
         assert numpy.abs(qa.data['min'] + 5.4) < 1.0, str(qa)
-    
+
     def test_global_selfcal_graph(self):
-        
+    
         corrupted_vis_graph_list = self.setupVis(add_errors=True)
-        
+    
         selfcal_vis_graph_list = create_selfcal_graph_list(corrupted_vis_graph_list,
                                                            delayed(self.actualmodel),
                                                            global_solution=True,
                                                            vis_slices=self.vis_slices)
-        
+    
         dirty_graph = create_invert_graph(selfcal_vis_graph_list, self.model_graph,
-                                                 dopsf=False, normalize=True,
-                                                 vis_slices=self.vis_slices)
+                                          dopsf=False, normalize=True,
+                                          vis_slices=self.vis_slices)
         dirty = dirty_graph.compute()
         export_image_to_fits(dirty[0], '%s/test_imaging_dask_graphs_global_selfcal_dirty.fits' % (self.results_dir))
         qa = qa_image(dirty[0])
-        
+    
+        assert numpy.abs(qa.data['max'] - 103.7) < 1.0, str(qa)
+        assert numpy.abs(qa.data['min'] + 5.4) < 1.0, str(qa)
+
+    def test_selfcal_point_graph(self):
+    
+        corrupted_vis_graph_list = self.setupVis(add_errors=True)
+    
+        selfcal_vis_graph_list = create_selfcal_point_graph_list(corrupted_vis_graph_list,
+                                                           delayed(self.actualmodel),
+                                                           global_solution=True,
+                                                           vis_slices=self.vis_slices)
+    
+        dirty_graph = create_invert_graph(selfcal_vis_graph_list, self.model_graph,
+                                          dopsf=False, normalize=True,
+                                          vis_slices=self.vis_slices)
+        dirty = dirty_graph.compute()
+        export_image_to_fits(dirty[0], '%s/test_imaging_dask_graphs_point_selfcal_dirty.fits' % (self.results_dir))
+        qa = qa_image(dirty[0])
+    
         assert numpy.abs(qa.data['max'] - 103.7) < 1.0, str(qa)
         assert numpy.abs(qa.data['min'] + 5.4) < 1.0, str(qa)
