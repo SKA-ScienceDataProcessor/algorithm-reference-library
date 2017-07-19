@@ -8,7 +8,7 @@ from dask import delayed
 from arl.data.parameters import get_parameter
 from arl.image.deconvolution import restore_cube
 from arl.graphs.graphs import create_deconvolve_graph, create_invert_graph, create_residual_graph, \
-    create_selfcal_graph_list, create_predict_graph, create_selfcal_point_graph_list
+    create_selfcal_graph_list, create_predict_graph
 
 def create_continuum_imaging_pipeline_graph(vis_graph_list: List[delayed], model_graph: delayed,
                                             c_deconvolve_graph=create_deconvolve_graph,
@@ -69,7 +69,7 @@ def create_ical_pipeline_graph(vis_graph_list: List[delayed], model_graph: delay
                                c_deconvolve_graph=create_deconvolve_graph,
                                c_invert_graph=create_invert_graph,
                                c_residual_graph=create_residual_graph,
-                               c_selfcal_graph=create_selfcal_point_graph_list,
+                               c_selfcal_graph=create_selfcal_graph_list,
                                first_selfcal=None, **kwargs) -> delayed:
     """Create graph for ICAL pipeline
     

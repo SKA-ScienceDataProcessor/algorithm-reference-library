@@ -16,7 +16,7 @@ from dask import delayed
 from arl.calibration.operations import apply_gaintable, create_gaintable_from_blockvisibility
 from arl.data.polarisation import PolarisationFrame
 from arl.graphs.graphs import create_deconvolve_facet_graph, create_invert_wstack_graph, \
-    create_residual_wstack_graph, create_selfcal_graph_list, create_selfcal_point_graph_list
+    create_residual_wstack_graph, create_selfcal_graph_list
 from arl.image.operations import qa_image, export_image_to_fits
 from arl.pipelines.graphs import create_continuum_imaging_pipeline_graph, \
     create_ical_pipeline_graph
@@ -128,7 +128,7 @@ class TestImagingDask(unittest.TestCase):
                                        c_deconvolve_graph=create_deconvolve_facet_graph,
                                        c_invert_graph=create_invert_wstack_graph,
                                        c_residual_graph=create_residual_wstack_graph,
-                                       c_selfcal_graph=create_selfcal_point_graph_list,
+                                       c_selfcal_graph=create_selfcal_graph_list,
                                        global_solution=True,
                                        vis_slices=self.vis_slices, facets=2,
                                        niter=1000, fractional_threshold=0.1,
