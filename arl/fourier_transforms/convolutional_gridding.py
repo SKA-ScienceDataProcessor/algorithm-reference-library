@@ -8,18 +8,18 @@ This approach may be extended to include image plane effect such as the w term a
 This module contains functions for performing the gridding process and the inverse degridding process.
 """
 
-import numpy
-
 import logging
 
+import numpy
 import scipy.special
 
-from arl.fourier_transforms.fft_support import pad_mid, extract_oversampled, extract_mid, fft, ifft
+from arl.fourier_transforms.fft_support import pad_mid, extract_oversampled, ifft
 
 # from arl.core.c import gridder
 
 
 log = logging.getLogger(__name__)
+
 
 def coordinateBounds(npixel):
     r""" Returns lowest and highest coordinates of an image/grid given:
@@ -44,7 +44,7 @@ def coordinates(npixel: int) -> object:
     """ 1D array which spans [-.5,.5[ with 0 at position npixel/2
     
     """
-    return (numpy.arange(npixel) - npixel//2) / npixel
+    return (numpy.arange(npixel) - npixel // 2) / npixel
 
 
 def coordinates2(npixel: int):
@@ -53,7 +53,7 @@ def coordinates2(npixel: int):
     1. a step size of 2/npixel and
     2. (0,0) at pixel (floor(n/2),floor(n/2))
     """
-    return (numpy.mgrid[0:npixel,0:npixel] - npixel//2) / npixel
+    return (numpy.mgrid[0:npixel, 0:npixel] - npixel // 2) / npixel
 
 
 def coordinates2Offset(npixel: int, cx: int, cy: int):
@@ -65,11 +65,11 @@ def coordinates2Offset(npixel: int, cx: int, cy: int):
     2. (0,0) at pixel (cx, cy,floor(n/2))
     """
     if cx is None:
-        cx = npixel//2
+        cx = npixel // 2
     if cy is None:
-        cy = npixel//2
-    mg = numpy.mgrid[0:npixel,0:npixel]
-    return ((mg[0]-cy)/npixel, (mg[1]-cx)/npixel)
+        cy = npixel // 2
+    mg = numpy.mgrid[0:npixel, 0:npixel]
+    return ((mg[0] - cy) / npixel, (mg[1] - cx) / npixel)
 
 
 def anti_aliasing_transform(shape, oversampling=8, support=3, m=6, c=0.0):
@@ -132,7 +132,6 @@ def anti_aliasing_calculate(shape, oversampling=8, support=3):
             mx = range(xf, l1d, oversampling)[::-1]
             kernel4d[yf, xf, 2:, 2:] = numpy.outer(kernel1d[my], kernel1d[mx])
     return gcf, (kernel4d / kernel4d.max()).astype('complex')
-
 
 
 def grdsf(nu):
@@ -207,10 +206,10 @@ def w_beam(npixel, field_of_view, w, cx=None, cy=None, remove_shift=False):
     ph[n2 < 1.0] = w * (1 - numpy.sqrt(1.0 - r2[n2 < 1.0]))
     cp = numpy.zeros_like(n2, dtype='complex')
     cp[n2 < 1.0] = numpy.exp(-2j * numpy.pi * ph[n2 < 1.0])
-    cp[r2==0] = 1.0+0j
+    cp[r2 == 0] = 1.0 + 0j
     # Correct for linear phase shift in faceting
     if remove_shift:
-        cp /= cp[npixel//2, npixel//2]
+        cp /= cp[npixel // 2, npixel // 2]
     return cp
 
 
@@ -233,7 +232,7 @@ def kernel_oversample(ff, npixel, kernel_oversampling, kernelwidth):
     
     # Obtain oversampled uv-grid
     af = ifft(padff)
-
+    
     # Extract kernels
     res = [[extract_oversampled(af, x, y, kernel_oversampling, kernelwidth)
             for x in range(kernel_oversampling)]
@@ -257,7 +256,7 @@ def w_kernel(field_of_view, w, npixel_farfield, npixel_kernel, kernel_oversampli
     
     assert npixel_farfield > npixel_kernel or (npixel_farfield == npixel_kernel and kernel_oversampling == 1)
     gcf, _ = anti_aliasing_calculate((npixel_farfield, npixel_farfield), kernel_oversampling)
-    wbeamarray= w_beam(npixel_farfield, field_of_view, w, cx, cy, remove_shift=remove_shift) / gcf
+    wbeamarray = w_beam(npixel_farfield, field_of_view, w, cx, cy, remove_shift=remove_shift) / gcf
     return kernel_oversample(wbeamarray, npixel_farfield, kernel_oversampling, npixel_kernel)
 
 
@@ -273,14 +272,15 @@ def frac_coord(npixel, kernel_oversampling, p):
     :param kernel_oversampling: Fractional values to round to
     :param p: Coordinate in range [-.5,.5[
     """
-    assert numpy.array(p >= -0.5).all() and numpy.array(p < 0.5).all(), "Cellsize is too large: uv overflows grid uv= %s" % str(p)
+    assert numpy.array(p >= -0.5).all() and numpy.array(
+        p < 0.5).all(), "Cellsize is too large: uv overflows grid uv= %s" % str(p)
     x = npixel // 2 + p * npixel
     flx = numpy.floor(x + 0.5 / kernel_oversampling)
     fracx = numpy.around((x - flx) * kernel_oversampling)
     return flx.astype(int), fracx.astype(int)
 
 
-def convolutional_degrid(kernel_list, vshape, uvgrid, vuvwmap, vfrequencymap, vpolarisationmap):
+def convolutional_degrid(kernel_list, vshape, uvgrid, vuvwmap, vfrequencymap, vpolarisationmap=None):
     """Convolutional degridding with frequency and polarisation independent
 
     Takes into account fractional `uv` coordinate values where the GCF
@@ -299,15 +299,15 @@ def convolutional_degrid(kernel_list, vshape, uvgrid, vuvwmap, vfrequencymap, vp
     assert gh % 2 == 0, "Convolution kernel must have even number of pixels"
     assert gw % 2 == 0, "Convolution kernel must have even number of pixels"
     inchan, inpol, ny, nx = uvgrid.shape
-    vnpol = vshape[-1]
+    vnpol = vshape[1]
     nvis = vshape[0]
-    vis = numpy.zeros([nvis, vnpol], dtype='complex')
-    wt  = numpy.zeros([nvis, vnpol])
-
+    vis = numpy.zeros(vshape, dtype='complex')
+    wt = numpy.zeros(vshape)
+    
     # uvw -> fraction of grid mapping
-    y, yf = frac_coord(ny, kernel_oversampling, vuvwmap[:,1])
-    x, xf = frac_coord(nx, kernel_oversampling, vuvwmap[:,0])
-
+    y, yf = frac_coord(ny, kernel_oversampling, vuvwmap[:, 1])
+    x, xf = frac_coord(nx, kernel_oversampling, vuvwmap[:, 0])
+    
     # Now calculate slices for the footprint of each sample
     slicey = []
     slicex = []
@@ -315,59 +315,36 @@ def convolutional_degrid(kernel_list, vshape, uvgrid, vuvwmap, vfrequencymap, vp
         slicex.append(slice((xx - gw // 2), (xx + (gw + 1) // 2)))
     for yy in y:
         slicey.append(slice((yy - gh // 2), (yy + (gh + 1) // 2)))
-
-    coords = kernel_indices, list(vfrequencymap), xf, yf
-    for pol in range(vnpol):
-        vis[...,pol] = [
-            numpy.sum(uvgrid[ic, pol, sly, slx] *
-                      numpy.conjugate(kernels[kernel_index][yf, xf, :, :]))
-            for slx, sly, kernel_index, ic, xf, yf in zip(slicex, slicey, *coords)
+    
+    norm = numpy.sum(kernels[0][0, 0, :, :].real)
+    
+    if len(kernels) > 1:
+        coords = kernel_indices, list(vfrequencymap), xf, yf
+        for pol in range(vnpol):
+            vis[..., pol] = [
+                numpy.sum(uvgrid[ic, pol, sly, slx] * numpy.conjugate(kernels[kernel_index][yf, xf, :, :]))
+                for slx, sly, kernel_index, ic, xf, yf in zip(slicex, slicey, *coords)
             ]
-
-        wt[...,pol] = [
-            numpy.sum(kernels[kernel_index][yf, xf, :, :].real)
-            for kernel_index, ic, xf, yf in zip(*coords)
+    else:
+        # This is the usual case. We trim a bit of time by avoiding the kernel lookup
+        coords = list(vfrequencymap), xf, yf
+        for pol in range(vnpol):
+            vis[..., pol] = [
+                numpy.sum(uvgrid[ic, pol, sly, slx] * numpy.conjugate(kernels[0][yf, xf, :, :]))
+                for slx, sly, ic, xf, yf in zip(slicex, slicey, *coords)
             ]
-    vis[numpy.where(wt > 0)] = vis[numpy.where(wt > 0)] / wt[numpy.where(wt > 0)]
-    vis[numpy.where(wt < 0)] = 0.0
+    
+    vis = vis / norm
     return numpy.array(vis)
 
-def gridder(uvgrid, vis, xs, ys, kernel=numpy.ones((1,1)), kernel_ixs=None):
-    """Grids visibilities at given positions. Convolution kernels are selected per
-    visibility using ``kernel_ixs``.
 
-    :param uvgrid: Grid to update (two-dimensional :class:`complex` array)
-    :param vis: Visibility values (one-dimensional :class:`complex` array)
-    :param xs: Visibility position (one-dimensional :class:`int` array)
-    :param ys: Visibility values (one-dimensional :class:`int` array)
-    :param kernel: Convolution kernel (minimum two-dimensional :class:`complex` array).
-      If the kernel has more than two dimensions, additional indices must be passed
-      in ``kernel_ixs``. Default: Fixed one-pixel kernel with value 1.
-    :param kernel_ixs: Map of visibilities to kernel indices (maximum two-dimensional :class:`int` array).
-      Can be omitted if ``kernel`` requires no indices, and can be one-dimensional
-      if only one index is needed to identify kernels
-    """
-
-    if kernel_ixs is None:
-        kernel_ixs = numpy.zeros((len(vis),0))
-    else:
-        kernel_ixs = numpy.array(kernel_ixs)
-        if len(kernel_ixs.shape) == 1:
-            kernel_ixs = kernel_ixs.reshape(len(kernel_ixs), 1)
-
-    gh, gw = kernel.shape[-2:]
-    for v, x, y, kern_ix in zip(vis, xs, ys, kernel_ixs):
-        uvgrid[y:y+gh, x:x+gw] += kernel[tuple(kern_ix)] * v
-
-
-def convolutional_grid(kernel_list, uvgrid, vis, visweights, vuvwmap, vfrequencymap, vpolarisationmap):
+def convolutional_grid(kernel_list, uvgrid, vis, visweights, vuvwmap, vfrequencymap, vpolarisationmap=None):
     """Grid after convolving with frequency and polarisation independent gcf
 
-    Takes into account fractional `uv` coordinate values where the GCF
-    is oversampled
+    Takes into account fractional `uv` coordinate values where the GCF is oversampled
 
-    :param kernels: List of versampled convolution kernels
-    :param uvgrid: Grid to add to
+    :param kernels: List of oversampled convolution kernels
+    :param uvgrid: Grid to add to [nchan, npol, npixel, npixel]
     :param vis: Visibility values
     :param visweights: Visibility weights
     :param vuvwmap: map uvw to grid fractions
@@ -381,7 +358,7 @@ def convolutional_grid(kernel_list, uvgrid, vis, visweights, vuvwmap, vfrequency
     assert gh % 2 == 0, "Convolution kernel must have even number of pixels"
     assert gw % 2 == 0, "Convolution kernel must have even number of pixels"
     inchan, inpol, ny, nx = uvgrid.shape
-
+    
     # Construct output grids (in uv space)
     sumwt = numpy.zeros([inchan, inpol])
     
@@ -390,8 +367,8 @@ def convolutional_grid(kernel_list, uvgrid, vis, visweights, vuvwmap, vfrequency
     # select a generator and then instantiate it by making it into
     # a list, and finally use the values. This defers filling out
     # the arrays until they are needed.
-    y, yf = frac_coord(ny, kernel_oversampling, vuvwmap[:,1])
-    x, xf = frac_coord(nx, kernel_oversampling, vuvwmap[:,0])
+    y, yf = frac_coord(ny, kernel_oversampling, vuvwmap[:, 1])
+    x, xf = frac_coord(nx, kernel_oversampling, vuvwmap[:, 0])
     
     # Construct all the slices that we will need: trade off memory to
     # simplify loop
@@ -401,24 +378,27 @@ def convolutional_grid(kernel_list, uvgrid, vis, visweights, vuvwmap, vfrequency
         slicex.append(slice((xx - gw // 2), (xx + (gw + 1) // 2)))
     for yy in y:
         slicey.append(slice((yy - gh // 2), (yy + (gh + 1) // 2)))
-        
-    # Now we can loop over all rows
-    wts = visweights[...]
-    viswt = vis[...] * visweights[...]
     
     npol = vis.shape[-1]
     
-    # About 57k samples per second for standard kernel so about 2.5 million CMACs per second
+    # smpsol = numpy.einsum("smn,smxy->snxy", ihsmmpsf, smresidual)
+    # About 228k samples per second for standard kernel so about 10 million CMACs per second
+    
+    norm = numpy.sum(kernels[0][0, 0, :, :].real)
+    # Now we can loop over all rows
+    wts = visweights[...] * norm
+    viswt = vis[...] * visweights[...]
+    
     coords = kernel_indices, list(vfrequencymap), xf, yf
     for pol in range(npol):
-        for v, vwt, slx, sly, kind, ic,  xf, yf in zip(viswt[...,pol], wts[...,pol], slicex,  slicey, *coords):
+        for v, vwt, slx, sly, kind, ic, xf, yf in zip(viswt[..., pol], wts[..., pol], slicex, slicey, *coords):
             uvgrid[ic, pol, sly, slx] += kernels[kind][yf, xf, :, :] * v
-            sumwt[ic, pol] += numpy.sum(kernels[kind][yf, xf, :, :].real * vwt)
-
+            sumwt[ic, pol] += vwt
+    
     return uvgrid, sumwt
 
 
-def weight_gridding(shape, visweights, vuvwmap, vfrequencymap, vpolarisationmap, weighting='uniform'):
+def weight_gridding(shape, visweights, vuvwmap, vfrequencymap, vpolarisationmap=None, weighting='uniform'):
     """Reweight data using one of a number of algorithms
 
     :param shape:
@@ -443,12 +423,40 @@ def weight_gridding(shape, visweights, vuvwmap, vfrequencymap, vpolarisationmap,
         for pol in range(inpol):
             for vwt, ic, x, y in zip(wts, *coords):
                 densitygrid[ic, pol, y, x] += vwt[..., pol]
-    
+        
         # Normalise each visibility weight to sum to one in a grid cell
         newvisweights = numpy.zeros_like(visweights)
         for pol in range(inpol):
             density[..., pol] += [densitygrid[ic, pol, x, y] for ic, x, y in zip(*coords)]
-        newvisweights[density>0.0] = visweights[density>0.0]/density[density>0.0]
+        newvisweights[density > 0.0] = visweights[density > 0.0] / density[density > 0.0]
         return newvisweights, density, densitygrid
     else:
         return visweights, None, None
+
+
+def gridder(uvgrid, vis, xs, ys, kernel=numpy.ones((1, 1)), kernel_ixs=None):
+    """Grids visibilities at given positions. Convolution kernels are selected per
+    visibility using ``kernel_ixs``.
+
+    :param uvgrid: Grid to update (two-dimensional :class:`complex` array)
+    :param vis: Visibility values (one-dimensional :class:`complex` array)
+    :param xs: Visibility position (one-dimensional :class:`int` array)
+    :param ys: Visibility values (one-dimensional :class:`int` array)
+    :param kernel: Convolution kernel (minimum two-dimensional :class:`complex` array).
+      If the kernel has more than two dimensions, additional indices must be passed
+      in ``kernel_ixs``. Default: Fixed one-pixel kernel with value 1.
+    :param kernel_ixs: Map of visibilities to kernel indices (maximum two-dimensional :class:`int` array).
+      Can be omitted if ``kernel`` requires no indices, and can be one-dimensional
+      if only one index is needed to identify kernels
+    """
+    
+    if kernel_ixs is None:
+        kernel_ixs = numpy.zeros((len(vis), 0))
+    else:
+        kernel_ixs = numpy.array(kernel_ixs)
+        if len(kernel_ixs.shape) == 1:
+            kernel_ixs = kernel_ixs.reshape(len(kernel_ixs), 1)
+    
+    gh, gw = kernel.shape[-2:]
+    for v, x, y, kern_ix in zip(vis, xs, ys, kernel_ixs):
+        uvgrid[y:y + gh, x:x + gw] += kernel[tuple(kern_ix)] * v

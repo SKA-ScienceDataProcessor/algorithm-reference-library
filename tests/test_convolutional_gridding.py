@@ -57,10 +57,9 @@ class TestConvolutionalGridding(unittest.TestCase):
         self.assertAlmostEqualScalar(w_beam(10, 0.1, 100)[5, 5], 1)
         self.assertAlmostEqualScalar(w_beam(11, 0.1, 1000)[5, 5], 1)
     
-    @unittest.skip("Test not consistent with actual use")
     def test_kernel_oversampled_subgrid(self):
         # Oversampling should produce the same values where sub-grids overlap
-        for npixel in range(3, 30):
+        for npixel in range(4, 30, 2):
             pat = self._test_pattern(npixel)
             kern = kernel_oversample(pat, npixel, 1, npixel - 2)
             kern2 = kernel_oversample(pat, npixel, 2, npixel - 2)
@@ -83,21 +82,17 @@ class TestConvolutionalGridding(unittest.TestCase):
         k2 = kernel_oversample(4 * wff, npixel * 2, 1, npixel)
         assert_allclose(k, k2)
     
-    @unittest.skip("Test not consistent with actual use")
     def test_w_kernel_normalisation(self):
         # Test w-kernel normalisation.
         for kernel_oversampling in [4, 5, 6]:
-            for npixel in [3, 5, 9, 16, 20, 24, 32, 64]:
+            for npixel in [16, 20, 24, 32, 64]:
                 k = kernel_oversample(w_beam(npixel + 2, 0.1, npixel * 10), npixel + 2,
                                       kernel_oversampling, npixel)
                 assert_allclose(numpy.sum(k), kernel_oversampling ** 2, rtol=0.07)
 
-    @unittest.skip("Update to visibility")
     def test_convolutional_grid(self):
-        shape = (7, 7)
         npixel = 256
-        kernel_oversampling = 16
-        nvis = 100
+        nvis = 1000
         nchan = 1
         npol = 4
         uvgrid = numpy.zeros([nchan, npol, npixel, npixel], dtype='complex')
@@ -108,31 +103,35 @@ class TestConvolutionalGridding(unittest.TestCase):
         uvcoords = numpy.array([[random.uniform(-0.25, 0.25), random.uniform(-0.25, 0.25)] for ivis in range(nvis)])
         # Make some visibilities, all complex unity
         vis = numpy.ones([nvis, nchan, npol], dtype='complex')
-        visweights = numpy.ones([nchan, npol, nvis])
-        uvscale = numpy.ones([2,1])
-        convolutional_grid([kernel], uvgrid, uvcoords, uvscale, vis, visweights)
+        visweights = numpy.ones([nvis, nchan, npol])
+        kernels = (numpy.zeros([nvis], dtype='int'), [kernel])
+        frequencymap=numpy.zeros([nvis], dtype='int')
+        # On my laptop the following takes about 14 seconds for 4M points so about 3.5 us per sample
+        uvgrid, sumwt=convolutional_grid(kernels, uvgrid, vis, visweights, uvcoords, frequencymap)
+        assert numpy.sum(sumwt) > 0.0
+        assert uvgrid.shape[0] == nchan
+        assert uvgrid.shape[1] == npol
+        assert uvgrid.shape[2] == npixel
+        assert uvgrid.shape[3] == npixel
 
-    @unittest.skip("Update to visibility")
     def test_convolutional_degrid(self):
-        shape = (7, 7)
         npixel = 256
-        kernel_oversampling = 16
-        nvis = 100
+        nvis = 1000
         nchan = 1
         npol = 4
         uvgrid = numpy.ones([nchan, npol, npixel, npixel], dtype='complex')
         gcf, kernel = anti_aliasing_transform((npixel, npixel), 8)
-        # gcf has shape [kernel_oversampling, kernel_oversampling, npixel, npixel] The fractional
+        # kernel has shape [kernel_oversampling, kernel_oversampling, npixel, npixel] The fractional
         # part of the coordinate maps onto the first two axes.
         # Make some uv coordinates with random locations
         uvcoords = numpy.array([[random.uniform(-0.25, 0.25), random.uniform(-0.25, 0.25)] for ivis in range(nvis)])
-        # Degrid the visibilities
-        uvscale = numpy.ones([2,1])
-        vshape = [nvis, nchan, npol]
-        vis = convolutional_degrid(kernel, vshape, uvgrid, uvcoords, uvscale)
+        vshape=[nvis, npol]
+        kernels = (numpy.zeros([nvis], dtype='int'), [kernel])
+        frequencymap=numpy.zeros([nvis], dtype='int')
+
+        vis = convolutional_degrid(kernels, vshape, uvgrid, uvcoords, frequencymap)
         assert vis.shape[0] == nvis
-        assert vis.shape[1] == nchan
-        assert vis.shape[2] == npol
+        assert vis.shape[1] == npol
 
 
 if __name__ == '__main__':

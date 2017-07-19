@@ -183,7 +183,7 @@ class TestImaging(unittest.TestCase):
     
     def test_predict_facets(self):
         self.actualSetUp()
-        self._predict_base(predict_facets, fluxthreshold=1e-7)
+        self._predict_base(predict_facets, fluxthreshold=0.01)
     
     def test_predict_timeslice(self):
         # This works poorly because of the poor interpolation accuracy for point sources. The corresponding
