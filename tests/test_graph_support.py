@@ -11,9 +11,9 @@ from astropy import units as u
 from astropy.coordinates import SkyCoord
 
 from arl.data.data_models import BlockVisibility
-from arl.util.dask_graph_support import create_simulate_vis_graph, create_corrupt_vis_graph, \
+from arl.util.graph_support import create_simulate_vis_graph, create_corrupt_vis_graph, \
     create_load_vis_graph, create_dump_vis_graph, create_predict_gleam_model_graph, create_gleam_model_graph
-from arl.graphs.dask_graphs import create_predict_wstack_graph
+from arl.graphs.graphs import create_predict_wstack_graph
 from arl.image.operations import qa_image
 
 log = logging.getLogger(__name__)

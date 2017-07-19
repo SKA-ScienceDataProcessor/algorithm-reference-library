@@ -241,10 +241,10 @@ Coordinate Support
 .. automodule:: arl.util.coordinate_support
    :members:
 
-Dask graph support
-++++++++++++++++++
+Graph support
++++++++++++++
 
-.. automodule:: arl.util.dask_graph_support
+.. automodule:: arl.util.graph_support
    :members:
 
 Quality assessment
@@ -271,13 +271,13 @@ Graphs
 Dask Graphs
 +++++++++++
 
-.. automodule:: arl.graphs.dask_graphs
+.. automodule:: arl.graphs.graphs
    :members:
 
 Generic Dask Graphs
 +++++++++++++++++++
 
-.. automodule:: arl.graphs.generic_dask_graphs
+.. automodule:: arl.graphs.generic_graphs
    :members:
 
 Dask init
@@ -298,7 +298,7 @@ Pipelines
 Pipeline Graphs
 +++++++++++++++
 
-.. automodule:: arl.pipelines.pipeline_dask_graphs
+.. automodule:: arl.pipelines.graphs
    :members:
 
 Functions
@@ -353,7 +353,15 @@ Unit tests written in standard python style are available.
    :members:
    :undoc-members:
 
-.. automodule:: tests.test_generic_dask
+.. automodule:: tests.test_generic_graph
+   :members:
+   :undoc-members:
+
+.. automodule:: tests.test_graph_support
+   :members:
+   :undoc-members:
+
+.. automodule:: tests.test_graphs
    :members:
    :undoc-members:
 
@@ -401,7 +409,7 @@ Unit tests written in standard python style are available.
    :members:
    :undoc-members:
 
-.. automodule:: tests.test_pipelines_dask
+.. automodule:: tests.test_pipelines_graphs
    :members:
    :undoc-members:
 

@@ -7,8 +7,8 @@ from dask import delayed
 
 from arl.data.parameters import get_parameter
 from arl.image.deconvolution import restore_cube
-from arl.graphs.dask_graphs import create_deconvolve_graph, create_invert_graph, create_residual_graph, \
-    create_selfcal_graph_list, create_predict_graph
+from arl.graphs.graphs import create_deconvolve_graph, create_invert_graph, create_residual_graph, \
+    create_selfcal_graph_list, create_predict_graph, create_selfcal_point_graph_list
 
 def create_continuum_imaging_pipeline_graph(vis_graph_list: List[delayed], model_graph: delayed,
                                             c_deconvolve_graph=create_deconvolve_graph,
@@ -69,6 +69,7 @@ def create_ical_pipeline_graph(vis_graph_list: List[delayed], model_graph: delay
                                c_deconvolve_graph=create_deconvolve_graph,
                                c_invert_graph=create_invert_graph,
                                c_residual_graph=create_residual_graph,
+                               c_selfcal_graph=create_selfcal_point_graph_list,
                                first_selfcal=None, **kwargs) -> delayed:
     """Create graph for ICAL pipeline
     
@@ -76,14 +77,14 @@ def create_ical_pipeline_graph(vis_graph_list: List[delayed], model_graph: delay
     :param model_graph:
     :param c_deconvolve_graph: Default: create_deconvolve_graph
     :param c_invert_graph: Default: create_invert_graph,
-    :param c_residual_graph: Default: Default: create_residual graph
+    :param c_residual_graph: Default: Default: create_residual_graph
     :param kwargs: Parameters for functions in graphs
     :return:
     """
     psf_graph = c_invert_graph(vis_graph_list, model_graph, dopsf=True, **kwargs)
     
     if first_selfcal is not None and first_selfcal == 0:
-        vis_graph_list = create_selfcal_graph_list(vis_graph_list, model_graph, **kwargs)
+        vis_graph_list = c_selfcal_graph(vis_graph_list, model_graph, **kwargs)
     residual_graph = c_residual_graph(vis_graph_list, model_graph, **kwargs)
     deconvolve_model_graph = c_deconvolve_graph(residual_graph, psf_graph, model_graph, **kwargs)
     
@@ -91,7 +92,7 @@ def create_ical_pipeline_graph(vis_graph_list: List[delayed], model_graph: delay
     if nmajor > 1:
         for cycle in range(nmajor):
             if first_selfcal is not None and cycle >= first_selfcal:
-                vis_graph_list = create_selfcal_graph_list(vis_graph_list,
+                vis_graph_list = c_selfcal_graph(vis_graph_list,
                                                            deconvolve_model_graph, **kwargs)
             residual_graph = c_residual_graph(vis_graph_list, deconvolve_model_graph, **kwargs)
             

@@ -9,8 +9,8 @@ from dask import delayed
 from arl.calibration.operations import apply_gaintable, create_gaintable_from_blockvisibility
 from arl.data.persist import arl_dump, arl_load
 from arl.data.polarisation import PolarisationFrame
-from arl.graphs.dask_graphs import create_predict_wstack_graph
-from arl.graphs.generic_dask_graphs import create_generic_image_graph
+from arl.graphs.graphs import create_predict_wstack_graph
+from arl.graphs.generic_graphs import create_generic_image_graph
 from arl.util.testing_support import create_named_configuration, simulate_gaintable, \
     create_low_test_image_from_gleam, create_low_test_beam
 from arl.visibility.operations import create_blockvisibility

@@ -74,10 +74,11 @@ def solve_gaintable(vis: BlockVisibility, modelvis: BlockVisibility=None, phase_
 
 def solve_from_X(gt: GainTable, x: numpy.ndarray, xwt: numpy.ndarray, chunk, crosspol, niter, phase_only, tol, npol) \
         -> GainTable:
-    """ Solve for gains from the point source equivavlents
-   :param x:
-    :param xwt:
-    :param chunk:
+    """ Solve for gains from the point source equivalents
+
+    :param x: point source visibility
+    :param xwt: point source weight
+    :param chunk: which chunk of the gaintable?
     :param crosspol:
     :param niter:
     :param phase_only:

@@ -19,7 +19,7 @@ from arl.data.polarisation import PolarisationFrame
 from arl.imaging import predict_skycomponent_blockvisibility
 from arl.skycomponent.operations import create_skycomponent
 from arl.util.testing_support import create_named_configuration, create_test_image
-from arl.graphs.generic_dask_graphs import create_generic_blockvisibility_graph, create_generic_image_graph, \
+from arl.graphs.generic_graphs import create_generic_blockvisibility_graph, create_generic_image_graph, \
     create_generic_image_iterator_graph
 from arl.image.iterators import raster_iter
 from arl.visibility.operations import create_blockvisibility

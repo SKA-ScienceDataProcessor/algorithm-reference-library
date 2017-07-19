@@ -14,20 +14,17 @@ from dask import delayed
 
 from arl.calibration.operations import apply_gaintable, create_gaintable_from_blockvisibility, qa_gaintable
 from arl.data.polarisation import PolarisationFrame
-from arl.graphs.dask_graphs import create_invert_facet_graph, create_predict_facet_graph, \
+from arl.graphs.graphs import create_invert_facet_graph, create_predict_facet_graph, \
     create_zero_vis_graph_list, create_subtract_vis_graph_list, create_deconvolve_facet_graph, \
     create_invert_wstack_graph, create_residual_wstack_graph, create_predict_wstack_graph, \
     create_predict_graph, create_invert_graph, create_residual_facet_graph, create_residual_facet_wstack_graph, \
-    create_predict_facet_wstack_graph, create_invert_facet_wstack_graph, create_selfcal_graph_list, \
-    create_selfcal_point_graph_list
+    create_predict_facet_wstack_graph, create_invert_facet_wstack_graph, create_selfcal_graph_list
 from arl.image.operations import qa_image, export_image_to_fits, copy_image
 from arl.imaging import create_image_from_visibility, predict_skycomponent_blockvisibility, \
     invert_wstack_single, predict_wstack_single
 from arl.skycomponent.operations import create_skycomponent, insert_skycomponent
 from arl.util.testing_support import create_named_configuration, simulate_gaintable
-from arl.visibility.operations import create_blockvisibility
-from arl.visibility.operations import qa_visibility
-
+from arl.visibility.operations import create_blockvisibility, qa_visibility
 
 class TestDaskGraphs(unittest.TestCase):
     def setUp(self):
@@ -88,7 +85,7 @@ class TestDaskGraphs(unittest.TestCase):
         predict_skycomponent_blockvisibility(vt, comps)
         insert_skycomponent(model, comps)
         self.actualmodel = copy_image(model)
-        export_image_to_fits(model, '%s/test_imaging_dask_model.fits' % (self.results_dir))
+        export_image_to_fits(model, '%s/test_imaging_model.fits' % (self.results_dir))
         if add_errors:
             # These will be the same for all calls
             numpy.random.seed(180555)
@@ -180,7 +177,7 @@ class TestDaskGraphs(unittest.TestCase):
                                           kernel='wprojection', wstep=10.0)
         
         dirty = dirty_graph.compute()
-        export_image_to_fits(dirty[0], '%s/test_imaging_dask_invert_graph_wprojection_dirty.fits' % (self.results_dir))
+        export_image_to_fits(dirty[0], '%s/test_imaging_invert_graph_wprojection_dirty.fits' % (self.results_dir))
         qa = qa_image(dirty[0])
         
         assert numpy.abs(qa.data['max'] - 103.3) < 1.0, str(qa)
@@ -192,7 +189,7 @@ class TestDaskGraphs(unittest.TestCase):
                                                 dopsf=False, normalize=True, facets=4)
         
         dirty = dirty_graph.compute()
-        export_image_to_fits(dirty[0], '%s/test_imaging_dask_invert_facet_dirty.fits' % (self.results_dir))
+        export_image_to_fits(dirty[0], '%s/test_imaging_invert_facet_dirty.fits' % (self.results_dir))
         qa = qa_image(dirty[0])
         
         assert numpy.abs(qa.data['max'] - 104.0) < 1.0, str(qa)
@@ -205,7 +202,7 @@ class TestDaskGraphs(unittest.TestCase):
                                                  vis_slices=self.vis_slices)
         
         dirty = dirty_graph.compute()
-        export_image_to_fits(dirty[0], '%s/test_imaging_dask_invert_wstack_dirty.fits' % (self.results_dir))
+        export_image_to_fits(dirty[0], '%s/test_imaging_invert_wstack_dirty.fits' % (self.results_dir))
         qa = qa_image(dirty[0])
         
         assert numpy.abs(qa.data['max'] - 104.0) < 1.0, str(qa)
@@ -218,7 +215,7 @@ class TestDaskGraphs(unittest.TestCase):
                                                        vis_slices=self.vis_slices, facets=4)
         
         dirty = dirty_graph.compute()
-        export_image_to_fits(dirty[0], '%s/test_imaging_dask_invert_wstack_dirty.fits' % (self.results_dir))
+        export_image_to_fits(dirty[0], '%s/test_imaging_invert_wstack_dirty.fits' % (self.results_dir))
         qa = qa_image(dirty[0])
         
         assert numpy.abs(qa.data['max'] - 104.0) < 1.0, str(qa)
@@ -231,7 +228,7 @@ class TestDaskGraphs(unittest.TestCase):
                                                  kernel='wprojection')
         
         dirty = dirty_graph.compute()
-        export_image_to_fits(dirty[0], '%s/test_imaging_dask_invert_wstack_wprojection_dirty.fits' % (self.results_dir))
+        export_image_to_fits(dirty[0], '%s/test_imaging_invert_wstack_wprojection_dirty.fits' % (self.results_dir))
         qa = qa_image(dirty[0])
         
         assert numpy.abs(qa.data['max'] - 104.6) < 1.0, str(qa)
@@ -246,7 +243,7 @@ class TestDaskGraphs(unittest.TestCase):
                                                   facets=self.facets)
         
         dirty = dirty_graph.compute()
-        export_image_to_fits(dirty[0], '%s/test_imaging_dask_residual_facet%d.fits' %
+        export_image_to_fits(dirty[0], '%s/test_imaging_residual_facet%d.fits' %
                              (self.results_dir, self.facets))
         
         qa = qa_image(dirty[0])
@@ -263,7 +260,7 @@ class TestDaskGraphs(unittest.TestCase):
                                                    vis_slices=self.vis_slices)
         
         dirty = dirty_graph.compute()
-        export_image_to_fits(dirty[0], '%s/test_imaging_dask_residual_wstack_slices%d.fits' %
+        export_image_to_fits(dirty[0], '%s/test_imaging_residual_wstack_slices%d.fits' %
                              (self.results_dir, self.vis_slices))
         
         qa = qa_image(dirty[0])
@@ -280,7 +277,7 @@ class TestDaskGraphs(unittest.TestCase):
                                                          facets=4, vis_slices=self.vis_slices)
         
         dirty = dirty_graph.compute()
-        export_image_to_fits(dirty[0], '%s/test_imaging_dask_residual_wstack_slices%d.fits' %
+        export_image_to_fits(dirty[0], '%s/test_imaging_residual_wstack_slices%d.fits' %
                              (self.results_dir, self.vis_slices))
         
         qa = qa_image(dirty[0])
@@ -296,7 +293,7 @@ class TestDaskGraphs(unittest.TestCase):
                                                    kernel='wprojection', vis_slices=11, wstep=10.0)
         
         dirty = dirty_graph.compute()
-        export_image_to_fits(dirty[0], '%s/test_imaging_dask_residual_wprojection.fits' %
+        export_image_to_fits(dirty[0], '%s/test_imaging_residual_wprojection.fits' %
                              (self.results_dir))
         
         qa = qa_image(dirty[0])
@@ -322,7 +319,7 @@ class TestDaskGraphs(unittest.TestCase):
                                                     gain=0.1, facets=facets)
         result = clean_graph.compute()
         
-        export_image_to_fits(result, '%s/test_imaging_dask_deconvolution_facets%d.clean.fits' %
+        export_image_to_fits(result, '%s/test_imaging_deconvolution_facets%d.clean.fits' %
                              (self.results_dir, facets))
         
         qa = qa_image(result)
@@ -330,59 +327,41 @@ class TestDaskGraphs(unittest.TestCase):
         assert numpy.abs(qa.data['max'] - 106) < 1.0, str(qa)
         assert numpy.abs(qa.data['min'] + 6) < 1.0, str(qa)
     
-    def test_selfcal_graph(self):
-        
+    def test_selfcal_global_graph(self):
+    
         corrupted_vis_graph_list = self.setupVis(add_errors=True)
-        
+    
+        selfcal_vis_graph_list = create_selfcal_graph_list(corrupted_vis_graph_list,
+                                                           delayed(self.actualmodel),
+                                                           global_solution=True,
+                                                           vis_slices=self.vis_slices)
+
+        dirty_graph = create_invert_wstack_graph(selfcal_vis_graph_list, self.model_graph,
+                                                 dopsf=False, normalize=True,
+                                                 vis_slices=self.vis_slices)
+
+        dirty = dirty_graph.compute()
+        export_image_to_fits(dirty[0], '%s/test_imaging_graphs_global_selfcal_dirty.fits' % (self.results_dir))
+        qa = qa_image(dirty[0])
+    
+        assert numpy.abs(qa.data['max'] - 103.7) < 1.0, str(qa)
+        assert numpy.abs(qa.data['min'] + 5.4) < 1.0, str(qa)
+
+    def test_selfcal_nonglobal_graph(self):
+    
+        corrupted_vis_graph_list = self.setupVis(add_errors=True)
+    
         selfcal_vis_graph_list = create_selfcal_graph_list(corrupted_vis_graph_list,
                                                            delayed(self.actualmodel),
                                                            global_solution=False,
                                                            vis_slices=self.vis_slices)
-        
+
         dirty_graph = create_invert_wstack_graph(selfcal_vis_graph_list, self.model_graph,
                                                  dopsf=False, normalize=True,
                                                  vis_slices=self.vis_slices)
-        
-        dirty = dirty_graph.compute()
-        export_image_to_fits(dirty[0], '%s/test_imaging_dask_graphs_selfcal_dirty.fits' % (self.results_dir))
-        qa = qa_image(dirty[0])
-        
-        assert numpy.abs(qa.data['max'] - 103.7) < 1.0, str(qa)
-        assert numpy.abs(qa.data['min'] + 5.4) < 1.0, str(qa)
 
-    def test_global_selfcal_graph(self):
-    
-        corrupted_vis_graph_list = self.setupVis(add_errors=True)
-    
-        selfcal_vis_graph_list = create_selfcal_graph_list(corrupted_vis_graph_list,
-                                                           delayed(self.actualmodel),
-                                                           global_solution=True,
-                                                           vis_slices=self.vis_slices)
-    
-        dirty_graph = create_invert_graph(selfcal_vis_graph_list, self.model_graph,
-                                          dopsf=False, normalize=True,
-                                          vis_slices=self.vis_slices)
         dirty = dirty_graph.compute()
-        export_image_to_fits(dirty[0], '%s/test_imaging_dask_graphs_global_selfcal_dirty.fits' % (self.results_dir))
-        qa = qa_image(dirty[0])
-    
-        assert numpy.abs(qa.data['max'] - 103.7) < 1.0, str(qa)
-        assert numpy.abs(qa.data['min'] + 5.4) < 1.0, str(qa)
-
-    def test_selfcal_point_graph(self):
-    
-        corrupted_vis_graph_list = self.setupVis(add_errors=True)
-    
-        selfcal_vis_graph_list = create_selfcal_point_graph_list(corrupted_vis_graph_list,
-                                                           delayed(self.actualmodel),
-                                                           global_solution=True,
-                                                           vis_slices=self.vis_slices)
-    
-        dirty_graph = create_invert_graph(selfcal_vis_graph_list, self.model_graph,
-                                          dopsf=False, normalize=True,
-                                          vis_slices=self.vis_slices)
-        dirty = dirty_graph.compute()
-        export_image_to_fits(dirty[0], '%s/test_imaging_dask_graphs_point_selfcal_dirty.fits' % (self.results_dir))
+        export_image_to_fits(dirty[0], '%s/test_imaging_graphs_nonglobal_selfcal_dirty.fits' % (self.results_dir))
         qa = qa_image(dirty[0])
     
         assert numpy.abs(qa.data['max'] - 103.7) < 1.0, str(qa)

@@ -15,10 +15,10 @@ from dask import delayed
 
 from arl.calibration.operations import apply_gaintable, create_gaintable_from_blockvisibility
 from arl.data.polarisation import PolarisationFrame
-from arl.graphs.dask_graphs import create_deconvolve_facet_graph, create_invert_wstack_graph, \
-    create_residual_wstack_graph
+from arl.graphs.graphs import create_deconvolve_facet_graph, create_invert_wstack_graph, \
+    create_residual_wstack_graph, create_selfcal_graph_list, create_selfcal_point_graph_list
 from arl.image.operations import qa_image, export_image_to_fits
-from arl.pipelines.pipeline_dask_graphs import create_continuum_imaging_pipeline_graph, \
+from arl.pipelines.graphs import create_continuum_imaging_pipeline_graph, \
     create_ical_pipeline_graph
 from arl.skycomponent.operations import create_skycomponent, insert_skycomponent
 from arl.util.testing_support import create_named_configuration, simulate_gaintable
@@ -37,7 +37,7 @@ class TestImagingDask(unittest.TestCase):
         self.predict = predict_wstack_single
         
         self.npixel = 256
-        self.facets = 2
+        self.facets = 4
         
         self.setupVis(add_errors=False)
         self.model_graph = delayed(self.get_LSM)(self.vis_graph_list[self.nvis // 2], npixel=self.npixel)
@@ -84,9 +84,10 @@ class TestImagingDask(unittest.TestCase):
                                                  polarisation_frame=PolarisationFrame("stokesI")))
         predict_skycomponent_blockvisibility(vt, comps)
         insert_skycomponent(model, comps)
-        export_image_to_fits(model, '%s/test_pipelines_dask_model.fits' % (self.results_dir))
+        export_image_to_fits(model, '%s/test_pipelines_model.fits' % (self.results_dir))
         
         if add_errors:
+            # These will be the same for all calls
             numpy.random.seed(180555)
             gt = create_gaintable_from_blockvisibility(vt)
             gt = simulate_gaintable(gt, phase_error=1.0, amplitude_error=0.0)
@@ -110,11 +111,11 @@ class TestImagingDask(unittest.TestCase):
                                                     niter=1000, fractional_threshold=0.1,
                                                     threshold=2.0, nmajor=3, gain=0.1)
         clean, residual, restored = continuum_imaging_graph.compute()
-        export_image_to_fits(clean, '%s/test_pipelines_dask_continuum_imaging_pipeline_clean.fits' % (self.results_dir))
+        export_image_to_fits(clean, '%s/test_pipelines_continuum_imaging_pipeline_clean.fits' % (self.results_dir))
         export_image_to_fits(residual[0],
-                             '%s/test_pipelines_dask_continuum_imaging_pipeline_residual.fits' % (self.results_dir))
+                             '%s/test_pipelines_continuum_imaging_pipeline_residual.fits' % (self.results_dir))
         export_image_to_fits(restored,
-                             '%s/test_pipelines_dask_continuum_imaging_pipeline_restored.fits' % (self.results_dir))
+                             '%s/test_pipelines_continuum_imaging_pipeline_restored.fits' % (self.results_dir))
         
         qa = qa_image(restored)
         assert numpy.abs(qa.data['max'] - 100.0) < 5.0, str(qa)
@@ -127,13 +128,15 @@ class TestImagingDask(unittest.TestCase):
                                        c_deconvolve_graph=create_deconvolve_facet_graph,
                                        c_invert_graph=create_invert_wstack_graph,
                                        c_residual_graph=create_residual_wstack_graph,
+                                       c_selfcal_graph=create_selfcal_point_graph_list,
+                                       global_solution=True,
                                        vis_slices=self.vis_slices, facets=2,
                                        niter=1000, fractional_threshold=0.1,
                                        threshold=2.0, nmajor=5, gain=0.1, first_selfcal=1)
         clean, residual, restored = ical_graph.compute()
-        export_image_to_fits(clean, '%s/test_pipelines_dask_ical_pipeline_clean.fits' % (self.results_dir))
-        export_image_to_fits(residual[0], '%s/test_pipelines_dask_ical_pipeline_residual.fits' % (self.results_dir))
-        export_image_to_fits(restored, '%s/test_pipelines_dask_ical_pipeline_restored.fits' % (self.results_dir))
+        export_image_to_fits(clean, '%s/test_pipelines_ical_pipeline_clean.fits' % (self.results_dir))
+        export_image_to_fits(residual[0], '%s/test_pipelines_ical_pipeline_residual.fits' % (self.results_dir))
+        export_image_to_fits(restored, '%s/test_pipelines_ical_pipeline_restored.fits' % (self.results_dir))
         
         qa = qa_image(restored)
         assert numpy.abs(qa.data['max'] - 100.0) < 5.0, str(qa)
