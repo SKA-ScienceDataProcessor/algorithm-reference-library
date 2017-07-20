@@ -16,7 +16,7 @@ from arl.image.deconvolution import restore_cube
 from arl.image.operations import export_image_to_fits
 from arl.image.solvers import solve_image
 from arl.util.testing_support import create_test_image, create_named_configuration
-from arl.visibility.operations import create_visibility
+from arl.visibility.base import create_visibility
 from arl.imaging import invert_2d, predict_2d, create_image_from_visibility
 
 log = logging.getLogger(__name__)

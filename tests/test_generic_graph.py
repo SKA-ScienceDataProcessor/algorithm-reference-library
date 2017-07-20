@@ -22,7 +22,7 @@ from arl.util.testing_support import create_named_configuration, create_test_ima
 from arl.graphs.generic_graphs import create_generic_blockvisibility_graph, create_generic_image_graph, \
     create_generic_image_iterator_graph
 from arl.image.iterators import raster_iter
-from arl.visibility.operations import create_blockvisibility
+from arl.visibility.base import create_blockvisibility
 
 
 class TestPipelinesGenericDask(unittest.TestCase):

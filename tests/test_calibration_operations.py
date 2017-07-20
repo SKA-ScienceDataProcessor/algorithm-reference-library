@@ -14,7 +14,7 @@ from arl.calibration.operations import gaintable_summary, apply_gaintable, creat
 from arl.data.data_models import Skycomponent
 from arl.data.polarisation import PolarisationFrame
 from arl.util.testing_support import create_named_configuration, simulate_gaintable
-from arl.visibility.operations import create_blockvisibility, copy_visibility
+from arl.visibility.base import copy_visibility, create_blockvisibility
 from arl.imaging import predict_skycomponent_blockvisibility
 
 log = logging.getLogger(__name__)

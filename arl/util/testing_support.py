@@ -45,7 +45,7 @@ from arl.data.polarisation import PolarisationFrame
 from arl.image.operations import import_image_from_fits, create_image_from_array, \
     reproject_image, create_empty_image_like
 from arl.util.coordinate_support import xyz_at_latitude
-from arl.visibility.operations import create_blockvisibility
+from arl.visibility.base import create_blockvisibility
 from arl.imaging import predict_timeslice, predict_skycomponent_blockvisibility
 
 import logging

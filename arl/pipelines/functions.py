@@ -9,7 +9,7 @@ import logging
 from arl.data.data_models import Image, Visibility, BlockVisibility, GainTable
 from arl.calibration.solvers import solve_gaintable
 from arl.image.solvers import solve_image
-from arl.visibility.operations import copy_visibility
+from arl.visibility.base import copy_visibility
 from arl.imaging import predict_2d, invert_2d, predict_skycomponent_blockvisibility, predict_skycomponent_visibility
 
 log = logging.getLogger(__name__)

@@ -44,7 +44,8 @@ from arl.image.operations import copy_image, create_empty_image_like
 from arl.imaging import predict_2d, invert_2d, invert_wstack_single, predict_wstack_single, normalize_sumwt
 from arl.visibility.gather_scatter import visibility_scatter_w, visibility_gather_w, \
     visibility_scatter_channel, visibility_gather_channel
-from arl.visibility.operations import copy_visibility, divide_visibility, integrate_visibility_by_channel
+from arl.visibility.operations import divide_visibility, integrate_visibility_by_channel
+from arl.visibility.base import copy_visibility
 
 
 def create_zero_vis_graph_list(vis_graph_list: List[delayed], **kwargs) -> List[delayed]:

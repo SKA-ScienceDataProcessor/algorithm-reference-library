@@ -59,6 +59,11 @@ The layering of predict and invert classes is shown below:
 
 The top level functions are in green. All capability is therefore layered on two functions, predict_2d and invert_2d.
 
+Another view is shown next:
+
+.. image:: ARL_Fourier_partitions.png
+      :width: 1024px
+
 Not all combinations currently work. The following are supported:
 
 + W Projection: {predict | invert}_wprojection
@@ -68,4 +73,7 @@ Not all combinations currently work. The following are supported:
 + W Stacking + Image plane facets: {predict | invert}_facets_wstack
 
 In particular, the combination of faceting and wprojection is not yet supported.
+
+Iteration is not well suited to graph processing, so for making calibration and imaging graphs the iterators have
+been wrapped as scatter/gather operations.
 

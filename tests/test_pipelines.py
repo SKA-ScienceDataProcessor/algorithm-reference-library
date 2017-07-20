@@ -15,7 +15,8 @@ from arl.image.operations import export_image_to_fits, create_empty_image_like
 from arl.pipelines.functions import continuum_imaging, spectral_line_imaging, ical, rcal, eor, fast_imaging
 from arl.skycomponent.operations import create_skycomponent
 from arl.util.testing_support import create_named_configuration, create_test_image, create_blockvisibility_iterator
-from arl.visibility.operations import create_blockvisibility, append_visibility
+from arl.visibility.operations import append_visibility
+from arl.visibility.base import create_blockvisibility
 from arl.imaging import predict_2d
 
 import logging

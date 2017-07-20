@@ -10,7 +10,7 @@ from arl.imaging import normalize_sumwt
 from arl.image.iterators import raster_iter
 from arl.image.operations import create_empty_image_like
 from arl.visibility.iterators import vis_slice_iter
-import arl.visibility.operations
+from arl.visibility.base import copy_visibility, create_visibility_from_rows
 from arl.imaging.base import predict_2d_base, predict_2d, invert_2d_base, invert_2d
 
 import logging
@@ -37,7 +37,7 @@ def invert_with_vis_iterator(vis: Visibility, im: Image, dopsf=False, normalize=
     i = 0
     for rows in vis_iter(vis, **kwargs):
         if rows is not None:
-            visslice = arl.visibility.operations.create_visibility_from_rows(vis, rows)
+            visslice = create_visibility_from_rows(vis, rows)
             workimage, sumwt = invert(visslice, im, dopsf, normalize=False, **kwargs)
             resultimage.data += workimage.data
             if i == 0:
@@ -63,7 +63,7 @@ def predict_with_vis_iterator(vis: Visibility, model: Image, vis_iter=vis_slice_
     # Do each chunk in turn
     for rows in vis_iter(vis, **kwargs):
         if rows is not None:
-            visslice = arl.visibility.operations.create_visibility_from_rows(vis, rows)
+            visslice = create_visibility_from_rows(vis, rows)
             visslice = predict(visslice, model, **kwargs)
             vis.data['vis'][rows] += visslice.data['vis']
     return vis
@@ -82,7 +82,7 @@ def predict_with_image_iterator(vis: Visibility, model: Image, image_iterator=ra
     """
     log.info("predict_with_image_iterator: Predicting by image partitions")
     vis.data['vis'] *= 0.0
-    result = arl.visibility.operations.copy_visibility(vis)
+    result = copy_visibility(vis)
     for dpatch in image_iterator(model, **kwargs):
         result = predict_function(result, dpatch, **kwargs)
         vis.data['vis'] += result.data['vis']

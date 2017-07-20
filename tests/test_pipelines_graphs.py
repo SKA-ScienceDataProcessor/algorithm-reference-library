@@ -22,7 +22,7 @@ from arl.pipelines.graphs import create_continuum_imaging_pipeline_graph, \
     create_ical_pipeline_graph
 from arl.skycomponent.operations import create_skycomponent, insert_skycomponent
 from arl.util.testing_support import create_named_configuration, simulate_gaintable
-from arl.visibility.operations import create_blockvisibility
+from arl.visibility.base import create_blockvisibility
 from arl.imaging import create_image_from_visibility, predict_skycomponent_blockvisibility, \
     invert_wstack_single, predict_wstack_single
 

@@ -35,8 +35,9 @@ from arl.data.polarisation import convert_pol_frame, PolarisationFrame
 from arl.fourier_transforms.convolutional_gridding import convolutional_grid, \
     convolutional_degrid, weight_gridding, w_beam
 from arl.fourier_transforms.fft_support import fft, ifft, pad_mid, extract_mid
-from arl.image.operations import copy_image, create_image_from_array, create_empty_image_like
+from arl.image.operations import copy_image, create_image_from_array
 from arl.util.coordinate_support import simulate_point, skycoord_to_lmn
+from arl.visibility.base import copy_visibility
 from arl.visibility.coalesce import coalesce_visibility, decoalesce_visibility
 from arl.imaging.params import get_frequency_map, get_polarisation_map, get_uvw_map, get_kernel_list
 
@@ -162,7 +163,7 @@ def invert_2d_base(vis: Visibility, im: Image, dopsf: bool = False, normalize: b
     if type(vis) is not Visibility:
         svis = coalesce_visibility(vis, **kwargs)
     else:
-        svis = arl.visibility.operations.copy_visibility(vis)
+        svis = copy_visibility(vis)
 
     if dopsf:
         svis.data['vis'] = numpy.ones_like(svis.data['vis'])
@@ -450,7 +451,7 @@ def residual_image(vis: Visibility, model: Image, invert_residual=invert_2d, pre
     :param predict: predict to be used (default predict_2d)
     :return: residual visibility, residual image, sum of weights
     """
-    visres = arl.visibility.operations.copy_visibility(vis, zero=True)
+    visres = copy_visibility(vis, zero=True)
     visres = predict_residual(visres, model, **kwargs)
     visres.data['vis'] = vis.data['vis'] - visres.data['vis']
     dirty, sumwt = invert_residual(visres, model, dopsf=False, **kwargs)

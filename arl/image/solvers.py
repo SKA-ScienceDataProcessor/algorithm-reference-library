@@ -9,7 +9,7 @@ import numpy
 from arl.data.data_models import Visibility, Image
 from arl.data.parameters import get_parameter
 from arl.image.deconvolution import deconvolve_cube
-from arl.visibility.operations import copy_visibility
+from arl.visibility.base import copy_visibility
 from arl.imaging.base import invert_2d, predict_2d, predict_skycomponent_visibility
 
 import logging

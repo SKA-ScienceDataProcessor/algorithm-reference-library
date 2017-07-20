@@ -18,7 +18,7 @@ import numpy
 from arl.data.data_models import Visibility, BlockVisibility
 from arl.visibility.coalesce import coalesce_visibility, decoalesce_visibility
 from arl.visibility.iterators import vis_slice_iter, vis_timeslice_iter, vis_wstack_iter
-from arl.visibility.operations import create_visibility_from_rows, copy_visibility
+from arl.visibility.base import create_visibility_from_rows
 
 log = logging.getLogger(__name__)
 
@@ -98,8 +98,6 @@ def visibility_scatter_channel(vis: BlockVisibility, **kwargs) -> List[Visibilit
     :param kwargs:
     :return:
     """
-    cols = ['vis', 'weight']
-    
     def extract_channel(v, chan):
         vis_shape = numpy.array(v.data['vis'].shape)
         vis_shape[3] = 1
@@ -114,7 +112,6 @@ def visibility_scatter_channel(vis: BlockVisibility, **kwargs) -> List[Visibilit
                               vis=v.vis[...,chan,:][...,numpy.newaxis,:],
                               weight=v.weight[...,chan,:][...,numpy.newaxis,:],
                               integration_time=v.integration_time,
- 
                               polarisation_frame=v.polarisation_frame)
         return vis
     

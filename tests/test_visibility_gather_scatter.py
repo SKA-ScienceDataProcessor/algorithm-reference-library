@@ -14,7 +14,7 @@ from arl.util.testing_support import create_named_configuration
 from arl.visibility.gather_scatter import visibility_gather_index, visibility_gather_time, visibility_gather_w, \
     visibility_scatter_index, visibility_scatter_time, visibility_scatter_w, visibility_scatter_channel, \
     visibility_gather_channel
-from arl.visibility.operations import create_visibility, create_blockvisibility
+from arl.visibility.base import create_visibility, create_blockvisibility
 
 import logging
 

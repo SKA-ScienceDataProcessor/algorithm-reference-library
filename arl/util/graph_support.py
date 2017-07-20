@@ -13,7 +13,7 @@ from arl.graphs.graphs import create_predict_wstack_graph
 from arl.graphs.generic_graphs import create_generic_image_graph
 from arl.util.testing_support import create_named_configuration, simulate_gaintable, \
     create_low_test_image_from_gleam, create_low_test_beam
-from arl.visibility.operations import create_blockvisibility
+from arl.visibility.base import create_blockvisibility
 
 
 def create_simulate_vis_graph(config='LOWBD2-CORE',

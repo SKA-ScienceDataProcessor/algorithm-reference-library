@@ -17,7 +17,7 @@ from arl.calibration.operations import apply_gaintable
 from arl.calibration.solvers import solve_gaintable
 from arl.data.data_models import Visibility, BlockVisibility, Image
 from arl.visibility.coalesce import convert_blockvisibility_to_visibility, decoalesce_visibility
-from arl.visibility.operations import copy_visibility
+from arl.visibility.base import copy_visibility
 from arl.imaging import predict_skycomponent_blockvisibility, predict_skycomponent_visibility, predict_2d
 
 log = logging.getLogger(__name__)

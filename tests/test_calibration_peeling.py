@@ -17,7 +17,7 @@ from arl.calibration.peeling import peel_skycomponent_blockvisibility
 from arl.skycomponent.operations import apply_beam_to_skycomponent
 from arl.util.testing_support import create_named_configuration, simulate_gaintable, \
     create_low_test_skycomponents_from_gleam, create_low_test_beam
-from arl.visibility.operations import create_blockvisibility
+from arl.visibility.base import create_blockvisibility
 from arl.imaging import predict_skycomponent_blockvisibility, create_image_from_visibility
 
 import logging

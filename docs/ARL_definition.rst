@@ -202,6 +202,18 @@ Operations
 Visibility
 ----------
 
+Base
+++++
+
+.. automodule:: arl.visibility.base
+   :members:
+
+Operations
+++++++++++
+
+.. automodule:: arl.visibility.operations
+   :members:
+
 Coalesce
 ++++++++
 
@@ -218,12 +230,6 @@ Iterators
 +++++++++
 
 .. automodule:: arl.visibility.iterators
-   :members:
-
-Operations
-++++++++++
-
-.. automodule:: arl.visibility.operations
    :members:
 
 Util
@@ -337,10 +343,6 @@ Unit tests written in standard python style are available.
    :members:
    :undoc-members:
 
-.. automodule:: tests.test_coalesce
-   :members:
-   :undoc-members:
-
 .. automodule:: tests.test_convolutional_gridding
    :members:
    :undoc-members:
@@ -426,6 +428,10 @@ Unit tests written in standard python style are available.
    :undoc-members:
 
 .. automodule:: tests.test_testing_support
+   :members:
+   :undoc-members:
+
+.. automodule:: tests.test_visibility_coalesce
    :members:
    :undoc-members:
 

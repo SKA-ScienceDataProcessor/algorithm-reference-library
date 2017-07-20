@@ -22,10 +22,10 @@ import numpy
 
 from astropy import constants
 
+from arl.visibility.base import vis_summary, copy_visibility
 from arl.data.data_models import Visibility, BlockVisibility
 from arl.data.parameters import get_parameter
 from arl.util.array_functions import average_chunks, average_chunks2
-import arl.visibility.operations
 
 import logging
 
@@ -73,8 +73,8 @@ def coalesce_visibility(vis: BlockVisibility, **kwargs) -> Visibility:
     log.debug('coalesce_visibility: Created new Visibility for coalesced data, coalescence factors (t,f) = (%.3f,%.3f)'
              % (time_coal, frequency_coal))
     log.debug('coalesce_visibility: Maximum coalescence (t,f) = (%d, %d)' % (max_time_coal, max_frequency_coal))
-    log.debug('coalesce_visibility: Original %s, coalesced %s' % (arl.visibility.operations.vis_summary(vis),
-                                                                  arl.visibility.operations.vis_summary(coalesced_vis)))
+    log.debug('coalesce_visibility: Original %s, coalesced %s' % (vis_summary(vis),
+                                                                  vis_summary(coalesced_vis)))
     
     return coalesced_vis
 
@@ -100,8 +100,8 @@ def convert_blockvisibility_to_visibility(vis: BlockVisibility) -> Visibility:
                                polarisation_frame=vis.polarisation_frame, cindex=cindex,
                                blockvis=vis)
     
-    log.debug('convert_visibility: Original %s, converted %s' % (arl.visibility.operations.vis_summary(vis),
-                                                                 arl.visibility.operations.vis_summary(converted_vis)))
+    log.debug('convert_visibility: Original %s, converted %s' % (vis_summary(vis),
+                                                                 vis_summary(converted_vis)))
     
     return converted_vis
 
@@ -124,7 +124,7 @@ def decoalesce_visibility(vis: Visibility, overwrite=False) -> BlockVisibility:
     
     if overwrite:
         log.debug('decoalesce_visibility: Created new Visibility for decoalesced data')
-        decomp_vis = arl.visibility.operations.copy_visibility(vis.blockvis)
+        decomp_vis = copy_visibility(vis.blockvis)
     else:
         log.debug('decoalesce_visibility: Filled decoalesced data into template')
         decomp_vis = vis.blockvis
@@ -137,8 +137,8 @@ def decoalesce_visibility(vis: Visibility, overwrite=False) -> BlockVisibility:
     for i in range(dvis.size // npol):
         decomp_vis.data['vis'].flat[i:i + npol] = vis.data['vis'][vis.cindex[i]]
     
-    log.debug('decoalesce_visibility: Coalesced %s, decoalesced %s' % (arl.visibility.operations.vis_summary(vis),
-                                                                       arl.visibility.operations.vis_summary(
+    log.debug('decoalesce_visibility: Coalesced %s, decoalesced %s' % (vis_summary(vis),
+                                                                       vis_summary(
         decomp_vis)))
     
     return decomp_vis

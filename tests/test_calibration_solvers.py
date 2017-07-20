@@ -16,7 +16,8 @@ from arl.calibration.operations import apply_gaintable, create_gaintable_from_bl
     qa_gaintable
 from arl.calibration.solvers import solve_gaintable
 from arl.util.testing_support import create_named_configuration, simulate_gaintable
-from arl.visibility.operations import create_blockvisibility, copy_visibility, divide_visibility
+from arl.visibility.operations import divide_visibility
+from arl.visibility.base import copy_visibility, create_blockvisibility
 from arl.imaging import predict_skycomponent_blockvisibility
 
 import logging

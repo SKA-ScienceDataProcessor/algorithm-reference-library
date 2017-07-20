@@ -14,7 +14,7 @@ from arl.data.polarisation import PolarisationFrame
 from arl.image.deconvolution import deconvolve_cube, restore_cube
 from arl.image.operations import export_image_to_fits, create_image_from_array
 from arl.util.testing_support import create_low_test_image_from_gleam, create_low_test_beam, create_named_configuration
-from arl.visibility.operations import create_visibility
+from arl.visibility.base import create_visibility
 from arl.imaging.base import predict_2d, invert_2d, create_image_from_visibility
 
 log = logging.getLogger(__name__)

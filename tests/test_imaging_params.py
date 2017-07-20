@@ -14,7 +14,7 @@ from astropy.coordinates import SkyCoord
 from arl.data.polarisation import PolarisationFrame
 from arl.util.testing_support import create_named_configuration, create_low_test_image_from_s3, \
     create_low_test_image_from_gleam
-from arl.visibility.operations import create_visibility
+from arl.visibility.base import create_visibility
 from arl.imaging import create_image_from_visibility
 
 log = logging.getLogger(__name__)

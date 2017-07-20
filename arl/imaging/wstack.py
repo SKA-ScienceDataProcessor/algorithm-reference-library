@@ -11,11 +11,12 @@ If images constructed from slices in w are added after applying a w-dependent im
 
 import numpy
 
+
 from arl.data.data_models import Visibility, Image
 from arl.imaging.iterated import predict_with_vis_iterator, invert_with_vis_iterator
 
 from arl.image.operations import copy_image
-import arl.visibility.operations
+from arl.visibility.base import copy_visibility
 from arl.visibility.iterators import vis_wstack_iter
 from arl.visibility.coalesce import coalesce_visibility
 from arl.imaging.base import predict_2d_base, invert_2d_base, create_w_term_like
@@ -67,7 +68,7 @@ def predict_wstack_single(vis, model, predict_inner=predict_2d_base, **kwargs) -
     # We might want to do wprojection so we remove the average w
     w_average = numpy.average(avis.w)
     avis.data['uvw'][...,2] -= w_average
-    tempvis = arl.visibility.operations.copy_visibility(avis)
+    tempvis = copy_visibility(avis)
 
     # Calculate w beam and apply to the model. The imaginary part is not needed
     workimage = copy_image(model)

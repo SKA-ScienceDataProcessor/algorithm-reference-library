@@ -20,7 +20,8 @@ from arl.calibration.operations import create_gaintable_from_blockvisibility
 from arl.data.data_models import GainTable, BlockVisibility, assert_vis_gt_compatible
 
 from arl.visibility.iterators import vis_timeslice_iter
-from arl.visibility.operations import create_visibility_from_rows, divide_visibility
+from arl.visibility.operations import divide_visibility
+from arl.visibility.base import create_visibility_from_rows
 
 log = logging.getLogger(__name__)
 

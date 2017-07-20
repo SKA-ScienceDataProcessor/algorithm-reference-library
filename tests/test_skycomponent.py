@@ -14,7 +14,7 @@ from arl.data.polarisation import PolarisationFrame
 from arl.image.operations import export_image_to_fits
 from arl.skycomponent.operations import insert_skycomponent, create_skycomponent
 from arl.util.testing_support import create_test_image, create_named_configuration
-from arl.visibility.operations import create_visibility
+from arl.visibility.base import create_visibility
 from arl.imaging import predict_2d, create_image_from_visibility
 
 log = logging.getLogger(__name__)

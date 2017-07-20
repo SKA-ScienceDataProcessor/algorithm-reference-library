@@ -24,7 +24,9 @@ from arl.imaging import create_image_from_visibility, predict_skycomponent_block
     invert_wstack_single, predict_wstack_single
 from arl.skycomponent.operations import create_skycomponent, insert_skycomponent
 from arl.util.testing_support import create_named_configuration, simulate_gaintable
-from arl.visibility.operations import create_blockvisibility, qa_visibility
+from arl.visibility.operations import qa_visibility
+from arl.visibility.base import create_blockvisibility
+
 
 class TestDaskGraphs(unittest.TestCase):
     def setUp(self):

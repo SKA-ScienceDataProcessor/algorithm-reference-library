@@ -18,8 +18,8 @@ from arl.util.testing_support import create_low_test_image_from_s3, create_named
     create_low_test_beam, create_blockvisibility_iterator, create_low_test_image_from_gleam, \
     create_low_test_skycomponents_from_gleam, create_low_test_image_composite
 from arl.visibility.coalesce import coalesce_visibility
-from arl.visibility.operations import create_blockvisibility, create_visibility, \
-    append_visibility
+from arl.visibility.operations import append_visibility
+from arl.visibility.base import create_visibility, create_blockvisibility
 from arl.imaging.base import predict_skycomponent_blockvisibility
 
 import logging

@@ -12,7 +12,7 @@ from arl.data.polarisation import PolarisationFrame
 from arl.util.testing_support import create_named_configuration
 from arl.visibility.coalesce import coalesce_visibility, decoalesce_visibility, \
     convert_blockvisibility_to_visibility
-from arl.visibility.operations import create_blockvisibility, create_visibility_from_rows
+from arl.visibility.base import create_blockvisibility, create_visibility_from_rows
 from arl.visibility.iterators import vis_timeslice_iter
 
 import logging

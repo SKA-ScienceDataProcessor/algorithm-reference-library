@@ -16,7 +16,8 @@ from arl.image.operations import export_image_to_fits, create_empty_image_like, 
 from arl.skycomponent.operations import create_skycomponent, find_skycomponents, find_nearest_component, \
     insert_skycomponent
 from arl.util.testing_support import create_named_configuration
-from arl.visibility.operations import create_visibility, sum_visibility
+from arl.visibility.operations import sum_visibility
+from arl.visibility.base import create_visibility
 from arl.imaging import predict_2d, predict_wstack, predict_wprojection, predict_facets, \
     predict_timeslice, predict_wprojection_wstack, invert_wprojection_wstack, \
     invert_2d, invert_wstack, invert_wprojection, invert_facets, invert_timeslice, \
@@ -196,7 +197,7 @@ class TestImaging(unittest.TestCase):
         self.params['wstack'] = 4.0
         self._predict_base(predict_wstack, fluxthreshold=2.1)
 
-    @unittest.skip("TODO: Fix needed")
+#    @unittest.skip("TODO: Fix needed")
     def test_predict_facets_wstack(self):
         self.actualSetUp()
         self.params['wstack'] = 8.0
