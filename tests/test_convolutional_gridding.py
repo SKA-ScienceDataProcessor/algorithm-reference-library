@@ -92,7 +92,7 @@ class TestConvolutionalGridding(unittest.TestCase):
 
     def test_convolutional_grid(self):
         npixel = 256
-        nvis = 1000
+        nvis = 1000000
         nchan = 1
         npol = 4
         uvgrid = numpy.zeros([nchan, npol, npixel, npixel], dtype='complex')
@@ -106,7 +106,7 @@ class TestConvolutionalGridding(unittest.TestCase):
         visweights = numpy.ones([nvis, nchan, npol])
         kernels = (numpy.zeros([nvis], dtype='int'), [kernel])
         frequencymap=numpy.zeros([nvis], dtype='int')
-        # On my laptop the following takes about 14 seconds for 4M points so about 3.5 us per sample
+        # On my laptop the following takes about 34ss for 4e6 * 50 = 2e8 points so about 170 ns per point
         uvgrid, sumwt=convolutional_grid(kernels, uvgrid, vis, visweights, uvcoords, frequencymap)
         assert numpy.sum(sumwt) > 0.0
         assert uvgrid.shape[0] == nchan
@@ -116,7 +116,7 @@ class TestConvolutionalGridding(unittest.TestCase):
 
     def test_convolutional_degrid(self):
         npixel = 256
-        nvis = 1000
+        nvis = 100000
         nchan = 1
         npol = 4
         uvgrid = numpy.ones([nchan, npol, npixel, npixel], dtype='complex')

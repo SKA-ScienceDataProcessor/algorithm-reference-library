@@ -306,32 +306,28 @@ def convolutional_degrid(kernel_list, vshape, uvgrid, vuvwmap, vfrequencymap, vp
     
     # uvw -> fraction of grid mapping
     y, yf = frac_coord(ny, kernel_oversampling, vuvwmap[:, 1])
+    y -= gh // 2
     x, xf = frac_coord(nx, kernel_oversampling, vuvwmap[:, 0])
-    
-    # Now calculate slices for the footprint of each sample
-    slicey = []
-    slicex = []
-    for xx in x:
-        slicex.append(slice((xx - gw // 2), (xx + (gw + 1) // 2)))
-    for yy in y:
-        slicey.append(slice((yy - gh // 2), (yy + (gh + 1) // 2)))
+    x -= gw // 2
     
     norm = numpy.sum(kernels[0][0, 0, :, :].real)
     
     if len(kernels) > 1:
-        coords = kernel_indices, list(vfrequencymap), xf, yf
+        coords = kernel_indices, list(vfrequencymap), x, y, xf, yf
+        ckernels = numpy.conjugate(kernels)
         for pol in range(vnpol):
             vis[..., pol] = [
-                numpy.sum(uvgrid[ic, pol, sly, slx] * numpy.conjugate(kernels[kernel_index][yf, xf, :, :]))
-                for slx, sly, kernel_index, ic, xf, yf in zip(slicex, slicey, *coords)
+                numpy.sum(uvgrid[chan, pol, yy:yy+gh, xx:xx+gw] * ckernels[kind][yyf, xxf, :, :])
+                for kind, chan, xx, yy, xxf, yyf in zip(*coords)
             ]
     else:
         # This is the usual case. We trim a bit of time by avoiding the kernel lookup
-        coords = list(vfrequencymap), xf, yf
+        coords = list(vfrequencymap), x, y, xf, yf
+        kernel0 = numpy.conjugate(kernels[0])
         for pol in range(vnpol):
             vis[..., pol] = [
-                numpy.sum(uvgrid[ic, pol, sly, slx] * numpy.conjugate(kernels[0][yf, xf, :, :]))
-                for slx, sly, ic, xf, yf in zip(slicex, slicey, *coords)
+                numpy.sum(uvgrid[chan, pol, yy:yy+gh, xx:xx+gw] * kernel0[yyf, xxf, :, :])
+                for chan, xx, yy, xxf, yyf in zip(*coords)
             ]
     
     vis = vis / norm
@@ -363,37 +359,33 @@ def convolutional_grid(kernel_list, uvgrid, vis, visweights, vuvwmap, vfrequency
     sumwt = numpy.zeros([inchan, inpol])
     
     # uvw -> fraction of grid mapping
-    # vuvwmap is a list of generators, one per axis so we need to
-    # select a generator and then instantiate it by making it into
-    # a list, and finally use the values. This defers filling out
-    # the arrays until they are needed.
     y, yf = frac_coord(ny, kernel_oversampling, vuvwmap[:, 1])
+    y -= gh // 2
     x, xf = frac_coord(nx, kernel_oversampling, vuvwmap[:, 0])
+    x -= gw // 2
     
-    # Construct all the slices that we will need: trade off memory to
-    # simplify loop
-    slicey = []
-    slicex = []
-    for xx in x:
-        slicex.append(slice((xx - gw // 2), (xx + (gw + 1) // 2)))
-    for yy in y:
-        slicey.append(slice((yy - gh // 2), (yy + (gh + 1) // 2)))
-    
-    npol = vis.shape[-1]
-    
-    # smpsol = numpy.einsum("smn,smxy->snxy", ihsmmpsf, smresidual)
     # About 228k samples per second for standard kernel so about 10 million CMACs per second
     
     norm = numpy.sum(kernels[0][0, 0, :, :].real)
     # Now we can loop over all rows
     wts = visweights[...] * norm
     viswt = vis[...] * visweights[...]
-    
-    coords = kernel_indices, list(vfrequencymap), xf, yf
-    for pol in range(npol):
-        for v, vwt, slx, sly, kind, ic, xf, yf in zip(viswt[..., pol], wts[..., pol], slicex, slicey, *coords):
-            uvgrid[ic, pol, sly, slx] += kernels[kind][yf, xf, :, :] * v
-            sumwt[ic, pol] += vwt
+    npol = vis.shape[-1]
+
+    if len(kernels) > 1:
+        coords = kernel_indices, list(vfrequencymap), x, y, xf, yf
+        for pol in range(npol):
+            for v, vwt, kind, chan, xx, yy, xxf, yyf in zip(viswt[..., pol], wts[..., pol], *coords):
+                uvgrid[chan, pol, yy:yy+gh, xx:xx+gw] += kernels[kind][yyf, xxf, :, :] * v
+                sumwt[chan, pol] += vwt
+    else:
+        kernel0 = kernels[0]
+        coords = list(vfrequencymap), x, y, xf, yf
+        for pol in range(npol):
+            for v, vwt, chan, xx, yy, xxf, yyf in zip(viswt[..., pol], wts[..., pol], *coords):
+                uvgrid[chan, pol, yy:yy+gh, xx:xx+gw] += kernel0[yyf, xxf, :, :] * v
+                sumwt[chan, pol] += vwt
+
     
     return uvgrid, sumwt
 
