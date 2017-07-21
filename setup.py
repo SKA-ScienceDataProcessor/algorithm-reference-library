@@ -7,7 +7,6 @@ import numpy
 gridmodule = Extension('arl.core.c',
                        include_dirs = [numpy.get_include()],
                        sources=['arl/core/cmodule.c'])
-
 setup(name='algorithm-reference-library',
       version='0.7',
       description='Algorithm Reference Library for Radio Interferometry',
@@ -18,6 +17,5 @@ setup(name='algorithm-reference-library',
       license='Apache License Version 2.0',
       packages=['arl', 'examples', 'tests'],
       test_suite="tests",
-      tests_require=['pytest'],
-      ext_modules = [gridmodule]
+      tests_require=['pytest']
       )
