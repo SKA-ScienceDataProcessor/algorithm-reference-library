@@ -102,9 +102,9 @@ class TestImaging(unittest.TestCase):
         spacing_pixels = 512 // 8
         log.info('Spacing in pixels = %s' % spacing_pixels)
         
-        centers = [(x, x) for x in numpy.linspace(-2.8,+2.8,7)]
+        centers = [(x, x) for x in numpy.linspace(-3.0,+3.0,7)]
 
-        for x in numpy.linspace(-2.8,+2.8,7):
+        for x in numpy.linspace(-3.0,+3.0,7):
             centers.append((-x, x))
             
         centers.append((1e-7,1e-7))
@@ -192,7 +192,7 @@ class TestImaging(unittest.TestCase):
     
     def test_predict_facets(self):
         self.actualSetUp()
-        self.params['facets'] = 8
+        self.params['facets'] = 2
         self._predict_base(predict_facets, fluxthreshold=0.01)
     
     def test_predict_timeslice(self):
@@ -214,8 +214,8 @@ class TestImaging(unittest.TestCase):
 
     def test_predict_wstack_wprojection(self):
         self.actualSetUp()
-        self.params['wstack'] = 7 * 4.0
-        self.params['wstep'] = 4.0
+        self.params['wstack'] = 5 * 4.0
+        self.params['wstep'] = 2.0
         self._predict_base(predict_wprojection_wstack, fluxthreshold=2.4)
 
     def test_predict_facets_wprojection(self):
@@ -268,33 +268,28 @@ class TestImaging(unittest.TestCase):
         self.actualSetUp()
         self.params['facets'] = 2
         self.params['wstep'] = 4.0
-        self.params['padding'] = 2
         self._invert_base(invert_facets_wprojection, positionthreshold=1.0)
 
     def test_invert_wstack(self):
         self.actualSetUp()
         self.params['wstack'] = 4.0
-        self.params['padding'] = 2
         self._invert_base(invert_wstack, positionthreshold=1.0)
 
     def test_invert_facets_wstack(self):
         self.actualSetUp()
         self.params['wstack'] = 4.0
         self.params['facets'] = 4
-        self.params['padding'] = 2
         self._invert_base(invert_facets_wstack, positionthreshold=1.0)
 
     def test_invert_wprojection_wstack(self):
         self.actualSetUp()
         self.params['wstack'] = 5 * 4.0
-        self.params['wstep'] = 4.0
-        self.params['padding'] = 2
+        self.params['wstep'] = 2.0
         self._invert_base(invert_wprojection_wstack, positionthreshold=1.0)
     
     def test_invert_wprojection(self):
         self.actualSetUp()
         self.params['wstep'] = 4.0
-        self.params['padding'] = 2
         self._invert_base(invert_wprojection, positionthreshold=1.0)
     
     def test_invert_timeslice(self):

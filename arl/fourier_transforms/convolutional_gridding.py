@@ -11,6 +11,7 @@ This module contains functions for performing the gridding process and the inver
 import logging
 
 import numpy
+#import numba
 import scipy.special
 
 from arl.fourier_transforms.fft_support import pad_mid, extract_oversampled, ifft
@@ -182,7 +183,7 @@ def grdsf(nu):
     return grdsf, (1 - nu ** 2) * grdsf
 
 
-def w_beam(npixel, field_of_view, w, cx=None, cy=None, remove_shift=True):
+def w_beam(npixel, field_of_view, w, cx=None, cy=None, remove_shift=False):
     """ W beam, the fresnel diffraction pattern arising from non-coplanar baselines
     
     :param npixel: Size of the grid in pixels
@@ -190,14 +191,14 @@ def w_beam(npixel, field_of_view, w, cx=None, cy=None, remove_shift=True):
     :param w: Baseline distance to the projection plane
     :param cx: location of delay centre def :npixel//2
     :param cy: location of delay centre def :npixel//2
-    :param remove_shift: Remove overall phase shift
+    :param remove_shift: Remove overall phase shift at the centre of the image
     :return: npixel x npixel array with the far field
     """
     if cx is None:
         cx = npixel // 2
     if cy is None:
         cy = npixel // 2
-    l, m = coordinates2Offset(npixel, cx, cy)
+    l, m = coordinates2Offset(npixel, cy, cx)
     m *= field_of_view
     l *= field_of_view
     r2 = l ** 2 + m ** 2
@@ -208,6 +209,11 @@ def w_beam(npixel, field_of_view, w, cx=None, cy=None, remove_shift=True):
     cp[n2 < 1.0] = numpy.exp(-2j * numpy.pi * ph[n2 < 1.0])
     cp[r2 == 0] = 1.0 + 0j
     # Correct for linear phase shift in faceting
+    # from arl.image.operations import create_image_from_array, export_image_to_fits
+    # from arl.util.testing_support import create_test_image
+    # tim = create_test_image()
+    # im=create_image_from_array(cp.real, tim.wcs)
+    # export_image_to_fits(im, "cp_%f_%f.fits" % (cx, cy))
     if remove_shift:
         cp /= cp[npixel // 2, npixel // 2]
     return cp
@@ -256,7 +262,8 @@ def w_kernel(field_of_view, w, npixel_farfield, npixel_kernel, kernel_oversampli
     
     assert npixel_farfield > npixel_kernel or (npixel_farfield == npixel_kernel and kernel_oversampling == 1)
     gcf, _ = anti_aliasing_calculate((npixel_farfield, npixel_farfield), kernel_oversampling)
-    wbeamarray = w_beam(npixel_farfield, field_of_view, w, cx, cy, remove_shift=remove_shift) / gcf
+    wbeamarray = w_beam(npixel=npixel_farfield, field_of_view=field_of_view, w=w, cx=cx, cy=cy,
+                        remove_shift=remove_shift) / gcf
     return kernel_oversample(wbeamarray, npixel_farfield, kernel_oversampling, npixel_kernel)
 
 
@@ -321,13 +328,13 @@ def convolutional_degrid(kernel_list, vshape, uvgrid, vuvwmap, vfrequencymap, vp
     else:
         # This is the usual case. We trim a bit of time by avoiding the kernel lookup
         coords = list(vfrequencymap), x, y, xf, yf
-        kernel0 = numpy.conjugate(kernels[0])
+        ckernel0 = numpy.conjugate(kernels[0])
         for pol in range(vnpol):
             vis[..., pol] = [
-                numpy.sum(uvgrid[chan, pol, yy:yy+gh, xx:xx+gw] * kernel0[yyf, xxf, :, :])
+                numpy.sum(uvgrid[chan, pol, yy:yy+gh, xx:xx+gw] * ckernel0[yyf, xxf, :, :])
                 for chan, xx, yy, xxf, yyf in zip(*coords)
             ]
-    
+            
     return numpy.array(vis)
 
 
@@ -409,17 +416,29 @@ def weight_gridding(shape, visweights, vuvwmap, vfrequencymap, vpolarisationmap=
         wts = visweights[...]
         coords = list(vfrequencymap), x, y
         for pol in range(inpol):
-            for vwt, ic, x, y in zip(wts, *coords):
-                densitygrid[ic, pol, y, x] += vwt[..., pol]
+            for vwt, chan, x, y in zip(wts, *coords):
+                densitygrid[chan, pol, y, x] += vwt[..., pol]
         
         # Normalise each visibility weight to sum to one in a grid cell
         newvisweights = numpy.zeros_like(visweights)
         for pol in range(inpol):
-            density[..., pol] += [densitygrid[ic, pol, x, y] for ic, x, y in zip(*coords)]
+            density[..., pol] += [densitygrid[chan, pol, x, y] for chan, x, y in zip(*coords)]
         newvisweights[density > 0.0] = visweights[density > 0.0] / density[density > 0.0]
         return newvisweights, density, densitygrid
     else:
         return visweights, None, None
+    
+def visibility_recentre(uvw, dl, dm):
+    """ Compensate for kernel re-centering - see `w_kernel_function`.
+
+    :param uvw: Visibility coordinates
+    :param dl: Horizontal shift to compensate for
+    :param dm: Vertical shift to compensate for
+    :returns: Visibility coordinates re-centrered on the peak of their w-kernel
+    """
+
+    u, v, w = numpy.hsplit(uvw, 3)
+    return numpy.hstack([u - w*dl, v - w*dm, w])
 
 
 def gridder(uvgrid, vis, xs, ys, kernel=numpy.ones((1, 1)), kernel_ixs=None):
@@ -447,4 +466,46 @@ def gridder(uvgrid, vis, xs, ys, kernel=numpy.ones((1, 1)), kernel_ixs=None):
     
     gh, gw = kernel.shape[-2:]
     for v, x, y, kern_ix in zip(vis, xs, ys, kernel_ixs):
-        uvgrid[y:y + gh, x:x + gw] += kernel[tuple(kern_ix)] * v
+        uvgrid[y:y + gh, x:x + gw] += kernel[convert_to_tuple3(kern_ix)] * v
+
+    return uvgrid
+
+#@numba.jit(nopython=True)
+def convert_to_tuple3(x_ary):
+    """ Numba cannot do this conversion itself. Hardcode 3 for speed"""
+    y_tup = ()
+    y_tup += (x_ary[0],)
+    y_tup += (x_ary[1],)
+    y_tup += (x_ary[2],)
+    return y_tup
+
+#@numba.jit(nopython=True)
+def gridder_numba(uvgrid, vis, xs, ys, kernel=numpy.ones((1, 1)), kernel_ixs=None):
+    """Grids visibilities at given positions. Convolution kernels are selected per
+    visibility using ``kernel_ixs``.
+
+    :param uvgrid: Grid to update (two-dimensional :class:`complex` array)
+    :param vis: Visibility values (one-dimensional :class:`complex` array)
+    :param xs: Visibility position (one-dimensional :class:`int` array)
+    :param ys: Visibility values (one-dimensional :class:`int` array)
+    :param kernel: Convolution kernel (minimum two-dimensional :class:`complex` array).
+      If the kernel has more than two dimensions, additional indices must be passed
+      in ``kernel_ixs``. Default: Fixed one-pixel kernel with value 1.
+    :param kernel_ixs: Map of visibilities to kernel indices (maximum two-dimensional :class:`int` array).
+      Can be omitted if ``kernel`` requires no indices, and can be one-dimensional
+      if only one index is needed to identify kernels
+    """
+    
+    # if kernel_ixs is None:
+    #     kernel_ixs = numpy.zeros((len(vis), 0))
+    # else:
+    #     kernel_ixs = numpy.array(kernel_ixs)
+    #     if len(kernel_ixs.shape) == 1:
+    #         kernel_ixs = kernel_ixs.reshape(len(kernel_ixs), 1)
+    
+    gh, gw = kernel.shape[-2:]
+    for v, x, y, kern_ix in zip(vis, xs, ys, kernel_ixs):
+        uvgrid[y:y + gh, x:x + gw] += kernel[convert_to_tuple3(kern_ix)] * v
+        
+    return uvgrid
+    
