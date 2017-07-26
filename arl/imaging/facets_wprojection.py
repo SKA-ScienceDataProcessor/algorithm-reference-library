@@ -40,5 +40,6 @@ def invert_facets_wprojection(vis: Visibility, im: Image, dopsf=False, normalize
     """
     
     log.info("invert_facets_wprojection: Inverting by image facets and w projection")
-    return invert_with_image_iterator(vis, im, normalize=normalize, image_iterator=raster_iter, dopsf=dopsf,
+    return invert_with_image_iterator(vis, im, normalize=normalize, image_iterator=raster_iter,
+                                      invert_function=invert_wprojection, dopsf=dopsf,
                                       **kwargs)

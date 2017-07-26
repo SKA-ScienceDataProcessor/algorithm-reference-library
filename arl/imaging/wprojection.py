@@ -28,21 +28,6 @@ log = logging.getLogger(__name__)
 def predict_wprojection(vis: Visibility, model: Image, **kwargs) -> Visibility:
     """ Predict using convolutional degridding and w projection.
     
-    For a fixed w, the measurement equation can be stated as as a convolution in Fourier space. 
-    
-    .. math::
-
-        V(u,v,w) =G_w(u,v) \\ast \\int \\frac{I(l,m)}{\\sqrt{1-l^2-m^2}} e^{-2 \\pi j (ul+vm)} dl dm$$
-
-    where the convolution function is:
-    
-    .. math::
-
-        G_w(u,v) = \\int \\frac{1}{\\sqrt{1-l^2-m^2}} e^{-2 \\pi j (ul+vm + w(\\sqrt{1-l^2-m^2}-1))} dl dm
-
-
-    Hence when degridding, we can use the transform of the w beam to correct this effect.
-    
     :param vis: Visibility to be predicted
     :param model: model image
     :return: resulting visibility (in place works)
@@ -52,21 +37,6 @@ def predict_wprojection(vis: Visibility, model: Image, **kwargs) -> Visibility:
 
 def invert_wprojection(vis: Visibility, im: Image, dopsf=False, normalize=True, **kwargs) -> (Image, numpy.ndarray):
     """ Predict using 2D convolution function, including w projection
-
-    For a fixed w, the measurement equation can be stated as as a convolution in Fourier space.
-    
-    .. math::
-
-        V(u,v,w) =G_w(u,v) \\ast \\int \\frac{I(l,m)}{\\sqrt{1-l^2-m^2}} e^{-2 \\pi j (ul+vm)} dl dm$$
-
-    where the convolution function is:
-    
-    .. math::
-
-        G_w(u,v) = \\int \\frac{1}{\\sqrt{1-l^2-m^2}} e^{-2 \\pi j (ul+vm + w(\\sqrt{1-l^2-m^2}-1))} dl dm
-
-
-    Hence when degridding, we can use the transform of the w beam to correct this effect.
     
     Use the image im as a template. Do PSF in a separate call.
 

@@ -2,14 +2,16 @@
 Functions that aid definition of fourier transform processing.
 """
 
-import numpy
+import logging
+import copy
+
 import astropy.constants as constants
+import numpy
 
 from arl.data.data_models import Visibility, BlockVisibility, Image
-from arl.data.polarisation import PolarisationFrame
 from arl.data.parameters import get_parameter
+from arl.data.polarisation import PolarisationFrame
 from arl.fourier_transforms.convolutional_gridding import anti_aliasing_calculate, w_kernel
-import logging
 
 log = logging.getLogger(__name__)
 
@@ -22,21 +24,21 @@ def get_frequency_map(vis, im=None, **kwargs):
     # Find the unique frequencies in the visibility
     ufrequency = numpy.unique(vis.frequency)
     vnchan = len(ufrequency)
-
+    
     if im is None:
         spectral_mode = 'channel'
         vfrequencymap = get_rowmap(vis.frequency, ufrequency)
         assert min(vfrequencymap) >= 0, "Invalid frequency map: visibility channel < 0"
-
-
+    
+    
     elif im.data.shape[0] == 1 and vnchan >= 1:
         spectral_mode = 'mfs'
         vfrequencymap = numpy.zeros_like(vis.frequency, dtype='int')
-
+    
     else:
         # We can map these to image channels
         v2im_map = im.wcs.sub(['spectral']).wcs_world2pix(ufrequency, 0)[0].astype('int')
-    
+        
         spectral_mode = 'channel'
         nrows = len(vis.frequency)
         row2vis = numpy.array(get_rowmap(vis.frequency, ufrequency))
@@ -48,7 +50,7 @@ def get_frequency_map(vis, im=None, **kwargs):
     return spectral_mode, vfrequencymap
 
 
-def get_polarisation_map(vis: Visibility, im: Image=None, **kwargs):
+def get_polarisation_map(vis: Visibility, im: Image = None, **kwargs):
     """ Get the mapping of visibility polarisations to image polarisations
     
     """
@@ -57,7 +59,7 @@ def get_polarisation_map(vis: Visibility, im: Image=None, **kwargs):
             return "stokesI->stokesI", lambda pol: 0
         elif vis.polarisation_frame == PolarisationFrame('stokesIQUV'):
             return "stokesIQUV->stokesIQUV", lambda pol: pol
-
+    
     return "unknown", lambda pol: pol
 
 
@@ -98,7 +100,6 @@ def get_uvw_map(vis, im, **kwargs):
     uvwscale = numpy.zeros([3])
     uvwscale[0:2] = im.wcs.wcs.cdelt[0:2] * numpy.pi / 180.0
     assert uvwscale[0] != 0.0, "Error in uv scaling"
-    fov = int(round(padding * nx)) * numpy.abs(uvwscale[0])
     
     vuvwmap = uvwscale * vis.uvw
     uvw_mode = "2d"
@@ -107,7 +108,7 @@ def get_uvw_map(vis, im, **kwargs):
 
 
 def standard_kernel_list(vis, shape, oversampling=8, support=3):
-    """Return a lambda function to calculate the standard visibility kernel
+    """Return a generator to calculate the standard visibility kernel
 
     :param vis: visibility
     :param shape: tuple with 2D shape of grid
@@ -119,7 +120,7 @@ def standard_kernel_list(vis, shape, oversampling=8, support=3):
 
 
 def w_kernel_list(vis, shape, fov, oversampling=4, wstep=100.0, npixel_kernel=16, cy=None, cx=None,
-                  remove_shift=False):
+                  remove_shift=True):
     """Return a generator for the w kernel for each row
 
     This function is called once. It uses an LRU cache to hold the convolution kernels. As a result,
@@ -167,16 +168,17 @@ def get_kernel_list(vis: Visibility, im, **kwargs):
     kernelname = get_parameter(kwargs, "kernel", "2d")
     oversampling = get_parameter(kwargs, "oversampling", 8)
     padding = get_parameter(kwargs, "padding", 2)
-
+    
     gcf, _ = anti_aliasing_calculate((padding * npixel, padding * npixel), oversampling)
-
+    
     wabsmax = numpy.max(numpy.abs(vis.w))
     if kernelname == 'wprojection' and wabsmax > 0.0:
         
         # wprojection needs a lot of commentary!
         log.debug("get_kernel_list: Using wprojection kernel")
         
-        # The field of view must be as padded!
+        # The field of view must be as padded! R_F is for reporting only so that
+        # need not be padded.
         fov = cellsize * npixel * padding
         r_f = (cellsize * npixel / 2) ** 2 / abs(cellsize)
         log.debug("get_kernel_list: Fresnel number = %f" % (r_f))
@@ -188,20 +190,26 @@ def get_kernel_list(vis: Visibility, im, **kwargs):
         log.debug("get_kernel_list: Using w projection with wstep = %f" % (wstep))
         
         # Now calculate the maximum support for the w kernel
-        npixel_kernel = get_parameter(kwargs, "kernelwidth", (2 * int(round(numpy.sin(0.5 * fov) * npixel/4.0))))
+        npixel_kernel = get_parameter(kwargs, "kernelwidth", (2 * int(round(numpy.sin(0.5 * fov) * npixel / 4.0))))
         assert npixel_kernel % 2 == 0
         log.debug("get_kernel_list: Maximum w kernel full width = %d pixels" % (npixel_kernel))
-        wcentre = vis.phasecentre.to_pixel(im.wcs)
-        remove_shift=get_parameter(kwargs, "remove_shift", True)
-        kernel_list = w_kernel_list(vis, (npixel, npixel), fov, oversampling=oversampling, wstep=wstep,
-                                    npixel_kernel=npixel_kernel, cy=wcentre[1], cx=wcentre[0],
+        # Remember that the delay tracking centre (kept in the Visibility) may not be the same as the image
+        # phase centre
+        wcentre = list(vis.phasecentre.to_pixel(im.wcs, origin=1))
+        remove_shift = get_parameter(kwargs, "remove_shift", True)
+        wcentre[0]+=(padding-1) * npixel //2
+        wcentre[1]+=(padding-1) * npixel //2
+        kernel_list = w_kernel_list(vis, (padding * npixel, padding * npixel), fov,
+                                    oversampling=oversampling, wstep=wstep,
+                                    npixel_kernel=npixel_kernel, cx=wcentre[0], cy=wcentre[1],
                                     remove_shift=remove_shift)
     else:
         kernelname = '2d'
-        kernel_list = standard_kernel_list(vis, (padding * npixel, padding * npixel), oversampling=oversampling,
-                                           support=3)
+        kernel_list = standard_kernel_list(vis, (padding * npixel, padding * npixel),
+                                           oversampling=oversampling)
     
     return kernelname, gcf, kernel_list
+
 
 def advise_wide_field(vis, delA=0.02, oversampling_synthesised_beam=3.0, guard_band_image=6.0, facets=1,
                       wprojection_planes=1):

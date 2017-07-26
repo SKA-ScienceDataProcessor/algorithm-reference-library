@@ -52,7 +52,8 @@ def invert_with_vis_iterator(vis: Visibility, im: Image, dopsf=False, normalize=
     return resultimage, totalwt
 
 
-def predict_with_vis_iterator(vis: Visibility, model: Image, vis_iter=vis_slice_iter, predict=predict_2d, **kwargs):
+def predict_with_vis_iterator(vis: Visibility, model: Image, vis_iter=vis_slice_iter,
+                              predict=predict_2d, **kwargs) -> Visibility:
     """Iterate through prediction in chunks
     
     This knows about the structure of predict in different execution frameworks but not
@@ -64,14 +65,14 @@ def predict_with_vis_iterator(vis: Visibility, model: Image, vis_iter=vis_slice_
     for rows in vis_iter(vis, **kwargs):
         if rows is not None:
             visslice = create_visibility_from_rows(vis, rows)
+            visslice.data['vis'][...] = 0.0
             visslice = predict(visslice, model, **kwargs)
             vis.data['vis'][rows] += visslice.data['vis']
     return vis
 
 
 def predict_with_image_iterator(vis: Visibility, model: Image, image_iterator=raster_iter,
-                                predict_function=predict_2d_base,
-                                **kwargs) -> Visibility:
+                                predict_function=predict_2d_base, **kwargs) -> Visibility:
     """ Predict using image partitions, calling specified predict function
 
     :param vis: Visibility to be predicted
@@ -81,16 +82,17 @@ def predict_with_image_iterator(vis: Visibility, model: Image, image_iterator=ra
     :return: resulting visibility (in place works)
     """
     log.info("predict_with_image_iterator: Predicting by image partitions")
-    vis.data['vis'] *= 0.0
     result = copy_visibility(vis)
     for dpatch in image_iterator(model, **kwargs):
+        result.data['vis'][...] = 0.0
         result = predict_function(result, dpatch, **kwargs)
         vis.data['vis'] += result.data['vis']
     return vis
 
 
 def invert_with_image_iterator(vis, im, image_iterator=raster_iter, dopsf=False,
-                               normalize=True, invert_function=invert_2d_base, **kwargs) -> (Image, numpy.ndarray):
+                               normalize=True, invert_function=invert_2d_base,
+                               **kwargs) -> (Image, numpy.ndarray):
     """ Predict using image partitions, calling specified predict function
 
     :param vis: Visibility to be inverted

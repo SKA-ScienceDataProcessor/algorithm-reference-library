@@ -41,7 +41,7 @@ from arl.visibility.base import copy_visibility
 from arl.visibility.coalesce import coalesce_visibility, decoalesce_visibility
 from arl.imaging.params import get_frequency_map, get_polarisation_map, get_uvw_map, get_kernel_list
 
-import arl.visibility.operations
+from arl.visibility.operations import phaserotate_visibility
 import logging
 
 log = logging.getLogger(__name__)
@@ -74,7 +74,7 @@ def shift_vis_to_image(vis: Visibility, im: Image, tangent: bool = True, inverse
         else:
             log.debug("shift_vis_from_image: shifting phasecentre from vis phasecentre %s to image phasecentre %s" %
                       (vis.phasecentre, image_phasecentre))
-        vis = arl.visibility.operations.phaserotate_visibility(vis, image_phasecentre, tangent=tangent, inverse=inverse)
+        vis = phaserotate_visibility(vis, image_phasecentre, tangent=tangent, inverse=inverse)
         vis.phasecentre = im.phasecentre
     
     assert type(vis) is Visibility, "after phase_rotation, vis is not a Visibility"
@@ -413,11 +413,11 @@ def create_image_from_visibility(vis: Visibility, **kwargs) -> Image:
 
 
 def create_w_term_like(vis: Visibility, im: Image, w, **kwargs) -> Image:
-    """Create an image with a w term phase term in it
+    """Create an image with a w term phase term in it:
     
     .. math::
 
-    e^{-2 \\pi j (w(\\sqrt{1-l^2-m^2}-1)}
+    I(l,m) = e^{-2 \\pi j (w(\\sqrt{1-l^2-m^2}-1)}
 
     
     The vis phasecentre is used as the delay centre for the w term (i.e. where n==0)
@@ -431,7 +431,7 @@ def create_w_term_like(vis: Visibility, im: Image, w, **kwargs) -> Image:
     fim = copy_image(im)
     cellsize = abs(fim.wcs.wcs.cdelt[0]) * numpy.pi / 180.0
     _, _, _, npixel = fim.data.shape
-    wcentre = vis.phasecentre.to_pixel(im.wcs)
+    wcentre = vis.phasecentre.to_pixel(im.wcs, origin=1)
     remove_shift=get_parameter(kwargs, "remove_shift", False)
     fim.data = w_beam(npixel, npixel * cellsize, w=w, cx=wcentre[0], cy=wcentre[1], remove_shift=remove_shift)
     

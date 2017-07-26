@@ -24,6 +24,7 @@ from arl.imaging import predict_2d, predict_wstack, predict_wprojection, predict
     create_image_from_visibility, predict_skycomponent_visibility, \
     weight_visibility, create_w_term_like, predict_facets_wstack, invert_facets_wstack, \
     predict_facets_wprojection, invert_facets_wprojection
+from arl.image.iterators import raster_iter
 
 log = logging.getLogger(__name__)
 
@@ -59,7 +60,7 @@ class TestImaging(unittest.TestCase):
         import os
         self.dir = './test_results'
         os.makedirs(self.dir, exist_ok=True)
-        self.params = {'npixel': 256,
+        self.params = {'npixel': 512,
                        'nchan': 1,
                        'reffrequency': 1e8,
                        'facets': 8,
@@ -93,35 +94,42 @@ class TestImaging(unittest.TestCase):
         self.componentvis.data['vis'] *= 0.0
         
         # Create model
-        self.model = create_image_from_visibility(self.componentvis, npixel=256, cellsize=0.001,
+        self.model = create_image_from_visibility(self.componentvis, npixel=512, cellsize=0.001,
                                                   nchan=1, polarisation_frame=PolarisationFrame('stokesI'))
         
         # Fill the visibility with exactly computed point sources. These are chosen to lie
         # on grid points.
-        spacing_pixels = 32
+        spacing_pixels = 512 // 8
         log.info('Spacing in pixels = %s' % spacing_pixels)
         
-        centers = [-2.5, -0.5, 0.5, 2.5]
-        
+        centers = [(x, x) for x in numpy.linspace(-2.8,+2.8,7)]
+
+        for x in numpy.linspace(-2.8,+2.8,7):
+            centers.append((-x, x))
+            
+        centers.append((1e-7,1e-7))
+        centers.append((1.1, 2.2))
+
         # Make the list of components
         rpix = self.model.wcs.wcs.crpix - 1
         self.components = []
-        for iy in centers:
-            for ix in centers:
-                if ix >= iy:
-                    # The phase center in 0-relative coordinates is n // 2 so we centre the grid of
-                    # components on ny // 2, nx // 2. The wcs must be defined consistently.
-                    p = int(round(rpix[0] + ix * spacing_pixels * numpy.sign(self.model.wcs.wcs.cdelt[0]))), \
-                        int(round(rpix[1] + iy * spacing_pixels * numpy.sign(self.model.wcs.wcs.cdelt[1])))
-                    sc = pixel_to_skycoord(p[0], p[1], self.model.wcs, origin=0)
-                    log.info("Component at (%f, %f) [0-rel] %s" % (p[0], p[1], str(sc)))
-                    
-                    f = (100.0 + 1.0 * ix + iy * 10.0)
-                    # Channel images
-                    flux = numpy.array([[f]])
-                    comp = create_skycomponent(flux=flux, frequency=[numpy.average(self.frequency)], direction=sc,
-                                               polarisation_frame=PolarisationFrame('stokesI'))
-                    self.components.append(comp)
+        for center in centers:
+            ix, iy = center
+            # The phase center in 0-relative coordinates is n // 2 so we centre the grid of
+            # components on ny // 2, nx // 2. The wcs must be defined consistently.
+            p = int(round(rpix[0] + ix * spacing_pixels * numpy.sign(self.model.wcs.wcs.cdelt[0]))), \
+                int(round(rpix[1] + iy * spacing_pixels * numpy.sign(self.model.wcs.wcs.cdelt[1])))
+            sc = pixel_to_skycoord(p[0], p[1], self.model.wcs, origin=0)
+            log.info("Component at (%f, %f) [0-rel] %s" % (p[0], p[1], str(sc)))
+            
+            f = (100.0 + 1.0 * ix + iy * 10.0)
+            if ix != 0 and iy != 0:
+                
+                # Channel images
+                flux = numpy.array([[f]])
+                comp = create_skycomponent(flux=flux, frequency=[numpy.average(self.frequency)], direction=sc,
+                                           polarisation_frame=PolarisationFrame('stokesI'))
+                self.components.append(comp)
         
         # Predict the visibility from the components exactly. We always do this for each spectral channel
         self.componentvis.data['vis'] *= 0.0
@@ -133,8 +141,8 @@ class TestImaging(unittest.TestCase):
         self.cmodel = copy_image(self.model)
         self.cmodel.data[0, 0, :, :] = norm * convolve(self.model.data[0, 0, :, :], Gaussian2DKernel(1.0),
                                                        normalize_kernel=False)
-        export_image_to_fits(self.model, '%s/test_model.fits' % self.dir)
-        export_image_to_fits(self.cmodel, '%s/test_cmodel.fits' % self.dir)
+#        export_image_to_fits(self.model, '%s/test_model.fits' % self.dir)
+#        export_image_to_fits(self.cmodel, '%s/test_cmodel.fits' % self.dir)
     
     def test_findcomponents(self):
         # Check that the components are where we expected them to be after insertion
@@ -166,7 +174,7 @@ class TestImaging(unittest.TestCase):
         self.residualvis.data['uvw'][:, 2] = 0.0
         self.residualvis.data['vis'] = self.modelvis.data['vis'] - self.componentvis.data['vis']
         
-        self._checkdirty(self.residualvis, 'test_predict_2d_residual', fluxthreshold=0.7)
+        self._checkdirty(self.residualvis, 'test_predict_2d', fluxthreshold=1.5)
     
     def _predict_base(self, predict, fluxthreshold=1.0):
         self.modelvis = create_visibility(self.lowcore, self.times, self.frequency,
@@ -180,10 +188,11 @@ class TestImaging(unittest.TestCase):
                                              weight=1.0, polarisation_frame=PolarisationFrame('stokesI'))
         self.residualvis.data['uvw'][:, 2] = 0.0
         self.residualvis.data['vis'] = self.modelvis.data['vis'] - self.componentvis.data['vis']
-        self._checkdirty(self.residualvis, 'test_%s_residual' % predict.__name__, fluxthreshold=fluxthreshold)
+        self._checkdirty(self.residualvis, 'test_%s' % predict.__name__, fluxthreshold=fluxthreshold)
     
     def test_predict_facets(self):
         self.actualSetUp()
+        self.params['facets'] = 8
         self._predict_base(predict_facets, fluxthreshold=0.01)
     
     def test_predict_timeslice(self):
@@ -195,26 +204,24 @@ class TestImaging(unittest.TestCase):
     def test_predict_wstack(self):
         self.actualSetUp()
         self.params['wstack'] = 4.0
-        self._predict_base(predict_wstack, fluxthreshold=2.1)
+        self._predict_base(predict_wstack, fluxthreshold=5.0)
 
-    @unittest.skip("TODO: Fix needed")
     def test_predict_facets_wstack(self):
         self.actualSetUp()
-        self.params['wstack'] = 8.0
-        self.params['facets'] = 8
+        self.params['wstack'] = 4.0
+        self.params['facets'] = 2
         self._predict_base(predict_facets_wstack, fluxthreshold=2.1)
 
     def test_predict_wstack_wprojection(self):
         self.actualSetUp()
-        self.params['wstack'] = 5 * 4.0
+        self.params['wstack'] = 7 * 4.0
         self.params['wstep'] = 4.0
         self._predict_base(predict_wprojection_wstack, fluxthreshold=2.4)
 
-    @unittest.skip("TODO: Fix facets/wprojection")
     def test_predict_facets_wprojection(self):
         self.actualSetUp()
-        self.params['wstack'] = 5 * 4.0
         self.params['wstep'] = 4.0
+        self.params['facets'] = 2
         self._predict_base(predict_facets_wprojection, fluxthreshold=2.4)
 
     def test_predict_wprojection(self):
@@ -253,36 +260,41 @@ class TestImaging(unittest.TestCase):
 
     def test_invert_facets(self):
         self.actualSetUp()
-        self._invert_base(invert_facets, positionthreshold=1.0)
+        self.params['facets'] = 2
+        self._invert_base(invert_facets, positionthreshold=6.0)
 
-
-    @unittest.skip("TODO: Fix facets/wprojection")
+#    @unittest.skip("TODO: Fix facets/wprojection")
     def test_invert_facets_wprojection(self):
         self.actualSetUp()
         self.params['facets'] = 2
-        self.params['wstep'] = 8.0
+        self.params['wstep'] = 4.0
+        self.params['padding'] = 2
         self._invert_base(invert_facets_wprojection, positionthreshold=1.0)
 
     def test_invert_wstack(self):
         self.actualSetUp()
         self.params['wstack'] = 4.0
+        self.params['padding'] = 2
         self._invert_base(invert_wstack, positionthreshold=1.0)
 
     def test_invert_facets_wstack(self):
         self.actualSetUp()
-        self.params['wstack'] = 8.0
-        self.params['facets'] = 2
+        self.params['wstack'] = 4.0
+        self.params['facets'] = 4
+        self.params['padding'] = 2
         self._invert_base(invert_facets_wstack, positionthreshold=1.0)
 
     def test_invert_wprojection_wstack(self):
         self.actualSetUp()
         self.params['wstack'] = 5 * 4.0
         self.params['wstep'] = 4.0
+        self.params['padding'] = 2
         self._invert_base(invert_wprojection_wstack, positionthreshold=1.0)
     
     def test_invert_wprojection(self):
         self.actualSetUp()
         self.params['wstep'] = 4.0
+        self.params['padding'] = 2
         self._invert_base(invert_wprojection, positionthreshold=1.0)
     
     def test_invert_timeslice(self):
@@ -321,11 +333,41 @@ class TestImaging(unittest.TestCase):
     
     def test_create_w_term_image(self):
         self.actualSetUp()
-        fim = create_image_from_visibility(self.componentvis, nchan=1, npixel=128)
-        im = create_w_term_like(self.componentvis, fim, w=10.0, nchan=1, npixel=128)
-        assert im.data.shape == (128, 128)
-        assert im.data.dtype == 'complex128'
+        fim = create_image_from_visibility(self.componentvis, nchan=1, cellsize=0.001, npixel=256)
+        im = create_w_term_like(self.componentvis, fim, w=200.0, nchan=1, npixel=256, remove_shift=True)
+        im.data = im.data.real
+        for x in [64, 64+128]:
+            for y in [64, 64+128]:
+                self.assertAlmostEqual(im.data[y, x], 0.430801977474, 7)
+        export_image_to_fits(im, '%s/test_wterm.fits' % self.dir)
+        assert im.data.shape == (256, 256)
         self.assertAlmostEqual(numpy.max(im.data.real), 1.0, 7)
+        
+    def test_create_w_term_image_iterated(self):
+        self.actualSetUp()
+        fim = create_image_from_visibility(self.componentvis, nchan=1, cellsize=0.001, npixel=256)
+        for i, dpatch in enumerate(raster_iter(fim, facets=2)):
+            dpatch.data[...] = create_w_term_like(self.componentvis, dpatch, w=200.0, nchan=1,
+                                                  remove_shift=False).data[...].real
+
+        for x in [64, 64+128]:
+            for y in [64, 64+128]:
+                self.assertAlmostEqual(fim.data[0, 0, y, x], 0.430801977474, 7)
+        assert fim.data.shape == (1, 1, 256, 256)
+        export_image_to_fits(fim, '%s/test_wterm_iterated.fits' % self.dir)
+
+    def test_create_w_term_image_iterated_remove(self):
+        self.actualSetUp()
+        fim = create_image_from_visibility(self.componentvis, nchan=1, cellsize=0.001, npixel=256)
+        for i, dpatch in enumerate(raster_iter(fim, facets=2)):
+            dpatch.data[...] = create_w_term_like(self.componentvis, dpatch, w=200.0, nchan=1,
+                                                  remove_shift=True).data[...].real
+
+        for x in [64, 64+128]:
+            for y in [64, 64+128]:
+                self.assertAlmostEqual(fim.data[0, 0, y, x], 1.0, 7)
+        assert fim.data.shape == (1, 1, 256, 256)
+        export_image_to_fits(fim, '%s/test_wterm_iterated_remove.fits' % self.dir)
 
 
 if __name__ == '__main__':

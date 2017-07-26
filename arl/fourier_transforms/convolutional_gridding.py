@@ -131,7 +131,7 @@ def anti_aliasing_calculate(shape, oversampling=8, support=3):
         for xf in range(oversampling):
             mx = range(xf, l1d, oversampling)[::-1]
             kernel4d[yf, xf, 2:, 2:] = numpy.outer(kernel1d[my], kernel1d[mx])
-    return gcf, (kernel4d / kernel4d.max()).astype('complex')
+    return gcf, (kernel4d / numpy.sum(kernel4d[0,0,:,:])).astype('complex')
 
 
 def grdsf(nu):
@@ -182,7 +182,7 @@ def grdsf(nu):
     return grdsf, (1 - nu ** 2) * grdsf
 
 
-def w_beam(npixel, field_of_view, w, cx=None, cy=None, remove_shift=False):
+def w_beam(npixel, field_of_view, w, cx=None, cy=None, remove_shift=True):
     """ W beam, the fresnel diffraction pattern arising from non-coplanar baselines
     
     :param npixel: Size of the grid in pixels
@@ -197,7 +197,7 @@ def w_beam(npixel, field_of_view, w, cx=None, cy=None, remove_shift=False):
         cx = npixel // 2
     if cy is None:
         cy = npixel // 2
-    m, l = coordinates2Offset(npixel, cx, cy)
+    l, m = coordinates2Offset(npixel, cx, cy)
     m *= field_of_view
     l *= field_of_view
     r2 = l ** 2 + m ** 2
@@ -310,8 +310,6 @@ def convolutional_degrid(kernel_list, vshape, uvgrid, vuvwmap, vfrequencymap, vp
     x, xf = frac_coord(nx, kernel_oversampling, vuvwmap[:, 0])
     x -= gw // 2
     
-    norm = numpy.sum(kernels[0][0, 0, :, :].real)
-    
     if len(kernels) > 1:
         coords = kernel_indices, list(vfrequencymap), x, y, xf, yf
         ckernels = numpy.conjugate(kernels)
@@ -330,7 +328,6 @@ def convolutional_degrid(kernel_list, vshape, uvgrid, vuvwmap, vfrequencymap, vp
                 for chan, xx, yy, xxf, yyf in zip(*coords)
             ]
     
-    vis = vis / norm
     return numpy.array(vis)
 
 
@@ -366,9 +363,8 @@ def convolutional_grid(kernel_list, uvgrid, vis, visweights, vuvwmap, vfrequency
     
     # About 228k samples per second for standard kernel so about 10 million CMACs per second
     
-    norm = numpy.sum(kernels[0][0, 0, :, :].real)
     # Now we can loop over all rows
-    wts = visweights[...] * norm
+    wts = visweights[...]
     viswt = vis[...] * visweights[...]
     npol = vis.shape[-1]
 
