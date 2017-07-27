@@ -49,7 +49,7 @@ class TestConvolutionalGridding(unittest.TestCase):
     def test_anti_aliasing_calculate(self):
         for shape in [(64, 64), (128, 128), (256, 256)]:
             _, aaf = anti_aliasing_calculate(shape, 8)
-            self.assertAlmostEqual(numpy.max(aaf[..., aaf.shape[1] // 2, aaf.shape[0] // 2]), 1.0)
+            self.assertAlmostEqual(numpy.max(aaf[..., aaf.shape[1] // 2, aaf.shape[0] // 2]), 0.18712109669890534)
 
     def test_w_kernel_function(self):
         assert_allclose(numpy.real(w_beam(5, 0.1, 0))[0,0], 1.0)

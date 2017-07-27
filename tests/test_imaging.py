@@ -221,7 +221,7 @@ class TestImaging(unittest.TestCase):
         self.actualSetUp()
         self.params['wstep'] = 8.0
         self.params['facets'] = 2
-        self._predict_base(predict_facets_wprojection, fluxthreshold=3.0)
+        self._predict_base(predict_facets_wprojection, fluxthreshold=7.0)
 
     def test_predict_wprojection(self):
         self.actualSetUp()
