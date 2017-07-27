@@ -48,3 +48,4 @@ temp.fits
 /test_results
 /test_coverage
 /tests/test_data
+/tests/unittest_results

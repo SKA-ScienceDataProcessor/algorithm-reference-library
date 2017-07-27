@@ -18,8 +18,9 @@ from arl.util.testing_support import create_named_configuration
 from arl.imaging import predict_skycomponent_visibility
 from arl.visibility.coalesce import convert_blockvisibility_to_visibility
 from arl.visibility.operations import append_visibility, qa_visibility, \
-    sum_visibility, phaserotate_visibility
-from arl.visibility.base import copy_visibility, create_visibility, create_blockvisibility, create_visibility_from_rows
+    sum_visibility
+from arl.visibility.base import copy_visibility, create_visibility, create_blockvisibility, create_visibility_from_rows,\
+    phaserotate_visibility
 
 
 class TestVisibilityOperations(unittest.TestCase):
