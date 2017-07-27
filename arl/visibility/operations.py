@@ -30,58 +30,6 @@ def append_visibility(vis: Union[Visibility, BlockVisibility], othervis: Union[V
     return vis
 
 
-def phaserotate_visibility(vis: Visibility, newphasecentre: SkyCoord, tangent=True, inverse=False) -> Visibility:
-    """
-    Phase rotate from the current phase centre to a new phase centre
-    
-    If tangent is False the uvw are recomputed and the visibility phasecentre is updated.
-    Otherwise only the visibility phases are adjusted
- 
-    :param vis: Visibility to be rotated
-    :param newphasecentre:
-    :param tangent: Stay on the same tangent plane? (True)
-    :param inverse: Actually do the opposite
-    :return: Visibility
-    """
-    assert type(vis) is Visibility, "vis is not a Visibility: %r" % vis
-    
-    l, m, n = skycoord_to_lmn(newphasecentre, vis.phasecentre)
-    
-    # No significant change?
-    if numpy.abs(n) > 1e-15:
-        
-        # Make a new copy
-        newvis = copy_visibility(vis)
-        
-        phasor = simulate_point(newvis.uvw, l, m)
-        
-        if inverse:
-            for pol in range(vis.polarisation_frame.npol):
-                newvis.data['vis'][..., pol] *= phasor
-        else:
-            for pol in range(vis.polarisation_frame.npol):
-                newvis.data['vis'][..., pol] *= numpy.conj(phasor)
-        
-        # To rotate UVW, rotate into the global XYZ coordinate system and back. We have the option of
-        # staying on the tangent plane or not. If we stay on the tangent then the raster will
-        # join smoothly at the edges. If we change the tangent then we will have to reproject to get
-        # the results on the same image, in which case overlaps or gaps are difficult to deal with.
-        if not tangent:
-            if inverse:
-                xyz = uvw_to_xyz(vis.data['uvw'], ha=-newvis.phasecentre.ra.rad, dec=newvis.phasecentre.dec.rad)
-                newvis.data['uvw'][...] = \
-                    xyz_to_uvw(xyz, ha=-newphasecentre.ra.rad, dec=newphasecentre.dec.rad)[...]
-            else:
-                # This is the original (non-inverse) code
-                xyz = uvw_to_xyz(newvis.data['uvw'], ha=-newvis.phasecentre.ra.rad, dec=newvis.phasecentre.dec.rad)
-                newvis.data['uvw'][...] = xyz_to_uvw(xyz, ha=-newphasecentre.ra.rad, dec=newphasecentre.dec.rad)[
-                    ...]
-            newvis.phasecentre = newphasecentre
-        return newvis
-    else:
-        return vis
-
-
 def sum_visibility(vis: Visibility, direction: SkyCoord) -> numpy.array:
     """ Direct Fourier summation in a given direction
 

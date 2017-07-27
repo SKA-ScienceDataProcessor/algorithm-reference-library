@@ -198,7 +198,7 @@ def w_beam(npixel, field_of_view, w, cx=None, cy=None, remove_shift=False):
         cx = npixel // 2
     if cy is None:
         cy = npixel // 2
-    l, m = coordinates2Offset(npixel, cy, cx)
+    l, m = coordinates2Offset(npixel, cx, cy)
     m *= field_of_view
     l *= field_of_view
     r2 = l ** 2 + m ** 2

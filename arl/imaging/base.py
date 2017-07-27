@@ -37,11 +37,10 @@ from arl.fourier_transforms.convolutional_gridding import convolutional_grid, \
 from arl.fourier_transforms.fft_support import fft, ifft, pad_mid, extract_mid
 from arl.image.operations import copy_image, create_image_from_array
 from arl.util.coordinate_support import simulate_point, skycoord_to_lmn
-from arl.visibility.base import copy_visibility
+from arl.visibility.base import copy_visibility, phaserotate_visibility
 from arl.visibility.coalesce import coalesce_visibility, decoalesce_visibility
 from arl.imaging.params import get_frequency_map, get_polarisation_map, get_uvw_map, get_kernel_list
 
-from arl.visibility.operations import phaserotate_visibility
 import logging
 
 log = logging.getLogger(__name__)

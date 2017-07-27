@@ -197,8 +197,8 @@ def get_kernel_list(vis: Visibility, im, **kwargs):
         # phase centre
         wcentre = list(vis.phasecentre.to_pixel(im.wcs, origin=1))
         remove_shift = get_parameter(kwargs, "remove_shift", True)
-        wcentre[0]+=(padding-1) * npixel //2
-        wcentre[1]+=(padding-1) * npixel //2
+        wcentre[0] = npixel * padding - (wcentre[0] + (padding - 1) * npixel // 2)
+        wcentre[1] = npixel * padding - (wcentre[1] + (padding - 1) * npixel // 2)
         kernel_list = w_kernel_list(vis, (padding * npixel, padding * npixel), fov,
                                     oversampling=oversampling, wstep=wstep,
                                     npixel_kernel=npixel_kernel, cx=wcentre[0], cy=wcentre[1],
