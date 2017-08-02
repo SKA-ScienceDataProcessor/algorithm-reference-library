@@ -92,7 +92,7 @@ class TestConvolutionalGridding(unittest.TestCase):
 
     def test_convolutional_grid(self):
         npixel = 256
-        nvis = 1000000
+        nvis = 10000
         nchan = 1
         npol = 4
         uvgrid = numpy.zeros([nchan, npol, npixel, npixel], dtype='complex')

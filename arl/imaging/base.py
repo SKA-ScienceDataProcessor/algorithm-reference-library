@@ -19,11 +19,11 @@ This and related modules contain various approachs for dealing with the wide-fie
 extra phase term in the Fourier transform cannot be ignored.
 """
 
-from typing import List, Union
-import numpy
-
 import collections
+import logging
+from typing import List, Union
 
+import numpy
 from astropy import constants as constants
 from astropy import units as units
 from astropy import wcs
@@ -33,15 +33,13 @@ from arl.data.data_models import Visibility, BlockVisibility, Image, Skycomponen
 from arl.data.parameters import get_parameter
 from arl.data.polarisation import convert_pol_frame, PolarisationFrame
 from arl.fourier_transforms.convolutional_gridding import convolutional_grid, \
-    convolutional_degrid, weight_gridding, w_beam
+    convolutional_degrid, weight_gridding
 from arl.fourier_transforms.fft_support import fft, ifft, pad_mid, extract_mid
-from arl.image.operations import copy_image, create_image_from_array
+from arl.image.operations import create_image_from_array
+from arl.imaging.params import get_frequency_map, get_polarisation_map, get_uvw_map, get_kernel_list
 from arl.util.coordinate_support import simulate_point, skycoord_to_lmn
 from arl.visibility.base import copy_visibility, phaserotate_visibility
 from arl.visibility.coalesce import coalesce_visibility, decoalesce_visibility
-from arl.imaging.params import get_frequency_map, get_polarisation_map, get_uvw_map, get_kernel_list
-
-import logging
 
 log = logging.getLogger(__name__)
 
@@ -410,35 +408,6 @@ def create_image_from_visibility(vis: Visibility, **kwargs) -> Image:
     
     return create_image_from_array(numpy.zeros(shape), wcs=w)
 
-
-def create_w_term_like(vis: Visibility, im: Image, w, **kwargs) -> Image:
-    """Create an image with a w term phase term in it:
-    
-    .. math::
-
-    I(l,m) = e^{-2 \\pi j (w(\\sqrt{1-l^2-m^2}-1)}
-
-    
-    The vis phasecentre is used as the delay centre for the w term (i.e. where n==0)
-
-    :param vis: Visibility
-    :param im: template image
-    :param w: w value to evaluate (default is median abs)
-    :return: Image
-    """
-    
-    fim = copy_image(im)
-    cellsize = abs(fim.wcs.wcs.cdelt[0]) * numpy.pi / 180.0
-    _, _, _, npixel = fim.data.shape
-    wcentre = vis.phasecentre.to_pixel(im.wcs, origin=1)
-    remove_shift=get_parameter(kwargs, "remove_shift", False)
-    fim.data = w_beam(npixel, npixel * cellsize, w=w, cx=wcentre[0], cy=wcentre[1], remove_shift=remove_shift)
-    
-    fov = npixel * cellsize
-    fresnel = numpy.abs(w) * (0.5 * fov) ** 2
-    log.debug('create_w_term_image: For w = %.1f, field of view = %.6f, Fresnel number = %.2f' % (w, fov, fresnel))
-    
-    return fim
 
 def residual_image(vis: Visibility, model: Image, invert_residual=invert_2d, predict_residual=predict_2d,
                    **kwargs) -> Image:

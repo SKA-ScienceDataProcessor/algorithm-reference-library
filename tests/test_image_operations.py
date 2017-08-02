@@ -7,15 +7,14 @@ import os
 import sys
 import unittest
 
-from arl.data.data_models import Image, QA
 from arl.data.polarisation import PolarisationFrame
 
-from arl.image.iterators import raster_iter
 from arl.image.operations import copy_image, create_empty_image_like, create_image_from_array, add_image, \
-    export_image_to_fits, qa_image, reproject_image, smooth_image, checkwcs, convert_stokes_to_linear, \
-    convert_linear_to_stokes, convert_stokes_to_circular, convert_circular_to_stokes, convert_polimage_to_stokes, \
-    convert_stokes_to_polimage, polarisation_frame_from_wcs, import_image_from_fits, show_image, \
-    calculate_image_frequency_moments, calculate_image_from_frequency_moments
+    export_image_to_fits, qa_image, reproject_image, smooth_image, checkwcs, convert_polimage_to_stokes, \
+    convert_stokes_to_polimage, polarisation_frame_from_wcs, fft_image, show_image, \
+    calculate_image_frequency_moments, calculate_image_from_frequency_moments, pad_image, convert_image_to_kernel, \
+    create_w_term_like
+from arl.image.iterators import raster_iter
 from arl.util.testing_support import create_test_image, create_low_test_image_from_gleam
 
 import logging
@@ -135,7 +134,50 @@ class TestImage(unittest.TestCase):
             self.dir)))
         error = numpy.std(reconstructed_cube.data-original_cube.data)
         assert error < 0.2
+
+    def test_create_w_term_image(self):
+        m31image = create_test_image(cellsize=0.001)
+        im = create_w_term_like(m31image, w=20000.0, remove_shift=True)
+        im.data = im.data.real
+        for x in [64, 64 + 128]:
+            for y in [64, 64 + 128]:
+                self.assertAlmostEqual(im.data[0, 0, y, x], 0.84946344276442431, 7)
+        export_image_to_fits(im, '%s/test_wterm.fits' % self.dir)
+        assert im.data.shape == (1, 1, 256, 256)
+        self.assertAlmostEqual(numpy.max(im.data.real), 1.0, 7)
+
+    def test_fftim(self):
+        self.m31image = create_test_image(cellsize=0.001, frequency=[1e8], canonical=True)
+        m31_fft = fft_image(self.m31image)
+        m31_fft_ifft = fft_image(m31_fft, self.m31image)
+        numpy.testing.assert_array_almost_equal(self.m31image.data, m31_fft_ifft.data.real, 12)
+        m31_fft.data = numpy.abs(m31_fft.data)
+        export_image_to_fits(m31_fft, fitsfile='%s/test_m31_fft.fits' % (self.dir))
         
+    def test_pad_image(self):
+        m31image = create_test_image(cellsize=0.001, frequency=[1e8], canonical=True)
+        padded = pad_image(m31image, [1, 1, 1024, 1024])
+        assert padded.shape == (1, 1, 1024, 1024)
+        
+        padded = pad_image(m31image, [3, 4, 2048, 2048])
+        assert padded.shape == (3, 4, 2048, 2048)
+        
+        with self.assertRaises(ValueError):
+            padded = pad_image(m31image, [1, 1, 100, 100])
+            
+        with self.assertRaises(IndexError):
+            padded = pad_image(m31image, [1, 1])
+            
+    def test_convert_image_to_kernel(self):
+        m31image = create_test_image(cellsize=0.001, frequency=[1e8], canonical=True)
+        screen = create_w_term_like(m31image, w=20000.0, remove_shift=True)
+        screen_fft = fft_image(screen)
+        converted = convert_image_to_kernel(screen_fft, 8, 8)
+        assert converted.shape == (1, 1, 8, 8, 8, 8)
+        with self.assertRaises(AssertionError):
+            converted = convert_image_to_kernel(m31image, 15, 1)
+        with self.assertRaises(AssertionError):
+            converted = convert_image_to_kernel(m31image, 15, 1000)
 
 if __name__ == '__main__':
     unittest.main()

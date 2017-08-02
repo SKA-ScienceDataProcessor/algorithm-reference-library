@@ -19,7 +19,8 @@ from arl.image.operations import copy_image
 from arl.visibility.base import copy_visibility
 from arl.visibility.iterators import vis_wstack_iter
 from arl.visibility.coalesce import coalesce_visibility
-from arl.imaging.base import predict_2d_base, invert_2d_base, create_w_term_like
+from arl.imaging.base import predict_2d_base, invert_2d_base
+from arl.image.operations import create_w_term_like
 
 import logging
 log = logging.getLogger(__name__)
@@ -72,7 +73,7 @@ def predict_wstack_single(vis, model, predict_inner=predict_2d_base, **kwargs) -
 
     # Calculate w beam and apply to the model. The imaginary part is not needed
     workimage = copy_image(model)
-    w_beam = create_w_term_like(vis, model, w_average)
+    w_beam = create_w_term_like(model, w_average, vis.phasecentre)
     
     # Do the real part
     workimage.data = w_beam.data.real * model.data
@@ -133,7 +134,7 @@ def invert_wstack_single(vis: Visibility, im: Image, dopsf, normalize=True, inve
     vis.data['uvw'][...,2] += w_average
 
     # Calculate w beam and apply to the model. The imaginary part is not needed
-    w_beam = create_w_term_like(vis, im, w_average)
+    w_beam = create_w_term_like(im, w_average, vis.phasecentre)
     reWorkimage.data = w_beam.data.real * reWorkimage.data - w_beam.data.imag * imWorkimage.data
     
     return reWorkimage, sumwt

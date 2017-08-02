@@ -10,16 +10,21 @@ import copy
 import warnings
 
 from astropy.io import fits
+from astropy.coordinates import SkyCoord
 from astropy.wcs import WCS
 from reproject import reproject_interp
 
 from arl.data.parameters import arl_path
 from arl.data.data_models import Image, QA
-from arl.data.parameters import get_parameter
 from arl.data.polarisation import PolarisationFrame, convert_circular_to_stokes, convert_linear_to_stokes, \
     convert_stokes_to_circular, convert_stokes_to_linear
+from arl.fourier_transforms.fft_support import fft, ifft, pad_mid, extract_mid
+
 
 import logging
+
+from arl.fourier_transforms.convolutional_gridding import w_beam
+from arl.data.parameters import get_parameter
 
 log = logging.getLogger(__name__)
 
@@ -52,6 +57,8 @@ def create_image_from_array(data: numpy.array, wcs: WCS = None,
     if image_sizeof(fim) >= 1.0:
         log.debug("create_image_from_array: created %s image of shape %s, size %.3f (GB)" %
                   (fim.data.dtype, str(fim.shape), image_sizeof(fim)))
+        
+    assert type(fim) == Image
     return fim
 
 
@@ -75,6 +82,7 @@ def copy_image(im: Image) -> Image:
     if image_sizeof(fim) >= 1.0:
         log.debug("copy_image: copied %s image of shape %s, size %.3f (GB)" %
                   (fim.data.dtype, str(fim.shape), image_sizeof(fim)))
+    assert type(fim) == Image
     return fim
 
 
@@ -96,6 +104,7 @@ def create_empty_image_like(im: Image) -> Image:
     if image_sizeof(im) >= 1.0:
         log.debug("create_empty_image_like: created %s image of shape %s, size %.3f (GB)" %
                   (fim.data.dtype, str(fim.shape), image_sizeof(fim)))
+    assert type(fim) == Image
     return fim
 
 
@@ -142,6 +151,7 @@ def polarisation_frame_from_wcs(wcs, shape) -> PolarisationFrame:
     if polarisation_frame is None:
         raise ValueError("Cannot determine polarisation code")
     
+    assert type(polarisation_frame) == PolarisationFrame
     return polarisation_frame
 
 
@@ -180,6 +190,8 @@ def import_image_from_fits(fitsfile: str, mute_warnings=True) -> Image:
     log.debug("import_image_from_fits: created %s image of shape %s, size %.3f (GB)" %
               (fim.data.dtype, str(fim.shape), image_sizeof(fim)))
     log.debug("import_image_from_fits: Max, min in %s = %.6f, %.6f" % (fitsfile, fim.data.max(), fim.data.min()))
+
+    assert type(fim) == Image
     return fim
 
 
@@ -459,10 +471,181 @@ def remove_continuum_image(im: Image, degree=1, mask=None, **kwargs):
     for pol in range(npol):
         for y in range(ny):
             for x in range(nx):
-
                     fit = numpy.polyfit(frequency, im.data[:, pol, y, x], w=wt, deg=degree)
                     prediction = numpy.polyval(fit, frequency)
                     im.data[:, pol, y, x] -= prediction
     return im
 
 
+def fft_image(im, template_image=None, **kwargs):
+    """ FFT an image, transform WCS as well
+    
+    Prefer to use axes 'UU---SIN' and 'VV---SIN' but astropy will not accept.
+    
+    :param im:
+    :param template:
+    :param kwargs:
+    :return:
+    """
+    assert len(im.shape) == 4
+    d2r = numpy.pi / 180.0
+    ft_wcs = copy.deepcopy(im.wcs)
+    ft_shape = im.shape
+    if im.wcs.wcs.ctype[0] == 'RA---SIN' and im.wcs.wcs.ctype[1] == 'DEC--SIN':
+        ft_wcs.wcs.axis_types[0] = 0
+        ft_wcs.wcs.axis_types[1] = 0
+        ft_wcs.wcs.crval[0] = 0.0
+        ft_wcs.wcs.crval[1] = 0.0
+        ft_wcs.wcs.crpix[0] = ft_shape[3] // 2 + 1
+        ft_wcs.wcs.crpix[1] = ft_shape[2] // 2 + 1
+        ft_wcs.wcs.ctype[0] = 'UU'
+        ft_wcs.wcs.ctype[1] = 'VV'
+        ft_wcs.wcs.cdelt[0] = 1.0 / (ft_shape[3] * d2r * im.wcs.wcs.cdelt[0])
+        ft_wcs.wcs.cdelt[1] = 1.0 / (ft_shape[2] * d2r * im.wcs.wcs.cdelt[1])
+        ft_data = ifft(im.data.astype('complex'))
+        return create_image_from_array(ft_data, wcs=ft_wcs)
+    elif im.wcs.wcs.ctype[0] == 'UU' and im.wcs.wcs.ctype[1] == 'VV':
+        ft_wcs.wcs.crval[0] = template_image.wcs.wcs.crval[0]
+        ft_wcs.wcs.crval[1] = template_image.wcs.wcs.crval[1]
+        ft_wcs.wcs.crpix[0] = template_image.wcs.wcs.crpix[0]
+        ft_wcs.wcs.crpix[0] = template_image.wcs.wcs.crpix[1]
+        ft_wcs.wcs.ctype[0] = template_image.wcs.wcs.ctype[0]
+        ft_wcs.wcs.ctype[1] = template_image.wcs.wcs.ctype[1]
+        ft_data = fft(im.data.astype('complex'))
+        return create_image_from_array(ft_data, wcs=ft_wcs)
+    else:
+        raise NotImplementedError("Cannot FFT specified axes")
+
+def pad_image(im: Image, shape, **kwargs):
+    """Pad an image to desired shape
+    
+    The wcs crpix is adjusted appropriately
+    
+    :param im:
+    :param shape:
+    :param kwargs:
+    :return:
+    """
+    if im.shape == shape:
+        return im
+    else:
+        newwcs = copy.deepcopy(im.wcs)
+        newwcs.wcs.crpix[0] = im.wcs.wcs.crpix[0] + shape[3] // 2 - im.shape[3] // 2
+        newwcs.wcs.crpix[1] = im.wcs.wcs.crpix[1] + shape[2] // 2 - im.shape[2] // 2
+        
+        for axis, _ in enumerate(im.shape):
+            if shape[axis] < im.shape[axis]:
+                raise ValueError("Padded shape %s is smaller than input shape %s" % (shape, im.shape))
+        
+        newdata = numpy.zeros(shape, dtype=im.data.dtype)
+        ystart = shape[2] // 2 - im.shape[2] // 2
+        yend = ystart + im.shape[2]
+        xstart = shape[3] // 2 - im.shape[3] // 2
+        xend = xstart + im.shape[3]
+        newdata[...,ystart:yend,xstart:xend] = im.data[...]
+        return create_image_from_array(newdata, newwcs, polarisation_frame=im.polarisation_frame)
+
+def convert_image_to_kernel(im: Image, oversampling, kernelwidth, **kwargs):
+    """ Convert an image to a gridding kernel
+    
+    :param im: Image to be converted
+    :param oversampling: Oversampling of Image spatially
+    :param kernelwidth: Kernel width to be extracted
+    :param kwargs:
+    :return: numpy.ndarray[nchan, npol, oversampling, oversampling, kernelwidth, kernelwidth]
+    """
+    naxis = len(im.shape)
+    assert naxis == 4
+    
+    assert numpy.max(numpy.abs(im.data)) > 0.0, "Image is empty"
+    
+    nchan, npol, ny, nx = im.shape
+    assert nx % oversampling == 0, "Oversampling must be a factor of nx"
+    assert ny % oversampling == 0, "Oversampling must be a factor of ny"
+    
+    assert kernelwidth < nx and kernelwidth < ny, "Specified kernel width %d too large"
+
+    assert im.wcs.wcs.ctype[0] == 'UU', 'Axis type %s inappropriate for construction of kernel' % im.wcs.wcs.ctype[0]
+    assert im.wcs.wcs.ctype[1] == 'VV', 'Axis type %s inappropriate for construction of kernel' % im.wcs.wcs.ctype[1]
+    newwcs = WCS(naxis=naxis+2)
+    for axis in range(2):
+        newwcs.wcs.ctype[axis] = im.wcs.wcs.ctype[axis]
+        newwcs.wcs.crpix[axis] = kernelwidth // 2
+        newwcs.wcs.crval[axis] = 0.0
+        newwcs.wcs.cdelt[axis] = im.wcs.wcs.cdelt[axis] * oversampling
+
+        newwcs.wcs.ctype[axis+2] = im.wcs.wcs.ctype[axis]
+        newwcs.wcs.crpix[axis+2] = oversampling // 2
+        newwcs.wcs.crval[axis+2] = 0.0
+        newwcs.wcs.cdelt[axis+2] = im.wcs.wcs.cdelt[axis]
+        
+        # Now do Stokes and Frequency
+        newwcs.wcs.ctype[axis+4] = im.wcs.wcs.ctype[axis+2]
+        newwcs.wcs.crpix[axis+4] = im.wcs.wcs.crpix[axis+2]
+        newwcs.wcs.crval[axis+4] = im.wcs.wcs.crval[axis+2]
+        newwcs.wcs.cdelt[axis+4] = im.wcs.wcs.cdelt[axis+2]
+        
+    newdata_shape = []
+    newdata_shape.append(nchan)
+    newdata_shape.append(npol)
+    newdata_shape.append(oversampling)
+    newdata_shape.append(oversampling)
+    newdata_shape.append(kernelwidth)
+    newdata_shape.append(kernelwidth)
+    
+    newdata = numpy.zeros(newdata_shape, dtype=im.data.dtype)
+    
+    assert oversampling * kernelwidth < ny
+    assert oversampling * kernelwidth < nx
+
+    ystart = ny // 2 - oversampling * kernelwidth // 2
+    xstart = nx // 2 - oversampling * kernelwidth // 2
+    yend =   ny // 2 + oversampling * kernelwidth // 2
+    xend =   nx // 2 + oversampling * kernelwidth // 2
+    for chan in range(nchan):
+        for pol in range(npol):
+            for y in range(oversampling):
+                slicey = slice(yend+y, ystart+y, -oversampling)
+                for x in range(oversampling):
+                    slicex = slice(xend+x, xstart+x, -oversampling)
+                    newdata[chan,pol,y,x,...]=im.data[chan,pol,slicey,slicex]
+                    
+    return create_image_from_array(newdata, newwcs)
+
+
+def create_w_term_like(im: Image, w, phasecentre=None, **kwargs) -> Image:
+    """Create an image with a w term phase term in it:
+    
+    .. math::
+
+    I(l,m) = e^{-2 \\pi j (w(\\sqrt{1-l^2-m^2}-1)}
+
+    
+    The vis phasecentre is used as the delay centre for the w term (i.e. where n==0)
+
+    :param phasecentre:
+    :param im: template image
+    :param w: w value to evaluate (default is median abs)
+    :return: Image
+    """
+    
+    fim = copy_image(im)
+    cellsize = abs(fim.wcs.wcs.cdelt[0]) * numpy.pi / 180.0
+    nchan, npol, _, npixel = fim.data.shape
+    if phasecentre is SkyCoord:
+        wcentre = phasecentre.to_pixel(im.wcs, origin=1)
+    else:
+        wcentre=[im.wcs.wcs.crpix[0], im.wcs.wcs.crpix[1]]
+        
+    fim.data = numpy.zeros(fim.shape, dtype='complex')
+    remove_shift=get_parameter(kwargs, "remove_shift", False)
+    for chan in range(nchan):
+        for pol in range(npol):
+            fim.data[chan, pol,...] = w_beam(npixel, npixel * cellsize, w=w, cx=wcentre[0], cy=wcentre[1],
+                                             remove_shift=remove_shift)
+    
+    fov = npixel * cellsize
+    fresnel = numpy.abs(w) * (0.5 * fov) ** 2
+    log.debug('create_w_term_image: For w = %.1f, field of view = %.6f, Fresnel number = %.2f' % (w, fov, fresnel))
+    
+    return fim

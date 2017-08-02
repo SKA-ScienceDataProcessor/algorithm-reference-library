@@ -22,9 +22,8 @@ from arl.imaging import predict_2d, predict_wstack, predict_wprojection, predict
     predict_timeslice, predict_wprojection_wstack, invert_wprojection_wstack, \
     invert_2d, invert_wstack, invert_wprojection, invert_facets, invert_timeslice, \
     create_image_from_visibility, predict_skycomponent_visibility, \
-    weight_visibility, create_w_term_like, predict_facets_wstack, invert_facets_wstack, \
+    weight_visibility, predict_facets_wstack, invert_facets_wstack, \
     predict_facets_wprojection, invert_facets_wprojection
-from arl.image.iterators import raster_iter
 
 log = logging.getLogger(__name__)
 
@@ -65,7 +64,7 @@ class TestImaging(unittest.TestCase):
                        'reffrequency': 1e8,
                        'facets': 8,
                        'padding': 2,
-                       'oversampling': 4,
+                       'oversampling': 2,
                        'timeslice': 'auto'}
     
     def actualSetUp(self, time=None, frequency=None):
@@ -283,7 +282,7 @@ class TestImaging(unittest.TestCase):
     def test_invert_wprojection_wstack(self):
         self.actualSetUp()
         self.params['wstack'] = 5 * 4.0
-        self.params['wstep'] = 2.0
+        self.params['wstep'] = 4.0
         self._invert_base(invert_wprojection_wstack, positionthreshold=1.0)
     
     def test_invert_wprojection(self):
@@ -308,11 +307,6 @@ class TestImaging(unittest.TestCase):
     
     def test_create_image_from_visibility(self):
         self.actualSetUp()
-        im = create_image_from_visibility(self.componentvis, nchan=1, npixel=128)
-        assert im.data.shape == (1, 1, 128, 128)
-    
-    def test_create_image_from_visibility(self):
-        self.actualSetUp()
         self.componentvis = create_visibility(self.lowcore, self.times, self.frequency,
                                               phasecentre=self.phasecentre, weight=1.0,
                                               polarisation_frame=PolarisationFrame('stokesI'),
@@ -325,44 +319,6 @@ class TestImaging(unittest.TestCase):
                                           nchan=1)
         assert im.data.shape == (1, 1, 128, 128)
     
-    def test_create_w_term_image(self):
-        self.actualSetUp()
-        fim = create_image_from_visibility(self.componentvis, nchan=1, cellsize=0.001, npixel=256)
-        im = create_w_term_like(self.componentvis, fim, w=200.0, nchan=1, npixel=256, remove_shift=True)
-        im.data = im.data.real
-        for x in [64, 64+128]:
-            for y in [64, 64+128]:
-                self.assertAlmostEqual(im.data[y, x], 0.430801977474, 7)
-        export_image_to_fits(im, '%s/test_wterm.fits' % self.dir)
-        assert im.data.shape == (256, 256)
-        self.assertAlmostEqual(numpy.max(im.data.real), 1.0, 7)
-        
-    def test_create_w_term_image_iterated(self):
-        self.actualSetUp()
-        fim = create_image_from_visibility(self.componentvis, nchan=1, cellsize=0.001, npixel=256)
-        for i, dpatch in enumerate(raster_iter(fim, facets=2)):
-            dpatch.data[...] = create_w_term_like(self.componentvis, dpatch, w=200.0, nchan=1,
-                                                  remove_shift=False).data[...].real
-
-        for x in [64, 64+128]:
-            for y in [64, 64+128]:
-                self.assertAlmostEqual(fim.data[0, 0, y, x], 0.430801977474, 7)
-        assert fim.data.shape == (1, 1, 256, 256)
-        export_image_to_fits(fim, '%s/test_wterm_iterated.fits' % self.dir)
-
-    def test_create_w_term_image_iterated_remove(self):
-        self.actualSetUp()
-        fim = create_image_from_visibility(self.componentvis, nchan=1, cellsize=0.001, npixel=256)
-        for i, dpatch in enumerate(raster_iter(fim, facets=2)):
-            dpatch.data[...] = create_w_term_like(self.componentvis, dpatch, w=200.0, nchan=1,
-                                                  remove_shift=True).data[...].real
-
-        for x in [64, 64+128]:
-            for y in [64, 64+128]:
-                self.assertAlmostEqual(fim.data[0, 0, y, x], 1.0, 7)
-        assert fim.data.shape == (1, 1, 256, 256)
-        export_image_to_fits(fim, '%s/test_wterm_iterated_remove.fits' % self.dir)
-
 
 if __name__ == '__main__':
     unittest.main()

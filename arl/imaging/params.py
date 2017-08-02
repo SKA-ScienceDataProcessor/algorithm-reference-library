@@ -12,6 +12,7 @@ from arl.data.data_models import Visibility, BlockVisibility, Image
 from arl.data.parameters import get_parameter
 from arl.data.polarisation import PolarisationFrame
 from arl.fourier_transforms.convolutional_gridding import anti_aliasing_calculate, w_kernel
+from arl.image.operations import create_w_term_like, copy_image, pad_image, fft_image, convert_image_to_kernel
 
 log = logging.getLogger(__name__)
 
@@ -119,7 +120,7 @@ def standard_kernel_list(vis, shape, oversampling=8, support=3):
     return numpy.zeros_like(vis.w, dtype='int'), [anti_aliasing_calculate(shape, oversampling, support)[1]]
 
 
-def w_kernel_list(vis, shape, fov, oversampling=4, wstep=100.0, npixel_kernel=16, cy=None, cx=None,
+def w_kernel_list_old(vis, shape, fov, oversampling=4, wstep=100.0, kernelwidth=16, cy=None, cx=None,
                   remove_shift=True):
     """Return a generator for the w kernel for each row
 
@@ -147,8 +148,10 @@ def w_kernel_list(vis, shape, fov, oversampling=4, wstep=100.0, npixel_kernel=16
     # For all the unique indices, calculate the corresponding w kernel
     kernels = list()
     for w in w_list:
-        kernels.append(w_kernel(field_of_view=fov, w=w, npixel_farfield=shape[0], npixel_kernel=npixel_kernel,
-                                kernel_oversampling=oversampling, cx=cx, cy=cy, remove_shift=remove_shift))
+        kernels.append(w_kernel(field_of_view=fov, w=w, npixel_farfield=shape[3],
+                                npixel_kernel=kernelwidth,
+                                kernel_oversampling=oversampling, cx=cx, cy=cy,
+                                remove_shift=remove_shift))
     # Now make a lookup table from row number of vis to the kernel
     kernel_indices = digitise(vis.w, wstep)
     assert numpy.max(kernel_indices) < len(kernels), "wabsmax %f wstep %f" % (wmaxabs, wstep)
@@ -156,7 +159,68 @@ def w_kernel_list(vis, shape, fov, oversampling=4, wstep=100.0, npixel_kernel=16
     return kernel_indices, kernels
 
 
-def get_kernel_list(vis: Visibility, im, **kwargs):
+def w_kernel_list(vis, im, oversampling=1, wstep=50.0, kernelwidth=16, **kwargs):
+    """ Calculate convolution kernels
+
+    Returns (indices to the w kernel for each row, kernels)
+
+    Each kernel has axes [pol, centre_v, centre_u, offset_v, offset_u]
+
+    :param vis: visibility
+    :param image: Template image
+    :param oversampling: Oversampling factor
+    :param wstep: Step in w between cached functions
+    :return: (indices to the w kernel for each row, kernels)
+    """
+
+    nchan, npol, ny, nx = im.shape
+    gcf, _ = anti_aliasing_calculate((ny, nx))
+
+    assert oversampling % 2 == 0 or oversampling == 1, "oversampling must be unity or even"
+    assert kernelwidth % 2 == 0, "kernelwidth must be even"
+
+    wmaxabs = numpy.max(numpy.abs(vis.w))
+    log.debug("w_kernel_list: Maximum absolute w = %.1f, step is %.1f wavelengths" % (wmaxabs, wstep))
+
+    def digitise(w, wstep):
+        return numpy.ceil((w + wmaxabs) / wstep).astype('int')
+    
+    # Find all the unique indices for which we need a kernel
+    nwsteps = digitise(wmaxabs, wstep) + 1
+    w_list = numpy.linspace(-wmaxabs, +wmaxabs, nwsteps)
+    
+    wtemplate = copy_image(im)
+    
+#    wtemplate_shape = [nchan, npol, ny // oversampling, nx // oversampling]
+    wtemplate.data = numpy.zeros(wtemplate.shape, dtype=im.data.dtype)
+    
+    padded_shape = list(wtemplate.shape)
+    padded_shape[3] *= oversampling
+    padded_shape[2] *= oversampling
+
+    # For all the unique indices, calculate the corresponding w kernel
+    kernels = list()
+    for w in w_list:
+        # Make a w screen
+        wscreen = create_w_term_like(wtemplate, w, vis.phasecentre, **kwargs)
+        wscreen.data /= gcf
+        assert numpy.max(numpy.abs(wscreen.data)) > 0.0, 'w screen is empty'
+        wscreen_padded = pad_image(wscreen, padded_shape)
+
+        wconv = fft_image(wscreen_padded)
+        wconv.data *= float(oversampling)**2
+        # For the moment, ignore the polarisation and channel axes
+        kernels.append(convert_image_to_kernel(wconv, oversampling,
+                                                               kernelwidth).data[0,0,...])
+    
+    # Now make a lookup table from row number of vis to the kernel
+    kernel_indices = digitise(vis.w, wstep)
+    assert numpy.max(kernel_indices) < len(kernels), "wabsmax %f wstep %f" % (wmaxabs, wstep)
+    assert numpy.min(kernel_indices) >= 0, "wabsmax %f wstep %f" % (wmaxabs, wstep)
+    return kernel_indices, kernels
+
+
+def get_kernel_list(vis: Visibility, im: Image, **kwargs):
     """Get the list of kernels, one per visibility
     
     """
@@ -190,19 +254,28 @@ def get_kernel_list(vis: Visibility, im, **kwargs):
         log.debug("get_kernel_list: Using w projection with wstep = %f" % (wstep))
         
         # Now calculate the maximum support for the w kernel
-        npixel_kernel = get_parameter(kwargs, "kernelwidth", (2 * int(round(numpy.sin(0.5 * fov) * npixel / 4.0))))
-        assert npixel_kernel % 2 == 0
-        log.debug("get_kernel_list: Maximum w kernel full width = %d pixels" % (npixel_kernel))
-        # Remember that the delay tracking centre (kept in the Visibility) may not be the same as the image
-        # phase centre
-        wcentre = list(vis.phasecentre.to_pixel(im.wcs, origin=1))
+        kernelwidth = get_parameter(kwargs, "kernelwidth",
+                                    (2 * int(round(numpy.sin(0.5 * fov) * npixel * wabsmax * cellsize))))
+        kernelwidth = max(kernelwidth, 8)
+        assert kernelwidth % 2 == 0
+        log.debug("get_kernel_list: Maximum w kernel full width = %d pixels" % (kernelwidth))
+        padded_shape=[im.shape[0], im.shape[1], im.shape[2] * padding, im.shape[3] * padding]
+
         remove_shift = get_parameter(kwargs, "remove_shift", True)
-        wcentre[0] = npixel * padding - (wcentre[0] + (padding - 1) * npixel // 2)
-        wcentre[1] = npixel * padding - (wcentre[1] + (padding - 1) * npixel // 2)
-        kernel_list = w_kernel_list(vis, (padding * npixel, padding * npixel), fov,
-                                    oversampling=oversampling, wstep=wstep,
-                                    npixel_kernel=npixel_kernel, cx=wcentre[0], cy=wcentre[1],
-                                    remove_shift=remove_shift)
+        use_old = get_parameter(kwargs, "old_kernel", False)
+        if use_old:
+            kernel_list = w_kernel_list_old(vis, padded_shape, fov, oversampling=oversampling,
+                                            wstep=wstep, kernelwidth=kernelwidth, remove_shift=remove_shift)
+        else:
+            padded_image = pad_image(im, padded_shape)
+            kernel_list = w_kernel_list(vis, padded_image, oversampling=oversampling, wstep=wstep,
+                                        kernelwidth=kernelwidth, remove_shift=remove_shift)
+            if False:
+                old_kernel_list = w_kernel_list_old(vis, padded_shape, fov, oversampling=oversampling, wstep=wstep,
+                                                    kernelwidth=kernelwidth, remove_shift=remove_shift)
+                assert numpy.max(numpy.abs(kernel_list[1][0]-old_kernel_list[1][0])) < 1e-15,\
+                "Old and new methods to calculate w-kernels disagree"
+
     else:
         kernelname = '2d'
         kernel_list = standard_kernel_list(vis, (padding * npixel, padding * npixel),

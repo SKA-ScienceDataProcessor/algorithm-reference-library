@@ -11,13 +11,10 @@ This module contains functions for performing the gridding process and the inver
 import logging
 
 import numpy
-#import numba
+# import numba
 import scipy.special
 
 from arl.fourier_transforms.fft_support import pad_mid, extract_oversampled, ifft
-
-# from arl.core.c import gridder
-
 
 log = logging.getLogger(__name__)
 
@@ -97,7 +94,7 @@ def anti_aliasing_transform(shape, oversampling=8, support=3, m=6, c=0.0):
     return gcf, kernel
 
 
-def anti_aliasing_calculate(shape, oversampling=8, support=3):
+def anti_aliasing_calculate(shape, oversampling=1, support=3):
     """
     Compute the prolate spheroidal anti-aliasing function
     
@@ -204,16 +201,11 @@ def w_beam(npixel, field_of_view, w, cx=None, cy=None, remove_shift=False):
     r2 = l ** 2 + m ** 2
     n2 = 1.0 - r2
     ph = numpy.zeros_like(n2)
-    ph[n2 < 1.0] = w * (1 - numpy.sqrt(1.0 - r2[n2 < 1.0]))
+    ph[r2 < 1.0] = w * (1 - numpy.sqrt(1.0 - r2[r2 < 1.0]))
     cp = numpy.zeros_like(n2, dtype='complex')
-    cp[n2 < 1.0] = numpy.exp(-2j * numpy.pi * ph[n2 < 1.0])
+    cp[r2 < 1.0] = numpy.exp(-2j * numpy.pi * ph[r2 < 1.0])
     cp[r2 == 0] = 1.0 + 0j
     # Correct for linear phase shift in faceting
-    # from arl.image.operations import create_image_from_array, export_image_to_fits
-    # from arl.util.testing_support import create_test_image
-    # tim = create_test_image()
-    # im=create_image_from_array(cp.real, tim.wcs)
-    # export_image_to_fits(im, "cp_%f_%f.fits" % (cx, cy))
     if remove_shift:
         cp /= cp[npixel // 2, npixel // 2]
     return cp
@@ -252,8 +244,8 @@ def w_kernel(field_of_view, w, npixel_farfield, npixel_kernel, kernel_oversampli
     :param remove_shift:
     :param field_of_view: Field of view (directional cosines)
     :param w: Baseline distance to the projection plane
-    :param npixel_farfield: Far field size. Must be at least npixel_kernel+1 if kernel_oversampling > 1, otherwise npixel_kernel.
-    :param npixel_kernel: Size of convolution function to extract
+    :param npixel_farfield: Far field size. Must be at least kernelwidth+1 if kernel_oversampling > 1, otherwise kernelwidth.
+    :param kernelwidth: Size of convolution function to extract
     :param kernel_oversampling: Oversampling, pixels will be kernel_oversampling smaller in aperture
       plane than required to minimially sample field_of_view.
 
@@ -508,4 +500,5 @@ def gridder_numba(uvgrid, vis, xs, ys, kernel=numpy.ones((1, 1)), kernel_ixs=Non
         uvgrid[y:y + gh, x:x + gw] += kernel[convert_to_tuple3(kern_ix)] * v
         
     return uvgrid
-    
+
+
