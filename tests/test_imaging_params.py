@@ -11,7 +11,6 @@ from astropy import units as u
 from astropy.coordinates import SkyCoord
 
 from arl.data.polarisation import PolarisationFrame
-from arl.data.data_models import Image
 from arl.util.testing_support import create_named_configuration, create_low_test_image_from_s3, \
     create_low_test_image_from_gleam
 from arl.visibility.base import create_visibility
@@ -98,60 +97,6 @@ class TestFTProcessorParams(unittest.TestCase):
                                                     kernelwidth=32,
                                                     wstep=50, oversampling=3,
                                                     maxsupport=128)
-
-    def test_w_kernel_list_compare(self):
-        oversampling = 4
-        kernelwidth=128
-        kernel_indices, kernels = w_kernel_list(self.vis, self.model,
-                                                kernelwidth=kernelwidth, wstep=50, oversampling=oversampling)
-        assert numpy.max(numpy.abs(kernels[0].data)) > 0.0
-        assert len(kernel_indices) > 0
-        assert max(kernel_indices) == len(kernels) - 1
-        assert type(kernels[0]) == numpy.ndarray
-        assert len(kernels[0].shape) == 4
-        assert kernels[0].shape == (oversampling, oversampling, kernelwidth, kernelwidth), \
-            "Actual shape is %s" % str(kernels[0].shape)
-        kernel0 = create_image_from_array(kernels[0], self.model.wcs)
-        kernel0.data = kernel0.data.real
-        export_image_to_fits(kernel0, "%s/test_w_kernel_list_kernel0.fits" % (self.dir))
-
-
-        from arl.imaging.params import w_kernel_list_old
-        fov = self.model.shape[3] * abs(self.model.wcs.wcs.cdelt[0]) * numpy.pi / 180.0
-        old_kernel_indices, old_kernels = w_kernel_list_old(self.vis, self.model.shape, fov,
-                                                    kernelwidth=kernelwidth, wstep=50, oversampling=oversampling)
-
-        kerneldiff = create_image_from_array(kernels[0]-old_kernels[0], self.model.wcs)
-        kerneldiff.data = kerneldiff.data.real
-        export_image_to_fits(kerneldiff, "%s/test_w_kernel_list_kernel0_diff.fits" % (self.dir))
-
-        assert numpy.max(numpy.abs(kerneldiff.data)) < 1e-15, "Old and new methods to calculate w-kernels disagree"
-
-
-    def test_w_kernel_list_old(self):
-        oversampling = 4
-        kernelwidth=64
-        fov = self.model.shape[3] * abs(self.model.wcs.wcs.cdelt[0]) * numpy.pi / 180.0
-        from arl.imaging.params import w_kernel_list_old
-        kernel_indices, kernels = w_kernel_list_old(self.vis, self.model.shape, fov,
-                                                    kernelwidth=kernelwidth,
-                                                    wstep=50,
-                                                    oversampling=oversampling)
-        assert numpy.max(numpy.abs(kernels[0].data)) > 0.0
-        assert len(kernel_indices) > 0
-        assert max(kernel_indices) == len(kernels) - 1
-        assert type(kernels[0]) == numpy.ndarray
-        assert len(kernels[0].shape) == 4
-        assert kernels[0].shape == (oversampling, oversampling, kernelwidth, kernelwidth), \
-            "Actual shape is %s" % str(kernels[0].shape)
-        kernel0 = create_image_from_array(kernels[0], self.model.wcs)
-        kernel0.data = kernel0.data.real
-        export_image_to_fits(kernel0, "%s/test_w_kernel_list_old_kernel0.fits" % (self.dir))
-        mid=len(kernels) // 2
-        kernelmid = create_image_from_array(kernels[mid], self.model.wcs)
-        kernelmid.data = kernelmid.data.real
-        export_image_to_fits(kernelmid, "%s/test_w_kernel_list_old_kernelmid.fits" % (self.dir))
-
 
 if __name__ == '__main__':
     unittest.main()

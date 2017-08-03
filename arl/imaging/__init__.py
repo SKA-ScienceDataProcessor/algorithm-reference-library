@@ -22,7 +22,7 @@ from arl.imaging.facets_wprojection import invert_facets_wprojection, predict_fa
 from arl.imaging.facets_wstack import invert_facets_wstack, predict_facets_wstack
 from arl.imaging.iterated import invert_with_image_iterator, predict_with_image_iterator, invert_with_vis_iterator, \
     predict_with_vis_iterator
-from arl.imaging.params import get_polarisation_map, get_rowmap, get_uvw_map, standard_kernel_list, w_kernel, \
+from arl.imaging.params import get_polarisation_map, get_rowmap, get_uvw_map, standard_kernel_list, \
     w_kernel_list, get_kernel_list, advise_wide_field
 from arl.imaging.timeslice import invert_timeslice, invert_timeslice_single, predict_timeslice, predict_timeslice_single
 from arl.imaging.wprojection import invert_wprojection, predict_wprojection

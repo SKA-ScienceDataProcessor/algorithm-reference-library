@@ -110,7 +110,7 @@ def predict_timeslice(vis: Visibility, model: Image, **kwargs):
                                      predict=predict_timeslice_single, **kwargs)
 
 
-def predict_timeslice_single(vis: Visibility, model: Image, **kwargs):
+def predict_timeslice_single(vis: Visibility, model: Image, predict=predict_2d_base, **kwargs):
     """ Predict using a single time slices.
     
     This fits a single plane and corrects the image geometry.
@@ -152,8 +152,7 @@ def predict_timeslice_single(vis: Visibility, model: Image, **kwargs):
                          rescale=True).reshape(workimage.data[chan, pol, ...].shape)
 
     
-    # Now we can do the prediction for this slice using a 2d transform
-    vis = predict_2d_base(vis, workimage, **kwargs)
+    vis = predict(vis, workimage, **kwargs)
     
     return vis
 

@@ -70,30 +70,6 @@ def coordinates2Offset(npixel: int, cx: int, cy: int):
     return ((mg[0] - cy) / npixel, (mg[1] - cx) / npixel)
 
 
-def anti_aliasing_transform(shape, oversampling=8, support=3, m=6, c=0.0):
-    """
-    Compute the prolate spheroidal anti-aliasing function
-    
-    Return the 2D grid correction function, and the convolving kernel
-    
-    This is not sufficiently accurate: use anti_aliasing_calculate instead.
-    
-    See VLA Scientific Memoranda 129, 131, 132
-    :param shape: (height, width) pair
-    """
-    # 2D Prolate spheroidal angular function is separable
-    sy, sx = [scipy.special.pro_ang1(m, m, c, 2.0 * coordinates(npixel))[0] for npixel in shape]
-    sx[0] = 0.0
-    sy[0] = 0.0
-    gcf = numpy.outer(sy, sx)
-    
-    # Calculate the gridding kernel by Fourier transform of the gcf
-    kernel = kernel_oversample(gcf, shape[0], oversampling, oversampling)
-    kernel = kernel / kernel.max()
-    gcf[gcf > 0.0] = gcf.max() / gcf[gcf > 0.0]
-    return gcf, kernel
-
-
 def anti_aliasing_calculate(shape, oversampling=1, support=3):
     """
     Compute the prolate spheroidal anti-aliasing function
@@ -209,54 +185,6 @@ def w_beam(npixel, field_of_view, w, cx=None, cy=None, remove_shift=False):
     if remove_shift:
         cp /= cp[npixel // 2, npixel // 2]
     return cp
-
-
-def kernel_oversample(ff, npixel, kernel_oversampling, kernelwidth):
-    """ Takes a farfield pattern and creates an oversampled convolution function.
-
-    If the far field size is smaller than npixel*kernel_oversampling, we will pad it. This
-    essentially means we apply a sinc anti-aliasing kernel by default.
-
-    :param ff: Far field pattern
-    :param npixel: Image size without oversampling
-    :param kernel_oversampling: Factor to oversample by -- there will be kernel_oversampling x kernel_oversampling
-        convolution functions
-    :param kernelwidth: Size of convolution function to extract
-    :return: Numpy array of shape [ov, ou, v, u], e.g. with sub-pixel offsets as the outer coordinates.
-    """
-    
-    # Pad the far field to the required pixel size
-    padff = pad_mid(ff, npixel * kernel_oversampling)
-    
-    # Obtain oversampled uv-grid
-    af = ifft(padff)
-    
-    # Extract kernels
-    res = [[extract_oversampled(af, x, y, kernel_oversampling, kernelwidth)
-            for x in range(kernel_oversampling)]
-           for y in range(kernel_oversampling)]
-    return numpy.array(res)
-
-
-def w_kernel(field_of_view, w, npixel_farfield, npixel_kernel, kernel_oversampling, cx, cy, remove_shift):
-    """ The middle s pixels of W convolution kernel. (W-KERNel-Aperture-Function)
-
-    :param remove_shift:
-    :param field_of_view: Field of view (directional cosines)
-    :param w: Baseline distance to the projection plane
-    :param npixel_farfield: Far field size. Must be at least kernelwidth+1 if kernel_oversampling > 1, otherwise kernelwidth.
-    :param kernelwidth: Size of convolution function to extract
-    :param kernel_oversampling: Oversampling, pixels will be kernel_oversampling smaller in aperture
-      plane than required to minimially sample field_of_view.
-
-    :return: [kernel_oversampling,kernel_oversampling,s,s] shaped oversampled convolution kernels
-    """
-    
-    assert npixel_farfield > npixel_kernel or (npixel_farfield == npixel_kernel and kernel_oversampling == 1)
-    gcf, _ = anti_aliasing_calculate((npixel_farfield, npixel_farfield), kernel_oversampling)
-    wbeamarray = w_beam(npixel=npixel_farfield, field_of_view=field_of_view, w=w, cx=cx, cy=cy,
-                        remove_shift=remove_shift) / gcf
-    return kernel_oversample(wbeamarray, npixel_farfield, kernel_oversampling, npixel_kernel)
 
 
 def frac_coord(npixel, kernel_oversampling, p):

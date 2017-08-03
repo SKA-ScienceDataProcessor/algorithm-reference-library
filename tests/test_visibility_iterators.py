@@ -59,7 +59,15 @@ class TestVisibilityIterators(unittest.TestCase):
             assert visslice.vis[0].real == visslice.time[0]
             assert len(rows)
             assert numpy.sum(rows) < self.vis.nvis
-    
+
+    def test_vis_timeslice_iterator_timeslice(self):
+        self.actualSetUp()
+        for chunk, rows in enumerate(vis_timeslice_iter(self.vis, timeslice=65.0)):
+            visslice = create_visibility_from_rows(self.vis, rows)
+            assert visslice.vis[0].real == visslice.time[0]
+            assert len(rows)
+            assert numpy.sum(rows) < self.vis.nvis
+
     def test_vis_timeslice_iterator_single(self):
         self.actualSetUp(times=numpy.zeros([1]))
         nchunks = len(list(vis_timeslice_iter(self.vis)))

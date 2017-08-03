@@ -5,6 +5,8 @@
 import logging
 import unittest
 
+from functools import partial
+
 import numpy
 from astropy import units as u
 from astropy.convolution import Gaussian2DKernel, convolve
@@ -197,6 +199,13 @@ class TestImaging(unittest.TestCase):
         # This works poorly because of the poor interpolation accuracy for point sources. The corresponding
         # invert works well particularly if the beam sampling is high
         self.actualSetUp()
+        self._predict_base(predict_timeslice, fluxthreshold=numpy.infty)
+
+    def test_predict_timeslice_wprojection(self):
+        predict_timeslice_wprojection = partial(predict_timeslice, predict=predict_wprojection)
+        self.actualSetUp()
+        self.params['kernel']='wprojection'
+        self.params['wstep'] = 2.0
         self._predict_base(predict_timeslice, fluxthreshold=numpy.infty)
 
     def test_predict_wstack(self):

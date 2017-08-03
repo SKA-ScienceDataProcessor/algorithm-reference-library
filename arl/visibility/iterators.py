@@ -22,34 +22,32 @@ from arl.data.data_models import Visibility, BlockVisibility
 log = logging.getLogger(__name__)
 
 
-def vis_timeslice_iter(vis: Union[Visibility, BlockVisibility], **kwargs) -> numpy.ndarray:
-    """ Time slice iterator
-    
-    If timeslice='auto' then timeslice is taken to be the difference between the first two
-    unique elements of the vis time.
-          
-    :param timeslice: Timeslice (seconds) ('auto')
+def vis_timeslice_iter(vis: Visibility, **kwargs) -> numpy.ndarray:
+    """ W slice iterator
+
+    :param wstack: wstack (wavelengths)
+    :param vis_slices: Number of slices (second in precedence to wstack)
     :return: Boolean array with selected rows=True
-        
     """
-    
     assert type(vis) == Visibility or type(vis) == BlockVisibility
+    timemin = numpy.min(vis.time)
+    timemax = numpy.max(vis.time)
+
+    timeslice = get_parameter(kwargs, "timeslice", None)
+    if timeslice is None:
+        vis_slices = get_parameter(kwargs, "vis_slices", 1)
+        boxes = numpy.linspace(timemin, timemax, vis_slices)
+        timeslice = (timemax - timemin) / vis_slices
+    else:
+        vis_slices = 1 + 2 * numpy.round((timemax - timemin)/ timeslice).astype('int')
+        boxes = numpy.linspace(timemin, timemax, vis_slices)
     
-    uniquetimes = numpy.unique(vis.time)
-    timeslice = get_parameter(kwargs, "timeslice", 'auto')
-    if timeslice == 'auto':
-        log.debug('vis_timeslice_iter: Found %d unique times' % len(uniquetimes))
-        if len(uniquetimes) > 1:
-            timeslice = (uniquetimes[1] - uniquetimes[0])
-            log.debug('vis_timeslice_auto: Guessing time interval to be %.2f s' % timeslice)
-        else:
-            # Doesn't matter what we set it to.
-            timeslice = vis.integration_time[0]
-    boxes = timeslice * numpy.round(uniquetimes / timeslice).astype('int')
-        
     for box in boxes:
         rows = numpy.abs(vis.time - box) < 0.5 * timeslice
-        yield rows
+        if numpy.sum(rows) > 0:
+            yield rows
+        else:
+            yield None
 
 
 def vis_wstack_iter(vis: Visibility, **kwargs) -> numpy.ndarray:
