@@ -67,7 +67,7 @@ class TestImaging(unittest.TestCase):
                        'facets': 8,
                        'padding': 2,
                        'oversampling': 2,
-                       'timeslice': 'auto'}
+                       'timeslice': 1000.0}
     
     def actualSetUp(self, time=None, frequency=None):
         self.lowcore = create_named_configuration('LOWBD2-CORE')

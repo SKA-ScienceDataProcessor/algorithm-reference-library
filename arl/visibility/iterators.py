@@ -11,13 +11,12 @@ A typical use would be to make a sequence of snapshot images::
 """
 
 import logging
+from typing import Union
 
 import numpy
 
-from typing import Union
-
-from arl.data.parameters import get_parameter
 from arl.data.data_models import Visibility, BlockVisibility
+from arl.data.parameters import get_parameter
 
 log = logging.getLogger(__name__)
 
@@ -32,18 +31,20 @@ def vis_timeslice_iter(vis: Visibility, **kwargs) -> numpy.ndarray:
     assert type(vis) == Visibility or type(vis) == BlockVisibility
     timemin = numpy.min(vis.time)
     timemax = numpy.max(vis.time)
-
+    
     timeslice = get_parameter(kwargs, "timeslice", None)
-    if timeslice is None:
-        vis_slices = get_parameter(kwargs, "vis_slices", 1)
+    if timeslice is None or timeslice == 'auto':
+        vis_slices = get_parameter(kwargs, "vis_slices", None)
+        if vis_slices is None:
+            vis_slices = len(numpy.unique(vis.time))
         boxes = numpy.linspace(timemin, timemax, vis_slices)
         timeslice = (timemax - timemin) / vis_slices
     else:
-        vis_slices = 1 + 2 * numpy.round((timemax - timemin)/ timeslice).astype('int')
+        vis_slices = 1 + 2 * numpy.round((timemax - timemin) / timeslice).astype('int')
         boxes = numpy.linspace(timemin, timemax, vis_slices)
     
     for box in boxes:
-        rows = numpy.abs(vis.time - box) < 0.5 * timeslice
+        rows = numpy.abs(vis.time - box) <= 0.5 * timeslice
         if numpy.sum(rows) > 0:
             yield rows
         else:
@@ -59,7 +60,7 @@ def vis_wstack_iter(vis: Visibility, **kwargs) -> numpy.ndarray:
     """
     assert type(vis) == Visibility or type(vis) == BlockVisibility
     wmaxabs = (numpy.max(numpy.abs(vis.w)))
-
+    
     wstack = get_parameter(kwargs, "wstack", None)
     if wstack is None:
         vis_slices = get_parameter(kwargs, "vis_slices", 1)
@@ -86,14 +87,12 @@ def vis_slice_iter(vis: Union[Visibility, BlockVisibility], **kwargs) -> numpy.n
 
     """
     assert type(vis) == Visibility or type(vis) == BlockVisibility
-
+    
     step = get_parameter(kwargs, "step", None)
     if step is None:
         vis_slices = get_parameter(kwargs, "vis_slices", 1)
         step = 1 + vis.nvis // vis_slices
-
+    
     assert step > 0
     for row in range(0, vis.nvis, step):
-            yield range(row, min(row+step, vis.nvis))
-
-
+        yield range(row, min(row + step, vis.nvis))

@@ -73,8 +73,6 @@ class TestVisibilityIterators(unittest.TestCase):
         nchunks = len(list(vis_timeslice_iter(self.vis)))
         log.debug('Found %d chunks' % (nchunks))
         for chunk, rows in enumerate(vis_timeslice_iter(self.vis)):
-            visslice = create_visibility_from_rows(self.vis, rows)
-            assert visslice.vis[0].real == visslice.time[0]
             assert len(rows)
 
     def test_vis_wstack_iterator(self):

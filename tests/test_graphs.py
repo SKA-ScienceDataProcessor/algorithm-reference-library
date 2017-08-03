@@ -22,6 +22,7 @@ from arl.graphs.graphs import create_invert_facet_graph, create_predict_facet_gr
     create_invert_facet_wstack_graph, create_invert_timeslice_graph, \
     create_predict_timeslice_graph, create_invert_facet_timeslice_graph, \
     create_predict_facet_timeslice_graph, create_selfcal_graph_list
+from arl.graphs.vis import simple_vis
 from arl.image.operations import qa_image, export_image_to_fits, copy_image
 from arl.imaging import create_image_from_visibility, predict_skycomponent_blockvisibility, \
     invert_wstack_single, predict_wstack_single
@@ -35,7 +36,7 @@ class TestDaskGraphs(unittest.TestCase):
         
         # This doesn't run happily in jenkins so we disable tests there. Change this to True to
         # compute.
-        self.compute = True
+        self.compute = False
         
         self.results_dir = './test_results'
         os.makedirs(self.results_dir, exist_ok=True)
@@ -187,6 +188,7 @@ class TestDaskGraphs(unittest.TestCase):
         predicted_vis_graph_list = create_predict_facet_timeslice_graph(zero_vis_graph_list, flux_model_graph,
                                                                vis_slices=3, facets=2,
                                                                         wstep=4.0, kernel='wprojection')
+        simple_vis(predicted_vis_graph_list[0], filename='predict_facet_timeslice_graph_wprojection', format='png')
         residual_vis_graph_list = create_subtract_vis_graph_list(self.vis_graph_list, predicted_vis_graph_list)
         if self.compute:
             qa = qa_visibility(self.vis_graph_list[0].compute())
