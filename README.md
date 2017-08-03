@@ -18,36 +18,31 @@ implemented functions can be seen and understood without resorting to
 interpreting source code shaped by real-world concerns such as
 optimisations.
 
-Requirements
-------------
+Installing
+----------
 
-This library is built using Python 3.0. We use the following libraries:
+# Install git and git-lfs if not already installed. Note that git-lfs is required for some
+data files
 
-  * `jupyter` - for example notebooks
-  * `numpy` - for calculations
-  * `matplotlib` - for visualisation
-  * `pyfits` - for reading reference data
+# Use git to make a local clone of the Github respository::
 
-You will have to install these dependencies, either manually using
-your package manager of choice or using `pip`:
+   git clone https://github.com/SKA-ScienceDataProcessor/algorithm-reference-library
 
-     $ pip install -r requirements.txt
+# Change into that directory::
 
-Acquiring data
---------------
+   cd algorithm-reference-library
 
-The `data` directory should hold various test data that can be used to
-test the functions of this library. However, this is not currently
-included in the repository, and must be downloaded and extracted
-separately.
+# Install required python package::
 
-You can either have this done automatically:
+   pip install -r requirements.txt
 
-    $ make -C data
+# Setup ARL::
 
-or extract the package found at
-http://www.mrao.cam.ac.uk/~pw410/crocodile/data.tar.gz manually into
-the `data` folder.
+   python setup.py install
+
+# Get the data files form Git LFS::
+
+   git-lfs pull
 
 Orientation
 -----------
@@ -58,6 +53,7 @@ is a quick guide to the project:
 
   * `arl`: The main Python source code
   * `examples`: Usage examples, mainly using Jupyter notebooks.
+  * `tests`: Unit and regression tests
   * `docs`: Complete documentation. Includes non-interactive output of examples.
   * `data`: Data used
 
@@ -72,6 +68,10 @@ command line:
 Building documentation
 ----------------------
 
+The last build documentation is at:
+
+    http://www.mrao.cam.ac.uk/projects/jenkins/algorithm-reference-library/docs/build/html/index.html
+    
 For building the documentation you will need Sphinx as well as
 Pandoc. This will extract docstrings from the crocodile source code,
 evaluate all notebooks and compose the result to form the

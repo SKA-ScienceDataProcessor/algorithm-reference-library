@@ -173,7 +173,7 @@ class TestImaging(unittest.TestCase):
         self.residualvis.data['uvw'][:, 2] = 0.0
         self.residualvis.data['vis'] = self.modelvis.data['vis'] - self.componentvis.data['vis']
         
-        self._checkdirty(self.residualvis, 'test_predict_2d', fluxthreshold=1.5)
+        self._checkdirty(self.residualvis, 'test_predict_2d', fluxthreshold=4.0)
     
     def _predict_base(self, predict, fluxthreshold=1.0):
         self.modelvis = create_visibility(self.lowcore, self.times, self.frequency,
@@ -201,30 +201,30 @@ class TestImaging(unittest.TestCase):
 
     def test_predict_wstack(self):
         self.actualSetUp()
-        self.params['wstack'] = 4.0
+        self.params['wstack'] = 2.0
         self._predict_base(predict_wstack, fluxthreshold=5.0)
 
     def test_predict_facets_wstack(self):
         self.actualSetUp()
-        self.params['wstack'] = 4.0
+        self.params['wstack'] = 2.0
         self.params['facets'] = 2
-        self._predict_base(predict_facets_wstack, fluxthreshold=2.5)
+        self._predict_base(predict_facets_wstack, fluxthreshold=5.6)
 
     def test_predict_wstack_wprojection(self):
         self.actualSetUp()
-        self.params['wstack'] = 5 * 4.0
-        self.params['wstep'] = 4.0
+        self.params['wstack'] = 5 * 2.0
+        self.params['wstep'] = 2.0
         self._predict_base(predict_wprojection_wstack, fluxthreshold=4.4)
 
     def test_predict_facets_wprojection(self):
         self.actualSetUp()
-        self.params['wstep'] = 8.0
+        self.params['wstep'] = 2.0
         self.params['facets'] = 2
         self._predict_base(predict_facets_wprojection, fluxthreshold=7.0)
 
     def test_predict_wprojection(self):
         self.actualSetUp()
-        self.params['wstep'] = 4.0
+        self.params['wstep'] = 2.0
         self._predict_base(predict_wprojection, fluxthreshold=4.0)
     
     def test_invert_2d(self):
@@ -265,7 +265,7 @@ class TestImaging(unittest.TestCase):
     def test_invert_facets_wprojection(self):
         self.actualSetUp()
         self.params['facets'] = 2
-        self.params['wstep'] = 8.0
+        self.params['wstep'] = 4.0
         self._invert_base(invert_facets_wprojection, positionthreshold=1.0)
 
     def test_invert_wstack(self):
