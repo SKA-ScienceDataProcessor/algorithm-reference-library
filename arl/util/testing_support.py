@@ -46,6 +46,7 @@ from arl.image.operations import import_image_from_fits, create_image_from_array
     reproject_image, create_empty_image_like
 from arl.util.coordinate_support import xyz_at_latitude
 from arl.visibility.base import create_blockvisibility
+from arl.visibility.coalesce import convert_visibility_to_blockvisibility
 from arl.imaging import predict_timeslice, predict_skycomponent_blockvisibility
 
 import logging
@@ -618,26 +619,27 @@ def create_blockvisibility_iterator(config: Configuration, times: numpy.array, f
     """
     for time in times:
         actualtimes = time + numpy.arange(0, number_integrations) * integration_time * numpy.pi / 43200.0
-        vis = create_blockvisibility(config, actualtimes, frequency=frequency, phasecentre=phasecentre, weight=weight,
+        bvis = create_blockvisibility(config, actualtimes, frequency=frequency, phasecentre=phasecentre, weight=weight,
                                      polarisation_frame=polarisation_frame, integration_time=integration_time,
                                      channel_bandwidth=channel_bandwidth)
         
         if model is not None:
-            vis = predict(vis, model, **kwargs)
+            vis = predict(bvis, model, **kwargs)
+            bvis = convert_visibility_to_blockvisibility(vis)
         
         if components is not None:
-            vis = predict_skycomponent_blockvisibility(vis, components)
+            bvis = predict_skycomponent_blockvisibility(bvis, components)
         
         # Add phase errors
         if phase_error > 0.0 or amplitude_error > 0.0:
-            gt = create_gaintable_from_blockvisibility(vis)
+            gt = create_gaintable_from_blockvisibility(bvis)
             gt = simulate_gaintable(gt=gt, phase_error=phase_error, amplitude_error=amplitude_error)
-            vis = apply_gaintable(vis, gt)
+            vis = apply_gaintable(bvis, gt)
         
         import time
         time.sleep(sleep)
         
-        yield vis
+        yield bvis
 
 
 def simulate_gaintable(gt: GainTable, phase_error=0.1, amplitude_error=0.0, leakage=0.0) -> GainTable:

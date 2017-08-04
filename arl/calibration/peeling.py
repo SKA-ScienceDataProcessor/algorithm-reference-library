@@ -18,7 +18,8 @@ def peel_skycomponent_blockvisibility(vis: BlockVisibility, sc: Union[Skycompone
         -> (BlockVisibility, List[GainTable]):
     """ Peel a collection of components.
     
-    Sequentially solve the gain towards each Skycomponent and optionally remove from the visibility.
+    Sequentially solve the gain towards each Skycomponent and optionally remove the corrupted visibility from the
+    observed visibility.
 
     :param params:
     :param vis: Visibility to be processed
