@@ -14,7 +14,7 @@ from astropy.coordinates import SkyCoord
 from astropy.wcs.utils import pixel_to_skycoord
 
 from arl.data.polarisation import PolarisationFrame
-from arl.image.operations import export_image_to_fits, create_empty_image_like, copy_image
+from arl.image.operations import export_image_to_fits, create_empty_image_like, smooth_image
 from arl.skycomponent.operations import create_skycomponent, find_skycomponents, find_nearest_component, \
     insert_skycomponent
 from arl.util.testing_support import create_named_configuration
@@ -69,34 +69,51 @@ class TestImaging(unittest.TestCase):
                        'oversampling': 2,
                        'timeslice': 1000.0}
     
-    def actualSetUp(self, time=None, frequency=None):
+    def actualSetUp(self, time=None, frequency=None, dospectral=False, dopol=False):
         self.lowcore = create_named_configuration('LOWBD2-CORE')
-        self.times = (numpy.pi / (12.0)) * numpy.linspace(-3.0, 3.0, 7)
+        self.times = (numpy.pi / 12.0) * numpy.linspace(-3.0, 3.0, 5)
         
         if time is not None:
             self.times = time
         log.info("Times are %s" % (self.times))
         
-        if frequency is None:
+        if dospectral:
+            self.nchan=3
+            self.frequency = numpy.array([0.9e8, 1e8, 1.1e8])
+            self.channel_bandwidth = numpy.array([1e7, 1e7, 1e7])
+        else:
             self.frequency = numpy.array([1e8])
             self.channel_bandwidth = numpy.array([1e7])
+            
+        if dopol:
+            self.vis_pol = PolarisationFrame('linear')
+            self.image_pol = PolarisationFrame('stokesIQUV')
         else:
-            self.frequency = frequency
-            if len(self.frequency) < 1:
-                self.channel_bandwidth = numpy.full_like(self.frequency, self.frequency[1] - self.frequency[0])
-            else:
-                self.channel_bandwidth = numpy.array([1e6])
-        
+            self.vis_pol = PolarisationFrame('stokesI')
+            self.image_pol = PolarisationFrame('stokesI')
+
+        if dopol:
+            f = numpy.array([100.0, 20.0, -10.0, 1.0])
+        else:
+            f = numpy.array([100.0])
+
+        if dospectral:
+            flux = numpy.array([f, 0.8 * f, 0.6 * f])
+        else:
+            flux = numpy.array([f])
+
+
         self.phasecentre = SkyCoord(ra=+180.0 * u.deg, dec=-60.0 * u.deg, frame='icrs', equinox='J2000')
         self.componentvis = create_visibility(self.lowcore, self.times, self.frequency,
                                               channel_bandwidth=self.channel_bandwidth, phasecentre=self.phasecentre,
-                                              weight=1.0, polarisation_frame=PolarisationFrame('stokesI'))
+                                              weight=1.0, polarisation_frame=self.vis_pol)
         self.uvw = self.componentvis.data['uvw']
         self.componentvis.data['vis'] *= 0.0
         
         # Create model
         self.model = create_image_from_visibility(self.componentvis, npixel=512, cellsize=0.001,
-                                                  nchan=1, polarisation_frame=PolarisationFrame('stokesI'))
+                                                  nchan=len(self.frequency),
+                                                  polarisation_frame=self.image_pol)
         
         # Fill the visibility with exactly computed point sources. These are chosen to lie
         # on grid points.
@@ -123,33 +140,33 @@ class TestImaging(unittest.TestCase):
             sc = pixel_to_skycoord(p[0], p[1], self.model.wcs, origin=0)
             log.info("Component at (%f, %f) [0-rel] %s" % (p[0], p[1], str(sc)))
             
-            f = (100.0 + 1.0 * ix + iy * 10.0)
             if ix != 0 and iy != 0:
                 
                 # Channel images
-                flux = numpy.array([[f]])
-                comp = create_skycomponent(flux=flux, frequency=[numpy.average(self.frequency)], direction=sc,
-                                           polarisation_frame=PolarisationFrame('stokesI'))
+                comp = create_skycomponent(flux=flux, frequency=self.frequency, direction=sc,
+                                           polarisation_frame=self.image_pol)
                 self.components.append(comp)
         
-        # Predict the visibility from the components exactly. We always do this for each spectral channel
+        # Predict the visibility from the components exactly.
         self.componentvis.data['vis'] *= 0.0
         predict_skycomponent_visibility(self.componentvis, self.components)
         insert_skycomponent(self.model, self.components)
         
         # Calculate the model convolved with a Gaussian.
-        norm = 2.0 * numpy.pi
-        self.cmodel = copy_image(self.model)
-        self.cmodel.data[0, 0, :, :] = norm * convolve(self.model.data[0, 0, :, :], Gaussian2DKernel(1.0),
-                                                       normalize_kernel=False)
-#        export_image_to_fits(self.model, '%s/test_model.fits' % self.dir)
-#        export_image_to_fits(self.cmodel, '%s/test_cmodel.fits' % self.dir)
-    
+        self.cmodel = smooth_image(self.model)
+        export_image_to_fits(self.model, '%s/test_model.fits' % self.dir)
+        export_image_to_fits(self.cmodel, '%s/test_cmodel.fits' % self.dir)
+
     def test_findcomponents(self):
         # Check that the components are where we expected them to be after insertion
         self.actualSetUp()
         self._checkcomponents(self.cmodel)
-    
+
+    def test_findcomponents_spectral_pol(self):
+        # Check that the components are where we expected them to be after insertion
+        self.actualSetUp(dospectral=True, dopol=True)
+        self._checkcomponents(self.cmodel)
+
     def test_predict_2d(self):
         # Test if the 2D prediction works
         #
@@ -165,13 +182,13 @@ class TestImaging(unittest.TestCase):
         
         self.modelvis = create_visibility(self.lowcore, self.times, self.frequency,
                                           channel_bandwidth=self.channel_bandwidth, phasecentre=self.phasecentre,
-                                          weight=1.0, polarisation_frame=PolarisationFrame('stokesI'))
+                                          weight=1.0, polarisation_frame=self.vis_pol)
         self.modelvis.data['uvw'][:, 2] = 0.0
         predict_2d(self.modelvis, self.model, **self.params)
         self.residualvis = create_visibility(self.lowcore, self.times, self.frequency,
                                              channel_bandwidth=self.channel_bandwidth,
                                              phasecentre=self.phasecentre,
-                                             weight=1.0, polarisation_frame=PolarisationFrame('stokesI'))
+                                             weight=1.0, polarisation_frame=self.vis_pol)
         self.residualvis.data['uvw'][:, 2] = 0.0
         self.residualvis.data['vis'] = self.modelvis.data['vis'] - self.componentvis.data['vis']
         
@@ -180,13 +197,13 @@ class TestImaging(unittest.TestCase):
     def _predict_base(self, predict, fluxthreshold=1.0):
         self.modelvis = create_visibility(self.lowcore, self.times, self.frequency,
                                           channel_bandwidth=self.channel_bandwidth, phasecentre=self.phasecentre,
-                                          weight=1.0, polarisation_frame=PolarisationFrame('stokesI'))
+                                          weight=1.0, polarisation_frame=self.vis_pol)
         self.modelvis.data['vis'] *= 0.0
         predict(self.modelvis, self.model, **self.params)
         self.residualvis = create_visibility(self.lowcore, self.times, self.frequency,
                                              channel_bandwidth=self.channel_bandwidth,
                                              phasecentre=self.phasecentre,
-                                             weight=1.0, polarisation_frame=PolarisationFrame('stokesI'))
+                                             weight=1.0, polarisation_frame=self.vis_pol)
         self.residualvis.data['uvw'][:, 2] = 0.0
         self.residualvis.data['vis'] = self.modelvis.data['vis'] - self.componentvis.data['vis']
         self._checkdirty(self.residualvis, 'test_%s' % predict.__name__, fluxthreshold=fluxthreshold)
@@ -219,6 +236,18 @@ class TestImaging(unittest.TestCase):
         self.params['facets'] = 2
         self._predict_base(predict_facets_wstack, fluxthreshold=5.6)
 
+    def test_predict_facets_wstack_spectral(self):
+        self.actualSetUp(dospectral=True)
+        self.params['wstack'] = 2.0
+        self.params['facets'] = 2
+        self._predict_base(predict_facets_wstack, fluxthreshold=5.8)
+
+    def test_predict_facets_wstack_spectral_pol(self):
+        self.actualSetUp(dospectral=True, dopol=True)
+        self.params['wstack'] = 2.0
+        self.params['facets'] = 2
+        self._predict_base(predict_facets_wstack, fluxthreshold=5.8)
+
     def test_predict_wstack_wprojection(self):
         self.actualSetUp()
         self.params['wstack'] = 5 * 2.0
@@ -244,7 +273,7 @@ class TestImaging(unittest.TestCase):
         self.actualSetUp()
         self.componentvis = create_visibility(self.lowcore, self.times, self.frequency,
                                               channel_bandwidth=self.channel_bandwidth, phasecentre=self.phasecentre,
-                                              weight=1.0, polarisation_frame=PolarisationFrame('stokesI'))
+                                              weight=1.0, polarisation_frame=self.vis_pol)
         self.componentvis.data['uvw'][:, 2] = 0.0
         self.componentvis.data['vis'] *= 0.0
         # Predict the visibility using direct evaluation
@@ -279,6 +308,16 @@ class TestImaging(unittest.TestCase):
 
     def test_invert_wstack(self):
         self.actualSetUp()
+        self.params['wstack'] = 4.0
+        self._invert_base(invert_wstack, positionthreshold=1.0)
+
+    def test_invert_wstack_spectral(self):
+        self.actualSetUp(dospectral=True)
+        self.params['wstack'] = 4.0
+        self._invert_base(invert_wstack, positionthreshold=1.0)
+
+    def test_invert_wstack_spectral_pol(self):
+        self.actualSetUp(dospectral=True, dopol=True)
         self.params['wstack'] = 4.0
         self._invert_base(invert_wstack, positionthreshold=1.0)
 
@@ -318,7 +357,7 @@ class TestImaging(unittest.TestCase):
         self.actualSetUp()
         self.componentvis = create_visibility(self.lowcore, self.times, self.frequency,
                                               phasecentre=self.phasecentre, weight=1.0,
-                                              polarisation_frame=PolarisationFrame('stokesI'),
+                                              polarisation_frame=self.vis_pol,
                                               channel_bandwidth=self.channel_bandwidth)
         im = create_image_from_visibility(self.componentvis, nchan=1, npixel=128)
         assert im.data.shape == (1, 1, 128, 128)

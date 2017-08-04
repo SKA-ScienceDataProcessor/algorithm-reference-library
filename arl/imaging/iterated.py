@@ -11,6 +11,7 @@ from arl.image.iterators import raster_iter
 from arl.image.operations import create_empty_image_like
 from arl.visibility.iterators import vis_slice_iter
 from arl.visibility.base import copy_visibility, create_visibility_from_rows
+from arl.visibility.coalesce import coalesce_visibility
 from arl.imaging.base import predict_2d_base, predict_2d, invert_2d_base, invert_2d
 
 import logging
@@ -34,10 +35,16 @@ def invert_with_vis_iterator(vis: Visibility, im: Image, dopsf=False, normalize=
     """
     resultimage = create_empty_image_like(im)
     
+    if type(vis) is not Visibility:
+        svis = coalesce_visibility(vis, **kwargs)
+    else:
+        svis = vis
+
+    
     i = 0
-    for rows in vis_iter(vis, **kwargs):
+    for rows in vis_iter(svis, **kwargs):
         if rows is not None:
-            visslice = create_visibility_from_rows(vis, rows)
+            visslice = create_visibility_from_rows(svis, rows)
             workimage, sumwt = invert(visslice, im, dopsf, normalize=False, **kwargs)
             resultimage.data += workimage.data
             if i == 0:
@@ -61,14 +68,19 @@ def predict_with_vis_iterator(vis: Visibility, model: Image, vis_iter=vis_slice_
     
     """
     log.debug("predict_with_vis_iterator: Processing chunks")
+    if type(vis) is not Visibility:
+        svis = coalesce_visibility(vis, **kwargs)
+    else:
+        svis = vis
+        
     # Do each chunk in turn
-    for rows in vis_iter(vis, **kwargs):
+    for rows in vis_iter(svis, **kwargs):
         if rows is not None:
-            visslice = create_visibility_from_rows(vis, rows)
+            visslice = create_visibility_from_rows(svis, rows)
             visslice.data['vis'][...] = 0.0
             visslice = predict(visslice, model, **kwargs)
-            vis.data['vis'][rows] += visslice.data['vis']
-    return vis
+            svis.data['vis'][rows] += visslice.data['vis']
+    return svis
 
 
 def predict_with_image_iterator(vis: Visibility, model: Image, image_iterator=raster_iter,

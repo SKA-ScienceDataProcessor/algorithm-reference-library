@@ -40,8 +40,6 @@ def predict_wstack(vis: Visibility, model: Image, **kwargs) -> Visibility:
     :param model: model image
     :return: resulting visibility (in place works)
     """
-    assert type(vis) == Visibility
-
     log.info("predict_wstack: predicting using wstack")
 
     return predict_with_vis_iterator(vis, model, vis_iter=vis_wstack_iter, predict=predict_wstack_single, **kwargs)
@@ -56,7 +54,6 @@ def predict_wstack_single(vis, model, predict_inner=predict_2d_base, **kwargs) -
     :param model: model image
     :return: resulting visibility (in place works)
     """
-    assert type(vis) == Visibility
 
     if type(vis) is not Visibility:
         avis = coalesce_visibility(vis, **kwargs)
@@ -106,8 +103,6 @@ def invert_wstack(vis: Visibility, im: Image, dopsf=False, normalize=True, **kwa
     :return: resulting image[nchan, npol, ny, nx], sum of weights[nchan, npol]
 
     """
-    assert type(vis) == Visibility
-
     log.info("invert_wstack: inverting using wstack")
 
     return invert_with_vis_iterator(vis, im, dopsf, normalize=normalize, vis_iter=vis_wstack_iter,

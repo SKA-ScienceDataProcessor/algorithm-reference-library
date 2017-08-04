@@ -84,19 +84,19 @@ def find_skycomponents(im: Image, fwhm=1.0, threshold=10.0, npixels=5) -> List[S
     kernel = Gaussian2DKernel(sigma, x_size=int(1.5*fwhm), y_size=int(1.5*fwhm))
     kernel.normalize()
     
-    # Segment the sum of the entire image cube
-    image_sum = numpy.sum(im.data, axis=(0,1))
+    # Segment the average over all channels of Stokes I
+    image_sum = numpy.sum(im.data, axis=(0))[0,...]/float(im.shape[0])
     segments = segmentation.detect_sources(image_sum, threshold, npixels=npixels, filter_kernel=kernel)
     log.info("find_skycomponents: Identified %d segments" % segments.nlabels)
 
     # Now get source properties for all polarisations and frequencies
     comp_tbl = [ [ segmentation.source_properties(im.data[chan, pol], segments,
                                                   filter_kernel=kernel, wcs=im.wcs)
-                   for pol in range(im.npol) ]
+                   for pol in [0] ]
                  for chan in range(im.nchan) ]
     def comp_prop(comp,prop_name):
         return [ [ comp_tbl[chan][pol][comp][prop_name]
-                   for pol in range(im.npol) ]
+                   for pol in [0] ]
                  for chan in range(im.nchan) ]
 
     # Generate components
@@ -104,7 +104,7 @@ def find_skycomponents(im: Image, fwhm=1.0, threshold=10.0, npixels=5) -> List[S
     for segment in range(segments.nlabels):
 
         # Get flux and position. Astropy's quantities make this
-        # unecesarily complicated.
+        # unnecessarily complicated.
         flux = numpy.array(comp_prop(segment, "max_value"))
         # These values seem inconsistent with the xcentroid, and ycentroid values
         # ras = u.Quantity(list(map(u.Quantity,
@@ -131,16 +131,19 @@ def find_skycomponents(im: Image, fwhm=1.0, threshold=10.0, npixels=5) -> List[S
         dec = numpy.sum(flux * decs) / flux_sum
         xs = numpy.sum(flux * xs) / flux_sum
         ys = numpy.sum(flux * ys) / flux_sum
+        
+        point_flux = im.data[:,:,numpy.round(ys.value).astype('int'),numpy.round(xs.value).astype('int')]
 
         # Add component
         comps.append(Skycomponent(
             direction = SkyCoord(ra=ra, dec=dec),
             frequency = im.frequency,
             name = "Segment %d" % segment,
-            flux = flux,
+            flux = point_flux,
             shape = 'Point',
             polarisation_frame=im.polarisation_frame,
-            params = {'xpixel':xs, 'ypixel':ys} # Table has lots of data, could add more in future
+            params = {'xpixel':xs, 'ypixel':ys, 'sum_flux':flux} # Table has lots of data, could add more in
+            # future
             ))
 
     return comps

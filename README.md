@@ -18,29 +18,31 @@ implemented functions can be seen and understood without resorting to
 interpreting source code shaped by real-world concerns such as
 optimisations.
 
+The actual excutable code may be accessed directly from the documentation.
+
 Installing
 ----------
 
-# Install git and git-lfs if not already installed. Note that git-lfs is required for some
+* Install git and git-lfs if not already installed. Note that git-lfs is required for some
 data files
 
-# Use git to make a local clone of the Github respository::
+* Use git to make a local clone of the Github respository::
 
    git clone https://github.com/SKA-ScienceDataProcessor/algorithm-reference-library
 
-# Change into that directory::
+* Change into that directory::
 
    cd algorithm-reference-library
 
-# Install required python package::
+* Install required python package::
 
    pip install -r requirements.txt
 
-# Setup ARL::
+* Setup ARL::
 
    python setup.py install
 
-# Get the data files form Git LFS::
+* Get the data files form Git LFS::
 
    git-lfs pull
 
@@ -63,7 +65,7 @@ Running Notebooks
 Jupyter notebooks end with `.ipynb` and can be run as follows from the
 command line:
 
-     $ jupyter notebook examples/notebooks/wkernel.ipynb
+     $ jupyter notebook examples/notebooks/imaging.ipynb
 
 Building documentation
 ----------------------
@@ -82,4 +84,4 @@ You can build it as follows:
     $ make -C docs [format]
 
 Omit [format] to view a list of documentation formats that Sphinx can
-generate for you.
+generate for you. You probaby want dirhtml.

@@ -406,7 +406,7 @@ def create_image_from_visibility(vis: Visibility, **kwargs) -> Image:
     w.wcs.radesys = get_parameter(kwargs, 'frame', 'ICRS')
     w.wcs.equinox = get_parameter(kwargs, 'equinox', 2000.0)
     
-    return create_image_from_array(numpy.zeros(shape), wcs=w)
+    return create_image_from_array(numpy.zeros(shape), wcs=w, polarisation_frame=pol_frame)
 
 
 def residual_image(vis: Visibility, model: Image, invert_residual=invert_2d, predict_residual=predict_2d,

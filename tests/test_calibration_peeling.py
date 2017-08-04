@@ -3,7 +3,6 @@
 
 """
 import numpy
-import logging
 import unittest
 
 from astropy.coordinates import SkyCoord
@@ -18,7 +17,8 @@ from arl.skycomponent.operations import apply_beam_to_skycomponent
 from arl.util.testing_support import create_named_configuration, simulate_gaintable, \
     create_low_test_skycomponents_from_gleam, create_low_test_beam
 from arl.visibility.base import create_blockvisibility
-from arl.imaging import predict_skycomponent_blockvisibility, create_image_from_visibility
+from arl.imaging import predict_skycomponent_blockvisibility, create_image_from_visibility, invert_timeslice
+from arl.image.operations import qa_image
 
 import logging
 
@@ -77,7 +77,11 @@ class TestCalibrationPeeling(unittest.TestCase):
         assert len(peel_gts) == 1
         residual = numpy.max(peel_gts[0].residual)
         assert residual < 0.7, "Peak residual %.6f too large" % (residual)
+        
+        im, sumwt = invert_timeslice(vis, model)
+        qa = qa_image(im)
 
+        assert numpy.abs(qa.data['max']-14.2) < 1.0, str(qa)
 
 if __name__ == '__main__':
     unittest.main()

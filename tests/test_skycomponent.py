@@ -63,9 +63,6 @@ class Testskycomponent(unittest.TestCase):
         assert self.vis.vis.imag.all() == 0.0
 
     def test_insert_skycomponent_lanczos(self):
-        sc = create_skycomponent(direction=self.phasecentre, flux=numpy.array([[1.0]]), frequency=self.frequency,
-                                 polarisation_frame=PolarisationFrame('stokesI'))
-
         dphasecentre = SkyCoord(ra=+181.0 * u.deg, dec=-58.0 * u.deg, frame='icrs', equinox='J2000')
         sc = create_skycomponent(direction=dphasecentre, flux=numpy.array([[1.0]]), frequency=self.frequency,
                                  polarisation_frame=PolarisationFrame('stokesI'))

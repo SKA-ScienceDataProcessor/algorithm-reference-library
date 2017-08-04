@@ -346,9 +346,13 @@ def smooth_image(model: Image, width=1.0):
     kernel = astropy.convolution.kernels.Gaussian2DKernel(width)
     
     cmodel = create_empty_image_like(model)
-    cmodel.data[..., :, :] = astropy.convolution.convolve(model.data[0, 0, :, :], kernel, normalize_kernel=False)
+    nchan, npol, _, _ = model.shape
+    for pol in range(npol):
+        for chan in range(nchan):
+            cmodel.data[chan, pol, :, :] = astropy.convolution.convolve(model.data[chan, pol, :, :], kernel,
+                                                                  normalize_kernel=False)
     if type(kernel) is astropy.convolution.kernels.Gaussian2DKernel:
-        cmodel.data *= 2 * numpy.pi * 1.5 ** 2
+        cmodel.data *= 2 * numpy.pi * width ** 2
     
     return cmodel
 

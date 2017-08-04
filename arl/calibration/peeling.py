@@ -34,7 +34,7 @@ def peel_skycomponent_blockvisibility(vis: BlockVisibility, sc: Union[Skycompone
     for comp in sc:
         assert comp.shape == 'Point', "Cannot handle shape %s" % comp.shape
         
-        modelvis = copy_visibility(vis)
+        modelvis = copy_visibility(vis, zero=True)
         modelvis = predict_skycomponent_blockvisibility(modelvis, comp)
         gt = solve_gaintable(vis, modelvis, phase_only=False)
         modelvis = apply_gaintable(modelvis, gt)
