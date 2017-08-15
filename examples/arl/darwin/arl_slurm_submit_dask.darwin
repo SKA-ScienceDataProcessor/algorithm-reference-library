@@ -62,7 +62,7 @@ workdir="$SLURM_SUBMIT_DIR"  # The value of SLURM_SUBMIT_DIR sets workdir to the
 #! safe value to no more than 16:
 export OMP_NUM_THREADS=1
 
-CMD="jupyter nbconvert --execute --ExecutePreprocessor.timeout=3600 --to rst imaging-pipelines.ipynb"
+CMD="jupyter nbconvert --execute --ExecutePreprocessor.timeout=3600 --to rst imaging-darwin.ipynb"
 #CMD="python dask_minimal.py"
 #CMD="python3 imaging-distributed.py"
 
