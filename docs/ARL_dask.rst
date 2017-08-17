@@ -5,6 +5,7 @@ ARL and DASK
 Dask is a python package for distributed processing:
 
     http://dask.pydata.org/en/latest/
+
     https://github.com/dask/dask-tutorial
 
 Running ARL and Dask on a single machine is very straightforward. First define a graph and then compute it either by
@@ -12,19 +13,23 @@ calling the compute method of the graph or by passing the graph to a dask client
 
 A typical graph will flow from a set of input visibility sets to an image or set of images. In the course
 of constructing a graph, we will need to know the data elements and the functions transforming brtween them.
-These are well-modeled in ARL.
+These are well-modeled in ARL. A example of three cycles of a major/minor cycle deconvolutions is shown below:
+
+.. image:: deconvolution_dask.png
+      :width: 1024px
+
 
 Conceptually we can think of one visibility set, which may be decomposed into different subsets in processing, and
 one image, which also may be subsetted for processing.
 
 Dask is supported in various ways:
 
-    - arl/graphs/graphs: Graphs to perform various types of prediction and inversion of visibility data
-    - arl/graphs/generic_graphs: Graphs to perform generic image or visibility unary operations
-    - arl/util/graph_support: Graphs to support testing and simulations
-    - arl/pipelines/graphs: Graphs to implement the canonical pipelines
+    - :py:mod:`arl.graphs.graphs`: Graphs to perform various types of prediction and inversion of visibility data
+    - :py:mod:`arl.graphs.generic_graphs`: Graphs to perform generic image or visibility unary operations
+    - :py:mod:`arl.util.graph_support`: Graphs to support testing and simulations
+    - :py:mod:`arl.pipelines.graphs`: Graphs to implement the canonical pipelines
 
-In addition there are notebooks:
+In addition there are notebooks in examples/arl.
 
     - imaging-dask: General imaging example
     - imaging-pipelines: Pipelines run on small LOW observation (core only)
@@ -32,9 +37,19 @@ In addition there are notebooks:
 
 There are supporting functions for scatter/gather of some of the appropriate data models.
 
-These notebooks are scaled to run on my laptop (4 cores, 16GB) but can be changed to larger scales. Both explicitly
-create a client and output the URL (usually http://127.0.0.1:8787) for the Dask diagnostics. Of these the status page
-is most useful. If you shrink the browser size enough laterally all of the information can be seen on one page.
+These notebooks are scaled to run on a 2017-era laptop (4 cores, 16GB) but can be changed to larger scales. Both
+explicitly create a client and output the URL (usually http://127.0.0.1:8787) for the Dask diagnostics. Of these the
+status page is most useful. If you shrink the browser size enough laterally all of the information appears on one
+page. Below is a snapshot of the diagnostic page when dask is calculating an image:
+
+.. image:: partial.png
+      :width: 1024px
+
+Below we demonstrate the utility of this view. This shows ICAL for 7 visibility ingests. Note the global
+synchronisation point (at 1:40) where the selfcalibration across the full bandwidth occurs.
+
+.. image:: dask-global.png
+      :width: 1024px
 
 Using ARL and dask on Darwin
 ****************************
@@ -50,7 +65,11 @@ those on worker nodes.
 * cd $ARL; pip install --prefix=~/python -r requirements.txt
 * pip install --prefix=~/python paramiko
 
-Ensure that the .bashrc file has the same definition as .bash_profile. If not, ssh will give strange errors!
+Ensure that the .bashrc file has the same definition as .bash_profile. If not, ssh will give strange errors! The
+PYTHONPATH should look like::
+
+    $ echo $PYTHONPATH
+    /home/hpccorn1/Code/algorithm-reference-library:/home/hpccorn1/arlenv/lib/python3.5/site-packages
 
 You can start a scheduler and workers by hand. Set the environment variable ARL_DASK_SCHEDULER appropriately::
 
@@ -182,4 +201,9 @@ On darwin, each node has 16 cores, and each core has 4GB. Usually this is insuff
     wait %1
 
 In the command CMD remember to shutdown the Client so the batch script will close the background dask-ssh and then exit.
+
+Using ARL and dask on P3
+************************
+
+[To be written]
 

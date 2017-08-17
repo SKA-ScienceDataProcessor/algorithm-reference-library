@@ -12,6 +12,9 @@ import graphviz
 from dask.optimize import key_split
 from dask.dot import _get_display_cls
 from dask.core import get_dependencies
+from dask.callbacks import Callback
+from dask.dot import dot_graph
+
 
 
 def node_key(s):
@@ -73,3 +76,43 @@ def simple_vis(x, filename='simple', format=None, **kwargs):
         f.write(data)
 
     return display_cls(filename=full_filename)
+
+# Scheduler plugin to produce animated graphs
+# From https://gist.github.com/jcrist/0c28f632513aa13d4edea3d482bf47d1
+
+class Track(Callback):
+    def __init__(self, path='dasks', save_every=1):
+        self.path = path
+        self.save_every = save_every
+        self.n = 0
+        try:
+            os.mkdir(path)
+        except FileExistsError:
+            pass
+
+    def _plot(self, dsk, state):
+        data = {}
+        func = {}
+        for key in state['released']:
+            data[key] = {'color': 'blue'}
+        for key in state['cache']:
+            data[key] = {'color': 'red'}
+        for key in state['finished']:
+            func[key] = {'color': 'blue'}
+        for key in state['running']:
+            func[key] = {'color': 'red'}
+
+        filename = os.path.join(self.path, 'part_{:0>4d}'.format(self.n))
+
+        dot_graph(dsk, filename=filename, format='png',
+                  data_attributes=data,
+                  function_attributes=func)
+
+    def _pretask(self, key, dsk, state):
+        if self.n % self.save_every == 0:
+            self._plot(dsk, state)
+        self.n += 1
+
+    def finish(self, dsk, state, errored):
+        self._plot(dsk, state)
+        self.n += 1

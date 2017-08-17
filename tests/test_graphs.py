@@ -10,6 +10,8 @@ import numpy
 from astropy import units as u
 from astropy.coordinates import SkyCoord
 from astropy.wcs.utils import pixel_to_skycoord
+import dask
+from dask.async import get_sync
 from dask import delayed
 
 from arl.calibration.operations import apply_gaintable, create_gaintable_from_blockvisibility
@@ -34,8 +36,6 @@ from arl.visibility.base import create_blockvisibility
 class TestDaskGraphs(unittest.TestCase):
     def setUp(self):
         
-        # This doesn't run happily in jenkins so we disable tests there. Change this to True to
-        # compute.
         self.compute = False
         
         self.results_dir = './test_results'
@@ -464,7 +464,7 @@ class TestDaskGraphs(unittest.TestCase):
                                                     fractional_threshold=0.02, threshold=2.0,
                                                     gain=0.1, facets=facets)
         if self.compute:
-            result = clean_graph.compute()
+            result = clean_graph.compute(get=get_sync)
         
             export_image_to_fits(result, '%s/test_imaging_deconvolution_facets%d.clean.fits' %
                              (self.results_dir, facets))

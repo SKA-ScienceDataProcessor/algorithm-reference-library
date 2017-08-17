@@ -121,14 +121,18 @@ def standard_kernel_list(vis, shape, oversampling=8, support=3):
 
 
 def w_kernel_list(vis, im, oversampling=1, wstep=50.0, kernelwidth=16, **kwargs):
-    """ Calculate convolution kernels
+    """ Calculate w convolution kernels
+    
+    Uses create_w_term_like to calculate the w screen. This is exactly as wstacking does.
 
     Returns (indices to the w kernel for each row, kernels)
 
-    Each kernel has axes [pol, centre_v, centre_u, offset_v, offset_u]
+    Each kernel has axes [centre_v, centre_u, offset_v, offset_u]. We currently use the same
+    convolution function for all channels and polarisations. Changing that behaviour would
+    require modest changes here and to the gridding/degridding routines.
 
     :param vis: visibility
-    :param image: Template image
+    :param image: Template image (padding, if any, occurs before this)
     :param oversampling: Oversampling factor
     :param wstep: Step in w between cached functions
     :return: (indices to the w kernel for each row, kernels)
@@ -152,7 +156,6 @@ def w_kernel_list(vis, im, oversampling=1, wstep=50.0, kernelwidth=16, **kwargs)
     
     wtemplate = copy_image(im)
     
-#    wtemplate_shape = [nchan, npol, ny // oversampling, nx // oversampling]
     wtemplate.data = numpy.zeros(wtemplate.shape, dtype=im.data.dtype)
     
     padded_shape = list(wtemplate.shape)

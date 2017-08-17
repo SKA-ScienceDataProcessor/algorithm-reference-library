@@ -20,7 +20,7 @@
 #! Memory limit
 #SBATCH --mem 32000
 #! How much wallclock time will be required?
-#SBATCH --time=00:30:00
+#SBATCH --time=02:00:00
 #! What types of email messages do you wish to receive?
 #SBATCH --mail-type=FAIL
 #! Uncomment this to prevent the job from being requeued (e.g. if
@@ -62,9 +62,8 @@ workdir="$SLURM_SUBMIT_DIR"  # The value of SLURM_SUBMIT_DIR sets workdir to the
 #! safe value to no more than 16:
 export OMP_NUM_THREADS=1
 
-CMD="jupyter nbconvert --execute --ExecutePreprocessor.timeout=3600 --to rst imaging-darwin.ipynb"
-#CMD="python dask_minimal.py"
-#CMD="python3 imaging-distributed.py"
+#CMD="jupyter nbconvert --execute --ExecutePreprocessor.timeout=3600 --to rst imaging-darwin.ipynb"
+CMD="python3 imaging-darwin.py"
 
 cd $workdir
 echo -e "Changed directory to `pwd`.\n"
@@ -98,17 +97,27 @@ cat hostfile.$JOBID
 #!                            one.
 #!  --hostfile PATH           Textfile with hostnames/IP addresses
 #!
-dask-ssh --nprocs 4 --nthreads 1 --scheduler-port 8786 --log-directory `pwd` --hostfile hostfile.$JOBID &
+dask-ssh --nprocs 2 --nthreads 1 --scheduler-port 8786 --log-directory `pwd` --hostfile hostfile.$JOBID &
 sleep 10
 
 #! We need to tell dask Client (inside python) where the scheduler is running
 scheduler="`hostname`:8786"
 echo "Scheduler is running at ${scheduler}"
 export ARL_DASK_SCHEDULER=${scheduler}
-
+echo "ARL_DASK_SCHEDULER is ${ARL_DASK_SCHEDULER}"
 echo "About to execute $CMD"
 
 eval $CMD
 
 #! Wait for dash-ssh to be shutdown from the python
 wait %1
+
+# Archive the results
+archive="output_${JOBID}"
+mkdir ${archive}
+mv "slurm.${JOBID}".out ${archive}
+mv results ${archive}
+mv hostfile.${JOBID} ${archive}
+mv dask-ssh* ${archive}
+cp imaging-*.py ${archive}
+cp ${0}  ${archive}

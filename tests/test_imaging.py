@@ -4,28 +4,26 @@
 """
 import logging
 import unittest
-
 from functools import partial
 
 import numpy
 from astropy import units as u
-from astropy.convolution import Gaussian2DKernel, convolve
 from astropy.coordinates import SkyCoord
 from astropy.wcs.utils import pixel_to_skycoord
 
 from arl.data.polarisation import PolarisationFrame
 from arl.image.operations import export_image_to_fits, create_empty_image_like, smooth_image
-from arl.skycomponent.operations import create_skycomponent, find_skycomponents, find_nearest_component, \
-    insert_skycomponent
-from arl.util.testing_support import create_named_configuration
-from arl.visibility.operations import sum_visibility
-from arl.visibility.base import create_visibility
 from arl.imaging import predict_2d, predict_wstack, predict_wprojection, predict_facets, \
     predict_timeslice, predict_wprojection_wstack, invert_wprojection_wstack, \
     invert_2d, invert_wstack, invert_wprojection, invert_facets, invert_timeslice, \
     create_image_from_visibility, predict_skycomponent_visibility, \
     weight_visibility, predict_facets_wstack, invert_facets_wstack, \
     predict_facets_wprojection, invert_facets_wprojection
+from arl.skycomponent.operations import create_skycomponent, find_skycomponents, find_nearest_component, \
+    insert_skycomponent
+from arl.util.testing_support import create_named_configuration
+from arl.visibility.base import create_visibility
+from arl.visibility.operations import sum_visibility
 
 log = logging.getLogger(__name__)
 

@@ -17,6 +17,7 @@ structures such as image, visibility table, gaintable, etc.
    ARL_background
    ARL_developing
    ARL_Fourier_processing
+   ARL_calibration
    ARL_dask
    ARL_references
    ARL_glossary

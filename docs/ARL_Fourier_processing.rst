@@ -3,6 +3,9 @@
 Fourier processing
 ******************
 
+Imaging functionality is in the module :py:mod:`arl.imaging.base` . Graphs providing processing using these functions
+are in the module :py:mod:`arl.graphs.graphs` .
+
 There are many algorithms for imaging, using different approaches to correct for various effects:
 
 + Simple 2D transforms
@@ -13,9 +16,8 @@ There are many algorithms for imaging, using different approaches to correct for
 + A projection variants
 + Visibility coalescence and de-coalescence
 + MFS variants
-+ Differential residuals calculations
 
-Since the scale of SDP is so much larger than previous telescopes, it is not clear which scaling strategies and
+Since the scale of SKA is so much larger than previous telescopes, it is not clear which scaling strategies and
 algorithms are going to offer the best performance. For this reason, it is important the synthesis framework not be
 restrictive.
 
@@ -41,12 +43,6 @@ implemented by a python generator::
 This relies upon the data objects (model and vis) possessing sufficient meta data to enable operations such as phase
 rotation from one frame to another.
 
-In addition, iteration through the visibility data can be on various orders::
-
-+ By time
-+ By row
-+ By w
-
 The Visibility API supports these forms of iteration.
 
 The layering of predict and invert classes is shown below:
@@ -64,16 +60,15 @@ Another view is shown next:
 .. image:: ARL_Fourier_partitions.png
       :width: 1024px
 
-Not all combinations currently work. The following are supported:
+In ARL, the primary functionality for bringing together the calibration and imaging capabilities is via the graphs
+at :py:mod:`arl.graphs.graphs`. Iteration is not well suited to graph processing, so for making calibration and
+imaging graphs the iterators have been wrapped as scatter/gather operations that may be used to construct the graphs
+before execution.
 
-+ W Projection: {predict | invert}_wprojection
-+ W Stacking:  {predict | invert}_wstack
-+ Image plane facets:  {predict | invert}_wfacets
-+ W Stacking + W Projection: {predict | invert}_wprojection_wstack
-+ W Stacking + Image plane facets: {predict | invert}_facets_wstack
+The visibility data can be scatter/gathered by timeslice and w. Images may be scatter/gathered via rasters.
 
-In particular, the combination of faceting and wprojection is not yet supported.
+To enable efficient graph processing, the units of processing are kept small. Each should be doable in a few minutes.
 
-Iteration is not well suited to graph processing, so for making calibration and imaging graphs the iterators have
-been wrapped as scatter/gather operations.
+
+
 

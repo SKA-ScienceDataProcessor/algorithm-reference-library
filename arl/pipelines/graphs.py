@@ -1,8 +1,6 @@
 """ Pipelines expressed as dask graphs
 """
 
-from typing import List
-
 from dask import delayed
 
 from arl.data.parameters import get_parameter
@@ -10,7 +8,7 @@ from arl.image.deconvolution import restore_cube
 from arl.graphs.graphs import create_deconvolve_graph, create_invert_graph, create_residual_graph, \
     create_selfcal_graph_list, create_predict_graph
 
-def create_continuum_imaging_pipeline_graph(vis_graph_list: List[delayed], model_graph: delayed,
+def create_continuum_imaging_pipeline_graph(vis_graph_list, model_graph: delayed,
                                             c_deconvolve_graph=create_deconvolve_graph,
                                             c_invert_graph=create_invert_graph,
                                             c_residual_graph=create_residual_graph,
@@ -35,7 +33,7 @@ def create_continuum_imaging_pipeline_graph(vis_graph_list: List[delayed], model
                                       **kwargs)
 
 
-def create_spectral_line_imaging_pipeline_graph(vis_graph_list: List[delayed], model_graph: delayed,
+def create_spectral_line_imaging_pipeline_graph(vis_graph_list, model_graph: delayed,
                                                 continuum_model_graph=None,
                                                 c_deconvolve_graph=create_deconvolve_graph,
                                                 c_invert_graph=create_invert_graph,
@@ -65,7 +63,7 @@ def create_spectral_line_imaging_pipeline_graph(vis_graph_list: List[delayed], m
                                       **kwargs)
 
 
-def create_ical_pipeline_graph(vis_graph_list: List[delayed], model_graph: delayed,
+def create_ical_pipeline_graph(vis_graph_list, model_graph: delayed,
                                c_deconvolve_graph=create_deconvolve_graph,
                                c_invert_graph=create_invert_graph,
                                c_residual_graph=create_residual_graph,
