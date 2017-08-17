@@ -147,9 +147,9 @@ def create_invert_graph(vis_graph_list, template_model_graph: delayed, dopsf=Fal
 
 
 def create_invert_vis_scatter_graph(vis_graph_list, template_model_graph: delayed, vis_slices, scatter,
-                                    invert, dopsf=False, normalize=True, **kwargs) -> delayed:
+                                              invert, dopsf=False, normalize=True, **kwargs) -> delayed:
     """ Sum invert results for a scattered  vis_graph_list
-    
+
     Base for create_invert_vis_wstack_graph and create_invert_vis_timeslice_graph
 
     :param vis_graph_list:
@@ -183,17 +183,23 @@ def create_invert_vis_scatter_graph(vis_graph_list, template_model_graph: delaye
         else:
             return None
     
+    # Graph to combine the images from different vis_graphs. Do this on the outer loop to cut down on
+    # traffic
     image_graph_list = list()
+    
     for vis_graph in vis_graph_list:
+        
         if vis_graph is not None:
-            scatter_vis_graphs = delayed(scatter, nout=vis_slices)(vis_graph, vis_slices=vis_slices,
-                                                                                **kwargs)
-            for scatter_vis_graph in scatter_vis_graphs:
-                image_graph_list.append(delayed(invert_ignore_None, pure=True, nout=2)(scatter_vis_graph,
-                                                                                              template_model_graph,
-                                                                                              dopsf=dopsf,
-                                                                                              normalize=normalize,
-                                                                                              **kwargs))
+            scatter_graph_list = list()
+            scatter_vis_graph_list = delayed(scatter, nout=vis_slices)(vis_graph, vis_slices=vis_slices,
+                                                                       **kwargs)
+            for scatter_vis_graph in scatter_vis_graph_list:
+                scatter_graph_list.append(delayed(invert_ignore_None, pure=True, nout=2)(scatter_vis_graph,
+                                                                                         template_model_graph,
+                                                                                         dopsf=dopsf,
+                                                                                         normalize=normalize,
+                                                                                         **kwargs))
+        image_graph_list.append(delayed(sum_invert_results)(scatter_graph_list))
     
     return delayed(sum_invert_results)(image_graph_list)
 
