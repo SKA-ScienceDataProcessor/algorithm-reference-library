@@ -257,18 +257,21 @@ def advise_wide_field(vis, delA=0.02, oversampling_synthesised_beam=3.0, guard_b
     :param wprojection_planes: Number of planes in wprojection
     :return: dict of advice
     """
-    wavelength = constants.c.to('m/s').value / numpy.min(vis.frequency)
-    log.info("advise_wide_field: Maximum wavelength %.3f (meters)" %(wavelength))
+    max_wavelength = constants.c.to('m/s').value / numpy.min(vis.frequency)
+    log.info("advise_wide_field: Maximum wavelength %.3f (meters)" %(max_wavelength))
+
+    min_wavelength = constants.c.to('m/s').value / numpy.max(vis.frequency)
+    log.info("advise_wide_field: Minimum wavelength %.3f (meters)" %(min_wavelength))
 
     maximum_baseline = numpy.max(numpy.abs(vis.uvw)) # Wavelengths
     if type(vis) == BlockVisibility:
-        maximum_baseline = maximum_baseline / wavelength
+        maximum_baseline = maximum_baseline / min_wavelength
     log.info("advise_wide_field: Maximum baseline %.1f (wavelengths)" % (maximum_baseline))
     
     diameter = numpy.min(vis.configuration.diameter)
     log.info("advise_wide_field: Station/antenna diameter %.1f (meters)" % (diameter))
 
-    primary_beam_fov = wavelength / diameter
+    primary_beam_fov = max_wavelength / diameter
     log.info("advise_wide_field: Primary beam %s" % (rad_and_deg(primary_beam_fov)))
 
     image_fov = primary_beam_fov * guard_band_image
@@ -284,8 +287,15 @@ def advise_wide_field(vis, delA=0.02, oversampling_synthesised_beam=3.0, guard_b
     cellsize = synthesized_beam/oversampling_synthesised_beam
     log.info("advise_wide_field: Cellsize %s" % (rad_and_deg(cellsize)))
 
+    def pwr2(n):
+        ex = numpy.ceil(numpy.log(n) / numpy.log(2.0)).astype('int')
+        return numpy.power(2, ex)
+
     npixels = int(round(image_fov/cellsize))
     log.info("advice_wide_field: Npixels per side = %d" % (npixels))
+
+    npixels2 = pwr2(npixels)
+    log.info("advice_wide_field: Npixels (power of 2) per side = %d" % (npixels2))
 
     # Following equation is from Cornwell, Humphreys, and Voronkov (2012) (equation 24)
     # We will assume that the constraint holds at one quarter the entire FOV i.e. that

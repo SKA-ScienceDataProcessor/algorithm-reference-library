@@ -42,22 +42,26 @@ class TestTesting_Support(unittest.TestCase):
         assert len(self.config.names) == nants
         assert len(self.config.mount) == nants
     
-    def createVis(self, config, dec=-35.0):
-        self.config = create_named_configuration(config)
+    def createVis(self, config, dec=-35.0, rmax=None):
+        self.config = create_named_configuration(config, rmax=rmax)
         self.phasecentre = SkyCoord(ra=+15 * u.deg, dec=dec * u.deg, frame='icrs', equinox='J2000')
         self.vis = create_visibility(self.config, self.times, self.frequency,
                                      channel_bandwidth=self.channel_bandwidth,
                                      phasecentre=self.phasecentre, weight=1.0,
                                      polarisation_frame=PolarisationFrame('stokesI'))
-    
+
     def test_named_configurations(self):
         for config in ['LOWBD2', 'LOWBD2-CORE', 'LOWBD1', 'LOFAR']:
             self.createVis(config)
             assert self.config.size() > 0.0
-            
-        
+    
         self.createVis('VLAA', +35.0)
         self.createVis('VLAA_north', +35.0)
+
+    def test_clip_configuration(self):
+        for rmax in [100.0, 3000.0, 1000.0, 3000.0, 10000.0, 30000.0, 100000.0]:
+            self.config = create_named_configuration('LOWBD2', rmax=rmax)
+            assert self.config.size() > 0.0
     
     def test_unknown_configuration(self):
         with self.assertRaises(ValueError):

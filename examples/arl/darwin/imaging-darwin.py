@@ -62,11 +62,11 @@ advice=advise_wide_field(vis_graph_list[0].compute(), guard_band_image=4.0, delA
 vis_slices = advice['vis_slices']
 
 
-predicted_vis_graph_list = create_predict_gleam_model_graph(vis_graph_list,
+predicted_vis_graph_list = create_predict_gleam_model_graph(vis_graph_list, frequency, channel_bandwidth,
                                                             vis_slices=advice['vis_slices'])
 predicted_vis_graph_list = compute_list(c, predicted_vis_graph_list)
 
-corrupted_vis_graph_list = create_predict_gleam_model_graph(vis_graph_list, 
+corrupted_vis_graph_list = create_predict_gleam_model_graph(vis_graph_list, frequency, channel_bandwidth,
                                                             vis_slices=advice['vis_slices'],
                                                             phase_error=1.0)
 corrupted_vis_graph_list = compute_list(c, corrupted_vis_graph_list)

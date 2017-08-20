@@ -30,6 +30,8 @@ from arl.imaging import create_image_from_visibility, predict_skycomponent_block
 class TestImagingDask(unittest.TestCase):
     def setUp(self):
         
+        self.compute = False
+        
         self.results_dir = './test_results'
         os.makedirs(self.results_dir, exist_ok=True)
         
@@ -110,16 +112,17 @@ class TestImagingDask(unittest.TestCase):
                                                     vis_slices=self.vis_slices, facets=2,
                                                     niter=1000, fractional_threshold=0.1,
                                                     threshold=2.0, nmajor=3, gain=0.1)
-        clean, residual, restored = continuum_imaging_graph.compute()
-        export_image_to_fits(clean, '%s/test_pipelines_continuum_imaging_pipeline_clean.fits' % (self.results_dir))
-        export_image_to_fits(residual[0],
-                             '%s/test_pipelines_continuum_imaging_pipeline_residual.fits' % (self.results_dir))
-        export_image_to_fits(restored,
-                             '%s/test_pipelines_continuum_imaging_pipeline_restored.fits' % (self.results_dir))
-        
-        qa = qa_image(restored)
-        assert numpy.abs(qa.data['max'] - 100.0) < 5.0, str(qa)
-        assert numpy.abs(qa.data['min'] + 5.0) < 5.0, str(qa)
+        if self.compute:
+            clean, residual, restored = continuum_imaging_graph.compute()
+            export_image_to_fits(clean, '%s/test_pipelines_continuum_imaging_pipeline_clean.fits' % (self.results_dir))
+            export_image_to_fits(residual[0],
+                                 '%s/test_pipelines_continuum_imaging_pipeline_residual.fits' % (self.results_dir))
+            export_image_to_fits(restored,
+                                 '%s/test_pipelines_continuum_imaging_pipeline_restored.fits' % (self.results_dir))
+            
+            qa = qa_image(restored)
+            assert numpy.abs(qa.data['max'] - 100.0) < 5.0, str(qa)
+            assert numpy.abs(qa.data['min'] + 5.0) < 5.0, str(qa)
     
     def test_ical_pipeline(self):
         self.setupVis(add_errors=True)
@@ -133,11 +136,12 @@ class TestImagingDask(unittest.TestCase):
                                        vis_slices=self.vis_slices, facets=2,
                                        niter=1000, fractional_threshold=0.1,
                                        threshold=2.0, nmajor=5, gain=0.1, first_selfcal=1)
-        clean, residual, restored = ical_graph.compute()
-        export_image_to_fits(clean, '%s/test_pipelines_ical_pipeline_clean.fits' % (self.results_dir))
-        export_image_to_fits(residual[0], '%s/test_pipelines_ical_pipeline_residual.fits' % (self.results_dir))
-        export_image_to_fits(restored, '%s/test_pipelines_ical_pipeline_restored.fits' % (self.results_dir))
-        
-        qa = qa_image(restored)
-        assert numpy.abs(qa.data['max'] - 100.0) < 5.0, str(qa)
-        assert numpy.abs(qa.data['min'] + 5.0) < 5.0, str(qa)
+        if self.compute:
+            clean, residual, restored = ical_graph.compute()
+            export_image_to_fits(clean, '%s/test_pipelines_ical_pipeline_clean.fits' % (self.results_dir))
+            export_image_to_fits(residual[0], '%s/test_pipelines_ical_pipeline_residual.fits' % (self.results_dir))
+            export_image_to_fits(restored, '%s/test_pipelines_ical_pipeline_restored.fits' % (self.results_dir))
+            
+            qa = qa_image(restored)
+            assert numpy.abs(qa.data['max'] - 100.0) < 5.0, str(qa)
+            assert numpy.abs(qa.data['min'] + 5.0) < 5.0, str(qa)

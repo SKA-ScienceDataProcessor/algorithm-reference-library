@@ -58,7 +58,7 @@ def create_image_from_array(data: numpy.array, wcs: WCS = None,
         log.debug("create_image_from_array: created %s image of shape %s, size %.3f (GB)" %
                   (fim.data.dtype, str(fim.shape), image_sizeof(fim)))
         
-    assert type(fim) == Image
+    assert type(fim) == Image, "Type is %s" % type(fim)
     return fim
 
 
@@ -71,7 +71,7 @@ def copy_image(im: Image) -> Image:
     :return: Image
     
     """
-    assert type(im) == Image
+    assert type(im) == Image, "Type is %s" % type(im)
     fim = Image()
     fim.polarisation_frame = im.polarisation_frame
     fim.data = copy.deepcopy(im.data)
@@ -93,7 +93,7 @@ def create_empty_image_like(im: Image) -> Image:
     :return: Image
     
     """
-    assert type(im) == Image
+    assert type(im) == Image, "Type is %s" % type(im)
     fim = Image()
     fim.polarisation_frame = im.polarisation_frame
     fim.data = numpy.zeros_like(im.data)
@@ -104,7 +104,7 @@ def create_empty_image_like(im: Image) -> Image:
     if image_sizeof(im) >= 1.0:
         log.debug("create_empty_image_like: created %s image of shape %s, size %.3f (GB)" %
                   (fim.data.dtype, str(fim.shape), image_sizeof(fim)))
-    assert type(fim) == Image
+    assert type(fim) == Image, "Type is %s" % type(fim)
     return fim
 
 

@@ -39,7 +39,7 @@ def copy_visibility(vis: Union[Visibility, BlockVisibility], zero=False) -> Unio
 def create_visibility(config: Configuration, times: numpy.array, frequency: numpy.array,
                       channel_bandwidth, phasecentre: SkyCoord,
                       weight: float, polarisation_frame=PolarisationFrame('stokesI'),
-                      integration_time=1.0) -> Visibility:
+                      integration_time=1.0, **kwargs) -> Visibility:
     """ Create a Visibility from Configuration, hour angles, and direction of source
 
     Note that we keep track of the integration time for BDA purposes
@@ -122,7 +122,9 @@ def create_blockvisibility(config: Configuration,
                            weight: float,
                            polarisation_frame: PolarisationFrame = None,
                            integration_time=1.0,
-                           channel_bandwidth=1e6) -> BlockVisibility:
+                           channel_bandwidth=1e6,
+                           zerow=False,
+                           **kwargs) -> BlockVisibility:
     """ Create a BlockVisibility from Configuration, hour angles, and direction of source
 
     Note that we keep track of the integration time for BDA purposes
@@ -170,6 +172,8 @@ def create_blockvisibility(config: Configuration,
     
     rintegration_time = numpy.full_like(rtimes, integration_time)
     rchannel_bandwidth = numpy.full_like(frequency, channel_bandwidth)
+    if zerow:
+        ruvw[...,2] = 0.0
     vis = BlockVisibility(uvw=ruvw, time=rtimes, frequency=frequency, vis=rvis, weight=rweight,
                           integration_time=rintegration_time, channel_bandwidth=rchannel_bandwidth,
                           polarisation_frame=polarisation_frame)

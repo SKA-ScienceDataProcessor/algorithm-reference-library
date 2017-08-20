@@ -45,9 +45,9 @@ from arl.image.deconvolution import deconvolve_cube
 from arl.image.gather_scatter import image_scatter, image_gather
 from arl.image.operations import copy_image, create_empty_image_like
 from arl.imaging import predict_2d, invert_2d, invert_wstack_single, predict_wstack_single, \
-    predict_timeslice_single, invert_timeslice_single, normalize_sumwt
+    predict_timeslice_single, invert_timeslice_single, normalize_sumwt, weight_visibility
 from arl.visibility.gather_scatter import visibility_scatter_w, visibility_gather_w, \
-    visibility_scatter_channel, visibility_gather_channel, visibility_gather_time, visibility_scatter_time
+    visibility_gather_channel, visibility_gather_time, visibility_scatter_time
 from arl.visibility.operations import divide_visibility, integrate_visibility_by_channel
 from arl.visibility.base import copy_visibility
 
@@ -101,6 +101,25 @@ def create_subtract_vis_graph_list(vis_graph_list, model_vis_graph_list, **kwarg
     
     return [delayed(subtract_vis, pure=True, nout=1)(vis=vis_graph_list[i],
                                                      model_vis=model_vis_graph_list[i])
+            for i in range(len(vis_graph_list))]
+
+
+def create_weight_vis_graph_list(vis_graph_list, model_graph, weighting='uniform', **kwargs):
+    """ Weight the visibility data
+
+    :param vis_graph_list:
+    :param kwargs: Parameters for functions in graphs
+    :return: List of vis_graphs
+   """
+    
+    def weight_vis(vis, model, weighting):
+        if vis is not None and model is not None:
+            vis, _, _ = weight_visibility(vis, model, weighting=weighting, **kwargs)
+            return vis
+        else:
+            return None
+    
+    return [delayed(weight_vis, pure=True, nout=1)(vis_graph_list[i], model_graph, weighting)
             for i in range(len(vis_graph_list))]
 
 
@@ -462,9 +481,9 @@ def create_predict_timeslice_graph(vis_graph_list, model_graph: delayed, vis_sli
    """
 
     return create_predict_vis_scatter_graph(vis_graph_list, model_graph, vis_slices,
-                                     scatter=visibility_scatter_w,
-                                     gather=visibility_gather_w,
-                                     predict=predict_wstack_single, ** kwargs)
+                                     scatter=visibility_scatter_time,
+                                     gather=visibility_gather_time,
+                                     predict=predict_timeslice_single, ** kwargs)
 
 
 def create_predict_facet_vis_scatter_graph(vis_graph_list, model_graph: delayed, vis_slices, facets,
