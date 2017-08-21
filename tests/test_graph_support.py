@@ -39,8 +39,10 @@ class TestTestingDaskGraphSupport(unittest.TestCase):
 
     def test_predict_gleam_model_graph(self):
         vis_graph_list = create_simulate_vis_graph(frequency=self.frequency, channel_bandwidth=self.channel_bandwidth)
-        predicted_vis_graph_list = create_predict_gleam_model_graph(vis_graph_list, vis_slices=11, npixel=256,
-                                                   c_predict_graph=create_predict_wstack_graph)
+        predicted_vis_graph_list = create_predict_gleam_model_graph(vis_graph_list, frequency=self.frequency,
+                                                                    channel_bandwidth=self.channel_bandwidth,
+                                                                    vis_slices=11, npixel=256,
+                                                                    c_predict_graph=create_predict_wstack_graph)
         vt = predicted_vis_graph_list[0].compute()
         assert numpy.max(numpy.abs(vt.vis)) > 0.0
         assert type(vt) == BlockVisibility
@@ -48,7 +50,8 @@ class TestTestingDaskGraphSupport(unittest.TestCase):
 
     def test_gleam_model_graph(self):
         vis_graph_list = create_simulate_vis_graph(frequency=self.frequency, channel_bandwidth=self.channel_bandwidth)
-        model_list = create_gleam_model_graph(vis_graph_list[0], npixel=256)
+        model_list = create_gleam_model_graph(vis_graph_list[0], frequency=self.frequency,
+                                              channel_bandwidth=self.channel_bandwidth, npixel=256)
         qa= qa_image(model_list.compute())
         assert qa.data['max'] > 0.0
 
@@ -66,14 +69,19 @@ class TestTestingDaskGraphSupport(unittest.TestCase):
 
     def test_corrupt_vis_graph(self):
         vis_graph_list = create_simulate_vis_graph(frequency=self.frequency, channel_bandwidth=self.channel_bandwidth)
-        vis_graph_list = create_predict_gleam_model_graph(vis_graph_list, vis_slices=11, npixel=256,
-                                                   c_predict_graph=create_predict_wstack_graph)
+        vis_graph_list = create_predict_gleam_model_graph(vis_graph_list, frequency=self.frequency,
+                                                          channel_bandwidth=self.channel_bandwidth, vis_slices=11,
+                                                          npixel=256, c_predict_graph=create_predict_wstack_graph)
         vt = vis_graph_list[0].compute()
         assert numpy.max(numpy.abs(vt.vis)) > 0.0
 
         corrupted_vis_graph_list = create_simulate_vis_graph(frequency=self.frequency,
                                                              channel_bandwidth=self.channel_bandwidth)
-        corrupted_vis_graph_list = create_predict_gleam_model_graph(corrupted_vis_graph_list, vis_slices=11, npixel=256,
+        corrupted_vis_graph_list = create_predict_gleam_model_graph(corrupted_vis_graph_list,
+                                                                    frequency=self.frequency,
+                                                                    channel_bandwidth=self.channel_bandwidth,
+                                                                    vis_slices=11,
+                                                                    npixel=256,
                                                    c_predict_graph=create_predict_wstack_graph)
         corrupted_vis_graph_list = create_corrupt_vis_graph(corrupted_vis_graph_list, phase_error=1.0)
         cvt = corrupted_vis_graph_list[0].compute()
