@@ -26,12 +26,13 @@ def create_simulate_vis_graph(config='LOWBD2-CORE',
     """ Create a graph to simulate an observation
     
     :param config: Name of configuration: def LOWBDS-CORE
-    :param phasecentre: Phase centre as SkyCoord def: SkyCoord(ra=+15.0 * u.deg, dec=-60.0 * u.deg, frame='icrs', equinox='J2000')
+    :param phasecentre: Phase centre def: SkyCoord(ra=+15.0 * u.deg, dec=-60.0 * u.deg, frame='icrs', equinox='J2000')
     :param frequency: def [1e8]
     :param channel_bandwidth: def [1e6]
     :param times: Observing times in radians: def [0.0]
     :param polarisation_frame: def PolarisationFrame("stokesI")
-    :param order: 'time'|'frequency'|'both'|None: def 'frequency'
+    :param order: 'time' or 'frequency' or 'both' or None: def 'frequency'
+    :param format: 'blockvis' or 'vis': def 'blockvis'
     :param kwargs:
     :return: vis_graph_list with different frequencies in different elements
     """
@@ -52,7 +53,7 @@ def create_simulate_vis_graph(config='LOWBD2-CORE',
         log.debug("create_simulate_vis_graph: Simulating split in %s" % order)
         vis_graph_list = list()
         for i, time in enumerate(times):
-            vis_graph_list.append(delayed(create_vis, nout=1)(conf, [time], frequency=frequency,
+            vis_graph_list.append(delayed(create_vis, nout=1)(conf, [times[i]], frequency=frequency,
                                                                 channel_bandwidth=channel_bandwidth,
                                                                 weight=1.0, phasecentre=phasecentre,
                                                                 polarisation_frame=polarisation_frame, **kwargs))
@@ -60,18 +61,18 @@ def create_simulate_vis_graph(config='LOWBD2-CORE',
     elif order == 'frequency':
         log.debug("create_simulate_vis_graph: Simulating split in %s" % order)
         vis_graph_list = list()
-        for i, freq in enumerate(frequency):
-            vis_graph_list.append(delayed(create_vis, nout=1)(conf, times, frequency=[freq],
-                                                                channel_bandwidth=[channel_bandwidth[i]],
+        for j, _ in enumerate(frequency):
+            vis_graph_list.append(delayed(create_vis, nout=1)(conf, times, frequency=[frequency[j]],
+                                                                channel_bandwidth=[channel_bandwidth[j]],
                                                                 weight=1.0, phasecentre=phasecentre,
                                                                 polarisation_frame=polarisation_frame, **kwargs))
 
     elif order =='both':
         log.debug("create_simulate_vis_graph: Simulating split in time and frequency")
         vis_graph_list = list()
-        for i, time in enumerate(times):
-            for j, freq in enumerate(frequency):
-                vis_graph_list.append(delayed(create_vis, nout=1)(conf, [time[i]], frequency=[frequency[j]],
+        for i, _ in enumerate(times):
+            for j, _ in enumerate(frequency):
+                vis_graph_list.append(delayed(create_vis, nout=1)(conf, [times[i]], frequency=[frequency[j]],
                                                                     channel_bandwidth=[channel_bandwidth[j]],
                                                                     weight=1.0, phasecentre=phasecentre,
                                                                     polarisation_frame=polarisation_frame, **kwargs))
@@ -90,13 +91,13 @@ def create_simulate_vis_graph(config='LOWBD2-CORE',
 
 def create_predict_gleam_model_graph(vis_graph_list, frequency, channel_bandwidth,
                                      npixel=512, cellsize=0.001,
-                                     c_predict_graph=create_predict_wstack_graph, **kwargs):
+                                     c_predict_vis_graph=create_predict_wstack_graph, **kwargs):
     """ Create a graph to fill in a model with the gleam sources and predict into a vis_graph_list
 
     :param vis_graph_list:
     :param npixel: 512
     :param cellsize: 0.001
-    :param c_predict_graph: def create_predict_wstack_graph
+    :param c_predict_vis_graph: def create_predict_wstack_graph
     :param kwargs:
     :return: vis_graph_list
     """
@@ -107,7 +108,7 @@ def create_predict_gleam_model_graph(vis_graph_list, frequency, channel_bandwidt
     for i, vis_graph in enumerate(vis_graph_list):
         model_graph = create_gleam_model_graph(vis_graph, frequency, channel_bandwidth, npixel=npixel,
                                                cellsize=cellsize, **kwargs)
-        predicted_vis_graph_list.append(c_predict_graph([vis_graph], model_graph, **kwargs)[0])
+        predicted_vis_graph_list.append(c_predict_vis_graph([vis_graph], model_graph, **kwargs)[0])
     return predicted_vis_graph_list
 
 
@@ -127,7 +128,7 @@ def create_gleam_model_graph(vis_graph: delayed, frequency, channel_bandwidth, n
     :return: graph
     """
     
-    def calculate_model(vis):
+    def calculate_gleam_model(vis):
         model = create_low_test_image_from_gleam(npixel=npixel, frequency=frequency,
                                                  channel_bandwidth=channel_bandwidth,
                                                  cellsize=cellsize, phasecentre=vis.phasecentre)
@@ -135,7 +136,7 @@ def create_gleam_model_graph(vis_graph: delayed, frequency, channel_bandwidth, n
         model.data *= beam.data
         return model
         
-    return delayed(calculate_model, nout=1)(vis_graph)
+    return delayed(calculate_gleam_model, nout=1)(vis_graph)
     
 def create_corrupt_vis_graph(vis_graph_list, gt_graph=None, **kwargs):
     """ Create a graph to apply gain errors to a vis_graph_list

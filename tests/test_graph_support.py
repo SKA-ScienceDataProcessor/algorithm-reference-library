@@ -42,7 +42,7 @@ class TestTestingDaskGraphSupport(unittest.TestCase):
         predicted_vis_graph_list = create_predict_gleam_model_graph(vis_graph_list, frequency=self.frequency,
                                                                     channel_bandwidth=self.channel_bandwidth,
                                                                     vis_slices=11, npixel=256,
-                                                                    c_predict_graph=create_predict_wstack_graph)
+                                                                    c_predict_vis_graph=create_predict_wstack_graph)
         vt = predicted_vis_graph_list[0].compute()
         assert numpy.max(numpy.abs(vt.vis)) > 0.0
         assert type(vt) == BlockVisibility
@@ -71,7 +71,7 @@ class TestTestingDaskGraphSupport(unittest.TestCase):
         vis_graph_list = create_simulate_vis_graph(frequency=self.frequency, channel_bandwidth=self.channel_bandwidth)
         vis_graph_list = create_predict_gleam_model_graph(vis_graph_list, frequency=self.frequency,
                                                           channel_bandwidth=self.channel_bandwidth, vis_slices=11,
-                                                          npixel=256, c_predict_graph=create_predict_wstack_graph)
+                                                          npixel=256, c_predict_vis_graph=create_predict_wstack_graph)
         vt = vis_graph_list[0].compute()
         assert numpy.max(numpy.abs(vt.vis)) > 0.0
 
@@ -82,7 +82,7 @@ class TestTestingDaskGraphSupport(unittest.TestCase):
                                                                     channel_bandwidth=self.channel_bandwidth,
                                                                     vis_slices=11,
                                                                     npixel=256,
-                                                   c_predict_graph=create_predict_wstack_graph)
+                                                   c_predict_vis_graph=create_predict_wstack_graph)
         corrupted_vis_graph_list = create_corrupt_vis_graph(corrupted_vis_graph_list, phase_error=1.0)
         cvt = corrupted_vis_graph_list[0].compute()
         assert numpy.max(numpy.abs(cvt.vis)) > 0.0

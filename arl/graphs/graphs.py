@@ -463,9 +463,9 @@ def create_predict_wstack_graph(vis_graph_list, model_graph: delayed, vis_slices
    """
 
     return create_predict_vis_scatter_graph(vis_graph_list, model_graph, vis_slices,
-                                     scatter=visibility_scatter_w,
-                                     gather=visibility_gather_w,
-                                     predict=predict_wstack_single, ** kwargs)
+                                            scatter=visibility_scatter_w,
+                                            gather=visibility_gather_w,
+                                            predict=predict_wstack_single, ** kwargs)
 
 def create_predict_timeslice_graph(vis_graph_list, model_graph: delayed, vis_slices,
                                    **kwargs):
@@ -481,9 +481,9 @@ def create_predict_timeslice_graph(vis_graph_list, model_graph: delayed, vis_sli
    """
 
     return create_predict_vis_scatter_graph(vis_graph_list, model_graph, vis_slices,
-                                     scatter=visibility_scatter_time,
-                                     gather=visibility_gather_time,
-                                     predict=predict_timeslice_single, ** kwargs)
+                                            scatter=visibility_scatter_time,
+                                            gather=visibility_gather_time,
+                                            predict=predict_timeslice_single, ** kwargs)
 
 
 def create_predict_facet_vis_scatter_graph(vis_graph_list, model_graph: delayed, vis_slices, facets,
@@ -560,8 +560,8 @@ def create_predict_facet_timeslice_graph(vis_graph_list, model_graph: delayed, v
     
     return create_predict_facet_vis_scatter_graph(vis_graph_list, model_graph, vis_slices=vis_slices,
                                                   facets=facets, predict=predict_timeslice_single,
-                                                  vis_scatter=visibility_scatter_w,
-                                                  vis_gather=visibility_gather_w, **kwargs)
+                                                  vis_scatter=visibility_scatter_time,
+                                                  vis_gather=visibility_gather_time, **kwargs)
 
 
 def create_residual_graph(vis_graph_list, model_graph: delayed, **kwargs) -> delayed:
@@ -606,6 +606,21 @@ def create_residual_wstack_graph(vis_graph_list, model_graph: delayed, **kwargs)
     model_vis_graph_list = create_predict_wstack_graph(model_vis_graph_list, model_graph, **kwargs)
     residual_vis_graph_list = create_subtract_vis_graph_list(vis_graph_list, model_vis_graph_list)
     return create_invert_wstack_graph(residual_vis_graph_list, model_graph, dopsf=False, normalize=True,
+                                      **kwargs)
+
+
+def create_residual_timeslice_graph(vis_graph_list, model_graph: delayed, **kwargs) -> delayed:
+    """ Create a graph to calculate residual image using timeslicing
+
+    :param vis_graph_list:
+    :param model_graph:
+    :param kwargs: Parameters for functions in graphs
+    :return:
+    """
+    model_vis_graph_list = create_zero_vis_graph_list(vis_graph_list)
+    model_vis_graph_list = create_predict_timeslice_graph(model_vis_graph_list, model_graph, **kwargs)
+    residual_vis_graph_list = create_subtract_vis_graph_list(vis_graph_list, model_vis_graph_list)
+    return create_invert_timeslice_graph(residual_vis_graph_list, model_graph, dopsf=False, normalize=True,
                                       **kwargs)
 
 
@@ -677,9 +692,8 @@ def create_deconvolve_facet_graph(dirty_graph: delayed, psf_graph: delayed, mode
     return delayed(add_model, nout=1, pure=True)(result, model_graph)
 
 
-def create_selfcal_graph_list(vis_graph_list, model_graph: delayed,
-                              vis_slices, global_solution=True,
-                              c_predict_vis_graph=create_predict_wstack_graph, **kwargs):
+def create_selfcal_graph_list(vis_graph_list, model_graph: delayed, c_predict_graph,
+                              vis_slices, global_solution=True, **kwargs):
     """ Create a set of graphs for (optionally global) selfcalibration of a list of visibilities
 
     If global solution is true then visibilities are gathered to a single visibility data set which is then
@@ -688,20 +702,15 @@ def create_selfcal_graph_list(vis_graph_list, model_graph: delayed,
 
     :param vis_graph_list:
     :param model_graph:
+    :param c_predict_vis_graph
     :param vis_slices:
-    :param c_predict_vis_graph: create_predict_wstack_graph
     :param global_solution: Solve for global gains
     :param kwargs: Parameters for functions in graphs
     :return:
     """
     
-    def selfcal_single(vis, model_vis, **kwargs):
-        gtsol = solve_gaintable(vis, model_vis, **kwargs)
-        vis = apply_gaintable(vis, gtsol, inverse=True, **kwargs)
-        return vis
-    
     model_vis_graph_list = create_zero_vis_graph_list(vis_graph_list)
-    model_vis_graph_list = c_predict_vis_graph(model_vis_graph_list, model_graph, vis_slices=vis_slices, **kwargs)
+    model_vis_graph_list = c_predict_graph(model_vis_graph_list, model_graph, vis_slices=vis_slices, **kwargs)
    
     if global_solution:
         point_vis_graph_list = [delayed(divide_visibility, nout=len(vis_graph_list))(vis_graph_list[i],
@@ -714,6 +723,6 @@ def create_selfcal_graph_list(vis_graph_list, model_graph: delayed,
         return [delayed(apply_gaintable, nout=len(vis_graph_list))(v, gt_graph, inverse=True, **kwargs)
                 for v in vis_graph_list]
     else:
-        return [delayed(selfcal_single, pure=True, nout=1)(vis_graph_list[i], model_vis_graph_list[i], **kwargs)
-                for i, _ in enumerate(vis_graph_list)]
-
+        gt_graph = delayed(solve_gaintable, pure=True, nout=1)(vis_graph_list, model_vis_graph_list, **kwargs)
+        return [delayed(apply_gaintable, nout=len(vis_graph_list))(v, gt_graph, inverse=True, **kwargs)
+                for v in vis_graph_list]

@@ -60,7 +60,7 @@ def predict_wstack_single(vis, model, predict_inner=predict_2d_base, **kwargs) -
     else:
         avis = vis
         
-    log.info("predict_wstack_single: predicting using single w slice")
+    log.debug("predict_wstack_single: predicting using single w slice")
 
     avis.data['vis'] *= 0.0
     # We might want to do wprojection so we remove the average w
@@ -116,7 +116,7 @@ def invert_wstack_single(vis: Visibility, im: Image, dopsf, normalize=True, inve
     :param dopsf: Make the psf instead of the dirty image
     :param normalize: Normalize by the sum of weights (True)
     """
-    log.info("invert_wstack_single: predicting using single w slice")
+    log.debug("invert_wstack_single: predicting using single w slice")
     
     kwargs['imaginary'] = True
     

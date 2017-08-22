@@ -37,8 +37,9 @@ def create_spectral_line_imaging_pipeline_graph(vis_graph_list, model_graph: del
                                                 continuum_model_graph=None,
                                                 c_deconvolve_graph=create_deconvolve_graph,
                                                 c_invert_graph=create_invert_graph,
-                                                c_predict_graph=create_predict_graph,
-                                                c_residual_graph=create_residual_graph, **kwargs) -> delayed:
+                                                c_predict_vis_graph=create_predict_graph,
+                                                c_residual_graph=create_residual_graph,
+                                                **kwargs) -> delayed:
     """Create graph for spectral line imaging pipeline
 
     Uses the ical pipeline after subtraction of a continuum model
@@ -53,10 +54,11 @@ def create_spectral_line_imaging_pipeline_graph(vis_graph_list, model_graph: del
     :return: graphs of (deconvolved model, residual, restored)
     """
     if continuum_model_graph is not None:
-        vis_graph_list = c_predict_graph(vis_graph_list, continuum_model_graph, **kwargs)
+        vis_graph_list = c_predict_vis_graph(vis_graph_list, continuum_model_graph, **kwargs)
     
     return create_ical_pipeline_graph(vis_graph_list, model_graph,
                                       c_deconvolve_graph=c_deconvolve_graph,
+                                      c_predict_vis_graph=c_predict_vis_graph,
                                       c_invert_graph=c_invert_graph,
                                       c_residual_graph=c_residual_graph,
                                       first_selfcal=None,
@@ -67,6 +69,7 @@ def create_ical_pipeline_graph(vis_graph_list, model_graph: delayed,
                                c_deconvolve_graph=create_deconvolve_graph,
                                c_invert_graph=create_invert_graph,
                                c_residual_graph=create_residual_graph,
+                               c_predict_graph=create_predict_graph,
                                c_selfcal_graph=create_selfcal_graph_list,
                                first_selfcal=None, **kwargs) -> delayed:
     """Create graph for ICAL pipeline
@@ -82,7 +85,7 @@ def create_ical_pipeline_graph(vis_graph_list, model_graph: delayed,
     psf_graph = c_invert_graph(vis_graph_list, model_graph, dopsf=True, **kwargs)
     
     if first_selfcal is not None and first_selfcal == 0:
-        vis_graph_list = c_selfcal_graph(vis_graph_list, model_graph, **kwargs)
+        vis_graph_list = c_selfcal_graph(vis_graph_list, model_graph, c_predict_graph, **kwargs)
     residual_graph = c_residual_graph(vis_graph_list, model_graph, **kwargs)
     deconvolve_model_graph = c_deconvolve_graph(residual_graph, psf_graph, model_graph, **kwargs)
     
@@ -90,8 +93,8 @@ def create_ical_pipeline_graph(vis_graph_list, model_graph: delayed,
     if nmajor > 1:
         for cycle in range(nmajor):
             if first_selfcal is not None and cycle >= first_selfcal:
-                vis_graph_list = c_selfcal_graph(vis_graph_list,
-                                                           deconvolve_model_graph, **kwargs)
+                vis_graph_list = c_selfcal_graph(vis_graph_list, deconvolve_model_graph,
+                                                 c_predict_graph, **kwargs)
             residual_graph = c_residual_graph(vis_graph_list, deconvolve_model_graph, **kwargs)
             
             deconvolve_model_graph = c_deconvolve_graph(residual_graph, psf_graph,

@@ -21,7 +21,7 @@ from astropy.coordinates import SkyCoord
 from astropy import units as u
 from arl.data.polarisation import PolarisationFrame
 from arl.image.operations import export_image_to_fits, smooth_image
-from arl.imaging import advise_wide_field, create_image_from_visibility
+from arl.imaging import advise_wide_field
 
 from arl.graphs.dask_init import get_dask_Client
 from arl.graphs.graphs import compute_list, create_invert_graph, create_predict_graph, create_weight_vis_graph_list
