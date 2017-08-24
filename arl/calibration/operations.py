@@ -88,9 +88,9 @@ def apply_gaintable(vis: BlockVisibility, gt: GainTable, inverse=False, **kwargs
     assert_vis_gt_compatible(vis, gt)
     
     if inverse:
-        log.info('apply_gaintable: Apply inverse gaintable')
+        log.debug('apply_gaintable: Apply inverse gaintable')
     else:
-        log.info('apply_gaintable: Apply gaintable')
+        log.debug('apply_gaintable: Apply gaintable')
     
     for chunk, rows in enumerate(vis_timeslice_iter(vis)):
         vistime = numpy.average(vis.time[rows])

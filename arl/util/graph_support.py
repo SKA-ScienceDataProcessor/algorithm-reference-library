@@ -25,6 +25,15 @@ def create_simulate_vis_graph(config='LOWBD2-CORE',
                               **kwargs) -> delayed:
     """ Create a graph to simulate an observation
     
+    The simulation step can generate a single BlockVisibility or a list of BlockVisibility's.
+    The parameter keyword determines the way that the list is constructed.
+    If order='frequency' then len(frequency) BlockVisibility's with all times are created.
+    If order='time' then  len(times) BlockVisibility's with all frequencies are created.
+    If order = 'both' then len(times) * len(times) BlockVisibility's are created each with
+    a single time and frequency. If order = None then all data are created in one BlockVisibility.
+    
+    The output format can be either 'blockvis' (for calibration) or 'vis' (for imaging)
+    
     :param config: Name of configuration: def LOWBDS-CORE
     :param phasecentre: Phase centre def: SkyCoord(ra=+15.0 * u.deg, dec=-60.0 * u.deg, frame='icrs', equinox='J2000')
     :param frequency: def [1e8]
@@ -50,7 +59,7 @@ def create_simulate_vis_graph(config='LOWBD2-CORE',
     conf = create_named_configuration(config, **kwargs)
     
     if order =='time':
-        log.debug("create_simulate_vis_graph: Simulating split in %s" % order)
+        log.debug("create_simulate_vis_graph: Simulating distribution in %s" % order)
         vis_graph_list = list()
         for i, time in enumerate(times):
             vis_graph_list.append(delayed(create_vis, nout=1)(conf, [times[i]], frequency=frequency,
@@ -59,7 +68,7 @@ def create_simulate_vis_graph(config='LOWBD2-CORE',
                                                                 polarisation_frame=polarisation_frame, **kwargs))
             
     elif order == 'frequency':
-        log.debug("create_simulate_vis_graph: Simulating split in %s" % order)
+        log.debug("create_simulate_vis_graph: Simulating distribution in %s" % order)
         vis_graph_list = list()
         for j, _ in enumerate(frequency):
             vis_graph_list.append(delayed(create_vis, nout=1)(conf, times, frequency=[frequency[j]],
@@ -68,7 +77,7 @@ def create_simulate_vis_graph(config='LOWBD2-CORE',
                                                                 polarisation_frame=polarisation_frame, **kwargs))
 
     elif order =='both':
-        log.debug("create_simulate_vis_graph: Simulating split in time and frequency")
+        log.debug("create_simulate_vis_graph: Simulating distribution in time and frequency")
         vis_graph_list = list()
         for i, _ in enumerate(times):
             for j, _ in enumerate(frequency):

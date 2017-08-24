@@ -90,7 +90,10 @@ def normalize_sumwt(im: Image, sumwt) -> Image:
     assert npol == sumwt.shape[1]
     for chan in range(nchan):
         for pol in range(npol):
-            im.data[chan, pol, :, :] /= sumwt[chan, pol]
+            if sumwt[chan, pol] > 0.0:
+                im.data[chan, pol, :, :] /= sumwt[chan, pol]
+            else:
+                im.data[chan, pol, :, :] = 0.0
     return im
 
 

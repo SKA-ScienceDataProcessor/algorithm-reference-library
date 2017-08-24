@@ -24,7 +24,7 @@ log = logging.getLogger(__name__)
 
 
 def visibility_scatter(vis: Visibility, vis_iter, **kwargs) -> List[Visibility]:
-    """Scatter an visibility into a list of subvisibilities
+    """Scatter a visibility into a list of subvisibilities
 
     :param vis: Visibility
     :param vis_iter: visibility iterator
@@ -43,7 +43,9 @@ def visibility_scatter(vis: Visibility, vis_iter, **kwargs) -> List[Visibility]:
 
 
 def visibility_gather(visibility_list: List[Visibility], vis: Visibility, vis_iter, **kwargs) -> Visibility:
-    """Gather a list of subvisibilities back into an visibility
+    """Gather a list of subvisibilities back into a visibility
+    
+    The iterator setup must be the same as used in the scatter.
 
     :param visibility_list: List of subvisibilities
     :param vis: Output visibility
@@ -53,7 +55,8 @@ def visibility_gather(visibility_list: List[Visibility], vis: Visibility, vis_it
     
     for i, rows in enumerate(vis_iter(vis, **kwargs)):
         assert i < len(visibility_list), "Gather not consistent with scatter"
-        if rows is not None and visibility_list[i] is not None:
+        if rows is not None:
+            assert visibility_list[i] is not None
             vis.data[rows] = visibility_list[i].data[...]
     
     return vis

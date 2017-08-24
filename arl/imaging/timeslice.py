@@ -119,7 +119,7 @@ def predict_timeslice_single(vis: Visibility, model: Image, predict=predict_2d_b
     :param model: model image
     :return: resulting visibility (in place works)
     """
-    log.info("predict_timeslice_single: predicting using single time slice")
+    log.debug("predict_timeslice_single: predicting using single time slice")
 
     inchan, inpol, ny, nx = model.shape
     
@@ -200,7 +200,7 @@ def invert_timeslice_single(vis: Visibility, im: Image, dopsf, normalize=True, *
     else:
         avis = vis
 
-    log.info("invert_timeslice_single: inverting using single time slice")
+    log.debug("invert_timeslice_single: inverting using single time slice")
 
     avis, p, q = fit_uvwplane(avis)
     

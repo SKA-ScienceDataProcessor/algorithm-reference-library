@@ -26,7 +26,7 @@ def raster_iter(im: Image, facets=2, **kwargs) -> Image:
     :param facets: Number of image partitions on each axis (2)
     """
 
-    log.info("raster: predicting using %d x %d image partitions" % (facets, facets))
+    log.debug("raster: predicting using %d x %d image partitions" % (facets, facets))
     assert facets <= im.nheight, "Cannot have more raster elements than pixels"
     assert facets <= im.nwidth, "Cannot have more raster elements than pixels"
     assert im.nheight % facets == 0, "The partitions must exactly fill the image"
@@ -34,7 +34,7 @@ def raster_iter(im: Image, facets=2, **kwargs) -> Image:
 
     dx = int(im.nwidth // facets)
     dy = int(im.nheight // facets)
-    log.info('raster: spacing of raster (%d, %d)' % (dx, dy))
+    log.debug('raster: spacing of raster (%d, %d)' % (dx, dy))
 
     for y in range(0,im.nheight, dy):
         for x in range(0,im.nwidth, dx):

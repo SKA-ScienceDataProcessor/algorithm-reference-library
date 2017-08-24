@@ -11,6 +11,7 @@ from arl.graphs.graphs import create_deconvolve_graph, create_invert_graph, crea
 def create_continuum_imaging_pipeline_graph(vis_graph_list, model_graph: delayed,
                                             c_deconvolve_graph=create_deconvolve_graph,
                                             c_invert_graph=create_invert_graph,
+                                            c_predict_graph=create_predict_graph,
                                             c_residual_graph=create_residual_graph,
                                             **kwargs) -> delayed:
     """ Create graph for the continuum imaging pipeline.
@@ -28,6 +29,7 @@ def create_continuum_imaging_pipeline_graph(vis_graph_list, model_graph: delayed
     return create_ical_pipeline_graph(vis_graph_list, model_graph,
                                       c_deconvolve_graph=c_deconvolve_graph,
                                       c_invert_graph=c_invert_graph,
+                                      c_predict_graph=c_predict_graph,
                                       c_residual_graph=c_residual_graph,
                                       first_selfcal=None,
                                       **kwargs)
@@ -37,7 +39,7 @@ def create_spectral_line_imaging_pipeline_graph(vis_graph_list, model_graph: del
                                                 continuum_model_graph=None,
                                                 c_deconvolve_graph=create_deconvolve_graph,
                                                 c_invert_graph=create_invert_graph,
-                                                c_predict_vis_graph=create_predict_graph,
+                                                c_predict_graph=create_predict_graph,
                                                 c_residual_graph=create_residual_graph,
                                                 **kwargs) -> delayed:
     """Create graph for spectral line imaging pipeline
@@ -54,12 +56,13 @@ def create_spectral_line_imaging_pipeline_graph(vis_graph_list, model_graph: del
     :return: graphs of (deconvolved model, residual, restored)
     """
     if continuum_model_graph is not None:
-        vis_graph_list = c_predict_vis_graph(vis_graph_list, continuum_model_graph, **kwargs)
+        vis_graph_list = c_predict_graph(vis_graph_list, continuum_model_graph, **kwargs)
     
     return create_ical_pipeline_graph(vis_graph_list, model_graph,
                                       c_deconvolve_graph=c_deconvolve_graph,
-                                      c_predict_vis_graph=c_predict_vis_graph,
+                                      c_predict_vis_graph=c_predict_graph,
                                       c_invert_graph=c_invert_graph,
+                                      c_predict_graph=c_predict_graph,
                                       c_residual_graph=c_residual_graph,
                                       first_selfcal=None,
                                       **kwargs)

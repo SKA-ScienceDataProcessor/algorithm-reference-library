@@ -375,7 +375,11 @@ def solution_residual_scalar(gain, x, xwt):
                 residual += (error * xwt[ant2, ant1, chan, 0, 0] * numpy.conjugate(error)).real
                 sumwt += xwt[ant2, ant1, chan, 0, 0]
     
-    residual = numpy.sqrt(residual / sumwt)
+    if sumwt > 0.0 and residual > 0.0:
+        residual = numpy.sqrt(residual / sumwt)
+    else:
+        residual = 0.0
+        
     return residual
 
 
@@ -410,8 +414,12 @@ def solution_residual_vector(gain, x, xwt):
                             gain[ant1, chan, rec, rec] * numpy.conjugate(gain[ant2, chan, rec, rec])
                     residual += (error * xwt[ant2, ant1, chan, rec, rec] * numpy.conjugate(error)).real
                     sumwt += xwt[ant2, ant1, chan, rec, rec]
-    
-    residual = numpy.sqrt(residual / sumwt)
+
+    if sumwt > 0.0 and residual > 0.0:
+        residual = numpy.sqrt(residual / sumwt)
+    else:
+        residual = 0.0
+
     return residual
 
 
