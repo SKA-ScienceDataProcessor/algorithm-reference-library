@@ -60,9 +60,8 @@ def create_spectral_line_imaging_pipeline_graph(vis_graph_list, model_graph: del
     
     return create_ical_pipeline_graph(vis_graph_list, model_graph,
                                       c_deconvolve_graph=c_deconvolve_graph,
-                                      c_predict_vis_graph=c_predict_graph,
-                                      c_invert_graph=c_invert_graph,
                                       c_predict_graph=c_predict_graph,
+                                      c_invert_graph=c_invert_graph,
                                       c_residual_graph=c_residual_graph,
                                       first_selfcal=None,
                                       **kwargs)

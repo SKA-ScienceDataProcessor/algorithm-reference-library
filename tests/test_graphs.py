@@ -11,7 +11,7 @@ from astropy import units as u
 from astropy.coordinates import SkyCoord
 from astropy.wcs.utils import pixel_to_skycoord
 
-from dask import delayed
+from dask import delayed, get
 
 from arl.calibration.operations import apply_gaintable, create_gaintable_from_blockvisibility
 from arl.data.polarisation import PolarisationFrame
@@ -308,7 +308,7 @@ class TestDaskGraphs(unittest.TestCase):
     
         if self.compute:
             dirty = dirty_graph.compute()
-            export_image_to_fits(dirty[0], '%s/test_imaging_invert_wstack_dirty.fits' % (self.results_dir))
+            export_image_to_fits(dirty[0], '%s/test_imaging_facet_wstack_dirty.fits' % (self.results_dir))
             qa = qa_image(dirty[0])
         
             assert numpy.abs(qa.data['max'] - 101.7) < 1.0, str(qa)

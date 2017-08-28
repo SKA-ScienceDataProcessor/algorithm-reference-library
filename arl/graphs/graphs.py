@@ -60,7 +60,8 @@ def compute_list(client, graph_list, **kwargs):
     :return: list
     """
     futures = client.compute(graph_list, **kwargs)
-    wait(futures)
+    for future in futures:
+        wait(future)
     return [f.result() for f in futures]
 
 
@@ -371,7 +372,6 @@ def create_predict_graph(vis_graph_list, model_graph: delayed, predict=predict_2
         if vis is not None:
             predicted = copy_visibility(vis)
             predicted = predict(predicted, model, **kwargs)
-            predicted.data['vis'] = vis.data['vis'] + predicted.data['vis']
             return predicted
         else:
             return None
@@ -402,21 +402,19 @@ def create_predict_facet_graph(vis_graph_list, model_graph: delayed, predict=pre
     # Note that we need to know the number of facets in order to define the size of facet_model_graphs
     facet_model_graphs = delayed(image_scatter, nout=facets ** 2, pure=True)(model_graph,
                                                                              facets=facets)
-    # There is a dependency issue here so we chain the predicts
     accumulate_vis_graphs = list()
     for vis_graph in vis_graph_list:
-        if vis_graph is not None:
-            for ifacet, facet_model_graph in enumerate(facet_model_graphs):
-                if ifacet == 0:
-                    accumulate_vis_graph = delayed(predict_facets_and_accumulate, pure=True, nout=1)(vis_graph,
-                                                                                                     facet_model_graph,
-                                                                                                     **kwargs)
-                else:
-                    accumulate_vis_graph = delayed(predict_facets_and_accumulate, pure=True, nout=1)(
-                        accumulate_vis_graph,
-                        facet_model_graph,
-                        **kwargs)
-        accumulate_vis_graphs.append(accumulate_vis_graph)
+       for ifacet, facet_model_graph in enumerate(facet_model_graphs):
+            # There is a dependency issue here so we chain the predicts
+            accumulate_vis_graph = None
+            if ifacet == 0:
+                accumulate_vis_graph = delayed(predict_facets_and_accumulate, pure=True, nout=1)(vis_graph,
+                                                                                                 facet_model_graph,
+                                                                                                 **kwargs)
+            else:
+                accumulate_vis_graph = delayed(predict_facets_and_accumulate, pure=True, nout=1)(
+                    accumulate_vis_graph, facet_model_graph, **kwargs)
+            accumulate_vis_graphs.append(accumulate_vis_graph)
     return accumulate_vis_graphs
 
 
@@ -434,8 +432,7 @@ def create_predict_vis_scatter_graph(vis_graph_list, model_graph: delayed, vis_s
         if vis is not None:
             predicted = copy_visibility(vis)
             predicted = predict(predicted, model, **kwargs)
-            vis.data['vis'] += predicted.data['vis']
-            return vis
+            return predicted
         else:
             return None
             
@@ -500,15 +497,13 @@ def create_predict_facet_vis_scatter_graph(vis_graph_list, model_graph: delayed,
         if vis is not None:
             predicted = copy_visibility(vis)
             predicted = predict(predicted, model, **kwargs)
-            vis.data['vis'] += predicted.data['vis']
-            return vis
+            return predicted
         else:
             return None
             
             # Note that we need to know the number of facets in order to define the size of facet_model_graphs
     
-    facet_model_graphs = delayed(image_scatter, nout=facets ** 2, pure=True)(model_graph,
-                                                                             facets=facets)
+    facet_model_graphs = delayed(image_scatter, nout=facets ** 2, pure=True)(model_graph, facets=facets)
     predicted_vis_list = list()
     for vis_graph in vis_graph_list:
         scatter_vis_graphs = delayed(vis_scatter, nout=vis_slices)(vis_graph, vis_slices=vis_slices, **kwargs)
@@ -516,15 +511,18 @@ def create_predict_facet_vis_scatter_graph(vis_graph_list, model_graph: delayed,
         accumulate_vis_graphs = list()
         for scatter_vis_graph in scatter_vis_graphs:
             for ifacet, facet_model_graph in enumerate(facet_model_graphs):
-                if ifacet == 0:
-                    accumulate_vis_graph = delayed(predict_facets_and_accumulate,
-                                                   pure=True, nout=1)(scatter_vis_graph, facet_model_graphs[0],
-                                                                      **kwargs)
-                else:
-                    accumulate_vis_graph = delayed(predict_facets_and_accumulate,
-                                                   pure=True, nout=1)(accumulate_vis_graph, facet_model_graph,
-                                                                      **kwargs)
-            accumulate_vis_graphs.append(accumulate_vis_graph)
+                # if ifacet == 0:
+                #     accumulate_vis_graph = delayed(predict_facets_and_accumulate,
+                #                                    pure=True, nout=1)(scatter_vis_graph, facet_model_graphs[0],
+                #                                                       **kwargs)
+                # else:
+                #     accumulate_vis_graph = delayed(predict_facets_and_accumulate,
+                #                                    pure=True, nout=1)(accumulate_vis_graph, facet_model_graph,
+                #                                                       **kwargs)
+                accumulate_vis_graph = delayed(predict_facets_and_accumulate,
+                                               pure=True, nout=1)(scatter_vis_graph, facet_model_graphs[ifacet],
+                                                                  **kwargs)
+                accumulate_vis_graphs.append(accumulate_vis_graph)
         
         predicted_vis_list.append(delayed(vis_gather, nout=1)(accumulate_vis_graphs, vis_graph,
                                                               vis_slices=vis_slices, **kwargs))
@@ -702,7 +700,7 @@ def create_selfcal_graph_list(vis_graph_list, model_graph: delayed, c_predict_gr
 
     :param vis_graph_list:
     :param model_graph:
-    :param c_predict_vis_graph
+    :param c_predict_graph
     :param vis_slices:
     :param global_solution: Solve for global gains
     :param kwargs: Parameters for functions in graphs

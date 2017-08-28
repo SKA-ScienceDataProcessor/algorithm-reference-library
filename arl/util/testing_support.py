@@ -659,15 +659,20 @@ def create_blockvisibility_iterator(config: Configuration, times: numpy.array, f
         yield bvis
 
 
-def simulate_gaintable(gt: GainTable, phase_error=0.1, amplitude_error=0.0, leakage=0.0) -> GainTable:
+def simulate_gaintable(gt: GainTable, phase_error=0.1, amplitude_error=0.0, leakage=0.0, seed=180555,
+                       **kwargs) -> GainTable:
     """ Simulate a gain table
     
     :type gt: GainTable
     :param phase_error: std of normal distribution, zero mean
     :param amplitude_error: std of log normal distribution
     :param leakage: std of cross hand leakage
+    :param seed: Seed for random numbers def: 180555
     
     """
+    
+    numpy.random.seed(seed)
+
     log.debug("simulate_gaintable: Simulating amplitude error = %.4f, phase error = %.4f"
              % (amplitude_error, phase_error))
     amp = 1.0

@@ -23,7 +23,7 @@ from arl.visibility.base import create_visibility_from_rows
 log = logging.getLogger(__name__)
 
 
-def visibility_scatter(vis: Visibility, vis_iter, **kwargs) -> List[Visibility]:
+def visibility_scatter(vis: Visibility, vis_iter, vis_slices=1, **kwargs) -> List[Visibility]:
     """Scatter a visibility into a list of subvisibilities
 
     :param vis: Visibility
@@ -32,17 +32,16 @@ def visibility_scatter(vis: Visibility, vis_iter, **kwargs) -> List[Visibility]:
     """
     
     visibility_list = list()
-    for i, rows in enumerate(vis_iter(vis, **kwargs)):
-        if rows is not None:
-            subvis = create_visibility_from_rows(vis, rows)
-            visibility_list.append(subvis)
-        else:
-            visibility_list.append(None)
-    
+    for i, rows in enumerate(vis_iter(vis, vis_slices=vis_slices, **kwargs)):
+        subvis = create_visibility_from_rows(vis, rows)
+        visibility_list.append(subvis)
+        
+    assert len(visibility_list) == vis_slices, "Scatter into few elements than expected"
     return visibility_list
 
 
-def visibility_gather(visibility_list: List[Visibility], vis: Visibility, vis_iter, **kwargs) -> Visibility:
+def visibility_gather(visibility_list: List[Visibility], vis: Visibility, vis_iter, vis_slices=1,
+                      **kwargs) -> Visibility:
     """Gather a list of subvisibilities back into a visibility
     
     The iterator setup must be the same as used in the scatter.
@@ -53,10 +52,10 @@ def visibility_gather(visibility_list: List[Visibility], vis: Visibility, vis_it
     :return: vis
     """
     
-    for i, rows in enumerate(vis_iter(vis, **kwargs)):
+    assert vis_slices == len(visibility_list), "Number of elements to gather is incorrect"
+    for i, rows in enumerate(vis_iter(vis, vis_slices=vis_slices, **kwargs)):
         assert i < len(visibility_list), "Gather not consistent with scatter"
-        if rows is not None:
-            assert visibility_list[i] is not None
+        if numpy.sum(rows) and visibility_list[i] is not None:
             vis.data[rows] = visibility_list[i].data[...]
     
     return vis
@@ -69,9 +68,11 @@ def visibility_scatter_index(vis: Visibility, **kwargs) -> List[Visibility]:
 def visibility_scatter_w(vis: Visibility, **kwargs) -> List[Visibility]:
     if type(vis) == BlockVisibility:
         avis = coalesce_visibility(vis, **(kwargs))
-        return visibility_scatter(avis, vis_iter=vis_wstack_iter, **kwargs)
+        visibility_list = visibility_scatter(avis, vis_iter=vis_wstack_iter, **kwargs)
     else:
-        return visibility_scatter(vis, vis_iter=vis_wstack_iter, **kwargs)
+        visibility_list = visibility_scatter(vis, vis_iter=vis_wstack_iter, **kwargs)
+        
+    return visibility_list
 
 
 def visibility_scatter_time(vis: Visibility, **kwargs) -> List[Visibility]:

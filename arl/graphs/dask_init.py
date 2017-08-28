@@ -8,9 +8,9 @@ import logging
 
 log = logging.getLogger(__name__)
 
-from distributed import Client
+from distributed import Client, LocalCluster
 
-def get_dask_Client(timeout=30):
+def get_dask_Client(timeout=30, n_workers=None, threads_per_worker=1, processes=True):
     """ Get a Dask.distributed Client for the scheduler defined externally, otherwise create
     
     The environment variable ARL_DASK_SCHEDULER is interpreted as pointing to the scheduler.
@@ -24,8 +24,12 @@ def get_dask_Client(timeout=30):
         c = Client(scheduler, timeout=timeout)
         print(c)
     else:
-        print("Creating Dask Client")
-        c = Client(timeout=timeout)
+        if n_workers is not None:
+            cluster = LocalCluster(n_workers=n_workers, threads_per_worker=threads_per_worker, processes=processes)
+        else:
+            cluster = LocalCluster(threads_per_worker=threads_per_worker, processes=processes)
+        print("Creating LocalCluster and Dask Client")
+        c = Client(cluster)
         print(c)
         
     addr = c.scheduler_info()['address']

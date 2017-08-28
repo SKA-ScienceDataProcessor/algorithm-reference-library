@@ -100,13 +100,13 @@ def create_simulate_vis_graph(config='LOWBD2-CORE',
 
 def create_predict_gleam_model_graph(vis_graph_list, frequency, channel_bandwidth,
                                      npixel=512, cellsize=0.001,
-                                     c_predict_vis_graph=create_predict_wstack_graph, **kwargs):
+                                     c_predict_graph=create_predict_wstack_graph, **kwargs):
     """ Create a graph to fill in a model with the gleam sources and predict into a vis_graph_list
 
     :param vis_graph_list:
     :param npixel: 512
     :param cellsize: 0.001
-    :param c_predict_vis_graph: def create_predict_wstack_graph
+    :param c_predict_graph: def create_predict_wstack_graph
     :param kwargs:
     :return: vis_graph_list
     """
@@ -117,7 +117,7 @@ def create_predict_gleam_model_graph(vis_graph_list, frequency, channel_bandwidt
     for i, vis_graph in enumerate(vis_graph_list):
         model_graph = create_gleam_model_graph(vis_graph, frequency, channel_bandwidth, npixel=npixel,
                                                cellsize=cellsize, **kwargs)
-        predicted_vis_graph_list.append(c_predict_vis_graph([vis_graph], model_graph, **kwargs)[0])
+        predicted_vis_graph_list.append(c_predict_graph([vis_graph], model_graph, **kwargs)[0])
     return predicted_vis_graph_list
 
 

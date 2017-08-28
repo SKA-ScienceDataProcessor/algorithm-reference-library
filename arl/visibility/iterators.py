@@ -45,10 +45,7 @@ def vis_timeslice_iter(vis: Visibility, **kwargs) -> numpy.ndarray:
     
     for box in boxes:
         rows = numpy.abs(vis.time - box) <= 0.5 * timeslice
-        if numpy.sum(rows) > 0:
-            yield rows
-        else:
-            yield None
+        yield rows
 
 
 def vis_wstack_iter(vis: Visibility, **kwargs) -> numpy.ndarray:
@@ -72,10 +69,7 @@ def vis_wstack_iter(vis: Visibility, **kwargs) -> numpy.ndarray:
     
     for box in boxes:
         rows = numpy.abs(vis.w - box) < 0.5 * wstack
-        if numpy.sum(rows) > 0:
-            yield rows
-        else:
-            yield None
+        yield rows
 
 
 def vis_slice_iter(vis: Union[Visibility, BlockVisibility], **kwargs) -> numpy.ndarray:
