@@ -36,7 +36,6 @@ def visibility_scatter(vis: Visibility, vis_iter, vis_slices=1, **kwargs) -> Lis
         subvis = create_visibility_from_rows(vis, rows)
         visibility_list.append(subvis)
         
-    assert len(visibility_list) == vis_slices, "Scatter into few elements than expected"
     return visibility_list
 
 
@@ -52,7 +51,6 @@ def visibility_gather(visibility_list: List[Visibility], vis: Visibility, vis_it
     :return: vis
     """
     
-    assert vis_slices == len(visibility_list), "Number of elements to gather is incorrect"
     for i, rows in enumerate(vis_iter(vis, vis_slices=vis_slices, **kwargs)):
         assert i < len(visibility_list), "Gather not consistent with scatter"
         if numpy.sum(rows) and visibility_list[i] is not None:

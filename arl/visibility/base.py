@@ -195,7 +195,7 @@ def create_visibility_from_rows(vis: Union[Visibility, BlockVisibility], rows: n
     :return: Visibility
     """
     
-    if numpy.sum(rows) == 0:
+    if rows is None or numpy.sum(rows) == 0:
         return None
     
     if type(vis) is Visibility:

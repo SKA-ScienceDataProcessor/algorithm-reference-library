@@ -43,7 +43,7 @@ def invert_with_vis_iterator(vis: Visibility, im: Image, dopsf=False, normalize=
     
     i = 0
     for rows in vis_iter(svis, **kwargs):
-        if rows is not None:
+        if numpy.sum(rows) and svis is not None:
             visslice = create_visibility_from_rows(svis, rows)
             workimage, sumwt = invert(visslice, im, dopsf, normalize=False, **kwargs)
             resultimage.data += workimage.data
@@ -75,7 +75,7 @@ def predict_with_vis_iterator(vis: Visibility, model: Image, vis_iter=vis_slice_
         
     # Do each chunk in turn
     for rows in vis_iter(svis, **kwargs):
-        if rows is not None:
+        if numpy.sum(rows) and svis is not None:
             visslice = create_visibility_from_rows(svis, rows)
             visslice.data['vis'][...] = 0.0
             visslice = predict(visslice, model, **kwargs)
