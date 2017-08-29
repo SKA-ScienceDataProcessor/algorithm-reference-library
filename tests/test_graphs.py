@@ -110,6 +110,20 @@ class TestDaskGraphs(unittest.TestCase):
         model.data[..., 32, 32] = flux
         return model
 
+    def test_predict_graph(self):
+        flux_model_graph = delayed(self.get_LSM)(self.vis_graph_list[self.nvis // 2], flux=100.0)
+        zero_vis_graph_list = create_zero_vis_graph_list(self.vis_graph_list)
+        predicted_vis_graph_list = create_predict_graph(zero_vis_graph_list, flux_model_graph,
+                                                               vis_slices=self.vis_slices)
+        residual_vis_graph_list = create_subtract_vis_graph_list(self.vis_graph_list, predicted_vis_graph_list)
+        self.compute=True
+        if self.compute:
+            qa = qa_visibility(self.vis_graph_list[0].compute())
+            numpy.testing.assert_almost_equal(qa.data['maxabs'], 1600.0, 0)
+            qa = qa_visibility(predicted_vis_graph_list[0].compute())
+            numpy.testing.assert_almost_equal(qa.data['maxabs'], 100.064844507, 0)
+            qa = qa_visibility(residual_vis_graph_list[0].compute())
+            numpy.testing.assert_almost_equal(qa.data['maxabs'], 1682.1, 0)
     def test_predict_wstack_graph(self):
         flux_model_graph = delayed(self.get_LSM)(self.vis_graph_list[self.nvis // 2], flux=100.0)
         zero_vis_graph_list = create_zero_vis_graph_list(self.vis_graph_list)
@@ -159,6 +173,7 @@ class TestDaskGraphs(unittest.TestCase):
         predicted_vis_graph_list = create_predict_facet_wstack_graph(zero_vis_graph_list, flux_model_graph,
                                                                      facets=2, vis_slices=self.vis_slices)
         residual_vis_graph_list = create_subtract_vis_graph_list(self.vis_graph_list, predicted_vis_graph_list)
+        self.compute=True
         if self.compute:
             qa = qa_visibility(self.vis_graph_list[0].compute())
             numpy.testing.assert_almost_equal(qa.data['maxabs'], 1600.0, 0)
@@ -228,13 +243,26 @@ class TestDaskGraphs(unittest.TestCase):
         
             qa = qa_visibility(residual_vis_graph_list[0].compute())
             numpy.testing.assert_almost_equal(qa.data['maxabs'], 1645.8, 0)
+
+    def test_invert_graph(self):
     
-    def test_invert_graph_wprojection(self):
+        dirty_graph = create_invert_graph(self.vis_graph_list, self.model_graph,
+                                          dopsf=False, normalize=True)
+    
+        if self.compute:
+            dirty = dirty_graph.compute()
+            export_image_to_fits(dirty[0], '%s/test_imaging_invert_graph_dirty.fits' % (self.results_dir))
+            qa = qa_image(dirty[0])
         
+            assert numpy.abs(qa.data['max'] - 101.7) < 1.0, str(qa)
+            assert numpy.abs(qa.data['min'] + 3.5) < 1.0, str(qa)
+
+    def test_invert_graph_wprojection(self):
+    
         dirty_graph = create_invert_graph(self.vis_graph_list, self.model_graph,
                                           dopsf=False, normalize=True,
                                           kernel='wprojection', wstep=10.0)
-        
+    
         if self.compute:
             dirty = dirty_graph.compute()
             export_image_to_fits(dirty[0], '%s/test_imaging_invert_graph_wprojection_dirty.fits' % (self.results_dir))
@@ -242,7 +270,7 @@ class TestDaskGraphs(unittest.TestCase):
         
             assert numpy.abs(qa.data['max'] - 101.7) < 1.0, str(qa)
             assert numpy.abs(qa.data['min'] + 3.5) < 1.0, str(qa)
-    
+
     def test_invert_facet_graph(self):
         
         dirty_graph = create_invert_facet_graph(self.vis_graph_list, self.model_graph,

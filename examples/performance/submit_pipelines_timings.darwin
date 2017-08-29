@@ -97,7 +97,7 @@ cat hostfile.$JOBID
 #!                            one.
 #!  --hostfile PATH           Textfile with hostnames/IP addresses
 #!
-dask-ssh --nprocs 1 --nthreads 1 --scheduler-port 8786 --log-directory `pwd` --hostfile hostfile.$JOBID &
+dask-ssh --nprocs 16 --nthreads 1 --scheduler-port 8786 --log-directory `pwd` --hostfile hostfile.$JOBID &
 sleep 10
 
 #! We need to tell dask Client (inside python) where the scheduler is running
