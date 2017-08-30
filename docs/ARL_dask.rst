@@ -45,11 +45,6 @@ page. Below is a snapshot of the diagnostic page when dask is calculating an ima
 .. image:: partial.png
       :width: 1024px
 
-Below we demonstrate the utility of this view. This shows ICAL for 7 visibility ingests. Note the global
-synchronisation point (at 1:40) where the selfcalibration across the full bandwidth occurs.
-
-.. image:: dask-global.png
-      :width: 1024px
 
 Using ARL and dask on Darwin
 ****************************

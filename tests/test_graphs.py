@@ -173,7 +173,6 @@ class TestDaskGraphs(unittest.TestCase):
         predicted_vis_graph_list = create_predict_facet_wstack_graph(zero_vis_graph_list, flux_model_graph,
                                                                      facets=2, vis_slices=self.vis_slices)
         residual_vis_graph_list = create_subtract_vis_graph_list(self.vis_graph_list, predicted_vis_graph_list)
-        self.compute=True
         if self.compute:
             qa = qa_visibility(self.vis_graph_list[0].compute())
             numpy.testing.assert_almost_equal(qa.data['maxabs'], 1600.0, 0)

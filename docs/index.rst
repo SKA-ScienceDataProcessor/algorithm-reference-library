@@ -13,6 +13,7 @@ structures such as image, visibility table, gaintable, etc.
    :maxdepth: 3
 
    ARL_quickstart
+   ARL_directory
    ARL_definition
    ARL_background
    ARL_developing
@@ -20,7 +21,6 @@ structures such as image, visibility table, gaintable, etc.
    ARL_calibration
    ARL_dask
    ARL_references
-   ARL_glossary
 
 Indices and tables
 ==================
