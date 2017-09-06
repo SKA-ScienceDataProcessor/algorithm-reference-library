@@ -153,7 +153,19 @@ class TestImage(unittest.TestCase):
         numpy.testing.assert_array_almost_equal(self.m31image.data, m31_fft_ifft.data.real, 12)
         m31_fft.data = numpy.abs(m31_fft.data)
         export_image_to_fits(m31_fft, fitsfile='%s/test_m31_fft.fits' % (self.dir))
-        
+
+    def test_fftim_factors(self):
+        for i in [3, 5, 7]:
+            npixel=256 * i
+            m31image = create_test_image(cellsize=0.001, frequency=[1e8], canonical=True)
+            padded = pad_image(m31image, [1, 1, npixel, npixel])
+            assert padded.shape == (1, 1, npixel, npixel)
+            padded_fft = fft_image(padded)
+            padded_fft_ifft = fft_image(padded_fft, m31image)
+            numpy.testing.assert_array_almost_equal(padded.data, padded_fft_ifft.data.real, 12)
+            padded_fft.data = numpy.abs(padded_fft.data)
+            export_image_to_fits(padded_fft, fitsfile='%s/test_m31_fft_%d.fits' % (self.dir, npixel))
+
     def test_pad_image(self):
         m31image = create_test_image(cellsize=0.001, frequency=[1e8], canonical=True)
         padded = pad_image(m31image, [1, 1, 1024, 1024])

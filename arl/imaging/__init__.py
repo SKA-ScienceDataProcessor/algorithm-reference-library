@@ -16,7 +16,7 @@ The principal transitions between the data models are:
 """
 from arl.imaging.base import predict_2d, predict_2d_base, predict_skycomponent_visibility, \
     predict_skycomponent_blockvisibility, invert_2d, invert_2d_base, normalize_sumwt, shift_vis_to_image, \
-    weight_visibility, create_image_from_visibility, residual_image
+    create_image_from_visibility, residual_image
 from arl.imaging.facets import invert_facets, predict_facets
 from arl.imaging.facets_wprojection import invert_facets_wprojection, predict_facets_wprojection
 from arl.imaging.facets_wstack import invert_facets_wstack, predict_facets_wstack
