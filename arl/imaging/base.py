@@ -33,7 +33,7 @@ from arl.data.data_models import Visibility, BlockVisibility, Image, Skycomponen
 from arl.data.parameters import get_parameter
 from arl.data.polarisation import convert_pol_frame, PolarisationFrame
 from arl.fourier_transforms.convolutional_gridding import convolutional_grid, \
-    convolutional_degrid, weight_gridding
+    convolutional_degrid
 from arl.fourier_transforms.fft_support import fft, ifft, pad_mid, extract_mid
 from arl.image.operations import create_image_from_array
 from arl.imaging.params import get_frequency_map, get_polarisation_map, get_uvw_map, get_kernel_list
@@ -293,33 +293,6 @@ def predict_skycomponent_visibility(vis: Visibility, sc: Union[Skycomponent, Lis
             #     vis.data['vis'][:,pol] += [comp.flux[ic, pol] * p for p, ic in zip(*coords)]
     
     return vis
-
-
-def weight_visibility(vis: Visibility, im: Image,  **kwargs) -> Visibility:
-    """ Reweight the visibility data using a selected algorithm
-
-    Imaging uses the column "imaging_weight" when imaging. This function sets that column using a
-    variety of algorithms
-
-    :param vis:
-    :param im:
-    :return: visibility with imaging_weights column added and filled
-    """
-    assert type(vis) is Visibility, "vis is not a Visibility: %r" % vis
-    
-    spectral_mode, vfrequencymap = get_frequency_map(vis, im)
-    polarisation_mode, vpolarisationmap = get_polarisation_map(vis, im, **kwargs)
-    uvw_mode, shape, padding, vuvwmap = get_uvw_map(vis, im, **kwargs)
-    
-    # uvw is in metres, v.frequency / c.value converts to wavelengths, the cellsize converts to phase
-    density = None
-    densitygrid = None
-    
-    weighting = get_parameter(kwargs, "weighting", "uniform")
-    vis.data['imaging_weight'], density, densitygrid = weight_gridding(im.data.shape, vis.data['weight'], vuvwmap,
-                                                                       vfrequencymap, vpolarisationmap, weighting)
-    
-    return vis, density, densitygrid
 
 
 def create_image_from_visibility(vis: Visibility, **kwargs) -> Image:

@@ -17,8 +17,9 @@ from arl.imaging import predict_2d, predict_wstack, predict_wprojection, predict
     predict_timeslice, predict_wprojection_wstack, invert_wprojection_wstack, \
     invert_2d, invert_wstack, invert_wprojection, invert_facets, invert_timeslice, \
     create_image_from_visibility, predict_skycomponent_visibility, \
-    weight_visibility, predict_facets_wstack, invert_facets_wstack, \
+    predict_facets_wstack, invert_facets_wstack, \
     predict_facets_wprojection, invert_facets_wprojection
+from arl.imaging.weighting import weight_visibility
 from arl.skycomponent.operations import create_skycomponent, find_skycomponents, find_nearest_component, \
     insert_skycomponent
 from arl.util.testing_support import create_named_configuration
@@ -26,7 +27,6 @@ from arl.visibility.base import create_visibility
 from arl.visibility.operations import sum_visibility
 
 log = logging.getLogger(__name__)
-
 
 class TestImaging(unittest.TestCase):
     def _checkdirty(self, vis, name='test_invert_2d_dirty', fluxthreshold=1.0):
