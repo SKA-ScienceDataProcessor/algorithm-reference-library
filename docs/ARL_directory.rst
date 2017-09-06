@@ -7,13 +7,13 @@ ARL directory
 A simple directory to help those familiar with other calibration and imaging packages navigate the Algorithm Reference
 Library.
 
-See also the :ref:`genindex` and :ref:`modindex`
+See also the :ref:`genindex` and :ref:`modindex`.
 
 
 Data containers used by ARL
 ===========================
 
-See :py:mod:`arl.data.data_models.py` for the following definitions:`
+See :py:mod:`arl.data.data_models` for the following definitions:`
 
 * Telescope Configuration: :py:class:`arl.data.data_models.Configuration`
 * GainTable for gain solutions (as (e.g. output from solve_gaintable): :py:class:`arl.data.data_models.GainTable`
@@ -28,8 +28,8 @@ Create empty data set for observation (a-la makeMS)
 * For Visibility operations: :py:mod:`arl.visibility.base.create_visibility`
 * For BlockVisibility: :py:mod:`arl.visibility.base.create_blockvisibility`
 
-Gridding, degridding and weighting
-==================================
+Gridding, degridding, and weighting
+===================================
 
 * Convolutional gridding: :py:mod:`arl.fourier_transforms.convolutional_gridding.convolutional_grid`
 * Convolutional degridding: :py:mod:`arl.fourier_transforms.convolutional_gridding.convolutional_degrid`
@@ -60,8 +60,6 @@ Visibility Invert
 * Generate gridding kernels (standard prolate spheroidal or W-projection): :py:mod:`arl.imaging.params.get_kernel_list`
 * Invert by gridding visibilities: 
 
-* Predict by de-gridding visibilities:
-
  * :py:mod:`arl.imaging.base.invert_2d_base`
  * :py:mod:`arl.imaging.base.invert_2d`
  * :py:mod:`arl.imaging.base.invert_wstack`
@@ -75,10 +73,11 @@ Visibility Invert
 Deconvolution
 =============
 
-* Hogbom Clean: :py:mod:`arl.image.cleaners.hogbom`
-* Multi-scale Clean: :py:mod:`arl.image.cleaners.msclean`
-* Multi-scale multi-frequency Clean: :py:mod:`arl.image.cleaners.msmfsclean`
-* Entry point for above: :py:mod:`arl.image.deconvolution.deconvolve_cube`
+* Deconvolution: :py:mod:`arl.image.deconvolution.deconvolve_cube` wraps:
+   * Hogbom Clean: :py:mod:`arl.image.cleaners.hogbom`
+   * Multi-scale Clean: :py:mod:`arl.image.cleaners.msclean`
+   * Multi-scale multi-frequency Clean: :py:mod:`arl.image.cleaners.msmfsclean`
+* Restore: :py:mod:`arl.image.deconvolution.restore_cube`
 
 Calibration
 ===========
@@ -96,10 +95,31 @@ Coordinate transforms
 * Phase rotation: :py:mod:`arl.visibility.base.phaserotate_visibility`
 * Polarisation basis conversion (Linear <-> Stokes <-> Circular): :py:mod:`arl.data.polarisation`
 
+Image
+=====
+
+* Import from FITS: :py:mod:`arl.image.operations.import_image_from_fits`
+* Export from FITS: :py:mod:`arl.image.operations.export_image_to_fits`
+* Reproject: :py:mod:`arl.image.operations.reproject_image`
+* Smooth image: :py:mod:`arl.image.operations.smooth_image`
+* FFT: :py:mod:`arl.image.operations.fft_image`
+* Remove continuum: :py:mod:`arl.image.operations.remove_image`
+* Convert polarisation:
+ * :py:mod:`arl.image.operations.convert_stokes_to_polimage`
+ * :py:mod:`arl.image.operations.convert_polimage_to_stokes`
+
+Visibility
+==========
+
+* Coalesce/decoalesce (i.e. BDA) :py:mod:`arl.visibility.coalesce`
+* Append/sum/divide/QA: :py:mod:`arl.visibility.operations`
+* Remove continuum: :py:mod:`arl.visibility.operations.remove_continuum_blockvisibility`
+* Integrate across channels: :py:mod:`arl.visibility.operations.integrate_visibility_by_channel`
+
 Graphs:
 =======
 
 * Perform various types of prediction and inversion of visibility data: :py:mod:`arl.graphs.graphs`
 * Perform generic image or visibility unary operations: :py:mod:`arl.graphs.generic_graphs`
 * Support testing and simulations: :py:mod:`arl.util.graph_support`
-* The canonical pipelines:py:mod:`arl.pipelines.graphs`:
+* The canonical pipelines: py:mod:`arl.pipelines.graphs`

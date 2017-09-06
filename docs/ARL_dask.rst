@@ -197,6 +197,18 @@ On darwin, each node has 16 cores, and each core has 4GB. Usually this is insuff
 
 In the command CMD remember to shutdown the Client so the batch script will close the background dask-ssh and then exit.
 
+Thw diagnostic pages can be tunneled. ARL emits the URL of the diagnostic page. For example::
+
+      http://10.143.1.25:8787
+
+Then to tunnel the pages::
+
+      ssh hpccorn1@login.hpc.cam.ac.uk -L8080:10.143.1.25:8787
+
+The diagnostic page is available from your local browser at::
+
+      127.0.0.1:8080
+
 Using ARL and dask on P3
 ************************
 

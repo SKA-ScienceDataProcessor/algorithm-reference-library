@@ -3,6 +3,8 @@
 Installation
 ============
 
+Installation should be straightforward. A prepackage python system such as Anaconda https://www.anaconda.com is usually best as a base.
+
 # Use git to make a local clone of the Github respository::
 
    git clone https://github.com/SKA-ScienceDataProcessor/algorithm-reference-library
