@@ -10,28 +10,32 @@ log = logging.getLogger(__name__)
 
 from distributed import Client, LocalCluster
 
-def get_dask_Client(timeout=30, n_workers=None, threads_per_worker=1, processes=True):
+
+def get_dask_Client(timeout=30, n_workers=None, threads_per_worker=1, processes=True, create_cluster=True):
     """ Get a Dask.distributed Client for the scheduler defined externally, otherwise create
-    
+
     The environment variable ARL_DASK_SCHEDULER is interpreted as pointing to the scheduler.
     and a client using that scheduler is returned. Otherwise a client is created
-    
+
     :return: Dask client
     """
     scheduler = os.getenv('ARL_DASK_SCHEDULER', None)
     if scheduler is not None:
         print("Creating Dask Client using externally defined scheduler")
         c = Client(scheduler, timeout=timeout)
-        print(c)
-    else:
+    
+    elif create_cluster:
         if n_workers is not None:
             cluster = LocalCluster(n_workers=n_workers, threads_per_worker=threads_per_worker, processes=processes)
         else:
             cluster = LocalCluster(threads_per_worker=threads_per_worker, processes=processes)
         print("Creating LocalCluster and Dask Client")
         c = Client(cluster)
-        print(c)
-        
+    else:
+        c = Client()
+    
+    print(c)
+    
     addr = c.scheduler_info()['address']
     services = c.scheduler_info()['services']
     if 'bokeh' in services.keys():
@@ -39,6 +43,27 @@ def get_dask_Client(timeout=30, n_workers=None, threads_per_worker=1, processes=
         print('Diagnostic pages available on port %s' % bokeh_addr)
     return c
 
+
+def get_nodes():
+    """ Get the nodes being used
+
+    The environment variable ARL_HOSTFILE is interpreted as file containing the nodes
+
+    :return: List of strings
+    """
+    hostfile = os.getenv('ARL_HOSTFILE', None)
+    if hostfile is None:
+        print("No hostfile specified")
+        return None
+
+    import socket
+    with open(hostfile, 'r' ) as file:
+        nodes = [line.replace('\n', '') for line in file.readlines()]
+        print("Nodes being used are %s" % nodes)
+        nodes = [socket.gethostbyname(node) for node in nodes]
+        print("Nodes IPs are %s" % nodes)
+        return nodes
+    
 
 def kill_dask_Scheduler(client):
     """ Kill the process dask-ssh

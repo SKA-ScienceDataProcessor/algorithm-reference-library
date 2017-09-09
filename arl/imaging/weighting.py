@@ -59,6 +59,7 @@ def weighting_rank_filter_visibility(vis: Visibility, im: Image, **kwargs) -> Vi
     :return: visibility with imaging_weights column modified
     """
     assert type(vis) is Visibility, "vis is not a Visibility: %r" % vis
+    # ImageWeights::RankFilter in imageweights.cpp of wsclean
     
     return vis
 

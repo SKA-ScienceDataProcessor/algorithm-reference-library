@@ -347,7 +347,42 @@ def weight_gridding(shape, visweights, vuvwmap, vfrequencymap, vpolarisationmap=
         return newvisweights, density, densitygrid
     else:
         return visweights, None, None
+
+
+def weight_rank_filter(shape, visweights, vuvwmap, vfrequencymap, vpolarisationmap=None,
+                       window=7, rank_limit=5.0):
+    """Reweight data using one of a number of algorithms
+
+    :param shape:
+    :param visweights: Visibility weights
+    :param vuvwmap: map uvw to grid fractions
+    :param vfrequencymap: map frequency to image channels
+    :param vpolarisationmap: map polarisation to image polarisation
+    :param weighting: '' | 'uniform'
+    :return: visweights, density, densitygrid
+    """
+    densitygrid = numpy.zeros(shape)
+    density = numpy.zeros_like(visweights)
+
+    inchan, inpol, ny, nx = shape
     
+    # uvw -> fraction of grid mapping
+    y, yf = frac_coord(ny, 1.0, vuvwmap[:, 1])
+    x, xf = frac_coord(nx, 1.0, vuvwmap[:, 0])
+    wts = visweights[...]
+    coords = list(vfrequencymap), x, y
+    for pol in range(inpol):
+        for vwt, chan, x, y in zip(wts, *coords):
+            densitygrid[chan, pol, y, x] += vwt[..., pol]
+    
+    # Normalise each visibility weight to sum to one in a grid cell
+    newvisweights = numpy.zeros_like(visweights)
+    for pol in range(inpol):
+        density[..., pol] += [densitygrid[chan, pol, x, y] for chan, x, y in zip(*coords)]
+    newvisweights[density > 0.0] = visweights[density > 0.0] / density[density > 0.0]
+    return newvisweights, density, densitygrid
+
+
 def visibility_recentre(uvw, dl, dm):
     """ Compensate for kernel re-centering - see `w_kernel_function`.
 

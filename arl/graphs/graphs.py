@@ -46,23 +46,28 @@ from arl.image.deconvolution import deconvolve_cube
 from arl.image.gather_scatter import image_scatter, image_gather
 from arl.image.operations import copy_image, create_empty_image_like
 from arl.imaging import predict_2d, invert_2d, invert_wstack_single, predict_wstack_single, \
-    predict_timeslice_single, invert_timeslice_single, normalize_sumwt, weight_visibility
+    predict_timeslice_single, invert_timeslice_single, normalize_sumwt
+from arl.imaging.weighting import weight_visibility
 from arl.visibility.base import copy_visibility
 from arl.visibility.gather_scatter import visibility_scatter_w, visibility_gather_w, \
     visibility_gather_channel, visibility_gather_time, visibility_scatter_time
 from arl.visibility.operations import divide_visibility, integrate_visibility_by_channel
 
 
-def compute_list(client, graph_list, **kwargs):
+def compute_list(client, graph_list, nodes=None, **kwargs):
     """ Compute all elements in list
 
     :param graph_list:
+    :param nodes: List of nodes.
     :return: list
     """
-    futures = client.compute(graph_list, **kwargs)
-    for future in futures:
-        wait(future)
-    return [f.result() for f in futures]
+    if nodes is not None:
+        print("Computing graph_list on the following nodes: %s" % nodes)
+        futures = client.compute(graph_list, sync=True, workers=['127.0.0.1'], **kwargs)
+        wait(futures)
+        return futures
+    else:
+        return client.compute(graph_list, sync=True, **kwargs)
 
 
 def create_zero_vis_graph_list(vis_graph_list, **kwargs):
@@ -88,6 +93,7 @@ def create_subtract_vis_graph_list(vis_graph_list, model_vis_graph_list, **kwarg
     """ Initialise vis to zero
 
     :param vis_graph_list:
+    :param model_vis_graph_list: Model to be subtracted
     :param kwargs: Parameters for functions in graphs
     :return: List of vis_graphs
    """
@@ -110,6 +116,8 @@ def create_weight_vis_graph_list(vis_graph_list, model_graph, weighting='uniform
     """ Weight the visibility data
 
     :param vis_graph_list:
+    :param model_graph: Model required to determine weighting parameters
+    :param weighting: Type of weighting
     :param kwargs: Parameters for functions in graphs
     :return: List of vis_graphs
    """
@@ -130,7 +138,7 @@ def create_invert_graph(vis_graph_list, template_model_graph: delayed, dopsf=Fal
     """ Sum results from invert iterating over the vis_graph_list
 
     :param vis_graph_list:
-    :param model_graph:
+    :param template_model_graph: Model used to determine image parameters
     :param invert: Invert for a single Visibility set
     :param kwargs: Parameters for functions in graphs
     :return: delayed for invert
@@ -171,12 +179,13 @@ def create_invert_vis_scatter_graph(vis_graph_list, template_model_graph: delaye
                                     invert, dopsf=False, normalize=True, **kwargs) -> delayed:
     """ Sum invert results for a scattered  vis_graph_list
 
-    Base for create_invert_vis_wstack_graph and create_invert_vis_timeslice_graph
+    Base for create_invert_wstack_graph and create_invert_timeslice_graph
 
     :param vis_graph_list:
-    :param model_graph:
-    :param dopsf: Make psf (False)
+    :param template_model_graph: Model used to determine image parameters
     :param vis_slices: Number of visibility slices in w stacking
+    :param invert: Function used for invert
+    :param dopsf: Make psf (False)
     :param kwargs: Parameters for functions in graphs
     :return: delayed for invert
     """
@@ -229,9 +238,9 @@ def create_invert_wstack_graph(vis_graph_list, template_model_graph: delayed, vi
     """ Sum invert results using wstacking, iterating over the vis_graph_list and w
 
     :param vis_graph_list:
-    :param model_graph:
-    :param dopsf: Make psf (False)
+    :param template_model_graph: Model used to determine image parameters
     :param vis_slices: Number of visibility slices in w stacking
+    :param dopsf: Make psf (False)
     :param kwargs: Parameters for functions in graphs
     :return: delayed for invert
     """
@@ -248,9 +257,9 @@ def create_invert_timeslice_graph(vis_graph_list, template_model_graph: delayed,
     default SKA approach wsnapshots.
 
     :param vis_graph_list:
-    :param model_graph:
+    :param template_model_graph: Model used to determine image parameters
+    :param vis_slices: Number of visibility slices in w stacking
     :param dopsf: Make psf (False)
-    :param vis_slices: Number of visibility slices in w stacking or time slicing
     :param kwargs: Parameters for functions in graphs
     :return: delayed for invert
     """
@@ -265,8 +274,8 @@ def create_invert_facet_graph(vis_graph_list, template_model_graph: delayed, dop
     """ Sum results from invert, iterating over the vis_graph_list, allows faceting
 
     :param vis_graph_list:
-    :param model_graph:
-    :param invert: Invert for a single Visibility
+    :param template_model_graph: Model used to determine image parameters
+    :param vis_slices: Number of visibility slices in w stacking
     :param kwargs: Parameters for functions in graphs
     :return: delayed for invert
    """
@@ -298,8 +307,10 @@ def create_invert_facet_vis_scatter_graph(vis_graph_list, template_model_graph: 
     """ Sum results from invert, iterating over the scattered image and vis_graph_list
 
     :param vis_graph_list:
-    :param model_graph:
-    :param invert_single: Invert for a single Visibility
+    :param template_model_graph: Model used to determine image parameters
+    :param c_invert_vis_scatter_graph: Function to create invert graphs
+    :param dopsf: Make the PSF instead of the dirty image
+    :param facets: Number of facets
     :param kwargs: Parameters for functions in graphs
     :return: delayed for invert
    """
@@ -330,8 +341,8 @@ def create_invert_facet_wstack_graph(vis_graph_list, template_model_graph: delay
     """ Sum results from invert, iterating over the vis_graph_list, allows faceting
 
     :param vis_graph_list:
-    :param model_graph:
-    :param invert_single: Invert for a single Visibility
+    :param template_model_graph: Model used to determine image parameters
+    :param facets: Number of facets per x, y axis)
     :param kwargs: Parameters for functions in graphs
     :return: delayed for invert
    """
@@ -347,8 +358,8 @@ def create_invert_facet_timeslice_graph(vis_graph_list, template_model_graph: de
     """ Sum results from invert, iterating over the vis_graph_list, allows faceting
 
     :param vis_graph_list:
-    :param model_graph:
-    :param invert_single: Invert for a single Visibility
+    :param template_model_graph: Model used to determine image parameters
+    :param facets: Number of facets per x, y axis)
     :param kwargs: Parameters for functions in graphs
     :return: delayed for invert
    """
@@ -362,8 +373,9 @@ def create_predict_graph(vis_graph_list, model_graph: delayed, predict=predict_2
     """Predict from model_graph, iterating over the vis_graph_list
 
     :param vis_graph_list:
-    :param model_graph:
-    :param predict: Predict function to be used (predict_t2d)
+    :param template_model_graph: Model used to determine image parameters
+    :param facets: Number of facets per x, y axis)
+    :param predict: Predict function to be used (predict_2d)
     :param kwargs: Parameters for functions in graphs Parameters for functions in graphs
     :return: List of vis_graphs
    """
@@ -383,9 +395,9 @@ def create_predict_facet_graph(vis_graph_list, model_graph: delayed, predict=pre
     """ Predict visibility from a model using facets
 
     :param vis_graph_list:
-    :param model_graph:
+    :param template_model_graph: Model used to determine image parameters
+    :param facets: Number of facets per x, y axis)
     :param predict: Predict function to be used (predict_2d)
-    :param facets: Number of facets on axis (4)
     :param kwargs: Parameters for functions in graphs
     :return: List of vis_graphs
     """
@@ -423,7 +435,11 @@ def create_predict_vis_scatter_graph(vis_graph_list, model_graph: delayed, vis_s
     """Predict, iterating over the scattered vis_graph_list
 
     :param vis_graph_list:
-    :param model_graph:
+    :param template_model_graph: Model used to determine image parameters
+    :param vis_slices: Number of vis slices (w stack or timeslice)
+    :param predict: Predict function
+    :param scatter: Scatter function e.g. visibility_scatter_w
+    :param gather: Gatherer function e.g. visibility_gather_w
     :param kwargs: Parameters for functions in graphs
     :return: List of vis_graphs
    """
@@ -453,7 +469,8 @@ def create_predict_wstack_graph(vis_graph_list, model_graph: delayed, vis_slices
     """Predict using wstacking, iterating over the vis_graph_list and w
 
     :param vis_graph_list:
-    :param model_graph:
+    :param model_graph: Model used to determine image parameters
+    :param vis_slices: Number of vis slices (w stack or timeslice)
     :param kwargs: Parameters for functions in graphs
     :return: List of vis_graphs
    """
@@ -472,7 +489,8 @@ def create_predict_timeslice_graph(vis_graph_list, model_graph: delayed, vis_sli
     default SKA approach wsnapshots.
 
     :param vis_graph_list:
-    :param model_graph:
+    :param model_graph: Model used to determine image parameters
+    :param vis_slices: Number of vis slices (w stack or timeslice)
     :param kwargs: Parameters for functions in graphs
     :return: List of vis_graphs
    """
@@ -488,7 +506,11 @@ def create_predict_facet_vis_scatter_graph(vis_graph_list, model_graph: delayed,
     """Predict, iterating over the scattered vis_graph_list and image
 
     :param vis_graph_list:
-    :param model_graph:
+    :param model_graph: Model used to determine image parameters
+    :param vis_slices: Number of vis slices (w stack or timeslice)
+    :param predict: Predict function
+    :param vis_scatter: Scatter function e.g. visibility_scatter_w
+    :param vis_gather: Gatherer function e.g. visibility_gather_w
     :param kwargs: Parameters for functions in graphs
     :return: List of vis_graphs
    """
@@ -535,7 +557,9 @@ def create_predict_facet_wstack_graph(vis_graph_list, model_graph: delayed, vis_
     """Predict using wstacking, iterating over the vis_graph_list and w
 
     :param vis_graph_list:
-    :param model_graph:
+    :param model_graph: Model used to determine image parameters
+    :param vis_slices: Number of vis slices (w stack or timeslice)
+    :param facets: Number of facets (in both x and y axes)
     :param kwargs: Parameters for functions in graphs
     :return: List of vis_graphs
    """
@@ -551,7 +575,9 @@ def create_predict_facet_timeslice_graph(vis_graph_list, model_graph: delayed, v
     """Predict using wstacking, iterating over the vis_graph_list and w
 
     :param vis_graph_list:
-    :param model_graph:
+    :param model_graph: Model used to determine image parameters
+    :param vis_slices: Number of vis slices in timeslice
+    :param facets: Number of facets (in both x and y axes)
     :param kwargs: Parameters for functions in graphs
     :return: List of vis_graphs
    """
@@ -566,8 +592,7 @@ def create_residual_graph(vis_graph_list, model_graph: delayed, **kwargs) -> del
     """ Create a graph to calculate residual image using facets
 
     :param vis_graph_list:
-    :param model_graph:
-    :param invert_single:
+    :param model_graph: Model used to determine image parameters
     :param kwargs: Parameters for functions in graphs
     :return:
     """
@@ -581,7 +606,8 @@ def create_residual_facet_graph(vis_graph_list, model_graph: delayed, **kwargs) 
     """ Create a graph to calculate residual image using facets
 
     :param vis_graph_list:
-    :param model_graph:
+    :param model_graph: Model used to determine image parameters
+    :param facets: Number of facets (in both x and y axes)
     :param kwargs: Parameters for functions in graphs
     :return:
     """
@@ -596,7 +622,8 @@ def create_residual_wstack_graph(vis_graph_list, model_graph: delayed, **kwargs)
     """ Create a graph to calculate residual image using w stacking
 
     :param vis_graph_list:
-    :param model_graph:
+    :param model_graph: Model used to determine image parameters
+    :param vis_slices: Number of vis slices (w stack or timeslice)
     :param kwargs: Parameters for functions in graphs
     :return:
     """
@@ -611,7 +638,7 @@ def create_residual_timeslice_graph(vis_graph_list, model_graph: delayed, **kwar
     """ Create a graph to calculate residual image using timeslicing
 
     :param vis_graph_list:
-    :param model_graph:
+    :param model_graph: Model used to determine image parameters
     :param kwargs: Parameters for functions in graphs
     :return:
     """
@@ -626,7 +653,11 @@ def create_residual_facet_wstack_graph(vis_graph_list, model_graph: delayed, **k
     """ Create a graph to calculate residual image using w stacking and faceting
 
     :param vis_graph_list:
-    :param model_graph:
+    :param model_graph: Model used to determine image parameters
+    :param vis_graph_list:
+    :param model_graph: Model used to determine image parameters
+    :param vis_slices: Number of vis slices (w stack or timeslice)
+    :param facets: Number of facets (in both x and y axes)
     :param kwargs: Parameters for functions in graphs
     :return:
     """
@@ -700,7 +731,7 @@ def create_selfcal_graph_list(vis_graph_list, model_graph: delayed, c_predict_gr
 
     :param vis_graph_list:
     :param model_graph:
-    :param c_predict_graph
+    :param c_predict_graph: Function to create prediction graphs
     :param vis_slices:
     :param global_solution: Solve for global gains
     :param kwargs: Parameters for functions in graphs
