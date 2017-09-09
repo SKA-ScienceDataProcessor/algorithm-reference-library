@@ -62,7 +62,7 @@ if __name__ == '__main__':
     sparse_graph = [delayed(init_sparse)(len_chunk) for i in range(nchunks)]
     sparse_graph = client.compute(sparse_graph, sync=True)
     print("After sparse_graph", client)
-    
+
     # sparse_graph = client.compute(sparse_graph, sync=True)
     xfr_graph = [delayed(grid_data)(s, shape=shape, skip=skip) for s in sparse_graph]
     xfr = client.compute(xfr_graph, sync=True)
