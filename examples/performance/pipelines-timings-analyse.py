@@ -19,7 +19,7 @@ def analzye_scaling(filename, **kwargs):
     Performs standard analysis of output from pipelines-timings.py. We will add to this as necessary.
     
     run as:
-        python pipelines-timings-analyze.py *.csv
+        python pipelines-timings-analyse.py *.csv
     :results: results dictionary
     :param kwargs:
     """
