@@ -14,29 +14,22 @@
 #! Which project should be charged:
 #SBATCH -A SKA-SDP
 #! How many whole nodes should be allocated?
-#SBATCH --nodes=1
+#SBATCH --nodes=8
 #! How many (MPI) tasks will there be in total? (<= nodes*16)
-#SBATCH --ntasks=16
+#SBATCH --ntasks=32
 #! Memory limit
 #SBATCH --mem 32000
 #! How much wallclock time will be required?
-#SBATCH --time=02:00:00
+#SBATCH --time=00:05:00
 #! What types of email messages do you wish to receive?
 #SBATCH --mail-type=FAIL
 #! Uncomment this to prevent the job from being requeued (e.g. if
 #! interrupted by node failure or system downtime):
 ##SBATCH --no-requeue
-
 #! Do not change:
 #SBATCH -p sandybridge
 
-#! sbatch directives end here (put any additional directives above this line)
-
-#! Notes:
-#! Charging is determined by core number*walltime.
-
-#! ############################################################
-#! Modify the settings below to specify the application's environment, location 
+#! Modify the settings below to specify the application's environment, location
 #! and launch method:
 
 #! Optionally modify the environment seen by the application
@@ -63,7 +56,7 @@ workdir="$SLURM_SUBMIT_DIR"  # The value of SLURM_SUBMIT_DIR sets workdir to the
 export OMP_NUM_THREADS=1
 
 #CMD="jupyter nbconvert --execute --ExecutePreprocessor.timeout=3600 --to rst imaging-darwin.ipynb"
-CMD="python ./pipelines-timings.py"
+CMD="python ./pipelines-timings.py 32"
 
 cd $workdir
 echo -e "Changed directory to `pwd`.\n"
@@ -78,13 +71,11 @@ if [ "$SLURM_JOB_NODELIST" ]; then
         echo `cat hostfile.$JOBID | sed -e 's/\..*$//g'`
 fi
 
-
 echo -e "JobID: $JOBID\n======"
 echo "Time: `date`"
 echo "Master node: `hostname`"
 echo "Current directory: `pwd`"
 
-# dask-worker --preload distributed_setup.py $scheduler &
 scheduler="`hostname`:8786"
 echo "About to dask-ssh on:"
 cat hostfile.$JOBID
@@ -97,14 +88,14 @@ cat hostfile.$JOBID
 #!                            one.
 #!  --hostfile PATH           Textfile with hostnames/IP addresses
 #!
-dask-ssh --nprocs 16 --nthreads 1 --scheduler-port 8786 --log-directory `pwd` --hostfile hostfile.$JOBID &
+dask-ssh --nprocs 4 --nthreads 1 --scheduler-port 8786 --log-directory `pwd` --hostfile hostfile.$JOBID &
 sleep 10
 
 #! We need to tell dask Client (inside python) where the scheduler is running
 scheduler="`hostname`:8786"
 echo "Scheduler is running at ${scheduler}"
-#export ARL_DASK_SCHEDULER=${scheduler}
-#echo "ARL_DASK_SCHEDULER is ${ARL_DASK_SCHEDULER}"
+export ARL_DASK_SCHEDULER=${scheduler}
+echo "ARL_DASK_SCHEDULER is ${ARL_DASK_SCHEDULER}"
 echo "About to execute $CMD"
 
 eval $CMD
@@ -115,9 +106,8 @@ wait %1
 # Archive the results
 archive="output_${JOBID}"
 mkdir ${archive}
-mv "slurm.${JOBID}".out ${archive}
-mv results ${archive}
+mv "slurm-${JOBID}".out ${archive}
 mv hostfile.${JOBID} ${archive}
 mv dask-ssh* ${archive}
-cp imaging-*.py ${archive}
+cp *.py ${archive}
 cp ${0}  ${archive}

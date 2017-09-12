@@ -39,8 +39,8 @@ if __name__ == '__main__':
     start=time.time()
     
     # Process nchunks each of length len_chunk 2d points, making a psf of size shape
-    len_chunk = 10000000
-    nchunks = 1000
+    len_chunk = int(1e6)
+    nchunks = 16
     shape=[512, 512]
     skip = 100
     
@@ -51,7 +51,7 @@ if __name__ == '__main__':
     else:
         client = Client()
         
-    print(client)
+    print("On initialisation", client)
 
     addr = client.scheduler_info()['address']
     services = client.scheduler_info()['services']
@@ -61,20 +61,20 @@ if __name__ == '__main__':
 
     sparse_graph = [delayed(init_sparse)(len_chunk) for i in range(nchunks)]
     sparse_graph = client.compute(sparse_graph, sync=True)
-    print("After sparse_graph", client)
-
+    print("After first sparse_graph", client)
+    
     # sparse_graph = client.compute(sparse_graph, sync=True)
     xfr_graph = [delayed(grid_data)(s, shape=shape, skip=skip) for s in sparse_graph]
     xfr = client.compute(xfr_graph, sync=True)
     print("After xfr", client)
 
-    print("Sleeping now")
-    import time
-    time.sleep(120)
-    print("Proceeding now")
-
-    print(client)
-    print("After sleep", client)
+    # print("Sleeping now")
+    # import time
+    # time.sleep(30)
+    # print("Proceeding now")
+    #
+    # print(client)
+    # print("After sleep", client)
 
     sparse_graph = [delayed(init_sparse)(len_chunk) for i in range(nchunks)]
     # sparse_graph = client.compute(sparse_graph, sync=True)
