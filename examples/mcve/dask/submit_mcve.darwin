@@ -14,11 +14,11 @@
 #! Which project should be charged:
 #SBATCH -A SKA-SDP
 #! How many whole nodes should be allocated?
-#SBATCH --nodes=8
+#SBATCH --nodes=4
 #! How many (MPI) tasks will there be in total? (<= nodes*16)
-#SBATCH --ntasks=32
+#SBATCH --ntasks=4
 #! Memory limit
-#SBATCH --mem 32000
+#SBATCH --mem 63900
 #! How much wallclock time will be required?
 #SBATCH --time=00:20:00
 #! What types of email messages do you wish to receive?

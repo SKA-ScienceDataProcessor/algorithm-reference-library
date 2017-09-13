@@ -53,28 +53,18 @@ if __name__ == '__main__':
         
     print("On initialisation", client)
 
-    addr = client.scheduler_info()['address']
-    services = client.scheduler_info()['services']
-    if 'bokeh' in services.keys():
-        bokeh_addr = 'http:%s:%s' % (addr.split(':')[1], services['bokeh'])
-        print('Diagnostic pages available on port %s' % bokeh_addr)
-
     sparse_graph = [delayed(init_sparse)(len_chunk) for i in range(nchunks)]
     sparse_graph = client.compute(sparse_graph, sync=True)
     print("After first sparse_graph", client)
     
-    # sparse_graph = client.compute(sparse_graph, sync=True)
     xfr_graph = [delayed(grid_data)(s, shape=shape, skip=skip) for s in sparse_graph]
     xfr = client.compute(xfr_graph, sync=True)
     print("After xfr", client)
 
-    # print("Sleeping now")
-    # import time
-    # time.sleep(30)
-    # print("Proceeding now")
-    #
-    # print(client)
-    # print("After sleep", client)
+    tsleep = 120.0
+    print("Sleeping now for %.1f seconds" % tsleep)
+    time.sleep(tsleep)
+    print("After sleep", client)
 
     sparse_graph = [delayed(init_sparse)(len_chunk) for i in range(nchunks)]
     # sparse_graph = client.compute(sparse_graph, sync=True)
