@@ -652,7 +652,7 @@ def find_optimum_scale_zero_moment(smpsol, windowstack):
         else:
             resid = smpsol[scale, 0, :, :]
         
-        this_max = numpy.max(numpy.abs(resid[scale]))
+        this_max = numpy.max(numpy.abs(resid))
         if this_max > optimum:
             optimum = this_max
             sscale = scale
