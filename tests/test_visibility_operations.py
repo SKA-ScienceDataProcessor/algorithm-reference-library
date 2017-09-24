@@ -32,7 +32,7 @@ class TestVisibilityOperations(unittest.TestCase):
         # Define the component and give it some spectral behaviour
         f = numpy.array([100.0, 20.0, -10.0, 1.0])
         self.flux = numpy.array([f, 0.8 * f, 0.6 * f])
-        
+
         # The phase centre is absolute and the component is specified relative (for now).
         # This means that the component should end up at the position phasecentre+compredirection
         self.phasecentre = SkyCoord(ra=+180.0 * u.deg, dec=-35.0 * u.deg, frame='icrs', equinox='J2000')
@@ -41,8 +41,8 @@ class TestVisibilityOperations(unittest.TestCase):
         pcof = self.phasecentre.skyoffset_frame()
         self.compreldirection = self.compabsdirection.transform_to(pcof)
         self.comp = Skycomponent(direction=self.compreldirection, frequency=self.frequency, flux=self.flux)
-    
-    def test_create_visibility(self):
+
+    def test_create_visibility1(self):
         self.vis = create_visibility(self.lowcore, self.times, self.frequency,
                                      channel_bandwidth=self.channel_bandwidth,  phasecentre=self.phasecentre,
                                      weight=1.0)
@@ -57,7 +57,7 @@ class TestVisibilityOperations(unittest.TestCase):
         assert self.vis.nvis == len(self.vis.time)
         assert self.vis.nvis == len(self.vis.frequency)
 
-    def test_create_visibility_from_rows(self):
+    def test_create_visibility_from_rows1(self):
         self.vis = create_visibility(self.lowcore, self.times, self.frequency,
                                      channel_bandwidth=self.channel_bandwidth,
                                      phasecentre=self.phasecentre, weight=1.0)
@@ -76,7 +76,7 @@ class TestVisibilityOperations(unittest.TestCase):
                                           weight=1.0, channel_bandwidth=self.channel_bandwidth)
         vis = convert_blockvisibility_to_visibility(self.vis)
         assert vis.nvis == len(vis.time)
-        assert numpy.unique(vis.time).size == self.vis.time.size
+        assert numpy.unique(vis.time).size == self.vis.time.size #pylint: disable=no-member
 
     def test_create_visibility_from_rows_makecopy(self):
         self.vis = create_visibility(self.lowcore, self.times, self.frequency, phasecentre=self.phasecentre,
@@ -109,7 +109,7 @@ class TestVisibilityOperations(unittest.TestCase):
         vis.data['vis'] = 1.0
         assert (vis.data['vis'][0,0].real == 1.0)
         assert (self.vis.data['vis'][0,0].real == 0.0)
-    
+
     def test_visibilitysum(self):
         self.vis = create_visibility(self.lowcore, self.times, self.frequency,
                                      channel_bandwidth=self.channel_bandwidth, phasecentre=self.phasecentre, weight=1.0,
@@ -118,7 +118,7 @@ class TestVisibilityOperations(unittest.TestCase):
         # Sum the visibilities in the correct_visibility direction. This is limited by numerical precision
         summedflux, weight = sum_visibility(self.vismodel, self.compreldirection)
         assert_allclose(self.flux, summedflux, rtol=1e-7)
-    
+
     def test_phase_rotation_identity(self):
         self.vis = create_visibility(self.lowcore, self.times, self.frequency,
                                      channel_bandwidth=self.channel_bandwidth,
@@ -136,7 +136,7 @@ class TestVisibilityOperations(unittest.TestCase):
                                                 self.phasecentre, tangent=False)
             assert_allclose(rotatedvis.uvw, original_uvw, rtol=1e-7)
             assert_allclose(rotatedvis.vis, original_vis, rtol=1e-7)
-    
+
     def test_phase_rotation(self):
         self.vis = create_visibility(self.lowcore, self.times, self.frequency,
                                      channel_bandwidth=self.channel_bandwidth,
@@ -150,7 +150,7 @@ class TestVisibilityOperations(unittest.TestCase):
                                     phasecentre=self.compabsdirection, weight=1.0,
                                     polarisation_frame=PolarisationFrame("stokesIQUV"))
         vismodel2 = predict_skycomponent_visibility(vispred, self.comp)
-        
+
         # Should yield the same results as rotation
         rotatedvis = phaserotate_visibility(self.vismodel, newphasecentre=self.compabsdirection, tangent=False)
         assert_allclose(rotatedvis.vis, vismodel2.vis, rtol=1e-7)
