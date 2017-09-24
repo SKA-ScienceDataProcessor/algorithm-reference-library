@@ -49,3 +49,9 @@ code-analysis: code-flake code-lint
 
 examples: inplace
 	$(MAKE) -C examples/arl
+
+notebook:
+	DEVICE=`ip link | grep -E " ens| wlan| eth" | grep BROADCAST | tail -1 | cut -d : -f 2  | sed "s/ //"` && \
+	IP=`ip a show $${DEVICE} | grep ' inet ' | awk '{print $$2}' | sed 's/\/.*//'` && \
+	echo "Launching at IP: $${IP}" && \
+	jupyter notebook --no-browser --ip=$${IP} --port=8888 examples/arl/
