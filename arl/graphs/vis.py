@@ -108,7 +108,7 @@ class Track(Callback):
                   data_attributes=data,
                   function_attributes=func)
 
-    def _pretask(self, key, dsk, state):
+    def _pretask(self, key, dsk, state):  # pylint: disable=method-hidden
         if self.n % self.save_every == 0:
             self._plot(dsk, state)
         self.n += 1
