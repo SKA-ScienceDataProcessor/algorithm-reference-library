@@ -27,7 +27,7 @@ def hogbom(dirty, psf, window, gain, thresh, niter, fracthresh):
     assert 0.0 < gain < 2.0
     assert niter > 0
     
-    log.info("hogbom: Max abs in dirty image = %.6f" % numpy.fabs(dirty).max())
+    log.info("hogbom: Max abs in dirty image = %.6f" % numpy.max(numpy.abs(dirty)))
     absolutethresh = max(thresh, fracthresh * numpy.fabs(dirty).max())
     log.info("hogbom: Start of minor cycle")
     log.info("hogbom: This minor cycle will stop at %d iterations or peak < %s" % (niter, absolutethresh))
@@ -48,7 +48,7 @@ def hogbom(dirty, psf, window, gain, thresh, niter, fracthresh):
         if niter < 10 or i % (niter // 10) == 0:
             log.info("hogbom: Minor cycle %d, peak %s at [%d, %d]" % (i, res[mx, my], mx, my))
         res[a1o[0]:a1o[1], a1o[2]:a1o[3]] -= psf[a2o[0]:a2o[1], a2o[2]:a2o[3]] * mval
-        if numpy.fabs(res).max() < absolutethresh:
+        if numpy.abs(res[mx, my]) < absolutethresh:
             log.info("hogbom: Stopped at iteration %d, peak %s at [%d, %d]" % (i, res[mx, my], mx, my))
             break
     log.info("hogbom: End of minor cycle")

@@ -324,25 +324,34 @@ def weight_gridding(shape, visweights, vuvwmap, vfrequencymap, vpolarisationmap=
     :param weighting: '' | 'uniform'
     :return: visweights, density, densitygrid
     """
-    densitygrid = numpy.zeros(shape)
-    density = numpy.zeros_like(visweights)
+    densitygrid = numpy.zeros(shape, dtype='float')
     if weighting == 'uniform':
         log.info("weight_gridding: Performing uniform weighting")
         inchan, inpol, ny, nx = shape
-        
-        # uvw -> fraction of grid mapping
-        y, yf = frac_coord(ny, 1.0, vuvwmap[:, 1])
-        x, xf = frac_coord(nx, 1.0, vuvwmap[:, 0])
+
         wts = visweights[...]
+        # uvw -> fraction of grid mapping
+        for flip in [-1.0,1.0]:
+            y, yf = frac_coord(ny, 1.0, flip*vuvwmap[:, 1])
+            x, xf = frac_coord(nx, 1.0, flip*vuvwmap[:, 0])
+            coords = list(vfrequencymap), x, y
+            for pol in range(inpol):
+                for vwt, chan, x, y in zip(wts, *coords):
+                    densitygrid[chan, pol, y, x] += vwt[..., pol]
+                    
+        # Find the total weight per sample counting redundancies with other samples
+        newvisweights = numpy.zeros_like(visweights)
+        density = numpy.zeros_like(visweights)
+        y, _ = frac_coord(ny, 1.0, vuvwmap[:, 1])
+        x, _ = frac_coord(nx, 1.0, vuvwmap[:, 0])
         coords = list(vfrequencymap), x, y
         for pol in range(inpol):
-            for vwt, chan, x, y in zip(wts, *coords):
-                densitygrid[chan, pol, y, x] += vwt[..., pol]
-        
+            density[..., pol] += [densitygrid[chan, pol, y, x] for chan, x, y in zip(*coords)]
+
         # Normalise each visibility weight to sum to one in a grid cell
-        newvisweights = numpy.zeros_like(visweights)
-        for pol in range(inpol):
-            density[..., pol] += [densitygrid[chan, pol, x, y] for chan, x, y in zip(*coords)]
+        if numpy.sum(density[:,0] > 0.0) < visweights.shape[0]:
+            log.warning("weight_gridding: Losing samples in weighting")
+            
         newvisweights[density > 0.0] = visweights[density > 0.0] / density[density > 0.0]
         return newvisweights, density, densitygrid
     else:

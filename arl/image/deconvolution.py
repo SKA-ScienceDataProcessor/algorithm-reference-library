@@ -62,7 +62,7 @@ def deconvolve_cube(dirty: Image, psf: Image, **kwargs) -> (Image, Image):
     :param algorithm: Cleaning algorithm: 'msclean'|'hogbom'|'mfsmsclean'
     :param gain: loop gain (float) 0.7
     :param threshold: Clean threshold (0.0)
-    :param fracthres: Fractional threshold (0.01)
+    :param fractional_threshold: Fractional threshold (0.01)
     :param scales: Scales (in pixels) for multiscale ([0, 3, 10, 30])
     :param nmoments: Number of frequency moments (default 3)
     :param findpeak: Method of finding peak in mfsclean: 'Algorithm1'|'ASKAPSoft'|'CASA'|'ARL', Default is ARL.
@@ -223,20 +223,25 @@ def restore_cube(model: Image, psf: Image, residual=None, **kwargs) -> Image:
     
     npixel = psf.data.shape[3]
     sl = slice(npixel // 2 - 7, npixel // 2 + 8)
+
+    size = get_parameter(kwargs, "psfwidth", None)
     
-    # isotropic at the moment!
-    try:
-        fit = fit_2dgaussian(psf.data[0, 0, sl, sl])
-        if fit.x_stddev <= 0.0 or fit.y_stddev <= 0.0:
-            log.debug('restore_cube: error in fitting to psf, using 1 pixel stddev')
+    if size is None:
+        # isotropic at the moment!
+        try:
+            fit = fit_2dgaussian(psf.data[0, 0, sl, sl])
+            if fit.x_stddev <= 0.0 or fit.y_stddev <= 0.0:
+                log.debug('restore_cube: error in fitting to psf, using 1 pixel stddev')
+                size = 1.0
+            else:
+                size = max(fit.x_stddev, fit.y_stddev)
+                log.debug('restore_cube: psfwidth = %s' % (size))
+        except:
+            log.debug('restore_cube: warning in fit to psf, using 1 pixel stddev')
             size = 1.0
-        else:
-            size = max(fit.x_stddev, fit.y_stddev)
-            log.debug('restore_cube: psfwidth = %s' % (size))
-    except:
-        log.debug('restore_cube: warning in fit to psf, using 1 pixel stddev')
-        size = 1.0
-    
+    else:
+        log.debug('restore_cube: Using specified psfwidth = %s' % (size))
+
     # By convention, we normalise the peak not the integral so this is the volume of the Gaussian
     norm = 2.0 * numpy.pi * size ** 2
     gk = Gaussian2DKernel(size)
