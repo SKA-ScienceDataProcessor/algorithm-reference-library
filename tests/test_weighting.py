@@ -10,10 +10,13 @@ import numpy
 from astropy import units as u
 from astropy.coordinates import SkyCoord
 
+from photutils import fit_2dgaussian
+
 from arl.data.polarisation import PolarisationFrame
 from arl.imaging.base import create_image_from_visibility
-from arl.imaging.weighting import weight_visibility, taper_visibility_Gaussian, \
-    taper_visibility_tukey
+from arl.imaging import invert_2d
+from arl.imaging.weighting import weight_visibility, taper_visibility_Gaussian, taper_visibility_tukey
+from arl.image.operations import export_image_to_fits
 from arl.util.testing_support import create_named_configuration
 from arl.visibility.base import create_visibility
 
@@ -92,15 +95,40 @@ class TestWeighting(unittest.TestCase):
 
     def test_tapering_Gaussian(self):
         self.actualSetUp()
-        original_weight = copy.deepcopy(self.componentvis.imaging_weight)
-        vis = taper_visibility_Gaussian(self.componentvis, algorithm='Gaussian', beam=0.1)
-        assert vis.nvis == self.componentvis.nvis
+        size_required=0.01
+        self.componentvis, _, _ = weight_visibility(self.componentvis, self.model, algoritm='uniform')
+        self.componentvis = taper_visibility_Gaussian(self.componentvis, algorithm='Gaussian', beam=size_required)
+        psf, sumwt = invert_2d(self.componentvis, self.model, dopsf=True)
+        export_image_to_fits(psf, '%s/test_weighting_gaussian_taper_psf.fits' % self.dir)
+        from arl.image.operations import fft_image
+        xfr = fft_image(psf)
+        xfr.data = xfr.data.real.astype('float')
+        export_image_to_fits(xfr, '%s/test_weighting_gaussian_taper_xfr.fits' % self.dir)
+        npixel = psf.data.shape[3]
+        sl = slice(npixel // 2 - 7, npixel // 2 + 8)
+        fit = fit_2dgaussian(psf.data[0, 0, sl, sl])
+        if fit.x_stddev <= 0.0 or fit.y_stddev <= 0.0:
+            raise ValueError('Error in fitting to psf')
+        # fit_2dgaussian returns sqrt of variance. We need to convert that to FWHM.
+        # https://en.wikipedia.org/wiki/Full_width_at_half_maximum
+        scale_factor = numpy.sqrt(8 * numpy.log(2.0))
+        size=numpy.sqrt(fit.x_stddev * fit.y_stddev) * scale_factor
+        # Now we need to convert to radians
+        size *= numpy.pi * self.model.wcs.wcs.cdelt[1] / 180.0
+        # Very impressive! Desired 0.01 Acheived 0.0100006250829
+        assert numpy.abs(size - size_required) < 0.001 * size_required, \
+            "Fit should be %f, actually is %f" % (size_required, size)
 
     def test_tapering_Tukey(self):
         self.actualSetUp()
-        original_weight = copy.deepcopy(self.componentvis.imaging_weight)
-        vis = taper_visibility_tukey(self.componentvis, algorithm='Tukey', tukey=0.25)
-        assert vis.nvis == self.componentvis.nvis
+        self.componentvis, _, _ = weight_visibility(self.componentvis, self.model, algoritm='uniform')
+        self.componentvis = taper_visibility_tukey(self.componentvis, algorithm='Tukey', tukey=1.0)
+        psf, sumwt = invert_2d(self.componentvis, self.model, dopsf=True)
+        export_image_to_fits(psf, '%s/test_weighting_tukey_taper_psf.fits' % self.dir)
+        from arl.image.operations import fft_image
+        xfr = fft_image(psf)
+        xfr.data = xfr.data.real.astype('float')
+        export_image_to_fits(xfr, '%s/test_weighting_tukey_taper_xfr.fits' % self.dir)
 
 
 if __name__ == '__main__':

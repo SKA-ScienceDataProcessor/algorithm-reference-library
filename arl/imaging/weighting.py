@@ -67,13 +67,13 @@ def weighting_rank_filter_visibility(vis: Visibility, im: Image, **kwargs) -> Vi
 def taper_visibility_Gaussian(vis: Visibility, beam=None, **kwargs) -> Visibility:
     """ Taper the visibility weights
 
-    gaussian: Gaussian taper to specified beam size
+    gaussian: Gaussian taper to specified beam size (Full width half maximum)
 
     These are cumulative. If You can reset the imaging_weights
     using :py:mod:`arl.imaging.weighting.weight_visibility`
 
     :param vis: Visibility with imaging_weight's to be tapered
-    :param beam: desired resolution (radians)
+    :param beam: desired resolution (Full width half maximum, radians)
     :return: visibility with imaging_weight column modified
     """
     assert type(vis) is Visibility, "vis is not a Visibility: %r" % vis
