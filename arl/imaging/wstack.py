@@ -1,16 +1,15 @@
 """
-The w-stacking or w-slicing approach is to partition the visibility data by slices in w. The measurement equation is 
+The w-stacking or w-slicing approach is to partition the visibility data by slices in w. The measurement equation is
 approximated as:
 
 .. math::
 
     V(u,v,w) =\\sum_i \\int \\frac{ I(l,m) e^{-2 \\pi j (w_i(\\sqrt{1-l^2-m^2}-1))})}{\\sqrt{1-l^2-m^2}} e^{-2 \\pi j (ul+vm)} dl dm
 
-If images constructed from slices in w are added after applying a w-dependent image plane correction, the w term will be corrected. 
+If images constructed from slices in w are added after applying a w-dependent image plane correction, the w term will be corrected.
 """
 
 import numpy
-
 
 from arl.data.data_models import Visibility, Image
 from arl.imaging.iterated import predict_with_vis_iterator, invert_with_vis_iterator
@@ -65,7 +64,7 @@ def predict_wstack_single(vis, model, predict_inner=predict_2d_base, **kwargs) -
     avis.data['vis'] *= 0.0
     # We might want to do wprojection so we remove the average w
     w_average = numpy.average(avis.w)
-    avis.data['uvw'][...,2] -= w_average
+    avis.data['uvw'][..., 2] -= w_average
     tempvis = copy_visibility(avis)
 
     # Calculate w beam and apply to the model. The imaginary part is not needed
@@ -81,9 +80,10 @@ def predict_wstack_single(vis, model, predict_inner=predict_2d_base, **kwargs) -
     tempvis = predict_inner(tempvis, workimage, **kwargs)
     avis.data['vis'] -= 1j * tempvis.data['vis']
     
-    avis.data['uvw'][...,2] += w_average
+    avis.data['uvw'][..., 2] += w_average
 
     return avis
+
 
 def invert_wstack(vis: Visibility, im: Image, dopsf=False, normalize=True, **kwargs) -> (Image, numpy.ndarray):
     """ Invert using w stacking
@@ -108,6 +108,7 @@ def invert_wstack(vis: Visibility, im: Image, dopsf=False, normalize=True, **kwa
     return invert_with_vis_iterator(vis, im, dopsf, normalize=normalize, vis_iter=vis_wstack_iter,
                                     invert=invert_wstack_single, **kwargs)
 
+
 def invert_wstack_single(vis: Visibility, im: Image, dopsf, normalize=True, invert_inner=invert_2d_base, **kwargs) -> (Image, numpy.ndarray):
     """Process single w slice
     
@@ -124,9 +125,9 @@ def invert_wstack_single(vis: Visibility, im: Image, dopsf, normalize=True, inve
     
     # We might want to do wprojection so we remove the average w
     w_average = numpy.average(vis.w)
-    vis.data['uvw'][...,2] -= w_average
+    vis.data['uvw'][..., 2] -= w_average
     reWorkimage, sumwt, imWorkimage = invert_inner(vis, im, dopsf, normalize=normalize, **kwargs)
-    vis.data['uvw'][...,2] += w_average
+    vis.data['uvw'][..., 2] += w_average
 
     # Calculate w beam and apply to the model. The imaginary part is not needed
     w_beam = create_w_term_like(im, w_average, vis.phasecentre)

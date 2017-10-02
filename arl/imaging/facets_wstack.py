@@ -15,7 +15,8 @@ from arl.imaging.iterated import predict_with_image_iterator, invert_with_image_
 import logging
 log = logging.getLogger(__name__)
 
-def predict_facets_wstack(vis: Visibility, model: Image,  **kwargs)  -> Visibility:
+
+def predict_facets_wstack(vis: Visibility, model: Image, **kwargs) -> Visibility:
     """ Predict using image facets, calling specified predict function
 
     :param vis: Visibility to be predicted
@@ -24,9 +25,10 @@ def predict_facets_wstack(vis: Visibility, model: Image,  **kwargs)  -> Visibili
     """
     log.info("predict_facets_wstack: Predicting by image facets and w stacking")
     return predict_with_image_iterator(vis, model, image_iterator=raster_iter, predict_function=predict_wstack,
-                                **kwargs)
+                                       **kwargs)
 
-def invert_facets_wstack(vis: Visibility, im: Image, dopsf=False, normalize=True, **kwargs)  -> (Image, numpy.ndarray):
+
+def invert_facets_wstack(vis: Visibility, im: Image, dopsf=False, normalize=True, **kwargs) -> (Image, numpy.ndarray):
     """ Invert using image partitions, calling specified Invert function
 
     :param vis: Visibility to be inverted

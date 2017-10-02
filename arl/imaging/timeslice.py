@@ -26,9 +26,7 @@ Ignoring changes in the normalisation term, we have:
 
 import numpy
 
-import astropy.constants as constants
-
-from arl.data.data_models import Visibility, BlockVisibility, Image
+from arl.data.data_models import Visibility, Image
 
 from arl.image.operations import copy_image
 
@@ -38,14 +36,14 @@ from scipy.interpolate import griddata
 
 from arl.image.operations import create_empty_image_like
 from arl.visibility.iterators import vis_timeslice_iter
-from arl.visibility.coalesce import coalesce_visibility, decoalesce_visibility
-
+from arl.visibility.coalesce import coalesce_visibility
 
 import logging
 
 log = logging.getLogger(__name__)
 
-def fit_uvwplane_only(vis):
+
+def fit_uvwplane_only(vis: Visibility):
     """ Fit the best fitting plane p u + q v = w
 
     :param vis: visibility to be fitted
@@ -63,7 +61,7 @@ def fit_uvwplane_only(vis):
     return p, q
 
 
-def fit_uvwplane(vis, remove=True):
+def fit_uvwplane(vis: Visibility, remove=True):
     """ Fit and optionally remove the best fitting plane p u + q v = w
 
     :param vis: visibility to be fitted
@@ -75,10 +73,11 @@ def fit_uvwplane(vis, remove=True):
     residual = vis.data['uvw'][:, 2] - (p * vis.u + q * vis.v)
     after = numpy.max(numpy.std(residual))
     log.debug('fit_uvwplane: Fit to %d rows reduces rms w from %.1f to %.1f m'
-             % (nvis, before, after))
+              % (nvis, before, after))
     if remove:
         vis.data['uvw'][:, 2] -= p * vis.u + q * vis.v
     return vis, p, q
+
 
 def invert_timeslice(vis: Visibility, im: Image, dopsf=False, normalize=True, **kwargs) -> (Image, numpy.ndarray):
     """ Invert using time slices (top level function)
@@ -151,10 +150,10 @@ def predict_timeslice_single(vis: Visibility, model: Image, predict=predict_2d_b
                          fill_value=0.0,
                          rescale=True).reshape(workimage.data[chan, pol, ...].shape)
 
-    
     vis = predict(vis, workimage, **kwargs)
     
     return vis
+
 
 def lm_distortion(im: Image, a, b):
     """Calculate the nominal and distorted coordinates for w=au+bv
@@ -176,7 +175,6 @@ def lm_distortion(im: Image, a, b):
     l2d, m2d = numpy.meshgrid(lnominal1d, mnominal1d)
     
     dn2d = numpy.sqrt(1.0 - (l2d * l2d + m2d * m2d)) - 1.0
-    
     
     ldistorted = l2d + a * dn2d
     mdistorted = m2d + b * dn2d

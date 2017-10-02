@@ -208,7 +208,7 @@ def invert_2d_base(vis: Visibility, im: Image, dopsf: bool = False, normalize: b
         return resultimage, sumwt
 
 
-def invert_2d(vis: Visibility, im: Image, dopsf=False, normalize=True, **kwargs)  -> (Image, numpy.ndarray):
+def invert_2d(vis: Visibility, im: Image, dopsf=False, normalize=True, **kwargs) -> (Image, numpy.ndarray):
     """ Invert using prolate spheroidal gridding function
 
     Use the image im as a template. Do PSF in a separate call.
@@ -225,6 +225,7 @@ def invert_2d(vis: Visibility, im: Image, dopsf=False, normalize=True, **kwargs)
     log.debug("invert_2d: inverting using 2d transform")
     kwargs['kernel'] = get_parameter(kwargs, "kernel", '2d')
     return invert_2d_base(vis, im, dopsf, normalize=normalize, **kwargs)
+
 
 def predict_skycomponent_blockvisibility(vis: BlockVisibility,
                                          sc: Union[Skycomponent, List[Skycomponent]], **kwargs) -> BlockVisibility:

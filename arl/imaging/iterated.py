@@ -40,7 +40,6 @@ def invert_with_vis_iterator(vis: Visibility, im: Image, dopsf=False, normalize=
     else:
         svis = vis
 
-    
     i = 0
     for rows in vis_iter(svis, **kwargs):
         if numpy.sum(rows) and svis is not None:

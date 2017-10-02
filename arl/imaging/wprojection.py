@@ -24,7 +24,6 @@ import logging
 log = logging.getLogger(__name__)
 
 
-
 def predict_wprojection(vis: Visibility, model: Image, **kwargs) -> Visibility:
     """ Predict using convolutional degridding and w projection.
     
@@ -34,6 +33,7 @@ def predict_wprojection(vis: Visibility, model: Image, **kwargs) -> Visibility:
     """
     log.debug("predict_wprojection: predict using wprojection")
     return predict_2d_base(vis, model, kernel='wprojection', **kwargs)
+
 
 def invert_wprojection(vis: Visibility, im: Image, dopsf=False, normalize=True, **kwargs) -> (Image, numpy.ndarray):
     """ Predict using 2D convolution function, including w projection

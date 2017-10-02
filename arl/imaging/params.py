@@ -3,7 +3,6 @@ Functions that aid definition of fourier transform processing.
 """
 
 import logging
-import copy
 
 import astropy.constants as constants
 import numpy
@@ -17,7 +16,7 @@ from arl.image.operations import create_w_term_like, copy_image, pad_image, fft_
 log = logging.getLogger(__name__)
 
 
-def get_frequency_map(vis, im=None, **kwargs):
+def get_frequency_map(vis, im: Visibility = None, **kwargs):
     """ Map channels from visibilities to image
 
     """
@@ -30,7 +29,6 @@ def get_frequency_map(vis, im=None, **kwargs):
         spectral_mode = 'channel'
         vfrequencymap = get_rowmap(vis.frequency, ufrequency)
         assert min(vfrequencymap) >= 0, "Invalid frequency map: visibility channel < 0"
-    
     
     elif im.data.shape[0] == 1 and vnchan >= 1:
         spectral_mode = 'mfs'
@@ -87,7 +85,7 @@ def get_rowmap(col, ucol=None):
     return vmap
 
 
-def get_uvw_map(vis, im, **kwargs):
+def get_uvw_map(vis: Visibility, im: Image, **kwargs):
     """ Get the generators that map channels uvw to pixels
 
     """
@@ -108,7 +106,7 @@ def get_uvw_map(vis, im, **kwargs):
     return uvw_mode, shape, padding, vuvwmap
 
 
-def standard_kernel_list(vis, shape, oversampling=8, support=3):
+def standard_kernel_list(vis: Visibility, shape, oversampling=8, support=3):
     """Return a generator to calculate the standard visibility kernel
 
     :param vis: visibility
@@ -120,7 +118,7 @@ def standard_kernel_list(vis, shape, oversampling=8, support=3):
     return numpy.zeros_like(vis.w, dtype='int'), [anti_aliasing_calculate(shape, oversampling, support)[1]]
 
 
-def w_kernel_list(vis, im, oversampling=1, wstep=50.0, kernelwidth=16, **kwargs):
+def w_kernel_list(vis: Visibility, im: Image, oversampling=1, wstep=50.0, kernelwidth=16, **kwargs):
     """ Calculate w convolution kernels
     
     Uses create_w_term_like to calculate the w screen. This is exactly as wstacking does.
@@ -175,7 +173,7 @@ def w_kernel_list(vis, im, oversampling=1, wstep=50.0, kernelwidth=16, **kwargs)
         wconv.data *= float(oversampling)**2
         # For the moment, ignore the polarisation and channel axes
         kernels.append(convert_image_to_kernel(wconv, oversampling,
-                                                               kernelwidth).data[0,0,...])
+                                               kernelwidth).data[0, 0, ...])
     
     # Now make a lookup table from row number of vis to the kernel
     kernel_indices = digitise(vis.w, wstep)
@@ -223,7 +221,7 @@ def get_kernel_list(vis: Visibility, im: Image, **kwargs):
         kernelwidth = max(kernelwidth, 8)
         assert kernelwidth % 2 == 0
         log.debug("get_kernel_list: Maximum w kernel full width = %d pixels" % (kernelwidth))
-        padded_shape=[im.shape[0], im.shape[1], im.shape[2] * padding, im.shape[3] * padding]
+        padded_shape = [im.shape[0], im.shape[1], im.shape[2] * padding, im.shape[3] * padding]
 
         remove_shift = get_parameter(kwargs, "remove_shift", True)
         padded_image = pad_image(im, padded_shape)
@@ -237,7 +235,7 @@ def get_kernel_list(vis: Visibility, im: Image, **kwargs):
     return kernelname, gcf, kernel_list
 
 
-def advise_wide_field(vis, delA=0.02, oversampling_synthesised_beam=3.0, guard_band_image=6.0, facets=1,
+def advise_wide_field(vis: Visibility, delA=0.02, oversampling_synthesised_beam=3.0, guard_band_image=6.0, facets=1,
                       wprojection_planes=1):
     """ Advise on parameters for wide field imaging.
     
@@ -258,12 +256,12 @@ def advise_wide_field(vis, delA=0.02, oversampling_synthesised_beam=3.0, guard_b
     :return: dict of advice
     """
     max_wavelength = constants.c.to('m/s').value / numpy.min(vis.frequency)
-    log.info("advise_wide_field: Maximum wavelength %.3f (meters)" %(max_wavelength))
+    log.info("advise_wide_field: Maximum wavelength %.3f (meters)" % (max_wavelength))
 
     min_wavelength = constants.c.to('m/s').value / numpy.max(vis.frequency)
-    log.info("advise_wide_field: Minimum wavelength %.3f (meters)" %(min_wavelength))
+    log.info("advise_wide_field: Minimum wavelength %.3f (meters)" % (min_wavelength))
 
-    maximum_baseline = numpy.max(numpy.abs(vis.uvw)) # Wavelengths
+    maximum_baseline = numpy.max(numpy.abs(vis.uvw))  # Wavelengths
     if type(vis) == BlockVisibility:
         maximum_baseline = maximum_baseline / min_wavelength
     log.info("advise_wide_field: Maximum baseline %.1f (wavelengths)" % (maximum_baseline))
@@ -284,7 +282,7 @@ def advise_wide_field(vis, delA=0.02, oversampling_synthesised_beam=3.0, guard_b
     synthesized_beam = 1.0 / (maximum_baseline)
     log.info("advise_wide_field: Synthesized beam %s" % (rad_and_deg(synthesized_beam)))
 
-    cellsize = synthesized_beam/oversampling_synthesised_beam
+    cellsize = synthesized_beam / oversampling_synthesised_beam
     log.info("advise_wide_field: Cellsize %s" % (rad_and_deg(cellsize)))
 
     def pwr23(n):
@@ -294,7 +292,7 @@ def advise_wide_field(vis, delA=0.02, oversampling_synthesised_beam=3.0, guard_b
             best = best * 3 // 4
         return best
 
-    npixels = int(round(image_fov/cellsize))
+    npixels = int(round(image_fov / cellsize))
     log.info("advice_wide_field: Npixels per side = %d" % (npixels))
 
     npixels2 = pwr23(npixels)
@@ -314,24 +312,24 @@ def advise_wide_field(vis, delA=0.02, oversampling_synthesised_beam=3.0, guard_b
     w_sampling_primary_beam = numpy.sqrt(2.0 * delA) / (numpy.pi * primary_beam_fov ** 2)
     log.info("advice_wide_field: W sampling for primary beam = %.1f (wavelengths)" % (w_sampling_primary_beam))
 
-    time_sampling_image =  86400.0 * w_sampling_image / (numpy.pi * maximum_baseline)
+    time_sampling_image = 86400.0 * w_sampling_image / (numpy.pi * maximum_baseline)
     log.info("advice_wide_field: Time sampling for full image = %.1f (s)" % (time_sampling_image))
 
     if facets > 1:
-        time_sampling_facet =  86400.0 * w_sampling_facet / (numpy.pi * maximum_baseline)
+        time_sampling_facet = 86400.0 * w_sampling_facet / (numpy.pi * maximum_baseline)
         log.info("advice_wide_field: Time sampling for facet = %.1f (s)" % (time_sampling_facet))
 
-    time_sampling_primary_beam =  86400.0 * w_sampling_primary_beam / (numpy.pi * maximum_baseline)
+    time_sampling_primary_beam = 86400.0 * w_sampling_primary_beam / (numpy.pi * maximum_baseline)
     log.info("advice_wide_field: Time sampling for primary beam = %.1f (s)" % (time_sampling_primary_beam))
 
-    freq_sampling_image =  numpy.max(vis.frequency) * w_sampling_image / (numpy.pi * maximum_baseline)
+    freq_sampling_image = numpy.max(vis.frequency) * w_sampling_image / (numpy.pi * maximum_baseline)
     log.info("advice_wide_field: Frequency sampling for full image = %.1f (Hz)" % (freq_sampling_image))
 
     if facets > 1:
-        freq_sampling_facet =  numpy.max(vis.frequency) * w_sampling_facet / (numpy.pi * maximum_baseline)
+        freq_sampling_facet = numpy.max(vis.frequency) * w_sampling_facet / (numpy.pi * maximum_baseline)
         log.info("advice_wide_field: Frequency sampling for facet = %.1f (Hz)" % (freq_sampling_facet))
 
-    freq_sampling_primary_beam =  numpy.max(vis.frequency) * w_sampling_primary_beam / (numpy.pi * maximum_baseline)
+    freq_sampling_primary_beam = numpy.max(vis.frequency) * w_sampling_primary_beam / (numpy.pi * maximum_baseline)
     log.info("advice_wide_field: Frequency sampling for primary beam = %.1f (Hz)" % (freq_sampling_primary_beam))
 
     wstep = w_sampling_primary_beam
@@ -347,9 +345,9 @@ def advise_wide_field(vis, delA=0.02, oversampling_synthesised_beam=3.0, guard_b
 
     return locals()
 
+
 def rad_and_deg(x):
     """ Stringify x in radian and degress forms
     
     """
     return "%.6f (rad) %.3f (deg)" % (x, 180.0 * x / numpy.pi)
-

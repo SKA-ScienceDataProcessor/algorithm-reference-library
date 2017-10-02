@@ -16,7 +16,8 @@ import logging
 
 log = logging.getLogger(__name__)
 
-def predict_facets_wprojection(vis: Visibility, model: Image, **kwargs)  -> \
+
+def predict_facets_wprojection(vis: Visibility, model: Image, **kwargs) -> \
         Visibility:
     """ Predict using image facets, calling predict_wprojection
 
@@ -26,10 +27,11 @@ def predict_facets_wprojection(vis: Visibility, model: Image, **kwargs)  -> \
     """
     log.info("predict_facets_wprojection: Predicting by image facets and w projection")
     return predict_with_image_iterator(vis, model, image_iterator=raster_iter, predict_function=predict_wprojection,
-                                **kwargs)
+                                       **kwargs)
 
-def invert_facets_wprojection(vis: Visibility, im: Image, dopsf=False, normalize=True, **kwargs)  -> (Image,
-                                                                                                      numpy.ndarray):
+
+def invert_facets_wprojection(vis: Visibility, im: Image, dopsf=False, normalize=True, **kwargs) -> (Image,
+                                                                                                     numpy.ndarray):
     """ Invert using image partitions, calling invert_wprojection
 
     :param vis: Visibility to be inverted
