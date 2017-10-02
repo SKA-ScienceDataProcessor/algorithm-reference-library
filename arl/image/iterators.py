@@ -12,6 +12,7 @@ from arl.image.operations import create_image_from_array
 
 log = logging.getLogger(__name__)
 
+
 def raster_iter(im: Image, facets=2, **kwargs) -> Image:
     """Create a raster_iter generator, returning images
 
@@ -38,10 +39,10 @@ def raster_iter(im: Image, facets=2, **kwargs) -> Image:
     dy = int(im.nheight // facets)
     log.debug('raster: spacing of raster (%d, %d)' % (dx, dy))
 
-    for y in range(0,im.nheight, dy):
-        for x in range(0,im.nwidth, dx):
+    for y in range(0, im.nheight, dy):
+        for x in range(0, im.nwidth, dx):
             log.debug('raster: partition (%d, %d) of (%d, %d)' %
-                     (x//dx, y//dy, facets, facets))
+                      (x // dx, y // dy, facets, facets))
 
             # Adjust WCS
             wcs = im.wcs.deepcopy()
@@ -49,7 +50,7 @@ def raster_iter(im: Image, facets=2, **kwargs) -> Image:
             wcs.wcs.crpix[1] -= y
 
             # Yield image from slice (reference!)
-            yield create_image_from_array(im.data[..., y:y+dy, x:x+dx], wcs)
+            yield create_image_from_array(im.data[..., y:y + dy, x:x + dx], wcs)
 
 def channel_iter(im: Image, subimages=1, **kwargs) -> Image:
     """Create a channel_iter generator, returning images
@@ -75,8 +76,8 @@ def channel_iter(im: Image, subimages=1, **kwargs) -> Image:
     assert len(channels) == subimages, "subimages %d does not match length of channels %d" % (subimages, len(channels))
 
     for i, channel in enumerate(channels):
-        if i+1 < len(channels):
-            channel_max = channels[i+1]
+        if i + 1 < len(channels):
+            channel_max = channels[i + 1]
         else:
             channel_max = nchan
 
@@ -85,4 +86,4 @@ def channel_iter(im: Image, subimages=1, **kwargs) -> Image:
         wcs.wcs.crpix[3] -= channel
 
         # Yield image from slice (reference!)
-        yield create_image_from_array(im.data[channel:channel_max,...], wcs)
+        yield create_image_from_array(im.data[channel:channel_max, ...], wcs)

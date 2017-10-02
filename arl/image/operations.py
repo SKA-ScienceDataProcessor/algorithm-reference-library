@@ -5,7 +5,6 @@ Functions that define and manipulate images. Images are just data and a World Co
 """
 
 import numpy
-import os
 import copy
 import warnings
 
@@ -18,8 +17,7 @@ from arl.data.parameters import arl_path
 from arl.data.data_models import Image, QA
 from arl.data.polarisation import PolarisationFrame, convert_circular_to_stokes, convert_linear_to_stokes, \
     convert_stokes_to_circular, convert_stokes_to_linear
-from arl.fourier_transforms.fft_support import fft, ifft, pad_mid, extract_mid
-
+from arl.fourier_transforms.fft_support import fft, ifft
 
 import logging
 
@@ -350,7 +348,7 @@ def smooth_image(model: Image, width=1.0):
     for pol in range(npol):
         for chan in range(nchan):
             cmodel.data[chan, pol, :, :] = astropy.convolution.convolve(model.data[chan, pol, :, :], kernel,
-                                                                  normalize_kernel=False)
+                                                                        normalize_kernel=False)
     if type(kernel) is astropy.convolution.kernels.Gaussian2DKernel:
         cmodel.data *= 2 * numpy.pi * width ** 2
     
@@ -468,7 +466,7 @@ def remove_continuum_image(im: Image, degree=1, mask=None, **kwargs):
     nchan, npol, ny, nx = im.shape
     channels = numpy.arange(nchan)
     frequency = im.wcs.sub(['spectral']).wcs_pix2world(channels, 0)[0]
-    frequency -= frequency[nchan//2]
+    frequency -= frequency[nchan // 2]
     frequency /= numpy.max(frequency)
     wt = numpy.ones_like(frequency)
     if mask is not None:
@@ -524,6 +522,7 @@ def fft_image(im, template_image=None, **kwargs):
     else:
         raise NotImplementedError("Cannot FFT specified axes")
 
+
 def pad_image(im: Image, shape, **kwargs):
     """Pad an image to desired shape
     
@@ -550,8 +549,9 @@ def pad_image(im: Image, shape, **kwargs):
         yend = ystart + im.shape[2]
         xstart = shape[3] // 2 - im.shape[3] // 2
         xend = xstart + im.shape[3]
-        newdata[...,ystart:yend,xstart:xend] = im.data[...]
+        newdata[..., ystart:yend, xstart:xend] = im.data[...]
         return create_image_from_array(newdata, newwcs, polarisation_frame=im.polarisation_frame)
+
 
 def convert_image_to_kernel(im: Image, oversampling, kernelwidth, **kwargs):
     """ Convert an image to a gridding kernel
@@ -575,23 +575,23 @@ def convert_image_to_kernel(im: Image, oversampling, kernelwidth, **kwargs):
 
     assert im.wcs.wcs.ctype[0] == 'UU', 'Axis type %s inappropriate for construction of kernel' % im.wcs.wcs.ctype[0]
     assert im.wcs.wcs.ctype[1] == 'VV', 'Axis type %s inappropriate for construction of kernel' % im.wcs.wcs.ctype[1]
-    newwcs = WCS(naxis=naxis+2)
+    newwcs = WCS(naxis=naxis + 2)
     for axis in range(2):
         newwcs.wcs.ctype[axis] = im.wcs.wcs.ctype[axis]
         newwcs.wcs.crpix[axis] = kernelwidth // 2
         newwcs.wcs.crval[axis] = 0.0
         newwcs.wcs.cdelt[axis] = im.wcs.wcs.cdelt[axis] * oversampling
 
-        newwcs.wcs.ctype[axis+2] = im.wcs.wcs.ctype[axis]
-        newwcs.wcs.crpix[axis+2] = oversampling // 2
-        newwcs.wcs.crval[axis+2] = 0.0
-        newwcs.wcs.cdelt[axis+2] = im.wcs.wcs.cdelt[axis]
+        newwcs.wcs.ctype[axis + 2] = im.wcs.wcs.ctype[axis]
+        newwcs.wcs.crpix[axis + 2] = oversampling // 2
+        newwcs.wcs.crval[axis + 2] = 0.0
+        newwcs.wcs.cdelt[axis + 2] = im.wcs.wcs.cdelt[axis]
         
         # Now do Stokes and Frequency
-        newwcs.wcs.ctype[axis+4] = im.wcs.wcs.ctype[axis+2]
-        newwcs.wcs.crpix[axis+4] = im.wcs.wcs.crpix[axis+2]
-        newwcs.wcs.crval[axis+4] = im.wcs.wcs.crval[axis+2]
-        newwcs.wcs.cdelt[axis+4] = im.wcs.wcs.cdelt[axis+2]
+        newwcs.wcs.ctype[axis + 4] = im.wcs.wcs.ctype[axis + 2]
+        newwcs.wcs.crpix[axis + 4] = im.wcs.wcs.crpix[axis + 2]
+        newwcs.wcs.crval[axis + 4] = im.wcs.wcs.crval[axis + 2]
+        newwcs.wcs.cdelt[axis + 4] = im.wcs.wcs.cdelt[axis + 2]
         
     newdata_shape = []
     newdata_shape.append(nchan)
@@ -608,15 +608,15 @@ def convert_image_to_kernel(im: Image, oversampling, kernelwidth, **kwargs):
 
     ystart = ny // 2 - oversampling * kernelwidth // 2
     xstart = nx // 2 - oversampling * kernelwidth // 2
-    yend =   ny // 2 + oversampling * kernelwidth // 2
-    xend =   nx // 2 + oversampling * kernelwidth // 2
+    yend = ny // 2 + oversampling * kernelwidth // 2
+    xend = nx // 2 + oversampling * kernelwidth // 2
     for chan in range(nchan):
         for pol in range(npol):
             for y in range(oversampling):
-                slicey = slice(yend+y, ystart+y, -oversampling)
+                slicey = slice(yend + y, ystart + y, -oversampling)
                 for x in range(oversampling):
-                    slicex = slice(xend+x, xstart+x, -oversampling)
-                    newdata[chan,pol,y,x,...]=im.data[chan,pol,slicey,slicex]
+                    slicex = slice(xend + x, xstart + x, -oversampling)
+                    newdata[chan, pol, y, x, ...] = im.data[chan, pol, slicey, slicex]
                     
     return create_image_from_array(newdata, newwcs)
 
@@ -643,14 +643,14 @@ def create_w_term_like(im: Image, w, phasecentre=None, **kwargs) -> Image:
     if phasecentre is SkyCoord:
         wcentre = phasecentre.to_pixel(im.wcs, origin=1)
     else:
-        wcentre=[im.wcs.wcs.crpix[0], im.wcs.wcs.crpix[1]]
+        wcentre = [im.wcs.wcs.crpix[0], im.wcs.wcs.crpix[1]]
         
     fim.data = numpy.zeros(fim.shape, dtype='complex')
-    remove_shift=get_parameter(kwargs, "remove_shift", False)
+    remove_shift = get_parameter(kwargs, "remove_shift", False)
     for chan in range(nchan):
         for pol in range(npol):
-            fim.data[chan, pol,...] = w_beam(npixel, npixel * cellsize, w=w, cx=wcentre[0], cy=wcentre[1],
-                                             remove_shift=remove_shift)
+            fim.data[chan, pol, ...] = w_beam(npixel, npixel * cellsize, w=w, cx=wcentre[0],
+                                              cy=wcentre[1], remove_shift=remove_shift)
     
     fov = npixel * cellsize
     fresnel = numpy.abs(w) * (0.5 * fov) ** 2

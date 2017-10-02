@@ -167,10 +167,10 @@ def msclean(dirty, psf, window, gain, thresh, niter, scales, fracthresh):
         # Find the values to subtract, accounting for the coupling matrix
         mval = res_scalestack[mscale, mx, my] / coupling_matrix[mscale, mscale]
         if niter < 10 or i % (niter // 10) == 0:
-            log.info("msclean: Minor cycle %d, peak %s at [%d, %d, %d]" % \
+            log.info("msclean: Minor cycle %d, peak %s at [%d, %d, %d]" %
                      (i, res_scalestack[:, mx, my], mx, my, mscale))
         if numpy.fabs(mval) < absolutethresh:
-            log.info("msclean: Absolute value of peak %.6f is below stopping threshold %.6f" \
+            log.info("msclean: Absolute value of peak %.6f is below stopping threshold %.6f"
                      % (numpy.fabs(res_scalestack[mscale, mx, my]), absolutethresh))
             break
 
@@ -471,14 +471,13 @@ def msmfsclean(dirty, psf, window, gain, thresh, niter, scales, fracthresh, find
         scale_flux[mscale] += mval[0]
 
         # Report on progress
-        raw_mval = smresidual[mscale, :, mx, my]
         if niter < 10 or i % (niter // 10) == 0:
             log.info("msmfsclean: Minor cycle %d, peak %s at [%d, %d, %d]" % (i, mval, mx, my, mscale))
 
         # Are we ready to stop yet?
         peak = numpy.max(numpy.fabs(mval))
         if peak < absolutethresh:
-            log.info("msmfsclean: Absolute value of peak %.6f is below stopping threshold %.6f" \
+            log.info("msmfsclean: Absolute value of peak %.6f is below stopping threshold %.6f"
                      % (peak, absolutethresh))
             break
 
@@ -511,14 +510,14 @@ def find_global_optimum(hsmmpsf, ihsmmpsf, smresidual, windowstack, findpeak):
         # CASA 4.7 version
         smpsol = calculate_scale_moment_principal_solution(smresidual, ihsmmpsf)
         #        smpsol = calculate_scale_moment_approximate_principal_solution(smresidual, hsmmpsf)
-        nscales, nmoments, nx, ny = smpsol.shape #pylint: disable=no-member
+        nscales, nmoments, nx, ny = smpsol.shape  # pylint: disable=no-member
         dchisq = numpy.zeros([nscales, 1, nx, ny])
         for scale in range(nscales):
             for moment1 in range(nmoments):
                 dchisq[scale, 0, ...] += 2.0 * smpsol[scale, moment1, ...] * smresidual[scale, moment1, ...]
                 for moment2 in range(nmoments):
                     dchisq[scale, 0, ...] -= hsmmpsf[scale, moment1, moment2] * \
-                                             smpsol[scale, moment1, ...] * smpsol[scale, moment2, ...]
+                        smpsol[scale, moment1, ...] * smpsol[scale, moment2, ...]
 
         mx, my, mscale = find_optimum_scale_zero_moment(dchisq, windowstack)
         mval = smpsol[mscale, :, mx, my]
