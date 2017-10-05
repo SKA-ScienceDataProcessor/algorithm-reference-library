@@ -16,8 +16,6 @@ subimages and passed to processing by imagerooter, and then the answers are reas
 We  could keep the graph and use it in other graphs. See the imaging-dask note book for more detail.
 """
 
-import numpy
-
 from dask import delayed
 
 from arl.data.data_models import Image
@@ -26,7 +24,7 @@ from arl.image.gather_scatter import image_gather_facets, image_scatter_facets
 
 
 def create_generic_blockvisibility_graph(visfunction, vis_graph_list, additive=True, *args,
-                                         **kwargs) :
+                                         **kwargs):
     """ Definition of interface for create_generic_blockvisibility_graph_visfunction.
 
     :func visfunction: Function to be applied
@@ -77,7 +75,8 @@ def create_generic_image_iterator_graph(imagefunction, im: Image, iterator, **kw
         results.append(delayed(imagefunction(copy_image(dpatch), **kwargs)))
     
     return delayed(accumulate_results, pure=True)(results, **kwargs)
-   
+
+
 def create_generic_image_graph(image_unary_function, im: Image, facets=4, **kwargs) -> delayed:
     """ Definition of interface for create_generic_image_graph using scatter/gather
 
@@ -93,3 +92,4 @@ def create_generic_image_graph(image_unary_function, im: Image, facets=4, **kwar
     scattered = delayed(image_scatter_facets, pure=True, nout=facets ** 2)(im, facets=facets)
     result = [delayed(image_unary_function)(s) for s in scattered]
     return delayed(image_gather_facets, nout=1, pure=True)(result, output, facets=facets)
+

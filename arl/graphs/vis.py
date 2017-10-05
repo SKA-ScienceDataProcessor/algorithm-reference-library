@@ -16,7 +16,6 @@ from dask.callbacks import Callback
 from dask.dot import dot_graph
 
 
-
 def node_key(s):
     if isinstance(s, tuple):
         return s[0]
@@ -79,6 +78,7 @@ def simple_vis(x, filename='simple', format=None, **kwargs):
 
 # Scheduler plugin to produce animated graphs
 # From https://gist.github.com/jcrist/0c28f632513aa13d4edea3d482bf47d1
+
 
 class Track(Callback):
     def __init__(self, path='dasks', save_every=1):
