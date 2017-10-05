@@ -10,7 +10,7 @@ from astropy.coordinates import SkyCoord
 
 from arl.data.data_models import BlockVisibility, Visibility, QA
 from arl.imaging.params import get_frequency_map
-from arl.util.coordinate_support import xyz_to_uvw, uvw_to_xyz, skycoord_to_lmn, simulate_point
+from arl.util.coordinate_support import skycoord_to_lmn, simulate_point
 from arl.visibility.base import copy_visibility
 
 log = logging.getLogger(__name__)

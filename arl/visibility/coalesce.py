@@ -71,7 +71,7 @@ def coalesce_visibility(vis: BlockVisibility, **kwargs) -> Visibility:
                                blockvis=vis)
 
     log.debug('coalesce_visibility: Created new Visibility for coalesced data, coalescence factors (t,f) = (%.3f,%.3f)'
-             % (time_coal, frequency_coal))
+              % (time_coal, frequency_coal))
     log.debug('coalesce_visibility: Maximum coalescence (t,f) = (%d, %d)' % (max_time_coal, max_frequency_coal))
     log.debug('coalesce_visibility: Original %s, coalesced %s' % (vis_summary(vis),
                                                                   vis_summary(coalesced_vis)))

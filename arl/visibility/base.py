@@ -148,7 +148,6 @@ def create_blockvisibility(config: Configuration,
     nch = len(frequency)
     ants_xyz = config.data['xyz']
     nants = len(config.data['names'])
-    nbaselines = int(nants * (nants - 1) / 2)
     ntimes = len(times)
     npol = polarisation_frame.npol
     visshape = [ntimes, nants, nants, nch, npol]
@@ -174,7 +173,7 @@ def create_blockvisibility(config: Configuration,
     rintegration_time = numpy.full_like(rtimes, integration_time)
     rchannel_bandwidth = numpy.full_like(frequency, channel_bandwidth)
     if zerow:
-        ruvw[...,2] = 0.0
+        ruvw[..., 2] = 0.0
     vis = BlockVisibility(uvw=ruvw, time=rtimes, frequency=frequency, vis=rvis, weight=rweight,
                           integration_time=rintegration_time, channel_bandwidth=rchannel_bandwidth,
                           polarisation_frame=polarisation_frame)

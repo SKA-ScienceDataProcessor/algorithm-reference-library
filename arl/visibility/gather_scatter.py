@@ -11,7 +11,7 @@ A typical use would be to make a sequence of snapshot visibilitys::
 """
 
 import logging
-from typing import List, Union
+from typing import List
 
 import numpy
 
@@ -111,8 +111,8 @@ def visibility_scatter_channel(vis: BlockVisibility, **kwargs) -> List[Visibilit
                               configuration=v.configuration,
                               uvw=v.uvw,
                               time=v.time,
-                              vis=v.vis[...,chan,:][...,numpy.newaxis,:],
-                              weight=v.weight[...,chan,:][...,numpy.newaxis,:],
+                              vis=v.vis[..., chan, :][..., numpy.newaxis, :],
+                              weight=v.weight[..., chan, :][..., numpy.newaxis, :],
                               integration_time=v.integration_time,
                               polarisation_frame=v.polarisation_frame)
         return vis
