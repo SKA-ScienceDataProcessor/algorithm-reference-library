@@ -17,6 +17,7 @@ import logging
 
 log = logging.getLogger(__name__)
 
+
 def create_simulate_vis_graph(config='LOWBD2-CORE',
                               phasecentre=SkyCoord(ra=+15.0 * u.deg, dec=-60.0 * u.deg, frame='icrs', equinox='J2000'),
                               frequency=None, channel_bandwidth=None, times=None,
@@ -58,41 +59,41 @@ def create_simulate_vis_graph(config='LOWBD2-CORE',
         frequency = [1e8]
     conf = create_named_configuration(config, **kwargs)
 
-    if order =='time':
+    if order == 'time':
         log.debug("create_simulate_vis_graph: Simulating distribution in %s" % order)
         vis_graph_list = list()
         for i, time in enumerate(times):
             vis_graph_list.append(delayed(create_vis, nout=1)(conf, [times[i]], frequency=frequency,
-                                                                channel_bandwidth=channel_bandwidth,
-                                                                weight=1.0, phasecentre=phasecentre,
-                                                                polarisation_frame=polarisation_frame, **kwargs))
+                                                              channel_bandwidth=channel_bandwidth,
+                                                              weight=1.0, phasecentre=phasecentre,
+                                                              polarisation_frame=polarisation_frame, **kwargs))
 
     elif order == 'frequency':
         log.debug("create_simulate_vis_graph: Simulating distribution in %s" % order)
         vis_graph_list = list()
         for j, _ in enumerate(frequency):
             vis_graph_list.append(delayed(create_vis, nout=1)(conf, times, frequency=[frequency[j]],
-                                                                channel_bandwidth=[channel_bandwidth[j]],
-                                                                weight=1.0, phasecentre=phasecentre,
-                                                                polarisation_frame=polarisation_frame, **kwargs))
+                                                              channel_bandwidth=[channel_bandwidth[j]],
+                                                              weight=1.0, phasecentre=phasecentre,
+                                                              polarisation_frame=polarisation_frame, **kwargs))
 
-    elif order =='both':
+    elif order == 'both':
         log.debug("create_simulate_vis_graph: Simulating distribution in time and frequency")
         vis_graph_list = list()
         for i, _ in enumerate(times):
             for j, _ in enumerate(frequency):
                 vis_graph_list.append(delayed(create_vis, nout=1)(conf, [times[i]], frequency=[frequency[j]],
-                                                                    channel_bandwidth=[channel_bandwidth[j]],
-                                                                    weight=1.0, phasecentre=phasecentre,
-                                                                    polarisation_frame=polarisation_frame, **kwargs))
+                                                                  channel_bandwidth=[channel_bandwidth[j]],
+                                                                  weight=1.0, phasecentre=phasecentre,
+                                                                  polarisation_frame=polarisation_frame, **kwargs))
 
     elif order is None:
         log.debug("create_simulate_vis_graph: Simulating into single %s" % format)
         vis_graph_list = list()
         vis_graph_list.append(delayed(create_vis, nout=1)(conf, times, frequency=frequency,
-                                                      channel_bandwidth=channel_bandwidth,
-                                                      weight=1.0, phasecentre=phasecentre,
-                                                      polarisation_frame=polarisation_frame, **kwargs))
+                                                          channel_bandwidth=channel_bandwidth,
+                                                          weight=1.0, phasecentre=phasecentre,
+                                                          polarisation_frame=polarisation_frame, **kwargs))
     else:
         raise NotImplementedError("order $s not known" % order)
     return vis_graph_list
@@ -147,6 +148,7 @@ def create_gleam_model_graph(vis_graph: delayed, frequency, channel_bandwidth, n
 
     return delayed(calculate_gleam_model, nout=1)(vis_graph)
 
+
 def create_corrupt_vis_graph(vis_graph_list, gt_graph=None, **kwargs):
     """ Create a graph to apply gain errors to a vis_graph_list
 
@@ -177,6 +179,7 @@ def create_dump_vis_graph(vis_graph_list, name='imaging_dask') -> delayed:
             arl_dump(v, "%s_%d.pickle" % (name, i))
 
     return delayed(save_all)(vis_graph_list)
+
 
 def create_load_vis_graph(name='imaging_dask'):
     """ Load's pickled data with the glob of "%s_*.pickle" % (name)

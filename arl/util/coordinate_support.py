@@ -226,8 +226,6 @@ def uvw_transform(uvw, transform_matrix):
     :return: New baseline coordinates
     """
     
-    # Calculate transformation matrix (see Sault)
-    tt = numpy.linalg.inv(numpy.transpose(transform_matrix))
     # Apply to uv coordinates
     uv1 = numpy.dot(uvw[:, 0:2], transform_matrix)
     # Restack with original w values

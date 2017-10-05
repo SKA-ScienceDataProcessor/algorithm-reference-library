@@ -11,7 +11,6 @@ import logging
 log = logging.getLogger(__name__)
 
 
-
 def run_unittests(logLevel=logging.DEBUG, *args, **kwargs):
     """Runs the unit tests in all loaded modules.
 
