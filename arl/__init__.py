@@ -1,3 +1,3 @@
-"""Algorithm Reference Library
+""" Algorithm Reference Library
 
 """
