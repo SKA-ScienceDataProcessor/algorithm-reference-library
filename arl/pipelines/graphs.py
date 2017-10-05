@@ -8,6 +8,7 @@ from arl.image.deconvolution import restore_cube
 from arl.graphs.graphs import create_deconvolve_graph, create_invert_graph, create_residual_graph, \
     create_selfcal_graph_list, create_predict_graph
 
+
 def create_continuum_imaging_pipeline_graph(vis_graph_list, model_graph: delayed,
                                             c_deconvolve_graph=create_deconvolve_graph,
                                             c_invert_graph=create_invert_graph,
