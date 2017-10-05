@@ -23,7 +23,6 @@ Ignoring changes in the normalisation term, we have:
 
 
 """
-
 import numpy
 
 from arl.data.data_models import Visibility, Image
@@ -43,7 +42,7 @@ import logging
 log = logging.getLogger(__name__)
 
 
-def fit_uvwplane_only(vis: Visibility):
+def fit_uvwplane_only(vis: Visibility) -> (float, float):
     """ Fit the best fitting plane p u + q v = w
 
     :param vis: visibility to be fitted
@@ -61,7 +60,7 @@ def fit_uvwplane_only(vis: Visibility):
     return p, q
 
 
-def fit_uvwplane(vis: Visibility, remove=True):
+def fit_uvwplane(vis: Visibility, remove=True) -> (Image, float, float):
     """ Fit and optionally remove the best fitting plane p u + q v = w
 
     :param vis: visibility to be fitted
@@ -96,7 +95,7 @@ def invert_timeslice(vis: Visibility, im: Image, dopsf=False, normalize=True, **
                                     normalize=normalize, invert=invert_timeslice_single, **kwargs)
 
 
-def predict_timeslice(vis: Visibility, model: Image, **kwargs):
+def predict_timeslice(vis: Visibility, model: Image, **kwargs) -> Visibility:
     """ Predict using time slices.
 
     :param vis: Visibility to be predicted
@@ -109,7 +108,7 @@ def predict_timeslice(vis: Visibility, model: Image, **kwargs):
                                      predict=predict_timeslice_single, **kwargs)
 
 
-def predict_timeslice_single(vis: Visibility, model: Image, predict=predict_2d_base, **kwargs):
+def predict_timeslice_single(vis: Visibility, model: Image, predict=predict_2d_base, **kwargs) -> Visibility:
     """ Predict using a single time slices.
     
     This fits a single plane and corrects the image geometry.
@@ -155,7 +154,7 @@ def predict_timeslice_single(vis: Visibility, model: Image, predict=predict_2d_b
     return vis
 
 
-def lm_distortion(im: Image, a, b):
+def lm_distortion(im: Image, a, b) -> (numpy.ndarray, numpy.ndarray, numpy.ndarray, numpy.ndarray):
     """Calculate the nominal and distorted coordinates for w=au+bv
     
     :param im: Image with the coordinate system
