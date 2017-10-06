@@ -1,4 +1,4 @@
-"""Unit tests for testing support
+""" Unit tests for testing support
 
 
 """
@@ -60,7 +60,7 @@ class TestTestingDaskGraphSupport(unittest.TestCase):
             assert qa.data['max'] > 0.0
 
     @unittest.skipIf(('JENKINS_URL' in os.environ or 'TRAVIS' in os.environ),
-             "Cannot run this under Jenkins or Travis")
+                     "Cannot run this under Jenkins or Travis")
     def test_dump_load_graph(self):
         data_dir = './test_data'
         os.makedirs(data_dir, exist_ok=True)

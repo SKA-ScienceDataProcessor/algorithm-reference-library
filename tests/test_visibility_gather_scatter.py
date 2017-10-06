@@ -1,4 +1,4 @@
-"""Unit tests for visibility scatter gather
+""" Unit tests for visibility scatter gather
 
 
 """
@@ -31,7 +31,7 @@ class TestVisibilityGatherScatter(unittest.TestCase):
     
         self.frequency = numpy.linspace(1e8, 1.5e9, 7)
         
-        self.channel_bandwidth = numpy.array(7*[self.frequency[1]-self.frequency[0]])
+        self.channel_bandwidth = numpy.array(7 * [self.frequency[1] - self.frequency[0]])
         
         self.phasecentre = SkyCoord(ra=+15.0 * u.deg, dec=-35.0 * u.deg, frame='icrs', equinox='J2000')
 
@@ -40,12 +40,14 @@ class TestVisibilityGatherScatter(unittest.TestCase):
             self.times = times
             
         self.vis = create_visibility(self.lowcore, self.times, self.frequency,
-                                     channel_bandwidth=self.channel_bandwidth, phasecentre=self.phasecentre,
+                                     channel_bandwidth=self.channel_bandwidth,
+                                     phasecentre=self.phasecentre,
                                      weight=1.0)
-        self.vis.data['vis'][:,0] = self.vis.time
+        self.vis.data['vis'][:, 0] = self.vis.time
         self.blockvis = create_blockvisibility(self.lowcore, self.times, self.frequency,
-                                     channel_bandwidth=self.channel_bandwidth, phasecentre=self.phasecentre,
-                                     weight=1.0)
+                                               channel_bandwidth=self.channel_bandwidth,
+                                               phasecentre=self.phasecentre,
+                                               weight=1.0)
         self.blockvis.data['vis'][...] = 1.0
 
     def test_vis_scatter_gather_slice(self):
@@ -55,14 +57,12 @@ class TestVisibilityGatherScatter(unittest.TestCase):
         assert self.vis.nvis == newvis.nvis
         assert numpy.max(numpy.abs(newvis.vis)) > 0.0
 
-
     def test_vis_scatter_gather_wstack(self):
         self.actualSetUp()
         vis_list = visibility_scatter_w(self.vis, wstack=10.0)
         newvis = visibility_gather_w(vis_list, self.vis, wstack=10.0)
         assert self.vis.nvis == newvis.nvis
         assert numpy.max(numpy.abs(newvis.vis)) > 0.0
-
 
     def test_vis_scatter_gather_vis_slices(self):
         self.actualSetUp()

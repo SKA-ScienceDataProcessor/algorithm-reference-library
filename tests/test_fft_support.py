@@ -10,6 +10,7 @@ from numpy.testing import assert_allclose
 from arl.fourier_transforms.fft_support import extract_mid, pad_mid, extract_oversampled
 from arl.fourier_transforms.convolutional_gridding import coordinates2
 
+
 class TestFFTSupport(unittest.TestCase):
     
     @staticmethod
@@ -17,7 +18,7 @@ class TestFFTSupport(unittest.TestCase):
         return coordinates2(npixel)[0] + coordinates2(npixel)[1] * 1j
     
     def test_pad_extract(self):
-         for npixel, N2 in [(100,128),(128,256),(126,128)]:
+        for npixel, N2 in [(100, 128), (128, 256), (126, 128)]:
             # Make a 2D complex image of size (npixel, npixel) centred on (npixel//2, npixel//2)
             cs = 1 + self._pattern(npixel)
             # Pad it and extract npixel pixels around the centre
@@ -37,6 +38,7 @@ class TestFFTSupport(unittest.TestCase):
             a = 1 + self._pattern(npixel * kernel_oversampling)
             ex = extract_oversampled(a, 0, 0, kernel_oversampling, npixel) / kernel_oversampling ** 2
             assert_allclose(ex, 1 + self._pattern(npixel))
+
 
 if __name__ == '__main__':
     unittest.main()

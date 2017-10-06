@@ -1,4 +1,4 @@
-"""Unit tests for image operations
+""" Unit tests for image operations
 
 
 """
@@ -18,6 +18,7 @@ from arl.util.testing_support import create_test_image, create_low_test_image_fr
 
 log = logging.getLogger(__name__)
 
+
 class TestImage(unittest.TestCase):
 
     def setUp(self):
@@ -30,10 +31,9 @@ class TestImage(unittest.TestCase):
 
     def test_create_image_from_array(self):
         m31model_by_array = create_image_from_array(self.m31image.data, wcs=None)
-
         m31model_by_array = create_image_from_array(self.m31image.data, self.m31image.wcs)
-        m31modelsum = add_image(self.m31image, m31model_by_array)
-        m31modelsum = add_image(self.m31image, m31model_by_array, docheckwcs=True)
+        add_image(self.m31image, m31model_by_array)
+        add_image(self.m31image, m31model_by_array, docheckwcs=True)
         assert m31model_by_array.shape == self.m31image.shape
         log.debug(export_image_to_fits(self.m31image, fitsfile='%s/test_model.fits' % (self.dir)))
         log.debug(qa_image(m31model_by_array, context='test_create_from_image'))
@@ -44,19 +44,15 @@ class TestImage(unittest.TestCase):
         assert numpy.max(numpy.abs(emptyimage.data)) == 0.0
 
     def test_checkwcs(self):
-
         newwcs = self.m31image.wcs.deepcopy()
         newwcs = self.m31image.wcs
         checkwcs(self.m31image.wcs, newwcs)
         cellsize = 1.5 * self.cellsize
         newwcs.wcs.cdelt[0] = -cellsize
         newwcs.wcs.cdelt[1] = +cellsize
-        # with self.assertRaises(AssertionError):
-        #     checkwcs(self.m31image.wcs, newwcs)
 
     def test_reproject(self):
         # Reproject an image
-
         cellsize = 1.5 * self.cellsize
         newwcs = self.m31image.wcs.deepcopy()
         newwcs.wcs.cdelt[0] = -cellsize
@@ -77,7 +73,7 @@ class TestImage(unittest.TestCase):
             polarisation_frame = PolarisationFrame(pol_name)
             polimage = convert_stokes_to_polimage(stokes, polarisation_frame=polarisation_frame)
             assert polimage.polarisation_frame == polarisation_frame
-            pf = polarisation_frame_from_wcs(polimage.wcs, polimage.shape)
+            polarisation_frame_from_wcs(polimage.wcs, polimage.shape)
             rstokes = convert_polimage_to_stokes(polimage)
             assert polimage.data.dtype == 'complex'
             assert rstokes.data.dtype == 'complex'
@@ -110,7 +106,7 @@ class TestImage(unittest.TestCase):
             wcs.wcs.crpix[0] = 1.0
             wcs.wcs.crval[0] = -100.0
             wcs.wcs.cdelt[0] = -1.0
-            pf = polarisation_frame_from_wcs(wcs, shape)
+            polarisation_frame_from_wcs(wcs, shape)
 
     def test_smooth_image(self):
         smooth = smooth_image(self.m31image)
@@ -118,15 +114,15 @@ class TestImage(unittest.TestCase):
 
     def test_calculate_image_frequency_moments(self):
         frequency = numpy.linspace(0.9e8, 1.1e8, 9)
-        cube=create_low_test_image_from_gleam(npixel=512, cellsize=0.0001, frequency=frequency)
+        cube = create_low_test_image_from_gleam(npixel=512, cellsize=0.0001, frequency=frequency)
         log.debug(export_image_to_fits(cube, fitsfile='%s/test_moments_cube.fits' % (self.dir)))
         original_cube = copy_image(cube)
-        moment_cube=calculate_image_frequency_moments(cube, nmoments=3)
+        moment_cube = calculate_image_frequency_moments(cube, nmoments=3)
         log.debug(export_image_to_fits(moment_cube, fitsfile='%s/test_moments_moment_cube.fits' % (self.dir)))
-        reconstructed_cube=calculate_image_from_frequency_moments(cube, moment_cube)
+        reconstructed_cube = calculate_image_from_frequency_moments(cube, moment_cube)
         log.debug(export_image_to_fits(reconstructed_cube, fitsfile='%s/test_moments_reconstructed_cube.fits' % (
             self.dir)))
-        error = numpy.std(reconstructed_cube.data-original_cube.data)
+        error = numpy.std(reconstructed_cube.data - original_cube.data)
         assert error < 0.2
 
     def test_create_w_term_image(self):
@@ -150,7 +146,7 @@ class TestImage(unittest.TestCase):
 
     def test_fftim_factors(self):
         for i in [3, 5, 7]:
-            npixel=256 * i
+            npixel = 256 * i
             m31image = create_test_image(cellsize=0.001, frequency=[1e8], canonical=True)
             padded = pad_image(m31image, [1, 1, npixel, npixel])
             assert padded.shape == (1, 1, npixel, npixel)
@@ -184,6 +180,7 @@ class TestImage(unittest.TestCase):
             converted = convert_image_to_kernel(m31image, 15, 1)
         with self.assertRaises(AssertionError):
             converted = convert_image_to_kernel(m31image, 15, 1000)
+
 
 if __name__ == '__main__':
     unittest.main()

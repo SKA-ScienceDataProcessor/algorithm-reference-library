@@ -1,4 +1,4 @@
-"""Unit tests for Visibility coalescence
+""" Unit tests for Visibility coalescence
 
 
 """
@@ -26,7 +26,7 @@ class TestCoalesce(unittest.TestCase):
         self.lowcore = create_named_configuration('LOWBD2-CORE')
         self.times = (numpy.pi / 43200.0) * numpy.arange(0.0, 30 * 3.76, 3.76)
         df = 27343.75000
-        self.frequency = numpy.array([1e8-df, 1e8, 1e8+df])
+        self.frequency = numpy.array([1e8 - df, 1e8, 1e8 + df])
         self.channel_bandwidth = numpy.array([27343.75, 27343.75, 27343.75])
         self.phasecentre = SkyCoord(ra=+0.0 * u.deg, dec=-35.0 * u.deg, frame='icrs', equinox='J2000')
         self.blockvis = create_blockvisibility(self.lowcore, self.times, self.frequency, phasecentre=self.phasecentre,
@@ -50,7 +50,6 @@ class TestCoalesce(unittest.TestCase):
         assert dvis.nvis == self.blockvis.nvis
         dvis = decoalesce_visibility(cvis, overwrite=True)
         assert dvis.nvis == self.blockvis.nvis
-
 
     def test_coalesce_decoalesce(self):
         cvis = coalesce_visibility(self.blockvis, time_coal=1.0, frequency_coal=1.0)

@@ -1,4 +1,4 @@
-"""Unit tests for visibility calibration
+""" Unit tests for visibility calibration
 
 
 """
@@ -18,6 +18,7 @@ from arl.visibility.base import copy_visibility, create_blockvisibility
 from arl.imaging import predict_skycomponent_blockvisibility
 
 log = logging.getLogger(__name__)
+
 
 class TestCalibrationOperations(unittest.TestCase):
     
@@ -40,34 +41,36 @@ class TestCalibrationOperations(unittest.TestCase):
     def actualSetup(self, sky_pol_frame='stokesIQUV', data_pol_frame='linear'):
         self.comp = Skycomponent(direction=self.compabsdirection, frequency=self.frequency, flux=self.flux,
                                  polarisation_frame=PolarisationFrame(sky_pol_frame))
-        self.vis = create_blockvisibility(self.lowcore, self.times, self.frequency, phasecentre=self.phasecentre,
-                                     channel_bandwidth=self.channel_bandwidth,
-                                          weight=1.0, polarisation_frame=PolarisationFrame(data_pol_frame))
+        self.vis = create_blockvisibility(self.lowcore, self.times, self.frequency,
+                                          phasecentre=self.phasecentre,
+                                          channel_bandwidth=self.channel_bandwidth,
+                                          weight=1.0,
+                                          polarisation_frame=PolarisationFrame(data_pol_frame))
         self.vis = predict_skycomponent_blockvisibility(self.vis, self.comp)
 
     def test_create_gaintable_from_visibility(self):
-        for spf, dpf in[('stokesIQUV', 'linear'), ('stokesIQUV', 'circular') ]:
+        for spf, dpf in[('stokesIQUV', 'linear'), ('stokesIQUV', 'circular')]:
             self.actualSetup(spf, dpf)
             gt = create_gaintable_from_blockvisibility(self.vis)
             log.info("Created gain table: %s" % (gaintable_summary(gt)))
             gt = simulate_gaintable(gt, phase_error=0.1)
             original = copy_visibility(self.vis)
             vis = apply_gaintable(self.vis, gt)
-            assert numpy.max(numpy.abs(vis.vis-original.vis)) > 0.0
+            assert numpy.max(numpy.abs(vis.vis - original.vis)) > 0.0
 
     def test_apply_gaintable_only(self):
-        for spf, dpf in[('stokesIQUV', 'linear'), ('stokesIQUV', 'circular') ]:
+        for spf, dpf in[('stokesIQUV', 'linear'), ('stokesIQUV', 'circular')]:
             self.actualSetup(spf, dpf)
             gt = create_gaintable_from_blockvisibility(self.vis)
             log.info("Created gain table: %s" % (gaintable_summary(gt)))
             gt = simulate_gaintable(gt, phase_error=0.1, amplitude_error=0.01)
             original = copy_visibility(self.vis)
             vis = apply_gaintable(self.vis, gt)
-            error = numpy.max(numpy.abs(vis.vis-original.vis))
+            error = numpy.max(numpy.abs(vis.vis - original.vis))
             assert error > 10.0, "Error = %f" % (error)
 
     def test_apply_gaintable_and_inverse_phase_only(self):
-        for spf, dpf in[('stokesIQUV', 'linear'), ('stokesIQUV', 'circular') ]:
+        for spf, dpf in[('stokesIQUV', 'linear'), ('stokesIQUV', 'circular')]:
             self.actualSetup(spf, dpf)
             gt = create_gaintable_from_blockvisibility(self.vis)
             log.info("Created gain table: %s" % (gaintable_summary(gt)))
@@ -75,12 +78,11 @@ class TestCalibrationOperations(unittest.TestCase):
             original = copy_visibility(self.vis)
             vis = apply_gaintable(self.vis, gt)
             vis = apply_gaintable(self.vis, gt, inverse=True)
-            error = numpy.max(numpy.abs(vis.vis-original.vis))
+            error = numpy.max(numpy.abs(vis.vis - original.vis))
             assert error < 1e-12, "Error = %s" % (error)
 
-
     def test_apply_gaintable_and_inverse_both(self):
-        for spf, dpf in[('stokesIQUV', 'linear'), ('stokesIQUV', 'circular') ]:
+        for spf, dpf in[('stokesIQUV', 'linear'), ('stokesIQUV', 'circular')]:
             self.actualSetup(spf, dpf)
             gt = create_gaintable_from_blockvisibility(self.vis)
             log.info("Created gain table: %s" % (gaintable_summary(gt)))
@@ -88,7 +90,7 @@ class TestCalibrationOperations(unittest.TestCase):
             original = copy_visibility(self.vis)
             vis = apply_gaintable(self.vis, gt)
             vis = apply_gaintable(self.vis, gt, inverse=True)
-            error = numpy.max(numpy.abs(vis.vis-original.vis))
+            error = numpy.max(numpy.abs(vis.vis - original.vis))
             assert error < 1e-12, "Error = %s" % (error)
     
 

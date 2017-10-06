@@ -1,4 +1,4 @@
-"""Unit tests for image deconvolution
+""" Unit tests for image deconvolution
 
 
 """
@@ -142,4 +142,3 @@ class TestImageDeconvolution(unittest.TestCase):
         self.cmodel = restore_cube(self.comp, self.psf, self.residual)
         export_image_to_fits(self.cmodel, "%s/test_deconvolve_msclean_subpsf-clean.fits" % (self.dir))
         assert numpy.max(self.residual.data[..., 56:456, 56:456]) < 1.0
-    

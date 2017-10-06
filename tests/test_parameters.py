@@ -1,4 +1,4 @@
-"""Unit tests for pipelines
+""" Unit tests for pipelines
 
 
 """
@@ -11,9 +11,10 @@ import logging
 
 log = logging.getLogger(__name__)
 
+
 class TestParameters(unittest.TestCase):
     def setUp(self):
-        self.parameters = {'npixel': 256, 'cellsize':0.1, 'spectral_mode':'mfs'}
+        self.parameters = {'npixel': 256, 'cellsize': 0.1, 'spectral_mode': 'mfs'}
 
     def test_getparameter(self):
     

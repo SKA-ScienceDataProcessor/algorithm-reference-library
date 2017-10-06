@@ -1,4 +1,4 @@
-"""Unit tests for visibility operations
+""" Unit tests for visibility operations
 
 
 """
@@ -37,14 +37,14 @@ class TestVisibilityOperations(unittest.TestCase):
         # This means that the component should end up at the position phasecentre+compredirection
         self.phasecentre = SkyCoord(ra=+180.0 * u.deg, dec=-35.0 * u.deg, frame='icrs', equinox='J2000')
         self.compabsdirection = SkyCoord(ra=+181.0 * u.deg, dec=-35.0 * u.deg, frame='icrs', equinox='J2000')
-        #        self.compabsdirection = SkyCoord(ra=+182 * u.deg, dec=-36.5 * u.deg, frame='icrs', equinox='J2000')
         pcof = self.phasecentre.skyoffset_frame()
         self.compreldirection = self.compabsdirection.transform_to(pcof)
         self.comp = Skycomponent(direction=self.compreldirection, frequency=self.frequency, flux=self.flux)
 
     def test_create_visibility1(self):
         self.vis = create_visibility(self.lowcore, self.times, self.frequency,
-                                     channel_bandwidth=self.channel_bandwidth,  phasecentre=self.phasecentre,
+                                     channel_bandwidth=self.channel_bandwidth,
+                                     phasecentre=self.phasecentre,
                                      weight=1.0)
         assert self.vis.nvis == len(self.vis.time)
         assert self.vis.nvis == len(self.vis.frequency)
@@ -76,7 +76,7 @@ class TestVisibilityOperations(unittest.TestCase):
                                           weight=1.0, channel_bandwidth=self.channel_bandwidth)
         vis = convert_blockvisibility_to_visibility(self.vis)
         assert vis.nvis == len(vis.time)
-        assert numpy.unique(vis.time).size == self.vis.time.size #pylint: disable=no-member
+        assert numpy.unique(vis.time).size == self.vis.time.size  # pylint: disable=no-member
 
     def test_create_visibility_from_rows_makecopy(self):
         self.vis = create_visibility(self.lowcore, self.times, self.frequency, phasecentre=self.phasecentre,
@@ -86,15 +86,15 @@ class TestVisibilityOperations(unittest.TestCase):
             selected_vis = create_visibility_from_rows(self.vis, rows, makecopy=makecopy)
             assert selected_vis.nvis == numpy.sum(numpy.array(rows))
 
-
-
     def test_append_visibility(self):
             self.vis = create_visibility(self.lowcore, self.times, self.frequency,
-                                         channel_bandwidth=self.channel_bandwidth,  phasecentre=self.phasecentre,
+                                         channel_bandwidth=self.channel_bandwidth,
+                                         phasecentre=self.phasecentre,
                                          weight=1.0)
             othertimes = (numpy.pi / 43200.0) * numpy.arange(300.0, 600.0, 30.0)
             self.othervis = create_visibility(self.lowcore, othertimes, self.frequency,
-                                              channel_bandwidth=self.channel_bandwidth,  phasecentre=self.phasecentre,
+                                              channel_bandwidth=self.channel_bandwidth,
+                                              phasecentre=self.phasecentre,
                                               weight=1.0)
             self.vis = append_visibility(self.vis, self.othervis)
             assert self.vis.nvis == len(self.vis.time)
@@ -107,8 +107,8 @@ class TestVisibilityOperations(unittest.TestCase):
         vis = copy_visibility(self.vis)
         self.vis.data['vis'] = 0.0
         vis.data['vis'] = 1.0
-        assert (vis.data['vis'][0,0].real == 1.0)
-        assert (self.vis.data['vis'][0,0].real == 0.0)
+        assert (vis.data['vis'][0, 0].real == 1.0)
+        assert (self.vis.data['vis'][0, 0].real == 0.0)
 
     def test_visibilitysum(self):
         self.vis = create_visibility(self.lowcore, self.times, self.frequency,

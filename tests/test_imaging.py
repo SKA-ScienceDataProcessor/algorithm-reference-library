@@ -1,4 +1,4 @@
-"""Unit tests for Fourier transform processors
+""" Unit tests for Fourier transform processors
 
 
 """
@@ -27,6 +27,7 @@ from arl.visibility.base import create_visibility
 from arl.visibility.operations import sum_visibility
 
 log = logging.getLogger(__name__)
+
 
 class TestImaging(unittest.TestCase):
     def _checkdirty(self, vis, name='test_invert_2d_dirty', fluxthreshold=1.0):
@@ -76,7 +77,7 @@ class TestImaging(unittest.TestCase):
         log.info("Times are %s" % (self.times))
         
         if dospectral:
-            self.nchan=3
+            self.nchan = 3
             self.frequency = numpy.array([0.9e8, 1e8, 1.1e8])
             self.channel_bandwidth = numpy.array([1e7, 1e7, 1e7])
         else:
@@ -100,7 +101,6 @@ class TestImaging(unittest.TestCase):
         else:
             flux = numpy.array([f])
 
-
         self.phasecentre = SkyCoord(ra=+180.0 * u.deg, dec=-60.0 * u.deg, frame='icrs', equinox='J2000')
         self.componentvis = create_visibility(self.lowcore, self.times, self.frequency,
                                               channel_bandwidth=self.channel_bandwidth, phasecentre=self.phasecentre,
@@ -118,12 +118,12 @@ class TestImaging(unittest.TestCase):
         spacing_pixels = 512 // 8
         log.info('Spacing in pixels = %s' % spacing_pixels)
         
-        centers = [(x, x) for x in numpy.linspace(-3.0,+3.0,7)]
+        centers = [(x, x) for x in numpy.linspace(-3.0, +3.0, 7)]
 
-        for x in numpy.linspace(-3.0,+3.0,7):
+        for x in numpy.linspace(-3.0, +3.0, 7):
             centers.append((-x, x))
             
-        centers.append((1e-7,1e-7))
+        centers.append((1e-7, 1e-7))
         centers.append((1.1, 2.2))
 
         # Make the list of components
@@ -172,8 +172,9 @@ class TestImaging(unittest.TestCase):
         # Good check on the grid correction in the image->vis direction
         # Set all w to zero
         self.actualSetUp()
-        self.componentvis = create_visibility(self.lowcore, self.times, self.frequency, channel_bandwidth= \
-            self.channel_bandwidth, phasecentre=self.phasecentre, weight=1.0)
+        self.componentvis = create_visibility(self.lowcore, self.times, self.frequency,
+                                              channel_bandwidth=self.channel_bandwidth,
+                                              phasecentre=self.phasecentre, weight=1.0)
         self.componentvis.data['uvw'][:, 2] = 0.0
         # Predict the visibility using direct evaluation
         predict_skycomponent_visibility(self.componentvis, self.components)
@@ -210,6 +211,7 @@ class TestImaging(unittest.TestCase):
         self.actualSetUp()
         self.params['facets'] = 2
         self._predict_base(predict_facets, fluxthreshold=numpy.infty)
+
     def test_predict_timeslice(self):
         # This works poorly because of the poor interpolation accuracy for point sources. The corresponding
         # invert works well particularly if the beam sampling is high
@@ -217,9 +219,8 @@ class TestImaging(unittest.TestCase):
         self._predict_base(predict_timeslice, fluxthreshold=numpy.infty)
 
     def test_predict_timeslice_wprojection(self):
-        predict_timeslice_wprojection = partial(predict_timeslice, predict=predict_wprojection)
         self.actualSetUp()
-        self.params['kernel']='wprojection'
+        self.params['kernel'] = 'wprojection'
         self.params['wstep'] = 2.0
         self._predict_base(predict_timeslice, fluxthreshold=numpy.infty)
 
