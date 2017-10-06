@@ -118,11 +118,12 @@ is a quick guide to the project:
   * `tests`: Unit and regression tests
   * `docs`: Complete documentation. Includes non-interactive output of examples.
   * `data`: Data used
+  * `tools`: package requirements, and [Docker](https://www.docker.com/) image building recipe
 
 Running Notebooks
 -----------------
 
-Jupyter notebooks end with `.ipynb` and can be run as follows from the
+[Jupyter notebooks](http://jupyter.org/) end with `.ipynb` and can be run as follows from the
 command line:
 
      $ jupyter notebook examples/notebooks/imaging.ipynb
@@ -183,4 +184,79 @@ make pytest
 Code analysis can be run with:
 ```
 make code-analysis
+```
+
+Using Docker
+=============
+
+In the tools/ directory is a [Dockerfile](https://docs.docker.com/engine/reference/builder/)
+that enables the notebooks, tests, and lint checks to be run in a container.
+
+Install Docker
+--------------
+This has been tested with Docker-CE 17.09+ on Ubuntu 16.04. This can be installed by following the instructions [here](https://docs.docker.com/engine/installation/).
+
+It is likely that the Makefile commands will not work on anything other than modern Linux systems (eg: Ubuntu 16.04) as it replies on command line tools to discover the host system IP address.
+
+The project source code directory needs to be checked out where ever the containers are to be run
+as the complete project is mounted into the container as a volume at `/arl` .
+
+For example - to launch the notebook server, the general recipe is:
+```
+docker run --name arl_notebook --hostname arl_notebook --volume /path/to/repo:/arl \
+-e IP=my.ip.address --net=host -p 8888:8888 -p 8787:8787 -p 8788:8788 -p 8789:8789 \
+-d arl_img
+```
+After a few seconds, check the logs for the Jupyter URL with:
+```
+docker logs arl_notebook
+```
+See the `Makefile` for more examples.
+
+
+Build Image
+-----------
+To build the container image `arl_img` required to launch the dockerised notebooks,tests, and lint checks run (from the root directory of this checked out project):
+```
+make docker_build
+```
+
+Run
+---
+To run the Jupyter notebooks:
+```
+make docker_notebook
+```
+Wait for the command to complete, and it will print out the URL with token to use for access to the notebooks (example output):
+```
+...
+Successfully built 8a4a7b55025b
+...
+docker run --name arl_notebook --hostname arl_notebook --volume $(pwd):/arl -e IP=${IP} \
+            --net=host -p 8888:8888 -p 8787:8787 -p 8788:8788 -p 8789:8789 -d arl_img
+Launching at IP: 10.128.26.15
+da4fcfac9af117c92ac63d4228087a05c5cfbb2fc55b2e281f05ccdbbe3ca0be
+sleep 3
+docker logs arl_notebook
+[I 02:25:37.803 NotebookApp] Writing notebook server cookie secret to /root/.local/share/jupyter/runtime/notebook_cookie_secret
+[I 02:25:37.834 NotebookApp] Serving notebooks from local directory: /arl/examples/arl
+[I 02:25:37.834 NotebookApp] 0 active kernels
+[I 02:25:37.834 NotebookApp] The Jupyter Notebook is running at:
+[I 02:25:37.834 NotebookApp] http://10.128.26.15:8888/?token=2c9f8087252ea67b4c09404dc091563b16f154f3906282b7
+[I 02:25:37.834 NotebookApp] Use Control-C to stop this server and shut down all kernels (twice to skip confirmation).
+[C 02:25:37.835 NotebookApp]
+
+    Copy/paste this URL into your browser when you connect for the first time,
+    to login with a token:
+        http://10.128.26.15:8888/?token=2c9f8087252ea67b4c09404dc091563b16f154f3906282b7
+```
+
+To run the tests:
+```
+make docker_tests
+```
+
+To run the lint checks:
+```
+make docker_lint
 ```
