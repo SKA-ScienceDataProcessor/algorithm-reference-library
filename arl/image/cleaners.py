@@ -132,7 +132,6 @@ def msclean(dirty, psf, window, gain, thresh, niter, scales, fracthresh):
     scalestack = create_scalestack(scaleshape, scales, norm=True)
     
     pscaleshape = [len(scales), lpsf.shape[0], lpsf.shape[1]]
-    pscalescaleshape = [len(scales), len(scales), lpsf.shape[0], lpsf.shape[1]]
     pscalestack = create_scalestack(pscaleshape, scales, norm=True)
     
     res_scalestack = convolve_scalestack(scalestack, numpy.array(ldirty))
@@ -436,7 +435,7 @@ def msmfsclean(dirty, psf, window, gain, thresh, niter, scales, fracthresh, find
     # Calculate scale scale moment moment psf, Hessian, and inverse of Hessian
     # scale scale moment moment psf is needed for update of scale-moment residuals
     # Hessian is needed in calculation of optimum for any iteration
-    # Inverse Hessian is needed to calculate principal soluation in moment-space
+    # Inverse Hessian is needed to calculate principal solution in moment-space
     ssmmpsf = calculate_scale_scale_moment_moment_psf(lpsf, scalestack)
     hsmmpsf, ihsmmpsf = calculate_scale_inverse_moment_moment_hessian(ssmmpsf)
     
