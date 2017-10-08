@@ -149,43 +149,7 @@ def find_skycomponents(im: Image, fwhm=1.0, threshold=10.0, npixels=5) -> List[S
     return comps
 
 
-def insert_skycomponent(im: Image, sc: Union[Skycomponent, List[Skycomponent]], insert_method='') -> Image:
-    """ Insert a Skycomponent into an image
-
-    :param params:
-    :param im:
-    :param sc: SkyComponent or list of SkyComponents
-    :return: image
-
-    """
-    
-    assert type(im) == Image
-    
-    nchan, npol, ny, nx = im.data.shape
-    
-    if not isinstance(sc, collections.Iterable):
-        sc = [sc]
-    
-    for comp in sc:
-        
-
-        assert comp.shape == 'Point', "Cannot handle shape %s" % comp.shape
-        
-        assert_same_chan_pol(im, comp)
-        
-        if insert_method == "Lanczos":
-            pixloc = skycoord_to_pixel(comp.direction, im.wcs, 0, 'wcs')
-            _L2D(im.data, pixloc[1], pixloc[0], comp.flux)
-        else:
-            pixloc = numpy.round(skycoord_to_pixel(comp.direction, im.wcs, 1, 'wcs')).astype('int')
-            x, y = pixloc[0], pixloc[1]
-            if x >= 0 and x < nx and y >= 0 and y < ny:
-                im.data[:, :, y, x] += comp.flux
-    
-    return im
-
-
-def apply_beam_to_skycomponent(sc: Union[Skycomponent, List[Skycomponent]], beam: Image)\
+def apply_beam_to_skycomponent(sc: Union[Skycomponent, List[Skycomponent]], beam: Image) \
         -> Union[Skycomponent, List[Skycomponent]]:
     """ Insert a Skycomponet into an image
 
@@ -201,9 +165,9 @@ def apply_beam_to_skycomponent(sc: Union[Skycomponent, List[Skycomponent]], beam
         sc = [sc]
     
     nchan, npol, ny, nx = beam.shape
-
+    
     log.debug('apply_beam_to_skycomponent: Processing %d components' % (len(sc)))
-
+    
     newsc = []
     total_flux = numpy.zeros([nchan, npol])
     for comp in sc:
@@ -216,12 +180,12 @@ def apply_beam_to_skycomponent(sc: Union[Skycomponent, List[Skycomponent]], beam
         if not numpy.isnan(pixloc).any():
             x, y = int(round(float(pixloc[0]))), int(round(float(pixloc[1])))
             if x >= 0 and x < nx and y >= 0 and y < ny:
-                comp.flux[:,:] *= beam.data[:,:,y,x]
+                comp.flux[:, :] *= beam.data[:, :, y, x]
                 total_flux += comp.flux
-                newsc.append(Skycomponent(comp.direction,comp.frequency,comp.name,comp.flux,
+                newsc.append(Skycomponent(comp.direction, comp.frequency, comp.name, comp.flux,
                                           shape=comp.shape,
                                           polarisation_frame=comp.polarisation_frame))
-
+    
     log.debug('apply_beam_to_skycomponent: %d components with total flux %s' %
               (len(newsc), total_flux))
     if single:
@@ -229,41 +193,93 @@ def apply_beam_to_skycomponent(sc: Union[Skycomponent, List[Skycomponent]], beam
     else:
         return newsc
 
-def _L2D(im, x, y, flux, a = 7):
-    """Perform Lanczos interpolation onto a grid
+
+def insert_skycomponent(im: Image, sc: Union[Skycomponent, List[Skycomponent]], insert_method='',
+                        bandwidth=1.0, support=8) -> Image:
+    """ Insert a Skycomponent into an image
+
+    :param params:
+    :param im:
+    :param sc: SkyComponent or list of SkyComponents
+    :param insert_method: '' | 'Sinc' | 'Lanczos'
+    :param bandwidth: Fractional of uv plane to optimise over (1.0)
+    :param support: Support of kernel (7)
+    :return: image
+
+    """
+    
+    assert type(im) == Image
+    
+    support=int(support/bandwidth)
+    
+    nchan, npol, ny, nx = im.data.shape
+    
+    if not isinstance(sc, collections.Iterable):
+        sc = [sc]
+    
+    for comp in sc:
+        
+
+        assert comp.shape == 'Point', "Cannot handle shape %s" % comp.shape
+        
+        assert_same_chan_pol(im, comp)
+
+        pixloc = skycoord_to_pixel(comp.direction, im.wcs, 1, 'wcs')
+        if insert_method == "Lanczos":
+            insert_array(im.data, pixloc[0], pixloc[1], comp.flux, bandwidth, support,
+                         insert_function=insert_function_L)
+        elif insert_method == "Sinc":
+            insert_array(im.data, pixloc[0], pixloc[1], comp.flux, bandwidth, support,
+                         insert_function=insert_function_sinc)
+        elif insert_method == "PSWF":
+            insert_array(im.data, pixloc[0], pixloc[1], comp.flux, bandwidth, support,
+                         insert_function=insert_function_pswf)
+        else:
+            y, x= numpy.round(pixloc[1]).astype('int'), numpy.round(pixloc[0]).astype('int')
+            if x >= 0 and x < nx and y >= 0 and y < ny:
+                im.data[:, :, y, x] += comp.flux
+    
+    return im
+
+
+def insert_function_sinc(x):
+    s = numpy.zeros_like(x)
+    s[x != 0.0] = numpy.sin(numpy.pi*x[x != 0.0])/(numpy.pi*x[x != 0.0])
+    return s
+
+
+def insert_function_L(x, a = 5):
+    L = insert_function_sinc(x) * insert_function_sinc(x/a)
+    return L
+
+def insert_function_pswf(x, a=5):
+    from arl.fourier_transforms.convolutional_gridding import grdsf
+    return grdsf(abs(x)/a)[0]
+
+def insert_array(im, x, y, flux, bandwidth=1.0, support = 7, insert_function=insert_function_sinc):
+    """Insert using specified function
     
     """
     
     nchan, npol, ny, nx = im.shape
-    a=int(a)
-    intx = int(numpy.floor(x))
-    inty = int(numpy.floor(y))
+    intx = int(numpy.round(x))
+    inty = int(numpy.round(y))
     fracx = x - intx
     fracy = y - inty
-    gridx = numpy.arange(-a, a)
-    gridy = numpy.arange(-a, a)
+    gridx = numpy.arange(-support, support)
+    gridy = numpy.arange(-support, support)
 
-    insert = numpy.zeros([2 * a + 1, 2 * a + 1])
-    for iy in gridy:
-        insert[iy, gridx + a] = _L(gridx + fracx) * _L(iy + fracy)
+    insert = numpy.outer(insert_function(bandwidth*(gridy - fracy)),
+                         insert_function(bandwidth*(gridx - fracx)))
+                         
     insertsum = numpy.sum(insert)
     assert insertsum > 0, "Sum of interpolation coefficients %g" % insertsum
     insert = insert / insertsum
 
     for chan in range(nchan):
         for pol in range(npol):
-            for iy in gridy:
-                im[chan, pol, iy + inty, gridx + intx] += flux[chan,pol] * insert[iy,gridx+a]
+            im[chan, pol, inty - support:inty + support, intx - support:intx+support] += flux[chan, pol] * insert
+            # for iy in gridy:
+            #     im[chan, pol, iy + inty, gridx + intx] += flux[chan,pol] * insert[iy, gridx + support]
             
     return im
-    
-
-def _sinc(x):
-    s = numpy.zeros_like(x)
-    s[x != 0.0] = numpy.sin(numpy.pi*x[x != 0.0])/(numpy.pi*x[x != 0.0])
-    return s
-
-
-def _L(x, a = 5):
-    L = _sinc(x) * _sinc(x/a)
-    return L

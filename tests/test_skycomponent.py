@@ -62,6 +62,52 @@ class Testskycomponent(unittest.TestCase):
         self.vis = predict_2d(self.vis, self.model)
         assert self.vis.vis.imag.all() == 0.0
 
+    def test_insert_skycomponent_nearest(self):
+        dphasecentre = SkyCoord(ra=+181.0 * u.deg, dec=-58.0 * u.deg, frame='icrs', equinox='J2000')
+        sc = create_skycomponent(direction=dphasecentre, flux=numpy.array([[1.0]]), frequency=self.frequency,
+                                 polarisation_frame=PolarisationFrame('stokesI'))
+        self.model.data *= 0.0
+        insert_skycomponent(self.model, sc, insert_method='Nearest')
+        npixel = self.model.shape[3]
+        rpix = numpy.round(self.model.wcs.wcs.crpix).astype('int')
+        assert rpix[0] == npixel // 2
+        assert rpix[1] == npixel // 2
+        # These test a regression but are not known a priori to be correct
+        self.assertAlmostEqual(self.model.data[0, 0, 151, 122], 1.0, 7)
+        self.assertAlmostEqual(self.model.data[0, 0, 152, 122], 0.0, 7)
+
+
+    def test_insert_skycomponent_sinc(self):
+        dphasecentre = SkyCoord(ra=+181.0 * u.deg, dec=-58.0 * u.deg, frame='icrs', equinox='J2000')
+        sc = create_skycomponent(direction=dphasecentre, flux=numpy.array([[1.0]]), frequency=self.frequency,
+                                 polarisation_frame=PolarisationFrame('stokesI'))
+        self.model.data *= 0.0
+        insert_skycomponent(self.model, sc, insert_method='Sinc')
+        npixel = self.model.shape[3]
+        rpix = numpy.round(self.model.wcs.wcs.crpix).astype('int')
+        assert rpix[0] == npixel // 2
+        assert rpix[1] == npixel // 2
+        # These test a regression but are not known a priori to be correct
+        self.assertAlmostEqual(self.model.data[0, 0, 151, 122], 0.87684398703184396, 7)
+        self.assertAlmostEqual(self.model.data[0, 0, 152, 122], 0.2469311811046056, 7)
+
+
+    def test_insert_skycomponent_sinc_bandwidth(self):
+        dphasecentre = SkyCoord(ra=+181.0 * u.deg, dec=-58.0 * u.deg, frame='icrs', equinox='J2000')
+        sc = create_skycomponent(direction=dphasecentre, flux=numpy.array([[1.0]]), frequency=self.frequency,
+                                 polarisation_frame=PolarisationFrame('stokesI'))
+        self.model.data *= 0.0
+        insert_skycomponent(self.model, sc, insert_method='Sinc',
+                            bandwidth=0.5)
+        npixel = self.model.shape[3]
+        rpix = numpy.round(self.model.wcs.wcs.crpix).astype('int')
+        assert rpix[0] == npixel // 2
+        assert rpix[1] == npixel // 2
+        # These test a regression but are not known a priori to be correct
+        self.assertAlmostEqual(self.model.data[0,0,151, 122], 0.25133066186805758, 7)
+        self.assertAlmostEqual(self.model.data[0,0,152, 122], 0.19685222464041874, 7)
+
+
     def test_insert_skycomponent_lanczos(self):
         dphasecentre = SkyCoord(ra=+181.0 * u.deg, dec=-58.0 * u.deg, frame='icrs', equinox='J2000')
         sc = create_skycomponent(direction=dphasecentre, flux=numpy.array([[1.0]]), frequency=self.frequency,
@@ -73,8 +119,22 @@ class Testskycomponent(unittest.TestCase):
         assert rpix[0] == npixel // 2
         assert rpix[1] == npixel // 2
         # These test a regression but are not known a priori to be correct
-        self.assertAlmostEqual(self.model.data[0,0,119,150],  0.887186883218, 7)
-        self.assertAlmostEqual(self.model.data[0,0,119,151], -0.145093950704, 7)
+        self.assertAlmostEqual(self.model.data[0,0,151, 122],  0.87781267543090036, 7)
+        self.assertAlmostEqual(self.model.data[0,0,152, 122], 0.23817562762032077, 7)
+        
+    def test_insert_skycomponent_lanczos_bandwidth(self):
+        dphasecentre = SkyCoord(ra=+181.0 * u.deg, dec=-58.0 * u.deg, frame='icrs', equinox='J2000')
+        sc = create_skycomponent(direction=dphasecentre, flux=numpy.array([[1.0]]), frequency=self.frequency,
+                                 polarisation_frame=PolarisationFrame('stokesI'))
+        self.model.data *= 0.0
+        insert_skycomponent(self.model, sc, insert_method='Lanczos', bandwidth=0.5)
+        npixel = self.model.shape[3]
+        rpix = numpy.round(self.model.wcs.wcs.crpix).astype('int')
+        assert rpix[0] == npixel // 2
+        assert rpix[1] == npixel // 2
+        # These test a regression but are not known a priori to be correct
+        self.assertAlmostEqual(self.model.data[0,0,151, 122], 0.24031092091707615, 7)
+        self.assertAlmostEqual(self.model.data[0,0,152, 122], 0.18648989466050975, 7)
 
 if __name__ == '__main__':
     unittest.main()
