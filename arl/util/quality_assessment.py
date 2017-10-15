@@ -11,6 +11,6 @@ def export_QA(qa: QA):
     """Export the accumulate QA info
         
     """
-    # TODO: implement
+    # TODO: define and implement
 
     log.info("assess_quality.export_QA: not yet implemented")

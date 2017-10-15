@@ -28,6 +28,11 @@ Create empty data set for observation (a-la makeMS)
 * For Visibility operations: :py:mod:`arl.visibility.base.create_visibility`
 * For BlockVisibility: :py:mod:`arl.visibility.base.create_blockvisibility`
 
+Read existing Measurement Set
+=============================
+
+* Creates a list of Visibilities, one per FIELD_ID: :py:mod:`arl.visibility.base.create_visibility_from_ms`
+
 Gridding, degridding, and weighting
 ===================================
 

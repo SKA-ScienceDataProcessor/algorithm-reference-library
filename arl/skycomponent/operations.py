@@ -194,7 +194,7 @@ def apply_beam_to_skycomponent(sc: Union[Skycomponent, List[Skycomponent]], beam
         return newsc
 
 
-def insert_skycomponent(im: Image, sc: Union[Skycomponent, List[Skycomponent]], insert_method='',
+def insert_skycomponent(im: Image, sc: Union[Skycomponent, List[Skycomponent]], insert_method='Lanczos',
                         bandwidth=1.0, support=8) -> Image:
     """ Insert a Skycomponent into an image
 
@@ -226,15 +226,20 @@ def insert_skycomponent(im: Image, sc: Union[Skycomponent, List[Skycomponent]], 
 
         pixloc = skycoord_to_pixel(comp.direction, im.wcs, 1, 'wcs')
         if insert_method == "Lanczos":
+            log.debug("insert_skycomponent: Using %s" % insert_method)
             insert_array(im.data, pixloc[0], pixloc[1], comp.flux, bandwidth, support,
                          insert_function=insert_function_L)
         elif insert_method == "Sinc":
+            log.debug("insert_skycomponent: Using %s" % insert_method)
             insert_array(im.data, pixloc[0], pixloc[1], comp.flux, bandwidth, support,
                          insert_function=insert_function_sinc)
         elif insert_method == "PSWF":
+            log.debug("insert_skycomponent: Using %s" % insert_method)
             insert_array(im.data, pixloc[0], pixloc[1], comp.flux, bandwidth, support,
                          insert_function=insert_function_pswf)
         else:
+            insert_method = 'Nearest'
+            log.debug("insert_skycomponent: Using %s" % insert_method)
             y, x= numpy.round(pixloc[1]).astype('int'), numpy.round(pixloc[0]).astype('int')
             if x >= 0 and x < nx and y >= 0 and y < ny:
                 im.data[:, :, y, x] += comp.flux
@@ -254,13 +259,20 @@ def insert_function_L(x, a = 5):
 
 def insert_function_pswf(x, a=5):
     from arl.fourier_transforms.convolutional_gridding import grdsf
-    return grdsf(abs(x)/a)[0]
+    return grdsf(abs(x)/a)[1]
 
-def insert_array(im, x, y, flux, bandwidth=1.0, support = 7, insert_function=insert_function_sinc):
-    """Insert using specified function
+def insert_array(im, x, y, flux, bandwidth=1.0, support = 7, insert_function=insert_function_L):
+    """ Insert point into image using specified function
     
+    :param im: Image
+    :param x: x in float pixels
+    :param y: y in float pixels
+    :param flux: Flux[nchan, npol]
+    :param bandwidth: Support of data in uv plane
+    :param support: Support of function in image space
+    :param insert_function: insert_function_L or insert_function_Sinc or insert_function_pswf
+    :return:
     """
-    
     nchan, npol, ny, nx = im.shape
     intx = int(numpy.round(x))
     inty = int(numpy.round(y))

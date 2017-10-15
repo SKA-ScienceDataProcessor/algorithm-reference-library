@@ -7,11 +7,12 @@ from typing import Union
 
 import numpy
 from astropy import constants as constants
+from astropy import units as u
 from astropy.coordinates import SkyCoord
 
 from arl.util.coordinate_support import xyz_to_uvw, uvw_to_xyz, skycoord_to_lmn, simulate_point
 from arl.data.data_models import Visibility, BlockVisibility, Configuration
-from arl.data.polarisation import PolarisationFrame, correlate_polarisation
+from arl.data.polarisation import PolarisationFrame, ReceptorFrame, correlate_polarisation
 
 import logging
 log = logging.getLogger(__name__)
@@ -245,11 +246,10 @@ def phaserotate_visibility(vis: Visibility, newphasecentre: SkyCoord, tangent=Tr
         phasor = simulate_point(newvis.uvw, l, m)
         
         if inverse:
-            for pol in range(vis.polarisation_frame.npol):
-                newvis.data['vis'][..., pol] *= phasor
+            newvis.data['vis'] *= phasor
         else:
-            for pol in range(vis.polarisation_frame.npol):
-                newvis.data['vis'][..., pol] *= numpy.conj(phasor)
+            newvis.data['vis'] *= numpy.conj(phasor)
+
         
         # To rotate UVW, rotate into the global XYZ coordinate system and back. We have the option of
         # staying on the tangent plane or not. If we stay on the tangent then the raster will
@@ -269,3 +269,76 @@ def phaserotate_visibility(vis: Visibility, newphasecentre: SkyCoord, tangent=Tr
         return newvis
     else:
         return vis
+
+
+def create_visibility_from_ms(msname):
+    """ Minimal MS to Visibility converter
+
+    The MS format is much more general than the ARL Visibility so we cut many corners. This requires casacore to be
+    installed. If not an exception ModuleNotFoundError is raised.
+
+    Creates a list of Visibilities, one per phasecentre
+    """
+    try:
+        from casacore.tables import table
+    except ModuleNotFoundError:
+        raise ModuleNotFoundError("casacore is not installed")
+
+    tab = table(msname)
+    print(tab.info())
+    fields = numpy.unique(tab.getcol('FIELD_ID'))
+    print("Found unique field ids %s" % fields)
+    vis_list = list()
+    for field in fields:
+        # First get the main table information
+        ms = tab.query("FIELD_ID==%d" % field)
+        print("Found %d rows for field %d" % (ms.nrows(), field))
+        time = ms.getcol('TIME')
+        vis = ms.getcol('DATA')[:, 0, :]
+        weight = ms.getcol('WEIGHT')
+        uvw = -1 * ms.getcol('UVW')
+        antenna1 = ms.getcol('ANTENNA1')
+        antenna2 = ms.getcol('ANTENNA2')
+        integration_time = ms.getcol('INTERVAL')
+        ddid = ms.getcol('DATA_DESC_ID')
+        
+        # Now get info from the subtables
+        spwtab = table('%s/SPECTRAL_WINDOW' % msname, ack=False)
+        cfrequency = spwtab.getcol('CHAN_FREQ')
+        frequency = numpy.array([cfrequency[dd] for dd in ddid])[:, 0]
+        cchannel_bandwidth = spwtab.getcol('CHAN_WIDTH')
+        channel_bandwidth = numpy.array([cchannel_bandwidth[dd] for dd in ddid])[:, 0]
+        
+        uvw *= frequency[:, numpy.newaxis] / constants.c.to('m/s').value
+        
+        # Get polarisation info
+        poltab = table('%s/POLARIZATION' % msname, ack=False)
+        corr_type = poltab.getcol('CORR_TYPE')
+        # TODO: Do interpretation correctly
+        polarisation_frame = PolarisationFrame('stokesIQUV')
+        
+        # Get configuration
+        anttab = table('%s/ANTENNA' % msname, ack=False)
+        mount = anttab.getcol('MOUNT')
+        names = anttab.getcol('NAME')
+        diameter = anttab.getcol('DISH_DIAMETER')
+        xyz = anttab.getcol('POSITION')
+        configuration = Configuration(name='', data=None, location=None,
+                                      names=names, xyz=xyz, mount=mount, frame=None,
+                                      receptor_frame=ReceptorFrame("linear"),
+                                      diameter=diameter)
+        
+        # Get phasecentres
+        fieldtab = table('%s/FIELD' % msname, ack=False)
+        pc = fieldtab.getcol('PHASE_DIR')[field, 0, :]
+        phasecentre = SkyCoord(ra=[pc[0]] * u.rad, dec=pc[1] * u.rad, frame='icrs', equinox='J2000')
+        
+        vis_list.append(Visibility(uvw=uvw, time=time, antenna1=antenna1, antenna2=antenna2,
+                                   frequency=frequency, vis=vis,
+                                   weight=weight, imaging_weight=weight,
+                                   integration_time=integration_time,
+                                   channel_bandwidth=channel_bandwidth,
+                                   configuration=configuration,
+                                   phasecentre=phasecentre,
+                                   polarisation_frame=polarisation_frame))
+    return vis_list
