@@ -194,7 +194,7 @@ def apply_beam_to_skycomponent(sc: Union[Skycomponent, List[Skycomponent]], beam
         return newsc
 
 
-def insert_skycomponent(im: Image, sc: Union[Skycomponent, List[Skycomponent]], insert_method='Lanczos',
+def insert_skycomponent(im: Image, sc: Union[Skycomponent, List[Skycomponent]], insert_method='Nearest',
                         bandwidth=1.0, support=8) -> Image:
     """ Insert a Skycomponent into an image
 

@@ -515,6 +515,8 @@ def fft_image(im, template_image=None, **kwargs):
         ft_wcs.wcs.crpix[0] = template_image.wcs.wcs.crpix[1]
         ft_wcs.wcs.ctype[0] = template_image.wcs.wcs.ctype[0]
         ft_wcs.wcs.ctype[1] = template_image.wcs.wcs.ctype[1]
+        ft_wcs.wcs.cdelt[0] = template_image.wcs.wcs.cdelt[0]
+        ft_wcs.wcs.cdelt[1] = template_image.wcs.wcs.cdelt[1]
         ft_data = fft(im.data.astype('complex'))
         return create_image_from_array(ft_data, wcs=ft_wcs)
     else:

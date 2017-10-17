@@ -246,9 +246,9 @@ def phaserotate_visibility(vis: Visibility, newphasecentre: SkyCoord, tangent=Tr
         phasor = simulate_point(newvis.uvw, l, m)
         
         if inverse:
-            newvis.data['vis'] *= phasor
+            newvis.data['vis'][:,...] *= phasor[:,numpy.newaxis]
         else:
-            newvis.data['vis'] *= numpy.conj(phasor)
+            newvis.data['vis'][:,...] *= numpy.conj(phasor[:,numpy.newaxis])
 
         
         # To rotate UVW, rotate into the global XYZ coordinate system and back. We have the option of

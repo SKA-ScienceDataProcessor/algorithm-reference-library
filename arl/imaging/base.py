@@ -360,7 +360,8 @@ def create_image_from_visibility(vis: Visibility, **kwargs) -> Image:
     cellsize = get_parameter(kwargs, "cellsize", 0.5 * criticalcellsize)
     log.info("create_image_from_visibility: Cellsize          = %f radians, %f degrees" % (cellsize,
                                                                                            cellsize * 180.0 / numpy.pi))
-    if cellsize > criticalcellsize:
+    override_cellsize = get_parameter(kwargs, "override_cellsize", True)
+    if override_cellsize and cellsize > criticalcellsize:
         log.info("create_image_from_visibility: Resetting cellsize %f radians to criticalcellsize %f radians" % (
             cellsize, criticalcellsize))
         cellsize = criticalcellsize

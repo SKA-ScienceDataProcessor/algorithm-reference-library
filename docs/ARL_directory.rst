@@ -110,8 +110,8 @@ Image
 * FFT: :py:mod:`arl.image.operations.fft_image`
 * Remove continuum: :py:mod:`arl.image.operations.remove_image`
 * Convert polarisation:
- * :py:mod:`arl.image.operations.convert_stokes_to_polimage`
- * :py:mod:`arl.image.operations.convert_polimage_to_stokes`
+   * From Stokes To Polarisation: :py:mod:`arl.image.operations.convert_stokes_to_polimage`
+   * From Polarisation to Stokes: :py:mod:`arl.image.operations.convert_polimage_to_stokes`
 
 Visibility
 ==========
