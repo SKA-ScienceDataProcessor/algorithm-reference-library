@@ -1,5 +1,9 @@
 # Universal image for running Notebook, Dask pipelines, tests, and lint checkers
-FROM ubuntu:16.04
+ARG PYTHON=python3.6
+
+FROM ubuntu:17.04
+
+ARG PYTHON
 
 MAINTAINER Piers Harding "piers@catalyst.net.nz"
 
@@ -20,11 +24,18 @@ RUN \
     add-apt-repository -y ppa:git-core/ppa && \
     curl -s https://packagecloud.io/install/repositories/github/git-lfs/script.deb.sh | bash && \
     apt-get install -y git-lfs && \
-    git lfs install  && \
-    apt-get install -y python3-dev python3-pip python3-tk flake8 python3-nose \
+    git lfs install && \
+    apt-get install -y ${PYTHON}-dev python3-tk flake8 python3-nose \
             virtualenv virtualenvwrapper && \
     apt-get install -y graphviz && \
     apt-get clean -y
+
+# sort out pip and python for 3.6
+RUN cd /src; wget https://bootstrap.pypa.io/get-pip.py && ${PYTHON} get-pip.py; \
+    rm -rf /root/.cache
+
+RUN if [ "${PYTHON}" = "python3.6" ] ; then ln -s /usr/bin/python3.6 /usr/local/bin/python3 && \
+    rm -f /usr/bin/python3 && ln -s /usr/bin/python3.6 /usr/bin/python3 ; fi
 
 # Install Tini
 RUN wget --quiet https://github.com/krallin/tini/releases/download/v0.10.0/tini && \
@@ -34,9 +45,9 @@ RUN wget --quiet https://github.com/krallin/tini/releases/download/v0.10.0/tini 
 
 # Add and install Python modules
 ADD ./requirements.txt /src/requirements.txt
-RUN cd /src; pip3 install --upgrade pip; pip3 install -r requirements.txt
-RUN pip3 install bokeh && pip3 install pytest
-RUN pip3 install -U pylint
+RUN cd /src; pip3 install -r requirements.txt; rm -rf /root/.cache
+RUN pip3 install bokeh && pip3 install pytest; rm -rf /root/.cache
+RUN pip3 install -U pylint; rm -rf /root/.cache
 
 # runtime specific environment
 ENV JENKINS_URL 1
@@ -44,10 +55,19 @@ ENV PYTHONPATH /arl
 ENV JUPYTER_PATH /arl/examples/arl
 
 # Bundle app source
-ADD ./boot.sh /
+ADD ./docker/boot.sh /
+ADD ./arl /arl/arl/
+ADD ./Makefile /arl/
+ADD ./examples /arl/examples/
+ADD ./tests /arl/tests/
 
-# We share in the arl repo here
-VOLUME ["/arl"]
+# create space for tests
+RUN mkdir -p /arl/test_data /arl/test_results && \
+    chmod 777 /arl /arl/test_data /arl/test_results && \
+    chmod -R a+w /arl
+
+# We share in the arl data here
+VOLUME ["/arl/data"]
 
 # Expose Jupyter and Bokeh ports
 EXPOSE  8888 8787

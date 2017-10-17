@@ -1,12 +1,14 @@
 # simple makefile to simplify repetitive build env management tasks under posix
-PYTHON ?= python3
+PYTHON ?= python3.6
 PYLINT ?= pylint
 NOSETESTS ?= nosetests3
 FLAKE ?= flake8
 NAME = arl
 IMG = $(NAME)_img
+TAG = latest
 DOCKERFILE = Dockerfile
-DOCKER=docker
+DOCKER = docker
+DOCKER_REPO ?= localhost:5000
 
 
 all: clean nosetests
@@ -32,6 +34,7 @@ pytest: cleantests
 	pytest -x -v tests/
 
 nosetests: cleantests
+	rm -f predict_facet_timeslice_graph_wprojection.png pipelines-timings_*.csv
 	$(NOSETESTS) -s -v -e create_low_test_beam -e create_low_test_skycomponents_from_gleam tests/
 
 nosetests-coverage: inplace cleantests
@@ -48,7 +51,7 @@ docs: inplace
 
 code-flake:
 	# flake8 ignore long lines and trailing whitespace
-	$(FLAKE) --ignore=E501,W293,F401 arl
+	$(FLAKE) --ignore=E501,W293,F401 --builtins=ModuleNotFoundError arl
 
 code-lint:
 	$(PYLINT) --extension-pkg-whitelist=numpy \
@@ -67,7 +70,11 @@ notebook:
 	jupyter notebook --no-browser --ip=$${IP} --port=8888 examples/arl/
 
 docker_build:
-	cd tools && $(DOCKER) build -t $(IMG) -f $(DOCKERFILE) .
+	$(DOCKER) build -t $(IMG) -f $(DOCKERFILE) --build-arg PYTHON=$(PYTHON) .
+
+docker_push: docker_build
+	docker tag $(IMG) $(DOCKER_REPO)/$(IMG):$(TAG)
+	docker push $(DOCKER_REPO)/$(IMG):$(TAG)
 
 docker_notebook: docker_build
 	CTNR=`$(DOCKER) ps -q -f name=$(NAME)_notebook` && \
@@ -75,25 +82,38 @@ docker_notebook: docker_build
 	DEVICE=`ip link | grep -E " ens| wlan| eth" | grep BROADCAST | tail -1 | cut -d : -f 2  | sed "s/ //"` && \
 	IP=`ip a show $${DEVICE} | grep ' inet ' | awk '{print $$2}' | sed 's/\/.*//'` && \
 	echo "Launching at IP: $${IP}" && \
-	$(DOCKER) run --name $(NAME)_notebook --hostname $(NAME)_notebook --volume $$(pwd):/arl -e IP=$${IP} \
+	$(DOCKER) run --name $(NAME)_notebook --hostname $(NAME)_notebook --volume $$(pwd)/data:/arl/data -e IP=$${IP} \
             --net=host -p 8888:8888 -p 8787:8787 -p 8788:8788 -p 8789:8789 -d $(IMG)
 	sleep 3
 	$(DOCKER) logs $(NAME)_notebook
 
 docker_tests: docker_build cleantests
+	rm -f predict_facet_timeslice_graph_wprojection.png pipelines-timings_*.csv
 	CTNR=`$(DOCKER) ps -q -f name=$(NAME)_tests` && \
 	if [ -n "$${CTNR}" ]; then $(DOCKER) rm -f $(NAME)_tests; fi
-	$(DOCKER) run --rm --name $(NAME)_tests --hostname $(NAME) --volume $$(pwd):/arl \
-            --net=host -ti $(IMG) /bin/sh -c "cd /arl && make nosetests"
+	$(DOCKER) run --rm --name $(NAME)_tests --hostname $(NAME) --volume $$(pwd)/data:/arl/data \
+					-v /etc/passwd:/etc/passwd:ro --user=$$(id -u) \
+					-v $${HOME}:$${HOME} -w $${HOME} \
+					-e HOME=$${HOME} \
+		            --net=host -ti $(IMG) /bin/sh -c "cd /arl && make nosetests"
 
 docker_pytest: docker_build cleantests
 	CTNR=`$(DOCKER) ps -q -f name=$(NAME)_tests` && \
 	if [ -n "$${CTNR}" ]; then $(DOCKER) rm -f $(NAME)_tests; fi
-	$(DOCKER) run --rm --name $(NAME)_tests --hostname $(NAME) --volume $$(pwd):/arl \
-            --net=host -ti $(IMG) /bin/sh -c "cd /arl && make pytest"
+	$(DOCKER) run --rm --name $(NAME)_tests --hostname $(NAME) --volume $$(pwd)/data:/arl/data \
+					-v /etc/passwd:/etc/passwd:ro --user=$$(id -u) \
+					-v $${HOME}:$${HOME} -w $${HOME} \
+					-e HOME=$${HOME} \
+			    --net=host -ti $(IMG) /bin/sh -c "cd /arl && make pytest"
 
 docker_lint: docker_build
 	CTNR=`$(DOCKER) ps -q -f name=$(NAME)_lint` && \
 	if [ -n "$${CTNR}" ]; then $(DOCKER) rm -f $(NAME)_lint; fi
 	$(DOCKER) run --rm --name $(NAME)_lint --hostname $(NAME) --volume $$(pwd):/arl \
-            --net=host -ti $(IMG) /bin/sh -c "cd /arl && make code-analysis"
+					-v /etc/passwd:/etc/passwd:ro --user=$$(id -u) \
+					-v $${HOME}:$${HOME} -w $${HOME} \
+					-e HOME=$${HOME} \
+		            --net=host -ti $(IMG) /bin/sh -c "cd /arl && make code-analysis"
+
+launch_dask:
+	cd tools && ansible-playbook -i ./inventory ./docker.yml
