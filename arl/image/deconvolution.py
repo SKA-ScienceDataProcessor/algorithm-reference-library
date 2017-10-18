@@ -48,13 +48,16 @@ def deconvolve_cube(dirty: Image, psf: Image, **kwargs) -> (Image, Image):
     msclean: MultiScale CLEAN See: Cornwell, T.J., Multiscale CLEAN (IEEE Journal of Selected Topics in Sig Proc,
     2008 vol. 2 pp. 793-801)
 
-    mfsmsclean: MultiScale Multi-Frequency See: U. Rau and T. J. Cornwell, “A multi-scale multi-frequency
-    deconvolution algorithm for synthesis imaging in radio interferometry,” A&A 532, A71 (2011).
+    mfsmsclean, msmfsclean, mmclean: MultiScale Multi-Frequency See: U. Rau and T. J. Cornwell,
+    “A multi-scale multi-frequency deconvolution algorithm for synthesis imaging in radio interferometry,” A&A 532,
+    A71 (2011).
     
     For example::
     
         comp, residual = deconvolve_cube(dirty, psf, niter=1000, gain=0.7, algorithm='msclean',
                                          scales=[0, 3, 10, 30], threshold=0.01)
+                                         
+    For the MFS clean, the psf must have number of channels >= 2 * nmoments
     
     :param dirty: Image dirty image
     :param psf: Image Point Spread Function
@@ -72,8 +75,8 @@ def deconvolve_cube(dirty: Image, psf: Image, **kwargs) -> (Image, Image):
     assert type(dirty) == Image, "Type is %s" % (type(dirty))
     assert type(psf) == Image, "Type is %s" % (type(psf))
     
-    window = get_parameter(kwargs, 'window', None)
-    if window == 'quarter':
+    window_shape = get_parameter(kwargs, 'window_shape', None)
+    if window_shape == 'quarter':
         qx = dirty.shape[3] // 4
         qy = dirty.shape[2] // 4
         window = numpy.zeros_like(dirty.data)
@@ -124,7 +127,7 @@ def deconvolve_cube(dirty: Image, psf: Image, **kwargs) -> (Image, Image):
         comp_image = create_image_from_array(comp_array, dirty.wcs)
         residual_image = create_image_from_array(residual_array, dirty.wcs)
 
-    elif algorithm == 'msmfsclean' or algorithm == 'mfsmsclean':
+    elif algorithm == 'msmfsclean' or algorithm == 'mfsmsclean' or algorithm == 'mmclean':
         findpeak = get_parameter(kwargs, "findpeak", 'ARL')
         
         log.info("deconvolve_cube: Multi-scale multi-frequency clean of each polarisation separately")
@@ -155,6 +158,12 @@ def deconvolve_cube(dirty: Image, psf: Image, **kwargs) -> (Image, Image):
                         msmfsclean(dirty_taylor.data[:, pol, :, :], psf_taylor.data[:, pol, :, :],
                                 None, gain, thresh, niter, scales, fracthresh, findpeak)
                 else:
+                    qx = dirty.shape[3] // 4
+                    qy = dirty.shape[2] // 4
+                    window = numpy.zeros_like(dirty.data)
+                    window[..., (qy + 1):3 * qy, (qx + 1):3 * qx] = 1.0
+                    log.info('deconvolve_cube: Cleaning inner quarter of each moment plane')
+
                     comp_array[:, pol, :, :], residual_array[:, pol, :, :] = \
                         msmfsclean(dirty_taylor.data[:, pol, :, :], psf_taylor.data[:, pol, :, :],
                                 window[:, pol, :, :], gain, thresh, niter, scales, fracthresh, findpeak)
