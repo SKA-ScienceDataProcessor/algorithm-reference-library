@@ -2,22 +2,19 @@
 
 
 """
-import numpy
+import logging
 import os
-import sys
 import unittest
 
-from arl.data.polarisation import PolarisationFrame
+import numpy
 
+from arl.data.polarisation import PolarisationFrame
 from arl.image.operations import copy_image, create_empty_image_like, create_image_from_array, add_image, \
     export_image_to_fits, qa_image, reproject_image, smooth_image, checkwcs, convert_polimage_to_stokes, \
     convert_stokes_to_polimage, polarisation_frame_from_wcs, fft_image, show_image, \
     calculate_image_frequency_moments, calculate_image_from_frequency_moments, pad_image, convert_image_to_kernel, \
     create_w_term_like
-from arl.image.iterators import raster_iter
 from arl.util.testing_support import create_test_image, create_low_test_image_from_gleam
-
-import logging
 
 log = logging.getLogger(__name__)
 
@@ -115,8 +112,6 @@ class TestImage(unittest.TestCase):
             wcs.wcs.cdelt[0] = -1.0
             pf = polarisation_frame_from_wcs(wcs, shape)
 
-    def test_show_image(self):
-        show_image(self.m31image)
 
     def test_smooth_image(self):
         smooth = smooth_image(self.m31image)

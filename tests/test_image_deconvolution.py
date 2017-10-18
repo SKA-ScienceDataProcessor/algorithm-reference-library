@@ -113,7 +113,7 @@ class TestImageDeconvolution(unittest.TestCase):
         export_image_to_fits(self.residual, "%s/test_deconvolve_msclean_innerquarter-residual.fits" % (self.dir))
         self.cmodel = restore_cube(self.comp, self.psf, self.residual)
         export_image_to_fits(self.cmodel, "%s/test_deconvolve_msclean_innerquarter-clean.fits" % (self.dir))
-        assert numpy.max(self.residual.data) < 0.5
+        assert numpy.max(self.residual.data) < 0.7
     
     def test_deconvolve_hogbom_subpsf(self):
         

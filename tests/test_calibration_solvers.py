@@ -35,7 +35,9 @@ class TestCalibrationSolvers(unittest.TestCase):
         self.channel_bandwidth = numpy.array(vnchan * [self.frequency[1] - self.frequency[0]])
         
     
-    def actualSetup(self, sky_pol_frame='stokesIQUV', data_pol_frame='linear', f=[100.0, 50.0, -10.0, 40.0]):
+    def actualSetup(self, sky_pol_frame='stokesIQUV', data_pol_frame='linear', f=None):
+        if f is None:
+            f = [100.0, 50.0, -10.0, 40.0]
         f = numpy.array(f)
         self.flux = numpy.array([f, 0.8 * f, 0.6 * f])
     
@@ -76,7 +78,9 @@ class TestCalibrationSolvers(unittest.TestCase):
         assert numpy.max(numpy.abs(gtsol.gain - 1.0)) > 0.1
 
     def core_solve(self, spf, dpf, phase_error=0.1, amplitude_error=0.0, leakage=0.0,
-                   phase_only=True, niter=200, crosspol=False,residual_tol=1e-6, f=[100.0,50.0,-10.0, 40.0]):
+                   phase_only=True, niter=200, crosspol=False, residual_tol=1e-6, f=None):
+        if f is None:
+            f = [100.0, 50.0, -10.0, 40.0]
         self.actualSetup(spf, dpf, f=f)
         gt = create_gaintable_from_blockvisibility(self.vis)
         log.info("Created gain table: %s" % (gaintable_summary(gt)))

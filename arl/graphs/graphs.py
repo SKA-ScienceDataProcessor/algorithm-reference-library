@@ -43,7 +43,8 @@ from arl.calibration.operations import apply_gaintable
 from arl.calibration.solvers import solve_gaintable
 from arl.data.data_models import Image
 from arl.image.deconvolution import deconvolve_cube
-from arl.image.gather_scatter import image_scatter, image_gather
+from arl.image.gather_scatter import image_scatter_facets, image_gather_facets, image_scatter_channels, \
+    image_gather_channels
 from arl.image.operations import copy_image, create_empty_image_like
 from arl.imaging import predict_2d, invert_2d, invert_wstack_single, predict_wstack_single, \
     predict_timeslice_single, invert_timeslice_single, normalize_sumwt
@@ -283,15 +284,15 @@ def create_invert_facet_graph(vis_graph_list, template_model_graph: delayed, dop
     def gather_invert_results(results, template_model, facets, **kwargs):
         # Results contains the images for each facet, after adding across vis_graphs
         image_results = create_empty_image_like(template_model)
-        image_results = image_gather([result[0] for result in results], image_results,
-                                     facets=facets)
+        image_results = image_gather_facets([result[0] for result in results], image_results,
+                                            facets=facets)
         # For the gather, assume all are the same weight
         sumwt = results[0][1]
         
         return image_results, sumwt
     
     # Scatter the model in facets
-    model_graphs = delayed(image_scatter, nout=facets ** 2, pure=True)(template_model_graph, facets=facets)
+    model_graphs = delayed(image_scatter_facets, nout=facets ** 2, pure=True)(template_model_graph, facets=facets)
     
     # For each facet, invert over the vis_graph
     results = [create_invert_graph(vis_graph_list, model_graph, dopsf=dopsf, normalize=normalize, **kwargs)
@@ -318,15 +319,15 @@ def create_invert_facet_vis_scatter_graph(vis_graph_list, template_model_graph: 
     def gather_invert_results(results, template_model, facets, **kwargs):
         # Results contains the images for each facet, after adding across vis_graphs
         image_results = create_empty_image_like(template_model)
-        image_results = image_gather([result[0] for result in results], image_results,
-                                     facets=facets)
+        image_results = image_gather_facets([result[0] for result in results], image_results,
+                                            facets=facets)
         # For the gather, assume all are the same weight
         sumwt = results[0][1]
         
         return image_results, sumwt
     
     # Scatter the model in facets
-    model_graphs = delayed(image_scatter, nout=facets ** 2, pure=True)(template_model_graph, facets=facets)
+    model_graphs = delayed(image_scatter_facets, nout=facets ** 2, pure=True)(template_model_graph, facets=facets)
     
     # For each facet, invert over the vis_graph
     results = [c_invert_vis_scatter_graph(vis_graph_list, model_graph, dopsf=dopsf, normalize=normalize, **kwargs)
@@ -412,11 +413,11 @@ def create_predict_facet_graph(vis_graph_list, model_graph: delayed, predict=pre
             return None
     
     # Note that we need to know the number of facets in order to define the size of facet_model_graphs
-    facet_model_graphs = delayed(image_scatter, nout=facets ** 2, pure=True)(model_graph,
-                                                                             facets=facets)
+    facet_model_graphs = delayed(image_scatter_facets, nout=facets ** 2, pure=True)(model_graph,
+                                                                                    facets=facets)
     accumulate_vis_graphs = list()
     for vis_graph in vis_graph_list:
-       for ifacet, facet_model_graph in enumerate(facet_model_graphs):
+        for ifacet, facet_model_graph in enumerate(facet_model_graphs):
             # There is a dependency issue here so we chain the predicts
             accumulate_vis_graph = None
             if ifacet == 0:
@@ -431,7 +432,7 @@ def create_predict_facet_graph(vis_graph_list, model_graph: delayed, predict=pre
 
 
 def create_predict_vis_scatter_graph(vis_graph_list, model_graph: delayed, vis_slices,
-                                           predict, scatter, gather, **kwargs):
+                                     predict, scatter, gather, **kwargs):
     """Predict, iterating over the scattered vis_graph_list
 
     :param vis_graph_list:
@@ -451,15 +452,15 @@ def create_predict_vis_scatter_graph(vis_graph_list, model_graph: delayed, vis_s
             return predicted
         else:
             return None
-            
+    
     predicted_vis_list = list()
     for vis_graph in vis_graph_list:
         scatter_vis_graphs = delayed(scatter, nout=vis_slices)(vis_graph, vis_slices=vis_slices, **kwargs)
         predict_list = list()
         for scatter_vis_graph in scatter_vis_graphs:
             predict_list.append(delayed(predict_and_accumulate, pure=True, nout=1)(scatter_vis_graph,
-                                                                                    model_graph,
-                                                                                    **kwargs))
+                                                                                   model_graph,
+                                                                                   **kwargs))
         predicted_vis_list.append(delayed(gather, nout=1)(predict_list, vis_graph, vis_slices=vis_slices,
                                                           **kwargs))
     return predicted_vis_list
@@ -525,7 +526,7 @@ def create_predict_facet_vis_scatter_graph(vis_graph_list, model_graph: delayed,
             
             # Note that we need to know the number of facets in order to define the size of facet_model_graphs
     
-    facet_model_graphs = delayed(image_scatter, nout=facets ** 2, pure=True)(model_graph, facets=facets)
+    facet_model_graphs = delayed(image_scatter_facets, nout=facets ** 2, pure=True)(model_graph, facets=facets)
     predicted_vis_list = list()
     for vis_graph in vis_graph_list:
         scatter_vis_graphs = delayed(vis_scatter, nout=vis_slices)(vis_graph, vis_slices=vis_slices, **kwargs)
@@ -686,22 +687,24 @@ def create_deconvolve_graph(dirty_graph: delayed, psf_graph: delayed, model_grap
     return delayed(deconvolve, pure=True, nout=2)(dirty_graph[0], psf_graph[0], model_graph, **kwargs)
 
 
-def create_deconvolve_facet_graph(dirty_graph: delayed, psf_graph: delayed, model_graph: delayed, facets=1,
-                                  **kwargs) -> delayed:
-    """Create a graph for deconvolution by facets, adding to the model
+def create_deconvolve_scatter_graph(dirty_graph: delayed, psf_graph: delayed, model_graph: delayed,
+                                    subimages=1,
+                                    image_scatter=image_scatter_facets,
+                                    image_gather=image_gather_facets, **kwargs) -> delayed:
+    """Create a graph for deconvolution by subimages, adding to the model
     
-    Does deconvolution facet-by-facet. Currently does nothing very sensible about the
+    Does deconvolution subimage by subimage. Currently does nothing very sensible about the
     edges.
 
     :param dirty_graph:
-    :param psf_graph: Must be the size of a facet
+    :param psf_graph:
     :param model_graph: Current model
-    :param facets: Number of facets on each axis
+    :param subimages: Number of subimages
     :param kwargs: Parameters for functions in graphs
     :return:
     """
     
-    def deconvolve_facet(dirty, psf, **kwargs):
+    def deconvolve_subimage(dirty, psf, **kwargs):
         assert type(dirty) == Image
         assert type(psf) == Image
         result = deconvolve_cube(dirty, psf, **kwargs)
@@ -714,11 +717,47 @@ def create_deconvolve_facet_graph(dirty_graph: delayed, psf_graph: delayed, mode
         return output
     
     output = delayed(create_empty_image_like, nout=1, pure=True)(model_graph)
-    dirty_graphs = delayed(image_scatter, nout=facets ** 2, pure=True)(dirty_graph[0], facets=facets)
-    results = [delayed(deconvolve_facet)(dirty_graph, psf_graph[0], **kwargs)
+    dirty_graphs = delayed(image_scatter, nout=subimages, pure=True)(dirty_graph[0], subimages=subimages)
+    results = [delayed(deconvolve_subimage)(dirty_graph, psf_graph[0], **kwargs)
                for dirty_graph in dirty_graphs]
-    result = delayed(image_gather, nout=1, pure=True)(results, output, facets=facets)
+    result = delayed(image_gather, nout=1, pure=True)(results, output, subimages=subimages)
     return delayed(add_model, nout=1, pure=True)(result, model_graph)
+
+
+def create_deconvolve_facet_graph(dirty_graph: delayed, psf_graph: delayed, model_graph: delayed, facets=1,
+                                  **kwargs) -> delayed:
+    """Create a graph for deconvolution by facets, adding to the model
+
+    Does deconvolution facet-by-facet. Currently does nothing very sensible about the
+    edges.
+
+    :param dirty_graph:
+    :param psf_graph: Must be the size of a facet
+    :param model_graph: Current model
+    :param facets: Number of facets on each axis
+    :param kwargs: Parameters for functions in graphs
+    :return:
+    """
+    return create_deconvolve_scatter_graph(dirty_graph, psf_graph, model_graph, subimages=facets, facets=facets,
+                                           image_scatter=image_scatter_facets,
+                                           image_gather=image_gather_facets, **kwargs)
+
+
+def create_deconvolve_channel_graph(dirty_graph: delayed, psf_graph: delayed, model_graph: delayed, subimages,
+                                  **kwargs) -> delayed:
+    """Create a graph for deconvolution by channels, adding to the model
+
+    Does deconvolution channel by channel.
+    :param dirty_graph:
+    :param psf_graph: Must be the size of a facet
+    :param model_graph: Current model
+    :param facets: Number of facets on each axis
+    :param kwargs: Parameters for functions in graphs
+    :return:
+    """
+    return create_deconvolve_scatter_graph(dirty_graph, psf_graph, model_graph, subimages=subimages,
+                                           image_scatter=image_scatter_channels,
+                                           image_gather=image_gather_channels, **kwargs)
 
 
 def create_selfcal_graph_list(vis_graph_list, model_graph: delayed, c_predict_graph,

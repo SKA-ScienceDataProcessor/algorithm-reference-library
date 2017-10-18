@@ -10,13 +10,13 @@ import numpy
 from astropy import units as u
 from astropy.coordinates import SkyCoord
 from astropy.wcs.utils import pixel_to_skycoord
-
-from dask import delayed, get
+from dask import delayed
 
 from arl.calibration.operations import apply_gaintable, create_gaintable_from_blockvisibility
 from arl.data.polarisation import PolarisationFrame
 from arl.graphs.graphs import create_invert_facet_graph, create_predict_facet_graph, \
-    create_zero_vis_graph_list, create_subtract_vis_graph_list, create_deconvolve_facet_graph, \
+    create_zero_vis_graph_list, create_subtract_vis_graph_list, \
+    create_deconvolve_facet_graph, create_deconvolve_channel_graph, \
     create_invert_wstack_graph, create_residual_wstack_graph, create_predict_wstack_graph, \
     create_predict_graph, create_invert_graph, create_residual_facet_graph, \
     create_residual_facet_wstack_graph, create_predict_facet_wstack_graph, \
@@ -29,8 +29,9 @@ from arl.imaging import create_image_from_visibility, predict_skycomponent_block
     invert_wstack_single, predict_wstack_single
 from arl.skycomponent.operations import create_skycomponent, insert_skycomponent
 from arl.util.testing_support import create_named_configuration, simulate_gaintable
-from arl.visibility.operations import qa_visibility
 from arl.visibility.base import create_blockvisibility
+from arl.visibility.operations import qa_visibility
+
 
 class TestDaskGraphs(unittest.TestCase):
     def setUp(self):
@@ -49,12 +50,13 @@ class TestDaskGraphs(unittest.TestCase):
         self.vis_graph_list = self.setupVis(add_errors=False)
         self.model_graph = delayed(self.get_LSM)(self.vis_graph_list[self.nvis // 2])
     
-    def setupVis(self, add_errors=False):
-        self.freqwin = 3
+    def setupVis(self, add_errors=False, freqwin=3):
+        self.freqwin = freqwin
         vis_graph_list = list()
         self.ntimes = 5
         self.times = numpy.linspace(-3.0, +3.0, self.ntimes) * numpy.pi / 12.0
-        for freq in numpy.linspace(0.8e8, 1.2e8, self.freqwin):
+        self.frequency = numpy.linspace(0.8e8, 1.2e8, self.freqwin)
+        for freq in self.frequency:
             vis_graph_list.append(delayed(self.ingest_visibility)(freq, times=self.times, add_errors=add_errors))
         
         self.nvis = len(vis_graph_list)
@@ -62,7 +64,11 @@ class TestDaskGraphs(unittest.TestCase):
         self.vis_slices = 2 * int(numpy.ceil(numpy.max(numpy.abs(vis_graph_list[0].compute().w)) / self.wstep)) + 1
         return vis_graph_list
     
-    def ingest_visibility(self, freq=1e8, chan_width=1e6, times=[0.0], reffrequency=[1e8], add_errors=False):
+    def ingest_visibility(self, freq=1e8, chan_width=1e6, times=None, reffrequency=None, add_errors=False):
+        if times is None:
+            times = [0.0]
+        if reffrequency is None:
+            reffrequency = [1e8]
         lowcore = create_named_configuration('LOWBD2-CORE')
         frequency = numpy.array([freq])
         channel_bandwidth = numpy.array([chan_width])
@@ -103,7 +109,9 @@ class TestDaskGraphs(unittest.TestCase):
             vt = apply_gaintable(vt, gt)
         return vt
     
-    def get_LSM(self, vt, cellsize=0.001, reffrequency=[1e8], flux=0.0):
+    def get_LSM(self, vt, cellsize=0.001, reffrequency=None, flux=0.0):
+        if reffrequency is None:
+            reffrequency = [1e8]
         model = create_image_from_visibility(vt, npixel=self.npixel, cellsize=cellsize, npol=1,
                                              frequency=reffrequency,
                                              polarisation_frame=PolarisationFrame("stokesI"))
@@ -499,7 +507,40 @@ class TestDaskGraphs(unittest.TestCase):
         
             assert numpy.abs(qa.data['max'] - 100.1) < 1.0, str(qa)
             assert numpy.abs(qa.data['min'] + 1.8) < 1.0, str(qa)
+
+    @unittest.skip("Not yet ready")
+    def test_deconvolution_channel_graph(self):
+        
+        self.vis_graph_list = self.setupVis(freqwin=8)
+        self.model_graph = delayed(self.get_LSM)(self.vis_graph_list[self.nvis // 2], frequency=self.frequency)
+
+        model_graph = delayed(self.get_LSM)(self.vis_graph_list[self.nvis // 2],
+                                            flux=0.0)
+        dirty_graph = create_invert_wstack_graph(self.vis_graph_list, model_graph,
+                                                 dopsf=False, vis_slices=self.vis_slices)
+        psf_model_graph = delayed(self.get_LSM)(self.vis_graph_list[self.nvis // 2],
+                                                flux=0.0)
+        psf_graph = create_invert_wstack_graph(self.vis_graph_list, psf_model_graph,
+                                               vis_slices=self.vis_slices,
+                                               dopsf=True)
     
+        channel_images = 4
+        clean_graph = create_deconvolve_channel_graph(dirty_graph, psf_graph, model_graph,
+                                                    algorithm='hogbom', niter=1000,
+                                                    fractional_threshold=0.02, threshold=2.0,
+                                                    gain=0.1, subimages=channel_images)
+        self.compute = True
+        if self.compute:
+            result = clean_graph.compute()
+        
+            export_image_to_fits(result, '%s/test_imaging_deconvolution_channels%d.clean.fits' %
+                                 (self.results_dir, channel_images))
+        
+            qa = qa_image(result)
+        
+            assert numpy.abs(qa.data['max'] - 100.1) < 1.0, str(qa)
+            assert numpy.abs(qa.data['min'] + 1.8) < 1.0, str(qa)
+
     def test_selfcal_global_graph(self):
     
         corrupted_vis_graph_list = self.setupVis(add_errors=True)

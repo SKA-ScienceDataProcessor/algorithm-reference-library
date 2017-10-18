@@ -30,13 +30,13 @@ class TestPipelines(unittest.TestCase):
         os.makedirs(self.dir, exist_ok=True)
         lowcore = create_named_configuration('LOWBD2-CORE')
         times = numpy.arange(-3.0, +3.0, 1.0) * numpy.pi / 12.0
-        vnchan = 3
+        vnchan = 8
         frequency = numpy.linspace(0.8e8, 1.20e8, vnchan)
         channel_bandwidth = numpy.array(vnchan * [frequency[1] - frequency[0]])
         
         # Define the component and give it some polarisation and spectral behaviour
         f = numpy.array([100.0, 20.0, -10.0, 1.0])
-        self.flux = numpy.array([f, 0.8 * f, 0.6 * f])
+        self.flux = numpy.array([f, 0.9 * f, 0.8 * f, 0.7 * f, 0.6 * f, 0.5 * f, 0.4 * f, 0.3 * f])
 
         self.phasecentre = SkyCoord(ra=+15.0 * u.deg, dec=-35.0 * u.deg, frame='icrs', equinox='J2000')
         self.compabsdirection = SkyCoord(ra=17.0 * u.deg, dec=-36.5 * u.deg, frame='icrs', equinox='J2000')

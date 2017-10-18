@@ -2,15 +2,14 @@
 
 
 """
-import numpy
-import itertools
 import random
 import unittest
 
+import numpy
 from numpy.testing import assert_allclose
 
 from arl.fourier_transforms.convolutional_gridding import w_beam, coordinates, \
-    coordinates2, coordinateBounds, anti_aliasing_calculate,  \
+    coordinates2, coordinateBounds, anti_aliasing_calculate, \
     convolutional_degrid, convolutional_grid
 
 

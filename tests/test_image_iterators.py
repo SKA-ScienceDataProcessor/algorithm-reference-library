@@ -2,18 +2,14 @@
 
 
 """
-import sys
+import logging
 import unittest
 
 import numpy
 
 from arl.data.polarisation import PolarisationFrame
 from arl.image.iterators import raster_iter, channel_iter
-from arl.util.testing_support import create_test_image, replicate_image
-
-
-import logging
-
+from arl.util.testing_support import create_test_image
 
 log = logging.getLogger(__name__)
 

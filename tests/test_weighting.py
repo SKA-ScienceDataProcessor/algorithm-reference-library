@@ -4,19 +4,17 @@
 """
 import logging
 import unittest
-import copy
 
 import numpy
 from astropy import units as u
 from astropy.coordinates import SkyCoord
-
 from photutils import fit_2dgaussian
 
 from arl.data.polarisation import PolarisationFrame
-from arl.imaging.base import create_image_from_visibility
-from arl.imaging import invert_2d
-from arl.imaging.weighting import weight_visibility, taper_visibility_Gaussian, taper_visibility_tukey
 from arl.image.operations import export_image_to_fits
+from arl.imaging import invert_2d
+from arl.imaging.base import create_image_from_visibility
+from arl.imaging.weighting import weight_visibility, taper_visibility_Gaussian, taper_visibility_tukey
 from arl.util.testing_support import create_named_configuration
 from arl.visibility.base import create_visibility
 

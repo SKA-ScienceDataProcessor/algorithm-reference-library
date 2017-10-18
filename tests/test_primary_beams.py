@@ -3,23 +3,21 @@
 
 """
 
-import numpy
+import logging
 import os
 import unittest
 
-from astropy.coordinates import SkyCoord
+import numpy
 from astropy import units as u
-from astropy import constants as const
-
-from arl.image.operations import export_image_to_fits
+from astropy.coordinates import SkyCoord
 
 from arl.data.polarisation import PolarisationFrame
+from arl.image.operations import export_image_to_fits
+from arl.imaging.base import create_image_from_visibility
 from arl.util.primary_beams import create_pb_vla
 from arl.util.testing_support import create_named_configuration
-from arl.visibility.base import create_visibility, create_blockvisibility
-from arl.imaging.base import create_image_from_visibility
+from arl.visibility.base import create_visibility
 
-import logging
 log = logging.getLogger(__name__)
 
 

@@ -4,24 +4,20 @@
 """
 
 import os
-import numpy
-
 import unittest
-
-from dask import delayed
 
 import numpy
 from astropy import units as u
 from astropy.coordinates import SkyCoord
+from dask import delayed
 
 from arl.data.polarisation import PolarisationFrame
-
-from arl.imaging import predict_skycomponent_blockvisibility
-from arl.skycomponent.operations import create_skycomponent
-from arl.util.testing_support import create_named_configuration, create_test_image
 from arl.graphs.generic_graphs import create_generic_blockvisibility_graph, create_generic_image_graph, \
     create_generic_image_iterator_graph
 from arl.image.iterators import raster_iter
+from arl.imaging import predict_skycomponent_blockvisibility
+from arl.skycomponent.operations import create_skycomponent
+from arl.util.testing_support import create_named_configuration, create_test_image
 from arl.visibility.base import create_blockvisibility
 
 

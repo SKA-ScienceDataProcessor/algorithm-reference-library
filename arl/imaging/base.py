@@ -296,7 +296,7 @@ def predict_skycomponent_visibility(vis: Visibility, sc: Union[Skycomponent, Lis
     return vis
 
 
-def create_image_from_visibility(vis: Visibility, **kwargs) -> Image:
+def create_image_from_visibility(vis, **kwargs) -> Image:
     """Make an empty image from params and Visibility
 
     :param vis:

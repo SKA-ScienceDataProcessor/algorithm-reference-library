@@ -10,7 +10,7 @@ from astropy.coordinates import SkyCoord
 from numpy.testing import assert_allclose
 
 from arl.util.coordinate_support import xyz_to_uvw, xyz_at_latitude, simulate_point, baselines, uvw_to_xyz, \
-    uvw_transform, skycoord_to_lmn
+    skycoord_to_lmn
 
 
 class TestCoordinates(unittest.TestCase):

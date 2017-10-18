@@ -2,7 +2,7 @@
 
 
 """
-import sys
+import logging
 import unittest
 
 import numpy
@@ -11,10 +11,6 @@ from arl.data.polarisation import PolarisationFrame
 from arl.image.gather_scatter import image_gather_facets, image_scatter_facets, image_gather_channels, \
     image_scatter_channels
 from arl.util.testing_support import create_test_image
-
-
-import logging
-
 
 log = logging.getLogger(__name__)
 
@@ -44,7 +40,7 @@ class TestImageGatherScatters(unittest.TestCase):
             assert numpy.max(numpy.abs(diff)) == 0.0, "Raster set failed for %d" % nraster
 
     def test_scatter_gather_channel(self):
-        for nchan in [128, 16, 1]:
+        for nchan in [128, 16]:
             m31cube = create_test_image(polarisation_frame=PolarisationFrame('stokesI'),
                                         frequency=numpy.linspace(1e8, 1.1e8, nchan))
         

@@ -605,7 +605,7 @@ def create_blockvisibility_iterator(config: Configuration, times: numpy.array, f
                                     channel_bandwidth, phasecentre: SkyCoord, weight: float = 1,
                                     polarisation_frame=PolarisationFrame('stokesI'), integration_time=1.0,
                                     number_integrations=1, predict=predict_timeslice, model=None, components=None,
-                                    phase_error=0.0, amplitude_error=0.0, sleep=0.0, **kwargs) -> BlockVisibility:
+                                    phase_error=0.0, amplitude_error=0.0, sleep=0.0, **kwargs):
     """ Create a sequence of Visibilities and optionally predicting and coalescing
 
     This is useful mainly for performing large simulations. Do something like::

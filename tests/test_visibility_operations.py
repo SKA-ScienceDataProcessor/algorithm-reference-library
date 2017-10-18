@@ -66,7 +66,7 @@ class TestVisibilityOperations(unittest.TestCase):
             selected_vis = create_visibility_from_rows(self.vis, rows, makecopy=makecopy)
             assert selected_vis.nvis == numpy.sum(numpy.array(rows))
             
-    def test_create_visibility(self):
+    def test_create_visibility_time(self):
         self.vis = create_visibility(self.lowcore, self.times, self.frequency, phasecentre=self.phasecentre,
                                           weight=1.0, channel_bandwidth=self.channel_bandwidth)
         assert self.vis.nvis == len(self.vis.time)
@@ -78,7 +78,7 @@ class TestVisibilityOperations(unittest.TestCase):
         assert vis.nvis == len(vis.time)
         assert numpy.unique(vis.time).size == self.vis.time.size
 
-    def test_create_visibility_from_rows(self):
+    def test_create_visibility_from_rows_makecopy(self):
         self.vis = create_visibility(self.lowcore, self.times, self.frequency, phasecentre=self.phasecentre,
                                           weight=1.0, channel_bandwidth=self.channel_bandwidth)
         rows = self.vis.time > 150.0

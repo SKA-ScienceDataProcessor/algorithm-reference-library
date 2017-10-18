@@ -5,7 +5,6 @@
 
 import os
 import unittest
-import random
 
 import numpy
 from astropy import units as u
@@ -18,13 +17,13 @@ from arl.data.polarisation import PolarisationFrame
 from arl.graphs.graphs import create_deconvolve_facet_graph, create_invert_wstack_graph, \
     create_residual_wstack_graph, create_selfcal_graph_list
 from arl.image.operations import qa_image, export_image_to_fits
+from arl.imaging import create_image_from_visibility, predict_skycomponent_blockvisibility, \
+    invert_wstack_single, predict_wstack_single
 from arl.pipelines.graphs import create_continuum_imaging_pipeline_graph, \
     create_ical_pipeline_graph
 from arl.skycomponent.operations import create_skycomponent, insert_skycomponent
 from arl.util.testing_support import create_named_configuration, simulate_gaintable
 from arl.visibility.base import create_blockvisibility
-from arl.imaging import create_image_from_visibility, predict_skycomponent_blockvisibility, \
-    invert_wstack_single, predict_wstack_single
 
 
 class TestImagingDask(unittest.TestCase):
@@ -54,7 +53,9 @@ class TestImagingDask(unittest.TestCase):
         self.wstep = 10.0
         self.vis_slices = 2 * int(numpy.ceil(numpy.max(numpy.abs(self.vis_graph_list[0].compute().w)) / self.wstep)) + 1
     
-    def ingest_visibility(self, freq=1e8, chan_width=1e6, time=0.0, reffrequency=[1e8], add_errors=False):
+    def ingest_visibility(self, freq=1e8, chan_width=1e6, time=0.0, reffrequency=None, add_errors=False):
+        if reffrequency is None:
+            reffrequency = [1e8]
         lowcore = create_named_configuration('LOWBD2-CORE')
         times = [time]
         frequency = numpy.array([freq])
@@ -96,7 +97,9 @@ class TestImagingDask(unittest.TestCase):
             vt = apply_gaintable(vt, gt)
         return vt
     
-    def get_LSM(self, vt, npixel=512, cellsize=0.001, reffrequency=[1e8], flux=0.0):
+    def get_LSM(self, vt, npixel=512, cellsize=0.001, reffrequency=None, flux=0.0):
+        if reffrequency is None:
+            reffrequency = [1e8]
         model = create_image_from_visibility(vt, npixel=self.npixel, cellsize=cellsize, npol=1,
                                              frequency=reffrequency,
                                              polarisation_frame=PolarisationFrame("stokesI"))
