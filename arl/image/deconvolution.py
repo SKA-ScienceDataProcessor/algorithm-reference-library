@@ -131,8 +131,10 @@ def deconvolve_cube(dirty: Image, psf: Image, **kwargs) -> (Image, Image):
         nmoments = get_parameter(kwargs, "nmoments", 3)
         assert nmoments > 0, "Number of frequency moments must be greater than zero"
         dirty_taylor = calculate_image_frequency_moments(dirty, nmoments=nmoments)
+        nchan = dirty.shape[0]
         psf_taylor = calculate_image_frequency_moments(psf, nmoments=2 * nmoments)
-    
+        assert nchan > 2 * nmoments, "Require nchan %d > 2 * nmoments %d" % (nchan, 2 * nmoments)
+
         gain = get_parameter(kwargs, 'gain', 0.7)
         assert 0.0 < gain < 2.0, "Loop gain must be between 0 and 2"
         thresh = get_parameter(kwargs, 'threshold', 0.0)

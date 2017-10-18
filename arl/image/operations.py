@@ -379,6 +379,8 @@ def calculate_image_frequency_moments(im: Image, reference_frequency=None, nmome
     channels = numpy.arange(nchan)
     freq = im.wcs.sub(['spectral']).wcs_pix2world(channels, 0)[0]
     
+    assert nmoments <= nchan, "Number of moments %d cannot exceed the number of channels %d" % (nmoments, nchan)
+    
     if reference_frequency is None:
         reference_frequency = numpy.average(freq)
     log.info("calculate_image_frequency_moments: Reference frequency = %.3f (MHz)" % (reference_frequency))
