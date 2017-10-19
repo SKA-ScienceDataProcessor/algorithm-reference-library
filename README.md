@@ -285,7 +285,10 @@ And the Swarm cluster master resides on:
 ```
 10.101.1.23
 ```
-
+And the contents of arl/data is available on every work at:
+```
+/home/ubuntu/arldata
+```
 Then launch the Dask Scheduler, and Workers with the following:
 ```
 docker -H 10.101.1.23 service create --detach=true \
@@ -296,6 +299,7 @@ docker -H 10.101.1.23 service create --detach=true \
 
 docker -H 10.101.1.23 service create --detach=true \
  --name dask_worker --network host --mode=global \
+ --mount type=bind,source=/home/ubuntu/arldata,destination=/arl/data \
    10.128.26.15:5000/arl_img:latest \
    dask-worker --host 0.0.0.0 --bokeh --bokeh-port 8788  --nprocs 4 --nthreads 1 --reconnect 10.101.1.23:8786
 ```
