@@ -24,7 +24,7 @@ Installing
 ----------
 
 The ARL has a few dependencies:
-* Python 3.5+ (Python 2.x may work but it will retire on the 12/04/2020 so best to migrate now - https://pythonclock.org/)
+* Python 3.6+ (Python 2.x may work (YMMV) but it will retire on the 12/04/2020 so best to migrate now - https://pythonclock.org/)
 * git 2.11.0+
 * git-lfs 2.2.1+
 * Python package dependencies as defined in the tools/requirements.txt
@@ -33,11 +33,17 @@ The Python dependencies will install (amongst other things) Jupyter, numpy, scip
 
 Note that git-lfs is required for some data files. Complete platform dependent installation [instructions can be found here](https://github.com/git-lfs/git-lfs/wiki/Installation).
 
+The current version of Python 3.6 (3.6.1 on Ubuntu 16.04/17.04) has a problem when running Dask throwing the following error:
+```
+SystemError: unknown opcode
+```
+It is possible to down grade to Python 3.5, with the caveat that lint and flake8 checking will complain about ModuleError (3.6+ dependency).
+
 
 Platform Specific Instructions
 ------------------------------
 
-Ubuntu 16.04+
+Ubuntu 17.04+
 -------------
 
 install required packages for git-lfs:
@@ -51,9 +57,9 @@ sudo apt-get install git-lfs
 git lfs install
 ```
 
-install the required packages for python3:
+install the required packages for python3.6:
 ```
-sudo apt-get install python3-dev python3-pip python3-tk virtualenv virtualenvwrapper
+sudo apt-get install python3.6-dev python3-pip python3-tk virtualenv virtualenvwrapper
 
 # note that pip will be install as pip3 and python will be python3
 # so be mindful to make the correct substitutions below
@@ -65,7 +71,7 @@ sudo apt-get install graphviz
 Optional: for those wishing to use pipenv and virtualenv
 ```
 sudo pip3 install pipenv
-virtualenv -p python3 /path/to/where/you/want/to/keep/arlvenv
+virtualenv -p python3.6 /path/to/where/you/want/to/keep/arlvenv
 
 # activate the virtualenv with:
 . /path/to/where/you/want/to/keep/arlvenv/bin/activate
@@ -95,7 +101,7 @@ Common Installation Process
    `cd algorithm-reference-library`
 
 * Install required python package::
-   `pip install -r tools/requirements.txt`
+   `pip install -r requirements.txt`
 
 * Setup ARL::
    `python setup.py install`
@@ -126,7 +132,7 @@ Running Notebooks
 [Jupyter notebooks](http://jupyter.org/) end with `.ipynb` and can be run as follows from the
 command line:
 
-     $ jupyter notebook examples/notebooks/imaging.ipynb
+     $ jupyter notebook examples/arl/imaging.ipynb
 
 Building documentation
 ----------------------
@@ -157,7 +163,7 @@ Test and code analysis requires nosetests3 and flake8 to be installed.
 Platform Specific Instructions
 ------------------------------
 
-Ubuntu 16.04+
+Ubuntu 17.04+
 -------------
 
 install flake8, nose, and pylint:
@@ -194,9 +200,9 @@ that enables the notebooks, tests, and lint checks to be run in a container.
 
 Install Docker
 --------------
-This has been tested with Docker-CE 17.09+ on Ubuntu 16.04. This can be installed by following the instructions [here](https://docs.docker.com/engine/installation/).
+This has been tested with Docker-CE 17.09+ on Ubuntu 17.04. This can be installed by following the instructions [here](https://docs.docker.com/engine/installation/).
 
-It is likely that the Makefile commands will not work on anything other than modern Linux systems (eg: Ubuntu 16.04) as it replies on command line tools to discover the host system IP address.
+It is likely that the Makefile commands will not work on anything other than modern Linux systems (eg: Ubuntu 17.04) as it relies on command line tools to discover the host system IP address.
 
 The project source code directory needs to be checked out where ever the containers are to be run
 as the complete project is mounted into the container as a volume at `/arl` .
@@ -216,9 +222,14 @@ See the `Makefile` for more examples.
 
 Build Image
 -----------
-To build the container image `arl_img` required to launch the dockerised notebooks,tests, and lint checks run (from the root directory of this checked out project):
+To build the container image `arl_img` required to launch the dockerised notebooks,tests, and lint checks run (from the root directory of this checked out project) - pass in the PYTHON variable to specify which build of Python to use - python3 or python3.6:
 ```
-make docker_build
+make docker_build PYTHON=python3
+```
+
+Then push to a given Docker repository:
+```
+make docker_push PYTHON=python3 DOCKER_REPO=localhost:5000
 ```
 
 Run
@@ -259,4 +270,38 @@ make docker_tests
 To run the lint checks:
 ```
 make docker_lint
+```
+
+Dask with Docker Swarm
+----------------------
+
+If you have a Docker Swarm cluster then the Dask cluster can be launched as follows:
+
+Assuming that the Docker Image for the ARL has been built and pushed to a repository tag eg:
+```
+10.128.26.15:5000/arl_img:latest
+```
+And the Swarm cluster master resides on:
+```
+10.101.1.23
+```
+
+Then launch the Dask Scheduler, and Workers with the following:
+```
+docker -H 10.101.1.23 service create --detach=true \
+ --constraint 'node.role == manager' \
+ --name dask_scheduler --network host --mode=global \
+   10.128.26.15:5000/arl_img:latest \
+   dask-scheduler --host 0.0.0.0 --bokeh --show
+
+docker -H 10.101.1.23 service create --detach=true \
+ --name dask_worker --network host --mode=global \
+   10.128.26.15:5000/arl_img:latest \
+   dask-worker --host 0.0.0.0 --bokeh --bokeh-port 8788  --nprocs 4 --nthreads 1 --reconnect 10.101.1.23:8786
+```
+
+Now you can point the Dask client at the cluster with:
+```
+export ARL_DASK_SCHEDULER=10.101.1.23:8786
+python examples/performance/pipelines-timings.py 4 4
 ```
