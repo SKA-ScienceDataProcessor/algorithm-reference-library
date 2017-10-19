@@ -207,7 +207,7 @@ def insert_skycomponent(im: Image, sc: Union[Skycomponent, List[Skycomponent]], 
     
     assert type(im) == Image
     
-    support=int(support/bandwidth)
+    support = int(support / bandwidth)
     
     nchan, npol, ny, nx = im.data.shape
     
@@ -218,7 +218,6 @@ def insert_skycomponent(im: Image, sc: Union[Skycomponent, List[Skycomponent]], 
 
     for comp in sc:
         
-
         assert comp.shape == 'Point', "Cannot handle shape %s" % comp.shape
         
         assert_same_chan_pol(im, comp)
@@ -235,7 +234,7 @@ def insert_skycomponent(im: Image, sc: Union[Skycomponent, List[Skycomponent]], 
                          insert_function=insert_function_pswf)
         else:
             insert_method = 'Nearest'
-            y, x= numpy.round(pixloc[1]).astype('int'), numpy.round(pixloc[0]).astype('int')
+            y, x = numpy.round(pixloc[1]).astype('int'), numpy.round(pixloc[0]).astype('int')
             if x >= 0 and x < nx and y >= 0 and y < ny:
                 im.data[:, :, y, x] += comp.flux
     
@@ -244,19 +243,21 @@ def insert_skycomponent(im: Image, sc: Union[Skycomponent, List[Skycomponent]], 
 
 def insert_function_sinc(x):
     s = numpy.zeros_like(x)
-    s[x != 0.0] = numpy.sin(numpy.pi*x[x != 0.0])/(numpy.pi*x[x != 0.0])
+    s[x != 0.0] = numpy.sin(numpy.pi * x[x != 0.0]) / (numpy.pi * x[x != 0.0])
     return s
 
 
-def insert_function_L(x, a = 5):
-    L = insert_function_sinc(x) * insert_function_sinc(x/a)
+def insert_function_L(x, a=5):
+    L = insert_function_sinc(x) * insert_function_sinc(x / a)
     return L
+
 
 def insert_function_pswf(x, a=5):
     from arl.fourier_transforms.convolutional_gridding import grdsf
-    return grdsf(abs(x)/a)[1]
+    return grdsf(abs(x) / a)[1]
 
-def insert_array(im, x, y, flux, bandwidth=1.0, support = 7, insert_function=insert_function_L):
+
+def insert_array(im, x, y, flux, bandwidth=1.0, support=7, insert_function=insert_function_L):
     """ Insert point into image using specified function
     
     :param im: Image
@@ -276,8 +277,8 @@ def insert_array(im, x, y, flux, bandwidth=1.0, support = 7, insert_function=ins
     gridx = numpy.arange(-support, support)
     gridy = numpy.arange(-support, support)
 
-    insert = numpy.outer(insert_function(bandwidth*(gridy - fracy)),
-                         insert_function(bandwidth*(gridx - fracx)))
+    insert = numpy.outer(insert_function(bandwidth * (gridy - fracy)),
+                         insert_function(bandwidth * (gridx - fracx)))
                          
     insertsum = numpy.sum(insert)
     assert insertsum > 0, "Sum of interpolation coefficients %g" % insertsum
@@ -285,6 +286,6 @@ def insert_array(im, x, y, flux, bandwidth=1.0, support = 7, insert_function=ins
 
     for chan in range(nchan):
         for pol in range(npol):
-            im[chan, pol, inty - support:inty + support, intx - support:intx+support] += flux[chan, pol] * insert
+            im[chan, pol, inty - support:inty + support, intx - support:intx + support] += flux[chan, pol] * insert
             
     return im

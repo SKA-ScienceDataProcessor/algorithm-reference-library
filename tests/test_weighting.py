@@ -94,7 +94,7 @@ class TestWeighting(unittest.TestCase):
         self.actualSetUp()
         size_required = 0.01
         self.componentvis, _, _ = weight_visibility(self.componentvis, self.model, algoritm='uniform')
-        self.componentvis = taper_visibility_Gaussian(self.componentvis, algorithm='Gaussian', beam=size_required)
+        self.componentvis = taper_visibility_Gaussian(self.componentvis, beam=size_required)
         psf, sumwt = invert_2d(self.componentvis, self.model, dopsf=True)
         export_image_to_fits(psf, '%s/test_weighting_gaussian_taper_psf.fits' % self.dir)
         from arl.image.operations import fft_image
@@ -119,7 +119,7 @@ class TestWeighting(unittest.TestCase):
     def test_tapering_Tukey(self):
         self.actualSetUp()
         self.componentvis, _, _ = weight_visibility(self.componentvis, self.model, algoritm='uniform')
-        self.componentvis = taper_visibility_tukey(self.componentvis, algorithm='Tukey', tukey=1.0)
+        self.componentvis = taper_visibility_tukey(self.componentvis, tukey=1.0)
         psf, sumwt = invert_2d(self.componentvis, self.model, dopsf=True)
         export_image_to_fits(psf, '%s/test_weighting_tukey_taper_psf.fits' % self.dir)
         from arl.image.operations import fft_image

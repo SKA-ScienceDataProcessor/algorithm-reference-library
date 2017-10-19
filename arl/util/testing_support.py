@@ -144,8 +144,8 @@ def create_named_configuration(name: str = 'LOWBD2', **kwargs) -> Configuration:
                                             location=location, mount='xy', names='LOWBD2_%d',
                                             diameter=35.0, **kwargs)
     elif name == 'LOFAR':
-        fc = create_LOFAR_configuration(antfile=arl_path("data/configurations/LOFAR.csv"),
-                                        diameter=35.0, **kwargs)
+        assert get_parameter(kwargs, "meta", False) is False
+        fc = create_LOFAR_configuration(antfile=arl_path("data/configurations/LOFAR.csv"))
     elif name == 'VLAA':
         location = EarthLocation(lon="-107.6184", lat="34.0784", height=2124.0)
         fc = create_configuration_from_file(antfile=arl_path("data/configurations/VLA_A_hor_xyz.csv"),

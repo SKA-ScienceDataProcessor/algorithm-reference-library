@@ -35,6 +35,7 @@ def weight_visibility(vis: Visibility, im: Image, **kwargs) -> Visibility:
     """
     assert type(vis) is Visibility, "vis is not a Visibility: %r" % vis
     
+    assert get_parameter(kwargs, "padding", False) is False
     spectral_mode, vfrequencymap = get_frequency_map(vis, im)
     polarisation_mode, vpolarisationmap = get_polarisation_map(vis, im, **kwargs)
     uvw_mode, shape, padding, vuvwmap = get_uvw_map(vis, im, **kwargs)
