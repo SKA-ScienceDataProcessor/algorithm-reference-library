@@ -428,7 +428,10 @@ def msmfsclean(dirty, psf, window, gain, thresh, niter, scales, fracthresh, find
     # Create the "scale basis functions" in Algorithm 1
     scaleshape = [nscales, ldirty.shape[1], ldirty.shape[2]]
     scalestack = create_scalestack(scaleshape, scales, norm=True)
-    
+
+    pscaleshape = [nscales, lpsf.shape[1], lpsf.shape[2]]
+    pscalestack = create_scalestack(pscaleshape, scales, norm=True)
+
     # Calculate scale convolutions of moment residuals
     smresidual = calculate_scale_moment_residual(ldirty, scalestack)
     
@@ -436,7 +439,7 @@ def msmfsclean(dirty, psf, window, gain, thresh, niter, scales, fracthresh, find
     # scale scale moment moment psf is needed for update of scale-moment residuals
     # Hessian is needed in calculation of optimum for any iteration
     # Inverse Hessian is needed to calculate principal solution in moment-space
-    ssmmpsf = calculate_scale_scale_moment_moment_psf(lpsf, scalestack)
+    ssmmpsf = calculate_scale_scale_moment_moment_psf(lpsf, pscalestack)
     hsmmpsf, ihsmmpsf = calculate_scale_inverse_moment_moment_hessian(ssmmpsf)
     
     for scale in range(nscales):
@@ -484,7 +487,7 @@ def msmfsclean(dirty, psf, window, gain, thresh, niter, scales, fracthresh, find
         lhs, rhs = overlapIndices(ldirty[0, ...], psf[0, ...], mx, my)
         
         # Update model and residual image
-        m_model = update_moment_model(m_model, scalestack, lhs, rhs, gain, mscale, mval)
+        m_model = update_moment_model(m_model, pscalestack, lhs, rhs, gain, mscale, mval)
         smresidual = update_scale_moment_residual(smresidual, ssmmpsf, lhs, rhs, gain, mscale, mval)
     
     log.info("msmfsclean: End of minor cycles")

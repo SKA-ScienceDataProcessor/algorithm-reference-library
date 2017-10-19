@@ -123,6 +123,18 @@ class TestImageDeconvolutionMSMFS(unittest.TestCase):
         export_image_to_fits(self.cmodel, "%s/test_deconvolve_msmfsclean_quadratic_noscales-clean.fits" % self.dir)
         assert numpy.max(self.residual.data) < 1.4
 
+    def test_deconvolve_msmfsclean_quadratic_psf(self):
+        self.comp, self.residual = deconvolve_cube(self.dirty, self.psf, niter=self.niter, gain=0.1,
+                                                   algorithm='msmfsclean',
+                                                   scales=[0, 3, 10], threshold=0.01, nmoments=2, findpeak='ARL',
+                                                   fractional_threshold=0.01, window=self.innerquarter,
+                                                   psf_support=32)
+        export_image_to_fits(self.comp, "%s/test_deconvolve_msmfsclean_quadratic_psf-comp.fits" % self.dir)
+        export_image_to_fits(self.residual, "%s/test_deconvolve_msmfsclean_quadratic_psf-residual.fits" % self.dir)
+        self.cmodel = restore_cube(self.comp, self.psf, self.residual)
+        export_image_to_fits(self.cmodel, "%s/test_deconvolve_msmfsclean_quadratic_psf-clean.fits" % self.dir)
+        assert numpy.max(self.residual.data) < 1.4
+
 
 if __name__ == '__main__':
     unittest.main()

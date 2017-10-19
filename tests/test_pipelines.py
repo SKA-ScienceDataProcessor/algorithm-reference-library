@@ -77,12 +77,21 @@ class TestPipelines(unittest.TestCase):
     
     def test_ICAL(self):
         icalpipe = ical(vis=self.vis, components=self.comp)
-    
+
     def test_continuum_imaging(self):
         model = create_empty_image_like(self.image)
-        visres, comp, residual = continuum_imaging(self.vis, model, algorithm='msmfsclean')
+        visres, comp, residual = continuum_imaging(self.vis, model, algorithm='msmfsclean',
+                                                   scales=[0, 3, 10], threshold=0.01, nmoments=2, findpeak='ARL',
+                                                   fractional_threshold=0.01)
         export_image_to_fits(comp, "%s/test_pipelines-continuum-imaging-comp.fits" % (self.dir))
-    
+
+    def test_continuum_imaging_psf(self):
+        model = create_empty_image_like(self.image)
+        visres, comp, residual = continuum_imaging(self.vis, model, algorithm='msmfsclean', psf_width=100,
+                                                   scales=[0, 3, 10], threshold=0.01, nmoments=2, findpeak='ARL',
+                                                   fractional_threshold=0.01)
+        export_image_to_fits(comp, "%s/test_pipelines-continuum-imaging_psf-comp.fits" % (self.dir))
+
     def test_spectral_line_imaging_no_deconvolution(self):
         model = create_empty_image_like(self.image)
         visres, comp, residual = spectral_line_imaging(self.vis, model, continuum_model=model,
