@@ -215,7 +215,9 @@ def insert_skycomponent(im: Image, sc: Union[Skycomponent, List[Skycomponent]], 
     
     if not isinstance(sc, collections.Iterable):
         sc = [sc]
-    
+
+    log.debug("insert_skycomponent: Using insert method %s" % insert_method)
+
     for comp in sc:
         
 
@@ -225,20 +227,16 @@ def insert_skycomponent(im: Image, sc: Union[Skycomponent, List[Skycomponent]], 
 
         pixloc = skycoord_to_pixel(comp.direction, im.wcs, 1, 'wcs')
         if insert_method == "Lanczos":
-            log.debug("insert_skycomponent: Using %s" % insert_method)
             insert_array(im.data, pixloc[0], pixloc[1], comp.flux, bandwidth, support,
                          insert_function=insert_function_L)
         elif insert_method == "Sinc":
-            log.debug("insert_skycomponent: Using %s" % insert_method)
             insert_array(im.data, pixloc[0], pixloc[1], comp.flux, bandwidth, support,
                          insert_function=insert_function_sinc)
         elif insert_method == "PSWF":
-            log.debug("insert_skycomponent: Using %s" % insert_method)
             insert_array(im.data, pixloc[0], pixloc[1], comp.flux, bandwidth, support,
                          insert_function=insert_function_pswf)
         else:
             insert_method = 'Nearest'
-            log.debug("insert_skycomponent: Using %s" % insert_method)
             y, x= numpy.round(pixloc[1]).astype('int'), numpy.round(pixloc[0]).astype('int')
             if x >= 0 and x < nx and y >= 0 and y < ny:
                 im.data[:, :, y, x] += comp.flux
