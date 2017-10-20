@@ -46,8 +46,10 @@ RUN wget --quiet https://github.com/krallin/tini/releases/download/v0.10.0/tini 
 # Add and install Python modules
 ADD ./requirements.txt /src/requirements.txt
 RUN cd /src; pip3 install -r requirements.txt; rm -rf /root/.cache
-RUN pip3 install bokeh && pip3 install pytest; rm -rf /root/.cache
+RUN pip3 install bokeh && pip3 install pytest; pip3 install jupyter_nbextensions_configurator; pip3 install jupyter_contrib_nbextensions; rm -rf /root/.cache
 RUN pip3 install -U pylint; rm -rf /root/.cache
+RUN jupyter contrib nbextension install --system --symlink
+RUN jupyter nbextensions_configurator enable --system
 
 # runtime specific environment
 ENV JENKINS_URL 1
