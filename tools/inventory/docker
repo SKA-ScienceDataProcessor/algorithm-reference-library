@@ -1,0 +1,13 @@
+[master]
+master1 ansible_host=10.101.1.23 ansible_user=ubuntu
+
+[workers]
+worker1 ansible_host=10.101.1.24 ansible_user=ubuntu
+worker2 ansible_host=10.101.1.25 ansible_user=ubuntu
+
+[docker-nodes:children]
+master
+workers
+
+[scheduler:children]
+master

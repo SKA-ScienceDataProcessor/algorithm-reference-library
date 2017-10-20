@@ -1,0 +1,73 @@
+#!/usr/bin/env ansible-playbook
+---
+
+- name: "Launch the Dask Scheduler and Workers"
+  hosts:
+    - docker-nodes
+  become: yes
+  become_method: sudo
+  tasks:
+    - name: install docker dependencies
+      pip:
+        name: docker-py
+
+    - name: Set Dask Scheduler Addr
+      set_fact:
+        dask_scheduler_addr: "{{ hostvars[groups['master'][0]].ansible_default_ipv4.address }}"
+
+    - name: Set Dask Addr
+      set_fact:
+        dask_addr: "{{ hostvars[inventory_hostname].ansible_default_ipv4.address }}"
+
+    - name: nodes remove containers
+      docker_container:
+        name: "{{ item }}"
+        state: absent
+      with_items:
+        - dask_scheduler
+        - dask_worker
+
+    - name: docker pull images
+      docker_image:
+        name: "{{ item.name }}"
+        tag: "{{ item.tag }}"
+        pull: true
+        force: yes
+        state: present
+      with_items:
+        - name: "{{ arl_image }}"
+          tag: "{{ arl_image_tag }}"
+
+    - name: Restart Dask Scheduler
+      docker_container:
+        name: dask_scheduler
+        restart_policy: always
+        image: "{{ arl_image }}:{{ arl_image_tag }}"
+        state: started
+        network_mode: host
+        command: "dask-scheduler --host {{ dask_addr }} --bokeh --show"
+        labels:
+          org.label-schema.group: dask_scheduler
+      when: "'scheduler' in group_names"
+
+    - name: Restart Dask Worker
+      docker_container:
+        name: dask_worker
+        restart_policy: always
+        image: "{{ arl_image }}:{{ arl_image_tag }}"
+        state: started
+        network_mode: host
+        command: "dask-worker --host {{ dask_addr }} --bokeh --bokeh-port 8788  --nprocs {{ dask_procs }} --nthreads {{ dask_threads }} --reconnect {{ dask_scheduler_addr }}:8786"
+        volumes:
+         - "/home/ubuntu/arldata:/arl/data"
+        labels:
+          org.label-schema.group: dask_worker
+
+    - name: Scheduler logs
+      shell: docker logs dask_scheduler
+      ignore_errors: true
+      when: "'scheduler' in group_names"
+
+    - name: Worker logs
+      shell: docker logs dask_worker
+      ignore_errors: true
