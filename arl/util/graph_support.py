@@ -12,6 +12,7 @@ from arl.graphs.graphs import create_predict_wstack_graph
 from arl.util.testing_support import create_named_configuration, simulate_gaintable, \
     create_low_test_image_from_gleam, create_low_test_beam
 from arl.visibility.base import create_blockvisibility, create_visibility
+from arl.data.parameters import get_parameter
 
 import logging
 
@@ -116,14 +117,17 @@ def create_predict_gleam_model_graph(vis_graph_list, frequency, channel_bandwidt
 
     predicted_vis_graph_list = list()
     for i, vis_graph in enumerate(vis_graph_list):
+        facets = {}
+        if get_parameter(kwargs, "facets", False):
+            facets = {'facets': get_parameter(kwargs, "facets", False)}
         model_graph = create_gleam_model_graph(vis_graph, frequency, channel_bandwidth, npixel=npixel,
-                                               cellsize=cellsize, **kwargs)
+                                               cellsize=cellsize, **facets)
         predicted_vis_graph_list.append(c_predict_graph([vis_graph], model_graph, **kwargs)[0])
     return predicted_vis_graph_list
 
 
 def create_gleam_model_graph(vis_graph: delayed, frequency, channel_bandwidth, npixel=512, cellsize=0.001,
-                             facets=4, **kwargs):
+                             facets=4):
     """ Create a graph to fill in a model with the gleam sources
 
     This spreads the work over facet**2 nodes
@@ -134,7 +138,6 @@ def create_gleam_model_graph(vis_graph: delayed, frequency, channel_bandwidth, n
     :param npixel: 512
     :param cellsize: 0.001
     :param facets: def 4
-    :param kwargs:
     :return: graph
     """
 

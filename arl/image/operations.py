@@ -241,7 +241,7 @@ def add_image(im1: Image, im2: Image, docheckwcs=False) -> Image:
     return create_image_from_array(im1.data + im2.data, im1.wcs, im1.polarisation_frame)
 
 
-def qa_image(im, mask=None, **kwargs) -> QA:
+def qa_image(im, mask=None, context="") -> QA:
     """Assess the quality of an image
 
     :param params:
@@ -269,7 +269,7 @@ def qa_image(im, mask=None, **kwargs) -> QA:
     
     qa = QA(origin="qa_image",
             data=data,
-            context=get_parameter(kwargs, 'context', ""))
+            context=context)
     return qa
 
 
@@ -447,7 +447,7 @@ def calculate_image_from_frequency_moments(im: Image, moment_image: Image, refer
     return newim
 
 
-def remove_continuum_image(im: Image, degree=1, mask=None, **kwargs):
+def remove_continuum_image(im: Image, degree=1, mask=None):
     """ Fit and remove continuum visibility in place
     
     Fit a polynomial in frequency of the specified degree where mask is True
@@ -455,7 +455,6 @@ def remove_continuum_image(im: Image, degree=1, mask=None, **kwargs):
     :param im:
     :param deg:
     :param mask:
-    :param kwargs:
     :return:
     """
     assert type(im) == Image
@@ -481,14 +480,13 @@ def remove_continuum_image(im: Image, degree=1, mask=None, **kwargs):
     return im
 
 
-def fft_image(im, template_image=None, **kwargs):
+def fft_image(im, template_image=None):
     """ FFT an image, transform WCS as well
     
     Prefer to use axes 'UU---SIN' and 'VV---SIN' but astropy will not accept.
     
     :param im:
     :param template:
-    :param kwargs:
     :return:
     """
     assert len(im.shape) == 4
@@ -523,14 +521,13 @@ def fft_image(im, template_image=None, **kwargs):
         raise NotImplementedError("Cannot FFT specified axes")
 
 
-def pad_image(im: Image, shape, **kwargs):
+def pad_image(im: Image, shape):
     """Pad an image to desired shape
     
     The wcs crpix is adjusted appropriately
     
     :param im:
     :param shape:
-    :param kwargs:
     :return:
     """
     if im.shape == shape:
@@ -553,13 +550,12 @@ def pad_image(im: Image, shape, **kwargs):
         return create_image_from_array(newdata, newwcs, polarisation_frame=im.polarisation_frame)
 
 
-def convert_image_to_kernel(im: Image, oversampling, kernelwidth, **kwargs):
+def convert_image_to_kernel(im: Image, oversampling, kernelwidth):
     """ Convert an image to a gridding kernel
     
     :param im: Image to be converted
     :param oversampling: Oversampling of Image spatially
     :param kernelwidth: Kernel width to be extracted
-    :param kwargs:
     :return: numpy.ndarray[nchan, npol, oversampling, oversampling, kernelwidth, kernelwidth]
     """
     naxis = len(im.shape)
@@ -621,7 +617,7 @@ def convert_image_to_kernel(im: Image, oversampling, kernelwidth, **kwargs):
     return create_image_from_array(newdata, newwcs)
 
 
-def create_w_term_like(im: Image, w, phasecentre=None, **kwargs) -> Image:
+def create_w_term_like(im: Image, w, phasecentre=None, remove_shift=False) -> Image:
     """Create an image with a w term phase term in it:
     
     .. math::
@@ -634,6 +630,7 @@ def create_w_term_like(im: Image, w, phasecentre=None, **kwargs) -> Image:
     :param phasecentre:
     :param im: template image
     :param w: w value to evaluate (default is median abs)
+    :param remove_shift
     :return: Image
     """
     
@@ -646,7 +643,6 @@ def create_w_term_like(im: Image, w, phasecentre=None, **kwargs) -> Image:
         wcentre = [im.wcs.wcs.crpix[0], im.wcs.wcs.crpix[1]]
         
     fim.data = numpy.zeros(fim.shape, dtype='complex')
-    remove_shift = get_parameter(kwargs, "remove_shift", False)
     for chan in range(nchan):
         for pol in range(npol):
             fim.data[chan, pol, ...] = w_beam(npixel, npixel * cellsize, w=w, cx=wcentre[0],

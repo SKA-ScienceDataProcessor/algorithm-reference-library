@@ -114,9 +114,12 @@ def predict_2d_base(vis: Visibility, model: Image, **kwargs) -> Visibility:
     
     _, _, ny, nx = model.data.shape
     
+    padding = {}
+    if get_parameter(kwargs, "padding", False):
+        padding = {'padding': get_parameter(kwargs, "padding", False)}
     spectral_mode, vfrequencymap = get_frequency_map(avis, model)
-    polarisation_mode, vpolarisationmap = get_polarisation_map(avis, model, **kwargs)
-    uvw_mode, shape, padding, vuvwmap = get_uvw_map(avis, model, **kwargs)
+    polarisation_mode, vpolarisationmap = get_polarisation_map(avis, model)
+    uvw_mode, shape, padding, vuvwmap = get_uvw_map(avis, model, **padding)
     kernel_name, gcf, vkernellist = get_kernel_list(avis, model, **kwargs)
     
     uvgrid = fft((pad_mid(model.data, int(round(padding * nx))) * gcf).astype(dtype=complex))
@@ -172,9 +175,12 @@ def invert_2d_base(vis: Visibility, im: Image, dopsf: bool = False, normalize: b
     
     nchan, npol, ny, nx = im.data.shape
     
+    padding = {}
+    if get_parameter(kwargs, "padding", False):
+        padding = {'padding': get_parameter(kwargs, "padding", False)}
     spectral_mode, vfrequencymap = get_frequency_map(svis, im)
-    polarisation_mode, vpolarisationmap = get_polarisation_map(svis, im, **kwargs)
-    uvw_mode, shape, padding, vuvwmap = get_uvw_map(svis, im, **kwargs)
+    polarisation_mode, vpolarisationmap = get_polarisation_map(svis, im)
+    uvw_mode, shape, padding, vuvwmap = get_uvw_map(svis, im, **padding)
     kernel_name, gcf, vkernellist = get_kernel_list(svis, im, **kwargs)
     
     # Optionally pad to control aliasing
@@ -228,7 +234,7 @@ def invert_2d(vis: Visibility, im: Image, dopsf=False, normalize=True, **kwargs)
 
 
 def predict_skycomponent_blockvisibility(vis: BlockVisibility,
-                                         sc: Union[Skycomponent, List[Skycomponent]], **kwargs) -> BlockVisibility:
+                                         sc: Union[Skycomponent, List[Skycomponent]]) -> BlockVisibility:
     """Predict the visibility from a Skycomponent, add to existing visibility, for BlockVisibility
 
     :param vis: BlockVisibility

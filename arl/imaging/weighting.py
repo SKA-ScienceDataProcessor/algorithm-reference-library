@@ -37,8 +37,8 @@ def weight_visibility(vis: Visibility, im: Image, **kwargs) -> Visibility:
     
     assert get_parameter(kwargs, "padding", False) is False
     spectral_mode, vfrequencymap = get_frequency_map(vis, im)
-    polarisation_mode, vpolarisationmap = get_polarisation_map(vis, im, **kwargs)
-    uvw_mode, shape, padding, vuvwmap = get_uvw_map(vis, im, **kwargs)
+    polarisation_mode, vpolarisationmap = get_polarisation_map(vis, im)
+    uvw_mode, shape, padding, vuvwmap = get_uvw_map(vis, im)
     
     density = None
     densitygrid = None
@@ -50,7 +50,7 @@ def weight_visibility(vis: Visibility, im: Image, **kwargs) -> Visibility:
     return vis, density, densitygrid
 
 
-def weighting_rank_filter_visibility(vis: Visibility, im: Image, **kwargs) -> Visibility:
+def weighting_rank_filter_visibility(vis: Visibility, im: Image) -> Visibility:
     """ Reweight the visibility data using the rank filter algorithm
     
     See https://sourceforge.net/p/wsclean/wiki/WeightRankFilter/
@@ -65,10 +65,8 @@ def weighting_rank_filter_visibility(vis: Visibility, im: Image, **kwargs) -> Vi
     return vis
 
 
-def taper_visibility_Gaussian(vis: Visibility, beam=None, **kwargs) -> Visibility:
+def taper_visibility_Gaussian(vis: Visibility, beam=None) -> Visibility:
     """ Taper the visibility weights
-
-    gaussian: Gaussian taper to specified beam size (Full width half maximum)
 
     These are cumulative. If You can reset the imaging_weights
     using :py:mod:`arl.imaging.weighting.weight_visibility`
@@ -91,7 +89,7 @@ def taper_visibility_Gaussian(vis: Visibility, beam=None, **kwargs) -> Visibilit
     return vis
 
 
-def taper_visibility_tukey(vis: Visibility, tukey=0.1, **kwargs) -> Visibility:
+def taper_visibility_tukey(vis: Visibility, tukey=0.1) -> Visibility:
     """ Taper the visibility weights
     
     This algorithm is present in WSClean.

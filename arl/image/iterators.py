@@ -27,6 +27,7 @@ def raster_iter(im: Image, facets=2, **kwargs) -> Image:
 
     :param im: Image
     :param facets: Number of image partitions on each axis (2)
+    :param kwargs: throw away unwanted parameters
     """
 
     log.debug("raster: predicting using %d x %d image partitions" % (facets, facets))

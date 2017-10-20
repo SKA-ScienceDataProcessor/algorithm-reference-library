@@ -40,7 +40,7 @@ def copy_visibility(vis: Union[Visibility, BlockVisibility], zero=False) -> Unio
 def create_visibility(config: Configuration, times: numpy.array, frequency: numpy.array,
                       channel_bandwidth, phasecentre: SkyCoord,
                       weight: float, polarisation_frame=PolarisationFrame('stokesI'),
-                      integration_time=1.0, **kwargs) -> Visibility:
+                      integration_time=1.0) -> Visibility:
     """ Create a Visibility from Configuration, hour angles, and direction of source
 
     Note that we keep track of the integration time for BDA purposes
@@ -124,8 +124,7 @@ def create_blockvisibility(config: Configuration,
                            polarisation_frame: PolarisationFrame = None,
                            integration_time=1.0,
                            channel_bandwidth=1e6,
-                           zerow=False,
-                           **kwargs) -> BlockVisibility:
+                           zerow=False, **kwargs) -> BlockVisibility:
     """ Create a BlockVisibility from Configuration, hour angles, and direction of source
 
     Note that we keep track of the integration time for BDA purposes
@@ -248,7 +247,7 @@ def phaserotate_visibility(vis: Visibility, newphasecentre: SkyCoord, tangent=Tr
         if inverse:
             for i in range(nvis):
                 for pol in range(npol):
-                    newvis.data['vis'][i,pol] *= phasor[i]
+                    newvis.data['vis'][i, pol] *= phasor[i]
         else:
             for i in range(nvis):
                 for pol in range(npol):
@@ -283,7 +282,7 @@ def create_visibility_from_ms(msname):
     Creates a list of Visibilities, one per phasecentre
     """
     try:
-        from casacore.tables import table
+        from casacore.tables import table  # pylint: disable=import-error
     except ModuleNotFoundError:
         raise ModuleNotFoundError("casacore is not installed")
 
@@ -315,8 +314,8 @@ def create_visibility_from_ms(msname):
         uvw *= frequency[:, numpy.newaxis] / constants.c.to('m/s').value
         
         # Get polarisation info
-        poltab = table('%s/POLARIZATION' % msname, ack=False)
-        corr_type = poltab.getcol('CORR_TYPE')
+        # poltab = table('%s/POLARIZATION' % msname, ack=False)
+        # corr_type = poltab.getcol('CORR_TYPE')
         # TODO: Do interpretation correctly
         polarisation_frame = PolarisationFrame('stokesIQUV')
         

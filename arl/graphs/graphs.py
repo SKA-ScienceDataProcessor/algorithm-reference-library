@@ -71,11 +71,10 @@ def compute_list(client, graph_list, nodes=None, **kwargs):
         return client.compute(graph_list, sync=True, **kwargs)
 
 
-def create_zero_vis_graph_list(vis_graph_list, **kwargs):
+def create_zero_vis_graph_list(vis_graph_list):
     """ Initialise vis to zero: creates new data holders
 
     :param vis_graph_list:
-    :param kwargs: Parameters for functions in graphs
     :return: List of vis_graphs
    """
     
@@ -90,12 +89,11 @@ def create_zero_vis_graph_list(vis_graph_list, **kwargs):
     return [delayed(zerovis, pure=True, nout=1)(v) for v in vis_graph_list]
 
 
-def create_subtract_vis_graph_list(vis_graph_list, model_vis_graph_list, **kwargs):
+def create_subtract_vis_graph_list(vis_graph_list, model_vis_graph_list):
     """ Initialise vis to zero
 
     :param vis_graph_list:
     :param model_vis_graph_list: Model to be subtracted
-    :param kwargs: Parameters for functions in graphs
     :return: List of vis_graphs
    """
     
@@ -788,9 +786,9 @@ def create_selfcal_graph_list(vis_graph_list, model_graph: delayed, c_predict_gr
         global_point_vis_graph = delayed(visibility_gather_channel, nout=1)(point_vis_graph_list)
         global_point_vis_graph = delayed(integrate_visibility_by_channel, nout=1)(global_point_vis_graph)
         gt_graph = delayed(solve_gaintable, pure=True, nout=1)(global_point_vis_graph, **kwargs)
-        return [delayed(apply_gaintable, nout=len(vis_graph_list))(v, gt_graph, inverse=True, **kwargs)
+        return [delayed(apply_gaintable, nout=len(vis_graph_list))(v, gt_graph, inverse=True)
                 for v in vis_graph_list]
     else:
         gt_graph = delayed(solve_gaintable, pure=True, nout=1)(vis_graph_list, model_vis_graph_list, **kwargs)
-        return [delayed(apply_gaintable, nout=len(vis_graph_list))(v, gt_graph, inverse=True, **kwargs)
+        return [delayed(apply_gaintable, nout=len(vis_graph_list))(v, gt_graph, inverse=True)
                 for v in vis_graph_list]

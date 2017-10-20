@@ -84,7 +84,7 @@ def qa_visibility(vis: Union[Visibility, BlockVisibility], context=None) -> QA:
     return qa
 
 
-def remove_continuum_blockvisibility(vis: BlockVisibility, degree=1, mask=None, **kwargs) -> BlockVisibility:
+def remove_continuum_blockvisibility(vis: BlockVisibility, degree=1, mask=None) -> BlockVisibility:
     """ Fit and remove continuum visibility
 
     Fit a polynomial in frequency of the specified degree where mask is True
@@ -92,7 +92,6 @@ def remove_continuum_blockvisibility(vis: BlockVisibility, degree=1, mask=None, 
     :param vis:
     :param degree: Degree of polynomial
     :param mask:
-    :param kwargs:
     :return:
     """
     if mask is not None:
@@ -161,11 +160,10 @@ def divide_visibility(vis: BlockVisibility, modelvis: BlockVisibility):
     return pointsource_vis
 
 
-def integrate_visibility_by_channel(vis: BlockVisibility, **kwargs) -> BlockVisibility:
+def integrate_visibility_by_channel(vis: BlockVisibility) -> BlockVisibility:
     """ Integrate visibility across channels, returning new visibility
     
     :param vis:
-    :param kwargs:
     :return: BlockVisibility
     """
     

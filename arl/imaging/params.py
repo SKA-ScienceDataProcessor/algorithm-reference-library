@@ -16,7 +16,7 @@ from arl.image.operations import create_w_term_like, copy_image, pad_image, fft_
 log = logging.getLogger(__name__)
 
 
-def get_frequency_map(vis, im: Visibility = None, **kwargs):
+def get_frequency_map(vis, im: Visibility = None):
     """ Map channels from visibilities to image
 
     """
@@ -49,7 +49,7 @@ def get_frequency_map(vis, im: Visibility = None, **kwargs):
     return spectral_mode, vfrequencymap
 
 
-def get_polarisation_map(vis: Visibility, im: Image = None, **kwargs):
+def get_polarisation_map(vis: Visibility, im: Image = None):
     """ Get the mapping of visibility polarisations to image polarisations
     
     """
@@ -85,12 +85,13 @@ def get_rowmap(col, ucol=None):
     return vmap
 
 
-def get_uvw_map(vis: Visibility, im: Image, **kwargs):
+def get_uvw_map(vis: Visibility, im: Image, padding=2):
     """ Get the generators that map channels uvw to pixels
 
+    :param padding:
+    return ?
     """
     # Transform parameters
-    padding = get_parameter(kwargs, "padding", 2)
     
     # Model image information
     inchan, inpol, ny, nx = im.data.shape

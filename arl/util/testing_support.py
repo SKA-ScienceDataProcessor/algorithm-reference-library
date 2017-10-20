@@ -48,6 +48,7 @@ from arl.util.coordinate_support import xyz_at_latitude
 from arl.visibility.base import create_blockvisibility
 from arl.visibility.coalesce import convert_visibility_to_blockvisibility
 from arl.imaging import predict_timeslice, predict_skycomponent_blockvisibility
+from arl.data.parameters import get_parameter
 
 import logging
 log = logging.getLogger(__name__)
@@ -58,8 +59,7 @@ def create_configuration_from_file(antfile: str, name: str = None, location: Ear
                                    names: str = "%d", frame: str = 'local',
                                    diameter=35.0,
                                    meta: dict = None,
-                                   rmax=None,
-                                   **kwargs) -> Configuration:
+                                   rmax=None, **kwargs) -> Configuration:
     """ Define from a file
 
     :param names:
@@ -92,8 +92,7 @@ def create_configuration_from_file(antfile: str, name: str = None, location: Ear
     return fc
 
 
-def create_LOFAR_configuration(antfile: str, meta: dict = None,
-                               **kwargs) -> Configuration:
+def create_LOFAR_configuration(antfile: str, meta: dict = None) -> Configuration:
     """ Define from the LOFAR configuration file
 
     :param antfile:
@@ -659,8 +658,8 @@ def create_blockvisibility_iterator(config: Configuration, times: numpy.array, f
         yield bvis
 
 
-def simulate_gaintable(gt: GainTable, phase_error=0.1, amplitude_error=0.0, leakage=0.0, seed=180555,
-                       **kwargs) -> GainTable:
+def simulate_gaintable(gt: GainTable, phase_error=0.1, amplitude_error=0.0,
+                       leakage=0.0, seed=180555) -> GainTable:
     """ Simulate a gain table
     
     :type gt: GainTable

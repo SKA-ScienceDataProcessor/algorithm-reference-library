@@ -22,7 +22,7 @@ def node_key(s):
     return str(s)
 
 
-def simple_vis(x, filename='simple', format=None, **kwargs):
+def simple_vis(x, filename='simple', format=None):
     if hasattr(x, 'dask'):
         dsk = x._optimize(x.dask, x._keys())
     else:

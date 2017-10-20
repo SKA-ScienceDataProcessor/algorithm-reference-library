@@ -66,7 +66,7 @@ def create_gaintable_from_blockvisibility(vis: BlockVisibility, time_width: floa
     return gt
 
 
-def apply_gaintable(vis: BlockVisibility, gt: GainTable, inverse=False, **kwargs) -> BlockVisibility:
+def apply_gaintable(vis: BlockVisibility, gt: GainTable, inverse=False) -> BlockVisibility:
     """Apply a gain table to a block visibility
     
     The corrected visibility is::
