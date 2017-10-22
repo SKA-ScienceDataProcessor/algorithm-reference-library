@@ -52,6 +52,7 @@ def raster_iter(im: Image, facets=2, **kwargs) -> Image:
             # Yield image from slice (reference!)
             yield create_image_from_array(im.data[..., y:y + dy, x:x + dx], wcs)
 
+
 def channel_iter(im: Image, subimages=1, **kwargs) -> Image:
     """Create a channel_iter generator, returning images
 

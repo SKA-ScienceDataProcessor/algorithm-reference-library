@@ -92,4 +92,3 @@ def create_generic_image_graph(image_unary_function, im: Image, facets=4, **kwar
     scattered = delayed(image_scatter_facets, pure=True, nout=facets ** 2)(im, facets=facets)
     result = [delayed(image_unary_function)(s) for s in scattered]
     return delayed(image_gather_facets, nout=1, pure=True)(result, output, facets=facets)
-

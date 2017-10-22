@@ -744,7 +744,7 @@ def create_deconvolve_facet_graph(dirty_graph: delayed, psf_graph: delayed, mode
 
 
 def create_deconvolve_channel_graph(dirty_graph: delayed, psf_graph: delayed, model_graph: delayed, subimages,
-                                  **kwargs) -> delayed:
+                                    **kwargs) -> delayed:
     """Create a graph for deconvolution by channels, adding to the model
 
     Does deconvolution channel by channel.

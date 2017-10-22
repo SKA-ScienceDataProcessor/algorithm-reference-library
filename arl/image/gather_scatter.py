@@ -12,6 +12,7 @@ from arl.image.iterators import raster_iter, channel_iter
 
 log = logging.getLogger(__name__)
 
+
 def image_scatter_facets(im: Image, **kwargs) -> List[Image]:
     """Scatter an image into a list of subimages using the raster_iterator
 
