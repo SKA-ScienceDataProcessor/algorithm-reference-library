@@ -54,7 +54,7 @@ def predict_wstack_single(vis, model, predict_inner=predict_2d_base, **kwargs) -
     :return: resulting visibility (in place works)
     """
 
-    if type(vis) is not Visibility:
+    if not isinstance(vis, Visibility):
         avis = coalesce_visibility(vis, **kwargs)
     else:
         avis = vis
@@ -121,7 +121,7 @@ def invert_wstack_single(vis: Visibility, im: Image, dopsf, normalize=True, inve
     
     kwargs['imaginary'] = True
     
-    assert type(vis) == Visibility
+    assert isinstance(vis, Visibility)
     
     # We might want to do wprojection so we remove the average w
     w_average = numpy.average(vis.w)

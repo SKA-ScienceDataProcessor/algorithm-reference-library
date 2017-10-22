@@ -36,7 +36,7 @@ class TestTestingDaskGraphSupport(unittest.TestCase):
         vis_graph_list = create_simulate_vis_graph(frequency=self.frequency, channel_bandwidth=self.channel_bandwidth)
         assert len(vis_graph_list) == len(self.frequency)
         vt = vis_graph_list[0].compute()
-        assert type(vt) == BlockVisibility
+        assert isinstance(vt, BlockVisibility)
         assert vt.nvis > 0
 
     def test_predict_gleam_model_graph(self):
@@ -48,7 +48,7 @@ class TestTestingDaskGraphSupport(unittest.TestCase):
         if self.compute:
             vt = predicted_vis_graph_list[0].compute()
             assert numpy.max(numpy.abs(vt.vis)) > 0.0
-            assert type(vt) == BlockVisibility
+            assert isinstance(vt, BlockVisibility)
             assert vt.nvis > 0
 
     def test_gleam_model_graph(self):
@@ -93,6 +93,6 @@ class TestTestingDaskGraphSupport(unittest.TestCase):
         if self.compute:
             cvt = corrupted_vis_graph_list[0].compute()
             assert numpy.max(numpy.abs(cvt.vis)) > 0.0
-            assert type(vt) == BlockVisibility
+            assert isinstance(vt, BlockVisibility)
             assert vt.nvis > 0
             assert numpy.max(numpy.abs(cvt.vis - vt.vis)) > 0.0

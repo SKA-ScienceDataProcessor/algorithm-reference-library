@@ -263,7 +263,7 @@ def advise_wide_field(vis: Visibility, delA=0.02, oversampling_synthesised_beam=
     log.info("advise_wide_field: Minimum wavelength %.3f (meters)" % (min_wavelength))
 
     maximum_baseline = numpy.max(numpy.abs(vis.uvw))  # Wavelengths
-    if type(vis) == BlockVisibility:
+    if isinstance(vis, BlockVisibility):
         maximum_baseline = maximum_baseline / min_wavelength
     log.info("advise_wide_field: Maximum baseline %.1f (wavelengths)" % (maximum_baseline))
     

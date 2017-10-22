@@ -186,7 +186,7 @@ def create_test_image(canonical=True, cellsize=None, frequency=None, channel_ban
         
         if polarisation_frame is None:
             im.polarisation_frame = PolarisationFrame("stokesI")
-        elif type(polarisation_frame) == PolarisationFrame:
+        elif isinstance(polarisation_frame, PolarisationFrame):
             im.polarisation_frame = polarisation_frame
         else:
             raise ValueError("polarisation_frame is not valid")

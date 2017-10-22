@@ -64,7 +64,7 @@ def visibility_scatter_index(vis: Visibility, **kwargs) -> List[Visibility]:
 
 
 def visibility_scatter_w(vis: Visibility, **kwargs) -> List[Visibility]:
-    if type(vis) == BlockVisibility:
+    if isinstance(vis, BlockVisibility):
         avis = coalesce_visibility(vis, **(kwargs))
         visibility_list = visibility_scatter(avis, vis_iter=vis_wstack_iter, **kwargs)
     else:
@@ -82,7 +82,7 @@ def visibility_gather_index(visibility_list: List[Visibility], vis: Visibility, 
 
 
 def visibility_gather_w(visibility_list: List[Visibility], vis: Visibility, **kwargs) -> Visibility:
-    if type(vis) == BlockVisibility:
+    if isinstance(vis, BlockVisibility):
         cvis = coalesce_visibility(vis, **kwargs)
         return decoalesce_visibility(visibility_gather(visibility_list, cvis, vis_iter=vis_wstack_iter, **kwargs))
     else:

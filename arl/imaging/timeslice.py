@@ -123,7 +123,7 @@ def predict_timeslice_single(vis: Visibility, model: Image, predict=predict_2d_b
     
     vis.data['vis'] *= 0.0
     
-    if type(vis) is not Visibility:
+    if not isinstance(vis, Visibility):
         avis = coalesce_visibility(vis, **kwargs)
     else:
         avis = vis
@@ -192,7 +192,7 @@ def invert_timeslice_single(vis: Visibility, im: Image, dopsf, normalize=True, *
     """
     inchan, inpol, ny, nx = im.shape
 
-    if type(vis) is not Visibility:
+    if not isinstance(vis, Visibility):
         avis = coalesce_visibility(vis, **kwargs)
     else:
         avis = vis

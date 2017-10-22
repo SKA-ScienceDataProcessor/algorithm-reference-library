@@ -33,7 +33,7 @@ def weight_visibility(vis: Visibility, im: Image, **kwargs) -> Visibility:
     :param im:
     :return: visibility with imaging_weights column added and filled
     """
-    assert type(vis) is Visibility, "vis is not a Visibility: %r" % vis
+    assert isinstance(vis, Visibility), "vis is not a Visibility: %r" % vis
     
     assert get_parameter(kwargs, "padding", False) is False
     spectral_mode, vfrequencymap = get_frequency_map(vis, im)
@@ -59,7 +59,7 @@ def weighting_rank_filter_visibility(vis: Visibility, im: Image) -> Visibility:
     :param im:
     :return: visibility with imaging_weights column modified
     """
-    assert type(vis) is Visibility, "vis is not a Visibility: %r" % vis
+    assert isinstance(vis, Visibility), "vis is not a Visibility: %r" % vis
     # ImageWeights::RankFilter in imageweights.cpp of wsclean
     
     return vis
@@ -75,7 +75,7 @@ def taper_visibility_Gaussian(vis: Visibility, beam=None) -> Visibility:
     :param beam: desired resolution (Full width half maximum, radians)
     :return: visibility with imaging_weight column modified
     """
-    assert type(vis) is Visibility, "vis is not a Visibility: %r" % vis
+    assert isinstance(vis, Visibility), "vis is not a Visibility: %r" % vis
 
     if beam is None:
         raise ValueError("Beam size not specified for Gaussian taper")
@@ -106,7 +106,7 @@ def taper_visibility_tukey(vis: Visibility, tukey=0.1) -> Visibility:
     :param vis: Visibility with imaging_weight's to be tapered
     :return: visibility with imaging_weight column modified
     """
-    assert type(vis) is Visibility, "vis is not a Visibility: %r" % vis
+    assert isinstance(vis, Visibility), "vis is not a Visibility: %r" % vis
     
     uvdist = numpy.sqrt(vis.u ** 2 + vis.v ** 2)
     uvdistmax = numpy.max(uvdist)

@@ -41,9 +41,9 @@ def solve_gaintable(vis: BlockVisibility, modelvis: BlockVisibility=None, phase_
     :return: GainTable containing solution
 
     """
-    assert type(vis) is BlockVisibility, "vis is not a BlockVisibility: %r" % vis
-    assert type(modelvis) is BlockVisibility or type(modelvis) is not None, "modelvis is not None or a " \
-                                                                            "BlockVisibility: %r" % vis
+    assert isinstance(vis, BlockVisibility), "vis is not a BlockVisibility: %r" % vis
+    assert isinstance(modelvis, BlockVisibility) or type(modelvis) is not None, "modelvis is not None or a " \
+        "BlockVisibility: %r" % vis
     
     if phase_only:
         log.info('solve_gaintable: Solving for phase only')
@@ -66,7 +66,7 @@ def solve_gaintable(vis: BlockVisibility, modelvis: BlockVisibility=None, phase_
         gt = solve_from_X(gt, x, xwt, chunk, crosspol, niter, phase_only,
                           tol, npol=vis.polarisation_frame.npol)
 
-    assert type(gt) is GainTable, "gt is not a GainTable: %r" % gt
+    assert isinstance(gt, GainTable), "gt is not a GainTable: %r" % gt
     
     assert_vis_gt_compatible(vis, gt)
 

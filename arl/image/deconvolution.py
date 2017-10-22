@@ -73,8 +73,8 @@ def deconvolve_cube(dirty: Image, psf: Image, **kwargs) -> (Image, Image):
     :return: componentimage, residual
     
     """
-    assert type(dirty) == Image, "Type is %s" % (type(dirty))
-    assert type(psf) == Image, "Type is %s" % (type(psf))
+    assert isinstance(dirty, Image), "Type is %s" % (type(dirty))
+    assert isinstance(psf, Image), "Type is %s" % (type(psf))
     
     window_shape = get_parameter(kwargs, 'window_shape', None)
     if window_shape == 'quarter':
@@ -226,9 +226,9 @@ def restore_cube(model: Image, psf: Image, residual=None, **kwargs) -> Image:
     :return: restored image
 
     """
-    assert type(model) == Image, "Type is %s" % (type(model))
-    assert type(psf) == Image, "Type is %s" % (type(psf))
-    assert residual is None or type(residual) == Image, "Type is %s" % (type(residual))
+    assert isinstance(model, Image), "Type is %s" % (type(model))
+    assert isinstance(psf, Image), "Type is %s" % (type(psf))
+    assert residual is None or isinstance(residual, Image), "Type is %s" % (type(residual))
 
     restored = copy_image(model)
     

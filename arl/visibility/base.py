@@ -111,7 +111,7 @@ def create_visibility(config: Configuration, times: numpy.array, frequency: nump
     vis.phasecentre = phasecentre
     vis.configuration = config
     log.info("create_visibility: %s" % (vis_summary(vis)))
-    assert type(vis) is Visibility, "vis is not a Visibility: %r" % vis
+    assert isinstance(vis, Visibility), "vis is not a Visibility: %r" % vis
 
     return vis
 
@@ -179,7 +179,7 @@ def create_blockvisibility(config: Configuration,
     vis.phasecentre = phasecentre
     vis.configuration = config
     log.info("create_blockvisibility: %s" % (vis_summary(vis)))
-    assert type(vis) is BlockVisibility, "vis is not a BlockVisibility: %r" % vis
+    assert isinstance(vis, BlockVisibility), "vis is not a BlockVisibility: %r" % vis
 
     return vis
 
@@ -197,7 +197,7 @@ def create_visibility_from_rows(vis: Union[Visibility, BlockVisibility], rows: n
     if rows is None or numpy.sum(rows) == 0:
         return None
 
-    if type(vis) is Visibility:
+    if isinstance(vis, Visibility):
 
         if makecopy:
             newvis = copy_visibility(vis)
@@ -231,7 +231,7 @@ def phaserotate_visibility(vis: Visibility, newphasecentre: SkyCoord, tangent=Tr
     :param inverse: Actually do the opposite
     :return: Visibility
     """
-    assert type(vis) is Visibility, "vis is not a Visibility: %r" % vis
+    assert isinstance(vis, Visibility), "vis is not a Visibility: %r" % vis
 
     l, m, n = skycoord_to_lmn(newphasecentre, vis.phasecentre)
 

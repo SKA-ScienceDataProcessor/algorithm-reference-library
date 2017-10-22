@@ -47,7 +47,7 @@ def coalesce_visibility(vis: BlockVisibility, **kwargs) -> Visibility:
     :return: Coalesced visibility with  cindex and blockvis filled in
     """
 
-    assert type(vis) is BlockVisibility, "vis is not a BlockVisibility: %r" % vis
+    assert isinstance(vis, BlockVisibility), "vis is not a BlockVisibility: %r" % vis
 
     time_coal = get_parameter(kwargs, 'time_coal', 0.0)
     max_time_coal = get_parameter(kwargs, 'max_time_coal', 100)
@@ -86,7 +86,7 @@ def convert_blockvisibility_to_visibility(vis: BlockVisibility) -> Visibility:
     :return: Visibility with  cindex and blockvis filled in
     """
 
-    assert type(vis) is BlockVisibility, "vis is not a BlockVisibility: %r" % vis
+    assert isinstance(vis, BlockVisibility), "vis is not a BlockVisibility: %r" % vis
 
     cvis, cuvw, cwts, ctime, cfrequency, cchannel_bandwidth, ca1, ca2, cintegration_time, cindex \
         = convert_blocks(vis.data['vis'], vis.data['uvw'], vis.data['weight'], vis.time, vis.integration_time,
@@ -118,8 +118,8 @@ def decoalesce_visibility(vis: Visibility, overwrite=False) -> BlockVisibility:
     :return: BlockVisibility with vis and weight columns overwritten
     """
 
-    assert type(vis) is Visibility, "vis is not a Visibility: %r" % vis
-    assert type(vis.blockvis) is BlockVisibility, "No blockvisibility in vis"
+    assert isinstance(vis, Visibility), "vis is not a Visibility: %r" % vis
+    assert isinstance(vis.blockvis, BlockVisibility), "No blockvisibility in vis"
     assert vis.cindex is not None, "No reverse index in Visibility"
 
     if overwrite:

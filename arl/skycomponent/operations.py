@@ -71,7 +71,7 @@ def find_skycomponents(im: Image, fwhm=1.0, threshold=10.0, npixels=5) -> List[S
     :return: list of sky components
     """
 
-    assert type(im) == Image
+    assert isinstance(im, Image)
     log.info("find_skycomponents: Finding components in Image by segmentation")
 
     # We use photutils segmentation - this first segments the image
@@ -157,7 +157,7 @@ def apply_beam_to_skycomponent(sc: Union[Skycomponent, List[Skycomponent]], beam
     :param sc: SkyComponent or list of SkyComponents
     :return: List of skycomponents
     """
-    assert type(beam) == Image
+    assert isinstance(beam, Image)
     single = not isinstance(sc, collections.Iterable)
     
     if single:
@@ -205,7 +205,7 @@ def insert_skycomponent(im: Image, sc: Union[Skycomponent, List[Skycomponent]], 
     :return: image
     """
     
-    assert type(im) == Image
+    assert isinstance(im, Image)
     
     support = int(support / bandwidth)
     

@@ -56,7 +56,7 @@ def create_image_from_array(data: numpy.array, wcs: WCS = None,
         log.debug("create_image_from_array: created %s image of shape %s, size %.3f (GB)" %
                   (fim.data.dtype, str(fim.shape), image_sizeof(fim)))
         
-    assert type(fim) == Image, "Type is %s" % type(fim)
+    assert isinstance(fim, Image), "Type is %s" % type(fim)
     return fim
 
 
@@ -69,7 +69,7 @@ def copy_image(im: Image) -> Image:
     :return: Image
     
     """
-    assert type(im) == Image, "Type is %s" % type(im)
+    assert isinstance(im, Image), "Type is %s" % type(im)
     fim = Image()
     fim.polarisation_frame = im.polarisation_frame
     fim.data = copy.deepcopy(im.data)
@@ -91,7 +91,7 @@ def create_empty_image_like(im: Image) -> Image:
     :return: Image
     
     """
-    assert type(im) == Image, "Type is %s" % type(im)
+    assert isinstance(im, Image), "Type is %s" % type(im)
     fim = Image()
     fim.polarisation_frame = im.polarisation_frame
     fim.data = numpy.zeros_like(im.data)
@@ -102,7 +102,7 @@ def create_empty_image_like(im: Image) -> Image:
     if image_sizeof(im) >= 1.0:
         log.debug("create_empty_image_like: created %s image of shape %s, size %.3f (GB)" %
                   (fim.data.dtype, str(fim.shape), image_sizeof(fim)))
-    assert type(fim) == Image, "Type is %s" % type(fim)
+    assert isinstance(fim, Image), "Type is %s" % type(fim)
     return fim
 
 
@@ -149,7 +149,7 @@ def polarisation_frame_from_wcs(wcs, shape) -> PolarisationFrame:
     if polarisation_frame is None:
         raise ValueError("Cannot determine polarisation code")
     
-    assert type(polarisation_frame) == PolarisationFrame
+    assert isinstance(polarisation_frame, PolarisationFrame)
     return polarisation_frame
 
 
@@ -159,7 +159,7 @@ def export_image_to_fits(im: Image, fitsfile: str = 'imaging.fits'):
     :param im: Image
     :param fitsfile: Name of output fits file
     """
-    assert type(im) == Image
+    assert isinstance(im, Image)
     return fits.writeto(filename=fitsfile, data=im.data, header=im.wcs.to_header(), overwrite=True)
 
 
@@ -189,7 +189,7 @@ def import_image_from_fits(fitsfile: str, mute_warnings=True) -> Image:
               (fim.data.dtype, str(fim.shape), image_sizeof(fim)))
     log.debug("import_image_from_fits: Max, min in %s = %.6f, %.6f" % (fitsfile, fim.data.max(), fim.data.min()))
 
-    assert type(fim) == Image
+    assert isinstance(fim, Image)
     return fim
 
 
@@ -206,7 +206,7 @@ def reproject_image(im: Image, newwcs: WCS, shape=None) -> (Image, Image):
     :return: Reprojected Image, Footprint Image
     """
     
-    assert type(im) == Image
+    assert isinstance(im, Image)
     rep, foot = reproject_interp((im.data, im.wcs), newwcs, shape, order='bicubic',
                                  independent_celestial_slices=True)
     return create_image_from_array(rep, newwcs), create_image_from_array(foot, newwcs)
@@ -231,8 +231,8 @@ def add_image(im1: Image, im2: Image, docheckwcs=False) -> Image:
     :param im2:
     :return: Image
     """
-    assert type(im1) == Image
-    assert type(im2) == Image
+    assert isinstance(im1, Image)
+    assert isinstance(im2, Image)
     if docheckwcs:
         checkwcs(im1.wcs, im2.wcs)
     
@@ -248,7 +248,7 @@ def qa_image(im, mask=None, context="") -> QA:
     :param im:
     :return: QA
     """
-    assert type(im) == Image
+    assert isinstance(im, Image)
     if mask is None:
         data = {'shape': str(im.data.shape),
                 'max': numpy.max(im.data),
@@ -283,7 +283,7 @@ def show_image(im: Image, fig=None, title: str = '', pol=0, chan=0, cm='rainbow'
     """
     import matplotlib.pyplot as plt
 
-    assert type(im) == Image
+    assert isinstance(im, Image)
     if not fig:
         fig = plt.figure()
     plt.clf()
@@ -304,8 +304,8 @@ def convert_stokes_to_polimage(im: Image, polarisation_frame: PolarisationFrame)
 
     """
     
-    assert type(im) == Image
-    assert type(polarisation_frame) == PolarisationFrame
+    assert isinstance(im, Image)
+    assert isinstance(polarisation_frame, PolarisationFrame)
     
     if polarisation_frame == PolarisationFrame('linear'):
         cimarr = convert_stokes_to_linear(im.data)
@@ -321,7 +321,7 @@ def convert_polimage_to_stokes(im: Image):
     """Convert a polarisation image to stokes (complex)
     
     """
-    assert type(im) == Image
+    assert isinstance(im, Image)
     assert im.data.dtype == 'complex'
     
     if im.polarisation_frame == PolarisationFrame('linear'):
@@ -340,7 +340,7 @@ def smooth_image(model: Image, width=1.0):
     """
     import astropy.convolution
     
-    assert type(model) == Image
+    assert isinstance(model, Image)
     kernel = astropy.convolution.kernels.Gaussian2DKernel(width)
     
     cmodel = create_empty_image_like(model)
@@ -349,7 +349,7 @@ def smooth_image(model: Image, width=1.0):
         for chan in range(nchan):
             cmodel.data[chan, pol, :, :] = astropy.convolution.convolve(model.data[chan, pol, :, :], kernel,
                                                                         normalize_kernel=False)
-    if type(kernel) is astropy.convolution.kernels.Gaussian2DKernel:
+    if isinstance(kernel, astropy.convolution.kernels.Gaussian2DKernel):
         cmodel.data *= 2 * numpy.pi * width ** 2
     
     return cmodel
@@ -372,7 +372,7 @@ def calculate_image_frequency_moments(im: Image, reference_frequency=None, nmome
     :param nmoments: Number of moments to calculate
     :return: Moments image
     """
-    assert type(im) == Image
+    assert isinstance(im, Image)
     nchan, npol, ny, nx = im.shape
     channels = numpy.arange(nchan)
     freq = im.wcs.sub(['spectral']).wcs_pix2world(channels, 0)[0]
@@ -418,7 +418,7 @@ def calculate_image_from_frequency_moments(im: Image, moment_image: Image, refer
     :param reference_frequency: Reference frequency (default None uses average)
     :return: reconstructed image
     """
-    assert type(im) == Image
+    assert isinstance(im, Image)
     nchan, npol, ny, nx = im.shape
     nmoments, mnpol, mny, mnx = moment_image.shape
     
@@ -457,7 +457,7 @@ def remove_continuum_image(im: Image, degree=1, mask=None):
     :param mask:
     :return:
     """
-    assert type(im) == Image
+    assert isinstance(im, Image)
 
     if mask is not None:
         assert numpy.sum(mask) > 2 * degree, "Insufficient channels for fit"

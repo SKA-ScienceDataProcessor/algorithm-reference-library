@@ -86,7 +86,7 @@ class TestFTProcessorParams(unittest.TestCase):
         assert numpy.max(numpy.abs(kernels[0].data)) > 0.0
         assert len(kernel_indices) > 0
         assert max(kernel_indices) == len(kernels) - 1
-        assert type(kernels[0]) == numpy.ndarray
+        assert isinstance(kernels[0], numpy.ndarray)
         assert len(kernels[0].shape) == 4
         assert kernels[0].shape == (oversampling, oversampling, kernelwidth, kernelwidth), \
             "Actual shape is %s" % str(kernels[0].shape)

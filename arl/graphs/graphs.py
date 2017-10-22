@@ -703,14 +703,14 @@ def create_deconvolve_scatter_graph(dirty_graph: delayed, psf_graph: delayed, mo
     """
     
     def deconvolve_subimage(dirty, psf, **kwargs):
-        assert type(dirty) == Image
-        assert type(psf) == Image
+        assert isinstance(dirty, Image)
+        assert isinstance(psf, Image)
         result = deconvolve_cube(dirty, psf, **kwargs)
         return result[0]
     
     def add_model(output, model):
-        assert type(output) == Image
-        assert type(model) == Image
+        assert isinstance(output, Image)
+        assert isinstance(model, Image)
         output.data += model.data
         return output
     
