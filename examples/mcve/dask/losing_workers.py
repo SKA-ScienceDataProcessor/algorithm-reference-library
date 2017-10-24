@@ -41,7 +41,7 @@ if __name__ == '__main__':
     # Process nchunks each of length len_chunk 2d points, making a psf of size shape
     len_chunk = int(1e6)
     nchunks = 16
-    shape=[512, 512]
+    shape=[1024, 1024]
     skip = 100
     
     # We pass in the scheduler from the invoking script
