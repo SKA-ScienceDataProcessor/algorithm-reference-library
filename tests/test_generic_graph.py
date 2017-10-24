@@ -1,4 +1,4 @@
-"""Unit tests for pipelines expressed via dask.delayed
+""" Unit tests for pipelines expressed via dask.delayed
 
 
 """
@@ -38,22 +38,28 @@ class TestPipelinesGenericDask(unittest.TestCase):
         self.phasecentre = SkyCoord(ra=+15.0 * u.deg, dec=-35.0 * u.deg, frame='icrs', equinox='J2000')
         self.compabsdirection = SkyCoord(ra=17.0 * u.deg, dec=-36.5 * u.deg, frame='icrs', equinox='J2000')
         
-        self.comp = create_skycomponent(flux=self.flux, frequency=self.frequency, direction=self.compabsdirection,
+        self.comp = create_skycomponent(flux=self.flux, frequency=self.frequency,
+                                        direction=self.compabsdirection,
                                         polarisation_frame=PolarisationFrame('stokesI'))
         self.image = create_test_image(frequency=self.frequency, phasecentre=self.phasecentre,
                                        cellsize=0.001,
                                        polarisation_frame=PolarisationFrame('stokesI'))
-        self.image.data[self.image.data<0.0]=0.0
+        self.image.data[self.image.data < 0.0] = 0.0
 
-        self.image_graph = delayed(create_test_image)(frequency=self.frequency, phasecentre=self.phasecentre,
-                                                      cellsize=0.001, polarisation_frame=PolarisationFrame('stokesI'))
+        self.image_graph = delayed(create_test_image)(frequency=self.frequency,
+                                                      phasecentre=self.phasecentre,
+                                                      cellsize=0.001,
+                                                      polarisation_frame=PolarisationFrame('stokesI'))
     
     def test_create_generic_blockvisibility_graph(self):
-        self.blockvis = [create_blockvisibility(self.lowcore, self.times, self.frequency, phasecentre=self.phasecentre,
-                                          channel_bandwidth=self.channel_bandwidth,
-                                          weight=1.0, polarisation_frame=PolarisationFrame('stokesI'))]
+        self.blockvis = [create_blockvisibility(self.lowcore, self.times, self.frequency,
+                                                phasecentre=self.phasecentre,
+                                                channel_bandwidth=self.channel_bandwidth,
+                                                weight=1.0,
+                                                polarisation_frame=PolarisationFrame('stokesI'))]
         self.blockvis = \
-            create_generic_blockvisibility_graph(predict_skycomponent_blockvisibility, vis_graph_list=self.blockvis,
+            create_generic_blockvisibility_graph(predict_skycomponent_blockvisibility,
+                                                 vis_graph_list=self.blockvis,
                                                  sc=self.comp)[0].compute()
         
         assert numpy.max(numpy.abs(self.blockvis[0].vis)) > 0.0
@@ -63,7 +69,8 @@ class TestPipelinesGenericDask(unittest.TestCase):
             im.data = numpy.sqrt(numpy.abs(im.data))
             return im
     
-        root = create_generic_image_iterator_graph(imagerooter, self.image, raster_iter, facets=16).compute()
+        root = create_generic_image_iterator_graph(imagerooter, self.image, raster_iter,
+                                                   facets=16).compute()
         numpy.testing.assert_array_almost_equal_nulp(root.data ** 2, numpy.abs(self.image.data), 7)
 
     def test_create_generic_image_graph(self):

@@ -2,7 +2,7 @@
 
 """
 
-from typing import Union, List, Tuple
+from typing import Union, List
 import collections
 import logging
 
@@ -13,6 +13,7 @@ from arl.visibility.base import copy_visibility
 from arl.imaging.base import predict_skycomponent_blockvisibility
 
 log = logging.getLogger(__name__)
+
 
 def peel_skycomponent_blockvisibility(vis: BlockVisibility, sc: Union[Skycomponent, List[Skycomponent]], remove=True)\
         -> (BlockVisibility, List[GainTable]):
@@ -26,7 +27,7 @@ def peel_skycomponent_blockvisibility(vis: BlockVisibility, sc: Union[Skycompone
     :param sc: Skycomponent or list of Skycomponents
     :return: subtracted visibility and list of GainTables
     """
-    assert type(vis) is BlockVisibility, "vis is not a BlockVisibility: %r" % vis
+    assert isinstance(vis, BlockVisibility), "vis is not a BlockVisibility: %r" % vis
 
     if not isinstance(sc, collections.Iterable):
         sc = [sc]

@@ -53,7 +53,6 @@ def solve_image(vis: Visibility, model: Image, components=None, predict=predict_
     for i in range(nmajor):
         log.info("solve_image: Start of major cycle %d" % i)
         cc, res = deconvolve_cube(dirty, psf, **kwargs)
-        res = None
         model.data += cc.data
         vispred = predict(vispred, model, **kwargs)
         visres.data['vis'] = vis.data['vis'] - vispred.data['vis']

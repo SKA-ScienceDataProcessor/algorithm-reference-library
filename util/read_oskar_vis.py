@@ -514,7 +514,7 @@ class OskarVis(OskarBinary):
                         print('')
 
 
-def import_visibility_from_oskar(oskar_file: str, **kwargs) -> Visibility:
+def import_visibility_from_oskar(oskar_file: str) -> Visibility:
     """ Import a visibility set from an OSKAR visibility file
 
     :param oskar_file: Name of OSKAR visibility file
@@ -550,6 +550,3 @@ def import_visibility_from_oskar(oskar_file: str, **kwargs) -> Visibility:
         antenna2=a2,
         vis=oskar_vis.amplitudes(flatten=True),
         weight=numpy.ones(a1.shape))
-
-
-

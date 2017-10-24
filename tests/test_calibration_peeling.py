@@ -1,4 +1,4 @@
-"""Unit tests for peeling
+""" Unit tests for peeling
 
 
 """
@@ -24,6 +24,7 @@ import logging
 
 log = logging.getLogger(__name__)
 
+
 class TestCalibrationPeeling(unittest.TestCase):
     
     def test_peel_skycomponent_blockvisibility(self):
@@ -44,7 +45,7 @@ class TestCalibrationPeeling(unittest.TestCase):
         vis = create_blockvisibility(config, times, frequency, phasecentre=phasecentre, weight=1.0,
                                      polarisation_frame=PolarisationFrame('linear'),
                                      channel_bandwidth=channel_bandwidth)
-        vis.data['vis'][...]=0.0
+        vis.data['vis'][...] = 0.0
 
         # First add in the source to be peeled.
         peel = Skycomponent(direction=peeldirection, frequency=frequency, flux=flux,
@@ -54,7 +55,7 @@ class TestCalibrationPeeling(unittest.TestCase):
         # Make a gaintable and apply it to the visibility of the peeling source
         gt = create_gaintable_from_blockvisibility(vis)
         gt = simulate_gaintable(gt, phase_error=0.01, amplitude_error=0.01)
-        gt.data['gain']*=0.3
+        gt.data['gain'] *= 0.3
         vis = apply_gaintable(vis, gt)
         
         # Now create a plausible field using the GLEAM sources
@@ -81,7 +82,8 @@ class TestCalibrationPeeling(unittest.TestCase):
         im, sumwt = invert_timeslice(vis, model)
         qa = qa_image(im)
 
-        assert numpy.abs(qa.data['max']-14.2) < 1.0, str(qa)
+        assert numpy.abs(qa.data['max'] - 14.2) < 1.0, str(qa)
+
 
 if __name__ == '__main__':
     unittest.main()

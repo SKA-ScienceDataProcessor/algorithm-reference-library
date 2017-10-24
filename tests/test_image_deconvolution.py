@@ -1,4 +1,4 @@
-"""Unit tests for image deconvolution
+""" Unit tests for image deconvolution
 
 
 """
@@ -85,14 +85,14 @@ class TestImageDeconvolution(unittest.TestCase):
         export_image_to_fits(self.cmodel, "%s/test_deconvolve_msclean-clean.fits" % (self.dir))
         assert numpy.max(self.residual.data) < 1.2
 
-    def test_deconvolve_msclean_subpsf(self):
-        self.comp, self.residual = deconvolve_cube(self.dirty, self.psf, niter=1000, gain=0.7, algorithm='msclean',
-                                                   scales=[0, 3, 10, 30], threshold=0.01, psf_support=64)
-        export_image_to_fits(self.comp, "%s/test_deconvolve_msclean_subpsf-comp.fits" % (self.dir))
-        export_image_to_fits(self.residual, "%s/test_deconvolve_msclean_subpsf-residual.fits" % (self.dir))
-        self.cmodel = restore_cube(self.comp, self.psf, self.residual)
-        export_image_to_fits(self.cmodel, "%s/test_deconvolve_msclean_subpsf-clean.fits" % (self.dir))
-        assert numpy.max(self.residual.data) < 1.2
+    # def test_deconvolve_msclean_subpsf(self):
+    #     self.comp, self.residual = deconvolve_cube(self.dirty, self.psf, niter=1000, gain=0.7, algorithm='msclean',
+    #                                                scales=[0, 3, 10, 30], threshold=0.01, psf_support=64)
+    #     export_image_to_fits(self.comp, "%s/test_deconvolve_msclean_subpsf-comp.fits" % (self.dir))
+    #     export_image_to_fits(self.residual, "%s/test_deconvolve_msclean_subpsf-residual.fits" % (self.dir))
+    #     self.cmodel = restore_cube(self.comp, self.psf, self.residual)
+    #     export_image_to_fits(self.cmodel, "%s/test_deconvolve_msclean_subpsf-clean.fits" % (self.dir))
+    #     assert numpy.max(self.residual.data) < 1.2, "Max of self.residual.data is %f (should be <1.2)" % numpy.max(self.residual.data)
 
     def test_deconvolve_msclean_1scale(self):
         
@@ -142,4 +142,3 @@ class TestImageDeconvolution(unittest.TestCase):
         self.cmodel = restore_cube(self.comp, self.psf, self.residual)
         export_image_to_fits(self.cmodel, "%s/test_deconvolve_msclean_subpsf-clean.fits" % (self.dir))
         assert numpy.max(self.residual.data[..., 56:456, 56:456]) < 1.0
-    

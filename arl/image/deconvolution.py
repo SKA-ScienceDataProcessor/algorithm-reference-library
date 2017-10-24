@@ -38,6 +38,7 @@ from arl.image.cleaners import hogbom, msclean, msmfsclean
 
 log = logging.getLogger(__name__)
 
+
 def deconvolve_cube(dirty: Image, psf: Image, **kwargs) -> (Image, Image):
     """ Clean using a variety of algorithms
     
@@ -72,8 +73,8 @@ def deconvolve_cube(dirty: Image, psf: Image, **kwargs) -> (Image, Image):
     :return: componentimage, residual
     
     """
-    assert type(dirty) == Image, "Type is %s" % (type(dirty))
-    assert type(psf) == Image, "Type is %s" % (type(psf))
+    assert isinstance(dirty, Image), "Type is %s" % (type(dirty))
+    assert isinstance(psf, Image), "Type is %s" % (type(psf))
     
     window_shape = get_parameter(kwargs, 'window_shape', None)
     if window_shape == 'quarter':
@@ -90,7 +91,7 @@ def deconvolve_cube(dirty: Image, psf: Image, **kwargs) -> (Image, Image):
         if (psf_support < psf.shape[2] // 2) and ((psf_support < psf.shape[3] // 2)):
             centre = [psf.shape[2] // 2, psf.shape[3] // 2]
             psf.data = psf.data[..., (centre[0] - psf_support):(centre[0] + psf_support),
-                       (centre[1] - psf_support):(centre[1] + psf_support)]
+                                (centre[1] - psf_support):(centre[1] + psf_support)]
             log.info('deconvolve_cube: PSF support = +/- %d pixels' % (psf_support))
     
     algorithm = get_parameter(kwargs, 'algorithm', 'msclean')
@@ -156,7 +157,7 @@ def deconvolve_cube(dirty: Image, psf: Image, **kwargs) -> (Image, Image):
                 if window is None:
                     comp_array[:, pol, :, :], residual_array[:, pol, :, :] = \
                         msmfsclean(dirty_taylor.data[:, pol, :, :], psf_taylor.data[:, pol, :, :],
-                                None, gain, thresh, niter, scales, fracthresh, findpeak)
+                                   None, gain, thresh, niter, scales, fracthresh, findpeak)
                 else:
                     qx = dirty.shape[3] // 4
                     qy = dirty.shape[2] // 4
@@ -166,7 +167,8 @@ def deconvolve_cube(dirty: Image, psf: Image, **kwargs) -> (Image, Image):
 
                     comp_array[:, pol, :, :], residual_array[:, pol, :, :] = \
                         msmfsclean(dirty_taylor.data[:, pol, :, :], psf_taylor.data[:, pol, :, :],
-                                window[:, pol, :, :], gain, thresh, niter, scales, fracthresh, findpeak)
+                                   window[:, pol, :, :], gain, thresh, niter, scales, fracthresh,
+                                   findpeak)
             else:
                 log.info("deconvolve_cube: Skipping pol %d" % (pol))
                 
@@ -181,7 +183,6 @@ def deconvolve_cube(dirty: Image, psf: Image, **kwargs) -> (Image, Image):
         else:
             log.info("Deconvolve_cube: constructed moment cubes")
             
-
     elif algorithm == 'hogbom':
         log.info("deconvolve_cube: Hogbom clean of each polarisation and channel separately")
         gain = get_parameter(kwargs, 'gain', 0.7)
@@ -218,7 +219,6 @@ def deconvolve_cube(dirty: Image, psf: Image, **kwargs) -> (Image, Image):
     return comp_image, residual_image
 
 
-
 def restore_cube(model: Image, psf: Image, residual=None, **kwargs) -> Image:
     """ Restore the model image to the residuals
 
@@ -226,9 +226,9 @@ def restore_cube(model: Image, psf: Image, residual=None, **kwargs) -> Image:
     :return: restored image
 
     """
-    assert type(model) == Image, "Type is %s" % (type(model))
-    assert type(psf) == Image, "Type is %s" % (type(psf))
-    assert residual is None or type(residual) == Image, "Type is %s" % (type(residual))
+    assert isinstance(model, Image), "Type is %s" % (type(model))
+    assert isinstance(psf, Image), "Type is %s" % (type(psf))
+    assert residual is None or isinstance(residual, Image), "Type is %s" % (type(residual))
 
     restored = copy_image(model)
     

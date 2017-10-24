@@ -3,7 +3,7 @@
     kernelname = get_parameter(kwargs, "kernel", "2d")
     oversampling = get_parameter(kwargs, "oversampling", 8)
     padding = get_parameter(kwargs, "padding", 2)
-        
+
 The kwargs may need to be passed down to called functions.
 
 All functions possess an API which is always of the form::
@@ -60,13 +60,12 @@ log = logging.getLogger(__name__)
 
 
 def arl_path(path):
-    """
-    Converts a path that might be relative to ARL root into an
+    """Converts a path that might be relative to ARL root into an
     absolute path::
-    
+
         arl_path('data/models/SKA1_LOW_beam.fits')
         '/Users/timcornwell/Code/algorithm-reference-library/data/models/SKA1_LOW_beam.fits'
-        
+
     :param path:
     :return: absolute path
     """
@@ -77,20 +76,19 @@ def arl_path(path):
 
 def get_parameter(kwargs, key, default=None):
     """ Get a specified named value for this (calling) function
-    
+
     The parameter is searched for in kwargs
-    
+
     :param kwargs: Parameter dictionary
     :param key: Key e.g. 'loop_gain'
     :param default: Default value
     :return: result
     """
-    
+
     if kwargs is None:
         return default
-    
+
     value = default
     if key in kwargs.keys():
         value = kwargs[key]
     return value
-

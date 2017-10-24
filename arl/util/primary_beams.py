@@ -15,7 +15,7 @@ log = logging.getLogger(__name__)
 
 
 def ft_disk(r):
-    from scipy.special import jn
+    from scipy.special import jn  # pylint: disable=no-name-in-module
     result = numpy.zeros_like(r)
     result[r > 0] = 2.0 * jn(1, r[r > 0]) / r[r > 0]
     rsmall = 1e-9
@@ -52,8 +52,8 @@ def create_pb_vla(model, pointingcentre=None):
         
         for pol in range(npol):
             reflector = ft_disk(rr * numpy.pi * 25.0 / wavelength)
-            blockage = ft_disk(rr * numpy.pi * 1.67 / wavelength)
-            beam.data[chan, pol, ...] = reflector #- blockage
+            # blockage = ft_disk(rr * numpy.pi * 1.67 / wavelength)
+            beam.data[chan, pol, ...] = reflector  # - blockage
     
     beam.data *= beam.data
     return beam
@@ -141,4 +141,3 @@ def create_pb_vla_numerical(model):
     pb.data *= pb.data
     pb.data = numpy.real(pb.data).astype('float')
     return pb
-

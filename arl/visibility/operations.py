@@ -10,7 +10,7 @@ from astropy.coordinates import SkyCoord
 
 from arl.data.data_models import BlockVisibility, Visibility, QA
 from arl.imaging.params import get_frequency_map
-from arl.util.coordinate_support import xyz_to_uvw, uvw_to_xyz, skycoord_to_lmn, simulate_point
+from arl.util.coordinate_support import skycoord_to_lmn, simulate_point
 from arl.visibility.base import copy_visibility
 
 log = logging.getLogger(__name__)
@@ -84,7 +84,7 @@ def qa_visibility(vis: Union[Visibility, BlockVisibility], context=None) -> QA:
     return qa
 
 
-def remove_continuum_blockvisibility(vis: BlockVisibility, degree=1, mask=None, **kwargs) -> BlockVisibility:
+def remove_continuum_blockvisibility(vis: BlockVisibility, degree=1, mask=None) -> BlockVisibility:
     """ Fit and remove continuum visibility
 
     Fit a polynomial in frequency of the specified degree where mask is True
@@ -92,7 +92,6 @@ def remove_continuum_blockvisibility(vis: BlockVisibility, degree=1, mask=None, 
     :param vis:
     :param degree: Degree of polynomial
     :param mask:
-    :param kwargs:
     :return:
     """
     if mask is not None:
@@ -161,11 +160,10 @@ def divide_visibility(vis: BlockVisibility, modelvis: BlockVisibility):
     return pointsource_vis
 
 
-def integrate_visibility_by_channel(vis: BlockVisibility, **kwargs) -> BlockVisibility:
+def integrate_visibility_by_channel(vis: BlockVisibility) -> BlockVisibility:
     """ Integrate visibility across channels, returning new visibility
     
     :param vis:
-    :param kwargs:
     :return: BlockVisibility
     """
     

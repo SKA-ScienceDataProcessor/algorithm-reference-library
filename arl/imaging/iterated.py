@@ -35,12 +35,11 @@ def invert_with_vis_iterator(vis: Visibility, im: Image, dopsf=False, normalize=
     """
     resultimage = create_empty_image_like(im)
     
-    if type(vis) is not Visibility:
+    if not isinstance(vis, Visibility):
         svis = coalesce_visibility(vis, **kwargs)
     else:
         svis = vis
 
-    
     i = 0
     for rows in vis_iter(svis, **kwargs):
         if numpy.sum(rows) and svis is not None:
@@ -68,7 +67,7 @@ def predict_with_vis_iterator(vis: Visibility, model: Image, vis_iter=vis_slice_
     
     """
     log.debug("predict_with_vis_iterator: Processing chunks")
-    if type(vis) is not Visibility:
+    if not isinstance(vis, Visibility):
         svis = coalesce_visibility(vis, **kwargs)
     else:
         svis = vis

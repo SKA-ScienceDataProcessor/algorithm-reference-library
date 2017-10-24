@@ -20,14 +20,14 @@ log = logging.getLogger(__name__)
 
 def vis_summary(vis: Union[Visibility, BlockVisibility]):
     """Return string summarizing the Visibility
-    
+
     """
     return "%d rows, %.3f GB" % (vis.nvis, vis.size())
 
 
 def copy_visibility(vis: Union[Visibility, BlockVisibility], zero=False) -> Union[Visibility, BlockVisibility]:
     """Copy a visibility
-    
+
     Performs a deepcopy of the data array
     """
     newvis = copy.copy(vis)
@@ -40,7 +40,7 @@ def copy_visibility(vis: Union[Visibility, BlockVisibility], zero=False) -> Unio
 def create_visibility(config: Configuration, times: numpy.array, frequency: numpy.array,
                       channel_bandwidth, phasecentre: SkyCoord,
                       weight: float, polarisation_frame=PolarisationFrame('stokesI'),
-                      integration_time=1.0, **kwargs) -> Visibility:
+                      integration_time=1.0) -> Visibility:
     """ Create a Visibility from Configuration, hour angles, and direction of source
 
     Note that we keep track of the integration time for BDA purposes
@@ -56,10 +56,10 @@ def create_visibility(config: Configuration, times: numpy.array, frequency: nump
     :return: Visibility
     """
     assert phasecentre is not None, "Must specify phase centre"
-    
+
     if polarisation_frame is None:
         polarisation_frame = correlate_polarisation(config.receptor_frame)
-    
+
     nch = len(frequency)
     ants_xyz = config.data['xyz']
     nants = len(config.data['names'])
@@ -77,21 +77,21 @@ def create_visibility(config: Configuration, times: numpy.array, frequency: nump
     rantenna1 = numpy.zeros([nrows], dtype='int')
     rantenna2 = numpy.zeros([nrows], dtype='int')
     ruvw = numpy.zeros([nrows, 3])
-    
+
     # Do each hour angle in turn
     for iha, ha in enumerate(times):
-        
+
         # Calculate the positions of the antennas as seen for this hour angle
         # and declination
         ant_pos = xyz_to_uvw(ants_xyz, ha, phasecentre.dec.rad)
         rtimes[row:row + nrowsperintegration] = ha * 43200.0 / numpy.pi
-        
+
         # Loop over all pairs of antennas. Note that a2>a1
         for a1 in range(nants):
             for a2 in range(a1 + 1, nants):
                 rantenna1[row:row + nch] = a1
                 rantenna2[row:row + nch] = a2
-                
+
                 # Loop over all frequencies and polarisations
                 for ch in range(nch):
                     # noinspection PyUnresolvedReferences
@@ -100,7 +100,7 @@ def create_visibility(config: Configuration, times: numpy.array, frequency: nump
                     rfrequency[row] = frequency[ch]
                     rchannel_bandwidth[row] = channel_bandwidth[ch]
                     row += 1
-    
+
     assert row == nrows
     rintegration_time = numpy.full_like(rtimes, integration_time)
     vis = Visibility(uvw=ruvw, time=rtimes, antenna1=rantenna1, antenna2=rantenna2,
@@ -111,8 +111,8 @@ def create_visibility(config: Configuration, times: numpy.array, frequency: nump
     vis.phasecentre = phasecentre
     vis.configuration = config
     log.info("create_visibility: %s" % (vis_summary(vis)))
-    assert type(vis) is Visibility, "vis is not a Visibility: %r" % vis
-    
+    assert isinstance(vis, Visibility), "vis is not a Visibility: %r" % vis
+
     return vis
 
 
@@ -124,8 +124,7 @@ def create_blockvisibility(config: Configuration,
                            polarisation_frame: PolarisationFrame = None,
                            integration_time=1.0,
                            channel_bandwidth=1e6,
-                           zerow=False,
-                           **kwargs) -> BlockVisibility:
+                           zerow=False, **kwargs) -> BlockVisibility:
     """ Create a BlockVisibility from Configuration, hour angles, and direction of source
 
     Note that we keep track of the integration time for BDA purposes
@@ -141,14 +140,13 @@ def create_blockvisibility(config: Configuration,
     :return: BlockVisibility
     """
     assert phasecentre is not None, "Must specify phase centre"
-    
+
     if polarisation_frame is None:
         polarisation_frame = correlate_polarisation(config.receptor_frame)
-    
+
     nch = len(frequency)
     ants_xyz = config.data['xyz']
     nants = len(config.data['names'])
-    nbaselines = int(nants * (nants - 1) / 2)
     ntimes = len(times)
     npol = polarisation_frame.npol
     visshape = [ntimes, nants, nants, nch, npol]
@@ -156,33 +154,33 @@ def create_blockvisibility(config: Configuration,
     rweight = weight * numpy.ones(visshape)
     rtimes = numpy.zeros([ntimes])
     ruvw = numpy.zeros([ntimes, nants, nants, 3])
-    
+
     # Do each hour angle in turn
     for iha, ha in enumerate(times):
-        
+
         # Calculate the positions of the antennas as seen for this hour angle
         # and declination
         ant_pos = xyz_to_uvw(ants_xyz, ha, phasecentre.dec.rad)
         rtimes[iha] = ha * 43200.0 / numpy.pi
-        
+
         # Loop over all pairs of antennas. Note that a2>a1
         for a1 in range(nants):
             for a2 in range(a1 + 1, nants):
                 ruvw[iha, a2, a1, :] = (ant_pos[a2, :] - ant_pos[a1, :])
                 ruvw[iha, a1, a2, :] = (ant_pos[a1, :] - ant_pos[a2, :])
-    
+
     rintegration_time = numpy.full_like(rtimes, integration_time)
     rchannel_bandwidth = numpy.full_like(frequency, channel_bandwidth)
     if zerow:
-        ruvw[...,2] = 0.0
+        ruvw[..., 2] = 0.0
     vis = BlockVisibility(uvw=ruvw, time=rtimes, frequency=frequency, vis=rvis, weight=rweight,
                           integration_time=rintegration_time, channel_bandwidth=rchannel_bandwidth,
                           polarisation_frame=polarisation_frame)
     vis.phasecentre = phasecentre
     vis.configuration = config
-    log.info("create_visibility: %s" % (vis_summary(vis)))
-    assert type(vis) is BlockVisibility, "vis is not a BlockVisibility: %r" % vis
-    
+    log.info("create_blockvisibility: %s" % (vis_summary(vis)))
+    assert isinstance(vis, BlockVisibility), "vis is not a BlockVisibility: %r" % vis
+
     return vis
 
 
@@ -195,12 +193,12 @@ def create_visibility_from_rows(vis: Union[Visibility, BlockVisibility], rows: n
     :param makecopy: Make a deep copy (True)
     :return: Visibility
     """
-    
+
     if rows is None or numpy.sum(rows) == 0:
         return None
-    
-    if type(vis) is Visibility:
-        
+
+    if isinstance(vis, Visibility):
+
         if makecopy:
             newvis = copy_visibility(vis)
             newvis.data = copy.deepcopy(vis.data[rows])
@@ -209,14 +207,14 @@ def create_visibility_from_rows(vis: Union[Visibility, BlockVisibility], rows: n
             vis.data = copy.deepcopy(vis.data[rows])
             return vis
     else:
-        
+
         if makecopy:
             newvis = copy_visibility(vis)
             newvis.data = copy.deepcopy(vis.data[rows])
             return newvis
         else:
             vis.data = copy.deepcopy(vis.data[rows])
-            
+
             return vis
 
 
@@ -233,29 +231,27 @@ def phaserotate_visibility(vis: Visibility, newphasecentre: SkyCoord, tangent=Tr
     :param inverse: Actually do the opposite
     :return: Visibility
     """
-    assert type(vis) is Visibility, "vis is not a Visibility: %r" % vis
-    
+    assert isinstance(vis, Visibility), "vis is not a Visibility: %r" % vis
+
     l, m, n = skycoord_to_lmn(newphasecentre, vis.phasecentre)
-    
+
     # No significant change?
     if numpy.abs(n) > 1e-15:
-        
+
         # Make a new copy
         newvis = copy_visibility(vis)
-        
+
         phasor = simulate_point(newvis.uvw, l, m)
-        
         nvis, npol = vis.vis.shape
         # TODO: Speed up (broadcast rules not obvious to me)
         if inverse:
             for i in range(nvis):
                 for pol in range(npol):
-                    newvis.data['vis'][i,pol] *= phasor[i]
+                    newvis.data['vis'][i, pol] *= phasor[i]
         else:
             for i in range(nvis):
                 for pol in range(npol):
-                    newvis.data['vis'][i,pol] *= numpy.conj(phasor[i])
-
+                    newvis.data['vis'][i, pol] *= numpy.conj(phasor[i])
         
         # To rotate UVW, rotate into the global XYZ coordinate system and back. We have the option of
         # staying on the tangent plane or not. If we stay on the tangent then the raster will
@@ -286,7 +282,7 @@ def create_visibility_from_ms(msname):
     Creates a list of Visibilities, one per phasecentre
     """
     try:
-        from casacore.tables import table
+        from casacore.tables import table  # pylint: disable=import-error
     except ModuleNotFoundError:
         raise ModuleNotFoundError("casacore is not installed")
 
@@ -318,8 +314,8 @@ def create_visibility_from_ms(msname):
         uvw *= frequency[:, numpy.newaxis] / constants.c.to('m/s').value
         
         # Get polarisation info
-        poltab = table('%s/POLARIZATION' % msname, ack=False)
-        corr_type = poltab.getcol('CORR_TYPE')
+        # poltab = table('%s/POLARIZATION' % msname, ack=False)
+        # corr_type = poltab.getcol('CORR_TYPE')
         # TODO: Do interpretation correctly
         polarisation_frame = PolarisationFrame('stokesIQUV')
         

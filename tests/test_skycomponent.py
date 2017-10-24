@@ -1,4 +1,4 @@
-"""Unit tests for skycomponents
+""" Unit tests for skycomponents
 
 """
 
@@ -44,10 +44,9 @@ class Testskycomponent(unittest.TestCase):
         export_image_to_fits(self.model, '%s/test_solve_skycomponent_model.fits' % (self.dir))
         self.bigmodel = create_image_from_visibility(self.vis, cellsize=0.0015, npixel=512)
         
-        
     def test_insert_skycomponent(self):
         sc = create_skycomponent(direction=self.phasecentre, flux=numpy.array([[1.0]]), frequency=self.frequency,
-                                 polarisation_frame = PolarisationFrame('stokesI'))
+                                 polarisation_frame=PolarisationFrame('stokesI'))
         
         log.debug(self.model.wcs)
         log.debug(str(sc))
@@ -58,7 +57,7 @@ class Testskycomponent(unittest.TestCase):
         rpix = numpy.round(self.model.wcs.wcs.crpix).astype('int')
         assert rpix[0] == npixel // 2
         assert rpix[1] == npixel // 2
-        assert self.model.data[0,0,rpix[1],rpix[0]] == 1.0
+        assert self.model.data[0, 0, rpix[1], rpix[0]] == 1.0
         self.vis = predict_2d(self.vis, self.model)
         assert self.vis.vis.imag.all() == 0.0
 
@@ -135,6 +134,7 @@ class Testskycomponent(unittest.TestCase):
         # These test a regression but are not known a priori to be correct
         self.assertAlmostEqual(self.model.data[0,0,151, 122], 0.24031092091707615, 7)
         self.assertAlmostEqual(self.model.data[0,0,152, 122], 0.18648989466050975, 7)
+
 
 if __name__ == '__main__':
     unittest.main()

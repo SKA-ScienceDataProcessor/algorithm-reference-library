@@ -5,7 +5,7 @@ an option in the normal gridding for each plane.
 """
 import numpy
 
-from arl.data.data_models import Visibility, BlockVisibility, Image
+from arl.data.data_models import Visibility, Image
 
 from arl.imaging.wstack import predict_wstack, invert_wstack
 import logging
@@ -39,4 +39,3 @@ def invert_wprojection_wstack(vis: Visibility, im: Image, dopsf=False, normalize
     log.info("invert_wprojection: inverting using wstack and wprojection")
     kwargs['kernel'] = "wprojection"
     return invert_wstack(vis, im, dopsf, normalize=normalize, **kwargs)
-

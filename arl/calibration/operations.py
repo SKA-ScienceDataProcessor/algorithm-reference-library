@@ -35,7 +35,7 @@ def create_gaintable_from_blockvisibility(vis: BlockVisibility, time_width: floa
     :return: GainTable
     
     """
-    assert type(vis) is BlockVisibility, "vis is not a BlockVisibility: %r" % vis
+    assert isinstance(vis, BlockVisibility), "vis is not a BlockVisibility: %r" % vis
     
     nants = vis.nants
     utimes = numpy.unique(vis.time)
@@ -60,13 +60,13 @@ def create_gaintable_from_blockvisibility(vis: BlockVisibility, time_width: floa
     gt = GainTable(gain=gain, time=gain_time, weight=gain_weight, residual=gain_residual, frequency=gain_frequency,
                    receptor_frame=receptor_frame)
     
-    assert type(gt) is GainTable, "gt is not a GainTable: %r" % gt
+    assert isinstance(gt, GainTable), "gt is not a GainTable: %r" % gt
     assert_vis_gt_compatible(vis, gt)
 
     return gt
 
 
-def apply_gaintable(vis: BlockVisibility, gt: GainTable, inverse=False, **kwargs) -> BlockVisibility:
+def apply_gaintable(vis: BlockVisibility, gt: GainTable, inverse=False) -> BlockVisibility:
     """Apply a gain table to a block visibility
     
     The corrected visibility is::
@@ -82,8 +82,8 @@ def apply_gaintable(vis: BlockVisibility, gt: GainTable, inverse=False, **kwargs
     :return: input vis with gains applied
     
     """
-    assert type(vis) is BlockVisibility, "vis is not a BlockVisibility: %r" % vis
-    assert type(gt) is GainTable, "gt is not a GainTable: %r" % gt
+    assert isinstance(vis, BlockVisibility), "vis is not a BlockVisibility: %r" % vis
+    assert isinstance(gt, GainTable), "gt is not a GainTable: %r" % gt
 
     assert_vis_gt_compatible(vis, gt)
     

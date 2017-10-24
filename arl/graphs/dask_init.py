@@ -4,11 +4,12 @@
 """
 
 import os
+
+from distributed import Client, LocalCluster
+
 import logging
 
 log = logging.getLogger(__name__)
-
-from distributed import Client, LocalCluster
 
 
 def get_dask_Client(timeout=30, n_workers=None, threads_per_worker=1, processes=True, create_cluster=True):
@@ -57,7 +58,7 @@ def get_nodes():
         return None
 
     import socket
-    with open(hostfile, 'r' ) as file:
+    with open(hostfile, 'r') as file:
         nodes = [line.replace('\n', '') for line in file.readlines()]
         print("Nodes being used are %s" % nodes)
         nodes = [socket.gethostbyname(node) for node in nodes]
@@ -71,12 +72,14 @@ def kill_dask_Scheduler(client):
     :params c: Dask client
     
     """
-    import psutil, signal
+    import psutil
+    import signal
     for proc in psutil.process_iter():
         # check whether the process name matches
         if proc.name() == "graphs-ssh":
             proc.send_signal(signal.SIGHUP)
-            
+
+
 def kill_dask_Client(c):
     """ Kill the Client
     
@@ -86,4 +89,3 @@ def kill_dask_Client(c):
     c.loop.add_callback(c.scheduler.terminate)
     c.run_on_scheduler(lambda dask_scheduler: dask_scheduler.loop.stop())
     c.shutdown()
-

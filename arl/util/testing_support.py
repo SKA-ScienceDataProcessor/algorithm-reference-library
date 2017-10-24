@@ -48,6 +48,7 @@ from arl.util.coordinate_support import xyz_at_latitude
 from arl.visibility.base import create_blockvisibility
 from arl.visibility.coalesce import convert_visibility_to_blockvisibility
 from arl.imaging import predict_timeslice, predict_skycomponent_blockvisibility
+from arl.data.parameters import get_parameter
 
 import logging
 log = logging.getLogger(__name__)
@@ -56,10 +57,9 @@ log = logging.getLogger(__name__)
 def create_configuration_from_file(antfile: str, name: str = None, location: EarthLocation = None,
                                    mount: str = 'altaz',
                                    names: str = "%d", frame: str = 'local',
-                                   diameter = 35.0,
+                                   diameter=35.0,
                                    meta: dict = None,
-                                   rmax = None,
-                                   **kwargs) -> Configuration:
+                                   rmax=None, **kwargs) -> Configuration:
     """ Define from a file
 
     :param names:
@@ -79,10 +79,10 @@ def create_configuration_from_file(antfile: str, name: str = None, location: Ear
         antxyz = xyz_at_latitude(antxyz, latitude)
     if rmax is not None:
         lantxyz = antxyz - numpy.average(antxyz, axis=0)
-        r = numpy.sqrt(lantxyz[:,0]**2+lantxyz[:,1]**2+lantxyz[:,2]**2)
+        r = numpy.sqrt(lantxyz[:, 0] ** 2 + lantxyz[:, 1] ** 2 + lantxyz[:, 2] ** 2)
         antxyz = antxyz[r < rmax]
         log.debug('create_configuration_from_file: Maximum radius %.1f m includes %d antennas/stations' %
-                    (rmax, antxyz.shape[0]))
+                  (rmax, antxyz.shape[0]))
             
     nants = antxyz.shape[0]
     anames = [names % ant for ant in range(nants)]
@@ -92,8 +92,7 @@ def create_configuration_from_file(antfile: str, name: str = None, location: Ear
     return fc
 
 
-def create_LOFAR_configuration(antfile: str, meta: dict = None,
-                               **kwargs) -> Configuration:
+def create_LOFAR_configuration(antfile: str, meta: dict = None) -> Configuration:
     """ Define from the LOFAR configuration file
 
     :param antfile:
@@ -132,34 +131,34 @@ def create_named_configuration(name: str = 'LOWBD2', **kwargs) -> Configuration:
         location = EarthLocation(lon="116.4999", lat="-26.7000", height=300.0)
         fc = create_configuration_from_file(antfile=arl_path("data/configurations/LOWBD2.csv"),
                                             location=location, mount='xy', names='LOWBD2_%d',
-                       diameter=35.0, **kwargs)
+                                            diameter=35.0, **kwargs)
     elif name == 'LOWBD1':
         location = EarthLocation(lon="116.4999", lat="-26.7000", height=300.0)
         fc = create_configuration_from_file(antfile=arl_path("data/configurations/LOWBD1.csv"),
                                             location=location, mount='xy', names='LOWBD1_%d',
-                       diameter=35.0, **kwargs)
+                                            diameter=35.0, **kwargs)
     elif name == 'LOWBD2-CORE':
         location = EarthLocation(lon="116.4999", lat="-26.7000", height=300.0)
         fc = create_configuration_from_file(antfile=arl_path("data/configurations/LOWBD2-CORE.csv"),
                                             location=location, mount='xy', names='LOWBD2_%d',
-                       diameter=35.0, **kwargs)
+                                            diameter=35.0, **kwargs)
     elif name == 'LOFAR':
-        fc = create_LOFAR_configuration(antfile=arl_path("data/configurations/LOFAR.csv"),
-                       diameter=35.0, **kwargs)
+        assert get_parameter(kwargs, "meta", False) is False
+        fc = create_LOFAR_configuration(antfile=arl_path("data/configurations/LOFAR.csv"))
     elif name == 'VLAA':
         location = EarthLocation(lon="-107.6184", lat="34.0784", height=2124.0)
         fc = create_configuration_from_file(antfile=arl_path("data/configurations/VLA_A_hor_xyz.csv"),
                                             location=location,
                                             mount='altaz',
                                             names='VLA_%d',
-                       diameter=25.0, **kwargs)
+                                            diameter=25.0, **kwargs)
     elif name == 'VLAA_north':
         location = EarthLocation(lon="-107.6184", lat="90.000", height=2124.0)
         fc = create_configuration_from_file(antfile=arl_path("data/configurations/VLA_A_hor_xyz.csv"),
                                             location=location,
                                             mount='altaz',
                                             names='VLA_%d',
-                       diameter=25.0, **kwargs)
+                                            diameter=25.0, **kwargs)
     else:
         raise ValueError("No such Configuration %s" % name)
     return fc
@@ -187,7 +186,7 @@ def create_test_image(canonical=True, cellsize=None, frequency=None, channel_ban
         
         if polarisation_frame is None:
             im.polarisation_frame = PolarisationFrame("stokesI")
-        elif type(polarisation_frame) == PolarisationFrame:
+        elif isinstance(polarisation_frame, PolarisationFrame):
             im.polarisation_frame = polarisation_frame
         else:
             raise ValueError("polarisation_frame is not valid")
@@ -307,7 +306,7 @@ def create_low_test_image_from_s3(npixel=16384, polarisation_frame=PolarisationF
     log.info('create_low_test_image_from_s3: %d sources inside the image' % (ps.shape[1]))
     
     log.info('create_low_test_image_from_s3: average channel flux in S3 model = %.3f, actual average channel flux in '
-             'image = %.3f' % (total_flux/float(nchan), actual_flux/float(nchan)))
+             'image = %.3f' % (total_flux / float(nchan), actual_flux / float(nchan)))
     for chan in range(nchan):
         for iflux, flux in enumerate(fluxes):
             model.data[chan, 0, ps[1, iflux], ps[0, iflux]] = flux[chan]
@@ -433,7 +432,7 @@ def create_low_test_image_from_gleam(npixel=512, polarisation_frame=Polarisation
     
     log.info('create_low_test_image_from_gleam: %d sources inside the image' % (ps.shape[1]))
     
-    log.info('create_low_test_image_from_gleam: Average flux per channel in image = %.3f' % (actual_flux/float(nchan)))
+    log.info('create_low_test_image_from_gleam: Average flux per channel in image = %.3f' % (actual_flux / float(nchan)))
     for iflux, flux in enumerate(fluxes):
         if not numpy.isnan(flux).any() and flux.all() > 0.0:
             model.data[:, 0, ps[1, iflux], ps[0, iflux]] = flux[:]
@@ -504,8 +503,8 @@ def create_low_test_skycomponents_from_gleam(flux_limit=0.1, polarisation_frame=
                 direction = SkyCoord(ra=ras[isource] * u.deg, dec=decs[isource] * u.deg)
                 if phasecentre is None or direction.separation(phasecentre).to('rad').value < radius:
                     skycomps.append(Skycomponent(direction=direction, flux=flux, frequency=frequency,
-                                                name=name, shape='Point',
-                                                polarisation_frame=polarisation_frame))
+                                                 name=name, shape='Point',
+                                                 polarisation_frame=polarisation_frame))
     
     log.info('create_low_test_skycomponents_from_gleam: %d sources above flux limit %.3f' % (len(skycomps), flux_limit))
     
@@ -637,8 +636,8 @@ def create_blockvisibility_iterator(config: Configuration, times: numpy.array, f
     for time in times:
         actualtimes = time + numpy.arange(0, number_integrations) * integration_time * numpy.pi / 43200.0
         bvis = create_blockvisibility(config, actualtimes, frequency=frequency, phasecentre=phasecentre, weight=weight,
-                                     polarisation_frame=polarisation_frame, integration_time=integration_time,
-                                     channel_bandwidth=channel_bandwidth)
+                                      polarisation_frame=polarisation_frame, integration_time=integration_time,
+                                      channel_bandwidth=channel_bandwidth)
         
         if model is not None:
             vis = predict(bvis, model, **kwargs)
@@ -659,8 +658,8 @@ def create_blockvisibility_iterator(config: Configuration, times: numpy.array, f
         yield bvis
 
 
-def simulate_gaintable(gt: GainTable, phase_error=0.1, amplitude_error=0.0, leakage=0.0, seed=180555,
-                       **kwargs) -> GainTable:
+def simulate_gaintable(gt: GainTable, phase_error=0.1, amplitude_error=0.0,
+                       leakage=0.0, seed=180555) -> GainTable:
     """ Simulate a gain table
     
     :type gt: GainTable
@@ -674,7 +673,7 @@ def simulate_gaintable(gt: GainTable, phase_error=0.1, amplitude_error=0.0, leak
     numpy.random.seed(seed)
 
     log.debug("simulate_gaintable: Simulating amplitude error = %.4f, phase error = %.4f"
-             % (amplitude_error, phase_error))
+              % (amplitude_error, phase_error))
     amp = 1.0
     phasor = 1.0
     if phase_error > 0.0:
@@ -687,10 +686,10 @@ def simulate_gaintable(gt: GainTable, phase_error=0.1, amplitude_error=0.0, leak
     if nrec > 1:
         if leakage > 0.0:
             leak = numpy.random.normal(0, leakage, gt.data['gain'][..., 0, 0].shape) + 1j *  \
-                   numpy.random.normal(0, leakage, gt.data['gain'][..., 0, 0].shape)
+                numpy.random.normal(0, leakage, gt.data['gain'][..., 0, 0].shape)
             gt.data['gain'][..., 0, 1] = gt.data['gain'][..., 0, 0] * leak
             leak = numpy.random.normal(0, leakage, gt.data['gain'][..., 1, 1].shape) + 1j * \
-                   numpy.random.normal(0, leakage, gt.data['gain'][..., 1, 1].shape)
+                numpy.random.normal(0, leakage, gt.data['gain'][..., 1, 1].shape)
             gt.data['gain'][..., 1, 0] = gt.data['gain'][..., 1, 1] * leak
         else:
             gt.data['gain'][..., 0, 1] = 0.0

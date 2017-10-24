@@ -41,9 +41,9 @@ def solve_gaintable(vis: BlockVisibility, modelvis: BlockVisibility=None, phase_
     :return: GainTable containing solution
 
     """
-    assert type(vis) is BlockVisibility, "vis is not a BlockVisibility: %r" % vis
-    assert type(modelvis) is BlockVisibility or type(modelvis) is not None, "modelvis is not None or a " \
-                                                                            "BlockVisibility: %r" % vis
+    assert isinstance(vis, BlockVisibility), "vis is not a BlockVisibility: %r" % vis
+    assert isinstance(modelvis, BlockVisibility) or type(modelvis) is not None, "modelvis is not None or a " \
+        "BlockVisibility: %r" % vis
     
     if phase_only:
         log.info('solve_gaintable: Solving for phase only')
@@ -64,14 +64,14 @@ def solve_gaintable(vis: BlockVisibility, modelvis: BlockVisibility=None, phase_
             xwt = numpy.average(subvis.weight, axis=0)
             
         gt = solve_from_X(gt, x, xwt, chunk, crosspol, niter, phase_only,
-                        tol, npol=vis.polarisation_frame.npol)
+                          tol, npol=vis.polarisation_frame.npol)
 
-    assert type(gt) is GainTable, "gt is not a GainTable: %r" % gt
+    assert isinstance(gt, GainTable), "gt is not a GainTable: %r" % gt
     
     assert_vis_gt_compatible(vis, gt)
 
-    
     return gt
+
 
 def solve_from_X(gt: GainTable, x: numpy.ndarray, xwt: numpy.ndarray, chunk, crosspol, niter, phase_only, tol, npol) \
         -> GainTable:
@@ -162,10 +162,10 @@ def gain_substitution_scalar(gain, x, xwt):
     for ant1 in range(nants):
         for chan in range(nchan):
             # Loop over e.g. 'RR', 'LL, or 'xx', 'YY' ignoring cross terms
-            top = numpy.sum(x[:, ant1, chan, 0, 0] \
-                            * gain[:, chan, 0, 0] * xwt[:, ant1, chan, 0, 0], axis=0)
-            bot = numpy.sum((gain[:, chan, 0, 0] * numpy.conjugate(gain[:, chan, 0, 0])
-                             * xwt[:, ant1, chan, 0, 0]).real, axis=0)
+            top = numpy.sum(x[:, ant1, chan, 0, 0] *
+                            gain[:, chan, 0, 0] * xwt[:, ant1, chan, 0, 0], axis=0)
+            bot = numpy.sum((gain[:, chan, 0, 0] * numpy.conjugate(gain[:, chan, 0, 0]) *
+                             xwt[:, ant1, chan, 0, 0]).real, axis=0)
             
             if bot > 0.0:
                 newgain[ant1, chan, 0, 0] = top / bot
@@ -253,10 +253,10 @@ def gain_substitution_vector(gain, x, xwt):
         for chan in range(nchan):
             # Loop over e.g. 'RR', 'LL, or 'xx', 'YY' ignoring cross terms
             for rec in range(nrec):
-                top = numpy.sum(x[:, ant1, chan, rec, rec] \
-                                * gain[:, chan, rec, rec] * xwt[:, ant1, chan, rec, rec], axis=0)
-                bot = numpy.sum((gain[:, chan, rec, rec] * numpy.conjugate(gain[:, chan, rec, rec])
-                                 * xwt[:, ant1, chan, rec, rec]).real, axis=0)
+                top = numpy.sum(x[:, ant1, chan, rec, rec] *
+                                gain[:, chan, rec, rec] * xwt[:, ant1, chan, rec, rec], axis=0)
+                bot = numpy.sum((gain[:, chan, rec, rec] * numpy.conjugate(gain[:, chan, rec, rec]) *
+                                 xwt[:, ant1, chan, rec, rec]).real, axis=0)
                 
                 if bot > 0.0:
                     newgain[ant1, chan, rec, rec] = top / bot
@@ -371,7 +371,7 @@ def solution_residual_scalar(gain, x, xwt):
         for ant2 in range(nants):
             for chan in range(nchan):
                 error = x[ant2, ant1, chan, 0, 0] - \
-                        gain[ant1, chan, 0, 0] * numpy.conjugate(gain[ant2, chan, 0, 0])
+                    gain[ant1, chan, 0, 0] * numpy.conjugate(gain[ant2, chan, 0, 0])
                 residual += (error * xwt[ant2, ant1, chan, 0, 0] * numpy.conjugate(error)).real
                 sumwt += xwt[ant2, ant1, chan, 0, 0]
     
@@ -409,7 +409,7 @@ def solution_residual_vector(gain, x, xwt):
             for chan in range(nchan):
                 for rec in range(nrec):
                     error = x[ant2, ant1, chan, rec, rec] - \
-                            gain[ant1, chan, rec, rec] * numpy.conjugate(gain[ant2, chan, rec, rec])
+                        gain[ant1, chan, rec, rec] * numpy.conjugate(gain[ant2, chan, rec, rec])
                     residual += (error * xwt[ant2, ant1, chan, rec, rec] * numpy.conjugate(error)).real
                     sumwt += xwt[ant2, ant1, chan, rec, rec]
 
@@ -441,7 +441,7 @@ def solution_residual_matrix(gain, x, xwt):
                 for rec1 in range(nrec):
                     for rec2 in range(nrec):
                         error = x[ant2, ant1, chan, rec2, rec1] - \
-                                gain[ant1, chan, rec2, rec1] * numpy.conjugate(gain[ant2, chan, rec2, rec1])
+                            gain[ant1, chan, rec2, rec1] * numpy.conjugate(gain[ant2, chan, rec2, rec1])
                         residual[chan, rec2, rec1] += (error * xwt[ant2, ant1, chan, rec2, rec1] * numpy.conjugate(
                             error)).real
                         sumwt[chan, rec2, rec1] += xwt[ant2, ant1, chan, rec2, rec1]

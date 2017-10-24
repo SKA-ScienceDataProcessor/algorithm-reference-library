@@ -1,4 +1,4 @@
-"""Unit tests for calibration solution
+""" Unit tests for calibration solution
 
 
 """
@@ -34,7 +34,6 @@ class TestCalibrationSolvers(unittest.TestCase):
         self.frequency = numpy.linspace(1.0e8, 1.1e8, vnchan)
         self.channel_bandwidth = numpy.array(vnchan * [self.frequency[1] - self.frequency[0]])
         
-    
     def actualSetup(self, sky_pol_frame='stokesIQUV', data_pol_frame='linear', f=None):
         if f is None:
             f = [100.0, 50.0, -10.0, 40.0]
@@ -48,8 +47,8 @@ class TestCalibrationSolvers(unittest.TestCase):
         self.comp = Skycomponent(direction=self.compabsdirection, frequency=self.frequency, flux=self.flux,
                                  polarisation_frame=PolarisationFrame(sky_pol_frame))
         self.vis = create_blockvisibility(self.lowcore, self.times, self.frequency, phasecentre=self.phasecentre,
-                                     channel_bandwidth=self.channel_bandwidth, weight=1.0,
-                                     polarisation_frame=PolarisationFrame(data_pol_frame))
+                                          channel_bandwidth=self.channel_bandwidth, weight=1.0,
+                                          polarisation_frame=PolarisationFrame(data_pol_frame))
         self.vis = predict_skycomponent_blockvisibility(self.vis, self.comp)
 
     def test_solve_gaintable_scalar(self):
@@ -95,32 +94,38 @@ class TestCalibrationSolvers(unittest.TestCase):
         assert numpy.max(numpy.abs(gtsol.gain - 1.0)) > 0.1
 
     def test_solve_gaintable_vector_phase_only_linear(self):
-        self.core_solve('stokesIQUV', 'linear', phase_error=0.1, phase_only=True, f=[100.0, 50.0, 0.0, 0.0])
+        self.core_solve('stokesIQUV', 'linear', phase_error=0.1, phase_only=True,
+                        f=[100.0, 50.0, 0.0, 0.0])
     
     def test_solve_gaintable_vector_phase_only_circular(self):
-        self.core_solve('stokesIQUV', 'circular', phase_error=0.1, phase_only=True, f=[100.0, 0.0, 0.0, 50.0])
-    
-    def test_solve_gaintable_vector_large_phase_only_linear(self):
-        self.core_solve('stokesIQUV', 'linear', phase_error=10.0, phase_only=True, f=[100.0, 50.0, 0.0, 0.0])
-    
-    def test_solve_gaintable_vector_large_phase_only_circular(self):
-        self.core_solve('stokesIQUV', 'circular', phase_error=10.0, phase_only=True, f=[100.0, 0.0, 0.0, 50.0])
-    
-    def test_solve_gaintable_vector_both_linear(self):
-        self.core_solve('stokesIQUV', 'linear', phase_error=0.1, amplitude_error=0.01, phase_only=False,
-                        f = [100.0, 50.0, 0.0, 0.0])
-    
-    def test_solve_gaintable_vector_both_circular(self):
-        self.core_solve('stokesIQUV', 'circular', phase_error=0.1, amplitude_error=0.01, phase_only=False,
+        self.core_solve('stokesIQUV', 'circular', phase_error=0.1, phase_only=True,
                         f=[100.0, 0.0, 0.0, 50.0])
     
+    def test_solve_gaintable_vector_large_phase_only_linear(self):
+        self.core_solve('stokesIQUV', 'linear', phase_error=10.0, phase_only=True,
+                        f=[100.0, 50.0, 0.0, 0.0])
+    
+    def test_solve_gaintable_vector_large_phase_only_circular(self):
+        self.core_solve('stokesIQUV', 'circular', phase_error=10.0,
+                        phase_only=True, f=[100.0, 0.0, 0.0, 50.0])
+    
+    def test_solve_gaintable_vector_both_linear(self):
+        self.core_solve('stokesIQUV', 'linear', phase_error=0.1, amplitude_error=0.01,
+                        phase_only=False, f=[100.0, 50.0, 0.0, 0.0])
+    
+    def test_solve_gaintable_vector_both_circular(self):
+        self.core_solve('stokesIQUV', 'circular', phase_error=0.1, amplitude_error=0.01,
+                        phase_only=False, f=[100.0, 0.0, 0.0, 50.0])
+    
     def test_solve_gaintable_matrix_both_linear(self):
-        self.core_solve('stokesIQUV', 'linear', phase_error=0.1, amplitude_error=0.01, leakage=0.01, residual_tol=1e-3,
-                        crosspol=True, phase_only=False, f = [100.0, 50.0, 0.0, 0.0])
+        self.core_solve('stokesIQUV', 'linear', phase_error=0.1, amplitude_error=0.01,
+                        leakage=0.01, residual_tol=1e-3, crosspol=True,
+                        phase_only=False, f=[100.0, 50.0, 0.0, 0.0])
     
     def test_solve_gaintable_matrix_both_circular(self):
-        self.core_solve('stokesIQUV', 'circular', phase_error=0.1, amplitude_error=0.01, leakage=0.01,
-                        residual_tol=1e-3, crosspol=True, phase_only=False, f=[100.0, 0.0, 0.0, 50.0])
+        self.core_solve('stokesIQUV', 'circular', phase_error=0.1, amplitude_error=0.01,
+                        leakage=0.01, residual_tol=1e-3, crosspol=True,
+                        phase_only=False, f=[100.0, 0.0, 0.0, 50.0])
 
 
 if __name__ == '__main__':

@@ -11,10 +11,6 @@ This module contains functions for performing the gridding process and the inver
 import logging
 
 import numpy
-# import numba
-import scipy.special
-
-from arl.fourier_transforms.fft_support import pad_mid, extract_oversampled, ifft
 
 log = logging.getLogger(__name__)
 
@@ -105,7 +101,7 @@ def anti_aliasing_calculate(shape, oversampling=1, support=3):
         for xf in range(oversampling):
             mx = range(xf, l1d, oversampling)[::-1]
             kernel4d[yf, xf, 2:, 2:] = numpy.outer(kernel1d[my], kernel1d[mx])
-    return gcf, (kernel4d / numpy.sum(kernel4d[0,0,:,:])).astype('complex')
+    return gcf, (kernel4d / numpy.sum(kernel4d[0, 0, :, :])).astype('complex')
 
 
 def grdsf(nu):
@@ -227,9 +223,7 @@ def convolutional_degrid(kernel_list, vshape, uvgrid, vuvwmap, vfrequencymap, vp
     assert gw % 2 == 0, "Convolution kernel must have even number of pixels"
     inchan, inpol, ny, nx = uvgrid.shape
     vnpol = vshape[1]
-    nvis = vshape[0]
     vis = numpy.zeros(vshape, dtype='complex')
-    wt = numpy.zeros(vshape)
     
     # uvw -> fraction of grid mapping
     y, yf = frac_coord(ny, kernel_oversampling, vuvwmap[:, 1])
@@ -242,7 +236,7 @@ def convolutional_degrid(kernel_list, vshape, uvgrid, vuvwmap, vfrequencymap, vp
         ckernels = numpy.conjugate(kernels)
         for pol in range(vnpol):
             vis[..., pol] = [
-                numpy.sum(uvgrid[chan, pol, yy:yy+gh, xx:xx+gw] * ckernels[kind][yyf, xxf, :, :])
+                numpy.sum(uvgrid[chan, pol, yy: yy + gh, xx:xx + gw] * ckernels[kind][yyf, xxf, :, :])
                 for kind, chan, xx, yy, xxf, yyf in zip(*coords)
             ]
     else:
@@ -251,7 +245,7 @@ def convolutional_degrid(kernel_list, vshape, uvgrid, vuvwmap, vfrequencymap, vp
         ckernel0 = numpy.conjugate(kernels[0])
         for pol in range(vnpol):
             vis[..., pol] = [
-                numpy.sum(uvgrid[chan, pol, yy:yy+gh, xx:xx+gw] * ckernel0[yyf, xxf, :, :])
+                numpy.sum(uvgrid[chan, pol, yy: yy + gh, xx: xx + gw] * ckernel0[yyf, xxf, :, :])
                 for chan, xx, yy, xxf, yyf in zip(*coords)
             ]
             
@@ -299,17 +293,16 @@ def convolutional_grid(kernel_list, uvgrid, vis, visweights, vuvwmap, vfrequency
         coords = kernel_indices, list(vfrequencymap), x, y, xf, yf
         for pol in range(npol):
             for v, vwt, kind, chan, xx, yy, xxf, yyf in zip(viswt[..., pol], wts[..., pol], *coords):
-                uvgrid[chan, pol, yy:yy+gh, xx:xx+gw] += kernels[kind][yyf, xxf, :, :] * v
+                uvgrid[chan, pol, yy: yy + gh, xx: xx + gw] += kernels[kind][yyf, xxf, :, :] * v
                 sumwt[chan, pol] += vwt
     else:
         kernel0 = kernels[0]
         coords = list(vfrequencymap), x, y, xf, yf
         for pol in range(npol):
             for v, vwt, chan, xx, yy, xxf, yyf in zip(viswt[..., pol], wts[..., pol], *coords):
-                uvgrid[chan, pol, yy:yy+gh, xx:xx+gw] += kernel0[yyf, xxf, :, :] * v
+                uvgrid[chan, pol, yy: yy + gh, xx: xx + gw] += kernel0[yyf, xxf, :, :] * v
                 sumwt[chan, pol] += vwt
 
-    
     return uvgrid, sumwt
 
 
@@ -331,9 +324,9 @@ def weight_gridding(shape, visweights, vuvwmap, vfrequencymap, vpolarisationmap=
 
         wts = visweights[...]
         # uvw -> fraction of grid mapping
-        for flip in [-1.0,1.0]:
-            y, yf = frac_coord(ny, 1.0, flip*vuvwmap[:, 1])
-            x, xf = frac_coord(nx, 1.0, flip*vuvwmap[:, 0])
+        for flip in [-1.0, 1.0]:
+            y, yf = frac_coord(ny, 1.0, flip * vuvwmap[:, 1])
+            x, xf = frac_coord(nx, 1.0, flip * vuvwmap[:, 0])
             coords = list(vfrequencymap), x, y
             for pol in range(inpol):
                 for vwt, chan, x, y in zip(wts, *coords):
@@ -349,7 +342,7 @@ def weight_gridding(shape, visweights, vuvwmap, vfrequencymap, vpolarisationmap=
             density[..., pol] += [densitygrid[chan, pol, y, x] for chan, x, y in zip(*coords)]
 
         # Normalise each visibility weight to sum to one in a grid cell
-        if numpy.sum(density[:,0] > 0.0) < visweights.shape[0]:
+        if numpy.sum(density[:, 0] > 0.0) < visweights.shape[0]:
             log.warning("weight_gridding: Losing samples in weighting")
             
         newvisweights[density > 0.0] = visweights[density > 0.0] / density[density > 0.0]
@@ -402,7 +395,7 @@ def visibility_recentre(uvw, dl, dm):
     """
 
     u, v, w = numpy.hsplit(uvw, 3)
-    return numpy.hstack([u - w*dl, v - w*dm, w])
+    return numpy.hstack([u - w * dl, v - w * dm, w])
 
 
 def gridder(uvgrid, vis, xs, ys, kernel=numpy.ones((1, 1)), kernel_ixs=None):
@@ -434,7 +427,7 @@ def gridder(uvgrid, vis, xs, ys, kernel=numpy.ones((1, 1)), kernel_ixs=None):
 
     return uvgrid
 
-#@numba.jit(nopython=True)
+
 def convert_to_tuple3(x_ary):
     """ Numba cannot do this conversion itself. Hardcode 3 for speed"""
     y_tup = ()
@@ -443,7 +436,7 @@ def convert_to_tuple3(x_ary):
     y_tup += (x_ary[2],)
     return y_tup
 
-#@numba.jit(nopython=True)
+
 def gridder_numba(uvgrid, vis, xs, ys, kernel=numpy.ones((1, 1)), kernel_ixs=None):
     """Grids visibilities at given positions. Convolution kernels are selected per
     visibility using ``kernel_ixs``.
@@ -472,5 +465,3 @@ def gridder_numba(uvgrid, vis, xs, ys, kernel=numpy.ones((1, 1)), kernel_ixs=Non
         uvgrid[y:y + gh, x:x + gw] += kernel[convert_to_tuple3(kern_ix)] * v
         
     return uvgrid
-
-

@@ -14,14 +14,13 @@ log.setLevel(logging.INFO)
 log.addHandler(logging.StreamHandler(sys.stdout))
 
 
-def analzye_scaling(filename, **kwargs):
+def analzye_scaling(filename):
     """
     Performs standard analysis of output from pipelines-timings.py. We will add to this as necessary.
     
     run as:
         python pipelines-timings-analyse.py *.csv
     :results: results dictionary
-    :param kwargs:
     """
     context='scaling'
     

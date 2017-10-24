@@ -12,7 +12,7 @@ from astropy.wcs.utils import skycoord_to_pixel, pixel_to_skycoord
 from arl.data.data_models import Image, Skycomponent, assert_same_chan_pol
 from arl.data.polarisation import PolarisationFrame
 
-from astropy.convolution import Gaussian2DKernel, Box2DKernel
+from astropy.convolution import Gaussian2DKernel
 from astropy.stats import gaussian_fwhm_to_sigma
 import astropy.units as u
 from photutils import segmentation
@@ -20,6 +20,7 @@ from photutils import segmentation
 import logging
 
 log = logging.getLogger(__name__)
+
 
 def create_skycomponent(direction: SkyCoord, flux: numpy.array, frequency: numpy.array, shape: str = 'Point',
                         polarisation_frame=PolarisationFrame("stokesIQUV"), param: dict=None, name: str = '')\
@@ -35,14 +36,14 @@ def create_skycomponent(direction: SkyCoord, flux: numpy.array, frequency: numpy
     :return: Skycomponent
     """
     return Skycomponent(
-        direction = direction,
-        frequency = frequency,
-        name = name,
-        flux = numpy.array(flux),
-        shape = shape,
-        params = param,
-        polarisation_frame = polarisation_frame
-        )
+        direction=direction,
+        frequency=frequency,
+        name=name,
+        flux=numpy.array(flux),
+        shape=shape,
+        params=param,
+        polarisation_frame=polarisation_frame)
+
 
 def find_nearest_component(home, comps) -> Skycomponent:
     """ Find nearest component to a given direction
@@ -58,6 +59,7 @@ def find_nearest_component(home, comps) -> Skycomponent:
             sep = thissep
             best = comp
     return best
+
  
 def find_skycomponents(im: Image, fwhm=1.0, threshold=10.0, npixels=5) -> List[Skycomponent]:
     """ Find gaussian components in Image above a certain threshold as Skycomponent
@@ -69,7 +71,7 @@ def find_skycomponents(im: Image, fwhm=1.0, threshold=10.0, npixels=5) -> List[S
     :return: list of sky components
     """
 
-    assert type(im) == Image
+    assert isinstance(im, Image)
     log.info("find_skycomponents: Finding components in Image by segmentation")
 
     # We use photutils segmentation - this first segments the image
@@ -80,23 +82,24 @@ def find_skycomponents(im: Image, fwhm=1.0, threshold=10.0, npixels=5) -> List[S
 
     # Make filter kernel
     sigma = fwhm * gaussian_fwhm_to_sigma
-    kernel = Gaussian2DKernel(sigma, x_size=int(1.5*fwhm), y_size=int(1.5*fwhm))
+    kernel = Gaussian2DKernel(sigma, x_size=int(1.5 * fwhm), y_size=int(1.5 * fwhm))
     kernel.normalize()
     
     # Segment the average over all channels of Stokes I
-    image_sum = numpy.sum(im.data, axis=(0))[0,...]/float(im.shape[0])
+    image_sum = numpy.sum(im.data, axis=(0))[0, ...] / float(im.shape[0])
     segments = segmentation.detect_sources(image_sum, threshold, npixels=npixels, filter_kernel=kernel)
     log.info("find_skycomponents: Identified %d segments" % segments.nlabels)
 
     # Now get source properties for all polarisations and frequencies
-    comp_tbl = [ [ segmentation.source_properties(im.data[chan, pol], segments,
-                                                  filter_kernel=kernel, wcs=im.wcs)
-                   for pol in [0] ]
-                 for chan in range(im.nchan) ]
-    def comp_prop(comp,prop_name):
-        return [ [ comp_tbl[chan][pol][comp][prop_name]
-                   for pol in [0] ]
-                 for chan in range(im.nchan) ]
+    comp_tbl = [[segmentation.source_properties(im.data[chan, pol], segments,
+                                                filter_kernel=kernel, wcs=im.wcs)
+                 for pol in [0]]
+                for chan in range(im.nchan)]
+
+    def comp_prop(comp, prop_name):
+        return [[comp_tbl[chan][pol][comp][prop_name]
+                 for pol in [0]]
+                for chan in range(im.nchan)]
 
     # Generate components
     comps = []
@@ -111,9 +114,9 @@ def find_skycomponents(im: Image, fwhm=1.0, threshold=10.0, npixels=5) -> List[S
         # decs = u.Quantity(list(map(u.Quantity,
         #         comp_prop(segment, "dec_icrs_centroid"))))
         xs = u.Quantity(list(map(u.Quantity,
-                comp_prop(segment, "xcentroid"))))
+                                 comp_prop(segment, "xcentroid"))))
         ys = u.Quantity(list(map(u.Quantity,
-                comp_prop(segment, "ycentroid"))))
+                                 comp_prop(segment, "ycentroid"))))
         
         sc = pixel_to_skycoord(xs, ys, im.wcs, 1)
         ras = sc.ra
@@ -131,33 +134,30 @@ def find_skycomponents(im: Image, fwhm=1.0, threshold=10.0, npixels=5) -> List[S
         xs = numpy.sum(flux * xs) / flux_sum
         ys = numpy.sum(flux * ys) / flux_sum
         
-        point_flux = im.data[:,:,numpy.round(ys.value).astype('int'),numpy.round(xs.value).astype('int')]
+        point_flux = im.data[:, :, numpy.round(ys.value).astype('int'),
+                             numpy.round(xs.value).astype('int')]
 
         # Add component
         comps.append(Skycomponent(
-            direction = SkyCoord(ra=ra, dec=dec),
-            frequency = im.frequency,
-            name = "Segment %d" % segment,
-            flux = point_flux,
-            shape = 'Point',
+            direction=SkyCoord(ra=ra, dec=dec),
+            frequency=im.frequency,
+            name="Segment %d" % segment,
+            flux=point_flux,
+            shape='Point',
             polarisation_frame=im.polarisation_frame,
-            params = {'xpixel':xs, 'ypixel':ys, 'sum_flux':flux} # Table has lots of data, could add more in
-            # future
-            ))
+            params={'xpixel': xs, 'ypixel': ys, 'sum_flux': flux}))  # Table has lots of data, could add more in future
 
     return comps
 
 
-def apply_beam_to_skycomponent(sc: Union[Skycomponent, List[Skycomponent]], beam: Image) \
+def apply_beam_to_skycomponent(sc: Union[Skycomponent, List[Skycomponent]], beam: Image)\
         -> Union[Skycomponent, List[Skycomponent]]:
     """ Insert a Skycomponet into an image
-
     :param beam:
     :param sc: SkyComponent or list of SkyComponents
     :return: List of skycomponents
-
     """
-    assert type(beam) == Image
+    assert isinstance(beam, Image)
     single = not isinstance(sc, collections.Iterable)
     
     if single:
@@ -196,7 +196,6 @@ def apply_beam_to_skycomponent(sc: Union[Skycomponent, List[Skycomponent]], beam
 def insert_skycomponent(im: Image, sc: Union[Skycomponent, List[Skycomponent]], insert_method='Nearest',
                         bandwidth=1.0, support=8) -> Image:
     """ Insert a Skycomponent into an image
-
     :param params:
     :param im:
     :param sc: SkyComponent or list of SkyComponents
@@ -204,12 +203,11 @@ def insert_skycomponent(im: Image, sc: Union[Skycomponent, List[Skycomponent]], 
     :param bandwidth: Fractional of uv plane to optimise over (1.0)
     :param support: Support of kernel (7)
     :return: image
-
     """
     
-    assert type(im) == Image
+    assert isinstance(im, Image)
     
-    support=int(support/bandwidth)
+    support = int(support / bandwidth)
     
     nchan, npol, ny, nx = im.data.shape
     
@@ -220,7 +218,6 @@ def insert_skycomponent(im: Image, sc: Union[Skycomponent, List[Skycomponent]], 
 
     for comp in sc:
         
-
         assert comp.shape == 'Point', "Cannot handle shape %s" % comp.shape
         
         assert_same_chan_pol(im, comp)
@@ -237,7 +234,7 @@ def insert_skycomponent(im: Image, sc: Union[Skycomponent, List[Skycomponent]], 
                          insert_function=insert_function_pswf)
         else:
             insert_method = 'Nearest'
-            y, x= numpy.round(pixloc[1]).astype('int'), numpy.round(pixloc[0]).astype('int')
+            y, x = numpy.round(pixloc[1]).astype('int'), numpy.round(pixloc[0]).astype('int')
             if x >= 0 and x < nx and y >= 0 and y < ny:
                 im.data[:, :, y, x] += comp.flux
     
@@ -246,19 +243,21 @@ def insert_skycomponent(im: Image, sc: Union[Skycomponent, List[Skycomponent]], 
 
 def insert_function_sinc(x):
     s = numpy.zeros_like(x)
-    s[x != 0.0] = numpy.sin(numpy.pi*x[x != 0.0])/(numpy.pi*x[x != 0.0])
+    s[x != 0.0] = numpy.sin(numpy.pi * x[x != 0.0]) / (numpy.pi * x[x != 0.0])
     return s
 
 
-def insert_function_L(x, a = 5):
-    L = insert_function_sinc(x) * insert_function_sinc(x/a)
+def insert_function_L(x, a=5):
+    L = insert_function_sinc(x) * insert_function_sinc(x / a)
     return L
+
 
 def insert_function_pswf(x, a=5):
     from arl.fourier_transforms.convolutional_gridding import grdsf
-    return grdsf(abs(x)/a)[1]
+    return grdsf(abs(x) / a)[1]
 
-def insert_array(im, x, y, flux, bandwidth=1.0, support = 7, insert_function=insert_function_L):
+
+def insert_array(im, x, y, flux, bandwidth=1.0, support=7, insert_function=insert_function_L):
     """ Insert point into image using specified function
     
     :param im: Image
@@ -278,8 +277,8 @@ def insert_array(im, x, y, flux, bandwidth=1.0, support = 7, insert_function=ins
     gridx = numpy.arange(-support, support)
     gridy = numpy.arange(-support, support)
 
-    insert = numpy.outer(insert_function(bandwidth*(gridy - fracy)),
-                         insert_function(bandwidth*(gridx - fracx)))
+    insert = numpy.outer(insert_function(bandwidth * (gridy - fracy)),
+                         insert_function(bandwidth * (gridx - fracx)))
                          
     insertsum = numpy.sum(insert)
     assert insertsum > 0, "Sum of interpolation coefficients %g" % insertsum
@@ -287,8 +286,6 @@ def insert_array(im, x, y, flux, bandwidth=1.0, support = 7, insert_function=ins
 
     for chan in range(nchan):
         for pol in range(npol):
-            im[chan, pol, inty - support:inty + support, intx - support:intx+support] += flux[chan, pol] * insert
-            # for iy in gridy:
-            #     im[chan, pol, iy + inty, gridx + intx] += flux[chan,pol] * insert[iy, gridx + support]
+            im[chan, pol, inty - support:inty + support, intx - support:intx + support] += flux[chan, pol] * insert
             
     return im

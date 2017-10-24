@@ -1,8 +1,5 @@
 """ FFT support functions
 
-
-
-
 """
 
 import numpy
@@ -149,6 +146,6 @@ def extract_oversampled(a, xf, yf, kernel_oversampling, kernelwidth):
     assert mx >= 0 and my >= 0, "mx %d and my %d" % (mx, my)
     # Extract every kernel_oversampling-th pixel
     mid = a[my: my + kernel_oversampling * kernelwidth: kernel_oversampling,
-          mx: mx + kernel_oversampling * kernelwidth: kernel_oversampling]
+            mx: mx + kernel_oversampling * kernelwidth: kernel_oversampling]
     # normalise
     return kernel_oversampling * kernel_oversampling * mid

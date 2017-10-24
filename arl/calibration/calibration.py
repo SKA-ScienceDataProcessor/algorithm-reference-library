@@ -7,7 +7,7 @@ For example::
 
     gtsol = solve_gaintable(vis, originalvis, phase_only=True, niter=niter, crosspol=False, tol=1e-6)
     vis = apply_gaintable(vis, gtsol, inverse=True)
- 
+
 
 """
 
@@ -19,6 +19,7 @@ from arl.data.data_models import Visibility, BlockVisibility, Image
 from arl.visibility.coalesce import convert_blockvisibility_to_visibility, decoalesce_visibility
 from arl.visibility.base import copy_visibility
 from arl.imaging import predict_skycomponent_blockvisibility, predict_skycomponent_visibility, predict_2d
+from arl.data.parameters import get_parameter
 
 log = logging.getLogger(__name__)
 
@@ -34,7 +35,7 @@ def calibrate_blockvisibility(bvt: BlockVisibility, model: Image=None, component
 
     """
     assert model is not None or components is not None, "calibration requires a model or skycomponents"
-    
+
     if model is not None:
         vtpred = convert_blockvisibility_to_visibility(bvt)
         vtpred = predict(vtpred, model, **kwargs)
@@ -44,9 +45,9 @@ def calibrate_blockvisibility(bvt: BlockVisibility, model: Image=None, component
     else:
         bvtpred = copy_visibility(bvt, zero=True)
         bvtpred = predict_skycomponent_blockvisibility(bvtpred, components)
-    
+
     gt = solve_gaintable(bvt, bvtpred, **kwargs)
-    return apply_gaintable(bvt, gt, **kwargs)
+    return apply_gaintable(bvt, gt, inverse=get_parameter(kwargs, "inverse", False))
 
 
 def calibrate_visibility(vt: Visibility, model: Image =None, components=None, predict=predict_2d,
@@ -59,19 +60,18 @@ def calibrate_visibility(vt: Visibility, model: Image =None, components=None, pr
     :return: Calibrated visibility
     """
     assert model is not None or components is not None, "calibration requires a model or skycomponents"
-    
+
     vtpred = copy_visibility(vt, zero=True)
-    
+
     if model is not None:
         vtpred = predict(vtpred, model, **kwargs)
         if components is not None:
             vtpred = predict_skycomponent_visibility(vtpred, components)
     else:
         vtpred = predict_skycomponent_visibility(vtpred, components)
-    
+
     bvt = decoalesce_visibility(vt)
     bvtpred = decoalesce_visibility(vtpred)
     gt = solve_gaintable(bvt, bvtpred, **kwargs)
-    bvt = apply_gaintable(bvt, gt, **kwargs)
-    return convert_blockvisibility_to_visibility(bvt)[0]
-
+    bvt = apply_gaintable(bvt, gt, inverse=get_parameter(kwargs, "inverse", False))
+    return convert_blockvisibility_to_visibility(bvt)

@@ -16,14 +16,13 @@ from dask.callbacks import Callback
 from dask.dot import dot_graph
 
 
-
 def node_key(s):
     if isinstance(s, tuple):
         return s[0]
     return str(s)
 
 
-def simple_vis(x, filename='simple', format=None, **kwargs):
+def simple_vis(x, filename='simple', format=None):
     if hasattr(x, 'dask'):
         dsk = x._optimize(x.dask, x._keys())
     else:
@@ -80,6 +79,7 @@ def simple_vis(x, filename='simple', format=None, **kwargs):
 # Scheduler plugin to produce animated graphs
 # From https://gist.github.com/jcrist/0c28f632513aa13d4edea3d482bf47d1
 
+
 class Track(Callback):
     def __init__(self, path='dasks', save_every=1):
         self.path = path
@@ -108,7 +108,7 @@ class Track(Callback):
                   data_attributes=data,
                   function_attributes=func)
 
-    def _pretask(self, key, dsk, state):
+    def _pretask(self, key, dsk, state):  # pylint: disable=method-hidden
         if self.n % self.save_every == 0:
             self._plot(dsk, state)
         self.n += 1

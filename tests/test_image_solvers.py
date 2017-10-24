@@ -1,4 +1,4 @@
-"""Unit tests for image solution
+""" Unit tests for image solution
 
 
 """
@@ -46,12 +46,12 @@ class TestImageSolvers(unittest.TestCase):
         export_image_to_fits(self.model, '%s/test_solve_skycomponent_model.fits' % (self.dir))
         self.bigmodel = create_image_from_visibility(self.vis, cellsize=0.0015, npixel=512)
         
-        
     def test_deconvolve_and_restore_cube_msclean(self):
         self.bigmodel.data *= 0.0
-        visres, model, residual = solve_image(self.vis, self.bigmodel, nmajor=3, niter=1000, threshold=0.01,
-                                              gain=0.7, psf_support=200, window='quarter', scales=[0, 3, 10, 30],
-                                              fractional_threshold=0.1, algorithm = 'msclean')
+        visres, model, residual = solve_image(self.vis, self.bigmodel, nmajor=3, niter=1000,
+                                              threshold=0.01, gain=0.7, psf_support=200,
+                                              window='quarter', scales=[0, 3, 10, 30],
+                                              fractional_threshold=0.1, algorithm='msclean')
         export_image_to_fits(model, '%s/test_solve_skycomponent_msclean_solution.fits' % (self.dir))
         export_image_to_fits(residual, '%s/test_solve_skycomponent_msclean_residual.fits' % (self.dir))
         psf, sumwt = invert_2d(self.vis, model, dopsf=True)
@@ -62,9 +62,10 @@ class TestImageSolvers(unittest.TestCase):
 
     def test_deconvolve_and_restore_cube_hogbom(self):
         self.bigmodel.data *= 0.0
-        visres, model, residual = solve_image(self.vis, self.bigmodel, niter=1000, nmajor=5, threshold=0.01,
-                                              psf_support=200, window='quarter',
-                                              fractional_threshold=0.1, gain=0.1, algorithm = 'hogbom')
+        visres, model, residual = solve_image(self.vis, self.bigmodel, niter=1000,
+                                              nmajor=5, threshold=0.01, psf_support=200,
+                                              window='quarter', fractional_threshold=0.1,
+                                              gain=0.1, algorithm='hogbom')
         export_image_to_fits(model, '%s/test_solve_skycomponent_hogbom_solution.fits' % (self.dir))
         export_image_to_fits(residual, '%s/test_solve_skycomponent_hogbom_residual.fits' % (self.dir))
         psf, sumwt = invert_2d(self.vis, model, dopsf=True)
@@ -72,6 +73,7 @@ class TestImageSolvers(unittest.TestCase):
         restored = restore_cube(model=model, psf=psf, residual=residual)
         export_image_to_fits(restored, '%s/test_solve_skycomponent_hogbom_restored.fits' % (self.dir))
         assert numpy.max(numpy.abs(residual.data)) < 0.5
-        
+
+
 if __name__ == '__main__':
     unittest.main()

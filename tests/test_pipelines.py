@@ -1,4 +1,4 @@
-"""Unit tests for pipelines
+""" Unit tests for pipelines
 
 
 """
@@ -54,10 +54,10 @@ class TestPipelines(unittest.TestCase):
                                                         sleep=1.0)
         
         self.vis = create_blockvisibility(lowcore, times=times, frequency=frequency,
-                                     channel_bandwidth=channel_bandwidth,
-                                     phasecentre=self.phasecentre, weight=1,
-                                     polarisation_frame=PolarisationFrame('stokesIQUV'),
-                                     integration_time=1.0)
+                                          channel_bandwidth=channel_bandwidth,
+                                          phasecentre=self.phasecentre, weight=1,
+                                          polarisation_frame=PolarisationFrame('stokesIQUV'),
+                                          integration_time=1.0)
         
         self.vis = predict_2d(self.vis, self.image)
     
@@ -105,10 +105,10 @@ class TestPipelines(unittest.TestCase):
         export_image_to_fits(comp, "%s/test_pipelines-spectral-with-deconvolution-imaging-comp.fits" % (self.dir))
 
     def test_fast_imaging(self):
-        fipipe = fast_imaging(vis=self.vis, components=self.comp, Gsolinit=300.0)
+        fast_imaging(vis=self.vis, components=self.comp, Gsolinit=300.0)
     
     def test_EOR(self):
-        eorpipe = eor(vis=self.vis, components=self.comp, Gsolinit=300.0)
+        eor(vis=self.vis, components=self.comp, Gsolinit=300.0)
 
 
 if __name__ == '__main__':

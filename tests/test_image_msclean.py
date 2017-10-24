@@ -1,4 +1,4 @@
-"""Unit tests for image deconvolution via MSClean
+""" Unit tests for image deconvolution via MSClean
 
 
 """
@@ -15,7 +15,7 @@ log = logging.getLogger(__name__)
 class TestImageMSClean(unittest.TestCase):
     def setUp(self):
         self.npixel = 256
-        self.scales = [0.0, 8.0/numpy.sqrt(2.0), 8.0]
+        self.scales = [0.0, 8.0 / numpy.sqrt(2.0), 8.0]
         self.stackshape = [len(self.scales), self.npixel, self.npixel]
         self.scalestack = create_scalestack(self.stackshape, self.scales)
     

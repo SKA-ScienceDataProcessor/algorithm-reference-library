@@ -54,7 +54,7 @@ def shift_vis_to_image(vis: Visibility, im: Image, tangent: bool = True, inverse
     :return: visibility with phase shift applied and phasecentre updated
 
     """
-    assert type(vis) is Visibility, "vis is not a Visibility: %r" % vis
+    assert isinstance(vis, Visibility), "vis is not a Visibility: %r" % vis
     
     nchan, npol, ny, nx = im.data.shape
     
@@ -74,7 +74,7 @@ def shift_vis_to_image(vis: Visibility, im: Image, tangent: bool = True, inverse
         vis = phaserotate_visibility(vis, image_phasecentre, tangent=tangent, inverse=inverse)
         vis.phasecentre = im.phasecentre
     
-    assert type(vis) is Visibility, "after phase_rotation, vis is not a Visibility"
+    assert isinstance(vis, Visibility), "after phase_rotation, vis is not a Visibility"
     
     return vis
 
@@ -107,16 +107,19 @@ def predict_2d_base(vis: Visibility, model: Image, **kwargs) -> Visibility:
     :param model: model image
     :return: resulting visibility (in place works)
     """
-    if type(vis) is not Visibility:
+    if not isinstance(vis, Visibility):
         avis = coalesce_visibility(vis, **kwargs)
     else:
         avis = vis
     
     _, _, ny, nx = model.data.shape
     
+    padding = {}
+    if get_parameter(kwargs, "padding", False):
+        padding = {'padding': get_parameter(kwargs, "padding", False)}
     spectral_mode, vfrequencymap = get_frequency_map(avis, model)
-    polarisation_mode, vpolarisationmap = get_polarisation_map(avis, model, **kwargs)
-    uvw_mode, shape, padding, vuvwmap = get_uvw_map(avis, model, **kwargs)
+    polarisation_mode, vpolarisationmap = get_polarisation_map(avis, model)
+    uvw_mode, shape, padding, vuvwmap = get_uvw_map(avis, model, **padding)
     kernel_name, gcf, vkernellist = get_kernel_list(avis, model, **kwargs)
     
     uvgrid = fft((pad_mid(model.data, int(round(padding * nx))) * gcf).astype(dtype=complex))
@@ -127,7 +130,7 @@ def predict_2d_base(vis: Visibility, model: Image, **kwargs) -> Visibility:
     # Now we can shift the visibility from the image frame to the original visibility frame
     svis = shift_vis_to_image(avis, model, tangent=True, inverse=True)
 
-    if type(vis) is not Visibility:
+    if not isinstance(vis, Visibility):
         return decoalesce_visibility(svis)
     else:
         return svis
@@ -160,7 +163,7 @@ def invert_2d_base(vis: Visibility, im: Image, dopsf: bool = False, normalize: b
     :return: resulting image
 
     """
-    if type(vis) is not Visibility:
+    if not isinstance(vis, Visibility):
         svis = coalesce_visibility(vis, **kwargs)
     else:
         svis = copy_visibility(vis)
@@ -172,9 +175,12 @@ def invert_2d_base(vis: Visibility, im: Image, dopsf: bool = False, normalize: b
     
     nchan, npol, ny, nx = im.data.shape
     
+    padding = {}
+    if get_parameter(kwargs, "padding", False):
+        padding = {'padding': get_parameter(kwargs, "padding", False)}
     spectral_mode, vfrequencymap = get_frequency_map(svis, im)
-    polarisation_mode, vpolarisationmap = get_polarisation_map(svis, im, **kwargs)
-    uvw_mode, shape, padding, vuvwmap = get_uvw_map(svis, im, **kwargs)
+    polarisation_mode, vpolarisationmap = get_polarisation_map(svis, im)
+    uvw_mode, shape, padding, vuvwmap = get_uvw_map(svis, im, **padding)
     kernel_name, gcf, vkernellist = get_kernel_list(svis, im, **kwargs)
     
     # Optionally pad to control aliasing
@@ -208,7 +214,7 @@ def invert_2d_base(vis: Visibility, im: Image, dopsf: bool = False, normalize: b
         return resultimage, sumwt
 
 
-def invert_2d(vis: Visibility, im: Image, dopsf=False, normalize=True, **kwargs)  -> (Image, numpy.ndarray):
+def invert_2d(vis: Visibility, im: Image, dopsf=False, normalize=True, **kwargs) -> (Image, numpy.ndarray):
     """ Invert using prolate spheroidal gridding function
 
     Use the image im as a template. Do PSF in a separate call.
@@ -226,8 +232,9 @@ def invert_2d(vis: Visibility, im: Image, dopsf=False, normalize=True, **kwargs)
     kwargs['kernel'] = get_parameter(kwargs, "kernel", '2d')
     return invert_2d_base(vis, im, dopsf, normalize=normalize, **kwargs)
 
+
 def predict_skycomponent_blockvisibility(vis: BlockVisibility,
-                                         sc: Union[Skycomponent, List[Skycomponent]], **kwargs) -> BlockVisibility:
+                                         sc: Union[Skycomponent, List[Skycomponent]]) -> BlockVisibility:
     """Predict the visibility from a Skycomponent, add to existing visibility, for BlockVisibility
 
     :param vis: BlockVisibility
@@ -235,7 +242,7 @@ def predict_skycomponent_blockvisibility(vis: BlockVisibility,
     :param spectral_mode: {mfs|channel} (channel)
     :return: BlockVisibility
     """
-    assert type(vis) is BlockVisibility, "vis is not a BlockVisibility: %r" % vis
+    assert isinstance(vis, BlockVisibility), "vis is not a BlockVisibility: %r" % vis
     
     if not isinstance(sc, collections.Iterable):
         sc = [sc]
@@ -309,7 +316,7 @@ def create_image_from_visibility(vis, **kwargs) -> Image:
     :param nchan: Number of image channels (Default is 1 -> MFS)
     :return: image
     """
-    assert type(vis) is Visibility or type(vis) is BlockVisibility, \
+    assert isinstance(vis, Visibility) or isinstance(vis, BlockVisibility), \
         "vis is not a Visibility or a BlockVisibility: %r" % (vis)
     
     log.info("create_image_from_visibility: Parsing parameters to get definition of WCS")
@@ -351,7 +358,7 @@ def create_image_from_visibility(vis, **kwargs) -> Image:
     # Image sampling options
     npixel = get_parameter(kwargs, "npixel", 512)
     uvmax = numpy.max((numpy.abs(vis.data['uvw'][:, 0:1])))
-    if type(vis) is BlockVisibility:
+    if isinstance(vis, BlockVisibility):
         uvmax *= numpy.max(frequency) / constants.c.to('m/s').value
     log.info("create_image_from_visibility: uvmax = %f wavelengths" % uvmax)
     criticalcellsize = 1.0 / (uvmax * 2.0)

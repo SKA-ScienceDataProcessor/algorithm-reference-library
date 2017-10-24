@@ -1,4 +1,4 @@
-"""Unit tests for Fourier transform processors
+""" Unit tests for Fourier transform processors
 
 
 """
@@ -43,7 +43,7 @@ class TestWeighting(unittest.TestCase):
         log.info("Times are %s" % (self.times))
         
         if dospectral:
-            self.nchan=3
+            self.nchan = 3
             self.frequency = numpy.array([0.9e8, 1e8, 1.1e8])
             self.channel_bandwidth = numpy.array([1e7, 1e7, 1e7])
         else:
@@ -63,10 +63,9 @@ class TestWeighting(unittest.TestCase):
             f = numpy.array([100.0])
 
         if dospectral:
-            flux = numpy.array([f, 0.8 * f, 0.6 * f])
+            numpy.array([f, 0.8 * f, 0.6 * f])
         else:
-            flux = numpy.array([f])
-
+            numpy.array([f])
 
         self.phasecentre = SkyCoord(ra=+180.0 * u.deg, dec=-60.0 * u.deg, frame='icrs', equinox='J2000')
         self.componentvis = create_visibility(self.lowcore, self.times, self.frequency,
@@ -93,9 +92,9 @@ class TestWeighting(unittest.TestCase):
 
     def test_tapering_Gaussian(self):
         self.actualSetUp()
-        size_required=0.01
+        size_required = 0.01
         self.componentvis, _, _ = weight_visibility(self.componentvis, self.model, algoritm='uniform')
-        self.componentvis = taper_visibility_Gaussian(self.componentvis, algorithm='Gaussian', beam=size_required)
+        self.componentvis = taper_visibility_Gaussian(self.componentvis, beam=size_required)
         psf, sumwt = invert_2d(self.componentvis, self.model, dopsf=True)
         export_image_to_fits(psf, '%s/test_weighting_gaussian_taper_psf.fits' % self.dir)
         from arl.image.operations import fft_image
@@ -110,7 +109,7 @@ class TestWeighting(unittest.TestCase):
         # fit_2dgaussian returns sqrt of variance. We need to convert that to FWHM.
         # https://en.wikipedia.org/wiki/Full_width_at_half_maximum
         scale_factor = numpy.sqrt(8 * numpy.log(2.0))
-        size=numpy.sqrt(fit.x_stddev * fit.y_stddev) * scale_factor
+        size = numpy.sqrt(fit.x_stddev * fit.y_stddev) * scale_factor
         # Now we need to convert to radians
         size *= numpy.pi * self.model.wcs.wcs.cdelt[1] / 180.0
         # Very impressive! Desired 0.01 Acheived 0.0100006250829
@@ -120,7 +119,7 @@ class TestWeighting(unittest.TestCase):
     def test_tapering_Tukey(self):
         self.actualSetUp()
         self.componentvis, _, _ = weight_visibility(self.componentvis, self.model, algoritm='uniform')
-        self.componentvis = taper_visibility_tukey(self.componentvis, algorithm='Tukey', tukey=1.0)
+        self.componentvis = taper_visibility_tukey(self.componentvis, tukey=1.0)
         psf, sumwt = invert_2d(self.componentvis, self.model, dopsf=True)
         export_image_to_fits(psf, '%s/test_weighting_tukey_taper_psf.fits' % self.dir)
         from arl.image.operations import fft_image
