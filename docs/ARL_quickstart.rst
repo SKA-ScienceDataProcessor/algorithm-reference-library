@@ -43,7 +43,6 @@ See the jupyter note books below:
    arl/imaging-mfs
    arl/imaging-spectral
    arl/mosaic
-   arl/calibration-pipelines
    arl/rcal
    arl/peeling
    arl/simple-dask
