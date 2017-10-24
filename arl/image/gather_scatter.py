@@ -13,26 +13,21 @@ from arl.data.parameters import get_parameter
 
 log = logging.getLogger(__name__)
 
-
-def image_scatter_facets(im: Image, **kwargs) -> List[Image]:
+def image_scatter_facets(im: Image, facets=1, **kwargs) -> List[Image]:
     """Scatter an image into a list of subimages using the raster_iterator
 
     :param im: Image
     :param facets: Number of image partitions on each axis (2)
     :return: list of subimages
     """
-    facets = {}
-    if get_parameter(kwargs, "facets", False):
-        facets = {'facets': get_parameter(kwargs, "facets", False)}
-    
     image_list = list()
-    for facet in raster_iter(im, **facets):
+    for facet in raster_iter(im, facets=facets):
         image_list.append(facet)
 
     return image_list
 
 
-def image_gather_facets(image_list: List[Image], im: Image, **kwargs) -> Image:
+def image_gather_facets(image_list: List[Image], im: Image, facets=1, **kwargs) -> Image:
     """Gather a list of subimages back into an image using the raster_iterator
 
     :param image_list: List of subimages
@@ -40,11 +35,7 @@ def image_gather_facets(image_list: List[Image], im: Image, **kwargs) -> Image:
     :param facets: Number of image partitions on each axis (2)
     :return: list of subimages
     """
-    facets = {}
-    if get_parameter(kwargs, "facets", False):
-        facets = {'facets': get_parameter(kwargs, "facets", False)}
-    
-    for i, facet in enumerate(raster_iter(im, **facets)):
+    for i, facet in enumerate(raster_iter(im, facets=facets)):
         facet.data[...] = image_list[i].data[...]
     
     return im

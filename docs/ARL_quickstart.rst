@@ -42,7 +42,6 @@ See the jupyter note books below:
    arl/imaging-wterm
    arl/imaging-mfs
    arl/imaging-spectral
-   arl/mosaic
    arl/rcal
    arl/peeling
    arl/simple-dask
