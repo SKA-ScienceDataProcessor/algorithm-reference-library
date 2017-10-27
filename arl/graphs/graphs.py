@@ -62,14 +62,13 @@ def compute_list(client, graph_list, nodes=None, **kwargs):
     :param nodes: List of nodes.
     :return: list
     """
-    if nodes is not None:
-        print("Computing graph_list on the following nodes: %s" % nodes)
-        futures = client.compute(graph_list, sync=True, workers=['127.0.0.1'], **kwargs)
-        wait(futures)
-        return futures
-    else:
-        return client.compute(graph_list, sync=True, **kwargs)
-
+    nworkers_initial = len(client.scheduler_info()['workers'])
+    futures = client.compute(graph_list, **kwargs)
+    wait(futures)
+    nworkers_final = len(client.scheduler_info()['workers'])
+    assert nworkers_final == nworkers_initial, "Lost works: started with %d, now have %d" % \
+                                                   (nworkers_initial, nworkers_final)
+    return [f.result() for f in futures]
 
 def create_zero_vis_graph_list(vis_graph_list):
     """ Initialise vis to zero: creates new data holders
