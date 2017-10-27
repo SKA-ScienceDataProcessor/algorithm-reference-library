@@ -101,6 +101,11 @@ def trial_case(seed=180555, context='', processor='wstack', n_workers=8, threads
     :param kwargs:
     :return: results dictionary
     """
+    def check_workers(client, nworkers_initial):
+        nworkers_final = len(client.scheduler_info()['workers'])
+        assert nworkers_final == nworkers_initial, "Started %d workers, only %d at end" % \
+                                               (nworkers_initial, nworkers_final)
+
     results = {}
     
     numpy.random.seed(seed)
@@ -173,12 +178,12 @@ def trial_case(seed=180555, context='', processor='wstack', n_workers=8, threads
                                                zerow=zerow)
     print('%d elements in vis_graph_list' % len(vis_graph_list))
     
-    nodes = get_nodes()
-    print('Distributing vis_graphs to nodes %s: ' % nodes)
-    
     client = get_dask_Client(n_workers=n_workers, threads_per_worker=threads_per_worker,
                              processes=processes)
-    vis_graph_list = client.compute(vis_graph_list, sync=True, workers=nodes, **kwargs)
+    nworkers_initial = len(client.scheduler_info()['workers'])
+    check_workers(client, nworkers_initial)
+
+    vis_graph_list = compute_list(client, vis_graph_list, **kwargs)
     print("After creating vis_graph_list", client)
 
     # Find the best imaging parameters.
@@ -218,13 +223,12 @@ def trial_case(seed=180555, context='', processor='wstack', n_workers=8, threads
     results['time create gleam'] = end - start
     print("Creating GLEAM model took %.2f seconds" % (end - start))
     
-#    vis_graph_list = c_predict_graph(vis_graph_list, gleam_model, vis_slices=vis_slices, facets=facets, kernel=kernel)
     vis_graph_list = c_predict_graph(vis_graph_list, gleam_model, vis_slices=5, facets=facets, kernel=kernel)
     print("After prediction", client)
     if plot_graphs:
         simple_vis(vis_graph_list[0], 'predict_%s' % processor, format='svg')
     start = time.time()
-    vis_graph_list = client.compute(vis_graph_list, sync=True, workers=nodes, **kwargs)
+    vis_graph_list = compute_list(client, vis_graph_list, **kwargs)
 
     end = time.time()
     results['time predict'] = end - start
@@ -235,7 +239,7 @@ def trial_case(seed=180555, context='', processor='wstack', n_workers=8, threads
     if do_ical:
         vis_graph_list = create_corrupt_vis_graph(vis_graph_list, phase_error=1.0)
         start = time.time()
-        vis_graph_list = client.compute(vis_graph_list, sync=True, workers=nodes, **kwargs)
+        vis_graph_list = compute_list(client, vis_graph_list, **kwargs)
         end = time.time()
         results['time corrupt'] = end - start
         print("After corrupt", client)
@@ -250,7 +254,8 @@ def trial_case(seed=180555, context='', processor='wstack', n_workers=8, threads
 
     psf_graph = c_invert_graph(vis_graph_list, model, vis_slices=vis_slices, facets=facets, dopsf=True, kernel=kernel)
     start = time.time()
-    psf, sumwt = client.compute(psf_graph, sync=True, workers=nodes, **kwargs)
+    psf, sumwt = client.compute(psf_graph, sync=True, **kwargs)
+    check_workers(client, nworkers_initial)
     end = time.time()
     results['time psf invert'] = end - start
     print("PSF invert took %.2f seconds" % (end - start))
@@ -263,7 +268,8 @@ def trial_case(seed=180555, context='', processor='wstack', n_workers=8, threads
     if plot_graphs:
         simple_vis(dirty_graph, 'invert_%s' % processor, format='svg')
     start = time.time()
-    dirty, sumwt = client.compute(dirty_graph, sync=True, workers=nodes, **kwargs)
+    dirty, sumwt = client.compute(dirty_graph, sync=True, **kwargs)
+    check_workers(client, nworkers_initial)
     end = time.time()
     print("After dirty image", client)
     results['time invert'] = end - start
@@ -295,7 +301,8 @@ def trial_case(seed=180555, context='', processor='wstack', n_workers=8, threads
         
         # Execute the graph
         start = time.time()
-        deconvolved, residual, restored = client.compute(ical_graph, workers=nodes, sync=True, **kwargs)
+        deconvolved, residual, restored = client.compute(ical_graph, sync=True, **kwargs)
+        check_workers(client, nworkers_initial)
         end = time.time()
         print("After ICAL", client)
         
@@ -326,6 +333,7 @@ def trial_case(seed=180555, context='', processor='wstack', n_workers=8, threads
     end_all = time.time()
     results['time overall'] = end_all - start_all
     
+
     return results
 
 def n_worker_trials():
@@ -374,7 +382,7 @@ if __name__ == '__main__':
     print(len(sys.argv))
     
     if len(sys.argv) == 1:
-        print("python pipelines-timeings.py NUMBER_WORKERS NUMBER_FREQ NUMBER_THREADS")
+        print("python pipelines-timings.py NUMBER_WORKERS NUMBER_FREQ NUMBER_THREADS")
         exit()
         
     if len(sys.argv) > 1:

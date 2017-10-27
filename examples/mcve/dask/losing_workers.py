@@ -9,7 +9,6 @@ import numpy
 from dask import delayed
 from distributed import Client
 
-
 # Make some randomly located points on 2D plane
 def init_sparse(n, margin=0.1):
     numpy.random.seed(8753193)
@@ -17,33 +16,27 @@ def init_sparse(n, margin=0.1):
                         numpy.random.uniform(margin, 1.0 - margin, n)]).reshape([n, 2])
 
 
-# Put the points onto a grid and FFT, skip to save time
-def grid_data(sparse_data, shape, skip=100):
+# Put the points onto a grid and FFT
+def grid_and_invert_data(sparse_data, shape):
     grid = numpy.zeros(shape, dtype='complex')
     loc = numpy.round(shape * sparse_data).astype('int')
-    for i in range(0, sparse_data.shape[0], skip):
+    for i in range(0, sparse_data.shape[0]):
         grid[loc[i,:]] = 1.0
     return numpy.fft.fft(grid).real
-
-# Accumulate all psfs into one psf
-def accumulate(psf_list):
-    lpsf = 0.0 * psf_list[0]
-    for p in psf_list:
-        lpsf += p
-    return lpsf
-
 
 if __name__ == '__main__':
     import sys
     import time
+    
     start=time.time()
     
     # Process nchunks each of length len_chunk 2d points, making a psf of size shape
-    len_chunk = int(1e6)
-    nchunks = 16
+    len_chunk = 16384
+    nchunks = 256*4
+    nreduce = 16*4
     shape=[1024, 1024]
-    skip = 100
-    
+    skip = 1
+
     # We pass in the scheduler from the invoking script
     if len(sys.argv) > 1:
         scheduler = sys.argv[1]
@@ -51,30 +44,22 @@ if __name__ == '__main__':
     else:
         client = Client()
         
-    print("On initialisation", client)
+    print("On initialisation, the Dask client is ", client)
+    nworkers = len(client.scheduler_info()['workers'])
 
-    sparse_graph = [delayed(init_sparse)(len_chunk) for i in range(nchunks)]
-    sparse_graph = client.compute(sparse_graph, sync=True)
-    print("After first sparse_graph", client)
-    
-    xfr_graph = [delayed(grid_data)(s, shape=shape, skip=skip) for s in sparse_graph]
-    xfr = client.compute(xfr_graph, sync=True)
-    print("After xfr", client)
+    sparse_graph_list = [delayed(init_sparse)(len_chunk) for i in range(nchunks)]
+    psf_graph_list = [delayed(grid_and_invert_data)(s, shape) for s in sparse_graph_list]
+    sum_psf_graph_rank1 = [delayed(numpy.sum)(psf_graph_list[i:i+nreduce]) for i in range(0, nchunks, nreduce)]
+    sum_psf_graph = delayed(numpy.sum)(sum_psf_graph_rank1)
 
-    tsleep = 120.0
-    print("Sleeping now for %.1f seconds" % tsleep)
-    time.sleep(tsleep)
-    print("After sleep", client)
-
-    sparse_graph = [delayed(init_sparse)(len_chunk) for i in range(nchunks)]
-    # sparse_graph = client.compute(sparse_graph, sync=True)
-    xfr_graph = [delayed(grid_data)(s, shape=shape, skip=skip) for s in sparse_graph]
-    psf_graph = delayed(accumulate)(xfr_graph)
-    psf = client.compute(psf_graph, sync=True)
-    
-    print("*** Successfully reached end in %.1f seconds ***" % (time.time() - start))
+    future = client.compute(sum_psf_graph)
+    psf = future.result()
     print(numpy.max(psf))
-    print("After psf", client)
-
+    
+    print("At end, the Dask client is ", client)
+    nworkers_final = len(client.scheduler_info()['workers'])
+    assert nworkers_final == nworkers, "Lost workers: started %d, now have %d" % (nworkers, nworkers_final)
     client.shutdown()
+    print("*** Successfully reached end in %.1f seconds ***" % (time.time() - start))
+
     exit()
