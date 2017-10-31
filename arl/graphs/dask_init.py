@@ -66,6 +66,13 @@ def get_nodes():
         return nodes
     
 
+def findNodes(c):
+    """ Find Nodes being used for this Client
+    
+    """
+    return [c.scheduler_info()['workers'][name]['host'] for name in c.scheduler_info()['workers'].keys()]
+
+
 def kill_dask_Scheduler(client):
     """ Kill the process dask-ssh
     

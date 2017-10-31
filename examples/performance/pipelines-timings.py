@@ -10,7 +10,7 @@ sys.path.append(os.path.join('..', '..'))
 
 import numpy
 
-from arl.graphs.dask_init import get_dask_Client, get_nodes
+from arl.graphs.dask_init import get_dask_Client,findNodes
 from astropy.coordinates import SkyCoord
 from astropy import units as u
 from arl.data.polarisation import PolarisationFrame
@@ -64,6 +64,7 @@ def trial_case(seed=180555, context='', processor='wstack', n_workers=8, threads
     'processor', type of imaging e.g. 'wstack'
     'n_workers', number of workers to create
     'threads_per_worker',
+    'nnodes', Number of nodes,
     'processes', 'order', Ordering of data
     'nfreqwin', Number of frequency windows in simulation
     'ntimes', Number of hour angles in simulation
@@ -182,6 +183,8 @@ def trial_case(seed=180555, context='', processor='wstack', n_workers=8, threads
                              processes=processes)
     nworkers_initial = len(client.scheduler_info()['workers'])
     check_workers(client, nworkers_initial)
+    results['nnodes'] = len(numpy.unique(findNodes(client)))
+    print("Defined %d workers on %d nodes" % (n_workers, results['nnodes']))
 
     vis_graph_list = compute_list(client, vis_graph_list, **kwargs)
     print("After creating vis_graph_list", client)
@@ -406,7 +409,7 @@ if __name__ == '__main__':
     
     fieldnames = ['context', 'time overall', 'time create gleam', 'time predict', 'time corrupt',
                   'time invert', 'time psf invert', 'time ICAL graph', 'time ICAL',
-                  'processor', 'n_workers', 'threads_per_worker', 'processes', 'order',
+                  'processor', 'n_workers', 'threads_per_worker', 'processes', 'nnodes', 'order',
                   'nfreqwin', 'ntimes', 'rmax', 'facets', 'wprojection_planes', 'vis_slices', 'npixel',
                   'cellsize', 'seed', 'dirty_max', 'dirty_min', 'psf_max', 'psf_min', 'restored_max',
                   'restored_min', 'deconvolved_max', 'deconvolved_min', 'residual_max', 'residual_min',
@@ -416,7 +419,7 @@ if __name__ == '__main__':
     filename = seqfile.findNextFile(prefix='pipelines-timings_', suffix='.csv')
     print('Saving results to %s' % filename)
     
-    rmax = 600.0
+    rmax = 300.0
     ntimes = 70
     n_repeats = 10
     

@@ -66,7 +66,7 @@ def compute_list(client, graph_list, nodes=None, **kwargs):
     futures = client.compute(graph_list, **kwargs)
     wait(futures)
     nworkers_final = len(client.scheduler_info()['workers'])
-    assert nworkers_final == nworkers_initial, "Lost works: started with %d, now have %d" % \
+    assert nworkers_final == nworkers_initial, "Lost workers: started with %d, now have %d" % \
                                                    (nworkers_initial, nworkers_final)
     return [f.result() for f in futures]
 
