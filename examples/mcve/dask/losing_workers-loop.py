@@ -63,7 +63,7 @@ if __name__ == '__main__':
         psf = future.result()
         
         nworkers_final = len(client.scheduler_info()['workers'])
-        assert nworkers_final == nworkers, "Lost workers: started %d, now have %d" % (nworkers, nworkers_final)
+        assert nworkers_final >= nworkers, "Lost workers: started %d, now have %d" % (nworkers, nworkers_final)
         print("End:   trial %d, client is %s,  in %.1f seconds" % (trial, client, time.time() - start, ))
 
     client.shutdown()

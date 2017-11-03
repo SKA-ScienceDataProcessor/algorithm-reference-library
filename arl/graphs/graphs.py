@@ -66,7 +66,10 @@ def compute_list(client, graph_list, nodes=None, **kwargs):
     futures = client.compute(graph_list, **kwargs)
     wait(futures)
     nworkers_final = len(client.scheduler_info()['workers'])
-    assert nworkers_final == nworkers_initial, "Lost workers: started with %d, now have %d" % \
+    # Check that the number of workers has not decreased. On the first call, it seems that
+    # Dask can report fewer workers than requested. This is transitory so we only
+    # check for decreases.
+    assert nworkers_final >= nworkers_initial, "Lost workers: started with %d, now have %d" % \
                                                    (nworkers_initial, nworkers_final)
     return [f.result() for f in futures]
 
