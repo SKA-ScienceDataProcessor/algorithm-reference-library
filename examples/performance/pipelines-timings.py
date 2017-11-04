@@ -181,6 +181,7 @@ def trial_case(seed=180555, context='', processor='wstack', n_workers=8, threads
     
     client = get_dask_Client(n_workers=n_workers, threads_per_worker=threads_per_worker,
                              processes=processes)
+        
     nworkers_initial = len(client.scheduler_info()['workers'])
     check_workers(client, nworkers_initial)
     results['nnodes'] = len(numpy.unique(findNodes(client)))
@@ -407,9 +408,9 @@ if __name__ == '__main__':
     print("Using %s threads per worker" % threads_per_worker)
     print("Defining %d frequency windows" % nfreqwin)
     
-    fieldnames = ['context', 'time overall', 'time create gleam', 'time predict', 'time corrupt',
-                  'time invert', 'time psf invert', 'time ICAL graph', 'time ICAL',
-                  'processor', 'n_workers', 'threads_per_worker', 'processes', 'nnodes', 'order',
+    fieldnames = ['context', 'n_workers', 'time ICAL', 'time ICAL graph', 'time create gleam', 'time predict',
+                  'time corrupt', 'time invert', 'time psf invert', 'time overall',
+                  'processor', 'threads_per_worker', 'processes', 'nnodes', 'order',
                   'nfreqwin', 'ntimes', 'rmax', 'facets', 'wprojection_planes', 'vis_slices', 'npixel',
                   'cellsize', 'seed', 'dirty_max', 'dirty_min', 'psf_max', 'psf_min', 'restored_max',
                   'restored_min', 'deconvolved_max', 'deconvolved_min', 'residual_max', 'residual_min',
@@ -419,8 +420,8 @@ if __name__ == '__main__':
     filename = seqfile.findNextFile(prefix='pipelines-timings_', suffix='.csv')
     print('Saving results to %s' % filename)
     
-    rmax = 300.0
-    ntimes = 70
+    rmax = 600.0
+    ntimes = 7
     n_repeats = 10
     
     # Scaling?
@@ -434,7 +435,7 @@ if __name__ == '__main__':
     # Match the number of frequency windows to the number of workers: run time should be constant.
     if 'scaling' in contexts:
         for n_worker in n_workers:
-            results = trial_case(context='scaling', n_workers=n_worker, rmax=rmax, processor='2d',
+            results = trial_case(context='scaling', n_workers=n_worker, rmax=rmax, processor='wstack',
                                  threads_per_worker=threads_per_worker, nfreqwin=nfreqwin, ntimes=ntimes)
             write_results(filename, results)
 

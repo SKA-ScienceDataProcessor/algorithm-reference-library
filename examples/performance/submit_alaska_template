@@ -42,76 +42,51 @@
 module purge                               # Removes all modules still loaded
 
 #! Set up python
-echo -e "Running python: `which python`"
 . $HOME/arlenv/bin/activate
 export PYTHONPATH=$PYTHONPATH:$ARL
 echo "PYTHONPATH is ${PYTHONPATH}"
-
-
 echo -e "Running python: `which python`"
 echo -e "Running dask-scheduler: `which dask-scheduler`"
 
-#! Work directory (i.e. where the job will run):
-workdir="$SLURM_SUBMIT_DIR"  # The value of SLURM_SUBMIT_DIR sets workdir to the directory
-                             # in which sbatch is run.
+JOBID=${SLURM_JOB_ID}
+echo ${SLURM_JOB_NODELIST}
 
-#! Are you using OpenMP (NB this is unrelated to OpenMPI)? If so increase this
-#! safe value to no more than 16:
-export OMP_NUM_THREADS=1
-
-
-cd $workdir
+cd $SLURM_SUBMIT_DIR
 echo -e "Changed directory to `pwd`.\n"
-
-JOBID=$SLURM_JOB_ID
-
-echo $SLURM_JOB_NODELIST
+# Archive the results
+archive="output_${JOBID}"
+mkdir ${archive}
+cd ${archive}
 
 #! Create a hostfile:
 scontrol show hostnames $SLURM_JOB_NODELIST | uniq > hostfile.$JOBID
-echo -e "\nNodes allocated:\n================"
-echo `cat hostfile.$JOBID | sed -e 's/\..*$//g'`
 
-echo -e "JobID: $JOBID\n======"
-echo "Time: `date`"
-echo "Master node: `hostname`"
-echo "Current directory: `pwd`"
+scheduler=$(head -1 hostfile.$JOBID)
+hostIndex=0
+for host in `cat hostfile.$JOBID`; do
+    echo "Working on $host ...."
+    if [ "$hostIndex" = "0" ]; then
+        echo "run dask-scheduler"
+        ssh $host dask-scheduler --port=8786 &
+        sleep 5
+    fi
+    echo "run dask-worker"
+    ssh $host dask-worker --host ${host} --nprocs NUMBER_PROCS_PER_NODE --nthreads NUMBER_THREADS  \
+    --memory-limit 0.25 --local-directory /tmp $scheduler:8786 &
+    sleep 1
+    hostIndex="1"
+done
+echo "Scheduler and workers now running"
 
-scheduler="`hostname`:8786"
-echo "About to dask-ssh on:"
-cat hostfile.$JOBID
-
-#! dask-ssh related options:
-#!  --nthreads INTEGER        Number of threads per worker process. Defaults to
-#!                            number of cores divided by the number of processes
-#!                            per host.
-#!  --nprocs INTEGER          Number of worker processes per host.  Defaults to
-#!                            one.
-#!  --hostfile PATH           Textfile with hostnames/IP addresses
-#!
-dask-ssh --nprocs NUMBER_PROCS_PER_NODE --nthreads NUMBER_THREADS --scheduler-port 8786 --log-directory `pwd` \
---hostfile hostfile.$JOBID &
-
-sleep 60
-
-#! We need to tell dask Client (inside python) where the scheduler is running and which nodes we have
-scheduler="`head -1 hostfile.$JOBID`:8786"
-scheduler="`hostname`"
+#! We need to tell dask Client (inside python) where the scheduler is running
 export ARL_DASK_SCHEDULER=${scheduler}:8786
 echo "Scheduler is running at ${scheduler}"
 
-export ARL_HOSTFILE=hostfile.${JOBID}
-echo "ARL_HOSTFILE is ${ARL_HOSTFILE}"
-
-CMD="python ./pipelines-timings.py NUMBER_TASKS NUMBER_FREQUENCY_WINDOWS NUMBER_THREADS"
+CMD="python ../pipelines-timings.py NUMBER_TASKS NUMBER_FREQUENCY_WINDOWS NUMBER_THREADS > pipelines-timings.out"
 echo "About to execute $CMD"
 
 eval $CMD
 
-# Archive the results
-archive="output_${JOBID}"
-mkdir ${archive}
-mv "slurm-${JOBID}".out ${archive}
-mv hostfile.${JOBID} ${archive}
-cp *.py ${archive}
+cp ../pipelines-timings.py .
 cp ${0}  ${archive}
+mv ../slurm-${JOBID}.out .

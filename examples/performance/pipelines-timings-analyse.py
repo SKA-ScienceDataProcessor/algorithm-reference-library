@@ -27,13 +27,25 @@ def analzye_scaling(filename):
     print("Analyzing %s for file %s " % (context, filename))
     results = read_results(filename, context)
     plt.clf()
-    x = [float(r['n_workers']) for r in results]
-    highest = 0.0
-    for label in ['time overall', 'time predict', 'time invert', 'time psf invert', 'time ICAL']:
-        y = numpy.array([float(r[label]) for r in results])
-        plt.loglog(x, y, label=label)
-        highest = max(highest, numpy.max(y))
+    threads = numpy.array([int(r['threads_per_worker']) for r in results])
+    n_workers = numpy.array([int(r['n_workers']) for r in results])
+    nnodes = numpy.array([int(r['nnodes']) for r in results])
 
+    print(threads)
+    highest = 0.0
+    for n_node in numpy.unique(nnodes):
+        for label in ['time overall', 'time predict', 'time invert', 'time psf invert', 'time ICAL']:
+            x = list()
+            y = list()
+            for i, row in enumerate(results):
+                if n_node == int(row['nnodes']):
+                    x.append(float(row['n_workers']))
+                    y.append(float(row[label]))
+            legend = '%s %d nodes' % (label.replace('time ', ''), n_node)
+            plt.loglog(x, y, label=legend)
+            highest = max(highest, numpy.max(y))
+
+    x = n_workers
     y = highest/numpy.array(x)
     plt.loglog(x, y, label='Ideal', ls='--', color='gray')
 

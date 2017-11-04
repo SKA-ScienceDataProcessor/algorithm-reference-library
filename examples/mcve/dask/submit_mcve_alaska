@@ -14,13 +14,13 @@
 #! Which project should be charged:
 #SBATCH -A SKA-SDP
 #! How many whole nodes should be allocated?
-#SBATCH --nodes=2
+#SBATCH --nodes=3
 #! How many (MPI) tasks will there be in total? (<= nodes*16)
-#SBATCH --ntasks=8
+#SBATCH --ntasks=3
 #! Memory limit
-#SBATCH --mem 2
+##SBATCH --mem 63900
 #! How much wallclock time will be required?
-#SBATCH --time=00:20:00
+#SBATCH --time=00:10:00
 #! What types of email messages do you wish to receive?
 #SBATCH --mail-type=FAIL
 #! Uncomment this to prevent the job from being requeued (e.g. if
@@ -28,6 +28,11 @@
 ##SBATCH --no-requeue
 #! Do not change:
 #SBATCH -p compute
+#! What types of email messages do you wish to receive?
+#SBATCH --mail-type=FAIL
+#! Uncomment this to prevent the job from being requeued (e.g. if
+#! interrupted by node failure or system downtime):
+##SBATCH --no-requeue
 
 #! Modify the settings below to specify the application's environment, location
 #! and launch method:
@@ -44,57 +49,44 @@ echo "PYTHONPATH is ${PYTHONPATH}"
 echo -e "Running python: `which python`"
 echo -e "Running dask-scheduler: `which dask-scheduler`"
 
-#! Work directory (i.e. where the job will run):
-workdir="$SLURM_SUBMIT_DIR"  # The value of SLURM_SUBMIT_DIR sets workdir to the directory
-                             # in which sbatch is run.
-
-cd $workdir
+cd $SLURM_SUBMIT_DIR
 echo -e "Changed directory to `pwd`.\n"
 
-JOBID=$SLURM_JOB_ID
-
-echo $SLURM_JOB_NODELIST
+JOBID=${SLURM_JOB_ID}
+echo ${SLURM_JOB_NODELIST}
 
 #! Create a hostfile:
 scontrol show hostnames $SLURM_JOB_NODELIST | uniq > hostfile.$JOBID
-echo -e "\nNodes allocated:\n================"
-echo `cat hostfile.$JOBID | sed -e 's/\..*$//g'`
 
-echo -e "JobID: $JOBID\n======"
-echo "Time: `date`"
-echo "Master node: `hostname`"
-echo "Current directory: `pwd`"
+scheduler=$(head -1 hostfile.$JOBID)
+hostIndex=0
+for host in `cat hostfile.$JOBID`; do
+    echo "Working on $host ...."
+    if [ "$hostIndex" = "0" ]; then
+        echo "run dask-scheduler"
+        ssh $host dask-scheduler --port=8786 &
+        sleep 5
+    fi
+    echo "run dask-worker"
+    ssh $host dask-worker --host ${host} --nprocs 1 --nthreads 1  \
+    --memory-limit 0.1 --local-directory /tmp $scheduler:8786 &
+        sleep 1
+    hostIndex="1"
+done
+echo "Scheduler and workers now running"
 
-scheduler="`hostname`"
-echo "About to dask-ssh on:"
-cat hostfile.$JOBID
-
-#! dask-ssh related options:
-#!  --nthreads INTEGER        Number of threads per worker process. Defaults to
-#!                            number of cores divided by the number of processes
-#!                            per host.
-#!  --nprocs INTEGER          Number of worker processes per host.  Defaults to
-#!                            one.
-#!  --hostfile PATH           Textfile with hostnames/IP addresses
-#!
-echo "Scheduler is running at ${scheduler}"
-dask-scheduler --host ${scheduler} & sleep 10
-dask-worker --nprocs 4 --nthreads 1 ${scheduler}:8786 & sleep 10
-#dask-ssh --nprocs 4 --nthreads 1 --scheduler ${scheduler} --log-directory `pwd` --hostfile hostfile.$JOBID & sleep 10
-
-#! We need to tell dask Client (inside python) where the scheduler is running
-#scheduler="`head -1 hostfile.$JOBID`:8786"
-echo "Scheduler is running at ${scheduler}"
-
-CMD="python ./losing_workers.py ${scheduler}:8786"
+CMD="python ./losing_workers-loop.py ${scheduler}:8786 > losing_workers_${JOBID}.out"
 echo "About to execute $CMD"
 
 eval $CMD
 
 # Archive the results
 archive="output_${JOBID}"
+echo "Moving results to ${archive}"
 mkdir ${archive}
 mv "slurm-${JOBID}".out ${archive}
 mv hostfile.${JOBID} ${archive}
+mv dask-ssh* ${archive}
 cp *.py ${archive}
 cp ${0}  ${archive}
+mv losing_workers_${JOBID}.out  ${archive}
