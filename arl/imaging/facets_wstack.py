@@ -9,7 +9,7 @@ from arl.data.data_models import Visibility, Image
 
 from arl.imaging.wstack import predict_wstack, invert_wstack
 
-from arl.image.iterators import raster_iter
+from arl.image.iterators import image_raster_iter
 from arl.imaging.iterated import predict_with_image_iterator, invert_with_image_iterator
 
 import logging
@@ -24,7 +24,7 @@ def predict_facets_wstack(vis: Visibility, model: Image, **kwargs) -> Visibility
     :return: resulting visibility (in place works)
     """
     log.info("predict_facets_wstack: Predicting by image facets and w stacking")
-    return predict_with_image_iterator(vis, model, image_iterator=raster_iter, predict_function=predict_wstack,
+    return predict_with_image_iterator(vis, model, image_iterator=image_raster_iter, predict_function=predict_wstack,
                                        **kwargs)
 
 
@@ -39,5 +39,5 @@ def invert_facets_wstack(vis: Visibility, im: Image, dopsf=False, normalize=True
     """
     
     log.info("invert_facets_wstack: Inverting by image facets and w stacking")
-    return invert_with_image_iterator(vis, im, normalize=normalize, image_iterator=raster_iter, dopsf=dopsf,
+    return invert_with_image_iterator(vis, im, normalize=normalize, image_iterator=image_raster_iter, dopsf=dopsf,
                                       invert_function=invert_wstack, **kwargs)

@@ -9,7 +9,7 @@ import numpy
 from arl.data.data_models import Visibility, Image
 from arl.imaging.wprojection import predict_wprojection, invert_wprojection
 
-from arl.image.iterators import raster_iter
+from arl.image.iterators import image_raster_iter
 from arl.imaging.iterated import predict_with_image_iterator, invert_with_image_iterator
 
 import logging
@@ -26,7 +26,7 @@ def predict_facets_wprojection(vis: Visibility, model: Image, **kwargs) -> \
     :return: resulting visibility (in place works)
     """
     log.info("predict_facets_wprojection: Predicting by image facets and w projection")
-    return predict_with_image_iterator(vis, model, image_iterator=raster_iter, predict_function=predict_wprojection,
+    return predict_with_image_iterator(vis, model, image_iterator=image_raster_iter, predict_function=predict_wprojection,
                                        **kwargs)
 
 
@@ -42,6 +42,6 @@ def invert_facets_wprojection(vis: Visibility, im: Image, dopsf=False, normalize
     """
     
     log.info("invert_facets_wprojection: Inverting by image facets and w projection")
-    return invert_with_image_iterator(vis, im, normalize=normalize, image_iterator=raster_iter,
+    return invert_with_image_iterator(vis, im, normalize=normalize, image_iterator=image_raster_iter,
                                       invert_function=invert_wprojection, dopsf=dopsf,
                                       **kwargs)

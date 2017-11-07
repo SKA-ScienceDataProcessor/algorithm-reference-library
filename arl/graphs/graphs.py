@@ -619,7 +619,91 @@ def create_residual_facet_graph(vis_graph_list, model_graph: delayed, **kwargs) 
                                      **kwargs)
 
 
-def create_residual_wstack_graph(vis_graph_list, model_graph: delayed, **kwargs) -> delayed:
+def create_residual_vis_scatter_graph(vis_graph_list, model_graph: delayed, vis_slices, scatter,
+                                    invert, predict, **kwargs) -> delayed:
+    """ Sum invert results for a scattered  vis_graph_list
+
+    Base for create_invert_wstack_graph and create_invert_timeslice_graph
+
+    :param vis_graph_list:
+    :param template_model_graph: Model used to determine image parameters
+    :param vis_slices: Number of visibility slices in w stacking
+    :param invert: Function used for invert
+    :param dopsf: Make psf (False)
+    :param kwargs: Parameters for functions in graphs
+    :return: delayed for invert
+    """
+
+    def zerovis(vis):
+        if vis is not None:
+            zerovis = copy_visibility(vis)
+            zerovis.data['vis'][...] = 0.0
+            return zerovis
+        else:
+            return None
+
+    def predict_ignore_None(vis, model, **kwargs):
+        if vis is not None:
+            predicted = copy_visibility(vis)
+            predicted = predict(predicted, model, **kwargs)
+            return predicted
+        else:
+            return None
+
+    def subtract_vis(vis, model_vis):
+        if vis is not None and model_vis is not None:
+            assert vis.vis.shape == model_vis.vis.shape
+            subvis = copy_visibility(vis)
+            subvis.data['vis'][...] -= model_vis.data['vis'][...]
+            return subvis
+        else:
+            return None
+
+    def sum_invert_results(image_list):
+        first = True
+        for i, arg in enumerate(image_list):
+            if arg is not None:
+                if first:
+                    im = copy_image(arg[0])
+                    im.data *= arg[1]
+                    sumwt = arg[1]
+                    first = False
+                else:
+                    im.data += arg[1] * arg[0].data
+                    sumwt += arg[1]
+        assert not first, "No invert results"
+        if numpy.sum(sumwt) > 0.0:
+            im = normalize_sumwt(im, sumwt)
+        return im, sumwt
+    
+    
+    def invert_ignore_None(vis, model, *args, **kwargs):
+        if vis is not None:
+            return invert(vis, model, *args, **kwargs)
+        else:
+            return create_empty_image_like(model), 0.0
+    
+    # Graph to combine the images from different vis_graphs. Do this on the outer loop to cut down on
+    # traffic
+    image_graph_list = list()
+    
+    for vis_graph in vis_graph_list:
+        
+        if vis_graph is not None:
+            scatter_vis_graph_list = delayed(scatter, nout=vis_slices)(vis_graph, vis_slices=vis_slices,
+                                                                       **kwargs)
+            for scatter_vis_graph in scatter_vis_graph_list:
+                mvg = delayed(zerovis)(scatter_vis_graph)
+                mvg = delayed(predict_ignore_None)(mvg, model_graph, **kwargs)
+                mvg = delayed(subtract_vis)(scatter_vis_graph, mvg)
+                image_graph_list.append(delayed(invert_ignore_None,
+                                                  pure=True, nout=2)(mvg, model_graph,
+                                                                     dopsf=False, normalize=True,
+                                                                     **kwargs))
+    return delayed(sum_invert_results)(image_graph_list)
+
+
+def create_residual_wstack_graph(vis_graph_list, model_graph: delayed, vis_slices, **kwargs) -> delayed:
     """ Create a graph to calculate residual image using w stacking
 
     :param vis_graph_list:
@@ -628,26 +712,29 @@ def create_residual_wstack_graph(vis_graph_list, model_graph: delayed, **kwargs)
     :param kwargs: Parameters for functions in graphs
     :return:
     """
-    model_vis_graph_list = create_zero_vis_graph_list(vis_graph_list)
-    model_vis_graph_list = create_predict_wstack_graph(model_vis_graph_list, model_graph, **kwargs)
-    residual_vis_graph_list = create_subtract_vis_graph_list(vis_graph_list, model_vis_graph_list)
-    return create_invert_wstack_graph(residual_vis_graph_list, model_graph, dopsf=False, normalize=True,
-                                      **kwargs)
+    return create_residual_vis_scatter_graph(vis_graph_list, model_graph,
+                                             scatter=visibility_scatter_w,
+                                             predict=predict_wstack_single,
+                                             invert=invert_wstack_single,
+                                             vis_slices=vis_slices,
+                                             **kwargs)
 
 
-def create_residual_timeslice_graph(vis_graph_list, model_graph: delayed, **kwargs) -> delayed:
+def create_residual_timeslice_graph(vis_graph_list, model_graph: delayed, vis_slices, **kwargs) -> delayed:
     """ Create a graph to calculate residual image using timeslicing
 
     :param vis_graph_list:
     :param model_graph: Model used to determine image parameters
+    :param vis_slices: Number of vis slices (w stack or timeslice)
     :param kwargs: Parameters for functions in graphs
     :return:
     """
-    model_vis_graph_list = create_zero_vis_graph_list(vis_graph_list)
-    model_vis_graph_list = create_predict_timeslice_graph(model_vis_graph_list, model_graph, **kwargs)
-    residual_vis_graph_list = create_subtract_vis_graph_list(vis_graph_list, model_vis_graph_list)
-    return create_invert_timeslice_graph(residual_vis_graph_list, model_graph, dopsf=False, normalize=True,
-                                         **kwargs)
+    return create_residual_vis_scatter_graph(vis_graph_list, model_graph,
+                                             scatter=visibility_scatter_time,
+                                             predict=predict_timeslice_single,
+                                             invert=invert_timeslice_single,
+                                             vis_slices=vis_slices,
+                                             **kwargs)
 
 
 def create_residual_facet_wstack_graph(vis_graph_list, model_graph: delayed, **kwargs) -> delayed:
@@ -687,10 +774,8 @@ def create_deconvolve_graph(dirty_graph: delayed, psf_graph: delayed, model_grap
     return delayed(deconvolve, pure=True, nout=2)(dirty_graph[0], psf_graph[0], model_graph, **kwargs)
 
 
-def create_deconvolve_scatter_graph(dirty_graph: delayed, psf_graph: delayed, model_graph: delayed,
-                                    subimages=1,
-                                    image_scatter=image_scatter_facets,
-                                    image_gather=image_gather_facets, **kwargs) -> delayed:
+def create_deconvolve_facet_graph(dirty_graph: delayed, psf_graph: delayed, model_graph: delayed,
+                                    facets=1, **kwargs) -> delayed:
     """Create a graph for deconvolution by subimages, adding to the model
     
     Does deconvolution subimage by subimage. Currently does nothing very sensible about the
@@ -717,31 +802,11 @@ def create_deconvolve_scatter_graph(dirty_graph: delayed, psf_graph: delayed, mo
         return output
     
     output = delayed(create_empty_image_like, nout=1, pure=True)(model_graph)
-    dirty_graphs = delayed(image_scatter, nout=subimages, pure=True)(dirty_graph[0], subimages=subimages)
+    dirty_graphs = delayed(image_scatter_facets, nout=facets*facets, pure=True)(dirty_graph[0], facets=facets)
     results = [delayed(deconvolve_subimage)(dirty_graph, psf_graph[0], **kwargs)
                for dirty_graph in dirty_graphs]
-    result = delayed(image_gather, nout=1, pure=True)(results, output, subimages=subimages)
+    result = delayed(image_gather_facets, nout=1, pure=True)(results, output, facets=facets)
     return delayed(add_model, nout=1, pure=True)(result, model_graph)
-
-
-def create_deconvolve_facet_graph(dirty_graph: delayed, psf_graph: delayed, model_graph: delayed, facets=1,
-                                  **kwargs) -> delayed:
-    """Create a graph for deconvolution by facets, adding to the model
-
-    Does deconvolution facet-by-facet. Currently does nothing very sensible about the
-    edges.
-
-    :param dirty_graph:
-    :param psf_graph: Must be the size of a facet
-    :param model_graph: Current model
-    :param facets: Number of facets on each axis
-    :param kwargs: Parameters for functions in graphs
-    :return:
-    """
-    return create_deconvolve_scatter_graph(dirty_graph, psf_graph, model_graph, subimages=facets, facets=facets,
-                                           image_scatter=image_scatter_facets,
-                                           image_gather=image_gather_facets, **kwargs)
-
 
 def create_deconvolve_channel_graph(dirty_graph: delayed, psf_graph: delayed, model_graph: delayed, subimages,
                                     **kwargs) -> delayed:
@@ -755,9 +820,25 @@ def create_deconvolve_channel_graph(dirty_graph: delayed, psf_graph: delayed, mo
     :param kwargs: Parameters for functions in graphs
     :return:
     """
-    return create_deconvolve_scatter_graph(dirty_graph, psf_graph, model_graph, subimages=subimages,
-                                           image_scatter=image_scatter_channels,
-                                           image_gather=image_gather_channels, **kwargs)
+
+    def deconvolve_subimage(dirty, psf, **kwargs):
+        assert isinstance(dirty, Image)
+        assert isinstance(psf, Image)
+        result = deconvolve_cube(dirty, psf, **kwargs)
+        return result[0]
+
+    def add_model(output, model):
+        assert isinstance(output, Image)
+        assert isinstance(model, Image)
+        output.data += model.data
+        return output
+
+    output = delayed(create_empty_image_like, nout=1, pure=True)(model_graph)
+    dirty_graphs = delayed(image_scatter_channels, nout=subimages, pure=True)(dirty_graph[0], subimages=subimages)
+    results = [delayed(deconvolve_subimage)(dirty_graph, psf_graph[0], **kwargs)
+               for dirty_graph in dirty_graphs]
+    result = delayed(image_gather_channels, nout=1, pure=True)(results, output, subimages=subimages)
+    return delayed(add_model, nout=1, pure=True)(result, model_graph)
 
 
 def create_selfcal_graph_list(vis_graph_list, model_graph: delayed, c_predict_graph,
@@ -779,18 +860,39 @@ def create_selfcal_graph_list(vis_graph_list, model_graph: delayed, c_predict_gr
     
     model_vis_graph_list = create_zero_vis_graph_list(vis_graph_list)
     model_vis_graph_list = c_predict_graph(model_vis_graph_list, model_graph, vis_slices=vis_slices, **kwargs)
+    return create_calibrate_graph_list(vis_graph_list, model_vis_graph_list, **kwargs)
+    
+
+def create_calibrate_graph_list(vis_graph_list, model_vis_graph_list, global_solution=True, **kwargs):
+    """ Create a set of graphs for (optionally global) calibration of a list of visibilities
+
+    If global solution is true then visibilities are gathered to a single visibility data set which is then
+    self-calibrated. The resulting gaintable is then effectively scattered out for application to each visibility
+    set. If global solution is false then the solutions are performed locally.
+
+    :param vis_graph_list:
+    :param model_vis_graph_list:
+    :param vis_slices:
+    :param global_solution: Solve for global gains
+    :param kwargs: Parameters for functions in graphs
+    :return:
+    """
     
     if global_solution:
         point_vis_graph_list = [delayed(divide_visibility, nout=len(vis_graph_list))(vis_graph_list[i],
                                                                                      model_vis_graph_list[i])
                                 for i, _ in enumerate(vis_graph_list)]
-        
         global_point_vis_graph = delayed(visibility_gather_channel, nout=1)(point_vis_graph_list)
         global_point_vis_graph = delayed(integrate_visibility_by_channel, nout=1)(global_point_vis_graph)
+        # This is a global solution so we only get one gain table
         gt_graph = delayed(solve_gaintable, pure=True, nout=1)(global_point_vis_graph, **kwargs)
         return [delayed(apply_gaintable, nout=len(vis_graph_list))(v, gt_graph, inverse=True)
                 for v in vis_graph_list]
     else:
-        gt_graph = delayed(solve_gaintable, pure=True, nout=1)(vis_graph_list, model_vis_graph_list, **kwargs)
-        return [delayed(apply_gaintable, nout=len(vis_graph_list))(v, gt_graph, inverse=True)
-                for v in vis_graph_list]
+        def solve_and_apply(vis, modelvis, **kwargs):
+            gt = solve_gaintable(vis, modelvis, **kwargs)
+            return apply_gaintable(vis, gt, **kwargs)
+        
+        return [delayed(solve_and_apply, nout=len(vis_graph_list))(vis_graph_list[i], model_vis_graph_list[i],
+                                                                   inverse=True)
+                for i, v in enumerate(vis_graph_list)]

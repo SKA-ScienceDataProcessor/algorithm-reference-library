@@ -37,7 +37,7 @@ from arl.visibility.operations import qa_visibility
 class TestDaskGraphs(unittest.TestCase):
     def setUp(self):
         
-        self.compute = False
+        self.compute = True
         
         self.results_dir = './test_results'
         os.makedirs(self.results_dir, exist_ok=True)

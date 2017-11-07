@@ -13,8 +13,8 @@ from arl.image.operations import create_image_from_array
 log = logging.getLogger(__name__)
 
 
-def raster_iter(im: Image, facets=2, **kwargs) -> Image:
-    """Create a raster_iter generator, returning images
+def image_raster_iter(im: Image, facets=2) -> Image:
+    """Create a image_raster_iter generator, returning images
 
     The WCS is adjusted appropriately for each raster element. Hence this is a coordinate-aware
     way to iterate through an image.
@@ -54,8 +54,8 @@ def raster_iter(im: Image, facets=2, **kwargs) -> Image:
             yield create_image_from_array(im.data[..., y:y + dy, x:x + dx], wcs)
 
 
-def channel_iter(im: Image, subimages=1, **kwargs) -> Image:
-    """Create a channel_iter generator, returning images
+def image_channel_iter(im: Image, subimages=1, **kwargs) -> Image:
+    """Create a image_channel_iter generator, returning images
 
     The WCS is adjusted appropriately for each raster element. Hence this is a coordinate-aware
     way to iterate through an image.

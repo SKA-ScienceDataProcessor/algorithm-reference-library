@@ -14,7 +14,7 @@ from dask import delayed
 from arl.data.polarisation import PolarisationFrame
 from arl.graphs.generic_graphs import create_generic_blockvisibility_graph, create_generic_image_graph, \
     create_generic_image_iterator_graph
-from arl.image.iterators import raster_iter
+from arl.image.iterators import image_raster_iter
 from arl.imaging import predict_skycomponent_blockvisibility
 from arl.skycomponent.operations import create_skycomponent
 from arl.util.testing_support import create_named_configuration, create_test_image
@@ -69,7 +69,7 @@ class TestPipelinesGenericDask(unittest.TestCase):
             im.data = numpy.sqrt(numpy.abs(im.data))
             return im
     
-        root = create_generic_image_iterator_graph(imagerooter, self.image, raster_iter,
+        root = create_generic_image_iterator_graph(imagerooter, self.image, image_raster_iter,
                                                    facets=16).compute()
         numpy.testing.assert_array_almost_equal_nulp(root.data ** 2, numpy.abs(self.image.data), 7)
 

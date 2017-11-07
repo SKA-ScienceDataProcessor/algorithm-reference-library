@@ -56,7 +56,7 @@ def create_generic_image_iterator_graph(imagefunction, im: Image, iterator, **kw
 
     :func imagefunction: Function to be applied to all pixels
     :param im: Image to be processed
-    :param iterator: iterator e.g. raster_iter
+    :param iterator: iterator e.g. image_raster_iter
     :param kwargs: Parameters for functions in graphs
     :return: graph
     """

@@ -7,7 +7,7 @@ import numpy
 
 from arl.data.data_models import Visibility, Image
 from arl.imaging import normalize_sumwt
-from arl.image.iterators import raster_iter
+from arl.image.iterators import image_raster_iter
 from arl.image.operations import create_empty_image_like
 from arl.visibility.iterators import vis_slice_iter
 from arl.visibility.base import copy_visibility, create_visibility_from_rows
@@ -82,7 +82,7 @@ def predict_with_vis_iterator(vis: Visibility, model: Image, vis_iter=vis_slice_
     return svis
 
 
-def predict_with_image_iterator(vis: Visibility, model: Image, image_iterator=raster_iter,
+def predict_with_image_iterator(vis: Visibility, model: Image, image_iterator=image_raster_iter,
                                 predict_function=predict_2d_base, **kwargs) -> Visibility:
     """ Predict using image partitions, calling specified predict function
 
@@ -101,7 +101,7 @@ def predict_with_image_iterator(vis: Visibility, model: Image, image_iterator=ra
     return vis
 
 
-def invert_with_image_iterator(vis, im, image_iterator=raster_iter, dopsf=False,
+def invert_with_image_iterator(vis, im, image_iterator=image_raster_iter, dopsf=False,
                                normalize=True, invert_function=invert_2d_base,
                                **kwargs) -> (Image, numpy.ndarray):
     """ Predict using image partitions, calling specified predict function
