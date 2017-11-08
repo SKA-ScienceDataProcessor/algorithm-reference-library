@@ -20,10 +20,10 @@ def init_sparse(n, margin=0.1):
 
 
 # Put the points onto a grid and FFT
-def grid_and_invert_data(sparse_data, shape):
+def grid_and_invert_data(sparse_data, shape, decimate=1):
     grid = numpy.zeros(shape, dtype='complex')
     loc = numpy.round(shape * sparse_data).astype('int')
-    for i in range(0, sparse_data.shape[0]):
+    for i in range(0, sparse_data.shape[0], decimate):
         grid[loc[i, :]] = 1.0
     return numpy.fft.fft(grid).real
 
@@ -71,21 +71,24 @@ if __name__ == '__main__':
     print('Saving results to %s' % filename)
     
     # Process nchunks each of length len_chunk 2d points, making a psf of size shape
-    len_chunk = 16384
+    decimate = 1024
+    results['decimate'] = decimate
+    len_chunk = 16384 * decimate
     results['len_chunk'] = len_chunk
     nchunks = 256
     results['nchunks'] = nchunks
     nreduce = 16
     results['reduce'] = nreduce
-    npixel = 1024
+    npixel = 4096
     shape = [npixel, npixel]
     results['npixel'] = npixel
     
     fieldnames = ['nworkers', 'time sparse', 'time psf', 'time sum psf rank1', 'time sum psf',
-                  'max psf', 'npixel', 'len_chunk', 'nchunks', 'reduce', 'hostname', 'epoch']
+                  'max psf', 'npixel', 'len_chunk', 'nchunks', 'reduce', 'decimate',
+                  'hostname', 'epoch']
         
     sparse_graph_list = [delayed(init_sparse)(len_chunk) for i in range(nchunks)]
-    psf_graph_list = [delayed(grid_and_invert_data)(s, shape) for s in sparse_graph_list]
+    psf_graph_list = [delayed(grid_and_invert_data)(s, shape, decimate) for s in sparse_graph_list]
     sum_psf_graph_rank1 = [delayed(numpy.sum)(psf_graph_list[i:i + nreduce]) for i in range(0, nchunks, nreduce)]
     sum_psf_graph = delayed(numpy.sum)(sum_psf_graph_rank1)
     sum_psf_graph.visualise()
@@ -97,17 +100,16 @@ if __name__ == '__main__':
         start = time.time()
         future = client.compute(graph)
         wait(future)
-        if isinstance(future, list):
-            value = [f.result() for f in future]
-        else:
-            value = future.result()
+        # if isinstance(future, list):
+        #     value = [f.result() for f in future]
+        # else:
+        #     value = future.result()
         results['time %s' % name] = time.time() - start
         
         if name == 'sum psf':
+            value = future.result()
             results['max psf'] = numpy.max(value)
         
-    print(fieldnames)
-    print(results.keys())
     write_header(filename, fieldnames)
     write_results(filename, fieldnames, results)
     client.shutdown()
