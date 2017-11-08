@@ -9,7 +9,7 @@ import csv
 
 import numpy
 from dask import delayed
-from distributed import Client, wait
+from distributed import Client, wait, Scheduler
 
 
 # Make some randomly located points on 2D plane
@@ -53,13 +53,14 @@ if __name__ == '__main__':
     import sys
 
     results = {}
-    if len(sys.argv) == 2:
+    if len(sys.argv) > 1:
         client = Client(sys.argv[1])
     else:
         client = Client()
         
-    nworkers = max(1, len(client.ncores()))
-    print("Using %d workers" % nworkers)
+    time.sleep(5)
+    nworkers = len(client.scheduler_info()['workers'])
+    print("Using %d workers" % (nworkers))
 
     results['nworkers'] = nworkers
     results['hostname'] = socket.gethostname()
