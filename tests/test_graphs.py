@@ -37,7 +37,7 @@ from arl.visibility.operations import qa_visibility
 class TestDaskGraphs(unittest.TestCase):
     def setUp(self):
         
-        self.compute = True
+        self.compute = False
         
         self.results_dir = './test_results'
         os.makedirs(self.results_dir, exist_ok=True)
@@ -126,7 +126,6 @@ class TestDaskGraphs(unittest.TestCase):
                                                         vis_slices=self.vis_slices)
         residual_vis_graph_list = create_subtract_vis_graph_list(self.vis_graph_list,
                                                                  predicted_vis_graph_list)
-        self.compute = True
         if self.compute:
             qa = qa_visibility(self.vis_graph_list[0].compute())
             numpy.testing.assert_almost_equal(qa.data['maxabs'], 1600.0, 0)
@@ -542,7 +541,6 @@ class TestDaskGraphs(unittest.TestCase):
                                                     algorithm='hogbom', niter=1000,
                                                     fractional_threshold=0.02, threshold=2.0,
                                                     gain=0.1, subimages=channel_images)
-        self.compute = True
         if self.compute:
             result = clean_graph.compute()
         

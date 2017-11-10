@@ -30,7 +30,7 @@ from arl.visibility.base import create_blockvisibility
 class TestPipelineGraphs(unittest.TestCase):
     def setUp(self):
         
-        self.compute = True
+        self.compute = False
         
         self.results_dir = './test_results'
         os.makedirs(self.results_dir, exist_ok=True)
