@@ -11,7 +11,7 @@ import numpy
 from arl.data.data_models import Visibility, Image
 from arl.imaging.base import predict_2d_base, invert_2d_base
 from arl.image.iterators import image_raster_iter
-from arl.imaging.iterated import predict_with_image_iterator, invert_with_image_iterator
+from arl.imaging.iterated import predict_with_raster_iterator, invert_with_raster_iterator
 
 import logging
 log = logging.getLogger(__name__)
@@ -26,8 +26,8 @@ def predict_facets(vis: Visibility, model: Image, predict_function=predict_2d_ba
     :return: resulting visibility (in place works)
     """
     log.info("predict_facets: Predicting by image facets")
-    return predict_with_image_iterator(vis, model, image_iterator=image_raster_iter, predict_function=predict_function,
-                                       **kwargs)
+    return predict_with_raster_iterator(vis, model, image_iterator=image_raster_iter, predict_function=predict_function,
+                                        **kwargs)
 
 
 def invert_facets(vis: Visibility, im: Image, dopsf=False, normalize=True, invert_function=invert_2d_base, **kwargs) \
@@ -43,5 +43,5 @@ def invert_facets(vis: Visibility, im: Image, dopsf=False, normalize=True, inver
     """
     
     log.info("invert_facets: Inverting by image facets")
-    return invert_with_image_iterator(vis, im, normalize=normalize, image_iterator=image_raster_iter, dopsf=dopsf,
-                                      invert_function=invert_function, **kwargs)
+    return invert_with_raster_iterator(vis, im, normalize=normalize, image_iterator=image_raster_iter, dopsf=dopsf,
+                                       invert_function=invert_function, **kwargs)

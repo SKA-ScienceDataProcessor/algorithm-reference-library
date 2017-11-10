@@ -20,7 +20,7 @@ from arl.imaging.base import predict_2d, predict_2d_base, predict_skycomponent_v
 from arl.imaging.facets import invert_facets, predict_facets
 from arl.imaging.facets_wprojection import invert_facets_wprojection, predict_facets_wprojection
 from arl.imaging.facets_wstack import invert_facets_wstack, predict_facets_wstack
-from arl.imaging.iterated import invert_with_image_iterator, predict_with_image_iterator, invert_with_vis_iterator, \
+from arl.imaging.iterated import invert_with_raster_iterator, predict_with_raster_iterator, invert_with_vis_iterator, \
     predict_with_vis_iterator
 from arl.imaging.params import get_polarisation_map, get_rowmap, get_uvw_map, standard_kernel_list, \
     w_kernel_list, get_kernel_list, advise_wide_field

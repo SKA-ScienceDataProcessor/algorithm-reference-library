@@ -82,8 +82,9 @@ def predict_with_vis_iterator(vis: Visibility, model: Image, vis_iter=vis_slice_
     return svis
 
 
-def predict_with_image_iterator(vis: Visibility, model: Image, image_iterator=image_raster_iter,
-                                predict_function=predict_2d_base, **kwargs) -> Visibility:
+def predict_with_raster_iterator(vis: Visibility, model: Image,
+                                 predict_function=predict_2d_base, facets=1,
+                                 **kwargs) -> Visibility:
     """ Predict using image partitions, calling specified predict function
 
     :param vis: Visibility to be predicted
@@ -94,16 +95,16 @@ def predict_with_image_iterator(vis: Visibility, model: Image, image_iterator=im
     """
     log.info("predict_with_image_iterator: Predicting by image partitions")
     result = copy_visibility(vis)
-    for dpatch in image_iterator(model, **kwargs):
+    for dpatch in image_raster_iter(model, facets=facets):
         result.data['vis'][...] = 0.0
         result = predict_function(result, dpatch, **kwargs)
         vis.data['vis'] += result.data['vis']
     return vis
 
 
-def invert_with_image_iterator(vis, im, image_iterator=image_raster_iter, dopsf=False,
-                               normalize=True, invert_function=invert_2d_base,
-                               **kwargs) -> (Image, numpy.ndarray):
+def invert_with_raster_iterator(vis, im, dopsf=False,
+                                normalize=True, invert_function=invert_2d_base, facets=1,
+                                **kwargs) -> (Image, numpy.ndarray):
     """ Predict using image partitions, calling specified predict function
 
     :param vis: Visibility to be inverted
@@ -118,7 +119,7 @@ def invert_with_image_iterator(vis, im, image_iterator=image_raster_iter, dopsf=
     i = 0
     nchan, npol, _, _ = im.shape
     totalwt = numpy.zeros([nchan, npol])
-    for dpatch in image_iterator(im, **kwargs):
+    for dpatch in image_raster_iter(im, facets=facets):
         result, sumwt = invert_function(vis, dpatch, dopsf, normalize=False, **kwargs)
         totalwt = sumwt
         # Ensure that we fill in the elements of dpatch instead of creating a new numpy arrray

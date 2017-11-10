@@ -54,7 +54,7 @@ def image_raster_iter(im: Image, facets=2) -> Image:
             yield create_image_from_array(im.data[..., y:y + dy, x:x + dx], wcs)
 
 
-def image_channel_iter(im: Image, subimages=1, **kwargs) -> Image:
+def image_channel_iter(im: Image, subimages=1) -> Image:
     """Create a image_channel_iter generator, returning images
 
     The WCS is adjusted appropriately for each raster element. Hence this is a coordinate-aware
