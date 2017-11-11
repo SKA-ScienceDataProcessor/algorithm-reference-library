@@ -8,7 +8,7 @@ import unittest
 import numpy
 
 from arl.data.polarisation import PolarisationFrame
-from arl.image.iterators import image_raster_iter, image_channel_iter
+from arl.image.iterators import   image_raster_iter, image_channel_iter
 from arl.util.testing_support import create_test_image
 
 log = logging.getLogger(__name__)
@@ -22,7 +22,7 @@ class TestImageIterators(unittest.TestCase):
         
         for nraster in [2, 4, 8]:
             m31model = create_test_image(polarisation_frame=PolarisationFrame('stokesI'))
-            for patch in image_raster_iter(m31model, facets=nraster):
+            for patch in   image_raster_iter(m31model, facets=nraster):
                 assert patch.data.shape[3] == (m31model.data.shape[3] // nraster), \
                     "Number of pixels in each patch: %d not as expected: %d" % (patch.data.shape[3],
                                                                                 (m31model.data.shape[3] // nraster))

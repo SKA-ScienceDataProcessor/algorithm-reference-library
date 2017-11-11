@@ -8,9 +8,9 @@ For example, consider a trivial example to take the square root of an image::
         def imagerooter(im, **kwargs):
             im.data = numpy.sqrt(numpy.abs(im.data))
             return im
-        root = create_generic_image_graph(imagerooter, myimage, image_raster_ite, facets=4).compute()
+        root = create_generic_image_graph(imagerooter, myimage,  image_raster_iter, facets=4).compute()
 
-We create the graph and execute it immediately. We are using the image_raster_ite so the image will be divided into 16
+We create the graph and execute it immediately. We are using the  image_raster_iter so the image will be divided into 16
 subimages and passed to processing by imagerooter, and then the answers are reassembled.
 
 We  could keep the graph and use it in other graphs. See the imaging-dask note book for more detail.
@@ -56,7 +56,7 @@ def create_generic_image_iterator_graph(imagefunction, im: Image, iterator, **kw
 
     :func imagefunction: Function to be applied to all pixels
     :param im: Image to be processed
-    :param iterator: iterator e.g. image_raster_iter
+    :param iterator: iterator e.g.   image_raster_iter
     :param kwargs: Parameters for functions in graphs
     :return: graph
     """
