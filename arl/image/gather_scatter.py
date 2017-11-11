@@ -14,7 +14,7 @@ from arl.data.parameters import get_parameter
 log = logging.getLogger(__name__)
 
 def image_scatter_facets(im: Image, facets=1) -> List[Image]:
-    """Scatter an image into a list of subimages using the raster_iterator
+    """Scatter an image into a list of subimages using the image_raster_iteator
 
     :param im: Image
     :param facets: Number of image partitions on each axis (2)
@@ -28,7 +28,7 @@ def image_scatter_facets(im: Image, facets=1) -> List[Image]:
 
 
 def image_gather_facets(image_list: List[Image], im: Image, facets=1) -> Image:
-    """Gather a list of subimages back into an image using the raster_iterator
+    """Gather a list of subimages back into an image using the image_raster_iteator
 
     :param image_list: List of subimages
     :param im: Output image
