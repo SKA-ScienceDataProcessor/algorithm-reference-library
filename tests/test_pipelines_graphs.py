@@ -15,8 +15,7 @@ from dask import delayed
 from arl.calibration.operations import apply_gaintable, create_gaintable_from_blockvisibility
 from arl.data.polarisation import PolarisationFrame
 from arl.graphs.graphs import create_deconvolve_facet_graph, create_invert_wstack_graph, \
-    create_residual_wstack_graph, create_selfcal_graph_list, create_deconvolve_graph, \
-    create_invert_timeslice_graph, create_residual_timeslice_graph
+    create_residual_wstack_graph, create_predict_wstack_graph, create_selfcal_graph_list
 from arl.image.operations import qa_image, export_image_to_fits
 from arl.imaging import create_image_from_visibility, predict_skycomponent_blockvisibility, \
     invert_wstack_single, predict_wstack_single
@@ -58,7 +57,8 @@ class TestPipelineGraphs(unittest.TestCase):
         if reffrequency is None:
             reffrequency = [1e8]
         lowcore = create_named_configuration('LOWBD2-CORE')
-        times = [time]
+        ntimes = 5
+        times = numpy.linspace(-numpy.pi / 3.0, numpy.pi / 3.0, ntimes)
         frequency = numpy.array([freq])
         channel_bandwidth = numpy.array([chan_width])
         
@@ -134,6 +134,7 @@ class TestPipelineGraphs(unittest.TestCase):
         ical_graph = \
             create_ical_pipeline_graph(self.vis_graph_list, model_graph=self.model_graph,
                                        c_deconvolve_graph=create_deconvolve_facet_graph,
+                                       c_predict_graph=create_predict_wstack_graph,
                                        c_invert_graph=create_invert_wstack_graph,
                                        c_residual_graph=create_residual_wstack_graph,
                                        c_selfcal_graph=create_selfcal_graph_list,
@@ -141,6 +142,7 @@ class TestPipelineGraphs(unittest.TestCase):
                                        vis_slices=self.vis_slices, facets=2,
                                        niter=1000, fractional_threshold=0.1,
                                        threshold=2.0, nmajor=5, gain=0.1, first_selfcal=1)
+        self.compute = True
         if self.compute:
             clean, residual, restored = ical_graph.compute()
             export_image_to_fits(clean, '%s/test_pipelines_ical_pipeline_clean.fits' % (self.results_dir))
@@ -156,6 +158,7 @@ class TestPipelineGraphs(unittest.TestCase):
         ical_graph = \
             create_ical_pipeline_graph(self.vis_graph_list, model_graph=self.model_graph,
                                        c_deconvolve_graph=create_deconvolve_facet_graph,
+                                       c_predict_graph=create_predict_wstack_graph,
                                        c_invert_graph=create_invert_wstack_graph,
                                        c_residual_graph=create_residual_wstack_graph,
                                        c_selfcal_graph=create_selfcal_graph_list,

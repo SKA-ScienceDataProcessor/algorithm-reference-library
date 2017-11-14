@@ -121,7 +121,7 @@ def create_ical_pipeline_graph(vis_graph_list, model_graph: delayed,
         for cycle in range(nmajor):
             if first_selfcal is not None and cycle >= first_selfcal:
                 model_vis_graph_list = create_zero_vis_graph_list(vis_graph_list)
-                model_vis_graph_list = c_predict_graph(model_vis_graph_list, model_graph, **kwargs)
+                model_vis_graph_list = c_predict_graph(model_vis_graph_list, deconvolve_model_graph, **kwargs)
                 vis_graph_list = c_calibrate_graph(vis_graph_list, model_vis_graph_list, **kwargs)
                 residual_vis_graph_list = create_subtract_vis_graph_list(vis_graph_list, model_vis_graph_list)
                 residual_graph = c_invert_graph(residual_vis_graph_list, model_graph, dopsf=False,
