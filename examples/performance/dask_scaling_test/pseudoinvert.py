@@ -26,8 +26,13 @@ def psf(sparse_data, shape, decimate=1):
         grid[loc[i, :]] = 1.0
     return numpy.fft.fft(grid).real
 
-def sum_psf(results):
-    return numpy.sum(results)
+def sum_list(arr):
+    import copy
+    result=copy.deepcopy(arr[0])
+    for i, s in enumerate(arr):
+        if i>0:
+            result+=s
+    return result
 
 def write_results(filename, fieldnames, results):
     with open(filename, 'a') as csvfile:
@@ -51,10 +56,13 @@ if __name__ == '__main__':
     import seqfile
     import argparse
 
+    # This is scaled so that for npixel=1024, it will take about 200 seconds on a single core of
+    # a 2017 2.9 GHz Intel Core i7, and the time in data generation (sparse) and imaging (psf) will
+    # be roughly the same.
     parser = argparse.ArgumentParser(description='Benchmark a pseudoinvert in numpy and dask')
     parser.add_argument('--scheduler', type=str, default=None,
                         help='The address of a Dask scheduler e.g. 127.0.0.1:8786. If none given one will be created')
-    parser.add_argument('--decimate', type=int, default=128, help='Decimation in gridding')
+    parser.add_argument('--decimate', type=int, default=256, help='Decimation in gridding')
     parser.add_argument('--npixel', type=int, default=1024, help='Number of pixels on a side')
     parser.add_argument('--nchunks', type=int, default=2048, help='Number of chunks of visibilities')
     parser.add_argument('--len_chunk', type=int, default=1024 * 1024,
@@ -63,9 +71,8 @@ if __name__ == '__main__':
                         help='Gather this number of images in the first stage of the two stage summing images')
     parser.add_argument('--nnodes', type=int, default=1, help='Number of nodes')
     parser.add_argument('--nworkers', type=int, default=None,
-                        help='Number of worker if no scheduler passed in')
-    parser.add_argument('--usebags', type=bool, default=True,
-                        help='Use bags instead of delayed')
+                        help='Number of workers if no scheduler passed in')
+    parser.add_argument('--usebags', type=str, default='False', help='Use bags instead of delayed')
 
     args = parser.parse_args()
 
@@ -83,22 +90,20 @@ if __name__ == '__main__':
     npixel = args.npixel
     shape = [npixel, npixel]
     results['npixel'] = npixel
-    nworkers = args.nworkers
-    usebags = args.usebags
+    nworkers_requested = args.nworkers
+    usebags = args.usebags=='True'
     results['usebags'] = usebags
 
     if args.scheduler is not None:
         client = Client(args.scheduler)
     else:
-        if nworkers is None:
+        if nworkers_requested is None:
             client = Client()
         else:
-            cluster = LocalCluster(n_workers=nworkers, threads_per_worker=1)
+            cluster = LocalCluster(n_workers=nworkers_requested, threads_per_worker=1)
             client = Client(cluster)
-        
-    time.sleep(5)
+            
     nworkers = len(client.scheduler_info()['workers'])
-    nworkers_initial = nworkers
 
     results['nworkers'] = nworkers
     results['nnodes'] = args.nnodes
@@ -110,25 +115,26 @@ if __name__ == '__main__':
     print("Initial state")
     pp.pprint(results)
     
-    
     fieldnames = ['nnodes', 'nworkers', 'time sum psf', 'npixel', 'max psf', 'len_chunk', 'nchunks', 'reduce',
                   'decimate', 'hostname', 'epoch', 'usebags']
 
     if usebags:
         from dask import bag
-        print('Using bags')
+        print('Using bags to construct graph')
         sum_psf_graph = bag.from_sequence(nchunks * [len_chunk]). \
             map(sparse). \
             map(psf, shape=shape, decimate=decimate). \
             fold(numpy.add, split_every=nreduce)
     else:
         from dask import delayed
-        print('Using delayed')
+        print('Using delayed to construct graph')
         sparse_graph_list = [delayed(sparse, nout=1)(len_chunk) for i in range(nchunks)]
         psf_graph_list = [delayed(psf, nout=1)(s, shape, decimate) for s in sparse_graph_list]
-        sum_psf_graph_rank1 = [delayed(numpy.sum, nout=1)(psf_graph_list[i:i + nreduce])
-                            for i in range(0, nchunks, nreduce)]
-        sum_psf_graph = delayed(numpy.sum)(sum_psf_graph_rank1)
+        sum_psf_graph_rank1 = [delayed(sum_list, nout=1)(psf_graph_list[i:i + nreduce])
+                               for i in range(0, nchunks, nreduce)]
+        sum_psf_graph = delayed(sum_list)(sum_psf_graph_rank1)
+
+    time.sleep(5)
 
     print("Processing graph")
     start = time.time()
@@ -137,10 +143,13 @@ if __name__ == '__main__':
     results['time sum psf'] = time.time() - start
     
     value = future.result()
+    assert value.shape[0] == shape[0] and value.shape[1] == shape[1], \
+        "Shape of result %s not as requested %s" % (value.shape, shape)
     results['max psf'] = numpy.max(value)
 
     nworkers = len(client.scheduler_info()['workers'])
-    assert nworkers >= nworkers_initial, "Lost workers"
+    assert nworkers == nworkers_requested, "Number of workers %d not as requested %d" % (nworkers, nworkers_requested)
+    
     results['nworkers'] = nworkers
     
     filename = seqfile.findNextFile(prefix='pseudoinvert_%s_' % results['hostname'], suffix='.csv')
