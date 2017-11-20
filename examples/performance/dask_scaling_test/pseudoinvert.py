@@ -9,24 +9,25 @@ import csv
 
 import numpy
 from dask import delayed
-from distributed import Client, wait
-
+from distributed import Client, wait, LocalCluster
 
 # Make some randomly located points on 2D plane
-def init_sparse(n, margin=0.1):
+def sparse(n, margin=0.1):
     numpy.random.seed(8753193)
     return numpy.array([numpy.random.uniform(margin, 1.0 - margin, n),
                         numpy.random.uniform(margin, 1.0 - margin, n)]).reshape([n, 2])
 
 
 # Put the points onto a grid and FFT
-def grid_and_invert_data(sparse_data, shape, decimate=1):
+def psf(sparse_data, shape, decimate=1):
     grid = numpy.zeros(shape, dtype='complex')
     loc = numpy.round(shape * sparse_data).astype('int')
     for i in range(0, sparse_data.shape[0], decimate):
         grid[loc[i, :]] = 1.0
     return numpy.fft.fft(grid).real
 
+def sum_psf(results):
+    return numpy.sum(results)
 
 def write_results(filename, fieldnames, results):
     with open(filename, 'a') as csvfile:
@@ -53,14 +54,18 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Benchmark a pseudoinvert in numpy and dask')
     parser.add_argument('--scheduler', type=str, default=None,
                         help='The address of a Dask scheduler e.g. 127.0.0.1:8786. If none given one will be created')
-    parser.add_argument('--decimate', type=int, default=1024, help='Decimation in gridding')
+    parser.add_argument('--decimate', type=int, default=128, help='Decimation in gridding')
     parser.add_argument('--npixel', type=int, default=1024, help='Number of pixels on a side')
-    parser.add_argument('--nchunks', type=int, default=256, help='Number of chunks of visibilities')
-    parser.add_argument('--len_chunk', type=int, default=16384,
-                        help='Number of visibilities in a chunk = len_chunk * decimate')
+    parser.add_argument('--nchunks', type=int, default=2048, help='Number of chunks of visibilities')
+    parser.add_argument('--len_chunk', type=int, default=1024 * 1024,
+                        help='Number of visibilities in a chunk')
     parser.add_argument('--reduce', type=int, default=16,
                         help='Gather this number of images in the first stage of the two stage summing images')
     parser.add_argument('--nnodes', type=int, default=1, help='Number of nodes')
+    parser.add_argument('--nworkers', type=int, default=None,
+                        help='Number of worker if no scheduler passed in')
+    parser.add_argument('--usebags', type=bool, default=True,
+                        help='Use bags instead of delayed')
 
     args = parser.parse_args()
 
@@ -69,7 +74,7 @@ if __name__ == '__main__':
     # Process nchunks each of length len_chunk 2d points, making a psf of size shape
     decimate = args.decimate
     results['decimate'] = decimate
-    len_chunk = args.len_chunk * decimate
+    len_chunk = args.len_chunk
     results['len_chunk'] = len_chunk
     nchunks = args.nchunks
     results['nchunks'] = nchunks
@@ -78,14 +83,22 @@ if __name__ == '__main__':
     npixel = args.npixel
     shape = [npixel, npixel]
     results['npixel'] = npixel
+    nworkers = args.nworkers
+    usebags = args.usebags
+    results['usebags'] = usebags
 
     if args.scheduler is not None:
         client = Client(args.scheduler)
     else:
-        client = Client()
+        if nworkers is None:
+            client = Client()
+        else:
+            cluster = LocalCluster(n_workers=nworkers, threads_per_worker=1)
+            client = Client(cluster)
         
     time.sleep(5)
     nworkers = len(client.scheduler_info()['workers'])
+    nworkers_initial = nworkers
 
     results['nworkers'] = nworkers
     results['nnodes'] = args.nnodes
@@ -97,33 +110,41 @@ if __name__ == '__main__':
     print("Initial state")
     pp.pprint(results)
     
+    
+    fieldnames = ['nnodes', 'nworkers', 'time sum psf', 'npixel', 'max psf', 'len_chunk', 'nchunks', 'reduce',
+                  'decimate', 'hostname', 'epoch', 'usebags']
+
+    if usebags:
+        from dask import bag
+        print('Using bags')
+        sum_psf_graph = bag.from_sequence(nchunks * [len_chunk]). \
+            map(sparse). \
+            map(psf, shape=shape, decimate=decimate). \
+            fold(numpy.add, split_every=nreduce)
+    else:
+        from dask import delayed
+        print('Using delayed')
+        sparse_graph_list = [delayed(sparse, nout=1)(len_chunk) for i in range(nchunks)]
+        psf_graph_list = [delayed(psf, nout=1)(s, shape, decimate) for s in sparse_graph_list]
+        sum_psf_graph_rank1 = [delayed(numpy.sum, nout=1)(psf_graph_list[i:i + nreduce])
+                            for i in range(0, nchunks, nreduce)]
+        sum_psf_graph = delayed(numpy.sum)(sum_psf_graph_rank1)
+
+    print("Processing graph")
+    start = time.time()
+    future = client.compute(sum_psf_graph)
+    wait(future)
+    results['time sum psf'] = time.time() - start
+    
+    value = future.result()
+    results['max psf'] = numpy.max(value)
+
+    nworkers = len(client.scheduler_info()['workers'])
+    assert nworkers >= nworkers_initial, "Lost workers"
+    results['nworkers'] = nworkers
+    
     filename = seqfile.findNextFile(prefix='pseudoinvert_%s_' % results['hostname'], suffix='.csv')
     print('Saving results to %s' % filename)
-    
-    
-    fieldnames = ['nnodes', 'nworkers', 'time sparse', 'time psf', 'time sum psf rank1', 'time sum psf',
-                  'max psf', 'npixel', 'len_chunk', 'nchunks', 'reduce', 'decimate',
-                  'hostname', 'epoch']
-        
-    sparse_graph_list = [delayed(init_sparse)(len_chunk) for i in range(nchunks)]
-    psf_graph_list = [delayed(grid_and_invert_data)(s, shape, decimate) for s in sparse_graph_list]
-    sum_psf_graph_rank1 = [delayed(numpy.sum)(psf_graph_list[i:i + nreduce]) for i in range(0, nchunks, nreduce)]
-    sum_psf_graph = delayed(numpy.sum)(sum_psf_graph_rank1)
-    sum_psf_graph.visualise()
-
-    names = ['sparse', 'psf', 'sum psf rank1', 'sum psf']
-    graphs = [sparse_graph_list, psf_graph_list, sum_psf_graph_rank1, sum_psf_graph]
-    for graph, name in zip(graphs, names):
-        print("Processing graph %s" % name)
-        start = time.time()
-        future = client.compute(graph)
-        wait(future)
-        results['time %s' % name] = time.time() - start
-        
-        if name == 'sum psf':
-            value = future.result()
-            results['max psf'] = numpy.max(value)
-        
     write_header(filename, fieldnames)
     write_results(filename, fieldnames, results)
     client.shutdown()
