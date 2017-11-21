@@ -129,7 +129,7 @@ def predict_timeslice_single(vis: Visibility, model: Image, predict=predict_2d_b
         avis = vis
 
     # Fit and remove best fitting plane for this slice
-    avis, p, q = fit_uvwplane(avis)
+    avis, p, q = fit_uvwplane(avis, remove=False)
     
     # Calculate nominal and distorted coordinate systems. We will convert the model
     # from nominal to distorted before predicting.
@@ -199,7 +199,7 @@ def invert_timeslice_single(vis: Visibility, im: Image, dopsf, normalize=True, *
 
     log.debug("invert_timeslice_single: inverting using single time slice")
 
-    avis, p, q = fit_uvwplane(avis)
+    avis, p, q = fit_uvwplane(avis, remove=False)
     
     workimage, sumwt = invert_2d_base(avis, im, dopsf, normalize=normalize, **kwargs)
 

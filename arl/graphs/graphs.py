@@ -151,11 +151,11 @@ def create_invert_graph(vis_graph_list, template_model_graph: delayed, dopsf=Fal
             if arg is not None:
                 if first:
                     im = copy_image(arg[0])
-                    im.data *= arg[1]
+                    im.data *= arg[1][..., numpy.newaxis, numpy.newaxis]
                     sumwt = arg[1]
                     first = False
                 else:
-                    im.data += arg[1] * arg[0].data
+                    im.data += arg[1][..., numpy.newaxis, numpy.newaxis] * arg[0].data
                     sumwt += arg[1]
         
         im = normalize_sumwt(im, sumwt)
@@ -197,11 +197,11 @@ def create_invert_vis_scatter_graph(vis_graph_list, template_model_graph: delaye
             if arg is not None:
                 if first:
                     im = copy_image(arg[0])
-                    im.data *= arg[1]
+                    im.data *= arg[1][..., numpy.newaxis, numpy.newaxis]
                     sumwt = arg[1]
                     first = False
                 else:
-                    im.data += arg[1] * arg[0].data
+                    im.data += arg[1][..., numpy.newaxis, numpy.newaxis] * arg[0].data
                     sumwt += arg[1]
         assert not first, "No invert results"
         if numpy.sum(sumwt) > 0.0:
@@ -665,11 +665,11 @@ def create_residual_vis_scatter_graph(vis_graph_list, model_graph: delayed, vis_
             if arg is not None:
                 if first:
                     im = copy_image(arg[0])
-                    im.data *= arg[1]
+                    im.data *= arg[1][..., numpy.newaxis, numpy.newaxis]
                     sumwt = arg[1]
                     first = False
                 else:
-                    im.data += arg[1] * arg[0].data
+                    im.data += arg[1][..., numpy.newaxis, numpy.newaxis] * arg[0].data
                     sumwt += arg[1]
         assert not first, "No invert results"
         if numpy.sum(sumwt) > 0.0:
