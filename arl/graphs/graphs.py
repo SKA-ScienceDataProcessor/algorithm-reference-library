@@ -73,6 +73,33 @@ def compute_list(client, graph_list, nodes=None, **kwargs):
                                                    (nworkers_initial, nworkers_final)
     return [f.result() for f in futures]
 
+def sum_invert_results(image_list):
+    """ Sum a set of invert results with appropriate weighting
+    
+    :param image_list: List of [image, sum weights] pairs
+    :return: image, sum of weights
+    """
+    first = True
+    for i, arg in enumerate(image_list):
+        if isinstance(arg[1], numpy.ndarray):
+            scale = arg[1][..., numpy.newaxis, numpy.newaxis]
+        else:
+            scale = arg[1]
+        if first:
+            im = copy_image(arg[0])
+            im.data *= scale
+            sumwt = arg[1]
+            first = False
+        else:
+            im.data += scale * arg[0].data
+            sumwt += arg[1]
+
+    assert not first, "No invert results"
+
+    im = normalize_sumwt(im, sumwt)
+    return im, sumwt
+
+
 def create_zero_vis_graph_list(vis_graph_list):
     """ Initialise vis to zero: creates new data holders
 
@@ -145,22 +172,6 @@ def create_invert_graph(vis_graph_list, template_model_graph: delayed, dopsf=Fal
     :return: delayed for invert
     """
     
-    def sum_invert_results(image_list):
-        first = True
-        for i, arg in enumerate(image_list):
-            if arg is not None:
-                if first:
-                    im = copy_image(arg[0])
-                    im.data *= arg[1][..., numpy.newaxis, numpy.newaxis]
-                    sumwt = arg[1]
-                    first = False
-                else:
-                    im.data += arg[1][..., numpy.newaxis, numpy.newaxis] * arg[0].data
-                    sumwt += arg[1]
-        
-        im = normalize_sumwt(im, sumwt)
-        return im, sumwt
-    
     def invert_ignore_None(vis, *args, **kwargs):
         if vis is not None:
             return invert(vis, *args, **kwargs)
@@ -190,23 +201,6 @@ def create_invert_vis_scatter_graph(vis_graph_list, template_model_graph: delaye
     :param kwargs: Parameters for functions in graphs
     :return: delayed for invert
     """
-    
-    def sum_invert_results(image_list):
-        first = True
-        for i, arg in enumerate(image_list):
-            if arg is not None:
-                if first:
-                    im = copy_image(arg[0])
-                    im.data *= arg[1][..., numpy.newaxis, numpy.newaxis]
-                    sumwt = arg[1]
-                    first = False
-                else:
-                    im.data += arg[1][..., numpy.newaxis, numpy.newaxis] * arg[0].data
-                    sumwt += arg[1]
-        assert not first, "No invert results"
-        if numpy.sum(sumwt) > 0.0:
-            im = normalize_sumwt(im, sumwt)
-        return im, sumwt
     
     def invert_ignore_None(vis, model, *args, **kwargs):
         if vis is not None:
@@ -659,24 +653,7 @@ def create_residual_vis_scatter_graph(vis_graph_list, model_graph: delayed, vis_
         else:
             return None
 
-    def sum_invert_results(image_list):
-        first = True
-        for i, arg in enumerate(image_list):
-            if arg is not None:
-                if first:
-                    im = copy_image(arg[0])
-                    im.data *= arg[1][..., numpy.newaxis, numpy.newaxis]
-                    sumwt = arg[1]
-                    first = False
-                else:
-                    im.data += arg[1][..., numpy.newaxis, numpy.newaxis] * arg[0].data
-                    sumwt += arg[1]
-        assert not first, "No invert results"
-        if numpy.sum(sumwt) > 0.0:
-            im = normalize_sumwt(im, sumwt)
-        return im, sumwt
-    
-    
+     
     def invert_ignore_None(vis, model, *args, **kwargs):
         if vis is not None:
             return invert(vis, model, *args, **kwargs)
