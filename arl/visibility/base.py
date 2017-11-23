@@ -273,7 +273,7 @@ def phaserotate_visibility(vis: Visibility, newphasecentre: SkyCoord, tangent=Tr
         return vis
 
 
-def create_visibility_from_ms(msname):
+def create_visibility_from_ms(msname, channum=0):
     """ Minimal MS to Visibility converter
 
     The MS format is much more general than the ARL Visibility so we cut many corners. This requires casacore to be
@@ -296,7 +296,12 @@ def create_visibility_from_ms(msname):
         ms = tab.query("FIELD_ID==%d" % field)
         print("Found %d rows for field %d" % (ms.nrows(), field))
         time = ms.getcol('TIME')
-        vis = ms.getcol('DATA')[:, 0, :]
+        channels = len(numpy.transpose(ms.getcol('DATA'))[0])
+        print("Found %d channels" % (channels))
+        try:
+            vis = ms.getcol('DATA')[:, channum, :]
+        except IndexError:
+            raise IndexError("channel number exceeds max. within ms")
         weight = ms.getcol('WEIGHT')
         uvw = -1 * ms.getcol('UVW')
         antenna1 = ms.getcol('ANTENNA1')
@@ -307,7 +312,7 @@ def create_visibility_from_ms(msname):
         # Now get info from the subtables
         spwtab = table('%s/SPECTRAL_WINDOW' % msname, ack=False)
         cfrequency = spwtab.getcol('CHAN_FREQ')
-        frequency = numpy.array([cfrequency[dd] for dd in ddid])[:, 0]
+        frequency = numpy.array([cfrequency[dd] for dd in ddid])[:, channum]
         cchannel_bandwidth = spwtab.getcol('CHAN_WIDTH')
         channel_bandwidth = numpy.array([cchannel_bandwidth[dd] for dd in ddid])[:, 0]
         
