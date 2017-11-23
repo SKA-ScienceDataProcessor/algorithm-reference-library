@@ -617,7 +617,7 @@ def convert_image_to_kernel(im: Image, oversampling, kernelwidth):
     return create_image_from_array(newdata, newwcs)
 
 
-def create_w_term_like(im: Image, w, phasecentre=None, remove_shift=False) -> Image:
+def create_w_term_like(im: Image, w, phasecentre=None, remove_shift=False, dopol=False) -> Image:
     """Create an image with a w term phase term in it:
     
     .. math::
@@ -631,23 +631,29 @@ def create_w_term_like(im: Image, w, phasecentre=None, remove_shift=False) -> Im
     :param im: template image
     :param w: w value to evaluate (default is median abs)
     :param remove_shift
+    :param dopol: Do screen in polarisation?
     :return: Image
     """
     
     fim = copy_image(im)
+    fim_shape = list(im.shape)
+    if not dopol:
+        fim_shape[1] = 1
+        
+    fim_array = numpy.zeros(fim_shape, dtype='complex')
+    fim = create_image_from_array(fim_array, wcs=im.wcs, polarisation_frame=im.polarisation_frame)
+        
     cellsize = abs(fim.wcs.wcs.cdelt[0]) * numpy.pi / 180.0
-    nchan, npol, _, npixel = fim.data.shape
+    nchan, npol, _, npixel = fim_shape
     if phasecentre is SkyCoord:
         wcentre = phasecentre.to_pixel(im.wcs, origin=1)
     else:
         wcentre = [im.wcs.wcs.crpix[0], im.wcs.wcs.crpix[1]]
         
-    fim.data = numpy.zeros(fim.shape, dtype='complex')
     for chan in range(nchan):
         for pol in range(npol):
             fim.data[chan, pol, ...] = w_beam(npixel, npixel * cellsize, w=w, cx=wcentre[0],
                                               cy=wcentre[1], remove_shift=remove_shift)
-    
     fov = npixel * cellsize
     fresnel = numpy.abs(w) * (0.5 * fov) ** 2
     log.debug('create_w_term_image: For w = %.1f, field of view = %.6f, Fresnel number = %.2f' % (w, fov, fresnel))
