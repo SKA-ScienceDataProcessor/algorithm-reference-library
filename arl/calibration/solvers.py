@@ -110,7 +110,8 @@ def solve_antenna_gains_itsubs_scalar(gainshape, x, xwt, niter=30, tol=1e-8, pha
 
     x(antenna2, antenna1) = gain(antenna1) conj(gain(antenna2))
 
-    This uses an iterative substitution algorithm due to Larry D'Addario c 1980'ish. Used
+    This uses an iterative substitution algorithm due to Larry
+    D'Addario c 1980'ish (see ThompsonDaddario1982 Appendix 1). Used
     in the original VLA Dec-10 Antsol.
 
     :param gainshape: Shape of output gains
@@ -121,6 +122,7 @@ def solve_antenna_gains_itsubs_scalar(gainshape, x, xwt, niter=30, tol=1e-8, pha
     :param phase_only: Do solution for only the phase? (default True)
     :param refant: Reference antenna for phase (default=0.0)
     :return: gain [nants, ...], weight [nants, ...]
+
     """
     
     nants = x.shape[0]

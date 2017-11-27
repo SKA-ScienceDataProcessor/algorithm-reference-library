@@ -18,3 +18,7 @@ References
 * SAULT1996: Sault, R. J., L. Staveley-Smith, and W. N. Brouw. "An
     approach to interferometric mosaicing." Astronomy and Astrophysics
     Supplement Series 120 (1996): 375-384.
+
+* ThompsonDaddario1982: A. R. Thompson and L. R. D'Addario. "Frequency
+  response of a synthesis array: Performance limitations and design
+  tolerances", Radio Science 17 (1982): 357-369
