@@ -85,7 +85,7 @@ def vis_slice_iter(vis: Union[Visibility, BlockVisibility], **kwargs) -> numpy.n
     step = get_parameter(kwargs, "step", None)
     if step is None:
         vis_slices = get_parameter(kwargs, "vis_slices", 1)
-        step = 1 + vis.nvis // vis_slices
+        step = vis.nvis // vis_slices
     
     assert step > 0
     for row in range(0, vis.nvis, step):

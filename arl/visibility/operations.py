@@ -24,9 +24,35 @@ def append_visibility(vis: Union[Visibility, BlockVisibility], othervis: Union[V
     :param othervis:
     :return: Visibility vis + othervis
     """
+    
+    if vis is None:
+        return othervis
+    
+    assert isinstance(vis, Visibility) or isinstance(vis, BlockVisibility)
     assert vis.polarisation_frame == othervis.polarisation_frame
     assert vis.phasecentre == othervis.phasecentre
     vis.data = numpy.hstack((vis.data, othervis.data))
+    return vis
+
+
+def concat_visibility(vis_list):
+    """Concatenate a list of visibilities
+
+    :param vis_list:
+    :return: Visibility
+    """
+    if isinstance(vis_list, Visibility) or isinstance(vis_list, BlockVisibility):
+        return vis_list
+
+    vis = None
+    for v in vis_list:
+        if vis is None:
+            vis = v
+        else:
+            assert v.polarisation_frame == vis.polarisation_frame
+            assert v.phasecentre.separation(vis.phasecentre).value < 1e-15
+            vis.data = numpy.hstack((vis.data, v.data))
+
     return vis
 
 
@@ -39,6 +65,8 @@ def sum_visibility(vis: Visibility, direction: SkyCoord) -> numpy.array:
     """
     # TODO: Convert to Visibility or remove?
     
+    assert isinstance(vis, Visibility) or isinstance(vis, BlockVisibility)
+
     svis = copy_visibility(vis)
     
     l, m, n = skycoord_to_lmn(direction, svis.phasecentre)
@@ -73,6 +101,8 @@ def qa_visibility(vis: Union[Visibility, BlockVisibility], context=None) -> QA:
     :param vis: Visibility to be assessed
     :return: QA
     """
+    assert isinstance(vis, Visibility) or isinstance(vis, BlockVisibility)
+
     avis = numpy.abs(vis.vis)
     data = {'maxabs': numpy.max(avis),
             'minabs': numpy.min(avis),
@@ -94,6 +124,8 @@ def remove_continuum_blockvisibility(vis: BlockVisibility, degree=1, mask=None) 
     :param mask:
     :return:
     """
+    assert isinstance(vis, Visibility) or isinstance(vis, BlockVisibility)
+
     if mask is not None:
         assert numpy.sum(mask) > 2 * degree, "Insufficient channels for fit"
     
@@ -125,6 +157,8 @@ def divide_visibility(vis: BlockVisibility, modelvis: BlockVisibility):
     :param modelvis:
     :return:
     """
+    assert isinstance(vis, Visibility) or isinstance(vis, BlockVisibility)
+
     # Different for scalar and vector/matrix cases
     isscalar = vis.polarisation_frame.npol == 1
     
@@ -167,6 +201,8 @@ def integrate_visibility_by_channel(vis: BlockVisibility) -> BlockVisibility:
     :return: BlockVisibility
     """
     
+    assert isinstance(vis, Visibility) or isinstance(vis, BlockVisibility)
+
     vis_shape = list(vis.vis.shape)
     ntimes, nants, _, nchan, npol = vis_shape
     vis_shape[-2] = 1
