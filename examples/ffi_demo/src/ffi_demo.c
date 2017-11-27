@@ -12,7 +12,7 @@ void pycheck(PyObject *obj)
 
 /* In: module name, function name
  * Out: function address */
-size_t get_ffi_fn_addr(const char* module, const char* fn_name)
+void *get_ffi_fn_addr(const char* module, const char* fn_name)
 {
 	PyObject *mod, *fn, *fn_addr;
 
@@ -20,21 +20,18 @@ size_t get_ffi_fn_addr(const char* module, const char* fn_name)
 	pycheck(fn = PyObject_GetAttrString(mod, fn_name));
 	pycheck(fn_addr = PyObject_GetAttrString(fn, "address"));
 
-	return PyNumber_AsSsize_t(fn_addr, NULL);
+	return (void*)PyNumber_AsSsize_t(fn_addr, NULL);
 }
 
 PyObject *get_plain_fn_addr(const char* module, const char* fn_name)
 {
-	PyObject *mod, *fn, *fn_addr;
+	PyObject *mod, *fn;
 
 	pycheck(mod = PyImport_ImportModule(module));
 	pycheck(fn = PyObject_GetAttrString(mod, fn_name));
 
-	//return PyNumber_AsSsize_t(fn_addr, NULL);
 	return fn;
 }
-
-//void *call_python_fn(
 
 
 int main(int argc, char **argv)
@@ -52,7 +49,6 @@ int main(int argc, char **argv)
 		printf("\t%d\n", count);
 	}
 
-	//PyObject* (*arl_fun)(char*) = get_plain_fn_addr("arl.util.testing_support", "create_named_configuration");
 	PyObject *arl_fun = get_plain_fn_addr("arl.util.testing_support", "create_named_configuration");
 	PyObject *config = NULL;
 	PyObject *arg_tup = PyTuple_New(1);
