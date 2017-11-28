@@ -35,13 +35,18 @@ def vis_timeslice_iter(vis: Visibility, **kwargs) -> numpy.ndarray:
     timeslice = get_parameter(kwargs, "timeslice", None)
     if timeslice is None or timeslice == 'auto':
         vis_slices = get_parameter(kwargs, "vis_slices", None)
-        if vis_slices is None:
+        if vis_slices is None or vis_slices == 'auto':
             vis_slices = len(numpy.unique(vis.time))
         boxes = numpy.linspace(timemin, timemax, vis_slices)
         timeslice = (timemax - timemin) / vis_slices
     else:
-        vis_slices = 1 + 2 * numpy.round((timemax - timemin) / timeslice).astype('int')
+        vis_slices = 1 + 2 * numpy.ceil((timemax - timemin) / timeslice).astype('int')
         boxes = numpy.linspace(timemin, timemax, vis_slices)
+        if vis_slices > 1:
+            timeslice = boxes[1] - boxes[0]
+        else:
+            timeslice = timemax - timemin
+
     
     for box in boxes:
         rows = numpy.abs(vis.time - box) <= 0.5 * timeslice
@@ -56,16 +61,23 @@ def vis_wstack_iter(vis: Visibility, **kwargs) -> numpy.ndarray:
     :return: Boolean array with selected rows=True
     """
     assert isinstance(vis, Visibility) or isinstance(vis, BlockVisibility)
-    wmaxabs = (numpy.max(numpy.abs(vis.w)))
+    wmaxabs = numpy.max(numpy.abs(vis.w))
     
     wstack = get_parameter(kwargs, "wstack", None)
     if wstack is None:
         vis_slices = get_parameter(kwargs, "vis_slices", 1)
-        boxes = numpy.linspace(- wmaxabs, +wmaxabs, vis_slices)
-        wstack = 2 * wmaxabs / vis_slices
+        boxes = numpy.linspace(-wmaxabs, wmaxabs, vis_slices)
+        if vis_slices > 1:
+            wstack = boxes[1] - boxes[0]
+        else:
+            wstack = 2*wmaxabs
     else:
         vis_slices = 1 + 2 * numpy.round(wmaxabs / wstack).astype('int')
         boxes = numpy.linspace(- wmaxabs, +wmaxabs, vis_slices)
+        if vis_slices > 1:
+            wstack = boxes[1] - boxes[0]
+        else:
+            wstack = 2*wmaxabs
     
     for box in boxes:
         rows = numpy.abs(vis.w - box) < 0.5 * wstack
@@ -85,7 +97,10 @@ def vis_slice_iter(vis: Union[Visibility, BlockVisibility], **kwargs) -> numpy.n
     step = get_parameter(kwargs, "step", None)
     if step is None:
         vis_slices = get_parameter(kwargs, "vis_slices", 1)
-        step = vis.nvis // vis_slices
+        if isinstance(vis_slices, int):
+            step = vis.nvis // vis_slices
+        else:
+            step = vis.nvis
     
     assert step > 0
     for row in range(0, vis.nvis, step):
