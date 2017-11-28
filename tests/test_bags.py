@@ -34,7 +34,7 @@ class TestDaskBags(unittest.TestCase):
         self.invert = invert_wstack_single
         self.predict = predict_wstack_single
         
-        self.npixel = 256
+        self.npixel = 512
         self.facets = 4
         
         self.setupVis(add_errors=False)
@@ -49,7 +49,8 @@ class TestDaskBags(unittest.TestCase):
     
     def ingest_visibility(self, freq=1e8, chan_width=1e6, times=None, reffrequency=None, add_errors=False):
         if times is None:
-            times = [0.0]
+            times = (numpy.pi / 12.0) * numpy.linspace(-3.0, 3.0, 5)
+
         if reffrequency is None:
             reffrequency = [1e8]
         lowcore = create_named_configuration('LOWBD2-CORE')
@@ -89,7 +90,7 @@ class TestDaskBags(unittest.TestCase):
 
     def test_invert_bag(self):
         c = Client()
-        peaks = {'2d': 103.046932853, 'timeslice': 103.569835546, 'wstack': 103.602973505}
+        peaks = {'2d': 65.3839320676, 'timeslice': 99.6744590463, 'wstack': 100.670594645}
         vis_slices = {'2d': None, 'timeslice': 'auto', 'wstack': 101}
         model = copy_image(self.model)
         for context in ['wstack', '2d', 'timeslice']:
@@ -104,7 +105,7 @@ class TestDaskBags(unittest.TestCase):
 
     def test_predict_bag(self):
         c = Client()
-        peaks = {'2d': 1599.71314313, 'timeslice': 1602.72556689, 'wstack': 1590.05191353}
+        peaks = {'2d': 1599.71314313, 'timeslice': 1666.76383254, 'wstack': 1590.0505978}
         vis_slices = {'2d': None, 'timeslice': 'auto', 'wstack': 101}
         for context in ['2d', 'timeslice', 'wstack']:
             newvis_bag = predict_bag(self.vis_bag, self.model, context, vis_slices=vis_slices[context])
@@ -130,7 +131,7 @@ class TestDaskBags(unittest.TestCase):
     
         export_image_to_fits(model, '%s/test_bag_%s_deconvolve.fits' % (self.results_dir, context))
     
-        assert numpy.abs(qa.data['max'] - 103.610991837) < 1.0e-7, str(qa)
+        assert numpy.abs(qa.data['max'] - 100.678376329) < 1.0e-7, str(qa)
 
     def test_restore_bag(self):
         c = Client()
@@ -161,7 +162,7 @@ class TestDaskBags(unittest.TestCase):
         qa = qa_image(final, context=context)
         export_image_to_fits(final, '%s/test_bag_%s_restored.fits' % (self.results_dir, context))
     
-        assert numpy.abs(qa.data['max'] - 107.393469682) < 1.0e-7, str(qa)
+        assert numpy.abs(qa.data['max'] - 100.309563954) < 1.0e-7, str(qa)
 
 
 

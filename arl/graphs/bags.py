@@ -3,22 +3,22 @@ parallel computing library for analytic computing.
 
 Note that all parameters here should be passed using the kwargs mechanism.
 """
-import numpy
-import logging
 import collections
+import logging
 
 from dask import bag
 
 from arl.data.data_models import Image
 from arl.graphs.graphs import sum_invert_results
-from arl.imaging import *
-from arl.visibility.base import copy_visibility
-from arl.image.operations import create_image_from_array
-from arl.imaging.imaging_context import imaging_context
-from arl.visibility.operations import concat_visibility
 from arl.image.deconvolution import deconvolve_cube, restore_cube
+from arl.image.operations import create_image_from_array
+from arl.imaging import *
+from arl.imaging.imaging_context import imaging_context
+from arl.visibility.base import copy_visibility
+from arl.visibility.operations import concat_visibility
 
 log = logging.getLogger(__name__)
+
 
 def safe_predict_list(vis_list, model, predict=predict_2d, **kwargs):
     """ Predicts a list of visibilities to obtain a list of visibilities
@@ -75,7 +75,7 @@ def sum_invert_results(invert_list, normalize=True):
         else:
             result.data += a[0].data * a[1]
             weight += a[1]
-
+    
     assert weight is not None and result is not None, "No valid images found"
     
     if normalize:
@@ -85,7 +85,7 @@ def sum_invert_results(invert_list, normalize=True):
 
 
 def invert_bag(vis_bag, model, dopsf=False, context='2d', **kwargs):
-    """ Inverts a bag of visibilities to create a bag of (image, weight) tuples
+    """ Construct a bag to invert a bag of visibilities to a bag of (image, weight) tuples
     
     :param vis_bag:
     :param model:
@@ -96,14 +96,17 @@ def invert_bag(vis_bag, model, dopsf=False, context='2d', **kwargs):
     c = imaging_context(context)
     log.info('Imaging context is %s' % c)
     assert c['scatter'] is not None
-    return vis_bag.\
+    return vis_bag. \
         map(c['scatter'], **kwargs). \
         map(safe_invert_list, model, c['invert'], dopsf=dopsf, **kwargs). \
         map(sum_invert_results)
 
 
 def predict_bag(vis_bag, model, context='2d', **kwargs):
-    """Predicts a bag of visibilities to obtain a bag of visibilities.
+    """Construct a bag to predict a bag of visibilities.
+    
+    The vis_bag is scatter appropriately, the predict is applied, and the data then
+    concatenated. The sort order of the data is not necessarily preserved.
 
     :param vis_bag:
     :param model:
@@ -113,10 +116,11 @@ def predict_bag(vis_bag, model, context='2d', **kwargs):
     """
     c = imaging_context(context)
     assert c['scatter'] is not None and c['gather'] is not None
-    return vis_bag.\
+    return vis_bag. \
         map(c['scatter'], **kwargs). \
-        map(safe_predict_list, model, c['predict'], **kwargs).\
+        map(safe_predict_list, model, c['predict'], **kwargs). \
         map(concat_visibility)
+
 
 def deconvolve_bag(dirty_bag, psf_bag, **kwargs):
     """ Deconvolve a bag of images to obtain a bag of models
@@ -126,7 +130,7 @@ def deconvolve_bag(dirty_bag, psf_bag, **kwargs):
     :param kwargs:
     :return: Bag of Images
     """
-
+    
     def deconvolve(dirty_psf, **kwargs):
         result = deconvolve_cube(dirty_psf[0][0], dirty_psf[1][0], **kwargs)
         return result[0]
@@ -135,7 +139,7 @@ def deconvolve_bag(dirty_bag, psf_bag, **kwargs):
 
 
 def restore_bag(comp_bag, psf_bag, residual_bag, **kwargs):
-    """ Deconvolve a bag of images to obtain a bag of models
+    """ Restore a bag of images to obtain a bag of restored images
 
     :param dirty_bag:
     :param psf_bag:
@@ -148,10 +152,18 @@ def restore_bag(comp_bag, psf_bag, residual_bag, **kwargs):
     
     return bag.zip(comp_bag, psf_bag, residual_bag).map(restore, **kwargs)
 
+
 def residual_visibility_bag(vis_bag, model_vis_bag, **kwargs):
+    """Calculate residual visibility
+    
+    :param vis_bag:
+    :param model_vis_bag:
+    :param kwargs:
+    :return:
+    """
     def subtract_vis(vis, model_vis):
         residual_vis = copy_visibility(vis)
-        residual_vis.data['vis']-=model_vis.data['vis']
+        residual_vis.data['vis'] -= model_vis.data['vis']
         return residual_vis
-        
+    
     return vis_bag.map(subtract_vis, model_vis_bag)
