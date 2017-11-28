@@ -14,7 +14,8 @@ from dask import bag
 from distributed import Client
 
 from arl.data.polarisation import PolarisationFrame
-from arl.graphs.bags import invert_bag, predict_bag
+from arl.graphs.bags import invert_bag, predict_bag, deconvolve_bag
+from arl.image.deconvolution import deconvolve_cube
 from arl.image.operations import qa_image, export_image_to_fits, copy_image
 from arl.imaging import create_image_from_visibility, predict_skycomponent_visibility, \
     invert_wstack_single, predict_wstack_single
@@ -83,17 +84,17 @@ class TestDaskBags(unittest.TestCase):
         predict_skycomponent_visibility(vt, comps)
         insert_skycomponent(model, comps)
         self.model = copy_image(model)
-        export_image_to_fits(model, '%s/test_imaging_model.fits' % (self.results_dir))
+        export_image_to_fits(model, '%s/test_bags_model.fits' % (self.results_dir))
         return vt
 
     def test_invert_bag(self):
         c = Client()
-        peaks = {'2d': 103.709422711, 'timeslice': 103.07025571, 'wstack': 102.078510852}
+        peaks = {'2d': 103.046932853, 'timeslice': 103.569835546, 'wstack': 101.247044487}
         model = copy_image(self.model)
         for context in ['2d', 'timeslice', 'wstack']:
             dirty_bag = invert_bag(self.vis_bag, model, dopsf=False, context=context, normalize=True)
             future = c.compute(dirty_bag)
-            dirty, sumwt = future.result()
+            dirty, sumwt = future.result()[0]
             export_image_to_fits(dirty, '%s/test_bag_%s_makedirty.fits' % (self.results_dir, context))
             qa = qa_image(dirty, context=context)
         
@@ -109,5 +110,22 @@ class TestDaskBags(unittest.TestCase):
             qa = qa_visibility(newvis[0], context=context)
         
             assert numpy.abs(qa.data['maxabs'] - peaks[context]) < 1.0e-7, str(qa)
+            
+    def test_deconvolve_bag(self):
+        c=Client()
+        context='2d'
+        dirty_bag = invert_bag(self.vis_bag, self.model, dopsf=False, context=context, normalize=True)
+        psf_bag = invert_bag(self.vis_bag, self.model, dopsf=True, context=context, normalize=True)
+        model_bag=deconvolve_bag(dirty_bag, psf_bag, niter=100, gain=1.0, algorithm='hogbom',
+                                                   threshold=0.01)
+        future=c.compute(model_bag)
+        model=future.result()[0]
+        qa = qa_image(model, context='context')
+
+        export_image_to_fits(model, '%s/test_bag_%s_deconvolve.fits' % (self.results_dir, context))
+
+        assert numpy.abs(qa.data['max'] - 103.054908151) < 1.0e-7, str(qa)
+
+        
 
 

@@ -16,7 +16,7 @@ log = logging.getLogger(__name__)
 
 
 def imaging_contexts():
-    """Contains all the context information
+    """Contains all the context information for imaging
     
     :return:
     """

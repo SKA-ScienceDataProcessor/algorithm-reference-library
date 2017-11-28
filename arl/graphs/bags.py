@@ -1,30 +1,36 @@
 """ Common functions converted to Dask.bags graphs. `Dask <http://dask.pydata.org/>`_ is a python-based flexible
 parallel computing library for analytic computing.
-Note that all parameters here should be passed using the kwargs mechanism. The exceptions
-are those needed to define the size of a graph. Since delayed graphs are not Iterable
-by default, it is necessary to use the nout= parameter to delayed to specify the
-graph size.
 
-Construction of the graphs requires that the number of nodes (e.g. w slices or time-slices) be known at construction,
-rather than execution. To counteract this, at run time, a given node should be able to act as a no-op. This is a
-workaround only.
-
+Note that all parameters here should be passed using the kwargs mechanism.
 """
 import numpy
 import logging
 import collections
 
+from dask import bag
+
+from arl.data.data_models import Image
 from arl.graphs.graphs import sum_invert_results
 from arl.imaging import *
 from arl.visibility.base import copy_visibility
 from arl.image.operations import create_image_from_array
 from arl.imaging.imaging_context import imaging_context
 from arl.visibility.operations import concat_visibility
+from arl.image.deconvolution import deconvolve_cube
 
 log = logging.getLogger(__name__)
 
 def safe_predict_list(vis_list, model, predict=predict_2d, **kwargs):
+    """ Predicts a list of visibilities to obtain a list of visibilities
+    
+    :param vis_list:
+    :param model:
+    :param predict:
+    :param kwargs:
+    :return: List of visibilities
+    """
     assert isinstance(vis_list, collections.Iterable), vis_list
+    assert isinstance(model, Image), "Model is not an image: %s" % model
     result = list()
     for v in vis_list:
         if v is not None:
@@ -34,8 +40,18 @@ def safe_predict_list(vis_list, model, predict=predict_2d, **kwargs):
 
 
 def safe_invert_list(vis_list, model, invert=invert_2d, *args, **kwargs):
+    """Invert a list of visibilities to obtain a list of (Image, weight) tuples
+    
+    :param vis_list:
+    :param model:
+    :param invert:
+    :param args:
+    :param kwargs:
+    :return: List of (Image, weight) tuples
+    """
     result = list()
     assert isinstance(vis_list, collections.Iterable), vis_list
+    assert isinstance(model, Image), "Model is not an image: %s" % model
     for v in vis_list:
         if v is not None:
             result.append(invert(v, model, *args, **kwargs))
@@ -43,13 +59,14 @@ def safe_invert_list(vis_list, model, invert=invert_2d, *args, **kwargs):
 
 
 def sum_invert_results(invert_list, normalize=True):
-    """Sum a set of invert results, optionally normalizing at the end
+    """Sum a list of invert results, optionally normalizing at the end
 
     :param invert_list: List of results from invert: Image, weight tuples
     :param normalize: Normalize by the sum of weights
     """
     assert isinstance(invert_list, collections.Iterable), invert_list
     for i, a in enumerate(invert_list):
+        assert isinstance(a[0], Image), "Item is not an image: %s" % str(a[0])
         if i == 0:
             result = create_image_from_array(a[0].data * a[1], a[0].wcs, a[0].polarisation_frame)
             weight = a[1]
@@ -64,7 +81,7 @@ def sum_invert_results(invert_list, normalize=True):
 
 
 def invert_bag(vis_bag, model, dopsf=False, context='2d', **kwargs):
-    """
+    """ Inverts a bag of visibilities to create a bag of (image, weight) tuples
     
     :param vis_bag:
     :param model:
@@ -78,12 +95,11 @@ def invert_bag(vis_bag, model, dopsf=False, context='2d', **kwargs):
     return vis_bag.\
         map(c['scatter'], **kwargs). \
         map(safe_invert_list, model, c['invert'], dopsf=dopsf, **kwargs). \
-        flatten().\
-        reduction(sum_invert_results, sum_invert_results)
+        map(sum_invert_results)
 
 
 def predict_bag(vis_bag, model, context='2d', **kwargs):
-    """
+    """Predicts a bag of visibilities to obtain a bag of visibilities.
 
     :param vis_bag:
     :param model:
@@ -97,3 +113,19 @@ def predict_bag(vis_bag, model, context='2d', **kwargs):
         map(c['scatter'], **kwargs). \
         map(safe_predict_list, model, c['predict'], **kwargs).\
         map(concat_visibility)
+
+def deconvolve_bag(dirty_bag, psf_bag, **kwargs):
+    """ Deconvolve a bag of images to obtain a bag of models
+    
+    :param dirty_bag:
+    :param psf_bag:
+    :param kwargs:
+    :return: Bag of Images
+    """
+
+    def deconvolve(dirty_psf, **kwargs):
+        print("Deconvolving")
+        result = deconvolve_cube(dirty_psf[0][0], dirty_psf[1][0], **kwargs)
+        return result[0]
+    
+    return bag.zip(dirty_bag, psf_bag).map(deconvolve, **kwargs)
