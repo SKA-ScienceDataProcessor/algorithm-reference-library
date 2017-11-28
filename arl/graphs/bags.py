@@ -16,7 +16,7 @@ from arl.visibility.base import copy_visibility
 from arl.image.operations import create_image_from_array
 from arl.imaging.imaging_context import imaging_context
 from arl.visibility.operations import concat_visibility
-from arl.image.deconvolution import deconvolve_cube
+from arl.image.deconvolution import deconvolve_cube, restore_cube
 
 log = logging.getLogger(__name__)
 
@@ -65,6 +65,8 @@ def sum_invert_results(invert_list, normalize=True):
     :param normalize: Normalize by the sum of weights
     """
     assert isinstance(invert_list, collections.Iterable), invert_list
+    result = None
+    weight = None
     for i, a in enumerate(invert_list):
         assert isinstance(a[0], Image), "Item is not an image: %s" % str(a[0])
         if i == 0:
@@ -73,6 +75,8 @@ def sum_invert_results(invert_list, normalize=True):
         else:
             result.data += a[0].data * a[1]
             weight += a[1]
+
+    assert weight is not None and result is not None, "No valid images found"
     
     if normalize:
         result = normalize_sumwt(result, weight)
@@ -124,8 +128,30 @@ def deconvolve_bag(dirty_bag, psf_bag, **kwargs):
     """
 
     def deconvolve(dirty_psf, **kwargs):
-        print("Deconvolving")
         result = deconvolve_cube(dirty_psf[0][0], dirty_psf[1][0], **kwargs)
         return result[0]
     
     return bag.zip(dirty_bag, psf_bag).map(deconvolve, **kwargs)
+
+
+def restore_bag(comp_bag, psf_bag, residual_bag, **kwargs):
+    """ Deconvolve a bag of images to obtain a bag of models
+
+    :param dirty_bag:
+    :param psf_bag:
+    :param kwargs:
+    :return: Bag of Images
+    """
+    
+    def restore(comp_psf_residual, **kwargs):
+        return restore_cube(comp_psf_residual[0], comp_psf_residual[1][0], comp_psf_residual[2][0], **kwargs)
+    
+    return bag.zip(comp_bag, psf_bag, residual_bag).map(restore, **kwargs)
+
+def residual_visibility_bag(vis_bag, model_vis_bag, **kwargs):
+    def subtract_vis(vis, model_vis):
+        residual_vis = copy_visibility(vis)
+        residual_vis.data['vis']-=model_vis.data['vis']
+        return residual_vis
+        
+    return vis_bag.map(subtract_vis, model_vis_bag)
