@@ -3,6 +3,7 @@ Functions that aid definition of fourier transform processing.
 """
 
 import logging
+import warnings
 
 import astropy.constants as constants
 import numpy
@@ -36,7 +37,9 @@ def get_frequency_map(vis, im: Visibility = None):
     
     else:
         # We can map these to image channels
-        v2im_map = im.wcs.sub(['spectral']).wcs_world2pix(ufrequency, 0)[0].astype('int')
+        with warnings.catch_warnings():
+            warnings.simplefilter('ignore')
+            v2im_map = im.wcs.sub(['spectral']).wcs_world2pix(ufrequency, 0)[0].astype('int')
         
         spectral_mode = 'channel'
         nrows = len(vis.frequency)

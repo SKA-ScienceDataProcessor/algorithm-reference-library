@@ -3,6 +3,7 @@ Functions to create primary beam modelsw
 """
 
 import numpy
+import warnings
 
 from astropy import constants as const
 from astropy.wcs.utils import skycoord_to_pixel
@@ -36,12 +37,16 @@ def create_pb_vla(model, pointingcentre=None):
     if pointingcentre is not None:
         cx, cy = skycoord_to_pixel(pointingcentre, model.wcs, 1, 'wcs')
     else:
-        cx, cy = beam.wcs.sub(2).wcs.crpix[0], beam.wcs.sub(2).wcs.crpix[1]
+        with warnings.catch_warnings():
+            warnings.simplefilter('ignore')
+            cx, cy = beam.wcs.sub(2).wcs.crpix[0], beam.wcs.sub(2).wcs.crpix[1]
     
     for chan in range(nchan):
         
         # The frequency axis is the second to last in the beam
-        frequency = model.wcs.sub(['spectral']).wcs_pix2world([chan], 0)[0]
+        with warnings.catch_warnings():
+            warnings.simplefilter('ignore')
+            frequency = model.wcs.sub(['spectral']).wcs_pix2world([chan], 0)[0]
         wavelength = const.c.to('m/s').value / frequency
 
         d2r = numpy.pi / 180.0

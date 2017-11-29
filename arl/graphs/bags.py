@@ -9,10 +9,9 @@ import logging
 from dask import bag
 
 from arl.data.data_models import Image
-from arl.graphs.graphs import sum_invert_results
 from arl.image.deconvolution import deconvolve_cube, restore_cube
 from arl.image.operations import create_image_from_array
-from arl.imaging import *
+from arl.imaging import predict_2d, invert_2d, normalize_sumwt
 from arl.imaging.imaging_context import imaging_context
 from arl.visibility.base import copy_visibility
 from arl.visibility.operations import concat_visibility
@@ -58,7 +57,7 @@ def safe_invert_list(vis_list, model, invert=invert_2d, *args, **kwargs):
     return result
 
 
-def sum_invert_results(invert_list, normalize=True):
+def sum_invert_bag_results(invert_list, normalize=True):
     """Sum a list of invert results, optionally normalizing at the end
 
     :param invert_list: List of results from invert: Image, weight tuples
@@ -99,7 +98,7 @@ def invert_bag(vis_bag, model, dopsf=False, context='2d', **kwargs):
     return vis_bag. \
         map(c['scatter'], **kwargs). \
         map(safe_invert_list, model, c['invert'], dopsf=dopsf, **kwargs). \
-        map(sum_invert_results)
+        map(sum_invert_bag_results)
 
 
 def predict_bag(vis_bag, model, context='2d', **kwargs):

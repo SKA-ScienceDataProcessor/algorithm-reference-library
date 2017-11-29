@@ -139,7 +139,9 @@ def polarisation_frame_from_wcs(wcs, shape) -> PolarisationFrame:
         polarisation_frame = PolarisationFrame("stokesI")
     else:
         npol = shape[1]
-        pol = wcs.sub(['stokes']).wcs_pix2world(range(npol), 0)[0]
+        with warnings.catch_warnings():
+            warnings.simplefilter('ignore')
+            pol = wcs.sub(['stokes']).wcs_pix2world(range(npol), 0)[0]
         pol = numpy.array(pol, dtype='int')
         for key in PolarisationFrame.fits_codes.keys():
             keypol = numpy.array(PolarisationFrame.fits_codes[key])
@@ -375,7 +377,9 @@ def calculate_image_frequency_moments(im: Image, reference_frequency=None, nmome
     assert isinstance(im, Image)
     nchan, npol, ny, nx = im.shape
     channels = numpy.arange(nchan)
-    freq = im.wcs.sub(['spectral']).wcs_pix2world(channels, 0)[0]
+    with warnings.catch_warnings():
+        warnings.simplefilter('ignore')
+        freq = im.wcs.sub(['spectral']).wcs_pix2world(channels, 0)[0]
     
     assert nmoments <= nchan, "Number of moments %d cannot exceed the number of channels %d" % (nmoments, nchan)
     
@@ -429,7 +433,9 @@ def calculate_image_from_frequency_moments(im: Image, moment_image: Image, refer
     assert moment_image.wcs.wcs.ctype[3] == 'MOMENT', "Second image should be a moment image"
     
     channels = numpy.arange(nchan)
-    freq = im.wcs.sub(['spectral']).wcs_pix2world(channels, 0)[0]
+    with warnings.catch_warnings():
+        warnings.simplefilter('ignore')
+        freq = im.wcs.sub(['spectral']).wcs_pix2world(channels, 0)[0]
     
     if reference_frequency is None:
         reference_frequency = numpy.average(freq)
@@ -464,7 +470,9 @@ def remove_continuum_image(im: Image, degree=1, mask=None):
 
     nchan, npol, ny, nx = im.shape
     channels = numpy.arange(nchan)
-    frequency = im.wcs.sub(['spectral']).wcs_pix2world(channels, 0)[0]
+    with warnings.catch_warnings():
+        warnings.simplefilter('ignore')
+        frequency = im.wcs.sub(['spectral']).wcs_pix2world(channels, 0)[0]
     frequency -= frequency[nchan // 2]
     frequency /= numpy.max(frequency)
     wt = numpy.ones_like(frequency)
