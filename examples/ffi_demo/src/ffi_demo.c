@@ -1,6 +1,8 @@
 #include <Python.h>
 #include <stdio.h>
 
+#include "arlwrap.h"
+
 /* Simple exit-on-error */
 void pycheck(PyObject *obj)
 {
