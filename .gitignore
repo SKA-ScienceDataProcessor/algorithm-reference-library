@@ -16,3 +16,5 @@ examples/performance/*
 
 __pycache__
 .cache
+/examples/ffi_demo/ffi_demo
+/examples/ffi_demo/build
