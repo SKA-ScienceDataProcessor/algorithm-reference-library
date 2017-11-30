@@ -10,18 +10,29 @@ extern "C" {
 
 typedef struct {
   size_t nvis;
-  // Shape: (3, nvis)
-  double *uvw;
-  double *time;
-  double *freq;
-  double *bw;
-  double *intgt;
-  int *a1;
-  int *a2;
-  float complex *cwis;
-  float *wght;
-  float *imgwght;
+  int npol;
+  // This needs to be interpret differently dependent on the value of
+  // the npol. For example when npol is 4, data is equivalent to "C"
+  // type type "ARLVisEntryP4[nvis]"
+  void *data;
 } ARLVis;
+
+// This is what the data array for four polarisations look like. Can
+// recast data to this (or equivalent of 2 or 1 polarisation if really
+// needed. This memory layout show allow re-use in numpy without any
+// data copying.
+typedef struct {
+  double uvw[3];
+  double time;
+  double freq;
+  double bw;
+  double intgt;
+  int a1;
+  int a2;
+  float complex vis[4];
+  float wght[4];
+  float imgwght [4];
+} ARLVisEntryP4;    
 
 #ifdef __cplusplus
 }
