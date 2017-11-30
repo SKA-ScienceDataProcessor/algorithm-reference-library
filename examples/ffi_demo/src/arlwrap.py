@@ -9,17 +9,8 @@ ff = cffi.FFI()
 ff.cdef("""
 typedef struct {
   size_t nvis;
-  // Shape: (3, nvis)
-  double *uvw;
-  double *time;
-  double *freq;
-  double *bw;
-  double *intgt;
-  int *a1;
-  int *a2;
-  float *cwis;
-  float *wght;
-  float *imgwght;
+  int npol;
+  void *data;
 } ARLVis;
 """)
 
