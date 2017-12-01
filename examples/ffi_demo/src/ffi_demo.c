@@ -3,6 +3,7 @@
 
 #include "arlwrap.h"
 
+
 /* Simple exit-on-error */
 void pycheck(PyObject *obj)
 {
@@ -58,6 +59,12 @@ int main(int argc, char **argv)
 	printf("Set tuple result: %d\n", PyTuple_SetItem(arg_tup, 0, PyUnicode_DecodeFSDefault("LOWBD2-CORE")));
 	pycheck(config = PyObject_CallObject(arl_fun, arg_tup));
 	printf("config pointer: %p\n", config);
+
+	ARLVis *vin=malloc(104);
+	vin->nvis=1;
+	vin->npol=4;
+	void *vout=malloc(104);
+	arl_copy_visibility(vin, vout, false);
 
 	return 0;
 }

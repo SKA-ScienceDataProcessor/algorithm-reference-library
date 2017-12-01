@@ -9,7 +9,7 @@ import sys
 assert sys.version_info[0] >= 3
 
 
-ffi_demo = Extension('ffi_demo', sources = ['src/ffi_demo.c'])
+ffi_demo = Extension('ffi_demo', sources = ['src/ffi_demo.c', 'src/arlwrap.c'])
 
 class CFFIBuild(build_ext):
         def run(self):

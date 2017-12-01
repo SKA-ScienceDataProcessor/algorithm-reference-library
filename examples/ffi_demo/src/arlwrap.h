@@ -4,6 +4,9 @@
 #ifndef __ARLWRAP_H__
 #define __ARLWRAP_H__
 
+#include <complex.h>
+#include <stdbool.h>
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -32,7 +35,11 @@ typedef struct {
   float complex vis[4];
   float wght[4];
   float imgwght [4];
-} ARLVisEntryP4;    
+} ARLVisEntryP4;
+
+  void arl_copy_visibility(const ARLVis *visin,
+			   ARLVis *visout,
+			   bool zero);
 
 #ifdef __cplusplus
 }
