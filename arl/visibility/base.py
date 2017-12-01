@@ -31,7 +31,7 @@ def copy_visibility(vis: Union[Visibility, BlockVisibility], zero=False) -> Unio
     Performs a deepcopy of the data array
     """
     newvis = copy.copy(vis)
-    newvis.data = copy.deepcopy(vis.data)
+    newvis.data = numpy.copy(vis.data)
     if zero:
         newvis.data['vis'][...] = 0.0
     return newvis
