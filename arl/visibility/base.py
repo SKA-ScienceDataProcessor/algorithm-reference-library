@@ -33,7 +33,7 @@ def copy_visibility(vis: Union[Visibility, BlockVisibility], zero=False) -> Unio
     assert isinstance(vis, Visibility) or isinstance(vis, BlockVisibility), vis
     
     newvis = copy.copy(vis)
-    newvis.data = copy.deepcopy(vis.data)
+    newvis.data = numpy.copy(vis.data)
     if isinstance(vis, Visibility):
         newvis.cindex = vis.cindex
         newvis.blockvis = vis.blockvis
