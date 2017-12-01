@@ -82,6 +82,8 @@ def predict_wstack_single(vis, model, predict_inner=predict_2d_base, **kwargs) -
     
     avis.data['uvw'][..., 2] += w_average
 
+    assert numpy.max(numpy.abs(avis.vis)) > 0.0, "Visibility from predict_wstack_single is zero"
+    
     return avis
 
 
@@ -109,7 +111,8 @@ def invert_wstack(vis: Visibility, im: Image, dopsf=False, normalize=True, **kwa
                                     invert=invert_wstack_single, **kwargs)
 
 
-def invert_wstack_single(vis: Visibility, im: Image, dopsf, normalize=True, invert_inner=invert_2d_base, **kwargs) -> (Image, numpy.ndarray):
+def invert_wstack_single(vis: Visibility, im: Image, dopsf, normalize=True, invert_inner=invert_2d_base,
+                         **kwargs) -> (Image, numpy.ndarray):
     """Process single w slice
     
     :param vis: Visibility to be inverted
@@ -123,10 +126,15 @@ def invert_wstack_single(vis: Visibility, im: Image, dopsf, normalize=True, inve
     
     assert isinstance(vis, Visibility)
     
+    kwargs['vis_slices'] = 1
+    kwargs['wstack'] = numpy.max(numpy.abs(vis.w))
+    
     # We might want to do wprojection so we remove the average w
     w_average = numpy.average(vis.w)
     vis.data['uvw'][..., 2] -= w_average
+    
     reWorkimage, sumwt, imWorkimage = invert_inner(vis, im, dopsf, normalize=normalize, **kwargs)
+    
     vis.data['uvw'][..., 2] += w_average
 
     # Calculate w beam and apply to the model. The imaginary part is not needed

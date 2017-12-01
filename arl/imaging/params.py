@@ -92,7 +92,7 @@ def get_uvw_map(vis: Visibility, im: Image, padding=2):
     """ Get the generators that map channels uvw to pixels
 
     :param padding:
-    return ?
+    :return: uvw mode, shape, padding, uvw mapping
     """
     # Transform parameters
     

@@ -47,4 +47,4 @@ See the jupyter note books below:
    arl/simple-dask
 
 In addition, there are other notebooks in examples/arl that are not built as part of this documentation. See e.g.
-examples/arl/imaging-dask, examples/arl/imaging-low.ipynb, examples/arl/imaging-coalesce.ipynb
+examples/arl/imaging-dask, examples/arl/imaging-bags, examples/arl/imaging-low.ipynb, examples/arl/imaging-coalesce.ipynb

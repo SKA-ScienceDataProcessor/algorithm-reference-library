@@ -274,14 +274,20 @@ Timing
 Graphs
 ------
 
-Dask Graphs
-+++++++++++
+Dask Graphs using delayed
++++++++++++++++++++++++++
 
 .. automodule:: arl.graphs.graphs
    :members:
 
-Generic Dask Graphs
-+++++++++++++++++++
+Dask Graphs using bags
+++++++++++++++++++++++
+
+.. automodule:: arl.graphs.bags
+   :members:
+
+Generic Dask Graphs using delayed
++++++++++++++++++++++++++++++++++
 
 .. automodule:: arl.graphs.generic_graphs
    :members:
@@ -292,8 +298,8 @@ Dask init
 .. automodule:: arl.graphs.dask_init
    :members:
 
-Vis
-+++
+Visualisation
++++++++++++++
 
 .. automodule:: arl.graphs.vis
    :members:
@@ -301,8 +307,8 @@ Vis
 Pipelines
 ---------
 
-Pipeline Graphs
-+++++++++++++++
+Pipeline Graphs using delayed
++++++++++++++++++++++++++++++
 
 .. automodule:: arl.pipelines.graphs
    :members:
@@ -364,6 +370,10 @@ Unit tests written in standard python style are available.
    :undoc-members:
 
 .. automodule:: tests.test_graphs
+   :members:
+   :undoc-members:
+
+.. automodule:: tests.test_bags
    :members:
    :undoc-members:
 

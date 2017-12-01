@@ -30,20 +30,35 @@ def append_visibility(vis: Union[Visibility, BlockVisibility], othervis: Union[V
     
     assert isinstance(vis, Visibility) or isinstance(vis, BlockVisibility)
     assert vis.polarisation_frame == othervis.polarisation_frame
-    assert vis.phasecentre == othervis.phasecentre
+    assert abs(vis.phasecentre.ra.value - othervis.phasecentre.ra.value) < 1e-15
+    assert abs(vis.phasecentre.dec.value - othervis.phasecentre.dec.value) < 1e-15
+    assert vis.phasecentre.separation(othervis.phasecentre).value < 1e-15
     vis.data = numpy.hstack((vis.data, othervis.data))
     return vis
 
 
-def concat_visibility(vis_list):
-    """Concatenate a list of visibilities
+def sort_visibility(vis, order=['index']):
+    """ Sort a visibility on a given column
+    
+    :param vis:
+    :param order: Array of string of column to be used for sortin
+    :return:
+    """
+    vis.data = numpy.sort(vis.data, order=order)
+    return vis
+
+
+def concat_visibility(vis_list, sort=True):
+    """Concatenate a list of visibilities, with an optional sort back to index order
 
     :param vis_list:
     :return: Visibility
     """
     if isinstance(vis_list, Visibility) or isinstance(vis_list, BlockVisibility):
         return vis_list
-
+    
+    assert len(vis_list) > 0
+    
     vis = None
     for v in vis_list:
         if vis is None:
@@ -52,7 +67,12 @@ def concat_visibility(vis_list):
             assert v.polarisation_frame == vis.polarisation_frame
             assert v.phasecentre.separation(vis.phasecentre).value < 1e-15
             vis.data = numpy.hstack((vis.data, v.data))
-
+    
+    assert vis is not None
+    
+    if sort:
+        vis = sort_visibility(vis, ['index'])
+    
     return vis
 
 
@@ -66,7 +86,7 @@ def sum_visibility(vis: Visibility, direction: SkyCoord) -> numpy.array:
     # TODO: Convert to Visibility or remove?
     
     assert isinstance(vis, Visibility) or isinstance(vis, BlockVisibility)
-
+    
     svis = copy_visibility(vis)
     
     l, m, n = skycoord_to_lmn(direction, svis.phasecentre)
@@ -94,6 +114,24 @@ def sum_visibility(vis: Visibility, direction: SkyCoord) -> numpy.array:
     return flux, weight
 
 
+def subtract_visibility(vis, model_vis, inplace=False):
+    """ Subtract model_vis from vis, returning new visibility
+    
+    :param vis:
+    :param model_vis:
+    :return:
+    """
+    assert isinstance(vis, Visibility) or isinstance(vis, BlockVisibility), vis
+    
+    if inplace:
+        vis.data['vis'] = vis.data['vis'] - model_vis.data['vis']
+        return vis
+    else:
+        residual_vis = copy_visibility(vis)
+        residual_vis.data['vis'] = residual_vis.data['vis'] - model_vis.data['vis']
+        return residual_vis
+
+
 def qa_visibility(vis: Union[Visibility, BlockVisibility], context=None) -> QA:
     """Assess the quality of Visibility
 
@@ -101,14 +139,14 @@ def qa_visibility(vis: Union[Visibility, BlockVisibility], context=None) -> QA:
     :param vis: Visibility to be assessed
     :return: QA
     """
-    assert isinstance(vis, Visibility) or isinstance(vis, BlockVisibility)
-
+    assert isinstance(vis, Visibility) or isinstance(vis, BlockVisibility), vis
+    
     avis = numpy.abs(vis.vis)
     data = {'maxabs': numpy.max(avis),
             'minabs': numpy.min(avis),
             'rms': numpy.std(avis),
             'medianabs': numpy.median(avis)}
-    qa = QA(origin=None,
+    qa = QA(origin='qa_visibility',
             data=data,
             context=context)
     return qa
@@ -124,8 +162,8 @@ def remove_continuum_blockvisibility(vis: BlockVisibility, degree=1, mask=None) 
     :param mask:
     :return:
     """
-    assert isinstance(vis, Visibility) or isinstance(vis, BlockVisibility)
-
+    assert isinstance(vis, Visibility) or isinstance(vis, BlockVisibility), vis
+    
     if mask is not None:
         assert numpy.sum(mask) > 2 * degree, "Insufficient channels for fit"
     
@@ -157,8 +195,8 @@ def divide_visibility(vis: BlockVisibility, modelvis: BlockVisibility):
     :param modelvis:
     :return:
     """
-    assert isinstance(vis, Visibility) or isinstance(vis, BlockVisibility)
-
+    assert isinstance(vis, Visibility) or isinstance(vis, BlockVisibility), vis
+    
     # Different for scalar and vector/matrix cases
     isscalar = vis.polarisation_frame.npol == 1
     
@@ -201,8 +239,8 @@ def integrate_visibility_by_channel(vis: BlockVisibility) -> BlockVisibility:
     :return: BlockVisibility
     """
     
-    assert isinstance(vis, Visibility) or isinstance(vis, BlockVisibility)
-
+    assert isinstance(vis, Visibility) or isinstance(vis, BlockVisibility), vis
+    
     vis_shape = list(vis.vis.shape)
     ntimes, nants, _, nchan, npol = vis_shape
     vis_shape[-2] = 1

@@ -638,7 +638,7 @@ def create_w_term_like(im: Image, w, phasecentre=None, remove_shift=False, dopol
     :param phasecentre:
     :param im: template image
     :param w: w value to evaluate (default is median abs)
-    :param remove_shift
+    :param remove_shift:
     :param dopol: Do screen in polarisation?
     :return: Image
     """

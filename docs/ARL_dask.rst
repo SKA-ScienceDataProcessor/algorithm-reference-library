@@ -31,7 +31,8 @@ Dask is supported in various ways:
 
 In addition there are notebooks in examples/arl.
 
-    - imaging-dask: General imaging example
+    - imaging-dask: General imaging example using Dask.delayed
+    - imaging-bags: General imaging example using Dask.bag
     - imaging-pipelines: Pipelines run on small LOW observation (core only)
     - calibration-pipelines: Pipelines for self-calibration
 
@@ -40,11 +41,7 @@ There are supporting functions for scatter/gather of some of the appropriate dat
 These notebooks are scaled to run on a 2017-era laptop (4 cores, 16GB) but can be changed to larger scales. Both
 explicitly create a client and output the URL (usually http://127.0.0.1:8787) for the Dask diagnostics. Of these the
 status page is most useful. If you shrink the browser size enough laterally all of the information appears on one
-page. Below is a snapshot of the diagnostic page when dask is calculating an image:
-
-.. image:: partial.png
-      :width: 1024px
-
+page.
 
 Using ARL and dask on Darwin
 ****************************
