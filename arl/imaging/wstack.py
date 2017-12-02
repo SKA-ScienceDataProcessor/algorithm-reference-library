@@ -82,8 +82,6 @@ def predict_wstack_single(vis, model, predict_inner=predict_2d_base, **kwargs) -
     
     avis.data['uvw'][..., 2] += w_average
 
-    assert numpy.max(numpy.abs(avis.vis)) > 0.0, "Visibility from predict_wstack_single is zero"
-    
     return avis
 
 
