@@ -1,5 +1,6 @@
 #include <Python.h>
 #include <stdio.h>
+#include <assert.h>
 
 #include "arlwrap.h"
 
@@ -38,6 +39,43 @@ PyObject *get_plain_fn_addr(const char* module, const char* fn_name)
 	return fn;
 }
 
+/*
+ * Verifies that:
+ * - vin and vout are unique in memory
+ * - vin and vout have equivalent values
+ */
+int verify_arl_copy(ARLVis *vin, ARLVis *vout)
+{
+	char *vindata_bytes, *voutdata_bytes;
+	int ARLVisDataSize;
+	int i;
+
+	if (vin == vout) {
+		fprintf(stderr, "vin == vout\n");
+		return 1;
+	}
+
+	if (!((vin->nvis == vout->nvis) && (vin->npol == vout->npol))) {
+		return 2;
+	}
+
+	if (vin->data == vout->data) {
+		return 3;
+	}
+
+	ARLVisDataSize = 72 + (32 * vin->npol * vin->nvis);
+	vindata_bytes = (char*) vin->data;
+	voutdata_bytes = (char*) vout->data;
+
+	for (i=0; i<ARLVisDataSize; i++) {
+		if (vindata_bytes[i] != voutdata_bytes[i]) {
+			return 4;
+		}
+	}
+
+	return 0;
+}
+
 
 int main(int argc, char **argv)
 {
@@ -59,6 +97,8 @@ int main(int argc, char **argv)
 	}
 
 	arl_copy_visibility(vin, vout, false);
+
+	assert(0 == verify_arl_copy(vin, vout));
 
 	return 0;
 }
