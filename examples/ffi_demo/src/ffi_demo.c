@@ -91,6 +91,8 @@ int main(int argc, char **argv)
 	vin->data = malloc(72+(32*vin->npol*vin->nvis) * sizeof(char));
 	vout->data = malloc(72+(32*vin->npol*vin->nvis) * sizeof(char));
 
+	((ARLVisEntryP4 *)(vin->data))[0].time=99;
+
 	if (!vin->data || !vout->data) {
 		fprintf(stderr, "Malloc error\n");
 		exit(1);
