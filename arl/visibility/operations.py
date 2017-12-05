@@ -48,7 +48,7 @@ def sort_visibility(vis, order=['index']):
     return vis
 
 
-def concat_visibility(vis_list, sort=True):
+def concatenate_visibility(vis_list, sort=True):
     """Concatenate a list of visibilities, with an optional sort back to index order
 
     :param vis_list:

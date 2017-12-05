@@ -41,9 +41,8 @@ def solve_gaintable(vis: BlockVisibility, modelvis: BlockVisibility=None, phase_
     :return: GainTable containing solution
 
     """
-    assert isinstance(vis, BlockVisibility), "vis is not a BlockVisibility: %r" % vis
-    assert isinstance(modelvis, BlockVisibility) or type(modelvis) is not None, "modelvis is not None or a " \
-        "BlockVisibility: %r" % vis
+    assert isinstance(vis, BlockVisibility), vis
+    assert isinstance(modelvis, BlockVisibility) or type(modelvis) is not None, vis
     
     if phase_only:
         log.info('solve_gaintable: Solving for phase only')
@@ -57,12 +56,18 @@ def solve_gaintable(vis: BlockVisibility, modelvis: BlockVisibility=None, phase_
         if modelvis is not None:
             model_subvis = create_visibility_from_rows(modelvis, rows)
             pointvis = divide_visibility(subvis, model_subvis)
-            x = numpy.average(pointvis.vis, axis=0)
-            xwt = numpy.average(pointvis.weight, axis=0)
+            x = numpy.sum(pointvis.vis*pointvis.weight, axis=0)
+            xwt = numpy.sum(pointvis.weight, axis=0)
         else:
-            x = numpy.average(subvis.vis, axis=0)
-            xwt = numpy.average(subvis.weight, axis=0)
+            x = numpy.sum(subvis.vis*subvis.weight, axis=0)
+            xwt = numpy.sum(subvis.weight, axis=0)
             
+        mask = numpy.abs(xwt) > 0.0
+        x_shape = x.shape
+        x[mask] = x[mask] / xwt[mask]
+        x[~mask] = 0.0
+        x = x.reshape(x_shape)
+        
         gt = solve_from_X(gt, x, xwt, chunk, crosspol, niter, phase_only,
                           tol, npol=vis.polarisation_frame.npol)
 
