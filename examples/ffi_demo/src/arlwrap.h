@@ -18,6 +18,7 @@ typedef struct {
   // the npol. For example when npol is 4, data is equivalent to "C"
   // type type "ARLVisEntryP4[nvis]"
   void *data;
+	char *pickle;
 } ARLVis;
 
 // This is what the data array for four polarisations look like. Can
@@ -51,9 +52,12 @@ typedef struct {
 
 void helper_get_image_shape(const double *frequency, double cellsize,
 		int *shape);
+
+void arl_create_visibility(const char *lowcore_name, double *times, double *frequency, double *channel_bandwidth, ARLVis *res_vis);
 void arl_create_test_image(const double *frequency, double cellsize,
 		Image *res_img);
 void arl_predict_2d(const ARLVis *visin, const Image *img, ARLVis *visout);
+void arl_invert_2d(const ARLVis *visin, const Image *img_in, bool dopsf, Image *out, double *sumwt);
 void arl_create_image_from_visibility(const ARLVis *vis, Image *model);
 void arl_deconvolve_cube(Image *dirty, Image *psf, Image *restored,
 		Image *residual);

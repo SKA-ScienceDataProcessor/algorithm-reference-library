@@ -5,12 +5,18 @@ import cffi
 import numpy
 import collections
 
-import arl
-from arl.visibility.base import copy_visibility
+from astropy.coordinates import SkyCoord
+from astropy import units as u
+
+#import arl
+from arl.visibility.base import create_visibility, copy_visibility
 from arl.data.data_models import Image, Visibility, BlockVisibility
 from arl.image.deconvolution import deconvolve_cube, restore_cube
 from arl.imaging.base import create_image_from_visibility, predict_2d
-from arl.util.testing_support import create_test_image
+from arl.util.testing_support import create_named_configuration, create_test_image
+from arl.data.polarisation import PolarisationFrame
+
+from arl.imaging import invert_2d
 
 import pickle
 
@@ -33,7 +39,7 @@ def cARLVis(visin):
     """
     npol=visin.npol
     nvis=visin.nvis
-    print (ARLDataVisSize(nvis, npol))
+    #print (ARLDataVisSize(nvis, npol))
     desc = [('uvw', '>f8', (3,)),
             ('time', '>f8'),
             ('frequency', '>f8'),
@@ -61,7 +67,7 @@ def arl_copy_visibility_ffi(visin, visout, zero):
     nvisin=cARLVis(visin)
 
     # Call the ARL function 
-    tvis=arl.visibility.base.copy_visibility(nvisin, zero=zero)
+    tvis=copy_visibility(nvisin, zero=zero)
 
     # Copy the result into the output buffer
     visout.npol=visin.npol
@@ -119,7 +125,7 @@ def store_image_pickles(c_img, py_img):
     numpy.copyto(c_img.polarisation_frame, polframe_buf)
 
 # Turns ARLVis struct into Visibility object
-def create_visibility(c_vis):
+def helper_create_visibility_object(c_vis):
     # This may be incorrect
     # especially the data field...
     tvis= Visibility(
@@ -137,7 +143,7 @@ def create_visibility(c_vis):
     return tvis
 
 # Turns ARLVis struct into BlockVisibility object
-def create_blockvisibility(c_vis):
+def helper_create_blockvisibility_object(c_vis):
     # This may be incorrect
     # especially the data field...
     tvis= BlockVisibility(
@@ -154,6 +160,32 @@ def create_blockvisibility(c_vis):
 def store_image_in_c(img_to, img_from):
     numpy.copyto(img_to.data, img_from.data)
     store_image_pickles(img_to, img_from)
+
+@ff.callback("void (*)(const char *, double*, double*, double*, ARLVis *)")
+def arl_create_visibility_ffi(lowcore_name, c_times, c_frequency,
+        channel_bandwidth, c_res_vis):
+    lowcore_name = str(ff.string(lowcore_name), 'utf-8')
+    lowcore = create_named_configuration(lowcore_name)
+
+    times = numpy.frombuffer(ff.buffer(c_times, 8), dtype='f8', count=1)
+    frequency = numpy.frombuffer(ff.buffer(c_frequency, 8), dtype='f8', count=1)
+
+    phasecentre = SkyCoord(ra=+15.0 * u.deg, dec=-45.0*u.deg, frame='icrs',
+            equinox='J200')
+
+    vt =create_visibility(lowcore, times, frequency,
+            channel_bandwidth=channel_bandwidth, weight=1.0,
+            phasecentre=phasecentre,
+            polarisation_frame=PolarisationFrame('stokesI'))
+
+    py_res_vis = cARLVis(c_res_vis)
+
+    #print(py_res_vis.dtype)
+    #print(vt.data.dtype)
+    numpy.copyto(py_res_vis, vt.data)
+
+arl_create_visibility=collections.namedtuple("FFIX", "address")
+arl_create_visibility.address=int(ff.cast("size_t", arl_create_visibility_ffi))
 
 # TODO temporary until better solution found
 @ff.callback("void (*)(const double *, double, int *)")
@@ -173,6 +205,15 @@ def arl_create_test_image_ffi(frequency, cellsize, out_img):
 
     res = create_test_image(frequency, cellsize)
 
+    nchan, npol, ny, nx = res.data.shape
+    phasecentre = SkyCoord(ra=+15.0 * u.deg, dec=-45.0*u.deg, frame='icrs',
+            equinox='J200')
+
+    res.wcs.wcs.crval[0] = phasecentre.ra.deg
+    res.wcs.wcs.crval[1] = phasecentre.dec.deg
+    res.wcs.wcs.crpix[0] = float(nx // 2)
+    res.wcs.wcs.crpix[1] = float(ny // 2)
+
     store_image_in_c(py_outimg, res)
 
 arl_create_test_image=collections.namedtuple("FFIX", "address")
@@ -181,16 +222,49 @@ arl_create_test_image.address=int(ff.cast("size_t", arl_create_test_image_ffi))
 @ff.callback("void (*)(const ARLVis *, const Image *, ARLVis *)")
 def arl_predict_2d_ffi(vis_in, img, vis_out):
     c_visin = cARLVis(vis_in)
-    py_visin = create_blockvisibility(c_visin)
+    py_visin = helper_create_visibility_object(c_visin)
     c_img = cImage(img)
-    c_visout = cARLVis(vis_out)
+
+    phasecentre = SkyCoord(ra=+15.0 * u.deg, dec=-45.0*u.deg, frame='icrs',
+            equinox='J200')
+    py_visin.phasecentre = phasecentre
 
     res = predict_2d(py_visin, c_img)
 
-    arl_copy_visibility(py_visin, c_visout, False)
+    vis_out.nvis = vis_in.nvis
+    vis_out.npol = vis_in.npol
+    c_visout = cARLVis(vis_out)
+
+    numpy.copyto(c_visout, res.data)
+
+    #arl_copy_visibility(py_visin, c_visout, False)
 
 arl_predict_2d=collections.namedtuple("FFIX", "address")
 arl_predict_2d.address=int(ff.cast("size_t", arl_predict_2d_ffi))
+
+def store_image_in_c_2(img_to, img_from):
+    numpy.copyto(img_to.data, img_from.data)
+    store_image_pickles(img_to, img_from)
+
+@ff.callback("void (*)(const ARLVis *, const Image *, bool dopsf, Image *, double *)")
+def arl_invert_2d_ffi(invis, in_image, dopsf, out_image, sumwt):
+    py_visin = helper_create_visibility_object(cARLVis(invis))
+    c_in_img = cImage(in_image)
+    c_out_img = cImage(out_image, new=True)
+    phasecentre = SkyCoord(ra=+15.0 * u.deg, dec=-45.0*u.deg, frame='icrs',
+            equinox='J200')
+    py_visin.phasecentre = phasecentre
+
+    if dopsf:
+        out, sumwt = invert_2d(py_visin, c_in_img, dopsf=True)
+    else:
+        out, sumwt = invert_2d(py_visin, c_in_img)
+
+
+    store_image_in_c_2(c_out_img, out)
+
+arl_invert_2d=collections.namedtuple("FFIX", "address")
+arl_invert_2d.address=int(ff.cast("size_t", arl_invert_2d_ffi))
 
 @ff.callback("void (*)(const ARLVis *, Image *)")
 def arl_create_image_from_visibility_ffi(vis_in, img_in):
@@ -200,17 +274,21 @@ def arl_create_image_from_visibility_ffi(vis_in, img_in):
     # We need a proper Visibility object - not this, and not a cARLVis
     # This is temporary - just so we have some data to pass to
     # the create_... routine
-    tvis = create_visibility(c_vis)
-    print(type(tvis))
+    tvis = helper_create_visibility_object(c_vis)
+    #print(type(tvis))
+    phasecentre = SkyCoord(ra=+15.0 * u.deg, dec=-45.0*u.deg, frame='icrs',
+            equinox='J200')
+    tvis.phasecentre = phasecentre
 
     # Default args for now
     image = create_image_from_visibility(tvis, cellsize=0.001, npixel=256)
 
-    numpy.copyto(c_img.data, image.data)
+    #numpy.copyto(c_img.data, image.data)
 
     # Pickle WCS and polframe, until better way is found to handle these data
     # structures
-    store_image_pickles(c_img, image)
+    #store_image_pickles(c_img, image)
+    store_image_in_c(c_img, image)
 
 
 arl_create_image_from_visibility=collections.namedtuple("FFIX", "address")    
@@ -221,20 +299,24 @@ arl_create_image_from_visibility.address=int(ff.cast("size_t",
 def arl_deconvolve_cube_ffi(dirty, psf, restored, residual):
     c_dirty = cImage(dirty)
     c_psf = cImage(psf)
-    if residual:
-        c_residual = cImage(residual)
-    else:
-        c_residual = None
-    c_restored = cImage(restored)
+    #if residual:
+    #    c_residual = cImage(residual, new=True)
+    #else:
+    #    c_residual = None
+    c_residual = cImage(residual, new=True)
+    c_restored = cImage(restored, new=True)
 
-    restored, residual = deconvolve_cube(c_dirty, c_psf,
+    py_restored, py_residual = deconvolve_cube(c_dirty, c_psf,
             niter=1000,threshold=0.001, fracthresh=0.01, window_shape='quarter',
             gain=0.7, scales=[0,3,10,30])
 
-    restored.data[0][0][0][0] = 1111.2222
+    #restored.data[0][0][0][0] = 1111.2222
 
-    numpy.copyto(c_restored.data,restored.data)
-    numpy.copyto(c_residual.data,residual.data)
+    #numpy.copyto(c_restored.data,pyrestored.data)
+    #numpy.copyto(c_residual.data,residual.data)
+
+    store_image_in_c(c_restored,py_restored)
+    store_image_in_c(c_residual,py_residual)
 
     # This was for testing only
     #store_image_pickles(c_restored, restored)
@@ -251,14 +333,14 @@ def arl_restore_cube_ffi(model, psf, residual, restored):
         c_residual = cImage(residual)
     else:
         c_residual = None
-    c_restored = cImage(restored)
+    c_restored = cImage(restored, new=True)
 
     # Calculate
-    restored = restore_cube(c_model, c_psf, c_residual)
-    restored.data[0][0][0][0] = 1337.7331
+    py_restored = restore_cube(c_model, c_psf, c_residual)
+    #restored.data[0][0][0][0] = 1337.7331
 
     # Copy Python result to C result struct
-    numpy.copyto(c_restored.data,restored.data)
+    store_image_in_c(c_restored,py_restored)
 
 arl_restore_cube=collections.namedtuple("FFIX", "address")    
 arl_restore_cube.address=int(ff.cast("size_t", arl_restore_cube_ffi))    
