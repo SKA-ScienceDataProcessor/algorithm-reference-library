@@ -41,6 +41,17 @@ size_t bk_getfn(const char* fname)
 // warning for this instance only?
 #define BKFNPY(F)  (* ( void (*)() )(bk_getfn( #F ))) 
 
+void helper_get_image_shape(const double *frequency, double cellsize,
+		int *shape)
+{
+	BKFNPY(helper_get_image_shape)(frequency, cellsize, shape);
+}
+
+void arl_create_test_image(const double *frequency, double cellsize,
+		Image *res_img)
+{
+	BKFNPY(arl_create_test_image)(frequency, cellsize, res_img);
+}
 
 void arl_copy_visibility(const ARLVis *visin,
 			 ARLVis *visout,

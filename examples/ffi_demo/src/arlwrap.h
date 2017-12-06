@@ -49,6 +49,10 @@ typedef struct {
 	char *polarisation_frame;
 } Image;
 
+void helper_get_image_shape(const double *frequency, double cellsize,
+		int *shape);
+void arl_create_test_image(const double *frequency, double cellsize,
+		Image *res_img);
 void arl_predict_2d(const ARLVis *visin, const Image *img, ARLVis *visout);
 void arl_create_image_from_visibility(const ARLVis *vis, Image *model);
 void arl_deconvolve_cube(Image *dirty, Image *psf, Image *restored,

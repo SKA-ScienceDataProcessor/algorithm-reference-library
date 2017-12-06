@@ -10,6 +10,7 @@ from arl.visibility.base import copy_visibility
 from arl.data.data_models import Image, Visibility, BlockVisibility
 from arl.image.deconvolution import deconvolve_cube, restore_cube
 from arl.imaging.base import create_image_from_visibility, predict_2d
+from arl.util.testing_support import create_test_image
 
 import pickle
 
@@ -93,8 +94,14 @@ def cImage(image_in, new=False):
             count=size)
     new_image.data = new_image.data.reshape(data_shape)
     if new:
-        new_image.wcs = ff.buffer(image_in.wcs, 2996)
-        new_image.polarisation_frame = ff.buffer(image_in.polarisation_frame, 114)
+        new_image.wcs = numpy.frombuffer(ff.buffer(image_in.wcs,
+            2996),
+            dtype='b',
+            count=2996)
+        new_image.polarisation_frame = numpy.frombuffer(ff.buffer(
+            image_in.polarisation_frame, 114),
+            dtype='b',
+            count=114)
     else:
         new_image.wcs = pickle.loads(ff.buffer(image_in.wcs, 2996))
         new_image.polarisation_frame = pickle.loads(ff.buffer(image_in.polarisation_frame,114))
@@ -102,8 +109,14 @@ def cImage(image_in, new=False):
     return new_image
 
 def store_image_pickles(c_img, py_img):
-    c_img.wcs = pickle.dumps(py_img.wcs)
-    c_img.polarisation_frame = pickle.dumps(py_img.polarisation_frame)
+    wcs_pickle = pickle.dumps(py_img.wcs)
+    wcs_buf = numpy.frombuffer(wcs_pickle, dtype='b', count=len(wcs_pickle))
+    polframe_pickle = pickle.dumps(py_img.polarisation_frame)
+    polframe_buf = numpy.frombuffer(polframe_pickle, dtype='b',
+        count=len(polframe_pickle))
+
+    numpy.copyto(c_img.wcs, wcs_buf)
+    numpy.copyto(c_img.polarisation_frame, polframe_buf)
 
 # Turns ARLVis struct into Visibility object
 def create_visibility(c_vis):
@@ -137,6 +150,33 @@ def create_blockvisibility(c_vis):
             time=c_vis['time']
             )
     return tvis
+
+def store_image_in_c(img_to, img_from):
+    numpy.copyto(img_to.data, img_from.data)
+    store_image_pickles(img_to, img_from)
+
+# TODO temporary until better solution found
+@ff.callback("void (*)(const double *, double, int *)")
+def helper_get_image_shape_ffi(freq, cellsize, c_shape):
+    res = create_test_image(freq, cellsize)
+
+    shape = list(res.data.shape)
+    # TODO fix ugly
+    numpy.copyto(numpy.frombuffer(ff.buffer(c_shape,4*4),dtype='i4',count=4), shape)
+
+helper_get_image_shape=collections.namedtuple("FFIX", "address")
+helper_get_image_shape.address=int(ff.cast("size_t", helper_get_image_shape_ffi))
+
+@ff.callback("void (*)(const double *, double, Image *)")
+def arl_create_test_image_ffi(frequency, cellsize, out_img):
+    py_outimg = cImage(out_img, new=True)
+
+    res = create_test_image(frequency, cellsize)
+
+    store_image_in_c(py_outimg, res)
+
+arl_create_test_image=collections.namedtuple("FFIX", "address")
+arl_create_test_image.address=int(ff.cast("size_t", arl_create_test_image_ffi))
 
 @ff.callback("void (*)(const ARLVis *, const Image *, ARLVis *)")
 def arl_predict_2d_ffi(vis_in, img, vis_out):
