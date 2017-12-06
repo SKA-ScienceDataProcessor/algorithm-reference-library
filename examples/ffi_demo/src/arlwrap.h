@@ -41,6 +41,21 @@ typedef struct {
 			   ARLVis *visout,
 			   bool zero);
 
+typedef struct {
+	size_t size;
+	int data_shape[4];
+	void *data;
+	char *wcs;
+	char *polarisation_frame;
+} Image;
+
+void arl_predict_2d(const ARLVis *visin, const Image *img, ARLVis *visout);
+void arl_create_image_from_visibility(const ARLVis *vis, Image *model);
+void arl_deconvolve_cube(Image *dirty, Image *psf, Image *restored,
+		Image *residual);
+void arl_restore_cube(Image *model, Image *psf, Image *residual,
+		Image *restored);
+
 #ifdef __cplusplus
 }
 #endif

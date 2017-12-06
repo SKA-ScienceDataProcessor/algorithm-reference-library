@@ -42,10 +42,27 @@ size_t bk_getfn(const char* fname)
 #define BKFNPY(F)  (* ( void (*)() )(bk_getfn( #F ))) 
 
 
-
 void arl_copy_visibility(const ARLVis *visin,
 			 ARLVis *visout,
 			 bool zero)
 {
   BKFNPY(arl_copy_visibility)(visin, visout, zero);
+}
+
+void arl_predict_2d(const ARLVis *visin, const Image *img, ARLVis *visout) {
+	BKFNPY(arl_predict_2d)(visin, img, visout);
+}
+
+void arl_create_image_from_visibility(const ARLVis *vis, Image *model) {
+	BKFNPY(arl_create_image_from_visibility)(vis, model);
+}
+
+void arl_deconvolve_cube(Image *dirty, Image *psf, Image *restored, Image *residual)
+{
+  BKFNPY(arl_deconvolve_cube)(dirty, psf, restored, residual);
+}
+
+void arl_restore_cube(Image *model, Image *psf, Image *residual, Image *restored)
+{
+  BKFNPY(arl_restore_cube)(model, psf, residual, restored);
 }
