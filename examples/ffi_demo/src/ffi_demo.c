@@ -107,11 +107,16 @@ void copy_polframe(Image *im)
 int main(int argc, char **argv)
 {
 	int i;
+	int *shape = malloc(4*sizeof(int));
+	int serial_shape;
 
-	Py_Initialize();
+	double *freq = malloc(1e8*sizeof(double));
+	double cellsize = 0.0005;
 
 	ARLVis *vin = malloc(sizeof(ARLVis));
 	ARLVis *vout = malloc(sizeof(ARLVis));
+
+	Py_Initialize();
 
 	vin->nvis = 1;
 	vin->npol = 4;
@@ -131,56 +136,62 @@ int main(int argc, char **argv)
 
 	assert(0 == verify_arl_copy(vin, vout));
 
+	helper_get_image_shape(freq, cellsize, shape);
+	serial_shape = shape[0] * shape[1] * shape[2] * shape[3];
+	printf("%d\n", serial_shape);
+
 	Image *model = malloc(sizeof(Image));
 	Image *psf = malloc(sizeof(Image));
-	Image *residual = malloc(sizeof(Image));
-	Image *restored = malloc(sizeof(Image));
+	//Image *residual = malloc(sizeof(Image));
+	//Image *restored = malloc(sizeof(Image));
 
-	model->size = 4096;
-	psf->size = 4096;
-	residual->size = 4096;
-	restored->size = 4096;
+	model->size = serial_shape;
+	psf->size = serial_shape;
+	//residual->size = serial_shape;
+	//restored->size = serial_shape;
 
 	for(i=0; i<4; i++) {
-		model->data_shape[i] = 8;
-		psf->data_shape[i] = 8;
-		residual->data_shape[i] = 8;
-		restored->data_shape[i] = 8;
+		model->data_shape[i] = shape[i];
+		psf->data_shape[i] = shape[i];
+	//	residual->data_shape[i] = shape[i];
+	//	restored->data_shape[i] = shape[i];
 	}
 
-	model->data = calloc(4096,sizeof(double));
-	psf->data = calloc(4096,sizeof(double));
-	residual->data = calloc(4096,sizeof(double));
-	restored->data = calloc(4096,sizeof(double));
+	model->data = calloc(serial_shape,sizeof(double));
+	psf->data = calloc(serial_shape,sizeof(double));
+	//residual->data = calloc(serial_shape,sizeof(double));
+	//restored->data = calloc(serial_shape,sizeof(double));
 
 	model->wcs = calloc(2998,sizeof(char));
 	psf->wcs = model->wcs;
-	residual->wcs = model->wcs;
-	restored->wcs = model->wcs;
+	//residual->wcs = model->wcs;
+	//restored->wcs = model->wcs;
 
 	model->polarisation_frame = calloc(512,sizeof(char));
 	psf->polarisation_frame = model->polarisation_frame;
-	residual->polarisation_frame = model->polarisation_frame;
-	restored->polarisation_frame = model->polarisation_frame;
+	//residual->polarisation_frame = model->polarisation_frame;
+	//restored->polarisation_frame = model->polarisation_frame;
 
-	copy_wcs(model);
-	copy_polframe(model);
-	arl_predict_2d(vin, psf, vout);
+	arl_create_test_image(freq, cellsize, model);
 
-	arl_create_image_from_visibility(vout, model);
+	////copy_wcs(model);
+	////copy_polframe(model);
+	//arl_predict_2d(vin, psf, vout);
+
+	//arl_create_image_from_visibility(vout, model);
 
 
-	printf("before: %p->%f | %p->%f\n", model->data,
-			((double*)(model->data))[0], restored->data,
-			((double*)(restored->data))[0]);
-	arl_deconvolve_cube(model, psf, restored, residual);
-	printf("aftore: %p->%f | %p->%f\n", model->data,
-			((double*)(model->data))[0], restored->data,
-			((double*)(restored->data))[0]);
-	arl_restore_cube(model, psf, residual, restored);
-	printf("aftore: %p->%f | %p->%f\n", model->data,
-			((double*)(model->data))[0], restored->data,
-			((double*)(restored->data))[0]);
+	//printf("before: %p->%f | %p->%f\n", model->data,
+	//		((double*)(model->data))[0], restored->data,
+	//		((double*)(restored->data))[0]);
+	//arl_deconvolve_cube(model, psf, restored, residual);
+	//printf("aftore: %p->%f | %p->%f\n", model->data,
+	//		((double*)(model->data))[0], restored->data,
+	//		((double*)(restored->data))[0]);
+	//arl_restore_cube(model, psf, residual, restored);
+	//printf("aftore: %p->%f | %p->%f\n", model->data,
+	//		((double*)(model->data))[0], restored->data,
+	//		((double*)(restored->data))[0]);
 
 
 	return 0;
