@@ -62,7 +62,7 @@ def shift_vis_to_image(vis: Visibility, im: Image, tangent: bool = True, inverse
     # This is the only place in ARL where the relationship between the image and visibility
     # frames is defined.
     
-    image_phasecentre = pixel_to_skycoord(nx // 2, ny // 2, im.wcs, origin=1)
+    image_phasecentre = pixel_to_skycoord(nx // 2, ny // 2, im.wcs, origin=0)
     
     if vis.phasecentre.separation(image_phasecentre).rad > 1e-15:
         if inverse:

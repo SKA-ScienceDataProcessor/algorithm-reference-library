@@ -118,7 +118,7 @@ def find_skycomponents(im: Image, fwhm=1.0, threshold=10.0, npixels=5) -> List[S
         ys = u.Quantity(list(map(u.Quantity,
                                  comp_prop(segment, "ycentroid"))))
         
-        sc = pixel_to_skycoord(xs, ys, im.wcs, 1)
+        sc = pixel_to_skycoord(xs, ys, im.wcs, 0)
         ras = sc.ra
         decs = sc.dec
 
@@ -222,7 +222,7 @@ def insert_skycomponent(im: Image, sc: Union[Skycomponent, List[Skycomponent]], 
         
         assert_same_chan_pol(im, comp)
 
-        pixloc = skycoord_to_pixel(comp.direction, im.wcs, 1, 'wcs')
+        pixloc = skycoord_to_pixel(comp.direction, im.wcs, 0, 'wcs')
         if insert_method == "Lanczos":
             insert_array(im.data, pixloc[0], pixloc[1], comp.flux, bandwidth, support,
                          insert_function=insert_function_L)

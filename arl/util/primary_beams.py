@@ -35,7 +35,7 @@ def create_pb_vla(model, pointingcentre=None):
     nchan, npol, ny, nx = model.shape
     
     if pointingcentre is not None:
-        cx, cy = skycoord_to_pixel(pointingcentre, model.wcs, 1, 'wcs')
+        cx, cy = skycoord_to_pixel(pointingcentre, model.wcs, 0, 'wcs')
     else:
         with warnings.catch_warnings():
             warnings.simplefilter('ignore')

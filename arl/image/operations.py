@@ -161,7 +161,7 @@ def export_image_to_fits(im: Image, fitsfile: str = 'imaging.fits'):
     :param im: Image
     :param fitsfile: Name of output fits file
     """
-    assert isinstance(im, Image)
+    assert isinstance(im, Image), im
     return fits.writeto(filename=fitsfile, data=im.data, header=im.wcs.to_header(), overwrite=True)
 
 
@@ -654,7 +654,7 @@ def create_w_term_like(im: Image, w, phasecentre=None, remove_shift=False, dopol
     cellsize = abs(fim.wcs.wcs.cdelt[0]) * numpy.pi / 180.0
     nchan, npol, _, npixel = fim_shape
     if phasecentre is SkyCoord:
-        wcentre = phasecentre.to_pixel(im.wcs, origin=1)
+        wcentre = phasecentre.to_pixel(im.wcs, origin=0)
     else:
         wcentre = [im.wcs.wcs.crpix[0], im.wcs.wcs.crpix[1]]
         
