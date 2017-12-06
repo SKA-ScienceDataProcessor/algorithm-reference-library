@@ -15,7 +15,7 @@ from arl.image.operations import create_image_from_array, qa_image
 from arl.imaging import predict_2d, invert_2d, normalize_sumwt
 from arl.imaging.imaging_context import imaging_context
 from arl.visibility.base import copy_visibility
-from arl.visibility.operations import concat_visibility, subtract_visibility, qa_visibility
+from arl.visibility.operations import concatenate_visibility, subtract_visibility, qa_visibility
 
 log = logging.getLogger(__name__)
 
