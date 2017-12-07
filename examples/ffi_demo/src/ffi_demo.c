@@ -3,7 +3,7 @@
 #include <assert.h>
 #include <sys/types.h>
 #include <sys/stat.h>
-#include "/home/at748/Downloads/cfitsio/include/fitsio.h"
+#include <cfitsio/fitsio.h>
 
 #include "arlwrap.h"
 
