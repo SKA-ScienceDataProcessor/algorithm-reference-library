@@ -141,6 +141,7 @@ int main(int argc, char **argv)
 	int *shape = malloc(4*sizeof(int));
 	int serial_shape;
 	int status;
+	int nvis=1;
 
 	double *times = calloc(1,sizeof(double));
 	double *freq = malloc(1*sizeof(double));
@@ -148,22 +149,50 @@ int main(int argc, char **argv)
 	freq[0] = 1e8;
 	channel_bandwidth[0] = 1e6;
 	double cellsize = 0.0005;
+	char config_name[] = "LOWBD2-CORE";
 
 	ARLVis *vin = malloc(sizeof(ARLVis));
 	ARLVis *vout = malloc(sizeof(ARLVis));
 
+	ARLConf *lowconfig = malloc(sizeof(ARLConf));
+
+	ant_t nb;
+
 	Py_Initialize();
 
-	vin->nvis = 13695;
-	vin->npol = 1;
+	// Find out the number of the antennas and the baselines, keep in nb structure
+	nb.nbases = 1;
+	helper_get_nbases(config_name, &nb);
+	// Assigning configuraion values
+	lowconfig->confname = config_name;
+	lowconfig->pc_ra = 15.0;
+	lowconfig->pc_dec = -45.0;
+	lowconfig->times = times;
+	lowconfig->ntimes = 1;
+	lowconfig->freqs = freq;	
+	lowconfig->nfreqs = 1;	
+	lowconfig->channel_bandwidth = channel_bandwidth;	
+	lowconfig->nchanwidth = 1;
+	lowconfig->nbases = nb.nbases;
+	lowconfig->npol = 1;
+	// Find out the number of visibilities
+	nvis = (lowconfig->nbases)*(lowconfig->nfreqs)*(lowconfig->ntimes);
+	printf("nvis = %d\n", nvis);
+
+//	vin->nvis = 13695;
+//	vin->npol = 1;
+	vin->nvis = nvis;
+	vin->npol = lowconfig->npol;
 
 	// malloc to ARLDataVisSize
-	//vin->data = malloc(72+(32*vin->npol*vin->nvis) * sizeof(char));
-	//vout->data = malloc(72+(32*vin->npol*vin->nvis) * sizeof(char));
-	vin->data = malloc(14000000);//13695
-	vout->data = malloc(14000000);//13695
-	vin->pickle = malloc(15000000);
-	vout->pickle = malloc(15000000);
+	vin->data = malloc(72+4*(32*vin->npol*vin->nvis) * sizeof(char));
+	vout->data = malloc(72+4*(32*vin->npol*vin->nvis) * sizeof(char));
+//	vin->data = malloc(14000000);//13695
+//	vout->data = malloc(14000000);//13695
+	vin->pickle = malloc(72+4*(32*vin->npol*vin->nvis) * sizeof(char));
+	vout->pickle = malloc(72+4*(32*vin->npol*vin->nvis) * sizeof(char));
+//	vin->pickle = malloc(15000000);
+//	vout->pickle = malloc(15000000);
 
 	//((ARLVisEntryP4 *)(vin->data))[0].time=99;
 
@@ -231,7 +260,8 @@ int main(int argc, char **argv)
 	residual->polarisation_frame = calloc(512,sizeof(char));
 	restored->polarisation_frame = calloc(512,sizeof(char));
 
-	arl_create_visibility("LOWBD2-CORE", times, freq, channel_bandwidth, vin);
+//	arl_create_visibility("LOWBD2-CORE", times, freq, channel_bandwidth, vin);
+	arl_create_visibility1(lowconfig, vin);
 
 	arl_create_test_image(freq, cellsize, m31image);
 
@@ -269,6 +299,7 @@ int main(int argc, char **argv)
 	status = export_image_to_fits_c(m31image, "results/m31image.fits");
 	status = export_image_to_fits_c(dirty, "results/dirty.fits");
 	status = export_image_to_fits_c(psf, "results/psf.fits");
+	if(status) printf("WARNING: FITSIO status: %d\n", status);
 
 	return 0;
 }

@@ -55,6 +55,13 @@ void arl_create_visibility(const char *lowcore_name, double *times, double *freq
 {
 	BKFNPY(arl_create_visibility)(lowcore_name, times, frequency, channel_bandwidth, res_vis);
 }
+
+void arl_create_visibility1(ARLConf *lowconf, ARLVis *res_vis)
+{
+	BKFNPY(arl_create_visibility1)(lowconf, res_vis);
+}
+
+
 void arl_create_test_image(const double *frequency, double cellsize,
 		Image *res_img)
 {
@@ -85,3 +92,12 @@ void arl_restore_cube(Image *model, Image *psf, Image *residual, Image *restored
 {
   BKFNPY(arl_restore_cube)(model, psf, residual, restored);
 }
+
+void helper_get_nbases(char * config_name, ant_t * nbases)
+{
+  BKFNPY(helper_get_nbases)(config_name, nbases);
+}
+
+
+
+

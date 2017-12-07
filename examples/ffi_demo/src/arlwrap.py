@@ -187,6 +187,72 @@ def arl_create_visibility_ffi(lowcore_name, c_times, c_frequency,
 arl_create_visibility=collections.namedtuple("FFIX", "address")
 arl_create_visibility.address=int(ff.cast("size_t", arl_create_visibility_ffi))
 
+
+ff.cdef("""
+typedef struct {
+  char *confname;
+  double pc_ra;
+  double pc_dec;
+  double *times;
+  int ntimes;
+  double *freqs;
+  int nfreqs;
+  double *channel_bandwidth;
+  int nchanwidth;
+  int nbases;
+  int npol;
+} ARLConf;
+""")
+
+@ff.callback("void (*)(ARLConf *, ARLVis *)")
+def arl_create_visibility1_ffi(lowconfig, c_res_vis):
+    lowcore_name = str(ff.string(lowconfig.confname), 'utf-8')
+    lowcore = create_named_configuration(lowcore_name)
+
+    times = numpy.frombuffer(ff.buffer(lowconfig.times, 8), dtype='f8', count=lowconfig.ntimes)
+    frequency = numpy.frombuffer(ff.buffer(lowconfig.freqs, 8), dtype='f8', count=lowconfig.nfreqs)
+    channel_bandwidth = numpy.frombuffer(ff.buffer(lowconfig.channel_bandwidth, 8), dtype='f8', count=lowconfig.nchanwidth)
+    print(lowcore_name)
+    print("Times: ", times)
+    print("Freqs: ", frequency)
+    print("BW : ", channel_bandwidth)
+    print("PCentre: ", lowconfig.pc_ra, lowconfig.pc_ra)
+
+    phasecentre = SkyCoord(ra=lowconfig.pc_ra * u.deg, dec=lowconfig.pc_dec*u.deg, frame='icrs',
+            equinox='J2000')
+
+    vt =create_visibility(lowcore, times, frequency,
+            channel_bandwidth=channel_bandwidth, weight=1.0,
+            phasecentre=phasecentre,
+            polarisation_frame=PolarisationFrame('stokesI'))
+
+    py_res_vis = cARLVis(c_res_vis)
+
+    #print(py_res_vis.dtype)
+    #print(vt.data.dtype)
+    numpy.copyto(py_res_vis, vt.data)
+
+arl_create_visibility1=collections.namedtuple("FFIX", "address")
+arl_create_visibility1.address=int(ff.cast("size_t", arl_create_visibility1_ffi))
+
+ff.cdef("""
+typedef struct {int nant, nbases;} ant_t;
+""")
+
+# Get the number of baselines for the given configuration
+@ff.callback("void (*) (char*, ant_t *)")
+def helper_get_nbases_ffi(config_name, nbases_in):
+    tconfig_name = str(ff.string(config_name), 'utf-8')
+    lowcore = create_named_configuration(tconfig_name)
+    nbases_in.nant = len(lowcore.xyz)
+    nbases_in.nbases = int(len(lowcore.xyz)*(len(lowcore.xyz)-1)/2)
+    print(tconfig_name,nbases_in.nant, nbases_in.nbases )
+
+helper_get_nbases=collections.namedtuple("FFIX", "address")    
+helper_get_nbases.address=int(ff.cast("size_t", helper_get_nbases_ffi))  
+
+
+
 # TODO temporary until better solution found
 @ff.callback("void (*)(const double *, double, int *)")
 def helper_get_image_shape_ffi(freq, cellsize, c_shape):
@@ -207,7 +273,7 @@ def arl_create_test_image_ffi(frequency, cellsize, out_img):
 
     nchan, npol, ny, nx = res.data.shape
     phasecentre = SkyCoord(ra=+15.0 * u.deg, dec=-45.0*u.deg, frame='icrs',
-            equinox='J200')
+            equinox='J2000')
 
     res.wcs.wcs.crval[0] = phasecentre.ra.deg
     res.wcs.wcs.crval[1] = phasecentre.dec.deg
@@ -226,7 +292,7 @@ def arl_predict_2d_ffi(vis_in, img, vis_out):
     c_img = cImage(img)
 
     phasecentre = SkyCoord(ra=+15.0 * u.deg, dec=-45.0*u.deg, frame='icrs',
-            equinox='J200')
+            equinox='J2000')
     py_visin.phasecentre = phasecentre
 
     res = predict_2d(py_visin, c_img)
@@ -252,7 +318,7 @@ def arl_invert_2d_ffi(invis, in_image, dopsf, out_image, sumwt):
     c_in_img = cImage(in_image)
     c_out_img = cImage(out_image, new=True)
     phasecentre = SkyCoord(ra=+15.0 * u.deg, dec=-45.0*u.deg, frame='icrs',
-            equinox='J200')
+            equinox='J2000')
     py_visin.phasecentre = phasecentre
 
     if dopsf:
@@ -277,7 +343,7 @@ def arl_create_image_from_visibility_ffi(vis_in, img_in):
     tvis = helper_create_visibility_object(c_vis)
     #print(type(tvis))
     phasecentre = SkyCoord(ra=+15.0 * u.deg, dec=-45.0*u.deg, frame='icrs',
-            equinox='J200')
+            equinox='J2000')
     tvis.phasecentre = phasecentre
 
     # Default args for now
@@ -344,4 +410,6 @@ def arl_restore_cube_ffi(model, psf, residual, restored):
 
 arl_restore_cube=collections.namedtuple("FFIX", "address")    
 arl_restore_cube.address=int(ff.cast("size_t", arl_restore_cube_ffi))    
+
+
 
