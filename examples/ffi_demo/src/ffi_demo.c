@@ -111,14 +111,19 @@ void copy_polframe(Image *im)
 /* Assuming nx*ny*nfreq */
 /* ToDo - add polarization and wcs */
 int export_image_to_fits_c(Image *im, char * filename) {
-	int status = 0;
+	int status = 0, exists;
 	fitsfile *fptr;       /* pointer to the FITS file; defined in fitsio.h */
     	long  fpixel = 1, naxis = 3, nelements;
     	long naxes[3];
 	naxes[0] = im->data_shape[3];
 	naxes[1] = im->data_shape[2];
 	naxes[2] = im->data_shape[1];
-    	fits_create_file(&fptr, filename, &status);   /* create new file */
+
+	fits_file_exists(filename, &exists, &status); /* check if the file exists */
+	if(exists != 0) 
+		fits_open_file(&fptr, filename, READWRITE, &status); /* open existed file */
+	else
+    		fits_create_file(&fptr, filename, &status);   /* create new file */
     	/* Create the primary array image  */
     	fits_create_img(fptr, DOUBLE_IMG, naxis, naxes, &status);
     	nelements = naxes[0] * naxes[1] * naxes[2];          /* number of pixels to write */
