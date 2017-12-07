@@ -18,7 +18,6 @@ typedef struct {
   // the npol. For example when npol is 4, data is equivalent to "C"
   // type type "ARLVisEntryP4[nvis]"
   void *data;
-	char *pickle;
 } ARLVis;
 
 // This is what the data array for four polarisations look like. Can
