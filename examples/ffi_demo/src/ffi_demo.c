@@ -1,6 +1,9 @@
 #include <Python.h>
 #include <stdio.h>
 #include <assert.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <cfitsio/fitsio.h>
 
 #include "arlwrap.h"
 
@@ -104,11 +107,35 @@ void copy_polframe(Image *im)
 	fclose(f);
 }
 
+/* Export image to FITS */
+/* Assuming nx*ny*nfreq */
+/* ToDo - add polarization and wcs */
+int export_image_to_fits_c(Image *im, char * filename) {
+	int status = 0;
+	fitsfile *fptr;       /* pointer to the FITS file; defined in fitsio.h */
+    	long  fpixel = 1, naxis = 3, nelements;
+    	long naxes[3];
+	naxes[0] = im->data_shape[3];
+	naxes[1] = im->data_shape[2];
+	naxes[2] = im->data_shape[1];
+    	fits_create_file(&fptr, filename, &status);   /* create new file */
+    	/* Create the primary array image  */
+    	fits_create_img(fptr, DOUBLE_IMG, naxis, naxes, &status);
+    	nelements = naxes[0] * naxes[1] * naxes[2];          /* number of pixels to write */
+    	/* Write the array of integers to the image */
+    	fits_write_img(fptr, TDOUBLE, fpixel, nelements, im->data, &status);
+    	fits_close_file(fptr, &status);            /* close the file */
+    	fits_report_error(stderr, status);  /* print out any error messages */
+	return status;
+}
+
+
 int main(int argc, char **argv)
 {
 	int i;
 	int *shape = malloc(4*sizeof(int));
 	int serial_shape;
+	int status;
 
 	double *times = calloc(1,sizeof(double));
 	double *freq = malloc(1*sizeof(double));
@@ -146,7 +173,8 @@ int main(int argc, char **argv)
 
 	helper_get_image_shape(freq, cellsize, shape);
 	serial_shape = shape[0] * shape[1] * shape[2] * shape[3];
-	//printf("%d\n", serial_shape);
+	printf("Shape :%d x %d x %d x %d\n", shape[0],shape[1],shape[2],shape[3]);	
+	printf("%d\n", serial_shape);
 
 	Image *model = malloc(sizeof(Image));
 	Image *m31image = malloc(sizeof(Image));
@@ -231,6 +259,11 @@ int main(int argc, char **argv)
 	//		((double*)(model->data))[0], restored->data,
 	//		((double*)(restored->data))[0]);
 
+	// FITS files output
+	status = mkdir("results", S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
+	status = export_image_to_fits_c(m31image, "results/m31image.fits");
+	status = export_image_to_fits_c(dirty, "results/dirty.fits");
+	status = export_image_to_fits_c(psf, "results/psf.fits");
 
 	return 0;
 }
