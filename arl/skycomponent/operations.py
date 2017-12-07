@@ -222,7 +222,7 @@ def insert_skycomponent(im: Image, sc: Union[Skycomponent, List[Skycomponent]], 
         
         assert_same_chan_pol(im, comp)
 
-        pixloc = skycoord_to_pixel(comp.direction, im.wcs, 0, 'wcs')
+        pixloc = skycoord_to_pixel(comp.direction, im.wcs, 1, 'wcs')
         if insert_method == "Lanczos":
             insert_array(im.data, pixloc[0], pixloc[1], comp.flux, bandwidth, support,
                          insert_function=insert_function_L)

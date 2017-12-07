@@ -48,9 +48,6 @@ class Testskycomponent(unittest.TestCase):
         sc = create_skycomponent(direction=self.phasecentre, flux=numpy.array([[1.0]]), frequency=self.frequency,
                                  polarisation_frame=PolarisationFrame('stokesI'))
         
-        log.debug(self.model.wcs)
-        log.debug(str(sc))
-        # The actual phase centre of a numpy FFT is at nx //2, nx //2 (0 rel).
         self.model.data *= 0.0
         insert_skycomponent(self.model, sc)
         npixel = self.model.shape[3]
@@ -59,6 +56,7 @@ class Testskycomponent(unittest.TestCase):
         assert rpix[1] == npixel // 2
         assert self.model.data[0, 0, rpix[1], rpix[0]] == 1.0
         self.vis = predict_2d(self.vis, self.model)
+        # The actual phase centre of a numpy FFT is at nx //2, nx //2 (0 rel).
         assert self.vis.vis.imag.all() == 0.0
 
     def test_insert_skycomponent_nearest(self):
@@ -67,10 +65,6 @@ class Testskycomponent(unittest.TestCase):
                                  polarisation_frame=PolarisationFrame('stokesI'))
         self.model.data *= 0.0
         insert_skycomponent(self.model, sc, insert_method='Nearest')
-        npixel = self.model.shape[3]
-        rpix = numpy.round(self.model.wcs.wcs.crpix).astype('int')
-        assert rpix[0] == npixel // 2
-        assert rpix[1] == npixel // 2
         # These test a regression but are not known a priori to be correct
         self.assertAlmostEqual(self.model.data[0, 0, 151, 122], 1.0, 7)
         self.assertAlmostEqual(self.model.data[0, 0, 152, 122], 0.0, 7)
@@ -82,10 +76,6 @@ class Testskycomponent(unittest.TestCase):
                                  polarisation_frame=PolarisationFrame('stokesI'))
         self.model.data *= 0.0
         insert_skycomponent(self.model, sc, insert_method='Sinc')
-        npixel = self.model.shape[3]
-        rpix = numpy.round(self.model.wcs.wcs.crpix).astype('int')
-        assert rpix[0] == npixel // 2
-        assert rpix[1] == npixel // 2
         # These test a regression but are not known a priori to be correct
         self.assertAlmostEqual(self.model.data[0, 0, 151, 122], 0.87684398703184396, 7)
         self.assertAlmostEqual(self.model.data[0, 0, 152, 122], 0.2469311811046056, 7)
@@ -98,10 +88,6 @@ class Testskycomponent(unittest.TestCase):
         self.model.data *= 0.0
         insert_skycomponent(self.model, sc, insert_method='Sinc',
                             bandwidth=0.5)
-        npixel = self.model.shape[3]
-        rpix = numpy.round(self.model.wcs.wcs.crpix).astype('int')
-        assert rpix[0] == npixel // 2
-        assert rpix[1] == npixel // 2
         # These test a regression but are not known a priori to be correct
         self.assertAlmostEqual(self.model.data[0,0,151, 122], 0.25133066186805758, 7)
         self.assertAlmostEqual(self.model.data[0,0,152, 122], 0.19685222464041874, 7)
@@ -113,10 +99,6 @@ class Testskycomponent(unittest.TestCase):
                                  polarisation_frame=PolarisationFrame('stokesI'))
         self.model.data *= 0.0
         insert_skycomponent(self.model, sc, insert_method='Lanczos')
-        npixel = self.model.shape[3]
-        rpix = numpy.round(self.model.wcs.wcs.crpix).astype('int')
-        assert rpix[0] == npixel // 2
-        assert rpix[1] == npixel // 2
         # These test a regression but are not known a priori to be correct
         self.assertAlmostEqual(self.model.data[0,0,151, 122],  0.87781267543090036, 7)
         self.assertAlmostEqual(self.model.data[0,0,152, 122], 0.23817562762032077, 7)
@@ -127,10 +109,6 @@ class Testskycomponent(unittest.TestCase):
                                  polarisation_frame=PolarisationFrame('stokesI'))
         self.model.data *= 0.0
         insert_skycomponent(self.model, sc, insert_method='Lanczos', bandwidth=0.5)
-        npixel = self.model.shape[3]
-        rpix = numpy.round(self.model.wcs.wcs.crpix).astype('int')
-        assert rpix[0] == npixel // 2
-        assert rpix[1] == npixel // 2
         # These test a regression but are not known a priori to be correct
         self.assertAlmostEqual(self.model.data[0,0,151, 122], 0.24031092091707615, 7)
         self.assertAlmostEqual(self.model.data[0,0,152, 122], 0.18648989466050975, 7)

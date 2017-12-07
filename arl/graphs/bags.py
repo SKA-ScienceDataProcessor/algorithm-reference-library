@@ -136,7 +136,7 @@ def predict_bag(vis_bag, model_bag, context='2d', **kwargs):
         map(copy_visibility, zero=True). \
         map(c['scatter'], **kwargs). \
         map(safe_predict_list, model_bag, c['predict'], **kwargs). \
-        map(concat_visibility)
+        map(concatenate_visibility)
 
 
 def deconvolve_bag(dirty_bag, psf_bag, **kwargs):

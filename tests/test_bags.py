@@ -65,7 +65,7 @@ class TestDaskBags(unittest.TestCase):
         flux = numpy.array([[100.0]])
         facets = 4
         
-        rpix = model.wcs.wcs.crpix - 1
+        rpix = model.wcs.wcs.crpix
         spacing_pixels = self.npixel // facets
         centers = [-1.5, -0.5, 0.5, 1.5]
         comps = list()
@@ -84,7 +84,7 @@ class TestDaskBags(unittest.TestCase):
         return vt
     
     def test_invert_bag(self):
-        peaks = {'2d': 65.3839320676, 'timeslice': 99.6744590463, 'wstack': 100.670594645}
+        peaks = {'2d': 65.3839320676, 'timeslice': 99.6744590463, 'wstack': 100.570392628}
         vis_slices = {'2d': None, 'timeslice': 'auto', 'wstack': 101}
         model = copy_image(self.model)
         for context in ['wstack', '2d', 'timeslice']:
@@ -124,7 +124,7 @@ class TestDaskBags(unittest.TestCase):
         
         export_image_to_fits(model, '%s/test_bag_%s_deconvolve.fits' % (self.results_dir, context))
         
-        assert numpy.abs(qa.data['max'] - 60.5179466251) < 1.0e-7, str(qa)
+        assert numpy.abs(qa.data['max'] - 53.7737345094) < 1.0e-7, str(qa)
     
     def test_restore_bag(self):
         context = 'wstack'

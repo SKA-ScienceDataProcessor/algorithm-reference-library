@@ -127,7 +127,7 @@ class TestImaging(unittest.TestCase):
         centers.append((1.1, 2.2))
 
         # Make the list of components
-        rpix = self.model.wcs.wcs.crpix - 1
+        rpix = self.model.wcs.wcs.crpix
         self.components = []
         for center in centers:
             ix, iy = center
@@ -257,12 +257,12 @@ class TestImaging(unittest.TestCase):
         self.actualSetUp()
         self.params['wstep'] = 2.0
         self.params['facets'] = 2
-        self._predict_base(predict_facets_wprojection, fluxthreshold=7.0)
+        self._predict_base(predict_facets_wprojection, fluxthreshold=7.5)
 
     def test_predict_wprojection(self):
         self.actualSetUp()
         self.params['wstep'] = 2.0
-        self._predict_base(predict_wprojection, fluxthreshold=4.0)
+        self._predict_base(predict_wprojection, fluxthreshold=2.0)
     
     def test_invert_2d(self):
         # Test if the 2D invert works with w set to zero
@@ -278,7 +278,12 @@ class TestImaging(unittest.TestCase):
         # Predict the visibility using direct evaluation
         for comp in self.components:
             predict_skycomponent_visibility(self.componentvis, comp)
-        
+
+        psf2d = create_empty_image_like(self.model)
+        psf2d, sumwt = invert_2d(self.componentvis, psf2d, dopsf = True,**self.params)
+
+        export_image_to_fits(psf2d, '%s/test_invert_2d_psf.fits' % self.dir)
+
         dirty2d = create_empty_image_like(self.model)
         dirty2d, sumwt = invert_2d(self.componentvis, dirty2d, **self.params)
         

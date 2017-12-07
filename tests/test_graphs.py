@@ -87,7 +87,7 @@ class TestDaskGraphs(unittest.TestCase):
         flux = numpy.array([[100.0]])
         facets = 4
         
-        rpix = model.wcs.wcs.crpix - 1
+        rpix = model.wcs.wcs.crpix
         spacing_pixels = self.npixel // facets
         centers = [-1.5, -0.5, 0.5, 1.5]
         comps = list()
