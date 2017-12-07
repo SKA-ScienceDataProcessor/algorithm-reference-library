@@ -84,7 +84,7 @@ class TestDaskBags(unittest.TestCase):
         return vt
     
     def test_invert_bag(self):
-        peaks = {'2d': 65.3839320676, 'timeslice': 99.6744590463, 'wstack': 100.570392628}
+        peaks = {'2d': 65.440798589, 'timeslice': 99.7403479215, 'wstack': 100.654001673}
         vis_slices = {'2d': None, 'timeslice': 'auto', 'wstack': 101}
         model = copy_image(self.model)
         for context in ['wstack', '2d', 'timeslice']:
@@ -97,7 +97,7 @@ class TestDaskBags(unittest.TestCase):
             assert numpy.abs(qa.data['max'] - peaks[context]) < 1.0e-7, str(qa)
     
     def test_predict_bag(self):
-        errors = {'2d': 28.0, 'timeslice': 30.0, 'wstack': 2.3}
+        errors = {'2d': 28.0, 'timeslice': 31.0, 'wstack': 2.3}
         vis_slices = {'2d': None, 'timeslice': 'auto', 'wstack': 101}
         for context in ['2d', 'timeslice', 'wstack']:
             model_vis_bag = predict_bag(self.vis_bag, self.model, context, vis_slices=vis_slices[context])
@@ -124,7 +124,7 @@ class TestDaskBags(unittest.TestCase):
         
         export_image_to_fits(model, '%s/test_bag_%s_deconvolve.fits' % (self.results_dir, context))
         
-        assert numpy.abs(qa.data['max'] - 53.7737345094) < 1.0e-7, str(qa)
+        assert numpy.abs(qa.data['max'] - 60.5293158864) < 1.0e-7, str(qa)
     
     def test_restore_bag(self):
         context = 'wstack'
