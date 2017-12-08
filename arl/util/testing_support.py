@@ -210,8 +210,9 @@ def create_test_image(canonical=True, cellsize=None, frequency=None, channel_ban
     if phasecentre is not None:
         im.wcs.wcs.crval[0] = phasecentre.ra.deg
         im.wcs.wcs.crval[1] = phasecentre.dec.deg
-        im.wcs.wcs.crpix[0] = im.data.shape[3] // 2
-        im.wcs.wcs.crpix[1] = im.data.shape[2] // 2
+        # WCS is 1 relative
+        im.wcs.wcs.crpix[0] = im.data.shape[3] // 2 + 1
+        im.wcs.wcs.crpix[1] = im.data.shape[2] // 2 + 1
     
     return im
 
@@ -266,7 +267,7 @@ def create_low_test_image_from_s3(npixel=16384, polarisation_frame=PolarisationF
     w = WCS(naxis=4)
     # The negation in the longitude is needed by definition of RA, DEC
     w.wcs.cdelt = [-cellsize * 180.0 / numpy.pi, cellsize * 180.0 / numpy.pi, 1.0, channel_bandwidth[0]]
-    w.wcs.crpix = [npixel // 2, npixel // 2, 1.0, 1.0]
+    w.wcs.crpix = [npixel // 2+1, npixel // 2+1, 1.0, 1.0]
     w.wcs.ctype = ["RA---SIN", "DEC--SIN", 'STOKES', 'FREQ']
     w.wcs.crval = [phasecentre.ra.deg, phasecentre.dec.deg, 1.0, frequency[0]]
     w.naxis = 4
@@ -547,7 +548,7 @@ def create_low_test_beam(model: Image) -> Image:
         beam2dwcs.wcs.crpix = beam.wcs.sub(2).wcs.crpix
         beam2dwcs.wcs.crval = model.wcs.sub(2).wcs.crval
         beam2dwcs.wcs.ctype = model.wcs.sub(2).wcs.ctype
-        model2dwcs.wcs.crpix = [model.shape[2] // 2, model.shape[3] // 2]
+        model2dwcs.wcs.crpix = [model.shape[2] // 2 + 1, model.shape[3] // 2 + 1]
         
         beam2d = create_image_from_array(beam.data[0, 0, :, :], beam2dwcs)
         reprojected_beam2d, footprint = reproject_image(beam2d, model2dwcs, shape=model2dshape)
@@ -580,7 +581,7 @@ def replicate_image(im: Image, polarisation_frame=PolarisationFrame('stokesI'), 
         
         newwcs = WCS(naxis=4)
         
-        newwcs.wcs.crpix = [im.wcs.wcs.crpix[0], im.wcs.wcs.crpix[1], 1.0, 1.0]
+        newwcs.wcs.crpix = [im.wcs.wcs.crpix[0] + 1.0, im.wcs.wcs.crpix[1] + 1.0, 1.0, 1.0]
         newwcs.wcs.cdelt = [im.wcs.wcs.cdelt[0], im.wcs.wcs.cdelt[1], 1.0, 1.0]
         newwcs.wcs.crval = [im.wcs.wcs.crval[0], im.wcs.wcs.crval[1], 1.0, frequency[0]]
         newwcs.wcs.ctype = [im.wcs.wcs.ctype[0], im.wcs.wcs.ctype[1], 'STOKES', 'FREQ']

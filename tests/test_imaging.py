@@ -123,8 +123,8 @@ class TestImaging(unittest.TestCase):
         for x in numpy.linspace(-3.0, +3.0, 7):
             centers.append((-x, x))
             
-        centers.append((1e-7, 1e-7))
         centers.append((1.1, 2.2))
+        centers.append((1e-7, 1e-7))
 
         # Make the list of components
         rpix = self.model.wcs.wcs.crpix
@@ -135,7 +135,7 @@ class TestImaging(unittest.TestCase):
             # components on ny // 2, nx // 2. The wcs must be defined consistently.
             p = int(round(rpix[0] + ix * spacing_pixels * numpy.sign(self.model.wcs.wcs.cdelt[0]))), \
                 int(round(rpix[1] + iy * spacing_pixels * numpy.sign(self.model.wcs.wcs.cdelt[1])))
-            sc = pixel_to_skycoord(p[0], p[1], self.model.wcs, origin=0)
+            sc = pixel_to_skycoord(p[0], p[1], self.model.wcs, origin=1)
             log.info("Component at (%f, %f) [0-rel] %s" % (p[0], p[1], str(sc)))
             
             if ix != 0 and iy != 0:
@@ -263,12 +263,12 @@ class TestImaging(unittest.TestCase):
         self.actualSetUp()
         self.params['wstep'] = 2.0
         self._predict_base(predict_wprojection, fluxthreshold=2.0)
-    
+
     def test_invert_2d(self):
         # Test if the 2D invert works with w set to zero
         # Set w=0 so that the two-dimensional transform should agree exactly with the model.
         # Good check on the grid correction in the vis->image direction
-        
+    
         self.actualSetUp()
         self.componentvis = create_visibility(self.lowcore, self.times, self.frequency,
                                               channel_bandwidth=self.channel_bandwidth, phasecentre=self.phasecentre,
@@ -278,19 +278,41 @@ class TestImaging(unittest.TestCase):
         # Predict the visibility using direct evaluation
         for comp in self.components:
             predict_skycomponent_visibility(self.componentvis, comp)
-
+    
         psf2d = create_empty_image_like(self.model)
-        psf2d, sumwt = invert_2d(self.componentvis, psf2d, dopsf = True,**self.params)
-
+        psf2d, sumwt = invert_2d(self.componentvis, psf2d, dopsf=True, **self.params)
+    
         export_image_to_fits(psf2d, '%s/test_invert_2d_psf.fits' % self.dir)
-
+    
         dirty2d = create_empty_image_like(self.model)
         dirty2d, sumwt = invert_2d(self.componentvis, dirty2d, **self.params)
-        
-        export_image_to_fits(dirty2d, '%s/test_invert_2d_dirty.fits' % self.dir)
-        
-        self._checkcomponents(dirty2d, fluxthreshold=20.0, positionthreshold=1.0)
     
+        export_image_to_fits(dirty2d, '%s/test_invert_2d_dirty.fits' % self.dir)
+    
+        self._checkcomponents(dirty2d, fluxthreshold=20.0, positionthreshold=1.0)
+
+    def test_psf_location_2d(self):
+
+        self.actualSetUp()
+        self.componentvis = create_visibility(self.lowcore, self.times, self.frequency,
+                                              channel_bandwidth=self.channel_bandwidth,
+                                              phasecentre=self.phasecentre,
+                                              weight=1.0, polarisation_frame=self.vis_pol)
+        self.componentvis.data['uvw'][:, 2] = 0.0
+        self.componentvis.data['vis'] *= 0.0
+
+        psf2d = create_empty_image_like(self.model)
+        psf2d, sumwt = invert_2d(self.componentvis, psf2d, dopsf=True, **self.params)
+        
+        export_image_to_fits(psf2d, '%s/test_invert_psf_location.fits' % self.dir)
+
+        nchan, npol, ny, nx = psf2d.shape
+    
+        assert numpy.abs(psf2d.data[0, 0, ny // 2, nx // 2]-1.0) < 2e-3
+        imagecentre = pixel_to_skycoord(nx//2+1.0, ny//2+1.0, wcs=psf2d.wcs, origin=1)
+        assert imagecentre.separation(self.phasecentre).value < 1e-15, \
+            "Image phase centre %s not as expected %s" % (imagecentre, self.phasecentre)
+
     def _invert_base(self, invert, fluxthreshold=20.0, positionthreshold=1.0, check_components=True):
         dirty = create_empty_image_like(self.model)
         dirty, sumwt = invert(self.componentvis, dirty, **self.params)

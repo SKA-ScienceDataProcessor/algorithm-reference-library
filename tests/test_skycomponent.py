@@ -51,11 +51,12 @@ class Testskycomponent(unittest.TestCase):
         self.model.data *= 0.0
         insert_skycomponent(self.model, sc)
         npixel = self.model.shape[3]
-        rpix = numpy.round(self.model.wcs.wcs.crpix).astype('int')
-        assert rpix[0] == npixel // 2 + 1
-        assert rpix[1] == npixel // 2 + 1
+        # WCS is 1-relative
+        rpix = numpy.round(self.model.wcs.wcs.crpix).astype('int') - 1
+        assert rpix[0] == npixel // 2
+        assert rpix[1] == npixel // 2
         # The phase centre is at rpix[0], rpix[1] in 0-relative pixels
-        assert self.model.data[0, 0, rpix[1]-1, rpix[0]-1] == 1.0
+        assert self.model.data[0, 0, rpix[1], rpix[0]] == 1.0
         # If we predict the visibility, then the imaginary part must be zero. This is determined entirely
         # by shift_vis_to_image in arl.imaging.base
         self.vis = predict_2d(self.vis, self.model)

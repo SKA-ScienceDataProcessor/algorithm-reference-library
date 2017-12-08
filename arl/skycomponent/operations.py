@@ -118,7 +118,7 @@ def find_skycomponents(im: Image, fwhm=1.0, threshold=10.0, npixels=5) -> List[S
         ys = u.Quantity(list(map(u.Quantity,
                                  comp_prop(segment, "ycentroid"))))
         
-        sc = pixel_to_skycoord(xs, ys, im.wcs, 1)
+        sc = pixel_to_skycoord(xs, ys, im.wcs, 0)
         ras = sc.ra
         decs = sc.dec
 
@@ -175,7 +175,7 @@ def apply_beam_to_skycomponent(sc: Union[Skycomponent, List[Skycomponent]], beam
         
         assert_same_chan_pol(beam, comp)
         
-        pixloc = skycoord_to_pixel(comp.direction, beam.wcs, 0, 'wcs')
+        pixloc = skycoord_to_pixel(comp.direction, beam.wcs, 1, 'wcs')
         if not numpy.isnan(pixloc).any():
             x, y = int(round(float(pixloc[0]))), int(round(float(pixloc[1])))
             if x >= 0 and x < nx and y >= 0 and y < ny:

@@ -656,7 +656,7 @@ def create_w_term_like(im: Image, w, phasecentre=None, remove_shift=False, dopol
     if phasecentre is SkyCoord:
         wcentre = phasecentre.to_pixel(im.wcs, origin=0)
     else:
-        wcentre = [im.wcs.wcs.crpix[0], im.wcs.wcs.crpix[1]]
+        wcentre = [im.wcs.wcs.crpix[0] - 1.0, im.wcs.wcs.crpix[1] - 1.0]
         
     for chan in range(nchan):
         for pol in range(npol):
