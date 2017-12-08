@@ -62,7 +62,7 @@ def shift_vis_to_image(vis: Visibility, im: Image, tangent: bool = True, inverse
     # This is the only place in ARL where the relationship between the image and visibility
     # frames is defined.
     
-    image_phasecentre = pixel_to_skycoord(nx // 2, ny // 2, im.wcs, origin=0)
+    image_phasecentre = pixel_to_skycoord(nx // 2 + 1, ny // 2 + 1, im.wcs, origin=1)
     
     if vis.phasecentre.separation(image_phasecentre).rad > 1e-15:
         if inverse:
@@ -97,7 +97,8 @@ def normalize_sumwt(im: Image, sumwt) -> Image:
     return im
 
 
-def predict_2d_base(vis: Visibility, model: Image, **kwargs) -> Visibility:
+def predict_2d_base(vis: Union[BlockVisibility, Visibility], model: Image,
+                    **kwargs) -> Union[BlockVisibility, Visibility]:
     """ Predict using convolutional degridding.
 
     This is at the bottom of the layering i.e. all transforms are eventually expressed in terms of
@@ -107,10 +108,13 @@ def predict_2d_base(vis: Visibility, model: Image, **kwargs) -> Visibility:
     :param model: model image
     :return: resulting visibility (in place works)
     """
-    if not isinstance(vis, Visibility):
+    if isinstance(vis, BlockVisibility):
+        log.debug("imaging.predict: coalescing prior to prediction")
         avis = coalesce_visibility(vis, **kwargs)
     else:
         avis = vis
+        
+    assert isinstance(avis, Visibility), avis
     
     _, _, ny, nx = model.data.shape
     
@@ -130,7 +134,8 @@ def predict_2d_base(vis: Visibility, model: Image, **kwargs) -> Visibility:
     # Now we can shift the visibility from the image frame to the original visibility frame
     svis = shift_vis_to_image(avis, model, tangent=True, inverse=True)
 
-    if not isinstance(vis, Visibility):
+    if isinstance(vis, BlockVisibility) and isinstance(svis, Visibility):
+        log.debug("imaging.predict decoalescing post prediction")
         return decoalesce_visibility(svis)
     else:
         return svis

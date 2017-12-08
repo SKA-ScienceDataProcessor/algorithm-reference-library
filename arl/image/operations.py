@@ -654,7 +654,7 @@ def create_w_term_like(im: Image, w, phasecentre=None, remove_shift=False, dopol
     cellsize = abs(fim.wcs.wcs.cdelt[0]) * numpy.pi / 180.0
     nchan, npol, _, npixel = fim_shape
     if phasecentre is SkyCoord:
-        wcentre = phasecentre.to_pixel(im.wcs, origin=0)
+        wcentre = phasecentre.to_pixel(im.wcs, origin=1) - 1.0
     else:
         wcentre = [im.wcs.wcs.crpix[0] - 1.0, im.wcs.wcs.crpix[1] - 1.0]
         
