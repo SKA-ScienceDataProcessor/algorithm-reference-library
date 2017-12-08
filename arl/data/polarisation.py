@@ -1,4 +1,4 @@
-""" Functions for polarisation processing. These include definitions via classes and
+""" Functions for defining polarisation conventions. These include definitions via classes and
     conversion functions.
 
 For example::
@@ -13,6 +13,9 @@ or::
 
     stokes = numpy.array([1, 0.5, 0.2, -0.1])
     circular = convert_stokes_to_circular(stokes)
+    
+These function operate on Numpy arrays. These are packaged for use in Images. The Image functions are
+probably more useful.
 
 """
 
