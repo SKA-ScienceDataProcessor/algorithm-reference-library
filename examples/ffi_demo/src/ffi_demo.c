@@ -125,8 +125,8 @@ Image *allocate_image(int *shape)
 	}
 
 	image->data = calloc(image->size,sizeof(double));
-	image->wcs = calloc(2996,sizeof(char));
-	image->polarisation_frame = calloc(114,sizeof(char));
+	image->wcs = calloc(2997,sizeof(char));
+	image->polarisation_frame = calloc(115,sizeof(char));
 
 	return image;
 }
@@ -144,8 +144,8 @@ void *destroy_image(Image *image)
 int main(int argc, char **argv)
 {
 	int *shape = malloc(4*sizeof(int));
-	int serial_shape;
 	int status;
+	int nvis=1;
 
 	double *times = calloc(1,sizeof(double));
 	double *freq = malloc(1*sizeof(double));
@@ -153,20 +153,43 @@ int main(int argc, char **argv)
 	freq[0] = 1e8;
 	channel_bandwidth[0] = 1e6;
 	double cellsize = 0.0005;
+	char config_name[] = "LOWBD2-CORE";
 
 	ARLVis *vt = malloc(sizeof(ARLVis));
+	ARLVis *vtmodel = malloc(sizeof(ARLVis));
 	ARLVis *vtmp = malloc(sizeof(ARLVis));
+
+	ARLConf *lowconfig = malloc(sizeof(ARLConf));
+
+	ant_t nb;
 
 	Py_Initialize();
 
-	vt->nvis = 13695;
-	vt->npol = 1;
+	// Find out the number of the antennas and the baselines, keep in nb structure
+	nb.nbases = 1;
+	helper_get_nbases(config_name, &nb);
+	// Assigning configuraion values
+	lowconfig->confname = config_name;
+	lowconfig->pc_ra = 15.0;
+	lowconfig->pc_dec = -45.0;
+	lowconfig->times = times;
+	lowconfig->ntimes = 1;
+	lowconfig->freqs = freq;	
+	lowconfig->nfreqs = 1;	
+	lowconfig->channel_bandwidth = channel_bandwidth;	
+	lowconfig->nchanwidth = 1;
+	lowconfig->nbases = nb.nbases;
+	lowconfig->npol = 1;
+	// Find out the number of visibilities
+	nvis = (lowconfig->nbases)*(lowconfig->nfreqs)*(lowconfig->ntimes);
+	printf("nvis = %d\n", nvis);
+
+	vt->nvis = nvis;
+	vt->npol = lowconfig->npol;
 
 	// malloc to ARLDataVisSize
-	//vt->data = malloc(72+(32*vt->npol*vt->nvis) * sizeof(char));
-	//vtmp->data = malloc(72+(32*vt->npol*vt->nvis) * sizeof(char));
-	vt->data = malloc(72+4*(32*vt->npol*vt->nvis) * sizeof(char));//13695
-	vtmp->data = malloc(72+4*(32*vt->npol*vt->nvis) * sizeof(char));//13695
+	vt->data = malloc((72+32*vt->npol)*vt->nvis * sizeof(char));
+	vtmp->data = malloc((72+32*vt->npol)*vt->nvis * sizeof(char));
 
 	if (!vt->data || !vtmp->data) {
 		fprintf(stderr, "Malloc error\n");
@@ -187,7 +210,8 @@ int main(int argc, char **argv)
 	Image *residual = allocate_image(shape);
 	Image *restored = allocate_image(shape);
 
-	arl_create_visibility("LOWBD2-CORE", times, freq, channel_bandwidth, vt);
+//	arl_create_visibility("LOWBD2-CORE", times, freq, channel_bandwidth, vt);
+	arl_create_visibility1(lowconfig, vt);
 
 	arl_create_test_image(freq, cellsize, m31image);
 
@@ -217,14 +241,34 @@ int main(int argc, char **argv)
 	status = export_image_to_fits_c(psf, "results/psf.fits");
 	status = export_image_to_fits_c(residual, "results/residual.fits");
 	status = export_image_to_fits_c(restored, "results/restored.fits");
+	status = export_image_to_fits_c(comp, "results/solution.fits");
+
+	if(status) printf("WARNING: FITSIO status: %d\n", status);
 
 	model = destroy_image(model);
 	m31image = destroy_image(m31image);
 	dirty = destroy_image(dirty);
 	psf = destroy_image(psf);
-	comp = destroy_image(comp);
 	residual = destroy_image(residual);
 	restored = destroy_image(restored);
+
+	vtmodel->nvis = nvis;
+	vtmodel->npol = lowconfig->npol;
+	vtmodel->data = malloc((72+32*vtmodel->npol)*vtmodel->nvis * sizeof(char));
+
+	arl_create_visibility1(lowconfig, vtmodel);
+
+	vtmp = malloc(sizeof(ARLVis));
+	vtmp->data = malloc((72+32*vtmodel->npol)*vtmodel->nvis * sizeof(char));
+
+	arl_predict_2d(vtmodel, comp, vtmp);
+
+	free(vtmodel->data);
+	free(vtmodel);
+	vtmodel = vtmp;
+	vtmp = NULL;
+
+	comp = destroy_image(comp);
 
 	return 0;
 }

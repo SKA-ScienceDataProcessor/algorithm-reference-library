@@ -49,10 +49,29 @@ typedef struct {
 	char *polarisation_frame;
 } Image;
 
+typedef struct {
+  char *confname;
+  double pc_ra;
+  double pc_dec;
+  double *times;
+  int ntimes;
+  double *freqs;
+  int nfreqs;
+  double *channel_bandwidth;
+  int nchanwidth;
+  int nbases;
+  int npol;
+} ARLConf;
+
+typedef struct {int nant, nbases;} ant_t;
+
 void helper_get_image_shape(const double *frequency, double cellsize,
 		int *shape);
+void helper_get_nbases(char *, ant_t *);
 
 void arl_create_visibility(const char *lowcore_name, double *times, double *frequency, double *channel_bandwidth, ARLVis *res_vis);
+void arl_create_visibility1(ARLConf *lowconf, ARLVis *res_vis);
+
 void arl_create_test_image(const double *frequency, double cellsize,
 		Image *res_img);
 void arl_predict_2d(const ARLVis *visin, const Image *img, ARLVis *visout);
@@ -62,6 +81,7 @@ void arl_deconvolve_cube(Image *dirty, Image *psf, Image *restored,
 		Image *residual);
 void arl_restore_cube(Image *model, Image *psf, Image *residual,
 		Image *restored);
+
 
 #ifdef __cplusplus
 }
