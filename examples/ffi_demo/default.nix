@@ -9,18 +9,40 @@
 let
   pkgs=(import <nixpkgs>) { inherit system crossSystem config; };
 
+  cfitsio = pkgs.stdenv.mkDerivation {
+  name = "cfitsio-3.21";
+
+  src = pkgs.fetchurl {
+    url = ftp://heasarc.gsfc.nasa.gov/software/fitsio/c/cfitsio3210.tar.gz;
+    sha256 = "1ffr3p5dy2b1vj9j4li5zf22naavi9wcxsvqy236fc0ykfyip96i";
+  };
+
+    postInstall = ''
+    ln -sv $out/include $out/include/cfitsio
+  '';
+
+  # Shared-only build
+  #  buildFlags = "shared";
+#  patchPhase =
+#   '' sed -e '/^install:/s/libcfitsio.a //' -e 's@/bin/@@g' -i Makefile.in
+#   '';
+
+  };
+
   astropy = pkgs.python3Packages.buildPythonPackage rec {
      name   = "astropy-${version}";
-     version= "1.3";
+     version= "2.0.2";
      # need to put in more buildInputs here so that it does not cobble
      # random stuff together off the net
-     propagatedBuildInputs =  [  pkgs.python3Packages.numpy ];
+     propagatedBuildInputs =
+     [ pkgs.python3Packages.numpy
+       pkgs.python3Packages.pytest ];
 
     doCheck = false;
 
      src = pkgs.fetchurl {
-       url = "https://pypi.python.org/packages/51/88/c8c4355ff49f40cc538405e86af3395e76a8f9063a19cc5513a7c364d36d/astropy-1.3.tar.gz";
-       sha256 = "0f3dkipzy1d61zvsavmlsllbkr4y8q5a7i02rpij9gia9233xpj9";
+       url = "https://pypi.python.org/packages/3f/aa/9950a7c4bad169d903ef27b3a9caa7d55419fbe92423d30a6f4c0886bf09/astropy-2.0.2.tar.gz";
+       sha256 = "0g8h9rspsr9dfl2bczyr622zv984gxi4r9svssr7jg8pn4ia8i25";
     };
   };
 
@@ -39,12 +61,28 @@ let
     };
   };
 
-in pkgs.stdenv.mkDerivation rec {
+  photutils = pkgs.python3Packages.buildPythonPackage rec {
+     name   = "photutils-${version}";
+     version= "0.4";
+     propagatedBuildInputs =  [ pkgs.python3Packages.numpy
+                                pkgs.python3Packages.six
+                                astropy ];
+
+    doCheck = false;
+    src = pkgs.fetchurl {
+        url = "https://pypi.python.org/packages/70/db/28fcc4447d64c0d2b9f7323d932eff0e6c17ba624d198a26b239a2c11983/photutils-0.4.tar.gz";
+       sha256 = "0vrdwq4blkyk5fk21qx1zdm33c9f7cy407p2dsvay49z87hmkrki";
+    };
+  };
+
+in pkgs.python3Packages.buildPythonPackage rec {
    name="sdp-arl-ffi";
 
-   buildInputs = [pkgs.ncurses pkgs.python3
+   propagatedBuildInputs = [pkgs.ncurses pkgs.python3
    pkgs.python3Packages.numpy pkgs.python3Packages.scipy
    pkgs.python3Packages.cffi
-   reproject astropy pkgs.git-lfs ];
+   reproject astropy photutils
+   pkgs.git-lfs
+   cfitsio pkgs.gcc ];
 
 }
