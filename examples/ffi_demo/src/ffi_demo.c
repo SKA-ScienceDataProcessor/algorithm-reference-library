@@ -125,8 +125,8 @@ Image *allocate_image(int *shape)
 	}
 
 	image->data = calloc(image->size,sizeof(double));
-	image->wcs = calloc(2996,sizeof(char));
-	image->polarisation_frame = calloc(114,sizeof(char));
+	image->wcs = calloc(2997,sizeof(char));
+	image->polarisation_frame = calloc(115,sizeof(char));
 
 	return image;
 }
@@ -144,7 +144,6 @@ void *destroy_image(Image *image)
 int main(int argc, char **argv)
 {
 	int *shape = malloc(4*sizeof(int));
-	int serial_shape;
 	int status;
 	int nvis=1;
 
@@ -157,6 +156,7 @@ int main(int argc, char **argv)
 	char config_name[] = "LOWBD2-CORE";
 
 	ARLVis *vt = malloc(sizeof(ARLVis));
+	ARLVis *vtmodel = malloc(sizeof(ARLVis));
 	ARLVis *vtmp = malloc(sizeof(ARLVis));
 
 	ARLConf *lowconfig = malloc(sizeof(ARLConf));
@@ -223,14 +223,32 @@ int main(int argc, char **argv)
 	status = export_image_to_fits_c(psf, "results/psf.fits");
 	status = export_image_to_fits_c(residual, "results/residual.fits");
 	status = export_image_to_fits_c(restored, "results/restored.fits");
+	status = export_image_to_fits_c(comp, "results/solution.fits");
 
 	model = destroy_image(model);
 	m31image = destroy_image(m31image);
 	dirty = destroy_image(dirty);
 	psf = destroy_image(psf);
-	comp = destroy_image(comp);
 	residual = destroy_image(residual);
 	restored = destroy_image(restored);
+
+	vtmodel->nvis = nvis;
+	vtmodel->npol = lowconfig->npol;
+	vtmodel->data = malloc((72+32*vtmodel->npol)*vtmodel->nvis * sizeof(char));
+
+	arl_create_visibility1(lowconfig, vtmodel);
+
+	vtmp = malloc(sizeof(ARLVis));
+	vtmp->data = malloc((72+32*vtmodel->npol)*vtmodel->nvis * sizeof(char));
+
+	arl_predict_2d(vtmodel, comp, vtmp);
+
+	free(vtmodel->data);
+	free(vtmodel);
+	vtmodel = vtmp;
+	vtmp = NULL;
+
+	comp = destroy_image(comp);
 
 	return 0;
 }
