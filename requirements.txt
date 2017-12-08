@@ -15,7 +15,7 @@ matplotlib
 Sphinx
 wcsaxes
 reproject
-astropy
+astropy>=2.0
 alabaster
 photutils
 scikit-image
