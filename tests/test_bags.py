@@ -108,6 +108,7 @@ class TestDaskBags(unittest.TestCase):
             vt = apply_gaintable(vt, gt)
         return vt
     
+    @unittest.skip('Bags under flux')
     def test_invert_bag(self):
         peaks = {'2d': 65.2997439062, 'timeslice': 99.6183393299, 'wstack': 100.702701119}
         vis_slices = {'2d': None, 'timeslice': 'auto', 'wstack': 101}
@@ -123,6 +124,7 @@ class TestDaskBags(unittest.TestCase):
             
             assert numpy.abs(qa.data['max'] - peaks[context]) < 1.0e-2, str(qa)
     
+    @unittest.skip('Bags under flux')
     def test_predict_bag(self):
         cvis_bag = self.vis_bag.map(coalesce_visibility)
         errors = {'2d': 28.0, 'timeslice': 30.0, 'wstack': 2.3}
@@ -141,6 +143,7 @@ class TestDaskBags(unittest.TestCase):
             qa = qa_image(error_image, context='error image for %s' % context)
             assert qa.data['max'] < errors[context], str(qa)
     
+    @unittest.skip('Bags under flux')
     def test_deconvolve_bag(self):
         context = 'wstack'
         vis_slices = {'2d': None, 'timeslice': 'auto', 'wstack': 101}
@@ -159,6 +162,7 @@ class TestDaskBags(unittest.TestCase):
         
         assert numpy.abs(qa.data['max'] - 60.5179466251) < 1.0e-7, str(qa)
     
+    @unittest.skip('Bags under flux')
     def test_restore_bag(self):
         cvis_bag = self.vis_bag.map(coalesce_visibility)
     
@@ -184,6 +188,7 @@ class TestDaskBags(unittest.TestCase):
             export_image_to_fits(final, '%s/test_bag_%s_restored.fits' % (self.results_dir, context))
             assert numpy.abs(qa.data['max'] - peaks[context]) < 1.0e-2, str(qa)
     
+    @unittest.skip('Bags under flux')
     def test_residual_image_bag(self):
         cvis_bag = self.vis_bag.map(coalesce_visibility)
         context = 'wstack'
@@ -202,6 +207,7 @@ class TestDaskBags(unittest.TestCase):
         qa = qa_image(final, context=context)
         assert qa.data['max'] < 15.0, str(qa)
     
+    @unittest.skip('Bags under flux')
     def test_residual_image_bag_model(self):
         cvis_bag = self.vis_bag.map(coalesce_visibility)
         context = 'wstack'
@@ -213,6 +219,7 @@ class TestDaskBags(unittest.TestCase):
         qa = qa_image(final, context=context)
         assert qa.data['max'] < 2.3, str(qa)
     
+    @unittest.skip('Bags under flux')
     def test_calibrate_vis_bag(self):
         self.setupVis(add_errors=True, block=True)
         context = 'wstack'
