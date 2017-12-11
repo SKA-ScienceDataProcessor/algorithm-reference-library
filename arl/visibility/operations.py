@@ -28,7 +28,7 @@ def append_visibility(vis: Union[Visibility, BlockVisibility], othervis: Union[V
     if vis is None:
         return othervis
     
-    assert isinstance(vis, Visibility) or isinstance(vis, BlockVisibility)
+    assert isinstance(vis, Visibility) or isinstance(vis, BlockVisibility), vis
     assert vis.polarisation_frame == othervis.polarisation_frame
     assert abs(vis.phasecentre.ra.value - othervis.phasecentre.ra.value) < 1e-15
     assert abs(vis.phasecentre.dec.value - othervis.phasecentre.dec.value) < 1e-15
@@ -85,7 +85,7 @@ def sum_visibility(vis: Visibility, direction: SkyCoord) -> numpy.array:
     """
     # TODO: Convert to Visibility or remove?
     
-    assert isinstance(vis, Visibility) or isinstance(vis, BlockVisibility)
+    assert isinstance(vis, Visibility) or isinstance(vis, BlockVisibility), vis
     
     svis = copy_visibility(vis)
     
@@ -121,7 +121,15 @@ def subtract_visibility(vis, model_vis, inplace=False):
     :param model_vis:
     :return:
     """
-    assert isinstance(vis, Visibility) or isinstance(vis, BlockVisibility), vis
+    if isinstance(vis, Visibility):
+        assert isinstance(model_vis, Visibility), model_vis
+    elif isinstance(vis, BlockVisibility):
+        assert isinstance(model_vis, BlockVisibility), model_vis
+    else:
+        raise RuntimeError("Types of vis and model visibility are invalid")
+    
+    assert vis.vis.shape == model_vis.vis.shape, "Observed %s and model visibilities %s have different shapes"\
+        % (vis.vis.shape, model_vis.vis.shape)
     
     if inplace:
         vis.data['vis'] = vis.data['vis'] - model_vis.data['vis']

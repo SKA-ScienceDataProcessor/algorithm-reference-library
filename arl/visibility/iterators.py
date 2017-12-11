@@ -34,11 +34,8 @@ def vis_timeslice_iter(vis: Visibility, **kwargs) -> numpy.ndarray:
     
     timeslice = get_parameter(kwargs, "timeslice", None)
     if timeslice is None or timeslice == 'auto':
-        vis_slices = get_parameter(kwargs, "vis_slices", None)
-        if vis_slices is None or vis_slices == 'auto':
-            vis_slices = len(numpy.unique(vis.time))
-        boxes = numpy.linspace(timemin, timemax, vis_slices)
-        timeslice = (timemax - timemin) / vis_slices
+        boxes = numpy.unique(vis.time)
+        timeslice = 0.1
     else:
         vis_slices = 1 + 2 * numpy.ceil((timemax - timemin) / timeslice).astype('int')
         boxes = numpy.linspace(timemin, timemax, vis_slices)
@@ -60,7 +57,7 @@ def vis_wstack_iter(vis: Visibility, **kwargs) -> numpy.ndarray:
     :param vis_slices: Number of slices (second in precedence to wstack)
     :return: Boolean array with selected rows=True
     """
-    assert isinstance(vis, Visibility) or isinstance(vis, BlockVisibility)
+    assert isinstance(vis, Visibility) or isinstance(vis, BlockVisibility), vis
     wmaxabs = numpy.max(numpy.abs(vis.w))
     
     wstack = get_parameter(kwargs, "wstack", None)

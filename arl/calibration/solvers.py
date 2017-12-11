@@ -42,7 +42,8 @@ def solve_gaintable(vis: BlockVisibility, modelvis: BlockVisibility=None, phase_
 
     """
     assert isinstance(vis, BlockVisibility), vis
-    assert isinstance(modelvis, BlockVisibility) or type(modelvis) is not None, vis
+    if modelvis is not None:
+        assert isinstance(modelvis, BlockVisibility), modelvis
     
     if phase_only:
         log.info('solve_gaintable: Solving for phase only')

@@ -134,6 +134,7 @@ def decoalesce_visibility(vis: Visibility, overwrite=False) -> BlockVisibility:
     npol = vshape[-1]
     dvis = numpy.zeros(vshape, dtype='complex')
     assert numpy.max(vis.cindex) < dvis.size
+    assert numpy.max(vis.cindex) < vis.vis.shape[0], "Incorrect template used in decoalescing"
     for i in range(dvis.size // npol):
         decomp_vis.data['vis'].flat[i:i + npol] = vis.data['vis'][vis.cindex[i]]
 
@@ -354,4 +355,7 @@ def convert_visibility_to_blockvisibility(vis: Visibility) -> BlockVisibility:
     :param vis: Coalesced visibility
     :return: Visibility
     """
-    return decoalesce_visibility(vis)
+    if isinstance(vis, BlockVisibility):
+        return vis
+    else:
+        return decoalesce_visibility(vis)

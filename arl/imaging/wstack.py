@@ -11,13 +11,13 @@ If images constructed from slices in w are added after applying a w-dependent im
 
 import numpy
 
-from arl.data.data_models import Visibility, Image
+from arl.data.data_models import Visibility, Image, BlockVisibility
 from arl.imaging.iterated import predict_with_vis_iterator, invert_with_vis_iterator
 
 from arl.image.operations import copy_image
 from arl.visibility.base import copy_visibility
 from arl.visibility.iterators import vis_wstack_iter
-from arl.visibility.coalesce import coalesce_visibility
+from arl.visibility.coalesce import coalesce_visibility, decoalesce_visibility
 from arl.imaging.base import predict_2d_base, invert_2d_base
 from arl.image.operations import create_w_term_like
 
@@ -55,6 +55,7 @@ def predict_wstack_single(vis, model, predict_inner=predict_2d_base, **kwargs) -
     """
 
     if not isinstance(vis, Visibility):
+        log.debug("predict_wstack_single: Coalescing")
         avis = coalesce_visibility(vis, **kwargs)
     else:
         avis = vis
@@ -82,7 +83,11 @@ def predict_wstack_single(vis, model, predict_inner=predict_2d_base, **kwargs) -
     
     avis.data['uvw'][..., 2] += w_average
 
-    return avis
+    if isinstance(vis, BlockVisibility) and isinstance(vis, Visibility):
+        log.debug("imaging.predict decoalescing post prediction")
+        return decoalesce_visibility(avis)
+    else:
+        return avis
 
 
 def invert_wstack(vis: Visibility, im: Image, dopsf=False, normalize=True, **kwargs) -> (Image, numpy.ndarray):
@@ -122,7 +127,7 @@ def invert_wstack_single(vis: Visibility, im: Image, dopsf, normalize=True, inve
     
     kwargs['imaginary'] = True
     
-    assert isinstance(vis, Visibility)
+    assert isinstance(vis, Visibility), vis
     
     kwargs['vis_slices'] = 1
     kwargs['wstack'] = numpy.max(numpy.abs(vis.w))
