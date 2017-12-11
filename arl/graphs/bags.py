@@ -1,5 +1,17 @@
-""" Common functions converted to Dask.bags graphs. `Dask <http://dask.pydata.org/>`_ is a python-based flexible
-parallel computing library for analytic computing.
+""" Calibration and imaging functions converted to Dask.bags graphs. `Dask <http://dask.pydata.org/>`_ is a
+python-based flexible parallel computing library for analytic computing.
+
+Bags uses a filter-map-reduce approach. If the operations are on bag of similar objects (e.g. all Visibility's) then
+just the map function is needed with perhaps a suitable adpater function is needed. See for example safe_invert_list
+and sake_predict_list.
+
+If different bags are to tbe combined, they can be zipped together before being passed to an adapter function. As
+a result the bag related functions below are quite thin and it may be better to go directly to the underlayed bag
+filter-map-reduce functions.
+
+For visibility data, we hold different frequency windows within one bag. Thus for example, the bag is structurally
+the same as a list. For calibration and imaging, we may find it necessary to subdivide each partition into
+sub-partitions (for example, different times for calibration and different w-bins for w stacking).
 
 Note that all parameters here should be passed using the kwargs mechanism.
 """
@@ -8,23 +20,26 @@ import logging
 
 from dask import bag
 
-from arl.calibration.operations import qa_gaintable
+from arl.calibration.operations import qa_gaintable, apply_gaintable
+from arl.calibration.solvers import solve_gaintable
 from arl.data.data_models import Image
 from arl.image.deconvolution import deconvolve_cube, restore_cube
-from arl.image.operations import create_image_from_array, qa_image
+from arl.image.operations import create_image_from_array, qa_image, create_empty_image_like
 from arl.imaging import predict_2d, invert_2d, normalize_sumwt
 from arl.imaging.imaging_context import imaging_context
 from arl.visibility.base import copy_visibility
-from arl.visibility.operations import concatenate_visibility, subtract_visibility, qa_visibility
+from arl.visibility.gather_scatter import visibility_gather_channel
+from arl.visibility.operations import concatenate_visibility, subtract_visibility, qa_visibility, divide_visibility, \
+    integrate_visibility_by_channel
 
 log = logging.getLogger(__name__)
 
 
 def safe_predict_list(vis_list, model, predict=predict_2d, **kwargs):
     """ Predicts a list of visibilities to obtain a list of visibilities
-    
+
     Can be used in bag.map()
-    
+
     :param vis_list:
     :param model:
     :param predict:
@@ -48,9 +63,9 @@ def safe_predict_list(vis_list, model, predict=predict_2d, **kwargs):
 
 def safe_invert_list(vis_list, model, invert=invert_2d, *args, **kwargs):
     """Invert a list of visibilities to obtain a list of (Image, weight) tuples
-    
+
     Can be used in bag.map()
-    
+
     :param vis_list:
     :param model:
     :param invert:
@@ -114,12 +129,11 @@ def invert_bag(vis_bag, model_bag, dopsf=False, context='2d', **kwargs):
         map(safe_invert_list, model_bag, c['invert'], dopsf=dopsf, **kwargs). \
         map(sum_invert_bag_results)
 
-
 def predict_bag(vis_bag, model_bag, context='2d', **kwargs):
     """Construct a bag to predict a bag of visibilities.
     
-    The vis_bag is scatter appropriately, the predict is applied, and the data then
-    concatenated. The sort order of the data is not necessarily preserved.
+    The vis_bag is scattered appropriately, the predict is applied, and the data then
+    concatenated and sorted back to the original order from creation
 
     Call directly - don't use via bag.map
     
@@ -139,7 +153,7 @@ def predict_bag(vis_bag, model_bag, context='2d', **kwargs):
         map(concatenate_visibility)
 
 
-def deconvolve_bag(dirty_bag, psf_bag, **kwargs):
+def deconvolve_bag(dirty_bag, psf_bag, model_bag, **kwargs):
     """ Deconvolve a bag of images to obtain a bag of models
     
     Call directly - don't use via bag.map
@@ -158,8 +172,7 @@ def deconvolve_bag(dirty_bag, psf_bag, **kwargs):
     # We zip up the dirty and psf bags and call the deconvolve adapter
     return bag.zip(dirty_bag, psf_bag).map(deconvolve, **kwargs)
 
-
-def restore_bag(comp_bag, psf_bag, residual_bag, **kwargs):
+def restore_bag(comp_bag, psf_bag, res_bag, **kwargs):
     """ Restore a bag of images to obtain a bag of restored images
 
     Call directly - don't use via bag.map
@@ -174,7 +187,7 @@ def restore_bag(comp_bag, psf_bag, residual_bag, **kwargs):
         # The comp is just an Image, while the dirty and psf are actually (Image, weight) tuples.
         return restore_cube(cpr_zip[0], cpr_zip[1][0], cpr_zip[2][0], **kwargs)
     
-    return bag.zip(comp_bag, psf_bag, residual_bag).map(restore, **kwargs)
+    return bag.zip(comp_bag, psf_bag, res_bag).map(restore, **kwargs)
 
 
 def residual_image_bag(vis_bag, model_image_bag, context='2d', **kwargs):
@@ -187,27 +200,9 @@ def residual_image_bag(vis_bag, model_image_bag, context='2d', **kwargs):
     :param kwargs:
     :return:
     """
-    model_vis_bag = predict_bag(vis_bag, model_image_bag, context=context, **kwargs)
-    res_vis_bag = residual_vis_bag(vis_bag, model_vis_bag)
-    return invert_bag(res_vis_bag, model_image_bag, context=context, **kwargs)
-
-
-def residual_vis_bag(vis_bag, model_vis_bag):
-    """Calculate residual visibility
-
-    Call directly - don't use via bag.map
-    
-    :param vis_bag: Bag containing visibilities
-    :param model_image_bag: Model images, one per visibility in vis_bag
-    :param kwargs:
-    :return:
-    """
-    
-    def subtract_vis_zip(vis_zip_bag):
-        return subtract_visibility(vis_zip_bag[0], vis_zip_bag[1])
-    
-    return bag.zip(vis_bag, model_vis_bag).map(subtract_vis_zip)
-
+    result_vis_bag = predict_bag(vis_bag, model_image_bag, context=context, **kwargs)
+    result_vis_bag = vis_bag.map(subtract_visibility, result_vis_bag)
+    return invert_bag(result_vis_bag, model_image_bag, context=context, **kwargs)
 
 def qa_visibility_bag(vis, context=''):
     """ Print qa on the visibilities, use this in a sequence of bag operations
@@ -219,7 +214,6 @@ def qa_visibility_bag(vis, context=''):
     """
     s = qa_visibility(vis, context=context)
     log.info(s)
-    print(s)
     return vis
 
 
@@ -233,7 +227,6 @@ def qa_image_bag(im, context=''):
     """
     s = qa_image(im, context=context)
     log.info(s)
-    print(s)
     return im
 
 
@@ -247,5 +240,4 @@ def qa_gaintable_bag(gt, context=''):
     """
     s = qa_gaintable(gt, context=context)
     log.info(s)
-    print(s)
     return gt
