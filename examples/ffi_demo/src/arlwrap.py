@@ -212,7 +212,7 @@ def arl_create_visibility_ffi(lowconfig, c_res_vis):
     print("Times: ", times)
     print("Freqs: ", frequency)
     print("BW : ", channel_bandwidth)
-    print("PCentre: ", lowconfig.pc_ra, lowconfig.pc_ra)
+    print("PCentre: ", lowconfig.pc_ra, lowconfig.pc_dec)
 
     phasecentre = SkyCoord(ra=lowconfig.pc_ra * u.deg, dec=lowconfig.pc_dec*u.deg, frame='icrs',
             equinox='J2000')
