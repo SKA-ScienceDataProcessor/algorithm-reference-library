@@ -191,6 +191,14 @@ int main(int argc, char **argv)
 	vt->data = malloc((72+32*vt->npol)*vt->nvis * sizeof(char));
 	vtmp->data = malloc((72+32*vt->npol)*vt->nvis * sizeof(char));
 
+	/* malloc data for phasecentre pickle.
+	 * TODO un-hardcode size
+	 */
+	vt->phasecentre = malloc(5000*sizeof(char));
+	vtmp->phasecentre = malloc(5000*sizeof(char));
+	vtmodel->phasecentre = malloc(5000*sizeof(char));
+
+	// TODO check all mallocs
 	if (!vt->data || !vtmp->data) {
 		fprintf(stderr, "Malloc error\n");
 		exit(1);
@@ -210,14 +218,17 @@ int main(int argc, char **argv)
 	Image *residual = allocate_image(shape);
 	Image *restored = allocate_image(shape);
 
-//	arl_create_visibility("LOWBD2-CORE", times, freq, channel_bandwidth, vt);
-	arl_create_visibility1(lowconfig, vt);
+	arl_create_visibility(lowconfig, vt);
 
-	arl_create_test_image(freq, cellsize, m31image);
+	/* TODO the vt->phasecentre part should be moved to a separate routine */
+	arl_create_test_image(freq, cellsize, vt->phasecentre, m31image);
+
+	//helper_set_image_params(vt, m31image);
 
 	arl_predict_2d(vt, m31image, vtmp);
 
-	
+
+	free(vt->phasecentre);
 	free(vt->data);
 	free(vt);
 	vt = vtmp;
@@ -256,14 +267,16 @@ int main(int argc, char **argv)
 	vtmodel->npol = lowconfig->npol;
 	vtmodel->data = malloc((72+32*vtmodel->npol)*vtmodel->nvis * sizeof(char));
 
-	arl_create_visibility1(lowconfig, vtmodel);
+	arl_create_visibility(lowconfig, vtmodel);
 
 	vtmp = malloc(sizeof(ARLVis));
 	vtmp->data = malloc((72+32*vtmodel->npol)*vtmodel->nvis * sizeof(char));
+	vtmp->phasecentre = malloc(5000*sizeof(char));
 
 	arl_predict_2d(vtmodel, comp, vtmp);
 
 	free(vtmodel->data);
+	free(vtmodel->phasecentre);
 	free(vtmodel);
 	vtmodel = vtmp;
 	vtmp = NULL;
