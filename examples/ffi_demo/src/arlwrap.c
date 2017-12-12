@@ -47,25 +47,25 @@ void helper_get_image_shape(const double *frequency, double cellsize,
 	BKFNPY(helper_get_image_shape)(frequency, cellsize, shape);
 }
 
+void helper_set_image_params(const ARLVis *vis, Image *image) {
+	BKFNPY(helper_set_image_params)(vis, image);
+}
+
 void arl_invert_2d(const ARLVis *visin, const Image *img_in, bool dopsf, Image *out, double *sumwt)
 {
 	BKFNPY(arl_invert_2d)(visin, img_in, dopsf, out, sumwt);
 }
-void arl_create_visibility(const char *lowcore_name, double *times, double *frequency, double *channel_bandwidth, ARLVis *res_vis)
-{
-	BKFNPY(arl_create_visibility)(lowcore_name, times, frequency, channel_bandwidth, res_vis);
-}
 
-void arl_create_visibility1(ARLConf *lowconf, ARLVis *res_vis)
+void arl_create_visibility(ARLConf *lowconf, ARLVis *res_vis)
 {
-	BKFNPY(arl_create_visibility1)(lowconf, res_vis);
+	BKFNPY(arl_create_visibility)(lowconf, res_vis);
 }
 
 
-void arl_create_test_image(const double *frequency, double cellsize,
+void arl_create_test_image(const double *frequency, double cellsize, char *phasecentre,
 		Image *res_img)
 {
-	BKFNPY(arl_create_test_image)(frequency, cellsize, res_img);
+	BKFNPY(arl_create_test_image)(frequency, cellsize, phasecentre, res_img);
 }
 
 void arl_copy_visibility(const ARLVis *visin,
