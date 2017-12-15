@@ -28,7 +28,7 @@ def vis_timeslice_iter(vis: Visibility, **kwargs) -> numpy.ndarray:
     :param vis_slices: Number of slices (second in precedence to wstack)
     :return: Boolean array with selected rows=True
     """
-    assert isinstance(vis, Visibility) or isinstance(vis, BlockVisibility)
+    assert isinstance(vis, Visibility) or isinstance(vis, BlockVisibility), vis
     timemin = numpy.min(vis.time)
     timemax = numpy.max(vis.time)
     
@@ -89,7 +89,7 @@ def vis_slice_iter(vis: Union[Visibility, BlockVisibility], **kwargs) -> numpy.n
     :return: Boolean array with selected rows=True
 
     """
-    assert isinstance(vis, Visibility) or isinstance(vis, BlockVisibility)
+    assert isinstance(vis, Visibility) or isinstance(vis, BlockVisibility), vis
     
     step = get_parameter(kwargs, "step", None)
     if step is None:
