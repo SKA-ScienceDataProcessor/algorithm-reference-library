@@ -5,12 +5,17 @@
 #
 import collections
 import logging
+import numpy
 
 from arl.data.data_models import Image, Visibility, BlockVisibility, GainTable
+from arl.data.parameters import get_parameter
 from arl.calibration.solvers import solve_gaintable
+from arl.calibration.operations import apply_gaintable
 from arl.image.solvers import solve_image
+from arl.image.deconvolution import deconvolve_cube, restore_cube
 from arl.visibility.base import copy_visibility
-from arl.imaging import predict_2d, invert_2d, predict_skycomponent_blockvisibility, predict_skycomponent_visibility
+from arl.imaging import predict_2d, invert_2d, predict_skycomponent_blockvisibility, \
+    predict_skycomponent_visibility
 
 log = logging.getLogger(__name__)
 
@@ -38,18 +43,66 @@ def rcal(vis: BlockVisibility, components, **kwargs) -> GainTable:
         yield gt
 
 
-def ical(**kwargs):
+def ical(vis: BlockVisibility, model: Image, components=None, predict=predict_2d,
+         invert=invert_2d, **kwargs) -> (BlockVisibility, Image, Image):
     """ Post observation image, deconvolve, and self-calibrate
    
-    :param kwargs: Dictionary containing parameters
-    :return:
+    :param vis:
+    :param model: Model image
+    :param predict: Predict function e.g. predict_2d, predict_wstack
+    :param invert: Invert function e.g. invert_2d, invert_wstack
+    :return: Visibility, model, residual
     """
-    # TODO: implement
+    nmajor = get_parameter(kwargs, 'nmajor', 5)
+    log.info("ical: Performing %d major cycles" % nmajor)
+    first_selfcal = get_parameter(kwargs, "first_selfcal", None)
     
-    return True
+    # The model is added to each major cycle and then the visibilities are
+    # calculated from the full model
+    vispred = copy_visibility(vis)
+    visres = copy_visibility(vis)
+
+    vispred = predict(vispred, model, **kwargs)
+
+    if components is not None:
+        vispred = predict_skycomponent_blockvisibility(vispred, components)
+        
+    doselfcal = first_selfcal is not None and first_selfcal == 0
+    if doselfcal:
+        gt = solve_gaintable(vis, vispred, **kwargs)
+        vis = apply_gaintable(vis, gt, inverse=True)
+
+    visres.data['vis'] = vis.data['vis'] - vispred.data['vis']
+    dirty, sumwt = invert(visres, model, **kwargs)
+    psf, sumwt = invert(visres, model, dopsf=True, **kwargs)
+
+    thresh = get_parameter(kwargs, "threshold", 0.0)
+
+    for i in range(nmajor):
+        log.info("ical: Start of major cycle %d" % i)
+        cc, res = deconvolve_cube(dirty, psf, **kwargs)
+        model.data += cc.data
+        vispred = predict(vispred, model, **kwargs)
+        doselfcal = first_selfcal is not None and i == first_selfcal
+        if doselfcal:
+            log.info("Performing selcalibration")
+            gt = solve_gaintable(vis, vispred, **kwargs)
+            vis = apply_gaintable(vis, gt, inverse=True)
+            
+        visres.data['vis'] = vis.data['vis'] - vispred.data['vis']
+        
+        dirty, sumwt = invert(visres, model, **kwargs)
+        if numpy.abs(dirty.data).max() < 1.1 * thresh:
+            log.info("Reached stopping threshold %.6f Jy" % thresh)
+            break
+        log.info("solve_image: End of major cycle")
+
+    log.info("solve_image: End of major cycles")
+    return visres, model, dirty
 
 
-def continuum_imaging(vis: Visibility, model: Image, components=None, **kwargs) -> (Image, Image, Image):
+def continuum_imaging(vis: Visibility, model: Image, components=None,
+                      predict=predict_2d, invert=invert_2d,**kwargs) -> (Image, Image, Image):
     """Continuum imaging from calibrated (DDE and DIE) and coalesced data
 
     The model image is used as the starting point, and also to determine the imagesize and sampling. Components
@@ -63,7 +116,8 @@ def continuum_imaging(vis: Visibility, model: Image, components=None, **kwargs) 
     :param kwargs: Parameters
     :return:
     """
-    return solve_image(vis, model, components, **kwargs)
+    kwargs['first_selfcal'] = None
+    return ical(vis, model, components=None, predict=predict, invert=invert, **kwargs)
 
 
 def spectral_line_imaging(vis: Visibility, model: Image, continuum_model: Image=None, continuum_components=None,

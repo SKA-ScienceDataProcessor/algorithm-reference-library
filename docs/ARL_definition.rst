@@ -280,6 +280,12 @@ Dask Graphs using delayed
 .. automodule:: arl.graphs.graphs
    :members:
 
+Dask Graphs using bags and records
+++++++++++++++++++++++++++++++++++
+
+.. automodule:: arl.graphs.bags_records
+   :members:
+
 Dask Graphs using bags
 ++++++++++++++++++++++
 

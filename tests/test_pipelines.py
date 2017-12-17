@@ -3,6 +3,8 @@
 
 """
 
+import sys
+import logging
 import os
 import unittest
 
@@ -11,18 +13,20 @@ from astropy import units as u
 from astropy.coordinates import SkyCoord
 
 from arl.data.polarisation import PolarisationFrame
-from arl.image.operations import export_image_to_fits, create_empty_image_like
-from arl.pipelines.functions import continuum_imaging, spectral_line_imaging, ical, rcal, eor, fast_imaging
-from arl.skycomponent.operations import create_skycomponent
-from arl.util.testing_support import create_named_configuration, create_test_image, create_blockvisibility_iterator
-from arl.visibility.operations import append_visibility
-from arl.visibility.base import create_blockvisibility
+from arl.calibration.operations import qa_gaintable
+from arl.image.operations import export_image_to_fits, create_empty_image_like, pad_image
 from arl.imaging import predict_2d
-
-import logging
+from arl.pipelines.functions import continuum_imaging, spectral_line_imaging, ical, rcal, eor, fast_imaging
+from arl.util.testing_support import create_named_configuration, create_test_image, create_blockvisibility_iterator
+from arl.skycomponent.operations import create_skycomponent
+from arl.visibility.base import create_blockvisibility
+from arl.visibility.operations import append_visibility
 
 log = logging.getLogger(__name__)
 
+log.setLevel(logging.DEBUG)
+log.addHandler(logging.StreamHandler(sys.stdout))
+log.addHandler(logging.StreamHandler(sys.stderr))
 
 class TestPipelines(unittest.TestCase):
     def setUp(self):
@@ -43,20 +47,23 @@ class TestPipelines(unittest.TestCase):
         
         self.comp = create_skycomponent(flux=self.flux, frequency=frequency, direction=self.compabsdirection)
         self.image = create_test_image(frequency=frequency, phasecentre=self.phasecentre, cellsize=0.001,
-                                       polarisation_frame=PolarisationFrame('stokesIQUV'))
-        
+                                       polarisation_frame=PolarisationFrame('stokesI'))
+        self.image = pad_image(self.image, shape=[vnchan,1,512,512])
+        export_image_to_fits(self.image, "%s/test_pipelines-model.fits" % (self.dir))
+
         self.blockvis = create_blockvisibility_iterator(lowcore, times=times, frequency=frequency,
                                                         channel_bandwidth=channel_bandwidth,
                                                         phasecentre=self.phasecentre, weight=1,
-                                                        polarisation_frame=PolarisationFrame('linear'),
-                                                        integration_time=1.0, number_integrations=1, predict=predict_2d,
-                                                        components=self.comp, phase_error=0.1, amplitude_error=0.01,
+                                                        polarisation_frame=PolarisationFrame('stokesI'),
+                                                        integration_time=1.0, number_integrations=1,
+                                                        predict=predict_2d, model=self.image,
+                                                        phase_error=0.1, amplitude_error=0.01,
                                                         sleep=1.0)
         
         self.vis = create_blockvisibility(lowcore, times=times, frequency=frequency,
                                           channel_bandwidth=channel_bandwidth,
                                           phasecentre=self.phasecentre, weight=1,
-                                          polarisation_frame=PolarisationFrame('stokesIQUV'),
+                                          polarisation_frame=PolarisationFrame('stokesI'),
                                           integration_time=1.0)
         
         self.vis = predict_2d(self.vis, self.image)
@@ -73,37 +80,43 @@ class TestPipelines(unittest.TestCase):
     
     def test_RCAL(self):
         for igt, gt in enumerate(rcal(vis=self.blockvis, components=self.comp)):
-            log.info("Chunk %d, gaintable size %.3f (GB)" % (igt, gt.size()))
+            log.info("Chunk %d: %s" % (igt, qa_gaintable(gt)))
     
     def test_ICAL(self):
-        icalpipe = ical(vis=self.vis, components=self.comp)
-
+        model = create_empty_image_like(self.image)
+        for ib, blockvis in enumerate(self.blockvis):
+            visres, comp, residual = ical(blockvis, model, algorithm='msclean',
+                                        scales=[0, 3, 10, 30], threshold=0.01, findpeak='ARL',
+                                        fractional_threshold=0.01, first_selfcal=2, nmajor=5)
+            export_image_to_fits(comp, "%s/test_pipelines-ical-block_%d-comp.fits" % (self.dir, ib))
+    
     def test_continuum_imaging(self):
         model = create_empty_image_like(self.image)
         visres, comp, residual = continuum_imaging(self.vis, model, algorithm='msmfsclean',
-                                                   scales=[0, 3, 10], threshold=0.01, nmoments=2, findpeak='ARL',
+                                                   scales=[0, 3, 10], threshold=0.01, nmoments=2,
+                                                   findpeak='ARL',
                                                    fractional_threshold=0.01)
         export_image_to_fits(comp, "%s/test_pipelines-continuum-imaging-comp.fits" % (self.dir))
-
+    
     def test_continuum_imaging_psf(self):
         model = create_empty_image_like(self.image)
         visres, comp, residual = continuum_imaging(self.vis, model, algorithm='msmfsclean', psf_width=100,
                                                    scales=[0, 3, 10], threshold=0.01, nmoments=2, findpeak='ARL',
                                                    fractional_threshold=0.01)
         export_image_to_fits(comp, "%s/test_pipelines-continuum-imaging_psf-comp.fits" % (self.dir))
-
+    
     def test_spectral_line_imaging_no_deconvolution(self):
         model = create_empty_image_like(self.image)
         visres, comp, residual = spectral_line_imaging(self.vis, model, continuum_model=model,
                                                        deconvolve_spectral=False)
         export_image_to_fits(comp, "%s/test_pipelines-spectral-no-deconvolution-imaging-comp.fits" % (self.dir))
-
+    
     def test_spectral_line_imaging_with_deconvolution(self):
         model = create_empty_image_like(self.image)
         visres, comp, residual = spectral_line_imaging(self.vis, model, continuum_model=self.image, algorithm='hogbom',
                                                        deconvolve_spectral=True)
         export_image_to_fits(comp, "%s/test_pipelines-spectral-with-deconvolution-imaging-comp.fits" % (self.dir))
-
+    
     def test_fast_imaging(self):
         fast_imaging(vis=self.vis, components=self.comp, Gsolinit=300.0)
     
