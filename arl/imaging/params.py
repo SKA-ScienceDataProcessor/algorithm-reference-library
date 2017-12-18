@@ -344,7 +344,7 @@ def advise_wide_field(vis: Visibility, delA=0.02, oversampling_synthesised_beam=
         log.info('advice_wide_field: Recommend wprojection gridding')
         kernel = 'wprojection'
     else:
-        log.info('advice_wide_field: Recommend 2d gridding')
+        log.info('advice_wide_field: Recommend 2d gridding (i.e. no wprojection)')
         kernel = '2d'
 
     return locals()

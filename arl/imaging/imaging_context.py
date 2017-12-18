@@ -38,7 +38,7 @@ def imaging_contexts():
 
 def imaging_context(context='2d'):
     contexts = imaging_contexts()
-    assert context in contexts.keys()
+    assert context in contexts.keys(), context
     return contexts[context]
 
 
@@ -52,6 +52,8 @@ def invert_context(vis, model, dopsf=False, normalize=True, context='2d', **kwar
     :param kwargs:
     :return:
     """
+    log.debug('invert_context: Imaging context is %s, using function %s'
+              % (context, imaging_context(context)['invert']))
     return imaging_context(context)['invert'](vis, model, dopsf=dopsf, normalize=normalize, **kwargs)
 
 
@@ -64,4 +66,6 @@ def predict_context(vis, model, context='2d', **kwargs):
     :param kwargs:
     :return:
     """
+    log.debug('predict_context: Imaging context is %s, using function %s'
+              % (context, imaging_context(context)['predict']))
     return imaging_context(context)['predict'](vis, model, **kwargs)
