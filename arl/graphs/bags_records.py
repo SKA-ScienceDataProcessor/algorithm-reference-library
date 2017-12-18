@@ -1,4 +1,4 @@
-""" Calibration and imaging functions converted to Dask.bags graphs. `Dask <http://dask.pydata.org/>`_ is a
+""" Calibration and imaging functions converted to Dask.bags. `Dask <http://dask.pydata.org/>`_ is a
 python-based flexible parallel computing library for analytic computing.
 
 Bags uses a filter-map-reduce approach. If the operations are on bag of similar objects (e.g. all Visibility's) then
@@ -79,10 +79,10 @@ from arl.image.deconvolution import deconvolve_cube, restore_cube
 from arl.image.operations import create_image_from_array, qa_image, create_empty_image_like
 from arl.imaging import normalize_sumwt
 from arl.imaging.imaging_context import imaging_context
-from arl.visibility.gather_scatter import visibility_gather_channel
 from arl.visibility.base import copy_visibility
-from arl.visibility.operations import subtract_visibility, qa_visibility, sort_visibility, \
-    concatenate_visibility, divide_visibility, integrate_visibility_by_channel
+from arl.visibility.gather_scatter import visibility_gather_channel
+from arl.visibility.operations import qa_visibility, sort_visibility, \
+    divide_visibility, integrate_visibility_by_channel
 
 
 def reify(bg):
@@ -117,6 +117,7 @@ def scatter_record(record, context, **kwargs):
     assert c['scatter'] is not None
     scatter = c['scatter']
     result = list()
+    print("In scatter_record", record)
     vis_list = scatter(record['vis'], **kwargs)
     scatter_index = 0
     for v in vis_list:
@@ -391,33 +392,33 @@ def residual_image_bag(vis_bag, model_image_bag, context='2d', **kwargs) -> bag:
     return invert_bag(result_vis_bag, model_image_bag, context=context, **kwargs)
 
 
-def selfcal_bag(vis_bag, model_bag, c_predict_bag,
-                              vis_slices, global_solution=True, **kwargs):
+def selfcal_bag(vis_bag, model_bag, **kwargs):
     """ Create a bag for (optionally global) selfcalibration of a list of visibilities
 
     If global solution is true then visibilities are gathered to a single visibility data set which is then
     self-calibrated. The resulting gaintable is then effectively scattered out for application to each visibility
     set. If global solution is false then the solutions are performed locally.
 
-    :param vis_bag:
-    :param model_bag:
+    :param vis_bag: Bag of observed visibilities
+    :param model_bag: Bag of model visibilities
     :param vis_slices:
-    :param global_solution: Solve for global gains
+    :param global_solution: Solve for global gains?
     :param kwargs: Parameters for functions in graphs
     :return:
     """
     
     model_vis_bag = bag.map(copy_visibility, zero=True)
     model_vis_bag = predict_bag(model_vis_bag, model_bag, **kwargs)
-    return create_calibrate_bag(vis_bag, model_vis_bag, **kwargs)
+    return calibrate_bag(vis_bag, model_vis_bag, **kwargs)
 
 
-def create_calibrate_bag(vis_bag, model_vis_bag, global_solution=True, **kwargs):
+def calibrate_bag(vis_bag, model_vis_bag, global_solution=True, **kwargs):
     """ Create a bag for (optionally global) calibration of a list of visibilities
 
-    If global solution is true then visibilities are gathered to a single visibility data set which is then
-    self-calibrated. The resulting gaintable is then effectively scattered out for application to each visibility
-    set. If global solution is false then the solutions are performed locally.
+    If global solution is true then visibilities are gathered to a single visibility
+    data set which is then self-calibrated. The resulting gaintable is then effectively
+    scattered out for application to each visibility set. If global solution is false
+    then the solutions are performed locally.
 
     :param vis_bag:
     :param model_vis_bag:

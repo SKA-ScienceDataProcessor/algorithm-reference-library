@@ -123,11 +123,15 @@ def invert_bag(vis_bag, model_bag, dopsf=False, context='2d', **kwargs):
     """
     c = imaging_context(context)
     log.info('Imaging context is %s' % c)
-    assert c['scatter'] is not None
-    return vis_bag. \
-        map(c['scatter'], **kwargs). \
-        map(safe_invert_list, model_bag, c['invert'], dopsf=dopsf, **kwargs). \
-        map(sum_invert_bag_results)
+    if c['scatter'] is not None:
+        return vis_bag. \
+            map(c['scatter'], **kwargs). \
+            map(safe_invert_list, model_bag, c['invert'], dopsf=dopsf, **kwargs). \
+            map(sum_invert_bag_results)
+    else:
+        return vis_bag. \
+            map(c['invert'], model_bag, dopsf=dopsf, **kwargs)
+
 
 def predict_bag(vis_bag, model_bag, context='2d', **kwargs):
     """Construct a bag to predict a bag of visibilities.
@@ -144,13 +148,16 @@ def predict_bag(vis_bag, model_bag, context='2d', **kwargs):
     :return:
     """
     c = imaging_context(context)
-    assert c['scatter'] is not None
-    
-    return vis_bag. \
-        map(copy_visibility, zero=True). \
-        map(c['scatter'], **kwargs). \
-        map(safe_predict_list, model_bag, c['predict'], **kwargs). \
-        map(concatenate_visibility)
+    if c['scatter'] is not None:
+        return vis_bag. \
+            map(copy_visibility, zero=True). \
+            map(c['scatter'], **kwargs). \
+            map(safe_predict_list, model_bag, c['predict'], **kwargs). \
+            map(concatenate_visibility)
+    else:
+        return vis_bag. \
+            map(copy_visibility, zero=True). \
+            map(c['predict'], model_bag,  **kwargs)
 
 
 def deconvolve_bag(dirty_bag, psf_bag, model_bag, **kwargs):

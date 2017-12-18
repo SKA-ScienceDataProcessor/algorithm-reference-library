@@ -108,9 +108,9 @@ class TestDaskBags(unittest.TestCase):
         return vt
     
     def test_invert_bag(self):
-        peaks = {'2d': 65.2997439062, 'timeslice': 99.6183393299, 'wstack': 100.702701119}
-        vis_slices = {'2d': None, 'timeslice': 'auto', 'wstack': 101}
-        for context in ['wstack', '2d', 'timeslice']:
+        peaks = {'2d': 65.2997439062, 'timeslice_single': 99.6183393299, 'wstack_single': 100.702701119}
+        vis_slices = {'2d': None, 'timeslice_single': 'auto', 'wstack_single': 101}
+        for context in ['wstack_single', '2d', 'timeslice_single']:
             dirty_bag = invert_bag(self.vis_bag, self.empty_model, dopsf=False,
                                    context=context, normalize=True,
                                    vis_slices=vis_slices[context])
@@ -124,9 +124,9 @@ class TestDaskBags(unittest.TestCase):
     
     def test_predict_bag(self):
         cvis_bag = self.vis_bag.map(coalesce_visibility)
-        errors = {'2d': 28.0, 'timeslice': 30.0, 'wstack': 2.3}
-        vis_slices = {'2d': None, 'timeslice': 'auto', 'wstack': 101}
-        for context in ['timeslice', 'wstack']:
+        errors = {'2d': 28.0, 'timeslice_single': 30.0, 'wstack_single': 2.3}
+        vis_slices = {'2d': None, 'timeslice_single': 'auto', 'wstack_single': 101}
+        for context in ['timeslice_single', 'wstack_single']:
             model_vis_bag = predict_bag(cvis_bag, self.model_bag, context, vis_slices=vis_slices[context])\
                 .map(decoalesce_visibility, self.vis_bag)
             model_vis_bag = bag.from_sequence(model_vis_bag.compute())
@@ -141,8 +141,8 @@ class TestDaskBags(unittest.TestCase):
             assert qa.data['max'] < errors[context], str(qa)
     
     def test_deconvolve_bag(self):
-        context = 'wstack'
-        vis_slices = {'2d': None, 'timeslice': 'auto', 'wstack': 101}
+        context = 'wstack_single'
+        vis_slices = {'2d': None, 'timeslice_single': 'auto', 'wstack_single': 101}
         dirty_bag = invert_bag(self.vis_bag, self.model_bag, dopsf=False, context=context,
                                normalize=True,
                                vis_slices=vis_slices[context])
@@ -161,9 +161,9 @@ class TestDaskBags(unittest.TestCase):
     def test_restore_bag(self):
         cvis_bag = self.vis_bag.map(coalesce_visibility)
     
-        peaks = {'timeslice': 103.55068395, 'wstack': 98.790503433}
-        vis_slices = {'2d': None, 'timeslice': 'auto', 'wstack': 101}
-        for context in ['timeslice', 'wstack']:
+        peaks = {'timeslice_single': 103.55068395, 'wstack_single': 98.790503433}
+        vis_slices = {'2d': None, 'timeslice_single': 'auto', 'wstack_single': 101}
+        for context in ['timeslice_single', 'wstack_single']:
             dirty_bag = invert_bag(self.vis_bag, self.model_bag, dopsf=False,
                                    context=context, normalize=True,
                                    vis_slices=vis_slices[context])
@@ -185,8 +185,8 @@ class TestDaskBags(unittest.TestCase):
     
     def test_residual_image_bag(self):
         cvis_bag = self.vis_bag.map(coalesce_visibility)
-        context = 'wstack'
-        vis_slices = {'2d': None, 'timeslice': 'auto', 'wstack': 101}
+        context = 'wstack_single'
+        vis_slices = {'2d': None, 'timeslice_single': 'auto', 'wstack_single': 101}
         dirty_bag = invert_bag(cvis_bag, self.model_bag, dopsf=False, context=context,
                                normalize=True, vis_slices=vis_slices[context])
         psf_bag = invert_bag(cvis_bag, self.model_bag, dopsf=True, context=context,
@@ -203,8 +203,8 @@ class TestDaskBags(unittest.TestCase):
     
     def test_residual_image_bag_model(self):
         cvis_bag = self.vis_bag.map(coalesce_visibility)
-        context = 'wstack'
-        vis_slices = {'2d': None, 'timeslice': 'auto', 'wstack': 101}
+        context = 'wstack_single'
+        vis_slices = {'2d': None, 'timeslice_single': 'auto', 'wstack_single': 101}
         residual_bag = residual_image_bag(cvis_bag, self.model_bag, context=context, vis_slices=vis_slices[context])
         final = list(residual_bag)[0][0]
         export_image_to_fits(final, '%s/test_bag_%s_residual_image_bag.fits' % (self.results_dir, context))
