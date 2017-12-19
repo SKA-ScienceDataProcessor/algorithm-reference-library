@@ -48,6 +48,7 @@ class TestPipelinesBags(unittest.TestCase):
         self.client = get_dask_Client()
         
         self.npixel = 512
+        self.vis_slices = 51
         
         self.setupVis(add_errors=False, block=False)
     
@@ -155,7 +156,6 @@ class TestPipelinesBags(unittest.TestCase):
                               vis_slices=self.vis_slices, facets=2,
                               niter=1000, fractional_threshold=0.1,
                               threshold=2.0, nmajor=5, gain=0.1, first_selfcal=1)
-        self.compute = True
         if self.compute:
             clean, residual, restored = ical_bag.compute()
             clean = clean.compute()

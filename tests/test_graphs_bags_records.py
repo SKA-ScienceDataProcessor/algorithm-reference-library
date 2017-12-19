@@ -36,8 +36,8 @@ class TestDaskBagsRecords(unittest.TestCase):
         # Client automatically registers itself as the default scheduler
         self.client = get_dask_Client()
         
-        self.results_dir = './test_results'
-        os.makedirs(self.results_dir, exist_ok=True)
+        self.dir = './test_results'
+        os.makedirs(self.dir, exist_ok=True)
         
         self.npixel = 512
         
@@ -106,7 +106,7 @@ class TestDaskBagsRecords(unittest.TestCase):
         self.model = copy_image(model)
         self.empty_model = create_empty_image_like(model)
         
-        export_image_to_fits(model, '%s/test_bags_model.fits' % (self.results_dir))
+        export_image_to_fits(model, '%s/test_bags_model.fits' % (self.dir))
         
         if add_errors:
             # These will be the same for all calls
@@ -125,7 +125,7 @@ class TestDaskBagsRecords(unittest.TestCase):
                                    vis_slices=vis_slices[context])
             dirty_bag.visualize('test_invert_bag.svg')
             dirty, sumwt = dirty_bag.compute()[0]['image']
-            export_image_to_fits(dirty, '%s/test_bags_%s_dirty.fits' % (self.results_dir, context))
+            export_image_to_fits(dirty, '%s/test_bags_%s_dirty.fits' % (self.dir, context))
             qa = qa_image(dirty, context=context)
             
             assert numpy.abs(qa.data['max'] - peaks[context]) < 1.0e-2, str(qa)
@@ -146,7 +146,7 @@ class TestDaskBagsRecords(unittest.TestCase):
             result = error_image_bag.compute()
             error_image = result[0]['image'][0]
             export_image_to_fits(error_image,
-                                 '%s/test_bags_%s_predict_error_image.fits' % (self.results_dir, context))
+                                 '%s/test_bags_%s_predict_error_image.fits' % (self.dir, context))
             qa = qa_image(error_image, context='error image for %s' % context)
             assert qa.data['max'] < errors[context], str(qa)
     
@@ -164,7 +164,7 @@ class TestDaskBagsRecords(unittest.TestCase):
         model = model_bag.compute()[0]
         qa = qa_image(model, context=context)
         
-        export_image_to_fits(model, '%s/test_bags_%s_deconvolve.fits' % (self.results_dir, context))
+        export_image_to_fits(model, '%s/test_bags_%s_deconvolve.fits' % (self.dir, context))
         
         assert numpy.abs(qa.data['max'] - 60.5) < 0.1, str(qa)
     
@@ -188,13 +188,13 @@ class TestDaskBagsRecords(unittest.TestCase):
         
         residual = res_image_bag.compute()[0]['image'][0]
         export_image_to_fits(residual, '%s/test_bags_%s_residual.fits' %
-                             (self.results_dir, context))
+                             (self.dir, context))
         
         final_bag = restore_bag(model_bag, psf_bag, res_image_bag)
         final = final_bag.compute()[0]
         qa = qa_image(final, context=context)
         export_image_to_fits(final, '%s/test_bags_%s_restored.fits' %
-                             (self.results_dir, context))
+                             (self.dir, context))
         assert numpy.abs(qa.data['max'] - peaks[context]) < 0.1, str(qa)
     
     def test_residual_image_bag(self):
@@ -211,7 +211,7 @@ class TestDaskBagsRecords(unittest.TestCase):
         residual_bag = residual_image_bag(self.vis_bag, model, context=context,
                                           vis_slices=vis_slices[context])
         final = residual_bag.compute()[0]['image'][0]
-        export_image_to_fits(final, '%s/test_bags_%s_residual.fits' % (self.results_dir, context))
+        export_image_to_fits(final, '%s/test_bags_%s_residual.fits' % (self.dir, context))
         
         qa = qa_image(final, context=context)
         assert qa.data['max'] < 15.0, str(qa)
@@ -222,7 +222,7 @@ class TestDaskBagsRecords(unittest.TestCase):
         residual_bag = residual_image_bag(self.vis_bag, self.model, context=context,
                                           vis_slices=vis_slices[context])
         final = residual_bag.compute()[0]['image'][0]
-        export_image_to_fits(final, '%s/test_bags_%s_residual_image_bag.fits' % (self.results_dir, context))
+        export_image_to_fits(final, '%s/test_bags_%s_residual_image_bag.fits' % (self.dir, context))
         
         qa = qa_image(final, context=context)
         assert qa.data['max'] < 2.3, str(qa)
@@ -231,31 +231,31 @@ class TestDaskBagsRecords(unittest.TestCase):
     def test_selfcal_global_bag(self):
         
         self.setupVis(add_errors=True)
-        selfcal_vis_bag = selfcal_bag(self.vis_bag, self.model, global_solution=True)
+        selfcal_vis_bag = selfcal_bag(self.vis_bag, self.model_bag, global_solution=True)
         dirty_bag = invert_bag(selfcal_vis_bag, self.model_bag,
                                dopsf=False, normalize=True, context='wstack_single',
                                vis_slices=101)
         if self.compute:
             dirty = dirty_bag.compute()
             export_image_to_fits(dirty[0], '%s/test_imaging_bags_global_selfcal_dirty.fits'
-                                 % (self.results_dir))
+                                 % (self.dir))
             qa = qa_image(dirty[0])
             
             assert numpy.abs(qa.data['max'] - 101.7) < 1.0, str(qa)
             assert numpy.abs(qa.data['min'] + 3.5) < 1.0, str(qa)
     
-    @unittest.skip("Not filled out")
     def test_selfcal_nonglobal_bag(self):
         
         self.setupVis(add_errors=True)
-        selfcal_vis_bag = selfcal_bag(self.vis_bag, self.model, global_solution=False)
+        print(self.model_bag.compute())
+        selfcal_vis_bag = selfcal_bag(self.vis_bag, self.model_bag, global_solution=False)
         
         dirty_bag = invert_bag(selfcal_vis_bag, self.model_bag,
                                dopsf=False, normalize=True, context='wstack_single',
                                vis_slices=101)
         if self.compute:
             dirty = dirty_bag.compute()
-            export_image_to_fits(dirty[0], '%s/test_imaging_bags_nonglobal_selfcal_dirty.fits' % (self.results_dir))
+            export_image_to_fits(dirty[0], '%s/test_imaging_bags_nonglobal_selfcal_dirty.fits' % (self.dir))
             qa = qa_image(dirty[0])
             
             assert numpy.abs(qa.data['max'] - 101.7) < 1.0, str(qa)

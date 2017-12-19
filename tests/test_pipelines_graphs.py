@@ -166,7 +166,6 @@ class TestPipelineGraphs(unittest.TestCase):
                                        vis_slices=self.vis_slices, facets=2,
                                        niter=1000, fractional_threshold=0.1,
                                        threshold=2.0, nmajor=5, gain=0.1, first_selfcal=1)
-        self.compute = True
         if self.compute:
             clean, residual, restored = ical_graph.compute()
             export_image_to_fits(clean, '%s/test_pipelines_ical_pipeline_clean.fits' % (self.dir))

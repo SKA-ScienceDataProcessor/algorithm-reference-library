@@ -413,8 +413,10 @@ def selfcal_bag(vis_bag, model_bag, **kwargs):
     :param kwargs: Parameters for functions in graphs
     :return:
     """
+    def copy_vis(vis, zero=True):
+        return copy_visibility(vis['vis'], zero=zero)
     
-    model_vis_bag = vis_bag.map(copy_visibility, zero=True)
+    model_vis_bag = vis_bag.map(copy_vis, zero=True)
     model_vis_bag = predict_bag(model_vis_bag, model_bag, **kwargs)
     return calibrate_bag(vis_bag, model_vis_bag, **kwargs)
 
@@ -443,11 +445,13 @@ def calibrate_bag(vis_bag, model_vis_bag, global_solution=True, **kwargs):
         gt_bag = point_vis_bag.map(solve_gaintable, **kwargs)
         return vis_bag.map(apply_gaintable, gt_bag, inverse=True, **kwargs)
     else:
+        print(vis_bag)
+        model_vis_bag=reify(model_vis_bag)
+        print(model_vis_bag)
         def solve_and_apply(vis, modelvis, **kwargs):
             gt = solve_gaintable(vis, modelvis, **kwargs)
             return apply_gaintable(vis, gt, **kwargs)
-        
-        return vis_bag.map(solve_and_apply)
+        return vis_bag.map(solve_and_apply, model_vis_bag)
 
 
 def qa_visibility_bag(vis, context=''):
