@@ -60,34 +60,37 @@ def simulate_vis_bag(config='LOWBD2-CORE',
     
     if order == 'time':
         log.debug("simulate_vis_bag: Simulating distribution in %s" % order)
-        vis_bag = bag.from_sequence([create_vis(conf, [times[i]], frequency=frequency,
-                                                channel_bandwidth=channel_bandwidth,
-                                                weight=1.0, phasecentre=phasecentre,
-                                                polarisation_frame=polarisation_frame, **kwargs)
+        vis_bag = bag.from_sequence([{'timewin': i,
+                                      'vis': create_vis(conf, [times[i]], frequency=frequency,
+                                                        channel_bandwidth=channel_bandwidth,
+                                                        weight=1.0, phasecentre=phasecentre,
+                                                        polarisation_frame=polarisation_frame, **kwargs)}
                                      for i, time in enumerate(times)])
     
     elif order == 'frequency':
         log.debug("simulate_vis_bag: Simulating distribution in %s" % order)
-        vis_bag = bag.from_sequence([create_vis(conf, times, frequency=[frequency[j]],
-                                                channel_bandwidth=[channel_bandwidth[j]],
-                                                weight=1.0, phasecentre=phasecentre,
-                                                polarisation_frame=polarisation_frame, **kwargs)
+        vis_bag = bag.from_sequence([{'freqwin': j,
+                                      'vis': create_vis(conf, times, frequency=[frequency[j]],
+                                                        channel_bandwidth=[channel_bandwidth[j]],
+                                                        weight=1.0, phasecentre=phasecentre,
+                                                        polarisation_frame=polarisation_frame, **kwargs)}
                                      for j, _ in enumerate(frequency)])
     
     elif order == 'both':
         log.debug("simulate_vis_bag: Simulating distribution in time and frequency")
-        vis_bag = bag.from_sequence([create_vis(conf, [times[i]], frequency=[frequency[j]],
-                                                channel_bandwidth=[channel_bandwidth[j]],
-                                                weight=1.0, phasecentre=phasecentre,
-                                                polarisation_frame=polarisation_frame, **kwargs)
+        vis_bag = bag.from_sequence([{'timewin': i, 'freqwin': j,
+                                      'vis': create_vis(conf, [times[i]], frequency=[frequency[j]],
+                                                        channel_bandwidth=[channel_bandwidth[j]],
+                                                        weight=1.0, phasecentre=phasecentre,
+                                                        polarisation_frame=polarisation_frame, **kwargs)}
                                      for j, _ in enumerate(frequency) for i, _ in enumerate(times)])
     
     elif order is None:
         log.debug("simulate_vis_bag: Simulating into single %s" % format)
-        vis_bag = bag.from_sequence([create_vis(conf, times, frequency=frequency,
-                                                channel_bandwidth=channel_bandwidth,
-                                                weight=1.0, phasecentre=phasecentre,
-                                                polarisation_frame=polarisation_frame, **kwargs)])
+        vis_bag = bag.from_sequence([{'vis': create_vis(conf, times, frequency=frequency,
+                                                        channel_bandwidth=channel_bandwidth,
+                                                        weight=1.0, phasecentre=phasecentre,
+                                                        polarisation_frame=polarisation_frame, **kwargs)}])
     else:
         raise NotImplementedError("order $s not known" % order)
     return vis_bag

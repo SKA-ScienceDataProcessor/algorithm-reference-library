@@ -28,29 +28,29 @@ Functions that aid testing in various ways. A typical use would be::
 
 """
 
-import numpy
 import csv
+import logging
 from typing import List
 
 import astropy.units as u
+import numpy
 from astropy.coordinates import EarthLocation, SkyCoord
 from astropy.io import fits
 from astropy.wcs import WCS
 from scipy import interpolate
 
 from arl.calibration.operations import create_gaintable_from_blockvisibility, apply_gaintable
-from arl.data.data_models import Configuration, Image, GainTable, Skycomponent, BlockVisibility
+from arl.data.data_models import Configuration, Image, GainTable, Skycomponent
 from arl.data.parameters import arl_path
+from arl.data.parameters import get_parameter
 from arl.data.polarisation import PolarisationFrame
 from arl.image.operations import import_image_from_fits, create_image_from_array, \
     reproject_image, create_empty_image_like
+from arl.imaging import predict_timeslice, predict_skycomponent_blockvisibility
 from arl.util.coordinate_support import xyz_at_latitude
 from arl.visibility.base import create_blockvisibility
 from arl.visibility.coalesce import convert_visibility_to_blockvisibility
-from arl.imaging import predict_timeslice, predict_skycomponent_blockvisibility
-from arl.data.parameters import get_parameter
 
-import logging
 log = logging.getLogger(__name__)
 
 
@@ -83,7 +83,7 @@ def create_configuration_from_file(antfile: str, name: str = None, location: Ear
         antxyz = antxyz[r < rmax]
         log.debug('create_configuration_from_file: Maximum radius %.1f m includes %d antennas/stations' %
                   (rmax, antxyz.shape[0]))
-            
+    
     nants = antxyz.shape[0]
     anames = [names % ant for ant in range(nants)]
     mounts = numpy.repeat(mount, nants)
@@ -267,7 +267,7 @@ def create_low_test_image_from_s3(npixel=16384, polarisation_frame=PolarisationF
     w = WCS(naxis=4)
     # The negation in the longitude is needed by definition of RA, DEC
     w.wcs.cdelt = [-cellsize * 180.0 / numpy.pi, cellsize * 180.0 / numpy.pi, 1.0, channel_bandwidth[0]]
-    w.wcs.crpix = [npixel // 2+1, npixel // 2+1, 1.0, 1.0]
+    w.wcs.crpix = [npixel // 2 + 1, npixel // 2 + 1, 1.0, 1.0]
     w.wcs.ctype = ["RA---SIN", "DEC--SIN", 'STOKES', 'FREQ']
     w.wcs.crval = [phasecentre.ra.deg, phasecentre.dec.deg, 1.0, frequency[0]]
     w.naxis = 4
@@ -292,7 +292,7 @@ def create_low_test_image_from_s3(npixel=16384, polarisation_frame=PolarisationF
                 decs.append(dec)
                 fluxes.append(flux)
             r += 1
-            
+    
     csvfile.close()
     
     p = w.sub(2).wcs_world2pix(numpy.array(ras), numpy.array(decs), 1)
@@ -433,18 +433,19 @@ def create_low_test_image_from_gleam(npixel=512, polarisation_frame=Polarisation
     
     log.info('create_low_test_image_from_gleam: %d sources inside the image' % (ps.shape[1]))
     
-    log.info('create_low_test_image_from_gleam: Average flux per channel in image = %.3f' % (actual_flux / float(nchan)))
+    log.info(
+        'create_low_test_image_from_gleam: Average flux per channel in image = %.3f' % (actual_flux / float(nchan)))
     for iflux, flux in enumerate(fluxes):
         if not numpy.isnan(flux).any() and flux.all() > 0.0:
             model.data[:, 0, ps[1, iflux], ps[0, iflux]] = flux[:]
-            
+    
     hdulist.close()
     
     return model
 
 
 def create_low_test_skycomponents_from_gleam(flux_limit=0.1, polarisation_frame=PolarisationFrame("stokesI"),
-                                             frequency=numpy.array([1e8]), kind='cubic', phasecentre=None, radius=1.0)\
+                                             frequency=numpy.array([1e8]), kind='cubic', phasecentre=None, radius=1.0) \
         -> List[Skycomponent]:
     """Create sky components from the GLEAM survey
 
@@ -510,7 +511,7 @@ def create_low_test_skycomponents_from_gleam(flux_limit=0.1, polarisation_frame=
     log.info('create_low_test_skycomponents_from_gleam: %d sources above flux limit %.3f' % (len(skycomps), flux_limit))
     
     hdulist.close()
-
+    
     return skycomps
 
 
@@ -562,7 +563,7 @@ def create_low_test_beam(model: Image) -> Image:
     return reprojected_beam
 
 
-def replicate_image(im: Image, polarisation_frame=PolarisationFrame('stokesI'), frequency=numpy.array([1e8]))\
+def replicate_image(im: Image, polarisation_frame=PolarisationFrame('stokesI'), frequency=numpy.array([1e8])) \
         -> Image:
     """ Make a new canonical shape Image, extended along third and fourth axes by replication.
 
@@ -672,7 +673,7 @@ def simulate_gaintable(gt: GainTable, phase_error=0.1, amplitude_error=0.0,
     """
     
     numpy.random.seed(seed)
-
+    
     log.debug("simulate_gaintable: Simulating amplitude error = %.4f, phase error = %.4f"
               % (amplitude_error, phase_error))
     amp = 1.0
@@ -686,14 +687,14 @@ def simulate_gaintable(gt: GainTable, phase_error=0.1, amplitude_error=0.0,
     nrec = gt.data['gain'].shape[-1]
     if nrec > 1:
         if leakage > 0.0:
-            leak = numpy.random.normal(0, leakage, gt.data['gain'][..., 0, 0].shape) + 1j *  \
-                numpy.random.normal(0, leakage, gt.data['gain'][..., 0, 0].shape)
+            leak = numpy.random.normal(0, leakage, gt.data['gain'][..., 0, 0].shape) + 1j * \
+                   numpy.random.normal(0, leakage, gt.data['gain'][..., 0, 0].shape)
             gt.data['gain'][..., 0, 1] = gt.data['gain'][..., 0, 0] * leak
             leak = numpy.random.normal(0, leakage, gt.data['gain'][..., 1, 1].shape) + 1j * \
-                numpy.random.normal(0, leakage, gt.data['gain'][..., 1, 1].shape)
+                   numpy.random.normal(0, leakage, gt.data['gain'][..., 1, 1].shape)
             gt.data['gain'][..., 1, 0] = gt.data['gain'][..., 1, 1] * leak
         else:
             gt.data['gain'][..., 0, 1] = 0.0
             gt.data['gain'][..., 1, 0] = 0.0
-            
+    
     return gt

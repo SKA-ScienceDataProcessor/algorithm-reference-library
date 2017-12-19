@@ -1,4 +1,4 @@
-""" Calibration and imaging functions converted to Dask.bags graphs. `Dask <http://dask.pydata.org/>`_ is a
+""" Calibration and imaging functions converted to Dask.bags. `Dask <http://dask.pydata.org/>`_ is a
 python-based flexible parallel computing library for analytic computing.
 
 Bags uses a filter-map-reduce approach. If the operations are on bag of similar objects (e.g. all Visibility's) then
@@ -9,213 +9,452 @@ If different bags are to tbe combined, they can be zipped together before being 
 a result the bag related functions below are quite thin and it may be better to go directly to the underlayed bag
 filter-map-reduce functions.
 
-For visibility data, we hold different frequency windows within one bag. Thus for example, the bag is structurally
-the same as a list. For calibration and imaging, we may find it necessary to subdivide each partition into
-sub-partitions (for example, different times for calibration and different w-bins for w stacking).
+In this interface, we use a dictionary interface to provide some structure of the contents of the bags. The bag has
+consists of a list of dictionary items each of which meta data such as freqwin, timewin, etc. For examples,
+a record used in imaging or calibration would be::
+
+    [   {   'freqwin': 0,
+            'vis': <arl.data.data_models.Visibility object at 0x11486e710>},
+        {   'freqwin': 1,
+            'vis': <arl.data.data_models.Visibility object at 0x11486e6d8>},
+        {   'freqwin': 2,
+            'vis': <arl.data.data_models.Visibility object at 0x11486ef98>},
+        {   'freqwin': 3,
+            'vis': <arl.data.data_models.Visibility object at 0x11486ecc0>},
+        {   'freqwin': 4,
+            'vis': <arl.data.data_models.Visibility object at 0x11486e828>},
+        {   'freqwin': 5,
+            'vis': <arl.data.data_models.Visibility object at 0x105ced438>},
+        {   'freqwin': 6,
+            'vis': <arl.data.data_models.Visibility object at 0x105ced320>}]
+
+This then is scattered in w to give a large number of records such as::
+
+    {'freqwin': 0, 'vis': <arl.data.data_models.Visibility object at 0x11a1d40b8>, 'wstack': 42}
+
+Functions called invert_record and predict_record are mapped across this and the results reduced using the
+dask.bag.foldby function::
+
+    dirty_bag = vis_bag\
+        .map(invert_record, model, dopsf=False, context='wstack')\
+        .foldby('freqwin', binop=invert_binop, initial=initial_record)\
+        .map(folded_to_record, 'freqwin')
+
+There are some helper functions invert_binop, folded_to_record that do conversions as necessary.
+
+The output from invert is then a list of records::
+
+    [   {   'freqwin': 0,
+            'image': (   <arl.data.data_models.Image object at 0x12ba12e80>,
+                         array([[ 0.06530285]]))},
+        {   'freqwin': 1,
+            'image': (   <arl.data.data_models.Image object at 0x12ba12f28>,
+                         array([[ 0.06530285]]))},
+        {   'freqwin': 2,
+            'image': (   <arl.data.data_models.Image object at 0x111ae5588>,
+                         array([[ 0.06530285]]))},
+        {   'freqwin': 3,
+            'image': (   <arl.data.data_models.Image object at 0x12bc34fd0>,
+                         array([[ 0.06530285]]))},
+        {   'freqwin': 4,
+            'image': (   <arl.data.data_models.Image object at 0x112d4fc18>,
+                         array([[ 0.06530285]]))},
+        {   'freqwin': 5,
+            'image': (   <arl.data.data_models.Image object at 0x111afe8d0>,
+                         array([[ 0.06530285]]))},
+        {   'freqwin': 6,
+            'image': (   <arl.data.data_models.Image object at 0x112d4f3c8>,
+                         array([[ 0.06530285]]))}]
 
 Note that all parameters here should be passed using the kwargs mechanism.
 """
-import collections
 import logging
 
+import numpy
 from dask import bag
 
 from arl.calibration.operations import qa_gaintable, apply_gaintable
 from arl.calibration.solvers import solve_gaintable
-from arl.data.data_models import Image
 from arl.image.deconvolution import deconvolve_cube, restore_cube
 from arl.image.operations import create_image_from_array, qa_image, create_empty_image_like
-from arl.imaging import predict_2d, invert_2d, normalize_sumwt
+from arl.imaging import normalize_sumwt
 from arl.imaging.imaging_context import imaging_context
 from arl.visibility.base import copy_visibility
 from arl.visibility.gather_scatter import visibility_gather_channel
-from arl.visibility.operations import concatenate_visibility, subtract_visibility, qa_visibility, divide_visibility, \
-    integrate_visibility_by_channel
+from arl.visibility.operations import qa_visibility, sort_visibility, \
+    divide_visibility, integrate_visibility_by_channel
+
+
+def reify(bg):
+    if isinstance(bg, bag.Bag):
+        return bag.from_sequence(bg.compute())
+    else:
+        return bg
+
+
+def print_element(x, context='', indent=4, width=160):
+    from pprint import PrettyPrinter
+    pp = PrettyPrinter(indent=indent, width=width)
+    if context == '':
+        pp.pprint(x)
+    else:
+        pp.pprint("%s: %s" % (context, x))
+    return x
+
 
 log = logging.getLogger(__name__)
 
 
-def safe_predict_list(vis_list, model, predict=predict_2d, **kwargs):
-    """ Predicts a list of visibilities to obtain a list of visibilities
+def scatter_record(record, model, context, **kwargs):
+    """ Scatter a record according to the context's scatter field.
 
-    Can be used in bag.map()
-
-    :param vis_list:
-    :param model:
-    :param predict:
+    :param record:
+    :param context: Imaging context
     :param kwargs:
-    :return: List of visibilities
+    :return:
     """
-    assert isinstance(vis_list, collections.Iterable), "Visibility list is not Iterable: %s" % str(vis_list)
-    
-    assert isinstance(model, Image), "Model is not an image: %s" % model
-    
+    log.debug("Into scatter_record", context, record)
+    c = imaging_context(context)
+    assert c['scatter'] is not None, "Scatter not possible for context %s" % context
+    scatter = c['scatter']
     result = list()
+    vis_list = scatter(record['vis'], **kwargs)
+    scatter_index = 0
     for v in vis_list:
         if v is not None:
-            predicted = copy_visibility(v)
-            result.append(predict(predicted, model, **kwargs))
-    
-    assert len(result) > 0, "Visibility after concatenation is empty, input list is %s" % str(vis_list)
-    
+            newrecord = {}
+            for key in record.keys():
+                newrecord[key] = record[key]
+            newrecord['vis'] = v
+            newrecord[context] = scatter_index
+            scatter_index += 1
+            newrecord['model']=model
+            result.append(newrecord)
+    log.debug("From scatter_record", result)
     return result
 
 
-def safe_invert_list(vis_list, model, invert=invert_2d, *args, **kwargs):
-    """Invert a list of visibilities to obtain a list of (Image, weight) tuples
+def predict_record(record, context, **kwargs):
+    """ Do a predict for a given record
 
-    Can be used in bag.map()
-
-    :param vis_list:
-    :param model:
-    :param invert:
-    :param args:
-    :param kwargs:
-    :return: List of (Image, weight) tuples
-    """
-    result = list()
-    assert isinstance(vis_list, collections.Iterable), vis_list
-    assert isinstance(model, Image), "Model is not an image: %s" % model
-    for v in vis_list:
-        if v is not None:
-            result.append(invert(v, model, *args, **kwargs))
-    return result
-
-
-def sum_invert_bag_results(invert_list, normalize=True):
-    """Sum a list of invert results, optionally normalizing at the end
-
-    Can be used in bag.map()
-    
-    :param invert_list: List of results from invert: Image, weight tuples
-    :param normalize: Normalize by the sum of weights
-    """
-    assert isinstance(invert_list, collections.Iterable), invert_list
-    result = None
-    weight = None
-    for i, a in enumerate(invert_list):
-        assert isinstance(a[0], Image), "Item is not an image: %s" % str(a[0])
-        if i == 0:
-            result = create_image_from_array(a[0].data * a[1], a[0].wcs, a[0].polarisation_frame)
-            weight = a[1]
-        else:
-            result.data += a[0].data * a[1]
-            weight += a[1]
-    
-    assert weight is not None and result is not None, "No valid images found"
-    
-    if normalize:
-        result = normalize_sumwt(result, weight)
-    
-    return result, weight
-
-
-def invert_bag(vis_bag, model_bag, dopsf=False, context='2d', **kwargs):
-    """ Construct a bag to invert a bag of visibilities to a bag of (image, weight) tuples
-    
-    Call directly - don't use via bag.map
-    
-    :param vis_bag:
+    :param record:
     :param model:
     :param context:
     :param kwargs:
     :return:
     """
     c = imaging_context(context)
-    log.info('Imaging context is %s' % c)
-    if c['scatter'] is not None:
-        return vis_bag. \
-            map(c['scatter'], **kwargs). \
-            map(safe_invert_list, model_bag, c['invert'], dopsf=dopsf, **kwargs). \
-            map(sum_invert_bag_results)
-    else:
-        return vis_bag. \
-            map(c['invert'], model_bag, dopsf=dopsf, **kwargs)
+    predict = c['predict']
+    newrecord = {}
+    for key in record.keys():
+        newrecord[key] = record[key]
+    newvis = copy_visibility(record['vis'], zero=True)
+    newrecord['vis'] = predict(newvis, record['model'], context=context, **kwargs)
+    return newrecord
 
 
-def predict_bag(vis_bag, model_bag, context='2d', **kwargs):
-    """Construct a bag to predict a bag of visibilities.
+def invert_record(record, dopsf, context, **kwargs):
+    """ Do an invert for a given record
+
+    :param record:
+    :param model:
+    :param dopsf:
+    :param context:
+    :param kwargs:
+    :return:
+    """
+    c = imaging_context(context)
+    invert = c['invert']
     
+    assert 'vis' in record.keys(), "vis not contained in record keys %s" % record
+    vis = record['vis']
+    
+    newrecord = {}
+    for key in record.keys():
+        if key != 'vis':
+            newrecord[key] = record[key]
+    newrecord['image'] = invert(vis, record['model'], dopsf, **kwargs)
+    return newrecord
+
+
+def invert_record_add(r1, r2, normalize=True):
+    """ Add two invert records together
+
+    :param r1:
+    :param r2:
+    :param normalize:
+    :return:
+    """
+    im1 = r1['image']
+    im2 = r2['image']
+    result = create_image_from_array(im1[0].data * im1[1] + im2[0].data * im2[1],
+                                     im1[0].wcs, im1[0].polarisation_frame)
+    weight = im1[1] + im2[1]
+    if normalize:
+        result = normalize_sumwt(result, weight)
+    
+    newrecord = {}
+    for key in r1.keys():
+        if key != 'vis':
+            newrecord[key] = r1[key]
+    for key in r2.keys():
+        if key != 'vis':
+            newrecord[key] = r2[key]
+    newrecord['image'] = (result, weight)
+    return newrecord
+
+
+def predict_record_concatenate(r1, r2):
+    """ Add two predict records together
+
+    :param r1:
+    :param r2:
+    :param normalize:
+    :return:
+    """
+    vis1 = r1['vis']
+    vis2 = r2['vis']
+    if vis1 is None:
+        return r2
+    if vis2 is None:
+        return r1
+    assert vis1.polarisation_frame == vis2.polarisation_frame
+    assert vis1.phasecentre.separation(vis2.phasecentre).value < 1e-15
+    ovis = copy_visibility(vis1)
+    ovis.data = numpy.hstack((vis1.data, vis2.data))
+    newrecord = {}
+    for key in r1.keys():
+        if key != 'vis':
+            newrecord[key] = r1[key]
+    for key in r2.keys():
+        if key != 'vis':
+            newrecord[key] = r2[key]
+    newrecord['vis'] = ovis
+    return newrecord
+
+
+def predict_record_subtract(r1, r2):
+    """ Subtract two predict records
+
+    :param r1:
+    :param r2:
+    :param normalize:
+    :return:
+    """
+    vis1 = r1['vis']
+    vis2 = r2['vis']
+    assert vis1.polarisation_frame == vis2.polarisation_frame
+    assert vis1.phasecentre.separation(vis2.phasecentre).value < 1e-15
+    ovis = copy_visibility(vis1)
+    ovis.data['vis'] -= vis2.vis
+    newrecord = {}
+    for key in r1.keys():
+        newrecord[key] = r1[key]
+    newrecord['vis'] = ovis
+    return newrecord
+
+
+def create_empty_image_record(model):
+    """ Create an empty image record to be used in invert_record_add
+
+    :param model:
+    :return:
+    """
+    return {'image': (create_empty_image_like(model), 0.0)}
+
+
+def create_empty_visibility_record(vis):
+    """ Create an empty visibility record to be used in predict_record_concatenate
+
+    :param model:
+    :return:
+    """
+    return {'vis': None}
+
+
+def folded_to_image_record(folded):
+    """ Convert the output from foldby back into our record format
+
+    :param folded:
+    :param key:
+    :return:
+    """
+    return folded[1]
+
+
+def folded_to_visibility_record(folded):
+    """ Convert the output from foldby back into our record format
+
+    :param folded:
+    :param key:
+    :return:
+    """
+    result = folded[1]
+    result['vis'] = sort_visibility(folded[1]['vis'])
+    return result
+
+
+def invert_bag(vis_bag, model_bag, dopsf=False, context='2d', key='freqwin', **kwargs) -> bag:
+    """ Construct a bag to invert a bag of visibilities to a bag of (image, weight) tuples
+
+    Call directly - don't use via bag.map
+
+    :param vis_bag:
+    :param model_bag: This is just used as specification of the output images
+    :param context:
+    :param kwargs:
+    :return:
+    """
+    return vis_bag \
+        .map(scatter_record, model_bag, context, **kwargs) \
+        .flatten() \
+        .map(invert_record, dopsf=dopsf, context=context, **kwargs) \
+        .foldby(key, binop=invert_record_add) \
+        .map(folded_to_image_record)
+
+
+def predict_bag(vis_bag, model_bag, context='2d', key='freqwin', **kwargs) -> bag:
+    """Construct a bag to predict a bag of visibilities.
+
     The vis_bag is scattered appropriately, the predict is applied, and the data then
     concatenated and sorted back to the original order from creation
 
     Call directly - don't use via bag.map
-    
+
     :param vis_bag:
-    :param model:
+    :param model_bag: This must be a bag of images
     :param context:
     :param kwargs:
     :return:
     """
-    c = imaging_context(context)
-    if c['scatter'] is not None:
-        return vis_bag. \
-            map(copy_visibility, zero=True). \
-            map(c['scatter'], **kwargs). \
-            map(safe_predict_list, model_bag, c['predict'], **kwargs). \
-            map(concatenate_visibility)
-    else:
-        return vis_bag. \
-            map(copy_visibility, zero=True). \
-            map(c['predict'], model_bag,  **kwargs)
+    # The steps here are:
+    #
+    # - Scatter the visibilities according to context
+    # - Flatten to e.g. {'freqwin': 0, 'vis': <arl.data.data_models.Visibility object at 0x114a10208>, 'timeslice': 4}
+    # - Do a predict on all records yielding e.g. {'freqwin': 1, 'vis': <arl.data.data_models.Visibility object at
+    # 0x114a10a58>, 'timeslice': 3}
+    # - Concatenate the results according to the key e.g. (1, {'freqwin': 1, 'timeslice': 4,
+    # 'vis': <arl.data.data_models.Visibility object at 0x114a10da0>})
+    # - Convert the results back to record structure
+    #
+    # Monitoring is via print_element
+    return vis_bag \
+        .map(scatter_record, model_bag, context=context, **kwargs) \
+        .flatten() \
+        .map(predict_record, context, **kwargs) \
+        .foldby(key, binop=predict_record_concatenate) \
+        .map(folded_to_visibility_record)
 
 
-def deconvolve_bag(dirty_bag, psf_bag, model_bag, **kwargs):
+def deconvolve_bag(dirty_bag, psf_bag, model_bag, **kwargs) -> bag:
     """ Deconvolve a bag of images to obtain a bag of models
-    
+
     Call directly - don't use via bag.map
-    
+
     :param dirty_bag:
     :param psf_bag:
     :param kwargs:
     :return: Bag of Images
     """
     
-    def deconvolve(dp_zip, **kwargs):
+    def deconvolve(dirty, psf, model, **kwargs):
         # The dirty and psf are actually (Image, weight) tuples.
-        result = deconvolve_cube(dp_zip[0][0], dp_zip[1][0], **kwargs)
+        result = deconvolve_cube(dirty['image'][0], psf['image'][0], **kwargs)
+        result[0].data += model.data
         return result[0]
     
-    # We zip up the dirty and psf bags and call the deconvolve adapter
-    return bag.zip(dirty_bag, psf_bag).map(deconvolve, **kwargs)
+    return dirty_bag \
+        .map(deconvolve, psf_bag, model_bag, **kwargs)
 
-def restore_bag(comp_bag, psf_bag, res_bag, **kwargs):
+
+def restore_bag(comp_bag, psf_bag, res_bag, **kwargs) -> bag:
     """ Restore a bag of images to obtain a bag of restored images
 
     Call directly - don't use via bag.map
-    
+
     :param dirty_bag:
     :param psf_bag:
     :param kwargs:
     :return: Bag of Images
     """
     
-    def restore(cpr_zip, **kwargs):
-        # The comp is just an Image, while the dirty and psf are actually (Image, weight) tuples.
-        return restore_cube(cpr_zip[0], cpr_zip[1][0], cpr_zip[2][0], **kwargs)
+    def restore(comp, psf, res, **kwargs):
+        return restore_cube(comp, psf['image'][0], res['image'][0])
     
-    return bag.zip(comp_bag, psf_bag, res_bag).map(restore, **kwargs)
+    return comp_bag.map(restore, psf_bag, res_bag, **kwargs)
 
 
-def residual_image_bag(vis_bag, model_image_bag, context='2d', **kwargs):
+def residual_image_bag(vis_bag, model_image_bag, context='2d', **kwargs) -> bag:
     """Calculate residual images
 
     Call directly - don't use via bag.map
-    
+
     :param vis_bag: Bag containing visibilities
     :param model_image_bag: Model images, one per visibility in vis_bag
     :param kwargs:
     :return:
     """
-    result_vis_bag = predict_bag(vis_bag, model_image_bag, context=context, **kwargs)
-    result_vis_bag = vis_bag.map(subtract_visibility, result_vis_bag)
+    result_vis_bag = reify(predict_bag(vis_bag, model_image_bag, context=context, **kwargs))
+    result_vis_bag = reify(vis_bag).map(predict_record_subtract, result_vis_bag)
     return invert_bag(result_vis_bag, model_image_bag, context=context, **kwargs)
+
+
+def selfcal_bag(vis_bag, model_bag, **kwargs):
+    """ Create a bag for (optionally global) selfcalibration of a list of visibilities
+
+    If global solution is true then visibilities are gathered to a single visibility data set which is then
+    self-calibrated. The resulting gaintable is then effectively scattered out for application to each visibility
+    set. If global solution is false then the solutions are performed locally.
+
+    :param vis_bag: Bag of observed visibilities
+    :param model_bag: Bag of model visibilities
+    :param vis_slices:
+    :param global_solution: Solve for global gains?
+    :param kwargs: Parameters for functions in graphs
+    :return:
+    """
+    
+    model_vis_bag = vis_bag.map(copy_visibility, zero=True)
+    model_vis_bag = predict_bag(model_vis_bag, model_bag, **kwargs)
+    return calibrate_bag(vis_bag, model_vis_bag, **kwargs)
+
+
+def calibrate_bag(vis_bag, model_vis_bag, global_solution=True, **kwargs):
+    """ Create a bag for (optionally global) calibration of a list of visibilities
+
+    If global solution is true then visibilities are gathered to a single visibility
+    data set which is then self-calibrated. The resulting gaintable is then effectively
+    scattered out for application to each visibility set. If global solution is false
+    then the solutions are performed locally.
+
+    :param vis_bag:
+    :param model_vis_bag:
+    :param global_solution: Solve for global gains
+    :param kwargs: Parameters for functions in graphs
+    :return:
+    """
+    
+    if global_solution:
+        point_vis_bag = vis_bag.map(divide_visibility, model_vis_bag) \
+            .map(visibility_gather_channel) \
+            .map(integrate_visibility_by_channel)
+        
+        # This is a global solution so we only get one gain table
+        gt_bag = point_vis_bag.map(solve_gaintable, **kwargs)
+        return vis_bag.map(apply_gaintable, gt_bag, inverse=True, **kwargs)
+    else:
+        def solve_and_apply(vis, modelvis, **kwargs):
+            gt = solve_gaintable(vis, modelvis, **kwargs)
+            return apply_gaintable(vis, gt, **kwargs)
+        
+        return vis_bag.map(solve_and_apply)
+
 
 def qa_visibility_bag(vis, context=''):
     """ Print qa on the visibilities, use this in a sequence of bag operations
-    
+
     Can be used in bag.map() as a passthru
-    
+
     :param vis:
     :return:
     """
@@ -228,7 +467,7 @@ def qa_image_bag(im, context=''):
     """ Print qa on images, use this in a sequence of bag operations
 
     Can be used in bag.map() as a passthru
-    
+
     :param im:
     :return:
     """
@@ -241,7 +480,7 @@ def qa_gaintable_bag(gt, context=''):
     """ Print qa on gaintables, use this in a sequence of bag operations
 
     Can be used in bag.map() as a passthru
-    
+
     :param gt:
     :return:
     """

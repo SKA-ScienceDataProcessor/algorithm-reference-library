@@ -29,7 +29,7 @@ def get_frequency_map(vis, im: Visibility = None):
     if im is None:
         spectral_mode = 'channel'
         vfrequencymap = get_rowmap(vis.frequency, ufrequency)
-        assert min(vfrequencymap) >= 0, "Invalid frequency map: visibility channel < 0"
+        assert min(vfrequencymap) >= 0, "Invalid frequency map: visibility channel < 0: %s" % str(vfrequencymap)
     
     elif im.data.shape[0] == 1 and vnchan >= 1:
         spectral_mode = 'mfs'
@@ -46,8 +46,9 @@ def get_frequency_map(vis, im: Visibility = None):
         row2vis = numpy.array(get_rowmap(vis.frequency, ufrequency))
         vfrequencymap = [v2im_map[row2vis[row]] for row in range(nrows)]
         
-        assert min(vfrequencymap) >= 0, "Invalid frequency map: image channel < 0"
-        assert max(vfrequencymap) < im.shape[0], "Invalid frequency map: image channel > number image channels"
+        assert min(vfrequencymap) >= 0, "Invalid frequency map: image channel < 0 %s" % str(vfrequencymap)
+        assert max(vfrequencymap) < im.shape[0], "Invalid frequency map: image channel > number image channels %s" % \
+                                                 str(vfrequencymap)
     
     return spectral_mode, vfrequencymap
 

@@ -75,12 +75,12 @@ def ical(block_vis: BlockVisibility, model: Image, components=None, context='2d'
     if doselfcal:
         log.info("Selfcalibrating using initial model")
         gt = solve_gaintable(block_vis, block_vispred, **kwargs)
-        print(qa_gaintable(gt, context='Gaintable for initial selfcalibration'))
+        log.info(qa_gaintable(gt, context='Gaintable for initial selfcalibration'))
         vis = apply_gaintable(block_vis, gt, inverse=True)
 
     visres.data['vis'] = vis.data['vis'] - vispred.data['vis']
     dirty, sumwt = invert_context(visres, model, context=context, **kwargs)
-    print("Maximum in residual image is ", numpy.max(numpy.abs(dirty.data), axis=(2,3)), ", sumwt is ", sumwt)
+    log.info("Maximum in residual image is %.6f" % (numpy.max(numpy.abs(dirty.data))))
 
     psf, sumwt = invert_context(visres, model, dopsf=True, context=context, **kwargs)
 
@@ -97,14 +97,14 @@ def ical(block_vis: BlockVisibility, model: Image, components=None, context='2d'
             log.info("ical: Performing selfcalibration")
             block_vispred = convert_visibility_to_blockvisibility(vispred)
             gt = solve_gaintable(block_vis, block_vispred, **kwargs)
-            print(qa_gaintable(gt, context='Gaintable for selfcal cycle %d' % i))
+            log.info(qa_gaintable(gt, context='Gaintable for selfcal cycle %d' % i))
             block_vis = apply_gaintable(block_vis, gt, inverse=True)
             vis = convert_blockvisibility_to_visibility(block_vis)
             
         visres.data['vis'] = vis.data['vis'] - vispred.data['vis']
         
         dirty, sumwt = invert_context(visres, model, context=context, **kwargs)
-        print("Maximum in residual image is ", numpy.max(numpy.abs(dirty.data), axis=(2,3)), ", sumwt is ", sumwt)
+        log.info("Maximum in residual image is %s" % (numpy.max(numpy.abs(dirty.data))))
         if numpy.abs(dirty.data).max() < 1.1 * thresh:
             log.info("ical: Reached stopping threshold %.6f Jy" % thresh)
             break

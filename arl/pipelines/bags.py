@@ -5,8 +5,8 @@ import logging
 from dask import bag
 
 from arl.data.parameters import get_parameter
-from arl.graphs.bags_records import deconvolve_bag, invert_bag, predict_bag, residual_image_bag, \
-    restore_bag, calibrate_bag
+from arl.graphs.bags import deconvolve_bag, invert_bag, predict_bag, residual_image_bag, \
+    restore_bag, calibrate_bag, reify
 from arl.visibility.operations import subtract_visibility
 
 log = logging.getLogger(__name__)
@@ -62,7 +62,7 @@ def ical_pipeline_bag(vis_bag, model_bag, context='2d', first_selfcal=None,
     
     # Make the predicted visibilities, selfcalibrate against it correcting the gains, then
     # form the residual visibility, then make the residual image
-    model_vis_bag = predict_bag(vis_bag, model_bag, context=context, **kwargs)
+    model_vis_bag = reify(predict_bag(vis_bag, model_bag, context=context, **kwargs))
     if first_selfcal is not None and first_selfcal == 0:
         vis_bag = calibrate_bag(vis_bag, model_vis_bag, **kwargs)
     res_vis_bag = vis_bag \

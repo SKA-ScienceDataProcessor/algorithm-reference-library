@@ -14,6 +14,8 @@ from dask import delayed
 
 from arl.calibration.operations import apply_gaintable, create_gaintable_from_blockvisibility
 from arl.data.polarisation import PolarisationFrame
+from arl.util.testing_support import create_named_configuration, simulate_gaintable
+
 from arl.graphs.graphs import create_invert_facet_graph, create_predict_facet_graph, \
     create_zero_vis_graph_list, create_subtract_vis_graph_list, \
     create_deconvolve_facet_graph, create_deconvolve_channel_graph, \
@@ -23,16 +25,16 @@ from arl.graphs.graphs import create_invert_facet_graph, create_predict_facet_gr
     create_invert_facet_wstack_graph, create_invert_timeslice_graph, \
     create_predict_timeslice_graph, create_invert_facet_timeslice_graph, \
     create_predict_facet_timeslice_graph, create_selfcal_graph_list
+
 from arl.graphs.vis import simple_vis
-from arl.image.operations import qa_image, export_image_to_fits, copy_image
+from arl.image.operations import qa_image, export_image_to_fits, copy_image, create_empty_image_like
 from arl.imaging import create_image_from_visibility, predict_skycomponent_blockvisibility, \
-    invert_wstack_single, predict_wstack_single
+    predict_skycomponent_visibility, invert_wstack_single, predict_wstack_single
 from arl.skycomponent.operations import create_skycomponent, insert_skycomponent
-from arl.util.testing_support import create_named_configuration, simulate_gaintable
-from arl.visibility.base import create_blockvisibility
-from arl.visibility.operations import qa_visibility
-
-
+from arl.util.testing_support import create_named_configuration
+from arl.visibility.base import create_visibility, create_blockvisibility, copy_visibility
+from arl.visibility.operations import qa_visibility, subtract_visibility
+from arl.visibility.coalesce import decoalesce_visibility, coalesce_visibility
 
 class TestDaskGraphs(unittest.TestCase):
     def setUp(self):
@@ -51,12 +53,13 @@ class TestDaskGraphs(unittest.TestCase):
         self.vis_graph_list = self.setupVis(add_errors=False)
         self.model_graph = delayed(self.get_LSM)(self.vis_graph_list[self.nvis // 2])
     
-    def setupVis(self, add_errors=False, freqwin=3):
+    def setupVis(self, add_errors=False, freqwin=7):
         self.freqwin = freqwin
         vis_graph_list = list()
         self.ntimes = 5
         self.times = numpy.linspace(-3.0, +3.0, self.ntimes) * numpy.pi / 12.0
         self.frequency = numpy.linspace(0.8e8, 1.2e8, self.freqwin)
+        
         for freq in self.frequency:
             vis_graph_list.append(delayed(self.ingest_visibility)(freq, times=self.times, add_errors=add_errors))
         
@@ -65,24 +68,29 @@ class TestDaskGraphs(unittest.TestCase):
         self.vis_slices = 2 * int(numpy.ceil(numpy.max(numpy.abs(vis_graph_list[0].compute().w)) / self.wstep)) + 1
         return vis_graph_list
     
-    def ingest_visibility(self, freq=1e8, chan_width=1e6, times=None, reffrequency=None, add_errors=False):
+    def ingest_visibility(self, freq=1e8, chan_width=1e6, times=None, reffrequency=None, add_errors=False,
+                          block=True):
         if times is None:
-            times = [0.0]
+            times = (numpy.pi / 12.0) * numpy.linspace(-3.0, 3.0, 5)
+        
         if reffrequency is None:
             reffrequency = [1e8]
         lowcore = create_named_configuration('LOWBD2-CORE')
         frequency = numpy.array([freq])
         channel_bandwidth = numpy.array([chan_width])
         
-        #        phasecentre = SkyCoord(ra=+180.0 * u.deg, dec=-60.0 * u.deg, frame='icrs', equinox='J2000')
-        # Observe at zenith to ensure that timeslicing works well. We test that elsewhere.
         phasecentre = SkyCoord(ra=+180.0 * u.deg, dec=-60.0 * u.deg, frame='icrs', equinox='J2000')
-        vt = create_blockvisibility(lowcore, times, frequency, channel_bandwidth=channel_bandwidth,
+        if block:
+            vt = create_blockvisibility(lowcore, times, frequency, channel_bandwidth=channel_bandwidth,
+                                weight=1.0, phasecentre=phasecentre,
+                                polarisation_frame=PolarisationFrame("stokesI"))
+        else:
+            vt = create_visibility(lowcore, times, frequency, channel_bandwidth=channel_bandwidth,
                                     weight=1.0, phasecentre=phasecentre,
                                     polarisation_frame=PolarisationFrame("stokesI"))
         cellsize = 0.001
         model = create_image_from_visibility(vt, npixel=self.npixel, cellsize=cellsize, npol=1,
-                                             frequency=reffrequency,
+                                             frequency=reffrequency, phasecentre=phasecentre,
                                              polarisation_frame=PolarisationFrame("stokesI"))
         flux = numpy.array([[100.0]])
         facets = 4
@@ -96,12 +104,19 @@ class TestDaskGraphs(unittest.TestCase):
                 p = int(round(rpix[0] + ix * spacing_pixels * numpy.sign(model.wcs.wcs.cdelt[0]))), \
                     int(round(rpix[1] + iy * spacing_pixels * numpy.sign(model.wcs.wcs.cdelt[1])))
                 sc = pixel_to_skycoord(p[0], p[1], model.wcs, origin=1)
-                comps.append(create_skycomponent(flux=flux, frequency=vt.frequency, direction=sc,
-                                                 polarisation_frame=PolarisationFrame("stokesI")))
-        predict_skycomponent_blockvisibility(vt, comps)
+                comp = create_skycomponent(flux=flux, frequency=vt.frequency, direction=sc,
+                                                 polarisation_frame=PolarisationFrame("stokesI"))
+                comps.append(comp)
+        if block:
+            predict_skycomponent_blockvisibility(vt, comps)
+        else:
+            predict_skycomponent_visibility(vt, comps)
         insert_skycomponent(model, comps)
-        self.actualmodel = copy_image(model)
-        export_image_to_fits(model, '%s/test_imaging_model.fits' % (self.results_dir))
+        self.model = copy_image(model)
+        self.empty_model = create_empty_image_like(model)
+        
+        export_image_to_fits(model, '%s/test_bags_model.fits' % (self.results_dir))
+
         if add_errors:
             # These will be the same for all calls
             numpy.random.seed(180555)
