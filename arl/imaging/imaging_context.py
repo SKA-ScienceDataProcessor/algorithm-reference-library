@@ -8,7 +8,9 @@
 
 import logging
 
-from arl.imaging import *
+from arl.imaging import predict_2d, invert_2d, predict_timeslice_single, invert_timeslice_single, \
+    predict_wstack_single, invert_wstack_single, predict_timeslice, invert_timeslice, \
+    predict_wstack, invert_wstack
 from arl.visibility.gather_scatter import visibility_gather_index, visibility_scatter_index, \
     visibility_gather_time, visibility_scatter_time, visibility_gather_w, visibility_scatter_w
 

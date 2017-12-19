@@ -70,8 +70,9 @@ def compute_list(client, graph_list, nodes=None, **kwargs):
     # Dask can report fewer workers than requested. This is transitory so we only
     # check for decreases.
     assert nworkers_final >= nworkers_initial, "Lost workers: started with %d, now have %d" % \
-                                                   (nworkers_initial, nworkers_final)
+                                               (nworkers_initial, nworkers_final)
     return [f.result() for f in futures]
+
 
 def sum_invert_results(image_list):
     """ Sum a set of invert results with appropriate weighting
@@ -614,7 +615,7 @@ def create_residual_facet_graph(vis_graph_list, model_graph: delayed, **kwargs) 
 
 
 def create_residual_vis_scatter_graph(vis_graph_list, model_graph: delayed, vis_slices, scatter,
-                                    invert, predict, **kwargs) -> delayed:
+                                      invert, predict, **kwargs) -> delayed:
     """ Sum invert results for a scattered  vis_graph_list
 
     Base for create_invert_wstack_graph and create_invert_timeslice_graph
@@ -653,7 +654,6 @@ def create_residual_vis_scatter_graph(vis_graph_list, model_graph: delayed, vis_
         else:
             return None
 
-     
     def invert_ignore_None(vis, model, *args, **kwargs):
         if vis is not None:
             return invert(vis, model, *args, **kwargs)
@@ -674,9 +674,9 @@ def create_residual_vis_scatter_graph(vis_graph_list, model_graph: delayed, vis_
                 mvg = delayed(predict_ignore_None)(mvg, model_graph, **kwargs)
                 mvg = delayed(subtract_vis)(scatter_vis_graph, mvg)
                 image_graph_list.append(delayed(invert_ignore_None,
-                                                  pure=True, nout=2)(mvg, model_graph,
-                                                                     dopsf=False, normalize=True,
-                                                                     **kwargs))
+                                                pure=True, nout=2)(mvg, model_graph,
+                                                                   dopsf=False, normalize=True,
+                                                                   **kwargs))
     return delayed(sum_invert_results)(image_graph_list)
 
 
@@ -752,7 +752,7 @@ def create_deconvolve_graph(dirty_graph: delayed, psf_graph: delayed, model_grap
 
 
 def create_deconvolve_facet_graph(dirty_graph: delayed, psf_graph: delayed, model_graph: delayed,
-                                    facets=1, **kwargs) -> delayed:
+                                  facets=1, **kwargs) -> delayed:
     """Create a graph for deconvolution by subimages, adding to the model
     
     Does deconvolution subimage by subimage. Currently does nothing very sensible about the
@@ -779,11 +779,12 @@ def create_deconvolve_facet_graph(dirty_graph: delayed, psf_graph: delayed, mode
         return output
     
     output = delayed(create_empty_image_like, nout=1, pure=True)(model_graph)
-    dirty_graphs = delayed(image_scatter_facets, nout=facets*facets, pure=True)(dirty_graph[0], facets=facets)
+    dirty_graphs = delayed(image_scatter_facets, nout=facets * facets, pure=True)(dirty_graph[0], facets=facets)
     results = [delayed(deconvolve_subimage)(dirty_graph, psf_graph[0], **kwargs)
                for dirty_graph in dirty_graphs]
     result = delayed(image_gather_facets, nout=1, pure=True)(results, output, facets=facets)
     return delayed(add_model, nout=1, pure=True)(result, model_graph)
+
 
 def create_deconvolve_channel_graph(dirty_graph: delayed, psf_graph: delayed, model_graph: delayed, subimages,
                                     **kwargs) -> delayed:

@@ -688,10 +688,10 @@ def simulate_gaintable(gt: GainTable, phase_error=0.1, amplitude_error=0.0,
     if nrec > 1:
         if leakage > 0.0:
             leak = numpy.random.normal(0, leakage, gt.data['gain'][..., 0, 0].shape) + 1j * \
-                   numpy.random.normal(0, leakage, gt.data['gain'][..., 0, 0].shape)
+                numpy.random.normal(0, leakage, gt.data['gain'][..., 0, 0].shape)
             gt.data['gain'][..., 0, 1] = gt.data['gain'][..., 0, 0] * leak
             leak = numpy.random.normal(0, leakage, gt.data['gain'][..., 1, 1].shape) + 1j * \
-                   numpy.random.normal(0, leakage, gt.data['gain'][..., 1, 1].shape)
+                numpy.random.normal(0, leakage, gt.data['gain'][..., 1, 1].shape)
             gt.data['gain'][..., 1, 0] = gt.data['gain'][..., 1, 1] * leak
         else:
             gt.data['gain'][..., 0, 1] = 0.0

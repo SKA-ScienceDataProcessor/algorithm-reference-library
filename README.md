@@ -82,6 +82,9 @@ pip install bokeh
 # if you want to use pytest
 pip install pytest
 
+# if you want to do the lint checking
+pip install pylint
+
 # permanently fix up the ARL lib path in the virtualenv with the following:
 add2virtualenv /path/to/checked/out/algorithm-reference-library
 

@@ -115,7 +115,7 @@ def scatter_record(record, model, context, **kwargs):
     :param kwargs:
     :return:
     """
-    log.debug("Into scatter_record", context, record)
+    log.debug("Into scatter_record: %s - %s", context, record)
     c = imaging_context(context)
     assert c['scatter'] is not None, "Scatter not possible for context %s" % context
     scatter = c['scatter']
@@ -130,9 +130,9 @@ def scatter_record(record, model, context, **kwargs):
             newrecord['vis'] = v
             newrecord[context] = scatter_index
             scatter_index += 1
-            newrecord['model']=model
+            newrecord['model'] = model
             result.append(newrecord)
-    log.debug("From scatter_record", result)
+    log.debug("From scatter_record: %s", result)
     return result
 
 

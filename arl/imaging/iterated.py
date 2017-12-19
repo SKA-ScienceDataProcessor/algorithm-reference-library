@@ -7,7 +7,7 @@ import numpy
 
 from arl.data.data_models import Visibility, Image
 from arl.imaging import normalize_sumwt
-from arl.image.iterators import   image_raster_iter
+from arl.image.iterators import image_raster_iter
 from arl.image.operations import create_empty_image_like
 from arl.visibility.iterators import vis_slice_iter
 from arl.visibility.base import copy_visibility, create_visibility_from_rows
@@ -95,7 +95,7 @@ def predict_with_raster_iterator(vis: Visibility, model: Image,
     """
     log.info("predict_with_image_iterator: Predicting by image partitions")
     result = copy_visibility(vis)
-    for dpatch in   image_raster_iter(model, facets=facets):
+    for dpatch in image_raster_iter(model, facets=facets):
         result.data['vis'][...] = 0.0
         result = predict_function(result, dpatch, **kwargs)
         vis.data['vis'] += result.data['vis']
@@ -119,7 +119,7 @@ def invert_with_raster_iterator(vis, im, dopsf=False,
     i = 0
     nchan, npol, _, _ = im.shape
     totalwt = numpy.zeros([nchan, npol])
-    for dpatch in   image_raster_iter(im, facets=facets):
+    for dpatch in image_raster_iter(im, facets=facets):
         result, sumwt = invert_function(vis, dpatch, dopsf, normalize=False, **kwargs)
         totalwt = sumwt
         # Ensure that we fill in the elements of dpatch instead of creating a new numpy arrray

@@ -9,7 +9,7 @@ from arl.data.data_models import Visibility, Image
 
 from arl.imaging.wstack import predict_wstack, invert_wstack
 
-from arl.image.iterators import   image_raster_iter
+from arl.image.iterators import image_raster_iter
 from arl.imaging.iterated import predict_with_raster_iterator, invert_with_raster_iterator
 
 import logging
@@ -24,12 +24,12 @@ def predict_facets_wstack(vis: Visibility, model: Image, facets=1, **kwargs) -> 
     :return: resulting visibility (in place works)
     """
     log.info("predict_facets_wstack: Predicting by image facets and w stacking")
-    return predict_with_raster_iterator(vis, model, image_iterator=  image_raster_iter, predict_function=predict_wstack,
+    return predict_with_raster_iterator(vis, model, image_iterator=image_raster_iter, predict_function=predict_wstack,
                                         facets=1, **kwargs)
 
 
-def invert_facets_wstack(vis: Visibility, im: Image, dopsf=False, normalize=True, facets=1, **kwargs) -> (Image,
-                                                                                                   numpy.ndarray):
+def invert_facets_wstack(vis: Visibility, im: Image, dopsf=False, normalize=True,
+                         facets=1, **kwargs) -> (Image, numpy.ndarray):
     """ Invert using image partitions, calling specified Invert function
 
     :param vis: Visibility to be inverted
@@ -40,5 +40,5 @@ def invert_facets_wstack(vis: Visibility, im: Image, dopsf=False, normalize=True
     """
     
     log.info("invert_facets_wstack: Inverting by image facets and w stacking")
-    return invert_with_raster_iterator(vis, im, normalize=normalize, image_iterator=  image_raster_iter, dopsf=dopsf,
+    return invert_with_raster_iterator(vis, im, normalize=normalize, image_iterator=image_raster_iter, dopsf=dopsf,
                                        invert_function=invert_wstack, facets=1, **kwargs)

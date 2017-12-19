@@ -163,8 +163,8 @@ def lm_distortion(im: Image, a, b) -> (numpy.ndarray, numpy.ndarray, numpy.ndarr
     """
     ny = im.shape[2]
     nx = im.shape[3]
-    cy = im.wcs.wcs.crpix[1]-1
-    cx = im.wcs.wcs.crpix[0]-1
+    cy = im.wcs.wcs.crpix[1] - 1
+    cx = im.wcs.wcs.crpix[0] - 1
     dy = im.wcs.wcs.cdelt[1] * (numpy.pi / 180.0)
     dx = im.wcs.wcs.cdelt[0] * (numpy.pi / 180.0)
     

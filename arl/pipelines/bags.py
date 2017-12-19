@@ -12,7 +12,6 @@ from arl.visibility.operations import subtract_visibility
 log = logging.getLogger(__name__)
 
 
-
 def continuum_imaging_pipeline_bag(vis_bag, model_bag, context, **kwargs) -> bag:
     """ Create bag for the continuum imaging pipeline.
     

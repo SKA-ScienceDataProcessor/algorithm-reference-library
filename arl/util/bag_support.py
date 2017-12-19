@@ -95,6 +95,7 @@ def simulate_vis_bag(config='LOWBD2-CORE',
         raise NotImplementedError("order $s not known" % order)
     return vis_bag
 
+
 def corrupt_vis_bag(vis_bag, gt_bag=None, **kwargs):
     """ Create a graph to apply gain errors to a vis_bag
 
