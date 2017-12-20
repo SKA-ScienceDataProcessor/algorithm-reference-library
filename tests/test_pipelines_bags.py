@@ -44,8 +44,10 @@ class TestPipelinesBags(unittest.TestCase):
         os.makedirs(self.dir, exist_ok=True)
         
         self.compute = False
+        
+        if self.compute:
         # Client automatically registers itself as the default scheduler
-        self.client = get_dask_Client()
+            self.client = get_dask_Client()
         
         self.npixel = 512
         self.vis_slices = 51

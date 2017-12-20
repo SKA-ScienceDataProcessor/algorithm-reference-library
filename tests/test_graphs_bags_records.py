@@ -33,8 +33,9 @@ class TestDaskBagsRecords(unittest.TestCase):
         
         self.compute = False
         
-        # Client automatically registers itself as the default scheduler
-        self.client = get_dask_Client()
+        if self.compute:
+            # Client automatically registers itself as the default scheduler
+            self.client = get_dask_Client()
         
         self.dir = './test_results'
         os.makedirs(self.dir, exist_ok=True)
@@ -123,7 +124,6 @@ class TestDaskBagsRecords(unittest.TestCase):
             dirty_bag = invert_bag(self.vis_bag, self.empty_model, dopsf=False,
                                    context=context, normalize=True,
                                    vis_slices=vis_slices[context])
-            dirty_bag.visualize('test_invert_bag.svg')
             dirty, sumwt = dirty_bag.compute()[0]['image']
             export_image_to_fits(dirty, '%s/test_bags_%s_dirty.fits' % (self.dir, context))
             qa = qa_image(dirty, context=context)
@@ -244,6 +244,7 @@ class TestDaskBagsRecords(unittest.TestCase):
             assert numpy.abs(qa.data['max'] - 101.7) < 1.0, str(qa)
             assert numpy.abs(qa.data['min'] + 3.5) < 1.0, str(qa)
     
+    @unittest.skip("Not filled out")
     def test_selfcal_nonglobal_bag(self):
         
         self.setupVis(add_errors=True)

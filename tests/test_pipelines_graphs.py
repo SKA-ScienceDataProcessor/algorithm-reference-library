@@ -43,11 +43,9 @@ class TestPipelineGraphs(unittest.TestCase):
     
         self.compute = False
         
-        self.invert = invert_wstack_single
-        self.predict = predict_wstack_single
-        
         self.npixel = 256
         self.facets = 4
+        self.vis_slices = 51
         
         self.setupVis(add_errors=False)
         self.model_graph = delayed(self.get_LSM)(self.vis_graph_list[self.nvis // 2], npixel=self.npixel)
@@ -132,7 +130,6 @@ class TestPipelineGraphs(unittest.TestCase):
         return model
 
     def test_continuum_imaging_pipeline(self):
-        self.vis_slices = 51
         continuum_imaging_graph = \
              create_continuum_imaging_pipeline_graph(self.vis_graph_list, model_graph=self.model_graph,
                                                      c_deconvolve_graph=create_deconvolve_facet_graph,
