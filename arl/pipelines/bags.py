@@ -59,6 +59,7 @@ def ical_pipeline_bag(vis_bag, model_bag, context='2d', first_selfcal=None,
     :return:
     """
     psf_bag = invert_bag(vis_bag, model_bag, context=context, dopsf=True, **kwargs)
+    psf_bag = reify(psf_bag)
     
     # Make the predicted visibilities, selfcalibrate against it correcting the gains, then
     # form the residual visibility, then make the residual image
@@ -80,6 +81,7 @@ def ical_pipeline_bag(vis_bag, model_bag, context='2d', first_selfcal=None,
             res_vis_bag = vis_bag \
                 .map(subtract_visibility, model_vis_bag)
             res_bag = invert_bag(res_vis_bag, model_bag, context=context, dopsf=True, **kwargs)
+            res_bag = reify(res_bag)
             
             deconvolve_model_bag = deconvolve_bag(res_bag, psf_bag, deconvolve_model_bag,
                                                   **kwargs)

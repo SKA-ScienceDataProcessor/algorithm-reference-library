@@ -83,6 +83,8 @@ from arl.visibility.base import copy_visibility
 from arl.visibility.gather_scatter import visibility_gather_channel
 from arl.visibility.operations import qa_visibility, sort_visibility, \
     divide_visibility, integrate_visibility_by_channel
+from arl.visibility.coalesce import convert_visibility_to_blockvisibility, \
+    convert_blockvisibility_to_visibility
 
 
 def reify(bg):
@@ -174,6 +176,28 @@ def invert_record(record, dopsf, context, **kwargs):
         if key != 'vis':
             newrecord[key] = record[key]
     newrecord['image'] = invert(vis, record['model'], dopsf, **kwargs)
+    return newrecord
+
+
+def map_record(record, apply_function, key='vis', **kwargs):
+    """ Apply a function to a record
+
+    :param record:
+    :param apply_function: unary function to apply
+    :param kwargs:
+    :return:
+    """
+    assert isinstance(key, str), "Key is not a string: %s" % key
+    assert key in record.keys(), "%s not contained in record keys %s" % (key, record)
+    rec = record[key]
+    
+    newrecord = {}
+    for k in record.keys():
+        if k != key:
+            newrecord[k] = record[k]
+        else:
+            newrecord[k] = apply_function(rec, **kwargs)
+            
     return newrecord
 
 
@@ -413,11 +437,12 @@ def selfcal_bag(vis_bag, model_bag, **kwargs):
     :param kwargs: Parameters for functions in graphs
     :return:
     """
-    def copy_vis(vis, zero=True):
-        return copy_visibility(vis['vis'], zero=zero)
-    
-    model_vis_bag = vis_bag.map(copy_vis, zero=True)
-    model_vis_bag = predict_bag(model_vis_bag, model_bag, **kwargs)
+    vis_bag = reify(vis_bag)
+    model_bag = reify(model_bag)
+    model_vis_bag = vis_bag\
+        .map(map_record, copy_visibility, zero=True)
+    model_vis_bag = predict_bag(model_vis_bag, model_bag, **kwargs)\
+        .map(map_record, convert_visibility_to_blockvisibility)
     return calibrate_bag(vis_bag, model_vis_bag, **kwargs)
 
 
@@ -437,21 +462,24 @@ def calibrate_bag(vis_bag, model_vis_bag, global_solution=True, **kwargs):
     """
     
     if global_solution:
-        point_vis_bag = vis_bag.map(divide_visibility, model_vis_bag) \
-            .map(visibility_gather_channel) \
-            .map(integrate_visibility_by_channel)
+        def divide(vis, modelvis):
+            return divide_visibility(vis, modelvis['vis'])
+        
+        model_vis_bag = reify(model_vis_bag)
+        point_vis_bag = vis_bag\
+            .map(map_record, divide, modelvis=model_vis_bag) \
+            .map(map_record, visibility_gather_channel, **kwargs) \
+            .map(map_record, integrate_visibility_by_channel, **kwargs)
         
         # This is a global solution so we only get one gain table
-        gt_bag = point_vis_bag.map(solve_gaintable, **kwargs)
-        return vis_bag.map(apply_gaintable, gt_bag, inverse=True, **kwargs)
+        gt_bag = point_vis_bag.map(map_record, solve_gaintable, modelvis=None, **kwargs)
+        return vis_bag.map(map_record, apply_gaintable, gt=gt_bag, inverse=True, **kwargs)
     else:
-        print(vis_bag)
-        model_vis_bag=reify(model_vis_bag)
-        print(model_vis_bag)
         def solve_and_apply(vis, modelvis, **kwargs):
-            gt = solve_gaintable(vis, modelvis, **kwargs)
-            return apply_gaintable(vis, gt, **kwargs)
-        return vis_bag.map(solve_and_apply, model_vis_bag)
+            gt = solve_gaintable(vis, modelvis['vis'], **kwargs)
+            return apply_gaintable(vis, gt, inverse=True)
+        model_vis_bag = reify(model_vis_bag)
+        return vis_bag.map(map_record, solve_and_apply, modelvis=model_vis_bag, **kwargs)
 
 
 def qa_visibility_bag(vis, context=''):

@@ -31,7 +31,7 @@ class TestDaskBagsRecords(unittest.TestCase):
     
     def setUp(self):
         
-        self.compute = False
+        self.compute = True
         
         if self.compute:
             # Client automatically registers itself as the default scheduler
@@ -153,13 +153,15 @@ class TestDaskBagsRecords(unittest.TestCase):
     def test_deconvolve_bag(self):
         context = 'wstack_single'
         vis_slices = {'2d': None, 'timeslice_single': 'auto', 'wstack_single': 101}
-        dirty_bag = invert_bag(self.vis_bag, self.model, dopsf=False, context=context,
+        dirty_bag = invert_bag(self.vis_bag, self.model_bag, dopsf=False, context=context,
                                normalize=True,
                                vis_slices=vis_slices[context])
         psf_bag = invert_bag(self.vis_bag, self.model, dopsf=True, context=context,
                              normalize=True,
                              vis_slices=vis_slices[context])
-        model_bag = deconvolve_bag(dirty_bag, psf_bag, self.empty_model, niter=1000, gain=0.7,
+        dirty_bag = reify(dirty_bag)
+        psf_bag = reify(psf_bag)
+        model_bag = deconvolve_bag(dirty_bag, psf_bag, self.empty_model_bag, niter=1000, gain=0.7,
                                    algorithm='msclean', threshold=0.01, window_shape=None)
         model = model_bag.compute()[0]
         qa = qa_image(model, context=context)
@@ -179,7 +181,9 @@ class TestDaskBagsRecords(unittest.TestCase):
         psf_bag = invert_bag(self.vis_bag, self.model, dopsf=True, context=context,
                              normalize=True,
                              vis_slices=vis_slices[context])
-        model_bag = deconvolve_bag(dirty_bag, psf_bag, self.empty_model, niter=1000, gain=0.7,
+        dirty_bag = reify(dirty_bag)
+        psf_bag = reify(psf_bag)
+        model_bag = deconvolve_bag(dirty_bag, psf_bag, self.empty_model_bag, niter=1000, gain=0.7,
                                    algorithm='msclean', threshold=0.01, window_shape=None)
         
         model = model_bag.compute()[0]
@@ -204,7 +208,9 @@ class TestDaskBagsRecords(unittest.TestCase):
                                normalize=True, vis_slices=vis_slices[context])
         psf_bag = invert_bag(self.vis_bag, self.empty_model, dopsf=True, context=context,
                              normalize=True, vis_slices=vis_slices[context])
-        model_bag = deconvolve_bag(dirty_bag, psf_bag, self.empty_model, niter=1000,
+        dirty_bag = reify(dirty_bag)
+        psf_bag = reify(psf_bag)
+        model_bag = deconvolve_bag(dirty_bag, psf_bag, self.empty_model_bag, niter=1000,
                                    gain=0.1, algorithm='msclean',
                                    threshold=0.01, window_shape=None)
         model = model_bag.compute()[0]
@@ -227,37 +233,37 @@ class TestDaskBagsRecords(unittest.TestCase):
         qa = qa_image(final, context=context)
         assert qa.data['max'] < 2.3, str(qa)
     
-    @unittest.skip("Not filled out")
+    @unittest.skip("Global not yet bagged properly")
     def test_selfcal_global_bag(self):
         
         self.setupVis(add_errors=True)
-        selfcal_vis_bag = selfcal_bag(self.vis_bag, self.model_bag, global_solution=True)
+        selfcal_vis_bag = selfcal_bag(self.vis_bag, self.model_bag, global_solution=True,
+                                      context='wstack_single', vis_slices=51)
         dirty_bag = invert_bag(selfcal_vis_bag, self.model_bag,
                                dopsf=False, normalize=True, context='wstack_single',
                                vis_slices=101)
         if self.compute:
-            dirty = dirty_bag.compute()
-            export_image_to_fits(dirty[0], '%s/test_imaging_bags_global_selfcal_dirty.fits'
+            dirty, sumwt = dirty_bag.compute()[0]['image']
+            export_image_to_fits(dirty, '%s/test_imaging_bags_global_selfcal_dirty.fits'
                                  % (self.dir))
-            qa = qa_image(dirty[0])
+            qa = qa_image(dirty)
             
             assert numpy.abs(qa.data['max'] - 101.7) < 1.0, str(qa)
             assert numpy.abs(qa.data['min'] + 3.5) < 1.0, str(qa)
     
-    @unittest.skip("Not filled out")
     def test_selfcal_nonglobal_bag(self):
         
         self.setupVis(add_errors=True)
-        print(self.model_bag.compute())
-        selfcal_vis_bag = selfcal_bag(self.vis_bag, self.model_bag, global_solution=False)
+        selfcal_vis_bag = selfcal_bag(self.vis_bag, self.model_bag, global_solution=False,
+                                      context='wstack_single', vis_slices=51)
         
         dirty_bag = invert_bag(selfcal_vis_bag, self.model_bag,
                                dopsf=False, normalize=True, context='wstack_single',
                                vis_slices=101)
         if self.compute:
-            dirty = dirty_bag.compute()
-            export_image_to_fits(dirty[0], '%s/test_imaging_bags_nonglobal_selfcal_dirty.fits' % (self.dir))
-            qa = qa_image(dirty[0])
+            dirty, sumwt = dirty_bag.compute()[0]['image']
+            export_image_to_fits(dirty, '%s/test_imaging_bags_nonglobal_selfcal_dirty.fits' % (self.dir))
+            qa = qa_image(dirty)
             
-            assert numpy.abs(qa.data['max'] - 101.7) < 1.0, str(qa)
-            assert numpy.abs(qa.data['min'] + 3.5) < 1.0, str(qa)
+            assert numpy.abs(qa.data['max'] - 100.57) < 0.1, str(qa)
+            assert numpy.abs(qa.data['min'] + 4.24) < 0.1, str(qa)

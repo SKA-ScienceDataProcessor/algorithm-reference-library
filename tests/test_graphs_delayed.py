@@ -572,7 +572,7 @@ class TestDaskGraphs(unittest.TestCase):
         corrupted_vis_graph_list = self.setupVis(add_errors=True)
     
         selfcal_vis_graph_list = create_selfcal_graph_list(corrupted_vis_graph_list,
-                                                           delayed(self.actualmodel),
+                                                           delayed(self.model),
                                                            global_solution=True,
                                                            c_predict_graph=create_predict_wstack_graph,
                                                            vis_slices=self.vis_slices)
@@ -593,7 +593,7 @@ class TestDaskGraphs(unittest.TestCase):
         corrupted_vis_graph_list = self.setupVis(add_errors=True)
     
         selfcal_vis_graph_list = create_selfcal_graph_list(corrupted_vis_graph_list,
-                                                           delayed(self.actualmodel),
+                                                           delayed(self.model),
                                                            global_solution=False,
                                                            c_predict_graph=create_predict_wstack_graph,
                                                            vis_slices=self.vis_slices)

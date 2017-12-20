@@ -9,7 +9,7 @@ from dask import bag
 
 from arl.calibration.operations import apply_gaintable, create_gaintable_from_blockvisibility
 from arl.data.polarisation import PolarisationFrame
-from arl.graphs.bags import predict_bag
+from arl.graphs.bags import predict_bag, map_record
 from arl.util.testing_support import create_named_configuration, simulate_gaintable, \
     create_low_test_image_from_gleam, create_low_test_beam
 from arl.visibility.base import create_blockvisibility, create_visibility
@@ -95,55 +95,6 @@ def simulate_vis_bag(config='LOWBD2-CORE',
         raise NotImplementedError("order $s not known" % order)
     return vis_bag
 
-
-def predict_gleam_model_bag(vis_bag, frequency, channel_bandwidth,
-                            npixel=512, cellsize=0.001, context='wstack_single', **kwargs):
-    """ Create a graph to fill in a model with the gleam sources and predict into a vis_bag
-
-    :param vis_bag:
-    :param npixel: 512
-    :param cellsize: 0.001
-    :param context: Imaging context e.g. 'wstack_single'
-    :param kwargs:
-    :return: vis_bag
-    """
-    
-    # Note that each vis_bag has it's own model_bag
-    
-    model_bag = gleam_model_bag(vis_bag, frequency, channel_bandwidth, npixel=npixel,
-                                cellsize=cellsize, **kwargs)
-    predicted_vis_bag = predict_bag(model_bag, **kwargs)
-    return predicted_vis_bag
-
-
-def gleam_model_bag(vis_bag, frequency, channel_bandwidth, npixel=512, cellsize=0.001,
-                    facets=4):
-    """ Fill in a model with the gleam sources
-
-    This spreads the work over facet**2 nodes
-
-    :param vis_bag: Single vis_bag
-    :param frequency:
-    :param channel_bandwidth:
-    :param npixel: 512
-    :param cellsize: 0.001
-    :param facets: def 4
-    :return: graph
-    """
-    
-    def calculate_gleam_model(vis):
-        model = create_low_test_image_from_gleam(npixel=npixel, frequency=frequency,
-                                                 channel_bandwidth=channel_bandwidth,
-                                                 cellsize=cellsize, phasecentre=vis.phasecentre)
-        beam = create_low_test_beam(model)
-        model.data *= beam.data
-        return model
-    
-    return vis_bag.map(calculate_gleam_model, npixel=npixel, frequency=frequency,
-                       channel_bandwidth=channel_bandwidth,
-                       cellsize=cellsize)
-
-
 def corrupt_vis_bag(vis_bag, gt_bag=None, **kwargs):
     """ Create a graph to apply gain errors to a vis_bag
 
@@ -159,4 +110,4 @@ def corrupt_vis_bag(vis_bag, gt_bag=None, **kwargs):
             gt = simulate_gaintable(gt, **kwargs)
         return apply_gaintable(vis, gt)
     
-    return vis_bag.map(corrupt_vis, gt_bag, **kwargs)
+    return vis_bag.map(map_record, corrupt_vis, key='vis', gt=gt_bag, **kwargs)
