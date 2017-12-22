@@ -39,7 +39,7 @@ def get_frequency_map(vis, im: Visibility = None):
         # We can map these to image channels
         with warnings.catch_warnings():
             warnings.simplefilter('ignore')
-            v2im_map = im.wcs.sub(['spectral']).wcs_world2pix(ufrequency, 0)[0].astype('int')
+            v2im_map = im.wcs.sub(['spectral']).wcs_world2pix(ufrequency, 1)[0].astype('int') - 1
         
         spectral_mode = 'channel'
         nrows = len(vis.frequency)

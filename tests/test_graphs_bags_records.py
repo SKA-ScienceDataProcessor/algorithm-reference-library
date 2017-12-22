@@ -16,7 +16,6 @@ from arl.calibration.operations import create_gaintable_from_blockvisibility, ap
 from arl.data.polarisation import PolarisationFrame
 from arl.graphs.bags import invert_bag, predict_bag, deconvolve_bag, restore_bag, \
     residual_image_bag, predict_record_subtract, reify, selfcal_bag
-from arl.graphs.dask_init import get_dask_Client
 from arl.image.operations import qa_image, export_image_to_fits, copy_image, \
     create_empty_image_like
 from arl.imaging import create_image_from_visibility, predict_skycomponent_visibility, \
@@ -31,11 +30,9 @@ class TestDaskBagsRecords(unittest.TestCase):
     
     def setUp(self):
         
+        # We can compute using the default scheduler. Using the distributed scheduler within
+        # jenkins does not work.
         self.compute = True
-        
-        if self.compute:
-            # Client automatically registers itself as the default scheduler
-            self.client = get_dask_Client()
         
         self.dir = './test_results'
         os.makedirs(self.dir, exist_ok=True)

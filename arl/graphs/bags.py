@@ -82,9 +82,12 @@ from arl.imaging.imaging_context import imaging_context
 from arl.visibility.base import copy_visibility
 from arl.visibility.gather_scatter import visibility_gather_channel
 from arl.visibility.operations import qa_visibility, sort_visibility, \
-    divide_visibility, integrate_visibility_by_channel
+    divide_visibility, integrate_visibility_by_channel, subtract_visibility
 from arl.visibility.coalesce import convert_visibility_to_blockvisibility, \
     convert_blockvisibility_to_visibility
+
+
+log = logging.getLogger(__name__)
 
 
 def reify(bg):
@@ -104,10 +107,37 @@ def print_element(x, context='', indent=4, width=160):
     return x
 
 
-log = logging.getLogger(__name__)
+def scatter_record(record, context, **kwargs):
+    """ Scatter a record according to the context's scatter field.
+
+    :param record:
+    :param context: Imaging context
+    :param kwargs:
+    :return:
+    """
+    log.debug("Into scatter_record", context, record)
+    print("Into scatter_record", context, record)
+    c = imaging_context(context)
+    assert c['scatter'] is not None, "Scatter not possible for context %s" % context
+    scatter = c['scatter']
+    result = list()
+    vis_list = scatter(record['vis'], **kwargs)
+    scatter_index = 0
+    for v in vis_list:
+        if v is not None:
+            newrecord = {}
+            for key in record.keys():
+                newrecord[key] = record[key]
+            newrecord['vis'] = v
+            newrecord[context] = scatter_index
+            scatter_index += 1
+            result.append(newrecord)
+    log.debug("From scatter_record", result)
+    print("From scatter_record", result)
+    return result
 
 
-def scatter_record(record, model, context, **kwargs):
+def scatter_record(record, context, **kwargs):
     """ Scatter a record according to the context's scatter field.
 
     :param record:
@@ -130,11 +160,23 @@ def scatter_record(record, model, context, **kwargs):
             newrecord['vis'] = v
             newrecord[context] = scatter_index
             scatter_index += 1
-            newrecord['model']=model
             result.append(newrecord)
     log.debug("From scatter_record", result)
     return result
 
+
+def join_records(r1, r2):
+    """ Output is r1 except for overrides by r2
+
+    :param r1
+    :param r2:
+    :param kwargs:
+    :return:
+    """
+    ro = r1
+    for k2 in r2.keys():
+        ro[k2] = r2[k2]
+    return ro
 
 def predict_record(record, context, **kwargs):
     """ Do a predict for a given record
@@ -149,9 +191,10 @@ def predict_record(record, context, **kwargs):
     predict = c['predict']
     newrecord = {}
     for key in record.keys():
-        newrecord[key] = record[key]
+        if key not in ['image', context]:
+            newrecord[key] = record[key]
     newvis = copy_visibility(record['vis'], zero=True)
-    newrecord['vis'] = predict(newvis, record['model'], context=context, **kwargs)
+    newrecord['vis'] = predict(newvis, record['image'], context=context, **kwargs)
     return newrecord
 
 
@@ -175,7 +218,7 @@ def invert_record(record, dopsf, context, **kwargs):
     for key in record.keys():
         if key != 'vis':
             newrecord[key] = record[key]
-    newrecord['image'] = invert(vis, record['model'], dopsf, **kwargs)
+    newrecord['image'] = invert(vis, record['image'], dopsf, **kwargs)
     return newrecord
 
 
@@ -330,7 +373,8 @@ def invert_bag(vis_bag, model_bag, dopsf=False, context='2d', key='freqwin', **k
     :return:
     """
     return vis_bag \
-        .map(scatter_record, model_bag, context, **kwargs) \
+        .map(join_records, model_bag)\
+        .map(scatter_record, context, **kwargs) \
         .flatten() \
         .map(invert_record, dopsf=dopsf, context=context, **kwargs) \
         .foldby(key, binop=invert_record_add) \
@@ -363,7 +407,8 @@ def predict_bag(vis_bag, model_bag, context='2d', key='freqwin', **kwargs) -> ba
     #
     # Monitoring is via print_element
     return vis_bag \
-        .map(scatter_record, model_bag, context=context, **kwargs) \
+        .map(join_records, model_bag)\
+        .map(scatter_record, context=context, **kwargs) \
         .flatten() \
         .map(predict_record, context, **kwargs) \
         .foldby(key, binop=predict_record_concatenate) \
@@ -380,13 +425,14 @@ def deconvolve_bag(dirty_bag, psf_bag, model_bag, **kwargs) -> bag:
     :param kwargs:
     :return: Bag of Images
     """
-    
     def deconvolve(dirty, psf, model, **kwargs):
         # The dirty and psf are actually (Image, weight) tuples.
         result = deconvolve_cube(dirty['image'][0], psf['image'][0], **kwargs)
-        result[0].data += model.data
-        return result[0]
+        result[0].data += model['image'].data
+        return {'image':result[0]}
     
+    model_bag = reify(model_bag)
+    dirty_bag = reify(dirty_bag)
     return dirty_bag \
         .map(deconvolve, psf_bag, model_bag, **kwargs)
 
@@ -403,7 +449,7 @@ def restore_bag(comp_bag, psf_bag, res_bag, **kwargs) -> bag:
     """
     
     def restore(comp, psf, res, **kwargs):
-        return restore_cube(comp, psf['image'][0], res['image'][0])
+        return restore_cube(comp['image'], psf['image'][0], res['image'][0])
     
     return comp_bag.map(restore, psf_bag, res_bag, **kwargs)
 
@@ -419,8 +465,8 @@ def residual_image_bag(vis_bag, model_image_bag, context='2d', **kwargs) -> bag:
     :return:
     """
     result_vis_bag = reify(predict_bag(vis_bag, model_image_bag, context=context, **kwargs))
-    result_vis_bag = reify(vis_bag).map(predict_record_subtract, result_vis_bag)
-    return invert_bag(result_vis_bag, model_image_bag, context=context, **kwargs)
+    result_vis_bag = reify(vis_bag).map(predict_record_subtract, r2=result_vis_bag)
+    return invert_bag(result_vis_bag, model_image_bag, context=context,dopsf=False, **kwargs)
 
 
 def selfcal_bag(vis_bag, model_bag, **kwargs):
@@ -444,6 +490,25 @@ def selfcal_bag(vis_bag, model_bag, **kwargs):
     model_vis_bag = predict_bag(model_vis_bag, model_bag, **kwargs)\
         .map(map_record, convert_visibility_to_blockvisibility)
     return calibrate_bag(vis_bag, model_vis_bag, **kwargs)
+
+
+def residual_vis_bag(vis_bag, model_vis_bag, **kwargs):
+    """ Create a bag for subtraction of list of visibilities
+
+    :param vis_bag: Bag of observed visibilities
+    :param model_vis_bag: Bag of model visibilities
+    :param vis_slices:
+    :param global_solution: Solve for global gains?
+    :param kwargs: Parameters for functions in graphs
+    :return:
+    """
+
+    def subtract(vis, modelvis):
+        return subtract_visibility(vis, modelvis['vis'])
+
+    vis_bag = reify(vis_bag)
+    model_vis_bag = reify(model_vis_bag)
+    return vis_bag.map(map_record, subtract, modelvis=model_vis_bag)
 
 
 def calibrate_bag(vis_bag, model_vis_bag, global_solution=True, **kwargs):
@@ -477,9 +542,11 @@ def calibrate_bag(vis_bag, model_vis_bag, global_solution=True, **kwargs):
     else:
         def solve_and_apply(vis, modelvis, **kwargs):
             gt = solve_gaintable(vis, modelvis['vis'], **kwargs)
+            print(qa_gaintable(gt, context='calibrate_bag'))
             return apply_gaintable(vis, gt, inverse=True)
         model_vis_bag = reify(model_vis_bag)
-        return vis_bag.map(map_record, solve_and_apply, modelvis=model_vis_bag, **kwargs)
+        return vis_bag\
+            .map(map_record, solve_and_apply, modelvis=model_vis_bag, **kwargs)
 
 
 def qa_visibility_bag(vis, context=''):

@@ -43,16 +43,14 @@ class TestPipelinesBags(unittest.TestCase):
         self.dir = './test_results'
         os.makedirs(self.dir, exist_ok=True)
         
-        self.compute = False
+        # We can compute using the default scheduler. Using the distributed scheduler within
+        # jenkins does not work.
+        self.compute = True
         
-        if self.compute:
-        # Client automatically registers itself as the default scheduler
-            self.client = get_dask_Client()
+        self.npixel = 256
+        self.vis_slices = 31
         
-        self.npixel = 512
-        self.vis_slices = 51
-        
-        self.setupVis(add_errors=False, block=False)
+        self.setupVis(add_errors=False, block=True)
     
     def setupVis(self, add_errors=False, block=True, freqwin=7):
         self.freqwin = freqwin
@@ -124,6 +122,7 @@ class TestPipelinesBags(unittest.TestCase):
         export_image_to_fits(model, '%s/test_pipeline_bags_model.fits' % (self.dir))
         
         if add_errors:
+            assert block, "Cannot only add errors to BlockVisibility"
             # These will be the same for all calls
             numpy.random.seed(180555)
             gt = create_gaintable_from_blockvisibility(vt)
@@ -135,7 +134,7 @@ class TestPipelinesBags(unittest.TestCase):
         self.vis_slices = 51
         self.context = 'wstack_single'
         continuum_imaging_bag = \
-            continuum_imaging_pipeline_bag(self.vis_bag, model_bag=self.model,
+            continuum_imaging_pipeline_bag(self.vis_bag, model_bag=self.model_bag,
                                            context=self.context,
                                            vis_slices=self.vis_slices, facets=2,
                                            niter=1000, fractional_threshold=0.1,
@@ -143,8 +142,9 @@ class TestPipelinesBags(unittest.TestCase):
         if self.compute:
             clean, residual, restored = continuum_imaging_bag.compute()
             clean = clean.compute()
+            # clean returns a bag of images
             export_image_to_fits(clean[0], '%s/test_pipelines_continuum_imaging_bag_clean.fits' % (self.dir))
-            qa = qa_image(clean)
+            qa = qa_image(clean[0])
             assert numpy.abs(qa.data['max'] - 100.0) < 5.0, str(qa)
             assert numpy.abs(qa.data['min'] + 5.0) < 5.0, str(qa)
     
@@ -153,7 +153,7 @@ class TestPipelinesBags(unittest.TestCase):
         self.context = 'wstack_single'
         self.setupVis(add_errors=True)
         ical_bag = \
-            ical_pipeline_bag(self.vis_bag, model_bag=self.model,
+            ical_pipeline_bag(self.vis_bag, model_bag=self.model_bag,
                               context=self.context,
                               vis_slices=self.vis_slices, facets=2,
                               niter=1000, fractional_threshold=0.1,
@@ -161,8 +161,8 @@ class TestPipelinesBags(unittest.TestCase):
         if self.compute:
             clean, residual, restored = ical_bag.compute()
             clean = clean.compute()
-            export_image_to_fits(clean, '%s/test_pipelines_ical_bag_clean.fits' % (self.dir))
-            qa = qa_image(clean)
+            export_image_to_fits(clean[0], '%s/test_pipelines_ical_bag_clean.fits' % (self.dir))
+            qa = qa_image(clean[0])
             assert numpy.abs(qa.data['max'] - 100.0) < 5.0, str(qa)
             assert numpy.abs(qa.data['min'] + 5.0) < 5.0, str(qa)
 

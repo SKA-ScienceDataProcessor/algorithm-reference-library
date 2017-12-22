@@ -111,7 +111,9 @@ def ical(block_vis: BlockVisibility, model: Image, components=None, context='2d'
         log.info("ical: End of major cycle")
 
     log.info("ical: End of major cycles")
-    return visres, model, dirty
+    restored = restore_cube(model, psf, dirty,  **kwargs)
+
+    return model, dirty, restored
 
 
 def continuum_imaging(vis: Visibility, model: Image, components=None, context='2d',

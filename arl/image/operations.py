@@ -69,7 +69,7 @@ def copy_image(im: Image) -> Image:
     :return: Image
     
     """
-    assert isinstance(im, Image), "Type is %s" % type(im)
+    assert isinstance(im, Image), im
     fim = Image()
     fim.polarisation_frame = im.polarisation_frame
     fim.data = copy.deepcopy(im.data)
@@ -91,7 +91,7 @@ def create_empty_image_like(im: Image) -> Image:
     :return: Image
     
     """
-    assert isinstance(im, Image), "Type is %s" % type(im)
+    assert isinstance(im, Image), im
     fim = Image()
     fim.polarisation_frame = im.polarisation_frame
     fim.data = numpy.zeros_like(im.data)
@@ -208,7 +208,7 @@ def reproject_image(im: Image, newwcs: WCS, shape=None) -> (Image, Image):
     :return: Reprojected Image, Footprint Image
     """
     
-    assert isinstance(im, Image)
+    assert isinstance(im, Image), im
     rep, foot = reproject_interp((im.data, im.wcs), newwcs, shape, order='bicubic',
                                  independent_celestial_slices=True)
     return create_image_from_array(rep, newwcs), create_image_from_array(foot, newwcs)
@@ -233,8 +233,8 @@ def add_image(im1: Image, im2: Image, docheckwcs=False) -> Image:
     :param im2:
     :return: Image
     """
-    assert isinstance(im1, Image)
-    assert isinstance(im2, Image)
+    assert isinstance(im1, Image), im1
+    assert isinstance(im2, Image), im2
     if docheckwcs:
         checkwcs(im1.wcs, im2.wcs)
     
@@ -250,7 +250,7 @@ def qa_image(im, mask=None, context="") -> QA:
     :param im:
     :return: QA
     """
-    assert isinstance(im, Image)
+    assert isinstance(im, Image), im
     if mask is None:
         data = {'shape': str(im.data.shape),
                 'max': numpy.max(im.data),
@@ -285,7 +285,7 @@ def show_image(im: Image, fig=None, title: str = '', pol=0, chan=0, cm='rainbow'
     """
     import matplotlib.pyplot as plt
 
-    assert isinstance(im, Image)
+    assert isinstance(im, Image), im
     if not fig:
         fig = plt.figure()
     plt.clf()

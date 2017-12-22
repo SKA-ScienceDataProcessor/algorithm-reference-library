@@ -177,11 +177,11 @@ def deconvolve_cube(dirty: Image, psf: Image, **kwargs) -> (Image, Image):
         
         return_moments = get_parameter(kwargs, "return_moments", False)
         if not return_moments:
-            log.info("Deconvolve_cube: calculating spectral cubes")
+            log.info("deconvolve_cube: calculating spectral cubes")
             comp_image = calculate_image_from_frequency_moments(dirty, comp_image)
             residual_image = calculate_image_from_frequency_moments(dirty, residual_image)
         else:
-            log.info("Deconvolve_cube: constructed moment cubes")
+            log.info("deconvolve_cube: constructed moment cubes")
             
     elif algorithm == 'hogbom':
         log.info("deconvolve_cube: Hogbom clean of each polarisation and channel separately")

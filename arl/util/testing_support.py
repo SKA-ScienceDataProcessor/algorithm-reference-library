@@ -349,7 +349,7 @@ def create_low_test_image_composite(npixel=16384, polarisation_frame=Polarisatio
 
 def create_low_test_image_from_gleam(npixel=512, polarisation_frame=PolarisationFrame("stokesI"), cellsize=0.000015,
                                      frequency=numpy.array([1e8]), channel_bandwidth=numpy.array([1e6]),
-                                     phasecentre=None, kind='cubic') -> Image:
+                                     phasecentre=None, kind='cubic', applybeam=False) -> Image:
     """Create LOW test image from the GLEAM survey
 
     Stokes I is estimated from a cubic spline fit to the measured fluxes. The polarised flux is always zero.
@@ -440,6 +440,10 @@ def create_low_test_image_from_gleam(npixel=512, polarisation_frame=Polarisation
             model.data[:, 0, ps[1, iflux], ps[0, iflux]] = flux[:]
     
     hdulist.close()
+    
+    if applybeam:
+        beam = create_low_test_beam(model)
+        model.data *= beam.data
     
     return model
 

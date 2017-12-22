@@ -140,7 +140,7 @@ class TestPipelineGraphs(unittest.TestCase):
                                                      threshold=2.0, nmajor=0, gain=0.1)
         if self.compute:
             clean, residual, restored = continuum_imaging_graph.compute()
-            export_image_to_fits(clean, '%s/test_pipelines_continuum_imaging_pipeline_clean.fits' % (self.dir))
+            export_image_to_fits(clean[0], '%s/test_pipelines_continuum_imaging_pipeline_clean.fits' % (self.dir))
             export_image_to_fits(residual[0],
                                  '%s/test_pipelines_continuum_imaging_pipeline_residual.fits' % (self.dir))
             export_image_to_fits(restored,

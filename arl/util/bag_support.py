@@ -9,9 +9,8 @@ from dask import bag
 
 from arl.calibration.operations import apply_gaintable, create_gaintable_from_blockvisibility
 from arl.data.polarisation import PolarisationFrame
-from arl.graphs.bags import predict_bag, map_record
-from arl.util.testing_support import create_named_configuration, simulate_gaintable, \
-    create_low_test_image_from_gleam, create_low_test_beam
+from arl.graphs.bags import map_record
+from arl.util.testing_support import create_named_configuration, simulate_gaintable
 from arl.visibility.base import create_blockvisibility, create_visibility
 
 log = logging.getLogger(__name__)
@@ -21,7 +20,7 @@ def simulate_vis_bag(config='LOWBD2-CORE',
                      phasecentre=SkyCoord(ra=+15.0 * u.deg, dec=-60.0 * u.deg, frame='icrs', equinox='J2000'),
                      frequency=None, channel_bandwidth=None, times=None,
                      polarisation_frame=PolarisationFrame("stokesI"), order='frequency',
-                     format='blockvis',
+                     format='blockvis', rmax=1e15,
                      **kwargs) -> bag:
     """ Create a bag to simulate an observation
 
@@ -34,7 +33,7 @@ def simulate_vis_bag(config='LOWBD2-CORE',
 
     The output format can be either 'blockvis' (for calibration) or 'vis' (for imaging)
 
-    :param config: Name of configuration: def LOWBDS-CORE
+    :param config: Name of configuration: def LOWBD2-CORE
     :param phasecentre: Phase centre def: SkyCoord(ra=+15.0 * u.deg, dec=-60.0 * u.deg, frame='icrs', equinox='J2000')
     :param frequency: def [1e8]
     :param channel_bandwidth: def [1e6]
@@ -56,7 +55,7 @@ def simulate_vis_bag(config='LOWBD2-CORE',
         channel_bandwidth = [1e6]
     if frequency is None:
         frequency = [1e8]
-    conf = create_named_configuration(config, **kwargs)
+    conf = create_named_configuration(config, rmax=rmax, **kwargs)
     
     if order == 'time':
         log.debug("simulate_vis_bag: Simulating distribution in %s" % order)
