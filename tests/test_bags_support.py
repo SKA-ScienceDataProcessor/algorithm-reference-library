@@ -16,7 +16,7 @@ from arl.calibration.operations import create_gaintable_from_blockvisibility, ap
 from arl.data.polarisation import PolarisationFrame
 from arl.graphs.bags import invert_bag, predict_bag, deconvolve_bag, restore_bag, \
     residual_image_bag, predict_record_subtract, reify, selfcal_bag
-from arl.util.bag_support import gleam_model_bag, gleam_model_request_bag
+from arl.util.bag_support import gleam_model_bag
 from arl.image.operations import qa_image, export_image_to_fits, copy_image, \
     create_empty_image_like
 from arl.imaging import create_image_from_visibility, predict_skycomponent_visibility, \
@@ -115,13 +115,6 @@ class TestDaskBagsSupport(unittest.TestCase):
             vt = apply_gaintable(vt, gt)
         return vt
     
-
-    def test_gleam_model_serial_bag(self):
-        gmb = gleam_model_request_bag(npixel=256)
-        qa = qa_image(gmb.compute()[0]['image'])
-        assert abs(qa.data['max'] - 4.91623655145) < 1e-7, qa
-        assert abs(qa.data['sum'] - 144.138638925) < 1e-7, qa
-        print(qa_image(gmb.compute()[0]['image']))
 
     def test_gleam_model_bag(self):
         gmb = gleam_model_bag(npixel=256)
