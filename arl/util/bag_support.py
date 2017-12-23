@@ -10,7 +10,7 @@ from dask import bag
 from arl.calibration.operations import apply_gaintable, create_gaintable_from_blockvisibility
 from arl.data.polarisation import PolarisationFrame
 from arl.graphs.bags import map_record
-from arl.util.testing_support import create_named_configuration, simulate_gaintable
+from arl.util.testing_support import create_named_configuration, simulate_gaintable, create_low_test_image_from_gleam
 from arl.visibility.base import create_blockvisibility, create_visibility
 
 log = logging.getLogger(__name__)
@@ -94,6 +94,7 @@ def simulate_vis_bag(config='LOWBD2-CORE',
         raise NotImplementedError("order $s not known" % order)
     return vis_bag
 
+
 def corrupt_vis_bag(vis_bag, gt_bag=None, **kwargs):
     """ Create a graph to apply gain errors to a vis_bag
 
@@ -110,3 +111,79 @@ def corrupt_vis_bag(vis_bag, gt_bag=None, **kwargs):
         return apply_gaintable(vis, gt)
     
     return vis_bag.map(map_record, corrupt_vis, key='vis', gt=gt_bag, **kwargs)
+
+
+def gleam_model_serial_bag(npixel=512, frequency=[1e8], channel_bandwidth=[1e6],
+                           cellsize=0.001,
+                           phasecentre=SkyCoord(ra=+30.0 * u.deg, dec=-60.0 * u.deg, frame='icrs', equinox='J2000'),
+                           applybeam=True,
+                           polarisation_frame=PolarisationFrame("stokesI"), **kwargs):
+    """Bag to create GLEAM model, inner loop serial
+    
+    :param npixel:
+    :param frequency:
+    :param channel_bandwidth:
+    :param cellsize:
+    :param phasecentre:
+    :param applybeam:
+    :param polarisation_frame:
+    :return:
+    """
+    return bag.from_sequence(
+        [{'image': create_low_test_image_from_gleam(npixel=npixel, frequency=frequency,
+                                                    channel_bandwidth=channel_bandwidth,
+                                                    cellsize=cellsize,
+                                                    phasecentre=phasecentre, applybeam=applybeam,
+                                                    polarisation_frame=polarisation_frame,
+                                                    **kwargs),
+          'freqwin': chan} for chan, freq in enumerate(frequency)])
+
+
+def image_to_records_bag(nfreqwin, im):
+    """ Wrap an image in records
+    
+    :param nfreqwin:
+    :param im:
+    :return:
+    """
+    
+    def create(freqwin):
+        return {'image': im,
+                'freqwin': freqwin}
+    
+    # Return a bag to hold all the requests
+    return bag.range(nfreqwin, npartitions=nfreqwin).map(create)
+
+
+def gleam_model_bag(npixel=512, frequency=[1e8], channel_bandwidth=[1e6],
+                    cellsize=0.001,
+                    phasecentre=SkyCoord(ra=+30.0 * u.deg, dec=-60.0 * u.deg, frame='icrs', equinox='J2000'),
+                    applybeam=True,
+                    polarisation_frame=PolarisationFrame("stokesI"), **kwargs):
+    """Bag to create GLEAM model, inner loop in bag
+
+    :param npixel:
+    :param frequency:
+    :param channel_bandwidth:
+    :param cellsize:
+    :param phasecentre:
+    :param applybeam:
+    :param polarisation_frame:
+    :return:
+    """
+    # We make the lists of inputs
+    requests = [(chan, {'npixel': npixel, 'frequency': [frequency[chan]],
+                        'channel_bandwidth': [channel_bandwidth[chan]],
+                        'cellsize': cellsize,
+                        'phasecentre': phasecentre,
+                        'applybeam': applybeam,
+                        'polarisation_frame': polarisation_frame})
+                for chan, freq in enumerate(frequency)]
+    
+    # Define how each request can be satified
+    def create(request):
+        return {'image': create_low_test_image_from_gleam(**(request[1])),
+                'freqwin': request[0]}
+    
+    # Return a bag to hold all the requests
+    return bag.from_sequence(requests).map(create)

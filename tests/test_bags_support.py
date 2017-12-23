@@ -1,61 +1,52 @@
-"""Unit tests for pipelines expressed via dask.bag
+""" Unit tests for pipelines expressed via dask.bag
 
 
 """
 
-import logging
 import os
-import sys
 import unittest
 
 import numpy
 from astropy import units as u
 from astropy.coordinates import SkyCoord
 from astropy.wcs.utils import pixel_to_skycoord
-
 from dask import bag
-from arl.graphs.bags import reify
 
-from arl.calibration.operations import apply_gaintable, create_gaintable_from_blockvisibility
+from arl.calibration.operations import create_gaintable_from_blockvisibility, apply_gaintable
 from arl.data.polarisation import PolarisationFrame
-from arl.image.operations import qa_image, export_image_to_fits, copy_image, create_empty_image_like
-from arl.imaging import create_image_from_visibility, predict_skycomponent_blockvisibility, \
-    predict_skycomponent_visibility
+from arl.graphs.bags import invert_bag, predict_bag, deconvolve_bag, restore_bag, \
+    residual_image_bag, predict_record_subtract, reify, selfcal_bag
+from arl.util.bag_support import gleam_model_bag, gleam_model_request_bag
+from arl.image.operations import qa_image, export_image_to_fits, copy_image, \
+    create_empty_image_like
+from arl.imaging import create_image_from_visibility, predict_skycomponent_visibility, \
+    predict_skycomponent_blockvisibility
 from arl.skycomponent.operations import create_skycomponent, insert_skycomponent
-from arl.util.testing_support import create_named_configuration, simulate_gaintable
-from arl.util.bag_support import image_to_records_bag
+from arl.util.testing_support import create_named_configuration
+from arl.util.testing_support import simulate_gaintable
 from arl.visibility.base import create_visibility, create_blockvisibility
 
-from arl.pipelines.bags import continuum_imaging_pipeline_bag, ical_pipeline_bag
 
-log = logging.getLogger(__name__)
-
-log.setLevel(logging.DEBUG)
-log.addHandler(logging.StreamHandler(sys.stdout))
-log.addHandler(logging.StreamHandler(sys.stderr))
-
-
-class TestPipelinesBags(unittest.TestCase):
+class TestDaskBagsSupport(unittest.TestCase):
+    
     def setUp(self):
-        
-        self.dir = './test_results'
-        os.makedirs(self.dir, exist_ok=True)
         
         # We can compute using the default scheduler. Using the distributed scheduler within
         # jenkins does not work.
         self.compute = True
         
-        self.npixel = 256
-        self.vis_slices = 31
+        self.dir = './test_results'
+        os.makedirs(self.dir, exist_ok=True)
         
-        self.setupVis(add_errors=False, block=True)
+        self.npixel = 512
+        
+        self.setupVis(add_errors=False, block=False)
     
-    def setupVis(self, add_errors=False, block=True, freqwin=7):
+    def setupVis(self, add_errors=False, block=True, freqwin=3):
         self.freqwin = freqwin
         self.ntimes = 5
         self.times = numpy.linspace(-3.0, +3.0, self.ntimes) * numpy.pi / 12.0
         self.frequency = numpy.linspace(0.8e8, 1.2e8, self.freqwin)
-        
         self.vis_bag = \
             bag.from_sequence([{'freqwin': f,
                                 'vis': self.ingest_visibility([freq], times=self.times,
@@ -64,21 +55,17 @@ class TestPipelinesBags(unittest.TestCase):
                                for f, freq in enumerate(self.frequency)])
         
         self.vis_bag = reify(self.vis_bag)
-        self.model_bag = image_to_records_bag(self.freqwin, self.model)
-        self.empty_model_bag = image_to_records_bag(self.freqwin, self.empty_model)
+        self.model_bag = bag.from_sequence(self.freqwin * [self.model])
+        self.empty_model_bag = bag.from_sequence(self.freqwin * [self.empty_model])
     
     def ingest_visibility(self, freq=[1e8], chan_width=[1e6], times=None, reffrequency=None, add_errors=False,
                           block=True):
         if times is None:
             times = (numpy.pi / 12.0) * numpy.linspace(-3.0, 3.0, 5)
-        
+
         if reffrequency is None:
             reffrequency = [1e8]
         lowcore = create_named_configuration('LOWBD2-CORE')
-        if times is None:
-            ntimes = 5
-            times = numpy.linspace(-numpy.pi / 3.0, numpy.pi / 3.0, ntimes)
-            
         frequency = numpy.array(freq)
         channel_bandwidth = numpy.array(chan_width)
         
@@ -117,10 +104,10 @@ class TestPipelinesBags(unittest.TestCase):
         insert_skycomponent(model, comps)
         self.model = copy_image(model)
         self.empty_model = create_empty_image_like(model)
-        export_image_to_fits(model, '%s/test_pipeline_bags_model.fits' % (self.dir))
+        
+        export_image_to_fits(model, '%s/test_bags_model.fits' % (self.dir))
         
         if add_errors:
-            assert block, "Cannot only add errors to BlockVisibility"
             # These will be the same for all calls
             numpy.random.seed(180555)
             gt = create_gaintable_from_blockvisibility(vt)
@@ -128,40 +115,17 @@ class TestPipelinesBags(unittest.TestCase):
             vt = apply_gaintable(vt, gt)
         return vt
     
-    def test_continuum_imaging_pipeline(self):
-        self.vis_slices = 51
-        self.context = 'wstack_single'
-        continuum_imaging_bag = \
-            continuum_imaging_pipeline_bag(self.vis_bag, model_bag=self.model_bag,
-                                           context=self.context,
-                                           vis_slices=self.vis_slices,
-                                           niter=1000, fractional_threshold=0.1,
-                                           threshold=2.0, nmajor=0, gain=0.1)
-        if self.compute:
-            clean, residual, restored = continuum_imaging_bag.compute()
-            clean = clean.compute()[0]['image']
-            export_image_to_fits(clean, '%s/test_pipelines_continuum_imaging_bag_clean.fits' % (self.dir))
-            qa = qa_image(clean)
-            assert numpy.abs(qa.data['max'] - 100.0) < 5.0, str(qa)
-            assert numpy.abs(qa.data['min'] + 5.0) < 5.0, str(qa)
-    
-    def test_ical_pipeline(self):
-        self.vis_slices = 51
-        self.context = 'wstack_single'
-        self.setupVis(add_errors=True)
-        ical_bag = \
-            ical_pipeline_bag(self.vis_bag, model_bag=self.model_bag,
-                              context=self.context,
-                              vis_slices=self.vis_slices,
-                              niter=1000, fractional_threshold=0.1,
-                              threshold=2.0, nmajor=5, gain=0.1, first_selfcal=1, global_solution=False)
-        if self.compute:
-            clean, residual, restored = ical_bag.compute()
-            clean = clean.compute()[0]['image']
-            export_image_to_fits(clean, '%s/test_pipelines_ical_bag_clean.fits' % (self.dir))
-            qa = qa_image(clean)
-            assert numpy.abs(qa.data['max'] - 92) < 5.0, str(qa)
-            assert numpy.abs(qa.data['min']) < 5.0, str(qa)
 
-if __name__ == '__main__':
-    unittest.main()
+    def test_gleam_model_serial_bag(self):
+        gmb = gleam_model_request_bag(npixel=256)
+        qa = qa_image(gmb.compute()[0]['image'])
+        assert abs(qa.data['max'] - 4.91623655145) < 1e-7, qa
+        assert abs(qa.data['sum'] - 144.138638925) < 1e-7, qa
+        print(qa_image(gmb.compute()[0]['image']))
+
+    def test_gleam_model_bag(self):
+        gmb = gleam_model_bag(npixel=256)
+        qa = qa_image(gmb.compute()[0]['image'])
+        assert abs(qa.data['max'] - 4.91623655145) < 1e-7, qa
+        assert abs(qa.data['sum'] - 144.138638925) < 1e-7, qa
+        print(qa_image(gmb.compute()[0]['image']))

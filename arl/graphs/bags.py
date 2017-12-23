@@ -511,7 +511,7 @@ def residual_vis_bag(vis_bag, model_vis_bag, **kwargs):
     return vis_bag.map(map_record, subtract, modelvis=model_vis_bag)
 
 
-def calibrate_bag(vis_bag, model_vis_bag, global_solution=True, **kwargs):
+def calibrate_bag(vis_bag, model_vis_bag, global_solution=False, **kwargs):
     """ Create a bag for (optionally global) calibration of a list of visibilities
 
     If global solution is true then visibilities are gathered to a single visibility
@@ -542,7 +542,7 @@ def calibrate_bag(vis_bag, model_vis_bag, global_solution=True, **kwargs):
     else:
         def solve_and_apply(vis, modelvis, **kwargs):
             gt = solve_gaintable(vis, modelvis['vis'], **kwargs)
-            print(qa_gaintable(gt, context='calibrate_bag'))
+            log.debug(qa_gaintable(gt, context='calibrate_bag'))
             return apply_gaintable(vis, gt, inverse=True)
         model_vis_bag = reify(model_vis_bag)
         return vis_bag\

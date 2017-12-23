@@ -16,6 +16,7 @@ from arl.calibration.operations import create_gaintable_from_blockvisibility, ap
 from arl.data.polarisation import PolarisationFrame
 from arl.graphs.bags import invert_bag, predict_bag, deconvolve_bag, restore_bag, \
     residual_image_bag, predict_record_subtract, reify, selfcal_bag
+from arl.util.bag_support import image_to_records_bag
 from arl.image.operations import qa_image, export_image_to_fits, copy_image, \
     create_empty_image_like
 from arl.imaging import create_image_from_visibility, predict_skycomponent_visibility, \
@@ -54,8 +55,8 @@ class TestDaskBagsRecords(unittest.TestCase):
                                for f, freq in enumerate(self.frequency)])
         
         self.vis_bag = reify(self.vis_bag)
-        self.model_bag = bag.from_sequence(self.freqwin * [self.model])
-        self.empty_model_bag = bag.from_sequence(self.freqwin * [self.empty_model])
+        self.model_bag = image_to_records_bag(self.freqwin, self.model)
+        self.empty_model_bag = image_to_records_bag(self.freqwin, self.empty_model)
     
     def ingest_visibility(self, freq=[1e8], chan_width=[1e6], times=None, reffrequency=None, add_errors=False,
                           block=True):
@@ -118,7 +119,7 @@ class TestDaskBagsRecords(unittest.TestCase):
         peaks = {'2d': 65.2997439062, 'timeslice_single': 99.6183393299, 'wstack_single': 100.702701119}
         vis_slices = {'2d': None, 'timeslice_single': 'auto', 'wstack_single': 101}
         for context in ['wstack_single', '2d', 'timeslice_single']:
-            dirty_bag = invert_bag(self.vis_bag, self.empty_model, dopsf=False,
+            dirty_bag = invert_bag(self.vis_bag, self.empty_model_bag, dopsf=False,
                                    context=context, normalize=True,
                                    vis_slices=vis_slices[context])
             dirty, sumwt = dirty_bag.compute()[0]['image']
@@ -131,15 +132,14 @@ class TestDaskBagsRecords(unittest.TestCase):
         errors = {'2d': 28.0, 'timeslice_single': 30.0, 'wstack_single': 2.3}
         vis_slices = {'2d': None, 'timeslice_single': 'auto', 'wstack_single': 101}
         for context in ['wstack_single', 'timeslice_single']:
-            model_vis_bag = predict_bag(self.vis_bag, self.model, context,
+            model_vis_bag = predict_bag(self.vis_bag, self.model_bag, context,
                                         vis_slices=vis_slices[context])
             
             model_vis_bag = reify(model_vis_bag)
             error_vis_bag = self.vis_bag.map(predict_record_subtract, model_vis_bag)
             error_vis_bag = reify(error_vis_bag)
-            error_image_bag = invert_bag(error_vis_bag, self.model, dopsf=False,
+            error_image_bag = invert_bag(error_vis_bag, self.model_bag, dopsf=False,
                                          context=context, normalize=True, vis_slices=vis_slices[context])
-            error_image_bag.visualize('test_predict_bag.svg')
             result = error_image_bag.compute()
             error_image = result[0]['image'][0]
             export_image_to_fits(error_image,
@@ -153,14 +153,14 @@ class TestDaskBagsRecords(unittest.TestCase):
         dirty_bag = invert_bag(self.vis_bag, self.model_bag, dopsf=False, context=context,
                                normalize=True,
                                vis_slices=vis_slices[context])
-        psf_bag = invert_bag(self.vis_bag, self.model, dopsf=True, context=context,
+        psf_bag = invert_bag(self.vis_bag, self.model_bag, dopsf=True, context=context,
                              normalize=True,
                              vis_slices=vis_slices[context])
         dirty_bag = reify(dirty_bag)
         psf_bag = reify(psf_bag)
         model_bag = deconvolve_bag(dirty_bag, psf_bag, self.empty_model_bag, niter=1000, gain=0.7,
                                    algorithm='msclean', threshold=0.01, window_shape=None)
-        model = model_bag.compute()[0]
+        model = model_bag.compute()[0]['image']
         qa = qa_image(model, context=context)
         
         export_image_to_fits(model, '%s/test_bags_%s_deconvolve.fits' % (self.dir, context))
@@ -172,21 +172,21 @@ class TestDaskBagsRecords(unittest.TestCase):
         peaks = {'wstack_single': 98.8113067286}
         vis_slices = {'wstack_single': 101}
         context = 'wstack_single'
-        dirty_bag = invert_bag(self.vis_bag, self.model, dopsf=False, context=context,
+        dirty_bag = invert_bag(self.vis_bag, self.model_bag, dopsf=False, context=context,
                                normalize=True,
                                vis_slices=vis_slices[context])
-        psf_bag = invert_bag(self.vis_bag, self.model, dopsf=True, context=context,
+        psf_bag = invert_bag(self.vis_bag, self.model_bag, dopsf=True, context=context,
                              normalize=True,
                              vis_slices=vis_slices[context])
         dirty_bag = reify(dirty_bag)
         psf_bag = reify(psf_bag)
         model_bag = deconvolve_bag(dirty_bag, psf_bag, self.empty_model_bag, niter=1000, gain=0.7,
                                    algorithm='msclean', threshold=0.01, window_shape=None)
-        
-        model = model_bag.compute()[0]
-        res_image_bag = residual_image_bag(self.vis_bag, model, context=context,
+        model_bag = reify(model_bag)
+
+        res_image_bag = residual_image_bag(self.vis_bag, model_bag, context=context,
                                            vis_slices=vis_slices[context])
-        
+        res_image_bag = reify(res_image_bag)
         residual = res_image_bag.compute()[0]['image'][0]
         export_image_to_fits(residual, '%s/test_bags_%s_residual.fits' %
                              (self.dir, context))
@@ -201,17 +201,16 @@ class TestDaskBagsRecords(unittest.TestCase):
     def test_residual_image_bag(self):
         context = 'wstack_single'
         vis_slices = {'wstack_single': 101}
-        dirty_bag = invert_bag(self.vis_bag, self.empty_model, dopsf=False, context=context,
+        dirty_bag = invert_bag(self.vis_bag, self.empty_model_bag, dopsf=False, context=context,
                                normalize=True, vis_slices=vis_slices[context])
-        psf_bag = invert_bag(self.vis_bag, self.empty_model, dopsf=True, context=context,
+        psf_bag = invert_bag(self.vis_bag, self.empty_model_bag, dopsf=True, context=context,
                              normalize=True, vis_slices=vis_slices[context])
         dirty_bag = reify(dirty_bag)
         psf_bag = reify(psf_bag)
         model_bag = deconvolve_bag(dirty_bag, psf_bag, self.empty_model_bag, niter=1000,
                                    gain=0.1, algorithm='msclean',
                                    threshold=0.01, window_shape=None)
-        model = model_bag.compute()[0]
-        residual_bag = residual_image_bag(self.vis_bag, model, context=context,
+        residual_bag = residual_image_bag(self.vis_bag, model_bag, context=context,
                                           vis_slices=vis_slices[context])
         final = residual_bag.compute()[0]['image'][0]
         export_image_to_fits(final, '%s/test_bags_%s_residual.fits' % (self.dir, context))
@@ -222,7 +221,7 @@ class TestDaskBagsRecords(unittest.TestCase):
     def test_residual_image_bag_model(self):
         context = 'wstack_single'
         vis_slices = {'wstack_single': 101}
-        residual_bag = residual_image_bag(self.vis_bag, self.model, context=context,
+        residual_bag = residual_image_bag(self.vis_bag, self.model_bag, context=context,
                                           vis_slices=vis_slices[context])
         final = residual_bag.compute()[0]['image'][0]
         export_image_to_fits(final, '%s/test_bags_%s_residual_image_bag.fits' % (self.dir, context))
