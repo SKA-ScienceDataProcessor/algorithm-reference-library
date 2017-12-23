@@ -14,7 +14,7 @@ from arl.visibility.coalesce import convert_blockvisibility_to_visibility, \
 log = logging.getLogger(__name__)
 
 
-def continuum_imaging_pipeline_bag(vis_bag, model_bag, context, **kwargs) -> bag:
+def continuum_imaging_pipeline_bag(block_vis_bag, model_bag, context, **kwargs) -> bag:
     """ Create bag for the continuum imaging pipeline.
     
     Same as ICAL but with no selfcal.
@@ -25,10 +25,13 @@ def continuum_imaging_pipeline_bag(vis_bag, model_bag, context, **kwargs) -> bag
     :param kwargs: Parameters for functions in bags
     :return:
     """
-    return ical_pipeline_bag(vis_bag, model_bag, context=context, first_selfcal=None, **kwargs)
+    assert isinstance(block_vis_bag, bag.Bag), block_vis_bag
+    assert isinstance(model_bag, bag.Bag), model_bag
+
+    return ical_pipeline_bag(block_vis_bag, model_bag, context=context, first_selfcal=None, **kwargs)
 
 
-def spectral_line_imaging_pipeline_bag(vis_bag, model_bag,
+def spectral_line_imaging_pipeline_bag(block_vis_bag, model_bag,
                                        continuum_model_bag=None,
                                        context='2d',
                                        **kwargs) -> bag:
@@ -42,10 +45,13 @@ def spectral_line_imaging_pipeline_bag(vis_bag, model_bag,
     :param kwargs: Parameters for functions in bags
     :return: bags of (deconvolved model, residual, restored)
     """
-    if continuum_model_bag is not None:
-        vis_bag = predict_bag(vis_bag, continuum_model_bag, **kwargs)
+    assert isinstance(block_vis_bag, bag.Bag), block_vis_bag
+    assert isinstance(model_bag, bag.Bag), model_bag
     
-    return ical_pipeline_bag(vis_bag, model_bag, context=context, first_selfcal=None, **kwargs)
+    if continuum_model_bag is not None:
+        vis_bag = predict_bag(block_vis_bag, continuum_model_bag, **kwargs)
+    
+    return ical_pipeline_bag(block_vis_bag, model_bag, context=context, first_selfcal=None, **kwargs)
 
 
 def ical_pipeline_bag(block_vis_bag, model_bag, context='2d', first_selfcal=None,
@@ -59,6 +65,10 @@ def ical_pipeline_bag(block_vis_bag, model_bag, context='2d', first_selfcal=None
     :param kwargs: Parameters for functions in bags
     :return:
     """
+    assert isinstance(block_vis_bag, bag.Bag), block_vis_bag
+    assert isinstance(model_bag, bag.Bag), model_bag
+
+
     vis_bag = block_vis_bag.map(map_record, convert_blockvisibility_to_visibility)
     psf_bag = invert_bag(vis_bag, model_bag, context=context, dopsf=True, **kwargs)
     psf_bag = reify(psf_bag)
@@ -97,6 +107,8 @@ def ical_pipeline_bag(block_vis_bag, model_bag, context='2d', first_selfcal=None
 
 
 def selfcal_record(block_vis_bag, model_vis_bag, **kwargs):
+    assert isinstance(block_vis_bag, bag.Bag), block_vis_bag
+    assert isinstance(model_vis_bag, bag.Bag), model_vis_bag
     block_model_vis_bag = reify(model_vis_bag.map(map_record, convert_visibility_to_blockvisibility))
     block_vis_bag = calibrate_bag(block_vis_bag, block_model_vis_bag, **kwargs)
     vis_bag = block_vis_bag.map(map_record, convert_blockvisibility_to_visibility)

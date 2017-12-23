@@ -73,6 +73,7 @@ import logging
 import numpy
 from dask import bag
 
+from arl.data.data_models import Image
 from arl.calibration.operations import qa_gaintable, apply_gaintable
 from arl.calibration.solvers import solve_gaintable
 from arl.image.deconvolution import deconvolve_cube, restore_cube
@@ -222,6 +223,21 @@ def invert_record(record, dopsf, context, **kwargs):
     return newrecord
 
 
+def image_to_records_bag(nfreqwin, im):
+    """ Wrap an image in records
+
+    :param nfreqwin:
+    :param im:
+    :return:
+    """
+    
+    def create(freqwin):
+        return {'image': im,
+                'freqwin': freqwin}
+    
+    # Return a bag to hold all the requests
+    return bag.range(nfreqwin, npartitions=nfreqwin).map(create)
+
 def map_record(record, apply_function, key='vis', **kwargs):
     """ Apply a function to a record
 
@@ -327,6 +343,7 @@ def create_empty_image_record(model):
     :param model:
     :return:
     """
+    assert isinstance(model, Image)
     return {'image': (create_empty_image_like(model), 0.0)}
 
 
@@ -372,6 +389,10 @@ def invert_bag(vis_bag, model_bag, dopsf=False, context='2d', key='freqwin', **k
     :param kwargs:
     :return:
     """
+    assert isinstance(vis_bag, bag.Bag), vis_bag
+    assert isinstance(model_bag, bag.Bag), model_bag
+
+
     return vis_bag \
         .map(join_records, model_bag)\
         .map(scatter_record, context, **kwargs) \
@@ -406,6 +427,9 @@ def predict_bag(vis_bag, model_bag, context='2d', key='freqwin', **kwargs) -> ba
     # - Convert the results back to record structure
     #
     # Monitoring is via print_element
+    assert isinstance(vis_bag, bag.Bag), vis_bag
+    assert isinstance(model_bag, bag.Bag), model_bag
+
     return vis_bag \
         .map(join_records, model_bag)\
         .map(scatter_record, context=context, **kwargs) \
@@ -425,6 +449,12 @@ def deconvolve_bag(dirty_bag, psf_bag, model_bag, **kwargs) -> bag:
     :param kwargs:
     :return: Bag of Images
     """
+    
+    assert isinstance(dirty_bag, bag.Bag), dirty_bag
+    assert isinstance(psf_bag, bag.Bag), psf_bag
+    assert isinstance(model_bag, bag.Bag), model_bag
+
+
     def deconvolve(dirty, psf, model, **kwargs):
         # The dirty and psf are actually (Image, weight) tuples.
         result = deconvolve_cube(dirty['image'][0], psf['image'][0], **kwargs)
@@ -447,6 +477,9 @@ def restore_bag(comp_bag, psf_bag, res_bag, **kwargs) -> bag:
     :param kwargs:
     :return: Bag of Images
     """
+    assert isinstance(comp_bag, bag.Bag), comp_bag
+    assert isinstance(psf_bag, bag.Bag), psf_bag
+    assert isinstance(res_bag, bag.Bag), res_bag
     
     def restore(comp, psf, res, **kwargs):
         return restore_cube(comp['image'], psf['image'][0], res['image'][0])
@@ -464,6 +497,9 @@ def residual_image_bag(vis_bag, model_image_bag, context='2d', **kwargs) -> bag:
     :param kwargs:
     :return:
     """
+    assert isinstance(vis_bag, bag.Bag), vis_bag
+    assert isinstance(model_image_bag, bag.Bag), model_image_bag
+
     result_vis_bag = reify(predict_bag(vis_bag, model_image_bag, context=context, **kwargs))
     result_vis_bag = reify(vis_bag).map(predict_record_subtract, r2=result_vis_bag)
     return invert_bag(result_vis_bag, model_image_bag, context=context,dopsf=False, **kwargs)
@@ -483,6 +519,9 @@ def selfcal_bag(vis_bag, model_bag, **kwargs):
     :param kwargs: Parameters for functions in graphs
     :return:
     """
+    assert isinstance(vis_bag, bag.Bag), vis_bag
+    assert isinstance(model_bag, bag.Bag), model_bag
+    
     vis_bag = reify(vis_bag)
     model_bag = reify(model_bag)
     model_vis_bag = vis_bag\
@@ -502,6 +541,8 @@ def residual_vis_bag(vis_bag, model_vis_bag, **kwargs):
     :param kwargs: Parameters for functions in graphs
     :return:
     """
+    assert isinstance(vis_bag, bag.Bag), vis_bag
+    assert isinstance(model_vis_bag, bag.Bag), model_vis_bag
 
     def subtract(vis, modelvis):
         return subtract_visibility(vis, modelvis['vis'])
@@ -526,6 +567,9 @@ def calibrate_bag(vis_bag, model_vis_bag, global_solution=False, **kwargs):
     :return:
     """
     
+    assert isinstance(vis_bag, bag.Bag), vis_bag
+    assert isinstance(model_vis_bag, bag.Bag), model_vis_bag
+
     if global_solution:
         def divide(vis, modelvis):
             return divide_visibility(vis, modelvis['vis'])

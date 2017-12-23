@@ -95,22 +95,24 @@ def simulate_vis_bag(config='LOWBD2-CORE',
     return vis_bag
 
 
-def corrupt_vis_bag(vis_bag, gt_bag=None, **kwargs):
+def corrupt_vis_bag(block_vis_bag, gt_bag=None, **kwargs):
     """ Create a graph to apply gain errors to a vis_bag
 
-    :param vis_bag:
+    :param block_vis_bag:
     :param gt_bag: Optional gain table graph
     :param kwargs:
     :return:
     """
-    
-    def corrupt_vis(vis, gt, **kwargs):
+
+    assert isinstance(block_vis_bag, bag.Bag), block_vis_bag
+
+    def corrupt_vis(block_vis, gt, **kwargs):
         if gt is None:
-            gt = create_gaintable_from_blockvisibility(vis, **kwargs)
+            gt = create_gaintable_from_blockvisibility(block_vis, **kwargs)
             gt = simulate_gaintable(gt, **kwargs)
-        return apply_gaintable(vis, gt)
+        return apply_gaintable(block_vis, gt)
     
-    return vis_bag.map(map_record, corrupt_vis, key='vis', gt=gt_bag, **kwargs)
+    return block_vis_bag.map(map_record, corrupt_vis, key='vis', gt=gt_bag, **kwargs)
 
 
 def gleam_model_serial_bag(npixel=512, frequency=[1e8], channel_bandwidth=[1e6],
@@ -137,22 +139,6 @@ def gleam_model_serial_bag(npixel=512, frequency=[1e8], channel_bandwidth=[1e6],
                                                     polarisation_frame=polarisation_frame,
                                                     **kwargs),
           'freqwin': chan} for chan, freq in enumerate(frequency)])
-
-
-def image_to_records_bag(nfreqwin, im):
-    """ Wrap an image in records
-    
-    :param nfreqwin:
-    :param im:
-    :return:
-    """
-    
-    def create(freqwin):
-        return {'image': im,
-                'freqwin': freqwin}
-    
-    # Return a bag to hold all the requests
-    return bag.range(nfreqwin, npartitions=nfreqwin).map(create)
 
 
 def gleam_model_bag(npixel=512, frequency=[1e8], channel_bandwidth=[1e6],

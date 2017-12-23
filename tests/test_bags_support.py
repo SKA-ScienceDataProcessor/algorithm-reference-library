@@ -14,8 +14,7 @@ from dask import bag
 
 from arl.calibration.operations import create_gaintable_from_blockvisibility, apply_gaintable
 from arl.data.polarisation import PolarisationFrame
-from arl.graphs.bags import invert_bag, predict_bag, deconvolve_bag, restore_bag, \
-    residual_image_bag, predict_record_subtract, reify, selfcal_bag
+from arl.graphs.bags import reify
 from arl.util.bag_support import gleam_model_bag
 from arl.image.operations import qa_image, export_image_to_fits, copy_image, \
     create_empty_image_like
@@ -121,4 +120,3 @@ class TestDaskBagsSupport(unittest.TestCase):
         qa = qa_image(gmb.compute()[0]['image'])
         assert abs(qa.data['max'] - 4.91623655145) < 1e-7, qa
         assert abs(qa.data['sum'] - 144.138638925) < 1e-7, qa
-        print(qa_image(gmb.compute()[0]['image']))

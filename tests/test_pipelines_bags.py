@@ -23,7 +23,7 @@ from arl.imaging import create_image_from_visibility, predict_skycomponent_block
     predict_skycomponent_visibility
 from arl.skycomponent.operations import create_skycomponent, insert_skycomponent
 from arl.util.testing_support import create_named_configuration, simulate_gaintable
-from arl.util.bag_support import image_to_records_bag
+from arl.graphs.bags import image_to_records_bag
 from arl.visibility.base import create_visibility, create_blockvisibility
 
 from arl.pipelines.bags import continuum_imaging_pipeline_bag, ical_pipeline_bag

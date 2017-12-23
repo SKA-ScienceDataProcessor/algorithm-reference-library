@@ -15,8 +15,7 @@ from dask import bag
 from arl.calibration.operations import create_gaintable_from_blockvisibility, apply_gaintable
 from arl.data.polarisation import PolarisationFrame
 from arl.graphs.bags import invert_bag, predict_bag, deconvolve_bag, restore_bag, \
-    residual_image_bag, predict_record_subtract, reify, selfcal_bag
-from arl.util.bag_support import image_to_records_bag
+    residual_image_bag, predict_record_subtract, reify, selfcal_bag, image_to_records_bag
 from arl.image.operations import qa_image, export_image_to_fits, copy_image, \
     create_empty_image_like
 from arl.imaging import create_image_from_visibility, predict_skycomponent_visibility, \
