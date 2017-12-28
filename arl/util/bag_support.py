@@ -1,4 +1,4 @@
-""" Pipelines expressed as dask bags
+""" Pipelines expressed as dask bags: : DEPRECATED in favor of delayed
 """
 
 import logging

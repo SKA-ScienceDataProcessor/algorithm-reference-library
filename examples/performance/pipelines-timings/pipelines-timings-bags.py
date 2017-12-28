@@ -1,4 +1,4 @@
-# # Pipeline processing using Dask
+# # Pipeline processing using Dask : DEPRECATED in favor of delayed
 # 
 # This notebook demonstrates the continuum imaging and ICAL pipelines.
 
@@ -21,7 +21,7 @@ from arl.util.bag_support import simulate_vis_bag, corrupt_vis_bag, gleam_model_
 from arl.visibility.coalesce import convert_visibility_to_blockvisibility
 
 log = logging.getLogger()
-log.setLevel(logging.INFO)
+log.setLevel(logging.DEBUG)
 log.addHandler(logging.StreamHandler(sys.stdout))
 
 
@@ -246,8 +246,7 @@ def trial_case(results, seed=180555, context='wstack_single', nworkers=8, thread
     results['dirty_min'] = qa.data['min']
     export_image_to_fits(dirty, "pipelines-timings-bags_dirty.fits")
     
-    # Create the ICAL pipeline to run 5 major cycles, starting selfcal at cycle 1. A global solution across all
-    # frequencies (i.e. Visibilities) is performed.
+    # Create the ICAL pipeline to run 5 major cycles, starting selfcal at cycle 1.
     
     start = time.time()
     print("****** Starting ICAL ******")
@@ -275,22 +274,8 @@ def trial_case(results, seed=180555, context='wstack_single', nworkers=8, thread
     results['time ICAL'] = end - start
     print("ICAL compute took %.2f seconds" % (end - start))
     
-    qa = qa_image(deconvolved)
-    results['deconvolved_max'] = qa.data['max']
-    results['deconvolved_min'] = qa.data['min']
-    from arl.image.operations import export_image_to_fits
-    export_image_to_fits(deconvolved, "pipelines-timings-bags-ical_deconvolved.fits")
     
-    qa = qa_image(residual)
-    results['residual_max'] = qa.data['max']
-    results['residual_min'] = qa.data['min']
-    export_image_to_fits(residual, "pipelines-timings-bags-ical_residual.fits")
     
-    qa = qa_image(restored)
-    results['restored_max'] = qa.data['max']
-    results['restored_min'] = qa.data['min']
-    export_image_to_fits(restored, "pipelines-timings-bags-ical_restored.fits")
-    #
     client.shutdown()
     
     end_all = time.time()

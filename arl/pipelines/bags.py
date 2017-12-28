@@ -1,4 +1,4 @@
-""" Pipelines expressed as dask bags
+""" Pipelines expressed as dask bags: DEPRECATED in favor of delayed
 """
 
 import logging
@@ -93,12 +93,10 @@ def ical_pipeline_bag(block_vis_bag, model_bag, context='2d', first_selfcal=None
             res_vis_bag = reify(residual_vis_bag(vis_bag, model_vis_bag))
             res_bag = invert_bag(res_vis_bag, model_bag, context=context, dopsf=False, **kwargs)
             res_bag = reify(res_bag)
-            
-            res_bag = reify(res_bag)
             deconvolve_model_bag = reify(deconvolve_bag(res_bag, psf_bag, deconvolve_model_bag,
                                                         **kwargs))
     
-    res_bag = residual_image_bag(vis_bag, deconvolve_model_bag, **kwargs)
+    res_bag = residual_image_bag(vis_bag, deconvolve_model_bag, context=context, **kwargs)
     res_bag=reify(res_bag)
     deconvolve_model_bag = reify(deconvolve_model_bag)
     rest_bag = restore_bag(deconvolve_model_bag, psf_bag, res_bag, **kwargs)

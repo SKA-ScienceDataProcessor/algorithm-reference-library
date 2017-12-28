@@ -73,27 +73,37 @@ import logging
 import numpy
 from dask import bag
 
-from arl.data.data_models import Image
 from arl.calibration.operations import qa_gaintable, apply_gaintable
 from arl.calibration.solvers import solve_gaintable
+from arl.data.data_models import Image
 from arl.image.deconvolution import deconvolve_cube, restore_cube
 from arl.image.operations import create_image_from_array, qa_image, create_empty_image_like
 from arl.imaging import normalize_sumwt
 from arl.imaging.imaging_context import imaging_context
 from arl.visibility.base import copy_visibility
+from arl.visibility.coalesce import convert_visibility_to_blockvisibility
 from arl.visibility.gather_scatter import visibility_gather_channel
 from arl.visibility.operations import qa_visibility, sort_visibility, \
     divide_visibility, integrate_visibility_by_channel, subtract_visibility
-from arl.visibility.coalesce import convert_visibility_to_blockvisibility, \
-    convert_blockvisibility_to_visibility
-
 
 log = logging.getLogger(__name__)
 
 
-def reify(bg):
+def reify(bg, compute=False):
+    """Compute a bag and create a new bag to hold the contexts
+    
+    This is useful to avoid recalculating results when not necessary. It's also often necessary when a reduction of
+    one component of a bag is required.
+    
+    :param bg:
+    :param compute: .compute() instead of list()
+    :return:
+    """
     if isinstance(bg, bag.Bag):
-        return bag.from_sequence(bg.compute())
+        if compute:
+            return bag.from_sequence(bg.compute())
+        else:
+            return bag.from_sequence(list(bg))
     else:
         return bg
 
@@ -116,8 +126,6 @@ def scatter_record(record, context, **kwargs):
     :param kwargs:
     :return:
     """
-    log.debug("Into scatter_record", context, record)
-    print("Into scatter_record", context, record)
     c = imaging_context(context)
     assert c['scatter'] is not None, "Scatter not possible for context %s" % context
     scatter = c['scatter']
@@ -133,36 +141,6 @@ def scatter_record(record, context, **kwargs):
             newrecord[context] = scatter_index
             scatter_index += 1
             result.append(newrecord)
-    log.debug("From scatter_record", result)
-    print("From scatter_record", result)
-    return result
-
-
-def scatter_record(record, context, **kwargs):
-    """ Scatter a record according to the context's scatter field.
-
-    :param record:
-    :param context: Imaging context
-    :param kwargs:
-    :return:
-    """
-    log.debug("Into scatter_record", context, record)
-    c = imaging_context(context)
-    assert c['scatter'] is not None, "Scatter not possible for context %s" % context
-    scatter = c['scatter']
-    result = list()
-    vis_list = scatter(record['vis'], **kwargs)
-    scatter_index = 0
-    for v in vis_list:
-        if v is not None:
-            newrecord = {}
-            for key in record.keys():
-                newrecord[key] = record[key]
-            newrecord['vis'] = v
-            newrecord[context] = scatter_index
-            scatter_index += 1
-            result.append(newrecord)
-    log.debug("From scatter_record", result)
     return result
 
 
@@ -171,7 +149,6 @@ def join_records(r1, r2):
 
     :param r1
     :param r2:
-    :param kwargs:
     :return:
     """
     ro = r1
@@ -179,11 +156,11 @@ def join_records(r1, r2):
         ro[k2] = r2[k2]
     return ro
 
+
 def predict_record(record, context, **kwargs):
     """ Do a predict for a given record
 
     :param record:
-    :param model:
     :param context:
     :param kwargs:
     :return:
@@ -203,7 +180,6 @@ def invert_record(record, dopsf, context, **kwargs):
     """ Do an invert for a given record
 
     :param record:
-    :param model:
     :param dopsf:
     :param context:
     :param kwargs:
@@ -238,11 +214,13 @@ def image_to_records_bag(nfreqwin, im):
     # Return a bag to hold all the requests
     return bag.range(nfreqwin, npartitions=nfreqwin).map(create)
 
+
 def map_record(record, apply_function, key='vis', **kwargs):
     """ Apply a function to a record
 
     :param record:
     :param apply_function: unary function to apply
+    :param key: key in record
     :param kwargs:
     :return:
     """
@@ -292,7 +270,6 @@ def predict_record_concatenate(r1, r2):
 
     :param r1:
     :param r2:
-    :param normalize:
     :return:
     """
     vis1 = r1['vis']
@@ -321,7 +298,6 @@ def predict_record_subtract(r1, r2):
 
     :param r1:
     :param r2:
-    :param normalize:
     :return:
     """
     vis1 = r1['vis']
@@ -347,10 +323,9 @@ def create_empty_image_record(model):
     return {'image': (create_empty_image_like(model), 0.0)}
 
 
-def create_empty_visibility_record(vis):
+def create_empty_visibility_record():
     """ Create an empty visibility record to be used in predict_record_concatenate
 
-    :param model:
     :return:
     """
     return {'vis': None}
@@ -360,7 +335,6 @@ def folded_to_image_record(folded):
     """ Convert the output from foldby back into our record format
 
     :param folded:
-    :param key:
     :return:
     """
     return folded[1]
@@ -370,7 +344,6 @@ def folded_to_visibility_record(folded):
     """ Convert the output from foldby back into our record format
 
     :param folded:
-    :param key:
     :return:
     """
     result = folded[1]
@@ -385,16 +358,16 @@ def invert_bag(vis_bag, model_bag, dopsf=False, context='2d', key='freqwin', **k
 
     :param vis_bag:
     :param model_bag: This is just used as specification of the output images
+    :param dopsf:
     :param context:
     :param kwargs:
     :return:
     """
     assert isinstance(vis_bag, bag.Bag), vis_bag
     assert isinstance(model_bag, bag.Bag), model_bag
-
-
+    
     return vis_bag \
-        .map(join_records, model_bag)\
+        .map(join_records, model_bag) \
         .map(scatter_record, context, **kwargs) \
         .flatten() \
         .map(invert_record, dopsf=dopsf, context=context, **kwargs) \
@@ -413,6 +386,7 @@ def predict_bag(vis_bag, model_bag, context='2d', key='freqwin', **kwargs) -> ba
     :param vis_bag:
     :param model_bag: This must be a bag of images
     :param context:
+    :param key:
     :param kwargs:
     :return:
     """
@@ -429,9 +403,9 @@ def predict_bag(vis_bag, model_bag, context='2d', key='freqwin', **kwargs) -> ba
     # Monitoring is via print_element
     assert isinstance(vis_bag, bag.Bag), vis_bag
     assert isinstance(model_bag, bag.Bag), model_bag
-
+    
     return vis_bag \
-        .map(join_records, model_bag)\
+        .map(join_records, model_bag) \
         .map(scatter_record, context=context, **kwargs) \
         .flatten() \
         .map(predict_record, context, **kwargs) \
@@ -446,6 +420,7 @@ def deconvolve_bag(dirty_bag, psf_bag, model_bag, **kwargs) -> bag:
 
     :param dirty_bag:
     :param psf_bag:
+    :param model_bag:
     :param kwargs:
     :return: Bag of Images
     """
@@ -474,6 +449,7 @@ def restore_bag(comp_bag, psf_bag, res_bag, **kwargs) -> bag:
 
     :param dirty_bag:
     :param psf_bag:
+    :param res_bag:
     :param kwargs:
     :return: Bag of Images
     """
@@ -482,12 +458,12 @@ def restore_bag(comp_bag, psf_bag, res_bag, **kwargs) -> bag:
     assert isinstance(res_bag, bag.Bag), res_bag
     
     def restore(comp, psf, res, **kwargs):
-        return restore_cube(comp['image'], psf['image'][0], res['image'][0])
+        return restore_cube(comp['image'], psf['image'][0], res['image'][0], **kwargs)
     
     return comp_bag.map(restore, psf_bag, res_bag, **kwargs)
 
 
-def residual_image_bag(vis_bag, model_image_bag, context='2d', **kwargs) -> bag:
+def residual_image_bag(vis_bag, model_image_bag, **kwargs) -> bag:
     """Calculate residual images
 
     Call directly - don't use via bag.map
@@ -499,10 +475,10 @@ def residual_image_bag(vis_bag, model_image_bag, context='2d', **kwargs) -> bag:
     """
     assert isinstance(vis_bag, bag.Bag), vis_bag
     assert isinstance(model_image_bag, bag.Bag), model_image_bag
-
-    result_vis_bag = reify(predict_bag(vis_bag, model_image_bag, context=context, **kwargs))
+    
+    result_vis_bag = reify(predict_bag(vis_bag, model_image_bag, **kwargs))
     result_vis_bag = reify(vis_bag).map(predict_record_subtract, r2=result_vis_bag)
-    return invert_bag(result_vis_bag, model_image_bag, context=context,dopsf=False, **kwargs)
+    return invert_bag(result_vis_bag, model_image_bag, dopsf=False, **kwargs)
 
 
 def selfcal_bag(vis_bag, model_bag, **kwargs):
@@ -516,7 +492,7 @@ def selfcal_bag(vis_bag, model_bag, **kwargs):
     :param model_bag: Bag of model visibilities
     :param vis_slices:
     :param global_solution: Solve for global gains?
-    :param kwargs: Parameters for functions in graphs
+    :param kwargs: Parameters for functions in bags
     :return:
     """
     assert isinstance(vis_bag, bag.Bag), vis_bag
@@ -524,29 +500,26 @@ def selfcal_bag(vis_bag, model_bag, **kwargs):
     
     vis_bag = reify(vis_bag)
     model_bag = reify(model_bag)
-    model_vis_bag = vis_bag\
+    model_vis_bag = vis_bag \
         .map(map_record, copy_visibility, zero=True)
-    model_vis_bag = predict_bag(model_vis_bag, model_bag, **kwargs)\
+    model_vis_bag = predict_bag(model_vis_bag, model_bag, **kwargs) \
         .map(map_record, convert_visibility_to_blockvisibility)
     return calibrate_bag(vis_bag, model_vis_bag, **kwargs)
 
 
-def residual_vis_bag(vis_bag, model_vis_bag, **kwargs):
+def residual_vis_bag(vis_bag, model_vis_bag):
     """ Create a bag for subtraction of list of visibilities
 
     :param vis_bag: Bag of observed visibilities
     :param model_vis_bag: Bag of model visibilities
-    :param vis_slices:
-    :param global_solution: Solve for global gains?
-    :param kwargs: Parameters for functions in graphs
     :return:
     """
     assert isinstance(vis_bag, bag.Bag), vis_bag
     assert isinstance(model_vis_bag, bag.Bag), model_vis_bag
-
+    
     def subtract(vis, modelvis):
         return subtract_visibility(vis, modelvis['vis'])
-
+    
     vis_bag = reify(vis_bag)
     model_vis_bag = reify(model_vis_bag)
     return vis_bag.map(map_record, subtract, modelvis=model_vis_bag)
