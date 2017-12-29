@@ -20,6 +20,15 @@ from arl.data.parameters import get_parameter
 
 log = logging.getLogger(__name__)
 
+def vis_null_iter(vis: Visibility, **kwargs) -> numpy.ndarray:
+    """One time iterator returning true for all rows
+    
+    :param vis:
+    :param kwargs:
+    :return:
+    """
+    yield numpy.ones_like(vis.time, dtype=bool)
+
 
 def vis_timeslice_iter(vis: Visibility, **kwargs) -> numpy.ndarray:
     """ W slice iterator

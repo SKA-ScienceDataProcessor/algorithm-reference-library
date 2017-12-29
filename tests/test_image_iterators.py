@@ -8,7 +8,7 @@ import unittest
 import numpy
 
 from arl.data.polarisation import PolarisationFrame
-from arl.image.iterators import   image_raster_iter, image_channel_iter
+from arl.image.iterators import   image_raster_iter, image_channel_iter, image_null_iter
 from arl.util.testing_support import create_test_image
 
 log = logging.getLogger(__name__)
@@ -43,7 +43,14 @@ class TestImageIterators(unittest.TestCase):
         for subimages in [128, 16, 8, 2, 1]:
             for slab in image_channel_iter(m31cube, subimages=subimages):
                 assert slab.data.shape[0] == 128 // subimages
+
+    def test_null(self):
+        m31cube = create_test_image(polarisation_frame=PolarisationFrame('stokesI'),
+                                    frequency=numpy.linspace(1e8, 1.1e8, 128))
     
+        for i, im in enumerate(image_null_iter(m31cube)):
+            assert i<1, "Null iterator returns more than one value"
+
 
 if __name__ == '__main__':
     unittest.main()
