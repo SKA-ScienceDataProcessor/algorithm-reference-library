@@ -13,12 +13,8 @@ from astropy.coordinates import SkyCoord
 
 from arl.data.polarisation import PolarisationFrame
 from arl.graphs.dask_init import get_dask_Client, findNodes
-from arl.graphs.graphs import create_invert_wstack_graph, \
-    create_predict_graph, create_residual_graph, create_invert_graph, \
-    create_predict_wstack_graph, create_residual_wstack_graph, create_invert_facet_wstack_graph, \
-    create_predict_facet_wstack_graph, create_residual_facet_wstack_graph, \
-    compute_list, create_invert_timeslice_graph, create_predict_timeslice_graph, \
-    create_residual_timeslice_graph, create_deconvolve_facet_graph
+from arl.graphs.graphs import create_predict_graph, create_invert_graph, \
+    compute_list
 from arl.image.operations import qa_image
 from arl.imaging import create_image_from_visibility, advise_wide_field
 from arl.pipelines.graphs import create_ical_pipeline_graph
@@ -29,6 +25,7 @@ log = logging.getLogger()
 log.setLevel(logging.INFO)
 log.addHandler(logging.StreamHandler(sys.stdout))
 
+
 def git_hash():
     import subprocess
     try:
@@ -37,7 +34,7 @@ def git_hash():
         return "unknown"
 
 
-def trial_case(results, seed=180555, context='wstack_single', n_workers=8, threads_per_worker=1,
+def trial_case(results, seed=180555, context='wstack_single', nworkers=8, threads_per_worker=1,
                processes=True, order='frequency', nfreqwin=7, ntimes=3, rmax=750.0,
                facets=1, wprojection_planes=1, **kwargs):
     """ Single trial for performance-timings
@@ -58,7 +55,7 @@ def trial_case(results, seed=180555, context='wstack_single', n_workers=8, threa
     'time ICAL graph', time to create ICAL graph
     'time ICAL', time to execute ICAL graph
     'context', type of imaging e.g. 'wstack_single'
-    'n_workers', number of workers to create
+    'nworkers', number of workers to create
     'threads_per_worker',
     'nnodes', Number of nodes,
     'processes', 'order', Ordering of data
@@ -86,7 +83,7 @@ def trial_case(results, seed=180555, context='wstack_single', n_workers=8, threa
     :param seed: Random number seed (used in gain simulations)
     :param context: imaging context
     :param context: Type of context: '2d'|'timeslice'|'timeslice_single'|'wstack'|'wstack_single'
-    :param n_workers: Number of dask workers to use
+    :param nworkers: Number of dask workers to use
     :param threads_per_worker: Number of threads per worker
     :param processes: Use processes instead of threads 'processes'|'threads'
     :param order: See create_simulate_vis_graph
@@ -98,11 +95,12 @@ def trial_case(results, seed=180555, context='wstack_single', n_workers=8, threa
     :param kwargs:
     :return: results dictionary
     """
+    
     def check_workers(client, nworkers_initial):
         nworkers_final = len(client.scheduler_info()['workers'])
         assert nworkers_final == nworkers_initial, "Started %d workers, only %d at end" % \
-                                               (nworkers_initial, nworkers_final)
-
+                                                   (nworkers_initial, nworkers_final)
+    
     numpy.random.seed(seed)
     results['seed'] = seed
     
@@ -112,32 +110,11 @@ def trial_case(results, seed=180555, context='wstack_single', n_workers=8, threa
     results['hostname'] = socket.gethostname()
     results['git_hash'] = git_hash()
     results['epoch'] = time.strftime("%Y-%m-%d %H:%M:%S")
- 
+    
     zerow = False
     print("Context is %s" % context)
-    if context == 'timeslice':
-        c_invert_graph = create_invert_timeslice_graph
-        c_residual_graph = create_residual_timeslice_graph
-        c_predict_graph = create_predict_timeslice_graph
-    elif context == 'wstack':
-        c_invert_graph = create_invert_wstack_graph
-        c_residual_graph = create_residual_wstack_graph
-        c_predict_graph = create_predict_wstack_graph
-    elif context == 'facet_wstack':
-        c_invert_graph = create_invert_facet_wstack_graph
-        c_residual_graph = create_residual_facet_wstack_graph
-        c_predict_graph = create_predict_facet_wstack_graph
-    elif context == '2d':
-        c_invert_graph = create_invert_graph
-        c_residual_graph = create_residual_graph
-        c_predict_graph = create_predict_graph
-        zerow = True
-    else:
-        c_invert_graph = create_invert_facet_wstack_graph
-        c_residual_graph = create_residual_facet_wstack_graph
-        c_predict_graph = create_predict_facet_wstack_graph
-
-    results['n_workers'] = n_workers
+    
+    results['nworkers'] = nworkers
     results['threads_per_worker'] = threads_per_worker
     results['processes'] = processes
     results['order'] = order
@@ -170,22 +147,24 @@ def trial_case(results, seed=180555, context='wstack_single', n_workers=8, threa
                                                seed=seed,
                                                zerow=zerow)
     
-    client = get_dask_Client(n_workers=n_workers, threads_per_worker=threads_per_worker,
+    client = get_dask_Client(n_workers=nworkers, threads_per_worker=threads_per_worker,
                              processes=processes)
-        
+    
     nworkers_initial = len(client.scheduler_info()['workers'])
     check_workers(client, nworkers_initial)
     results['nnodes'] = len(numpy.unique(findNodes(client)))
-    print("Defined %d workers on %d nodes" % (n_workers, results['nnodes']))
-
+    print("Defined %d workers on %d nodes" % (nworkers, results['nnodes']))
+    
     print("****** Visibility creation ******")
     vis_graph_list = compute_list(client, vis_graph_list, **kwargs)
     print("After creating vis_graph_list", client)
-
+    
     # Find the best imaging parameters.
     wprojection_planes = 1
-    advice = advise_wide_field(vis_graph_list[0], guard_band_image=4.0, delA=0.02, facets=facets,
-                                   wprojection_planes=wprojection_planes, oversampling_synthesised_beam=4.0)
+    advice = advise_wide_field(vis_graph_list[0], guard_band_image=10.0, delA=0.02,
+                               facets=facets,
+                               wprojection_planes=wprojection_planes,
+                               oversampling_synthesised_beam=4.0)
     
     kernel = advice['kernel']
     
@@ -210,8 +189,9 @@ def trial_case(results, seed=180555, context='wstack_single', n_workers=8, threa
                                                  frequency=vt.frequency,
                                                  channel_bandwidth=vt.channel_bandwidth,
                                                  cellsize=cellsize,
-                                                 phasecentre=vt.phasecentre, applypb=True,
+                                                 phasecentre=vt.phasecentre, applybeam=True,
                                                  polarisation_frame=PolarisationFrame("stokesI"))
+        return model
     
     start = time.time()
     print("****** Starting GLEAM model creation ******")
@@ -220,17 +200,17 @@ def trial_case(results, seed=180555, context='wstack_single', n_workers=8, threa
     results['time create gleam'] = end - start
     print("Creating GLEAM model took %.2f seconds" % (end - start))
     
-    vis_graph_list = c_predict_graph(vis_graph_list, gleam_model, vis_slices=51,
-                                     kernel=kernel)
+    vis_graph_list = create_predict_graph(vis_graph_list, gleam_model, vis_slices=51,
+                                          context=context, kernel=kernel)
     print("After prediction", client)
     start = time.time()
     print("****** Starting GLEAM model visibility prediction ******")
     vis_graph_list = compute_list(client, vis_graph_list, **kwargs)
-
+    
     end = time.time()
     results['time predict'] = end - start
     print("GLEAM model Visibility prediction took %.2f seconds" % (end - start))
- 
+    
     # Corrupt the visibility for the GLEAM model
     print("****** Visibility corruption ******")
     vis_graph_list = create_corrupt_vis_graph(vis_graph_list, phase_error=1.0)
@@ -247,8 +227,9 @@ def trial_case(results, seed=180555, context='wstack_single', n_workers=8, threa
                                          frequency=[frequency[len(frequency) // 2]],
                                          channel_bandwidth=[channel_bandwidth[len(frequency) // 2]],
                                          polarisation_frame=PolarisationFrame("stokesI"))
-
-    psf_graph = c_invert_graph(vis_graph_list, model, vis_slices=vis_slices, facets=facets, dopsf=True, kernel=kernel)
+    
+    psf_graph = create_invert_graph(vis_graph_list, model, vis_slices=vis_slices,
+                                    context=context, facets=facets, dopsf=True, kernel=kernel)
     start = time.time()
     print("****** Starting PSF calculation ******")
     psf, sumwt = client.compute(psf_graph, sync=True, **kwargs)
@@ -257,14 +238,15 @@ def trial_case(results, seed=180555, context='wstack_single', n_workers=8, threa
     results['time psf invert'] = end - start
     print("PSF invert took %.2f seconds" % (end - start))
     print("After psf", client)
-
+    
     results['psf_max'] = qa_image(psf).data['max']
     results['psf_min'] = qa_image(psf).data['min']
     
-    dirty_graph = c_invert_graph(vis_graph_list, model, vis_slices=vis_slices, facets=facets, kernel=kernel)
+    dirty_graph = create_invert_graph(vis_graph_list, model, vis_slices=vis_slices,
+                                      context=context, facets=facets, kernel=kernel)
     start = time.time()
     print("****** Starting dirty image calculation ******")
-    dirty, sumwt =   client.compute(dirty_graph, sync=True, **kwargs)
+    dirty, sumwt = client.compute(dirty_graph, sync=True, **kwargs)
     check_workers(client, nworkers_initial)
     end = time.time()
     print("After dirty image", client)
@@ -281,10 +263,7 @@ def trial_case(results, seed=180555, context='wstack_single', n_workers=8, threa
     print("****** Starting ICAL ******")
     ical_graph = create_ical_pipeline_graph(vis_graph_list,
                                             model_graph=model,
-                                            c_deconvolve_graph=create_deconvolve_facet_graph,
-                                            c_invert_graph=c_invert_graph,
-                                            c_predict_graph=c_predict_graph,
-                                            c_residual_graph=c_residual_graph,
+                                            context=context,
                                             vis_slices=vis_slices,
                                             algorithm='msclean', niter=1000,
                                             fractional_threshold=0.1, scales=[0, 3, 10],
@@ -306,17 +285,17 @@ def trial_case(results, seed=180555, context='wstack_single', n_workers=8, threa
     results['deconvolved_max'] = qa.data['max']
     results['deconvolved_min'] = qa.data['min']
     from arl.image.operations import export_image_to_fits
-    export_image_to_fits(deconvolved, "pipelines-timings-bags-ical_deconvolved.fits")
-
-    qa = qa_image(residual)
+    export_image_to_fits(deconvolved, "pipelines-timings-delayed-ical_deconvolved.fits")
+    
+    qa = qa_image(residual[0])
     results['residual_max'] = qa.data['max']
     results['residual_min'] = qa.data['min']
-    export_image_to_fits(residual, "pipelines-timings-bags-ical_residual.fits")
-
+    export_image_to_fits(residual[0], "pipelines-timings-delayed-ical_residual.fits")
+    
     qa = qa_image(restored)
     results['restored_max'] = qa.data['max']
     results['restored_min'] = qa.data['min']
-    export_image_to_fits(restored, "pipelines-timings-bags-ical_restored.fits")
+    export_image_to_fits(restored, "pipelines-timings-delayed-ical_restored.fits")
     #
     client.shutdown()
     
@@ -324,8 +303,9 @@ def trial_case(results, seed=180555, context='wstack_single', n_workers=8, threa
     results['time overall'] = end_all - start_all
     
     print("At end, results are {0!r}".format(results))
-
+    
     return results
+
 
 def write_results(filename, results):
     with open(filename, 'a') as csvfile:
@@ -348,7 +328,7 @@ if __name__ == '__main__':
     import seqfile
     
     import argparse
-
+    
     parser = argparse.ArgumentParser(description='Benchmark pipelines in numpy and dask')
     parser.add_argument('--nnodes', type=int, default=1, help='Number of nodes')
     parser.add_argument('--nthreads', type=int, default=1, help='Number of threads')
@@ -359,34 +339,34 @@ if __name__ == '__main__':
     parser.add_argument('--context', type=str, default='wstack_single',
                         help='Imaging context: 2d|timeslice|timeslice_single|wstack|wstack_single')
     parser.add_argument('--rmax', type=float, default=300.0, help='Maximum baseline (m)')
-
+    
     args = parser.parse_args()
-
+    
     results = {}
-
-    n_workers = args.nworkers
-    results['nworkers'] = n_workers
-
+    
+    nworkers = args.nworkers
+    results['nworkers'] = nworkers
+    
     context = args.context
     results['context'] = context
-
+    
     nnodes = args.nnodes
     results['nnodes'] = nnodes
-
+    
     threads_per_worker = args.nthreads
-
-    print("Using %s workers" % n_workers)
+    
+    print("Using %s workers" % nworkers)
     print("Using %s threads per worker" % threads_per_worker)
-
+    
     nfreqwin = args.nfreqwin
     results['nfreqwin'] = nfreqwin
-
+    
     rmax = args.rmax
     results['rmax'] = rmax
-
+    
     context = args.context
     results['context'] = context
-
+    
     ntimes = args.ntimes
     results['ntimes'] = ntimes
     
@@ -395,12 +375,12 @@ if __name__ == '__main__':
     results['driver'] = 'pipelines-timings-delayed'
     
     threads_per_worker = args.nthreads
-
-    print("Trying %s workers" % n_workers)
+    
+    print("Trying %s workers" % nworkers)
     print("Using %s threads per worker" % threads_per_worker)
     print("Defining %d frequency windows" % nfreqwin)
     
-    fieldnames = ['driver', 'nnodes', 'n_workers', 'time ICAL', 'time ICAL graph', 'time create gleam',
+    fieldnames = ['driver', 'nnodes', 'nworkers', 'time ICAL', 'time ICAL graph', 'time create gleam',
                   'time predict', 'time corrupt', 'time invert', 'time psf invert', 'time overall',
                   'threads_per_worker', 'processes', 'order',
                   'nfreqwin', 'ntimes', 'rmax', 'facets', 'wprojection_planes', 'vis_slices', 'npixel',
@@ -413,9 +393,9 @@ if __name__ == '__main__':
     
     write_header(filename, fieldnames)
     
-    results = trial_case(results, n_workers=n_workers, rmax=rmax, context=context,
-                                threads_per_worker=threads_per_worker, nfreqwin=nfreqwin, ntimes=ntimes)
+    results = trial_case(results, nworkers=nworkers, rmax=rmax, context=context,
+                         threads_per_worker=threads_per_worker, nfreqwin=nfreqwin, ntimes=ntimes)
     write_results(filename, results)
-
+    
     print('Exiting %s' % results['driver'])
     exit()

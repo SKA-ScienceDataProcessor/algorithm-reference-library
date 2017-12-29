@@ -207,25 +207,30 @@ def get_kernel_list(vis: Visibility, im: Image, **kwargs):
         
         # wprojection needs a lot of commentary!
         log.debug("get_kernel_list: Using wprojection kernel")
-        
+        print("get_kernel_list: Using wprojection kernel")
+
         # The field of view must be as padded! R_F is for reporting only so that
         # need not be padded.
         fov = cellsize * npixel * padding
         r_f = (cellsize * npixel / 2) ** 2 / abs(cellsize)
         log.debug("get_kernel_list: Fresnel number = %f" % (r_f))
+        print("get_kernel_list: Fresnel number = %f" % (r_f))
         delA = get_parameter(kwargs, 'wloss', 0.02)
         
         advice = advise_wide_field(vis, delA)
-        wstep = get_parameter(kwargs, "wstep", advice['w_sampling_primary_beam'])
+        wstep = get_parameter(kwargs, 'wstep', advice['w_sampling_primary_beam'])
         
         log.debug("get_kernel_list: Using w projection with wstep = %f" % (wstep))
-        
+        print("get_kernel_list: Using w projection with wstep = %f, wmax = %f"
+              % (wstep, wabsmax))
+
         # Now calculate the maximum support for the w kernel
         kernelwidth = get_parameter(kwargs, "kernelwidth",
                                     (2 * int(round(numpy.sin(0.5 * fov) * npixel * wabsmax * cellsize))))
         kernelwidth = max(kernelwidth, 8)
         assert kernelwidth % 2 == 0
         log.debug("get_kernel_list: Maximum w kernel full width = %d pixels" % (kernelwidth))
+        print("get_kernel_list: Maximum w kernel full width = %d pixels" % (kernelwidth))
         padded_shape = [im.shape[0], im.shape[1], im.shape[2] * padding, im.shape[3] * padding]
 
         remove_shift = get_parameter(kwargs, "remove_shift", True)
@@ -249,7 +254,7 @@ def advise_wide_field(vis: Visibility, delA=0.02, oversampling_synthesised_beam=
     For example::
     
         advice = advise_wide_field(vis, delA)
-        wstep = get_parameter(kwargs, "wstep", advice['w_sampling_primary_beam'])
+        wstep = get_parameter(kwargs, 'wstep', advice['w_sampling_primary_beam'])
 
     
     :param vis:

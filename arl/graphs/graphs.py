@@ -81,18 +81,19 @@ def sum_invert_results(image_list):
     """
     first = True
     for i, arg in enumerate(image_list):
-        if isinstance(arg[1], numpy.ndarray):
-            scale = arg[1][..., numpy.newaxis, numpy.newaxis]
-        else:
-            scale = arg[1]
-        if first:
-            im = copy_image(arg[0])
-            im.data *= scale
-            sumwt = arg[1]
-            first = False
-        else:
-            im.data += scale * arg[0].data
-            sumwt += arg[1]
+        if arg is not None:
+            if isinstance(arg[1], numpy.ndarray):
+                scale = arg[1][..., numpy.newaxis, numpy.newaxis]
+            else:
+                scale = arg[1]
+            if first:
+                im = copy_image(arg[0])
+                im.data *= scale
+                sumwt = arg[1]
+                first = False
+            else:
+                im.data += scale * arg[0].data
+                sumwt += arg[1]
 
     assert not first, "No invert results"
 
@@ -151,12 +152,15 @@ def create_weight_vis_graph_list(vis_graph_list, model_graph, weighting='uniform
    """
     
     def weight_vis(vis, model, weighting):
-        if vis is not None and model is not None:
-            vis, _, _ = weight_visibility(vis, model, weighting=weighting, **kwargs)
-            return vis
+        if vis is not None:
+            if model is not None:
+                vis, _, _ = weight_visibility(vis, model, weighting=weighting, **kwargs)
+                return vis
+            else:
+                return None
         else:
             return None
-    
+
     return [delayed(weight_vis, pure=True, nout=1)(vis_graph_list[i], model_graph, weighting)
             for i in range(len(vis_graph_list))]
 
@@ -180,9 +184,11 @@ def create_invert_graph(vis_graph_list, template_model_graph: delayed, dopsf=Fal
     
     image_graph_list = list()
     for vis_graph in vis_graph_list:
-        image_graph_list.append(delayed(invert_ignore_None, pure=True, nout=2)(vis_graph, template_model_graph,
-                                                                               dopsf=dopsf, normalize=normalize,
-                                                                               **kwargs))
+        image_graph_list.append(delayed(invert_ignore_None,
+                                        pure=True, nout=2)(vis_graph,
+                                                           template_model_graph,
+                                                           dopsf=dopsf, normalize=normalize,
+                                                           **kwargs))
     
     return delayed(sum_invert_results)(image_graph_list)
 

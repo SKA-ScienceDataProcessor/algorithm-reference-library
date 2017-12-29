@@ -8,7 +8,7 @@ from dask import delayed
 from arl.calibration.operations import apply_gaintable, create_gaintable_from_blockvisibility
 from arl.data.persist import arl_dump, arl_load
 from arl.data.polarisation import PolarisationFrame
-from arl.graphs.graphs import create_predict_wstack_graph
+from arl.graphs.graphs import create_predict_graph
 from arl.util.testing_support import create_named_configuration, simulate_gaintable, \
     create_low_test_image_from_gleam, create_low_test_beam
 from arl.visibility.base import create_blockvisibility, create_visibility
@@ -101,8 +101,7 @@ def create_simulate_vis_graph(config='LOWBD2-CORE',
 
 
 def create_predict_gleam_model_graph(vis_graph_list, frequency, channel_bandwidth,
-                                     npixel=512, cellsize=0.001,
-                                     c_predict_graph=create_predict_wstack_graph, **kwargs):
+                                     npixel=512, cellsize=0.001, **kwargs):
     """ Create a graph to fill in a model with the gleam sources and predict into a vis_graph_list
 
     :param vis_graph_list:
@@ -122,7 +121,7 @@ def create_predict_gleam_model_graph(vis_graph_list, frequency, channel_bandwidt
             facets = {'facets': get_parameter(kwargs, "facets", False)}
         model_graph = create_gleam_model_graph(vis_graph, frequency, channel_bandwidth, npixel=npixel,
                                                cellsize=cellsize, **facets)
-        predicted_vis_graph_list.append(c_predict_graph([vis_graph], model_graph, **kwargs)[0])
+        predicted_vis_graph_list.append(create_predict_graph([vis_graph], model_graph, **kwargs)[0])
     return predicted_vis_graph_list
 
 
@@ -168,30 +167,3 @@ def create_corrupt_vis_graph(vis_graph_list, gt_graph=None, **kwargs):
         return apply_gaintable(vis, gt)
 
     return [delayed(corrupt_vis, nout=1)(vis_graph, gt_graph, **kwargs) for vis_graph in vis_graph_list]
-
-
-def create_dump_vis_graph(vis_graph_list, name='imaging_dask') -> delayed:
-    """ Create a graph to save a vis_graph_list
-
-    :param vis_graph_list:
-    :param name:
-    :return:
-    """
-    def save_all(vis):
-        for i, v in enumerate(vis):
-            arl_dump(v, "%s_%d.pickle" % (name, i))
-
-    return delayed(save_all)(vis_graph_list)
-
-
-def create_load_vis_graph(name='imaging_dask'):
-    """ Load's pickled data with the glob of "%s_*.pickle" % (name)
-
-    :param name: Root of name
-    :return: vis_graph_list
-    """
-    import glob
-    name = "%s_*.pickle" % (name)
-    persist_list = glob.glob(name)
-    assert len(persist_list)
-    return [delayed(arl_load, nout=1)(name) for name in persist_list]

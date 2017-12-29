@@ -19,8 +19,8 @@ import logging
 log = logging.getLogger(__name__)
 
 
-def invert_with_vis_iterator(vis: Visibility, im: Image, dopsf=False, normalize=True, vis_iter=vis_slice_iter,
-                             invert=invert_2d, **kwargs):
+def invert_with_vis_iterator(vis: Visibility, im: Image, dopsf=False, normalize=True,
+                             vis_iter=vis_slice_iter, invert=invert_2d, **kwargs):
     """ Invert using a specified iterator and invert
     
     This knows about the structure of invert in different execution frameworks but not

@@ -60,7 +60,7 @@ def vis_wstack_iter(vis: Visibility, **kwargs) -> numpy.ndarray:
     assert isinstance(vis, Visibility) or isinstance(vis, BlockVisibility), vis
     wmaxabs = numpy.max(numpy.abs(vis.w))
     
-    wstack = get_parameter(kwargs, "wstack", None)
+    wstack = get_parameter(kwargs, 'wstack', None)
     if wstack is None:
         vis_slices = get_parameter(kwargs, "vis_slices", 1)
         boxes = numpy.linspace(-wmaxabs, wmaxabs, vis_slices)
