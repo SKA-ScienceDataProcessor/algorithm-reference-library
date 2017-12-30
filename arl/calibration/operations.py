@@ -111,9 +111,15 @@ def apply_gaintable(vis: BlockVisibility, gt: GainTable, inverse=False) -> Block
                     for chan in range(nchan):
                         mueller = numpy.kron(gain[time, a1, chan, :, :], numpy.conjugate(gain[time, a2, chan, :, :]))
                         if inverse:
-                            mueller = numpy.linalg.inv(mueller)
-                        
-                        applied[time, a2, a1, chan, :] = numpy.matmul(mueller, original[time, a2, a1, chan, :])
+                            # If the Mueller is singular, ignore it
+                            try:
+                                mueller = numpy.linalg.inv(mueller)
+                                applied[time, a2, a1, chan, :] = numpy.matmul(mueller, original[time, a2, a1, chan, :])
+
+                            except numpy.linalg.linalg.LinAlgError:
+                                applied[time, a2, a1, chan, :] = original[time, a2, a1, chan, :]
+                        else:
+                            applied[time, a2, a1, chan, :] = numpy.matmul(mueller, original[time, a2, a1, chan, :])
         
         vis.data['vis'][rows] = applied
     return vis

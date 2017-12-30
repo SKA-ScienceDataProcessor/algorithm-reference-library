@@ -82,7 +82,7 @@ class TestCalibrationOperations(unittest.TestCase):
             assert error < 1e-12, "Error = %s" % (error)
 
     def test_apply_gaintable_and_inverse_both(self):
-        for spf, dpf in[('stokesIQUV', 'linear'), ('stokesIQUV', 'circular')]:
+        for spf, dpf in [('stokesIQUV', 'linear'), ('stokesIQUV', 'circular')]:
             self.actualSetup(spf, dpf)
             gt = create_gaintable_from_blockvisibility(self.vis)
             log.info("Created gain table: %s" % (gaintable_summary(gt)))
@@ -92,7 +92,17 @@ class TestCalibrationOperations(unittest.TestCase):
             vis = apply_gaintable(self.vis, gt, inverse=True)
             error = numpy.max(numpy.abs(vis.vis - original.vis))
             assert error < 1e-12, "Error = %s" % (error)
-    
+
+    def test_apply_gaintable_null(self):
+        for spf, dpf in [('stokesIQUV', 'linear'), ('stokesIQUV', 'circular')]:
+            self.actualSetup(spf, dpf)
+            gt = create_gaintable_from_blockvisibility(self.vis)
+            gt.data['gain']*=0.0
+            original = copy_visibility(self.vis)
+            vis = apply_gaintable(self.vis, gt, inverse=True)
+            error = numpy.max(numpy.abs(vis.vis[:,0,1,...] - original.vis[:,0,1,...]))
+            assert error < 1e-12, "Error = %s" % (error)
+
 
 if __name__ == '__main__':
     unittest.main()
