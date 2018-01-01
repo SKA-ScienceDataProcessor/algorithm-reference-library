@@ -243,7 +243,7 @@ class Image:
     @property
     def frequency(self):
         w = self.wcs.sub(['spectral'])
-        return w.wcs_pix2world(range(self.nchan), 1)[0]
+        return w.wcs_pix2world(range(self.nchan), 0)[0]
     
     @property
     def shape(self):

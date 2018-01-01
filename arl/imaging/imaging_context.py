@@ -1,16 +1,26 @@
 """Manages the imaging context. This take a strings and returns a dictionary containing:
  * Predict function
  * Invert function
- * Scatter function
- * Gather function
+ * image_iterator function
+ * vis_iterator function
 
 """
 
 import logging
 
-from arl.imaging import *
-from arl.visibility.gather_scatter import visibility_gather_index, visibility_scatter_index, \
-    visibility_gather_time, visibility_scatter_time, visibility_gather_w, visibility_scatter_w
+import numpy
+
+from arl.data.data_models import Visibility, Image
+from arl.image.iterators import image_raster_iter, image_null_iter
+from arl.image.operations import create_empty_image_like
+from arl.imaging import normalize_sumwt
+from arl.imaging import predict_2d_base, invert_2d_base, \
+    predict_timeslice_single, invert_timeslice_single, \
+    predict_wstack_single, invert_wstack_single
+from arl.visibility.base import copy_visibility, create_visibility_from_rows
+from arl.visibility.coalesce import coalesce_visibility
+from arl.visibility.iterators import vis_slice_iter, vis_timeslice_iter, vis_null_iter, \
+    vis_wstack_iter
 
 log = logging.getLogger(__name__)
 
@@ -18,20 +28,55 @@ log = logging.getLogger(__name__)
 def imaging_contexts():
     """Contains all the context information for imaging
     
+    The fields are:
+        predict: Predict function to be used
+        invert: Invert function to be used
+        image_iterator: Iterator for traversing images
+        vis_iterator: Iterator for traversing visibilities
+        inner: The innermost axis
+    
     :return:
     """
-    contexts = {'2d': {'predict': predict_2d, 'invert': invert_2d,
-                       'scatter': visibility_scatter_index, 'gather': visibility_gather_index},
-                'slice': {'predict': predict_2d, 'invert': invert_2d,
-                          'scatter': visibility_scatter_index, 'gather': visibility_gather_index},
-                'timeslice': {'predict': predict_timeslice, 'invert': invert_timeslice,
-                              'scatter': None, 'gather': None},
-                'timeslice_single': {'predict': predict_timeslice_single, 'invert': invert_timeslice_single,
-                                     'scatter': visibility_scatter_time, 'gather': visibility_gather_time},
-                'wstack': {'predict': predict_wstack, 'invert': invert_wstack,
-                           'scatter': None, 'gather': None},
-                'wstack_single': {'predict': predict_wstack_single, 'invert': invert_wstack_single,
-                                  'scatter': visibility_scatter_w, 'gather': visibility_gather_w}}
+    contexts = {'2d': {'predict': predict_2d_base,
+                       'invert': invert_2d_base,
+                       'image_iterator': image_null_iter,
+                       'vis_iterator': vis_null_iter,
+                       'inner': 'image'},
+                'slice': {'predict': predict_2d_base,
+                          'invert': invert_2d_base,
+                          'image_iterator': image_null_iter,
+                          'vis_iterator': vis_slice_iter,
+                          'inner': 'image'},
+                'facets+slice': {'predict': predict_2d_base,
+                                 'invert': invert_2d_base,
+                                 'image_iterator': image_raster_iter,
+                                 'vis_iterator': vis_slice_iter,
+                                 'inner': 'vis'},
+                'timeslice': {'predict': predict_timeslice_single,
+                              'invert': invert_timeslice_single,
+                              'image_iterator': image_null_iter,
+                              'vis_iterator': vis_timeslice_iter,
+                              'inner': 'vis'},
+                'facets+timeslice': {'predict': predict_timeslice_single,
+                                     'invert': invert_timeslice_single,
+                                     'image_iterator': image_raster_iter,
+                                     'vis_iterator': vis_timeslice_iter,
+                                     'inner': 'image'},
+                'facets': {'predict': predict_2d_base,
+                           'invert': invert_2d_base,
+                           'image_iterator': image_raster_iter,
+                           'vis_iterator': vis_null_iter,
+                           'inner': 'vis'},
+                'wstack': {'predict': predict_wstack_single,
+                           'invert': invert_wstack_single,
+                           'image_iterator': image_null_iter,
+                           'vis_iterator': vis_wstack_iter,
+                           'inner': 'image'},
+                'facets+wstack': {'predict': predict_wstack_single,
+                                  'invert': invert_wstack_single,
+                                  'image_iterator': image_raster_iter,
+                                  'vis_iterator': vis_wstack_iter,
+                                  'inner': 'vis'}}
     
     return contexts
 
@@ -42,30 +87,110 @@ def imaging_context(context='2d'):
     return contexts[context]
 
 
-def invert_context(vis, model, dopsf=False, normalize=True, context='2d', **kwargs):
-    """ Invert selected by context
+def invert_context(vis: Visibility, im: Image, dopsf=False, normalize=True, context='2d', inner=None, **kwargs):
+    """ Invert using a specified iterators and invert
+
+    :param vis:
+    :param im:
+    :param dopsf: Make the psf instead of the dirty image
+    :param normalize: Normalize by the sum of weights (True)
+    :param kwargs:
+    :return:
+    """
+    c = imaging_context(context)
+    vis_iter = c['vis_iterator']
+    image_iter = c['image_iterator']
+    invert = c['invert']
+    if inner is None:
+        inner = c['inner']
     
-    :param vis:
-    :param model:
-    :param dopsf:
-    :param context:
-    :param kwargs:
-    :return:
+    if not isinstance(vis, Visibility):
+        svis = coalesce_visibility(vis, **kwargs)
+    else:
+        svis = vis
+
+    resultimage = create_empty_image_like(im)
+
+    if inner == 'image':
+        totalwt = None
+        for rows in vis_iter(svis, **kwargs):
+            if numpy.sum(rows):
+                visslice = create_visibility_from_rows(svis, rows)
+                sumwt = 0.0
+                workimage = create_empty_image_like(im)
+                for dpatch in image_iter(workimage, **kwargs):
+                    result, sumwt = invert(visslice, dpatch, dopsf, normalize=False, **kwargs)
+                    # Ensure that we fill in the elements of dpatch instead of creating a new numpy arrray
+                    dpatch.data[...] = result.data[...]
+                # Assume that sumwt is the same for all patches
+                if totalwt is None:
+                    totalwt = sumwt
+                else:
+                    totalwt += sumwt
+                resultimage.data += workimage.data
+    else:
+        totalwt = None
+        workimage = create_empty_image_like(im)
+        for dpatch in image_iter(workimage, **kwargs):
+            totalwt = None
+            sumwt = 0.0
+            for rows in vis_iter(svis, **kwargs):
+                if numpy.sum(rows):
+                    visslice = create_visibility_from_rows(svis, rows)
+                    result, sumwt = invert(visslice, dpatch, dopsf, normalize=False, **kwargs)
+                    # Ensure that we fill in the elements of dpatch instead of creating a new numpy arrray
+                    dpatch.data[...] += result.data[...]
+                if totalwt is None:
+                    totalwt = sumwt
+                else:
+                    totalwt += sumwt
+            resultimage.data += workimage.data
+            workimage.data[...] = 0.0
+    
+    if normalize:
+        resultimage = normalize_sumwt(resultimage, totalwt)
+    
+    return resultimage, totalwt
+
+
+def predict_context(vis: Visibility, model: Image, context='2d', inner=None, **kwargs) -> Visibility:
+    """Iterate through prediction using specified iterators and predict
+
     """
-    log.debug('invert_context: Imaging context is %s, using function %s'
-              % (context, imaging_context(context)['invert']))
-    return imaging_context(context)['invert'](vis, model, dopsf=dopsf, normalize=normalize, **kwargs)
+    c = imaging_context(context)
+    vis_iter = c['vis_iterator']
+    image_iter = c['image_iterator']
+    predict = c['predict']
+    if inner is None:
+        inner = c['inner']
 
-
-def predict_context(vis, model, context='2d', **kwargs):
-    """ Predict selected by context
-
-    :param vis:
-    :param model:
-    :param context:
-    :param kwargs:
-    :return:
-    """
-    log.debug('predict_context: Imaging context is %s, using function %s'
-              % (context, imaging_context(context)['predict']))
-    return imaging_context(context)['predict'](vis, model, **kwargs)
+    log.debug("predict_with_iterators: Processing chunks")
+    if not isinstance(vis, Visibility):
+        svis = coalesce_visibility(vis, **kwargs)
+    else:
+        svis = vis
+    
+    result = copy_visibility(vis, zero=True)
+    
+    # Iterate over vis
+    if inner == 'image':
+        for rows in vis_iter(svis, **kwargs):
+            if numpy.sum(rows) and svis is not None:
+                visslice = create_visibility_from_rows(svis, rows)
+                visslice.data['vis'][...] = 0.0
+                # Iterate over images
+                for dpatch in image_iter(model, **kwargs):
+                    result.data['vis'][...] = 0.0
+                    result = predict(visslice, dpatch, **kwargs)
+                    svis.data['vis'][rows] += result.data['vis']
+    else:
+        # Iterate over images
+        for dpatch in image_iter(model, **kwargs):
+            for rows in vis_iter(svis, **kwargs):
+                if numpy.sum(rows) and svis is not None:
+                    visslice = create_visibility_from_rows(svis, rows)
+                    result.data['vis'][...] = 0.0
+                    result = predict(visslice, dpatch, **kwargs)
+                    svis.data['vis'][rows] += result.data['vis']
+    
+    return svis

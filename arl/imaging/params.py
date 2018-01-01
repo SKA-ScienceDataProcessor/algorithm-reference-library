@@ -17,7 +17,7 @@ from arl.image.operations import create_w_term_like, copy_image, pad_image, fft_
 log = logging.getLogger(__name__)
 
 
-def get_frequency_map(vis, im: Visibility = None):
+def get_frequency_map(vis, im: Image = None):
     """ Map channels from visibilities to image
 
     """
@@ -39,7 +39,7 @@ def get_frequency_map(vis, im: Visibility = None):
         # We can map these to image channels
         with warnings.catch_warnings():
             warnings.simplefilter('ignore')
-            v2im_map = im.wcs.sub(['spectral']).wcs_world2pix(ufrequency, 1)[0].astype('int') - 1
+            v2im_map = im.wcs.sub(['spectral']).wcs_world2pix(ufrequency, 0)[0].astype('int')
         
         spectral_mode = 'channel'
         nrows = len(vis.frequency)
@@ -207,30 +207,25 @@ def get_kernel_list(vis: Visibility, im: Image, **kwargs):
         
         # wprojection needs a lot of commentary!
         log.debug("get_kernel_list: Using wprojection kernel")
-        print("get_kernel_list: Using wprojection kernel")
 
         # The field of view must be as padded! R_F is for reporting only so that
         # need not be padded.
         fov = cellsize * npixel * padding
         r_f = (cellsize * npixel / 2) ** 2 / abs(cellsize)
         log.debug("get_kernel_list: Fresnel number = %f" % (r_f))
-        print("get_kernel_list: Fresnel number = %f" % (r_f))
         delA = get_parameter(kwargs, 'wloss', 0.02)
         
         advice = advise_wide_field(vis, delA)
         wstep = get_parameter(kwargs, 'wstep', advice['w_sampling_primary_beam'])
         
         log.debug("get_kernel_list: Using w projection with wstep = %f" % (wstep))
-        print("get_kernel_list: Using w projection with wstep = %f, wmax = %f"
-              % (wstep, wabsmax))
-
+ 
         # Now calculate the maximum support for the w kernel
         kernelwidth = get_parameter(kwargs, "kernelwidth",
                                     (2 * int(round(numpy.sin(0.5 * fov) * npixel * wabsmax * cellsize))))
         kernelwidth = max(kernelwidth, 8)
         assert kernelwidth % 2 == 0
         log.debug("get_kernel_list: Maximum w kernel full width = %d pixels" % (kernelwidth))
-        print("get_kernel_list: Maximum w kernel full width = %d pixels" % (kernelwidth))
         padded_shape = [im.shape[0], im.shape[1], im.shape[2] * padding, im.shape[3] * padding]
 
         remove_shift = get_parameter(kwargs, "remove_shift", True)

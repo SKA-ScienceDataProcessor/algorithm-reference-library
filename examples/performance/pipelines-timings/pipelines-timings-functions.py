@@ -116,7 +116,7 @@ def trial_case(results, seed=180555, context='wstack_single', n_workers=8, threa
     # Parameters determining scale
     frequency = numpy.linspace(0.8e8, 1.2e8, nfreqwin)
     if nfreqwin > 1:
-        channel_bandwidth = numpy.array(nfreqwin * [frequency[1] - frequency[0]])
+        channel_bandwidth = numpy.array(nfreqwin * [(frequency[1] - frequency[0])*(1.0-1.0e-7)])
     else:
         channel_bandwidth = numpy.array([1e6])
     times = numpy.linspace(-numpy.pi / 3.0, numpy.pi / 3.0, ntimes)

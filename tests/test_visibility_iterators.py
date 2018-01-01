@@ -38,7 +38,6 @@ class TestVisibilityIterators(unittest.TestCase):
 
     def test_vis_null_iterator(self):
         self.actualSetUp()
-        total_rows = 0
         for chunk, rows in enumerate(vis_null_iter(self.vis)):
             assert chunk<1, "Null iterator returns more than one value"
 

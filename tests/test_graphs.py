@@ -82,7 +82,7 @@ class TestDaskGraphs(unittest.TestCase):
         flux = numpy.array([[100.0]])
         facets = 4
         
-        rpix = model.wcs.wcs.crpix
+        rpix = model.wcs.wcs.crpix - 1.0
         spacing_pixels = self.npixel // facets
         centers = [-1.5, -0.5, 0.5, 1.5]
         comps = list()
@@ -90,7 +90,7 @@ class TestDaskGraphs(unittest.TestCase):
             for ix in centers:
                 p = int(round(rpix[0] + ix * spacing_pixels * numpy.sign(model.wcs.wcs.cdelt[0]))), \
                     int(round(rpix[1] + iy * spacing_pixels * numpy.sign(model.wcs.wcs.cdelt[1])))
-                sc = pixel_to_skycoord(p[0], p[1], model.wcs, origin=0)
+                sc = pixel_to_skycoord(p[0], p[1], model.wcs, origin=1)
                 comps.append(create_skycomponent(flux=flux, frequency=vt.frequency, direction=sc,
                                                  polarisation_frame=PolarisationFrame("stokesI")))
         predict_skycomponent_blockvisibility(vt, comps)

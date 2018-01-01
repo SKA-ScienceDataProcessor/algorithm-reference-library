@@ -29,7 +29,7 @@ class TestImagingContext(unittest.TestCase):
         # Make the dirty image
         self.params['imaginary'] = False
         dirty = create_empty_image_like(self.model)
-        dirty, sumwt = invert_context(vis=vis, model=dirty, dopsf=False, normalize=True, context='2d', **self.params)
+        dirty, sumwt = invert_context(vis=vis, im=dirty, dopsf=False, normalize=True, context='2d', **self.params)
         export_image_to_fits(dirty, '%s/%s_dirty.fits' % (self.dir, name))
         maxabs = numpy.max(numpy.abs(dirty.data))
         assert maxabs < fluxthreshold, "%s, abs max %f exceeds flux threshold" % (name, maxabs)
