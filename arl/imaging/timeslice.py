@@ -30,11 +30,9 @@ from arl.data.data_models import Visibility, Image
 from arl.image.operations import copy_image
 
 from arl.imaging.base import predict_2d_base, invert_2d_base
-from arl.imaging.iterated import predict_with_vis_iterator, invert_with_vis_iterator
 from scipy.interpolate import griddata
 
 from arl.image.operations import create_empty_image_like
-from arl.visibility.iterators import vis_timeslice_iter
 from arl.visibility.coalesce import coalesce_visibility
 
 import logging
@@ -78,37 +76,8 @@ def fit_uvwplane(vis: Visibility, remove=True) -> (Image, float, float):
     return vis, p, q
 
 
-def invert_timeslice(vis: Visibility, im: Image, dopsf=False, normalize=True, **kwargs) -> (Image, numpy.ndarray):
-    """ Invert using time slices (top level function)
-
-    Use the image im as a template. Do PSF in a separate call.
-
-    :param vis: Visibility to be inverted
-    :param im: image template (not changed)
-    :param dopsf: Make the psf instead of the dirty image
-    :param normalize: Normalize by the sum of weights (True)
-    :return: resulting image[nchan, npol, ny, nx], sum of weights[nchan, npol]
-
-    """
-    log.info("invert_timeslice: inverting using time slices")
-    return invert_with_vis_iterator(vis, im, dopsf, vis_iter=vis_timeslice_iter,
-                                    normalize=normalize, invert=invert_timeslice_single, **kwargs)
-
-
-def predict_timeslice(vis: Visibility, model: Image, **kwargs) -> Visibility:
-    """ Predict using time slices.
-
-    :param vis: Visibility to be predicted
-    :param model: model image
-    :return: resulting visibility (in place works)
-    """
-    log.info("predict_timeslice: predicting using time slices")
-
-    return predict_with_vis_iterator(vis, model, vis_iter=vis_timeslice_iter,
-                                     predict=predict_timeslice_single, **kwargs)
-
-
-def predict_timeslice_single(vis: Visibility, model: Image, predict=predict_2d_base, **kwargs) -> Visibility:
+def predict_timeslice_single(vis: Visibility, model: Image, predict=predict_2d_base, remove=False,
+                             **kwargs) -> Visibility:
     """ Predict using a single time slices.
     
     This fits a single plane and corrects the image geometry.
@@ -129,7 +98,7 @@ def predict_timeslice_single(vis: Visibility, model: Image, predict=predict_2d_b
         avis = vis
 
     # Fit and remove best fitting plane for this slice
-    avis, p, q = fit_uvwplane(avis, remove=False)
+    avis, p, q = fit_uvwplane(avis, remove=remove)
     
     # Calculate nominal and distorted coordinate systems. We will convert the model
     # from nominal to distorted before predicting.
@@ -181,7 +150,8 @@ def lm_distortion(im: Image, a, b) -> (numpy.ndarray, numpy.ndarray, numpy.ndarr
     return l2d, m2d, ldistorted, mdistorted
 
 
-def invert_timeslice_single(vis: Visibility, im: Image, dopsf, normalize=True, **kwargs) -> (Image, numpy.ndarray):
+def invert_timeslice_single(vis: Visibility, im: Image, dopsf, normalize=True, remove=False,
+                            **kwargs) -> (Image, numpy.ndarray):
     """Process single time slice
     
     Extracted for re-use in parallel version
@@ -199,7 +169,7 @@ def invert_timeslice_single(vis: Visibility, im: Image, dopsf, normalize=True, *
 
     log.debug("invert_timeslice_single: inverting using single time slice")
 
-    avis, p, q = fit_uvwplane(avis, remove=False)
+    avis, p, q = fit_uvwplane(avis, remove=remove)
     
     workimage, sumwt = invert_2d_base(avis, im, dopsf, normalize=normalize, **kwargs)
 

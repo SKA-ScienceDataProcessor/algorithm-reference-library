@@ -204,7 +204,6 @@ def get_kernel_list(vis: Visibility, im: Image, **kwargs):
     
     wabsmax = numpy.max(numpy.abs(vis.w))
     if kernelname == 'wprojection' and wabsmax > 0.0:
-        
         # wprojection needs a lot of commentary!
         log.debug("get_kernel_list: Using wprojection kernel")
 

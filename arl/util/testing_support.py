@@ -45,7 +45,7 @@ from arl.data.parameters import arl_path
 from arl.data.parameters import get_parameter
 from arl.data.polarisation import PolarisationFrame
 from arl.image.operations import import_image_from_fits, create_image_from_array, \
-    reproject_image, create_empty_image_like
+    reproject_image, create_empty_image_like, qa_image
 from arl.imaging import predict_timeslice, predict_skycomponent_blockvisibility
 from arl.util.coordinate_support import xyz_at_latitude
 from arl.visibility.base import create_blockvisibility
@@ -349,7 +349,7 @@ def create_low_test_image_composite(npixel=16384, polarisation_frame=Polarisatio
 
 def create_low_test_image_from_gleam(npixel=512, polarisation_frame=PolarisationFrame("stokesI"), cellsize=0.000015,
                                      frequency=numpy.array([1e8]), channel_bandwidth=numpy.array([1e6]),
-                                     phasecentre=None, kind='cubic', applybeam=False) -> Image:
+                                     phasecentre=None, kind='cubic', applybeam=False, flux_limit=0.1) -> Image:
     """Create LOW test image from the GLEAM survey
 
     Stokes I is estimated from a cubic spline fit to the measured fluxes. The polarised flux is always zero.
@@ -371,6 +371,7 @@ def create_low_test_image_from_gleam(npixel=512, polarisation_frame=Polarisation
     :return: Image
     
     """
+    
     
     fitsfile = arl_path("data/models/GLEAM_EGC.fits")
     
@@ -418,15 +419,21 @@ def create_low_test_image_from_gleam(npixel=512, polarisation_frame=Polarisation
     fluxes = []
     gleam_freqs = numpy.array([76, 84, 92, 99, 107, 115, 122, 130, 143, 151, 158, 166, 174, 181, 189, 197, 204,
                                212, 220, 227])
+    gleam_flux_freq = numpy.zeros([len(ok), len(gleam_freqs)])
+    for i, f in enumerate(gleam_freqs):
+        gleam_flux_freq[:,i] = recs['int_flux_%03d' % (f)][:]
+
+    if applybeam:
+        beam = create_low_test_beam(model)
+        
     for source in ok:
-        this_source_fluxes = numpy.zeros(len(gleam_freqs))
+
+        fint = interpolate.interp1d(gleam_freqs * 1.0e6, gleam_flux_freq[source,:], kind=kind)
+        factual = fint(frequency)
+        if applybeam:
+            factual *= beam.data[:, 0, ip[1, source], ip[0, source]]
         
-        for i, f in enumerate(gleam_freqs):
-            this_source_fluxes[i] = recs['int_flux_%03d' % (f)][source]
-        
-        fint = interpolate.interp1d(gleam_freqs * 1.0e6, this_source_fluxes, kind=kind)
-        
-        fluxes.append(fint(frequency))
+        fluxes.append(factual)
     
     fluxes = numpy.array(fluxes)
     actual_flux = numpy.sum(fluxes)
@@ -436,20 +443,20 @@ def create_low_test_image_from_gleam(npixel=512, polarisation_frame=Polarisation
     log.info(
         'create_low_test_image_from_gleam: Average flux per channel in image = %.3f' % (actual_flux / float(nchan)))
     for iflux, flux in enumerate(fluxes):
-        if not numpy.isnan(flux).any() and flux.all() > 0.0:
+        if not numpy.isnan(flux).any() and flux.any() > flux_limit:
             model.data[:, 0, ps[1, iflux], ps[0, iflux]] = flux[:]
-    
+                
+    log.info(qa_image(model), context='create_low_test_image_from_gleam')
+    print(qa_image(model), context='create_low_test_image_from_gleam')
+
     hdulist.close()
-    
-    if applybeam:
-        beam = create_low_test_beam(model)
-        model.data *= beam.data
     
     return model
 
 
 def create_low_test_skycomponents_from_gleam(flux_limit=0.1, polarisation_frame=PolarisationFrame("stokesI"),
-                                             frequency=numpy.array([1e8]), kind='cubic', phasecentre=None, radius=1.0) \
+                                             frequency=numpy.array([1e8]), kind='cubic', phasecentre=None,
+                                             radius=1.0) \
         -> List[Skycomponent]:
     """Create sky components from the GLEAM survey
 
@@ -474,12 +481,31 @@ def create_low_test_skycomponents_from_gleam(flux_limit=0.1, polarisation_frame=
     
     fitsfile = arl_path("data/models/GLEAM_EGC.fits")
     
+    decmin = phasecentre.dec.to('rad').value - radius/2.0
+    decmax = phasecentre.dec.to('rad').value + radius/2.0
+
     hdulist = fits.open(fitsfile, lazy_load_hdus=False)
     recs = hdulist[1].data[0].array
-    ras = recs['RAJ2000']
-    decs = recs['DEJ2000']
+    print("Before filter %s" % recs.shape)
     fluxes = recs['peak_flux_wide']
-    names = recs['Name']
+    
+    mask = fluxes > flux_limit
+    filtered_recs = recs[mask]
+    print("After flux filter %s" % filtered_recs.shape)
+
+    decs = filtered_recs['DEJ2000']
+    mask = decs > decmin
+    filtered_recs = filtered_recs[mask]
+    print("After dec min filter %s" % filtered_recs.shape)
+
+    decs = filtered_recs['DEJ2000']
+    mask = decs < decmax
+    filtered_recs = filtered_recs[mask]
+    print("After dec max filter %s" % filtered_recs.shape)
+
+    ras = filtered_recs['RAJ2000']
+    decs = filtered_recs['DEJ2000']
+    names = filtered_recs['Name']
     
     if polarisation_frame is None:
         polarisation_frame = PolarisationFrame("stokesI")
@@ -492,25 +518,23 @@ def create_low_test_skycomponents_from_gleam(flux_limit=0.1, polarisation_frame=
     # required frequencies
     gleam_freqs = numpy.array([76, 84, 92, 99, 107, 115, 122, 130, 143, 151, 158, 166, 174, 181, 189, 197, 204,
                                212, 220, 227])
-    
+    gleam_flux_freq = numpy.zeros([len(names), len(gleam_freqs)])
+    for i, f in enumerate(gleam_freqs):
+        gleam_flux_freq[:,i] = filtered_recs['int_flux_%03d' % (f)][:]
+
     skycomps = []
     
     for isource, name in enumerate(names):
-        if fluxes[isource] > flux_limit:
-            this_source_fluxes = numpy.zeros(len(gleam_freqs))
-            
-            for i, f in enumerate(gleam_freqs):
-                this_source_fluxes[i] = recs['int_flux_%03d' % (f)][isource]
-            
-            fint = interpolate.interp1d(gleam_freqs * 1.0e6, this_source_fluxes, kind=kind)
+        direction = SkyCoord(ra=ras[isource] * u.deg, dec=decs[isource] * u.deg)
+        if phasecentre is None or direction.separation(phasecentre).to('rad').value < radius:
+    
+            fint = interpolate.interp1d(gleam_freqs * 1.0e6, gleam_flux_freq[isource, :], kind=kind)
             flux = numpy.zeros([nchan, npol])
             flux[:, 0] = fint(frequency)
             if not numpy.isnan(flux).any():
-                direction = SkyCoord(ra=ras[isource] * u.deg, dec=decs[isource] * u.deg)
-                if phasecentre is None or direction.separation(phasecentre).to('rad').value < radius:
-                    skycomps.append(Skycomponent(direction=direction, flux=flux, frequency=frequency,
-                                                 name=name, shape='Point',
-                                                 polarisation_frame=polarisation_frame))
+                skycomps.append(Skycomponent(direction=direction, flux=flux, frequency=frequency,
+                                             name=name, shape='Point',
+                                             polarisation_frame=polarisation_frame))
     
     log.info('create_low_test_skycomponents_from_gleam: %d sources above flux limit %.3f' % (len(skycomps), flux_limit))
     

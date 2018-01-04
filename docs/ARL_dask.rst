@@ -11,6 +11,8 @@ Dask is a python package for distributed processing:
 Running ARL and Dask on a single machine is very straightforward. First define a graph and then compute it either by
 calling the compute method of the graph or by passing the graph to a dask client.
 
+ARL supports two different models of distributed processing in Dask: delayed functions and bags.
+
 A typical graph will flow from a set of input visibility sets to an image or set of images. In the course
 of constructing a graph, we will need to know the data elements and the functions transforming brtween them.
 These are well-modeled in ARL. A example of three cycles of a major/minor cycle deconvolutions is shown below:
@@ -22,12 +24,18 @@ These are well-modeled in ARL. A example of three cycles of a major/minor cycle 
 Conceptually we can think of one visibility set, which may be decomposed into different subsets in processing, and
 one image, which also may be subsetted for processing.
 
-Dask is supported in various ways:
+Dask.delayed is supported in various ways:
 
     - :py:mod:`arl.graphs.graphs`: Graphs to perform various types of prediction and inversion of visibility data
     - :py:mod:`arl.graphs.generic_graphs`: Graphs to perform generic image or visibility unary operations
     - :py:mod:`arl.util.graph_support`: Graphs to support testing and simulations
     - :py:mod:`arl.pipelines.graphs`: Graphs to implement the canonical pipelines
+
+Dask.bags is supported as follows:
+
+    - :py:mod:`arl.graphs.bags`: Bags to perform various types of prediction and inversion of visibility data
+    - :py:mod:`arl.util.bag_support`: Bags to support testing and simulations
+    - :py:mod:`arl.pipelines.bags`: Bags to implement the canonical pipelines
 
 In addition there are notebooks in examples/arl.
 

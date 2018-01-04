@@ -13,7 +13,7 @@ from astropy.wcs.utils import pixel_to_skycoord
 from arl.data.polarisation import PolarisationFrame
 from arl.image.operations import export_image_to_fits, create_empty_image_like, smooth_image
 from arl.imaging import predict_2d, invert_2d, \
-    create_image_from_visibility, predict_skycomponent_visibility
+    create_image_from_visibility, predict_skycomponent_visibility, advise_wide_field
 from arl.imaging.legacy import predict_facets, predict_facets_timeslice, predict_facets_wprojection, \
     predict_facets_wstack, predict_timeslice, predict_timeslice_wprojection, predict_wprojection, \
     predict_wprojection_wstack, \
@@ -24,8 +24,8 @@ from arl.imaging.legacy import predict_facets, predict_facets_timeslice, predict
     invert_wstack
 from arl.imaging.weighting import weight_visibility
 from arl.skycomponent.operations import create_skycomponent, find_skycomponents, find_nearest_component, \
-    insert_skycomponent
-from arl.util.testing_support import create_named_configuration
+    insert_skycomponent, apply_beam_to_skycomponent
+from arl.util.testing_support import create_named_configuration, create_low_test_beam
 from arl.visibility.base import create_visibility
 from arl.visibility.operations import sum_visibility
 
@@ -33,7 +33,7 @@ log = logging.getLogger(__name__)
 
 
 class TestImaging(unittest.TestCase):
-    def _checkdirty(self, vis, name='test_invert_2d_dirty', fluxthreshold=1.0):
+    def _checkdirty(self, vis, name='test_functions_invert_2d_dirty', fluxthreshold=1.0):
         # Make the dirty image
         self.params['imaginary'] = False
         self.params['timeslice'] = 'auto'
@@ -44,16 +44,17 @@ class TestImaging(unittest.TestCase):
         maxabs = numpy.max(numpy.abs(dirty.data))
         assert maxabs < fluxthreshold, "%s, abs max %f exceeds flux threshold" % (name, maxabs)
     
-    def _checkcomponents(self, dirty, fluxthreshold=5.0, positionthreshold=1.0):
+    def _checkcomponents(self, dirty, fluxthreshold=10.0, positionthreshold=1.0, check_dft=False):
         comps = find_skycomponents(dirty, fwhm=1.0, threshold=fluxthreshold, npixels=5)
         assert len(comps) == len(self.components), "Different number of components found: original %d, recovered %d" % \
                                                    (len(self.components), len(comps))
         cellsize = abs(dirty.wcs.wcs.cdelt[0])
         # Check for agreement between image and DFT
         for comp in comps:
-            sflux = sum_visibility(self.componentvis, comp.direction)[0]
-            assert abs(comp.flux[0, 0] - sflux[0, 0]) < fluxthreshold, \
-                "Fitted and DFT flux differ %s %s" % (comp.flux[0, 0], sflux[0, 0])
+            if check_dft:
+                sflux = sum_visibility(self.componentvis, comp.direction)[0]
+                assert abs(comp.flux[0, 0] - sflux[0, 0]) < fluxthreshold, \
+                    "Fitted and DFT flux differ %s %s" % (comp.flux[0, 0], sflux[0, 0])
             # Check for agreement in direction
             ocomp = find_nearest_component(comp.direction, self.components)
             radiff = abs(comp.direction.ra.deg - ocomp.direction.ra.deg) / cellsize
@@ -70,11 +71,10 @@ class TestImaging(unittest.TestCase):
                        'reffrequency': 1e8,
                        'facets': 8,
                        'padding': 2,
-                       'oversampling': 2,
-                       'timeslice': 1000.0}
+                       'oversampling': 2}
     
     def actualSetUp(self, time=None, dospectral=False, dopol=False):
-        self.lowcore = create_named_configuration('LOWBD2-CORE')
+        self.lowcore = create_named_configuration('LOWBD2', rmax=1000.0)
         self.times = (numpy.pi / 12.0) * numpy.linspace(-3.0, 3.0, 5)
         
         if time is not None:
@@ -114,23 +114,22 @@ class TestImaging(unittest.TestCase):
         self.componentvis.data['vis'] *= 0.0
         
         # Create model
-        self.model = create_image_from_visibility(self.componentvis, npixel=512, cellsize=0.001,
+        self.model = create_image_from_visibility(self.componentvis, npixel=self.params['npixel'], cellsize=0.0005,
                                                   nchan=len(self.frequency),
                                                   polarisation_frame=self.image_pol)
         
-        # Fill the visibility with exactly computed point sources. These are chosen to lie
-        # on grid points.
+        # Fill the visibility with exactly computed point sources.
         spacing_pixels = 512 // 8
         log.info('Spacing in pixels = %s' % spacing_pixels)
         
-        centers = [(x, x) for x in numpy.linspace(-3.0, +3.0, 7)]
+        centers = [(x, x) for x in numpy.linspace(-1.4, +1.4, 9)]
         
-        for x in numpy.linspace(-3.0, +3.0, 7):
+        for x in numpy.linspace(-1.4, +1.4, 9):
             centers.append((-x, x))
         
-        centers.append((1.1, 2.2))
+        centers.append((0.5, 1.1))
         centers.append((1e-7, 1e-7))
-        
+
         # Make the list of components
         rpix = self.model.wcs.wcs.crpix
         self.components = []
@@ -149,25 +148,28 @@ class TestImaging(unittest.TestCase):
                                            polarisation_frame=self.image_pol)
                 self.components.append(comp)
         
-        # Predict the visibility from the components exactly.
+        # Predict the visibility from the components exactly
         self.componentvis.data['vis'] *= 0.0
+        self.beam = create_low_test_beam(self.model)
+
+        self.components = apply_beam_to_skycomponent(self.components, self.beam)
         predict_skycomponent_visibility(self.componentvis, self.components)
         insert_skycomponent(self.model, self.components)
         
         # Calculate the model convolved with a Gaussian.
         self.cmodel = smooth_image(self.model)
-        export_image_to_fits(self.model, '%s/test_model.fits' % self.dir)
-        export_image_to_fits(self.cmodel, '%s/test_cmodel.fits' % self.dir)
+        export_image_to_fits(self.model, '%s/test_imaging_functions_model.fits' % self.dir)
+        export_image_to_fits(self.cmodel, '%s/test_imaging_functions_cmodel.fits' % self.dir)
     
     def test_findcomponents(self):
         # Check that the components are where we expected them to be after insertion
         self.actualSetUp()
-        self._checkcomponents(self.cmodel)
+        self._checkcomponents(self.cmodel, check_dft=False)
     
     def test_findcomponents_spectral_pol(self):
         # Check that the components are where we expected them to be after insertion
         self.actualSetUp(dospectral=True, dopol=True)
-        self._checkcomponents(self.cmodel)
+        self._checkcomponents(self.cmodel, check_dft=False)
     
     def test_predict_2d(self):
         # Test if the 2D prediction works
@@ -195,7 +197,7 @@ class TestImaging(unittest.TestCase):
         self.residualvis.data['uvw'][:, 2] = 0.0
         self.residualvis.data['vis'] = self.modelvis.data['vis'] - self.componentvis.data['vis']
         
-        self._checkdirty(self.residualvis, 'test_predict_2d', fluxthreshold=4.0)
+        self._checkdirty(self.residualvis, 'test_functions_predict_2d', fluxthreshold=4.0)
     
     def _predict_base(self, predict, name='unknown', fluxthreshold=1.0):
         self.modelvis = create_visibility(self.lowcore, self.times, self.frequency,
@@ -209,72 +211,78 @@ class TestImaging(unittest.TestCase):
                                              weight=1.0, polarisation_frame=self.vis_pol)
         self.residualvis.data['uvw'][:, 2] = 0.0
         self.residualvis.data['vis'] = self.modelvis.data['vis'] - self.componentvis.data['vis']
-        self._checkdirty(self.residualvis, 'test_%s' % name, fluxthreshold=fluxthreshold)
+        self._checkdirty(self.residualvis, 'test_functions_%s' % name, fluxthreshold=fluxthreshold)
     
     def test_predict_facets(self):
+        self.params['facets'] = 21
+        self.params['npixel'] = 21 * 32
+        self.params['padding'] = 4
+        self.params['remove_shift'] = False
         self.actualSetUp()
-        self.params['facets'] = 8
-        self._predict_base(predict_facets, name='predict_facets', fluxthreshold=numpy.infty)
+        self._predict_base(predict_facets, name='predict_facets', fluxthreshold=4.0)
     
     def test_predict_facets_timeslice(self):
+        self.params['facets'] = 21
+        self.params['npixel'] = 21 * 32
+        self.params['padding'] = 4
+        self.params['timeslice'] = 1e5
         self.actualSetUp()
-        self.params['facets'] = 8
         self._predict_base(predict_facets_timeslice, name='predict_facets_timeslice', fluxthreshold=numpy.infty)
     
-    def test_predict_timeslice(self):
-        # This works poorly because of the poor interpolation accuracy for point sources. The corresponding
-        # invert works well particularly if the beam sampling is high
+    def test_predict_facets_wprojection(self):
+        self.params['facets'] = 21
+        self.params['npixel'] = 21 * 32
+        self.params['wstep'] = 4.0
+        self.params['padding'] = 4
         self.actualSetUp()
-        self._predict_base(predict_timeslice, name='predict_timeslice', fluxthreshold=numpy.infty)
+        self._predict_base(predict_facets_wprojection, name='predict_facets_wprojection', fluxthreshold=5.0)
+    
+    def test_predict_facets_wstack(self):
+        self.params['wstack'] = 4.0
+        self.params['facets'] = 21
+        self.params['npixel'] = 21 * 32
+        self.params['padding'] = 4
+        self.actualSetUp()
+        self._predict_base(predict_facets_wstack, name='predict_facets_wstack', fluxthreshold=5.0)
+    
+    def test_predict_timeslice(self):
+        self.params['timeslice'] = 'auto'
+        self.actualSetUp()
+        self._predict_base(predict_timeslice, name='predict_timeslice', fluxthreshold=5.0)
     
     def test_predict_timeslice_wprojection(self):
         self.actualSetUp()
         self.params['kernel'] = 'wprojection'
         self.params['wstep'] = 4.0
+        self.params['timeslice'] = 1e5
         self._predict_base(predict_timeslice_wprojection, name='predict_timeslice_wprojection',
-                           fluxthreshold=numpy.infty)
+                           fluxthreshold=5.0)
+    
+    def test_predict_wprojection(self):
+        self.actualSetUp()
+        self.params['wstep'] = 4.0
+        self._predict_base(predict_wprojection, name='predict_wprojection', fluxthreshold=5.0)
     
     def test_predict_wstack(self):
         self.actualSetUp()
         self.params['wstack'] = 4.0
         self._predict_base(predict_wstack, name='predict_wstack', fluxthreshold=5.0)
     
-    def test_predict_facets_wstack(self):
-        self.actualSetUp()
-        self.params['wstack'] = 4.0
-        self.params['facets'] = 8
-        self._predict_base(predict_facets_wstack, name='predict_facets_wstack', fluxthreshold=numpy.infty)
-    
-    @unittest.skip("predict_facets_wstack not yet working")
-    def test_predict_facets_wstack_spectral(self):
-        self.actualSetUp(dospectral=True)
-        self.params['wstack'] = 4.0
-        self.params['facets'] = 8
-        self._predict_base(predict_facets_wstack, name='predict_facets_wstack', fluxthreshold=numpy.infty)
-    
-    @unittest.skip("predict_facets_wstack_spectral not yet working")
-    def test_predict_facets_wstack_spectral_pol(self):
-        self.actualSetUp(dospectral=True, dopol=True)
-        self.params['wstack'] = 4.0
-        self.params['facets'] = 8
-        self._predict_base(predict_facets_wstack, name='predict_facets_wstack', fluxthreshold=numpy.infty)
-    
     def test_predict_wstack_wprojection(self):
         self.actualSetUp()
         self.params['wstack'] = 5 * 4.0
         self.params['wstep'] = 4.0
-        self._predict_base(predict_wprojection_wstack, name='predict_wprojection_wstack', fluxthreshold=4.5)
+        self._predict_base(predict_wprojection_wstack, name='predict_wprojection_wstack', fluxthreshold=5.0)
     
-    def test_predict_facets_wprojection(self):
-        self.actualSetUp()
-        self.params['wstep'] = 4.0
-        self.params['facets'] = 8
-        self._predict_base(predict_facets_wprojection, name='predict_facets_wprojection', fluxthreshold=numpy.infty)
+    def test_predict_wstack_spectral(self):
+        self.params['wstack'] = 4.0
+        self.actualSetUp(dospectral=True)
+        self._predict_base(predict_wstack, name='predict_wstack_spectral', fluxthreshold=7.0)
     
-    def test_predict_wprojection(self):
-        self.actualSetUp()
-        self.params['wstep'] = 4.0
-        self._predict_base(predict_wprojection, name='predict_wprojection', fluxthreshold=2.5)
+    def test_predict_wstack_spectral_pol(self):
+        self.params['wstack'] = 4.0
+        self.actualSetUp(dospectral=True, dopol=True)
+        self._predict_base(predict_wstack, name='predict_wstack', fluxthreshold=7.0)
     
     def test_invert_2d(self):
         # Test if the 2D invert works with w set to zero
@@ -301,7 +309,7 @@ class TestImaging(unittest.TestCase):
         
         export_image_to_fits(dirty2d, '%s/test_invert_2d_dirty.fits' % self.dir)
         
-        self._checkcomponents(dirty2d, fluxthreshold=20.0, positionthreshold=1.0)
+        self._checkcomponents(dirty2d, positionthreshold=1.0)
     
     def test_psf_location_2d(self):
         
@@ -325,32 +333,70 @@ class TestImaging(unittest.TestCase):
         assert imagecentre.separation(self.phasecentre).value < 1e-15, \
             "Image phase centre %s not as expected %s" % (imagecentre, self.phasecentre)
     
-    def _invert_base(self, invert, name='unknown', fluxthreshold=20.0, positionthreshold=1.0, check_components=True):
+    def _invert_base(self, invert, name='unknown', fluxthreshold=10.0, positionthreshold=1.0, check_components=True):
         dirty = create_empty_image_like(self.model)
         dirty, sumwt = invert(self.componentvis, dirty, **self.params)
-        assert sumwt.all() > 0.0
-        export_image_to_fits(dirty, '%s/test_%s_dirty.fits' % (self.dir, name))
+        export_image_to_fits(dirty, '%s/test_functions_%s_dirty.fits' % (self.dir, name))
         if check_components:
             self._checkcomponents(dirty, fluxthreshold, positionthreshold)
     
     def test_invert_facets(self):
+        self.params['facets'] = 21
+        self.params['npixel'] = 21 * 32
+        self.params['padding'] = 4
         self.actualSetUp()
-        self.params['facets'] = 4
-        self._invert_base(invert_facets, name='invert_facets', positionthreshold=6.0, check_components=False)
+        self._invert_base(invert_facets, name='invert_facets', positionthreshold=1.0, check_components=True)
+    
+    def test_invert_facets_timeslice(self):
+        # Gaps in images lead to missing sources: use extra padding?
+        self.params['facets'] = 9
+        self.params['npixel'] = 64 * 9
+        self.params['padding'] = 4
+        self.params['timeslice'] = 1e5
+        self.params['remove_shift'] = True
+        self.actualSetUp()
+        self._invert_base(invert_facets_timeslice, name='invert_facets_timeslice', check_components=True,
+                          positionthreshold=2.0)
     
     def test_invert_facets_wprojection(self):
-        self.actualSetUp()
-        self.params['facets'] = 8
+        self.params['facets'] = 9
+        self.params['npixel'] = 64 * 9
         self.params['wstep'] = 4.0
-        self._invert_base(invert_facets_wprojection, name='invert_facets_wprojection', check_components=False,
+        self.params['remove_shift'] = True
+        self.actualSetUp()
+        self._invert_base(invert_facets_wprojection, name='invert_facets_wprojection', check_components=True,
                           positionthreshold=1.0)
     
-    @unittest.skip("Large errors")
-    def test_invert_facets_timeslice(self):
+    def test_invert_facets_wstack(self):
+        self.params['wstack'] = 4.0
+        self.params['npixel'] = 9 * 64
+        self.params['facets'] = 9
+        self.params['remove_shift'] = True
         self.actualSetUp()
-        self.params['facets'] = 8
-        self._invert_base(invert_facets_timeslice, name='invert_facets_timeslice', check_components=False,
-                          positionthreshold=1.0)
+        self._invert_base(invert_facets_wstack, name='invert_facets_wstack', positionthreshold=1.0,
+                          check_components=False)
+    
+    def test_invert_timeslice(self):
+        self.params['npixel'] = 2 * 512
+        self.actualSetUp()
+        self._invert_base(invert_timeslice, name='invert_timeslice', positionthreshold=8.0, check_components=True)
+    
+    def test_invert_timeslice_wprojection(self):
+        self.actualSetUp()
+        self.params['wstep'] = 4.0
+        self._invert_base(invert_timeslice_wprojection, name='invert_timeslice_wprojection', positionthreshold=1.0,
+                          check_components=True)
+    
+    def test_invert_wprojection(self):
+        self.actualSetUp()
+        self.params['wstep'] = 4.0
+        self._invert_base(invert_wprojection, name='invert_wprojection', positionthreshold=1.0)
+    
+    def test_invert_wprojection_wstack(self):
+        self.actualSetUp()
+        self.params['wstack'] = 5 * 4.0
+        self.params['wstep'] = 4.0
+        self._invert_base(invert_wprojection_wstack, name='invert_wprojection_wstack', positionthreshold=1.0)
     
     def test_invert_wstack(self):
         self.actualSetUp()
@@ -366,34 +412,6 @@ class TestImaging(unittest.TestCase):
         self.actualSetUp(dospectral=True, dopol=True)
         self.params['wstack'] = 4.0
         self._invert_base(invert_wstack, name='invert_wstack_spectral_pol', positionthreshold=1.0)
-    
-    def test_invert_facets_wstack(self):
-        self.actualSetUp()
-        self.params['wstack'] = 4.0
-        self.params['facets'] = 4
-        self._invert_base(invert_facets_wstack, name='invert_facets_wstack', positionthreshold=1.0,
-                          check_components=False)
-    
-    def test_invert_wprojection_wstack(self):
-        self.actualSetUp()
-        self.params['wstack'] = 5 * 4.0
-        self.params['wstep'] = 4.0
-        self._invert_base(invert_wprojection_wstack, name='invert_wprojection_wstack', positionthreshold=1.0)
-    
-    def test_invert_wprojection(self):
-        self.actualSetUp()
-        self.params['wstep'] = 4.0
-        self._invert_base(invert_wprojection, name='invert_wprojection', positionthreshold=1.0)
-    
-    def test_invert_timeslice(self):
-        self.actualSetUp()
-        self._invert_base(invert_timeslice, name='invert_timeslice', positionthreshold=8.0, check_components=False)
-    
-    def test_invert_timeslice_wprojection(self):
-        self.actualSetUp()
-        self.params['wstep'] = 4.0
-        self._invert_base(invert_timeslice_wprojection, name='invert_timeslice_wprojection', positionthreshold=8.0,
-                          check_components=False)
     
     def test_weighting(self):
         self.actualSetUp()

@@ -95,7 +95,19 @@ class TestTesting_Support(unittest.TestCase):
         assert im.data.shape[2] == 256
         assert im.data.shape[3] == 256
         export_image_to_fits(im, '%s/test_low_gleam.fits' % (self.dir))
-    
+
+    def test_create_low_test_image_from_gleam_withpb(self):
+        im = create_low_test_image_from_gleam(npixel=256, cellsize=0.001,
+                                              channel_bandwidth=self.channel_bandwidth,
+                                              frequency=self.frequency,
+                                              phasecentre=self.phasecentre, kind='cubic',
+                                              applybeam=True)
+        assert im.data.shape[0] == 3
+        assert im.data.shape[1] == 1
+        assert im.data.shape[2] == 256
+        assert im.data.shape[3] == 256
+        export_image_to_fits(im, '%s/test_low_gleam_withpb.fits' % (self.dir))
+
     def test_create_low_test_image_composite(self):
         im = create_low_test_image_composite(npixel=256, cellsize=0.001,
                                              channel_bandwidth=self.channel_bandwidth,

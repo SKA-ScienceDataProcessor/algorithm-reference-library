@@ -14,9 +14,9 @@ from arl.data.data_models import Visibility, Image
 from arl.image.iterators import image_raster_iter, image_null_iter
 from arl.image.operations import create_empty_image_like
 from arl.imaging import normalize_sumwt
-from arl.imaging import predict_2d_base, invert_2d_base, \
-    predict_timeslice_single, invert_timeslice_single, \
-    predict_wstack_single, invert_wstack_single
+from arl.imaging import predict_2d_base, invert_2d_base
+from arl.imaging.timeslice import predict_timeslice_single, invert_timeslice_single
+from arl.imaging.wstack import predict_wstack_single, invert_wstack_single
 from arl.visibility.base import copy_visibility, create_visibility_from_rows
 from arl.visibility.coalesce import coalesce_visibility
 from arl.visibility.iterators import vis_slice_iter, vis_timeslice_iter, vis_null_iter, \
@@ -47,7 +47,7 @@ def imaging_contexts():
                           'image_iterator': image_null_iter,
                           'vis_iterator': vis_slice_iter,
                           'inner': 'image'},
-                'facets+slice': {'predict': predict_2d_base,
+                'facets_slice': {'predict': predict_2d_base,
                                  'invert': invert_2d_base,
                                  'image_iterator': image_raster_iter,
                                  'vis_iterator': vis_slice_iter,
@@ -57,7 +57,7 @@ def imaging_contexts():
                               'image_iterator': image_null_iter,
                               'vis_iterator': vis_timeslice_iter,
                               'inner': 'vis'},
-                'facets+timeslice': {'predict': predict_timeslice_single,
+                'facets_timeslice': {'predict': predict_timeslice_single,
                                      'invert': invert_timeslice_single,
                                      'image_iterator': image_raster_iter,
                                      'vis_iterator': vis_timeslice_iter,
@@ -66,13 +66,13 @@ def imaging_contexts():
                            'invert': invert_2d_base,
                            'image_iterator': image_raster_iter,
                            'vis_iterator': vis_null_iter,
-                           'inner': 'vis'},
+                           'inner': 'image'},
                 'wstack': {'predict': predict_wstack_single,
                            'invert': invert_wstack_single,
                            'image_iterator': image_null_iter,
                            'vis_iterator': vis_wstack_iter,
                            'inner': 'image'},
-                'facets+wstack': {'predict': predict_wstack_single,
+                'facets_wstack': {'predict': predict_wstack_single,
                                   'invert': invert_wstack_single,
                                   'image_iterator': image_raster_iter,
                                   'vis_iterator': vis_wstack_iter,
@@ -87,15 +87,18 @@ def imaging_context(context='2d'):
     return contexts[context]
 
 
-def invert_context(vis: Visibility, im: Image, dopsf=False, normalize=True, context='2d', inner=None, **kwargs):
+def invert_context(vis, im: Image, dopsf=False, normalize=True, context='2d', inner=None,
+                   **kwargs):
     """ Invert using a specified iterators and invert
 
     :param vis:
     :param im:
     :param dopsf: Make the psf instead of the dirty image
     :param normalize: Normalize by the sum of weights (True)
+    :param context: Imaing context e.g. '2d', 'timeslice', etc.
+    :param inner: Inner loop 'vis'|'image'
     :param kwargs:
-    :return:
+    :return: Image, sum of weights
     """
     c = imaging_context(context)
     vis_iter = c['vis_iterator']
@@ -129,21 +132,21 @@ def invert_context(vis: Visibility, im: Image, dopsf=False, normalize=True, cont
                     totalwt += sumwt
                 resultimage.data += workimage.data
     else:
+        # We assume that the weight is the same for all image iterations
         totalwt = None
         workimage = create_empty_image_like(im)
         for dpatch in image_iter(workimage, **kwargs):
             totalwt = None
-            sumwt = 0.0
             for rows in vis_iter(svis, **kwargs):
                 if numpy.sum(rows):
                     visslice = create_visibility_from_rows(svis, rows)
                     result, sumwt = invert(visslice, dpatch, dopsf, normalize=False, **kwargs)
                     # Ensure that we fill in the elements of dpatch instead of creating a new numpy arrray
                     dpatch.data[...] += result.data[...]
-                if totalwt is None:
-                    totalwt = sumwt
-                else:
-                    totalwt += sumwt
+                    if totalwt is None:
+                        totalwt = sumwt
+                    else:
+                        totalwt += sumwt
             resultimage.data += workimage.data
             workimage.data[...] = 0.0
     
@@ -153,8 +156,16 @@ def invert_context(vis: Visibility, im: Image, dopsf=False, normalize=True, cont
     return resultimage, totalwt
 
 
-def predict_context(vis: Visibility, model: Image, context='2d', inner=None, **kwargs) -> Visibility:
+def predict_context(vis, model: Image, context='2d', inner=None, **kwargs) -> Visibility:
     """Iterate through prediction using specified iterators and predict
+    
+    :param vis:
+    :param model: Model image, used to determine image characteristics
+    :param context: Imaing context e.g. '2d', 'timeslice', etc.
+    :param inner: Inner loop 'vis'|'image'
+    :param kwargs:
+    :return:
+
 
     """
     c = imaging_context(context)

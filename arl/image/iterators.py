@@ -25,7 +25,7 @@ def image_null_iter(im: Image, **kwargs) -> numpy.ndarray:
 
 
 def image_raster_iter(im: Image, **kwargs) -> Image:
-    """Create a   image_raster_iter generator, returning images
+    """Create an image_raster_iter generator, returning images
 
     The WCS is adjusted appropriately for each raster element. Hence this is a coordinate-aware
     way to iterate through an image.
@@ -45,8 +45,8 @@ def image_raster_iter(im: Image, **kwargs) -> Image:
     log.debug("raster: predicting using %d x %d image partitions" % (facets, facets))
     assert facets <= im.nheight, "Cannot have more raster elements than pixels"
     assert facets <= im.nwidth, "Cannot have more raster elements than pixels"
-    assert im.nheight % facets == 0, "The partitions must exactly fill the image"
-    assert im.nwidth % facets == 0, "The partitions must exactly fill the image"
+    assert im.nheight % facets == 0, "The %d partitions must exactly fill the image %d" % (facets, im.nheight)
+    assert im.nwidth % facets == 0, "The %d partitions must exactly fill the image %d" % (facets, im.width)
 
     dx = int(im.nwidth // facets)
     dy = int(im.nheight // facets)

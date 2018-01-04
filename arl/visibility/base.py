@@ -30,7 +30,7 @@ def copy_visibility(vis: Union[Visibility, BlockVisibility], zero=False) -> Unio
 
     Performs a deepcopy of the data array
     """
-    assert isinstance(vis, Visibility) or isinstance(vis, BlockVisibility)
+    assert isinstance(vis, Visibility) or isinstance(vis, BlockVisibility), vis
     
     newvis = copy.copy(vis)
     newvis.data = copy.deepcopy(vis.data)
