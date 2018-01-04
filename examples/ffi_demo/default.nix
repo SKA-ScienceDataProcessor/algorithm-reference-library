@@ -75,6 +75,22 @@ let
     };
   };
 
+  starPU = pkgs.stdenv.mkDerivation rec {
+      name = "starpu-${version}";
+      version = "1.2.3";
+
+      buildInputs = [ pkgs.pkgconfig pkgs.hwloc ];
+
+      src = pkgs.fetchurl {
+         url = "https://gforge.inria.fr/frs/download.php/file/37202/${name}.tar.gz";
+	 sha256 = "1ny69l1cjgj38cp7xny79ay30dlvzh4h07mr3hn7a5xd2zd3jp99";
+      };
+
+    postInstall = ''
+    ln -sv $out/include/starpu/1.2/* $out/include/
+    '';
+  };
+
 in pkgs.python3Packages.buildPythonPackage rec {
    name="sdp-arl-ffi";
 
@@ -83,6 +99,7 @@ in pkgs.python3Packages.buildPythonPackage rec {
    pkgs.python3Packages.cffi
    reproject astropy photutils
    pkgs.git-lfs
-   cfitsio pkgs.gcc ];
+   cfitsio pkgs.gcc
+   starPU ];
 
 }
