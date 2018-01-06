@@ -55,7 +55,7 @@ class TestImageDeconvolutionMSMFS(unittest.TestCase):
         export_image_to_fits(self.psf, "%s/test_deconvolve_msmfsclean_psf.fits" % self.dir)
         window = numpy.ones(shape=self.model.shape, dtype=numpy.bool)
         window[..., 129:384, 129:384] = True
-        self.innerquarter = create_image_from_array(window, self.model.wcs)
+        self.innerquarter = create_image_from_array(window, self.model.wcs, polarisation_frame=PolarisationFrame('stokesI'))
     
     def test_deconvolve_msmfsclean_no_taylor(self):
         self.comp, self.residual = deconvolve_cube(self.dirty, self.psf, niter=self.niter, gain=0.1,

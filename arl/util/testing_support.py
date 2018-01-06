@@ -50,6 +50,7 @@ from arl.imaging import predict_timeslice, predict_skycomponent_blockvisibility
 from arl.util.coordinate_support import xyz_at_latitude
 from arl.visibility.base import create_blockvisibility
 from arl.visibility.coalesce import convert_visibility_to_blockvisibility
+from arl.skycomponent.operations import insert_skycomponent
 
 log = logging.getLogger(__name__)
 
@@ -349,7 +350,8 @@ def create_low_test_image_composite(npixel=16384, polarisation_frame=Polarisatio
 
 def create_low_test_image_from_gleam(npixel=512, polarisation_frame=PolarisationFrame("stokesI"), cellsize=0.000015,
                                      frequency=numpy.array([1e8]), channel_bandwidth=numpy.array([1e6]),
-                                     phasecentre=None, kind='cubic', applybeam=False, flux_limit=0.1) -> Image:
+                                     phasecentre=None, kind='cubic', applybeam=False, flux_limit=0.1,
+                                     radius=None, insert_method='Nearest') -> Image:
     """Create LOW test image from the GLEAM survey
 
     Stokes I is estimated from a cubic spline fit to the measured fluxes. The polarised flux is always zero.
@@ -371,25 +373,21 @@ def create_low_test_image_from_gleam(npixel=512, polarisation_frame=Polarisation
     :return: Image
     
     """
-    
-    
-    fitsfile = arl_path("data/models/GLEAM_EGC.fits")
-    
-    hdulist = fits.open(fitsfile, lazy_load_hdus=False)
-    recs = hdulist[1].data[0].array
-    ras = recs['RAJ2000']
-    decs = recs['DEJ2000']
-    
+
     if phasecentre is None:
         phasecentre = SkyCoord(ra=+15.0 * u.deg, dec=-35.0 * u.deg, frame='icrs', equinox='J2000')
-    
+        
+    if radius is None:
+        radius = npixel * cellsize / numpy.sqrt(2.0)
+
+    sc = create_low_test_skycomponents_from_gleam(flux_limit=flux_limit, polarisation_frame=polarisation_frame,
+                                                  frequency=frequency, phasecentre=phasecentre,
+                                                  kind=kind, radius=radius)
     if polarisation_frame is None:
         polarisation_frame = PolarisationFrame("stokesI")
     
     npol = polarisation_frame.npol
-    
     nchan = len(frequency)
-    
     shape = [nchan, npol, npixel, npixel]
     w = WCS(naxis=4)
     # The negation in the longitude is needed by definition of RA, DEC
@@ -398,59 +396,18 @@ def create_low_test_image_from_gleam(npixel=512, polarisation_frame=Polarisation
     w.wcs.ctype = ["RA---SIN", "DEC--SIN", 'STOKES', 'FREQ']
     w.wcs.crval = [phasecentre.ra.deg, phasecentre.dec.deg, 1.0, frequency[0]]
     w.naxis = 4
-    
     w.wcs.radesys = 'ICRS'
     w.wcs.equinox = 2000.0
     
     model = create_image_from_array(numpy.zeros(shape), w, polarisation_frame=polarisation_frame)
     
-    p = w.sub(2).wcs_world2pix(numpy.array(ras), numpy.array(decs), 1)
-    
-    p = numpy.array(p)
-    mask = numpy.isfinite(p[0, :])
-    p = [p[0, mask], p[1, mask]]
-    
-    ip = numpy.round(p).astype('int')
-    ok = numpy.where((0 <= ip[0, :]) & (npixel > ip[0, :]) & (0 <= ip[1, :]) & (npixel > ip[1, :]))[0]
-    ps = ip[:, ok]
-    
-    # For every source, we read all measured fluxes and interpolate to the
-    # required frequencies
-    fluxes = []
-    gleam_freqs = numpy.array([76, 84, 92, 99, 107, 115, 122, 130, 143, 151, 158, 166, 174, 181, 189, 197, 204,
-                               212, 220, 227])
-    gleam_flux_freq = numpy.zeros([len(ok), len(gleam_freqs)])
-    for i, f in enumerate(gleam_freqs):
-        gleam_flux_freq[:,i] = recs['int_flux_%03d' % (f)][:]
-
+    model = insert_skycomponent(model, sc, insert_method=insert_method)
     if applybeam:
         beam = create_low_test_beam(model)
+        model.data[...] *= beam.data[...]
         
-    for source in ok:
+    log.info(qa_image(model, context='create_low_test_image_from_gleam'))
 
-        fint = interpolate.interp1d(gleam_freqs * 1.0e6, gleam_flux_freq[source,:], kind=kind)
-        factual = fint(frequency)
-        if applybeam:
-            factual *= beam.data[:, 0, ip[1, source], ip[0, source]]
-        
-        fluxes.append(factual)
-    
-    fluxes = numpy.array(fluxes)
-    actual_flux = numpy.sum(fluxes)
-    
-    log.info('create_low_test_image_from_gleam: %d sources inside the image' % (ps.shape[1]))
-    
-    log.info(
-        'create_low_test_image_from_gleam: Average flux per channel in image = %.3f' % (actual_flux / float(nchan)))
-    for iflux, flux in enumerate(fluxes):
-        if not numpy.isnan(flux).any() and flux.any() > flux_limit:
-            model.data[:, 0, ps[1, iflux], ps[0, iflux]] = flux[:]
-                
-    log.info(qa_image(model), context='create_low_test_image_from_gleam')
-    print(qa_image(model), context='create_low_test_image_from_gleam')
-
-    hdulist.close()
-    
     return model
 
 
@@ -470,6 +427,7 @@ def create_low_test_skycomponents_from_gleam(flux_limit=0.1, polarisation_frame=
     catalogue. Hurley-Walker N., et al., Mon. Not. R. Astron. Soc., 464, 1146-1167 (2017), 2017MNRAS.464.1146H
 
 
+    :rtype: Union[None, List[arl.data.data_models.Skycomponent], List]
     :param flux_limit: Only write components brighter than this (Jy)
     :param polarisation_frame: Polarisation frame (default PolarisationFrame("stokesI"))
     :param frequency: Frequencies at which the flux will be estimated
@@ -481,27 +439,26 @@ def create_low_test_skycomponents_from_gleam(flux_limit=0.1, polarisation_frame=
     
     fitsfile = arl_path("data/models/GLEAM_EGC.fits")
     
-    decmin = phasecentre.dec.to('rad').value - radius/2.0
-    decmax = phasecentre.dec.to('rad').value + radius/2.0
+    rad2deg = 180.0/numpy.pi
+    decmin = phasecentre.dec.to('deg').value - rad2deg * radius/2.0
+    decmax = phasecentre.dec.to('deg').value + rad2deg * radius/2.0
 
     hdulist = fits.open(fitsfile, lazy_load_hdus=False)
     recs = hdulist[1].data[0].array
-    print("Before filter %s" % recs.shape)
+
+    # Do the simple forms of filtering in pyfits. Filtering on radious is done below.
     fluxes = recs['peak_flux_wide']
     
     mask = fluxes > flux_limit
     filtered_recs = recs[mask]
-    print("After flux filter %s" % filtered_recs.shape)
 
     decs = filtered_recs['DEJ2000']
     mask = decs > decmin
     filtered_recs = filtered_recs[mask]
-    print("After dec min filter %s" % filtered_recs.shape)
 
     decs = filtered_recs['DEJ2000']
     mask = decs < decmax
     filtered_recs = filtered_recs[mask]
-    print("After dec max filter %s" % filtered_recs.shape)
 
     ras = filtered_recs['RAJ2000']
     decs = filtered_recs['DEJ2000']
@@ -579,7 +536,7 @@ def create_low_test_beam(model: Image) -> Image:
         beam2dwcs.wcs.ctype = model.wcs.sub(2).wcs.ctype
         model2dwcs.wcs.crpix = [model.shape[2] // 2 + 1, model.shape[3] // 2 + 1]
         
-        beam2d = create_image_from_array(beam.data[0, 0, :, :], beam2dwcs)
+        beam2d = create_image_from_array(beam.data[0, 0, :, :], beam2dwcs, model.polarisation_frame)
         reprojected_beam2d, footprint = reproject_image(beam2d, model2dwcs, shape=model2dshape)
         assert numpy.max(footprint.data) > 0.0, "No overlap between beam and model"
         

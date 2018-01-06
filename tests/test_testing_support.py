@@ -89,63 +89,51 @@ class TestTesting_Support(unittest.TestCase):
         im = create_low_test_image_from_gleam(npixel=256, cellsize=0.001,
                                               channel_bandwidth=self.channel_bandwidth,
                                               frequency=self.frequency,
-                                              phasecentre=self.phasecentre, kind='cubic')
+                                              phasecentre=self.phasecentre,
+                                              kind='cubic', flux_limit=1.0)
         assert im.data.shape[0] == 3
         assert im.data.shape[1] == 1
         assert im.data.shape[2] == 256
         assert im.data.shape[3] == 256
-        export_image_to_fits(im, '%s/test_low_gleam.fits' % (self.dir))
+        export_image_to_fits(im, '%s/test_test_support_test_support_low_gleam.fits' % (self.dir))
 
-    def test_create_low_test_image_from_gleam_withpb(self):
+    def test_create_low_test_image_from_gleam_with_pb(self):
         im = create_low_test_image_from_gleam(npixel=256, cellsize=0.001,
                                               channel_bandwidth=self.channel_bandwidth,
                                               frequency=self.frequency,
-                                              phasecentre=self.phasecentre, kind='cubic',
-                                              applybeam=True)
+                                              phasecentre=self.phasecentre,
+                                              kind='cubic',
+                                              applybeam=True, flux_limit=1.0)
         assert im.data.shape[0] == 3
         assert im.data.shape[1] == 1
         assert im.data.shape[2] == 256
         assert im.data.shape[3] == 256
-        export_image_to_fits(im, '%s/test_low_gleam_withpb.fits' % (self.dir))
+        export_image_to_fits(im, '%s/test_test_support_low_gleam_with_pb.fits' % (self.dir))
 
     def test_create_low_test_image_composite(self):
         im = create_low_test_image_composite(npixel=256, cellsize=0.001,
                                              channel_bandwidth=self.channel_bandwidth,
                                              frequency=self.frequency,
-                                             phasecentre=self.phasecentre, kind='cubic',
+                                             phasecentre=self.phasecentre,
+                                             kind='cubic',
                                              threshold=0.050, fov=20)
         assert im.data.shape[0] == 3
         assert im.data.shape[1] == 1
         assert im.data.shape[2] == 256
         assert im.data.shape[3] == 256
-        export_image_to_fits(im, '%s/test_low_composite.fits' % (self.dir))
+        export_image_to_fits(im, '%s/test_test_support_low_composite.fits' % (self.dir))
     
-    def test_create_low_test_skycomponents_from_gleam_apply_beam(self):
-        sc = create_low_test_skycomponents_from_gleam(flux_limit=10.0,
-                                                      polarisation_frame=PolarisationFrame("stokesI"),
-                                                      frequency=self.frequency, kind='cubic')
-        assert len(sc) > 1
-        assert sc[190].name == 'GLEAM J172031-005845'
-        #        self.assertAlmostEqual(sc[190].flux[0,0], 301.4964434927922, 7)
-        im = create_test_image(canonical=True, cellsize=0.002,
-                               frequency=self.frequency,
-                               channel_bandwidth=self.channel_bandwidth,
-                               polarisation_frame=PolarisationFrame("stokesI"),
-                               phasecentre=self.phasecentre)
-        bm = create_low_test_beam(model=im)
-        sc = apply_beam_to_skycomponent(sc, bm)
-        assert len(sc) > 1, "No components inside image"
-    
-    def test_create_low_test_skycomponents_from_gleam_apply_filter(self):
-        sc = create_low_test_skycomponents_from_gleam(flux_limit=10.0,
-                                                      polarisation_frame=PolarisationFrame("stokesI"),
-                                                      frequency=self.frequency, kind='cubic',
+    def test_create_low_test_skycomponents_from_gleam(self):
+        sc = create_low_test_skycomponents_from_gleam(flux_limit=1.0,
                                                       phasecentre=SkyCoord("17h20m31s", "-00d58m45s"),
-                                                      radius=0.1)
-        assert len(sc) == 1
+                                                      polarisation_frame=PolarisationFrame("stokesI"),
+                                                      frequency=self.frequency, kind='cubic', radius=0.001)
+        assert len(sc) == 1, "Only expected one source, actually found %d" % len(sc)
         assert sc[0].name == 'GLEAM J172031-005845'
-    
-    def test_create_low_test_image(self):
+        self.assertAlmostEqual(sc[0].flux[0,0], 301.49254315737829, 7)
+
+
+    def test_create_low_test_image_from_s3(self):
         im = create_low_test_image_from_s3(npixel=1024, channel_bandwidth=numpy.array([1e6]),
                                            frequency=numpy.array([1e8]),
                                            phasecentre=self.phasecentre, fov=10)
@@ -153,8 +141,9 @@ class TestTesting_Support(unittest.TestCase):
         assert im.data.shape[1] == 1
         assert im.data.shape[2] == 1024
         assert im.data.shape[3] == 1024
-    
-    def test_create_low_test_image_spectral(self):
+        export_image_to_fits(im, '%s/test_test_support_low_s3.fits' % (self.dir))
+
+    def test_create_low_test_image_s3_spectral(self):
         im = create_low_test_image_from_s3(npixel=1024, channel_bandwidth=numpy.array([1e6, 1e6, 1e6]),
                                            frequency=numpy.array([1e8 - 1e6, 1e8, 1e8 + 1e6]),
                                            phasecentre=self.phasecentre, fov=10)
@@ -163,7 +152,7 @@ class TestTesting_Support(unittest.TestCase):
         assert im.data.shape[2] == 1024
         assert im.data.shape[3] == 1024
     
-    def test_create_low_test_image_spectral_polarisation(self):
+    def test_create_low_test_image_s3_spectral_polarisation(self):
         
         im = create_low_test_image_from_s3(npixel=1024, channel_bandwidth=numpy.array([1e6, 1e6, 1e6]),
                                            polarisation_frame=PolarisationFrame("stokesIQUV"),
@@ -172,7 +161,7 @@ class TestTesting_Support(unittest.TestCase):
         assert im.data.shape[1] == 4
         assert im.data.shape[2] == 1024
         assert im.data.shape[3] == 1024
-        export_image_to_fits(im, '%s/test_low_s3.fits' % (self.dir))
+        export_image_to_fits(im, '%s/test_test_support_low_s3.fits' % (self.dir))
     
     def test_create_low_test_beam(self):
         im = create_test_image(canonical=True, cellsize=0.002,
@@ -181,7 +170,7 @@ class TestTesting_Support(unittest.TestCase):
                                polarisation_frame=PolarisationFrame("stokesIQUV"),
                                phasecentre=self.phasecentre)
         bm = create_low_test_beam(model=im)
-        export_image_to_fits(bm, '%s/test_low_beam.fits' % (self.dir))
+        export_image_to_fits(bm, '%s/test_test_support_low_beam.fits' % (self.dir))
         
         assert bm.data.shape[0] == 3
         assert bm.data.shape[1] == 4

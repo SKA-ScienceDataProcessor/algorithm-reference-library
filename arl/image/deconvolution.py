@@ -125,8 +125,8 @@ def deconvolve_cube(dirty: Image, psf: Image, **kwargs) -> (Image, Image):
                 else:
                     log.info("deconvolve_cube: Skipping pol %d, channel %d" % (pol, channel))
                     
-        comp_image = create_image_from_array(comp_array, dirty.wcs)
-        residual_image = create_image_from_array(residual_array, dirty.wcs)
+        comp_image = create_image_from_array(comp_array, dirty.wcs, dirty.polarisation_frame)
+        residual_image = create_image_from_array(residual_array, dirty.wcs, dirty.polarisation_frame)
 
     elif algorithm == 'msmfsclean' or algorithm == 'mfsmsclean' or algorithm == 'mmclean':
         findpeak = get_parameter(kwargs, "findpeak", 'ARL')
@@ -172,8 +172,8 @@ def deconvolve_cube(dirty: Image, psf: Image, **kwargs) -> (Image, Image):
             else:
                 log.info("deconvolve_cube: Skipping pol %d" % (pol))
                 
-        comp_image = create_image_from_array(comp_array, dirty_taylor.wcs)
-        residual_image = create_image_from_array(residual_array, dirty_taylor.wcs)
+        comp_image = create_image_from_array(comp_array, dirty_taylor.wcs, dirty.polarisation_frame)
+        residual_image = create_image_from_array(residual_array, dirty_taylor.wcs, dirty.polarisation_frame)
         
         return_moments = get_parameter(kwargs, "return_moments", False)
         if not return_moments:
@@ -211,8 +211,8 @@ def deconvolve_cube(dirty: Image, psf: Image, **kwargs) -> (Image, Image):
                 else:
                     log.info("deconvolve_cube: Skipping pol %d, channel %d" % (pol, channel))
         
-        comp_image = create_image_from_array(comp_array, dirty.wcs)
-        residual_image = create_image_from_array(residual_array, dirty.wcs)
+        comp_image = create_image_from_array(comp_array, dirty.wcs, dirty.polarisation_frame)
+        residual_image = create_image_from_array(residual_array, dirty.wcs, dirty.polarisation_frame)
     else:
         raise ValueError('deconvolve_cube: Unknown algorithm %s' % algorithm)
     

@@ -147,7 +147,7 @@ def find_skycomponents(im: Image, fwhm=1.0, threshold=10.0, npixels=5) -> List[S
     return comps
 
 
-def apply_beam_to_skycomponent(sc: Union[Skycomponent, List[Skycomponent]], beam: Image, flux_limit=1.0) \
+def apply_beam_to_skycomponent(sc: Union[Skycomponent, List[Skycomponent]], beam: Image, flux_limit=0.0) \
         -> Union[Skycomponent, List[Skycomponent]]:
     """ Insert a Skycomponet into an image
     :param beam:

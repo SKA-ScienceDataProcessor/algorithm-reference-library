@@ -321,7 +321,7 @@ class Skycomponent:
         s += "\tDirection: %s\n" % self.direction
         s += "\tShape: %s\n" % self.shape
         s += "\tParams: %s\n" % self.params
-        s += "\tPolarisation frame: %s\n" % self.polarisation_frame.type
+        s += "\tPolarisation frame: %s\n" % str(self.polarisation_frame.type)
         return s
 
 

@@ -48,7 +48,8 @@ class TestImageDeconvolution(unittest.TestCase):
         self.psf, sumwt = invert_2d(self.vis, self.model, dopsf=True)
         window = numpy.zeros(shape=self.model.shape, dtype=numpy.bool)
         window[..., 129:384, 129:384] = True
-        self.innerquarter = create_image_from_array(window, self.model.wcs)
+        self.innerquarter = create_image_from_array(window, self.model.wcs, polarisation_frame=PolarisationFrame(
+            'stokesI'))
     
     def overlaptest(self, a1, a2, s1, s2):
         #

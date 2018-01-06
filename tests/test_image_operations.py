@@ -30,8 +30,7 @@ class TestImage(unittest.TestCase):
         self.cellsize = 180.0 * 0.0001 / numpy.pi
 
     def test_create_image_from_array(self):
-        m31model_by_array = create_image_from_array(self.m31image.data, wcs=None)
-        m31model_by_array = create_image_from_array(self.m31image.data, self.m31image.wcs)
+        m31model_by_array = create_image_from_array(self.m31image.data, self.m31image.wcs, self.m31image.polarisation_frame)
         add_image(self.m31image, m31model_by_array)
         add_image(self.m31image, m31model_by_array, docheckwcs=True)
         assert m31model_by_array.shape == self.m31image.shape

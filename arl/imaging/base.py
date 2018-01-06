@@ -63,6 +63,7 @@ def shift_vis_to_image(vis: Visibility, im: Image, tangent: bool = True, inverse
     # frames is defined.
     
     image_phasecentre = pixel_to_skycoord(nx // 2 + 1, ny // 2 + 1, im.wcs, origin=1)
+    print("Image phase centre is %s" % str(image_phasecentre))
     
     if vis.phasecentre.separation(image_phasecentre).rad > 1e-15:
         if inverse:
@@ -205,15 +206,15 @@ def invert_2d_base(vis: Visibility, im: Image, dopsf: bool = False, normalize: b
     if imaginary:
         log.debug("invert_2d_base: retaining imaginary part of dirty image")
         result = extract_mid(ifft(imgridpad) * gcf, npixel=nx)
-        resultreal = create_image_from_array(result.real, im.wcs)
-        resultimag = create_image_from_array(result.imag, im.wcs)
+        resultreal = create_image_from_array(result.real, im.wcs, im.polarisation_frame)
+        resultimag = create_image_from_array(result.imag, im.wcs, im.polarisation_frame)
         if normalize:
             resultreal = normalize_sumwt(resultreal, sumwt)
             resultimag = normalize_sumwt(resultimag, sumwt)
         return resultreal, sumwt, resultimag
     else:
         result = extract_mid(numpy.real(ifft(imgridpad)) * gcf, npixel=nx)
-        resultimage = create_image_from_array(result, im.wcs)
+        resultimage = create_image_from_array(result, im.wcs, im.polarisation_frame)
         if normalize:
             resultimage = normalize_sumwt(resultimage, sumwt)
         return resultimage, sumwt

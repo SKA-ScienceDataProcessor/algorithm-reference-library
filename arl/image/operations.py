@@ -33,8 +33,7 @@ def image_sizeof(im: Image):
     return im.size()
 
 
-def create_image_from_array(data: numpy.array, wcs: WCS = None,
-                            polarisation_frame=PolarisationFrame('stokesI')) -> Image:
+def create_image_from_array(data: numpy.array, wcs: WCS, polarisation_frame: PolarisationFrame) -> Image:
     """ Create an image from an array and optional wcs
 
     :param data: Numpy.array
@@ -211,7 +210,8 @@ def reproject_image(im: Image, newwcs: WCS, shape=None) -> (Image, Image):
     assert isinstance(im, Image), im
     rep, foot = reproject_interp((im.data, im.wcs), newwcs, shape, order='bicubic',
                                  independent_celestial_slices=True)
-    return create_image_from_array(rep, newwcs), create_image_from_array(foot, newwcs)
+    return create_image_from_array(rep, newwcs, im.polarisation_frame), create_image_from_array(foot, newwcs,
+                                                                                                im.polarisation_frame)
 
 
 def checkwcs(wcs1, wcs2):
@@ -513,7 +513,7 @@ def fft_image(im, template_image=None):
         ft_wcs.wcs.cdelt[0] = 1.0 / (ft_shape[3] * d2r * im.wcs.wcs.cdelt[0])
         ft_wcs.wcs.cdelt[1] = 1.0 / (ft_shape[2] * d2r * im.wcs.wcs.cdelt[1])
         ft_data = ifft(im.data.astype('complex'))
-        return create_image_from_array(ft_data, wcs=ft_wcs)
+        return create_image_from_array(ft_data, wcs=ft_wcs, polarisation_frame=im.polarisation_frame)
     elif im.wcs.wcs.ctype[0] == 'UU' and im.wcs.wcs.ctype[1] == 'VV':
         ft_wcs.wcs.crval[0] = template_image.wcs.wcs.crval[0]
         ft_wcs.wcs.crval[1] = template_image.wcs.wcs.crval[1]
@@ -524,7 +524,7 @@ def fft_image(im, template_image=None):
         ft_wcs.wcs.cdelt[0] = template_image.wcs.wcs.cdelt[0]
         ft_wcs.wcs.cdelt[1] = template_image.wcs.wcs.cdelt[1]
         ft_data = fft(im.data.astype('complex'))
-        return create_image_from_array(ft_data, wcs=ft_wcs)
+        return create_image_from_array(ft_data, wcs=ft_wcs, polarisation_frame=im.polarisation_frame)
     else:
         raise NotImplementedError("Cannot FFT specified axes")
 
@@ -622,7 +622,7 @@ def convert_image_to_kernel(im: Image, oversampling, kernelwidth):
                     slicex = slice(xend + x, xstart + x, -oversampling)
                     newdata[chan, pol, y, x, ...] = im.data[chan, pol, slicey, slicex]
                     
-    return create_image_from_array(newdata, newwcs)
+    return create_image_from_array(newdata, newwcs, polarisation_frame=im.polarisation_frame)
 
 
 def create_w_term_like(im: Image, w, phasecentre=None, remove_shift=False, dopol=False) -> Image:

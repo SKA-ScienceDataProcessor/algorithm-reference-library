@@ -63,7 +63,7 @@ def image_raster_iter(im: Image, **kwargs) -> Image:
             wcs.wcs.crpix[1] -= y
 
             # Yield image from slice (reference!)
-            yield create_image_from_array(im.data[..., y:y + dy, x:x + dx], wcs)
+            yield create_image_from_array(im.data[..., y:y + dy, x:x + dx], wcs, im.polarisation_frame)
 
 
 def image_channel_iter(im: Image, subimages=1) -> Image:
@@ -100,4 +100,4 @@ def image_channel_iter(im: Image, subimages=1) -> Image:
         wcs.wcs.crpix[3] -= channel
 
         # Yield image from slice (reference!)
-        yield create_image_from_array(im.data[channel:channel_max, ...], wcs)
+        yield create_image_from_array(im.data[channel:channel_max, ...], wcs, im.polarisation_frame)

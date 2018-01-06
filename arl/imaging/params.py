@@ -341,10 +341,10 @@ def advise_wide_field(vis: Visibility, delA=0.02, oversampling_synthesised_beam=
     log.info('advice_wide_field: Number of planes in w stack %d' % (vis_slices))
     log.info('advice_wide_field: Number of planes in w projection %d' % wprojection_planes)
     if wprojection_planes > 1:
-        log.info('advice_wide_field: Recommend wprojection gridding')
+        log.info('advice_wide_field: Recommend that wprojection gridding is used')
         kernel = 'wprojection'
     else:
-        log.info('advice_wide_field: Recommend 2d gridding (i.e. no wprojection)')
+        log.info('advice_wide_field: Recommend that 2d gridding (i.e. no wprojection) is used')
         kernel = '2d'
 
     return locals()

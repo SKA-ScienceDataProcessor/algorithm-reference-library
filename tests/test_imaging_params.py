@@ -91,7 +91,7 @@ class TestFTProcessorParams(unittest.TestCase):
         assert len(kernels[0].shape) == 4
         assert kernels[0].shape == (oversampling, oversampling, kernelwidth, kernelwidth), \
             "Actual shape is %s" % str(kernels[0].shape)
-        kernel0 = create_image_from_array(kernels[0], self.model.wcs)
+        kernel0 = create_image_from_array(kernels[0], self.model.wcs, polarisation_frame=PolarisationFrame('stokesI'))
         kernel0.data = kernel0.data.real
         export_image_to_fits(kernel0, "%s/test_w_kernel_list_kernel0.fits" % (self.dir))
         
