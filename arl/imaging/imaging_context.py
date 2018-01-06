@@ -42,41 +42,41 @@ def imaging_contexts():
                        'image_iterator': image_null_iter,
                        'vis_iterator': vis_null_iter,
                        'inner': 'image'},
-                'slice': {'predict': predict_2d_base,
-                          'invert': invert_2d_base,
-                          'image_iterator': image_null_iter,
-                          'vis_iterator': vis_slice_iter,
-                          'inner': 'image'},
-                'facets_slice': {'predict': predict_2d_base,
-                                 'invert': invert_2d_base,
-                                 'image_iterator': image_raster_iter,
-                                 'vis_iterator': vis_slice_iter,
-                                 'inner': 'vis'},
-                'timeslice': {'predict': predict_timeslice_single,
-                              'invert': invert_timeslice_single,
-                              'image_iterator': image_null_iter,
-                              'vis_iterator': vis_timeslice_iter,
-                              'inner': 'vis'},
-                'facets_timeslice': {'predict': predict_timeslice_single,
-                                     'invert': invert_timeslice_single,
-                                     'image_iterator': image_raster_iter,
-                                     'vis_iterator': vis_timeslice_iter,
-                                     'inner': 'image'},
                 'facets': {'predict': predict_2d_base,
                            'invert': invert_2d_base,
                            'image_iterator': image_raster_iter,
                            'vis_iterator': vis_null_iter,
                            'inner': 'image'},
-                'wstack': {'predict': predict_wstack_single,
-                           'invert': invert_wstack_single,
-                           'image_iterator': image_null_iter,
-                           'vis_iterator': vis_wstack_iter,
-                           'inner': 'image'},
+                'facets_slice': {'predict': predict_2d_base,
+                                 'invert': invert_2d_base,
+                                 'image_iterator': image_raster_iter,
+                                 'vis_iterator': vis_slice_iter,
+                                 'inner': 'vis'},
+                'facets_timeslice': {'predict': predict_timeslice_single,
+                                     'invert': invert_timeslice_single,
+                                     'image_iterator': image_raster_iter,
+                                     'vis_iterator': vis_timeslice_iter,
+                                     'inner': 'image'},
                 'facets_wstack': {'predict': predict_wstack_single,
                                   'invert': invert_wstack_single,
                                   'image_iterator': image_raster_iter,
                                   'vis_iterator': vis_wstack_iter,
-                                  'inner': 'vis'}}
+                                  'inner': 'vis'},
+                'slice': {'predict': predict_2d_base,
+                          'invert': invert_2d_base,
+                          'image_iterator': image_null_iter,
+                          'vis_iterator': vis_slice_iter,
+                          'inner': 'image'},
+                'timeslice': {'predict': predict_timeslice_single,
+                              'invert': invert_timeslice_single,
+                              'image_iterator': image_null_iter,
+                              'vis_iterator': vis_timeslice_iter,
+                              'inner': 'vis'},
+                'wstack': {'predict': predict_wstack_single,
+                           'invert': invert_wstack_single,
+                           'image_iterator': image_null_iter,
+                           'vis_iterator': vis_wstack_iter,
+                           'inner': 'image'}}
     
     return contexts
 
@@ -183,8 +183,8 @@ def predict_context(vis, model: Image, context='2d', inner=None, **kwargs) -> Vi
     
     result = copy_visibility(vis, zero=True)
     
-    # Iterate over vis
-    if inner == 'image':
+    # The sense of the loop is reversed from invert!
+    if inner == 'vis':
         for rows in vis_iter(svis, **kwargs):
             if numpy.sum(rows):
                 visslice = create_visibility_from_rows(svis, rows)
