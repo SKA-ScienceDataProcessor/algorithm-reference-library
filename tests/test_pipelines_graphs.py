@@ -17,15 +17,15 @@ from arl.calibration.operations import apply_gaintable, create_gaintable_from_bl
 from arl.data.polarisation import PolarisationFrame
 from arl.image.operations import qa_image, export_image_to_fits, copy_image, create_empty_image_like
 from arl.imaging import create_image_from_visibility, predict_skycomponent_blockvisibility, \
-    predict_skycomponent_visibility, invert_wstack_single, predict_wstack_single
+    predict_skycomponent_visibility
 from arl.skycomponent.operations import create_skycomponent, insert_skycomponent
 from arl.util.testing_support import create_named_configuration
 from arl.util.testing_support import simulate_gaintable
 from arl.visibility.base import create_visibility, create_blockvisibility
 
 from dask import delayed
-from arl.graphs.graphs import create_deconvolve_facet_graph, create_invert_wstack_graph, \
-    create_residual_wstack_graph, create_predict_wstack_graph, create_selfcal_graph_list
+from arl.graphs.delayed import create_deconvolve_facet_graph, create_invert_graph, \
+    create_residual_graph, create_predict_graph, create_selfcal_graph_list
 from arl.pipelines.graphs import create_continuum_imaging_pipeline_graph, \
     create_ical_pipeline_graph
 

@@ -1,4 +1,4 @@
-""" Definition of predict/invert functions in old format
+""" Definition of predict/invert functions as partials of the underlying code.
 
 """
 from functools import partial

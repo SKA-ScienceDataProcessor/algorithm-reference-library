@@ -2,26 +2,24 @@
 # 
 # This notebook demonstrates the continuum imaging and ICAL pipelines.
 
-import os
+import logging
 import socket
 import sys
 import time
+
 import numpy
-
-from astropy.coordinates import SkyCoord
 from astropy import units as u
+from astropy.coordinates import SkyCoord
 
-from arl.data.polarisation import PolarisationFrame
-from arl.image.operations import qa_image, export_image_to_fits, create_empty_image_like
-from arl.imaging import create_image_from_visibility, advise_wide_field
-from arl.imaging.imaging_context import predict_context, invert_context
-from arl.visibility.coalesce import convert_blockvisibility_to_visibility, convert_visibility_to_blockvisibility
-from arl.pipelines.functions import ical
 from arl.calibration.operations import apply_gaintable, create_gaintable_from_blockvisibility
-from arl.util.testing_support import create_low_test_image_from_gleam, create_low_test_beam, \
-    create_blockvisibility, simulate_gaintable, create_named_configuration
-
-import logging
+from arl.data.polarisation import PolarisationFrame
+from arl.image.operations import qa_image, create_empty_image_like
+from arl.imaging import advise_wide_field
+from arl.imaging.imaging_context import predict_context, invert_context
+from arl.pipelines.functions import ical
+from arl.util.testing_support import create_low_test_image_from_gleam, create_blockvisibility, simulate_gaintable, \
+    create_named_configuration
+from arl.visibility.coalesce import convert_blockvisibility_to_visibility, convert_visibility_to_blockvisibility
 
 log = logging.getLogger()
 log.setLevel(logging.INFO)
@@ -37,7 +35,7 @@ def git_hash():
 
 
 def trial_case(results, seed=180555, context='wstack_single', n_workers=8, threads_per_worker=1,
-               processes=True, order='frequency', nfreqwin=7, ntimes=3, rmax=750.0,
+               order='frequency', nfreqwin=7, ntimes=3, rmax=750.0,
                facets=1, wprojection_planes=1, **kwargs):
     """ Single trial for performance-timings
     
@@ -82,7 +80,6 @@ def trial_case(results, seed=180555, context='wstack_single', n_workers=8, threa
     :param context: Type of context: '2d'|'timeslice'|'timeslice_single'|'wstack'|'wstack_single'
     :param n_workers: Number of dask workers to use
     :param threads_per_worker: Number of threads per worker
-    :param processes: Use processes instead of threads 'processes'|'threads'
     :param order: See create_simulate_vis_graph
     :param nfreqwin: See create_simulate_vis_graph
     :param ntimes: See create_simulate_vis_graph
@@ -103,7 +100,6 @@ def trial_case(results, seed=180555, context='wstack_single', n_workers=8, threa
     results['git_hash'] = git_hash()
     results['epoch'] = time.strftime("%Y-%m-%d %H:%M:%S")
     
-    
     results['order'] = order
     results['nfreqwin'] = nfreqwin
     results['ntimes'] = ntimes
@@ -112,17 +108,17 @@ def trial_case(results, seed=180555, context='wstack_single', n_workers=8, threa
     results['wprojection_planes'] = wprojection_planes
     
     print("At start, configuration is {0!r}".format(results))
-
+    
     # Parameters determining scale
     frequency = numpy.linspace(0.8e8, 1.2e8, nfreqwin)
     if nfreqwin > 1:
-        channel_bandwidth = numpy.array(nfreqwin * [(frequency[1] - frequency[0])*(1.0-1.0e-7)])
+        channel_bandwidth = numpy.array(nfreqwin * [(frequency[1] - frequency[0]) * (1.0 - 1.0e-7)])
     else:
         channel_bandwidth = numpy.array([1e6])
     times = numpy.linspace(-numpy.pi / 3.0, numpy.pi / 3.0, ntimes)
     
     phasecentre = SkyCoord(ra=+30.0 * u.deg, dec=-60.0 * u.deg, frame='icrs', equinox='J2000')
-
+    
     print("****** Visibility creation ******")
     config = create_named_configuration('LOWBD2', rmax=rmax)
     block_vis = create_blockvisibility(config,
@@ -168,7 +164,7 @@ def trial_case(results, seed=180555, context='wstack_single', n_workers=8, threa
     results['time create gleam'] = end - start
     print("Creating GLEAM model took %.2f seconds" % (end - start))
     empty_model = create_empty_image_like(gleam_model)
-
+    
     start = time.time()
     print("****** Starting GLEAM model visibility prediction ******")
     vis = convert_blockvisibility_to_visibility(block_vis)
@@ -249,12 +245,12 @@ def trial_case(results, seed=180555, context='wstack_single', n_workers=8, threa
     results['time overall'] = end_all - start_all
     
     print("At end, results are {0!r}".format(results))
-
+    
     from arl.image.operations import export_image_to_fits
     export_image_to_fits(deconvolved, "ical_deconvolved.fits")
     export_image_to_fits(residual, "ical_residual.fits")
     export_image_to_fits(restored, "ical_restored.fits")
-
+    
     return results
 
 
@@ -273,10 +269,11 @@ def write_header(filename, fieldnames):
         writer.writeheader()
         csvfile.close()
 
+
 if __name__ == '__main__':
     import csv
     import seqfile
-
+    
     import argparse
     
     parser = argparse.ArgumentParser(description='Benchmark pipelines in numpy')
@@ -324,6 +321,6 @@ if __name__ == '__main__':
     
     results = trial_case(results, context=context, rmax=rmax, nfreqwin=nfreqwin, ntimes=ntimes)
     write_results(filename, results)
-
+    
     print('Exiting %s' % results['driver'])
     exit()

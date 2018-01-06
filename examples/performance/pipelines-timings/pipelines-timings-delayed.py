@@ -13,7 +13,7 @@ from astropy.coordinates import SkyCoord
 
 from arl.data.polarisation import PolarisationFrame
 from arl.graphs.dask_init import get_dask_Client, findNodes
-from arl.graphs.graphs import create_predict_graph, create_invert_graph, \
+from arl.graphs.delayed import create_predict_graph, create_invert_graph, \
     compute_list
 from arl.image.operations import qa_image
 from arl.imaging import create_image_from_visibility, advise_wide_field

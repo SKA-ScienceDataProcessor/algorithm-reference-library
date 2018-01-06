@@ -5,7 +5,7 @@ from dask import delayed
 
 from arl.data.parameters import get_parameter
 from arl.image.deconvolution import restore_cube
-from arl.graphs.graphs import create_deconvolve_graph, create_invert_graph, create_residual_graph, \
+from arl.graphs.delayed import create_deconvolve_graph, create_invert_graph, create_residual_graph, \
     create_predict_graph, create_zero_vis_graph_list, create_calibrate_graph_list, \
     create_subtract_vis_graph_list
 

@@ -4,22 +4,18 @@ thus allowing construction of graphs. For example, to build a graph for a major/
 
     model_graph = delayed(create_image_from_visibility)(vt, npixel=512, cellsize=0.001, npol=1)
     solution_graph = create_solve_image_graph(vt, model_graph=model_graph, psf_graph=psf_graph,
-                                            invert_residual=invert_timeslice,
-                                            predict_residual=predict_timeslice,
-                                            iterator=vis_timeslice_iter, algorithm='hogbom',
+                                            context='timslice', algorithm='hogbom',
                                             niter=1000, fractional_threshold=0.1,
                                             threshold=1.0, nmajor=3, gain=0.1)
     solution_graph.visualize()
 
-The visualize step produces the following graph:
+The graph for one vis_graph is executed as follows::
 
-.. image:: ./deconvolution_dask.png
-    :align: center
-    :width: 1024px
+    solution_graph[0].compute()
+    
+or if a Dask.dsitributed client is available:
 
-The graph is executed as follows::
-
-    solution_graph.compute()
+    client.compute(solution_graph)
 
 As well as the specific graphs constructed by functions in this module, there are generic versions in the module
 :mod:`arl.pipelines.generic_dask_graphs`.
@@ -30,8 +26,11 @@ by default, it is necessary to use the nout= parameter to delayed to specify the
 graph size.
 
 Construction of the graphs requires that the number of nodes (e.g. w slices or time-slices) be known at construction,
-rather than execution. To counteract this, at run time, a given node should be able to act as a no-op. This is a
-workaround only.
+rather than execution. To counteract this, at run time, a given node should be able to act as a no-op. We use None
+to denote a null node.
+
+The actual imaging code executed eventually is specified by the context variable (see arl.imaging.imaging)context.
+These are the same as executed in the imaging framework.
 
 """
 
@@ -41,7 +40,7 @@ from dask.distributed import wait
 
 from arl.calibration.operations import apply_gaintable
 from arl.calibration.solvers import solve_gaintable
-from arl.data.data_models import Image
+from arl.data.data_models import Image, BlockVisibility
 from arl.image.deconvolution import deconvolve_cube
 from arl.image.gather_scatter import image_scatter_facets, image_gather_facets, image_scatter_channels, \
     image_gather_channels
@@ -49,8 +48,10 @@ from arl.image.operations import copy_image, create_empty_image_like
 from arl.imaging import normalize_sumwt
 from arl.imaging.imaging_context import imaging_context
 from arl.imaging.weighting import weight_visibility
-from arl.visibility.base import copy_visibility
-from arl.visibility.gather_scatter import visibility_gather_channel
+from arl.visibility.base import copy_visibility, create_visibility_from_rows
+from arl.visibility.coalesce import coalesce_visibility
+from arl.visibility.gather_scatter import visibility_scatter, visibility_scatter_channel, \
+    visibility_gather_channel
 from arl.visibility.operations import divide_visibility, integrate_visibility_by_channel
 
 
@@ -81,24 +82,41 @@ def sum_invert_results(image_list):
     """
     first = True
     for i, arg in enumerate(image_list):
-        if isinstance(arg[1], numpy.ndarray):
-            scale = arg[1][..., numpy.newaxis, numpy.newaxis]
-        else:
-            scale = arg[1]
-        if first:
-            im = copy_image(arg[0])
-            im.data *= scale
-            sumwt = arg[1]
-            first = False
-        else:
-            im.data += scale * arg[0].data
-            sumwt += arg[1]
+        if arg is not None:
+            if isinstance(arg[1], numpy.ndarray):
+                scale = arg[1][..., numpy.newaxis, numpy.newaxis]
+            else:
+                scale = arg[1]
+            if first:
+                im = copy_image(arg[0])
+                im.data *= scale
+                sumwt = arg[1]
+                first = False
+            else:
+                im.data += scale * arg[0].data
+                sumwt += arg[1]
     
     assert not first, "No invert results"
     
     im = normalize_sumwt(im, sumwt)
     return im, sumwt
 
+
+def sum_predict_results(results):
+    """ Sum a set of predict results
+
+    :param vis_list: List of visibilities
+    :return: summed visibility
+    """
+    sum_results = None
+    for result in results:
+        if result is not None:
+            if sum_results is None:
+                sum_results = copy_visibility(result)
+            else:
+                sum_results.data['vis'] += result.data['vis']
+
+    return sum_results
 
 def create_zero_vis_graph_list(vis_graph_list):
     """ Initialise vis to zero: creates new data holders
@@ -159,190 +177,100 @@ def create_weight_vis_graph_list(vis_graph_list, model_graph, weighting='uniform
                 return None
         else:
             return None
-
+    
     return [delayed(weight_vis, pure=True, nout=1)(vis_graph_list[i], model_graph, weighting)
             for i in range(len(vis_graph_list))]
 
 
-def create_invert_graph(vis_graph_list, template_model_graph: delayed, vis_slices=None,
-                        dopsf=False, normalize=True, context='2d',
-                        **kwargs) -> delayed:
-    """ Sum invert results for a scattered  vis_graph_list
-
-    Base for create_invert_wstack_graph and create_invert_timeslice_graph
+def create_invert_graph(vis_graph_list, template_model_graph: delayed, dopsf=False, normalize=True,
+                        facets=1, vis_slices=1, context='2d', **kwargs) -> delayed:
+    """ Sum results from invert, iterating over the scattered image and vis_graph_list
 
     :param vis_graph_list:
     :param template_model_graph: Model used to determine image parameters
-    :param vis_slices: Number of visibility slices in w stacking
-    :param invert: Function used for invert
-    :param dopsf: Make psf (False)
+    :param c_invert_vis_scatter_graph: Function to create invert graphs
+    :param dopsf: Make the PSF instead of the dirty image
+    :param facets: Number of facets
     :param kwargs: Parameters for functions in graphs
     :return: delayed for invert
-    """
-    invert = imaging_context(context)['invert']
-    scatter = imaging_context(context)['scatter']
+   """
+    c = imaging_context(context)
+    invert = c['invert']
+    image_iter = c['image_iterator']
+    vis_iter = c['vis_iterator']
+    inner = c['inner']
     
+    def scatter_vis(vis, vis_slices, vis_iter, **kwargs):
+        if isinstance(vis, BlockVisibility):
+            avis = coalesce_visibility(vis, **(kwargs))
+        else:
+            avis = vis
+        return visibility_scatter(avis, vis_iter=vis_iter, vis_slices=vis_slices, **kwargs)
+    
+    def scatter_image(im, facets, image_iter, **kwargs):
+        return [subim for subim in image_iter(im, facets=facets, **kwargs)]
+
+    def gather_invert_results(results, template_model, facets, image_iter, **kwargs):
+        result = create_empty_image_like(template_model)
+        i = 0
+        for dpatch in image_iter(result, facets=facets, **kwargs):
+            if results[i] is not None:
+                dpatch.data[...] = results[i][0].data[...]
+                i+=1
+        return result, results[0][1]
+
     def invert_ignore_None(vis, model, *args, **kwargs):
         if vis is not None:
-            return invert(vis, model, *args, **kwargs)
+            return invert(vis, model, *args, context=context, dopsf=dopsf, normalize=normalize, **kwargs)
         else:
             return create_empty_image_like(model), 0.0
     
-    # Graph to combine the images from different vis_graphs. Do this on the outer loop to cut down on
-    # traffic
-    image_graph_list = list()
+    # Scatter the model in e.g. facets
+    model_graphs = delayed(scatter_image, nout=facets ** 2)(template_model_graph, facets=facets, image_iter=image_iter)
+    # Loop over all vis_graphs independently
     
-    if scatter is not None and vis_slices is not None:
+    if inner=='vis':
+        results_vis_graph_list = list()
         for vis_graph in vis_graph_list:
-            
-            if vis_graph is not None:
-                scatter_graph_list = list()
-                scatter_vis_graph_list = delayed(scatter, nout=vis_slices)(vis_graph,
-                                                                           vis_slices=vis_slices,
-                                                                           **kwargs)
-                for scatter_vis_graph in scatter_vis_graph_list:
-                    scatter_graph_list.append(delayed(invert_ignore_None,
-                                                      pure=True, nout=2)(scatter_vis_graph,
-                                                                         template_model_graph,
-                                                                         dopsf=dopsf,
-                                                                         normalize=normalize,
-                                                                         **kwargs))
-                image_graph_list.append(delayed(sum_invert_results)(scatter_graph_list))
+            sub_vis_graphs = delayed(scatter_vis, nout=vis_slices)(vis_graph, vis_slices=vis_slices,
+                                                                   vis_iter=vis_iter, **kwargs)
+            # Iterate within each vis_graph
+            image_graphs = list()
+            # Iterate within each model_graph
+            for sub_model_graph in model_graphs:
+                sub_model_results = list()
+                for sub_vis_graph in sub_vis_graphs:
+                    sub_model_results.append(delayed(invert_ignore_None, pure=True, nout=1) \
+                                            (sub_vis_graph, sub_model_graph, **kwargs))
+                image_graphs.append(delayed(sum_invert_results, nout=1)(sub_model_results))
+                
+            results_vis_graph_list.append(delayed(gather_invert_results)(image_graphs, template_model_graph, facets,
+                                                                         image_iter))
     else:
+        results_vis_graph_list = list()
         for vis_graph in vis_graph_list:
-            image_graph_list.append(delayed(invert_ignore_None,
-                                            pure=True, nout=2)(vis_graph,
-                                                               template_model_graph,
-                                                               dopsf=dopsf, normalize=normalize,
-                                                               **kwargs))
-    
-    return delayed(sum_invert_results)(image_graph_list)
-
-
-def create_invert_facet_graph(vis_graph_list, template_model_graph: delayed, dopsf=False,
-                              normalize=True, facets=1, context='2d',
-                              **kwargs) -> delayed:
-    """ Sum results from invert, iterating over the vis_graph_list, allows faceting
-
-    :param vis_graph_list:
-    :param template_model_graph: Model used to determine image parameters
-    :param vis_slices: Number of visibility slices in w stacking
-    :param kwargs: Parameters for functions in graphs
-    :return: delayed for invert
-   """
-    
-    def gather_invert_results(results, template_model, facets, **kwargs):
-        # Results contains the images for each facet, after adding across vis_graphs
-        image_results = create_empty_image_like(template_model)
-        image_results = image_gather_facets([result[0] for result in results],
-                                            image_results, facets=facets)
-        # For the gather, assume all are the same weight
-        sumwt = results[0][1]
+            sub_vis_graphs = delayed(scatter_vis, nout=vis_slices)(vis_graph, vis_slices=vis_slices,
+                                                                   vis_iter=vis_iter, **kwargs)
+            # Iterate within each vis_graph
+            image_graphs = list()
+            for sub_vis_graph in sub_vis_graphs:
+            # Iterate within each model_graph
+                for sub_model_graph in model_graphs:
+                    sub_model_results = list()
+                    sub_model_results.append(delayed(invert_ignore_None, pure=True, nout=1) \
+                                                 (sub_vis_graph, sub_model_graph, **kwargs))
+                image_graphs.append(delayed(sum_invert_results, nout=1)(sub_model_results))
         
-        return image_results, sumwt
-    
-    # Scatter the model in facets
-    model_graphs = \
-        delayed(image_scatter_facets, nout=facets ** 2, pure=True)(template_model_graph,
-                                                                   facets=facets)
-    
-    # For each facet, invert over the vis_graph
-    results = [create_invert_graph(vis_graph_list, model_graph, dopsf=dopsf, normalize=normalize,
-                                   context=context, **kwargs)
-               for model_graph in model_graphs]
-    # Now we have a list containing the facet images added over vis_graph. We can now
-    # gather those images into one image
-    return delayed(gather_invert_results, nout=2, pure=True)(results, template_model_graph,
-                                                             facets=facets, **kwargs)
+            results_vis_graph_list.append(delayed(gather_invert_results)(image_graphs,
+                                                                         template_model_graph, facets,
+                                                                         image_iter))
+
+    return results_vis_graph_list
 
 
-def create_predict_graph(vis_graph_list, model_graph: delayed, vis_slices=None,
-                         context='wstack_single', **kwargs):
-    """Predict, iterating over the scattered vis_graph_list
-
-    :param vis_graph_list:
-    :param template_model_graph: Model used to determine image parameters
-    :param vis_slices: Number of vis slices (w stack or timeslice)
-    :param context: Imaging context
-    :param kwargs: Parameters for functions in graphs
-    :return: List of vis_graphs
-   """
-    predict = imaging_context(context)['predict']
-    scatter = imaging_context(context)['scatter']
-    gather = imaging_context(context)['gather']
-    
-    def predict_and_accumulate(vis, model, **kwargs):
-        if vis is not None:
-            predicted = copy_visibility(vis)
-            predicted = predict(predicted, model, **kwargs)
-            return predicted
-        else:
-            return None
-    
-    predicted_vis_list = list()
-    if scatter is not None and gather is not None and vis_slices is not None:
-        for vis_graph in vis_graph_list:
-            scatter_vis_graphs = \
-                delayed(scatter, nout=vis_slices)(vis_graph, vis_slices=vis_slices, **kwargs)
-            predict_list = list()
-            for scatter_vis_graph in scatter_vis_graphs:
-                predict_list.append(delayed(predict_and_accumulate, pure=True,
-                                            nout=1)(scatter_vis_graph, model_graph, **kwargs))
-            predicted_vis_list.append(delayed(gather, nout=1)(predict_list, vis_graph,
-                                                              vis_slices=vis_slices,
-                                                              **kwargs))
-    else:
-        return [delayed(predict_and_accumulate, pure=True, nout=1)(v, model_graph, **kwargs)
-                for v in vis_graph_list]
-    
-    return predicted_vis_list
-
-
-def create_predict_facet_graph(vis_graph_list, model_graph: delayed, context='wstack_single',
-                               facets=2, **kwargs):
-    """ Predict visibility from a model using facets
-
-    :param vis_graph_list:
-    :param template_model_graph: Model used to determine image parameters
-    :param facets: Number of facets per x, y axis)
-    :param predict: Predict function to be used (predict_2d)
-    :param kwargs: Parameters for functions in graphs
-    :return: List of vis_graphs
-    """
-    predict = imaging_context(context)['predict']
-    scatter = imaging_context(context)['scatter']
-    gather = imaging_context(context)['gather']
-    
-    def predict_facets_and_accumulate(vis, model, **kwargs):
-        if vis is not None:
-            predicted = copy_visibility(vis)
-            predicted = predict(predicted, model, **kwargs)
-            vis.data['vis'] += predicted.data['vis']
-            return vis
-        else:
-            return None
-    
-    # Note that we need to know the number of facets in order to define the size of facet_model_graphs
-    facet_model_graphs = delayed(image_scatter_facets, nout=facets ** 2, pure=True)(model_graph,
-                                                                                    facets=facets)
-    accumulate_vis_graphs = list()
-    for vis_graph in vis_graph_list:
-        for ifacet, facet_model_graph in enumerate(facet_model_graphs):
-            # There is a dependency issue here so we chain the predicts
-            accumulate_vis_graph = None
-            if ifacet == 0:
-                accumulate_vis_graph = delayed(predict_facets_and_accumulate, pure=True,
-                                               nout=1)(vis_graph, facet_model_graph, **kwargs)
-            else:
-                accumulate_vis_graph = delayed(predict_facets_and_accumulate, pure=True, nout=1)(
-                    accumulate_vis_graph, facet_model_graph, **kwargs)
-            accumulate_vis_graphs.append(accumulate_vis_graph)
-    return accumulate_vis_graphs
-
-
-def create_predict_facet_vis_scatter_graph(vis_graph_list, model_graph: delayed, vis_slices, facets,
-                                           context='2d', **kwargs):
-    """Predict, iterating over the scattered vis_graph_list and image
+def create_predict_graph(vis_graph_list, model_graph: delayed, vis_slices=1, facets=1,
+                         context='2d', **kwargs):
+    """Predict, iterating over both the scattered vis_graph_list and image
 
     :param vis_graph_list:
     :param model_graph: Model used to determine image parameters
@@ -353,141 +281,78 @@ def create_predict_facet_vis_scatter_graph(vis_graph_list, model_graph: delayed,
     :param kwargs: Parameters for functions in graphs
     :return: List of vis_graphs
    """
+    c = imaging_context(context)
+    predict = c['predict']
+    image_iter = c['image_iterator']
+    vis_iter = c['vis_iterator']
     
-    predict = imaging_context(context)['predict']
-    scatter = imaging_context(context)['scatter']
-    gather = imaging_context(context)['gather']
-    
-    def predict_facets_and_accumulate(vis, model, **kwargs):
+    def predict_ignore_None(vis, model, **kwargs):
         if vis is not None:
             predicted = copy_visibility(vis)
             predicted = predict(predicted, model, **kwargs)
             return predicted
         else:
             return None
-            
-            # Note that we need to know the number of facets in order to define the size of facet_model_graphs
     
-    facet_model_graphs = delayed(image_scatter_facets, nout=facets ** 2, pure=True)(model_graph, facets=facets)
-    predicted_vis_list = list()
+    def gather_vis(results, vis, vis_slices, **kwargs):
+        i = 0
+        for rows in vis_iter(vis, vis_slices=vis_slices, **kwargs):
+            if rows is not None:
+                print(i, numpy.sum(rows))
+                vis.data['vis'][rows][...] = results[i].data['vis'][...]
+                i+=1
+        return vis
+
+    def scatter_vis(vis, vis_slices, vis_iter, **kwargs):
+        if isinstance(vis, BlockVisibility):
+            avis = coalesce_visibility(vis, **(kwargs))
+        else:
+            avis = vis
+        results = visibility_scatter(avis, vis_iter=vis_iter, vis_slices=vis_slices, **kwargs)
+        return results
+
+    def scatter_image(im, facets, **kwargs):
+        return [subim for subim in image_iter(im, facets=facets, **kwargs)]
+    
+    model_graphs = delayed(scatter_image, nout=facets ** 2)(model_graph, facets=facets)
+    
+    results_vis_graph_list = list()
     for vis_graph in vis_graph_list:
-        scatter_vis_graphs = delayed(scatter, nout=vis_slices)(vis_graph, vis_slices=vis_slices, **kwargs)
-        
-        accumulate_vis_graphs = list()
-        for scatter_vis_graph in scatter_vis_graphs:
-            for ifacet, facet_model_graph in enumerate(facet_model_graphs):
-                accumulate_vis_graph = delayed(predict_facets_and_accumulate,
-                                               pure=True, nout=1)(scatter_vis_graph,
-                                                                  facet_model_graphs[ifacet],
-                                                                  **kwargs)
-                accumulate_vis_graphs.append(accumulate_vis_graph)
-        
-        predicted_vis_list.append(delayed(gather, nout=1)(accumulate_vis_graphs, vis_graph,
-                                                          vis_slices=vis_slices, **kwargs))
-    
-    return predicted_vis_list
+        sub_vis_graphs = delayed(scatter_vis, nout=vis_slices)(vis_graph, vis_slices=vis_slices,
+                                                               vis_iter=vis_iter, **kwargs)
+        vis_graphs = list()
+        for sub_model_graph in model_graphs:
+            sub_model_results = list()
+            for sub_vis_graph in sub_vis_graphs:
+                sub_model_results.append(delayed(predict_ignore_None, pure=True, nout=1) \
+                    (sub_vis_graph, sub_model_graph, **kwargs))
+            vis_graphs.append(delayed(sum_predict_results)(sub_model_results))
+
+        results_vis_graph_list.append(delayed(gather_vis, nout=1)(vis_graphs, vis_graph,
+                                                                  vis_slices=vis_slices, **kwargs))
+    return results_vis_graph_list
 
 
-def create_residual_graph(vis_graph_list, model_graph: delayed, vis_slices,
-                          context='wstack_single',
-                          **kwargs) -> delayed:
-    """ Sum invert results for a scattered  vis_graph_list
+def create_residual_graph(vis, model_graph: delayed, context='2d', **kwargs) -> delayed:
+    """ Create a graph to calculate residual image using w stacking and faceting
 
-    Base for create_invert_wstack_graph and create_invert_timeslice_graph
-
-    :param vis_graph_list:
-    :param template_model_graph: Model used to determine image parameters
-    :param vis_slices: Number of visibility slices in w stacking
-    :param invert: Function used for invert
-    :param dopsf: Make psf (False)
-    :param kwargs: Parameters for functions in graphs
-    :return: delayed for invert
-    """
-    
-    invert = imaging_context(context)['invert']
-    predict = imaging_context(context)['predict']
-    scatter = imaging_context(context)['scatter']
-    gather = imaging_context(context)['gather']
-    
-    if scatter is not None and gather is not None:
-        def zerovis(vis):
-            if vis is not None:
-                zerovis = copy_visibility(vis)
-                zerovis.data['vis'][...] = 0.0
-                return zerovis
-            else:
-                return None
-        
-        def predict_ignore_None(vis, model, **kwargs):
-            if vis is not None:
-                predicted = copy_visibility(vis)
-                predicted = predict(predicted, model, **kwargs)
-                return predicted
-            else:
-                return None
-        
-        def subtract_vis(vis, model_vis):
-            if vis is not None and model_vis is not None:
-                assert vis.vis.shape == model_vis.vis.shape
-                subvis = copy_visibility(vis)
-                subvis.data['vis'][...] -= model_vis.data['vis'][...]
-                return subvis
-            else:
-                return None
-        
-        def invert_ignore_None(vis, model, *args, **kwargs):
-            if vis is not None:
-                return invert(vis, model, *args, **kwargs)
-            else:
-                return create_empty_image_like(model), 0.0
-        
-        # Graph to combine the images from different vis_graphs. Do this on the outer loop to cut down on
-        # traffic
-        image_graph_list = list()
-        
-        for vis_graph in vis_graph_list:
-            
-            if vis_graph is not None:
-                scatter_vis_graph_list = delayed(scatter, nout=vis_slices)(vis_graph, vis_slices=vis_slices,
-                                                                           **kwargs)
-                for scatter_vis_graph in scatter_vis_graph_list:
-                    mvg = delayed(zerovis)(scatter_vis_graph)
-                    mvg = delayed(predict_ignore_None)(mvg, model_graph, **kwargs)
-                    mvg = delayed(subtract_vis)(scatter_vis_graph, mvg)
-                    image_graph_list.append(delayed(invert_ignore_None,
-                                                    pure=True, nout=2)(mvg, model_graph,
-                                                                       dopsf=False, normalize=True,
-                                                                       **kwargs))
-        return delayed(sum_invert_results)(image_graph_list)
-    else:
-        model_vis_graph_list = create_zero_vis_graph_list(vis_graph_list)
-        model_vis_graph_list = create_predict_graph(model_vis_graph_list, model_graph, context=context,
-                                                    **kwargs)
-        residual_vis_graph_list = create_subtract_vis_graph_list(vis_graph_list,
-                                                                 model_vis_graph_list)
-        return create_invert_graph(residual_vis_graph_list, model_graph, dopsf=False,
-                                   normalize=True, context=context, **kwargs)
-
-
-def create_residual_facet_graph(vis_graph_list, model_graph: delayed, **kwargs) -> delayed:
-    """ Create a graph to calculate residual image using facets
-
-    :param vis_graph_list:
+    :param vis:
     :param model_graph: Model used to determine image parameters
+    :param vis:
+    :param model_graph: Model used to determine image parameters
+    :param vis_slices: Number of vis slices (w stack or timeslice)
     :param facets: Number of facets (in both x and y axes)
     :param kwargs: Parameters for functions in graphs
     :return:
     """
-    model_vis_graph_list = create_zero_vis_graph_list(vis_graph_list)
-    model_vis_graph_list = create_predict_facet_graph(model_vis_graph_list, model_graph, **kwargs)
-    residual_vis_graph_list = create_subtract_vis_graph_list(vis_graph_list, model_vis_graph_list)
-    return create_invert_facet_graph(residual_vis_graph_list, model_graph, dopsf=False, normalize=True,
-                                     **kwargs)
+    model_vis = create_zero_vis_graph_list(vis)
+    model_vis = create_predict_graph(model_vis, model_graph, context=context, **kwargs)
+    residual_vis = create_subtract_vis_graph_list(vis, model_vis)
+    return create_invert_graph(residual_vis, model_graph, dopsf=False, normalize=True, context=context,
+                               **kwargs)
 
 
-def create_deconvolve_graph(dirty_graph: delayed, psf_graph: delayed, model_graph: delayed, facets=1,
-                            **kwargs) -> \
-        delayed:
+def create_deconvolve_graph(dirty_graph: delayed, psf_graph: delayed, model_graph: delayed, **kwargs) -> delayed:
     """Create a graph for deconvolution, adding to the model
 
     :param dirty_graph:
@@ -496,34 +361,48 @@ def create_deconvolve_graph(dirty_graph: delayed, psf_graph: delayed, model_grap
     :param kwargs: Parameters for functions in graphs
     :return:
     """
-    if facets > 1:
-        def deconvolve_subimage(dirty, psf, **kwargs):
-            assert isinstance(dirty, Image)
-            assert isinstance(psf, Image)
-            result = deconvolve_cube(dirty, psf, **kwargs)
-            return result[0]
-        
-        def add_model(output, model):
-            assert isinstance(output, Image)
-            assert isinstance(model, Image)
-            output.data += model.data
-            return output
-        
-        output = delayed(create_empty_image_like, nout=1, pure=True)(model_graph)
-        dirty_graphs = delayed(image_scatter_facets, nout=facets * facets, pure=True)(dirty_graph[0], facets=facets)
-        results = [delayed(deconvolve_subimage)(dirty_graph, psf_graph[0], **kwargs)
-                   for dirty_graph in dirty_graphs]
-        result = delayed(image_gather_facets, nout=1, pure=True)(results, output, facets=facets)
-        return delayed(add_model, nout=1, pure=True)(result, model_graph)
     
-    else:
-        
-        def deconvolve(dirty, psf, model, **kwargs):
-            result = deconvolve_cube(dirty, psf, **kwargs)
-            result[0].data += model.data
-            return result[0]
-        
-        return delayed(deconvolve, pure=True, nout=2)(dirty_graph[0], psf_graph[0], model_graph, **kwargs)
+    def deconvolve(dirty, psf, model, **kwargs):
+        result = deconvolve_cube(dirty[0], psf[0], **kwargs)
+        result[0].data += model.data
+        return result[0]
+    
+    return delayed(deconvolve, pure=True, nout=2)(dirty_graph[0], psf_graph[0], model_graph, **kwargs)
+
+
+def create_deconvolve_facet_graph(dirty_graph: delayed, psf_graph: delayed, model_graph: delayed,
+                                  facets=1, **kwargs) -> delayed:
+    """Create a graph for deconvolution by subimages, adding to the model
+    
+    Does deconvolution subimage by subimage. Currently does nothing very sensible about the
+    edges.
+
+    :param dirty_graph:
+    :param psf_graph:
+    :param model_graph: Current model
+    :param subimages: Number of subimages
+    :param kwargs: Parameters for functions in graphs
+    :return:
+    """
+    
+    def deconvolve_subimage(dirty, psf, **kwargs):
+        assert isinstance(dirty, Image)
+        assert isinstance(psf, Image)
+        result = deconvolve_cube(dirty, psf, **kwargs)
+        return result[0]
+    
+    def add_model(output, model):
+        assert isinstance(output, Image)
+        assert isinstance(model, Image)
+        output.data += model.data
+        return output
+    
+    output = delayed(create_empty_image_like, nout=1, pure=True)(model_graph)
+    dirty_graphs = delayed(image_scatter_facets, nout=facets * facets, pure=True)(dirty_graph[0], facets=facets)
+    results = [delayed(deconvolve_subimage)(dirty_graph, psf_graph[0], **kwargs)
+               for dirty_graph in dirty_graphs]
+    result = delayed(image_gather_facets, nout=1, pure=True)(results, output, facets=facets)
+    return delayed(add_model, nout=1, pure=True)(result, model_graph)
 
 
 def create_deconvolve_channel_graph(dirty_graph: delayed, psf_graph: delayed, model_graph: delayed, subimages,

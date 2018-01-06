@@ -24,7 +24,7 @@ from arl.image.operations import export_image_to_fits, smooth_image
 from arl.imaging import advise_wide_field
 
 from arl.graphs.dask_init import get_dask_Client
-from arl.graphs.graphs import compute_list, create_invert_graph, create_predict_graph, create_weight_vis_graph_list
+from arl.graphs.delayed import compute_list, create_invert_graph, create_predict_graph, create_weight_vis_graph_list
 from arl.util.graph_support import create_simulate_vis_graph, create_gleam_model_graph
 
 import logging
@@ -79,7 +79,7 @@ if __name__ == '__main__':
         npixel = advice['npixels2']
         cellsize = advice['cellsize']
 
-        future = c.compute(create_gleam_model_graph(vis_graph_list[0], npixel=npixel, nchan=1,
+        future = c.compute(delayed(create_low_test_image_from_gleam)(vis_graph_list[0], npixel=npixel, nchan=1,
                                                     cellsize=cellsize, frequency=[frequency[0]],
                                                     channel_bandwidth=[channel_bandwidth[0]],
                                                     polarisation_frame=PolarisationFrame("stokesI")))

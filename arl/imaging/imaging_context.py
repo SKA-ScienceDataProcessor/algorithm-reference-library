@@ -186,7 +186,7 @@ def predict_context(vis, model: Image, context='2d', inner=None, **kwargs) -> Vi
     # Iterate over vis
     if inner == 'image':
         for rows in vis_iter(svis, **kwargs):
-            if numpy.sum(rows) and svis is not None:
+            if numpy.sum(rows):
                 visslice = create_visibility_from_rows(svis, rows)
                 visslice.data['vis'][...] = 0.0
                 # Iterate over images
@@ -198,7 +198,7 @@ def predict_context(vis, model: Image, context='2d', inner=None, **kwargs) -> Vi
         # Iterate over images
         for dpatch in image_iter(model, **kwargs):
             for rows in vis_iter(svis, **kwargs):
-                if numpy.sum(rows) and svis is not None:
+                if numpy.sum(rows):
                     visslice = create_visibility_from_rows(svis, rows)
                     result.data['vis'][...] = 0.0
                     result = predict(visslice, dpatch, **kwargs)
