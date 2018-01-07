@@ -69,7 +69,7 @@ RUN mkdir -p /arl/test_data /arl/test_results && \
     chmod -R a+w /arl
 
 # We share in the arl data here
-VOLUME ["/arl/data"]
+VOLUME ["/arl/data", "/arl/tmp"]
 
 # Expose Jupyter and Bokeh ports
 EXPOSE  8888 8787

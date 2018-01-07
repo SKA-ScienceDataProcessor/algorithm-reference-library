@@ -183,7 +183,7 @@ def import_image_from_fits(fitsfile: str, mute_warnings=True) -> Image:
     else:
         try:
             fim.polarisation_frame = polarisation_frame_from_wcs(fim.wcs, fim.data.shape)
-        except:
+        except ValueError as err:
             fim.polarisation_frame = PolarisationFrame('stokesI')
     
     log.debug("import_image_from_fits: created %s image of shape %s, size %.3f (GB)" %

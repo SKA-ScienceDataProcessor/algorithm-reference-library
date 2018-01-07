@@ -39,7 +39,7 @@ def create_pb_vla(model, pointingcentre=None):
     else:
         with warnings.catch_warnings():
             warnings.simplefilter('ignore')
-            cx, cy = beam.wcs.sub(2).wcs.crpix[0]-1, beam.wcs.sub(2).wcs.crpix[1]-1
+            cx, cy = beam.wcs.sub(2).wcs.crpix[0] - 1, beam.wcs.sub(2).wcs.crpix[1] - 1
     
     for chan in range(nchan):
         
@@ -89,8 +89,8 @@ def create_illum_vla(model):
         wavelength = const.c.to('m/s').value / frequency
         scaleuv = numpy.abs(illum.wcs.sub(2).wcs.cdelt[0]) * wavelength
         
-        xx, yy = numpy.meshgrid(scaleuv * (range(nx) - illum.wcs.sub(2).wcs.crpix[0]-1),
-                                scaleuv * (range(ny) - illum.wcs.sub(2).wcs.crpix[1]-1))
+        xx, yy = numpy.meshgrid(scaleuv * (range(nx) - illum.wcs.sub(2).wcs.crpix[0] - 1),
+                                scaleuv * (range(ny) - illum.wcs.sub(2).wcs.crpix[1] - 1))
         
         for pol in range(npol):
             reflector = disk(illum.data[chan, pol, ...], xx, yy, 25.0)
@@ -125,8 +125,8 @@ def create_illum_vla_numerical(model):
         wavelength = const.c.to('m/s').value / frequency
         scaleuv = numpy.abs(illum.wcs.sub(2).wcs.cdelt[0]) * wavelength
         
-        xx, yy = numpy.meshgrid(scaleuv * (range(nx) - illum.wcs.sub(2).wcs.crpix[0]-1),
-                                scaleuv * (range(ny) - illum.wcs.sub(2).wcs.crpix[1]-1))
+        xx, yy = numpy.meshgrid(scaleuv * (range(nx) - illum.wcs.sub(2).wcs.crpix[0] - 1),
+                                scaleuv * (range(ny) - illum.wcs.sub(2).wcs.crpix[1] - 1))
         
         for pol in range(npol):
             reflector = disk(illum.data[chan, pol, ...], xx, yy, 25.0)

@@ -57,10 +57,10 @@ def solve_gaintable(vis: BlockVisibility, modelvis: BlockVisibility=None, phase_
         if modelvis is not None:
             model_subvis = create_visibility_from_rows(modelvis, rows)
             pointvis = divide_visibility(subvis, model_subvis)
-            x = numpy.sum(pointvis.vis*pointvis.weight, axis=0)
+            x = numpy.sum(pointvis.vis * pointvis.weight, axis=0)
             xwt = numpy.sum(pointvis.weight, axis=0)
         else:
-            x = numpy.sum(subvis.vis*subvis.weight, axis=0)
+            x = numpy.sum(subvis.vis * subvis.weight, axis=0)
             xwt = numpy.sum(subvis.weight, axis=0)
             
         mask = numpy.abs(xwt) > 0.0

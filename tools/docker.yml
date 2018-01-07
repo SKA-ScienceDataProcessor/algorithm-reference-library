@@ -57,9 +57,10 @@
         image: "{{ arl_image }}:{{ arl_image_tag }}"
         state: started
         network_mode: host
-        command: "dask-worker --host {{ dask_addr }} --bokeh --bokeh-port 8788  --nprocs {{ dask_procs }} --nthreads {{ dask_threads }} --reconnect {{ dask_scheduler_addr }}:8786"
+        command: "dask-worker --memory-limit 7516192768 --local-directory {{ dask_tmp }} --host {{ dask_addr }} --bokeh --bokeh-port 8788  --nprocs {{ dask_procs }} --nthreads {{ dask_threads }} --reconnect {{ dask_scheduler_addr }}:8786"
         volumes:
          - "/home/ubuntu/arldata:/arl/data"
+         - "/tmp:/arl/tmp"
         labels:
           org.label-schema.group: dask_worker
 

@@ -56,7 +56,6 @@ def vis_timeslice_iter(vis: Visibility, **kwargs) -> numpy.ndarray:
         else:
             timeslice = timemax - timemin
 
-    
     for box in boxes:
         rows = numpy.abs(vis.time - box) <= 0.5 * timeslice
         yield rows
@@ -79,14 +78,14 @@ def vis_wstack_iter(vis: Visibility, **kwargs) -> numpy.ndarray:
         if vis_slices > 1:
             wstack = boxes[1] - boxes[0]
         else:
-            wstack = 2*wmaxabs
+            wstack = 2 * wmaxabs
     else:
         vis_slices = 1 + 2 * numpy.round(wmaxabs / wstack).astype('int')
         boxes = numpy.linspace(- wmaxabs, +wmaxabs, vis_slices)
         if vis_slices > 1:
             wstack = boxes[1] - boxes[0]
         else:
-            wstack = 2*wmaxabs
+            wstack = 2 * wmaxabs
     
     for box in boxes:
         rows = numpy.abs(vis.w - box) < 0.5 * wstack
