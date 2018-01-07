@@ -41,10 +41,13 @@ def vis_timeslice_iter(vis: Visibility, **kwargs) -> numpy.ndarray:
     timemin = numpy.min(vis.time)
     timemax = numpy.max(vis.time)
     
-    timeslice = get_parameter(kwargs, "timeslice", None)
-    if timeslice is None or timeslice == 'auto':
+    timeslice = get_parameter(kwargs, "timeslice", 'auto')
+    if timeslice == 'auto':
         boxes = numpy.unique(vis.time)
         timeslice = 0.1
+    elif timeslice is None:
+        timeslice = timemax - timemin
+        boxes = [0.5*(timemax+timemin)]
     else:
         vis_slices = 1 + 2 * numpy.ceil((timemax - timemin) / timeslice).astype('int')
         boxes = numpy.linspace(timemin, timemax, vis_slices)

@@ -19,7 +19,7 @@ predict_facets_timeslice = partial(predict_context, context='facets_timeslice', 
 invert_facets_wprojection = partial(invert_context, context='facets', kernel='wprojection')
 predict_facets_wprojection = partial(predict_context, context='facets', kernel='wprojection')
 
-invert_facets_wstack = partial(invert_context, context='facets_wstack', remove=True)
+invert_facets_wstack = partial(invert_context, context='facets_wstack')
 predict_facets_wstack = partial(predict_context, context='facets_wstack', remove=True)
 
 invert_slice = partial(invert_context, context='slice')
@@ -28,7 +28,7 @@ predict_slice = partial(predict_context, context='slice')
 invert_timeslice = partial(invert_context, context='timeslice')
 predict_timeslice = partial(predict_context, context='timeslice')
 
-invert_timeslice_wprojection = partial(invert_context, context='timeslice', kernel='wprojection', remove=True)
+invert_timeslice_wprojection = partial(invert_context, context='timeslice', kernel='wprojection')
 predict_timeslice_wprojection = partial(predict_context, context='timeslice', kernel='wprojection', remove=True)
 
 # timeslice+wstack is not possible because both require visibility iteration
@@ -36,7 +36,7 @@ predict_timeslice_wprojection = partial(predict_context, context='timeslice', ke
 invert_wprojection = partial(invert_context, context='2d', kernel='wprojection')
 predict_wprojection = partial(predict_context, context='2d', kernel='wprojection')
 
-invert_wprojection_wstack = partial(invert_context, context='wstack', kernel='wprojection', remove=True)
+invert_wprojection_wstack = partial(invert_context, context='wstack', kernel='wprojection')
 predict_wprojection_wstack = partial(predict_context, context='wstack', kernel='wprojection', remove=True)
 
 invert_wstack = partial(invert_context, context='wstack')

@@ -305,7 +305,7 @@ class TestImaging(unittest.TestCase):
     @unittest.skip("Interpolation insufficently accurate")
     def test_predict_timeslice_wprojection(self):
         self.params['kernel'] = 'wprojection'
-        self.params['timeslice'] = 1e5
+        self.params['timeslice'] = None
         self.actualSetUp()
         self._predict_base(context='timeslice', extra='_wprojection')
     
@@ -343,7 +343,7 @@ class TestImaging(unittest.TestCase):
         self.params['facets'] = 9
         self.params['npixel'] = 64 * 9
         self.params['padding'] = 8
-        self.params['timeslice'] = 1e5
+        self.params['timeslice'] = None
         self.actualSetUp()
         self._invert_base(context='facets_timeslice', check_components=True,
                           positionthreshold=2.0)
@@ -370,6 +370,8 @@ class TestImaging(unittest.TestCase):
         self._invert_base(context='timeslice', positionthreshold=1.0, check_components=True)
     
     def test_invert_timeslice_wprojection(self):
+        self.params['kernel'] = 'wprojection'
+        self.params['timeslice'] = None
         self.actualSetUp()
         self._invert_base(context='timeslice', extra='_wprojection', positionthreshold=1.0,
                           check_components=True)

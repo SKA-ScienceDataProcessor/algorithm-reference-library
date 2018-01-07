@@ -71,7 +71,7 @@ def imaging_contexts():
                               'invert': invert_timeslice_single,
                               'image_iterator': image_null_iter,
                               'vis_iterator': vis_timeslice_iter,
-                              'inner': 'vis'},
+                              'inner': 'image'},
                 'wstack': {'predict': predict_wstack_single,
                            'invert': invert_wstack_single,
                            'image_iterator': image_null_iter,
@@ -184,7 +184,7 @@ def predict_context(vis, model: Image, context='2d', inner=None, **kwargs) -> Vi
     result = copy_visibility(vis, zero=True)
     
     # The sense of the loop is reversed from invert!
-    if inner == 'vis':
+    if inner == 'image':
         for rows in vis_iter(svis, **kwargs):
             if numpy.sum(rows):
                 visslice = create_visibility_from_rows(svis, rows)

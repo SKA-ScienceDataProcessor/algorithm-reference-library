@@ -63,7 +63,7 @@ class TestVisibilityIterators(unittest.TestCase):
 
     def test_vis_timeslice_iterator(self):
         self.actualSetUp()
-        nchunks = len(list(vis_timeslice_iter(self.vis)))
+        nchunks = len(list(vis_timeslice_iter(self.vis, timeslice='auto')))
         log.debug('Found %d chunks' % (nchunks))
         assert nchunks > 1
         total_rows = 0

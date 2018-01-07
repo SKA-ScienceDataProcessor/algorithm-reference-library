@@ -38,7 +38,7 @@ class TestDaskGraphs(unittest.TestCase):
         self.params = {'npixel': 512,
                        'nchan': 1,
                        'reffrequency': 1e8,
-                       'facets': 8,
+                       'facets': 1,
                        'padding': 2,
                        'oversampling': 2,
                        'kernel': '2d',
@@ -134,7 +134,7 @@ class TestDaskGraphs(unittest.TestCase):
         flux_model_graph = delayed(self.get_LSM)(self.vis_graph_list[self.nvis // 2], flux=100.0)
         zero_vis_graph_list = create_zero_vis_graph_list(self.vis_graph_list)
         predicted_vis_graph_list = \
-            create_predict_graph(zero_vis_graph_list, flux_model_graph, context=context, **self.params)
+            create_predict_graph(self.vis_graph_list, flux_model_graph, context=context, **self.params)
         if self.compute:
             qa = qa_visibility(predicted_vis_graph_list[0].compute())
             print(qa)
@@ -147,13 +147,17 @@ class TestDaskGraphs(unittest.TestCase):
         
         if self.compute:
             dirty = dirty_graph[0].compute()
-            export_image_to_fits(dirty[0], '%s/test_imaging_invert_graph_%s_%s_dirty.fits' %
-                                 (self.results_dir, context, self.params['kernel']))
+            export_image_to_fits(dirty[0], '%s/test_imaging_graph_invert_%s%s_dirty.fits' %
+                                 (self.results_dir, context, extra,))
             qa = qa_image(dirty[0])
             
             assert numpy.abs(qa.data['max'] - 100.0) < 2.0, str(qa)
             assert numpy.abs(qa.data['min'] + 2.0) < 2.0, str(qa)
     
+    def test_predict_2d(self):
+        self.actualSetUp()
+        self._predict_base(context='2d', fluxthreshold=5.0)
+
     @unittest.skip("Intrinsically unstable")
     def test_predict_facets_wstack(self):
         self.params['wstack'] = 4.0
@@ -163,7 +167,7 @@ class TestDaskGraphs(unittest.TestCase):
         self.actualSetUp()
         self._predict_base(context='facets_wstack', fluxthreshold=5.0)
     
-    @unittest.skip("Intrinsically unstable")
+    #@unittest.skip("Intrinsically unstable")
     def test_predict_timeslice(self):
         self.params['timeslice'] = 'auto'
         self.actualSetUp()

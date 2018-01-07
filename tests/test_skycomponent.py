@@ -61,7 +61,7 @@ class TestSkycomponent(unittest.TestCase):
         self.vis = predict_2d(self.vis, self.model)
         # The actual phase centre of a numpy FFT is at nx //2, nx //2 (0 rel).
         assert numpy.max(numpy.abs(self.vis.vis.imag)) <1e-3
-    
+
     def test_insert_skycomponent_dft(self):
         sc = create_skycomponent(direction=self.phasecentre, flux=numpy.array([[1.0]]), frequency=self.frequency,
                                  polarisation_frame=PolarisationFrame('stokesI'))
@@ -69,7 +69,7 @@ class TestSkycomponent(unittest.TestCase):
         self.vis = predict_skycomponent_visibility(self.vis, sc)
         im, sumwt = invert_2d(self.vis, self.model)
         export_image_to_fits(im, '%s/test_skycomponent_dft.fits' % self.dir)
-        assert self.vis.vis.imag.all() == 0.0
+        assert numpy.max(numpy.abs(self.vis.vis.imag)) < 1e-3
     
     def test_insert_skycomponent_nearest(self):
         dphasecentre = SkyCoord(ra=+181.0 * u.deg, dec=-58.0 * u.deg, frame='icrs', equinox='J2000')

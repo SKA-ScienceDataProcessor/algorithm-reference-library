@@ -27,14 +27,19 @@ log.addHandler(logging.StreamHandler(sys.stdout))
 
 
 def git_hash():
+    """ Get the hash for this git repository.
+    
+    :return: string or "unknown"
+    """
     import subprocess
     try:
         return subprocess.check_output(["git", "rev-parse", 'HEAD'])
-    except:
+    except Exception as excp:
+        print(excp)
         return "unknown"
 
 
-def trial_case(results, seed=180555, context='wstack_single', n_workers=8, threads_per_worker=1,
+def trial_case(results, seed=180555, context='wstack',
                order='frequency', nfreqwin=7, ntimes=3, rmax=750.0,
                facets=1, wprojection_planes=1, **kwargs):
     """ Single trial for performance-timings
@@ -75,11 +80,10 @@ def trial_case(results, seed=180555, context='wstack_single', n_workers=8, threa
     'residual_min',
     'git_info', GIT hash (not definitive since local mods are possible)
     
+    :param results: Initial state
     :param seed: Random number seed (used in gain simulations)
     :param context: imaging context
     :param context: Type of context: '2d'|'timeslice'|'timeslice_single'|'wstack'|'wstack_single'
-    :param n_workers: Number of dask workers to use
-    :param threads_per_worker: Number of threads per worker
     :param order: See create_simulate_vis_graph
     :param nfreqwin: See create_simulate_vis_graph
     :param ntimes: See create_simulate_vis_graph
@@ -130,7 +134,7 @@ def trial_case(results, seed=180555, context='wstack_single', n_workers=8, threa
     
     # Find the best imaging parameters.
     wprojection_planes = 1
-    advice = advise_wide_field(block_vis, guard_band_image=4.0, delA=0.02, facets=facets,
+    advice = advise_wide_field(block_vis, guard_band_image=6.0, delA=0.02, facets=facets,
                                wprojection_planes=wprojection_planes, oversampling_synthesised_beam=4.0)
     
     kernel = advice['kernel']
@@ -219,7 +223,7 @@ def trial_case(results, seed=180555, context='wstack_single', n_workers=8, threa
                   algorithm='mmclean', niter=1000,
                   nmoments=3, scales=[0, 3, 10, 30],
                   fractional_threshold=0.1,
-                  threshold=0.7, nmajor=5, gain=0.1,
+                  threshold=0.01, nmajor=5, gain=0.7,
                   first_selfcal=1, timeslice='auto',
                   global_solution=False,
                   kernel=kernel)
@@ -227,7 +231,6 @@ def trial_case(results, seed=180555, context='wstack_single', n_workers=8, threa
     end = time.time()
     
     deconvolved, residual, restored = result
-    print(deconvolved, residual, restored)
     
     results['time ICAL'] = end - start
     print("ICAL compute took %.2f seconds" % (end - start))
@@ -254,7 +257,7 @@ def trial_case(results, seed=180555, context='wstack_single', n_workers=8, threa
     return results
 
 
-def write_results(filename, results):
+def write_results(filename, fieldnames, results):
     with open(filename, 'a') as csvfile:
         writer = csv.DictWriter(csvfile, fieldnames=fieldnames, delimiter=',', quotechar='|',
                                 quoting=csv.QUOTE_MINIMAL)
@@ -268,6 +271,46 @@ def write_header(filename, fieldnames):
                                 quoting=csv.QUOTE_MINIMAL)
         writer.writeheader()
         csvfile.close()
+
+
+def main(args):
+    results = {}
+    
+    nfreq = args.nfreqwin
+    results['nfreqwin'] = nfreq
+    
+    rmax = args.rmax
+    results['rmax'] = rmax
+    
+    context = args.context
+    results['context'] = context
+    
+    ntimes = args.ntimes
+    results['ntimes'] = ntimes
+    
+    results['hostname'] = socket.gethostname()
+    results['epoch'] = time.strftime("%Y-%m-%d %H:%M:%S")
+    results['driver'] = 'pipelines-timings-functions'
+    
+    print("Defining %d frequency windows" % nfreq)
+    
+    fieldnames = ['driver', 'nnodes', 'n_workers', 'time ICAL', 'time ICAL graph', 'time create gleam',
+                  'time predict', 'time corrupt', 'time invert', 'time psf invert', 'time overall',
+                  'threads_per_worker', 'processes', 'order',
+                  'nfreqwin', 'ntimes', 'rmax', 'facets', 'wprojection_planes', 'vis_slices', 'npixel',
+                  'cellsize', 'seed', 'dirty_max', 'dirty_min', 'psf_max', 'psf_min', 'deconvolved_max',
+                  'deconvolved_min', 'restored_min', 'restored_max', 'residual_max', 'residual_min',
+                  'hostname', 'git_hash', 'epoch', 'context']
+    
+    filename = seqfile.findNextFile(prefix='%s_%s_' % (results['driver'], results['hostname']), suffix='.csv')
+    print('Saving results to %s' % filename)
+    
+    write_header(filename, fieldnames)
+    
+    results = trial_case(results, context=context, rmax=rmax, nfreqwin=nfreq, ntimes=ntimes)
+    write_results(filename, fieldnames, results)
+    
+    print('Exiting %s' % results['driver'])
 
 
 if __name__ == '__main__':
@@ -284,43 +327,6 @@ if __name__ == '__main__':
                         help='Imaging context: 2d|timeslice|timeslice_single|wstack|wstack_single')
     parser.add_argument('--rmax', type=float, default=300.0, help='Maximum baseline (m)')
     
-    args = parser.parse_args()
+    main(parser.parse_args())
     
-    results = {}
-    
-    nfreqwin = args.nfreqwin
-    results['nfreqwin'] = nfreqwin
-    
-    rmax = args.rmax
-    results['rmax'] = rmax
-    
-    context = args.context
-    results['context'] = context
-    
-    ntimes = args.ntimes
-    results['ntimes'] = ntimes
-    
-    results['hostname'] = socket.gethostname()
-    results['epoch'] = time.strftime("%Y-%m-%d %H:%M:%S")
-    results['driver'] = 'pipelines-timings-functions'
-    
-    print("Defining %d frequency windows" % nfreqwin)
-    
-    fieldnames = ['driver', 'nnodes', 'n_workers', 'time ICAL', 'time ICAL graph', 'time create gleam',
-                  'time predict', 'time corrupt', 'time invert', 'time psf invert', 'time overall',
-                  'threads_per_worker', 'processes', 'order',
-                  'nfreqwin', 'ntimes', 'rmax', 'facets', 'wprojection_planes', 'vis_slices', 'npixel',
-                  'cellsize', 'seed', 'dirty_max', 'dirty_min', 'psf_max', 'psf_min', 'deconvolved_max',
-                  'deconvolved_min', 'restored_min', 'restored_max', 'residual_max', 'residual_min',
-                  'hostname', 'git_hash', 'epoch', 'context']
-    
-    filename = seqfile.findNextFile(prefix='%s_%s_' % (results['driver'], results['hostname']), suffix='.csv')
-    print('Saving results to %s' % filename)
-    
-    write_header(filename, fieldnames)
-    
-    results = trial_case(results, context=context, rmax=rmax, nfreqwin=nfreqwin, ntimes=ntimes)
-    write_results(filename, results)
-    
-    print('Exiting %s' % results['driver'])
     exit()

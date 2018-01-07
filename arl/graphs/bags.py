@@ -79,7 +79,7 @@ from arl.data.data_models import Image
 from arl.image.deconvolution import deconvolve_cube, restore_cube
 from arl.image.operations import create_image_from_array, qa_image, create_empty_image_like
 from arl.imaging import normalize_sumwt
-from arl.imaging.imaging_context import imaging_context
+from arl.imaging.imaging_context import imaging_context, predict_context, invert_context
 from arl.visibility.base import copy_visibility
 from arl.visibility.coalesce import convert_visibility_to_blockvisibility
 from arl.visibility.gather_scatter import visibility_gather_channel
@@ -119,7 +119,7 @@ def print_element(x, context='', indent=4, width=160):
 
 
 def scatter_record(record, context, **kwargs):
-    """ Scatter a record according to the context's scatter field.
+    """ Scatter a record according to the context's vis_iter field.
 
     :param record:
     :param context: Imaging context
@@ -127,12 +127,11 @@ def scatter_record(record, context, **kwargs):
     :return:
     """
     c = imaging_context(context)
-    assert c['scatter'] is not None, "Scatter not possible for context %s" % context
-    scatter = c['scatter']
+    assert c['vis_iter'] is not None, "Scatter not possible for context %s" % context
+    vis_iter = c['vis_iter']
     result = list()
-    vis_list = scatter(record['vis'], **kwargs)
     scatter_index = 0
-    for v in vis_list:
+    for v in vis_iter(record['vis'], **kwargs):
         if v is not None:
             newrecord = {}
             for key in record.keys():
@@ -165,14 +164,12 @@ def predict_record(record, context, **kwargs):
     :param kwargs:
     :return:
     """
-    c = imaging_context(context)
-    predict = c['predict']
     newrecord = {}
     for key in record.keys():
         if key not in ['image', context]:
             newrecord[key] = record[key]
     newvis = copy_visibility(record['vis'], zero=True)
-    newrecord['vis'] = predict(newvis, record['image'], context=context, **kwargs)
+    newrecord['vis'] = predict_context(newvis, record['image'], context=context, **kwargs)
     return newrecord
 
 
@@ -185,9 +182,6 @@ def invert_record(record, dopsf, context, **kwargs):
     :param kwargs:
     :return:
     """
-    c = imaging_context(context)
-    invert = c['invert']
-    
     assert 'vis' in record.keys(), "vis not contained in record keys %s" % record
     vis = record['vis']
     
@@ -195,7 +189,7 @@ def invert_record(record, dopsf, context, **kwargs):
     for key in record.keys():
         if key != 'vis':
             newrecord[key] = record[key]
-    newrecord['image'] = invert(vis, record['image'], dopsf, **kwargs)
+    newrecord['image'] = invert_context(vis, record['image'], dopsf, context=context, **kwargs)
     return newrecord
 
 
@@ -234,7 +228,7 @@ def map_record(record, apply_function, key='vis', **kwargs):
             newrecord[k] = record[k]
         else:
             newrecord[k] = apply_function(rec, **kwargs)
-            
+    
     return newrecord
 
 
@@ -428,18 +422,17 @@ def deconvolve_bag(dirty_bag, psf_bag, model_bag, **kwargs) -> bag:
     assert isinstance(dirty_bag, bag.Bag), dirty_bag
     assert isinstance(psf_bag, bag.Bag), psf_bag
     assert isinstance(model_bag, bag.Bag), model_bag
-
-
-    def deconvolve(dirty, psf, model, **kwargs):
+    
+    def deconvolve(dirty, psf, model):
         # The dirty and psf are actually (Image, weight) tuples.
         result = deconvolve_cube(dirty['image'][0], psf['image'][0], **kwargs)
         result[0].data += model['image'].data
-        return {'image':result[0]}
+        return {'image': result[0]}
     
     model_bag = reify(model_bag)
     dirty_bag = reify(dirty_bag)
     return dirty_bag \
-        .map(deconvolve, psf_bag, model_bag, **kwargs)
+        .map(deconvolve, psf_bag, model_bag)
 
 
 def restore_bag(comp_bag, psf_bag, res_bag, **kwargs) -> bag:
@@ -457,10 +450,10 @@ def restore_bag(comp_bag, psf_bag, res_bag, **kwargs) -> bag:
     assert isinstance(psf_bag, bag.Bag), psf_bag
     assert isinstance(res_bag, bag.Bag), res_bag
     
-    def restore(comp, psf, res, **kwargs):
+    def restore(comp, psf, res):
         return restore_cube(comp['image'], psf['image'][0], res['image'][0], **kwargs)
     
-    return comp_bag.map(restore, psf_bag, res_bag, **kwargs)
+    return comp_bag.map(restore, psf_bag, res_bag)
 
 
 def residual_image_bag(vis_bag, model_image_bag, **kwargs) -> bag:
@@ -542,13 +535,13 @@ def calibrate_bag(vis_bag, model_vis_bag, global_solution=False, **kwargs):
     
     assert isinstance(vis_bag, bag.Bag), vis_bag
     assert isinstance(model_vis_bag, bag.Bag), model_vis_bag
-
+    
     if global_solution:
         def divide(vis, modelvis):
             return divide_visibility(vis, modelvis['vis'])
         
         model_vis_bag = reify(model_vis_bag)
-        point_vis_bag = vis_bag\
+        point_vis_bag = vis_bag \
             .map(map_record, divide, modelvis=model_vis_bag) \
             .map(map_record, visibility_gather_channel, **kwargs) \
             .map(map_record, integrate_visibility_by_channel, **kwargs)
@@ -557,13 +550,14 @@ def calibrate_bag(vis_bag, model_vis_bag, global_solution=False, **kwargs):
         gt_bag = point_vis_bag.map(map_record, solve_gaintable, modelvis=None, **kwargs)
         return vis_bag.map(map_record, apply_gaintable, gt=gt_bag, inverse=True, **kwargs)
     else:
-        def solve_and_apply(vis, modelvis, **kwargs):
+        def solve_and_apply(vis, modelvis):
             gt = solve_gaintable(vis, modelvis['vis'], **kwargs)
             log.debug(qa_gaintable(gt, context='calibrate_bag'))
             return apply_gaintable(vis, gt, inverse=True)
+        
         model_vis_bag = reify(model_vis_bag)
-        return vis_bag\
-            .map(map_record, solve_and_apply, modelvis=model_vis_bag, **kwargs)
+        return vis_bag \
+            .map(map_record, solve_and_apply, modelvis=model_vis_bag)
 
 
 def qa_visibility_bag(vis, context=''):

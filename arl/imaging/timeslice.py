@@ -58,10 +58,11 @@ def fit_uvwplane_only(vis: Visibility) -> (float, float):
     return p, q
 
 
-def fit_uvwplane(vis: Visibility, remove=True) -> (Image, float, float):
+def fit_uvwplane(vis: Visibility, remove=False) -> (Image, float, float):
     """ Fit and optionally remove the best fitting plane p u + q v = w
 
     :param vis: visibility to be fitted
+    :param remove: Remove the fitted w permanently from vis?
     :return: direction cosines defining plane
     """
     nvis = len(vis.data)
@@ -76,7 +77,7 @@ def fit_uvwplane(vis: Visibility, remove=True) -> (Image, float, float):
     return vis, p, q
 
 
-def predict_timeslice_single(vis: Visibility, model: Image, predict=predict_2d_base, remove=False,
+def predict_timeslice_single(vis: Visibility, model: Image, predict=predict_2d_base, remove=True,
                              **kwargs) -> Visibility:
     """ Predict using a single time slices.
     
@@ -84,9 +85,11 @@ def predict_timeslice_single(vis: Visibility, model: Image, predict=predict_2d_b
 
     :param vis: Visibility to be predicted
     :param model: model image
+    :param predict:
+    :param remove: Remove fitted w (so that wprojection will do the right thing)
     :return: resulting visibility (in place works)
     """
-    log.debug("predict_timeslice_single: predicting using single time slice")
+    log.debug("predict_timeslice: predicting using time slices")
 
     inchan, inpol, ny, nx = model.shape
     
@@ -118,9 +121,9 @@ def predict_timeslice_single(vis: Visibility, model: Image, predict=predict_2d_b
                          fill_value=0.0,
                          rescale=True).reshape(workimage.data[chan, pol, ...].shape)
 
-    vis = predict(vis, workimage, **kwargs)
+    avis = predict(avis, workimage, **kwargs)
     
-    return vis
+    return avis
 
 
 def lm_distortion(im: Image, a, b) -> (numpy.ndarray, numpy.ndarray, numpy.ndarray, numpy.ndarray):
@@ -150,7 +153,7 @@ def lm_distortion(im: Image, a, b) -> (numpy.ndarray, numpy.ndarray, numpy.ndarr
     return l2d, m2d, ldistorted, mdistorted
 
 
-def invert_timeslice_single(vis: Visibility, im: Image, dopsf, normalize=True, remove=False,
+def invert_timeslice_single(vis: Visibility, im: Image, dopsf, normalize=True,
                             **kwargs) -> (Image, numpy.ndarray):
     """Process single time slice
     
@@ -167,9 +170,9 @@ def invert_timeslice_single(vis: Visibility, im: Image, dopsf, normalize=True, r
     else:
         avis = vis
 
-    log.debug("invert_timeslice_single: inverting using single time slice")
+    log.debug("invert_timeslice: inverting using time slices")
 
-    avis, p, q = fit_uvwplane(avis, remove=remove)
+    avis, p, q = fit_uvwplane(avis, remove=True)
     
     workimage, sumwt = invert_2d_base(avis, im, dopsf, normalize=normalize, **kwargs)
 

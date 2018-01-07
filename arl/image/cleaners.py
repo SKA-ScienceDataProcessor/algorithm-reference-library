@@ -170,8 +170,8 @@ def msclean(dirty, psf, window, gain, thresh, niter, scales, fracthresh):
             log.info("msclean: Minor cycle %d, peak %s at [%d, %d, %d]" %
                      (i, res_scalestack[:, mx, my], mx, my, mscale))
         if numpy.fabs(mval) < absolutethresh:
-            log.info("msclean: Absolute value of peak %.6f is below stopping threshold %.6f"
-                     % (numpy.fabs(res_scalestack[mscale, mx, my]), absolutethresh))
+            log.info("msclean: At iteration %d, absolute value of peak %.6f is below stopping threshold %.6f"
+                     % (i, numpy.fabs(res_scalestack[mscale, mx, my]), absolutethresh))
             break
 
         # Update the cached residuals and add to the cached model.
@@ -477,8 +477,8 @@ def msmfsclean(dirty, psf, window, gain, thresh, niter, scales, fracthresh, find
         # Are we ready to stop yet?
         peak = numpy.max(numpy.fabs(mval))
         if peak < absolutethresh:
-            log.info("msmfsclean: Absolute value of peak %.6f is below stopping threshold %.6f"
-                     % (peak, absolutethresh))
+            log.info("msmfsclean: At iteration %d, absolute value of peak %.6f is below stopping threshold %.6f"
+                     % (i, peak, absolutethresh))
             break
 
         # Calculate indices needed for lhs and rhs of updates to model and residual

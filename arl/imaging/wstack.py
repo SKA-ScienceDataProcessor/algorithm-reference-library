@@ -64,7 +64,7 @@ def predict_wstack_single(vis, model, remove=True, **kwargs) -> Visibility:
     if not remove:
         avis.data['uvw'][..., 2] += w_average
 
-    if isinstance(vis, BlockVisibility) and isinstance(vis, Visibility):
+    if isinstance(vis, BlockVisibility) and isinstance(avis, Visibility):
         log.debug("imaging.predict decoalescing post prediction")
         return decoalesce_visibility(avis)
     else:
