@@ -80,7 +80,7 @@ from arl.image.deconvolution import deconvolve_cube, restore_cube
 from arl.image.operations import create_image_from_array, qa_image, create_empty_image_like
 from arl.imaging import normalize_sumwt
 from arl.imaging.imaging_context import imaging_context, predict_context, invert_context
-from arl.visibility.base import copy_visibility
+from arl.visibility.base import copy_visibility, create_visibility_from_rows
 from arl.visibility.coalesce import convert_visibility_to_blockvisibility
 from arl.visibility.gather_scatter import visibility_gather_channel
 from arl.visibility.operations import qa_visibility, sort_visibility, \
@@ -127,12 +127,13 @@ def scatter_record(record, context, **kwargs):
     :return:
     """
     c = imaging_context(context)
-    assert c['vis_iter'] is not None, "Scatter not possible for context %s" % context
-    vis_iter = c['vis_iter']
+    assert c['vis_iterator'] is not None, "Scatter not possible for context %s" % context
+    vis_iter = c['vis_iterator']
     result = list()
     scatter_index = 0
-    for v in vis_iter(record['vis'], **kwargs):
-        if v is not None:
+    for rows in vis_iter(record['vis'], **kwargs):
+        if rows is not None:
+            v = create_visibility_from_rows(record['vis'], rows)
             newrecord = {}
             for key in record.keys():
                 newrecord[key] = record[key]
@@ -168,8 +169,11 @@ def predict_record(record, context, **kwargs):
     for key in record.keys():
         if key not in ['image', context]:
             newrecord[key] = record[key]
-    newvis = copy_visibility(record['vis'], zero=True)
-    newrecord['vis'] = predict_context(newvis, record['image'], context=context, **kwargs)
+    if record['vis'] is not None:
+        newvis = copy_visibility(record['vis'], zero=True)
+        newrecord['vis'] = predict_context(newvis, record['image'], context=context, **kwargs)
+    else:
+        newrecord['vis'] = None
     return newrecord
 
 
@@ -189,7 +193,10 @@ def invert_record(record, dopsf, context, **kwargs):
     for key in record.keys():
         if key != 'vis':
             newrecord[key] = record[key]
-    newrecord['image'] = invert_context(vis, record['image'], dopsf, context=context, **kwargs)
+    if vis is not None:
+        newrecord['image'] = invert_context(vis, record['image'], dopsf, context=context, **kwargs)
+    else:
+        newrecord['image'] = None
     return newrecord
 
 
@@ -241,7 +248,12 @@ def invert_record_add(r1, r2, normalize=True):
     :return:
     """
     im1 = r1['image']
+    if im1 is None:
+        return r2
     im2 = r2['image']
+    if im2 is None:
+        return r1
+    
     result = create_image_from_array(im1[0].data * im1[1] + im2[0].data * im2[1],
                                      im1[0].wcs, im1[0].polarisation_frame)
     weight = im1[1] + im2[1]

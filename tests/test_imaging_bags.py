@@ -115,9 +115,9 @@ class TestDaskBagsRecords(unittest.TestCase):
         return vt
     
     def test_invert_bag(self):
-        peaks = {'2d': 65.2997439062, 'timeslice_single': 99.6183393299, 'wstack_single': 100.702701119}
-        vis_slices = {'2d': None, 'timeslice_single': 'auto', 'wstack_single': 101}
-        for context in ['wstack_single', '2d', 'timeslice_single']:
+        peaks = {'2d': 65.2997439062, 'timeslice': 99.6183393299, 'wstack': 101.099173809}
+        vis_slices = {'2d': None, 'timeslice': 'auto', 'wstack': 101}
+        for context in ['2d', 'timeslice', 'wstack']:
             dirty_bag = invert_bag(self.vis_bag, self.empty_model_bag, dopsf=False,
                                    context=context, normalize=True,
                                    vis_slices=vis_slices[context])
@@ -128,9 +128,9 @@ class TestDaskBagsRecords(unittest.TestCase):
             assert numpy.abs(qa.data['max'] - peaks[context]) < 1.0e-2, str(qa)
     
     def test_predict_bag(self):
-        errors = {'2d': 28.0, 'timeslice_single': 30.0, 'wstack_single': 2.3}
-        vis_slices = {'2d': None, 'timeslice_single': 'auto', 'wstack_single': 101}
-        for context in ['wstack_single', 'timeslice_single']:
+        errors = {'2d': 28.0, 'timeslice': 30.0, 'wstack': 2.3}
+        vis_slices = {'2d': None, 'timeslice': 'auto', 'wstack': 101}
+        for context in ['wstack', 'timeslice']:
             model_vis_bag = predict_bag(self.vis_bag, self.model_bag, context,
                                         vis_slices=vis_slices[context])
             
@@ -147,8 +147,8 @@ class TestDaskBagsRecords(unittest.TestCase):
             assert qa.data['max'] < errors[context], str(qa)
     
     def test_deconvolve_bag(self):
-        context = 'wstack_single'
-        vis_slices = {'2d': None, 'timeslice_single': 'auto', 'wstack_single': 101}
+        context = 'wstack'
+        vis_slices = {'2d': None, 'timeslice': 'auto', 'wstack': 101}
         dirty_bag = invert_bag(self.vis_bag, self.model_bag, dopsf=False, context=context,
                                normalize=True,
                                vis_slices=vis_slices[context])
@@ -168,9 +168,9 @@ class TestDaskBagsRecords(unittest.TestCase):
     
     def test_restore_bag(self):
         
-        peaks = {'wstack_single': 98.8113067286}
-        vis_slices = {'wstack_single': 101}
-        context = 'wstack_single'
+        peaks = {'wstack': 98.8113067286}
+        vis_slices = {'wstack': 101}
+        context = 'wstack'
         dirty_bag = invert_bag(self.vis_bag, self.model_bag, dopsf=False, context=context,
                                normalize=True,
                                vis_slices=vis_slices[context])
@@ -198,8 +198,8 @@ class TestDaskBagsRecords(unittest.TestCase):
         assert numpy.abs(qa.data['max'] - peaks[context]) < 0.1, str(qa)
     
     def test_residual_image_bag(self):
-        context = 'wstack_single'
-        vis_slices = {'wstack_single': 101}
+        context = 'wstack'
+        vis_slices = {'wstack': 101}
         dirty_bag = invert_bag(self.vis_bag, self.empty_model_bag, dopsf=False, context=context,
                                normalize=True, vis_slices=vis_slices[context])
         psf_bag = invert_bag(self.vis_bag, self.empty_model_bag, dopsf=True, context=context,
@@ -218,8 +218,8 @@ class TestDaskBagsRecords(unittest.TestCase):
         assert qa.data['max'] < 15.0, str(qa)
     
     def test_residual_image_bag_model(self):
-        context = 'wstack_single'
-        vis_slices = {'wstack_single': 101}
+        context = 'wstack'
+        vis_slices = {'wstack': 101}
         residual_bag = residual_image_bag(self.vis_bag, self.model_bag, context=context,
                                           vis_slices=vis_slices[context])
         final = residual_bag.compute()[0]['image'][0]
@@ -233,9 +233,9 @@ class TestDaskBagsRecords(unittest.TestCase):
         
         self.setupVis(add_errors=True)
         selfcal_vis_bag = selfcal_bag(self.vis_bag, self.model_bag, global_solution=True,
-                                      context='wstack_single', vis_slices=51)
+                                      context='wstack', vis_slices=51)
         dirty_bag = invert_bag(selfcal_vis_bag, self.model_bag,
-                               dopsf=False, normalize=True, context='wstack_single',
+                               dopsf=False, normalize=True, context='wstack',
                                vis_slices=101)
         if self.compute:
             dirty, sumwt = dirty_bag.compute()[0]['image']
@@ -250,10 +250,10 @@ class TestDaskBagsRecords(unittest.TestCase):
         
         self.setupVis(add_errors=True)
         selfcal_vis_bag = selfcal_bag(self.vis_bag, self.model_bag, global_solution=False,
-                                      context='wstack_single', vis_slices=51)
+                                      context='wstack', vis_slices=51)
         
         dirty_bag = invert_bag(selfcal_vis_bag, self.model_bag,
-                               dopsf=False, normalize=True, context='wstack_single',
+                               dopsf=False, normalize=True, context='wstack',
                                vis_slices=101)
         if self.compute:
             dirty, sumwt = dirty_bag.compute()[0]['image']

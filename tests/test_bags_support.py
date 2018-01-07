@@ -119,4 +119,4 @@ class TestDaskBagsSupport(unittest.TestCase):
         gmb = gleam_model_bag(npixel=256)
         qa = qa_image(gmb.compute()[0]['image'])
         assert abs(qa.data['max'] - 5.00949445505) < 1e-7, qa
-        assert abs(qa.data['sum'] - 138.84405529) < 1e-7, qa
+        assert abs(qa.data['sum'] - 117.502953802) < 1e-7, qa

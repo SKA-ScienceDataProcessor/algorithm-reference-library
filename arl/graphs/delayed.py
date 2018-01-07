@@ -83,7 +83,6 @@ def sum_invert_results(image_list):
     sumwt = 0.0
     im = None
     for i, arg in enumerate(image_list):
-        print("In sum_invert_results, arg = ", arg)
         if arg is not None:
             if isinstance(arg[1], numpy.ndarray):
                 scale = arg[1][..., numpy.newaxis, numpy.newaxis]
@@ -209,10 +208,8 @@ def create_invert_graph(vis_graph_list, template_model_graph: delayed, dopsf=Fal
             avis = coalesce_visibility(vis, **kwargs)
         else:
             avis = vis
-        result = [create_visibility_from_rows(vis, rows) for rows in vis_iter(avis, vis_slices=vis_slices, **kwargs)]
-        print("Results of vis iteration:", result)
-        return(result)
-
+        return [create_visibility_from_rows(vis, rows) for rows in vis_iter(avis, vis_slices=vis_slices, **kwargs)]
+    
     def scatter_image_iteration(im):
         return [subim for subim in image_iter(im, facets=facets, **kwargs)]
     
@@ -222,14 +219,11 @@ def create_invert_graph(vis_graph_list, template_model_graph: delayed, dopsf=Fal
         for dpatch in image_iter(result, facets=facets, **kwargs):
             if results[i] is not None:
                 dpatch.data[...] = results[i][0].data[...]
-                print("In gather_image_iteration_results", i, numpy.max(dpatch.data))
                 i += 1
         return result, results[0][1]
     
     def invert_ignore_none(vis, model):
-        print("In invert_ignore_none:", vis)
         if vis is not None:
-            print("In invert_ignore_none:", numpy.max(numpy.abs(vis.vis)))
             return invert_context(vis, model, context=context, dopsf=dopsf, normalize=normalize,
                                   **kwargs)
         else:
@@ -243,8 +237,6 @@ def create_invert_graph(vis_graph_list, template_model_graph: delayed, dopsf=Fal
     for vis_graph in vis_graph_list:
         sub_vis_graphs = delayed(scatter_vis, nout=vis_slices)(vis_graph)
         # Iterate within each vis_graph
-        print(inner)
-        inner='vis'
         if inner == 'vis':
             model_results = list()
             for model_graph in model_graphs:
@@ -260,7 +252,7 @@ def create_invert_graph(vis_graph_list, template_model_graph: delayed, dopsf=Fal
                 for model_graph in model_graphs:
                     model_vis_results.append(delayed(invert_ignore_none, pure=True)(sub_vis_graph, model_graph))
                 vis_results.append(delayed(gather_image_iteration_results)(model_vis_results,
-                                                                                   template_model_graph))
+                                                                           template_model_graph))
             results_vis_graph_list.append(delayed(sum_invert_results)(vis_results))
     
     return results_vis_graph_list
@@ -291,34 +283,29 @@ def create_predict_graph(vis_graph_list, model_graph: delayed, vis_slices=1, fac
     
     def gather_vis(results, vis):
         i = 0
-        print(results)
         for rows in vis_iter(vis, vis_slices=vis_slices, **kwargs):
             if rows is not None:
-                print(i, numpy.sum(rows))
                 vis.data['vis'][rows][...] = results[i].data['vis'][...]
-                print("gather_vis", i, vis, numpy.max(numpy.abs(results[i].vis)))
-
+                
                 i += 1
         return vis
-
+    
     def scatter_vis(vis):
         if isinstance(vis, BlockVisibility):
             avis = coalesce_visibility(vis, **kwargs)
         else:
             avis = vis
         return [create_visibility_from_rows(vis, rows) for rows in vis_iter(avis, vis_slices=vis_slices, **kwargs)]
-
+    
     def scatter_image(im):
         return [subim for subim in image_iter(im, facets=facets, **kwargs)]
     
     model_graphs = delayed(scatter_image, nout=facets ** 2)(model_graph)
-    print(facets**2, model_graphs)
     
     results_vis_graph_list = list()
     for vis_graph in vis_graph_list:
         
         sub_vis_graphs = delayed(scatter_vis, nout=vis_slices)(vis_graph)
-        print(vis_slices, sub_vis_graphs)
         
         vis_graphs = list()
         for sub_model_graph in model_graphs:
@@ -326,11 +313,9 @@ def create_predict_graph(vis_graph_list, model_graph: delayed, vis_slices=1, fac
             for sub_vis_graph in sub_vis_graphs:
                 sub_model_results.append(delayed(predict_ignore_none, pure=True, nout=1)(sub_vis_graph,
                                                                                          sub_model_graph))
-            print(sub_model_results)
             vis_graphs.append(delayed(sum_predict_results)(sub_model_results))
         
         results_vis_graph_list.append(delayed(gather_vis, nout=1)(vis_graphs, vis_graph))
-    print(results_vis_graph_list)
     return results_vis_graph_list
 
 
