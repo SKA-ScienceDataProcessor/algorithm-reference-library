@@ -44,7 +44,9 @@ size_t bk_getfn(const char* fname)
 void helper_get_image_shape(const double *frequency, double cellsize,
 		int *shape)
 {
-	BKFNPY(helper_get_image_shape)(frequency, cellsize, shape);
+        PyGILState_STATE gilstate = PyGILState_Ensure();
+        BKFNPY(helper_get_image_shape)(frequency, cellsize, shape);
+        PyGILState_Release(gilstate);
 }
 
 void helper_set_image_params(const ARLVis *vis, Image *image) {
