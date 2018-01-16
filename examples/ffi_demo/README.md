@@ -8,14 +8,14 @@ having to implement computational routines for every language. By implementing
 an interface in C, we can call the ARL routines from basically any language.
 This allows us to focus our time on testing the actual EFs.
 
-# starpu\_timg.c
+# starpu\_timg/timg\_starpu.c
 
 Contains a (partial) implementation of the TIMG pipeline from the ffi\_demo using
 STARPU. This is intended to demo a more 'real-world' framework with the CFFI
 interface to the ARL routines.
 
-This adds a requirement to StarPU to the build process. To disable, simply
-comment out the timg\_starpu related lines from `setup.py` and `Makefile`
+This adds a requirement for StarPU to the build process. To disable, simply
+comment out the timg\_starpu related lines from `setup.py` and `Makefile`.
 
 # Building
 Modify `setup.py` and `Makefile` to point to the correct installation directory
