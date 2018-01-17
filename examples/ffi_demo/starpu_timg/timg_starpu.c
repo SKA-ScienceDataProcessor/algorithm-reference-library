@@ -229,9 +229,9 @@ int main(int argc, char *argv[]) {
 	lowconfig->pc_dec = -45.0;
 	lowconfig->times = times;
 	lowconfig->ntimes = 1;
-	lowconfig->freqs = freq;	
-	lowconfig->nfreqs = 1;	
-	lowconfig->channel_bandwidth = channel_bandwidth;	
+	lowconfig->freqs = freq;
+	lowconfig->nfreqs = 1;
+	lowconfig->channel_bandwidth = channel_bandwidth;
 	lowconfig->nchanwidth = 1;
 	lowconfig->nbases = nb.nbases;
 	lowconfig->npol = 1;
@@ -305,7 +305,7 @@ int main(int argc, char *argv[]) {
 	SVDR(pred_handle, 0, vt, sizeof(ARLVis));
 	SVDR(pred_handle, 1, m31image, sizeof(Image));
 	SVDR(pred_handle, 2, vtmp, sizeof(ARLVis));
-	
+
 	struct starpu_task *pred_task = create_task(&predict_2d_cl, pred_handle);
 	starpu_task_declare_deps_array(pred_task, 1, &test_img_task);
 	starpu_task_submit(pred_task);
