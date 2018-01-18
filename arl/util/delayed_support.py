@@ -24,7 +24,7 @@ def create_simulate_vis_graph(config='LOWBD2-CORE',
                               frequency=None, channel_bandwidth=None, times=None,
                               polarisation_frame=PolarisationFrame("stokesI"), order='frequency',
                               format='blockvis',
-                              **kwargs) -> delayed:
+                              rmax=1000.0) -> delayed:
     """ Create a graph to simulate an observation
 
     The simulation step can generate a single BlockVisibility or a list of BlockVisibility's.
@@ -58,7 +58,7 @@ def create_simulate_vis_graph(config='LOWBD2-CORE',
         channel_bandwidth = [1e6]
     if frequency is None:
         frequency = [1e8]
-    conf = create_named_configuration(config, **kwargs)
+    conf = create_named_configuration(config, rmax=rmax)
     
     if order == 'time':
         log.debug("create_simulate_vis_graph: Simulating distribution in %s" % order)
@@ -67,7 +67,7 @@ def create_simulate_vis_graph(config='LOWBD2-CORE',
             vis_graph_list.append(delayed(create_vis, nout=1)(conf, [times[i]], frequency=frequency,
                                                               channel_bandwidth=channel_bandwidth,
                                                               weight=1.0, phasecentre=phasecentre,
-                                                              polarisation_frame=polarisation_frame, **kwargs))
+                                                              polarisation_frame=polarisation_frame))
     
     elif order == 'frequency':
         log.debug("create_simulate_vis_graph: Simulating distribution in %s" % order)
@@ -76,7 +76,7 @@ def create_simulate_vis_graph(config='LOWBD2-CORE',
             vis_graph_list.append(delayed(create_vis, nout=1)(conf, times, frequency=[frequency[j]],
                                                               channel_bandwidth=[channel_bandwidth[j]],
                                                               weight=1.0, phasecentre=phasecentre,
-                                                              polarisation_frame=polarisation_frame, **kwargs))
+                                                              polarisation_frame=polarisation_frame))
     
     elif order == 'both':
         log.debug("create_simulate_vis_graph: Simulating distribution in time and frequency")
@@ -86,7 +86,7 @@ def create_simulate_vis_graph(config='LOWBD2-CORE',
                 vis_graph_list.append(delayed(create_vis, nout=1)(conf, [times[i]], frequency=[frequency[j]],
                                                                   channel_bandwidth=[channel_bandwidth[j]],
                                                                   weight=1.0, phasecentre=phasecentre,
-                                                                  polarisation_frame=polarisation_frame, **kwargs))
+                                                                  polarisation_frame=polarisation_frame))
     
     elif order is None:
         log.debug("create_simulate_vis_graph: Simulating into single %s" % format)
@@ -94,7 +94,7 @@ def create_simulate_vis_graph(config='LOWBD2-CORE',
         vis_graph_list.append(delayed(create_vis, nout=1)(conf, times, frequency=frequency,
                                                           channel_bandwidth=channel_bandwidth,
                                                           weight=1.0, phasecentre=phasecentre,
-                                                          polarisation_frame=polarisation_frame, **kwargs))
+                                                          polarisation_frame=polarisation_frame))
     else:
         raise NotImplementedError("order $s not known" % order)
     return vis_graph_list

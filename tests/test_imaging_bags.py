@@ -3,122 +3,148 @@
 
 """
 
+import logging
 import os
+import sys
 import unittest
 
 import numpy
 from astropy import units as u
 from astropy.coordinates import SkyCoord
-from astropy.wcs.utils import pixel_to_skycoord
 from dask import bag
 
-from arl.calibration.operations import create_gaintable_from_blockvisibility, apply_gaintable
 from arl.data.polarisation import PolarisationFrame
+from arl.image.operations import export_image_to_fits, smooth_image, qa_image
+from arl.imaging.base import create_image_from_visibility, predict_skycomponent_visibility, \
+    predict_skycomponent_visibility
+from arl.skycomponent.operations import insert_skycomponent
+from arl.util.testing_support import create_named_configuration, ingest_unittest_visibility, \
+    create_unittest_components, insert_unittest_errors
+
 from arl.graphs.bags import invert_bag, predict_bag, deconvolve_bag, restore_bag, \
-    residual_image_bag, predict_record_subtract, reify, selfcal_bag, image_to_records_bag
-from arl.image.operations import qa_image, export_image_to_fits, copy_image, \
-    create_empty_image_like
-from arl.imaging import create_image_from_visibility, predict_skycomponent_visibility, \
-    predict_skycomponent_blockvisibility
-from arl.skycomponent.operations import create_skycomponent, insert_skycomponent
-from arl.util.testing_support import create_named_configuration
-from arl.util.testing_support import simulate_gaintable
-from arl.visibility.base import create_visibility, create_blockvisibility
+    residual_image_bag, predict_record_subtract, reify, selfcal_bag
+
+log = logging.getLogger(__name__)
+
+log.setLevel(logging.DEBUG)
+log.addHandler(logging.StreamHandler(sys.stdout))
+log.addHandler(logging.StreamHandler(sys.stderr))
 
 
-class TestDaskBagsRecords(unittest.TestCase):
-    
+class TestImagingBags(unittest.TestCase):
     def setUp(self):
         
-        # We can compute using the default scheduler. Using the distributed scheduler within
-        # jenkins does not work.
         self.compute = True
-        
         self.dir = './test_results'
         os.makedirs(self.dir, exist_ok=True)
-        
-        self.npixel = 512
-        
-        self.setupVis(add_errors=False, block=False)
+        self.params = {'npixel': 512,
+                       'nchan': 1,
+                       'reffrequency': 1e8,
+                       'facets': 1,
+                       'padding': 2,
+                       'oversampling': 2,
+                       'kernel': '2d',
+                       'wstep': 4.0,
+                       'vis_slices': 1,
+                       'wstack': None,
+                       'timeslice': None}
     
-    def setupVis(self, add_errors=False, block=True, freqwin=3):
+    def actualSetUp(self, add_errors=False, freqwin=7, block=False, dospectral=True, dopol=False):
+        cellsize = 0.001
+        self.low = create_named_configuration('LOWBD2', rmax=750.0)
         self.freqwin = freqwin
         self.ntimes = 5
         self.times = numpy.linspace(-3.0, +3.0, self.ntimes) * numpy.pi / 12.0
         self.frequency = numpy.linspace(0.8e8, 1.2e8, self.freqwin)
-        self.vis_bag = \
-            bag.from_sequence([{'freqwin': f,
-                                'vis': self.ingest_visibility([freq], times=self.times,
-                                                              add_errors=add_errors,
-                                                              block=block)}
-                               for f, freq in enumerate(self.frequency)])
+        if freqwin > 1:
+            self.channelwidth = numpy.array(freqwin * [self.frequency[1] - self.frequency[0]])
+        else:
+            self.channelwidth = numpy.array([1e6])
         
-        self.vis_bag = reify(self.vis_bag)
-        self.model_bag = image_to_records_bag(self.freqwin, self.model)
-        self.empty_model_bag = image_to_records_bag(self.freqwin, self.empty_model)
-    
-    def ingest_visibility(self, freq=[1e8], chan_width=[1e6], times=None, reffrequency=None, add_errors=False,
-                          block=True):
-        if times is None:
-            times = (numpy.pi / 12.0) * numpy.linspace(-3.0, 3.0, 5)
+        if dopol:
+            self.vis_pol = PolarisationFrame('linear')
+            self.image_pol = PolarisationFrame('stokesIQUV')
+            f = numpy.array([100.0, 20.0, -10.0, 1.0])
+        else:
+            self.vis_pol = PolarisationFrame('stokesI')
+            self.image_pol = PolarisationFrame('stokesI')
+            f = numpy.array([100.0])
+        
+        if dospectral:
+            flux = numpy.array([f * numpy.power(freq / 1e8, -0.7) for freq in self.frequency])
+        else:
+            flux = numpy.array([f])
+        
+        self.phasecentre = SkyCoord(ra=+180.0 * u.deg, dec=-60.0 * u.deg, frame='icrs', equinox='J2000')
+        
+        frequency_bag = bag.from_sequence([(i, self.frequency[i], self.channelwidth[i])
+                                           for i, _ in enumerate(self.frequency)])
+        
+        def ingest_bag(f_bag, **kwargs):
+            return ingest_unittest_visibility(frequency=[f_bag[1]], channel_bandwidth=[f_bag[2]], **kwargs)
+        
+        vis_bag = frequency_bag.map(ingest_bag, config=self.low, times=self.times,
+                                    vis_pol=self.vis_pol, phasecentre=self.phasecentre, block=block)
+        vis_bag = reify(vis_bag)
+        
+        model_bag = vis_bag.map(create_image_from_visibility,
+                                npixel=self.params["npixel"],
+                                cellsize=cellsize,
+                                nchan=1,
+                                polarisation_frame=self.image_pol)
+        
+        model_bag = reify(model_bag)
 
-        if reffrequency is None:
-            reffrequency = [1e8]
-        lowcore = create_named_configuration('LOWBD2-CORE')
-        frequency = numpy.array(freq)
-        channel_bandwidth = numpy.array(chan_width)
+        def zero_image(im):
+            im.data[...] = 0.0
+            return im
         
-        phasecentre = SkyCoord(ra=+180.0 * u.deg, dec=-60.0 * u.deg, frame='icrs', equinox='J2000')
+        empty_model_bag = model_bag.map(zero_image)
+        empty_model_bag = reify(empty_model_bag)
+        
+        # Make the components and fill the visibility and the model image
+        flux_bag = bag.from_sequence([flux[i, :][numpy.newaxis, :]
+                                      for i, _ in enumerate(self.frequency)])
+        components_bag = empty_model_bag.map(create_unittest_components, flux_bag)
         if block:
-            vt = create_blockvisibility(lowcore, times, frequency, channel_bandwidth=channel_bandwidth,
-                                        weight=1.0, phasecentre=phasecentre,
-                                        polarisation_frame=PolarisationFrame("stokesI"))
+            vis_bag = vis_bag.map(predict_skycomponent_visibility, components_bag)
         else:
-            vt = create_visibility(lowcore, times, frequency, channel_bandwidth=channel_bandwidth,
-                                   weight=1.0, phasecentre=phasecentre,
-                                   polarisation_frame=PolarisationFrame("stokesI"))
-        cellsize = 0.001
-        model = create_image_from_visibility(vt, npixel=self.npixel, cellsize=cellsize, npol=1,
-                                             frequency=reffrequency, phasecentre=phasecentre,
-                                             polarisation_frame=PolarisationFrame("stokesI"))
-        flux = numpy.array([[100.0]])
-        facets = 4
+            vis_bag = vis_bag.map(predict_skycomponent_visibility, components_bag)
         
-        rpix = model.wcs.wcs.crpix - 1.0
-        spacing_pixels = self.npixel // facets
-        centers = [-1.5, -0.5, 0.5, 1.5]
-        comps = list()
-        for iy in centers:
-            for ix in centers:
-                p = int(round(rpix[0] + ix * spacing_pixels * numpy.sign(model.wcs.wcs.cdelt[0]))), \
-                    int(round(rpix[1] + iy * spacing_pixels * numpy.sign(model.wcs.wcs.cdelt[1])))
-                sc = pixel_to_skycoord(p[0], p[1], model.wcs, origin=1)
-                comp = create_skycomponent(flux=flux, frequency=frequency, direction=sc,
-                                           polarisation_frame=PolarisationFrame("stokesI"))
-                comps.append(comp)
-        if block:
-            predict_skycomponent_blockvisibility(vt, comps)
-        else:
-            predict_skycomponent_visibility(vt, comps)
-        insert_skycomponent(model, comps)
-        self.model = copy_image(model)
-        self.empty_model = create_empty_image_like(model)
-        
-        export_image_to_fits(model, '%s/test_bags_model.fits' % (self.dir))
+        model_bag = model_bag.map(insert_skycomponent, components_bag)
+        model_bag = reify(model_bag)
+        model = list(model_bag)[0]
+
+        # Calculate the model convolved with a Gaussian.
+        self.cmodel = smooth_image(model)
+        export_image_to_fits(model, '%s/test_imaging_bags_model.fits' % self.dir)
+        export_image_to_fits(self.cmodel, '%s/test_imaging_bags_cmodel.fits' % self.dir)
         
         if add_errors:
-            # These will be the same for all calls
-            numpy.random.seed(180555)
-            gt = create_gaintable_from_blockvisibility(vt)
-            gt = simulate_gaintable(gt, phase_error=1.0, amplitude_error=0.0)
-            vt = apply_gaintable(vt, gt)
-        return vt
+            vis_bag = vis_bag.map(insert_unittest_errors, phase_error=1.0, amplitude_error=0.0, seed=180555)
+
+        empty_model_bag = reify(empty_model_bag)
+        vis_bag = reify(vis_bag)
+        
+        # For the bag processing, we need to convert to records, which provide meta data for bags
+        def to_record(vis, f, key):
+            return {'freqwin': f, key: vis}
+        
+        freqwin_bag = bag.range(freqwin, npartitions=freqwin)
+        
+        self.vis_record_bag = vis_bag.map(to_record, freqwin_bag, key='vis')
+        self.vis_record_bag = reify(self.vis_record_bag)
+        self.model_record_bag = model_bag.map(to_record, freqwin_bag, key='image')
+        self.model_record_bag = reify(self.model_record_bag)
+        self.empty_model_record_bag = empty_model_bag.map(to_record, freqwin_bag, key='image')
+        self.empty_model_record_bag = reify(self.empty_model_record_bag)
     
     def test_invert_bag(self):
-        peaks = {'2d': 65.2997439062, 'timeslice': 99.6183393299, 'wstack': 101.099173809}
+        self.actualSetUp()
+        peaks = {'2d': 115.100462556, 'timeslice': 115.100462556, 'wstack': 115.100462556}
         vis_slices = {'2d': None, 'timeslice': 'auto', 'wstack': 101}
         for context in ['2d', 'timeslice', 'wstack']:
-            dirty_bag = invert_bag(self.vis_bag, self.empty_model_bag, dopsf=False,
+            dirty_bag = invert_bag(self.vis_record_bag, self.empty_model_record_bag, dopsf=False,
                                    context=context, normalize=True,
                                    vis_slices=vis_slices[context])
             dirty, sumwt = dirty_bag.compute()[0]['image']
@@ -128,62 +154,66 @@ class TestDaskBagsRecords(unittest.TestCase):
             assert numpy.abs(qa.data['max'] - peaks[context]) < 1.0e-2, str(qa)
     
     def test_predict_bag(self):
-        errors = {'2d': 28.0, 'timeslice': 30.0, 'wstack': 2.3}
+        self.actualSetUp()
+        errors = {'2d': 28.0, 'timeslice': 8.89106002548, 'wstack': 8.89106002548}
         vis_slices = {'2d': None, 'timeslice': 'auto', 'wstack': 101}
         for context in ['wstack', 'timeslice']:
-            model_vis_bag = predict_bag(self.vis_bag, self.model_bag, context,
+            model_vis_bag = predict_bag(self.vis_record_bag, self.model_record_bag, context,
                                         vis_slices=vis_slices[context])
             
             model_vis_bag = reify(model_vis_bag)
-            error_vis_bag = self.vis_bag.map(predict_record_subtract, model_vis_bag)
+            error_vis_bag = self.vis_record_bag.map(predict_record_subtract, model_vis_bag)
             error_vis_bag = reify(error_vis_bag)
-            error_image_bag = invert_bag(error_vis_bag, self.model_bag, dopsf=False,
+            error_image_bag = invert_bag(error_vis_bag, self.model_record_bag, dopsf=False,
                                          context=context, normalize=True, vis_slices=vis_slices[context])
             result = error_image_bag.compute()
             error_image = result[0]['image'][0]
             export_image_to_fits(error_image,
                                  '%s/test_bags_%s_predict_error_image.fits' % (self.dir, context))
             qa = qa_image(error_image, context='error image for %s' % context)
-            assert qa.data['max'] < errors[context], str(qa)
+            assert numpy.abs(qa.data['max'] - errors[context]) < 0.1, str(qa)
     
     def test_deconvolve_bag(self):
+        self.actualSetUp()
         context = 'wstack'
         vis_slices = {'2d': None, 'timeslice': 'auto', 'wstack': 101}
-        dirty_bag = invert_bag(self.vis_bag, self.model_bag, dopsf=False, context=context,
+        dirty_bag = invert_bag(self.vis_record_bag, self.model_record_bag, dopsf=False, context=context,
                                normalize=True,
                                vis_slices=vis_slices[context])
-        psf_bag = invert_bag(self.vis_bag, self.model_bag, dopsf=True, context=context,
+        psf_bag = invert_bag(self.vis_record_bag, self.model_record_bag, dopsf=True, context=context,
                              normalize=True,
                              vis_slices=vis_slices[context])
         dirty_bag = reify(dirty_bag)
         psf_bag = reify(psf_bag)
-        model_bag = deconvolve_bag(dirty_bag, psf_bag, self.empty_model_bag, niter=1000, gain=0.7,
+        model_bag = deconvolve_bag(dirty_bag, psf_bag, self.empty_model_record_bag, niter=1000, gain=0.7,
                                    algorithm='msclean', threshold=0.01, window_shape=None)
         model = model_bag.compute()[0]['image']
         qa = qa_image(model, context=context)
         
         export_image_to_fits(model, '%s/test_bags_%s_deconvolve.fits' % (self.dir, context))
         
-        assert numpy.abs(qa.data['max'] - 60.5) < 0.1, str(qa)
+        assert numpy.abs(qa.data['max'] - 78.7691620819) < 0.1, str(qa)
+        assert numpy.abs(qa.data['min'] + 2.68972448968) < 0.1, str(qa)
     
     def test_restore_bag(self):
+        self.actualSetUp()
         
-        peaks = {'wstack': 98.8113067286}
+        peaks = {'wstack': 116.625014524}
         vis_slices = {'wstack': 101}
         context = 'wstack'
-        dirty_bag = invert_bag(self.vis_bag, self.model_bag, dopsf=False, context=context,
+        dirty_bag = invert_bag(self.vis_record_bag, self.model_record_bag, dopsf=False, context=context,
                                normalize=True,
                                vis_slices=vis_slices[context])
-        psf_bag = invert_bag(self.vis_bag, self.model_bag, dopsf=True, context=context,
+        psf_bag = invert_bag(self.vis_record_bag, self.model_record_bag, dopsf=True, context=context,
                              normalize=True,
                              vis_slices=vis_slices[context])
         dirty_bag = reify(dirty_bag)
         psf_bag = reify(psf_bag)
-        model_bag = deconvolve_bag(dirty_bag, psf_bag, self.empty_model_bag, niter=1000, gain=0.7,
+        model_bag = deconvolve_bag(dirty_bag, psf_bag, self.empty_model_record_bag, niter=1000, gain=0.7,
                                    algorithm='msclean', threshold=0.01, window_shape=None)
         model_bag = reify(model_bag)
-
-        res_image_bag = residual_image_bag(self.vis_bag, model_bag, context=context,
+        
+        res_image_bag = residual_image_bag(self.vis_record_bag, model_bag, context=context,
                                            vis_slices=vis_slices[context])
         res_image_bag = reify(res_image_bag)
         residual = res_image_bag.compute()[0]['image'][0]
@@ -198,67 +228,67 @@ class TestDaskBagsRecords(unittest.TestCase):
         assert numpy.abs(qa.data['max'] - peaks[context]) < 0.1, str(qa)
     
     def test_residual_image_bag(self):
+        self.actualSetUp()
         context = 'wstack'
         vis_slices = {'wstack': 101}
-        dirty_bag = invert_bag(self.vis_bag, self.empty_model_bag, dopsf=False, context=context,
+        dirty_bag = invert_bag(self.vis_record_bag, self.empty_model_record_bag, dopsf=False, context=context,
                                normalize=True, vis_slices=vis_slices[context])
-        psf_bag = invert_bag(self.vis_bag, self.empty_model_bag, dopsf=True, context=context,
+        psf_bag = invert_bag(self.vis_record_bag, self.empty_model_record_bag, dopsf=True, context=context,
                              normalize=True, vis_slices=vis_slices[context])
         dirty_bag = reify(dirty_bag)
         psf_bag = reify(psf_bag)
-        model_bag = deconvolve_bag(dirty_bag, psf_bag, self.empty_model_bag, niter=1000,
+        model_bag = deconvolve_bag(dirty_bag, psf_bag, self.empty_model_record_bag, niter=1000,
                                    gain=0.1, algorithm='msclean',
                                    threshold=0.01, window_shape=None)
-        residual_bag = residual_image_bag(self.vis_bag, model_bag, context=context,
+        residual_bag = residual_image_bag(self.vis_record_bag, model_bag, context=context,
                                           vis_slices=vis_slices[context])
         final = residual_bag.compute()[0]['image'][0]
         export_image_to_fits(final, '%s/test_bags_%s_residual.fits' % (self.dir, context))
         
         qa = qa_image(final, context=context)
-        assert qa.data['max'] < 15.0, str(qa)
-    
+        assert numpy.abs(qa.data['max'] - 5.7369326339) < 0.1, str(qa)
+
     def test_residual_image_bag_model(self):
+        self.actualSetUp()
         context = 'wstack'
         vis_slices = {'wstack': 101}
-        residual_bag = residual_image_bag(self.vis_bag, self.model_bag, context=context,
+        residual_bag = residual_image_bag(self.vis_record_bag, self.model_record_bag, context=context,
                                           vis_slices=vis_slices[context])
         final = residual_bag.compute()[0]['image'][0]
         export_image_to_fits(final, '%s/test_bags_%s_residual_image_bag.fits' % (self.dir, context))
         
         qa = qa_image(final, context=context)
-        assert qa.data['max'] < 2.3, str(qa)
+        assert numpy.abs(qa.data['max'] - 8.89106002548) < 0.1, str(qa)
     
-    @unittest.skip("Global not yet bagged properly")
+    @unittest.skip("Global solution not implemented yet")
     def test_selfcal_global_bag(self):
-        
-        self.setupVis(add_errors=True)
-        selfcal_vis_bag = selfcal_bag(self.vis_bag, self.model_bag, global_solution=True,
-                                      context='wstack', vis_slices=51)
-        dirty_bag = invert_bag(selfcal_vis_bag, self.model_bag,
-                               dopsf=False, normalize=True, context='wstack',
-                               vis_slices=101)
+        self.actualSetUp(block=True)
+        selfcal_vis_bag = selfcal_bag(self.vis_record_bag, self.model_record_bag, global_solution=True,
+                                      context='timeslice', vis_slices=self.ntimes)
+        dirty_bag = invert_bag(selfcal_vis_bag, self.model_record_bag,
+                               dopsf=False, normalize=True, context='timeslice',
+                               vis_slices=self.ntimes)
         if self.compute:
             dirty, sumwt = dirty_bag.compute()[0]['image']
             export_image_to_fits(dirty, '%s/test_imaging_bags_global_selfcal_dirty.fits'
                                  % (self.dir))
             qa = qa_image(dirty)
             
-            assert numpy.abs(qa.data['max'] - 101.7) < 1.0, str(qa)
-            assert numpy.abs(qa.data['min'] + 3.5) < 1.0, str(qa)
+            assert numpy.abs(qa.data['max'] - 112.282380843) < 0.1, str(qa)
+            assert numpy.abs(qa.data['min'] + 2.38763650521) < 0.1, str(qa)
     
     def test_selfcal_nonglobal_bag(self):
         
-        self.setupVis(add_errors=True)
-        selfcal_vis_bag = selfcal_bag(self.vis_bag, self.model_bag, global_solution=False,
-                                      context='wstack', vis_slices=51)
+        self.actualSetUp(block=True)
+        selfcal_vis_bag = selfcal_bag(self.vis_record_bag, self.model_record_bag, global_solution=False,
+                                      context='timeslice', vis_slices=self.ntimes)
         
-        dirty_bag = invert_bag(selfcal_vis_bag, self.model_bag,
-                               dopsf=False, normalize=True, context='wstack',
-                               vis_slices=101)
+        dirty_bag = invert_bag(selfcal_vis_bag, self.model_record_bag,
+                               dopsf=False, normalize=True, context='timeslice', vis_slices=self.ntimes)
         if self.compute:
             dirty, sumwt = dirty_bag.compute()[0]['image']
             export_image_to_fits(dirty, '%s/test_imaging_bags_nonglobal_selfcal_dirty.fits' % (self.dir))
             qa = qa_image(dirty)
             
-            assert numpy.abs(qa.data['max'] - 100.57) < 0.1, str(qa)
-            assert numpy.abs(qa.data['min'] + 4.24) < 0.1, str(qa)
+            assert numpy.abs(qa.data['max'] - 112.282380843) < 0.1, str(qa)
+            assert numpy.abs(qa.data['min'] + 2.38763650521) < 0.1, str(qa)

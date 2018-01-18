@@ -11,21 +11,18 @@ import unittest
 import numpy
 from astropy import units as u
 from astropy.coordinates import SkyCoord
-from astropy.wcs.utils import pixel_to_skycoord
-
 from dask import bag
-from arl.graphs.bags import reify
 
-from arl.calibration.operations import apply_gaintable, create_gaintable_from_blockvisibility
 from arl.data.polarisation import PolarisationFrame
-from arl.image.operations import qa_image, export_image_to_fits, copy_image, create_empty_image_like
-from arl.imaging import create_image_from_visibility, predict_skycomponent_blockvisibility, \
-    predict_skycomponent_visibility
-from arl.skycomponent.operations import create_skycomponent, insert_skycomponent
-from arl.util.testing_support import create_named_configuration, simulate_gaintable
-from arl.graphs.bags import image_to_records_bag
-from arl.visibility.base import create_visibility, create_blockvisibility
 
+from arl.image.operations import export_image_to_fits, smooth_image, qa_image
+from arl.imaging.base import create_image_from_visibility, predict_skycomponent_visibility, \
+    predict_skycomponent_visibility
+from arl.skycomponent.operations import insert_skycomponent
+from arl.util.testing_support import create_named_configuration, ingest_unittest_visibility, \
+    create_unittest_components, insert_unittest_errors
+
+from arl.graphs.bags import reify
 from arl.pipelines.bags import continuum_imaging_pipeline_bag, ical_pipeline_bag
 
 log = logging.getLogger(__name__)
@@ -38,130 +35,144 @@ log.addHandler(logging.StreamHandler(sys.stderr))
 class TestPipelinesBags(unittest.TestCase):
     def setUp(self):
         
+        self.compute = True
         self.dir = './test_results'
         os.makedirs(self.dir, exist_ok=True)
-        
-        # We can compute using the default scheduler. Using the distributed scheduler within
-        # jenkins does not work.
-        self.compute = True
-        
-        self.npixel = 256
-        self.vis_slices = 31
-        
-        self.setupVis(add_errors=False, block=True)
+        self.params = {'npixel': 512,
+                       'nchan': 1,
+                       'reffrequency': 1e8,
+                       'facets': 1,
+                       'padding': 2,
+                       'oversampling': 2,
+                       'kernel': '2d',
+                       'wstep': 4.0,
+                       'vis_slices': 1,
+                       'wstack': None,
+                       'timeslice': None}
     
-    def setupVis(self, add_errors=False, block=True, freqwin=7):
+    def actualSetUp(self, add_errors=False, freqwin=7, block=False, dospectral=True, dopol=False):
+        cellsize = 0.001
+        self.low = create_named_configuration('LOWBD2', rmax=750.0)
         self.freqwin = freqwin
         self.ntimes = 5
         self.times = numpy.linspace(-3.0, +3.0, self.ntimes) * numpy.pi / 12.0
         self.frequency = numpy.linspace(0.8e8, 1.2e8, self.freqwin)
-        
-        self.vis_bag = \
-            bag.from_sequence([{'freqwin': f,
-                                'vis': self.ingest_visibility([freq], times=self.times,
-                                                              add_errors=add_errors,
-                                                              block=block)}
-                               for f, freq in enumerate(self.frequency)])
-        
-        self.vis_bag = reify(self.vis_bag)
-        self.model_bag = image_to_records_bag(self.freqwin, self.model)
-        self.empty_model_bag = image_to_records_bag(self.freqwin, self.empty_model)
-    
-    def ingest_visibility(self, freq=[1e8], chan_width=[1e6], times=None, reffrequency=None, add_errors=False,
-                          block=True):
-        if times is None:
-            times = (numpy.pi / 12.0) * numpy.linspace(-3.0, 3.0, 5)
-        
-        if reffrequency is None:
-            reffrequency = [1e8]
-        lowcore = create_named_configuration('LOWBD2-CORE')
-        if times is None:
-            ntimes = 5
-            times = numpy.linspace(-numpy.pi / 3.0, numpy.pi / 3.0, ntimes)
-            
-        frequency = numpy.array(freq)
-        channel_bandwidth = numpy.array(chan_width)
-        
-        phasecentre = SkyCoord(ra=+180.0 * u.deg, dec=-60.0 * u.deg, frame='icrs', equinox='J2000')
-        if block:
-            vt = create_blockvisibility(lowcore, times, frequency, channel_bandwidth=channel_bandwidth,
-                                        weight=1.0, phasecentre=phasecentre,
-                                        polarisation_frame=PolarisationFrame("stokesI"))
+        if freqwin > 1:
+            self.channelwidth = numpy.array(freqwin * [self.frequency[1] - self.frequency[0]])
         else:
-            vt = create_visibility(lowcore, times, frequency, channel_bandwidth=channel_bandwidth,
-                                   weight=1.0, phasecentre=phasecentre,
-                                   polarisation_frame=PolarisationFrame("stokesI"))
-        cellsize = 0.001
-        model = create_image_from_visibility(vt, npixel=self.npixel, cellsize=cellsize, npol=1,
-                                             frequency=reffrequency, phasecentre=phasecentre,
-                                             polarisation_frame=PolarisationFrame("stokesI"))
-        flux = numpy.array([[100.0]])
-        facets = 4
+            self.channelwidth = numpy.array([1e6])
         
-        rpix = model.wcs.wcs.crpix - 1.0
-        spacing_pixels = self.npixel // facets
-        centers = [-1.5, -0.5, 0.5, 1.5]
-        comps = list()
-        for iy in centers:
-            for ix in centers:
-                p = int(round(rpix[0] + ix * spacing_pixels * numpy.sign(model.wcs.wcs.cdelt[0]))), \
-                    int(round(rpix[1] + iy * spacing_pixels * numpy.sign(model.wcs.wcs.cdelt[1])))
-                sc = pixel_to_skycoord(p[0], p[1], model.wcs, origin=1)
-                comp = create_skycomponent(flux=flux, frequency=frequency, direction=sc,
-                                           polarisation_frame=PolarisationFrame("stokesI"))
-                comps.append(comp)
-        if block:
-            predict_skycomponent_blockvisibility(vt, comps)
+        if dopol:
+            self.vis_pol = PolarisationFrame('linear')
+            self.image_pol = PolarisationFrame('stokesIQUV')
+            f = numpy.array([100.0, 20.0, -10.0, 1.0])
         else:
-            predict_skycomponent_visibility(vt, comps)
-        insert_skycomponent(model, comps)
-        self.model = copy_image(model)
-        self.empty_model = create_empty_image_like(model)
-        export_image_to_fits(model, '%s/test_pipeline_bags_model.fits' % (self.dir))
+            self.vis_pol = PolarisationFrame('stokesI')
+            self.image_pol = PolarisationFrame('stokesI')
+            f = numpy.array([100.0])
         
-        if add_errors:
-            assert block, "Cannot only add errors to BlockVisibility"
-            # These will be the same for all calls
-            numpy.random.seed(180555)
-            gt = create_gaintable_from_blockvisibility(vt)
-            gt = simulate_gaintable(gt, phase_error=1.0, amplitude_error=0.0)
-            vt = apply_gaintable(vt, gt)
-        return vt
-    
+        if dospectral:
+            flux = numpy.array([f * numpy.power(freq / 1e8, -0.7) for freq in self.frequency])
+        else:
+            flux = numpy.array([f])
+        
+        self.phasecentre = SkyCoord(ra=+180.0 * u.deg, dec=-60.0 * u.deg, frame='icrs', equinox='J2000')
+        
+        frequency_bag = bag.from_sequence([(i, self.frequency[i], self.channelwidth[i])
+                                           for i, _ in enumerate(self.frequency)])
+        
+        def ingest_bag(f_bag, **kwargs):
+            return ingest_unittest_visibility(frequency=[f_bag[1]], channel_bandwidth=[f_bag[2]], **kwargs)
+        
+        vis_bag = frequency_bag.map(ingest_bag, config=self.low, times=self.times,
+                                    vis_pol=self.vis_pol, phasecentre=self.phasecentre, block=block)
+        vis_bag = reify(vis_bag)
+        
+        model_bag = vis_bag.map(create_image_from_visibility,
+                                npixel=self.params["npixel"],
+                                cellsize=cellsize,
+                                nchan=1,
+                                polarisation_frame=self.image_pol)
+
+        model_bag = reify(model_bag)
+
+        def zero_image(im):
+            im.data[...] = 0.0
+            return im
+
+        empty_model_bag = model_bag.map(zero_image)
+        empty_model_bag = reify(empty_model_bag)
+        
+        # Make the components and fill the visibility and the model image
+        flux_bag = bag.from_sequence([flux[i, :][numpy.newaxis, :] for i, _ in enumerate(self.frequency)])
+        components_bag = empty_model_bag.map(create_unittest_components, flux_bag)
+        if block:
+            vis_bag = vis_bag.map(predict_skycomponent_visibility, components_bag)
+        else:
+            vis_bag = vis_bag.map(predict_skycomponent_visibility, components_bag)
+        
+        model_bag = model_bag.map(insert_skycomponent, components_bag)
+        model_bag = reify(model_bag)
+        model = list(model_bag)[0]
+
+        # Calculate the model convolved with a Gaussian.
+        self.cmodel = smooth_image(model)
+        export_image_to_fits(model, '%s/test_imaging_bags_model.fits' % self.dir)
+        export_image_to_fits(self.cmodel, '%s/test_imaging_bags_cmodel.fits' % self.dir)
+        
+#        if add_errors:
+#            vis_bag = vis_bag.map(insert_unittest_errors, phase_error=1.0, amplitude_error=0.0, seed=180555)
+
+        empty_model_bag = reify(empty_model_bag)
+        vis_bag = reify(vis_bag)
+
+        # For the bag processing, we need to convert to records, which provide meta data for bags
+        def to_record(bg, fwin, key):
+            return {'freqwin': fwin, key: bg}
+        
+        freqwin_bag = bag.range(freqwin, npartitions=freqwin)
+        self.vis_record_bag = vis_bag.map(to_record, freqwin_bag, key='vis')
+        self.vis_record_bag = reify(self.vis_record_bag)
+        self.empty_model_record_bag = empty_model_bag.map(to_record, freqwin_bag, key='image')
+        self.empty_model_record_bag = reify(self.empty_model_record_bag)
+
     def test_continuum_imaging_pipeline(self):
+        self.actualSetUp(block=True)
         self.vis_slices = 51
-        self.context = 'wstack_single'
+        self.context = 'wstack'
         continuum_imaging_bag = \
-            continuum_imaging_pipeline_bag(self.vis_bag, model_bag=self.model_bag,
+            continuum_imaging_pipeline_bag(self.vis_record_bag, model_bag=self.empty_model_record_bag,
                                            context=self.context,
                                            vis_slices=self.vis_slices,
                                            niter=1000, fractional_threshold=0.1,
                                            threshold=2.0, nmajor=0, gain=0.1)
         if self.compute:
             clean, residual, restored = continuum_imaging_bag.compute()
-            clean = clean.compute()[0]['image']
-            export_image_to_fits(clean, '%s/test_pipelines_continuum_imaging_bag_clean.fits' % (self.dir))
-            qa = qa_image(clean)
-            assert numpy.abs(qa.data['max'] - 100.0) < 5.0, str(qa)
-            assert numpy.abs(qa.data['min'] + 5.0) < 5.0, str(qa)
+            restored = restored.compute()[0]
+            export_image_to_fits(restored, '%s/test_pipelines_continuum_imaging_bag_restored.fits' % self.dir)
+            qa = qa_image(restored)
+            assert numpy.abs(qa.data['max'] - 116.835113361) < 5.0, str(qa)
+            assert numpy.abs(qa.data['min']) < 5.0, str(qa)
     
     def test_ical_pipeline(self):
-        self.vis_slices = 51
-        self.context = 'wstack_single'
-        self.setupVis(add_errors=True)
+        self.actualSetUp(block=True, add_errors=True)
+        self.vis_slices = self.ntimes
+        self.context = '2d'
         ical_bag = \
-            ical_pipeline_bag(self.vis_bag, model_bag=self.model_bag,
+            ical_pipeline_bag(self.vis_record_bag, model_bag=self.empty_model_record_bag,
                               context=self.context,
                               vis_slices=self.vis_slices,
                               niter=1000, fractional_threshold=0.1,
-                              threshold=2.0, nmajor=5, gain=0.1, first_selfcal=1, global_solution=False)
+                              threshold=2.0, nmajor=5, gain=0.1, first_selfcal=1,
+                              global_solution=False)
         if self.compute:
             clean, residual, restored = ical_bag.compute()
-            clean = clean.compute()[0]['image']
-            export_image_to_fits(clean, '%s/test_pipelines_ical_bag_clean.fits' % (self.dir))
-            qa = qa_image(clean)
-            assert numpy.abs(qa.data['max'] - 92) < 5.0, str(qa)
-            assert numpy.abs(qa.data['min']) < 5.0, str(qa)
+            restored = restored.compute()[0]
+            export_image_to_fits(restored, '%s/test_pipelines_ical_bag_restored.fits' % self.dir)
+            qa = qa_image(restored)
+            assert numpy.abs(qa.data['max'] - 114.907364114) < 5.0, str(qa)
+            assert numpy.abs(qa.data['min'] + 0.529827321512) < 5.0, str(qa)
+
 
 if __name__ == '__main__':
     unittest.main()

@@ -14,33 +14,10 @@ from arl.image.solvers import solve_image
 from arl.image.deconvolution import deconvolve_cube, restore_cube
 from arl.visibility.base import copy_visibility
 from arl.visibility.coalesce import convert_blockvisibility_to_visibility, convert_visibility_to_blockvisibility
-from arl.imaging import predict_skycomponent_blockvisibility, predict_skycomponent_visibility
-from arl.imaging.imaging_context import predict_context, invert_context
+from arl.imaging import predict_skycomponent_visibility
+from arl.imaging.imaging_context import predict_function, invert_function
 
 log = logging.getLogger(__name__)
-
-
-def rcal(vis: BlockVisibility, components, **kwargs) -> GainTable:
-    """ Real-time calibration pipeline.
-    
-    Reads visibilities through a BlockVisibility iterator, calculates model visibilities according to a
-    component-based sky model, and performs calibration solution, writing a gaintable for each chunk of
-    visibilities.
-    
-    :param vis: Visibility or Union(Visibility, Iterable)
-    :param components: Component-based sky model
-    :param kwargs: Parameters
-    :return: gaintable
-   """
-    
-    if not isinstance(vis, collections.Iterable):
-        vis = [vis]
-    
-    for ichunk, vischunk in enumerate(vis):
-        vispred = copy_visibility(vischunk, zero=True)
-        vispred = predict_skycomponent_blockvisibility(vispred, components)
-        gt = solve_gaintable(vischunk, vispred, **kwargs)
-        yield gt
 
 
 def ical(block_vis: BlockVisibility, model: Image, components=None, context='2d', **kwargs) \
@@ -65,11 +42,11 @@ def ical(block_vis: BlockVisibility, model: Image, components=None, context='2d'
     vispred.data['vis'][...] = 0.0
     visres = copy_visibility(vispred)
 
-    vispred = predict_context(vispred, model, context=context, **kwargs)
+    vispred = predict_function(vispred, model, context=context, **kwargs)
     block_vispred = convert_visibility_to_blockvisibility(vispred)
 
     if components is not None:
-        block_vispred = predict_skycomponent_blockvisibility(block_vispred, components)
+        block_vispred = predict_skycomponent_visibility(block_vispred, components)
         
     doselfcal = first_selfcal is not None and first_selfcal == 0
     if doselfcal:
@@ -79,10 +56,10 @@ def ical(block_vis: BlockVisibility, model: Image, components=None, context='2d'
         vis = apply_gaintable(block_vis, gt, inverse=True)
 
     visres.data['vis'] = vis.data['vis'] - vispred.data['vis']
-    dirty, sumwt = invert_context(visres, model, context=context, **kwargs)
+    dirty, sumwt = invert_function(visres, model, context=context, **kwargs)
     log.info("Maximum in residual image is %.6f" % (numpy.max(numpy.abs(dirty.data))))
 
-    psf, sumwt = invert_context(visres, model, dopsf=True, context=context, **kwargs)
+    psf, sumwt = invert_function(visres, model, dopsf=True, context=context, **kwargs)
 
     thresh = get_parameter(kwargs, "threshold", 0.0)
 
@@ -91,8 +68,8 @@ def ical(block_vis: BlockVisibility, model: Image, components=None, context='2d'
         cc, res = deconvolve_cube(dirty, psf, **kwargs)
         model.data += cc.data
         vispred.data['vis'][...] = 0.0
-        vispred = predict_context(vispred, model, context=context, **kwargs)
-        doselfcal = first_selfcal is not None and i == first_selfcal
+        vispred = predict_function(vispred, model, context=context, **kwargs)
+        doselfcal = first_selfcal is not None and i >= first_selfcal
         if doselfcal:
             log.info("ical: Performing selfcalibration")
             block_vispred = convert_visibility_to_blockvisibility(vispred)
@@ -103,7 +80,7 @@ def ical(block_vis: BlockVisibility, model: Image, components=None, context='2d'
             
         visres.data['vis'] = vis.data['vis'] - vispred.data['vis']
         
-        dirty, sumwt = invert_context(visres, model, context=context, **kwargs)
+        dirty, sumwt = invert_function(visres, model, context=context, **kwargs)
         log.info("Maximum in residual image is %s" % (numpy.max(numpy.abs(dirty.data))))
         if numpy.abs(dirty.data).max() < 1.1 * thresh:
             log.info("ical: Reached stopping threshold %.6f Jy" % thresh)
@@ -156,7 +133,7 @@ def spectral_line_imaging(vis: Visibility, model: Image, continuum_model: Image=
 
     vis_no_continuum = copy_visibility(vis)
     if continuum_model is not None:
-        vis_no_continuum = predict_context(vis_no_continuum, continuum_model, context=context, **kwargs)
+        vis_no_continuum = predict_function(vis_no_continuum, continuum_model, context=context, **kwargs)
     if continuum_components is not None:
         vis_no_continuum = predict_skycomponent_visibility(vis_no_continuum, continuum_components)
     vis_no_continuum.data['vis'] = vis.data['vis'] - vis_no_continuum.data['vis']
@@ -168,7 +145,7 @@ def spectral_line_imaging(vis: Visibility, model: Image, continuum_model: Image=
     else:
         log.info("spectral_line_imaging: Making dirty image from continuum subtracted visibility")
         spectral_model, spectral_residual = \
-            invert_context(vis_no_continuum, model, context=context, **kwargs)
+            invert_function(vis_no_continuum, model, context=context, **kwargs)
     
     return vis_no_continuum, spectral_model, spectral_residual
 
@@ -193,3 +170,28 @@ def eor(**kwargs) -> (Image, Image, Image):
     # TODO: implement
     
     return True
+
+
+def rcal(vis: BlockVisibility, components, **kwargs) -> GainTable:
+    """ Real-time calibration pipeline.
+
+    Reads visibilities through a BlockVisibility iterator, calculates model visibilities according to a
+    component-based sky model, and performs calibration solution, writing a gaintable for each chunk of
+    visibilities.
+
+    :param vis: Visibility or Union(Visibility, Iterable)
+    :param components: Component-based sky model
+    :param kwargs: Parameters
+    :return: gaintable
+   """
+    
+    if not isinstance(vis, collections.Iterable):
+        vis = [vis]
+    
+    for ichunk, vischunk in enumerate(vis):
+        vispred = copy_visibility(vischunk, zero=True)
+        vispred = predict_skycomponent_visibility(vispred, components)
+        gt = solve_gaintable(vischunk, vispred, **kwargs)
+        yield gt
+
+

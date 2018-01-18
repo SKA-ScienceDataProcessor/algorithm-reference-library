@@ -18,7 +18,7 @@ from arl.image.operations import qa_image, create_empty_image_like
 from arl.imaging import advise_wide_field
 from arl.pipelines.bags import ical_pipeline_bag
 from arl.util.bag_support import simulate_vis_bag, corrupt_vis_bag, gleam_model_bag
-from arl.visibility.coalesce import convert_visibility_to_blockvisibility
+from arl.visibility.coalesce import convert_visibility_to_blockvisibility, convert_blockvisibility_to_visibility
 
 log = logging.getLogger()
 log.setLevel(logging.DEBUG)
@@ -158,7 +158,7 @@ def trial_case(results, seed=180555, context='wstack_single', nworkers=8, thread
     
     # Find the best imaging parameters.
     wprojection_planes = 1
-    block_vis = reified_vis_bag[0]['vis']
+    block_vis = convert_blockvisibility_to_visibility(reified_vis_bag[0]['vis'])
     advice = advise_wide_field(block_vis, guard_band_image=4.0, delA=0.02, facets=facets,
                                wprojection_planes=wprojection_planes, oversampling_synthesised_beam=4.0)
     
@@ -187,7 +187,7 @@ def trial_case(results, seed=180555, context='wstack_single', nworkers=8, thread
                           channel_bandwidth=channel_bandwidth,
                           cellsize=cellsize,
                           phasecentre=phasecentre, applybeam=True,
-                          polarisation_frame=PolarisationFrame("stokesI"))
+                          polarisation_frame=PolarisationFrame("stokesI"), flux_limit=0.1)
     gmb = reify(gmb)
     end = time.time()
     results['time create gleam'] = end - start

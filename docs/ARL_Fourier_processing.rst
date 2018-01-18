@@ -3,8 +3,7 @@
 Fourier processing
 ******************
 
-Imaging functionality is in the module :py:mod:`arl.imaging.base` . Graphs providing processing using these functions
-are in the module :py:mod:`arl.graphs.graphs` .
+Imaging functionality is in the module :py:mod:`arl.imaging.base`.
 
 There are many algorithms for imaging, using different approaches to correct for various effects:
 

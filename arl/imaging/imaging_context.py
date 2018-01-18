@@ -87,8 +87,8 @@ def imaging_context(context='2d'):
     return contexts[context]
 
 
-def invert_context(vis, im: Image, dopsf=False, normalize=True, context='2d', inner=None,
-                   **kwargs):
+def invert_function(vis, im: Image, dopsf=False, normalize=True, context='2d', inner=None,
+                    **kwargs):
     """ Invert using a specified iterators and invert
 
     :param vis:
@@ -150,13 +150,14 @@ def invert_context(vis, im: Image, dopsf=False, normalize=True, context='2d', in
             resultimage.data += workimage.data
             workimage.data[...] = 0.0
     
+    assert totalwt is not None, "No valid data found for imaging"
     if normalize:
         resultimage = normalize_sumwt(resultimage, totalwt)
     
     return resultimage, totalwt
 
 
-def predict_context(vis, model: Image, context='2d', inner=None, **kwargs) -> Visibility:
+def predict_function(vis, model: Image, context='2d', inner=None, **kwargs) -> Visibility:
     """Iterate through prediction using specified iterators and predict
     
     :param vis:

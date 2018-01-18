@@ -15,7 +15,7 @@ from arl.calibration.operations import apply_gaintable, create_gaintable_from_bl
 from arl.data.polarisation import PolarisationFrame
 from arl.image.operations import qa_image, create_empty_image_like
 from arl.imaging import advise_wide_field
-from arl.imaging.imaging_context import predict_context, invert_context
+from arl.imaging.imaging_context import predict_function, invert_function
 from arl.pipelines.functions import ical
 from arl.util.testing_support import create_low_test_image_from_gleam, create_blockvisibility, simulate_gaintable, \
     create_named_configuration
@@ -116,7 +116,7 @@ def trial_case(results, seed=180555, context='wstack',
     # Parameters determining scale
     frequency = numpy.linspace(0.8e8, 1.2e8, nfreqwin)
     if nfreqwin > 1:
-        channel_bandwidth = numpy.array(nfreqwin * [(frequency[1] - frequency[0]) * (1.0 - 1.0e-7)])
+        channel_bandwidth = numpy.array(nfreqwin * [frequency[1] - frequency[0]])
     else:
         channel_bandwidth = numpy.array([1e6])
     times = numpy.linspace(-numpy.pi / 3.0, numpy.pi / 3.0, ntimes)
@@ -163,7 +163,7 @@ def trial_case(results, seed=180555, context='wstack',
                                                    cellsize=cellsize,
                                                    phasecentre=phasecentre,
                                                    polarisation_frame=PolarisationFrame("stokesI"),
-                                                   applybeam=True)
+                                                   applybeam=True, flux_limit=0.1)
     end = time.time()
     results['time create gleam'] = end - start
     print("Creating GLEAM model took %.2f seconds" % (end - start))
@@ -172,7 +172,7 @@ def trial_case(results, seed=180555, context='wstack',
     start = time.time()
     print("****** Starting GLEAM model visibility prediction ******")
     vis = convert_blockvisibility_to_visibility(block_vis)
-    vis = predict_context(vis, gleam_model, vis_slices=vis_slices, context=context)
+    vis = predict_function(vis, gleam_model, vis_slices=vis_slices, context=context)
     end = time.time()
     results['time predict'] = end - start
     print("GLEAM model Visibility prediction took %.2f seconds" % (end - start))
@@ -192,8 +192,8 @@ def trial_case(results, seed=180555, context='wstack',
     vis = convert_blockvisibility_to_visibility(block_vis)
     print("****** Starting PSF calculation ******")
     start = time.time()
-    psf, sumwt = invert_context(vis, empty_model, vis_slices=vis_slices, facets=facets, dopsf=True,
-                                context=context)
+    psf, sumwt = invert_function(vis, empty_model, vis_slices=vis_slices, facets=facets, dopsf=True,
+                                 context=context)
     end = time.time()
     results['time psf invert'] = end - start
     print("PSF invert took %.2f seconds" % (end - start))
@@ -202,8 +202,8 @@ def trial_case(results, seed=180555, context='wstack',
     
     print("****** Starting dirty image calculation ******")
     start = time.time()
-    dirty, sumwt = invert_context(vis, empty_model, vis_slices=vis_slices, facets=facets,
-                                  dopsf=False, context=context, **kwargs)
+    dirty, sumwt = invert_function(vis, empty_model, vis_slices=vis_slices, facets=facets,
+                                   dopsf=False, context=context, **kwargs)
     end = time.time()
     results['time invert'] = end - start
     print("Dirty image invert took %.2f seconds" % (end - start))
@@ -294,7 +294,7 @@ def main(args):
     
     print("Defining %d frequency windows" % nfreq)
     
-    fieldnames = ['driver', 'nnodes', 'n_workers', 'time ICAL', 'time ICAL graph', 'time create gleam',
+    fieldnames = ['driver', 'nnodes', 'nworkers', 'time ICAL', 'time ICAL graph', 'time create gleam',
                   'time predict', 'time corrupt', 'time invert', 'time psf invert', 'time overall',
                   'threads_per_worker', 'processes', 'order',
                   'nfreqwin', 'ntimes', 'rmax', 'facets', 'wprojection_planes', 'vis_slices', 'npixel',

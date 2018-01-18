@@ -34,6 +34,9 @@ def copy_visibility(vis: Union[Visibility, BlockVisibility], zero=False) -> Unio
     
     newvis = copy.copy(vis)
     newvis.data = copy.deepcopy(vis.data)
+    if isinstance(vis, Visibility):
+        newvis.cindex = vis.cindex
+        newvis.blockvis = vis.blockvis
     if zero:
         newvis.data['vis'][...] = 0.0
     return newvis
@@ -199,14 +202,24 @@ def create_visibility_from_rows(vis: Union[Visibility, BlockVisibility], rows: n
     if rows is None or numpy.sum(rows) == 0:
         return None
 
+    assert len(rows) == vis.nvis, "Length of rows does not agree with length of visibility"
+    
     if isinstance(vis, Visibility):
 
         if makecopy:
             newvis = copy_visibility(vis)
+            if vis.cindex is not None and len(rows) == len(vis.cindex):
+                newvis.cindex = vis.cindex[rows]
+            else:
+                newvis.cindex = None
+            if vis.blockvis is not None:
+                newvis.blockvis = vis.blockvis
             newvis.data = copy.deepcopy(vis.data[rows])
             return newvis
         else:
             vis.data = copy.deepcopy(vis.data[rows])
+            if vis.cindex is not None:
+                vis.cindex = vis.cindex[rows]
             return vis
     else:
 

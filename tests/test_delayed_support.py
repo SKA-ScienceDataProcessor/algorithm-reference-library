@@ -11,7 +11,7 @@ from astropy import units as u
 from astropy.coordinates import SkyCoord
 
 from arl.data.data_models import BlockVisibility
-from arl.util.graph_support import create_simulate_vis_graph
+from arl.util.delayed_support import create_simulate_vis_graph
 
 log = logging.getLogger(__name__)
 

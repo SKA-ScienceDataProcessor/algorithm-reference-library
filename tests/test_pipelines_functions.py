@@ -16,7 +16,7 @@ from astropy.wcs.utils import pixel_to_skycoord
 from arl.calibration.operations import qa_gaintable, create_gaintable_from_blockvisibility, apply_gaintable
 from arl.data.polarisation import PolarisationFrame
 from arl.image.operations import export_image_to_fits, create_empty_image_like, copy_image
-from arl.imaging import predict_skycomponent_visibility, predict_skycomponent_blockvisibility, \
+from arl.imaging import predict_skycomponent_visibility, \
     create_image_from_visibility
 from arl.pipelines.functions import continuum_imaging, spectral_line_imaging, ical, rcal, eor, fast_imaging
 from arl.skycomponent.operations import create_skycomponent, insert_skycomponent
@@ -90,7 +90,7 @@ class TestPipelinesFunctions(unittest.TestCase):
                                            polarisation_frame=PolarisationFrame("stokesI"))
                 comps.append(comp)
         if block:
-            predict_skycomponent_blockvisibility(vt, comps)
+            predict_skycomponent_visibility(vt, comps)
         else:
             predict_skycomponent_visibility(vt, comps)
         insert_skycomponent(model, comps)

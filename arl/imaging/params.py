@@ -6,6 +6,8 @@ import logging
 import warnings
 
 import astropy.constants as constants
+from astropy.wcs import FITSFixedWarning
+
 import numpy
 
 from arl.data.data_models import Visibility, BlockVisibility, Image
@@ -13,6 +15,7 @@ from arl.data.parameters import get_parameter
 from arl.data.polarisation import PolarisationFrame
 from arl.fourier_transforms.convolutional_gridding import anti_aliasing_calculate
 from arl.image.operations import create_w_term_like, copy_image, pad_image, fft_image, convert_image_to_kernel
+from arl.visibility.coalesce import convert_visibility_to_blockvisibility, convert_blockvisibility_to_visibility
 
 log = logging.getLogger(__name__)
 
@@ -38,7 +41,7 @@ def get_frequency_map(vis, im: Image = None):
     else:
         # We can map these to image channels
         with warnings.catch_warnings():
-            warnings.simplefilter('ignore')
+            warnings.simplefilter('ignore', FITSFixedWarning)
             v2im_map = im.wcs.sub(['spectral']).wcs_world2pix(ufrequency, 0)[0].astype('int')
         
         spectral_mode = 'channel'
@@ -259,18 +262,25 @@ def advise_wide_field(vis: Visibility, delA=0.02, oversampling_synthesised_beam=
     :param wprojection_planes: Number of planes in wprojection
     :return: dict of advice
     """
-    max_wavelength = constants.c.to('m/s').value / numpy.min(vis.frequency)
+    
+    if isinstance(vis, BlockVisibility):
+        svis = convert_blockvisibility_to_visibility(vis)
+    else:
+        svis = vis
+    assert isinstance(svis, Visibility), svis
+    
+    max_wavelength = constants.c.to('m/s').value / numpy.min(svis.frequency)
     log.info("advise_wide_field: Maximum wavelength %.3f (meters)" % (max_wavelength))
 
-    min_wavelength = constants.c.to('m/s').value / numpy.max(vis.frequency)
+    min_wavelength = constants.c.to('m/s').value / numpy.max(svis.frequency)
     log.info("advise_wide_field: Minimum wavelength %.3f (meters)" % (min_wavelength))
 
-    maximum_baseline = numpy.max(numpy.abs(vis.uvw))  # Wavelengths
-    if isinstance(vis, BlockVisibility):
+    maximum_baseline = numpy.max(numpy.abs(svis.uvw))  # Wavelengths
+    if isinstance(svis, BlockVisibility):
         maximum_baseline = maximum_baseline / min_wavelength
     log.info("advise_wide_field: Maximum baseline %.1f (wavelengths)" % (maximum_baseline))
     
-    diameter = numpy.min(vis.configuration.diameter)
+    diameter = numpy.min(svis.configuration.diameter)
     log.info("advise_wide_field: Station/antenna diameter %.1f (meters)" % (diameter))
 
     primary_beam_fov = max_wavelength / diameter

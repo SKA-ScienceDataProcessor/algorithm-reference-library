@@ -75,13 +75,13 @@ from dask import bag
 
 from arl.calibration.operations import qa_gaintable, apply_gaintable
 from arl.calibration.solvers import solve_gaintable
-from arl.data.data_models import Image
+from arl.data.data_models import Image, Visibility, BlockVisibility
 from arl.image.deconvolution import deconvolve_cube, restore_cube
 from arl.image.operations import create_image_from_array, qa_image, create_empty_image_like
 from arl.imaging import normalize_sumwt
-from arl.imaging.imaging_context import imaging_context, predict_context, invert_context
+from arl.imaging.imaging_context import imaging_context
 from arl.visibility.base import copy_visibility, create_visibility_from_rows
-from arl.visibility.coalesce import convert_visibility_to_blockvisibility
+from arl.visibility.coalesce import convert_visibility_to_blockvisibility, convert_blockvisibility_to_visibility
 from arl.visibility.gather_scatter import visibility_gather_channel
 from arl.visibility.operations import qa_visibility, sort_visibility, \
     divide_visibility, integrate_visibility_by_channel, subtract_visibility
@@ -109,16 +109,26 @@ def reify(bg, compute=False):
 
 
 def print_element(x, context='', indent=4, width=160):
+    """ Print an element
+    
+    use bag.map(print_elememt_
+    
+    :param x:
+    :param context:
+    :param indent:
+    :param width:
+    :return:
+    """
     from pprint import PrettyPrinter
     pp = PrettyPrinter(indent=indent, width=width)
     if context == '':
         pp.pprint(x)
     else:
-        pp.pprint("%s: %s" % (context, x))
+        pp.pprint("%r: %r" % (context, x))
     return x
 
 
-def scatter_record(record, context, **kwargs):
+def scatter_vis_record(record, context, **kwargs):
     """ Scatter a record according to the context's vis_iter field.
 
     :param record:
@@ -165,13 +175,17 @@ def predict_record(record, context, **kwargs):
     :param kwargs:
     :return:
     """
+    c = imaging_context()
+    predict = c['predict']
+    
     newrecord = {}
     for key in record.keys():
         if key not in ['image', context]:
             newrecord[key] = record[key]
     if record['vis'] is not None:
         newvis = copy_visibility(record['vis'], zero=True)
-        newrecord['vis'] = predict_context(newvis, record['image'], context=context, **kwargs)
+        assert 'image' in record.keys(), "image not contained in record keys %s" % record
+        newrecord['vis'] = predict(newvis, record['image'], context=context, **kwargs)
     else:
         newrecord['vis'] = None
     return newrecord
@@ -188,35 +202,22 @@ def invert_record(record, dopsf, context, **kwargs):
     """
     assert 'vis' in record.keys(), "vis not contained in record keys %s" % record
     vis = record['vis']
+    c = imaging_context()
+    invert = c['invert']
     
     newrecord = {}
     for key in record.keys():
         if key != 'vis':
             newrecord[key] = record[key]
     if vis is not None:
-        newrecord['image'] = invert_context(vis, record['image'], dopsf, context=context, **kwargs)
+        assert 'image' in record.keys(), "image not contained in record keys %s" % record
+        newrecord['image'] = invert(vis, record['image'], dopsf, context=context, **kwargs)
     else:
         newrecord['image'] = None
     return newrecord
 
 
-def image_to_records_bag(nfreqwin, im):
-    """ Wrap an image in records
-
-    :param nfreqwin:
-    :param im:
-    :return:
-    """
-    
-    def create(freqwin):
-        return {'image': im,
-                'freqwin': freqwin}
-    
-    # Return a bag to hold all the requests
-    return bag.range(nfreqwin, npartitions=nfreqwin).map(create)
-
-
-def map_record(record, apply_function, key='vis', **kwargs):
+def map_record(record, apply_function, *args, key='vis', **kwargs):
     """ Apply a function to a record
 
     :param record:
@@ -227,6 +228,7 @@ def map_record(record, apply_function, key='vis', **kwargs):
     """
     assert isinstance(key, str), "Key is not a string: %s" % key
     assert key in record.keys(), "%s not contained in record keys %s" % (key, record)
+    assert key in ['vis', 'image'], "Key %s invalid" % key
     rec = record[key]
     
     newrecord = {}
@@ -234,7 +236,7 @@ def map_record(record, apply_function, key='vis', **kwargs):
         if k != key:
             newrecord[k] = record[k]
         else:
-            newrecord[k] = apply_function(rec, **kwargs)
+            newrecord[key] = apply_function(rec, *args, **kwargs)
     
     return newrecord
 
@@ -297,6 +299,63 @@ def predict_record_concatenate(r1, r2):
             newrecord[key] = r2[key]
     newrecord['vis'] = ovis
     return newrecord
+
+
+def predict_record_add(r1, r2):
+    """ Add two predict records together in frequency assuming that they arrive in
+    increasing frequency
+
+    :param r1:
+    :param r2:
+    :return:
+    """
+    vis1 = r1['vis']
+    vis2 = r2['vis']
+    if vis1 is None:
+        return r2
+    if vis2 is None:
+        return r1
+    
+    assert isinstance(vis1, BlockVisibility)
+    assert isinstance(vis2, BlockVisibility)
+    assert vis1.polarisation_frame == vis2.polarisation_frame
+    assert vis1.phasecentre.separation(vis2.phasecentre).value < 1e-15
+    # Both are block visibilities: shape t, a2, a1, channel, pol
+    ntimes, nantenna2, nantenna2, nchan, npol = vis1.vis.shape
+    nchan += 1
+    ovis_shape = [ntimes, nantenna2, nantenna2, nchan, npol]
+    ovis = numpy.zeros(ovis_shape, dtype='complex')
+    ovis[:, :, :, :(nchan - 1), :] = vis1.vis
+    ovis[:, :, :, :nchan - 1, :] = vis2.vis
+    
+    ovis.data['vis'] = ovis
+    ovis.frequency = numpy.concatenate((vis1.frequency, vis2.frequency), axis=0)
+    
+    newrecord = {}
+    for key in r1.keys():
+        if key != 'vis':
+            newrecord[key] = r1[key]
+    for key in r2.keys():
+        if key != 'vis':
+            newrecord[key] = r2[key]
+    newrecord['vis'] = ovis
+    return newrecord
+
+
+def predict_record_to_list(r1, r2, key='vis'):
+    """ Form a list from records
+
+    :param r1: list
+    :param r2: list
+    :param key: 'vis' or 'image'
+    :return:
+    """
+    if isinstance(r1, list):
+        r1.append(r2[key])
+        result = r1
+    else:
+        result = [r1[key], r2[key]]
+    return result
 
 
 def predict_record_subtract(r1, r2):
@@ -366,6 +425,7 @@ def invert_bag(vis_bag, model_bag, dopsf=False, context='2d', key='freqwin', **k
     :param model_bag: This is just used as specification of the output images
     :param dopsf:
     :param context:
+    :param key:
     :param kwargs:
     :return:
     """
@@ -374,7 +434,7 @@ def invert_bag(vis_bag, model_bag, dopsf=False, context='2d', key='freqwin', **k
     
     return vis_bag \
         .map(join_records, model_bag) \
-        .map(scatter_record, context, **kwargs) \
+        .map(scatter_vis_record, context, **kwargs) \
         .flatten() \
         .map(invert_record, dopsf=dopsf, context=context, **kwargs) \
         .foldby(key, binop=invert_record_add) \
@@ -412,7 +472,7 @@ def predict_bag(vis_bag, model_bag, context='2d', key='freqwin', **kwargs) -> ba
     
     return vis_bag \
         .map(join_records, model_bag) \
-        .map(scatter_record, context=context, **kwargs) \
+        .map(scatter_vis_record, context=context, **kwargs) \
         .flatten() \
         .map(predict_record, context, **kwargs) \
         .foldby(key, binop=predict_record_concatenate) \
@@ -452,7 +512,7 @@ def restore_bag(comp_bag, psf_bag, res_bag, **kwargs) -> bag:
 
     Call directly - don't use via bag.map
 
-    :param dirty_bag:
+    :param comp_bag:
     :param psf_bag:
     :param res_bag:
     :param kwargs:
@@ -486,32 +546,6 @@ def residual_image_bag(vis_bag, model_image_bag, **kwargs) -> bag:
     return invert_bag(result_vis_bag, model_image_bag, dopsf=False, **kwargs)
 
 
-def selfcal_bag(vis_bag, model_bag, **kwargs):
-    """ Create a bag for (optionally global) selfcalibration of a list of visibilities
-
-    If global solution is true then visibilities are gathered to a single visibility data set which is then
-    self-calibrated. The resulting gaintable is then effectively scattered out for application to each visibility
-    set. If global solution is false then the solutions are performed locally.
-
-    :param vis_bag: Bag of observed visibilities
-    :param model_bag: Bag of model visibilities
-    :param vis_slices:
-    :param global_solution: Solve for global gains?
-    :param kwargs: Parameters for functions in bags
-    :return:
-    """
-    assert isinstance(vis_bag, bag.Bag), vis_bag
-    assert isinstance(model_bag, bag.Bag), model_bag
-    
-    vis_bag = reify(vis_bag)
-    model_bag = reify(model_bag)
-    model_vis_bag = vis_bag \
-        .map(map_record, copy_visibility, zero=True)
-    model_vis_bag = predict_bag(model_vis_bag, model_bag, **kwargs) \
-        .map(map_record, convert_visibility_to_blockvisibility)
-    return calibrate_bag(vis_bag, model_vis_bag, **kwargs)
-
-
 def residual_vis_bag(vis_bag, model_vis_bag):
     """ Create a bag for subtraction of list of visibilities
 
@@ -528,6 +562,31 @@ def residual_vis_bag(vis_bag, model_vis_bag):
     vis_bag = reify(vis_bag)
     model_vis_bag = reify(model_vis_bag)
     return vis_bag.map(map_record, subtract, modelvis=model_vis_bag)
+
+
+def selfcal_bag(vis_bag, model_bag, **kwargs):
+    """ Create a bag for (optionally global) selfcalibration of a list of visibilities
+
+    If global solution is True then visibilities are gathered to a single visibility data set which is then
+    self-calibrated. The resulting gaintable is then effectively scattered out for application to each visibility
+    set. If global solution is false then the solutions are performed locally.
+
+    :param vis_bag: Bag of observed visibilities
+    :param model_bag: Bag of models
+    :param kwargs: Parameters for functions in bags
+    :return:
+    """
+    assert isinstance(vis_bag, bag.Bag), vis_bag
+    assert isinstance(model_bag, bag.Bag), model_bag
+    
+    vis_bag = reify(vis_bag)
+    model_bag = reify(model_bag)
+    model_vis_bag = vis_bag \
+        .map(map_record, copy_visibility, zero=True)
+    model_vis_bag = predict_bag(model_vis_bag, model_bag, **kwargs) \
+        .map(map_record, convert_visibility_to_blockvisibility)
+    
+    return calibrate_bag(vis_bag, model_vis_bag, **kwargs)
 
 
 def calibrate_bag(vis_bag, model_vis_bag, global_solution=False, **kwargs):
@@ -548,28 +607,51 @@ def calibrate_bag(vis_bag, model_vis_bag, global_solution=False, **kwargs):
     assert isinstance(vis_bag, bag.Bag), vis_bag
     assert isinstance(model_vis_bag, bag.Bag), model_vis_bag
     
-    if global_solution:
-        def divide(vis, modelvis):
-            return divide_visibility(vis, modelvis['vis'])
-        
-        model_vis_bag = reify(model_vis_bag)
-        point_vis_bag = vis_bag \
-            .map(map_record, divide, modelvis=model_vis_bag) \
-            .map(map_record, visibility_gather_channel, **kwargs) \
-            .map(map_record, integrate_visibility_by_channel, **kwargs)
-        
-        # This is a global solution so we only get one gain table
-        gt_bag = point_vis_bag.map(map_record, solve_gaintable, modelvis=None, **kwargs)
-        return vis_bag.map(map_record, apply_gaintable, gt=gt_bag, inverse=True, **kwargs)
-    else:
-        def solve_and_apply(vis, modelvis):
-            gt = solve_gaintable(vis, modelvis['vis'], **kwargs)
-            log.debug(qa_gaintable(gt, context='calibrate_bag'))
-            return apply_gaintable(vis, gt, inverse=True)
-        
-        model_vis_bag = reify(model_vis_bag)
-        return vis_bag \
-            .map(map_record, solve_and_apply, modelvis=model_vis_bag)
+    # We need to reuf here to insure that vis_bag and model_vis_bag have the same partitioning
+    model_vis_bag = reify(model_vis_bag)
+    
+# if global_solution:
+#     def convert_and_divide(vis, modelvis):
+#         cvis = convert_visibility_to_blockvisibility(vis)
+#         mcvis = convert_visibility_to_blockvisibility(modelvis['vis'])
+#         ptvis = divide_visibility(cvis, mcvis)
+#         return ptvis
+#
+#     def integrate_and_solve(vis):
+#         print("In integrate and solve: ", vis.vis.shape)
+#         vis = integrate_visibility_by_channel(vis)
+#         return solve_gaintable(vis, **kwargs)
+#
+#     # This is a global solution so we only get one gain table
+#     gt_bag = vis_bag \
+#         .map(map_record, convert_and_divide, modelvis=model_vis_bag) \
+#         .map(print_element, context='After convert and divide: ') \
+#         .map(lambda x: x['vis']) \
+#         .flatten() \
+#         .map(print_element, context='After flatten: ') \
+#         .foldby('freqwin', binop=predict_record_add) \
+#         .map(print_element, context='After foldby: ') \
+#         .map(lambda x: x[1]['vis']) \
+#         .map(integrate_and_solve) \
+#         .map(print_element, context='After integrate_and_solve: ')
+#
+#     gt_bag = reify(gt_bag)
+#
+#     return vis_bag.map(map_record, convert_visibility_to_blockvisibility) \
+#         .map(map_record, apply_gaintable, gt=gt_bag, inverse=True, **kwargs) \
+#         .map(map_record, convert_blockvisibility_to_visibility)
+#
+# else:
+    def solve_and_apply(vis, modelvis):
+        cvis = convert_visibility_to_blockvisibility(vis)
+        mcvis = convert_visibility_to_blockvisibility(modelvis['vis'])
+        gt = solve_gaintable(cvis, mcvis, **kwargs)
+        cvis = apply_gaintable(cvis, gt, inverse=True)
+        return convert_blockvisibility_to_visibility(cvis)
+    
+    return vis_bag \
+        .map(map_record, solve_and_apply, modelvis=model_vis_bag) \
+        .map(map_record, qa_visibility_bag, context='In calibrate_bag')
 
 
 def qa_visibility_bag(vis, context=''):
@@ -578,6 +660,7 @@ def qa_visibility_bag(vis, context=''):
     Can be used in bag.map() as a passthru
 
     :param vis:
+    :param context:
     :return:
     """
     s = qa_visibility(vis, context=context)
@@ -591,6 +674,7 @@ def qa_image_bag(im, context=''):
     Can be used in bag.map() as a passthru
 
     :param im:
+    :param context:
     :return:
     """
     s = qa_image(im, context=context)
@@ -604,6 +688,7 @@ def qa_gaintable_bag(gt, context=''):
     Can be used in bag.map() as a passthru
 
     :param gt:
+    :param context:
     :return:
     """
     s = qa_gaintable(gt, context=context)

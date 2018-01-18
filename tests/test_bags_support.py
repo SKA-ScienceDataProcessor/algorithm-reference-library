@@ -19,7 +19,7 @@ from arl.util.bag_support import gleam_model_bag
 from arl.image.operations import qa_image, export_image_to_fits, copy_image, \
     create_empty_image_like
 from arl.imaging import create_image_from_visibility, predict_skycomponent_visibility, \
-    predict_skycomponent_blockvisibility
+    predict_skycomponent_visibility
 from arl.skycomponent.operations import create_skycomponent, insert_skycomponent
 from arl.util.testing_support import create_named_configuration
 from arl.util.testing_support import simulate_gaintable
@@ -97,7 +97,7 @@ class TestDaskBagsSupport(unittest.TestCase):
                                            polarisation_frame=PolarisationFrame("stokesI"))
                 comps.append(comp)
         if block:
-            predict_skycomponent_blockvisibility(vt, comps)
+            predict_skycomponent_visibility(vt, comps)
         else:
             predict_skycomponent_visibility(vt, comps)
         insert_skycomponent(model, comps)
@@ -112,6 +112,7 @@ class TestDaskBagsSupport(unittest.TestCase):
             gt = create_gaintable_from_blockvisibility(vt)
             gt = simulate_gaintable(gt, phase_error=1.0, amplitude_error=0.0)
             vt = apply_gaintable(vt, gt)
+            
         return vt
     
 

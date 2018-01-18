@@ -73,8 +73,8 @@ def deconvolve_cube(dirty: Image, psf: Image, **kwargs) -> (Image, Image):
     :return: componentimage, residual
     
     """
-    assert isinstance(dirty, Image), "Type is %s" % (type(dirty))
-    assert isinstance(psf, Image), "Type is %s" % (type(psf))
+    assert isinstance(dirty, Image), dirty
+    assert isinstance(psf, Image), psf
     
     window_shape = get_parameter(kwargs, 'window_shape', None)
     if window_shape == 'quarter':
@@ -134,10 +134,10 @@ def deconvolve_cube(dirty: Image, psf: Image, **kwargs) -> (Image, Image):
         log.info("deconvolve_cube: Multi-scale multi-frequency clean of each polarisation separately")
         nmoments = get_parameter(kwargs, "nmoments", 3)
         assert nmoments > 0, "Number of frequency moments must be greater than zero"
-        dirty_taylor = calculate_image_frequency_moments(dirty, nmoments=nmoments)
         nchan = dirty.shape[0]
-        psf_taylor = calculate_image_frequency_moments(psf, nmoments=2 * nmoments)
         assert nchan > 2 * nmoments, "Require nchan %d > 2 * nmoments %d" % (nchan, 2 * nmoments)
+        dirty_taylor = calculate_image_frequency_moments(dirty, nmoments=nmoments)
+        psf_taylor = calculate_image_frequency_moments(psf, nmoments=2 * nmoments)
 
         gain = get_parameter(kwargs, 'gain', 0.7)
         assert 0.0 < gain < 2.0, "Loop gain must be between 0 and 2"
@@ -161,13 +161,13 @@ def deconvolve_cube(dirty: Image, psf: Image, **kwargs) -> (Image, Image):
                 else:
                     qx = dirty.shape[3] // 4
                     qy = dirty.shape[2] // 4
-                    window = numpy.zeros_like(dirty.data)
-                    window[..., (qy + 1):3 * qy, (qx + 1):3 * qx] = 1.0
+                    window_taylor = numpy.zeros_like(dirty_taylor.data)
+                    window_taylor[..., (qy + 1):3 * qy, (qx + 1):3 * qx] = 1.0
                     log.info('deconvolve_cube: Cleaning inner quarter of each moment plane')
 
                     comp_array[:, pol, :, :], residual_array[:, pol, :, :] = \
                         msmfsclean(dirty_taylor.data[:, pol, :, :], psf_taylor.data[:, pol, :, :],
-                                   window[:, pol, :, :], gain, thresh, niter, scales, fracthresh,
+                                   window_taylor[0, pol, :, :], gain, thresh, niter, scales, fracthresh,
                                    findpeak)
             else:
                 log.info("deconvolve_cube: Skipping pol %d" % (pol))
@@ -226,9 +226,9 @@ def restore_cube(model: Image, psf: Image, residual=None, **kwargs) -> Image:
     :return: restored image
 
     """
-    assert isinstance(model, Image), "Type is %s" % (type(model))
-    assert isinstance(psf, Image), "Type is %s" % (type(psf))
-    assert residual is None or isinstance(residual, Image), "Type is %s" % (type(residual))
+    assert isinstance(model, Image), model
+    assert isinstance(psf, Image), psf
+    assert residual is None or isinstance(residual, Image), residual
 
     restored = copy_image(model)
     

@@ -271,7 +271,7 @@ class Skycomponent:
 
         bm = create_low_test_beam(model=model)
         sc = apply_beam_to_skycomponent(sc, bm)
-        vis = predict_skycomponent_blockvisibility(vis, sc)
+        vis = predict_skycomponent_visibility(vis, sc)
     """
     
     def __init__(self,
@@ -424,6 +424,10 @@ class Visibility:
     @property
     def index(self):
         return self.data['index']
+    
+    @property
+    def npol(self):
+        return self.polarisation_frame.npol
     
     @property
     def nvis(self):
@@ -636,9 +640,10 @@ def assert_same_chan_pol(o1, o2):
     assert o1.npol == o2.npol, \
         "%s and %s have different number of polarisations: %d != %d" % \
         (type(o1).__name__, type(o2).__name__, o1.npol, o2.npol)
-    assert o1.nchan == o2.nchan, \
-        "%s and %s have different number of channels: %d != %d" % \
-        (type(o1).__name__, type(o2).__name__, o1.nchan, o2.nchan)
+    if isinstance(o1, BlockVisibility) and isinstance(o2, BlockVisibility):
+        assert o1.nchan == o2.nchan, \
+            "%s and %s have different number of channels: %d != %d" % \
+            (type(o1).__name__, type(o2).__name__, o1.nchan, o2.nchan)
 
 
 def assert_vis_gt_compatible(vis: Union[Visibility, BlockVisibility], gt: GainTable):

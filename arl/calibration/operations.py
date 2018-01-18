@@ -66,7 +66,7 @@ def create_gaintable_from_blockvisibility(vis: BlockVisibility, time_width: floa
     return gt
 
 
-def apply_gaintable(vis: BlockVisibility, gt: GainTable, inverse=False) -> BlockVisibility:
+def apply_gaintable(vis: BlockVisibility, gt: GainTable, inverse=False, **kwargs) -> BlockVisibility:
     """Apply a gain table to a block visibility
     
     The corrected visibility is::
@@ -92,7 +92,7 @@ def apply_gaintable(vis: BlockVisibility, gt: GainTable, inverse=False) -> Block
     else:
         log.debug('apply_gaintable: Apply gaintable')
     
-    for chunk, rows in enumerate(vis_timeslice_iter(vis)):
+    for chunk, rows in enumerate(vis_timeslice_iter(vis, **kwargs)):
         vistime = numpy.average(vis.time[rows])
         integration_time = numpy.average(vis.integration_time[rows])
         gaintable_rows = abs(gt.time - vistime) < integration_time / 2.0
@@ -115,7 +115,6 @@ def apply_gaintable(vis: BlockVisibility, gt: GainTable, inverse=False) -> Block
                             try:
                                 mueller = numpy.linalg.inv(mueller)
                                 applied[time, a2, a1, chan, :] = numpy.matmul(mueller, original[time, a2, a1, chan, :])
-
                             except numpy.linalg.linalg.LinAlgError:
                                 applied[time, a2, a1, chan, :] = original[time, a2, a1, chan, :]
                         else:

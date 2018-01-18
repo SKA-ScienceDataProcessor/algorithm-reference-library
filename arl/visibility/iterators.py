@@ -48,8 +48,11 @@ def vis_timeslice_iter(vis: Visibility, **kwargs) -> numpy.ndarray:
     elif timeslice is None:
         timeslice = timemax - timemin
         boxes = [0.5*(timemax+timemin)]
+    elif isinstance(timeslice, float) or isinstance(timeslice, int):
+        boxes = numpy.arange(timemin, timemax, timeslice)
     else:
-        vis_slices = 1 + 2 * numpy.ceil((timemax - timemin) / timeslice).astype('int')
+        vis_slices = get_parameter(kwargs, "vis_slices", None)
+        assert vis_slices is not None, "Time slicing not specified: set either timeslice or vis_slices"
         boxes = numpy.linspace(timemin, timemax, vis_slices)
         if vis_slices > 1:
             timeslice = boxes[1] - boxes[0]
@@ -68,12 +71,13 @@ def vis_wstack_iter(vis: Visibility, **kwargs) -> numpy.ndarray:
     :param vis_slices: Number of slices (second in precedence to wstack)
     :return: Boolean array with selected rows=True
     """
-    assert isinstance(vis, Visibility) or isinstance(vis, BlockVisibility), vis
+    assert isinstance(vis, Visibility), vis
     wmaxabs = numpy.max(numpy.abs(vis.w))
     
     wstack = get_parameter(kwargs, 'wstack', None)
     if wstack is None:
-        vis_slices = get_parameter(kwargs, "vis_slices", 1)
+        vis_slices = get_parameter(kwargs, "vis_slices", None)
+        assert vis_slices is not None, "w slicing not specified: set either wstack or vis_slices"
         boxes = numpy.linspace(-wmaxabs, wmaxabs, vis_slices)
         if vis_slices > 1:
             wstack = boxes[1] - boxes[0]
@@ -104,12 +108,13 @@ def vis_slice_iter(vis: Union[Visibility, BlockVisibility], **kwargs) -> numpy.n
     
     step = get_parameter(kwargs, "step", None)
     if step is None:
-        vis_slices = get_parameter(kwargs, "vis_slices", 1)
-        if isinstance(vis_slices, int):
-            step = vis.nvis // vis_slices
-        else:
-            step = vis.nvis
-    
+        vis_slices = get_parameter(kwargs, "vis_slices", None)
+        assert vis_slices is not None, "vis slicing not specified: set either step or vis_slices"
+        step = vis.nvis // vis_slices
+        
     assert step > 0
     for row in range(0, vis.nvis, step):
-        yield range(row, min(row + step, vis.nvis))
+        rows = vis.nvis * [False]
+        for r in range(row, min(row+step, vis.nvis)):
+            rows[r] = True
+        yield rows

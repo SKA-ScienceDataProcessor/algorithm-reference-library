@@ -414,10 +414,10 @@ def msmfsclean(dirty, psf, window, gain, thresh, niter, scales, fracthresh, find
     assert pmax > 0.0
 
     psfpeak = argmax(numpy.fabs(psf))
-    log.info("msmfsclean: Peak of PSF = %s at %s" % (pmax, psfpeak))
+    log.info("mmclean: Peak of PSF = %s at %s" % (pmax, psfpeak))
     dmax = dirty.max()
     dpeak = argmax(dirty)
-    log.info("msmfsclean: Peak of Dirty = %s at %s" % (dmax, dpeak))
+    log.info("mmclean: Peak of Dirty = %s at %s" % (dmax, dpeak))
     lpsf = psf / pmax
     ldirty = dirty / pmax
 
@@ -442,7 +442,7 @@ def msmfsclean(dirty, psf, window, gain, thresh, niter, scales, fracthresh, find
     hsmmpsf, ihsmmpsf = calculate_scale_inverse_moment_moment_hessian(ssmmpsf)
 
     for scale in range(nscales):
-        log.info("msmfsclean: Moment-moment coupling matrix[scale %d] =\n %s" % (scale, hsmmpsf[scale]))
+        log.info("mmclean: Moment-moment coupling matrix[scale %d] =\n %s" % (scale, hsmmpsf[scale]))
 
     # The window is scale dependent - we form it by smoothing and thresholding
     # the input window. This prevents components being placed too close to the
@@ -454,10 +454,10 @@ def msmfsclean(dirty, psf, window, gain, thresh, niter, scales, fracthresh, find
         windowstack = numpy.zeros_like(scalestack)
         windowstack[convolve_scalestack(scalestack, window) > 0.9] = 1.0
 
-    log.info("msmfsclean: Max abs in dirty Image = %.6f" % numpy.fabs(smresidual[0, 0, :, :]).max())
+    log.info("mmclean: Max abs in dirty Image = %.6f" % numpy.fabs(smresidual[0, 0, :, :]).max())
     absolutethresh = max(thresh, fracthresh * numpy.fabs(smresidual[0, 0, :, :]).max())
-    log.info("msmfsclean: Start of minor cycle")
-    log.info("msmfsclean: This minor cycle will stop at %d iterations or peak < %s" % (niter, absolutethresh))
+    log.info("mmclean: Start of minor cycle")
+    log.info("mmclean: This minor cycle will stop at %d iterations or peak < %s" % (niter, absolutethresh))
 
     # Start iterations
     scale_counts = numpy.zeros(nscales, dtype='int')
@@ -472,12 +472,12 @@ def msmfsclean(dirty, psf, window, gain, thresh, niter, scales, fracthresh, find
 
         # Report on progress
         if niter < 10 or i % (niter // 10) == 0:
-            log.info("msmfsclean: Minor cycle %d, peak %s at [%d, %d, %d]" % (i, mval, mx, my, mscale))
+            log.info("mmclean: Minor cycle %d, peak %s at [%d, %d, %d]" % (i, mval, mx, my, mscale))
 
         # Are we ready to stop yet?
         peak = numpy.max(numpy.fabs(mval))
         if peak < absolutethresh:
-            log.info("msmfsclean: At iteration %d, absolute value of peak %.6f is below stopping threshold %.6f"
+            log.info("mmclean: At iteration %d, absolute value of peak %.6f is below stopping threshold %.6f"
                      % (i, peak, absolutethresh))
             break
 
@@ -488,10 +488,10 @@ def msmfsclean(dirty, psf, window, gain, thresh, niter, scales, fracthresh, find
         m_model = update_moment_model(m_model, pscalestack, lhs, rhs, gain, mscale, mval)
         smresidual = update_scale_moment_residual(smresidual, ssmmpsf, lhs, rhs, gain, mscale, mval)
 
-    log.info("msmfsclean: End of minor cycles")
+    log.info("mmclean: End of minor cycles")
 
-    log.info("msmfsclean: Scale counts %s" % (scale_counts))
-    log.info("msmfsclean: Scale flux %s" % (scale_flux))
+    log.info("mmclean: Scale counts %s" % (scale_counts))
+    log.info("mmclean: Scale flux %s" % (scale_flux))
 
     return m_model, pmax * smresidual[0, :, :, :]
 

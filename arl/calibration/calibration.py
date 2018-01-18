@@ -18,7 +18,7 @@ from arl.calibration.solvers import solve_gaintable
 from arl.data.data_models import Visibility, BlockVisibility, Image
 from arl.visibility.coalesce import convert_blockvisibility_to_visibility, decoalesce_visibility
 from arl.visibility.base import copy_visibility
-from arl.imaging import predict_skycomponent_blockvisibility, predict_skycomponent_visibility, predict_2d
+from arl.imaging import predict_skycomponent_visibility, predict_2d
 from arl.data.parameters import get_parameter
 
 log = logging.getLogger(__name__)
@@ -41,10 +41,10 @@ def calibrate_blockvisibility(bvt: BlockVisibility, model: Image=None, component
         vtpred = predict(vtpred, model, **kwargs)
         bvtpred = decoalesce_visibility(vtpred)
         if components is not None:
-            bvtpred = predict_skycomponent_blockvisibility(bvtpred, components)
+            bvtpred = predict_skycomponent_visibility(bvtpred, components)
     else:
         bvtpred = copy_visibility(bvt, zero=True)
-        bvtpred = predict_skycomponent_blockvisibility(bvtpred, components)
+        bvtpred = predict_skycomponent_visibility(bvtpred, components)
 
     gt = solve_gaintable(bvt, bvtpred, **kwargs)
     return apply_gaintable(bvt, gt, inverse=get_parameter(kwargs, "inverse", False))

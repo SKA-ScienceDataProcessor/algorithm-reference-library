@@ -25,7 +25,7 @@ from arl.imaging import advise_wide_field
 
 from arl.graphs.dask_init import get_dask_Client
 from arl.graphs.delayed import compute_list, create_invert_graph, create_predict_graph, create_weight_vis_graph_list
-from arl.util.graph_support import create_simulate_vis_graph, create_gleam_model_graph
+from arl.util.delayed_support import create_simulate_vis_graph, create_gleam_model_graph
 
 import logging
 

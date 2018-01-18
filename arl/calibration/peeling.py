@@ -10,12 +10,13 @@ from arl.calibration.operations import apply_gaintable
 from arl.calibration.solvers import solve_gaintable
 from arl.data.data_models import BlockVisibility, Skycomponent, GainTable
 from arl.visibility.base import copy_visibility
-from arl.imaging.base import predict_skycomponent_blockvisibility
+from arl.imaging.base import predict_skycomponent_visibility
 
 log = logging.getLogger(__name__)
 
 
-def peel_skycomponent_blockvisibility(vis: BlockVisibility, sc: Union[Skycomponent, List[Skycomponent]], remove=True)\
+def peel_skycomponent_blockvisibility(vis: BlockVisibility, sc: Union[Skycomponent, List[Skycomponent]],
+                                      remove=True, **kwargs)\
         -> (BlockVisibility, List[GainTable]):
     """ Peel a collection of components.
     
@@ -37,9 +38,9 @@ def peel_skycomponent_blockvisibility(vis: BlockVisibility, sc: Union[Skycompone
         assert comp.shape == 'Point', "Cannot handle shape %s" % comp.shape
         
         modelvis = copy_visibility(vis, zero=True)
-        modelvis = predict_skycomponent_blockvisibility(modelvis, comp)
-        gt = solve_gaintable(vis, modelvis, phase_only=False)
-        modelvis = apply_gaintable(modelvis, gt)
+        modelvis = predict_skycomponent_visibility(modelvis, comp)
+        gt = solve_gaintable(vis, modelvis, phase_only=False, **kwargs)
+        modelvis = apply_gaintable(modelvis, gt, **kwargs)
         if remove:
             vis.data['vis'] -= modelvis.data['vis']
         gtlist.append(gt)

@@ -7,6 +7,7 @@ import warnings
 
 from astropy import constants as const
 from astropy.wcs.utils import skycoord_to_pixel
+from astropy.wcs import FITSFixedWarning
 
 from arl.image.operations import create_empty_image_like, fft_image
 
@@ -38,14 +39,14 @@ def create_pb_vla(model, pointingcentre=None):
         cx, cy = skycoord_to_pixel(pointingcentre, model.wcs, 0, 'wcs')
     else:
         with warnings.catch_warnings():
-            warnings.simplefilter('ignore')
+            warnings.simplefilter('ignore', FITSFixedWarning)
             cx, cy = beam.wcs.sub(2).wcs.crpix[0] - 1, beam.wcs.sub(2).wcs.crpix[1] - 1
     
     for chan in range(nchan):
         
         # The frequency axis is the second to last in the beam
         with warnings.catch_warnings():
-            warnings.simplefilter('ignore')
+            warnings.simplefilter('ignore', FITSFixedWarning)
             frequency = model.wcs.sub(['spectral']).wcs_pix2world([chan], 0)[0]
         wavelength = const.c.to('m/s').value / frequency
 

@@ -11,7 +11,7 @@ from arl.data.parameters import get_parameter
 from arl.image.deconvolution import deconvolve_cube
 from arl.visibility.base import copy_visibility
 from arl.imaging.base import predict_skycomponent_visibility
-from arl.imaging.imaging_context import predict_context, invert_context
+from arl.imaging.imaging_context import predict_function, invert_function
 
 import logging
 
@@ -40,14 +40,14 @@ def solve_image(vis: Visibility, model: Image, components=None, context='2d',
     vispred = copy_visibility(vis)
     visres = copy_visibility(vis)
 
-    vispred = predict_context(vispred, model, context=context, **kwargs)
+    vispred = predict_function(vispred, model, context=context, **kwargs)
     
     if components is not None:
         vispred = predict_skycomponent_visibility(vispred, components)
     
     visres.data['vis'] = vis.data['vis'] - vispred.data['vis']
-    dirty, sumwt = invert_context(visres, model, context=context, dopsf=False, **kwargs)
-    psf, sumwt = invert_context(visres, model, context=context, dopsf=True, **kwargs)
+    dirty, sumwt = invert_function(visres, model, context=context, dopsf=False, **kwargs)
+    psf, sumwt = invert_function(visres, model, context=context, dopsf=True, **kwargs)
     
     thresh = get_parameter(kwargs, "threshold", 0.0)
     
@@ -55,9 +55,9 @@ def solve_image(vis: Visibility, model: Image, components=None, context='2d',
         log.info("solve_image: Start of major cycle %d" % i)
         cc, res = deconvolve_cube(dirty, psf, **kwargs)
         model.data += cc.data
-        vispred = predict_context(vispred, model, context=context, **kwargs)
+        vispred = predict_function(vispred, model, context=context, **kwargs)
         visres.data['vis'] = vis.data['vis'] - vispred.data['vis']
-        dirty, sumwt = invert_context(visres, model, context=context, dopsf=False, **kwargs)
+        dirty, sumwt = invert_function(visres, model, context=context, dopsf=False, **kwargs)
         if numpy.abs(dirty.data).max() < 1.1 * thresh:
             log.info("Reached stopping threshold %.6f Jy" % thresh)
             break

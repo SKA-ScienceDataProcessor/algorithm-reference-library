@@ -3,27 +3,31 @@
 
 """
 
-import numpy
+import logging
 import os
+import sys
 import unittest
 
-from astropy.coordinates import SkyCoord
 import astropy.units as u
+import numpy
+from astropy.coordinates import SkyCoord
 
 from arl.data.data_models import Skycomponent
 from arl.data.polarisation import PolarisationFrame
 from arl.image.operations import export_image_to_fits
-from arl.skycomponent.operations import apply_beam_to_skycomponent
+from arl.imaging.base import predict_skycomponent_visibility
 from arl.util.testing_support import create_low_test_image_from_s3, create_named_configuration, create_test_image, \
     create_low_test_beam, create_blockvisibility_iterator, create_low_test_image_from_gleam, \
     create_low_test_skycomponents_from_gleam, create_low_test_image_composite
+from arl.visibility.base import create_visibility, create_blockvisibility
 from arl.visibility.coalesce import coalesce_visibility
 from arl.visibility.operations import append_visibility
-from arl.visibility.base import create_visibility, create_blockvisibility
-from arl.imaging.base import predict_skycomponent_blockvisibility
 
-import logging
 log = logging.getLogger(__name__)
+
+log.setLevel(logging.DEBUG)
+log.addHandler(logging.StreamHandler(sys.stdout))
+log.addHandler(logging.StreamHandler(sys.stderr))
 
 
 class TestTesting_Support(unittest.TestCase):
@@ -49,15 +53,15 @@ class TestTesting_Support(unittest.TestCase):
                                      channel_bandwidth=self.channel_bandwidth,
                                      phasecentre=self.phasecentre, weight=1.0,
                                      polarisation_frame=PolarisationFrame('stokesI'))
-
+    
     def test_named_configurations(self):
         for config in ['LOWBD2', 'LOWBD2-CORE', 'LOWBD1', 'LOFAR']:
             self.createVis(config)
             assert self.config.size() > 0.0
-    
+        
         self.createVis('VLAA', +35.0)
         self.createVis('VLAA_north', +35.0)
-
+    
     def test_clip_configuration(self):
         for rmax in [100.0, 3000.0, 1000.0, 3000.0, 10000.0, 30000.0, 100000.0]:
             self.config = create_named_configuration('LOWBD2', rmax=rmax)
@@ -96,7 +100,7 @@ class TestTesting_Support(unittest.TestCase):
         assert im.data.shape[2] == 256
         assert im.data.shape[3] == 256
         export_image_to_fits(im, '%s/test_test_support_test_support_low_gleam.fits' % (self.dir))
-
+    
     def test_create_low_test_image_from_gleam_with_pb(self):
         im = create_low_test_image_from_gleam(npixel=256, cellsize=0.001,
                                               channel_bandwidth=self.channel_bandwidth,
@@ -109,7 +113,7 @@ class TestTesting_Support(unittest.TestCase):
         assert im.data.shape[2] == 256
         assert im.data.shape[3] == 256
         export_image_to_fits(im, '%s/test_test_support_low_gleam_with_pb.fits' % (self.dir))
-
+    
     def test_create_low_test_image_composite(self):
         im = create_low_test_image_composite(npixel=256, cellsize=0.001,
                                              channel_bandwidth=self.channel_bandwidth,
@@ -130,9 +134,8 @@ class TestTesting_Support(unittest.TestCase):
                                                       frequency=self.frequency, kind='cubic', radius=0.001)
         assert len(sc) == 1, "Only expected one source, actually found %d" % len(sc)
         assert sc[0].name == 'GLEAM J172031-005845'
-        self.assertAlmostEqual(sc[0].flux[0,0], 301.49254315737829, 7)
-
-
+        self.assertAlmostEqual(sc[0].flux[0, 0], 301.49254315737829, 7)
+    
     def test_create_low_test_image_from_s3(self):
         im = create_low_test_image_from_s3(npixel=1024, channel_bandwidth=numpy.array([1e6]),
                                            frequency=numpy.array([1e8]),
@@ -142,7 +145,7 @@ class TestTesting_Support(unittest.TestCase):
         assert im.data.shape[2] == 1024
         assert im.data.shape[3] == 1024
         export_image_to_fits(im, '%s/test_test_support_low_s3.fits' % (self.dir))
-
+    
     def test_create_low_test_image_s3_spectral(self):
         im = create_low_test_image_from_s3(npixel=1024, channel_bandwidth=numpy.array([1e6, 1e6, 1e6]),
                                            frequency=numpy.array([1e8 - 1e6, 1e8, 1e8 + 1e6]),
@@ -242,6 +245,6 @@ class TestTesting_Support(unittest.TestCase):
         self.vis = create_blockvisibility(self.config, self.times, self.frequency, phasecentre=self.phasecentre,
                                           weight=1.0, polarisation_frame=PolarisationFrame('stokesI'),
                                           channel_bandwidth=self.channel_bandwidth)
-        self.vis = predict_skycomponent_blockvisibility(self.vis, sc)
+        self.vis = predict_skycomponent_visibility(self.vis, sc)
         cvt = coalesce_visibility(self.vis, time_coal=1.0)
         assert cvt.cindex is not None

@@ -144,7 +144,7 @@ def gleam_model_serial_bag(npixel=512, frequency=[1e8], channel_bandwidth=[1e6],
 def gleam_model_bag(npixel=512, frequency=[1e8], channel_bandwidth=[1e6],
                     cellsize=0.001,
                     phasecentre=SkyCoord(ra=+30.0 * u.deg, dec=-60.0 * u.deg, frame='icrs', equinox='J2000'),
-                    applybeam=True,
+                    applybeam=True, flux_limit=0.1,
                     polarisation_frame=PolarisationFrame("stokesI"), **kwargs):
     """Bag to create GLEAM model, inner loop in bag
 
@@ -163,7 +163,8 @@ def gleam_model_bag(npixel=512, frequency=[1e8], channel_bandwidth=[1e6],
                         'cellsize': cellsize,
                         'phasecentre': phasecentre,
                         'applybeam': applybeam,
-                        'polarisation_frame': polarisation_frame})
+                        'polarisation_frame': polarisation_frame,
+                        'flux_limit': flux_limit})
                 for chan, freq in enumerate(frequency)]
     
     # Define how each request can be satified

@@ -17,7 +17,7 @@ from arl.skycomponent.operations import apply_beam_to_skycomponent
 from arl.util.testing_support import create_named_configuration, simulate_gaintable, \
     create_low_test_skycomponents_from_gleam, create_low_test_beam
 from arl.visibility.base import create_blockvisibility
-from arl.imaging import predict_skycomponent_blockvisibility, create_image_from_visibility, invert_timeslice
+from arl.imaging import predict_skycomponent_visibility, create_image_from_visibility, invert_timeslice
 from arl.image.operations import qa_image
 
 import logging
@@ -50,13 +50,13 @@ class TestCalibrationPeeling(unittest.TestCase):
         # First add in the source to be peeled.
         peel = Skycomponent(direction=peeldirection, frequency=frequency, flux=flux,
                             polarisation_frame=PolarisationFrame("stokesIQUV"))
-        vis = predict_skycomponent_blockvisibility(vis, peel)
+        vis = predict_skycomponent_visibility(vis, peel)
 
         # Make a gaintable and apply it to the visibility of the peeling source
-        gt = create_gaintable_from_blockvisibility(vis)
-        gt = simulate_gaintable(gt, phase_error=0.01, amplitude_error=0.01)
+        gt = create_gaintable_from_blockvisibility(vis, timeslice='auto')
+        gt = simulate_gaintable(gt, phase_error=0.01, amplitude_error=0.01, timeslice='auto')
         gt.data['gain'] *= 0.3
-        vis = apply_gaintable(vis, gt)
+        vis = apply_gaintable(vis, gt, timeslice='auto')
         
         # Now create a plausible field using the GLEAM sources
         model = create_image_from_visibility(vis, cellsize=0.001, frequency=frequency,
@@ -70,7 +70,7 @@ class TestCalibrationPeeling(unittest.TestCase):
                                                       radius=0.1)
         sc = apply_beam_to_skycomponent(sc, bm)
         # Add in the visibility due to these sources
-        vis = predict_skycomponent_blockvisibility(vis, sc)
+        vis = predict_skycomponent_visibility(vis, sc)
 
         # Now we can peel
         vis, peel_gts = peel_skycomponent_blockvisibility(vis, peel)
@@ -79,7 +79,7 @@ class TestCalibrationPeeling(unittest.TestCase):
         residual = numpy.max(peel_gts[0].residual)
         assert residual < 0.7, "Peak residual %.6f too large" % (residual)
         
-        im, sumwt = invert_timeslice(vis, model)
+        im, sumwt = invert_timeslice(vis, model, timeslice='auto')
         qa = qa_image(im)
 
         assert numpy.abs(qa.data['max'] - 14.2) < 1.0, str(qa)

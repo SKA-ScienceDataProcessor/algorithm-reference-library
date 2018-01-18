@@ -85,6 +85,8 @@ def normalize_sumwt(im: Image, sumwt) -> Image:
     :param sumwt: Sum of weights [nchan, npol]
     """
     nchan, npol, _, _ = im.data.shape
+    assert isinstance(im, Image), im
+    assert sumwt is not None
     assert nchan == sumwt.shape[0]
     assert npol == sumwt.shape[1]
     for chan in range(nchan):
@@ -112,7 +114,7 @@ def predict_2d_base(vis: Union[BlockVisibility, Visibility], model: Image,
         avis = coalesce_visibility(vis, **kwargs)
     else:
         avis = vis
-        
+    
     assert isinstance(avis, Visibility), avis
     
     _, _, ny, nx = model.data.shape
@@ -132,7 +134,7 @@ def predict_2d_base(vis: Union[BlockVisibility, Visibility], model: Image,
     
     # Now we can shift the visibility from the image frame to the original visibility frame
     svis = shift_vis_to_image(avis, model, tangent=True, inverse=True)
-
+    
     if isinstance(vis, BlockVisibility) and isinstance(svis, Visibility):
         log.debug("imaging.predict decoalescing post prediction")
         return decoalesce_visibility(svis)
@@ -171,10 +173,10 @@ def invert_2d_base(vis: Visibility, im: Image, dopsf: bool = False, normalize: b
         svis = coalesce_visibility(vis, **kwargs)
     else:
         svis = copy_visibility(vis)
-
+    
     if dopsf:
         svis.data['vis'] = numpy.ones_like(svis.data['vis'])
-
+    
     svis = shift_vis_to_image(svis, im, tangent=True, inverse=False)
     
     nchan, npol, ny, nx = im.data.shape
@@ -237,6 +239,55 @@ def invert_2d(vis: Visibility, im: Image, dopsf=False, normalize=True, **kwargs)
     return invert_2d_base(vis, im, dopsf, normalize=normalize, **kwargs)
 
 
+def predict_skycomponent_visibility(vis: Union[Visibility, BlockVisibility],
+                                    sc: Union[Skycomponent, List[Skycomponent]]) -> Visibility:
+    """Predict the visibility from a Skycomponent, add to existing visibility, for Visibility or BlockVisibility
+
+    :param vis: Visibility or BlockVisibility
+    :param sc: Skycomponent or list of SkyComponents
+    :return: Visibility or BlockVisibility
+    """
+    if not isinstance(sc, collections.Iterable):
+        sc = [sc]
+
+    if isinstance(vis, Visibility):
+    
+        _, im_nchan = list(get_frequency_map(vis, None))
+        npol = vis.polarisation_frame.npol
+        
+        for comp in sc:
+            
+            assert_same_chan_pol(vis, comp)
+            
+            l, m, n = skycoord_to_lmn(comp.direction, vis.phasecentre)
+            phasor = simulate_point(vis.uvw, l, m)
+            for ivis in range(vis.nvis):
+                for pol in range(npol):
+                    vis.data['vis'][ivis, pol] += comp.flux[im_nchan[ivis], pol] * phasor[ivis]
+                
+    elif isinstance(vis, BlockVisibility):
+        
+        nchan = vis.nchan
+        npol = vis.npol
+    
+        k = numpy.array(vis.frequency) / constants.c.to('m/s').value
+    
+        for comp in sc:
+            assert_same_chan_pol(vis, comp)
+    
+            flux = comp.flux
+            if comp.polarisation_frame != vis.polarisation_frame:
+                flux = convert_pol_frame(flux, comp.polarisation_frame, vis.polarisation_frame)
+        
+            l, m, n = skycoord_to_lmn(comp.direction, vis.phasecentre)
+            for chan in range(nchan):
+                phasor = simulate_point(vis.uvw * k[chan], l, m)
+            for pol in range(npol):
+                vis.data['vis'][..., chan, pol] += flux[chan, pol] * phasor[...]
+
+    return vis
+
+
 def predict_skycomponent_blockvisibility(vis: BlockVisibility,
                                          sc: Union[Skycomponent, List[Skycomponent]]) -> BlockVisibility:
     """Predict the visibility from a Skycomponent, add to existing visibility, for BlockVisibility
@@ -246,59 +297,34 @@ def predict_skycomponent_blockvisibility(vis: BlockVisibility,
     :param spectral_mode: {mfs|channel} (channel)
     :return: BlockVisibility
     """
-    assert isinstance(vis, BlockVisibility), "vis is not a BlockVisibility: %r" % vis
-    
-    if not isinstance(sc, collections.Iterable):
-        sc = [sc]
-    
-    nchan = vis.nchan
-    npol = vis.npol
-    
-    if not isinstance(sc, collections.Iterable):
-        sc = [sc]
-    
-    k = vis.frequency / constants.c.to('m/s').value
-    
-    for comp in sc:
-        
-        assert_same_chan_pol(vis, comp)
-        
-        flux = comp.flux
-        if comp.polarisation_frame != vis.polarisation_frame:
-            flux = convert_pol_frame(flux, comp.polarisation_frame, vis.polarisation_frame)
-        
-        l, m, n = skycoord_to_lmn(comp.direction, vis.phasecentre)
-        for chan in range(nchan):
-            phasor = simulate_point(vis.uvw * k[chan], l, m)
-            for pol in range(npol):
-                vis.data['vis'][..., chan, pol] += flux[chan, pol] * phasor[...]
-    
-    return vis
+    log.warning("predict_skycomponent_blockvisibility: now deprecated, use predict_skycomponent_visibility")
+    return predict_skycomponent_visibility()
 
 
-def predict_skycomponent_visibility(vis: Visibility, sc: Union[Skycomponent, List[Skycomponent]]) -> Visibility:
+def predict_skycomponent_visibility_old(vis: Visibility, sc: Union[Skycomponent, List[Skycomponent]]) -> Visibility:
     """Predict the visibility from a Skycomponent, add to existing visibility, for Visibility
 
     :param vis: Visibility
     :param sc: Skycomponent or list of SkyComponents
     :return: Visibility
     """
-    assert type(vis) is Visibility, "vis is not a Visibility: %r" % vis
+    assert isinstance(vis, Visibility), "vis is not a Visibility: %r" % vis
     
     if not isinstance(sc, collections.Iterable):
         sc = [sc]
     
-    _, ichan = list(get_frequency_map(vis, None))
-    
+    _, im_nchan = list(get_frequency_map(vis, None))
     npol = vis.polarisation_frame.npol
     
     for comp in sc:
+        
+        assert_same_chan_pol(vis, comp)
         
         l, m, n = skycoord_to_lmn(comp.direction, vis.phasecentre)
         phasor = simulate_point(vis.uvw, l, m)
         for ivis in range(vis.nvis):
             for pol in range(npol):
-                vis.data['vis'][ivis, pol] += comp.flux[ichan[ivis], pol] * phasor[ivis]
+                vis.data['vis'][ivis, pol] += comp.flux[im_nchan[ivis], pol] * phasor[ivis]
             
             # coords = phasor, ichan
             # for pol in range(npol):

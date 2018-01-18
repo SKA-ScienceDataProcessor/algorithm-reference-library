@@ -67,7 +67,7 @@ class TestVisibilityIterators(unittest.TestCase):
         log.debug('Found %d chunks' % (nchunks))
         assert nchunks > 1
         total_rows = 0
-        for chunk, rows in enumerate(vis_timeslice_iter(self.vis)):
+        for chunk, rows in enumerate(vis_timeslice_iter(self.vis, timeslice='auto')):
             visslice = create_visibility_from_rows(self.vis, rows)
             total_rows += visslice.nvis
             assert visslice.vis[0].real == visslice.time[0]
