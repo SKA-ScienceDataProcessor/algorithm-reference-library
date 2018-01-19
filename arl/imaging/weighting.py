@@ -3,8 +3,8 @@ Functions that aid weighting the visibility data prior to imaging.
 
 There are two classes of functions:
     - Changing the weight dependent on noise level or sample density or a combination
-    - Tapering the weihght spatially to avoid effects of sharp edges or to emphasize a
-    given scale size in the image
+    - Tapering the weihght spatially to avoid effects of sharp edges or to emphasize a given scale size in the image
+
 """
 
 import numpy
@@ -50,22 +50,7 @@ def weight_visibility(vis: Visibility, im: Image, **kwargs) -> Visibility:
     return vis, density, densitygrid
 
 
-def weighting_rank_filter_visibility(vis: Visibility, im: Image) -> Visibility:
-    """ Reweight the visibility data using the rank filter algorithm
-    
-    See https://sourceforge.net/p/wsclean/wiki/WeightRankFilter/
-
-    :param vis: Visibility with weights to be filtered
-    :param im:
-    :return: visibility with imaging_weights column modified
-    """
-    assert isinstance(vis, Visibility), "vis is not a Visibility: %r" % vis
-    # ImageWeights::RankFilter in imageweights.cpp of wsclean
-    
-    return vis
-
-
-def taper_visibility_Gaussian(vis: Visibility, beam=None) -> Visibility:
+def taper_visibility_gaussian(vis: Visibility, beam=None) -> Visibility:
     """ Taper the visibility weights
 
     These are cumulative. If You can reset the imaging_weights

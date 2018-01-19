@@ -359,13 +359,11 @@ def create_residual_graph(vis, model_graph: delayed, context='2d', **kwargs) -> 
 
 
 def create_restore_graph(model_graph: delayed, psf_graph, residual_graph, **kwargs) -> delayed:
-    """ Create a graph to calculate residual image using w stacking and faceting
+    """ Create a graph to calculate the restored image
 
-    :param context:
-    :param vis:
-    :param model_graph: Model used to determine image parameters
-    :param vis:
-    :param model_graph: Model used to determine image parameters
+    :param model_graph: Model graph
+    :param psf_graph: PSF graph
+    :param residual_graph: Residual graph
     :param kwargs: Parameters for functions in graphs
     :return:
     """

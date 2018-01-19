@@ -3,8 +3,6 @@
 Fourier processing
 ******************
 
-Imaging functionality is in the module :py:mod:`arl.imaging.base`.
-
 There are many algorithms for imaging, using different approaches to correct for various effects:
 
 + Simple 2D transforms
@@ -21,10 +19,15 @@ algorithms are going to offer the best performance. For this reason, it is impor
 restrictive.
 
 All the above functions are linear in the visibilities and image. The 2D transform is correct for sufficiently
-restricted context. Hence we will layer all algorithms on top of the 2D transform. This means that a suitable
-framework decomposes the overall transform into suitable linear combinations of invocations of 2D transforms. We can
-use python iterators to perform the subsectioning. For example, the principal image iteration via a raster
-implemented by a python generator::
+restricted context. Hence we layer all algorithms on top of the 2D transform. This means that a suitable
+framework decomposes the overall transform into suitable linear combinations of invocations of 2D transforms.
+
+ARL has two ways of invoking the calibration and imaging capabilities: python functions and Dask delayed functions.
+
+
+In the first approach we use python iterators to perform the
+subsectioning. For example, the principal image iteration
+via a raster implemented by a python generator. The styel of this approach is::
 
         m31model=create_test_image()
         for ipatch in raster(m31model, nraster=2):
@@ -40,31 +43,12 @@ implemented by a python generator::
                 subvis + = predict_2d(subvis, ipatch, params)
 
 This relies upon the data objects (model and vis) possessing sufficient meta data to enable operations such as phase
-rotation from one frame to another.
+rotation from one frame to another. See e.g. :py:mod:`arl.imaging.imaging_context.invert_function`
+
+The second approach is based on the same underlying functions, predict_2d_base and invert_2d_base, but uses lazy
+evaluation implemented by the Dask.delayed package. See e.g. :py:mod:`arl.graphs.delayed.create_invert_graph`
 
 The Visibility API supports these forms of iteration.
-
-The layering of predict and invert classes is shown below:
-
-.. image:: ARL_predict_layering.png
-      :width: 1024px
-
-.. image:: ARL_invert_layering.png
-      :width: 1024px
-
-The top level functions are in green. All capability is therefore layered on two functions, predict_2d and invert_2d.
-
-Another view is shown next:
-
-.. image:: ARL_Fourier_partitions.png
-      :width: 1024px
-
-In ARL, the primary functionality for bringing together the calibration and imaging capabilities is via the graphs
-at :py:mod:`arl.graphs.graphs`. Iteration is not well suited to graph processing, so for making calibration and
-imaging graphs the iterators have been wrapped as scatter/gather operations that may be used to construct the graphs
-before execution.
-
-The visibility data can be scatter/gathered by timeslice and w. Images may be scatter/gathered via rasters.
 
 To enable efficient graph processing, the units of processing are kept small. Each should be doable in a few minutes.
 

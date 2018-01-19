@@ -282,8 +282,8 @@ def predict_skycomponent_visibility(vis: Union[Visibility, BlockVisibility],
             l, m, n = skycoord_to_lmn(comp.direction, vis.phasecentre)
             for chan in range(nchan):
                 phasor = simulate_point(vis.uvw * k[chan], l, m)
-            for pol in range(npol):
-                vis.data['vis'][..., chan, pol] += flux[chan, pol] * phasor[...]
+                for pol in range(npol):
+                    vis.data['vis'][..., chan, pol] += flux[chan, pol] * phasor[...]
 
     return vis
 

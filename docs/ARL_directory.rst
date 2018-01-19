@@ -38,42 +38,25 @@ Gridding, degridding, and weighting
 
 * Convolutional gridding: :py:mod:`arl.fourier_transforms.convolutional_gridding.convolutional_grid`
 * Convolutional degridding: :py:mod:`arl.fourier_transforms.convolutional_gridding.convolutional_degrid`
+* Generate gridding kernels (standard prolate spheroidal or W-projection): :py:mod:`arl.imaging.params.get_kernel_list`
+
+Visibility weighting and tapering
+=================================
+
 * Weighting: :py:mod:`arl.fourier_transforms.convolutional_gridding.weight_gridding`
-* Tapering: TBD
+* Gaussian tapering: :py:mod:`arl.imaging.weighting.taper_visibility_gaussian`
+* Tukey tapering: :py:mod:`arl.imaging.weighting.taper_visibility_tukey`
 
 Visibility Predict
 ==================
 
-* Predict BlockVisibility for Skycomponent :py:mod:`arl.imaging.base.predict_skycomponent_blockvisibility`
-* Predict Visibility for Skycomponent: :py:mod:`arl.imaging.base.predict_skycomponent_visibility`
-* Predict by de-gridding visibilities:
-
- * :py:mod:`arl.imaging.base.predict_2d_base`
- * :py:mod:`arl.imaging.base.predict_2d`
- * :py:mod:`arl.imaging.base.predict_wstack`
- * :py:mod:`arl.imaging.base.predict_wprojection`
- * :py:mod:`arl.imaging.base.predict_timeslice`
- * :py:mod:`arl.imaging.base.predict_facets`
- * :py:mod:`arl.imaging.base.predict_facets_wprojection`
- * :py:mod:`arl.imaging.base.predict_facets_wstack`
- * :py:mod:`arl.imaging.base.predict_wprojection_wstack`
-
+* Predict BlockVisibility or Visibility for Skycomponent :py:mod:`arl.imaging.base.predict_skycomponent_visibility`
+* Predict by de-gridding visibilities :py:mod:`arl.imaging.imaging_context.predict_function`
 
 Visibility Invert
 =================
 
-* Generate gridding kernels (standard prolate spheroidal or W-projection): :py:mod:`arl.imaging.params.get_kernel_list`
-* Invert by gridding visibilities: 
-
- * :py:mod:`arl.imaging.base.invert_2d_base`
- * :py:mod:`arl.imaging.base.invert_2d`
- * :py:mod:`arl.imaging.base.invert_wstack`
- * :py:mod:`arl.imaging.base.invert_wprojection`
- * :py:mod:`arl.imaging.base.invert_timeslice`
- * :py:mod:`arl.imaging.base.invert_facets`
- * :py:mod:`arl.imaging.base.invert_facets_wprojection`
- * :py:mod:`arl.imaging.base.invert_facets_wstack`
- * :py:mod:`arl.imaging.base.invert_wprojection_wstack`
+* Invert by gridding visibilities :py:mod:`arl.imaging.imaging_context.invert_function`
 
 Deconvolution
 =============
@@ -124,7 +107,7 @@ Visibility
 Graphs:
 =======
 
-* Perform various types of prediction and inversion of visibility data: :py:mod:`arl.graphs.graphs`
+* Perform various types of prediction and inversion of visibility data: :py:mod:`arl.graphs.delayed`
 * Perform generic image or visibility unary operations: :py:mod:`arl.graphs.generic_graphs`
-* Support testing and simulations: :py:mod:`arl.util.graph_support`
-* The canonical pipelines: py:mod:`arl.pipelines.graphs`
+* Support testing and simulations: :py:mod:`arl.util.delayed_support`
+* The canonical pipelines: py:mod:`arl.pipelines.delayed`

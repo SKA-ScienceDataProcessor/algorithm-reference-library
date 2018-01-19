@@ -8,12 +8,10 @@ import os
 import sys
 import unittest
 
-from dask import delayed
-
 import numpy
 from astropy import units as u
 from astropy.coordinates import SkyCoord
-
+from dask import delayed
 
 from arl.data.polarisation import PolarisationFrame
 from arl.graphs.delayed import create_zero_vis_graph_list, create_predict_graph, create_invert_graph, \
@@ -78,24 +76,24 @@ class TestImagingDelayed(unittest.TestCase):
         
         self.phasecentre = SkyCoord(ra=+180.0 * u.deg, dec=-60.0 * u.deg, frame='icrs', equinox='J2000')
         self.vis_graph_list = [delayed(ingest_unittest_visibility)(self.low,
-                                                                   [self.frequency[i]],
-                                                                   [self.channelwidth[i]],
+                                                                   [self.frequency[freqwin]],
+                                                                   [self.channelwidth[freqwin]],
                                                                    self.times,
                                                                    self.vis_pol,
                                                                    self.phasecentre, block=block)
-                               for i, _ in enumerate(self.frequency)]
+                               for freqwin, _ in enumerate(self.frequency)]
         
-        self.model_graph = [delayed(create_unittest_model, nout=freqwin)(self.vis_graph_list, self.image_pol,
-                                                                         [self.frequency[i]],
+        self.model_graph = [delayed(create_unittest_model, nout=freqwin)(self.vis_graph_list[freqwin],
+                                                                         self.image_pol,
                                                                          npixel=self.params['npixel'])
-                            for i, _ in enumerate(self.frequency)]
+                            for freqwin, _ in enumerate(self.frequency)]
         
-        self.components_graph = [delayed(create_unittest_components)(self.model_graph[i], flux[i, :][numpy.newaxis, :])
-                                 for i, _ in enumerate(self.frequency)]
+        self.components_graph = [delayed(create_unittest_components)(self.model_graph[freqwin],
+                                                                     flux[freqwin, :][numpy.newaxis, :])
+                                 for freqwin, _ in enumerate(self.frequency)]
         
-        # Apply the LOW primary beam and insert into model
         self.model_graph = [delayed(insert_skycomponent, nout=1)(self.model_graph[freqwin],
-                                                                        self.components_graph[freqwin])
+                                                                 self.components_graph[freqwin])
                             for freqwin, _ in enumerate(self.frequency)]
         
         self.vis_graph_list = [delayed(predict_skycomponent_visibility)(self.vis_graph_list[freqwin],

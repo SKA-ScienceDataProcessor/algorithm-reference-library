@@ -1,4 +1,5 @@
-""" Definition of predict/invert functions as partials of the underlying code.
+""" Definition of predict/invert functions in terms of the underlying functions:
+:py:mod:`arl.imaging.imaging_context.predict_function` and :py:mod:`arl.imaging.imaging_context.invert_function`
 
 """
 from functools import partial

@@ -1,4 +1,4 @@
-"""Manages the imaging context. This take a strings and returns a dictionary containing:
+"""Manages the imaging context. This take a string and returns a dictionary containing:
  * Predict function
  * Invert function
  * image_iterator function
@@ -87,15 +87,24 @@ def imaging_context(context='2d'):
     return contexts[context]
 
 
-def invert_function(vis, im: Image, dopsf=False, normalize=True, context='2d', inner=None,
-                    **kwargs):
-    """ Invert using a specified iterators and invert
+def invert_function(vis, im: Image, dopsf=False, normalize=True, context='2d', inner=None, **kwargs):
+    """ Invert using algorithm specified by context:
+
+     * 2d: Two-dimensional transform
+     * wstack: wstacking with either vis_slices or wstack (spacing between w planes) set
+     * wprojection: w projection with wstep (spacing between w places) set, also kernel='wprojection'
+     * timeslice: snapshot imaging with either vis_slices or timeslice set. timeslice='auto' does every time
+     * facets: Faceted imaging with facets facets on each axis
+     * facets_wprojection: facets AND wprojection
+     * facets_wstack: facets AND wstacking
+     * wprojection_wstack: wprojection and wstacking
+
 
     :param vis:
     :param im:
-    :param dopsf: Make the psf instead of the dirty image
+    :param dopsf: Make the psf instead of the dirty image (False)
     :param normalize: Normalize by the sum of weights (True)
-    :param context: Imaing context e.g. '2d', 'timeslice', etc.
+    :param context: Imaging context e.g. '2d', 'timeslice', etc.
     :param inner: Inner loop 'vis'|'image'
     :param kwargs:
     :return: Image, sum of weights
@@ -158,7 +167,17 @@ def invert_function(vis, im: Image, dopsf=False, normalize=True, context='2d', i
 
 
 def predict_function(vis, model: Image, context='2d', inner=None, **kwargs) -> Visibility:
-    """Iterate through prediction using specified iterators and predict
+    """Predict visibilities using algorithm specified by context
+    
+     * 2d: Two-dimensional transform
+     * wstack: wstacking with either vis_slices or wstack (spacing between w planes) set
+     * wprojection: w projection with wstep (spacing between w places) set, also kernel='wprojection'
+     * timeslice: snapshot imaging with either vis_slices or timeslice set. timeslice='auto' does every time
+     * facets: Faceted imaging with facets facets on each axis
+     * facets_wprojection: facets AND wprojection
+     * facets_wstack: facets AND wstacking
+     * wprojection_wstack: wprojection and wstacking
+
     
     :param vis:
     :param model: Model image, used to determine image characteristics
@@ -184,7 +203,6 @@ def predict_function(vis, model: Image, context='2d', inner=None, **kwargs) -> V
     
     result = copy_visibility(vis, zero=True)
     
-    # The sense of the loop is reversed from invert!
     if inner == 'image':
         for rows in vis_iter(svis, **kwargs):
             if numpy.sum(rows):

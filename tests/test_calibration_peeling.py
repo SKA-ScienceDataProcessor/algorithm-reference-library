@@ -71,6 +71,7 @@ class TestCalibrationPeeling(unittest.TestCase):
         sc = apply_beam_to_skycomponent(sc, bm)
         # Add in the visibility due to these sources
         vis = predict_skycomponent_visibility(vis, sc)
+        assert numpy.max(numpy.abs(vis.vis)) > 0.0
 
         # Now we can peel
         vis, peel_gts = peel_skycomponent_blockvisibility(vis, peel)
