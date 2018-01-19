@@ -259,15 +259,12 @@ def predict_skycomponent_visibility(vis: Union[Visibility, BlockVisibility],
             
             assert_same_chan_pol(vis, comp)
             
-            # l, m, n = skycoord_to_lmn(comp.direction, vis.phasecentre)
-            # phasor = simulate_point(vis.uvw, l, m)
-            # for ivis in range(vis.nvis):
-            #     for pol in range(npol):
-            #         vis.data['vis'][ivis, pol] += comp.flux[im_nchan[ivis], pol] * phasor[ivis]
             l, m, n = skycoord_to_lmn(comp.direction, vis.phasecentre)
             phasor = simulate_point(vis.uvw, l, m)
-            vis.data['vis'] += comp.flux[im_nchan, :] * phasor[:, numpy.newaxis]
-
+            for ivis in range(vis.nvis):
+                for pol in range(npol):
+                    vis.data['vis'][ivis, pol] += comp.flux[im_nchan[ivis], pol] * phasor[ivis]
+                
     elif isinstance(vis, BlockVisibility):
         
         nchan = vis.nchan
@@ -282,14 +279,11 @@ def predict_skycomponent_visibility(vis: Union[Visibility, BlockVisibility],
             if comp.polarisation_frame != vis.polarisation_frame:
                 flux = convert_pol_frame(flux, comp.polarisation_frame, vis.polarisation_frame)
         
-            # l, m, n = skycoord_to_lmn(comp.direction, vis.phasecentre)
-            # for chan in range(nchan):
-            #     phasor = simulate_point(vis.uvw * k[chan], l, m)
-            #     for pol in range(npol):
-            #         vis.data['vis'][..., chan, pol] += flux[chan, pol] * phasor[...]
             l, m, n = skycoord_to_lmn(comp.direction, vis.phasecentre)
-            phasor = simulate_point(vis.uvw * k, l, m)
-            vis.data['vis'][..., :, :] += flux[:, :] * phasor[:, numpy.newaxis]
+            for chan in range(nchan):
+                phasor = simulate_point(vis.uvw * k[chan], l, m)
+                for pol in range(npol):
+                    vis.data['vis'][..., chan, pol] += flux[chan, pol] * phasor[...]
 
     return vis
 
