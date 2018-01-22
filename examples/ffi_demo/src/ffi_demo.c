@@ -7,41 +7,6 @@
 
 #include "arlwrap.h"
 
-
-/* Simple exit-on-error */
-void pycheck(PyObject *obj)
-{
-	if (!obj) {
-		PyErr_Print();
-		exit(1);
-	}
-}
-
-/* In: module name, function name
- * Out: function address */
-void *get_ffi_fn_addr(const char* module, const char* fn_name)
-{
-	PyObject *mod, *fn, *fn_addr;
-
-	pycheck(mod = PyImport_ImportModule(module));
-	pycheck(fn = PyObject_GetAttrString(mod, fn_name));
-	pycheck(fn_addr = PyObject_GetAttrString(fn, "address"));
-
-	return (void*)PyNumber_AsSsize_t(fn_addr, NULL);
-}
-
-/* DO NOT USE - we do not want PyObjects */
-/* Leaving for reference only */
-PyObject *get_plain_fn_addr(const char* module, const char* fn_name)
-{
-	PyObject *mod, *fn;
-
-	pycheck(mod = PyImport_ImportModule(module));
-	pycheck(fn = PyObject_GetAttrString(mod, fn_name));
-
-	return fn;
-}
-
 /*
  * Verifies that:
  * - vt and vtmp are unique in memory
@@ -112,12 +77,16 @@ int export_image_to_fits_c(Image *im, char * filename) {
 	return status;
 }
 
+// Allocate memory for a FITS image structure in 4 dimensions.
+// wcs and polarisation_frame store pickled versions of the corresponding Python
+// data, currently the sizes are 'magic numbers' found through experimentation -
+// we haven't found a way to properly determine the required sizes yet.
 Image *allocate_image(int *shape)
 {
 	int i;
 	Image *image = malloc(sizeof(Image));
 
-	image->size = 1;//shape[0]*shape[1]*shape[2]*shape[3];
+	image->size = 1;
 
 	for(i=0; i<4; i++) {
 		image->data_shape[i] = shape[i];
@@ -133,10 +102,20 @@ Image *allocate_image(int *shape)
 
 void *destroy_image(Image *image)
 {
-	free(image->data);
-	free(image->wcs);
-	free(image->polarisation_frame);
-	free(image);
+	if (image) {
+		if(image->data) {
+			free(image->data);
+		}
+		if(image->wcs) {
+			free(image->wcs);
+		}
+		if(image->polarisation_frame) {
+			free(image->polarisation_frame);
+		}
+
+		free(image);
+	}
+
 	return NULL;
 }
 
@@ -175,7 +154,6 @@ int main(int argc, char **argv)
 	vtmp->data = malloc(72+4*(32*vt->npol*vt->nvis) * sizeof(char));//13695
 
 	/* malloc data for phasecentre pickle.
-	 * TODO un-hardcode size
 	 */
 	vt->phasecentre = malloc(5000*sizeof(char));
 	vtmp->phasecentre = malloc(5000*sizeof(char));
@@ -186,10 +164,6 @@ int main(int argc, char **argv)
 		fprintf(stderr, "Malloc error\n");
 		exit(1);
 	}
-
-	//arl_copy_visibility(vt, vtmp, false);
-
-	//assert(0 == verify_arl_copy(vt, vtmp));
 
 	helper_get_image_shape(freq, cellsize, shape);
 
@@ -206,10 +180,7 @@ int main(int argc, char **argv)
 	/* TODO the vt->phasecentre part should be moved to a separate routine */
 	arl_create_test_image(freq, cellsize, vt->phasecentre, m31image);
 
-	//helper_set_image_params(vt, m31image);
-
 	arl_predict_2d(vt, m31image, vtmp);
-
 
 	free(vt->phasecentre);
 	free(vt->data);

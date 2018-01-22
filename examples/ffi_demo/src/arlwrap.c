@@ -8,6 +8,14 @@
 
 #include "arlwrap.h"
 
+// in: fname: same as the *NamedTuple* containing the FFI memory address of a
+// Python routine.
+// E.G.: Python routine 'arl_restore_cube_fii', NamedTuple 'arl_restore_cube' =>
+// => fname == "arl_restore_cube".
+//
+// This routine imports the arlwrap.py module, loads the NamedTuple named
+// 'fname', and extracts the function address. The address is then returned as
+// a callable C function pointer.
 size_t bk_getfn(const char* fname)
 {
   size_t res=0;
@@ -41,12 +49,11 @@ size_t bk_getfn(const char* fname)
 // warning for this instance only?
 #define BKFNPY(F)  (* ( void (*)() )(bk_getfn( #F ))) 
 
+
 void helper_get_image_shape(const double *frequency, double cellsize,
 		int *shape)
 {
-        PyGILState_STATE gilstate = PyGILState_Ensure();
         BKFNPY(helper_get_image_shape)(frequency, cellsize, shape);
-        PyGILState_Release(gilstate);
 }
 
 void helper_set_image_params(const ARLVis *vis, Image *image) {

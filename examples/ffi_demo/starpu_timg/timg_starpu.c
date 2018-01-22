@@ -69,6 +69,9 @@ Image *allocate_image(int *shape)
 		image->size *= shape[i];
 	}
 
+	/* Allocate space for the image data and metadata. Using experimentally found
+	 * magic numbers until we find out how to determine these Python object sizes
+	 * at runtime. */
 	image->data = calloc(image->size,sizeof(double));
 	image->wcs = calloc(2997,sizeof(char));
 	image->polarisation_frame = calloc(115,sizeof(char));
@@ -76,15 +79,17 @@ Image *allocate_image(int *shape)
 	return image;
 }
 
-void pu_create_visibility(void **buffers, void *cl_arg)
-{
-	arl_create_visibility(SVGP(0), SVGP(1));
-}
 
+// Simple interfaces that 
 void pu_create_test_image(void **buffers, void *cl_arg)
 {
 	arl_create_test_image(STARPU_VARIABLE_GET_PTR(buffers[0]), *((double*)STARPU_VARIABLE_GET_PTR(buffers[1])),
 			STARPU_VARIABLE_GET_PTR(buffers[2]), STARPU_VARIABLE_GET_PTR(buffers[3]));
+}
+
+void pu_create_visibility(void **buffers, void *cl_arg)
+{
+	arl_create_visibility(SVGP(0), SVGP(1));
 }
 
 void pu_predict_2d(void **buffers, void *cl_arg)
@@ -282,7 +287,13 @@ int main(int argc, char *argv[]) {
 	Image *residual = allocate_image(shape);
 	Image *restored = allocate_image(shape);
 
+	/* Data handles are used by StarPU to pass (pointers to) data to the codelets
+	 * at execution time */
 	starpu_data_handle_t test_image_h[4];
+
+	/* For now we are just passing the raw pointers to required data, to the data
+	 * handle. Most routines expect pointers at this point, and it is easier to
+	 * handle edge cases in the codelets, keeping this main routine clean. */
 	starpu_variable_data_register(&test_image_h[0], STARPU_MAIN_RAM,
 			(uintptr_t)freq, sizeof(double*));
 	starpu_variable_data_register(&test_image_h[1], STARPU_MAIN_RAM,
@@ -291,16 +302,21 @@ int main(int argc, char *argv[]) {
 			(uintptr_t)(vt->phasecentre), sizeof(char*));
 	starpu_variable_data_register(&test_image_h[3], STARPU_MAIN_RAM,
 			(uintptr_t)m31image, sizeof(Image));
-	struct starpu_task *test_img_task = create_task(&create_test_image_cl, test_image_h);
 
+	// Input: pointer to starpu codelet, data handle
+	// Create the StarPU task: associate the data in the data handle with the
+	// routine specified in the codelet, and schedule the task for execution.
+	struct starpu_task *test_img_task = create_task(&create_test_image_cl, test_image_h);
 
 	// For some reason (TODO: find out why) StarPU is not getting data
 	// dependencies right, so we need to explicitly tell it about task
 	// dependencies instead.
 	starpu_task_declare_deps_array(test_img_task, 1, &vis_task);
 
+	// Hand the task over to 
 	starpu_task_submit(test_img_task);
 
+	// Use macros for data registration frome here, to improve readability
 	starpu_data_handle_t pred_handle[3];
 	SVDR(pred_handle, 0, vt, sizeof(ARLVis));
 	SVDR(pred_handle, 1, m31image, sizeof(Image));
@@ -366,6 +382,8 @@ int main(int argc, char *argv[]) {
 
 
 	// === Terminate ===
+
+	// Wait for all tasks to complete
 	starpu_task_wait_for_all();
 
 	// FITS files output
@@ -378,8 +396,9 @@ int main(int argc, char *argv[]) {
 	status = export_image_to_fits_c(comp, "results/solution.fits");
 
 	starpu_shutdown();
-	//verify phasecentre was correctly written
 
+	// Close the threading-enabling macro
 	Py_END_ALLOW_THREADS
+
 	return 0;
 }
