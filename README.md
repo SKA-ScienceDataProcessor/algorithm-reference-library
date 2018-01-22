@@ -24,10 +24,10 @@ Installing
 ----------
 
 The ARL has a few dependencies:
-* Python 3.6+ (Python 2.x may work (YMMV) but it will retire on the 12/04/2020 so best to migrate now - https://pythonclock.org/)
+* Python 3.6+
 * git 2.11.0+
 * git-lfs 2.2.1+
-* Python package dependencies as defined in the tools/requirements.txt
+* Python package dependencies as defined in the requirements.txt
 
 The Python dependencies will install (amongst other things) Jupyter, numpy, scipy, scikit, and Dask.  Because of this it maybe advantageous to setup a virtualenv to contain the project - [instructions can be found here](http://docs.python-guide.org/en/latest/dev/virtualenvs/).
 
