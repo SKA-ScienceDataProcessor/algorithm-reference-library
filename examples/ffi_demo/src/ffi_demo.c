@@ -3,9 +3,9 @@
 #include <assert.h>
 #include <sys/types.h>
 #include <sys/stat.h>
-#include <fitsio.h>
 
 #include "arlwrap.h"
+#include "wrap_support.h"
 
 /*
  * Verifies that:
@@ -44,126 +44,32 @@ int verify_arl_copy(ARLVis *vt, ARLVis *vtmp)
 	return 0;
 }
 
-/* Export image to FITS */
-/* Assuming nx*ny*nfreq */
-/* ToDo - add polarization and wcs */
-int export_image_to_fits_c(Image *im, char * filename) {
-	int status = 0, exists;
-	fitsfile *fptr;       /* pointer to the FITS file; defined in fitsio.h */
-	long  fpixel = 1, naxis = 4, nelements;
-	long naxes[4];
-
-	naxes[0] = im->data_shape[3];
-	naxes[1] = im->data_shape[2];
-	naxes[2] = im->data_shape[1];
-	naxes[3] = im->data_shape[0];
-
-	fits_file_exists(filename, &exists, &status); /* check if the file exists */
-
-	if(exists != 0) {
-		fits_open_file(&fptr, filename, READWRITE, &status); /* open existed file */
-	}
-	else {
-		fits_create_file(&fptr, filename, &status);   /* create new file */
-	}
-
-	/* Create the primary array image  */
-	fits_create_img(fptr, DOUBLE_IMG, naxis, naxes, &status);
-	nelements = naxes[0] * naxes[1] * naxes[2] * naxes[3];          /* number of pixels to write */
-	/* Write the array of integers to the image */
-	fits_write_img(fptr, TDOUBLE, fpixel, nelements, im->data, &status);
-	fits_close_file(fptr, &status);            /* close the file */
-	fits_report_error(stderr, status);  /* print out any error messages */
-	return status;
-}
-
-// Allocate memory for a FITS image structure in 4 dimensions.
-// wcs and polarisation_frame store pickled versions of the corresponding Python
-// data, currently the sizes are 'magic numbers' found through experimentation -
-// we haven't found a way to properly determine the required sizes yet.
-Image *allocate_image(int *shape)
-{
-	int i;
-	Image *image = malloc(sizeof(Image));
-
-	image->size = 1;
-
-	for(i=0; i<4; i++) {
-		image->data_shape[i] = shape[i];
-		image->size *= shape[i];
-	}
-
-	image->data = calloc(image->size,sizeof(double));
-	image->wcs = calloc(2997,sizeof(char));
-	image->polarisation_frame = calloc(115,sizeof(char));
-
-	return image;
-}
-
-void *destroy_image(Image *image)
-{
-	if (image) {
-		if(image->data) {
-			free(image->data);
-		}
-		if(image->wcs) {
-			free(image->wcs);
-		}
-		if(image->polarisation_frame) {
-			free(image->polarisation_frame);
-		}
-
-		free(image);
-	}
-
-	return NULL;
-}
-
-
 int main(int argc, char **argv)
 {
 	int *shape = malloc(4*sizeof(int));
 	int status;
-	int nvis=1;
+	int nvis;
 
-	double *times = calloc(1,sizeof(double));
-	double *freq = malloc(1*sizeof(double));
-	double *channel_bandwidth = malloc(1*sizeof(double));
-	freq[0] = 1e8;
-	channel_bandwidth[0] = 1e6;
 	double cellsize = 0.0005;
 	char config_name[] = "LOWBD2-CORE";
 
-	ARLVis *vt = malloc(sizeof(ARLVis));
-	ARLVis *vtmodel = malloc(sizeof(ARLVis));
-	ARLVis *vtmp = malloc(sizeof(ARLVis));
+	ARLVis *vt;
+	ARLVis *vtmodel;
+	ARLVis *vtmp;
 
-	ARLConf *lowconfig = malloc(sizeof(ARLConf));
-
-	ant_t nb;
+	ARLConf *lowconfig;
 
 	Py_Initialize();
 
-	vt->nvis = 13695;
-	vt->npol = 1;
+	lowconfig = allocate_arlconf_default(config_name);
 
-	// malloc to ARLDataVisSize
-	vt->data = malloc((80+32*vt->npol)*vt->nvis * sizeof(char));
-	vtmp->data = malloc((80+32*vt->npol)*vt->nvis * sizeof(char));
+	nvis = (lowconfig->nbases)*(lowconfig->nfreqs)*(lowconfig->ntimes);
 
-	/* malloc data for phasecentre pickle.
-	 */
-	vt->phasecentre = malloc(5000*sizeof(char));
-	vtmp->phasecentre = malloc(5000*sizeof(char));
-	vtmodel->phasecentre = malloc(5000*sizeof(char));
+	vt = allocate_vis_data(lowconfig->npol, nvis);
+	vtmp = allocate_vis_data(lowconfig->npol, nvis);
 
-	// TODO check all mallocs
-	if (!vt->data || !vtmp->data) {
-		fprintf(stderr, "Malloc error\n");
-		exit(1);
-	}
-
-	helper_get_image_shape(freq, cellsize, shape);
+	// Calculate shape of future images, store in 'shape'
+	helper_get_image_shape(lowconfig->freqs, cellsize, shape);
 
 	Image *model = allocate_image(shape);
 	Image *m31image = allocate_image(shape);
@@ -176,13 +82,11 @@ int main(int argc, char **argv)
 	arl_create_visibility(lowconfig, vt);
 
 	/* TODO the vt->phasecentre part should be moved to a separate routine */
-	arl_create_test_image(freq, cellsize, vt->phasecentre, m31image);
+	arl_create_test_image(lowconfig->freqs, cellsize, vt->phasecentre, m31image);
 
 	arl_predict_2d(vt, m31image, vtmp);
 
-	free(vt->phasecentre);
-	free(vt->data);
-	free(vt);
+	vt = destroy_vis(vt);
 	vt = vtmp;
 	vtmp = NULL;
 
@@ -213,23 +117,15 @@ int main(int argc, char **argv)
 	residual = destroy_image(residual);
 	restored = destroy_image(restored);
 
-	vtmodel->nvis = nvis;
-	vtmodel->npol = lowconfig->npol;
-	vtmodel->data = malloc((80+32*vtmodel->npol)*vtmodel->nvis * sizeof(char));
+	vtmodel = allocate_vis_data(lowconfig->npol, nvis);
+	vtmp = allocate_vis_data(lowconfig->npol, nvis);
 
 	arl_create_visibility(lowconfig, vtmodel);
 
-	vtmp = malloc(sizeof(ARLVis));
-	vtmp->data = malloc((80+32*vtmodel->npol)*vtmodel->nvis * sizeof(char));
-	vtmp->phasecentre = malloc(5000*sizeof(char));
-
 	arl_predict_2d(vtmodel, comp, vtmp);
 
-	free(vtmodel->data);
-	free(vtmodel->phasecentre);
-	free(vtmodel);
-	vtmodel = vtmp;
-	vtmp = NULL;
+	vtmodel = destroy_vis(vtmodel);
+	vtmp = destroy_vis(vtmp);
 
 	comp = destroy_image(comp);
 
