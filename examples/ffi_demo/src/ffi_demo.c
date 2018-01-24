@@ -3,7 +3,7 @@
 #include <assert.h>
 #include <sys/types.h>
 #include <sys/stat.h>
-#include <cfitsio/fitsio.h>
+#include <fitsio.h>
 
 #include "arlwrap.h"
 
@@ -31,7 +31,7 @@ int verify_arl_copy(ARLVis *vt, ARLVis *vtmp)
 		return 3;
 	}
 
-	ARLVisDataSize = 72 + (32 * vt->npol * vt->nvis);
+	ARLVisDataSize = 80 + (32 * vt->npol * vt->nvis);
 	vtdata_bytes = (char*) vt->data;
 	vtmpdata_bytes = (char*) vtmp->data;
 
@@ -167,8 +167,8 @@ int main(int argc, char **argv)
 	vt->npol = lowconfig->npol;
 
 	// malloc to ARLDataVisSize
-	vt->data = malloc((72+32*vt->npol)*vt->nvis * sizeof(char));
-	vtmp->data = malloc((72+32*vt->npol)*vt->nvis * sizeof(char));
+	vt->data = malloc((80+32*vt->npol)*vt->nvis * sizeof(char));
+	vtmp->data = malloc((80+32*vt->npol)*vt->nvis * sizeof(char));
 
 	/* malloc data for phasecentre pickle.
 	 */
@@ -236,12 +236,12 @@ int main(int argc, char **argv)
 
 	vtmodel->nvis = nvis;
 	vtmodel->npol = lowconfig->npol;
-	vtmodel->data = malloc((72+32*vtmodel->npol)*vtmodel->nvis * sizeof(char));
+	vtmodel->data = malloc((80+32*vtmodel->npol)*vtmodel->nvis * sizeof(char));
 
 	arl_create_visibility(lowconfig, vtmodel);
 
 	vtmp = malloc(sizeof(ARLVis));
-	vtmp->data = malloc((72+32*vtmodel->npol)*vtmodel->nvis * sizeof(char));
+	vtmp->data = malloc((80+32*vtmodel->npol)*vtmodel->nvis * sizeof(char));
 	vtmp->phasecentre = malloc(5000*sizeof(char));
 
 	arl_predict_2d(vtmodel, comp, vtmp);

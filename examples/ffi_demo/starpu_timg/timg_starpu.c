@@ -248,9 +248,9 @@ int main(int argc, char *argv[]) {
 	vt->npol = lowconfig->npol;
 
 	// malloc to ARLDataVisSize
-	vt->data = malloc((72+32*vt->npol)*vt->nvis * sizeof(char));
-	vtmp->data = malloc((72+32*vt->npol)*vt->nvis * sizeof(char));
-	vtmodel->data = malloc((72+32*vt->npol)*vt->nvis * sizeof(char));
+	vt->data = malloc((80+32*vt->npol)*vt->nvis * sizeof(char));
+	vtmp->data = malloc((80+32*vt->npol)*vt->nvis * sizeof(char));
+	vtmodel->data = malloc((80+32*vt->npol)*vt->nvis * sizeof(char));
 	printf("%d, %d, %p\n", vt->npol, vt->nvis, vt);
 
 	/* malloc data for phasecentre pickle.

@@ -30,7 +30,7 @@ typedef struct {
 """)
 
 def ARLDataVisSize(nvis, npol):
-    return (72+32*int(npol))*int(nvis)
+    return (80+32*int(npol))*int(nvis)
 
 def cARLVis(visin):
     """
@@ -39,7 +39,8 @@ def cARLVis(visin):
     npol=visin.npol
     nvis=visin.nvis
     #print (ARLDataVisSize(nvis, npol))
-    desc = [('uvw', '>f8', (3,)),
+    desc = [('index', '>i8'),
+            ('uvw', '>f8', (3,)),
             ('time', '>f8'),
             ('frequency', '>f8'),
             ('channel_bandwidth', '>f8'),
