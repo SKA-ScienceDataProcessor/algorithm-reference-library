@@ -16,185 +16,22 @@
 #include <stdio.h>
 
 #include "../src/arlwrap.h"
-
-#include <fitsio.h>
-
-
-// I'm not typing this out every time
-#define SVGP(x) STARPU_VARIABLE_GET_PTR(buffers[x])
-#define SVDR(handle, i, var, size) starpu_variable_data_register(&handle[i], STARPU_MAIN_RAM, (uintptr_t)var, size);
-
-/* Export image to FITS */
-/* Assuming nx*ny*nfreq */
-/* ToDo - add polarization and wcs */
-int export_image_to_fits_c(Image *im, char * filename) {
-	int status = 0, exists;
-	fitsfile *fptr;       /* pointer to the FITS file; defined in fitsio.h */
-	long  fpixel = 1, naxis = 4, nelements;
-	long naxes[4];
-
-	naxes[0] = im->data_shape[3];
-	naxes[1] = im->data_shape[2];
-	naxes[2] = im->data_shape[1];
-	naxes[3] = im->data_shape[0];
-
-	fits_file_exists(filename, &exists, &status); /* check if the file exists */
-
-	if(exists != 0) {
-		fits_open_file(&fptr, filename, READWRITE, &status); /* open existed file */
-	}
-	else {
-		fits_create_file(&fptr, filename, &status);   /* create new file */
-	}
-
-	/* Create the primary array image  */
-	fits_create_img(fptr, DOUBLE_IMG, naxis, naxes, &status);
-	nelements = naxes[0] * naxes[1] * naxes[2] * naxes[3];          /* number of pixels to write */
-	/* Write the array of integers to the image */
-	fits_write_img(fptr, TDOUBLE, fpixel, nelements, im->data, &status);
-	fits_close_file(fptr, &status);            /* close the file */
-	fits_report_error(stderr, status);  /* print out any error messages */
-	return status;
-}
-
-Image *allocate_image(int *shape)
-{
-	int i;
-	Image *image = malloc(sizeof(Image));
-
-	image->size = 1;//shape[0]*shape[1]*shape[2]*shape[3];
-
-	for(i=0; i<4; i++) {
-		image->data_shape[i] = shape[i];
-		image->size *= shape[i];
-	}
-
-	/* Allocate space for the image data and metadata. Using experimentally found
-	 * magic numbers until we find out how to determine these Python object sizes
-	 * at runtime. */
-	image->data = calloc(image->size,sizeof(double));
-	image->wcs = calloc(2997,sizeof(char));
-	image->polarisation_frame = calloc(115,sizeof(char));
-
-	return image;
-}
-
-
-// Simple interfaces that 
-void pu_create_test_image(void **buffers, void *cl_arg)
-{
-	arl_create_test_image(STARPU_VARIABLE_GET_PTR(buffers[0]), *((double*)STARPU_VARIABLE_GET_PTR(buffers[1])),
-			STARPU_VARIABLE_GET_PTR(buffers[2]), STARPU_VARIABLE_GET_PTR(buffers[3]));
-}
-
-void pu_create_visibility(void **buffers, void *cl_arg)
-{
-	arl_create_visibility(SVGP(0), SVGP(1));
-}
-
-void pu_predict_2d(void **buffers, void *cl_arg)
-{
-	arl_predict_2d(SVGP(0), SVGP(1), SVGP(2));
-}
-
-void pu_create_from_visibility(void **buffers, void *cl_args)
-{
-	arl_create_image_from_visibility(SVGP(0), SVGP(1));
-}
-
-void pu_invert_2d(void **buffers, void *cl_args)
-{
-	arl_invert_2d(SVGP(0), SVGP(1), *((bool*)SVGP(2)), SVGP(3), SVGP(4));
-}
-
-void pu_deconvolve_cube(void **buffers, void *cl_args)
-{
-	arl_deconvolve_cube(SVGP(0), SVGP(1), SVGP(2), SVGP(3));
-}
-
-void pu_restore_cube(void **buffers, void *cl_args)
-{
-	arl_restore_cube(SVGP(0), SVGP(1), SVGP(2), SVGP(3));
-}
-
-
-/* Example kernel codelet: calls create_visibility, specifies number of buffers
- * (=arguments), and set argument read/write modes
- */
-struct starpu_codelet create_visibility_cl = {
-	.cpu_funcs = { pu_create_visibility },
-	.name = "pu_create_visibility",
-	.nbuffers = 2,
-	.modes = { STARPU_R, STARPU_W }
-};
-
-struct starpu_codelet create_test_image_cl = {
-	.cpu_funcs = { pu_create_test_image },
-	.name = "pu_create_test_image",
-	.nbuffers = 4,
-	.modes = { STARPU_R, STARPU_R, STARPU_W, STARPU_W }
-};
-
-struct starpu_codelet predict_2d_cl = {
-	.cpu_funcs = { pu_predict_2d },
-	.name = "pu_predict_2d",
-	.nbuffers = 3,
-	.modes = { STARPU_R, STARPU_R, STARPU_W }
-};
-
-struct starpu_codelet create_from_visibility_cl = {
-	.cpu_funcs = { pu_create_from_visibility },
-	.name = "pu_create_from_visibility",
-	.nbuffers = 2,
-	.modes = { STARPU_R, STARPU_W }
-};
-
-struct starpu_codelet invert_2d_cl = {
-	.cpu_funcs = { pu_invert_2d },
-	.name = "pu_invert_2d",
-	.nbuffers = 5,
-	.modes = { STARPU_R, STARPU_R, STARPU_R, STARPU_W, STARPU_RW }
-};
-
-struct starpu_codelet deconvolve_cube_cl = {
-	.cpu_funcs = { pu_deconvolve_cube },
-	.name = "pu_deconvolve_cube",
-	.nbuffers = 4,
-	.modes = { STARPU_R, STARPU_R, STARPU_RW, STARPU_RW }
-};
-
-struct starpu_codelet restore_cube_cl = {
-	.cpu_funcs = { pu_restore_cube },
-	.name = "pu_restore_cube",
-	.nbuffers = 4,
-	.modes = { STARPU_R, STARPU_R, STARPU_RW, STARPU_RW }
-};
-
-/* Simple task submission. Assumes one buffer per handle, nbuffers and modes
- * specified in kernel codelet
- */
-
-struct starpu_task *create_task(struct starpu_codelet *kernel, starpu_data_handle_t *handles)
-{
-	int i;
-	struct starpu_task *task = starpu_task_create();
-	task->cl = kernel;
-
-	for(i = 0; i < kernel->nbuffers; i++) {
-		task->handles[i] = handles[i];
-	}
-
-	return task;
-
-}
-
-void create_task_and_submit(struct starpu_codelet *kernel, starpu_data_handle_t *handles)
-{
-	struct starpu_task *task = create_task(kernel, handles);
-	starpu_task_submit(task);
-}
+#include "../src/wrap_support.h"
+#include "timg_pu_routines.h"
 
 int main(int argc, char *argv[]) {
+	/* BEGIN setup_stolen_from_ffi_demo */
+	int *shape = malloc(4*sizeof(int));
+	int status;
+	int nvis;
+
+	double cellsize = 5e-4;
+	char config_name[] = "LOWBD2-CORE";
+
+	ARLVis *vt;
+	ARLVis *vtmp;
+
+	ARLConf *lowconfig;
 
 	starpu_init(NULL);
 
@@ -204,68 +41,13 @@ int main(int argc, char *argv[]) {
 	// when trying to get the Python interpreter lock
 	Py_BEGIN_ALLOW_THREADS
 
-	/* BEGIN setup_stolen_from_ffi_demo */
-	int *shape = malloc(4*sizeof(int));
-	int status;
-	int nvis=1;
+	lowconfig = allocate_arlconf_default(config_name);
 
-	double *times = calloc(1,sizeof(double));
-	double *freq = malloc(1*sizeof(double));
-	double *channel_bandwidth = malloc(1*sizeof(double));
-	freq[0] = 1e8;
-	channel_bandwidth[0] = 1e6;
-	double cellsize = 0.0005;
-	char config_name[] = "LOWBD2-CORE";
+	nvis = lowconfig->nbases * lowconfig->nfreqs * lowconfig->ntimes;
 
-	ARLVis *vt = malloc(sizeof(ARLVis));
-	ARLVis *vtmodel = malloc(sizeof(ARLVis));
-	ARLVis *vtmp = malloc(sizeof(ARLVis));
+	vt = allocate_vis_data(lowconfig->npol, nvis);
+	vtmp = allocate_vis_data(lowconfig->npol, nvis);
 
-	ARLConf *lowconfig = malloc(sizeof(ARLConf));
-
-	ant_t nb;
-
-	// Find out the number of the antennas and the baselines, keep in nb structure
-	nb.nbases = 1;
-	helper_get_nbases(config_name, &nb);
-	// Assigning configuraion values
-	lowconfig->confname = config_name;
-	lowconfig->pc_ra = 15.0;
-	lowconfig->pc_dec = -45.0;
-	lowconfig->times = times;
-	lowconfig->ntimes = 1;
-	lowconfig->freqs = freq;
-	lowconfig->nfreqs = 1;
-	lowconfig->channel_bandwidth = channel_bandwidth;
-	lowconfig->nchanwidth = 1;
-	lowconfig->nbases = nb.nbases;
-	lowconfig->npol = 1;
-	// Find out the number of visibilities
-	nvis = (lowconfig->nbases)*(lowconfig->nfreqs)*(lowconfig->ntimes);
-	printf("nvis = %d\n", nvis);
-
-	vt->nvis = nvis;
-	vt->npol = lowconfig->npol;
-
-	// malloc to ARLDataVisSize
-	vt->data = malloc((80+32*vt->npol)*vt->nvis * sizeof(char));
-	vtmp->data = malloc((80+32*vt->npol)*vt->nvis * sizeof(char));
-	vtmodel->data = malloc((80+32*vt->npol)*vt->nvis * sizeof(char));
-	printf("%d, %d, %p\n", vt->npol, vt->nvis, vt);
-
-	/* malloc data for phasecentre pickle.
-	 * TODO un-hardcode size
-	 */
-	vt->phasecentre = malloc(5000*sizeof(char));
-	vtmp->phasecentre = malloc(5000*sizeof(char));
-	vtmodel->phasecentre = malloc(5000*sizeof(char));
-
-	// TODO check all mallocs
-	if (!vt->data || !vtmp->data || !vtmodel->data ||
-			!vt->phasecentre || !vtmp->phasecentre || !vtmodel->phasecentre) {
-		fprintf(stderr, "Malloc error\n");
-		exit(1);
-	}
 	/* END setup_stolen_from_ffi_demo */
 
 	starpu_data_handle_t create_visibility_h[2];
@@ -277,7 +59,7 @@ int main(int argc, char *argv[]) {
 	struct starpu_task *vis_task = create_task(&create_visibility_cl, create_visibility_h);
 	starpu_task_submit(vis_task);
 
-	helper_get_image_shape(freq, cellsize, shape);
+	helper_get_image_shape(lowconfig->freqs, cellsize, shape);
 
 	Image *model = allocate_image(shape);
 	Image *m31image = allocate_image(shape);
@@ -295,7 +77,7 @@ int main(int argc, char *argv[]) {
 	 * handle. Most routines expect pointers at this point, and it is easier to
 	 * handle edge cases in the codelets, keeping this main routine clean. */
 	starpu_variable_data_register(&test_image_h[0], STARPU_MAIN_RAM,
-			(uintptr_t)freq, sizeof(double*));
+			(uintptr_t)lowconfig->freqs, sizeof(double*));
 	starpu_variable_data_register(&test_image_h[1], STARPU_MAIN_RAM,
 			(uintptr_t)&cellsize, sizeof(double));
 	starpu_variable_data_register(&test_image_h[2], STARPU_MAIN_RAM,
