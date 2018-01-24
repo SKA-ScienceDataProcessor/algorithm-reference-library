@@ -30,8 +30,13 @@ def copy_visibility(vis: Union[Visibility, BlockVisibility], zero=False) -> Unio
 
     Performs a deepcopy of the data array
     """
+    assert isinstance(vis, Visibility) or isinstance(vis, BlockVisibility), vis
+    
     newvis = copy.copy(vis)
     newvis.data = numpy.copy(vis.data)
+    if isinstance(vis, Visibility):
+        newvis.cindex = vis.cindex
+        newvis.blockvis = vis.blockvis
     if zero:
         newvis.data['vis'][...] = 0.0
     return newvis
@@ -120,7 +125,7 @@ def create_blockvisibility(config: Configuration,
                            times: numpy.array,
                            frequency: numpy.array,
                            phasecentre: SkyCoord,
-                           weight: float,
+                           weight: float = 1.0,
                            polarisation_frame: PolarisationFrame = None,
                            integration_time=1.0,
                            channel_bandwidth=1e6,
@@ -197,14 +202,24 @@ def create_visibility_from_rows(vis: Union[Visibility, BlockVisibility], rows: n
     if rows is None or numpy.sum(rows) == 0:
         return None
 
+    assert len(rows) == vis.nvis, "Length of rows does not agree with length of visibility"
+    
     if isinstance(vis, Visibility):
 
         if makecopy:
             newvis = copy_visibility(vis)
+            if vis.cindex is not None and len(rows) == len(vis.cindex):
+                newvis.cindex = vis.cindex[rows]
+            else:
+                newvis.cindex = None
+            if vis.blockvis is not None:
+                newvis.blockvis = vis.blockvis
             newvis.data = copy.deepcopy(vis.data[rows])
             return newvis
         else:
             vis.data = copy.deepcopy(vis.data[rows])
+            if vis.cindex is not None:
+                vis.cindex = vis.cindex[rows]
             return vis
     else:
 
@@ -244,15 +259,20 @@ def phaserotate_visibility(vis: Visibility, newphasecentre: SkyCoord, tangent=Tr
         phasor = simulate_point(newvis.uvw, l, m)
         nvis, npol = vis.vis.shape
         # TODO: Speed up (broadcast rules not obvious to me)
+        # if inverse:
+        #     for i in range(nvis):
+        #         for pol in range(npol):
+        #             newvis.data['vis'][i, pol] *= phasor[i]
+        # else:
+        #     for i in range(nvis):
+        #         for pol in range(npol):
+        #             newvis.data['vis'][i, pol] *= numpy.conj(phasor[i])
+
         if inverse:
-            for i in range(nvis):
-                for pol in range(npol):
-                    newvis.data['vis'][i, pol] *= phasor[i]
+            newvis.data['vis'] *= phasor[:, numpy.newaxis]
         else:
-            for i in range(nvis):
-                for pol in range(npol):
-                    newvis.data['vis'][i, pol] *= numpy.conj(phasor[i])
-        
+            newvis.data['vis'] *= numpy.conj(phasor[:, numpy.newaxis])
+
         # To rotate UVW, rotate into the global XYZ coordinate system and back. We have the option of
         # staying on the tangent plane or not. If we stay on the tangent then the raster will
         # join smoothly at the edges. If we change the tangent then we will have to reproject to get
@@ -273,7 +293,7 @@ def phaserotate_visibility(vis: Visibility, newphasecentre: SkyCoord, tangent=Tr
         return vis
 
 
-def create_visibility_from_ms(msname):
+def create_visibility_from_ms(msname, channum=0):
     """ Minimal MS to Visibility converter
 
     The MS format is much more general than the ARL Visibility so we cut many corners. This requires casacore to be
@@ -296,7 +316,12 @@ def create_visibility_from_ms(msname):
         ms = tab.query("FIELD_ID==%d" % field)
         print("Found %d rows for field %d" % (ms.nrows(), field))
         time = ms.getcol('TIME')
-        vis = ms.getcol('DATA')[:, 0, :]
+        channels = len(numpy.transpose(ms.getcol('DATA'))[0])
+        print("Found %d channels" % (channels))
+        try:
+            vis = ms.getcol('DATA')[:, channum, :]
+        except IndexError:
+            raise IndexError("channel number exceeds max. within ms")
         weight = ms.getcol('WEIGHT')
         uvw = -1 * ms.getcol('UVW')
         antenna1 = ms.getcol('ANTENNA1')
@@ -307,7 +332,7 @@ def create_visibility_from_ms(msname):
         # Now get info from the subtables
         spwtab = table('%s/SPECTRAL_WINDOW' % msname, ack=False)
         cfrequency = spwtab.getcol('CHAN_FREQ')
-        frequency = numpy.array([cfrequency[dd] for dd in ddid])[:, 0]
+        frequency = numpy.array([cfrequency[dd] for dd in ddid])[:, channum]
         cchannel_bandwidth = spwtab.getcol('CHAN_WIDTH')
         channel_bandwidth = numpy.array([cchannel_bandwidth[dd] for dd in ddid])[:, 0]
         

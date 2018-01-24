@@ -14,7 +14,7 @@ from arl.data.polarisation import PolarisationFrame
 from arl.image.operations import export_image_to_fits
 from arl.imaging import invert_2d
 from arl.imaging.base import create_image_from_visibility
-from arl.imaging.weighting import weight_visibility, taper_visibility_Gaussian, taper_visibility_tukey
+from arl.imaging.weighting import weight_visibility, taper_visibility_gaussian, taper_visibility_tukey
 from arl.util.testing_support import create_named_configuration
 from arl.visibility.base import create_visibility
 
@@ -94,7 +94,7 @@ class TestWeighting(unittest.TestCase):
         self.actualSetUp()
         size_required = 0.01
         self.componentvis, _, _ = weight_visibility(self.componentvis, self.model, algoritm='uniform')
-        self.componentvis = taper_visibility_Gaussian(self.componentvis, beam=size_required)
+        self.componentvis = taper_visibility_gaussian(self.componentvis, beam=size_required)
         psf, sumwt = invert_2d(self.componentvis, self.model, dopsf=True)
         export_image_to_fits(psf, '%s/test_weighting_gaussian_taper_psf.fits' % self.dir)
         from arl.image.operations import fft_image

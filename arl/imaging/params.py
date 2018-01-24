@@ -3,8 +3,11 @@ Functions that aid definition of fourier transform processing.
 """
 
 import logging
+import warnings
 
 import astropy.constants as constants
+from astropy.wcs import FITSFixedWarning
+
 import numpy
 
 from arl.data.data_models import Visibility, BlockVisibility, Image
@@ -12,11 +15,12 @@ from arl.data.parameters import get_parameter
 from arl.data.polarisation import PolarisationFrame
 from arl.fourier_transforms.convolutional_gridding import anti_aliasing_calculate
 from arl.image.operations import create_w_term_like, copy_image, pad_image, fft_image, convert_image_to_kernel
+from arl.visibility.coalesce import convert_visibility_to_blockvisibility, convert_blockvisibility_to_visibility
 
 log = logging.getLogger(__name__)
 
 
-def get_frequency_map(vis, im: Visibility = None):
+def get_frequency_map(vis, im: Image = None):
     """ Map channels from visibilities to image
 
     """
@@ -28,7 +32,7 @@ def get_frequency_map(vis, im: Visibility = None):
     if im is None:
         spectral_mode = 'channel'
         vfrequencymap = get_rowmap(vis.frequency, ufrequency)
-        assert min(vfrequencymap) >= 0, "Invalid frequency map: visibility channel < 0"
+        assert min(vfrequencymap) >= 0, "Invalid frequency map: visibility channel < 0: %s" % str(vfrequencymap)
     
     elif im.data.shape[0] == 1 and vnchan >= 1:
         spectral_mode = 'mfs'
@@ -36,15 +40,18 @@ def get_frequency_map(vis, im: Visibility = None):
     
     else:
         # We can map these to image channels
-        v2im_map = im.wcs.sub(['spectral']).wcs_world2pix(ufrequency, 0)[0].astype('int')
+        with warnings.catch_warnings():
+            warnings.simplefilter('ignore', FITSFixedWarning)
+            v2im_map = im.wcs.sub(['spectral']).wcs_world2pix(ufrequency, 0)[0].astype('int')
         
         spectral_mode = 'channel'
         nrows = len(vis.frequency)
         row2vis = numpy.array(get_rowmap(vis.frequency, ufrequency))
         vfrequencymap = [v2im_map[row2vis[row]] for row in range(nrows)]
         
-        assert min(vfrequencymap) >= 0, "Invalid frequency map: image channel < 0"
-        assert max(vfrequencymap) < im.shape[0], "Invalid frequency map: image channel > number image channels"
+        assert min(vfrequencymap) >= 0, "Invalid frequency map: image channel < 0 %s" % str(vfrequencymap)
+        assert max(vfrequencymap) < im.shape[0], "Invalid frequency map: image channel > number image channels %s" % \
+                                                 str(vfrequencymap)
     
     return spectral_mode, vfrequencymap
 
@@ -89,7 +96,7 @@ def get_uvw_map(vis: Visibility, im: Image, padding=2):
     """ Get the generators that map channels uvw to pixels
 
     :param padding:
-    return ?
+    :return: uvw mode, shape, padding, uvw mapping
     """
     # Transform parameters
     
@@ -200,10 +207,9 @@ def get_kernel_list(vis: Visibility, im: Image, **kwargs):
     
     wabsmax = numpy.max(numpy.abs(vis.w))
     if kernelname == 'wprojection' and wabsmax > 0.0:
-        
         # wprojection needs a lot of commentary!
         log.debug("get_kernel_list: Using wprojection kernel")
-        
+
         # The field of view must be as padded! R_F is for reporting only so that
         # need not be padded.
         fov = cellsize * npixel * padding
@@ -212,10 +218,10 @@ def get_kernel_list(vis: Visibility, im: Image, **kwargs):
         delA = get_parameter(kwargs, 'wloss', 0.02)
         
         advice = advise_wide_field(vis, delA)
-        wstep = get_parameter(kwargs, "wstep", advice['w_sampling_primary_beam'])
+        wstep = get_parameter(kwargs, 'wstep', advice['w_sampling_primary_beam'])
         
         log.debug("get_kernel_list: Using w projection with wstep = %f" % (wstep))
-        
+ 
         # Now calculate the maximum support for the w kernel
         kernelwidth = get_parameter(kwargs, "kernelwidth",
                                     (2 * int(round(numpy.sin(0.5 * fov) * npixel * wabsmax * cellsize))))
@@ -245,7 +251,7 @@ def advise_wide_field(vis: Visibility, delA=0.02, oversampling_synthesised_beam=
     For example::
     
         advice = advise_wide_field(vis, delA)
-        wstep = get_parameter(kwargs, "wstep", advice['w_sampling_primary_beam'])
+        wstep = get_parameter(kwargs, 'wstep', advice['w_sampling_primary_beam'])
 
     
     :param vis:
@@ -256,18 +262,25 @@ def advise_wide_field(vis: Visibility, delA=0.02, oversampling_synthesised_beam=
     :param wprojection_planes: Number of planes in wprojection
     :return: dict of advice
     """
-    max_wavelength = constants.c.to('m/s').value / numpy.min(vis.frequency)
+    
+    if isinstance(vis, BlockVisibility):
+        svis = convert_blockvisibility_to_visibility(vis)
+    else:
+        svis = vis
+    assert isinstance(svis, Visibility), svis
+    
+    max_wavelength = constants.c.to('m/s').value / numpy.min(svis.frequency)
     log.info("advise_wide_field: Maximum wavelength %.3f (meters)" % (max_wavelength))
 
-    min_wavelength = constants.c.to('m/s').value / numpy.max(vis.frequency)
+    min_wavelength = constants.c.to('m/s').value / numpy.max(svis.frequency)
     log.info("advise_wide_field: Minimum wavelength %.3f (meters)" % (min_wavelength))
 
-    maximum_baseline = numpy.max(numpy.abs(vis.uvw))  # Wavelengths
-    if isinstance(vis, BlockVisibility):
+    maximum_baseline = numpy.max(numpy.abs(svis.uvw))  # Wavelengths
+    if isinstance(svis, BlockVisibility):
         maximum_baseline = maximum_baseline / min_wavelength
     log.info("advise_wide_field: Maximum baseline %.1f (wavelengths)" % (maximum_baseline))
     
-    diameter = numpy.min(vis.configuration.diameter)
+    diameter = numpy.min(svis.configuration.diameter)
     log.info("advise_wide_field: Station/antenna diameter %.1f (meters)" % (diameter))
 
     primary_beam_fov = max_wavelength / diameter
@@ -338,10 +351,10 @@ def advise_wide_field(vis: Visibility, delA=0.02, oversampling_synthesised_beam=
     log.info('advice_wide_field: Number of planes in w stack %d' % (vis_slices))
     log.info('advice_wide_field: Number of planes in w projection %d' % wprojection_planes)
     if wprojection_planes > 1:
-        log.info('advice_wide_field: Recommend wprojection gridding')
+        log.info('advice_wide_field: Recommend that wprojection gridding is used')
         kernel = 'wprojection'
     else:
-        log.info('advice_wide_field: Recommend 2d gridding')
+        log.info('advice_wide_field: Recommend that 2d gridding (i.e. no wprojection) is used')
         kernel = '2d'
 
     return locals()

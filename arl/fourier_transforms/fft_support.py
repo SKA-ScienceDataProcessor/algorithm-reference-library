@@ -47,41 +47,27 @@ def pad_mid(ff, npixel):
 
     .. note::
     
-        If there are four axes then the last outer axes are not transformed
+        Only the two innermost axes are transformed
 
-    :param ff: The input far field. Should be smaller than NxN.
+        This function does not handle odd-sized dimensions properly
+
+    :param ff: The input far field. Should be smaller than npixelxnpixel.
+
     :param npixel:  The desired far field size
 
     """
-    
-    if len(ff.shape) == 4:
-        nchan, npol, ny, nx = ff.shape
-        cx = nx // 2
-        cy = ny // 2
-        if npixel == nx:
-            return ff
-        assert npixel > nx == ny
-        pw = ((0, 0), (0, 0),
-              (npixel // 2 - cy, npixel // 2 - cy),
-              (npixel // 2 - cx, npixel // 2 - cx))
-        return numpy.pad(ff,
-                         pad_width=pw,
-                         mode='constant',
-                         constant_values=0.0)
-    
-    else:
-        ny, nx = ff.shape
-        cx = nx // 2
-        cy = ny // 2
-        if npixel == nx:
-            return ff
-        assert npixel > nx == ny
-        pw = ((npixel // 2 - cy, npixel // 2 - cy),
-              (npixel // 2 - cx, npixel // 2 - cx))
-        return numpy.pad(ff,
-                         pad_width=pw,
-                         mode='constant',
-                         constant_values=0.0)
+    ny, nx = ff.shape[-2:]
+    cx = nx // 2
+    cy = ny // 2
+    if npixel == nx:
+        return ff
+    assert npixel > nx and npixel > ny
+    pw = [(0, 0)] * (ff.ndim-2)  + [(npixel // 2 - cy, npixel // 2 - cy),
+                                    (npixel // 2 - cx, npixel // 2 - cx)]
+    return numpy.pad(ff,
+                     pad_width=pw,
+                     mode='constant',
+                     constant_values=0.0)
 
 
 def extract_mid(a, npixel):
@@ -93,29 +79,20 @@ def extract_mid(a, npixel):
 
     .. note::
     
-        If there are four axes then the last outer axes are not transformed
+        Only the two innermost axes are transformed
 
-    :param npixel:
+    :param npixel: desired size of the section to extract
     :param a: grid from which to extract
     """
-    if len(a.shape) == 4:
-        nchan, npol, ny, nx = a.shape
-        cx = nx // 2
-        cy = ny // 2
-        s = npixel // 2
-        if npixel % 2 != 0:
-            return a[..., cx - s:cx + s + 1, cy - s:cy + s + 1]
-        else:
-            return a[..., cx - s:cx + s, cy - s:cy + s]
+    ny, nx = a.shape[-2:]
+    cx = nx // 2
+    cy = ny // 2
+    s = npixel // 2
+    if npixel % 2 != 0:
+        return a[..., cx - s:cx + s + 1, cy - s:cy + s + 1]
     else:
-        ny, nx = a.shape
-        cx = nx // 2
-        cy = ny // 2
-        s = npixel // 2
-        if npixel % 2 != 0:
-            return a[cx - s:cx + s + 1, cy - s:cy + s + 1]
-        else:
-            return a[cx - s:cx + s, cy - s:cy + s]
+        return a[..., cx - s:cx + s, cy - s:cy + s]
+
 
 
 def extract_oversampled(a, xf, yf, kernel_oversampling, kernelwidth):

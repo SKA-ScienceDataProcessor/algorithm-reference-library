@@ -41,9 +41,9 @@ def solve_gaintable(vis: BlockVisibility, modelvis: BlockVisibility=None, phase_
     :return: GainTable containing solution
 
     """
-    assert isinstance(vis, BlockVisibility), "vis is not a BlockVisibility: %r" % vis
-    assert isinstance(modelvis, BlockVisibility) or type(modelvis) is not None, "modelvis is not None or a " \
-        "BlockVisibility: %r" % vis
+    assert isinstance(vis, BlockVisibility), vis
+    if modelvis is not None:
+        assert isinstance(modelvis, BlockVisibility), modelvis
     
     if phase_only:
         log.info('solve_gaintable: Solving for phase only')
@@ -57,12 +57,18 @@ def solve_gaintable(vis: BlockVisibility, modelvis: BlockVisibility=None, phase_
         if modelvis is not None:
             model_subvis = create_visibility_from_rows(modelvis, rows)
             pointvis = divide_visibility(subvis, model_subvis)
-            x = numpy.average(pointvis.vis, axis=0)
-            xwt = numpy.average(pointvis.weight, axis=0)
+            x = numpy.sum(pointvis.vis * pointvis.weight, axis=0)
+            xwt = numpy.sum(pointvis.weight, axis=0)
         else:
-            x = numpy.average(subvis.vis, axis=0)
-            xwt = numpy.average(subvis.weight, axis=0)
+            x = numpy.sum(subvis.vis * subvis.weight, axis=0)
+            xwt = numpy.sum(subvis.weight, axis=0)
             
+        mask = numpy.abs(xwt) > 0.0
+        x_shape = x.shape
+        x[mask] = x[mask] / xwt[mask]
+        x[~mask] = 0.0
+        x = x.reshape(x_shape)
+        
         gt = solve_from_X(gt, x, xwt, chunk, crosspol, niter, phase_only,
                           tol, npol=vis.polarisation_frame.npol)
 
@@ -110,7 +116,8 @@ def solve_antenna_gains_itsubs_scalar(gainshape, x, xwt, niter=30, tol=1e-8, pha
 
     x(antenna2, antenna1) = gain(antenna1) conj(gain(antenna2))
 
-    This uses an iterative substitution algorithm due to Larry D'Addario c 1980'ish. Used
+    This uses an iterative substitution algorithm due to Larry
+    D'Addario c 1980'ish (see ThompsonDaddario1982 Appendix 1). Used
     in the original VLA Dec-10 Antsol.
 
     :param gainshape: Shape of output gains
@@ -121,6 +128,7 @@ def solve_antenna_gains_itsubs_scalar(gainshape, x, xwt, niter=30, tol=1e-8, pha
     :param phase_only: Do solution for only the phase? (default True)
     :param refant: Reference antenna for phase (default=0.0)
     :return: gain [nants, ...], weight [nants, ...]
+
     """
     
     nants = x.shape[0]

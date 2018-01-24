@@ -15,7 +15,7 @@ from arl.data.polarisation import PolarisationFrame
 from arl.graphs.generic_graphs import create_generic_blockvisibility_graph, create_generic_image_graph, \
     create_generic_image_iterator_graph
 from arl.image.iterators import   image_raster_iter
-from arl.imaging import predict_skycomponent_blockvisibility
+from arl.imaging import predict_skycomponent_visibility
 from arl.skycomponent.operations import create_skycomponent
 from arl.util.testing_support import create_named_configuration, create_test_image
 from arl.visibility.base import create_blockvisibility
@@ -58,7 +58,7 @@ class TestPipelinesGenericDask(unittest.TestCase):
                                                 weight=1.0,
                                                 polarisation_frame=PolarisationFrame('stokesI'))]
         self.blockvis = \
-            create_generic_blockvisibility_graph(predict_skycomponent_blockvisibility,
+            create_generic_blockvisibility_graph(predict_skycomponent_visibility,
                                                  vis_graph_list=self.blockvis,
                                                  sc=self.comp)[0].compute()
         

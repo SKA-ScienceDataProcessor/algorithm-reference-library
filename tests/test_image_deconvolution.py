@@ -48,7 +48,8 @@ class TestImageDeconvolution(unittest.TestCase):
         self.psf, sumwt = invert_2d(self.vis, self.model, dopsf=True)
         window = numpy.zeros(shape=self.model.shape, dtype=numpy.bool)
         window[..., 129:384, 129:384] = True
-        self.innerquarter = create_image_from_array(window, self.model.wcs)
+        self.innerquarter = create_image_from_array(window, self.model.wcs, polarisation_frame=PolarisationFrame(
+            'stokesI'))
     
     def overlaptest(self, a1, a2, s1, s2):
         #
@@ -121,7 +122,7 @@ class TestImageDeconvolution(unittest.TestCase):
         export_image_to_fits(self.residual, "%s/test_deconvolve_msclean_innerquarter-residual.fits" % (self.dir))
         self.cmodel = restore_cube(self.comp, self.psf, self.residual)
         export_image_to_fits(self.cmodel, "%s/test_deconvolve_msclean_innerquarter-clean.fits" % (self.dir))
-        assert numpy.max(self.residual.data) < 0.7
+        assert numpy.max(self.residual.data) < 1.2
     
     def test_deconvolve_hogbom_subpsf(self):
         

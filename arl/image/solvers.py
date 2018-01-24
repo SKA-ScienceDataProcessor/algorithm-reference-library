@@ -10,14 +10,15 @@ from arl.data.data_models import Visibility, Image
 from arl.data.parameters import get_parameter
 from arl.image.deconvolution import deconvolve_cube
 from arl.visibility.base import copy_visibility
-from arl.imaging.base import invert_2d, predict_2d, predict_skycomponent_visibility
+from arl.imaging.base import predict_skycomponent_visibility
+from arl.imaging.imaging_context import predict_function, invert_function
 
 import logging
 
 log = logging.getLogger(__name__)
 
 
-def solve_image(vis: Visibility, model: Image, components=None, predict=predict_2d, invert=invert_2d,
+def solve_image(vis: Visibility, model: Image, components=None, context='2d',
                 **kwargs) -> (Visibility, Image, Image):
     """Solve for image using deconvolve_cube and specified predict, invert
 
@@ -39,14 +40,14 @@ def solve_image(vis: Visibility, model: Image, components=None, predict=predict_
     vispred = copy_visibility(vis)
     visres = copy_visibility(vis)
 
-    vispred = predict(vispred, model, **kwargs)
+    vispred = predict_function(vispred, model, context=context, **kwargs)
     
     if components is not None:
         vispred = predict_skycomponent_visibility(vispred, components)
     
     visres.data['vis'] = vis.data['vis'] - vispred.data['vis']
-    dirty, sumwt = invert(visres, model, **kwargs)
-    psf, sumwt = invert(visres, model, dopsf=True, **kwargs)
+    dirty, sumwt = invert_function(visres, model, context=context, dopsf=False, **kwargs)
+    psf, sumwt = invert_function(visres, model, context=context, dopsf=True, **kwargs)
     
     thresh = get_parameter(kwargs, "threshold", 0.0)
     
@@ -54,9 +55,9 @@ def solve_image(vis: Visibility, model: Image, components=None, predict=predict_
         log.info("solve_image: Start of major cycle %d" % i)
         cc, res = deconvolve_cube(dirty, psf, **kwargs)
         model.data += cc.data
-        vispred = predict(vispred, model, **kwargs)
+        vispred = predict_function(vispred, model, context=context, **kwargs)
         visres.data['vis'] = vis.data['vis'] - vispred.data['vis']
-        dirty, sumwt = invert(visres, model, **kwargs)
+        dirty, sumwt = invert_function(visres, model, context=context, dopsf=False, **kwargs)
         if numpy.abs(dirty.data).max() < 1.1 * thresh:
             log.info("Reached stopping threshold %.6f Jy" % thresh)
             break

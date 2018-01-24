@@ -52,8 +52,8 @@ class TestVisibilityGatherScatter(unittest.TestCase):
 
     def test_vis_scatter_gather_slice(self):
         self.actualSetUp()
-        vis_list = visibility_scatter_index(self.vis, step=1000)
-        newvis = visibility_gather_index(vis_list, self.vis, step=1000)
+        vis_list = visibility_scatter_index(self.vis, step=10000)
+        newvis = visibility_gather_index(vis_list, self.vis, step=10000)
         assert self.vis.nvis == newvis.nvis
         assert numpy.max(numpy.abs(newvis.vis)) > 0.0
 

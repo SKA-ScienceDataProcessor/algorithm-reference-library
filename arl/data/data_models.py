@@ -41,12 +41,12 @@ class Configuration:
     """ Describe a Configuration as locations in x,y,z, mount type, diameter, names, and
         overall location
     """
-
+    
     def __init__(self, name='', data=None, location=None,
                  names="%s", xyz=None, mount="alt-az", frame=None,
                  receptor_frame=ReceptorFrame("linear"),
                  diameter=None):
-
+        
         """Configuration object describing data for processing
 
         :param name:
@@ -74,37 +74,37 @@ class Configuration:
             data['xyz'] = xyz
             data['mount'] = mount
             data['diameter'] = diameter
-
+        
         self.name = name
         self.data = data
         self.location = location
         self.frame = frame
         self.receptor_frame = receptor_frame
-
+    
     def size(self):
         """ Return size in GB
         """
         size = 0
         size += self.data.size * sys.getsizeof(self.data)
         return size / 1024.0 / 1024.0 / 1024.0
-
+    
     @property
     def names(self):
         """ Names of the antennas/stations"""
         return self.data['names']
-
+    
     @property
     def diameter(self):
         """ diameter of antennas/stations
         """
         return self.data['diameter']
-
+    
     @property
     def xyz(self):
         """ XYZ locations of antennas/stations
         """
         return self.data['xyz']
-
+    
     @property
     def mount(self):
         """ Mount type
@@ -117,7 +117,7 @@ class GainTable:
 
     The weight is usually that output from gain solvers.
     """
-
+    
     def __init__(self, data=None, gain: numpy.array = None, time: numpy.array = None,
                  weight: numpy.array = None, residual: numpy.array = None,
                  frequency: numpy.array = None,
@@ -154,38 +154,38 @@ class GainTable:
             self.data['residual'] = residual
         self.frequency = frequency
         self.receptor_frame = receptor_frame
-
+    
     def size(self):
         """ Return size in GB
         """
         size = 0
         size += self.data.size * sys.getsizeof(self.data)
         return size / 1024.0 / 1024.0 / 1024.0
-
+    
     @property
     def time(self):
         return self.data['time']
-
+    
     @property
     def gain(self):
         return self.data['gain']
-
+    
     @property
     def weight(self):
         return self.data['weight']
-
+    
     @property
     def residual(self):
         return self.data['residual']
-
+    
     @property
     def nants(self):
         return self.data['gain'].shape[1]
-
+    
     @property
     def nchan(self):
         return self.data['gain'].shape[2]
-
+    
     @property
     def nrec(self):
         return self.receptor_frame.nrec
@@ -209,46 +209,46 @@ class Image:
         variable. The latter should be considered definitive.
 
     """
-
+    
     def __init__(self):
         """ Empty image
         """
         self.data = None
         self.wcs = None
         self.polarisation_frame = None
-
+    
     def size(self):
         """ Return size in GB
         """
         size = 0
         size += self.data.nbytes
         return size / 1024.0 / 1024.0 / 1024.0
-
+    
     @property
     def nchan(self):
         return self.data.shape[0]
-
+    
     @property
     def npol(self):
         return self.data.shape[1]
-
+    
     @property
     def nheight(self):
         return self.data.shape[2]
-
+    
     @property
     def nwidth(self):
         return self.data.shape[3]
-
+    
     @property
     def frequency(self):
         w = self.wcs.sub(['spectral'])
-        return w.wcs_pix2world(range(self.nchan), 1)[0]
-
+        return w.wcs_pix2world(range(self.nchan), 0)[0]
+    
     @property
     def shape(self):
         return self.data.shape
-
+    
     @property
     def phasecentre(self):
         return SkyCoord(self.wcs.wcs.crval[0] * u.deg, self.wcs.wcs.crval[1] * u.deg)
@@ -271,9 +271,9 @@ class Skycomponent:
 
         bm = create_low_test_beam(model=model)
         sc = apply_beam_to_skycomponent(sc, bm)
-        vis = predict_skycomponent_blockvisibility(vis, sc)
+        vis = predict_skycomponent_visibility(vis, sc)
     """
-
+    
     def __init__(self,
                  direction=None, frequency=None, name=None, flux=None, shape='Point',
                  polarisation_frame=PolarisationFrame('stokesIQUV'), **kwargs):
@@ -287,7 +287,7 @@ class Skycomponent:
         :param params: numpy.array shape dependent parameters
         :param polarisation_frame: Polarisation_frame
         """
-
+        
         self.direction = direction
         self.frequency = numpy.array(frequency)
         self.name = name
@@ -295,32 +295,33 @@ class Skycomponent:
         self.shape = shape
         self.params = kwargs
         self.polarisation_frame = polarisation_frame
-
-        assert len(self.frequency.shape) == 1
-        assert len(self.flux.shape) == 2
+        
+        assert len(self.frequency.shape) == 1, frequency
+        assert len(self.flux.shape) == 2, flux
         assert self.frequency.shape[0] == self.flux.shape[0], \
             "Frequency shape %s, flux shape %s" % (self.frequency.shape, self.flux.shape)
         assert polarisation_frame.npol == self.flux.shape[1], \
             "Polarisation is %s, flux shape %s" % (polarisation_frame.type, self.flux.shape)
-
+    
     @property
     def nchan(self):
         return self.flux.shape[0]
-
+    
     @property
     def npol(self):
         return self.flux.shape[1]
-
+    
     def __str__(self):
         """Default printer for Skycomponent
 
         """
         s = "Skycomponent:\n"
         s += "\tFlux: %s\n" % self.flux
+        s += "\tFrequency: %s\n" % self.frequency
         s += "\tDirection: %s\n" % self.direction
         s += "\tShape: %s\n" % self.shape
         s += "\tParams: %s\n" % self.params
-        s += "\tPolarisation frame %s\n" % self.polarisation_frame
+        s += "\tPolarisation frame: %s\n" % str(self.polarisation_frame.type)
         return s
 
 
@@ -343,7 +344,7 @@ class Visibility:
     is also preserves as n attribute so that decoalescence is expedited. If you don't need that then
     the storage can be released by setting self.blockvis to None
     """
-
+    
     def __init__(self,
                  data=None, frequency=None, channel_bandwidth=None,
                  phasecentre=None, configuration=None, uvw=None,
@@ -379,9 +380,10 @@ class Visibility:
             assert len(channel_bandwidth) == nvis
             assert len(antenna1) == nvis
             assert len(antenna2) == nvis
-
+            
             npol = polarisation_frame.npol
-            desc = [('uvw', '>f8', (3,)),
+            desc = [('index', '>i8'),
+                    ('uvw', '>f8', (3,)),
                     ('time', '>f8'),
                     ('frequency', '>f8'),
                     ('channel_bandwidth', '>f8'),
@@ -392,6 +394,7 @@ class Visibility:
                     ('weight', '>f8', (npol,)),
                     ('imaging_weight', '>f8', (npol,))]
             data = numpy.zeros(shape=[nvis], dtype=desc)
+            data['index'] = list(range(nvis))
             data['uvw'] = uvw
             data['time'] = time
             data['frequency'] = frequency
@@ -402,14 +405,14 @@ class Visibility:
             data['vis'] = vis
             data['weight'] = weight
             data['imaging_weight'] = imaging_weight
-
+        
         self.data = data  # numpy structured array
         self.cindex = cindex
         self.blockvis = blockvis
         self.phasecentre = phasecentre  # Phase centre of observation
         self.configuration = configuration  # Antenna/station configuration
         self.polarisation_frame = polarisation_frame
-
+    
     def size(self):
         """ Return size in GB
         """
@@ -417,59 +420,67 @@ class Visibility:
         for col in self.data.dtype.fields.keys():
             size += self.data[col].nbytes
         return size / 1024.0 / 1024.0 / 1024.0
-
+    
+    @property
+    def index(self):
+        return self.data['index']
+    
+    @property
+    def npol(self):
+        return self.polarisation_frame.npol
+    
     @property
     def nvis(self):
         return self.data['vis'].shape[0]
-
+    
     @property
     def uvw(self):  # In wavelengths in Visibility
         return self.data['uvw']
-
+    
     @property
     def u(self):
         return self.data['uvw'][:, 0]
-
+    
     @property
     def v(self):
         return self.data['uvw'][:, 1]
-
+    
     @property
     def w(self):
         return self.data['uvw'][:, 2]
-
+    
     @property
     def time(self):
         return self.data['time']
-
+    
     @property
     def integration_time(self):
         return self.data['integration_time']
-
+    
     @property
     def frequency(self):
         return self.data['frequency']
-
+    
     @property
     def channel_bandwidth(self):
         return self.data['channel_bandwidth']
-
+    
     @property
     def antenna1(self):
         return self.data['antenna1']
-
+    
     @property
     def antenna2(self):
         return self.data['antenna2']
-
+    
     @property
     def vis(self):
         return self.data['vis']
-
+    
     @property
     def weight(self):
         return self.data['weight']
-
+    
     @property
     def imaging_weight(self):
         return self.data['imaging_weight']
@@ -489,7 +500,7 @@ class BlockVisibility:
     Polarisation frame is the same for the entire data set and can be stokes, circular, linear
     The configuration is also an attribute
     """
-
+    
     def __init__(self,
                  data=None, frequency=None, channel_bandwidth=None,
                  phasecentre=None, configuration=None, uvw=None,
@@ -514,25 +525,27 @@ class BlockVisibility:
             assert vis.shape == weight.shape
             assert len(frequency) == nchan
             assert len(channel_bandwidth) == nchan
-            desc = [('uvw', '>f8', (nants, nants, 3)),
+            desc = [('index', '>i8'),
+                    ('uvw', '>f8', (nants, nants, 3)),
                     ('time', '>f8'),
                     ('integration_time', '>f8'),
                     ('vis', '>c16', (nants, nants, nchan, npol)),
                     ('weight', '>f8', (nants, nants, nchan, npol))]
             data = numpy.zeros(shape=[ntimes], dtype=desc)
+            data['index'] = list(range(ntimes))
             data['uvw'] = uvw
             data['time'] = time
             data['integration_time'] = integration_time
             data['vis'] = vis
             data['weight'] = weight
-
+        
         self.data = data  # numpy structured array
         self.frequency = frequency
         self.channel_bandwidth = channel_bandwidth
         self.phasecentre = phasecentre  # Phase centre of observation
         self.configuration = configuration  # Antenna/station configuration
         self.polarisation_frame = polarisation_frame
-
+    
     def size(self):
         """ Return size in GB
         """
@@ -540,51 +553,51 @@ class BlockVisibility:
         for col in self.data.dtype.fields.keys():
             size += self.data[col].nbytes
         return size / 1024.0 / 1024.0 / 1024.0
-
+    
     @property
     def nchan(self):
         return self.data['vis'].shape[3]
-
+    
     @property
     def npol(self):
         return self.data['vis'].shape[4]
-
+    
     @property
     def nants(self):
         return self.data['vis'].shape[1]
-
+    
     @property
     def uvw(self):  # In wavelengths meters
         return self.data['uvw']
-
+    
     @property
     def u(self):
         return self.data['uvw'][:, 0]
-
+    
     @property
     def v(self):
         return self.data['uvw'][:, 1]
-
+    
     @property
     def w(self):
         return self.data['uvw'][:, 2]
-
+    
     @property
     def vis(self):
         return self.data['vis']
-
+    
     @property
     def weight(self):
         return self.data['weight']
-
+    
     @property
     def time(self):
         return self.data['time']
-
+    
     @property
     def integration_time(self):
         return self.data['integration_time']
-
+    
     @property
     def nvis(self):
         return self.data.size
@@ -594,7 +607,7 @@ class QA:
     """ Quality assessment
 
     """
-
+    
     def __init__(self, origin=None, data=None, context=None):
         """QA
 
@@ -605,7 +618,7 @@ class QA:
         self.origin = origin  # Name of function originating QA assessment
         self.data = data  # Dictionary containing standard fields
         self.context = context  # Context string (TBD)
-
+    
     def __str__(self):
         """Default printer for QA
 
@@ -627,9 +640,10 @@ def assert_same_chan_pol(o1, o2):
     assert o1.npol == o2.npol, \
         "%s and %s have different number of polarisations: %d != %d" % \
         (type(o1).__name__, type(o2).__name__, o1.npol, o2.npol)
-    assert o1.nchan == o2.nchan, \
-        "%s and %s have different number of channels: %d != %d" % \
-        (type(o1).__name__, type(o2).__name__, o1.nchan, o2.nchan)
+    if isinstance(o1, BlockVisibility) and isinstance(o2, BlockVisibility):
+        assert o1.nchan == o2.nchan, \
+            "%s and %s have different number of channels: %d != %d" % \
+            (type(o1).__name__, type(o2).__name__, o1.nchan, o2.nchan)
 
 
 def assert_vis_gt_compatible(vis: Union[Visibility, BlockVisibility], gt: GainTable):

@@ -62,8 +62,7 @@ def shift_vis_to_image(vis: Visibility, im: Image, tangent: bool = True, inverse
     # This is the only place in ARL where the relationship between the image and visibility
     # frames is defined.
     
-    image_phasecentre = pixel_to_skycoord(nx // 2, ny // 2, im.wcs, origin=1)
-    
+    image_phasecentre = pixel_to_skycoord(nx // 2 + 1, ny // 2 + 1, im.wcs, origin=1)
     if vis.phasecentre.separation(image_phasecentre).rad > 1e-15:
         if inverse:
             log.debug("shift_vis_from_image: shifting phasecentre from image phase centre %s to visibility phasecentre "
@@ -86,6 +85,8 @@ def normalize_sumwt(im: Image, sumwt) -> Image:
     :param sumwt: Sum of weights [nchan, npol]
     """
     nchan, npol, _, _ = im.data.shape
+    assert isinstance(im, Image), im
+    assert sumwt is not None
     assert nchan == sumwt.shape[0]
     assert npol == sumwt.shape[1]
     for chan in range(nchan):
@@ -97,7 +98,8 @@ def normalize_sumwt(im: Image, sumwt) -> Image:
     return im
 
 
-def predict_2d_base(vis: Visibility, model: Image, **kwargs) -> Visibility:
+def predict_2d_base(vis: Union[BlockVisibility, Visibility], model: Image,
+                    **kwargs) -> Union[BlockVisibility, Visibility]:
     """ Predict using convolutional degridding.
 
     This is at the bottom of the layering i.e. all transforms are eventually expressed in terms of
@@ -107,10 +109,13 @@ def predict_2d_base(vis: Visibility, model: Image, **kwargs) -> Visibility:
     :param model: model image
     :return: resulting visibility (in place works)
     """
-    if not isinstance(vis, Visibility):
+    if isinstance(vis, BlockVisibility):
+        log.debug("imaging.predict: coalescing prior to prediction")
         avis = coalesce_visibility(vis, **kwargs)
     else:
         avis = vis
+    
+    assert isinstance(avis, Visibility), avis
     
     _, _, ny, nx = model.data.shape
     
@@ -129,8 +134,9 @@ def predict_2d_base(vis: Visibility, model: Image, **kwargs) -> Visibility:
     
     # Now we can shift the visibility from the image frame to the original visibility frame
     svis = shift_vis_to_image(avis, model, tangent=True, inverse=True)
-
-    if not isinstance(vis, Visibility):
+    
+    if isinstance(vis, BlockVisibility) and isinstance(svis, Visibility):
+        log.debug("imaging.predict decoalescing post prediction")
         return decoalesce_visibility(svis)
     else:
         return svis
@@ -167,10 +173,10 @@ def invert_2d_base(vis: Visibility, im: Image, dopsf: bool = False, normalize: b
         svis = coalesce_visibility(vis, **kwargs)
     else:
         svis = copy_visibility(vis)
-
+    
     if dopsf:
         svis.data['vis'] = numpy.ones_like(svis.data['vis'])
-
+    
     svis = shift_vis_to_image(svis, im, tangent=True, inverse=False)
     
     nchan, npol, ny, nx = im.data.shape
@@ -200,15 +206,15 @@ def invert_2d_base(vis: Visibility, im: Image, dopsf: bool = False, normalize: b
     if imaginary:
         log.debug("invert_2d_base: retaining imaginary part of dirty image")
         result = extract_mid(ifft(imgridpad) * gcf, npixel=nx)
-        resultreal = create_image_from_array(result.real, im.wcs)
-        resultimag = create_image_from_array(result.imag, im.wcs)
+        resultreal = create_image_from_array(result.real, im.wcs, im.polarisation_frame)
+        resultimag = create_image_from_array(result.imag, im.wcs, im.polarisation_frame)
         if normalize:
             resultreal = normalize_sumwt(resultreal, sumwt)
             resultimag = normalize_sumwt(resultimag, sumwt)
         return resultreal, sumwt, resultimag
     else:
         result = extract_mid(numpy.real(ifft(imgridpad)) * gcf, npixel=nx)
-        resultimage = create_image_from_array(result, im.wcs)
+        resultimage = create_image_from_array(result, im.wcs, im.polarisation_frame)
         if normalize:
             resultimage = normalize_sumwt(resultimage, sumwt)
         return resultimage, sumwt
@@ -233,6 +239,55 @@ def invert_2d(vis: Visibility, im: Image, dopsf=False, normalize=True, **kwargs)
     return invert_2d_base(vis, im, dopsf, normalize=normalize, **kwargs)
 
 
+def predict_skycomponent_visibility(vis: Union[Visibility, BlockVisibility],
+                                    sc: Union[Skycomponent, List[Skycomponent]]) -> Visibility:
+    """Predict the visibility from a Skycomponent, add to existing visibility, for Visibility or BlockVisibility
+
+    :param vis: Visibility or BlockVisibility
+    :param sc: Skycomponent or list of SkyComponents
+    :return: Visibility or BlockVisibility
+    """
+    if not isinstance(sc, collections.Iterable):
+        sc = [sc]
+
+    if isinstance(vis, Visibility):
+    
+        _, im_nchan = list(get_frequency_map(vis, None))
+        npol = vis.polarisation_frame.npol
+        
+        for comp in sc:
+            
+            assert_same_chan_pol(vis, comp)
+            
+            l, m, n = skycoord_to_lmn(comp.direction, vis.phasecentre)
+            phasor = simulate_point(vis.uvw, l, m)
+            for ivis in range(vis.nvis):
+                for pol in range(npol):
+                    vis.data['vis'][ivis, pol] += comp.flux[im_nchan[ivis], pol] * phasor[ivis]
+                
+    elif isinstance(vis, BlockVisibility):
+        
+        nchan = vis.nchan
+        npol = vis.npol
+    
+        k = numpy.array(vis.frequency) / constants.c.to('m/s').value
+    
+        for comp in sc:
+            assert_same_chan_pol(vis, comp)
+    
+            flux = comp.flux
+            if comp.polarisation_frame != vis.polarisation_frame:
+                flux = convert_pol_frame(flux, comp.polarisation_frame, vis.polarisation_frame)
+        
+            l, m, n = skycoord_to_lmn(comp.direction, vis.phasecentre)
+            for chan in range(nchan):
+                phasor = simulate_point(vis.uvw * k[chan], l, m)
+                for pol in range(npol):
+                    vis.data['vis'][..., chan, pol] += flux[chan, pol] * phasor[...]
+
+    return vis
+
+
 def predict_skycomponent_blockvisibility(vis: BlockVisibility,
                                          sc: Union[Skycomponent, List[Skycomponent]]) -> BlockVisibility:
     """Predict the visibility from a Skycomponent, add to existing visibility, for BlockVisibility
@@ -242,59 +297,34 @@ def predict_skycomponent_blockvisibility(vis: BlockVisibility,
     :param spectral_mode: {mfs|channel} (channel)
     :return: BlockVisibility
     """
-    assert isinstance(vis, BlockVisibility), "vis is not a BlockVisibility: %r" % vis
-    
-    if not isinstance(sc, collections.Iterable):
-        sc = [sc]
-    
-    nchan = vis.nchan
-    npol = vis.npol
-    
-    if not isinstance(sc, collections.Iterable):
-        sc = [sc]
-    
-    k = vis.frequency / constants.c.to('m/s').value
-    
-    for comp in sc:
-        
-        assert_same_chan_pol(vis, comp)
-        
-        flux = comp.flux
-        if comp.polarisation_frame != vis.polarisation_frame:
-            flux = convert_pol_frame(flux, comp.polarisation_frame, vis.polarisation_frame)
-        
-        l, m, n = skycoord_to_lmn(comp.direction, vis.phasecentre)
-        for chan in range(nchan):
-            phasor = simulate_point(vis.uvw * k[chan], l, m)
-            for pol in range(npol):
-                vis.data['vis'][..., chan, pol] += flux[chan, pol] * phasor[...]
-    
-    return vis
+    log.warning("predict_skycomponent_blockvisibility: now deprecated, use predict_skycomponent_visibility")
+    return predict_skycomponent_visibility()
 
 
-def predict_skycomponent_visibility(vis: Visibility, sc: Union[Skycomponent, List[Skycomponent]]) -> Visibility:
+def predict_skycomponent_visibility_old(vis: Visibility, sc: Union[Skycomponent, List[Skycomponent]]) -> Visibility:
     """Predict the visibility from a Skycomponent, add to existing visibility, for Visibility
 
     :param vis: Visibility
     :param sc: Skycomponent or list of SkyComponents
     :return: Visibility
     """
-    assert type(vis) is Visibility, "vis is not a Visibility: %r" % vis
+    assert isinstance(vis, Visibility), "vis is not a Visibility: %r" % vis
     
     if not isinstance(sc, collections.Iterable):
         sc = [sc]
     
-    _, ichan = list(get_frequency_map(vis, None))
-    
+    _, im_nchan = list(get_frequency_map(vis, None))
     npol = vis.polarisation_frame.npol
     
     for comp in sc:
+        
+        assert_same_chan_pol(vis, comp)
         
         l, m, n = skycoord_to_lmn(comp.direction, vis.phasecentre)
         phasor = simulate_point(vis.uvw, l, m)
         for ivis in range(vis.nvis):
             for pol in range(npol):
-                vis.data['vis'][ivis, pol] += comp.flux[ichan[ivis], pol] * phasor[ivis]
+                vis.data['vis'][ivis, pol] += comp.flux[im_nchan[ivis], pol] * phasor[ivis]
             
             # coords = phasor, ichan
             # for pol in range(npol):
@@ -331,7 +361,7 @@ def create_image_from_visibility(vis, **kwargs) -> Image:
     frequency = get_parameter(kwargs, "frequency", vis.frequency)
     inchan = get_parameter(kwargs, "nchan", vnchan)
     reffrequency = frequency[0] * units.Hz
-    channel_bandwidth = get_parameter(kwargs, "channel_bandwidth", vis.channel_bandwidth[0]) * units.Hz
+    channel_bandwidth = get_parameter(kwargs, "channel_bandwidth", 0.99999999999 * vis.channel_bandwidth[0]) * units.Hz
     
     if (inchan == vnchan) and vnchan > 1:
         log.info(
@@ -383,10 +413,15 @@ def create_image_from_visibility(vis, **kwargs) -> Image:
     w.wcs.cdelt = [-cellsize * 180.0 / numpy.pi, cellsize * 180.0 / numpy.pi, 1.0, channel_bandwidth.to(units.Hz).value]
     # The numpy definition of the phase centre of an FFT is n // 2 (0 - rel) so that's what we use for
     # the reference pixel. We have to use 0 rel everywhere.
-    w.wcs.crpix = [npixel // 2, npixel // 2, 1.0, 1.0]
+    w.wcs.crpix = [npixel // 2 + 1, npixel // 2 + 1, 1.0, 1.0]
     w.wcs.ctype = ["RA---SIN", "DEC--SIN", 'STOKES', 'FREQ']
     w.wcs.crval = [phasecentre.ra.deg, phasecentre.dec.deg, 1.0, reffrequency.to(units.Hz).value]
     w.naxis = 4
+    
+    direction_centre = pixel_to_skycoord(npixel // 2 + 1, npixel // 2 + 1, wcs=w, origin=1)
+    assert direction_centre.separation(imagecentre).value < 1e-15, \
+        "Image phase centre [npixel//2, npixel//2] should be %s, actually is %s" % \
+        (str(imagecentre), str(direction_centre))
     
     w.wcs.radesys = get_parameter(kwargs, 'frame', 'ICRS')
     w.wcs.equinox = get_parameter(kwargs, 'equinox', 2000.0)

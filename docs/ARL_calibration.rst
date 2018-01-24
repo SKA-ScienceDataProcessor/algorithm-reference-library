@@ -103,5 +103,3 @@ couple more cases:
 The conclusion is that the global solution for the Jones matrices need
 not require a lot of data transfer throughout the solution process.
 There remains a global barrier point in the solver.
-
-:download:`Global Calibration <theory/ARL_global_calibration.pdf>`.

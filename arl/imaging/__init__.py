@@ -14,17 +14,16 @@ The principal transitions between the data models are:
    :scale: 75 %
 
 """
-from arl.imaging.base import predict_2d, predict_2d_base, predict_skycomponent_visibility, \
-    predict_skycomponent_blockvisibility, invert_2d, invert_2d_base, normalize_sumwt, shift_vis_to_image, \
-    create_image_from_visibility, residual_image
-from arl.imaging.facets import invert_facets, predict_facets
-from arl.imaging.facets_wprojection import invert_facets_wprojection, predict_facets_wprojection
-from arl.imaging.facets_wstack import invert_facets_wstack, predict_facets_wstack
-from arl.imaging.iterated import invert_with_raster_iterator, predict_with_raster_iterator, invert_with_vis_iterator, \
-    predict_with_vis_iterator
 from arl.imaging.params import get_polarisation_map, get_rowmap, get_uvw_map, standard_kernel_list, \
     w_kernel_list, get_kernel_list, advise_wide_field
-from arl.imaging.timeslice import invert_timeslice, invert_timeslice_single, predict_timeslice, predict_timeslice_single
-from arl.imaging.wprojection import invert_wprojection, predict_wprojection
-from arl.imaging.wprojection_wstack import invert_wprojection_wstack, predict_wprojection_wstack
-from arl.imaging.wstack import invert_wstack, invert_wstack_single, predict_wstack, predict_wstack_single
+from arl.imaging.base import predict_2d_base, predict_skycomponent_visibility, \
+    predict_skycomponent_visibility, invert_2d_base, normalize_sumwt, shift_vis_to_image, \
+    create_image_from_visibility, residual_image
+from arl.imaging.imaging_context import imaging_context, invert_function, predict_function
+from arl.imaging.legacy import invert_2d, predict_2d, invert_facets, predict_facets, \
+    invert_facets_wprojection, predict_facets_wprojection, \
+    invert_facets_wstack, predict_facets_wstack, \
+    invert_timeslice, predict_timeslice, \
+    invert_wprojection, predict_wprojection, \
+    invert_wprojection_wstack, predict_wprojection_wstack, \
+    invert_wstack, predict_wstack

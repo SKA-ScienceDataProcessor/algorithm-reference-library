@@ -9,12 +9,23 @@ import numpy
 import logging
 from arl.data.data_models import Image
 from arl.image.operations import create_image_from_array
+from arl.data.parameters import get_parameter
 
 log = logging.getLogger(__name__)
 
 
-def   image_raster_iter(im: Image, facets=2) -> Image:
-    """Create a   image_raster_iter generator, returning images
+def image_null_iter(im: Image, **kwargs) -> numpy.ndarray:
+    """One time iterator
+
+    :param im:
+    :param kwargs:
+    :return:
+    """
+    yield im
+
+
+def image_raster_iter(im: Image, **kwargs) -> Image:
+    """Create an image_raster_iter generator, returning images
 
     The WCS is adjusted appropriately for each raster element. Hence this is a coordinate-aware
     way to iterate through an image.
@@ -30,11 +41,12 @@ def   image_raster_iter(im: Image, facets=2) -> Image:
     :param kwargs: throw away unwanted parameters
     """
 
+    facets = get_parameter(kwargs, "facets", 1)
     log.debug("raster: predicting using %d x %d image partitions" % (facets, facets))
     assert facets <= im.nheight, "Cannot have more raster elements than pixels"
     assert facets <= im.nwidth, "Cannot have more raster elements than pixels"
-    assert im.nheight % facets == 0, "The partitions must exactly fill the image"
-    assert im.nwidth % facets == 0, "The partitions must exactly fill the image"
+    assert im.nheight % facets == 0, "The %d partitions must exactly fill the image %d" % (facets, im.nheight)
+    assert im.nwidth % facets == 0, "The %d partitions must exactly fill the image %d" % (facets, im.width)
 
     dx = int(im.nwidth // facets)
     dy = int(im.nheight // facets)
@@ -51,7 +63,7 @@ def   image_raster_iter(im: Image, facets=2) -> Image:
             wcs.wcs.crpix[1] -= y
 
             # Yield image from slice (reference!)
-            yield create_image_from_array(im.data[..., y:y + dy, x:x + dx], wcs)
+            yield create_image_from_array(im.data[..., y:y + dy, x:x + dx], wcs, im.polarisation_frame)
 
 
 def image_channel_iter(im: Image, subimages=1) -> Image:
@@ -88,4 +100,4 @@ def image_channel_iter(im: Image, subimages=1) -> Image:
         wcs.wcs.crpix[3] -= channel
 
         # Yield image from slice (reference!)
-        yield create_image_from_array(im.data[channel:channel_max, ...], wcs)
+        yield create_image_from_array(im.data[channel:channel_max, ...], wcs, im.polarisation_frame)
