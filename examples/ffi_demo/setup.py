@@ -9,6 +9,10 @@ import sys
 assert sys.version_info[0] >= 3
 
 
+# NB. These are not really Python extensions (i.e., they do not
+# Py_Initialize() and they do define main() ), we are just cheating to
+# re-use the setuptools build support.
+
 ffi_demo = Extension('ffi_demo', sources = ['src/ffi_demo.c', 'src/arlwrap.c', 'src/wrap_support.c'],
         undef_macros = ['NDEBUG'], extra_compile_args = ['-Wno-strict-prototypes'])
 
