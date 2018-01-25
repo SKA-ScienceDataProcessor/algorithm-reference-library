@@ -100,6 +100,9 @@ in pkgs.python3Packages.buildPythonPackage rec {
    reproject astropy photutils
    pkgs.git-lfs
    cfitsio pkgs.gcc
-   starPU ];
+   starPU
+   pkgs.openjdk
+   pkgs.swig
+    ];
 
 }
