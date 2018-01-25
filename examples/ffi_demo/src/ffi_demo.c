@@ -1,4 +1,3 @@
-#include <Python.h>
 #include <stdio.h>
 #include <assert.h>
 #include <sys/types.h>
@@ -59,7 +58,7 @@ int main(int argc, char **argv)
 
 	ARLConf *lowconfig;
 
-	Py_Initialize();
+	arl_initialize();
 
 	lowconfig = allocate_arlconf_default(config_name);
 

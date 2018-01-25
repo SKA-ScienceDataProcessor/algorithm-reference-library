@@ -84,6 +84,9 @@ void arl_deconvolve_cube(Image *dirty, Image *psf, Image *restored,
 void arl_restore_cube(Image *model, Image *psf, Image *residual,
 		Image *restored);
 
+/** Initialise the ARL library
+ */
+void arl_initialize(void);
 
 #ifdef __cplusplus
 }
