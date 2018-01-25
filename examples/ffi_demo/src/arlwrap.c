@@ -44,6 +44,11 @@ size_t bk_getfn(const char* fname)
   // never get garbage collected. 
 }
 
+void arl_initialize(void)
+{
+  Py_Initialize();
+}
+
 
 // Not a prototype, so warning will be generated. TODO: switch off
 // warning for this instance only?
