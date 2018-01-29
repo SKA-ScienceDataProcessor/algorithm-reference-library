@@ -23,14 +23,14 @@ def gaintable_summary(gt: GainTable):
     return "%s rows, %.3f GB" % (gt.data.shape, gt.size())
 
 
-def create_gaintable_from_blockvisibility(vis: BlockVisibility, time_width: float = None,
-                                          frequency_width: float = None, **kwargs) -> GainTable:
+def create_gaintable_from_blockvisibility(vis: BlockVisibility, timeslice: float = None,
+                                          frequencyslice: float = None, **kwargs) -> GainTable:
     """ Create gain table from visibility.
     
     This makes an empty gain table consistent with the BlockVisibility.
     
     :param vis: BlockVisibilty
-    :param time_width: Time interval between solutions (s)
+    :param timeslice: Time interval between solutions (s)
     :param frequency_width: Frequency solution width (Hz)
     :return: GainTable
     
@@ -38,7 +38,21 @@ def create_gaintable_from_blockvisibility(vis: BlockVisibility, time_width: floa
     assert isinstance(vis, BlockVisibility), "vis is not a BlockVisibility: %r" % vis
     
     nants = vis.nants
-    utimes = numpy.unique(vis.time)
+    
+    if timeslice is None or timeslice == 'auto':
+        utimes = numpy.unique(vis.time)
+        ntimes = len(utimes)
+        gain_interval = numpy.zeros([ntimes])
+        gain_interval[:-1] =utimes[1:]- utimes[0:-1]
+        gain_interval[-1] =utimes[-1]- utimes[-2]
+    else:
+        ntimes = numpy.ceil((numpy.max(vis.time) - numpy.min(vis.time))/timeslice).astype('int')
+        utimes = numpy.linspace(numpy.min(vis.time), numpy.max(vis.time), ntimes)
+        gain_interval = timeslice * numpy.ones([ntimes])
+    
+    log.debug('create_gaintable_from_blockvisibility: times are %s' % str(utimes))
+    log.debug('create_gaintable_from_blockvisibility: intervals are %s' % str(gain_interval))
+
     ntimes = len(utimes)
     ufrequency = numpy.unique(vis.frequency)
     nfrequency = len(ufrequency)
@@ -57,7 +71,8 @@ def create_gaintable_from_blockvisibility(vis: BlockVisibility, time_width: floa
     gain_frequency = ufrequency
     gain_residual = numpy.zeros([ntimes, nfrequency, nrec, nrec])
     
-    gt = GainTable(gain=gain, time=gain_time, weight=gain_weight, residual=gain_residual, frequency=gain_frequency,
+    gt = GainTable(gain=gain, time=gain_time, interval=gain_interval, weight=gain_weight, residual=gain_residual,
+                   frequency=gain_frequency,
                    receptor_frame=receptor_frame)
     
     assert isinstance(gt, GainTable), "gt is not a GainTable: %r" % gt
@@ -92,35 +107,47 @@ def apply_gaintable(vis: BlockVisibility, gt: GainTable, inverse=False, **kwargs
     else:
         log.debug('apply_gaintable: Apply gaintable')
     
+    is_scalar = gt.gain.shape[-2:] == (1, 1)
+    if is_scalar:
+        log.debug('apply_gaintable: scalar gains')
+        
     for chunk, rows in enumerate(vis_timeslice_iter(vis, **kwargs)):
-        vistime = numpy.average(vis.time[rows])
-        integration_time = numpy.average(vis.integration_time[rows])
-        gaintable_rows = abs(gt.time - vistime) < integration_time / 2.0
-        
-        # Lookup the gain for this set of visibilities
-        gain = gt.data['gain'][gaintable_rows]
-        
-        # The shape of the mueller matrix is
-        ntimes, nant, nchan, nrec, _ = gain.shape
-        
-        original = vis.vis[rows]
-        applied = copy.deepcopy(original)
-        for time in range(ntimes):
-            for a1 in range(vis.nants - 1):
-                for a2 in range(a1 + 1, vis.nants):
-                    for chan in range(nchan):
-                        mueller = numpy.kron(gain[time, a1, chan, :, :], numpy.conjugate(gain[time, a2, chan, :, :]))
-                        if inverse:
-                            # If the Mueller is singular, ignore it
-                            try:
-                                mueller = numpy.linalg.inv(mueller)
-                                applied[time, a2, a1, chan, :] = numpy.matmul(mueller, original[time, a2, a1, chan, :])
-                            except numpy.linalg.linalg.LinAlgError:
-                                applied[time, a2, a1, chan, :] = original[time, a2, a1, chan, :]
+        if numpy.sum(rows) > 0:
+            vistime = numpy.average(vis.time[rows])
+            gaintable_rows = abs(gt.time - vistime) < gt.interval / 2.0
+            
+            # Lookup the gain for this set of visibilities
+            gain = gt.data['gain'][gaintable_rows]
+            
+            # The shape of the mueller matrix is
+            ntimes, nant, nchan, nrec, _ = gain.shape
+            
+            original = vis.vis[rows]
+            applied = copy.deepcopy(original)
+            for time in range(ntimes):
+                for a1 in range(vis.nants - 1):
+                    for a2 in range(a1 + 1, vis.nants):
+                        if is_scalar:
+                            smueller = gain[time, a1, :, 0] * numpy.conjugate(gain[time, a2, :, 0])
+                            if inverse:
+                                if numpy.abs(smueller).all() > 0.0:
+                                    applied[time, a2, a1, :, 0][..., numpy.newaxis] = original[time, a2, a1, :, 0][..., numpy.newaxis] / smueller
+                            else:
+                                applied[time, a2, a1, :, 0][..., numpy.newaxis] = original[time, a2, a1, :, 0][..., numpy.newaxis] * smueller
                         else:
-                            applied[time, a2, a1, chan, :] = numpy.matmul(mueller, original[time, a2, a1, chan, :])
-        
-        vis.data['vis'][rows] = applied
+                            for chan in range(nchan):
+                                mueller = numpy.kron(gain[time, a1, chan, :, :], numpy.conjugate(gain[time, a2, chan, :, :]))
+                                if inverse:
+                                    # If the Mueller is singular, ignore it
+                                    try:
+                                        mueller = numpy.linalg.inv(mueller)
+                                        applied[time, a2, a1, chan, :] = numpy.matmul(mueller, original[time, a2, a1, chan, :])
+                                    except numpy.linalg.linalg.LinAlgError:
+                                        applied[time, a2, a1, chan, :] = original[time, a2, a1, chan, :]
+                                else:
+                                    applied[time, a2, a1, chan, :] = numpy.matmul(mueller, original[time, a2, a1, chan, :])
+            
+            vis.data['vis'][rows] = applied
     return vis
 
 
@@ -144,7 +171,8 @@ def qa_gaintable(gt: GainTable, context=None) -> QA:
     """
     agt = numpy.abs(gt.gain)
     pgt = numpy.angle(gt.gain)
-    data = {'maxabs-amp': numpy.max(agt),
+    data = {'shape': gt.gain.shape,
+            'maxabs-amp': numpy.max(agt),
             'minabs-amp': numpy.min(agt),
             'rms-amp': numpy.std(agt),
             'medianabs-amp': numpy.median(agt),

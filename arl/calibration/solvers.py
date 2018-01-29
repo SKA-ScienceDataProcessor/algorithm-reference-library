@@ -162,25 +162,20 @@ def gain_substitution_scalar(gain, x, xwt):
     newgain = numpy.ones_like(gain, dtype='complex')
     gwt = numpy.zeros_like(gain, dtype='float')
     
-    # We are going to work with Jones 2x2 matrix formalism so everything has to be
-    # converted to that format
     x = x.reshape(nants, nants, nchan, nrec, nrec)
     xwt = xwt.reshape(nants, nants, nchan, nrec, nrec)
     
     for ant1 in range(nants):
-        for chan in range(nchan):
-            # Loop over e.g. 'RR', 'LL, or 'xx', 'YY' ignoring cross terms
-            top = numpy.sum(x[:, ant1, chan, 0, 0] *
-                            gain[:, chan, 0, 0] * xwt[:, ant1, chan, 0, 0], axis=0)
-            bot = numpy.sum((gain[:, chan, 0, 0] * numpy.conjugate(gain[:, chan, 0, 0]) *
-                             xwt[:, ant1, chan, 0, 0]).real, axis=0)
-            
-            if bot > 0.0:
-                newgain[ant1, chan, 0, 0] = top / bot
-                gwt[ant1, chan, 0, 0] = bot
-            else:
-                newgain[ant1, chan, 0, 0] = 0.0
-                gwt[ant1, chan, 0, 0] = 0.0
+        top = numpy.sum(x[:, ant1, :, 0, 0] * gain[:, :, 0, 0] * xwt[:, ant1, :, 0, 0], axis=0)
+        bot = numpy.sum((gain[:, :, 0, 0] * numpy.conjugate(gain[:, :, 0, 0]) *
+                         xwt[:, ant1, :, 0, 0]).real, axis=0)
+        
+        if bot.all() > 0.0:
+            newgain[ant1, :, 0, 0] = top / bot
+            gwt[ant1, :, 0, 0] = bot
+        else:
+            newgain[ant1, :, 0, 0] = 0.0
+            gwt[ant1, :, 0, 0] = 0.0
     return newgain, gwt
 
 

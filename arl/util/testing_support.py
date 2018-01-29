@@ -638,7 +638,7 @@ def create_blockvisibility_iterator(config: Configuration, times: numpy.array, f
         if phase_error > 0.0 or amplitude_error > 0.0:
             gt = create_gaintable_from_blockvisibility(bvis)
             gt = simulate_gaintable(gt=gt, phase_error=phase_error, amplitude_error=amplitude_error)
-            vis = apply_gaintable(bvis, gt)
+            bvis = apply_gaintable(bvis, gt)
         
         import time
         time.sleep(sleep)
@@ -646,7 +646,7 @@ def create_blockvisibility_iterator(config: Configuration, times: numpy.array, f
         yield bvis
 
 
-def simulate_gaintable(gt: GainTable, phase_error=0.1, amplitude_error=0.0,
+def simulate_gaintable(gt: GainTable, phase_error=0.1, amplitude_error=0.0, smooth_channels=1,
                        leakage=0.0, seed=180555, **kwargs) -> GainTable:
     """ Simulate a gain table
     
@@ -655,21 +655,42 @@ def simulate_gaintable(gt: GainTable, phase_error=0.1, amplitude_error=0.0,
     :param amplitude_error: std of log normal distribution
     :param leakage: std of cross hand leakage
     :param seed: Seed for random numbers def: 180555
+    :param smooth_channels: Use bspline over smooth_channels
+    :param kwargs:
+    :return: Gaintable
     
     """
+    
+    def moving_average(a, n=3):
+        return numpy.convolve(a, numpy.ones((n,)) / n, mode='valid')
     
     numpy.random.seed(seed)
     
     log.debug("simulate_gaintable: Simulating amplitude error = %.4f, phase error = %.4f"
               % (amplitude_error, phase_error))
-    amp = 1.0
-    phasor = 1.0
+    amps = 1.0
+    phases = 1.0
+    ntimes, nant, nchan, nrec, _ = gt.data['gain'].shape
     if phase_error > 0.0:
-        phasor = numpy.exp(1j * numpy.random.normal(0, phase_error, gt.data['gain'].shape))
-    if amplitude_error > 0.0:
-        amp = numpy.random.lognormal(mean=0.0, sigma=amplitude_error, size=gt.data['gain'].shape)
+        phases = numpy.zeros(gt.data['gain'].shape)
+        for time in range(ntimes):
+            for ant in range(nant):
+                phase = numpy.random.normal(0, phase_error, nchan+int(smooth_channels)-1)
+                if smooth_channels > 1:
+                    phase = moving_average(phase, smooth_channels)
+                phases[time, ant, ...] = phase[..., numpy.newaxis, numpy.newaxis]
     
-    gt.data['gain'] = amp * phasor
+    if amplitude_error > 0.0:
+        amps = numpy.ones(gt.data['gain'].shape, dtype='complex')
+        for time in range(ntimes):
+            for ant in range(nant):
+                amp = numpy.random.lognormal(mean=0.0, sigma=amplitude_error, size=nchan+int(smooth_channels)-1)
+                if smooth_channels > 1:
+                    amp = moving_average(amp, smooth_channels)
+                    amp = amp / numpy.average(amp)
+                amps[time, ant, ...] = amp[..., numpy.newaxis, numpy.newaxis]
+    
+    gt.data['gain'] = amps * numpy.exp(0 + 1j * phases)
     nrec = gt.data['gain'].shape[-1]
     if nrec > 1:
         if leakage > 0.0:

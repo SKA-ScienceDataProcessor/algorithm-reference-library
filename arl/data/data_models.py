@@ -118,9 +118,8 @@ class GainTable:
     The weight is usually that output from gain solvers.
     """
     
-    def __init__(self, data=None, gain: numpy.array = None, time: numpy.array = None,
-                 weight: numpy.array = None, residual: numpy.array = None,
-                 frequency: numpy.array = None,
+    def __init__(self, data=None, gain: numpy.array = None, time: numpy.array = None, interval=None,
+                 weight: numpy.array = None, residual: numpy.array = None, frequency: numpy.array = None,
                  receptor_frame: ReceptorFrame = ReceptorFrame("linear")):
         """ Create a gaintable from arrays
 
@@ -128,9 +127,11 @@ class GainTable:
 
             Vobs = g_i g_j^* Vmodel
 
+        :param interval:
         :param data:
         :param gain: [:, nchan, nrec, nrec]
-        :param time:
+        :param time: Centroid of solution
+        :param interval: Interval of validity
         :param weight:
         :param residual:
         :param frequency:
@@ -146,11 +147,13 @@ class GainTable:
             desc = [('gain', '>c16', (nants, nchan, nrec, nrec)),
                     ('weight', '>f8', (nants, nchan, nrec, nrec)),
                     ('residual', '>f8', (nchan, nrec, nrec)),
-                    ('time', '>f8')]
+                    ('time', '>f8'),
+                    ('interval', '>f8')]
             self.data = numpy.zeros(shape=[nrows], dtype=desc)
             self.data['gain'] = gain
             self.data['weight'] = weight
             self.data['time'] = time
+            self.data['interval'] = interval
             self.data['residual'] = residual
         self.frequency = frequency
         self.receptor_frame = receptor_frame
@@ -161,11 +164,15 @@ class GainTable:
         size = 0
         size += self.data.size * sys.getsizeof(self.data)
         return size / 1024.0 / 1024.0 / 1024.0
-    
+
     @property
     def time(self):
         return self.data['time']
-    
+
+    @property
+    def interval(self):
+        return self.data['interval']
+
     @property
     def gain(self):
         return self.data['gain']

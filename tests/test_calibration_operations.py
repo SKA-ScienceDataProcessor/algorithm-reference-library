@@ -23,22 +23,24 @@ log = logging.getLogger(__name__)
 class TestCalibrationOperations(unittest.TestCase):
     
     def setUp(self):
+        pass
+        
+    def actualSetup(self, sky_pol_frame='stokesIQUV', data_pol_frame='linear'):
         self.lowcore = create_named_configuration('LOWBD2-CORE')
         self.times = (numpy.pi / 43200.0) * numpy.arange(0.0, 300.0, 30.0)
         vnchan = 3
         self.frequency = numpy.linspace(1.0e8, 1.1e8, vnchan)
         self.channel_bandwidth = numpy.array(vnchan * [self.frequency[1] - self.frequency[0]])
-        
+    
         # Define the component and give it some spectral behaviour
         f = numpy.array([100.0, 20.0, -10.0, 1.0])
         self.flux = numpy.array([f, 0.8 * f, 0.6 * f])
-
-        # The phase centre is absolute and the component is specified relative (for now).
-        # This means that the component should end up at the position phasecentre+compredirection
+    
         self.phasecentre = SkyCoord(ra=+180.0 * u.deg, dec=-35.0 * u.deg, frame='icrs', equinox='J2000')
         self.compabsdirection = SkyCoord(ra=+181.0 * u.deg, dec=-35.0 * u.deg, frame='icrs', equinox='J2000')
-        
-    def actualSetup(self, sky_pol_frame='stokesIQUV', data_pol_frame='linear'):
+        if sky_pol_frame == 'stokesI':
+            self.flux = self.flux[:,0][:, numpy.newaxis]
+            
         self.comp = Skycomponent(direction=self.compabsdirection, frequency=self.frequency, flux=self.flux,
                                  polarisation_frame=PolarisationFrame(sky_pol_frame))
         self.vis = create_blockvisibility(self.lowcore, self.times, self.frequency,
@@ -49,7 +51,7 @@ class TestCalibrationOperations(unittest.TestCase):
         self.vis = predict_skycomponent_visibility(self.vis, self.comp)
 
     def test_create_gaintable_from_visibility(self):
-        for spf, dpf in[('stokesIQUV', 'linear'), ('stokesIQUV', 'circular')]:
+        for spf, dpf in[('stokesI', 'stokesI'), ('stokesIQUV', 'linear'), ('stokesIQUV', 'circular')]:
             self.actualSetup(spf, dpf)
             gt = create_gaintable_from_blockvisibility(self.vis, timeslice='auto')
             log.info("Created gain table: %s" % (gaintable_summary(gt)))
@@ -60,8 +62,21 @@ class TestCalibrationOperations(unittest.TestCase):
             assert numpy.max(numpy.abs(vis.vis)) > 0.0
             assert numpy.max(numpy.abs(vis.vis - original.vis)) > 0.0
 
+    def test_create_gaintable_from_visibility_interval(self):
+        for timeslice in [10.0, 'auto', 1e5]:
+            for spf, dpf in[('stokesIQUV', 'linear')]:
+                self.actualSetup(spf, dpf)
+                gt = create_gaintable_from_blockvisibility(self.vis, timeslice=timeslice)
+                log.info("Created gain table: %s" % (gaintable_summary(gt)))
+                gt = simulate_gaintable(gt, phase_error=1.0, timeslice=timeslice)
+                original = copy_visibility(self.vis)
+                vis = apply_gaintable(self.vis, gt, timeslice=timeslice)
+                assert numpy.max(numpy.abs(original.vis)) > 0.0
+                assert numpy.max(numpy.abs(vis.vis)) > 0.0
+                assert numpy.max(numpy.abs(vis.vis - original.vis)) > 0.0
+
     def test_apply_gaintable_only(self):
-        for spf, dpf in[('stokesIQUV', 'linear'), ('stokesIQUV', 'circular')]:
+        for spf, dpf in[('stokesI', 'stokesI'), ('stokesIQUV', 'linear'), ('stokesIQUV', 'circular')]:
             self.actualSetup(spf, dpf)
             gt = create_gaintable_from_blockvisibility(self.vis, timeslice='auto')
             log.info("Created gain table: %s" % (gaintable_summary(gt)))
@@ -72,7 +87,7 @@ class TestCalibrationOperations(unittest.TestCase):
             assert error > 10.0, "Error = %f" % (error)
 
     def test_apply_gaintable_and_inverse_phase_only(self):
-        for spf, dpf in[('stokesIQUV', 'linear'), ('stokesIQUV', 'circular')]:
+        for spf, dpf in[('stokesI', 'stokesI'), ('stokesIQUV', 'linear'), ('stokesIQUV', 'circular')]:
             self.actualSetup(spf, dpf)
             gt = create_gaintable_from_blockvisibility(self.vis, timeslice='auto')
             log.info("Created gain table: %s" % (gaintable_summary(gt)))
@@ -84,7 +99,7 @@ class TestCalibrationOperations(unittest.TestCase):
             assert error < 1e-12, "Error = %s" % (error)
 
     def test_apply_gaintable_and_inverse_both(self):
-        for spf, dpf in [('stokesIQUV', 'linear'), ('stokesIQUV', 'circular')]:
+        for spf, dpf in[('stokesI', 'stokesI'), ('stokesIQUV', 'linear'), ('stokesIQUV', 'circular')]:
             self.actualSetup(spf, dpf)
             gt = create_gaintable_from_blockvisibility(self.vis, timeslice='auto')
             log.info("Created gain table: %s" % (gaintable_summary(gt)))
@@ -96,7 +111,7 @@ class TestCalibrationOperations(unittest.TestCase):
             assert error < 1e-12, "Error = %s" % (error)
 
     def test_apply_gaintable_null(self):
-        for spf, dpf in [('stokesIQUV', 'linear'), ('stokesIQUV', 'circular')]:
+        for spf, dpf in[('stokesI', 'stokesI'), ('stokesIQUV', 'linear'), ('stokesIQUV', 'circular')]:
             self.actualSetup(spf, dpf)
             gt = create_gaintable_from_blockvisibility(self.vis, timeslice='auto')
             gt.data['gain']*=0.0

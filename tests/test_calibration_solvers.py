@@ -28,17 +28,20 @@ log = logging.getLogger(__name__)
 class TestCalibrationSolvers(unittest.TestCase):
     def setUp(self):
         numpy.random.seed(180555)
+        
+    def actualSetup(self, sky_pol_frame='stokesIQUV', data_pol_frame='linear', f=None, vnchan=3):
         self.lowcore = create_named_configuration('LOWBD2-CORE')
         self.times = (numpy.pi / 43200.0) * numpy.linspace(0.0, 30.0, 3)
-        vnchan = 3
         self.frequency = numpy.linspace(1.0e8, 1.1e8, vnchan)
         self.channel_bandwidth = numpy.array(vnchan * [self.frequency[1] - self.frequency[0]])
         
-    def actualSetup(self, sky_pol_frame='stokesIQUV', data_pol_frame='linear', f=None):
         if f is None:
             f = [100.0, 50.0, -10.0, 40.0]
-        f = numpy.array(f)
-        self.flux = numpy.array([f, 0.8 * f, 0.6 * f])
+            
+        if sky_pol_frame == 'stokesI':
+            f = [100.0]
+            
+        self.flux = numpy.outer(numpy.array([numpy.power(freq / 1e8, -0.7) for freq in self.frequency]), f)
     
         # The phase centre is absolute and the component is specified relative (for now).
         # This means that the component should end up at the position phasecentre+compredirection
@@ -63,6 +66,20 @@ class TestCalibrationSolvers(unittest.TestCase):
         assert residual < 3e-8, "Max residual = %s" % (residual)
         assert numpy.max(numpy.abs(gtsol.gain - 1.0)) > 0.1
 
+    def test_solve_gaintable_scalar_bandpass(self):
+        self.actualSetup('stokesI', 'stokesI', f=[100.0], vnchan=128)
+        gt = create_gaintable_from_blockvisibility(self.vis)
+        log.info("Created gain table: %s" % (gaintable_summary(gt)))
+        gt = simulate_gaintable(gt, phase_error=10.0, amplitude_error=0.01, smooth_channels=8)
+        print(qa_gaintable(gt))
+        original = copy_visibility(self.vis)
+        self.vis = apply_gaintable(self.vis, gt)
+        gtsol = solve_gaintable(self.vis, original, phase_only=False, niter=200)
+        residual = numpy.max(gtsol.residual)
+        print(qa_gaintable(gtsol))
+        assert residual < 3e-8, "Max residual = %s" % (residual)
+        assert numpy.max(numpy.abs(gtsol.gain - 1.0)) > 0.1
+
     def test_solve_gaintable_scalar_pointsource(self):
         self.actualSetup('stokesI', 'stokesI', f=[100.0])
         gt = create_gaintable_from_blockvisibility(self.vis)
@@ -77,10 +94,10 @@ class TestCalibrationSolvers(unittest.TestCase):
         assert numpy.max(numpy.abs(gtsol.gain - 1.0)) > 0.1
 
     def core_solve(self, spf, dpf, phase_error=0.1, amplitude_error=0.0, leakage=0.0,
-                   phase_only=True, niter=200, crosspol=False, residual_tol=1e-6, f=None):
+                   phase_only=True, niter=200, crosspol=False, residual_tol=1e-6, f=None, vnchan=3):
         if f is None:
             f = [100.0, 50.0, -10.0, 40.0]
-        self.actualSetup(spf, dpf, f=f)
+        self.actualSetup(spf, dpf, f=f, vnchan=vnchan)
         gt = create_gaintable_from_blockvisibility(self.vis)
         log.info("Created gain table: %s" % (gaintable_summary(gt)))
         gt = simulate_gaintable(gt, phase_error=phase_error, amplitude_error=amplitude_error, leakage=leakage)
@@ -126,6 +143,13 @@ class TestCalibrationSolvers(unittest.TestCase):
         self.core_solve('stokesIQUV', 'circular', phase_error=0.1, amplitude_error=0.01,
                         leakage=0.01, residual_tol=1e-3, crosspol=True,
                         phase_only=False, f=[100.0, 0.0, 0.0, 50.0])
+        
+    def test_solve_gaintable_matrix_both_circular_channel(self):
+        self.core_solve('stokesIQUV', 'circular', phase_error=0.1, amplitude_error=0.01,
+                        leakage=0.01, residual_tol=1e-3, crosspol=True, vnchan=16,
+                        phase_only=False, f=[100.0, 0.0, 0.0, 50.0])
+
+
 
 
 if __name__ == '__main__':

@@ -195,7 +195,6 @@ def predict_function(vis, model: Image, context='2d', inner=None, **kwargs) -> V
     if inner is None:
         inner = c['inner']
 
-    log.debug("predict_with_iterators: Processing chunks")
     if not isinstance(vis, Visibility):
         svis = coalesce_visibility(vis, **kwargs)
     else:
