@@ -26,6 +26,7 @@ typedef struct {
 // needed. This memory layout show allow re-use in numpy without any
 // data copying.
 typedef struct {
+  int index;
   double uvw[3];
   double time;
   double freq;
