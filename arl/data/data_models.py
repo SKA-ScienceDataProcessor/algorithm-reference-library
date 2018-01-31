@@ -184,11 +184,15 @@ class GainTable:
     @property
     def residual(self):
         return self.data['residual']
-    
+
+    @property
+    def ntimes(self):
+        return self.data['gain'].shape[0]
+
     @property
     def nants(self):
         return self.data['gain'].shape[1]
-    
+
     @property
     def nchan(self):
         return self.data['gain'].shape[2]
@@ -336,7 +340,7 @@ class Visibility:
     """ Visibility table class
 
     Visibility with uvw, time, integration_time, frequency, channel_bandwidth, a1, a2, vis, weight
-    Columns in a numpy structured array, The fundemental unit is a complex vector of polarisation.
+    as separate columns in a numpy structured array, The fundemental unit is a complex vector of polarisation.
 
     Visibility is defined to hold an observation with one direction.
     Polarisation frame is the same for the entire data set and can be stokes, circular, linear
@@ -496,15 +500,17 @@ class Visibility:
 class BlockVisibility:
     """ Block Visibility table class
 
-    Visibility with uvw, time, integration_time, frequency, channel_bandwidth, pol,
-    a1, a2, vis, weight Columns in a numpy structured array
-    Visibility is defined to hold an observation with one direction.
+    BlockVisibility with uvw, time, integration_time, frequency, channel_bandwidth, pol,
+    a1, a2, vis, weight Columns in a numpy structured array.
+    
+    BlockVisibility is defined to hold an observation with one direction.
 
     The phasecentre is the direct of delay tracking i.e. n=0. If uvw are rotated then this
     should be updated with the new delay tracking centre. This is important for wstack and wproject
     algorithms.
 
-    Polarisation frame is the same for the entire data set and can be stokes, circular, linear
+    Polarisation frame is the same for the entire data set and can be stokesI, circular, linear
+    
     The configuration is also an attribute
     """
     
@@ -624,7 +630,7 @@ class QA:
         """
         self.origin = origin  # Name of function originating QA assessment
         self.data = data  # Dictionary containing standard fields
-        self.context = context  # Context string (TBD)
+        self.context = context  # Context string
     
     def __str__(self):
         """Default printer for QA

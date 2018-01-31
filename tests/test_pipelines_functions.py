@@ -39,7 +39,7 @@ class TestPipelinesFunctions(unittest.TestCase):
         
         self.setupVis(add_errors=False, block=True)
     
-    def setupVis(self, add_errors=False, block=True, freqwin=5):
+    def setupVis(self, add_errors=False, block=True, freqwin=5, bandpass=False):
         self.freqwin = freqwin
         self.ntimes = 5
         self.times = numpy.linspace(-3.0, +3.0, self.ntimes) * numpy.pi / 12.0
@@ -49,10 +49,11 @@ class TestPipelinesFunctions(unittest.TestCase):
         else:
             self.channel_bandwidth = numpy.array([4e7])
         self.vis = self.ingest_visibility(self.frequency, chan_width=self.channel_bandwidth,
-                                          times=self.times, add_errors=add_errors, block=block)
+                                          times=self.times, add_errors=add_errors, block=block,
+                                          bandpass=bandpass)
     
     def ingest_visibility(self, freq=[1e8], chan_width=[1e6], times=None, add_errors=False,
-                          block=True):
+                          block=True, bandpass=False):
         if times is None:
             times = (numpy.pi / 12.0) * numpy.linspace(-3.0, 3.0, 5)
         
@@ -105,6 +106,13 @@ class TestPipelinesFunctions(unittest.TestCase):
             gt = create_gaintable_from_blockvisibility(vt)
             gt = simulate_gaintable(gt, phase_error=1.0, amplitude_error=0.0)
             vt = apply_gaintable(vt, gt)
+            
+            if bandpass:
+                bgt = create_gaintable_from_blockvisibility(vt, timeslice=1e5)
+                bgt = simulate_gaintable(bgt, phase_error=0.01, amplitude_error=0.01, timeslice=1e5,
+                                         smooth_channels=4)
+                vt = apply_gaintable(vt, bgt, timeslice=1e5)
+        
         return vt
     
     def test_RCAL(self):
@@ -115,41 +123,62 @@ class TestPipelinesFunctions(unittest.TestCase):
     def test_ICAL(self):
         self.setupVis(add_errors=True, block=True, freqwin=5)
         model = create_empty_image_like(self.model)
-        visres, comp, residual = ical(self.vis, model, algorithm='msclean', context='wstack',
-                                      vis_slices=51,
-                                      scales=[0, 3, 10, 30], threshold=0.01, findpeak='ARL',
-                                      fractional_threshold=0.01, first_selfcal=2, nmajor=5)
-        export_image_to_fits(comp, "%s/test_pipelines-ical-comp.fits" % (self.dir))
+        comp, residual, restored = ical(self.vis, model, algorithm='msclean', context='wstack',
+                                        vis_slices=51,
+                                        scales=[0, 3, 10, 30], threshold=0.01, findpeak='ARL',
+                                        fractional_threshold=0.01,
+                                        T_first_selfcal=2,
+                                        G_first_selfcal=3,
+                                        B_first_selfcal=4,
+                                        nmajor=5)
+        export_image_to_fits(comp, "%s/test_pipelines-ical-deconvolved.fits" % (self.dir))
         export_image_to_fits(residual, "%s/test_pipelines-ical-residual.fits" % (self.dir))
+        export_image_to_fits(restored, "%s/test_pipelines-ical-restored.fits" % (self.dir))
+    
+    def test_ICAL_bandpass(self):
+        self.setupVis(add_errors=True, block=True, freqwin=32, bandpass=True)
+        model = create_empty_image_like(self.model)
+        comp, residual, restored = ical(self.vis, model, algorithm='msclean', context='wstack',
+                                        vis_slices=51,
+                                        scales=[0, 3, 10, 30], threshold=0.01, findpeak='ARL',
+                                        fractional_threshold=0.01,
+                                        T_first_selfcal=2,
+                                        G_first_selfcal=3,
+                                        B_first_selfcal=4,
+                                        nmajor=5)
+        export_image_to_fits(comp, "%s/test_pipelines-ical-deconvolved-bandpass.fits" % (self.dir))
+        export_image_to_fits(residual, "%s/test_pipelines-ical-residual-bandpass.fits" % (self.dir))
+        export_image_to_fits(restored, "%s/test_pipelines-ical-restored-bandpass.fits" % (self.dir))
     
     def test_continuum_imaging(self):
         self.setupVis(add_errors=False, block=True, freqwin=7)
         model = create_empty_image_like(self.model)
-        visres, comp, residual = continuum_imaging(self.vis, model, algorithm='msmfsclean',
-                                                   context='wstack',
-                                                   vis_slices=51,
-                                                   scales=[0, 3, 10], threshold=0.01, nmoments=2,
-                                                   findpeak='ARL',
-                                                   fractional_threshold=0.01)
+        comp, residual, restored = continuum_imaging(self.vis, model, algorithm='msmfsclean',
+                                                     context='wstack',
+                                                     vis_slices=51,
+                                                     scales=[0, 3, 10], threshold=0.01, nmoments=2,
+                                                     findpeak='ARL',
+                                                     fractional_threshold=0.01)
         export_image_to_fits(comp, "%s/test_pipelines-continuum-imaging-comp.fits" % (self.dir))
         export_image_to_fits(residual, "%s/test_pipelines-continuum-imaging-residual.fits" % (self.dir))
-
+    
     @unittest.skip("Not ready yet")
     def test_spectral_line_imaging_no_deconvolution(self):
         model = create_empty_image_like(self.model)
-        visres, comp, residual = spectral_line_imaging(self.vis, model, continuum_model=model,
-                                                       deconvolve_spectral=False)
+        comp, residual, restored = spectral_line_imaging(self.vis, model, continuum_model=model,
+                                                         deconvolve_spectral=False)
         export_image_to_fits(comp, "%s/test_pipelines-spectral-no-deconvolution-imaging-comp.fits" % (self.dir))
         export_image_to_fits(residual, "%s/test_pipelines-spectral-no-deconvolution-residual.fits" % (self.dir))
-
+    
     @unittest.skip("Not ready yet")
     def test_spectral_line_imaging_with_deconvolution(self):
         model = create_empty_image_like(self.model)
-        visres, comp, residual = spectral_line_imaging(self.vis, model, continuum_model=self.model, algorithm='hogbom',
-                                                       deconvolve_spectral=True)
+        comp, residual, restored = spectral_line_imaging(self.vis, model, continuum_model=self.model,
+                                                         algorithm='hogbom',
+                                                         deconvolve_spectral=True)
         export_image_to_fits(comp, "%s/test_pipelines-spectral-with-deconvolution-imaging-comp.fits" % (self.dir))
         export_image_to_fits(residual, "%s/test_pipelines-spectral-with-deconvolution-residual.fits" % (self.dir))
-
+    
     def test_fast_imaging(self):
         fast_imaging(vis=self.vis, Gsolinit=300.0)
     

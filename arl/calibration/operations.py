@@ -163,6 +163,46 @@ def append_gaintable(gt: GainTable, othergt: GainTable) -> GainTable:
     return gt
 
 
+def copy_gaintable(gt: GainTable, zero=False) -> GainTable:
+    """Copy a GainTable
+
+    Performs a deepcopy of the data array
+    """
+    assert isinstance(gt, GainTable), gt
+    
+    newgt = copy.copy(gt)
+    newgt.data = copy.deepcopy(gt.data)
+    if zero:
+        newgt.data['gt'][...] = 0.0
+    return newgt
+
+
+def create_gaintable_from_rows(gt: GainTable, rows: numpy.ndarray, makecopy=True) -> GainTable:
+    """ Create a GainTable from selected rows
+
+    :param gt: GainTable
+    :param rows: Boolean array of row selection
+    :param makecopy: Make a deep copy (True)
+    :return: GainTable
+    """
+    
+    if rows is None or numpy.sum(rows) == 0:
+        return None
+    
+    assert len(rows) == gt.ntimes, "Length of rows does not agree with length of GainTable"
+    
+    assert isinstance(gt, GainTable), gt
+        
+    if makecopy:
+        newgt = copy_gaintable(gt)
+        newgt.data = copy.deepcopy(gt.data[rows])
+        return newgt
+    else:
+        gt.data = copy.deepcopy(gt.data[rows])
+        
+        return gt
+
+
 def qa_gaintable(gt: GainTable, context=None) -> QA:
     """Assess the quality of a gaintable
 

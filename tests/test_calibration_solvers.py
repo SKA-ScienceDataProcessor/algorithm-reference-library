@@ -71,12 +71,10 @@ class TestCalibrationSolvers(unittest.TestCase):
         gt = create_gaintable_from_blockvisibility(self.vis)
         log.info("Created gain table: %s" % (gaintable_summary(gt)))
         gt = simulate_gaintable(gt, phase_error=10.0, amplitude_error=0.01, smooth_channels=8)
-        print(qa_gaintable(gt))
         original = copy_visibility(self.vis)
         self.vis = apply_gaintable(self.vis, gt)
         gtsol = solve_gaintable(self.vis, original, phase_only=False, niter=200)
         residual = numpy.max(gtsol.residual)
-        print(qa_gaintable(gtsol))
         assert residual < 3e-8, "Max residual = %s" % (residual)
         assert numpy.max(numpy.abs(gtsol.gain - 1.0)) > 0.1
 

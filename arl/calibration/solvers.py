@@ -16,17 +16,15 @@ import logging
 
 import numpy
 
-from arl.calibration.operations import create_gaintable_from_blockvisibility
+from arl.calibration.operations import create_gaintable_from_blockvisibility, create_gaintable_from_rows
 from arl.data.data_models import GainTable, BlockVisibility, assert_vis_gt_compatible
-
-from arl.visibility.iterators import vis_timeslice_iter
-from arl.visibility.operations import divide_visibility
 from arl.visibility.base import create_visibility_from_rows
+from arl.visibility.operations import divide_visibility
 
 log = logging.getLogger(__name__)
 
 
-def solve_gaintable(vis: BlockVisibility, modelvis: BlockVisibility=None, phase_only=True, niter=30, tol=1e-8,
+def solve_gaintable(vis: BlockVisibility, modelvis: BlockVisibility = None, phase_only=True, niter=30, tol=1e-8,
                     crosspol=False, **kwargs) -> GainTable:
     """Solve a gain table by fitting an observed visibility to a model visibility
     
@@ -52,30 +50,32 @@ def solve_gaintable(vis: BlockVisibility, modelvis: BlockVisibility=None, phase_
     
     gt = create_gaintable_from_blockvisibility(vis)
     
-    for chunk, rows in enumerate(vis_timeslice_iter(vis, **kwargs)):
-        subvis = create_visibility_from_rows(vis, rows)
-        if modelvis is not None:
-            model_subvis = create_visibility_from_rows(modelvis, rows)
-            pointvis = divide_visibility(subvis, model_subvis)
-            x = numpy.sum(pointvis.vis * pointvis.weight, axis=0)
-            xwt = numpy.sum(pointvis.weight, axis=0)
-        else:
-            x = numpy.sum(subvis.vis * subvis.weight, axis=0)
-            xwt = numpy.sum(subvis.weight, axis=0)
+    for row in range(gt.ntimes):
+        vis_rows = numpy.abs(vis.time - gt.time[row]) < gt.interval[row] / 2.0
+        if numpy.sum(vis_rows) > 0:
+            subvis = create_visibility_from_rows(vis, vis_rows)
+            if modelvis is not None:
+                model_subvis = create_visibility_from_rows(modelvis, vis_rows)
+                pointvis = divide_visibility(subvis, model_subvis)
+                x = numpy.sum(pointvis.vis * pointvis.weight, axis=0)
+                xwt = numpy.sum(pointvis.weight, axis=0)
+            else:
+                x = numpy.sum(subvis.vis * subvis.weight, axis=0)
+                xwt = numpy.sum(subvis.weight, axis=0)
             
-        mask = numpy.abs(xwt) > 0.0
-        x_shape = x.shape
-        x[mask] = x[mask] / xwt[mask]
-        x[~mask] = 0.0
-        x = x.reshape(x_shape)
-        
-        gt = solve_from_X(gt, x, xwt, chunk, crosspol, niter, phase_only,
-                          tol, npol=vis.polarisation_frame.npol)
-
+            mask = numpy.abs(xwt) > 0.0
+            x_shape = x.shape
+            x[mask] = x[mask] / xwt[mask]
+            x[~mask] = 0.0
+            x = x.reshape(x_shape)
+            
+            gt = solve_from_X(gt, x, xwt, row, crosspol, niter, phase_only,
+                              tol, npol=vis.polarisation_frame.npol)
+    
     assert isinstance(gt, GainTable), "gt is not a GainTable: %r" % gt
     
     assert_vis_gt_compatible(vis, gt)
-
+    
     return gt
 
 
@@ -374,13 +374,13 @@ def solution_residual_scalar(gain, x, xwt):
         for ant2 in range(nants):
             for chan in range(nchan):
                 error = x[ant2, ant1, chan, 0, 0] - \
-                    gain[ant1, chan, 0, 0] * numpy.conjugate(gain[ant2, chan, 0, 0])
+                        gain[ant1, chan, 0, 0] * numpy.conjugate(gain[ant2, chan, 0, 0])
                 residual += (error * xwt[ant2, ant1, chan, 0, 0] * numpy.conjugate(error)).real
                 sumwt += xwt[ant2, ant1, chan, 0, 0]
     
     residual[sumwt > 0.0] = numpy.sqrt(residual[sumwt > 0.0] / sumwt[sumwt > 0.0])
     residual[sumwt <= 0.0] = 0.0
-        
+    
     return residual
 
 
@@ -412,13 +412,13 @@ def solution_residual_vector(gain, x, xwt):
             for chan in range(nchan):
                 for rec in range(nrec):
                     error = x[ant2, ant1, chan, rec, rec] - \
-                        gain[ant1, chan, rec, rec] * numpy.conjugate(gain[ant2, chan, rec, rec])
+                            gain[ant1, chan, rec, rec] * numpy.conjugate(gain[ant2, chan, rec, rec])
                     residual += (error * xwt[ant2, ant1, chan, rec, rec] * numpy.conjugate(error)).real
                     sumwt += xwt[ant2, ant1, chan, rec, rec]
-
+    
     residual[sumwt > 0.0] = numpy.sqrt(residual[sumwt > 0.0] / sumwt[sumwt > 0.0])
     residual[sumwt <= 0.0] = 0.0
-
+    
     return residual
 
 
@@ -444,7 +444,7 @@ def solution_residual_matrix(gain, x, xwt):
                 for rec1 in range(nrec):
                     for rec2 in range(nrec):
                         error = x[ant2, ant1, chan, rec2, rec1] - \
-                            gain[ant1, chan, rec2, rec1] * numpy.conjugate(gain[ant2, chan, rec2, rec1])
+                                gain[ant1, chan, rec2, rec1] * numpy.conjugate(gain[ant2, chan, rec2, rec1])
                         residual[chan, rec2, rec1] += (error * xwt[ant2, ant1, chan, rec2, rec1] * numpy.conjugate(
                             error)).real
                         sumwt[chan, rec2, rec1] += xwt[ant2, ant1, chan, rec2, rec1]

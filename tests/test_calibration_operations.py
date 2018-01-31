@@ -9,7 +9,8 @@ import unittest
 
 from astropy.coordinates import SkyCoord
 import astropy.units as u
-from arl.calibration.operations import gaintable_summary, apply_gaintable, create_gaintable_from_blockvisibility
+from arl.calibration.operations import gaintable_summary, apply_gaintable, create_gaintable_from_blockvisibility, \
+    create_gaintable_from_rows
 
 from arl.data.data_models import Skycomponent
 from arl.data.polarisation import PolarisationFrame
@@ -119,6 +120,15 @@ class TestCalibrationOperations(unittest.TestCase):
             vis = apply_gaintable(self.vis, gt, inverse=True, timeslice='auto')
             error = numpy.max(numpy.abs(vis.vis[:,0,1,...] - original.vis[:,0,1,...]))
             assert error < 1e-12, "Error = %s" % (error)
+
+    def test_create_gaintable_from_rows_makecopy(self):
+        self.actualSetup('stokesIQUV', 'linear')
+        gt = create_gaintable_from_blockvisibility(self.vis, timeslice='auto')
+        rows = gt.time > 150.0
+        for makecopy in [True, False]:
+            selected_gt = create_gaintable_from_rows(gt, rows, makecopy=makecopy)
+            assert selected_gt.ntimes == numpy.sum(numpy.array(rows))
+
 
 
 if __name__ == '__main__':
