@@ -76,6 +76,7 @@ size_t bk_getfn(const char* fname)
 void arl_initialize(void)
 {
   Py_Initialize();
+  PyEval_InitThreads();
 }
 
 
@@ -84,6 +85,7 @@ void arl_initialize(void)
 #define BKFNPY(F)  (* ( void (*)() )(bk_getfn( #F ))) 
 
 
+// NB: The CFFI acquires GIL
 void helper_get_image_shape(const double *frequency, double cellsize,
 		int *shape)
 {
@@ -140,7 +142,6 @@ void helper_get_nbases(char * config_name, ant_t * nbases)
 {
   BKFNPY(helper_get_nbases)(config_name, nbases);
 }
-
 
 
 

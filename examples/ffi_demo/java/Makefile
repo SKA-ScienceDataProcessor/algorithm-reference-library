@@ -22,7 +22,7 @@ arljava.c: arljava.i
 libarljava.so: arljava.c
 	gcc ${JAVACPPFLAGS} -fPIC  -shared $<  -o $@ ${ARLLDFLAGS}
 
-arljava.jar: arljava.cpp sdp/arl/*
+arljava.jar: arljava.c sdp/arl/*
 	mkdir -p bin
 	find sdp/arl -name "*.java" | xargs javac -g -d bin
 	jar cf arljava.jar -C bin sdp
@@ -30,3 +30,6 @@ arljava.jar: arljava.cpp sdp/arl/*
 
 FFIDemo.class: FFIDemo.java
 	javac -cp "arljava.jar" $<
+
+clean:
+	rm -r arljava.c arljava.jar bin FFIDemo.class libarljava.so sdp
