@@ -40,6 +40,7 @@ from astropy.wcs import WCS
 from astropy.wcs.utils import pixel_to_skycoord
 from scipy import interpolate
 
+from arl.calibration.calibration_control import create_calibration_controls
 from arl.calibration.operations import create_gaintable_from_blockvisibility, apply_gaintable
 from arl.data.data_models import Configuration, Image, GainTable, Skycomponent
 from arl.data.parameters import arl_path
@@ -675,7 +676,7 @@ def simulate_gaintable(gt: GainTable, phase_error=0.1, amplitude_error=0.0, smoo
         phases = numpy.zeros(gt.data['gain'].shape)
         for time in range(ntimes):
             for ant in range(nant):
-                phase = numpy.random.normal(0, phase_error, nchan+int(smooth_channels)-1)
+                phase = numpy.random.normal(0, phase_error, nchan + int(smooth_channels) - 1)
                 if smooth_channels > 1:
                     phase = moving_average(phase, smooth_channels)
                 phases[time, ant, ...] = phase[..., numpy.newaxis, numpy.newaxis]
@@ -684,7 +685,7 @@ def simulate_gaintable(gt: GainTable, phase_error=0.1, amplitude_error=0.0, smoo
         amps = numpy.ones(gt.data['gain'].shape, dtype='complex')
         for time in range(ntimes):
             for ant in range(nant):
-                amp = numpy.random.lognormal(mean=0.0, sigma=amplitude_error, size=nchan+int(smooth_channels)-1)
+                amp = numpy.random.lognormal(mean=0.0, sigma=amplitude_error, size=nchan + int(smooth_channels) - 1)
                 if smooth_channels > 1:
                     amp = moving_average(amp, smooth_channels)
                     amp = amp / numpy.average(amp)
@@ -768,7 +769,7 @@ def create_unittest_model(vis, model_pol, npixel=None, cellsize=None, nchan=1):
     return model
 
 
-def insert_unittest_errors(vt, phase_error=1.0, amplitude_error=0.0, seed=180555):
+def insert_unittest_errors(vt, seed=180555):
     """Simulate gain errors and apply
     
     :param vt:
@@ -777,7 +778,17 @@ def insert_unittest_errors(vt, phase_error=1.0, amplitude_error=0.0, seed=180555
     :return:
     """
     numpy.random.seed(seed)
-    gt = create_gaintable_from_blockvisibility(vt)
-    gt = simulate_gaintable(gt, phase_error=phase_error, amplitude_error=amplitude_error)
-    vt = apply_gaintable(vt, gt)
+    controls = create_calibration_controls()
+    amp_errors = {'T': 0.0, 'G': 0.01, 'B': 0.01}
+    phase_errors = {'T': 1.0, 'G': 0.1, 'B': 0.01}
+    for c in "TGB":
+        gaintable = \
+            create_gaintable_from_blockvisibility(vt, timeslice=controls[c]['timeslice'])
+        gaintable = simulate_gaintable(gaintable,
+                                       timeslice=controls[c]['timeslice'],
+                                       phase_only=controls[c]['phase_only'],
+                                       crosspol=controls[c]['shape'] == 'matrix',
+                                       phase_error=phase_errors[c], amplitude_error=amp_errors[c])
+        vt = apply_gaintable(vt, gaintable, inverse=True, timeslice=controls[c]['timeslice'])
+    
     return vt

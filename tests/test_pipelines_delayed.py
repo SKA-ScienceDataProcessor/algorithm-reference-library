@@ -13,6 +13,7 @@ from astropy import units as u
 from astropy.coordinates import SkyCoord
 from dask import delayed
 
+from arl.calibration.calibration_control import create_calibration_controls
 from arl.data.polarisation import PolarisationFrame
 from arl.image.operations import export_image_to_fits, smooth_image, qa_image
 from arl.imaging import predict_skycomponent_visibility
@@ -130,13 +131,22 @@ class TestPipelineGraphs(unittest.TestCase):
     
     def test_ical_pipeline(self):
         self.actualSetUp(add_errors=True, block=True)
+        
+        controls = create_calibration_controls()
+        
+        controls['T']['first_selfcal'] = 2
+        controls['G']['first_selfcal'] = 3
+        controls['B']['first_selfcal'] = 4
+
+        controls['T']['timescale'] = 'auto'
+        controls['G']['timescale'] = 'auto'
+        controls['B']['timescale'] = 1e5
+
         ical_graph = \
-            create_ical_pipeline_graph(self.vis_graph_list, model_graph=self.model_graph,
-                                       context='wstack', global_solution=False,
-                                       algorithm='mmclean', vis_slices=51, facets=1,
-                                       niter=1000, fractional_threshold=0.1,
-                                       nmoments=3, nchan=self.freqwin,
-                                       threshold=2.0, nmajor=5, gain=0.1, first_selfcal=1)
+            create_ical_pipeline_graph(self.vis_graph_list, model_graph=self.model_graph, context='wstack',
+                                       do_selfcal=1, global_solution=False, algorithm='mmclean', vis_slices=51,
+                                       facets=1, niter=1000, fractional_threshold=0.1, nmoments=3, nchan=self.freqwin,
+                                       threshold=2.0, nmajor=6, gain=0.1)
         if self.compute:
             clean, residual, restored = ical_graph.compute()
             export_image_to_fits(clean[0], '%s/test_pipelines_ical_pipeline_clean.fits' % self.dir)

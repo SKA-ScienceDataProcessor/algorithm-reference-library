@@ -7,7 +7,7 @@ import logging
 
 import numpy
 
-from arl.calibration.calibration_context import calibrate_function, calibration_contexts
+from arl.calibration.calibration_control import calibrate_function, create_calibration_controls
 from arl.data.data_models import Image, BlockVisibility, GainTable
 from arl.data.parameters import get_parameter
 from arl.image.deconvolution import deconvolve_cube, restore_cube
@@ -18,31 +18,23 @@ from arl.visibility.coalesce import convert_blockvisibility_to_visibility
 
 log = logging.getLogger(__name__)
 
-def ical(block_vis: BlockVisibility, model: Image, components=None, context='2d', **kwargs):
+def ical(block_vis: BlockVisibility, model: Image, components=None, context='2d', controls=None, **kwargs):
     """ Post observation image, deconvolve, and self-calibrate
    
     :param vis:
     :param model: Model image
-    :param predict: Predict function e.g. predict_2d, predict_wstack
-    :param invert: Invert function e.g. invert_2d, invert_wstack
+    :param components: Initial components
+    :param context: Imaging context
+    :param controls: Calibration controls dictionary
     :return: model, residual, restored
     """
     nmajor = get_parameter(kwargs, 'nmajor', 5)
     log.info("ical: Performing %d major cycles" % nmajor)
     
-    control = calibration_contexts()
-    
-    do_selfcal = get_parameter(kwargs, "do_selfcal", True)
-    
-    control['T']['first_iteration'] = get_parameter(kwargs, "T_first_selfcal", 2)
-    control['G']['first_iteration'] = get_parameter(kwargs, "G_first_selfcal", nmajor - 2)
-    control['B']['first_iteration'] = get_parameter(kwargs, "B_first_selfcal", nmajor - 1)
-    
-    control['T']['timescale'] = get_parameter(kwargs, "T_timescale", 'auto')
-    control['G']['timescale'] = get_parameter(kwargs, "G_timescale", 'auto')
-    control['B']['timescale'] = get_parameter(kwargs, "B_timescale", 1e4)
-    
-    print(control)
+    do_selfcal = get_parameter(kwargs, "do_selfcal", False)
+
+    if controls is None:
+        controls = create_calibration_controls(**kwargs)
     
     # The model is added to each major cycle and then the visibilities are
     # calculated from the full model
@@ -58,7 +50,7 @@ def ical(block_vis: BlockVisibility, model: Image, components=None, context='2d'
         vispred = predict_skycomponent_visibility(vispred, components)
     
     if do_selfcal:
-        vis, gaintables = calibrate_function(vis, vispred, 'TGB', control, iteration=-1)
+        vis, gaintables = calibrate_function(vis, vispred, 'TGB', controls, iteration=-1)
     
     visres.data['vis'] = vis.data['vis'] - vispred.data['vis']
     dirty, sumwt = invert_function(visres, model, context=context, **kwargs)
@@ -75,7 +67,7 @@ def ical(block_vis: BlockVisibility, model: Image, components=None, context='2d'
         vispred.data['vis'][...] = 0.0
         vispred = predict_function(vispred, model, context=context, **kwargs)
         if do_selfcal:
-            vis, gaintables = calibrate_function(vis, vispred, 'TGB', control, iteration=i)
+            vis, gaintables = calibrate_function(vis, vispred, 'TGB', controls, iteration=i)
         visres.data['vis'] = vis.data['vis'] - vispred.data['vis']
         
         dirty, sumwt = invert_function(visres, model, context=context, **kwargs)
@@ -110,8 +102,7 @@ def continuum_imaging(vis: BlockVisibility, model: Image, components=None, conte
 
 
 def spectral_line_imaging(vis: BlockVisibility, model: Image, continuum_model: Image = None, continuum_components=None,
-                          context='2d', deconvolve_spectral=False,
-                          **kwargs) -> (Image, Image, Image):
+                          context='2d', **kwargs) -> (Image, Image, Image):
     """Spectral line imaging from calibrated (DIE) data
     
     A continuum model can be subtracted, and the residual image deconvolved.

@@ -273,17 +273,10 @@ def trial_case(results, seed=180555, context='wstack', nworkers=8, threads_per_w
     start = time.time()
     print("****** Starting ICAL ******")
     start = time.time()
-    ical_graph = create_ical_pipeline_graph(vis_graph_list,
-                                            nchan = nfreqwin,
-                                            model_graph=model_graph,
-                                            context=context,
-                                            vis_slices=vis_slices,
-                                            algorithm='mmclean', nmoments=3,
-                                            niter=1000,
-                                            fractional_threshold=0.1, scales=[0, 3, 10],
-                                            threshold=0.1, nmajor=5, gain=0.7,
-                                            first_selfcal=1, timeslice='auto',
-                                            global_solution=True,
+    ical_graph = create_ical_pipeline_graph(vis_graph_list, model_graph=model_graph, context=context, do_selfcal=1,
+                                            nchan=nfreqwin, vis_slices=vis_slices, algorithm='mmclean', nmoments=3,
+                                            niter=1000, fractional_threshold=0.1, scales=[0, 3, 10], threshold=0.1,
+                                            nmajor=5, gain=0.7, timeslice='auto', global_solution=True,
                                             window_shape='quarter')
     end = time.time()
     results['time ICAL graph'] = end - start

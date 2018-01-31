@@ -10,7 +10,7 @@ from arl.graphs.delayed import create_deconvolve_graph, create_invert_graph, cre
 
 
 def create_ical_pipeline_graph(vis_graph_list, model_graph: delayed, context='2d',
-                               first_selfcal=None, **kwargs) -> delayed:
+                               do_selfcal=True, **kwargs) -> delayed:
     """Create graph for ICAL pipeline
 
     :param vis_graph_list:
@@ -23,7 +23,7 @@ def create_ical_pipeline_graph(vis_graph_list, model_graph: delayed, context='2d
 
     model_vis_graph_list = create_zero_vis_graph_list(vis_graph_list)
     model_vis_graph_list = create_predict_graph(model_vis_graph_list, model_graph, context=context, **kwargs)
-    if first_selfcal is not None and first_selfcal == 0:
+    if do_selfcal:
         # Make the predicted visibilities, selfcalibrate against it correcting the gains, then
         # form the residual visibility, then make the residual image
         vis_graph_list = create_calibrate_graph_list(vis_graph_list, model_vis_graph_list, **kwargs)
@@ -40,7 +40,7 @@ def create_ical_pipeline_graph(vis_graph_list, model_graph: delayed, context='2d
     nmajor = get_parameter(kwargs, "nmajor", 5)
     if nmajor > 1:
         for cycle in range(nmajor):
-            if first_selfcal is not None and cycle >= first_selfcal:
+            if do_selfcal:
                 model_vis_graph_list = create_zero_vis_graph_list(vis_graph_list)
                 model_vis_graph_list = create_predict_graph(model_vis_graph_list, deconvolve_model_graph,
                                                             context=context, **kwargs)

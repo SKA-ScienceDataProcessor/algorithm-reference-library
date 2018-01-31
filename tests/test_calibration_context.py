@@ -12,7 +12,7 @@ import astropy.units as u
 from arl.data.data_models import Skycomponent
 from arl.data.polarisation import PolarisationFrame
 
-from arl.calibration.calibration_context import calibrate_function, calibration_contexts, apply_gaintable
+from arl.calibration.calibration_control import calibrate_function, create_calibration_controls, apply_gaintable
 from arl.calibration.operations import create_gaintable_from_blockvisibility, gaintable_summary
 from arl.util.testing_support import create_named_configuration, simulate_gaintable
 from arl.visibility.operations import divide_visibility
@@ -64,8 +64,10 @@ class TestCalibrationContext(unittest.TestCase):
         self.vis = apply_gaintable(self.vis, bgt, timeslice=1e5)
         self.vis = apply_gaintable(self.vis, gt, timeslice='auto')
         # Now get the control dictionary and calibrate
-        control = calibration_contexts()
-        calibrated_vis, gaintables = calibrate_function(self.vis, original, context = 'TB', control=control)
+        controls = create_calibration_controls()
+        controls['T']['first_selfcal']=0
+        controls['B']['first_selfcal']=0
+        calibrated_vis, gaintables = calibrate_function(self.vis, original, context = 'TB', controls=controls)
         residual = numpy.max(gaintables['T'].residual)
         assert residual < 3e-2, "Max T residual = %s" % (residual)
         residual = numpy.max(gaintables['B'].residual)

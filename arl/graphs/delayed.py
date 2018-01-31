@@ -40,6 +40,7 @@ from dask.distributed import wait
 
 from arl.calibration.operations import apply_gaintable
 from arl.calibration.solvers import solve_gaintable
+from arl.calibration.calibration_control import calibrate_function
 from arl.data.data_models import Image, BlockVisibility
 from arl.data.parameters import get_parameter
 from arl.image.deconvolution import deconvolve_cube, restore_cube
@@ -506,7 +507,10 @@ def create_calibrate_graph_list(vis_graph_list, model_vis_graph_list, global_sol
     :param kwargs: Parameters for functions in graphs
     :return:
     """
-    
+
+    def solve_and_apply(vis, modelvis=None):
+        return calibrate_function(vis, modelvis, **kwargs)[0]
+
     if global_solution:
         point_vis_graph_list = [delayed(divide_visibility, nout=len(vis_graph_list))(vis_graph_list[i],
                                                                                      model_vis_graph_list[i])
@@ -514,13 +518,10 @@ def create_calibrate_graph_list(vis_graph_list, model_vis_graph_list, global_sol
         global_point_vis_graph = delayed(visibility_gather_channel, nout=1)(point_vis_graph_list)
         global_point_vis_graph = delayed(integrate_visibility_by_channel, nout=1)(global_point_vis_graph)
         # This is a global solution so we only get one gain table
-        gt_graph = delayed(solve_gaintable, pure=True, nout=1)(global_point_vis_graph, **kwargs)
+        _, gt_graph = delayed(solve_and_apply, pure=True, nout=2)(global_point_vis_graph, **kwargs)
         return [delayed(apply_gaintable, nout=len(vis_graph_list))(v, gt_graph, inverse=True)
                 for v in vis_graph_list]
     else:
-        def solve_and_apply(vis, modelvis):
-            gt = solve_gaintable(vis, modelvis, **kwargs)
-            return apply_gaintable(vis, gt, inverse=True, **kwargs)
         
         return [delayed(solve_and_apply, nout=len(vis_graph_list))(vis_graph_list[i], model_vis_graph_list[i])
                 for i, v in enumerate(vis_graph_list)]
