@@ -4,10 +4,22 @@
 // simply fetches the pointer from Python and calls that.
 //
 
+#include <stdlib.h>
+#include <string.h>
 #include <Python.h>
 
 #include "arlwrap.h"
 
+#ifdef __GNUC__
+#define ARL_TLS __thread
+#else
+#define ARL_TLS
+#endif
+static ARL_TLS int arl_bypass_ = 0;
+static ARL_TLS int arl_bypass_check_ = 0;
+
+void void_routine(__VA_ARGS__) {
+}
 // in: fname: same as the *NamedTuple* containing the FFI memory address of a
 // Python routine.
 // E.G.: Python routine 'arl_restore_cube_fii', NamedTuple 'arl_restore_cube' =>
@@ -19,9 +31,26 @@
 size_t bk_getfn(const char* fname)
 {
   size_t res=0;
+  PyObject *m, *pyfn, *fnaddress;
   PyGILState_STATE gilstate = PyGILState_Ensure();
   
-  PyObject *m, *pyfn, *fnaddress;
+	
+  /* Return immediately if the environment variable
+   * has already been checked. */
+  if (!arl_bypass_check_) {
+      char* flag = getenv("ARL_BYPASS_FFI");
+      arl_bypass_check_ = 1;
+      if (flag && (
+              !strcmp(flag, "TRUE") ||
+              !strcmp(flag, "true") ||
+              !strcmp(flag, "1") ))
+          arl_bypass_ = 1;
+  }
+	// call 'void' routine if ARL_BYPASS_FFI is set
+	if (arl_bypass_) {
+		return &void_routine;
+	}
+
   if(!(  m= PyImport_ImportModule("arlwrap") ))
     goto failed;
   if(!( pyfn = PyObject_GetAttrString(m, fname)))
