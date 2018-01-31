@@ -68,7 +68,7 @@ typedef struct {int nant, nbases;} ant_t;
 
 // Prototypes to ARL routines
 void helper_get_image_shape(const double *frequency, double cellsize,
-		int *shape);
+		int OUTshape[4]);
 void helper_get_nbases(char *, ant_t *);
 void helper_set_image_params(const ARLVis *vis, Image *image);
 

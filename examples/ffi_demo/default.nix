@@ -7,7 +7,11 @@
 # 
 { system ? builtins.currentSystem , crossSystem ? null, config ? {}}:
 let
-  pkgs=(import <nixpkgs>) { inherit system crossSystem config; };
+  # NB trunk nixos is needed at the moment for JAVA binding. Confirmed
+  # to work cffi-1.11.2 / openjdk-8u172b02. Does not work cffi 1.10.0
+  # / openjdk-8u152b16. No time to bisect
+  pkgs=(import /home/bnikolic/oss/nixpkgs) { inherit system crossSystem config; };
+  #  pkgs=(import <nixpkgs1709>) { inherit system crossSystem config; };
 
   cfitsio = pkgs.stdenv.mkDerivation {
   name = "cfitsio-3.21";
