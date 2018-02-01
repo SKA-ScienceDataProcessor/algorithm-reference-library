@@ -12,9 +12,10 @@ from arl.visibility.base import create_visibility, copy_visibility
 from arl.data.data_models import Image, Visibility, BlockVisibility
 from arl.image.deconvolution import deconvolve_cube, restore_cube
 from arl.imaging.base import create_image_from_visibility, predict_2d
-from arl.imaging import invert_2d
-from arl.util.testing_support import create_named_configuration, create_test_image
+from arl.imaging import invert_2d, advise_wide_field
+from arl.util.testing_support import create_named_configuration, create_test_image, create_low_test_image_from_gleam
 from arl.data.polarisation import PolarisationFrame
+from arl.visibility.base import create_blockvisibility
 
 import pickle
 
@@ -55,6 +56,31 @@ def cARLVis(visin):
                                  dtype=desc,
                                  count=nvis)
     return r
+
+
+def ARLBlockDataVisSize(ntimes, nants, nchan, npol):
+    return (24+24*int(nants*nants) + 24*int(nants*nants)*int(nchan)*int(npol))*int(ntimes)
+
+def cARLBlockVis(visin, nants, nchan):
+    """
+    Convert a const ARLVis * into the ARL BlockVisiblity structure
+    """
+    npol=visin.npol
+    ntimes=visin.nvis
+    #print (ARLDataVisSize(nvis, npol))
+    desc = [('index', '>i8'),
+            ('uvw', '>f8', (nants, nants, 3)),
+            ('time', '>f8'),
+            ('integration_time', '>f8'),
+            ('vis', '>c16', (nants, nants, nchan, npol)),
+            ('weight', '>f8', (nants, nants, nchan, npol))]
+    r=numpy.frombuffer(ff.buffer(visin.data,
+                                 ARLBlockDataVisSize(ntimes, nants, nchan, npol)),
+                                 dtype=desc,
+                                 count=ntimes)
+    return r
+
+
 
 @ff.callback("void (*)(const ARLVis *, ARLVis *, bool)")
 def arl_copy_visibility_ffi(visin, visout, zero):
@@ -158,13 +184,16 @@ def helper_create_visibility_object(c_vis):
     return tvis
 
 # Turns ARLVis struct into BlockVisibility object
-def helper_create_blockvisibility_object(c_vis):
+def helper_create_blockvisibility_object(c_vis, freqs, chan_b, config):
     # This may be incorrect
     # especially the data field...
     tvis= BlockVisibility(
             data=c_vis,
-            frequency=c_vis['frequency'],
-            channel_bandwidth=c_vis['channel_bandwidth'],
+    #        frequency=c_vis['frequency'],
+    #        channel_bandwidth=c_vis['channel_bandwidth'],
+	    frequency = freqs,
+            channel_bandwidth = chan_b,
+            configuration = config,
             integration_time=c_vis['integration_time'],
             weight=c_vis['weight'],
             uvw=c_vis['uvw'],
@@ -196,7 +225,9 @@ typedef struct {
   double *channel_bandwidth;
   int nchanwidth;
   int nbases;
+  int nant;
   int npol;
+  double rmax;
 } ARLConf;
 """)
 
@@ -205,9 +236,9 @@ def arl_create_visibility_ffi(lowconfig, c_res_vis):
     lowcore_name = str(ff.string(lowconfig.confname), 'utf-8')
     lowcore = create_named_configuration(lowcore_name)
 
-    times = numpy.frombuffer(ff.buffer(lowconfig.times, 8), dtype='f8', count=lowconfig.ntimes)
-    frequency = numpy.frombuffer(ff.buffer(lowconfig.freqs, 8), dtype='f8', count=lowconfig.nfreqs)
-    channel_bandwidth = numpy.frombuffer(ff.buffer(lowconfig.channel_bandwidth, 8), dtype='f8', count=lowconfig.nchanwidth)
+    times = numpy.frombuffer(ff.buffer(lowconfig.times, 8*lowconfig.ntimes), dtype='f8', count=lowconfig.ntimes)
+    frequency = numpy.frombuffer(ff.buffer(lowconfig.freqs, 8*lowconfig.nfreqs), dtype='f8', count=lowconfig.nfreqs)
+    channel_bandwidth = numpy.frombuffer(ff.buffer(lowconfig.channel_bandwidth, 8*lowconfig.nchanwidth), dtype='f8', count=lowconfig.nchanwidth)
 
     print(lowcore_name)
     print("Times: ", times)
@@ -232,6 +263,71 @@ def arl_create_visibility_ffi(lowconfig, c_res_vis):
 arl_create_visibility=collections.namedtuple("FFIX", "address")
 arl_create_visibility.address=int(ff.cast("size_t", arl_create_visibility_ffi))
 
+@ff.callback("void (*)(ARLConf *, ARLVis *)")
+def arl_create_blockvisibility_ffi(lowconfig, c_res_vis):
+    lowcore_name = str(ff.string(lowconfig.confname), 'utf-8')
+    lowcore = create_named_configuration(lowcore_name)
+
+    times = numpy.frombuffer(ff.buffer(lowconfig.times, 8*lowconfig.ntimes), dtype='f8', count=lowconfig.ntimes)
+    frequency = numpy.frombuffer(ff.buffer(lowconfig.freqs, 8*lowconfig.nfreqs), dtype='f8', count=lowconfig.nfreqs)
+    channel_bandwidth = numpy.frombuffer(ff.buffer(lowconfig.channel_bandwidth, 8*lowconfig.nchanwidth), dtype='f8', count=lowconfig.nchanwidth)
+
+    print(lowcore_name)
+    print("Times: ", times)
+    print("Freqs: ", frequency)
+    print("BW : ", channel_bandwidth)
+    print("PCentre: ", lowconfig.pc_ra, lowconfig.pc_dec)
+
+    phasecentre = SkyCoord(ra=lowconfig.pc_ra * u.deg, dec=lowconfig.pc_dec*u.deg, frame='icrs',
+            equinox='J2000')
+
+    vt = create_blockvisibility(lowcore, times, frequency=frequency,
+            channel_bandwidth=channel_bandwidth, weight=1.0,
+            phasecentre=phasecentre,
+            polarisation_frame=PolarisationFrame('stokesI'))
+
+    py_res_vis = cARLBlockVis(c_res_vis, lowconfig.nant, lowconfig.nfreqs)
+
+    numpy.copyto(py_res_vis, vt.data)
+
+    store_phasecentre(c_res_vis.phasecentre, phasecentre)
+
+arl_create_blockvisibility=collections.namedtuple("FFIX", "address")
+arl_create_blockvisibility.address=int(ff.cast("size_t", arl_create_blockvisibility_ffi))
+
+ff.cdef("""
+typedef struct {
+	int vis_slices;
+	int npixel;
+	double cellsize;
+	double guard_band_image;
+	double delA;
+	int wprojection_planes;
+} ARLadvice ;
+""")
+
+@ff.callback("void (*)(ARLConf *, ARLVis *, ARLadvice *)")
+def arl_advise_wide_field_ffi(lowconfig, vis_in, adv):
+    lowcore_name = str(ff.string(lowconfig.confname), 'utf-8')
+    lowcore = create_named_configuration(lowcore_name, rmax=lowconfig.rmax)
+    c_visin = cARLBlockVis(vis_in, lowconfig.nant, lowconfig.nfreqs)
+
+    frequency = numpy.frombuffer(ff.buffer(lowconfig.freqs, 8*lowconfig.nfreqs), dtype='f8', count=lowconfig.nfreqs)
+    channel_bandwidth = numpy.frombuffer(ff.buffer(lowconfig.channel_bandwidth, 8*lowconfig.nchanwidth), dtype='f8', count=lowconfig.nchanwidth)
+
+    py_visin = helper_create_blockvisibility_object(c_visin, frequency, channel_bandwidth, lowcore)
+    advice=advise_wide_field(py_visin, guard_band_image=adv.guard_band_image, delA=adv.delA,
+                             wprojection_planes=adv.wprojection_planes)
+    print(advice['vis_slices'], advice['npixels2'], advice['cellsize'])
+    
+    adv.cellsize = advice['cellsize']
+    adv.vis_slices = advice['vis_slices']
+    adv.npixel = advice['npixels2']
+	
+arl_advise_wide_field=collections.namedtuple("FFIX", "address")
+arl_advise_wide_field.address=int(ff.cast("size_t", arl_advise_wide_field_ffi))
+
+
 ff.cdef("""
 typedef struct {int nant, nbases;} ant_t;
 """)
@@ -248,6 +344,21 @@ def helper_get_nbases_ffi(config_name, nbases_in):
 helper_get_nbases=collections.namedtuple("FFIX", "address")    
 helper_get_nbases.address=int(ff.cast("size_t", helper_get_nbases_ffi))  
 
+@ff.callback("void (*)(ARLConf *, double, int, int *)")
+def helper_get_image_shape_multifreq_ffi(lowconfig, cellsize, npixel, c_shape):
+    frequency = numpy.frombuffer(ff.buffer(lowconfig.freqs, 8*lowconfig.nfreqs), dtype='f8', count=lowconfig.nfreqs)
+    channel_bandwidth = numpy.frombuffer(ff.buffer(lowconfig.channel_bandwidth, 8*lowconfig.nchanwidth), dtype='f8', count=lowconfig.nchanwidth)
+    res = create_low_test_image_from_gleam(npixel=npixel, frequency=frequency,
+    channel_bandwidth=channel_bandwidth, cellsize=cellsize, flux_limit = 10.)
+#	phasecentre=phasecentre, applybeam=True)
+#    res = create_test_image(frequency=frequency, cellsize=cellsize, npixel = npixel)
+
+    shape = list(res.data.shape)
+    # TODO fix ugly
+    numpy.copyto(numpy.frombuffer(ff.buffer(c_shape,4*4),dtype='i4',count=4), shape)
+
+helper_get_image_shape_multifreq=collections.namedtuple("FFIX", "address")
+helper_get_image_shape_multifreq.address=int(ff.cast("size_t", helper_get_image_shape_multifreq_ffi))
 
 # TODO temporary until better solution found
 @ff.callback("void (*)(const double *, double, int *)")
@@ -284,8 +395,6 @@ def arl_create_test_image_ffi(frequency, cellsize, c_phasecentre, out_img):
 
     phasecentre = load_phasecentre(c_phasecentre)
 
-    nchan, npol, ny, nx = res.data.shape
-
     res.wcs.wcs.crval[0] = phasecentre.ra.deg
     res.wcs.wcs.crval[1] = phasecentre.dec.deg
     res.wcs.wcs.crpix[0] = float(nx // 2)
@@ -295,6 +404,30 @@ def arl_create_test_image_ffi(frequency, cellsize, c_phasecentre, out_img):
 
 arl_create_test_image=collections.namedtuple("FFIX", "address")
 arl_create_test_image.address=int(ff.cast("size_t", arl_create_test_image_ffi))
+
+@ff.callback("void (*)(ARLConf *, double, int, char*, Image *)")
+def arl_create_low_test_image_from_gleam_ffi(lowconfig, cellsize, npixel, c_phasecentre, out_img):
+    py_outimg = cImage(out_img, new=True)
+    frequency = numpy.frombuffer(ff.buffer(lowconfig.freqs, 8*lowconfig.nfreqs), dtype='f8', count=lowconfig.nfreqs)
+    channel_bandwidth = numpy.frombuffer(ff.buffer(lowconfig.channel_bandwidth, 8*lowconfig.nchanwidth), dtype='f8', count=lowconfig.nchanwidth)
+
+    phasecentre = load_phasecentre(c_phasecentre)
+    res = create_low_test_image_from_gleam(npixel=npixel, frequency=frequency,
+    channel_bandwidth=channel_bandwidth, cellsize=cellsize, flux_limit = 0.1, phasecentre=phasecentre, applybeam=True)
+    nchan, npol, ny, nx = res.data.shape
+
+    nchan, npol, ny, nx = res.data.shape
+
+    res.wcs.wcs.crval[0] = phasecentre.ra.deg
+    res.wcs.wcs.crval[1] = phasecentre.dec.deg
+    res.wcs.wcs.crpix[0] = float(nx // 2)
+    res.wcs.wcs.crpix[1] = float(ny // 2)
+
+    store_image_in_c(py_outimg, res)
+
+arl_create_low_test_image_from_gleam=collections.namedtuple("FFIX", "address")
+arl_create_low_test_image_from_gleam.address=int(ff.cast("size_t", arl_create_low_test_image_from_gleam_ffi))
+
 
 @ff.callback("void (*)(const ARLVis *, const Image *, ARLVis *)")
 def arl_predict_2d_ffi(vis_in, img, vis_out):

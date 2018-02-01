@@ -4,8 +4,6 @@
 // simply fetches the pointer from Python and calls that.
 //
 
-#include <stdlib.h>
-#include <string.h>
 #include <Python.h>
 
 #include "../include/arlwrap.h"
@@ -96,11 +94,16 @@ void arl_finalize(void)
 #define BKFNPY(F)  (* ( void (*)() )(bk_getfn( #F ))) 
 
 
-// NB: The CFFI acquires GIL
 void helper_get_image_shape(const double *frequency, double cellsize,
 		int *shape)
 {
   BKFNPY(helper_get_image_shape)(frequency, cellsize, shape);
+}
+
+void helper_get_image_shape_multifreq(ARLConf *lowconf, double cellsize,
+		int npixel, int *shape)
+{
+        BKFNPY(helper_get_image_shape_multifreq)(lowconf, cellsize, npixel, shape);
 }
 
 void helper_set_image_params(const ARLVis *vis, Image *image) {
@@ -117,11 +120,28 @@ void arl_create_visibility(ARLConf *lowconf, ARLVis *res_vis)
   BKFNPY(arl_create_visibility)(lowconf, res_vis);
 }
 
+void arl_create_blockvisibility(ARLConf *lowconf, ARLVis *res_vis)
+{
+	BKFNPY(arl_create_blockvisibility)(lowconf, res_vis);
+}
+
+void arl_advise_wide_field(ARLConf *lowconf, ARLVis *res_vis, ARLadvice *adv)
+{
+	BKFNPY(arl_advise_wide_field)(lowconf, res_vis, adv);
+}
+
+
 
 void arl_create_test_image(const double *frequency, double cellsize, char *phasecentre,
 		Image *res_img)
 {
   BKFNPY(arl_create_test_image)(frequency, cellsize, phasecentre, res_img);
+}
+
+void arl_create_low_test_image_from_gleam(ARLConf *lowconf, double cellsize, int npixel, char *phasecentre,
+		Image *res_img)
+{
+	BKFNPY(arl_create_low_test_image_from_gleam)(lowconf, cellsize, npixel, phasecentre, res_img);
 }
 
 void arl_copy_visibility(const ARLVis *visin,
@@ -153,6 +173,7 @@ void helper_get_nbases(char * config_name, ant_t * nbases)
 {
   BKFNPY(helper_get_nbases)(config_name, nbases);
 }
+
 
 
 

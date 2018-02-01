@@ -8,5 +8,6 @@ Image *allocate_image(int *shape);
 Image *destroy_image(Image *image);
 ARLConf *allocate_arlconf_default(const char *conf_name);
 ARLVis *allocate_vis_data(int npol, int nvis);
+ARLVis *allocate_blockvis_data(int nants, int nchan, int npol, int ntimes);
 ARLVis *destroy_vis(ARLVis *vis);
 #endif

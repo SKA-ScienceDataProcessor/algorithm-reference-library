@@ -119,6 +119,7 @@ ARLConf *allocate_arlconf_default(const char *conf_name)
 	config->channel_bandwidth = malloc(sizeof(double));	
 	config->nchanwidth = 1;
 	config->nbases = nb.nbases;
+	config->nant = nb.nant;
 	config->npol = 1;
 
 	config->freqs[0] = 1e8;
@@ -160,3 +161,29 @@ ARLVis *destroy_vis(ARLVis *vis)
 
 	return NULL;
 }
+
+ARLVis *allocate_blockvis_data(int nant, int nchan, int npol, int ntimes)
+{
+	ARLVis *vis;
+	if (!(vis = malloc(sizeof(ARLVis)))) {
+		return NULL;
+	}
+
+	vis->nvis = ntimes; // storing ntime instead of nvis, ToDo: add extra struct element(s)
+	vis->npol = npol;
+
+	// (24 bytes static data + 24 bytes * nant*nant + 24 bytes *nant*nant*nchan*npol) *ntime
+	if ( !( vis->data = malloc( (24+24*nant*nant+24*nant*nant*nchan*npol)*ntimes * sizeof(char) ) ) ) {
+		free(vis);
+		return NULL;
+	}
+	// pickled phasecentre. Size found through experimentation
+	if (!(vis->phasecentre = malloc(5000*sizeof(char)))) {
+		free(vis->data);
+		free(vis);
+		return NULL;
+	}
+
+	return vis;
+}
+
