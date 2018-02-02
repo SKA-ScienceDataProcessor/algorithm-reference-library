@@ -19,6 +19,21 @@ from arl.data.polarisation import PolarisationFrame
 
 log = logging.getLogger(__name__)
 
+def copy_skycomponent(sc):
+    """Copy a sky component
+    
+    :param sc: 
+    :return: 
+    """
+    return Skycomponent(
+        direction=sc.direction,
+        frequency=sc.frequency,
+        name=sc.name,
+        flux=sc.flux,
+        shape=sc.shape,
+        params=sc.params,
+        polarisation_frame=sc.polarisation_frame)
+  
 
 def create_skycomponent(direction: SkyCoord, flux: numpy.array, frequency: numpy.array, shape: str = 'Point',
                         polarisation_frame=PolarisationFrame("stokesIQUV"), param: dict = None, name: str = '') \
@@ -152,6 +167,7 @@ def apply_beam_to_skycomponent(sc: Union[Skycomponent, List[Skycomponent]], beam
     """ Insert a Skycomponet into an image
     :param beam:
     :param sc: SkyComponent or list of SkyComponents
+    :param flux_limit: flux limit on input
     :return: List of skycomponents
     """
     assert isinstance(beam, Image)

@@ -240,7 +240,7 @@ def invert_2d(vis: Visibility, im: Image, dopsf=False, normalize=True, **kwargs)
 
 
 def predict_skycomponent_visibility(vis: Union[Visibility, BlockVisibility],
-                                    sc: Union[Skycomponent, List[Skycomponent]]) -> Visibility:
+                                    sc: Union[Skycomponent, List[Skycomponent]]) -> Union[Visibility, BlockVisibility]:
     """Predict the visibility from a Skycomponent, add to existing visibility, for Visibility or BlockVisibility
 
     :param vis: Visibility or BlockVisibility

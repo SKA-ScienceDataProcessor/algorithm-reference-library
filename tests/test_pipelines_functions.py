@@ -119,12 +119,12 @@ class TestPipelinesFunctions(unittest.TestCase):
         self.setupVis(add_errors=True, block=True, freqwin=5)
         for igt, gt in enumerate(rcal(vis=self.vis, components=self.comps)):
             log.info("Chunk %d: %s" % (igt, qa_gaintable(gt)))
-    
+
     def test_ICAL(self):
-        self.setupVis(add_errors=True, block=True, freqwin=5)
+        self.setupVis(add_errors=True, block=True, freqwin=3)
         model = create_empty_image_like(self.model)
         comp, residual, restored = ical(self.vis, model, algorithm='msclean', context='wstack',
-                                        vis_slices=51,
+                                        vis_slices=11,
                                         scales=[0, 3, 10, 30], threshold=0.01, findpeak='ARL',
                                         fractional_threshold=0.01,
                                         T_first_selfcal=2,
@@ -134,12 +134,28 @@ class TestPipelinesFunctions(unittest.TestCase):
         export_image_to_fits(comp, "%s/test_pipelines-ical-deconvolved.fits" % (self.dir))
         export_image_to_fits(residual, "%s/test_pipelines-ical-residual.fits" % (self.dir))
         export_image_to_fits(restored, "%s/test_pipelines-ical-restored.fits" % (self.dir))
-    
-    def test_ICAL_bandpass(self):
-        self.setupVis(add_errors=True, block=True, freqwin=32, bandpass=True)
+
+    def test_ICAL_global(self):
+        self.setupVis(add_errors=True, block=True, freqwin=3)
         model = create_empty_image_like(self.model)
         comp, residual, restored = ical(self.vis, model, algorithm='msclean', context='wstack',
-                                        vis_slices=51,
+                                        vis_slices=11,
+                                        scales=[0, 3, 10, 30], threshold=0.01, findpeak='ARL',
+                                        fractional_threshold=0.01,
+                                        T_first_selfcal=2,
+                                        G_first_selfcal=3,
+                                        B_first_selfcal=4,
+                                        nmajor=5,
+                                        do_global=True)
+        export_image_to_fits(comp, "%s/test_pipelines-ical-deconvolved.fits" % (self.dir))
+        export_image_to_fits(residual, "%s/test_pipelines-ical-residual.fits" % (self.dir))
+        export_image_to_fits(restored, "%s/test_pipelines-ical-restored.fits" % (self.dir))
+
+    def test_ICAL_bandpass(self):
+        self.setupVis(add_errors=True, block=True, freqwin=8, bandpass=True)
+        model = create_empty_image_like(self.model)
+        comp, residual, restored = ical(self.vis, model, algorithm='msclean', context='wstack',
+                                        vis_slices=11,
                                         scales=[0, 3, 10, 30], threshold=0.01, findpeak='ARL',
                                         fractional_threshold=0.01,
                                         T_first_selfcal=2,
@@ -155,7 +171,7 @@ class TestPipelinesFunctions(unittest.TestCase):
         model = create_empty_image_like(self.model)
         comp, residual, restored = continuum_imaging(self.vis, model, algorithm='msmfsclean',
                                                      context='wstack',
-                                                     vis_slices=51,
+                                                     vis_slices=11,
                                                      scales=[0, 3, 10], threshold=0.01, nmoments=2,
                                                      findpeak='ARL',
                                                      fractional_threshold=0.01)
