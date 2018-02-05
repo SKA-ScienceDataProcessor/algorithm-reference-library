@@ -45,7 +45,7 @@ def create_sagecal_thetas(vis, comps, **kwargs):
     return thetas
 
 
-def sagecal_fit_component(evis, thetas, window_index, gain=0.1, **kwargs):
+def sagecal_fit_component(evis, theta, gain=0.1, **kwargs):
     """Fit a single component to a visibility i.e. A13
 
     # Just do the amplitude for now
@@ -56,14 +56,13 @@ def sagecal_fit_component(evis, thetas, window_index, gain=0.1, **kwargs):
     :return:
     """
     cvis = convert_blockvisibility_to_visibility(evis)
-    new_comp = copy_skycomponent(thetas[window_index][0])
+    new_comp = copy_skycomponent(theta[0])
     new_flux, _ = sum_visibility(cvis, new_comp.direction)
     new_comp.flux = gain * new_flux + (1.0 - gain) * new_comp.flux
     return new_comp
 
 
-def sagecal_fit_gaintable(evis, thetas, window_index, gain=0.1, niter=10,
-                          **kwargs):
+def sagecal_fit_gaintable(evis, theta, gain=0.1, niter=3, tol=1e-3, **kwargs):
     """Fit a gaintable to a visibility i.e. A13
 
     :param evis:
@@ -71,28 +70,25 @@ def sagecal_fit_gaintable(evis, thetas, window_index, gain=0.1, niter=10,
     :param kwargs:
     :return:
     """
-    theta = thetas[window_index]
-    previous_gt = theta[1]
+    previous_gt = copy_gaintable(theta[1])
+    gt = copy_gaintable(theta[1])
     model_vis = copy_visibility(evis, zero=True)
     model_vis = predict_skycomponent_visibility(model_vis, theta[0])
-    gt = solve_gaintable(evis, model_vis, gt=previous_gt, niter=niter, phase_only=True, **kwargs)
+    gt = solve_gaintable(evis, model_vis, gt=gt, niter=niter, phase_only=True, gain=0.9, tol=1e-4, **kwargs)
     gt.data['gain'][...] = gain * gt.data['gain'][...] + \
                            (1 - gain) * previous_gt.data['gain'][...]
     gt.data['gain'][...] /= numpy.abs(previous_gt.data['gain'][...])
     return gt
 
 
-def sagecal_e_step(vis: BlockVisibility, evis_all: BlockVisibility, thetas,
-                   window_index, beta=1.0, **kwargs):
+def sagecal_e_step(vis: BlockVisibility, evis_all: BlockVisibility, theta, beta=1.0, **kwargs):
     """Calculates E step in equation A12
 
     :param vis:
-    :param thetas:
-    :param window_index:
+    :param theta:
     :param kwargs:
     :return:
     """
-    theta = thetas[window_index]
     evis = copy_visibility(evis_all)
     tvis = copy_visibility(vis, zero=True)
     tvis = predict_skycomponent_visibility(tvis, theta[0])
@@ -120,20 +116,34 @@ def sagecal_e_all(vis: BlockVisibility, thetas, **kwargs):
     return evis
 
 
-def sagecal_m_step(evis: BlockVisibility, thetas, window_index, gain=0.25,
+def sagecal_m_step(evis: BlockVisibility, theta, gain=0.25,
                    **kwargs):
     """Calculates M step in equation A13
     
     :param vis:
-    :param window_index:
+    :param theta:
     :param kwargs:
     :return:
     """
-    return (sagecal_fit_component(evis, thetas, window_index, gain=gain, **kwargs),
-            sagecal_fit_gaintable(evis, thetas, window_index, gain=gain, **kwargs))
+    return (sagecal_fit_component(evis, theta, gain=gain, **kwargs),
+            sagecal_fit_gaintable(evis, theta, gain=gain, **kwargs))
 
 
-def sagecal_solve(vis, components, niter=10, tol=1e-8, **kwargs):
+def sagecal_monitor(iter, thetas, window_index):
+    """Callback for monitoring
+
+    :param iter:
+    :param thetas:
+    :param window_index:
+    :return:
+    """
+    flux = thetas[window_index][0].flux[0, 0]
+    qa = qa_gaintable(thetas[window_index][1])
+    residual = qa.data['residual']
+    print("\t Window %d, flux %s, residual %.3f" % (window_index, str(flux), residual))
+
+
+def sagecal_solve(vis, components, niter=10, tol=1e-8, monitor=sagecal_monitor, **kwargs):
     """ Solve
     
     :param vis:
@@ -144,22 +154,25 @@ def sagecal_solve(vis, components, niter=10, tol=1e-8, **kwargs):
     """
     thetas = create_sagecal_thetas(vis, components, **kwargs)
     
-    new_thetas = list()
     for iter in range(niter):
         new_thetas = list()
         evis_all = sagecal_e_all(vis, thetas, **kwargs)
         print("Iteration %d" % (iter))
         for window_index, theta in enumerate(thetas):
-            evis = sagecal_e_step(vis, evis_all, thetas, window_index, **kwargs)
-            new_theta = sagecal_m_step(evis, thetas, window_index, **kwargs)
+            evis = sagecal_e_step(vis, evis_all, theta, **kwargs)
+            new_theta = sagecal_m_step(evis, theta, **kwargs)
             new_thetas.append(new_theta)
+            
             flux = new_theta[0].flux[0, 0]
             qa = qa_gaintable(new_theta[1])
             residual = qa.data['residual']
-            print("\t Window %d, flux %s, residual %.3f" % (window_index, str(flux), residual))
+            rms_phase = qa.data['rms-phase']
+            print("\t Window %d, flux %s, residual %.3f, rms phase %.3f" % (window_index, str(flux), residual,
+                                                                            rms_phase))
         thetas = new_thetas
     
     residual_vis = copy_visibility(vis)
     final_vis = sagecal_e_all(vis, thetas, **kwargs)
     residual_vis.data['vis'][...] = vis.data['vis'][...] - final_vis.data['vis'][...]
-    return new_thetas, residual_vis
+    return thetas, residual_vis
+

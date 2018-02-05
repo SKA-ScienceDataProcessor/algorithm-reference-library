@@ -35,10 +35,10 @@ class TestCalibrationSagecal(unittest.TestCase):
         
         numpy.random.seed(180555)
     
-    def actualSetup(self, sky_pol_frame='stokesI', data_pol_frame='stokesI', f=None, vnchan=1):
+    def actualSetup(self, sky_pol_frame='stokesI', data_pol_frame='stokesI', f=None, vnchan=1, doiso=True):
         
         nfreqwin = vnchan
-        ntimes = 1
+        ntimes = 10
         rmax = 300.0
         npixel = 1024
         cellsize = 0.001
@@ -51,7 +51,7 @@ class TestCalibrationSagecal(unittest.TestCase):
         
         phasecentre = SkyCoord(ra=+0.0 * u.deg, dec=-45.0 * u.deg, frame='icrs', equinox='J2000')
         
-        lowcore = create_named_configuration('LOWBD2-CORE', rmax=rmax)
+        lowcore = create_named_configuration('LOWBD2', rmax=rmax)
         
         block_vis = create_blockvisibility(lowcore, times, frequency=frequency, channel_bandwidth=channel_bandwidth,
                                            weight=1.0, phasecentre=phasecentre,
@@ -85,27 +85,28 @@ class TestCalibrationSagecal(unittest.TestCase):
         # Do an isoplanatic selfcal
         self.model_vis = copy_visibility(self.vis, zero=True)
         self.model_vis = predict_skycomponent_visibility(self.model_vis, self.components)
-        gt = solve_gaintable(self.vis, self.model_vis, phase_only=True, timeslice='auto')
-        self.vis = apply_gaintable(self.vis, gt, inverse=True)
+        if doiso:
+            gt = solve_gaintable(self.vis, self.model_vis, phase_only=True, timeslice='auto')
+            self.vis = apply_gaintable(self.vis, gt, inverse=True)
         
         self.model_vis = convert_blockvisibility_to_visibility(self.model_vis)
         self.model_vis,_, _ = weight_visibility(self.model_vis, self.beam)
-        self.dirty_model, sumwt = invert_function(self.model_vis, self.beam, context='2d')
+        self.dirty_model, sumwt = invert_function(self.model_vis, self.beam, context='wstack', vis_slices=51)
         export_image_to_fits(self.dirty_model, "%s/test_sagecal-model_dirty.fits" % self.dir)
 
         lvis = convert_blockvisibility_to_visibility(self.vis)
         lvis, _, _ = weight_visibility(lvis, self.beam)
-        dirty, sumwt = invert_function(lvis, self.beam, context='2d')
+        dirty, sumwt = invert_function(lvis, self.beam, context='wstack', vis_slices=51)
         print(qa_image(dirty))
         export_image_to_fits(dirty, "%s/test_sagecal-initial_dirty.fits" % self.dir)
 
     def test_sagecal_solve(self):
         self.actualSetup()
-        thetas, residual_vis = sagecal_solve(self.vis, self.components, niter=100, tol=1e-8)
+        thetas, residual_vis = sagecal_solve(self.vis, self.components, niter=30, tol=1e-8)
         
         residual_vis = convert_blockvisibility_to_visibility(residual_vis)
         residual_vis,_, _ = weight_visibility(residual_vis, self.beam)
-        dirty, sumwt = invert_function(residual_vis, self.beam, context='2d')
+        dirty, sumwt = invert_function(residual_vis, self.beam, context='wstack', vis_slices=51)
         print(qa_image(dirty))
         export_image_to_fits(dirty, "%s/test_sagecal-final_residual.fits" % self.dir)
 

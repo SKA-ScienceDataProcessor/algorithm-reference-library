@@ -51,8 +51,11 @@ def solve_gaintable(vis: BlockVisibility, modelvis: BlockVisibility = None, gt=N
         log.info('solve_gaintable: Solving for complex gain')
     
     if gt is None:
+        log.debug("solve_gaintable: creating new gaintable")
         gt = create_gaintable_from_blockvisibility(vis, **kwargs)
-    
+    else:
+        log.debug("solve_gaintable: starting from existing gaintable")
+
     for row in range(gt.ntimes):
         vis_rows = numpy.abs(vis.time - gt.time[row]) < gt.interval[row] / 2.0
         if numpy.sum(vis_rows) > 0:
@@ -155,6 +158,7 @@ def solve_antenna_gains_itsubs_scalar(gain, gwt, x, xwt, niter=30, tol=1e-8, pha
         gain = 0.5 * (gain + gainLast)
         change = numpy.max(numpy.abs(gain - gainLast))
         if change < tol:
+            print("solve_antenna_gains_itsubs_scalar: Converged in %d iterations" % iter)
             return gain, gwt, solution_residual_scalar(gain, x, xwt)
     
     return gain, gwt, solution_residual_scalar(gain, x, xwt)
