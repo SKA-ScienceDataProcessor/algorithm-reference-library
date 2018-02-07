@@ -11,6 +11,22 @@ Monthly Notices of the Royal Astronomical Society, 2011 vol. 414 (2) pp. 1656-16
 
 http://adsabs.harvard.edu/cgi-bin/nph-data_query?bibcode=2011MNRAS.414.1656K&link_type=EJOURNAL
 
+In this code:
+
+- A single theta vector is taken to be the amplitude of a given point source and the gain (phase only) solutions for
+that point source for all solution point
+   
+
+- The E step for a specific window is the sum of the window data model and the discrepancy between the observed data and the summed (over all windows) data models.
+   
+   
+- The M step for a specific window is the optimisation of the theta vector given the window data model. This involves fitting a point source (flux only for the moment) and fitting for the gain phases.
+
+
+To run sagecal, you must provide a visibility dataset and a set of skycomponents. The output will be the model
+parameters (source flux and gaintable for all skycomponents), and the residual visibility.
+
+Sagecal should only be used once an initial phase calibration has been obtained using an isoplanatic approximation.
 """
 
 import logging
@@ -29,8 +45,10 @@ from arl.visibility.operations import copy_visibility, sum_visibility
 log = logging.getLogger(__name__)
 
 
-def create_sagecal_thetas(vis, comps, **kwargs):
+def create_sagecal_thetas(vis: BlockVisibility, comps, **kwargs):
     """Create the thetas
+    
+    Create the data model for each window, from the visibility and the existing components
     
     :param comps:
     :param gt:
@@ -48,7 +66,9 @@ def create_sagecal_thetas(vis, comps, **kwargs):
 def sagecal_fit_component(evis, theta, gain=0.1, **kwargs):
     """Fit a single component to a visibility i.e. A13
 
-    # Just do the amplitude for now
+    This is the update to the component part of the window
+
+    Just do the amplitude for now
 
     :param evis:
     :param theta:
@@ -64,6 +84,8 @@ def sagecal_fit_component(evis, theta, gain=0.1, **kwargs):
 
 def sagecal_fit_gaintable(evis, theta, gain=0.1, niter=3, tol=1e-3, **kwargs):
     """Fit a gaintable to a visibility i.e. A13
+    
+    This is the update to the gain part of the window
 
     :param evis:
     :param theta:
@@ -83,6 +105,8 @@ def sagecal_fit_gaintable(evis, theta, gain=0.1, niter=3, tol=1e-3, **kwargs):
 
 def sagecal_e_step(vis: BlockVisibility, evis_all: BlockVisibility, theta, beta=1.0, **kwargs):
     """Calculates E step in equation A12
+    
+    This is the data model for this window plus the difference between observed data and summed data models
 
     :param vis:
     :param theta:
@@ -100,6 +124,8 @@ def sagecal_e_step(vis: BlockVisibility, evis_all: BlockVisibility, theta, beta=
 
 def sagecal_e_all(vis: BlockVisibility, thetas, **kwargs):
     """Calculates E step in equation A12
+    
+    This is the sum of the data models over all windows
 
     :param vis:
     :param thetas:
@@ -116,9 +142,10 @@ def sagecal_e_all(vis: BlockVisibility, thetas, **kwargs):
     return evis
 
 
-def sagecal_m_step(evis: BlockVisibility, theta, gain=0.25,
-                   **kwargs):
+def sagecal_m_step(evis: BlockVisibility, theta, gain=0.25, **kwargs):
     """Calculates M step in equation A13
+    
+    This maximises the likelihood of the theta parameters given the existing model data
     
     :param vis:
     :param theta:
@@ -129,28 +156,16 @@ def sagecal_m_step(evis: BlockVisibility, theta, gain=0.25,
             sagecal_fit_gaintable(evis, theta, gain=gain, **kwargs))
 
 
-def sagecal_monitor(iter, thetas, window_index):
-    """Callback for monitoring
-
-    :param iter:
-    :param thetas:
-    :param window_index:
-    :return:
-    """
-    flux = thetas[window_index][0].flux[0, 0]
-    qa = qa_gaintable(thetas[window_index][1])
-    residual = qa.data['residual']
-    print("\t Window %d, flux %s, residual %.3f" % (window_index, str(flux), residual))
-
-
-def sagecal_solve(vis, components, niter=10, tol=1e-8, monitor=sagecal_monitor, **kwargs):
+def sagecal_solve(vis, components, niter=10, tol=1e-8, gain=0.25, callback=None, **kwargs):
     """ Solve
+    
+    Solve by iterating, performing E step and M step.
     
     :param vis:
     :param components:
     :param gaintables:
     :param kwargs:
-    :return:
+    :return: The individual data models and the residual visibility
     """
     thetas = create_sagecal_thetas(vis, components, **kwargs)
     
@@ -159,10 +174,13 @@ def sagecal_solve(vis, components, niter=10, tol=1e-8, monitor=sagecal_monitor, 
         evis_all = sagecal_e_all(vis, thetas, **kwargs)
         print("Iteration %d" % (iter))
         for window_index, theta in enumerate(thetas):
-            evis = sagecal_e_step(vis, evis_all, theta, **kwargs)
-            new_theta = sagecal_m_step(evis, theta, **kwargs)
+            evis = sagecal_e_step(vis, evis_all, theta, gain=gain, **kwargs)
+            new_theta = sagecal_m_step(evis, theta, gain=gain, **kwargs)
             new_thetas.append(new_theta)
             
+            if callback is not None:
+                callback(iter, thetas)
+                
             flux = new_theta[0].flux[0, 0]
             qa = qa_gaintable(new_theta[1])
             residual = qa.data['residual']

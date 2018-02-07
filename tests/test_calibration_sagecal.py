@@ -35,10 +35,10 @@ class TestCalibrationSagecal(unittest.TestCase):
         
         numpy.random.seed(180555)
     
-    def actualSetup(self, sky_pol_frame='stokesI', data_pol_frame='stokesI', f=None, vnchan=1, doiso=True):
+    def actualSetup(self, sky_pol_frame='stokesI', data_pol_frame='stokesI', f=None, vnchan=5, doiso=True):
         
         nfreqwin = vnchan
-        ntimes = 10
+        ntimes = 1
         rmax = 300.0
         npixel = 1024
         cellsize = 0.001
@@ -57,12 +57,13 @@ class TestCalibrationSagecal(unittest.TestCase):
                                            weight=1.0, phasecentre=phasecentre,
                                            polarisation_frame=PolarisationFrame("stokesI"))
         
+        block_vis.data['uvw'][...,2] = 0.0
         self.beam = create_image_from_visibility(block_vis, npixel=npixel, frequency=[numpy.average(frequency)],
                                             nchan=nfreqwin,
                                             channel_bandwidth=[numpy.sum(channel_bandwidth)], cellsize=cellsize,
                                             phasecentre=phasecentre)
         
-        self.components = create_low_test_skycomponents_from_gleam(flux_limit=15.0, phasecentre=phasecentre,
+        self.components = create_low_test_skycomponents_from_gleam(flux_limit=18.0, phasecentre=phasecentre,
                                                                    frequency=frequency,
                                                                    polarisation_frame=PolarisationFrame('stokesI'),
                                                                    radius=npixel * cellsize)
@@ -91,31 +92,32 @@ class TestCalibrationSagecal(unittest.TestCase):
         
         self.model_vis = convert_blockvisibility_to_visibility(self.model_vis)
         self.model_vis,_, _ = weight_visibility(self.model_vis, self.beam)
-        self.dirty_model, sumwt = invert_function(self.model_vis, self.beam, context='wstack', vis_slices=51)
+        self.dirty_model, sumwt = invert_function(self.model_vis, self.beam, context='2d')
         export_image_to_fits(self.dirty_model, "%s/test_sagecal-model_dirty.fits" % self.dir)
 
         lvis = convert_blockvisibility_to_visibility(self.vis)
         lvis, _, _ = weight_visibility(lvis, self.beam)
-        dirty, sumwt = invert_function(lvis, self.beam, context='wstack', vis_slices=51)
+        dirty, sumwt = invert_function(lvis, self.beam, context='2d')
         print(qa_image(dirty))
         export_image_to_fits(dirty, "%s/test_sagecal-initial_dirty.fits" % self.dir)
 
     def test_sagecal_solve(self):
         self.actualSetup()
-        thetas, residual_vis = sagecal_solve(self.vis, self.components, niter=30, tol=1e-8)
+        thetas, residual_vis = sagecal_solve(self.vis, self.components, niter=30, gain=0.25, tol=1e-8)
         
         residual_vis = convert_blockvisibility_to_visibility(residual_vis)
         residual_vis,_, _ = weight_visibility(residual_vis, self.beam)
-        dirty, sumwt = invert_function(residual_vis, self.beam, context='wstack', vis_slices=51)
-        print(qa_image(dirty))
+        dirty, sumwt = invert_function(residual_vis, self.beam, context='2d')
         export_image_to_fits(dirty, "%s/test_sagecal-final_residual.fits" % self.dir)
 
         
         for i, theta in enumerate(thetas):
-            print('Component %d, original flux = %s, recovered flux = %s, residual = %s' %
+            print('Component %d, original flux = %s, recovered flux = %s, gain residual = %s' %
                   (i, str(self.components[i].flux[0, 0]), str(theta[0].flux[0, 0]),
                    str(numpy.max(theta[1].residual))))
 
+        qa = qa_image(dirty)
+        assert qa.data[['rms']] < 2e-4, qa
 
 if __name__ == '__main__':
     unittest.main()

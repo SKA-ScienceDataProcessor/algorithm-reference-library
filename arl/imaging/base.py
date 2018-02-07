@@ -267,8 +267,7 @@ def predict_skycomponent_visibility(vis: Union[Visibility, BlockVisibility],
                 
     elif isinstance(vis, BlockVisibility):
         
-        nchan = vis.nchan
-        npol = vis.npol
+        ntimes, nant, _, nchan, npol = vis.vis.shape
     
         k = numpy.array(vis.frequency) / constants.c.to('m/s').value
     
@@ -280,10 +279,12 @@ def predict_skycomponent_visibility(vis: Union[Visibility, BlockVisibility],
                 flux = convert_pol_frame(flux, comp.polarisation_frame, vis.polarisation_frame)
         
             l, m, n = skycoord_to_lmn(comp.direction, vis.phasecentre)
+            uvw = vis.uvw[..., numpy.newaxis] * k
+            phasor = numpy.ones([ntimes, nant, nant, nchan, npol], dtype='complex')
             for chan in range(nchan):
-                phasor = simulate_point(vis.uvw * k[chan], l, m)
-                for pol in range(npol):
-                    vis.data['vis'][..., chan, pol] += flux[chan, pol] * phasor[...]
+                phasor[:,:,:,chan,:] = simulate_point(uvw[...,chan], l, m)[...,numpy.newaxis]
+                
+            vis.data['vis'][..., :, :] += flux[:, :] * phasor[..., :]
 
     return vis
 

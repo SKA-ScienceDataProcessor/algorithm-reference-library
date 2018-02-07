@@ -46,9 +46,9 @@ def solve_gaintable(vis: BlockVisibility, modelvis: BlockVisibility = None, gt=N
         assert isinstance(modelvis, BlockVisibility), modelvis
     
     if phase_only:
-        log.info('solve_gaintable: Solving for phase only')
+        log.debug('solve_gaintable: Solving for phase only')
     else:
-        log.info('solve_gaintable: Solving for complex gain')
+        log.debug('solve_gaintable: Solving for complex gain')
     
     if gt is None:
         log.debug("solve_gaintable: creating new gaintable")
@@ -158,7 +158,6 @@ def solve_antenna_gains_itsubs_scalar(gain, gwt, x, xwt, niter=30, tol=1e-8, pha
         gain = 0.5 * (gain + gainLast)
         change = numpy.max(numpy.abs(gain - gainLast))
         if change < tol:
-            print("solve_antenna_gains_itsubs_scalar: Converged in %d iterations" % iter)
             return gain, gwt, solution_residual_scalar(gain, x, xwt)
     
     return gain, gwt, solution_residual_scalar(gain, x, xwt)

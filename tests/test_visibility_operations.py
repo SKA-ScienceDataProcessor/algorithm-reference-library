@@ -40,6 +40,17 @@ class TestVisibilityOperations(unittest.TestCase):
         pcof = self.phasecentre.skyoffset_frame()
         self.compreldirection = self.compabsdirection.transform_to(pcof)
         self.comp = Skycomponent(direction=self.compreldirection, frequency=self.frequency, flux=self.flux)
+        
+    def test_sum_visibility(self):
+        self.vis = create_visibility(self.lowcore, self.times, self.frequency,
+                                     channel_bandwidth=self.channel_bandwidth,
+                                     phasecentre=self.phasecentre,
+                                     polarisation_frame=PolarisationFrame("linear"),
+                                     weight=1.0)
+        self.vis = predict_skycomponent_visibility(self.vis, self.comp)
+        flux, weight = sum_visibility(self.vis, self.comp.direction)
+        assert numpy.max(numpy.abs(flux - self.flux)) < 1e-7
+        
 
     def test_create_visibility1(self):
         self.vis = create_visibility(self.lowcore, self.times, self.frequency,
