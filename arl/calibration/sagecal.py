@@ -33,6 +33,8 @@ import logging
 
 import numpy
 
+from dask import delayed
+
 from arl.calibration.solvers import solve_gaintable
 from arl.calibration.operations import copy_gaintable, apply_gaintable, \
     create_gaintable_from_blockvisibility, qa_gaintable
@@ -194,3 +196,38 @@ def sagecal_solve(vis, components, niter=10, tol=1e-8, gain=0.25, callback=None,
     residual_vis.data['vis'][...] = vis.data['vis'][...] - final_vis.data['vis'][...]
     return thetas, residual_vis
 
+
+def create_sagecal_solve_graph(vis, components, niter=10, tol=1e-8, gain=0.25, callback=None, **kwargs):
+    """ Solve using SageCal, dask.delayed wrapper
+
+    Solve by iterating, performing E step and M step.
+
+    :param vis:
+    :param components:
+    :param gaintables:
+    :param kwargs:
+    :return: The individual data models and the residual visibility
+    """
+    thetas_graph = delayed(create_sagecal_thetas, nout=len(components))(vis, components, **kwargs)
+    
+    for iter in range(niter):
+        new_thetas_graph = list()
+        evis_all_graph = delayed(sagecal_e_all, nout=len(components))(vis, thetas_graph, **kwargs)
+        for window_index, theta in enumerate(thetas_graph):
+            evis_graph = delayed(sagecal_e_step)(vis, evis_all_graph, theta, gain=gain, **kwargs)
+            new_theta = delayed(sagecal_m_step)(evis_graph, thetas_graph[window_index], gain=gain, **kwargs)
+            new_thetas_graph.append(new_theta)
+            
+            if callback is not None:
+                callback(iter, thetas_graph)
+        
+        thetas_graph = new_thetas_graph
+    
+    final_vis_graph = delayed(sagecal_e_all)(vis, thetas_graph, **kwargs)
+    
+    def res_vis(vis, final_vis):
+        residual_vis = copy_visibility(vis)
+        residual_vis.data['vis'][...] = vis.data['vis'][...] - final_vis.data['vis'][...]
+        return residual_vis
+    
+    return delayed()((thetas_graph, delayed(res_vis)(vis, final_vis_graph)))
