@@ -126,7 +126,7 @@ class TestCalibrationSagecal(unittest.TestCase):
         self.actualSetup(ntimes=3, flux_limit=12.0)
         client = get_dask_Client()
         sagecal_graph = create_sagecal_solve_graph(self.vis, self.components, niter=30, gain=0.25, tol=1e-8)
-        sagecal_graph.visualize('sagecal.svg')
+        sagecal_graph.visualize("%s/sagecal.svg" % self.dir)
     
         thetas, residual_vis = client.compute(sagecal_graph, sync=True)
     
