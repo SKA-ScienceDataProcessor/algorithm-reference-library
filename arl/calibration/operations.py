@@ -43,8 +43,12 @@ def create_gaintable_from_blockvisibility(vis: BlockVisibility, timeslice: float
         utimes = numpy.unique(vis.time)
         ntimes = len(utimes)
         gain_interval = numpy.zeros([ntimes])
-        gain_interval[:-1] =utimes[1:]- utimes[0:-1]
-        gain_interval[-1] =utimes[-1]- utimes[-2]
+        if ntimes > 1:
+            gain_interval[:-1] =utimes[1:]- utimes[0:-1]
+            gain_interval[-1] =utimes[-1]- utimes[-2]
+        else:
+            gain_interval[...] = 1.0
+    
     else:
         ntimes = numpy.ceil((numpy.max(vis.time) - numpy.min(vis.time))/timeslice).astype('int')
         utimes = numpy.linspace(numpy.min(vis.time), numpy.max(vis.time), ntimes)
