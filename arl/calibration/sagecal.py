@@ -98,7 +98,7 @@ def sagecal_fit_gaintable(evis, theta, gain=0.1, niter=3, tol=1e-3, **kwargs):
     gt = copy_gaintable(theta[1])
     model_vis = copy_visibility(evis, zero=True)
     model_vis = predict_skycomponent_visibility(model_vis, theta[0])
-    gt = solve_gaintable(evis, model_vis, gt=gt, niter=niter, phase_only=True, gain=0.9, tol=1e-4, **kwargs)
+    gt = solve_gaintable(evis, model_vis, gt=gt, niter=niter, phase_only=True, gain=0.5, tol=1e-4, **kwargs)
     gt.data['gain'][...] = gain * gt.data['gain'][...] + \
                            (1 - gain) * previous_gt.data['gain'][...]
     gt.data['gain'][...] /= numpy.abs(previous_gt.data['gain'][...])
