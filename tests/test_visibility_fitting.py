@@ -19,6 +19,9 @@ from arl.visibility.visibility_fitting import fit_visibility
 
 class TestVisibilityFitting(unittest.TestCase):
     def setUp(self):
+        pass
+    
+    def actualSetup(self):
         self.lowcore = create_named_configuration('LOWBD2-CORE')
         self.times = (numpy.pi / 43200.0) * numpy.arange(0.0, 300.0, 30.0)
         self.times = [0.0]
@@ -34,22 +37,24 @@ class TestVisibilityFitting(unittest.TestCase):
         # The phase centre is absolute and the component is specified relative (for now).
         # This means that the component should end up at the position phasecentre+compredirection
         self.phasecentre = SkyCoord(ra=+180.0 * u.deg, dec=-35.0 * u.deg, frame='icrs', equinox='J2000')
-        self.compabsdirection = SkyCoord(ra=+181.0 * u.deg, dec=-35.0 * u.deg, frame='icrs', equinox='J2000')
-        pcof = self.phasecentre.skyoffset_frame()
-        self.compreldirection = self.compabsdirection.transform_to(pcof)
-        print(self.compreldirection)
-        self.comp = Skycomponent(direction=self.compreldirection, frequency=self.frequency, flux=self.flux,
+        self.comp_actual_direction = SkyCoord(ra=+180.2 * u.deg, dec=-35.1 * u.deg, frame='icrs', equinox='J2000')
+        self.comp_start_direction = SkyCoord(ra=+180.0 * u.deg, dec=-35.0 * u.deg, frame='icrs', equinox='J2000')
+        self.comp = Skycomponent(direction=self.comp_actual_direction, frequency=self.frequency, flux=self.flux,
                                  polarisation_frame=PolarisationFrame("stokesI"))
     
     def test_fit_visibility(self):
-        self.vis = create_visibility(self.lowcore, self.times, self.frequency,
-                                     channel_bandwidth=self.channel_bandwidth,
-                                     phasecentre=self.phasecentre, weight=1.0,
-                                     polarisation_frame=PolarisationFrame("stokesI"))
-        self.vismodel = predict_skycomponent_visibility(self.vis, self.comp)
-        initial_comp = Skycomponent(direction=self.compreldirection, frequency=self.frequency, flux=1.1 * self.flux,
-                                    polarisation_frame=PolarisationFrame("stokesI"))
-        
         # Sum the visibilities in the correct_visibility direction. This is limited by numerical precision
-        res = fit_visibility(self.vismodel, initial_comp, niter=10)
-        print(res)
+        methods = ['CG', 'BFGS', 'Powell', 'trust-ncg', 'trust-exact', 'trust-krylov']
+        for method in methods:
+            self.actualSetup()
+            self.vis = create_visibility(self.lowcore, self.times, self.frequency,
+                                         channel_bandwidth=self.channel_bandwidth,
+                                         phasecentre=self.phasecentre, weight=1.0,
+                                         polarisation_frame=PolarisationFrame("stokesI"))
+            self.vismodel = predict_skycomponent_visibility(self.vis, self.comp)
+            initial_comp = Skycomponent(direction=self.comp_start_direction, frequency=self.frequency,
+                                        flux=2.0 * self.flux, polarisation_frame=PolarisationFrame("stokesI"))
+    
+            sc, res = fit_visibility(self.vismodel, initial_comp, niter=100, method=method, verbose=False)
+            print(method, '\t\t\t', res.x)
+            print(res)
