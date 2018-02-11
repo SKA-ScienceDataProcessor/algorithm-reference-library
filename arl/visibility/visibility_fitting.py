@@ -5,10 +5,10 @@
 import numpy
 from scipy.optimize import minimize
 
-from arl.util.coordinate_support import skycoord_to_lmn
+from arl.util.coordinate_support import lmn_to_skycoord
 
 
-def fit_visibility(vis, sc, tol=1e-7, niter=100, verbose=True, method='BFGS', **kwargs):
+def fit_visibility(vis, sc, tol=1e-6, niter=200, verbose=True, method='trust-exact', **kwargs):
     """Fit a single component to a visibility
     
     Uses the scipy.optimize.minimize function.
@@ -108,6 +108,7 @@ def fit_visibility(vis, sc, tol=1e-7, niter=100, verbose=True, method='BFGS', **
         print(res)
         
     sc.flux = res.x[0]
-    
+    lmn = (res.x[1], res.x[2], 0.0)
+    sc.direction = lmn_to_skycoord(lmn, vis.phasecentre)
 
     return sc, res

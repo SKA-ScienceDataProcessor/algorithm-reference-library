@@ -168,6 +168,25 @@ def skycoord_to_lmn(pos: SkyCoord, phasecentre: SkyCoord):
     # not quite follow imaging conventions
     return dc.y.value, dc.z.value, dc.x.value - 1
 
+def lmn_to_skycoord(lmn, phasecentre: SkyCoord):
+    """
+    Convert l,m,n coordinate system + phascentre to astropy sky coordinate
+    relative to a phase centre.
+
+    The l,m,n is a RHS coordinate system with
+    * its origin on the sky sphere
+    * m,n and the celestial north on the same plane
+    * l,m a tangential plane of the sky sphere
+
+    Note that this means that l increases east-wards
+    """
+    
+    # Convert l,m,n to SkyCoord convention, also enforce celestial sphere
+    n = numpy.sqrt(1-lmn[0]**2-lmn[1]**2)-1.0
+    dc = n + 1, lmn[0], lmn[1]
+    target = SkyCoord(x=dc[0], y=dc[1], z=dc[2], representation='cartesian', frame=phasecentre.skyoffset_frame())
+    return target.transform_to(phasecentre.frame)
+
 
 def simulate_point(dist_uvw, l, m):
     """

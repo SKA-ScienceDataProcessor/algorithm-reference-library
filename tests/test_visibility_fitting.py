@@ -55,6 +55,7 @@ class TestVisibilityFitting(unittest.TestCase):
             initial_comp = Skycomponent(direction=self.comp_start_direction, frequency=self.frequency,
                                         flux=2.0 * self.flux, polarisation_frame=PolarisationFrame("stokesI"))
     
-            sc, res = fit_visibility(self.vismodel, initial_comp, niter=100, method=method, verbose=False)
-            print(method, '\t\t\t', res.x)
-            print(res)
+            sc, res = fit_visibility(self.vismodel, initial_comp, niter=200, tol=1e-5, method=method, verbose=False)
+#            print(method, res)
+            assert sc.direction.separation(self.comp_actual_direction).to('rad').value < 1e-6, \
+                sc.direction.separation(self.comp_actual_direction).to('rad')
