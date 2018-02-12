@@ -37,7 +37,7 @@ class TestCalibrationSagecal(unittest.TestCase):
         
         numpy.random.seed(180555)
     
-    def actualSetup(self, sky_pol_frame='stokesI', data_pol_frame='stokesI', f=None, vnchan=5, doiso=True,
+    def actualSetup(self, sky_pol_frame='stokesI', data_pol_frame='stokesI', f=None, vnchan=1, doiso=True,
                     ntimes=1, flux_limit=18.0):
         
         nfreqwin = vnchan
@@ -120,10 +120,10 @@ class TestCalibrationSagecal(unittest.TestCase):
         #            str(numpy.max(theta[1].residual))))
         #
         qa = qa_image(dirty)
-        assert qa.data[['rms']] < 2e-4, qa
+        assert qa.data['rms'] < 4e-3, qa
 
     def test_sagecal_solve_delayed(self):
-        self.actualSetup(ntimes=3, flux_limit=12.0)
+        self.actualSetup()
         client = get_dask_Client()
         sagecal_graph = create_sagecal_solve_graph(self.vis, self.components, niter=30, gain=0.25, tol=1e-8)
         sagecal_graph.visualize("%s/sagecal.svg" % self.dir)
@@ -136,8 +136,7 @@ class TestCalibrationSagecal(unittest.TestCase):
         export_image_to_fits(dirty, "%s/test_sagecal-delayed-final_residual.fits" % self.dir)
     
         qa = qa_image(dirty)
-        print(qa)
-        assert qa.data['rms'] < 4e-5, qa
+        assert qa.data['rms'] < 4e-3, qa
 
 
 if __name__ == '__main__':

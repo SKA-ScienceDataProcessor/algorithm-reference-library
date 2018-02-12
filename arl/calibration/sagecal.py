@@ -43,6 +43,7 @@ from arl.imaging import predict_skycomponent_visibility
 from arl.skycomponent.operations import copy_skycomponent
 from arl.visibility.coalesce import convert_blockvisibility_to_visibility
 from arl.visibility.operations import copy_visibility, sum_visibility
+from arl.visibility.visibility_fitting import fit_visibility
 
 log = logging.getLogger(__name__)
 
@@ -60,17 +61,14 @@ def create_sagecal_thetas(vis: BlockVisibility, comps, **kwargs):
     thetas = list()
     for i, sc in enumerate(comps):
         new_sc = copy_skycomponent(sc)
-        new_sc.flux[...] = 0.0
         thetas.append((new_sc, copy_gaintable(gt)))
     return thetas
 
 
-def sagecal_fit_component(evis, theta, gain=0.1, **kwargs):
+def sagecal_fit_component(evis, theta, gain=0.1, method='fit', **kwargs):
     """Fit a single component to a visibility i.e. A13
 
     This is the update to the component part of the window
-
-    Just do the amplitude for now
 
     :param evis:
     :param theta:
@@ -79,10 +77,14 @@ def sagecal_fit_component(evis, theta, gain=0.1, **kwargs):
     """
     cvis = convert_blockvisibility_to_visibility(evis)
     new_comp = copy_skycomponent(theta[0])
-    new_flux, _ = sum_visibility(cvis, new_comp.direction)
-    new_comp.flux = gain * new_flux + (1.0 - gain) * new_comp.flux
-    return new_comp
+    if method == 'sum':
+        new_flux, _ = sum_visibility(cvis, new_comp.direction)
+        new_comp.flux = gain * new_flux + (1.0 - gain) * theta[0].flux
+    else:
+        new_comp, _ = fit_visibility(cvis, new_comp)
+        new_comp.flux = gain * new_comp.flux + (1.0 - gain) * theta[0].flux
 
+    return new_comp
 
 def sagecal_fit_gaintable(evis, theta, gain=0.1, niter=3, tol=1e-3, **kwargs):
     """Fit a gaintable to a visibility i.e. A13
@@ -213,8 +215,8 @@ def create_sagecal_solve_graph(vis, components, niter=10, tol=1e-8, gain=0.25, c
     for iter in range(niter):
         new_thetas_graph = list()
         evis_all_graph = delayed(sagecal_e_all, nout=len(components))(vis, thetas_graph, **kwargs)
-        for window_index, theta in enumerate(thetas_graph):
-            evis_graph = delayed(sagecal_e_step)(vis, evis_all_graph, theta, gain=gain, **kwargs)
+        for window_index, theta_graph in enumerate(thetas_graph):
+            evis_graph = delayed(sagecal_e_step)(vis, evis_all_graph, theta_graph, gain=gain, **kwargs)
             new_theta = delayed(sagecal_m_step)(evis_graph, thetas_graph[window_index], gain=gain, **kwargs)
             new_thetas_graph.append(new_theta)
             

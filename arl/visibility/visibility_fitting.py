@@ -5,10 +5,10 @@
 import numpy
 from scipy.optimize import minimize
 
-from arl.util.coordinate_support import lmn_to_skycoord
+from arl.util.coordinate_support import lmn_to_skycoord, skycoord_to_lmn
 
 
-def fit_visibility(vis, sc, tol=1e-6, niter=200, verbose=True, method='trust-exact', **kwargs):
+def fit_visibility(vis, sc, tol=1e-6, niter=20, verbose=False, method='trust-exact', **kwargs):
     """Fit a single component to a visibility
     
     Uses the scipy.optimize.minimize function.
@@ -17,7 +17,8 @@ def fit_visibility(vis, sc, tol=1e-6, niter=200, verbose=True, method='trust-exa
     :param sc: Initial component
     :param tol: Tolerance of fit
     :param niter: Number of iterations
-    :param method: 'CG', 'BFGS', 'Powell', 'trust-ncg', 'trust-exact', 'trust-krylov': default 'BFGS'
+    :param verbose:
+    :param method: 'CG', 'BFGS', 'Powell', 'trust-ncg', 'trust-exact', 'trust-krylov': default 'trust-exact'
     :param kwargs:
     :return: component, convergence info as a dictionary
     """
@@ -31,10 +32,10 @@ def fit_visibility(vis, sc, tol=1e-6, niter=200, verbose=True, method='trust-exa
         m = params[2]
         u = vis.u[:, numpy.newaxis]
         v = vis.v[:, numpy.newaxis]
-        Vobs = vis.vis
+        vobs = vis.vis
         p = numpy.exp( -2j * numpy.pi * (u * l + v * m))
-        Vres = Vobs - S * p
-        J = numpy.sum(vis.weight * (Vres * numpy.conjugate(Vres)).real)
+        vres = vobs - S * p
+        J = numpy.sum(vis.weight * (vres * numpy.conjugate(vres)).real)
         return J
 
 
@@ -45,11 +46,11 @@ def fit_visibility(vis, sc, tol=1e-6, niter=200, verbose=True, method='trust-exa
         m = params[2]
         u = vis.u[:, numpy.newaxis]
         v = vis.v[:, numpy.newaxis]
-        Vobs = vis.vis
+        vobs = vis.vis
         p = numpy.exp( -2j * numpy.pi * (u * l + v * m))
-        Vres = Vobs - S * p
-        Vrp = Vres * numpy.conjugate(p) * vis.weight
-        J = numpy.sum(vis.weight * (Vres * numpy.conjugate(Vres)).real)
+        vres = vobs - S * p
+        Vrp = vres * numpy.conjugate(p) * vis.weight
+        J = numpy.sum(vis.weight * (vres * numpy.conjugate(vres)).real)
         gradJ = numpy.array([- 2.0 * numpy.sum(Vrp.real),
                              + 4.0 * numpy.pi * S * numpy.sum(u * Vrp.imag),
                              + 4.0 * numpy.pi * S * numpy.sum(v * Vrp.imag)])
@@ -65,10 +66,10 @@ def fit_visibility(vis, sc, tol=1e-6, niter=200, verbose=True, method='trust-exa
         w = vis.w[:, numpy.newaxis]
         wt = vis.weight
 
-        Vobs = vis.vis
+        vobs = vis.vis
         p = numpy.exp( -2j * numpy.pi * (u * l + v * m))
-        Vres = Vobs - S * p
-        Vrp = Vres * numpy.conjugate(p)
+        vres = vobs - S * p
+        Vrp = vres * numpy.conjugate(p)
         
         hess = numpy.zeros([3,3])
         hess[0,0] = 2.0 * numpy.sum(wt)
@@ -85,8 +86,12 @@ def fit_visibility(vis, sc, tol=1e-6, niter=200, verbose=True, method='trust-exa
         hess[2,1] = hess[1,2]
 
         return hess
+    
+    # Initialize l,m,n to be in the direction of the component as defined in the frame of
+    # visibility phasecentre
+    l, m, n = skycoord_to_lmn(sc.direction, vis.phasecentre)
 
-    x0 = numpy.array([sc.flux[0, 0], 0.0, 0.0])
+    x0 = numpy.array([sc.flux[0, 0], l, m])
 
     bounds = ((None, None), (-0.1, -0.1), (-0.1, 0.1))
     options = {'maxiter': niter, 'disp': verbose}
@@ -107,7 +112,7 @@ def fit_visibility(vis, sc, tol=1e-6, niter=200, verbose=True, method='trust-exa
         print("Solution = %s" % str(res.x))
         print(res)
         
-    sc.flux = res.x[0]
+    sc.flux[...] = res.x[0]
     lmn = (res.x[1], res.x[2], 0.0)
     sc.direction = lmn_to_skycoord(lmn, vis.phasecentre)
 
