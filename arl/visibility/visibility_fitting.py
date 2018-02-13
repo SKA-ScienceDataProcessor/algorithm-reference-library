@@ -25,6 +25,7 @@ def fit_visibility(vis, sc, tol=1e-6, niter=20, verbose=False, method='trust-exa
     
     assert vis.polarisation_frame.type == 'stokesI', "Currently restricted to stokesI"
 
+    # These derivative have been calculated using sympy. See visibility_fitting_sympy.py
     def J(params):
         # Params are flux, l, m
         S = params[0]
