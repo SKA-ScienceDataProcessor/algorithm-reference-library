@@ -174,6 +174,16 @@ void helper_get_nbases(char * config_name, ant_t * nbases)
   BKFNPY(helper_get_nbases)(config_name, nbases);
 }
 
+void arl_predict_function(ARLConf *lowconf, const ARLVis *visin, const Image *img, ARLVis *visout, ARLVis *blockvisout, long long int *cindexout) {
+	BKFNPY(arl_predict_function)(lowconf, visin, img, visout, blockvisout, cindexout);
+}
 
+void arl_convert_visibility_to_blockvisibility(ARLConf *lowconf, const ARLVis *visin, const ARLVis *blockvisin, long long int *cindexin, ARLVis *visout) {
+	BKFNPY(arl_convert_visibility_to_blockvisibility)(lowconf, visin, blockvisin, cindexin, visout);
+}
+
+void arl_predict_function_blockvis(ARLConf * lowconf, ARLVis * visin, const Image * img) {
+	BKFNPY(arl_predict_function_blockvis)(lowconf, visin, img);
+}
 
 

@@ -55,14 +55,18 @@ int main(int argc, char **argv)
 	int wprojection_planes, i;
 	double fstart, fend, fdelta, tstart, tend, tdelta, rmax;
 	ARLadvice adv;
+	long long int *cindex_predict;
+	int cindex_nbytes;
 	// end ICAL section
 
 	double cellsize = 0.0005;
 	char config_name[] = "LOWBD2-CORE";
 
-	ARLVis *vt;
+	ARLVis *vt;			//Blockvisibility
 	ARLVis *vtmodel;
 	ARLVis *vtmp;
+	ARLVis *vtpredicted;		//Visibility
+	ARLVis *vt_predictfunction;	//Blockvisibility
 
 	ARLConf *lowconfig;
 
@@ -107,14 +111,23 @@ int main(int argc, char **argv)
 	// end ICAL section
 
 	nvis = (lowconfig->nbases)*(lowconfig->nfreqs)*(lowconfig->ntimes);
+	printf("Nvis = %d\n", nvis);
 	
-	printf("Allocate vis data... ");
 //	vt = allocate_vis_data(lowconfig->npol, nvis);
 //	vtmp = allocate_vis_data(lowconfig->npol, nvis);
-	vt = allocate_blockvis_data(lowconfig->nant, lowconfig->nfreqs, lowconfig->npol, lowconfig->ntimes);
-	vtmp = allocate_blockvis_data(lowconfig->nant, lowconfig->nfreqs, lowconfig->npol, lowconfig->ntimes);
-	printf("Done...\n");
+	vt 		   = allocate_blockvis_data(lowconfig->nant, lowconfig->nfreqs, lowconfig->npol, lowconfig->ntimes); //Blockvisibility
+	vt_predictfunction = allocate_blockvis_data(lowconfig->nant, lowconfig->nfreqs, lowconfig->npol, lowconfig->ntimes); //Blockvisibility
+	vtpredicted        = allocate_vis_data(lowconfig->npol, nvis);							     //Visibility
 
+	// Allocating cindex array where 8*sizeof(char) is sizeof(python int)
+	cindex_nbytes = lowconfig->ntimes * lowconfig->nant * lowconfig->nant * lowconfig->nfreqs * sizeof(long long int);
+	
+	if (!(cindex_predict = malloc(cindex_nbytes))) {
+		free(cindex_predict);
+		return 1;
+	}
+	
+	printf("Done...\n");
 	// ICAL section	
 	// create_blockvisibility()
 	printf("Create blockvisibility... ");
@@ -144,8 +157,18 @@ int main(int argc, char **argv)
 	// FITS files output
 	status = mkdir("results", S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
 	status = export_image_to_fits_c(gleam_model, "results/gleam_model.fits");
+	// ICAL section
+	// predict_function()
+	arl_predict_function(lowconfig, vt, gleam_model, vtpredicted, vt_predictfunction, cindex_predict);
+
+	// convert_visibility_to_blockvisibility()
+	arl_convert_visibility_to_blockvisibility(lowconfig, vtpredicted, vt_predictfunction, cindex_predict, vt);
 
 	gleam_model = destroy_image(gleam_model);
+	vt = destroy_vis(vt);
+	vtpredicted = destroy_vis(vtpredicted);
+	vt_predictfunction = destroy_vis(vt_predictfunction);
+	free(cindex_predict);
 	// end ICAL section
 
 	return 0;
