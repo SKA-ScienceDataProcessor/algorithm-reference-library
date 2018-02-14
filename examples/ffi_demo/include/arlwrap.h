@@ -100,12 +100,16 @@ void arl_create_low_test_image_from_gleam(ARLConf *lowconf, double cellsize, int
 
 void arl_predict_2d(const ARLVis *visin, const Image *img, ARLVis *visout);
 void arl_invert_2d(const ARLVis *visin, const Image *img_in, bool dopsf, Image *out, double *sumwt);
+
 void arl_create_image_from_visibility(const ARLVis *vis, Image *model);
 void arl_deconvolve_cube(Image *dirty, Image *psf, Image *restored,
 		Image *residual);
 void arl_restore_cube(Image *model, Image *psf, Image *residual,
 		Image *restored);
 
+void arl_predict_function(ARLConf *lowconf, const ARLVis *visin, const Image *img, ARLVis *visout, ARLVis *blockvisout, long long int *cindexout);
+void arl_convert_visibility_to_blockvisibility(ARLConf *lowconf, const ARLVis *visin, const ARLVis *blockvisin, long long int *cindexin, ARLVis *visout);
+void arl_predict_function_blockvis(ARLConf *, ARLVis *, const Image *);
 /** Initialise the ARL library
  */
 void arl_initialize(void);

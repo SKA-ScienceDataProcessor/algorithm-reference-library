@@ -1,5 +1,6 @@
 #include <stdlib.h>
 #include <fitsio.h>
+#include <stdio.h>
 
 #include "../include/arlwrap.h"
 
@@ -130,6 +131,7 @@ ARLConf *allocate_arlconf_default(const char *conf_name)
 
 ARLVis *allocate_vis_data(int npol, int nvis)
 {
+	int nbytes;
 	ARLVis *vis;
 	if (!(vis = malloc(sizeof(ARLVis)))) {
 		return NULL;
@@ -137,6 +139,8 @@ ARLVis *allocate_vis_data(int npol, int nvis)
 
 	vis->nvis = nvis;
 	vis->npol = npol;
+	nbytes = (80+(32*npol))*nvis * sizeof(char);
+	printf("Allocating %d bytes for a visibility structure.\n", nbytes);
 
 	// (80 bytes static data + 32 bytes * npol) * nvis
 	if (!(vis->data = malloc((80+(32*npol))*nvis * sizeof(char)))) {
@@ -164,6 +168,7 @@ ARLVis *destroy_vis(ARLVis *vis)
 
 ARLVis *allocate_blockvis_data(int nant, int nchan, int npol, int ntimes)
 {
+	int nbytes;	
 	ARLVis *vis;
 	if (!(vis = malloc(sizeof(ARLVis)))) {
 		return NULL;
@@ -171,7 +176,8 @@ ARLVis *allocate_blockvis_data(int nant, int nchan, int npol, int ntimes)
 
 	vis->nvis = ntimes; // storing ntime instead of nvis, ToDo: add extra struct element(s)
 	vis->npol = npol;
-
+	nbytes = (24+24*nant*nant+24*nant*nant*nchan*npol)*ntimes * sizeof(char);
+	printf("Allocating %d bytes for a blockvisibility structure.\n", nbytes);
 	// (24 bytes static data + 24 bytes * nant*nant + 24 bytes *nant*nant*nchan*npol) *ntime
 	if ( !( vis->data = malloc( (24+24*nant*nant+24*nant*nant*nchan*npol)*ntimes * sizeof(char) ) ) ) {
 		free(vis);
