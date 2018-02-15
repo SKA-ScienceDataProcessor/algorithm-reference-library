@@ -149,12 +149,14 @@ class GainTable:
                     ('residual', '>f8', (nchan, nrec, nrec)),
                     ('time', '>f8'),
                     ('interval', '>f8')]
-            self.data = numpy.zeros(shape=[nrows], dtype=desc)
-            self.data['gain'] = gain
-            self.data['weight'] = weight
-            self.data['time'] = time
-            self.data['interval'] = interval
-            self.data['residual'] = residual
+            data = numpy.zeros(shape=[nrows], dtype=desc)
+            data['gain'] = gain
+            data['weight'] = weight
+            data['time'] = time
+            data['interval'] = interval
+            data['residual'] = residual
+            
+        self.data = data
         self.frequency = frequency
         self.receptor_frame = receptor_frame
     
