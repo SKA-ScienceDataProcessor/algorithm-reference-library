@@ -182,6 +182,14 @@ void arl_convert_visibility_to_blockvisibility(ARLConf *lowconf, const ARLVis *v
 	BKFNPY(arl_convert_visibility_to_blockvisibility)(lowconf, visin, blockvisin, cindexin, visout);
 }
 
+void arl_create_gaintable_from_blockvisibility(ARLConf *lowconf, const ARLVis *visin, ARLGt *gtout) {
+	BKFNPY(arl_create_gaintable_from_blockvisibility)(lowconf, visin, gtout);
+}
+
+void arl_simulate_gaintable(ARLConf *lowconf, ARLGt *gt) {
+	BKFNPY(arl_simulate_gaintable)(lowconf, gt);
+}
+
 void arl_predict_function_blockvis(ARLConf * lowconf, ARLVis * visin, const Image * img) {
 	BKFNPY(arl_predict_function_blockvis)(lowconf, visin, img);
 }

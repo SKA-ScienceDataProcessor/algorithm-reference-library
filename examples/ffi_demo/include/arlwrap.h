@@ -18,7 +18,7 @@ typedef struct {
   // the npol. For example when npol is 4, data is equivalent to "C"
   // type type "ARLVisEntryP4[nvis]"
   void *data;
-	char *phasecentre;
+  char *phasecentre;
 } ARLVis;
 
 // This is what the data array for four polarisations look like. Can
@@ -42,6 +42,12 @@ typedef struct {
 			   ARLVis *visout,
 			   bool zero);
 
+// A structure to store the GainTable
+typedef struct {
+  size_t nrows;
+  void *data;
+} ARLGt;
+
 typedef struct {
 	size_t size;
 	int data_shape[4];
@@ -63,7 +69,9 @@ typedef struct {
   int nbases;
   int nant;
   int npol;
+  int nrec;
   double rmax;
+  char *polframe;
 } ARLConf;
 
 typedef struct {int nant, nbases;} ant_t;
@@ -109,7 +117,9 @@ void arl_restore_cube(Image *model, Image *psf, Image *residual,
 
 void arl_predict_function(ARLConf *lowconf, const ARLVis *visin, const Image *img, ARLVis *visout, ARLVis *blockvisout, long long int *cindexout);
 void arl_convert_visibility_to_blockvisibility(ARLConf *lowconf, const ARLVis *visin, const ARLVis *blockvisin, long long int *cindexin, ARLVis *visout);
+void arl_create_gaintable_from_blockvisibility(ARLConf *lowconf, const ARLVis *visin, ARLGt *gtout);
 void arl_predict_function_blockvis(ARLConf *, ARLVis *, const Image *);
+void arl_simulate_gaintable(ARLConf *, ARLGt *gt);
 /** Initialise the ARL library
  */
 void arl_initialize(void);

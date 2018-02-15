@@ -11,11 +11,11 @@ from astropy import units as u
 
 from arl.calibration.operations import apply_gaintable, create_gaintable_from_blockvisibility
 from arl.visibility.base import create_visibility, copy_visibility
-from arl.data.data_models import Image, Visibility, BlockVisibility
+from arl.data.data_models import Image, Visibility, BlockVisibility, ReceptorFrame, GainTable
 from arl.image.deconvolution import deconvolve_cube, restore_cube
 from arl.imaging.base import create_image_from_visibility, predict_2d
 from arl.imaging import invert_2d, advise_wide_field
-from arl.util.testing_support import create_named_configuration, create_test_image, create_low_test_image_from_gleam
+from arl.util.testing_support import create_named_configuration, create_test_image, create_low_test_image_from_gleam, simulate_gaintable
 from arl.data.polarisation import PolarisationFrame
 from arl.visibility.base import create_blockvisibility
 from arl.imaging.imaging_context import predict_function 
@@ -85,6 +85,31 @@ def cARLBlockVis(visin, nants, nchan):
                                  count=ntimes)
     return r
 
+
+ff.cdef("""
+typedef struct {
+  size_t nrows;
+  void *data;
+} ARLGt;
+""")
+
+def ARLDataGTSize(ntimes, nants, nchan, nrec):
+    return (8 + 8*nchan*nrec*nrec + 3*8*nants*nchan*nrec*nrec)*ntimes
+
+def cARLGt(gtin, nants, nchan, nrec):
+    """
+    Convert a const ARLGt * into the ARL GainTable structure 
+    """
+    ntimes=gtin.nrows
+    desc = [('gain', '>c16', (nants, nchan, nrec, nrec)),
+            ('weight', '>f8', (nants, nchan, nrec, nrec)),
+            ('residual', '>f8', (nchan, nrec, nrec)),
+            ('time', '>f8')]
+    r=numpy.frombuffer(ff.buffer(gtin.data,
+                                 ARLDataGTSize(ntimes, nants, nchan, nrec)),
+                                 dtype=desc,
+                                 count=ntimes)
+    return r
 
 
 @ff.callback("void (*)(const ARLVis *, ARLVis *, bool)")
@@ -206,6 +231,21 @@ def helper_create_blockvisibility_object(c_vis, freqs, chan_b, config):
             )
     return tvis
 
+# Turns ARLGt struct into GainTable object
+def helper_create_gaintable_object(c_gt, freqs):
+    tgt= GainTable(
+            data=c_gt,
+	    frequency = freqs,
+            gain=c_gt['gain'],
+            weight=c_gt['weight'],
+            residual=c_gt['residual'],
+            time=c_gt['time']
+            )
+    print(tgt.__dict__)
+    return tgt
+
+
+
 # Write cImage data into C structs
 def store_image_in_c(img_to, img_from):
     numpy.copyto(img_to.data, img_from.data)
@@ -232,7 +272,9 @@ typedef struct {
   int nbases;
   int nant;
   int npol;
+  int nrec;
   double rmax;
+  char *polframe;
 } ARLConf;
 """)
 
@@ -253,11 +295,12 @@ def arl_create_visibility_ffi(lowconfig, c_res_vis):
 
     phasecentre = SkyCoord(ra=lowconfig.pc_ra * u.deg, dec=lowconfig.pc_dec*u.deg, frame='icrs', 
             equinox='J2000')
+    polframe = str(ff.string(lowconfig.polframe), 'utf-8')
 
     vt = create_visibility(lowcore, times, frequency,
             channel_bandwidth=channel_bandwidth, weight=1.0,
             phasecentre=phasecentre,
-            polarisation_frame=PolarisationFrame('stokesI'))
+            polarisation_frame=PolarisationFrame(polframe))
 
     py_res_vis = cARLVis(c_res_vis)
 
@@ -286,16 +329,21 @@ def arl_create_blockvisibility_ffi(lowconfig, c_res_vis):
     phasecentre = SkyCoord(ra=lowconfig.pc_ra * u.deg, dec=lowconfig.pc_dec*u.deg, frame='icrs',
             equinox='J2000')
 
+    polframe = str(ff.string(lowconfig.polframe), 'utf-8')
+    print("Polarisation frame: ", polframe)
     vt = create_blockvisibility(lowcore, times, frequency=frequency,
             channel_bandwidth=channel_bandwidth, weight=1.0,
             phasecentre=phasecentre,
-            polarisation_frame=PolarisationFrame('stokesI'))
+            polarisation_frame=PolarisationFrame(polframe))
 
     py_res_vis = cARLBlockVis(c_res_vis, lowconfig.nant, lowconfig.nfreqs)
 
     numpy.copyto(py_res_vis, vt.data)
 
     store_phasecentre(c_res_vis.phasecentre, phasecentre)
+
+    receptor_frame = ReceptorFrame(vt.polarisation_frame.type)
+    lowconfig.nrec = receptor_frame.nrec
 
 arl_create_blockvisibility=collections.namedtuple("FFIX", "address")
 arl_create_blockvisibility.address=int(ff.cast("size_t", arl_create_blockvisibility_ffi))
@@ -317,11 +365,15 @@ def arl_convert_visibility_to_blockvisibility_ffi(lowconfig, vis_in, blockvis_in
     py_visin.phasecentre = load_phasecentre(vis_in.phasecentre)
     py_visin.configuration = lowcore
     py_visin.cindex = py_cindex
+    polframe = str(ff.string(lowconfig.polframe), 'utf-8')
+    py_visin.polarisation_frame = PolarisationFrame(polframe)
+
 
     c_blockvisin = cARLBlockVis(blockvis_in, lowconfig.nant, lowconfig.nfreqs)
     py_blockvisin = helper_create_blockvisibility_object(c_blockvisin, frequency, channel_bandwidth, lowcore)
     py_blockvisin.phasecentre = load_phasecentre(blockvis_in.phasecentre)
     py_blockvisin.configuration = lowcore
+    py_blockvisin.polarisation_frame = PolarisationFrame(polframe)
 
     py_visin.blockvis = py_blockvisin
 
@@ -332,6 +384,65 @@ def arl_convert_visibility_to_blockvisibility_ffi(lowconfig, vis_in, blockvis_in
 
 arl_convert_visibility_to_blockvisibility=collections.namedtuple("FFIX", "address")
 arl_convert_visibility_to_blockvisibility.address=int(ff.cast("size_t", arl_convert_visibility_to_blockvisibility_ffi))
+
+
+@ff.callback("void (*)(ARLConf *, const ARLVis *, ARLGt *)")
+def arl_create_gaintable_from_blockvisibility_ffi(lowconfig, blockvis_in, gt_out):
+    lowcore_name = str(ff.string(lowconfig.confname), 'utf-8')
+    lowcore = create_named_configuration(lowcore_name)
+
+    times = numpy.frombuffer(ff.buffer(lowconfig.times, 8*lowconfig.ntimes), dtype='f8', count=lowconfig.ntimes)
+    frequency = numpy.frombuffer(ff.buffer(lowconfig.freqs, 8*lowconfig.nfreqs), dtype='f8', count=lowconfig.nfreqs)
+    channel_bandwidth = numpy.frombuffer(ff.buffer(lowconfig.channel_bandwidth, 8*lowconfig.nchanwidth), dtype='f8', count=lowconfig.nchanwidth)
+
+    c_blockvisin = cARLBlockVis(blockvis_in, lowconfig.nant, lowconfig.nfreqs)
+    py_blockvisin = helper_create_blockvisibility_object(c_blockvisin, frequency, channel_bandwidth, lowcore)
+    py_blockvisin.phasecentre = load_phasecentre(blockvis_in.phasecentre)
+    py_blockvisin.configuration = lowcore
+    polframe = str(ff.string(lowconfig.polframe), 'utf-8')
+    py_blockvisin.polarisation_frame = PolarisationFrame(polframe)
+
+    py_gt = create_gaintable_from_blockvisibility(py_blockvisin)
+
+#    print(py_gt.data.size, py_gt.data.itemsize)
+#    print(py_gt.frequency.size)
+#    print(py_gt.receptor_frame)
+
+#    receptor_frame = ReceptorFrame(py_blockvisin.polarisation_frame.type)
+#    pframe1 = PolarisationFrame(polframe)
+#    recframe1 = ReceptorFrame(pframe1.type) 
+#    print(receptor_frame.nrec, recframe1.nrec, lowcore.receptor_frame.nrec)
+    c_gt_out = cARLGt(gt_out, lowconfig.nant, lowconfig.nfreqs, lowconfig.nrec)
+    numpy.copyto(c_gt_out, py_gt.data)
+
+
+arl_create_gaintable_from_blockvisibility=collections.namedtuple("FFIX", "address")
+arl_create_gaintable_from_blockvisibility.address=int(ff.cast("size_t", arl_create_gaintable_from_blockvisibility_ffi))
+
+
+@ff.callback("void (*)(ARLConf *, ARLGt *)")
+def arl_simulate_gaintable_ffi(lowconfig, gt):
+    lowcore_name = str(ff.string(lowconfig.confname), 'utf-8')
+    lowcore = create_named_configuration(lowcore_name)
+
+    times = numpy.frombuffer(ff.buffer(lowconfig.times, 8*lowconfig.ntimes), dtype='f8', count=lowconfig.ntimes)
+    frequency = numpy.frombuffer(ff.buffer(lowconfig.freqs, 8*lowconfig.nfreqs), dtype='f8', count=lowconfig.nfreqs)
+
+    polframe = str(ff.string(lowconfig.polframe), 'utf-8')
+    polarisation_frame = PolarisationFrame(polframe)
+    receptor_frame = PolarisationFrame(polframe)
+
+    c_gt = cARLGt(gt, lowconfig.nant, lowconfig.nfreqs, lowconfig.nrec)
+    py_gt = helper_create_gaintable_object(c_gt, frequency)
+    py_gt.receptor_frame = receptor_frame
+    print(py_gt.__dict__)
+#    py_gt = simulate_gaintable(py_gt, phase_error = 1.0)
+
+#    numpy.copyto(c_gt, py_gt.data)
+    
+
+arl_simulate_gaintable=collections.namedtuple("FFIX", "address")
+arl_simulate_gaintable.address=int(ff.cast("size_t", arl_simulate_gaintable_ffi))
 
 
 ff.cdef("""
@@ -355,6 +466,10 @@ def arl_advise_wide_field_ffi(lowconfig, vis_in, adv):
     channel_bandwidth = numpy.frombuffer(ff.buffer(lowconfig.channel_bandwidth, 8*lowconfig.nchanwidth), dtype='f8', count=lowconfig.nchanwidth)
 
     py_visin = helper_create_blockvisibility_object(c_visin, frequency, channel_bandwidth, lowcore)
+    py_visin.phasecentre = load_phasecentre(vis_in.phasecentre)
+    
+    polframe = str(ff.string(lowconfig.polframe), 'utf-8')
+    py_visin.polarisation_frame = PolarisationFrame(polframe)
     advice=advise_wide_field(py_visin, guard_band_image=adv.guard_band_image, delA=adv.delA,
                              wprojection_planes=adv.wprojection_planes)
     print(advice['vis_slices'], advice['npixels2'], advice['cellsize'])
@@ -508,6 +623,8 @@ def arl_predict_function_ffi(lowconfig, vis_in, img, vis_out, blockvis_out, cind
     py_visin = helper_create_blockvisibility_object(c_visin, frequency, channel_bandwidth, lowcore)
     c_img = cImage(img)
     py_visin.phasecentre = load_phasecentre(vis_in.phasecentre)
+    polframe = str(ff.string(lowconfig.polframe), 'utf-8')
+    py_visin.polarisation_frame = PolarisationFrame(polframe)
 
     res = predict_function(py_visin, c_img, vis_slices=51, context='wstack')
 #    print(sys.getsizeof(py_visin.data), sys.getsizeof(res.data), sys.getsizeof(res.blockvis.data))

@@ -57,10 +57,12 @@ int main(int argc, char **argv)
 	ARLadvice adv;
 	long long int *cindex_predict;
 	int cindex_nbytes;
+	ARLGt *gt;			//GainTable
 	// end ICAL section
 
 	double cellsize = 0.0005;
 	char config_name[] = "LOWBD2-CORE";
+	char pol_frame [] = "stokesI";
 
 	ARLVis *vt;			//Blockvisibility
 	ARLVis *vtmodel;
@@ -75,6 +77,7 @@ int main(int argc, char **argv)
 	lowconfig = allocate_arlconf_default(config_name);
 
 	// ICAL section
+	lowconfig->polframe = pol_frame;
 	lowconfig->rmax = 300.0;
 	// Overwriting default values for a phasecentre
 	lowconfig->pc_ra = 30.0;					// Phasecentre RA
@@ -133,6 +136,10 @@ int main(int argc, char **argv)
 	printf("Create blockvisibility... ");
 	arl_create_blockvisibility(lowconfig, vt);
 	printf("Done\n");
+	printf("Nrec = %d\n", lowconfig->nrec);
+	// Allocating gaintable data
+	gt = allocate_gt_data(lowconfig->nant, lowconfig->nfreqs, lowconfig->nrec, lowconfig->ntimes);
+
 	// end ICAL section
 	
 	// ICAL section
@@ -164,10 +171,18 @@ int main(int argc, char **argv)
 	// convert_visibility_to_blockvisibility()
 	arl_convert_visibility_to_blockvisibility(lowconfig, vtpredicted, vt_predictfunction, cindex_predict, vt);
 
+	// create_gaintable_from_blockvisibility()
+	arl_create_gaintable_from_blockvisibility(lowconfig, vt, gt);
+
+	// simulate_gaintable
+	arl_simulate_gaintable(lowconfig, gt);
+
+
 	gleam_model = destroy_image(gleam_model);
 	vt = destroy_vis(vt);
 	vtpredicted = destroy_vis(vtpredicted);
 	vt_predictfunction = destroy_vis(vt_predictfunction);
+	gt = destroy_gt(gt);
 	free(cindex_predict);
 	// end ICAL section
 
@@ -241,6 +256,7 @@ int main(int argc, char **argv)
 	vtmp = destroy_vis(vtmp);
 
 	comp = destroy_image(comp);
+	
 
 	return 0;
 }
