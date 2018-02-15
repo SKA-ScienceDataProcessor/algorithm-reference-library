@@ -122,6 +122,7 @@ ARLConf *allocate_arlconf_default(const char *conf_name)
 	config->nbases = nb.nbases;
 	config->nant = nb.nant;
 	config->npol = 1;
+	config->nrec = 0;
 
 	config->freqs[0] = 1e8;
 	config->channel_bandwidth[0] = 1e6;
@@ -131,7 +132,7 @@ ARLConf *allocate_arlconf_default(const char *conf_name)
 
 ARLVis *allocate_vis_data(int npol, int nvis)
 {
-	int nbytes;
+	long int nbytes;
 	ARLVis *vis;
 	if (!(vis = malloc(sizeof(ARLVis)))) {
 		return NULL;
@@ -140,7 +141,7 @@ ARLVis *allocate_vis_data(int npol, int nvis)
 	vis->nvis = nvis;
 	vis->npol = npol;
 	nbytes = (80+(32*npol))*nvis * sizeof(char);
-	printf("Allocating %d bytes for a visibility structure.\n", nbytes);
+	printf("Allocating %ld bytes for a visibility structure.\n", nbytes);
 
 	// (80 bytes static data + 32 bytes * npol) * nvis
 	if (!(vis->data = malloc((80+(32*npol))*nvis * sizeof(char)))) {
@@ -168,7 +169,7 @@ ARLVis *destroy_vis(ARLVis *vis)
 
 ARLVis *allocate_blockvis_data(int nant, int nchan, int npol, int ntimes)
 {
-	int nbytes;	
+	long int nbytes;	
 	ARLVis *vis;
 	if (!(vis = malloc(sizeof(ARLVis)))) {
 		return NULL;
@@ -177,7 +178,7 @@ ARLVis *allocate_blockvis_data(int nant, int nchan, int npol, int ntimes)
 	vis->nvis = ntimes; // storing ntime instead of nvis, ToDo: add extra struct element(s)
 	vis->npol = npol;
 	nbytes = (24+24*nant*nant+24*nant*nant*nchan*npol)*ntimes * sizeof(char);
-	printf("Allocating %d bytes for a blockvisibility structure.\n", nbytes);
+	printf("Allocating %ld bytes for a blockvisibility structure.\n", nbytes);
 	// (24 bytes static data + 24 bytes * nant*nant + 24 bytes *nant*nant*nchan*npol) *ntime
 	if ( !( vis->data = malloc( (24+24*nant*nant+24*nant*nant*nchan*npol)*ntimes * sizeof(char) ) ) ) {
 		free(vis);
@@ -191,5 +192,34 @@ ARLVis *allocate_blockvis_data(int nant, int nchan, int npol, int ntimes)
 	}
 
 	return vis;
+}
+
+ARLGt *allocate_gt_data(int nant, int nchan, int nrec, int ntimes)
+{
+	long int nbytes;
+	ARLGt *gt;
+	if (!(gt = malloc(sizeof(ARLGt)))) {
+		return NULL;
+		}
+
+	gt->nrows = ntimes;
+	nbytes = (8 + 8*nchan*nrec*nrec + 3*8*nant*nchan*nrec*nrec)*ntimes * sizeof(char);
+	printf("Allocating %ld bytes for a gaintable structure.\n", nbytes);
+
+	if (!(gt->data = malloc(nbytes))) {
+		free(gt);
+		return NULL;
+		}
+	
+
+	return gt;
+}
+
+ARLGt *destroy_gt(ARLGt *gt)
+{
+	free(gt->data);
+	free(gt);
+
+	return NULL;
 }
 
