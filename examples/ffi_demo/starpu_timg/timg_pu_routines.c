@@ -10,7 +10,45 @@
  * Author: Arjen Tamerus <at748@cam.ac.uk>
  */
 
-#include <starpu.h>
+#include "timg_pu_routines.h"
+
+
+// Simple interfaces that 
+void pu_create_test_image(void **buffers, void *cl_arg)
+{
+	arl_create_test_image(STARPU_VARIABLE_GET_PTR(buffers[0]), *((double*)STARPU_VARIABLE_GET_PTR(buffers[1])),
+			STARPU_VARIABLE_GET_PTR(buffers[2]), STARPU_VARIABLE_GET_PTR(buffers[3]));
+}
+
+void pu_create_visibility(void **buffers, void *cl_arg)
+{
+	arl_create_visibility(SVGP(0), SVGP(1));
+}
+
+void pu_predict_2d(void **buffers, void *cl_arg)
+{
+	arl_predict_2d(SVGP(0), SVGP(1), SVGP(2));
+}
+
+void pu_create_from_visibility(void **buffers, void *cl_args)
+{
+	arl_create_image_from_visibility(SVGP(0), SVGP(1));
+}
+
+void pu_invert_2d(void **buffers, void *cl_args)
+{
+	arl_invert_2d(SVGP(0), SVGP(1), *((bool*)SVGP(2)), SVGP(3), SVGP(4));
+}
+
+void pu_deconvolve_cube(void **buffers, void *cl_args)
+{
+	arl_deconvolve_cube(SVGP(0), SVGP(1), SVGP(2), SVGP(3));
+}
+
+void pu_restore_cube(void **buffers, void *cl_args)
+{
+	arl_restore_cube(SVGP(0), SVGP(1), SVGP(2), SVGP(3));
+}
 
 /* Simple task submission. Assumes one buffer per handle, nbuffers and modes
  * specified in kernel codelet
