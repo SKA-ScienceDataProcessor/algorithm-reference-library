@@ -17,7 +17,8 @@ ffi_demo = Extension('ffi_demo', sources = ['src/ffi_demo.c', 'src/arlwrap.c', '
         undef_macros = ['NDEBUG'], extra_compile_args = ['-Wno-strict-prototypes'])
 
 starpu_timg = Extension('timg_starpu', sources = ['starpu_timg/timg_starpu.c',
-    'starpu_timg/timg_pu_routines.c', 'src/arlwrap.c', 'src/wrap_support.c'],
+    'starpu_timg/timg_pu_codelets.c', 'starpu_timg/timg_pu_routines.c',
+    'src/arlwrap.c', 'src/wrap_support.c'],
         include_dirs = ['{home}/.local/starpu/include/starpu/1.2'.format(home=os.getenv('HOME'))],
         undef_macros = ['NDEBUG'], extra_compile_args = ['-Wno-strict-prototypes'])
 

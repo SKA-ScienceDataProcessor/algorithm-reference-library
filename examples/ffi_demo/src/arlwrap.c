@@ -18,7 +18,7 @@
 static ARL_TLS int arl_bypass_ = 0;
 static ARL_TLS int arl_bypass_check_ = 0;
 
-void void_routine(__VA_ARGS__) {
+void void_routine() {
 }
 // in: fname: same as the *NamedTuple* containing the FFI memory address of a
 // Python routine.
@@ -48,7 +48,7 @@ size_t bk_getfn(const char* fname)
   }
 	// call 'void' routine if ARL_BYPASS_FFI is set
 	if (arl_bypass_) {
-		return &void_routine;
+		return (size_t)&void_routine;
 	}
 
   if(!(  m= PyImport_ImportModule("arlwrap") ))

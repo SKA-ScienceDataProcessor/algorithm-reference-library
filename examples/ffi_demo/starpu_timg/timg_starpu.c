@@ -33,13 +33,14 @@ int main(int argc, char *argv[]) {
 
 	ARLConf *lowconfig;
 
+	PyThreadState *py_master_state;
+
 	starpu_init(NULL);
 
+	// Initialise the Python interpreter, and release GIL through SaveThread
 	Py_Initialize();
-
-	// We need this macro (+ END macro), otherwise starpu's pthreads will deadlock
-	// when trying to get the Python interpreter lock
-	Py_BEGIN_ALLOW_THREADS
+	PyEval_InitThreads();
+	_master_state = PyEval_SaveThread();
 
 	lowconfig = allocate_arlconf_default(config_name);
 
@@ -152,15 +153,44 @@ int main(int argc, char *argv[]) {
 	starpu_task_declare_deps_array(deconvolve_cube_task, 1, &invert_2d_psf_task);
 	starpu_task_submit(deconvolve_cube_task);
 
-	starpu_data_handle_t restore_cube_handle[4];
-	SVDR(restore_cube_handle, 0, comp, sizeof(Image));
-	SVDR(restore_cube_handle, 1, psf, sizeof(Image));
-	SVDR(restore_cube_handle, 2, residual, sizeof(Image));
-	SVDR(restore_cube_handle, 3, restored, sizeof(Image));
 
-	struct starpu_task *restore_cube_task = create_task(&restore_cube_cl, restore_cube_handle);
-	starpu_task_declare_deps_array(restore_cube_task, 1, &deconvolve_cube_task);
-	starpu_task_submit(restore_cube_task);
+	// Set N_ITER > 1 for multithreading test
+
+	starpu_task_wait_for_all();
+	#define N_ITER 1
+	int i;
+	Image *restored_[N_ITER];
+	Image *psf_[N_ITER];
+	Image *comp_[N_ITER];
+	Image *residual_[N_ITER];
+	starpu_data_handle_t restore_cube_handle[N_ITER][4];
+	struct starpu_task *restore_cube_task[N_ITER];
+	for(i=0; i< N_ITER; i++) {
+		comp_[i] = allocate_image(shape);
+		memcpy(comp_[i]->data, comp->data, comp->size*sizeof(double));
+		memcpy(comp_[i]->wcs, comp->wcs, 2997);
+		memcpy(comp_[i]->polarisation_frame, comp->polarisation_frame, 115);
+		psf_[i] = allocate_image(shape);
+		memcpy(psf_[i]->data, psf->data, psf->size*sizeof(double));
+		memcpy(psf_[i]->wcs, psf->wcs, 2997);
+		memcpy(psf_[i]->polarisation_frame, psf->polarisation_frame, 115);
+		residual_[i] = allocate_image(shape);
+		memcpy(residual_[i]->data, residual->data, residual->size*sizeof(double));
+		memcpy(residual_[i]->wcs, residual->wcs, 2997);
+		memcpy(residual_[i]->polarisation_frame, residual->polarisation_frame, 115);
+		restored_[i] = allocate_image(shape);
+
+		SVDR(restore_cube_handle[i], 0, comp_[i], sizeof(Image));
+		SVDR(restore_cube_handle[i], 1, psf_[i], sizeof(Image));
+		SVDR(restore_cube_handle[i], 2, residual_[i], sizeof(Image));
+		SVDR(restore_cube_handle[i], 3, restored_[i], sizeof(Image));
+    restore_cube_task[i] = create_task(&restore_cube_cl, restore_cube_handle[i]);
+
+		//starpu_task_declare_deps_array(restore_cube_task, 1, &deconvolve_cube_task);
+		//if (i > 0)
+		//  starpu_task_declare_deps_array(restore_cube_task[i], 1, &restore_cube_task[i-1]);
+		starpu_task_submit(restore_cube_task[i]);
+	}
 
 
 	// === Terminate ===
@@ -174,13 +204,14 @@ int main(int argc, char *argv[]) {
 	status = export_image_to_fits_c(dirty, "results/dirty.fits");
 	status = export_image_to_fits_c(psf, "results/psf.fits");
 	status = export_image_to_fits_c(residual, "results/residual.fits");
-	status = export_image_to_fits_c(restored, "results/restored.fits");
+	status = export_image_to_fits_c(restored_[N_ITER-1], "results/restored.fits");
 	status = export_image_to_fits_c(comp, "results/solution.fits");
 
 	starpu_shutdown();
 
-	// Close the threading-enabling macro
-	Py_END_ALLOW_THREADS
+	// Restore thread state and cleanly shutdown Python
+	PyEval_RestoreThread(_master_state);
+	Py_Finalize();
 
 	return 0;
 }
