@@ -232,16 +232,17 @@ def helper_create_blockvisibility_object(c_vis, freqs, chan_b, config):
     return tvis
 
 # Turns ARLGt struct into GainTable object
-def helper_create_gaintable_object(c_gt, freqs):
+def helper_create_gaintable_object(c_gt, freqs, recframe):
     tgt= GainTable(
-            data=c_gt,
+            data=None,
 	    frequency = freqs,
             gain=c_gt['gain'],
             weight=c_gt['weight'],
             residual=c_gt['residual'],
-            time=c_gt['time']
+            time=c_gt['time'],
+            receptor_frame=recframe
             )
-    print(tgt.__dict__)
+#    print(tgt.__dict__)
     return tgt
 
 
@@ -403,10 +404,10 @@ def arl_create_gaintable_from_blockvisibility_ffi(lowconfig, blockvis_in, gt_out
     py_blockvisin.polarisation_frame = PolarisationFrame(polframe)
 
     py_gt = create_gaintable_from_blockvisibility(py_blockvisin)
-
+#    print(py_gt.data['gain'].shape, py_gt.data['weight'].shape, py_gt.data['residual'].shape, py_gt.data['time'].shape)
 #    print(py_gt.data.size, py_gt.data.itemsize)
 #    print(py_gt.frequency.size)
-#    print(py_gt.receptor_frame)
+#    print("create_gaintable_from_blockvisibility: ", py_gt.receptor_frame.nrec)
 
 #    receptor_frame = ReceptorFrame(py_blockvisin.polarisation_frame.type)
 #    pframe1 = PolarisationFrame(polframe)
@@ -430,16 +431,22 @@ def arl_simulate_gaintable_ffi(lowconfig, gt):
 
     polframe = str(ff.string(lowconfig.polframe), 'utf-8')
     polarisation_frame = PolarisationFrame(polframe)
-    receptor_frame = PolarisationFrame(polframe)
-
+    receptor_frame = ReceptorFrame(polarisation_frame.type)
+#    print(lowconfig.polframe, lowconfig.nrec, receptor_frame.nrec)
     c_gt = cARLGt(gt, lowconfig.nant, lowconfig.nfreqs, lowconfig.nrec)
-    py_gt = helper_create_gaintable_object(c_gt, frequency)
+    py_gt = helper_create_gaintable_object(c_gt, frequency, receptor_frame)
     py_gt.receptor_frame = receptor_frame
-    print(py_gt.__dict__)
-#    py_gt = simulate_gaintable(py_gt, phase_error = 1.0)
+#    print()
+#    print(py_gt.__dict__)
+#    print("simulate_gaintable 1 nrec: ", py_gt.receptor_frame.nrec)
+#    print(py_gt.data['gain'].shape, py_gt.data['weight'].shape, py_gt.data['residual'].shape, py_gt.data['time'].shape)
 
-#    numpy.copyto(c_gt, py_gt.data)
-    
+    py_gt = simulate_gaintable(py_gt, phase_error = 1.0)
+
+#    print("simulate_gaintable 2 nrec: ", py_gt.receptor_frame.nrec)
+#    print(py_gt.data['gain'].shape, py_gt.data['weight'].shape, py_gt.data['residual'].shape, py_gt.data['time'].shape)
+
+    numpy.copyto(c_gt, py_gt.data)    
 
 arl_simulate_gaintable=collections.namedtuple("FFIX", "address")
 arl_simulate_gaintable.address=int(ff.cast("size_t", arl_simulate_gaintable_ffi))
