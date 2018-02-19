@@ -47,7 +47,8 @@ int verify_arl_copy(ARLVis *vt, ARLVis *vtmp)
 
 int main(int argc, char **argv)
 {
-	int *shape = malloc(4*sizeof(int));
+	int *shape  = malloc(4*sizeof(int));
+	int *shape1 = malloc(4*sizeof(int));
 	int status;
 	int nvis;
 
@@ -69,8 +70,16 @@ int main(int argc, char **argv)
 	ARLVis *vtmp;
 	ARLVis *vtpredicted;		//Visibility
 	ARLVis *vt_predictfunction;	//Blockvisibility
+	ARLVis *vt_gt;			//Blockvisibility
 
 	ARLConf *lowconfig;
+
+	Image *gleam_model;		//Image (GLEAM model)
+	Image *model;			//Image (a model for CLEAN)
+	Image *dirty;			//Image (dirty image by invert_function)
+	Image *deconvolved;		//Image (ICAL result)
+	Image *residual;		//Image (ICAL result)
+	Image *restored;		//Image (ICAL result)
 
 	arl_initialize();
 
@@ -84,7 +93,7 @@ int main(int argc, char **argv)
 	lowconfig->pc_dec = -60.0;					// Phasecentre Dec
 	// Setting values for the frequencies and times
 	lowconfig->nfreqs = 5; 						// Number of frequencies
-	lowconfig->nchanwidth = 5;					// Number of channel bandwidths
+	lowconfig->nchanwidth = lowconfig->nfreqs;			// Number of channel bandwidths
 	fstart = 0.8e8;							// Starting frequency
 	fend = 1.2e8;							// Ending frequency
 	fdelta = (fend - fstart)/ (double)(lowconfig->nfreqs - 1);	// Frequency step
@@ -120,6 +129,7 @@ int main(int argc, char **argv)
 //	vtmp = allocate_vis_data(lowconfig->npol, nvis);
 	vt 		   = allocate_blockvis_data(lowconfig->nant, lowconfig->nfreqs, lowconfig->npol, lowconfig->ntimes); //Blockvisibility
 	vt_predictfunction = allocate_blockvis_data(lowconfig->nant, lowconfig->nfreqs, lowconfig->npol, lowconfig->ntimes); //Blockvisibility
+	vt_gt              = allocate_blockvis_data(lowconfig->nant, lowconfig->nfreqs, lowconfig->npol, lowconfig->ntimes); //Blockvisibility
 	vtpredicted        = allocate_vis_data(lowconfig->npol, nvis);							     //Visibility
 
 	// Allocating cindex array where 8*sizeof(char) is sizeof(python int)
@@ -130,19 +140,14 @@ int main(int argc, char **argv)
 		return 1;
 	}
 	
-	printf("Done...\n");
 	// ICAL section	
 	// create_blockvisibility()
 	printf("Create blockvisibility... ");
 	arl_create_blockvisibility(lowconfig, vt);
-	printf("Done\n");
 	printf("Nrec = %d\n", lowconfig->nrec);
 	// Allocating gaintable data
 	gt = allocate_gt_data(lowconfig->nant, lowconfig->nfreqs, lowconfig->nrec, lowconfig->ntimes);
 
-	// end ICAL section
-	
-	// ICAL section
 	// adwise_wide_field()
 	adv.guard_band_image = 4.0;
 	adv.delA=0.02;
@@ -152,19 +157,17 @@ int main(int argc, char **argv)
 	printf("Done.\n");
 	printf("Vis_slices = %d,  npixel = %d, cellsize = %e\n", adv.vis_slices, adv.npixel, adv.cellsize);
 	cellsize = adv.cellsize;
-	// end ICAL section
 
-	// ICAL section
 	// create_low_test_image_from_gleam
 	helper_get_image_shape_multifreq(lowconfig, adv.cellsize, adv.npixel, shape);
 	printf("A shape of the modeled GLEAM image: [ %d, %d, %d, %d]\n", shape[0], shape[1], shape[2], shape[3]);
-	Image *gleam_model = allocate_image(shape);
+	gleam_model = allocate_image(shape);
 	arl_create_low_test_image_from_gleam(lowconfig, adv.cellsize, adv.npixel, vt->phasecentre, gleam_model);
 
-	// FITS files output
+	// FITS file output
 	status = mkdir("results", S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
-	status = export_image_to_fits_c(gleam_model, "results/gleam_model.fits");
-	// ICAL section
+	status = export_image_to_fits_c(gleam_model, "!results/gleam_model.fits");
+
 	// predict_function()
 	arl_predict_function(lowconfig, vt, gleam_model, vtpredicted, vt_predictfunction, cindex_predict);
 
@@ -174,89 +177,58 @@ int main(int argc, char **argv)
 	// create_gaintable_from_blockvisibility()
 	arl_create_gaintable_from_blockvisibility(lowconfig, vt, gt);
 
-	// simulate_gaintable
+	// simulate_gaintable()
 	arl_simulate_gaintable(lowconfig, gt);
 
+	// apply_gaintable()
+	arl_apply_gaintable(lowconfig, vt, gt, vt_gt);
 
-	gleam_model = destroy_image(gleam_model);
-	vt = destroy_vis(vt);
-	vtpredicted = destroy_vis(vtpredicted);
+	// create_image_from_blockvisibility()
+	// Create an image with nchan = 1
+	for(i = 0; i< 4; i++) {
+		shape1[i] = shape[i];
+		}
+	shape1[0] = 1;
+	model = allocate_image(shape1);
+	arl_create_image_from_blockvisibility(lowconfig, vt, adv.cellsize, adv.npixel, vt->phasecentre, model);
+
+	// invert_function()
+	dirty = allocate_image(shape1);
+	arl_invert_function(lowconfig, vtpredicted, model, adv.vis_slices, dirty);
+
+	// FITS file output
+	status = export_image_to_fits_c(dirty, "!results/dirty.fits");
+
+	// ical() - serial version
+	deconvolved = allocate_image(shape1);
+	residual    = allocate_image(shape1);
+	restored    = allocate_image(shape1);
+
+	arl_ical(lowconfig, vt_gt, model, adv.vis_slices, deconvolved, residual, restored);
+
+	// FITS file output
+	status = export_image_to_fits_c(deconvolved, 	"!results/deconvolved.fits");
+	status = export_image_to_fits_c(residual, 	"!results/residual.fits");
+	status = export_image_to_fits_c(restored, 	"!results/restored.fits");
+
+
+	// Cleaning up
+	gleam_model 	= destroy_image(gleam_model);
+	model		= destroy_image(model);
+	dirty		= destroy_image(dirty);
+	deconvolved	= destroy_image(deconvolved);
+	residual	= destroy_image(residual);
+	restored	= destroy_image(restored);
+	vt 		= destroy_vis(vt);
+	vtpredicted 	= destroy_vis(vtpredicted);
 	vt_predictfunction = destroy_vis(vt_predictfunction);
-	gt = destroy_gt(gt);
+	vt_gt 		= destroy_vis(vt_gt);
+	gt 		= destroy_gt(gt);
 	free(cindex_predict);
+	free(shape);
+	free(shape1);
 	// end ICAL section
 
 	return 0;
 
-	// Calculate shape of future images, store in 'shape'
-	printf("Get image shape... ");
-	helper_get_image_shape(lowconfig->freqs, cellsize, shape);
-	printf("Done\n");
-
-	printf("Allocate images... ");
-	Image *model = allocate_image(shape);
-	Image *m31image = allocate_image(shape);
-	Image *dirty = allocate_image(shape);
-	Image *psf = allocate_image(shape);
-	Image *comp = allocate_image(shape);
-	Image *residual = allocate_image(shape);
-	Image *restored = allocate_image(shape);
-	printf("Done\n");
-
-	printf("Create visibility... ");
-	arl_create_visibility(lowconfig, vt);
-	printf("Done\n");
-
-	/* TODO the vt->phasecentre part should be moved to a separate routine */
-	arl_create_test_image(lowconfig->freqs, cellsize, vt->phasecentre, m31image);
-
-	arl_predict_2d(vt, m31image, vtmp);
-
-	vt = destroy_vis(vt);
-	vt = vtmp;
-	vtmp = NULL;
-
-
-	arl_create_image_from_visibility(vt, model);
-
-	double *sumwt = malloc(sizeof(double));
-
-	arl_invert_2d(vt, model, false, dirty, sumwt);
-	arl_invert_2d(vt, model, true, psf, sumwt);
-
-	arl_deconvolve_cube(dirty, psf, comp, residual);
-	arl_restore_cube(comp, psf, residual, restored);
-
-	// FITS files output
-	status = mkdir("results", S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
-	status = export_image_to_fits_c(m31image, "results/m31image.fits");
-	status = export_image_to_fits_c(dirty, "results/dirty.fits");
-	status = export_image_to_fits_c(psf, "results/psf.fits");
-	status = export_image_to_fits_c(residual, "results/residual.fits");
-	status = export_image_to_fits_c(restored, "results/restored.fits");
-	status = export_image_to_fits_c(comp, "results/solution.fits");
-
-	if(status) printf("WARNING: FITSIO status: %d\n", status);
-
-	model = destroy_image(model);
-	m31image = destroy_image(m31image);
-	dirty = destroy_image(dirty);
-	psf = destroy_image(psf);
-	residual = destroy_image(residual);
-	restored = destroy_image(restored);
-
-	vtmodel = allocate_vis_data(lowconfig->npol, nvis);
-	vtmp = allocate_vis_data(lowconfig->npol, nvis);
-
-	arl_create_visibility(lowconfig, vtmodel);
-
-	arl_predict_2d(vtmodel, comp, vtmp);
-
-	vtmodel = destroy_vis(vtmodel);
-	vtmp = destroy_vis(vtmp);
-
-	comp = destroy_image(comp);
-	
-
-	return 0;
 }

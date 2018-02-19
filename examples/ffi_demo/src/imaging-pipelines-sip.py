@@ -69,21 +69,45 @@ cellsize=advice['cellsize']
 
 
 gleam_model = create_low_test_image_from_gleam(npixel=npixel, frequency=frequency,
-    channel_bandwidth=channel_bandwidth, cellsize=cellsize, phasecentre=phasecentre, applybeam=True)
+    channel_bandwidth=channel_bandwidth, cellsize=cellsize, phasecentre=phasecentre, flux_limit = 1.0, applybeam=True)
 
 
 predicted_vis = predict_function(block_vis, gleam_model, vis_slices=51, context='wstack')
+#print("np.sum(predicted_vis.data): ", numpy.sum(predicted_vis.data['vis']))
 block_vis=convert_visibility_to_blockvisibility(predicted_vis)
+#print("np.sum(block_vis.data): ", numpy.sum(block_vis.data['vis']))
+
+#print("nchan npol nants ", block_vis.nchan, block_vis.npol, block_vis.nants)
+#print("uvw", block_vis.uvw, numpy.sum(block_vis.uvw))
+#print("vis", block_vis.vis, numpy.sum(block_vis.vis))
+#print("weight", block_vis.weight, numpy.sum(block_vis.weight))
+#print("time", block_vis.time, numpy.sum(block_vis.time))
+#print("integration_time", block_vis.integration_time, numpy.sum(block_vis.integration_time))
+#print("nvis, size", block_vis.nvis, block_vis.size())
+
 gt = create_gaintable_from_blockvisibility(block_vis)
+#print("np.sum(gt.data): ", numpy.sum(gt.data['gain']))
 gt = simulate_gaintable(gt, phase_error=1.0)
+#print("np.sum(gt.data): ", numpy.sum(gt.data['gain']))
 blockvis = apply_gaintable(block_vis, gt)
+#print("np.sum(blockvis.data): ", numpy.sum(blockvis.data['vis']))
 
 
 model = create_image_from_visibility(block_vis, npixel=npixel, frequency=[numpy.average(frequency)], nchan=1,
     channel_bandwidth=[numpy.sum(channel_bandwidth)], cellsize=cellsize, phasecentre=phasecentre)
 
+#print("model sum, min, max, shape: ", numpy.sum(model.data), numpy.amin(model.data), numpy.amax(model.data), model.shape)
+
+print(qa_image(model, context='Blockvis model image'))
+export_image_to_fits(model, '%s/imaging-blockvis_model.fits'
+                     % (results_dir))
 
 dirty, sumwt = invert_function(predicted_vis, model, vis_slices=vis_slices, dopsf=False, context='wstack')
+
+
+print(qa_image(dirty, context='Dirty image'))
+export_image_to_fits(dirty, '%s/imaging-dirty.fits'
+                     % (results_dir))
 
 
 deconvolved, residual, restored = ical(block_vis=blockvis, model=model, vis_slices=vis_slices, timeslice='auto',
@@ -100,5 +124,9 @@ export_image_to_fits(residual, '%s/imaging-dask_ical_residual.fits'
 
 print(qa_image(restored, context='Restored clean image'))
 export_image_to_fits(restored, '%s/imaging-dask_ical_restored.fits'
+                     % (results_dir))
+
+print(qa_image(model, context='Blockvis model image1'))
+export_image_to_fits(model, '%s/imaging-blockvis_model1.fits'
                      % (results_dir))
 
