@@ -23,10 +23,12 @@ int export_image_to_fits_c(Image *im, char * filename)
 
 	if(exists != 0) {
 		fits_open_file(&fptr, filename, READWRITE, &status); /* open existed file */
+		fits_delete_file(fptr, &status);
 	}
-	else {
-		fits_create_file(&fptr, filename, &status);   /* create new file */
-	}
+//	else {
+//	Rewrite the old file if it is leading "!" in a filename
+	fits_create_file(&fptr, filename, &status);   /* create new file */
+//	}
 
 	/* Create the primary array image  */
 	fits_create_img(fptr, DOUBLE_IMG, naxis, naxes, &status);
@@ -126,6 +128,7 @@ ARLConf *allocate_arlconf_default(const char *conf_name)
 
 	config->freqs[0] = 1e8;
 	config->channel_bandwidth[0] = 1e6;
+	config->polframe = "stokesI";
 
 	return config;
 }
