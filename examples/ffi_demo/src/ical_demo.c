@@ -56,6 +56,7 @@ int main(int argc, char **argv)
 	int wprojection_planes, i;
 	double fstart, fend, fdelta, tstart, tend, tdelta, rmax;
 	ARLadvice adv;
+	ant_t nb;			//nant and nbases
 	long long int *cindex_predict;
 	int cindex_nbytes;
 	ARLGt *gt;			//GainTable
@@ -88,6 +89,10 @@ int main(int argc, char **argv)
 	// ICAL section
 	lowconfig->polframe = pol_frame;
 	lowconfig->rmax = 300.0;
+	// Get new nant and nbases w.r.t. to a maximum radius rmax
+	helper_get_nbases_rmax(config_name, lowconfig->rmax, &nb);
+	lowconfig->nant = nb.nant;
+	lowconfig->nbases = nb.nbases;
 	// Overwriting default values for a phasecentre
 	lowconfig->pc_ra = 30.0;					// Phasecentre RA
 	lowconfig->pc_dec = -60.0;					// Phasecentre Dec

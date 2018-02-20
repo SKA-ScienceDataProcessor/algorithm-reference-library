@@ -125,6 +125,7 @@ ARLConf *allocate_arlconf_default(const char *conf_name)
 	config->nant = nb.nant;
 	config->npol = 1;
 	config->nrec = 0;
+	config->rmax = 0.0;
 
 	config->freqs[0] = 1e8;
 	config->channel_bandwidth[0] = 1e6;

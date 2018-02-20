@@ -286,7 +286,11 @@ typedef struct {
 @ff.callback("void (*)(ARLConf *, ARLVis *)")
 def arl_create_visibility_ffi(lowconfig, c_res_vis):
     lowcore_name = str(ff.string(lowconfig.confname), 'utf-8')
-    lowcore = create_named_configuration(lowcore_name)
+# Temp fix for ffi_demo
+    if lowconfig.rmax < 1.0e-5 :
+       lowcore = create_named_configuration(lowcore_name)
+    else:
+       lowcore = create_named_configuration(lowcore_name, rmax=lowconfig.rmax)
 
     times = numpy.frombuffer(ff.buffer(lowconfig.times, 8*lowconfig.ntimes), dtype='f8', count=lowconfig.ntimes)
     frequency = numpy.frombuffer(ff.buffer(lowconfig.freqs, 8*lowconfig.nfreqs), dtype='f8', count=lowconfig.nfreqs)
@@ -319,7 +323,8 @@ arl_create_visibility.address=int(ff.cast("size_t", arl_create_visibility_ffi))
 @ff.callback("void (*)(ARLConf *, ARLVis *)")
 def arl_create_blockvisibility_ffi(lowconfig, c_res_vis):
     lowcore_name = str(ff.string(lowconfig.confname), 'utf-8')
-    lowcore = create_named_configuration(lowcore_name)
+    print(lowconfig.rmax)
+    lowcore = create_named_configuration(lowcore_name, rmax=lowconfig.rmax)
 
     times = numpy.frombuffer(ff.buffer(lowconfig.times, 8*lowconfig.ntimes), dtype='f8', count=lowconfig.ntimes)
     frequency = numpy.frombuffer(ff.buffer(lowconfig.freqs, 8*lowconfig.nfreqs), dtype='f8', count=lowconfig.nfreqs)
@@ -356,7 +361,7 @@ arl_create_blockvisibility.address=int(ff.cast("size_t", arl_create_blockvisibil
 @ff.callback("void (*)(ARLConf *, const ARLVis *, const ARLVis *, long long int *, ARLVis *)")
 def arl_convert_visibility_to_blockvisibility_ffi(lowconfig, vis_in, blockvis_in, cindex_in, blockvis_out):
     lowcore_name = str(ff.string(lowconfig.confname), 'utf-8')
-    lowcore = create_named_configuration(lowcore_name)
+    lowcore = create_named_configuration(lowcore_name, rmax=lowconfig.rmax)
 
     times = numpy.frombuffer(ff.buffer(lowconfig.times, 8*lowconfig.ntimes), dtype='f8', count=lowconfig.ntimes)
     frequency = numpy.frombuffer(ff.buffer(lowconfig.freqs, 8*lowconfig.nfreqs), dtype='f8', count=lowconfig.nfreqs)
@@ -398,7 +403,7 @@ arl_convert_visibility_to_blockvisibility.address=int(ff.cast("size_t", arl_conv
 @ff.callback("void (*)(ARLConf *, const ARLVis *, ARLGt *)")
 def arl_create_gaintable_from_blockvisibility_ffi(lowconfig, blockvis_in, gt_out):
     lowcore_name = str(ff.string(lowconfig.confname), 'utf-8')
-    lowcore = create_named_configuration(lowcore_name)
+    lowcore = create_named_configuration(lowcore_name, rmax=lowconfig.rmax)
 
     times = numpy.frombuffer(ff.buffer(lowconfig.times, 8*lowconfig.ntimes), dtype='f8', count=lowconfig.ntimes)
     frequency = numpy.frombuffer(ff.buffer(lowconfig.freqs, 8*lowconfig.nfreqs), dtype='f8', count=lowconfig.nfreqs)
@@ -433,7 +438,7 @@ arl_create_gaintable_from_blockvisibility.address=int(ff.cast("size_t", arl_crea
 @ff.callback("void (*)(ARLConf *, ARLGt *)")
 def arl_simulate_gaintable_ffi(lowconfig, gt):
     lowcore_name = str(ff.string(lowconfig.confname), 'utf-8')
-    lowcore = create_named_configuration(lowcore_name)
+    lowcore = create_named_configuration(lowcore_name, rmax=lowconfig.rmax)
 
     times = numpy.frombuffer(ff.buffer(lowconfig.times, 8*lowconfig.ntimes), dtype='f8', count=lowconfig.ntimes)
     frequency = numpy.frombuffer(ff.buffer(lowconfig.freqs, 8*lowconfig.nfreqs), dtype='f8', count=lowconfig.nfreqs)
@@ -465,7 +470,7 @@ arl_simulate_gaintable.address=int(ff.cast("size_t", arl_simulate_gaintable_ffi)
 @ff.callback("void (*)(ARLConf *, const ARLVis *, ARLGt *, ARLVis * )")
 def arl_apply_gaintable_ffi(lowconfig, blockvis_in, gt, blockvis_out):
     lowcore_name = str(ff.string(lowconfig.confname), 'utf-8')
-    lowcore = create_named_configuration(lowcore_name)
+    lowcore = create_named_configuration(lowcore_name, rmax=lowconfig.rmax)
 
     times = numpy.frombuffer(ff.buffer(lowconfig.times, 8*lowconfig.ntimes), dtype='f8', count=lowconfig.ntimes)
     frequency = numpy.frombuffer(ff.buffer(lowconfig.freqs, 8*lowconfig.nfreqs), dtype='f8', count=lowconfig.nfreqs)
@@ -542,6 +547,7 @@ typedef struct {int nant, nbases;} ant_t;
 """)
 
 # Get the number of baselines for the given configuration
+# WARING!!! rmax is missing ! -ToDo
 @ff.callback("void (*) (char*, ant_t *)")
 def helper_get_nbases_ffi(config_name, nbases_in):
     tconfig_name = str(ff.string(config_name), 'utf-8')
@@ -552,6 +558,19 @@ def helper_get_nbases_ffi(config_name, nbases_in):
 
 helper_get_nbases=collections.namedtuple("FFIX", "address")    
 helper_get_nbases.address=int(ff.cast("size_t", helper_get_nbases_ffi))  
+
+# Get the number of baselines for the given configuration
+# WARING!!! rmax is missing ! -ToDo
+@ff.callback("void (*) (char*, double, ant_t *)")
+def helper_get_nbases_rmax_ffi(config_name, rmax, nbases_in):
+    tconfig_name = str(ff.string(config_name), 'utf-8')
+    lowcore = create_named_configuration(tconfig_name, rmax=rmax)
+    nbases_in.nant = len(lowcore.xyz)
+    nbases_in.nbases = int(len(lowcore.xyz)*(len(lowcore.xyz)-1)/2)
+    print(tconfig_name,nbases_in.nant, nbases_in.nbases )
+
+helper_get_nbases_rmax=collections.namedtuple("FFIX", "address")    
+helper_get_nbases_rmax.address=int(ff.cast("size_t", helper_get_nbases_rmax_ffi))  
 
 @ff.callback("void (*)(ARLConf *, double, int, int *)")
 def helper_get_image_shape_multifreq_ffi(lowconfig, cellsize, npixel, c_shape):
