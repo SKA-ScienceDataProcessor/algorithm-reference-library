@@ -178,6 +178,11 @@ void helper_get_nbases(char * config_name, ant_t * nbases)
   BKFNPY(helper_get_nbases)(config_name, nbases);
 }
 
+void helper_get_nbases_rmax(char * config_name, double rmax, ant_t * nbases)
+{
+  BKFNPY(helper_get_nbases_rmax)(config_name, rmax, nbases);
+}
+
 void arl_predict_function(ARLConf *lowconf, const ARLVis *visin, const Image *img, ARLVis *visout, ARLVis *blockvisout, long long int *cindexout) {
 	BKFNPY(arl_predict_function)(lowconf, visin, img, visout, blockvisout, cindexout);
 }

@@ -94,6 +94,7 @@ void helper_get_image_shape_multifreq(ARLConf *lowconf, double cellsize,
 		int npixel, int *shape);
 
 void helper_get_nbases(char *, ant_t *);
+void helper_get_nbases_rmax(char *, double, ant_t *);
 void helper_set_image_params(const ARLVis *vis, Image *image);
 
 void arl_create_visibility(ARLConf *lowconf, ARLVis *res_vis);
