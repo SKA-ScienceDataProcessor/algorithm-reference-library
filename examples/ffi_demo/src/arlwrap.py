@@ -22,8 +22,13 @@ from arl.imaging.imaging_context import invert_function, predict_function
 from arl.visibility.coalesce import convert_visibility_to_blockvisibility
 from arl.pipelines.functions import ical
 
-
+import logging
 import pickle
+
+log = logging.getLogger()
+log.setLevel(logging.INFO)
+log.addHandler(logging.StreamHandler(sys.stdout))
+
 
 ff = cffi.FFI()
 
@@ -220,8 +225,6 @@ def helper_create_blockvisibility_object(c_vis, freqs, chan_b, config):
     # especially the data field...
     tvis= BlockVisibility(
             data=c_vis,
-    #        frequency=c_vis['frequency'],
-    #        channel_bandwidth=c_vis['channel_bandwidth'],
 	    frequency = freqs,
             channel_bandwidth = chan_b,
             configuration = config,
@@ -519,6 +522,9 @@ def arl_advise_wide_field_ffi(lowconfig, vis_in, adv):
     
     polframe = str(ff.string(lowconfig.polframe), 'utf-8')
     py_visin.polarisation_frame = PolarisationFrame(polframe)
+
+    print("Index :", py_visin.data['index'])
+
     advice=advise_wide_field(py_visin, guard_band_image=adv.guard_band_image, delA=adv.delA,
                              wprojection_planes=adv.wprojection_planes)
     print(advice['vis_slices'], advice['npixels2'], advice['cellsize'])
