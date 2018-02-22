@@ -58,12 +58,7 @@ def create_sagecal_thetas(vis: BlockVisibility, comps, **kwargs):
     :return:
     """
     gt = create_gaintable_from_blockvisibility(vis, **kwargs)
-    thetas = list()
-    for i, sc in enumerate(comps):
-        new_sc = copy_skycomponent(sc)
-        thetas.append((new_sc, copy_gaintable(gt)))
-    return thetas
-
+    return [(copy_skycomponent(sc), copy_gaintable(gt)) for sc in comps]
 
 def sagecal_fit_component(evis, theta, gain=0.1, method='fit', **kwargs):
     """Fit a single component to a visibility i.e. A13
