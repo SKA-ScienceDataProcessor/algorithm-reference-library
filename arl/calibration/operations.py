@@ -23,7 +23,7 @@ def gaintable_summary(gt: GainTable):
     return "%s rows, %.3f GB" % (gt.data.shape, gt.size())
 
 
-def create_gaintable_from_blockvisibility(vis: BlockVisibility, timeslice: float = None,
+def create_gaintable_from_blockvisibility(vis: BlockVisibility, timeslice = None,
                                           frequencyslice: float = None, **kwargs) -> GainTable:
     """ Create gain table from visibility.
     

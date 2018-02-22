@@ -116,6 +116,12 @@ Solvers
 .. automodule:: arl.calibration.solvers
    :members:
 
+Sagecal
++++++++
+
+.. automodule:: arl.calibration.sagecal
+   :members:
+
 Fourier transform
 -----------------
 

@@ -13,6 +13,8 @@ from astropy.io import fits
 from astropy.wcs import FITSFixedWarning
 from astropy.wcs import WCS
 from reproject import reproject_interp
+from astropy.wcs.utils import skycoord_to_pixel
+
 
 from arl.data.data_models import Image, QA
 from arl.data.parameters import arl_path
@@ -259,12 +261,15 @@ def qa_image(im, context="") -> QA:
     return qa
 
 
-def show_image(im: Image, fig=None, title: str = '', pol=0, chan=0, cm='rainbow'):
+def show_image(im: Image, fig=None, title: str = '', pol=0, chan=0, cm='rainbow', components=None):
     """ Show an Image with coordinates using matplotlib
 
     :param im:
     :param fig:
     :param title:
+    :param pol: Polarisation
+    :param chan: Channel
+    :param components: Optional components
     :return:
     """
     import matplotlib.pyplot as plt
@@ -282,6 +287,11 @@ def show_image(im: Image, fig=None, title: str = '', pol=0, chan=0, cm='rainbow'
     plt.ylabel('DEC--SIN')
     plt.title(title)
     plt.colorbar()
+    
+    if components is not None:
+        for sc in components:
+            x, y = skycoord_to_pixel(sc.direction, im.wcs, 1, 'wcs')
+            plt.plot(x, y, marker='+')
     return fig
 
 

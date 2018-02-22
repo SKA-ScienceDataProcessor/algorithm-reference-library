@@ -12,7 +12,7 @@ import astropy.units as u
 from arl.calibration.operations import gaintable_summary, apply_gaintable, create_gaintable_from_blockvisibility, \
     create_gaintable_from_rows
 
-from arl.data.data_models import Skycomponent
+from arl.data.data_models import Skycomponent, GainTable
 from arl.data.polarisation import PolarisationFrame
 from arl.util.testing_support import create_named_configuration, simulate_gaintable
 from arl.visibility.base import copy_visibility, create_blockvisibility
@@ -62,6 +62,17 @@ class TestCalibrationOperations(unittest.TestCase):
             assert numpy.max(numpy.abs(original.vis)) > 0.0
             assert numpy.max(numpy.abs(vis.vis)) > 0.0
             assert numpy.max(numpy.abs(vis.vis - original.vis)) > 0.0
+
+
+    def test_create_gaintable_from_other(self):
+        for timeslice in [10.0, 'auto', 1e5]:
+            for spf, dpf in[('stokesIQUV', 'linear')]:
+                self.actualSetup(spf, dpf)
+                gt = create_gaintable_from_blockvisibility(self.vis, timeslice=timeslice)
+                log.info("Created gain table: %s" % (gaintable_summary(gt)))
+                new_gt = GainTable(data=gt.data)
+                assert new_gt.data.shape == gt.data.shape
+
 
     def test_create_gaintable_from_visibility_interval(self):
         for timeslice in [10.0, 'auto', 1e5]:

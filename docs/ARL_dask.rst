@@ -24,23 +24,16 @@ These are well-modeled in ARL. A example of three cycles of a major/minor cycle 
 Conceptually we can think of one visibility set, which may be decomposed into different subsets in processing, and
 one image, which also may be subsetted for processing.
 
-Dask.delayed is supported in various ways:
+Dask.delayed is used for distribution:
 
     - :py:mod:`arl.graphs.graphs`: Graphs to perform various types of prediction and inversion of visibility data
     - :py:mod:`arl.graphs.generic_graphs`: Graphs to perform generic image or visibility unary operations
     - :py:mod:`arl.util.graph_support`: Graphs to support testing and simulations
     - :py:mod:`arl.pipelines.graphs`: Graphs to implement the canonical pipelines
 
-Dask.bags is supported as follows:
-
-    - :py:mod:`arl.graphs.bags`: Bags to perform various types of prediction and inversion of visibility data
-    - :py:mod:`arl.util.bag_support`: Bags to support testing and simulations
-    - :py:mod:`arl.pipelines.bags`: Bags to implement the canonical pipelines
-
 In addition there are notebooks in examples/arl.
 
     - imaging-dask: General imaging example using Dask.delayed
-    - imaging-bags: General imaging example using Dask.bag
     - imaging-pipelines: Pipelines run on small LOW observation (core only)
     - calibration-pipelines: Pipelines for self-calibration
 
