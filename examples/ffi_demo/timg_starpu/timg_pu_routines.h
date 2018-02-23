@@ -12,17 +12,15 @@
 
 #ifndef __TIMG_PU_ROUTINES_H__
 #define __TIMG_PU_ROUTINES_H__
-#include <Python.h>
+#include <fitsio.h>
 #include <starpu.h>
 
-#include "../src/arlwrap.h"
+#include "../include/arlwrap.h"
 
 // I'm not typing this out every time
 #define SVGP(x) STARPU_VARIABLE_GET_PTR(buffers[x])
 #define SVDR(handle, i, var, size) starpu_variable_data_register(&handle[i], STARPU_MAIN_RAM, (uintptr_t)var, size);
 
-
-// Simple interfaces that 
 void pu_create_test_image(void **buffers, void *cl_arg);
 
 void pu_create_visibility(void **buffers, void *cl_arg);
@@ -58,5 +56,4 @@ extern struct starpu_codelet restore_cube_cl;
 struct starpu_task *create_task(struct starpu_codelet *kernel, starpu_data_handle_t *handles);
 void create_task_and_submit(struct starpu_codelet *kernel, starpu_data_handle_t *handles);
 
-PyThreadState *_master_state;
 #endif

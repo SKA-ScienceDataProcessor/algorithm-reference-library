@@ -1,8 +1,7 @@
 #include <stdlib.h>
 #include <fitsio.h>
 
-#include "arlwrap.h"
-
+#include "../include/arlwrap.h"
 
 /* Export image to FITS */
 /* Assuming nx*ny*nfreq */

@@ -88,6 +88,7 @@ void arl_restore_cube(Image *model, Image *psf, Image *residual,
 /** Initialise the ARL library
  */
 void arl_initialize(void);
+void arl_finalize(void);
 
 #ifdef __cplusplus
 }

@@ -10,13 +10,14 @@
  * Author: Arjen Tamerus <at748@cam.ac.uk>
  */
 
-#include <Python.h>
-#include <starpu.h>
 #include <stdarg.h>
 #include <stdio.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <starpu.h>
 
-#include "../src/arlwrap.h"
-#include "../src/wrap_support.h"
+#include "../include/arlwrap.h"
+#include "../include/wrap_support.h"
 #include "timg_pu_routines.h"
 
 int main(int argc, char *argv[]) {
@@ -33,14 +34,11 @@ int main(int argc, char *argv[]) {
 
 	ARLConf *lowconfig;
 
-	PyThreadState *py_master_state;
-
 	starpu_init(NULL);
 
-	// Initialise the Python interpreter, and release GIL through SaveThread
-	Py_Initialize();
-	PyEval_InitThreads();
-	_master_state = PyEval_SaveThread();
+	// Initialise the Python interpreter and GIL, and other ARL dependencies
+	arl_initialize();
+
 
 	lowconfig = allocate_arlconf_default(config_name);
 
@@ -153,11 +151,11 @@ int main(int argc, char *argv[]) {
 	starpu_task_declare_deps_array(deconvolve_cube_task, 1, &invert_2d_psf_task);
 	starpu_task_submit(deconvolve_cube_task);
 
-
 	// Set N_ITER > 1 for multithreading test
-
+	// memory doesn't get cleaned, though, so don't set it too high or the 
+	// OoM monster will get you!
 	starpu_task_wait_for_all();
-	#define N_ITER 1
+	#define N_ITER 1000
 	int i;
 	Image *restored_[N_ITER];
 	Image *psf_[N_ITER];
@@ -207,11 +205,11 @@ int main(int argc, char *argv[]) {
 	status = export_image_to_fits_c(restored_[N_ITER-1], "results/restored.fits");
 	status = export_image_to_fits_c(comp, "results/solution.fits");
 
+	//init_interpreters();
 	starpu_shutdown();
 
 	// Restore thread state and cleanly shutdown Python
-	PyEval_RestoreThread(_master_state);
-	Py_Finalize();
+	arl_finalize();
 
 	return 0;
 }

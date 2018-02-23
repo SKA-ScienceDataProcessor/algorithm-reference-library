@@ -8,7 +8,8 @@
 #include <string.h>
 #include <Python.h>
 
-#include "arlwrap.h"
+#include "../include/arlwrap.h"
+#include "../include/wrap_support.h"
 
 #ifdef __GNUC__
 #define ARL_TLS __thread
@@ -17,6 +18,8 @@
 #endif
 static ARL_TLS int arl_bypass_ = 0;
 static ARL_TLS int arl_bypass_check_ = 0;
+
+static PyThreadState *_master_state;
 
 void void_routine() {
 }
@@ -32,8 +35,8 @@ size_t bk_getfn(const char* fname)
 {
   size_t res=0;
   PyObject *m, *pyfn, *fnaddress;
+
   PyGILState_STATE gilstate = PyGILState_Ensure();
-  
 	
   /* Return immediately if the environment variable
    * has already been checked. */
@@ -77,6 +80,14 @@ void arl_initialize(void)
 {
   Py_Initialize();
   PyEval_InitThreads();
+
+	_master_state = PyEval_SaveThread();
+}
+
+void arl_finalize(void)
+{
+	PyEval_RestoreThread(_master_state);
+	Py_Finalize();
 }
 
 
@@ -89,28 +100,28 @@ void arl_initialize(void)
 void helper_get_image_shape(const double *frequency, double cellsize,
 		int *shape)
 {
-        BKFNPY(helper_get_image_shape)(frequency, cellsize, shape);
+  BKFNPY(helper_get_image_shape)(frequency, cellsize, shape);
 }
 
 void helper_set_image_params(const ARLVis *vis, Image *image) {
-	BKFNPY(helper_set_image_params)(vis, image);
+  BKFNPY(helper_set_image_params)(vis, image);
 }
 
 void arl_invert_2d(const ARLVis *visin, const Image *img_in, bool dopsf, Image *out, double *sumwt)
 {
-	BKFNPY(arl_invert_2d)(visin, img_in, dopsf, out, sumwt);
+  BKFNPY(arl_invert_2d)(visin, img_in, dopsf, out, sumwt);
 }
 
 void arl_create_visibility(ARLConf *lowconf, ARLVis *res_vis)
 {
-	BKFNPY(arl_create_visibility)(lowconf, res_vis);
+  BKFNPY(arl_create_visibility)(lowconf, res_vis);
 }
 
 
 void arl_create_test_image(const double *frequency, double cellsize, char *phasecentre,
 		Image *res_img)
 {
-	BKFNPY(arl_create_test_image)(frequency, cellsize, phasecentre, res_img);
+  BKFNPY(arl_create_test_image)(frequency, cellsize, phasecentre, res_img);
 }
 
 void arl_copy_visibility(const ARLVis *visin,
@@ -121,11 +132,11 @@ void arl_copy_visibility(const ARLVis *visin,
 }
 
 void arl_predict_2d(const ARLVis *visin, const Image *img, ARLVis *visout) {
-	BKFNPY(arl_predict_2d)(visin, img, visout);
+  BKFNPY(arl_predict_2d)(visin, img, visout);
 }
 
 void arl_create_image_from_visibility(const ARLVis *vis, Image *model) {
-	BKFNPY(arl_create_image_from_visibility)(vis, model);
+  BKFNPY(arl_create_image_from_visibility)(vis, model);
 }
 
 void arl_deconvolve_cube(Image *dirty, Image *psf, Image *restored, Image *residual)

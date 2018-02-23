@@ -12,7 +12,6 @@
 
 #include "timg_pu_routines.h"
 
-
 // Simple interfaces that 
 void pu_create_test_image(void **buffers, void *cl_arg)
 {
