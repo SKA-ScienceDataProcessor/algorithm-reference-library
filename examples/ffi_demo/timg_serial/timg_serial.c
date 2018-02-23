@@ -1,10 +1,11 @@
+#include <stdlib.h>
 #include <stdio.h>
 #include <assert.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 
-#include "arlwrap.h"
-#include "wrap_support.h"
+#include "../include/arlwrap.h"
+#include "../include/wrap_support.h"
 
 /*
  * Verifies that:
@@ -127,6 +128,8 @@ int main(int argc, char **argv)
 	vtmp = destroy_vis(vtmp);
 
 	comp = destroy_image(comp);
+
+	arl_finalize();
 
 	return 0;
 }
