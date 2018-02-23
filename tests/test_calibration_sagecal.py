@@ -11,7 +11,8 @@ import numpy
 from astropy.coordinates import SkyCoord
 
 from arl.calibration.operations import apply_gaintable, create_gaintable_from_blockvisibility
-from arl.calibration.sagecal import sagecal_solve, create_sagecal_solve_graph
+from arl.calibration.sagecal import sagecal_solve
+from arl.calibration.sagecal_delayed import create_sagecal_solve_graph
 from arl.calibration.solvers import solve_gaintable
 from arl.data.polarisation import PolarisationFrame
 from arl.image.operations import qa_image, export_image_to_fits
@@ -36,7 +37,7 @@ class TestCalibrationSagecal(unittest.TestCase):
         numpy.random.seed(180555)
     
     def actualSetup(self, sky_pol_frame='stokesI', data_pol_frame='stokesI', f=None, vnchan=1, doiso=True,
-                    ntimes=1, flux_limit=18.0):
+                    ntimes=1, flux_limit=2.0):
         
         nfreqwin = vnchan
         ntimes = ntimes
@@ -50,7 +51,7 @@ class TestCalibrationSagecal(unittest.TestCase):
             channel_bandwidth = [0.4e8]
         times = numpy.linspace(-numpy.pi / 3.0, numpy.pi / 3.0, ntimes)
         
-        phasecentre = SkyCoord(ra=+0.0 * u.deg, dec=-45.0 * u.deg, frame='icrs', equinox='J2000')
+        phasecentre = SkyCoord(ra=-60.0 * u.deg, dec=-60.0 * u.deg, frame='icrs', equinox='J2000')
         
         lowcore = create_named_configuration('LOWBD2', rmax=rmax)
         
@@ -69,7 +70,7 @@ class TestCalibrationSagecal(unittest.TestCase):
                                                                    polarisation_frame=PolarisationFrame('stokesI'),
                                                                    radius=npixel * cellsize)
         self.beam = create_low_test_beam(self.beam)
-        self.components = apply_beam_to_skycomponent(self.components, self.beam, flux_limit=flux_limit / 100.0)
+        self.components = apply_beam_to_skycomponent(self.components, self.beam, flux_limit=flux_limit)
         print("Number of components %d" % len(self.components))
         
         self.vis = copy_visibility(block_vis, zero=True)
@@ -110,21 +111,21 @@ class TestCalibrationSagecal(unittest.TestCase):
         residual_vis, _, _ = weight_visibility(residual_vis, self.beam)
         dirty, sumwt = invert_function(residual_vis, self.beam, context='2d')
         export_image_to_fits(dirty, "%s/test_sagecal-final_residual.fits" % self.dir)
-        
-        # for i, theta in enumerate(thetas):
-        #     print('Component %d, original flux = %s, recovered flux = %s, gain residual = %s' %
-        #           (i, str(self.components[i].flux[0, 0]), str(theta[0].flux[0, 0]),
-        #            str(numpy.max(theta[1].residual))))
-        #
+
         qa = qa_image(dirty)
-        assert qa.data['rms'] < 4e-3, qa
+        assert qa.data['rms'] < 3.0e-3, qa
     
     def test_sagecal_solve_delayed(self):
         self.actualSetup()
         sagecal_graph = create_sagecal_solve_graph(self.vis, self.components, niter=30, gain=0.25, tol=1e-8)
-        sagecal_graph.visualize("%s/sagecal.svg" % self.dir)
-        
-        thetas, residual_vis = sagecal_graph.compute()
+        distributed=False
+        if distributed:
+            from arl.graphs.dask_init import get_dask_Client
+            client = get_dask_Client()
+            thetas, residual_vis = client.compute(sagecal_graph, sync=True)
+            client.close()
+        else:
+            thetas, residual_vis = sagecal_graph.compute(sync=True)
         
         residual_vis = convert_blockvisibility_to_visibility(residual_vis)
         residual_vis, _, _ = weight_visibility(residual_vis, self.beam)
@@ -132,7 +133,8 @@ class TestCalibrationSagecal(unittest.TestCase):
         export_image_to_fits(dirty, "%s/test_sagecal-delayed-final_residual.fits" % self.dir)
         
         qa = qa_image(dirty)
-        assert qa.data['rms'] < 4e-3, qa
+        print(qa)
+        assert qa.data['rms'] < 3.0e-3, qa
 
 
 if __name__ == '__main__':

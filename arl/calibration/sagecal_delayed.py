@@ -41,24 +41,20 @@ Sagecal works best if an initial phase calibration has been obtained using an is
 
 import logging
 
-import numpy
-
 from dask import delayed
 
-from arl.calibration.solvers import solve_gaintable
-from arl.calibration.operations import copy_gaintable, apply_gaintable, \
-    create_gaintable_from_blockvisibility, qa_gaintable
+from arl.calibration.operations import copy_gaintable, apply_gaintable, create_gaintable_from_blockvisibility
+from arl.calibration.sagecal import sagecal_fit_component, sagecal_fit_gaintable
 from arl.data.data_models import BlockVisibility
+from arl.graphs.delayed import sum_predict_results
 from arl.imaging import predict_skycomponent_visibility
 from arl.skycomponent.operations import copy_skycomponent
-from arl.visibility.coalesce import convert_blockvisibility_to_visibility
-from arl.visibility.operations import copy_visibility, sum_visibility
-from arl.visibility.visibility_fitting import fit_visibility
+from arl.visibility.operations import copy_visibility
 
 log = logging.getLogger(__name__)
 
 
-def initialise_sagecal_thetas(vis: BlockVisibility, comps, **kwargs):
+def create_initialise_sagecal_thetas_graph(vis: BlockVisibility, comps_graph, **kwargs):
     """Create the thetas
 
     Create the data model for each window, from the visibility and the existing components
@@ -67,56 +63,15 @@ def initialise_sagecal_thetas(vis: BlockVisibility, comps, **kwargs):
     :param gt:
     :return:
     """
-    gt = create_gaintable_from_blockvisibility(vis, **kwargs)
-    return [(copy_skycomponent(sc), copy_gaintable(gt)) for sc in comps]
-
-
-def sagecal_fit_component(vis, theta, gain=0.1, method='fit', **kwargs):
-    """Fit a single component to a visibility i.e. A13
-
-    This is the update to the component part of the window.
-
-    :param evis: Expected vis for this theta
-    :param theta: Theta element being fit
-    :param gain: Gain in step
-    :param method: 'fit' or 'sum'
-    :param kwargs:
-    :return: skycomponent
-    """
-    cvis = convert_blockvisibility_to_visibility(vis)
-    new_comp = copy_skycomponent(theta[0])
-    if method == 'sum':
-        new_flux, _ = sum_visibility(cvis, new_comp.direction)
-        new_comp.flux = gain * new_flux + (1.0 - gain) * theta[0].flux
-    else:
-        new_comp, _ = fit_visibility(cvis, new_comp)
-        new_comp.flux = gain * new_comp.flux + (1.0 - gain) * theta[0].flux
-
-    return new_comp
-
-def sagecal_fit_gaintable(evis, theta, gain=0.1, niter=3, tol=1e-3, **kwargs):
-    """Fit a gaintable to a visibility i.e. A13
     
-    This is the update to the gain part of the window
-
-    :param evis: Expected vis for this theta
-    :param theta: Theta element being fit
-    :param gain: Gain in step
-    :param niter: Number of iterations
-    :param kwargs: Gaintable
-    """
-    previous_gt = copy_gaintable(theta[1])
-    gt = copy_gaintable(theta[1])
-    model_vis = copy_visibility(evis, zero=True)
-    model_vis = predict_skycomponent_visibility(model_vis, theta[0])
-    gt = solve_gaintable(evis, model_vis, gt=gt, niter=niter, phase_only=True, gain=0.5, tol=1e-4, **kwargs)
-    gt.data['gain'][...] = gain * gt.data['gain'][...] + \
-                           (1 - gain) * previous_gt.data['gain'][...]
-    gt.data['gain'][...] /= numpy.abs(previous_gt.data['gain'][...])
-    return gt
+    def create_theta(vis, comp):
+        gt = create_gaintable_from_blockvisibility(vis, **kwargs)
+        return (copy_skycomponent(comp), copy_gaintable(gt))
+    
+    return [delayed(create_theta, nout=len(comps_graph))(vis, comps[1]) for comps in enumerate(comps_graph)]
 
 
-def sagecal_e_step(vis: BlockVisibility, evis_all: BlockVisibility, theta, **kwargs):
+def create_sagecal_e_step_graph(vis, evis_all_graph, theta_graph, **kwargs):
     """Calculates E step in equation A12
 
     This is the data model for this window plus the difference between observed data and summed data models
@@ -126,35 +81,45 @@ def sagecal_e_step(vis: BlockVisibility, evis_all: BlockVisibility, theta, **kwa
     :param kwargs:
     :return: Data model (i.e. visibility) for this theta
     """
-    evis = copy_visibility(evis_all)
-    tvis = copy_visibility(vis, zero=True)
-    tvis = predict_skycomponent_visibility(tvis, theta[0])
-    tvis = apply_gaintable(tvis, theta[1])
-    evis.data['vis'][...] = tvis.data['vis'][...] + vis.data['vis'][...] - evis_all.data['vis'][...]
-    return evis
+    
+    def make_e(theta, evis_all):
+        # Return the estep for a given theta
+        evis = copy_visibility(vis)
+        tvis = copy_visibility(vis, zero=True)
+        tvis = predict_skycomponent_visibility(tvis, theta[0])
+        tvis = apply_gaintable(tvis, theta[1])
+        # E step is the data model for a window plus the difference between the observed data
+        # and the summed data models or, put another way, its the observed data minus the
+        # summed visibility for all other windows
+        evis.data['vis'][...] = tvis.data['vis'][...] + vis.data['vis'][...] - evis_all.data['vis'][...]
+        return evis
+
+    return [delayed(make_e)(th, evis_all_graph) for th in theta_graph]
 
 
-def sagecal_e_all(vis: BlockVisibility, thetas):
+def create_sagecal_e_all_graph(ovis, thetas_graph):
     """Calculates E step in equation A12
 
-    This is the sum of the data models over all thetas
+    This is the sum of the data models over all thetas, It is a global sync point for sagecal
 
     :param vis: Visibility
     :param thetas: list of the thetas
     :param kwargs:
-    :return: Sum of data models (i.e. a visibility)
+    :return: Sum of data models (i.e. a single BlockVisibility)
     """
-    evis = copy_visibility(vis, zero=True)
-    tvis = copy_visibility(vis, zero=True)
-    for i, theta in enumerate(thetas):
-        tvis.data['vis'][...] = 0.0
+    
+    def predict_and_apply(theta):
+        tvis = copy_visibility(ovis, zero=True)
         tvis = predict_skycomponent_visibility(tvis, theta[0])
         tvis = apply_gaintable(tvis, theta[1])
-        evis.data['vis'][...] += tvis.data['vis'][...]
-    return evis
+        return tvis
+    
+    evis_graph = [delayed(predict_and_apply)(theta) for theta in thetas_graph]
+    
+    return delayed(sum_predict_results, nout=1)(evis_graph)
 
 
-def sagecal_m_step(evis: BlockVisibility, theta, **kwargs):
+def create_sagecal_m_step_graph(evis_graph, theta_graph, **kwargs):
     """Calculates M step in equation A13
 
     This maximises the likelihood of the theta parameters given the existing data model. Note that these are done
@@ -164,46 +129,38 @@ def sagecal_m_step(evis: BlockVisibility, theta, **kwargs):
     :param kwargs:
     :return:
     """
-    return (sagecal_fit_component(evis, theta, **kwargs),
-            sagecal_fit_gaintable(evis, theta, **kwargs))
-
-
-def sagecal_solve(vis, components, niter=10, tol=1e-8, gain=0.25, callback=None, **kwargs):
-    """ Solve
     
+    def make_theta(ev, th):
+        return (sagecal_fit_component(ev, th, **kwargs),
+                sagecal_fit_gaintable(ev, th, **kwargs))
+    
+    return [delayed(make_theta)(evis_graph[i], theta_graph[i]) for i, _ in enumerate(evis_graph)]
+
+
+def create_sagecal_solve_graph(vis, components, niter=10, tol=1e-8, gain=0.25, **kwargs):
+    """ Solve using SageCal, dask.delayed wrapper
+
     Solve by iterating, performing E step and M step.
-    
+
     :param vis: Initial visibility
     :param components: Initial components to be used
     :param gaintables: Initial gain tables to be used
     :param kwargs:
-    :return: The individual data models and the residual visibility
+    :return: A dask graph to calculate the individual data models and the residual visibility
     """
-    thetas = initialise_sagecal_thetas(vis, components, **kwargs)
+    theta_graph = create_initialise_sagecal_thetas_graph(vis, components, **kwargs)
     
     for iter in range(niter):
-        new_thetas = list()
-        evis_all = sagecal_e_all(vis, thetas)
-        print("Iteration %d" % (iter))
-        for window_index, theta in enumerate(thetas):
-            evis = sagecal_e_step(vis, evis_all, theta, gain=gain, **kwargs)
-            new_theta = sagecal_m_step(evis, theta, **kwargs)
-            new_thetas.append(new_theta)
-            
-            if callback is not None:
-                callback(iter, thetas)
-                
-            flux = new_theta[0].flux[0, 0]
-            qa = qa_gaintable(new_theta[1])
-            residual = qa.data['residual']
-            rms_phase = qa.data['rms-phase']
-            print("\t Window %d, flux %s, residual %.3f, rms phase %.3f" % (window_index, str(flux), residual,
-                                                                            rms_phase))
-        thetas = new_thetas
+        evis_all_graph = create_sagecal_e_all_graph(vis, theta_graph)
+        evis_graph = create_sagecal_e_step_graph(vis, evis_all_graph, theta_graph, gain=gain, **kwargs)
+        new_theta_graph = create_sagecal_m_step_graph(evis_graph, theta_graph, **kwargs)
+        theta_graph = new_theta_graph
     
-    residual_vis = copy_visibility(vis)
-    final_vis = sagecal_e_all(vis, thetas)
-    residual_vis.data['vis'][...] = vis.data['vis'][...] - final_vis.data['vis'][...]
-    return thetas, residual_vis
-
-
+    final_vis_graph = create_sagecal_e_all_graph(vis, theta_graph)
+    
+    def res_vis(vis, final_vis):
+        residual_vis = copy_visibility(vis)
+        residual_vis.data['vis'][...] = vis.data['vis'][...] - final_vis.data['vis'][...]
+        return residual_vis
+    
+    return delayed((theta_graph, delayed(res_vis)(vis, final_vis_graph)))
