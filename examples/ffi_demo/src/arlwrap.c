@@ -36,8 +36,6 @@ size_t bk_getfn(const char* fname)
   size_t res=0;
   PyObject *m, *pyfn, *fnaddress;
 
-  PyGILState_STATE gilstate = PyGILState_Ensure();
-	
   /* Return immediately if the environment variable
    * has already been checked. */
   if (!arl_bypass_check_) {
@@ -53,6 +51,8 @@ size_t bk_getfn(const char* fname)
 	if (arl_bypass_) {
 		return (size_t)&void_routine;
 	}
+
+  PyGILState_STATE gilstate = PyGILState_Ensure();
 
   if(!(  m= PyImport_ImportModule("arlwrap") ))
     goto failed;
