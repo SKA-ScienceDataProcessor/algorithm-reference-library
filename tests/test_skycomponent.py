@@ -41,6 +41,13 @@ class TestSkycomponent(unittest.TestCase):
         self.model.data[self.model.data > 1.0] = 1.0
         self.vis = predict_2d(self.vis, self.model)
         assert numpy.max(numpy.abs(self.vis.vis)) > 0.0
+        
+    def test_copy(self):
+        fluxes = numpy.linspace(0, 1.0, 10)
+        sc = [create_skycomponent(direction=self.phasecentre, flux=numpy.array([[f]]),
+                                 frequency=self.frequency,
+                                 polarisation_frame=PolarisationFrame('stokesI')) for f in fluxes]
+        assert len(sc) == len(fluxes)
     
     def test_insert_skycomponent_FFT(self):
         sc = create_skycomponent(direction=self.phasecentre, flux=numpy.array([[1.0]]), frequency=self.frequency,

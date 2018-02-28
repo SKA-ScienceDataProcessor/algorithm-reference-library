@@ -256,7 +256,8 @@ def predict_skycomponent_visibility(vis: Union[Visibility, BlockVisibility],
         npol = vis.polarisation_frame.npol
         
         for comp in sc:
-            
+            assert isinstance(comp, Skycomponent), comp
+
             assert_same_chan_pol(vis, comp)
             
             l, m, n = skycoord_to_lmn(comp.direction, vis.phasecentre)
@@ -272,6 +273,7 @@ def predict_skycomponent_visibility(vis: Union[Visibility, BlockVisibility],
         k = numpy.array(vis.frequency) / constants.c.to('m/s').value
     
         for comp in sc:
+            assert isinstance(comp, Skycomponent), comp
             assert_same_chan_pol(vis, comp)
     
             flux = comp.flux

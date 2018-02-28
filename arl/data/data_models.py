@@ -203,6 +203,16 @@ class GainTable:
     def nrec(self):
         return self.receptor_frame.nrec
 
+    def __str__(self):
+        """Default printer for GainTable
+
+        """
+        s = "GainTable:\n"
+        s += "\tTimes: %s\n" % str(self.ntimes)
+        s += "\tData shape: %s\n" % str(self.data.shape)
+        s += "\tReceptor frame: %s\n" % str(self.receptor_frame.type)
+        return s
+
 
 class Image:
     """Image class with Image data (as a numpy.array) and the AstroPy `implementation of
@@ -265,6 +275,16 @@ class Image:
     @property
     def phasecentre(self):
         return SkyCoord(self.wcs.wcs.crval[0] * u.deg, self.wcs.wcs.crval[1] * u.deg)
+    
+    def __str__(self):
+        """Default printer for Image
+
+        """
+        s = "Image:\n"
+        s += "\tShape: %s\n" % str(self.data.shape)
+        s += "\tWCS: %s\n" % self.wcs
+        s += "\tPolarisation frame: %s\n" % str(self.polarisation_frame.type)
+        return s
 
 
 class Skycomponent:

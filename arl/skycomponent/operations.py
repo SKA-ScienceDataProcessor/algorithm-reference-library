@@ -15,25 +15,26 @@ from astropy.wcs.utils import skycoord_to_pixel, pixel_to_skycoord
 from photutils import segmentation
 
 from arl.data.data_models import Image, Skycomponent, assert_same_chan_pol
+from arl.data.skymodel import SkyModel
+from arl.calibration.operations import copy_gaintable
+from arl.image.operations import copy_image
 from arl.data.polarisation import PolarisationFrame
+from arl.skycomponent.base import copy_skycomponent
 
 log = logging.getLogger(__name__)
 
-def copy_skycomponent(sc):
-    """Copy a sky component
+
+def copy_skymodel(sm):
+    """ Copy a sky model
     
-    :param sc: 
-    :return: 
     """
-    return Skycomponent(
-        direction=sc.direction,
-        frequency=sc.frequency,
-        name=sc.name,
-        flux=sc.flux,
-        shape=sc.shape,
-        params=sc.params,
-        polarisation_frame=sc.polarisation_frame)
-  
+    newsm = SkyModel()
+    if sm.components is not None:
+        newsm.components = [(copy_skycomponent(comp[0]), copy_gaintable(comp[1])) for comp in sm.components]
+    if sm.images is not None:
+        newsm.images = [(copy_image(im[0]), copy_gaintable(im[1])) for im in sm.images]
+    return newsm
+
 
 def create_skycomponent(direction: SkyCoord, flux: numpy.array, frequency: numpy.array, shape: str = 'Point',
                         polarisation_frame=PolarisationFrame("stokesIQUV"), param: dict = None, name: str = '') \

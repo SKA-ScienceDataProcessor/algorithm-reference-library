@@ -32,9 +32,9 @@ problems. It does this in an iterative way:
 
 # Predict the data model for all components
 
-# For any component, theta, correct the estimated visibility by removing appropriate visibilities for all other thetas.
+# For any component, theta, correct the estimated visibility by removing appropriate visibilities for all other skymodel.
 
-# For each theta, update the thetas from the theta data model.
+# For each theta, update the skymodel from the theta data model.
 
 Sagecal works best if an initial phase calibration has been obtained using an isoplanatic approximation.
 """
@@ -48,14 +48,14 @@ from arl.calibration.sagecal import sagecal_fit_component, sagecal_fit_gaintable
 from arl.data.data_models import BlockVisibility
 from arl.graphs.delayed import sum_predict_results
 from arl.imaging import predict_skycomponent_visibility
-from arl.skycomponent.operations import copy_skycomponent
+from arl.skycomponent.base import copy_skycomponent
 from arl.visibility.operations import copy_visibility
 
 log = logging.getLogger(__name__)
 
 
-def create_initialise_sagecal_thetas_graph(vis_graph, comps_graph, **kwargs):
-    """Create the thetas
+def create_initialise_sagecal_skymodel_graph(vis_graph, comps_graph, **kwargs):
+    """Create the skymodel
 
     Create the data model for each window, from the visibility and the existing components
 
@@ -97,13 +97,13 @@ def create_sagecal_e_step_graph(vis_graph, evis_all_graph, theta_graph, **kwargs
     return [delayed(make_e)(vis_graph, th, evis_all_graph) for th in theta_graph]
 
 
-def create_sagecal_e_all_graph(vis_graph, thetas_graph):
+def create_sagecal_e_all_graph(vis_graph, skymodel_graph):
     """Calculates E step in equation A12
 
-    This is the sum of the data models over all thetas, It is a global sync point for sagecal
+    This is the sum of the data models over all skymodel, It is a global sync point for sagecal
 
     :param vis: Visibility
-    :param thetas: list of the thetas
+    :param skymodel: list of the skymodel
     :param kwargs:
     :return: Sum of data models (i.e. a single BlockVisibility)
     """
@@ -114,7 +114,7 @@ def create_sagecal_e_all_graph(vis_graph, thetas_graph):
         tvis = apply_gaintable(tvis, theta[1])
         return tvis
     
-    evis_graph = [delayed(predict_and_apply)(vis_graph, theta) for theta in thetas_graph]
+    evis_graph = [delayed(predict_and_apply)(vis_graph, theta) for theta in skymodel_graph]
     
     return delayed(sum_predict_results, nout=1)(evis_graph)
 
@@ -148,7 +148,7 @@ def create_sagecal_solve_graph(vis_graph, components_graph, niter=10, tol=1e-8, 
     :param kwargs:
     :return: A dask graph to calculate the individual data models and the residual visibility
     """
-    theta_graph = create_initialise_sagecal_thetas_graph(vis_graph, components_graph, **kwargs)
+    theta_graph = create_initialise_sagecal_skymodel_graph(vis_graph, components_graph, **kwargs)
     
     for iter in range(niter):
         evis_all_graph = create_sagecal_e_all_graph(vis_graph, theta_graph)
