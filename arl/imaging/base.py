@@ -273,7 +273,7 @@ def predict_skycomponent_visibility(vis: Union[Visibility, BlockVisibility],
         k = numpy.array(vis.frequency) / constants.c.to('m/s').value
     
         for comp in sc:
-            assert isinstance(comp, Skycomponent), comp
+#            assert isinstance(comp, Skycomponent), comp
             assert_same_chan_pol(vis, comp)
     
             flux = comp.flux

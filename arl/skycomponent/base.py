@@ -5,7 +5,7 @@
 import collections
 import logging
 
-from data_models import Skycomponent
+from arl.data.data_models import Skycomponent
 
 log = logging.getLogger(__name__)
 

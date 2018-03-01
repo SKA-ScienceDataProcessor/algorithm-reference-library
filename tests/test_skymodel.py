@@ -46,5 +46,6 @@ class TestSkyModel(unittest.TestCase):
         sc = [create_skycomponent(direction=self.phasecentre, flux=numpy.array([[f]]),
                                   frequency=self.frequency,
                                   polarisation_frame=PolarisationFrame('stokesI')) for f in fluxes]
-        sm = SkyModel(images=[self.model], components=sc, gt=gt)
-        print(sm)
+        sm = SkyModel(images=[self.model], components=sc)
+        assert len(sm.images) == 1
+        assert len(sm.components) == 11

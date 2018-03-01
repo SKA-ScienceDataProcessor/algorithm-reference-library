@@ -14,6 +14,7 @@ from arl.calibration.operations import apply_gaintable, create_gaintable_from_bl
 from arl.calibration.skymodel_cal import skymodel_cal_solve
 from arl.calibration.solvers import solve_gaintable
 from arl.data.polarisation import PolarisationFrame
+from arl.data.skymodel import SkyModel
 from arl.image.operations import qa_image, export_image_to_fits
 from arl.imaging import predict_skycomponent_visibility, create_image_from_visibility
 from arl.imaging.imaging_context import invert_function
@@ -23,6 +24,8 @@ from arl.util.testing_support import create_named_configuration, simulate_gainta
     create_low_test_skycomponents_from_gleam, create_low_test_beam
 from arl.visibility.base import copy_visibility, create_blockvisibility
 from arl.visibility.coalesce import convert_blockvisibility_to_visibility
+
+from arl.calibration.skymodel_cal_delayed import create_skymodel_cal_solve_graph
 
 log = logging.getLogger(__name__)
 
@@ -35,11 +38,9 @@ class TestCalibrationSkyModelcal(unittest.TestCase):
         
         numpy.random.seed(180555)
     
-    def actualSetup(self, sky_pol_frame='stokesI', data_pol_frame='stokesI', f=None, vnchan=1, doiso=True,
-                    ntimes=1, flux_limit=2.0):
+    def actualSetup(self, vnchan=1, doiso=True, ntimes=1, flux_limit=2.0):
         
         nfreqwin = vnchan
-        ntimes = ntimes
         rmax = 300.0
         npixel = 1024
         cellsize = 0.001
@@ -101,18 +102,51 @@ class TestCalibrationSkyModelcal(unittest.TestCase):
         dirty, sumwt = invert_function(lvis, self.beam, context='2d')
         print(qa_image(dirty))
         export_image_to_fits(dirty, "%s/test_skymodel-initial_dirty.fits" % self.dir)
+        
+        self.skymodels = [SkyModel(components=[cm]) for cm in self.components]
     
     def test_skymodel_solve(self):
         self.actualSetup()
-        skymodel, residual_vis = skymodel_cal_solve(self.vis, self.components, niter=30, gain=0.25, tol=1e-8)
+        skymodel, residual_vis = skymodel_cal_solve(self.vis, self.skymodels, niter=30, gain=0.25, tol=1e-8)
         
         residual_vis = convert_blockvisibility_to_visibility(residual_vis)
         residual_vis, _, _ = weight_visibility(residual_vis, self.beam)
         dirty, sumwt = invert_function(residual_vis, self.beam, context='2d')
         export_image_to_fits(dirty, "%s/test_skymodel-final_residual.fits" % self.dir)
-
+        
         qa = qa_image(dirty)
         assert qa.data['rms'] < 3.0e-3, qa
+
+    def test_skymodel_cal_solve_delayed(self):
+        self.actualSetup()
+        from dask import delayed
+        self.skymodel_graph = [delayed(SkyModel, nout=1)(components=[cm]) for cm in self.components]
+
+        distributed = True
+        if distributed:
+            from arl.graphs.dask_init import get_dask_Client
+            client = get_dask_Client()
+            skymodel_cal_graph = create_skymodel_cal_solve_graph(self.vis, self.skymodel_graph, niter=30,
+                                                                      gain=0.25,
+                                                                      tol=1e-8)
+            result = client.compute(skymodel_cal_graph, sync=True)
+            calskymodel, residual_vis = result
+            client.close()
+        else:
+            skymodel_cal_graph = create_skymodel_cal_solve_graph(self.vis, self.skymodel_graph, niter=30,
+                                                                      gain=0.25,
+                                                                      tol=1e-8)
+            skymodel, residual_vis = skymodel_cal_graph.compute(sync=True)
     
+        residual_vis = convert_blockvisibility_to_visibility(residual_vis)
+        residual_vis, _, _ = weight_visibility(residual_vis, self.beam)
+        dirty, sumwt = invert_function(residual_vis, self.beam, context='2d')
+        export_image_to_fits(dirty, "%s/test_skymodel_cal-delayed-final_residual.fits" % self.dir)
+    
+        qa = qa_image(dirty)
+        print(qa)
+        assert qa.data['rms'] < 3.1e-3, qa
+
+
 if __name__ == '__main__':
     unittest.main()
