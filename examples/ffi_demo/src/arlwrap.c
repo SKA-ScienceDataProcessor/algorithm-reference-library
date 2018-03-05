@@ -130,8 +130,6 @@ void arl_advise_wide_field(ARLConf *lowconf, ARLVis *res_vis, ARLadvice *adv)
 	BKFNPY(arl_advise_wide_field)(lowconf, res_vis, adv);
 }
 
-
-
 void arl_create_test_image(const double *frequency, double cellsize, char *phasecentre,
 		Image *res_img)
 {
@@ -144,11 +142,21 @@ void arl_create_low_test_image_from_gleam(ARLConf *lowconf, double cellsize, int
 	BKFNPY(arl_create_low_test_image_from_gleam)(lowconf, cellsize, npixel, phasecentre, res_img);
 }
 
-void arl_copy_visibility(const ARLVis *visin,
-			 ARLVis *visout,
-			 bool zero)
+/*
+void arl_copy_visibility(const ARLVis *visin, ARLVis *visout, bool zero)
 {
   BKFNPY(arl_copy_visibility)(visin, visout, zero);
+}
+*/
+
+void arl_copy_visibility(ARLConf *lowconf, const ARLVis *visin, ARLVis *visout, bool zero)
+{
+  BKFNPY(arl_copy_visibility)(lowconf, visin, visout, zero);
+}
+
+void arl_copy_blockvisibility(ARLConf *lowconf, const ARLVis *visin, ARLVis *visout, int zero)
+{
+  BKFNPY(arl_copy_blockvisibility)(lowconf, visin, visout, zero);
 }
 
 void arl_predict_2d(const ARLVis *visin, const Image *img, ARLVis *visout) {
@@ -195,9 +203,12 @@ void arl_ical(ARLConf * lowconf, const ARLVis *visin, Image * img_model, int vis
 	BKFNPY(arl_ical)(lowconf, visin, img_model, vis_slices, img_deconv, img_resid, img_rest);
 }
 
-
 void arl_convert_visibility_to_blockvisibility(ARLConf *lowconf, const ARLVis *visin, const ARLVis *blockvisin, long long int *cindexin, ARLVis *visout) {
 	BKFNPY(arl_convert_visibility_to_blockvisibility)(lowconf, visin, blockvisin, cindexin, visout);
+}
+
+void arl_convert_blockvisibility_to_visibility(ARLConf *lowconf, const ARLVis *blockvisin, ARLVis *visout, long long int *cindexout, ARLVis *blockvisout) {
+	BKFNPY(arl_convert_blockvisibility_to_visibility)(lowconf, blockvisin, visout, cindexout, blockvisout);
 }
 
 void arl_create_gaintable_from_blockvisibility(ARLConf *lowconf, const ARLVis *visin, ARLGt *gtout) {
@@ -210,6 +221,10 @@ void arl_apply_gaintable(ARLConf *lowconf, const ARLVis *visin, ARLGt *gtin, ARL
 
 void arl_simulate_gaintable(ARLConf *lowconf, ARLGt *gt) {
 	BKFNPY(arl_simulate_gaintable)(lowconf, gt);
+}
+
+void arl_set_visibility_data_to_zero(ARLConf * lowconf, ARLVis * vis) {
+	BKFNPY(arl_set_visibility_data_to_zero)(lowconf, vis);
 }
 
 void arl_predict_function_blockvis(ARLConf * lowconf, ARLVis * visin, const Image * img) {
