@@ -38,9 +38,7 @@ typedef struct {
   float imgwght [4];
 } ARLVisEntryP4;
 
-  void arl_copy_visibility(const ARLVis *visin,
-			   ARLVis *visout,
-			   bool zero);
+  
 
 // A structure to store the GainTable
 typedef struct {
@@ -97,6 +95,9 @@ void helper_get_nbases(char *, ant_t *);
 void helper_get_nbases_rmax(char *, double, ant_t *);
 void helper_set_image_params(const ARLVis *vis, Image *image);
 
+//void arl_copy_visibility(const ARLVis *visin,  ARLVis *visout, bool zero);
+void arl_copy_visibility(ARLConf *lowconf, const ARLVis *visin,  ARLVis *visout, bool zero);
+void arl_copy_blockvisibility(ARLConf *lowconf, const ARLVis *visin,  ARLVis *visout, int zero);
 void arl_create_visibility(ARLConf *lowconf, ARLVis *res_vis);
 void arl_create_blockvisibility(ARLConf *lowconf, ARLVis *res_vis);
 void arl_advise_wide_field(ARLConf *lowconf, ARLVis *res_vis, ARLadvice * adv);
@@ -121,12 +122,15 @@ void arl_predict_function(ARLConf *lowconf, const ARLVis *visin, const Image *im
 void arl_invert_function(ARLConf * lowconf, const ARLVis *visin, Image * img_model, int vis_slices, Image * img_dirty);
 void arl_ical(ARLConf * lowconf, const ARLVis *visin, Image * img_model, int vis_slices, Image * img_deconv, Image * img_resid, Image * img_rest);
 void arl_convert_visibility_to_blockvisibility(ARLConf *lowconf, const ARLVis *visin, const ARLVis *blockvisin, long long int *cindexin, ARLVis *visout);
+void arl_convert_blockvisibility_to_visibility(ARLConf *lowconf, const ARLVis *blockvisin, ARLVis *visout, long long int *cindexout, ARLVis *blockvisout);
+
 void arl_create_gaintable_from_blockvisibility(ARLConf *lowconf, const ARLVis *visin, ARLGt *gtout);
 void arl_predict_function_blockvis(ARLConf *, ARLVis *, const Image *);
 void arl_invert_function(ARLConf *, const ARLVis *, Image *, int, Image *);
 
 void arl_simulate_gaintable(ARLConf *, ARLGt *gt);
 void arl_apply_gaintable(ARLConf *lowconf, const ARLVis *visin, ARLGt *gtin, ARLVis *visout);
+void arl_set_visibility_data_to_zero(ARLConf *lowconf, ARLVis *vis);
 
 /** Initialise the ARL library
  */

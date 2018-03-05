@@ -57,9 +57,10 @@ int main(int argc, char **argv)
 	double fstart, fend, fdelta, tstart, tend, tdelta, rmax;
 	ARLadvice adv;
 	ant_t nb;			//nant and nbases
-	long long int *cindex_predict;
+	long long int *cindex_predict, *cindex_ical;
 	int cindex_nbytes;
 	ARLGt *gt;			//GainTable
+	bool unrolled = true; // true - unrolled, false - arl.functions::ical()
 	// end ICAL section
 
 	double cellsize = 0.0005;
@@ -72,6 +73,9 @@ int main(int argc, char **argv)
 	ARLVis *vtpredicted;		//Visibility
 	ARLVis *vt_predictfunction;	//Blockvisibility
 	ARLVis *vt_gt;			//Blockvisibility
+	ARLVis *vtmp_ical, *vpred_ical;	//Visibility ICAL temp
+	ARLVis *vres_ical;		//Visibility ICAL temp
+	ARLVis *bvtmp_ical, *bvpred_ical;//Blockvisibility ICAL temp
 
 	ARLConf *lowconfig;
 
@@ -209,7 +213,44 @@ int main(int argc, char **argv)
 	residual    = allocate_image(shape1);
 	restored    = allocate_image(shape1);
 
-	arl_ical(lowconfig, vt_gt, model, adv.vis_slices, deconvolved, residual, restored);
+	if(unrolled){
+	// Allocate temp objects
+		vtmp_ical  = allocate_vis_data(lowconfig->npol, nvis);							     //ICAL Visibility object (ical.vis)
+		vpred_ical  = allocate_vis_data(lowconfig->npol, nvis);							     //ICAL Visibility object (ical.vispred)
+		vres_ical  = allocate_vis_data(lowconfig->npol, nvis);							     //ICAL Visibility object (ical.visres)
+		bvtmp_ical = allocate_blockvis_data(lowconfig->nant, lowconfig->nfreqs, lowconfig->npol, lowconfig->ntimes); //Blockvisibility vtmp_ical.blockvis (ical.vis.blockvis)
+		bvpred_ical = allocate_blockvis_data(lowconfig->nant, lowconfig->nfreqs, lowconfig->npol, lowconfig->ntimes); //Blockvisibility (ical.block_vispred)
+		if (!(cindex_ical = malloc(cindex_nbytes))) {								     // Cindex vtmp_ical.cindex (ical.vis.cindex)
+			free(cindex_ical);
+			return 1;
+		}
+	// convert_blockvisibility_to_visibility()
+		arl_convert_blockvisibility_to_visibility(lowconfig, vt_gt, vtmp_ical, cindex_ical, bvtmp_ical);
+
+	// copy_visibility (blockvis)
+		arl_copy_blockvisibility(lowconfig, vt_gt, bvpred_ical, 0);
+
+	// convert_blockvisibility_to_visibility()
+	// Re-using cindex_ical, bvtmp_ical
+		arl_convert_blockvisibility_to_visibility(lowconfig, bvpred_ical, vpred_ical, cindex_ical, bvtmp_ical);
+
+	// Set vpred_ical.data to zero
+		arl_set_visibility_data_to_zero(lowconfig, vpred_ical);
+
+	// copy_visibility (vis)
+		arl_copy_visibility(lowconfig, vpred_ical, vres_ical, 1);
+		
+	// Cleaning up temp objects	
+		bvtmp_ical 		= destroy_vis(bvtmp_ical);
+		bvpred_ical		= destroy_vis(bvpred_ical);
+		vtmp_ical 		= destroy_vis(vtmp_ical);
+		vpred_ical 		= destroy_vis(vpred_ical);
+		vres_ical 		= destroy_vis(vres_ical);
+		free(cindex_ical);
+
+	} else {	
+		arl_ical(lowconfig, vt_gt, model, adv.vis_slices, deconvolved, residual, restored);
+	}
 
 	// FITS file output
 	status = export_image_to_fits_c(deconvolved, 	"!results/deconvolved.fits");

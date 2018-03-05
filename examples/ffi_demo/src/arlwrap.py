@@ -19,7 +19,7 @@ from arl.util.testing_support import create_named_configuration, create_test_ima
 from arl.data.polarisation import PolarisationFrame
 from arl.visibility.base import create_blockvisibility
 from arl.imaging.imaging_context import invert_function, predict_function 
-from arl.visibility.coalesce import convert_visibility_to_blockvisibility
+from arl.visibility.coalesce import convert_visibility_to_blockvisibility, convert_blockvisibility_to_visibility
 from arl.pipelines.functions import ical
 
 import logging
@@ -118,29 +118,150 @@ def cARLGt(gtin, nants, nchan, nrec):
     return r
 
 
-@ff.callback("void (*)(const ARLVis *, ARLVis *, bool)")
-def arl_copy_visibility_ffi(visin, visout, zero):
-    """
-    Wrap of arl.visibility.base.copy_visibility
-    """
-    # Extra comments becasue this is an example.
-    #
-    # Convert the input visibilities into the ARL structure
-    nvisin=cARLVis(visin)
+ff.cdef("""
+typedef struct {
+  char *confname;
+  double pc_ra;
+  double pc_dec;
+  double *times;
+  int ntimes;
+  double *freqs;
+  int nfreqs;
+  double *channel_bandwidth;
+  int nchanwidth;
+  int nbases;
+  int nant;
+  int npol;
+  int nrec;
+  double rmax;
+  char *polframe;
+} ARLConf;
+""")
+
+#@ff.callback("void (*)(const ARLVis *, ARLVis *, bool)")
+#def arl_copy_visibility_ffi(visin, visout, zero):
+#    """
+#    Wrap of arl.visibility.base.copy_visibility
+#    """
+#    # Extra comments becasue this is an example.
+#    #
+#    # Convert the input visibilities into the ARL structure
+#    nvisin=cARLVis(visin)
+#
+#    # Call the ARL function 
+#    tvis=copy_visibility(nvisin, zero=zero)
+#
+#    # Copy the result into the output buffer
+#    visout.npol=visin.npol
+#    visout.nvis=visin.nvis
+#    nvisout=cARLVis(visout)
+#    numpy.copyto(nvisout, tvis)
+#
+#
+#arl_copy_visibility=collections.namedtuple("FFIX", "address")    
+#arl_copy_visibility.address=int(ff.cast("size_t", arl_copy_visibility_ffi))    
+
+
+@ff.callback("void (*)(ARLConf *, const ARLVis *, ARLVis *, int)")
+def arl_copy_visibility_ffi(lowconfig, vis_in, vis_out, zero_in):
+# Convert the input blockvisibilities into the ARL structure
+
+    if zero_in == 0:
+         zero = True
+    else:
+         zero = False
+
+# Create configuration object
+    lowcore_name = str(ff.string(lowconfig.confname), 'utf-8')
+    lowcore = create_named_configuration(lowcore_name, rmax=lowconfig.rmax)
+
+# Re-create input blockvisibility object
+    times = numpy.frombuffer(ff.buffer(lowconfig.times, 8*lowconfig.ntimes), dtype='f8', count=lowconfig.ntimes)
+    frequency = numpy.frombuffer(ff.buffer(lowconfig.freqs, 8*lowconfig.nfreqs), dtype='f8', count=lowconfig.nfreqs)
+    channel_bandwidth = numpy.frombuffer(ff.buffer(lowconfig.channel_bandwidth, 8*lowconfig.nchanwidth), dtype='f8', count=lowconfig.nchanwidth)
+
+    c_visin = cARLVis(vis_in)
+    py_visin = helper_create_blockvisibility_object(c_visin, frequency, channel_bandwidth, lowcore)
+    py_visin.phasecentre = load_phasecentre(vis_in.phasecentre)
+    py_visin.configuration = lowcore
+    polframe = str(ff.string(lowconfig.polframe), 'utf-8')
+    py_visin.polarisation_frame = PolarisationFrame(polframe)
 
     # Call the ARL function 
-    tvis=copy_visibility(nvisin, zero=zero)
+    py_visout=copy_visibility(py_visin, zero=zero)
 
     # Copy the result into the output buffer
-    visout.npol=visin.npol
-    visout.nvis=visin.nvis
-    nvisout=cARLVis(visout)
-    numpy.copyto(nvisout, tvis)
+    vis_out.npol=vis_in.npol
+    vis_out.nvis=vis_in.nvis
 
+    py_vis_out = cARLVis(vis_out)
+    numpy.copyto(py_vis_out, py_visout.data)
+    store_phasecentre(vis_out.phasecentre, py_visin.phasecentre)
 
 arl_copy_visibility=collections.namedtuple("FFIX", "address")    
 arl_copy_visibility.address=int(ff.cast("size_t", arl_copy_visibility_ffi))    
 
+
+@ff.callback("void (*)(ARLConf *, const ARLVis *, ARLVis *, int)")
+def arl_copy_blockvisibility_ffi(lowconfig, blockvis_in, blockvis_out, zero_in):
+# Convert the input blockvisibilities into the ARL structure
+
+    if zero_in == 0:
+         zero = True
+    else:
+         zero = False
+
+# Create configuration object
+    lowcore_name = str(ff.string(lowconfig.confname), 'utf-8')
+    lowcore = create_named_configuration(lowcore_name, rmax=lowconfig.rmax)
+
+# Re-create input blockvisibility object
+    times = numpy.frombuffer(ff.buffer(lowconfig.times, 8*lowconfig.ntimes), dtype='f8', count=lowconfig.ntimes)
+    frequency = numpy.frombuffer(ff.buffer(lowconfig.freqs, 8*lowconfig.nfreqs), dtype='f8', count=lowconfig.nfreqs)
+    channel_bandwidth = numpy.frombuffer(ff.buffer(lowconfig.channel_bandwidth, 8*lowconfig.nchanwidth), dtype='f8', count=lowconfig.nchanwidth)
+
+    c_blockvisin = cARLBlockVis(blockvis_in, lowconfig.nant, lowconfig.nfreqs)
+    py_blockvisin = helper_create_blockvisibility_object(c_blockvisin, frequency, channel_bandwidth, lowcore)
+    py_blockvisin.phasecentre = load_phasecentre(blockvis_in.phasecentre)
+    py_blockvisin.configuration = lowcore
+    polframe = str(ff.string(lowconfig.polframe), 'utf-8')
+    py_blockvisin.polarisation_frame = PolarisationFrame(polframe)
+
+    # Call the ARL function 
+    py_blockvisout=copy_visibility(py_blockvisin, zero=zero)
+
+    # Copy the result into the output buffer
+    blockvis_out.npol=blockvis_in.npol
+    blockvis_out.nvis=blockvis_in.nvis
+
+    py_blockvis_out = cARLBlockVis(blockvis_out, lowconfig.nant, lowconfig.nfreqs)
+    numpy.copyto(py_blockvis_out, py_blockvisout.data)
+    store_phasecentre(blockvis_out.phasecentre, py_blockvisin.phasecentre)
+
+
+arl_copy_blockvisibility=collections.namedtuple("FFIX", "address")    
+arl_copy_blockvisibility.address=int(ff.cast("size_t", arl_copy_blockvisibility_ffi))    
+
+@ff.callback("void (*)(ARLConf *, ARLVis *)")
+def arl_set_visibility_data_to_zero_ffi(lowconfig, vis_in):
+    lowcore_name = str(ff.string(lowconfig.confname), 'utf-8')
+    lowcore = create_named_configuration(lowcore_name, rmax=lowconfig.rmax)
+
+    times = numpy.frombuffer(ff.buffer(lowconfig.times, 8*lowconfig.ntimes), dtype='f8', count=lowconfig.ntimes)
+    frequency = numpy.frombuffer(ff.buffer(lowconfig.freqs, 8*lowconfig.nfreqs), dtype='f8', count=lowconfig.nfreqs)
+    channel_bandwidth = numpy.frombuffer(ff.buffer(lowconfig.channel_bandwidth, 8*lowconfig.nchanwidth), dtype='f8', count=lowconfig.nchanwidth)
+
+    c_visin = cARLVis(vis_in)
+    py_visin = helper_create_visibility_object(c_visin)
+    py_visin.phasecentre = load_phasecentre(vis_in.phasecentre)
+    py_visin.configuration = lowcore
+    polframe = str(ff.string(lowconfig.polframe), 'utf-8')
+    py_visin.polarisation_frame = PolarisationFrame(polframe)
+
+    py_visin.data['vis'][...] = 0.0
+
+arl_set_visibility_data_to_zero=collections.namedtuple("FFIX", "address")
+arl_set_visibility_data_to_zero.address=int(ff.cast("size_t", arl_set_visibility_data_to_zero_ffi))
 
 ff.cdef("""
 typedef struct {
@@ -263,25 +384,6 @@ def store_phasecentre(c_phasecentre, phasecentre):
 def load_phasecentre(c_phasecentre):
     return load_pickle(c_phasecentre, 4999)
 
-ff.cdef("""
-typedef struct {
-  char *confname;
-  double pc_ra;
-  double pc_dec;
-  double *times;
-  int ntimes;
-  double *freqs;
-  int nfreqs;
-  double *channel_bandwidth;
-  int nchanwidth;
-  int nbases;
-  int nant;
-  int npol;
-  int nrec;
-  double rmax;
-  char *polframe;
-} ARLConf;
-""")
 
 @ff.callback("void (*)(ARLConf *, ARLVis *)")
 def arl_create_visibility_ffi(lowconfig, c_res_vis):
@@ -395,9 +497,48 @@ def arl_convert_visibility_to_blockvisibility_ffi(lowconfig, vis_in, blockvis_in
     numpy.copyto(py_blockvis_out, py_blockvisout.data)
     store_phasecentre(blockvis_out.phasecentre, py_blockvisin.phasecentre)
 
-
 arl_convert_visibility_to_blockvisibility=collections.namedtuple("FFIX", "address")
 arl_convert_visibility_to_blockvisibility.address=int(ff.cast("size_t", arl_convert_visibility_to_blockvisibility_ffi))
+
+@ff.callback("void (*)(ARLConf *, const ARLVis *, ARLVis *, long long int *, ARLVis *)")
+def arl_convert_blockvisibility_to_visibility_ffi(lowconfig, blockvis_in, vis_out, cindex_out, blockvis_out):
+# Create configuration object
+    lowcore_name = str(ff.string(lowconfig.confname), 'utf-8')
+    lowcore = create_named_configuration(lowcore_name, rmax=lowconfig.rmax)
+
+# Link cindex memory objects
+    cindex_size = lowconfig.nant*lowconfig.nant*lowconfig.nfreqs*lowconfig.ntimes
+    py_cindex = numpy.frombuffer(ff.buffer(cindex_out, 8*cindex_size), dtype='int', count=cindex_size)
+
+# Re-create input blockvisibility object
+    times = numpy.frombuffer(ff.buffer(lowconfig.times, 8*lowconfig.ntimes), dtype='f8', count=lowconfig.ntimes)
+    frequency = numpy.frombuffer(ff.buffer(lowconfig.freqs, 8*lowconfig.nfreqs), dtype='f8', count=lowconfig.nfreqs)
+    channel_bandwidth = numpy.frombuffer(ff.buffer(lowconfig.channel_bandwidth, 8*lowconfig.nchanwidth), dtype='f8', count=lowconfig.nchanwidth)
+
+    c_blockvisin = cARLBlockVis(blockvis_in, lowconfig.nant, lowconfig.nfreqs)
+    py_blockvisin = helper_create_blockvisibility_object(c_blockvisin, frequency, channel_bandwidth, lowcore)
+    py_blockvisin.phasecentre = load_phasecentre(blockvis_in.phasecentre)
+    py_blockvisin.configuration = lowcore
+    polframe = str(ff.string(lowconfig.polframe), 'utf-8')
+    py_blockvisin.polarisation_frame = PolarisationFrame(polframe)
+
+# Call arl.coalesce::convert_blockvisibility_to_visibility()
+    vis = convert_blockvisibility_to_visibility(py_blockvisin)
+
+# Copy vis.data to C visibility vis_out.data
+    py_vis = cARLVis(vis_out)
+    numpy.copyto(py_vis, vis.data)
+    store_phasecentre(vis_out.phasecentre, py_blockvisin.phasecentre)
+
+# Copy vis.blockvis.data to C blockvisibility blockvis_out.data
+    py_blockvis_out = cARLBlockVis(blockvis_out, lowconfig.nant, lowconfig.nfreqs)
+    numpy.copyto(py_blockvis_out, vis.blockvis.data)
+
+# Copy vis.cindex to cindex_out
+    numpy.copyto(py_cindex, vis.cindex)
+
+arl_convert_blockvisibility_to_visibility=collections.namedtuple("FFIX", "address")
+arl_convert_blockvisibility_to_visibility.address=int(ff.cast("size_t", arl_convert_blockvisibility_to_visibility_ffi))
 
 
 @ff.callback("void (*)(ARLConf *, const ARLVis *, ARLGt *)")
