@@ -153,7 +153,7 @@ in pkgs.python3Packages.buildPythonPackage rec {
 
    propagatedBuildInputs = [pkgs.ncurses pkgs.python3
    pkgs.python3Packages.numpy pkgs.python3Packages.scipy
-   pkgs.python3Packages.cffi
+   pkgs.python3Packages.cffi pkgs.python3Packages.scikitimage
    reproject astropy photutils
    pkgs.git-lfs
    cfitsio pkgs.gcc
