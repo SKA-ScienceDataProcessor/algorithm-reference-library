@@ -46,9 +46,8 @@ Image *allocate_image(int *shape)
 	int i;
 	Image *image;
 	
-	if (!(image = malloc(sizeof(Image)))) {
-		return NULL;
-	}
+	if (!(image = malloc(sizeof(Image))))
+	  goto al_fail;
 
 	image->size = 1;
 
@@ -57,23 +56,21 @@ Image *allocate_image(int *shape)
 		image->size *= shape[i];
 	}
 
-	if(!(image->data = calloc(image->size,sizeof(double)))) {
-		free(image);
-		return NULL;
-	}
-	if(!(image->wcs = calloc(2997,sizeof(char)))) {
-		free(image->data);
-		free(image);
-		return NULL;
-	}
-	if(!(image->polarisation_frame = calloc(115,sizeof(char)))) {
-		free(image->data);
-		free(image->wcs);
-		free(image);
-		return NULL;
-	}
+	if(!(image->data = calloc(image->size,sizeof(double))))
+	  goto al_image;
+
+	if(!(image->wcs = calloc(2997,sizeof(char))))
+	  goto al_wcs;
+	
+	if(!(image->polarisation_frame = calloc(115,sizeof(char))))
+	  goto al_data;
 
 	return image;
+	
+ al_data:  free(image->data);
+ al_wcs:   free(image->wcs);
+ al_image: free(image);
+ al_fail:  return NULL;	
 }
 
 void *destroy_image(Image *image)
