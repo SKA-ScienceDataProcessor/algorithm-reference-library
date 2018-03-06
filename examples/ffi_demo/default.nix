@@ -95,6 +95,59 @@ let
     '';
   };
 
+  flatbuffers-src = pkgs.fetchFromGitHub {
+       owner = "google";
+          repo = "flatbuffers";
+         rev = "v1.8.0";
+          sha256 = "1qq8qbv8wkiiizj8s984f17bsbjsrhbs9q1nw1yjgrw0grcxlsi9";
+    };
+
+  flatbuffers = pkgs.stdenv.mkDerivation rec {
+    name = "flatbuffers-${version}";
+    version = "1.8.0";
+
+    src = flatbuffers-src;
+       
+    buildInputs = [ pkgs.cmake ];
+    enableParallelBuilding = true;
+    doCheck = false;
+  };
+
+  
+  flatbuffers-py = pkgs.python3Packages.buildPythonPackage rec {
+      name = "flatbuffers-py-${version}";
+      version = "1.8.0";
+        src = flatbuffers-src;
+
+    preConfigure = ''
+      cd python
+    '';
+	
+     propagatedBuildInputs =  [ flatbuffers pkgs.python3Packages.numpy];
+     doCheck = false;
+  };
+
+  flatcc = pkgs.stdenv.mkDerivation rec {
+    name = "flatcc-${version}";
+    version = "0.5.1";
+
+    src = pkgs.fetchFromGitHub {
+       owner = "dvidelabs";
+          repo = "flatcc";
+         rev = "v${version}";
+        sha256 = "14pgrcpjywrq99nwp8dhk32wy1b8xx55rib5jc2wi088dhrmcxgs";
+    };
+       
+    buildInputs = [ pkgs.cmake pkgs.ninja ];
+
+    configurePhase = " ";
+    buildPhase = "./scripts/build.sh";
+    installPhase = "mkdir -p $out; cp -r lib/ bin/ include $out ";
+    enableParallelBuilding = true;
+    doCheck = false;
+  };
+
+
 in pkgs.python3Packages.buildPythonPackage rec {
    name="sdp-arl-ffi";
 
@@ -107,6 +160,7 @@ in pkgs.python3Packages.buildPythonPackage rec {
    starPU
    pkgs.openjdk
    pkgs.swig
+   flatcc 
     ];
 
 }

@@ -70,6 +70,38 @@ let
     };
   };
 
+  flatbuffers-src = pkgs.fetchFromGitHub {
+       owner = "google";
+          repo = "flatbuffers";
+         rev = "v1.8.0";
+          sha256 = "1qq8qbv8wkiiizj8s984f17bsbjsrhbs9q1nw1yjgrw0grcxlsi9";
+    };
+
+  flatbuffers = pkgs.stdenv.mkDerivation rec {
+    name = "flatbuffers-${version}";
+    version = "1.8.0";
+
+    src = flatbuffers-src;
+       
+    buildInputs = [ pkgs.cmake ];
+    enableParallelBuilding = true;
+    doCheck = false;
+  };
+
+  
+  flatbuffers-py = pkgs.python3Packages.buildPythonPackage rec {
+      name = "flatbuffers-py-${version}";
+      version = "1.8.0";
+        src = flatbuffers-src;
+
+    preConfigure = ''
+      cd python
+    '';
+	
+     propagatedBuildInputs =  [ flatbuffers pkgs.python3Packages.numpy];
+     doCheck = false;
+  };
+  
 in pkgs.python3Packages.buildPythonPackage rec {
    name="sdp-arl";
 
@@ -79,6 +111,7 @@ in pkgs.python3Packages.buildPythonPackage rec {
    reproject astropy photutils
    pkgs.git-lfs
    cfitsio pkgs.gcc
+   flatbuffers-py
     ];
 
 }
