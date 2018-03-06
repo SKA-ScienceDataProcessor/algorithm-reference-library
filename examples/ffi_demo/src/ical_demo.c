@@ -53,13 +53,14 @@ int main(int argc, char **argv)
 	int nvis;
 
 	// ICAL section
-	int wprojection_planes, i;
-	double fstart, fend, fdelta, tstart, tend, tdelta, rmax;
+	int wprojection_planes, i, nmajor, first_selfcal;
+	double fstart, fend, fdelta, tstart, tend, tdelta, rmax, thresh;
 	ARLadvice adv;
 	ant_t nb;			//nant and nbases
 	long long int *cindex_predict, *cindex_ical;
 	int cindex_nbytes;
 	ARLGt *gt;			//GainTable
+	ARLGt *gt_ical;			//GainTable (ICAL unrolled)
 	bool unrolled = true; // true - unrolled, false - arl.functions::ical()
 	// end ICAL section
 
@@ -85,6 +86,11 @@ int main(int argc, char **argv)
 	Image *deconvolved;		//Image (ICAL result)
 	Image *residual;		//Image (ICAL result)
 	Image *restored;		//Image (ICAL result)
+	Image *psf_ical;		//Image (ICAL unrolled psf)
+	Image *dirty_ical;		//Image (ICAL unrolled dirty)
+	Image *cc_ical;			//Image (ICAL unrolled temp restored)
+	Image *res_ical;		//Image (ICAL unrolled temp residuals)
+
 
 	arl_initialize();
 
@@ -190,7 +196,7 @@ int main(int argc, char **argv)
 	arl_simulate_gaintable(lowconfig, gt);
 
 	// apply_gaintable()
-	arl_apply_gaintable(lowconfig, vt, gt, vt_gt);
+	arl_apply_gaintable(lowconfig, vt, gt, vt_gt, 1);
 
 	// create_image_from_blockvisibility()
 	// Create an image with nchan = 1
@@ -214,16 +220,26 @@ int main(int argc, char **argv)
 	restored    = allocate_image(shape1);
 
 	if(unrolled){
+	// The same values as hard-coded in arlwrap.py calls
+		nmajor = 5; 
+		thresh = 0.1;
+		first_selfcal = 10;
+		printf("ical: Performing %d major cycles\n", nmajor);
 	// Allocate temp objects
 		vtmp_ical  = allocate_vis_data(lowconfig->npol, nvis);							     //ICAL Visibility object (ical.vis)
 		vpred_ical  = allocate_vis_data(lowconfig->npol, nvis);							     //ICAL Visibility object (ical.vispred)
 		vres_ical  = allocate_vis_data(lowconfig->npol, nvis);							     //ICAL Visibility object (ical.visres)
 		bvtmp_ical = allocate_blockvis_data(lowconfig->nant, lowconfig->nfreqs, lowconfig->npol, lowconfig->ntimes); //Blockvisibility vtmp_ical.blockvis (ical.vis.blockvis)
 		bvpred_ical = allocate_blockvis_data(lowconfig->nant, lowconfig->nfreqs, lowconfig->npol, lowconfig->ntimes); //Blockvisibility (ical.block_vispred)
+		psf_ical    = allocate_image(shape1);									// Image PSF
+		dirty_ical    = allocate_image(shape1);									// Image dirty (CLEAN loop)
+		cc_ical    = allocate_image(shape1);									// Image restored tmp (CLEAN loop)
+		res_ical    = allocate_image(shape1);									// Image residual tmp (CLEAN loop)
 		if (!(cindex_ical = malloc(cindex_nbytes))) {								     // Cindex vtmp_ical.cindex (ical.vis.cindex)
 			free(cindex_ical);
 			return 1;
 		}
+		gt_ical = allocate_gt_data(lowconfig->nant, lowconfig->nfreqs, lowconfig->nrec, lowconfig->ntimes);	// GainTable (CLEAN loop)
 	// convert_blockvisibility_to_visibility()
 		arl_convert_blockvisibility_to_visibility(lowconfig, vt_gt, vtmp_ical, cindex_ical, bvtmp_ical);
 
@@ -239,23 +255,84 @@ int main(int argc, char **argv)
 
 	// copy_visibility (vis)
 		arl_copy_visibility(lowconfig, vpred_ical, vres_ical, 1);
-		
+
+	// predict_function()
+		arl_predict_function_ical(lowconfig, vpred_ical, model, bvpred_ical, cindex_ical, adv.vis_slices);
+
+	// convert_visibility_to_blockvisibility()
+		arl_convert_visibility_to_blockvisibility(lowconfig, vpred_ical, bvpred_ical, cindex_ical, bvpred_ical);
+
+	// Subtract visibility data to find residuals
+        // vres = vtmp - vpred : 0 = add, 1 = subtract, 2 = mult, 3 = divide, else sets to zero
+		arl_manipulate_visibility_data(lowconfig, vtmp_ical, vpred_ical, vres_ical, 1); 
+	// arl_invert_function_ical() (extra parameters in **kwargs -TBS later)
+		arl_invert_function_ical(lowconfig, vres_ical, model, adv.vis_slices, dirty_ical);
+	// arl_invert_function_psf() (extra parameters in **kwargs -TBS later)
+		arl_invert_function_psf(lowconfig, vres_ical, model, adv.vis_slices, psf_ical);
+	// CLEAN major cycles		
+		for(i = 0; i< nmajor; i++){
+			printf("ical: Start of major cycle %d of %d\n", i, nmajor);
+		// arl_deconvolve_cube_ical() with hard-coded **kwargs	
+			arl_deconvolve_cube_ical(dirty_ical, psf_ical, cc_ical, res_ical);
+		// add cc_ical into the model
+			arl_add_to_model(model, cc_ical);
+		// Set vpred_ical.data to zero
+			arl_set_visibility_data_to_zero(lowconfig, vpred_ical);
+		// predict_function()
+			arl_predict_function_ical(lowconfig, vpred_ical, model, bvpred_ical, cindex_ical, adv.vis_slices);
+		// if doselfcal
+			if(i >= first_selfcal) {
+				printf("ical: Performing selfcalibration\n");
+				// convert_blockvisibility_to_visibility()
+				arl_convert_blockvisibility_to_visibility(lowconfig, bvpred_ical, vpred_ical, cindex_ical, bvtmp_ical);
+				// arl_solve_gaintable()
+				arl_solve_gaintable_ical(lowconfig, vt_gt, bvpred_ical, gt_ical, adv.vis_slices);
+				// arl_apply_gaintable() and re-write vt_gt (ical::block_vis)
+				arl_apply_gaintable(lowconfig, vt_gt, gt_ical, bvtmp_ical, 0);
+				arl_copy_blockvisibility(lowconfig, bvtmp_ical, vt_gt, 1);
+				// convert_blockvisibility_to_visibility()
+				arl_convert_blockvisibility_to_visibility(lowconfig, vt_gt, vtmp_ical, cindex_ical, bvtmp_ical);
+			}
+			
+        	// vres = vtmp - vpred : 0 = add, 1 = subtract, 2 = mult, 3 = divide, else sets to zero
+			arl_manipulate_visibility_data(lowconfig, vtmp_ical, vpred_ical, vres_ical, 1); 
+		// arl_invert_function_ical() (extra parameters in **kwargs -TBS later)
+			arl_invert_function_ical(lowconfig, vres_ical, model, adv.vis_slices, dirty_ical);
+
+		// ToDo - loop break on threshold
+
+			printf("ical: End of major cycle %d\n", i);
+
+		}
+		printf("ical: End of major cycles\n");
+		arl_restore_cube_ical(model, psf_ical, dirty_ical, restored);
+
+	// FITS file output
+		status = export_image_to_fits_c(model, 		"!results/deconvolved.fits");
+		status = export_image_to_fits_c(dirty, 		"!results/residual.fits");
+		status = export_image_to_fits_c(restored, 	"!results/restored.fits");
 	// Cleaning up temp objects	
 		bvtmp_ical 		= destroy_vis(bvtmp_ical);
 		bvpred_ical		= destroy_vis(bvpred_ical);
 		vtmp_ical 		= destroy_vis(vtmp_ical);
 		vpred_ical 		= destroy_vis(vpred_ical);
 		vres_ical 		= destroy_vis(vres_ical);
+		psf_ical		= destroy_image(psf_ical);
+		dirty_ical		= destroy_image(dirty_ical);
+		cc_ical			= destroy_image(cc_ical);
+		res_ical		= destroy_image(res_ical);
+		gt_ical 		= destroy_gt(gt_ical);
+
 		free(cindex_ical);
 
 	} else {	
 		arl_ical(lowconfig, vt_gt, model, adv.vis_slices, deconvolved, residual, restored);
+	// FITS file output
+		status = export_image_to_fits_c(deconvolved, 	"!results/deconvolved.fits");
+		status = export_image_to_fits_c(residual, 	"!results/residual.fits");
+		status = export_image_to_fits_c(restored, 	"!results/restored.fits");
 	}
 
-	// FITS file output
-	status = export_image_to_fits_c(deconvolved, 	"!results/deconvolved.fits");
-	status = export_image_to_fits_c(residual, 	"!results/residual.fits");
-	status = export_image_to_fits_c(restored, 	"!results/restored.fits");
 
 
 	// Cleaning up
