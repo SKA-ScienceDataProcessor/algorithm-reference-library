@@ -141,6 +141,7 @@ void arl_predict_function_blockvis(ARLConf *, ARLVis *, const Image *);
 
 void arl_simulate_gaintable(ARLConf *, ARLGt *gt);
 void arl_apply_gaintable(ARLConf *lowconf, const ARLVis *visin, ARLGt *gtin, ARLVis *visout, int inverse);
+void arl_apply_gaintable_ical(ARLConf *lowconf, ARLVis *visin, ARLGt *gtin, int inverse);
 void arl_solve_gaintable_ical(ARLConf *lowconf, const ARLVis *blockvisin, const ARLVis *blockvisin_pred, ARLGt *gt, int vis_slices);
 void arl_set_visibility_data_to_zero(ARLConf *lowconf, ARLVis *vis);
 void arl_manipulate_visibility_data(ARLConf *lowconf, const ARLVis *vis1in, const ARLVis *vis2in, ARLVis *visout, int op);

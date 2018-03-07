@@ -556,7 +556,7 @@ def arl_convert_visibility_to_blockvisibility_ffi(lowconfig, vis_in, blockvis_in
     py_visin.blockvis = py_blockvisin
 
     py_blockvisout = convert_visibility_to_blockvisibility(py_visin)
-#    print("convert_visibility_to_blockvisibility np.sum(block_vis.data): ", numpy.sum(py_blockvisout.data['vis']))
+    print("convert_visibility_to_blockvisibility np.sum(block_vis.data): ", numpy.sum(py_blockvisout.data['vis']))
 
 
     py_blockvis_out = cARLBlockVis(blockvis_out, lowconfig.nant, lowconfig.nfreqs)
@@ -717,6 +717,44 @@ def arl_apply_gaintable_ffi(lowconfig, blockvis_in, gt, blockvis_out, inverse_in
 
 arl_apply_gaintable=collections.namedtuple("FFIX", "address")
 arl_apply_gaintable.address=int(ff.cast("size_t", arl_apply_gaintable_ffi))
+
+@ff.callback("void (*)(ARLConf *, ARLVis *, ARLGt *, int )")
+def arl_apply_gaintable_ical_ffi(lowconfig, blockvis_in, gt, inverse_in):
+    
+    if inverse_in == 0:
+         inverse = True
+    else:
+         inverse = False
+
+    lowcore_name = str(ff.string(lowconfig.confname), 'utf-8')
+    lowcore = create_named_configuration(lowcore_name, rmax=lowconfig.rmax)
+
+    times = numpy.frombuffer(ff.buffer(lowconfig.times, 8*lowconfig.ntimes), dtype='f8', count=lowconfig.ntimes)
+    frequency = numpy.frombuffer(ff.buffer(lowconfig.freqs, 8*lowconfig.nfreqs), dtype='f8', count=lowconfig.nfreqs)
+    channel_bandwidth = numpy.frombuffer(ff.buffer(lowconfig.channel_bandwidth, 8*lowconfig.nchanwidth), dtype='f8', count=lowconfig.nchanwidth)
+
+# Re-creating the input BlockVisibility object
+    c_blockvisin = cARLBlockVis(blockvis_in, lowconfig.nant, lowconfig.nfreqs)
+    py_blockvisin = helper_create_blockvisibility_object(c_blockvisin, frequency, channel_bandwidth, lowcore)
+    py_blockvisin.phasecentre = load_phasecentre(blockvis_in.phasecentre)
+    py_blockvisin.configuration = lowcore
+    polframe = str(ff.string(lowconfig.polframe), 'utf-8')
+    py_blockvisin.polarisation_frame = PolarisationFrame(polframe)
+
+# Re-creating GainTable object
+    receptor_frame = ReceptorFrame(py_blockvisin.polarisation_frame.type)
+    c_gt = cARLGt(gt, lowconfig.nant, lowconfig.nfreqs, lowconfig.nrec)
+    py_gt = helper_create_gaintable_object(c_gt, frequency, receptor_frame)
+    py_gt.receptor_frame = receptor_frame
+
+# Calling apply_gaintable() function
+    py_blockvisout = apply_gaintable(py_blockvisin, py_gt, inverse=inverse)
+#    print("apply_gaintable np.sum(blockvis.data): ", numpy.sum(py_blockvisout.data['vis']))
+# Copy resulting data from py_blockvisout back to c_blockvisin
+    numpy.copyto(c_blockvisin, py_blockvisout.data)
+
+arl_apply_gaintable_ical=collections.namedtuple("FFIX", "address")
+arl_apply_gaintable_ical.address=int(ff.cast("size_t", arl_apply_gaintable_ical_ffi))
 
 @ff.callback("void (*)(ARLConf *, const ARLVis *, const ARLVis *, ARLGt *, int )")
 def arl_solve_gaintable_ical_ffi(lowconfig, blockvis_in, blockvis_pred, gt, vis_slices):
@@ -1022,6 +1060,8 @@ def arl_predict_function_ical_ffi(lowconfig, vis_inout, img, blockvis_inout, cin
     numpy.copyto(py_blockvis_inout, res.blockvis.data)
     store_phasecentre(blockvis_inout.phasecentre, res.phasecentre)
     print("predict_function_ical np.sum(res.data): ", numpy.sum(res.data['vis']))
+    print("predict_function_ical np.sum(res.blockvis.data): ", numpy.sum(res.blockvis.data['vis']))
+
 
 arl_predict_function_ical=collections.namedtuple("FFIX", "address")
 arl_predict_function_ical.address=int(ff.cast("size_t", arl_predict_function_ical_ffi))
