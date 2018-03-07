@@ -241,6 +241,10 @@ void arl_apply_gaintable(ARLConf *lowconf, const ARLVis *visin, ARLGt *gtin, ARL
 	BKFNPY(arl_apply_gaintable)(lowconf, visin, gtin, visout, inverse);
 }
 
+void arl_apply_gaintable_ical(ARLConf *lowconf, ARLVis *visin, ARLGt *gtin, int inverse) {
+	BKFNPY(arl_apply_gaintable_ical)(lowconf, visin, gtin, inverse);
+}
+
 void arl_simulate_gaintable(ARLConf *lowconf, ARLGt *gt) {
 	BKFNPY(arl_simulate_gaintable)(lowconf, gt);
 }
