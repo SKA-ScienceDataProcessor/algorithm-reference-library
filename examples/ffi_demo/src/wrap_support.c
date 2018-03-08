@@ -1,5 +1,6 @@
 #include <stdlib.h>
 #include <fitsio.h>
+#include <stdio.h>
 
 #include "../include/arlwrap.h"
 
@@ -22,10 +23,12 @@ int export_image_to_fits_c(Image *im, char * filename)
 
 	if(exists != 0) {
 		fits_open_file(&fptr, filename, READWRITE, &status); /* open existed file */
+		fits_delete_file(fptr, &status);
 	}
-	else {
-		fits_create_file(&fptr, filename, &status);   /* create new file */
-	}
+//	else {
+//	Rewrite the old file if it is leading "!" in a filename
+	fits_create_file(&fptr, filename, &status);   /* create new file */
+//	}
 
 	/* Create the primary array image  */
 	fits_create_img(fptr, DOUBLE_IMG, naxis, naxes, &status);
@@ -119,16 +122,21 @@ ARLConf *allocate_arlconf_default(const char *conf_name)
 	config->channel_bandwidth = malloc(sizeof(double));	
 	config->nchanwidth = 1;
 	config->nbases = nb.nbases;
+	config->nant = nb.nant;
 	config->npol = 1;
+	config->nrec = 0;
+	config->rmax = 0.0;
 
 	config->freqs[0] = 1e8;
 	config->channel_bandwidth[0] = 1e6;
+	config->polframe = "stokesI";
 
 	return config;
 }
 
 ARLVis *allocate_vis_data(int npol, int nvis)
 {
+	long int nbytes;
 	ARLVis *vis;
 	if (!(vis = malloc(sizeof(ARLVis)))) {
 		return NULL;
@@ -136,6 +144,8 @@ ARLVis *allocate_vis_data(int npol, int nvis)
 
 	vis->nvis = nvis;
 	vis->npol = npol;
+	nbytes = (80+(32*npol))*nvis * sizeof(char);
+	printf("Allocating %ld bytes for a visibility structure.\n", nbytes);
 
 	// (80 bytes static data + 32 bytes * npol) * nvis
 	if (!(vis->data = malloc((80+(32*npol))*nvis * sizeof(char)))) {
@@ -160,3 +170,60 @@ ARLVis *destroy_vis(ARLVis *vis)
 
 	return NULL;
 }
+
+ARLVis *allocate_blockvis_data(int nant, int nchan, int npol, int ntimes)
+{
+	long int nbytes;	
+	ARLVis *vis;
+	if (!(vis = malloc(sizeof(ARLVis)))) {
+		return NULL;
+	}
+
+	vis->nvis = ntimes; // storing ntime instead of nvis, ToDo: add extra struct element(s)
+	vis->npol = npol;
+	nbytes = (24+24*nant*nant+24*nant*nant*nchan*npol)*ntimes * sizeof(char);
+	printf("Allocating %ld bytes for a blockvisibility structure.\n", nbytes);
+	// (24 bytes static data + 24 bytes * nant*nant + 24 bytes *nant*nant*nchan*npol) *ntime
+	if ( !( vis->data = malloc( (24+24*nant*nant+24*nant*nant*nchan*npol)*ntimes * sizeof(char) ) ) ) {
+		free(vis);
+		return NULL;
+	}
+	// pickled phasecentre. Size found through experimentation
+	if (!(vis->phasecentre = malloc(5000*sizeof(char)))) {
+		free(vis->data);
+		free(vis);
+		return NULL;
+	}
+
+	return vis;
+}
+
+ARLGt *allocate_gt_data(int nant, int nchan, int nrec, int ntimes)
+{
+	long int nbytes;
+	ARLGt *gt;
+	if (!(gt = malloc(sizeof(ARLGt)))) {
+		return NULL;
+		}
+
+	gt->nrows = ntimes;
+	nbytes = (8 + 8*nchan*nrec*nrec + 3*8*nant*nchan*nrec*nrec + 8)*ntimes * sizeof(char);
+	printf("Allocating %ld bytes for a gaintable structure.\n", nbytes);
+
+	if (!(gt->data = malloc(nbytes))) {
+		free(gt);
+		return NULL;
+		}
+	
+
+	return gt;
+}
+
+ARLGt *destroy_gt(ARLGt *gt)
+{
+	free(gt->data);
+	free(gt);
+
+	return NULL;
+}
+

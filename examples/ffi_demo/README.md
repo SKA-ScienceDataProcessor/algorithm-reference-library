@@ -17,11 +17,19 @@ interface to the ARL routines.
 This adds a requirement for StarPU to the build process. To disable, simply
 comment out the timg\_starpu related lines from `setup.py` and `Makefile`.
 
+# ICAL ffi demo
+This example will repeat a functionality of the python script `src/imaging-pipelines-sip.py`
+which calls a non-Dask version of ARL ICAL pipeline.
+
 # Building
 Modify `setup.py` and `Makefile` to point to the correct installation directory
 for StarPU if necessary.
 
 Then, simply run `python3 setup.py build`
+Alternatively, use `CFLAGS` environment variable, e.g.
+`CFLAGS="-I/usr/local/cuda/include/ -I/usr/include/cfitsio/" python3 setup.py build`
+In this example CUDA is required by StarPU.
+
 
 # TODOs
  - Currently, we are pickling some metadata and storing it in a character
