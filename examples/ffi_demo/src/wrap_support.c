@@ -207,7 +207,7 @@ ARLGt *allocate_gt_data(int nant, int nchan, int nrec, int ntimes)
 		}
 
 	gt->nrows = ntimes;
-	nbytes = (8 + 8*nchan*nrec*nrec + 3*8*nant*nchan*nrec*nrec)*ntimes * sizeof(char);
+	nbytes = (8 + 8*nchan*nrec*nrec + 3*8*nant*nchan*nrec*nrec + 8)*ntimes * sizeof(char);
 	printf("Allocating %ld bytes for a gaintable structure.\n", nbytes);
 
 	if (!(gt->data = malloc(nbytes))) {
