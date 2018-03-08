@@ -3,7 +3,7 @@ LDFLAGS=-L../. -larlffi
 
 all: timg_serial
 
-timg_serial:
+timg_serial: timg_serial.c
 	$(CC) timg_serial.c $(LDFLAGS) -o timg_serial
 
 run: all

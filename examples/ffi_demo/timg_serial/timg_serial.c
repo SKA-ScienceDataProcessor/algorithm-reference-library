@@ -7,6 +7,10 @@
 #include "../include/arlwrap.h"
 #include "../include/wrap_support.h"
 
+#include "../../../metadata/imagewcs_reader.h"
+#undef ns
+#define ns(x) FLATBUFFERS_WRAP_NAMESPACE(arlmd, x)
+
 /*
  * Verifies that:
  * - vt and vtmp are unique in memory
@@ -83,6 +87,16 @@ int main(int argc, char **argv)
 
 	/* TODO the vt->phasecentre part should be moved to a separate routine */
 	arl_create_test_image(lowconfig->freqs, cellsize, vt->phasecentre, m31image);
+
+	/* This is how to extract metadata! */
+	ns(ImageWCS_table_t) m31image_md=ns(ImageWCS_as_root(m31image->md));
+	flatbuffers_double_vec_t crval=ns(ImageWCS_crval(m31image_md));
+	printf("Vector len: %i\n ", flatbuffers_vec_len(crval));		
+	printf("CRval %f,%f,%f,%f\n",
+	       flatbuffers_double_vec_at(crval, 0),
+	       flatbuffers_double_vec_at(crval, 1),
+	       flatbuffers_double_vec_at(crval, 2),
+	       flatbuffers_double_vec_at(crval, 3));
 
 	arl_predict_2d(vt, m31image, vtmp);
 

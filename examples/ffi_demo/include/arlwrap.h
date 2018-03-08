@@ -49,6 +49,8 @@ typedef struct {
 	void *data;
 	char *wcs;
 	char *polarisation_frame;
+        // Metadata. Eventually move all metadata into this
+        char * md;
 } Image;
 
 typedef struct {

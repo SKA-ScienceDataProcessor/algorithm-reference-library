@@ -17,14 +17,16 @@ def ImageWCSFb(wcs):
     crpix=b.EndVector(s)
 
     arlmd.ImageWCS.ImageWCSStartCrvalVector(b, numElems=s)
-    for x in wcs.crval: b.PrependFloat64(x)
+    for i in range(s):  b.PrependFloat64(wcs.crval[i])
     crval=b.EndVector(s)
 
     arlmd.ImageWCS.ImageWCSStart(b)
     arlmd.ImageWCS.ImageWCSAddCrpix(b, crpix=crpix)
     arlmd.ImageWCS.ImageWCSAddCrval(b, crval=crval)    
-    arlmd.ImageWCS.ImageWCSEnd(b)
-    return b
+    img=arlmd.ImageWCS.ImageWCSEnd(b)
+    b.Finish(img)
+
+    return b.Bytes[b.Head():]
 
 
 

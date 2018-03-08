@@ -72,6 +72,7 @@ Image *allocate_image(int *shape)
 		free(image);
 		return NULL;
 	}
+	image->md = calloc(1024, sizeof(char));
 
 	return image;
 }

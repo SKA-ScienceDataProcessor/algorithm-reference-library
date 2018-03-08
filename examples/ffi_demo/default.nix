@@ -161,6 +161,7 @@ in pkgs.python3Packages.buildPythonPackage rec {
    pkgs.openjdk
    pkgs.swig
    flatcc 
+   flatbuffers-py
     ];
 
 }

@@ -17,6 +17,7 @@ from arl.util.testing_support import create_named_configuration, create_test_ima
 from arl.data.polarisation import PolarisationFrame
 
 import pickle
+import arldataiface as di
 
 ff = cffi.FFI()
 
@@ -87,6 +88,7 @@ typedef struct {
     void *data;
     char *wcs;
     char *polarisation_frame;
+    char * md;
 } Image;
 """)
 
@@ -112,6 +114,10 @@ def cImage(image_in, new=False):
             image_in.polarisation_frame, 114),
             dtype='b',
             count=114)
+        new_image.md = numpy.frombuffer(ff.buffer(
+            image_in.md, 1024),
+            dtype='b',
+            count=1024)
     else:
         new_image.wcs = pickle.loads(ff.buffer(image_in.wcs, 2996))
         new_image.polarisation_frame = pickle.loads(ff.buffer(image_in.polarisation_frame,114))
@@ -138,7 +144,9 @@ def load_pickle(c_ptr, size):
 def store_image_pickles(c_img, py_img):
     store_pickle(c_img.wcs, py_img.wcs)
     store_pickle(c_img.polarisation_frame, py_img.polarisation_frame)
-
+    x=di.ImageWCSFb(py_img.wcs.wcs)
+    numpy.copyto(c_img.md[0:len(x)], x)
+    
 # Turns ARLVis struct into Visibility object
 def helper_create_visibility_object(c_vis):
     # This may be incorrect
