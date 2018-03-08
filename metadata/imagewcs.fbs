@@ -1,0 +1,6 @@
+namespace arlmd;
+
+table ImageWCS {
+       crval: [double];
+       crpix: [double];
+}
