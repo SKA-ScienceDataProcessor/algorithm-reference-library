@@ -101,7 +101,7 @@ typedef struct {
 """)
 
 def ARLDataGTSize(ntimes, nants, nchan, nrec):
-    return (8 + 8*nchan*nrec*nrec + 3*8*nants*nchan*nrec*nrec)*ntimes
+    return (8 + 8*nchan*nrec*nrec + 3*8*nants*nchan*nrec*nrec + 8)*ntimes
 
 def cARLGt(gtin, nants, nchan, nrec):
     """
@@ -111,7 +111,8 @@ def cARLGt(gtin, nants, nchan, nrec):
     desc = [('gain', '>c16', (nants, nchan, nrec, nrec)),
             ('weight', '>f8', (nants, nchan, nrec, nrec)),
             ('residual', '>f8', (nchan, nrec, nrec)),
-            ('time', '>f8')]
+            ('time', '>f8'),
+            ('interval', '>f8')]
     r=numpy.frombuffer(ff.buffer(gtin.data,
                                  ARLDataGTSize(ntimes, nants, nchan, nrec)),
                                  dtype=desc,
@@ -431,6 +432,7 @@ def helper_create_gaintable_object(c_gt, freqs, recframe):
             weight=c_gt['weight'],
             residual=c_gt['residual'],
             time=c_gt['time'],
+            interval=c_gt['interval'],
             receptor_frame=recframe
             )
 #    print(tgt.__dict__)
