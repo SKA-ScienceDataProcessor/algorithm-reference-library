@@ -5,8 +5,8 @@
 #include <sys/stat.h>
 #include <math.h>
 
-#include "arlwrap.h"
-#include "wrap_support.h"
+#include "../include/arlwrap.h"
+#include "../include/wrap_support.h"
 
 /*
  * Verifies that:
