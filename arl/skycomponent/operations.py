@@ -44,6 +44,7 @@ def create_skycomponent(direction: SkyCoord, flux: numpy.array, frequency: numpy
 
 def find_nearest_component(home, comps) -> Skycomponent:
     """ Find nearest component to a given direction
+    
     :param home: Home direction
     :param comps: list of skycomponents
     :return: nearest component
@@ -148,7 +149,8 @@ def find_skycomponents(im: Image, fwhm=1.0, threshold=10.0, npixels=5) -> List[S
 
 def apply_beam_to_skycomponent(sc: Union[Skycomponent, List[Skycomponent]], beam: Image, flux_limit=0.0) \
         -> Union[Skycomponent, List[Skycomponent]]:
-    """ Insert a Skycomponet into an image
+    """ Insert a Skycomponent into an image
+    
     :param beam:
     :param sc: SkyComponent or list of SkyComponents
     :param flux_limit: flux limit on input
@@ -195,6 +197,7 @@ def apply_beam_to_skycomponent(sc: Union[Skycomponent, List[Skycomponent]], beam
 def insert_skycomponent(im: Image, sc: Union[Skycomponent, List[Skycomponent]], insert_method='Nearest',
                         bandwidth=1.0, support=8) -> Image:
     """ Insert a Skycomponent into an image
+    
     :param params:
     :param im:
     :param sc: SkyComponent or list of SkyComponents
