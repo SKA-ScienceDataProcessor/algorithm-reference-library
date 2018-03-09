@@ -113,7 +113,7 @@ class TestCalibrationSagecal(unittest.TestCase):
         export_image_to_fits(dirty, "%s/test_sagecal-final_residual.fits" % self.dir)
 
         qa = qa_image(dirty)
-        assert qa.data['rms'] < 3.0e-3, qa
+        assert qa.data['rms'] < 3.1e-3, qa
     
     def test_sagecal_solve_delayed(self):
         self.actualSetup()
@@ -134,7 +134,7 @@ class TestCalibrationSagecal(unittest.TestCase):
         
         qa = qa_image(dirty)
         print(qa)
-        assert qa.data['rms'] < 3.0e-3, qa
+        assert qa.data['rms'] < 3.1e-3, qa
 
 
 if __name__ == '__main__':
