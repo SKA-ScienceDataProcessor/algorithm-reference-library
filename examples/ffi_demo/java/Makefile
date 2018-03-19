@@ -1,6 +1,7 @@
 PYCPPFLAGS=$(shell python3-config --includes)
 ARLCPPFLAGS=-I../src/
 ARLLDFLAGS=-L../. -larlffi
+
 JDKHOME=/nix/store/krsx6lwd2vpp2z1p50kgidjdc781vcz5-openjdk-8u141b15/
 JAVACPPFLAGS= -I${JDKHOME}/include/ -I${JDKHOME}/include/linux
 
@@ -22,7 +23,7 @@ arljava.c: arljava.i
 libarljava.so: arljava.c
 	gcc ${JAVACPPFLAGS} -fPIC  -shared $<  -o $@ ${ARLLDFLAGS}
 
-arljava.jar: arljava.c sdp/arl/*
+arljava.jar: arljava.c
 	mkdir -p bin
 	find sdp/arl -name "*.java" | xargs javac -g -d bin
 	jar cf arljava.jar -C bin sdp
