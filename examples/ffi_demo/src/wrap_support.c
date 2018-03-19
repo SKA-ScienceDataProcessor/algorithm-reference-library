@@ -112,7 +112,7 @@ ARLConf *allocate_arlconf_default(const char *conf_name)
 	helper_get_nbases(conf_name, &nb);
 
 	// Assigning configuraion values
-	config->confname = conf_name;
+	config->confname = strdup(conf_name);
 	config->pc_ra = 15.0;
 	config->pc_dec = -45.0;
 	config->times = calloc(1, sizeof(double));
