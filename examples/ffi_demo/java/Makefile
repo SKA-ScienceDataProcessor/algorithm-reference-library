@@ -15,7 +15,7 @@ ffi_demo: ffi_demo.c
 	gcc ${PYCPPFLAGS} ${ARLCPPFLAGS} $< -o $@  ${ARLLDFLAGS}
 
 
-arljava.c: arljava.i
+arljava.c: arljava.i ../include/*.h
 	mkdir -p sdp/arl	
 	swig -java   -outdir sdp/arl -package sdp.java -o $@ $<
 
