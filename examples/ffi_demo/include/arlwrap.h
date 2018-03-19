@@ -18,7 +18,7 @@ typedef struct {
   // the npol. For example when npol is 4, data is equivalent to "C"
   // type type "ARLVisEntryP4[nvis]"
   void *data;
-  char *phasecentre;
+  void *phasecentre;
 } ARLVis;
 
 // This is what the data array for four polarisations look like. Can
@@ -102,9 +102,9 @@ void arl_create_visibility(ARLConf *lowconf, ARLVis *res_vis);
 void arl_create_blockvisibility(ARLConf *lowconf, ARLVis *res_vis);
 void arl_advise_wide_field(ARLConf *lowconf, ARLVis *res_vis, ARLadvice * adv);
 
-void arl_create_test_image(const double *frequency, double cellsize, char *phasecentre,
+void arl_create_test_image(const double *frequency, double cellsize, void *phasecentre,
 		Image *res_img);
-void arl_create_low_test_image_from_gleam(ARLConf *lowconf, double cellsize, int npixel, char *phasecentre,
+void arl_create_low_test_image_from_gleam(ARLConf *lowconf, double cellsize, int npixel, void *phasecentre,
 		Image *res_img);
 
 
@@ -112,7 +112,7 @@ void arl_predict_2d(const ARLVis *visin, const Image *img, ARLVis *visout);
 void arl_invert_2d(const ARLVis *visin, const Image *img_in, bool dopsf, Image *out, double *sumwt);
 
 void arl_create_image_from_visibility(const ARLVis *vis, Image *model);
-void arl_create_image_from_blockvisibility(ARLConf *lowconf, const ARLVis *blockvis, double cellsize, int npixel, char* phasecentre, Image *model);
+void arl_create_image_from_blockvisibility(ARLConf *lowconf, const ARLVis *blockvis, double cellsize, int npixel, void* phasecentre, Image *model);
 void arl_deconvolve_cube(Image *dirty, Image *psf, Image *restored,
 		Image *residual);
 void arl_deconvolve_cube_ical(Image *dirty, Image *psf, Image *restored,

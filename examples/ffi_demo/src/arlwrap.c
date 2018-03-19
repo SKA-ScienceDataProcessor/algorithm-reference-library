@@ -130,13 +130,13 @@ void arl_advise_wide_field(ARLConf *lowconf, ARLVis *res_vis, ARLadvice *adv)
 	BKFNPY(arl_advise_wide_field)(lowconf, res_vis, adv);
 }
 
-void arl_create_test_image(const double *frequency, double cellsize, char *phasecentre,
+void arl_create_test_image(const double *frequency, double cellsize, void *phasecentre,
 		Image *res_img)
 {
   BKFNPY(arl_create_test_image)(frequency, cellsize, phasecentre, res_img);
 }
 
-void arl_create_low_test_image_from_gleam(ARLConf *lowconf, double cellsize, int npixel, char *phasecentre,
+void arl_create_low_test_image_from_gleam(ARLConf *lowconf, double cellsize, int npixel, void *phasecentre,
 		Image *res_img)
 {
 	BKFNPY(arl_create_low_test_image_from_gleam)(lowconf, cellsize, npixel, phasecentre, res_img);
@@ -167,7 +167,7 @@ void arl_create_image_from_visibility(const ARLVis *vis, Image *model) {
   BKFNPY(arl_create_image_from_visibility)(vis, model);
 }
 
-void arl_create_image_from_blockvisibility(ARLConf *lowconf, const ARLVis *blockvis, double cellsize, int npixel, char* phasecentre, Image *model){
+void arl_create_image_from_blockvisibility(ARLConf *lowconf, const ARLVis *blockvis, double cellsize, int npixel, void* phasecentre, Image *model){
 	BKFNPY(arl_create_image_from_blockvisibility)(lowconf, blockvis, cellsize, npixel, phasecentre, model);
 }
 
