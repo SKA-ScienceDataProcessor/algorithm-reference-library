@@ -307,17 +307,17 @@ def create_visibility_from_ms(msname, channum=0):
         raise ModuleNotFoundError("casacore is not installed")
 
     tab = table(msname)
-    print(tab.info())
+    print("create_visibility_from_ms: %s" % str(tab.info()))
     fields = numpy.unique(tab.getcol('FIELD_ID'))
-    print("Found unique field ids %s" % fields)
+    print("create_visibility_from_ms: Found unique field ids %s" % fields)
     vis_list = list()
     for field in fields:
         # First get the main table information
         ms = tab.query("FIELD_ID==%d" % field)
-        print("Found %d rows for field %d" % (ms.nrows(), field))
+        print("create_visibility_from_ms: Found %d rows for field %d" % (ms.nrows(), field))
         time = ms.getcol('TIME')
         channels = len(numpy.transpose(ms.getcol('DATA'))[0])
-        print("Found %d channels" % (channels))
+        print("create_visibility_from_ms: Found %d channels" % (channels))
         try:
             vis = ms.getcol('DATA')[:, channum, :]
         except IndexError:
@@ -339,11 +339,20 @@ def create_visibility_from_ms(msname, channum=0):
         uvw *= frequency[:, numpy.newaxis] / constants.c.to('m/s').value
         
         # Get polarisation info
-        # poltab = table('%s/POLARIZATION' % msname, ack=False)
-        # corr_type = poltab.getcol('CORR_TYPE')
-        # TODO: Do interpretation correctly
-        polarisation_frame = PolarisationFrame('stokesIQUV')
-        
+        poltab = table('%s/POLARIZATION' % msname, ack=False)
+        corr_type = poltab.getcol('CORR_TYPE')
+        assert corr_type[0].shape == [4]
+        # These correspond to the CASA Stokes enumerations
+        if numpy.array_equal(corr_type[0], [1, 2, 3, 4]):
+            polarisation_frame = PolarisationFrame('stokesIQUV')
+        elif numpy.array_equal(corr_type[0], [5, 6, 7, 8]):
+            polarisation_frame = PolarisationFrame('circular')
+        elif numpy.array_equal(corr_type[0], [9, 10, 11, 12]):
+            polarisation_frame = PolarisationFrame('linear')
+        else:
+            polarisation_frame = PolarisationFrame('stokesIQUV')
+        print("create_visibility_from_ms: polarisation %s" % polarisation_frame.type)
+
         # Get configuration
         anttab = table('%s/ANTENNA' % msname, ack=False)
         mount = anttab.getcol('MOUNT')
