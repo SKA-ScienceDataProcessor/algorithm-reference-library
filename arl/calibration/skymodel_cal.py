@@ -14,7 +14,6 @@ http://adsabs.harvard.edu/cgi-bin/nph-data_query?bibcode=2011MNRAS.414.1656K&lin
 In this code:
 
 - A single ssm vector is taken to be a vector composed of skycomponent, gaintable tuples.
-   
 
 - The E step for a specific window is the sum of the window data model and the discrepancy between the observed data and the summed (over all windows) data models.
    
@@ -191,7 +190,7 @@ def skymodel_cal_solve(vis, skymodels, niter=10, tol=1e-8, gain=0.25, **kwargs):
     for iter in range(niter):
         new_calskymodels = list()
         evis_all = skymodel_cal_e_all(vis, calskymodels)
-        print("Iteration %d" % (iter))
+        log.debug("skymodel_cal_solve: Iteration %d" % (iter))
         for window_index, csm in enumerate(calskymodels):
             evis = skymodel_cal_e_step(vis, evis_all, csm, gain=gain, **kwargs)
             new_csm = skymodel_cal_m_step(evis, csm, **kwargs)
@@ -201,7 +200,7 @@ def skymodel_cal_solve(vis, skymodels, niter=10, tol=1e-8, gain=0.25, **kwargs):
             qa = qa_gaintable(new_csm[1])
             residual = qa.data['residual']
             rms_phase = qa.data['rms-phase']
-            print("\t Window %d, flux %s, residual %.3f, rms phase %.3f" % (window_index,
+            log.debug("skymodel_cal_solve:\t Window %d, flux %s, residual %.3f, rms phase %.3f" % (window_index,
                                                                             str(flux), residual,
                                                                             rms_phase))
             
