@@ -50,7 +50,7 @@ from arl.calibration.operations import copy_gaintable, apply_gaintable, \
     create_gaintable_from_blockvisibility, qa_gaintable
 from arl.data.data_models import BlockVisibility
 from arl.imaging import predict_skycomponent_visibility
-from arl.skycomponent.operations import copy_skycomponent
+from arl.skycomponent.base import copy_skycomponent
 from arl.visibility.coalesce import convert_blockvisibility_to_visibility
 from arl.visibility.operations import copy_visibility, sum_visibility
 from arl.visibility.visibility_fitting import fit_visibility

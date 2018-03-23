@@ -422,7 +422,7 @@ def create_image_from_visibility(vis, **kwargs) -> Image:
     w.naxis = 4
     
     direction_centre = pixel_to_skycoord(npixel // 2 + 1, npixel // 2 + 1, wcs=w, origin=1)
-    assert direction_centre.separation(imagecentre).value < 1e-15, \
+    assert direction_centre.separation(imagecentre).value < 1e-7, \
         "Image phase centre [npixel//2, npixel//2] should be %s, actually is %s" % \
         (str(imagecentre), str(direction_centre))
     

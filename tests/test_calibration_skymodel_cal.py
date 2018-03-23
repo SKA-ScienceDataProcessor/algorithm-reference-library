@@ -71,14 +71,12 @@ class TestCalibrationSkyModelcal(unittest.TestCase):
                                                                    radius=npixel * cellsize)
         self.beam = create_low_test_beam(self.beam)
         self.components = apply_beam_to_skycomponent(self.components, self.beam, flux_limit=flux_limit)
-        print("Number of components %d" % len(self.components))
         
         self.vis = copy_visibility(block_vis, zero=True)
         gt = create_gaintable_from_blockvisibility(block_vis, timeslice='auto')
         for i, sc in enumerate(self.components):
             if sc.flux[0, 0] > 10:
                 sc.flux[...] /= 10.0
-            print('Component %d, flux = %s' % (i, str(sc.flux[0, 0])))
             component_vis = copy_visibility(block_vis, zero=True)
             gt = simulate_gaintable(gt, amplitude_error=0.0, phase_error=0.1, seed=None)
             component_vis = predict_skycomponent_visibility(component_vis, sc)
@@ -100,7 +98,6 @@ class TestCalibrationSkyModelcal(unittest.TestCase):
         lvis = convert_blockvisibility_to_visibility(self.vis)
         lvis, _, _ = weight_visibility(lvis, self.beam)
         dirty, sumwt = invert_function(lvis, self.beam, context='2d')
-        print(qa_image(dirty))
         export_image_to_fits(dirty, "%s/test_skymodel-initial_dirty.fits" % self.dir)
         
         self.skymodels = [SkyModel(components=[cm]) for cm in self.components]
@@ -115,7 +112,7 @@ class TestCalibrationSkyModelcal(unittest.TestCase):
         export_image_to_fits(dirty, "%s/test_skymodel-final_residual.fits" % self.dir)
         
         qa = qa_image(dirty)
-        assert qa.data['rms'] < 3.0e-3, qa
+        assert qa.data['rms'] < 3.1e-3, qa
 
     def test_skymodel_cal_solve_delayed(self):
         self.actualSetup()
@@ -144,7 +141,6 @@ class TestCalibrationSkyModelcal(unittest.TestCase):
         export_image_to_fits(dirty, "%s/test_skymodel_cal-delayed-final_residual.fits" % self.dir)
     
         qa = qa_image(dirty)
-        print(qa)
         assert qa.data['rms'] < 3.1e-3, qa
 
 

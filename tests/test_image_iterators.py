@@ -9,20 +9,21 @@ import numpy
 
 from arl.data.polarisation import PolarisationFrame
 from arl.image.iterators import   image_raster_iter, image_channel_iter, image_null_iter
+from arl.image.operations import create_empty_image_like
 from arl.util.testing_support import create_test_image
 
 log = logging.getLogger(__name__)
 
 
 class TestImageIterators(unittest.TestCase):
-    def test_rasterise(self):
+    def test_raster(self):
         
         m31original = create_test_image(polarisation_frame=PolarisationFrame('stokesI'))
         assert numpy.max(numpy.abs(m31original.data)), "Original is empty"
         
         for nraster in [2, 4, 8]:
             m31model = create_test_image(polarisation_frame=PolarisationFrame('stokesI'))
-            for patch in   image_raster_iter(m31model, facets=nraster):
+            for patch in image_raster_iter(m31model, facets=nraster):
                 assert patch.data.shape[3] == (m31model.data.shape[3] // nraster), \
                     "Number of pixels in each patch: %d not as expected: %d" % (patch.data.shape[3],
                                                                                 (m31model.data.shape[3] // nraster))
@@ -35,6 +36,29 @@ class TestImageIterators(unittest.TestCase):
             assert numpy.max(numpy.abs(m31model.data)), "Raster is empty for %d" % nraster
             assert numpy.max(numpy.abs(diff)) == 0.0, "Raster set failed for %d" % nraster
 
+    def test_raster_overlap(self):
+    
+        m31original = create_test_image(polarisation_frame=PolarisationFrame('stokesI'))
+        assert numpy.max(numpy.abs(m31original.data)), "Original is empty"
+        flat = create_empty_image_like(m31original)
+
+        for nraster, overlap in [(4, 16), (8, 8), (16, 4)]:
+            m31model = create_test_image(polarisation_frame=PolarisationFrame('stokesI'))
+            for patch, flat_patch in zip(image_raster_iter(m31model, facets=nraster, overlap=overlap),
+                                         image_raster_iter(flat, facets=nraster, overlap=overlap)):
+                pass
+                # assert patch.data.shape[3] == (2 * overlap + m31model.data.shape[3] // nraster), \
+                #     "Number of pixels in each patch: %d not as expected: %d" % (patch.data.shape[3],
+                #                                                                 (2 * overlap + m31model.data.shape[3]
+                #                                                                  // nraster))
+                # assert patch.data.shape[2] == (2 * overlap + m31model.data.shape[2] // nraster), \
+                #     "Number of pixels in each patch: %d not as expected: %d" % (patch.data.shape[2],
+                #                                                                 (2 * overlap + m31model.data.shape[2]
+                #                                                                  // nraster))
+                patch.data *= 2.0
+                flat_patch.data[...] += 1.0
+        
+            assert numpy.max(numpy.abs(m31model.data)), "Raster is empty for %d" % nraster
 
     def test_channelise(self):
         m31cube = create_test_image(polarisation_frame=PolarisationFrame('stokesI'),

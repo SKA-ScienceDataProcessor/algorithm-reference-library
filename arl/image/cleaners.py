@@ -169,7 +169,7 @@ def msclean(dirty, psf, window, gain, thresh, niter, scales, fracthresh):
         if niter < 10 or i % (niter // 10) == 0:
             log.info("msclean: Minor cycle %d, peak %s at [%d, %d, %d]" %
                      (i, res_scalestack[:, mx, my], mx, my, mscale))
-        if numpy.fabs(mval) < absolutethresh:
+        if numpy.fabs(res_scalestack[mscale, mx, my]) < absolutethresh:
             log.info("msclean: At iteration %d, absolute value of peak %.6f is below stopping threshold %.6f"
                      % (i, numpy.fabs(res_scalestack[mscale, mx, my]), absolutethresh))
             break

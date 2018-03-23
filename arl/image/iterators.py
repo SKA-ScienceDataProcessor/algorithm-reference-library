@@ -1,15 +1,15 @@
-
 #
 """
 Functions that define and manipulate images. Images are just data and a World Coordinate System.
 """
 
+import logging
+
 import numpy
 
-import logging
 from arl.data.data_models import Image
-from arl.image.operations import create_image_from_array
 from arl.data.parameters import get_parameter
+from arl.image.operations import create_image_from_array
 
 log = logging.getLogger(__name__)
 
@@ -25,7 +25,7 @@ def image_null_iter(im: Image, **kwargs) -> numpy.ndarray:
 
 
 def image_raster_iter(im: Image, **kwargs) -> Image:
-    """Create an image_raster_iter generator, returning images
+    """Create an image_raster_iter generator, returning images, optionally with overlaps
 
     The WCS is adjusted appropriately for each raster element. Hence this is a coordinate-aware
     way to iterate through an image.
@@ -38,32 +38,36 @@ def image_raster_iter(im: Image, **kwargs) -> Image:
 
     :param im: Image
     :param facets: Number of image partitions on each axis (2)
+    :param overlap: overlap in pixels
     :param kwargs: throw away unwanted parameters
     """
-
+    
+    nchan, npol, ny, nx = im.shape
     facets = get_parameter(kwargs, "facets", 1)
-    log.debug("raster: predicting using %d x %d image partitions" % (facets, facets))
-    assert facets <= im.nheight, "Cannot have more raster elements than pixels"
-    assert facets <= im.nwidth, "Cannot have more raster elements than pixels"
-    assert im.nheight % facets == 0, "The %d partitions must exactly fill the image %d" % (facets, im.nheight)
-    assert im.nwidth % facets == 0, "The %d partitions must exactly fill the image %d" % (facets, im.width)
+    overlap = get_parameter(kwargs, 'overlap', 0)
+    log.debug("raster_overlap: predicting using %d x %d image partitions" % (facets, facets))
+    assert facets <= ny, "Cannot have more raster elements than pixels"
+    assert facets <= nx, "Cannot have more raster elements than pixels"
+    
+    sx = int((nx // facets))
+    sy = int((ny // facets))
+    dx = int((nx // facets) + 2 * overlap)
+    dy = int((ny // facets) + 2 * overlap)
 
-    dx = int(im.nwidth // facets)
-    dy = int(im.nheight // facets)
-    log.debug('raster: spacing of raster (%d, %d)' % (dx, dy))
-
-    for y in range(0, im.nheight, dy):
-        for x in range(0, im.nwidth, dx):
-            log.debug('raster: partition (%d, %d) of (%d, %d)' %
-                      (x // dx, y // dy, facets, facets))
-
-            # Adjust WCS
-            wcs = im.wcs.deepcopy()
-            wcs.wcs.crpix[0] -= x
-            wcs.wcs.crpix[1] -= y
-
-            # Yield image from slice (reference!)
-            yield create_image_from_array(im.data[..., y:y + dy, x:x + dx], wcs, im.polarisation_frame)
+    log.debug('raster_overlap: spacing of raster (%d, %d)' % (dx, dy))
+    
+    for fy in range(facets):
+        y = ny // 2 + sy * (fy - facets // 2) - overlap
+        for fx in range(facets):
+            x = nx // 2 + sx * (fx - facets // 2) - overlap
+            if (x >= 0) and (x + dx) <= nx and (y >= 0) and (y + dy) <= ny:
+                log.debug('raster_overlap: partition (%d, %d) of (%d, %d)' % (fy, fx, facets, facets))
+                # Adjust WCS
+                wcs = im.wcs.deepcopy()
+                wcs.wcs.crpix[0] -= x
+                wcs.wcs.crpix[1] -= y
+                # yield image from slice (reference!)
+                yield create_image_from_array(im.data[..., y:y + dy, x:x + dx], wcs, im.polarisation_frame)
 
 
 def image_channel_iter(im: Image, subimages=1) -> Image:
@@ -81,23 +85,23 @@ def image_channel_iter(im: Image, subimages=1) -> Image:
     :param im: Image
     :param channel_width: Number of image partitions on each axis (2)
     """
-
+    
     nchan, npol, ny, nx = im.shape
     
     assert subimages <= nchan, "More subimages %d than channels %d" % (subimages, nchan)
     step = nchan // subimages
     channels = numpy.array(range(0, nchan, step), dtype='int')
     assert len(channels) == subimages, "subimages %d does not match length of channels %d" % (subimages, len(channels))
-
+    
     for i, channel in enumerate(channels):
         if i + 1 < len(channels):
             channel_max = channels[i + 1]
         else:
             channel_max = nchan
-
+        
         # Adjust WCS
         wcs = im.wcs.deepcopy()
         wcs.wcs.crpix[3] -= channel
-
+        
         # Yield image from slice (reference!)
         yield create_image_from_array(im.data[channel:channel_max, ...], wcs, im.polarisation_frame)
