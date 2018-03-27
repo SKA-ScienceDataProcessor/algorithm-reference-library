@@ -171,6 +171,7 @@ class TestPipelineGraphs(unittest.TestCase):
     
         ical_graph = \
             create_ical_pipeline_graph(self.vis_graph_list, model_graph=self.model_graph, context='wstack',
+                                       calibration_context='TGB',
                                        do_selfcal=True, global_solution=False, algorithm='mmclean', vis_slices=11,
                                        facets=1, niter=1000, fractional_threshold=0.1, nmoments=3, nchan=self.freqwin,
                                        threshold=2.0, nmajor=6, gain=0.1, deconvolve_facets=4, deconvolve_overlap=16)
@@ -199,6 +200,7 @@ class TestPipelineGraphs(unittest.TestCase):
     
         ical_graph = \
             create_ical_pipeline_graph(self.vis_graph_list, model_graph=self.model_graph, context='wstack',
+                                       calibration_context='TGB',
                                        do_selfcal=True, global_solution=False, algorithm='mmclean', vis_slices=11,
                                        facets=1, niter=1000, fractional_threshold=0.1, nmoments=3, nchan=self.freqwin,
                                        threshold=2.0, nmajor=6, gain=0.1, do_global=True,

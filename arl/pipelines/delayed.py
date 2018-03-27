@@ -9,8 +9,9 @@ from arl.graphs.delayed import create_invert_graph, create_residual_graph, \
     create_subtract_vis_graph_list, create_restore_graph, create_deconvolve_graph
 
 
-def create_ical_pipeline_graph(vis_graph_list, model_graph: delayed, context='2d', do_selfcal=True, **kwargs) -> \
-        delayed:
+def create_ical_pipeline_graph(vis_graph_list, model_graph: delayed, context='2d',
+                               calibration_context='TG', do_selfcal=True,
+                               **kwargs) -> delayed:
     """Create graph for ICAL pipeline
 
     :param vis_graph_list:
@@ -20,13 +21,14 @@ def create_ical_pipeline_graph(vis_graph_list, model_graph: delayed, context='2d
     :return:
     """
     psf_graph = create_invert_graph(vis_graph_list, model_graph, dopsf=True, context=context, **kwargs)
-
+    
     model_vis_graph_list = create_zero_vis_graph_list(vis_graph_list)
     model_vis_graph_list = create_predict_graph(model_vis_graph_list, model_graph, context=context, **kwargs)
     if do_selfcal:
         # Make the predicted visibilities, selfcalibrate against it correcting the gains, then
         # form the residual visibility, then make the residual image
-        vis_graph_list = create_calibrate_graph_list(vis_graph_list, model_vis_graph_list, **kwargs)
+        vis_graph_list = create_calibrate_graph_list(vis_graph_list, model_vis_graph_list,
+                                                     calibration_context=calibration_context, **kwargs)
         residual_vis_graph_list = create_subtract_vis_graph_list(vis_graph_list, model_vis_graph_list)
         residual_graph = create_invert_graph(residual_vis_graph_list, model_graph, dopsf=True, context=context,
                                              **kwargs)
@@ -44,7 +46,8 @@ def create_ical_pipeline_graph(vis_graph_list, model_graph: delayed, context='2d
                 model_vis_graph_list = create_zero_vis_graph_list(vis_graph_list)
                 model_vis_graph_list = create_predict_graph(model_vis_graph_list, deconvolve_model_graph,
                                                             context=context, **kwargs)
-                vis_graph_list = create_calibrate_graph_list(vis_graph_list, model_vis_graph_list, **kwargs)
+                vis_graph_list = create_calibrate_graph_list(vis_graph_list, model_vis_graph_list,
+                                                             calibration_context=calibration_context, **kwargs)
                 residual_vis_graph_list = create_subtract_vis_graph_list(vis_graph_list, model_vis_graph_list)
                 residual_graph = create_invert_graph(residual_vis_graph_list, model_graph, dopsf=False,
                                                      context=context, **kwargs)
@@ -113,5 +116,3 @@ def create_spectral_line_imaging_pipeline_graph(vis_graph_list, model_graph: del
     
     kwargs['first_selfcal'] = None
     return create_ical_pipeline_graph(vis_graph_list, model_graph, context=context, **kwargs)
-
-

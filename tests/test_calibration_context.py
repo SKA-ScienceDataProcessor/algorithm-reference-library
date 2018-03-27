@@ -67,7 +67,7 @@ class TestCalibrationContext(unittest.TestCase):
         controls = create_calibration_controls()
         controls['T']['first_selfcal']=0
         controls['B']['first_selfcal']=0
-        calibrated_vis, gaintables = calibrate_function(self.vis, original, context = 'TB', controls=controls)
+        calibrated_vis, gaintables = calibrate_function(self.vis, original, calibration_context='TB', controls=controls)
         residual = numpy.max(gaintables['T'].residual)
         assert residual < 3e-2, "Max T residual = %s" % (residual)
         residual = numpy.max(gaintables['B'].residual)

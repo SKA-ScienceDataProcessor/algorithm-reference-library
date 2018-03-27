@@ -44,14 +44,14 @@ def create_calibration_controls(**kwargs):
     return controls
 
 
-def calibrate_function(vis, model_vis, context='T', controls=None, iteration=0, **kwargs):
-    """ Calibrate using algorithm specified by context
+def calibrate_function(vis, model_vis, calibration_context='T', controls=None, iteration=0, **kwargs):
+    """ Calibrate using algorithm specified by calibration_context
     
     The context string can denote a sequence of calibrations e.g. TGB with different timescales.
 
     :param vis:
     :param model_vis:
-    :param context: calibration contexts in order of correction e.g. 'TGB'
+    :param calibration_context: calibration contexts in order of correction e.g. 'TGB'
     :param control: controls dictionary, modified as necessary
     :param iteration: Iteration number to be compared to the 'first_selfcal' field.
     :param kwargs:
@@ -74,7 +74,7 @@ def calibrate_function(vis, model_vis, context='T', controls=None, iteration=0, 
     else:
         amvis = model_vis
     
-    for c in context:
+    for c in calibration_context:
         if iteration >= controls[c]['first_selfcal']:
             gaintables[c] = \
                 create_gaintable_from_blockvisibility(avis,
@@ -85,6 +85,7 @@ def calibrate_function(vis, model_vis, context='T', controls=None, iteration=0, 
                                             crosspol=controls[c]['shape'] == 'matrix')
             log.debug('calibrate_function: Jones matrix %s, iteration %d' % (c, iteration))
             log.debug(qa_gaintable(gaintables[c], context='Jones matrix %s, iteration %d' % (c, iteration)))
+            print(qa_gaintable(gaintables[c], context='Jones matrix %s, iteration %d' % (c, iteration)))
             avis = apply_gaintable(avis, gaintables[c],
                                    inverse=True,
                                    timeslice=controls[c]['timeslice'])

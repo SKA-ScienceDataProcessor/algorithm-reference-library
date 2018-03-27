@@ -415,13 +415,20 @@ def create_deconvolve_graph(dirty_graph: delayed, psf_graph: delayed, model_grap
     
     model_graph = delayed(image_gather_channels, nout=1)(model_graph)
     
-    # Gather the channel images into one spectral cube and then scatter into deconvolve facets
-    dirty_graph = delayed(remove_sumwt)(dirty_graph)
-    dirty_graph = delayed(image_gather_channels, nout=1)(dirty_graph)
-    scattered_dirty_graph = delayed(image_scatter_facets, nout=deconvolve_number_facets)(dirty_graph,
-                                                                                         facets=deconvolve_facets,
-                                                                                         overlap=deconvolve_overlap)
-    psf_graph = delayed(remove_sumwt)(psf_graph)
+    # Scatter the separate channel images into deconvolve facets and then gather channels for each facet.
+    # This avoids constructing the entire spectral cube.
+#    dirty_graph = delayed(remove_sumwt, nout=nchan)(dirty_graph)
+    scattered_channels_facets_dirty_graph = \
+        [delayed(image_scatter_facets, nout=deconvolve_number_facets)(d[0], facets=deconvolve_facets,
+                                                                      overlap=deconvolve_overlap)
+         for d in dirty_graph]
+    
+    # Now we do a transpose and gather
+    scattered_facets_graph = [delayed(image_gather_channels, nout=1)([scattered_channels_facets_dirty_graph[chan][facet]
+                                                     for chan in range(nchan)])
+                                                     for facet in range(deconvolve_number_facets)]
+    
+    psf_graph = delayed(remove_sumwt, nout=nchan)(psf_graph)
     psf_graph = delayed(image_gather_channels, nout=1)(psf_graph)
     
     scattered_model_graph = delayed(image_scatter_facets, nout=deconvolve_number_facets)(model_graph,
@@ -430,7 +437,7 @@ def create_deconvolve_graph(dirty_graph: delayed, psf_graph: delayed, model_grap
     
     # Now do the deconvolution for each facet
     scattered_results_graph = [delayed(deconvolve)(d, psf_graph, m)
-                               for d, m in zip(scattered_dirty_graph, scattered_model_graph)]
+                               for d, m in zip(scattered_facets_graph, scattered_model_graph)]
     
     # Gather the results back into one image
     gathered_results_graph = delayed(image_gather_facets, nout=1)(scattered_results_graph, model_graph,
@@ -504,7 +511,8 @@ def create_selfcal_graph_list(vis_graph_list, model_graph: delayed, c_predict_gr
     return create_calibrate_graph_list(vis_graph_list, model_vis_graph_list, **kwargs)
 
 
-def create_calibrate_graph_list(vis_graph_list, model_vis_graph_list, global_solution=True, **kwargs):
+def create_calibrate_graph_list(vis_graph_list, model_vis_graph_list, calibration_context='TG', global_solution=True,
+                                **kwargs):
     """ Create a set of graphs for (optionally global) calibration of a list of visibilities
 
     If global solution is true then visibilities are gathered to a single visibility data set which is then
@@ -519,7 +527,7 @@ def create_calibrate_graph_list(vis_graph_list, model_vis_graph_list, global_sol
     """
     
     def solve_and_apply(vis, modelvis=None):
-        return calibrate_function(vis, modelvis, **kwargs)[0]
+        return calibrate_function(vis, modelvis, calibration_context=calibration_context, **kwargs)[0]
     
     if global_solution:
         point_vis_graph_list = [delayed(divide_visibility, nout=len(vis_graph_list))(vis_graph_list[i],
