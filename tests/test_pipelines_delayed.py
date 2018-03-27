@@ -108,9 +108,9 @@ class TestPipelineGraphs(unittest.TestCase):
         if add_errors and block:
             self.vis_graph_list = [delayed(insert_unittest_errors)(self.vis_graph_list[i])
                                    for i, _ in enumerate(self.frequency)]
-    
-    def test_continuum_imaging_pipeline(self):\
-        # Note that the image is poor because we set the number of wstack's to be smaller than
+
+    def test_continuum_imaging_pipeline(self): \
+            # Note that the image is poor because we set the number of wstack's to be smaller than
         # recommended. Setting it to e.g. 51 gives a better image but at the cost of longer run time.
         self.actualSetUp(add_errors=False, block=True)
         continuum_imaging_graph = \
@@ -126,10 +126,35 @@ class TestPipelineGraphs(unittest.TestCase):
                                  '%s/test_pipelines_continuum_imaging_pipeline_residual.fits' % self.dir)
             export_image_to_fits(restored[0],
                                  '%s/test_pipelines_continuum_imaging_pipeline_restored.fits' % self.dir)
-            
+        
             qa = qa_image(restored[0])
             assert numpy.abs(qa.data['max'] - 116.86978265) < 5.0, str(qa)
             assert numpy.abs(qa.data['min'] + 0.323425377573) < 5.0, str(qa)
+
+    def test_continuum_imaging_pipeline_facets(self): \
+            # Note that the image is poor because we set the number of wstack's to be smaller than
+        # recommended. Setting it to e.g. 51 gives a better image but at the cost of longer run time.
+        self.actualSetUp(add_errors=False, block=True)
+        continuum_imaging_graph = \
+            create_continuum_imaging_pipeline_graph(self.vis_graph_list, model_graph=self.model_graph,
+                                                    algorithm='mmclean',
+                                                    nmoments=3, nchan=self.freqwin,
+                                                    context='wstack', niter=1000, fractional_threshold=0.1,
+                                                    threshold=2.0, nmajor=0, gain=0.1, vis_slices=11,
+                                                    deconvolve_facets=4, deconvolve_overlap=16)
+        if self.compute:
+            clean, residual, restored = continuum_imaging_graph.compute()
+            export_image_to_fits(clean[0], '%s/test_pipelines_continuum_imaging_pipeline_clean.fits' % self.dir)
+            export_image_to_fits(residual[0][0],
+                                 '%s/test_pipelines_continuum_imaging_pipeline_residual.fits' % self.dir)
+            export_image_to_fits(restored[0],
+                                 '%s/test_pipelines_continuum_imaging_pipeline_restored.fits' % self.dir)
+        
+            qa = qa_image(restored[0])
+            print(qa)
+            assert numpy.abs(qa.data['max'] - 116.86978265) < 5.0, str(qa)
+            assert numpy.abs(qa.data['min'] + 0.323425377573) < 5.0, str(qa)
+
 
     def test_ical_pipeline(self):
         self.actualSetUp(add_errors=True, block=True)
@@ -148,7 +173,7 @@ class TestPipelineGraphs(unittest.TestCase):
             create_ical_pipeline_graph(self.vis_graph_list, model_graph=self.model_graph, context='wstack',
                                        do_selfcal=True, global_solution=False, algorithm='mmclean', vis_slices=11,
                                        facets=1, niter=1000, fractional_threshold=0.1, nmoments=3, nchan=self.freqwin,
-                                       threshold=2.0, nmajor=6, gain=0.1)
+                                       threshold=2.0, nmajor=6, gain=0.1, deconvolve_facets=4, deconvolve_overlap=16)
         if self.compute:
             clean, residual, restored = ical_graph.compute()
             export_image_to_fits(clean[0], '%s/test_pipelines_ical_pipeline_clean.fits' % self.dir)
@@ -176,7 +201,8 @@ class TestPipelineGraphs(unittest.TestCase):
             create_ical_pipeline_graph(self.vis_graph_list, model_graph=self.model_graph, context='wstack',
                                        do_selfcal=True, global_solution=False, algorithm='mmclean', vis_slices=11,
                                        facets=1, niter=1000, fractional_threshold=0.1, nmoments=3, nchan=self.freqwin,
-                                       threshold=2.0, nmajor=6, gain=0.1, do_global=True)
+                                       threshold=2.0, nmajor=6, gain=0.1, do_global=True,
+                                       deconvolve_facets = 4, deconvolve_overlap = 16)
         if self.compute:
             clean, residual, restored = ical_graph.compute()
             export_image_to_fits(clean[0], '%s/test_pipelines_ical_global_pipeline_clean.fits' % self.dir)

@@ -14,7 +14,7 @@ from arl.image.operations import create_image_from_array
 log = logging.getLogger(__name__)
 
 
-def image_null_iter(im: Image, **kwargs) -> numpy.ndarray:
+def image_null_iter(im: Image, **kwargs):
     """One time iterator
 
     :param im:
@@ -24,7 +24,7 @@ def image_null_iter(im: Image, **kwargs) -> numpy.ndarray:
     yield im
 
 
-def image_raster_iter(im: Image, **kwargs) -> Image:
+def image_raster_iter(im: Image, **kwargs):
     """Create an image_raster_iter generator, returning images, optionally with overlaps
 
     The WCS is adjusted appropriately for each raster element. Hence this is a coordinate-aware
@@ -35,6 +35,10 @@ def image_raster_iter(im: Image, **kwargs) -> Image:
     To update the image in place:
         for r in raster(im, facets=2)::
             r.data[...] = numpy.sqrt(r.data[...])
+            
+    If the overlap is greater than zero, we choose to keep all images the same size so the
+    other ring of facets are ignored. So if facets=4 and overlap > 0 then the iterator returns
+    (facets-2)**2 = 4 images.
 
     :param im: Image
     :param facets: Number of image partitions on each axis (2)
@@ -48,6 +52,9 @@ def image_raster_iter(im: Image, **kwargs) -> Image:
     log.debug("raster_overlap: predicting using %d x %d image partitions" % (facets, facets))
     assert facets <= ny, "Cannot have more raster elements than pixels"
     assert facets <= nx, "Cannot have more raster elements than pixels"
+    
+    if facets == 1:
+        yield im
     
     sx = int((nx // facets))
     sy = int((ny // facets))

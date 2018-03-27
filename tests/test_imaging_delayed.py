@@ -15,8 +15,10 @@ from dask import delayed
 
 from arl.data.polarisation import PolarisationFrame
 from arl.graphs.delayed import create_zero_vis_graph_list, create_predict_graph, create_invert_graph, \
-    create_deconvolve_graph, create_residual_graph, create_restore_graph
+    create_deconvolve_graph, create_deconvolve_facet_graph, create_residual_graph, create_restore_graph, \
+    remove_sumwt
 from arl.image.operations import export_image_to_fits, smooth_image, qa_image
+from arl.image.gather_scatter import image_gather_channels
 from arl.imaging import predict_skycomponent_visibility
 from arl.skycomponent.operations import insert_skycomponent
 from arl.util.testing_support import create_named_configuration, ingest_unittest_visibility, create_unittest_model, \
@@ -260,43 +262,6 @@ class TestImagingDelayed(unittest.TestCase):
         self.params['vis_slices'] = 51
         self.actualSetUp(dospectral=True, dopol=True)
         self._invert_base(context='wstack', extra='_spectral_pol', flux_max=116.9, flux_min=-11.5, flux_tolerance=3.0)
-    
-    def test_deconvolve_and_restore_cube_spectral(self):
-        self.actualSetUp(add_errors=True)
-        dirty_graph = create_invert_graph(self.vis_graph_list, self.model_graph,
-                                          context='wstack', vis_slices=51,
-                                          dopsf=False, normalize=True)
-        psf_graph = create_invert_graph(self.vis_graph_list, self.model_graph,
-                                        context='wstack', vis_slices=51,
-                                        dopsf=True, normalize=True)
-        dec_graph = create_deconvolve_graph(dirty_graph, psf_graph, self.model_graph, niter=1000,
-                                            fractional_threshold=0.1, scales=[0, 3, 10],
-                                            threshold=0.1, nmajor=0, gain=0.7)
-        residual_graph = create_residual_graph(self.vis_graph_list, model_graph=dec_graph,
-                                               context='wstack', vis_slices=51)
-        rest_graph = create_restore_graph(dec_graph, psf_graph, residual_graph)
-        restored = rest_graph[0].compute()
-        export_image_to_fits(restored, '%s/test_imaging_delayed_restored.fits' % self.dir)
-    
-    def test_deconvolve_and_restore_cube_mmclean(self):
-        self.actualSetUp(add_errors=True)
-        dirty_graph = create_invert_graph(self.vis_graph_list, self.model_graph,
-                                          context='wstack', vis_slices=51,
-                                          dopsf=False, normalize=True)
-        psf_graph = create_invert_graph(self.vis_graph_list, self.model_graph,
-                                        context='wstack', vis_slices=51,
-                                        dopsf=True, normalize=True)
-        dec_graph = create_deconvolve_graph(dirty_graph, psf_graph, self.model_graph, niter=1000,
-                                            fractional_threshold=0.1, scales=[0, 3, 10],
-                                            algorithm='mmclean', nmoments=3, nchan=self.freqwin,
-                                            threshold=0.1, nmajor=0, gain=0.7)
-        residual_graph = create_residual_graph(self.vis_graph_list, model_graph=dec_graph,
-                                               context='wstack', vis_slices=51)
-        rest_graph = create_restore_graph(model_graph=dec_graph, psf_graph=psf_graph, residual_graph=residual_graph,
-                                          empty=self.model_graph)
-        restored = rest_graph[0].compute()
-        export_image_to_fits(restored, '%s/test_imaging_delayed_mmclean_restored.fits' % self.dir)
-
 
 if __name__ == '__main__':
     unittest.main()

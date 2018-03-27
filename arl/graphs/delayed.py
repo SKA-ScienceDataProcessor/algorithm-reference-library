@@ -13,7 +13,7 @@ The graph for one vis_graph is executed as follows::
 
     solution_graph[0].compute()
     
-or if a Dask.dsitributed client is available:
+or if a Dask.distributed client is available:
 
     client.compute(solution_graph)
 
@@ -38,9 +38,8 @@ import numpy
 from dask import delayed
 from dask.distributed import wait
 
-from arl.calibration.operations import apply_gaintable
-from arl.calibration.solvers import solve_gaintable
 from arl.calibration.calibration_control import calibrate_function
+from arl.calibration.operations import apply_gaintable
 from arl.data.data_models import Image, BlockVisibility
 from arl.data.parameters import get_parameter
 from arl.image.deconvolution import deconvolve_cube, restore_cube
@@ -103,6 +102,15 @@ def sum_invert_results(image_list):
     
     im = normalize_sumwt(im, sumwt)
     return im, sumwt
+
+
+def remove_sumwt(results):
+    """ Remove sumwt term in list of tuples (image, sumwt)
+    
+    :param results:
+    :return: A list of just the dirty images
+    """
+    return [d[0] for d in results]
 
 
 def sum_predict_results(results):
@@ -188,7 +196,7 @@ def create_weight_vis_graph_list(vis_graph_list, model_graph, weighting='uniform
 
 
 def create_invert_graph(vis_graph_list, template_model_graph: delayed, dopsf=False, normalize=True,
-                        facets=1, vis_slices=None, context='2d', **kwargs) -> delayed:
+                        facets=1, vis_slices=1, context='2d', **kwargs) -> delayed:
     """ Sum results from invert, iterating over the scattered image and vis_graph_list
 
     :param vis_graph_list:
@@ -372,8 +380,7 @@ def create_restore_graph(model_graph: delayed, psf_graph, residual_graph, **kwar
             for i, _ in enumerate(model_graph)]
 
 
-def create_deconvolve_graph(dirty_graph: delayed, psf_graph: delayed, model_graph: delayed,
-                            **kwargs) -> delayed:
+def create_deconvolve_graph(dirty_graph: delayed, psf_graph: delayed, model_graph: delayed, **kwargs) -> delayed:
     """Create a graph for deconvolution, adding to the model
 
     :param dirty_graph:
@@ -383,61 +390,64 @@ def create_deconvolve_graph(dirty_graph: delayed, psf_graph: delayed, model_grap
     :param kwargs: Parameters for functions in graphs
     :return:
     """
-    nchan = get_parameter(kwargs, "nchan", 1)
-
-    def remove_sumwt(dirty_list):
-        return [d[0] for d in dirty_list]
     
-    def make_cube_and_deconvolve(dirty, psf, model):
-        dirty_cube = image_gather_channels(remove_sumwt(dirty), subimages=nchan)
-        psf_cube = image_gather_channels(remove_sumwt(psf), subimages=nchan)
-        model_cube = image_gather_channels(model, subimages=nchan)
-        result = deconvolve_cube(dirty_cube, psf_cube, **kwargs)
-        result[0].data += model_cube.data
-        return image_scatter_channels(result[0], nchan)
+    nchan = len(dirty_graph)
     
-
     def deconvolve(dirty, psf, model):
-        result = deconvolve_cube(dirty[0], psf[0], **kwargs)
-        result[0].data += model.data
-        return result[0]
-
-    algorithm = get_parameter(kwargs, "algorithm", 'mmclean')
-    if algorithm == "mmclean" and nchan > 1:
-        return delayed(make_cube_and_deconvolve, nout=nchan)(dirty_graph, psf_graph, model_graph)
+        # Gather the channels into one image
+        result, _ = deconvolve_cube(dirty, psf, **kwargs)
+        if result.data.shape[0] == model.data.shape[0]:
+            result.data += model.data
+        # Return the cube
+        return result
+    
+    def flatten(result, flat):
+        result.data[flat.data > 0.0] /= flat.data[flat.data > 0.0]
+        result.data[flat.data <= 0.0] = 0.0
+        return result
+    
+    deconvolve_facets = get_parameter(kwargs, 'deconvolve_facets', 1)
+    deconvolve_overlap = get_parameter(kwargs, 'deconvolve_overlap', 0)
+    if deconvolve_overlap > 0:
+        deconvolve_number_facets = (deconvolve_facets - 2) ** 2
     else:
-        return [delayed(deconvolve, pure=True, nout=nchan)(dirty_graph[i], psf_graph[i], model_graph[i])
-                for i, _ in enumerate(dirty_graph)]
-
-
-def create_deconvolve_facet_graph(dirty_graph: delayed, psf_graph: delayed, model_graph: delayed,
-                                  facets=1, **kwargs) -> delayed:
-    """Create a graph for deconvolution by subimages, adding to the model
+        deconvolve_number_facets = deconvolve_facets ** 2
     
-    Does deconvolution subimage by subimage. Currently does nothing very sensible about the
-    edges.
-
-    :param facets: 
-    :param dirty_graph:
-    :param psf_graph:
-    :param model_graph: Current model
-    :param kwargs: Parameters for functions in graphs
-    :return:
-    """
+    model_graph = delayed(image_gather_channels, nout=1)(model_graph)
     
-    def deconvolve_subimage(dirty, psf, model):
-        assert isinstance(dirty, Image)
-        assert isinstance(psf, Image)
-        assert isinstance(model, Image)
-        comp = deconvolve_cube(dirty, psf, **kwargs)
-        comp[0].data += model.data
-        return comp[0]
+    # Gather the channel images into one spectral cube and then scatter into deconvolve facets
+    dirty_graph = delayed(remove_sumwt)(dirty_graph)
+    dirty_graph = delayed(image_gather_channels, nout=1)(dirty_graph)
+    scattered_dirty_graph = delayed(image_scatter_facets, nout=deconvolve_number_facets)(dirty_graph,
+                                                                                         facets=deconvolve_facets,
+                                                                                         overlap=deconvolve_overlap)
+    psf_graph = delayed(remove_sumwt)(psf_graph)
+    psf_graph = delayed(image_gather_channels, nout=1)(psf_graph)
     
-    output = delayed(create_empty_image_like, nout=1, pure=True)(model_graph)
-    dirty_graphs = delayed(image_scatter_facets, nout=facets * facets, pure=True)(dirty_graph[0], facets=facets)
-    results = [delayed(deconvolve_subimage)(dirty_graph[i], psf_graph[i], model_graph[i])
-               for i, _ in enumerate(dirty_graphs)]
-    return delayed(image_gather_facets, nout=1, pure=True)(results, output, facets=facets)
+    scattered_model_graph = delayed(image_scatter_facets, nout=deconvolve_number_facets)(model_graph,
+                                                                                         facets=deconvolve_facets,
+                                                                                         overlap=deconvolve_overlap)
+    
+    # Now do the deconvolution for each facet
+    scattered_results_graph = [delayed(deconvolve)(d, psf_graph, m)
+                               for d, m in zip(scattered_dirty_graph, scattered_model_graph)]
+    
+    # Gather the results back into one image
+    gathered_results_graph = delayed(image_gather_facets, nout=1)(scattered_results_graph, model_graph,
+                                                                  facets=deconvolve_facets, overlap=deconvolve_overlap)
+    
+    # We also need a flat to normalise out the overlaps. To get this we scatter, fill with ones and then
+    # gather into one image: the flat
+    scattered_flat_graph = delayed(image_scatter_facets, nout=deconvolve_number_facets)(model_graph,
+                                                                                        facets=deconvolve_facets,
+                                                                                        overlap=deconvolve_overlap,
+                                                                                        make_flat=True)
+    flat_graph = delayed(image_gather_facets, nout=1)(scattered_flat_graph, model_graph, facets=deconvolve_facets,
+                                                      overlap=deconvolve_overlap)
+    
+    # Finally we normalise out the flag
+    gathered_results_graph = delayed(flatten)(gathered_results_graph, flat_graph)
+    return delayed(image_scatter_channels, nout=nchan)(gathered_results_graph, subimages=nchan)
 
 
 def create_deconvolve_channel_graph(dirty_graph: delayed, psf_graph: delayed, model_graph: delayed, subimages,
@@ -507,10 +517,10 @@ def create_calibrate_graph_list(vis_graph_list, model_vis_graph_list, global_sol
     :param kwargs: Parameters for functions in graphs
     :return:
     """
-
+    
     def solve_and_apply(vis, modelvis=None):
         return calibrate_function(vis, modelvis, **kwargs)[0]
-
+    
     if global_solution:
         point_vis_graph_list = [delayed(divide_visibility, nout=len(vis_graph_list))(vis_graph_list[i],
                                                                                      model_vis_graph_list[i])

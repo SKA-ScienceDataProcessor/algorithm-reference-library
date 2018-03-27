@@ -378,7 +378,7 @@ def spheroidal_function(vnu):
     return value
 
 
-def msmfsclean(dirty, psf, window, gain, thresh, niter, scales, fracthresh, findpeak='CASA'):
+def msmfsclean(dirty, psf, window, gain, thresh, niter, scales, fracthresh, findpeak='ARL'):
     """ Perform image plane multiscale multi frequency clean
 
     This algorithm is documented as Algorithm 1 in: U. Rau and T. J. Cornwell, “A multi-scale multi-frequency

@@ -226,6 +226,7 @@ def restore_cube(model: Image, psf: Image, residual=None, **kwargs) -> Image:
     :return: restored image
 
     """
+    from scipy.optimize import minpack
     assert isinstance(model, Image), model
     assert isinstance(psf, Image), psf
     assert residual is None or isinstance(residual, Image), residual
@@ -247,6 +248,9 @@ def restore_cube(model: Image, psf: Image, residual=None, **kwargs) -> Image:
             else:
                 size = max(fit.x_stddev, fit.y_stddev)
                 log.debug('restore_cube: psfwidth = %s' % (size))
+        except minpack.error as err:
+            log.debug('restore_cube: minpack error, using 1 pixel stddev')
+            size = 1.0
         except ValueError as err:
             log.debug('restore_cube: warning in fit to psf, using 1 pixel stddev')
             size = 1.0

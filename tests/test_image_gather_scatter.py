@@ -8,6 +8,7 @@ import unittest
 import numpy
 
 from arl.data.polarisation import PolarisationFrame
+from arl.image.operations import create_empty_image_like
 from arl.image.gather_scatter import image_gather_facets, image_scatter_facets, image_gather_channels, \
     image_scatter_channels
 from arl.util.testing_support import create_test_image
@@ -22,7 +23,7 @@ class TestImageGatherScatters(unittest.TestCase):
         m31original = create_test_image(polarisation_frame=PolarisationFrame('stokesI'))
         assert numpy.max(numpy.abs(m31original.data)), "Original is empty"
         
-        for nraster in [2, 4, 8]:
+        for nraster in [1, 4, 8]:
             m31model = create_test_image(polarisation_frame=PolarisationFrame('stokesI'))
             image_list = image_scatter_facets(m31model, facets=nraster)
             for patch in image_list:
@@ -32,13 +33,35 @@ class TestImageGatherScatters(unittest.TestCase):
                 assert patch.data.shape[2] == (m31model.data.shape[2] // nraster), \
                     "Number of pixels in each patch: %d not as expected: %d" % (patch.data.shape[2],
                                                                                 (m31model.data.shape[2] // nraster))
-                patch.data *= 2.0
-            m31model = image_gather_facets(image_list, m31model, facets=nraster)
+                patch.data[...] = 1.0
+            m31reconstructed = create_empty_image_like(m31model)
+            m31reconstructed = image_gather_facets(image_list, m31reconstructed, facets=nraster)
             
-            diff = m31model.data - 2.0 * m31original.data
-            assert numpy.max(numpy.abs(m31model.data)), "Raster is empty for %d" % nraster
-            assert numpy.max(numpy.abs(diff)) == 0.0, "Raster set failed for %d" % nraster
+            assert numpy.max(numpy.abs(m31reconstructed.data)), "Raster is empty for %d" % nraster
+
+    def test_scatter_gather_facet_overlap(self):
     
+        m31original = create_test_image(polarisation_frame=PolarisationFrame('stokesI'))
+        assert numpy.max(numpy.abs(m31original.data)), "Original is empty"
+    
+        for nraster, overlap in [(1, 0), (4, 8), (8, 32)]:
+            m31model = create_test_image(polarisation_frame=PolarisationFrame('stokesI'))
+            image_list = image_scatter_facets(m31model, facets=nraster, overlap=overlap)
+            for patch in image_list:
+                assert patch.data.shape[3] == (2 * overlap + m31model.data.shape[3] // nraster), \
+                    "Number of pixels in each patch: %d not as expected: %d" % (patch.data.shape[3],
+                                                                                (2 * overlap + m31model.data.shape[3] //
+                                                                                 nraster))
+                assert patch.data.shape[2] == (2 * overlap + m31model.data.shape[2] // nraster), \
+                    "Number of pixels in each patch: %d not as expected: %d" % (patch.data.shape[2],
+                                                                                (2 * overlap + m31model.data.shape[2] //
+                                                                                 nraster))
+                patch.data[...] = 1.0
+            m31reconstructed = create_empty_image_like(m31model)
+            m31reconstructed = image_gather_facets(image_list, m31reconstructed, facets=nraster, overlap=overlap)
+
+            assert numpy.max(numpy.abs(m31reconstructed.data)), "Raster is empty for %d" % nraster
+
     def test_scatter_gather_channel(self):
         for nchan in [128, 16]:
             m31cube = create_test_image(polarisation_frame=PolarisationFrame('stokesI'),
