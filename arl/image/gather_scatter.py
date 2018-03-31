@@ -33,20 +33,11 @@ def image_scatter_facets(im: Image, facets=1, overlap=0, make_flat=False) -> Lis
     :return: list of subimages
     """
     if make_flat is not True:
-        image_list = list()
-        for facet in image_raster_iter(im, facets=facets, overlap=overlap):
-            image_list.append(facet)
-        return image_list
+        return [facet for facet in image_raster_iter(im, facets=facets, overlap=overlap)]
     else:
-        flat_list = list()
         flat = create_empty_image_like(im)
         flat.data[...] = 1.0
-
-        for flat_facet in image_raster_iter(flat, facets=facets, overlap=overlap):
-            flat_list.append(flat_facet)
-
-        return flat_list
-
+        return [flat_facet for flat_facet in image_raster_iter(flat, facets=facets, overlap=overlap)]
 
 def image_gather_facets(image_list: List[Image], im: Image, facets=1, overlap=0) -> Image:
     """Gather a list of subimages back into an image using the  image_raster_iterator

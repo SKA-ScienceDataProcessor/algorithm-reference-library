@@ -119,7 +119,7 @@ Solvers
 Sagecal
 +++++++
 
-.. automodule:: arl.calibration.sagecal
+.. automodule:: arl.calibration.skymodel_cal
    :members:
 
 Fourier transform

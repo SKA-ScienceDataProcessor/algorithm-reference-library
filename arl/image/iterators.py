@@ -14,7 +14,7 @@ from arl.image.operations import create_image_from_array
 log = logging.getLogger(__name__)
 
 
-def image_null_iter(im: Image, **kwargs):
+def image_null_iter(im: Image, facets=1, overlap=0):
     """One time iterator
 
     :param im:
@@ -24,7 +24,7 @@ def image_null_iter(im: Image, **kwargs):
     yield im
 
 
-def image_raster_iter(im: Image, **kwargs):
+def image_raster_iter(im: Image, facets=1, overlap=0):
     """Create an image_raster_iter generator, returning images, optionally with overlaps
 
     The WCS is adjusted appropriately for each raster element. Hence this is a coordinate-aware
@@ -47,9 +47,7 @@ def image_raster_iter(im: Image, **kwargs):
     """
     
     nchan, npol, ny, nx = im.shape
-    facets = get_parameter(kwargs, "facets", 1)
-    overlap = get_parameter(kwargs, 'overlap', 0)
-    log.debug("raster_overlap: predicting using %d x %d image partitions" % (facets, facets))
+    log.debug("image_raster_iter: predicting using %d x %d image partitions" % (facets, facets))
     assert facets <= ny, "Cannot have more raster elements than pixels"
     assert facets <= nx, "Cannot have more raster elements than pixels"
     
@@ -61,20 +59,21 @@ def image_raster_iter(im: Image, **kwargs):
     dx = int((nx // facets) + 2 * overlap)
     dy = int((ny // facets) + 2 * overlap)
 
-    log.debug('raster_overlap: spacing of raster (%d, %d)' % (dx, dy))
+    log.debug('image_raster_iter: spacing of raster (%d, %d)' % (dx, dy))
     
     for fy in range(facets):
         y = ny // 2 + sy * (fy - facets // 2) - overlap
         for fx in range(facets):
             x = nx // 2 + sx * (fx - facets // 2) - overlap
             if (x >= 0) and (x + dx) <= nx and (y >= 0) and (y + dy) <= ny:
-                log.debug('raster_overlap: partition (%d, %d) of (%d, %d)' % (fy, fx, facets, facets))
+                log.debug('image_raster_iter: partition (%d, %d) of (%d, %d)' % (fy, fx, facets, facets))
                 # Adjust WCS
                 wcs = im.wcs.deepcopy()
                 wcs.wcs.crpix[0] -= x
                 wcs.wcs.crpix[1] -= y
                 # yield image from slice (reference!)
-                yield create_image_from_array(im.data[..., y:y + dy, x:x + dx], wcs, im.polarisation_frame)
+                subim = create_image_from_array(im.data[..., y:y + dy, x:x + dx], wcs, im.polarisation_frame)
+                yield subim
 
 
 def image_channel_iter(im: Image, subimages=1) -> Image:

@@ -199,28 +199,23 @@ def get_kernel_list(vis: Visibility, im: Image, **kwargs):
     npixel = shape[3]
     cellsize = numpy.pi * im.wcs.wcs.cdelt[1] / 180.0
     
-    kernelname = get_parameter(kwargs, "kernel", "2d")
+    wstep = get_parameter(kwargs, "wstep", 0.0)
     oversampling = get_parameter(kwargs, "oversampling", 8)
     padding = get_parameter(kwargs, "padding", 2)
     
     gcf, _ = anti_aliasing_calculate((padding * npixel, padding * npixel), oversampling)
     
     wabsmax = numpy.max(numpy.abs(vis.w))
-    if kernelname == 'wprojection' and wabsmax > 0.0:
+    if wstep > 0.0 and wabsmax > 0.0:
+        kernelname = 'wprojection'
         # wprojection needs a lot of commentary!
-        log.debug("get_kernel_list: Using wprojection kernel")
+        log.debug("get_kernel_list: Using w projection with wstep = %f" % (wstep))
 
         # The field of view must be as padded! R_F is for reporting only so that
         # need not be padded.
         fov = cellsize * npixel * padding
         r_f = (cellsize * npixel / 2) ** 2 / abs(cellsize)
         log.debug("get_kernel_list: Fresnel number = %f" % (r_f))
-        delA = get_parameter(kwargs, 'wloss', 0.02)
-        
-        advice = advise_wide_field(vis, delA)
-        wstep = get_parameter(kwargs, 'wstep', advice['w_sampling_primary_beam'])
-        
-        log.debug("get_kernel_list: Using w projection with wstep = %f" % (wstep))
  
         # Now calculate the maximum support for the w kernel
         kernelwidth = get_parameter(kwargs, "kernelwidth",

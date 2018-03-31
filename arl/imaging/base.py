@@ -142,7 +142,7 @@ def predict_2d_base(vis: Union[BlockVisibility, Visibility], model: Image,
         return svis
 
 
-def predict_2d(vis: Visibility, im: Image, **kwargs) -> Visibility:
+def predict_2d(vis: Visibility, im: Image, facets=1, vis_slices=1, **kwargs) -> Visibility:
     """ Predict using convolutional degridding and w projection
     
     :param vis: Visibility to be predicted
@@ -150,10 +150,11 @@ def predict_2d(vis: Visibility, im: Image, **kwargs) -> Visibility:
     :return: resulting visibility (in place works)
     """
     log.debug("predict_2d: predict using 2d transform")
-    return predict_2d_base(vis, im, **kwargs)
+    return predict_2d_base(vis, im, facets=facets, vis_slices=vis_slices, **kwargs)
 
 
-def invert_2d_base(vis: Visibility, im: Image, dopsf: bool = False, normalize: bool = True, **kwargs) \
+def invert_2d_base(vis: Visibility, im: Image, dopsf: bool = False, normalize: bool = True, facets=1,
+                          vis_slices=1, **kwargs) \
         -> (Image, numpy.ndarray):
     """ Invert using 2D convolution function, including w projection optionally
 
@@ -220,7 +221,8 @@ def invert_2d_base(vis: Visibility, im: Image, dopsf: bool = False, normalize: b
         return resultimage, sumwt
 
 
-def invert_2d(vis: Visibility, im: Image, dopsf=False, normalize=True, **kwargs) -> (Image, numpy.ndarray):
+def invert_2d(vis: Visibility, im: Image, dopsf=False, normalize=True, facets=1, vis_slices=1, **kwargs) \
+        -> (Image, numpy.ndarray):
     """ Invert using prolate spheroidal gridding function
 
     Use the image im as a template. Do PSF in a separate call.
@@ -235,8 +237,7 @@ def invert_2d(vis: Visibility, im: Image, dopsf=False, normalize=True, **kwargs)
 
     """
     log.debug("invert_2d: inverting using 2d transform")
-    kwargs['kernel'] = get_parameter(kwargs, "kernel", '2d')
-    return invert_2d_base(vis, im, dopsf, normalize=normalize, **kwargs)
+    return invert_2d_base(vis, im, dopsf, normalize=normalize, facets=facets, vis_slices=vis_slices, **kwargs)
 
 
 def predict_skycomponent_visibility(vis: Union[Visibility, BlockVisibility],
@@ -329,10 +330,6 @@ def predict_skycomponent_visibility_old(vis: Visibility, sc: Union[Skycomponent,
             for pol in range(npol):
                 vis.data['vis'][ivis, pol] += comp.flux[im_nchan[ivis], pol] * phasor[ivis]
             
-            # coords = phasor, ichan
-            # for pol in range(npol):
-            #     vis.data['vis'][:,pol] += [comp.flux[ic, pol] * p for p, ic in zip(*coords)]
-    
     return vis
 
 

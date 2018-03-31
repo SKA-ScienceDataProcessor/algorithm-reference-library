@@ -85,7 +85,7 @@ def create_gaintable_from_blockvisibility(vis: BlockVisibility, timeslice = None
     return gt
 
 
-def apply_gaintable(vis: BlockVisibility, gt: GainTable, inverse=False, **kwargs) -> BlockVisibility:
+def apply_gaintable(vis: BlockVisibility, gt: GainTable, inverse=False, vis_slices=None, **kwargs) -> BlockVisibility:
     """Apply a gain table to a block visibility
     
     The corrected visibility is::
@@ -114,8 +114,8 @@ def apply_gaintable(vis: BlockVisibility, gt: GainTable, inverse=False, **kwargs
     is_scalar = gt.gain.shape[-2:] == (1, 1)
     if is_scalar:
         log.debug('apply_gaintable: scalar gains')
-        
-    for chunk, rows in enumerate(vis_timeslice_iter(vis, **kwargs)):
+
+    for chunk, rows in enumerate(vis_timeslice_iter(vis, vis_slices=vis_slices)):
         if numpy.sum(rows) > 0:
             vistime = numpy.average(vis.time[rows])
             gaintable_rows = abs(gt.time - vistime) < gt.interval / 2.0

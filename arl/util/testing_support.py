@@ -708,29 +708,37 @@ def simulate_gaintable(gt: GainTable, phase_error=0.1, amplitude_error=0.0, smoo
     return gt
 
 
-def ingest_unittest_visibility(config, frequency, channel_bandwidth, times, vis_pol, phasecentre, block=False):
+def ingest_unittest_visibility(config, frequency, channel_bandwidth, times, vis_pol, phasecentre, block=False,
+                               zerow=False):
     if block:
         vt = create_blockvisibility(config, times, frequency, channel_bandwidth=channel_bandwidth,
                                     phasecentre=phasecentre, weight=1.0, polarisation_frame=vis_pol)
     else:
         vt = create_visibility(config, times, frequency, channel_bandwidth=channel_bandwidth,
                                phasecentre=phasecentre, weight=1.0, polarisation_frame=vis_pol)
+        if zerow:
+            vt.data['uvw'][:, 2] = 0.0
+
     vt.data['vis'][...] = 0.0
     return vt
 
 
-def create_unittest_components(model, flux):
+def create_unittest_components(model, flux, applypb=False):
     # Fill the visibility with exactly computed point sources.
-    spacing_pixels = 512 // 8
+    
+    nchan, npol, ny, nx = model.data.shape
+    spacing_pixels = nx // 4
     log.info('Spacing in pixels = %s' % spacing_pixels)
     
-    centers = [(x, x) for x in numpy.linspace(-1.2, +1.2, 9)]
+    centers = list()
+    centers.append([0.0, 0.0])
     
-    for x in numpy.linspace(-1.2, +1.2, 9):
-        centers.append((-x, x))
+    for x in numpy.linspace(-1.5, 1.5, 7):
+        if abs(x) > 1e-15:
+            centers.append([x, x])
+            centers.append([x, -x])
     
-    centers.append((0.5, 1.1))
-    centers.append((1e-7, 1e-7))
+    centers.append((0.3, 1.6))
     
     model_pol = model.polarisation_frame
     # Make the list of components
@@ -745,14 +753,15 @@ def create_unittest_components(model, flux):
         sc = pixel_to_skycoord(p[0], p[1], model.wcs, origin=1)
         log.info("Component at (%f, %f) [0-rel] %s" % (p[0], p[1], str(sc)))
         
-        if ix != 0 and iy != 0:
-            # Channel images
-            comp = create_skycomponent(flux=flux, frequency=model.frequency, direction=sc,
-                                       polarisation_frame=model_pol)
-            components.append(comp)
+        # Channel images
+        comp = create_skycomponent(flux=flux, frequency=model.frequency, direction=sc,
+                                   polarisation_frame=model_pol)
+        components.append(comp)
+        
+    if applypb:
     
-    beam = create_low_test_beam(model)
-    components = apply_beam_to_skycomponent(components, beam)
+        beam = create_low_test_beam(model)
+        components = apply_beam_to_skycomponent(components, beam)
     
     return components
 

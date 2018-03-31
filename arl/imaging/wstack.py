@@ -15,7 +15,7 @@ from arl.data.data_models import Visibility, Image, BlockVisibility
 
 from arl.image.operations import copy_image
 from arl.visibility.base import copy_visibility
-from arl.visibility.iterators import vis_wstack_iter
+from arl.visibility.iterators import vis_wslice_iter
 from arl.visibility.coalesce import coalesce_visibility, decoalesce_visibility
 from arl.imaging.base import predict_2d_base, invert_2d_base
 from arl.image.operations import create_w_term_like
@@ -24,7 +24,7 @@ import logging
 log = logging.getLogger(__name__)
 
 
-def predict_wstack_single(vis, model, remove=True, **kwargs) -> Visibility:
+def predict_wstack_single(vis, model, remove=True, facets=1, vis_slices=1, **kwargs) -> Visibility:
     """ Predict using a single w slices.
     
     This processes a single w plane, rotating out the w beam for the average w
@@ -54,11 +54,11 @@ def predict_wstack_single(vis, model, remove=True, **kwargs) -> Visibility:
     
     # Do the real part
     workimage.data = w_beam.data.real * model.data
-    avis = predict_2d_base(avis, workimage, **kwargs)
+    avis = predict_2d_base(avis, workimage, facets=1, vis_slices=1, **kwargs)
     
     # and now the imaginary part
     workimage.data = w_beam.data.imag * model.data
-    tempvis = predict_2d_base(tempvis, workimage, **kwargs)
+    tempvis = predict_2d_base(tempvis, workimage, facets=1, vis_slices=1, **kwargs)
     avis.data['vis'] -= 1j * tempvis.data['vis']
     
     if not remove:
@@ -71,7 +71,7 @@ def predict_wstack_single(vis, model, remove=True, **kwargs) -> Visibility:
         return avis
 
 
-def invert_wstack_single(vis: Visibility, im: Image, dopsf, normalize=True, remove=True,
+def invert_wstack_single(vis: Visibility, im: Image, dopsf, normalize=True, remove=True, facets=1, vis_slices=1,
                          **kwargs) -> (Image, numpy.ndarray):
     """Process single w slice
     
@@ -86,14 +86,12 @@ def invert_wstack_single(vis: Visibility, im: Image, dopsf, normalize=True, remo
     
     assert isinstance(vis, Visibility), vis
     
-    kwargs['vis_slices'] = 1
-    kwargs['wstack'] = numpy.max(numpy.abs(vis.w))
-    
     # We might want to do wprojection so we remove the average w
     w_average = numpy.average(vis.w)
     vis.data['uvw'][..., 2] -= w_average
     
-    reWorkimage, sumwt, imWorkimage = invert_2d_base(vis, im, dopsf, normalize=normalize, **kwargs)
+    reWorkimage, sumwt, imWorkimage = invert_2d_base(vis, im, dopsf, normalize=normalize, facets=1,
+                          vis_slices=1, **kwargs)
     
     if not remove:
         vis.data['uvw'][..., 2] += w_average
