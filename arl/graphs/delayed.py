@@ -4,7 +4,7 @@ thus allowing construction of graphs. For example, to build a graph for a major/
 
     model_graph = delayed(create_image_from_visibility)(vt, npixel=512, cellsize=0.001, npol=1)
     solution_graph = create_solve_image_graph(vt, model_graph=model_graph, psf_graph=psf_graph,
-                                            context='timslice', algorithm='hogbom',
+                                            context='timeslice', algorithm='hogbom',
                                             niter=1000, fractional_threshold=0.1,
                                             threshold=1.0, nmajor=3, gain=0.1)
     solution_graph.visualize()
@@ -19,11 +19,6 @@ or if a Dask.distributed client is available:
 
 As well as the specific graphs constructed by functions in this module, there are generic versions in the module
 :mod:`arl.pipelines.generic_dask_graphs`.
-
-Note that all parameters here should be passed using the kwargs mechanism. The exceptions
-are those needed to define the size of a graph. Since delayed graphs are not Iterable
-by default, it is necessary to use the nout= parameter to delayed to specify the
-graph size.
 
 Construction of the graphs requires that the number of nodes (e.g. w slices or time-slices) be known at construction,
 rather than execution. To counteract this, at run time, a given node should be able to act as a no-op. We use None

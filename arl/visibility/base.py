@@ -307,17 +307,17 @@ def create_visibility_from_ms(msname, channum=0):
         raise ModuleNotFoundError("casacore is not installed")
 
     tab = table(msname)
-    print("create_visibility_from_ms: %s" % str(tab.info()))
+    log.debug("create_visibility_from_ms: %s" % str(tab.info()))
     fields = numpy.unique(tab.getcol('FIELD_ID'))
-    print("create_visibility_from_ms: Found unique field ids %s" % fields)
+    log.debug("create_visibility_from_ms: Found unique field ids %s" % fields)
     vis_list = list()
     for field in fields:
         # First get the main table information
         ms = tab.query("FIELD_ID==%d" % field)
-        print("create_visibility_from_ms: Found %d rows for field %d" % (ms.nrows(), field))
+        log.debug("create_visibility_from_ms: Found %d rows for field %d" % (ms.nrows(), field))
         time = ms.getcol('TIME')
         channels = len(numpy.transpose(ms.getcol('DATA'))[0])
-        print("create_visibility_from_ms: Found %d channels" % (channels))
+        log.debug("create_visibility_from_ms: Found %d channels" % (channels))
         try:
             vis = ms.getcol('DATA')[:, channum, :]
         except IndexError:

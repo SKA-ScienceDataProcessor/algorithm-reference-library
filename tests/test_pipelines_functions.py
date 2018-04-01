@@ -39,7 +39,7 @@ class TestPipelinesFunctions(unittest.TestCase):
         
         self.setupVis(add_errors=False, block=True)
     
-    def setupVis(self, add_errors=False, block=True, freqwin=5, bandpass=False):
+    def setupVis(self, add_errors=False, block=True, freqwin=7, bandpass=False):
         self.freqwin = freqwin
         self.ntimes = 5
         self.times = numpy.linspace(-3.0, +3.0, self.ntimes) * numpy.pi / 12.0
@@ -98,7 +98,7 @@ class TestPipelinesFunctions(unittest.TestCase):
         self.comps = comps
         self.model = copy_image(model)
         self.empty_model = create_empty_image_like(model)
-        export_image_to_fits(model, '%s/test_pipeline_bags_model.fits' % (self.dir))
+        export_image_to_fits(model, '%s/test_pipeline_functions_model.fits' % (self.dir))
         
         if add_errors:
             # These will be the same for all calls
@@ -114,7 +114,10 @@ class TestPipelinesFunctions(unittest.TestCase):
                 vt = apply_gaintable(vt, bgt, timeslice=1e5)
         
         return vt
-    
+
+    def test_time_setup(self):
+        pass
+        
     def test_RCAL(self):
         self.setupVis(add_errors=True, block=True, freqwin=5)
         for igt, gt in enumerate(rcal(vis=self.vis, components=self.comps)):
@@ -124,7 +127,7 @@ class TestPipelinesFunctions(unittest.TestCase):
         self.setupVis(add_errors=True, block=True, freqwin=3)
         model = create_empty_image_like(self.model)
         comp, residual, restored = ical(self.vis, model, algorithm='msclean', context='wstack',
-                                        vis_slices=11,
+                                        vis_slices=41,
                                         scales=[0, 3, 10, 30], threshold=0.01, findpeak='ARL',
                                         fractional_threshold=0.01,
                                         T_first_selfcal=2,
@@ -139,7 +142,7 @@ class TestPipelinesFunctions(unittest.TestCase):
         self.setupVis(add_errors=True, block=True, freqwin=3)
         model = create_empty_image_like(self.model)
         comp, residual, restored = ical(self.vis, model, algorithm='msclean', context='wstack',
-                                        vis_slices=11,
+                                        vis_slices=41,
                                         scales=[0, 3, 10, 30], threshold=0.01, findpeak='ARL',
                                         fractional_threshold=0.01,
                                         T_first_selfcal=2,
@@ -155,7 +158,7 @@ class TestPipelinesFunctions(unittest.TestCase):
         self.setupVis(add_errors=True, block=True, freqwin=8, bandpass=True)
         model = create_empty_image_like(self.model)
         comp, residual, restored = ical(self.vis, model, algorithm='msclean', context='wstack',
-                                        vis_slices=11,
+                                        vis_slices=41,
                                         scales=[0, 3, 10, 30], threshold=0.01, findpeak='ARL',
                                         fractional_threshold=0.01,
                                         T_first_selfcal=2,
@@ -169,9 +172,9 @@ class TestPipelinesFunctions(unittest.TestCase):
     def test_continuum_imaging(self):
         self.setupVis(add_errors=False, block=True, freqwin=7)
         model = create_empty_image_like(self.model)
-        comp, residual, restored = continuum_imaging(self.vis, model, algorithm='msmfsclean',
+        comp, residual, restored = continuum_imaging(self.vis, model, algorithm='mmclean',
                                                      context='wstack',
-                                                     vis_slices=11,
+                                                     vis_slices=41,
                                                      scales=[0, 3, 10], threshold=0.01, nmoments=2,
                                                      findpeak='ARL',
                                                      fractional_threshold=0.01)

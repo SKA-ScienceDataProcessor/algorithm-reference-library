@@ -723,11 +723,12 @@ def ingest_unittest_visibility(config, frequency, channel_bandwidth, times, vis_
     return vt
 
 
-def create_unittest_components(model, flux, applypb=False):
+def create_unittest_components(model, flux, applypb=False, npixel=None):
     # Fill the visibility with exactly computed point sources.
     
-    nchan, npol, ny, nx = model.data.shape
-    spacing_pixels = nx // 4
+    if npixel==None:
+        _, _, _, npixel = model.data.shape
+    spacing_pixels = npixel // 4
     log.info('Spacing in pixels = %s' % spacing_pixels)
     
     centers = list()

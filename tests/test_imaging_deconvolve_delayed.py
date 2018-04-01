@@ -121,7 +121,7 @@ class TestImagingDeconvolveDelayed(unittest.TestCase):
                                             fractional_threshold=0.1, scales=[0, 3, 10],
                                             threshold=0.1, nmajor=0, gain=0.7)
         deconvolved = dec_graph.compute()
-        export_image_to_fits(deconvolved, '%s/test_imaging_delayed_deconvolve_spectral.fits' % self.dir)
+        export_image_to_fits(deconvolved[0], '%s/test_imaging_delayed_deconvolve_spectral.fits' % self.dir)
     
     def test_deconvolve_and_restore_cube_mmclean(self):
         self.actualSetUp(add_errors=True)

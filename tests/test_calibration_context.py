@@ -61,8 +61,8 @@ class TestCalibrationContext(unittest.TestCase):
         gt = simulate_gaintable(gt, phase_error=10.0, amplitude_error=0.1, timeslice='auto')
         bgt = simulate_gaintable(gt, phase_error=0.1, amplitude_error=0.01, timeslice=1e5)
         original = copy_visibility(self.vis)
-        self.vis = apply_gaintable(self.vis, bgt, timeslice=1e5)
-        self.vis = apply_gaintable(self.vis, gt, timeslice='auto')
+        self.vis = apply_gaintable(self.vis, bgt, vis_slices=1)
+        self.vis = apply_gaintable(self.vis, gt, vis_slices=None)
         # Now get the control dictionary and calibrate
         controls = create_calibration_controls()
         controls['T']['first_selfcal']=0

@@ -58,7 +58,7 @@ def predict_wstack_single(vis, model, remove=True, facets=1, vis_slices=1, **kwa
     
     # and now the imaginary part
     workimage.data = w_beam.data.imag * model.data
-    tempvis = predict_2d_base(tempvis, workimage, facets=1, vis_slices=1, **kwargs)
+    tempvis = predict_2d_base(tempvis, workimage, facets=facets, vis_slices=vis_slices, **kwargs)
     avis.data['vis'] -= 1j * tempvis.data['vis']
     
     if not remove:
@@ -90,8 +90,8 @@ def invert_wstack_single(vis: Visibility, im: Image, dopsf, normalize=True, remo
     w_average = numpy.average(vis.w)
     vis.data['uvw'][..., 2] -= w_average
     
-    reWorkimage, sumwt, imWorkimage = invert_2d_base(vis, im, dopsf, normalize=normalize, facets=1,
-                          vis_slices=1, **kwargs)
+    reWorkimage, sumwt, imWorkimage = invert_2d_base(vis, im, dopsf, normalize=normalize, facets=facets,
+                                                     vis_slices=vis_slices, **kwargs)
     
     if not remove:
         vis.data['uvw'][..., 2] += w_average

@@ -11,7 +11,7 @@ import logging
 from arl.calibration.operations import create_gaintable_from_blockvisibility, apply_gaintable, qa_gaintable
 from arl.calibration.solvers import solve_gaintable
 from arl.data.data_models import Visibility
-from arl.data.parameters import get_parameter
+from arl.visibility.iterators import vis_timeslices
 from arl.visibility.coalesce import convert_visibility_to_blockvisibility, convert_blockvisibility_to_visibility
 
 log = logging.getLogger(__name__)
@@ -85,10 +85,7 @@ def calibrate_function(vis, model_vis, calibration_context='T', controls=None, i
                                             crosspol=controls[c]['shape'] == 'matrix')
             log.debug('calibrate_function: Jones matrix %s, iteration %d' % (c, iteration))
             log.debug(qa_gaintable(gaintables[c], context='Jones matrix %s, iteration %d' % (c, iteration)))
-            print(qa_gaintable(gaintables[c], context='Jones matrix %s, iteration %d' % (c, iteration)))
-            avis = apply_gaintable(avis, gaintables[c],
-                                   inverse=True,
-                                   timeslice=controls[c]['timeslice'])
+            avis = apply_gaintable(avis, gaintables[c], inverse=True, timeslice=controls[c]['timeslice'])
         else:
             log.debug('calibrate_function: Jones matrix %s not solved, iteration %d' % (c, iteration))
     if isVis:

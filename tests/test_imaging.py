@@ -104,7 +104,10 @@ class TestImaging(unittest.TestCase):
         self.vis = self.vis_graph_list[0].compute()
         
         self.components = self.components_graph[0].compute()
-    
+
+    def test_time_setup(self):
+        self.actualSetUp()
+
     def _checkcomponents(self, dirty, fluxthreshold=0.6, positionthreshold=1.0):
         comps = find_skycomponents(dirty, fwhm=1.0, threshold=10 * fluxthreshold, npixels=5)
         assert len(comps) == len(self.components), "Different number of components found: original %d, recovered %d" % \

@@ -23,8 +23,7 @@ from arl.image.operations import copy_image, create_empty_image_like
 from arl.image.gather_scatter import image_gather_facets, image_scatter_facets
 
 
-def create_generic_blockvisibility_graph(visfunction, vis_graph_list, additive=True, *args,
-                                         **kwargs):
+def create_generic_blockvisibility_graph(visfunction, vis_graph_list, additive=True, *args, **kwargs):
     """ Definition of interface for create_generic_blockvisibility_graph_visfunction.
 
     :func visfunction: Function to be applied

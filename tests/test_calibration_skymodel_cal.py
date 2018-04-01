@@ -98,7 +98,7 @@ class TestCalibrationSkyModelcal(unittest.TestCase):
         lvis = convert_blockvisibility_to_visibility(self.vis)
         lvis, _, _ = weight_visibility(lvis, self.beam)
         dirty, sumwt = invert_function(lvis, self.beam, context='2d')
-        export_image_to_fits(dirty, "%s/test_skymodel-initial_dirty.fits" % self.dir)
+        export_image_to_fits(dirty, "%s/test_skymodel-initial-residual.fits" % self.dir)
         
         self.skymodels = [SkyModel(components=[cm]) for cm in self.components]
     

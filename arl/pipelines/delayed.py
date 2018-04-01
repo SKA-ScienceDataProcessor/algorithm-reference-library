@@ -9,9 +9,8 @@ from arl.graphs.delayed import create_invert_graph, create_residual_graph, \
     create_subtract_vis_graph_list, create_restore_graph, create_deconvolve_graph
 
 
-def create_ical_pipeline_graph(vis_graph_list, model_graph: delayed, context='2d',
-                               calibration_context='TG', do_selfcal=True,
-                               **kwargs) -> delayed:
+def create_ical_pipeline_graph(vis_graph_list, model_graph: delayed, context='2d', calibration_context='TG',
+                               do_selfcal=True, **kwargs) -> delayed:
     """Create graph for ICAL pipeline
 
     :param vis_graph_list:
@@ -31,7 +30,7 @@ def create_ical_pipeline_graph(vis_graph_list, model_graph: delayed, context='2d
                                                      calibration_context=calibration_context, **kwargs)
         residual_vis_graph_list = create_subtract_vis_graph_list(vis_graph_list, model_vis_graph_list)
         residual_graph = create_invert_graph(residual_vis_graph_list, model_graph, dopsf=True, context=context,
-                                             **kwargs)
+                                             iteration=0, **kwargs)
     else:
         # If we are not selfcalibrating it's much easier and we can avoid an unnecessary round of gather/scatter
         # for visibility partitioning such as timeslices and wstack.
@@ -47,7 +46,8 @@ def create_ical_pipeline_graph(vis_graph_list, model_graph: delayed, context='2d
                 model_vis_graph_list = create_predict_graph(model_vis_graph_list, deconvolve_model_graph,
                                                             context=context, **kwargs)
                 vis_graph_list = create_calibrate_graph_list(vis_graph_list, model_vis_graph_list,
-                                                             calibration_context=calibration_context, **kwargs)
+                                                             calibration_context=calibration_context,
+                                                             iteration=cycle, **kwargs)
                 residual_vis_graph_list = create_subtract_vis_graph_list(vis_graph_list, model_vis_graph_list)
                 residual_graph = create_invert_graph(residual_vis_graph_list, model_graph, dopsf=False,
                                                      context=context, **kwargs)
