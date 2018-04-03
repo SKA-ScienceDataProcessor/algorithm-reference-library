@@ -226,7 +226,7 @@ class TestImaging(unittest.TestCase):
         self._predict_base(context='wstack', extra='_spectral', fluxthreshold=4.0, vis_slices=41)
     
     def test_invert_2d(self):
-        self.actualSetUp(zerow=0.0)
+        self.actualSetUp(zerow=True)
         self._invert_base(context='2d', positionthreshold=2.0, check_components=False)
     
     def test_invert_facets(self):
@@ -258,7 +258,7 @@ class TestImaging(unittest.TestCase):
     def test_invert_timeslice_wprojection(self):
         self.actualSetUp()
         self._invert_base(context='timeslice', extra='_wprojection', positionthreshold=1.0,
-                          check_components=True, wstep=10.0, vis_slices=self.ntimes)
+                          check_components=True, wstep=20.0, vis_slices=self.ntimes)
     
     def test_invert_wprojection(self):
         self.actualSetUp()
