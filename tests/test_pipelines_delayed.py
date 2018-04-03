@@ -8,6 +8,7 @@ import os
 import sys
 import unittest
 
+import dask
 import numpy
 from astropy import units as u
 from astropy.coordinates import SkyCoord
@@ -32,11 +33,18 @@ log.addHandler(logging.StreamHandler(sys.stderr))
 class TestPipelineGraphs(unittest.TestCase):
     
     def setUp(self):
-        self.compute = True
+        dask.set_options(get=dask.get)
         self.dir = './test_results'
         os.makedirs(self.dir, exist_ok=True)
     
-    def actualSetUp(self, add_errors=False, freqwin=7, block=False, dospectral=True, dopol=False):
+    def actualSetUp(self, add_errors=False, freqwin=7, block=False, dospectral=True, dopol=False,
+                    amp_errors=None, phase_errors=None):
+    
+        if amp_errors is None:
+            amp_errors = {'T': 0.0, 'G': 0.01, 'B': 0.01}
+        if phase_errors is None:
+            phase_errors = {'T': 1.0, 'G': 0.1, 'B': 0.01}
+
         self.npixel = 256
         self.low = create_named_configuration('LOWBD2', rmax=750.0)
         self.freqwin = freqwin
@@ -96,7 +104,8 @@ class TestPipelineGraphs(unittest.TestCase):
         export_image_to_fits(self.cmodel, '%s/test_imaging_delayed_cmodel.fits' % self.dir)
         
         if add_errors and block:
-            self.vis_graph_list = [delayed(insert_unittest_errors)(self.vis_graph_list[i])
+            self.vis_graph_list = [delayed(insert_unittest_errors)(self.vis_graph_list[i], amp_errors=amp_errors,
+                                                                   phase_errors=phase_errors)
                                    for i, _ in enumerate(self.frequency)]
     
     def test_time_setup(self):
@@ -110,76 +119,77 @@ class TestPipelineGraphs(unittest.TestCase):
                                                     nmoments=3, nchan=self.freqwin,
                                                     context='wstack', niter=1000, fractional_threshold=0.1,
                                                     threshold=2.0, nmajor=5, gain=0.1, vis_slices=41)
-        if self.compute:
-            clean, residual, restored = continuum_imaging_graph.compute()
-            export_image_to_fits(clean[0], '%s/test_pipelines_continuum_imaging_pipeline_clean.fits' % self.dir)
-            export_image_to_fits(residual[0][0],
-                                 '%s/test_pipelines_continuum_imaging_pipeline_residual.fits' % self.dir)
-            export_image_to_fits(restored[0],
-                                 '%s/test_pipelines_continuum_imaging_pipeline_restored.fits' % self.dir)
-            
-            qa = qa_image(restored[0])
-            assert numpy.abs(qa.data['max'] - 116.86978265) < 5.0, str(qa)
-            assert numpy.abs(qa.data['min'] + 0.323425377573) < 5.0, str(qa)
+        clean, residual, restored = continuum_imaging_graph.compute()
+        export_image_to_fits(clean[0], '%s/test_pipelines_continuum_imaging_pipeline_clean.fits' % self.dir)
+        export_image_to_fits(residual[0][0],
+                             '%s/test_pipelines_continuum_imaging_pipeline_residual.fits' % self.dir)
+        export_image_to_fits(restored[0],
+                             '%s/test_pipelines_continuum_imaging_pipeline_restored.fits' % self.dir)
+        
+        qa = qa_image(restored[0])
+        assert numpy.abs(qa.data['max'] - 116.86978265) < 5.0, str(qa)
+        assert numpy.abs(qa.data['min'] + 0.323425377573) < 5.0, str(qa)
+
+
+def test_ical_pipeline(self):
+    amp_errors = {'T': 0.0, 'G': 0.00, 'B': 0.0}
+    phase_errors = {'T': 1.0, 'G': 0.0, 'B': 0.0}
+    self.actualSetUp(add_errors=True, block=True, amp_errors=amp_errors, phase_errors=phase_errors)
     
-    def test_ical_pipeline(self):
-        self.actualSetUp(add_errors=True, block=True)
-        
-        controls = create_calibration_controls()
-        
-        controls['T']['first_selfcal'] = 1
-        controls['G']['first_selfcal'] = 3
-        controls['B']['first_selfcal'] = 4
-        
-        controls['T']['timescale'] = 'auto'
-        controls['G']['timescale'] = 'auto'
-        controls['B']['timescale'] = 1e5
-        
-        ical_graph = \
-            create_ical_pipeline_graph(self.vis_graph_list, model_graph=self.model_graph, context='wstack',
-                                       calibration_context='TGB', controls=controls,
-                                       do_selfcal=True, global_solution=False, algorithm='mmclean', vis_slices=41,
-                                       facets=1, niter=1000, fractional_threshold=0.1, nmoments=3, nchan=self.freqwin,
-                                       threshold=2.0, nmajor=6, gain=0.1, deconvolve_facets=8, deconvolve_overlap=16)
-        if self.compute:
-            clean, residual, restored = ical_graph.compute()
-            export_image_to_fits(clean[0], '%s/test_pipelines_ical_pipeline_clean.fits' % self.dir)
-            export_image_to_fits(residual[0][0], '%s/test_pipelines_ical_pipeline_residual.fits' % self.dir)
-            export_image_to_fits(restored[0], '%s/test_pipelines_ical_pipeline_restored.fits' % self.dir)
-            
-            qa = qa_image(restored[0])
-            assert numpy.abs(qa.data['max'] - 116.86978265) < 5.0, str(qa)
-            assert numpy.abs(qa.data['min'] + 0.323425377573) < 5.0, str(qa)
+    controls = create_calibration_controls()
     
-    def test_ical_pipeline_global(self):
-        self.actualSetUp(add_errors=True, block=True)
-        
-        controls = create_calibration_controls()
-        
-        controls['T']['first_selfcal'] = 2
-        controls['G']['first_selfcal'] = 3
-        controls['B']['first_selfcal'] = 4
-        
-        controls['T']['timescale'] = 'auto'
-        controls['G']['timescale'] = 'auto'
-        controls['B']['timescale'] = 1e5
-        
-        ical_graph = \
-            create_ical_pipeline_graph(self.vis_graph_list, model_graph=self.model_graph, context='wstack',
-                                       calibration_context='TGB', controls=controls,
-                                       do_selfcal=True, global_solution=False, algorithm='mmclean', vis_slices=41,
-                                       facets=1, niter=1000, fractional_threshold=0.1, nmoments=3, nchan=self.freqwin,
-                                       threshold=2.0, nmajor=6, gain=0.1, do_global=True,
-                                       deconvolve_facets=4, deconvolve_overlap=16)
-        if self.compute:
-            clean, residual, restored = ical_graph.compute()
-            export_image_to_fits(clean[0], '%s/test_pipelines_ical_global_pipeline_clean.fits' % self.dir)
-            export_image_to_fits(residual[0][0], '%s/test_pipelines_ical_global_pipeline_residual.fits' % self.dir)
-            export_image_to_fits(restored[0], '%s/test_pipelines_ical_global_pipeline_restored.fits' % self.dir)
-            
-            qa = qa_image(restored[0])
-            assert numpy.abs(qa.data['max'] - 116.86978265) < 5.0, str(qa)
-            assert numpy.abs(qa.data['min'] + 0.323425377573) < 5.0, str(qa)
+    controls['T']['first_selfcal'] = 1
+    controls['G']['first_selfcal'] = 3
+    controls['B']['first_selfcal'] = 4
+    
+    controls['T']['timescale'] = 'auto'
+    controls['G']['timescale'] = 'auto'
+    controls['B']['timescale'] = 1e5
+    
+    ical_graph = \
+        create_ical_pipeline_graph(self.vis_graph_list, model_graph=self.model_graph, context='wstack',
+                                   calibration_context='T', controls=controls,
+                                   do_selfcal=True, global_solution=False, algorithm='mmclean', vis_slices=41,
+                                   facets=1, niter=1000, fractional_threshold=0.1, nmoments=3, nchan=self.freqwin,
+                                   threshold=2.0, nmajor=3, gain=0.1, deconvolve_facets=8, deconvolve_overlap=16)
+    clean, residual, restored = ical_graph.compute()
+    export_image_to_fits(clean[0], '%s/test_pipelines_ical_pipeline_clean.fits' % self.dir)
+    export_image_to_fits(residual[0][0], '%s/test_pipelines_ical_pipeline_residual.fits' % self.dir)
+    export_image_to_fits(restored[0], '%s/test_pipelines_ical_pipeline_restored.fits' % self.dir)
+    
+    qa = qa_image(restored[0])
+    assert numpy.abs(qa.data['max'] - 116.86978265) < 5.0, str(qa)
+    assert numpy.abs(qa.data['min'] + 0.323425377573) < 5.0, str(qa)
+
+
+def test_ical_pipeline_global(self):
+    self.actualSetUp(add_errors=True, block=True)
+    
+    controls = create_calibration_controls()
+    
+    controls['T']['first_selfcal'] = 2
+    controls['G']['first_selfcal'] = 3
+    controls['B']['first_selfcal'] = 4
+    
+    controls['T']['timescale'] = 'auto'
+    controls['G']['timescale'] = 'auto'
+    controls['B']['timescale'] = 1e5
+    
+    ical_graph = \
+        create_ical_pipeline_graph(self.vis_graph_list, model_graph=self.model_graph, context='wstack',
+                                   calibration_context='TG', controls=controls,
+                                   do_selfcal=True, global_solution=False, algorithm='mmclean', vis_slices=41,
+                                   facets=1, niter=1000, fractional_threshold=0.1, nmoments=3, nchan=self.freqwin,
+                                   threshold=2.0, nmajor=6, gain=0.1, do_global=True,
+                                   deconvolve_facets=4, deconvolve_overlap=16)
+    clean, residual, restored = ical_graph.compute()
+    export_image_to_fits(clean[0], '%s/test_pipelines_ical_global_pipeline_clean.fits' % self.dir)
+    export_image_to_fits(residual[0][0], '%s/test_pipelines_ical_global_pipeline_residual.fits' % self.dir)
+    export_image_to_fits(restored[0], '%s/test_pipelines_ical_global_pipeline_restored.fits' % self.dir)
+    
+    qa = qa_image(restored[0])
+    assert numpy.abs(qa.data['max'] - 116.86978265) < 5.0, str(qa)
+    assert numpy.abs(qa.data['min'] + 0.323425377573) < 5.0, str(qa)
 
 
 if __name__ == '__main__':

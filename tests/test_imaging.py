@@ -8,6 +8,8 @@ import os
 import sys
 import unittest
 
+import dask
+
 import numpy
 from astropy import units as u
 from astropy.coordinates import SkyCoord
@@ -32,6 +34,7 @@ log.addHandler(logging.StreamHandler(sys.stderr))
 
 class TestImaging(unittest.TestCase):
     def setUp(self):
+        dask.set_options(get=dask.get)
         self.dir = './test_results'
         os.makedirs(self.dir, exist_ok=True)
     

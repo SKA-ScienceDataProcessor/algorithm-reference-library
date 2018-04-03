@@ -6,6 +6,8 @@ import logging
 import os
 import unittest
 
+import dask
+
 import numpy
 from astropy import units as u
 from astropy.coordinates import SkyCoord
@@ -18,10 +20,11 @@ log = logging.getLogger(__name__)
 
 class TestTestingDaskGraphSupport(unittest.TestCase):
     def setUp(self):
+        
+        dask.set_options(get=dask.get)
+
         self.dir = './test_results'
         os.makedirs(self.dir, exist_ok=True)
-        
-        self.compute = True
         
         self.frequency = numpy.linspace(1e8, 1.5e8, 3)
         self.channel_bandwidth = numpy.array([2.5e7, 2.5e7, 2.5e7])

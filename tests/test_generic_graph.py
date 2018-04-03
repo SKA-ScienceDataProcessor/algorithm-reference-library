@@ -5,6 +5,7 @@
 
 import os
 import unittest
+import dask
 
 import numpy
 from astropy import units as u
@@ -23,6 +24,8 @@ from arl.visibility.base import create_blockvisibility
 
 class TestPipelinesGenericDask(unittest.TestCase):
     def setUp(self):
+        dask.set_options(get=dask.get)
+
         self.dir = './test_results'
         os.makedirs(self.dir, exist_ok=True)
         self.lowcore = create_named_configuration('LOWBD2-CORE')
