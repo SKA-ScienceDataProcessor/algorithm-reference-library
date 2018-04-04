@@ -10,6 +10,8 @@ import astropy.units as u
 import numpy
 from astropy.coordinates import SkyCoord
 
+from dask import delayed
+
 from arl.calibration.operations import apply_gaintable, create_gaintable_from_blockvisibility
 from arl.calibration.skymodel_cal import skymodel_cal_solve
 from arl.calibration.solvers import solve_gaintable
@@ -101,7 +103,10 @@ class TestCalibrationSkyModelcal(unittest.TestCase):
         export_image_to_fits(dirty, "%s/test_skymodel-initial-residual.fits" % self.dir)
         
         self.skymodels = [SkyModel(components=[cm]) for cm in self.components]
-    
+ 
+    def test_time_setup(self):
+        self.actualSetup()
+
     def test_skymodel_solve(self):
         self.actualSetup()
         skymodel, residual_vis = skymodel_cal_solve(self.vis, self.skymodels, niter=30, gain=0.25, tol=1e-8)
@@ -116,24 +121,12 @@ class TestCalibrationSkyModelcal(unittest.TestCase):
 
     def test_skymodel_cal_solve_delayed(self):
         self.actualSetup()
-        from dask import delayed
         self.skymodel_graph = [delayed(SkyModel, nout=1)(components=[cm]) for cm in self.components]
 
-        distributed = True
-        if distributed:
-            from arl.graphs.dask_init import get_dask_Client
-            client = get_dask_Client()
-            skymodel_cal_graph = create_skymodel_cal_solve_graph(self.vis, self.skymodel_graph, niter=30,
+        skymodel_cal_graph = create_skymodel_cal_solve_graph(self.vis, self.skymodel_graph, niter=30,
                                                                       gain=0.25,
                                                                       tol=1e-8)
-            result = client.compute(skymodel_cal_graph, sync=True)
-            calskymodel, residual_vis = result
-            client.close()
-        else:
-            skymodel_cal_graph = create_skymodel_cal_solve_graph(self.vis, self.skymodel_graph, niter=30,
-                                                                      gain=0.25,
-                                                                      tol=1e-8)
-            skymodel, residual_vis = skymodel_cal_graph.compute(sync=True)
+        skymodel, residual_vis = skymodel_cal_graph.compute(sync=True)
     
         residual_vis = convert_blockvisibility_to_visibility(residual_vis)
         residual_vis, _, _ = weight_visibility(residual_vis, self.beam)
