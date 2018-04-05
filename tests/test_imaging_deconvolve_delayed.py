@@ -38,18 +38,8 @@ class TestImagingDeconvolveDelayed(unittest.TestCase):
 
         self.dir = './test_results'
         os.makedirs(self.dir, exist_ok=True)
-        self.params = {'npixel': 512,
-                       'nchan': 1,
-                       'reffrequency': 1e8,
-                       'facets': 1,
-                       'padding': 2,
-                       'oversampling': 2,
-                       'kernel': '2d',
-                       'wstep': 4.0,
-                       'vis_slices': 1,
-                       'wstack': None,
-                       'timeslice': 'auto'}
         
+        self.npixel = 512
         self.low = create_named_configuration('LOWBD2', rmax=750.0)
         self.freqwin = freqwin
         self.vis_graph_list = list()
@@ -87,7 +77,7 @@ class TestImagingDeconvolveDelayed(unittest.TestCase):
         
         self.model_graph = [delayed(create_unittest_model, nout=freqwin)(self.vis_graph_list[freqwin],
                                                                          self.image_pol,
-                                                                         npixel=self.params['npixel'])
+                                                                         npixel=self.npixel)
                             for freqwin, _ in enumerate(self.frequency)]
         
         self.components_graph = [delayed(create_unittest_components)(self.model_graph[freqwin],
@@ -105,8 +95,8 @@ class TestImagingDeconvolveDelayed(unittest.TestCase):
         # Calculate the model convolved with a Gaussian.
         model = self.model_graph[0].compute()
         self.cmodel = smooth_image(model)
-        export_image_to_fits(model, '%s/test_imaging_delayed_model.fits' % self.dir)
-        export_image_to_fits(self.cmodel, '%s/test_imaging_delayed_cmodel.fits' % self.dir)
+        export_image_to_fits(model, '%s/test_imaging_delayed_deconvolved_model.fits' % self.dir)
+        export_image_to_fits(self.cmodel, '%s/test_imaging_deconvolved_delayed_cmodel.fits' % self.dir)
         
         if add_errors and block:
             self.vis_graph_list = [delayed(insert_unittest_errors)(self.vis_graph_list[i])
