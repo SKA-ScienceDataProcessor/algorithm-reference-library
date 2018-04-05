@@ -52,9 +52,10 @@ class TestImageSolversMM(unittest.TestCase):
     def test_deconvolve_and_restore_cube_mmclean(self):
         self.bigmodel.data *= 0.0
         visres, model, residual = solve_image(self.vis, self.bigmodel, nmajor=3, niter=1000, threshold=0.01,
-                                              gain=0.7, window='quarter', scales=[0, 3, 10, 30],
-                                              fractional_threshold=0.1, algorithm = 'mfsmsclean', nmoments=3)
+                                              gain=0.7, window='quarter', scales=[0, 3, 10],
+                                              fractional_threshold=0.1, algorithm = 'mmclean', nmoments=3)
         export_image_to_fits(model, '%s/test_solve_image_mmclean_solution.fits' % (self.dir))
+        residual, sumwt = invert_2d(visres, model)
         export_image_to_fits(residual, '%s/test_solve_image_mmclean_residual.fits' % (self.dir))
         psf, sumwt = invert_2d(self.vis, model, dopsf=True)
         export_image_to_fits(psf, '%s/test_solve_image_mmclean_psf.fits' % (self.dir))

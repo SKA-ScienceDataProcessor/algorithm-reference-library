@@ -116,7 +116,7 @@ def create_LOFAR_configuration(antfile: str, meta: dict = None) -> Configuration
 def create_named_configuration(name: str = 'LOWBD2', **kwargs) -> Configuration:
     """ Standard configurations e.g. LOWBD2, MIDBD2
 
-    :param name: name of Configuration LOWBD2, LOWBD1, LOFAR, VLAA
+    :param name: name of Configuration LOWBD2, LOWBD1, LOFAR, VLAA, ASKAP
     :param rmax: Maximum distance of station from the average (m)
     :return:
     
@@ -145,6 +145,11 @@ def create_named_configuration(name: str = 'LOWBD2', **kwargs) -> Configuration:
         fc = create_configuration_from_file(antfile=arl_path("data/configurations/LOWBD2-CORE.csv"),
                                             location=location, mount='xy', names='LOWBD2_%d',
                                             diameter=35.0, **kwargs)
+    elif name == 'ASKAP':
+        location = EarthLocation(lon="+116.6356824", lat="-26.7013006", height=377.0)
+        fc = create_configuration_from_file(antfile=arl_path("data/configurations/A27CR3P6B.in.csv"),
+                                            mount='equatorial', names='ASKAP_%d',
+                                            diameter=12.0, location=location, **kwargs)
     elif name == 'LOFAR':
         assert get_parameter(kwargs, "meta", False) is False
         fc = create_LOFAR_configuration(antfile=arl_path("data/configurations/LOFAR.csv"))
@@ -219,10 +224,9 @@ def create_test_image(canonical=True, cellsize=None, frequency=None, channel_ban
     
     return im
 
-
-def create_low_test_image_from_s3(npixel=16384, polarisation_frame=PolarisationFrame("stokesI"), cellsize=0.000015,
-                                  frequency=numpy.array([1e8]), channel_bandwidth=numpy.array([1e6]),
-                                  phasecentre=None, fov=20) -> Image:
+def create_test_image_from_s3(npixel=16384, polarisation_frame=PolarisationFrame("stokesI"), cellsize=0.000015,
+                              frequency=numpy.array([1e8]), channel_bandwidth=numpy.array([1e6]),
+                              phasecentre=None, fov=20, flux_limit=1e-3) -> Image:
     """Create LOW test image from S3
 
     The input catalog was generated at http://s-cubed.physics.ox.ac.uk/s3_sex using the following query::
@@ -231,14 +235,20 @@ def create_low_test_image_from_s3(npixel=16384, polarisation_frame=PolarisationF
 
     Number of rows returned: 29966
 
-    There are three possible tables to use::
+    For frequencies < 610MHz, there are three tables to use::
 
         data/models/S3_151MHz_10deg.csv, use fov=10
         data/models/S3_151MHz_20deg.csv, use fov=20
         data/models/S3_151MHz_40deg.csv, use fov=40
+        
+    For frequencies > 610MHz, there are three tables:
+    
+        data/models/S3_1400MHz_1mJy_10deg.csv, use flux_limit>= 1e-3
+        data/models/S3_1400MHz_10uJy_10deg.csv, use flux_limit>= 1e-3
+        data/models/S3_151MHz_100uJy_10deg.csv, use flux_limit>= 1e-3
 
-    The component spectral index is calculated from the 610MHz and 151MHz, and then calculated for the specified
-    frequencies.
+    The component spectral index is calculated from the 610MHz and 151MHz or 1400MHz and 610MHz, and then calculated
+    for the specified frequencies.
 
     If polarisation_frame is not stokesI then the image will a polarised axis but the values will be zero.
 
@@ -248,7 +258,8 @@ def create_low_test_image_from_s3(npixel=16384, polarisation_frame=PolarisationF
     :param frequency:
     :param channel_bandwidth: Channel width (Hz)
     :param phasecentre: phasecentre (SkyCoord)
-    :param fov: fov table to use
+    :param fov: fov 10 | 20 | 40
+    :param flux_limit: Minimum flux (Jy)
     :return: Image
     """
     
@@ -280,8 +291,18 @@ def create_low_test_image_from_s3(npixel=16384, polarisation_frame=PolarisationF
     
     model = create_image_from_array(numpy.zeros(shape), w, polarisation_frame=polarisation_frame)
     
-    assert fov in [10, 20, 40], "Field of view invalid: use one of %s" % ([10, 20, 40])
-    with open(arl_path('data/models/S3_151MHz_%ddeg.csv' % (fov))) as csvfile:
+    if numpy.max(frequency) > 6.1E8:
+        if flux_limit >= 1e-3:
+            csvfilename = arl_path('data/models/S3_1400MHz_1mJy_10deg.csv')
+        elif flux_limit >= 1e-4:
+            csvfilename = arl_path('data/models/S3_1400MHz_100uJy_10deg.csv')
+        else:
+            csvfilename = arl_path('data/models/S3_1400MHz_10uJy_10deg.csv')
+    else:
+        assert fov in [10, 20, 40], "Field of view invalid: use one of %s" % ([10, 20, 40])
+        csvfilename = arl_path('data/models/S3_151MHz_%ddeg.csv' % (fov))
+        
+    with open(csvfilename) as csvfile:
         readCSV = csv.reader(csvfile, delimiter=',')
         r = 0
         for row in readCSV:
@@ -289,15 +310,21 @@ def create_low_test_image_from_s3(npixel=16384, polarisation_frame=PolarisationF
             if r > 0:
                 ra = float(row[4]) + phasecentre.ra.deg
                 dec = float(row[5]) + phasecentre.dec.deg
-                alpha = (float(row[10]) - float(row[9])) / numpy.log10(610.0 / 151.0)
-                flux = numpy.power(10, float(row[9])) * numpy.power(frequency / 1.51e8, alpha)
-                ras.append(ra)
-                decs.append(dec)
-                fluxes.append(flux)
+                if numpy.max(frequency) > 6.1E9:
+                    alpha = (float(row[11]) - float(row[10])) / numpy.log10(1400.0 / 610.0)
+                    flux = numpy.power(10, float(row[10])) * numpy.power(frequency / 1.4e9, alpha)
+                else:
+                    alpha = (float(row[10]) - float(row[9])) / numpy.log10(610.0 / 151.0)
+                    flux = numpy.power(10, float(row[9])) * numpy.power(frequency / 1.51e8, alpha)
+                if flux > flux_limit:
+                    ras.append(ra)
+                    decs.append(dec)
+                    fluxes.append(flux)
             r += 1
     
     csvfile.close()
     
+    assert len(fluxes) > 0, "No sources found above flux limit %s" % flux_limit
     p = w.sub(2).wcs_world2pix(numpy.array(ras), numpy.array(decs), 1)
     total_flux = numpy.sum(fluxes)
     fluxes = numpy.array(fluxes)
@@ -307,47 +334,15 @@ def create_low_test_image_from_s3(npixel=16384, polarisation_frame=PolarisationF
     fluxes = fluxes[ok]
     actual_flux = numpy.sum(fluxes)
     
-    log.info('create_low_test_image_from_s3: %d sources inside the image' % (ps.shape[1]))
+    log.info('create_test_image_from_s3: %d sources inside the image' % (ps.shape[1]))
     
-    log.info('create_low_test_image_from_s3: average channel flux in S3 model = %.3f, actual average channel flux in '
+    log.info('create_test_image_from_s3: average channel flux in S3 model = %.3f, actual average channel flux in '
              'image = %.3f' % (total_flux / float(nchan), actual_flux / float(nchan)))
     for chan in range(nchan):
         for iflux, flux in enumerate(fluxes):
             model.data[chan, 0, ps[1, iflux], ps[0, iflux]] = flux[chan]
     
     return model
-
-
-def create_low_test_image_composite(npixel=16384, polarisation_frame=PolarisationFrame("stokesI"),
-                                    cellsize=0.000015,
-                                    frequency=numpy.array([1e8]), channel_bandwidth=numpy.array([1e6]),
-                                    phasecentre=None, kind='cubic', fov=20, threshold=0.050) -> Image:
-    """Create LOW test image from merge of S3 and GLEAM test images
-    
-    :param npixel: Number of pixels
-    :param polarisation_frame: Polarisation frame (default PolarisationFrame("stokesI"))
-    :param cellsize: cellsize in radians
-    :param frequency:
-    :param channel_bandwidth: Channel width (Hz)
-    :param phasecentre: phasecentre (SkyCoord)
-    :param kind: Kind of interpolation (see scipy.interpolate.interp1d) Default: cubic
-    :param fov: Field of view to use in S3
-    :param threshold: Below threshold S3, above threshold GLEAM
-    :return: Image
-    """
-    img = create_low_test_image_from_gleam(npixel=npixel, polarisation_frame=polarisation_frame,
-                                           cellsize=cellsize,
-                                           frequency=frequency, channel_bandwidth=channel_bandwidth,
-                                           phasecentre=phasecentre, kind=kind)
-    img.data[img.data < threshold] = 0.0
-    ims3 = create_low_test_image_from_s3(npixel=npixel, polarisation_frame=polarisation_frame,
-                                         cellsize=cellsize,
-                                         frequency=frequency, channel_bandwidth=channel_bandwidth,
-                                         phasecentre=phasecentre, fov=fov)
-    ims3.data[ims3.data >= threshold] = 0.0
-    
-    ims3.data += img.data
-    return ims3
 
 
 def create_low_test_image_from_gleam(npixel=512, polarisation_frame=PolarisationFrame("stokesI"), cellsize=0.000015,
@@ -718,7 +713,7 @@ def ingest_unittest_visibility(config, frequency, channel_bandwidth, times, vis_
                                phasecentre=phasecentre, weight=1.0, polarisation_frame=vis_pol)
         if zerow:
             vt.data['uvw'][:, 2] = 0.0
-
+    
     vt.data['vis'][...] = 0.0
     return vt
 
@@ -726,7 +721,7 @@ def ingest_unittest_visibility(config, frequency, channel_bandwidth, times, vis_
 def create_unittest_components(model, flux, applypb=False, npixel=None):
     # Fill the visibility with exactly computed point sources.
     
-    if npixel==None:
+    if npixel == None:
         _, _, _, npixel = model.data.shape
     spacing_pixels = npixel // 4
     log.info('Spacing in pixels = %s' % spacing_pixels)
@@ -734,12 +729,12 @@ def create_unittest_components(model, flux, applypb=False, npixel=None):
     centers = list()
     centers.append([0.0, 0.0])
     
-    for x in numpy.linspace(-1.5, 1.5, 7):
+    for x in numpy.linspace(-1.2, 1.2, 7):
         if abs(x) > 1e-15:
             centers.append([x, x])
             centers.append([x, -x])
     
-    centers.append((0.3, 1.6))
+    centers.append((0.2, 1.1))
     
     model_pol = model.polarisation_frame
     # Make the list of components
@@ -758,9 +753,8 @@ def create_unittest_components(model, flux, applypb=False, npixel=None):
         comp = create_skycomponent(flux=flux, frequency=model.frequency, direction=sc,
                                    polarisation_frame=model_pol)
         components.append(comp)
-        
-    if applypb:
     
+    if applypb:
         beam = create_low_test_beam(model)
         components = apply_beam_to_skycomponent(components, beam)
     
@@ -779,18 +773,24 @@ def create_unittest_model(vis, model_pol, npixel=None, cellsize=None, nchan=1):
     return model
 
 
-def insert_unittest_errors(vt, seed=180555):
+def insert_unittest_errors(vt, seed=180555, amp_errors=None, phase_errors=None):
     """Simulate gain errors and apply
     
     :param vt:
-    :param phase_error:
-    :param amplitude_error:
+    :param seed: Random number seed, set to big integer repeat values from run to run
+    :param phase_errors: e.g. {'T': 1.0, 'G': 0.1, 'B': 0.01}
+    :param amp_errors: e.g. {'T': 0.0, 'G': 0.01, 'B': 0.01}
     :return:
     """
     numpy.random.seed(seed)
     controls = create_calibration_controls()
-    amp_errors = {'T': 0.0, 'G': 0.01, 'B': 0.01}
-    phase_errors = {'T': 1.0, 'G': 0.1, 'B': 0.01}
+    
+    if amp_errors is None:
+        amp_errors = {'T': 0.0, 'G': 0.01, 'B': 0.01}
+        
+    if phase_errors is None:
+        phase_errors = {'T': 1.0, 'G': 0.1, 'B': 0.01}
+
     for c in "TGB":
         gaintable = \
             create_gaintable_from_blockvisibility(vt, timeslice=controls[c]['timeslice'])

@@ -63,7 +63,7 @@ def solve_image(vis: Visibility, model: Image, components=None, context='2d',
         if numpy.abs(dirty.data).max() < 1.1 * thresh:
             log.info("Reached stopping threshold %.6f Jy" % thresh)
             break
-        log.info("solve_image: End of major cycle")
+        log.info("solve_image: End of minor cycles")
 
     log.info("solve_image: End of major cycles")
     return visres, model, dirty
