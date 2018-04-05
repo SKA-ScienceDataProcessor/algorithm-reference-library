@@ -40,6 +40,8 @@ def peel_skycomponent_blockvisibility(vis: BlockVisibility, sc: Union[Skycompone
         modelvis = copy_visibility(vis, zero=True)
         modelvis = predict_skycomponent_visibility(modelvis, comp)
         gt = solve_gaintable(vis, modelvis, phase_only=False, **kwargs)
+        from arl.calibration.operations import qa_gaintable
+        print(qa_gaintable(gt))
         modelvis = apply_gaintable(modelvis, gt, **kwargs)
         if remove:
             vis.data['vis'] -= modelvis.data['vis']

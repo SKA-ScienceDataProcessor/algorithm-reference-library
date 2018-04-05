@@ -25,8 +25,7 @@ log = logging.getLogger(__name__)
 
 
 def solve_gaintable(vis: BlockVisibility, modelvis: BlockVisibility = None, gt=None, phase_only=True, niter=30,
-                    tol=1e-8,
-                    crosspol=False, **kwargs) -> GainTable:
+                    tol=1e-8, crosspol=False, normalise_gains=True, **kwargs) -> GainTable:
     """Solve a gain table by fitting an observed visibility to a model visibility
     
     If modelvis is None, a point source model is assumed.
@@ -77,6 +76,9 @@ def solve_gaintable(vis: BlockVisibility, modelvis: BlockVisibility = None, gt=N
             
             gt = solve_from_X(gt, x, xwt, row, crosspol, niter, phase_only,
                               tol, npol=vis.polarisation_frame.npol)
+            if normalise_gains and not phase_only:
+                gabs = numpy.average(numpy.abs(gt.data['gain'][row]))
+                gt.data['gain'][row] /= gabs
     
     assert isinstance(gt, GainTable), "gt is not a GainTable: %r" % gt
     

@@ -66,6 +66,19 @@ class TestCalibrationSolvers(unittest.TestCase):
         assert residual < 3e-8, "Max residual = %s" % (residual)
         assert numpy.max(numpy.abs(gtsol.gain - 1.0)) > 0.1
 
+    def test_solve_gaintable_scalar_normalise(self):
+        self.actualSetup('stokesI', 'stokesI', f=[100.0])
+        gt = create_gaintable_from_blockvisibility(self.vis)
+        log.info("Created gain table: %s" % (gaintable_summary(gt)))
+        gt = simulate_gaintable(gt, phase_error=0.0, amplitude_error=0.1)
+        gt.data['gain'] *= 2.0
+        original = copy_visibility(self.vis)
+        self.vis = apply_gaintable(self.vis, gt)
+        gtsol = solve_gaintable(self.vis, original, phase_only=False, niter=200, normalise_gains=True)
+        residual = numpy.max(gtsol.residual)
+        assert residual < 3e-8, "Max residual = %s" % (residual)
+        assert numpy.max(numpy.abs(gtsol.gain - 1.0)) > 0.1
+
     def test_solve_gaintable_scalar_bandpass(self):
         self.actualSetup('stokesI', 'stokesI', f=[100.0], vnchan=128)
         gt = create_gaintable_from_blockvisibility(self.vis)
@@ -146,9 +159,6 @@ class TestCalibrationSolvers(unittest.TestCase):
         self.core_solve('stokesIQUV', 'circular', phase_error=0.1, amplitude_error=0.01,
                         leakage=0.01, residual_tol=1e-3, crosspol=True, vnchan=16,
                         phase_only=False, f=[100.0, 0.0, 0.0, 50.0])
-
-
-
 
 if __name__ == '__main__':
     unittest.main()

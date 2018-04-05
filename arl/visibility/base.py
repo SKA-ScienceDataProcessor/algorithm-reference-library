@@ -341,7 +341,6 @@ def create_visibility_from_ms(msname, channum=0):
         # Get polarisation info
         poltab = table('%s/POLARIZATION' % msname, ack=False)
         corr_type = poltab.getcol('CORR_TYPE')
-        assert corr_type[0].shape == [4]
         # These correspond to the CASA Stokes enumerations
         if numpy.array_equal(corr_type[0], [1, 2, 3, 4]):
             polarisation_frame = PolarisationFrame('stokesIQUV')
@@ -350,7 +349,8 @@ def create_visibility_from_ms(msname, channum=0):
         elif numpy.array_equal(corr_type[0], [9, 10, 11, 12]):
             polarisation_frame = PolarisationFrame('linear')
         else:
-            polarisation_frame = PolarisationFrame('stokesIQUV')
+            raise KeyError("Polarisation not understood: %s" % str(corr_type))
+        
         print("create_visibility_from_ms: polarisation %s" % polarisation_frame.type)
 
         # Get configuration

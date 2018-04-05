@@ -11,7 +11,7 @@ from astropy import units as u
 from astropy.coordinates import SkyCoord
 
 from arl.data.polarisation import PolarisationFrame
-from arl.util.testing_support import create_named_configuration, create_low_test_image_from_s3, \
+from arl.util.testing_support import create_named_configuration, create_test_image_from_s3, \
     create_low_test_image_from_gleam
 from arl.visibility.base import create_visibility
 from arl.imaging import create_image_from_visibility
@@ -21,7 +21,7 @@ from arl.image.operations import export_image_to_fits, create_image_from_array
 log = logging.getLogger(__name__)
 
 
-class TestFTProcessorParams(unittest.TestCase):
+class TestImagingParams(unittest.TestCase):
     def setUp(self):
         self.dir = './test_results'
         os.makedirs(self.dir, exist_ok=True)
@@ -73,8 +73,8 @@ class TestFTProcessorParams(unittest.TestCase):
         assert spectral_mode == 'channel'
 
     def test_get_frequency_map_s3(self):
-        self.model = create_low_test_image_from_s3(npixel=64, cellsize=0.001, frequency=self.frequency,
-                                                   channel_bandwidth=self.channel_bandwidth)
+        self.model = create_test_image_from_s3(npixel=64, cellsize=0.001, frequency=self.frequency,
+                                               channel_bandwidth=self.channel_bandwidth)
         spectral_mode, vfrequency_map = get_frequency_map(self.vis, self.model)
         assert numpy.max(vfrequency_map) == self.model.nchan - 1
         assert spectral_mode == 'channel'
