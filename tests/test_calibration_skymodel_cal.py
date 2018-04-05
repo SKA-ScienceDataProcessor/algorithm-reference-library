@@ -117,7 +117,7 @@ class TestCalibrationSkyModelcal(unittest.TestCase):
         export_image_to_fits(dirty, "%s/test_skymodel-final_residual.fits" % self.dir)
         
         qa = qa_image(dirty)
-        assert qa.data['rms'] < 3.1e-3, qa
+        assert qa.data['rms'] < 3.2e-3, qa
 
     def test_skymodel_cal_solve_delayed(self):
         self.actualSetup()
@@ -134,7 +134,7 @@ class TestCalibrationSkyModelcal(unittest.TestCase):
         export_image_to_fits(dirty, "%s/test_skymodel_cal-delayed-final_residual.fits" % self.dir)
     
         qa = qa_image(dirty)
-        assert qa.data['rms'] < 3.1e-3, qa
+        assert qa.data['rms'] < 3.2e-3, qa
 
 
 if __name__ == '__main__':

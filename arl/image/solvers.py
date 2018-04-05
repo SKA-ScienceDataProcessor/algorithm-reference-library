@@ -33,12 +33,13 @@ def solve_image(vis: Visibility, model: Image, components=None, context='2d',
     :return: Visibility, model
     """
     nmajor = get_parameter(kwargs, 'nmajor', 5)
+    thresh = get_parameter(kwargs, "threshold", 0.0)
     log.info("solve_image: Performing %d major cycles" % nmajor)
     
     # The model is added to each major cycle and then the visibilities are
     # calculated from the full model
-    vispred = copy_visibility(vis)
-    visres = copy_visibility(vis)
+    vispred = copy_visibility(vis, zero=True)
+    visres = copy_visibility(vis, zero=True)
 
     vispred = predict_function(vispred, model, context=context, **kwargs)
     
@@ -47,14 +48,15 @@ def solve_image(vis: Visibility, model: Image, components=None, context='2d',
     
     visres.data['vis'] = vis.data['vis'] - vispred.data['vis']
     dirty, sumwt = invert_function(visres, model, context=context, dopsf=False, **kwargs)
+    assert sumwt.any() > 0.0, "Sum of weights is zero"
     psf, sumwt = invert_function(visres, model, context=context, dopsf=True, **kwargs)
-    
-    thresh = get_parameter(kwargs, "threshold", 0.0)
+    assert sumwt.any() > 0.0, "Sum of weights is zero"
     
     for i in range(nmajor):
         log.info("solve_image: Start of major cycle %d" % i)
         cc, res = deconvolve_cube(dirty, psf, **kwargs)
         model.data += cc.data
+        vispred.data['vis'][...]=0.0
         vispred = predict_function(vispred, model, context=context, **kwargs)
         visres.data['vis'] = vis.data['vis'] - vispred.data['vis']
         dirty, sumwt = invert_function(visres, model, context=context, dopsf=False, **kwargs)

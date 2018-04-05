@@ -36,6 +36,7 @@ class TestImageSolvers(unittest.TestCase):
                                      phasecentre=self.phasecentre, weight=1.0,
                                      polarisation_frame=PolarisationFrame('stokesI'))
         self.vis.data['vis'] *= 0.0
+        self.vis.data['uvw'][:,2] = 0.0
         
         # Create model
         self.model = create_test_image(cellsize=0.0015, phasecentre=self.vis.phasecentre,
@@ -45,14 +46,18 @@ class TestImageSolvers(unittest.TestCase):
         assert numpy.max(numpy.abs(self.vis.vis)) > 0.0
         export_image_to_fits(self.model, '%s/test_solve_skycomponent_model.fits' % (self.dir))
         self.bigmodel = create_image_from_visibility(self.vis, cellsize=0.0015, npixel=512)
-        
+        residual, sumwt = invert_2d(self.vis, self.bigmodel)
+        export_image_to_fits(residual, '%s/test_solve_skycomponent_msclean_dirty.fits' % (self.dir))
+
     def test_deconvolve_and_restore_cube_msclean(self):
         self.bigmodel.data *= 0.0
-        visres, model, residual = solve_image(self.vis, self.bigmodel, nmajor=3, niter=1000,
-                                              threshold=0.01, gain=0.7, psf_support=200,
-                                              window='quarter', scales=[0, 3, 10, 30],
-                                              fractional_threshold=0.1, algorithm='msclean')
+        visres, model, _ = solve_image(self.vis, self.bigmodel, nmajor=5, niter=1000,
+                                       threshold=0.01, gain=0.7, psf_support=200,
+                                       window='quarter', scales=[0, 3, 10],
+                                       fractional_threshold=0.1, algorithm='msclean')
+        assert numpy.max(numpy.abs(model.data)) > 0.0, "Model image is empty"
         export_image_to_fits(model, '%s/test_solve_skycomponent_msclean_solution.fits' % (self.dir))
+        residual, sumwt = invert_2d(visres, model)
         export_image_to_fits(residual, '%s/test_solve_skycomponent_msclean_residual.fits' % (self.dir))
         psf, sumwt = invert_2d(self.vis, model, dopsf=True)
         export_image_to_fits(psf, '%s/test_solve_skycomponent_msclean_psf.fits' % (self.dir))
@@ -62,12 +67,14 @@ class TestImageSolvers(unittest.TestCase):
 
     def test_deconvolve_and_restore_cube_hogbom(self):
         self.bigmodel.data *= 0.0
-        visres, model, residual = solve_image(self.vis, self.bigmodel, niter=1000,
-                                              nmajor=5, threshold=0.01, psf_support=200,
-                                              window='quarter', fractional_threshold=0.1,
-                                              gain=0.1, algorithm='hogbom')
+        visres, model, _ = solve_image(self.vis, self.bigmodel, nmajor=5, niter=1000,
+                                       threshold=0.01, gain=0.1, psf_support=200,
+                                       window='quarter',
+                                       fractional_threshold=0.1, algorithm='hogbom')
+        assert numpy.max(numpy.abs(model.data)) > 0.0, "Model image is empty"
         export_image_to_fits(model, '%s/test_solve_skycomponent_hogbom_solution.fits' % (self.dir))
-        export_image_to_fits(residual, '%s/test_solve_skycomponent_hogbom_residual.fits' % (self.dir))
+        residual, sumwt = invert_2d(visres, model)
+        export_image_to_fits(residual, '%s/test_solve_skycomponent_msclean_residual.fits' % (self.dir))
         psf, sumwt = invert_2d(self.vis, model, dopsf=True)
         export_image_to_fits(psf, '%s/test_solve_skycomponent_hogbom_psf.fits' % (self.dir))
         restored = restore_cube(model=model, psf=psf, residual=residual)
