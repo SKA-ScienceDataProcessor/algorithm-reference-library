@@ -2,16 +2,15 @@
 Functions to create primary beam modelsw
 """
 
-import numpy
+import logging
 import warnings
 
+import numpy
 from astropy import constants as const
-from astropy.wcs.utils import skycoord_to_pixel
 from astropy.wcs import FITSFixedWarning
+from astropy.wcs.utils import skycoord_to_pixel
 
 from arl.image.operations import create_empty_image_like, fft_image
-
-import logging
 
 log = logging.getLogger(__name__)
 
@@ -25,7 +24,25 @@ def ft_disk(r):
     return result
 
 
-def create_pb_vla(model, pointingcentre=None):
+def create_pb(model, telescope='MID', pointingcentre=None):
+    """
+    Make an image like model and fill it with an analytical model of the primary beam
+    :param telescope: 'VLA' or 'ASKAP'
+    :param model:
+    :return:
+    """
+    if telescope == 'MID':
+        return create_pb_generic(model, pointingcentre=pointingcentre, diameter=15.0, blockage=0.0)
+    elif telescope == 'VLA':
+        return create_pb_generic(model, pointingcentre=pointingcentre, diameter=25.0, blockage=1.8)
+    elif telescope == 'ASKAP':
+        return create_pb_generic(model, pointingcentre=pointingcentre, diameter=12.0, blockage=1.0)
+    else:
+        raise NotImplementedError('Telescope %s has no primary beam model' % telescope)
+
+
+
+def create_pb_generic(model, pointingcentre=None, diameter=25.0, blockage=1.8):
     """
     Make an image like model and fill it with an analytical model of the primary beam
     :param model:
@@ -49,17 +66,19 @@ def create_pb_vla(model, pointingcentre=None):
             warnings.simplefilter('ignore', FITSFixedWarning)
             frequency = model.wcs.sub(['spectral']).wcs_pix2world([chan], 0)[0]
         wavelength = const.c.to('m/s').value / frequency
-
+        
         d2r = numpy.pi / 180.0
         scale = d2r * numpy.abs(beam.wcs.sub(2).wcs.cdelt[0])
         xx, yy = numpy.meshgrid(scale * (range(nx) - cx), scale * (range(ny) - cy))
         # Radius of each cell in radians
         rr = numpy.sqrt(xx ** 2 + yy ** 2)
         
+        blockage_factor = (blockage / diameter) ** 2
+        
         for pol in range(npol):
-            reflector = ft_disk(rr * numpy.pi * 25.0 / wavelength)
-            # blockage = ft_disk(rr * numpy.pi * 1.67 / wavelength)
-            beam.data[chan, pol, ...] = reflector  # - blockage
+            reflector = ft_disk(rr * numpy.pi * diameter / wavelength)
+            blockage = ft_disk(rr * numpy.pi * blockage / wavelength)
+            beam.data[chan, pol, ...] = reflector - blockage_factor * blockage
     
     beam.data *= beam.data
     return beam

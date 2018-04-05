@@ -14,7 +14,7 @@ from astropy.coordinates import SkyCoord
 from arl.data.polarisation import PolarisationFrame
 from arl.image.operations import export_image_to_fits
 from arl.imaging.base import create_image_from_visibility
-from arl.util.primary_beams import create_pb_vla
+from arl.util.primary_beams import create_pb
 from arl.util.testing_support import create_named_configuration
 from arl.visibility.base import create_visibility
 
@@ -45,9 +45,10 @@ class TestPrimaryBeams(unittest.TestCase):
                                      phasecentre=self.phasecentre, weight=1.0,
                                      polarisation_frame=PolarisationFrame('stokesI'))
 
-    def test_create_primary_beams_vla(self):
+    def test_create_primary_beams(self):
         self.createVis(config='LOWBD2', rmax=1000.0)
-        model = create_image_from_visibility(self.vis, cellsize=0.00001, override_cellsize=True)
-        beam=create_pb_vla(model)
-        assert numpy.max(beam.data) > 0.0
-        export_image_to_fits(beam, "%s/primary_beam_vla.fits" % self.dir)
+        for telescope in ['VLA', 'ASKAP', 'MID']:
+            model = create_image_from_visibility(self.vis, cellsize=0.001, override_cellsize=False)
+            beam=create_pb(model, telescope=telescope)
+            assert numpy.max(beam.data) > 0.0
+            export_image_to_fits(beam, "%s/test_primary_beam_%s.fits" % (self.dir, telescope))
