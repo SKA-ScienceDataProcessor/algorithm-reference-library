@@ -316,7 +316,7 @@ def create_test_image_from_s3(npixel=16384, polarisation_frame=PolarisationFrame
                 else:
                     alpha = (float(row[10]) - float(row[9])) / numpy.log10(610.0 / 151.0)
                     flux = numpy.power(10, float(row[9])) * numpy.power(frequency / 1.51e8, alpha)
-                if flux > flux_limit:
+                if flux.any() > flux_limit:
                     ras.append(ra)
                     decs.append(dec)
                     fluxes.append(flux)

@@ -137,7 +137,7 @@ class TestTesting_Support(unittest.TestCase):
         im = create_test_image_from_s3(npixel=1024, channel_bandwidth=numpy.array([1e6]),
                                        frequency=numpy.array([1e9]),
                                        phasecentre=self.phasecentre,
-                                       flux_limit=1e-5)
+                                       flux_limit=2e-3)
         assert im.data.shape[0] == 1
         assert im.data.shape[1] == 1
         assert im.data.shape[2] == 1024
@@ -147,7 +147,8 @@ class TestTesting_Support(unittest.TestCase):
     def test_create_test_image_s3_spectral(self):
         im = create_test_image_from_s3(npixel=1024, channel_bandwidth=numpy.array([1e6, 1e6, 1e6]),
                                        frequency=numpy.array([1e8 - 1e6, 1e8, 1e8 + 1e6]),
-                                       phasecentre=self.phasecentre, fov=10)
+                                       phasecentre=self.phasecentre, fov=10,
+                                       flux_limit=2e-3)
         assert im.data.shape[0] == 3
         assert im.data.shape[1] == 1
         assert im.data.shape[2] == 1024
