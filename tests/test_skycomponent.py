@@ -72,6 +72,7 @@ class TestSkycomponent(unittest.TestCase):
     def test_insert_skycomponent_dft(self):
         sc = create_skycomponent(direction=self.phasecentre, flux=numpy.array([[1.0]]), frequency=self.frequency,
                                  polarisation_frame=PolarisationFrame('stokesI'))
+        print(sc)
         self.vis.data['vis'][...] = 0.0
         self.vis = predict_skycomponent_visibility(self.vis, sc)
         im, sumwt = invert_2d(self.vis, self.model)
