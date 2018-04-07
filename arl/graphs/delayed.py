@@ -189,7 +189,7 @@ def create_weight_vis_graph_list(vis_graph_list, model_graph, weighting='uniform
         else:
             return None
     
-    return [delayed(weight_vis, pure=True, nout=1)(vis_graph_list[i], model_graph)
+    return [delayed(weight_vis, pure=True, nout=1)(vis_graph_list[i], model_graph[i])
             for i in range(len(vis_graph_list))]
 
 

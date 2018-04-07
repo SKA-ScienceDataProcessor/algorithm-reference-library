@@ -151,7 +151,7 @@ class TestPipelineGraphs(unittest.TestCase):
                                        calibration_context='T', controls=controls,
                                        do_selfcal=True, global_solution=False, algorithm='mmclean', vis_slices=41,
                                        facets=1, niter=1000, fractional_threshold=0.1, nmoments=3, nchan=self.freqwin,
-                                       threshold=2.0, nmajor=3, gain=0.1, deconvolve_facets=8, deconvolve_overlap=16)
+                                       threshold=2.0, nmajor=3, gain=0.1, deconvolve_facets=4, deconvolve_overlap=16)
         clean, residual, restored = ical_graph.compute()
         export_image_to_fits(clean[0], '%s/test_pipelines_ical_pipeline_clean.fits' % self.dir)
         export_image_to_fits(residual[0][0], '%s/test_pipelines_ical_pipeline_residual.fits' % self.dir)

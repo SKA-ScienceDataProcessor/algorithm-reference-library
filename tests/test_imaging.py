@@ -9,7 +9,6 @@ import sys
 import unittest
 
 import dask
-
 import numpy
 from astropy import units as u
 from astropy.coordinates import SkyCoord
@@ -17,7 +16,7 @@ from dask import delayed
 
 from arl.data.polarisation import PolarisationFrame
 from arl.graphs.delayed import create_zero_vis_graph_list, create_predict_graph, create_invert_graph, \
-    create_subtract_vis_graph_list
+    create_subtract_vis_graph_list, create_weight_vis_graph_list
 from arl.image.operations import export_image_to_fits, smooth_image, copy_image
 from arl.imaging import predict_skycomponent_visibility
 from arl.imaging.imaging_context import invert_function
@@ -107,10 +106,10 @@ class TestImaging(unittest.TestCase):
         self.vis = self.vis_graph_list[0].compute()
         
         self.components = self.components_graph[0].compute()
-
+    
     def test_time_setup(self):
         self.actualSetUp()
-
+    
     def _checkcomponents(self, dirty, fluxthreshold=0.6, positionthreshold=1.0):
         comps = find_skycomponents(dirty, fwhm=1.0, threshold=10 * fluxthreshold, npixels=5)
         assert len(comps) == len(self.components), "Different number of components found: original %d, recovered %d" % \
@@ -137,12 +136,12 @@ class TestImaging(unittest.TestCase):
         dirty_g = dirty_graph[0].compute()[0]
         export_image_to_fits(dirty_g, '%s/test_imaging_predict_%s%s_delayed_dirty.fits' %
                              (self.dir, context, extra))
-
+        
         export_image_to_fits(dirty_g, '%s/test_imaging_predict_%s%s_delayed_dirty.fits' %
                              (self.dir, context, extra))
         maxabs = numpy.max(numpy.abs(dirty_g.data))
         assert maxabs < fluxthreshold, "Graph %s, abs max %f exceeds flux threshold" % (context, maxabs)
-
+    
     def _invert_base(self, context, extra='', fluxthreshold=1.0, positionthreshold=1.0, check_components=True,
                      facets=1, vis_slices=1, **kwargs):
         
@@ -167,7 +166,7 @@ class TestImaging(unittest.TestCase):
                                  (self.dir, context, extra))
         
         assert maxabs < 1e-8, "Difference between delayed and function for %s, abs max %s is non-zero " \
-                               % (context, str(maxabs))
+                              % (context, str(maxabs))
         
         if check_components:
             self._checkcomponents(dirty_g, fluxthreshold, positionthreshold)
@@ -285,6 +284,26 @@ class TestImaging(unittest.TestCase):
         self.actualSetUp(dospectral=True, dopol=True)
         self._invert_base(context='wstack', extra='_spectral_pol', positionthreshold=2.0,
                           vis_slices=41)
+    
+    def test_weighting(self):
+        
+        self.actualSetUp()
+
+        context = 'wstack'
+        vis_slices = 41
+        facets = 1
+        
+        dirty_graph = create_invert_graph(self.vis_graph_list, self.model_graph, context=context,
+                                          dopsf=False, normalize=True, facets=facets, vis_slices=vis_slices)
+        dirty_g = dirty_graph[0].compute()[0]
+        export_image_to_fits(dirty_g, '%s/test_imaging_noweighting_delayed_dirty.fits' % self.dir)
+        
+        self.vis_graph_list = create_weight_vis_graph_list(self.vis_graph_list, self.model_graph, weighting='uniform')
+        
+        dirty_graph = create_invert_graph(self.vis_graph_list, self.model_graph, context=context,
+                                          dopsf=False, normalize=True, facets=facets, vis_slices=vis_slices)
+        dirty_f = dirty_graph[0].compute()[0]
+        export_image_to_fits(dirty_f, '%s/test_imaging_weighting_delayed_dirty.fits'% self.dir)
 
 
 if __name__ == '__main__':
