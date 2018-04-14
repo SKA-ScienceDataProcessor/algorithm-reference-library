@@ -41,20 +41,29 @@ class TestImageIterators(unittest.TestCase):
         m31original = create_test_image(polarisation_frame=PolarisationFrame('stokesI'))
         assert numpy.max(numpy.abs(m31original.data)), "Original is empty"
         flat = create_empty_image_like(m31original)
-
-        for nraster, overlap in [(1, 0), (1, 16), (4, 8), (4, 16), (8, 8), (16, 4), (9, 5)]:
+    
+        for nraster, overlap in [(1, 0),  (1, 16), (4, 8), (4, 16), (8, 8), (16, 4), (9, 5)]:
             m31model = create_test_image(polarisation_frame=PolarisationFrame('stokesI'))
             for patch, flat_patch in zip(image_raster_iter(m31model, facets=nraster, overlap=overlap),
                                          image_raster_iter(flat, facets=nraster, overlap=overlap)):
                 pass
-                # assert patch.data.shape[3] == (2 * overlap + m31model.data.shape[3] // nraster), \
-                #     "Number of pixels in each patch: %d not as expected: %d" % (patch.data.shape[3],
-                #                                                                 (2 * overlap + m31model.data.shape[3]
-                #                                                                  // nraster))
-                # assert patch.data.shape[2] == (2 * overlap + m31model.data.shape[2] // nraster), \
-                #     "Number of pixels in each patch: %d not as expected: %d" % (patch.data.shape[2],
-                #                                                                 (2 * overlap + m31model.data.shape[2]
-                #                                                                  // nraster))
+                patch.data *= 2.0
+            flat_patch.data[...] += 1.0
+        
+            assert numpy.max(numpy.abs(m31model.data)), "Raster is empty for %d" % nraster
+
+    def test_raster_overlap_taper(self):
+    
+        m31original = create_test_image(polarisation_frame=PolarisationFrame('stokesI'))
+        assert numpy.max(numpy.abs(m31original.data)), "Original is empty"
+        flat = create_empty_image_like(m31original)
+    
+        for nraster, overlap in [(1, 0), (1, 16), (4, 8), (4, 16), (8, 8), (16, 4), (9, 5)]:
+            m31model = create_test_image(polarisation_frame=PolarisationFrame('stokesI'))
+            for patch, flat_patch in zip(image_raster_iter(m31model, facets=nraster, overlap=overlap,
+                                                           taper='linear'),
+                                         image_raster_iter(flat, facets=nraster, overlap=overlap)):
+                pass
                 patch.data *= 2.0
             flat_patch.data[...] += 1.0
         

@@ -8,8 +8,7 @@ import logging
 import numpy
 
 from arl.data.data_models import Image
-from arl.data.parameters import get_parameter
-from arl.image.operations import create_image_from_array
+from arl.image.operations import create_image_from_array, create_empty_image_like
 
 log = logging.getLogger(__name__)
 
@@ -24,7 +23,7 @@ def image_null_iter(im: Image, facets=1, overlap=0):
     yield im
 
 
-def image_raster_iter(im: Image, facets=1, overlap=0):
+def image_raster_iter(im: Image, facets=1, overlap=0, taper=None, make_flat=False):
     """Create an image_raster_iter generator, returning images, optionally with overlaps
 
     The WCS is adjusted appropriately for each raster element. Hence this is a coordinate-aware
@@ -43,37 +42,68 @@ def image_raster_iter(im: Image, facets=1, overlap=0):
     :param im: Image
     :param facets: Number of image partitions on each axis (2)
     :param overlap: overlap in pixels
+    :param taper: method of tapering at the edges: None or 'linear
+    :param make_flat: Make the flat images
     :param kwargs: throw away unwanted parameters
     """
-    
     nchan, npol, ny, nx = im.shape
     log.debug("image_raster_iter: predicting using %d x %d image partitions" % (facets, facets))
     assert facets <= ny, "Cannot have more raster elements than pixels"
     assert facets <= nx, "Cannot have more raster elements than pixels"
     
-    if facets == 1:
+    if facets == 1 and overlap == 0:
         yield im
     
-    sx = int((nx // facets))
-    sy = int((ny // facets))
-    dx = int((nx // facets) + 2 * overlap)
-    dy = int((ny // facets) + 2 * overlap)
-
-    log.debug('image_raster_iter: spacing of raster (%d, %d)' % (dx, dy))
+    else:
+        # Step between facets
+        sx = nx // facets + overlap
+        sy = ny // facets + overlap
     
-    for fy in range(facets):
-        y = ny // 2 + sy * (fy - facets // 2) - overlap
-        for fx in range(facets):
-            x = nx // 2 + sx * (fx - facets // 2) - overlap
-            if (x >= 0) and (x + dx) <= nx and (y >= 0) and (y + dy) <= ny:
-                log.debug('image_raster_iter: partition (%d, %d) of (%d, %d)' % (fy, fx, facets, facets))
-                # Adjust WCS
-                wcs = im.wcs.deepcopy()
-                wcs.wcs.crpix[0] -= x
-                wcs.wcs.crpix[1] -= y
-                # yield image from slice (reference!)
-                subim = create_image_from_array(im.data[..., y:y + dy, x:x + dx], wcs, im.polarisation_frame)
-                yield subim
+        # Size of facet
+        dx = sx + overlap
+        dy = sy + overlap
+
+        # Step between facets
+        sx = nx // facets + overlap
+        sy = ny // facets + overlap
+
+        # Size of facet
+        dx = nx // facets + 2 * overlap
+        dy = nx // facets + 2 * overlap
+
+        def taper_linear():
+            t = numpy.ones(dx)
+            ramp = numpy.arange(0, overlap).astype(float) / float(overlap)
+            t[:overlap] = ramp
+            t[(dx - overlap):dx] = 1.0 - ramp
+            result = numpy.outer(t, t)
+            return result
+        
+        log.debug('image_raster_iter: spacing of raster (%d, %d)' % (dx, dy))
+        
+        i = 0
+        for fy in range(facets):
+            y = ny // 2 + sy * (fy - facets // 2) - overlap // 2
+            for fx in range(facets):
+                x = nx // 2 + sx * (fx - facets // 2) - overlap // 2
+                if (x >= 0) and (x + dx) <= nx and (y >= 0) and (y + dy) <= ny:
+                    log.debug('image_raster_iter: partition (%d, %d) of (%d, %d)' % (fy, fx, facets, facets))
+                    # Adjust WCS
+                    wcs = im.wcs.deepcopy()
+                    wcs.wcs.crpix[0] -= x
+                    wcs.wcs.crpix[1] -= y
+                    # yield image from slice (reference!)
+                    subim = create_image_from_array(im.data[..., y:y + dy, x:x + dx], wcs, im.polarisation_frame)
+                    if overlap > 0 and make_flat:
+                        flat = create_empty_image_like(subim)
+                        if taper == 'linear':
+                            flat.data[..., :, :] = taper_linear()
+                        else:
+                            flat.data[...] = 1.0
+                        yield flat
+                    else:
+                        yield subim
+                    i += 1
 
 
 def image_channel_iter(im: Image, subimages=1) -> Image:
