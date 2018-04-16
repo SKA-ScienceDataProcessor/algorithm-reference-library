@@ -113,7 +113,7 @@ class TestImage(unittest.TestCase):
 
     def test_calculate_image_frequency_moments(self):
         frequency = numpy.linspace(0.9e8, 1.1e8, 9)
-        cube = create_low_test_image_from_gleam(npixel=512, cellsize=0.0001, frequency=frequency)
+        cube = create_low_test_image_from_gleam(npixel=512, cellsize=0.0001, frequency=frequency, flux_limit=1.0)
         log.debug(export_image_to_fits(cube, fitsfile='%s/test_moments_cube.fits' % (self.dir)))
         original_cube = copy_image(cube)
         moment_cube = calculate_image_frequency_moments(cube, nmoments=3)

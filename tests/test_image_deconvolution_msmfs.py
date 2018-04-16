@@ -40,7 +40,8 @@ class TestImageDeconvolutionMSMFS(unittest.TestCase):
         self.test_model = create_low_test_image_from_gleam(npixel=512, cellsize=0.001,
                                                            phasecentre=self.vis.phasecentre,
                                                            frequency=self.frequency,
-                                                           channel_bandwidth=self.channel_bandwidth)
+                                                           channel_bandwidth=self.channel_bandwidth,
+                                                           flux_limit=1.0)
         beam = create_low_test_beam(self.test_model)
         export_image_to_fits(beam, "%s/test_deconvolve_mmclean_beam.fits" % self.dir)
         self.test_model.data *= beam.data

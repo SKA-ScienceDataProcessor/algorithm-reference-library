@@ -134,6 +134,7 @@ class TestImaging(unittest.TestCase):
         dirty_graph = create_invert_graph([result], [self.model_graph[0]], context='2d', dopsf=False,
                                           normalize=True)
         dirty_g = dirty_graph[0].compute()[0]
+        assert numpy.max(numpy.abs(dirty_g.data)), "Residual image is empty"
         export_image_to_fits(dirty_g, '%s/test_imaging_predict_%s%s_delayed_dirty.fits' %
                              (self.dir, context, extra))
         
@@ -148,17 +149,20 @@ class TestImaging(unittest.TestCase):
         dirty_graph = create_invert_graph(self.vis_graph_list, self.model_graph, context=context,
                                           dopsf=False, normalize=True, facets=facets, vis_slices=vis_slices,
                                           **kwargs)
-        dirty_g = dirty_graph[0].compute()[0]
-        export_image_to_fits(dirty_g, '%s/test_imaging_invert_%s%s_delayed_dirty.fits' %
+        dirty_d = dirty_graph[0].compute()[0]
+        export_image_to_fits(dirty_d, '%s/test_imaging_invert_%s%s_delayed_dirty.fits' %
                              (self.dir, context, extra))
         
         dirty_f = invert_function(self.vis, self.model, context=context,
                                   dopsf=False, normalize=True, facets=facets, vis_slices=vis_slices,
                                   **kwargs)[0]
-        export_image_to_fits(dirty_g, '%s/test_imaging_invert_%s%s_function_dirty.fits' %
+        export_image_to_fits(dirty_d, '%s/test_imaging_invert_%s%s_function_dirty.fits' %
                              (self.dir, context, extra))
         
-        difference = copy_image(dirty_g)
+        assert numpy.max(numpy.abs(dirty_f.data)), "Function image is empty"
+        assert numpy.max(numpy.abs(dirty_d.data)), "Delayed image is empty"
+
+        difference = copy_image(dirty_d)
         difference.data -= dirty_f.data
         maxabs = numpy.max(numpy.abs(difference.data))
         if maxabs > 1e-8:
@@ -169,7 +173,7 @@ class TestImaging(unittest.TestCase):
                               % (context, str(maxabs))
         
         if check_components:
-            self._checkcomponents(dirty_g, fluxthreshold, positionthreshold)
+            self._checkcomponents(dirty_d, fluxthreshold, positionthreshold)
             self._checkcomponents(dirty_f, fluxthreshold, positionthreshold)
     
     def test_predict_2d(self):
