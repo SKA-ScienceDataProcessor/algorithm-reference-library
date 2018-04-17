@@ -29,6 +29,7 @@ These are the same as executed in the imaging framework.
 
 """
 
+import collections
 import numpy
 from dask import delayed
 from dask.distributed import wait
@@ -64,8 +65,10 @@ def compute_list(client, graph_list, **kwargs):
     # Check that the number of workers has not decreased. On the first call, it seems that
     # Dask can report fewer workers than requested. This is transitory so we only
     # check for decreases.
-    assert nworkers_final >= nworkers_initial, "Lost workers: started with %d, now have %d" % \
-                                               (nworkers_initial, nworkers_final)
+    # assert nworkers_final >= nworkers_initial, "Lost workers: started with %d, now have %d" % \
+    #                                            (nworkers_initial, nworkers_final)
+    if nworkers_final < nworkers_initial:
+        print("Lost workers: started with %d, now have %d" % (nworkers_initial, nworkers_final))
     return [f.result() for f in futures]
 
 
@@ -207,6 +210,10 @@ def create_invert_graph(vis_graph_list, template_model_graph: delayed, dopsf=Fal
     :param kwargs: Parameters for functions in graphs
     :return: delayed for invert
    """
+    
+    if not isinstance(template_model_graph, collections.Iterable):
+        template_model_graph = [template_model_graph]
+    
     c = imaging_context(context)
     vis_iter = c['vis_iterator']
     invert = c['invert']
@@ -232,17 +239,18 @@ def create_invert_graph(vis_graph_list, template_model_graph: delayed, dopsf=Fal
     
     def invert_ignore_none(vis, model):
         if vis is not None:
-            result = invert(vis, model, context=context, dopsf=dopsf, normalize=normalize, facets=facets,
-                            vis_slices=vis_slices, **kwargs)
-            return result
+            return invert(vis, model, context=context, dopsf=dopsf, normalize=normalize, facets=facets,
+                          vis_slices=vis_slices, **kwargs)
         else:
             return create_empty_image_like(model), 0.0
     
     # Loop over all vis_graphs independently
     results_vis_graph_list = list()
     for freqwin, vis_graph in enumerate(vis_graph_list):
-        facet_graphs = delayed(image_scatter_facets, nout=actual_number_facets**2)(template_model_graph[freqwin],
-                                                                                facets=facets)
+        # Create the graph to divide an image into facets. This is by reference.
+        facet_graphs = delayed(image_scatter_facets, nout=actual_number_facets ** 2)(template_model_graph[freqwin],
+                                                                                     facets=facets)
+        # Create the graph to divide the visibility into slices. This is by copy.
         sub_vis_graphs = delayed(visibility_scatter, nout=vis_slices)(vis_graph, vis_iter, vis_slices=vis_slices)
         
         # Iterate within each vis_graph
@@ -298,18 +306,17 @@ def create_predict_graph(vis_graph_list, model_graph: delayed, vis_slices=1, fac
     
     def predict_ignore_none(vis, model):
         if vis is not None:
-            predicted = copy_visibility(vis)
-            predicted = predict(predicted, model, context=context, facets=facets, vis_slices=vis_slices, **kwargs)
-            assert predicted.nvis == vis.nvis, "Different number of rows after prediction"
-            return predicted
+            return predict(vis, model, context=context, facets=facets, vis_slices=vis_slices, **kwargs)
         else:
             return None
     
     image_results_graph_list = list()
     # Loop over all frequency windows
     for freqwin, vis_graph in enumerate(vis_graph_list):
-        facet_graphs = delayed(image_scatter_facets, nout=actual_number_facets**2)(model_graph[freqwin],
+        # Create the graph to divide an image into facets. This is by reference.
+        facet_graphs = delayed(image_scatter_facets, nout=actual_number_facets ** 2)(model_graph[freqwin],
                                                                                      facets=facets)
+        # Create the graph to divide the visibility into slices. This is by copy.
         sub_vis_graphs = delayed(visibility_scatter, nout=vis_slices)(vis_graph, vis_iter, vis_slices)
         
         if inner == 'vis':
@@ -392,14 +399,10 @@ def create_deconvolve_graph(dirty_graph: delayed, psf_graph: delayed, model_grap
             result.data += model.data
         # Return the cube
         return result
-    
-    def flatten(result, flat):
-        result.data[flat.data > 0.0] /= flat.data[flat.data > 0.0]
-        result.data[flat.data <= 0.0] = 0.0
-        return result
-    
+        
     deconvolve_facets = get_parameter(kwargs, 'deconvolve_facets', 1)
     deconvolve_overlap = get_parameter(kwargs, 'deconvolve_overlap', 0)
+    deconvolve_taper = get_parameter(kwargs, 'deconvolve_taper', None)
     if deconvolve_overlap > 0:
         deconvolve_number_facets = (deconvolve_facets - 2) ** 2
     else:
@@ -412,7 +415,8 @@ def create_deconvolve_graph(dirty_graph: delayed, psf_graph: delayed, model_grap
     #    dirty_graph = delayed(remove_sumwt, nout=nchan)(dirty_graph)
     scattered_channels_facets_dirty_graph = \
         [delayed(image_scatter_facets, nout=deconvolve_number_facets)(d[0], facets=deconvolve_facets,
-                                                                      overlap=deconvolve_overlap)
+                                                                      overlap=deconvolve_overlap,
+                                                                      taper=deconvolve_taper)
          for d in dirty_graph]
     
     # Now we do a transpose and gather
@@ -431,22 +435,14 @@ def create_deconvolve_graph(dirty_graph: delayed, psf_graph: delayed, model_grap
     scattered_results_graph = [delayed(deconvolve)(d, psf_graph, m)
                                for d, m in zip(scattered_facets_graph, scattered_model_graph)]
     
-    # Gather the results back into one image
-    gathered_results_graph = delayed(image_gather_facets, nout=1)(scattered_results_graph, model_graph,
-                                                                  facets=deconvolve_facets, overlap=deconvolve_overlap)
+    # Gather the results back into one image, correcting for overlaps as necessary. The taper function is is used to
+    # feather the facets together
+    gathered_results_graph, flat_graph = delayed(image_gather_facets, nout=2)(scattered_results_graph, model_graph,
+                                                                  facets=deconvolve_facets, overlap=deconvolve_overlap,
+                                                                  taper=deconvolve_taper)
     
-    # We also need a flat to normalise out the overlaps. To get this we scatter, fill with ones and then
-    # gather into one image: the flat
-    scattered_flat_graph = delayed(image_scatter_facets, nout=deconvolve_number_facets)(model_graph,
-                                                                                        facets=deconvolve_facets,
-                                                                                        overlap=deconvolve_overlap,
-                                                                                        make_flat=True)
-    flat_graph = delayed(image_gather_facets, nout=1)(scattered_flat_graph, model_graph, facets=deconvolve_facets,
-                                                      overlap=deconvolve_overlap)
     
-    # Finally we normalise out the flag
-    gathered_results_graph = delayed(flatten)(gathered_results_graph, flat_graph)
-    return delayed(image_scatter_channels, nout=nchan)(gathered_results_graph, subimages=nchan)
+    return delayed((delayed(image_scatter_channels, nout=nchan)(gathered_results_graph, subimages=nchan), flat_graph))
 
 
 def create_deconvolve_channel_graph(dirty_graph: delayed, psf_graph: delayed, model_graph: delayed, subimages,

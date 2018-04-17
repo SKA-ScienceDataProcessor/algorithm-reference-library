@@ -12,12 +12,19 @@ import logging
 log = logging.getLogger(__name__)
 
 
-def get_dask_Client(timeout=30, n_workers=None, threads_per_worker=1, processes=True, create_cluster=True):
+def get_dask_Client(timeout=30, n_workers=None, threads_per_worker=1, processes=True, create_cluster=True,
+                    memory_limit=None):
     """ Get a Dask.distributed Client for the scheduler defined externally, otherwise create
 
     The environment variable ARL_DASK_SCHEDULER is interpreted as pointing to the scheduler.
     and a client using that scheduler is returned. Otherwise a client is created
 
+    :param timeout: Time out for creation
+    :param n_workers: Number of workers
+    :param threads_per_worker:
+    :param processes: Use processes instead of threads
+    :param create_cluster: Create a LocalCluster
+    :param memory_limit: Memory limit per worker (bytes e.g. 8e9)
     :return: Dask client
     """
     scheduler = os.getenv('ARL_DASK_SCHEDULER', None)
@@ -27,9 +34,18 @@ def get_dask_Client(timeout=30, n_workers=None, threads_per_worker=1, processes=
     
     elif create_cluster:
         if n_workers is not None:
-            cluster = LocalCluster(n_workers=n_workers, threads_per_worker=threads_per_worker, processes=processes)
+            if memory_limit is not None:
+                cluster = LocalCluster(n_workers=n_workers, threads_per_worker=threads_per_worker, processes=processes,
+                                    memory_limit=memory_limit)
+            else:
+                cluster = LocalCluster(n_workers=n_workers, threads_per_worker=threads_per_worker, processes=processes)
         else:
-            cluster = LocalCluster(threads_per_worker=threads_per_worker, processes=processes)
+            if memory_limit is not None:
+                cluster = LocalCluster(threads_per_worker=threads_per_worker, processes=processes,
+                                    memory_limit=memory_limit)
+            else:
+                cluster = LocalCluster(threads_per_worker=threads_per_worker, processes=processes)
+
         print("Creating LocalCluster and Dask Client")
         c = Client(cluster)
     else:
@@ -71,28 +87,3 @@ def findNodes(c):
     
     """
     return [c.scheduler_info()['workers'][name]['host'] for name in c.scheduler_info()['workers'].keys()]
-
-
-def kill_dask_Scheduler(client):
-    """ Kill the process dask-ssh
-    
-    :params c: Dask client
-    
-    """
-    import psutil
-    import signal
-    for proc in psutil.process_iter():
-        # check whether the process name matches
-        if proc.name() == "graphs-ssh":
-            proc.send_signal(signal.SIGHUP)
-
-
-def kill_dask_Client(c):
-    """ Kill the Client
-    
-    :params c: Dask client
-    """
-    c.loop.add_callback(c.scheduler.retire_workers, close_workers=True)
-    c.loop.add_callback(c.scheduler.terminate)
-    c.run_on_scheduler(lambda dask_scheduler: dask_scheduler.loop.stop())
-    c.shutdown()

@@ -663,7 +663,7 @@ class QA:
         s += "\tContext: %s\n" % self.context
         s += "\tData:\n"
         for dataname in self.data.keys():
-            s += "\t\t%s: %s\n" % (dataname, str(self.data[dataname]))
+            s += "\t\t%s: %r\n" % (dataname, str(self.data[dataname]))
         return s
 
 

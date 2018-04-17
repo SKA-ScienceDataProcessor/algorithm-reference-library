@@ -23,13 +23,14 @@ def image_null_iter(im: Image, facets=1, overlap=0):
     yield im
 
 
-def image_raster_iter(im: Image, facets=1, overlap=0, taper=None, make_flat=False):
+def image_raster_iter(im: Image, facets=1, overlap=0, taper='flat', make_flat=False):
     """Create an image_raster_iter generator, returning images, optionally with overlaps
 
     The WCS is adjusted appropriately for each raster element. Hence this is a coordinate-aware
     way to iterate through an image.
 
-    Provided we don't break reference semantics, memory should be conserved
+    Provided we don't break reference semantics, memory should be conserved. However make_flat
+    creates a new set of images and thus reference semantics dont hold.
 
     To update the image in place:
         for r in raster(im, facets=2)::
@@ -38,11 +39,14 @@ def image_raster_iter(im: Image, facets=1, overlap=0, taper=None, make_flat=Fals
     If the overlap is greater than zero, we choose to keep all images the same size so the
     other ring of facets are ignored. So if facets=4 and overlap > 0 then the iterator returns
     (facets-2)**2 = 4 images.
+    
+    A taper is applied in the overlap regions. None implies a constant value, linear is a ramp, and
+    quadratic is parabolic at the ends.
 
     :param im: Image
     :param facets: Number of image partitions on each axis (2)
     :param overlap: overlap in pixels
-    :param taper: method of tapering at the edges: None or 'linear
+    :param taper: method of tapering at the edges: 'flat' or 'linear' or 'quadratic' or 'tukey'
     :param make_flat: Make the flat images
     :param kwargs: throw away unwanted parameters
     """
@@ -74,11 +78,41 @@ def image_raster_iter(im: Image, facets=1, overlap=0, taper=None, make_flat=Fals
         def taper_linear():
             t = numpy.ones(dx)
             ramp = numpy.arange(0, overlap).astype(float) / float(overlap)
+            
             t[:overlap] = ramp
             t[(dx - overlap):dx] = 1.0 - ramp
             result = numpy.outer(t, t)
+            
             return result
-        
+
+        def taper_quadratic():
+            t = numpy.ones(dx)
+            ramp = numpy.arange(0, overlap).astype(float) / float(overlap)
+            
+            quadratic_ramp = numpy.ones(overlap)
+            quadratic_ramp[0:overlap // 2] = 2.0 * ramp[0:overlap // 2] ** 2
+            quadratic_ramp[overlap // 2:] = 1 - 2.0 * ramp[overlap // 2:0:-1] ** 2
+            
+            t[:overlap] = quadratic_ramp
+            t[(dx - overlap):dx] = 1.0 - quadratic_ramp
+            
+            result = numpy.outer(t, t)
+            return result
+
+        def taper_tukey():
+            t = numpy.ones(dx)
+            ramp = numpy.arange(0, overlap).astype(float) / float(overlap)
+            
+            from arl.imaging.weighting import tukey_filter
+
+            xs = numpy.arange(dx) / float(dx)
+            print(xs)
+            r = 2 * overlap / dx
+            t = [tukey_filter(x, r) for x in xs]
+    
+            result = numpy.outer(t, t)
+            return result
+
         log.debug('image_raster_iter: spacing of raster (%d, %d)' % (dx, dy))
         
         i = 0
@@ -98,6 +132,10 @@ def image_raster_iter(im: Image, facets=1, overlap=0, taper=None, make_flat=Fals
                         flat = create_empty_image_like(subim)
                         if taper == 'linear':
                             flat.data[..., :, :] = taper_linear()
+                        elif taper == 'quadratic':
+                            flat.data[..., :, :] = taper_quadratic()
+                        elif taper == 'tukey':
+                            flat.data[..., :, :] = taper_tukey()
                         else:
                             flat.data[...] = 1.0
                         yield flat

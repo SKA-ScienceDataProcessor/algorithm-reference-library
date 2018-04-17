@@ -11,8 +11,8 @@ import logging
 import numpy
 
 from arl.data.data_models import Visibility, Image
+from arl.image.gather_scatter import image_scatter_facets
 from arl.image.operations import create_empty_image_like
-from arl.image.gather_scatter import image_scatter_facets, image_gather_facets
 from arl.imaging import normalize_sumwt
 from arl.imaging import predict_2d_base, invert_2d_base
 from arl.imaging.timeslice import predict_timeslice_single, invert_timeslice_single
@@ -71,7 +71,7 @@ def imaging_context(context='2d'):
 
 
 def invert_function(vis, im: Image, dopsf=False, normalize=True, context='2d', inner=None, vis_slices=1,
-                    facets=1, overlap=0, **kwargs):
+                    facets=1, overlap=0, taper=None, **kwargs):
     """ Invert using algorithm specified by context:
 
      * 2d: Two-dimensional transform
@@ -103,9 +103,9 @@ def invert_function(vis, im: Image, dopsf=False, normalize=True, context='2d', i
         svis = coalesce_visibility(vis, **kwargs)
     else:
         svis = vis
-
+    
     resultimage = create_empty_image_like(im)
-
+    
     if inner == 'image':
         totalwt = None
         for rows in vis_iter(svis, vis_slices=vis_slices):
@@ -113,7 +113,7 @@ def invert_function(vis, im: Image, dopsf=False, normalize=True, context='2d', i
                 visslice = create_visibility_from_rows(svis, rows)
                 sumwt = 0.0
                 workimage = create_empty_image_like(im)
-                for dpatch in image_scatter_facets(workimage, facets=facets, overlap=overlap):
+                for dpatch in image_scatter_facets(workimage, facets=facets, overlap=overlap, taper=taper):
                     result, sumwt = invert(visslice, dpatch, dopsf, normalize=False, facets=facets,
                                            vis_slices=vis_slices, **kwargs)
                     # Ensure that we fill in the elements of dpatch instead of creating a new numpy arrray
@@ -128,7 +128,7 @@ def invert_function(vis, im: Image, dopsf=False, normalize=True, context='2d', i
         # We assume that the weight is the same for all image iterations
         totalwt = None
         workimage = create_empty_image_like(im)
-        for dpatch in image_scatter_facets(workimage, facets=facets, overlap=overlap):
+        for dpatch in image_scatter_facets(workimage, facets=facets, overlap=overlap, taper=taper):
             totalwt = None
             for rows in vis_iter(svis, vis_slices=vis_slices):
                 if numpy.sum(rows):
@@ -150,7 +150,7 @@ def invert_function(vis, im: Image, dopsf=False, normalize=True, context='2d', i
     return resultimage, totalwt
 
 
-def predict_function(vis, model: Image, context='2d', inner=None, vis_slices=1, facets=1, overlap=0,
+def predict_function(vis, model: Image, context='2d', inner=None, vis_slices=1, facets=1, overlap=0, taper=None,
                      **kwargs) -> Visibility:
     """Predict visibilities using algorithm specified by context
     
@@ -178,7 +178,7 @@ def predict_function(vis, model: Image, context='2d', inner=None, vis_slices=1, 
     predict = c['predict']
     if inner is None:
         inner = c['inner']
-
+    
     if not isinstance(vis, Visibility):
         svis = coalesce_visibility(vis, **kwargs)
     else:
@@ -191,12 +191,12 @@ def predict_function(vis, model: Image, context='2d', inner=None, vis_slices=1, 
             if numpy.sum(rows):
                 visslice = create_visibility_from_rows(svis, rows)
                 visslice.data['vis'][...] = 0.0
-                for dpatch in image_scatter_facets(model, facets=facets):
+                for dpatch in image_scatter_facets(model, facets=facets, overlap=overlap, taper=taper):
                     result.data['vis'][...] = 0.0
                     result = predict(visslice, dpatch, **kwargs)
                     svis.data['vis'][rows] += result.data['vis']
     else:
-        for dpatch in image_scatter_facets(model, facets=facets):
+        for dpatch in image_scatter_facets(model, facets=facets, overlap=overlap, taper=taper):
             for rows in vis_iter(svis, vis_slices=vis_slices):
                 if numpy.sum(rows):
                     visslice = create_visibility_from_rows(svis, rows)

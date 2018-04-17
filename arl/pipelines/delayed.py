@@ -80,14 +80,14 @@ def create_continuum_imaging_pipeline_graph(vis_graph_list, model_graph: delayed
     psf_graph = create_invert_graph(vis_graph_list, model_graph, dopsf=True, context=context, **kwargs)
     
     residual_graph = create_residual_graph(vis_graph_list, model_graph, context=context, **kwargs)
-    deconvolve_model_graph = create_deconvolve_graph(residual_graph, psf_graph, model_graph, **kwargs)
+    deconvolve_model_graph = create_deconvolve_graph(residual_graph, psf_graph, model_graph, **kwargs)[0]
     
     nmajor = get_parameter(kwargs, "nmajor", 5)
     if nmajor > 1:
         for cycle in range(nmajor):
             residual_graph = create_residual_graph(vis_graph_list, deconvolve_model_graph, context=context, **kwargs)
             deconvolve_model_graph = create_deconvolve_graph(residual_graph, psf_graph, deconvolve_model_graph,
-                                                             **kwargs)
+                                                             **kwargs)[0]
     
     residual_graph = create_residual_graph(vis_graph_list, deconvolve_model_graph, context=context, **kwargs)
     restore_graph = create_restore_graph(deconvolve_model_graph, psf_graph, residual_graph)

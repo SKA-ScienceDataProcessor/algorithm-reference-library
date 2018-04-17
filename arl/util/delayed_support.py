@@ -3,6 +3,8 @@
 
 import logging
 
+import numpy
+
 from astropy import units as u
 from astropy.coordinates import SkyCoord
 from dask import delayed
@@ -24,7 +26,8 @@ def create_simulate_vis_graph(config='LOWBD2-CORE',
                               frequency=None, channel_bandwidth=None, times=None,
                               polarisation_frame=PolarisationFrame("stokesI"), order='frequency',
                               format='blockvis',
-                              rmax=1000.0) -> delayed:
+                              rmax=1000.0,
+                              zerow=False) -> delayed:
     """ Create a graph to simulate an observation
 
     The simulation step can generate a single BlockVisibility or a list of BlockVisibility's.
@@ -64,29 +67,35 @@ def create_simulate_vis_graph(config='LOWBD2-CORE',
         log.debug("create_simulate_vis_graph: Simulating distribution in %s" % order)
         vis_graph_list = list()
         for i, time in enumerate(times):
-            vis_graph_list.append(delayed(create_vis, nout=1)(conf, [times[i]], frequency=frequency,
+            vis_graph_list.append(delayed(create_vis, nout=1)(conf, numpy.array([times[i]]),
+                                                              frequency=frequency,
                                                               channel_bandwidth=channel_bandwidth,
                                                               weight=1.0, phasecentre=phasecentre,
-                                                              polarisation_frame=polarisation_frame))
+                                                              polarisation_frame=polarisation_frame,
+                                                              zerow=zerow))
     
     elif order == 'frequency':
         log.debug("create_simulate_vis_graph: Simulating distribution in %s" % order)
         vis_graph_list = list()
         for j, _ in enumerate(frequency):
-            vis_graph_list.append(delayed(create_vis, nout=1)(conf, times, frequency=[frequency[j]],
-                                                              channel_bandwidth=[channel_bandwidth[j]],
+            vis_graph_list.append(delayed(create_vis, nout=1)(conf, times,
+                                                              frequency=numpy.array([frequency[j]]),
+                                                              channel_bandwidth=numpy.array([channel_bandwidth[j]]),
                                                               weight=1.0, phasecentre=phasecentre,
-                                                              polarisation_frame=polarisation_frame))
+                                                              polarisation_frame=polarisation_frame,
+                                                              zerow=zerow))
     
     elif order == 'both':
         log.debug("create_simulate_vis_graph: Simulating distribution in time and frequency")
         vis_graph_list = list()
         for i, _ in enumerate(times):
             for j, _ in enumerate(frequency):
-                vis_graph_list.append(delayed(create_vis, nout=1)(conf, [times[i]], frequency=[frequency[j]],
-                                                                  channel_bandwidth=[channel_bandwidth[j]],
+                vis_graph_list.append(delayed(create_vis, nout=1)(conf, numpy.array([times[i]]),
+                                                                  frequency=numpy.array([frequency[j]]),
+                                                                  channel_bandwidth=numpy.array([channel_bandwidth[j]]),
                                                                   weight=1.0, phasecentre=phasecentre,
-                                                                  polarisation_frame=polarisation_frame))
+                                                                  polarisation_frame=polarisation_frame,
+                                                              zerow=zerow))
     
     elif order is None:
         log.debug("create_simulate_vis_graph: Simulating into single %s" % format)
@@ -94,7 +103,8 @@ def create_simulate_vis_graph(config='LOWBD2-CORE',
         vis_graph_list.append(delayed(create_vis, nout=1)(conf, times, frequency=frequency,
                                                           channel_bandwidth=channel_bandwidth,
                                                           weight=1.0, phasecentre=phasecentre,
-                                                          polarisation_frame=polarisation_frame))
+                                                          polarisation_frame=polarisation_frame,
+                                                              zerow=zerow))
     else:
         raise NotImplementedError("order $s not known" % order)
     return vis_graph_list
