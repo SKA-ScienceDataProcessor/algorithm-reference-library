@@ -9,11 +9,11 @@ import unittest
 import astropy.units as u
 import numpy
 from astropy.coordinates import SkyCoord
-
 from dask import delayed
 
 from arl.calibration.operations import apply_gaintable, create_gaintable_from_blockvisibility
 from arl.calibration.skymodel_cal import skymodel_cal_solve
+from arl.calibration.skymodel_cal_delayed import create_skymodel_cal_solve_graph
 from arl.calibration.solvers import solve_gaintable
 from arl.data.polarisation import PolarisationFrame
 from arl.data.skymodel import SkyModel
@@ -27,8 +27,6 @@ from arl.util.testing_support import create_named_configuration, simulate_gainta
 from arl.visibility.base import copy_visibility, create_blockvisibility
 from arl.visibility.coalesce import convert_blockvisibility_to_visibility
 
-from arl.calibration.skymodel_cal_delayed import create_skymodel_cal_solve_graph
-
 log = logging.getLogger(__name__)
 
 
@@ -40,7 +38,7 @@ class TestCalibrationSkyModelcal(unittest.TestCase):
         
         numpy.random.seed(180555)
     
-    def actualSetup(self, vnchan=1, doiso=True, ntimes=1, flux_limit=2.0):
+    def actualSetup(self, vnchan=1, doiso=True, ntimes=5, flux_limit=2.0):
         
         nfreqwin = vnchan
         rmax = 300.0
@@ -103,12 +101,12 @@ class TestCalibrationSkyModelcal(unittest.TestCase):
         export_image_to_fits(dirty, "%s/test_skymodel-initial-residual.fits" % self.dir)
         
         self.skymodels = [SkyModel(components=[cm]) for cm in self.components]
- 
+    
     def test_time_setup(self):
         self.actualSetup()
-
+    
     def test_skymodel_solve(self):
-        self.actualSetup()
+        self.actualSetup(ntimes=1)
         skymodel, residual_vis = skymodel_cal_solve(self.vis, self.skymodels, niter=30, gain=0.25, tol=1e-8)
         
         residual_vis = convert_blockvisibility_to_visibility(residual_vis)
@@ -118,21 +116,21 @@ class TestCalibrationSkyModelcal(unittest.TestCase):
         
         qa = qa_image(dirty)
         assert qa.data['rms'] < 3.2e-3, qa
-
+    
     def test_skymodel_cal_solve_delayed(self):
         self.actualSetup()
         self.skymodel_graph = [delayed(SkyModel, nout=1)(components=[cm]) for cm in self.components]
-
+        
         skymodel_cal_graph = create_skymodel_cal_solve_graph(self.vis, self.skymodel_graph, niter=30,
-                                                                      gain=0.25,
-                                                                      tol=1e-8)
+                                                             gain=0.25,
+                                                             tol=1e-8)
         skymodel, residual_vis = skymodel_cal_graph.compute(sync=True)
-    
+        
         residual_vis = convert_blockvisibility_to_visibility(residual_vis)
         residual_vis, _, _ = weight_visibility(residual_vis, self.beam)
         dirty, sumwt = invert_function(residual_vis, self.beam, context='2d')
         export_image_to_fits(dirty, "%s/test_skymodel_cal-delayed-final_residual.fits" % self.dir)
-    
+        
         qa = qa_image(dirty)
         assert qa.data['rms'] < 3.2e-3, qa
 

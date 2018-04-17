@@ -46,8 +46,8 @@ from arl.calibration.solvers import solve_gaintable
 from arl.calibration.operations import copy_gaintable, apply_gaintable, \
     create_gaintable_from_blockvisibility, qa_gaintable
 from arl.data.data_models import BlockVisibility
-from arl.imaging import predict_skycomponent_visibility
 from arl.skycomponent.base import copy_skycomponent
+from arl.skymodel.operations import copy_skymodel, predict_skymodel_visibility, solve_skymodel
 from arl.visibility.coalesce import convert_blockvisibility_to_visibility
 from arl.visibility.operations import copy_visibility, sum_visibility
 from arl.visibility.visibility_fitting import fit_visibility
@@ -75,8 +75,6 @@ def initialise_skymodel_cal_skymodel(vis: BlockVisibility, skymodels, **kwargs):
 
 def skymodel_cal_fit_skymodel(vis, calskymodel, gain=0.1, method='fit', **kwargs):
     """Fit a single skymodel to a visibility
-
-    This is the update to the component part of the window.
 
     :param evis: Expected vis for this ssm
     :param calskymodel: scm element being fit i.e. (skymodel, gaintable) tuple
@@ -113,11 +111,9 @@ def skymodel_cal_fit_gaintable(evis, calskymodel, gain=0.1, niter=3, tol=1e-3, *
     previous_gt = copy_gaintable(calskymodel[1])
     gt = copy_gaintable(calskymodel[1])
     model_vis = copy_visibility(evis, zero=True)
-    model_vis = predict_skycomponent_visibility(model_vis, calskymodel[0].components)
-    gt = solve_gaintable(evis, model_vis, gt=gt, niter=niter, phase_only=True, gain=0.5,
-                         tol=1e-4, **kwargs)
-    gt.data['gain'][...] = gain * gt.data['gain'][...] + \
-                           (1 - gain) * previous_gt.data['gain'][...]
+    model_vis = predict_skymodel_visibility(model_vis, calskymodel[0])
+    gt = solve_gaintable(evis, model_vis, gt=gt, niter=niter, phase_only=True, gain=0.5, tol=1e-4, **kwargs)
+    gt.data['gain'][...] = gain * gt.data['gain'][...] + (1 - gain) * previous_gt.data['gain'][...]
     gt.data['gain'][...] /= numpy.abs(previous_gt.data['gain'][...])
     return gt
 
@@ -134,13 +130,13 @@ def skymodel_cal_e_step(vis: BlockVisibility, evis_all: BlockVisibility, calskym
     """
     evis = copy_visibility(evis_all)
     tvis = copy_visibility(vis, zero=True)
-    tvis = predict_skycomponent_visibility(tvis, calskymodel[0].components)
+    tvis = predict_skymodel_visibility(tvis, calskymodel[0], **kwargs)
     tvis = apply_gaintable(tvis, calskymodel[1])
     evis.data['vis'][...] = tvis.data['vis'][...] + vis.data['vis'][...] - evis_all.data['vis'][...]
     return evis
 
 
-def skymodel_cal_e_all(vis: BlockVisibility, calskymodels):
+def skymodel_cal_e_all(vis: BlockVisibility, calskymodels, **kwargs):
     """Calculates E step in equation A12
 
     This is the sum of the data models over all skymodel
@@ -154,7 +150,7 @@ def skymodel_cal_e_all(vis: BlockVisibility, calskymodels):
     tvis = copy_visibility(vis, zero=True)
     for csm in calskymodels:
         tvis.data['vis'][...] = 0.0
-        tvis = predict_skycomponent_visibility(tvis, csm[0].components)
+        tvis = predict_skymodel_visibility(tvis, csm[0], **kwargs)
         tvis = apply_gaintable(tvis, csm[1])
         evis.data['vis'][...] += tvis.data['vis'][...]
     return evis
