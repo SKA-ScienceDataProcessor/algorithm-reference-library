@@ -59,6 +59,10 @@ def image_raster_iter(im: Image, facets=1, overlap=0, taper='flat', make_flat=Fa
         yield im
     
     else:
+        
+        assert overlap < (nx // facets), "Overlap in facets is too large"
+        assert overlap < (ny // facets), "Overlap in facets is too large"
+
         # Step between facets
         sx = nx // facets + overlap
         sy = ny // facets + overlap

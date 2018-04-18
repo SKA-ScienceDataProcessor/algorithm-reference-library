@@ -36,6 +36,18 @@ class TestImageIterators(unittest.TestCase):
             assert numpy.max(numpy.abs(m31model.data)), "Raster is empty for %d" % nraster
             assert numpy.max(numpy.abs(diff)) == 0.0, "Raster set failed for %d" % nraster
 
+    def test_raster_exception(self):
+    
+        m31original = create_test_image(polarisation_frame=PolarisationFrame('stokesI'))
+        assert numpy.max(numpy.abs(m31original.data)), "Original is empty"
+    
+        for nraster, overlap in [(1, 1e6), (2, 128), (1e6, 127)]:
+            
+            with self.assertRaises(AssertionError) as context:
+                m31model = create_test_image(polarisation_frame=PolarisationFrame('stokesI'))
+                for patch in image_raster_iter(m31model, facets=nraster, overlap=overlap):
+                    patch.data *= 2.0
+            
     def test_raster_overlap(self):
     
         m31original = create_test_image(polarisation_frame=PolarisationFrame('stokesI'))
