@@ -33,7 +33,9 @@ log.addHandler(logging.StreamHandler(sys.stderr))
 
 class TestImaging(unittest.TestCase):
     def setUp(self):
-        dask.set_options(get=dask.get)
+        import dask.multiprocessing
+        dask.set_options(get=dask.multiprocessing.get)
+    
         self.dir = './test_results'
         os.makedirs(self.dir, exist_ok=True)
     

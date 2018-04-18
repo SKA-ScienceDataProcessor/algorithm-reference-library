@@ -707,13 +707,10 @@ def ingest_unittest_visibility(config, frequency, channel_bandwidth, times, vis_
                                zerow=False):
     if block:
         vt = create_blockvisibility(config, times, frequency, channel_bandwidth=channel_bandwidth,
-                                    phasecentre=phasecentre, weight=1.0, polarisation_frame=vis_pol)
+                                    phasecentre=phasecentre, weight=1.0, polarisation_frame=vis_pol, zerow=zerow)
     else:
         vt = create_visibility(config, times, frequency, channel_bandwidth=channel_bandwidth,
-                               phasecentre=phasecentre, weight=1.0, polarisation_frame=vis_pol)
-        if zerow:
-            vt.data['uvw'][:, 2] = 0.0
-    
+                               phasecentre=phasecentre, weight=1.0, polarisation_frame=vis_pol, zerow=zerow)
     vt.data['vis'][...] = 0.0
     return vt
 

@@ -34,7 +34,7 @@ class TestImageDeconvolution(unittest.TestCase):
         self.vis = create_visibility(self.lowcore, self.times, self.frequency,
                                      channel_bandwidth=self.channel_bandwidth,
                                      phasecentre=self.phasecentre, weight=1.0,
-                                     polarisation_frame=PolarisationFrame('stokesI'))
+                                     polarisation_frame=PolarisationFrame('stokesI'), zerow=True)
         self.vis.data['vis'] *= 0.0
         
         # Create model

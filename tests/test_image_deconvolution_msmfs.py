@@ -33,7 +33,7 @@ class TestImageDeconvolutionMSMFS(unittest.TestCase):
         self.phasecentre = SkyCoord(ra=+0.0 * u.deg, dec=-45.0 * u.deg, frame='icrs', equinox='J2000')
         self.vis = create_visibility(self.lowcore, self.times, self.frequency, self.channel_bandwidth,
                                      phasecentre=self.phasecentre, weight=1.0,
-                                     polarisation_frame=PolarisationFrame('stokesI'))
+                                     polarisation_frame=PolarisationFrame('stokesI'), zerow=True)
         self.vis.data['vis'] *= 0.0
         
         # Create model

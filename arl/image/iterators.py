@@ -106,7 +106,6 @@ def image_raster_iter(im: Image, facets=1, overlap=0, taper='flat', make_flat=Fa
             from arl.imaging.weighting import tukey_filter
 
             xs = numpy.arange(dx) / float(dx)
-            print(xs)
             r = 2 * overlap / dx
             t = [tukey_filter(x, r) for x in xs]
     
