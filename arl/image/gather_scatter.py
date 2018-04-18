@@ -36,20 +36,23 @@ def image_scatter_facets(im: Image, facets=1, overlap=0, taper=None) -> List[Ima
                                                            taper=taper)]
 
 
-def image_gather_facets(image_list: List[Image], im: Image, facets=1, overlap=0, taper=None):
+def image_gather_facets(image_list: List[Image], im: Image, facets=1, overlap=0, taper=None,
+                        return_flat=False):
     """Gather a list of subimages back into an image using the  image_raster_iterator
 
     If the overlap is greater than zero, we choose to keep all images the same size so the
     other ring of facets are ignored. So if facets=4 and overlap > 0 then the gather expects
     (facets-2)**2 = 4 images.
 
-    To normalize the overlap we make a set of flats, gather that and divide.
+    To normalize the overlap we make a set of flats, gather that and divide. The flat may be optionally returned
+    instead of the result
 
     :param image_list: List of subimages
     :param im: Output image
     :param facets: Number of image partitions on each axis (2)
     :param overlap: Overlap between neighbours in pixels
-    :param taper: Taper at edges None or 'linear'
+    :param taper: Taper at edges None or 'linear' or 'Tukey'
+    :param return_flat: Return the flat
     :return: list of subimages
     """
     out = create_empty_image_like(im)
@@ -60,25 +63,37 @@ def image_gather_facets(image_list: List[Image], im: Image, facets=1, overlap=0,
         
         sum_flats = create_empty_image_like(im)
         
-        i = 0
-        for out_facet, sum_flat_facet in zip(image_raster_iter(out, facets=facets, overlap=overlap, taper=None),
-                                             image_raster_iter(sum_flats, facets=facets, overlap=overlap, taper=None)):
-            out_facet.data[...] += flats[i].data * image_list[i].data[...]
-            sum_flat_facet.data[...] += flats[i].data[...]
-            i += 1
-            
-        out.data[sum_flats.data > 0.0] /= sum_flats.data[sum_flats.data > 0.0]
-        out.data[sum_flats.data <= 0.0] = 0.0
+        if return_flat:
+            i = 0
+            for sum_flat_facet in image_raster_iter(sum_flats, facets=facets, overlap=overlap, taper=None):
+                sum_flat_facet.data[...] += flats[i].data[...]
+                i += 1
+    
+            return sum_flats
+        else:
+            i = 0
+            for out_facet, sum_flat_facet in zip(image_raster_iter(out, facets=facets, overlap=overlap, taper=None),
+                                                 image_raster_iter(sum_flats, facets=facets, overlap=overlap,
+                                                                   taper=None)):
+                out_facet.data[...] += flats[i].data * image_list[i].data[...]
+                sum_flat_facet.data[...] += flats[i].data[...]
+                i += 1
+    
+            out.data[sum_flats.data > 0.0] /= sum_flats.data[sum_flats.data > 0.0]
+            out.data[sum_flats.data <= 0.0] = 0.0
         
-        return out, sum_flats
+            return out
     else:
         flat = create_empty_image_like(im)
         flat.data[...] = 1.0
         
-        for i, facet in enumerate(image_raster_iter(out, facets=facets, overlap=overlap, taper=taper)):
-            facet.data[...] += image_list[i].data[...]
+        if return_flat:
+            return flat
+        else:
+            for i, facet in enumerate(image_raster_iter(out, facets=facets, overlap=overlap, taper=taper)):
+                facet.data[...] += image_list[i].data[...]
         
-        return out, flat
+            return out
 
 
 def image_scatter_channels(im: Image, subimages=None) -> List[Image]:

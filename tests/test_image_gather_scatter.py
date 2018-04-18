@@ -40,8 +40,9 @@ class TestImageGatherScatters(unittest.TestCase):
                                                                                 (m31model.data.shape[2] // nraster))
                 patch.data[...] = 1.0
             m31reconstructed = create_empty_image_like(m31model)
-            m31reconstructed, flat = image_gather_facets(image_list, m31reconstructed, facets=nraster)
-            
+            m31reconstructed = image_gather_facets(image_list, m31reconstructed, facets=nraster)
+            flat = image_gather_facets(image_list, m31reconstructed, facets=nraster, return_flat=True)
+
             assert numpy.max(numpy.abs(flat.data)), "Flat is empty for %d" % nraster
             assert numpy.max(numpy.abs(m31reconstructed.data)), "Raster is empty for %d" % nraster
 
@@ -64,7 +65,8 @@ class TestImageGatherScatters(unittest.TestCase):
                                                                                  nraster))
                 patch.data[...] = 1.0
             m31reconstructed = create_empty_image_like(m31model)
-            m31reconstructed, flat = image_gather_facets(image_list, m31reconstructed, facets=nraster, overlap=overlap)
+            m31reconstructed = image_gather_facets(image_list, m31reconstructed, facets=nraster, overlap=overlap)
+            flat = image_gather_facets(image_list, m31reconstructed, facets=nraster, overlap=overlap, return_flat=True)
         
             assert numpy.max(numpy.abs(flat.data)), "Flat is empty for %d" % nraster
             assert numpy.max(numpy.abs(m31reconstructed.data)), "Raster is empty for %d" % nraster
@@ -88,8 +90,10 @@ class TestImageGatherScatters(unittest.TestCase):
                                                                                     (2 * overlap + m31model.data.shape[2] //
                                                                                      nraster))
                 m31reconstructed = create_empty_image_like(m31model)
-                m31reconstructed, flat = image_gather_facets(image_list, m31reconstructed, facets=nraster, overlap=overlap,
+                m31reconstructed = image_gather_facets(image_list, m31reconstructed, facets=nraster, overlap=overlap,
                                                        taper=taper)
+                flat = image_gather_facets(image_list, m31reconstructed, facets=nraster, overlap=overlap,
+                                           taper=taper, return_flat=True)
                 export_image_to_fits(m31reconstructed,
                                      "%s/test_image_gather_scatter_%dnraster_%doverlap_%s_reconstructed.fits" %
                                      (self.dir, nraster, overlap, taper))

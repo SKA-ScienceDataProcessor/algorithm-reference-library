@@ -248,7 +248,8 @@ def create_invert_graph(vis_graph_list, template_model_graph: delayed, dopsf=Fal
     results_vis_graph_list = list()
     for freqwin, vis_graph in enumerate(vis_graph_list):
         # Create the graph to divide an image into facets. This is by reference.
-        facet_graphs = delayed(image_scatter_facets, nout=actual_number_facets ** 2)(template_model_graph[freqwin],
+        facet_graphs = delayed(image_scatter_facets, nout=actual_number_facets ** 2)(template_model_graph[
+                                                                                               freqwin],
                                                                                      facets=facets)
         # Create the graph to divide the visibility into slices. This is by copy.
         sub_vis_graphs = delayed(visibility_scatter, nout=vis_slices)(vis_graph, vis_iter, vis_slices=vis_slices)
@@ -387,7 +388,7 @@ def create_deconvolve_graph(dirty_graph: delayed, psf_graph: delayed, model_grap
     :param psf_graph:
     :param model_graph:
     :param kwargs: Parameters for functions in graphs
-    :return:
+    :return: (graph for the deconvolution, graph for the flat)
     """
     
     nchan = len(dirty_graph)
@@ -432,17 +433,20 @@ def create_deconvolve_graph(dirty_graph: delayed, psf_graph: delayed, model_grap
                                                                                          overlap=deconvolve_overlap)
     
     # Now do the deconvolution for each facet
-    scattered_results_graph = [delayed(deconvolve)(d, psf_graph, m)
+    scattered_results_graph = [delayed(deconvolve, nout=1)(d, psf_graph, m)
                                for d, m in zip(scattered_facets_graph, scattered_model_graph)]
     
     # Gather the results back into one image, correcting for overlaps as necessary. The taper function is is used to
     # feather the facets together
-    gathered_results_graph, flat_graph = delayed(image_gather_facets, nout=2)(scattered_results_graph, model_graph,
+    gathered_results_graph = delayed(image_gather_facets, nout=1)(scattered_results_graph, model_graph,
                                                                   facets=deconvolve_facets, overlap=deconvolve_overlap,
                                                                   taper=deconvolve_taper)
+    flat_graph = delayed(image_gather_facets, nout=1)(scattered_results_graph, model_graph,
+                                                                  facets=deconvolve_facets, overlap=deconvolve_overlap,
+                                                                  taper=deconvolve_taper, return_flat=True)
+
     
-    
-    return delayed((delayed(image_scatter_channels, nout=nchan)(gathered_results_graph, subimages=nchan), flat_graph))
+    return delayed(image_scatter_channels, nout=nchan)(gathered_results_graph, subimages=nchan), flat_graph
 
 
 def create_deconvolve_channel_graph(dirty_graph: delayed, psf_graph: delayed, model_graph: delayed, subimages,

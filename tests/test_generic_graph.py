@@ -77,7 +77,7 @@ class TestPipelinesGenericDask(unittest.TestCase):
         numpy.testing.assert_array_almost_equal_nulp(root.data ** 2, numpy.abs(self.image.data), 7)
 
     def test_create_generic_image_graph(self):
-        def imagerooter(im, **kwargs):
+        def imagerooter(im):
             im.data = numpy.sqrt(numpy.abs(im.data))
             return im
     

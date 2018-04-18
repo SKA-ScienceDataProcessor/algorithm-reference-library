@@ -32,14 +32,15 @@ log.addHandler(logging.StreamHandler(sys.stderr))
 
 class TestImagingDeconvolveDelayed(unittest.TestCase):
     
-    def actualSetUp(self, add_errors=False, freqwin=7, block=False, dospectral=True, dopol=False):
+    def actualSetUp(self, add_errors=False, freqwin=7, block=False, dospectral=True, dopol=False,
+                    zerow=True):
         
         dask.set_options(get=dask.get)
 
         self.dir = './test_results'
         os.makedirs(self.dir, exist_ok=True)
         
-        self.npixel = 512
+        self.npixel = 256
         self.low = create_named_configuration('LOWBD2', rmax=750.0)
         self.freqwin = freqwin
         self.vis_graph_list = list()
@@ -72,7 +73,8 @@ class TestImagingDeconvolveDelayed(unittest.TestCase):
                                                                    [self.channelwidth[freqwin]],
                                                                    self.times,
                                                                    self.vis_pol,
-                                                                   self.phasecentre, block=block)
+                                                                   self.phasecentre, block=block,
+                                                                   zerow=zerow)
                                for freqwin, _ in enumerate(self.frequency)]
         
         self.model_graph = [delayed(create_unittest_model, nout=freqwin)(self.vis_graph_list[freqwin],
@@ -105,12 +107,12 @@ class TestImagingDeconvolveDelayed(unittest.TestCase):
     def test_deconvolve_spectral(self):
         self.actualSetUp(add_errors=True)
         dirty_graph = create_invert_graph(self.vis_graph_list, self.model_graph,
-                                          context='wstack', vis_slices=51,
+                                          context='2d',
                                           dopsf=False, normalize=True)
         psf_graph = create_invert_graph(self.vis_graph_list, self.model_graph,
-                                        context='wstack', vis_slices=51,
+                                        context='2d',
                                         dopsf=True, normalize=True)
-        dec_graph = create_deconvolve_graph(dirty_graph, psf_graph, self.model_graph, niter=1000,
+        dec_graph, _ = create_deconvolve_graph(dirty_graph, psf_graph, self.model_graph, niter=1000,
                                             fractional_threshold=0.1, scales=[0, 3, 10],
                                             threshold=0.1, nmajor=0, gain=0.7)
         deconvolved = dec_graph.compute()
@@ -118,11 +120,11 @@ class TestImagingDeconvolveDelayed(unittest.TestCase):
     
     def test_deconvolve_and_restore_cube_mmclean(self):
         self.actualSetUp(add_errors=True)
-        dirty_graph = create_invert_graph(self.vis_graph_list, self.model_graph, context='wstack', vis_slices=51,
+        dirty_graph = create_invert_graph(self.vis_graph_list, self.model_graph, context='2d',
                                           dopsf=False, normalize=True)
-        psf_graph = create_invert_graph(self.vis_graph_list, self.model_graph, context='wstack', vis_slices=51,
+        psf_graph = create_invert_graph(self.vis_graph_list, self.model_graph, context='2d',
                                         dopsf=True, normalize=True)
-        dec_graph = create_deconvolve_graph(dirty_graph, psf_graph, self.model_graph, niter=1000,
+        dec_graph, _ = create_deconvolve_graph(dirty_graph, psf_graph, self.model_graph, niter=1000,
                                             fractional_threshold=0.1, scales=[0, 3, 10],
                                             algorithm='mmclean', nmoments=3, nchan=self.freqwin,
                                             threshold=0.1, nmajor=0, gain=0.7)
@@ -136,17 +138,16 @@ class TestImagingDeconvolveDelayed(unittest.TestCase):
     def test_deconvolve_and_restore_cube_mmclean_deconvolve_facets(self):
         self.actualSetUp(add_errors=True)
         dirty_graph = create_invert_graph(self.vis_graph_list, self.model_graph,
-                                          context='wstack', vis_slices=51,
-                                          dopsf=False, normalize=True)
+                                          context='2d', dopsf=False, normalize=True)
         psf_graph = create_invert_graph(self.vis_graph_list, self.model_graph,
-                                        context='wstack', vis_slices=51,
-                                        dopsf=True, normalize=True)
-        dec_graph = create_deconvolve_graph(dirty_graph, psf_graph, self.model_graph, niter=1000,
+                                        context='2d', dopsf=True, normalize=True)
+        dec_graph, _= create_deconvolve_graph(dirty_graph, psf_graph, self.model_graph, niter=1000,
                                             fractional_threshold=0.1, scales=[0, 3, 10],
                                             algorithm='mmclean', nmoments=3, nchan=self.freqwin,
-                                            threshold=0.1, nmajor=0, gain=0.7, deconvolve_facets=4, deconvolve_overlap=16)
+                                            threshold=0.1, nmajor=0, gain=0.7, deconvolve_facets=4,
+                                            deconvolve_overlap=16)
         residual_graph = create_residual_graph(self.vis_graph_list, model_graph=dec_graph,
-                                               context='wstack', vis_slices=51)
+                                               context='2d')
         rest_graph = create_restore_graph(model_graph=dec_graph, psf_graph=psf_graph, residual_graph=residual_graph,
                                           empty=self.model_graph)
         restored = rest_graph[0].compute()
