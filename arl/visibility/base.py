@@ -259,21 +259,14 @@ def phaserotate_visibility(vis: Visibility, newphasecentre: SkyCoord, tangent=Tr
         newvis = copy_visibility(vis)
 
         phasor = simulate_point(newvis.uvw, l, m)
-        nvis, npol = vis.vis.shape
-        # TODO: Speed up (broadcast rules not obvious to me)
-        # if inverse:
-        #     for i in range(nvis):
-        #         for pol in range(npol):
-        #             newvis.data['vis'][i, pol] *= phasor[i]
-        # else:
-        #     for i in range(nvis):
-        #         for pol in range(npol):
-        #             newvis.data['vis'][i, pol] *= numpy.conj(phasor[i])
 
+        if len(newvis.vis.shape) > len(phasor.shape):
+            phasor = phasor[:, numpy.newaxis]
+            
         if inverse:
-            newvis.data['vis'] *= phasor[:, numpy.newaxis]
+            newvis.data['vis'] *= phasor
         else:
-            newvis.data['vis'] *= numpy.conj(phasor[:, numpy.newaxis])
+            newvis.data['vis'] *= numpy.conj(phasor)
 
         # To rotate UVW, rotate into the global XYZ coordinate system and back. We have the option of
         # staying on the tangent plane or not. If we stay on the tangent then the raster will
