@@ -41,8 +41,7 @@ class TestPipelinesGenericDask(unittest.TestCase):
         self.phasecentre = SkyCoord(ra=+15.0 * u.deg, dec=-35.0 * u.deg, frame='icrs', equinox='J2000')
         self.compabsdirection = SkyCoord(ra=17.0 * u.deg, dec=-36.5 * u.deg, frame='icrs', equinox='J2000')
         
-        self.comp = create_skycomponent(flux=self.flux, frequency=self.frequency,
-                                        direction=self.compabsdirection,
+        self.comp = create_skycomponent(direction=self.compabsdirection, flux=self.flux, frequency=self.frequency,
                                         polarisation_frame=PolarisationFrame('stokesI'))
         self.image = create_test_image(frequency=self.frequency, phasecentre=self.phasecentre,
                                        cellsize=0.001,

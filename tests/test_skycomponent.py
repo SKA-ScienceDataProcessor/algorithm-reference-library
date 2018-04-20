@@ -44,9 +44,8 @@ class TestSkycomponent(unittest.TestCase):
         
     def test_copy(self):
         fluxes = numpy.linspace(0, 1.0, 10)
-        sc = [create_skycomponent(direction=self.phasecentre, flux=numpy.array([[f]]),
-                                 frequency=self.frequency,
-                                 polarisation_frame=PolarisationFrame('stokesI')) for f in fluxes]
+        sc = [create_skycomponent(direction=self.phasecentre, flux=numpy.array([[f]]), frequency=self.frequency,
+                                  polarisation_frame=PolarisationFrame('stokesI')) for f in fluxes]
         assert len(sc) == len(fluxes)
     
     def test_insert_skycomponent_FFT(self):

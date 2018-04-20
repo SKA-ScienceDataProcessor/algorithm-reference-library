@@ -309,7 +309,7 @@ class Skycomponent:
     
     def __init__(self,
                  direction=None, frequency=None, name=None, flux=None, shape='Point',
-                 polarisation_frame=PolarisationFrame('stokesIQUV'), **kwargs):
+                 polarisation_frame=PolarisationFrame('stokesIQUV'), params={}):
         """ Define the required structure
 
         :param direction: SkyCoord
@@ -326,7 +326,7 @@ class Skycomponent:
         self.name = name
         self.flux = numpy.array(flux)
         self.shape = shape
-        self.params = kwargs
+        self.params = params
         self.polarisation_frame = polarisation_frame
         
         assert len(self.frequency.shape) == 1, frequency
@@ -349,6 +349,7 @@ class Skycomponent:
 
         """
         s = "Skycomponent:\n"
+        s += "\tName: %s\n" % self.name
         s += "\tFlux: %s\n" % self.flux
         s += "\tFrequency: %s\n" % self.frequency
         s += "\tDirection: %s\n" % self.direction

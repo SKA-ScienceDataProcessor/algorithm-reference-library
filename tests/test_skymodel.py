@@ -43,8 +43,7 @@ class TestSkyModel(unittest.TestCase):
     def test_create(self):
         gt = create_gaintable_from_blockvisibility(self.vis)
         fluxes = numpy.linspace(0, 1.0, 11)
-        sc = [create_skycomponent(direction=self.phasecentre, flux=numpy.array([[f]]),
-                                  frequency=self.frequency,
+        sc = [create_skycomponent(direction=self.phasecentre, flux=numpy.array([[f]]), frequency=self.frequency,
                                   polarisation_frame=PolarisationFrame('stokesI')) for f in fluxes]
         sm = SkyModel(images=[self.model], components=sc)
         assert len(sm.images) == 1

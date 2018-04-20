@@ -38,11 +38,11 @@ class TestCalibrationSkyModelcal(unittest.TestCase):
         
         numpy.random.seed(180555)
     
-    def actualSetup(self, vnchan=1, doiso=True, ntimes=5, flux_limit=2.0):
+    def actualSetup(self, vnchan=1, doiso=True, ntimes=5, flux_limit=2.0, zerow=True):
         
         nfreqwin = vnchan
         rmax = 300.0
-        npixel = 1024
+        npixel = 512
         cellsize = 0.001
         frequency = numpy.linspace(0.8e8, 1.2e8, nfreqwin)
         if nfreqwin > 1:
@@ -57,7 +57,7 @@ class TestCalibrationSkyModelcal(unittest.TestCase):
         
         block_vis = create_blockvisibility(lowcore, times, frequency=frequency, channel_bandwidth=channel_bandwidth,
                                            weight=1.0, phasecentre=phasecentre,
-                                           polarisation_frame=PolarisationFrame("stokesI"))
+                                           polarisation_frame=PolarisationFrame("stokesI"), zerow=zerow)
         
         block_vis.data['uvw'][..., 2] = 0.0
         self.beam = create_image_from_visibility(block_vis, npixel=npixel, frequency=[numpy.average(frequency)],
@@ -98,29 +98,53 @@ class TestCalibrationSkyModelcal(unittest.TestCase):
         lvis = convert_blockvisibility_to_visibility(self.vis)
         lvis, _, _ = weight_visibility(lvis, self.beam)
         dirty, sumwt = invert_function(lvis, self.beam, context='2d')
-        export_image_to_fits(dirty, "%s/test_skymodel-initial-residual.fits" % self.dir)
-        
+        if doiso:
+            export_image_to_fits(dirty, "%s/test_skymodel-initial-iso-residual.fits" % self.dir)
+        else:
+            export_image_to_fits(dirty, "%s/test_skymodel-initial-noiso-residual.fits" % self.dir)
+
         self.skymodels = [SkyModel(components=[cm]) for cm in self.components]
     
     def test_time_setup(self):
         self.actualSetup()
-    
+
     def test_skymodel_solve(self):
-        self.actualSetup(ntimes=1)
+        self.actualSetup(ntimes=1, doiso=True)
         skymodel, residual_vis = skymodel_cal_solve(self.vis, self.skymodels, niter=30, gain=0.25, tol=1e-8)
-        
+    
         residual_vis = convert_blockvisibility_to_visibility(residual_vis)
         residual_vis, _, _ = weight_visibility(residual_vis, self.beam)
         dirty, sumwt = invert_function(residual_vis, self.beam, context='2d')
-        export_image_to_fits(dirty, "%s/test_skymodel-final_residual.fits" % self.dir)
-        
-        qa = qa_image(dirty)
-        assert qa.data['rms'] < 3.2e-3, qa
+        export_image_to_fits(dirty, "%s/test_skymodel-final-iso-residual.fits" % self.dir)
     
+        qa = qa_image(dirty)
+        assert qa.data['rms'] < 3.4e-3, qa
+
+    def test_skymodel_solve_noiso(self):
+        self.actualSetup(ntimes=1, doiso=False)
+        skymodel, residual_vis = skymodel_cal_solve(self.vis, self.skymodels, niter=30, gain=0.25, tol=1e-8)
+    
+        residual_vis = convert_blockvisibility_to_visibility(residual_vis)
+        residual_vis, _, _ = weight_visibility(residual_vis, self.beam)
+        dirty, sumwt = invert_function(residual_vis, self.beam, context='2d')
+        export_image_to_fits(dirty, "%s/test_skymodel-final-noiso-residual.fits" % self.dir)
+    
+        qa = qa_image(dirty)
+        assert qa.data['rms'] < 3.8e-3, qa
+
     def test_skymodel_cal_solve_delayed(self):
-        self.actualSetup()
+        self.actualSetup(doiso=True)
+
+        import dask.multiprocessing
+        dask.set_options(get=dask.get)
+        
         self.skymodel_graph = [delayed(SkyModel, nout=1)(components=[cm]) for cm in self.components]
         
+        skymodel_cal_graph = create_skymodel_cal_solve_graph(self.vis, self.skymodel_graph, niter=5,
+                                                             gain=0.25,
+                                                             tol=1e-8)
+        skymodel_cal_graph.visualize(filename='%s/test_skymodel_cal-delayed.svg' % self.dir)
+
         skymodel_cal_graph = create_skymodel_cal_solve_graph(self.vis, self.skymodel_graph, niter=30,
                                                              gain=0.25,
                                                              tol=1e-8)
@@ -129,7 +153,7 @@ class TestCalibrationSkyModelcal(unittest.TestCase):
         residual_vis = convert_blockvisibility_to_visibility(residual_vis)
         residual_vis, _, _ = weight_visibility(residual_vis, self.beam)
         dirty, sumwt = invert_function(residual_vis, self.beam, context='2d')
-        export_image_to_fits(dirty, "%s/test_skymodel_cal-delayed-final_residual.fits" % self.dir)
+        export_image_to_fits(dirty, "%s/test_skymodel_cal-delayed-final-iso-residual.fits" % self.dir)
         
         qa = qa_image(dirty)
         assert qa.data['rms'] < 3.2e-3, qa

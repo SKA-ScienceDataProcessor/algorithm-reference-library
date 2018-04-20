@@ -261,8 +261,9 @@ def qa_image(im, context="") -> QA:
     return qa
 
 
-def show_image(im: Image, fig=None, title: str = '', pol=0, chan=0, cm='rainbow', components=None):
-    """ Show an Image with coordinates using matplotlib
+def show_image(im: Image, fig=None, title: str = '', pol=0, chan=0, cm='rainbow', components=None,
+               vmin=None, vmax=None):
+    """ Show an Image with coordinates using matplotlib, optionally with components
 
     :param im:
     :param fig:
@@ -270,6 +271,8 @@ def show_image(im: Image, fig=None, title: str = '', pol=0, chan=0, cm='rainbow'
     :param pol: Polarisation
     :param chan: Channel
     :param components: Optional components
+    :param vmin: Clip to this minimum
+    :param vmax: Clip to this maximum
     :return:
     """
     import matplotlib.pyplot as plt
@@ -280,9 +283,17 @@ def show_image(im: Image, fig=None, title: str = '', pol=0, chan=0, cm='rainbow'
     plt.clf()
     fig.add_subplot(111, projection=im.wcs.sub(['longitude', 'latitude']))
     if len(im.data.shape) == 4:
-        plt.imshow(numpy.real(im.data[chan, pol, :, :]), origin='lower', cmap=cm)
+        data_array = numpy.real(im.data[chan, pol, :, :])
     elif len(im.data.shape) == 2:
-        plt.imshow(numpy.real(im.data[:, :]), origin='lower', cmap=cm)
+        data_array = numpy.real(im.data)
+        
+    if vmax is None:
+        vmax = numpy.max(data_array)
+    if vmin is None:
+        vmin = numpy.min(data_array)
+
+    plt.imshow(data_array, origin = 'lower', cmap = cm, vmax=vmax, vmin=vmin)
+
     plt.xlabel('RA---SIN')
     plt.ylabel('DEC--SIN')
     plt.title(title)
@@ -291,7 +302,7 @@ def show_image(im: Image, fig=None, title: str = '', pol=0, chan=0, cm='rainbow'
     if components is not None:
         for sc in components:
             x, y = skycoord_to_pixel(sc.direction, im.wcs, 1, 'wcs')
-            plt.plot(x, y, marker='+')
+            plt.plot(x, y, marker='+', color='red')
     return fig
 
 

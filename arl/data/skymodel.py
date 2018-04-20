@@ -9,33 +9,24 @@ class SkyModel:
     """ A model for the sky
     """
     
-    def __init__(self, images=None, components=None):
-        """ Holds a model of the sky
+    def __init__(self, images=[], components=[]):
+        """ A model of the sky as a list of images and a list of components
         
         """
-        if images is not None:
-            self.images = [copy_image(im) for im in images]
-        else:
-            self.images = None
+        self.images = [copy_image(im) for im in images]
+        self.components = [copy_skycomponent(sc) for sc in components]
         
-        if components is not None:
-            self.components = [copy_skycomponent(sc) for sc in components]
-        else:
-            self.components = None
-            
     def __str__(self):
         """Default printer for SkyModel
 
         """
         s = "SkyModel:\n"
-        if self.components is not None:
-            for i, sc in enumerate(self.components):
-                s += str(sc)
-            s += "\n"
+        for i, sc in enumerate(self.components):
+            s += str(sc)
+        s += "\n"
         
-        if self.images is not None:
-            for i, im in enumerate(self.images):
-                s += str(im)
-            s += "\n"
+        for i, im in enumerate(self.images):
+            s += str(im)
+        s += "\n"
         
         return s

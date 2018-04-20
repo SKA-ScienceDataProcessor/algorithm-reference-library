@@ -58,11 +58,8 @@ from arl.skymodel.operations import copy_skymodel
 log = logging.getLogger(__name__)
 
 
-def initialise_skymodel_cal_skymodel(vis: BlockVisibility, skymodels, **kwargs):
-    """Create the skymodel
-
-    Create the data model for each window, from the visibility and the existing components.
-    Note that the components can be lists
+def create_cal_skymodel(vis: BlockVisibility, skymodels, **kwargs):
+    """Create a set of associations between skymodel and gaintable
 
     :param vis: BlockVisibility to process
     :param skymodels: List of skyModels
@@ -73,29 +70,17 @@ def initialise_skymodel_cal_skymodel(vis: BlockVisibility, skymodels, **kwargs):
     return [(copy_skymodel(sm), copy_gaintable(gt)) for sm in skymodels]
 
 
-def skymodel_cal_fit_skymodel(vis, calskymodel, gain=0.1, method='fit', **kwargs):
+def skymodel_cal_fit_skymodel(vis, calskymodel, gain=0.1, **kwargs):
     """Fit a single skymodel to a visibility
 
     :param evis: Expected vis for this ssm
     :param calskymodel: scm element being fit i.e. (skymodel, gaintable) tuple
     :param gain: Gain in step
-    :param method: 'fit' or 'sum'
     :param kwargs:
-    :return: skycomponent
+    :return: skymodel
     """
     cvis = convert_blockvisibility_to_visibility(vis)
-    new_comps = list()
-    for comp in calskymodel[0].components:
-        new_comp = copy_skycomponent(comp)
-        if method == 'sum':
-            new_flux, _ = sum_visibility(cvis, new_comp.direction)
-            new_comp.flux = gain * new_flux + (1.0 - gain) * comp[0].flux
-        else:
-            new_comp, _ = fit_visibility(cvis, new_comp)
-            new_comp.flux = gain * new_comp.flux + (1.0 - gain) * comp.flux
-        new_comps.append(new_comp)
-
-    return SkyModel(components=new_comps)
+    return solve_skymodel(cvis, calskymodel[0], **kwargs)
 
 def skymodel_cal_fit_gaintable(evis, calskymodel, gain=0.1, niter=3, tol=1e-3, **kwargs):
     """Fit a gaintable to a visibility
@@ -159,8 +144,8 @@ def skymodel_cal_e_all(vis: BlockVisibility, calskymodels, **kwargs):
 def skymodel_cal_m_step(evis: BlockVisibility, calskymodel, **kwargs):
     """Calculates M step in equation A13
 
-    This maximises the likelihood of the ssm parameters given the existing data model. Note that these are done
-    separately rather than jointly.
+    This maximises the likelihood of the ssm parameters given the existing data model. Note that the skymodel and
+    gaintable are done separately rather than jointly.
 
     :param ssm:
     :param kwargs:
@@ -181,7 +166,7 @@ def skymodel_cal_solve(vis, skymodels, niter=10, tol=1e-8, gain=0.25, **kwargs):
     :param kwargs:
     :return: The individual data models and the residual visibility
     """
-    calskymodels = initialise_skymodel_cal_skymodel(vis, skymodels=skymodels, **kwargs)
+    calskymodels = create_cal_skymodel(vis, skymodels=skymodels, **kwargs)
     
     for iter in range(niter):
         new_calskymodels = list()

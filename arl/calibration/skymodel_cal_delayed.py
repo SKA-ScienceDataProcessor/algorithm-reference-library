@@ -47,7 +47,7 @@ from arl.calibration.operations import copy_gaintable, apply_gaintable, create_g
 from arl.calibration.skymodel_cal import skymodel_cal_fit_skymodel, skymodel_cal_fit_gaintable
 from arl.graphs.delayed import sum_predict_results
 from arl.imaging import predict_skycomponent_visibility
-from arl.skymodel.operations import copy_skymodel
+from arl.skymodel.operations import copy_skymodel, predict_skymodel_visibility
 from arl.visibility.operations import copy_visibility
 
 log = logging.getLogger(__name__)
@@ -85,7 +85,7 @@ def create_skymodel_cal_e_step_graph(vis_graph, evis_all_graph, calskymodel_grap
         # Return the estep for a given skymodel
         evis = copy_visibility(vis)
         tvis = copy_visibility(vis, zero=True)
-        tvis = predict_skycomponent_visibility(tvis, calskymodel[0].components)
+        tvis = predict_skymodel_visibility(tvis, calskymodel[0])
         tvis = apply_gaintable(tvis, calskymodel[1])
         # E step is the data model for a window plus the difference between the observed data
         # and the summed data models or, put another way, its the observed data minus the
@@ -109,7 +109,7 @@ def create_skymodel_cal_e_all_graph(vis_graph, calskymodel_graph):
     
     def predict_and_apply(ovis, calskymodel):
         tvis = copy_visibility(ovis, zero=True)
-        tvis = predict_skycomponent_visibility(tvis, calskymodel[0].components)
+        tvis = predict_skymodel_visibility(tvis, calskymodel[0])
         tvis = apply_gaintable(tvis, calskymodel[1])
         return tvis
     

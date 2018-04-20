@@ -19,12 +19,8 @@ def copy_skymodel(sm):
     """ Copy a sky model
     
     """
-    newsm = SkyModel()
-    if sm.components is not None:
-        newsm.components = [copy_skycomponent(comp) for comp in sm.components]
-    if sm.images is not None:
-        newsm.images = [copy_image(im) for im in sm.images]
-    return newsm
+    return SkyModel(components = [copy_skycomponent(comp) for comp in sm.components],
+                    images=[copy_image(im) for im in sm.images])
 
 
 def predict_skymodel_visibility(vis, sm, **kwargs):

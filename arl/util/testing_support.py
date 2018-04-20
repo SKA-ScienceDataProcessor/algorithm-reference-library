@@ -643,7 +643,7 @@ def create_blockvisibility_iterator(config: Configuration, times: numpy.array, f
 
 
 def simulate_gaintable(gt: GainTable, phase_error=0.1, amplitude_error=0.0, smooth_channels=1,
-                       leakage=0.0, seed=180555, **kwargs) -> GainTable:
+                       leakage=0.0, seed=None, **kwargs) -> GainTable:
     """ Simulate a gain table
     
     :type gt: GainTable
@@ -660,7 +660,8 @@ def simulate_gaintable(gt: GainTable, phase_error=0.1, amplitude_error=0.0, smoo
     def moving_average(a, n=3):
         return numpy.convolve(a, numpy.ones((n,)) / n, mode='valid')
     
-    numpy.random.seed(seed)
+    if seed is not None:
+        numpy.random.seed(seed)
     
     log.debug("simulate_gaintable: Simulating amplitude error = %.4f, phase error = %.4f"
               % (amplitude_error, phase_error))
@@ -747,8 +748,7 @@ def create_unittest_components(model, flux, applypb=False, npixel=None):
         log.info("Component at (%f, %f) [0-rel] %s" % (p[0], p[1], str(sc)))
         
         # Channel images
-        comp = create_skycomponent(flux=flux, frequency=model.frequency, direction=sc,
-                                   polarisation_frame=model_pol)
+        comp = create_skycomponent(direction=sc, flux=flux, frequency=model.frequency, polarisation_frame=model_pol)
         components.append(comp)
     
     if applypb:

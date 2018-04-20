@@ -19,12 +19,33 @@ from arl.data.polarisation import PolarisationFrame
 
 log = logging.getLogger(__name__)
 
+def copy_skycomponent(sc: Skycomponent) -> Skycomponent:
+    """ Copy a skycomponent
+
+    :param params:
+    :param direction:
+    :param flux:
+    :param frequency:
+    :param shape: 'Point' or 'Gaussian'
+    :param name:
+    :return: Skycomponent
+    """
+    return Skycomponent(
+        direction=sc.direction,
+        frequency=sc.frequency,
+        name=sc.name,
+        flux=numpy.array(sc.flux),
+        shape=sc.shape,
+        params=sc.params,
+        polarisation_frame=sc.polarisation_frame)
+
+
 def create_skycomponent(direction: SkyCoord, flux: numpy.array, frequency: numpy.array, shape: str = 'Point',
-                        polarisation_frame=PolarisationFrame("stokesIQUV"), param: dict = None, name: str = '') \
+                        polarisation_frame=PolarisationFrame("stokesIQUV"), params: dict = None, name: str = '') \
         -> Skycomponent:
     """ A single Skycomponent with direction, flux, shape, and params for the shape
 
-    :param param:
+    :param params:
     :param direction:
     :param flux:
     :param frequency:
@@ -38,16 +59,16 @@ def create_skycomponent(direction: SkyCoord, flux: numpy.array, frequency: numpy
         name=name,
         flux=numpy.array(flux),
         shape=shape,
-        params=param,
+        params=params,
         polarisation_frame=polarisation_frame)
 
 
-def find_nearest_component(home, comps) -> Skycomponent:
+def find_nearest_component(home, comps) -> (Skycomponent, float):
     """ Find nearest component to a given direction
-    
+
     :param home: Home direction
     :param comps: list of skycomponents
-    :return: nearest component
+    :return: nearest component, separation (radians)
     """
     sep = 2 * numpy.pi
     best = None
@@ -56,7 +77,24 @@ def find_nearest_component(home, comps) -> Skycomponent:
         if thissep < sep:
             sep = thissep
             best = comp
-    return best
+    return best, sep
+
+
+def select_components_by_separation(home, comps, max=2*numpy.pi, min=0.0) -> [Skycomponent]:
+    """ Select components with a range in separation
+
+    :param home: Home direction
+    :param comps: list of skycomponents
+    :param min: minimum range
+    :param max: maximum range
+    :return: nearest component, separation (radians)
+    """
+    selected = list()
+    for comp in comps:
+        thissep = comp.direction.separation(home).rad
+        if thissep >= min and thissep <= max:
+            selected.append(comp)
+    return selected
 
 
 def find_skycomponents(im: Image, fwhm=1.0, threshold=10.0, npixels=5) -> List[Skycomponent]:
@@ -142,7 +180,8 @@ def find_skycomponents(im: Image, fwhm=1.0, threshold=10.0, npixels=5) -> List[S
             flux=point_flux,
             shape='Point',
             polarisation_frame=im.polarisation_frame,
-            params={'xpixel': xs, 'ypixel': ys, 'sum_flux': flux}))  # Table has lots of data, could add more in future
+            params={}))
+ #           params={'xpixel': xs, 'ypixel': ys, 'sum_flux': flux}))  # Table has lots of data, could add more in future
     
     return comps
 

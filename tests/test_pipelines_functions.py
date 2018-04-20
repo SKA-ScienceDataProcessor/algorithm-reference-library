@@ -87,7 +87,7 @@ class TestPipelinesFunctions(unittest.TestCase):
                 p = int(round(rpix[0] + ix * spacing_pixels * numpy.sign(model.wcs.wcs.cdelt[0]))), \
                     int(round(rpix[1] + iy * spacing_pixels * numpy.sign(model.wcs.wcs.cdelt[1])))
                 sc = pixel_to_skycoord(p[0], p[1], model.wcs, origin=1)
-                comp = create_skycomponent(flux=flux, frequency=frequency, direction=sc,
+                comp = create_skycomponent(direction=sc, flux=flux, frequency=frequency,
                                            polarisation_frame=PolarisationFrame("stokesI"))
                 comps.append(comp)
         if block:
