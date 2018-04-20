@@ -34,7 +34,7 @@ log.addHandler(logging.StreamHandler(sys.stderr))
 class TestImaging(unittest.TestCase):
     def setUp(self):
         import dask.multiprocessing
-        dask.set_options(get=dask.multiprocessing.get)
+        dask.set_options(get=dask.get)
     
         self.dir = './test_results'
         os.makedirs(self.dir, exist_ok=True)
@@ -120,11 +120,9 @@ class TestImaging(unittest.TestCase):
         
         for comp in comps:
             # Check for agreement in direction
-            ocomp = find_nearest_component(comp.direction, self.components)
-            radiff = abs(comp.direction.ra.deg - ocomp.direction.ra.deg) / cellsize
-            assert radiff < positionthreshold, "Component differs in dec %.3f pixels" % radiff
-            decdiff = abs(comp.direction.dec.deg - ocomp.direction.dec.deg) / cellsize
-            assert decdiff < positionthreshold, "Component differs in dec %.3f pixels" % decdiff
+            ocomp, separation = find_nearest_component(comp.direction, self.components)
+            assert separation / cellsize < positionthreshold, "Component differs in position %.3f pixels" % \
+                separation / cellsize
     
     def _predict_base(self, context='2d', extra='', fluxthreshold=1.0, facets=1, vis_slices=1, **kwargs):
         vis_graph_list = create_zero_vis_graph_list(self.vis_graph_list)

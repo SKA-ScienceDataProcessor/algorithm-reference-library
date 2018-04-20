@@ -36,7 +36,7 @@ class TestImagingDeconvolveDelayed(unittest.TestCase):
                     zerow=True):
     
         import dask.multiprocessing
-        dask.set_options(get=dask.multiprocessing.get)
+        dask.set_options(get=dask.get)
     
         self.dir = './test_results'
         os.makedirs(self.dir, exist_ok=True)
