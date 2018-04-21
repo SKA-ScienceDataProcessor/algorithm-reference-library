@@ -51,7 +51,7 @@ class TestImageGatherScatters(unittest.TestCase):
         m31original = create_test_image(polarisation_frame=PolarisationFrame('stokesI'))
         assert numpy.max(numpy.abs(m31original.data)), "Original is empty"
     
-        for nraster, overlap in [(1, 0), (4, 8), (8, 32)]:
+        for nraster, overlap in [(1, 0), (4, 8), (8, 16)]:
             m31model = create_test_image(polarisation_frame=PolarisationFrame('stokesI'))
             image_list = image_scatter_facets(m31model, facets=nraster, overlap=overlap)
             for patch in image_list:
