@@ -180,7 +180,6 @@ class TestImaging(unittest.TestCase):
         self.actualSetUp(zerow=True)
         self._predict_base(context='2d')
     
-    @unittest.skip("Facets invert requires overlap")
     def test_predict_facets(self):
         self.actualSetUp()
         self._predict_base(context='facets', fluxthreshold=15.0, facets=8)

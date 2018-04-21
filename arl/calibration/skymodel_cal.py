@@ -79,8 +79,11 @@ def skymodel_cal_fit_skymodel(vis, calskymodel, gain=0.1, **kwargs):
     :param kwargs:
     :return: skymodel
     """
-    cvis = convert_blockvisibility_to_visibility(vis)
-    return solve_skymodel(cvis, calskymodel[0], **kwargs)
+    if calskymodel[0].fixed:
+        return calskymodel[0]
+    else:
+        cvis = convert_blockvisibility_to_visibility(vis)
+        return solve_skymodel(cvis, calskymodel[0], **kwargs)
 
 def skymodel_cal_fit_gaintable(evis, calskymodel, gain=0.1, niter=3, tol=1e-3, **kwargs):
     """Fit a gaintable to a visibility

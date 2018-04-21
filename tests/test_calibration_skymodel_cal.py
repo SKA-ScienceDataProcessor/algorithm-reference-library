@@ -26,6 +26,7 @@ from arl.util.testing_support import create_named_configuration, simulate_gainta
     create_low_test_skycomponents_from_gleam, create_low_test_beam
 from arl.visibility.base import copy_visibility, create_blockvisibility
 from arl.visibility.coalesce import convert_blockvisibility_to_visibility
+from arl.skycomponent.operations import find_skycomponent_matches
 
 log = logging.getLogger(__name__)
 
@@ -38,7 +39,7 @@ class TestCalibrationSkyModelcal(unittest.TestCase):
         
         numpy.random.seed(180555)
     
-    def actualSetup(self, vnchan=1, doiso=True, ntimes=5, flux_limit=2.0, zerow=True):
+    def actualSetup(self, vnchan=1, doiso=True, ntimes=5, flux_limit=2.0, zerow=True, fixed=False):
         
         nfreqwin = vnchan
         rmax = 300.0
@@ -103,14 +104,37 @@ class TestCalibrationSkyModelcal(unittest.TestCase):
         else:
             export_image_to_fits(dirty, "%s/test_skymodel-initial-noiso-residual.fits" % self.dir)
 
-        self.skymodels = [SkyModel(components=[cm]) for cm in self.components]
+        self.skymodels = [SkyModel(components=[cm], fixed=fixed) for cm in self.components]
     
     def test_time_setup(self):
         self.actualSetup()
 
     def test_skymodel_solve(self):
         self.actualSetup(ntimes=1, doiso=True)
-        skymodel, residual_vis = skymodel_cal_solve(self.vis, self.skymodels, niter=30, gain=0.25, tol=1e-8)
+        calskymodel, residual_vis = skymodel_cal_solve(self.vis, self.skymodels, niter=30, gain=0.25, tol=1e-8)
+    
+        residual_vis = convert_blockvisibility_to_visibility(residual_vis)
+        residual_vis, _, _ = weight_visibility(residual_vis, self.beam)
+        dirty, sumwt = invert_function(residual_vis, self.beam, context='2d')
+        export_image_to_fits(dirty, "%s/test_skymodel-final-iso-residual.fits" % self.dir)
+    
+        qa = qa_image(dirty)
+        assert qa.data['rms'] < 3.4e-3, qa
+
+    def test_skymodel_solve_fixed(self):
+        self.actualSetup(ntimes=1, doiso=True, fixed=True)
+        calskymodel, residual_vis = skymodel_cal_solve(self.vis, self.skymodels, niter=30, gain=0.25, tol=1e-8)
+        
+        # Check that the components are unchanged
+        calskymodel_skycomponents = list()
+        for sm in [csm[0] for csm in calskymodel]:
+            for comp in sm.components:
+                calskymodel_skycomponents.append(comp)
+                
+        recovered_components = find_skycomponent_matches(calskymodel_skycomponents, self.components, 1e-5)
+        for p in recovered_components:
+            assert numpy.abs(calskymodel_skycomponents[p[0]].flux[0, 0] - self.components[p[1]].flux[0, 0]) < 1e-15
+            assert calskymodel_skycomponents[p[0]].direction.separation(self.components[p[1]].direction).rad < 1e-15
     
         residual_vis = convert_blockvisibility_to_visibility(residual_vis)
         residual_vis, _, _ = weight_visibility(residual_vis, self.beam)
@@ -122,7 +146,7 @@ class TestCalibrationSkyModelcal(unittest.TestCase):
 
     def test_skymodel_solve_noiso(self):
         self.actualSetup(ntimes=1, doiso=False)
-        skymodel, residual_vis = skymodel_cal_solve(self.vis, self.skymodels, niter=30, gain=0.25, tol=1e-8)
+        calskymodel, residual_vis = skymodel_cal_solve(self.vis, self.skymodels, niter=30, gain=0.25, tol=1e-8)
     
         residual_vis = convert_blockvisibility_to_visibility(residual_vis)
         residual_vis, _, _ = weight_visibility(residual_vis, self.beam)

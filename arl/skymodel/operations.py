@@ -20,7 +20,8 @@ def copy_skymodel(sm):
     
     """
     return SkyModel(components = [copy_skycomponent(comp) for comp in sm.components],
-                    images=[copy_image(im) for im in sm.images])
+                    images=[copy_image(im) for im in sm.images],
+                    fixed=sm.fixed)
 
 
 def predict_skymodel_visibility(vis, sm, **kwargs):
@@ -51,6 +52,9 @@ def solve_skymodel(vis, skymodel, gain=0.1, **kwargs):
     :param kwargs:
     :return: skycomponent
     """
+    if skymodel.fixed:
+        return skymodel
+    
     new_comps = list()
     for comp in skymodel.components:
         new_comp = copy_skycomponent(comp)

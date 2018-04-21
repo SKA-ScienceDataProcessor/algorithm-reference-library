@@ -9,18 +9,19 @@ class SkyModel:
     """ A model for the sky
     """
     
-    def __init__(self, images=[], components=[]):
+    def __init__(self, images=[], components=[], fixed=False):
         """ A model of the sky as a list of images and a list of components
         
         """
         self.images = [copy_image(im) for im in images]
         self.components = [copy_skycomponent(sc) for sc in components]
+        self.fixed = fixed
         
     def __str__(self):
         """Default printer for SkyModel
 
         """
-        s = "SkyModel:\n"
+        s = "SkyModel: fixed: %s\n" % self.fixed
         for i, sc in enumerate(self.components):
             s += str(sc)
         s += "\n"
