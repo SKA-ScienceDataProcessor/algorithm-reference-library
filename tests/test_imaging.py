@@ -20,7 +20,7 @@ from arl.graphs.delayed import create_zero_vis_graph_list, create_predict_graph,
 from arl.image.operations import export_image_to_fits, smooth_image, copy_image
 from arl.imaging import predict_skycomponent_visibility
 from arl.imaging.imaging_context import invert_function
-from arl.skycomponent.operations import find_skycomponents, find_nearest_component, insert_skycomponent
+from arl.skycomponent.operations import find_skycomponents, find_nearest_skycomponent, insert_skycomponent
 from arl.util.testing_support import create_named_configuration, ingest_unittest_visibility, create_unittest_model, \
     insert_unittest_errors, create_unittest_components
 
@@ -120,7 +120,7 @@ class TestImaging(unittest.TestCase):
         
         for comp in comps:
             # Check for agreement in direction
-            ocomp, separation = find_nearest_component(comp.direction, self.components)
+            ocomp, separation = find_nearest_skycomponent(comp.direction, self.components)
             assert separation / cellsize < positionthreshold, "Component differs in position %.3f pixels" % \
                 separation / cellsize
     

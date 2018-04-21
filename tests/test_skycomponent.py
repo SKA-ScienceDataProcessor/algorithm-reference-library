@@ -11,12 +11,9 @@ import numpy
 from astropy.coordinates import SkyCoord
 
 from arl.data.polarisation import PolarisationFrame
-from arl.image.operations import export_image_to_fits
-from arl.imaging import predict_2d, invert_2d
-from arl.imaging import predict_skycomponent_visibility
-from arl.skycomponent.operations import insert_skycomponent, create_skycomponent
-from arl.util.testing_support import create_test_image, create_named_configuration
-from arl.visibility.base import create_visibility
+from arl.skycomponent.operations import create_skycomponent, find_separation_skycomponents, \
+    find_skycomponent_matches, find_nearest_skycomponent, find_nearest_skycomponent_index
+from arl.util.testing_support import create_low_test_skycomponents_from_gleam
 
 log = logging.getLogger(__name__)
 
@@ -24,109 +21,57 @@ log = logging.getLogger(__name__)
 class TestSkycomponent(unittest.TestCase):
     def setUp(self):
         self.dir = './test_results'
-        self.lowcore = create_named_configuration('LOWBD2-CORE')
         os.makedirs(self.dir, exist_ok=True)
-        self.times = (numpy.pi / 12.0) * numpy.linspace(-3.0, 3.0, 7)
+        
         self.frequency = numpy.array([1e8])
         self.channel_bandwidth = numpy.array([1e6])
-        self.phasecentre = SkyCoord(ra=+180.0 * u.deg, dec=-60.0 * u.deg, frame='icrs', equinox='J2000')
-        self.vis = create_visibility(self.lowcore, self.times, self.frequency,
-                                     channel_bandwidth=self.channel_bandwidth,
-                                     phasecentre=self.phasecentre, weight=1.0,
-                                     polarisation_frame=PolarisationFrame('stokesI'))
-        self.vis.data['vis'] *= 0.0
-        
-        # Create model
-        self.model = create_test_image(cellsize=0.0015, phasecentre=self.vis.phasecentre, frequency=self.frequency)
-        self.model.data[self.model.data > 1.0] = 1.0
-        self.vis = predict_2d(self.vis, self.model)
-        assert numpy.max(numpy.abs(self.vis.vis)) > 0.0
-        
+        self.phasecentre = SkyCoord(ra=+30.0 * u.deg, dec=-45.0 * u.deg, frame='icrs', equinox='J2000')
+        self.components = create_low_test_skycomponents_from_gleam(flux_limit=2.0,
+                                                                   phasecentre=self.phasecentre,
+                                                                   frequency=self.frequency,
+                                                                   polarisation_frame=PolarisationFrame('stokesI'),
+                                                                   radius=0.1)
+    
+    def test_time_setup(self):
+        pass
+    
     def test_copy(self):
         fluxes = numpy.linspace(0, 1.0, 10)
         sc = [create_skycomponent(direction=self.phasecentre, flux=numpy.array([[f]]), frequency=self.frequency,
                                   polarisation_frame=PolarisationFrame('stokesI')) for f in fluxes]
         assert len(sc) == len(fluxes)
     
-    def test_insert_skycomponent_FFT(self):
-        sc = create_skycomponent(direction=self.phasecentre, flux=numpy.array([[1.0]]), frequency=self.frequency,
-                                 polarisation_frame=PolarisationFrame('stokesI'))
+    def test_find_skycomponent_separation(self):
+        separations = find_separation_skycomponents(self.components)
+        assert separations[0, 0] == 0.0
+        assert numpy.max(separations) > 0.0
+    
+    def test_find_skycomponent_separation_binary(self):
+        test = self.components[:len(self.components) // 2]
+        separations = find_separation_skycomponents(test, self.components)
         
-        self.model.data *= 0.0
-        insert_skycomponent(self.model, sc)
-        npixel = self.model.shape[3]
-        # WCS is 1-relative
-        rpix = numpy.round(self.model.wcs.wcs.crpix).astype('int') - 1
-        assert rpix[0] == npixel // 2
-        assert rpix[1] == npixel // 2
-        # The phase centre is at rpix[0], rpix[1] in 0-relative pixels
-        assert self.model.data[0, 0, rpix[1], rpix[0]] == 1.0
-        # If we predict the visibility, then the imaginary part must be zero. This is determined entirely
-        # by shift_vis_to_image in arl.imaging.base
-        self.vis.data['vis'][...] = 0.0
-        self.vis = predict_2d(self.vis, self.model)
-        # The actual phase centre of a numpy FFT is at nx //2, nx //2 (0 rel).
-        assert numpy.max(numpy.abs(self.vis.vis.imag)) <1e-3
-
-    def test_insert_skycomponent_dft(self):
-        sc = create_skycomponent(direction=self.phasecentre, flux=numpy.array([[1.0]]), frequency=self.frequency,
-                                 polarisation_frame=PolarisationFrame('stokesI'))
-        print(sc)
-        self.vis.data['vis'][...] = 0.0
-        self.vis = predict_skycomponent_visibility(self.vis, sc)
-        im, sumwt = invert_2d(self.vis, self.model)
-        export_image_to_fits(im, '%s/test_skycomponent_dft.fits' % self.dir)
-        assert numpy.max(numpy.abs(self.vis.vis.imag)) < 1e-3
+        assert separations[0, 0] == 0.0
+        assert numpy.max(separations) > 0.0
     
-    def test_insert_skycomponent_nearest(self):
-        dphasecentre = SkyCoord(ra=+181.0 * u.deg, dec=-58.0 * u.deg, frame='icrs', equinox='J2000')
-        sc = create_skycomponent(direction=dphasecentre, flux=numpy.array([[1.0]]), frequency=self.frequency,
-                                 polarisation_frame=PolarisationFrame('stokesI'))
-        self.model.data *= 0.0
-        insert_skycomponent(self.model, sc, insert_method='Nearest')
-        # These test a regression but are not known a priori to be correct
-        self.assertAlmostEqual(self.model.data[0, 0, 151, 122], 1.0, 7)
-        self.assertAlmostEqual(self.model.data[0, 0, 152, 122], 0.0, 7)
+    def test_find_skycomponent_matches(self):
+        matches = find_skycomponent_matches(self.components[:len(self.components) // 2], self.components)
+        assert matches == [(0, 0, 0.0), (1, 1, 0.0), (2, 2, 0.0), (3, 3, 0.0), (4, 4, 0.0), (5, 5, 0.0), (6, 6, 0.0)]
+        matches = find_skycomponent_matches(self.components[len(self.components) // 2:], self.components)
+        assert matches == [(0, 7, 0.0), (1, 8, 0.0), (2, 9, 0.0), (3, 10, 0.0), (4, 11, 0.0), (5, 12, 0.0),
+                           (6, 13, 0.0)]
+        matches = find_skycomponent_matches(self.components, self.components[:len(self.components) // 2])
+        assert matches == [(0, 0, 0.0), (1, 1, 0.0), (2, 2, 0.0), (3, 3, 0.0), (4, 4, 0.0), (5, 5, 0.0), (6, 6, 0.0)]
+        matches = find_skycomponent_matches(self.components, self.components[len(self.components) // 2:])
+        assert matches == [(7, 0, 0.0), (8, 1, 0.0), (9, 2, 0.0), (10, 3, 0.0), (11, 4, 0.0), (12, 5, 0.0),
+                           (13, 6, 0.0)]
     
-    def test_insert_skycomponent_sinc(self):
-        dphasecentre = SkyCoord(ra=+181.0 * u.deg, dec=-58.0 * u.deg, frame='icrs', equinox='J2000')
-        sc = create_skycomponent(direction=dphasecentre, flux=numpy.array([[1.0]]), frequency=self.frequency,
-                                 polarisation_frame=PolarisationFrame('stokesI'))
-        self.model.data *= 0.0
-        insert_skycomponent(self.model, sc, insert_method='Sinc')
-        # These test a regression but are not known a priori to be correct
-        self.assertAlmostEqual(self.model.data[0, 0, 151, 122], 0.87684398703184396, 7)
-        self.assertAlmostEqual(self.model.data[0, 0, 152, 122], 0.2469311811046056, 7)
+    def test_find_nearest_component_index(self):
+        match = find_nearest_skycomponent_index(self.components[3].direction, self.components)
+        assert match == 3
     
-    def test_insert_skycomponent_sinc_bandwidth(self):
-        dphasecentre = SkyCoord(ra=+181.0 * u.deg, dec=-58.0 * u.deg, frame='icrs', equinox='J2000')
-        sc = create_skycomponent(direction=dphasecentre, flux=numpy.array([[1.0]]), frequency=self.frequency,
-                                 polarisation_frame=PolarisationFrame('stokesI'))
-        self.model.data *= 0.0
-        insert_skycomponent(self.model, sc, insert_method='Sinc', bandwidth=0.5)
-        # These test a regression but are not known a priori to be correct
-        self.assertAlmostEqual(self.model.data[0, 0, 151, 122], 0.25133066186805758, 7)
-        self.assertAlmostEqual(self.model.data[0, 0, 152, 122], 0.19685222464041874, 7)
-    
-    def test_insert_skycomponent_lanczos(self):
-        dphasecentre = SkyCoord(ra=+181.0 * u.deg, dec=-58.0 * u.deg, frame='icrs', equinox='J2000')
-        sc = create_skycomponent(direction=dphasecentre, flux=numpy.array([[1.0]]), frequency=self.frequency,
-                                 polarisation_frame=PolarisationFrame('stokesI'))
-        self.model.data *= 0.0
-        insert_skycomponent(self.model, sc, insert_method='Lanczos')
-        # These test a regression but are not known a priori to be correct
-        self.assertAlmostEqual(self.model.data[0, 0, 151, 122], 0.87781267543090036, 7)
-        self.assertAlmostEqual(self.model.data[0, 0, 152, 122], 0.23817562762032077, 7)
-    
-    def test_insert_skycomponent_lanczos_bandwidth(self):
-        dphasecentre = SkyCoord(ra=+181.0 * u.deg, dec=-58.0 * u.deg, frame='icrs', equinox='J2000')
-        sc = create_skycomponent(direction=dphasecentre, flux=numpy.array([[1.0]]), frequency=self.frequency,
-                                 polarisation_frame=PolarisationFrame('stokesI'))
-        self.model.data *= 0.0
-        insert_skycomponent(self.model, sc, insert_method='Lanczos', bandwidth=0.5)
-        # These test a regression but are not known a priori to be correct
-        self.assertAlmostEqual(self.model.data[0, 0, 151, 122], 0.24031092091707615, 7)
-        self.assertAlmostEqual(self.model.data[0, 0, 152, 122], 0.18648989466050975, 7)
+    def test_find_nearest_component(self):
+        match, sep = find_nearest_skycomponent(self.components[3].direction, self.components)
+        assert match.name == 'GLEAM J021305-474112'
 
 
 if __name__ == '__main__':

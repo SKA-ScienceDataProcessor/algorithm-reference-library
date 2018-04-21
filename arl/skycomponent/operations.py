@@ -9,7 +9,7 @@ from typing import Union, List
 import astropy.units as u
 import numpy
 from astropy.convolution import Gaussian2DKernel
-from astropy.coordinates import SkyCoord
+from astropy.coordinates import SkyCoord, match_coordinates_sky
 from astropy.stats import gaussian_fwhm_to_sigma
 from astropy.wcs.utils import skycoord_to_pixel, pixel_to_skycoord
 from photutils import segmentation
@@ -63,21 +63,103 @@ def create_skycomponent(direction: SkyCoord, flux: numpy.array, frequency: numpy
         polarisation_frame=polarisation_frame)
 
 
-def find_nearest_component(home, comps) -> (Skycomponent, float):
+def find_nearest_skycomponent_index(home, comps) -> int:
+    """ Find nearest component in a list to a given direction (home)
+
+    :param home: Home direction
+    :param comps: list of skycomponents
+    :return: index of best in comps
+    """
+    catalog = SkyCoord(ra=[c.direction.ra for c in comps], dec=[c.direction.dec for c in comps])
+    idx, dist2d, dist3d = match_coordinates_sky(home, catalog)
+    return idx
+
+
+def find_nearest_skycomponent(home: SkyCoord, comps) -> (Skycomponent, float):
     """ Find nearest component to a given direction
 
     :param home: Home direction
     :param comps: list of skycomponents
-    :return: nearest component, separation (radians)
+    :return: Index of nearest component
     """
-    sep = 2 * numpy.pi
-    best = None
-    for comp in comps:
-        thissep = comp.direction.separation(home).rad
-        if thissep < sep:
-            sep = thissep
-            best = comp
-    return best, sep
+    best_index = find_nearest_skycomponent_index(home, comps)
+    best = comps[best_index]
+    return best, best.direction.separation(home).rad
+
+def find_separation_skycomponents(comps_test, comps_ref=None):
+    """ Find the matrix of separations for two lists of components
+    
+    :param comps_test: List of components to be test
+    :param comps_ref: If None then set to comps_test
+    :return:
+    """
+    if comps_ref is None:
+        ncomps = len(comps_test)
+        distances = numpy.zeros([ncomps, ncomps])
+        for i in range(ncomps):
+            for j in range(i + 1, ncomps):
+                distances[i, j] = comps_test[i].direction.separation(comps_test[j].direction).rad
+                distances[j, i] = distances[i, j]
+        return distances
+
+    else:
+        ncomps_ref = len(comps_ref)
+        ncomps_test = len(comps_test)
+        separations = numpy.zeros([ncomps_ref, ncomps_test])
+        for ref in range(ncomps_ref):
+            for test in range(ncomps_test):
+                separations[ref, test] = comps_test[test].direction.separation(comps_ref[ref].direction).rad
+            
+        return separations
+
+
+def find_skycomponent_matches_atomic(comps_test, comps_ref, tol=1e-7):
+    """ Match a list of candidates to a reference set of skycomponents
+    
+    find_skycomponent_matches is faster since it uses the astropy catalog matching
+
+    many to one is allowed.
+
+    :param comps_test:
+    :param comps_ref:
+    :return:
+    """
+    separations = find_separation_skycomponents(comps_test, comps_ref)
+    matches = []
+    for test, comp_test in enumerate(comps_test):
+        best = numpy.argmin(separations[:, test])
+        best_sep = separations[best, test]
+        if best_sep < tol:
+            matches.append((test, best, best_sep))
+    
+    assert len(matches) <= len(comps_test)
+    
+    return matches
+
+
+def find_skycomponent_matches(comps_test, comps_ref, tol=1e-7):
+    """ Match a list of candidates to a reference set of skycomponents
+
+    many to one is allowed.
+
+    :param comps_test:
+    :param comps_ref:
+    :param tol: Tolerance in radians for a match
+    :return:
+    """
+    catalog_test = SkyCoord(ra=[c.direction.ra for c in comps_test],
+                            dec=[c.direction.dec for c in comps_test])
+    catalog_ref = SkyCoord(ra=[c.direction.ra for c in comps_ref],
+                            dec=[c.direction.dec for c in comps_ref])
+    idx, dist2d, dist3d = match_coordinates_sky(catalog_test, catalog_ref)
+    matches = list()
+    for test, comp_test in enumerate(comps_test):
+        best = idx[test]
+        best_sep = dist2d[test].rad
+        if best_sep < tol:
+            matches.append((test, best, best_sep))
+    
+    return matches
 
 
 def select_components_by_separation(home, comps, max=2*numpy.pi, min=0.0) -> [Skycomponent]:
