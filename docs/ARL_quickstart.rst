@@ -41,10 +41,11 @@ See the jupyter note books below:
    arl/imaging-fits
    arl/imaging-wterm
    arl/imaging-mfs
+   arl/imaging-pipelines
    arl/imaging-spectral
    arl/rcal
-   arl/peeling
    arl/simple-dask
+   arl/skymodel_cal
    arl/plot-imaging-results
 
 In addition, there are other notebooks in examples/arl that are not built as part of this documentation.
