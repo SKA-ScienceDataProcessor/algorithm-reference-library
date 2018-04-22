@@ -1,7 +1,7 @@
 """ Pipelines expressed as dask graphs
 """
 
-from dask import delayed
+from arl.graphs.execute import arlexecute
 
 from arl.data.parameters import get_parameter
 from arl.graphs.delayed import create_invert_graph, create_residual_graph, \
@@ -9,8 +9,8 @@ from arl.graphs.delayed import create_invert_graph, create_residual_graph, \
     create_subtract_vis_graph_list, create_restore_graph, create_deconvolve_graph
 
 
-def create_ical_pipeline_graph(vis_graph_list, model_graph: delayed, context='2d', calibration_context='TG',
-                               do_selfcal=True, **kwargs) -> delayed:
+def create_ical_pipeline_graph(vis_graph_list, model_graph, context='2d', calibration_context='TG',
+                               do_selfcal=True, **kwargs) :
     """Create graph for ICAL pipeline
 
     :param vis_graph_list:
@@ -60,11 +60,11 @@ def create_ical_pipeline_graph(vis_graph_list, model_graph: delayed, context='2d
     residual_graph = create_residual_graph(vis_graph_list, deconvolve_model_graph, context=context, **kwargs)
     restore_graph = create_restore_graph(deconvolve_model_graph, psf_graph, residual_graph)
     
-    return delayed((deconvolve_model_graph, residual_graph, restore_graph))
+    return arlexecute.execute((deconvolve_model_graph, residual_graph, restore_graph))
 
 
-def create_continuum_imaging_pipeline_graph(vis_graph_list, model_graph: delayed, context='2d',
-                                            **kwargs) -> delayed:
+def create_continuum_imaging_pipeline_graph(vis_graph_list, model_graph, context='2d',
+                                            **kwargs) :
     """ Create graph for the continuum imaging pipeline.
     
     Same as ICAL but with no selfcal.
@@ -91,13 +91,13 @@ def create_continuum_imaging_pipeline_graph(vis_graph_list, model_graph: delayed
     
     residual_graph = create_residual_graph(vis_graph_list, deconvolve_model_graph, context=context, **kwargs)
     restore_graph = create_restore_graph(deconvolve_model_graph, psf_graph, residual_graph)
-    return delayed((deconvolve_model_graph, residual_graph, restore_graph))
+    return arlexecute.execute((deconvolve_model_graph, residual_graph, restore_graph))
 
 
-def create_spectral_line_imaging_pipeline_graph(vis_graph_list, model_graph: delayed,
+def create_spectral_line_imaging_pipeline_graph(vis_graph_list, model_graph,
                                                 continuum_model_graph=None,
                                                 context='2d',
-                                                **kwargs) -> delayed:
+                                                **kwargs) :
     """Create graph for spectral line imaging pipeline
 
     Uses the ical pipeline after subtraction of a continuum model

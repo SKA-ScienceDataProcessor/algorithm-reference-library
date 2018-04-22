@@ -9,7 +9,7 @@ import unittest
 import astropy.units as u
 import numpy
 from astropy.coordinates import SkyCoord
-from dask import delayed
+from arl.graphs.execute import arlexecute
 
 from arl.calibration.operations import apply_gaintable, create_gaintable_from_blockvisibility
 from arl.calibration.skymodel_cal import skymodel_cal_solve
@@ -156,31 +156,32 @@ class TestCalibrationSkyModelcal(unittest.TestCase):
         qa = qa_image(dirty)
         assert qa.data['rms'] < 3.8e-3, qa
 
-    def test_skymodel_cal_solve_delayed(self):
-        self.actualSetup(doiso=True)
-
-        import dask.multiprocessing
-        dask.set_options(get=dask.get)
+    def test_skymodel_cal_solve_execute(self):
         
-        self.skymodel_graph = [delayed(SkyModel, nout=1)(components=[cm]) for cm in self.components]
-        
-        skymodel_cal_graph = create_skymodel_cal_solve_graph(self.vis, self.skymodel_graph, niter=5,
-                                                             gain=0.25,
-                                                             tol=1e-8)
-        skymodel_cal_graph.visualize(filename='%s/test_skymodel_cal-delayed.svg' % self.dir)
-
-        skymodel_cal_graph = create_skymodel_cal_solve_graph(self.vis, self.skymodel_graph, niter=30,
-                                                             gain=0.25,
-                                                             tol=1e-8)
-        skymodel, residual_vis = skymodel_cal_graph.compute(sync=True)
-        
-        residual_vis = convert_blockvisibility_to_visibility(residual_vis)
-        residual_vis, _, _ = weight_visibility(residual_vis, self.beam)
-        dirty, sumwt = invert_function(residual_vis, self.beam, context='2d')
-        export_image_to_fits(dirty, "%s/test_skymodel_cal-delayed-final-iso-residual.fits" % self.dir)
-        
-        qa = qa_image(dirty)
-        assert qa.data['rms'] < 3.2e-3, qa
+        for arlexecute.use_dask in [True, False]:
+            self.actualSetup(doiso=True)
+    
+            self.skymodel_graph = [arlexecute.execute(SkyModel, nout=1)(components=[cm]) for cm in self.components]
+            
+            skymodel_cal_graph = create_skymodel_cal_solve_graph(self.vis, self.skymodel_graph, niter=5,
+                                                                 gain=0.25,
+                                                                 tol=1e-8)
+            if arlexecute.use_dask:
+                skymodel_cal_graph.visualize(filename='%s/test_skymodel_cal-%s.svg' % (self.dir, arlexecute.type()))
+    
+            skymodel_cal_graph = create_skymodel_cal_solve_graph(self.vis, self.skymodel_graph, niter=30,
+                                                                 gain=0.25,
+                                                                 tol=1e-8)
+            skymodel, residual_vis = arlexecute.get(skymodel_cal_graph)
+            
+            residual_vis = convert_blockvisibility_to_visibility(residual_vis)
+            residual_vis, _, _ = weight_visibility(residual_vis, self.beam)
+            dirty, sumwt = invert_function(residual_vis, self.beam, context='2d')
+            export_image_to_fits(dirty, "%s/test_skymodel_cal-%s-final-iso-residual.fits" %
+                                 (self.dir, arlexecute.type()))
+            
+            qa = qa_image(dirty)
+            assert qa.data['rms'] < 3.2e-3, qa
 
 
 if __name__ == '__main__':
