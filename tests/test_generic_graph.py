@@ -5,12 +5,11 @@
 
 import os
 import unittest
-import dask
 
 import numpy
 from astropy import units as u
 from astropy.coordinates import SkyCoord
-from dask import delayed
+from arl.graphs.execute import arlexecute
 
 from arl.data.polarisation import PolarisationFrame
 from arl.graphs.generic_graphs import create_generic_blockvisibility_graph, create_generic_image_graph, \
@@ -24,7 +23,6 @@ from arl.visibility.base import create_blockvisibility
 
 class TestPipelinesGenericDask(unittest.TestCase):
     def setUp(self):
-        dask.set_options(get=dask.get)
 
         self.dir = './test_results'
         os.makedirs(self.dir, exist_ok=True)
@@ -48,7 +46,7 @@ class TestPipelinesGenericDask(unittest.TestCase):
                                        polarisation_frame=PolarisationFrame('stokesI'))
         self.image.data[self.image.data < 0.0] = 0.0
 
-        self.image_graph = delayed(create_test_image)(frequency=self.frequency,
+        self.image_graph = arlexecute.execute(create_test_image)(frequency=self.frequency,
                                                       phasecentre=self.phasecentre,
                                                       cellsize=0.001,
                                                       polarisation_frame=PolarisationFrame('stokesI'))
@@ -59,11 +57,14 @@ class TestPipelinesGenericDask(unittest.TestCase):
                                                 channel_bandwidth=self.channel_bandwidth,
                                                 weight=1.0,
                                                 polarisation_frame=PolarisationFrame('stokesI'))]
+
         self.blockvis = \
             create_generic_blockvisibility_graph(predict_skycomponent_visibility,
                                                  vis_graph_list=self.blockvis,
-                                                 sc=self.comp)[0].compute()
-        
+                                                 sc=self.comp)[0]
+
+        self.blockvis = arlexecute.get(self.blockvis)
+            
         assert numpy.max(numpy.abs(self.blockvis[0].vis)) > 0.0
 
     def test_create_generic_image_iterator_graph(self):
@@ -72,7 +73,9 @@ class TestPipelinesGenericDask(unittest.TestCase):
             return im
     
         root = create_generic_image_iterator_graph(imagerooter, self.image,   image_raster_iter,
-                                                   facets=16).compute()
+                                                   facets=16)
+        root = arlexecute.get(root)
+            
         numpy.testing.assert_array_almost_equal_nulp(root.data ** 2, numpy.abs(self.image.data), 7)
 
     def test_create_generic_image_graph(self):
@@ -80,7 +83,10 @@ class TestPipelinesGenericDask(unittest.TestCase):
             im.data = numpy.sqrt(numpy.abs(im.data))
             return im
     
-        root = create_generic_image_graph(imagerooter, self.image, facets=16).compute()
+        root = create_generic_image_graph(imagerooter, self.image, facets=16)
+
+        root = arlexecute.get(root)
+
         numpy.testing.assert_array_almost_equal_nulp(root.data ** 2, numpy.abs(self.image.data), 7)
 
 

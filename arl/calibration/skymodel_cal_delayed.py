@@ -41,7 +41,7 @@ skymodel_cal works best if an initial phase calibration has been obtained using 
 
 import logging
 
-from dask import delayed
+from arl.graphs.execute import arlexecute
 
 from arl.calibration.operations import copy_gaintable, apply_gaintable, create_gaintable_from_blockvisibility
 from arl.calibration.skymodel_cal import skymodel_cal_fit_skymodel, skymodel_cal_fit_gaintable
@@ -67,7 +67,7 @@ def create_initialise_skymodel_cal_graph(vis_graph, skymodel_graphs, **kwargs):
         gt = create_gaintable_from_blockvisibility(vis, **kwargs)
         return (copy_skymodel(skymodel), copy_gaintable(gt))
     
-    return [delayed(create_calskymodel, nout=2)(vis_graph, sm) for sm in skymodel_graphs]
+    return [arlexecute.execute(create_calskymodel, nout=2)(vis_graph, sm) for sm in skymodel_graphs]
 
 
 def create_skymodel_cal_e_step_graph(vis_graph, evis_all_graph, calskymodel_graph, **kwargs):
@@ -93,7 +93,7 @@ def create_skymodel_cal_e_step_graph(vis_graph, evis_all_graph, calskymodel_grap
         evis.data['vis'][...] = tvis.data['vis'][...] + vis.data['vis'][...] - evis_all.data['vis'][...]
         return evis
     
-    return [delayed(make_e)(vis_graph, csm, evis_all_graph) for csm in calskymodel_graph]
+    return [arlexecute.execute(make_e)(vis_graph, csm, evis_all_graph) for csm in calskymodel_graph]
 
 
 def create_skymodel_cal_e_all_graph(vis_graph, calskymodel_graph):
@@ -113,9 +113,9 @@ def create_skymodel_cal_e_all_graph(vis_graph, calskymodel_graph):
         tvis = apply_gaintable(tvis, calskymodel[1])
         return tvis
     
-    evis_graph = [delayed(predict_and_apply)(vis_graph, csm) for csm in calskymodel_graph]
+    evis_graph = [arlexecute.execute(predict_and_apply)(vis_graph, csm) for csm in calskymodel_graph]
     
-    return delayed(sum_predict_results, nout=1)(evis_graph)
+    return arlexecute.execute(sum_predict_results, nout=1)(evis_graph)
 
 
 def create_skymodel_cal_m_step_graph(evis_graph, skymodel_graph, **kwargs):
@@ -133,7 +133,7 @@ def create_skymodel_cal_m_step_graph(evis_graph, skymodel_graph, **kwargs):
         return (skymodel_cal_fit_skymodel(ev, skymodel, **kwargs),
                 skymodel_cal_fit_gaintable(ev, skymodel, **kwargs))
     
-    return [delayed(make_skymodel)(evis_graph[i], skymodel_graph[i]) for i, _ in enumerate(evis_graph)]
+    return [arlexecute.execute(make_skymodel)(evis_graph[i], skymodel_graph[i]) for i, _ in enumerate(evis_graph)]
 
 
 def create_skymodel_cal_solve_graph(vis_graph, skymodel_graphs, niter=10, tol=1e-8, gain=0.25, **kwargs):
@@ -162,4 +162,4 @@ def create_skymodel_cal_solve_graph(vis_graph, skymodel_graphs, niter=10, tol=1e
         residual_vis.data['vis'][...] = vis.data['vis'][...] - final_vis.data['vis'][...]
         return residual_vis
     
-    return delayed((calskymodel_graph, delayed(res_vis)(vis_graph, final_vis_graph)))
+    return arlexecute.execute((calskymodel_graph, arlexecute.execute(res_vis)(vis_graph, final_vis_graph)))

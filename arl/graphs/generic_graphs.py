@@ -16,7 +16,7 @@ subimages and passed to processing by imagerooter, and then the answers are reas
 We  could keep the graph and use it in other graphs. See the imaging-dask note book for more detail.
 """
 
-from dask import delayed
+from arl.graphs.execute import arlexecute
 
 from arl.data.data_models import Image
 from arl.image.operations import copy_image, create_empty_image_like
@@ -44,11 +44,11 @@ def create_generic_blockvisibility_graph(visfunction, vis_graph_list, additive=T
     
     results = list()
     for vis_graph in vis_graph_list:
-        results.append(delayed(visfunction, pure=True)(vis_graph, *args, **kwargs))
-    return [delayed(accumulate_results, pure=True)(results, **kwargs)]
+        results.append(arlexecute.execute(visfunction, pure=True)(vis_graph, *args, **kwargs))
+    return [arlexecute.execute(accumulate_results, pure=True)(results, **kwargs)]
 
 
-def create_generic_image_iterator_graph(imagefunction, im: Image, iterator, **kwargs) -> delayed:
+def create_generic_image_iterator_graph(imagefunction, im: Image, iterator, **kwargs):
     """ Definition of interface for create_generic_image_graph
     
     This generates a graph for imagefunction. Note that im cannot be a graph itself.
@@ -71,12 +71,12 @@ def create_generic_image_iterator_graph(imagefunction, im: Image, iterator, **kw
     results = list()
     
     for dpatch in iterator(im, **kwargs):
-        results.append(delayed(imagefunction(copy_image(dpatch), **kwargs)))
+        results.append(arlexecute.execute(imagefunction(copy_image(dpatch), **kwargs)))
     
-    return delayed(accumulate_results, pure=True)(results, **kwargs)
+    return arlexecute.execute(accumulate_results, pure=True)(results, **kwargs)
 
 
-def create_generic_image_graph(image_unary_function, im: Image, facets=4, **kwargs) -> delayed:
+def create_generic_image_graph(image_unary_function, im: Image, facets=4, **kwargs) :
     """ Definition of interface for create_generic_image_graph using scatter/gather
 
     This generates a graph for imagefunction. Note that im cannot be a graph itself.
@@ -87,7 +87,7 @@ def create_generic_image_graph(image_unary_function, im: Image, facets=4, **kwar
     :param kwargs: Parameters for functions in graphs
     :return: graph
     """
-    output = delayed(create_empty_image_like, nout=1, pure=True)(im)
-    scattered = delayed(image_scatter_facets, pure=True, nout=facets ** 2)(im, facets=facets)
-    result = [delayed(image_unary_function)(s) for s in scattered]
-    return delayed(image_gather_facets, nout=1, pure=True)(result, output, facets=facets)
+    output = arlexecute.execute(create_empty_image_like, nout=1, pure=True)(im)
+    scattered = arlexecute.execute(image_scatter_facets, pure=True, nout=facets ** 2)(im, facets=facets)
+    result = [arlexecute.execute(image_unary_function)(s) for s in scattered]
+    return arlexecute.execute(image_gather_facets, nout=1, pure=True)(result, output, facets=facets)

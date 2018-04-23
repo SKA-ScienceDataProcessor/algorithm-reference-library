@@ -7,7 +7,7 @@ import numpy
 
 from astropy import units as u
 from astropy.coordinates import SkyCoord
-from dask import delayed
+from arl.graphs.execute import arlexecute
 
 from arl.calibration.operations import apply_gaintable, create_gaintable_from_blockvisibility
 from arl.data.parameters import get_parameter
@@ -27,7 +27,7 @@ def create_simulate_vis_graph(config='LOWBD2-CORE',
                               polarisation_frame=PolarisationFrame("stokesI"), order='frequency',
                               format='blockvis',
                               rmax=1000.0,
-                              zerow=False) -> delayed:
+                              zerow=False) :
     """ Create a graph to simulate an observation
 
     The simulation step can generate a single BlockVisibility or a list of BlockVisibility's.
@@ -67,7 +67,7 @@ def create_simulate_vis_graph(config='LOWBD2-CORE',
         log.debug("create_simulate_vis_graph: Simulating distribution in %s" % order)
         vis_graph_list = list()
         for i, time in enumerate(times):
-            vis_graph_list.append(delayed(create_vis, nout=1)(conf, numpy.array([times[i]]),
+            vis_graph_list.append(arlexecute.execute(create_vis, nout=1)(conf, numpy.array([times[i]]),
                                                               frequency=frequency,
                                                               channel_bandwidth=channel_bandwidth,
                                                               weight=1.0, phasecentre=phasecentre,
@@ -78,7 +78,7 @@ def create_simulate_vis_graph(config='LOWBD2-CORE',
         log.debug("create_simulate_vis_graph: Simulating distribution in %s" % order)
         vis_graph_list = list()
         for j, _ in enumerate(frequency):
-            vis_graph_list.append(delayed(create_vis, nout=1)(conf, times,
+            vis_graph_list.append(arlexecute.execute(create_vis, nout=1)(conf, times,
                                                               frequency=numpy.array([frequency[j]]),
                                                               channel_bandwidth=numpy.array([channel_bandwidth[j]]),
                                                               weight=1.0, phasecentre=phasecentre,
@@ -90,7 +90,7 @@ def create_simulate_vis_graph(config='LOWBD2-CORE',
         vis_graph_list = list()
         for i, _ in enumerate(times):
             for j, _ in enumerate(frequency):
-                vis_graph_list.append(delayed(create_vis, nout=1)(conf, numpy.array([times[i]]),
+                vis_graph_list.append(arlexecute.execute(create_vis, nout=1)(conf, numpy.array([times[i]]),
                                                                   frequency=numpy.array([frequency[j]]),
                                                                   channel_bandwidth=numpy.array([channel_bandwidth[j]]),
                                                                   weight=1.0, phasecentre=phasecentre,
@@ -100,7 +100,7 @@ def create_simulate_vis_graph(config='LOWBD2-CORE',
     elif order is None:
         log.debug("create_simulate_vis_graph: Simulating into single %s" % format)
         vis_graph_list = list()
-        vis_graph_list.append(delayed(create_vis, nout=1)(conf, times, frequency=frequency,
+        vis_graph_list.append(arlexecute.execute(create_vis, nout=1)(conf, times, frequency=frequency,
                                                           channel_bandwidth=channel_bandwidth,
                                                           weight=1.0, phasecentre=phasecentre,
                                                           polarisation_frame=polarisation_frame,
@@ -130,7 +130,7 @@ def create_predict_gleam_model_graph(vis_graph_list, frequency, channel_bandwidt
         facets = {}
         if get_parameter(kwargs, "facets", False):
             facets = {'facets': get_parameter(kwargs, "facets", False)}
-        model_graph = delayed(create_low_test_image_from_gleam)(vis_graph, frequency,
+        model_graph = arlexecute.execute(create_low_test_image_from_gleam)(vis_graph, frequency,
                                                                 channel_bandwidth, npixel=npixel,
                                                                 cellsize=cellsize, **facets)
         predicted_vis_graph_list.append(create_predict_graph([vis_graph], model_graph, **kwargs)[0])
@@ -152,4 +152,4 @@ def create_corrupt_vis_graph(vis_graph_list, gt_graph=None, **kwargs):
             gt = simulate_gaintable(gt, **kwargs)
         return apply_gaintable(vis, gt)
     
-    return [delayed(corrupt_vis, nout=1)(vis_graph, gt_graph, **kwargs) for vis_graph in vis_graph_list]
+    return [arlexecute.execute(corrupt_vis, nout=1)(vis_graph, gt_graph, **kwargs) for vis_graph in vis_graph_list]
