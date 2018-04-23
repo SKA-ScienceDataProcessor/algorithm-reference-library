@@ -8,15 +8,14 @@ import os
 import sys
 import unittest
 
-import dask
 import numpy
 from astropy import units as u
 from astropy.coordinates import SkyCoord
-from dask import delayed
 
 from arl.data.polarisation import PolarisationFrame
 from arl.graphs.delayed import create_invert_graph, create_deconvolve_graph, create_residual_graph, \
     create_restore_graph
+from arl.graphs.execute import arlexecute
 from arl.image.operations import export_image_to_fits, smooth_image
 from arl.imaging import predict_skycomponent_visibility
 from arl.skycomponent.operations import insert_skycomponent
@@ -34,10 +33,10 @@ class TestImagingDeconvolveDelayed(unittest.TestCase):
     
     def actualSetUp(self, add_errors=False, freqwin=7, block=False, dospectral=True, dopol=False,
                     zerow=True):
-    
-        import dask.multiprocessing
-        dask.set_options(get=dask.get)
-    
+        
+        #        import dask.multiprocessing
+        #        dask.set_options(get=dask.get)
+        
         self.dir = './test_results'
         os.makedirs(self.dir, exist_ok=True)
         
@@ -69,7 +68,7 @@ class TestImagingDeconvolveDelayed(unittest.TestCase):
             flux = numpy.array([f])
         
         self.phasecentre = SkyCoord(ra=+180.0 * u.deg, dec=-60.0 * u.deg, frame='icrs', equinox='J2000')
-        self.vis_graph_list = [delayed(ingest_unittest_visibility)(self.low,
+        self.vis_graph_list = [arlexecute.execute(ingest_unittest_visibility)(self.low,
                                                                    [self.frequency[freqwin]],
                                                                    [self.channelwidth[freqwin]],
                                                                    self.times,
@@ -78,32 +77,37 @@ class TestImagingDeconvolveDelayed(unittest.TestCase):
                                                                    zerow=zerow)
                                for freqwin, _ in enumerate(self.frequency)]
         
-        self.model_graph = [delayed(create_unittest_model, nout=freqwin)(self.vis_graph_list[freqwin],
+        self.model_graph = [arlexecute.execute(create_unittest_model, nout=freqwin)(self.vis_graph_list[freqwin],
                                                                          self.image_pol,
                                                                          npixel=self.npixel)
                             for freqwin, _ in enumerate(self.frequency)]
         
-        self.components_graph = [delayed(create_unittest_components)(self.model_graph[freqwin],
+        self.components_graph = [arlexecute.execute(create_unittest_components)(self.model_graph[freqwin],
                                                                      flux[freqwin, :][numpy.newaxis, :])
                                  for freqwin, _ in enumerate(self.frequency)]
         
-        self.model_graph = [delayed(insert_skycomponent, nout=1)(self.model_graph[freqwin],
+        self.model_graph = [arlexecute.execute(insert_skycomponent, nout=1)(self.model_graph[freqwin],
                                                                  self.components_graph[freqwin])
                             for freqwin, _ in enumerate(self.frequency)]
         
-        self.vis_graph_list = [delayed(predict_skycomponent_visibility)(self.vis_graph_list[freqwin],
+        self.vis_graph_list = [arlexecute.execute(predict_skycomponent_visibility)(self.vis_graph_list[freqwin],
                                                                         self.components_graph[freqwin])
                                for freqwin, _ in enumerate(self.frequency)]
         
         # Calculate the model convolved with a Gaussian.
-        model = self.model_graph[0].compute()
+        
+        model = arlexecute.get(self.model_graph[0])
+        
         self.cmodel = smooth_image(model)
         export_image_to_fits(model, '%s/test_imaging_delayed_deconvolved_model.fits' % self.dir)
         export_image_to_fits(self.cmodel, '%s/test_imaging_deconvolved_delayed_cmodel.fits' % self.dir)
         
         if add_errors and block:
-            self.vis_graph_list = [delayed(insert_unittest_errors)(self.vis_graph_list[i])
+            self.vis_graph_list = [arlexecute.execute(insert_unittest_errors)(self.vis_graph_list[i])
                                    for i, _ in enumerate(self.frequency)]
+    
+    def test_time_setup(self):
+        self.actualSetUp()
     
     def test_deconvolve_spectral(self):
         self.actualSetUp(add_errors=True)
@@ -113,11 +117,13 @@ class TestImagingDeconvolveDelayed(unittest.TestCase):
         psf_graph = create_invert_graph(self.vis_graph_list, self.model_graph,
                                         context='2d',
                                         dopsf=True, normalize=True)
-        dec_graph, _ = create_deconvolve_graph(dirty_graph, psf_graph, self.model_graph, niter=1000,
-                                            fractional_threshold=0.1, scales=[0, 3, 10],
-                                            threshold=0.1, nmajor=0, gain=0.7)
-        deconvolved = dec_graph.compute()
-        export_image_to_fits(deconvolved[0], '%s/test_imaging_delayed_deconvolve_spectral.fits' % self.dir)
+        deconvolved, _ = create_deconvolve_graph(dirty_graph, psf_graph, self.model_graph, niter=1000,
+                                                 fractional_threshold=0.1, scales=[0, 3, 10],
+                                                 threshold=0.1, nmajor=0, gain=0.7)
+        deconvolved = arlexecute.get(deconvolved)
+        
+        export_image_to_fits(deconvolved[0], '%s/test_imaging_%s_deconvolve_spectral.fits' %
+                             (self.dir, arlexecute.type()))
     
     def test_deconvolve_and_restore_cube_mmclean(self):
         self.actualSetUp(add_errors=True)
@@ -126,33 +132,38 @@ class TestImagingDeconvolveDelayed(unittest.TestCase):
         psf_graph = create_invert_graph(self.vis_graph_list, self.model_graph, context='2d',
                                         dopsf=True, normalize=True)
         dec_graph, _ = create_deconvolve_graph(dirty_graph, psf_graph, self.model_graph, niter=1000,
-                                            fractional_threshold=0.1, scales=[0, 3, 10],
-                                            algorithm='mmclean', nmoments=3, nchan=self.freqwin,
-                                            threshold=0.1, nmajor=0, gain=0.7)
+                                               fractional_threshold=0.1, scales=[0, 3, 10],
+                                               algorithm='mmclean', nmoments=3, nchan=self.freqwin,
+                                               threshold=0.1, nmajor=0, gain=0.7)
         residual_graph = create_residual_graph(self.vis_graph_list, model_graph=dec_graph,
                                                context='wstack', vis_slices=51)
-        rest_graph = create_restore_graph(model_graph=dec_graph, psf_graph=psf_graph, residual_graph=residual_graph,
-                                          empty=self.model_graph)
-        restored = rest_graph[0].compute()
-        export_image_to_fits(restored, '%s/test_imaging_delayed_mmclean_restored.fits' % self.dir)
+        restored = create_restore_graph(model_graph=dec_graph, psf_graph=psf_graph, residual_graph=residual_graph,
+                                        empty=self.model_graph)[0]
+        
+        restored = arlexecute.get(restored)
+        
+        export_image_to_fits(restored, '%s/test_imaging_%s_mmclean_restored.fits' % (self.dir, arlexecute.type()))
     
-    def test_deconvolve_and_restore_cube_mmclean_deconvolve_facets(self):
+    def test_deconvolve_and_restore_cube_mmclean_facets(self):
         self.actualSetUp(add_errors=True)
         dirty_graph = create_invert_graph(self.vis_graph_list, self.model_graph,
                                           context='2d', dopsf=False, normalize=True)
         psf_graph = create_invert_graph(self.vis_graph_list, self.model_graph,
                                         context='2d', dopsf=True, normalize=True)
-        dec_graph, _= create_deconvolve_graph(dirty_graph, psf_graph, self.model_graph, niter=1000,
-                                            fractional_threshold=0.1, scales=[0, 3, 10],
-                                            algorithm='mmclean', nmoments=3, nchan=self.freqwin,
-                                            threshold=0.1, nmajor=0, gain=0.7, deconvolve_facets=4,
-                                            deconvolve_overlap=16)
+        dec_graph, _ = create_deconvolve_graph(dirty_graph, psf_graph, self.model_graph, niter=1000,
+                                               fractional_threshold=0.1, scales=[0, 3, 10],
+                                               algorithm='mmclean', nmoments=3, nchan=self.freqwin,
+                                               threshold=0.1, nmajor=0, gain=0.7, deconvolve_facets=4,
+                                               deconvolve_overlap=16)
         residual_graph = create_residual_graph(self.vis_graph_list, model_graph=dec_graph,
                                                context='2d')
-        rest_graph = create_restore_graph(model_graph=dec_graph, psf_graph=psf_graph, residual_graph=residual_graph,
-                                          empty=self.model_graph)
-        restored = rest_graph[0].compute()
-        export_image_to_fits(restored, '%s/test_imaging_delayed_overlap_mmclean_restored.fits' % self.dir)
+        restored = create_restore_graph(model_graph=dec_graph, psf_graph=psf_graph, residual_graph=residual_graph,
+                                        empty=self.model_graph)[0]
+        
+        restored = arlexecute.get(restored)
+
+        export_image_to_fits(restored, '%s/test_imaging_%s_overlap_mmclean_restored.fits'
+                             % (self.dir, arlexecute.type()))
 
 
 if __name__ == '__main__':

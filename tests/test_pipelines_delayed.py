@@ -11,7 +11,8 @@ import unittest
 import numpy
 from astropy import units as u
 from astropy.coordinates import SkyCoord
-from dask import delayed
+
+from arl.graphs.execute import arlexecute
 
 from arl.calibration.calibration_control import create_calibration_controls
 from arl.data.polarisation import PolarisationFrame
@@ -32,8 +33,6 @@ log.addHandler(logging.StreamHandler(sys.stderr))
 class TestPipelineGraphs(unittest.TestCase):
     
     def setUp(self):
-        import dask.multiprocessing
-        dask.set_options(get=dask.get)
         
         self.dir = './test_results'
         os.makedirs(self.dir, exist_ok=True)
@@ -74,7 +73,7 @@ class TestPipelineGraphs(unittest.TestCase):
             flux = numpy.array([f])
         
         self.phasecentre = SkyCoord(ra=+180.0 * u.deg, dec=-60.0 * u.deg, frame='icrs', equinox='J2000')
-        self.vis_graph_list = [delayed(ingest_unittest_visibility)(self.low,
+        self.vis_graph_list = [arlexecute.execute(ingest_unittest_visibility)(self.low,
                                                                    [self.frequency[i]],
                                                                    [self.channelwidth[i]],
                                                                    self.times,
@@ -83,30 +82,30 @@ class TestPipelineGraphs(unittest.TestCase):
                                                                    zerow=zerow)
                                for i, _ in enumerate(self.frequency)]
         
-        self.model_graph = [delayed(create_unittest_model, nout=freqwin)(self.vis_graph_list[0], self.image_pol,
+        self.model_graph = [arlexecute.execute(create_unittest_model, nout=freqwin)(self.vis_graph_list[0], self.image_pol,
                                                                          npixel=self.npixel)
                             for i, _ in enumerate(self.frequency)]
         
-        self.components_graph = [delayed(create_unittest_components)(self.model_graph[i], flux[i, :][numpy.newaxis, :])
+        self.components_graph = [arlexecute.execute(create_unittest_components)(self.model_graph[i], flux[i, :][numpy.newaxis, :])
                                  for i, _ in enumerate(self.frequency)]
         
         # Apply the LOW primary beam and insert into model
-        self.model_graph = [delayed(insert_skycomponent, nout=1)(self.model_graph[freqwin],
+        self.model_graph = [arlexecute.execute(insert_skycomponent, nout=1)(self.model_graph[freqwin],
                                                                  self.components_graph[freqwin])
                             for freqwin, _ in enumerate(self.frequency)]
         
-        self.vis_graph_list = [delayed(predict_skycomponent_visibility)(self.vis_graph_list[freqwin],
+        self.vis_graph_list = [arlexecute.execute(predict_skycomponent_visibility)(self.vis_graph_list[freqwin],
                                                                         self.components_graph[freqwin])
                                for freqwin, _ in enumerate(self.frequency)]
         
         # Calculate the model convolved with a Gaussian.
-        model = self.model_graph[0].compute()
+        model = arlexecute.get(self.model_graph[0])
         self.cmodel = smooth_image(model)
         export_image_to_fits(model, '%s/test_imaging_delayed_model.fits' % self.dir)
         export_image_to_fits(self.cmodel, '%s/test_imaging_delayed_cmodel.fits' % self.dir)
         
         if add_errors and block:
-            self.vis_graph_list = [delayed(insert_unittest_errors)(self.vis_graph_list[i], amp_errors=amp_errors,
+            self.vis_graph_list = [arlexecute.execute(insert_unittest_errors)(self.vis_graph_list[i], amp_errors=amp_errors,
                                                                    phase_errors=phase_errors)
                                    for i, _ in enumerate(self.frequency)]
     
@@ -123,7 +122,7 @@ class TestPipelineGraphs(unittest.TestCase):
                                                     nmoments=3, nchan=self.freqwin,
                                                     threshold=2.0, nmajor=5, gain=0.1,
                                                     deconvolve_facets=4, deconvolve_overlap=16, deconvolve_taper='tukey')
-        clean, residual, restored = continuum_imaging_graph.compute(sync=True)
+        clean, residual, restored = arlexecute.get(continuum_imaging_graph)
         export_image_to_fits(clean[0], '%s/test_pipelines_continuum_imaging_pipeline_clean.fits' % self.dir)
         export_image_to_fits(residual[0][0],
                              '%s/test_pipelines_continuum_imaging_pipeline_residual.fits' % self.dir)
@@ -159,7 +158,7 @@ class TestPipelineGraphs(unittest.TestCase):
                                        nmoments=3, nchan=self.freqwin,
                                        threshold=2.0, nmajor=5, gain=0.1,
                                        deconvolve_facets=4, deconvolve_overlap=16, deconvolve_taper='tukey')
-        clean, residual, restored = ical_graph.compute()
+        clean, residual, restored = arlexecute.get(ical_graph)
         export_image_to_fits(clean[0], '%s/test_pipelines_ical_pipeline_clean.fits' % self.dir)
         export_image_to_fits(residual[0][0], '%s/test_pipelines_ical_pipeline_residual.fits' % self.dir)
         export_image_to_fits(restored[0], '%s/test_pipelines_ical_pipeline_restored.fits' % self.dir)
