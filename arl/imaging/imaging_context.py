@@ -18,7 +18,7 @@ from arl.imaging import predict_2d_base, invert_2d_base
 from arl.imaging.timeslice import predict_timeslice_single, invert_timeslice_single
 from arl.imaging.wstack import predict_wstack_single, invert_wstack_single
 from arl.visibility.base import copy_visibility, create_visibility_from_rows
-from arl.visibility.coalesce import coalesce_visibility
+from arl.visibility.coalesce import convert_blockvisibility_to_visibility, convert_visibility_to_blockvisibility
 from arl.visibility.iterators import vis_timeslice_iter, vis_null_iter, vis_wslice_iter
 
 log = logging.getLogger(__name__)
@@ -100,7 +100,7 @@ def invert_function(vis, im: Image, dopsf=False, normalize=True, context='2d', i
         inner = c['inner']
     
     if not isinstance(vis, Visibility):
-        svis = coalesce_visibility(vis, **kwargs)
+        svis = convert_blockvisibility_to_visibility(vis, **kwargs)
     else:
         svis = vis
     
@@ -180,7 +180,7 @@ def predict_function(vis, model: Image, context='2d', inner=None, vis_slices=1, 
         inner = c['inner']
     
     if not isinstance(vis, Visibility):
-        svis = coalesce_visibility(vis, **kwargs)
+        svis = convert_blockvisibility_to_visibility(vis)
     else:
         svis = vis
     
@@ -203,5 +203,8 @@ def predict_function(vis, model: Image, context='2d', inner=None, vis_slices=1, 
                     result.data['vis'][...] = 0.0
                     result = predict(visslice, dpatch, **kwargs)
                     svis.data['vis'][rows] += result.data['vis']
-    
+
+    if not isinstance(vis, Visibility):
+        svis = convert_visibility_to_blockvisibility(svis)
+
     return svis

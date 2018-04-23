@@ -169,12 +169,29 @@ def select_components_by_separation(home, comps, max=2*numpy.pi, min=0.0) -> [Sk
     :param comps: list of skycomponents
     :param min: minimum range
     :param max: maximum range
-    :return: nearest component, separation (radians)
+    :return: selected components
     """
     selected = list()
     for comp in comps:
         thissep = comp.direction.separation(home).rad
         if thissep >= min and thissep <= max:
+            selected.append(comp)
+    return selected
+
+
+def select_components_by_flux(comps, fmax=numpy.infty, fmin=-numpy.infty) -> [Skycomponent]:
+    """ Select components with a range in flux
+
+    :param home: Home direction
+    :param comps: list of skycomponents
+    :param fmin: minimum range
+    :param fmax: maximum range
+    :return: selected components
+    """
+    selected = list()
+    for comp in comps:
+        flux = numpy.max(comp.flux)
+        if flux >= fmin and flux <= fmax:
             selected.append(comp)
     return selected
 
