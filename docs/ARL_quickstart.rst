@@ -46,6 +46,5 @@ See the jupyter note books below:
    arl/rcal
    arl/simple-dask
    arl/skymodel_cal
-   arl/plot-imaging-results
 
 In addition, there are other notebooks in examples/arl that are not built as part of this documentation.
