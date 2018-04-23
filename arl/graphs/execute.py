@@ -3,6 +3,10 @@
 """
 
 from dask import delayed
+import logging
+
+log = logging.getLogger(__name__)
+
 
 class ARLExecuteBase():
     
@@ -23,7 +27,7 @@ class ARLExecuteBase():
             return func
         
     def type(self):
-        """ Get the name of the execution system
+        """ Get the type of the execution system
         
         :return:
         """
@@ -39,7 +43,13 @@ class ARLExecuteBase():
         :return:
         """
         if self.use_dask:
-            return value.compute()
+            log.debug("arlexecute.get: Executing %d nodes in graph" % len(value.dask.dicts))
+            import time
+            start=time.time()
+            result = value.compute()
+            duration = time.time()-start
+            log.debug("arlexecute.get: Execution took %.3f seconds" % duration)
+            return result
         else:
             return value
 
