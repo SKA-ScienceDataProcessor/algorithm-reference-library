@@ -262,6 +262,7 @@ class TestImaging(unittest.TestCase):
             self._invert_base(context='timeslice', positionthreshold=1.0, check_components=True,
                           vis_slices=self.ntimes)
     
+    @unittest.skip("Not reliable in jenkins")
     def test_invert_timeslice_wprojection(self):
         for arlexecute.use_dask in self.execute_trials:
             self.actualSetUp()
