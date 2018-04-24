@@ -1,9 +1,12 @@
-""" Execute wraps execution services like dask
+""" Execute wrap dask such that with the same code Dask.delayed can be replaced by immediate calculation
 
 """
 
-from dask import delayed
 import logging
+import time
+
+from dask.distributed import Client, wait
+from dask import delayed
 
 log = logging.getLogger(__name__)
 
@@ -11,46 +14,86 @@ log = logging.getLogger(__name__)
 class ARLExecuteBase():
     
     def __init__(self, use_dask=True):
-        self.use_dask = use_dask
-        
+        self._using_dask = use_dask
+        self._client = None
+    
     def execute(self, func, *args, **kwargs):
         """ Wrap for immediate or deferred execution
         
+        Passes through if dask is not being used
+        
         :param args:
         :param kwargs:
-        :return:
+        :return: delayed func or func
         """
-        if self.use_dask:
-            from dask import delayed
+        if self._using_dask:
             return delayed(func, *args, **kwargs)
         else:
             return func
-        
+    
     def type(self):
         """ Get the type of the execution system
         
         :return:
         """
-        if self.use_dask:
+        if self._using_dask:
             return 'dask'
         else:
             return 'function'
+    
+    def set_client(self, client=None, use_dask=True, **kwargs):
+        """Set the Dask client to be used
         
-    def get(self, value):
-        """
-        
-        :param value:
+        :param use_dask: Use Dask?
+        :param client: If None and use_dask is True, a client will be created otherwise the client is None
         :return:
         """
-        if self.use_dask:
-            log.debug("arlexecute.get: Executing %d nodes in graph" % len(value.dask.dicts))
-            import time
-            start=time.time()
-            result = value.compute()
-            duration = time.time()-start
-            log.debug("arlexecute.get: Execution took %.3f seconds" % duration)
-            return result
+        if isinstance(self._client, Client):
+            self.client.close()
+            
+        if use_dask:
+            if client is None:
+                self._client = Client(**kwargs)
+            else:
+                assert isinstance(client, Client)
+                self._client = client
+            self._using_dask = True
+        else:
+            self._client = None
+            self._using_dask = False
+            
+                
+    def compute(self, value, sync=True):
+        """Get the actual value
+        
+        :param value:
+        :param sync: Operate synchronously
+        :return: If sync=True then the value, otherwise a Future
+        """
+        if self._using_dask:
+            start = time.time()
+            assert self.client is not None, "client must be defined if use_dask is True"
+            future = self.client.compute(value, sync=sync)
+            if sync:
+                wait(future)
+                duration = time.time() - start
+                log.debug("arlexecute.compute: Synchronous execution using Dask took %.3f seconds" % duration)
+                print("arlexecute.compute: Synchronous execution took %.3f seconds" % duration)
+            return future
         else:
             return value
+
+    @property
+    def client(self):
+        return self._client
+
+    @property
+    def using_dask(self):
+        return self._using_dask
+        
+    def close(self):
+        if self._using_dask and isinstance(self._client, Client):
+            self._client.close()
+
 
 arlexecute = ARLExecuteBase(use_dask=True)

@@ -8,17 +8,16 @@ import os
 import sys
 import unittest
 
-from arl.graphs.execute import arlexecute
 import numpy
 from astropy import units as u
 from astropy.coordinates import SkyCoord
 
 from arl.data.polarisation import PolarisationFrame
 from arl.graphs.delayed import create_zero_vis_graph_list, create_predict_graph, create_invert_graph, \
-    create_subtract_vis_graph_list, create_weight_vis_graph_list
-from arl.image.operations import export_image_to_fits, smooth_image, copy_image
+    create_subtract_vis_graph_list
+from arl.graphs.execute import arlexecute
+from arl.image.operations import export_image_to_fits, smooth_image
 from arl.imaging import predict_skycomponent_visibility
-from arl.imaging.imaging_context import invert_function
 from arl.skycomponent.operations import find_skycomponents, find_nearest_skycomponent, insert_skycomponent
 from arl.util.testing_support import create_named_configuration, ingest_unittest_visibility, create_unittest_model, \
     insert_unittest_errors, create_unittest_components
@@ -32,12 +31,16 @@ log.addHandler(logging.StreamHandler(sys.stderr))
 
 class TestImaging(unittest.TestCase):
     def setUp(self):
-    
+        
         self.dir = './test_results'
         os.makedirs(self.dir, exist_ok=True)
-        self.execute_trials= [True] # Just test dask versions
+        self.execute_trials = [True]  # Just test dask versions
+        arlexecute.set_client()
     
-    def actualSetUp(self, add_errors=False, freqwin=3, block=False, dospectral=True, dopol=False, zerow=False):
+    def tearDown(self):
+        arlexecute.client.close()
+    
+    def actualSetUp(self, add_errors=False, freqwin=1, block=False, dospectral=True, dopol=False, zerow=False):
         
         self.npixel = 256
         self.low = create_named_configuration('LOWBD2', rmax=750.0)
@@ -45,11 +48,12 @@ class TestImaging(unittest.TestCase):
         self.vis_graph_list = list()
         self.ntimes = 5
         self.times = numpy.linspace(-3.0, +3.0, self.ntimes) * numpy.pi / 12.0
-        self.frequency = numpy.linspace(0.8e8, 1.2e8, self.freqwin)
         
         if freqwin > 1:
+            self.frequency = numpy.linspace(0.8e8, 1.2e8, self.freqwin)
             self.channelwidth = numpy.array(freqwin * [self.frequency[1] - self.frequency[0]])
         else:
+            self.frequency = numpy.array([0.8e8])
             self.channelwidth = numpy.array([1e6])
         
         if dopol:
@@ -68,33 +72,33 @@ class TestImaging(unittest.TestCase):
         
         self.phasecentre = SkyCoord(ra=+180.0 * u.deg, dec=-60.0 * u.deg, frame='icrs', equinox='J2000')
         self.vis_graph_list = [arlexecute.execute(ingest_unittest_visibility)(self.low,
-                                                                   [self.frequency[freqwin]],
-                                                                   [self.channelwidth[freqwin]],
-                                                                   self.times,
-                                                                   self.vis_pol,
-                                                                   self.phasecentre, block=block,
-                                                                   zerow=zerow)
+                                                                              [self.frequency[freqwin]],
+                                                                              [self.channelwidth[freqwin]],
+                                                                              self.times,
+                                                                              self.vis_pol,
+                                                                              self.phasecentre, block=block,
+                                                                              zerow=zerow)
                                for freqwin, _ in enumerate(self.frequency)]
         
         self.model_graph = [arlexecute.execute(create_unittest_model, nout=freqwin)(self.vis_graph_list[freqwin],
-                                                                         self.image_pol,
-                                                                         npixel=self.npixel)
+                                                                                    self.image_pol,
+                                                                                    npixel=self.npixel)
                             for freqwin, _ in enumerate(self.frequency)]
         
         self.components_graph = [arlexecute.execute(create_unittest_components)(self.model_graph[freqwin],
-                                                                     flux[freqwin, :][numpy.newaxis, :])
+                                                                                flux[freqwin, :][numpy.newaxis, :])
                                  for freqwin, _ in enumerate(self.frequency)]
         
         self.model_graph = [arlexecute.execute(insert_skycomponent, nout=1)(self.model_graph[freqwin],
-                                                                 self.components_graph[freqwin])
+                                                                            self.components_graph[freqwin])
                             for freqwin, _ in enumerate(self.frequency)]
         
         self.vis_graph_list = [arlexecute.execute(predict_skycomponent_visibility)(self.vis_graph_list[freqwin],
-                                                                        self.components_graph[freqwin])
+                                                                                   self.components_graph[freqwin])
                                for freqwin, _ in enumerate(self.frequency)]
         
         # Calculate the model convolved with a Gaussian.
-        self.model = arlexecute.get(self.model_graph[0])
+        self.model = arlexecute.compute(self.model_graph[0])
         
         self.cmodel = smooth_image(self.model)
         export_image_to_fits(self.model, '%s/test_imaging_model.fits' % self.dir)
@@ -104,18 +108,18 @@ class TestImaging(unittest.TestCase):
             self.vis_graph_list = [arlexecute.execute(insert_unittest_errors)(self.vis_graph_list[i])
                                    for i, _ in enumerate(self.frequency)]
         
-        self.vis = arlexecute.get(self.vis_graph_list[0])
+        self.vis = arlexecute.compute(self.vis_graph_list[0])
         
-        self.components = arlexecute.get(self.components_graph[0])
-
+        self.components = arlexecute.compute(self.components_graph[0])
+    
     def test_time_setup_dask(self):
         arlexecute.use_dask = True
         self.actualSetUp()
-
+    
     def test_time_setup_function(self):
         arlexecute.use_dask = False
         self.actualSetUp()
-
+    
     def _checkcomponents(self, dirty, fluxthreshold=0.6, positionthreshold=1.0):
         comps = find_skycomponents(dirty, fwhm=1.0, threshold=10 * fluxthreshold, npixels=5)
         assert len(comps) == len(self.components), "Different number of components found: original %d, recovered %d" % \
@@ -126,7 +130,7 @@ class TestImaging(unittest.TestCase):
             # Check for agreement in direction
             ocomp, separation = find_nearest_skycomponent(comp.direction, self.components)
             assert separation / cellsize < positionthreshold, "Component differs in position %.3f pixels" % \
-                separation / cellsize
+                                                              separation / cellsize
     
     def _predict_base(self, context='2d', extra='', fluxthreshold=1.0, facets=1, vis_slices=1, **kwargs):
         vis_graph_list = create_zero_vis_graph_list(self.vis_graph_list)
@@ -134,12 +138,12 @@ class TestImaging(unittest.TestCase):
                                               vis_slices=vis_slices, facets=facets, **kwargs)
         vis_graph_list = create_subtract_vis_graph_list(self.vis_graph_list, vis_graph_list)[0]
         
-        vis_graph_list = arlexecute.get(vis_graph_list)
-            
+        vis_graph_list = arlexecute.compute(vis_graph_list)
+        
         dirty = create_invert_graph([vis_graph_list], [self.model_graph[0]], context='2d', dopsf=False,
-                                          normalize=True)[0]
-        dirty = arlexecute.get(dirty)
-            
+                                    normalize=True)[0]
+        dirty = arlexecute.compute(dirty)
+        
         assert numpy.max(numpy.abs(dirty[0].data)), "Residual image is empty"
         export_image_to_fits(dirty[0], '%s/test_imaging_predict_%s%s_%s_dirty.fits' %
                              (self.dir, context, extra, arlexecute.type()))
@@ -148,20 +152,21 @@ class TestImaging(unittest.TestCase):
                      facets=1, vis_slices=1, **kwargs):
         
         dirty = create_invert_graph(self.vis_graph_list, self.model_graph, context=context,
-                                          dopsf=False, normalize=True, facets=facets, vis_slices=vis_slices,
-                                          **kwargs)[0]
-        dirty = arlexecute.get(dirty)
-            
+                                    dopsf=False, normalize=True, facets=facets, vis_slices=vis_slices,
+                                    **kwargs)[0]
+        arlexecute.set_client()
+        dirty = arlexecute.compute(dirty)
+        
         export_image_to_fits(dirty[0], '%s/test_imaging_invert_%s%s_%s_dirty.fits' %
                              (self.dir, context, extra, arlexecute.type()))
         
         assert numpy.max(numpy.abs(dirty[0].data)), "Image is empty"
-
+        
         if check_components:
             self._checkcomponents(dirty[0], fluxthreshold, positionthreshold)
     
     def test_predict_2d(self):
-        for arlexecute.use_dask in [True, False]:
+        for arlexecute.use_dask in self.execute_trials:
             self.actualSetUp(zerow=True)
             self._predict_base(context='2d')
     
@@ -199,7 +204,7 @@ class TestImaging(unittest.TestCase):
         for arlexecute.use_dask in self.execute_trials:
             self.actualSetUp()
             self._predict_base(context='timeslice', extra='_wprojection', fluxthreshold=3.0, wstep=10.0,
-                           vis_slices=self.ntimes)
+                               vis_slices=self.ntimes)
     
     def test_predict_wprojection(self):
         for arlexecute.use_dask in self.execute_trials:
@@ -241,33 +246,32 @@ class TestImaging(unittest.TestCase):
         for arlexecute.use_dask in self.execute_trials:
             self.actualSetUp()
             self._invert_base(context='facets_timeslice', check_components=True, vis_slices=self.ntimes,
-                          positionthreshold=5.0, flux_threshold=1.0, facets=8)
+                              positionthreshold=5.0, flux_threshold=1.0, facets=8)
     
     def test_invert_facets_wprojection(self):
         for arlexecute.use_dask in self.execute_trials:
             self.actualSetUp()
             self._invert_base(context='facets', extra='_wprojection', check_components=True,
-                          positionthreshold=2.0, wstep=10.0)
+                              positionthreshold=2.0, wstep=10.0)
     
     @unittest.skip("Correcting twice?")
     def test_invert_facets_wstack(self):
         for arlexecute.use_dask in self.execute_trials:
             self.actualSetUp()
             self._invert_base(context='facets_wstack', positionthreshold=1.0, check_components=False, facets=8,
-                          vis_slices=41)
+                              vis_slices=41)
     
     def test_invert_timeslice(self):
         for arlexecute.use_dask in self.execute_trials:
             self.actualSetUp()
             self._invert_base(context='timeslice', positionthreshold=1.0, check_components=True,
-                          vis_slices=self.ntimes)
+                              vis_slices=self.ntimes)
     
-    @unittest.skip("Not reliable in jenkins")
     def test_invert_timeslice_wprojection(self):
         for arlexecute.use_dask in self.execute_trials:
             self.actualSetUp()
             self._invert_base(context='timeslice', extra='_wprojection', positionthreshold=1.0,
-                          check_components=True, wstep=20.0, vis_slices=self.ntimes)
+                              check_components=True, wstep=20.0, vis_slices=self.ntimes)
     
     def test_invert_wprojection(self):
         for arlexecute.use_dask in self.execute_trials:
@@ -277,8 +281,7 @@ class TestImaging(unittest.TestCase):
     def test_invert_wprojection_wstack(self):
         for arlexecute.use_dask in self.execute_trials:
             self.actualSetUp()
-            self._invert_base(context='wstack', extra='_wprojection', positionthreshold=1.0, wstep=10.0,
-                          vis_slices=11)
+            self._invert_base(context='wstack', extra='_wprojection', positionthreshold=1.0, wstep=10.0, vis_slices=11)
     
     def test_invert_wstack(self):
         for arlexecute.use_dask in self.execute_trials:
@@ -289,30 +292,29 @@ class TestImaging(unittest.TestCase):
         for arlexecute.use_dask in self.execute_trials:
             self.actualSetUp(dospectral=True)
             self._invert_base(context='wstack', extra='_spectral', positionthreshold=2.0,
-                          vis_slices=41)
+                              vis_slices=41)
     
     def test_invert_wstack_spectral_pol(self):
         for arlexecute.use_dask in self.execute_trials:
             self.actualSetUp(dospectral=True, dopol=True)
             self._invert_base(context='wstack', extra='_spectral_pol', positionthreshold=2.0,
-                          vis_slices=41)
+                              vis_slices=41)
     
     def test_weighting(self):
-    
+        
         for arlexecute.use_dask in self.execute_trials:
-            
             self.actualSetUp()
-    
+            
             context = 'wstack'
             vis_slices = 41
             facets = 1
             
             dirty_graph = create_invert_graph(self.vis_graph_list, self.model_graph, context=context,
                                               dopsf=False, normalize=True, facets=facets, vis_slices=vis_slices)
-            dirty = arlexecute.get(dirty_graph[0])
+            dirty = arlexecute.compute(dirty_graph[0])
             export_image_to_fits(dirty[0], '%s/test_imaging_noweighting_%s_dirty.fits' % (self.dir,
-                                 arlexecute.type()))
-            
+                                                                                          arlexecute.type()))
+
 
 if __name__ == '__main__':
     unittest.main()

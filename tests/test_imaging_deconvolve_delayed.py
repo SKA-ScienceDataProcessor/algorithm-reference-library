@@ -35,7 +35,7 @@ class TestImagingDeconvolveDelayed(unittest.TestCase):
                     zerow=True):
         
         #        import dask.multiprocessing
-        #        dask.set_options(get=dask.get)
+        #        dask.set_options(compute=dask.compute)
         
         self.dir = './test_results'
         os.makedirs(self.dir, exist_ok=True)
@@ -96,7 +96,7 @@ class TestImagingDeconvolveDelayed(unittest.TestCase):
         
         # Calculate the model convolved with a Gaussian.
         
-        model = arlexecute.get(self.model_graph[0])
+        model = arlexecute.compute(self.model_graph[0])
         
         self.cmodel = smooth_image(model)
         export_image_to_fits(model, '%s/test_imaging_delayed_deconvolved_model.fits' % self.dir)
@@ -120,7 +120,7 @@ class TestImagingDeconvolveDelayed(unittest.TestCase):
         deconvolved, _ = create_deconvolve_graph(dirty_graph, psf_graph, self.model_graph, niter=1000,
                                                  fractional_threshold=0.1, scales=[0, 3, 10],
                                                  threshold=0.1, nmajor=0, gain=0.7)
-        deconvolved = arlexecute.get(deconvolved)
+        deconvolved = arlexecute.compute(deconvolved)
         
         export_image_to_fits(deconvolved[0], '%s/test_imaging_%s_deconvolve_spectral.fits' %
                              (self.dir, arlexecute.type()))
@@ -140,7 +140,7 @@ class TestImagingDeconvolveDelayed(unittest.TestCase):
         restored = create_restore_graph(model_graph=dec_graph, psf_graph=psf_graph, residual_graph=residual_graph,
                                         empty=self.model_graph)[0]
         
-        restored = arlexecute.get(restored)
+        restored = arlexecute.compute(restored)
         
         export_image_to_fits(restored, '%s/test_imaging_%s_mmclean_restored.fits' % (self.dir, arlexecute.type()))
     
@@ -160,7 +160,7 @@ class TestImagingDeconvolveDelayed(unittest.TestCase):
         restored = create_restore_graph(model_graph=dec_graph, psf_graph=psf_graph, residual_graph=residual_graph,
                                         empty=self.model_graph)[0]
         
-        restored = arlexecute.get(restored)
+        restored = arlexecute.compute(restored)
 
         export_image_to_fits(restored, '%s/test_imaging_%s_overlap_mmclean_restored.fits'
                              % (self.dir, arlexecute.type()))

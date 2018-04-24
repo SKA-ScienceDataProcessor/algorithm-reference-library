@@ -225,7 +225,7 @@ def find_skycomponents(im: Image, fwhm=1.0, threshold=10.0, npixels=5) -> List[S
     segments = segmentation.detect_sources(image_sum, threshold, npixels=npixels, filter_kernel=kernel)
     log.info("find_skycomponents: Identified %d segments" % segments.nlabels)
     
-    # Now get source properties for all polarisations and frequencies
+    # Now compute source properties for all polarisations and frequencies
     comp_tbl = [[segmentation.source_properties(im.data[chan, pol], segments,
                                                 filter_kernel=kernel, wcs=im.wcs)
                  for pol in [0]]

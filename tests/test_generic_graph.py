@@ -9,12 +9,12 @@ import unittest
 import numpy
 from astropy import units as u
 from astropy.coordinates import SkyCoord
-from arl.graphs.execute import arlexecute
 
 from arl.data.polarisation import PolarisationFrame
+from arl.graphs.execute import arlexecute
 from arl.graphs.generic_graphs import create_generic_blockvisibility_graph, create_generic_image_graph, \
     create_generic_image_iterator_graph
-from arl.image.iterators import   image_raster_iter
+from arl.image.iterators import image_raster_iter
 from arl.imaging import predict_skycomponent_visibility
 from arl.skycomponent.operations import create_skycomponent
 from arl.util.testing_support import create_named_configuration, create_test_image
@@ -22,8 +22,9 @@ from arl.visibility.base import create_blockvisibility
 
 
 class TestPipelinesGenericDask(unittest.TestCase):
+    
     def setUp(self):
-
+        arlexecute.set_client(use_dask = True)
         self.dir = './test_results'
         os.makedirs(self.dir, exist_ok=True)
         self.lowcore = create_named_configuration('LOWBD2-CORE')
@@ -45,11 +46,11 @@ class TestPipelinesGenericDask(unittest.TestCase):
                                        cellsize=0.001,
                                        polarisation_frame=PolarisationFrame('stokesI'))
         self.image.data[self.image.data < 0.0] = 0.0
-
+        
         self.image_graph = arlexecute.execute(create_test_image)(frequency=self.frequency,
-                                                      phasecentre=self.phasecentre,
-                                                      cellsize=0.001,
-                                                      polarisation_frame=PolarisationFrame('stokesI'))
+                                                                 phasecentre=self.phasecentre,
+                                                                 cellsize=0.001,
+                                                                 polarisation_frame=PolarisationFrame('stokesI'))
     
     def test_create_generic_blockvisibility_graph(self):
         self.blockvis = [create_blockvisibility(self.lowcore, self.times, self.frequency,
@@ -57,36 +58,34 @@ class TestPipelinesGenericDask(unittest.TestCase):
                                                 channel_bandwidth=self.channel_bandwidth,
                                                 weight=1.0,
                                                 polarisation_frame=PolarisationFrame('stokesI'))]
-
-        self.blockvis = \
-            create_generic_blockvisibility_graph(predict_skycomponent_visibility,
-                                                 vis_graph_list=self.blockvis,
-                                                 sc=self.comp)[0]
-
-        self.blockvis = arlexecute.get(self.blockvis)
-            
+        
+        self.blockvis = create_generic_blockvisibility_graph(predict_skycomponent_visibility,
+                                                             vis_graph_list=self.blockvis,
+                                                             sc=self.comp)[0]
+        
+        self.blockvis = arlexecute.compute(self.blockvis)
+        
         assert numpy.max(numpy.abs(self.blockvis[0].vis)) > 0.0
-
+    
     def test_create_generic_image_iterator_graph(self):
-        def imagerooter(im, **kwargs):
+        def imagerooter(im):
             im.data = numpy.sqrt(numpy.abs(im.data))
             return im
-    
-        root = create_generic_image_iterator_graph(imagerooter, self.image,   image_raster_iter,
-                                                   facets=16)
-        root = arlexecute.get(root)
-            
+        
+        root = create_generic_image_iterator_graph(imagerooter, self.image, image_raster_iter, facets=4)
+        root = arlexecute.compute(root)
+        
         numpy.testing.assert_array_almost_equal_nulp(root.data ** 2, numpy.abs(self.image.data), 7)
-
+    
     def test_create_generic_image_graph(self):
         def imagerooter(im):
             im.data = numpy.sqrt(numpy.abs(im.data))
             return im
-    
-        root = create_generic_image_graph(imagerooter, self.image, facets=16)
-
-        root = arlexecute.get(root)
-
+        
+        root = create_generic_image_graph(imagerooter, self.image, facets=4)
+        
+        root = arlexecute.compute(root)
+        
         numpy.testing.assert_array_almost_equal_nulp(root.data ** 2, numpy.abs(self.image.data), 7)
 
 

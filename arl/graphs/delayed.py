@@ -2,7 +2,7 @@
 parallel computing library for analytic computing. Dask.delayed can be used to wrap functions for deferred execution
 thus allowing construction of graphs. For example, to build a graph for a major/minor cycle algorithm::
 
-    model_graph = arlexecute.get(create_image_from_visibility)(vt, npixel=512, cellsize=0.001, npol=1)
+    model_graph = arlexecute.compute(create_image_from_visibility)(vt, npixel=512, cellsize=0.001, npol=1)
     solution_graph = create_solve_image_graph(vt, model_graph=model_graph, psf_graph=psf_graph,
                                             context='timeslice', algorithm='hogbom',
                                             niter=1000, fractional_threshold=0.1,
@@ -518,7 +518,7 @@ def create_calibrate_graph_list(vis_graph_list, model_vis_graph_list, calibratio
                                 for i, _ in enumerate(vis_graph_list)]
         global_point_vis_graph = arlexecute.execute(visibility_gather_channel, nout=1)(point_vis_graph_list)
         global_point_vis_graph = arlexecute.execute(integrate_visibility_by_channel, nout=1)(global_point_vis_graph)
-        # This is a global solution so we only get one gain table
+        # This is a global solution so we only compute one gain table
         _, gt_graph = arlexecute.execute(solve_and_apply, pure=True, nout=2)(global_point_vis_graph, **kwargs)
         return [arlexecute.execute(apply_gaintable, nout=len(vis_graph_list))(v, gt_graph, inverse=True)
                 for v in vis_graph_list]

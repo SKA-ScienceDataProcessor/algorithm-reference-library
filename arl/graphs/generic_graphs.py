@@ -68,10 +68,7 @@ def create_generic_image_iterator_graph(imagefunction, im: Image, iterator, **kw
             i += 1
         return newim
     
-    results = list()
-    
-    for dpatch in iterator(im, **kwargs):
-        results.append(arlexecute.execute(imagefunction(copy_image(dpatch), **kwargs)))
+    results = [arlexecute.execute(imagefunction(copy_image(dpatch))) for dpatch in iterator(im, **kwargs)]
     
     return arlexecute.execute(accumulate_results, pure=True)(results, **kwargs)
 

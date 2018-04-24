@@ -99,7 +99,7 @@ class TestPipelineGraphs(unittest.TestCase):
                                for freqwin, _ in enumerate(self.frequency)]
         
         # Calculate the model convolved with a Gaussian.
-        model = arlexecute.get(self.model_graph[0])
+        model = arlexecute.compute(self.model_graph[0])
         self.cmodel = smooth_image(model)
         export_image_to_fits(model, '%s/test_imaging_delayed_model.fits' % self.dir)
         export_image_to_fits(self.cmodel, '%s/test_imaging_delayed_cmodel.fits' % self.dir)
@@ -122,7 +122,7 @@ class TestPipelineGraphs(unittest.TestCase):
                                                     nmoments=3, nchan=self.freqwin,
                                                     threshold=2.0, nmajor=5, gain=0.1,
                                                     deconvolve_facets=4, deconvolve_overlap=16, deconvolve_taper='tukey')
-        clean, residual, restored = arlexecute.get(continuum_imaging_graph)
+        clean, residual, restored = arlexecute.compute(continuum_imaging_graph)
         export_image_to_fits(clean[0], '%s/test_pipelines_continuum_imaging_pipeline_clean.fits' % self.dir)
         export_image_to_fits(residual[0][0],
                              '%s/test_pipelines_continuum_imaging_pipeline_residual.fits' % self.dir)
@@ -158,7 +158,7 @@ class TestPipelineGraphs(unittest.TestCase):
                                        nmoments=3, nchan=self.freqwin,
                                        threshold=2.0, nmajor=5, gain=0.1,
                                        deconvolve_facets=4, deconvolve_overlap=16, deconvolve_taper='tukey')
-        clean, residual, restored = arlexecute.get(ical_graph)
+        clean, residual, restored = arlexecute.compute(ical_graph)
         export_image_to_fits(clean[0], '%s/test_pipelines_ical_pipeline_clean.fits' % self.dir)
         export_image_to_fits(residual[0][0], '%s/test_pipelines_ical_pipeline_residual.fits' % self.dir)
         export_image_to_fits(restored[0], '%s/test_pipelines_ical_pipeline_restored.fits' % self.dir)
