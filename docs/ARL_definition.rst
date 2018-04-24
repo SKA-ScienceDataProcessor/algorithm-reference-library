@@ -116,8 +116,9 @@ Solvers
 .. automodule:: arl.calibration.solvers
    :members:
 
-Sagecal
-+++++++
+
+SkyModel calibration
+++++++++++++++++++++
 
 .. automodule:: arl.calibration.skymodel_cal
    :members:
@@ -153,7 +154,6 @@ Imaging context
 .. automodule:: arl.imaging.imaging_context
    :members:
 
-
 Parameters
 ++++++++++
 
@@ -187,6 +187,15 @@ Operations
 ++++++++++
 
 .. automodule:: arl.skycomponent.operations
+   :members:
+
+SkyModel
+--------
+
+Operations
+++++++++++
+
+.. automodule:: arl.skymodel.operations
    :members:
 
 Visibility

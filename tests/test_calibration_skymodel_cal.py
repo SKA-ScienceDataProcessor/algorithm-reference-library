@@ -39,9 +39,6 @@ class TestCalibrationSkyModelcal(unittest.TestCase):
         
         numpy.random.seed(180555)
     
-    def tearDown(self):
-        arlexecute.client.close()
-    
     def actualSetup(self, vnchan=1, doiso=True, ntimes=5, flux_limit=2.0, zerow=True, fixed=False):
         
         nfreqwin = vnchan
@@ -159,10 +156,9 @@ class TestCalibrationSkyModelcal(unittest.TestCase):
         qa = qa_image(dirty)
         assert qa.data['rms'] < 3.8e-3, qa
     
-    def test_skymodel_cal_solve_execute(self):
+    def test_skymodel_cal_solve_graph(self):
         
-        arlexecute.set_use_dask(True)
-        arlexecute.set_client(n_workers=4)
+        arlexecute.set_client(use_dask=True, n_workers=4)
             
         self.actualSetup(doiso=True)
         
@@ -170,12 +166,7 @@ class TestCalibrationSkyModelcal(unittest.TestCase):
         
         arlexecute.client.scatter(self.vis)
         arlexecute.client.scatter(self.skymodel_graph)
-        skymodel_cal_graph = create_skymodel_cal_solve_graph(self.vis, self.skymodel_graph, niter=5,
-                                                             gain=0.25, tol=1e-8)
-        print(skymodel_cal_graph)
-        if arlexecute.use_dask:
-            skymodel_cal_graph.visualize(filename='%s/test_skymodel_cal-%s.svg' % (self.dir, arlexecute.type()))
-        
+
         skymodel_cal_graph = create_skymodel_cal_solve_graph(self.vis, self.skymodel_graph, niter=30,
                                                              gain=0.25, tol=1e-8)
         skymodel, residual_vis = arlexecute.compute(skymodel_cal_graph)
