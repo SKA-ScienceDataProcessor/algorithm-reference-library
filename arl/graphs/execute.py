@@ -72,9 +72,10 @@ class ARLExecuteBase():
         """
         if self._using_dask:
             start = time.time()
-            assert self.client is not None, "client must be defined if use_dask is True"
-            future = self.client.compute(value, sync=sync)
-            if sync:
+            if self.client is None:
+                return value.compute()
+            else:
+                future = self.client.compute(value)
                 wait(future)
                 duration = time.time() - start
                 log.debug("arlexecute.compute: Synchronous execution using Dask took %.3f seconds" % duration)

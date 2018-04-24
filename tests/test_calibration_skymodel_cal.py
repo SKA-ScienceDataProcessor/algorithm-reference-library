@@ -158,15 +158,10 @@ class TestCalibrationSkyModelcal(unittest.TestCase):
     
     def test_skymodel_cal_solve_graph(self):
         
-        arlexecute.set_client(use_dask=True, n_workers=4)
-            
         self.actualSetup(doiso=True)
         
         self.skymodel_graph = [arlexecute.execute(SkyModel, nout=1)(components=[cm]) for cm in self.components]
         
-        arlexecute.client.scatter(self.vis)
-        arlexecute.client.scatter(self.skymodel_graph)
-
         skymodel_cal_graph = create_skymodel_cal_solve_graph(self.vis, self.skymodel_graph, niter=30,
                                                              gain=0.25, tol=1e-8)
         skymodel, residual_vis = arlexecute.compute(skymodel_cal_graph)

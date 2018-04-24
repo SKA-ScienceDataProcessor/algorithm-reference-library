@@ -30,11 +30,9 @@ class TestTestingDaskGraphSupport(unittest.TestCase):
         self.times = numpy.linspace(-300.0, 300.0, 3) * numpy.pi / 43200.0
     
     def test_create_simulate_vis_graph(self):
-        for use_dask in [False, True]:
-            arlexecute.set_client(use_dask=use_dask)
-            vis_graph_list = create_simulate_vis_graph(frequency=self.frequency, channel_bandwidth=self.channel_bandwidth)
-            assert len(vis_graph_list) == len(self.frequency)
-            vt = arlexecute.compute(vis_graph_list)
-            assert isinstance(vt[0], BlockVisibility)
-            assert vt[0].nvis > 0
-            arlexecute.close()
+        vis_graph_list = create_simulate_vis_graph(frequency=self.frequency, channel_bandwidth=self.channel_bandwidth)
+        assert len(vis_graph_list) == len(self.frequency)
+        vt = vis_graph_list[0].compute()
+        assert isinstance(vt, BlockVisibility)
+        assert vt.nvis > 0
+ 

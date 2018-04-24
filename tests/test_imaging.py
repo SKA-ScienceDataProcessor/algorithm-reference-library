@@ -34,11 +34,6 @@ class TestImaging(unittest.TestCase):
         
         self.dir = './test_results'
         os.makedirs(self.dir, exist_ok=True)
-        arlexecute.set_client(use_dask=True, n_workers=4)
-    
-    def tearDown(self):
-        if arlexecute.using_dask:
-            arlexecute.client.close()
     
     def actualSetUp(self, add_errors=False, freqwin=1, block=False, dospectral=True, dopol=False, zerow=False):
         
@@ -112,12 +107,7 @@ class TestImaging(unittest.TestCase):
         
         self.components = arlexecute.compute(self.components_graph[0])
     
-    def test_time_setup_dask(self):
-        arlexecute.set_client(use_dask=True)
-        self.actualSetUp()
-    
-    def test_time_setup_function(self):
-        arlexecute.set_client(use_dask=False)
+    def test_time_setup(self):
         self.actualSetUp()
     
     def _checkcomponents(self, dirty, fluxthreshold=0.6, positionthreshold=1.0):
@@ -157,7 +147,6 @@ class TestImaging(unittest.TestCase):
         dirty = create_invert_graph(self.vis_graph_list, self.model_graph, context=context,
                                     dopsf=False, normalize=True, facets=facets, vis_slices=vis_slices,
                                     **kwargs)[0]
-        arlexecute.set_client()
         dirty = arlexecute.compute(dirty)
         
         export_image_to_fits(dirty[0], '%s/test_imaging_invert_%s%s_%s_dirty.fits' %
@@ -172,16 +161,17 @@ class TestImaging(unittest.TestCase):
         self.actualSetUp(zerow=True)
         self._predict_base(context='2d')
     
+    @unittest.skip("Facets requires overlap")
     def test_predict_facets(self):
         self.actualSetUp()
-        self._predict_base(context='facets', fluxthreshold=15.0, facets=8)
+        self._predict_base(context='facets', fluxthreshold=15.0, facets=4)
     
     @unittest.skip("Timeslice predict needs better interpolation")
     def test_predict_facets_timeslice(self):
         self.actualSetUp()
         self._predict_base(context='facets_timeslice', fluxthreshold=19.0, facets=8, vis_slices=self.ntimes)
     
-    @unittest.skip("Facets invert requires overlap")
+    @unittest.skip("Facets requires overlap")
     def test_predict_facets_wprojection(self):
         self.actualSetUp()
         self._predict_base(context='facets', extra='_wprojection', facets=8, wstep=8.0, fluxthreshold=15.0,

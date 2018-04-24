@@ -24,7 +24,6 @@ from arl.visibility.base import create_blockvisibility
 class TestPipelinesGenericDask(unittest.TestCase):
     
     def setUp(self):
-        arlexecute.set_client(use_dask = True)
         self.dir = './test_results'
         os.makedirs(self.dir, exist_ok=True)
         self.lowcore = create_named_configuration('LOWBD2-CORE')
@@ -83,7 +82,6 @@ class TestPipelinesGenericDask(unittest.TestCase):
             return im
         
         root = create_generic_image_graph(imagerooter, self.image, facets=4)
-        
         root = arlexecute.compute(root)
         
         numpy.testing.assert_array_almost_equal_nulp(root.data ** 2, numpy.abs(self.image.data), 7)
