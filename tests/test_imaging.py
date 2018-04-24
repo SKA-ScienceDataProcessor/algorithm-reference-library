@@ -34,11 +34,11 @@ class TestImaging(unittest.TestCase):
         
         self.dir = './test_results'
         os.makedirs(self.dir, exist_ok=True)
-        self.execute_trials = [True]  # Just test dask versions
-        arlexecute.set_client()
+        arlexecute.set_client(use_dask=True, n_workers=4)
     
     def tearDown(self):
-        arlexecute.client.close()
+        if arlexecute.using_dask:
+            arlexecute.client.close()
     
     def actualSetUp(self, add_errors=False, freqwin=1, block=False, dospectral=True, dopol=False, zerow=False):
         
@@ -113,11 +113,11 @@ class TestImaging(unittest.TestCase):
         self.components = arlexecute.compute(self.components_graph[0])
     
     def test_time_setup_dask(self):
-        arlexecute.use_dask = True
+        arlexecute.set_client(use_dask=True)
         self.actualSetUp()
     
     def test_time_setup_function(self):
-        arlexecute.use_dask = False
+        arlexecute.set_client(use_dask=False)
         self.actualSetUp()
     
     def _checkcomponents(self, dirty, fluxthreshold=0.6, positionthreshold=1.0):
@@ -147,6 +147,9 @@ class TestImaging(unittest.TestCase):
         assert numpy.max(numpy.abs(dirty[0].data)), "Residual image is empty"
         export_image_to_fits(dirty[0], '%s/test_imaging_predict_%s%s_%s_dirty.fits' %
                              (self.dir, context, extra, arlexecute.type()))
+        
+        maxabs = numpy.max(numpy.abs(dirty[0].data))
+        assert  maxabs < fluxthreshold, "Error %.3f greater than fluxthreshold %.3f " % (maxabs, fluxthreshold)
     
     def _invert_base(self, context, extra='', fluxthreshold=1.0, positionthreshold=1.0, check_components=True,
                      facets=1, vis_slices=1, **kwargs):
@@ -166,155 +169,133 @@ class TestImaging(unittest.TestCase):
             self._checkcomponents(dirty[0], fluxthreshold, positionthreshold)
     
     def test_predict_2d(self):
-        for arlexecute.use_dask in self.execute_trials:
-            self.actualSetUp(zerow=True)
-            self._predict_base(context='2d')
+        self.actualSetUp(zerow=True)
+        self._predict_base(context='2d')
     
     def test_predict_facets(self):
-        for arlexecute.use_dask in self.execute_trials:
-            self.actualSetUp()
-            self._predict_base(context='facets', fluxthreshold=15.0, facets=8)
+        self.actualSetUp()
+        self._predict_base(context='facets', fluxthreshold=15.0, facets=8)
     
     @unittest.skip("Timeslice predict needs better interpolation")
     def test_predict_facets_timeslice(self):
-        for arlexecute.use_dask in self.execute_trials:
-            self.actualSetUp()
-            self._predict_base(context='facets_timeslice', fluxthreshold=19.0, facets=8, vis_slices=self.ntimes)
+        self.actualSetUp()
+        self._predict_base(context='facets_timeslice', fluxthreshold=19.0, facets=8, vis_slices=self.ntimes)
     
     @unittest.skip("Facets invert requires overlap")
     def test_predict_facets_wprojection(self):
-        for arlexecute.use_dask in self.execute_trials:
-            self.actualSetUp()
-            self._predict_base(context='facets', extra='_wprojection', facets=8, wstep=8.0, fluxthreshold=15.0)
+        self.actualSetUp()
+        self._predict_base(context='facets', extra='_wprojection', facets=8, wstep=8.0, fluxthreshold=15.0,
+                           oversampling=2)
     
     @unittest.skip("Correcting twice?")
     def test_predict_facets_wstack(self):
-        for arlexecute.use_dask in self.execute_trials:
-            self.actualSetUp()
-            self._predict_base(context='facets_wstack', fluxthreshold=15.0, facets=8, vis_slices=41)
+        self.actualSetUp()
+        self._predict_base(context='facets_wstack', fluxthreshold=15.0, facets=8, vis_slices=41)
     
     @unittest.skip("Timeslice predict needs better interpolation")
     def test_predict_timeslice(self):
-        for arlexecute.use_dask in self.execute_trials:
-            self.actualSetUp()
-            self._predict_base(context='timeslice', fluxthreshold=19.0, vis_slices=self.ntimes)
+        self.actualSetUp()
+        self._predict_base(context='timeslice', fluxthreshold=19.0, vis_slices=self.ntimes)
     
     @unittest.skip("Timeslice predict needs better interpolation")
     def test_predict_timeslice_wprojection(self):
-        for arlexecute.use_dask in self.execute_trials:
-            self.actualSetUp()
-            self._predict_base(context='timeslice', extra='_wprojection', fluxthreshold=3.0, wstep=10.0,
-                               vis_slices=self.ntimes)
+        self.actualSetUp()
+        self._predict_base(context='timeslice', extra='_wprojection', fluxthreshold=3.0, wstep=10.0,
+                               vis_slices=self.ntimes, oversampling=2)
     
     def test_predict_wprojection(self):
-        for arlexecute.use_dask in self.execute_trials:
-            self.actualSetUp()
-            self._predict_base(context='2d', extra='_wprojection', wstep=10.0, fluxthreshold=1.0)
+        self.actualSetUp()
+        self._predict_base(context='2d', extra='_wprojection', wstep=10.0, fluxthreshold=2.0, oversampling=2)
     
     def test_predict_wstack(self):
-        for arlexecute.use_dask in self.execute_trials:
-            self.actualSetUp()
-            self._predict_base(context='wstack', fluxthreshold=2.0, vis_slices=41)
+        self.actualSetUp()
+        self._predict_base(context='wstack', fluxthreshold=2.0, vis_slices=41)
     
     def test_predict_wstack_wprojection(self):
-        for arlexecute.use_dask in self.execute_trials:
-            self.actualSetUp()
-            self._predict_base(context='wstack', extra='_wprojection', fluxthreshold=3.0, wstep=10.0, vis_slices=41)
+        self.actualSetUp()
+        self._predict_base(context='wstack', extra='_wprojection', fluxthreshold=3.0, wstep=2.5, vis_slices=11,
+                            oversampling=2)
     
     def test_predict_wstack_spectral(self):
-        for arlexecute.use_dask in self.execute_trials:
-            self.actualSetUp(dospectral=True)
-            self._predict_base(context='wstack', extra='_spectral', fluxthreshold=4.0, vis_slices=41)
+        self.actualSetUp(dospectral=True)
+        self._predict_base(context='wstack', extra='_spectral', fluxthreshold=4.0, vis_slices=41)
     
     def test_predict_wstack_spectral_pol(self):
-        for arlexecute.use_dask in self.execute_trials:
-            self.actualSetUp(dospectral=True, dopol=True)
-            self._predict_base(context='wstack', extra='_spectral', fluxthreshold=4.0, vis_slices=41)
+        self.actualSetUp(dospectral=True, dopol=True)
+        self._predict_base(context='wstack', extra='_spectral', fluxthreshold=4.0, vis_slices=41)
     
     def test_invert_2d(self):
-        for arlexecute.use_dask in self.execute_trials:
-            self.actualSetUp(zerow=True)
-            self._invert_base(context='2d', positionthreshold=2.0, check_components=False)
+        self.actualSetUp(zerow=True)
+        self._invert_base(context='2d', positionthreshold=2.0, check_components=False)
     
     def test_invert_facets(self):
-        for arlexecute.use_dask in self.execute_trials:
-            self.actualSetUp()
-            self._invert_base(context='facets', positionthreshold=2.0, check_components=True, facets=8)
+        self.actualSetUp()
+        self._invert_base(context='facets', positionthreshold=2.0, check_components=True, facets=8)
     
     @unittest.skip("Correcting twice?")
     def test_invert_facets_timeslice(self):
-        for arlexecute.use_dask in self.execute_trials:
-            self.actualSetUp()
-            self._invert_base(context='facets_timeslice', check_components=True, vis_slices=self.ntimes,
+        self.actualSetUp()
+        self._invert_base(context='facets_timeslice', check_components=True, vis_slices=self.ntimes,
                               positionthreshold=5.0, flux_threshold=1.0, facets=8)
     
     def test_invert_facets_wprojection(self):
-        for arlexecute.use_dask in self.execute_trials:
-            self.actualSetUp()
-            self._invert_base(context='facets', extra='_wprojection', check_components=True,
-                              positionthreshold=2.0, wstep=10.0)
+        self.actualSetUp()
+        self._invert_base(context='facets', extra='_wprojection', check_components=True,
+                              positionthreshold=2.0, wstep=10.0, oversampling=2, facets=4)
     
     @unittest.skip("Correcting twice?")
     def test_invert_facets_wstack(self):
-        for arlexecute.use_dask in self.execute_trials:
-            self.actualSetUp()
-            self._invert_base(context='facets_wstack', positionthreshold=1.0, check_components=False, facets=8,
-                              vis_slices=41)
+        self.actualSetUp()
+        self._invert_base(context='facets_wstack', positionthreshold=1.0, check_components=False, facets=4,
+                              vis_slices=11)
     
     def test_invert_timeslice(self):
-        for arlexecute.use_dask in self.execute_trials:
-            self.actualSetUp()
-            self._invert_base(context='timeslice', positionthreshold=1.0, check_components=True,
+        self.actualSetUp()
+        self._invert_base(context='timeslice', positionthreshold=1.0, check_components=True,
                               vis_slices=self.ntimes)
     
     def test_invert_timeslice_wprojection(self):
-        for arlexecute.use_dask in self.execute_trials:
-            self.actualSetUp()
-            self._invert_base(context='timeslice', extra='_wprojection', positionthreshold=1.0,
-                              check_components=True, wstep=20.0, vis_slices=self.ntimes)
+        self.actualSetUp()
+        self._invert_base(context='timeslice', extra='_wprojection', positionthreshold=1.0,
+                              check_components=True, wstep=20.0, vis_slices=self.ntimes, oversampling=2)
     
     def test_invert_wprojection(self):
-        for arlexecute.use_dask in self.execute_trials:
-            self.actualSetUp()
-            self._invert_base(context='2d', extra='_wprojection', positionthreshold=2.0, wstep=10.0)
+        self.actualSetUp()
+        self._invert_base(context='2d', extra='_wprojection', positionthreshold=2.0, wstep=10.0, oversampling=2)
     
     def test_invert_wprojection_wstack(self):
-        for arlexecute.use_dask in self.execute_trials:
-            self.actualSetUp()
-            self._invert_base(context='wstack', extra='_wprojection', positionthreshold=1.0, wstep=10.0, vis_slices=11)
+        self.actualSetUp()
+        self._invert_base(context='wstack', extra='_wprojection', positionthreshold=1.0, wstep=2.5, vis_slices=11,
+                          oversampling=2)
     
     def test_invert_wstack(self):
-        for arlexecute.use_dask in self.execute_trials:
-            self.actualSetUp()
-            self._invert_base(context='wstack', positionthreshold=1.0, vis_slices=41)
+        self.actualSetUp()
+        self._invert_base(context='wstack', positionthreshold=1.0, vis_slices=41)
     
     def test_invert_wstack_spectral(self):
-        for arlexecute.use_dask in self.execute_trials:
-            self.actualSetUp(dospectral=True)
-            self._invert_base(context='wstack', extra='_spectral', positionthreshold=2.0,
+        self.actualSetUp(dospectral=True)
+        self._invert_base(context='wstack', extra='_spectral', positionthreshold=2.0,
                               vis_slices=41)
     
     def test_invert_wstack_spectral_pol(self):
-        for arlexecute.use_dask in self.execute_trials:
-            self.actualSetUp(dospectral=True, dopol=True)
-            self._invert_base(context='wstack', extra='_spectral_pol', positionthreshold=2.0,
+        self.actualSetUp(dospectral=True, dopol=True)
+        self._invert_base(context='wstack', extra='_spectral_pol', positionthreshold=2.0,
                               vis_slices=41)
     
     def test_weighting(self):
         
-        for arlexecute.use_dask in self.execute_trials:
-            self.actualSetUp()
+        self.actualSetUp()
             
-            context = 'wstack'
-            vis_slices = 41
-            facets = 1
-            
-            dirty_graph = create_invert_graph(self.vis_graph_list, self.model_graph, context=context,
-                                              dopsf=False, normalize=True, facets=facets, vis_slices=vis_slices)
-            dirty = arlexecute.compute(dirty_graph[0])
-            export_image_to_fits(dirty[0], '%s/test_imaging_noweighting_%s_dirty.fits' % (self.dir,
-                                                                                          arlexecute.type()))
-
+        context = 'wstack'
+        vis_slices = 41
+        facets = 1
+        
+        dirty_graph = create_invert_graph(self.vis_graph_list, self.model_graph, context=context,
+                                          dopsf=False, normalize=True, facets=facets, vis_slices=vis_slices)
+        dirty = arlexecute.compute(dirty_graph[0])
+        export_image_to_fits(dirty[0], '%s/test_imaging_noweighting_%s_dirty.fits' % (self.dir,
+                                                                                      arlexecute.type()))
+    
 
 if __name__ == '__main__':
     unittest.main()

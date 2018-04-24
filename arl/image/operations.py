@@ -577,8 +577,8 @@ def convert_image_to_kernel(im: Image, oversampling, kernelwidth):
     assert numpy.max(numpy.abs(im.data)) > 0.0, "Image is empty"
     
     nchan, npol, ny, nx = im.shape
-    assert nx % oversampling == 0, "Oversampling must be a factor of nx"
-    assert ny % oversampling == 0, "Oversampling must be a factor of ny"
+    assert nx % oversampling == 0, "Oversampling must be even"
+    assert ny % oversampling == 0, "Oversampling must be even"
     
     assert kernelwidth < nx and kernelwidth < ny, "Specified kernel width %d too large"
     
