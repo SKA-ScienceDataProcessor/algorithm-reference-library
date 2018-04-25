@@ -35,11 +35,11 @@ class TestPipelinesFunctions(unittest.TestCase):
         self.dir = './test_results'
         os.makedirs(self.dir, exist_ok=True)
         
-        self.npixel = 512
-        
         self.setupVis(add_errors=False, block=True)
     
     def setupVis(self, add_errors=False, block=True, freqwin=7, bandpass=False):
+        self.npixel = 256
+   
         self.freqwin = freqwin
         self.ntimes = 5
         self.times = numpy.linspace(-3.0, +3.0, self.ntimes) * numpy.pi / 12.0
@@ -57,7 +57,7 @@ class TestPipelinesFunctions(unittest.TestCase):
         if times is None:
             times = (numpy.pi / 12.0) * numpy.linspace(-3.0, 3.0, 5)
         
-        lowcore = create_named_configuration('LOWBD2-CORE')
+        lowcore = create_named_configuration('LOWBD2', 750.0)
         frequency = numpy.array(freq)
         channel_bandwidth = numpy.array(chan_width)
         

@@ -44,6 +44,8 @@ class ARLExecuteBase():
     def set_client(self, client=None, use_dask=True, **kwargs):
         """Set the Dask client to be used
         
+        !!!This must be called before calling execute!!!!
+        
         :param use_dask: Use Dask?
         :param client: If None and use_dask is True, a client will be created otherwise the client is None
         :return:
@@ -63,18 +65,22 @@ class ARLExecuteBase():
             self._using_dask = False
             
                 
-    def compute(self, value):
+    def compute(self, value, sync=False):
         """Get the actual value
         
+        If not using dask then this returns the value directly since it already is computed
+        If using dask and sync=True then this waits and resturns the actual wait.
+        If using dask and sync=False then this returns a future, on which you will need to call .result()
+        
         :param value:
-        :return: If not using dask then the value, otherwise a Future
+        :return:
         """
         if self._using_dask:
             start = time.time()
             if self.client is None:
                 return value.compute()
             else:
-                future = self.client.compute(value)
+                future = self.client.compute(value, sync=sync)
                 wait(future)
                 duration = time.time() - start
                 log.debug("arlexecute.compute: Synchronous execution using Dask took %.3f seconds" % duration)
@@ -82,6 +88,30 @@ class ARLExecuteBase():
             return future
         else:
             return value
+
+    def scatter(self, graph):
+        """Scatter graph to workers
+
+        No-op if using_dask is False
+        :param graph:
+        :return:
+        """
+        if self.using_dask and self.client is not None:
+            return self.client.scatter(graph)
+        else:
+            return graph
+
+    def gather(self, graph):
+        """Gather graph from workers
+
+        No-op if using_dask is False
+        :param graph:
+        :return:
+        """
+        if self.using_dask and self.client is not None:
+            return self.client.gather(graph)
+        else:
+            return graph
 
     @property
     def client(self):

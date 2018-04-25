@@ -27,7 +27,7 @@ class TestImagingParams(unittest.TestCase):
         os.makedirs(self.dir, exist_ok=True)
 
         self.vnchan = 7
-        self.lowcore = create_named_configuration('LOWBD2-CORE')
+        self.lowcore = create_named_configuration('LOWBD2', rmax=300.0)
         self.times = (numpy.pi / 12.0) * numpy.linspace(-3.0, 3.0, 7)
         self.frequency = numpy.linspace(8e7, 1.2e8, self.vnchan)
         self.startfrequency = numpy.array([8e7])
@@ -37,8 +37,7 @@ class TestImagingParams(unittest.TestCase):
                                      phasecentre=self.phasecentre, weight=1.0,
                                      polarisation_frame=PolarisationFrame('stokesI'),
                                      channel_bandwidth=self.channel_bandwidth)
-        self.model = create_image_from_visibility(self.vis, npixel=512, cellsize=0.001,
-                                                  nchan=self.vnchan,
+        self.model = create_image_from_visibility(self.vis, npixel=256, cellsize=0.001, nchan=self.vnchan,
                                                   frequency=self.startfrequency)
 
     def test_get_frequency_map_channel(self):

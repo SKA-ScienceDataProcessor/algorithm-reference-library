@@ -12,10 +12,9 @@ import numpy
 from astropy import units as u
 from astropy.coordinates import SkyCoord
 
-from arl.graphs.execute import arlexecute
-
 from arl.calibration.calibration_control import create_calibration_controls
 from arl.data.polarisation import PolarisationFrame
+from arl.graphs.execute import arlexecute
 from arl.image.operations import export_image_to_fits, smooth_image, qa_image
 from arl.imaging import predict_skycomponent_visibility
 from arl.pipelines.delayed import create_ical_pipeline_graph, create_continuum_imaging_pipeline_graph
@@ -36,8 +35,9 @@ class TestPipelineGraphs(unittest.TestCase):
         
         self.dir = './test_results'
         os.makedirs(self.dir, exist_ok=True)
-    
-    def actualSetUp(self, add_errors=False, freqwin=7, block=False, dospectral=True, dopol=False,
+        arlexecute.set_client(use_dask=True)
+
+    def actualSetUp(self, add_errors=False, freqwin=5, block=False, dospectral=True, dopol=False,
                     amp_errors=None, phase_errors=None, zerow=True):
         
         if amp_errors is None:
@@ -45,7 +45,7 @@ class TestPipelineGraphs(unittest.TestCase):
         if phase_errors is None:
             phase_errors = {'T': 1.0, 'G': 0.1, 'B': 0.01}
         
-        self.npixel = 256
+        self.npixel = 512
         self.low = create_named_configuration('LOWBD2', rmax=750.0)
         self.freqwin = freqwin
         self.vis_graph_list = list()
@@ -74,40 +74,50 @@ class TestPipelineGraphs(unittest.TestCase):
         
         self.phasecentre = SkyCoord(ra=+180.0 * u.deg, dec=-60.0 * u.deg, frame='icrs', equinox='J2000')
         self.vis_graph_list = [arlexecute.execute(ingest_unittest_visibility)(self.low,
-                                                                   [self.frequency[i]],
-                                                                   [self.channelwidth[i]],
-                                                                   self.times,
-                                                                   self.vis_pol,
-                                                                   self.phasecentre, block=block,
-                                                                   zerow=zerow)
+                                                                              [self.frequency[i]],
+                                                                              [self.channelwidth[i]],
+                                                                              self.times,
+                                                                              self.vis_pol,
+                                                                              self.phasecentre, block=block,
+                                                                              zerow=zerow)
                                for i, _ in enumerate(self.frequency)]
         
-        self.model_graph = [arlexecute.execute(create_unittest_model, nout=freqwin)(self.vis_graph_list[0], self.image_pol,
-                                                                         npixel=self.npixel)
-                            for i, _ in enumerate(self.frequency)]
+        self.model_graph = [
+            arlexecute.execute(create_unittest_model, nout=freqwin)(self.vis_graph_list[0], self.image_pol,
+                                                                    npixel=self.npixel)
+            for i, _ in enumerate(self.frequency)]
         
-        self.components_graph = [arlexecute.execute(create_unittest_components)(self.model_graph[i], flux[i, :][numpy.newaxis, :])
-                                 for i, _ in enumerate(self.frequency)]
+        self.components_graph = [
+            arlexecute.execute(create_unittest_components)(self.model_graph[i], flux[i, :][numpy.newaxis, :])
+            for i, _ in enumerate(self.frequency)]
         
         # Apply the LOW primary beam and insert into model
         self.model_graph = [arlexecute.execute(insert_skycomponent, nout=1)(self.model_graph[freqwin],
-                                                                 self.components_graph[freqwin])
+                                                                            self.components_graph[freqwin])
                             for freqwin, _ in enumerate(self.frequency)]
         
         self.vis_graph_list = [arlexecute.execute(predict_skycomponent_visibility)(self.vis_graph_list[freqwin],
-                                                                        self.components_graph[freqwin])
+                                                                                   self.components_graph[freqwin])
                                for freqwin, _ in enumerate(self.frequency)]
-        
+
+
         # Calculate the model convolved with a Gaussian.
-        model = arlexecute.compute(self.model_graph[0])
+        self.model_graph = arlexecute.compute(self.model_graph, sync=True)
+        model = self.model_graph[0]
         self.cmodel = smooth_image(model)
         export_image_to_fits(model, '%s/test_imaging_delayed_model.fits' % self.dir)
         export_image_to_fits(self.cmodel, '%s/test_imaging_delayed_cmodel.fits' % self.dir)
         
         if add_errors and block:
-            self.vis_graph_list = [arlexecute.execute(insert_unittest_errors)(self.vis_graph_list[i], amp_errors=amp_errors,
-                                                                   phase_errors=phase_errors)
-                                   for i, _ in enumerate(self.frequency)]
+            self.vis_graph_list = [
+                arlexecute.execute(insert_unittest_errors)(self.vis_graph_list[i], amp_errors=amp_errors,
+                                                           phase_errors=phase_errors)
+                for i, _ in enumerate(self.frequency)]
+        
+        self.vis_graph_list = arlexecute.compute(self.vis_graph_list, sync=True)
+        
+        self.vis_graph_list = arlexecute.scatter(self.vis_graph_list)
+        self.model_graph = arlexecute.scatter(self.model_graph)
     
     def test_time_setup(self):
         self.actualSetUp()
@@ -116,13 +126,14 @@ class TestPipelineGraphs(unittest.TestCase):
         self.actualSetUp(add_errors=False, block=True)
         continuum_imaging_graph = \
             create_continuum_imaging_pipeline_graph(self.vis_graph_list, model_graph=self.model_graph, context='2d',
-                                                    algorithm='mmclean',
-                                                    facets=1,
+                                                    algorithm='mmclean', facets=1,
+                                                    scales=[0, 3, 10],
                                                     niter=1000, fractional_threshold=0.1,
-                                                    nmoments=3, nchan=self.freqwin,
+                                                    nmoments=2, nchan=self.freqwin,
                                                     threshold=2.0, nmajor=5, gain=0.1,
-                                                    deconvolve_facets=4, deconvolve_overlap=16, deconvolve_taper='tukey')
-        clean, residual, restored = arlexecute.compute(continuum_imaging_graph)
+                                                    deconvolve_facets=8, deconvolve_overlap=16,
+                                                    deconvolve_taper='tukey')
+        clean, residual, restored = arlexecute.compute(continuum_imaging_graph, sync=True)
         export_image_to_fits(clean[0], '%s/test_pipelines_continuum_imaging_pipeline_clean.fits' % self.dir)
         export_image_to_fits(residual[0][0],
                              '%s/test_pipelines_continuum_imaging_pipeline_residual.fits' % self.dir)
@@ -130,12 +141,12 @@ class TestPipelineGraphs(unittest.TestCase):
                              '%s/test_pipelines_continuum_imaging_pipeline_restored.fits' % self.dir)
         
         qa = qa_image(restored[0])
-        assert numpy.abs(qa.data['max'] - 116.86978265) < 5.0, str(qa)
-        assert numpy.abs(qa.data['min'] + 0.323425377573) < 5.0, str(qa)
+        assert numpy.abs(qa.data['max'] - 116.9) < 1.0, str(qa)
+        assert numpy.abs(qa.data['min'] + 0.118) < 1.0, str(qa)
     
     def test_ical_pipeline(self):
         amp_errors = {'T': 0.0, 'G': 0.00, 'B': 0.0}
-        phase_errors = {'T': 1.0, 'G': 0.0, 'B': 0.0}
+        phase_errors = {'T': 0.1, 'G': 0.0, 'B': 0.0}
         self.actualSetUp(add_errors=True, block=True, amp_errors=amp_errors, phase_errors=phase_errors)
         
         controls = create_calibration_controls()
@@ -154,18 +165,20 @@ class TestPipelineGraphs(unittest.TestCase):
                                        global_solution=False,
                                        algorithm='mmclean',
                                        facets=1,
+                                       scales=[0, 3, 10],
                                        niter=1000, fractional_threshold=0.1,
-                                       nmoments=3, nchan=self.freqwin,
+                                       nmoments=2, nchan=self.freqwin,
                                        threshold=2.0, nmajor=5, gain=0.1,
-                                       deconvolve_facets=4, deconvolve_overlap=16, deconvolve_taper='tukey')
-        clean, residual, restored = arlexecute.compute(ical_graph)
+                                       deconvolve_facets=8, deconvolve_overlap=16, deconvolve_taper='tukey')
+        clean, residual, restored = arlexecute.compute(ical_graph, sync=True)
         export_image_to_fits(clean[0], '%s/test_pipelines_ical_pipeline_clean.fits' % self.dir)
         export_image_to_fits(residual[0][0], '%s/test_pipelines_ical_pipeline_residual.fits' % self.dir)
         export_image_to_fits(restored[0], '%s/test_pipelines_ical_pipeline_restored.fits' % self.dir)
         
         qa = qa_image(restored[0])
-        assert numpy.abs(qa.data['max'] - 116.86978265) < 5.0, str(qa)
-        assert numpy.abs(qa.data['min'] + 0.323425377573) < 5.0, str(qa)
+        assert numpy.abs(qa.data['max'] - 116.9) < 1.0, str(qa)
+        assert numpy.abs(qa.data['min'] + 0.118) < 1.0, str(qa)
+
 
 if __name__ == '__main__':
     unittest.main()
