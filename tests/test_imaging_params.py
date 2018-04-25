@@ -67,21 +67,14 @@ class TestImagingParams(unittest.TestCase):
 
     def test_get_frequency_map_gleam(self):
         self.model = create_low_test_image_from_gleam(npixel=512, cellsize=0.001, frequency=self.frequency,
-                                                      channel_bandwidth=self.channel_bandwidth)
-        spectral_mode, vfrequency_map = get_frequency_map(self.vis, self.model)
-        assert numpy.max(vfrequency_map) == self.model.nchan - 1
-        assert spectral_mode == 'channel'
-
-    def test_get_frequency_map_s3(self):
-        self.model = create_test_image_from_s3(npixel=64, cellsize=0.001, frequency=self.frequency,
-                                               channel_bandwidth=self.channel_bandwidth)
+                                                      channel_bandwidth=self.channel_bandwidth, flux_limit=10.0)
         spectral_mode, vfrequency_map = get_frequency_map(self.vis, self.model)
         assert numpy.max(vfrequency_map) == self.model.nchan - 1
         assert spectral_mode == 'channel'
         
     def test_w_kernel_list(self):
-        oversampling = 4
-        kernelwidth = 128
+        oversampling = 2
+        kernelwidth = 32
         kernel_indices, kernels = w_kernel_list(self.vis, self.model,
                                                 kernelwidth=kernelwidth, wstep=50, oversampling=oversampling)
         assert numpy.max(numpy.abs(kernels[0].data)) > 0.0

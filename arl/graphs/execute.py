@@ -63,12 +63,11 @@ class ARLExecuteBase():
             self._using_dask = False
             
                 
-    def compute(self, value, sync=True):
+    def compute(self, value):
         """Get the actual value
         
         :param value:
-        :param sync: Operate synchronously
-        :return: If sync=True then the value, otherwise a Future
+        :return: If not using dask then the value, otherwise a Future
         """
         if self._using_dask:
             start = time.time()

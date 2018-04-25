@@ -116,7 +116,7 @@ class TestImagingDeconvolveDelayed(unittest.TestCase):
                                         dopsf=True, normalize=True)
         deconvolved, _ = create_deconvolve_graph(dirty_graph, psf_graph, self.model_graph, niter=1000,
                                                  fractional_threshold=0.1, scales=[0, 3, 10],
-                                                 threshold=0.1, nmajor=0, gain=0.7)
+                                                 threshold=0.1, gain=0.7)
         deconvolved = arlexecute.compute(deconvolved)
         
         export_image_to_fits(deconvolved[0], '%s/test_imaging_%s_deconvolve_spectral.fits' %
@@ -131,7 +131,7 @@ class TestImagingDeconvolveDelayed(unittest.TestCase):
         dec_graph, _ = create_deconvolve_graph(dirty_graph, psf_graph, self.model_graph, niter=1000,
                                                fractional_threshold=0.1, scales=[0, 3, 10],
                                                algorithm='mmclean', nmoments=3, nchan=self.freqwin,
-                                               threshold=0.1, nmajor=0, gain=0.7)
+                                               threshold=0.1, gain=0.7)
         residual_graph = create_residual_graph(self.vis_graph_list, model_graph=dec_graph,
                                                context='wstack', vis_slices=51)
         restored = create_restore_graph(model_graph=dec_graph, psf_graph=psf_graph, residual_graph=residual_graph,
@@ -150,8 +150,8 @@ class TestImagingDeconvolveDelayed(unittest.TestCase):
         dec_graph, _ = create_deconvolve_graph(dirty_graph, psf_graph, self.model_graph, niter=1000,
                                                fractional_threshold=0.1, scales=[0, 3, 10],
                                                algorithm='mmclean', nmoments=3, nchan=self.freqwin,
-                                               threshold=0.1, nmajor=0, gain=0.7, deconvolve_facets=4,
-                                               deconvolve_overlap=16)
+                                               threshold=0.1, gain=0.7, deconvolve_facets=4,
+                                               deconvolve_overlap=16, deconvolve_taper='tukey')
         residual_graph = create_residual_graph(self.vis_graph_list, model_graph=dec_graph,
                                                context='2d')
         restored = create_restore_graph(model_graph=dec_graph, psf_graph=psf_graph, residual_graph=residual_graph,
