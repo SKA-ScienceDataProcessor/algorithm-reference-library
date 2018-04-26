@@ -128,9 +128,9 @@ def grdsf(nu):
     nuend = numpy.zeros_like(nu)
     part = numpy.zeros(len(nu), dtype='int')
     part[(nu >= 0.0) & (nu < 0.75)] = 0
-    part[(nu > 0.75) & (nu < 1.0)] = 1
-    nuend[(nu >= 0.0) & (nu <= 0.75)] = 0.75
-    nuend[(nu > 0.75) & (nu < 1.0)] = 1.0
+    part[(nu >= 0.75) & (nu <= 1.0)] = 1
+    nuend[(nu >= 0.0) & (nu < 0.75)] = 0.75
+    nuend[(nu >= 0.75) & (nu <= 1.0)] = 1.0
     
     delnusq = nu ** 2 - nuend ** 2
     
