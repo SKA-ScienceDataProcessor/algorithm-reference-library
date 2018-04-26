@@ -12,16 +12,16 @@ from astropy import units as u
 from astropy.coordinates import SkyCoord
 from dask import delayed
 
+from dask_init import get_dask_Client, findNodes
 from data_models.polarisation import PolarisationFrame
-from processing_components.graphs.execute import get_dask_Client, findNodes
-from processing_components.graphs.execute import create_predict_graph, create_invert_graph, \
-    compute_list
 from libs.image.operations import qa_image, export_image_to_fits, smooth_image
 from libs.imaging import create_image_from_visibility, advise_wide_field
-from pipeline_graphs import create_ical_pipeline_graph
-from graph_support import create_simulate_vis_graph, create_corrupt_vis_graph
 from libs.util.testing_support import create_low_test_image_from_gleam
 from libs.visibility.coalesce import convert_blockvisibility_to_visibility
+from pipeline_components import create_ical_pipeline_graph
+from processing_components.component_support.arlexecute import arlexecute
+from processing_components.components.imaging_graphs import create_predict_graph, create_invert_graph
+from support_graphs import create_simulate_vis_graph, create_corrupt_vis_graph
 
 log = logging.getLogger()
 log.setLevel(logging.INFO)
@@ -43,7 +43,7 @@ def git_hash():
 
 def trial_case(results, seed=180555, context='wstack', nworkers=8, threads_per_worker=1,
                processes=True, order='frequency', nfreqwin=7, ntimes=3, rmax=750.0,
-               facets=1, wprojection_planes=1):
+               facets=1, wprojection_planes=1, use_dask=True):
     """ Single trial for performance-timings
     
     Simulates visibilities from GLEAM including phase errors
@@ -100,6 +100,7 @@ def trial_case(results, seed=180555, context='wstack', nworkers=8, threads_per_w
     :param rmax: See create_simulate_vis_graph
     :param facets: Number of facets to use
     :param wprojection_planes: Number of wprojection planes to use
+    :param use_dask: Use dask or immediate evaluation
     :param kwargs:
     :return: results dictionary
     """
@@ -132,6 +133,8 @@ def trial_case(results, seed=180555, context='wstack', nworkers=8, threads_per_w
     results['facets'] = facets
     results['wprojection_planes'] = wprojection_planes
     
+    results['use_dask'] = use_dask
+    
     print("At start, configuration is {0!r}".format(results))
     
     # Parameters determining scale
@@ -144,6 +147,12 @@ def trial_case(results, seed=180555, context='wstack', nworkers=8, threads_per_w
     
     phasecentre = SkyCoord(ra=+30.0 * u.deg, dec=-60.0 * u.deg, frame='icrs', equinox='J2000')
     
+    if use_dask:
+        arlexecute.set_client(get_dask_Client(n_workers=nworkers, threads_per_worker=threads_per_worker,
+                                              processes=processes), use_dask=True)
+    else:
+        arlexecute.set_client(use_dask=use_dask)
+    
     vis_graph_list = create_simulate_vis_graph('LOWBD2',
                                                frequency=frequency,
                                                channel_bandwidth=channel_bandwidth,
@@ -152,18 +161,17 @@ def trial_case(results, seed=180555, context='wstack', nworkers=8, threads_per_w
                                                order=order,
                                                format='blockvis',
                                                rmax=rmax)
-    
-    client = get_dask_Client(n_workers=nworkers, threads_per_worker=threads_per_worker,
-                             processes=processes)
-    
-    nworkers_initial = len(client.scheduler_info()['workers'])
-    check_workers(client, nworkers_initial)
-    results['nnodes'] = len(numpy.unique(findNodes(client)))
-    print("Defined %d workers on %d nodes" % (nworkers, results['nnodes']))
+    if use_dask:
+        nworkers_initial = len(arlexecute.client.scheduler_info()['workers'])
+        check_workers(arlexecute.client, nworkers_initial)
+        results['nnodes'] = len(numpy.unique(findNodes(arlexecute.client)))
+        print("Defined %d workers on %d nodes" % (nworkers, results['nnodes']))
+    else:
+        nworkers = 1
+        results['nnodes'] = 1
     
     print("****** Visibility creation ******")
-    vis_graph_list = compute_list(client, vis_graph_list)
-    print("After creating vis_graph_list", client)
+    vis_graph_list = arlexecute.compute(vis_graph_list, sync=True)
     
     # Find the best imaging parameters.
     wprojection_planes = 1
@@ -202,7 +210,7 @@ def trial_case(results, seed=180555, context='wstack', nworkers=8, threads_per_w
     
     start = time.time()
     print("****** Starting GLEAM model creation ******")
-    gleam_model_graph = compute_list(client, gleam_model_graph)
+    gleam_model_graph = arlexecute.compute(gleam_model_graph, sync=True)
     cmodel = smooth_image(gleam_model_graph[0])
     export_image_to_fits(cmodel, "pipelines-timings-delayed-gleam_cmodel.fits")
     end = time.time()
@@ -213,21 +221,20 @@ def trial_case(results, seed=180555, context='wstack', nworkers=8, threads_per_w
                                           kernel=kernel)
     start = time.time()
     print("****** Starting GLEAM model visibility prediction ******")
-    vis_graph_list = compute_list(client, vis_graph_list)
+    vis_graph_list = arlexecute.compute(vis_graph_list, sync=True)
     
     end = time.time()
     results['time predict'] = end - start
-    print("After prediction", client)
     print("GLEAM model Visibility prediction took %.2f seconds" % (end - start))
     
     # Corrupt the visibility for the GLEAM model
     print("****** Visibility corruption ******")
     vis_graph_list = create_corrupt_vis_graph(vis_graph_list, phase_error=1.0)
     start = time.time()
-    vis_graph_list = compute_list(client, vis_graph_list)
+    vis_graph_list = arlexecute.compute(vis_graph_list, sync=True)
+    
     end = time.time()
     results['time corrupt'] = end - start
-    print("After corrupt", client)
     print("Visibility corruption took %.2f seconds" % (end - start))
     
     # Create an empty model image
@@ -237,18 +244,16 @@ def trial_case(results, seed=180555, context='wstack', nworkers=8, threads_per_w
                                                          channel_bandwidth=[channel_bandwidth[f]],
                                                          polarisation_frame=PolarisationFrame("stokesI"))
                    for f, freq in enumerate(frequency)]
-    model_graph = client.compute(model_graph, sync=True)
+    model_graph = arlexecute.compute(model_graph, sync=True)
     
     psf_graph = create_invert_graph(vis_graph_list, model_graph, vis_slices=vis_slices,
                                     context=context, facets=facets, dopsf=True, kernel=kernel)
     start = time.time()
     print("****** Starting PSF calculation ******")
-    psf, sumwt = client.compute(psf_graph, sync=True)[0]
-    check_workers(client, nworkers_initial)
+    psf, sumwt = arlexecute.compute(psf_graph, sync=True)[0]
     end = time.time()
     results['time psf invert'] = end - start
     print("PSF invert took %.2f seconds" % (end - start))
-    print("After psf", client)
     
     results['psf_max'] = qa_image(psf).data['max']
     results['psf_min'] = qa_image(psf).data['min']
@@ -257,10 +262,8 @@ def trial_case(results, seed=180555, context='wstack', nworkers=8, threads_per_w
                                       context=context, facets=facets, kernel=kernel)
     start = time.time()
     print("****** Starting dirty image calculation ******")
-    dirty, sumwt = client.compute(dirty_graph, sync=True)[0]
-    check_workers(client, nworkers_initial)
+    dirty, sumwt = arlexecute.compute(dirty_graph, sync=True)[0]
     end = time.time()
-    print("After dirty image", client)
     results['time invert'] = end - start
     print("Dirty image invert took %.2f seconds" % (end - start))
     print("Maximum in dirty image is ", numpy.max(numpy.abs(dirty.data)), ", sumwt is ", sumwt)
@@ -281,14 +284,12 @@ def trial_case(results, seed=180555, context='wstack', nworkers=8, threads_per_w
     end = time.time()
     results['time ICAL graph'] = end - start
     print("Construction of ICAL graph took %.2f seconds" % (end - start))
-
+    
     # Execute the graph
     start = time.time()
-    result = client.compute(ical_graph, sync=True)
+    result = arlexecute.compute(ical_graph, sync=True)
     deconvolved, residual, restored = result
-    check_workers(client, nworkers_initial)
     end = time.time()
-    print("After ICAL", client)
     
     results['time ICAL'] = end - start
     print("ICAL graph execution took %.2f seconds" % (end - start))
@@ -307,7 +308,7 @@ def trial_case(results, seed=180555, context='wstack', nworkers=8, threads_per_w
     results['restored_min'] = qa.data['min']
     export_image_to_fits(restored[0], "pipelines-timings-delayed-ical_restored.fits")
     #
-    client.shutdown()
+    arlexecute.close()
     
     end_all = time.time()
     results['time overall'] = end_all - start_all
@@ -378,8 +379,8 @@ def main(args):
                   'nfreqwin', 'ntimes', 'rmax', 'facets', 'wprojection_planes', 'vis_slices', 'npixel',
                   'cellsize', 'seed', 'dirty_max', 'dirty_min', 'psf_max', 'psf_min', 'deconvolved_max',
                   'deconvolved_min', 'restored_min', 'restored_max', 'residual_max', 'residual_min',
-                  'hostname', 'git_hash', 'epoch', 'context']
-   
+                  'hostname', 'git_hash', 'epoch', 'context', 'use_dask']
+    
     filename = seqfile.findNextFile(prefix='%s_%s_' % (results['driver'], results['hostname']), suffix='.csv')
     print('Saving results to %s' % filename)
     
@@ -399,6 +400,7 @@ if __name__ == '__main__':
     import argparse
     
     parser = argparse.ArgumentParser(description='Benchmark pipelines in numpy and dask')
+    parser.add_argument('--use_dask', type=bool, default=True, help='Use Dask?')
     parser.add_argument('--nnodes', type=int, default=1, help='Number of nodes')
     parser.add_argument('--nthreads', type=int, default=1, help='Number of threads')
     parser.add_argument('--nworkers', type=int, default=1, help='Number of workers')

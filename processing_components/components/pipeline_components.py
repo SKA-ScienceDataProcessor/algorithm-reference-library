@@ -1,10 +1,10 @@
-""" Pipelines expressed as dask graphs
+""" Pipelines as processing components.
 """
 
-from processing_components.graphs.execute import arlexecute
+from component_support.arlexecute import arlexecute
 
 from data_models.parameters import get_parameter
-from processing_components.graphs.imaging_graphs import create_invert_graph, create_residual_graph, \
+from processing_components.components.imaging_graphs import create_invert_graph, create_residual_graph, \
     create_predict_graph, create_zero_vis_graph_list, create_calibrate_graph_list, \
     create_subtract_vis_graph_list, create_restore_graph, create_deconvolve_graph
 
@@ -16,7 +16,7 @@ def create_ical_pipeline_graph(vis_graph_list, model_graph, context='2d', calibr
     :param vis_graph_list:
     :param model_graph:
     :param context: imaging context e.g. '2d'
-    :param kwargs: Parameters for functions in graphs
+    :param kwargs: Parameters for functions in components
     :return:
     """
     psf_graph = create_invert_graph(vis_graph_list, model_graph, dopsf=True, context=context, **kwargs)
@@ -74,7 +74,7 @@ def create_continuum_imaging_pipeline_graph(vis_graph_list, model_graph, context
     :param c_deconvolve_graph: Default: create_deconvolve_graph
     :param c_invert_graph: Default: create_invert_graph
     :param c_residual_graph: Default: Default: create_residual graph
-    :param kwargs: Parameters for functions in graphs
+    :param kwargs: Parameters for functions in components
     :return:
     """
     psf_graph = create_invert_graph(vis_graph_list, model_graph, dopsf=True, context=context, **kwargs)
@@ -102,14 +102,14 @@ def create_spectral_line_imaging_pipeline_graph(vis_graph_list, model_graph,
 
     Uses the ical pipeline after subtraction of a continuum model
     
-    :param vis_graph_list: List of visibility graphs
+    :param vis_graph_list: List of visibility components
     :param model_graph: Spectral line model graph
     :param continuum_model_graph: Continuum model graph
     :param c_deconvolve_graph: Default: create_deconvolve_graph
     :param c_invert_graph: Default: create_invert_graph,
     :param c_residual_graph: Default: Default: create_residual graph
-    :param kwargs: Parameters for functions in graphs
-    :return: graphs of (deconvolved model, residual, restored)
+    :param kwargs: Parameters for functions in components
+    :return: components of (deconvolved model, residual, restored)
     """
     if continuum_model_graph is not None:
         vis_graph_list = create_predict_graph(vis_graph_list, continuum_model_graph, context=context, **kwargs)

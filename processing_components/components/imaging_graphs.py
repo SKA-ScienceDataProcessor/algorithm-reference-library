@@ -1,6 +1,6 @@
-""" Common functions converted to Dask.execute graphs. `Dask <http://dask.pydata.org/>`_ is a python-based flexible
+""" Common functions converted to Dask.execute components. `Dask <http://dask.pydata.org/>`_ is a python-based flexible
 parallel computing library for analytic computing. Dask.delayed can be used to wrap functions for deferred execution
-thus allowing construction of graphs. For example, to build a graph for a major/minor cycle algorithm::
+thus allowing construction of components. For example, to build a graph for a major/minor cycle algorithm::
 
     model_graph = arlexecute.compute(create_image_from_visibility)(vt, npixel=512, cellsize=0.001, npol=1)
     solution_graph = create_solve_image_graph(vt, model_graph=model_graph, psf_graph=psf_graph,
@@ -17,10 +17,10 @@ or if a Dask.distributed client is available:
 
     client.compute(solution_graph)
 
-As well as the specific graphs constructed by functions in this module, there are generic versions in the module
+As well as the specific components constructed by functions in this module, there are generic versions in the module
 :mod:`libs.pipelines.generic_dask_graphs`.
 
-Construction of the graphs requires that the number of nodes (e.g. w slices or time-slices) be known at construction,
+Construction of the components requires that the number of nodes (e.g. w slices or time-slices) be known at construction,
 rather than execution. To counteract this, at run time, a given node should be able to act as a no-op. We use None
 to denote a null node.
 
@@ -38,7 +38,7 @@ from libs.calibration.calibration_control import calibrate_function
 from libs.calibration.operations import apply_gaintable
 from data_models.memory_data_models import Image
 from data_models.parameters import get_parameter
-from processing_components.graphs.execute import arlexecute
+from component_support.arlexecute import arlexecute
 from libs.image.deconvolution import deconvolve_cube, restore_cube
 from libs.image.gather_scatter import image_scatter_facets, image_gather_facets, image_scatter_channels, \
     image_gather_channels
@@ -179,7 +179,7 @@ def create_weight_vis_graph_list(vis_graph_list, model_graph, weighting='uniform
     :param vis_graph_list:
     :param model_graph: Model required to determine weighting parameters
     :param weighting: Type of weighting
-    :param kwargs: Parameters for functions in graphs
+    :param kwargs: Parameters for functions in components
     :return: List of vis_graphs
    """
     
@@ -208,7 +208,7 @@ def create_invert_graph(vis_graph_list, template_model_graph, dopsf=False, norma
     :param normalize: Normalize by sumwt
     :param vis_slices: Number of slices
     :param context: Imaging context
-    :param kwargs: Parameters for functions in graphs
+    :param kwargs: Parameters for functions in components
     :return for invert
    """
     
@@ -294,7 +294,7 @@ def create_predict_graph(vis_graph_list, model_graph, vis_slices=1, facets=1, co
     :param vis_slices: Number of vis slices (w stack or timeslice)
     :param facets: Number of facets (per axis)
     :param context:
-    :param kwargs: Parameters for functions in graphs
+    :param kwargs: Parameters for functions in components
     :return: List of vis_graphs
    """
     
@@ -367,7 +367,7 @@ def create_residual_graph(vis, model_graph, context='2d', **kwargs):
     :param model_graph: Model used to determine image parameters
     :param vis:
     :param model_graph: Model used to determine image parameters
-    :param kwargs: Parameters for functions in graphs
+    :param kwargs: Parameters for functions in components
     :return:
     """
     model_vis = create_zero_vis_graph_list(vis)
@@ -383,7 +383,7 @@ def create_restore_graph(model_graph, psf_graph, residual_graph, **kwargs):
     :param model_graph: Model graph
     :param psf_graph: PSF graph
     :param residual_graph: Residual graph
-    :param kwargs: Parameters for functions in graphs
+    :param kwargs: Parameters for functions in components
     :return:
     """
     return [arlexecute.execute(restore_cube)(model_graph[i], psf_graph[i][0], residual_graph[i][0], **kwargs)
@@ -396,7 +396,7 @@ def create_deconvolve_graph(dirty_graph, psf_graph, model_graph, **kwargs):
     :param dirty_graph:
     :param psf_graph:
     :param model_graph:
-    :param kwargs: Parameters for functions in graphs
+    :param kwargs: Parameters for functions in components
     :return: (graph for the deconvolution, graph for the flat)
     """
     
@@ -468,7 +468,7 @@ def create_deconvolve_channel_graph(dirty_graph, psf_graph, model_graph, subimag
     :param dirty_graph:
     :param psf_graph: Must be the size of a facet
     :param model_graph: Current model
-    :param kwargs: Parameters for functions in graphs
+    :param kwargs: Parameters for functions in components
     :return:
     """
     
@@ -495,7 +495,7 @@ def create_deconvolve_channel_graph(dirty_graph, psf_graph, model_graph, subimag
 
 def create_calibrate_graph_list(vis_graph_list, model_vis_graph_list, calibration_context='TG', global_solution=True,
                                 **kwargs):
-    """ Create a set of graphs for (optionally global) calibration of a list of visibilities
+    """ Create a set of components for (optionally global) calibration of a list of visibilities
 
     If global solution is true then visibilities are gathered to a single visibility data set which is then
     self-calibrated. The resulting gaintable is then effectively scattered out for application to each visibility
@@ -505,7 +505,7 @@ def create_calibrate_graph_list(vis_graph_list, model_vis_graph_list, calibratio
     :param model_vis_graph_list:
     :param calibration_context: String giving terms to be calibrated e.g. 'TGB'
     :param global_solution: Solve for global gains
-    :param kwargs: Parameters for functions in graphs
+    :param kwargs: Parameters for functions in components
     :return:
     """
     

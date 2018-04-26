@@ -1,5 +1,5 @@
 """ Pipeline functions. SDP standard pipelinee expressed as functions. This is quite slow and is provided mainly for
-completeness. Use parallel versions pipelines/graphs.py for speed.
+completeness. Use parallel versions pipelines/components.py for speed.
 
 """
 import collections

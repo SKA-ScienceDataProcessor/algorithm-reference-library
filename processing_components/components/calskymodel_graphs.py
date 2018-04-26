@@ -41,11 +41,11 @@ skymodel_cal works best if an initial phase calibration has been obtained using 
 
 import logging
 
-from processing_components.graphs.execute import arlexecute
+from component_support.arlexecute import arlexecute
 
 from libs.calibration.operations import copy_gaintable, apply_gaintable, create_gaintable_from_blockvisibility
 from libs.calibration.skymodel_cal import skymodel_cal_fit_skymodel, skymodel_cal_fit_gaintable
-from processing_components.graphs.imaging_graphs import sum_predict_results
+from processing_components.components.imaging_graphs import sum_predict_results
 from libs.skymodel.operations import copy_skymodel, predict_skymodel_visibility
 from libs.visibility.operations import copy_visibility
 

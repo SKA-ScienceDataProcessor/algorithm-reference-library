@@ -3,7 +3,7 @@ Prepare large images for deconvolution tests.
 
     - Simulates a LOW observation only including stations up to a given radius
     - Avoids wide-field imaging problems by setting w to zero in all steps
-    - Uses dask graphs to simulate, predict, and invert
+    - Uses dask components to simulate, predict, and invert
     - Allows different ways of distributing the processing over multiple nodes
     
 """
@@ -23,9 +23,9 @@ from data_models.polarisation import PolarisationFrame
 from libs.image.operations import export_image_to_fits, smooth_image
 from libs.imaging import advise_wide_field
 
-from processing_components.graphs.execute import get_dask_Client
-from processing_components.graphs.execute import compute_list, create_invert_graph, create_predict_graph, create_weight_vis_graph_list
-from graph_support import create_simulate_vis_graph
+from component_support.arlexecute import get_dask_Client
+from component_support.arlexecute import compute_list, create_invert_graph, create_predict_graph, create_weight_vis_graph_list
+from support_graphs import create_simulate_vis_graph
 
 import logging
 

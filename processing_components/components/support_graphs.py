@@ -1,4 +1,4 @@
-""" Pipelines expressed as dask graphs
+""" Pipelines expressed as dask components
 """
 
 import logging
@@ -7,12 +7,12 @@ import numpy
 
 from astropy import units as u
 from astropy.coordinates import SkyCoord
-from processing_components.graphs.execute import arlexecute
+from component_support.arlexecute import arlexecute
 
 from libs.calibration.operations import apply_gaintable, create_gaintable_from_blockvisibility
 from data_models.parameters import get_parameter
 from data_models.polarisation import PolarisationFrame
-from processing_components.graphs.imaging_graphs import create_predict_graph
+from processing_components.components.imaging_graphs import create_predict_graph
 from libs.util.testing_support import create_named_configuration, simulate_gaintable, \
     create_low_test_image_from_gleam
 from libs.visibility.base import create_blockvisibility, create_visibility
@@ -108,33 +108,6 @@ def create_simulate_vis_graph(config='LOWBD2-CORE',
     else:
         raise NotImplementedError("order $s not known" % order)
     return vis_graph_list
-
-
-def create_predict_gleam_model_graph(vis_graph_list, frequency, channel_bandwidth,
-                                     npixel=512, cellsize=0.001, **kwargs):
-    """ Create a graph to fill in a model with the gleam sources and predict into a vis_graph_list
-
-    :param vis_graph_list:
-    :param frequency:
-    :param channel_bandwidth:
-    :param npixel: 512
-    :param cellsize: 0.001
-    :param kwargs:
-    :return: vis_graph_list
-    """
-    
-    # Note that each vis_graph has it's own model_graph
-    
-    predicted_vis_graph_list = list()
-    for i, vis_graph in enumerate(vis_graph_list):
-        facets = {}
-        if get_parameter(kwargs, "facets", False):
-            facets = {'facets': get_parameter(kwargs, "facets", False)}
-        model_graph = arlexecute.execute(create_low_test_image_from_gleam)(vis_graph, frequency,
-                                                                channel_bandwidth, npixel=npixel,
-                                                                cellsize=cellsize, **facets)
-        predicted_vis_graph_list.append(create_predict_graph([vis_graph], model_graph, **kwargs)[0])
-    return predicted_vis_graph_list
 
 
 def create_corrupt_vis_graph(vis_graph_list, gt_graph=None, **kwargs):

@@ -4,7 +4,6 @@
 """
 
 import logging
-import os
 import sys
 import unittest
 
@@ -18,8 +17,8 @@ from libs.imaging import predict_skycomponent_visibility
 from libs.skycomponent.operations import find_skycomponents, find_nearest_skycomponent, insert_skycomponent
 from libs.util.testing_support import create_named_configuration, ingest_unittest_visibility, create_unittest_model, \
     insert_unittest_errors, create_unittest_components
-from processing_components.graphs.execute import arlexecute
-from processing_components.graphs.imaging_graphs import create_zero_vis_graph_list, create_predict_graph, \
+from component_support.arlexecute import arlexecute
+from processing_components.components.imaging_graphs import create_zero_vis_graph_list, create_predict_graph, \
     create_invert_graph, create_subtract_vis_graph_list
 
 log = logging.getLogger(__name__)

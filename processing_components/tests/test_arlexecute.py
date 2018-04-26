@@ -7,7 +7,7 @@ import unittest
 
 import numpy
 
-from processing_components.graphs.execute import arlexecute
+from component_support.arlexecute import arlexecute
 
 log = logging.getLogger(__name__)
 

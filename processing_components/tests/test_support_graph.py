@@ -3,7 +3,6 @@
 
 """
 import logging
-import os
 import unittest
 
 import numpy
@@ -11,8 +10,8 @@ from astropy import units as u
 from astropy.coordinates import SkyCoord
 
 from data_models.memory_data_models import BlockVisibility
-from processing_components.graphs.graph_support import create_simulate_vis_graph
-from processing_components.graphs.execute import arlexecute
+from processing_components.components.support_graphs import create_simulate_vis_graph
+from component_support.arlexecute import arlexecute
 
 log = logging.getLogger(__name__)
 

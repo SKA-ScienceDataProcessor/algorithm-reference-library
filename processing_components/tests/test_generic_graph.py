@@ -3,7 +3,6 @@
 
 """
 
-import os
 import unittest
 
 import numpy
@@ -17,8 +16,8 @@ from libs.skycomponent.operations import create_skycomponent
 from libs.util.testing_support import create_named_configuration, create_test_image
 from libs.visibility.base import create_blockvisibility
 
-from processing_components.graphs.execute import arlexecute
-from processing_components.graphs.generic_graphs import create_generic_blockvisibility_graph, \
+from component_support.arlexecute import arlexecute
+from generic_graphs import create_generic_blockvisibility_graph, \
     create_generic_image_graph, create_generic_image_iterator_graph
 
 

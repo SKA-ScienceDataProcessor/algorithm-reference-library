@@ -4,7 +4,6 @@
 """
 
 import logging
-import os
 import sys
 import unittest
 
@@ -19,8 +18,8 @@ from libs.skycomponent.operations import insert_skycomponent
 from libs.util.testing_support import create_named_configuration, ingest_unittest_visibility, create_unittest_model, \
     create_unittest_components, insert_unittest_errors
 
-from processing_components.graphs.execute import arlexecute
-from processing_components.graphs.imaging_graphs import create_invert_graph, create_deconvolve_graph, create_residual_graph, \
+from component_support.arlexecute import arlexecute
+from processing_components.components.imaging_graphs import create_invert_graph, create_deconvolve_graph, create_residual_graph, \
     create_restore_graph
 
 log = logging.getLogger(__name__)

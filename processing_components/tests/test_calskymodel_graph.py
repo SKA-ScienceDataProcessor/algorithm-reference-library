@@ -3,7 +3,6 @@
 
 """
 import logging
-import os
 import unittest
 
 import astropy.units as u
@@ -24,8 +23,8 @@ from libs.util.testing_support import create_named_configuration, simulate_gaint
 from libs.visibility.base import copy_visibility, create_blockvisibility
 from libs.visibility.coalesce import convert_blockvisibility_to_visibility
 
-from processing_components.graphs.execute import arlexecute
-from processing_components.graphs.skymodel_cal_graph import create_skymodel_cal_solve_graph
+from component_support.arlexecute import arlexecute
+from processing_components.components.calskymodel_graphs import create_skymodel_cal_solve_graph
 
 log = logging.getLogger(__name__)
 
