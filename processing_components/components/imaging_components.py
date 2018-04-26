@@ -32,13 +32,11 @@ These are the same as executed in the imaging framework.
 import collections
 
 import numpy
-from dask.distributed import wait
 
-from libs.calibration.calibration_control import calibrate_function
-from libs.calibration.operations import apply_gaintable
 from data_models.memory_data_models import Image
 from data_models.parameters import get_parameter
-from component_support.arlexecute import arlexecute
+from libs.calibration.calibration_control import calibrate_function
+from libs.calibration.operations import apply_gaintable
 from libs.image.deconvolution import deconvolve_cube, restore_cube
 from libs.image.gather_scatter import image_scatter_facets, image_gather_facets, image_scatter_channels, \
     image_gather_channels
@@ -51,27 +49,7 @@ from libs.visibility.gather_scatter import visibility_gather_channel
 from libs.visibility.gather_scatter import visibility_scatter, visibility_gather
 from libs.visibility.operations import divide_visibility, integrate_visibility_by_channel
 
-
-def compute_list(client, graph_list, **kwargs):
-    """ Compute all elements in list
-
-    :param client: Client from dask.distributed
-    :param graph_list:
-    :return: list
-    """
-    nworkers_initial = len(client.scheduler_info()['workers'])
-    futures = client.compute(graph_list, **kwargs)
-    wait(futures)
-    nworkers_final = len(client.scheduler_info()['workers'])
-    # Check that the number of workers has not decreased. On the first call, it seems that
-    # Dask can report fewer workers than requested. This is transitory so we only
-    # check for decreases.
-    # assert nworkers_final >= nworkers_initial, "Lost workers: started with %d, now have %d" % \
-    #                                            (nworkers_initial, nworkers_final)
-    if nworkers_final < nworkers_initial:
-        print("Lost workers: started with %d, now have %d" % (nworkers_initial, nworkers_final))
-    return [f.result() for f in futures]
-
+from processing_components.component_support.arlexecute import arlexecute
 
 def sum_invert_results(image_list):
     """ Sum a set of invert results with appropriate weighting
@@ -133,10 +111,10 @@ def sum_predict_results(results):
     return sum_results
 
 
-def create_zero_vis_graph_list(vis_graph_list):
+def zero_vislist_component(vis_list):
     """ Initialise vis to zero: creates new data holders
 
-    :param vis_graph_list:
+    :param vis_list:
     :return: List of vis_graphs
    """
     
@@ -148,14 +126,14 @@ def create_zero_vis_graph_list(vis_graph_list):
         else:
             return None
     
-    return [arlexecute.execute(zero, pure=True, nout=1)(v) for v in vis_graph_list]
+    return [arlexecute.execute(zero, pure=True, nout=1)(v) for v in vis_list]
 
 
-def create_subtract_vis_graph_list(vis_graph_list, model_vis_graph_list):
+def subtract_vislist_component(vis_list, model_vislist):
     """ Initialise vis to zero
 
-    :param vis_graph_list:
-    :param model_vis_graph_list: Model to be subtracted
+    :param vis_list:
+    :param model_vislist: Model to be subtracted
     :return: List of vis_graphs
    """
     
@@ -168,15 +146,15 @@ def create_subtract_vis_graph_list(vis_graph_list, model_vis_graph_list):
         else:
             return None
     
-    return [arlexecute.execute(subtract_vis, pure=True, nout=1)(vis=vis_graph_list[i],
-                                                                model_vis=model_vis_graph_list[i])
-            for i in range(len(vis_graph_list))]
+    return [arlexecute.execute(subtract_vis, pure=True, nout=1)(vis=vis_list[i],
+                                                                model_vis=model_vislist[i])
+            for i in range(len(vis_list))]
 
 
-def create_weight_vis_graph_list(vis_graph_list, model_graph, weighting='uniform', **kwargs):
+def weight_vislist_component(vis_list, model_graph, weighting='uniform', **kwargs):
     """ Weight the visibility data
 
-    :param vis_graph_list:
+    :param vis_list:
     :param model_graph: Model required to determine weighting parameters
     :param weighting: Type of weighting
     :param kwargs: Parameters for functions in components
@@ -193,15 +171,15 @@ def create_weight_vis_graph_list(vis_graph_list, model_graph, weighting='uniform
         else:
             return None
     
-    return [arlexecute.execute(weight_vis, pure=True, nout=1)(vis_graph_list[i], model_graph[i])
-            for i in range(len(vis_graph_list))]
+    return [arlexecute.execute(weight_vis, pure=True, nout=1)(vis_list[i], model_graph[i])
+            for i in range(len(vis_list))]
 
 
-def create_invert_graph(vis_graph_list, template_model_graph, dopsf=False, normalize=True,
-                        facets=1, vis_slices=1, context='2d', **kwargs):
-    """ Sum results from invert, iterating over the scattered image and vis_graph_list
+def invert_component(vis_list, template_model_graph, dopsf=False, normalize=True,
+                     facets=1, vis_slices=1, context='2d', **kwargs):
+    """ Sum results from invert, iterating over the scattered image and vis_list
 
-    :param vis_graph_list:
+    :param vis_list:
     :param template_model_graph: Model used to determine image parameters
     :param dopsf: Make the PSF instead of the dirty image
     :param facets: Number of facets
@@ -246,8 +224,8 @@ def create_invert_graph(vis_graph_list, template_model_graph, dopsf=False, norma
             return create_empty_image_like(model), 0.0
     
     # Loop over all vis_graphs independently
-    results_vis_graph_list = list()
-    for freqwin, vis_graph in enumerate(vis_graph_list):
+    results_vislist = list()
+    for freqwin, vis_graph in enumerate(vis_list):
         # Create the graph to divide an image into facets. This is by reference.
         facet_graphs = arlexecute.execute(image_scatter_facets, nout=actual_number_facets ** 2)(template_model_graph[
                                                                                                     freqwin],
@@ -266,8 +244,8 @@ def create_invert_graph(vis_graph_list, template_model_graph, dopsf=False, norma
                         arlexecute.execute(invert_ignore_none, pure=True)(sub_vis_graph, facet_graph))
                 vis_results.append(arlexecute.execute(sum_invert_results)(facet_vis_results))
             
-            results_vis_graph_list.append(arlexecute.execute(gather_image_iteration_results,
-                                                             nout=1)(vis_results, template_model_graph[freqwin]))
+            results_vislist.append(arlexecute.execute(gather_image_iteration_results,
+                                                      nout=1)(vis_results, template_model_graph[freqwin]))
         else:
             vis_results = list()
             for sub_vis_graph in sub_vis_graphs:
@@ -278,18 +256,18 @@ def create_invert_graph(vis_graph_list, template_model_graph, dopsf=False, norma
                 vis_results.append(arlexecute.execute(gather_image_iteration_results, nout=1)(facet_vis_results,
                                                                                               template_model_graph[
                                                                                                   freqwin]))
-            results_vis_graph_list.append(arlexecute.execute(sum_invert_results)(vis_results))
+            results_vislist.append(arlexecute.execute(sum_invert_results)(vis_results))
     
-    return results_vis_graph_list
+    return results_vislist
 
 
-def create_predict_graph(vis_graph_list, model_graph, vis_slices=1, facets=1, context='2d', **kwargs):
-    """Predict, iterating over both the scattered vis_graph_list and image
+def predict_component(vis_list, model_graph, vis_slices=1, facets=1, context='2d', **kwargs):
+    """Predict, iterating over both the scattered vis_list and image
     
     The visibility and image are scattered, the visibility is predicted on each part, and then the
     parts are assembled.
 
-    :param vis_graph_list:
+    :param vis_list:
     :param model_graph: Model used to determine image parameters
     :param vis_slices: Number of vis slices (w stack or timeslice)
     :param facets: Number of facets (per axis)
@@ -298,7 +276,7 @@ def create_predict_graph(vis_graph_list, model_graph, vis_slices=1, facets=1, co
     :return: List of vis_graphs
    """
     
-    assert len(vis_graph_list) == len(model_graph), "Model must be the same length as the vis_graph_list"
+    assert len(vis_list) == len(model_graph), "Model must be the same length as the vis_list"
     
     c = imaging_context(context)
     vis_iter = c['vis_iterator']
@@ -318,7 +296,7 @@ def create_predict_graph(vis_graph_list, model_graph, vis_slices=1, facets=1, co
     
     image_results_graph_list = list()
     # Loop over all frequency windows
-    for freqwin, vis_graph in enumerate(vis_graph_list):
+    for freqwin, vis_graph in enumerate(vis_list):
         # Create the graph to divide an image into facets. This is by reference.
         facet_graphs = arlexecute.execute(image_scatter_facets, nout=actual_number_facets ** 2)(model_graph[freqwin],
                                                                                                 facets=facets)
@@ -359,7 +337,7 @@ def create_predict_graph(vis_graph_list, model_graph, vis_slices=1, facets=1, co
     return image_results_graph_list
 
 
-def create_residual_graph(vis, model_graph, context='2d', **kwargs):
+def residual_component(vis, model_graph, context='2d', **kwargs):
     """ Create a graph to calculate residual image using w stacking and faceting
 
     :param context: 
@@ -370,14 +348,14 @@ def create_residual_graph(vis, model_graph, context='2d', **kwargs):
     :param kwargs: Parameters for functions in components
     :return:
     """
-    model_vis = create_zero_vis_graph_list(vis)
-    model_vis = create_predict_graph(model_vis, model_graph, context=context, **kwargs)
-    residual_vis = create_subtract_vis_graph_list(vis, model_vis)
-    return create_invert_graph(residual_vis, model_graph, dopsf=False, normalize=True, context=context,
-                               **kwargs)
+    model_vis = zero_vislist_component(vis)
+    model_vis = predict_component(model_vis, model_graph, context=context, **kwargs)
+    residual_vis = subtract_vislist_component(vis, model_vis)
+    return invert_component(residual_vis, model_graph, dopsf=False, normalize=True, context=context,
+                            **kwargs)
 
 
-def create_restore_graph(model_graph, psf_graph, residual_graph, **kwargs):
+def restore_component(model_graph, psf_graph, residual_graph, **kwargs):
     """ Create a graph to calculate the restored image
 
     :param model_graph: Model graph
@@ -390,7 +368,7 @@ def create_restore_graph(model_graph, psf_graph, residual_graph, **kwargs):
             for i, _ in enumerate(model_graph)]
 
 
-def create_deconvolve_graph(dirty_graph, psf_graph, model_graph, **kwargs):
+def deconvolve_component(dirty_graph, psf_graph, model_graph, **kwargs):
     """Create a graph for deconvolution, adding to the model
 
     :param dirty_graph:
@@ -459,8 +437,8 @@ def create_deconvolve_graph(dirty_graph, psf_graph, model_graph, **kwargs):
     return arlexecute.execute(image_scatter_channels, nout=nchan)(gathered_results_graph, subimages=nchan), flat_graph
 
 
-def create_deconvolve_channel_graph(dirty_graph, psf_graph, model_graph, subimages,
-                                    **kwargs):
+def deconvolve_channel_component(dirty_graph, psf_graph, model_graph, subimages,
+                                 **kwargs):
     """Create a graph for deconvolution by channels, adding to the model
 
     Does deconvolution channel by channel.
@@ -493,16 +471,16 @@ def create_deconvolve_channel_graph(dirty_graph, psf_graph, model_graph, subimag
     return arlexecute.execute(add_model, nout=1, pure=True)(result, model_graph)
 
 
-def create_calibrate_graph_list(vis_graph_list, model_vis_graph_list, calibration_context='TG', global_solution=True,
-                                **kwargs):
+def calibrate_component(vis_list, model_vislist, calibration_context='TG', global_solution=True,
+                        **kwargs):
     """ Create a set of components for (optionally global) calibration of a list of visibilities
 
     If global solution is true then visibilities are gathered to a single visibility data set which is then
     self-calibrated. The resulting gaintable is then effectively scattered out for application to each visibility
     set. If global solution is false then the solutions are performed locally.
 
-    :param vis_graph_list:
-    :param model_vis_graph_list:
+    :param vis_list:
+    :param model_vislist:
     :param calibration_context: String giving terms to be calibrated e.g. 'TGB'
     :param global_solution: Solve for global gains
     :param kwargs: Parameters for functions in components
@@ -513,17 +491,17 @@ def create_calibrate_graph_list(vis_graph_list, model_vis_graph_list, calibratio
         return calibrate_function(vis, modelvis, calibration_context=calibration_context, **kwargs)[0]
     
     if global_solution:
-        point_vis_graph_list = [arlexecute.execute(divide_visibility, nout=len(vis_graph_list))(vis_graph_list[i],
-                                                                                                model_vis_graph_list[i])
-                                for i, _ in enumerate(vis_graph_list)]
-        global_point_vis_graph = arlexecute.execute(visibility_gather_channel, nout=1)(point_vis_graph_list)
+        point_vislist = [arlexecute.execute(divide_visibility, nout=len(vis_list))(vis_list[i],
+                                                                                   model_vislist[i])
+                         for i, _ in enumerate(vis_list)]
+        global_point_vis_graph = arlexecute.execute(visibility_gather_channel, nout=1)(point_vislist)
         global_point_vis_graph = arlexecute.execute(integrate_visibility_by_channel, nout=1)(global_point_vis_graph)
         # This is a global solution so we only compute one gain table
         _, gt_graph = arlexecute.execute(solve_and_apply, pure=True, nout=2)(global_point_vis_graph, **kwargs)
-        return [arlexecute.execute(apply_gaintable, nout=len(vis_graph_list))(v, gt_graph, inverse=True)
-                for v in vis_graph_list]
+        return [arlexecute.execute(apply_gaintable, nout=len(vis_list))(v, gt_graph, inverse=True)
+                for v in vis_list]
     else:
         
         return [
-            arlexecute.execute(solve_and_apply, nout=len(vis_graph_list))(vis_graph_list[i], model_vis_graph_list[i])
-            for i, v in enumerate(vis_graph_list)]
+            arlexecute.execute(solve_and_apply, nout=len(vis_list))(vis_list[i], model_vislist[i])
+            for i, v in enumerate(vis_list)]

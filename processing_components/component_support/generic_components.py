@@ -1,14 +1,13 @@
-""" Generic functions converted to Dask.delayed components. `Dask <http://dask.pydata.org/>`_ is a python-based
-flexible parallel computing library for analytic computing. Dask.delayed can be used to wrap functions for deferred
-execution
-thus allowing construction of components.
+""" Generic functions converted to arlexecute components. arlexecute is a wrapper for`Dask <http://dask.pydata.org/>`_
+is a python-based flexible parallel computing library for analytic computing. Dask.delayed can be used to wrap
+functions for deferred execution thus allowing construction of components.
 
 For example, consider a trivial example to take the square root of an image::
 
         def imagerooter(im, **kwargs):
             im.data_models = numpy.sqrt(numpy.abs(im.data_models))
             return im
-        root = create_generic_image_graph(imagerooter, myimage,  image_raster_iter, facets=4).compute()
+        root = generic_image_component(imagerooter, myimage,  image_raster_iter, facets=4).compute()
 
 We create the graph and execute it immediately. We are using the  image_raster_iter so the image will be divided into 16
 subimages and passed to processing by imagerooter, and then the answers are reassembled.
@@ -16,18 +15,18 @@ subimages and passed to processing by imagerooter, and then the answers are reas
 We  could keep the graph and use it in other components. See the imaging-dask note book for more detail.
 """
 
-from component_support.arlexecute import arlexecute
+from processing_components.component_support.arlexecute import arlexecute
 
 from data_models.memory_data_models import Image
 from libs.image.operations import copy_image, create_empty_image_like
 from libs.image.gather_scatter import image_gather_facets, image_scatter_facets
 
 
-def create_generic_blockvisibility_graph(visfunction, vis_graph_list, additive=True, *args, **kwargs):
+def generic_blockvisibility_component(visfunction, vis_list, additive=True, *args, **kwargs):
     """ Definition of interface for create_generic_blockvisibility_graph_visfunction.
 
     :func visfunction: Function to be applied
-    :param vis_graph_list: List of vis_graphs
+    :param vis_list: List of vis_graphs
     :param additive: Add to existing visibility? (True)
     :param args:
     :param kwargs: Parameters for functions in components
@@ -37,19 +36,19 @@ def create_generic_blockvisibility_graph(visfunction, vis_graph_list, additive=T
     def accumulate_results(results, **kwargs):
         for i, result in enumerate(results):
             if additive:
-                vis_graph_list[i].data['vis'] += result.data['vis']
+                vis_list[i].data['vis'] += result.data['vis']
             else:
-                vis_graph_list[i].data['vis'] = result.data['vis']
-        return vis_graph_list
+                vis_list[i].data['vis'] = result.data['vis']
+        return vis_list
     
     results = list()
-    for vis_graph in vis_graph_list:
+    for vis_graph in vis_list:
         results.append(arlexecute.execute(visfunction, pure=True)(vis_graph, *args, **kwargs))
     return [arlexecute.execute(accumulate_results, pure=True)(results, **kwargs)]
 
 
-def create_generic_image_iterator_graph(imagefunction, im: Image, iterator, **kwargs):
-    """ Definition of interface for create_generic_image_graph
+def generic_image_iterator_component(imagefunction, im: Image, iterator, **kwargs):
+    """ Definition of interface for generic_image_component
     
     This generates a graph for imagefunction. Note that im cannot be a graph itself.
 
@@ -73,8 +72,8 @@ def create_generic_image_iterator_graph(imagefunction, im: Image, iterator, **kw
     return arlexecute.execute(accumulate_results, pure=True)(results, **kwargs)
 
 
-def create_generic_image_graph(image_unary_function, im: Image, facets=4, **kwargs) :
-    """ Definition of interface for create_generic_image_graph using scatter/gather
+def generic_image_component(image_unary_function, im: Image, facets=4, **kwargs) :
+    """ Definition of interface for generic_image_component using scatter/gather
 
     This generates a graph for imagefunction. Note that im cannot be a graph itself.
 

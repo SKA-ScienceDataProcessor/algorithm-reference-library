@@ -16,7 +16,7 @@ from data_models.polarisation import PolarisationFrame
 from component_support.arlexecute import arlexecute
 from libs.image.operations import export_image_to_fits, smooth_image, qa_image
 from libs.imaging import predict_skycomponent_visibility
-from processing_components.components.pipeline_components import create_ical_pipeline_graph, create_continuum_imaging_pipeline_graph
+from processing_components.components.pipeline_components import ical_component, continuum_imaging_component
 from libs.skycomponent.operations import insert_skycomponent
 from libs.util.testing_support import create_named_configuration, ingest_unittest_visibility, create_unittest_model, \
     create_unittest_components, insert_unittest_errors
@@ -47,7 +47,7 @@ class TestPipelineGraphs(unittest.TestCase):
         self.npixel = 512
         self.low = create_named_configuration('LOWBD2', rmax=750.0)
         self.freqwin = freqwin
-        self.vis_graph_list = list()
+        self.vis_list = list()
         self.ntimes = 5
         self.times = numpy.linspace(-3.0, +3.0, self.ntimes) * numpy.pi / 12.0
         self.frequency = numpy.linspace(0.8e8, 1.2e8, self.freqwin)
@@ -72,7 +72,7 @@ class TestPipelineGraphs(unittest.TestCase):
             flux = numpy.array([f])
         
         self.phasecentre = SkyCoord(ra=+180.0 * u.deg, dec=-60.0 * u.deg, frame='icrs', equinox='J2000')
-        self.vis_graph_list = [arlexecute.execute(ingest_unittest_visibility)(self.low,
+        self.vis_list = [arlexecute.execute(ingest_unittest_visibility)(self.low,
                                                                               [self.frequency[i]],
                                                                               [self.channelwidth[i]],
                                                                               self.times,
@@ -82,7 +82,7 @@ class TestPipelineGraphs(unittest.TestCase):
                                for i, _ in enumerate(self.frequency)]
         
         self.model_graph = [
-            arlexecute.execute(create_unittest_model, nout=freqwin)(self.vis_graph_list[0], self.image_pol,
+            arlexecute.execute(create_unittest_model, nout=freqwin)(self.vis_list[0], self.image_pol,
                                                                     npixel=self.npixel)
             for i, _ in enumerate(self.frequency)]
         
@@ -95,7 +95,7 @@ class TestPipelineGraphs(unittest.TestCase):
                                                                             self.components_graph[freqwin])
                             for freqwin, _ in enumerate(self.frequency)]
         
-        self.vis_graph_list = [arlexecute.execute(predict_skycomponent_visibility)(self.vis_graph_list[freqwin],
+        self.vis_list = [arlexecute.execute(predict_skycomponent_visibility)(self.vis_list[freqwin],
                                                                                    self.components_graph[freqwin])
                                for freqwin, _ in enumerate(self.frequency)]
 
@@ -108,14 +108,14 @@ class TestPipelineGraphs(unittest.TestCase):
         export_image_to_fits(self.cmodel, '%s/test_imaging_delayed_cmodel.fits' % self.dir)
         
         if add_errors and block:
-            self.vis_graph_list = [
-                arlexecute.execute(insert_unittest_errors)(self.vis_graph_list[i], amp_errors=amp_errors,
+            self.vis_list = [
+                arlexecute.execute(insert_unittest_errors)(self.vis_list[i], amp_errors=amp_errors,
                                                            phase_errors=phase_errors)
                 for i, _ in enumerate(self.frequency)]
         
-        self.vis_graph_list = arlexecute.compute(self.vis_graph_list, sync=True)
+        self.vis_list = arlexecute.compute(self.vis_list, sync=True)
         
-        self.vis_graph_list = arlexecute.scatter(self.vis_graph_list)
+        self.vis_list = arlexecute.scatter(self.vis_list)
         self.model_graph = arlexecute.scatter(self.model_graph)
     
     def test_time_setup(self):
@@ -124,14 +124,14 @@ class TestPipelineGraphs(unittest.TestCase):
     def test_continuum_imaging_pipeline(self):
         self.actualSetUp(add_errors=False, block=True)
         continuum_imaging_graph = \
-            create_continuum_imaging_pipeline_graph(self.vis_graph_list, model_graph=self.model_graph, context='2d',
-                                                    algorithm='mmclean', facets=1,
-                                                    scales=[0, 3, 10],
-                                                    niter=1000, fractional_threshold=0.1,
-                                                    nmoments=2, nchan=self.freqwin,
-                                                    threshold=2.0, nmajor=5, gain=0.1,
-                                                    deconvolve_facets=8, deconvolve_overlap=16,
-                                                    deconvolve_taper='tukey')
+            continuum_imaging_component(self.vis_list, model_graph=self.model_graph, context='2d',
+                                                 algorithm='mmclean', facets=1,
+                                                 scales=[0, 3, 10],
+                                                 niter=1000, fractional_threshold=0.1,
+                                                 nmoments=2, nchan=self.freqwin,
+                                                 threshold=2.0, nmajor=5, gain=0.1,
+                                                 deconvolve_facets=8, deconvolve_overlap=16,
+                                                 deconvolve_taper='tukey')
         clean, residual, restored = arlexecute.compute(continuum_imaging_graph, sync=True)
         export_image_to_fits(clean[0], '%s/test_pipelines_continuum_imaging_pipeline_clean.fits' % self.dir)
         export_image_to_fits(residual[0][0],
@@ -159,7 +159,7 @@ class TestPipelineGraphs(unittest.TestCase):
         controls['B']['timescale'] = 1e5
         
         ical_graph = \
-            create_ical_pipeline_graph(self.vis_graph_list, model_graph=self.model_graph, context='2d',
+            ical_component(self.vis_list, model_graph=self.model_graph, context='2d',
                                        calibration_context='T', controls=controls, do_selfcal=True,
                                        global_solution=False,
                                        algorithm='mmclean',

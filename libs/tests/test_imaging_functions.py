@@ -33,7 +33,7 @@ class TestImagingFunctions(unittest.TestCase):
         self.npixel = 256
         self.low = create_named_configuration('LOWBD2', rmax=750.0)
         self.freqwin = freqwin
-        self.vis_graph_list = list()
+        self.vis_list = list()
         self.ntimes = 5
         self.times = numpy.linspace(-3.0, +3.0, self.ntimes) * numpy.pi / 12.0
         self.frequency = numpy.linspace(0.8e8, 1.2e8, self.freqwin)

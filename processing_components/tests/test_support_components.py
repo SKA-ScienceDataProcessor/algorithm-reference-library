@@ -10,7 +10,7 @@ from astropy import units as u
 from astropy.coordinates import SkyCoord
 
 from data_models.memory_data_models import BlockVisibility
-from processing_components.components.support_graphs import create_simulate_vis_graph
+from processing_components.components.support_components import simulate_component
 from component_support.arlexecute import arlexecute
 
 log = logging.getLogger(__name__)
@@ -29,9 +29,9 @@ class TestTestingDaskGraphSupport(unittest.TestCase):
     
     def test_create_simulate_vis_graph(self):
         arlexecute.set_client(use_dask=True)
-        vis_graph_list = create_simulate_vis_graph(frequency=self.frequency, channel_bandwidth=self.channel_bandwidth)
-        assert len(vis_graph_list) == len(self.frequency)
-        vt = vis_graph_list[0].compute()
+        vis_list = simulate_component(frequency=self.frequency, channel_bandwidth=self.channel_bandwidth)
+        assert len(vis_list) == len(self.frequency)
+        vt = vis_list[0].compute()
         assert isinstance(vt, BlockVisibility)
         assert vt.nvis > 0
         arlexecute.client.close()

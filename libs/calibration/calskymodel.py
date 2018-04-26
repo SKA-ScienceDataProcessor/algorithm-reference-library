@@ -66,7 +66,7 @@ def create_cal_skymodel(vis: BlockVisibility, skymodels, **kwargs):
     return [(copy_skymodel(sm), copy_gaintable(gt)) for sm in skymodels]
 
 
-def skymodel_cal_fit_skymodel(vis, calskymodel, gain=0.1, **kwargs):
+def calskymodel_fit_skymodel(vis, calskymodel, gain=0.1, **kwargs):
     """Fit a single skymodel to a visibility
 
     :param evis: Expected vis for this ssm
@@ -81,7 +81,7 @@ def skymodel_cal_fit_skymodel(vis, calskymodel, gain=0.1, **kwargs):
         cvis = convert_blockvisibility_to_visibility(vis)
         return solve_skymodel(cvis, calskymodel[0], **kwargs)
 
-def skymodel_cal_fit_gaintable(evis, calskymodel, gain=0.1, niter=3, tol=1e-3, **kwargs):
+def calskymodel_fit_gaintable(evis, calskymodel, gain=0.1, niter=3, tol=1e-3, **kwargs):
     """Fit a gaintable to a visibility
     
     This is the update to the gain part of the window
@@ -102,7 +102,7 @@ def skymodel_cal_fit_gaintable(evis, calskymodel, gain=0.1, niter=3, tol=1e-3, *
     return gt
 
 
-def skymodel_cal_e_step(vis: BlockVisibility, evis_all: BlockVisibility, calskymodel, **kwargs):
+def calskymodel_e_step(vis: BlockVisibility, evis_all: BlockVisibility, calskymodel, **kwargs):
     """Calculates E step in equation A12
 
     This is the data model for this window plus the difference between observed data and summed data models
@@ -120,7 +120,7 @@ def skymodel_cal_e_step(vis: BlockVisibility, evis_all: BlockVisibility, calskym
     return evis
 
 
-def skymodel_cal_e_all(vis: BlockVisibility, calskymodels, **kwargs):
+def calskymodel_e_all(vis: BlockVisibility, calskymodels, **kwargs):
     """Calculates E step in equation A12
 
     This is the sum of the data models over all skymodel
@@ -140,7 +140,7 @@ def skymodel_cal_e_all(vis: BlockVisibility, calskymodels, **kwargs):
     return evis
 
 
-def skymodel_cal_m_step(evis: BlockVisibility, calskymodel, **kwargs):
+def calskymodel_m_step(evis: BlockVisibility, calskymodel, **kwargs):
     """Calculates M step in equation A13
 
     This maximises the likelihood of the ssm parameters given the existing data model. Note that the skymodel and
@@ -150,11 +150,11 @@ def skymodel_cal_m_step(evis: BlockVisibility, calskymodel, **kwargs):
     :param kwargs:
     :return:
     """
-    return (skymodel_cal_fit_skymodel(evis, calskymodel, **kwargs),
-            skymodel_cal_fit_gaintable(evis, calskymodel, **kwargs))
+    return (calskymodel_fit_skymodel(evis, calskymodel, **kwargs),
+            calskymodel_fit_gaintable(evis, calskymodel, **kwargs))
 
 
-def skymodel_cal_solve(vis, skymodels, niter=10, tol=1e-8, gain=0.25, **kwargs):
+def calskymodel_solve(vis, skymodels, niter=10, tol=1e-8, gain=0.25, **kwargs):
     """ Solve
     
     Solve by iterating, performing E step and M step.
@@ -169,25 +169,25 @@ def skymodel_cal_solve(vis, skymodels, niter=10, tol=1e-8, gain=0.25, **kwargs):
     
     for iter in range(niter):
         new_calskymodels = list()
-        evis_all = skymodel_cal_e_all(vis, calskymodels)
-        log.debug("skymodel_cal_solve: Iteration %d" % (iter))
+        evis_all = calskymodel_e_all(vis, calskymodels)
+        log.debug("calskymodel_solve: Iteration %d" % (iter))
         for window_index, csm in enumerate(calskymodels):
-            evis = skymodel_cal_e_step(vis, evis_all, csm, gain=gain, **kwargs)
-            new_csm = skymodel_cal_m_step(evis, csm, **kwargs)
+            evis = calskymodel_e_step(vis, evis_all, csm, gain=gain, **kwargs)
+            new_csm = calskymodel_m_step(evis, csm, **kwargs)
             new_calskymodels.append((new_csm[0], new_csm[1]))
             
             flux = new_csm[0].components[0].flux[0, 0]
             qa = qa_gaintable(new_csm[1])
             residual = qa.data['residual']
             rms_phase = qa.data['rms-phase']
-            log.debug("skymodel_cal_solve:\t Window %d, flux %s, residual %.3f, rms phase %.3f" % (window_index,
+            log.debug("calskymodel_solve:\t Window %d, flux %s, residual %.3f, rms phase %.3f" % (window_index,
                                                                             str(flux), residual,
                                                                             rms_phase))
             
         calskymodels = [(copy_skymodel(csm[0]), copy_gaintable(csm[1])) for csm in new_calskymodels]
     
     residual_vis = copy_visibility(vis)
-    final_vis = skymodel_cal_e_all(vis, calskymodels)
+    final_vis = calskymodel_e_all(vis, calskymodels)
     residual_vis.data['vis'][...] = vis.data['vis'][...] - final_vis.data['vis'][...]
     return calskymodels, residual_vis
 

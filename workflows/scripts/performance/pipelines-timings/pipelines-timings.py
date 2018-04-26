@@ -18,10 +18,10 @@ from libs.image.operations import qa_image, export_image_to_fits, smooth_image
 from libs.imaging import create_image_from_visibility, advise_wide_field
 from libs.util.testing_support import create_low_test_image_from_gleam
 from libs.visibility.coalesce import convert_blockvisibility_to_visibility
-from pipeline_components import create_ical_pipeline_graph
+from pipeline_components import ical_component
 from processing_components.component_support.arlexecute import arlexecute
-from processing_components.components.imaging_graphs import create_predict_graph, create_invert_graph
-from support_graphs import create_simulate_vis_graph, create_corrupt_vis_graph
+from processing_components.components.imaging_components import predict_component, invert_component
+from support_components import simulate_component, corrupt_component
 
 log = logging.getLogger()
 log.setLevel(logging.INFO)
@@ -94,10 +94,10 @@ def trial_case(results, seed=180555, context='wstack', nworkers=8, threads_per_w
     :param nworkers: Number of dask workers to use
     :param threads_per_worker: Number of threads per worker
     :param processes: Use processes instead of threads 'processes'|'threads'
-    :param order: See create_simulate_vis_graph
-    :param nfreqwin: See create_simulate_vis_graph
-    :param ntimes: See create_simulate_vis_graph
-    :param rmax: See create_simulate_vis_graph
+    :param order: See simulate_component
+    :param nfreqwin: See simulate_component
+    :param ntimes: See simulate_component
+    :param rmax: See simulate_component
     :param facets: Number of facets to use
     :param wprojection_planes: Number of wprojection planes to use
     :param use_dask: Use dask or immediate evaluation
@@ -153,14 +153,14 @@ def trial_case(results, seed=180555, context='wstack', nworkers=8, threads_per_w
     else:
         arlexecute.set_client(use_dask=use_dask)
     
-    vis_graph_list = create_simulate_vis_graph('LOWBD2',
-                                               frequency=frequency,
-                                               channel_bandwidth=channel_bandwidth,
-                                               times=times,
-                                               phasecentre=phasecentre,
-                                               order=order,
-                                               format='blockvis',
-                                               rmax=rmax)
+    vis_list = simulate_component('LOWBD2',
+                                  frequency=frequency,
+                                  channel_bandwidth=channel_bandwidth,
+                                  times=times,
+                                  phasecentre=phasecentre,
+                                  order=order,
+                                  format='blockvis',
+                                  rmax=rmax)
     if use_dask:
         nworkers_initial = len(arlexecute.client.scheduler_info()['workers'])
         check_workers(arlexecute.client, nworkers_initial)
@@ -171,11 +171,11 @@ def trial_case(results, seed=180555, context='wstack', nworkers=8, threads_per_w
         results['nnodes'] = 1
     
     print("****** Visibility creation ******")
-    vis_graph_list = arlexecute.compute(vis_graph_list, sync=True)
+    vis_list = arlexecute.compute(vis_list, sync=True)
     
     # Find the best imaging parameters.
     wprojection_planes = 1
-    advice = advise_wide_field(convert_blockvisibility_to_visibility(vis_graph_list[0]), guard_band_image=6.0,
+    advice = advise_wide_field(convert_blockvisibility_to_visibility(vis_list[0]), guard_band_image=6.0,
                                delA=0.02,
                                facets=facets,
                                wprojection_planes=wprojection_planes,
@@ -217,11 +217,11 @@ def trial_case(results, seed=180555, context='wstack', nworkers=8, threads_per_w
     results['time create gleam'] = end - start
     print("Creating GLEAM model took %.2f seconds" % (end - start))
     
-    vis_graph_list = create_predict_graph(vis_graph_list, gleam_model_graph, vis_slices=51, context=context,
-                                          kernel=kernel)
+    vis_list = predict_component(vis_list, gleam_model_graph, vis_slices=51, context=context,
+                                       kernel=kernel)
     start = time.time()
     print("****** Starting GLEAM model visibility prediction ******")
-    vis_graph_list = arlexecute.compute(vis_graph_list, sync=True)
+    vis_list = arlexecute.compute(vis_list, sync=True)
     
     end = time.time()
     results['time predict'] = end - start
@@ -229,16 +229,16 @@ def trial_case(results, seed=180555, context='wstack', nworkers=8, threads_per_w
     
     # Corrupt the visibility for the GLEAM model
     print("****** Visibility corruption ******")
-    vis_graph_list = create_corrupt_vis_graph(vis_graph_list, phase_error=1.0)
+    vis_list = corrupt_component(vis_list, phase_error=1.0)
     start = time.time()
-    vis_graph_list = arlexecute.compute(vis_graph_list, sync=True)
+    vis_list = arlexecute.compute(vis_list, sync=True)
     
     end = time.time()
     results['time corrupt'] = end - start
     print("Visibility corruption took %.2f seconds" % (end - start))
     
     # Create an empty model image
-    model_graph = [delayed(create_image_from_visibility)(vis_graph_list[f],
+    model_graph = [delayed(create_image_from_visibility)(vis_list[f],
                                                          npixel=npixel, cellsize=cellsize,
                                                          frequency=[frequency[f]],
                                                          channel_bandwidth=[channel_bandwidth[f]],
@@ -246,7 +246,7 @@ def trial_case(results, seed=180555, context='wstack', nworkers=8, threads_per_w
                    for f, freq in enumerate(frequency)]
     model_graph = arlexecute.compute(model_graph, sync=True)
     
-    psf_graph = create_invert_graph(vis_graph_list, model_graph, vis_slices=vis_slices,
+    psf_graph = invert_component(vis_list, model_graph, vis_slices=vis_slices,
                                     context=context, facets=facets, dopsf=True, kernel=kernel)
     start = time.time()
     print("****** Starting PSF calculation ******")
@@ -258,7 +258,7 @@ def trial_case(results, seed=180555, context='wstack', nworkers=8, threads_per_w
     results['psf_max'] = qa_image(psf).data['max']
     results['psf_min'] = qa_image(psf).data['min']
     
-    dirty_graph = create_invert_graph(vis_graph_list, model_graph, vis_slices=vis_slices,
+    dirty_graph = invert_component(vis_list, model_graph, vis_slices=vis_slices,
                                       context=context, facets=facets, kernel=kernel)
     start = time.time()
     print("****** Starting dirty image calculation ******")
@@ -276,7 +276,7 @@ def trial_case(results, seed=180555, context='wstack', nworkers=8, threads_per_w
     start = time.time()
     print("****** Starting ICAL ******")
     start = time.time()
-    ical_graph = create_ical_pipeline_graph(vis_graph_list, model_graph=model_graph, context=context, do_selfcal=1,
+    ical_graph = ical_component(vis_list, model_graph=model_graph, context=context, do_selfcal=1,
                                             nchan=nfreqwin, vis_slices=vis_slices, algorithm='mmclean', nmoments=3,
                                             niter=1000, fractional_threshold=0.1, scales=[0, 3, 10], threshold=0.1,
                                             nmajor=5, gain=0.7, timeslice='auto', global_solution=True,

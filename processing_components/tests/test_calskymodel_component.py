@@ -23,8 +23,8 @@ from libs.util.testing_support import create_named_configuration, simulate_gaint
 from libs.visibility.base import copy_visibility, create_blockvisibility
 from libs.visibility.coalesce import convert_blockvisibility_to_visibility
 
-from component_support.arlexecute import arlexecute
-from processing_components.components.calskymodel_graphs import create_skymodel_cal_solve_graph
+from processing_components.component_support.arlexecute import arlexecute
+from processing_components.components.calskymodel_components import calskymodel_solve_component
 
 log = logging.getLogger(__name__)
 
@@ -104,20 +104,20 @@ class TestCalibrationSkyModelcal(unittest.TestCase):
         
         self.skymodels = [SkyModel(components=[cm], fixed=fixed) for cm in self.components]
     
-    def test_skymodel_cal_solve_graph(self):
+    def test_calskymodel_solve_graph(self):
         
         self.actualSetup(doiso=True)
         
-        self.skymodel_graph = [arlexecute.execute(SkyModel, nout=1)(components=[cm]) for cm in self.components]
+        self.skymodel_list = [arlexecute.execute(SkyModel, nout=1)(components=[cm]) for cm in self.components]
         
-        skymodel_cal_graph = create_skymodel_cal_solve_graph(self.vis, self.skymodel_graph, niter=30,
-                                                             gain=0.25, tol=1e-8)
-        skymodel, residual_vis = arlexecute.compute(skymodel_cal_graph)
+        calskymodel_list = calskymodel_solve_component(self.vis, skymodel_list=self.skymodel_list, niter=30,
+                                                          gain=0.25, tol=1e-8)
+        skymodel, residual_vis = arlexecute.compute(calskymodel_list, sync=True)
         
         residual_vis = convert_blockvisibility_to_visibility(residual_vis)
         residual_vis, _, _ = weight_visibility(residual_vis, self.beam)
         dirty, sumwt = invert_function(residual_vis, self.beam, context='2d')
-        export_image_to_fits(dirty, "%s/test_skymodel_cal-%s-final-iso-residual.fits" %
+        export_image_to_fits(dirty, "%s/test_calskymodel-%s-final-iso-residual.fits" %
                              (self.dir, arlexecute.type()))
         
         qa = qa_image(dirty)

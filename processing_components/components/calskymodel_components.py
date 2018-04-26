@@ -44,15 +44,15 @@ import logging
 from component_support.arlexecute import arlexecute
 
 from libs.calibration.operations import copy_gaintable, apply_gaintable, create_gaintable_from_blockvisibility
-from libs.calibration.skymodel_cal import skymodel_cal_fit_skymodel, skymodel_cal_fit_gaintable
-from processing_components.components.imaging_graphs import sum_predict_results
+from libs.calibration.calskymodel import calskymodel_fit_skymodel, calskymodel_fit_gaintable
+from processing_components.components.imaging_components import sum_predict_results
 from libs.skymodel.operations import copy_skymodel, predict_skymodel_visibility
 from libs.visibility.operations import copy_visibility
 
 log = logging.getLogger(__name__)
 
 
-def create_initialise_skymodel_cal_graph(vis_graph, skymodel_graphs, **kwargs):
+def initialise_calskymodel_component(vislist, skymodel_list, **kwargs):
     """Create the skymodel
 
     Create the data model for each window, from the visibility and the existing components
@@ -66,10 +66,10 @@ def create_initialise_skymodel_cal_graph(vis_graph, skymodel_graphs, **kwargs):
         gt = create_gaintable_from_blockvisibility(vis, **kwargs)
         return (copy_skymodel(skymodel), copy_gaintable(gt))
     
-    return [arlexecute.execute(create_calskymodel, nout=2)(vis_graph, sm) for sm in skymodel_graphs]
+    return [arlexecute.execute(create_calskymodel, nout=2)(vislist, sm) for sm in skymodel_list]
 
 
-def create_skymodel_cal_e_step_graph(vis_graph, evis_all_graph, calskymodel_graph, **kwargs):
+def calskymodel_e_step_component(vislist, evis_all_list, calskymodel_list, **kwargs):
     """Calculates E step in equation A12
 
     This is the data model for this window plus the difference between observed data and summed data models
@@ -92,13 +92,13 @@ def create_skymodel_cal_e_step_graph(vis_graph, evis_all_graph, calskymodel_grap
         evis.data['vis'][...] = tvis.data['vis'][...] + vis.data['vis'][...] - evis_all.data['vis'][...]
         return evis
     
-    return [arlexecute.execute(make_e)(vis_graph, csm, evis_all_graph) for csm in calskymodel_graph]
+    return [arlexecute.execute(make_e)(vislist, csm, evis_all_list) for csm in calskymodel_list]
 
 
-def create_skymodel_cal_e_all_graph(vis_graph, calskymodel_graph):
+def calskymodel_e_all_component(vislist, calskymodel_list):
     """Calculates E step in equation A12
 
-    This is the sum of the data models over all skymodel, It is a global sync point for skymodel_cal
+    This is the sum of the data models over all skymodel, It is a global sync point for calskymodel
 
     :param vis: Visibility
     :param skymodel: list of the skymodel
@@ -112,12 +112,12 @@ def create_skymodel_cal_e_all_graph(vis_graph, calskymodel_graph):
         tvis = apply_gaintable(tvis, calskymodel[1])
         return tvis
     
-    evis_graph = [arlexecute.execute(predict_and_apply)(vis_graph, csm) for csm in calskymodel_graph]
+    evislist = [arlexecute.execute(predict_and_apply)(vislist, csm) for csm in calskymodel_list]
     
-    return arlexecute.execute(sum_predict_results, nout=1)(evis_graph)
+    return arlexecute.execute(sum_predict_results, nout=1)(evislist)
 
 
-def create_skymodel_cal_m_step_graph(evis_graph, skymodel_graph, **kwargs):
+def calskymodel_m_step_component(evislist, skymodel_list, **kwargs):
     """Calculates M step in equation A13
 
     This maximises the likelihood of the skymodel parameters given the existing data model. Note that these are done
@@ -129,14 +129,14 @@ def create_skymodel_cal_m_step_graph(evis_graph, skymodel_graph, **kwargs):
     """
     
     def make_skymodel(ev, skymodel):
-        return (skymodel_cal_fit_skymodel(ev, skymodel, **kwargs),
-                skymodel_cal_fit_gaintable(ev, skymodel, **kwargs))
+        return (calskymodel_fit_skymodel(ev, skymodel, **kwargs),
+                calskymodel_fit_gaintable(ev, skymodel, **kwargs))
     
-    return [arlexecute.execute(make_skymodel)(evis_graph[i], skymodel_graph[i]) for i, _ in enumerate(evis_graph)]
+    return [arlexecute.execute(make_skymodel)(evislist[i], skymodel_list[i]) for i, _ in enumerate(evislist)]
 
 
-def create_skymodel_cal_solve_graph(vis_graph, skymodel_graphs, niter=10, tol=1e-8, gain=0.25, **kwargs):
-    """ Solve using skymodel_cal, dask.delayed wrapper
+def calskymodel_solve_component(vislist, skymodel_list, niter=10, tol=1e-8, gain=0.25, **kwargs):
+    """ Solve using calskymodel, dask.delayed wrapper
 
     Solve by iterating, performing E step and M step.
 
@@ -146,19 +146,19 @@ def create_skymodel_cal_solve_graph(vis_graph, skymodel_graphs, niter=10, tol=1e
     :param kwargs:
     :return: A dask graph to calculate the individual data models and the residual visibility
     """
-    calskymodel_graph = create_initialise_skymodel_cal_graph(vis_graph, skymodel_graphs=skymodel_graphs, **kwargs)
+    calskymodel_list = initialise_calskymodel_component(vislist, skymodel_list=skymodel_list, **kwargs)
     
     for iter in range(niter):
-        evis_all_graph = create_skymodel_cal_e_all_graph(vis_graph, calskymodel_graph)
-        evis_graph = create_skymodel_cal_e_step_graph(vis_graph, evis_all_graph, calskymodel_graph, gain=gain, **kwargs)
-        new_calskymodel_graph = create_skymodel_cal_m_step_graph(evis_graph, calskymodel_graph, **kwargs)
-        calskymodel_graph = new_calskymodel_graph
+        evis_all_list = calskymodel_e_all_component(vislist, calskymodel_list)
+        evislist = calskymodel_e_step_component(vislist, evis_all_list, calskymodel_list, gain=gain, **kwargs)
+        new_calskymodel_list = calskymodel_m_step_component(evislist, calskymodel_list, **kwargs)
+        calskymodel_list = new_calskymodel_list
     
-    final_vis_graph = create_skymodel_cal_e_all_graph(vis_graph, calskymodel_graph)
+    final_vislist = calskymodel_e_all_component(vislist, calskymodel_list)
     
     def res_vis(vis, final_vis):
         residual_vis = copy_visibility(vis)
         residual_vis.data['vis'][...] = vis.data['vis'][...] - final_vis.data['vis'][...]
         return residual_vis
     
-    return arlexecute.execute((calskymodel_graph, arlexecute.execute(res_vis)(vis_graph, final_vis_graph)))
+    return arlexecute.execute((calskymodel_list, arlexecute.execute(res_vis)(vislist, final_vislist)))

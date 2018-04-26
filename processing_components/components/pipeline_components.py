@@ -1,118 +1,118 @@
 """ Pipelines as processing components.
 """
 
-from component_support.arlexecute import arlexecute
+from processing_components.component_support.arlexecute import arlexecute
 
 from data_models.parameters import get_parameter
-from processing_components.components.imaging_graphs import create_invert_graph, create_residual_graph, \
-    create_predict_graph, create_zero_vis_graph_list, create_calibrate_graph_list, \
-    create_subtract_vis_graph_list, create_restore_graph, create_deconvolve_graph
+from processing_components.components.imaging_components import invert_component, residual_component, \
+    predict_component, zero_vislist_component, calibrate_component, \
+    subtract_vislist_component, restore_component, deconvolve_component
 
 
-def create_ical_pipeline_graph(vis_graph_list, model_graph, context='2d', calibration_context='TG',
+def ical_component(vis_list, model_imagelist, context='2d', calibration_context='TG',
                                do_selfcal=True, **kwargs) :
     """Create graph for ICAL pipeline
 
-    :param vis_graph_list:
-    :param model_graph:
+    :param vis_list:
+    :param model_imagelist:
     :param context: imaging context e.g. '2d'
     :param kwargs: Parameters for functions in components
     :return:
     """
-    psf_graph = create_invert_graph(vis_graph_list, model_graph, dopsf=True, context=context, **kwargs)
+    psf_imagelist = invert_component(vis_list, model_imagelist, dopsf=True, context=context, **kwargs)
     
-    model_vis_graph_list = create_zero_vis_graph_list(vis_graph_list)
-    model_vis_graph_list = create_predict_graph(model_vis_graph_list, model_graph, context=context, **kwargs)
+    model_vislist = zero_vislist_component(vis_list)
+    model_vislist = predict_component(model_vislist, model_imagelist, context=context, **kwargs)
     if do_selfcal:
         # Make the predicted visibilities, selfcalibrate against it correcting the gains, then
         # form the residual visibility, then make the residual image
-        vis_graph_list = create_calibrate_graph_list(vis_graph_list, model_vis_graph_list,
-                                                     calibration_context=calibration_context, **kwargs)
-        residual_vis_graph_list = create_subtract_vis_graph_list(vis_graph_list, model_vis_graph_list)
-        residual_graph = create_invert_graph(residual_vis_graph_list, model_graph, dopsf=True, context=context,
+        vis_list = calibrate_component(vis_list, model_vislist,
+                                             calibration_context=calibration_context, **kwargs)
+        residual_vislist = subtract_vislist_component(vis_list, model_vislist)
+        residual_imagelist = invert_component(residual_vislist, model_imagelist, dopsf=True, context=context,
                                              iteration=0, **kwargs)
     else:
         # If we are not selfcalibrating it's much easier and we can avoid an unnecessary round of gather/scatter
         # for visibility partitioning such as timeslices and wstack.
-        residual_graph = create_residual_graph(vis_graph_list, model_graph, context=context, **kwargs)
+        residual_imagelist = residual_component(vis_list, model_imagelist, context=context, **kwargs)
     
-    deconvolve_model_graph, _ = create_deconvolve_graph(residual_graph, psf_graph, model_graph, **kwargs)
+    deconvolve_model_imagelist, _ = deconvolve_component(residual_imagelist, psf_imagelist, model_imagelist, **kwargs)
     
     nmajor = get_parameter(kwargs, "nmajor", 5)
     if nmajor > 1:
         for cycle in range(nmajor):
             if do_selfcal:
-                model_vis_graph_list = create_zero_vis_graph_list(vis_graph_list)
-                model_vis_graph_list = create_predict_graph(model_vis_graph_list, deconvolve_model_graph,
-                                                            context=context, **kwargs)
-                vis_graph_list = create_calibrate_graph_list(vis_graph_list, model_vis_graph_list,
-                                                             calibration_context=calibration_context,
-                                                             iteration=cycle, **kwargs)
-                residual_vis_graph_list = create_subtract_vis_graph_list(vis_graph_list, model_vis_graph_list)
-                residual_graph = create_invert_graph(residual_vis_graph_list, model_graph, dopsf=False,
+                model_vislist = zero_vislist_component(vis_list)
+                model_vislist = predict_component(model_vislist, deconvolve_model_imagelist,
+                                                         context=context, **kwargs)
+                vis_list = calibrate_component(vis_list, model_vislist,
+                                                     calibration_context=calibration_context,
+                                                     iteration=cycle, **kwargs)
+                residual_vislist = subtract_vislist_component(vis_list, model_vislist)
+                residual_imagelist = invert_component(residual_vislist, model_imagelist, dopsf=False,
                                                      context=context, **kwargs)
             else:
-                residual_graph = create_residual_graph(vis_graph_list, deconvolve_model_graph,
-                                                       context=context, **kwargs)
+                residual_imagelist = residual_component(vis_list, deconvolve_model_imagelist,
+                                                    context=context, **kwargs)
             
-            deconvolve_model_graph, _ = create_deconvolve_graph(residual_graph, psf_graph,
-                                                             deconvolve_model_graph, **kwargs)
-    residual_graph = create_residual_graph(vis_graph_list, deconvolve_model_graph, context=context, **kwargs)
-    restore_graph = create_restore_graph(deconvolve_model_graph, psf_graph, residual_graph)
+            deconvolve_model_imagelist, _ = deconvolve_component(residual_imagelist, psf_imagelist,
+                                                             deconvolve_model_imagelist, **kwargs)
+    residual_imagelist = residual_component(vis_list, deconvolve_model_imagelist, context=context, **kwargs)
+    restore_imagelist = restore_component(deconvolve_model_imagelist, psf_imagelist, residual_imagelist)
     
-    return arlexecute.execute((deconvolve_model_graph, residual_graph, restore_graph))
+    return arlexecute.execute((deconvolve_model_imagelist, residual_imagelist, restore_imagelist))
 
 
-def create_continuum_imaging_pipeline_graph(vis_graph_list, model_graph, context='2d',
-                                            **kwargs) :
+def continuum_imaging_component(vis_list, model_imagelist, context='2d',
+                                         **kwargs) :
     """ Create graph for the continuum imaging pipeline.
     
     Same as ICAL but with no selfcal.
     
-    :param vis_graph_list:
-    :param model_graph:
-    :param c_deconvolve_graph: Default: create_deconvolve_graph
-    :param c_invert_graph: Default: create_invert_graph
-    :param c_residual_graph: Default: Default: create_residual graph
+    :param vis_list:
+    :param model_imagelist:
+    :param c_deconvolve_imagelist: Default: deconvolve_component
+    :param c_invert_imagelist: Default: invert_component
+    :param c_residual_imagelist: Default: Default: create_residual graph
     :param kwargs: Parameters for functions in components
     :return:
     """
-    psf_graph = create_invert_graph(vis_graph_list, model_graph, dopsf=True, context=context, **kwargs)
+    psf_imagelist = invert_component(vis_list, model_imagelist, dopsf=True, context=context, **kwargs)
     
-    residual_graph = create_residual_graph(vis_graph_list, model_graph, context=context, **kwargs)
-    deconvolve_model_graph, _ = create_deconvolve_graph(residual_graph, psf_graph, model_graph, **kwargs)
+    residual_imagelist = residual_component(vis_list, model_imagelist, context=context, **kwargs)
+    deconvolve_model_imagelist, _ = deconvolve_component(residual_imagelist, psf_imagelist, model_imagelist, **kwargs)
     
     nmajor = get_parameter(kwargs, "nmajor", 5)
     if nmajor > 1:
         for cycle in range(nmajor):
-            residual_graph = create_residual_graph(vis_graph_list, deconvolve_model_graph, context=context, **kwargs)
-            deconvolve_model_graph, _ = create_deconvolve_graph(residual_graph, psf_graph, deconvolve_model_graph,
+            residual_imagelist = residual_component(vis_list, deconvolve_model_imagelist, context=context, **kwargs)
+            deconvolve_model_imagelist, _ = deconvolve_component(residual_imagelist, psf_imagelist, deconvolve_model_imagelist,
                                                              **kwargs)
     
-    residual_graph = create_residual_graph(vis_graph_list, deconvolve_model_graph, context=context, **kwargs)
-    restore_graph = create_restore_graph(deconvolve_model_graph, psf_graph, residual_graph)
-    return arlexecute.execute((deconvolve_model_graph, residual_graph, restore_graph))
+    residual_imagelist = residual_component(vis_list, deconvolve_model_imagelist, context=context, **kwargs)
+    restore_imagelist = restore_component(deconvolve_model_imagelist, psf_imagelist, residual_imagelist)
+    return arlexecute.execute((deconvolve_model_imagelist, residual_imagelist, restore_imagelist))
 
 
-def create_spectral_line_imaging_pipeline_graph(vis_graph_list, model_graph,
-                                                continuum_model_graph=None,
-                                                context='2d',
-                                                **kwargs) :
+def spectral_line_imaging_component(vis_list, model_imagelist,
+                                    continuum_model_imagelist=None,
+                                    context='2d',
+                                    **kwargs) :
     """Create graph for spectral line imaging pipeline
 
     Uses the ical pipeline after subtraction of a continuum model
     
-    :param vis_graph_list: List of visibility components
-    :param model_graph: Spectral line model graph
-    :param continuum_model_graph: Continuum model graph
-    :param c_deconvolve_graph: Default: create_deconvolve_graph
-    :param c_invert_graph: Default: create_invert_graph,
-    :param c_residual_graph: Default: Default: create_residual graph
+    :param vis_list: List of visibility components
+    :param model_imagelist: Spectral line model graph
+    :param continuum_model_imagelist: Continuum model graph
+    :param c_deconvolve_imagelist: Default: deconvolve_component
+    :param c_invert_imagelist: Default: invert_component,
+    :param c_residual_imagelist: Default: Default: create_residual graph
     :param kwargs: Parameters for functions in components
     :return: components of (deconvolved model, residual, restored)
     """
-    if continuum_model_graph is not None:
-        vis_graph_list = create_predict_graph(vis_graph_list, continuum_model_graph, context=context, **kwargs)
+    if continuum_model_imagelist is not None:
+        vis_list = predict_component(vis_list, continuum_model_imagelist, context=context, **kwargs)
     
     kwargs['first_selfcal'] = None
-    return create_ical_pipeline_graph(vis_graph_list, model_graph, context=context, **kwargs)
+    return ical_component(vis_list, model_imagelist, context=context, **kwargs)

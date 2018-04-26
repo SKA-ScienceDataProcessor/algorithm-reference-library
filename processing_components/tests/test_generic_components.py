@@ -17,8 +17,8 @@ from libs.util.testing_support import create_named_configuration, create_test_im
 from libs.visibility.base import create_blockvisibility
 
 from component_support.arlexecute import arlexecute
-from generic_graphs import create_generic_blockvisibility_graph, \
-    create_generic_image_graph, create_generic_image_iterator_graph
+from generic_components import generic_blockvisibility_component, \
+    generic_image_component, generic_image_iterator_component
 
 
 class TestPipelinesGenericDask(unittest.TestCase):
@@ -61,9 +61,9 @@ class TestPipelinesGenericDask(unittest.TestCase):
                                                 weight=1.0,
                                                 polarisation_frame=PolarisationFrame('stokesI'))]
         
-        self.blockvis = create_generic_blockvisibility_graph(predict_skycomponent_visibility,
-                                                             vis_graph_list=self.blockvis,
-                                                             sc=self.comp)[0]
+        self.blockvis = generic_blockvisibility_component(predict_skycomponent_visibility,
+                                                          vis_list=self.blockvis,
+                                                          sc=self.comp)[0]
         
         self.blockvis = arlexecute.compute(self.blockvis, sync=True)
         arlexecute.client.close()
@@ -75,7 +75,7 @@ class TestPipelinesGenericDask(unittest.TestCase):
             im.data = numpy.sqrt(numpy.abs(im.data))
             return im
         
-        root = create_generic_image_iterator_graph(imagerooter, self.image, image_raster_iter, facets=4)
+        root = generic_image_iterator_component(imagerooter, self.image, image_raster_iter, facets=4)
         root = arlexecute.compute(root, sync=True)
         arlexecute.client.close()
         
@@ -86,7 +86,7 @@ class TestPipelinesGenericDask(unittest.TestCase):
             im.data = numpy.sqrt(numpy.abs(im.data))
             return im
         
-        root = create_generic_image_graph(imagerooter, self.image, facets=4)
+        root = generic_image_component(imagerooter, self.image, facets=4)
         root = arlexecute.compute(root, sync=True)
         arlexecute.client.close()
 

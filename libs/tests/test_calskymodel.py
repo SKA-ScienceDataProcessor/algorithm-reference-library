@@ -13,7 +13,7 @@ from astropy.coordinates import SkyCoord
 from data_models.polarisation import PolarisationFrame
 
 from libs.calibration.operations import apply_gaintable, create_gaintable_from_blockvisibility
-from libs.calibration.skymodel_cal import skymodel_cal_solve
+from libs.calibration.calskymodel import calskymodel_solve
 from libs.calibration.solvers import solve_gaintable
 from data_models.memory_data_models import SkyModel
 from libs.image.operations import qa_image, export_image_to_fits
@@ -110,7 +110,7 @@ class TestCalibrationSkyModelcal(unittest.TestCase):
     
     def test_skymodel_solve(self):
         self.actualSetup(ntimes=1, doiso=True)
-        calskymodel, residual_vis = skymodel_cal_solve(self.vis, self.skymodels, niter=30, gain=0.25, tol=1e-8)
+        calskymodel, residual_vis = calskymodel_solve(self.vis, self.skymodels, niter=30, gain=0.25, tol=1e-8)
         
         residual_vis = convert_blockvisibility_to_visibility(residual_vis)
         residual_vis, _, _ = weight_visibility(residual_vis, self.beam)
@@ -122,7 +122,7 @@ class TestCalibrationSkyModelcal(unittest.TestCase):
     
     def test_skymodel_solve_fixed(self):
         self.actualSetup(ntimes=1, doiso=True, fixed=True)
-        calskymodel, residual_vis = skymodel_cal_solve(self.vis, self.skymodels, niter=30, gain=0.25, tol=1e-8)
+        calskymodel, residual_vis = calskymodel_solve(self.vis, self.skymodels, niter=30, gain=0.25, tol=1e-8)
         
         # Check that the components are unchanged
         calskymodel_skycomponents = list()
@@ -145,7 +145,7 @@ class TestCalibrationSkyModelcal(unittest.TestCase):
     
     def test_skymodel_solve_noiso(self):
         self.actualSetup(ntimes=1, doiso=False)
-        calskymodel, residual_vis = skymodel_cal_solve(self.vis, self.skymodels, niter=30, gain=0.25, tol=1e-8)
+        calskymodel, residual_vis = calskymodel_solve(self.vis, self.skymodels, niter=30, gain=0.25, tol=1e-8)
         
         residual_vis = convert_blockvisibility_to_visibility(residual_vis)
         residual_vis, _, _ = weight_visibility(residual_vis, self.beam)
