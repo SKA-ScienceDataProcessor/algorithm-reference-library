@@ -12,8 +12,8 @@ from astropy.coordinates import SkyCoord
 
 from libs.calibration.operations import apply_gaintable, create_gaintable_from_blockvisibility
 from libs.calibration.solvers import solve_gaintable
-from libs.data.polarisation import PolarisationFrame
-from libs.data.skymodel import SkyModel
+from data_models.polarisation import PolarisationFrame
+from libs.skymodel.skymodel import SkyModel
 from libs.image.operations import qa_image, export_image_to_fits
 from libs.imaging import predict_skycomponent_visibility, create_image_from_visibility
 from libs.imaging.imaging_functions import invert_function
@@ -33,7 +33,7 @@ log = logging.getLogger(__name__)
 class TestCalibrationSkyModelcal(unittest.TestCase):
     def setUp(self):
         
-        from libs.data.parameters import arl_path
+        from data_models.parameters import arl_path
         self.dir = arl_path('test_results')
         
         numpy.random.seed(180555)

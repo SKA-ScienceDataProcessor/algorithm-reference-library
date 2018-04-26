@@ -10,7 +10,7 @@ import logging
 
 import numpy
 
-from libs.data.data_models import Visibility, Image
+from data_models.data_models import Visibility, Image
 from libs.image.gather_scatter import image_scatter_facets
 from libs.image.operations import create_empty_image_like
 from libs.imaging import normalize_sumwt

@@ -11,8 +11,8 @@ import numpy
 from astropy.coordinates import SkyCoord
 
 from libs.calibration.operations import create_gaintable_from_blockvisibility
-from libs.data.polarisation import PolarisationFrame
-from libs.data.skymodel import SkyModel
+from data_models.polarisation import PolarisationFrame
+from libs.skymodel.skymodel import SkyModel
 from libs.skycomponent.operations import create_skycomponent
 from libs.util.testing_support import create_test_image, create_named_configuration
 from libs.visibility.base import create_blockvisibility
@@ -22,7 +22,7 @@ log = logging.getLogger(__name__)
 
 class TestSkyModel(unittest.TestCase):
     def setUp(self):
-        from libs.data.parameters import arl_path
+        from data_models.parameters import arl_path
         self.lowcore = create_named_configuration('LOWBD2', rmax=300.0)
         self.dir = arl_path('test_results')
         self.times = (numpy.pi / 12.0) * numpy.linspace(-3.0, 3.0, 7)

@@ -1,9 +1,9 @@
-"""The data models used in ARL are:
+"""Thefrom libs.skymodel.skymodel import SkyModelmodels used in ARL are:
 
 .. image:: ./ARL_data.png
    :scale: 75 %
 
-The principle transitions between the data models:
+The principle transitions between thefrom libs.skymodel.skymodel import SkyModelmodels:
 
 .. image:: ./ARL_transitions.png
    :scale: 75 %
@@ -12,12 +12,12 @@ The principle transitions between the data models:
     There are two visibility formats:
 
     :class:`BlockVisibility` is conceived as an ingest and calibration format. The visibility
-    data are kept in a block of shape (number antennas, number antennas, number channels,
+   from libs.skymodel.skymodel import SkyModelare kept in a block of shape (number antennas, number antennas, number channels,
     number polarisation). One block is kept per integration. The other columns are time and uvw.
     The sampling in time is therefore the same for all baselines.
 
-    :class:`Visibility` is designed to hold coalesced data where the integration time and
-    channel width can vary with baseline length. The visibility data are kept in a visibility
+    :class:`Visibility` is designed to hold coalescedfrom libs.skymodel.skymodel import SkyModelwhere the integration time and
+    channel width can vary with baseline length. The visibilityfrom libs.skymodel.skymodel import SkyModelare kept in a visibility
     vector of length equal to the number of polarisations. Everything else is a separate
     column: time, frequency, uvw, channel_bandwidth, integration time.
 
@@ -28,11 +28,13 @@ import logging
 import sys
 from typing import Union
 
+from copy import copy, deepcopy
+
 import numpy
 from astropy import units as u
 from astropy.coordinates import SkyCoord
 
-from libs.data.polarisation import PolarisationFrame, ReceptorFrame
+from data_models.polarisation import PolarisationFrame, ReceptorFrame
 
 log = logging.getLogger(__name__)
 
@@ -47,7 +49,7 @@ class Configuration:
                  receptor_frame=ReceptorFrame("linear"),
                  diameter=None):
         
-        """Configuration object describing data for processing
+        """Configuration object describingfrom libs.skymodel.skymodel import SkyModelfor processing
 
         :param name:
         :param data:
@@ -113,7 +115,7 @@ class Configuration:
 
 
 class GainTable:
-    """ Gain table with data: time, antenna, gain[:, chan, rec, rec], weight columns
+    """ Gain table with data_models: time, antenna, gain[:, chan, rec, rec], weight columns
 
     The weight is usually that output from gain solvers.
     """
@@ -215,10 +217,10 @@ class GainTable:
 
 
 class Image:
-    """Image class with Image data (as a numpy.array) and the AstroPy `implementation of
+    """Image class with Imagefrom libs.skymodel.skymodel import SkyModel(as a numpy.array) and the AstroPy `implementation of
     a World Coodinate System <http://docs.astropy.org/en/stable/wcs>`_
 
-    Many operations can be done conveniently using numpy libs on Image.data.
+    Many operations can be done conveniently using numpy libs on Image.data_models.
 
     Most of the imaging libs require an image in canonical format:
     - 4 axes: RA, DEC, POL, FREQ
@@ -246,7 +248,21 @@ class Image:
         size = 0
         size += self.data.nbytes
         return size / 1024.0 / 1024.0 / 1024.0
-    
+
+    def __copy__(self):
+        cls = self.__class__
+        result = cls.__new__(cls)
+        result.__dict__.update(self.__dict__)
+        return result
+
+    def __deepcopy__(self, memo):
+        cls = self.__class__
+        result = cls.__new__(cls)
+        memo[id(self)] = result
+        for k, v in self.__dict__.items():
+            setattr(result, k, deepcopy(v, memo))
+        return result
+
     @property
     def nchan(self):
         return self.data.shape[0]
@@ -354,8 +370,64 @@ class Skycomponent:
         s += "\tFrequency: %s\n" % self.frequency
         s += "\tDirection: %s\n" % self.direction
         s += "\tShape: %s\n" % self.shape
+
+        class SkyModel:
+            """ A model for the sky
+            """
+    
+            def __init__(self, images=[], components=[], fixed=False):
+                """ A model of the sky as a list of images and a list of components
+
+                """
+                self.images = [im for im in images]
+                self.components = [sc for sc in components]
+                self.fixed = fixed
+    
+            def __str__(self):
+                """Default printer for skymodel.py
+
+                """
+                s = "skymodel.py: fixed: %s\n" % self.fixed
+                for i, sc in enumerate(self.components):
+                    s += str(sc)
+                s += "\n"
+        
+                for i, im in enumerate(self.images):
+                    s += str(im)
+                s += "\n"
+        
+                return s
+
         s += "\tParams: %s\n" % self.params
         s += "\tPolarisation frame: %s\n" % str(self.polarisation_frame.type)
+        return s
+
+
+class SkyModel:
+    """ A model for the sky
+    """
+    
+    def __init__(self, images=[], components=[], fixed=False):
+        """ A model of the sky as a list of images and a list of components
+
+        """
+        self.images = [im for im in images]
+        self.components = [sc for sc in components]
+        self.fixed = fixed
+    
+    def __str__(self):
+        """Default printer for skymodel.py
+
+        """
+        s = "skymodel.py: fixed: %s\n" % self.fixed
+        for i, sc in enumerate(self.components):
+            s += str(sc)
+        s += "\n"
+        
+        for i, im in enumerate(self.images):
+            s += str(im)
+        s += "\n"
+        
         return s
 
 
@@ -366,7 +438,7 @@ class Visibility:
     as separate columns in a numpy structured array, The fundemental unit is a complex vector of polarisation.
 
     Visibility is defined to hold an observation with one direction.
-    Polarisation frame is the same for the entire data set and can be stokes, circular, linear
+    Polarisation frame is the same for the entirefrom libs.skymodel.skymodel import SkyModelset and can be stokes, circular, linear
     The configuration is also an attribute
 
     The phasecentre is the direct of delay tracking i.e. n=0. If uvw are rotated then this
@@ -532,7 +604,7 @@ class BlockVisibility:
     should be updated with the new delay tracking centre. This is important for wstack and wproject
     algorithms.
 
-    Polarisation frame is the same for the entire data set and can be stokesI, circular, linear
+    Polarisation frame is the same for the entirefrom libs.skymodel.skymodel import SkyModelset and can be stokesI, circular, linear
     
     The configuration is also an attribute
     """

@@ -1,7 +1,7 @@
 """ Quality Assessment functions
 """
 
-from libs.data.data_models import QA
+from data_models.data_models import QA
 
 import logging
 log = logging.getLogger(__name__)

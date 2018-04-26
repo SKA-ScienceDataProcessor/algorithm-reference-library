@@ -15,7 +15,7 @@ from typing import List
 
 import numpy
 
-from libs.data.data_models import Visibility, BlockVisibility
+from data_models.data_models import Visibility, BlockVisibility
 from libs.visibility.coalesce import coalesce_visibility, decoalesce_visibility
 from libs.visibility.iterators import vis_timeslice_iter, vis_wslice_iter
 from libs.visibility.base import create_visibility_from_rows

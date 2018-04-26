@@ -10,9 +10,10 @@ from astropy.wcs import FITSFixedWarning
 
 import numpy
 
-from libs.data.data_models import Visibility, BlockVisibility, Image
-from libs.data.parameters import get_parameter
-from libs.data.polarisation import PolarisationFrame
+from data_models.data_models import Visibility, BlockVisibility, Image
+from data_models.parameters import get_parameter
+
+from data_models.polarisation import PolarisationFrame
 from libs.fourier_transforms.convolutional_gridding import anti_aliasing_calculate
 from libs.image.operations import create_w_term_like, copy_image, pad_image, fft_image, convert_image_to_kernel
 from libs.visibility.coalesce import convert_visibility_to_blockvisibility, convert_blockvisibility_to_visibility

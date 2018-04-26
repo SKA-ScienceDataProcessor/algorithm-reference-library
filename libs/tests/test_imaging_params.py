@@ -10,7 +10,7 @@ import numpy
 from astropy import units as u
 from astropy.coordinates import SkyCoord
 
-from libs.data.polarisation import PolarisationFrame
+from data_models.polarisation import PolarisationFrame
 from libs.util.testing_support import create_named_configuration, create_test_image_from_s3, \
     create_low_test_image_from_gleam
 from libs.visibility.base import create_visibility
@@ -23,7 +23,7 @@ log = logging.getLogger(__name__)
 
 class TestImagingParams(unittest.TestCase):
     def setUp(self):
-        from libs.data.parameters import arl_path
+        from data_models.parameters import arl_path
         self.dir = arl_path('test_results')
 
         self.vnchan = 7

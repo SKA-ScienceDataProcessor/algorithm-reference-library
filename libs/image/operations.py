@@ -1,6 +1,6 @@
 #
 """
-Functions that define and manipulate images. Images are just data and a World Coordinate System.
+Functions that define and manipulate images. Images are justfrom libs.skymodel.skymodel import SkyModeland a World Coordinate System.
 """
 
 import copy
@@ -16,9 +16,9 @@ from reproject import reproject_interp
 from astropy.wcs.utils import skycoord_to_pixel
 
 
-from libs.data.data_models import Image, QA
-from libs.data.parameters import arl_path
-from libs.data.polarisation import PolarisationFrame, convert_circular_to_stokes, convert_linear_to_stokes, \
+from data_models.data_models import Image, QA
+from data_models.parameters import arl_path
+from data_models.polarisation import PolarisationFrame, convert_circular_to_stokes, convert_linear_to_stokes, \
     convert_stokes_to_circular, convert_stokes_to_linear
 from libs.fourier_transforms.convolutional_gridding import w_beam
 from libs.fourier_transforms.fft_support import fft, ifft
@@ -61,7 +61,7 @@ def create_image_from_array(data: numpy.array, wcs: WCS, polarisation_frame: Pol
 def copy_image(im: Image) -> Image:
     """ Create an image from an array
     
-    Performs deepcopy of data, breaking reference semantics
+    Performs deepcopy of data_models, breaking reference semantics
 
     :param im:
     :return: Image

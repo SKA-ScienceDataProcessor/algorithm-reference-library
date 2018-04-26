@@ -12,7 +12,7 @@ import numpy
 from astropy import units as u
 from astropy.coordinates import SkyCoord
 
-from libs.data.polarisation import PolarisationFrame
+from data_models.polarisation import PolarisationFrame
 from libs.image.operations import export_image_to_fits, smooth_image
 from libs.imaging import predict_skycomponent_visibility
 from libs.skycomponent.operations import insert_skycomponent
@@ -20,7 +20,7 @@ from libs.util.testing_support import create_named_configuration, ingest_unittes
     create_unittest_components, insert_unittest_errors
 
 from processing_components.graphs.execute import arlexecute
-from processing_components.graphs.imaging_graph import create_invert_graph, create_deconvolve_graph, create_residual_graph, \
+from processing_components.graphs.imaging_graphs import create_invert_graph, create_deconvolve_graph, create_residual_graph, \
     create_restore_graph
 
 log = logging.getLogger(__name__)
@@ -34,7 +34,7 @@ class TestImagingDeconvolveGraph(unittest.TestCase):
     def actualSetUp(self, add_errors=False, freqwin=7, block=False, dospectral=True, dopol=False,
                     zerow=True):
                 
-        from libs.data.parameters import arl_path
+        from data_models.parameters import arl_path
         self.dir = arl_path('test_results')
         
         self.npixel = 256

@@ -19,7 +19,7 @@ import numpy
 
 from astropy.coordinates import SkyCoord
 from astropy import units as u
-from libs.data.polarisation import PolarisationFrame
+from data_models.polarisation import PolarisationFrame
 from libs.image.operations import export_image_to_fits, smooth_image
 from libs.imaging import advise_wide_field
 

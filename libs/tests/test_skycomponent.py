@@ -10,7 +10,7 @@ import astropy.units as u
 import numpy
 from astropy.coordinates import SkyCoord
 
-from libs.data.polarisation import PolarisationFrame
+from data_models.polarisation import PolarisationFrame
 from libs.skycomponent.operations import create_skycomponent, find_separation_skycomponents, \
     find_skycomponent_matches, find_nearest_skycomponent, find_nearest_skycomponent_index
 from libs.util.testing_support import create_low_test_skycomponents_from_gleam
@@ -20,7 +20,7 @@ log = logging.getLogger(__name__)
 
 class TestSkycomponent(unittest.TestCase):
     def setUp(self):
-        from libs.data.parameters import arl_path
+        from data_models.parameters import arl_path
         self.dir = arl_path('test_results')
         
         self.frequency = numpy.array([1e8])

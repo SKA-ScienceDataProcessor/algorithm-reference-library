@@ -3,8 +3,8 @@
 
 from processing_components.graphs.execute import arlexecute
 
-from libs.data.parameters import get_parameter
-from processing_components.graphs.imaging_graph import create_invert_graph, create_residual_graph, \
+from data_models.parameters import get_parameter
+from processing_components.graphs.imaging_graphs import create_invert_graph, create_residual_graph, \
     create_predict_graph, create_zero_vis_graph_list, create_calibrate_graph_list, \
     create_subtract_vis_graph_list, create_restore_graph, create_deconvolve_graph
 

@@ -18,7 +18,7 @@ def average_chunks_jit(arr, wts, chunksize):
     :param arr: 1D array of values
     :param wts: 1D array of weights
     :param chunksize: averaging size
-    :return: 1D array of averaged data, 1d array of weights
+    :return: 1D array of averaged data_models, 1d array of weights
     """
     if chunksize <= 1:
         return arr, wts
@@ -58,7 +58,7 @@ def average_chunks(arr, wts, chunksize):
     :param arr: 1D array of values
     :param wts: 1D array of weights
     :param chunksize: averaging size
-    :return: 1D array of averaged data, 1d array of weights
+    :return: 1D array of averaged data_models, 1d array of weights
     """
     if chunksize <= 1:
         return arr, wts
@@ -80,7 +80,7 @@ def average_chunks2(arr, wts, chunksize):
     :param arr: 2D array of values
     :param wts: 2D array of weights
     :param chunksize: 2-tuple of averaging region e.g. (2,3)
-    :return: 2D array of averaged data, 2d array of weights
+    :return: 2D array of averaged data_models, 2d array of weights
     """
     # Do each axis to determine length
     #    assert arr.shape == wts.shape, "Shapes of arrays must be the same"

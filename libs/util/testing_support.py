@@ -42,10 +42,10 @@ from scipy import interpolate
 
 from libs.calibration.calibration_control import create_calibration_controls
 from libs.calibration.operations import create_gaintable_from_blockvisibility, apply_gaintable
-from libs.data.data_models import Configuration, Image, GainTable, Skycomponent
-from libs.data.parameters import arl_path
-from libs.data.parameters import get_parameter
-from libs.data.polarisation import PolarisationFrame
+from data_models.data_models import Configuration, Image, GainTable, Skycomponent
+from data_models.parameters import arl_path
+from data_models.parameters import get_parameter
+from data_models.polarisation import PolarisationFrame
 from libs.image.operations import import_image_from_fits, create_image_from_array, \
     reproject_image, create_empty_image_like, qa_image
 from libs.imaging import predict_timeslice, predict_skycomponent_visibility, create_image_from_visibility, \
@@ -237,15 +237,15 @@ def create_test_image_from_s3(npixel=16384, polarisation_frame=PolarisationFrame
 
     For frequencies < 610MHz, there are three tables to use::
 
-        data/models/S3_151MHz_10deg.csv, use fov=10
-        data/models/S3_151MHz_20deg.csv, use fov=20
-        data/models/S3_151MHz_40deg.csv, use fov=40
+        data_models/models/S3_151MHz_10deg.csv, use fov=10
+        data_models/models/S3_151MHz_20deg.csv, use fov=20
+        data_models/models/S3_151MHz_40deg.csv, use fov=40
         
     For frequencies > 610MHz, there are three tables:
     
-        data/models/S3_1400MHz_1mJy_10deg.csv, use flux_limit>= 1e-3
-        data/models/S3_1400MHz_10uJy_10deg.csv, use flux_limit>= 1e-3
-        data/models/S3_151MHz_100uJy_10deg.csv, use flux_limit>= 1e-3
+        data_models/models/S3_1400MHz_1mJy_10deg.csv, use flux_limit>= 1e-3
+        data_models/models/S3_1400MHz_10uJy_10deg.csv, use flux_limit>= 1e-3
+        data_models/models/S3_151MHz_100uJy_10deg.csv, use flux_limit>= 1e-3
 
     The component spectral index is calculated from the 610MHz and 151MHz or 1400MHz and 610MHz, and then calculated
     for the specified frequencies.
@@ -293,14 +293,14 @@ def create_test_image_from_s3(npixel=16384, polarisation_frame=PolarisationFrame
     
     if numpy.max(frequency) > 6.1E8:
         if flux_limit >= 1e-3:
-            csvfilename = arl_path('data/models/S3_1400MHz_1mJy_10deg.csv')
+            csvfilename = arl_path('data_models/models/S3_1400MHz_1mJy_10deg.csv')
         elif flux_limit >= 1e-4:
-            csvfilename = arl_path('data/models/S3_1400MHz_100uJy_10deg.csv')
+            csvfilename = arl_path('data_models/models/S3_1400MHz_100uJy_10deg.csv')
         else:
-            csvfilename = arl_path('data/models/S3_1400MHz_10uJy_10deg.csv')
+            csvfilename = arl_path('data_models/models/S3_1400MHz_10uJy_10deg.csv')
     else:
         assert fov in [10, 20, 40], "Field of view invalid: use one of %s" % ([10, 20, 40])
-        csvfilename = arl_path('data/models/S3_151MHz_%ddeg.csv' % (fov))
+        csvfilename = arl_path('data_models/models/S3_151MHz_%ddeg.csv' % (fov))
         
     with open(csvfilename) as csvfile:
         readCSV = csv.reader(csvfile, delimiter=',')
@@ -424,7 +424,7 @@ def create_low_test_skycomponents_from_gleam(flux_limit=0.1, polarisation_frame=
     catalogue. Hurley-Walker N., et al., Mon. Not. R. Astron. Soc., 464, 1146-1167 (2017), 2017MNRAS.464.1146H
 
 
-    :rtype: Union[None, List[libs.data.data_models.Skycomponent], List]
+    :rtype: Union[None, List[libs.data_models.data_models.Skycomponent], List]
     :param flux_limit: Only write components brighter than this (Jy)
     :param polarisation_frame: Polarisation frame (default PolarisationFrame("stokesI"))
     :param frequency: Frequencies at which the flux will be estimated
@@ -504,7 +504,7 @@ def create_low_test_beam(model: Image) -> Image:
     :return: Image
     """
     
-    beam = import_image_from_fits(arl_path('data/models/SKA1_LOW_beam.fits'))
+    beam = import_image_from_fits(arl_path('data_models/models/SKA1_LOW_beam.fits'))
     
     # Scale the image cellsize to account for the different in frequencies. Eventually we will want to
     # use a frequency cube
@@ -549,7 +549,7 @@ def replicate_image(im: Image, polarisation_frame=PolarisationFrame('stokesI'), 
         -> Image:
     """ Make a new canonical shape Image, extended along third and fourth axes by replication.
 
-    The order of the data is [chan, pol, dec, ra]
+    The order of thefrom libs.skymodel.skymodel import SkyModelis [chan, pol, dec, ra]
 
 
     :param frequency:

@@ -8,7 +8,7 @@ import unittest
 
 import numpy
 
-from libs.data.polarisation import PolarisationFrame
+from data_models.polarisation import PolarisationFrame
 from libs.image.operations import create_empty_image_like, export_image_to_fits
 from libs.image.gather_scatter import image_gather_facets, image_scatter_facets, image_gather_channels, \
     image_scatter_channels
@@ -20,7 +20,7 @@ log = logging.getLogger(__name__)
 class TestImageGatherScatters(unittest.TestCase):
     
     def setUp(self):
-        from libs.data.parameters import arl_path
+        from data_models.parameters import arl_path
         self.dir = arl_path('test_results')
 
     def test_scatter_gather_facet(self):

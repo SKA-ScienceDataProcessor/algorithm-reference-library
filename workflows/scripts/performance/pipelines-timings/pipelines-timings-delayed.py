@@ -12,7 +12,7 @@ from astropy import units as u
 from astropy.coordinates import SkyCoord
 from dask import delayed
 
-from libs.data.polarisation import PolarisationFrame
+from data_models.polarisation import PolarisationFrame
 from processing_components.graphs.execute import get_dask_Client, findNodes
 from processing_components.graphs.execute import create_predict_graph, create_invert_graph, \
     compute_list
@@ -56,7 +56,7 @@ def trial_case(results, seed=180555, context='wstack', nworkers=8, threads_per_w
     'time overall',  overall execution time (s)
     'time create gleam', time to create GLEAM prediction graph
     'time predict', time to execute GLEAM prediction graph
-    'time corrupt', time to corrupt data
+    'time corrupt', time to corrupt data_models
     'time invert', time to make dirty image
     'time psf invert', time to make PSF
     'time ICAL graph', time to create ICAL graph
@@ -65,7 +65,7 @@ def trial_case(results, seed=180555, context='wstack', nworkers=8, threads_per_w
     'nworkers', number of workers to create
     'threads_per_worker',
     'nnodes', Number of nodes,
-    'processes', 'order', Ordering of data
+    'processes', 'order', Ordering of data_models
     'nfreqwin', Number of frequency windows in simulation
     'ntimes', Number of hour angles in simulation
     'rmax', Maximum radius of stations used in simulation (m)

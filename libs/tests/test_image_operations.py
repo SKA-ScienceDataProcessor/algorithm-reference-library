@@ -8,7 +8,7 @@ import unittest
 
 import numpy
 
-from libs.data.polarisation import PolarisationFrame
+from data_models.polarisation import PolarisationFrame
 from libs.image.operations import copy_image, create_empty_image_like, create_image_from_array, add_image, \
     export_image_to_fits, qa_image, reproject_image, smooth_image, checkwcs, convert_polimage_to_stokes, \
     convert_stokes_to_polimage, polarisation_frame_from_wcs, fft_image, show_image, \
@@ -23,7 +23,7 @@ class TestImage(unittest.TestCase):
 
     def setUp(self):
 
-        from libs.data.parameters import arl_path
+        from data_models.parameters import arl_path
         self.dir = arl_path('test_results')
 
         self.m31image = create_test_image(cellsize=0.0001)

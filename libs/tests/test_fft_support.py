@@ -30,7 +30,7 @@ class TestFFTSupport(unittest.TestCase):
             equal = numpy.abs(cs_pad - cs2) < 1e-15
             zero = numpy.abs(cs_pad) < 1e-15
             assert (equal + zero).all(), "Pad (%d, %d) failed" % (npixel, N2)
-            # And extracting the middle should recover the original data
+            # And extracting the middle should recover the original data_models
             assert_allclose(extract_mid(cs_pad, npixel), cs)
     
     def test_extract_oversampled(self):

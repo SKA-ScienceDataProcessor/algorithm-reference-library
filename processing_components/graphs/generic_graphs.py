@@ -6,7 +6,7 @@ thus allowing construction of graphs.
 For example, consider a trivial example to take the square root of an image::
 
         def imagerooter(im, **kwargs):
-            im.data = numpy.sqrt(numpy.abs(im.data))
+            im.data_models = numpy.sqrt(numpy.abs(im.data_models))
             return im
         root = create_generic_image_graph(imagerooter, myimage,  image_raster_iter, facets=4).compute()
 
@@ -18,7 +18,7 @@ We  could keep the graph and use it in other graphs. See the imaging-dask note b
 
 from processing_components.graphs.execute import arlexecute
 
-from libs.data.data_models import Image
+from data_models.data_models import Image
 from libs.image.operations import copy_image, create_empty_image_like
 from libs.image.gather_scatter import image_gather_facets, image_scatter_facets
 

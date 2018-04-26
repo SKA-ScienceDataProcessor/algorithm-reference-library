@@ -11,8 +11,8 @@ from astropy import units as u
 from astropy.coordinates import SkyCoord
 
 from libs.util.coordinate_support import xyz_to_uvw, uvw_to_xyz, skycoord_to_lmn, simulate_point
-from libs.data.data_models import Visibility, BlockVisibility, Configuration
-from libs.data.polarisation import PolarisationFrame, ReceptorFrame, correlate_polarisation
+from data_models.data_models import Visibility, BlockVisibility, Configuration
+from data_models.polarisation import PolarisationFrame, ReceptorFrame, correlate_polarisation
 
 import logging
 log = logging.getLogger(__name__)
@@ -28,7 +28,7 @@ def vis_summary(vis: Union[Visibility, BlockVisibility]):
 def copy_visibility(vis: Union[Visibility, BlockVisibility], zero=False) -> Union[Visibility, BlockVisibility]:
     """Copy a visibility
 
-    Performs a deepcopy of the data array
+    Performs a deepcopy of thefrom libs.skymodel.skymodel import SkyModelarray
     """
     assert isinstance(vis, Visibility) or isinstance(vis, BlockVisibility), vis
     

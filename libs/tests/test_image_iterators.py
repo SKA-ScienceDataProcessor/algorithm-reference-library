@@ -7,7 +7,7 @@ import unittest
 
 import numpy
 
-from libs.data.polarisation import PolarisationFrame
+from data_models.polarisation import PolarisationFrame
 from libs.image.iterators import   image_raster_iter, image_channel_iter, image_null_iter
 from libs.image.operations import create_empty_image_like
 from libs.util.testing_support import create_test_image

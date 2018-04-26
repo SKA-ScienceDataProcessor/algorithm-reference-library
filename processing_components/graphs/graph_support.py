@@ -10,9 +10,9 @@ from astropy.coordinates import SkyCoord
 from processing_components.graphs.execute import arlexecute
 
 from libs.calibration.operations import apply_gaintable, create_gaintable_from_blockvisibility
-from libs.data.parameters import get_parameter
-from libs.data.polarisation import PolarisationFrame
-from processing_components.graphs.imaging_graph import create_predict_graph
+from data_models.parameters import get_parameter
+from data_models.polarisation import PolarisationFrame
+from processing_components.graphs.imaging_graphs import create_predict_graph
 from libs.util.testing_support import create_named_configuration, simulate_gaintable, \
     create_low_test_image_from_gleam
 from libs.visibility.base import create_blockvisibility, create_visibility
@@ -35,7 +35,7 @@ def create_simulate_vis_graph(config='LOWBD2-CORE',
     If order='frequency' then len(frequency) BlockVisibility's with all times are created.
     If order='time' then  len(times) BlockVisibility's with all frequencies are created.
     If order = 'both' then len(times) * len(times) BlockVisibility's are created each with
-    a single time and frequency. If order = None then all data are created in one BlockVisibility.
+    a single time and frequency. If order = None then allfrom libs.skymodel.skymodel import SkyModelare created in one BlockVisibility.
 
     The output format can be either 'blockvis' (for calibration) or 'vis' (for imaging)
 

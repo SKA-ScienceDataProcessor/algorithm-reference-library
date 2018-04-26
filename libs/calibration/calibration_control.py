@@ -10,8 +10,7 @@ import logging
 
 from libs.calibration.operations import create_gaintable_from_blockvisibility, apply_gaintable, qa_gaintable
 from libs.calibration.solvers import solve_gaintable
-from libs.data.data_models import Visibility
-from libs.visibility.iterators import vis_timeslices
+from data_models.data_models import Visibility
 from libs.visibility.coalesce import convert_visibility_to_blockvisibility, convert_blockvisibility_to_visibility
 
 log = logging.getLogger(__name__)
@@ -55,7 +54,7 @@ def calibrate_function(vis, model_vis, calibration_context='T', controls=None, i
     :param control: controls dictionary, modified as necessary
     :param iteration: Iteration number to be compared to the 'first_selfcal' field.
     :param kwargs:
-    :return: Calibrated data, dict(gaintables)
+    :return: Calibrated data_models, dict(gaintables)
     """
     gaintables = {}
     

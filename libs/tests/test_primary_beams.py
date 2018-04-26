@@ -11,7 +11,7 @@ import numpy
 from astropy import units as u
 from astropy.coordinates import SkyCoord
 
-from libs.data.polarisation import PolarisationFrame
+from data_models.polarisation import PolarisationFrame
 from libs.image.operations import export_image_to_fits
 from libs.imaging.base import create_image_from_visibility
 from libs.util.primary_beams import create_pb
@@ -23,7 +23,7 @@ log = logging.getLogger(__name__)
 
 class TestPrimaryBeams(unittest.TestCase):
     def setUp(self):
-        from libs.data.parameters import arl_path
+        from data_models.parameters import arl_path
         self.dir = arl_path('test_results')
         
         self.frequency = numpy.linspace(1e8, 1.5e8, 3)

@@ -10,7 +10,7 @@ import numpy
 from astropy import units as u
 from astropy.coordinates import SkyCoord
 
-from libs.data.data_models import BlockVisibility
+from data_models.data_models import BlockVisibility
 from processing_components.graphs.graph_support import create_simulate_vis_graph
 from processing_components.graphs.execute import arlexecute
 
@@ -20,7 +20,7 @@ log = logging.getLogger(__name__)
 class TestTestingDaskGraphSupport(unittest.TestCase):
     def setUp(self):
     
-        from libs.data.parameters import arl_path
+        from data_models.parameters import arl_path
         self.dir = arl_path('test_results')
         
         self.frequency = numpy.linspace(1e8, 1.5e8, 3)

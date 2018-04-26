@@ -3,14 +3,13 @@
 
 """
 import logging
-import os
 import unittest
 
 import astropy.units as u
 import numpy
 from astropy.coordinates import SkyCoord
 
-from libs.data.polarisation import PolarisationFrame
+from data_models.polarisation import PolarisationFrame
 from libs.image.deconvolution import deconvolve_cube, restore_cube
 from libs.image.operations import export_image_to_fits, create_image_from_array
 from libs.util.testing_support import create_low_test_image_from_gleam, create_low_test_beam, create_named_configuration
@@ -22,7 +21,7 @@ log = logging.getLogger(__name__)
 
 class TestImageDeconvolutionMSMFS(unittest.TestCase):
     def setUp(self):
-        from libs.data.parameters import arl_path
+        from data_models.parameters import arl_path
         self.dir = arl_path('test_results')
         self.niter = 1000
         self.lowcore = create_named_configuration('LOWBD2-CORE')

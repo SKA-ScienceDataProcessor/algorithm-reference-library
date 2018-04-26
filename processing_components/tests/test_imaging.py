@@ -12,14 +12,14 @@ import numpy
 from astropy import units as u
 from astropy.coordinates import SkyCoord
 
-from libs.data.polarisation import PolarisationFrame
+from data_models.polarisation import PolarisationFrame
 from libs.image.operations import export_image_to_fits, smooth_image
 from libs.imaging import predict_skycomponent_visibility
 from libs.skycomponent.operations import find_skycomponents, find_nearest_skycomponent, insert_skycomponent
 from libs.util.testing_support import create_named_configuration, ingest_unittest_visibility, create_unittest_model, \
     insert_unittest_errors, create_unittest_components
 from processing_components.graphs.execute import arlexecute
-from processing_components.graphs.imaging_graph import create_zero_vis_graph_list, create_predict_graph, \
+from processing_components.graphs.imaging_graphs import create_zero_vis_graph_list, create_predict_graph, \
     create_invert_graph, create_subtract_vis_graph_list
 
 log = logging.getLogger(__name__)
@@ -31,7 +31,7 @@ log.addHandler(logging.StreamHandler(sys.stderr))
 class TestImaging(unittest.TestCase):
     def setUp(self):
         
-        from libs.data.parameters import arl_path
+        from data_models.parameters import arl_path
         self.dir = arl_path('test_results')
     
     def actualSetUp(self, add_errors=False, freqwin=1, block=False, dospectral=True, dopol=False, zerow=False):

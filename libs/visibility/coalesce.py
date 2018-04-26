@@ -2,7 +2,7 @@
 Functions for visibility coalescence and decoalescence.
 
 The BlockVisibility format describes the visibility
-data as it would come from the correlator: [time, ant2, ant1, channel, pol]. This is well-suited to
+data_models as it would come from the correlator: [time, ant2, ant1, channel, pol]. This is well-suited to
 calibration and some visibility processing such as continuum removal. However the BlockVisibility format
 is vastly oversampled on the short spacings where the visibility (after calibration) varies slowly compared to
 the longest baselines. The coalescence operation resamples the visibility at a rate inversely proportional
@@ -23,8 +23,8 @@ import numpy
 from astropy import constants
 
 from libs.visibility.base import vis_summary, copy_visibility
-from libs.data.data_models import Visibility, BlockVisibility
-from libs.data.parameters import get_parameter
+from data_models.data_models import Visibility, BlockVisibility
+from data_models.parameters import get_parameter
 from libs.util.array_functions import average_chunks, average_chunks2
 
 import logging
@@ -33,7 +33,7 @@ log = logging.getLogger(__name__)
 
 
 def coalesce_visibility(vis: BlockVisibility, **kwargs) -> Visibility:
-    """ Coalesce the BlockVisibility data. The output format is a Visibility, as needed for imaging
+    """ Coalesce the BlockVisibility data_models. The output format is a Visibility, as needed for imaging
 
     Coalesce by baseline-dependent averaging (optional). The number of integrations averaged goes as the ratio of the
     maximum possible baseline length to that for this baseline. This number can be scaled by coalescence_factor and
@@ -70,7 +70,7 @@ def coalesce_visibility(vis: BlockVisibility, **kwargs) -> Visibility:
                                polarisation_frame=vis.polarisation_frame, cindex=cindex,
                                blockvis=vis)
 
-    log.debug('coalesce_visibility: Created new Visibility for coalesced data, coalescence factors (t,f) = (%.3f,%.3f)'
+    log.debug('coalesce_visibility: Created new Visibility for coalesced data_models, coalescence factors (t,f) = (%.3f,%.3f)'
               % (time_coal, frequency_coal))
     log.debug('coalesce_visibility: Maximum coalescence (t,f) = (%d, %d)' % (max_time_coal, max_frequency_coal))
     log.debug('coalesce_visibility: Original %s, coalesced %s' % (vis_summary(vis),
@@ -80,7 +80,7 @@ def coalesce_visibility(vis: BlockVisibility, **kwargs) -> Visibility:
 
 
 def convert_blockvisibility_to_visibility(vis: BlockVisibility) -> Visibility:
-    """ Convert the BlockVisibility data with no coalescence
+    """ Convert the BlockVisibilityfrom libs.skymodel.skymodel import SkyModelwith no coalescence
 
     :param vis: BlockVisibility to be converted
     :return: Visibility with  cindex and blockvis filled in
@@ -120,10 +120,10 @@ def decoalesce_visibility(vis: Visibility, overwrite=False, **kwargs) -> BlockVi
     assert vis.cindex is not None, "No reverse index in Visibility %r" % vis
 
     if overwrite:
-        log.debug('decoalesce_visibility: Created new Visibility for decoalesced data')
+        log.debug('decoalesce_visibility: Created new Visibility for decoalesced data_models')
         decomp_vis = copy_visibility(vis.blockvis)
     else:
-        log.debug('decoalesce_visibility: Filled decoalesced data into template')
+        log.debug('decoalesce_visibility: Filled decoalescedfrom libs.skymodel.skymodel import SkyModelinto template')
         decomp_vis = vis.blockvis
 
     vshape = decomp_vis.data['vis'].shape
@@ -161,7 +161,7 @@ def average_in_blocks(vis, uvw, wts, times, integration_time, frequency, channel
     alltpwtsgrid = numpy.sum(allpwtsgrid, axis=0)
 
     # Now calculate on a baseline basis the time and frequency averaging. We do this by looking at
-    # the maximum uv distance for all data and for a given baseline. The integration time and
+    # the maximum uv distance for allfrom libs.skymodel.skymodel import SkyModeland for a given baseline. The integration time and
     # channel bandwidth are scale appropriately.
     uvmax = numpy.sqrt(numpy.max(uvw[:, 0] ** 2 + uvw[:, 1] ** 2 + uvw[:, 2] ** 2))
     time_average = numpy.ones([nant, nant], dtype='int')
@@ -181,7 +181,7 @@ def average_in_blocks(vis, uvw, wts, times, integration_time, frequency, channel
                     frequency_average[a2, a1] = max_frequency_coal
 
     # See how many time chunks and frequency we need for each baseline. To do this we use the same averaging that
-    # we will use later for the actual data. This tells us the number of chunks required for each baseline.
+    # we will use later for the actual data_models. This tells us the number of chunks required for each baseline.
     frequency_grid, time_grid = numpy.meshgrid(frequency, times)
     channel_bandwidth_grid, integration_time_grid = numpy.meshgrid(channel_bandwidth, integration_time)
     cnvis = 0
@@ -327,12 +327,12 @@ def convert_blocks(vis, uvw, wts, times, integration_time, frequency, channel_ba
 
 
 def decoalesce_vis(vshape, cvis, cindex):
-    """Decoalesce data using Time-Baseline
+    """Decoalescefrom libs.skymodel.skymodel import SkyModelusing Time-Baseline
 
-    We use the index into the coalesced data. For every output row, this gives the
-    corresponding row in the coalesced data.
+    We use the index into the coalesced data_models. For every output row, this gives the
+    corresponding row in the coalesced data_models.
 
-    :param vshape: Shape of template visibility data
+    :param vshape: Shape of template visibility data_models
     :param cvis: Coalesced visibility values
     :param cindex: Index array from coalescence
     :return: uncoalesced vis

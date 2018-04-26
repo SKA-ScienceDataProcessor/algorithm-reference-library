@@ -10,7 +10,7 @@ import astropy.units as u
 import numpy
 from astropy.coordinates import SkyCoord
 
-from libs.data.polarisation import PolarisationFrame
+from data_models.polarisation import PolarisationFrame
 from libs.image.cleaners import overlapIndices
 from libs.image.deconvolution import deconvolve_cube, restore_cube
 from libs.image.operations import export_image_to_fits, create_image_from_array
@@ -24,7 +24,7 @@ log = logging.getLogger(__name__)
 class TestImageDeconvolution(unittest.TestCase):
 
     def setUp(self):
-        from libs.data.parameters import arl_path
+        from data_models.parameters import arl_path
         self.dir = arl_path('test_results')
         self.lowcore = create_named_configuration('LOWBD2-CORE')
         self.times = (numpy.pi / (12.0)) * numpy.linspace(-3.0, 3.0, 7)
@@ -93,7 +93,7 @@ class TestImageDeconvolution(unittest.TestCase):
     #     export_image_to_fits(self.residual, "%s/test_deconvolve_msclean_subpsf-residual.fits" % (self.dir))
     #     self.cmodel = restore_cube(self.comp, self.psf, self.residual)
     #     export_image_to_fits(self.cmodel, "%s/test_deconvolve_msclean_subpsf-clean.fits" % (self.dir))
-    #     assert numpy.max(self.residual.data) < 1.2, "Max of self.residual.data is %f (should be <1.2)" % numpy.max(self.residual.data)
+    #     assert numpy.max(self.residual.data_models) < 1.2, "Max of self.residual.data_models is %f (should be <1.2)" % numpy.max(self.residual.data_models)
 
     def test_deconvolve_msclean_1scale(self):
         

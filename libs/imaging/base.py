@@ -29,9 +29,9 @@ from astropy import units as units
 from astropy import wcs
 from astropy.wcs.utils import pixel_to_skycoord
 
-from libs.data.data_models import Visibility, BlockVisibility, Image, Skycomponent, assert_same_chan_pol
-from libs.data.parameters import get_parameter
-from libs.data.polarisation import convert_pol_frame, PolarisationFrame
+from data_models.data_models import Visibility, BlockVisibility, Image, Skycomponent, assert_same_chan_pol
+from data_models.parameters import get_parameter
+from data_models.polarisation import convert_pol_frame, PolarisationFrame
 from libs.fourier_transforms.convolutional_gridding import convolutional_grid, \
     convolutional_degrid
 from libs.fourier_transforms.fft_support import fft, ifft, pad_mid, extract_mid

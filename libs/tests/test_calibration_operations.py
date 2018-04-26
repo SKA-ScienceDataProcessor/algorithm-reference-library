@@ -12,8 +12,8 @@ import astropy.units as u
 from libs.calibration.operations import gaintable_summary, apply_gaintable, create_gaintable_from_blockvisibility, \
     create_gaintable_from_rows
 
-from libs.data.data_models import Skycomponent, GainTable
-from libs.data.polarisation import PolarisationFrame
+from data_models.data_models import Skycomponent, GainTable
+from data_models.polarisation import PolarisationFrame
 from libs.util.testing_support import create_named_configuration, simulate_gaintable
 from libs.visibility.base import copy_visibility, create_blockvisibility
 from libs.imaging import predict_skycomponent_visibility

@@ -8,7 +8,7 @@ import numpy
 
 from astropy.coordinates import SkyCoord
 import astropy.units as u
-from libs.data.polarisation import PolarisationFrame
+from data_models.polarisation import PolarisationFrame
 from libs.util.testing_support import create_named_configuration
 from libs.visibility.coalesce import coalesce_visibility, decoalesce_visibility, \
     convert_blockvisibility_to_visibility

@@ -4,14 +4,13 @@
 """
 
 import logging
-import os
 import unittest
 
 import astropy.units as u
 import numpy
 from astropy.coordinates import SkyCoord
 
-from libs.data.polarisation import PolarisationFrame
+from data_models.polarisation import PolarisationFrame
 from libs.image.deconvolution import restore_cube
 from libs.image.operations import export_image_to_fits
 from libs.image.solvers import solve_image
@@ -24,7 +23,7 @@ log = logging.getLogger(__name__)
 
 class TestImageSolversMM(unittest.TestCase):
     def setUp(self):
-        from libs.data.parameters import arl_path
+        from data_models.parameters import arl_path
         self.lowcore = create_named_configuration('LOWBD2-CORE')
         self.dir = arl_path('test_results')
         self.times = (numpy.pi / (12.0)) * numpy.linspace(-3.0, 3.0, 7)

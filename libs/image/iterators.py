@@ -7,7 +7,7 @@ import logging
 
 import numpy
 
-from libs.data.data_models import Image
+from data_models.data_models import Image
 from libs.image.operations import create_image_from_array, create_empty_image_like
 
 log = logging.getLogger(__name__)

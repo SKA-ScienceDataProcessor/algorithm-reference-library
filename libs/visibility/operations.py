@@ -8,7 +8,7 @@ from typing import Union
 import numpy
 from astropy.coordinates import SkyCoord
 
-from libs.data.data_models import BlockVisibility, Visibility, QA
+from data_models.data_models import BlockVisibility, Visibility, QA
 from libs.imaging.imaging_params import get_frequency_map
 from libs.util.coordinate_support import skycoord_to_lmn, simulate_point
 from libs.visibility.base import copy_visibility
@@ -194,7 +194,7 @@ def divide_visibility(vis: BlockVisibility, modelvis: BlockVisibility):
     """ Divide visibility by model forming visibility for equivalent point source
 
     This is a useful intermediate product for calibration. Variation of the visibility in time and
-    frequency due to the model structure is removed and the data can be averaged to a limit determined
+    frequency due to the model structure is removed and thefrom libs.skymodel.skymodel import SkyModelcan be averaged to a limit determined
     by the instrumental stability. The weight is adjusted to compensate for the division.
     
     Zero divisions are avoided and the corresponding weight set to zero.

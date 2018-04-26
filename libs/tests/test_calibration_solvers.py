@@ -9,8 +9,8 @@ import unittest
 from astropy.coordinates import SkyCoord
 import astropy.units as u
 
-from libs.data.data_models import Skycomponent
-from libs.data.polarisation import PolarisationFrame
+from data_models.data_models import Skycomponent
+from data_models.polarisation import PolarisationFrame
 
 from libs.calibration.operations import apply_gaintable, create_gaintable_from_blockvisibility, gaintable_summary, \
     qa_gaintable

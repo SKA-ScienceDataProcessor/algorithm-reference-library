@@ -13,7 +13,7 @@ from astropy import units as u
 from astropy.coordinates import SkyCoord
 
 from libs.calibration.calibration_control import create_calibration_controls
-from libs.data.polarisation import PolarisationFrame
+from data_models.polarisation import PolarisationFrame
 from processing_components.graphs.execute import arlexecute
 from libs.image.operations import export_image_to_fits, smooth_image, qa_image
 from libs.imaging import predict_skycomponent_visibility
@@ -33,7 +33,7 @@ class TestPipelineGraphs(unittest.TestCase):
     
     def setUp(self):
         
-        from libs.data.parameters import arl_path
+        from data_models.parameters import arl_path
         self.dir = arl_path('test_results')
         arlexecute.set_client(use_dask=True)
 

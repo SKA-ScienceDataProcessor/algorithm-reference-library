@@ -5,7 +5,7 @@
 
 import unittest
 
-from libs.data.parameters import get_parameter
+from data_models.parameters import get_parameter
 
 import logging
 

@@ -25,7 +25,7 @@ Ignoring changes in the normalisation term, we have:
 """
 import numpy
 
-from libs.data.data_models import Visibility, Image
+from data_models.data_models import Visibility, Image
 
 from libs.image.operations import copy_image
 

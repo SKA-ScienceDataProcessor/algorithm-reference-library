@@ -7,7 +7,7 @@ import logging
 
 import numpy
 
-from libs.data.data_models import Visibility
+from data_models.data_models import Visibility
 log = logging.getLogger(__name__)
 
 def vis_select_uvrange(vis: Visibility, uvmin=0.0, uvmax=numpy.infty) -> numpy.ndarray:

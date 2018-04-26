@@ -6,8 +6,8 @@ subclasses of astropy classes.
 """
 
 import numpy
-from libs.data.data_models import Visibility, Image
-from libs.data.parameters import get_parameter
+from data_models.data_models import Visibility, Image
+from data_models.parameters import get_parameter
 from libs.image.deconvolution import deconvolve_cube
 from libs.visibility.base import copy_visibility
 from libs.imaging.base import predict_skycomponent_visibility

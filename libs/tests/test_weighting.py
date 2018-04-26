@@ -10,7 +10,7 @@ from astropy import units as u
 from astropy.coordinates import SkyCoord
 from photutils import fit_2dgaussian
 
-from libs.data.polarisation import PolarisationFrame
+from data_models.polarisation import PolarisationFrame
 from libs.image.operations import export_image_to_fits
 from libs.imaging import invert_2d
 from libs.imaging.base import create_image_from_visibility
@@ -24,7 +24,7 @@ log = logging.getLogger(__name__)
 class TestWeighting(unittest.TestCase):
     def setUp(self):
         import os
-        from libs.data.parameters import arl_path
+        from data_models.parameters import arl_path
         self.dir = arl_path('test_results')
         self.params = {'npixel': 512,
                        'nchan': 1,

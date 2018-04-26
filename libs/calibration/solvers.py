@@ -17,7 +17,7 @@ import logging
 import numpy
 
 from libs.calibration.operations import create_gaintable_from_blockvisibility, create_gaintable_from_rows
-from libs.data.data_models import GainTable, BlockVisibility, assert_vis_gt_compatible
+from data_models.data_models import GainTable, BlockVisibility, assert_vis_gt_compatible
 from libs.visibility.base import create_visibility_from_rows
 from libs.visibility.operations import divide_visibility
 
@@ -30,7 +30,7 @@ def solve_gaintable(vis: BlockVisibility, modelvis: BlockVisibility = None, gt=N
     
     If modelvis is None, a point source model is assumed.
 
-    :param vis: BlockVisibility containing the observed data
+    :param vis: BlockVisibility containing the observed data_models
     :param modelvis: BlockVisibility containing the visibility predicted by a model
     :param gt: Existing gaintable
     :param phase_only: Solve only for the phases (default=True)

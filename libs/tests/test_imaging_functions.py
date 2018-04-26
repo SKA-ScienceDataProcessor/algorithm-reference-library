@@ -11,7 +11,7 @@ import numpy
 from astropy import units as u
 from astropy.coordinates import SkyCoord
 
-from libs.data.polarisation import PolarisationFrame
+from data_models.polarisation import PolarisationFrame
 from libs.imaging import create_image_from_visibility
 from libs.imaging.weighting import weight_visibility
 from libs.util.testing_support import create_named_configuration, ingest_unittest_visibility, create_unittest_model
@@ -25,7 +25,7 @@ log.addHandler(logging.StreamHandler(sys.stderr))
 
 class TestImagingFunctions(unittest.TestCase):
     def setUp(self):
-        from libs.data.parameters import arl_path
+        from data_models.parameters import arl_path
         self.dir = arl_path('test_results')
     
     def actualSetUp(self, add_errors=False, freqwin=1, block=False, dospectral=True, dopol=False):

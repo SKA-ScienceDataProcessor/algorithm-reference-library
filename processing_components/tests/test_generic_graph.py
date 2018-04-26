@@ -10,7 +10,7 @@ import numpy
 from astropy import units as u
 from astropy.coordinates import SkyCoord
 
-from libs.data.polarisation import PolarisationFrame
+from data_models.polarisation import PolarisationFrame
 from libs.image.iterators import image_raster_iter
 from libs.imaging import predict_skycomponent_visibility
 from libs.skycomponent.operations import create_skycomponent
@@ -28,7 +28,7 @@ class TestPipelinesGenericDask(unittest.TestCase):
         
         arlexecute.set_client(use_dask=True)
         
-        from libs.data.parameters import arl_path
+        from data_models.parameters import arl_path
         self.dir = arl_path('test_results')
         self.lowcore = create_named_configuration('LOWBD2-CORE')
         self.times = numpy.linspace(-3, +3, 13) * (numpy.pi / 12.0)

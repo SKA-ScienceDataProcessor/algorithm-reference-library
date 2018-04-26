@@ -7,8 +7,8 @@ import copy
 
 import numpy.linalg
 
-from libs.data.data_models import GainTable, BlockVisibility, QA, assert_vis_gt_compatible
-from libs.data.data_models import ReceptorFrame
+from data_models.data_models import GainTable, BlockVisibility, QA, assert_vis_gt_compatible
+from data_models.data_models import ReceptorFrame
 from libs.visibility.iterators import vis_timeslice_iter
 
 import logging
@@ -92,7 +92,7 @@ def apply_gaintable(vis: BlockVisibility, gt: GainTable, inverse=False, vis_slic
     
         V_corrected = {g_i * g_j^*}^-1 V_obs
         
-    If the visibility data are polarised e.g. polarisation_frame("linear") then the inverse operator
+    If the visibilityfrom libs.skymodel.skymodel import SkyModelare polarised e.g. polarisation_frame("linear") then the inverse operator
     represents an actual inverse of the gains.
     
     :param vis: Visibility to have gains applied
@@ -170,7 +170,7 @@ def append_gaintable(gt: GainTable, othergt: GainTable) -> GainTable:
 def copy_gaintable(gt: GainTable, zero=False) -> GainTable:
     """Copy a GainTable
 
-    Performs a deepcopy of the data array
+    Performs a deepcopy of thefrom libs.skymodel.skymodel import SkyModelarray
     """
     assert isinstance(gt, GainTable), gt
     

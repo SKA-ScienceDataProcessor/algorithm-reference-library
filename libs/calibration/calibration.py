@@ -13,16 +13,16 @@ For example::
 
 import logging
 
+from data_models.data_models import Visibility, BlockVisibility, Image
+from data_models.parameters import get_parameter
+
 from libs.calibration.operations import apply_gaintable
 from libs.calibration.solvers import solve_gaintable
-from libs.data.data_models import Visibility, BlockVisibility, Image
 from libs.visibility.coalesce import convert_blockvisibility_to_visibility, decoalesce_visibility
 from libs.visibility.base import copy_visibility
 from libs.imaging import predict_skycomponent_visibility, predict_2d
-from libs.data.parameters import get_parameter
 
 log = logging.getLogger(__name__)
-
 
 def calibrate_blockvisibility(bvt: BlockVisibility, model: Image=None, components=None,
                               predict=predict_2d, **kwargs) -> BlockVisibility:

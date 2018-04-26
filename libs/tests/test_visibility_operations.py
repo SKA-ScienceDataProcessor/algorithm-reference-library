@@ -12,8 +12,8 @@ from numpy.testing import assert_allclose
 from astropy.coordinates import SkyCoord
 import astropy.units as u
 
-from libs.data.data_models import Skycomponent
-from libs.data.polarisation import PolarisationFrame
+from data_models.data_models import Skycomponent
+from data_models.polarisation import PolarisationFrame
 from libs.util.testing_support import create_named_configuration
 from libs.imaging import predict_skycomponent_visibility
 from libs.visibility.coalesce import convert_blockvisibility_to_visibility

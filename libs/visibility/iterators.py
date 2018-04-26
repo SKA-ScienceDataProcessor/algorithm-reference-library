@@ -14,8 +14,8 @@ from typing import Union
 
 import numpy
 
-from libs.data.data_models import Visibility, BlockVisibility
-from libs.data.parameters import get_parameter
+from data_models.data_models import Visibility, BlockVisibility
+from data_models.parameters import get_parameter
 
 log = logging.getLogger(__name__)
 

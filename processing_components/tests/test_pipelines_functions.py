@@ -14,7 +14,7 @@ from astropy.coordinates import SkyCoord
 from astropy.wcs.utils import pixel_to_skycoord
 
 from libs.calibration.operations import qa_gaintable, create_gaintable_from_blockvisibility, apply_gaintable
-from libs.data.polarisation import PolarisationFrame
+from data_models.polarisation import PolarisationFrame
 from libs.image.operations import export_image_to_fits, create_empty_image_like, copy_image
 from libs.imaging import predict_skycomponent_visibility, \
     create_image_from_visibility
@@ -33,7 +33,7 @@ log.addHandler(logging.StreamHandler(sys.stderr))
 
 class TestPipelinesFunctions(unittest.TestCase):
     def setUp(self):
-        from libs.data.parameters import arl_path
+        from data_models.parameters import arl_path
         self.dir = arl_path('test_results')
         
         self.setupVis(add_errors=False, block=True)

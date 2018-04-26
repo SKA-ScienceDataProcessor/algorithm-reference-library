@@ -36,8 +36,8 @@ from dask.distributed import wait
 
 from libs.calibration.calibration_control import calibrate_function
 from libs.calibration.operations import apply_gaintable
-from libs.data.data_models import Image
-from libs.data.parameters import get_parameter
+from data_models.data_models import Image
+from data_models.parameters import get_parameter
 from processing_components.graphs.execute import arlexecute
 from libs.image.deconvolution import deconvolve_cube, restore_cube
 from libs.image.gather_scatter import image_scatter_facets, image_gather_facets, image_scatter_channels, \

@@ -14,8 +14,8 @@ from astropy.stats import gaussian_fwhm_to_sigma
 from astropy.wcs.utils import skycoord_to_pixel, pixel_to_skycoord
 from photutils import segmentation
 
-from libs.data.data_models import Image, Skycomponent, assert_same_chan_pol
-from libs.data.polarisation import PolarisationFrame
+from data_models.data_models import Image, Skycomponent, assert_same_chan_pol
+from data_models.polarisation import PolarisationFrame
 
 log = logging.getLogger(__name__)
 
@@ -280,7 +280,7 @@ def find_skycomponents(im: Image, fwhm=1.0, threshold=10.0, npixels=5) -> List[S
             shape='Point',
             polarisation_frame=im.polarisation_frame,
             params={}))
- #           params={'xpixel': xs, 'ypixel': ys, 'sum_flux': flux}))  # Table has lots of data, could add more in future
+ #           params={'xpixel': xs, 'ypixel': ys, 'sum_flux': flux}))  # Table has lots of data_models, could add more in future
     
     return comps
 
@@ -403,7 +403,7 @@ def insert_array(im, x, y, flux, bandwidth=1.0, support=7, insert_function=inser
     :param x: x in float pixels
     :param y: y in float pixels
     :param flux: Flux[nchan, npol]
-    :param bandwidth: Support of data in uv plane
+    :param bandwidth: Support offrom libs.skymodel.skymodel import SkyModelin uv plane
     :param support: Support of function in image space
     :param insert_function: insert_function_L or insert_function_Sinc or insert_function_pswf
     :return:

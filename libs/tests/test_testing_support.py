@@ -4,7 +4,6 @@
 """
 
 import logging
-import os
 import sys
 import unittest
 
@@ -12,8 +11,8 @@ import astropy.units as u
 import numpy
 from astropy.coordinates import SkyCoord
 
-from libs.data.data_models import Skycomponent
-from libs.data.polarisation import PolarisationFrame
+from data_models.data_models import Skycomponent
+from data_models.polarisation import PolarisationFrame
 from libs.image.operations import export_image_to_fits
 from libs.imaging.base import predict_skycomponent_visibility
 from libs.util.testing_support import create_test_image_from_s3, create_named_configuration, create_test_image, \
@@ -32,7 +31,7 @@ log.addHandler(logging.StreamHandler(sys.stderr))
 
 class TestTesting_Support(unittest.TestCase):
     def setUp(self):
-        from libs.data.parameters import arl_path
+        from data_models.parameters import arl_path
         self.dir = arl_path('test_results')
         
         self.frequency = numpy.linspace(1e8, 1.5e8, 3)

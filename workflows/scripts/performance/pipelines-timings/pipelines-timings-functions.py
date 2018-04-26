@@ -12,7 +12,7 @@ from astropy import units as u
 from astropy.coordinates import SkyCoord
 
 from libs.calibration.operations import apply_gaintable, create_gaintable_from_blockvisibility
-from libs.data.polarisation import PolarisationFrame
+from data_models.polarisation import PolarisationFrame
 from libs.image.operations import qa_image, create_empty_image_like
 from libs.imaging import advise_wide_field
 from libs.imaging.imaging_functions import predict_function, invert_function
@@ -54,7 +54,7 @@ def trial_case(results, seed=180555, context='wstack',
     'time overall',  overall execution time (s)
     'time create gleam', time to create GLEAM model
     'time predict', time to execute GLEAM prediction graph
-    'time corrupt', time to corrupt data
+    'time corrupt', time to corrupt data_models
     'time invert', time to make dirty image
     'time psf invert', time to make PSF
     'time ICAL', time to execute ICAL

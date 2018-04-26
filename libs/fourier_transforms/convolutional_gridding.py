@@ -1,4 +1,4 @@
-""" Imaging is based on used of the FFT to perform Fourier transforms efficiently. Since the observed visibility data
+""" Imaging is based on used of the FFT to perform Fourier transforms efficiently. Since the observed visibility data_models
 do not arrive naturally on grid points, the sampled points are resampled on the FFT grid using a convolution function to
 smear out the sample points. The resulting grid points are then FFT'ed. The result can be corrected for the gridding
 convolution function by division in the image plane of the transform.
@@ -70,7 +70,7 @@ def anti_aliasing_calculate(shape, oversampling=1, support=3):
     """
     Compute the prolate spheroidal anti-aliasing function
     
-    The kernel is to be used in gridding visibility data onto a grid on for degridding from a grid.
+    The kernel is to be used in gridding visibilityfrom libs.skymodel.skymodel import SkyModelonto a grid on for degridding from a grid.
     The gridding correction function (gcf) is used to correct the image for decorrelation due to
     gridding.
     
@@ -307,7 +307,7 @@ def convolutional_grid(kernel_list, uvgrid, vis, visweights, vuvwmap, vfrequency
 
 
 def weight_gridding(shape, visweights, vuvwmap, vfrequencymap, vpolarisationmap=None, weighting='uniform'):
-    """Reweight data using one of a number of algorithms
+    """Reweightfrom libs.skymodel.skymodel import SkyModelusing one of a number of algorithms
 
     :param shape:
     :param visweights: Visibility weights
@@ -353,7 +353,7 @@ def weight_gridding(shape, visweights, vuvwmap, vfrequencymap, vpolarisationmap=
 
 def weight_rank_filter(shape, visweights, vuvwmap, vfrequencymap, vpolarisationmap=None,
                        window=7, rank_limit=5.0):
-    """Reweight data using one of a number of algorithms
+    """Reweightfrom libs.skymodel.skymodel import SkyModelusing one of a number of algorithms
 
     :param shape:
     :param visweights: Visibility weights
