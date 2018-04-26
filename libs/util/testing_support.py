@@ -237,15 +237,15 @@ def create_test_image_from_s3(npixel=16384, polarisation_frame=PolarisationFrame
 
     For frequencies < 610MHz, there are three tables to use::
 
-        data_models/models/S3_151MHz_10deg.csv, use fov=10
-        data_models/models/S3_151MHz_20deg.csv, use fov=20
-        data_models/models/S3_151MHz_40deg.csv, use fov=40
+        data/models/S3_151MHz_10deg.csv, use fov=10
+        data/models/S3_151MHz_20deg.csv, use fov=20
+        data/models/S3_151MHz_40deg.csv, use fov=40
         
     For frequencies > 610MHz, there are three tables:
     
-        data_models/models/S3_1400MHz_1mJy_10deg.csv, use flux_limit>= 1e-3
-        data_models/models/S3_1400MHz_10uJy_10deg.csv, use flux_limit>= 1e-3
-        data_models/models/S3_151MHz_100uJy_10deg.csv, use flux_limit>= 1e-3
+        data/models/S3_1400MHz_1mJy_10deg.csv, use flux_limit>= 1e-3
+        data/models/S3_1400MHz_10uJy_10deg.csv, use flux_limit>= 1e-3
+        data/models/S3_151MHz_100uJy_10deg.csv, use flux_limit>= 1e-3
 
     The component spectral index is calculated from the 610MHz and 151MHz or 1400MHz and 610MHz, and then calculated
     for the specified frequencies.
@@ -293,14 +293,14 @@ def create_test_image_from_s3(npixel=16384, polarisation_frame=PolarisationFrame
     
     if numpy.max(frequency) > 6.1E8:
         if flux_limit >= 1e-3:
-            csvfilename = arl_path('data_models/models/S3_1400MHz_1mJy_10deg.csv')
+            csvfilename = arl_path('data/models/S3_1400MHz_1mJy_10deg.csv')
         elif flux_limit >= 1e-4:
-            csvfilename = arl_path('data_models/models/S3_1400MHz_100uJy_10deg.csv')
+            csvfilename = arl_path('data/models/S3_1400MHz_100uJy_10deg.csv')
         else:
-            csvfilename = arl_path('data_models/models/S3_1400MHz_10uJy_10deg.csv')
+            csvfilename = arl_path('data/models/S3_1400MHz_10uJy_10deg.csv')
     else:
         assert fov in [10, 20, 40], "Field of view invalid: use one of %s" % ([10, 20, 40])
-        csvfilename = arl_path('data_models/models/S3_151MHz_%ddeg.csv' % (fov))
+        csvfilename = arl_path('data/models/S3_151MHz_%ddeg.csv' % (fov))
         
     with open(csvfilename) as csvfile:
         readCSV = csv.reader(csvfile, delimiter=',')
@@ -504,7 +504,7 @@ def create_low_test_beam(model: Image) -> Image:
     :return: Image
     """
     
-    beam = import_image_from_fits(arl_path('data_models/models/SKA1_LOW_beam.fits'))
+    beam = import_image_from_fits(arl_path('data/models/SKA1_LOW_beam.fits'))
     
     # Scale the image cellsize to account for the different in frequencies. Eventually we will want to
     # use a frequency cube
@@ -549,7 +549,7 @@ def replicate_image(im: Image, polarisation_frame=PolarisationFrame('stokesI'), 
         -> Image:
     """ Make a new canonical shape Image, extended along third and fourth axes by replication.
 
-    The order of thefrom libs.skymodel.skymodel import SkyModelis [chan, pol, dec, ra]
+    The order of the data is [chan, pol, dec, ra]
 
 
     :param frequency:

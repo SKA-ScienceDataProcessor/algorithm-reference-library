@@ -15,10 +15,10 @@ In this code:
 
 - A single ssm vector is taken to be a vector composed of skycomponent, gaintable tuples.
 
-- The E step for a specific window is the sum of the windowfrom libs.skymodel.skymodel import SkyModelmodel and the discrepancy between the observedfrom libs.skymodel.skymodel import SkyModeland the summed (over all windows)from libs.skymodel.skymodel import SkyModelmodels.
+- The E step for a specific window is the sum of the window data model and the discrepancy between the observed data and the summed (over all windows) data models.
    
    
-- The M step for a specific window is the optimisation of the ssm vector given the windowfrom libs.skymodel.skymodel import SkyModelmodel. This involves fitting a skycomponent and fitting for the gain phases.
+- The M step for a specific window is the optimisation of the ssm vector given the window data model. This involves fitting a skycomponent and fitting for the gain phases.
 
 
 To run sagecal, you must provide a visibility dataset and a set of skycomponents. The output will be the model
@@ -29,11 +29,11 @@ problems. It does this in an iterative way:
 
 # Set an initial estimate for each component and the gains associated with that component.
 
-# Predict thefrom libs.skymodel.skymodel import SkyModelmodel for all components
+# Predict the data model for all components
 
 # For any component, ssm, correct the estimated visibility by removing appropriate visibilities for all other skymodel.
 
-# For each ssm, update the skymodel from the ssmfrom libs.skymodel.skymodel import SkyModelmodel.
+# For each ssm, update the skymodel from the ssm data model.
 
 Sagecal works best if an initial phase calibration has been obtained using an isoplanatic approximation.
 """
@@ -42,19 +42,14 @@ import logging
 
 import numpy
 
-from data_models.data_models import BlockVisibility, SkyModel
-
-from libs.calibration.solvers import solve_gaintable
+from data_models.data_models import BlockVisibility
 from libs.calibration.operations import copy_gaintable, apply_gaintable, \
     create_gaintable_from_blockvisibility, qa_gaintable
-from libs.skycomponent.base import copy_skycomponent
-from libs.skymodel.operations import copy_skymodel, predict_skymodel_visibility, solve_skymodel
-from libs.visibility.coalesce import convert_blockvisibility_to_visibility
-from libs.visibility.operations import copy_visibility, sum_visibility
-from libs.visibility.visibility_fitting import fit_visibility
-from libs.skymodel.skymodel import SkyModel
-
+from libs.calibration.solvers import solve_gaintable
 from libs.skymodel.operations import copy_skymodel
+from libs.skymodel.operations import predict_skymodel_visibility, solve_skymodel
+from libs.visibility.coalesce import convert_blockvisibility_to_visibility
+from libs.visibility.operations import copy_visibility
 
 log = logging.getLogger(__name__)
 
@@ -110,9 +105,9 @@ def skymodel_cal_fit_gaintable(evis, calskymodel, gain=0.1, niter=3, tol=1e-3, *
 def skymodel_cal_e_step(vis: BlockVisibility, evis_all: BlockVisibility, calskymodel, **kwargs):
     """Calculates E step in equation A12
 
-    This is thefrom libs.skymodel.skymodel import SkyModelmodel for this window plus the difference between observedfrom libs.skymodel.skymodel import SkyModeland summedfrom libs.skymodel.skymodel import SkyModelmodels
+    This is the data model for this window plus the difference between observed data and summed data models
 
-    :param evis_all: Sumfrom libs.skymodel.skymodel import SkyModelmodels
+    :param evis_all: Sum data models
     :param csm: csm element being fit
     :param kwargs:
     :return: Data model (i.e. visibility) for this csm
@@ -128,12 +123,12 @@ def skymodel_cal_e_step(vis: BlockVisibility, evis_all: BlockVisibility, calskym
 def skymodel_cal_e_all(vis: BlockVisibility, calskymodels, **kwargs):
     """Calculates E step in equation A12
 
-    This is the sum of thefrom libs.skymodel.skymodel import SkyModelmodels over all skymodel
+    This is the sum of the data models over all skymodel
 
     :param vis: Visibility
     :param csm: List of (skymodel, gaintable) tuples
     :param kwargs:
-    :return: Sum offrom libs.skymodel.skymodel import SkyModelmodels (i.e. a visibility)
+    :return: Sum of data models (i.e. a visibility)
     """
     evis = copy_visibility(vis, zero=True)
     tvis = copy_visibility(vis, zero=True)
@@ -148,7 +143,7 @@ def skymodel_cal_e_all(vis: BlockVisibility, calskymodels, **kwargs):
 def skymodel_cal_m_step(evis: BlockVisibility, calskymodel, **kwargs):
     """Calculates M step in equation A13
 
-    This maximises the likelihood of the ssm parameters given the existingfrom libs.skymodel.skymodel import SkyModelmodel. Note that the skymodel and
+    This maximises the likelihood of the ssm parameters given the existing data model. Note that the skymodel and
     gaintable are done separately rather than jointly.
 
     :param ssm:
@@ -168,7 +163,7 @@ def skymodel_cal_solve(vis, skymodels, niter=10, tol=1e-8, gain=0.25, **kwargs):
     :param components: Initial components to be used
     :param gaintables: Initial gain tables to be used
     :param kwargs:
-    :return: The individualfrom libs.skymodel.skymodel import SkyModelmodels and the residual visibility
+    :return: The individual data models and the residual visibility
     """
     calskymodels = create_cal_skymodel(vis, skymodels=skymodels, **kwargs)
     

@@ -1,5 +1,5 @@
 """
-Functions that aid weighting the visibilityfrom libs.skymodel.skymodel import SkyModelprior to imaging.
+Functions that aid weighting the visibility data prior to imaging.
 
 There are two classes of functions:
     - Changing the weight dependent on noise level or sample density or a combination
@@ -17,7 +17,7 @@ from libs.imaging.imaging_params import get_frequency_map
 
 
 def weight_visibility(vis: Visibility, im: Image, **kwargs) -> Visibility:
-    """ Reweight the visibilityfrom libs.skymodel.skymodel import SkyModelusing a selected algorithm
+    """ Reweight the visibility data using a selected algorithm
 
     Imaging uses the column "imaging_weight" when imaging. This function sets that column using a
     variety of algorithms

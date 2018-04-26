@@ -35,7 +35,7 @@ def create_simulate_vis_graph(config='LOWBD2-CORE',
     If order='frequency' then len(frequency) BlockVisibility's with all times are created.
     If order='time' then  len(times) BlockVisibility's with all frequencies are created.
     If order = 'both' then len(times) * len(times) BlockVisibility's are created each with
-    a single time and frequency. If order = None then allfrom libs.skymodel.skymodel import SkyModelare created in one BlockVisibility.
+    a single time and frequency. If order = None then all data are created in one BlockVisibility.
 
     The output format can be either 'blockvis' (for calibration) or 'vis' (for imaging)
 

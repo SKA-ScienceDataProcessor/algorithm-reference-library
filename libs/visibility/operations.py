@@ -194,7 +194,7 @@ def divide_visibility(vis: BlockVisibility, modelvis: BlockVisibility):
     """ Divide visibility by model forming visibility for equivalent point source
 
     This is a useful intermediate product for calibration. Variation of the visibility in time and
-    frequency due to the model structure is removed and thefrom libs.skymodel.skymodel import SkyModelcan be averaged to a limit determined
+    frequency due to the model structure is removed and the data can be averaged to a limit determined
     by the instrumental stability. The weight is adjusted to compensate for the division.
     
     Zero divisions are avoided and the corresponding weight set to zero.

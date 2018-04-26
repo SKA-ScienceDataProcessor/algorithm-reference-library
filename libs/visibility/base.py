@@ -28,7 +28,7 @@ def vis_summary(vis: Union[Visibility, BlockVisibility]):
 def copy_visibility(vis: Union[Visibility, BlockVisibility], zero=False) -> Union[Visibility, BlockVisibility]:
     """Copy a visibility
 
-    Performs a deepcopy of thefrom libs.skymodel.skymodel import SkyModelarray
+    Performs a deepcopy of the data array
     """
     assert isinstance(vis, Visibility) or isinstance(vis, BlockVisibility), vis
     

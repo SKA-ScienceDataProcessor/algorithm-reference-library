@@ -80,7 +80,7 @@ def coalesce_visibility(vis: BlockVisibility, **kwargs) -> Visibility:
 
 
 def convert_blockvisibility_to_visibility(vis: BlockVisibility) -> Visibility:
-    """ Convert the BlockVisibilityfrom libs.skymodel.skymodel import SkyModelwith no coalescence
+    """ Convert the BlockVisibility data with no coalescence
 
     :param vis: BlockVisibility to be converted
     :return: Visibility with  cindex and blockvis filled in
@@ -123,7 +123,7 @@ def decoalesce_visibility(vis: Visibility, overwrite=False, **kwargs) -> BlockVi
         log.debug('decoalesce_visibility: Created new Visibility for decoalesced data_models')
         decomp_vis = copy_visibility(vis.blockvis)
     else:
-        log.debug('decoalesce_visibility: Filled decoalescedfrom libs.skymodel.skymodel import SkyModelinto template')
+        log.debug('decoalesce_visibility: Filled decoalesced data into template')
         decomp_vis = vis.blockvis
 
     vshape = decomp_vis.data['vis'].shape
@@ -161,7 +161,7 @@ def average_in_blocks(vis, uvw, wts, times, integration_time, frequency, channel
     alltpwtsgrid = numpy.sum(allpwtsgrid, axis=0)
 
     # Now calculate on a baseline basis the time and frequency averaging. We do this by looking at
-    # the maximum uv distance for allfrom libs.skymodel.skymodel import SkyModeland for a given baseline. The integration time and
+    # the maximum uv distance for all data and for a given baseline. The integration time and
     # channel bandwidth are scale appropriately.
     uvmax = numpy.sqrt(numpy.max(uvw[:, 0] ** 2 + uvw[:, 1] ** 2 + uvw[:, 2] ** 2))
     time_average = numpy.ones([nant, nant], dtype='int')
@@ -327,7 +327,7 @@ def convert_blocks(vis, uvw, wts, times, integration_time, frequency, channel_ba
 
 
 def decoalesce_vis(vshape, cvis, cindex):
-    """Decoalescefrom libs.skymodel.skymodel import SkyModelusing Time-Baseline
+    """Decoalesce data using Time-Baseline
 
     We use the index into the coalesced data_models. For every output row, this gives the
     corresponding row in the coalesced data_models.

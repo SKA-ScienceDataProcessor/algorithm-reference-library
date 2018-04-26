@@ -63,8 +63,8 @@ def arl_path(path):
     """Converts a path that might be relative to ARL root into an
     absolute path::
 
-        arl_path('data_models/models/SKA1_LOW_beam.fits')
-        '/Users/timcornwell/Code/algorithm-reference-library/data_models/models/SKA1_LOW_beam.fits'
+        arl_path('data/models/SKA1_LOW_beam.fits')
+        '/Users/timcornwell/Code/algorithm-reference-library/data/models/SKA1_LOW_beam.fits'
 
     :param path:
     :return: absolute path

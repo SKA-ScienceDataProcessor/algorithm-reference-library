@@ -29,3 +29,6 @@ __pycache__
 /algorithm_reference_library.egg-info/
 
 **/*.class
+dask-worker-space
+/examples/arl/results
+/test_results

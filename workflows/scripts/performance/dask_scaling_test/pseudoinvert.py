@@ -57,7 +57,7 @@ if __name__ == '__main__':
     import argparse
 
     # This is scaled so that for npixel=1024, it will take about 200 seconds on a single core of
-    # a 2017 2.9 GHz Intel Core i7, and the time infrom libs.skymodel.skymodel import SkyModelgeneration (sparse) and imaging (psf) will
+    # a 2017 2.9 GHz Intel Core i7, and the time in data generation (sparse) and imaging (psf) will
     # be roughly the same.
     parser = argparse.ArgumentParser(description='Benchmark a pseudoinvert in numpy and dask')
     parser.add_argument('--scheduler', type=str, default=None,

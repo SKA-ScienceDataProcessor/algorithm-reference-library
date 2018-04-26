@@ -403,7 +403,7 @@ def insert_array(im, x, y, flux, bandwidth=1.0, support=7, insert_function=inser
     :param x: x in float pixels
     :param y: y in float pixels
     :param flux: Flux[nchan, npol]
-    :param bandwidth: Support offrom libs.skymodel.skymodel import SkyModelin uv plane
+    :param bandwidth: Support of data in uv plane
     :param support: Support of function in image space
     :param insert_function: insert_function_L or insert_function_Sinc or insert_function_pswf
     :return:

@@ -3,17 +3,16 @@
 """
 
 import logging
-import os
 import unittest
 
 import astropy.units as u
 import numpy
 from astropy.coordinates import SkyCoord
 
-from libs.calibration.operations import create_gaintable_from_blockvisibility
+from data_models.data_models import SkyModel
 from data_models.polarisation import PolarisationFrame
-from libs.skymodel.skymodel import SkyModel
 from libs.skycomponent.operations import create_skycomponent
+from libs.skymodel.operations import copy_skymodel
 from libs.util.testing_support import create_test_image, create_named_configuration
 from libs.visibility.base import create_blockvisibility
 
@@ -41,10 +40,18 @@ class TestSkyModel(unittest.TestCase):
         self.model.data[self.model.data > 1.0] = 1.0
     
     def test_create(self):
-        gt = create_gaintable_from_blockvisibility(self.vis)
         fluxes = numpy.linspace(0, 1.0, 11)
         sc = [create_skycomponent(direction=self.phasecentre, flux=numpy.array([[f]]), frequency=self.frequency,
                                   polarisation_frame=PolarisationFrame('stokesI')) for f in fluxes]
         sm = SkyModel(images=[self.model], components=sc)
         assert len(sm.images) == 1
         assert len(sm.components) == 11
+    
+    def test_copy(self):
+        fluxes = numpy.linspace(0, 1.0, 11)
+        sc = [create_skycomponent(direction=self.phasecentre, flux=numpy.array([[f]]), frequency=self.frequency,
+                                  polarisation_frame=PolarisationFrame('stokesI')) for f in fluxes]
+        sm = SkyModel(images=[self.model], components=sc)
+        sm_copy = copy_skymodel(sm)
+        print("Original", sm)
+        print("Copy", sm_copy)

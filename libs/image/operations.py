@@ -1,6 +1,6 @@
 #
 """
-Functions that define and manipulate images. Images are justfrom libs.skymodel.skymodel import SkyModeland a World Coordinate System.
+Functions that define and manipulate images. Images are just data and a World Coordinate System.
 """
 
 import copy

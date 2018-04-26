@@ -70,7 +70,7 @@ def anti_aliasing_calculate(shape, oversampling=1, support=3):
     """
     Compute the prolate spheroidal anti-aliasing function
     
-    The kernel is to be used in gridding visibilityfrom libs.skymodel.skymodel import SkyModelonto a grid on for degridding from a grid.
+    The kernel is to be used in gridding visibility data onto a grid on for degridding from a grid.
     The gridding correction function (gcf) is used to correct the image for decorrelation due to
     gridding.
     
@@ -307,7 +307,7 @@ def convolutional_grid(kernel_list, uvgrid, vis, visweights, vuvwmap, vfrequency
 
 
 def weight_gridding(shape, visweights, vuvwmap, vfrequencymap, vpolarisationmap=None, weighting='uniform'):
-    """Reweightfrom libs.skymodel.skymodel import SkyModelusing one of a number of algorithms
+    """Reweight data using one of a number of algorithms
 
     :param shape:
     :param visweights: Visibility weights
@@ -353,7 +353,7 @@ def weight_gridding(shape, visweights, vuvwmap, vfrequencymap, vpolarisationmap=
 
 def weight_rank_filter(shape, visweights, vuvwmap, vfrequencymap, vpolarisationmap=None,
                        window=7, rank_limit=5.0):
-    """Reweightfrom libs.skymodel.skymodel import SkyModelusing one of a number of algorithms
+    """Reweight data using one of a number of algorithms
 
     :param shape:
     :param visweights: Visibility weights

@@ -1,9 +1,9 @@
-"""Thefrom libs.skymodel.skymodel import SkyModelmodels used in ARL are:
+"""The data models used in ARL are:
 
 .. image:: ./ARL_data.png
    :scale: 75 %
 
-The principle transitions between thefrom libs.skymodel.skymodel import SkyModelmodels:
+The principle transitions between the data models:
 
 .. image:: ./ARL_transitions.png
    :scale: 75 %
@@ -12,12 +12,12 @@ The principle transitions between thefrom libs.skymodel.skymodel import SkyModel
     There are two visibility formats:
 
     :class:`BlockVisibility` is conceived as an ingest and calibration format. The visibility
-   from libs.skymodel.skymodel import SkyModelare kept in a block of shape (number antennas, number antennas, number channels,
+    data are kept in a block of shape (number antennas, number antennas, number channels,
     number polarisation). One block is kept per integration. The other columns are time and uvw.
     The sampling in time is therefore the same for all baselines.
 
-    :class:`Visibility` is designed to hold coalescedfrom libs.skymodel.skymodel import SkyModelwhere the integration time and
-    channel width can vary with baseline length. The visibilityfrom libs.skymodel.skymodel import SkyModelare kept in a visibility
+    :class:`Visibility` is designed to hold coalesced data where the integration time and
+    channel width can vary with baseline length. The visibility data are kept in a visibility
     vector of length equal to the number of polarisations. Everything else is a separate
     column: time, frequency, uvw, channel_bandwidth, integration time.
 
@@ -49,7 +49,7 @@ class Configuration:
                  receptor_frame=ReceptorFrame("linear"),
                  diameter=None):
         
-        """Configuration object describingfrom libs.skymodel.skymodel import SkyModelfor processing
+        """Configuration object describing data for processing
 
         :param name:
         :param data:
@@ -217,7 +217,7 @@ class GainTable:
 
 
 class Image:
-    """Image class with Imagefrom libs.skymodel.skymodel import SkyModel(as a numpy.array) and the AstroPy `implementation of
+    """Image class with Image data (as a numpy.array) and the AstroPy `implementation of
     a World Coodinate System <http://docs.astropy.org/en/stable/wcs>`_
 
     Many operations can be done conveniently using numpy libs on Image.data_models.
@@ -409,6 +409,8 @@ class SkyModel:
     
     def __init__(self, images=[], components=[], fixed=False):
         """ A model of the sky as a list of images and a list of components
+        
+        Use copy_skymodel to make a proper copy of skymodel
 
         """
         self.images = [im for im in images]
@@ -438,7 +440,7 @@ class Visibility:
     as separate columns in a numpy structured array, The fundemental unit is a complex vector of polarisation.
 
     Visibility is defined to hold an observation with one direction.
-    Polarisation frame is the same for the entirefrom libs.skymodel.skymodel import SkyModelset and can be stokes, circular, linear
+    Polarisation frame is the same for the entire data set and can be stokes, circular, linear
     The configuration is also an attribute
 
     The phasecentre is the direct of delay tracking i.e. n=0. If uvw are rotated then this
@@ -604,7 +606,7 @@ class BlockVisibility:
     should be updated with the new delay tracking centre. This is important for wstack and wproject
     algorithms.
 
-    Polarisation frame is the same for the entirefrom libs.skymodel.skymodel import SkyModelset and can be stokesI, circular, linear
+    Polarisation frame is the same for the entire data set and can be stokesI, circular, linear
     
     The configuration is also an attribute
     """

@@ -4,7 +4,7 @@
 
 import logging
 
-from libs.skymodel.skymodel import SkyModel
+from data_models.data_models import SkyModel
 from libs.image.operations import copy_image
 from libs.image.solvers import solve_image
 from libs.imaging import predict_skycomponent_visibility

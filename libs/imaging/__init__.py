@@ -8,7 +8,7 @@ For example::
     dirty, sumwt = invert_2d(vt, model)
     psf, sumwt = invert_2d(vt, model, dopsf=True)
 
-The principal transitions between thefrom libs.skymodel.skymodel import SkyModelmodels are:
+The principal transitions between the data models are:
 
 .. image:: ./ARL_transitions.png
    :scale: 75 %

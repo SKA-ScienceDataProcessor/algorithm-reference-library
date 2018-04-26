@@ -16,10 +16,10 @@ In this code:
 - A single skymodel vector is taken to be a vector composed of skycomponent, gaintable tuples.
    
 
-- The E step for a specific window is the sum of the windowfrom libs.skymodel.skymodel import SkyModelmodel and the discrepancy between the observedfrom libs.skymodel.skymodel import SkyModeland the summed (over all windows)from libs.skymodel.skymodel import SkyModelmodels.
+- The E step for a specific window is the sum of the window data model and the discrepancy between the observed data and the summed (over all windows) data models.
    
    
-- The M step for a specific window is the optimisation of the skymodel vector given the windowfrom libs.skymodel.skymodel import SkyModelmodel. This involves fitting a skycomponent and fitting for the gain phases.
+- The M step for a specific window is the optimisation of the skymodel vector given the window data model. This involves fitting a skycomponent and fitting for the gain phases.
 
 
 To run skymodel_cal, you must provide a visibility dataset and a set of skycomponents. The output will be the model
@@ -30,11 +30,11 @@ problems. It does this in an iterative way:
 
 # Set an initial estimate for each component and the gains associated with that component.
 
-# Predict thefrom libs.skymodel.skymodel import SkyModelmodel for all components
+# Predict the data model for all components
 
 # For any component, skymodel, correct the estimated visibility by removing appropriate visibilities for all other skymodel.
 
-# For each skymodel, update the skymodel from the skymodelfrom libs.skymodel.skymodel import SkyModelmodel.
+# For each skymodel, update the skymodel from the skymodel data model.
 
 skymodel_cal works best if an initial phase calibration has been obtained using an isoplanatic approximation.
 """
@@ -55,7 +55,7 @@ log = logging.getLogger(__name__)
 def create_initialise_skymodel_cal_graph(vis_graph, skymodel_graphs, **kwargs):
     """Create the skymodel
 
-    Create thefrom libs.skymodel.skymodel import SkyModelmodel for each window, from the visibility and the existing components
+    Create the data model for each window, from the visibility and the existing components
 
     :param comps:
     :param gt:
@@ -72,9 +72,9 @@ def create_initialise_skymodel_cal_graph(vis_graph, skymodel_graphs, **kwargs):
 def create_skymodel_cal_e_step_graph(vis_graph, evis_all_graph, calskymodel_graph, **kwargs):
     """Calculates E step in equation A12
 
-    This is thefrom libs.skymodel.skymodel import SkyModelmodel for this window plus the difference between observedfrom libs.skymodel.skymodel import SkyModeland summedfrom libs.skymodel.skymodel import SkyModelmodels
+    This is the data model for this window plus the difference between observed data and summed data models
 
-    :param evis_all: Sumfrom libs.skymodel.skymodel import SkyModelmodels
+    :param evis_all: Sum data models
     :param skymodel: skymodel element being fit
     :param kwargs:
     :return: Data model (i.e. visibility) for this skymodel
@@ -86,8 +86,8 @@ def create_skymodel_cal_e_step_graph(vis_graph, evis_all_graph, calskymodel_grap
         tvis = copy_visibility(vis, zero=True)
         tvis = predict_skymodel_visibility(tvis, calskymodel[0])
         tvis = apply_gaintable(tvis, calskymodel[1])
-        # E step is thefrom libs.skymodel.skymodel import SkyModelmodel for a window plus the difference between the observed data_models
-        # and the summedfrom libs.skymodel.skymodel import SkyModelmodels or, put another way, its the observedfrom libs.skymodel.skymodel import SkyModelminus the
+        # E step is the data model for a window plus the difference between the observed data_models
+        # and the summed data models or, put another way, its the observed data minus the
         # summed visibility for all other windows
         evis.data['vis'][...] = tvis.data['vis'][...] + vis.data['vis'][...] - evis_all.data['vis'][...]
         return evis
@@ -98,12 +98,12 @@ def create_skymodel_cal_e_step_graph(vis_graph, evis_all_graph, calskymodel_grap
 def create_skymodel_cal_e_all_graph(vis_graph, calskymodel_graph):
     """Calculates E step in equation A12
 
-    This is the sum of thefrom libs.skymodel.skymodel import SkyModelmodels over all skymodel, It is a global sync point for skymodel_cal
+    This is the sum of the data models over all skymodel, It is a global sync point for skymodel_cal
 
     :param vis: Visibility
     :param skymodel: list of the skymodel
     :param kwargs:
-    :return: Sum offrom libs.skymodel.skymodel import SkyModelmodels (i.e. a single BlockVisibility)
+    :return: Sum of data models (i.e. a single BlockVisibility)
     """
     
     def predict_and_apply(ovis, calskymodel):
@@ -120,7 +120,7 @@ def create_skymodel_cal_e_all_graph(vis_graph, calskymodel_graph):
 def create_skymodel_cal_m_step_graph(evis_graph, skymodel_graph, **kwargs):
     """Calculates M step in equation A13
 
-    This maximises the likelihood of the skymodel parameters given the existingfrom libs.skymodel.skymodel import SkyModelmodel. Note that these are done
+    This maximises the likelihood of the skymodel parameters given the existing data model. Note that these are done
     separately rather than jointly.
 
     :param skymodel:
@@ -144,7 +144,7 @@ def create_skymodel_cal_solve_graph(vis_graph, skymodel_graphs, niter=10, tol=1e
     :param components: Initial components to be used
     :param gaintables: Initial gain tables to be used
     :param kwargs:
-    :return: A dask graph to calculate the individualfrom libs.skymodel.skymodel import SkyModelmodels and the residual visibility
+    :return: A dask graph to calculate the individual data models and the residual visibility
     """
     calskymodel_graph = create_initialise_skymodel_cal_graph(vis_graph, skymodel_graphs=skymodel_graphs, **kwargs)
     
