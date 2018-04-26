@@ -14,7 +14,7 @@ from astropy.stats import gaussian_fwhm_to_sigma
 from astropy.wcs.utils import skycoord_to_pixel, pixel_to_skycoord
 from photutils import segmentation
 
-from data_models.data_models import Image, Skycomponent, assert_same_chan_pol
+from data_models.memory_data_models import Image, Skycomponent, assert_same_chan_pol
 from data_models.polarisation import PolarisationFrame
 
 log = logging.getLogger(__name__)

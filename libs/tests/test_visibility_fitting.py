@@ -9,7 +9,7 @@ import astropy.units as u
 import numpy
 from astropy.coordinates import SkyCoord
 
-from data_models.data_models import Skycomponent
+from data_models.memory_data_models import Skycomponent
 from data_models.polarisation import PolarisationFrame
 from libs.imaging import predict_skycomponent_visibility
 from libs.util.testing_support import create_named_configuration

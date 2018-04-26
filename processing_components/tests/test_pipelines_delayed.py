@@ -17,7 +17,7 @@ from data_models.polarisation import PolarisationFrame
 from processing_components.graphs.execute import arlexecute
 from libs.image.operations import export_image_to_fits, smooth_image, qa_image
 from libs.imaging import predict_skycomponent_visibility
-from processing_components.graphs.delayed import create_ical_pipeline_graph, create_continuum_imaging_pipeline_graph
+from processing_components.graphs.pipeline_graphs import create_ical_pipeline_graph, create_continuum_imaging_pipeline_graph
 from libs.skycomponent.operations import insert_skycomponent
 from libs.util.testing_support import create_named_configuration, ingest_unittest_visibility, create_unittest_model, \
     create_unittest_components, insert_unittest_errors

@@ -17,7 +17,7 @@ import logging
 import numpy
 
 from libs.calibration.operations import create_gaintable_from_blockvisibility, create_gaintable_from_rows
-from data_models.data_models import GainTable, BlockVisibility, assert_vis_gt_compatible
+from data_models.memory_data_models import GainTable, BlockVisibility, assert_vis_gt_compatible
 from libs.visibility.base import create_visibility_from_rows
 from libs.visibility.operations import divide_visibility
 

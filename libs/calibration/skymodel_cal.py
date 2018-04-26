@@ -42,7 +42,7 @@ import logging
 
 import numpy
 
-from data_models.data_models import BlockVisibility
+from data_models.memory_data_models import BlockVisibility
 from libs.calibration.operations import copy_gaintable, apply_gaintable, \
     create_gaintable_from_blockvisibility, qa_gaintable
 from libs.calibration.solvers import solve_gaintable

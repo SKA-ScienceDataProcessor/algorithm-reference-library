@@ -10,7 +10,7 @@ import logging
 
 from libs.calibration.operations import create_gaintable_from_blockvisibility, apply_gaintable, qa_gaintable
 from libs.calibration.solvers import solve_gaintable
-from data_models.data_models import Visibility
+from data_models.memory_data_models import Visibility
 from libs.visibility.coalesce import convert_visibility_to_blockvisibility, convert_blockvisibility_to_visibility
 
 log = logging.getLogger(__name__)

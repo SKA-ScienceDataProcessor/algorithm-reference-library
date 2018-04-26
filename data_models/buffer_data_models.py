@@ -39,7 +39,7 @@ from data_models.polarisation import PolarisationFrame, ReceptorFrame
 log = logging.getLogger(__name__)
 
 
-class Configuration:
+class Buffer_Configuration:
     """ Describe a Configuration as locations in x,y,z, mount type, diameter, names, and
         overall location
     """
@@ -114,7 +114,7 @@ class Configuration:
         return self.data['mount']
 
 
-class GainTable:
+class Buffer_GainTable:
     """ Gain table with data_models: time, antenna, gain[:, chan, rec, rec], weight columns
 
     The weight is usually that output from gain solvers.
@@ -216,7 +216,7 @@ class GainTable:
         return s
 
 
-class Image:
+class Buffer_Image:
     """Image class with Image data (as a numpy.array) and the AstroPy `implementation of
     a World Coodinate System <http://docs.astropy.org/en/stable/wcs>`_
 
@@ -303,7 +303,7 @@ class Image:
         return s
 
 
-class Skycomponent:
+class Buffer_Skycomponent:
     """Skycomponents are used to represent compact sources on the sky. They possess direction,
     flux as a function of frequency and polarisation, shape (with params), and polarisation frame.
 
@@ -384,10 +384,10 @@ class Skycomponent:
                 self.fixed = fixed
     
             def __str__(self):
-                """Default printer for skymodel.py
+                """Default printer for SkyModel
 
                 """
-                s = "skymodel.py: fixed: %s\n" % self.fixed
+                s = "SkyModel: fixed: %s\n" % self.fixed
                 for i, sc in enumerate(self.components):
                     s += str(sc)
                 s += "\n"
@@ -403,7 +403,7 @@ class Skycomponent:
         return s
 
 
-class SkyModel:
+class Buffer_SkyModel:
     """ A model for the sky
     """
     
@@ -418,10 +418,10 @@ class SkyModel:
         self.fixed = fixed
     
     def __str__(self):
-        """Default printer for skymodel.py
+        """Default printer for SkyModel
 
         """
-        s = "skymodel.py: fixed: %s\n" % self.fixed
+        s = "SkyModel: fixed: %s\n" % self.fixed
         for i, sc in enumerate(self.components):
             s += str(sc)
         s += "\n"
@@ -433,7 +433,7 @@ class SkyModel:
         return s
 
 
-class Visibility:
+class Buffer_Visibility:
     """ Visibility table class
 
     Visibility with uvw, time, integration_time, frequency, channel_bandwidth, a1, a2, vis, weight
@@ -594,7 +594,7 @@ class Visibility:
         return self.data['imaging_weight']
 
 
-class BlockVisibility:
+class Buffer_BlockVisibility:
     """ Block Visibility table class
 
     BlockVisibility with uvw, time, integration_time, frequency, channel_bandwidth, pol,
@@ -713,7 +713,7 @@ class BlockVisibility:
         return self.data.size
 
 
-class QA:
+class Buffer_QA:
     """ Quality assessment
 
     """
@@ -742,26 +742,16 @@ class QA:
         return s
 
 
-def assert_same_chan_pol(o1, o2):
-    """
-    Assert that two entities indexed over channels and polarisations
-    have the same number of them.
-    """
-    assert o1.npol == o2.npol, \
-        "%s and %s have different number of polarisations: %d != %d" % \
-        (type(o1).__name__, type(o2).__name__, o1.npol, o2.npol)
-    if isinstance(o1, BlockVisibility) and isinstance(o2, BlockVisibility):
-        assert o1.nchan == o2.nchan, \
-            "%s and %s have different number of channels: %d != %d" % \
-            (type(o1).__name__, type(o2).__name__, o1.nchan, o2.nchan)
+class Buffer_Science_Data_model:
+    """ Buffered version of Science Data Model"""
+    
+    def __init__(self):
+        pass
+    
+    def __str__(self):
+        """ Deflaut printer for Science Data Model
 
+        :return:
+        """
+        return ""
 
-def assert_vis_gt_compatible(vis: Union[Visibility, BlockVisibility], gt: GainTable):
-    """ Check if visibility and gaintable are compatible
-
-    :param vis:
-    :param gt:
-    :return:
-    """
-    assert vis.nchan == gt.nchan
-    assert vis.npol == gt.nrec * gt.nrec

@@ -5,7 +5,7 @@
 import unittest
 import logging
 
-from data_models.data_models import QA
+from data_models.memory_data_models import QA
 
 log = logging.getLogger(__name__)
 

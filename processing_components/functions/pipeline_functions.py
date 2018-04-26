@@ -11,7 +11,7 @@ from libs.visibility.base import copy_visibility
 import numpy
 
 from libs.calibration.calibration_control import calibrate_function, create_calibration_controls
-from data_models.data_models import Image, BlockVisibility, GainTable
+from data_models.memory_data_models import Image, BlockVisibility, GainTable
 from data_models.parameters import get_parameter
 from libs.image.deconvolution import deconvolve_cube, restore_cube
 from libs.imaging import predict_skycomponent_visibility

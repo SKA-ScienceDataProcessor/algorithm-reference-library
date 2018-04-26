@@ -18,7 +18,7 @@ We  could keep the graph and use it in other graphs. See the imaging-dask note b
 
 from processing_components.graphs.execute import arlexecute
 
-from data_models.data_models import Image
+from data_models.memory_data_models import Image
 from libs.image.operations import copy_image, create_empty_image_like
 from libs.image.gather_scatter import image_gather_facets, image_scatter_facets
 

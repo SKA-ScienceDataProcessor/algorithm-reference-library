@@ -13,7 +13,7 @@ For example::
 
 import logging
 
-from data_models.data_models import Visibility, BlockVisibility, Image
+from data_models.memory_data_models import Visibility, BlockVisibility, Image
 from data_models.parameters import get_parameter
 
 from libs.calibration.operations import apply_gaintable

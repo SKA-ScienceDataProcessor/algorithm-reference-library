@@ -23,7 +23,7 @@ import numpy
 from astropy import constants
 
 from libs.visibility.base import vis_summary, copy_visibility
-from data_models.data_models import Visibility, BlockVisibility
+from data_models.memory_data_models import Visibility, BlockVisibility
 from data_models.parameters import get_parameter
 from libs.util.array_functions import average_chunks, average_chunks2
 

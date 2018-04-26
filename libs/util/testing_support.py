@@ -42,7 +42,7 @@ from scipy import interpolate
 
 from libs.calibration.calibration_control import create_calibration_controls
 from libs.calibration.operations import create_gaintable_from_blockvisibility, apply_gaintable
-from data_models.data_models import Configuration, Image, GainTable, Skycomponent
+from data_models.memory_data_models import Configuration, Image, GainTable, Skycomponent
 from data_models.parameters import arl_path
 from data_models.parameters import get_parameter
 from data_models.polarisation import PolarisationFrame

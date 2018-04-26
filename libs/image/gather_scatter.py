@@ -8,7 +8,7 @@ from typing import List
 
 import numpy
 
-from data_models.data_models import Image
+from data_models.memory_data_models import Image
 from libs.image.iterators import image_raster_iter, image_channel_iter
 from libs.image.operations import create_image_from_array, create_empty_image_like
 

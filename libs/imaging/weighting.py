@@ -9,7 +9,7 @@ There are two classes of functions:
 
 import numpy
 
-from data_models.data_models import Visibility, Image
+from data_models.memory_data_models import Visibility, Image
 from data_models.parameters import get_parameter
 from libs.fourier_transforms.convolutional_gridding import weight_gridding
 from libs.imaging import get_polarisation_map, get_uvw_map

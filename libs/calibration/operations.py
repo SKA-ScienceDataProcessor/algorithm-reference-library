@@ -7,8 +7,8 @@ import copy
 
 import numpy.linalg
 
-from data_models.data_models import GainTable, BlockVisibility, QA, assert_vis_gt_compatible
-from data_models.data_models import ReceptorFrame
+from data_models.memory_data_models import GainTable, BlockVisibility, QA, assert_vis_gt_compatible
+from data_models.memory_data_models import ReceptorFrame
 from libs.visibility.iterators import vis_timeslice_iter
 
 import logging

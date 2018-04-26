@@ -29,7 +29,7 @@ import logging
 from astropy.convolution import Gaussian2DKernel, convolve
 from photutils import fit_2dgaussian
 
-from data_models.data_models import Image
+from data_models.memory_data_models import Image
 from data_models.parameters import get_parameter
 from libs.image.operations import create_image_from_array, copy_image, \
     calculate_image_frequency_moments, calculate_image_from_frequency_moments

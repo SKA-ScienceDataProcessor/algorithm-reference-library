@@ -16,7 +16,7 @@ from reproject import reproject_interp
 from astropy.wcs.utils import skycoord_to_pixel
 
 
-from data_models.data_models import Image, QA
+from data_models.memory_data_models import Image, QA
 from data_models.parameters import arl_path
 from data_models.polarisation import PolarisationFrame, convert_circular_to_stokes, convert_linear_to_stokes, \
     convert_stokes_to_circular, convert_stokes_to_linear

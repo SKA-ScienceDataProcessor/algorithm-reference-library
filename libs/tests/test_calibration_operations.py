@@ -12,7 +12,7 @@ import astropy.units as u
 from libs.calibration.operations import gaintable_summary, apply_gaintable, create_gaintable_from_blockvisibility, \
     create_gaintable_from_rows
 
-from data_models.data_models import Skycomponent, GainTable
+from data_models.memory_data_models import Skycomponent, GainTable
 from data_models.polarisation import PolarisationFrame
 from libs.util.testing_support import create_named_configuration, simulate_gaintable
 from libs.visibility.base import copy_visibility, create_blockvisibility

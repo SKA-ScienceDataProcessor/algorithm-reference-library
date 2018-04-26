@@ -12,7 +12,7 @@ from numpy.testing import assert_allclose
 from astropy.coordinates import SkyCoord
 import astropy.units as u
 
-from data_models.data_models import Skycomponent
+from data_models.memory_data_models import Skycomponent
 from data_models.polarisation import PolarisationFrame
 from libs.util.testing_support import create_named_configuration
 from libs.imaging import predict_skycomponent_visibility

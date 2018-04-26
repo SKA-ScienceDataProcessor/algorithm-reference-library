@@ -11,7 +11,7 @@ If images constructed from slices in w are added after applying a w-dependent im
 
 import numpy
 
-from data_models.data_models import Visibility, Image, BlockVisibility
+from data_models.memory_data_models import Visibility, Image, BlockVisibility
 
 from libs.image.operations import copy_image
 from libs.visibility.base import copy_visibility

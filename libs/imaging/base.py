@@ -29,7 +29,7 @@ from astropy import units as units
 from astropy import wcs
 from astropy.wcs.utils import pixel_to_skycoord
 
-from data_models.data_models import Visibility, BlockVisibility, Image, Skycomponent, assert_same_chan_pol
+from data_models.memory_data_models import Visibility, BlockVisibility, Image, Skycomponent, assert_same_chan_pol
 from data_models.parameters import get_parameter
 from data_models.polarisation import convert_pol_frame, PolarisationFrame
 from libs.fourier_transforms.convolutional_gridding import convolutional_grid, \

@@ -15,7 +15,7 @@ from data_models.polarisation import PolarisationFrame
 from libs.calibration.operations import apply_gaintable, create_gaintable_from_blockvisibility
 from libs.calibration.skymodel_cal import skymodel_cal_solve
 from libs.calibration.solvers import solve_gaintable
-from data_models.data_models import SkyModel
+from data_models.memory_data_models import SkyModel
 from libs.image.operations import qa_image, export_image_to_fits
 from libs.imaging import predict_skycomponent_visibility, create_image_from_visibility
 from libs.imaging.imaging_functions import invert_function

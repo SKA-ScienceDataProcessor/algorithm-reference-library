@@ -11,7 +11,7 @@ import astropy.units as u
 import numpy
 from astropy.coordinates import SkyCoord
 
-from data_models.data_models import Skycomponent
+from data_models.memory_data_models import Skycomponent
 from data_models.polarisation import PolarisationFrame
 from libs.image.operations import export_image_to_fits
 from libs.imaging.base import predict_skycomponent_visibility

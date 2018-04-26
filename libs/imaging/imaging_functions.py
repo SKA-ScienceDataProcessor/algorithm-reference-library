@@ -10,13 +10,13 @@ import logging
 
 import numpy
 
-from data_models.data_models import Visibility, Image
+from data_models.memory_data_models import Visibility, Image
 from libs.image.gather_scatter import image_scatter_facets
 from libs.image.operations import create_empty_image_like
 from libs.imaging import normalize_sumwt
 from libs.imaging import predict_2d_base, invert_2d_base
-from libs.imaging.timeslice import predict_timeslice_single, invert_timeslice_single
-from libs.imaging.wstack import predict_wstack_single, invert_wstack_single
+from libs.imaging.timeslice_single import predict_timeslice_single, invert_timeslice_single
+from libs.imaging.wstack_single import predict_wstack_single, invert_wstack_single
 from libs.visibility.base import copy_visibility, create_visibility_from_rows
 from libs.visibility.coalesce import convert_blockvisibility_to_visibility, convert_visibility_to_blockvisibility
 from libs.visibility.iterators import vis_timeslice_iter, vis_null_iter, vis_wslice_iter

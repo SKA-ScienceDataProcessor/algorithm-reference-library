@@ -9,7 +9,7 @@ import astropy.units as u
 import numpy
 from astropy.coordinates import SkyCoord
 
-from data_models.data_models import SkyModel
+from data_models.memory_data_models import SkyModel
 from data_models.polarisation import PolarisationFrame
 from libs.skycomponent.operations import create_skycomponent
 from libs.skymodel.operations import copy_skymodel
