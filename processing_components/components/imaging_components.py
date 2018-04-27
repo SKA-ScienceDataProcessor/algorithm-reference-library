@@ -35,10 +35,8 @@ import numpy
 
 from data_models.memory_data_models import Image
 from data_models.parameters import get_parameter
-
 from libs.image.operations import copy_image, create_empty_image_like
-
-from processing_components.component_support.arlexecute import arlexecute
+from ..component_support.arlexecute import arlexecute
 from ..image.deconvolution import deconvolve_cube, restore_cube
 from ..image.gather_scatter import image_scatter_facets, image_gather_facets, image_scatter_channels, \
     image_gather_channels
@@ -363,7 +361,7 @@ def restore_component(model_imagelist, psf_imagelist, residual_imagelist, **kwar
     :return:
     """
     return [arlexecute.execute(restore_cube)(model_imagelist[i], psf_imagelist[i][0],
-                                             residual_imagelist[i][0],  **kwargs)
+                                             residual_imagelist[i][0], **kwargs)
             for i, _ in enumerate(model_imagelist)]
 
 

@@ -11,7 +11,7 @@ from libs.image.operations import copy_image
 from ..image.solvers import solve_image
 from ..imaging.base import predict_skycomponent_visibility
 from ..imaging.imaging_functions import predict_function
-from ..skycomponent.operations import copy_skycomponent
+from ..skycomponent.base import copy_skycomponent
 from ..visibility.visibility_fitting import fit_visibility
 
 log = logging.getLogger(__name__)

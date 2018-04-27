@@ -67,6 +67,5 @@ def calibrate_component(vis_list, model_vislist, calibration_context='TG', globa
                 for v in vis_list]
     else:
         
-        return [
-            arlexecute.execute(solve_and_apply, nout=len(vis_list))(vis_list[i], model_vislist[i])
-            for i, v in enumerate(vis_list)]
+        return [arlexecute.execute(solve_and_apply, nout=len(vis_list))(vis_list[i], model_vislist[i])
+                for i, v in enumerate(vis_list)]

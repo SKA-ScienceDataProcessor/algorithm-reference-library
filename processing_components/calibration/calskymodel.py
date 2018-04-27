@@ -43,10 +43,9 @@ import logging
 import numpy
 
 from data_models.memory_data_models import BlockVisibility
-
+from ..calibration.calibration import solve_gaintable
 from ..calibration.operations import copy_gaintable, apply_gaintable, \
     create_gaintable_from_blockvisibility, qa_gaintable
-from ..calibration.calibration import solve_gaintable
 from ..skymodel.operations import copy_skymodel
 from ..skymodel.operations import predict_skymodel_visibility, solve_skymodel
 from ..visibility.coalesce import convert_blockvisibility_to_visibility
@@ -82,6 +81,7 @@ def calskymodel_fit_skymodel(vis, calskymodel, gain=0.1, **kwargs):
         cvis = convert_blockvisibility_to_visibility(vis)
         return solve_skymodel(cvis, calskymodel[0], **kwargs)
 
+
 def calskymodel_fit_gaintable(evis, calskymodel, gain=0.1, niter=3, tol=1e-3, **kwargs):
     """Fit a gaintable to a visibility
     
@@ -103,7 +103,7 @@ def calskymodel_fit_gaintable(evis, calskymodel, gain=0.1, niter=3, tol=1e-3, **
     return gt
 
 
-def calskymodel_e_step(vis: BlockVisibility, evis_all: BlockVisibility, calskymodel, **kwargs):
+def calskymodel_expectation_step(vis: BlockVisibility, evis_all: BlockVisibility, calskymodel, **kwargs):
     """Calculates E step in equation A12
 
     This is the data model for this window plus the difference between observed data and summed data models
@@ -121,7 +121,7 @@ def calskymodel_e_step(vis: BlockVisibility, evis_all: BlockVisibility, calskymo
     return evis
 
 
-def calskymodel_e_all(vis: BlockVisibility, calskymodels, **kwargs):
+def calskymodel_expectation_all(vis: BlockVisibility, calskymodels, **kwargs):
     """Calculates E step in equation A12
 
     This is the sum of the data models over all skymodel
@@ -141,7 +141,7 @@ def calskymodel_e_all(vis: BlockVisibility, calskymodels, **kwargs):
     return evis
 
 
-def calskymodel_m_step(evis: BlockVisibility, calskymodel, **kwargs):
+def calskymodel_maximisation_step(evis: BlockVisibility, calskymodel, **kwargs):
     """Calculates M step in equation A13
 
     This maximises the likelihood of the ssm parameters given the existing data model. Note that the skymodel and
@@ -170,11 +170,11 @@ def calskymodel_solve(vis, skymodels, niter=10, tol=1e-8, gain=0.25, **kwargs):
     
     for iter in range(niter):
         new_calskymodels = list()
-        evis_all = calskymodel_e_all(vis, calskymodels)
+        evis_all = calskymodel_expectation_all(vis, calskymodels)
         log.debug("calskymodel_solve: Iteration %d" % (iter))
         for window_index, csm in enumerate(calskymodels):
-            evis = calskymodel_e_step(vis, evis_all, csm, gain=gain, **kwargs)
-            new_csm = calskymodel_m_step(evis, csm, **kwargs)
+            evis = calskymodel_expectation_step(vis, evis_all, csm, gain=gain, **kwargs)
+            new_csm = calskymodel_maximisation_step(evis, csm, **kwargs)
             new_calskymodels.append((new_csm[0], new_csm[1]))
             
             flux = new_csm[0].components[0].flux[0, 0]
@@ -182,14 +182,12 @@ def calskymodel_solve(vis, skymodels, niter=10, tol=1e-8, gain=0.25, **kwargs):
             residual = qa.data['residual']
             rms_phase = qa.data['rms-phase']
             log.debug("calskymodel_solve:\t Window %d, flux %s, residual %.3f, rms phase %.3f" % (window_index,
-                                                                            str(flux), residual,
-                                                                            rms_phase))
-            
+                                                                                                  str(flux), residual,
+                                                                                                  rms_phase))
+        
         calskymodels = [(copy_skymodel(csm[0]), copy_gaintable(csm[1])) for csm in new_calskymodels]
     
     residual_vis = copy_visibility(vis)
-    final_vis = calskymodel_e_all(vis, calskymodels)
+    final_vis = calskymodel_expectation_all(vis, calskymodels)
     residual_vis.data['vis'][...] = vis.data['vis'][...] - final_vis.data['vis'][...]
     return calskymodels, residual_vis
-
-

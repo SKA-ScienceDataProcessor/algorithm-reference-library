@@ -13,6 +13,7 @@ from astropy.coordinates import SkyCoord
 
 from dask_init import get_dask_Client, findNodes
 from data_models.polarisation import PolarisationFrame
+
 from processing_components.component_support.arlexecute import arlexecute
 from processing_components.components.imaging_components import predict_component, invert_component
 from processing_components.components.pipeline_components import ical_component
@@ -25,7 +26,6 @@ from processing_components.visibility.coalesce import convert_blockvisibility_to
 log = logging.getLogger()
 log.setLevel(logging.INFO)
 log.addHandler(logging.StreamHandler(sys.stdout))
-
 
 def git_hash():
     """ Get the hash for this git repository.

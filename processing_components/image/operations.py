@@ -1,3 +1,7 @@
+""" Image operations visible to the Execution Framework as Components
+
+"""
+
 import copy
 import warnings
 

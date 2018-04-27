@@ -8,16 +8,15 @@ from astropy import units as u
 from astropy.coordinates import SkyCoord
 
 from data_models.polarisation import PolarisationFrame
-
-from ..component_support.arlexecute import arlexecute
 from ..calibration.operations import apply_gaintable, create_gaintable_from_blockvisibility
+from ..component_support.arlexecute import arlexecute
 from ..util.testing_support import create_named_configuration, simulate_gaintable
 from ..visibility.base import create_blockvisibility, create_visibility
 
 log = logging.getLogger(__name__)
 
 
-def simulate_component(config='LOWBD2-CORE',
+def simulate_component(config='LOWBD2',
                        phasecentre=SkyCoord(ra=+15.0 * u.deg, dec=-60.0 * u.deg, frame='icrs', equinox='J2000'),
                        frequency=None, channel_bandwidth=None, times=None,
                        polarisation_frame=PolarisationFrame("stokesI"), order='frequency',

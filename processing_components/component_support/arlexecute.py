@@ -5,8 +5,8 @@
 import logging
 import time
 
-from dask.distributed import Client, wait
 from dask import delayed
+from dask.distributed import Client, wait
 
 log = logging.getLogger(__name__)
 
@@ -52,7 +52,7 @@ class ARLExecuteBase():
         """
         if isinstance(self._client, Client):
             self.client.close()
-            
+        
         if use_dask:
             if client is None:
                 self._client = Client(**kwargs)
@@ -63,8 +63,7 @@ class ARLExecuteBase():
         else:
             self._client = None
             self._using_dask = False
-            
-                
+    
     def compute(self, value, sync=False):
         """Get the actual value
         
@@ -88,7 +87,7 @@ class ARLExecuteBase():
             return future
         else:
             return value
-
+    
     def scatter(self, graph):
         """Scatter graph to workers
 
@@ -100,7 +99,7 @@ class ARLExecuteBase():
             return self.client.scatter(graph)
         else:
             return graph
-
+    
     def gather(self, graph):
         """Gather graph from workers
 
@@ -112,7 +111,7 @@ class ARLExecuteBase():
             return self.client.gather(graph)
         else:
             return graph
-
+    
     def run(self, func):
         """ Run a function on the client
         
@@ -123,15 +122,15 @@ class ARLExecuteBase():
             return self.client.run(func)
         else:
             return func
-        
+    
     @property
     def client(self):
         return self._client
-
+    
     @property
     def using_dask(self):
         return self._using_dask
-        
+    
     def close(self):
         if self._using_dask and isinstance(self._client, Client):
             self._client.close()

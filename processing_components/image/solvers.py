@@ -1,5 +1,3 @@
-
-#
 """
 Definition of structures needed by the function interface. These are mostly
 subclasses of astropy classes.
@@ -20,8 +18,8 @@ import logging
 log = logging.getLogger(__name__)
 
 
-def solve_image(vis: Visibility, model: Image, components=None, context='2d',
-                **kwargs) -> (Visibility, Image, Image):
+def solve_image(vis: Visibility, model: Image, components=None, context='2d', **kwargs) -> \
+        (Visibility, Image, Image):
     """Solve for image using deconvolve_cube and specified predict, invert
 
     This is the same as a majorcycle/minorcycle algorithm. The components are removed prior to deconvolution.

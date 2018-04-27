@@ -44,10 +44,8 @@ from data_models.memory_data_models import Configuration, Image, GainTable, Skyc
 from data_models.parameters import arl_path
 from data_models.parameters import get_parameter
 from data_models.polarisation import PolarisationFrame
-
 from libs.image.operations import create_image_from_array
 from libs.util.coordinate_support import xyz_at_latitude
-
 from ..calibration.calibration_control import create_calibration_controls
 from ..calibration.operations import create_gaintable_from_blockvisibility, apply_gaintable
 from ..image.operations import create_empty_image_like, import_image_from_fits, reproject_image, qa_image
@@ -95,11 +93,10 @@ def create_configuration_from_file(antfile: str, location: EarthLocation = None,
     return fc
 
 
-def create_LOFAR_configuration(antfile: str, meta: dict = None) -> Configuration:
+def create_LOFAR_configuration(antfile: str) -> Configuration:
     """ Define from the LOFAR configuration file
 
     :param antfile:
-    :param meta:
     :return: Configuration
     """
     antxyz = numpy.genfromtxt(antfile, skip_header=2, usecols=[1, 2, 3], delimiter=",")
@@ -225,7 +222,6 @@ def create_test_image(canonical=True, cellsize=None, frequency=None, channel_ban
     return im
 
 
-# noinspection PyStringFormat
 def create_test_image_from_s3(npixel=16384, polarisation_frame=PolarisationFrame("stokesI"), cellsize=0.000015,
                               frequency=numpy.array([1e8]), channel_bandwidth=numpy.array([1e6]),
                               phasecentre=None, fov=20, flux_limit=1e-3) -> Image:
@@ -303,7 +299,7 @@ def create_test_image_from_s3(npixel=16384, polarisation_frame=PolarisationFrame
     else:
         assert fov in [10, 20, 40], "Field of view invalid: use one of %s" % ([10, 20, 40])
         csvfilename = arl_path('data/models/S3_151MHz_%ddeg.csv' % (fov))
-        
+    
     with open(csvfilename) as csvfile:
         readCSV = csv.reader(csvfile, delimiter=',')
         r = 0
@@ -785,10 +781,10 @@ def insert_unittest_errors(vt, seed=180555, amp_errors=None, phase_errors=None):
     
     if amp_errors is None:
         amp_errors = {'T': 0.0, 'G': 0.01, 'B': 0.01}
-        
+    
     if phase_errors is None:
         phase_errors = {'T': 1.0, 'G': 0.1, 'B': 0.01}
-
+    
     for c in "TGB":
         gaintable = \
             create_gaintable_from_blockvisibility(vt, timeslice=controls[c]['timeslice'])

@@ -41,10 +41,9 @@ skymodel_cal works best if an initial phase calibration has been obtained using 
 
 import logging
 
-from ..component_support.arlexecute import arlexecute
-
-from ..calibration.operations import copy_gaintable, apply_gaintable, create_gaintable_from_blockvisibility
 from ..calibration.calskymodel import calskymodel_fit_skymodel, calskymodel_fit_gaintable
+from ..calibration.operations import copy_gaintable, apply_gaintable, create_gaintable_from_blockvisibility
+from ..component_support.arlexecute import arlexecute
 from ..components.imaging_components import sum_predict_results
 from ..skymodel.operations import copy_skymodel, predict_skymodel_visibility
 from ..visibility.operations import copy_visibility
@@ -69,7 +68,7 @@ def initialise_calskymodel_component(vislist, skymodel_list, **kwargs):
     return [arlexecute.execute(create_calskymodel, nout=2)(vislist, sm) for sm in skymodel_list]
 
 
-def calskymodel_e_step_component(vislist, evis_all_list, calskymodel_list, **kwargs):
+def calskymodel_expectation_step_component(vislist, evis_all_list, calskymodel_list, **kwargs):
     """Calculates E step in equation A12
 
     This is the data model for this window plus the difference between observed data and summed data models
@@ -95,7 +94,7 @@ def calskymodel_e_step_component(vislist, evis_all_list, calskymodel_list, **kwa
     return [arlexecute.execute(make_e)(vislist, csm, evis_all_list) for csm in calskymodel_list]
 
 
-def calskymodel_e_all_component(vislist, calskymodel_list):
+def calskymodel_expectation_all_component(vislist, calskymodel_list):
     """Calculates E step in equation A12
 
     This is the sum of the data models over all skymodel, It is a global sync point for calskymodel
@@ -116,7 +115,7 @@ def calskymodel_e_all_component(vislist, calskymodel_list):
     return arlexecute.execute(sum_predict_results, nout=1)(evislist)
 
 
-def calskymodel_m_step_component(evislist, skymodel_list, **kwargs):
+def calskymodel_maximisation_step_component(evislist, skymodel_list, **kwargs):
     """Calculates M step in equation A13
 
     This maximises the likelihood of the skymodel parameters given the existing data model. Note that these are done
@@ -148,12 +147,12 @@ def calskymodel_solve_component(vislist, skymodel_list, niter=10, tol=1e-8, gain
     calskymodel_list = initialise_calskymodel_component(vislist, skymodel_list=skymodel_list, **kwargs)
     
     for iter in range(niter):
-        evis_all_list = calskymodel_e_all_component(vislist, calskymodel_list)
-        evislist = calskymodel_e_step_component(vislist, evis_all_list, calskymodel_list, gain=gain, **kwargs)
-        new_calskymodel_list = calskymodel_m_step_component(evislist, calskymodel_list, **kwargs)
+        evis_all_list = calskymodel_expectation_all_component(vislist, calskymodel_list)
+        evislist = calskymodel_expectation_step_component(vislist, evis_all_list, calskymodel_list, gain=gain, **kwargs)
+        new_calskymodel_list = calskymodel_maximisation_step_component(evislist, calskymodel_list, **kwargs)
         calskymodel_list = new_calskymodel_list
     
-    final_vislist = calskymodel_e_all_component(vislist, calskymodel_list)
+    final_vislist = calskymodel_expectation_all_component(vislist, calskymodel_list)
     
     def res_vis(vis, final_vis):
         residual_vis = copy_visibility(vis)

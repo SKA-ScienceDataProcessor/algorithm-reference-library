@@ -20,21 +20,6 @@ from data_models.polarisation import PolarisationFrame
 
 log = logging.getLogger(__name__)
 
-def copy_skycomponent(sc: Skycomponent) -> Skycomponent:
-    """ Copy a skycomponent
-
-    :param sc: Component to be copied
-    :return: Skycomponent
-    """
-    return Skycomponent(
-        direction=sc.direction,
-        frequency=sc.frequency,
-        name=sc.name,
-        flux=numpy.array(sc.flux),
-        shape=sc.shape,
-        params=sc.params,
-        polarisation_frame=sc.polarisation_frame)
-
 
 def create_skycomponent(direction: SkyCoord, flux: numpy.array, frequency: numpy.array, shape: str = 'Point',
                         polarisation_frame=PolarisationFrame("stokesIQUV"), params: dict = None, name: str = '') \

@@ -26,9 +26,8 @@ The principle transitions between the data models:
 
 import logging
 import sys
+from copy import deepcopy
 from typing import Union
-
-from copy import copy, deepcopy
 
 import numpy
 from astropy import units as u
@@ -157,7 +156,7 @@ class GainTable:
             data['time'] = time
             data['interval'] = interval
             data['residual'] = residual
-            
+        
         self.data = data
         self.frequency = frequency
         self.receptor_frame = receptor_frame
@@ -168,15 +167,15 @@ class GainTable:
         size = 0
         size += self.data.size * sys.getsizeof(self.data)
         return size / 1024.0 / 1024.0 / 1024.0
-
+    
     @property
     def time(self):
         return self.data['time']
-
+    
     @property
     def interval(self):
         return self.data['interval']
-
+    
     @property
     def gain(self):
         return self.data['gain']
@@ -188,15 +187,15 @@ class GainTable:
     @property
     def residual(self):
         return self.data['residual']
-
+    
     @property
     def ntimes(self):
         return self.data['gain'].shape[0]
-
+    
     @property
     def nants(self):
         return self.data['gain'].shape[1]
-
+    
     @property
     def nchan(self):
         return self.data['gain'].shape[2]
@@ -204,7 +203,7 @@ class GainTable:
     @property
     def nrec(self):
         return self.receptor_frame.nrec
-
+    
     def __str__(self):
         """Default printer for GainTable
 
@@ -248,13 +247,13 @@ class Image:
         size = 0
         size += self.data.nbytes
         return size / 1024.0 / 1024.0 / 1024.0
-
+    
     def __copy__(self):
         cls = self.__class__
         result = cls.__new__(cls)
         result.__dict__.update(self.__dict__)
         return result
-
+    
     def __deepcopy__(self, memo):
         cls = self.__class__
         result = cls.__new__(cls)
@@ -262,7 +261,7 @@ class Image:
         for k, v in self.__dict__.items():
             setattr(result, k, deepcopy(v, memo))
         return result
-
+    
     @property
     def nchan(self):
         return self.data.shape[0]
@@ -370,11 +369,11 @@ class Skycomponent:
         s += "\tFrequency: %s\n" % self.frequency
         s += "\tDirection: %s\n" % self.direction
         s += "\tShape: %s\n" % self.shape
-
+        
         class SkyModel:
             """ A model for the sky
             """
-    
+            
             def __init__(self, images=[], components=[], fixed=False):
                 """ A model of the sky as a list of images and a list of components
 
@@ -382,7 +381,7 @@ class Skycomponent:
                 self.images = [im for im in images]
                 self.components = [sc for sc in components]
                 self.fixed = fixed
-    
+            
             def __str__(self):
                 """Default printer for SkyModel
 
@@ -391,13 +390,13 @@ class Skycomponent:
                 for i, sc in enumerate(self.components):
                     s += str(sc)
                 s += "\n"
-        
+                
                 for i, im in enumerate(self.images):
                     s += str(im)
                 s += "\n"
-        
+                
                 return s
-
+        
         s += "\tParams: %s\n" % self.params
         s += "\tPolarisation frame: %s\n" % str(self.polarisation_frame.type)
         return s
@@ -409,7 +408,7 @@ class SkyModel:
     
     def __init__(self, images=[], components=[], fixed=False):
         """ A model of the sky as a list of images and a list of components
-        
+
         Use copy_skymodel to make a proper copy of skymodel
 
         """
@@ -740,9 +739,11 @@ class QA:
         for dataname in self.data.keys():
             s += "\t\t%s: %r\n" % (dataname, str(self.data[dataname]))
         return s
-    
+
+
 class Science_Data_model:
     """ Science Data Model"""
+    
     def __init__(self):
         pass
     

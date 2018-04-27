@@ -45,7 +45,8 @@ from ..visibility.coalesce import coalesce_visibility, decoalesce_visibility, co
 log = logging.getLogger(__name__)
 
 
-def shift_vis_to_image(vis: Visibility, im: Image, tangent: bool = True, inverse: bool = False) -> Visibility:
+def shift_vis_to_image(vis: Visibility, im: Image, tangent: bool = True, inverse: bool = False) \
+        -> Visibility:
     """Shift visibility to the FFT phase centre of the image in place
 
     :param vis: Visibility data
@@ -99,7 +100,7 @@ def normalize_sumwt(im: Image, sumwt) -> Image:
     return im
 
 
-def predict_2d_base(vis: Union[BlockVisibility, Visibility], model: Image,
+def predict_2d(vis: Union[BlockVisibility, Visibility], model: Image,
                     **kwargs) -> Union[BlockVisibility, Visibility]:
     """ Predict using convolutional degridding.
 
@@ -142,19 +143,7 @@ def predict_2d_base(vis: Union[BlockVisibility, Visibility], model: Image,
         return svis
 
 
-def predict_2d(vis: Visibility, im: Image, facets=1, vis_slices=1, **kwargs) -> Visibility:
-    """ Predict using convolutional degridding and w projection
-    
-    :param vis: Visibility to be predicted
-    :param model: model image
-    :return: resulting visibility (in place works)
-    """
-    log.debug("predict_2d: predict using 2d transform")
-    return predict_2d_base(vis, im, facets=facets, vis_slices=vis_slices, **kwargs)
-
-
-def invert_2d_base(vis: Visibility, im: Image, dopsf: bool = False, normalize: bool = True, facets=1,
-                          vis_slices=1, **kwargs) \
+def invert_2d(vis: Visibility, im: Image, dopsf: bool = False, normalize: bool = True, **kwargs) \
         -> (Image, numpy.ndarray):
     """ Invert using 2D convolution function, including w projection optionally
 
@@ -217,25 +206,6 @@ def invert_2d_base(vis: Visibility, im: Image, dopsf: bool = False, normalize: b
         if normalize:
             resultimage = normalize_sumwt(resultimage, sumwt)
         return resultimage, sumwt
-
-
-def invert_2d(vis: Visibility, im: Image, dopsf=False, normalize=True, facets=1, vis_slices=1, **kwargs) \
-        -> (Image, numpy.ndarray):
-    """ Invert using prolate spheroidal gridding function
-
-    Use the image im as a template. Do PSF in a separate call.
-
-    Note that the image is not normalised but the sum of the weights. This is for ease of use in partitioning.
-
-    :param vis: Visibility to be inverted
-    :param im: image template (not changed)
-    :param dopsf: Make the psf instead of the dirty image
-    :param normalize: Normalize by the sum of weights (True)
-    :return: resulting image[nchan, npol, ny, nx], sum of weights[nchan, npol]
-
-    """
-    log.debug("invert_2d: inverting using 2d transform")
-    return invert_2d_base(vis, im, dopsf, normalize=normalize, facets=facets, vis_slices=vis_slices, **kwargs)
 
 
 def predict_skycomponent_visibility(vis: Union[Visibility, BlockVisibility],
