@@ -81,28 +81,28 @@ class TestPipelineGraphs(unittest.TestCase):
                                                                               zerow=zerow)
                                for i, _ in enumerate(self.frequency)]
         
-        self.model_graph = [
+        self.model_imagelist = [
             arlexecute.execute(create_unittest_model, nout=freqwin)(self.vis_list[0], self.image_pol,
                                                                     npixel=self.npixel)
             for i, _ in enumerate(self.frequency)]
         
-        self.components_graph = [
-            arlexecute.execute(create_unittest_components)(self.model_graph[i], flux[i, :][numpy.newaxis, :])
+        self.components_list = [
+            arlexecute.execute(create_unittest_components)(self.model_imagelist[i], flux[i, :][numpy.newaxis, :])
             for i, _ in enumerate(self.frequency)]
         
         # Apply the LOW primary beam and insert into model
-        self.model_graph = [arlexecute.execute(insert_skycomponent, nout=1)(self.model_graph[freqwin],
-                                                                            self.components_graph[freqwin])
+        self.model_imagelist = [arlexecute.execute(insert_skycomponent, nout=1)(self.model_imagelist[freqwin],
+                                                                            self.components_list[freqwin])
                             for freqwin, _ in enumerate(self.frequency)]
         
         self.vis_list = [arlexecute.execute(predict_skycomponent_visibility)(self.vis_list[freqwin],
-                                                                                   self.components_graph[freqwin])
+                                                                                   self.components_list[freqwin])
                                for freqwin, _ in enumerate(self.frequency)]
 
 
         # Calculate the model convolved with a Gaussian.
-        self.model_graph = arlexecute.compute(self.model_graph, sync=True)
-        model = self.model_graph[0]
+        self.model_imagelist = arlexecute.compute(self.model_imagelist, sync=True)
+        model = self.model_imagelist[0]
         self.cmodel = smooth_image(model)
         export_image_to_fits(model, '%s/test_imaging_delayed_model.fits' % self.dir)
         export_image_to_fits(self.cmodel, '%s/test_imaging_delayed_cmodel.fits' % self.dir)
@@ -116,15 +116,15 @@ class TestPipelineGraphs(unittest.TestCase):
         self.vis_list = arlexecute.compute(self.vis_list, sync=True)
         
         self.vis_list = arlexecute.scatter(self.vis_list)
-        self.model_graph = arlexecute.scatter(self.model_graph)
+        self.model_imagelist = arlexecute.scatter(self.model_imagelist)
     
     def test_time_setup(self):
         self.actualSetUp()
     
     def test_continuum_imaging_pipeline(self):
         self.actualSetUp(add_errors=False, block=True)
-        continuum_imaging_graph = \
-            continuum_imaging_component(self.vis_list, model_graph=self.model_graph, context='2d',
+        continuum_imaging_list = \
+            continuum_imaging_component(self.vis_list, model_imagelist=self.model_imagelist, context='2d',
                                                  algorithm='mmclean', facets=1,
                                                  scales=[0, 3, 10],
                                                  niter=1000, fractional_threshold=0.1,
@@ -132,7 +132,7 @@ class TestPipelineGraphs(unittest.TestCase):
                                                  threshold=2.0, nmajor=5, gain=0.1,
                                                  deconvolve_facets=8, deconvolve_overlap=16,
                                                  deconvolve_taper='tukey')
-        clean, residual, restored = arlexecute.compute(continuum_imaging_graph, sync=True)
+        clean, residual, restored = arlexecute.compute(continuum_imaging_list, sync=True)
         export_image_to_fits(clean[0], '%s/test_pipelines_continuum_imaging_pipeline_clean.fits' % self.dir)
         export_image_to_fits(residual[0][0],
                              '%s/test_pipelines_continuum_imaging_pipeline_residual.fits' % self.dir)
@@ -158,8 +158,8 @@ class TestPipelineGraphs(unittest.TestCase):
         controls['G']['timescale'] = 'auto'
         controls['B']['timescale'] = 1e5
         
-        ical_graph = \
-            ical_component(self.vis_list, model_graph=self.model_graph, context='2d',
+        ical_list = \
+            ical_component(self.vis_list, model_imagelist=self.model_imagelist, context='2d',
                                        calibration_context='T', controls=controls, do_selfcal=True,
                                        global_solution=False,
                                        algorithm='mmclean',
@@ -169,7 +169,7 @@ class TestPipelineGraphs(unittest.TestCase):
                                        nmoments=2, nchan=self.freqwin,
                                        threshold=2.0, nmajor=5, gain=0.1,
                                        deconvolve_facets=8, deconvolve_overlap=16, deconvolve_taper='tukey')
-        clean, residual, restored = arlexecute.compute(ical_graph, sync=True)
+        clean, residual, restored = arlexecute.compute(ical_list, sync=True)
         export_image_to_fits(clean[0], '%s/test_pipelines_ical_pipeline_clean.fits' % self.dir)
         export_image_to_fits(residual[0][0], '%s/test_pipelines_ical_pipeline_residual.fits' % self.dir)
         export_image_to_fits(restored[0], '%s/test_pipelines_ical_pipeline_restored.fits' % self.dir)
