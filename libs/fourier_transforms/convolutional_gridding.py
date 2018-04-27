@@ -34,7 +34,7 @@ def coordinateBounds(npixel):
         return -0.5 * (npixel - 1) / npixel, 0.5 * (npixel - 1) / npixel
 
 
-def coordinates(npixel: int) -> object:
+def coordinates(npixel: int):
     """ 1D array which spans [-.5,.5[ with 0 at position npixel/2
     
     """
@@ -203,18 +203,17 @@ def frac_coord(npixel, kernel_oversampling, p):
     return flx.astype(int), fracx.astype(int)
 
 
-def convolutional_degrid(kernel_list, vshape, uvgrid, vuvwmap, vfrequencymap, vpolarisationmap=None):
+def convolutional_degrid(kernel_list, vshape, uvgrid, vuvwmap, vfrequencymap):
     """Convolutional degridding with frequency and polarisation independent
 
     Takes into account fractional `uv` coordinate values where the GCF
     is oversampled
 
-    :param kernels: list of oversampled convolution kernel
+    :param kernel_list: list of oversampled convolution kernel
     :param vshape: Shape of visibility
     :param uvgrid:   The uv plane to de-grid from
     :param vuvwmap: function to map uvw to grid fractions
     :param vfrequencymap: function to map frequency to image channels
-    :param vpolarisationmap: function to map polarisation to image polarisation
     :return: Array of visibilities.
     """
     kernel_indices, kernels = kernel_list
@@ -252,18 +251,17 @@ def convolutional_degrid(kernel_list, vshape, uvgrid, vuvwmap, vfrequencymap, vp
     return numpy.array(vis)
 
 
-def convolutional_grid(kernel_list, uvgrid, vis, visweights, vuvwmap, vfrequencymap, vpolarisationmap=None):
+def convolutional_grid(kernel_list, uvgrid, vis, visweights, vuvwmap, vfrequencymap):
     """Grid after convolving with frequency and polarisation independent gcf
 
     Takes into account fractional `uv` coordinate values where the GCF is oversampled
 
-    :param kernels: List of oversampled convolution kernels
+    :param kernel_list: List of oversampled convolution kernels
     :param uvgrid: Grid to add to [nchan, npol, npixel, npixel]
     :param vis: Visibility values
     :param visweights: Visibility weights
     :param vuvwmap: map uvw to grid fractions
     :param vfrequencymap: map frequency to image channels
-    :param vpolarisationmap: map polarisation to image polarisation
     :return: uv grid[nchan, npol, ny, nx], sumwt[nchan, npol]
     """
     
@@ -349,40 +347,6 @@ def weight_gridding(shape, visweights, vuvwmap, vfrequencymap, vpolarisationmap=
         return newvisweights, density, densitygrid
     else:
         return visweights, None, None
-
-
-def weight_rank_filter(shape, visweights, vuvwmap, vfrequencymap, vpolarisationmap=None,
-                       window=7, rank_limit=5.0):
-    """Reweight data using one of a number of algorithms
-
-    :param shape:
-    :param visweights: Visibility weights
-    :param vuvwmap: map uvw to grid fractions
-    :param vfrequencymap: map frequency to image channels
-    :param vpolarisationmap: map polarisation to image polarisation
-    :param weighting: '' | 'uniform'
-    :return: visweights, density, densitygrid
-    """
-    densitygrid = numpy.zeros(shape)
-    density = numpy.zeros_like(visweights)
-
-    inchan, inpol, ny, nx = shape
-    
-    # uvw -> fraction of grid mapping
-    y, yf = frac_coord(ny, 1.0, vuvwmap[:, 1])
-    x, xf = frac_coord(nx, 1.0, vuvwmap[:, 0])
-    wts = visweights[...]
-    coords = list(vfrequencymap), x, y
-    for pol in range(inpol):
-        for vwt, chan, x, y in zip(wts, *coords):
-            densitygrid[chan, pol, y, x] += vwt[..., pol]
-    
-    # Normalise each visibility weight to sum to one in a grid cell
-    newvisweights = numpy.zeros_like(visweights)
-    for pol in range(inpol):
-        density[..., pol] += [densitygrid[chan, pol, x, y] for chan, x, y in zip(*coords)]
-    newvisweights[density > 0.0] = visweights[density > 0.0] / density[density > 0.0]
-    return newvisweights, density, densitygrid
 
 
 def visibility_recentre(uvw, dl, dm):

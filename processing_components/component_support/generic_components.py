@@ -15,11 +15,11 @@ subimages and passed to processing by imagerooter, and then the answers are reas
 We  could keep the graph and use it in other components. See the imaging-dask note book for more detail.
 """
 
-from processing_components.component_support.arlexecute import arlexecute
-
 from data_models.memory_data_models import Image
-from libs.image.operations import copy_image, create_empty_image_like
-from libs.image.gather_scatter import image_gather_facets, image_scatter_facets
+
+from ..component_support.arlexecute import arlexecute
+from ..image.operations import copy_image, create_empty_image_like
+from ..image.gather_scatter import image_gather_facets, image_scatter_facets
 
 
 def generic_blockvisibility_component(visfunction, vis_list, additive=True, *args, **kwargs):

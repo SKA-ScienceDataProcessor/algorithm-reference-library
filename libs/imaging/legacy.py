@@ -3,7 +3,7 @@
 
 """
 from functools import partial
-from libs.imaging.imaging_functions import predict_function, invert_function
+from imaging.imaging_functions import predict_function, invert_function
 
 invert_2d = partial(invert_function, context='2d')
 predict_2d = partial(predict_function, context='2d')

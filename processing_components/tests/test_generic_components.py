@@ -10,11 +10,11 @@ from astropy import units as u
 from astropy.coordinates import SkyCoord
 
 from data_models.polarisation import PolarisationFrame
-from libs.image.iterators import image_raster_iter
-from libs.imaging import predict_skycomponent_visibility
-from libs.skycomponent.operations import create_skycomponent
-from libs.util.testing_support import create_named_configuration, create_test_image
-from libs.visibility.base import create_blockvisibility
+from image.iterators import image_raster_iter
+from ..imaging.base import predict_skycomponent_visibility
+from ..skycomponent.operations import create_skycomponent
+from ..util.testing_support import create_named_configuration, create_test_image
+from ..visibility.base import create_blockvisibility
 
 from component_support.arlexecute import arlexecute
 from generic_components import generic_blockvisibility_component, \

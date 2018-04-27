@@ -7,8 +7,7 @@ import unittest
 
 from numpy import random
 from data_models.polarisation import PolarisationFrame, ReceptorFrame, congruent_polarisation, correlate_polarisation, \
-    convert_pol_frame
-from libs.image.operations import convert_circular_to_stokes, convert_stokes_to_circular, convert_linear_to_stokes, \
+    convert_pol_frame, convert_circular_to_stokes, convert_stokes_to_circular, convert_linear_to_stokes, \
     convert_stokes_to_linear
 from numpy.testing import assert_array_almost_equal
 

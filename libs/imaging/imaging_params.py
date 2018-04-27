@@ -5,18 +5,17 @@ Functions that aid definition of fourier transform processing.
 import logging
 import warnings
 
-import astropy.constants as constants
 from astropy.wcs import FITSFixedWarning
 
 import numpy
 
-from data_models.memory_data_models import Visibility, BlockVisibility, Image
+from data_models.memory_data_models import Visibility, Image
 from data_models.parameters import get_parameter
-
 from data_models.polarisation import PolarisationFrame
-from libs.fourier_transforms.convolutional_gridding import anti_aliasing_calculate
-from libs.image.operations import create_w_term_like, copy_image, pad_image, fft_image, convert_image_to_kernel
-from libs.visibility.coalesce import convert_visibility_to_blockvisibility, convert_blockvisibility_to_visibility
+
+from ..fourier_transforms.convolutional_gridding import anti_aliasing_calculate
+from ..image.operations import convert_image_to_kernel
+from ..image.operations import copy_image, fft_image, pad_image, create_w_term_like
 
 log = logging.getLogger(__name__)
 
@@ -236,128 +235,3 @@ def get_kernel_list(vis: Visibility, im: Image, **kwargs):
                                            oversampling=oversampling)
     
     return kernelname, gcf, kernel_list
-
-
-def advise_wide_field(vis: Visibility, delA=0.02, oversampling_synthesised_beam=3.0, guard_band_image=6.0, facets=1,
-                      wprojection_planes=1):
-    """ Advise on parameters for wide field imaging.
-    
-    Calculate sampling requirements on various parameters
-    
-    For example::
-    
-        advice = advise_wide_field(vis, delA)
-        wstep = get_parameter(kwargs, 'wstep', advice['w_sampling_primary_beam'])
-
-    
-    :param vis:
-    :param delA: Allowed coherence loss (def: 0.02)
-    :param oversampling_synthesised_beam: Oversampling of the synthesized beam (def: 3.0)
-    :param guard_band_image: Number of primary beam half-widths-to-half-maximum to image (def: 6)
-    :param facets: Number of facets on each axis
-    :param wprojection_planes: Number of planes in wprojection
-    :return: dict of advice
-    """
-    
-    if isinstance(vis, BlockVisibility):
-        svis = convert_blockvisibility_to_visibility(vis)
-    else:
-        svis = vis
-    assert isinstance(svis, Visibility), svis
-    
-    max_wavelength = constants.c.to('m/s').value / numpy.min(svis.frequency)
-    log.info("advise_wide_field: Maximum wavelength %.3f (meters)" % (max_wavelength))
-
-    min_wavelength = constants.c.to('m/s').value / numpy.max(svis.frequency)
-    log.info("advise_wide_field: Minimum wavelength %.3f (meters)" % (min_wavelength))
-
-    maximum_baseline = numpy.max(numpy.abs(svis.uvw))  # Wavelengths
-    if isinstance(svis, BlockVisibility):
-        maximum_baseline = maximum_baseline / min_wavelength
-    log.info("advise_wide_field: Maximum baseline %.1f (wavelengths)" % (maximum_baseline))
-    
-    diameter = numpy.min(svis.configuration.diameter)
-    log.info("advise_wide_field: Station/antenna diameter %.1f (meters)" % (diameter))
-
-    primary_beam_fov = max_wavelength / diameter
-    log.info("advise_wide_field: Primary beam %s" % (rad_and_deg(primary_beam_fov)))
-
-    image_fov = primary_beam_fov * guard_band_image
-    log.info("advise_wide_field: Image field of view %s" % (rad_and_deg(image_fov)))
-
-    facet_fov = primary_beam_fov * guard_band_image / facets
-    if facets > 1:
-        log.info("advise_wide_field: Facet field of view %s" % (rad_and_deg(facet_fov)))
-
-    synthesized_beam = 1.0 / (maximum_baseline)
-    log.info("advise_wide_field: Synthesized beam %s" % (rad_and_deg(synthesized_beam)))
-
-    cellsize = synthesized_beam / oversampling_synthesised_beam
-    log.info("advise_wide_field: Cellsize %s" % (rad_and_deg(cellsize)))
-
-    def pwr23(n):
-        ex = numpy.ceil(numpy.log(n) / numpy.log(2.0)).astype('int')
-        best = numpy.power(2, ex)
-        if best * 3 // 4 >= n:
-            best = best * 3 // 4
-        return best
-
-    npixels = int(round(image_fov / cellsize))
-    log.info("advice_wide_field: Npixels per side = %d" % (npixels))
-
-    npixels2 = pwr23(npixels)
-    log.info("advice_wide_field: Npixels (power of 2, 3) per side = %d" % (npixels2))
-
-    # Following equation is from Cornwell, Humphreys, and Voronkov (2012) (equation 24)
-    # We will assume that the constraint holds at one quarter the entire FOV i.e. that
-    # the full field of view includes the entire primary beam
-
-    w_sampling_image = numpy.sqrt(2.0 * delA) / (numpy.pi * image_fov ** 2)
-    log.info("advice_wide_field: W sampling for full image = %.1f (wavelengths)" % (w_sampling_image))
-
-    if facets > 1:
-        w_sampling_facet = numpy.sqrt(2.0 * delA) / (numpy.pi * facet_fov ** 2)
-        log.info("advice_wide_field: W sampling for facet = %.1f (wavelengths)" % (w_sampling_facet))
-
-    w_sampling_primary_beam = numpy.sqrt(2.0 * delA) / (numpy.pi * primary_beam_fov ** 2)
-    log.info("advice_wide_field: W sampling for primary beam = %.1f (wavelengths)" % (w_sampling_primary_beam))
-
-    time_sampling_image = 86400.0 * w_sampling_image / (numpy.pi * maximum_baseline)
-    log.info("advice_wide_field: Time sampling for full image = %.1f (s)" % (time_sampling_image))
-
-    if facets > 1:
-        time_sampling_facet = 86400.0 * w_sampling_facet / (numpy.pi * maximum_baseline)
-        log.info("advice_wide_field: Time sampling for facet = %.1f (s)" % (time_sampling_facet))
-
-    time_sampling_primary_beam = 86400.0 * w_sampling_primary_beam / (numpy.pi * maximum_baseline)
-    log.info("advice_wide_field: Time sampling for primary beam = %.1f (s)" % (time_sampling_primary_beam))
-
-    freq_sampling_image = numpy.max(vis.frequency) * w_sampling_image / (numpy.pi * maximum_baseline)
-    log.info("advice_wide_field: Frequency sampling for full image = %.1f (Hz)" % (freq_sampling_image))
-
-    if facets > 1:
-        freq_sampling_facet = numpy.max(vis.frequency) * w_sampling_facet / (numpy.pi * maximum_baseline)
-        log.info("advice_wide_field: Frequency sampling for facet = %.1f (Hz)" % (freq_sampling_facet))
-
-    freq_sampling_primary_beam = numpy.max(vis.frequency) * w_sampling_primary_beam / (numpy.pi * maximum_baseline)
-    log.info("advice_wide_field: Frequency sampling for primary beam = %.1f (Hz)" % (freq_sampling_primary_beam))
-
-    wstep = w_sampling_primary_beam
-    vis_slices = max(1, int(maximum_baseline / (wstep * wprojection_planes)))
-    log.info('advice_wide_field: Number of planes in w stack %d' % (vis_slices))
-    log.info('advice_wide_field: Number of planes in w projection %d' % wprojection_planes)
-    if wprojection_planes > 1:
-        log.info('advice_wide_field: Recommend that wprojection gridding is used')
-        kernel = 'wprojection'
-    else:
-        log.info('advice_wide_field: Recommend that 2d gridding (i.e. no wprojection) is used')
-        kernel = '2d'
-
-    return locals()
-
-
-def rad_and_deg(x):
-    """ Stringify x in radian and degress forms
-    
-    """
-    return "%.6f (rad) %.3f (deg)" % (x, 180.0 * x / numpy.pi)

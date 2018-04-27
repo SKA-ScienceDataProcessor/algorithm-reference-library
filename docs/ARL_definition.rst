@@ -34,20 +34,20 @@ Data
 Data models
 +++++++++++
 
-.. automodule:: arl.data.data_models
+.. automodule:: data_models.memory_data_models
    :members:
 
 
 Parameter handling
 ++++++++++++++++++
 
-.. automodule:: arl.data.parameters
+.. automodule:: data_models.memory_parameters
    :members:
 
 Polarisation
 ++++++++++++
 
-.. automodule:: arl.data.polarisation
+.. automodule:: data_models.memory_polarisation
    :members:
 
 Image
@@ -56,37 +56,37 @@ Image
 Operations
 ++++++++++
 
-.. automodule:: arl.image.operations
+.. automodule:: processing_components.image.operations
    :members:
 
 Gather/Scatter
 ++++++++++++++
 
-.. automodule:: arl.image.gather_scatter
+.. automodule:: processing_components.image.gather_scatter
    :members:
 
 Iterators
 +++++++++
 
-.. automodule:: arl.image.iterators
+.. automodule:: processing_components.image.iterators
    :members:
 
 Deconvolution
 +++++++++++++
 
-.. automodule:: arl.image.deconvolution
+.. automodule:: processing_components.image.deconvolution
    :members:
 
 Cleaners
 ++++++++
 
-.. automodule:: arl.image.cleaners
+.. automodule:: processing_components.image.cleaners
    :members:
 
 Solvers
 +++++++
 
-.. automodule:: arl.image.solvers
+.. automodule:: processing_components.image.solvers
    :members:
 
 Calibration
@@ -95,32 +95,32 @@ Calibration
 Calibration
 +++++++++++
 
-.. automodule:: arl.calibration.calibration
+.. automodule:: processing_components.calibration.calibration
    :members:
 
 Operations
 ++++++++++
 
-.. automodule:: arl.calibration.operations
+.. automodule:: processing_components.calibration.operations
    :members:
 
 Peeling
 +++++++
 
-.. automodule:: arl.calibration.peeling
+.. automodule:: processing_components.calibration.peeling
    :members:
 
 Solvers
 +++++++
 
-.. automodule:: arl.calibration.solvers
+.. automodule:: processing_components.calibration.solvers
    :members:
 
 
 SkyModel calibration
 ++++++++++++++++++++
 
-.. automodule:: arl.calibration.skymodel_cal
+.. automodule:: processing_components.calibration.skymodel_cal
    :members:
 
 Fourier transform
@@ -129,13 +129,13 @@ Fourier transform
 FFT support
 +++++++++++
 
-.. automodule:: arl.fourier_transforms.fft_support
+.. automodule:: processing_components.fourier_transforms.fft_support
    :members:
 
 Convolutional Gridding
 ++++++++++++++++++++++
 
-.. automodule:: arl.fourier_transforms.convolutional_gridding
+.. automodule:: processing_components.fourier_transforms.convolutional_gridding
    :members:
 
 
@@ -145,38 +145,38 @@ Imaging
 Base
 ++++
 
-.. automodule:: arl.imaging.base
+.. automodule:: processing_components.imaging.base
    :members:
 
 Imaging context
 +++++++++++++++
 
-.. automodule:: arl.imaging.imaging_context
+.. automodule:: processing_components.imaging.imaging_context
    :members:
 
 Parameters
 ++++++++++
 
-.. automodule:: arl.imaging.params
+.. automodule:: processing_components.imaging.params
    :members:
 
 Timeslice
 +++++++++
 
-.. automodule:: arl.imaging.timeslice
+.. automodule:: processing_components.imaging.timeslice
    :members:
 
 
 WStack
 ++++++
 
-.. automodule:: arl.imaging.wstack
+.. automodule:: processing_components.imaging.wstack
    :members:
 
 Weighting
 +++++++++
 
-.. automodule:: arl.imaging.weighting
+.. automodule:: processing_components.imaging.weighting
    :members:
 
 
@@ -186,7 +186,7 @@ Skycomponent
 Operations
 ++++++++++
 
-.. automodule:: arl.skycomponent.operations
+.. automodule:: processing_components.skycomponent.operations
    :members:
 
 SkyModel
@@ -195,7 +195,7 @@ SkyModel
 Operations
 ++++++++++
 
-.. automodule:: arl.skymodel.operations
+.. automodule:: processing_components.skymodel.operations
    :members:
 
 Visibility
@@ -204,31 +204,31 @@ Visibility
 Base
 ++++
 
-.. automodule:: arl.visibility.base
+.. automodule:: processing_components.visibility.base
    :members:
 
 Operations
 ++++++++++
 
-.. automodule:: arl.visibility.operations
+.. automodule:: processing_components.visibility.operations
    :members:
 
 Coalesce
 ++++++++
 
-.. automodule:: arl.visibility.coalesce
+.. automodule:: processing_components.visibility.coalesce
    :members:
 
 Gather/Scatter
 ++++++++++++++
 
-.. automodule:: arl.visibility.gather_scatter
+.. automodule:: processing_components.visibility.gather_scatter
    :members:
 
 Iterators
 +++++++++
 
-.. automodule:: arl.visibility.iterators
+.. automodule:: processing_components.visibility.iterators
    :members:
 
 Util
@@ -237,58 +237,52 @@ Util
 Array Functions
 +++++++++++++++
 
-.. automodule:: arl.util.array_functions
+.. automodule:: libs.util.array_functions
    :members:
 
 Coordinate Support
 ++++++++++++++++++
 
-.. automodule:: arl.util.coordinate_support
+.. automodule:: libs.util.coordinate_support
    :members:
 
-Graph support
-+++++++++++++
+Execution support
++++++++++++++++++
 
-.. automodule:: arl.util.delayed_support
+.. automodule:: processing_components.component_support.arlexecute
    :members:
 
 Quality assessment
 ++++++++++++++++++
 
-.. automodule:: arl.util.quality_assessment
+.. automodule:: processing_components.util.quality_assessment
    :members:
 
 Testing Support
 +++++++++++++++
 
-.. automodule:: arl.util.testing_support
+.. automodule:: processing_components.util.testing_support
    :members:
 
-Timing
-++++++
+Execution
+---------
 
-.. automodule:: arl.util.timing
+Execution optionally via Dask
++++++++++++++++++++++++++++++
+
+.. automodule:: processing_components.component_support.arlexecute
    :members:
 
-Graphs
-------
+Generic execution
++++++++++++++++++
 
-Dask Graphs using delayed
-+++++++++++++++++++++++++
-
-.. automodule:: arl.graphs.delayed
-   :members:
-
-Generic Dask Graphs using delayed
-+++++++++++++++++++++++++++++++++
-
-.. automodule:: arl.graphs.generic_graphs
+.. automodule:: processing_components.component_support.generic_components
    :members:
 
 Dask init
 +++++++++
 
-.. automodule:: arl.graphs.dask_init
+.. automodule:: processing_components.component_support.dask_init
    :members:
 
 
@@ -298,21 +292,20 @@ Pipelines
 Pipeline Graphs using delayed
 +++++++++++++++++++++++++++++
 
-.. automodule:: arl.pipelines.delayed
+.. automodule:: processing_components.components.pipeline_components
    :members:
 
 Functions
 +++++++++
 
-.. automodule:: arl.pipelines.functions
+.. automodule:: processing_components.pipelines.functions
    :members:
 
 Support
 +++++++
 
-.. automodule:: arl.pipelines.support
+.. automodule:: processing_components.components.support_components
    :members:
-
 
 
 Unit tests

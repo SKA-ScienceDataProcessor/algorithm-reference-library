@@ -10,18 +10,17 @@ import time
 import numpy
 from astropy import units as u
 from astropy.coordinates import SkyCoord
-from dask import delayed
 
 from dask_init import get_dask_Client, findNodes
 from data_models.polarisation import PolarisationFrame
-from libs.image.operations import qa_image, export_image_to_fits, smooth_image
-from libs.imaging import create_image_from_visibility, advise_wide_field
-from libs.util.testing_support import create_low_test_image_from_gleam
-from libs.visibility.coalesce import convert_blockvisibility_to_visibility
-from pipeline_components import ical_component
 from processing_components.component_support.arlexecute import arlexecute
 from processing_components.components.imaging_components import predict_component, invert_component
-from support_components import simulate_component, corrupt_component
+from processing_components.components.pipeline_components import ical_component
+from processing_components.components.support_components import simulate_component, corrupt_component
+from processing_components.image.operations import export_image_to_fits, qa_image, smooth_image
+from processing_components.imaging.base import create_image_from_visibility, advise_wide_field
+from processing_components.util.testing_support import create_low_test_image_from_gleam
+from processing_components.visibility.coalesce import convert_blockvisibility_to_visibility
 
 log = logging.getLogger()
 log.setLevel(logging.INFO)
@@ -105,11 +104,6 @@ def trial_case(results, seed=180555, context='wstack', nworkers=8, threads_per_w
     :return: results dictionary
     """
     
-    def check_workers(client, nworkers_initial):
-        nworkers_final = len(client.scheduler_info()['workers'])
-        assert nworkers_final == nworkers_initial, "Started %d workers, only %d at end" % \
-                                                   (nworkers_initial, nworkers_final)
-    
     numpy.random.seed(seed)
     results['seed'] = seed
     
@@ -150,8 +144,12 @@ def trial_case(results, seed=180555, context='wstack', nworkers=8, threads_per_w
     if use_dask:
         arlexecute.set_client(get_dask_Client(n_workers=nworkers, threads_per_worker=threads_per_worker,
                                               processes=processes), use_dask=True)
+        results['nnodes'] = len(numpy.unique(findNodes(arlexecute.client)))
+        print("Defined %d workers on %d nodes" % (nworkers, results['nnodes']))
     else:
         arlexecute.set_client(use_dask=use_dask)
+        results['nnodes'] = 1
+
     
     vis_list = simulate_component('LOWBD2',
                                   frequency=frequency,
@@ -161,14 +159,6 @@ def trial_case(results, seed=180555, context='wstack', nworkers=8, threads_per_w
                                   order=order,
                                   format='blockvis',
                                   rmax=rmax)
-    if use_dask:
-        nworkers_initial = len(arlexecute.client.scheduler_info()['workers'])
-        check_workers(arlexecute.client, nworkers_initial)
-        results['nnodes'] = len(numpy.unique(findNodes(arlexecute.client)))
-        print("Defined %d workers on %d nodes" % (nworkers, results['nnodes']))
-    else:
-        nworkers = 1
-        results['nnodes'] = 1
     
     print("****** Visibility creation ******")
     vis_list = arlexecute.compute(vis_list, sync=True)
@@ -198,27 +188,27 @@ def trial_case(results, seed=180555, context='wstack', nworkers=8, threads_per_w
     results['cellsize'] = cellsize
     results['npixel'] = npixel
     
-    gleam_model_graph = [delayed(create_low_test_image_from_gleam)(npixel=npixel,
-                                                                   frequency=[frequency[f]],
-                                                                   channel_bandwidth=[channel_bandwidth[f]],
-                                                                   cellsize=cellsize,
-                                                                   phasecentre=phasecentre,
-                                                                   polarisation_frame=PolarisationFrame("stokesI"),
-                                                                   flux_limit=0.1,
-                                                                   applybeam=True)
-                         for f, freq in enumerate(frequency)]
+    gleam_model_list = [arlexecute.execute(create_low_test_image_from_gleam)(npixel=npixel,
+                                                                  frequency=[frequency[f]],
+                                                                  channel_bandwidth=[channel_bandwidth[f]],
+                                                                  cellsize=cellsize,
+                                                                  phasecentre=phasecentre,
+                                                                  polarisation_frame=PolarisationFrame("stokesI"),
+                                                                  flux_limit=0.1,
+                                                                  applybeam=True)
+                        for f, freq in enumerate(frequency)]
     
     start = time.time()
     print("****** Starting GLEAM model creation ******")
-    gleam_model_graph = arlexecute.compute(gleam_model_graph, sync=True)
-    cmodel = smooth_image(gleam_model_graph[0])
+    gleam_model_list = arlexecute.compute(gleam_model_list, sync=True)
+    cmodel = smooth_image(gleam_model_list[0])
     export_image_to_fits(cmodel, "pipelines-timings-delayed-gleam_cmodel.fits")
     end = time.time()
     results['time create gleam'] = end - start
     print("Creating GLEAM model took %.2f seconds" % (end - start))
     
-    vis_list = predict_component(vis_list, gleam_model_graph, vis_slices=51, context=context,
-                                       kernel=kernel)
+    vis_list = predict_component(vis_list, gleam_model_list, vis_slices=51, context=context,
+                                 kernel=kernel)
     start = time.time()
     print("****** Starting GLEAM model visibility prediction ******")
     vis_list = arlexecute.compute(vis_list, sync=True)
@@ -238,19 +228,19 @@ def trial_case(results, seed=180555, context='wstack', nworkers=8, threads_per_w
     print("Visibility corruption took %.2f seconds" % (end - start))
     
     # Create an empty model image
-    model_graph = [delayed(create_image_from_visibility)(vis_list[f],
-                                                         npixel=npixel, cellsize=cellsize,
-                                                         frequency=[frequency[f]],
-                                                         channel_bandwidth=[channel_bandwidth[f]],
-                                                         polarisation_frame=PolarisationFrame("stokesI"))
-                   for f, freq in enumerate(frequency)]
-    model_graph = arlexecute.compute(model_graph, sync=True)
+    model_list = [arlexecute.execute(create_image_from_visibility)(vis_list[f],
+                                                        npixel=npixel, cellsize=cellsize,
+                                                        frequency=[frequency[f]],
+                                                        channel_bandwidth=[channel_bandwidth[f]],
+                                                        polarisation_frame=PolarisationFrame("stokesI"))
+                  for f, freq in enumerate(frequency)]
+    model_list = arlexecute.compute(model_list, sync=True)
     
-    psf_graph = invert_component(vis_list, model_graph, vis_slices=vis_slices,
-                                    context=context, facets=facets, dopsf=True, kernel=kernel)
+    psf_list = invert_component(vis_list, model_list, vis_slices=vis_slices,
+                                context=context, facets=facets, dopsf=True, kernel=kernel)
     start = time.time()
     print("****** Starting PSF calculation ******")
-    psf, sumwt = arlexecute.compute(psf_graph, sync=True)[0]
+    psf, sumwt = arlexecute.compute(psf_list, sync=True)[0]
     end = time.time()
     results['time psf invert'] = end - start
     print("PSF invert took %.2f seconds" % (end - start))
@@ -258,11 +248,11 @@ def trial_case(results, seed=180555, context='wstack', nworkers=8, threads_per_w
     results['psf_max'] = qa_image(psf).data['max']
     results['psf_min'] = qa_image(psf).data['min']
     
-    dirty_graph = invert_component(vis_list, model_graph, vis_slices=vis_slices,
-                                      context=context, facets=facets, kernel=kernel)
+    dirty_list = invert_component(vis_list, model_list, vis_slices=vis_slices,
+                                  context=context, facets=facets, kernel=kernel)
     start = time.time()
     print("****** Starting dirty image calculation ******")
-    dirty, sumwt = arlexecute.compute(dirty_graph, sync=True)[0]
+    dirty, sumwt = arlexecute.compute(dirty_list, sync=True)[0]
     end = time.time()
     results['time invert'] = end - start
     print("Dirty image invert took %.2f seconds" % (end - start))
@@ -276,18 +266,18 @@ def trial_case(results, seed=180555, context='wstack', nworkers=8, threads_per_w
     start = time.time()
     print("****** Starting ICAL ******")
     start = time.time()
-    ical_graph = ical_component(vis_list, model_graph=model_graph, context=context, do_selfcal=1,
-                                            nchan=nfreqwin, vis_slices=vis_slices, algorithm='mmclean', nmoments=3,
-                                            niter=1000, fractional_threshold=0.1, scales=[0, 3, 10], threshold=0.1,
-                                            nmajor=5, gain=0.7, timeslice='auto', global_solution=True,
-                                            window_shape='quarter')
+    ical_list = ical_component(vis_list, model_imagelist=model_list, context=context, do_selfcal=1,
+                               nchan=nfreqwin, vis_slices=vis_slices, algorithm='mmclean', nmoments=3,
+                               niter=1000, fractional_threshold=0.1, scales=[0, 3, 10], threshold=0.1,
+                               nmajor=5, gain=0.7, timeslice='auto', global_solution=True,
+                               window_shape='quarter')
     end = time.time()
     results['time ICAL graph'] = end - start
     print("Construction of ICAL graph took %.2f seconds" % (end - start))
     
     # Execute the graph
     start = time.time()
-    result = arlexecute.compute(ical_graph, sync=True)
+    result = arlexecute.compute(ical_list, sync=True)
     deconvolved, residual, restored = result
     end = time.time()
     

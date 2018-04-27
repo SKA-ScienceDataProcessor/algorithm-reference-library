@@ -58,10 +58,10 @@ def hogbom(dirty, psf, window, gain, thresh, niter, fracthresh):
 def overlapIndices(res, psf, peakx, peaky):
     """ Find the indices where two arrays overlap
 
-    :param a1: First array
-    :param a2: Second array
-    :param shiftx: Shift in x applied to a1
-    :param shifty: Shift in y applied to a2
+    :param res:
+    :param psf:
+    :param peakx: peak in x
+    :param peaky: peak in y
     :return: (limits in a1, limits in a2)
     """
     nx, ny = res.shape[0], res.shape[1]
@@ -101,7 +101,6 @@ def msclean(dirty, psf, window, gain, thresh, niter, scales, fracthresh):
     :param thresh: Cleaning stops when the maximum of the absolute deviation of the residual is less than this value
     :param niter: Maximum number of components to make if the threshold "thresh" is not hit
     :param scales: Scales (in pixels width) to be used
-    :param fracthres: Fractional stopping threshold
     :return: clean component image, residual image
     """
     assert 0.0 < gain < 2.0
@@ -397,8 +396,7 @@ def msmfsclean(dirty, psf, window, gain, thresh, niter, scales, fracthresh, find
     :param thresh: Cleaning stops when the maximum of the absolute deviation of the residual is less than this value
     :param niter: Maximum number of components to make if the threshold "thresh" is not hit
     :param scales: Scales (in pixels width) to be used
-    :param fracthres: Fractional stopping threshold
-    :param ntaylor: Number of Taylor terms
+    :param fracthresh: Fractional stopping threshold
     :param findpeak: Method of finding peak in mfsclean: 'Algorithm1'|'CASA'|'ARL', Default is ARL.
     :return: clean component image, residual image
     """
@@ -621,7 +619,7 @@ def calculate_scale_moment_principal_solution(smresidual, ihsmmpsf):
     Lines 20 - 26
 
     :param smresidual: scale-dependent moment residual [nscales, nmoments, nx, ny]
-    :param imhsmmpsf: Inverse of scale dependent moment moment Hessian
+    :param ihsmmpsf: Inverse of scale dependent moment moment Hessian
     :return: Decoupled residual images [nscales, nmoments, nx, ny]
     """
     # ihsmmpsf: nscales, nmoments, nmoments

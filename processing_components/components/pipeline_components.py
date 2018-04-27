@@ -1,21 +1,22 @@
-""" Pipelines as processing components.
+""" SDP pipelines as processing components.
 """
 
-from processing_components.component_support.arlexecute import arlexecute
-
 from data_models.parameters import get_parameter
-from processing_components.components.imaging_components import invert_component, residual_component, \
-    predict_component, zero_vislist_component, calibrate_component, \
-    subtract_vislist_component, restore_component, deconvolve_component
+
+from ..component_support.arlexecute import arlexecute
+from ..components.imaging_components import invert_component, residual_component, \
+    predict_component, zero_vislist_component, subtract_vislist_component, restore_component, deconvolve_component
+from ..components.calibration_components import calibrate_component
 
 
-def ical_component(vis_list, model_imagelist, context='2d', calibration_context='TG',
-                               do_selfcal=True, **kwargs) :
+def ical_component(vis_list, model_imagelist, context='2d', calibration_context='TG', do_selfcal=True, **kwargs) :
     """Create graph for ICAL pipeline
 
     :param vis_list:
     :param model_imagelist:
     :param context: imaging context e.g. '2d'
+    :param calibration_context: Sequence of calibration steps e.g. TGB
+    :param do_selfcal: Do the selfcalibration?
     :param kwargs: Parameters for functions in components
     :return:
     """
@@ -63,17 +64,14 @@ def ical_component(vis_list, model_imagelist, context='2d', calibration_context=
     return arlexecute.execute((deconvolve_model_imagelist, residual_imagelist, restore_imagelist))
 
 
-def continuum_imaging_component(vis_list, model_imagelist, context='2d',
-                                         **kwargs) :
+def continuum_imaging_component(vis_list, model_imagelist, context='2d', **kwargs) :
     """ Create graph for the continuum imaging pipeline.
     
     Same as ICAL but with no selfcal.
     
     :param vis_list:
     :param model_imagelist:
-    :param c_deconvolve_imagelist: Default: deconvolve_component
-    :param c_invert_imagelist: Default: invert_component
-    :param c_residual_imagelist: Default: Default: create_residual graph
+    :param context: Imaging context
     :param kwargs: Parameters for functions in components
     :return:
     """
@@ -94,25 +92,19 @@ def continuum_imaging_component(vis_list, model_imagelist, context='2d',
     return arlexecute.execute((deconvolve_model_imagelist, residual_imagelist, restore_imagelist))
 
 
-def spectral_line_imaging_component(vis_list, model_imagelist,
-                                    continuum_model_imagelist=None,
-                                    context='2d',
-                                    **kwargs) :
+def spectral_line_imaging_component(vis_list, model_imagelist, continuum_model_imagelist=None, context='2d', **kwargs) :
     """Create graph for spectral line imaging pipeline
 
     Uses the ical pipeline after subtraction of a continuum model
     
     :param vis_list: List of visibility components
     :param model_imagelist: Spectral line model graph
-    :param continuum_model_imagelist: Continuum model graph
-    :param c_deconvolve_imagelist: Default: deconvolve_component
-    :param c_invert_imagelist: Default: invert_component,
-    :param c_residual_imagelist: Default: Default: create_residual graph
+    :param continuum_model_imagelist: Continuum model list
+    :param context: Imaging context
     :param kwargs: Parameters for functions in components
-    :return: components of (deconvolved model, residual, restored)
+    :return: (deconvolved model, residual, restored)
     """
     if continuum_model_imagelist is not None:
         vis_list = predict_component(vis_list, continuum_model_imagelist, context=context, **kwargs)
     
-    kwargs['first_selfcal'] = None
-    return ical_component(vis_list, model_imagelist, context=context, **kwargs)
+    return continuum_imaging_component(vis_list, model_imagelist, context=context, **kwargs)

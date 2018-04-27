@@ -41,13 +41,13 @@ skymodel_cal works best if an initial phase calibration has been obtained using 
 
 import logging
 
-from component_support.arlexecute import arlexecute
+from ..component_support.arlexecute import arlexecute
 
-from libs.calibration.operations import copy_gaintable, apply_gaintable, create_gaintable_from_blockvisibility
-from libs.calibration.calskymodel import calskymodel_fit_skymodel, calskymodel_fit_gaintable
-from processing_components.components.imaging_components import sum_predict_results
-from libs.skymodel.operations import copy_skymodel, predict_skymodel_visibility
-from libs.visibility.operations import copy_visibility
+from ..calibration.operations import copy_gaintable, apply_gaintable, create_gaintable_from_blockvisibility
+from ..calibration.calskymodel import calskymodel_fit_skymodel, calskymodel_fit_gaintable
+from ..components.imaging_components import sum_predict_results
+from ..skymodel.operations import copy_skymodel, predict_skymodel_visibility
+from ..visibility.operations import copy_visibility
 
 log = logging.getLogger(__name__)
 
@@ -100,9 +100,8 @@ def calskymodel_e_all_component(vislist, calskymodel_list):
 
     This is the sum of the data models over all skymodel, It is a global sync point for calskymodel
 
-    :param vis: Visibility
-    :param skymodel: list of the skymodel
-    :param kwargs:
+    :param vislist: Visibility list
+    :param calskymodel_list: list of calskymodel
     :return: Sum of data models (i.e. a single BlockVisibility)
     """
     

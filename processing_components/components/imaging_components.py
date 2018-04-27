@@ -35,21 +35,19 @@ import numpy
 
 from data_models.memory_data_models import Image
 from data_models.parameters import get_parameter
-from libs.calibration.calibration_control import calibrate_function
-from libs.calibration.operations import apply_gaintable
-from libs.image.deconvolution import deconvolve_cube, restore_cube
-from libs.image.gather_scatter import image_scatter_facets, image_gather_facets, image_scatter_channels, \
-    image_gather_channels
+
 from libs.image.operations import copy_image, create_empty_image_like
-from libs.imaging import normalize_sumwt
-from libs.imaging.imaging_functions import imaging_context
-from libs.imaging.weighting import weight_visibility
-from libs.visibility.base import copy_visibility
-from libs.visibility.gather_scatter import visibility_gather_channel
-from libs.visibility.gather_scatter import visibility_scatter, visibility_gather
-from libs.visibility.operations import divide_visibility, integrate_visibility_by_channel
 
 from processing_components.component_support.arlexecute import arlexecute
+from ..image.deconvolution import deconvolve_cube, restore_cube
+from ..image.gather_scatter import image_scatter_facets, image_gather_facets, image_scatter_channels, \
+    image_gather_channels
+from ..imaging.base import normalize_sumwt
+from ..imaging.imaging_functions import imaging_context
+from ..imaging.weighting import weight_visibility
+from ..visibility.base import copy_visibility
+from ..visibility.gather_scatter import visibility_scatter, visibility_gather
+
 
 def sum_invert_results(image_list):
     """ Sum a set of invert results with appropriate weighting
@@ -228,11 +226,11 @@ def invert_component(vis_list, template_model_imagelist, dopsf=False, normalize=
     for freqwin, vis_list in enumerate(vis_list):
         # Create the graph to divide an image into facets. This is by reference.
         facet_lists = arlexecute.execute(image_scatter_facets, nout=actual_number_facets ** 2)(template_model_imagelist[
-                                                                                                    freqwin],
-                                                                                                facets=facets)
+                                                                                                   freqwin],
+                                                                                               facets=facets)
         # Create the graph to divide the visibility into slices. This is by copy.
         sub_vis_lists = arlexecute.execute(visibility_scatter, nout=vis_slices)(vis_list, vis_iter,
-                                                                                 vis_slices=vis_slices)
+                                                                                vis_slices=vis_slices)
         
         # Iterate within each vis_list
         if inner == 'vis':
@@ -299,7 +297,7 @@ def predict_component(vis_list, model_imagelist, vis_slices=1, facets=1, context
     for freqwin, vis_list in enumerate(vis_list):
         # Create the graph to divide an image into facets. This is by reference.
         facet_lists = arlexecute.execute(image_scatter_facets, nout=actual_number_facets ** 2)(model_imagelist[freqwin],
-                                                                                                facets=facets)
+                                                                                               facets=facets)
         # Create the graph to divide the visibility into slices. This is by copy.
         sub_vis_lists = arlexecute.execute(visibility_scatter, nout=vis_slices)(vis_list, vis_iter, vis_slices)
         
@@ -311,7 +309,7 @@ def predict_component(vis_list, model_imagelist, vis_slices=1, facets=1, context
                 # Loop over sub visibility
                 for sub_vis_list in sub_vis_lists:
                     facet_vis_list = arlexecute.execute(predict_ignore_none, pure=True, nout=1)(sub_vis_list,
-                                                                                                 facet_list)
+                                                                                                facet_list)
                     facet_vis_results.append(facet_vis_list)
                 facet_vis_lists.append(
                     arlexecute.execute(visibility_gather, nout=1)(facet_vis_results, vis_list, vis_iter))
@@ -326,7 +324,7 @@ def predict_component(vis_list, model_imagelist, vis_slices=1, facets=1, context
                 for facet_list in facet_lists:
                     # Predict visibility for this subvisibility from this facet
                     facet_vis_list = arlexecute.execute(predict_ignore_none, pure=True, nout=1)(sub_vis_list,
-                                                                                                 facet_list)
+                                                                                                facet_list)
                     facet_vis_results.append(facet_vis_list)
                 # Sum the current sub-visibility over all facets
                 facet_vis_lists.append(arlexecute.execute(sum_predict_results)(facet_vis_results))
@@ -355,16 +353,17 @@ def residual_component(vis, model_imagelist, context='2d', **kwargs):
                             **kwargs)
 
 
-def restore_component(model_imagelist, psf_list, residual_list, **kwargs):
+def restore_component(model_imagelist, psf_imagelist, residual_imagelist, **kwargs):
     """ Create a graph to calculate the restored image
 
-    :param model_imagelist: Model graph
-    :param psf_list: PSF graph
-    :param residual_list: Residual graph
+    :param model_imagelist: Model list
+    :param psf_imagelist: PSF list
+    :param residual_imagelist: Residual list
     :param kwargs: Parameters for functions in components
     :return:
     """
-    return [arlexecute.execute(restore_cube)(model_imagelist[i], psf_list[i][0], residual_list[i][0], **kwargs)
+    return [arlexecute.execute(restore_cube)(model_imagelist[i], psf_imagelist[i][0],
+                                             residual_imagelist[i][0],  **kwargs)
             for i, _ in enumerate(model_imagelist)]
 
 
@@ -417,28 +416,27 @@ def deconvolve_component(dirty_list, psf_list, model_imagelist, **kwargs):
     psf_list = arlexecute.execute(image_gather_channels, nout=1)(psf_list)
     
     scattered_model_imagelist = arlexecute.execute(image_scatter_facets, nout=deconvolve_number_facets)(model_imagelist,
-                                                                                                    facets=deconvolve_facets,
-                                                                                                    overlap=deconvolve_overlap)
+                                                                                                        facets=deconvolve_facets,
+                                                                                                        overlap=deconvolve_overlap)
     
     # Now do the deconvolution for each facet
     scattered_results_list = [arlexecute.execute(deconvolve, nout=1)(d, psf_list, m)
-                               for d, m in zip(scattered_facets_list, scattered_model_imagelist)]
+                              for d, m in zip(scattered_facets_list, scattered_model_imagelist)]
     
     # Gather the results back into one image, correcting for overlaps as necessary. The taper function is is used to
     # feather the facets together
     gathered_results_list = arlexecute.execute(image_gather_facets, nout=1)(scattered_results_list, model_imagelist,
-                                                                             facets=deconvolve_facets,
-                                                                             overlap=deconvolve_overlap,
-                                                                             taper=deconvolve_taper)
+                                                                            facets=deconvolve_facets,
+                                                                            overlap=deconvolve_overlap,
+                                                                            taper=deconvolve_taper)
     flat_list = arlexecute.execute(image_gather_facets, nout=1)(scattered_results_list, model_imagelist,
-                                                                 facets=deconvolve_facets, overlap=deconvolve_overlap,
-                                                                 taper=deconvolve_taper, return_flat=True)
+                                                                facets=deconvolve_facets, overlap=deconvolve_overlap,
+                                                                taper=deconvolve_taper, return_flat=True)
     
     return arlexecute.execute(image_scatter_channels, nout=nchan)(gathered_results_list, subimages=nchan), flat_list
 
 
-def deconvolve_channel_component(dirty_list, psf_list, model_imagelist, subimages,
-                                 **kwargs):
+def deconvolve_channel_component(dirty_list, psf_list, model_imagelist, subimages, **kwargs):
     """Create a graph for deconvolution by channels, adding to the model
 
     Does deconvolution channel by channel.
@@ -464,44 +462,8 @@ def deconvolve_channel_component(dirty_list, psf_list, model_imagelist, subimage
     
     output = arlexecute.execute(create_empty_image_like, nout=1, pure=True)(model_imagelist)
     dirty_lists = arlexecute.execute(image_scatter_channels, nout=subimages, pure=True)(dirty_list[0],
-                                                                                         subimages=subimages)
+                                                                                        subimages=subimages)
     results = [arlexecute.execute(deconvolve_subimage)(dirty_list, psf_list[0])
                for dirty_list in dirty_lists]
     result = arlexecute.execute(image_gather_channels, nout=1, pure=True)(results, output, subimages=subimages)
     return arlexecute.execute(add_model, nout=1, pure=True)(result, model_imagelist)
-
-
-def calibrate_component(vis_list, model_vislist, calibration_context='TG', global_solution=True,
-                        **kwargs):
-    """ Create a set of components for (optionally global) calibration of a list of visibilities
-
-    If global solution is true then visibilities are gathered to a single visibility data set which is then
-    self-calibrated. The resulting gaintable is then effectively scattered out for application to each visibility
-    set. If global solution is false then the solutions are performed locally.
-
-    :param vis_list:
-    :param model_vislist:
-    :param calibration_context: String giving terms to be calibrated e.g. 'TGB'
-    :param global_solution: Solve for global gains
-    :param kwargs: Parameters for functions in components
-    :return:
-    """
-    
-    def solve_and_apply(vis, modelvis=None):
-        return calibrate_function(vis, modelvis, calibration_context=calibration_context, **kwargs)[0]
-    
-    if global_solution:
-        point_vislist = [arlexecute.execute(divide_visibility, nout=len(vis_list))(vis_list[i],
-                                                                                   model_vislist[i])
-                         for i, _ in enumerate(vis_list)]
-        global_point_vis_list = arlexecute.execute(visibility_gather_channel, nout=1)(point_vislist)
-        global_point_vis_list = arlexecute.execute(integrate_visibility_by_channel, nout=1)(global_point_vis_list)
-        # This is a global solution so we only compute one gain table
-        _, gt_list = arlexecute.execute(solve_and_apply, pure=True, nout=2)(global_point_vis_list, **kwargs)
-        return [arlexecute.execute(apply_gaintable, nout=len(vis_list))(v, gt_list, inverse=True)
-                for v in vis_list]
-    else:
-        
-        return [
-            arlexecute.execute(solve_and_apply, nout=len(vis_list))(vis_list[i], model_vislist[i])
-            for i, v in enumerate(vis_list)]

@@ -106,3 +106,70 @@ def average_chunks2(arr, wts, chunksize):
         chunks[:, i], weights[:, i] = result[0].flatten(), result[1].flatten()
     
     return chunks, weights
+
+
+def tukey_filter(x, r):
+    """ Calculate the Tukey (tapered cosine) filter
+    
+    See e.g. https://uk.mathworks.com/help/signal/ref/tukeywin.html
+
+    :param x: x coordinate (float)
+    :param r: transition point of filter (float)
+    :returns: Value of filter for x
+    """
+    if x >= 0.0 and x < r / 2.0:
+        return 0.5 * (1.0 + numpy.cos(2.0 * numpy.pi * (x - r / 2.0) / r))
+    elif x >= 1 - r / 2.0 and x <= 1.0:
+        return 0.5 * (1.0 + numpy.cos(2.0 * numpy.pi * (x - 1 + r / 2.0) / r))
+    else:
+        return 1.0
+
+
+def insert_function_sinc(x):
+    s = numpy.zeros_like(x)
+    s[x != 0.0] = numpy.sin(numpy.pi * x[x != 0.0]) / (numpy.pi * x[x != 0.0])
+    return s
+
+
+def insert_function_L(x, a=5):
+    L = insert_function_sinc(x) * insert_function_sinc(x / a)
+    return L
+
+
+def insert_function_pswf(x, a=5):
+    from libs.fourier_transforms.convolutional_gridding import grdsf
+    return grdsf(abs(x) / a)[1]
+
+
+def insert_array(im, x, y, flux, bandwidth=1.0, support=7, insert_function=insert_function_L):
+    """ Insert point into image using specified function
+    
+    :param im: Image
+    :param x: x in float pixels
+    :param y: y in float pixels
+    :param flux: Flux[nchan, npol]
+    :param bandwidth: Support of data in uv plane
+    :param support: Support of function in image space
+    :param insert_function: insert_function_L or insert_function_Sinc or insert_function_pswf
+    :return:
+    """
+    nchan, npol, ny, nx = im.shape
+    intx = int(numpy.round(x))
+    inty = int(numpy.round(y))
+    fracx = x - intx
+    fracy = y - inty
+    gridx = numpy.arange(-support, support)
+    gridy = numpy.arange(-support, support)
+    
+    insert = numpy.outer(insert_function(bandwidth * (gridy - fracy)),
+                         insert_function(bandwidth * (gridx - fracx)))
+    
+    insertsum = numpy.sum(insert)
+    assert insertsum > 0, "Sum of interpolation coefficients %g" % insertsum
+    insert = insert / insertsum
+    
+    for chan in range(nchan):
+        for pol in range(npol):
+            im[chan, pol, inty - support:inty + support, intx - support:intx + support] += flux[chan, pol] * insert
+    
+    return im

@@ -5,19 +5,17 @@ completeness. Use parallel versions pipelines/components.py for speed.
 import collections
 import logging
 
-from libs.imaging import predict_skycomponent_visibility
-from libs.visibility.base import copy_visibility
-
 import numpy
 
-from libs.calibration.calibration_control import calibrate_function, create_calibration_controls
 from data_models.memory_data_models import Image, BlockVisibility, GainTable
 from data_models.parameters import get_parameter
-from libs.image.deconvolution import deconvolve_cube, restore_cube
-from libs.imaging import predict_skycomponent_visibility
-from libs.imaging.imaging_functions import predict_function, invert_function
-from libs.visibility.base import copy_visibility
-from libs.visibility.coalesce import convert_blockvisibility_to_visibility
+
+from ..calibration.calibration_control import calibrate_function, create_calibration_controls
+from ..image.deconvolution import deconvolve_cube, restore_cube
+from ..imaging.base import predict_skycomponent_visibility
+from ..imaging.imaging_functions import predict_function, invert_function
+from ..visibility.base import copy_visibility
+from ..visibility.coalesce import convert_blockvisibility_to_visibility
 
 log = logging.getLogger(__name__)
 
@@ -29,7 +27,7 @@ def ical(block_vis: BlockVisibility, model: Image, components=None, context='2d'
     :param model: Model image
     :param components: Initial components
     :param context: Imaging context
-    :param controls: Calibration controls dictionary
+    :param controls: calibration controls dictionary
     :return: model, residual, restored
     """
     nmajor = get_parameter(kwargs, 'nmajor', 5)
@@ -102,8 +100,8 @@ def rcal(vis: BlockVisibility, components, **kwargs) -> GainTable:
     
     if not isinstance(vis, collections.Iterable):
         vis = [vis]
-    
-    from libs.calibration.solvers import solve_gaintable
+
+    from calibration.calibration import solve_gaintable
     for ichunk, vischunk in enumerate(vis):
         vispred = copy_visibility(vischunk, zero=True)
         vispred = predict_skycomponent_visibility(vispred, components)

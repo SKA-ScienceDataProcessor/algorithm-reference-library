@@ -1,3 +1,3 @@
 
-NBs = imaging.ipynb imaging-fits.ipynb imaging-wterm.ipynb rcal.ipynb
+NBs = gridding.ipynb PSWF_Calculation.ipynb
 include ../jupyter.mk

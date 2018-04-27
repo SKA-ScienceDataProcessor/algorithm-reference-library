@@ -7,18 +7,18 @@ import numpy
 from astropy import units as u
 from astropy.coordinates import SkyCoord
 
-from processing_components.component_support.arlexecute import arlexecute
 from data_models.polarisation import PolarisationFrame
-from libs.calibration.operations import apply_gaintable, create_gaintable_from_blockvisibility
-from libs.util.testing_support import create_named_configuration, simulate_gaintable
-from libs.visibility.base import create_blockvisibility, create_visibility
+
+from ..component_support.arlexecute import arlexecute
+from ..calibration.operations import apply_gaintable, create_gaintable_from_blockvisibility
+from ..util.testing_support import create_named_configuration, simulate_gaintable
+from ..visibility.base import create_blockvisibility, create_visibility
 
 log = logging.getLogger(__name__)
 
 
 def simulate_component(config='LOWBD2-CORE',
-                       phasecentre=SkyCoord(ra=+15.0 * u.deg, dec=-60.0 * u.deg,
-                                            frame='icrs', equinox='J2000'),
+                       phasecentre=SkyCoord(ra=+15.0 * u.deg, dec=-60.0 * u.deg, frame='icrs', equinox='J2000'),
                        frequency=None, channel_bandwidth=None, times=None,
                        polarisation_frame=PolarisationFrame("stokesI"), order='frequency',
                        format='blockvis',
@@ -43,7 +43,6 @@ def simulate_component(config='LOWBD2-CORE',
     :param polarisation_frame: def PolarisationFrame("stokesI")
     :param order: 'time' or 'frequency' or 'both' or None: def 'frequency'
     :param format: 'blockvis' or 'vis': def 'blockvis'
-    :param kwargs:
     :return: vis_list with different frequencies in different elements
     """
     if format == 'vis':

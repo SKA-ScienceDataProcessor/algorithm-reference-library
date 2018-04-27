@@ -4,7 +4,6 @@
 """
 
 import logging
-import os
 import sys
 import unittest
 
@@ -13,16 +12,17 @@ from astropy import units as u
 from astropy.coordinates import SkyCoord
 from astropy.wcs.utils import pixel_to_skycoord
 
-from libs.calibration.operations import qa_gaintable, create_gaintable_from_blockvisibility, apply_gaintable
 from data_models.polarisation import PolarisationFrame
-from libs.image.operations import export_image_to_fits, create_empty_image_like, copy_image
-from libs.imaging import predict_skycomponent_visibility, \
-    create_image_from_visibility
-from libs.skycomponent.operations import create_skycomponent, insert_skycomponent
-from libs.util.testing_support import create_named_configuration, simulate_gaintable
-from libs.visibility.base import create_blockvisibility, create_visibility
 
-from processing_components.functions.pipeline_functions import rcal
+from ..calibration.operations import qa_gaintable, create_gaintable_from_blockvisibility, apply_gaintable
+from ..image.operations import copy_image, create_empty_image_like, export_image_to_fits
+from ..imaging.base import predict_skycomponent_visibility, \
+    create_image_from_visibility
+from ..skycomponent.operations import create_skycomponent, insert_skycomponent
+from ..util.testing_support import create_named_configuration, simulate_gaintable
+from ..visibility.base import create_blockvisibility, create_visibility
+
+from ..functions.pipeline_functions import rcal
 
 log = logging.getLogger(__name__)
 
@@ -53,8 +53,12 @@ class TestPipelinesFunctions(unittest.TestCase):
                                           times=self.times, add_errors=add_errors, block=block,
                                           bandpass=bandpass)
     
-    def ingest_visibility(self, freq=[1e8], chan_width=[1e6], times=None, add_errors=False,
+    def ingest_visibility(self, freq=None, chan_width=None, times=None, add_errors=False,
                           block=True, bandpass=False):
+        if freq is None:
+            freq = [1e8]
+        if chan_width is None:
+            chan_width = [1e6]
         if times is None:
             times = (numpy.pi / 12.0) * numpy.linspace(-3.0, 3.0, 5)
         

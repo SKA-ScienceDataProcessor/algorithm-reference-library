@@ -11,14 +11,15 @@ import numpy
 from astropy import units as u
 from astropy.coordinates import SkyCoord
 
-from libs.calibration.calibration_control import create_calibration_controls
 from data_models.polarisation import PolarisationFrame
-from component_support.arlexecute import arlexecute
-from libs.image.operations import export_image_to_fits, smooth_image, qa_image
-from libs.imaging import predict_skycomponent_visibility
-from processing_components.components.pipeline_components import ical_component, continuum_imaging_component
-from libs.skycomponent.operations import insert_skycomponent
-from libs.util.testing_support import create_named_configuration, ingest_unittest_visibility, create_unittest_model, \
+
+from ..component_support.arlexecute import arlexecute
+from ..calibration.calibration_control import create_calibration_controls
+from ..image.operations import export_image_to_fits, qa_image, smooth_image
+from ..imaging.base import predict_skycomponent_visibility
+from ..components.pipeline_components import ical_component, continuum_imaging_component
+from ..skycomponent.operations import insert_skycomponent
+from ..util.testing_support import create_named_configuration, ingest_unittest_visibility, create_unittest_model, \
     create_unittest_components, insert_unittest_errors
 
 log = logging.getLogger(__name__)

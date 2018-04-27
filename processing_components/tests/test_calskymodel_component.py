@@ -11,19 +11,21 @@ from astropy.coordinates import SkyCoord
 
 from data_models.memory_data_models import SkyModel
 from data_models.polarisation import PolarisationFrame
-from libs.calibration.operations import apply_gaintable, create_gaintable_from_blockvisibility
-from libs.calibration.solvers import solve_gaintable
-from libs.image.operations import qa_image, export_image_to_fits
-from libs.imaging import predict_skycomponent_visibility, create_image_from_visibility
-from libs.imaging.imaging_functions import invert_function
-from libs.imaging.weighting import weight_visibility
-from libs.skycomponent.operations import apply_beam_to_skycomponent
-from libs.util.testing_support import create_named_configuration, simulate_gaintable, \
+
+from ..calibration.operations import apply_gaintable, create_gaintable_from_blockvisibility
+from ..calibration.calibration import solve_gaintable
+from ..image.operations import export_image_to_fits, qa_image
+from ..imaging.base import predict_skycomponent_visibility, create_image_from_visibility
+from ..imaging.imaging_functions import invert_function
+from ..imaging.weighting import weight_visibility
+from ..skycomponent.operations import apply_beam_to_skycomponent
+from ..util.testing_support import create_named_configuration, simulate_gaintable, \
     create_low_test_skycomponents_from_gleam, create_low_test_beam
-from libs.visibility.base import copy_visibility, create_blockvisibility
-from libs.visibility.coalesce import convert_blockvisibility_to_visibility
-from processing_components.component_support.arlexecute import arlexecute
-from processing_components.components.calskymodel_components import calskymodel_solve_component
+from ..visibility.base import copy_visibility, create_blockvisibility
+from ..visibility.coalesce import convert_blockvisibility_to_visibility
+
+from ..component_support.arlexecute import arlexecute
+from ..components.calskymodel_components import calskymodel_solve_component
 
 log = logging.getLogger(__name__)
 

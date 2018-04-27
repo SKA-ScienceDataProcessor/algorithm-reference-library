@@ -12,15 +12,16 @@ from astropy import units as u
 from astropy.coordinates import SkyCoord
 
 from data_models.polarisation import PolarisationFrame
-from libs.image.operations import export_image_to_fits, smooth_image
-from libs.imaging import predict_skycomponent_visibility
-from libs.skycomponent.operations import insert_skycomponent
-from libs.util.testing_support import create_named_configuration, ingest_unittest_visibility, create_unittest_model, \
+
+from ..image.operations import export_image_to_fits, smooth_image
+from ..imaging.base import predict_skycomponent_visibility
+from ..skycomponent.operations import insert_skycomponent
+from ..util.testing_support import create_named_configuration, ingest_unittest_visibility, create_unittest_model, \
     create_unittest_components, insert_unittest_errors
 
-from component_support.arlexecute import arlexecute
-from processing_components.components.imaging_components import invert_component, deconvolve_component, residual_component, \
-    restore_component
+from ..component_support.arlexecute import arlexecute
+from ..components.imaging_components import invert_component, deconvolve_component, \
+    residual_component, restore_component
 
 log = logging.getLogger(__name__)
 
