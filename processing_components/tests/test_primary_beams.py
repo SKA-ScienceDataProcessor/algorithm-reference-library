@@ -12,11 +12,11 @@ from astropy.coordinates import SkyCoord
 
 from data_models.polarisation import PolarisationFrame
 
-from ..image.operations import export_image_to_fits
-from ..imaging.base import create_image_from_visibility
-from ..util.primary_beams import create_pb
-from ..util.testing_support import create_named_configuration
-from ..visibility.base import create_visibility
+from processing_components.image.operations import export_image_to_fits
+from processing_components.imaging.base import create_image_from_visibility
+from processing_components.util.primary_beams import create_pb
+from processing_components.util.testing_support import create_named_configuration
+from processing_components.visibility.base import create_visibility
 
 log = logging.getLogger(__name__)
 

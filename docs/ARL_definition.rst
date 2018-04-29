@@ -2,8 +2,20 @@
 .. toctree::
    :maxdepth: 2
 
-ARL definition
-**************
+ARL structure
+=============
+
+The ARL structure maps that used in the SDP processing architecture:
+
+.. image:: ./SDP_processing_architecture.png
+   :scale: 100 %
+
+The corresponding directories are:
+
+* data_models: These are memory-based are mapped to the Buffer by matching classes.
+* libs: Library functions used by the processing components. These are not callable directly by the EF.
+* processing_components: components that can be executed by the Execution Framework.
+* workflows: Contains top level workflows
 
 ARL is composed of data models and functions. The data models are implemented as python classes. The functions are
 stateless so calling the same function with the same inputs will always return the same value.
@@ -28,27 +40,36 @@ The data structures are operated on by state-less functions. The complete set of
 .. image:: ./ARL_all.png
    :width: 1024px
 
+
 Data
 ----
 
-Data models
-+++++++++++
+Memory Data models
+++++++++++++++++++
 
 .. automodule:: data_models.memory_data_models
+   :members:
+
+Buffer Data Models
+++++++++++++++++++
+
+.. automodule:: data_models.buffer_data_models
    :members:
 
 
 Parameter handling
 ++++++++++++++++++
 
-.. automodule:: data_models.memory_parameters
+.. automodule:: data_models.parameters
    :members:
 
 Polarisation
 ++++++++++++
 
-.. automodule:: data_models.memory_polarisation
+.. automodule:: data_models.polarisation
    :members:
+
+The functions are listed next:
 
 Image
 -----
@@ -80,7 +101,7 @@ Deconvolution
 Cleaners
 ++++++++
 
-.. automodule:: processing_components.image.cleaners
+.. automodule:: libs.image.cleaners
    :members:
 
 Solvers
@@ -104,23 +125,17 @@ Operations
 .. automodule:: processing_components.calibration.operations
    :members:
 
-Peeling
-+++++++
-
-.. automodule:: processing_components.calibration.peeling
-   :members:
-
 Solvers
 +++++++
 
-.. automodule:: processing_components.calibration.solvers
+.. automodule:: libs.calibration.solvers
    :members:
 
 
 SkyModel calibration
 ++++++++++++++++++++
 
-.. automodule:: processing_components.calibration.skymodel_cal
+.. automodule:: processing_components.calibration.calskymodel
    :members:
 
 Fourier transform
@@ -129,13 +144,13 @@ Fourier transform
 FFT support
 +++++++++++
 
-.. automodule:: processing_components.fourier_transforms.fft_support
+.. automodule:: libs.fourier_transforms.fft_support
    :members:
 
 Convolutional Gridding
 ++++++++++++++++++++++
 
-.. automodule:: processing_components.fourier_transforms.convolutional_gridding
+.. automodule:: libs.fourier_transforms.convolutional_gridding
    :members:
 
 
@@ -151,26 +166,26 @@ Base
 Imaging context
 +++++++++++++++
 
-.. automodule:: processing_components.imaging.imaging_context
+.. automodule:: processing_components.imaging.imaging_functions
    :members:
 
 Parameters
 ++++++++++
 
-.. automodule:: processing_components.imaging.params
+.. automodule:: libs.imaging.imaging_params
    :members:
 
 Timeslice
 +++++++++
 
-.. automodule:: processing_components.imaging.timeslice
+.. automodule:: processing_components.imaging.timeslice_single
    :members:
 
 
 WStack
 ++++++
 
-.. automodule:: processing_components.imaging.wstack
+.. automodule:: processing_components.imaging.wstack_single
    :members:
 
 Weighting
@@ -246,18 +261,6 @@ Coordinate Support
 .. automodule:: libs.util.coordinate_support
    :members:
 
-Execution support
-+++++++++++++++++
-
-.. automodule:: processing_components.component_support.arlexecute
-   :members:
-
-Quality assessment
-++++++++++++++++++
-
-.. automodule:: processing_components.util.quality_assessment
-   :members:
-
 Testing Support
 +++++++++++++++
 
@@ -267,8 +270,8 @@ Testing Support
 Execution
 ---------
 
-Execution optionally via Dask
-+++++++++++++++++++++++++++++
+Execution (optionally via Dask)
++++++++++++++++++++++++++++++++
 
 .. automodule:: processing_components.component_support.arlexecute
    :members:
@@ -289,8 +292,8 @@ Dask init
 Pipelines
 ---------
 
-Pipeline Graphs using delayed
-+++++++++++++++++++++++++++++
+Pipelines using arlexecute
+++++++++++++++++++++++++++
 
 .. automodule:: processing_components.components.pipeline_components
    :members:
@@ -298,7 +301,7 @@ Pipeline Graphs using delayed
 Functions
 +++++++++
 
-.. automodule:: processing_components.pipelines.functions
+.. automodule:: processing_components.functions.pipeline_functions
    :members:
 
 Support
@@ -314,126 +317,132 @@ Unit tests
 Unit tests written in standard python style are available.
 
 
-.. automodule:: tests.test_array_functions
+.. automodule:: libs.tests.test_array_functions
    :members:
-   :undoc-members:
 
-.. automodule:: tests.test_calibration_operations
+.. automodule:: libs.tests.test_convolutional_gridding
    :members:
-   :undoc-members:
 
-.. automodule:: tests.test_calibration_peeling
+.. automodule:: libs.tests.test_coordinate_support
    :members:
-   :undoc-members:
 
-.. automodule:: tests.test_calibration_solvers
+.. automodule:: libs.tests.test_fft_support
    :members:
-   :undoc-members:
 
-.. automodule:: tests.test_convolutional_gridding
+.. automodule:: libs.tests.test_msclean
    :members:
-   :undoc-members:
 
-.. automodule:: tests.test_coordinate_support
+.. automodule:: libs.tests.test_parameters
    :members:
-   :undoc-members:
 
-.. automodule:: tests.test_delayed_support
+.. automodule:: libs.tests.test_polarisation
    :members:
-   :undoc-members:
 
-.. automodule:: tests.test_fft_support
+.. automodule:: processing_components.tests.test_arlexecute
    :members:
-   :undoc-members:
 
-.. automodule:: tests.test_generic_graph
+.. automodule:: processing_components.tests.test_calibration_context
    :members:
-   :undoc-members:
 
-.. automodule:: tests.test_image_deconvolution
+.. automodule:: processing_components.tests.test_calibration_operations
    :members:
-   :undoc-members:
 
-.. automodule:: tests.test_image_deconvolution_msmfs
+.. automodule:: processing_components.tests.test_calibration_solvers
    :members:
-   :undoc-members:
 
-.. automodule:: tests.test_image_gather_scatter
+.. automodule:: processing_components.tests.test_calskymodel
    :members:
-   :undoc-members:
 
-.. automodule:: tests.test_image_iterators
+.. automodule:: processing_components.tests.test_calskymodel_component
    :members:
-   :undoc-members:
 
-.. automodule:: tests.test_image_msclean
+.. automodule:: processing_components.tests.test_gaintable_iterators
    :members:
-   :undoc-members:
 
-.. automodule:: tests.test_image_operations
+.. automodule:: processing_components.tests.test_generic_components
    :members:
-   :undoc-members:
 
-.. automodule:: tests.test_image_solvers
+.. automodule:: processing_components.tests.test_image_deconvolution
    :members:
-   :undoc-members:
 
-.. automodule:: tests.test_imaging_delayed
+.. automodule:: processing_components.tests.test_image_deconvolution_msmfs
    :members:
-   :undoc-members:
 
-.. automodule:: tests.test_imaging_functions
+.. automodule:: processing_components.tests.test_image_gather_scatter
    :members:
-   :undoc-members:
 
-.. automodule:: tests.test_imaging_params
+.. automodule:: processing_components.tests.test_image_iterators
    :members:
-   :undoc-members:
 
-.. automodule:: tests.test_parameters
+.. automodule:: processing_components.tests.test_image_operations
    :members:
-   :undoc-members:
 
-.. automodule:: tests.test_pipelines_delayed
+.. automodule:: processing_components.tests.test_image_solvers
    :members:
-   :undoc-members:
 
-.. automodule:: tests.test_pipelines_functions
+.. automodule:: processing_components.tests.test_image_solvers_mm
    :members:
-   :undoc-members:
 
-.. automodule:: tests.test_polarisation
+.. automodule:: processing_components.tests.test_imaging
    :members:
-   :undoc-members:
 
-.. automodule:: tests.test_primary_beams
+.. automodule:: processing_components.tests.test_imaging_components
    :members:
-   :undoc-members:
 
-.. automodule:: tests.test_quality_assessment
+.. automodule:: processing_components.tests.test_imaging_deconvolve_component
    :members:
-   :undoc-members:
 
-.. automodule:: tests.test_skycomponent
+.. automodule:: processing_components.tests.test_imaging_functions
    :members:
-   :undoc-members:
 
-.. automodule:: tests.test_testing_support
+.. automodule:: processing_components.tests.test_imaging_params
    :members:
-   :undoc-members:
 
-.. automodule:: tests.test_visibility_coalesce
+.. automodule:: processing_components.tests.test_pipelines_component
    :members:
-   :undoc-members:
 
-.. automodule:: tests.test_visibility_iterators
+.. automodule:: processing_components.tests.test_pipelines_functions
    :members:
-   :undoc-members:
 
-.. automodule:: tests.test_visibility_operations
+.. automodule:: processing_components.tests.test_primary_beams
    :members:
-   :undoc-members:
 
-.. automodule:: tests.test_weighting
+.. automodule:: processing_components.tests.test_quality_assessment
    :members:
-   :undoc-members:
+
+.. automodule:: processing_components.tests.test_skycomponent
+   :members:
+
+.. automodule:: processing_components.tests.test_skycomponent_insert
+   :members:
+
+.. automodule:: processing_components.tests.test_skymodel
+   :members:
+
+.. automodule:: processing_components.tests.test_support_components
+   :members:
+
+.. automodule:: processing_components.tests.test_testing_support
+   :members:
+
+.. automodule:: processing_components.tests.test_visibility_coalesce
+   :members:
+
+.. automodule:: processing_components.tests.test_visibility_fitting
+   :members:
+
+.. automodule:: processing_components.tests.test_visibility_gather_scatter
+   :members:
+
+.. automodule:: processing_components.tests.test_visibility_iterators
+   :members:
+
+.. automodule:: processing_components.tests.test_visibility_operations
+   :members:
+
+.. automodule:: processing_components.tests.test_visibility_selectors
+   :members:
+
+.. automodule:: processing_components.tests.test_weighting
+   :members:
+

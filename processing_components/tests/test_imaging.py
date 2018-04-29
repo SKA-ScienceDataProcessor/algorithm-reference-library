@@ -12,12 +12,13 @@ from astropy import units as u
 from astropy.coordinates import SkyCoord
 
 from data_models.polarisation import PolarisationFrame
-from ..image.operations import export_image_to_fits, smooth_image
-from ..imaging.base import predict_skycomponent_visibility
-from ..skycomponent.operations import find_skycomponents, find_nearest_skycomponent, insert_skycomponent
-from ..util.testing_support import create_named_configuration, ingest_unittest_visibility, create_unittest_model, \
+
+from processing_components.image.operations import export_image_to_fits, smooth_image
+from processing_components.imaging.base import predict_skycomponent_visibility
+from processing_components.skycomponent.operations import find_skycomponents, find_nearest_skycomponent, insert_skycomponent
+from processing_components.util.testing_support import create_named_configuration, ingest_unittest_visibility, create_unittest_model, \
     insert_unittest_errors, create_unittest_components
-from component_support.arlexecute import arlexecute
+from processing_components.component_support.arlexecute import arlexecute
 from processing_components.components.imaging_components import zero_vislist_component, predict_component, \
     invert_component, subtract_vislist_component
 

@@ -9,14 +9,15 @@ import unittest
 
 from astropy.coordinates import SkyCoord
 import astropy.units as u
-from calibration.operations import gaintable_summary, apply_gaintable, create_gaintable_from_blockvisibility, \
-    create_gaintable_from_rows
 
 from data_models.memory_data_models import Skycomponent, GainTable
 from data_models.polarisation import PolarisationFrame
-from ..util.testing_support import create_named_configuration, simulate_gaintable
-from ..visibility.base import copy_visibility, create_blockvisibility
-from ..imaging.base import predict_skycomponent_visibility
+
+from processing_components.calibration.operations import gaintable_summary, apply_gaintable, create_gaintable_from_blockvisibility, \
+    create_gaintable_from_rows
+from processing_components.util.testing_support import create_named_configuration, simulate_gaintable
+from processing_components.visibility.base import copy_visibility, create_blockvisibility
+from processing_components.imaging.base import predict_skycomponent_visibility
 
 log = logging.getLogger(__name__)
 
@@ -27,7 +28,7 @@ class TestCalibrationOperations(unittest.TestCase):
         pass
         
     def actualSetup(self, sky_pol_frame='stokesIQUV', data_pol_frame='linear'):
-        self.lowcore = create_named_configuration('LOWBD2-CORE')
+        self.lowcore = create_named_configuration('LOWBD2', rmax=300.0)
         self.times = (numpy.pi / 43200.0) * numpy.arange(0.0, 300.0, 30.0)
         vnchan = 3
         self.frequency = numpy.linspace(1.0e8, 1.1e8, vnchan)

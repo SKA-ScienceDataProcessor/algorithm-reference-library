@@ -14,6 +14,6 @@
 #    :scale: 75 %
 #
 # """
-# from imaging.base import predict_2d_base, predict_skycomponent_visibility, \
-#     predict_skycomponent_visibility, invert_2d_base, normalize_sumwt, shift_vis_to_image, \
+# from imaging.base import predict_2d, predict_skycomponent_visibility, \
+#     predict_skycomponent_visibility, invert_2d, normalize_sumwt, shift_vis_to_image, \
 #     create_image_from_visibility, residual_image

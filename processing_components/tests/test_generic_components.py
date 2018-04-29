@@ -10,15 +10,16 @@ from astropy import units as u
 from astropy.coordinates import SkyCoord
 
 from data_models.polarisation import PolarisationFrame
-from image.iterators import image_raster_iter
-from ..imaging.base import predict_skycomponent_visibility
-from ..skycomponent.operations import create_skycomponent
-from ..util.testing_support import create_named_configuration, create_test_image
-from ..visibility.base import create_blockvisibility
+from processing_components.image.iterators import image_raster_iter
+from processing_components.imaging.base import predict_skycomponent_visibility
+from processing_components.skycomponent.operations import create_skycomponent
+from processing_components.util.testing_support import create_named_configuration, create_test_image
+from processing_components.visibility.base import create_blockvisibility
 
-from component_support.arlexecute import arlexecute
-from generic_components import generic_blockvisibility_component, \
-    generic_image_component, generic_image_iterator_component
+from processing_components.component_support.arlexecute import arlexecute
+from processing_components.component_support.generic_components import generic_blockvisibility_component, \
+    generic_image_component, \
+    generic_image_iterator_component
 
 
 class TestPipelinesGenericDask(unittest.TestCase):

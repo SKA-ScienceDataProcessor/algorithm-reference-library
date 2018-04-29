@@ -10,6 +10,8 @@ A typical use would be to make a sequence of snapshot images::
 """
 
 import logging
+from typing import Union
+
 
 import numpy
 
@@ -18,7 +20,7 @@ from data_models.memory_data_models import Visibility, BlockVisibility
 log = logging.getLogger(__name__)
 
 
-def vis_null_iter(vis: Visibility, vis_slices=1) -> numpy.ndarray:
+def vis_null_iter(vis: Union[Visibility, BlockVisibility], vis_slices=1) -> numpy.ndarray:
     """One time iterator returning true for all rows
     
     :param vis:

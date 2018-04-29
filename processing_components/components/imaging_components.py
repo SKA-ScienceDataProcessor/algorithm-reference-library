@@ -465,3 +465,28 @@ def deconvolve_channel_component(dirty_list, psf_list, model_imagelist, subimage
                for dirty_list in dirty_lists]
     result = arlexecute.execute(image_gather_channels, nout=1, pure=True)(results, output, subimages=subimages)
     return arlexecute.execute(add_model, nout=1, pure=True)(result, model_imagelist)
+
+
+def weight_component(vis_list, model_imagelist, weighting='uniform', **kwargs):
+    """ Weight the visibility data
+
+    :param vis_list:
+    :param model_imagelist: Model required to determine weighting parameters
+    :param weighting: Type of weighting
+    :param kwargs: Parameters for functions in graphs
+    :return: List of vis_graphs
+   """
+    
+    def weight_vis(vis, model):
+        if vis is not None:
+            if model is not None:
+                vis, _, _ = weight_visibility(vis, model, weighting=weighting, **kwargs)
+                return vis
+            else:
+                return None
+        else:
+            return None
+    
+    return [arlexecute.execute(weight_vis, pure=True, nout=1)(vis_list[i], model_imagelist[i])
+            for i in range(len(vis_list))]
+

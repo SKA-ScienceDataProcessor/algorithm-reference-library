@@ -7,9 +7,9 @@ import unittest
 
 from astropy.coordinates import SkyCoord
 import astropy.units as u
-from ..util.testing_support import create_named_configuration
-from ..visibility.iterators import vis_timeslice_iter, vis_wslice_iter, vis_null_iter, vis_timeslices, vis_wslices
-from ..visibility.base import create_visibility, create_visibility_from_rows
+from processing_components.util.testing_support import create_named_configuration
+from processing_components.visibility.iterators import vis_timeslice_iter, vis_wslice_iter, vis_null_iter, vis_timeslices, vis_wslices
+from processing_components.visibility.base import create_visibility, create_visibility_from_rows
 
 import logging
 log = logging.getLogger(__name__)

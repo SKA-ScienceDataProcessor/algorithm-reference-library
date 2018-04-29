@@ -18,7 +18,7 @@ from libs.image.operations import create_w_term_like
 from ..image.operations import copy_image
 from ..visibility.base import copy_visibility
 from ..visibility.coalesce import coalesce_visibility, decoalesce_visibility
-from ..imaging.base import predict_2d_base, invert_2d_base
+from ..imaging.base import predict_2d, invert_2d
 
 import logging
 log = logging.getLogger(__name__)
@@ -54,11 +54,11 @@ def predict_wstack_single(vis, model, remove=True, facets=1, vis_slices=1, **kwa
     
     # Do the real part
     workimage.data = w_beam.data.real * model.data
-    avis = predict_2d_base(avis, workimage, facets=1, vis_slices=1, **kwargs)
+    avis = predict_2d(avis, workimage, facets=1, vis_slices=1, **kwargs)
     
     # and now the imaginary part
     workimage.data = w_beam.data.imag * model.data
-    tempvis = predict_2d_base(tempvis, workimage, facets=facets, vis_slices=vis_slices, **kwargs)
+    tempvis = predict_2d(tempvis, workimage, facets=facets, vis_slices=vis_slices, **kwargs)
     avis.data['vis'] -= 1j * tempvis.data['vis']
     
     if not remove:
@@ -90,7 +90,7 @@ def invert_wstack_single(vis: Visibility, im: Image, dopsf, normalize=True, remo
     w_average = numpy.average(vis.w)
     vis.data['uvw'][..., 2] -= w_average
     
-    reWorkimage, sumwt, imWorkimage = invert_2d_base(vis, im, dopsf, normalize=normalize, facets=facets,
+    reWorkimage, sumwt, imWorkimage = invert_2d(vis, im, dopsf, normalize=normalize, facets=facets,
                                                      vis_slices=vis_slices, **kwargs)
     
     if not remove:

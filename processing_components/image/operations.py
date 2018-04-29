@@ -121,7 +121,7 @@ def qa_image(im, context="") -> QA:
     return qa
 
 
-def show_image(im: Image, fig=None, title: str = '', pol=0, chan=0, cm='rainbow', components=None,
+def show_image(im: Image, fig=None, title: str = '', pol=0, chan=0, cm='Greys', components=None,
                vmin=None, vmax=None):
     """ Show an Image with coordinates using matplotlib, optionally with components
 

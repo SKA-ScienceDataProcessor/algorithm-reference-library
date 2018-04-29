@@ -9,11 +9,11 @@ import numpy
 from astropy.coordinates import SkyCoord
 import astropy.units as u
 from data_models.polarisation import PolarisationFrame
-from ..util.testing_support import create_named_configuration
-from ..visibility.coalesce import coalesce_visibility, decoalesce_visibility, \
+from processing_components.util.testing_support import create_named_configuration
+from processing_components.visibility.coalesce import coalesce_visibility, decoalesce_visibility, \
     convert_blockvisibility_to_visibility
-from ..visibility.base import create_blockvisibility, create_visibility_from_rows
-from ..visibility.iterators import vis_timeslice_iter
+from processing_components.visibility.base import create_blockvisibility, create_visibility_from_rows
+from processing_components.visibility.iterators import vis_timeslice_iter
 
 import logging
 
@@ -23,7 +23,7 @@ log = logging.getLogger(__name__)
 class TestCoalesce(unittest.TestCase):
     def setUp(self):
 
-        self.lowcore = create_named_configuration('LOWBD2-CORE')
+        self.lowcore = create_named_configuration('LOWBD2', rmax=300.0)
         self.times = (numpy.pi / 43200.0) * numpy.arange(0.0, 30 * 3.76, 3.76)
         df = 27343.75000
         self.frequency = numpy.array([1e8 - df, 1e8, 1e8 + df])

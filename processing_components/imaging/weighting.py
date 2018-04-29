@@ -9,7 +9,7 @@ There are two classes of functions:
 
 import numpy
 
-from array_functions import tukey_filter
+from libs.util.array_functions import tukey_filter
 from data_models.memory_data_models import Visibility, Image
 from data_models.parameters import get_parameter
 

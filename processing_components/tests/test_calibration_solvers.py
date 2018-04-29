@@ -12,13 +12,13 @@ import astropy.units as u
 from data_models.memory_data_models import Skycomponent
 from data_models.polarisation import PolarisationFrame
 
-from calibration.operations import apply_gaintable, create_gaintable_from_blockvisibility, gaintable_summary, \
+from processing_components.calibration.operations import apply_gaintable, create_gaintable_from_blockvisibility, gaintable_summary, \
     qa_gaintable
-from calibration.calibration import solve_gaintable
-from ..util.testing_support import create_named_configuration, simulate_gaintable
-from ..visibility.operations import divide_visibility
-from ..visibility.base import copy_visibility, create_blockvisibility
-from ..imaging.base import predict_skycomponent_visibility
+from processing_components.calibration.calibration import solve_gaintable
+from processing_components.util.testing_support import create_named_configuration, simulate_gaintable
+from processing_components.visibility.operations import divide_visibility
+from processing_components.visibility.base import copy_visibility, create_blockvisibility
+from processing_components.imaging.base import predict_skycomponent_visibility
 
 import logging
 
@@ -30,7 +30,7 @@ class TestCalibrationSolvers(unittest.TestCase):
         numpy.random.seed(180555)
         
     def actualSetup(self, sky_pol_frame='stokesIQUV', data_pol_frame='linear', f=None, vnchan=3):
-        self.lowcore = create_named_configuration('LOWBD2-CORE')
+        self.lowcore = create_named_configuration('LOWBD2', rmax=300.0)
         self.times = (numpy.pi / 43200.0) * numpy.linspace(0.0, 30.0, 3)
         self.frequency = numpy.linspace(1.0e8, 1.1e8, vnchan)
         self.channel_bandwidth = numpy.array(vnchan * [self.frequency[1] - self.frequency[0]])
@@ -157,7 +157,7 @@ class TestCalibrationSolvers(unittest.TestCase):
         
     def test_solve_gaintable_matrix_both_circular_channel(self):
         self.core_solve('stokesIQUV', 'circular', phase_error=0.1, amplitude_error=0.01,
-                        leakage=0.01, residual_tol=1e-3, crosspol=True, vnchan=16,
+                        leakage=0.01, residual_tol=1e-3, crosspol=True, vnchan=4,
                         phase_only=False, f=[100.0, 0.0, 0.0, 50.0])
 
 if __name__ == '__main__':

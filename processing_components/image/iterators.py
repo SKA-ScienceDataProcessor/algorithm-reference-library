@@ -10,6 +10,7 @@ import numpy
 from data_models.memory_data_models import Image
 
 from libs.image.operations import create_image_from_array
+from libs.util.array_functions import tukey_filter
 
 from ..image.operations import create_empty_image_like
 
@@ -109,8 +110,6 @@ def image_raster_iter(im: Image, facets=1, overlap=0, taper='flat', make_flat=Fa
         def taper_tukey():
             t = numpy.ones(dx)
             ramp = numpy.arange(0, overlap).astype(float) / float(overlap)
-
-            from array_functions import tukey_filter
 
             xs = numpy.arange(dx) / float(dx)
             r = 2 * overlap / dx

@@ -10,7 +10,7 @@ from astropy import constants as const
 from astropy.wcs import FITSFixedWarning
 from astropy.wcs.utils import skycoord_to_pixel
 
-from image.operations import create_empty_image_like
+from processing_components.image.operations import create_empty_image_like
 
 log = logging.getLogger(__name__)
 

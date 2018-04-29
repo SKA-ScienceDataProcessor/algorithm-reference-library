@@ -12,18 +12,18 @@ from astropy.coordinates import SkyCoord
 from data_models.polarisation import PolarisationFrame
 from data_models.memory_data_models import SkyModel
 
-from ..calibration.operations import apply_gaintable, create_gaintable_from_blockvisibility
-from ..calibration.calskymodel import calskymodel_solve
-from ..calibration.calibration import solve_gaintable
-from ..image.operations import export_image_to_fits, qa_image
-from ..imaging.base import predict_skycomponent_visibility, create_image_from_visibility
-from ..imaging.imaging_functions import invert_function
-from ..imaging.weighting import weight_visibility
-from ..skycomponent.operations import apply_beam_to_skycomponent, find_skycomponent_matches
-from ..util.testing_support import create_named_configuration, simulate_gaintable, \
+from processing_components.calibration.operations import apply_gaintable, create_gaintable_from_blockvisibility
+from processing_components.calibration.calskymodel import calskymodel_solve
+from processing_components.calibration.calibration import solve_gaintable
+from processing_components.image.operations import export_image_to_fits, qa_image
+from processing_components.imaging.base import predict_skycomponent_visibility, create_image_from_visibility
+from processing_components.imaging.imaging_functions import invert_function
+from processing_components.imaging.weighting import weight_visibility
+from processing_components.skycomponent.operations import apply_beam_to_skycomponent, find_skycomponent_matches
+from processing_components.util.testing_support import create_named_configuration, simulate_gaintable, \
     create_low_test_skycomponents_from_gleam, create_low_test_beam
-from ..visibility.base import copy_visibility, create_blockvisibility
-from ..visibility.coalesce import convert_blockvisibility_to_visibility
+from processing_components.visibility.base import copy_visibility, create_blockvisibility
+from processing_components.visibility.coalesce import convert_blockvisibility_to_visibility
 
 log = logging.getLogger(__name__)
 

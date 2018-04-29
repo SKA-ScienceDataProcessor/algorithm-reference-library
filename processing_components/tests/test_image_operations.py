@@ -12,10 +12,11 @@ from data_models.polarisation import PolarisationFrame
 from libs.image.operations import create_image_from_array, checkwcs, create_w_term_like, \
     polarisation_frame_from_wcs,fft_image, pad_image, convert_image_to_kernel
 
-from ..image.operations import copy_image, create_empty_image_like, export_image_to_fits, reproject_image, add_image, \
+from processing_components.image.operations import copy_image, create_empty_image_like, export_image_to_fits, \
+    reproject_image, add_image, \
     qa_image, smooth_image, calculate_image_frequency_moments, calculate_image_from_frequency_moments, \
     convert_stokes_to_polimage, convert_polimage_to_stokes
-from ..util.testing_support import create_test_image, create_low_test_image_from_gleam
+from processing_components.util.testing_support import create_test_image, create_low_test_image_from_gleam
 
 log = logging.getLogger(__name__)
 

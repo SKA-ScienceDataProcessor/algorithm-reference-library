@@ -11,10 +11,11 @@ from astropy.coordinates import SkyCoord
 
 from data_models.memory_data_models import SkyModel
 from data_models.polarisation import PolarisationFrame
-from ..skycomponent.operations import create_skycomponent
-from ..skymodel.operations import copy_skymodel
-from ..util.testing_support import create_test_image, create_named_configuration
-from ..visibility.base import create_blockvisibility
+
+from processing_components.skycomponent.operations import create_skycomponent
+from processing_components.skymodel.operations import copy_skymodel
+from processing_components.util.testing_support import create_test_image, create_named_configuration
+from processing_components.visibility.base import create_blockvisibility
 
 log = logging.getLogger(__name__)
 
@@ -53,5 +54,9 @@ class TestSkyModel(unittest.TestCase):
                                   polarisation_frame=PolarisationFrame('stokesI')) for f in fluxes]
         sm = SkyModel(images=[self.model], components=sc)
         sm_copy = copy_skymodel(sm)
-        print("Original", sm)
-        print("Copy", sm_copy)
+        assert len(sm.components) == len(sm_copy.components)
+        sm_fluxes = numpy.array([c.flux[0,0] for c in sm.components])
+        sm_copy_fluxes = numpy.array([c.flux[0,0] for c in sm_copy.components])
+        
+        assert numpy.max(numpy.abs(sm_fluxes - sm_copy_fluxes)) < 1e-7
+        

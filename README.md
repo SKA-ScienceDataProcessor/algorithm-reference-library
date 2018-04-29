@@ -2,7 +2,8 @@
 Algorithm Reference Library
 ===========================
 
-This is a project to create a reference code in NumPy for aperture synthesis imaging.
+This is a project to create a reference code in NumPy for aperture synthesis 
+imaging. It is structured to match the SDP processing architecture.
 
 Motivation
 ----------

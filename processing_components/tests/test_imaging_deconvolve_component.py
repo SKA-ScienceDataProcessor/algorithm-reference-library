@@ -13,14 +13,14 @@ from astropy.coordinates import SkyCoord
 
 from data_models.polarisation import PolarisationFrame
 
-from ..image.operations import export_image_to_fits, smooth_image
-from ..imaging.base import predict_skycomponent_visibility
-from ..skycomponent.operations import insert_skycomponent
-from ..util.testing_support import create_named_configuration, ingest_unittest_visibility, create_unittest_model, \
+from processing_components.image.operations import export_image_to_fits, smooth_image
+from processing_components.imaging.base import predict_skycomponent_visibility
+from processing_components.skycomponent.operations import insert_skycomponent
+from processing_components.util.testing_support import create_named_configuration, ingest_unittest_visibility, create_unittest_model, \
     create_unittest_components, insert_unittest_errors
 
-from ..component_support.arlexecute import arlexecute
-from ..components.imaging_components import invert_component, deconvolve_component, \
+from processing_components.component_support.arlexecute import arlexecute
+from processing_components.components.imaging_components import invert_component, deconvolve_component, \
     residual_component, restore_component
 
 log = logging.getLogger(__name__)

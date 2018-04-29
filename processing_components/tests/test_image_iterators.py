@@ -8,9 +8,9 @@ import unittest
 import numpy
 
 from data_models.polarisation import PolarisationFrame
-from image.iterators import   image_raster_iter, image_channel_iter, image_null_iter
-from image.operations import create_empty_image_like
-from ..util.testing_support import create_test_image
+from processing_components.image.iterators import   image_raster_iter, image_channel_iter, image_null_iter
+from processing_components.image.operations import create_empty_image_like
+from processing_components.util.testing_support import create_test_image
 
 log = logging.getLogger(__name__)
 

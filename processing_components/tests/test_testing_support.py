@@ -14,14 +14,14 @@ from astropy.coordinates import SkyCoord
 from data_models.memory_data_models import Skycomponent
 from data_models.polarisation import PolarisationFrame
 
-from ..image.operations import export_image_to_fits
-from ..imaging.base import predict_skycomponent_visibility
-from ..util.testing_support import create_test_image_from_s3, create_named_configuration, create_test_image, \
+from processing_components.image.operations import export_image_to_fits
+from processing_components.imaging.base import predict_skycomponent_visibility
+from processing_components.util.testing_support import create_test_image_from_s3, create_named_configuration, create_test_image, \
     create_low_test_beam, create_blockvisibility_iterator, create_low_test_image_from_gleam, \
     create_low_test_skycomponents_from_gleam
-from ..visibility.base import create_visibility, create_blockvisibility
-from ..visibility.coalesce import coalesce_visibility
-from ..visibility.operations import append_visibility
+from processing_components.visibility.base import create_visibility, create_blockvisibility
+from processing_components.visibility.coalesce import coalesce_visibility
+from processing_components.visibility.operations import append_visibility
 
 log = logging.getLogger(__name__)
 

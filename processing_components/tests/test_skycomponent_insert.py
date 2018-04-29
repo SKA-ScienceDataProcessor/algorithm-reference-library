@@ -10,12 +10,13 @@ import numpy
 from astropy.coordinates import SkyCoord
 
 from data_models.polarisation import PolarisationFrame
-from ..image.operations import export_image_to_fits
-from ..imaging.imaging_functions import predict_function, invert_function
-from ..imaging.base import predict_skycomponent_visibility
-from ..skycomponent.operations import insert_skycomponent, create_skycomponent
-from ..util.testing_support import create_test_image, create_named_configuration
-from ..visibility.base import create_visibility
+
+from processing_components.image.operations import export_image_to_fits
+from processing_components.imaging.imaging_functions import predict_function, invert_function
+from processing_components.imaging.base import predict_skycomponent_visibility
+from processing_components.skycomponent.operations import insert_skycomponent, create_skycomponent
+from processing_components.util.testing_support import create_test_image, create_named_configuration
+from processing_components.visibility.base import create_visibility
 
 log = logging.getLogger(__name__)
 
@@ -41,12 +42,6 @@ class TestSkycomponentInsert(unittest.TestCase):
         self.vis = predict_function(self.vis, self.model)
         assert numpy.max(numpy.abs(self.vis.vis)) > 0.0
         
-    def test_copy(self):
-        fluxes = numpy.linspace(0, 1.0, 10)
-        sc = [create_skycomponent(direction=self.phasecentre, flux=numpy.array([[f]]), frequency=self.frequency,
-                                  polarisation_frame=PolarisationFrame('stokesI')) for f in fluxes]
-        assert len(sc) == len(fluxes)
-    
     def test_insert_skycomponent_FFT(self):
         sc = create_skycomponent(direction=self.phasecentre, flux=numpy.array([[1.0]]), frequency=self.frequency,
                                  polarisation_frame=PolarisationFrame('stokesI'))

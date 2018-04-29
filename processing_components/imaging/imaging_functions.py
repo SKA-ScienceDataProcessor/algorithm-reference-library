@@ -15,7 +15,7 @@ from data_models.memory_data_models import Visibility, Image
 from ..image.gather_scatter import image_scatter_facets
 from ..image.operations import create_empty_image_like
 from ..imaging.base import normalize_sumwt
-from ..imaging.base import predict_2d_base, invert_2d_base
+from ..imaging.base import predict_2d, invert_2d
 from ..imaging.timeslice_single import predict_timeslice_single, invert_timeslice_single
 from ..imaging.wstack_single import predict_wstack_single, invert_wstack_single
 from ..visibility.base import copy_visibility, create_visibility_from_rows
@@ -37,12 +37,12 @@ def imaging_contexts():
     
     :return:
     """
-    contexts = {'2d': {'predict': predict_2d_base,
-                       'invert': invert_2d_base,
+    contexts = {'2d': {'predict': predict_2d,
+                       'invert': invert_2d,
                        'vis_iterator': vis_null_iter,
                        'inner': 'image'},
-                'facets': {'predict': predict_2d_base,
-                           'invert': invert_2d_base,
+                'facets': {'predict': predict_2d,
+                           'invert': invert_2d,
                            'vis_iterator': vis_null_iter,
                            'inner': 'image'},
                 'facets_timeslice': {'predict': predict_timeslice_single,

@@ -9,7 +9,6 @@ Library.
 
 See also the :ref:`genindex` and :ref:`modindex`.
 
-
 Data containers used by ARL
 ===========================
 
@@ -19,6 +18,7 @@ See :py:mod:`data_models.memory_data_models` for the following definitions:`
 * GainTable for gain solutions (as (e.g. output from solve_gaintable): :py:class:`data_models.memory_data_models.GainTable`
 * Image (data and WCS header): :py:class:`data_models.memory_data_models.Image`
 * Skycomponent ((data for a point source or a Gaussian source): :py:class:`data_models.memory_data_models.Skycomponent`
+* SkyModel (A collection of SkyComponents and Images: py:class:`data_models.memory_data_models.SkyModel`
 * Baseline based visibility tables shape (npol,), length nvis) :py:class:`data_models.memory_data_models.Visibility`
 * Antenna-based visibility table, shape (nants, nants, nchan, npol), length ntimes): :py:class:`data_models.memory_data_models.BlockVisibility`
 

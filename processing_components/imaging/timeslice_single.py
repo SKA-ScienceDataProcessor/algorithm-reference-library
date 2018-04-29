@@ -30,7 +30,7 @@ from data_models.memory_data_models import Visibility, Image
 
 from ..image.operations import copy_image, create_empty_image_like
 
-from ..imaging.base import predict_2d_base, invert_2d_base
+from ..imaging.base import predict_2d, invert_2d
 
 from ..visibility.coalesce import coalesce_visibility
 
@@ -76,7 +76,7 @@ def fit_uvwplane(vis: Visibility, remove=False) -> (Image, float, float):
     return vis, p, q
 
 
-def predict_timeslice_single(vis: Visibility, model: Image, predict=predict_2d_base, remove=True,
+def predict_timeslice_single(vis: Visibility, model: Image, predict=predict_2d, remove=True,
                              facets=1, vis_slices=1, **kwargs) -> Visibility:
     """ Predict using a single time slices.
     
@@ -173,7 +173,7 @@ def invert_timeslice_single(vis: Visibility, im: Image, dopsf, normalize=True, f
 
     avis, p, q = fit_uvwplane(avis, remove=True)
     
-    workimage, sumwt = invert_2d_base(avis, im, dopsf, normalize=normalize, facets=facets,
+    workimage, sumwt = invert_2d(avis, im, dopsf, normalize=normalize, facets=facets,
                                       vis_slices=vis_slices, **kwargs)
 
     finalimage = create_empty_image_like(im)

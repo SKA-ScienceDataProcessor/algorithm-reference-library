@@ -32,3 +32,9 @@ __pycache__
 dask-worker-space
 /examples/arl/results
 /test_results
+/docs/libs
+/docs/processing_components
+/docs/workflows
+*/notebooks/*_files
+*/notebooks/*.rst
+*.log

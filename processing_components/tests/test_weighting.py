@@ -11,13 +11,15 @@ from astropy.coordinates import SkyCoord
 from photutils import fit_2dgaussian
 
 from data_models.polarisation import PolarisationFrame
+
 from libs.image.operations import fft_image
-from ..image.operations import export_image_to_fits
-from ..imaging.base import invert_2d
-from imaging.base import create_image_from_visibility
-from imaging.weighting import weight_visibility, taper_visibility_gaussian, taper_visibility_tukey
-from ..util.testing_support import create_named_configuration
-from ..visibility.base import create_visibility
+
+from processing_components.image.operations import export_image_to_fits
+from processing_components.imaging.base import invert_2d
+from processing_components.imaging.base import create_image_from_visibility
+from processing_components.imaging.weighting import weight_visibility, taper_visibility_gaussian, taper_visibility_tukey
+from processing_components.util.testing_support import create_named_configuration
+from processing_components.visibility.base import create_visibility
 
 log = logging.getLogger(__name__)
 
@@ -26,16 +28,10 @@ class TestWeighting(unittest.TestCase):
     def setUp(self):
         from data_models.parameters import arl_path
         self.dir = arl_path('test_results')
-        self.params = {'npixel': 512,
-                       'nchan': 1,
-                       'reffrequency': 1e8,
-                       'facets': 8,
-                       'padding': 2,
-                       'oversampling': 2,
-                       'timeslice': 1000.0}
+        self.npixel = 512
     
     def actualSetUp(self, time=None, frequency=None, dospectral=False, dopol=False):
-        self.lowcore = create_named_configuration('LOWBD2-CORE')
+        self.lowcore = create_named_configuration('LOWBD2', rmax=600)
         self.times = (numpy.pi / 12.0) * numpy.linspace(-3.0, 3.0, 5)
         
         if time is not None:
@@ -75,7 +71,7 @@ class TestWeighting(unittest.TestCase):
         self.componentvis.data['vis'] *= 0.0
         
         # Create model
-        self.model = create_image_from_visibility(self.componentvis, npixel=512, cellsize=0.001,
+        self.model = create_image_from_visibility(self.componentvis, npixel=self.npixel, cellsize=0.001,
                                                   nchan=len(self.frequency),
                                                   polarisation_frame=self.image_pol)
 
@@ -121,7 +117,6 @@ class TestWeighting(unittest.TestCase):
         self.componentvis = taper_visibility_tukey(self.componentvis, tukey=1.0)
         psf, sumwt = invert_2d(self.componentvis, self.model, dopsf=True)
         export_image_to_fits(psf, '%s/test_weighting_tukey_taper_psf.fits' % self.dir)
-        from libs.image.operations import fft_image
         xfr = fft_image(psf)
         xfr.data = xfr.data.real.astype('float')
         export_image_to_fits(xfr, '%s/test_weighting_tukey_taper_xfr.fits' % self.dir)

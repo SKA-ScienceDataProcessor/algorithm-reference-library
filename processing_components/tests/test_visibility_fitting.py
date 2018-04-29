@@ -11,10 +11,10 @@ from astropy.coordinates import SkyCoord
 
 from data_models.memory_data_models import Skycomponent
 from data_models.polarisation import PolarisationFrame
-from ..imaging.base import predict_skycomponent_visibility
-from ..util.testing_support import create_named_configuration
-from ..visibility.base import create_visibility
-from ..visibility.visibility_fitting import fit_visibility
+from processing_components.imaging.base import predict_skycomponent_visibility
+from processing_components.util.testing_support import create_named_configuration
+from processing_components.visibility.base import create_visibility
+from processing_components.visibility.visibility_fitting import fit_visibility
 
 
 class TestVisibilityFitting(unittest.TestCase):

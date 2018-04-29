@@ -192,7 +192,7 @@ def invert_2d(vis: Visibility, im: Image, dopsf: bool = False, normalize: bool =
     
     imaginary = get_parameter(kwargs, "imaginary", False)
     if imaginary:
-        log.debug("invert_2d_base: retaining imaginary part of dirty image")
+        log.debug("invert_2d: retaining imaginary part of dirty image")
         result = extract_mid(ifft(imgridpad) * gcf, npixel=nx)
         resultreal = create_image_from_array(result.real, im.wcs, im.polarisation_frame)
         resultimag = create_image_from_array(result.imag, im.wcs, im.polarisation_frame)

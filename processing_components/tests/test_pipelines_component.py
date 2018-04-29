@@ -12,14 +12,14 @@ from astropy import units as u
 from astropy.coordinates import SkyCoord
 
 from data_models.polarisation import PolarisationFrame
-
-from ..component_support.arlexecute import arlexecute
-from ..calibration.calibration_control import create_calibration_controls
-from ..image.operations import export_image_to_fits, qa_image, smooth_image
-from ..imaging.base import predict_skycomponent_visibility
-from ..components.pipeline_components import ical_component, continuum_imaging_component
-from ..skycomponent.operations import insert_skycomponent
-from ..util.testing_support import create_named_configuration, ingest_unittest_visibility, create_unittest_model, \
+from processing_components.calibration.calibration_control import create_calibration_controls
+from processing_components.component_support.arlexecute import arlexecute
+from processing_components.components.pipeline_components import ical_component, continuum_imaging_component
+from processing_components.image.operations import export_image_to_fits, qa_image, smooth_image
+from processing_components.imaging.base import predict_skycomponent_visibility
+from processing_components.skycomponent.operations import insert_skycomponent
+from processing_components.util.testing_support import create_named_configuration, ingest_unittest_visibility, \
+    create_unittest_model, \
     create_unittest_components, insert_unittest_errors
 
 log = logging.getLogger(__name__)
@@ -36,7 +36,7 @@ class TestPipelineGraphs(unittest.TestCase):
         from data_models.parameters import arl_path
         self.dir = arl_path('test_results')
         arlexecute.set_client(use_dask=True)
-
+    
     def actualSetUp(self, add_errors=False, freqwin=5, block=False, dospectral=True, dopol=False,
                     amp_errors=None, phase_errors=None, zerow=True):
         
@@ -74,13 +74,13 @@ class TestPipelineGraphs(unittest.TestCase):
         
         self.phasecentre = SkyCoord(ra=+180.0 * u.deg, dec=-60.0 * u.deg, frame='icrs', equinox='J2000')
         self.vis_list = [arlexecute.execute(ingest_unittest_visibility)(self.low,
-                                                                              [self.frequency[i]],
-                                                                              [self.channelwidth[i]],
-                                                                              self.times,
-                                                                              self.vis_pol,
-                                                                              self.phasecentre, block=block,
-                                                                              zerow=zerow)
-                               for i, _ in enumerate(self.frequency)]
+                                                                        [self.frequency[i]],
+                                                                        [self.channelwidth[i]],
+                                                                        self.times,
+                                                                        self.vis_pol,
+                                                                        self.phasecentre, block=block,
+                                                                        zerow=zerow)
+                         for i, _ in enumerate(self.frequency)]
         
         self.model_imagelist = [
             arlexecute.execute(create_unittest_model, nout=freqwin)(self.vis_list[0], self.image_pol,
@@ -93,14 +93,13 @@ class TestPipelineGraphs(unittest.TestCase):
         
         # Apply the LOW primary beam and insert into model
         self.model_imagelist = [arlexecute.execute(insert_skycomponent, nout=1)(self.model_imagelist[freqwin],
-                                                                            self.components_list[freqwin])
-                            for freqwin, _ in enumerate(self.frequency)]
+                                                                                self.components_list[freqwin])
+                                for freqwin, _ in enumerate(self.frequency)]
         
         self.vis_list = [arlexecute.execute(predict_skycomponent_visibility)(self.vis_list[freqwin],
-                                                                                   self.components_list[freqwin])
-                               for freqwin, _ in enumerate(self.frequency)]
-
-
+                                                                             self.components_list[freqwin])
+                         for freqwin, _ in enumerate(self.frequency)]
+        
         # Calculate the model convolved with a Gaussian.
         self.model_imagelist = arlexecute.compute(self.model_imagelist, sync=True)
         model = self.model_imagelist[0]
@@ -126,13 +125,13 @@ class TestPipelineGraphs(unittest.TestCase):
         self.actualSetUp(add_errors=False, block=True)
         continuum_imaging_list = \
             continuum_imaging_component(self.vis_list, model_imagelist=self.model_imagelist, context='2d',
-                                                 algorithm='mmclean', facets=1,
-                                                 scales=[0, 3, 10],
-                                                 niter=1000, fractional_threshold=0.1,
-                                                 nmoments=2, nchan=self.freqwin,
-                                                 threshold=2.0, nmajor=5, gain=0.1,
-                                                 deconvolve_facets=8, deconvolve_overlap=16,
-                                                 deconvolve_taper='tukey')
+                                        algorithm='mmclean', facets=1,
+                                        scales=[0, 3, 10],
+                                        niter=1000, fractional_threshold=0.1,
+                                        nmoments=2, nchan=self.freqwin,
+                                        threshold=2.0, nmajor=5, gain=0.1,
+                                        deconvolve_facets=8, deconvolve_overlap=16,
+                                        deconvolve_taper='tukey')
         clean, residual, restored = arlexecute.compute(continuum_imaging_list, sync=True)
         export_image_to_fits(clean[0], '%s/test_pipelines_continuum_imaging_pipeline_clean.fits' % self.dir)
         export_image_to_fits(residual[0][0],
@@ -161,15 +160,15 @@ class TestPipelineGraphs(unittest.TestCase):
         
         ical_list = \
             ical_component(self.vis_list, model_imagelist=self.model_imagelist, context='2d',
-                                       calibration_context='T', controls=controls, do_selfcal=True,
-                                       global_solution=False,
-                                       algorithm='mmclean',
-                                       facets=1,
-                                       scales=[0, 3, 10],
-                                       niter=1000, fractional_threshold=0.1,
-                                       nmoments=2, nchan=self.freqwin,
-                                       threshold=2.0, nmajor=5, gain=0.1,
-                                       deconvolve_facets=8, deconvolve_overlap=16, deconvolve_taper='tukey')
+                           calibration_context='T', controls=controls, do_selfcal=True,
+                           global_solution=False,
+                           algorithm='mmclean',
+                           facets=1,
+                           scales=[0, 3, 10],
+                           niter=1000, fractional_threshold=0.1,
+                           nmoments=2, nchan=self.freqwin,
+                           threshold=2.0, nmajor=5, gain=0.1,
+                           deconvolve_facets=8, deconvolve_overlap=16, deconvolve_taper='tukey')
         clean, residual, restored = arlexecute.compute(ical_list, sync=True)
         export_image_to_fits(clean[0], '%s/test_pipelines_ical_pipeline_clean.fits' % self.dir)
         export_image_to_fits(residual[0][0], '%s/test_pipelines_ical_pipeline_residual.fits' % self.dir)

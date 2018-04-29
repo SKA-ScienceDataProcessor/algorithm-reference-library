@@ -12,9 +12,9 @@ from astropy.coordinates import SkyCoord
 
 from data_models.polarisation import PolarisationFrame
 
-from ..imaging.base import create_image_from_visibility
-from ..imaging.weighting import weight_visibility
-from ..util.testing_support import create_named_configuration, ingest_unittest_visibility, create_unittest_model
+from processing_components.imaging.base import create_image_from_visibility
+from processing_components.imaging.weighting import weight_visibility
+from processing_components.util.testing_support import create_named_configuration, ingest_unittest_visibility, create_unittest_model
 
 log = logging.getLogger(__name__)
 
