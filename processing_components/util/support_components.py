@@ -8,8 +8,9 @@ from astropy import units as u
 from astropy.coordinates import SkyCoord
 
 from data_models.polarisation import PolarisationFrame
-from ..calibration.operations import apply_gaintable, create_gaintable_from_blockvisibility
+
 from ..component_support.arlexecute import arlexecute
+from ..calibration.operations import apply_gaintable, create_gaintable_from_blockvisibility
 from ..util.testing_support import create_named_configuration, simulate_gaintable
 from ..visibility.base import create_blockvisibility, create_visibility
 

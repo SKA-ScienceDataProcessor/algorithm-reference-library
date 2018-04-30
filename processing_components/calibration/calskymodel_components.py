@@ -41,12 +41,12 @@ skymodel_cal works best if an initial phase calibration has been obtained using 
 
 import logging
 
-from ..calibration.calskymodel import calskymodel_fit_skymodel, calskymodel_fit_gaintable
-from ..calibration.operations import copy_gaintable, apply_gaintable, create_gaintable_from_blockvisibility
-from ..component_support.arlexecute import arlexecute
-from ..components.imaging_components import sum_predict_results
-from ..skymodel.operations import copy_skymodel, predict_skymodel_visibility
-from ..visibility.operations import copy_visibility
+from calskymodel import calskymodel_fit_skymodel, calskymodel_fit_gaintable
+from operations import copy_gaintable, apply_gaintable, create_gaintable_from_blockvisibility
+from ..component_support.dask_init
+from imaging_components import sum_predict_results
+from operations import copy_skymodel, predict_skymodel_visibility
+from operations import copy_visibility
 
 log = logging.getLogger(__name__)
 

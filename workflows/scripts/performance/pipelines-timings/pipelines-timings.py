@@ -15,9 +15,9 @@ from dask_init import get_dask_Client, findNodes
 from data_models.polarisation import PolarisationFrame
 
 from processing_components.component_support.arlexecute import arlexecute
-from processing_components.components.imaging_components import predict_component, invert_component
-from processing_components.components.pipeline_components import ical_component
-from processing_components.components.support_components import simulate_component, corrupt_component
+from imaging_components import predict_component, invert_component
+from pipelines.pipeline_components import ical_component
+from support_components import simulate_component, corrupt_component
 from processing_components.image.operations import export_image_to_fits, qa_image, smooth_image
 from processing_components.imaging.base import create_image_from_visibility, advise_wide_field
 from processing_components.util.testing_support import create_low_test_image_from_gleam

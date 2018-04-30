@@ -36,6 +36,7 @@ import numpy
 from data_models.memory_data_models import Image
 from data_models.parameters import get_parameter
 from libs.image.operations import copy_image, create_empty_image_like
+
 from ..component_support.arlexecute import arlexecute
 from ..image.deconvolution import deconvolve_cube, restore_cube
 from ..image.gather_scatter import image_scatter_facets, image_gather_facets, image_scatter_channels, \
@@ -44,6 +45,7 @@ from ..imaging.base import normalize_sumwt
 from ..imaging.imaging_functions import imaging_context
 from ..imaging.weighting import weight_visibility
 from ..visibility.base import copy_visibility
+
 from ..visibility.gather_scatter import visibility_scatter, visibility_gather
 
 

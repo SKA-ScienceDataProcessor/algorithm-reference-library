@@ -11,7 +11,7 @@ from astropy.coordinates import SkyCoord
 
 from data_models.memory_data_models import BlockVisibility
 
-from processing_components.components.support_components import simulate_component
+from support_components import simulate_component
 from processing_components.component_support.arlexecute import arlexecute
 
 log = logging.getLogger(__name__)

@@ -20,7 +20,7 @@ from processing_components.util.testing_support import create_named_configuratio
     create_unittest_components, insert_unittest_errors
 
 from processing_components.component_support.arlexecute import arlexecute
-from processing_components.components.imaging_components import invert_component, deconvolve_component, \
+from imaging_components import invert_component, deconvolve_component, \
     residual_component, restore_component
 
 log = logging.getLogger(__name__)
