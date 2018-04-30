@@ -17,6 +17,8 @@ The corresponding directories are:
 * processing_components: components that can be executed by the Execution Framework.
 * workflows: Contains top level workflows
 
+Note that the function names in ARL do not directly correspond to those in the architecture diagram.
+
 ARL is composed of data models and functions. The data models are implemented as python classes. The functions are
 stateless so calling the same function with the same inputs will always return the same value.
 

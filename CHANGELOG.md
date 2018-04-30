@@ -1,5 +1,5 @@
 
-Effective April 2018, the ARL has been updated to be consistent with the SDP Processing Architecture. This required 
+Effective April 30 2018, the ARL has been updated to be consistent with the SDP Processing Architecture. This required 
 very substantial changes throughout. The code is consistent internally but ARL code kept outside the code tree will 
 need to be updated manually.
 
@@ -12,7 +12,7 @@ need to be updated manually.
 * The data definitions formerly in arl/data have been moved to a top level directory data_models. 
 * The top level Makefile has been updated
 * The docs have been updated
-* The use of the term graph has been replaced in many places by list to reflect the wrapping of dask in 
-arlexeute.
- 
+* The use of the term 'graph' has been replaced in many places by 'list' to reflect the wrapping of dask in 
+arlexecute.
+
  
