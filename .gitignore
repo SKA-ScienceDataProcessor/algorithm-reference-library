@@ -11,7 +11,6 @@
 /docs/build
 .ipynb_checkpoints
 
-/tests/test_results
 examples/performance/*
 
 __pycache__
@@ -30,8 +29,6 @@ __pycache__
 
 **/*.class
 dask-worker-space
-/examples/arl/results
-/test_results
 /docs/libs
 /docs/processing_components
 /docs/workflows
