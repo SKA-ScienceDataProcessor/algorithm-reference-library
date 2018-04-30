@@ -1,4 +1,4 @@
-""" Unit tests for FFT support
+""" Unit libs for FFT support
 
 
 """

@@ -1,4 +1,4 @@
-""" Unit tests for polarisation
+""" Unit libs for polarisation
 
 
 """

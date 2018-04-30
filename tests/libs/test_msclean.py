@@ -1,4 +1,4 @@
-""" Unit tests for image deconvolution via MSClean
+""" Unit libs for image deconvolution via MSClean
 
 
 """

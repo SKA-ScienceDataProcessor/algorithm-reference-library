@@ -1,4 +1,4 @@
-""" Unit tests for convolutional Gridding
+""" Unit libs for convolutional Gridding
 
 
 """

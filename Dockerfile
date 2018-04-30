@@ -1,4 +1,4 @@
-# Universal image for running Notebook, Dask pipelines, tests, and lint checkers
+# Universal image for running Notebook, Dask pipelines, libs, and lint checkers
 ARG PYTHON=python3.6
 
 FROM ubuntu:17.04
@@ -63,7 +63,7 @@ ADD ./Makefile /arl/
 ADD ./examples /arl/examples/
 ADD ./tests /arl/tests/
 
-# create space for tests
+# create space for libs
 RUN mkdir -p /arl/test_data /arl/test_results && \
     chmod 777 /arl /arl/test_data /arl/test_results && \
     chmod -R a+w /arl

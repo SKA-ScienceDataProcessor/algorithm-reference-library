@@ -1,4 +1,4 @@
-""" Unit tests for coordinate support
+""" Unit libs for coordinate support
 
 """
 
