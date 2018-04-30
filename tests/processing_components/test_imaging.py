@@ -19,7 +19,7 @@ from processing_components.skycomponent.operations import find_skycomponents, fi
 from processing_components.util.testing_support import create_named_configuration, ingest_unittest_visibility, create_unittest_model, \
     insert_unittest_errors, create_unittest_components
 from processing_components.component_support.arlexecute import arlexecute
-from imaging_components import zero_vislist_component, predict_component, \
+from processing_components.imaging.imaging_components import zero_vislist_component, predict_component, \
     invert_component, subtract_vislist_component
 
 log = logging.getLogger(__name__)

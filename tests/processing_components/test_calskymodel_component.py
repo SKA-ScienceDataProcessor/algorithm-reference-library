@@ -25,7 +25,7 @@ from processing_components.visibility.base import copy_visibility, create_blockv
 from processing_components.visibility.coalesce import convert_blockvisibility_to_visibility
 
 from processing_components.component_support.arlexecute import arlexecute
-from calskymodel_components import calskymodel_solve_component
+from processing_components.calibration.calskymodel_components import calskymodel_solve_component
 
 log = logging.getLogger(__name__)
 

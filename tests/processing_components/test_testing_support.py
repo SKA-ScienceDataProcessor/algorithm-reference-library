@@ -13,11 +13,10 @@ from astropy.coordinates import SkyCoord
 
 from data_models.memory_data_models import Skycomponent
 from data_models.polarisation import PolarisationFrame
-
 from processing_components.image.operations import export_image_to_fits
 from processing_components.imaging.base import predict_skycomponent_visibility
-from processing_components.util.testing_support import create_test_image_from_s3, create_named_configuration, create_test_image, \
-    create_low_test_beam, create_blockvisibility_iterator, create_low_test_image_from_gleam, \
+from processing_components.util.testing_support import create_test_image_from_s3, create_named_configuration, \
+    create_test_image, create_low_test_beam, create_blockvisibility_iterator, create_low_test_image_from_gleam, \
     create_low_test_skycomponents_from_gleam
 from processing_components.visibility.base import create_visibility, create_blockvisibility
 from processing_components.visibility.coalesce import coalesce_visibility
@@ -122,7 +121,7 @@ class TestTesting_Support(unittest.TestCase):
         assert len(sc) == 1, "Only expected one source, actually found %d" % len(sc)
         assert sc[0].name == 'GLEAM J172031-005845'
         self.assertAlmostEqual(sc[0].flux[0, 0], 301.49254315737829, 7)
-
+    
     def test_create_test_image_from_s3_low(self):
         im = create_test_image_from_s3(npixel=1024, channel_bandwidth=numpy.array([1e6]),
                                        frequency=numpy.array([1e8]),
@@ -132,7 +131,7 @@ class TestTesting_Support(unittest.TestCase):
         assert im.data.shape[2] == 1024
         assert im.data.shape[3] == 1024
         export_image_to_fits(im, '%s/test_test_support_low_s3.fits' % (self.dir))
-
+    
     def test_create_test_image_from_s3_mid(self):
         im = create_test_image_from_s3(npixel=1024, channel_bandwidth=numpy.array([1e6]),
                                        frequency=numpy.array([1e9]),
@@ -143,7 +142,7 @@ class TestTesting_Support(unittest.TestCase):
         assert im.data.shape[2] == 1024
         assert im.data.shape[3] == 1024
         export_image_to_fits(im, '%s/test_test_support_mid_s3.fits' % (self.dir))
-
+    
     def test_create_test_image_s3_spectral(self):
         im = create_test_image_from_s3(npixel=1024, channel_bandwidth=numpy.array([1e6, 1e6, 1e6]),
                                        frequency=numpy.array([1e8 - 1e6, 1e8, 1e8 + 1e6]),

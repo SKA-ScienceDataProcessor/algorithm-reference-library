@@ -14,6 +14,7 @@ import astropy.units as u
 
 from data_models.memory_data_models import Skycomponent
 from data_models.polarisation import PolarisationFrame
+
 from processing_components.util.testing_support import create_named_configuration
 from processing_components.imaging.base import predict_skycomponent_visibility
 from processing_components.visibility.coalesce import convert_blockvisibility_to_visibility

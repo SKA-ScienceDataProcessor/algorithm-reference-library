@@ -12,9 +12,10 @@ from astropy import units as u
 from astropy.coordinates import SkyCoord
 
 from data_models.polarisation import PolarisationFrame
+
 from processing_components.calibration.calibration_control import create_calibration_controls
 from processing_components.component_support.arlexecute import arlexecute
-from pipelines.pipeline_components import ical_component, continuum_imaging_component
+from processing_components.pipelines.pipeline_components import ical_component, continuum_imaging_component
 from processing_components.image.operations import export_image_to_fits, qa_image, smooth_image
 from processing_components.imaging.base import predict_skycomponent_visibility
 from processing_components.skycomponent.operations import insert_skycomponent

@@ -7,7 +7,6 @@ import numpy
 import logging
 
 from libs.util.array_functions import average_chunks_jit as average_chunks
-
 from libs.util.array_functions import average_chunks2, average_chunks_jit
 
 log = logging.getLogger(__name__)

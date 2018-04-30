@@ -10,7 +10,9 @@ from astropy import units as u
 from astropy.coordinates import SkyCoord
 
 from data_models.polarisation import PolarisationFrame
-from iterators import image_raster_iter
+
+from libs.image.iterators import image_raster_iter
+
 from processing_components.imaging.base import predict_skycomponent_visibility
 from processing_components.skycomponent.operations import create_skycomponent
 from processing_components.util.testing_support import create_named_configuration, create_test_image

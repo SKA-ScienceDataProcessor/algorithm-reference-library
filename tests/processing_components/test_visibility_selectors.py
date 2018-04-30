@@ -7,6 +7,7 @@ import unittest
 
 from astropy.coordinates import SkyCoord
 import astropy.units as u
+
 from processing_components.util.testing_support import create_named_configuration
 from processing_components.visibility.vis_select import vis_select_uvrange
 from processing_components.visibility.base import create_visibility
