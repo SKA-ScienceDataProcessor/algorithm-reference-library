@@ -1,4 +1,3 @@
-#NBs = gridding.ipynb PSWF_Calculation.ipynb
-NBs =
+NBs = gridding.ipynb PSWF_Calculation.ipynb
 include ../jupyter.mk
 

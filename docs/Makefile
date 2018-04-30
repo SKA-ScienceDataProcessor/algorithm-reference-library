@@ -52,7 +52,7 @@ help:
 .PHONY: clean
 clean:
 	rm -rf $(BUILDDIR)/* libs processing_components workflows
-	make -C ../libs/notebooks ../processing_components/notebooks ../workflows/notebooks clean
+	make -C ../libs/notebooks ../processing_components/notebooks #../workflows/notebooks clean
 
 make_example_rst = \
  make -C ../$1/notebooks rst && \
