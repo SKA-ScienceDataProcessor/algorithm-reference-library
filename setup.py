@@ -11,6 +11,6 @@ setup(name='algorithm-reference-library',
       url='https://github.com/SKA-ScienceDataProcessor/algorithm-reference-library',
       license='Apache License Version 2.0',
       packages=['data_models', 'libs', 'processing_components', 'workflows', 'examples', 'tests'],
-      test_suite=['libs/tests', 'processing_components/tests', 'workflows/tests'],
+      test_suite=["libs/tests processing_components/tests workflows/tests"],
       tests_require=['pytest']
       )
