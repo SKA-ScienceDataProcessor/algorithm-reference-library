@@ -51,19 +51,21 @@ help:
 
 .PHONY: clean
 clean:
-	rm -rf $(BUILDDIR)/* arl
-	make -C ../examples/arl clean
+	rm -rf $(BUILDDIR)/* libs processing_components workflows
+	make -C ../libs/notebooks ../processing_components/notebooks ../workflows/notebooks clean
 
 make_example_rst = \
- make -C ../examples/$1 rst && \
+ make -C ../$1/notebooks rst && \
  if [ ! -d $1 ]; then mkdir $1; fi && \
- cp ../examples/$1/*.rst $1/ && \
- if ls ../examples/$1/$2 1> /dev/null 2>&1; then cp -R ../examples/$1/$2 $1/; fi
+ cp ../$1/notebooks/*.rst $1/ && \
+ if ls ../$1/notebooks/$2 1> /dev/null 2>&1; then cp -R ../$1/notebooks/$2 $1/; fi
 
 .PHONY: prepare
 prepare:
 
-	$(call make_example_rst,arl,*_files)
+	$(call make_example_rst,libs,*_files)
+	$(call make_example_rst,processing_components,*_files)
+	$(call make_example_rst,workflows,*_files)
 
 .PHONY: html
 html: prepare

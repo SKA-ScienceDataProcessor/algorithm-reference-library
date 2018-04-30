@@ -1,3 +1,0 @@
-""" Algorithm Reference Library
-
-"""

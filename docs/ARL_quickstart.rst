@@ -37,14 +37,13 @@ See the jupyter note books below:
 .. toctree::
    :maxdepth: 3
 
-   arl/imaging
-   arl/imaging-fits
-   arl/imaging-wterm
-   arl/imaging-mfs
-   arl/imaging-pipelines
-   arl/imaging-spectral
-   arl/rcal
-   arl/simple-dask
-   arl/skymodel_cal
+   processing_components/imaging.rst
+   processing_components/imaging-fits.rst
+   processing_components/imaging-wterm.rst
+   processing_components/mosaic.rst
+   processing_components/rcal.rst
+   workflows/simple-dask.rst
+   workflows/calskymodel.rst
+   workflows/imaging-pipelines.rst
 
-In addition, there are other notebooks in examples/arl that are not built as part of this documentation.
+In addition, there are other notebooks that are not built as part of this documentation.

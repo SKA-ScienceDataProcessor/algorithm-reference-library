@@ -25,13 +25,19 @@ build: in
 
 # clean out the cache before tests are run
 cleantests:
-	cd tests && rm -rf __pycache__
+	cd libs/tests && rm -rf __pycache__
+	cd processing_components/tests && rm -rf __pycache__
+	cd workflows/tests && rm -rf __pycache__
 
 unittest: cleantests
-	$(PYTHON) -m unittest discover -f --locals -s tests -p "test_*.py"
+	$(PYTHON) -m unittest discover -f --locals -s libs/tests -p "test_*.py"
+	$(PYTHON) -m unittest discover -f --locals -s processing_components/tests -p "test_*.py"
+	$(PYTHON) -m unittest discover -f --locals -s workflows/tests -p "test_*.py"
 
 pytest: cleantests
-	pytest -x -v tests/
+	pytest -x -v libs/tests/
+	pytest -x -v processing_components/tests/
+	pytest -x -v workflows/tests/
 
 nosetests: cleantests
 	rm -f predict_facet_timeslice_graph_wprojection.png pipelines-timings_*.csv
@@ -42,8 +48,12 @@ nosetests-coverage: inplace cleantests
 	$(NOSETESTS) -s -v --with-coverage arl
 
 trailing-spaces:
-	find arl -name "*.py" -exec perl -pi -e 's/[ \t]*$$//' {} \;
-	find tests -name "*.py" -exec perl -pi -e 's/[ \t]*$$//' {} \;
+	find libs -name "*.py" -exec perl -pi -e 's/[ \t]*$$//' {} \;
+	find libs/tests -name "*.py" -exec perl -pi -e 's/[ \t]*$$//' {} \;
+	find processing_components -name "*.py" -exec perl -pi -e 's/[ \t]*$$//' {} \;
+	find processing_components/tests -name "*.py" -exec perl -pi -e 's/[ \t]*$$//' {} \;
+	find workflows -name "*.py" -exec perl -pi -e 's/[ \t]*$$//' {} \;
+	find workflows/tests -name "*.py" -exec perl -pi -e 's/[ \t]*$$//' {} \;
 
 docs: inplace
 	# you must have graphviz installed
@@ -61,7 +71,9 @@ code-lint:
 code-analysis: code-flake code-lint
 
 examples: inplace
-	$(MAKE) -C examples/arl
+	$(MAKE) -C libs/notebooks
+	$(MAKE) -C processing_components/notebooks
+	$(MAKE) -C workflows/notebooks
 
 notebook:
 	DEVICE=`ip link | grep -E " ens| wlan| eth" | grep BROADCAST | tail -1 | cut -d : -f 2  | sed "s/ //"` && \
