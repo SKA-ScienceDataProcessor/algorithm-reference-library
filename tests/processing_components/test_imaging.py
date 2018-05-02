@@ -284,7 +284,7 @@ class TestImaging(unittest.TestCase):
         
         dirty_graph = invert_component(self.vis_list, self.model_graph, context=context,
                                        dopsf=False, normalize=True, facets=facets, vis_slices=vis_slices)
-        dirty = arlexecute.compute(dirty_graph[0])
+        dirty = arlexecute.compute(dirty_graph[0], sync=True)
         export_image_to_fits(dirty[0], '%s/test_imaging_noweighting_%s_dirty.fits' % (self.dir,
                                                                                       arlexecute.type()))
 
