@@ -290,7 +290,7 @@ def phaserotate_visibility(vis: Visibility, newphasecentre: SkyCoord, tangent=Tr
 
 
 # noinspection PyUnresolvedReferences
-def create_visibility_from_ms(msname, channum=0):
+def create_visibility_from_ms(msname, channum=0, ack=False):
     """ Minimal MS to Visibility converter
 
     The MS format is much more general than the ARL Visibility so we cut many corners. This requires casacore to be
@@ -303,7 +303,7 @@ def create_visibility_from_ms(msname, channum=0):
     except ModuleNotFoundError:
         raise ModuleNotFoundError("casacore is not installed")
 
-    tab = table(msname)
+    tab = table(msname, ack=ack)
     log.debug("create_visibility_from_ms: %s" % str(tab.info()))
     fields = numpy.unique(tab.getcol('FIELD_ID'))
     log.debug("create_visibility_from_ms: Found unique field ids %s" % str(fields))

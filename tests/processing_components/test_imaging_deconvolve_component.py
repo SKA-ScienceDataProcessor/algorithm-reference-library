@@ -129,7 +129,7 @@ class TestImagingDeconvolveGraph(unittest.TestCase):
         psf_imagelist = invert_component(self.vis_list, self.model_imagelist, context='2d',
                                          dopsf=True, normalize=True)
         dec_imagelist, _ = deconvolve_component(dirty_imagelist, psf_imagelist, self.model_imagelist, niter=1000,
-                                                fractional_threshold=0.1, scales=[0, 3, 10],
+                                                fractional_threshold=0.01, scales=[0, 3, 10],
                                                 algorithm='mmclean', nmoments=3, nchan=self.freqwin,
                                                 threshold=0.1, gain=0.7)
         residual_imagelist = residual_component(self.vis_list, model_imagelist=dec_imagelist,
@@ -151,8 +151,8 @@ class TestImagingDeconvolveGraph(unittest.TestCase):
         dec_imagelist, _ = deconvolve_component(dirty_imagelist, psf_imagelist, self.model_imagelist, niter=1000,
                                                 fractional_threshold=0.1, scales=[0, 3, 10],
                                                 algorithm='mmclean', nmoments=3, nchan=self.freqwin,
-                                                threshold=0.1, gain=0.7, deconvolve_facets=4,
-                                                deconvolve_overlap=16, deconvolve_taper='tukey')
+                                                threshold=0.01, gain=0.7, deconvolve_facets=8,
+                                                deconvolve_overlap=8, deconvolve_taper='tukey')
         residual_imagelist = residual_component(self.vis_list, model_imagelist=dec_imagelist,
                                                 context='2d')
         restored = restore_component(model_imagelist=dec_imagelist, psf_imagelist=psf_imagelist,

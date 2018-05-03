@@ -36,7 +36,6 @@ import numpy
 from data_models.memory_data_models import Image
 from data_models.parameters import get_parameter
 from libs.image.operations import copy_image, create_empty_image_like
-
 from ..component_support.arlexecute import arlexecute
 from ..image.deconvolution import deconvolve_cube, restore_cube
 from ..image.gather_scatter import image_scatter_facets, image_gather_facets, image_scatter_channels, \
@@ -45,8 +44,11 @@ from ..imaging.base import normalize_sumwt
 from ..imaging.imaging_functions import imaging_context
 from ..imaging.weighting import weight_visibility
 from ..visibility.base import copy_visibility
-
 from ..visibility.gather_scatter import visibility_scatter, visibility_gather
+
+import logging
+
+log = logging.getLogger(__name__)
 
 
 def sum_invert_results(image_list):
@@ -378,14 +380,30 @@ def deconvolve_component(dirty_list, psf_list, model_imagelist, **kwargs):
     """
     
     nchan = len(dirty_list)
+
+    threshold = get_parameter(kwargs, "threshold", 0.0)
+    fractional_threshold = get_parameter(kwargs, "fractional_threshold", 0.0)
     
-    def deconvolve(dirty, psf, model):
-        # Gather the channels into one image
-        result, _ = deconvolve_cube(dirty, psf, **kwargs)
-        if result.data.shape[0] == model.data.shape[0]:
-            result.data += model.data
-        # Return the cube
-        return result
+    # We need the global peak so that a fractional threshold works correctly
+    peaks = [arlexecute.execute(lambda d: numpy.max(numpy.abs(d[0].data)), nout=len(dirty_list))(s)
+                  for s in dirty_list]
+    peak = arlexecute.execute(numpy.max, nout=1)(peaks)
+
+    def deconvolve(dirty, psf, model, gpeak):
+        actual_threshold = max(threshold, fractional_threshold * gpeak)
+        kwargs['threshold'] = actual_threshold
+        this_peak = numpy.max(numpy.abs(dirty.data))
+        if this_peak > actual_threshold:
+            log.info("Cleaning: peak %.3f > actual threshold %.3f" % (this_peak, actual_threshold))
+            result, _ = deconvolve_cube(dirty, psf, **kwargs)
+            if result.data.shape[0] == model.data.shape[0]:
+                result.data += model.data
+            # Return the cube
+            return result
+        else:
+            log.info("Not Cleaning: peak %.3f <= actual threshold %.3f" % (this_peak, actual_threshold))
+            return copy_image(model)
+
     
     deconvolve_facets = get_parameter(kwargs, 'deconvolve_facets', 1)
     deconvolve_overlap = get_parameter(kwargs, 'deconvolve_overlap', 0)
@@ -415,12 +433,13 @@ def deconvolve_component(dirty_list, psf_list, model_imagelist, **kwargs):
     psf_list = arlexecute.execute(remove_sumwt, nout=nchan)(psf_list)
     psf_list = arlexecute.execute(image_gather_channels, nout=1)(psf_list)
     
-    scattered_model_imagelist = arlexecute.execute(image_scatter_facets, nout=deconvolve_number_facets)(model_imagelist,
-                                                                                                        facets=deconvolve_facets,
-                                                                                                        overlap=deconvolve_overlap)
+    scattered_model_imagelist = \
+        arlexecute.execute(image_scatter_facets, nout=deconvolve_number_facets)(model_imagelist,
+                                                                                facets=deconvolve_facets,
+                                                                                overlap=deconvolve_overlap)
     
     # Now do the deconvolution for each facet
-    scattered_results_list = [arlexecute.execute(deconvolve, nout=1)(d, psf_list, m)
+    scattered_results_list = [arlexecute.execute(deconvolve, nout=1)(d, psf_list, m, peak)
                               for d, m in zip(scattered_facets_list, scattered_model_imagelist)]
     
     # Gather the results back into one image, correcting for overlaps as necessary. The taper function is is used to
@@ -491,4 +510,3 @@ def weight_component(vis_list, model_imagelist, weighting='uniform', **kwargs):
     
     return [arlexecute.execute(weight_vis, pure=True, nout=1)(vis_list[i], model_imagelist[i])
             for i in range(len(vis_list))]
-
