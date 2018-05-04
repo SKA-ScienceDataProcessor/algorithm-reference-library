@@ -18,7 +18,7 @@ See :py:mod:`data_models.memory_data_models` for the following definitions:`
 * GainTable for gain solutions (as (e.g. output from solve_gaintable): :py:class:`data_models.memory_data_models.GainTable`
 * Image (data and WCS header): :py:class:`data_models.memory_data_models.Image`
 * Skycomponent ((data for a point source or a Gaussian source): :py:class:`data_models.memory_data_models.Skycomponent`
-* SkyModel (A collection of SkyComponents and Images: py:class:`data_models.memory_data_models.SkyModel`
+* SkyModel (A collection of SkyComponents and Images: :py:class:`data_models.memory_data_models.SkyModel`
 * Baseline based visibility tables shape (npol,), length nvis) :py:class:`data_models.memory_data_models.Visibility`
 * Antenna-based visibility table, shape (nants, nants, nchan, npol), length ntimes): :py:class:`data_models.memory_data_models.BlockVisibility`
 
@@ -30,6 +30,8 @@ Create empty data set for observation (a-la makeMS)
 
 Read existing Measurement Set
 =============================
+
+Casacore must be installed:
 
 * Creates a list of Visibilities, one per FIELD_ID: :py:mod:`processing_components.visibility.base.create_visibility_from_ms`
 
@@ -73,7 +75,6 @@ Calibration
 * Create empty gain table: :py:mod:`processing_components.calibration.operations.create_gaintable_from_blockvisibility`
 * Solve for complex gains: :py:mod:`processing_components.calibration.solvers.solve_gaintable`
 * Apply complex gains: :py:mod:`processing_components.calibration.operations.apply_gaintable`
-* Peel compact sources: :py:mod:`processing_components.calibration.peeling.peel_skycomponent_blockvisibility`
 
 Coordinate transforms
 =====================
@@ -104,10 +105,12 @@ Visibility
 * Remove continuum: :py:mod:`processing_components.visibility.operations.remove_continuum_blockvisibility`
 * Integrate across channels: :py:mod:`processing_components.visibility.operations.integrate_visibility_by_channel`
 
-Graphs:
-=======
+Pipelines:
+==========
 
-* Perform various types of prediction and inversion of visibility data: :py:mod:`processing_components.graphs.delayed`
-* Perform generic image or visibility unary operations: :py:mod:`processing_components.graphs.generic_graphs`
-* Support testing and simulations: :py:mod:`processing_components.util.delayed_support`
-* The canonical pipelines: py:mod:`arl.pipelines.delayed`
+* Execution framework (an interface to Dask): :py:mod:`processing_components.component_support.arlexecute`
+* Perform various types of prediction and inversion of visibility data:
+ :py:mod:`processing_components.pipelines.pipeline_components`
+* Perform generic image or visibility unary operations:
+:py:mod:`processing_components.component_suppport.generic_components`
+* Support testing and simulations: :py:mod:`processing_components.util.testing_support`

@@ -319,132 +319,132 @@ Unit tests
 Unit tests written in standard python style are available.
 
 
-.. automodule:: libs.tests.test_array_functions
+.. automodule:: tests.libs.test_array_functions
    :members:
 
-.. automodule:: libs.tests.test_convolutional_gridding
+.. automodule:: tests.libs.test_convolutional_gridding
    :members:
 
-.. automodule:: libs.tests.test_coordinate_support
+.. automodule:: tests.libs.test_coordinate_support
    :members:
 
-.. automodule:: libs.tests.test_fft_support
+.. automodule:: tests.libs.test_fft_support
    :members:
 
-.. automodule:: libs.tests.test_msclean
+.. automodule:: tests.libs.test_msclean
    :members:
 
-.. automodule:: libs.tests.test_parameters
+.. automodule:: tests.libs.test_parameters
    :members:
 
-.. automodule:: libs.tests.test_polarisation
+.. automodule:: tests.libs.test_polarisation
    :members:
 
-.. automodule:: processing_components.tests.test_arlexecute
+.. automodule:: tests.processing_components.test_arlexecute
    :members:
 
-.. automodule:: processing_components.tests.test_calibration_context
+.. automodule:: tests.processing_components.test_calibration_context
    :members:
 
-.. automodule:: processing_components.tests.test_calibration_operations
+.. automodule:: tests.processing_components.test_calibration_operations
    :members:
 
-.. automodule:: processing_components.tests.test_calibration_solvers
+.. automodule:: tests.processing_components.test_calibration_solvers
    :members:
 
-.. automodule:: processing_components.tests.test_calskymodel
+.. automodule:: tests.processing_components.test_calskymodel
    :members:
 
-.. automodule:: processing_components.tests.test_calskymodel_component
+.. automodule:: tests.processing_components.test_calskymodel_component
    :members:
 
-.. automodule:: processing_components.tests.test_gaintable_iterators
+.. automodule:: tests.processing_components.test_gaintable_iterators
    :members:
 
-.. automodule:: processing_components.tests.test_generic_components
+.. automodule:: tests.processing_components.test_generic_components
    :members:
 
-.. automodule:: processing_components.tests.test_image_deconvolution
+.. automodule:: tests.processing_components.test_image_deconvolution
    :members:
 
-.. automodule:: processing_components.tests.test_image_deconvolution_msmfs
+.. automodule:: tests.processing_components.test_image_deconvolution_msmfs
    :members:
 
-.. automodule:: processing_components.tests.test_image_gather_scatter
+.. automodule:: tests.processing_components.test_image_gather_scatter
    :members:
 
-.. automodule:: processing_components.tests.test_image_iterators
+.. automodule:: tests.processing_components.test_image_iterators
    :members:
 
-.. automodule:: processing_components.tests.test_image_operations
+.. automodule:: tests.processing_components.test_image_operations
    :members:
 
-.. automodule:: processing_components.tests.test_image_solvers
+.. automodule:: tests.processing_components.test_image_solvers
    :members:
 
-.. automodule:: processing_components.tests.test_image_solvers_mm
+.. automodule:: tests.processing_components.test_image_solvers_mm
    :members:
 
-.. automodule:: processing_components.tests.test_imaging
+.. automodule:: tests.processing_components.test_imaging
    :members:
 
-.. automodule:: processing_components.tests.test_imaging_components
+.. automodule:: tests.processing_components.test_imaging_components
    :members:
 
-.. automodule:: processing_components.tests.test_imaging_deconvolve_component
+.. automodule:: tests.processing_components.test_imaging_deconvolve_component
    :members:
 
-.. automodule:: processing_components.tests.test_imaging_functions
+.. automodule:: tests.processing_components.test_imaging_functions
    :members:
 
-.. automodule:: processing_components.tests.test_imaging_params
+.. automodule:: tests.processing_components.test_imaging_params
    :members:
 
-.. automodule:: processing_components.tests.test_pipelines_component
+.. automodule:: tests.processing_components.test_pipelines_component
    :members:
 
-.. automodule:: processing_components.tests.test_pipelines_functions
+.. automodule:: tests.processing_components.test_pipelines_functions
    :members:
 
-.. automodule:: processing_components.tests.test_primary_beams
+.. automodule:: tests.processing_components.test_primary_beams
    :members:
 
-.. automodule:: processing_components.tests.test_quality_assessment
+.. automodule:: tests.processing_components.test_quality_assessment
    :members:
 
-.. automodule:: processing_components.tests.test_skycomponent
+.. automodule:: tests.processing_components.test_skycomponent
    :members:
 
-.. automodule:: processing_components.tests.test_skycomponent_insert
+.. automodule:: tests.processing_components.test_skycomponent_insert
    :members:
 
-.. automodule:: processing_components.tests.test_skymodel
+.. automodule:: tests.processing_components.test_skymodel
    :members:
 
-.. automodule:: processing_components.tests.test_support_components
+.. automodule:: tests.processing_components.test_support_components
    :members:
 
-.. automodule:: processing_components.tests.test_testing_support
+.. automodule:: tests.processing_components.test_testing_support
    :members:
 
-.. automodule:: processing_components.tests.test_visibility_coalesce
+.. automodule:: tests.processing_components.test_visibility_coalesce
    :members:
 
-.. automodule:: processing_components.tests.test_visibility_fitting
+.. automodule:: tests.processing_components.test_visibility_fitting
    :members:
 
-.. automodule:: processing_components.tests.test_visibility_gather_scatter
+.. automodule:: tests.processing_components.test_visibility_gather_scatter
    :members:
 
-.. automodule:: processing_components.tests.test_visibility_iterators
+.. automodule:: tests.processing_components.test_visibility_iterators
    :members:
 
-.. automodule:: processing_components.tests.test_visibility_operations
+.. automodule:: tests.processing_components.test_visibility_operations
    :members:
 
-.. automodule:: processing_components.tests.test_visibility_selectors
+.. automodule:: tests.processing_components.test_visibility_selectors
    :members:
 
-.. automodule:: processing_components.tests.test_weighting
+.. automodule:: tests.processing_components.test_weighting
    :members:
 
