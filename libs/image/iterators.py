@@ -108,8 +108,6 @@ def image_raster_iter(im: Image, facets=1, overlap=0, taper='flat', make_flat=Fa
             return result
 
         def taper_tukey():
-            t = numpy.ones(dx)
-            ramp = numpy.arange(0, overlap).astype(float) / float(overlap)
 
             xs = numpy.arange(dx) / float(dx)
             r = 2 * overlap / dx

@@ -29,3 +29,4 @@ sphinx_rtd_theme
 psutil
 cloudpickle
 seqfile
+hdf5
