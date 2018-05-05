@@ -38,5 +38,5 @@ class TestTestingDaskGraphSupport(unittest.TestCase):
         vt = vis_list[0].compute()
         assert isinstance(vt, BlockVisibility)
         assert vt.nvis > 0
-        arlexecute.client.close()
+        arlexecute.close()
  

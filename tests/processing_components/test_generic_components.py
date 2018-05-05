@@ -72,7 +72,7 @@ class TestPipelinesGenericDask(unittest.TestCase):
                                                           sc=self.comp)[0]
         
         self.blockvis = arlexecute.compute(self.blockvis, sync=True)
-        arlexecute.client.close()
+        arlexecute.close()
 
         assert numpy.max(numpy.abs(self.blockvis[0].vis)) > 0.0
     
@@ -83,7 +83,7 @@ class TestPipelinesGenericDask(unittest.TestCase):
         
         root = generic_image_iterator_component(imagerooter, self.image, image_raster_iter, facets=4)
         root = arlexecute.compute(root, sync=True)
-        arlexecute.client.close()
+        arlexecute.close()
         
         numpy.testing.assert_array_almost_equal_nulp(root.data ** 2, numpy.abs(self.image.data), 7)
     
@@ -94,7 +94,7 @@ class TestPipelinesGenericDask(unittest.TestCase):
         
         root = generic_image_component(imagerooter, self.image, facets=4)
         root = arlexecute.compute(root, sync=True)
-        arlexecute.client.close()
+        arlexecute.close()
 
         numpy.testing.assert_array_almost_equal_nulp(root.data ** 2, numpy.abs(self.image.data), 7)
 
