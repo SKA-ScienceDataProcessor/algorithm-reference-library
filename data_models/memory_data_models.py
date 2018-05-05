@@ -82,6 +82,22 @@ class Configuration:
         self.frame = frame
         self.receptor_frame = receptor_frame
     
+    def __str__(self):
+        """Default printer for Skycomponent
+
+        """
+        s = "Configuration:\n"
+        s += "\nName: %s\n" % self.name
+        s += "\tNumber of antennas/stations: %s\n" % len(self.names)
+        s += "\tNames: %s\n" % self.names
+        s += "\tDiameter: %s\n" % self.diameter
+        s += "\tMount: %s\n" % self.mount
+        s += "\tXYZ: %s\n" % self.xyz
+
+        return s
+
+
+
     def size(self):
         """ Return size in GB
         """
@@ -521,7 +537,21 @@ class Visibility:
         self.phasecentre = phasecentre  # Phase centre of observation
         self.configuration = configuration  # Antenna/station configuration
         self.polarisation_frame = polarisation_frame
-    
+
+    def __str__(self):
+        """Default printer for Skycomponent
+
+        """
+        s = "Visibility:\n"
+        s += "\tNumber of visibilities: %s\n" % self.nvis
+        s += "\tFrequency: %s\n" % self.frequency
+        s += "\tNumber of polarisations: %s\n" % self.npol
+        s += "\tPolarisation Frame: %s\n" % self.polarisation_frame.type
+        s += "\tPhasecentre: %s\n" % self.phasecentre
+        s += "\tConfiguration: %s\n" % self.configuration.name
+        
+        return s
+
     def size(self):
         """ Return size in GB
         """
@@ -656,7 +686,23 @@ class BlockVisibility:
         self.phasecentre = phasecentre  # Phase centre of observation
         self.configuration = configuration  # Antenna/station configuration
         self.polarisation_frame = polarisation_frame
-    
+
+    def __str__(self):
+        """Default printer for Skycomponent
+
+        """
+        s = "Visibility:\n"
+        s += "\tNumber of visibilities: %s\n" % self.nvis
+        s += "\tNumber of integrations: %s\n" % len(self.time)
+        s += "\tFrequency: %s\n" % self.frequency
+        s += "\tNumber of polarisations: %s\n" % self.npol
+        s += "\tPolarisation Frame: %s\n" % self.polarisation_frame.type
+        s += "\tPhasecentre: %s\n" % self.phasecentre
+        s += "\tConfiguration: %s\n" % self.configuration.name
+        
+        return s
+
+
     def size(self):
         """ Return size in GB
         """

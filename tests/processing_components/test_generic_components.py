@@ -56,7 +56,10 @@ class TestPipelinesGenericDask(unittest.TestCase):
                                                                  phasecentre=self.phasecentre,
                                                                  cellsize=0.001,
                                                                  polarisation_frame=PolarisationFrame('stokesI'))
-    
+
+    def tearDown(self):
+        arlexecute.close()
+
     def test_create_generic_blockvisibility_graph(self):
         self.blockvis = [create_blockvisibility(self.lowcore, self.times, self.frequency,
                                                 phasecentre=self.phasecentre,

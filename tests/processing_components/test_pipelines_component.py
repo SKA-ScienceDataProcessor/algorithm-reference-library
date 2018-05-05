@@ -37,7 +37,10 @@ class TestPipelineGraphs(unittest.TestCase):
         from data_models.parameters import arl_path
         self.dir = arl_path('test_results')
         arlexecute.set_client(use_dask=True)
-    
+
+    def tearDown(self):
+        arlexecute.close()
+
     def actualSetUp(self, add_errors=False, freqwin=5, block=False, dospectral=True, dopol=False,
                     amp_errors=None, phase_errors=None, zerow=True):
         

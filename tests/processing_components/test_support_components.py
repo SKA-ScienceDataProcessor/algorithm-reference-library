@@ -27,7 +27,10 @@ class TestTestingDaskGraphSupport(unittest.TestCase):
         self.channel_bandwidth = numpy.array([2.5e7, 2.5e7, 2.5e7])
         self.phasecentre = SkyCoord(ra=+15.0 * u.deg, dec=-60.0 * u.deg, frame='icrs', equinox='J2000')
         self.times = numpy.linspace(-300.0, 300.0, 3) * numpy.pi / 43200.0
-    
+
+    def tearDown(self):
+        arlexecute.close()
+
     def test_create_simulate_vis_graph(self):
         arlexecute.set_client(use_dask=True)
         vis_list = simulate_component(frequency=self.frequency, channel_bandwidth=self.channel_bandwidth)

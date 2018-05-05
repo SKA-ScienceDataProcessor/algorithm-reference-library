@@ -12,6 +12,8 @@ from astropy.coordinates import SkyCoord
 from data_models.polarisation import PolarisationFrame
 from data_models.memory_data_models import SkyModel
 
+from processing_components.component_support.arlexecute import arlexecute
+
 from processing_components.calibration.operations import apply_gaintable, create_gaintable_from_blockvisibility
 from processing_components.calibration.calskymodel import calskymodel_solve
 from processing_components.calibration.calibration import solve_gaintable
@@ -34,8 +36,13 @@ class TestCalibrationSkyModelcal(unittest.TestCase):
         from data_models.parameters import arl_path
         self.dir = arl_path('test_results')
         
+        arlexecute.set_client(use_dask=True)
+        
         numpy.random.seed(180555)
-    
+
+    def tearDown(self):
+        arlexecute.close()
+
     def actualSetup(self, vnchan=1, doiso=True, ntimes=5, flux_limit=2.0, zerow=True, fixed=False):
         
         nfreqwin = vnchan

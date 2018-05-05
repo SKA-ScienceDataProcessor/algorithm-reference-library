@@ -62,10 +62,10 @@ def create_configuration_from_file(antfile: str, location: EarthLocation = None,
                                    mount: str = 'altaz',
                                    names: str = "%d", frame: str = 'local',
                                    diameter=35.0,
-                                   rmax=None) -> Configuration:
+                                   rmax=None, name='') -> Configuration:
     """ Define from a file
 
-    :param names:
+    :param names: Antenna names
     :param antfile: Antenna file name
     :param location:
     :param mount: mount type: 'altaz', 'xy'
@@ -89,7 +89,7 @@ def create_configuration_from_file(antfile: str, location: EarthLocation = None,
     anames = [names % ant for ant in range(nants)]
     mounts = numpy.repeat(mount, nants)
     fc = Configuration(location=location, names=anames, mount=mounts, xyz=antxyz, frame=frame,
-                       diameter=diameter)
+                       diameter=diameter, name=name)
     return fc
 
 
@@ -106,7 +106,7 @@ def create_LOFAR_configuration(antfile: str) -> Configuration:
     mounts = numpy.repeat('XY', nants)
     location = EarthLocation(x=[3826923.9] * u.m, y=[460915.1] * u.m, z=[5064643.2] * u.m)
     fc = Configuration(location=location, names=anames, mount=mounts, xyz=antxyz, frame='global',
-                       diameter=35.0)
+                       diameter=35.0, name='LOFAR')
     return fc
 
 
@@ -131,22 +131,22 @@ def create_named_configuration(name: str = 'LOWBD2', **kwargs) -> Configuration:
         location = EarthLocation(lon="116.4999", lat="-26.7000", height=300.0)
         fc = create_configuration_from_file(antfile=arl_path("data/configurations/LOWBD2.csv"),
                                             location=location, mount='xy', names='LOWBD2_%d',
-                                            diameter=35.0, **kwargs)
+                                            diameter=35.0, name=name, **kwargs)
     elif name == 'LOWBD1':
         location = EarthLocation(lon="116.4999", lat="-26.7000", height=300.0)
         fc = create_configuration_from_file(antfile=arl_path("data/configurations/LOWBD1.csv"),
                                             location=location, mount='xy', names='LOWBD1_%d',
-                                            diameter=35.0, **kwargs)
+                                            diameter=35.0, name=name, **kwargs)
     elif name == 'LOWBD2-CORE':
         location = EarthLocation(lon="116.4999", lat="-26.7000", height=300.0)
         fc = create_configuration_from_file(antfile=arl_path("data/configurations/LOWBD2-CORE.csv"),
                                             location=location, mount='xy', names='LOWBD2_%d',
-                                            diameter=35.0, **kwargs)
+                                            diameter=35.0, name=name, **kwargs)
     elif name == 'ASKAP':
         location = EarthLocation(lon="+116.6356824", lat="-26.7013006", height=377.0)
         fc = create_configuration_from_file(antfile=arl_path("data/configurations/A27CR3P6B.in.csv"),
                                             mount='equatorial', names='ASKAP_%d',
-                                            diameter=12.0, location=location, **kwargs)
+                                            diameter=12.0, name=name, location=location, **kwargs)
     elif name == 'LOFAR':
         assert get_parameter(kwargs, "meta", False) is False
         fc = create_LOFAR_configuration(antfile=arl_path("data/configurations/LOFAR.csv"))
@@ -156,14 +156,14 @@ def create_named_configuration(name: str = 'LOWBD2', **kwargs) -> Configuration:
                                             location=location,
                                             mount='altaz',
                                             names='VLA_%d',
-                                            diameter=25.0, **kwargs)
+                                            diameter=25.0, name=name, **kwargs)
     elif name == 'VLAA_north':
         location = EarthLocation(lon="-107.6184", lat="90.000", height=2124.0)
         fc = create_configuration_from_file(antfile=arl_path("data/configurations/VLA_A_hor_xyz.csv"),
                                             location=location,
                                             mount='altaz',
                                             names='VLA_%d',
-                                            diameter=25.0, **kwargs)
+                                            diameter=25.0, name=name, **kwargs)
     else:
         raise ValueError("No such Configuration %s" % name)
     return fc

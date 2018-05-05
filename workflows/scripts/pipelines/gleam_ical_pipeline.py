@@ -2,7 +2,7 @@
 
 # # Pipeline processing using Dask
 # 
-# This notebook demonstrates the continuum imaging and ICAL pipelines.
+# This demonstrates the ICAL pipeline.
 
 # In[ ]:
 
@@ -24,6 +24,7 @@ pylab.rcParams['image.cmap'] = 'rainbow'
 from matplotlib import pyplot as plt
 
 from data_models.polarisation import PolarisationFrame
+from data_models.data_model_helpers import import_blockvisibility_from_hdf5
 
 from processing_components.calibration.calibration_control import create_calibration_controls
 from processing_components.image.operations import show_image, export_image_to_fits, qa_image
@@ -58,8 +59,10 @@ if __name__ == '__main__':
     
     import pickle
     
-    # Load data from pickle dump
-    vislist = pickle.load(open('gleam_simulation.p', 'rb'))
+    # Load data from previous simulation
+    vislist = import_blockvisibility_from_hdf5('gleam_simulation_vislist.hdf')
+    
+    print(vislist[0])
     
     cellsize = 0.001
     npixel = 1024
@@ -110,7 +113,8 @@ if __name__ == '__main__':
     deconvolved = result[0][0]
     residual = result[1][0]
     restored = result[2][0]
-    
+    arlexecute.close()
+
     show_image(deconvolved, title='Clean image', cm='Greys', vmax=0.1, vmin=-0.01)
     print(qa_image(deconvolved, context='Clean image'))
     plt.show()
@@ -125,3 +129,7 @@ if __name__ == '__main__':
     print(qa_image(residual[0], context='Residual clean image'))
     plt.show()
     export_image_to_fits(residual[0], '%s/gleam_ical_residual.fits' % (results_dir))
+
+
+
+

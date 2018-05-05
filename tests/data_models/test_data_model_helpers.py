@@ -54,7 +54,10 @@ class TestDataModelHelpers(unittest.TestCase):
         export_visibility_to_hdf5(self.vis, '%s/test_visibility.hdf' % self.dir)
         newvis = import_visibility_from_hdf5('%s/test_visibility.hdf' % self.dir)
         
+        assert str(newvis) == str(self.vis), "Original %s, import %s" % (str(newvis), str(self.vis))
+        assert numpy.array_equal(newvis.frequency, self.vis.frequency)
         assert newvis.data.shape == self.vis.data.shape
+        assert numpy.array_equal(newvis.frequency, self.vis.frequency)
         assert numpy.max(numpy.abs(self.vis.vis - newvis.vis)) < 1e-15
         assert numpy.max(numpy.abs(self.vis.uvw - newvis.uvw)) < 1e-15
         assert numpy.abs(newvis.configuration.location.x.value - self.vis.configuration.location.x.value) < 1e-15
@@ -72,6 +75,7 @@ class TestDataModelHelpers(unittest.TestCase):
         export_blockvisibility_to_hdf5(self.vis, '%s/test_blockvisibility.hdf' % self.dir)
         newvis = import_blockvisibility_from_hdf5('%s/test_blockvisibility.hdf' % self.dir)
         
+        assert numpy.array_equal(newvis.frequency, self.vis.frequency)
         assert newvis.data.shape == self.vis.data.shape
         assert numpy.max(numpy.abs(self.vis.vis - newvis.vis)) < 1e-15
         assert numpy.max(numpy.abs(self.vis.uvw - newvis.uvw)) < 1e-15

@@ -28,7 +28,9 @@ import logging
 from astropy.coordinates import SkyCoord
 from astropy import units as u
 
+from data_models.memory_data_models import SkyModel
 from data_models.polarisation import PolarisationFrame
+from data_models.data_model_helpers import export_skymodel_to_hdf5, export_blockvisibility_to_hdf5
 
 from processing_components.util.testing_support import create_low_test_image_from_gleam
 from processing_components.imaging.base import advise_wide_field
@@ -80,6 +82,9 @@ if __name__ == '__main__':
     log.info('About to make visibility')
     vis_list = arlexecute.compute(vis_list, sync=True)
     
+    print(vis_list[0])
+
+    
     # In[ ]:
     
     wprojection_planes = 1
@@ -107,6 +112,8 @@ if __name__ == '__main__':
                    for f, freq in enumerate(frequency)]
     log.info('About to make GLEAM model')
     gleam_model = arlexecute.compute(gleam_model, sync=True)
+    gleam_skymodel = SkyModel(images=gleam_model)
+    export_skymodel_to_hdf5(gleam_skymodel, 'gleam_simulation_skymodel.hdf')
     future_gleam_model = arlexecute.scatter(gleam_model)
     
     # In[ ]:
@@ -118,6 +125,6 @@ if __name__ == '__main__':
     log.info('About to run corrupt to get corrupted visibility')
     corrupted_vislist = arlexecute.compute(corrupted_vislist, sync=True)
     
-    import pickle
+    export_blockvisibility_to_hdf5(corrupted_vislist, 'gleam_simulation_vislist.hdf')
     
-    pickle.dump(corrupted_vislist, open('gleam_simulation.p', 'wb'))
+    arlexecute.close()

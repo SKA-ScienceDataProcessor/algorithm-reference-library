@@ -12,15 +12,16 @@ from astropy import units as u
 from astropy.coordinates import SkyCoord
 
 from data_models.polarisation import PolarisationFrame
-
+from processing_components.component_support.arlexecute import arlexecute
 from processing_components.image.operations import export_image_to_fits, smooth_image
 from processing_components.imaging.base import predict_skycomponent_visibility
-from processing_components.skycomponent.operations import find_skycomponents, find_nearest_skycomponent, insert_skycomponent
-from processing_components.util.testing_support import create_named_configuration, ingest_unittest_visibility, create_unittest_model, \
-    insert_unittest_errors, create_unittest_components
-from processing_components.component_support.arlexecute import arlexecute
 from processing_components.imaging.imaging_components import zero_vislist_component, predict_component, \
     invert_component, subtract_vislist_component
+from processing_components.skycomponent.operations import find_skycomponents, find_nearest_skycomponent, \
+    insert_skycomponent
+from processing_components.util.testing_support import create_named_configuration, ingest_unittest_visibility, \
+    create_unittest_model, \
+    insert_unittest_errors, create_unittest_components
 
 log = logging.getLogger(__name__)
 
@@ -34,6 +35,9 @@ class TestImaging(unittest.TestCase):
         
         from data_models.parameters import arl_path
         self.dir = arl_path('test_results')
+    
+    def tearDown(self):
+        arlexecute.close()
     
     def actualSetUp(self, add_errors=False, freqwin=1, block=False, dospectral=True, dopol=False, zerow=False):
         

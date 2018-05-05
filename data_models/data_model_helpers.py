@@ -1,6 +1,7 @@
 "Functions to help with persistence of data models"
 
 import ast
+import collections
 
 import astropy.units as u
 import h5py
@@ -113,6 +114,8 @@ def convert_visibility_to_hdf(vis, f):
     :param f: HDF root
     :return:
     """
+    assert isinstance(vis, Visibility)
+    
     f.attrs['ARL_data_model'] = 'Visibility'
     f.attrs['nvis'] = vis.nvis
     f.attrs['npol'] = vis.npol
@@ -139,7 +142,6 @@ def convert_hdf_to_visibility(f):
     vis = Visibility(data=data, polarisation_frame=polarisation_frame,
                      phasecentre=phasecentre)
     vis.configuration = convert_configuration_from_hdf(f)
-    f.close()
     return vis
 
 
@@ -150,6 +152,8 @@ def convert_blockvisibility_to_hdf(vis: BlockVisibility, f):
     :param f: HDF root
     :return:
     """
+    assert isinstance(vis, BlockVisibility)
+
     f.attrs['ARL_data_model'] = 'BlockVisibility'
     f.attrs['nvis'] = vis.nvis
     f.attrs['npol'] = vis.npol
@@ -181,7 +185,6 @@ def convert_hdf_to_blockvisibility(f):
                           phasecentre=phasecentre, frequency=frequency,
                           channel_bandwidth=channel_bandwidth)
     vis.configuration = convert_configuration_from_hdf(f)
-    f.close()
     return vis
 
 
@@ -193,48 +196,65 @@ def export_visibility_to_hdf5(vis, filename):
     :return:
     """
     
-    assert isinstance(vis, Visibility)
+    if not isinstance(vis, collections.Iterable):
+        vis = [vis]
     with h5py.File(filename, 'w') as f:
-        convert_visibility_to_hdf(vis, f)
+        f.attrs['number_data_models'] = len(vis)
+        for i, v in enumerate(vis):
+            vf = f.create_group('Visibility%d' % i)
+            convert_visibility_to_hdf(v, vf)
         f.flush()
-        f.close()
 
 
 def import_visibility_from_hdf5(filename):
     """Import a Visibility from HDF5 format
 
     :param filename:
-    :return:
+    :return: If only one then a Visibility, otherwise a list of Visibilitys
     """
     
     with h5py.File(filename, 'r') as f:
-        return convert_hdf_to_visibility(f)
+        nvislist = f.attrs['number_data_models']
+        vislist = [convert_hdf_to_visibility(f['Visibility%d' % i]) for i in range(nvislist)]
+        if nvislist == 1:
+            return vislist[0]
+        else:
+            return vislist
 
 
-def export_blockvisibility_to_hdf5(vis: BlockVisibility, filename):
-    """ Export a Visibility to HDF5 format
+def export_blockvisibility_to_hdf5(vis, filename):
+    """ Export a BlockVisibility to HDF5 format
 
     :param vis:
     :param filename:
     :return:
     """
     
-    assert isinstance(vis, BlockVisibility)
+    if not isinstance(vis, collections.Iterable):
+        vis = [vis]
     with h5py.File(filename, 'w') as f:
-        convert_blockvisibility_to_hdf(vis, f)
+        f.attrs['number_data_models'] = len(vis)
+        for i, v in enumerate(vis):
+            assert isinstance(v, BlockVisibility)
+            vf = f.create_group('BlockVisibility%d' % i)
+            convert_blockvisibility_to_hdf(v, vf)
         f.flush()
-        f.close()
 
 
 def import_blockvisibility_from_hdf5(filename):
-    """Import a BlockVisibility from HDF5 format
+    """Import a Visibility from HDF5 format
 
     :param filename:
-    :return:
+    :return: If only one then a BlockVisibility, otherwise a list of BlockVisibility's
     """
     
     with h5py.File(filename, 'r') as f:
-        return convert_hdf_to_blockvisibility(f)
+        nvislist = f.attrs['number_data_models']
+        vislist = [convert_hdf_to_blockvisibility(f['BlockVisibility%d' % i]) for i in range(nvislist)]
+        if nvislist == 1:
+            return vislist[0]
+        else:
+            return vislist
 
 
 def convert_gaintable_to_hdf(gt: GainTable, f):
@@ -244,6 +264,8 @@ def convert_gaintable_to_hdf(gt: GainTable, f):
     :param f: HDF root
     :return:
     """
+    assert isinstance(gt, GainTable)
+
     f.attrs['ARL_data_model'] = 'GainTable'
     f.attrs['frequency'] = gt.frequency
     f.attrs['receptor_frame'] = gt.receptor_frame.type
@@ -262,7 +284,6 @@ def convert_hdf_to_gaintable(f):
     frequency = numpy.array(f.attrs['frequency'])
     data = numpy.array(f['data'])
     gt = GainTable(data=data, receptor_frame=receptor_frame, frequency=frequency)
-    f.close()
     return gt
 
 
@@ -273,23 +294,32 @@ def export_gaintable_to_hdf5(gt: GainTable, filename):
     :param filename:
     :return:
     """
-    
-    assert isinstance(gt, GainTable)
+
+    if not isinstance(gt, collections.Iterable):
+        gt = [gt]
     with h5py.File(filename, 'w') as f:
-        convert_gaintable_to_hdf(gt, f)
+        f.attrs['number_data_models'] = len(gt)
+        for i, g in enumerate(gt):
+            assert isinstance(g, GainTable)
+            gf = f.create_group('GainTable%d' % i)
+            convert_gaintable_to_hdf(g, gf)
         f.flush()
-        f.close()
 
 
 def import_gaintable_from_hdf5(filename):
-    """Import a GainTabley from HDF5 format
+    """Import GainTable(s) from HDF5 format
 
     :param filename:
-    :return:
+    :return: single gaintable or list of gaintables
     """
     
     with h5py.File(filename, 'r') as f:
-        return convert_hdf_to_gaintable(f)
+        ngtlist = f.attrs['number_data_models']
+        gtlist = [convert_hdf_to_gaintable(f['GainTable%d' % i]) for i in range(ngtlist)]
+        if ngtlist == 1:
+            return gtlist[0]
+        else:
+            return gtlist
 
 
 def convert_skycomponent_to_hdf(sc: Skycomponent, f):
@@ -299,6 +329,8 @@ def convert_skycomponent_to_hdf(sc: Skycomponent, f):
     :param f: HDF root
     :return:
     """
+    assert isinstance(sc, Skycomponent)
+
     f.attrs['ARL_data_model'] = 'Skycomponent'
     f.attrs['direction'] = convert_direction_to_string(sc.direction)
     f.attrs['frequency'] = sc.frequency
@@ -330,7 +362,7 @@ def convert_hdf_to_skycomponent(f):
     return sc
 
 
-def export_skycomponent_to_hdf5(sc, filename):
+def export_skycomponent_to_hdf5(sc: Skycomponent, filename):
     """ Export a Skycomponent to HDF5 format
 
     :param gt:
@@ -338,22 +370,31 @@ def export_skycomponent_to_hdf5(sc, filename):
     :return:
     """
     
-    assert isinstance(sc, Skycomponent)
+    if not isinstance(sc, collections.Iterable):
+        sc = [sc]
     with h5py.File(filename, 'w') as f:
-        convert_skycomponent_to_hdf(sc, f)
+        f.attrs['number_data_models'] = len(sc)
+        for i, s in enumerate(sc):
+            assert isinstance(s, Skycomponent)
+            sf = f.create_group('Skycomponent%d' % i)
+            convert_skycomponent_to_hdf(s, sf)
         f.flush()
-        f.close()
 
 
 def import_skycomponent_from_hdf5(filename):
-    """Import a Skycomponent from HDF5 format
+    """Import Skycomponent(s) from HDF5 format
 
     :param filename:
-    :return:
+    :return: single skycomponent or list of skycomponents
     """
     
     with h5py.File(filename, 'r') as f:
-        return convert_hdf_to_skycomponent(f)
+        nsclist = f.attrs['number_data_models']
+        sclist = [convert_hdf_to_skycomponent(f['Skycomponent%d' % i]) for i in range(nsclist)]
+        if nsclist == 1:
+            return sclist[0]
+        else:
+            return sclist
 
 
 def convert_image_to_hdf(im: Image, f):
@@ -363,6 +404,8 @@ def convert_image_to_hdf(im: Image, f):
     :param f: HDF root
     :return:
     """
+    assert isinstance(im, Image)
+
     f.attrs['ARL_data_model'] = 'Image'
     f['data'] = im.data
     f.attrs['wcs'] = numpy.string_(im.wcs.to_header_string())
@@ -393,22 +436,32 @@ def export_image_to_hdf5(im, filename):
     :return:
     """
     
-    assert isinstance(im, Image)
+    if not isinstance(im, collections.Iterable):
+        im = [im]
     with h5py.File(filename, 'w') as f:
-        convert_image_to_hdf(im, f)
+        f.attrs['number_data_models'] = len(im)
+        for i, m in enumerate(im):
+            assert isinstance(m, Image)
+            mf = f.create_group('Image%d' % i)
+            convert_image_to_hdf(m, mf)
         f.flush()
         f.close()
 
 
 def import_image_from_hdf5(filename):
-    """Import an Image from HDF5 format
+    """Import Image(s) from HDF5 format
 
     :param filename:
-    :return:
+    :return: single image or list of images
     """
     
     with h5py.File(filename, 'r') as f:
-        return convert_hdf_to_image(f)
+        nimlist = f.attrs['number_data_models']
+        imlist = [convert_hdf_to_image(f['Image%d' % i]) for i in range(nimlist)]
+        if nimlist == 1:
+            return imlist[0]
+        else:
+            return imlist
 
 
 def export_skymodel_to_hdf5(sm, filename):
@@ -420,6 +473,7 @@ def export_skymodel_to_hdf5(sm, filename):
     """
     
     assert isinstance(sm, SkyModel)
+    
     with h5py.File(filename, 'w') as f:
         f.attrs['number_skycomponents'] = len(sm.components)
         for i, sc in enumerate(sm.components):

@@ -32,7 +32,10 @@ class TestImaging(unittest.TestCase):
         
         from data_models.parameters import arl_path
         self.dir = arl_path('test_results')
-    
+
+    def tearDown(self):
+        arlexecute.close()
+
     def actualSetUp(self, add_errors=False, freqwin=1, block=False, dospectral=True, dopol=False, zerow=False):
         
         arlexecute.set_client(use_dask=True)

@@ -36,8 +36,13 @@ class TestCalibrationSkyModelcal(unittest.TestCase):
         from data_models.parameters import arl_path
         self.dir = arl_path('test_results')
         
+        arlexecute.set_client(use_dask=True)
+        
         numpy.random.seed(180555)
-    
+
+    def tearDown(self):
+        arlexecute.close()
+
     def actualSetup(self, vnchan=1, doiso=True, ntimes=5, flux_limit=2.0, zerow=True, fixed=False):
         
         nfreqwin = vnchan
@@ -109,7 +114,8 @@ class TestCalibrationSkyModelcal(unittest.TestCase):
         
         self.actualSetup(doiso=True)
         
-        self.skymodel_list = [arlexecute.execute(SkyModel, nout=1)(components=[cm]) for cm in self.components]
+        self.skymodel_list = [arlexecute.execute(SkyModel, nout=1)(components=[cm])
+                              for cm in self.components]
         
         calskymodel_list = calskymodel_solve_component(self.vis, skymodel_list=self.skymodel_list, niter=30,
                                                        gain=0.25, tol=1e-8)
