@@ -38,7 +38,7 @@ class TestImaging(unittest.TestCase):
 
     def actualSetUp(self, add_errors=False, freqwin=1, block=False, dospectral=True, dopol=False, zerow=False):
         
-        arlexecute.set_client(use_dask=True)
+        arlexecute.set_client(use_dask=False)
         
         self.npixel = 256
         self.low = create_named_configuration('LOWBD2', rmax=750.0)

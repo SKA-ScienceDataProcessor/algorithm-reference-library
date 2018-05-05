@@ -28,7 +28,7 @@ class TestPipelinesGenericDask(unittest.TestCase):
     
     def setUp(self):
         
-        arlexecute.set_client(use_dask=True)
+        arlexecute.set_client(use_dask=False)
         
         from data_models.parameters import arl_path
         self.dir = arl_path('test_results')

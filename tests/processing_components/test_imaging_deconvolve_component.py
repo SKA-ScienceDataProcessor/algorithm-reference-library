@@ -31,11 +31,17 @@ log.addHandler(logging.StreamHandler(sys.stderr))
 
 class TestImagingDeconvolveGraph(unittest.TestCase):
     
-    def actualSetUp(self, add_errors=False, freqwin=7, block=False, dospectral=True, dopol=False,
-                    zerow=True):
+    def setUp(self):
         
         from data_models.parameters import arl_path
         self.dir = arl_path('test_results')
+        arlexecute.set_client(use_dask=False)
+    
+    def tearDown(self):
+        arlexecute.close()
+    
+    def actualSetUp(self, add_errors=False, freqwin=7, block=False, dospectral=True, dopol=False,
+                    zerow=True):
         
         self.npixel = 256
         self.low = create_named_configuration('LOWBD2', rmax=750.0)

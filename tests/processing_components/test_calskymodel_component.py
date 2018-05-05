@@ -36,7 +36,7 @@ class TestCalibrationSkyModelcal(unittest.TestCase):
         from data_models.parameters import arl_path
         self.dir = arl_path('test_results')
         
-        arlexecute.set_client(use_dask=True)
+        arlexecute.set_client(use_dask=False)
         
         numpy.random.seed(180555)
 
