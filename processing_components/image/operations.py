@@ -43,9 +43,9 @@ def import_image_from_fits(fitsfile: str) -> Image:
     fim = Image()
     with warnings.catch_warnings():
         warnings.simplefilter('ignore', FITSFixedWarning)
-        hdulist = fits.open(arl_path(fitsfile))
+        hdulist = fits.open(fitsfile)
         fim.data = hdulist[0].data
-        fim.wcs = WCS(arl_path(fitsfile))
+        fim.wcs = WCS(fitsfile)
         hdulist.close()
     
     if len(fim.data) == 2:

@@ -93,7 +93,8 @@ def deconvolve_cube(dirty: Image, psf: Image, **kwargs) -> (Image, Image):
             centre = [psf.shape[2] // 2, psf.shape[3] // 2]
             psf.data = psf.data[..., (centre[0] - psf_support):(centre[0] + psf_support),
                                 (centre[1] - psf_support):(centre[1] + psf_support)]
-            log.info('deconvolve_cube: PSF support = +/- %d pixels' % (psf_support))
+            log.info('deconvolve_cube: PSF support = +/- %d pixels' % psf_support)
+            log.info('deconvolve_cube: PSF shape %s' % str(psf.data.shape))
     
     algorithm = get_parameter(kwargs, 'algorithm', 'msclean')
     
@@ -138,7 +139,9 @@ def deconvolve_cube(dirty: Image, psf: Image, **kwargs) -> (Image, Image):
         nchan = dirty.shape[0]
         assert nchan > 2 * nmoments, "Require nchan %d > 2 * nmoments %d" % (nchan, 2 * nmoments)
         dirty_taylor = calculate_image_frequency_moments(dirty, nmoments=nmoments)
+        log.info("deconvolve_cube: Shape of Dirty moments image %s" % str(dirty_taylor.shape))
         psf_taylor = calculate_image_frequency_moments(psf, nmoments=2 * nmoments)
+        log.info("deconvolve_cube: Shape of PSF moments image %s" % str(psf_taylor.shape))
 
         gain = get_parameter(kwargs, 'gain', 0.7)
         assert 0.0 < gain < 2.0, "Loop gain must be between 0 and 2"
