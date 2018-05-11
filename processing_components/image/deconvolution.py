@@ -23,18 +23,16 @@ For example to make dirty image and PSF, deconvolve, and then restore::
 
 """
 
-import numpy
 import logging
 
+import numpy
 from astropy.convolution import Gaussian2DKernel, convolve
 from photutils import fit_2dgaussian
 
 from data_models.memory_data_models import Image
 from data_models.parameters import get_parameter
-
-from libs.image.operations import create_image_from_array, copy_image
 from libs.image.cleaners import hogbom, msclean, msmfsclean
-
+from libs.image.operations import create_image_from_array, copy_image
 from ..image.operations import calculate_image_frequency_moments, calculate_image_from_frequency_moments
 
 log = logging.getLogger(__name__)
@@ -87,14 +85,13 @@ def deconvolve_cube(dirty: Image, psf: Image, **kwargs) -> (Image, Image):
     else:
         window = None
     
-    psf_support = get_parameter(kwargs, 'psf_support', None)
-    if isinstance(psf_support, int):
-        if (psf_support < psf.shape[2] // 2) and ((psf_support < psf.shape[3] // 2)):
-            centre = [psf.shape[2] // 2, psf.shape[3] // 2]
-            psf.data = psf.data[..., (centre[0] - psf_support):(centre[0] + psf_support),
-                                (centre[1] - psf_support):(centre[1] + psf_support)]
-            log.info('deconvolve_cube: PSF support = +/- %d pixels' % psf_support)
-            log.info('deconvolve_cube: PSF shape %s' % str(psf.data.shape))
+    psf_support = get_parameter(kwargs, 'psf_support', max(dirty.shape[2] // 2, dirty.shape[3] // 2))
+    if (psf_support <= psf.shape[2] // 2) and ((psf_support <= psf.shape[3] // 2)):
+        centre = [psf.shape[2] // 2, psf.shape[3] // 2]
+        psf.data = psf.data[..., (centre[0] - psf_support):(centre[0] + psf_support),
+                   (centre[1] - psf_support):(centre[1] + psf_support)]
+        log.info('deconvolve_cube: PSF support = +/- %d pixels' % psf_support)
+        log.info('deconvolve_cube: PSF shape %s' % str(psf.data.shape))
     
     algorithm = get_parameter(kwargs, 'algorithm', 'msclean')
     
@@ -109,7 +106,7 @@ def deconvolve_cube(dirty: Image, psf: Image, **kwargs) -> (Image, Image):
         scales = get_parameter(kwargs, 'scales', [0, 3, 10, 30])
         fracthresh = get_parameter(kwargs, 'fractional_threshold', 0.01)
         assert 0.0 < fracthresh < 1.0
-    
+        
         comp_array = numpy.zeros_like(dirty.data)
         residual_array = numpy.zeros_like(dirty.data)
         for channel in range(dirty.data.shape[0]):
@@ -126,10 +123,10 @@ def deconvolve_cube(dirty: Image, psf: Image, **kwargs) -> (Image, Image):
                                     window[channel, pol, :, :], gain, thresh, niter, scales, fracthresh)
                 else:
                     log.info("deconvolve_cube: Skipping pol %d, channel %d" % (pol, channel))
-                    
+        
         comp_image = create_image_from_array(comp_array, dirty.wcs, dirty.polarisation_frame)
         residual_image = create_image_from_array(residual_array, dirty.wcs, dirty.polarisation_frame)
-
+    
     elif algorithm == 'msmfsclean' or algorithm == 'mfsmsclean' or algorithm == 'mmclean':
         findpeak = get_parameter(kwargs, "findpeak", 'ARL')
         
@@ -142,7 +139,7 @@ def deconvolve_cube(dirty: Image, psf: Image, **kwargs) -> (Image, Image):
         log.info("deconvolve_cube: Shape of Dirty moments image %s" % str(dirty_taylor.shape))
         psf_taylor = calculate_image_frequency_moments(psf, nmoments=2 * nmoments)
         log.info("deconvolve_cube: Shape of PSF moments image %s" % str(psf_taylor.shape))
-
+        
         gain = get_parameter(kwargs, 'gain', 0.7)
         assert 0.0 < gain < 2.0, "Loop gain must be between 0 and 2"
         thresh = get_parameter(kwargs, 'threshold', 0.0)
@@ -152,7 +149,7 @@ def deconvolve_cube(dirty: Image, psf: Image, **kwargs) -> (Image, Image):
         scales = get_parameter(kwargs, 'scales', [0, 3, 10, 30])
         fracthresh = get_parameter(kwargs, 'fractional_threshold', 0.1)
         assert 0.0 < fracthresh < 1.0
-    
+        
         comp_array = numpy.zeros(dirty_taylor.data.shape)
         residual_array = numpy.zeros(dirty_taylor.data.shape)
         for pol in range(dirty_taylor.data.shape[1]):
@@ -168,14 +165,14 @@ def deconvolve_cube(dirty: Image, psf: Image, **kwargs) -> (Image, Image):
                     window_taylor = numpy.zeros_like(dirty_taylor.data)
                     window_taylor[..., (qy + 1):3 * qy, (qx + 1):3 * qx] = 1.0
                     log.info('deconvolve_cube: Cleaning inner quarter of each moment plane')
-
+                    
                     comp_array[:, pol, :, :], residual_array[:, pol, :, :] = \
                         msmfsclean(dirty_taylor.data[:, pol, :, :], psf_taylor.data[:, pol, :, :],
                                    window_taylor[0, pol, :, :], gain, thresh, niter, scales, fracthresh,
                                    findpeak)
             else:
                 log.info("deconvolve_cube: Skipping pol %d" % (pol))
-                
+        
         comp_image = create_image_from_array(comp_array, dirty_taylor.wcs, dirty.polarisation_frame)
         residual_image = create_image_from_array(residual_array, dirty_taylor.wcs, dirty.polarisation_frame)
         
@@ -186,7 +183,7 @@ def deconvolve_cube(dirty: Image, psf: Image, **kwargs) -> (Image, Image):
             residual_image = calculate_image_from_frequency_moments(dirty, residual_image)
         else:
             log.info("deconvolve_cube: constructed moment cubes")
-            
+    
     elif algorithm == 'hogbom':
         log.info("deconvolve_cube: Hogbom clean of each polarisation and channel separately")
         gain = get_parameter(kwargs, 'gain', 0.7)
@@ -234,12 +231,12 @@ def restore_cube(model: Image, psf: Image, residual=None, **kwargs) -> Image:
     assert isinstance(model, Image), model
     assert isinstance(psf, Image), psf
     assert residual is None or isinstance(residual, Image), residual
-
+    
     restored = copy_image(model)
     
     npixel = psf.data.shape[3]
     sl = slice(npixel // 2 - 7, npixel // 2 + 8)
-
+    
     size = get_parameter(kwargs, "psfwidth", None)
     
     if size is None:
@@ -260,7 +257,7 @@ def restore_cube(model: Image, psf: Image, residual=None, **kwargs) -> Image:
             size = 1.0
     else:
         log.debug('restore_cube: Using specified psfwidth = %s' % (size))
-
+    
     # By convention, we normalise the peak not the integral so this is the volume of the Gaussian
     norm = 2.0 * numpy.pi * size ** 2
     gk = Gaussian2DKernel(size)

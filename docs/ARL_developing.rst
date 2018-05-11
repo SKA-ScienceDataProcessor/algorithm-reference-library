@@ -22,7 +22,6 @@ The ARL has been designed in line with the following principles:
 + Direct access to the data members is envisaged.
 + There are no methods attached to the data classes apart from variant constructors as needed.
 + Standalone, stateless functions are used for all processing.
-+ All function parameters are passed by the kwargs mechanism.
 
 Additions and changes should adhere to these principles.
 

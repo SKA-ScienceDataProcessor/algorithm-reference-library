@@ -2,16 +2,14 @@
 ARL and DASK
 ************
 
-Dask is a python package for distributed processing:
+ARL uses Dask for distributed processing:
 
     http://dask.pydata.org/en/latest/
 
     https://github.com/dask/dask-tutorial
 
-Running ARL and Dask on a single machine is very straightforward. First define a graph and then compute it either by
+Running ARL and Dask on a single machine is straightforward. First define a graph and then compute it either by
 calling the compute method of the graph or by passing the graph to a dask client.
-
-ARL supports two different models of distributed processing in Dask: delayed functions and bags.
 
 A typical graph will flow from a set of input visibility sets to an image or set of images. In the course
 of constructing a graph, we will need to know the data elements and the functions transforming brtween them.
@@ -21,28 +19,51 @@ These are well-modeled in ARL. A example of three cycles of a major/minor cycle 
       :width: 1024px
 
 
-Conceptually we can think of one visibility set, which may be decomposed into different subsets in processing, and
-one image, which also may be subsetted for processing.
+In order that Dask.delayed processing can be switched on and off, and that the same code is used for Dask and
+non-Dask processing, we have wrapped Dask.delayed in :py:mod:`processing_components.support_components.arlexecute`.
+An example is::
 
-Dask.delayed is used for distribution:
+        arlexecute.set_client(use_dask=True)
+        continuum_imaging_list = \
+            continuum_imaging_component(vis_list, model_imagelist=self.model_imagelist, context='2d',
+                                        algorithm='mmclean', facets=1,
+                                        scales=[0, 3, 10],
+                                        niter=1000, fractional_threshold=0.1,
+                                        nmoments=2, nchan=self.freqwin,
+                                        threshold=2.0, nmajor=5, gain=0.1,
+                                        deconvolve_facets=8, deconvolve_overlap=16,
+                                        deconvolve_taper='tukey')
+        clean, residual, restored = arlexecute.compute(continuum_imaging_list, sync=True)
 
-    - :py:mod:`arl.graphs.graphs`: Graphs to perform various types of prediction and inversion of visibility data
-    - :py:mod:`arl.graphs.generic_graphs`: Graphs to perform generic image or visibility unary operations
-    - :py:mod:`arl.util.graph_support`: Graphs to support testing and simulations
-    - :py:mod:`arl.pipelines.graphs`: Graphs to implement the canonical pipelines
+The function :py:mod:`processing_components.support_components.arlexecute.arlexecute.set_client` must be called
+before defining any components. If use_dask is True then a Dask graph is constructed for subsequent execution. If
+use_dask is False then the function is called immediately. The pipeline component
+:py:mod:`processing_components.pipelines.pipeline_components.continuum_imaging_component` is itself assembled using the
+:py:mod:`processing_components.support_components.arlexecute.arlexecute.execute function`.
 
-In addition there are notebooks in examples/arl.
+The functions for creating graphs are:
 
-    - imaging-dask: General imaging example using Dask.delayed
-    - imaging-pipelines: Pipelines run on small LOW observation (core only)
-    - calibration-pipelines: Pipelines for self-calibration
+    - :py:mod:`processing_components.support_components.imaging_components`: Graphs to perform various types of
+    prediction and inversion of visibility data
+    - :py:mod:`processing_components.component_support.generic_components`: Graphs to perform generic image or
+    visibility unary operations
+    - :py:mod:`processing_components.util.testing_support`: Graphs to support testing and simulations
+    - :py:mod:`processing_components.pipelines.pipeline_components`: Graphs to implement the canonical pipelines
 
-There are supporting functions for scatter/gather of some of the appropriate data models.
+In addition there are notebooks that use components in workflows/notebooks.
+
+    - simple-dask: Demonstrates generic components
+    - imaging-pipelines: Pipeline to run continuum imaging and ICAL pipelines on small LOW observation
+    - calskymodel: SAGECal calibration
 
 These notebooks are scaled to run on a 2017-era laptop (4 cores, 16GB) but can be changed to larger scales. Both
 explicitly create a client and output the URL (usually http://127.0.0.1:8787) for the Dask diagnostics. Of these the
 status page is most useful. If you shrink the browser size enough laterally all of the information appears on one
-page.
+page. The image below shows a typical screen for one of the pipelines:
+
+.. image:: ./dask_global.png
+   :scale: 100 %
+
 
 Using ARL and dask on Darwin
 ****************************
@@ -206,9 +227,3 @@ Then to tunnel the pages::
 The diagnostic page is available from your local browser at::
 
       127.0.0.1:8080
-
-Using ARL and dask on P3
-************************
-
-[To be written]
-

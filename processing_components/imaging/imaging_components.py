@@ -390,6 +390,7 @@ def deconvolve_component(dirty_list, psf_list, model_imagelist, **kwargs):
     peak = arlexecute.execute(numpy.max, nout=1)(peaks)
 
     def deconvolve(dirty, psf, model, gpeak):
+        log.info("Cleaning: peak across all sub-images = %.3f" % (gpeak))
         actual_threshold = max(threshold, fractional_threshold * gpeak)
         kwargs['threshold'] = actual_threshold
         this_peak = numpy.max(numpy.abs(dirty.data))

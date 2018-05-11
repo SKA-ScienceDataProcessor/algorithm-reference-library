@@ -22,36 +22,48 @@ All the above functions are linear in the visibilities and image. The 2D transfo
 restricted context. Hence we layer all algorithms on top of the 2D transform. This means that a suitable
 framework decomposes the overall transform into suitable linear combinations of invocations of 2D transforms.
 
-ARL has two ways of invoking the calibration and imaging capabilities: python functions and Dask delayed functions.
+The full layering is:
 
++ The core 2d imaging functions are defined in :py:mod:`processing_components.imaging.base`. W projection is included
+at this level by setting wstep to the desired non-zero value.
++ Other algorithms (e.g. timeslice and wstack) are implemented as functions using the core 2d imaging functions.
+These are defined in :py:mod:`processing_components.imaging.imaging_functions`
++ Graph based algorithms are defined in :py:mod:`processing_components.imaging.imaging_components`
 
-In the first approach we use python iterators to perform the
-subsectioning. For example, the principal image iteration
-via a raster implemented by a python generator. The styel of this approach is::
+In the first approach we use python iterators to perform the subsectioning. For example, the principal image iteration
+via a raster implemented by a python generator. The style of this approach is::
 
         m31model=create_test_image()
-        for ipatch in raster(m31model, nraster=2):
+        for ipatch in image_raster_iter(m31model, facets=4):
             # each image patch can be used to add to the visibility data
-            vis + = predict_2d(vis, ipatch, params)
-
-        # For image partitioning and snapshot processing
-        iraster, interval = find_optimum_iraster_times(vis, model)
-        m31model=create_test_image()
-        for ipatch in raster(m31model, nraster=iraster):
-            for subvis in snapshot(vis, interval=interval):
-                # each patch can be used to add to the visibility data
-                subvis + = predict_2d(subvis, ipatch, params)
+            vis + = predict_2dvis, ipatch)
 
 This relies upon the data objects (model and vis) possessing sufficient meta data to enable operations such as phase
-rotation from one frame to another. See e.g. :py:mod:`arl.imaging.imaging_context.invert_function`
+rotation from one frame to another.
 
-The second approach is based on the same underlying functions, predict_2d_base and invert_2d_base, but uses lazy
-evaluation implemented by the Dask.delayed package. See e.g. :py:mod:`arl.graphs.delayed.create_invert_graph`
+The second approach is based on the same underlying functions, predict_2d and invert_2d::
 
-The Visibility API supports these forms of iteration.
+        m31model=create_test_image()
+        vis = predict_function(vis, m31model, context='facets', nfacets=4)
 
-To enable efficient graph processing, the units of processing are kept small. Each should be doable in a few minutes.
+The third approach implements imaging via components::
 
+        m31model_component = arlexecute.execute(create_test_image)()
+        vis_component = arlexecute(vis_scatter_time)(vis, timeslice='auto')
+        vis_component = predict_component(vis_component, m31component_component, facets=4)
 
+This form may be executed immediately::
 
+        arlexecute.set_client(use_dask=False)
+        m31model_component = arlexecute.execute(create_test_image)()
+        vis_component = arlexecute(vis_scatter_time)(vis, timeslice='auto')
+        vis_component = predict_component(vis_component, m31component_component, facets=4)
+
+Or delayed::
+
+        arlexecute.set_client(use_dask=True)
+        m31model_component = arlexecute.execute(create_test_image)()
+        vis_component = arlexecute(vis_scatter_time)(vis, timeslice='auto')
+        vis_component = predict_component(vis_component, m31component_component, facets=4)
+        vis_component = arlexecute.compute(vis_component, sync=True)
 

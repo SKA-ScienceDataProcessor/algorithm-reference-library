@@ -9,7 +9,6 @@ from ..imaging.imaging_components import invert_component, residual_component, \
     predict_component, zero_vislist_component, subtract_vislist_component, restore_component, deconvolve_component
 from ..calibration.calibration_components import calibrate_component
 
-
 def ical_component(vis_list, model_imagelist, context='2d', calibration_context='TG', do_selfcal=True, **kwargs) :
     """Create graph for ICAL pipeline
 

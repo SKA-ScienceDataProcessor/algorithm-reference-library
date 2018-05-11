@@ -72,7 +72,7 @@ def generic_image_iterator_component(imagefunction, im: Image, iterator, **kwarg
     return arlexecute.execute(accumulate_results, pure=True)(results, **kwargs)
 
 
-def generic_image_component(image_unary_function, im: Image, facets=4, **kwargs) :
+def generic_image_component(image_unary_function, im: Image, facets=4, overlap=0, **kwargs) :
     """ Definition of interface for generic_image_component using scatter/gather
 
     This generates a graph for imagefunction. Note that im cannot be a graph itself.
@@ -85,5 +85,5 @@ def generic_image_component(image_unary_function, im: Image, facets=4, **kwargs)
     """
     output = arlexecute.execute(create_empty_image_like, nout=1, pure=True)(im)
     scattered = arlexecute.execute(image_scatter_facets, pure=True, nout=facets ** 2)(im, facets=facets)
-    result = [arlexecute.execute(image_unary_function)(s) for s in scattered]
+    result = [arlexecute.execute(image_unary_function)(s, **kwargs) for s in scattered]
     return arlexecute.execute(image_gather_facets, nout=1, pure=True)(result, output, facets=facets)

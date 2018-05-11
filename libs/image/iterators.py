@@ -4,6 +4,7 @@ Functions that define and manipulate images. Images are just data and a World Co
 """
 
 import logging
+import collections
 
 import numpy
 
@@ -17,7 +18,7 @@ from ..image.operations import create_empty_image_like
 log = logging.getLogger(__name__)
 
 
-def image_null_iter(im: Image, facets=1, overlap=0):
+def image_null_iter(im: Image, facets=1, overlap=0) -> collections.Iterable:
     """One time iterator
 
     :param im:
@@ -28,7 +29,7 @@ def image_null_iter(im: Image, facets=1, overlap=0):
     yield im
 
 
-def image_raster_iter(im: Image, facets=1, overlap=0, taper='flat', make_flat=False):
+def image_raster_iter(im: Image, facets=1, overlap=0, taper='flat', make_flat=False) -> collections.Iterable:
     """Create an image_raster_iter generator, returning images, optionally with overlaps
 
     The WCS is adjusted appropriately for each raster element. Hence this is a coordinate-aware
@@ -147,7 +148,7 @@ def image_raster_iter(im: Image, facets=1, overlap=0, taper='flat', make_flat=Fa
                     i += 1
 
 
-def image_channel_iter(im: Image, subimages=1) -> Image:
+def image_channel_iter(im: Image, subimages=1) -> collections.Iterable:
     """Create a image_channel_iter generator, returning images
 
     The WCS is adjusted appropriately for each raster element. Hence this is a coordinate-aware

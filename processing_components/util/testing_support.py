@@ -242,8 +242,8 @@ def create_test_image_from_s3(npixel=16384, polarisation_frame=PolarisationFrame
     For frequencies > 610MHz, there are three tables:
     
         data/models/S3_1400MHz_1mJy_10deg.csv, use flux_limit>= 1e-3
-        data/models/S3_1400MHz_10uJy_10deg.csv, use flux_limit>= 1e-3
-        data/models/S3_151MHz_100uJy_10deg.csv, use flux_limit>= 1e-3
+        data/models/S3_1400MHz_100uJy_10deg.csv, use flux_limit>= 1e-4
+        data/models/S3_1400MHz_10uJy_10deg.csv, use flux_limit>= 0.0
 
     The component spectral index is calculated from the 610MHz and 151MHz or 1400MHz and 610MHz, and then calculated
     for the specified frequencies.

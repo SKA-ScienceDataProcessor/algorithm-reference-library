@@ -1,27 +1,5 @@
-"""The data models used in ARL are:
-
-.. image:: ./ARL_data.png
-   :scale: 75 %
-
-The principle transitions between the data models:
-
-.. image:: ./ARL_transitions.png
-   :scale: 75 %
-
-.. note::
-    There are two visibility formats:
-
-    :class:`BlockVisibility` is conceived as an ingest and calibration format. The visibility
-    data are kept in a block of shape (number antennas, number antennas, number channels,
-    number polarisation). One block is kept per integration. The other columns are time and uvw.
-    The sampling in time is therefore the same for all baselines.
-
-    :class:`Visibility` is designed to hold coalesced data where the integration time and
-    channel width can vary with baseline length. The visibility data are kept in a visibility
-    vector of length equal to the number of polarisations. Everything else is a separate
-    column: time, frequency, uvw, channel_bandwidth, integration time.
-
-
+""" This is pending definition at the architecture level. For the moment, the memory data models are
+repeated here.
 """
 
 import logging

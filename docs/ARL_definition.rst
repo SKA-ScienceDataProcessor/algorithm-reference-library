@@ -91,7 +91,7 @@ Gather/Scatter
 Iterators
 +++++++++
 
-.. automodule:: processing_components.image.iterators
+.. automodule:: libs.image.iterators
    :members:
 
 Deconvolution
@@ -165,8 +165,8 @@ Base
 .. automodule:: processing_components.imaging.base
    :members:
 
-Imaging context
-+++++++++++++++
+Imaging functions
++++++++++++++++++
 
 .. automodule:: processing_components.imaging.imaging_functions
    :members:
@@ -297,7 +297,7 @@ Pipelines
 Pipelines using arlexecute
 ++++++++++++++++++++++++++
 
-.. automodule:: processing_components.components.pipeline_components
+.. automodule:: processing_components.pipelines.pipeline_components
    :members:
 
 Functions
@@ -309,7 +309,7 @@ Functions
 Support
 +++++++
 
-.. automodule:: processing_components.components.support_components
+.. automodule:: processing_components.util.support_components
    :members:
 
 
@@ -337,7 +337,7 @@ Unit tests written in standard python style are available.
 .. automodule:: tests.libs.test_parameters
    :members:
 
-.. automodule:: tests.libs.test_polarisation
+.. automodule:: tests.data_models.test_polarisation
    :members:
 
 .. automodule:: tests.processing_components.test_arlexecute

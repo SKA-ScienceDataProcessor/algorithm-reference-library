@@ -6,6 +6,8 @@
 Background
 ==========
 
+[This is the original motivation. Some shift in emphasis has occured.]
+
 Core motivations
 ----------------
 
