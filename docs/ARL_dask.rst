@@ -20,7 +20,7 @@ These are well-modeled in ARL. A example of three cycles of a major/minor cycle 
 
 
 In order that Dask.delayed processing can be switched on and off, and that the same code is used for Dask and
-non-Dask processing, we have wrapped Dask.delayed in :py:mod:`processing_components.support_components.arlexecute`.
+non-Dask processing, we have wrapped Dask.delayed in :py:mod:`processing_components.component_support.arlexecute`.
 An example is::
 
         arlexecute.set_client(use_dask=True)
@@ -35,11 +35,11 @@ An example is::
                                         deconvolve_taper='tukey')
         clean, residual, restored = arlexecute.compute(continuum_imaging_list, sync=True)
 
-The function :py:mod:`processing_components.support_components.arlexecute.arlexecute.set_client` must be called
+The function :py:mod:`processing_components.component_support.arlexecute.arlexecute.set_client` must be called
 before defining any components. If use_dask is True then a Dask graph is constructed for subsequent execution. If
 use_dask is False then the function is called immediately. The pipeline component
 :py:mod:`processing_components.pipelines.pipeline_components.continuum_imaging_component` is itself assembled using the
-:py:mod:`processing_components.support_components.arlexecute.arlexecute.execute function`.
+:py:mod:`processing_components.component_support.arlexecute.execute` function.
 
 The functions for creating graphs are:
 
@@ -66,7 +66,7 @@ page. The image below shows a typical screen for one of the pipelines:
 
 
 Using ARL and dask on Darwin
-****************************
+============================
 
 Running on a cluster is quite a bit more complicated, mostly because of the ways that clusters are operated. Darwin
 uses SLURM for scheduling. There is python binding of DRMAA that could in principle be used to queue the processing.
