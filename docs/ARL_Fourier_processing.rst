@@ -25,13 +25,14 @@ framework decomposes the overall transform into suitable linear combinations of 
 The full layering is:
 
 + The core 2d imaging functions are defined in :py:mod:`processing_components.imaging.base`. W projection is included
-at this level by setting wstep to the desired non-zero value.
+    at this level by setting wstep to the desired non-zero value.
+
 + Other algorithms (e.g. timeslice and wstack) are implemented as functions using the core 2d imaging functions.
-These are defined in :py:mod:`processing_components.imaging.imaging_functions`
+    These are defined in :py:mod:`processing_components.imaging.imaging_functions`
+
 + Graph based algorithms are defined in :py:mod:`processing_components.imaging.imaging_components`
 
-In the first approach we use python iterators to perform the subsectioning. For example, the principal image iteration
-via a raster implemented by a python generator. The style of this approach is::
+The style of first approach is::
 
         m31model=create_test_image()
         for ipatch in image_raster_iter(m31model, facets=4):
@@ -41,12 +42,13 @@ via a raster implemented by a python generator. The style of this approach is::
 This relies upon the data objects (model and vis) possessing sufficient meta data to enable operations such as phase
 rotation from one frame to another.
 
-The second approach is based on the same underlying functions, predict_2d and invert_2d::
+The second approach is based on the same underlying functions, predict_2d and invert_2d but encapsulates the looping
+of the above example::
 
         m31model=create_test_image()
         vis = predict_function(vis, m31model, context='facets', nfacets=4)
 
-The third approach implements imaging via components::
+The third approach implements imaging via arlexecute::
 
         m31model_component = arlexecute.execute(create_test_image)()
         vis_component = arlexecute(vis_scatter_time)(vis, timeslice='auto')

@@ -37,10 +37,7 @@ The top-level functional model corresponds to the major SDP pipelines:
 ARL API
 =======
 
-The data structures are operated on by state-less functions. The complete set of functions is:
-
-.. image:: ./ARL_all.png
-   :width: 1024px
+The data structures are operated on by state-less functions as described below.
 
 
 Data
