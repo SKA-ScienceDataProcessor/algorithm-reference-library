@@ -9,19 +9,19 @@ import sys
 from astropy.coordinates import SkyCoord
 from astropy import units as u
 
-from arl.calibration.operations import apply_gaintable, create_gaintable_from_blockvisibility, qa_gaintable
-from arl.visibility.base import create_visibility, copy_visibility
-from arl.data.data_models import Image, Visibility, BlockVisibility, ReceptorFrame, GainTable
-from arl.image.deconvolution import deconvolve_cube, restore_cube
-from arl.imaging.base import create_image_from_visibility, predict_2d
-from arl.imaging import invert_2d, advise_wide_field
-from arl.util.testing_support import create_named_configuration, create_test_image, create_low_test_image_from_gleam, simulate_gaintable
-from arl.data.polarisation import PolarisationFrame
-from arl.visibility.base import create_blockvisibility
-from arl.imaging.imaging_context import invert_function, predict_function 
-from arl.visibility.coalesce import convert_visibility_to_blockvisibility, convert_blockvisibility_to_visibility
-from arl.calibration.solvers import solve_gaintable
-from arl.pipelines.functions import ical
+from processing_components.calibration.operations import apply_gaintable, create_gaintable_from_blockvisibility, qa_gaintable
+from processing_components.visibility.base import create_visibility, copy_visibility
+from data_models.memory_data_models import Image, Visibility, BlockVisibility, ReceptorFrame, GainTable
+from processing_components.image.deconvolution import deconvolve_cube, restore_cube
+from processing_components.imaging.base import create_image_from_visibility, predict_2d, invert_2d
+from processing_components.imaging.base import advise_wide_field
+from processing_components.util.testing_support import create_named_configuration, create_test_image, create_low_test_image_from_gleam, simulate_gaintable
+from data_models.polarisation import PolarisationFrame
+from processing_components.visibility.base import create_blockvisibility
+from processing_components.imaging.imaging_functions import invert_function, predict_function 
+from processing_components.visibility.coalesce import convert_visibility_to_blockvisibility, convert_blockvisibility_to_visibility
+from processing_components.calibration.calibration import solve_gaintable
+from processing_components.functions.pipeline_functions import ical
 
 import logging
 import pickle
@@ -348,12 +348,12 @@ def cImage(image_in, new=False):
             dtype='b',
             count=2996)
         new_image.polarisation_frame = numpy.frombuffer(ff.buffer(
-            image_in.polarisation_frame, 114),
+            image_in.polarisation_frame, 117),
             dtype='b',
-            count=114)
+            count=117)
     else:
         new_image.wcs = pickle.loads(ff.buffer(image_in.wcs, 2996))
-        new_image.polarisation_frame = pickle.loads(ff.buffer(image_in.polarisation_frame,114))
+        new_image.polarisation_frame = pickle.loads(ff.buffer(image_in.polarisation_frame,117))
     
     return new_image
 

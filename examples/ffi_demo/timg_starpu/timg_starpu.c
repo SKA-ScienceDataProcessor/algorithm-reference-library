@@ -166,16 +166,16 @@ int main(int argc, char *argv[]) {
 	for(i=0; i< N_ITER; i++) {
 		comp_[i] = allocate_image(shape);
 		memcpy(comp_[i]->data, comp->data, comp->size*sizeof(double));
-		memcpy(comp_[i]->wcs, comp->wcs, 2997);
-		memcpy(comp_[i]->polarisation_frame, comp->polarisation_frame, 115);
+		memcpy(comp_[i]->wcs, comp->wcs, 2996);
+		memcpy(comp_[i]->polarisation_frame, comp->polarisation_frame, 117);
 		psf_[i] = allocate_image(shape);
 		memcpy(psf_[i]->data, psf->data, psf->size*sizeof(double));
-		memcpy(psf_[i]->wcs, psf->wcs, 2997);
-		memcpy(psf_[i]->polarisation_frame, psf->polarisation_frame, 115);
+		memcpy(psf_[i]->wcs, psf->wcs, 2996);
+		memcpy(psf_[i]->polarisation_frame, psf->polarisation_frame, 117);
 		residual_[i] = allocate_image(shape);
 		memcpy(residual_[i]->data, residual->data, residual->size*sizeof(double));
-		memcpy(residual_[i]->wcs, residual->wcs, 2997);
-		memcpy(residual_[i]->polarisation_frame, residual->polarisation_frame, 115);
+		memcpy(residual_[i]->wcs, residual->wcs, 2996);
+		memcpy(residual_[i]->polarisation_frame, residual->polarisation_frame, 117);
 		restored_[i] = allocate_image(shape);
 
 		SVDR(restore_cube_handle[i], 0, comp_[i], sizeof(Image));
