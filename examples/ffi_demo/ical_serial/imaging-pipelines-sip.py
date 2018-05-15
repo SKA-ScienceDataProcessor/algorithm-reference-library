@@ -20,20 +20,21 @@ from astropy.wcs.utils import pixel_to_skycoord
 
 from matplotlib import pyplot as plt
 
-from arl.calibration.solvers import solve_gaintable
-from arl.calibration.operations import apply_gaintable, create_gaintable_from_blockvisibility
-from arl.data.data_models import Image
-from arl.data.polarisation import PolarisationFrame
-from arl.data.parameters import get_parameter
-from arl.visibility.base import create_blockvisibility
-from arl.skycomponent.operations import create_skycomponent
-from arl.image.operations import show_image, export_image_to_fits, qa_image, copy_image, create_empty_image_like
-from arl.visibility.iterators import vis_timeslice_iter
-from arl.visibility.coalesce import convert_visibility_to_blockvisibility
-from arl.util.testing_support import create_named_configuration, create_low_test_beam,     create_low_test_image_from_gleam, simulate_gaintable
-from arl.imaging import create_image_from_visibility, advise_wide_field
-from arl.imaging.imaging_context import invert_function, predict_function
-from arl.pipelines.functions import ical
+from processing_components.calibration.operations import apply_gaintable, create_gaintable_from_blockvisibility, qa_gaintable
+from processing_components.visibility.base import create_visibility, copy_visibility
+from data_models.memory_data_models import Image, Visibility, BlockVisibility, ReceptorFrame, GainTable
+from processing_components.image.deconvolution import deconvolve_cube, restore_cube
+from processing_components.image.operations import show_image, export_image_to_fits, qa_image, copy_image, create_empty_image_like
+from processing_components.imaging.base import create_image_from_visibility, predict_2d, invert_2d
+from processing_components.imaging.base import advise_wide_field
+from processing_components.util.testing_support import create_named_configuration, create_test_image, create_low_test_image_from_gleam, simulate_gaintable
+from data_models.polarisation import PolarisationFrame
+from processing_components.visibility.base import create_blockvisibility
+from processing_components.imaging.imaging_functions import invert_function, predict_function 
+from processing_components.visibility.coalesce import convert_visibility_to_blockvisibility, convert_blockvisibility_to_visibility
+from processing_components.calibration.calibration import solve_gaintable
+from processing_components.functions.pipeline_functions import ical
+
 
 import logging
 
