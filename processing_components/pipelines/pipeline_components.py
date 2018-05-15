@@ -2,14 +2,14 @@
 """
 
 from data_models.parameters import get_parameter
-
-from ..component_support.arlexecute import arlexecute
-
-from ..imaging.imaging_components import invert_component, residual_component, \
-    predict_component, zero_vislist_component, subtract_vislist_component, restore_component, deconvolve_component
 from ..calibration.calibration_components import calibrate_component
+from ..component_support.arlexecute import arlexecute
+from ..imaging.imaging_components import invert_component, residual_component, \
+    predict_component, zero_vislist_component, subtract_vislist_component, restore_component, \
+    deconvolve_component
 
-def ical_component(vis_list, model_imagelist, context='2d', calibration_context='TG', do_selfcal=True, **kwargs) :
+
+def ical_component(vis_list, model_imagelist, context='2d', calibration_context='TG', do_selfcal=True, **kwargs):
     """Create graph for ICAL pipeline
 
     :param vis_list:
@@ -28,16 +28,17 @@ def ical_component(vis_list, model_imagelist, context='2d', calibration_context=
         # Make the predicted visibilities, selfcalibrate against it correcting the gains, then
         # form the residual visibility, then make the residual image
         vis_list = calibrate_component(vis_list, model_vislist,
-                                             calibration_context=calibration_context, **kwargs)
+                                       calibration_context=calibration_context, **kwargs)
         residual_vislist = subtract_vislist_component(vis_list, model_vislist)
         residual_imagelist = invert_component(residual_vislist, model_imagelist, dopsf=True, context=context,
-                                             iteration=0, **kwargs)
+                                              iteration=0, **kwargs)
     else:
         # If we are not selfcalibrating it's much easier and we can avoid an unnecessary round of gather/scatter
         # for visibility partitioning such as timeslices and wstack.
         residual_imagelist = residual_component(vis_list, model_imagelist, context=context, **kwargs)
     
-    deconvolve_model_imagelist, _ = deconvolve_component(residual_imagelist, psf_imagelist, model_imagelist, **kwargs)
+    deconvolve_model_imagelist, _ = deconvolve_component(residual_imagelist, psf_imagelist, model_imagelist,
+                                                         **kwargs)
     
     nmajor = get_parameter(kwargs, "nmajor", 5)
     if nmajor > 1:
@@ -45,26 +46,29 @@ def ical_component(vis_list, model_imagelist, context='2d', calibration_context=
             if do_selfcal:
                 model_vislist = zero_vislist_component(vis_list)
                 model_vislist = predict_component(model_vislist, deconvolve_model_imagelist,
-                                                         context=context, **kwargs)
+                                                  context=context, **kwargs)
                 vis_list = calibrate_component(vis_list, model_vislist,
-                                                     calibration_context=calibration_context,
-                                                     iteration=cycle, **kwargs)
+                                               calibration_context=calibration_context,
+                                               iteration=cycle, **kwargs)
                 residual_vislist = subtract_vislist_component(vis_list, model_vislist)
                 residual_imagelist = invert_component(residual_vislist, model_imagelist, dopsf=False,
-                                                     context=context, **kwargs)
+                                                      context=context, **kwargs)
             else:
                 residual_imagelist = residual_component(vis_list, deconvolve_model_imagelist,
-                                                    context=context, **kwargs)
+                                                        context=context, **kwargs)
             
+            prefix = "cycle %d" % cycle
             deconvolve_model_imagelist, _ = deconvolve_component(residual_imagelist, psf_imagelist,
-                                                             deconvolve_model_imagelist, **kwargs)
+                                                                 deconvolve_model_imagelist,
+                                                                 prefix=prefix,
+                                                                 **kwargs)
     residual_imagelist = residual_component(vis_list, deconvolve_model_imagelist, context=context, **kwargs)
     restore_imagelist = restore_component(deconvolve_model_imagelist, psf_imagelist, residual_imagelist)
     
     return arlexecute.execute((deconvolve_model_imagelist, residual_imagelist, restore_imagelist))
 
 
-def continuum_imaging_component(vis_list, model_imagelist, context='2d', **kwargs) :
+def continuum_imaging_component(vis_list, model_imagelist, context='2d', **kwargs):
     """ Create graph for the continuum imaging pipeline.
     
     Same as ICAL but with no selfcal.
@@ -78,21 +82,26 @@ def continuum_imaging_component(vis_list, model_imagelist, context='2d', **kwarg
     psf_imagelist = invert_component(vis_list, model_imagelist, dopsf=True, context=context, **kwargs)
     
     residual_imagelist = residual_component(vis_list, model_imagelist, context=context, **kwargs)
-    deconvolve_model_imagelist, _ = deconvolve_component(residual_imagelist, psf_imagelist, model_imagelist, **kwargs)
+    deconvolve_model_imagelist, _ = deconvolve_component(residual_imagelist, psf_imagelist, model_imagelist,
+                                                         prefix='',
+                                                         **kwargs)
     
     nmajor = get_parameter(kwargs, "nmajor", 5)
     if nmajor > 1:
         for cycle in range(nmajor):
+            prefix = "cycle %d" % cycle
             residual_imagelist = residual_component(vis_list, deconvolve_model_imagelist, context=context, **kwargs)
-            deconvolve_model_imagelist, _ = deconvolve_component(residual_imagelist, psf_imagelist, deconvolve_model_imagelist,
-                                                             **kwargs)
+            deconvolve_model_imagelist, _ = deconvolve_component(residual_imagelist, psf_imagelist,
+                                                                 deconvolve_model_imagelist,
+                                                                 prefix=prefix,
+                                                                 **kwargs)
     
     residual_imagelist = residual_component(vis_list, deconvolve_model_imagelist, context=context, **kwargs)
     restore_imagelist = restore_component(deconvolve_model_imagelist, psf_imagelist, residual_imagelist)
     return arlexecute.execute((deconvolve_model_imagelist, residual_imagelist, restore_imagelist))
 
 
-def spectral_line_imaging_component(vis_list, model_imagelist, continuum_model_imagelist=None, context='2d', **kwargs) :
+def spectral_line_imaging_component(vis_list, model_imagelist, continuum_model_imagelist=None, context='2d', **kwargs):
     """Create graph for spectral line imaging pipeline
 
     Uses the ical pipeline after subtraction of a continuum model

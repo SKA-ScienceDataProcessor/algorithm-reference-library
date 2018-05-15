@@ -215,7 +215,7 @@ def calculate_image_frequency_moments(im: Image, reference_frequency=None, nmome
     
     if reference_frequency is None:
         reference_frequency = numpy.average(freq)
-    log.info("calculate_image_frequency_moments: Reference frequency = %.3f (MHz)" % (reference_frequency))
+    log.debug("calculate_image_frequency_moments: Reference frequency = %.3f (MHz)" % (reference_frequency/1e6))
     
     moment_data = numpy.zeros([nmoments, npol, ny, nx])
     
@@ -269,7 +269,7 @@ def calculate_image_from_frequency_moments(im: Image, moment_image: Image, refer
     
     if reference_frequency is None:
         reference_frequency = numpy.average(freq)
-    log.info("calculate_image_from_frequency_moments: Reference frequency = %.3f (MHz)" % (reference_frequency))
+    log.debug("calculate_image_from_frequency_moments: Reference frequency = %.3f (MHz)" % (reference_frequency))
     
     newim = copy_image(im)
     

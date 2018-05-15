@@ -38,7 +38,7 @@ from ..image.operations import calculate_image_frequency_moments, calculate_imag
 log = logging.getLogger(__name__)
 
 
-def deconvolve_cube(dirty: Image, psf: Image, **kwargs) -> (Image, Image):
+def deconvolve_cube(dirty: Image, psf: Image, prefix='', **kwargs) -> (Image, Image):
     """ Clean using a variety of algorithms
     
     Functions that clean a dirty image using a point spread function. The algorithms available are:
@@ -72,6 +72,7 @@ def deconvolve_cube(dirty: Image, psf: Image, **kwargs) -> (Image, Image):
     :return: componentimage, residual
     
     """
+    
     assert isinstance(dirty, Image), dirty
     assert isinstance(psf, Image), psf
     
@@ -81,7 +82,7 @@ def deconvolve_cube(dirty: Image, psf: Image, **kwargs) -> (Image, Image):
         qy = dirty.shape[2] // 4
         window = numpy.zeros_like(dirty.data)
         window[..., (qy + 1):3 * qy, (qx + 1):3 * qx] = 1.0
-        log.info('deconvolve_cube: Cleaning inner quarter of each sky plane')
+        log.info('deconvolve_cube %s: Cleaning inner quarter of each sky plane' % prefix)
     else:
         window = None
     
@@ -90,13 +91,14 @@ def deconvolve_cube(dirty: Image, psf: Image, **kwargs) -> (Image, Image):
         centre = [psf.shape[2] // 2, psf.shape[3] // 2]
         psf.data = psf.data[..., (centre[0] - psf_support):(centre[0] + psf_support),
                    (centre[1] - psf_support):(centre[1] + psf_support)]
-        log.info('deconvolve_cube: PSF support = +/- %d pixels' % psf_support)
-        log.info('deconvolve_cube: PSF shape %s' % str(psf.data.shape))
+        log.info('deconvolve_cube %s: PSF support = +/- %d pixels' % (prefix, psf_support))
+        log.info('deconvolve_cube %s: PSF shape %s' % (prefix, str(psf.data.shape)))
     
     algorithm = get_parameter(kwargs, 'algorithm', 'msclean')
-    
+
     if algorithm == 'msclean':
-        log.info("deconvolve_cube: Multi-scale clean of each polarisation and channel separately")
+        log.info("deconvolve_cube %s: Multi-scale clean of each polarisation and channel separately" %
+                 prefix)
         gain = get_parameter(kwargs, 'gain', 0.7)
         assert 0.0 < gain < 2.0, "Loop gain must be between 0 and 2"
         thresh = get_parameter(kwargs, 'threshold', 0.0)
@@ -112,17 +114,18 @@ def deconvolve_cube(dirty: Image, psf: Image, **kwargs) -> (Image, Image):
         for channel in range(dirty.data.shape[0]):
             for pol in range(dirty.data.shape[1]):
                 if psf.data[channel, pol, :, :].max():
-                    log.info("deconvolve_cube: Processing pol %d, channel %d" % (pol, channel))
+                    log.info("deconvolve_cube %s: Processing pol %d, channel %d" % (prefix, pol, channel))
                     if window is None:
                         comp_array[channel, pol, :, :], residual_array[channel, pol, :, :] = \
                             msclean(dirty.data[channel, pol, :, :], psf.data[channel, pol, :, :],
-                                    None, gain, thresh, niter, scales, fracthresh)
+                                    None, gain, thresh, niter, scales, fracthresh, prefix)
                     else:
                         comp_array[channel, pol, :, :], residual_array[channel, pol, :, :] = \
                             msclean(dirty.data[channel, pol, :, :], psf.data[channel, pol, :, :],
-                                    window[channel, pol, :, :], gain, thresh, niter, scales, fracthresh)
+                                    window[channel, pol, :, :], gain, thresh, niter, scales, fracthresh,
+                                    prefix)
                 else:
-                    log.info("deconvolve_cube: Skipping pol %d, channel %d" % (pol, channel))
+                    log.info("deconvolve_cube %s: Skipping pol %d, channel %d" % (prefix, pol, channel))
         
         comp_image = create_image_from_array(comp_array, dirty.wcs, dirty.polarisation_frame)
         residual_image = create_image_from_array(residual_array, dirty.wcs, dirty.polarisation_frame)
@@ -130,16 +133,20 @@ def deconvolve_cube(dirty: Image, psf: Image, **kwargs) -> (Image, Image):
     elif algorithm == 'msmfsclean' or algorithm == 'mfsmsclean' or algorithm == 'mmclean':
         findpeak = get_parameter(kwargs, "findpeak", 'ARL')
         
-        log.info("deconvolve_cube: Multi-scale multi-frequency clean of each polarisation separately")
+        log.info("deconvolve_cube %s: Multi-scale multi-frequency clean of each polarisation separately"
+                 % prefix)
         nmoments = get_parameter(kwargs, "nmoments", 3)
         assert nmoments > 0, "Number of frequency moments must be greater than zero"
         nchan = dirty.shape[0]
         assert nchan > 2 * nmoments, "Require nchan %d > 2 * nmoments %d" % (nchan, 2 * nmoments)
         dirty_taylor = calculate_image_frequency_moments(dirty, nmoments=nmoments)
-        log.info("deconvolve_cube: Shape of Dirty moments image %s" % str(dirty_taylor.shape))
         psf_taylor = calculate_image_frequency_moments(psf, nmoments=2 * nmoments)
-        log.info("deconvolve_cube: Shape of PSF moments image %s" % str(psf_taylor.shape))
-        
+        psf_peak = numpy.max(psf_taylor.data)
+        dirty_taylor.data /= psf_peak
+        psf_taylor.data /= psf_peak
+        log.info("deconvolve_cube %s: Shape of Dirty moments image %s" %
+                 (prefix, str(dirty_taylor.shape)))
+        log.info("deconvolve_cube %s: Shape of PSF moments image %s" % (prefix, str(psf_taylor.shape)))
         gain = get_parameter(kwargs, 'gain', 0.7)
         assert 0.0 < gain < 2.0, "Loop gain must be between 0 and 2"
         thresh = get_parameter(kwargs, 'threshold', 0.0)
@@ -154,38 +161,40 @@ def deconvolve_cube(dirty: Image, psf: Image, **kwargs) -> (Image, Image):
         residual_array = numpy.zeros(dirty_taylor.data.shape)
         for pol in range(dirty_taylor.data.shape[1]):
             if psf_taylor.data[0, pol, :, :].max():
-                log.info("deconvolve_cube: Processing pol %d" % (pol))
+                log.info("deconvolve_cube %s: Processing pol %d" % (prefix, pol))
                 if window is None:
                     comp_array[:, pol, :, :], residual_array[:, pol, :, :] = \
                         msmfsclean(dirty_taylor.data[:, pol, :, :], psf_taylor.data[:, pol, :, :],
-                                   None, gain, thresh, niter, scales, fracthresh, findpeak)
+                                   None, gain, thresh, niter, scales, fracthresh, findpeak, prefix)
                 else:
                     qx = dirty.shape[3] // 4
                     qy = dirty.shape[2] // 4
                     window_taylor = numpy.zeros_like(dirty_taylor.data)
                     window_taylor[..., (qy + 1):3 * qy, (qx + 1):3 * qx] = 1.0
-                    log.info('deconvolve_cube: Cleaning inner quarter of each moment plane')
+                    log.info('deconvolve_cube %s: Cleaning inner quarter of each moment plane'
+                             % prefix)
                     
                     comp_array[:, pol, :, :], residual_array[:, pol, :, :] = \
                         msmfsclean(dirty_taylor.data[:, pol, :, :], psf_taylor.data[:, pol, :, :],
                                    window_taylor[0, pol, :, :], gain, thresh, niter, scales, fracthresh,
-                                   findpeak)
+                                   findpeak, prefix)
             else:
-                log.info("deconvolve_cube: Skipping pol %d" % (pol))
+                log.info("deconvolve_cube %s: Skipping pol %d" % (prefix, pol))
         
         comp_image = create_image_from_array(comp_array, dirty_taylor.wcs, dirty.polarisation_frame)
         residual_image = create_image_from_array(residual_array, dirty_taylor.wcs, dirty.polarisation_frame)
         
         return_moments = get_parameter(kwargs, "return_moments", False)
         if not return_moments:
-            log.info("deconvolve_cube: calculating spectral cubes")
+            log.info("deconvolve_cube %s: calculating spectral cubes" % prefix)
             comp_image = calculate_image_from_frequency_moments(dirty, comp_image)
             residual_image = calculate_image_from_frequency_moments(dirty, residual_image)
         else:
-            log.info("deconvolve_cube: constructed moment cubes")
+            log.info("deconvolve_cube %s: constructed moment cubes" % prefix)
     
     elif algorithm == 'hogbom':
-        log.info("deconvolve_cube: Hogbom clean of each polarisation and channel separately")
+        log.info("deconvolve_cube %s: Hogbom clean of each polarisation and channel separately"
+                 % prefix)
         gain = get_parameter(kwargs, 'gain', 0.7)
         assert 0.0 < gain < 2.0, "Loop gain must be between 0 and 2"
         thresh = get_parameter(kwargs, 'threshold', 0.0)
@@ -193,29 +202,29 @@ def deconvolve_cube(dirty: Image, psf: Image, **kwargs) -> (Image, Image):
         niter = get_parameter(kwargs, 'niter', 100)
         assert niter > 0
         fracthresh = get_parameter(kwargs, 'fractional_threshold', 0.1)
-        assert 0.0 <= fracthresh < 1.0
+        assert 0.0 < fracthresh < 1.0
         
         comp_array = numpy.zeros(dirty.data.shape)
         residual_array = numpy.zeros(dirty.data.shape)
         for channel in range(dirty.data.shape[0]):
             for pol in range(dirty.data.shape[1]):
                 if psf.data[channel, pol, :, :].max():
-                    log.info("deconvolve_cube: Processing pol %d, channel %d" % (pol, channel))
+                    log.info("deconvolve_cube %s: Processing pol %d, channel %d" % (prefix, pol, channel))
                     if window is None:
                         comp_array[channel, pol, :, :], residual_array[channel, pol, :, :] = \
                             hogbom(dirty.data[channel, pol, :, :], psf.data[channel, pol, :, :],
-                                   None, gain, thresh, niter, fracthresh)
+                                   None, gain, thresh, niter, fracthresh, prefix)
                     else:
                         comp_array[channel, pol, :, :], residual_array[channel, pol, :, :] = \
                             hogbom(dirty.data[channel, pol, :, :], psf.data[channel, pol, :, :],
-                                   window[channel, pol, :, :], gain, thresh, niter, fracthresh)
+                                   window[channel, pol, :, :], gain, thresh, niter, fracthresh, prefix)
                 else:
-                    log.info("deconvolve_cube: Skipping pol %d, channel %d" % (pol, channel))
+                    log.info("deconvolve_cube %s: Skipping pol %d, channel %d" % (prefix, pol, channel))
         
         comp_image = create_image_from_array(comp_array, dirty.wcs, dirty.polarisation_frame)
         residual_image = create_image_from_array(residual_array, dirty.wcs, dirty.polarisation_frame)
     else:
-        raise ValueError('deconvolve_cube: Unknown algorithm %s' % algorithm)
+        raise ValueError('deconvolve_cube %s: Unknown algorithm %s' % (prefix, algorithm))
     
     return comp_image, residual_image
 

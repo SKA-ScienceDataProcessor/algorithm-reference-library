@@ -86,7 +86,7 @@ if __name__ == '__main__':
     
     # In[ ]:
     
-    future_vislist = arlexecute.client.scatter(vislist)
+    future_vislist = arlexecute.scatter(vislist)
     ntimes = len(vislist[0].time)
     ical_list = ical_component(future_vislist,
                                model_imagelist=model_list,
