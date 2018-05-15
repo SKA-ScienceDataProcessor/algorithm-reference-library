@@ -64,6 +64,44 @@ page. The image below shows a typical screen for one of the pipelines:
 .. image:: ./dask_global.png
    :scale: 100 %
 
+Using ARL and Dask
+==================
+
+Logging is difficult when using distributed processing. Here's a solution that works. At the beginning of your script
+ or notebook, define a function to initialize the logger.::
+
+    import logging
+
+    start_time_str = time.ctime().replace(' ', '_')
+    results_dir = './results/%s' % start_time_str
+    os.makedirs(results_dir, exist_ok=True)
+
+    def init_logging():
+        logging.basicConfig(filename='%s/ASKAP_simulation.%d.log' % (results_dir, os.getpid()),
+                            filemode='w',
+                            format='%(process)s %(asctime)s.%(msecs)d %(name)s %(levelname)s %(message)s',
+                            datefmt='%a, %d %b %Y %H:%M:%S',
+                            level=logging.INFO)
+
+    log = logging.getLogger()
+    init_logging()
+    logging.info("ASKAP_simulation")
+
+To ensure that the Dask workers get the same setup, you will need to run init_logging() on each worker using the
+Client.run() function::
+
+    c=get_dask_Client()
+    c.run(init_logging)
+
+or::
+
+    arlexecute.set_client(use_dask=True)
+    arlexecute.run(init_logging)
+
+This will produce one directory per execution, and in that directory one log file per worker and one for the master.
+You can tail these, etc. This may not be what you might want since it is worker-centric. All tasks run on a given
+worker are logged to the same file.
+
 
 Using ARL and dask on Darwin
 ============================
