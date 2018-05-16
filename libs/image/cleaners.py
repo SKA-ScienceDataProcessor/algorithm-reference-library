@@ -128,11 +128,6 @@ def msclean(dirty, psf, window, gain, thresh, niter, scales, fracthresh, facet=N
     pmax = psf.max()
     assert pmax > 0.0
 
-    prefix = 'msclean:'
-    if facet is not None:
-        prefix = 'msclean facet %d:' % facet
-
-
     # Rescale to unit peak PSF. We undo this at the end of iteration
     psfpeak = argmax(numpy.fabs(psf))
     log.info("msclean %s: Peak of PSF = %s at %s" % (prefix, pmax, psfpeak))
