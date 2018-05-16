@@ -57,7 +57,7 @@ def hogbom(dirty, psf, window, gain, thresh, niter, fracthresh, prefix=''):
         if niter < 10 or i % (niter // 10) == 0:
             log.info("hogbom %s Minor cycle %d, peak %s at [%d, %d]" % (prefix, i, res[mx, my], mx, my))
         res[a1o[0]:a1o[1], a1o[2]:a1o[3]] -= psf[a2o[0]:a2o[1], a2o[2]:a2o[3]] * mval
-        if numpy.abs(res[mx, my]) < 0.95 * absolutethresh:
+        if numpy.abs(res[mx, my]) < absolutethresh:
             log.info("hogbom %s Stopped at iteration %d, peak %s at [%d, %d]" % (prefix, i, res[mx, my], mx, my))
             break
     log.info("hogbom %s End of minor cycle" % prefix)
@@ -100,7 +100,7 @@ def argmax(a):
     return numpy.unravel_index(a.argmax(), a.shape)
 
 
-def msclean(dirty, psf, window, gain, thresh, niter, scales, fracthresh, facet=None):
+def msclean(dirty, psf, window, gain, thresh, niter, scales, fracthresh, prefix=''):
     """ Perform multiscale clean
 
     Multiscale CLEAN (IEEE Journal of Selected Topics in Sig Proc, 2008 vol. 2 pp. 793-801)
@@ -190,7 +190,7 @@ def msclean(dirty, psf, window, gain, thresh, niter, scales, fracthresh, facet=N
         if niter < 10 or i % (niter // 10) == 0:
             log.info("msclean %s: Minor cycle %d, peak %s at [%d, %d, %d]" %
                      (prefix, i, res_scalestack[:, mx, my], mx, my, mscale))
-        if numpy.fabs(res_scalestack[mscale, mx, my]) < 0.95 * absolutethresh:
+        if numpy.fabs(res_scalestack[mscale, mx, my]) < 0.9 * absolutethresh:
             log.info("msclean %s: At iteration %d, absolute value of peak %.6f is below stopping threshold %.6f"
                      % (prefix, i, numpy.fabs(res_scalestack[mscale, mx, my]), absolutethresh))
             break
@@ -474,7 +474,7 @@ def msmfsclean(dirty, psf, window, gain, thresh, niter, scales, fracthresh, find
 
     
     for scale in range(nscales):
-        log.info("mmclean %s: Moment-moment coupling matrix[scale %d] =\n %s" % (prefix, scale, hsmmpsf[scale]))
+        log.debug("mmclean %s: Moment-moment coupling matrix[scale %d] =\n %s" % (prefix, scale, hsmmpsf[scale]))
 
     # The window is scale dependent - we form it by smoothing and thresholding
     # the input window. This prevents components being placed too close to the
@@ -514,7 +514,7 @@ def msmfsclean(dirty, psf, window, gain, thresh, niter, scales, fracthresh, find
 
         # Are we ready to stop yet?
         peak = numpy.max(numpy.fabs(mval))
-        if peak < 0.95 * absolutethresh:
+        if peak < absolutethresh:
             log.info("mmclean %s: At iteration %d, absolute value of peak %.6f is below stopping threshold %.6f"
                      % (prefix, i, peak, absolutethresh))
             break
