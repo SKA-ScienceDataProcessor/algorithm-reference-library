@@ -17,11 +17,11 @@ The equation to be minimised is:
 Calibration control is via the :py:mod:`arl.calibration.calibration_context`. This supports the following Jones
    matrices::
 
-. T - Atmospheric phase
-. G - Electronics gain
-. P - Polarisation
-. B - Bandpass
-. I - Ionosphere
+   . T - Atmospheric phase
+   . G - Electronics gain
+   . P - Polarisation
+   . B - Bandpass
+   . I - Ionosphere
 
 This is specified via a dictionary::
 
