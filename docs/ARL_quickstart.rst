@@ -40,7 +40,6 @@ See the jupyter note books below:
    processing_components/imaging.rst
    processing_components/imaging-fits.rst
    processing_components/imaging-wterm.rst
-   processing_components/mosaic.rst
    processing_components/rcal.rst
    workflows/simple-dask.rst
    workflows/calskymodel.rst

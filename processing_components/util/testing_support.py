@@ -242,8 +242,9 @@ def create_test_image_from_s3(npixel=16384, polarisation_frame=PolarisationFrame
     For frequencies > 610MHz, there are three tables:
     
         data/models/S3_1400MHz_1mJy_10deg.csv, use flux_limit>= 1e-3
-        data/models/S3_1400MHz_100uJy_10deg.csv, use flux_limit>= 1e-4
-        data/models/S3_1400MHz_10uJy_10deg.csv, use flux_limit>= 0.0
+        data/models/S3_1400MHz_100uJy_10deg.csv, use flux_limit < 1e-3
+        data/models/S3_1400MHz_1mJy_18deg.csv, use flux_limit>= 1e-3
+        data/models/S3_1400MHz_100uJy_18deg.csv, use flux_limit < 1e-3
 
     The component spectral index is calculated from the 610MHz and 151MHz or 1400MHz and 610MHz, and then calculated
     for the specified frequencies.
@@ -269,7 +270,7 @@ def create_test_image_from_s3(npixel=16384, polarisation_frame=PolarisationFrame
         phasecentre = SkyCoord(ra=+180.0 * u.deg, dec=-60.0 * u.deg, frame='icrs', equinox='J2000')
     
     if polarisation_frame is None:
-        polarisation_frame = PolarisationFrame("I")
+        polarisation_frame = PolarisationFrame("stokesI")
     
     npol = polarisation_frame.npol
     
@@ -290,16 +291,20 @@ def create_test_image_from_s3(npixel=16384, polarisation_frame=PolarisationFrame
     model = create_image_from_array(numpy.zeros(shape), w, polarisation_frame=polarisation_frame)
     
     if numpy.max(frequency) > 6.1E8:
-        if flux_limit >= 1e-3:
-            csvfilename = arl_path('data/models/S3_1400MHz_1mJy_10deg.csv')
-        elif flux_limit >= 1e-4:
-            csvfilename = arl_path('data/models/S3_1400MHz_100uJy_10deg.csv')
+        if fov > 10:
+            fovstr = '18'
         else:
-            csvfilename = arl_path('data/models/S3_1400MHz_10uJy_10deg.csv')
+            fovstr = '10'
+        if flux_limit >= 1e-3:
+            csvfilename = arl_path('data/models/S3_1400MHz_1mJy_%sdeg.csv' % fovstr)
+        else:
+            csvfilename = arl_path('data/models/S3_1400MHz_100uJy_%sdeg.csv' % fovstr)
+        log.info('create_test_image_from_s3: Reading S3 sources from %s ' % csvfilename)
     else:
         assert fov in [10, 20, 40], "Field of view invalid: use one of %s" % ([10, 20, 40])
         csvfilename = arl_path('data/models/S3_151MHz_%ddeg.csv' % (fov))
-    
+        log.info('create_test_image_from_s3: Reading S3 sources from %s ' % csvfilename)
+
     with open(csvfilename) as csvfile:
         readCSV = csv.reader(csvfile, delimiter=',')
         r = 0
@@ -321,8 +326,11 @@ def create_test_image_from_s3(npixel=16384, polarisation_frame=PolarisationFrame
             r += 1
     
     csvfile.close()
-    
+
     assert len(fluxes) > 0, "No sources found above flux limit %s" % flux_limit
+
+    log.info('create_test_image_from_s3: %d sources read' % (len(fluxes)))
+
     p = w.sub(2).wcs_world2pix(numpy.array(ras), numpy.array(decs), 1)
     total_flux = numpy.sum(fluxes)
     fluxes = numpy.array(fluxes)

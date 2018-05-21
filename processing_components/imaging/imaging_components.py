@@ -30,6 +30,7 @@ These are the same as executed in the imaging framework.
 """
 
 import collections
+import logging
 
 import numpy
 
@@ -45,8 +46,6 @@ from ..imaging.imaging_functions import imaging_context
 from ..imaging.weighting import weight_visibility
 from ..visibility.base import copy_visibility
 from ..visibility.gather_scatter import visibility_scatter, visibility_gather
-
-import logging
 
 log = logging.getLogger(__name__)
 
@@ -109,6 +108,20 @@ def sum_predict_results(results):
                 sum_results.data['vis'] += result.data['vis']
     
     return sum_results
+
+
+def threshold_list(results, threshold, fractional_threshold, prefix=''):
+    """ Find Threshold
+    
+    :param results:
+    :return:
+    """
+    peak = 0.0
+    for result in results:
+        peak = max(peak, numpy.max(numpy.abs(result.data[0,...])))
+    actual = max(peak * fractional_threshold, threshold)
+    log.info("threshold_list %s: peak = %.6f, actual threshold = %.6f" % (prefix, peak, actual))
+    return actual
 
 
 def zero_vislist_component(vis_list):
@@ -369,7 +382,7 @@ def restore_component(model_imagelist, psf_imagelist, residual_imagelist, **kwar
             for i, _ in enumerate(model_imagelist)]
 
 
-def deconvolve_component(dirty_list, psf_list, model_imagelist, **kwargs):
+def deconvolve_component(dirty_list, psf_list, model_imagelist, prefix='', **kwargs):
     """Create a graph for deconvolution, adding to the model
 
     :param dirty_list:
@@ -378,33 +391,30 @@ def deconvolve_component(dirty_list, psf_list, model_imagelist, **kwargs):
     :param kwargs: Parameters for functions in components
     :return: (graph for the deconvolution, graph for the flat)
     """
-    
     nchan = len(dirty_list)
 
-    threshold = get_parameter(kwargs, "threshold", 0.0)
-    fractional_threshold = get_parameter(kwargs, "fractional_threshold", 0.0)
-    
-    # We need the global peak so that a fractional threshold works correctly
-    peaks = [arlexecute.execute(lambda d: numpy.max(numpy.abs(d[0].data)), nout=len(dirty_list))(s)
-                  for s in dirty_list]
-    peak = arlexecute.execute(numpy.max, nout=1)(peaks)
-
-    def deconvolve(dirty, psf, model, gpeak):
-        log.info("Cleaning: peak across all sub-images = %.3f" % (gpeak))
-        actual_threshold = max(threshold, fractional_threshold * gpeak)
-        kwargs['threshold'] = actual_threshold
-        this_peak = numpy.max(numpy.abs(dirty.data))
-        if this_peak > actual_threshold:
-            log.info("Cleaning: peak %.3f > actual threshold %.3f" % (this_peak, actual_threshold))
-            result, _ = deconvolve_cube(dirty, psf, **kwargs)
+    def deconvolve(dirty, psf, model, facet, gthreshold):
+        if prefix == '':
+            lprefix = "(facet %d):" % facet
+        else:
+            lprefix = "(%s, facet %d):" % (prefix, facet)
+        
+        this_peak = numpy.max(numpy.abs(dirty.data[0,...]))
+        if this_peak > gthreshold:
+            log.info("deconvolve_component %s: cleaning - peak %.6f > threshold %.6f" % (lprefix, this_peak,
+                                                                                         gthreshold))
+            kwargs['threshold'] = gthreshold
+            result, _ = deconvolve_cube(dirty, psf, prefix=lprefix, **kwargs)
             if result.data.shape[0] == model.data.shape[0]:
                 result.data += model.data
-            # Return the cube
+            else:
+                log.warning("deconvolve_component %s: Initial model %s and clean result %s do not have the same shape" %
+                            (lprefix, str(model.data.shape[0]), str(result.data.shape[0])))
             return result
         else:
-            log.info("Not Cleaning: peak %.3f <= actual threshold %.3f" % (this_peak, actual_threshold))
+            log.info("deconvolve_component %s: Not cleaning - peak %.6f <= threshold %.6f" % (lprefix, this_peak,
+                                                                                                  gthreshold))
             return copy_image(model)
-
     
     deconvolve_facets = get_parameter(kwargs, 'deconvolve_facets', 1)
     deconvolve_overlap = get_parameter(kwargs, 'deconvolve_overlap', 0)
@@ -438,10 +448,18 @@ def deconvolve_component(dirty_list, psf_list, model_imagelist, **kwargs):
         arlexecute.execute(image_scatter_facets, nout=deconvolve_number_facets)(model_imagelist,
                                                                                 facets=deconvolve_facets,
                                                                                 overlap=deconvolve_overlap)
-    
-    # Now do the deconvolution for each facet
-    scattered_results_list = [arlexecute.execute(deconvolve, nout=1)(d, psf_list, m, peak)
-                              for d, m in zip(scattered_facets_list, scattered_model_imagelist)]
+
+    # Work out the threshold. Need to find global peak over all dirty_list images
+    threshold = get_parameter(kwargs, "threshold", 0.0)
+    fractional_threshold = get_parameter(kwargs, "fractional_threshold", 0.1)
+
+    global_threshold = arlexecute.execute(threshold_list, nout=1)(scattered_facets_list, threshold,
+                                                                  fractional_threshold, prefix=prefix)
+
+    facet_list = numpy.arange(deconvolve_number_facets).astype('int')
+    scattered_results_list = [
+        arlexecute.execute(deconvolve, nout=1)(d, psf_list, m, facet, global_threshold)
+        for d, m, facet in zip(scattered_facets_list, scattered_model_imagelist, facet_list)]
     
     # Gather the results back into one image, correcting for overlaps as necessary. The taper function is is used to
     # feather the facets together

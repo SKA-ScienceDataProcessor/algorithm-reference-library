@@ -1,4 +1,3 @@
-mpi4py
 six
 docutils
 jinja2

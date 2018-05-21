@@ -109,8 +109,6 @@ Pipelines:
 ==========
 
 * Execution framework (an interface to Dask): :py:mod:`processing_components.component_support.arlexecute`
-* Perform various types of prediction and inversion of visibility data:
- :py:mod:`processing_components.pipelines.pipeline_components`
-* Perform generic image or visibility unary operations:
-:py:mod:`processing_components.component_suppport.generic_components`
-* Support testing and simulations: :py:mod:`processing_components.util.testing_support`
+* Prediction and inversion of visibility data: :py:mod:`processing_components.pipelines.pipeline_components`
+* Generic image or visibility unary operations::py:mod:`processing_components.component_suppport.generic_components`
+* Testing and simulation support: :py:mod:`processing_components.util.testing_support`
