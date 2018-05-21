@@ -30,7 +30,7 @@ def hogbom(dirty, psf, window, gain, thresh, niter, fracthresh, prefix=''):
     assert niter > 0
     
 
-    log.info("hogbom %s Max abs in dirty image = %.6f" % (prefix, numpy.max(numpy.abs(dirty))))
+    log.info("hogbom %s Max abs in dirty image = %.6f Jy/beam" % (prefix, numpy.max(numpy.abs(dirty))))
     absolutethresh = max(thresh, fracthresh * numpy.fabs(dirty).max())
     log.info("hogbom %s Start of minor cycle" % prefix)
     log.info("hogbom %s This minor cycle will stop at %d iterations or peak < %.6f (Jy/beam)" % (prefix, niter,
@@ -40,7 +40,6 @@ def hogbom(dirty, psf, window, gain, thresh, niter, fracthresh, prefix=''):
     res = numpy.array(dirty)
     pmax = psf.max()
     assert pmax > 0.0
-    log.info("hogbom %s: Max abs in dirty Image = %.6f" % (prefix, numpy.fabs(res).max()))
     log.info('hogbom %s: Timing for setup: %.3f (s) for dirty shape %s, PSF shape %s' %
               (prefix, time.time() - starttime, str(dirty.shape), str(psf.shape)))
     starttime = time.time()
@@ -133,7 +132,7 @@ def msclean(dirty, psf, window, gain, thresh, niter, scales, fracthresh, prefix=
     log.info("msclean %s: Peak of PSF = %s at %s" % (prefix, pmax, psfpeak))
     dmax = dirty.max()
     dpeak = argmax(dirty)
-    log.info("msclean %s: Peak of Dirty = %s at %s" % (prefix, dmax, dpeak))
+    log.info("msclean %s: Peak of Dirty = %.6f Jy/beam at %s " % (prefix, dmax, dpeak))
     lpsf = psf / pmax
     ldirty = dirty / pmax
 
@@ -171,7 +170,7 @@ def msclean(dirty, psf, window, gain, thresh, niter, scales, fracthresh, prefix=
     if windowstack is not None:
         assert numpy.sum(windowstack) > 0
 
-    log.info("msclean %s: Max abs in dirty Image = %.6f" % (prefix, numpy.fabs(res_scalestack[0, :, :]).max()))
+    log.info("msclean %s: Max abs in dirty Image = %.6f Jy/beam" % (prefix, numpy.fabs(res_scalestack[0, :, :]).max()))
     absolutethresh = max(thresh, fracthresh * numpy.fabs(res_scalestack[0, :, :]).max())
     log.info("msclean %s: Start of minor cycle" % prefix)
     log.info("msclean %s: This minor cycle will stop at %d iterations or peak < %.6f (Jy/beam)" % (prefix, niter,
@@ -448,7 +447,7 @@ def msmfsclean(dirty, psf, window, gain, thresh, niter, scales, fracthresh, find
     log.info("mmclean %s: Peak of PSF = %s at %s" % (prefix, pmax, psfpeak))
     dmax = dirty.max()
     dpeak = argmax(dirty)
-    log.info("mmclean %s: Peak of Dirty = %s at %s" % (prefix, dmax, dpeak))
+    log.info("mmclean %s: Peak of Dirty = %.6f Jy/beam at %s " % (prefix, dmax, dpeak))
     lpsf = psf / pmax
     ldirty = dirty / pmax
 
@@ -486,7 +485,7 @@ def msmfsclean(dirty, psf, window, gain, thresh, niter, scales, fracthresh, find
         windowstack = numpy.zeros_like(scalestack)
         windowstack[convolve_scalestack(scalestack, window) > 0.9] = 1.0
 
-    log.info("mmclean %s: Max abs in dirty Image = %.6f" % (prefix, numpy.fabs(smresidual[0, 0, :, :]).max()))
+    log.info("mmclean %s: Max abs in dirty Image = %.6f Jy/beam" % (prefix, numpy.fabs(smresidual[0, 0, :, :]).max()))
     absolutethresh = max(thresh, fracthresh * numpy.fabs(smresidual[0, 0, :, :]).max())
     log.info("mmclean %s: Start of minor cycle" % prefix)
     log.info("mmclean %s: This minor cycle will stop at %d iterations or peak < %.6f (Jy/beam)" % (prefix, niter,

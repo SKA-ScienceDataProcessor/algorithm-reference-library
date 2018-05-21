@@ -2,6 +2,7 @@
 Functions to create primary beam modelsw
 """
 
+import collections
 import logging
 import warnings
 
@@ -27,9 +28,9 @@ def ft_disk(r):
 def create_pb(model, telescope='MID', pointingcentre=None):
     """
     Make an image like model and fill it with an analytical model of the primary beam
+    :param model: Template image
     :param telescope: 'VLA' or 'ASKAP'
-    :param model:
-    :return:
+    :return: Primary beam image
     """
     if telescope == 'MID':
         return create_pb_generic(model, pointingcentre=pointingcentre, diameter=15.0, blockage=0.0)
@@ -40,6 +41,24 @@ def create_pb(model, telescope='MID', pointingcentre=None):
     else:
         raise NotImplementedError('Telescope %s has no primary beam model' % telescope)
 
+
+def mosaic_pb(model, telescope, pointingcentres):
+    """ Create a mosaic primary beam by adding primary beams for a set of pointing centres
+    
+    Note that the addition is root sum of squares
+    
+    :param model:  Template image
+    :param telescope:
+    :param pointingcentres:  list of pointing centres
+    :return:
+    """
+    assert isinstance(pointingcentres, collections.Iterable), "Need a list of pointing centres"
+    sumpb = create_empty_image_like(model)
+    for pc in pointingcentres:
+        pb = create_pb(model, telescope, pointingcentre=pc)
+        sumpb.data += pb.data ** 2
+    sumpb.data = numpy.sqrt(sumpb.data)
+    return sumpb
 
 
 def create_pb_generic(model, pointingcentre=None, diameter=25.0, blockage=1.8):
@@ -82,5 +101,3 @@ def create_pb_generic(model, pointingcentre=None, diameter=25.0, blockage=1.8):
     
     beam.data *= beam.data
     return beam
-
-
