@@ -6,12 +6,32 @@ FLAKE ?= flake8
 NAME = arl
 IMG = $(NAME)_img
 TAG = latest
+DOCKER_IMAGE = $(IMG):$(TAG)
 DOCKERFILE = Dockerfile
 DOCKER = docker
-DOCKER_REPO ?= localhost:5000
+DOCKER_REPO ?= ""
+DOCKER_USER ?= ""
+DOCKER_PASSWORD ?= ""
+WORKER_MEM ?= 512Mi
+WORKER_CPU ?= 500m
+WORKER_REPLICAS ?= 1
+WORKER_ARL_DATA ?= /arl/data
+CURRENT_DIR = $(shell pwd)
+JUPYTER_PASSWORD ?= changeme
+CONTAINER_EXISTS = $(shell $(DOCKER) ps -aqf ancestor=itsthenetwork/nfs-server-alpine)
+SERVER_DEVICE ?= $(shell ip link | grep BROADCAST | head -1 | awk '{print $$2}' | sed 's/://')
+NFS_SERVER ?= "127.0.0.1"
 
+# define overides for above variables in here
+-include PrivateRules.mak
 
-all: clean nosetests
+checkvars:
+	@echo "Image: $(DOCKER_IMAGE)"
+	@echo "Repo: $(DOCKER_REPO)"
+	@echo "Host net device: $(SERVER_DEVICE)"
+	@echo "Nfs: $(NFS_SERVER)"
+
+all: clean build nosetests
 
 clean:
 	$(PYTHON) setup.py clean
@@ -19,7 +39,7 @@ clean:
 
 in: inplace # just a shortcut
 inplace:
-	$(PYTHON) setup.py install >/dev/null 2>&1 || (echo "'$(PYTHON) setup.py install' failed."; exit -1)
+	$(PYTHON) setup.py build >/dev/null 2>&1 && $(PYTHON) setup.py install >/dev/null 2>&1 || (echo "'$(PYTHON) setup.py install' failed."; exit -1)
 
 build: in
 
@@ -39,7 +59,7 @@ nosetests: cleantests
 
 nosetests-coverage: inplace cleantests
 	rm -rf coverage .coverage
-	$(NOSETESTS) -s -v --with-coverage arl
+	$(NOSETESTS) -s -v --with-coverage libs
 
 trailing-spaces:
 	find libs -name "*.py" -exec perl -pi -e 's/[ \t]*$$//' {} \;
@@ -52,12 +72,12 @@ docs: inplace
 
 code-flake:
 	# flake8 ignore long lines and trailing whitespace
-	$(FLAKE) --ignore=E501,W293,F401 --builtins=ModuleNotFoundError arl
+	$(FLAKE) --ignore=E501,W293,F401 --builtins=ModuleNotFoundError libs
 
 code-lint:
 	$(PYLINT) --extension-pkg-whitelist=numpy \
 	  --ignored-classes=astropy.units,astropy.constants,HDUList \
-	  -E arl/ tests/
+	  -E libs/ tests/
 
 code-analysis: code-flake code-lint
 
@@ -73,11 +93,55 @@ notebook:
 	jupyter notebook --no-browser --ip=$${IP} --port=8888 examples/arl/
 
 docker_build:
-	$(DOCKER) build -t $(IMG) -f $(DOCKERFILE) --build-arg PYTHON=$(PYTHON) .
+	$(DOCKER) build -t $(DOCKER_IMAGE) -f $(DOCKERFILE) --build-arg PYTHON=$(PYTHON) .
 
 docker_push: docker_build
-	docker tag $(IMG) $(DOCKER_REPO)/$(IMG):$(TAG)
-	docker push $(DOCKER_REPO)/$(IMG):$(TAG)
+	docker tag $(DOCKER_IMAGE) $(DOCKER_REPO)$(DOCKER_IMAGE)
+	docker push $(DOCKER_REPO)$(DOCKER_IMAGE)
+
+docker_nfs_arl_data:
+ifneq "$(strip $(CONTAINER_EXISTS))" ""
+	$(DOCKER) rm -f $(CONTAINER_EXISTS)
+endif
+	docker run -d --name nfs --privileged -p 2049:2049 \
+	-v $(CURRENT_DIR)/:/arl \
+	-e SHARED_DIRECTORY=/arl itsthenetwork/nfs-server-alpine:latest
+
+k8s_deploy_scheduler:
+	DOCKER_IMAGE=$(DOCKER_REPO)$(DOCKER_IMAGE) \
+	 envsubst < k8s/k8s-dask-scheduler-deployment.yml | kubectl apply -f -
+
+k8s_delete_scheduler:
+	DOCKER_IMAGE=$(DOCKER_REPO)$(DOCKER_IMAGE) \
+	 envsubst < k8s/k8s-dask-scheduler-deployment.yml | kubectl delete -f - || true
+
+k8s_deploy_worker:
+	DOCKER_IMAGE=$(DOCKER_REPO)$(DOCKER_IMAGE) \
+	WORKER_MEM=$(WORKER_MEM) WORKER_CPU=$(WORKER_CPU) \
+	WORKER_REPLICAS=$(WORKER_REPLICAS) \
+	WORKER_ARL_DATA=$(WORKER_ARL_DATA) \
+	NFS_SERVER=$(NFS_SERVER) \
+	 envsubst < k8s/k8s-dask-worker-deployment.yml | kubectl apply -f -
+
+k8s_delete_worker:
+	DOCKER_IMAGE=$(DOCKER_REPO)$(DOCKER_IMAGE) \
+	WORKER_MEM=$(WORKER_MEM) WORKER_CPU=$(WORKER_CPU) \
+	WORKER_REPLICAS=$(WORKER_REPLICAS) \
+	WORKER_ARL_DATA=$(WORKER_ARL_DATA) \
+	NFS_SERVER=$(NFS_SERVER) \
+	 envsubst < k8s/k8s-dask-worker-deployment.yml | kubectl delete -f - || true
+
+k8s_deploy_notebook:
+	DOCKER_IMAGE=$(DOCKER_REPO)$(DOCKER_IMAGE) \
+	WORKER_ARL_DATA=$(WORKER_ARL_DATA) \
+	NFS_SERVER=$(NFS_SERVER) \
+	 envsubst < k8s/k8s-dask-notebook-deployment.yml | kubectl apply -f -
+
+k8s_delete_notebook:
+	DOCKER_IMAGE=$(DOCKER_REPO)$(DOCKER_IMAGE) \
+	WORKER_ARL_DATA=$(WORKER_ARL_DATA) \
+	NFS_SERVER=$(NFS_SERVER) \
+	 envsubst < k8s/k8s-dask-notebook-deployment.yml | kubectl delete -f - || true
 
 docker_notebook: docker_build
 	CTNR=`$(DOCKER) ps -q -f name=$(NAME)_notebook` && \
@@ -86,9 +150,13 @@ docker_notebook: docker_build
 	IP=`ip a show $${DEVICE} | grep ' inet ' | awk '{print $$2}' | sed 's/\/.*//'` && \
 	echo "Launching at IP: $${IP}" && \
 	$(DOCKER) run --name $(NAME)_notebook --hostname $(NAME)_notebook --volume $$(pwd)/data:/arl/data -e IP=$${IP} \
-            --net=host -p 8888:8888 -p 8787:8787 -p 8788:8788 -p 8789:8789 -d $(IMG)
+            --net=host -p 8888:8888 -p 8787:8787 -p 8788:8788 -p 8789:8789 -d $(DOCKER_IMAGE)
 	sleep 3
 	$(DOCKER) logs $(NAME)_notebook
+
+k8s_deploy: k8s_deploy_scheduler k8s_deploy_worker k8s_deploy_notebook  
+
+k8s_delete: k8s_delete_notebook k8s_delete_worker k8s_delete_scheduler
 
 docker_tests: docker_build cleantests
 	rm -f predict_facet_timeslice_graph_wprojection.png pipelines-timings_*.csv
@@ -98,7 +166,7 @@ docker_tests: docker_build cleantests
 					-v /etc/passwd:/etc/passwd:ro --user=$$(id -u) \
 					-v $${HOME}:$${HOME} -w $${HOME} \
 					-e HOME=$${HOME} \
-		            --net=host -ti $(IMG) /bin/sh -c "cd /arl && make nosetests"
+		            --net=host -ti $(DOCKER_IMAGE) /bin/sh -c "cd /arl && make nosetests"
 
 docker_pytest: docker_build cleantests
 	CTNR=`$(DOCKER) ps -q -f name=$(NAME)_tests` && \
@@ -107,7 +175,7 @@ docker_pytest: docker_build cleantests
 					-v /etc/passwd:/etc/passwd:ro --user=$$(id -u) \
 					-v $${HOME}:$${HOME} -w $${HOME} \
 					-e HOME=$${HOME} \
-			    --net=host -ti $(IMG) /bin/sh -c "cd /arl && make pytest"
+			    --net=host -ti $(DOCKER_IMAGE) /bin/sh -c "cd /arl && make pytest"
 
 docker_lint: docker_build
 	CTNR=`$(DOCKER) ps -q -f name=$(NAME)_lint` && \
@@ -116,7 +184,7 @@ docker_lint: docker_build
 					-v /etc/passwd:/etc/passwd:ro --user=$$(id -u) \
 					-v $${HOME}:$${HOME} -w $${HOME} \
 					-e HOME=$${HOME} \
-		            --net=host -ti $(IMG) /bin/sh -c "cd /arl && make code-analysis"
+		            --net=host -ti $(DOCKER_IMAGE) /bin/sh -c "cd /arl && make code-analysis"
 
 launch_dask:
 	cd tools && ansible-playbook -i ./inventory ./docker.yml
