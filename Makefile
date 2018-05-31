@@ -109,11 +109,11 @@ endif
 
 k8s_deploy_scheduler:
 	DOCKER_IMAGE=$(DOCKER_REPO)$(DOCKER_IMAGE) \
-	 envsubst < k8s/k8s-dask-scheduler-deployment.yml | kubectl apply -f -
+	 envsubst < k8s/resources/k8s-dask-scheduler-deployment.yml | kubectl apply -f -
 
 k8s_delete_scheduler:
 	DOCKER_IMAGE=$(DOCKER_REPO)$(DOCKER_IMAGE) \
-	 envsubst < k8s/k8s-dask-scheduler-deployment.yml | kubectl delete -f - || true
+	 envsubst < k8s/resources/k8s-dask-scheduler-deployment.yml | kubectl delete -f - || true
 
 k8s_deploy_worker:
 	DOCKER_IMAGE=$(DOCKER_REPO)$(DOCKER_IMAGE) \
@@ -121,7 +121,7 @@ k8s_deploy_worker:
 	WORKER_REPLICAS=$(WORKER_REPLICAS) \
 	WORKER_ARL_DATA=$(WORKER_ARL_DATA) \
 	NFS_SERVER=$(NFS_SERVER) \
-	 envsubst < k8s/k8s-dask-worker-deployment.yml | kubectl apply -f -
+	 envsubst < k8s/resources/k8s-dask-worker-deployment.yml | kubectl apply -f -
 
 k8s_delete_worker:
 	DOCKER_IMAGE=$(DOCKER_REPO)$(DOCKER_IMAGE) \
@@ -129,19 +129,19 @@ k8s_delete_worker:
 	WORKER_REPLICAS=$(WORKER_REPLICAS) \
 	WORKER_ARL_DATA=$(WORKER_ARL_DATA) \
 	NFS_SERVER=$(NFS_SERVER) \
-	 envsubst < k8s/k8s-dask-worker-deployment.yml | kubectl delete -f - || true
+	 envsubst < k8s/resources/k8s-dask-worker-deployment.yml | kubectl delete -f - || true
 
 k8s_deploy_notebook:
 	DOCKER_IMAGE=$(DOCKER_REPO)$(DOCKER_IMAGE) \
 	WORKER_ARL_DATA=$(WORKER_ARL_DATA) \
 	NFS_SERVER=$(NFS_SERVER) \
-	 envsubst < k8s/k8s-dask-notebook-deployment.yml | kubectl apply -f -
+	 envsubst < k8s/resources/k8s-dask-notebook-deployment.yml | kubectl apply -f -
 
 k8s_delete_notebook:
 	DOCKER_IMAGE=$(DOCKER_REPO)$(DOCKER_IMAGE) \
 	WORKER_ARL_DATA=$(WORKER_ARL_DATA) \
 	NFS_SERVER=$(NFS_SERVER) \
-	 envsubst < k8s/k8s-dask-notebook-deployment.yml | kubectl delete -f - || true
+	 envsubst < k8s/resources/k8s-dask-notebook-deployment.yml | kubectl delete -f - || true
 
 docker_notebook: docker_build
 	CTNR=`$(DOCKER) ps -q -f name=$(NAME)_notebook` && \

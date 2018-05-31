@@ -16,23 +16,28 @@ Using [Minikube](https://kubernetes.io/docs/getting-started-guides/minikube/) en
 
 The generic installation instructions are available at https://kubernetes.io/docs/tasks/tools/install-minikube/.
 
-Minikube requires the Kubernetes runtime, and a host virtualisation layer such as kvm, virtualbox etc.
+Minikube requires the Kubernetes runtime, and a host virtualisation layer such as kvm, virtualbox etc.  Please refer to the drivers list at https://github.com/kubernetes/minikube/blob/master/docs/drivers.md .
 
-On Ubuntu 18.04, the most straight forward installation pattern is to go with kvm as the host virtualisation layer.
+On Ubuntu 18.04, the most straight forward installation pattern is to go with kvm as the host virtualisation layer, and use the kvm2 driver.
 To install [kvm](http://www.linux-kvm.org/page/Main_Page) on Ubuntu it should be simply a case of:
 ```
 sudo apt-get install qemu-kvm libvirt-bin ubuntu-vm-builder bridge-utils
 ```
 The detailed instructions can be found here https://help.ubuntu.com/community/KVM/Installation.
 
-Once kvm is installed, then the latest version of minikube is found here  https://github.com/kubernetes/minikube/releases .  Scroll down to the section for Linux, which will have instructions like:
+Once kvm is installed, we need to install the kvm2 driver with:
+```
+curl -LO https://storage.googleapis.com/minikube/releases/latest/docker-machine-driver-kvm2 && chmod +x docker-machine-driver-kvm2 && sudo mv docker-machine-driver-kvm2 /usr/local/bin/
+```
+
+Once the kvm2 driver is installed, then the latest version of minikube is found here  https://github.com/kubernetes/minikube/releases .  Scroll down to the section for Linux, which will have instructions like:
 ```
 curl -Lo minikube https://storage.googleapis.com/minikube/releases/v0.27.0/minikube-linux-amd64 && chmod +x minikube && sudo mv minikube /usr/local/bin/
 ```
 
 Now we need to bootstrap minikube so that we have a running cluster based on kvm:
 ```
-minikube start --vm-driver kvm
+minikube start --vm-driver kvm2
 ```
 This will take some time setting up the vm, and bootstrapping Kubernetes.  You will see output like the following when done.
 ```
@@ -118,8 +123,17 @@ docker run -d --name nfs --privileged -p 2049:2049 \
 -e SHARED_DIRECTORY=/arl itsthenetwork/nfs-server-alpine:latest
 79351289297f54cbcc2e960c0e09143d3f661c96342f0b4e00d18d72d148281c
 ```
+Choices
+-------
 
-For each of the above describe container types, there is a separate resource descriptor file for - scheduler, worker, and notebook.  These can be found in the k8s/ directory.
+There are two choices for running the ARL on Kubernetes :-
+* Resource descriptors
+* Helm Chart
+
+
+Resource Descriptors
+--------------------
+For each of the above describe container types, there is a separate resource descriptor file for - scheduler, worker, and notebook.  These can be found in the [k8s/resources/](k8s/resources/) directory.
 Launch them all with:
 ```
 make k8s_deploy DOCKER_REPO="" DOCKER_IMAGE=arl_img:latest
@@ -159,3 +173,81 @@ Tear down the test with:
 ```
 make k8s_delete DOCKER_REPO="" DOCKER_IMAGE=arl_img:latest
 ```
+
+Helm Chart
+----------
+
+First you must install [Helm](https://docs.helm.sh/using_helm/#installing-helm), the easiest way is using the install script:
+```
+https://raw.githubusercontent.com/kubernetes/helm/master/scripts/get | bash
+```
+You must initialise Helm, with `helm init`.  This will ensure that the [Tiller](https://docs.helm.sh/glossary/#tiller) component is running which is the Kubernetes API server proxy for Helm.  Check this is running correctly with `helm version`.
+
+Once Helm is up and running, change to the k8s/arl-cluster/ and check the values in in the values.yaml file, in particular the following:
+```
+...
+worker:
+  replicaCount: 1
+
+image:
+  repository: arl_img
+  tag: latest
+  pullPolicy: IfNotPresent
+
+jupyter:
+  password: changeme
+
+nfs:
+  server: 192.168.0.168
+...
+resources:
+  limits:
+   cpu: 500m     # 500m = 0.5 CPU
+   memory: 512Mi # 512Mi = 0.5 GB mem
+...
+```
+As with the above instructions for Resource Descriptors, the image location must be set to something accessible by every node in Kubernetes.
+Change the worker.replicaCount and resources values to something more desirable for your cluster.
+
+Change directory back to k8s/ and launch helm:
+```
+helm install --name <app instance> arl-cluster/
+```
+Individual values from the values.yaml file can be overridden with: `--set worker.replicaCount=10,resource.limits.cpu=1000m,resource.limits.memory=4098Mi` etc.
+
+You will get output like the following:
+```
+k8s$ helm install --name test arl-cluster/
+NAME:   test
+LAST DEPLOYED: Fri Jun  1 10:02:58 2018
+NAMESPACE: default
+STATUS: DEPLOYED
+
+RESOURCES:
+==> v1/Service
+NAME                             TYPE       CLUSTER-IP     EXTERNAL-IP  PORT(S)            AGE
+notebook-test-arl-cluster        ClusterIP  10.108.56.174  <none>       8888/TCP           0s
+dask-scheduler-test-arl-cluster  ClusterIP  10.101.121.34  <none>       8786/TCP,8787/TCP  0s
+
+==> v1/Deployment
+NAME                          DESIRED  CURRENT  UP-TO-DATE  AVAILABLE  AGE
+notebook                      1        1        1           0          0s
+dask-scheduler                1        1        1           0          0s
+dask-worker-test-arl-cluster  1        1        1           0          0s
+
+==> v1/Pod(related)
+NAME                                           READY  STATUS             RESTARTS  AGE
+notebook-565795c79f-rgjxg                      0/1    ContainerCreating  0         0s
+dask-scheduler-68dbfd8fbb-hl6g6                0/1    ContainerCreating  0         0s
+dask-worker-test-arl-cluster-6f848cdb6d-2x5v2  0/1    ContainerCreating  0         0s
+
+
+NOTES:
+Get the Jupyter Notebook application URL by running these commands:
+1. Calculate and export the POD_NAME:
+  export POD_NAME=$(kubectl get pods --namespace default -l "app=notebook-arl-cluster,release=test" -o jsonpath="{.items[0].metadata.name}")
+2. Forward local port 8080 to Jupyter on the POD with:
+  kubectl port-forward $POD_NAME 8080:8888
+3. Visit http://127.0.0.1:8080 to use your application
+```
+Follow the NOTES instructions for accessing the Jupyter Notebook service

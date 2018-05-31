@@ -1,0 +1,42 @@
+# Default values for arl-cluster.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+worker:
+  replicaCount: 1
+
+image:
+  repository: arl_img
+  tag: latest
+  pullPolicy: IfNotPresent
+
+jupyter:
+  password: changeme
+
+nfs:
+  server: 192.168.0.168
+
+notebook:
+  service:
+    type: ClusterIP # NodePort or ClusterIP
+    jupyter:
+      port: 8888
+
+daskscheduler:
+  service:
+    type: ClusterIP
+    scheduler:
+      port: 8786
+    bokeh:
+      port: 8787
+
+resources:
+  limits:
+   cpu: 500m     # 500m = 0.5 CPU
+   memory: 512Mi # 512Mi = 0.5 GB mem
+
+nodeSelector: {}
+
+tolerations: []
+
+affinity: {}
