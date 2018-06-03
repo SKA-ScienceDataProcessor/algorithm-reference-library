@@ -62,8 +62,8 @@ def pad_mid(ff, npixel):
     if npixel == nx:
         return ff
     assert npixel > nx and npixel > ny
-    pw = [(0, 0)] * (ff.ndim-2)  + [(npixel // 2 - cy, npixel // 2 - cy),
-                                    (npixel // 2 - cx, npixel // 2 - cx)]
+    pw = [(0, 0)] * (ff.ndim - 2) + [(npixel // 2 - cy, npixel // 2 - cy),
+                                     (npixel // 2 - cx, npixel // 2 - cx)]
     return numpy.pad(ff,
                      pad_width=pw,
                      mode='constant',
@@ -92,7 +92,6 @@ def extract_mid(a, npixel):
         return a[..., cx - s:cx + s + 1, cy - s:cy + s + 1]
     else:
         return a[..., cx - s:cx + s, cy - s:cy + s]
-
 
 
 def extract_oversampled(a, xf, yf, kernel_oversampling, kernelwidth):

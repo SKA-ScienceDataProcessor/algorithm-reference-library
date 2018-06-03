@@ -18,7 +18,6 @@ WORKER_REPLICAS ?= 1
 WORKER_ARL_DATA ?= /arl/data
 CURRENT_DIR = $(shell pwd)
 JUPYTER_PASSWORD ?= changeme
-CONTAINER_EXISTS = $(shell $(DOCKER) ps -aqf ancestor=itsthenetwork/nfs-server-alpine)
 SERVER_DEVICE ?= $(shell ip link | grep BROADCAST | head -1 | awk '{print $$2}' | sed 's/://')
 NFS_SERVER ?= "127.0.0.1"
 
@@ -100,9 +99,8 @@ docker_push: docker_build
 	docker push $(DOCKER_REPO)$(DOCKER_IMAGE)
 
 docker_nfs_arl_data:
-ifneq "$(strip $(CONTAINER_EXISTS))" ""
-	$(DOCKER) rm -f $(CONTAINER_EXISTS)
-endif
+	CONTAINER_EXISTS=$$($(DOCKER) ps -aqf ancestor=itsthenetwork/nfs-server-alpine) && \
+	if [ -n "$${CONTAINER_EXISTS}" ]; then $(DOCKER) rm -f $${CONTAINER_EXISTS}; fi
 	docker run -d --name nfs --privileged -p 2049:2049 \
 	-v $(CURRENT_DIR)/:/arl \
 	-e SHARED_DIRECTORY=/arl itsthenetwork/nfs-server-alpine:latest
