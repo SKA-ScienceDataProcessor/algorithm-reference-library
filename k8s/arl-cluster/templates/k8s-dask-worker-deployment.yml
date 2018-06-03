@@ -1,0 +1,119 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: dask-worker-{{ template "arl-cluster.fullname" . }}
+  namespace: default
+  labels:
+    app: dask-worker-{{ template "arl-cluster.name" . }}
+    chart: {{ template "arl-cluster.chart" . }}
+    release: {{ .Release.Name }}
+    heritage: {{ .Release.Service }}
+spec:
+  selector:
+    matchLabels:
+      app: dask-worker-{{ template "arl-cluster.name" . }}
+      release: {{ .Release.Name }}
+  replicas: {{ .Values.worker.replicaCount }}
+  template:
+    metadata:
+      labels:
+        k8s-app: dask-worker-{{ template "arl-cluster.name" . }}
+        app: dask-worker-{{ template "arl-cluster.name" . }}
+        release: {{ .Release.Name }}
+    spec:
+      # hostNetwork: true
+      containers:
+      - name: worker
+        image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+        imagePullPolicy: {{ .Values.image.pullPolicy }}
+        resources:
+{{ toYaml .Values.resources | indent 10 }}
+        command:
+          - /usr/local/bin/start-dask-worker.sh
+        env:
+          - name: DASK_HOST_NAME
+            valueFrom:
+              fieldRef:
+                fieldPath: status.podIP
+          - name: DASK_SCHEDULER
+            value: dask-scheduler-{{ template "arl-cluster.fullname" . }}.default.svc.cluster.local
+          - name: DASK_PORT_NANNY
+            value: "8789"
+          - name: DASK_PORT_WORKER
+            value: "8788"
+          - name: DASK_PORT_SCHEDULER
+            value: "8786"
+          - name: DASK_PORT_BOKEH
+            value: "8787"
+          - name: DASK_LOCAL_DIRECTORY
+            value: "/var/tmp"
+          - name: DASK_RESOURCES
+            value: ""
+          - name: K8S_APP_NAME
+            valueFrom:
+              fieldRef:
+                fieldPath: metadata.name
+          - name: DASK_UID
+            valueFrom:
+              fieldRef:
+                fieldPath: metadata.uid
+          - name: DASK_NAME
+            valueFrom:
+              fieldRef:
+                fieldPath: metadata.name
+          - name: DASK_CPU_LIMIT
+            valueFrom:
+              resourceFieldRef:
+                containerName: worker
+                resource: limits.cpu
+          - name: DASK_MEM_LIMIT
+            valueFrom:
+              resourceFieldRef:
+                containerName: worker
+                resource: limits.memory
+        volumeMounts:
+        - mountPath: /var/tmp
+          name: localdir
+          readOnly: false
+        - mountPath: /arl/data
+          name: arldata
+          readOnly: false
+        ports:
+        - name: worker
+          containerPort: 8786
+        - name: bokeh
+          containerPort: 8787
+        readinessProbe:
+          httpGet:
+            path: /json/identity.json
+            port: 8787
+          initialDelaySeconds: 60
+          timeoutSeconds: 10
+          periodSeconds: 20
+          failureThreshold: 3
+      volumes:
+      - hostPath:
+          path: /var/tmp
+          type: DirectoryOrCreate
+        name: localdir
+      # - hostPath:
+      #     path: ${WORKER_ARL_DATA}
+      #     type: DirectoryOrCreate
+      #   name: arldata
+      - name: arldata
+        nfs:
+          server: "{{ .Values.nfs.server }}"
+          path: "/data"
+    {{- with .Values.nodeSelector }}
+      nodeSelector:
+{{ toYaml . | indent 8 }}
+    {{- end }}
+    {{- with .Values.affinity }}
+      affinity:
+{{ toYaml . | indent 8 }}
+    {{- end }}
+    {{- with .Values.tolerations }}
+      tolerations:
+{{ toYaml . | indent 8 }}
+    {{- end }}
