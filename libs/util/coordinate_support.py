@@ -47,7 +47,7 @@ def xyz_at_latitude(local_xyz, lat):
     :return: Celestial XYZ coordinates
     """
     
-    x, y, z = numpy.hsplit(local_xyz, 3)
+    x, y, z = numpy.hsplit(local_xyz, 3)  # pylint: disable=unbalanced-tuple-unpacking
     
     lat2 = numpy.pi / 2 - lat
     y2 = -z * numpy.sin(lat2) + y * numpy.cos(lat2)
@@ -72,7 +72,7 @@ def xyz_to_uvw(xyz, ha, dec):
     :param dec: declination of phase tracking centre.
     """
     
-    x, y, z = numpy.hsplit(xyz, 3)
+    x, y, z = numpy.hsplit(xyz, 3)  # pylint: disable=unbalanced-tuple-unpacking
     
     # Two rotations:
     #  1. by 'ha' along the z axis
@@ -100,7 +100,7 @@ def uvw_to_xyz(uvw, ha, dec):
     :param dec: declination of phase tracking centre
     """
     
-    u, v, w = numpy.hsplit(uvw, 3)
+    u, v, w = numpy.hsplit(uvw, 3)  # pylint: disable=unbalanced-tuple-unpacking
     
     # Two rotations:
     #  1. by 'dec-90' along the u axis
@@ -168,6 +168,7 @@ def skycoord_to_lmn(pos: SkyCoord, phasecentre: SkyCoord):
     # not quite follow imaging conventions
     return dc.y.value, dc.z.value, dc.x.value - 1
 
+
 def lmn_to_skycoord(lmn, phasecentre: SkyCoord):
     """
     Convert l,m,n coordinate system + phascentre to astropy sky coordinate
@@ -182,7 +183,7 @@ def lmn_to_skycoord(lmn, phasecentre: SkyCoord):
     """
     
     # Convert l,m,n to SkyCoord convention, also enforce celestial sphere
-    n = numpy.sqrt(1-lmn[0]**2-lmn[1]**2)-1.0
+    n = numpy.sqrt(1 - lmn[0] ** 2 - lmn[1] ** 2) - 1.0
     dc = n + 1, lmn[0], lmn[1]
     target = SkyCoord(x=dc[0], y=dc[1], z=dc[2], representation='cartesian', frame=phasecentre.skyoffset_frame())
     return target.transform_to(phasecentre.frame)

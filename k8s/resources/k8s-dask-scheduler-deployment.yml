@@ -1,0 +1,107 @@
+---
+apiVersion: v1
+kind: Service
+metadata:
+  annotations:
+    service.alpha.kubernetes.io/tolerate-unready-endpoints: "true"
+  name: dask-scheduler
+  labels:
+    k8s-app: dask-scheduler
+spec:
+  type: NodePort
+  ports:
+  - name: scheduler
+    port: 8786
+    targetPort: scheduler
+    protocol: TCP
+  - name: bokeh
+    port: 8787
+    targetPort: bokeh
+    protocol: TCP
+  selector:
+    k8s-app: dask-scheduler
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: dask-scheduler
+  namespace: default
+spec:
+  selector:
+    matchLabels:
+      k8s-app: dask-scheduler
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        k8s-app: dask-scheduler
+    spec:
+      containers:
+      - name: scheduler
+        image: ${DOCKER_IMAGE}
+        imagePullPolicy: IfNotPresent
+        command:
+          - /usr/local/bin/start-dask-scheduler.sh
+        env:
+          - name: DASK_HOST_NAME
+            valueFrom:
+              fieldRef:
+                fieldPath: status.podIP
+          - name: DASK_SCHEDULER
+            value: "dask-scheduler.default.svc.cluster.local"
+          - name: DASK_PORT_SCHEDULER
+            value: "8786"
+          - name: DASK_PORT_BOKEH
+            value: "8787"
+          - name: DASK_BOKEH_WHITELIST
+            value: "dask-scheduler.default.svc.cluster.local"
+          - name: DASK_BOKEH_APP_PREFIX
+            value: "/"
+          - name: DASK_LOCAL_DIRECTORY
+            value: "/var/tmp"
+          - name: K8S_APP_NAME
+            valueFrom:
+              fieldRef:
+                fieldPath: metadata.name
+          - name: DASK_UID
+            valueFrom:
+              fieldRef:
+                fieldPath: metadata.uid
+          - name: DASK_NAME
+            valueFrom:
+              fieldRef:
+                fieldPath: metadata.name
+          - name: DASK_SCHEDULER
+            value: "dask-scheduler.default.svc.cluster.local"
+          - name: DASK_CPU_LIMIT
+            valueFrom:
+              resourceFieldRef:
+                containerName: scheduler
+                resource: limits.cpu
+          - name: DASK_MEM_LIMIT
+            valueFrom:
+              resourceFieldRef:
+                containerName: scheduler
+                resource: limits.memory
+        volumeMounts:
+        - mountPath: /var/tmp
+          name: localdir
+          readOnly: false
+        ports:
+        - name: scheduler
+          containerPort: 8786
+        - name: bokeh
+          containerPort: 8787
+        readinessProbe:
+          httpGet:
+            path: /json/identity.json
+            port: 8787
+          initialDelaySeconds: 60
+          timeoutSeconds: 10
+          periodSeconds: 20
+          failureThreshold: 3
+      volumes:
+      - hostPath:
+          path: /var/tmp
+          type: DirectoryOrCreate
+        name: localdir
