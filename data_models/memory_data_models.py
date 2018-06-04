@@ -93,11 +93,9 @@ class Configuration:
         s += "\tDiameter: %s\n" % self.diameter
         s += "\tMount: %s\n" % self.mount
         s += "\tXYZ: %s\n" % self.xyz
-
+        
         return s
-
-
-
+    
     def size(self):
         """ Return size in GB
         """
@@ -270,6 +268,7 @@ class Image:
         result.__dict__.update(self.__dict__)
         return result
     
+    # noinspection PyArgumentList
     def __deepcopy__(self, memo):
         cls = self.__class__
         result = cls.__new__(cls)
@@ -388,33 +387,6 @@ class Skycomponent:
         s += "\tDirection: %s\n" % self.direction
         s += "\tShape: %s\n" % self.shape
         
-        class SkyModel:
-            """ A model for the sky
-            """
-            
-            def __init__(self, images=[], components=[], fixed=False):
-                """ A model of the sky as a list of images and a list of components
-
-                """
-                self.images = [im for im in images]
-                self.components = [sc for sc in components]
-                self.fixed = fixed
-            
-            def __str__(self):
-                """Default printer for SkyModel
-
-                """
-                s = "SkyModel: fixed: %s\n" % self.fixed
-                for i, sc in enumerate(self.components):
-                    s += str(sc)
-                s += "\n"
-                
-                for i, im in enumerate(self.images):
-                    s += str(im)
-                s += "\n"
-                
-                return s
-        
         s += "\tParams: %s\n" % self.params
         s += "\tPolarisation frame: %s\n" % str(self.polarisation_frame.type)
         return s
@@ -424,12 +396,16 @@ class SkyModel:
     """ A model for the sky
     """
     
-    def __init__(self, images=[], components=[], fixed=False):
+    def __init__(self, images=None, components=None, fixed=False):
         """ A model of the sky as a list of images and a list of components
 
         Use copy_skymodel to make a proper copy of skymodel
 
         """
+        if images is None:
+            images = []
+        if components is None:
+            components = []
         self.images = [im for im in images]
         self.components = [sc for sc in components]
         self.fixed = fixed
@@ -537,7 +513,7 @@ class Visibility:
         self.phasecentre = phasecentre  # Phase centre of observation
         self.configuration = configuration  # Antenna/station configuration
         self.polarisation_frame = polarisation_frame
-
+    
     def __str__(self):
         """Default printer for Skycomponent
 
@@ -551,7 +527,7 @@ class Visibility:
         s += "\tConfiguration: %s\n" % self.configuration.name
         
         return s
-
+    
     def size(self):
         """ Return size in GB
         """
@@ -686,7 +662,7 @@ class BlockVisibility:
         self.phasecentre = phasecentre  # Phase centre of observation
         self.configuration = configuration  # Antenna/station configuration
         self.polarisation_frame = polarisation_frame
-
+    
     def __str__(self):
         """Default printer for Skycomponent
 
@@ -701,8 +677,7 @@ class BlockVisibility:
         s += "\tConfiguration: %s\n" % self.configuration.name
         
         return s
-
-
+    
     def size(self):
         """ Return size in GB
         """
@@ -789,7 +764,7 @@ class QA:
         return s
 
 
-class Science_Data_model:
+class ScienceDataModel:
     """ Science Data Model"""
     
     def __init__(self):

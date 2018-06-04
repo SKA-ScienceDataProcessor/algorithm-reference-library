@@ -4,9 +4,8 @@ repeated here.
 
 import logging
 import sys
-from typing import Union
 
-from copy import copy, deepcopy
+from copy import deepcopy
 
 import numpy
 from astropy import units as u
@@ -17,7 +16,7 @@ from data_models.polarisation import PolarisationFrame, ReceptorFrame
 log = logging.getLogger(__name__)
 
 
-class Buffer_Configuration:
+class BufferConfiguration:
     """ Describe a Configuration as locations in x,y,z, mount type, diameter, names, and
         overall location
     """
@@ -92,7 +91,7 @@ class Buffer_Configuration:
         return self.data['mount']
 
 
-class Buffer_GainTable:
+class BufferGainTable:
     """ Gain table with data_models: time, antenna, gain[:, chan, rec, rec], weight columns
 
     The weight is usually that output from gain solvers.
@@ -194,7 +193,7 @@ class Buffer_GainTable:
         return s
 
 
-class Buffer_Image:
+class BufferImage:
     """Image class with Image data (as a numpy.array) and the AstroPy `implementation of
     a World Coodinate System <http://docs.astropy.org/en/stable/wcs>`_
 
@@ -238,6 +237,7 @@ class Buffer_Image:
         result = cls.__new__(cls)
         memo[id(self)] = result
         for k, v in self.__dict__.items():
+            # noinspection PyArgumentList
             setattr(result, k, deepcopy(v, memo))
         return result
 
@@ -281,7 +281,7 @@ class Buffer_Image:
         return s
 
 
-class Buffer_Skycomponent:
+class BufferSkycomponent:
     """Skycomponents are used to represent compact sources on the sky. They possess direction,
     flux as a function of frequency and polarisation, shape (with params), and polarisation frame.
 
@@ -303,7 +303,7 @@ class Buffer_Skycomponent:
     
     def __init__(self,
                  direction=None, frequency=None, name=None, flux=None, shape='Point',
-                 polarisation_frame=PolarisationFrame('stokesIQUV'), params={}):
+                 polarisation_frame=PolarisationFrame('stokesIQUV'), params=None):
         """ Define the required structure
 
         :param direction: SkyCoord
@@ -314,7 +314,9 @@ class Buffer_Skycomponent:
         :param params: numpy.array shape dependent parameters
         :param polarisation_frame: Polarisation_frame
         """
-        
+
+        if params is None:
+            params = {}
         self.direction = direction
         self.frequency = numpy.array(frequency)
         self.name = name
@@ -349,48 +351,57 @@ class Buffer_Skycomponent:
         s += "\tDirection: %s\n" % self.direction
         s += "\tShape: %s\n" % self.shape
 
-        class SkyModel:
-            """ A model for the sky
-            """
-    
-            def __init__(self, images=[], components=[], fixed=False):
-                """ A model of the sky as a list of images and a list of components
-
-                """
-                self.images = [im for im in images]
-                self.components = [sc for sc in components]
-                self.fixed = fixed
-    
-            def __str__(self):
-                """Default printer for SkyModel
-
-                """
-                s = "SkyModel: fixed: %s\n" % self.fixed
-                for i, sc in enumerate(self.components):
-                    s += str(sc)
-                s += "\n"
-        
-                for i, im in enumerate(self.images):
-                    s += str(im)
-                s += "\n"
-        
-                return s
-
         s += "\tParams: %s\n" % self.params
         s += "\tPolarisation frame: %s\n" % str(self.polarisation_frame.type)
         return s
 
 
-class Buffer_SkyModel:
+class SkyModel:
+    """ A model for the sky
+    """
+
+    def __init__(self, images=None, components=None, fixed=False):
+        """ A model of the sky as a list of images and a list of components
+
+        """
+        if images is None:
+            images = []
+        if components is None:
+            components = []
+        self.images = [im for im in images]
+        self.components = [sc for sc in components]
+        self.fixed = fixed
+
+    def __str__(self):
+        """Default printer for SkyModel
+
+        """
+        s = "SkyModel: fixed: %s\n" % self.fixed
+        for i, sc in enumerate(self.components):
+            s += str(sc)
+        s += "\n"
+
+        for i, im in enumerate(self.images):
+            s += str(im)
+        s += "\n"
+
+        return s
+
+
+class BufferSkyModel:
     """ A model for the sky
     """
     
-    def __init__(self, images=[], components=[], fixed=False):
+    def __init__(self, images=None, components=None, fixed=False):
         """ A model of the sky as a list of images and a list of components
         
         Use copy_skymodel to make a proper copy of skymodel
 
         """
+        if images is None:
+            images = []
+        if components is None:
+            components = []
         self.images = [im for im in images]
         self.components = [sc for sc in components]
         self.fixed = fixed
@@ -411,7 +422,7 @@ class Buffer_SkyModel:
         return s
 
 
-class Buffer_Visibility:
+class BufferVisibility:
     """ Visibility table class
 
     Visibility with uvw, time, integration_time, frequency, channel_bandwidth, a1, a2, vis, weight
@@ -572,7 +583,7 @@ class Buffer_Visibility:
         return self.data['imaging_weight']
 
 
-class Buffer_BlockVisibility:
+class BufferBlockVisibility:
     """ Block Visibility table class
 
     BlockVisibility with uvw, time, integration_time, frequency, channel_bandwidth, pol,
@@ -691,7 +702,7 @@ class Buffer_BlockVisibility:
         return self.data.size
 
 
-class Buffer_QA:
+class BufferQA:
     """ Quality assessment
 
     """
@@ -720,7 +731,7 @@ class Buffer_QA:
         return s
 
 
-class Buffer_Science_Data_model:
+class BufferScienceDataModel:
     """ Buffered version of Science Data Model"""
     
     def __init__(self):
