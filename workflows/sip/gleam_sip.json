@@ -1,0 +1,43 @@
+{
+  "execute":{"use_dask":"False"},
+  "inputs": {
+    "vislist":"test_results/gleam_simulation_vislist.hdf"
+  },
+  "outputs": {
+    "restored":"test_results/gleam_ical_restored.fits",
+    "residual":"test_results/gleam_ical_residual.fits",
+    "deconvolved":"test_results/gleam_ical_deconvolved.fits"
+  },
+  "imaging": {
+    "context": "wstack",
+    "vis_slices": 51
+  },
+  "image": {
+    "phasecentre": {
+      "ra": "30deg",
+      "dec": "-60deg",
+      "frame": "icrs",
+      "equinox": "j2000"
+    },
+    "npixel": 2048,
+    "cellsize": "0.001rad",
+    "nchan": 1
+  },
+  "deconvolution": {
+    "scales": [
+      0,
+      3,
+      10
+    ],
+    "algorithm": "mmclean",
+    "psf_support": 64,
+    "nmoment": 3,
+    "niter": 1000,
+    "fractional_threshold": 0.1,
+    "threshold": 0.1,
+    "gain": 0.1,
+    "deconvolve_facets": 8,
+    "deconvolve_overlap": 16,
+    "deconvolve_taper": "tukey"
+  }
+}
