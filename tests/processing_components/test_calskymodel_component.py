@@ -118,7 +118,7 @@ class TestCalibrationSkyModelcal(unittest.TestCase):
                               for cm in self.components]
         
         calskymodel_list = calskymodel_solve_component(self.vis, skymodel_list=self.skymodel_list, niter=30,
-                                                       gain=0.25, tol=1e-8)
+                                                       gain=0.25)
         skymodel, residual_vis = arlexecute.compute(calskymodel_list, sync=True)
         
         residual_vis = convert_blockvisibility_to_visibility(residual_vis)

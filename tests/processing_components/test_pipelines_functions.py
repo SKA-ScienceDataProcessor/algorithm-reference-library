@@ -114,9 +114,8 @@ class TestPipelinesFunctions(unittest.TestCase):
             
             if bandpass:
                 bgt = create_gaintable_from_blockvisibility(vt, timeslice=1e5)
-                bgt = simulate_gaintable(bgt, phase_error=0.01, amplitude_error=0.01, timeslice=1e5,
-                                         smooth_channels=4)
-                vt = apply_gaintable(vt, bgt, timeslice=1e5)
+                bgt = simulate_gaintable(bgt, phase_error=0.01, amplitude_error=0.01, smooth_channels=4)
+                vt = apply_gaintable(vt, bgt)
         
         return vt
 

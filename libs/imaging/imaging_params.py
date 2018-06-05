@@ -95,6 +95,8 @@ def get_rowmap(col, ucol=None):
 def get_uvw_map(vis: Visibility, im: Image, padding=2):
     """ Get the generators that map channels uvw to pixels
 
+    :param vis:
+    :param im:
     :param padding:
     :return: uvw mode, shape, padding, uvw mapping
     """
@@ -126,6 +128,7 @@ def standard_kernel_list(vis: Visibility, shape, oversampling=8, support=3):
     return numpy.zeros_like(vis.w, dtype='int'), [anti_aliasing_calculate(shape, oversampling, support)[1]]
 
 
+# noinspection PyTypeChecker
 def w_kernel_list(vis: Visibility, im: Image, oversampling=1, wstep=50.0, kernelwidth=16, **kwargs):
     """ Calculate w convolution kernels
     
@@ -137,8 +140,9 @@ def w_kernel_list(vis: Visibility, im: Image, oversampling=1, wstep=50.0, kernel
     convolution function for all channels and polarisations. Changing that behaviour would
     require modest changes here and to the gridding/degridding routines.
 
+    :param im:
+    :param kernelwidth:
     :param vis: visibility
-    :param image: Template image (padding, if any, occurs before this)
     :param oversampling: Oversampling factor
     :param wstep: Step in w between cached functions
     :return: (indices to the w kernel for each row, kernels)
@@ -209,20 +213,20 @@ def get_kernel_list(vis: Visibility, im: Image, **kwargs):
     if wstep > 0.0 and wabsmax > 0.0:
         kernelname = 'wprojection'
         # wprojection needs a lot of commentary!
-        log.debug("get_kernel_list: Using w projection with wstep = %f" % (wstep))
+        log.debug("get_kernel_list: Using w projection with wstep = %f" % wstep)
 
         # The field of view must be as padded! R_F is for reporting only so that
         # need not be padded.
         fov = cellsize * npixel * padding
         r_f = (cellsize * npixel / 2) ** 2 / abs(cellsize)
-        log.debug("get_kernel_list: Fresnel number = %f" % (r_f))
+        log.debug("get_kernel_list: Fresnel number = %f" % r_f)
  
         # Now calculate the maximum support for the w kernel
         kernelwidth = get_parameter(kwargs, "kernelwidth",
                                     (2 * int(round(numpy.sin(0.5 * fov) * npixel * wabsmax * cellsize))))
         kernelwidth = max(kernelwidth, 8)
         assert kernelwidth % 2 == 0
-        log.debug("get_kernel_list: Maximum w kernel full width = %d pixels" % (kernelwidth))
+        log.debug("get_kernel_list: Maximum w kernel full width = %d pixels" % kernelwidth)
         padded_shape = [im.shape[0], im.shape[1], im.shape[2] * padding, im.shape[3] * padding]
 
         remove_shift = get_parameter(kwargs, "remove_shift", True)

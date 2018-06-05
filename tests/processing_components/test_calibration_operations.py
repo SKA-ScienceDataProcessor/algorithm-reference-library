@@ -57,9 +57,9 @@ class TestCalibrationOperations(unittest.TestCase):
             self.actualSetup(spf, dpf)
             gt = create_gaintable_from_blockvisibility(self.vis, timeslice='auto')
             log.info("Created gain table: %s" % (gaintable_summary(gt)))
-            gt = simulate_gaintable(gt, phase_error=1.0, timeslice='auto')
+            gt = simulate_gaintable(gt, phase_error=1.0)
             original = copy_visibility(self.vis)
-            vis = apply_gaintable(self.vis, gt, timeslice='auto')
+            vis = apply_gaintable(self.vis, gt)
             assert numpy.max(numpy.abs(original.vis)) > 0.0
             assert numpy.max(numpy.abs(vis.vis)) > 0.0
             assert numpy.max(numpy.abs(vis.vis - original.vis)) > 0.0
@@ -81,9 +81,9 @@ class TestCalibrationOperations(unittest.TestCase):
                 self.actualSetup(spf, dpf)
                 gt = create_gaintable_from_blockvisibility(self.vis, timeslice=timeslice)
                 log.info("Created gain table: %s" % (gaintable_summary(gt)))
-                gt = simulate_gaintable(gt, phase_error=1.0, timeslice=timeslice)
+                gt = simulate_gaintable(gt, phase_error=1.0)
                 original = copy_visibility(self.vis)
-                vis = apply_gaintable(self.vis, gt, timeslice=timeslice)
+                vis = apply_gaintable(self.vis, gt)
                 assert numpy.max(numpy.abs(original.vis)) > 0.0
                 assert numpy.max(numpy.abs(vis.vis)) > 0.0
                 assert numpy.max(numpy.abs(vis.vis - original.vis)) > 0.0
@@ -93,9 +93,9 @@ class TestCalibrationOperations(unittest.TestCase):
             self.actualSetup(spf, dpf)
             gt = create_gaintable_from_blockvisibility(self.vis, timeslice='auto')
             log.info("Created gain table: %s" % (gaintable_summary(gt)))
-            gt = simulate_gaintable(gt, phase_error=0.1, amplitude_error=0.01, timeslice='auto')
+            gt = simulate_gaintable(gt, phase_error=0.1, amplitude_error=0.01)
             original = copy_visibility(self.vis)
-            vis = apply_gaintable(self.vis, gt, timeslice='auto')
+            vis = apply_gaintable(self.vis, gt)
             error = numpy.max(numpy.abs(vis.vis - original.vis))
             assert error > 10.0, "Error = %f" % (error)
 
@@ -106,8 +106,8 @@ class TestCalibrationOperations(unittest.TestCase):
             log.info("Created gain table: %s" % (gaintable_summary(gt)))
             gt = simulate_gaintable(gt, phase_error=0.1)
             original = copy_visibility(self.vis)
-            vis = apply_gaintable(self.vis, gt, timeslice='auto')
-            vis = apply_gaintable(self.vis, gt, timeslice='auto', inverse=True)
+            vis = apply_gaintable(self.vis, gt)
+            vis = apply_gaintable(self.vis, gt, inverse=True)
             error = numpy.max(numpy.abs(vis.vis - original.vis))
             assert error < 1e-12, "Error = %s" % (error)
 
@@ -116,10 +116,10 @@ class TestCalibrationOperations(unittest.TestCase):
             self.actualSetup(spf, dpf)
             gt = create_gaintable_from_blockvisibility(self.vis, timeslice='auto')
             log.info("Created gain table: %s" % (gaintable_summary(gt)))
-            gt = simulate_gaintable(gt, phase_error=0.1, amplitude_error=0.1, timeslice='auto')
+            gt = simulate_gaintable(gt, phase_error=0.1, amplitude_error=0.1)
             original = copy_visibility(self.vis)
-            vis = apply_gaintable(self.vis, gt, timeslice='auto')
-            vis = apply_gaintable(self.vis, gt, inverse=True, timeslice='auto')
+            vis = apply_gaintable(self.vis, gt)
+            vis = apply_gaintable(self.vis, gt, inverse=True)
             error = numpy.max(numpy.abs(vis.vis - original.vis))
             assert error < 1e-12, "Error = %s" % (error)
 
@@ -129,7 +129,7 @@ class TestCalibrationOperations(unittest.TestCase):
             gt = create_gaintable_from_blockvisibility(self.vis, timeslice='auto')
             gt.data['gain']*=0.0
             original = copy_visibility(self.vis)
-            vis = apply_gaintable(self.vis, gt, inverse=True, timeslice='auto')
+            vis = apply_gaintable(self.vis, gt, inverse=True)
             error = numpy.max(numpy.abs(vis.vis[:,0,1,...] - original.vis[:,0,1,...]))
             assert error < 1e-12, "Error = %s" % (error)
 

@@ -117,9 +117,9 @@ def tukey_filter(x, r):
     :param r: transition point of filter (float)
     :returns: Value of filter for x
     """
-    if x >= 0.0 and x < r / 2.0:
+    if 0.0 <= x < r / 2.0:
         return 0.5 * (1.0 + numpy.cos(2.0 * numpy.pi * (x - r / 2.0) / r))
-    elif x >= 1 - r / 2.0 and x <= 1.0:
+    elif 1 - r / 2.0 <= x <= 1.0:
         return 0.5 * (1.0 + numpy.cos(2.0 * numpy.pi * (x - 1 + r / 2.0) / r))
     else:
         return 1.0

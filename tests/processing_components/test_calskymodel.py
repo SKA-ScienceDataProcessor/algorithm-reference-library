@@ -115,7 +115,7 @@ class TestCalibrationSkyModelcal(unittest.TestCase):
     
     def test_skymodel_solve(self):
         self.actualSetup(ntimes=1, doiso=True)
-        calskymodel, residual_vis = calskymodel_solve(self.vis, self.skymodels, niter=30, gain=0.25, tol=1e-8)
+        calskymodel, residual_vis = calskymodel_solve(self.vis, self.skymodels, niter=30, gain=0.25)
         
         residual_vis = convert_blockvisibility_to_visibility(residual_vis)
         residual_vis, _, _ = weight_visibility(residual_vis, self.beam)
@@ -127,7 +127,7 @@ class TestCalibrationSkyModelcal(unittest.TestCase):
     
     def test_skymodel_solve_fixed(self):
         self.actualSetup(ntimes=1, doiso=True, fixed=True)
-        calskymodel, residual_vis = calskymodel_solve(self.vis, self.skymodels, niter=30, gain=0.25, tol=1e-8)
+        calskymodel, residual_vis = calskymodel_solve(self.vis, self.skymodels, niter=30, gain=0.25)
         
         # Check that the components are unchanged
         calskymodel_skycomponents = list()
@@ -150,7 +150,7 @@ class TestCalibrationSkyModelcal(unittest.TestCase):
     
     def test_skymodel_solve_noiso(self):
         self.actualSetup(ntimes=1, doiso=False)
-        calskymodel, residual_vis = calskymodel_solve(self.vis, self.skymodels, niter=30, gain=0.25, tol=1e-8)
+        calskymodel, residual_vis = calskymodel_solve(self.vis, self.skymodels, niter=30, gain=0.25)
         
         residual_vis = convert_blockvisibility_to_visibility(residual_vis)
         residual_vis, _, _ = weight_visibility(residual_vis, self.beam)

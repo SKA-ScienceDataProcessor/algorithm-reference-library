@@ -151,14 +151,8 @@ def convert_image_to_kernel(im: Image, oversampling, kernelwidth):
         newwcs.wcs.crval[axis + 4] = im.wcs.wcs.crval[axis + 2]
         newwcs.wcs.cdelt[axis + 4] = im.wcs.wcs.cdelt[axis + 2]
     
-    newdata_shape = []
-    newdata_shape.append(nchan)
-    newdata_shape.append(npol)
-    newdata_shape.append(oversampling)
-    newdata_shape.append(oversampling)
-    newdata_shape.append(kernelwidth)
-    newdata_shape.append(kernelwidth)
-    
+    newdata_shape = [nchan, npol, oversampling, oversampling, kernelwidth, kernelwidth]
+
     newdata = numpy.zeros(newdata_shape, dtype=im.data.dtype)
     
     assert oversampling * kernelwidth < ny

@@ -16,6 +16,8 @@ def hogbom(dirty, psf, window, gain, thresh, niter, fracthresh, prefix=''):
 
     This version operates on numpy arrays.
 
+    :param fracthresh:
+    :param prefix:
     :param dirty: The dirty Image, i.e., the Image to be deconvolved
     :param psf: The point spread-function
     :param window: Regions where clean components are allowed. If True, entire dirty Image is allowed
@@ -105,6 +107,7 @@ def msclean(dirty, psf, window, gain, thresh, niter, scales, fracthresh, prefix=
 
     This version operates on numpy arrays.
 
+    :param prefix:
     :param fracthresh:
     :param dirty: The dirty image, i.e., the image to be deconvolved
     :param psf: The point spread-function
@@ -235,7 +238,6 @@ def create_scalestack(scaleshape, scales, norm=True):
         if scales[iscale] > 0.0:
             rscale2 = 1.0 / (float(scales[iscale]) / 2.0) ** 2
             x = range(xcen - halfscale - 1, xcen + halfscale + 1)
-            fx = numpy.array(x, 'float') - float(xcen)
             # Unroll this since spheroidal_function needs a scalar
             for y in range(ycen - halfscale - 1, ycen + halfscale + 1):
                 for x in range(xcen - halfscale - 1, xcen + halfscale + 1):
@@ -368,8 +370,6 @@ def spheroidal_function(vnu):
     q[1, 1] = 9.599102e-1
     q[1, 2] = 2.918724e-1
 
-    value = 0.
-
     if (vnu >= 0.) and (vnu < 0.75):
         part = 0
         nuend = 0.75
@@ -425,7 +425,7 @@ def msmfsclean(dirty, psf, window, gain, thresh, niter, scales, fracthresh, find
     :param scales: Scales (in pixels width) to be used
     :param fracthresh: Fractional stopping threshold
     :param findpeak: Method of finding peak in mfsclean: 'Algorithm1'|'CASA'|'ARL', Default is ARL.
-    :param facet: Used for logging only
+    :param prefix: Prefix to log messages to provide context
     :return: clean component image, residual image
     """
     
@@ -602,6 +602,7 @@ def calculate_scale_moment_residual(residual, scalestack):
 
     Part of the initialisation for Algorithm 1: lines 12 - 17
 
+    :param scalestack:
     :param residual: residual [nmoments, nx, ny]
     :return: scale-dependent moment residual [nscales, nmoments, nx, ny]
     """
@@ -620,6 +621,7 @@ def calculate_scale_scale_moment_moment_psf(psf, scalestack):
 
     Part of the initialisation for Algorithm 1
 
+    :param scalestack:
     :param psf: psf
     :return: scale-dependent moment psf [nscales, nscales, nmoments, nmoments, nx, ny]
     """
@@ -675,6 +677,7 @@ def find_optimum_scale_zero_moment(smpsol, windowstack):
 
     Line 27 of Algorithm 1
 
+    :param windowstack:
     :param smpsol: Decoupled residual images for each scale and moment
     :return: x, y, optimum scale for peak
     """
