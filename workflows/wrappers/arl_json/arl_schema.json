@@ -33,7 +33,14 @@
         "description": "Control of execution",
         "use_dask": {
             "description": "Use Dask? (True or False)",
-            "type": "string"
+            "type": "boolean",
+            "default": false
+        },
+        "n_workers": {
+            "type": "number"
+        },
+        "memory_limit": {
+            "type": "number"
         }
     },
 
@@ -43,10 +50,20 @@
             "type": "object",
             "properties": {
                 "ra": {
-                    "type": "string"
+                    "description": "Right Ascension e.g. 0.001rad, 1arcsec",
+                    "type": "object",
+                    "properties": {
+                        "value": {"type": "number"},
+                        "unit": {"type": "string"}
+                    }
                 },
                 "dec": {
-                    "type": "string"
+                    "description": "Declination e.g. 0.001rad, 1arcsec",
+                    "type": "object",
+                    "properties": {
+                        "value": {"type": "number"},
+                        "unit": {"type": "string"}
+                    }
                 },
                 "equinox": {
                     "type": "string",
@@ -145,7 +162,11 @@
             },
             "cellsize": {
                 "description": "Cellsize e.g. 0.001rad, 1arcsec",
-                "type": "string"
+                "type": "object",
+                "properties": {
+                    "value": {"type": "number"},
+                    "unit": {"type":"string"}
+                }
             },
             "npixel": {
                 "description": "Number of pizels on each axis",
@@ -198,7 +219,7 @@
                 "type": "number",
                 "default": 64
             },
-            "nmoments": {
+            "nmoment": {
                 "description": "Number of moments (Taylor terms)",
                 "type": "number",
                 "default": 1

@@ -112,14 +112,14 @@ class ARLExecuteBase():
         else:
             return graph
     
-    def run(self, func):
+    def run(self, func, *args, **kwargs):
         """ Run a function on the client
         
         :param func:
         :return:
         """
         if self.using_dask:
-            return self.client.run(func)
+            return self.client.run(func, *args, **kwargs)
         else:
             return func
     

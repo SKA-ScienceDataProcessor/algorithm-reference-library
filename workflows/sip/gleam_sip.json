@@ -1,34 +1,42 @@
 {
-  "execute":{"use_dask":"False"},
+  "execute":{
+    "use_dask":true,
+    "n_workers": 4,
+    "memory_limit": 4000000000
+  },
+  "logging": {
+    "filename":"/Users/timcornwell/Code/algorithm-reference-library/test_results/gleam-pipeline.log",
+    "filemode":"w",
+    "format":"%(asctime)s,%(msecs)d %(name)s %(levelname)s %(message)s",
+    "datefmt":"%H:%M:%S",
+    "level":"INFO"
+  },
   "inputs": {
-    "vislist":"test_results/gleam_simulation_vislist.hdf"
+    "vis_list":"/Users/timcornwell/Code/algorithm-reference-library/test_results/gleam_simulation_vislist.hdf"
   },
   "outputs": {
-    "restored":"test_results/gleam_ical_restored.fits",
-    "residual":"test_results/gleam_ical_residual.fits",
-    "deconvolved":"test_results/gleam_ical_deconvolved.fits"
+    "restored":"/Users/timcornwell/Code/algorithm-reference-library/test_results/gleam_ical_restored.fits",
+    "residual":"/Users/timcornwell/Code/algorithm-reference-library/test_results/gleam_ical_residual.fits",
+    "deconvolved":"/Users/timcornwell/Code/algorithm-reference-library/test_results/gleam_ical_deconvolved.fits"
   },
   "imaging": {
     "context": "wstack",
     "vis_slices": 51
   },
   "image": {
+    "npixel": 1024,
+    "nchan": 1,
+    "polarisation_frame": "stokesI",
+    "cellsize": {"value": 0.001,"unit": "rad"},
     "phasecentre": {
-      "ra": "30deg",
-      "dec": "-60deg",
+      "ra": {"value":30.0, "unit":"deg"},
+      "dec": {"value":-90.0, "unit":"deg"},
       "frame": "icrs",
       "equinox": "j2000"
-    },
-    "npixel": 2048,
-    "cellsize": "0.001rad",
-    "nchan": 1
+    }
   },
   "deconvolution": {
-    "scales": [
-      0,
-      3,
-      10
-    ],
+    "scales": [ 0, 3, 10],
     "algorithm": "mmclean",
     "psf_support": 64,
     "nmoment": 3,
@@ -38,6 +46,7 @@
     "gain": 0.1,
     "deconvolve_facets": 8,
     "deconvolve_overlap": 16,
-    "deconvolve_taper": "tukey"
+    "deconvolve_taper": "tukey",
+    "nmajor": 0
   }
 }
