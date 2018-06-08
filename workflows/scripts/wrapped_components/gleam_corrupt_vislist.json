@@ -6,27 +6,22 @@
     },
     "component": {
         "framework": "ARL",
-        "name": "simulate"
+        "name": "corrupt_vislist"
     },
     "logging": {
         "filename": "/Users/timcornwell/Code/algorithm-reference-library/test_results/gleam-pipeline.log",
-        "filemode": "w",
+        "filemode": "a",
         "format": "%(asctime)s,%(msecs)d %(name)s %(levelname)s %(message)s",
         "datefmt": "%H:%M:%S",
         "level": "INFO"
     },
     "inputs": {
-        "skymodel": "/Users/timcornwell/Code/algorithm-reference-library/test_results/gleam_skymodel.hdf",
-        "vis_list": "/Users/timcornwell/Code/algorithm-reference-library/test_results/gleam_simulation_vislist.hdf"
+        "vis_list": "/Users/timcornwell/Code/algorithm-reference-library/test_results/gleam_empty_vislist.hdf"
     },
     "outputs": {
-        "vis_list": "/Users/timcornwell/Code/algorithm-reference-library/test_results/gleam_corrupted_vislist.hdf"
+        "vis_list": "/Users/timcornwell/Code/algorithm-reference-library/test_results/gleam_perfect_vislist.hdf"
     },
-    "imaging": {
-        "context": "wstack",
-        "vis_slices": 11
-    },
-   "simulate": {
+   "corrupt": {
        "phase_error": {"value":0.1, "unit":"rad"},
        "amplitude_error": 0.0,
        "gaintable": ""

@@ -10,18 +10,18 @@
   },
   "logging": {
     "filename": "/Users/timcornwell/Code/algorithm-reference-library/test_results/gleam-pipeline.log",
-    "filemode": "w",
+    "filemode": "a",
     "format": "%(asctime)s,%(msecs)d %(name)s %(levelname)s %(message)s",
     "datefmt": "%H:%M:%S",
     "level": "INFO"
   },
   "inputs": {
-    "vis_list": "/Users/timcornwell/Code/algorithm-reference-library/test_results/gleam_simulation_vislist.hdf"
+    "vis_list": "/Users/timcornwell/Code/algorithm-reference-library/test_results/gleam_perfect_vislist.hdf"
   },
   "outputs": {
-    "restored": "/Users/timcornwell/Code/algorithm-reference-library/test_results/gleam_ical_restored.fits",
-    "residual": "/Users/timcornwell/Code/algorithm-reference-library/test_results/gleam_ical_residual.fits",
-    "deconvolved": "/Users/timcornwell/Code/algorithm-reference-library/test_results/gleam_ical_deconvolved.fits"
+    "restored": "/Users/timcornwell/Code/algorithm-reference-library/test_results/gleam_perfect_restored.fits",
+    "residual": "/Users/timcornwell/Code/algorithm-reference-library/test_results/gleam_perfect_residual.fits",
+    "deconvolved": "/Users/timcornwell/Code/algorithm-reference-library/test_results/gleam_perfect_deconvolved.fits"
   },
   "imaging": {
     "context": "wstack",

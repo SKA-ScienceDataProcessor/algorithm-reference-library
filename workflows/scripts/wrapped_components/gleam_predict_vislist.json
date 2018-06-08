@@ -1,0 +1,29 @@
+{
+    "execute": {
+        "use_dask": false,
+        "n_workers": 4,
+        "memory_limit": 4000000000
+    },
+    "component": {
+        "framework": "ARL",
+        "name": "predict_vislist"
+    },
+    "logging": {
+        "filename": "/Users/timcornwell/Code/algorithm-reference-library/test_results/gleam-pipeline.log",
+        "filemode": "a",
+        "format": "%(asctime)s,%(msecs)d %(name)s %(levelname)s %(message)s",
+        "datefmt": "%H:%M:%S",
+        "level": "INFO"
+    },
+    "inputs": {
+        "skymodel": "/Users/timcornwell/Code/algorithm-reference-library/test_results/gleam_skymodel.hdf",
+        "vis_list": "/Users/timcornwell/Code/algorithm-reference-library/test_results/gleam_empty_vislist.hdf"
+    },
+    "outputs": {
+        "vis_list": "/Users/timcornwell/Code/algorithm-reference-library/test_results/gleam_perfect_vislist.hdf"
+    },
+    "imaging": {
+        "context": "wstack",
+        "vis_slices": 11
+    }
+}

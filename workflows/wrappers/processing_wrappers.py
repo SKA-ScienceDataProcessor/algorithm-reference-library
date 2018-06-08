@@ -1,4 +1,6 @@
-""" Wrappers around ARL processing components, using JSON for configuration
+""" Wrappers around ARL processing components, using JSON for configuration.
+
+These can be executed using component_wrapper.py.
 
 """
 
@@ -13,15 +15,21 @@ from data_models.polarisation import PolarisationFrame
 from processing_components.component_support.arlexecute import arlexecute
 from processing_components.image.operations import export_image_to_fits
 from processing_components.imaging.base import create_image_from_visibility
-from processing_components.pipelines.pipeline_components import continuum_imaging_component
+from processing_components.imaging.imaging_components import predict_component
+from processing_components.pipelines.pipeline_components import continuum_imaging_component, ical_component
 from processing_components.util.support_components import simulate_component, corrupt_component
 from processing_components.util.testing_support import create_low_test_image_from_gleam
-from processing_components.imaging.imaging_components import predict_component
+from processing_components.imaging.imaging_components import remove_sumwt
+from processing_components.image.gather_scatter import image_gather_channels
 
 from workflows.wrappers.arl_json.json_helpers import json_to_quantity, json_to_linspace, json_to_skycoord
 
-
 def continuum_imaging_wrapper(conf):
+    """Wrap continuum imaging pipeline
+    
+    :param conf:
+    :return:
+    """
     vis_list = import_blockvisibility_from_hdf5(arl_path(conf["inputs"]["vis_list"]))
     
     cellsize = json_to_quantity(conf["image"]["cellsize"]).to("rad").value
@@ -52,9 +60,9 @@ def continuum_imaging_wrapper(conf):
                                          psf_support=conf["deconvolution"]["psf_support"])
     
     def output_images(result):
-        deconvolved = result[0][0]
-        residual = result[1][0]
-        restored = result[2][0]
+        deconvolved = image_gather_channels(result[0])
+        residual = image_gather_channels(remove_sumwt(result[1]))
+        restored = image_gather_channels(result[2])
 
         export_image_to_fits(deconvolved, conf['outputs']['deconvolved'])
         export_image_to_fits(restored, conf['outputs']['restored'])
@@ -65,7 +73,61 @@ def continuum_imaging_wrapper(conf):
     return arlexecute.execute(output_images)(result)
 
 
+def ical_wrapper(conf):
+    """ Wrap ICAL pipeline
+    
+    :param conf: Configuration from JSON file
+    :return:
+    """
+    vis_list = import_blockvisibility_from_hdf5(arl_path(conf["inputs"]["vis_list"]))
+    
+    cellsize = json_to_quantity(conf["image"]["cellsize"]).to("rad").value
+    npixel = conf["image"]["npixel"]
+    pol_frame = PolarisationFrame(conf["image"]["polarisation_frame"])
+    
+    model_imagelist = [arlexecute.execute(create_image_from_visibility)(v, npixel=npixel, cellsize=cellsize,
+                                                                        polarisation_frame=pol_frame)
+                       for v in vis_list]
+    
+    future_vis_list = arlexecute.scatter(vis_list)
+
+    result = ical_component(vis_list=future_vis_list,
+                            model_imagelist=model_imagelist,
+                            context=conf["imaging"]["context"],
+                            scales=conf["deconvolution"]["scales"],
+                            algorithm=conf["deconvolution"]["algorithm"],
+                            nmoment=conf["deconvolution"]["nmoment"],
+                            niter=conf["deconvolution"]["niter"],
+                            fractional_threshold=conf["deconvolution"]["fractional_threshold"],
+                            threshold=conf["deconvolution"]["threshold"],
+                            nmajor=conf["deconvolution"]["nmajor"],
+                            gain=conf["deconvolution"]["gain"],
+                            deconvolve_facets=conf["deconvolution"]["deconvolve_facets"],
+                            deconvolve_overlap=conf["deconvolution"]["deconvolve_overlap"],
+                            deconvolve_taper=conf["deconvolution"]["deconvolve_taper"],
+                            vis_slices=conf["imaging"]["vis_slices"],
+                            psf_support=conf["deconvolution"]["psf_support"])
+
+    def output_images(result):
+        deconvolved = image_gather_channels(result[0])
+        residual = image_gather_channels(remove_sumwt(result[1]))
+        restored = image_gather_channels(result[2])
+    
+        export_image_to_fits(deconvolved, conf['outputs']['deconvolved'])
+        export_image_to_fits(restored, conf['outputs']['restored'])
+        export_image_to_fits(residual, conf['outputs']['residual'])
+    
+        return result
+    
+    return arlexecute.execute(output_images)(result)
+
+
 def create_vislist_wrapper(conf):
+    """ Create an empty vislist
+    
+    :param conf: Configuration from JSON file
+    :return:
+    """
     configuration = conf['simulate']['configuration']
     rmax = conf['simulate']['rmax']
     phasecentre = json_to_skycoord(conf['simulate']['phasecentre'])
@@ -93,22 +155,10 @@ def create_vislist_wrapper(conf):
     return arlexecute.execute(output_vis_list)(vis_list)
 
 
-def create_model_from_vislist_wrapper(conf):
-    vis_list = import_blockvisibility_from_hdf5(arl_path(conf["inputs"]["vis_list"]))
-    
-    cellsize = json_to_quantity(conf["image"]["cellsize"]["value"]).to("rad")
-    npixel = conf["image"]["npixel"]
-    pol_frame = PolarisationFrame(conf["image"]["polarisation_frame"])
-    
-    return [arlexecute.execute(create_image_from_visibility)(v, npixel=npixel, cellsize=cellsize,
-                                                             polarisation_frame=pol_frame)
-            for v in vis_list]
-
-
 def create_skymodel_wrapper(conf):
     """ Wrapper to create skymodel
     
-    :param conf:
+    :param conf: Configuration from JSON file
     :return:
     """
     
@@ -146,10 +196,10 @@ def create_skymodel_wrapper(conf):
     
     return arlexecute.execute(output_skymodel)(model)
 
-def simulate_wrapper(conf):
-    """Wrapper for simulation i.e. prediction and corruption
+def predict_vislist_wrapper(conf):
+    """Wrapper for prediction
     
-    :param conf:
+    :param conf: Configuration from JSON file
     :return:
     """
     vis_list = import_blockvisibility_from_hdf5(conf['inputs']['vis_list'])
@@ -159,12 +209,25 @@ def simulate_wrapper(conf):
                                           context=conf['imaging']['context'],
                                           vis_slices=conf['imaging']['vis_slices'])
     
+    def output_vislist(v):
+        return export_blockvisibility_to_hdf5(predicted_vislist, conf['outputs']['vis_list'])
+    
+    return arlexecute.execute(output_vislist)(vis_list)
+
+
+def corrupt_vislist_wrapper(conf):
+    """Wrapper for corruption
+
+    :param conf:
+    :return:
+    """
+    vis_list = import_blockvisibility_from_hdf5(conf['inputs']['vis_list'])
     phase_error = json_to_quantity(conf['simulate']['phase_error']).to('rad').value
     
-    corrupted_vislist = corrupt_component(predicted_vislist,
+    corrupted_vislist = corrupt_component(vis_list,
                                           phase_error=phase_error,
                                           amplitude_error=conf['simulate']['amplitude_error'])
-
+    
     def output_vislist(v):
         return export_blockvisibility_to_hdf5(corrupted_vislist, conf['outputs']['vis_list'])
     
