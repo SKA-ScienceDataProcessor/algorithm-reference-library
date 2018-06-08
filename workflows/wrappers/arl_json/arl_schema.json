@@ -329,8 +329,8 @@
             "$ref": "#/definitions/quantity"
         }
     },
-    "simulate": {
-        "description": "Predict and corrupt visibilities",
+    "corrupt_vislist": {
+        "description": "Corrupt visibilities",
         "gaintable": "string",
         "phase_error": {
             "description": "Phase error rms to be added",
@@ -341,6 +341,10 @@
             "type": "number"
         }
 
+    },
+    "applypb_skymodel": {
+        "description": "Apply the primary beam to the sky model",
+        "type": "boolean"
     }
 }
 

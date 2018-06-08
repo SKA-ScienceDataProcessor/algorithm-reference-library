@@ -1,6 +1,6 @@
 {
   "execute": {
-    "use_dask": false,
+    "use_dask": true,
     "n_workers": 4,
     "memory_limit": 4000000000
   },
@@ -59,11 +59,11 @@
     "nmoment": 3,
     "niter": 1000,
     "fractional_threshold": 0.1,
-    "threshold": 0.1,
+    "threshold": 0.001,
     "gain": 0.1,
     "deconvolve_facets": 8,
     "deconvolve_overlap": 16,
     "deconvolve_taper": "tukey",
-    "nmajor": 0
+    "nmajor": 5
   }
 }

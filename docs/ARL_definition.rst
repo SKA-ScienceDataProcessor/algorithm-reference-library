@@ -309,9 +309,46 @@ Support
 .. automodule:: processing_components.util.support_components
    :members:
 
+Workflows
+---------
+
+Wrappers
+++++++++
+
+.. automodule:: workflows.wrappers
+   :members:
+
+ARL JSON schema
++++++++++++++++
+
+.. automodule:: workflows.wrappers.arl_json
+   :members:
+
+.. automodule:: workflows.wrappers.arl_json.json_helpers
+   :members:
+
+
+Component wrapper
++++++++++++++++++
+
+.. automodule:: workflows.wrappers.component_wrapper
+   :members:
+
+Processing component wrapper
+++++++++++++++++++++++++++++
+
+.. automodule:: workflows.wrappers.processing_wrappers
+   :members:
+
+Execution helpers
++++++++++++++++++
+
+.. automodule:: workflows.wrappers.execution_wrappers
+   :members:
+
 
 Unit tests
-**********
+==========
 
 Unit tests written in standard python style are available.
 

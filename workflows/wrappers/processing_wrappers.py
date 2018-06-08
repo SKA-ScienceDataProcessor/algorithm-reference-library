@@ -11,18 +11,18 @@ from data_models.data_model_helpers import import_blockvisibility_from_hdf5, imp
 from data_models.memory_data_models import SkyModel
 from data_models.parameters import arl_path
 from data_models.polarisation import PolarisationFrame
-
 from processing_components.component_support.arlexecute import arlexecute
+from processing_components.image.gather_scatter import image_gather_channels
 from processing_components.image.operations import export_image_to_fits
 from processing_components.imaging.base import create_image_from_visibility
 from processing_components.imaging.imaging_components import predict_component
+from processing_components.imaging.imaging_components import remove_sumwt
 from processing_components.pipelines.pipeline_components import continuum_imaging_component, ical_component
+from processing_components.util.primary_beams import create_pb
 from processing_components.util.support_components import simulate_component, corrupt_component
 from processing_components.util.testing_support import create_low_test_image_from_gleam
-from processing_components.imaging.imaging_components import remove_sumwt
-from processing_components.image.gather_scatter import image_gather_channels
-
 from workflows.wrappers.arl_json.json_helpers import json_to_quantity, json_to_linspace, json_to_skycoord
+
 
 def continuum_imaging_wrapper(conf):
     """Wrap continuum imaging pipeline
@@ -63,7 +63,7 @@ def continuum_imaging_wrapper(conf):
         deconvolved = image_gather_channels(result[0])
         residual = image_gather_channels(remove_sumwt(result[1]))
         restored = image_gather_channels(result[2])
-
+        
         export_image_to_fits(deconvolved, conf['outputs']['deconvolved'])
         export_image_to_fits(restored, conf['outputs']['restored'])
         export_image_to_fits(residual, conf['outputs']['residual'])
@@ -90,7 +90,7 @@ def ical_wrapper(conf):
                        for v in vis_list]
     
     future_vis_list = arlexecute.scatter(vis_list)
-
+    
     result = ical_component(vis_list=future_vis_list,
                             model_imagelist=model_imagelist,
                             context=conf["imaging"]["context"],
@@ -107,16 +107,16 @@ def ical_wrapper(conf):
                             deconvolve_taper=conf["deconvolution"]["deconvolve_taper"],
                             vis_slices=conf["imaging"]["vis_slices"],
                             psf_support=conf["deconvolution"]["psf_support"])
-
+    
     def output_images(result):
         deconvolved = image_gather_channels(result[0])
         residual = image_gather_channels(remove_sumwt(result[1]))
         restored = image_gather_channels(result[2])
-    
+        
         export_image_to_fits(deconvolved, conf['outputs']['deconvolved'])
         export_image_to_fits(restored, conf['outputs']['restored'])
         export_image_to_fits(residual, conf['outputs']['residual'])
-    
+        
         return result
     
     return arlexecute.execute(output_images)(result)
@@ -196,23 +196,36 @@ def create_skymodel_wrapper(conf):
     
     return arlexecute.execute(output_skymodel)(model)
 
+
 def predict_vislist_wrapper(conf):
     """Wrapper for prediction
-    
+
     :param conf: Configuration from JSON file
     :return:
     """
     vis_list = import_blockvisibility_from_hdf5(conf['inputs']['vis_list'])
     skymodel = import_skymodel_from_hdf5(conf['inputs']['skymodel'])
-
-    predicted_vislist = predict_component(vis_list, skymodel.images,
-                                          context=conf['imaging']['context'],
-                                          vis_slices=conf['imaging']['vis_slices'])
+    
+    if conf['applypb_skymodel']:
+        def apply_pb(vt, model):
+            telescope = vt.configuration.name
+            pb = create_pb(model, telescope)
+            model.data *= pb.data
+            return model
+        
+        image_list = [arlexecute.execute(apply_pb, nout=1)(v, skymodel.images[0]) for v in vis_list]
+    else:
+        image_list = [skymodel.images[0] for v in vis_list]
+    
+    future_vis_list = arlexecute.scatter(vis_list)
+    predicted_vis_list = predict_component(future_vis_list, image_list,
+                                           context=conf['imaging']['context'],
+                                           vis_slices=conf['imaging']['vis_slices'])
     
     def output_vislist(v):
-        return export_blockvisibility_to_hdf5(predicted_vislist, conf['outputs']['vis_list'])
+        return export_blockvisibility_to_hdf5(v, conf['outputs']['vis_list'])
     
-    return arlexecute.execute(output_vislist)(vis_list)
+    return arlexecute.execute(output_vislist)(predicted_vis_list)
 
 
 def corrupt_vislist_wrapper(conf):
@@ -222,13 +235,13 @@ def corrupt_vislist_wrapper(conf):
     :return:
     """
     vis_list = import_blockvisibility_from_hdf5(conf['inputs']['vis_list'])
-    phase_error = json_to_quantity(conf['simulate']['phase_error']).to('rad').value
+    phase_error = json_to_quantity(conf['corrupt_vislist']['phase_error']).to('rad').value
     
     corrupted_vislist = corrupt_component(vis_list,
                                           phase_error=phase_error,
-                                          amplitude_error=conf['simulate']['amplitude_error'])
+                                          amplitude_error=conf['corrupt_vislist']['amplitude_error'])
     
     def output_vislist(v):
-        return export_blockvisibility_to_hdf5(corrupted_vislist, conf['outputs']['vis_list'])
+        return export_blockvisibility_to_hdf5(v, conf['outputs']['vis_list'])
     
-    return arlexecute.execute(output_vislist)(vis_list)
+    return arlexecute.execute(output_vislist)(corrupted_vislist)

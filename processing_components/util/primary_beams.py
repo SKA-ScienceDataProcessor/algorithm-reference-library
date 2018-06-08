@@ -12,6 +12,7 @@ from astropy.wcs import FITSFixedWarning
 from astropy.wcs.utils import skycoord_to_pixel
 
 from processing_components.image.operations import create_empty_image_like
+from processing_components.util.testing_support import create_low_test_beam
 
 log = logging.getLogger(__name__)
 
@@ -32,11 +33,13 @@ def create_pb(model, telescope='MID', pointingcentre=None):
     :param telescope: 'VLA' or 'ASKAP'
     :return: Primary beam image
     """
-    if telescope == 'MID':
+    if telescope[0:3] == 'MID':
         return create_pb_generic(model, pointingcentre=pointingcentre, diameter=15.0, blockage=0.0)
-    elif telescope == 'VLA':
+    elif telescope[0:3] == 'LOW':
+            return create_low_test_beam(model)
+    elif telescope[0:3] == 'VLA':
         return create_pb_generic(model, pointingcentre=pointingcentre, diameter=25.0, blockage=1.8)
-    elif telescope == 'ASKAP':
+    elif telescope[0:3] == 'ASKAP':
         return create_pb_generic(model, pointingcentre=pointingcentre, diameter=12.0, blockage=1.0)
     else:
         raise NotImplementedError('Telescope %s has no primary beam model' % telescope)

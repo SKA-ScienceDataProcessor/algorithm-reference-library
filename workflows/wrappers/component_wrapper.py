@@ -34,7 +34,8 @@ if __name__ == '__main__':
     arl_component = config["component"]["name"]
     
     wrapper = arl_component+"_wrapper"
-    assert wrapper in locals().keys(), 'Component %s is not wrapped' % arl_component
+    assert wrapper in locals().keys(), 'ARL component %s is not wrapped' % arl_component
+    
     log.info('component_wrapper: executing ARL component %s' % arl_component)
     print('component_wrapper: executing ARL component %s' % arl_component)
 

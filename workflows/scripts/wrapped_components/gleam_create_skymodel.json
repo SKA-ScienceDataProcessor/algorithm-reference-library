@@ -51,7 +51,7 @@
         },
         "catalog": "gleam",
         "radius": {
-            "value": 0.5,
+            "value": 1.0,
             "unit": "rad"
         }
     }

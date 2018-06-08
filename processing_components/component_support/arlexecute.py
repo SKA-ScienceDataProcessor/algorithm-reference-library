@@ -82,8 +82,8 @@ class ARLExecuteBase():
                 future = self.client.compute(value, sync=sync)
                 wait(future)
                 duration = time.time() - start
-                log.debug("arlexecute.compute: Synchronous execution using Dask took %.3f seconds" % duration)
-                print("arlexecute.compute: Synchronous execution took %.3f seconds" % duration)
+                log.debug("arlexecute.compute: Execution using Dask took %.3f seconds" % duration)
+                print("arlexecute.compute: Execution using Dask took %.3f seconds" % duration)
             return future
         else:
             return value
@@ -133,7 +133,10 @@ class ARLExecuteBase():
     
     def close(self):
         if self._using_dask and isinstance(self._client, Client):
+            print('arlexcute.close: closing down Dask Client')
             self._client.close()
+        else:
+            print("arlexecute.close: no Client to close")
 
 
 arlexecute = ARLExecuteBase(use_dask=True)

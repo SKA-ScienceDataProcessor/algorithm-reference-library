@@ -21,7 +21,7 @@
     "outputs": {
         "vis_list": "/Users/timcornwell/Code/algorithm-reference-library/test_results/gleam_perfect_vislist.hdf"
     },
-   "corrupt": {
+   "corrupt_vislist": {
        "phase_error": {"value":0.1, "unit":"rad"},
        "amplitude_error": 0.0,
        "gaintable": ""
