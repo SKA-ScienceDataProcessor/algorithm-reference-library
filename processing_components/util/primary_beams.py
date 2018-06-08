@@ -39,7 +39,7 @@ def create_pb(model, telescope='MID', pointingcentre=None):
             return create_low_test_beam(model)
     elif telescope[0:3] == 'VLA':
         return create_pb_generic(model, pointingcentre=pointingcentre, diameter=25.0, blockage=1.8)
-    elif telescope[0:3] == 'ASKAP':
+    elif telescope[0:5] == 'ASKAP':
         return create_pb_generic(model, pointingcentre=pointingcentre, diameter=12.0, blockage=1.0)
     else:
         raise NotImplementedError('Telescope %s has no primary beam model' % telescope)
