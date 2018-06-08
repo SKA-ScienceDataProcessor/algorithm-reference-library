@@ -1,0 +1,34 @@
+{
+    "execute": {
+        "use_dask": true,
+        "n_workers": 4,
+        "memory_limit": 4000000000
+    },
+    "component": {
+        "framework": "ARL",
+        "name": "simulate"
+    },
+    "logging": {
+        "filename": "/Users/timcornwell/Code/algorithm-reference-library/test_results/gleam-pipeline.log",
+        "filemode": "w",
+        "format": "%(asctime)s,%(msecs)d %(name)s %(levelname)s %(message)s",
+        "datefmt": "%H:%M:%S",
+        "level": "INFO"
+    },
+    "inputs": {
+        "skymodel": "/Users/timcornwell/Code/algorithm-reference-library/test_results/gleam_skymodel.hdf",
+        "vis_list": "/Users/timcornwell/Code/algorithm-reference-library/test_results/gleam_simulation_vislist.hdf"
+    },
+    "outputs": {
+        "vis_list": "/Users/timcornwell/Code/algorithm-reference-library/test_results/gleam_corrupted_vislist.hdf"
+    },
+    "imaging": {
+        "context": "wstack",
+        "vis_slices": 11
+    },
+   "simulate": {
+       "phase_error": {"value":0.1, "unit":"rad"},
+       "amplitude_error": 0.0,
+       "gaintable": ""
+    }
+}
