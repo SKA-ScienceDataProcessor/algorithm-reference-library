@@ -47,7 +47,7 @@ class TestPrimaryBeams(unittest.TestCase):
 
     def test_create_primary_beams(self):
         self.createVis(config='LOWBD2', rmax=1000.0)
-        for telescope in ['VLA', 'ASKAP', 'MID']:
+        for telescope in ['VLA', 'ASKAP', 'MID', 'LOW']:
             model = create_image_from_visibility(self.vis, cellsize=0.001, override_cellsize=False)
             beam=create_pb(model, telescope=telescope)
             assert numpy.max(beam.data) > 0.0

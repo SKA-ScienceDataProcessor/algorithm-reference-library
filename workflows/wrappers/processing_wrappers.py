@@ -9,7 +9,7 @@ import numpy
 from data_models.data_model_helpers import export_blockvisibility_to_hdf5, export_skymodel_to_hdf5
 from data_models.data_model_helpers import import_blockvisibility_from_hdf5, import_skymodel_from_hdf5
 from data_models.memory_data_models import SkyModel
-from data_models.parameters import arl_path
+
 from data_models.polarisation import PolarisationFrame
 from processing_components.component_support.arlexecute import arlexecute
 from processing_components.image.gather_scatter import image_gather_channels
@@ -30,7 +30,7 @@ def continuum_imaging_wrapper(conf):
     :param conf:
     :return:
     """
-    vis_list = import_blockvisibility_from_hdf5(arl_path(conf["inputs"]["vis_list"]))
+    vis_list = import_blockvisibility_from_hdf5(conf["inputs"]["vis_list"])
     
     cellsize = json_to_quantity(conf["image"]["cellsize"]).to("rad").value
     npixel = conf["image"]["npixel"]
@@ -79,7 +79,7 @@ def ical_wrapper(conf):
     :param conf: Configuration from JSON file
     :return:
     """
-    vis_list = import_blockvisibility_from_hdf5(arl_path(conf["inputs"]["vis_list"]))
+    vis_list = import_blockvisibility_from_hdf5(conf["inputs"]["vis_list"])
     
     cellsize = json_to_quantity(conf["image"]["cellsize"]).to("rad").value
     npixel = conf["image"]["npixel"]
@@ -128,16 +128,16 @@ def create_vislist_wrapper(conf):
     :param conf: Configuration from JSON file
     :return:
     """
-    configuration = conf['simulate']['configuration']
-    rmax = conf['simulate']['rmax']
-    phasecentre = json_to_skycoord(conf['simulate']['phasecentre'])
-    frequency = json_to_linspace(conf['simulate']['frequency'])
-    if conf['simulate']['frequency']['steps'] > 1:
-        channel_bandwidth = numpy.array(conf['simulate']['frequency']['steps'] * [frequency[1] - frequency[0]])
+    configuration = conf['create_vislist']['configuration']
+    rmax = conf['create_vislist']['rmax']
+    phasecentre = json_to_skycoord(conf['create_vislist']['phasecentre'])
+    frequency = json_to_linspace(conf['create_vislist']['frequency'])
+    if conf['create_vislist']['frequency']['steps'] > 1:
+        channel_bandwidth = numpy.array(conf['create_vislist']['frequency']['steps'] * [frequency[1] - frequency[0]])
     else:
-        channel_bandwidth = numpy.array(conf['simulate']['frequency']['start'])
+        channel_bandwidth = numpy.array(conf['create_vislist']['frequency']['start'])
     
-    times = json_to_linspace(conf['simulate']['times'])
+    times = json_to_linspace(conf['create_vislist']['times'])
     
     vis_list = simulate_component(configuration,
                                   rmax=rmax,
@@ -191,7 +191,7 @@ def create_skymodel_wrapper(conf):
     
     def output_skymodel(m):
         skymodel = SkyModel(images=m)
-        export_skymodel_to_hdf5(skymodel, arl_path(conf["outputs"]["skymodel"]))
+        export_skymodel_to_hdf5(skymodel, conf["outputs"]["skymodel"])
         return True
     
     return arlexecute.execute(output_skymodel)(model)
@@ -213,7 +213,7 @@ def predict_vislist_wrapper(conf):
             model.data *= pb.data
             return model
         
-        image_list = [arlexecute.execute(apply_pb, nout=1)(v, skymodel.images[0]) for v in vis_list]
+        image_list = [arlexecute.execute(apply_pb, nout=1)(v, skymodel.images[i]) for i, v in enumerate(vis_list)]
     else:
         image_list = [skymodel.images[0] for v in vis_list]
     

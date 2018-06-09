@@ -9,14 +9,14 @@
         "name": "create_skymodel"
     },
     "logging": {
-        "filename": "/Users/timcornwell/Code/algorithm-reference-library/test_results/gleam-pipeline.log",
+        "filename": "../../../test_results/gleam-pipeline.log",
         "filemode": "a",
         "format": "%(asctime)s,%(msecs)d %(name)s %(levelname)s %(message)s",
         "datefmt": "%H:%M:%S",
         "level": "INFO"
     },
     "outputs": {
-        "skymodel": "/Users/timcornwell/Code/algorithm-reference-library/test_results/gleam_skymodel.hdf"
+        "skymodel": "../../../test_results/gleam_skymodel.hdf"
     },
     "image": {
         "npixel": 1024,

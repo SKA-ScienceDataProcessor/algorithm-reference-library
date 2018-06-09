@@ -9,17 +9,17 @@
         "name": "corrupt_vislist"
     },
     "logging": {
-        "filename": "/Users/timcornwell/Code/algorithm-reference-library/test_results/gleam-pipeline.log",
+        "filename": "../../../test_results/gleam-pipeline.log",
         "filemode": "a",
         "format": "%(asctime)s,%(msecs)d %(name)s %(levelname)s %(message)s",
         "datefmt": "%H:%M:%S",
         "level": "INFO"
     },
     "inputs": {
-        "vis_list": "/Users/timcornwell/Code/algorithm-reference-library/test_results/gleam_empty_vislist.hdf"
+        "vis_list": "../../../test_results/gleam_empty_vislist.hdf"
     },
     "outputs": {
-        "vis_list": "/Users/timcornwell/Code/algorithm-reference-library/test_results/gleam_perfect_vislist.hdf"
+        "vis_list": "../../../test_results/gleam_perfect_vislist.hdf"
     },
    "corrupt_vislist": {
        "phase_error": {"value":0.1, "unit":"rad"},

@@ -44,7 +44,11 @@ def json_to_quantity(q):
     :param q:
     :return:
     """
-    return Quantity(q["value"], Unit(q["unit"]))
+    value = float(q["value"])
+    unit = q["unit"]
+    assert isinstance(unit, str), "unit must be string"
+    unit = Unit(q["unit"])
+    return Quantity(value, unit)
 
 def json_to_linspace(l):
     """Convert JSON string to numpy.linspace
@@ -60,4 +64,6 @@ def json_to_linspace(l):
     :param l:
     :return:
     """
-    return numpy.linspace(l["start"], l["stop"], l["steps"])
+    nsteps = int(l["steps"])
+    assert nsteps >= 0, "Number of steps cannot be less than zero %s" % str(l)
+    return numpy.linspace(l["start"], l["stop"], nsteps)

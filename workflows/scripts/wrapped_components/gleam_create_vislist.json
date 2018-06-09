@@ -9,7 +9,7 @@
         "name": "create_vislist"
     },
     "logging": {
-        "filename": "/Users/timcornwell/Code/algorithm-reference-library/test_results/gleam-pipeline.log",
+        "filename": "../../../test_results/gleam-pipeline.log",
         "filemode": "a",
         "format": "%(asctime)s,%(msecs)d %(name)s %(levelname)s %(message)s",
         "datefmt": "%H:%M:%S",
@@ -18,9 +18,9 @@
     "inputs": {
     },
     "outputs": {
-        "vis_list": "/Users/timcornwell/Code/algorithm-reference-library/test_results/gleam_empty_vislist.hdf"
+        "vis_list": "../../../test_results/gleam_empty_vislist.hdf"
     },
-   "simulate": {
+   "create_vislist": {
         "configuration": "LOWBD2",
         "rmax": 300.0,
         "frequency": {
