@@ -9,7 +9,7 @@ import numpy
 
 from data_models.polarisation import PolarisationFrame
 
-from libs.image.operations import create_image_from_array, checkwcs, create_w_term_like, \
+from libs.image.operations import create_image, create_image_from_array, checkwcs, create_w_term_like, \
     polarisation_frame_from_wcs,fft_image, pad_image, convert_image_to_kernel
 
 from processing_components.image.operations import copy_image, create_empty_image_like, export_image_to_fits, \
@@ -30,6 +30,12 @@ class TestImage(unittest.TestCase):
 
         self.m31image = create_test_image(cellsize=0.0001)
         self.cellsize = 180.0 * 0.0001 / numpy.pi
+
+    def test_create_image_(self):
+        newimage = create_image(npixel=1024, cellsize=0.001, polarisation_frame=PolarisationFrame("stokesIQUV"),
+                                         frequency=numpy.linspace(0.8e9,1.2e9,5),
+                                         channel_bandwidth=1e7*numpy.ones([5]))
+        assert newimage.shape == (5, 4, 1024, 1024)
 
     def test_create_image_from_array(self):
         m31model_by_array = create_image_from_array(self.m31image.data, self.m31image.wcs, self.m31image.polarisation_frame)
