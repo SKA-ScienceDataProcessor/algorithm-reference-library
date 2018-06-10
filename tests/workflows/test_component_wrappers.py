@@ -26,13 +26,13 @@ class TestComponentWrappers(unittest.TestCase):
         except FileNotFoundError:
             pass
         
-        config_files = ["test_create_vislist.json",
-                        "test_create_skymodel.json",
-                        "test_predict_vislist.json",
-                        "test_continuum_imaging.json"]
+        config_files = ["tests/workflows/test_create_vislist.json",
+                        "tests/workflows/test_create_skymodel.json",
+                        "tests/workflows/test_predict_vislist.json",
+                        "tests/workflows/test_continuum_imaging.json"]
         
         for config_file in config_files:
-            component_wrapper(config_file)
+            component_wrapper(arl_path(config_file))
         
         for f in files:
             assert os.path.isfile(arl_path(f)), "File %s does not exist" % arl_path(f)
