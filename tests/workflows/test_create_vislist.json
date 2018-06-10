@@ -9,16 +9,23 @@
         "name": "create_vislist"
     },
     "logging": {
-        "filename": "../../../test_results/gleam-pipeline.log",
+        "filename": "test_pipeline.log",
         "filemode": "a",
         "format": "%(asctime)s,%(msecs)d %(name)s %(levelname)s %(message)s",
         "datefmt": "%H:%M:%S",
         "level": "INFO"
     },
+    "buffer": {
+        "directory": "../../test_results/"
+    },
+
     "inputs": {
     },
     "outputs": {
-        "vis_list": "../../../test_results/gleam_empty_vislist.hdf"
+        "vis_list": {
+            "name": "test_empty_vislist.hdf",
+            "data_model": "BlockVisibility"
+        }
     },
    "create_vislist": {
         "configuration": "LOWBD2",

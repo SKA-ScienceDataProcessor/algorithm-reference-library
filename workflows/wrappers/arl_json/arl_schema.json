@@ -121,50 +121,76 @@
             "required": [
                 "type"
             ]
+        },
+        "buffer_model": {
+            "description": "Data model in buffer",
+            "type": "object",
+            "properties": {
+                "name": {
+                    "type": "string"
+                },
+                "data_model": {
+                    "enum": [
+                        "BlockVisibility",
+                        "Image",
+                        "SkyModel",
+                        "GainTable"
+                    ]
+                }
+            }
+        }
+    },
+    "buffer": {
+        "description": "Data model buffer definition",
+        "type": "object",
+        "properties": {
+            "directory": "string"
         }
     },
     "inputs": {
         "description": "Definition of possible inputs",
         "vislist": {
             "description": "Input list of visibilities",
-            "type": "string",
-            "format": "hdf"
+            "$ref": "#/definitions/buffer_model"
         },
         "image": {
             "description:": "Image",
-            "type": "string",
-            "format": "hdf"
+            "$ref": "#/definitions/buffer_model"
         },
         "skymodel": {
             "description:": "Sky model (images plus components)",
-            "type": "string",
-            "format": "hdf"
+            "$ref": "#/definitions/buffer_model"
         }
     },
     "outputs": {
         "description": "Definition of possible outputs",
         "vislist": {
             "description": "Output list of visibilities",
-            "type": "string",
-            "format": "hdf"
+            "$ref": "#/definitions/buffer_model"
         },
         "image": {
             "description:": "Image",
-            "type": "string",
-            "format": "hdf"
+            "$ref": "#/definitions/buffer_model"
         },
         "skymodel": {
             "description:": "Sky model (images plus components)",
             "type": "string",
+            "data_model": "skymodel",
             "format": "hdf"
+        },
+        "gaintable": {
+            "$ref": "#/definitions/buffer_model"
         }
     },
     "imaging": {
         "description": "Parameters controlling the imaging steps",
         "context": {
             "description": "Imaging context e.g. wstack, facets",
-            "type": "string",
-            "pattern": "^[a-z]*$",
+            "enum:": [
+                "2d",
+                "wstack",
+                "facets"
+            ],
             "default": "2d"
         },
         "vis_slices": {
@@ -186,16 +212,7 @@
         },
         "cellsize": {
             "description": "Cellsize e.g. 0.001rad, 1arcsec",
-            "type": "object",
-            "properties": {
-                "value": {
-                    "type": "number",
-                    "minimum": 0.0
-                },
-                "unit": {
-                    "type": "string"
-                }
-            }
+            "$ref": "#/definitions/quantity"
         },
         "npixel": {
             "description": "Number of pizels on each axis",
@@ -279,7 +296,7 @@
         "description": "Create observations",
         "configuration": {
             "type": "string",
-            "description": "Configuration name"
+            "description": "Configuration name e.g. LOWBD2, MIDBD2, LOFAR, ASKAP, VLAA"
         },
         "rmax": {
             "description": "Maximum baseline (m)",
@@ -321,17 +338,33 @@
             "description": "Catalog to use",
             "enum": [
                 "gleam",
-                "s3"
+                "empty"
             ]
         },
         "radius": {
             "description": "Radius of sources to include",
             "$ref": "#/definitions/quantity"
+        },
+        "components": {
+            "descriptions": "Parameters for component generation",
+            "use": {"type": "boolean"},
+            "kind": {
+                "enum": ["linear", "cubic"]
+            }
+        },
+        "fill_image": {
+            "description": "Fill the components into the image",
+            "type": "boolean",
+            "default": false
         }
     },
     "corrupt_vislist": {
         "description": "Corrupt visibilities",
         "gaintable": "string",
+        "visibility_noise": {
+            "description": "Visibility noise",
+            "$ref": "#/definitions/quantity"
+        },
         "phase_error": {
             "description": "Phase error rms to be added",
             "$ref": "#/definitions/quantity"
@@ -340,11 +373,17 @@
             "description": "Amplitude error rms to be added",
             "type": "number"
         }
-
     },
-    "applypb_skymodel": {
-        "description": "Apply the primary beam to the sky model",
-        "type": "boolean"
+    "primary_beam": {
+        "apply": {
+            "description": "Apply the primary beam to the sky model",
+            "type": "boolean"
+        },
+        "flux_limit": {
+            "description": "Ignore any component less than this flux",
+            "#ref": "#/definitions/quantity"
+
+        }
     }
 }
 

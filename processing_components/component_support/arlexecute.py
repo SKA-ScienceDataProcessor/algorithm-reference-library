@@ -135,8 +135,6 @@ class ARLExecuteBase():
         if self._using_dask and isinstance(self._client, Client):
             print('arlexcute.close: closing down Dask Client')
             self._client.close()
-        else:
-            print("arlexecute.close: no Client to close")
 
 
 arlexecute = ARLExecuteBase(use_dask=True)

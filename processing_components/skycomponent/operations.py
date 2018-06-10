@@ -8,22 +8,18 @@ from typing import Union, List
 
 import astropy.units as u
 import numpy
-
-from scipy import interpolate
-
 from astropy.convolution import Gaussian2DKernel
 from astropy.coordinates import SkyCoord
 from astropy.coordinates import match_coordinates_sky
 from astropy.stats import gaussian_fwhm_to_sigma
-from astropy.wcs import WCS
 from astropy.wcs.utils import pixel_to_skycoord
 from astropy.wcs.utils import skycoord_to_pixel
 from photutils import segmentation
+from scipy import interpolate
 
 from data_models.memory_data_models import Image, Skycomponent, assert_same_chan_pol
 from data_models.polarisation import PolarisationFrame
 from libs.util.array_functions import insert_function_sinc, insert_function_L, insert_function_pswf, insert_array
-from libs.image.operations import create_image_from_array
 
 log = logging.getLogger(__name__)
 
@@ -342,7 +338,7 @@ def insert_skycomponent(im: Image, sc: Union[Skycomponent, List[Skycomponent]], 
         sc = [sc]
     
     log.debug("insert_skycomponent: Using insert method %s" % insert_method)
-
+    
     image_frequency = im.frequency
     
     for comp in sc:
@@ -351,16 +347,16 @@ def insert_skycomponent(im: Image, sc: Union[Skycomponent, List[Skycomponent]], 
         
         assert_same_chan_pol(im, comp)
         pixloc = skycoord_to_pixel(comp.direction, im.wcs, origin=0, mode='wcs')
-
+        
         flux = numpy.zeros([nchan, npol])
- 
-        if nchan > 1:
+        
+        if comp.flux.shape[0] > 1:
             for pol in range(npol):
                 fint = interpolate.interp1d(comp.frequency, comp.flux[:, pol], kind="cubic")
                 flux[:, pol] = fint(image_frequency)
         else:
             flux = comp.flux
-
+        
         if insert_method == "Lanczos":
             insert_array(im.data, pixloc[0], pixloc[1], flux, bandwidth, support,
                          insert_function=insert_function_L)
@@ -374,6 +370,6 @@ def insert_skycomponent(im: Image, sc: Union[Skycomponent, List[Skycomponent]], 
             insert_method = 'Nearest'
             y, x = numpy.round(pixloc[1]).astype('int'), numpy.round(pixloc[0]).astype('int')
             if x >= 0 and x < nx and y >= 0 and y < ny:
-                im.data[:, :, y, x] += flux
+                im.data[:, :, y, x] += flux[...]
     
     return im
