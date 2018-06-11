@@ -1,15 +1,15 @@
-"""Wrappers enable running ARL components from another environment such as bash.
+"""Interfaces enable running ARL components from another environment such as bash.
 
 A bash script example for a continuum imaging pipeline is::
 
     #!/usr/bin/env bash
     cd $ARL/workflows/scripts/wrapped_components
-    python $ARL/workflows/wrappers/component_wrapper.py --config gleam_create_vislist.json
-    python $ARL/workflows/wrappers/component_wrapper.py --config gleam_create_skymodel.json
-    python $ARL/workflows/wrappers/component_wrapper.py --config gleam_predict_vislist.json
-    python $ARL/workflows/wrappers/component_wrapper.py --config gleam_continuum_imaging.json
+    python $ARL/workflows/external_interface/processing_component_interface.py --config gleam_create_vislist.json
+    python $ARL/workflows/external_interface/processing_component_interface.py --config gleam_create_skymodel.json
+    python $ARL/workflows/external_interface/processing_component_interface.py --config gleam_predict_vislist.json
+    python $ARL/workflows/external_interface/processing_component_interface.py --config gleam_continuum_imaging.json
 
-To be available in this way, a component must be wrapped appropriately and placed in processing_wrappers.py. For
+To be available in this way, a component must be wrapped appropriately and placed in processing_component_wrappers.py. For
 example, here is a simple wrapper::
 
     def corrupt_vislist_wrapper(conf):
@@ -111,7 +111,7 @@ file is::
             "apply": true,
             "flux_limit" : {"value": 0.01, "unit":"Jy"}
         }
-}
+    }
 
 The parameters for the component are passed via a JSON file, either via python::
     

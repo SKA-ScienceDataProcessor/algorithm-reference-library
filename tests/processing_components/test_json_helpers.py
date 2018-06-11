@@ -6,8 +6,8 @@ import logging
 import unittest
 
 from data_models.parameters import arl_path
-from workflows.wrappers.arl_json.json_helpers import json_to_linspace, json_to_quantity, json_to_skycoord
-from workflows.wrappers.execution_wrappers import initialise_config_wrapper
+from external_interface.arl_json.json_helpers import json_to_linspace, json_to_quantity, json_to_skycoord
+from external_interface.execution_helper import initialise_config_wrapper
 
 log = logging.getLogger(__name__)
 

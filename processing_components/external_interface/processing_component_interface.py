@@ -1,12 +1,15 @@
-""" Script to execute wrapped components
+""" This is the processing wrapper interface into the ARL, allowing accessing to wrapped components.
 
 """
 
 import logging
 
-from workflows.wrappers.processing_wrappers import *
 from processing_components.component_support.arlexecute import arlexecute
-from workflows.wrappers.execution_wrappers import initialise_config_wrapper, initialise_execution_wrapper
+from processing_components.external_interface.execution_helper import initialise_config_wrapper, initialise_execution_wrapper
+
+# Add new wrapped components here. These are accessed using globals()
+from processing_components.external_interface.processing_component_wrappers import create_vislist_wrapper, \
+    create_skymodel_wrapper, predict_vislist_wrapper, corrupt_vislist_wrapper, continuum_imaging_component
 
 def component_wrapper(config_file):
     """Run an ARL component as described in a JSON file

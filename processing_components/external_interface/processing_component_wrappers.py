@@ -1,6 +1,6 @@
 """ Wrappers around ARL processing components, using JSON for configuration.
 
-These can be executed using component_wrapper.py.
+These can be executed using processing_component_interface.py.
 
 """
 
@@ -23,7 +23,8 @@ from processing_components.util.support_components import simulate_component, co
 from processing_components.util.testing_support import create_low_test_skycomponents_from_gleam
 
 from processing_components.skycomponent.operations import insert_skycomponent
-from workflows.wrappers.arl_json.json_helpers import json_to_quantity, json_to_linspace, json_to_skycoord
+from processing_components.external_interface.arl_json.json_helpers import json_to_quantity, json_to_linspace, json_to_skycoord
+
 from data_models.data_model_helpers import memory_data_model_to_buffer, buffer_data_model_to_memory
 
 
