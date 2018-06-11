@@ -87,7 +87,7 @@ def create_pb_generic(model, pointingcentre=None, diameter=25.0, blockage=1.8):
         with warnings.catch_warnings():
             warnings.simplefilter('ignore', FITSFixedWarning)
             frequency = model.wcs.sub(['spectral']).wcs_pix2world([chan], 0)[0]
-        wavelength = const.c.to('m/s').value / frequency
+        wavelength = const.c.to('m s^-1').value / frequency
         
         d2r = numpy.pi / 180.0
         scale = d2r * numpy.abs(beam.wcs.sub(2).wcs.cdelt[0])
