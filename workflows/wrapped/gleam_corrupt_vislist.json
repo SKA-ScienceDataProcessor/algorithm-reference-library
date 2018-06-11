@@ -19,10 +19,10 @@
         "directory": "./"
     },
     "inputs": {
-        "vis_list": "test_empty_vislist.hdf"
+        "vis_list": "gleam_empty_vislist.hdf"
     },
     "outputs": {
-        "vis_list": "test_perfect_vislist.hdf"
+        "vis_list": "gleam_perfect_vislist.hdf"
     },
    "corrupt_vislist": {
        "phase_error": {"value":0.1, "unit":"rad"},

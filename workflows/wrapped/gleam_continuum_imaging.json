@@ -20,22 +20,22 @@
     },
     "inputs": {
         "vis_list": {
-            "name": "test_perfect_vislist.hdf",
+            "name": "gleam_perfect_vislist.hdf",
             "data_model": "BlockVisibility"
         }
     },
     "outputs": {
         "restored": {
             "data_model": "Image",
-            "name": "test_perfect_restored.fits"
+            "name": "gleam_perfect_restored.fits"
         },
         "residual": {
             "data_model": "Image",
-            "name": "test_perfect_residual.fits"
+            "name": "gleam_perfect_residual.fits"
         },
         "deconvolved": {
             "data_model": "Image",
-            "name": "test_perfect_deconvolved.fits"
+            "name": "gleam_perfect_deconvolved.fits"
         }
     },
     "imaging": {
@@ -79,6 +79,6 @@
         "deconvolve_facets": 8,
         "deconvolve_overlap": 16,
         "deconvolve_taper": "tukey",
-        "nmajor": 1
+        "nmajor": 5
     }
 }

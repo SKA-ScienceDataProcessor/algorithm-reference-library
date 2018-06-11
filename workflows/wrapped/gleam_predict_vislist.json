@@ -21,17 +21,17 @@
 
     "inputs": {
         "skymodel": {
-            "name":"test_skymodel.hdf",
+            "name":"gleam_skymodel.hdf",
             "data_model": "SkyModel"
         },
         "vis_list": {
-            "name": "test_empty_vislist.hdf",
+            "name": "gleam_empty_vislist.hdf",
             "data_model": "BlockVisibility"
         }
     },
     "outputs": {
         "vis_list": {
-            "name": "test_perfect_vislist.hdf",
+            "name": "gleam_perfect_vislist.hdf",
             "data_model": "BlockVisibility"
         }
     },

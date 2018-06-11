@@ -6,15 +6,16 @@ import logging
 import unittest
 
 from data_models.parameters import arl_path
-from external_interface.arl_json.json_helpers import json_to_linspace, json_to_quantity, json_to_skycoord
-from external_interface.execution_helper import initialise_config_wrapper
+from processing_components.external_interface.arl_json.json_helpers import json_to_linspace, \
+    json_to_quantity, json_to_skycoord
+from processing_components.external_interface.execution_helper import initialise_config_wrapper
 
 log = logging.getLogger(__name__)
 
 
 class TestJSONHelpers(unittest.TestCase):
     def setUp(self):
-        self.config = initialise_config_wrapper(arl_path("tests/workflows/test_json_helpers.json"))
+        self.config = initialise_config_wrapper(arl_path("tests/processing_components/test_json_helpers.json"))
     
     def test_json_linspace(self):
         f = {"start": 0.9e8, "stop": 1.1e8, "steps": 7}

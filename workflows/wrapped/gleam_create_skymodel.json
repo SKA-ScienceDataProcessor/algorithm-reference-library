@@ -20,7 +20,7 @@
     },
     "outputs": {
         "skymodel": {
-            "name": "test_skymodel.hdf",
+            "name": "gleam_skymodel.hdf",
             "data_model": "SkyModel"
         }
     },

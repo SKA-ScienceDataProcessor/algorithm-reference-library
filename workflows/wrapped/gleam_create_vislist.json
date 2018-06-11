@@ -23,7 +23,7 @@
     },
     "outputs": {
         "vis_list": {
-            "name": "test_empty_vislist.hdf",
+            "name": "gleam_empty_vislist.hdf",
             "data_model": "BlockVisibility"
         }
     },
