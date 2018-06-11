@@ -1,13 +1,15 @@
-"""Interfaces enable running ARL components from another environment such as bash.
+"""The python script processing_component_interface enables enable running ARL components from another environment
+such as bash.
 
 A bash script example for a continuum imaging pipeline is::
 
     #!/usr/bin/env bash
-    cd $ARL/workflows/scripts/wrapped_components
-    python $ARL/workflows/external_interface/processing_component_interface.py --config gleam_create_vislist.json
-    python $ARL/workflows/external_interface/processing_component_interface.py --config gleam_create_skymodel.json
-    python $ARL/workflows/external_interface/processing_component_interface.py --config gleam_predict_vislist.json
-    python $ARL/workflows/external_interface/processing_component_interface.py --config gleam_continuum_imaging.json
+    cd ${ARL}/workflows/wrapped
+    comp_location=${ARL}/processing_components/external_interface
+    python ${comp_location}/processing_component_interface.py --config gleam_create_vislist.json
+    python ${comp_location}/processing_component_interface.py --config gleam_create_skymodel.json
+    python ${comp_location}/processing_component_interface.py --config gleam_predict_vislist.json
+    python ${comp_location}/processing_component_interface.py --config gleam_continuum_imaging.json
 
 To be available in this way, a component must be wrapped appropriately and placed in processing_component_wrappers.py. For
 example, here is a simple wrapper::
@@ -121,6 +123,6 @@ or from bash::
 
     python component_wrapper -- config "gleam_continuum_imaging.json"
     
-Examples of json files are in tests/workflows.
+Examples of json files are in tests/processing_components.
 
 """

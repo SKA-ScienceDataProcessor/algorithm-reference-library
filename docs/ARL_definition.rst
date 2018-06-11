@@ -309,41 +309,41 @@ Support
 .. automodule:: processing_components.util.support_components
    :members:
 
-Workflows
----------
+Processing Component Interface
+------------------------------
 
 Wrappers
 ++++++++
 
-.. automodule:: workflows.wrappers
+.. automodule:: processing_components.external_interface
    :members:
 
 ARL JSON schema
 +++++++++++++++
 
-.. automodule:: workflows.wrappers.arl_json
+.. automodule:: processing_components.external_interface.arl_json
    :members:
 
-.. automodule:: workflows.wrappers.arl_json.json_helpers
+.. automodule:: processing_components.external_interface.arl_json.json_helpers
    :members:
 
 
 Component wrapper
 +++++++++++++++++
 
-.. automodule:: workflows.wrappers.component_wrapper
+.. automodule:: processing_components.external_interface.processing_component_interface
    :members:
 
 Processing component wrapper
 ++++++++++++++++++++++++++++
 
-.. automodule:: workflows.wrappers.processing_wrappers
+.. automodule:: processing_components.external_interface.processing_component_wrappers
    :members:
 
 Execution helpers
 +++++++++++++++++
 
-.. automodule:: workflows.wrappers.execution_wrappers
+.. automodule:: processing_components.external_interface.execution_helper
    :members:
 
 
