@@ -24,7 +24,7 @@ from processing_components.util.testing_support import create_low_test_skycompon
 
 from processing_components.skycomponent.operations import insert_skycomponent
 from workflows.wrappers.arl_json.json_helpers import json_to_quantity, json_to_linspace, json_to_skycoord
-from data_model_helpers import memory_data_model_to_buffer, buffer_data_model_to_memory
+from data_models.data_model_helpers import memory_data_model_to_buffer, buffer_data_model_to_memory
 
 
 def continuum_imaging_wrapper(conf):

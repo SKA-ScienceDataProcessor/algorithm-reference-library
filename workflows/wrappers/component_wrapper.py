@@ -4,8 +4,8 @@
 
 import logging
 
-from processing_components.component_support.arlexecute import arlexecute
 from workflows.wrappers.processing_wrappers import *
+from processing_components.component_support.arlexecute import arlexecute
 from workflows.wrappers.execution_wrappers import initialise_config_wrapper, initialise_execution_wrapper
 
 def component_wrapper(config_file):
