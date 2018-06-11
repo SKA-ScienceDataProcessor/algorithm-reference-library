@@ -1,13 +1,5 @@
 """ Script to execute wrapped components
 
-The parameters for the component are passed via a JSON file, the name of which is an argument::
-    
-    component_wrapper("gleam_continuum_imaging.json")
-    
-or from bash::
-
-    python component_wrapper -- config "gleam_continuum_imaging.json"
-    
 """
 
 import logging

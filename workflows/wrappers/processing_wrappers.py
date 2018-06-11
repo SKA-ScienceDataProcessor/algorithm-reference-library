@@ -23,8 +23,9 @@ from processing_components.util.support_components import simulate_component, co
 from processing_components.util.testing_support import create_low_test_skycomponents_from_gleam
 
 from processing_components.skycomponent.operations import insert_skycomponent
-from workflows.wrappers.arl_json.json_helpers import json_to_quantity, json_to_linspace, json_to_skycoord, \
-    json_buffer_to_data_model, json_data_model_to_buffer
+from workflows.wrappers.arl_json.json_helpers import json_to_quantity, json_to_linspace, json_to_skycoord
+from data_model_helpers import memory_data_model_to_buffer, buffer_data_model_to_memory
+
 
 def continuum_imaging_wrapper(conf):
     """Wrap continuum imaging pipeline
@@ -32,7 +33,7 @@ def continuum_imaging_wrapper(conf):
     :param conf:
     :return:
     """
-    vis_list = json_buffer_to_data_model(conf["buffer"], conf['inputs']['vis_list'])
+    vis_list = buffer_data_model_to_memory(conf["buffer"], conf['inputs']['vis_list'])
     
     cellsize = json_to_quantity(conf["image"]["cellsize"]).to("rad").value
     npixel = conf["image"]["npixel"]
@@ -66,9 +67,9 @@ def continuum_imaging_wrapper(conf):
         residual = image_gather_channels(remove_sumwt(result[1]))
         restored = image_gather_channels(result[2])
         
-        json_data_model_to_buffer(deconvolved, conf["buffer"], conf['outputs']['deconvolved'])
-        json_data_model_to_buffer(restored, conf["buffer"], conf['outputs']['restored'])
-        json_data_model_to_buffer(residual, conf["buffer"], conf['outputs']['residual'])
+        memory_data_model_to_buffer(deconvolved, conf["buffer"], conf['outputs']['deconvolved'])
+        memory_data_model_to_buffer(restored, conf["buffer"], conf['outputs']['restored'])
+        memory_data_model_to_buffer(residual, conf["buffer"], conf['outputs']['residual'])
         
         return result
     
@@ -81,7 +82,7 @@ def ical_wrapper(conf):
     :param conf: Configuration from JSON file
     :return:
     """
-    vis_list = json_buffer_to_data_model(conf["buffer"], conf['inputs']['vis_list']["name"])
+    vis_list = buffer_data_model_to_memory(conf["buffer"], conf['inputs']['vis_list']["name"])
     
     cellsize = json_to_quantity(conf["image"]["cellsize"]).to("rad").value
     npixel = conf["image"]["npixel"]
@@ -149,7 +150,7 @@ def create_vislist_wrapper(conf):
                                   phasecentre=phasecentre,
                                   order='frequency')
     
-    return arlexecute.execute(json_data_model_to_buffer)(vis_list, conf["buffer"], conf["outputs"]["vis_list"])
+    return arlexecute.execute(memory_data_model_to_buffer)(vis_list, conf["buffer"], conf["outputs"]["vis_list"])
 
 
 def create_skymodel_wrapper(conf):
@@ -203,7 +204,7 @@ def create_skymodel_wrapper(conf):
         else:
             skymodel = SkyModel(images=[], components=comp_list)
             
-        return json_data_model_to_buffer(skymodel, conf["buffer"], conf["outputs"]["skymodel"])
+        return memory_data_model_to_buffer(skymodel, conf["buffer"], conf["outputs"]["skymodel"])
     
     return arlexecute.execute(output_skymodel)(models, components)
 
@@ -214,8 +215,8 @@ def predict_vislist_wrapper(conf):
     :param conf: Configuration from JSON file
     :return:
     """
-    vis_list = json_buffer_to_data_model(conf["buffer"], conf['inputs']['vis_list'])
-    skymodel = json_buffer_to_data_model(conf["buffer"], conf['inputs']['skymodel'])
+    vis_list = buffer_data_model_to_memory(conf["buffer"], conf['inputs']['vis_list'])
+    skymodel = buffer_data_model_to_memory(conf["buffer"], conf['inputs']['skymodel'])
     
     flux_limit = conf['primary_beam']['flux_limit']
     
@@ -248,8 +249,8 @@ def predict_vislist_wrapper(conf):
                                            context=conf['imaging']['context'],
                                            vis_slices=conf['imaging']['vis_slices'])
     
-    return arlexecute.execute(json_data_model_to_buffer)(predicted_vis_list, conf["buffer"],
-                                                         conf["outputs"]["vis_list"])
+    return arlexecute.execute(memory_data_model_to_buffer)(predicted_vis_list, conf["buffer"],
+                                                           conf["outputs"]["vis_list"])
 
 def corrupt_vislist_wrapper(conf):
     """Wrapper for corruption
@@ -257,11 +258,11 @@ def corrupt_vislist_wrapper(conf):
     :param conf:
     :return:
     """
-    vis_list = json_buffer_to_data_model(conf["buffer"], conf['inputs']['vis_list'])
+    vis_list = buffer_data_model_to_memory(conf["buffer"], conf['inputs']['vis_list'])
     phase_error = json_to_quantity(conf['corrupt_vislist']['phase_error']).to('rad').value
     
     corrupted_vislist = corrupt_component(vis_list,
                                           phase_error=phase_error,
                                           amplitude_error=conf['corrupt_vislist']['amplitude_error'])
     
-    return arlexecute.execute(json_data_model_to_buffer)(corrupted_vislist, conf["buffer"], conf['outputs']['vis_list'])
+    return arlexecute.execute(memory_data_model_to_buffer)(corrupted_vislist, conf["buffer"], conf['outputs']['vis_list'])

@@ -1,4 +1,7 @@
-"""Functions to help with persistence of data models"""
+"""Functions to help with persistence of data models
+
+These do data conversion and persistence. Functions from libs and processing_components are used.
+"""
 
 import ast
 import collections
@@ -11,9 +14,10 @@ from astropy.units import Quantity
 from astropy.wcs import WCS
 
 from libs.image.operations import create_image_from_array
-from .memory_data_models import Visibility, BlockVisibility, Configuration, \
+from processing_components.image.operations import export_image_to_fits, import_image_from_fits
+from data_models.memory_data_models import Visibility, BlockVisibility, Configuration, \
     GainTable, SkyModel, Skycomponent, Image
-from .polarisation import PolarisationFrame, ReceptorFrame
+from data_models.polarisation import PolarisationFrame, ReceptorFrame
 
 
 def convert_earthlocation_to_string(el: EarthLocation):
@@ -502,3 +506,63 @@ def import_skymodel_from_hdf5(filename):
         images = [convert_hdf_to_image(f['image%d' % i]) for i in range(nimages)]
         
         return SkyModel(components=components, images=images)
+
+
+def memory_data_model_to_buffer(model, jbuff, dm):
+    """ Copy a memory data model to a buffer data model
+    
+    The file type is derived from the file extension. All are hdf only with the exception of Imaghe which can also be
+    fits.
+
+    :param model: Memory data model to be sent to buffer
+    :param jbuff: JSON describing buffer
+    :param dm: JSON describing data model
+    """
+    name = jbuff["directory"] + dm["name"]
+
+    import os
+    _, file_extension = os.path.splitext(dm["name"])
+
+    if dm["data_model"] == "BlockVisibility":
+        return export_blockvisibility_to_hdf5(model, name)
+    elif dm["data_model"] == "Image":
+        if file_extension == ".fits":
+            return export_image_to_fits(model, name)
+        else:
+            return export_image_to_hdf5(model, name)
+    elif dm["data_model"] == "SkyModel":
+        return export_skymodel_to_hdf5(model, name)
+    elif dm["data_model"] == "GainTable":
+        return export_gaintable_to_hdf5(model, name)
+    else:
+        raise ValueError("Data model %s not supported" % dm["data_model"])
+
+
+def buffer_data_model_to_memory(jbuff, dm):
+    """Copy a buffer data model into memory data model
+    
+    The file type is derived from the file extension. All are hdf only with the exception of Imaghe which can also be
+    fits.
+
+    :param jbuff: JSON describing buffer
+    :param dm: JSON describing data model
+    :return: data model
+    """
+    name = jbuff["directory"] + dm["name"]
+
+    import os
+    _, file_extension = os.path.splitext(dm["name"])
+    
+    if dm["data_model"] == "BlockVisibility":
+        return import_blockvisibility_from_hdf5(name)
+    elif dm["data_model"] == "Image":
+        if file_extension == ".fits":
+            return import_image_from_fits(name)
+        else:
+            return import_image_from_hdf5(name)
+    elif dm["data_model"] == "SkyModel":
+        return import_skymodel_from_hdf5(name)
+    elif dm["data_model"] == "GainTable":
+        return import_gaintable_from_hdf5(name)
+    else:
+        raise ValueError("Data model %s not supported" % dm["data_model"])

@@ -10,33 +10,59 @@ A bash script example for a continuum imaging pipeline is::
     python $ARL/workflows/wrappers/component_wrapper.py --config gleam_continuum_imaging.json
 
 To be available in this way, a component must be wrapped appropriately and placed in processing_wrappers.py. For
-example, the wrapper for predict is::
+example, here is a simple wrapper::
+
+    def corrupt_vislist_wrapper(conf):
+        vis_list = buffer_data_model_to_memory(conf["buffer"], conf['inputs']['vis_list'])
+        phase_error = json_to_quantity(conf['corrupt_vislist']['phase_error']).to('rad').value
+        
+        corrupted_vislist = corrupt_component(vis_list,
+                                              phase_error=phase_error,
+                                              amplitude_error=conf['corrupt_vislist']['amplitude_error'])
+        
+        return arlexecute.execute(memory_data_model_to_buffer)(corrupted_vislist, conf["buffer"], conf['outputs']['vis_list'])
+
+
+the wrapper for predict is::
 
     def predict_vislist_wrapper(conf):
-        vis_list = import_blockvisibility_from_hdf5(conf['inputs']['vis_list'])
-        skymodel = import_skymodel_from_hdf5(conf['inputs']['skymodel'])
+        vis_list = buffer_data_model_to_memory(conf["buffer"], conf['inputs']['vis_list'])
+        skymodel = buffer_data_model_to_memory(conf["buffer"], conf['inputs']['skymodel'])
         
-        if conf['applypb']:
-            def apply_pb(vt, model):
+        flux_limit = conf['primary_beam']['flux_limit']
+        
+        if conf["primary_beam"]["apply"]:
+            def apply_pb_image(vt, model):
                 telescope = vt.configuration.name
                 pb = create_pb(model, telescope)
                 model.data *= pb.data
                 return model
             
-            image_list = [arlexecute.execute(apply_pb, nout=1)(v, skymodel.images[0]) for v in vis_list]
+            def apply_pb_comp(vt, model, comp):
+                telescope = vt.configuration.name
+                pb = create_pb(model, telescope)
+                return apply_beam_to_skycomponent(comp, pb, flux_limit)
+            
+            image_list = [arlexecute.execute(apply_pb_image, nout=1)(v, skymodel.images[i]) for i, v in enumerate(vis_list)]
+            if len(skymodel.components) > 1:
+                component_list = [arlexecute.execute(apply_pb_comp, nout=1)(v, skymodel.images[i], skymodel.components)
+                                for i, v in enumerate(vis_list)]
+            else:
+                component_list = []
         else:
             image_list = [skymodel.images[0] for v in vis_list]
+            component_list = skymodel.components
         
         future_vis_list = arlexecute.scatter(vis_list)
-        predicted_vis_list = predict_component(future_vis_list, image_list,
+        predicted_vis_list = [arlexecute.execute(predict_skycomponent_visibility)(v, component_list)
+                              for v in future_vis_list]
+        predicted_vis_list = predict_component(predicted_vis_list, image_list,
                                                context=conf['imaging']['context'],
                                                vis_slices=conf['imaging']['vis_slices'])
         
-        def output_vislist(v):
-            return export_blockvisibility_to_hdf5(v, conf['outputs']['vis_list'])
-        
-        return arlexecute.execute(output_vislist)(predicted_vis_list)
-
+        return arlexecute.execute(memory_data_model_to_buffer)(predicted_vis_list, conf["buffer"],
+                                                             conf["outputs"]["vis_list"])
+                                                         
 The JSON files contain the name of the component to be run and all the parameters necessary. An example of a JSON
 file is::
 
@@ -51,23 +77,50 @@ file is::
             "name": "predict_vislist"
         },
         "logging": {
-            "filename": "/Users/timcornwell/Code/algorithm-reference-library/test_results/gleam-pipeline.log",
+            "filename": "test_pipeline.log",
             "filemode": "a",
             "format": "%(asctime)s,%(msecs)d %(name)s %(levelname)s %(message)s",
             "datefmt": "%H:%M:%S",
             "level": "INFO"
         },
+        "buffer": {
+            "directory": "test_results/"
+        },
+    
         "inputs": {
-            "skymodel": "/Users/timcornwell/Code/algorithm-reference-library/test_results/gleam_skymodel.hdf",
-            "vis_list": "/Users/timcornwell/Code/algorithm-reference-library/test_results/gleam_empty_vislist.hdf"
+            "skymodel": {
+                "name":"test_skymodel.hdf",
+                "data_model": "SkyModel"
+            },
+            "vis_list": {
+                "name": "test_empty_vislist.hdf",
+                "data_model": "BlockVisibility"
+            }
         },
         "outputs": {
-            "vis_list": "/Users/timcornwell/Code/algorithm-reference-library/test_results/gleam_perfect_vislist.hdf"
+            "vis_list": {
+                "name": "test_perfect_vislist.hdf",
+                "data_model": "BlockVisibility"
+            }
         },
         "imaging": {
             "context": "wstack",
             "vis_slices": 11
         },
-        "applypb": true
-    }
+        "primary_beam": {
+            "apply": true,
+            "flux_limit" : {"value": 0.01, "unit":"Jy"}
+        }
+}
+
+The parameters for the component are passed via a JSON file, either via python::
+    
+    component_wrapper("gleam_continuum_imaging.json")
+    
+or from bash::
+
+    python component_wrapper -- config "gleam_continuum_imaging.json"
+    
+Examples of json files are in tests/workflows.
+
 """
