@@ -9,7 +9,7 @@
         "name": "continuum_imaging"
     },
     "logging": {
-        "filename": "test_pipeline.log",
+        "filename": "gleam_pipeline.log",
         "filemode": "a",
         "format": "%(asctime)s,%(msecs)d %(name)s %(levelname)s %(message)s",
         "datefmt": "%H:%M:%S",
