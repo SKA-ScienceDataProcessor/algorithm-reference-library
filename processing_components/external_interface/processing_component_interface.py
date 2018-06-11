@@ -9,7 +9,7 @@ from processing_components.external_interface.execution_helper import initialise
 
 # Add new wrapped components here. These are accessed using globals()
 from processing_components.external_interface.processing_component_wrappers import create_vislist_wrapper, \
-    create_skymodel_wrapper, predict_vislist_wrapper, corrupt_vislist_wrapper, continuum_imaging_component
+    create_skymodel_wrapper, predict_vislist_wrapper, corrupt_vislist_wrapper, continuum_imaging_wrapper
 
 def component_wrapper(config_file):
     """Run an ARL component as described in a JSON file
