@@ -16,7 +16,7 @@
         "level": "INFO"
     },
     "buffer": {
-        "directory": "../test_results/"
+        "directory": "test_results/"
     },
     "inputs": {
         "vis_list": {
