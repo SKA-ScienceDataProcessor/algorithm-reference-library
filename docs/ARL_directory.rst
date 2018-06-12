@@ -113,7 +113,7 @@ Pipelines
 * Generic image or visibility unary operations::py:mod:`processing_components.component_suppport.generic_components`
 * Testing and simulation support: :py:mod:`processing_components.util.testing_support`
 
-Workflows
-=========
+External interface
+==================
 
-* ARL component wrappers: :py:mod:`workflows.wrappers`
+* ARL component wrappers: :py:mod:`processing_components.external_interface`

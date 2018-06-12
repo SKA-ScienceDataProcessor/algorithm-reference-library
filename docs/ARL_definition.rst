@@ -10,16 +10,17 @@ The ARL structure maps that used in the SDP processing architecture:
 .. image:: ./SDP_processing_architecture.png
    :scale: 100 %
 
+Not all connections are shown.
+
 The corresponding directories are:
 
-* data_models: These are memory-based are mapped to the Buffer by matching classes.
-* libs: Library functions used by the processing components. These are not callable directly by the EF.
-* processing_components: components that can be executed by the Execution Framework.
+* data_models: These are both memory and buffer based.
+* libs: Library functions used by the processing components. These are not callable directly by the EF, and are not
+shown on this diagram.
+* processing_components: components that can be executed by the Execution Framework, including external interface.
 * workflows: Contains top level workflows
 
-Note that the function names in ARL do not directly correspond to those in the architecture diagram.
-
-ARL is composed of data models and functions. The data models are implemented as python classes. The functions are
+The data models are implemented as python classes. The functions are
 stateless so calling the same function with the same inputs will always return the same value.
 
 Please note that the documentation below has links to the python source. In the end, this is the definitive
@@ -54,6 +55,13 @@ Buffer Data Models
 
 .. automodule:: data_models.buffer_data_models
    :members:
+
+Data model persistence
+++++++++++++++++++++++
+
+.. automodule:: data_models.data_model_helpers
+   :members:
+
 
 
 Parameter handling
