@@ -1,4 +1,5 @@
 
+PrivateRules.mak
 /.idea
 /examples/**/*.rst
 /examples/**/*.html

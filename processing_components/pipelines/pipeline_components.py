@@ -38,7 +38,7 @@ def ical_component(vis_list, model_imagelist, context='2d', calibration_context=
         residual_imagelist = residual_component(vis_list, model_imagelist, context=context, **kwargs)
     
     deconvolve_model_imagelist, _ = deconvolve_component(residual_imagelist, psf_imagelist, model_imagelist,
-                                                         **kwargs)
+                                                         prefix='cycle 0', **kwargs)
     
     nmajor = get_parameter(kwargs, "nmajor", 5)
     if nmajor > 1:
@@ -57,7 +57,7 @@ def ical_component(vis_list, model_imagelist, context='2d', calibration_context=
                 residual_imagelist = residual_component(vis_list, deconvolve_model_imagelist,
                                                         context=context, **kwargs)
             
-            prefix = "cycle %d" % cycle
+            prefix = "cycle %d" % (cycle+1)
             deconvolve_model_imagelist, _ = deconvolve_component(residual_imagelist, psf_imagelist,
                                                                  deconvolve_model_imagelist,
                                                                  prefix=prefix,
@@ -83,13 +83,13 @@ def continuum_imaging_component(vis_list, model_imagelist, context='2d', **kwarg
     
     residual_imagelist = residual_component(vis_list, model_imagelist, context=context, **kwargs)
     deconvolve_model_imagelist, _ = deconvolve_component(residual_imagelist, psf_imagelist, model_imagelist,
-                                                         prefix='',
+                                                         prefix='cycle 0',
                                                          **kwargs)
     
     nmajor = get_parameter(kwargs, "nmajor", 5)
     if nmajor > 1:
         for cycle in range(nmajor):
-            prefix = "cycle %d" % cycle
+            prefix = "cycle %d" % (cycle+1)
             residual_imagelist = residual_component(vis_list, deconvolve_model_imagelist, context=context, **kwargs)
             deconvolve_model_imagelist, _ = deconvolve_component(residual_imagelist, psf_imagelist,
                                                                  deconvolve_model_imagelist,

@@ -25,6 +25,7 @@ def solve_from_X(gt: GainTable, x: numpy.ndarray, xwt: numpy.ndarray, chunk, cro
         -> GainTable:
     """ Solve for gains from the point source equivalents
 
+    :param gt:
     :param x: point source visibility
     :param xwt: point source weight
     :param chunk: which chunk of the gaintable?
@@ -315,7 +316,7 @@ def solution_residual_scalar(gain, x, xwt):
         for ant2 in range(nants):
             for chan in range(nchan):
                 error = x[ant2, ant1, chan, 0, 0] - \
-                        gain[ant1, chan, 0, 0] * numpy.conjugate(gain[ant2, chan, 0, 0])
+                    gain[ant1, chan, 0, 0] * numpy.conjugate(gain[ant2, chan, 0, 0])
                 residual += (error * xwt[ant2, ant1, chan, 0, 0] * numpy.conjugate(error)).real
                 sumwt += xwt[ant2, ant1, chan, 0, 0]
     
@@ -353,7 +354,7 @@ def solution_residual_vector(gain, x, xwt):
             for chan in range(nchan):
                 for rec in range(nrec):
                     error = x[ant2, ant1, chan, rec, rec] - \
-                            gain[ant1, chan, rec, rec] * numpy.conjugate(gain[ant2, chan, rec, rec])
+                        gain[ant1, chan, rec, rec] * numpy.conjugate(gain[ant2, chan, rec, rec])
                     residual += (error * xwt[ant2, ant1, chan, rec, rec] * numpy.conjugate(error)).real
                     sumwt += xwt[ant2, ant1, chan, rec, rec]
     
@@ -385,7 +386,7 @@ def solution_residual_matrix(gain, x, xwt):
                 for rec1 in range(nrec):
                     for rec2 in range(nrec):
                         error = x[ant2, ant1, chan, rec2, rec1] - \
-                                gain[ant1, chan, rec2, rec1] * numpy.conjugate(gain[ant2, chan, rec2, rec1])
+                            gain[ant1, chan, rec2, rec1] * numpy.conjugate(gain[ant2, chan, rec2, rec1])
                         residual[chan, rec2, rec1] += (error * xwt[ant2, ant1, chan, rec2, rec1] * numpy.conjugate(
                             error)).real
                         sumwt[chan, rec2, rec1] += xwt[ant2, ant1, chan, rec2, rec1]

@@ -1,4 +1,7 @@
-"Functions to help with persistence of data models"
+"""Functions to help with persistence of data models
+
+These do data conversion and persistence. Functions from libs and processing_components are used.
+"""
 
 import ast
 import collections
@@ -11,9 +14,10 @@ from astropy.units import Quantity
 from astropy.wcs import WCS
 
 from libs.image.operations import create_image_from_array
-from .memory_data_models import Visibility, BlockVisibility, Configuration, \
+from processing_components.image.operations import export_image_to_fits, import_image_from_fits
+from data_models.memory_data_models import Visibility, BlockVisibility, Configuration, \
     GainTable, SkyModel, Skycomponent, Image
-from .polarisation import PolarisationFrame, ReceptorFrame
+from data_models.polarisation import PolarisationFrame, ReceptorFrame
 
 
 def convert_earthlocation_to_string(el: EarthLocation):
@@ -38,11 +42,11 @@ def convert_earthlocation_from_string(s: str):
 
 
 def convert_direction_to_string(d: SkyCoord):
-    """Convert Direction to string
+    """Convert SkyCoord to string
 
     TODO: Make more general!
 
-    :param el:
+    :param d: SkyCoord
     :return:
     """
     return "%s, %s, %s" % (d.ra.deg, d.dec.deg, 'icrs')
@@ -84,9 +88,8 @@ def convert_configuration_to_hdf(config: Configuration, f):
 
 
 def convert_configuration_from_hdf(f):
-    """
+    """ Extyract configuration from HDF
 
-    :param config:
     :param f:
     :return:
     """
@@ -153,7 +156,7 @@ def convert_blockvisibility_to_hdf(vis: BlockVisibility, f):
     :return:
     """
     assert isinstance(vis, BlockVisibility)
-
+    
     f.attrs['ARL_data_model'] = 'BlockVisibility'
     f.attrs['nvis'] = vis.nvis
     f.attrs['npol'] = vis.npol
@@ -265,7 +268,7 @@ def convert_gaintable_to_hdf(gt: GainTable, f):
     :return:
     """
     assert isinstance(gt, GainTable)
-
+    
     f.attrs['ARL_data_model'] = 'GainTable'
     f.attrs['frequency'] = gt.frequency
     f.attrs['receptor_frame'] = gt.receptor_frame.type
@@ -294,7 +297,7 @@ def export_gaintable_to_hdf5(gt: GainTable, filename):
     :param filename:
     :return:
     """
-
+    
     if not isinstance(gt, collections.Iterable):
         gt = [gt]
     with h5py.File(filename, 'w') as f:
@@ -324,13 +327,12 @@ def import_gaintable_from_hdf5(filename):
 
 def convert_skycomponent_to_hdf(sc: Skycomponent, f):
     """ Convert Skycomponent to HDF
-
-    :param gt:
+    :param sc: SkyComponent
     :param f: HDF root
     :return:
     """
     assert isinstance(sc, Skycomponent)
-
+    
     f.attrs['ARL_data_model'] = 'Skycomponent'
     f.attrs['direction'] = convert_direction_to_string(sc.direction)
     f.attrs['frequency'] = sc.frequency
@@ -365,7 +367,7 @@ def convert_hdf_to_skycomponent(f):
 def export_skycomponent_to_hdf5(sc: Skycomponent, filename):
     """ Export a Skycomponent to HDF5 format
 
-    :param gt:
+    :param sc: SkyComponent
     :param filename:
     :return:
     """
@@ -400,12 +402,12 @@ def import_skycomponent_from_hdf5(filename):
 def convert_image_to_hdf(im: Image, f):
     """ Convert Image to HDF
 
-    :param gt:
+    :param im: Image
     :param f: HDF root
     :return:
     """
     assert isinstance(im, Image)
-
+    
     f.attrs['ARL_data_model'] = 'Image'
     f['data'] = im.data
     f.attrs['wcs'] = numpy.string_(im.wcs.to_header_string())
@@ -431,7 +433,7 @@ def convert_hdf_to_image(f):
 def export_image_to_hdf5(im, filename):
     """ Export an Image to HDF5 format
 
-    :param gt:
+    :param im:
     :param filename:
     :return:
     """
@@ -502,5 +504,65 @@ def import_skymodel_from_hdf5(filename):
         
         nimages = f.attrs['number_images']
         images = [convert_hdf_to_image(f['image%d' % i]) for i in range(nimages)]
-
+        
         return SkyModel(components=components, images=images)
+
+
+def memory_data_model_to_buffer(model, jbuff, dm):
+    """ Copy a memory data model to a buffer data model
+    
+    The file type is derived from the file extension. All are hdf only with the exception of Imaghe which can also be
+    fits.
+
+    :param model: Memory data model to be sent to buffer
+    :param jbuff: JSON describing buffer
+    :param dm: JSON describing data model
+    """
+    name = jbuff["directory"] + dm["name"]
+
+    import os
+    _, file_extension = os.path.splitext(dm["name"])
+
+    if dm["data_model"] == "BlockVisibility":
+        return export_blockvisibility_to_hdf5(model, name)
+    elif dm["data_model"] == "Image":
+        if file_extension == ".fits":
+            return export_image_to_fits(model, name)
+        else:
+            return export_image_to_hdf5(model, name)
+    elif dm["data_model"] == "SkyModel":
+        return export_skymodel_to_hdf5(model, name)
+    elif dm["data_model"] == "GainTable":
+        return export_gaintable_to_hdf5(model, name)
+    else:
+        raise ValueError("Data model %s not supported" % dm["data_model"])
+
+
+def buffer_data_model_to_memory(jbuff, dm):
+    """Copy a buffer data model into memory data model
+    
+    The file type is derived from the file extension. All are hdf only with the exception of Imaghe which can also be
+    fits.
+
+    :param jbuff: JSON describing buffer
+    :param dm: JSON describing data model
+    :return: data model
+    """
+    name = jbuff["directory"] + dm["name"]
+
+    import os
+    _, file_extension = os.path.splitext(dm["name"])
+    
+    if dm["data_model"] == "BlockVisibility":
+        return import_blockvisibility_from_hdf5(name)
+    elif dm["data_model"] == "Image":
+        if file_extension == ".fits":
+            return import_image_from_fits(name)
+        else:
+            return import_image_from_hdf5(name)
+    elif dm["data_model"] == "SkyModel":
+        return import_skymodel_from_hdf5(name)
+    elif dm["data_model"] == "GainTable":
+        return import_gaintable_from_hdf5(name)
+    else:
+        raise ValueError("Data model %s not supported" % dm["data_model"])

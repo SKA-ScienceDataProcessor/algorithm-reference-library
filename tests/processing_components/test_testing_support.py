@@ -34,9 +34,9 @@ class TestTesting_Support(unittest.TestCase):
         from data_models.parameters import arl_path
         self.dir = arl_path('test_results')
         
-        self.frequency = numpy.linspace(1e8, 1.5e8, 3)
-        self.channel_bandwidth = numpy.array([2.5e7, 2.5e7, 2.5e7])
-        self.flux = numpy.array([[100.0], [100.0], [100.0]])
+        self.frequency = numpy.linspace(0.8e8, 1.2e8, 5)
+        self.channel_bandwidth = numpy.array([1e7, 1e7, 1e7, 1e7, 1e7])
+        self.flux = numpy.array([[100.0], [100.0], [100.0], [100.0], [100.0]])
         self.phasecentre = SkyCoord(ra=+15.0 * u.deg, dec=-35.0 * u.deg, frame='icrs', equinox='J2000')
         self.config = create_named_configuration('LOWBD2-CORE')
         self.times = numpy.linspace(-300.0, 300.0, 3) * numpy.pi / 43200.0
@@ -94,7 +94,7 @@ class TestTesting_Support(unittest.TestCase):
                                               frequency=self.frequency,
                                               phasecentre=self.phasecentre,
                                               kind='cubic', flux_limit=1.0)
-        assert im.data.shape[0] == 3
+        assert im.data.shape[0] == 5
         assert im.data.shape[1] == 1
         assert im.data.shape[2] == 256
         assert im.data.shape[3] == 256
@@ -107,7 +107,7 @@ class TestTesting_Support(unittest.TestCase):
                                               phasecentre=self.phasecentre,
                                               kind='cubic',
                                               applybeam=True, flux_limit=1.0)
-        assert im.data.shape[0] == 3
+        assert im.data.shape[0] == 5
         assert im.data.shape[1] == 1
         assert im.data.shape[2] == 256
         assert im.data.shape[3] == 256
@@ -120,7 +120,7 @@ class TestTesting_Support(unittest.TestCase):
                                                       frequency=self.frequency, kind='cubic', radius=0.001)
         assert len(sc) == 1, "Only expected one source, actually found %d" % len(sc)
         assert sc[0].name == 'GLEAM J172031-005845'
-        self.assertAlmostEqual(sc[0].flux[0, 0], 301.49254315737829, 7)
+        self.assertAlmostEqual(sc[0].flux[0, 0], 357.2599499089219, 7)
     
     def test_create_test_image_from_s3_low(self):
         im = create_test_image_from_s3(npixel=1024, channel_bandwidth=numpy.array([1e6]),

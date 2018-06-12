@@ -1,0 +1,32 @@
+{
+    "execute": {
+        "use_dask": true,
+        "n_workers": 4,
+        "memory_limit": 4000000000
+    },
+    "component": {
+        "framework": "ARL",
+        "name": "corrupt_vislist"
+    },
+    "logging": {
+        "filename": "test_pipeline.log",
+        "filemode": "a",
+        "format": "%(asctime)s,%(msecs)d %(name)s %(levelname)s %(message)s",
+        "datefmt": "%H:%M:%S",
+        "level": "INFO"
+    },
+    "buffer": {
+        "directory": "test_results/"
+    },
+    "inputs": {
+        "vis_list": "test_empty_vislist.hdf"
+    },
+    "outputs": {
+        "vis_list": "test_perfect_vislist.hdf"
+    },
+   "corrupt_vislist": {
+       "phase_error": {"value":0.1, "unit":"rad"},
+       "amplitude_error": 0.0,
+       "gaintable": ""
+    }
+}

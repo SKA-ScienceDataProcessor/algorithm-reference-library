@@ -239,7 +239,7 @@ def predict_skycomponent_visibility(vis: Union[Visibility, BlockVisibility],
         
         ntimes, nant, _, nchan, npol = vis.vis.shape
     
-        k = numpy.array(vis.frequency) / constants.c.to('m/s').value
+        k = numpy.array(vis.frequency) / constants.c.to('m s^-1').value
     
         for comp in sc:
 #            assert isinstance(comp, Skycomponent), comp
@@ -316,7 +316,7 @@ def create_image_from_visibility(vis, **kwargs) -> Image:
     npixel = get_parameter(kwargs, "npixel", 512)
     uvmax = numpy.max((numpy.abs(vis.data['uvw'][:, 0:1])))
     if isinstance(vis, BlockVisibility):
-        uvmax *= numpy.max(frequency) / constants.c.to('m/s').value
+        uvmax *= numpy.max(frequency) / constants.c.to('m s^-1').value
     log.info("create_image_from_visibility: uvmax = %f wavelengths" % uvmax)
     criticalcellsize = 1.0 / (uvmax * 2.0)
     log.info("create_image_from_visibility: Critical cellsize = %f radians, %f degrees" % (
@@ -400,10 +400,10 @@ def advise_wide_field(vis: Visibility, delA=0.02, oversampling_synthesised_beam=
         svis = vis
     assert isinstance(svis, Visibility), svis
     
-    max_wavelength = constants.c.to('m/s').value / numpy.min(svis.frequency)
+    max_wavelength = constants.c.to('m s^-1').value / numpy.min(svis.frequency)
     log.info("advise_wide_field: Maximum wavelength %.3f (meters)" % (max_wavelength))
 
-    min_wavelength = constants.c.to('m/s').value / numpy.max(svis.frequency)
+    min_wavelength = constants.c.to('m s^-1').value / numpy.max(svis.frequency)
     log.info("advise_wide_field: Minimum wavelength %.3f (meters)" % (min_wavelength))
 
     maximum_baseline = numpy.max(numpy.abs(svis.uvw))  # Wavelengths

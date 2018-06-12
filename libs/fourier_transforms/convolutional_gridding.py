@@ -63,7 +63,7 @@ def coordinates2Offset(npixel: int, cx: int, cy: int):
     if cy is None:
         cy = npixel // 2
     mg = numpy.mgrid[0:npixel, 0:npixel]
-    return ((mg[0] - cy) / npixel, (mg[1] - cx) / npixel)
+    return (mg[0] - cy) / npixel, (mg[1] - cx) / npixel
 
 
 def anti_aliasing_calculate(shape, oversampling=1, support=3):
@@ -358,7 +358,7 @@ def visibility_recentre(uvw, dl, dm):
     :returns: Visibility coordinates re-centrered on the peak of their w-kernel
     """
 
-    u, v, w = numpy.hsplit(uvw, 3)
+    u, v, w = numpy.hsplit(uvw, 3)  # pylint: disable=unbalanced-tuple-unpacking
     return numpy.hstack([u - w * dl, v - w * dm, w])
 
 

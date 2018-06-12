@@ -35,7 +35,7 @@ class TestGainTableIterators(unittest.TestCase):
         self.vis = create_blockvisibility(self.lowcore, self.times, self.frequency,
                                      channel_bandwidth=self.channel_bandwidth, phasecentre=self.phasecentre,
                                      weight=1.0)
-        self.gaintable = create_gaintable_from_blockvisibility(self.vis, time_slice='auto')
+        self.gaintable = create_gaintable_from_blockvisibility(self.vis)
 
     def test_gt_null_iterator(self):
         self.actualSetUp()

@@ -333,7 +333,7 @@ def create_visibility_from_ms(msname, channum=0, ack=False):
         cchannel_bandwidth = spwtab.getcol('CHAN_WIDTH')
         channel_bandwidth = numpy.array([cchannel_bandwidth[dd] for dd in ddid])[:, 0]
         
-        uvw *= frequency[:, numpy.newaxis] / constants.c.to('m/s').value
+        uvw *= frequency[:, numpy.newaxis] / constants.c.to('m s^-1').value
         
         # Get polarisation info
         poltab = table('%s/POLARIZATION' % msname, ack=False)

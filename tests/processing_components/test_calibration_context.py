@@ -55,8 +55,8 @@ class TestCalibrationContext(unittest.TestCase):
         # Prepare the corrupted visibility data_models
         gt = create_gaintable_from_blockvisibility(self.vis)
         log.info("Created gain table: %s" % (gaintable_summary(gt)))
-        gt = simulate_gaintable(gt, phase_error=10.0, amplitude_error=0.1, timeslice='auto')
-        bgt = simulate_gaintable(gt, phase_error=0.1, amplitude_error=0.01, timeslice=1e5)
+        gt = simulate_gaintable(gt, phase_error=10.0, amplitude_error=0.1)
+        bgt = simulate_gaintable(gt, phase_error=0.1, amplitude_error=0.01)
         original = copy_visibility(self.vis)
         self.vis = apply_gaintable(self.vis, bgt, vis_slices=1)
         self.vis = apply_gaintable(self.vis, gt, vis_slices=None)

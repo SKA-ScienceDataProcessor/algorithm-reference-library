@@ -2,6 +2,7 @@
 Functions to create primary beam modelsw
 """
 
+import collections
 import logging
 import warnings
 
@@ -11,6 +12,7 @@ from astropy.wcs import FITSFixedWarning
 from astropy.wcs.utils import skycoord_to_pixel
 
 from processing_components.image.operations import create_empty_image_like
+from processing_components.util.testing_support import create_low_test_beam
 
 log = logging.getLogger(__name__)
 
@@ -27,19 +29,39 @@ def ft_disk(r):
 def create_pb(model, telescope='MID', pointingcentre=None):
     """
     Make an image like model and fill it with an analytical model of the primary beam
+    :param model: Template image
     :param telescope: 'VLA' or 'ASKAP'
-    :param model:
-    :return:
+    :return: Primary beam image
     """
-    if telescope == 'MID':
+    if telescope[0:3] == 'MID':
         return create_pb_generic(model, pointingcentre=pointingcentre, diameter=15.0, blockage=0.0)
-    elif telescope == 'VLA':
+    elif telescope[0:3] == 'LOW':
+            return create_low_test_beam(model)
+    elif telescope[0:3] == 'VLA':
         return create_pb_generic(model, pointingcentre=pointingcentre, diameter=25.0, blockage=1.8)
-    elif telescope == 'ASKAP':
+    elif telescope[0:5] == 'ASKAP':
         return create_pb_generic(model, pointingcentre=pointingcentre, diameter=12.0, blockage=1.0)
     else:
         raise NotImplementedError('Telescope %s has no primary beam model' % telescope)
 
+
+def mosaic_pb(model, telescope, pointingcentres):
+    """ Create a mosaic primary beam by adding primary beams for a set of pointing centres
+    
+    Note that the addition is root sum of squares
+    
+    :param model:  Template image
+    :param telescope:
+    :param pointingcentres:  list of pointing centres
+    :return:
+    """
+    assert isinstance(pointingcentres, collections.Iterable), "Need a list of pointing centres"
+    sumpb = create_empty_image_like(model)
+    for pc in pointingcentres:
+        pb = create_pb(model, telescope, pointingcentre=pc)
+        sumpb.data += pb.data ** 2
+    sumpb.data = numpy.sqrt(sumpb.data)
+    return sumpb
 
 
 def create_pb_generic(model, pointingcentre=None, diameter=25.0, blockage=1.8):
@@ -65,7 +87,7 @@ def create_pb_generic(model, pointingcentre=None, diameter=25.0, blockage=1.8):
         with warnings.catch_warnings():
             warnings.simplefilter('ignore', FITSFixedWarning)
             frequency = model.wcs.sub(['spectral']).wcs_pix2world([chan], 0)[0]
-        wavelength = const.c.to('m/s').value / frequency
+        wavelength = const.c.to('m s^-1').value / frequency
         
         d2r = numpy.pi / 180.0
         scale = d2r * numpy.abs(beam.wcs.sub(2).wcs.cdelt[0])
@@ -82,5 +104,3 @@ def create_pb_generic(model, pointingcentre=None, diameter=25.0, blockage=1.8):
     
     beam.data *= beam.data
     return beam
-
-

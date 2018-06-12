@@ -1,0 +1,61 @@
+{
+    "execute": {
+        "use_dask": false,
+        "n_workers": 4,
+        "memory_limit": 4000000000
+    },
+    "component": {
+        "framework": "ARL",
+        "name": "create_skymodel"
+    },
+    "logging": {
+        "filename": "test_pipeline.log",
+        "filemode": "a",
+        "format": "%(asctime)s,%(msecs)d %(name)s %(levelname)s %(message)s",
+        "datefmt": "%H:%M:%S",
+        "level": "INFO"
+    },
+    "buffer": {
+        "directory": "test_results/"
+    },
+    "outputs": {
+        "skymodel": {
+            "name": "test_skymodel.hdf",
+            "data_model": "SkyModel"
+        }
+    },
+    "image": {
+        "npixel": 1024,
+        "nchan": 1,
+        "polarisation_frame": "stokesI",
+        "cellsize": {
+            "value": 0.001,
+            "unit": "rad"
+        },
+        "phasecentre": {
+            "ra": {
+                "value": 30.0,
+                "unit": "deg"
+            },
+            "dec": {
+                "value": -60.0,
+                "unit": "deg"
+            },
+            "frame": "icrs",
+            "equinox": "j2000"
+        },
+        "frequency": {
+            "start": 0.9e8,
+            "stop": 1.1e8,
+            "steps": 7
+        }
+    },
+    "create_skymodel": {
+        "flux_limit": {"value": 1.0, "unit": "Jy"},
+        "catalog": "gleam",
+        "radius": {"value": 1.0, "unit": "rad"},
+        "fill_image": true,
+        "use": true,
+        "kind": "cubic"
+    }
+}

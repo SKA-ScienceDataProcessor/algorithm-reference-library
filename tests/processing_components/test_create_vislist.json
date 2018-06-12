@@ -1,0 +1,56 @@
+{
+    "execute": {
+        "use_dask": false,
+        "n_workers": 4,
+        "memory_limit": 4000000000
+    },
+    "component": {
+        "framework": "ARL",
+        "name": "create_vislist"
+    },
+    "logging": {
+        "filename": "test_pipeline.log",
+        "filemode": "a",
+        "format": "%(asctime)s,%(msecs)d %(name)s %(levelname)s %(message)s",
+        "datefmt": "%H:%M:%S",
+        "level": "INFO"
+    },
+    "buffer": {
+        "directory": "test_results/"
+    },
+
+    "inputs": {
+    },
+    "outputs": {
+        "vis_list": {
+            "name": "test_empty_vislist.hdf",
+            "data_model": "BlockVisibility"
+        }
+    },
+   "create_vislist": {
+        "configuration": "LOWBD2",
+        "rmax": 300.0,
+        "frequency": {
+            "start": 0.9e8,
+            "stop": 1.1e8,
+            "steps": 7
+        },
+        "times": {
+            "start": -1.0,
+            "stop": 1.0,
+            "steps": 11
+        },
+        "phasecentre": {
+            "ra": {
+                "value": 30.0,
+                "unit": "deg"
+            },
+            "dec": {
+                "value": -60.0,
+                "unit": "deg"
+            },
+            "frame": "icrs",
+            "equinox": "j2000"
+        }
+    }
+}

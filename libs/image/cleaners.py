@@ -16,6 +16,8 @@ def hogbom(dirty, psf, window, gain, thresh, niter, fracthresh, prefix=''):
 
     This version operates on numpy arrays.
 
+    :param fracthresh:
+    :param prefix:
     :param dirty: The dirty Image, i.e., the Image to be deconvolved
     :param psf: The point spread-function
     :param window: Regions where clean components are allowed. If True, entire dirty Image is allowed
@@ -29,24 +31,22 @@ def hogbom(dirty, psf, window, gain, thresh, niter, fracthresh, prefix=''):
     assert 0.0 < gain < 2.0
     assert niter > 0
     
-
-    log.info("hogbom %s Max abs in dirty image = %.6f" % (prefix, numpy.max(numpy.abs(dirty))))
+    log.info("hogbom %s Max abs in dirty image = %.6f Jy/beam" % (prefix, numpy.max(numpy.abs(dirty))))
     absolutethresh = max(thresh, fracthresh * numpy.fabs(dirty).max())
     log.info("hogbom %s Start of minor cycle" % prefix)
-    log.info("hogbom %s This minor cycle will stop at %d iterations or peak < %.6f (Jy/beam)" % (prefix, niter,
-                                                                                          absolutethresh))
+    log.info("hogbom %s This minor cycle will stop at %d iterations or peak < %.6f (Jy/beam)" %
+             (prefix, niter, absolutethresh))
 
     comps = numpy.zeros(dirty.shape)
     res = numpy.array(dirty)
     pmax = psf.max()
     assert pmax > 0.0
-    log.info("hogbom %s: Max abs in dirty Image = %.6f" % (prefix, numpy.fabs(res).max()))
     log.info('hogbom %s: Timing for setup: %.3f (s) for dirty shape %s, PSF shape %s' %
-              (prefix, time.time() - starttime, str(dirty.shape), str(psf.shape)))
+             (prefix, time.time() - starttime, str(dirty.shape), str(psf.shape)))
     starttime = time.time()
     aiter = 0
     for i in range(niter):
-        aiter = i+1
+        aiter = i + 1
         if window is not None:
             mx, my = numpy.unravel_index((numpy.fabs(res * window)).argmax(), dirty.shape)
         else:
@@ -64,7 +64,7 @@ def hogbom(dirty, psf, window, gain, thresh, niter, fracthresh, prefix=''):
     
     dtime = time.time() - starttime
     log.info('%s Timing for clean: %.3f (s) for dirty %s, PSF %s , %d iterations, time per clean %.3f (ms)' %
-              (prefix, dtime, str(dirty.shape), str(psf.shape), aiter, 1000.0 * dtime/aiter))
+             (prefix, dtime, str(dirty.shape), str(psf.shape), aiter, 1000.0 * dtime / aiter))
 
     return comps, res
 
@@ -107,6 +107,7 @@ def msclean(dirty, psf, window, gain, thresh, niter, scales, fracthresh, prefix=
 
     This version operates on numpy arrays.
 
+    :param prefix:
     :param fracthresh:
     :param dirty: The dirty image, i.e., the image to be deconvolved
     :param psf: The point spread-function
@@ -133,7 +134,7 @@ def msclean(dirty, psf, window, gain, thresh, niter, scales, fracthresh, prefix=
     log.info("msclean %s: Peak of PSF = %s at %s" % (prefix, pmax, psfpeak))
     dmax = dirty.max()
     dpeak = argmax(dirty)
-    log.info("msclean %s: Peak of Dirty = %s at %s" % (prefix, dmax, dpeak))
+    log.info("msclean %s: Peak of Dirty = %.6f Jy/beam at %s " % (prefix, dmax, dpeak))
     lpsf = psf / pmax
     ldirty = dirty / pmax
 
@@ -171,14 +172,14 @@ def msclean(dirty, psf, window, gain, thresh, niter, scales, fracthresh, prefix=
     if windowstack is not None:
         assert numpy.sum(windowstack) > 0
 
-    log.info("msclean %s: Max abs in dirty Image = %.6f" % (prefix, numpy.fabs(res_scalestack[0, :, :]).max()))
+    log.info("msclean %s: Max abs in dirty Image = %.6f Jy/beam" % (prefix, numpy.fabs(res_scalestack[0, :, :]).max()))
     absolutethresh = max(thresh, fracthresh * numpy.fabs(res_scalestack[0, :, :]).max())
     log.info("msclean %s: Start of minor cycle" % prefix)
-    log.info("msclean %s: This minor cycle will stop at %d iterations or peak < %.6f (Jy/beam)" % (prefix, niter,
-                                                                                          absolutethresh))
+    log.info("msclean %s: This minor cycle will stop at %d iterations or peak < %.6f (Jy/beam)" %
+             (prefix, niter, absolutethresh))
 
     log.info('msclean %s: Timing for setup: %.3f (s) for dirty shape %s, PSF shape %s , scales %s' %
-              (prefix, time.time() - starttime, str(dirty.shape), str(psf.shape), str(scales)))
+             (prefix, time.time() - starttime, str(dirty.shape), str(psf.shape), str(scales)))
     starttime = time.time()
     aiter = 0
     for i in range(niter):
@@ -212,7 +213,7 @@ def msclean(dirty, psf, window, gain, thresh, niter, scales, fracthresh, prefix=
     dtime = time.time() - starttime
     log.info('msclean %s: Timing for clean: %.3f (s) for dirty shape %s, PSF shape %s , scales %s, %d iterations, '
              'time per clean %.3f (ms)' %
-              (prefix, dtime, str(dirty.shape), str(psf.shape), str(scales), aiter, 1000.0 * dtime/aiter))
+             (prefix, dtime, str(dirty.shape), str(psf.shape), str(scales), aiter, 1000.0 * dtime / aiter))
 
     return comps, pmax * res_scalestack[0, :, :]
 
@@ -237,7 +238,6 @@ def create_scalestack(scaleshape, scales, norm=True):
         if scales[iscale] > 0.0:
             rscale2 = 1.0 / (float(scales[iscale]) / 2.0) ** 2
             x = range(xcen - halfscale - 1, xcen + halfscale + 1)
-            fx = numpy.array(x, 'float') - float(xcen)
             # Unroll this since spheroidal_function needs a scalar
             for y in range(ycen - halfscale - 1, ycen + halfscale + 1):
                 for x in range(xcen - halfscale - 1, xcen + halfscale + 1):
@@ -370,8 +370,6 @@ def spheroidal_function(vnu):
     q[1, 1] = 9.599102e-1
     q[1, 2] = 2.918724e-1
 
-    value = 0.
-
     if (vnu >= 0.) and (vnu < 0.75):
         part = 0
         nuend = 0.75
@@ -427,7 +425,7 @@ def msmfsclean(dirty, psf, window, gain, thresh, niter, scales, fracthresh, find
     :param scales: Scales (in pixels width) to be used
     :param fracthresh: Fractional stopping threshold
     :param findpeak: Method of finding peak in mfsclean: 'Algorithm1'|'CASA'|'ARL', Default is ARL.
-    :param facet: Used for logging only
+    :param prefix: Prefix to log messages to provide context
     :return: clean component image, residual image
     """
     
@@ -443,12 +441,11 @@ def msmfsclean(dirty, psf, window, gain, thresh, niter, scales, fracthresh, find
     pmax = psf.max()
     assert pmax > 0.0
 
- 
     psfpeak = argmax(numpy.fabs(psf))
     log.info("mmclean %s: Peak of PSF = %s at %s" % (prefix, pmax, psfpeak))
     dmax = dirty.max()
     dpeak = argmax(dirty)
-    log.info("mmclean %s: Peak of Dirty = %s at %s" % (prefix, dmax, dpeak))
+    log.info("mmclean %s: Peak of Dirty = %.6f Jy/beam at %s " % (prefix, dmax, dpeak))
     lpsf = psf / pmax
     ldirty = dirty / pmax
 
@@ -472,7 +469,6 @@ def msmfsclean(dirty, psf, window, gain, thresh, niter, scales, fracthresh, find
     ssmmpsf = calculate_scale_scale_moment_moment_psf(lpsf, pscalestack)
     hsmmpsf, ihsmmpsf = calculate_scale_inverse_moment_moment_hessian(ssmmpsf)
 
-    
     for scale in range(nscales):
         log.debug("mmclean %s: Moment-moment coupling matrix[scale %d] =\n %s" % (prefix, scale, hsmmpsf[scale]))
 
@@ -486,11 +482,11 @@ def msmfsclean(dirty, psf, window, gain, thresh, niter, scales, fracthresh, find
         windowstack = numpy.zeros_like(scalestack)
         windowstack[convolve_scalestack(scalestack, window) > 0.9] = 1.0
 
-    log.info("mmclean %s: Max abs in dirty Image = %.6f" % (prefix, numpy.fabs(smresidual[0, 0, :, :]).max()))
+    log.info("mmclean %s: Max abs in dirty Image = %.6f Jy/beam" % (prefix, numpy.fabs(smresidual[0, 0, :, :]).max()))
     absolutethresh = max(thresh, fracthresh * numpy.fabs(smresidual[0, 0, :, :]).max())
     log.info("mmclean %s: Start of minor cycle" % prefix)
-    log.info("mmclean %s: This minor cycle will stop at %d iterations or peak < %.6f (Jy/beam)" % (prefix, niter,
-                                                                                          absolutethresh))
+    log.info("mmclean %s: This minor cycle will stop at %d iterations or peak < %.6f (Jy/beam)" %
+             (prefix, niter, absolutethresh))
 
     # Start iterations
     scale_counts = numpy.zeros(nscales, dtype='int')
@@ -498,7 +494,7 @@ def msmfsclean(dirty, psf, window, gain, thresh, niter, scales, fracthresh, find
 
     aiter = 0
     log.info('mmclean %s: Timing for setup: %.3f (s) for dirty shape %s, PSF shape %s , scales %s, %d moments' %
-              (prefix, time.time() - starttime, str(dirty.shape), str(psf.shape), str(scales), nmoments))
+             (prefix, time.time() - starttime, str(dirty.shape), str(psf.shape), str(scales), nmoments))
     starttime = time.time()
     for i in range(niter):
         aiter = i + 1
@@ -534,8 +530,7 @@ def msmfsclean(dirty, psf, window, gain, thresh, niter, scales, fracthresh, find
     dtime = time.time() - starttime
     log.info('mmclean %s: Timing for clean: %.3f (s) for dirty shape %s, PSF shape %s , scales %s, %d moments, '
              '%d iterations, time per clean %.3f (ms)' %
-              (prefix, dtime, str(dirty.shape), str(psf.shape), str(scales), nmoments, aiter, 1000.0 * dtime/aiter))
-
+             (prefix, dtime, str(dirty.shape), str(psf.shape), str(scales), nmoments, aiter, 1000.0 * dtime / aiter))
 
     return m_model, pmax * smresidual[0, :, :, :]
 
@@ -607,6 +602,7 @@ def calculate_scale_moment_residual(residual, scalestack):
 
     Part of the initialisation for Algorithm 1: lines 12 - 17
 
+    :param scalestack:
     :param residual: residual [nmoments, nx, ny]
     :return: scale-dependent moment residual [nscales, nmoments, nx, ny]
     """
@@ -625,6 +621,7 @@ def calculate_scale_scale_moment_moment_psf(psf, scalestack):
 
     Part of the initialisation for Algorithm 1
 
+    :param scalestack:
     :param psf: psf
     :return: scale-dependent moment psf [nscales, nscales, nmoments, nmoments, nx, ny]
     """
@@ -680,6 +677,7 @@ def find_optimum_scale_zero_moment(smpsol, windowstack):
 
     Line 27 of Algorithm 1
 
+    :param windowstack:
     :param smpsol: Decoupled residual images for each scale and moment
     :return: x, y, optimum scale for peak
     """

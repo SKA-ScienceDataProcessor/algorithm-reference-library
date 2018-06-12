@@ -30,4 +30,5 @@ psutil
 cloudpickle
 seqfile
 h5py
+jsonschema
 

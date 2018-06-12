@@ -9,14 +9,17 @@ from typing import Union, List
 import astropy.units as u
 import numpy
 from astropy.convolution import Gaussian2DKernel
-from astropy.coordinates import SkyCoord, match_coordinates_sky
+from astropy.coordinates import SkyCoord
+from astropy.coordinates import match_coordinates_sky
 from astropy.stats import gaussian_fwhm_to_sigma
-from astropy.wcs.utils import skycoord_to_pixel, pixel_to_skycoord
+from astropy.wcs.utils import pixel_to_skycoord
+from astropy.wcs.utils import skycoord_to_pixel
 from photutils import segmentation
+from scipy import interpolate
 
-from libs.util.array_functions import insert_function_sinc, insert_function_L, insert_function_pswf, insert_array
 from data_models.memory_data_models import Image, Skycomponent, assert_same_chan_pol
 from data_models.polarisation import PolarisationFrame
+from libs.util.array_functions import insert_function_sinc, insert_function_L, insert_function_pswf, insert_array
 
 log = logging.getLogger(__name__)
 
@@ -67,6 +70,7 @@ def find_nearest_skycomponent(home: SkyCoord, comps) -> (Skycomponent, float):
     best = comps[best_index]
     return best, best.direction.separation(home).rad
 
+
 def find_separation_skycomponents(comps_test, comps_ref=None):
     """ Find the matrix of separations for two lists of components
     
@@ -82,7 +86,7 @@ def find_separation_skycomponents(comps_test, comps_ref=None):
                 distances[i, j] = comps_test[i].direction.separation(comps_test[j].direction).rad
                 distances[j, i] = distances[i, j]
         return distances
-
+    
     else:
         ncomps_ref = len(comps_ref)
         ncomps_test = len(comps_test)
@@ -90,7 +94,7 @@ def find_separation_skycomponents(comps_test, comps_ref=None):
         for ref in range(ncomps_ref):
             for test in range(ncomps_test):
                 separations[ref, test] = comps_test[test].direction.separation(comps_ref[ref].direction).rad
-            
+        
         return separations
 
 
@@ -131,7 +135,7 @@ def find_skycomponent_matches(comps_test, comps_ref, tol=1e-7):
     catalog_test = SkyCoord(ra=[c.direction.ra for c in comps_test],
                             dec=[c.direction.dec for c in comps_test])
     catalog_ref = SkyCoord(ra=[c.direction.ra for c in comps_ref],
-                            dec=[c.direction.dec for c in comps_ref])
+                           dec=[c.direction.dec for c in comps_ref])
     idx, dist2d, dist3d = match_coordinates_sky(catalog_test, catalog_ref)
     matches = list()
     for test, comp_test in enumerate(comps_test):
@@ -143,7 +147,7 @@ def find_skycomponent_matches(comps_test, comps_ref, tol=1e-7):
     return matches
 
 
-def select_components_by_separation(home, comps, max=2*numpy.pi, min=0.0) -> [Skycomponent]:
+def select_components_by_separation(home, comps, max=2 * numpy.pi, min=0.0) -> [Skycomponent]:
     """ Select components with a range in separation
 
     :param home: Home direction
@@ -259,7 +263,7 @@ def find_skycomponents(im: Image, fwhm=1.0, threshold=10.0, npixels=5) -> List[S
             shape='Point',
             polarisation_frame=im.polarisation_frame,
             params={}))
- #           params={'xpixel': xs, 'ypixel': ys, 'sum_flux': flux}))  # Table has lots of data_models, could add more in future
+    #           params={'xpixel': xs, 'ypixel': ys, 'sum_flux': flux}))  # Table has lots of data_models, could add more in future
     
     return comps
 
@@ -335,25 +339,37 @@ def insert_skycomponent(im: Image, sc: Union[Skycomponent, List[Skycomponent]], 
     
     log.debug("insert_skycomponent: Using insert method %s" % insert_method)
     
+    image_frequency = im.frequency
+    
     for comp in sc:
         
         assert comp.shape == 'Point', "Cannot handle shape %s" % comp.shape
         
         assert_same_chan_pol(im, comp)
         pixloc = skycoord_to_pixel(comp.direction, im.wcs, origin=0, mode='wcs')
+        
+        flux = numpy.zeros([nchan, npol])
+        
+        if comp.flux.shape[0] > 1:
+            for pol in range(npol):
+                fint = interpolate.interp1d(comp.frequency, comp.flux[:, pol], kind="cubic")
+                flux[:, pol] = fint(image_frequency)
+        else:
+            flux = comp.flux
+        
         if insert_method == "Lanczos":
-            insert_array(im.data, pixloc[0], pixloc[1], comp.flux, bandwidth, support,
+            insert_array(im.data, pixloc[0], pixloc[1], flux, bandwidth, support,
                          insert_function=insert_function_L)
         elif insert_method == "Sinc":
-            insert_array(im.data, pixloc[0], pixloc[1], comp.flux, bandwidth, support,
+            insert_array(im.data, pixloc[0], pixloc[1], flux, bandwidth, support,
                          insert_function=insert_function_sinc)
         elif insert_method == "PSWF":
-            insert_array(im.data, pixloc[0], pixloc[1], comp.flux, bandwidth, support,
+            insert_array(im.data, pixloc[0], pixloc[1], flux, bandwidth, support,
                          insert_function=insert_function_pswf)
         else:
             insert_method = 'Nearest'
             y, x = numpy.round(pixloc[1]).astype('int'), numpy.round(pixloc[0]).astype('int')
             if x >= 0 and x < nx and y >= 0 and y < ny:
-                im.data[:, :, y, x] += comp.flux
+                im.data[:, :, y, x] += flux[...]
     
     return im

@@ -1,0 +1,389 @@
+{
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "title": "ARL schema",
+    "description": "Schema describing ARL parameters",
+    "version": "0.1",
+    "type": "object",
+    "logging": {
+        "description": "Definition of logging",
+        "basic": {
+            "filename": {
+                "description": "File to write to",
+                "type": "string"
+            },
+            "filemode": {
+                "description": "File access mode",
+                "type": "string"
+            },
+            "format": {
+                "description": "Format e.g. ''%(asctime)s,%(msecs)d %(name)s %(levelname)s %(message)s'",
+                "type": "string"
+            },
+            "datefmt": {
+                "description": "Date format e.g. '%H:%M:%S'"
+            },
+            "level": {
+                "description": "Logging level e.g. logging.INFO, logging.DEBUG",
+                "type": "string"
+            }
+        }
+    },
+    "component": {
+        "description": "Component to execute",
+        "framework": "string",
+        "name": "string"
+    },
+    "execute": {
+        "description": "Control of execution",
+        "use_dask": {
+            "description": "Use Dask? (True or False)",
+            "type": "boolean",
+            "default": false
+        },
+        "n_workers": {
+            "type": "number",
+            "minimum": 1
+        },
+        "memory_limit": {
+            "type": "number"
+        }
+    },
+    "definitions": {
+        "quantity": {
+            "description": "Analog to astropy quantity",
+            "properties": {
+                "value": {
+                    "type": "number",
+                    "minimum": 0.0
+                },
+                "unit": {
+                    "type": "string"
+                }
+            }
+        },
+        "linspace": {
+            "description": "Analog to numpy linspace",
+            "properties": {
+                "start": {
+                    "type": "number"
+                },
+                "stop": {
+                    "type": "number"
+                },
+                "steps": {
+                    "type": "number"
+                }
+            }
+        },
+        "direction": {
+            "description": "Direction on sky",
+            "type": "object",
+            "properties": {
+                "ra": {
+                    "description": "Right Ascension e.g. 0.001rad, 1arcsec",
+                    "$ref": "#/definitions/quantity"
+                },
+                "dec": {
+                    "description": "Declination e.g. 0.001rad, 1arcsec",
+                    "$ref": "#/definitions/quantity"
+                },
+                "equinox": {
+                    "type": "string",
+                    "default": "J2000"
+                },
+                "frame": {
+                    "type": "string",
+                    "default": "ICRS"
+                }
+            },
+            "required": [
+                "ra",
+                "dec",
+                "equinox",
+                "frame"
+            ]
+        },
+        "polarisation_frame": {
+            "properties": {
+                "type": {
+                    "enum": [
+                        "circular",
+                        "circularnp",
+                        "linear",
+                        "linearnp",
+                        "stokesIQUV",
+                        "stokesIV",
+                        "stokesIQ",
+                        "stokesI"
+                    ]
+                }
+            },
+            "required": [
+                "type"
+            ]
+        },
+        "buffer_model": {
+            "description": "Data model in buffer",
+            "type": "object",
+            "properties": {
+                "name": {
+                    "type": "string"
+                },
+                "data_model": {
+                    "enum": [
+                        "BlockVisibility",
+                        "Image",
+                        "SkyModel",
+                        "GainTable"
+                    ]
+                }
+            }
+        }
+    },
+    "buffer": {
+        "description": "Data model buffer definition",
+        "type": "object",
+        "properties": {
+            "directory": "string"
+        }
+    },
+    "inputs": {
+        "description": "Definition of possible inputs",
+        "vislist": {
+            "description": "Input list of visibilities",
+            "$ref": "#/definitions/buffer_model"
+        },
+        "image": {
+            "description:": "Image",
+            "$ref": "#/definitions/buffer_model"
+        },
+        "skymodel": {
+            "description:": "Sky model (images plus components)",
+            "$ref": "#/definitions/buffer_model"
+        }
+    },
+    "outputs": {
+        "description": "Definition of possible outputs",
+        "vislist": {
+            "description": "Output list of visibilities",
+            "$ref": "#/definitions/buffer_model"
+        },
+        "image": {
+            "description:": "Image",
+            "$ref": "#/definitions/buffer_model"
+        },
+        "skymodel": {
+            "description:": "Sky model (images plus components)",
+            "type": "string",
+            "data_model": "skymodel",
+            "format": "hdf"
+        },
+        "gaintable": {
+            "$ref": "#/definitions/buffer_model"
+        }
+    },
+    "imaging": {
+        "description": "Parameters controlling the imaging steps",
+        "context": {
+            "description": "Imaging context e.g. wstack, facets",
+            "enum:": [
+                "2d",
+                "wstack",
+                "facets"
+            ],
+            "default": "2d"
+        },
+        "vis_slices": {
+            "description": "Number of wslices",
+            "type": "number",
+            "default": 0
+        }
+    },
+    "image": {
+        "description": "Parameters used to define a desired image",
+        "phasecentre": {
+            "description": "Phase centre of image (a direction)",
+            "$ref": "#/definitions/direction"
+        },
+        "polarisation_frame": {
+            "description": "Polarisation frame e.g. stokesI, stokesIQUV",
+            "$ref": "#/definitions/polarisation_frame",
+            "default": "stokesI"
+        },
+        "cellsize": {
+            "description": "Cellsize e.g. 0.001rad, 1arcsec",
+            "$ref": "#/definitions/quantity"
+        },
+        "npixel": {
+            "description": "Number of pizels on each axis",
+            "type": "string",
+            "default": 1024,
+            "minimum": 64
+        },
+        "nchan": {
+            "description": "Number of channels in image",
+            "type": "string",
+            "default": 1,
+            "minimum": 1
+        }
+    },
+    "deconvolution": {
+        "description": "Parameters defining deconvolution",
+        "scales": {
+            "description": "Vector of scales used in multi-scale deconvolution",
+            "type": "array",
+            "items": {
+                "type": "number"
+            }
+        },
+        "algorithm": {
+            "description": "Deconvolution algorithm e.g. hogbom, msclean, mmclean",
+            "type": "string",
+            "default": "msclean"
+        },
+        "niter": {
+            "description": "Number of iterations",
+            "type": "number",
+            "default": 1000
+        },
+        "threshold": {
+            "description": "Absolute threshold in Jy/beam",
+            "type": "number",
+            "default": 0.0
+        },
+        "fractional_threshold": {
+            "description": "",
+            "type": "number",
+            "default": 0.1
+        },
+        "gain": {
+            "description": "Deconvolution loop gain > 0 < 2",
+            "type": "number",
+            "default": 0.1
+        },
+        "psf_support": {
+            "description": "Support of PSF used in minor loop",
+            "type": "number",
+            "default": 64
+        },
+        "nmoment": {
+            "description": "Number of moments (Taylor terms)",
+            "type": "number",
+            "default": 1
+        },
+        "deconvolve_facets": {
+            "description": "Number of facets used in deconvolution",
+            "type": "number",
+            "default": 1
+        },
+        "deconvolve_overlap": {
+            "description": "Overlap between facets in deconvolution",
+            "type": "number",
+            "default": 0
+        },
+        "deconvolve_taper": {
+            "description": "Taper used in deconvolution: None, linear, tukey",
+            "type": "string",
+            "default": "tukey"
+        },
+        "nmajor": {
+            "description": "Number of major cycles",
+            "type": "number",
+            "default": 1
+        }
+    },
+    "create_vislist": {
+        "description": "Create observations",
+        "configuration": {
+            "type": "string",
+            "description": "Configuration name e.g. LOWBD2, MIDBD2, LOFAR, ASKAP, VLAA"
+        },
+        "rmax": {
+            "description": "Maximum baseline (m)",
+            "type": "number",
+            "default": 1e9
+        },
+        "frequency": {
+            "type": {
+                "$ref": "#/definitions/linspace"
+            }
+        },
+        "times": {
+            "type": {
+                "$ref": "#/definitions/linspace"
+            }
+        },
+        "phasecentre": {
+            "description": "Phase centre for observation",
+            "type": {
+                "$ref": "#/definitions/direction"
+            }
+        },
+        "order": {
+            "enum": [
+                "time",
+                "frequency",
+                "both",
+                "none"
+            ]
+        }
+    },
+    "create_skymodel": {
+        "description": "Parameters used to define a desired skymodel",
+        "flux_limit": {
+            "description": "Minimum flux included",
+            "$ref": "#/definitions/quantity"
+        },
+        "catalog": {
+            "description": "Catalog to use",
+            "enum": [
+                "gleam",
+                "empty"
+            ]
+        },
+        "radius": {
+            "description": "Radius of sources to include",
+            "$ref": "#/definitions/quantity"
+        },
+        "components": {
+            "descriptions": "Parameters for component generation",
+            "use": {"type": "boolean"},
+            "kind": {
+                "enum": ["linear", "cubic"]
+            }
+        },
+        "fill_image": {
+            "description": "Fill the components into the image",
+            "type": "boolean",
+            "default": false
+        }
+    },
+    "corrupt_vislist": {
+        "description": "Corrupt visibilities",
+        "gaintable": "string",
+        "visibility_noise": {
+            "description": "Visibility noise",
+            "$ref": "#/definitions/quantity"
+        },
+        "phase_error": {
+            "description": "Phase error rms to be added",
+            "$ref": "#/definitions/quantity"
+        },
+        "amplitude_error": {
+            "description": "Amplitude error rms to be added",
+            "type": "number"
+        }
+    },
+    "primary_beam": {
+        "apply": {
+            "description": "Apply the primary beam to the sky model",
+            "type": "boolean"
+        },
+        "flux_limit": {
+            "description": "Ignore any component less than this flux",
+            "#ref": "#/definitions/quantity"
+
+        }
+    }
+}
+

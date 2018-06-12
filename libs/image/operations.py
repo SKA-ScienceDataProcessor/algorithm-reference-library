@@ -7,6 +7,8 @@ import logging
 import warnings
 
 import numpy
+
+import astropy.units as u
 from astropy.coordinates import SkyCoord
 from astropy.wcs import FITSFixedWarning
 from astropy.wcs import WCS
@@ -24,6 +26,44 @@ def image_sizeof(im: Image):
     """ Return size in GB
     """
     return im.size()
+
+
+def create_image(npixel=512, cellsize=0.000015, polarisation_frame=PolarisationFrame("stokesI"),
+                 frequency=numpy.array([1e8]), channel_bandwidth=numpy.array([1e6]),
+                 phasecentre=None) -> Image:
+    """Create image
+
+    :param npixel: Number of pixels
+    :param polarisation_frame: Polarisation frame (default PolarisationFrame("stokesI"))
+    :param cellsize: cellsize in radians
+    :param frequency:
+    :param channel_bandwidth: Channel width (Hz)
+    :param phasecentre: phasecentre (SkyCoord)
+    :return: Image
+
+    """
+    
+    if phasecentre is None:
+        phasecentre = SkyCoord(ra=+15.0 * u.deg, dec=-35.0 * u.deg, frame='icrs', equinox='J2000')
+    
+    if polarisation_frame is None:
+        polarisation_frame = PolarisationFrame("stokesI")
+    
+    npol = polarisation_frame.npol
+    nchan = len(frequency)
+    shape = [nchan, npol, npixel, npixel]
+    w = WCS(naxis=4)
+    # The negation in the longitude is needed by definition of RA, DEC
+    w.wcs.cdelt = [-cellsize * 180.0 / numpy.pi, cellsize * 180.0 / numpy.pi, 1.0, channel_bandwidth[0]]
+    w.wcs.crpix = [npixel // 2 + 1, npixel // 2 + 1, 1.0, 1.0]
+    w.wcs.ctype = ["RA---SIN", "DEC--SIN", 'STOKES', 'FREQ']
+    w.wcs.crval = [phasecentre.ra.deg, phasecentre.dec.deg, 1.0, frequency[0]]
+    w.naxis = 4
+    w.wcs.radesys = 'ICRS'
+    w.wcs.equinox = 2000.0
+    
+    return create_image_from_array(numpy.zeros(shape), w, polarisation_frame=polarisation_frame)
+
 
 
 def create_image_from_array(data: numpy.array, wcs: WCS, polarisation_frame: PolarisationFrame) -> Image:
@@ -151,14 +191,8 @@ def convert_image_to_kernel(im: Image, oversampling, kernelwidth):
         newwcs.wcs.crval[axis + 4] = im.wcs.wcs.crval[axis + 2]
         newwcs.wcs.cdelt[axis + 4] = im.wcs.wcs.cdelt[axis + 2]
     
-    newdata_shape = []
-    newdata_shape.append(nchan)
-    newdata_shape.append(npol)
-    newdata_shape.append(oversampling)
-    newdata_shape.append(oversampling)
-    newdata_shape.append(kernelwidth)
-    newdata_shape.append(kernelwidth)
-    
+    newdata_shape = [nchan, npol, oversampling, oversampling, kernelwidth, kernelwidth]
+
     newdata = numpy.zeros(newdata_shape, dtype=im.data.dtype)
     
     assert oversampling * kernelwidth < ny

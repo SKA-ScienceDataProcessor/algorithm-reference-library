@@ -105,10 +105,15 @@ Visibility
 * Remove continuum: :py:mod:`processing_components.visibility.operations.remove_continuum_blockvisibility`
 * Integrate across channels: :py:mod:`processing_components.visibility.operations.integrate_visibility_by_channel`
 
-Pipelines:
-==========
+Pipelines
+=========
 
 * Execution framework (an interface to Dask): :py:mod:`processing_components.component_support.arlexecute`
 * Prediction and inversion of visibility data: :py:mod:`processing_components.pipelines.pipeline_components`
 * Generic image or visibility unary operations::py:mod:`processing_components.component_suppport.generic_components`
 * Testing and simulation support: :py:mod:`processing_components.util.testing_support`
+
+Workflows
+=========
+
+* ARL component wrappers: :py:mod:`workflows.wrappers`

@@ -1,0 +1,46 @@
+{
+    "execute": {
+        "use_dask": true,
+        "n_workers": 4,
+        "memory_limit": 4000000000
+    },
+    "component": {
+        "framework": "ARL",
+        "name": "predict_vislist"
+    },
+    "logging": {
+        "filename": "test_pipeline.log",
+        "filemode": "a",
+        "format": "%(asctime)s,%(msecs)d %(name)s %(levelname)s %(message)s",
+        "datefmt": "%H:%M:%S",
+        "level": "INFO"
+    },
+    "buffer": {
+        "directory": "test_results/"
+    },
+
+    "inputs": {
+        "skymodel": {
+            "name":"test_skymodel.hdf",
+            "data_model": "SkyModel"
+        },
+        "vis_list": {
+            "name": "test_empty_vislist.hdf",
+            "data_model": "BlockVisibility"
+        }
+    },
+    "outputs": {
+        "vis_list": {
+            "name": "test_perfect_vislist.hdf",
+            "data_model": "BlockVisibility"
+        }
+    },
+    "imaging": {
+        "context": "wstack",
+        "vis_slices": 11
+    },
+    "primary_beam": {
+        "apply": true,
+        "flux_limit" : {"value": 0.01, "unit":"Jy"}
+    }
+}

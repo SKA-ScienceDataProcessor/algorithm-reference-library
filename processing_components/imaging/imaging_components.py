@@ -46,6 +46,7 @@ from ..imaging.imaging_functions import imaging_context
 from ..imaging.weighting import weight_visibility
 from ..visibility.base import copy_visibility
 from ..visibility.gather_scatter import visibility_scatter, visibility_gather
+from ..image.operations import calculate_image_frequency_moments
 
 log = logging.getLogger(__name__)
 
@@ -110,17 +111,28 @@ def sum_predict_results(results):
     return sum_results
 
 
-def threshold_list(results, threshold, fractional_threshold, prefix=''):
-    """ Find Threshold
+def threshold_list(results, threshold, fractional_threshold, use_moment0=True, prefix=''):
+    """ Find Threshold, optionally using moment 0
     
     :param results:
+    :param use_moment0: Use moment 0 for threshold
     :return:
     """
     peak = 0.0
     for result in results:
-        peak = max(peak, numpy.max(numpy.abs(result.data[0,...])))
+        if use_moment0:
+            moments = calculate_image_frequency_moments(result)
+            peak = max(peak, numpy.max(numpy.abs(moments.data[0,...]/result.shape[0])))
+        else:
+            peak = max(peak, numpy.max(numpy.abs(result.data)))
+            
     actual = max(peak * fractional_threshold, threshold)
-    log.info("threshold_list %s: peak = %.6f, actual threshold = %.6f" % (prefix, peak, actual))
+    
+    if use_moment0:
+        log.info("threshold_list %s: peak in moment 0 = %.6f, threshold will be %.6f" % (prefix, peak, actual))
+    else:
+        log.info("threshold_list %s: peak = %.6f, threshold will be %.6f" % (prefix, peak, actual))
+
     return actual
 
 
@@ -394,26 +406,44 @@ def deconvolve_component(dirty_list, psf_list, model_imagelist, prefix='', **kwa
     nchan = len(dirty_list)
 
     def deconvolve(dirty, psf, model, facet, gthreshold):
+        import time
+        starttime = time.time()
         if prefix == '':
-            lprefix = "(facet %d):" % facet
+            lprefix = "facet %d" % facet
         else:
-            lprefix = "(%s, facet %d):" % (prefix, facet)
+            lprefix = "%s, facet %d" % (prefix, facet)
+            
+        nmoments = get_parameter(kwargs, "nmoments", 0)
         
-        this_peak = numpy.max(numpy.abs(dirty.data[0,...]))
-        if this_peak > gthreshold:
-            log.info("deconvolve_component %s: cleaning - peak %.6f > threshold %.6f" % (lprefix, this_peak,
+        if nmoments > 0:
+            moment0 = calculate_image_frequency_moments(dirty)
+            this_peak = numpy.max(numpy.abs(moment0.data[0,...]))/dirty.data.shape[0]
+        else:
+            this_peak = numpy.max(numpy.abs(dirty.data[0,...]))
+            
+        if this_peak > 1.1 * gthreshold:
+            log.info("deconvolve_component %s: cleaning - peak %.6f > 1.1 * threshold %.6f" % (lprefix, this_peak,
                                                                                          gthreshold))
             kwargs['threshold'] = gthreshold
             result, _ = deconvolve_cube(dirty, psf, prefix=lprefix, **kwargs)
+
             if result.data.shape[0] == model.data.shape[0]:
                 result.data += model.data
             else:
                 log.warning("deconvolve_component %s: Initial model %s and clean result %s do not have the same shape" %
                             (lprefix, str(model.data.shape[0]), str(result.data.shape[0])))
+
+            flux = numpy.sum(result.data[0, 0, ...])
+            log.info('### %s, %.6f, %.6f, True, %.3f # cycle, facet, peak, cleaned flux, clean, time?'
+                     % (lprefix, this_peak, flux, time.time()- starttime))
+
             return result
         else:
-            log.info("deconvolve_component %s: Not cleaning - peak %.6f <= threshold %.6f" % (lprefix, this_peak,
+            log.info("deconvolve_component %s: Not cleaning - peak %.6f <= 1.1 * threshold %.6f" % (lprefix, this_peak,
                                                                                                   gthreshold))
+            log.info('### %s, %.6f, %.6f, False, %.3f # cycle, facet, peak, cleaned flux, clean, time?'
+                     % (lprefix, this_peak, 0.0, time.time()- starttime))
+
             return copy_image(model)
     
     deconvolve_facets = get_parameter(kwargs, 'deconvolve_facets', 1)
@@ -452,9 +482,14 @@ def deconvolve_component(dirty_list, psf_list, model_imagelist, prefix='', **kwa
     # Work out the threshold. Need to find global peak over all dirty_list images
     threshold = get_parameter(kwargs, "threshold", 0.0)
     fractional_threshold = get_parameter(kwargs, "fractional_threshold", 0.1)
+    nmoments = get_parameter(kwargs, "nmoments", 0)
+    use_moment0 = nmoments > 0
 
+    # Find the global threshold. This uses the peak in the average on the frequency axis since we
+    # want to use it in a stopping criterion in a moment clean
     global_threshold = arlexecute.execute(threshold_list, nout=1)(scattered_facets_list, threshold,
-                                                                  fractional_threshold, prefix=prefix)
+                                                                  fractional_threshold,
+                                                                  use_moment0=use_moment0, prefix=prefix)
 
     facet_list = numpy.arange(deconvolve_number_facets).astype('int')
     scattered_results_list = [

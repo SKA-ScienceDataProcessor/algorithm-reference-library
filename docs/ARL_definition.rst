@@ -309,9 +309,46 @@ Support
 .. automodule:: processing_components.util.support_components
    :members:
 
+Processing Component Interface
+------------------------------
+
+Wrappers
+++++++++
+
+.. automodule:: processing_components.external_interface
+   :members:
+
+ARL JSON schema
++++++++++++++++
+
+.. automodule:: processing_components.external_interface.arl_json
+   :members:
+
+.. automodule:: processing_components.external_interface.arl_json.json_helpers
+   :members:
+
+
+Component wrapper
++++++++++++++++++
+
+.. automodule:: processing_components.external_interface.processing_component_interface
+   :members:
+
+Processing component wrapper
+++++++++++++++++++++++++++++
+
+.. automodule:: processing_components.external_interface.processing_component_wrappers
+   :members:
+
+Execution helpers
++++++++++++++++++
+
+.. automodule:: processing_components.external_interface.execution_helper
+   :members:
+
 
 Unit tests
-**********
+==========
 
 Unit tests written in standard python style are available.
 
