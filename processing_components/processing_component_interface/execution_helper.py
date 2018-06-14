@@ -6,7 +6,7 @@ import logging
 from json import loads
 
 from processing_components.component_support.arlexecute import arlexecute
-from processing_components.external_interface.arl_json.json_assertions import assert_valid_schema
+from processing_components.processing_component_interface.arl_json.json_assertions import assert_valid_schema
 from data_models.parameters import arl_path
 
 def initialise_config_wrapper(config_file):
@@ -18,7 +18,7 @@ def initialise_config_wrapper(config_file):
     with open(config_file, 'r') as file:
         config = loads(file.read())
     
-    assert_valid_schema(config, arl_path('processing_components/external_interface/arl_json/arl_schema'
+    assert_valid_schema(config, arl_path('processing_components/processing_component_interface/arl_json/arl_schema'
                                          '.json'))
     
     return config

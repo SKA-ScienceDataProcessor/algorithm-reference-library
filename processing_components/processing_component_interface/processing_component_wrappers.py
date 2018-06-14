@@ -6,26 +6,23 @@ These can be executed using processing_component_interface.py.
 
 import numpy
 
+from data_models.buffer_data_models import BufferBlockVisibility, BufferImage, BufferSkyModel, BufferGainTable
 from data_models.memory_data_models import SkyModel
 from data_models.polarisation import PolarisationFrame
-
 from libs.image.operations import create_image
 from processing_components.component_support.arlexecute import arlexecute
 from processing_components.image.gather_scatter import image_gather_channels
-from processing_components.image.operations import export_image_to_fits
 from processing_components.imaging.base import create_image_from_visibility, predict_skycomponent_visibility
 from processing_components.imaging.imaging_components import predict_component
 from processing_components.imaging.imaging_components import remove_sumwt
 from processing_components.pipelines.pipeline_components import continuum_imaging_component, ical_component
+from processing_components.processing_component_interface.arl_json.json_helpers import json_to_quantity, \
+    json_to_linspace, json_to_skycoord
 from processing_components.skycomponent.operations import apply_beam_to_skycomponent
+from processing_components.skycomponent.operations import insert_skycomponent
 from processing_components.util.primary_beams import create_pb
 from processing_components.util.support_components import simulate_component, corrupt_component
 from processing_components.util.testing_support import create_low_test_skycomponents_from_gleam
-
-from processing_components.skycomponent.operations import insert_skycomponent
-from processing_components.external_interface.arl_json.json_helpers import json_to_quantity, json_to_linspace, json_to_skycoord
-
-from data_models.data_model_helpers import memory_data_model_to_buffer, buffer_data_model_to_memory
 
 
 def continuum_imaging_wrapper(conf):
@@ -34,7 +31,7 @@ def continuum_imaging_wrapper(conf):
     :param conf:
     :return:
     """
-    vis_list = buffer_data_model_to_memory(conf["buffer"], conf['inputs']['vis_list'])
+    vis_list = BufferBlockVisibility(conf["buffer"], conf['inputs']['vis_list']).memory_data_model
     
     cellsize = json_to_quantity(conf["image"]["cellsize"]).to("rad").value
     npixel = conf["image"]["npixel"]
@@ -62,18 +59,20 @@ def continuum_imaging_wrapper(conf):
                                          deconvolve_taper=conf["deconvolution"]["deconvolve_taper"],
                                          vis_slices=conf["imaging"]["vis_slices"],
                                          psf_support=conf["deconvolution"]["psf_support"])
-    
+
     def output_images(result):
+        BufferSkyModel(conf["buffer"], conf['outputs']['skymodel'], SkyModel(images=result[0])).sync()
+    
         deconvolved = image_gather_channels(result[0])
         residual = image_gather_channels(remove_sumwt(result[1]))
         restored = image_gather_channels(result[2])
-        
-        memory_data_model_to_buffer(deconvolved, conf["buffer"], conf['outputs']['deconvolved'])
-        memory_data_model_to_buffer(restored, conf["buffer"], conf['outputs']['restored'])
-        memory_data_model_to_buffer(residual, conf["buffer"], conf['outputs']['residual'])
-        
-        return result
     
+        BufferImage(conf["buffer"], conf['outputs']['deconvolved'], deconvolved).sync()
+        BufferImage(conf["buffer"], conf['outputs']['residual'], residual).sync()
+        BufferImage(conf["buffer"], conf['outputs']['restored'], restored).sync()
+    
+        return result
+
     return arlexecute.execute(output_images)(result)
 
 
@@ -83,7 +82,7 @@ def ical_wrapper(conf):
     :param conf: Configuration from JSON file
     :return:
     """
-    vis_list = buffer_data_model_to_memory(conf["buffer"], conf['inputs']['vis_list']["name"])
+    vis_list = BufferBlockVisibility(conf["buffer"], conf['inputs']['vis_list']).memory_data_model
     
     cellsize = json_to_quantity(conf["image"]["cellsize"]).to("rad").value
     npixel = conf["image"]["npixel"]
@@ -113,13 +112,16 @@ def ical_wrapper(conf):
                             psf_support=conf["deconvolution"]["psf_support"])
     
     def output_images(result):
+        BufferSkyModel(conf["buffer"], conf['outputs']['skymodel'], SkyModel(images=result[0])).sync()
+        
         deconvolved = image_gather_channels(result[0])
         residual = image_gather_channels(remove_sumwt(result[1]))
         restored = image_gather_channels(result[2])
         
-        export_image_to_fits(deconvolved, conf['outputs']['deconvolved'])
-        export_image_to_fits(restored, conf['outputs']['restored'])
-        export_image_to_fits(residual, conf['outputs']['residual'])
+        BufferImage(conf["buffer"], conf['outputs']['deconvolved'], deconvolved).sync()
+        BufferImage(conf["buffer"], conf['outputs']['residual'], residual).sync()
+        BufferImage(conf["buffer"], conf['outputs']['restored'], restored).sync()
+        
         
         return result
     
@@ -151,7 +153,11 @@ def create_vislist_wrapper(conf):
                                   phasecentre=phasecentre,
                                   order='frequency')
     
-    return arlexecute.execute(memory_data_model_to_buffer)(vis_list, conf["buffer"], conf["outputs"]["vis_list"])
+    def output_vislist(v):
+        bdm = BufferBlockVisibility(conf["buffer"], conf["outputs"]["vis_list"], v)
+        bdm.sync()
+    
+    return arlexecute.execute(output_vislist)(vis_list)
 
 
 def create_skymodel_wrapper(conf):
@@ -174,15 +180,14 @@ def create_skymodel_wrapper(conf):
     flux_limit = json_to_quantity(conf['create_skymodel']['flux_limit']).to("Jy").value
     radius = json_to_quantity(conf['create_skymodel']['radius']).to('rad').value
     kind = conf['create_skymodel']['kind']
-
+    
     models = [arlexecute.execute(create_image)(npixel=npixel, frequency=[frequency[f]],
                                                channel_bandwidth=[channel_bandwidth[f]],
                                                cellsize=cellsize,
                                                phasecentre=phasecentre,
                                                polarisation_frame=pol_frame)
               for f, freq in enumerate(frequency)]
-
-
+    
     catalog = conf['create_skymodel']["catalog"]
     if catalog == "gleam":
         components = arlexecute.execute(create_low_test_skycomponents_from_gleam)(phasecentre=phasecentre,
@@ -193,7 +198,7 @@ def create_skymodel_wrapper(conf):
                                                                                   radius=radius)
         if conf['create_skymodel']["fill_image"]:
             models = [arlexecute.execute(insert_skycomponent)(m, components) for m in models]
-            
+    
     elif catalog == "empty":
         components = []
     else:
@@ -204,8 +209,8 @@ def create_skymodel_wrapper(conf):
             skymodel = SkyModel(images=model_list, components=[])
         else:
             skymodel = SkyModel(images=[], components=comp_list)
-            
-        return memory_data_model_to_buffer(skymodel, conf["buffer"], conf["outputs"]["skymodel"])
+        
+        return BufferSkyModel(conf["buffer"], conf["outputs"]["skymodel"], skymodel).sync()
     
     return arlexecute.execute(output_skymodel)(models, components)
 
@@ -216,8 +221,8 @@ def predict_vislist_wrapper(conf):
     :param conf: Configuration from JSON file
     :return:
     """
-    vis_list = buffer_data_model_to_memory(conf["buffer"], conf['inputs']['vis_list'])
-    skymodel = buffer_data_model_to_memory(conf["buffer"], conf['inputs']['skymodel'])
+    vis_list = BufferBlockVisibility(conf["buffer"], conf['inputs']['vis_list']).memory_data_model
+    skymodel = BufferSkyModel(conf["buffer"], conf["inputs"]["skymodel"]).memory_data_model
     
     flux_limit = conf['primary_beam']['flux_limit']
     
@@ -236,7 +241,7 @@ def predict_vislist_wrapper(conf):
         image_list = [arlexecute.execute(apply_pb_image, nout=1)(v, skymodel.images[i]) for i, v in enumerate(vis_list)]
         if len(skymodel.components) > 1:
             component_list = [arlexecute.execute(apply_pb_comp, nout=1)(v, skymodel.images[i], skymodel.components)
-                            for i, v in enumerate(vis_list)]
+                              for i, v in enumerate(vis_list)]
         else:
             component_list = []
     else:
@@ -250,8 +255,12 @@ def predict_vislist_wrapper(conf):
                                            context=conf['imaging']['context'],
                                            vis_slices=conf['imaging']['vis_slices'])
     
-    return arlexecute.execute(memory_data_model_to_buffer)(predicted_vis_list, conf["buffer"],
-                                                           conf["outputs"]["vis_list"])
+    def output_vislist(v):
+        bdm = BufferBlockVisibility(conf["buffer"], conf["outputs"]["vis_list"], v)
+        bdm.sync()
+    
+    return arlexecute.execute(output_vislist)(predicted_vis_list)
+
 
 def corrupt_vislist_wrapper(conf):
     """Wrapper for corruption
@@ -259,11 +268,15 @@ def corrupt_vislist_wrapper(conf):
     :param conf:
     :return:
     """
-    vis_list = buffer_data_model_to_memory(conf["buffer"], conf['inputs']['vis_list'])
+    vis_list = BufferBlockVisibility(conf["buffer"], conf['inputs']['vis_list']).memory_data_model
     phase_error = json_to_quantity(conf['corrupt_vislist']['phase_error']).to('rad').value
     
     corrupted_vislist = corrupt_component(vis_list,
                                           phase_error=phase_error,
                                           amplitude_error=conf['corrupt_vislist']['amplitude_error'])
     
-    return arlexecute.execute(memory_data_model_to_buffer)(corrupted_vislist, conf["buffer"], conf['outputs']['vis_list'])
+    def output_vislist(v):
+        bdm = BufferBlockVisibility(conf["buffer"], conf["outputs"]["vis_list"], v)
+        bdm.sync()
+    
+    return arlexecute.execute(output_vislist)(corrupted_vislist)

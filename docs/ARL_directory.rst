@@ -116,4 +116,4 @@ Pipelines
 External interface
 ==================
 
-* ARL component wrappers: :py:mod:`processing_components.external_interface`
+* Calling ARL functions externally: :py:mod:`processing_components.processing_component_interface`

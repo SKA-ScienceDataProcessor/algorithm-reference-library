@@ -5,7 +5,7 @@ A bash script example for a continuum imaging pipeline is::
 
     #!/usr/bin/env bash
     cd ${ARL}/workflows/wrapped
-    comp_location=${ARL}/processing_components/external_interface
+    comp_location=${ARL}/processing_components/processing_component_interface
     python ${comp_location}/processing_component_interface.py --config gleam_create_vislist.json
     python ${comp_location}/processing_component_interface.py --config gleam_create_skymodel.json
     python ${comp_location}/processing_component_interface.py --config gleam_predict_vislist.json
@@ -118,10 +118,17 @@ file is::
 The parameters for the component are passed via a JSON file, either via python::
     
     component_wrapper("gleam_continuum_imaging.json")
+
+or the dict derived from JSON may be passed directly::
+
+    config = initialise_config_wrapper("gleam_continuum_imaging.json")
+    component_wrapper(config)
     
 or from bash::
 
     python component_wrapper -- config "gleam_continuum_imaging.json"
+    
+
     
 Examples of json files are in tests/processing_components.
 

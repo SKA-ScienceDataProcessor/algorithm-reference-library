@@ -11,12 +11,11 @@ import numpy
 def json_to_skycoord(d):
     """Convert JSON string to SkyCoord
     
-    "phasecentre": {
+    e.g. "phasecentre": {
         "ra": {"value": 30.0, "unit": "deg"},
         "dec": {"value": -60.0, "unit": "deg"},
         "frame": "icrs",
         "equinox": "j2000"}
-
 
     :param d:
     :return:

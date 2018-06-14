@@ -36,7 +36,12 @@
         "deconvolved": {
             "data_model": "Image",
             "name": "test_perfect_deconvolved.fits"
+        },
+        "skymodel": {
+            "data_model": "SkyModel",
+            "name": "test_continuum_imaging_skymodel.hdf"
         }
+
     },
     "imaging": {
         "context": "wstack",

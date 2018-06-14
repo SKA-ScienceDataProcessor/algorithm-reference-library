@@ -6,10 +6,10 @@ import os
 import unittest
 
 from data_models.parameters import arl_path
-from processing_components.external_interface.processing_component_interface import component_wrapper
+from processing_components.processing_component_interface.processing_component_interface import component_wrapper
 
 
-class TestComponentWrappers(unittest.TestCase):
+class TestProcessingComponentInterface(unittest.TestCase):
     
     def test_run_components(self):
         files = ["test_results/test_pipeline.log",

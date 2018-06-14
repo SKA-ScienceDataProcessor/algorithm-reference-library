@@ -6,9 +6,9 @@ import logging
 import unittest
 
 from data_models.parameters import arl_path
-from processing_components.external_interface.arl_json.json_helpers import json_to_linspace, \
+from processing_components.processing_component_interface.arl_json.json_helpers import json_to_linspace, \
     json_to_quantity, json_to_skycoord
-from processing_components.external_interface.execution_helper import initialise_config_wrapper
+from processing_components.processing_component_interface.execution_helper import initialise_config_wrapper
 
 log = logging.getLogger(__name__)
 

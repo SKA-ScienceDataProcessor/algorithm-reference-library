@@ -1,6 +1,6 @@
 {
     "execute": {
-        "use_dask": false,
+        "use_dask": true,
         "n_workers": 4,
         "memory_limit": 4000000000
     },

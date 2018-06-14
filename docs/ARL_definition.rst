@@ -14,14 +14,16 @@ Not all connections are shown.
 
 The corresponding directories are:
 
-* data_models: These are both memory and buffer based.
-* libs: Library functions used by the processing components. These are not callable directly by the EF, and are not
-shown on this diagram.
-* processing_components: components that can be executed by the Execution Framework, including external interface.
+* data_models: These are both memory and buffer based. There are helper functions for IO.
+* libs: Library functions used by the processing components, not by EF. Not shown on this diagram.
+* processing_components: components that can be executed by the Execution Framework.
 * workflows: Contains top level workflows
 
-The data models are implemented as python classes. The functions are
-stateless so calling the same function with the same inputs will always return the same value.
+An execution framework can access the processing components via the processing_component_interface which is contained
+ in processing_components.external interface.
+
+The data models are implemented as python classes. The functions are stateless so calling the same function with the
+same inputs will always return the same value.
 
 Please note that the documentation below has links to the python source. In the end, this is the definitive
 documentation.
@@ -323,35 +325,35 @@ Processing Component Interface
 Wrappers
 ++++++++
 
-.. automodule:: processing_components.external_interface
+.. automodule:: processing_components.processing_component_interface
    :members:
 
 ARL JSON schema
 +++++++++++++++
 
-.. automodule:: processing_components.external_interface.arl_json
+.. automodule:: processing_components.processing_component_interface.arl_json
    :members:
 
-.. automodule:: processing_components.external_interface.arl_json.json_helpers
+.. automodule:: processing_components.processing_component_interface.arl_json.json_helpers
    :members:
 
 
 Component wrapper
 +++++++++++++++++
 
-.. automodule:: processing_components.external_interface.processing_component_interface
+.. automodule:: processing_components.processing_component_interface.processing_component_interface
    :members:
 
 Processing component wrapper
 ++++++++++++++++++++++++++++
 
-.. automodule:: processing_components.external_interface.processing_component_wrappers
+.. automodule:: processing_components.processing_component_interface.processing_component_wrappers
    :members:
 
 Execution helpers
 +++++++++++++++++
 
-.. automodule:: processing_components.external_interface.execution_helper
+.. automodule:: processing_components.processing_component_interface.execution_helper
    :members:
 
 

@@ -5,30 +5,35 @@
 import logging
 
 from processing_components.component_support.arlexecute import arlexecute
-from processing_components.external_interface.execution_helper import initialise_config_wrapper, initialise_execution_wrapper
+from processing_components.processing_component_interface.execution_helper import initialise_config_wrapper, initialise_execution_wrapper
 
 # Add new wrapped components here. These are accessed using globals()
-from processing_components.external_interface.processing_component_wrappers import create_vislist_wrapper, \
+
+from processing_components.processing_component_interface.processing_component_wrappers import create_vislist_wrapper, \
     create_skymodel_wrapper, predict_vislist_wrapper, corrupt_vislist_wrapper, continuum_imaging_wrapper
 
-def component_wrapper(config_file):
-    """Run an ARL component as described in a JSON file
+def component_wrapper(config):
+    """Run an ARL component as described in a JSON dict or file
     
-    :param config_file: JSON file
+    :param config: JSON dict or file
     :return:
     """
+    if isinstance(config, str):
+        print('component_wrapper: read configuration from %s' % config)
+        config = initialise_config_wrapper(config)
 
-    config = initialise_config_wrapper(config_file)
+    elif isinstance(config, dict):
+        print('component_wrapper: read configuration from dictionary')
+    else:
+        raise ValueError("config must be either a string of a JSON file or a dictionary")
     
     # Initialise execution framework and set up the logging
     initialise_execution_wrapper(config)
     
     log = logging.getLogger()
     
-    log.info('component_wrapper: read configuration from %s' % config_file)
-    print('component_wrapper: read configuration from %s' % config_file)
-    
-    assert config["component"]["framework"] == "ARL", "JSON specifies non-ARL component"
+    assert config["component"]["framework"] == "ARL", "JSON specifies non-ARL component" % \
+                                                      config["component"]["framework"]
     
     arl_component = config["component"]["name"]
     
