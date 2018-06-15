@@ -5,7 +5,7 @@ import logging
 
 from json import loads
 
-from processing_components.component_support.arlexecute import arlexecute
+from libs.execution_support.arlexecute import arlexecute
 from processing_components.processing_component_interface.arl_json.json_assertions import assert_valid_schema
 from data_models.parameters import arl_path
 

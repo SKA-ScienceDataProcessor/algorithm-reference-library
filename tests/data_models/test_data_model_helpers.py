@@ -20,7 +20,7 @@ from data_models.memory_data_models import Skycomponent, SkyModel
 from data_models.polarisation import PolarisationFrame
 from processing_components.calibration.operations import create_gaintable_from_blockvisibility
 from processing_components.imaging.base import predict_skycomponent_visibility
-from processing_components.util.testing_support import create_named_configuration, \
+from simulation.testing_support import create_named_configuration, \
     simulate_gaintable, create_test_image
 from processing_components.visibility.base import create_visibility, create_blockvisibility
 

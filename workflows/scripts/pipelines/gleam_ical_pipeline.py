@@ -30,10 +30,10 @@ from processing_components.calibration.calibration_control import create_calibra
 from processing_components.image.operations import show_image, export_image_to_fits, qa_image
 from processing_components.imaging.base import create_image_from_visibility
 
-from processing_components.component_support.dask_init import get_dask_Client
+from execution_support import get_dask_Client
 from processing_components.pipelines.pipeline_components import ical_component
 
-from processing_components.component_support.arlexecute import arlexecute
+from libs.execution_support.arlexecute import arlexecute
 
 import pprint
 
@@ -56,9 +56,7 @@ if __name__ == '__main__':
     
     arlexecute.set_client(get_dask_Client())
     arlexecute.run(init_logging)
-    
-    import pickle
-    
+
     # Load data from previous simulation
     vislist = import_blockvisibility_from_hdf5('gleam_simulation_vislist.hdf')
     

@@ -16,7 +16,7 @@ from libs.image.operations import create_image_from_array
 
 from processing_components.image.deconvolution import deconvolve_cube, restore_cube
 from processing_components.image.operations import export_image_to_fits
-from processing_components.util.testing_support import create_test_image, create_named_configuration
+from simulation.testing_support import create_test_image, create_named_configuration
 from processing_components.visibility.base import create_visibility
 from processing_components.imaging.base import predict_2d, invert_2d, create_image_from_visibility
 

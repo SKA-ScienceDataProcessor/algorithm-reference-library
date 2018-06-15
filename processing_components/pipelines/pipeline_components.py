@@ -3,7 +3,7 @@
 
 from data_models.parameters import get_parameter
 from ..calibration.calibration_components import calibrate_component
-from ..component_support.arlexecute import arlexecute
+from libs.execution_support.arlexecute import arlexecute
 from ..imaging.imaging_components import invert_component, residual_component, \
     predict_component, zero_vislist_component, subtract_vislist_component, restore_component, \
     deconvolve_component

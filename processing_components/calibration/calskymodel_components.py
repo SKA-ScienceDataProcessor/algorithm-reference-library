@@ -41,7 +41,7 @@ skymodel_cal works best if an initial phase calibration has been obtained using 
 
 import logging
 
-from ..component_support.arlexecute import arlexecute
+from libs.execution_support.arlexecute import arlexecute
 
 from ..calibration.calskymodel import calskymodel_fit_skymodel, calskymodel_fit_gaintable
 from ..calibration.operations import copy_gaintable, apply_gaintable, create_gaintable_from_blockvisibility

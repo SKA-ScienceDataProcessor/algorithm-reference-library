@@ -32,14 +32,14 @@ from data_models.memory_data_models import SkyModel
 from data_models.polarisation import PolarisationFrame
 from data_models.data_model_helpers import export_skymodel_to_hdf5, export_blockvisibility_to_hdf5
 
-from processing_components.util.testing_support import create_low_test_image_from_gleam
+from simulation.testing_support import create_low_test_image_from_gleam
 from processing_components.imaging.base import advise_wide_field
 
-from processing_components.component_support.dask_init import get_dask_Client
+from execution_support import get_dask_Client
 from processing_components.imaging.imaging_components import predict_component
-from processing_components.util.support_components import simulate_component, corrupt_component
+from simulation.simulation_components import simulate_component, corrupt_component
 
-from processing_components.component_support.arlexecute import arlexecute
+from libs.execution_support.arlexecute import arlexecute
 
 pp = pprint.PrettyPrinter()
 

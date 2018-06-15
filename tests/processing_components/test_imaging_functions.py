@@ -14,7 +14,7 @@ from data_models.polarisation import PolarisationFrame
 
 from processing_components.imaging.base import create_image_from_visibility
 from processing_components.imaging.weighting import weight_visibility
-from processing_components.util.testing_support import create_named_configuration, ingest_unittest_visibility, create_unittest_model
+from simulation.testing_support import create_named_configuration, ingest_unittest_visibility, create_unittest_model
 
 log = logging.getLogger(__name__)
 

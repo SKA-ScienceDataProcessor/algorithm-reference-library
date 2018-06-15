@@ -46,14 +46,14 @@ from data_models.parameters import get_parameter
 from data_models.polarisation import PolarisationFrame
 from libs.image.operations import create_image_from_array
 from libs.util.coordinate_support import xyz_at_latitude
-from ..calibration.calibration_control import create_calibration_controls
-from ..calibration.operations import create_gaintable_from_blockvisibility, apply_gaintable
-from ..image.operations import create_empty_image_like, import_image_from_fits, reproject_image, qa_image
-from ..imaging.base import predict_2d, predict_skycomponent_visibility, create_image_from_visibility, \
+from calibration_control import create_calibration_controls
+from operations import create_gaintable_from_blockvisibility, apply_gaintable
+from operations import create_empty_image_like, import_image_from_fits, reproject_image, qa_image
+from base import predict_2d, predict_skycomponent_visibility, create_image_from_visibility, \
     advise_wide_field
-from ..skycomponent.operations import create_skycomponent, insert_skycomponent, apply_beam_to_skycomponent
-from ..visibility.base import create_blockvisibility, create_visibility
-from ..visibility.coalesce import convert_visibility_to_blockvisibility
+from operations import create_skycomponent, insert_skycomponent, apply_beam_to_skycomponent
+from base import create_blockvisibility, create_visibility
+from coalesce import convert_visibility_to_blockvisibility
 
 log = logging.getLogger(__name__)
 

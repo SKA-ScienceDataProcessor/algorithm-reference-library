@@ -29,7 +29,7 @@ These are the same as executed in the imaging framework.
 
 """
 
-from ..component_support.arlexecute import arlexecute
+from libs.execution_support.arlexecute import arlexecute
 
 from ..calibration.calibration_control import calibrate_function
 from ..calibration.operations import apply_gaintable

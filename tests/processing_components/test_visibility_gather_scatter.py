@@ -9,7 +9,7 @@ import numpy
 from astropy import units as u
 from astropy.coordinates import SkyCoord
 
-from processing_components.util.testing_support import create_named_configuration
+from simulation.testing_support import create_named_configuration
 from processing_components.visibility.gather_scatter import visibility_gather_time, visibility_gather_w, \
     visibility_scatter_time, visibility_scatter_w, visibility_scatter_channel, \
     visibility_gather_channel

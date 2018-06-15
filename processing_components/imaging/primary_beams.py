@@ -12,7 +12,7 @@ from astropy.wcs import FITSFixedWarning
 from astropy.wcs.utils import skycoord_to_pixel
 
 from processing_components.image.operations import create_empty_image_like
-from processing_components.util.testing_support import create_low_test_beam
+from simulation.testing_support import create_low_test_beam
 
 log = logging.getLogger(__name__)
 

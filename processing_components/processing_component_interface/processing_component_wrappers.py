@@ -6,11 +6,11 @@ These can be executed using processing_component_interface.py.
 
 import numpy
 
-from data_models.buffer_data_models import BufferBlockVisibility, BufferImage, BufferSkyModel, BufferGainTable
+from data_models.buffer_data_models import BufferBlockVisibility, BufferImage, BufferSkyModel
 from data_models.memory_data_models import SkyModel
 from data_models.polarisation import PolarisationFrame
 from libs.image.operations import create_image
-from processing_components.component_support.arlexecute import arlexecute
+from libs.execution_support.arlexecute import arlexecute
 from processing_components.image.gather_scatter import image_gather_channels
 from processing_components.imaging.base import create_image_from_visibility, predict_skycomponent_visibility
 from processing_components.imaging.imaging_components import predict_component
@@ -20,9 +20,9 @@ from processing_components.processing_component_interface.arl_json.json_helpers 
     json_to_linspace, json_to_skycoord
 from processing_components.skycomponent.operations import apply_beam_to_skycomponent
 from processing_components.skycomponent.operations import insert_skycomponent
-from processing_components.util.primary_beams import create_pb
-from processing_components.util.support_components import simulate_component, corrupt_component
-from processing_components.util.testing_support import create_low_test_skycomponents_from_gleam
+from primary_beams import create_pb
+from simulation.simulation_components import simulate_component, corrupt_component
+from simulation.testing_support import create_low_test_skycomponents_from_gleam
 
 
 def continuum_imaging_wrapper(conf):

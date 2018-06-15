@@ -15,13 +15,12 @@ from libs.image.iterators import image_raster_iter
 
 from processing_components.imaging.base import predict_skycomponent_visibility
 from processing_components.skycomponent.operations import create_skycomponent
-from processing_components.util.testing_support import create_named_configuration, create_test_image
+from simulation.testing_support import create_named_configuration, create_test_image
 from processing_components.visibility.base import create_blockvisibility
 
-from processing_components.component_support.arlexecute import arlexecute
-from processing_components.component_support.generic_components import generic_blockvisibility_component, \
-    generic_image_component, \
-    generic_image_iterator_component
+from libs.execution_support.arlexecute import arlexecute
+from processing_components.image.image_components import generic_image_iterator_component, generic_image_component
+from processing_components.visibility.visibility_components import generic_blockvisibility_component
 
 
 class TestPipelinesGenericDask(unittest.TestCase):

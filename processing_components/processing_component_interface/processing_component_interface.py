@@ -4,13 +4,11 @@
 
 import logging
 
-from processing_components.component_support.arlexecute import arlexecute
-from processing_components.processing_component_interface.execution_helper import initialise_config_wrapper, initialise_execution_wrapper
+from libs.execution_support.arlexecute import arlexecute
+
+from ..processing_component_interface.execution_helper import initialise_config_wrapper, initialise_execution_wrapper
 
 # Add new wrapped components here. These are accessed using globals()
-
-from processing_components.processing_component_interface.processing_component_wrappers import create_vislist_wrapper, \
-    create_skymodel_wrapper, predict_vislist_wrapper, corrupt_vislist_wrapper, continuum_imaging_wrapper
 
 def component_wrapper(config):
     """Run an ARL component as described in a JSON dict or file

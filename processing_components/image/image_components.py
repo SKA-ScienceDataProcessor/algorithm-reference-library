@@ -15,37 +15,10 @@ subimages and passed to processing by imagerooter, and then the answers are reas
 We  could keep the graph and use it in other components. See the imaging-dask note book for more detail.
 """
 
+from libs.execution_support.arlexecute import arlexecute
+from ..image.gather_scatter import image_scatter_facets, image_gather_facets
 from data_models.memory_data_models import Image
-
-from ..component_support.arlexecute import arlexecute
 from ..image.operations import copy_image, create_empty_image_like
-from ..image.gather_scatter import image_gather_facets, image_scatter_facets
-
-
-def generic_blockvisibility_component(visfunction, vis_list, additive=True, *args, **kwargs):
-    """ Definition of interface for create_generic_blockvisibility_graph_visfunction.
-
-    :func visfunction: Function to be applied
-    :param vis_list: List of vis_graphs
-    :param additive: Add to existing visibility? (True)
-    :param args:
-    :param kwargs: Parameters for functions in components
-    :return: List of components
-    """
-    
-    def accumulate_results(results, **kwargs):
-        for i, result in enumerate(results):
-            if additive:
-                vis_list[i].data['vis'] += result.data['vis']
-            else:
-                vis_list[i].data['vis'] = result.data['vis']
-        return vis_list
-    
-    results = list()
-    for vis_graph in vis_list:
-        results.append(arlexecute.execute(visfunction, pure=True)(vis_graph, *args, **kwargs))
-    return [arlexecute.execute(accumulate_results, pure=True)(results, **kwargs)]
-
 
 def generic_image_iterator_component(imagefunction, im: Image, iterator, **kwargs):
     """ Definition of interface for generic_image_component

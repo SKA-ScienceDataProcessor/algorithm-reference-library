@@ -19,12 +19,12 @@ from processing_components.imaging.base import predict_skycomponent_visibility, 
 from processing_components.imaging.imaging_functions import invert_function
 from processing_components.imaging.weighting import weight_visibility
 from processing_components.skycomponent.operations import apply_beam_to_skycomponent
-from processing_components.util.testing_support import create_named_configuration, simulate_gaintable, \
+from simulation.testing_support import create_named_configuration, simulate_gaintable, \
     create_low_test_skycomponents_from_gleam, create_low_test_beam
 from processing_components.visibility.base import copy_visibility, create_blockvisibility
 from processing_components.visibility.coalesce import convert_blockvisibility_to_visibility
 
-from processing_components.component_support.arlexecute import arlexecute
+from libs.execution_support.arlexecute import arlexecute
 from processing_components.calibration.calskymodel_components import calskymodel_solve_component
 
 log = logging.getLogger(__name__)
