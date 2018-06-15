@@ -24,7 +24,8 @@ class TestCreateMS(unittest.TestCase):
         try:
             from casacore.tables import table  # pylint: disable=import-error
             self.casacore_available = True
-        except ModuleNotFoundError:
+#            except ModuleNotFoundError:
+        except:
             self.casacore_available = False
 
     def test_create_list(self):
