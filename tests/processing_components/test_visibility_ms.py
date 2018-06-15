@@ -19,7 +19,18 @@ log.addHandler(logging.StreamHandler(sys.stderr))
 
 class TestCreateMS(unittest.TestCase):
     
+    def setUp(self):
+    
+        try:
+            from casacore.tables import table  # pylint: disable=import-error
+            self.casacore_available = True
+        except ModuleNotFoundError:
+            self.casacore_available = False
+
     def test_create_list(self):
+        
+        if not self.casacore_available:
+            return
         
         msfile = arl_path("data/vis/xcasa.ms")
         self.vis = create_blockvisibility_from_ms(msfile)
@@ -29,6 +40,9 @@ class TestCreateMS(unittest.TestCase):
             assert v.polarisation_frame.type == "circular"
 
     def test_create_list_spectral(self):
+        if not self.casacore_available:
+            return
+    
         msfile = arl_path("data/vis/ASKAP_example.ms")
     
         vis_by_channel = list()
@@ -45,6 +59,9 @@ class TestCreateMS(unittest.TestCase):
             assert v.polarisation_frame.type == "linear"
 
     def test_create_list_spectral_average(self):
+        if not self.casacore_available:
+            return
+    
         msfile = arl_path("data/vis/ASKAP_example.ms")
 
         vis_by_channel = list()
@@ -63,6 +80,9 @@ class TestCreateMS(unittest.TestCase):
 
 
     def test_create_list_spectral_average_arlexecute(self):
+        if not self.casacore_available:
+            return
+    
         msfile = arl_path("data/vis/ASKAP_example.ms")
         
         from processing_components.component_support.arlexecute import arlexecute
