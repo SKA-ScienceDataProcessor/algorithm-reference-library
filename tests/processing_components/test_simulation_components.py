@@ -10,9 +10,9 @@ from astropy import units as u
 from astropy.coordinates import SkyCoord
 
 from data_models.memory_data_models import BlockVisibility
-
-from simulation.simulation_components import simulate_component
 from libs.execution_support.arlexecute import arlexecute
+
+from processing_components.simulation.simulation_components import simulate_component
 
 log = logging.getLogger(__name__)
 

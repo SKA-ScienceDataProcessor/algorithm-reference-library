@@ -20,9 +20,9 @@ from processing_components.processing_component_interface.arl_json.json_helpers 
     json_to_linspace, json_to_skycoord
 from processing_components.skycomponent.operations import apply_beam_to_skycomponent
 from processing_components.skycomponent.operations import insert_skycomponent
-from primary_beams import create_pb
-from simulation.simulation_components import simulate_component, corrupt_component
-from simulation.testing_support import create_low_test_skycomponents_from_gleam
+from processing_components.imaging.primary_beams import create_pb
+from processing_components.simulation.simulation_components import simulate_component, corrupt_component
+from processing_components.simulation.testing_support import create_low_test_skycomponents_from_gleam
 
 
 def continuum_imaging_wrapper(conf):

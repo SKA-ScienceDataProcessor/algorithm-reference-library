@@ -15,7 +15,7 @@ from libs.image.iterators import image_raster_iter
 
 from processing_components.imaging.base import predict_skycomponent_visibility
 from processing_components.skycomponent.operations import create_skycomponent
-from simulation.testing_support import create_named_configuration, create_test_image
+from processing_components.simulation.testing_support import create_named_configuration, create_test_image
 from processing_components.visibility.base import create_blockvisibility
 
 from libs.execution_support.arlexecute import arlexecute

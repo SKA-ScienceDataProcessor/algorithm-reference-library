@@ -273,7 +273,7 @@ Coordinate Support
 Testing Support
 +++++++++++++++
 
-.. automodule:: processing_components.util.testing_support
+.. automodule:: processing_components.simulation.testing_support
    :members:
 
 Execution
@@ -282,19 +282,13 @@ Execution
 Execution (optionally via Dask)
 +++++++++++++++++++++++++++++++
 
-.. automodule:: processing_components.component_support.arlexecute
-   :members:
-
-Generic execution
-+++++++++++++++++
-
-.. automodule:: processing_components.component_support.generic_components
+.. automodule:: libs.execution_support.arlexecute
    :members:
 
 Dask init
 +++++++++
 
-.. automodule:: processing_components.component_support.dask_init
+.. automodule:: libs.execution_support.dask_init
    :members:
 
 
@@ -316,7 +310,7 @@ Functions
 Support
 +++++++
 
-.. automodule:: processing_components.util.support_components
+.. automodule:: processing_components.simulation.simulation_components
    :members:
 
 Processing Component Interface
@@ -384,7 +378,7 @@ Unit tests written in standard python style are available.
 .. automodule:: tests.data_models.test_polarisation
    :members:
 
-.. automodule:: tests.processing_components.test_arlexecute
+.. automodule:: tests.libs.test_arlexecute
    :members:
 
 .. automodule:: tests.processing_components.test_calibration_context

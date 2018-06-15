@@ -15,7 +15,7 @@ from data_models.memory_data_models import Image, Visibility, BlockVisibility, R
 from processing_components.image.deconvolution import deconvolve_cube, restore_cube
 from processing_components.imaging.base import create_image_from_visibility, predict_2d, invert_2d
 from processing_components.imaging.base import advise_wide_field
-from simulation.testing_support import create_named_configuration, create_test_image, create_low_test_image_from_gleam, simulate_gaintable
+from processing_components.simulation.testing_support import create_named_configuration, create_test_image, create_low_test_image_from_gleam, simulate_gaintable
 from data_models.polarisation import PolarisationFrame
 from processing_components.visibility.base import create_blockvisibility
 from processing_components.imaging.imaging_functions import invert_function, predict_function 

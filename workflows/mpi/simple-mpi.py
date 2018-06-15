@@ -18,7 +18,7 @@ from astropy.coordinates import SkyCoord
 from data_models.polarisation import PolarisationFrame
 
 from libs.image.operations import create_empty_image_like
-from simulation.testing_support import create_test_image
+from processing_components.simulation.testing_support import create_test_image
 from processing_components.image.gather_scatter import image_gather_facets, image_scatter_facets
 
 

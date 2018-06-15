@@ -1,4 +1,10 @@
 
+**June 15, 2018 [Tim], Some more moves and renaming:
+* processing_components/component_support->libs/execution support
+* processing_components/util->processing_components/simulation
+
+generic functions moved to image_components and visibility_components
+
 **June 15 2018** [Tim], the capabilities for reading measurement sets have been improved.
 * Both BlockVisibility's and Visibility's can be created. The former is preferred.
 * A channel range e.g. range(17,32) can be specified.

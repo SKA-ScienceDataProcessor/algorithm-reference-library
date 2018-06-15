@@ -15,7 +15,7 @@ from data_models.polarisation import PolarisationFrame
 from processing_components.image.deconvolution import restore_cube
 from processing_components.image.operations import export_image_to_fits
 from processing_components.image.solvers import solve_image
-from simulation.testing_support import create_test_image, create_named_configuration
+from processing_components.simulation.testing_support import create_test_image, create_named_configuration
 from processing_components.visibility.base import create_visibility
 from processing_components.imaging.base import invert_2d, predict_2d, create_image_from_visibility
 

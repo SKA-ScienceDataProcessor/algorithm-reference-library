@@ -7,6 +7,8 @@ import logging
 from libs.execution_support.arlexecute import arlexecute
 
 from ..processing_component_interface.execution_helper import initialise_config_wrapper, initialise_execution_wrapper
+from ..processing_component_interface.processing_component_wrappers import create_vislist_wrapper, \
+    create_skymodel_wrapper, predict_vislist_wrapper, continuum_imaging_wrapper, corrupt_vislist_wrapper
 
 # Add new wrapped components here. These are accessed using globals()
 

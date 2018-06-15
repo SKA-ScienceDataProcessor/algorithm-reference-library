@@ -19,7 +19,7 @@ from processing_components.imaging.imaging_components import zero_vislist_compon
     invert_component, subtract_vislist_component
 from processing_components.skycomponent.operations import find_skycomponents, find_nearest_skycomponent, \
     insert_skycomponent
-from simulation.testing_support import create_named_configuration, ingest_unittest_visibility, \
+from processing_components.simulation.testing_support import create_named_configuration, ingest_unittest_visibility, \
     create_unittest_model, \
     insert_unittest_errors, create_unittest_components
 

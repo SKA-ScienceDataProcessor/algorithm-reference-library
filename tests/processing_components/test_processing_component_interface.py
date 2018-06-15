@@ -7,6 +7,8 @@ import unittest
 
 from data_models.parameters import arl_path
 from processing_components.processing_component_interface.processing_component_interface import component_wrapper
+from processing_components.processing_component_interface.processing_component_wrappers import create_skymodel_wrapper,\
+    create_vislist_wrapper, predict_vislist_wrapper, continuum_imaging_wrapper
 
 
 class TestProcessingComponentInterface(unittest.TestCase):

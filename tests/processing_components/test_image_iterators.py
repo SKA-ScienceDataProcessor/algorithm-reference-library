@@ -12,7 +12,7 @@ from data_models.polarisation import PolarisationFrame
 from libs.image.iterators import   image_raster_iter, image_channel_iter, image_null_iter
 
 from processing_components.image.operations import create_empty_image_like
-from simulation.testing_support import create_test_image
+from processing_components.simulation.testing_support import create_test_image
 
 log = logging.getLogger(__name__)
 

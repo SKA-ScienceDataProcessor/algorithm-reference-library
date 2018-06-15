@@ -19,7 +19,7 @@ from processing_components.pipelines.pipeline_components import ical_component, 
 from processing_components.image.operations import export_image_to_fits, qa_image, smooth_image
 from processing_components.imaging.base import predict_skycomponent_visibility
 from processing_components.skycomponent.operations import insert_skycomponent
-from simulation.testing_support import create_named_configuration, ingest_unittest_visibility, \
+from processing_components.simulation.testing_support import create_named_configuration, ingest_unittest_visibility, \
     create_unittest_model, \
     create_unittest_components, insert_unittest_errors
 
