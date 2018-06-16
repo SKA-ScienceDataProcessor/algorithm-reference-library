@@ -1,5 +1,5 @@
 
-**June 15, 2018 [Tim], Some more moves and renaming:
+**June 15, 2018** [Tim], Some more moves and renaming:
 * processing_components/component_support->libs/execution support
 * processing_components/util->processing_components/simulation
 
