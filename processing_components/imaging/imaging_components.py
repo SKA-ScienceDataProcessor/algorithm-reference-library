@@ -17,9 +17,6 @@ or if a Dask.distributed client is available:
 
     client.compute(solution_list)
 
-As well as the specific components constructed by functions in this module, there are generic versions in the module
-:mod:`libs.pipelines.generic_dask_lists`.
-
 Construction of the components requires that the number of nodes (e.g. w slices or time-slices) be known at construction,
 rather than execution. To counteract this, at run time, a given node should be able to act as a no-op. We use None
 to denote a null node.
