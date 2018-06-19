@@ -33,6 +33,8 @@ def ifft(a):
     """
     if (len(a.shape) == 4):
         return numpy.fft.fftshift(numpy.fft.ifft2(numpy.fft.ifftshift(a, axes=[2, 3])), axes=[2, 3])
+    elif (len(a.shape) == 5):
+        return numpy.fft.fftshift(numpy.fft.ifft2(numpy.fft.ifftshift(a, axes=[2, 3, 4])), axes=[2, 3, 4])
     else:
         return numpy.fft.fftshift(numpy.fft.ifft2(numpy.fft.ifftshift(a)))
 
