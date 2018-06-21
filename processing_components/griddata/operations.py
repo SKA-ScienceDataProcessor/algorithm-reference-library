@@ -1,6 +1,14 @@
 #
 """
-Functions that define and manipulate images. Images are just data and a World Coordinate System.
+Functions that define and manipulate GridData.
+
+The griddata has axes [chan, pol, z, y, x] where z, y, x are spatial axes in either sky or Fourier plane. The
+order in the WCS is reversed so the grid_WCS describes UU, VV, WW, STOKES, FREQ axes.
+
+GridData can be used to hold the Fourier transform of an Image or gridded visibilities. In addition, the convolution
+function can be stored in a GridData, most probably with finer spatial sampling.
+
+
 """
 import copy
 import logging
@@ -10,8 +18,8 @@ from astropy.wcs import WCS
 
 from data_models.memory_data_models import GridData
 from data_models.polarisation import PolarisationFrame
-from ..fourier_transforms.fft_support import ifft, fft
-from ..image.operations import create_image_from_array
+from libs.fourier_transforms.fft_support import ifft, fft
+from libs.image.operations import create_image_from_array
 
 log = logging.getLogger(__name__)
 
@@ -115,6 +123,7 @@ def fft_image_to_griddata(im):
     :return: GridData
     """
     gd = create_griddata_from_image(im)
+    assert gd.shape[2] == 1, "Multiple z planes not supported"
     gd.data[:, :, 0, ...] = ifft(im.data[:, :, :, :].data)
     
     return gd
@@ -123,14 +132,21 @@ def fft_image_to_griddata(im):
 def fft_griddata_to_image(gd: GridData):
     """ FFT GridData to an Image, transform WCS as well
 
-    Prefer to use axes 'UU---SIN' and 'VV---SIN' but astropy will not accept.
-
-    :param gd:
+    :param gd: GridData model
     :return: Image
     """
     assert len(gd.shape) == 5
     assert gd.grid_wcs.wcs.ctype[0] == 'UU'
     assert gd.grid_wcs.wcs.ctype[1] == 'VV'
     wcs = gd.projection_wcs.deepcopy()
+    assert gd.shape[2] == 1, "Multiple z planes not supported"
     image_data = fft(gd.data[:, :, 0, ...].astype('complex'))
     return create_image_from_array(image_data, wcs=wcs, polarisation_frame=gd.polarisation_frame)
+
+def convert_griddata_to_image(gd):
+    """ Convert griddata to an image
+    
+    :param gd:
+    :return:
+    """
+    return create_image_from_array(gd.data,gd.grid_wcs,gd.polarisation_frame)

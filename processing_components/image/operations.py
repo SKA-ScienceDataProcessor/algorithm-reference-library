@@ -141,7 +141,9 @@ def show_image(im: Image, fig=None, title: str = '', pol=0, chan=0, cm='Greys', 
     if not fig:
         fig = plt.figure()
     plt.clf()
-    fig.add_subplot(111, projection=im.wcs.sub(['longitude', 'latitude']))
+
+    fig.add_subplot(111, projection=im.wcs.sub([1,2]))
+    
     if len(im.data.shape) == 4:
         data_array = numpy.real(im.data[chan, pol, :, :])
     else:
@@ -154,8 +156,8 @@ def show_image(im: Image, fig=None, title: str = '', pol=0, chan=0, cm='Greys', 
 
     plt.imshow(data_array, origin = 'lower', cmap = cm, vmax=vmax, vmin=vmin)
 
-    plt.xlabel('RA---SIN')
-    plt.ylabel('DEC--SIN')
+    plt.xlabel(im.wcs.wcs.ctype[0])
+    plt.ylabel(im.wcs.wcs.ctype[1])
     plt.title(title)
     plt.colorbar()
     

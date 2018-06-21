@@ -16,8 +16,8 @@ from astropy.wcs import WCS
 from data_models.polarisation import PolarisationFrame
 from data_models.memory_data_models import Image
 
-from ..fourier_transforms.convolutional_gridding import w_beam
-from ..fourier_transforms.fft_support import ifft, fft
+from libs.fourier_transforms.convolutional_gridding import w_beam
+from libs.fourier_transforms.fft_support import ifft, fft
 
 log = logging.getLogger(__name__)
 
@@ -358,7 +358,7 @@ def create_w_term_like(im: Image, w, phasecentre=None, remove_shift=False, dopol
     cellsize = abs(fim.wcs.wcs.cdelt[0]) * numpy.pi / 180.0
     nchan, npol, _, npixel = fim_shape
     if phasecentre is SkyCoord:
-        wcentre = phasecentre.to_pixel(im.wcs, origin=1) - 1.0
+        wcentre = phasecentre.to_pixel(im.wcs, origin=0)
     else:
         wcentre = [im.wcs.wcs.crpix[0] - 1.0, im.wcs.wcs.crpix[1] - 1.0]
     

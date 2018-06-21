@@ -75,18 +75,14 @@ def create_pb_generic(model, pointingcentre=None, diameter=25.0, blockage=1.8):
     nchan, npol, ny, nx = model.shape
     
     if pointingcentre is not None:
-        cx, cy = skycoord_to_pixel(pointingcentre, model.wcs, 0, 'wcs')
+        cx, cy = pointingcentre.to_pixel(model.wcs, origin=0)
     else:
-        with warnings.catch_warnings():
-            warnings.simplefilter('ignore', FITSFixedWarning)
-            cx, cy = beam.wcs.sub(2).wcs.crpix[0] - 1, beam.wcs.sub(2).wcs.crpix[1] - 1
+        cx, cy = beam.wcs.sub(2).wcs.crpix[0] - 1, beam.wcs.sub(2).wcs.crpix[1] - 1
     
     for chan in range(nchan):
         
         # The frequency axis is the second to last in the beam
-        with warnings.catch_warnings():
-            warnings.simplefilter('ignore', FITSFixedWarning)
-            frequency = model.wcs.sub(['spectral']).wcs_pix2world([chan], 0)[0]
+        frequency = model.wcs.sub(['spectral']).wcs_pix2world([chan], 0)[0]
         wavelength = const.c.to('m s^-1').value / frequency
         
         d2r = numpy.pi / 180.0
