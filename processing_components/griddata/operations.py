@@ -104,7 +104,7 @@ def create_griddata_from_image(im):
     
     grid_wcs.wcs.cdelt[0] = 1.0 / (im.shape[3] * d2r * im.wcs.wcs.cdelt[0])
     grid_wcs.wcs.cdelt[1] = 1.0 / (im.shape[2] * d2r * im.wcs.wcs.cdelt[1])
-    grid_wcs.wcs.cdelt[2] = 1.0 / (im.shape[2] * d2r * im.wcs.wcs.cdelt[1])
+    grid_wcs.wcs.cdelt[2] = 1e15
     grid_wcs.wcs.cdelt[3] = im.wcs.wcs.cdelt[2]
     grid_wcs.wcs.cdelt[4] = im.wcs.wcs.cdelt[3]
     
@@ -143,10 +143,11 @@ def fft_griddata_to_image(gd: GridData):
     image_data = fft(gd.data[:, :, 0, ...].astype('complex'))
     return create_image_from_array(image_data, wcs=wcs, polarisation_frame=gd.polarisation_frame)
 
+
 def convert_griddata_to_image(gd):
     """ Convert griddata to an image
     
     :param gd:
     :return:
     """
-    return create_image_from_array(gd.data,gd.grid_wcs,gd.polarisation_frame)
+    return create_image_from_array(gd.data, gd.grid_wcs, gd.polarisation_frame)
