@@ -12,7 +12,7 @@ from astropy.coordinates import SkyCoord
 from libs.image.operations import create_image
 from processing_components.convolution_function.operations import create_convolutionfunction_from_griddata, \
     convert_convolutionfunction_to_image
-from processing_components.griddata.kernels import create_pswf_kernel, create_wterm_kernel, create_awterm_kernel
+from processing_components.convolution_function.kernels import create_pswf_kernel, create_awterm_kernel
 from processing_components.griddata.operations import create_griddata_from_image, convert_griddata_to_image
 from processing_components.image.operations import export_image_to_fits
 from processing_components.imaging.primary_beams import create_pb_generic
@@ -45,7 +45,7 @@ class TestGridDataKernels(unittest.TestCase):
     
     def test_fill_wterm_to_griddata(self):
         self.griddata = create_griddata_from_image(self.image)
-        gcf, aaf = create_wterm_kernel(self.griddata, nw=20, wstep=100.0, use_aaf=True)
+        gcf, aaf = create_awterm_kernel(self.griddata, pb=None, nw=20, wstep=100.0, use_aaf=True)
         assert numpy.max(numpy.abs(aaf.data)) > 0.0
         export_image_to_fits(gcf, "%s/test_griddata_wterm_cf.fits" % self.dir)
         convfunc = convert_griddata_to_image(aaf)
