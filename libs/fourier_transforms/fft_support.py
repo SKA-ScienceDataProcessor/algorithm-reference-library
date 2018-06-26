@@ -17,6 +17,8 @@ def fft(a):
     """
     if (len(a.shape) == 4):
         return numpy.fft.fftshift(numpy.fft.fft2(numpy.fft.ifftshift(a, axes=[2, 3])), axes=[2, 3])
+    if (len(a.shape) == 5):
+        return numpy.fft.fftshift(numpy.fft.fft2(numpy.fft.ifftshift(a, axes=[3, 4])), axes=[3, 4])
     else:
         return numpy.fft.fftshift(numpy.fft.fft2(numpy.fft.ifftshift(a)))
 

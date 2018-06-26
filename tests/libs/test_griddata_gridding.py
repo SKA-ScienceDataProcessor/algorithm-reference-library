@@ -12,8 +12,7 @@ from astropy.coordinates import SkyCoord
 
 from data_models.polarisation import PolarisationFrame
 from processing_components.griddata.gridding import convolution_mapping, grid_visibility_to_griddata
-from processing_components.griddata.kernels import create_wterm_kernel, create_pswf_kernel, \
-    convert_griddata_to_convfunction
+from convolution_function.kernels import create_awterm_convolutionfunction, create_pswf_convolutionfunction
 from processing_components.griddata.operations import create_griddata_from_image, convert_griddata_to_image
 from processing_components.image.operations import export_image_to_fits
 from processing_components.image.operations import smooth_image
@@ -40,11 +39,11 @@ class TestGridDataGridding(unittest.TestCase):
     
     def actualSetUp(self):
         
-        self.npixel = 256
+        self.npixel = 512
         self.low = create_named_configuration('LOWBD2', rmax=300.0)
         self.freqwin = 5
         self.vis_list = list()
-        self.ntimes = 2
+        self.ntimes = 3
         self.times = numpy.linspace(-3.0, +3.0, self.ntimes) * numpy.pi / 12.0
         
         self.frequency = numpy.linspace(0.8e8, 1.2e8, self.freqwin)
@@ -64,13 +63,14 @@ class TestGridDataGridding(unittest.TestCase):
                                               self.times,
                                               self.vis_pol,
                                               self.phasecentre,
-                                              block=False)
+                                              block=False,
+                                              zerow=True)
         
-        self.model = create_unittest_model(self.vis, self.image_pol, cellsize=0.001,
+        self.model = create_unittest_model(self.vis, self.image_pol, cellsize=0.0015,
                                            npixel=self.npixel, nchan=self.freqwin)
-        self.components = create_unittest_components(self.model, flux)
+        self.components = create_unittest_components(self.model, flux, applypb=False)
         self.model = insert_skycomponent(self.model, self.components)
-#        self.vis = predict_skycomponent_visibility(self.vis, self.components)
+        self.vis = predict_skycomponent_visibility(self.vis, self.components)
         
         # Calculate the model convolved with a Gaussian.
         self.cmodel = smooth_image(self.model)
@@ -78,27 +78,16 @@ class TestGridDataGridding(unittest.TestCase):
         export_image_to_fits(self.cmodel, '%s/test_gridding_cmodel.fits' % self.dir)
         
     def test_time_setup(self):
-            
-            self.actualSetUp()
+        self.actualSetUp()
     
     def test_convolution_mapping_pswf(self):
         
         self.actualSetUp()
+        gcf, cf = create_pswf_convolutionfunction(self.model, oversampling=8)
+        export_image_to_fits(gcf, '%s/test_gridding_gcf_pswf.fits' % self.dir)
         griddata = create_griddata_from_image(self.model)
-        gcf, aaf = create_pswf_kernel(griddata, oversampling=8)
-        self.vis = predict_skycomponent_visibility(self.vis, self.components)
-        griddata, sumwt = grid_visibility_to_griddata(self.vis, griddata, aaf)
-        im_griddata = convert_griddata_to_image(griddata)
-        im_griddata.data = numpy.real(im_griddata.data)
-        export_image_to_fits(im_griddata, '%s/test_gridding_griddata_pswf.fits' % self.dir)
-
-
-    def test_convolution_mapping_wterm(self):
-        self.actualSetUp()
-        griddata = create_griddata_from_image(self.model)
-        gcf, aaf = create_wterm_kernel(griddata, nw=20, wstep=10.0, oversampling=8)
-        convolution_mapping(self.vis, griddata, aaf)
-
+        im, sumwt = grid_visibility_to_griddata(self.vis, griddata=griddata, gcf=gcf, cf=cf)
+        export_image_to_fits(im, '%s/test_gridding_dirty_pswf.fits' % self.dir)
 
 if __name__ == '__main__':
     unittest.main()

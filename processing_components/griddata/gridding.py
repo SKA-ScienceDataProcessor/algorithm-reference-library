@@ -12,11 +12,14 @@ import logging
 
 
 import numpy
+import numpy.testing
+
+from libs.image.operations import fft, ifft, create_image_from_array
 
 log = logging.getLogger(__name__)
 
 
-def convolution_mapping(vis, griddata, cf_griddata, channel_tolerance=1e-8):
+def convolution_mapping(vis, griddata, cf, channel_tolerance=1e-8):
     """Find the mappings between visibility, griddata, and convolution function
     
     :param vis:
@@ -24,75 +27,88 @@ def convolution_mapping(vis, griddata, cf_griddata, channel_tolerance=1e-8):
     :param cf_griddata:
     :return:
     """
-    # Find u, v in pixels
-    u_pixel, v_pixel = griddata.grid_wcs.sub([1, 2]).wcs_world2pix(vis.uvw[:, 0], vis.uvw[:, 1], 0)
+    numpy.testing.assert_almost_equal(griddata.grid_wcs.wcs.cdelt[0], cf.grid_wcs.wcs.cdelt[0], 7)
+    numpy.testing.assert_almost_equal(griddata.grid_wcs.wcs.cdelt[1], cf.grid_wcs.wcs.cdelt[1], 7)
+
+    # We use the wcs's available to do the coordinate conversion
+    # Find u, v in griddata pixels
+    pu_pixel, pv_pixel = griddata.grid_wcs.sub([1, 2]).wcs_world2pix(vis.uvw[:, 0], vis.uvw[:, 1], 0)
+
+    # Find the nearest grid points and convert back to the world coordinates
+    pu_grid, pv_grid = numpy.round(pu_pixel).astype('int'), numpy.round(pv_pixel).astype('int')
+    wu_grid, wv_grid = griddata.grid_wcs.sub([1, 2]).wcs_pix2world(pu_grid, pv_grid, 0)
+    assert pu_grid.all() >= 0
+    assert pu_grid.all() < cf.shape[5]
+    assert pv_grid.all() >= 0
+    assert pv_grid.all() < cf.shape[6]
+
+    # Use the fractional part to index into the convolution function
+    wu_fraction, wv_fraction = vis.uvw[:, 0] - wu_grid, vis.uvw[:, 1] - wv_grid
+
+    pu_offset, pv_offset = cf.grid_wcs.sub([3, 4]).wcs_world2pix(wu_fraction, wv_fraction, 0)
+    pu_offset, pv_offset = numpy.floor(pu_offset).astype('int'), numpy.floor(pv_offset).astype('int')
+    assert numpy.min(pu_offset) >= 0
+    assert numpy.max(pu_offset) < cf.shape[3]
+    assert numpy.min(pv_offset) >= 0
+    assert numpy.max(pv_offset) < cf.shape[4]
+
+    pw_pixel = griddata.grid_wcs.sub([3]).wcs_world2pix(vis.uvw[:, 2], 0)[0]
     # Find the nearest grid point
-    u_grid, v_grid = numpy.round(u_pixel).astype('int'), numpy.round(v_pixel).astype('int')
-    # Find the fractional part
-    u_fraction, v_fraction = u_pixel - u_grid, v_pixel - v_grid
-    assert numpy.max(numpy.abs(u_fraction)) <= 0.5
-    assert numpy.max(numpy.abs(v_fraction)) <= 0.5
+    pw_grid = numpy.round(pw_pixel).astype('int')
+    assert numpy.min(pw_grid) >= 0
+    assert numpy.max(pw_grid) < cf.shape[2]
     
-    w_pixel = griddata.grid_wcs.sub([3]).wcs_world2pix(vis.uvw[:, 2], 0)[0]
+    # Find the fractional part
+    pw_fraction = pw_pixel - pw_grid
+    
+    pfreq_pixel = griddata.grid_wcs.sub([5]).wcs_world2pix(vis.frequency, 0)[0]
     # Find the nearest grid point
-    w_grid = numpy.round(w_pixel).astype('int')
+    pfreq_grid = numpy.round(pfreq_pixel).astype('int')
     # Find the fractional part
-    w_fraction = w_pixel - w_grid
-    
-    print("UV", u_pixel[0:10], v_pixel[0:10])
-    print("UV", u_grid[0:10], v_grid[0:10])
-    print("UV", u_fraction[0:10], v_fraction[0:10])
-    
-    print("W", w_pixel[0:10], w_grid[0:10], w_fraction[0:10])
-    
-    freq_pixel = griddata.grid_wcs.sub([5]).wcs_world2pix(vis.frequency, 0)[0]
-    # Find the nearest grid point
-    freq_grid = numpy.round(freq_pixel).astype('int')
-    # Find the fractional part
-    freq_fraction = freq_pixel - freq_grid
-    if numpy.max(numpy.abs(freq_fraction)) > channel_tolerance:
+    pfreq_fraction = pfreq_pixel - pfreq_grid
+    if numpy.max(numpy.abs(pfreq_fraction)) > channel_tolerance:
         log.warning("convolution_mapping: alignment of visibility and image grids exceeds tolerance %s" %
-                    (str(numpy.max(max.abs(freq_fraction))), str(channel_tolerance)))
-    
-    print("FREQ", freq_pixel[0:10], freq_grid[0:10], freq_fraction[0:10])
-    
-    return u_grid, u_fraction, v_grid, v_grid, w_grid, w_fraction, freq_grid
+                    (str(channel_tolerance)))
+        
+    return pu_grid, pu_offset, pv_grid, pv_offset, pw_grid, pw_fraction, pfreq_grid
 
 
-
-def grid_visibility_to_griddata(vis, griddata, cf_griddata, **kwargs):
+def grid_visibility_to_griddata(vis, griddata, cf, gcf):
     """Grid Visibility onto a GridData
 
     :param vis: Visibility to be gridded
     :param griddata: GridData
-    :param cf: Convolution function (as GridData)
+    :param cf: Convolution function
     :param kwargs:
     :return: GridData
     """
-    nchan, npol, _, ny, nx = griddata.data.shape
+    nchan, npol, nz, oversampling, _, support, _ = cf.shape
     
     sumwt = numpy.zeros([nchan, npol])
+
+    pu_grid, pu_offset, pv_grid, pv_offset, pw_grid, pw_fraction, pfreq_grid = convolution_mapping(vis, griddata, cf)
     
-    u_grid, u_fraction, v_grid, v_fraction, w_grid, w_fraction, freq_grid = convolution_mapping(vis, griddata,
-                                                                                                cf_griddata)
-    
-    _, _, _, gy, gx = cf_griddata.shape
+    _, _, _, _, _, gy, gx = cf.shape
     
     coords = zip(vis.vis, vis.weight,
-                 freq_grid,
-                 u_grid - gx // 2, u_fraction,
-                 v_grid - gy // 2, v_fraction,
-                 w_grid, freq_grid)
+                 pfreq_grid,
+                 pu_grid - gx // 2, pu_offset,
+                 pv_grid - gy // 2, pv_offset,
+                 pw_grid, pfreq_grid)
     
     griddata.data[...] = 0.0
     
     for pol in range(npol):
-        for v, vwt, chan, xx, yy, xxf, yyf, zz, ff in coords:
+        for v, vwt, chan, xx, xxf, yy, yyf, zz, ff in coords:
             griddata.data[chan, pol, zz, yy: yy + gy, xx: xx + gx] += \
-                cf_griddata.data[chan, pol, yyf, xxf, zz, :, :] * v[pol] * vwt
-            sumwt[chan, pol] += vwt
+                cf.data[chan, pol, zz, yyf, xxf, :, :] * numpy.conjugate(v[pol]) * vwt[pol]
+            sumwt[chan, pol] += vwt[pol]
+            
+    im_data = numpy.real(fft(griddata.data))[:,:,0,...] / gcf.data
+    im_data /= float(im_data.shape[-2]) * float(im_data.shape[-1])
+    im = create_image_from_array(im_data, griddata.projection_wcs, griddata.polarisation_frame)
     
-    return griddata, sumwt
+    return im, sumwt
 
 
 def degrid_visibility_from_griddata(vis, griddata, cf_griddata, **kwargs):
