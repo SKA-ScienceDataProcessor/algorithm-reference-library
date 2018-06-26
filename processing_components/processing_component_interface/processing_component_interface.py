@@ -53,7 +53,7 @@ def component_wrapper(config):
 if __name__ == '__main__':
     import argparse
     
-    parser = argparse.ArgumentParser(description='Execute ARL componentst')
+    parser = argparse.ArgumentParser(description='Execute ARL components')
     parser.add_argument('--config', type=str, help='JSON configuration file')
 
     # Get the configuration definition, checking for validity

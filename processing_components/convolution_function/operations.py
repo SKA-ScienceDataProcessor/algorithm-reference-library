@@ -69,12 +69,12 @@ def create_convolutionfunction_from_image(im: numpy.array, nz=1, zstep=1e-7, zty
 
     Convolution function holds the original sky plane projection in the projection_wcs.
 
-    :param im: Image
+    :param im: Template Image
     :param nz: Number of z axes, usually z is W
     :param zstep: Step in z, usually z is W
-    :param ztype: Type of Z, usually 'WW'
-    :param oversampling:
-    :param support:
+    :param ztype: Type of z, usually 'WW'
+    :param oversampling: Oversampling (size of dy, dx axes)
+    :param support: Support of final convolution function (size of y, x axes)
     :return: Convolution Function
 
     """
@@ -112,8 +112,9 @@ def create_convolutionfunction_from_image(im: numpy.array, nz=1, zstep=1e-7, zty
     cf_wcs.wcs.crval[5] = im.wcs.wcs.crval[2]
     cf_wcs.wcs.crval[6] = im.wcs.wcs.crval[3]
 
-    cf_wcs.wcs.crpix[0] = support / 2.0 + 1.0
-    cf_wcs.wcs.crpix[1] = support / 2.0 + 1.0
+    # Use 1.0 relative indexing in WCS
+    cf_wcs.wcs.crpix[0] = support // 2 + 1.0
+    cf_wcs.wcs.crpix[1] = support // 2 + 1.0
     cf_wcs.wcs.crpix[2] = oversampling / 2.0 + 1.0
     cf_wcs.wcs.crpix[3] = oversampling / 2.0 + 1.0
     cf_wcs.wcs.crpix[4] = nz // 2 + 1.0
@@ -143,13 +144,61 @@ def create_convolutionfunction_from_image(im: numpy.array, nz=1, zstep=1e-7, zty
     fconvfunc.projection_wcs = im.wcs.deepcopy()
     
     assert isinstance(fconvfunc, ConvolutionFunction), "Type is %s" % type(fconvfunc)
+    
     return fconvfunc
 
 
-def convert_convolutionfunction_to_image(gd):
-    """ Convert griddata to an image
+def convert_convolutionfunction_to_image(cf):
+    """ Convert ConvolutionFunction to an image
     
-    :param gd:
+    :param cf:
     :return:
     """
-    return create_image_from_array(gd.data, gd.grid_wcs, gd.polarisation_frame)
+    return create_image_from_array(cf.data, cf.grid_wcs, cf.polarisation_frame)
+
+
+def apply_bounding_box_convolutionfunction(cf, fractional_level=1e-4):
+    """Apply a bounding box to a convolution function
+
+    :param cf:
+    :param fractional_level:
+    :return: bounded convolution function
+    """
+    newcf = copy.deepcopy(cf)
+    nx = newcf.data.shape[-1]
+    ny = newcf.data.shape[-2]
+    mask = numpy.max(numpy.abs(newcf.data), axis=(0, 1, 2, 3, 4))
+    peak = numpy.max(numpy.abs(mask))
+    mask /= peak
+    coords = numpy.argwhere(mask > fractional_level)
+    x0, y0 = coords.min(axis=0)
+    x1, y1 = coords.max(axis=0) + 1
+    newcf.data = newcf.data[..., y0:y1, x0:x1]
+    nny, nnx = newcf.data.shape[-2], newcf.data.shape[-1]
+    newcf.grid_wcs.wcs.crpix[0] += nnx // 2 - nx // 2
+    newcf.grid_wcs.wcs.crpix[1] += nny // 2 - ny // 2
+    return newcf
+
+
+def calculate_bounding_box_convolutionfunction(cf, fractional_level=1e-4):
+    """Calculate bounding boxes
+    
+    Returns a list of bounding boxes where each element is
+    (z, (y0, y1), (x0, x1))
+    
+    These can be used in gridding/degridding.
+
+    :param cf:
+    :param fractional_level:
+    :return: bounded convolution function
+    """
+    bboxes = list()
+    for z in range(cf.data.shape[2]):
+        mask = numpy.max(numpy.abs(cf.data[:,:,z,...]), axis=(0, 1, 2, 3))
+        peak = numpy.max(numpy.abs(mask))
+        mask /= peak
+        coords = numpy.argwhere(mask > fractional_level)
+        x0, y0 = coords.min(axis=0)
+        x1, y1 = coords.max(axis=0) + 1
+        bboxes.append((z, (y0, y1), (x0, x1)))
+    return bboxes

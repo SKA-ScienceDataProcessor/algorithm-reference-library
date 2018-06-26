@@ -480,7 +480,7 @@ class ConvolutionFunction:
     
     @property
     def shape(self):
-        assert len(self.data.shape) == 5
+        assert len(self.data.shape) == 7
         return self.data.shape
     
     @property
