@@ -55,8 +55,8 @@ class TestDataModelHelpers(unittest.TestCase):
                                      polarisation_frame=PolarisationFrame("linear"),
                                      weight=1.0)
         self.vis = predict_skycomponent_visibility(self.vis, self.comp)
-        export_visibility_to_hdf5(self.vis, '%s/test_visibility.hdf' % self.dir)
-        newvis = import_visibility_from_hdf5('%s/test_visibility.hdf' % self.dir)
+        export_visibility_to_hdf5(self.vis, '%s/test_data_model_helpers_visibility.hdf' % self.dir)
+        newvis = import_visibility_from_hdf5('%s/test_data_model_helpers_visibility.hdf' % self.dir)
         
         assert str(newvis) == str(self.vis), "Original %s, import %s" % (str(newvis), str(self.vis))
         assert numpy.array_equal(newvis.frequency, self.vis.frequency)
@@ -76,8 +76,8 @@ class TestDataModelHelpers(unittest.TestCase):
                                           polarisation_frame=PolarisationFrame("linear"),
                                           weight=1.0)
         self.vis = predict_skycomponent_visibility(self.vis, self.comp)
-        export_blockvisibility_to_hdf5(self.vis, '%s/test_blockvisibility.hdf' % self.dir)
-        newvis = import_blockvisibility_from_hdf5('%s/test_blockvisibility.hdf' % self.dir)
+        export_blockvisibility_to_hdf5(self.vis, '%s/test_data_model_helpers_blockvisibility.hdf' % self.dir)
+        newvis = import_blockvisibility_from_hdf5('%s/test_data_model_helpers_blockvisibility.hdf' % self.dir)
         
         assert numpy.array_equal(newvis.frequency, self.vis.frequency)
         assert newvis.data.shape == self.vis.data.shape
@@ -96,23 +96,23 @@ class TestDataModelHelpers(unittest.TestCase):
                                           weight=1.0)
         gt = create_gaintable_from_blockvisibility(self.vis, timeslice='auto')
         gt = simulate_gaintable(gt, phase_error=1.0, amplitude_error=0.1)
-        export_gaintable_to_hdf5(gt, '%s/test_gaintable.hdf' % self.dir)
-        newgt = import_gaintable_from_hdf5('%s/test_gaintable.hdf' % self.dir)
+        export_gaintable_to_hdf5(gt, '%s/test_data_model_helpers_gaintable.hdf' % self.dir)
+        newgt = import_gaintable_from_hdf5('%s/test_data_model_helpers_gaintable.hdf' % self.dir)
         
         assert gt.data.shape == newgt.data.shape
         assert numpy.max(numpy.abs(gt.gain - newgt.gain)) < 1e-15
     
     def test_readwriteimage(self):
         im = create_test_image()
-        export_image_to_hdf5(im, '%s/test_image.hdf' % self.dir)
-        newim = import_image_from_hdf5('%s/test_image.hdf' % self.dir)
+        export_image_to_hdf5(im, '%s/test_data_model_helpers_image.hdf' % self.dir)
+        newim = import_image_from_hdf5('%s/test_data_model_helpers_image.hdf' % self.dir)
         
         assert newim.data.shape == im.data.shape
         assert numpy.max(numpy.abs(im.data - newim.data)) < 1e-15
 
     def test_readwriteskycomponent(self):
-        export_skycomponent_to_hdf5(self.comp, '%s/test_skycomponent.hdf' % self.dir)
-        newsc = import_skycomponent_from_hdf5('%s/test_skycomponent.hdf' % self.dir)
+        export_skycomponent_to_hdf5(self.comp, '%s/test_data_model_helpers_skycomponent.hdf' % self.dir)
+        newsc = import_skycomponent_from_hdf5('%s/test_data_model_helpers_skycomponent.hdf' % self.dir)
     
         assert newsc.flux.shape == self.comp.flux.shape
         assert numpy.max(numpy.abs(newsc.flux - self.comp.flux)) < 1e-15
@@ -120,8 +120,8 @@ class TestDataModelHelpers(unittest.TestCase):
     def test_readwriteskymodel(self):
         im = create_test_image()
         sm = SkyModel(components=[self.comp], images=[im, im])
-        export_skymodel_to_hdf5(sm, '%s/test_skymodel.hdf' % self.dir)
-        newsm = import_skymodel_from_hdf5('%s/test_skymodel.hdf' % self.dir)
+        export_skymodel_to_hdf5(sm, '%s/test_data_model_helpers_skymodel.hdf' % self.dir)
+        newsm = import_skymodel_from_hdf5('%s/test_data_model_helpers_skymodel.hdf' % self.dir)
     
         assert newsm.components[0].flux.shape == self.comp.flux.shape
         assert newsm.images[0].data.shape == im.data.shape
@@ -130,8 +130,8 @@ class TestDataModelHelpers(unittest.TestCase):
     def test_readwritegriddata(self):
         im = create_test_image()
         gd = create_griddata_from_image(im)
-        export_griddata_to_hdf5(gd, '%s/test_griddata.hdf' % self.dir)
-        newgd = import_griddata_from_hdf5('%s/test_griddata.hdf' % self.dir)
+        export_griddata_to_hdf5(gd, '%s/test_data_model_helpers_griddata.hdf' % self.dir)
+        newgd = import_griddata_from_hdf5('%s/test_data_model_helpers_griddata.hdf' % self.dir)
     
         assert newgd.data.shape == gd.data.shape
         assert numpy.max(numpy.abs(gd.data - newgd.data)) < 1e-15
@@ -139,8 +139,8 @@ class TestDataModelHelpers(unittest.TestCase):
     def test_readwriteconvolutionfunction(self):
         im = create_test_image()
         cf = create_convolutionfunction_from_image(im)
-        export_convolutionfunction_to_hdf5(cf, '%s/test_convolutionfunction.hdf' % self.dir)
-        newcf = import_convolutionfunction_from_hdf5('%s/test_convolutionfunction.hdf' % self.dir)
+        export_convolutionfunction_to_hdf5(cf, '%s/test_data_model_helpers_convolutionfunction.hdf' % self.dir)
+        newcf = import_convolutionfunction_from_hdf5('%s/test_data_model_helpers_convolutionfunction.hdf' % self.dir)
     
         assert newcf.data.shape == cf.data.shape
         assert numpy.max(numpy.abs(cf.data - newcf.data)) < 1e-15

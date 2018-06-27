@@ -572,6 +572,10 @@ def buffer_data_model_to_memory(jbuff, dm):
         return import_skymodel_from_hdf5(name)
     elif dm["data_model"] == "GainTable":
         return import_gaintable_from_hdf5(name)
+    elif dm["data_model"] == "GridData":
+        return import_griddata_from_hdf5(name)
+    elif dm["data_model"] == "ConvolutionFunction":
+        return import_convolutionfunction_from_hdf5(name)
     else:
         raise ValueError("Data model %s not supported" % dm["data_model"])
 
@@ -707,10 +711,10 @@ def import_convolutionfunction_from_hdf5(filename):
     
     with h5py.File(filename, 'r') as f:
         nimlist = f.attrs['number_data_models']
-        gdlist = [convert_hdf_to_convolutionfunction(['ConvolutionFunction%d' % i]) for i in range(nimlist)]
+        cflist = [convert_hdf_to_convolutionfunction(f['ConvolutionFunction%d' % i]) for i in range(nimlist)]
         if nimlist == 1:
-            return gdlist[0]
+            return cflist[0]
         else:
-            return gdlist
+            return cflist
 
 

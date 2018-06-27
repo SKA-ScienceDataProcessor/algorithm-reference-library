@@ -12,7 +12,8 @@ from astropy.coordinates import SkyCoord
 
 from data_models.polarisation import PolarisationFrame
 from processing_components.griddata.gridding import convolution_mapping, grid_visibility_to_griddata
-from convolution_function.kernels import create_awterm_convolutionfunction, create_pswf_convolutionfunction
+from processing_components.convolution_function.kernels import create_awterm_convolutionfunction, \
+    create_pswf_convolutionfunction
 from processing_components.griddata.operations import create_griddata_from_image, convert_griddata_to_image
 from processing_components.image.operations import export_image_to_fits
 from processing_components.image.operations import smooth_image
@@ -83,7 +84,7 @@ class TestGridDataGridding(unittest.TestCase):
     def test_convolution_mapping_pswf(self):
         
         self.actualSetUp()
-        gcf, cf = create_pswf_convolutionfunction(self.model, oversampling=8)
+        gcf, cf = create_pswf_convolutionfunction(self.model, support=6, oversampling=1)
         export_image_to_fits(gcf, '%s/test_gridding_gcf_pswf.fits' % self.dir)
         griddata = create_griddata_from_image(self.model)
         im, sumwt = grid_visibility_to_griddata(self.vis, griddata=griddata, gcf=gcf, cf=cf)

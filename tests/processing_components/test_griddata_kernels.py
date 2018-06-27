@@ -35,15 +35,24 @@ class TestGridDataKernels(unittest.TestCase):
         cf_image = convert_convolutionfunction_to_image(cf)
         cf_image.data = numpy.real(cf_image.data)
         export_image_to_fits(cf_image, "%s/test_convolutionfunction_cf.fits" % self.dir)
-    
+
     def test_fill_pswf_to_convolutionfunction(self):
         gcf, cf = create_pswf_convolutionfunction(self.image, oversampling=16, support=6)
         assert numpy.max(numpy.abs(cf.data)) > 0.0
         export_image_to_fits(gcf, "%s/test_convolutionfunction_pswf_gcf.fits" % self.dir)
-        
+    
         cf_image = convert_convolutionfunction_to_image(cf)
         cf_image.data = numpy.real(cf_image.data)
         export_image_to_fits(cf_image, "%s/test_convolutionfunction_pwsf_cf.fits" % self.dir)
+
+    def test_fill_pswf_to_convolutionfunction_nooversampling(self):
+        gcf, cf = create_pswf_convolutionfunction(self.image, oversampling=1, support=7)
+        assert numpy.max(numpy.abs(cf.data)) > 0.0
+        export_image_to_fits(gcf, "%s/test_convolutionfunction_pswf_nooversampling_gcf.fits" % self.dir)
+    
+        cf_image = convert_convolutionfunction_to_image(cf)
+        cf_image.data = numpy.real(cf_image.data)
+        export_image_to_fits(cf_image, "%s/test_convolutionfunction_pwsf_nooversampling_cf.fits" % self.dir)
 
     def test_fill_wterm_to_convolutionfunction(self):
         gcf, cf = create_awterm_convolutionfunction(self.image, pb=None, nw=5, wstep=100.0, use_aaf=True,

@@ -35,11 +35,12 @@ from data_models.data_model_helpers import export_skymodel_to_hdf5, export_block
 from processing_components.simulation.testing_support import create_low_test_image_from_gleam
 from processing_components.imaging.base import advise_wide_field
 
-from workflows.arlexecute.execution_support import get_dask_Client
 from workflows.arlexecute.imaging.imaging_workflows import predict_workflow
 from workflows.arlexecute.simulation.simulation_workflows import simulate_workflow, corrupt_workflow
 
-from ..execution_support.arlexecute import arlexecute
+from workflows.arlexecute.execution_support.dask_init import get_dask_Client
+
+from workflows.arlexecute.execution_support.arlexecute import arlexecute
 
 pp = pprint.PrettyPrinter()
 
