@@ -80,25 +80,25 @@ class TestImaging(unittest.TestCase):
                                                                         zerow=zerow)
                          for freqwin, _ in enumerate(self.frequency)]
         
-        self.model_graph = [arlexecute.execute(create_unittest_model, nout=freqwin)(self.vis_list[freqwin],
+        self.model_list = [arlexecute.execute(create_unittest_model, nout=freqwin)(self.vis_list[freqwin],
                                                                                     self.image_pol,
                                                                                     npixel=self.npixel)
                             for freqwin, _ in enumerate(self.frequency)]
         
-        self.components_graph = [arlexecute.execute(create_unittest_components)(self.model_graph[freqwin],
+        self.components_list = [arlexecute.execute(create_unittest_components)(self.model_list[freqwin],
                                                                                 flux[freqwin, :][numpy.newaxis, :])
                                  for freqwin, _ in enumerate(self.frequency)]
         
-        self.model_graph = [arlexecute.execute(insert_skycomponent, nout=1)(self.model_graph[freqwin],
-                                                                            self.components_graph[freqwin])
+        self.model_list = [arlexecute.execute(insert_skycomponent, nout=1)(self.model_list[freqwin],
+                                                                            self.components_list[freqwin])
                             for freqwin, _ in enumerate(self.frequency)]
         
         self.vis_list = [arlexecute.execute(predict_skycomponent_visibility)(self.vis_list[freqwin],
-                                                                             self.components_graph[freqwin])
+                                                                             self.components_list[freqwin])
                          for freqwin, _ in enumerate(self.frequency)]
         
         # Calculate the model convolved with a Gaussian.
-        self.model = arlexecute.compute(self.model_graph[0], sync=True)
+        self.model = arlexecute.compute(self.model_list[0], sync=True)
         
         self.cmodel = smooth_image(self.model)
         export_image_to_fits(self.model, '%s/test_imaging_model.fits' % self.dir)
@@ -110,7 +110,7 @@ class TestImaging(unittest.TestCase):
         
         self.vis = arlexecute.compute(self.vis_list[0], sync=True)
         
-        self.components = arlexecute.compute(self.components_graph[0], sync=True)
+        self.components = arlexecute.compute(self.components_list[0], sync=True)
     
     def test_time_setup(self):
         self.actualSetUp()
@@ -129,13 +129,13 @@ class TestImaging(unittest.TestCase):
     
     def _predict_base(self, context='2d', extra='', fluxthreshold=1.0, facets=1, vis_slices=1, **kwargs):
         vis_list = zero_vislist_workflow(self.vis_list)
-        vis_list = predict_workflow(vis_list, self.model_graph, context=context,
+        vis_list = predict_workflow(vis_list, self.model_list, context=context,
                                      vis_slices=vis_slices, facets=facets, **kwargs)
         vis_list = subtract_vislist_workflow(self.vis_list, vis_list)[0]
         
         vis_list = arlexecute.compute(vis_list, sync=True)
         
-        dirty = invert_workflow([vis_list], [self.model_graph[0]], context='2d', dopsf=False,
+        dirty = invert_workflow([vis_list], [self.model_list[0]], context='2d', dopsf=False,
                                  normalize=True)[0]
         dirty = arlexecute.compute(dirty, sync=True)
         
@@ -149,7 +149,7 @@ class TestImaging(unittest.TestCase):
     def _invert_base(self, context, extra='', fluxthreshold=1.0, positionthreshold=1.0, check_components=True,
                      facets=1, vis_slices=1, **kwargs):
         
-        dirty = invert_workflow(self.vis_list, self.model_graph, context=context,
+        dirty = invert_workflow(self.vis_list, self.model_list, context=context,
                                  dopsf=False, normalize=True, facets=facets, vis_slices=vis_slices,
                                  **kwargs)[0]
         dirty = arlexecute.compute(dirty, sync=True)

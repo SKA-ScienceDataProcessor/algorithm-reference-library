@@ -120,7 +120,7 @@ class TestImagingDeconvolveGraph(unittest.TestCase):
         psf_imagelist = invert_workflow(self.vis_list, self.model_imagelist,
                                          context='2d',
                                          dopsf=True, normalize=True)
-        deconvolved, _ = deconvolve_component(dirty_imagelist, psf_imagelist, self.model_imagelist, niter=1000,
+        deconvolved, _ = deconvolve_workflow(dirty_imagelist, psf_imagelist, self.model_imagelist, niter=1000,
                                               fractional_threshold=0.1, scales=[0, 3, 10],
                                               threshold=0.1, gain=0.7)
         deconvolved = arlexecute.compute(deconvolved, sync=True)
@@ -134,13 +134,13 @@ class TestImagingDeconvolveGraph(unittest.TestCase):
                                            dopsf=False, normalize=True)
         psf_imagelist = invert_workflow(self.vis_list, self.model_imagelist, context='2d',
                                          dopsf=True, normalize=True)
-        dec_imagelist, _ = deconvolve_component(dirty_imagelist, psf_imagelist, self.model_imagelist, niter=1000,
+        dec_imagelist, _ = deconvolve_workflow(dirty_imagelist, psf_imagelist, self.model_imagelist, niter=1000,
                                                 fractional_threshold=0.01, scales=[0, 3, 10],
                                                 algorithm='mmclean', nmoments=3, nchan=self.freqwin,
                                                 threshold=0.1, gain=0.7)
-        residual_imagelist = residual_component(self.vis_list, model_imagelist=dec_imagelist,
+        residual_imagelist = residual_workflow(self.vis_list, model_imagelist=dec_imagelist,
                                                 context='wstack', vis_slices=51)
-        restored = restore_component(model_imagelist=dec_imagelist, psf_imagelist=psf_imagelist,
+        restored = restore_workflow(model_imagelist=dec_imagelist, psf_imagelist=psf_imagelist,
                                      residual_imagelist=residual_imagelist,
                                      empty=self.model_imagelist)[0]
         
@@ -154,14 +154,14 @@ class TestImagingDeconvolveGraph(unittest.TestCase):
                                            context='2d', dopsf=False, normalize=True)
         psf_imagelist = invert_workflow(self.vis_list, self.model_imagelist,
                                          context='2d', dopsf=True, normalize=True)
-        dec_imagelist, _ = deconvolve_component(dirty_imagelist, psf_imagelist, self.model_imagelist, niter=1000,
+        dec_imagelist, _ = deconvolve_workflow(dirty_imagelist, psf_imagelist, self.model_imagelist, niter=1000,
                                                 fractional_threshold=0.1, scales=[0, 3, 10],
                                                 algorithm='mmclean', nmoments=3, nchan=self.freqwin,
                                                 threshold=0.01, gain=0.7, deconvolve_facets=8,
                                                 deconvolve_overlap=8, deconvolve_taper='tukey')
-        residual_imagelist = residual_component(self.vis_list, model_imagelist=dec_imagelist,
+        residual_imagelist = residual_workflow(self.vis_list, model_imagelist=dec_imagelist,
                                                 context='2d')
-        restored = restore_component(model_imagelist=dec_imagelist, psf_imagelist=psf_imagelist,
+        restored = restore_workflow(model_imagelist=dec_imagelist, psf_imagelist=psf_imagelist,
                                      residual_imagelist=residual_imagelist,
                                      empty=self.model_imagelist)[0]
         

@@ -31,7 +31,7 @@ class TestTestingDaskGraphSupport(unittest.TestCase):
     def tearDown(self):
         arlexecute.close()
 
-    def test_create_simulate_vis_graph(self):
+    def test_create_simulate_vis_list(self):
         arlexecute.set_client(use_dask=False)
         vis_list = simulate_workflow(frequency=self.frequency, channel_bandwidth=self.channel_bandwidth)
         assert len(vis_list) == len(self.frequency)

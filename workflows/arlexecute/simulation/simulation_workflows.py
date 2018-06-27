@@ -107,11 +107,11 @@ def simulate_workflow(config='LOWBD2',
     return vis_list
 
 
-def corrupt_workflow(vis_list, gt_graph=None, **kwargs):
+def corrupt_workflow(vis_list, gt_list=None, **kwargs):
     """ Create a graph to apply gain errors to a vis_list
 
     :param vis_list:
-    :param gt_graph: Optional gain table graph
+    :param gt_list: Optional gain table graph
     :param kwargs:
     :return:
     """
@@ -122,4 +122,4 @@ def corrupt_workflow(vis_list, gt_graph=None, **kwargs):
             gt = simulate_gaintable(gt, **kwargs)
         return apply_gaintable(vis, gt)
     
-    return [arlexecute.execute(corrupt_vis, nout=1)(vis_graph, gt_graph, **kwargs) for vis_graph in vis_list]
+    return [arlexecute.execute(corrupt_vis, nout=1)(vis_list, gt_list, **kwargs) for vis_list in vis_list]
