@@ -30,10 +30,10 @@ from processing_components.calibration.calibration_control import create_calibra
 from processing_components.image.operations import show_image, export_image_to_fits, qa_image
 from processing_components.imaging.base import create_image_from_visibility
 
-from execution_support import get_dask_Client
-from processing_components.pipelines.pipeline_components import ical_component
+from workflows.arlexecute.execution_support import get_dask_Client
+from workflows.arlexecute.pipelines.pipeline_workflows import ical_workflow
 
-from libs.execution_support.arlexecute import arlexecute
+from ..execution_support.arlexecute import arlexecute
 
 import pprint
 
@@ -86,7 +86,7 @@ if __name__ == '__main__':
     
     future_vislist = arlexecute.scatter(vislist)
     ntimes = len(vislist[0].time)
-    ical_list = ical_component(future_vislist,
+    ical_list = ical_workflow(future_vislist,
                                model_imagelist=model_list,
                                context='wstack',
                                calibration_context='TG',
