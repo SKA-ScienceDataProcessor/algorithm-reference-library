@@ -15,7 +15,9 @@ from data_models.data_model_helpers import import_visibility_from_hdf5, export_v
     import_gaintable_from_hdf5, export_gaintable_to_hdf5, \
     import_image_from_hdf5, export_image_to_hdf5, \
     import_skycomponent_from_hdf5, export_skycomponent_to_hdf5, \
-    import_skymodel_from_hdf5, export_skymodel_to_hdf5
+    import_skymodel_from_hdf5, export_skymodel_to_hdf5, \
+    import_griddata_from_hdf5, export_griddata_to_hdf5, \
+    import_convolutionfunction_from_hdf5, export_convolutionfunction_to_hdf5
 from data_models.memory_data_models import Skycomponent, SkyModel
 from data_models.polarisation import PolarisationFrame
 from processing_components.calibration.operations import create_gaintable_from_blockvisibility
@@ -23,6 +25,8 @@ from processing_components.imaging.base import predict_skycomponent_visibility
 from processing_components.simulation.testing_support import create_named_configuration, \
     simulate_gaintable, create_test_image
 from processing_components.visibility.base import create_visibility, create_blockvisibility
+from processing_components.griddata.operations import create_griddata_from_image
+from processing_components.convolution_function.operations import create_convolutionfunction_from_image
 
 
 class TestDataModelHelpers(unittest.TestCase):
@@ -122,6 +126,24 @@ class TestDataModelHelpers(unittest.TestCase):
         assert newsm.components[0].flux.shape == self.comp.flux.shape
         assert newsm.images[0].data.shape == im.data.shape
         assert numpy.max(numpy.abs(newsm.images[0].data - im.data)) < 1e-15
+
+    def test_readwritegriddata(self):
+        im = create_test_image()
+        gd = create_griddata_from_image(im)
+        export_griddata_to_hdf5(gd, '%s/test_griddata.hdf' % self.dir)
+        newgd = import_griddata_from_hdf5('%s/test_griddata.hdf' % self.dir)
+    
+        assert newgd.data.shape == gd.data.shape
+        assert numpy.max(numpy.abs(gd.data - newgd.data)) < 1e-15
+
+    def test_readwriteconvolutionfunction(self):
+        im = create_test_image()
+        cf = create_convolutionfunction_from_image(im)
+        export_convolutionfunction_to_hdf5(cf, '%s/test_convolutionfunction.hdf' % self.dir)
+        newcf = import_convolutionfunction_from_hdf5('%s/test_convolutionfunction.hdf' % self.dir)
+    
+        assert newcf.data.shape == cf.data.shape
+        assert numpy.max(numpy.abs(cf.data - newcf.data)) < 1e-15
 
 
 if __name__ == '__main__':

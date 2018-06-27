@@ -20,7 +20,7 @@ import collections
 import logging
 
 from data_models.data_model_helpers import buffer_data_model_to_memory, memory_data_model_to_buffer
-from data_models.memory_data_models import Image, BlockVisibility, SkyModel, GainTable
+from data_models.memory_data_models import Image, BlockVisibility, SkyModel, GainTable, GridData, ConvolutionFunction
 
 log = logging.getLogger(__name__)
 
@@ -96,6 +96,38 @@ class BufferImage(BufferDataModel):
         """
         BufferDataModel.__init__(self, json_buffer, json_model, mdm)
         self.assert_type(Image)
+
+
+class BufferGridData(BufferDataModel):
+    """Buffer version of memory data model GridData
+
+    """
+    
+    def __init__(self, json_buffer, json_model, mdm=None):
+        """
+
+        :param json_buffer: JSON description of buffer
+        :param json_model: JSON descriptiomn of model
+        :return: Image
+        """
+        BufferDataModel.__init__(self, json_buffer, json_model, mdm)
+        self.assert_type(GridData)
+
+
+class BufferConvolutionFunction(BufferDataModel):
+    """Buffer version of memory data model ConvolutionFunction
+
+    """
+    
+    def __init__(self, json_buffer, json_model, mdm=None):
+        """
+
+        :param json_buffer: JSON description of buffer
+        :param json_model: JSON descriptiomn of model
+        :return: Image
+        """
+        BufferDataModel.__init__(self, json_buffer, json_model, mdm)
+        self.assert_type(ConvolutionFunction)
 
 
 class BufferBlockVisibility(BufferDataModel):
