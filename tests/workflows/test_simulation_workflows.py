@@ -35,7 +35,7 @@ class TestTestingDaskGraphSupport(unittest.TestCase):
         arlexecute.set_client(use_dask=False)
         vis_list = simulate_workflow(frequency=self.frequency, channel_bandwidth=self.channel_bandwidth)
         assert len(vis_list) == len(self.frequency)
-        vt = vis_list[0].compute()
+        vt = arlexecute.compute(vis_list[0])
         assert isinstance(vt, BlockVisibility)
         assert vt.nvis > 0
         arlexecute.close()
