@@ -43,13 +43,13 @@ import logging
 import numpy
 
 from data_models.memory_data_models import BlockVisibility
-from ..calibration.calibration import solve_gaintable
-from ..calibration.operations import copy_gaintable, apply_gaintable, \
+from processing_components.calibration.calibration import solve_gaintable
+from processing_components.calibration.operations import copy_gaintable, apply_gaintable, \
     create_gaintable_from_blockvisibility, qa_gaintable
-from ..skymodel.operations import copy_skymodel
-from ..skymodel.operations import predict_skymodel_visibility, solve_skymodel
-from ..visibility.coalesce import convert_blockvisibility_to_visibility
-from ..visibility.operations import copy_visibility
+from processing_components.skymodel.operations import copy_skymodel
+from processing_components.skymodel.operations import predict_skymodel_visibility, solve_skymodel
+from processing_components.visibility.coalesce import convert_blockvisibility_to_visibility
+from processing_components.visibility.operations import copy_visibility
 
 log = logging.getLogger(__name__)
 

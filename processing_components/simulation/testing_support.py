@@ -16,7 +16,7 @@ Functions that aid testing in various ways. A typical use would be::
         
         comp = create_skycomponent(flux=flux, frequency=frequency, direction=compabsdirection,
                                         polarisation_frame=PolarisationFrame('stokesI'))
-        image_graph = create_test_image)(frequency=frequency, phasecentre=phasecentre,
+        image = create_test_image(frequency=frequency, phasecentre=phasecentre,
                                                       cellsize=0.001,
                                                       polarisation_frame=PolarisationFrame('stokesI')
         
