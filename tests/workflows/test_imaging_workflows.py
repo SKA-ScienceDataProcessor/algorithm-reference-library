@@ -12,14 +12,15 @@ from astropy import units as u
 from astropy.coordinates import SkyCoord
 
 from data_models.polarisation import PolarisationFrame
-
+from workflows.arlexecute.execution_support.arlexecute import arlexecute
 from processing_components.image.operations import export_image_to_fits, smooth_image
 from processing_components.imaging.base import predict_skycomponent_visibility
+from workflows.arlexecute.imaging.imaging_workflows import zero_vislist_workflow, predict_workflow, \
+    invert_workflow, subtract_vislist_workflow
 from processing_components.skycomponent.operations import find_skycomponents, find_nearest_skycomponent, \
     insert_skycomponent
 from processing_components.simulation.testing_support import create_named_configuration, ingest_unittest_visibility, \
-    create_unittest_model, \
-    insert_unittest_errors, create_unittest_components
+    create_unittest_model, insert_unittest_errors, create_unittest_components
 
 log = logging.getLogger(__name__)
 
@@ -34,8 +35,12 @@ class TestImaging(unittest.TestCase):
         from data_models.parameters import arl_path
         self.dir = arl_path('test_results')
     
+    def tearDown(self):
+        arlexecute.close()
     
     def actualSetUp(self, add_errors=False, freqwin=1, block=False, dospectral=True, dopol=False, zerow=False):
+        
+        arlexecute.set_client(use_dask=False)
         
         self.npixel = 256
         self.low = create_named_configuration('LOWBD2', rmax=750.0)
@@ -66,7 +71,7 @@ class TestImaging(unittest.TestCase):
             flux = numpy.array([f])
         
         self.phasecentre = SkyCoord(ra=+180.0 * u.deg, dec=-60.0 * u.deg, frame='icrs', equinox='J2000')
-        self.vis_list = [ingest_unittest_visibility(self.low,
+        self.vis_list = [arlexecute.execute(ingest_unittest_visibility)(self.low,
                                                                         [self.frequency[freqwin]],
                                                                         [self.channelwidth[freqwin]],
                                                                         self.times,
@@ -75,36 +80,37 @@ class TestImaging(unittest.TestCase):
                                                                         zerow=zerow)
                          for freqwin, _ in enumerate(self.frequency)]
         
-        self.model_graph = [create_unittest_model(self.vis_list[freqwin],
+        self.model_graph = [arlexecute.execute(create_unittest_model, nout=freqwin)(self.vis_list[freqwin],
                                                                                     self.image_pol,
                                                                                     npixel=self.npixel)
                             for freqwin, _ in enumerate(self.frequency)]
         
-        self.components_graph = [create_unittest_components(self.model_graph[freqwin],
+        self.components_graph = [arlexecute.execute(create_unittest_components)(self.model_graph[freqwin],
                                                                                 flux[freqwin, :][numpy.newaxis, :])
                                  for freqwin, _ in enumerate(self.frequency)]
         
-        self.model_graph = [insert_skycomponent(self.model_graph[freqwin],
+        self.model_graph = [arlexecute.execute(insert_skycomponent, nout=1)(self.model_graph[freqwin],
                                                                             self.components_graph[freqwin])
                             for freqwin, _ in enumerate(self.frequency)]
         
-        self.vis_list = [predict_skycomponent_visibility(self.vis_list[freqwin],
+        self.vis_list = [arlexecute.execute(predict_skycomponent_visibility)(self.vis_list[freqwin],
                                                                              self.components_graph[freqwin])
                          for freqwin, _ in enumerate(self.frequency)]
         
         # Calculate the model convolved with a Gaussian.
-        self.model = self.model_graph[0]
+        self.model = arlexecute.compute(self.model_graph[0], sync=True)
         
         self.cmodel = smooth_image(self.model)
         export_image_to_fits(self.model, '%s/test_imaging_model.fits' % self.dir)
         export_image_to_fits(self.cmodel, '%s/test_imaging_cmodel.fits' % self.dir)
         
         if add_errors and block:
-            self.vis_list = [insert_unittest_errors(self.vis_list[i])
+            self.vis_list = [arlexecute.execute(insert_unittest_errors)(self.vis_list[i])
                              for i, _ in enumerate(self.frequency)]
         
-        self.vis = self.vis_list[0]
-        self.components = self.components_graph[0]
+        self.vis = arlexecute.compute(self.vis_list[0], sync=True)
+        
+        self.components = arlexecute.compute(self.components_graph[0], sync=True)
     
     def test_time_setup(self):
         self.actualSetUp()
@@ -270,6 +276,5 @@ class TestImaging(unittest.TestCase):
         self.actualSetUp(dospectral=True, dopol=True)
         self._invert_base(context='wstack', extra='_spectral_pol', positionthreshold=2.0,
                           vis_slices=41)
-    
 if __name__ == '__main__':
     unittest.main()

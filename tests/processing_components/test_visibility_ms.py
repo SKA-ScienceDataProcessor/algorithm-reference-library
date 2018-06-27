@@ -86,7 +86,7 @@ class TestCreateMS(unittest.TestCase):
     
         msfile = arl_path("data/vis/ASKAP_example.ms")
         
-        from libs.execution_support.arlexecute import arlexecute
+        from workflows.arlexecute.processing_component_interface.execution_support.arlexecute import arlexecute
         arlexecute.set_client(use_dask=False)
     
         nchan_ave = 16
@@ -97,10 +97,10 @@ class TestCreateMS(unittest.TestCase):
             bv = create_blockvisibility_from_ms(msfile, range(schan, max_chan))
             return integrate_visibility_by_channel(bv[0])
                 
-        vis_by_channel_component = \
+        vis_by_channel_workflow = \
             [arlexecute.execute(create_and_average)(schan) for schan in range(0, nchan, nchan_ave)]
         
-        vis_by_channel = arlexecute.compute(vis_by_channel_component)
+        vis_by_channel = arlexecute.compute(vis_by_channel_workflow)
         arlexecute.close()
     
         assert len(vis_by_channel) == 12

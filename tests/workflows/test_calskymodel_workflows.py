@@ -9,21 +9,23 @@ import astropy.units as u
 import numpy
 from astropy.coordinates import SkyCoord
 
-from data_models.polarisation import PolarisationFrame
 from data_models.memory_data_models import SkyModel
+from data_models.polarisation import PolarisationFrame
 
 from processing_components.calibration.operations import apply_gaintable, create_gaintable_from_blockvisibility
-from processing_components.calibration.calskymodel import calskymodel_solve
 from processing_components.calibration.calibration import solve_gaintable
 from processing_components.image.operations import export_image_to_fits, qa_image
 from processing_components.imaging.base import predict_skycomponent_visibility, create_image_from_visibility
 from processing_components.imaging.imaging_functions import invert_function
 from processing_components.imaging.weighting import weight_visibility
-from processing_components.skycomponent.operations import apply_beam_to_skycomponent, find_skycomponent_matches
+from processing_components.skycomponent.operations import apply_beam_to_skycomponent
 from processing_components.simulation.testing_support import create_named_configuration, simulate_gaintable, \
     create_low_test_skycomponents_from_gleam, create_low_test_beam
 from processing_components.visibility.base import copy_visibility, create_blockvisibility
 from processing_components.visibility.coalesce import convert_blockvisibility_to_visibility
+
+from workflows.arlexecute.processing_component_interface.execution_helper import arlexecute
+from workflows.arlexecute.calibration.calskymodel_workflows import calskymodel_solve_workflow
 
 log = logging.getLogger(__name__)
 
@@ -34,8 +36,12 @@ class TestCalibrationSkyModelcal(unittest.TestCase):
         from data_models.parameters import arl_path
         self.dir = arl_path('test_results')
         
+        arlexecute.set_client(use_dask=False)
+        
         numpy.random.seed(180555)
 
+    def tearDown(self):
+        arlexecute.close()
 
     def actualSetup(self, vnchan=1, doiso=True, ntimes=5, flux_limit=2.0, zerow=True, fixed=False):
         
@@ -92,67 +98,37 @@ class TestCalibrationSkyModelcal(unittest.TestCase):
         self.model_vis = convert_blockvisibility_to_visibility(self.model_vis)
         self.model_vis, _, _ = weight_visibility(self.model_vis, self.beam)
         self.dirty_model, sumwt = invert_function(self.model_vis, self.beam, context='2d')
-        export_image_to_fits(self.dirty_model, "%s/test_skymodel-model_dirty.fits" % self.dir)
+        export_image_to_fits(self.dirty_model, "%s/test_calskymodel-model_dirty.fits" % self.dir)
         
         lvis = convert_blockvisibility_to_visibility(self.vis)
         lvis, _, _ = weight_visibility(lvis, self.beam)
         dirty, sumwt = invert_function(lvis, self.beam, context='2d')
         if doiso:
-            export_image_to_fits(dirty, "%s/test_skymodel-initial-iso-residual.fits" % self.dir)
+            export_image_to_fits(dirty, "%s/test_calskymodel-initial-iso-residual.fits" % self.dir)
         else:
-            export_image_to_fits(dirty, "%s/test_skymodel-initial-noiso-residual.fits" % self.dir)
+            export_image_to_fits(dirty, "%s/test_calskymodel-initial-noiso-residual.fits" % self.dir)
         
         self.skymodels = [SkyModel(components=[cm], fixed=fixed) for cm in self.components]
     
-    def test_time_setup(self):
-        self.actualSetup()
-    
-    def test_skymodel_solve(self):
-        self.actualSetup(ntimes=1, doiso=True)
-        calskymodel, residual_vis = calskymodel_solve(self.vis, self.skymodels, niter=30, gain=0.25)
+    def test_calskymodel_solve_workflow(self):
+        
+        self.actualSetup(doiso=True)
+        
+        self.skymodel_list = [arlexecute.execute(SkyModel, nout=1)(components=[cm])
+                              for cm in self.components]
+        
+        calskymodel_list = calskymodel_solve_workflow(self.vis, skymodel_list=self.skymodel_list, niter=30,
+                                                       gain=0.25)
+        skymodel, residual_vis = arlexecute.compute(calskymodel_list, sync=True)
         
         residual_vis = convert_blockvisibility_to_visibility(residual_vis)
         residual_vis, _, _ = weight_visibility(residual_vis, self.beam)
         dirty, sumwt = invert_function(residual_vis, self.beam, context='2d')
-        export_image_to_fits(dirty, "%s/test_skymodel-final-iso-residual.fits" % self.dir)
+        export_image_to_fits(dirty, "%s/test_calskymodel-%s-final-iso-residual.fits" % (self.dir, arlexecute.type()))
         
         qa = qa_image(dirty)
-        assert qa.data['rms'] < 3.4e-3, qa
-    
-    def test_skymodel_solve_fixed(self):
-        self.actualSetup(ntimes=1, doiso=True, fixed=True)
-        calskymodel, residual_vis = calskymodel_solve(self.vis, self.skymodels, niter=30, gain=0.25)
-        
-        # Check that the components are unchanged
-        calskymodel_skycomponents = list()
-        for sm in [csm[0] for csm in calskymodel]:
-            for comp in sm.components:
-                calskymodel_skycomponents.append(comp)
-        
-        recovered_components = find_skycomponent_matches(calskymodel_skycomponents, self.components, 1e-5)
-        for p in recovered_components:
-            assert numpy.abs(calskymodel_skycomponents[p[0]].flux[0, 0] - self.components[p[1]].flux[0, 0]) < 1e-15
-            assert calskymodel_skycomponents[p[0]].direction.separation(self.components[p[1]].direction).rad < 1e-15
-        
-        residual_vis = convert_blockvisibility_to_visibility(residual_vis)
-        residual_vis, _, _ = weight_visibility(residual_vis, self.beam)
-        dirty, sumwt = invert_function(residual_vis, self.beam, context='2d')
-        export_image_to_fits(dirty, "%s/test_skymodel-final-iso-residual.fits" % self.dir)
-        
-        qa = qa_image(dirty)
-        assert qa.data['rms'] < 3.4e-3, qa
-    
-    def test_skymodel_solve_noiso(self):
-        self.actualSetup(ntimes=1, doiso=False)
-        calskymodel, residual_vis = calskymodel_solve(self.vis, self.skymodels, niter=30, gain=0.25)
-        
-        residual_vis = convert_blockvisibility_to_visibility(residual_vis)
-        residual_vis, _, _ = weight_visibility(residual_vis, self.beam)
-        dirty, sumwt = invert_function(residual_vis, self.beam, context='2d')
-        export_image_to_fits(dirty, "%s/test_skymodel-final-noiso-residual.fits" % self.dir)
-        
-        qa = qa_image(dirty)
-        assert qa.data['rms'] < 3.8e-3, qa
-    
+        assert qa.data['rms'] < 3.2e-3, qa
+
+
 if __name__ == '__main__':
     unittest.main()
