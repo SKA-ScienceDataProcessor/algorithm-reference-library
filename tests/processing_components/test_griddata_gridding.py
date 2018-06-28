@@ -11,9 +11,10 @@ from astropy import units as u
 from astropy.coordinates import SkyCoord
 
 from data_models.polarisation import PolarisationFrame
-from processing_components.griddata.gridding import convolution_mapping, grid_visibility_to_griddata
+from processing_components.griddata.gridding import convolution_mapping, grid_visibility_to_griddata, \
+    grid_visibility_to_griddata_fast
 from processing_components.convolution_function.kernels import create_awterm_convolutionfunction, \
-    create_pswf_convolutionfunction
+    create_pswf_convolutionfunction, create_box_convolutionfunction
 from processing_components.griddata.operations import create_griddata_from_image, convert_griddata_to_image
 from processing_components.image.operations import export_image_to_fits
 from processing_components.image.operations import smooth_image
@@ -21,6 +22,7 @@ from processing_components.imaging.base import predict_skycomponent_visibility
 from processing_components.simulation.testing_support import create_named_configuration, create_unittest_model, \
     create_unittest_components, ingest_unittest_visibility
 from processing_components.skycomponent.operations import insert_skycomponent
+from processing_components.imaging.base import normalize_sumwt
 
 log = logging.getLogger(__name__)
 
@@ -80,15 +82,33 @@ class TestGridDataGridding(unittest.TestCase):
         
     def test_time_setup(self):
         self.actualSetUp()
-    
+
     def test_convolution_mapping_pswf(self):
-        
         self.actualSetUp()
-        gcf, cf = create_pswf_convolutionfunction(self.model, support=6, oversampling=1)
+        gcf, cf = create_pswf_convolutionfunction(self.model, support=6, oversampling=8)
         export_image_to_fits(gcf, '%s/test_gridding_gcf_pswf.fits' % self.dir)
         griddata = create_griddata_from_image(self.model)
         im, sumwt = grid_visibility_to_griddata(self.vis, griddata=griddata, gcf=gcf, cf=cf)
         export_image_to_fits(im, '%s/test_gridding_dirty_pswf.fits' % self.dir)
+
+    def test_convolution_mapping_box(self):
+        self.actualSetUp()
+        gcf, cf = create_box_convolutionfunction(self.model)
+        export_image_to_fits(gcf, '%s/test_gridding_gcf_box.fits' % self.dir)
+        griddata = create_griddata_from_image(self.model)
+        im, sumwt = grid_visibility_to_griddata(self.vis, griddata=griddata, gcf=gcf, cf=cf)
+        im = normalize_sumwt(im, sumwt)
+        export_image_to_fits(im, '%s/test_gridding_dirty_box.fits' % self.dir)
+
+
+    def test_convolution_mapping_fast(self):
+        self.actualSetUp()
+        gcf, cf = create_box_convolutionfunction(self.model)
+        griddata = create_griddata_from_image(self.model)
+        im, sumwt = grid_visibility_to_griddata_fast(self.vis, griddata=griddata, gcf=gcf, cf=cf)
+        im = normalize_sumwt(im, sumwt)
+        export_image_to_fits(im, '%s/test_gridding_dirty_fast.fits' % self.dir)
+
 
 if __name__ == '__main__':
     unittest.main()

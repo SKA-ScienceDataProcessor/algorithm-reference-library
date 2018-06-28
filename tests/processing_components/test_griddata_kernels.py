@@ -11,7 +11,7 @@ from astropy.coordinates import SkyCoord
 
 from libs.image.operations import create_image
 from processing_components.convolution_function.kernels import create_pswf_convolutionfunction, \
-    create_awterm_convolutionfunction
+    create_awterm_convolutionfunction, create_box_convolutionfunction
 from processing_components.convolution_function.operations import convert_convolutionfunction_to_image, \
     create_convolutionfunction_from_image, apply_bounding_box_convolutionfunction, \
     calculate_bounding_box_convolutionfunction
@@ -35,6 +35,15 @@ class TestGridDataKernels(unittest.TestCase):
         cf_image = convert_convolutionfunction_to_image(cf)
         cf_image.data = numpy.real(cf_image.data)
         export_image_to_fits(cf_image, "%s/test_convolutionfunction_cf.fits" % self.dir)
+
+    def test_fill_box_to_convolutionfunction(self):
+        gcf, cf = create_box_convolutionfunction(self.image)
+        assert numpy.max(numpy.abs(cf.data)) > 0.0
+        export_image_to_fits(gcf, "%s/test_convolutionfunction_box_gcf.fits" % self.dir)
+    
+        cf_image = convert_convolutionfunction_to_image(cf)
+        cf_image.data = numpy.real(cf_image.data)
+        export_image_to_fits(cf_image, "%s/test_convolutionfunction_box_cf.fits" % self.dir)
 
     def test_fill_pswf_to_convolutionfunction(self):
         gcf, cf = create_pswf_convolutionfunction(self.image, oversampling=16, support=6)

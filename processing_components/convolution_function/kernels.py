@@ -16,12 +16,43 @@ from processing_components.image.operations import reproject_image
 log = logging.getLogger(__name__)
 
 
+def create_box_convolutionfunction(im, oversampling=1, support=1):
+    """ Fill a box car function into a ConvolutionFunction
+
+    Also returns the gridding correction function as an image
+
+    :param im: Image template
+    :param oversampling: Oversampling of the convolution function in uv space
+    :return: gridding correction Image, gridding kernel as ConvolutionFunction
+    """
+    assert isinstance(im, Image)
+    cf = create_convolutionfunction_from_image(im, oversampling=1, support=1)
+    
+    nchan, npol, _, _ = im.shape
+    
+    cf.data[...] = 1.0
+    # Now calculate the gridding correction function as an image with the same coordinates as the image
+    # which is necessary so that the correction function can be applied directly to the image
+    nchan, npol, ny, nx = im.data.shape
+    nu = numpy.abs(coordinates(nx))
+
+    gcf1d = numpy.sinc(nu)
+    gcf = numpy.outer(gcf1d, gcf1d)
+    gcf= 1.0 / gcf
+    
+    gcf_data = numpy.zeros_like(im.data)
+    gcf_data[...] = gcf[numpy.newaxis, numpy.newaxis, ...]
+    gcf_image = create_image_from_array(gcf_data, cf.projection_wcs, im.polarisation_frame)
+    
+    return gcf_image, cf
+
+
 def create_pswf_convolutionfunction(im, oversampling=8, support=6):
     """ Fill an Anti-Aliasing filter into a ConvolutionFunction
 
     Fill the Prolate Spheroidal Wave Function into a GriData with the specified oversampling. Only the inner
     non-zero part is retained
-    
+
     Also returns the gridding correction function as an image
 
     :param im: Image template
@@ -32,12 +63,12 @@ def create_pswf_convolutionfunction(im, oversampling=8, support=6):
     # Calculate the convolution kernel. We oversample in u,v space by the factor oversampling
     cf = create_convolutionfunction_from_image(im, oversampling=oversampling, support=support)
     
-    nu = numpy.linspace(-support//2, support//2, support * oversampling)
-    _, kernel1d = grdsf(nu / (support//2))
+    nu = numpy.linspace(-support // 2, support // 2, support * oversampling + 1)
+    _, kernel1d = grdsf(nu / (support // 2))
     
     nchan, npol, _, _ = im.shape
     
-    cf.data = numpy.zeros([nchan, npol, 1, oversampling, oversampling, support, support])
+    cf.data = numpy.zeros([nchan, npol, 1, oversampling, oversampling, support, support]).astype('complex')
     for y in range(oversampling):
         vv = range(y, y + support * oversampling, oversampling)
         for x in range(oversampling):
