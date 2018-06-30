@@ -117,7 +117,10 @@ def create_awterm_convolutionfunction(im, pb=None, nw=1, wstep=0.0, oversampling
     cf.grid_wcs.wcs.crpix[4] = nw // 2 + 1.0
     cf.grid_wcs.wcs.cdelt[4] = wstep
     cf.grid_wcs.wcs.ctype[4] = 'WW'
-    w_list = cf.grid_wcs.sub([5]).wcs_pix2world(range(nw), 0)[0]
+    if numpy.abs(wstep) > 0.0:
+        w_list = cf.grid_wcs.sub([5]).wcs_pix2world(range(nw), 0)[0]
+    else:
+        w_list = [0.0]
     
     assert isinstance(oversampling, int)
     assert oversampling > 0
@@ -163,9 +166,11 @@ def create_awterm_convolutionfunction(im, pb=None, nw=1, wstep=0.0, oversampling
         thisplane = ifft(thisplane)
         
         for y in range(oversampling):
-            vv = slice(y + ycen - support * oversampling // 2, y + ycen + support * oversampling // 2, oversampling)
+            vv = range(y + ycen - support * oversampling // 2,
+                       y + ycen + support * oversampling // 2, oversampling)[::-1]
             for x in range(oversampling):
-                uu = slice(x + xcen - support * oversampling // 2, x + xcen + support * oversampling // 2, oversampling)
+                uu = range(x + xcen - support * oversampling // 2,
+                           x + xcen + support * oversampling // 2, oversampling)[::-1]
                 cf.data[:, :, z, y, x, :, :] = thisplane[:, :, vv, uu]
     
     pswf_gcf, _ = create_pswf_convolutionfunction(im, oversampling=1, support=6)

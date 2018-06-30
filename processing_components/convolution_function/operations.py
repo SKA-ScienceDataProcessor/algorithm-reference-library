@@ -112,12 +112,11 @@ def create_convolutionfunction_from_image(im: numpy.array, nz=1, zstep=1e-7, zty
     cf_wcs.wcs.crval[5] = im.wcs.wcs.crval[2]
     cf_wcs.wcs.crval[6] = im.wcs.wcs.crval[3]
 
-    # Use 1.0 relative indexing in WCS
-    cf_wcs.wcs.crpix[0] = support // 2 + 1.0
-    cf_wcs.wcs.crpix[1] = support // 2 + 1.0
-    cf_wcs.wcs.crpix[2] = oversampling / 2.0 + 1.0
-    cf_wcs.wcs.crpix[3] = oversampling / 2.0 + 1.0
-    cf_wcs.wcs.crpix[4] = nz // 2 + 1.0
+    cf_wcs.wcs.crpix[0] = float(support // 2) + 1
+    cf_wcs.wcs.crpix[1] = float(support // 2) + 1
+    cf_wcs.wcs.crpix[2] = float(oversampling // 2) + 1
+    cf_wcs.wcs.crpix[3] = float(oversampling // 2) + 1
+    cf_wcs.wcs.crpix[4] = float(nz // 2 + 1)
     cf_wcs.wcs.crpix[5] = im.wcs.wcs.crpix[2]
     cf_wcs.wcs.crpix[6] = im.wcs.wcs.crpix[3]
 
