@@ -31,6 +31,26 @@ Alternatively, use `CFLAGS` environment variable, e.g.
 In this example CUDA is required by StarPU.
 
 
+# How does it work
+CFFI provides interface to call C from python.
+
+We import arlwrap.py module using PyObjects, then we use ffi callback mechanism (ABI mode)
+to efectively call our arl python code from C. 
+
+The core mechanism is bk_getfn() function which using PyObjects imports arlwrap.py and 
+returns the pointer to the python function (in arlwrap.py) as a callable C function, plus 
+calls the function --only this function is not in arlwrap.py as such, it is a tuple.
+
+arlwrap.c 
+========
+For every function it calls bk_getfn() 
+
+arlwrap.py
+=========
+Sets up the FFI callback to call the python code in ARL.
+
+
+
 # TODOs
  - Currently, we are pickling some metadata and storing it in a character
 	 array. However, we don't know the size of the pickled objects in advance, so

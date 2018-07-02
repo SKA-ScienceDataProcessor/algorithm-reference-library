@@ -7,16 +7,15 @@ CFLAGS=-I../../../ffiwrappers/include
 #LDFLAGS=$(shell python3-config --ldflags) -lcfitsio
 
 
-all: timg_serial ical_demo
+EXECS=timg_serial ical_demo
+all: $(EXECS)
 
-timg_serial:
-	$(CC) $(CFLAGS) timg_serial.c $(LDFLAGS) -o timg_serial
-
-ical_serial:
-	$(CC) $(CFLAGS) ical_demo.c $(LDFLAGS) -o ical_demo
+$(EXECS): %: %.c
+	$(CC) $(CFLAGS) -o $@ $(LDFLAGS) $<
 
 run: all
-	LD_LIBRARY_PATH=../../..:$(LD_LIBRARY_PATH) ./timg_serial 
+	LD_LIBRARY_PATH=../../..:$(LD_LIBRARY_PATH) ./timg_serial
+	LD_LIBRARY_PATH=../../..:$(LD_LIBRARY_PATH) ./ical_demo
 
 clean:
-	rm -rf results timg_serial ical_demo
+	rm -rf results timg_serial ical_demo *.o *.out
