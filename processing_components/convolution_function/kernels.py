@@ -69,17 +69,9 @@ def create_pswf_convolutionfunction(im, oversampling=8, support=6):
             nu = ((grid - support // 2) - \
                   (subsample - oversampling // 2) / oversampling)
             kernel[subsample, grid] = grdsf([nu / (support // 2)])[1]
-            
-    kernel /= numpy.sum(numpy.real(kernel[oversampling//2,:]))
-
-    import matplotlib.pyplot as plt
-    plt.clf()
-    plt.imshow(numpy.abs(kernel), origin='lower')
-    plt.show()
-
-    peak_location = numpy.unravel_index(numpy.argmax(numpy.abs(kernel)), kernel.shape)
-    print(peak_location, numpy.abs(kernel[peak_location]))
-
+    
+    kernel /= numpy.sum(numpy.real(kernel[oversampling // 2, :]))
+    
     nchan, npol, _, _ = im.shape
     
     cf.data = numpy.zeros([nchan, npol, 1, oversampling, oversampling, support, support]).astype('complex')
@@ -183,8 +175,10 @@ def create_awterm_convolutionfunction(im, pb=None, nw=1, wstep=0.0, oversampling
             for x in range(oversampling):
                 uu = range(x + xcen - support * oversampling // 2,
                            x + xcen + support * oversampling // 2, oversampling)[::-1]
-                cf.data[:, :, z, y, x, :, :] = thisplane[:, :, vv, uu]
-    
+                for chan in range(nchan):
+                    for pol in range(npol):
+                        cf.data[chan, pol, z, y, x, :, :] = thisplane[chan, pol, :, :][vv, :][:, uu]
+        
     pswf_gcf, _ = create_pswf_convolutionfunction(im, oversampling=1, support=6)
     
     return pswf_gcf, cf

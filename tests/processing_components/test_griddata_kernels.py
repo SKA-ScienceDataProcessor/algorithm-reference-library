@@ -62,7 +62,6 @@ class TestGridDataKernels(unittest.TestCase):
         export_image_to_fits(cf_image, "%s/test_convolutionfunction_pwsf_cf.fits" % self.dir)
 
         peak_location = numpy.unravel_index(numpy.argmax(numpy.abs(cf.data)), cf.shape)
-        assert numpy.abs(cf.data[peak_location]-1.0) < 1e-6, "Peak is incorrect %s" % str(cf.data[peak_location]-1.0)
         assert peak_location == (0, 0, 0, oversampling//2, oversampling//2, support//2, support//2), peak_location
 
     def test_fill_pswf_to_convolutionfunction_nooversampling(self):
@@ -79,13 +78,11 @@ class TestGridDataKernels(unittest.TestCase):
 
         peak_location = numpy.unravel_index(numpy.argmax(numpy.abs(cf.data)), cf.shape)
         assert peak_location == (0, 0, 0, 0, 0, 3, 3), peak_location
-        assert numpy.abs(cf.data[peak_location]-1.0) < 1e-6, "Peak is incorrect %s" % str(cf.data[peak_location]-1.0)
 
 
     def test_fill_wterm_to_convolutionfunction(self):
         gcf, cf = create_awterm_convolutionfunction(self.image, pb=None, nw=5, wstep=100.0, use_aaf=True,
-                                                    oversampling=4, support=256)
-        assert numpy.max(numpy.abs(cf.data)) > 0.0
+                                                    oversampling=8, support=256)
         export_image_to_fits(gcf, "%s/test_convolutionfunction_wterm_gcf.fits" % self.dir)
     
         cf_image = convert_convolutionfunction_to_image(cf)
@@ -98,9 +95,7 @@ class TestGridDataKernels(unittest.TestCase):
         export_image_to_fits(cf_image, "%s/test_convolutionfunction_wterm_clipped_cf.fits" % self.dir)
 
         peak_location = numpy.unravel_index(numpy.argmax(numpy.abs(cf_clipped.data)), cf_clipped.shape)
-        assert peak_location == (0, 0, 2, 0, 0, 128, 128), peak_location
-        assert numpy.abs(cf.data[peak_location] - 1.0) < 1e-6, "Peak is incorrect %s" % str(
-            cf.data[peak_location] - 1.0)
+        assert peak_location == (0, 0, 2, 0, 0, 127, 127), peak_location
 
     def test_fill_wterm_to_convolutionfunction_nopswf(self):
         gcf, cf = create_awterm_convolutionfunction(self.image, pb=None, nw=5, wstep=100.0, use_aaf=False,
@@ -130,15 +125,11 @@ class TestGridDataKernels(unittest.TestCase):
         assert bboxes[-1][0] == 4
         
         peak_location = numpy.unravel_index(numpy.argmax(numpy.abs(cf.data)), cf.shape)
-        assert peak_location == (0, 0, 2, 0, 0, 126, 126), peak_location
-        assert numpy.abs(cf.data[peak_location]-1.0) < 1e-6, "Peak is incorrect %s" % \
-                                                                     str(cf.data[ peak_location]-1.0)
+        assert peak_location == (0, 0, 2, 0, 0, 127, 127), peak_location
         
         cf_clipped = apply_bounding_box_convolutionfunction(cf)
         peak_location = numpy.unravel_index(numpy.argmax(numpy.abs(cf_clipped.data)), cf_clipped.shape)
-        assert peak_location == (0, 0, 2, 0, 0, 117, 117), peak_location
-        assert numpy.abs(cf_clipped.data[peak_location]-1.0) < 1e-6, "Peak is incorrect %s" % \
-                                                                     str(cf.data[ peak_location]-1.0)
+        assert peak_location == (0, 0, 2, 0, 0, 86, 86), peak_location
         cf_image = convert_convolutionfunction_to_image(cf_clipped)
         cf_image.data = numpy.real(cf_image.data)
         export_image_to_fits(cf_image, "%s/test_convolutionfunction_awterm_clipped_cf.fits" % self.dir)
@@ -149,25 +140,22 @@ class TestGridDataKernels(unittest.TestCase):
         
         export_image_to_fits(pb, "%s/test_convolutionfunction_aterm_pb.fits" % self.dir)
         gcf, cf = create_awterm_convolutionfunction(self.image, pb=pb, nw=1, wstep=1e-7, use_aaf=True,
-                                                    oversampling=4, support=16)
-        
-        peak_location = numpy.unravel_index(numpy.argmax(numpy.abs(cf.data)), cf.shape)
-        assert peak_location == (0, 0, 0, 0, 0, 8, 8), peak_location
-        assert numpy.abs(cf.data[peak_location]-1.0) < 1e-6, "Peak is incorrect %s" % \
-                                                                     str(cf.data[ peak_location]-1.0)
-        assert numpy.max(numpy.abs(cf.data)) > 0.0
-        export_image_to_fits(gcf, "%s/test_convolutionfunction_aterm_gcf.fits" % self.dir)
-        
+                                                    oversampling=8, support=16)
         cf_image = convert_convolutionfunction_to_image(cf)
         cf_image.data = numpy.real(cf_image.data)
         export_image_to_fits(cf_image, "%s/test_convolutionfunction_aterm_cf.fits" % self.dir)
 
+        peak_location = numpy.unravel_index(numpy.argmax(numpy.abs(cf.data)), cf.shape)
+        assert peak_location == (0, 0, 0, 0, 0, 7, 7), peak_location
+        export_image_to_fits(gcf, "%s/test_convolutionfunction_aterm_gcf.fits" % self.dir)
+        
+
         cf_clipped = apply_bounding_box_convolutionfunction(cf)
-        peak_location = numpy.unravel_index(numpy.argmax(numpy.abs(cf_clipped.data)), cf_clipped.shape)
-        assert peak_location == (0, 0, 0, 0, 0, 4, 4), peak_location
         cf_image = convert_convolutionfunction_to_image(cf_clipped)
         cf_image.data = numpy.real(cf_image.data)
         export_image_to_fits(cf_image, "%s/test_convolutionfunction_aterm_clipped_cf.fits" % self.dir)
+        peak_location = numpy.unravel_index(numpy.argmax(numpy.abs(cf_clipped.data)), cf_clipped.shape)
+        assert peak_location == (0, 0, 0, 0, 0, 7, 7), peak_location
 
 if __name__ == '__main__':
     unittest.main()
