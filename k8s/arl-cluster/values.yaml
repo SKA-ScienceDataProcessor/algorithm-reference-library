@@ -9,6 +9,7 @@ image:
   repository: arl_img
   tag: latest
   pullPolicy: IfNotPresent
+  pullSecret: gitlab-registry
 
 jupyter:
   password: changeme

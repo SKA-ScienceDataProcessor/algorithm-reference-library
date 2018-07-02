@@ -32,6 +32,8 @@ spec:
       labels:
         k8s-app: notebook
     spec:
+      imagePullSecrets:
+        - name: arlregcred
       containers:
       - name: notebook
         image: ${DOCKER_IMAGE}

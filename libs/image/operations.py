@@ -65,7 +65,6 @@ def create_image(npixel=512, cellsize=0.000015, polarisation_frame=PolarisationF
     return create_image_from_array(numpy.zeros(shape), w, polarisation_frame=polarisation_frame)
 
 
-
 def create_image_from_array(data: numpy.array, wcs: WCS, polarisation_frame: PolarisationFrame) -> Image:
     """ Create an image from an array and optional wcs
 
