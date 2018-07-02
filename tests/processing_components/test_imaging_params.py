@@ -13,7 +13,7 @@ from data_models.polarisation import PolarisationFrame
 
 from libs.imaging.imaging_params import get_frequency_map, w_kernel_list
 
-from processing_components.util.testing_support import create_named_configuration, create_low_test_image_from_gleam
+from processing_components.simulation.testing_support import create_named_configuration, create_low_test_image_from_gleam
 from processing_components.visibility.base import create_visibility
 from processing_components.imaging.base import create_image_from_visibility
 from processing_components.image.operations import export_image_to_fits, create_image_from_array

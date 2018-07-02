@@ -12,7 +12,7 @@ from data_models.polarisation import PolarisationFrame
 from processing_components.image.operations import create_empty_image_like, export_image_to_fits
 from processing_components.image.gather_scatter import image_gather_facets, image_scatter_facets, image_gather_channels, \
     image_scatter_channels
-from processing_components.util.testing_support import create_test_image
+from processing_components.simulation.testing_support import create_test_image
 
 log = logging.getLogger(__name__)
 

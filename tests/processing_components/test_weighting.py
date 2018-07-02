@@ -18,7 +18,7 @@ from processing_components.image.operations import export_image_to_fits
 from processing_components.imaging.base import invert_2d
 from processing_components.imaging.base import create_image_from_visibility
 from processing_components.imaging.weighting import weight_visibility, taper_visibility_gaussian, taper_visibility_tukey
-from processing_components.util.testing_support import create_named_configuration
+from processing_components.simulation.testing_support import create_named_configuration
 from processing_components.visibility.base import create_visibility
 
 log = logging.getLogger(__name__)

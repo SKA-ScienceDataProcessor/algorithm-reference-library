@@ -32,14 +32,13 @@ from data_models.memory_data_models import SkyModel
 from data_models.polarisation import PolarisationFrame
 from data_models.data_model_helpers import export_skymodel_to_hdf5, export_blockvisibility_to_hdf5
 
-from processing_components.util.testing_support import create_low_test_image_from_gleam
+from processing_components.simulation.testing_support import create_low_test_image_from_gleam
 from processing_components.imaging.base import advise_wide_field
 
-from processing_components.component_support.dask_init import get_dask_Client
-from processing_components.imaging.imaging_components import predict_component
-from processing_components.util.support_components import simulate_component, corrupt_component
-
-from processing_components.component_support.arlexecute import arlexecute
+from workflows.arlexecute.imaging.imaging_workflows import predict_workflow
+from workflows.arlexecute.simulation.simulation_workflows import simulate_workflow, corrupt_workflow
+from workflows.arlexecute.execution_support.dask_init import get_dask_Client
+from workflows.arlexecute.execution_support.arlexecute import arlexecute
 
 pp = pprint.PrettyPrinter()
 
@@ -71,7 +70,7 @@ if __name__ == '__main__':
     times = numpy.linspace(-numpy.pi / 3.0, numpy.pi / 3.0, ntimes)
     phasecentre = SkyCoord(ra=+30.0 * u.deg, dec=-60.0 * u.deg, frame='icrs', equinox='J2000')
     
-    vis_list = simulate_component('LOWBD2',
+    vis_list = simulate_workflow('LOWBD2',
                                   rmax=rmax,
                                   frequency=frequency,
                                   channel_bandwidth=channel_bandwidth,
@@ -120,8 +119,8 @@ if __name__ == '__main__':
     
     log.info('About to run predict to get predicted visibility')
     future_vis_graph = arlexecute.scatter(vis_list)
-    predicted_vislist = predict_component(future_vis_graph, gleam_model, context='wstack', vis_slices=vis_slices)
-    corrupted_vislist = corrupt_component(predicted_vislist, phase_error=1.0)
+    predicted_vislist = predict_workflow(future_vis_graph, gleam_model, context='wstack', vis_slices=vis_slices)
+    corrupted_vislist = corrupt_workflow(predicted_vislist, phase_error=1.0)
     log.info('About to run corrupt to get corrupted visibility')
     corrupted_vislist = arlexecute.compute(corrupted_vislist, sync=True)
     

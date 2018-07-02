@@ -16,7 +16,7 @@ from processing_components.image.operations import copy_image, create_empty_imag
     reproject_image, add_image, \
     qa_image, smooth_image, calculate_image_frequency_moments, calculate_image_from_frequency_moments, \
     convert_stokes_to_polimage, convert_polimage_to_stokes
-from processing_components.util.testing_support import create_test_image, create_low_test_image_from_gleam
+from processing_components.simulation.testing_support import create_test_image, create_low_test_image_from_gleam
 
 log = logging.getLogger(__name__)
 

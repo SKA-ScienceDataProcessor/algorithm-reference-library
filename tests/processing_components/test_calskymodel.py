@@ -12,8 +12,6 @@ from astropy.coordinates import SkyCoord
 from data_models.polarisation import PolarisationFrame
 from data_models.memory_data_models import SkyModel
 
-from processing_components.component_support.arlexecute import arlexecute
-
 from processing_components.calibration.operations import apply_gaintable, create_gaintable_from_blockvisibility
 from processing_components.calibration.calskymodel import calskymodel_solve
 from processing_components.calibration.calibration import solve_gaintable
@@ -22,7 +20,7 @@ from processing_components.imaging.base import predict_skycomponent_visibility, 
 from processing_components.imaging.imaging_functions import invert_function
 from processing_components.imaging.weighting import weight_visibility
 from processing_components.skycomponent.operations import apply_beam_to_skycomponent, find_skycomponent_matches
-from processing_components.util.testing_support import create_named_configuration, simulate_gaintable, \
+from processing_components.simulation.testing_support import create_named_configuration, simulate_gaintable, \
     create_low_test_skycomponents_from_gleam, create_low_test_beam
 from processing_components.visibility.base import copy_visibility, create_blockvisibility
 from processing_components.visibility.coalesce import convert_blockvisibility_to_visibility
@@ -36,12 +34,8 @@ class TestCalibrationSkyModelcal(unittest.TestCase):
         from data_models.parameters import arl_path
         self.dir = arl_path('test_results')
         
-        arlexecute.set_client(use_dask=False)
-        
         numpy.random.seed(180555)
 
-    def tearDown(self):
-        arlexecute.close()
 
     def actualSetup(self, vnchan=1, doiso=True, ntimes=5, flux_limit=2.0, zerow=True, fixed=False):
         

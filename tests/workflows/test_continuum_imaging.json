@@ -1,0 +1,89 @@
+{
+    "execute": {
+        "use_dask": true,
+        "n_workers": 4,
+        "memory_limit": 4000000000
+    },
+    "component": {
+        "framework": "ARL",
+        "name": "continuum_imaging"
+    },
+    "logging": {
+        "filename": "test_pipeline.log",
+        "filemode": "a",
+        "format": "%(asctime)s,%(msecs)d %(name)s %(levelname)s %(message)s",
+        "datefmt": "%H:%M:%S",
+        "level": "INFO"
+    },
+    "buffer": {
+        "directory": "test_results/"
+    },
+    "inputs": {
+        "vis_list": {
+            "name": "test_perfect_vislist.hdf",
+            "data_model": "BlockVisibility"
+        }
+    },
+    "outputs": {
+        "restored": {
+            "data_model": "Image",
+            "name": "test_perfect_restored.fits"
+        },
+        "residual": {
+            "data_model": "Image",
+            "name": "test_perfect_residual.fits"
+        },
+        "deconvolved": {
+            "data_model": "Image",
+            "name": "test_perfect_deconvolved.fits"
+        },
+        "skymodel": {
+            "data_model": "SkyModel",
+            "name": "test_continuum_imaging_skymodel.hdf"
+        }
+
+    },
+    "imaging": {
+        "context": "wstack",
+        "vis_slices": 11
+    },
+    "image": {
+        "npixel": 1024,
+        "nchan": 1,
+        "polarisation_frame": "stokesI",
+        "cellsize": {
+            "value": 0.001,
+            "unit": "rad"
+        },
+        "phasecentre": {
+            "ra": {
+                "value": 30.0,
+                "unit": "deg"
+            },
+            "dec": {
+                "value": -60.0,
+                "unit": "deg"
+            },
+            "frame": "icrs",
+            "equinox": "j2000"
+        }
+    },
+    "deconvolution": {
+        "scales": [
+            0,
+            3,
+            10
+        ],
+        "algorithm": "mmclean",
+        "psf_support": 64,
+        "nmoment": 3,
+        "niter": 1000,
+        "fractional_threshold": 0.1,
+        "threshold": 0.001,
+        "gain": 0.1,
+        "deconvolve_facets": 8,
+        "deconvolve_overlap": 16,
+        "deconvolve_taper": "tukey",
+        "nmajor": 1
+    }
+}

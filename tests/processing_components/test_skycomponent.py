@@ -13,7 +13,7 @@ from data_models.polarisation import PolarisationFrame
 
 from processing_components.skycomponent.operations import create_skycomponent, find_separation_skycomponents, \
     find_skycomponent_matches, find_nearest_skycomponent, find_nearest_skycomponent_index
-from processing_components.util.testing_support import create_low_test_skycomponents_from_gleam
+from processing_components.simulation.testing_support import create_low_test_skycomponents_from_gleam
 
 log = logging.getLogger(__name__)
 

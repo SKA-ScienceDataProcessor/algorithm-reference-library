@@ -16,23 +16,16 @@ import numpy
 
 from astropy.coordinates import SkyCoord
 from astropy import units as u
-from astropy.wcs.utils import pixel_to_skycoord
 
-from matplotlib import pyplot as plt
-
-from processing_components.calibration.operations import apply_gaintable, create_gaintable_from_blockvisibility, qa_gaintable
-from processing_components.visibility.base import create_visibility, copy_visibility
-from data_models.memory_data_models import Image, Visibility, BlockVisibility, ReceptorFrame, GainTable
-from processing_components.image.deconvolution import deconvolve_cube, restore_cube
-from processing_components.image.operations import show_image, export_image_to_fits, qa_image, copy_image, create_empty_image_like
-from processing_components.imaging.base import create_image_from_visibility, predict_2d, invert_2d
+from processing_components.calibration.operations import apply_gaintable, create_gaintable_from_blockvisibility
+from processing_components.image.operations import export_image_to_fits, qa_image
+from processing_components.imaging.base import create_image_from_visibility
 from processing_components.imaging.base import advise_wide_field
-from processing_components.util.testing_support import create_named_configuration, create_test_image, create_low_test_image_from_gleam, simulate_gaintable
+from processing_components.simulation.testing_support import create_named_configuration, create_low_test_image_from_gleam, simulate_gaintable
 from data_models.polarisation import PolarisationFrame
 from processing_components.visibility.base import create_blockvisibility
 from processing_components.imaging.imaging_functions import invert_function, predict_function 
-from processing_components.visibility.coalesce import convert_visibility_to_blockvisibility, convert_blockvisibility_to_visibility
-from processing_components.calibration.calibration import solve_gaintable
+from processing_components.visibility.coalesce import convert_visibility_to_blockvisibility
 from processing_components.functions.pipeline_functions import ical
 
 

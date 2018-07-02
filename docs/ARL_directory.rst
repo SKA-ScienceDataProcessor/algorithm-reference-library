@@ -108,12 +108,12 @@ Visibility
 Pipelines
 =========
 
-* Execution framework (an interface to Dask): :py:mod:`processing_components.component_support.arlexecute`
-* Prediction and inversion of visibility data: :py:mod:`processing_components.pipelines.pipeline_components`
-* Generic image or visibility unary operations::py:mod:`processing_components.component_suppport.generic_components`
-* Testing and simulation support: :py:mod:`processing_components.util.testing_support`
+* Execution framework (an interface to Dask): :py:mod:`workflows.arlexecute.execution_support.arlexecute`
+* Prediction and inversion of visibility data: :py:mod:`workflows.arlexecute.pipelines.pipeline_components`
+* Generic image or visibility unary operations::py:mod:`workflows.arlexecute.component_suppport.generic_components`
+* Testing and simulation support: :py:mod:`workflows.arlexecute.util.testing_support`
 
-Workflows
-=========
+External interface
+==================
 
-* ARL component wrappers: :py:mod:`workflows.wrappers`
+* Calling ARL functions externally: :py:mod:`workflows.arlexecute..processing_component_interface`

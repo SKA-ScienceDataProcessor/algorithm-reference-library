@@ -548,7 +548,8 @@ def buffer_data_model_to_memory(jbuff, dm):
     :param dm: JSON describing data model
     :return: data model
     """
-    name = jbuff["directory"] + dm["name"]
+    import os
+    name = os.path.join(jbuff["directory"], dm["name"])
 
     import os
     _, file_extension = os.path.splitext(dm["name"])

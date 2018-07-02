@@ -8,7 +8,7 @@ import unittest
 from astropy.coordinates import SkyCoord
 import astropy.units as u
 
-from processing_components.util.testing_support import create_named_configuration
+from processing_components.simulation.testing_support import create_named_configuration
 from processing_components.calibration.iterators import gaintable_timeslice_iter, gaintable_null_iter
 from processing_components.calibration.operations import create_gaintable_from_blockvisibility
 from processing_components.visibility.base import create_blockvisibility

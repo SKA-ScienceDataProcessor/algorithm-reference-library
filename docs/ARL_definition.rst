@@ -10,17 +10,17 @@ The ARL structure maps that used in the SDP processing architecture:
 .. image:: ./SDP_processing_architecture.png
    :scale: 100 %
 
+Not all connections are shown.
+
 The corresponding directories are:
 
-* data_models: These are memory-based are mapped to the Buffer by matching classes.
-* libs: Library functions used by the processing components. These are not callable directly by the EF.
-* processing_components: components that can be executed by the Execution Framework.
-* workflows: Contains top level workflows
+* data_models: These are both memory and buffer based. There are helper functions for IO.
+* libs: Library functions used by the processing components, not by EF. Not shown on this diagram.
+* processing_components: Pure python components that can be executed by an Execution Framework.
+* workflows: Contains top level workflows. arlexecute contains workflows executable from Dask or immediately.
 
-Note that the function names in ARL do not directly correspond to those in the architecture diagram.
-
-ARL is composed of data models and functions. The data models are implemented as python classes. The functions are
-stateless so calling the same function with the same inputs will always return the same value.
+The data models are implemented as python classes. The functions are stateless so calling the same function with the
+same inputs will always return the same value.
 
 Please note that the documentation below has links to the python source. In the end, this is the definitive
 documentation.
@@ -54,6 +54,13 @@ Buffer Data Models
 
 .. automodule:: data_models.buffer_data_models
    :members:
+
+Data model persistence
+++++++++++++++++++++++
+
+.. automodule:: data_models.data_model_helpers
+   :members:
+
 
 
 Parameter handling
@@ -263,7 +270,7 @@ Coordinate Support
 Testing Support
 +++++++++++++++
 
-.. automodule:: processing_components.util.testing_support
+.. automodule:: processing_components.simulation.testing_support
    :members:
 
 Execution
@@ -272,19 +279,13 @@ Execution
 Execution (optionally via Dask)
 +++++++++++++++++++++++++++++++
 
-.. automodule:: processing_components.component_support.arlexecute
-   :members:
-
-Generic execution
-+++++++++++++++++
-
-.. automodule:: processing_components.component_support.generic_components
+.. automodule:: workflows.arlexecute.execution_support.arlexecute
    :members:
 
 Dask init
 +++++++++
 
-.. automodule:: processing_components.component_support.dask_init
+.. automodule:: workflows.arlexecute.execution_support.dask_init
    :members:
 
 
@@ -294,19 +295,13 @@ Pipelines
 Pipelines using arlexecute
 ++++++++++++++++++++++++++
 
-.. automodule:: processing_components.pipelines.pipeline_components
-   :members:
-
-Functions
-+++++++++
-
-.. automodule:: processing_components.functions.pipeline_functions
+.. automodule:: workflows.arlexecute.pipelines.pipeline_workflows
    :members:
 
 Support
 +++++++
 
-.. automodule:: processing_components.util.support_components
+.. automodule:: workflows.arlexecute.simulation.simulation_workflows
    :members:
 
 Processing Component Interface
@@ -315,35 +310,35 @@ Processing Component Interface
 Wrappers
 ++++++++
 
-.. automodule:: processing_components.external_interface
+.. automodule:: workflows.arlexecute.processing_component_interface
    :members:
 
 ARL JSON schema
 +++++++++++++++
 
-.. automodule:: processing_components.external_interface.arl_json
+.. automodule:: workflows.arlexecute.processing_component_interface.arl_json
    :members:
 
-.. automodule:: processing_components.external_interface.arl_json.json_helpers
+.. automodule:: workflows.arlexecute.processing_component_interface.arl_json.json_helpers
    :members:
 
 
 Component wrapper
 +++++++++++++++++
 
-.. automodule:: processing_components.external_interface.processing_component_interface
+.. automodule:: workflows.arlexecute.processing_component_interface.processing_component_interface
    :members:
 
 Processing component wrapper
 ++++++++++++++++++++++++++++
 
-.. automodule:: processing_components.external_interface.processing_component_wrappers
+.. automodule:: workflows.arlexecute.processing_component_interface.processing_component_wrappers
    :members:
 
 Execution helpers
 +++++++++++++++++
 
-.. automodule:: processing_components.external_interface.execution_helper
+.. automodule:: workflows.arlexecute.processing_component_interface.execution_helper
    :members:
 
 
@@ -374,28 +369,19 @@ Unit tests written in standard python style are available.
 .. automodule:: tests.data_models.test_polarisation
    :members:
 
-.. automodule:: tests.processing_components.test_arlexecute
-   :members:
-
 .. automodule:: tests.processing_components.test_calibration_context
    :members:
 
 .. automodule:: tests.processing_components.test_calibration_operations
    :members:
 
-.. automodule:: tests.processing_components.test_calibration_solvers
-   :members:
-
 .. automodule:: tests.processing_components.test_calskymodel
    :members:
 
-.. automodule:: tests.processing_components.test_calskymodel_component
+.. automodule:: tests.processing_components.test_calibration_solvers
    :members:
 
 .. automodule:: tests.processing_components.test_gaintable_iterators
-   :members:
-
-.. automodule:: tests.processing_components.test_generic_components
    :members:
 
 .. automodule:: tests.processing_components.test_image_deconvolution
@@ -422,19 +408,10 @@ Unit tests written in standard python style are available.
 .. automodule:: tests.processing_components.test_imaging
    :members:
 
-.. automodule:: tests.processing_components.test_imaging_components
-   :members:
-
-.. automodule:: tests.processing_components.test_imaging_deconvolve_component
-   :members:
-
 .. automodule:: tests.processing_components.test_imaging_functions
    :members:
 
 .. automodule:: tests.processing_components.test_imaging_params
-   :members:
-
-.. automodule:: tests.processing_components.test_pipelines_component
    :members:
 
 .. automodule:: tests.processing_components.test_pipelines_functions
@@ -453,9 +430,6 @@ Unit tests written in standard python style are available.
    :members:
 
 .. automodule:: tests.processing_components.test_skymodel
-   :members:
-
-.. automodule:: tests.processing_components.test_support_components
    :members:
 
 .. automodule:: tests.processing_components.test_testing_support
@@ -481,4 +455,24 @@ Unit tests written in standard python style are available.
 
 .. automodule:: tests.processing_components.test_weighting
    :members:
+
+.. automodule:: tests.workflows.test_pipelines_workflows
+   :members:
+
+.. automodule:: tests.workflows.test_arlexecute
+   :members:
+
+.. automodule:: tests.workflows.test_imaging_workflows
+   :members:
+
+.. automodule:: tests.workflows.test_imaging_deconvolve_workflows
+   :members:
+
+.. automodule:: tests.workflows.test_calskymodel_workflows
+   :members:
+
+.. automodule:: tests.workflows.test_generic_workflows
+   :members:
+
+
 

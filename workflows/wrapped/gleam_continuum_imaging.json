@@ -36,6 +36,10 @@
         "deconvolved": {
             "data_model": "Image",
             "name": "gleam_perfect_deconvolved.fits"
+        },
+        "skymodel": {
+            "data_model": "SkyModel",
+            "name": "gleam_perfect_skymodel.hdf"
         }
     },
     "imaging": {

@@ -522,6 +522,7 @@ class Visibility:
         s += "\tNumber of visibilities: %s\n" % self.nvis
         s += "\tFrequency: %s\n" % self.frequency
         s += "\tNumber of polarisations: %s\n" % self.npol
+        s += "\tVisibility shape: %s\n" % str(self.vis.shape)
         s += "\tPolarisation Frame: %s\n" % self.polarisation_frame.type
         s += "\tPhasecentre: %s\n" % self.phasecentre
         s += "\tConfiguration: %s\n" % self.configuration.name
@@ -667,9 +668,10 @@ class BlockVisibility:
         """Default printer for Skycomponent
 
         """
-        s = "Visibility:\n"
+        s = "BlockVisibility:\n"
         s += "\tNumber of visibilities: %s\n" % self.nvis
         s += "\tNumber of integrations: %s\n" % len(self.time)
+        s += "\tVisibility shape: %s\n" % str(self.vis.shape)
         s += "\tFrequency: %s\n" % self.frequency
         s += "\tNumber of polarisations: %s\n" % self.npol
         s += "\tPolarisation Frame: %s\n" % self.polarisation_frame.type
