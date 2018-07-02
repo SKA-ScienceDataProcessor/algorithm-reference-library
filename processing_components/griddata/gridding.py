@@ -48,11 +48,11 @@ def convolution_mapping(vis, griddata, cf, channel_tolerance=1e-8):
     
     # If everything is correct, the fraction in pixels must lie in the range -0.5 to 0.5 so we round it.
     pu_offset, pv_offset = \
-        numpy.round(cf.grid_wcs.sub([3, 4]).wcs_world2pix(wu_subsample, wv_subsample, 0)).astype('int')
-    assert numpy.min(pu_offset) >= 0
-    assert numpy.max(pu_offset) < cf.shape[3]
-    assert numpy.min(pv_offset) >= 0
-    assert numpy.max(pv_offset) < cf.shape[4]
+        numpy.floor(cf.grid_wcs.sub([3, 4]).wcs_world2pix(wu_subsample, wv_subsample, 0)).astype('int')
+    assert numpy.min(pu_offset) >= 0, numpy.min(pu_offset)
+    assert numpy.max(pu_offset) < cf.shape[3], numpy.max(pu_offset)
+    assert numpy.min(pv_offset) >= 0, numpy.min(pv_offset)
+    assert numpy.max(pv_offset) < cf.shape[4], numpy.max(pv_offset)
     
     ###### W mapping
     pw_pixel = griddata.grid_wcs.sub([3]).wcs_world2pix(vis.uvw[:, 2], 0)[0]

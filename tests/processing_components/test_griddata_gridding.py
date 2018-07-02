@@ -84,7 +84,7 @@ class TestGridDataGridding(unittest.TestCase):
     
     def test_convolution_mapping_pswf(self):
         self.actualSetUp()
-        gcf, cf = create_pswf_convolutionfunction(self.model, support=6, oversampling=8)
+        gcf, cf = create_pswf_convolutionfunction(self.model, support=6, oversampling=16)
         griddata = create_griddata_from_image(self.model)
         im, sumwt = grid_visibility_to_griddata(self.vis, griddata=griddata, gcf=gcf, cf=cf)
         im = normalize_sumwt(im, sumwt)

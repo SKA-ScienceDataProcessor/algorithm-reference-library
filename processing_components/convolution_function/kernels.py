@@ -35,10 +35,10 @@ def create_box_convolutionfunction(im, oversampling=1, support=1):
     # which is necessary so that the correction function can be applied directly to the image
     nchan, npol, ny, nx = im.data.shape
     nu = numpy.abs(coordinates(nx))
-
+    
     gcf1d = numpy.sinc(nu)
     gcf = numpy.outer(gcf1d, gcf1d)
-    gcf= 1.0 / gcf
+    gcf = 1.0 / gcf
     
     gcf_data = numpy.zeros_like(im.data)
     gcf_data[...] = gcf[numpy.newaxis, numpy.newaxis, ...]
@@ -63,23 +63,35 @@ def create_pswf_convolutionfunction(im, oversampling=8, support=6):
     # Calculate the convolution kernel. We oversample in u,v space by the factor oversampling
     cf = create_convolutionfunction_from_image(im, oversampling=oversampling, support=support)
     
-    nu = numpy.linspace(-support // 2, support // 2, support * oversampling + 1)
-    _, kernel1d = grdsf(nu / (support // 2))
-    
+    kernel = numpy.zeros([oversampling, support])
+    for grid in range(support):
+        for subsample in range(oversampling):
+            nu = ((grid - support // 2) - \
+                  (subsample - oversampling // 2) / oversampling)
+            kernel[subsample, grid] = grdsf([nu / (support // 2)])[1]
+            
+    kernel /= numpy.sum(numpy.real(kernel[oversampling//2,:]))
+
+    import matplotlib.pyplot as plt
+    plt.clf()
+    plt.imshow(numpy.abs(kernel), origin='lower')
+    plt.show()
+
+    peak_location = numpy.unravel_index(numpy.argmax(numpy.abs(kernel)), kernel.shape)
+    print(peak_location, numpy.abs(kernel[peak_location]))
+
     nchan, npol, _, _ = im.shape
     
     cf.data = numpy.zeros([nchan, npol, 1, oversampling, oversampling, support, support]).astype('complex')
     for y in range(oversampling):
-        vv = range(y, y + support * oversampling, oversampling)
         for x in range(oversampling):
-            uu = range(x, x + support * oversampling, oversampling)
-            cf.data[:, :, 0, y, x, :, :] = numpy.outer(kernel1d[vv], kernel1d[uu])[numpy.newaxis, numpy.newaxis, ...]
+            cf.data[:, :, 0, y, x, :, :] = numpy.outer(kernel[y], kernel[x])[numpy.newaxis, numpy.newaxis, ...]
     
     # Now calculate the gridding correction function as an image with the same coordinates as the image
     # which is necessary so that the correction function can be applied directly to the image
     nchan, npol, ny, nx = im.data.shape
     nu = numpy.abs(2.0 * coordinates(nx))
-    gcf1d, _ = grdsf(nu)
+    gcf1d = grdsf(nu)[0]
     gcf = numpy.outer(gcf1d, gcf1d)
     gcf[gcf > 0.0] = gcf.max() / gcf[gcf > 0.0]
     
