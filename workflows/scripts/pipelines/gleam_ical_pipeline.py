@@ -34,6 +34,7 @@ from workflows.arlexecute.pipelines.pipeline_workflows import ical_workflow
 
 from workflows.arlexecute.execution_support.dask_init import get_dask_Client
 from workflows.arlexecute.execution_support.arlexecute import arlexecute
+from workflows.arlexecute.pipelines.pipeline_workflows import ical_workflow
 
 import pprint
 
