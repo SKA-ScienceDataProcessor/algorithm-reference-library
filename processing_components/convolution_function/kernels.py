@@ -66,8 +66,7 @@ def create_pswf_convolutionfunction(im, oversampling=8, support=6):
     kernel = numpy.zeros([oversampling, support])
     for grid in range(support):
         for subsample in range(oversampling):
-            nu = ((grid - support // 2) - \
-                  (subsample - oversampling // 2) / oversampling)
+            nu = ((grid - support // 2) - (subsample - oversampling // 2) / oversampling)
             kernel[subsample, grid] = grdsf([nu / (support // 2)])[1]
     
     kernel /= numpy.sum(numpy.real(kernel[oversampling // 2, :]))
@@ -77,7 +76,7 @@ def create_pswf_convolutionfunction(im, oversampling=8, support=6):
     cf.data = numpy.zeros([nchan, npol, 1, oversampling, oversampling, support, support]).astype('complex')
     for y in range(oversampling):
         for x in range(oversampling):
-            cf.data[:, :, 0, y, x, :, :] = numpy.outer(kernel[y], kernel[x])[numpy.newaxis, numpy.newaxis, ...]
+            cf.data[:, :, 0, y, x, :, :] = numpy.outer(kernel[y, :], kernel[x, :])[numpy.newaxis, numpy.newaxis, ...]
     
     # Now calculate the gridding correction function as an image with the same coordinates as the image
     # which is necessary so that the correction function can be applied directly to the image
@@ -94,7 +93,7 @@ def create_pswf_convolutionfunction(im, oversampling=8, support=6):
     return gcf_image, cf
 
 
-def create_awterm_convolutionfunction(im, pb=None, nw=1, wstep=0.0, oversampling=8, support=6, use_aaf=True):
+def create_awterm_convolutionfunction(im, pb=None, nw=1, wstep=1e-7, oversampling=8, support=6, use_aaf=True):
     """ Fill AW projection kernel into a GridData.
 
     :param im: Image template
@@ -168,17 +167,21 @@ def create_awterm_convolutionfunction(im, pb=None, nw=1, wstep=0.0, oversampling
     for z, w in enumerate(w_list):
         thisplane[..., iystart:iyend, ixstart:ixend] = norm * w_beam(qnx, fov, w)
         thisplane = ifft(thisplane)
-        
+
         for y in range(oversampling):
-            vv = range(y + ycen - support * oversampling // 2,
-                       y + ycen + support * oversampling // 2, oversampling)[::-1]
+            ybeg = y + ycen + (support + 1) * oversampling // 2 - oversampling
+            yend = y + ycen - (support - 1) * oversampling // 2 - oversampling
+            vv = range(ybeg, yend, -oversampling)
             for x in range(oversampling):
-                uu = range(x + xcen - support * oversampling // 2,
-                           x + xcen + support * oversampling // 2, oversampling)[::-1]
+                xbeg = x + xcen + (support + 1) * oversampling // 2 - oversampling
+                xend = x + xcen - (support - 1) * oversampling // 2 - oversampling
+                uu = range(xbeg, xend, -oversampling)
                 for chan in range(nchan):
                     for pol in range(npol):
                         cf.data[chan, pol, z, y, x, :, :] = thisplane[chan, pol, :, :][vv, :][:, uu]
-        
+
+    cf.data /= numpy.sum(numpy.real(cf.data[0, 0, 0, oversampling // 2, oversampling // 2, :, :]))
+    
     pswf_gcf, _ = create_pswf_convolutionfunction(im, oversampling=1, support=6)
     
     return pswf_gcf, cf
