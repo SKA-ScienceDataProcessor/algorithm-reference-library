@@ -30,10 +30,8 @@ def convolution_mapping(vis, griddata, cf, channel_tolerance=1e-8):
     numpy.testing.assert_almost_equal(griddata.grid_wcs.wcs.cdelt[1], cf.grid_wcs.wcs.cdelt[1], 7)
     
     ####### UV mapping
-    # We use the wcs's available to do the coordinate conversion
+    # We use the grid_wcs's to do the coordinate conversion
     # Find the nearest grid points
-    print(griddata.grid_wcs)
-    print(cf.grid_wcs)
     pu_grid, pv_grid = \
         numpy.round(griddata.grid_wcs.sub([1, 2]).wcs_world2pix(vis.uvw[:, 0], vis.uvw[:, 1], 0)).astype('int')
     assert numpy.min(pu_grid) >= 0
@@ -46,13 +44,8 @@ def convolution_mapping(vis, griddata, cf, channel_tolerance=1e-8):
     wu_grid, wv_grid = griddata.grid_wcs.sub([1, 2]).wcs_pix2world(pu_grid, pv_grid, 0)
     wu_subsample, wv_subsample = vis.uvw[:, 0] - wu_grid, vis.uvw[:, 1] - wv_grid
     
-    # If everything is correct, the fraction in pixels must lie in the range -0.5 to 0.5 so we round it.
     pu_offset, pv_offset = \
         numpy.floor(cf.grid_wcs.sub([3, 4]).wcs_world2pix(wu_subsample, wv_subsample, 0)).astype('int')
-    assert numpy.min(pu_offset) >= 0, numpy.min(pu_offset)
-    assert numpy.max(pu_offset) < cf.shape[3], numpy.max(pu_offset)
-    assert numpy.min(pv_offset) >= 0, numpy.min(pv_offset)
-    assert numpy.max(pv_offset) < cf.shape[4], numpy.max(pv_offset)
     
     ###### W mapping
     pw_pixel = griddata.grid_wcs.sub([3]).wcs_world2pix(vis.uvw[:, 2], 0)[0]
@@ -94,9 +87,9 @@ def grid_visibility_to_griddata(vis, griddata, cf, gcf):
     
     dx = gx // 2
     dy = gy // 2
-    for v, vwt, chan, xx, xxf, yy, yyf, zz in coords:
-        griddata.data[chan, :, zz, (yy - dy):(yy + dy), (xx - dx):(xx + dx)] += \
-            cf.data[chan, :, zz, yyf, xxf, :, :] * (numpy.conjugate(v) * vwt)[:, numpy.newaxis, numpy.newaxis]
+    for v, vwt, chan, uu, uuf, vv, vvf, zz in coords:
+        griddata.data[chan, :, zz, (vv + dy):(vv - dy):-1, (uu - dx):(uu + dx)] += \
+            cf.data[chan, :, zz, vvf, uuf, :, :] * (numpy.conjugate(v) * vwt)[:, numpy.newaxis, numpy.newaxis]
         sumwt[chan, :] += vwt
     
     im_data = numpy.real(fft(griddata.data))[:, :, 0, ...] * gcf.data

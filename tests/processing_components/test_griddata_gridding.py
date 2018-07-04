@@ -40,11 +40,7 @@ class TestGridDataGridding(unittest.TestCase):
         from data_models.parameters import arl_path
         self.dir = arl_path('test_results')
     
-<<<<<<< Updated upstream
-    def actualSetUp(self):
-=======
     def actualSetUp(self, zerow=True):
->>>>>>> Stashed changes
         self.npixel = 512
         self.low = create_named_configuration('LOWBD2', rmax=300.0)
         self.freqwin = 5
@@ -70,11 +66,7 @@ class TestGridDataGridding(unittest.TestCase):
                                               self.vis_pol,
                                               self.phasecentre,
                                               block=False,
-<<<<<<< Updated upstream
-                                              zerow=True)
-=======
                                               zerow=zerow)
->>>>>>> Stashed changes
         
         self.model = create_unittest_model(self.vis, self.image_pol, cellsize=0.0015,
                                            npixel=self.npixel, nchan=self.freqwin)
@@ -91,54 +83,55 @@ class TestGridDataGridding(unittest.TestCase):
         self.actualSetUp()
     
     def test_convolution_mapping_pswf(self):
-        self.actualSetUp()
-        gcf, cf = create_pswf_convolutionfunction(self.model, support=6, oversampling=16)
+        self.actualSetUp(zerow=True)
+        gcf, cf = create_pswf_convolutionfunction(self.model, support=6, oversampling=8)
         griddata = create_griddata_from_image(self.model)
         im, sumwt = grid_visibility_to_griddata(self.vis, griddata=griddata, gcf=gcf, cf=cf)
         im = normalize_sumwt(im, sumwt)
         export_image_to_fits(im, '%s/test_gridding_dirty_pswf.fits' % self.dir)
-    
+        self.check_peaks(im)
+
     def test_convolution_mapping_aterm(self):
-<<<<<<< Updated upstream
-        self.actualSetUp()
-        pb = create_pb_generic(self.model, diameter=35.0, blockage=0.0)
-        export_image_to_fits(pb, "%s/test_convolutionfunction_aterm_pb.fits" % self.dir)
-        gcf, cf = create_awterm_convolutionfunction(self.model, pb=pb, nw=1, wstep=0.0, use_aaf=True,
-=======
         self.actualSetUp(zerow=True)
         pb = create_pb_generic(self.model, diameter=35.0, blockage=0.0)
         export_image_to_fits(pb, "%s/test_convolutionfunction_aterm_pb.fits" % self.dir)
         gcf, cf = create_awterm_convolutionfunction(self.model, pb=pb, nw=1, use_aaf=True,
->>>>>>> Stashed changes
                                                     oversampling=16, support=16)
         griddata = create_griddata_from_image(self.model)
         im, sumwt = grid_visibility_to_griddata(self.vis, griddata=griddata, gcf=gcf, cf=cf)
         im = normalize_sumwt(im, sumwt)
         export_image_to_fits(im, '%s/test_gridding_dirty_aterm.fits' % self.dir)
-    
+        self.check_peaks(im, 114.6383)
+
     def test_convolution_mapping_pswf_nooversampling(self):
-        self.actualSetUp()
+        self.actualSetUp(zerow=True)
         gcf, cf = create_pswf_convolutionfunction(self.model, support=6, oversampling=1)
         griddata = create_griddata_from_image(self.model)
         im, sumwt = grid_visibility_to_griddata(self.vis, griddata=griddata, gcf=gcf, cf=cf)
         im = normalize_sumwt(im, sumwt)
         export_image_to_fits(im, '%s/test_gridding_dirty_pswf_nooversampling.fits' % self.dir)
-    
+        self.check_peaks(im, 114.6398)
+
     def test_convolution_mapping_box(self):
-        self.actualSetUp()
+        self.actualSetUp(zerow=True)
         gcf, cf = create_box_convolutionfunction(self.model)
         griddata = create_griddata_from_image(self.model)
         im, sumwt = grid_visibility_to_griddata(self.vis, griddata=griddata, gcf=gcf, cf=cf)
         im = normalize_sumwt(im, sumwt)
         export_image_to_fits(im, '%s/test_gridding_dirty_box.fits' % self.dir)
-    
+        self.check_peaks(im, 114.63976)
+
     def test_convolution_mapping_fast(self):
-        self.actualSetUp()
+        self.actualSetUp(zerow=True)
         gcf, cf = create_box_convolutionfunction(self.model)
         griddata = create_griddata_from_image(self.model)
         im, sumwt = grid_visibility_to_griddata_fast(self.vis, griddata=griddata, gcf=gcf, cf=cf)
         im = normalize_sumwt(im, sumwt)
+        self.check_peaks(im, 114.63976)
         export_image_to_fits(im, '%s/test_gridding_dirty_fast.fits' % self.dir)
+
+    def check_peaks(self, im, peak=114.5154, tol=1e-3):
+        assert numpy.abs(im.data[(0, 0, 256, 256)] - peak) < tol, im.data[(0, 0, 256, 256)]
 
 
 if __name__ == '__main__':

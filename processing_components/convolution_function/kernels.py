@@ -26,11 +26,13 @@ def create_box_convolutionfunction(im, oversampling=1, support=1):
     :return: gridding correction Image, gridding kernel as ConvolutionFunction
     """
     assert isinstance(im, Image)
-    cf = create_convolutionfunction_from_image(im, oversampling=1, support=1)
+    cf = create_convolutionfunction_from_image(im, oversampling=1, support=4)
     
     nchan, npol, _, _ = im.shape
     
-    cf.data[...] = 1.0
+    cf.data[...] = 0.0+0.0j
+    cf.data[...,2,2] = 1.0+0.0j
+    
     # Now calculate the gridding correction function as an image with the same coordinates as the image
     # which is necessary so that the correction function can be applied directly to the image
     nchan, npol, ny, nx = im.data.shape

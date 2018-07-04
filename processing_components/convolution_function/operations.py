@@ -138,7 +138,7 @@ def create_convolutionfunction_from_image(im: numpy.array, nz=1, zstep=1e-7, zty
     fconvfunc = ConvolutionFunction()
     fconvfunc.polarisation_frame = im.polarisation_frame
 
-    fconvfunc.data = numpy.zeros([nchan, npol, nz, oversampling, oversampling, support, support])
+    fconvfunc.data = numpy.zeros([nchan, npol, nz, oversampling, oversampling, support, support], dtype='complex')
     fconvfunc.grid_wcs = cf_wcs.deepcopy()
     fconvfunc.projection_wcs = im.wcs.deepcopy()
     
