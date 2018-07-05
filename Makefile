@@ -33,7 +33,7 @@ checkvars:
 all: clean build nosetests
 
 clean:
-	$(PYTHON) setup.py clean
+	$(PYTHON) setup.py clean --all
 	rm -rf dist
 
 in: inplace # just a shortcut

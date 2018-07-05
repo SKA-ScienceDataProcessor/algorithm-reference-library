@@ -16,7 +16,7 @@ assert sys.version_info[0] >= 3
 # re-use the setuptools build support.
 
 libarlffi = Extension('libarlffi',
-                   sources = ['ffiwrappers/src/arlwrap.c', 'ffiwrappers/src/wrap_support.c'],
+                   sources = ['ffiwrappers/src/arlwrap.c', 'ffiwrappers/src/wrap_support.c', 'ffiwrappers/src/wrappingcore.c'],
                    undef_macros = ['NDEBUG'],
                    extra_compile_args = ['-Wno-strict-prototypes'],
                    libraries= ['cfitsio'],
