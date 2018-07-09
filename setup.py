@@ -20,6 +20,7 @@ libarlffi = Extension('libarlffi',
                    undef_macros = ['NDEBUG'],
                    extra_compile_args = ['-Wno-strict-prototypes'],
                    libraries= ['cfitsio'],
+		   optional=True,
 )
 
 setup(name='algorithm-reference-library',
