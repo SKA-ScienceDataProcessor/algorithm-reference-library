@@ -147,6 +147,8 @@ void arl_set_visibility_data_to_zero(ARLConf *lowconf, ARLVis *vis);
 void arl_manipulate_visibility_data(ARLConf *lowconf, const ARLVis *vis1in, const ARLVis *vis2in, ARLVis *visout, int op);
 void arl_add_to_model(Image* model, Image* res);
 
+void arl_invert_function_blockvis(ARLConf * lowconf, const ARLVis *blockvisin, Image * img_model, int vis_slices, Image * img_dirty);
+
 /** Initialise the ARL library
  */
 void arl_initialize(void);

@@ -201,4 +201,7 @@ void arl_predict_function_blockvis(ARLConf * lowconf, ARLVis * visin, const Imag
 	BKFNPY(arl_predict_function_blockvis)(lowconf, visin, img);
 }
 
+void arl_invert_function_blockvis(ARLConf * lowconf, const ARLVis *blockvisin, Image * img_model, int vis_slices, Image * img_dirty){
+ 	BKFNPY(arl_invert_function_blockvis)(lowconf, blockvisin, img_model, vis_slices, img_dirty);
+}
 

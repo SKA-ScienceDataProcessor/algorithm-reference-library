@@ -4,6 +4,12 @@
 # Set of comands to Install arl and wrapper into Linux system #
 # =========================================================== #
 
+
+# If dependency environment modules are loaded and repository is already cloned
+# this file can be sources from arlroot and should build the system 
+# i.e. algorithm-reference-library> source scripts/build-arl-linux-new.sh
+
+
 # Load the dependency modules
 # PYTHON 3.6 +
 # GIT 2.10+
@@ -32,12 +38,8 @@ pip install -r requirements.txt
 pip install virtualenvwrapper
 source virtualenvwrapper.sh
 
-# Build the ARL 
-python setup.py build_py
+# Build the ARL and C Wrappers (FFI) if possible
 python setup.py install
-
-# Build ARL C Wrappers (FFI)
-python setup.py build_ext -i
 
 # Add ARL to the PATH
 # An alternative if not using virtualenv is to:
