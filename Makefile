@@ -1,13 +1,15 @@
 # simple makefile to simplify repetitive build env management tasks under posix
-PYTHON ?= python3.6
-PYLINT ?= pylint
-NOSETESTS ?= nosetests3
+PYTHON ?= python3
+PYLINT ?= /usr/bin/pylint
+NOSETESTS ?= /usr/bin/nosetests
+MAKE_DBG ?= ""
+TESTS ?= tests/
 FLAKE ?= flake8
 NAME = arl
-IMG = $(NAME)_img
-TAG = latest
+IMG ?= $(NAME)_img
+TAG ?= ubuntu18.04
 DOCKER_IMAGE = $(IMG):$(TAG)
-DOCKERFILE = Dockerfile
+DOCKERFILE ?= Dockerfile
 DOCKER = docker
 DOCKER_REPO ?= ""
 DOCKER_USER ?= ""
@@ -32,6 +34,8 @@ checkvars:
 
 all: clean build nosetests
 
+docker_all: clean build docker_build docker_tests
+
 clean:
 	$(PYTHON) setup.py clean
 	rm -rf dist
@@ -50,11 +54,11 @@ unittest: cleantests
 	$(PYTHON) -m unittest discover -f --locals -s tests -p "test_*.py"
 
 pytest: cleantests
-	pytest -x -v tests/
+	pytest -x -v $(TESTS)
 
 nosetests: cleantests
 	rm -f predict_facet_timeslice_graph_wprojection.png pipelines-timings_*.csv
-	$(NOSETESTS) -s -v -e create_low_test_beam -e create_low_test_skycomponents_from_gleam tests/
+	$(NOSETESTS) -s -v -e create_low_test_beam -e create_low_test_skycomponents_from_gleam $(TESTS)
 
 nosetests-coverage: inplace cleantests
 	rm -rf coverage .coverage
@@ -156,33 +160,42 @@ k8s_deploy: k8s_deploy_scheduler k8s_deploy_worker k8s_deploy_notebook
 
 k8s_delete: k8s_delete_notebook k8s_delete_worker k8s_delete_scheduler
 
-docker_tests: docker_build cleantests
+docker_test_data:
+	CTNR=`$(DOCKER) ps -q -f name=helper` && \
+	if [ -n "$${CTNR}" ]; then $(DOCKER) rm -f helper; fi
+	docker volume rm -f arl-volume || true
+	docker volume create --name arl-volume
+	$(DOCKER) run -v arl-volume:/data --name helper busybox true
+	$(DOCKER) cp $$(pwd)/data/. helper:/data
+	$(DOCKER) rm -f helper
+
+docker_tests: cleantests docker_test_data
 	rm -f predict_facet_timeslice_graph_wprojection.png pipelines-timings_*.csv
 	CTNR=`$(DOCKER) ps -q -f name=$(NAME)_tests` && \
 	if [ -n "$${CTNR}" ]; then $(DOCKER) rm -f $(NAME)_tests; fi
-	$(DOCKER) run --rm --name $(NAME)_tests --hostname $(NAME) --volume $$(pwd)/data:/arl/data \
-					-v /etc/passwd:/etc/passwd:ro --user=$$(id -u) \
-					-v $${HOME}:$${HOME} -w $${HOME} \
-					-e HOME=$${HOME} \
-		            --net=host -ti $(DOCKER_IMAGE) /bin/sh -c "cd /arl && make nosetests"
+	$(DOCKER) run --rm --name $(NAME)_tests --hostname $(NAME) --volume arl-volume:/arl/data \
+		            $(DOCKER_IMAGE) /bin/sh -c "cd /arl && make $(MAKE_DBG) nosetests TESTS=\"${TESTS}\""
 
-docker_pytest: docker_build cleantests
+docker_pytest: cleantests docker_test_data
 	CTNR=`$(DOCKER) ps -q -f name=$(NAME)_tests` && \
 	if [ -n "$${CTNR}" ]; then $(DOCKER) rm -f $(NAME)_tests; fi
 	$(DOCKER) run --rm --name $(NAME)_tests --hostname $(NAME) --volume $$(pwd)/data:/arl/data \
-					-v /etc/passwd:/etc/passwd:ro --user=$$(id -u) \
-					-v $${HOME}:$${HOME} -w $${HOME} \
-					-e HOME=$${HOME} \
-			    --net=host -ti $(DOCKER_IMAGE) /bin/sh -c "cd /arl && make pytest"
+			    $(DOCKER_IMAGE) /bin/sh -c "cd /arl && make $(MAKE_DBG) pytest"
 
-docker_lint: docker_build
+docker_lint:
+	CTNR=`$(DOCKER) ps -q -f name=$(NAME)_lint` && \
+	if [ -n "$${CTNR}" ]; then $(DOCKER) rm -f $(NAME)_lint; fi
+	$(DOCKER) run --rm --name $(NAME)_lint --hostname $(NAME) \
+		            $(DOCKER_IMAGE) /bin/sh -c "cd /arl && make $(MAKE_DBG) code-analysis"
+
+docker_shell:
 	CTNR=`$(DOCKER) ps -q -f name=$(NAME)_lint` && \
 	if [ -n "$${CTNR}" ]; then $(DOCKER) rm -f $(NAME)_lint; fi
 	$(DOCKER) run --rm --name $(NAME)_lint --hostname $(NAME) --volume $$(pwd):/arl \
 					-v /etc/passwd:/etc/passwd:ro --user=$$(id -u) \
 					-v $${HOME}:$${HOME} -w $${HOME} \
 					-e HOME=$${HOME} \
-		            --net=host -ti $(DOCKER_IMAGE) /bin/sh -c "cd /arl && make code-analysis"
+		            --net=host -ti $(DOCKER_IMAGE) sh
 
 launch_dask:
 	cd tools && ansible-playbook -i ./inventory ./docker.yml

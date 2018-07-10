@@ -86,7 +86,7 @@ class TestCreateMS(unittest.TestCase):
     
         msfile = arl_path("data/vis/ASKAP_example.ms")
         
-        from workflows.arlexecute.processing_component_interface.execution_support.arlexecute import arlexecute
+        from workflows.arlexecute.execution_support.arlexecute import arlexecute
         arlexecute.set_client(use_dask=False)
     
         nchan_ave = 16
