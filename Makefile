@@ -34,6 +34,7 @@ all: clean build nosetests
 
 clean:
 	$(PYTHON) setup.py clean --all
+	rm libarlffi.*.so
 	rm -rf dist
 
 in: inplace # just a shortcut

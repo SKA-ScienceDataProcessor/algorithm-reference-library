@@ -1,12 +1,41 @@
 # ARL C API (work in progress)
-In this folder contains a proof-of-concept C interface wrapping Python ARL
-routines, and a simple pipeline implementation in C.
+This folder contains a proof-of-concept C interface wrapping Python ARL
+processing components.
 
 # Rationale
 We want to be able to perform testing of different Execution Frameworks, without
 having to implement computational routines for every language. By implementing
 an interface in C, we can call the ARL routines from basically any language.
 This allows us to focus our time on testing the actual EFs.
+
+# How does it work
+
+We want to provide a wrapper to be able to call our python processing components from a C program.
+
+CFFI provides interface to call C from python, so we use ffi callback mechanism (ABI mode) to efectively call arl python code from C.
+We also use the ffi routines to transform data-types between C and python internal structure.
+
+The code is structured in the following files:
+
+wrappingcore.c
+==============
+
+It implements the core mechanism in bk_getfn() function: This function uses PyObjects to import arlwrap.py module and 
+returns the pointer to the python function (in arlwrap.py) as a callable C function, plus 
+calls the function --only this function is not in arlwrap.py as such, it is a tuple.
+
+arlwrap.c 
+========
+For every function it calls bk_getfn() 
+
+arlwrap.py
+=========
+Sets up the FFI callback to call the python code in ARL.
+
+
+
+
+# ########################## old ############################### #
 
 # starpu\_timg/timg\_starpu.c
 
@@ -30,24 +59,6 @@ Alternatively, use `CFLAGS` environment variable, e.g.
 `CFLAGS="-I/usr/local/cuda/include/ -I/usr/include/cfitsio/" python3 setup.py build`
 In this example CUDA is required by StarPU.
 
-
-# How does it work
-CFFI provides interface to call C from python.
-
-We import arlwrap.py module using PyObjects, then we use ffi callback mechanism (ABI mode)
-to efectively call our arl python code from C. 
-
-The core mechanism is bk_getfn() function which using PyObjects imports arlwrap.py and 
-returns the pointer to the python function (in arlwrap.py) as a callable C function, plus 
-calls the function --only this function is not in arlwrap.py as such, it is a tuple.
-
-arlwrap.c 
-========
-For every function it calls bk_getfn() 
-
-arlwrap.py
-=========
-Sets up the FFI callback to call the python code in ARL.
 
 
 
