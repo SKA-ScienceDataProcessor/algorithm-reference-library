@@ -35,6 +35,7 @@ setup(name='FFI_Demo',
     version='0.1',
     python_requires='>=3',
     description = "Demo for compilation of FFI-wrapped Python callable from C",
-    ext_modules = [libarlffi],
-    cmdclass = {'build_ext': CFFIBuild})
+    ext_modules = [libarlffi])
+#,
+#    cmdclass = {'build_ext': CFFIBuild})
 
