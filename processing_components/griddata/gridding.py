@@ -35,9 +35,9 @@ def convolution_mapping(vis, griddata, cf, channel_tolerance=1e-8):
     pu_grid, pv_grid = \
         numpy.round(griddata.grid_wcs.sub([1, 2]).wcs_world2pix(vis.uvw[:, 0], vis.uvw[:, 1], 0)).astype('int')
     assert numpy.min(pu_grid) >= 0
-    assert numpy.max(pu_grid) < griddata.shape[3]
+    assert numpy.max(pu_grid) < griddata.shape[3], "U axis overflows: %f" % numpy.max(pu_grid)
     assert numpy.min(pv_grid) >= 0
-    assert numpy.max(pv_grid) < griddata.shape[4]
+    assert numpy.max(pv_grid) < griddata.shape[4], "V axis overflows: %f" % numpy.max(pv_grid)
     
     # We now have the location of grid points, convert back to uv space and find the remainder (in wavelengths). We
     # then use this to calculate the subsampling indices (DUU, DVV)
@@ -52,7 +52,7 @@ def convolution_mapping(vis, griddata, cf, channel_tolerance=1e-8):
     # Find the nearest grid point
     pw_grid = numpy.round(pw_pixel).astype('int')
     assert numpy.min(pw_grid) >= 0
-    assert numpy.max(pw_grid) < cf.shape[2]
+    assert numpy.max(pw_grid) < cf.shape[2], "W axis overflows: %f" % numpy.max(pw_grid)
     pw_fraction = pw_pixel - pw_grid
     
     ###### Frequency mapping
