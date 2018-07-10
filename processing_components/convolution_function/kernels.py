@@ -11,7 +11,7 @@ from libs.fourier_transforms.convolutional_gridding import coordinates, grdsf, w
 from libs.fourier_transforms.fft_support import ifft
 from libs.image.operations import create_image_from_array, copy_image
 from processing_components.convolution_function.operations import create_convolutionfunction_from_image
-from processing_components.image.operations import reproject_image
+from processing_components.image.operations import reproject_image, create_empty_image_like
 
 log = logging.getLogger(__name__)
 
@@ -95,11 +95,11 @@ def create_pswf_convolutionfunction(im, oversampling=8, support=6):
     return gcf_image, cf
 
 
-def create_awterm_convolutionfunction(im, pb=None, nw=1, wstep=1e-7, oversampling=8, support=6, use_aaf=True):
+def create_awterm_convolutionfunction(im, make_pb=None, nw=1, wstep=1e-7, oversampling=8, support=6, use_aaf=True):
     """ Fill AW projection kernel into a GridData.
 
     :param im: Image template
-    :param pb: Primary beam model image
+    :param make_pb: Function to make the primary beam model image
     :param nw: Number of w planes
     :param wstep: Step in w (wavelengths)
     :param oversampling: Oversampling of the convolution function in uv space
@@ -112,7 +112,7 @@ def create_awterm_convolutionfunction(im, pb=None, nw=1, wstep=1e-7, oversamplin
     nchan, npol, ny, nx = im.data.shape
     
     assert isinstance(im, Image)
-    # Calculate the convolution kernel. We oversample in u,v space by the factor oversampling
+    # Calculate the template convolution kernel.
     cf = create_convolutionfunction_from_image(im, oversampling=oversampling, support=support)
     
     cf_shape = list(cf.data.shape)
@@ -130,8 +130,8 @@ def create_awterm_convolutionfunction(im, pb=None, nw=1, wstep=1e-7, oversamplin
     assert isinstance(oversampling, int)
     assert oversampling > 0
     
-    qnx = nx // oversampling
-    qny = ny // oversampling
+    qnx = nx
+    qny = ny
     
     # Find the actual cellsizes in x and y (radians) after over oversampling (in uv space)
     cell = d2r * im.wcs.wcs.cdelt[1]
@@ -141,19 +141,26 @@ def create_awterm_convolutionfunction(im, pb=None, nw=1, wstep=1e-7, oversamplin
     cf.data[...] = 0.0
     subim = copy_image(im)
     subim.data = numpy.zeros([nchan, npol, qny, qnx])
-    subim.wcs.wcs.crpix[0] -= nx // 2 - qnx // 2
-    subim.wcs.wcs.crpix[1] -= ny // 2 - qny // 2
+    subim.wcs.wcs.cdelt[0] *= oversampling
+    subim.wcs.wcs.cdelt[1] *= oversampling
     
     if use_aaf:
         this_pswf_gcf, _ = create_pswf_convolutionfunction(subim, oversampling=1, support=6)
         norm = 1.0 / this_pswf_gcf.data
     else:
         norm = 1.0
-    
-    if isinstance(pb, Image):
-        rpb = reproject_image(pb, subim.wcs, shape=subim.shape)[0]
+
+    import matplotlib.pyplot as plt
+    if make_pb is not None:
+        pb = make_pb(subim)
+        rpb, footprint = reproject_image(pb, subim.wcs, shape=subim.shape)
+        rpb.data[footprint.data<1e-6] = 0.0
+        plt.clf()
+        plt.imshow(numpy.real(rpb.data[0, 0, ...]))
+        plt.show()
+
         norm *= rpb.data
-    
+        
     # We might need to work with a larger image
     anx = max(nx, 2 * oversampling * support)
     any = max(ny, 2 * oversampling * support)
@@ -167,16 +174,23 @@ def create_awterm_convolutionfunction(im, pb=None, nw=1, wstep=1e-7, oversamplin
     assert support * oversampling <= any // 2
     thisplane = numpy.zeros([nchan, npol, any, anx]).astype('complex')
     for z, w in enumerate(w_list):
+        thisplane = numpy.zeros([nchan, npol, any, anx]).astype('complex')
         thisplane[..., iystart:iyend, ixstart:ixend] = norm * w_beam(qnx, fov, w)
+        if z == 0:
+            plt.clf()
+            plt.imshow(numpy.real(thisplane[0, 0, ...]))
+            plt.show()
+            
         thisplane = ifft(thisplane)
 
         for y in range(oversampling):
-            ybeg = y + ycen + (support + 1) * oversampling // 2 - oversampling
-            yend = y + ycen - (support - 1) * oversampling // 2 - oversampling
+            ybeg = y + ycen + (support * oversampling) // 2 - oversampling // 2
+            yend = y + ycen - (support * oversampling) // 2 - oversampling // 2
             vv = range(ybeg, yend, -oversampling)
             for x in range(oversampling):
-                xbeg = x + xcen + (support + 1) * oversampling // 2 - oversampling
-                xend = x + xcen - (support - 1) * oversampling // 2 - oversampling
+                xbeg = x + xcen + (support * oversampling) // 2 - oversampling // 2
+                xend = x + xcen - (support * oversampling) // 2 - oversampling // 2
+    
                 uu = range(xbeg, xend, -oversampling)
                 for chan in range(nchan):
                     for pol in range(npol):
@@ -184,6 +198,10 @@ def create_awterm_convolutionfunction(im, pb=None, nw=1, wstep=1e-7, oversamplin
 
     cf.data /= numpy.sum(numpy.real(cf.data[0, 0, 0, oversampling // 2, oversampling // 2, :, :]))
     
-    pswf_gcf, _ = create_pswf_convolutionfunction(im, oversampling=1, support=6)
+    if use_aaf:
+        pswf_gcf, _ = create_pswf_convolutionfunction(im, oversampling=1, support=6)
+    else:
+        pswf_gcf = create_empty_image_like(im)
+        pswf_gcf.data[...] = 1.0
     
     return pswf_gcf, cf
