@@ -38,3 +38,4 @@ dask-worker-space
 *.log
 *.fits
 *.hdf
+/_build

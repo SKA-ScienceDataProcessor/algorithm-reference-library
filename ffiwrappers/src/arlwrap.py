@@ -1,5 +1,7 @@
 # Author: Bojan Nikolic <b.nikolic@mrao.cam.ac.uk>
-# ARL Wrapping
+# ARL Wrapping Interface
+# In this file we declare the functions that need to be exposed to C (wrapped) --with the callback modifier
+# and the needed structs -- with cdef
 
 import cffi
 import numpy
@@ -18,20 +20,26 @@ from processing_components.imaging.base import advise_wide_field
 from processing_components.simulation.testing_support import create_named_configuration, create_test_image, create_low_test_image_from_gleam, simulate_gaintable
 from data_models.polarisation import PolarisationFrame
 from processing_components.visibility.base import create_blockvisibility
+from processing_components.visibility.operations import qa_visibility
 from processing_components.imaging.imaging_functions import invert_function, predict_function 
+from processing_components.image.operations import qa_image, export_image_to_fits
 from processing_components.visibility.coalesce import convert_visibility_to_blockvisibility, convert_blockvisibility_to_visibility
 from processing_components.calibration.calibration import solve_gaintable
 from processing_components.functions.pipeline_functions import ical
+from data_models.data_model_helpers import export_blockvisibility_to_hdf5, import_blockvisibility_from_hdf5, export_image_to_hdf5, import_image_from_hdf5
+
+from arlwrap_support import *
 
 import logging
 import pickle
+import os
+
+results_dir = './results'
+os.makedirs(results_dir, exist_ok=True)
 
 log = logging.getLogger()
 log.setLevel(logging.INFO)
 log.addHandler(logging.StreamHandler(sys.stdout))
-
-
-ff = cffi.FFI()
 
 ff.cdef("""
 typedef struct {
@@ -42,56 +50,6 @@ typedef struct {
 } ARLVis;
 """)
 
-def ARLDataVisSize(nvis, npol):
-    return (80+32*int(npol))*int(nvis)
-
-def cARLVis(visin):
-    """
-    Convert a const ARLVis * into the ARL Visiblity structure
-    """
-    npol=visin.npol
-    nvis=visin.nvis
-    #print (ARLDataVisSize(nvis, npol))
-    desc = [('index', '>i8'),
-            ('uvw', '>f8', (3,)),
-            ('time', '>f8'),
-            ('frequency', '>f8'),
-            ('channel_bandwidth', '>f8'),
-            ('integration_time', '>f8'),
-            ('antenna1', '>i8'),
-            ('antenna2', '>i8'),
-            ('vis', '>c16', (npol,)),
-            ('weight', '>f8', (npol,)),
-            ('imaging_weight', '>f8', (npol,))]
-    r=numpy.frombuffer(ff.buffer(visin.data,
-                                 ARLDataVisSize(nvis, npol)),
-                                 dtype=desc,
-                                 count=nvis)
-    return r
-
-
-def ARLBlockDataVisSize(ntimes, nants, nchan, npol):
-    return (24+24*int(nants*nants) + 24*int(nants*nants)*int(nchan)*int(npol))*int(ntimes)
-
-def cARLBlockVis(visin, nants, nchan):
-    """
-    Convert a const ARLVis * into the ARL BlockVisiblity structure
-    """
-    npol=visin.npol
-    ntimes=visin.nvis
-    #print (ARLDataVisSize(nvis, npol))
-    desc = [('index', '>i8'),
-            ('uvw', '>f8', (nants, nants, 3)),
-            ('time', '>f8'),
-            ('integration_time', '>f8'),
-            ('vis', '>c16', (nants, nants, nchan, npol)),
-            ('weight', '>f8', (nants, nants, nchan, npol))]
-    r=numpy.frombuffer(ff.buffer(visin.data,
-                                 ARLBlockDataVisSize(ntimes, nants, nchan, npol)),
-                                 dtype=desc,
-                                 count=ntimes)
-    return r
-
 
 ff.cdef("""
 typedef struct {
@@ -99,25 +57,6 @@ typedef struct {
   void *data;
 } ARLGt;
 """)
-
-def ARLDataGTSize(ntimes, nants, nchan, nrec):
-    return (8 + 8*nchan*nrec*nrec + 3*8*nants*nchan*nrec*nrec + 8)*ntimes
-
-def cARLGt(gtin, nants, nchan, nrec):
-    """
-    Convert a const ARLGt * into the ARL GainTable structure 
-    """
-    ntimes=gtin.nrows
-    desc = [('gain', '>c16', (nants, nchan, nrec, nrec)),
-            ('weight', '>f8', (nants, nchan, nrec, nrec)),
-            ('residual', '>f8', (nchan, nrec, nrec)),
-            ('time', '>f8'),
-            ('interval', '>f8')]
-    r=numpy.frombuffer(ff.buffer(gtin.data,
-                                 ARLDataGTSize(ntimes, nants, nchan, nrec)),
-                                 dtype=desc,
-                                 count=ntimes)
-    return r
 
 
 ff.cdef("""
@@ -139,6 +78,8 @@ typedef struct {
   char *polframe;
 } ARLConf;
 """)
+
+
 
 #@ff.callback("void (*)(const ARLVis *, ARLVis *, bool)")
 #def arl_copy_visibility_ffi(visin, visout, zero):
@@ -316,9 +257,6 @@ def arl_manipulate_visibility_data_ffi(lowconfig, vis1_in, vis2_in, vis_out, ope
 arl_manipulate_visibility_data=collections.namedtuple("FFIX", "address")
 arl_manipulate_visibility_data.address=int(ff.cast("size_t", arl_manipulate_visibility_data_ffi))
 
-
-
-
 ff.cdef("""
 typedef struct {
     size_t size;
@@ -329,33 +267,6 @@ typedef struct {
 } Image;
 """)
 
-def cImage(image_in, new=False):
-    "Convert an Image* into ARL Image structure"
-    new_image = Image()
-    size = image_in.size
-    data_shape = tuple(image_in.data_shape)
-    new_image.data = numpy.frombuffer(ff.buffer(image_in.data,size*8),
-            dtype='f8',
-            count=size)
-
-    # frombuffer only does 1D arrays..
-    new_image.data = new_image.data.reshape(data_shape)
-
-    # New images don't have pickles yet
-    if new:
-        new_image.wcs = numpy.frombuffer(ff.buffer(image_in.wcs,
-            2996),
-            dtype='b',
-            count=2996)
-        new_image.polarisation_frame = numpy.frombuffer(ff.buffer(
-            image_in.polarisation_frame, 117),
-            dtype='b',
-            count=117)
-    else:
-        new_image.wcs = pickle.loads(ff.buffer(image_in.wcs, 2996))
-        new_image.polarisation_frame = pickle.loads(ff.buffer(image_in.polarisation_frame,117))
-    
-    return new_image
 
 @ff.callback("void (*)(Image*, Image*)")
 def arl_add_to_model_ffi(model, res):
@@ -367,90 +278,6 @@ def arl_add_to_model_ffi(model, res):
 
 arl_add_to_model=collections.namedtuple("FFIX", "address")
 arl_add_to_model.address=int(ff.cast("size_t", arl_add_to_model_ffi))
-
-def store_pickle(c_dest, py_src, raw_c_ptr=False):
-    src_pickle = pickle.dumps(py_src)
-    src_buf = numpy.frombuffer(src_pickle, dtype='b',
-        count=len(src_pickle))
-
-    # Create ndarray if necessary
-    if (raw_c_ptr):
-        c_dest = numpy.frombuffer(ff.buffer(c_dest, len(src_pickle)),
-            dtype='b', count=len(src_pickle))
-
-    numpy.copyto(c_dest, src_buf)
-
-def load_pickle(c_ptr, size):
-    return pickle.loads(numpy.frombuffer(ff.buffer(c_ptr, size),
-        dtype='b',
-        count=size))
-
-def store_image_pickles(c_img, py_img):
-    store_pickle(c_img.wcs, py_img.wcs)
-    store_pickle(c_img.polarisation_frame, py_img.polarisation_frame)
-
-# Turns ARLVis struct into Visibility object
-def helper_create_visibility_object(c_vis):
-    # This may be incorrect
-    # especially the data field...
-    tvis= Visibility(
-            data=c_vis,
-            frequency=c_vis['frequency'],
-            channel_bandwidth=c_vis['channel_bandwidth'],
-            integration_time=c_vis['integration_time'],
-            antenna1=c_vis['antenna1'],
-            antenna2=c_vis['antenna2'],
-            weight=c_vis['weight'],
-            imaging_weight=c_vis['imaging_weight'],
-            uvw=c_vis['uvw'],
-            time=c_vis['time']
-            )
-    return tvis
-
-# Turns ARLVis struct into BlockVisibility object
-def helper_create_blockvisibility_object(c_vis, freqs, chan_b, config):
-    # This may be incorrect
-    # especially the data field...
-    tvis= BlockVisibility(
-            data=c_vis,
-	    frequency = freqs,
-            channel_bandwidth = chan_b,
-            configuration = config,
-            integration_time=c_vis['integration_time'],
-            weight=c_vis['weight'],
-            uvw=c_vis['uvw'],
-            time=c_vis['time']
-            )
-    return tvis
-
-# Turns ARLGt struct into GainTable object
-def helper_create_gaintable_object(c_gt, freqs, recframe):
-    tgt= GainTable(
-            data=None,
-	    frequency = freqs,
-            gain=c_gt['gain'],
-            weight=c_gt['weight'],
-            residual=c_gt['residual'],
-            time=c_gt['time'],
-            interval=c_gt['interval'],
-            receptor_frame=recframe
-            )
-#    print(tgt.__dict__)
-    return tgt
-
-
-
-# Write cImage data into C structs
-def store_image_in_c(img_to, img_from):
-    numpy.copyto(img_to.data, img_from.data)
-    store_image_pickles(img_to, img_from)
-
-# Phasecentres are too Pythonic to handle right now, so we pickle them
-def store_phasecentre(c_phasecentre, phasecentre):
-    store_pickle(c_phasecentre, phasecentre, raw_c_ptr=True)
-
-def load_phasecentre(c_phasecentre):
-    return load_pickle(c_phasecentre, 4999)
 
 
 @ff.callback("void (*)(ARLConf *, ARLVis *)")
@@ -878,6 +705,7 @@ helper_get_nbases_rmax.address=int(ff.cast("size_t", helper_get_nbases_rmax_ffi)
 def helper_get_image_shape_multifreq_ffi(lowconfig, cellsize, npixel, c_shape):
     frequency = numpy.frombuffer(ff.buffer(lowconfig.freqs, 8*lowconfig.nfreqs), dtype='f8', count=lowconfig.nfreqs)
     channel_bandwidth = numpy.frombuffer(ff.buffer(lowconfig.channel_bandwidth, 8*lowconfig.nchanwidth), dtype='f8', count=lowconfig.nchanwidth)
+    print("About to start create_low_test_image_from_gleam with flux_limit = 10. to get a shape of the image")
     res = create_low_test_image_from_gleam(npixel=npixel, frequency=frequency,
     channel_bandwidth=channel_bandwidth, cellsize=cellsize, flux_limit = 10.)
 #	phasecentre=phasecentre, applybeam=True)
@@ -944,15 +772,21 @@ def arl_create_low_test_image_from_gleam_ffi(lowconfig, cellsize, npixel, c_phas
     channel_bandwidth = numpy.frombuffer(ff.buffer(lowconfig.channel_bandwidth, 8*lowconfig.nchanwidth), dtype='f8', count=lowconfig.nchanwidth)
 
     phasecentre = load_phasecentre(c_phasecentre)
+    print("About to start create_low_test_image_from_gleam")
     res = create_low_test_image_from_gleam(npixel=npixel, frequency=frequency,
     channel_bandwidth=channel_bandwidth, cellsize=cellsize, flux_limit = 1.0, phasecentre=phasecentre, applybeam=True)
+    export_image_to_hdf5(res, '%s/gleam_model_res.hdf'%(results_dir))
+
 
     nchan, npol, ny, nx = res.data.shape
 
-    res.wcs.wcs.crval[0] = phasecentre.ra.deg
-    res.wcs.wcs.crval[1] = phasecentre.dec.deg
-    res.wcs.wcs.crpix[0] = float(nx // 2)
-    res.wcs.wcs.crpix[1] = float(ny // 2)
+
+#    res.wcs.wcs.crval[0] = phasecentre.ra.deg
+#    res.wcs.wcs.crval[1] = phasecentre.dec.deg
+#    res.wcs.wcs.crpix[0] = float(nx // 2)
+#    res.wcs.wcs.crpix[1] = float(ny // 2)
+
+    export_image_to_hdf5(res, '%s/gleam_model_res1.hdf'%(results_dir))
 
     store_image_in_c(py_outimg, res)
 
@@ -1002,13 +836,18 @@ def arl_predict_function_ffi(lowconfig, vis_in, img, vis_out, blockvis_out, cind
     polframe = str(ff.string(lowconfig.polframe), 'utf-8')
     py_visin.polarisation_frame = PolarisationFrame(polframe)
 
-#    print("Phasecentre : ", py_visin.phasecentre.ra, py_visin.phasecentre.dec)
+    print("--------------------> predict_function Phasecentre : ", py_visin.phasecentre.ra.deg, py_visin.phasecentre.dec.deg)
+
 
 
     res = predict_function(py_visin, c_img, vis_slices=51, context='wstack')
-#    print(sys.getsizeof(py_visin.data), sys.getsizeof(res.data), sys.getsizeof(res.blockvis.data))
-#    print(type(res.cindex), type(res.cindex[0]), len(res.cindex))
-#    print(sys.getsizeof(res.cindex))
+    print("--------------------> predict_function sizeof(py_visin.data), sizeof(res.data)", sys.getsizeof(py_visin.data[:]), sys.getsizeof(res.data[:]))
+#    print("--------------------> predict_function cindex",  type(res.cindex), type(res.cindex[0]), len(res.cindex))
+#    print("--------------------> predict_function sys.getsizeof(res.cindex)", sys.getsizeof(res.cindex))
+
+    print("--------------------> predict_function np.sum(predicted_vis.data): ", numpy.sum(res.data['vis']))
+#    print("--------------------> predict_function predicted_vis.data: ", res.data)
+#    print("--------------------> predict_function py_visin.data): ", py_visin.data)
 
 #    print("predict_function np.sum(predicted_vis.data): ", numpy.sum(res.data['vis']))
 
@@ -1024,6 +863,118 @@ def arl_predict_function_ffi(lowconfig, vis_in, img, vis_out, blockvis_out, cind
 
 arl_predict_function=collections.namedtuple("FFIX", "address")
 arl_predict_function.address=int(ff.cast("size_t", arl_predict_function_ffi))
+
+@ff.callback("void (*)(ARLConf *, ARLVis *, const Image *)")
+def arl_predict_function_blockvis_ffi(lowconfig, vis_in, img):
+
+    lowcore_name = str(ff.string(lowconfig.confname), 'utf-8')
+    lowcore = create_named_configuration(lowcore_name, rmax=lowconfig.rmax)
+
+    c_visin = cARLBlockVis(vis_in, lowconfig.nant, lowconfig.nfreqs)
+    frequency = numpy.frombuffer(ff.buffer(lowconfig.freqs, 8*lowconfig.nfreqs), dtype='f8', count=lowconfig.nfreqs)
+    channel_bandwidth = numpy.frombuffer(ff.buffer(lowconfig.channel_bandwidth, 8*lowconfig.nchanwidth), dtype='f8', count=lowconfig.nchanwidth)
+    py_visin = helper_create_blockvisibility_object(c_visin, frequency, channel_bandwidth, lowcore)
+    c_img = cImage(img)
+    py_visin.phasecentre = load_phasecentre(vis_in.phasecentre)
+
+    log.info(qa_image(c_img, context='arl_predict_function'))
+
+#    print("arl_predict_function_blockvis c_img metadata:")
+#    print(c_img.frequency)
+#    print(c_img.nchan)
+#    print(c_img.nheight)
+#    print(c_img.npol)
+#    print(c_img.nwidth)
+#    print(c_img.phasecentre)
+#    print(c_img.polarisation_frame.type)
+#    print(c_img.polarisation_frame.translations)
+#    print(c_img.polarisation_frame.fits_codes)
+#    print(c_img.polarisation_frame.polarisation_frames)
+#    print(c_img.polarisation_frame.npol)
+#    print(c_img.shape)
+#    print(c_img.size())
+#    print(c_img.wcs)
+#    print(qa_visibility(py_visin, context='arl_predict_function_blockvis py_visin'))
+
+    export_image_to_fits(c_img, '%s/imaging-blockvis_model_in_predicted_function.fits'%(results_dir))
+    export_blockvisibility_to_hdf5(py_visin, '%s/py_visin.hdf'%(results_dir))
+    export_image_to_hdf5(c_img, '%s/gleam_model_c_img.hdf'%(results_dir))
+
+    py_blockvis = predict_function(py_visin, c_img, vis_slices=51, context='wstack')
+    export_blockvisibility_to_hdf5(py_blockvis, '%s/py_blockvis.hdf'%(results_dir))
+
+    print(qa_visibility(py_blockvis, context='arl_predict_function_blockvis py_blockvis'))
+
+
+#    py_blockvis = convert_visibility_to_blockvisibility(res)
+
+#    c_visin = cARLBlockVis(vis_in, lowconfig.nant, lowconfig.nfreqs)
+    print("arl_predict_function_blockvis :", py_visin, py_blockvis)
+
+
+    numpy.copyto(c_visin, py_blockvis.data)
+#    store_phasecentre(vis_out.phasecentre, res.phasecentre)
+    print("arl_predict_function_blockvis np.sum(py_blockvis.data): ", numpy.sum(py_blockvis.data['vis']))
+
+    print("arl_predict_function_blockvis nchan npol nants ", py_blockvis.nchan, py_blockvis.npol, py_blockvis.nants)
+    print("arl_predict_function_blockvis sum(uvw) ", numpy.sum(py_blockvis.uvw))
+    print("arl_predict_function_blockvis sum(vis) ", numpy.sum(py_blockvis.vis))
+    print("arl_predict_function_blockvis sum(weight) ", numpy.sum(py_blockvis.weight))
+#    print("uvw", py_blockvis.uvw, numpy.sum(py_blockvis.uvw))
+#    print("vis", py_blockvis.vis, numpy.sum(py_blockvis.vis))
+#    print("weight", py_blockvis.weight, numpy.sum(py_blockvis.weight))
+    print("arl_predict_function_blockvis time", py_blockvis.time, numpy.sum(py_blockvis.time))
+    print("arl_predict_function_blockvis integration_time", py_blockvis.integration_time, numpy.sum(py_blockvis.integration_time))
+    print("arl_predict_function_blockvis nvis, size", py_blockvis.nvis, py_blockvis.size())
+
+
+arl_predict_function_blockvis=collections.namedtuple("FFIX", "address")
+arl_predict_function_blockvis.address=int(ff.cast("size_t", arl_predict_function_blockvis_ffi))
+
+
+
+#@ff.callback("void (*)(ARLConf *, const ARLVis *, const Image *, ARLVis *)")
+#def arl_predict_function_blockvis_ffi(lowconfig, vis_in, img, blockvis_out):
+
+#    lowcore_name = str(ff.string(lowconfig.confname), 'utf-8')
+#    lowcore = create_named_configuration(lowcore_name, rmax=lowconfig.rmax)
+
+#    cindex_size = lowconfig.nant*lowconfig.nant*lowconfig.nfreqs*lowconfig.ntimes
+#    py_cindex = numpy.frombuffer(ff.buffer(cindex_out, 8*cindex_size), dtype='int', count=cindex_size)
+
+#    c_visin = cARLBlockVis(vis_in, lowconfig.nant, lowconfig.nfreqs)
+#    frequency = numpy.frombuffer(ff.buffer(lowconfig.freqs, 8*lowconfig.nfreqs), dtype='f8', count=lowconfig.nfreqs)
+#    channel_bandwidth = numpy.frombuffer(ff.buffer(lowconfig.channel_bandwidth, 8*lowconfig.nchanwidth), dtype='f8', count=lowconfig.nchanwidth)
+#    py_visin = helper_create_blockvisibility_object(c_visin, frequency, channel_bandwidth, lowcore)
+#    c_img = cImage(img)
+#    py_visin.phasecentre = load_phasecentre(vis_in.phasecentre)
+#    polframe = str(ff.string(lowconfig.polframe), 'utf-8')
+#    py_visin.polarisation_frame = PolarisationFrame(polframe)
+
+#    print("--------------------> predict_function Phasecentre : ", py_visin.phasecentre.ra.deg, py_visin.phasecentre.dec.deg)
+
+
+#    res = predict_function(py_visin, c_img, vis_slices=51, context='wstack')
+#    print("--------------------> predict_function sizeof(py_visin.data), sizeof(res.data)", sys.getsizeof(py_visin.data[:]), sys.getsizeof(res.data[:]))
+
+#    print("--------------------> predict_function np.sum(predicted_vis.data): ", numpy.sum(res.data['vis']))
+#    print("--------------------> predict_function predicted_vis.data: ", res.data)
+#    print("--------------------> predict_function py_visin.data): ", py_visin.data)
+
+
+#    vis_out.npol = vis_in.npol
+#    c_visout = cARLVis(vis_out)
+#    numpy.copyto(c_visout, res.data)
+#    store_phasecentre(vis_out.phasecentre, res.phasecentre)
+#    numpy.copyto(py_cindex, res.cindex)
+
+#    py_blockvis_out = cARLBlockVis(blockvis_out, lowconfig.nant, lowconfig.nfreqs)
+#    numpy.copyto(py_blockvis_out, res.blockvis.data)
+#    store_phasecentre(blockvis_out.phasecentre, res.phasecentre)
+
+#arl_predict_function_blockvis=collections.namedtuple("FFIX", "address")
+#arl_predict_function_blockvis.address=int(ff.cast("size_t", arl_predict_function_blockvis_ffi))
+
 
 @ff.callback("void (*)(ARLConf *, ARLVis *, const Image *, ARLVis *, long long int *, int)")
 def arl_predict_function_ical_ffi(lowconfig, vis_inout, img, blockvis_inout, cindex_inout, vis_slices):
@@ -1054,6 +1005,7 @@ def arl_predict_function_ical_ffi(lowconfig, vis_inout, img, blockvis_inout, cin
     res = predict_function(py_visinout, c_img, vis_slices=vis_slices, context='wstack', 
                     timeslice='auto', algorithm='hogbom', niter=1000, fractional_threshold=0.1,
                     threshold=0.1, nmajor=5, gain=0.1, first_selfcal=1, global_solution=False)
+    print("####################> arl_predict_function_ical: ", type(res))
 
     numpy.copyto(c_visinout, res.data)
     store_phasecentre(vis_inout.phasecentre, res.phasecentre)
@@ -1090,13 +1042,16 @@ def arl_invert_function_ffi(lowconfig, vis_in, img, vis_slices, img_dirty):
     py_img = cImage(img)
     py_img_dirty = cImage(img_dirty, new=True)
 # Calling invert_finction()
+    export_blockvisibility_to_hdf5(py_visin, '%s/py_visin_invert_function.hdf'%(results_dir))
+    export_image_to_hdf5(py_img, '%s/model_invert_function.hdf'%(results_dir))
+    print("arl_invert_function vis_slices: ", vis_slices)
     dirty, sumwt = invert_function(py_visin, py_img, vis_slices=vis_slices, dopsf=False, context='wstack')
     nchan, npol, ny, nx = dirty.data.shape
 
-    dirty.wcs.wcs.crval[0] = py_visin.phasecentre.ra.deg
-    dirty.wcs.wcs.crval[1] = py_visin.phasecentre.dec.deg
-    dirty.wcs.wcs.crpix[0] = float(nx // 2)
-    dirty.wcs.wcs.crpix[1] = float(ny // 2)
+#    dirty.wcs.wcs.crval[0] = py_visin.phasecentre.ra.deg
+#    dirty.wcs.wcs.crval[1] = py_visin.phasecentre.dec.deg
+#    dirty.wcs.wcs.crpix[0] = float(nx // 2)
+#    dirty.wcs.wcs.crpix[1] = float(ny // 2)
 
 # Copy Python dirty image into C image
     store_image_in_c(py_img_dirty, dirty)
@@ -1104,6 +1059,43 @@ def arl_invert_function_ffi(lowconfig, vis_in, img, vis_slices, img_dirty):
 arl_invert_function=collections.namedtuple("FFIX", "address")
 arl_invert_function.address=int(ff.cast("size_t", arl_invert_function_ffi))
 
+@ff.callback("void (*)(ARLConf *, const ARLVis *, Image *, int, Image *)")
+def arl_invert_function_blockvis_ffi(lowconfig, vis_in, img, vis_slices, img_dirty):
+# Creating configuration
+    lowcore_name = str(ff.string(lowconfig.confname), 'utf-8')
+    lowcore = create_named_configuration(lowcore_name, rmax=lowconfig.rmax)
+
+# Re-creating Visibility object
+    times = numpy.frombuffer(ff.buffer(lowconfig.times, 8*lowconfig.ntimes), dtype='f8', count=lowconfig.ntimes)
+    frequency = numpy.frombuffer(ff.buffer(lowconfig.freqs, 8*lowconfig.nfreqs), dtype='f8', count=lowconfig.nfreqs)
+    channel_bandwidth = numpy.frombuffer(ff.buffer(lowconfig.channel_bandwidth, 8*lowconfig.nchanwidth), dtype='f8', count=lowconfig.nchanwidth)
+    c_visin = cARLBlockVis(vis_in, lowconfig.nant, lowconfig.nfreqs)
+    py_visin = helper_create_blockvisibility_object(c_visin, frequency, channel_bandwidth, lowcore)
+    py_visin.phasecentre = load_phasecentre(vis_in.phasecentre)
+    py_visin.configuration = lowcore
+    polframe = str(ff.string(lowconfig.polframe), 'utf-8')
+    py_visin.polarisation_frame = PolarisationFrame(polframe)
+
+# Re-creating images 
+    py_img = cImage(img)
+    py_img_dirty = cImage(img_dirty, new=True)
+# Calling invert_finction()
+    export_blockvisibility_to_hdf5(py_visin, '%s/py_visin_invert_function.hdf'%(results_dir))
+    export_image_to_hdf5(py_img, '%s/model_invert_function.hdf'%(results_dir))
+    print("arl_invert_function vis_slices: ", vis_slices)
+    dirty, sumwt = invert_function(py_visin, py_img, vis_slices=vis_slices, dopsf=False, context='wstack')
+    nchan, npol, ny, nx = dirty.data.shape
+
+#    dirty.wcs.wcs.crval[0] = py_visin.phasecentre.ra.deg
+#    dirty.wcs.wcs.crval[1] = py_visin.phasecentre.dec.deg
+#    dirty.wcs.wcs.crpix[0] = float(nx // 2)
+#    dirty.wcs.wcs.crpix[1] = float(ny // 2)
+
+# Copy Python dirty image into C image
+    store_image_in_c(py_img_dirty, dirty)
+
+arl_invert_function_blockvis=collections.namedtuple("FFIX", "address")
+arl_invert_function_blockvis.address=int(ff.cast("size_t", arl_invert_function_blockvis_ffi))
 
 @ff.callback("void (*)(ARLConf *, const ARLVis *, Image *, int, Image *)")
 def arl_invert_function_ical_ffi(lowconfig, vis_in, img, vis_slices, img_dirty):
@@ -1240,35 +1232,6 @@ arl_ical=collections.namedtuple("FFIX", "address")
 arl_ical.address=int(ff.cast("size_t", arl_ical_ffi))
 
 
-@ff.callback("void (*)(ARLConf *, ARLVis *, const Image *)")
-def arl_predict_function_blockvis_ffi(lowconfig, vis_in, img):
-
-    lowcore_name = str(ff.string(lowconfig.confname), 'utf-8')
-    lowcore = create_named_configuration(lowcore_name, rmax=lowconfig.rmax)
-
-    c_visin = cARLBlockVis(vis_in, lowconfig.nant, lowconfig.nfreqs)
-    frequency = numpy.frombuffer(ff.buffer(lowconfig.freqs, 8*lowconfig.nfreqs), dtype='f8', count=lowconfig.nfreqs)
-    channel_bandwidth = numpy.frombuffer(ff.buffer(lowconfig.channel_bandwidth, 8*lowconfig.nchanwidth), dtype='f8', count=lowconfig.nchanwidth)
-    py_visin = helper_create_blockvisibility_object(c_visin, frequency, channel_bandwidth, lowcore)
-    c_img = cImage(img)
-    py_visin.phasecentre = load_phasecentre(vis_in.phasecentre)
-
-    res = predict_function(py_visin, c_img, vis_slices=51, context='wstack')
-    py_blockvis = convert_visibility_to_blockvisibility(res)
-
-    c_visin = cARLBlockVis(vis_in, lowconfig.nant, lowconfig.nfreqs)
-
-    numpy.copyto(c_visin, py_blockvis.data)
-#    store_phasecentre(vis_out.phasecentre, res.phasecentre)
-
-arl_predict_function_blockvis=collections.namedtuple("FFIX", "address")
-arl_predict_function_blockvis.address=int(ff.cast("size_t", arl_predict_function_blockvis_ffi))
-
-
-def store_image_in_c_2(img_to, img_from):
-    numpy.copyto(img_to.data, img_from.data)
-    store_image_pickles(img_to, img_from)
-
 @ff.callback("void (*)(const ARLVis *, const Image *, bool dopsf, Image *, double *)")
 def arl_invert_2d_ffi(invis, in_image, dopsf, out_image, sumwt):
     py_visin = helper_create_visibility_object(cARLVis(invis))
@@ -1347,10 +1310,10 @@ def arl_create_image_from_blockvisibility_ffi(lowconfig, blockvis_in, cellsize, 
     #store_image_pickles(c_img, image)
     nchan, npol, ny, nx = res.data.shape
 
-    res.wcs.wcs.crval[0] = phasecentre1.ra.deg
-    res.wcs.wcs.crval[1] = phasecentre1.dec.deg
-    res.wcs.wcs.crpix[0] = float(nx // 2)
-    res.wcs.wcs.crpix[1] = float(ny // 2)
+#    res.wcs.wcs.crval[0] = phasecentre1.ra.deg
+#    res.wcs.wcs.crval[1] = phasecentre1.dec.deg
+#    res.wcs.wcs.crpix[0] = float(nx // 2)
+#    res.wcs.wcs.crpix[1] = float(ny // 2)
 
     store_image_in_c(py_outimg, res)
 

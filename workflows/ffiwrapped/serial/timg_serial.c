@@ -4,8 +4,8 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 
-#include "../include/arlwrap.h"
-#include "../include/wrap_support.h"
+#include "arlwrap.h"
+#include "wrap_support.h"
 
 /*
  * Verifies that:

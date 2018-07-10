@@ -183,18 +183,24 @@ int main(int argc, char **argv)
 	status = mkdir("results", S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
 	status = export_image_to_fits_c(gleam_model, "!results/gleam_model.fits");
 
+	printf("********************> 1 predict_function()\n");
 	// predict_function()
-	arl_predict_function(lowconfig, vt, gleam_model, vtpredicted, vt_predictfunction, cindex_predict);
+	//arl_predict_function(lowconfig, vt, gleam_model, vtpredicted, vt_predictfunction, cindex_predict);
+	arl_predict_function_blockvis(lowconfig, vt, gleam_model);
 
+	printf("********************> 2 convert_visibility_to_blockvisibility()\n");
 	// convert_visibility_to_blockvisibility()
-	arl_convert_visibility_to_blockvisibility(lowconfig, vtpredicted, vt_predictfunction, cindex_predict, vt);
+	//arl_convert_visibility_to_blockvisibility(lowconfig, vtpredicted, vt_predictfunction, cindex_predict, vt);
 
+	printf("********************> 3 create_gaintable_from_blockvisibility()\n");
 	// create_gaintable_from_blockvisibility()
 	arl_create_gaintable_from_blockvisibility(lowconfig, vt, gt);
 
+	printf("********************> 4 simulate_gaintable()\n");
 	// simulate_gaintable()
 	arl_simulate_gaintable(lowconfig, gt);
 
+	printf("********************> 5 apply_gaintable()\n");
 	// apply_gaintable()
 	arl_apply_gaintable(lowconfig, vt, gt, vt_gt, 1);
 
@@ -205,11 +211,14 @@ int main(int argc, char **argv)
 		}
 	shape1[0] = 1;
 	model = allocate_image(shape1);
+	printf("********************> 6 create_image_from_blockvisibility()\n");
 	arl_create_image_from_blockvisibility(lowconfig, vt, adv.cellsize, adv.npixel, vt->phasecentre, model);
 
 	// invert_function()
 	dirty = allocate_image(shape1);
-	arl_invert_function(lowconfig, vtpredicted, model, adv.vis_slices, dirty);
+	printf("********************> 7 invert_function()\n");
+//	arl_invert_function(lowconfig, vtpredicted, model, adv.vis_slices, dirty);
+	arl_invert_function_blockvis(lowconfig, vt, model, adv.vis_slices, dirty);
 
 	// FITS file output
 	status = export_image_to_fits_c(dirty, "!results/dirty.fits");

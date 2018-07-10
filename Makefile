@@ -37,7 +37,8 @@ all: clean build nosetests
 docker_all: clean build docker_build docker_tests
 
 clean:
-	$(PYTHON) setup.py clean
+	$(PYTHON) setup.py clean --all
+	rm libarlffi.*.so
 	rm -rf dist
 
 in: inplace # just a shortcut
