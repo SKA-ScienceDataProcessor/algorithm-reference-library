@@ -1,5 +1,5 @@
 # Universal image for running Notebook, Dask pipelines, libs, and lint checkers
-ARG PYTHON=python3.6
+ARG PYTHON=python3
 
 FROM ubuntu:18.04
 
@@ -38,12 +38,6 @@ RUN if [ ! -f /usr/bin/node ]; then ln -s /usr/bin/nodejs /usr/bin/node ; fi && 
 # sort out pip and python for 3.6
 RUN cd /src; wget https://bootstrap.pypa.io/get-pip.py && ${PYTHON} get-pip.py; \
     rm -rf /root/.cache
-
-RUN if [ "${PYTHON}" = "python3.6" ] ; then ln -s /usr/bin/python3.6 /usr/local/bin/python3 && \
-    rm -f /usr/bin/python3 && ln -s /usr/bin/python3.6 /usr/bin/python3 ; fi && \
-    python3 --version && \
-    pip3 --version
-
 
 # Install Tini
 RUN wget --quiet https://github.com/krallin/tini/releases/download/v0.18.0/tini && \

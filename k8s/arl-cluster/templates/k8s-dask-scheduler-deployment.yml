@@ -3,7 +3,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: dask-scheduler
-  namespace: default
+  namespace: {{ .Release.Namespace }}
   labels:
     app: dask-scheduler-{{ template "arl-cluster.name" . }}
     chart: {{ template "arl-cluster.chart" . }}
@@ -22,6 +22,8 @@ spec:
         app: dask-scheduler-{{ template "arl-cluster.name" . }}
         release: {{ .Release.Name }}
     spec:
+      imagePullSecrets:
+        - name: {{ .Values.image.pullSecret }}
       containers:
       - name: scheduler
         image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"

@@ -36,6 +36,8 @@ spec:
       labels:
         k8s-app: dask-scheduler
     spec:
+      imagePullSecrets:
+        - name: arlregcred
       containers:
       - name: scheduler
         image: ${DOCKER_IMAGE}

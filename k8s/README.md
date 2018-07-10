@@ -80,6 +80,18 @@ Step 2/44 : FROM ubuntu:18.04
 ...
 ```
 
+Alternatively we can use registry credentials declared in the resource descriptor to pull the image from remote:
+```
+...
+      imagePullSecrets:
+        - name: arlregcred
+...
+```
+To enable this we need to create a Kubernetes Secret that holds the container registry credentials called arlregcred:
+```
+kubectl create secret docker-registry arlregcred --docker-server=<registry.domain.name> --docker-username=<username> --docker-password=<password> --docker-email=<you@email.address?
+```
+
 Test that this is correctly accessible by launching a test app:
 ```
 kubectl run test-arl --rm -it --image arl_img:latest --image-pull-policy=IfNotPresent -- bash
@@ -215,9 +227,12 @@ helm install --name <app instance> arl-cluster/
 ```
 Individual values from the values.yaml file can be overridden with: `--set worker.replicaCount=10,resource.limits.cpu=1000m,resource.limits.memory=4098Mi` etc.
 
-You will get output like the following:
+You will get output like the following (adjust for your registry and credentials):
 ```
-k8s$ helm install --name test arl-cluster/
+k8s$ helm install --name test arl-cluster/ --wait \
+      --set image.repository="registry.gitlab.com/piersharding/arl-devops/arl_img" \
+      --set image.tag="1b47647d" \
+      --set image.secrets[0].name="gitlab-registry"
 NAME:   test
 LAST DEPLOYED: Fri Jun  1 10:02:58 2018
 NAMESPACE: default

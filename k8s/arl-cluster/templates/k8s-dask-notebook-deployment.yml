@@ -3,7 +3,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: notebook
-  namespace: default
+  namespace: {{ .Release.Namespace }}
   labels:
     app: notebook-{{ template "arl-cluster.name" . }}
     chart: {{ template "arl-cluster.chart" . }}
@@ -22,13 +22,15 @@ spec:
         app: notebook-{{ template "arl-cluster.name" . }}
         release: {{ .Release.Name }}
     spec:
+      imagePullSecrets:
+        - name: {{ .Values.image.pullSecret }}
       containers:
       - name: notebook-{{ .Chart.Name }}
         image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
         imagePullPolicy: {{ .Values.image.pullPolicy }}
         env:
           - name: ARL_DASK_SCHEDULER
-            value: dask-scheduler-{{ template "arl-cluster.fullname" . }}.default.svc.cluster.local:8786
+            value: dask-scheduler-{{ template "arl-cluster.fullname" . }}.{{ .Release.Namespace }}.svc.cluster.local:8786
           - name: JUPYTER_PASSWORD
             value: "{{ .Values.jupyter.password }}"
           - name: NOTEBOOK_PORT
