@@ -10,7 +10,7 @@ TESTPATH=$ARLROOT/workflows/ffiwrapped/serial
 TESTLIST='timg_serial ical_demo'
 
 #clean current directory
-rm *.out
+#rm *.out
 
 if [ $1 ] 
 then
