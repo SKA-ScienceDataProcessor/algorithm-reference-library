@@ -28,7 +28,8 @@ def convolution_mapping(vis, griddata, cf, channel_tolerance=1e-8):
     """
     numpy.testing.assert_almost_equal(griddata.grid_wcs.wcs.cdelt[0], cf.grid_wcs.wcs.cdelt[0], 7)
     numpy.testing.assert_almost_equal(griddata.grid_wcs.wcs.cdelt[1], cf.grid_wcs.wcs.cdelt[1], 7)
-    
+    numpy.testing.assert_almost_equal(griddata.grid_wcs.wcs.cdelt[2], cf.grid_wcs.wcs.cdelt[4], 7)
+
     ####### UV mapping
     # We use the grid_wcs's to do the coordinate conversion
     # Find the nearest grid points
@@ -48,7 +49,7 @@ def convolution_mapping(vis, griddata, cf, channel_tolerance=1e-8):
         numpy.floor(cf.grid_wcs.sub([3, 4]).wcs_world2pix(wu_subsample, wv_subsample, 0)).astype('int')
     
     ###### W mapping
-    pw_pixel = griddata.grid_wcs.sub([3]).wcs_world2pix(vis.uvw[:, 2], 0)[0]
+    pw_pixel = cf.grid_wcs.sub([5]).wcs_world2pix(vis.uvw[:, 2], 0)[0]
     # Find the nearest grid point
     pw_grid = numpy.round(pw_pixel).astype('int')
     assert numpy.min(pw_grid) >= 0
@@ -81,18 +82,19 @@ def grid_visibility_to_griddata(vis, griddata, cf, gcf):
     nchan, npol, nz, oversampling, _, support, _ = cf.shape
     sumwt = numpy.zeros([nchan, npol])
     pu_grid, pu_offset, pv_grid, pv_offset, pw_grid, pw_fraction, pfreq_grid = convolution_mapping(vis, griddata, cf)
-    _, _, _, _, _, gy, gx = cf.shape
+    _, _, _, _, _, gv, gu = cf.shape
     coords = zip(vis.vis, vis.weight, pfreq_grid, pu_grid, pu_offset, pv_grid, pv_offset, pw_grid)
     griddata.data[...] = 0.0
     
-    dx = gx // 2
-    dy = gy // 2
+    du = gu // 2
+    dv = gv // 2
     for v, vwt, chan, uu, uuf, vv, vvf, zz in coords:
-        griddata.data[chan, :, zz, (vv + dy):(vv - dy):-1, (uu - dx):(uu + dx)] += \
+        griddata.data[chan, :, zz, (vv - dv):(vv + dv), (uu - du):(uu + du)] += \
             cf.data[chan, :, zz, vvf, uuf, :, :] * (numpy.conjugate(v) * vwt)[:, numpy.newaxis, numpy.newaxis]
         sumwt[chan, :] += vwt
     
-    im_data = numpy.real(fft(griddata.data))[:, :, 0, ...] * gcf.data
+    projected = numpy.sum(griddata.data, axis=2)
+    im_data = numpy.real(fft(projected)) * gcf.data
     im = create_image_from_array(im_data, griddata.projection_wcs, griddata.polarisation_frame)
     
     return im, sumwt
@@ -116,7 +118,8 @@ def grid_visibility_to_griddata_fast(vis, griddata, cf, gcf):
         griddata.data[chan, :, zz, yy, xx] += numpy.conjugate(v) * vwt
         sumwt[chan, :] += vwt
     
-    im_data = numpy.real(fft(griddata.data))[:, :, 0, ...] * gcf.data
+    projected = numpy.sum(griddata.data, axis=2)
+    im_data = numpy.real(fft(projected)) * gcf.data
     im = create_image_from_array(im_data, griddata.projection_wcs, griddata.polarisation_frame)
     
     return im, sumwt

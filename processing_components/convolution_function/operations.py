@@ -17,8 +17,8 @@ import numpy
 from astropy.wcs import WCS
 
 from data_models.memory_data_models import GridData, ConvolutionFunction
+from data_models.memory_data_models import QA
 from data_models.polarisation import PolarisationFrame
-from libs.fourier_transforms.fft_support import ifft, fft
 from libs.image.operations import create_image_from_array
 
 log = logging.getLogger(__name__)
@@ -31,7 +31,7 @@ def griddata_sizeof(gd: GridData):
 
 
 def create_convolutionfunction_from_array(data: numpy.array, grid_wcs: WCS, projection_wcs: WCS,
-                               polarisation_frame: PolarisationFrame) -> ConvolutionFunction:
+                                          polarisation_frame: PolarisationFrame) -> ConvolutionFunction:
     """ Create a convolution function from an array and wcs's
     
     The griddata has axes [chan, pol, z, dy, dx, y, x] where z, y, x are spatial axes in either sky or Fourier plane. The
@@ -59,7 +59,7 @@ def create_convolutionfunction_from_array(data: numpy.array, grid_wcs: WCS, proj
     return fconvfunc
 
 
-def create_convolutionfunction_from_image(im: numpy.array, nz=1, zstep=1e-7, ztype='WW', oversampling=8, support=16):
+def create_convolutionfunction_from_image(im: numpy.array, nz=1, zstep=1e15, ztype='WW', oversampling=8, support=16):
     """ Create a convolution function from an image
 
     The griddata has axes [chan, pol, z, dy, dx, y, x] where z, y, x are spatial axes in either sky or Fourier plane. The
@@ -81,13 +81,13 @@ def create_convolutionfunction_from_image(im: numpy.array, nz=1, zstep=1e-7, zty
     assert len(im.shape) == 4
     assert im.wcs.wcs.ctype[0] == 'RA---SIN'
     assert im.wcs.wcs.ctype[1] == 'DEC--SIN'
-
+    
     d2r = numpy.pi / 180.0
-
+    
     # WCS Coords are [x, y, dy, dx, z, pol, chan] where x, y, z are spatial axes in real space or Fourier space
     # Array Coords are [chan, pol, z, dy, dx, y, x] where x, y, z are spatial axes in real space or Fourier space
     cf_wcs = WCS(naxis=7)
-
+    
     cf_wcs.wcs.ctype[0] = 'UU'
     cf_wcs.wcs.ctype[1] = 'VV'
     cf_wcs.wcs.ctype[2] = 'DUU'
@@ -95,7 +95,7 @@ def create_convolutionfunction_from_image(im: numpy.array, nz=1, zstep=1e-7, zty
     cf_wcs.wcs.ctype[4] = ztype
     cf_wcs.wcs.ctype[5] = im.wcs.wcs.ctype[2]
     cf_wcs.wcs.ctype[6] = im.wcs.wcs.ctype[3]
-
+    
     cf_wcs.wcs.axis_types[0] = 0
     cf_wcs.wcs.axis_types[1] = 0
     cf_wcs.wcs.axis_types[2] = 0
@@ -103,7 +103,7 @@ def create_convolutionfunction_from_image(im: numpy.array, nz=1, zstep=1e-7, zty
     cf_wcs.wcs.axis_types[4] = 0
     cf_wcs.wcs.axis_types[5] = im.wcs.wcs.axis_types[2]
     cf_wcs.wcs.axis_types[6] = im.wcs.wcs.axis_types[3]
-
+    
     cf_wcs.wcs.crval[0] = 0.0
     cf_wcs.wcs.crval[1] = 0.0
     cf_wcs.wcs.crval[2] = 0.0
@@ -111,7 +111,7 @@ def create_convolutionfunction_from_image(im: numpy.array, nz=1, zstep=1e-7, zty
     cf_wcs.wcs.crval[4] = 0.0
     cf_wcs.wcs.crval[5] = im.wcs.wcs.crval[2]
     cf_wcs.wcs.crval[6] = im.wcs.wcs.crval[3]
-
+    
     cf_wcs.wcs.crpix[0] = float(support // 2) + 1.0
     cf_wcs.wcs.crpix[1] = float(support // 2) + 1.0
     cf_wcs.wcs.crpix[2] = float(oversampling // 2) + 1.0
@@ -119,7 +119,7 @@ def create_convolutionfunction_from_image(im: numpy.array, nz=1, zstep=1e-7, zty
     cf_wcs.wcs.crpix[4] = float(nz // 2 + 1)
     cf_wcs.wcs.crpix[5] = im.wcs.wcs.crpix[2]
     cf_wcs.wcs.crpix[6] = im.wcs.wcs.crpix[3]
-
+    
     # The sampling on the UU and VV axes should be the same as for the image.
     # The sampling on the DUU and DVV axes should be oversampling times finer.
     cf_wcs.wcs.cdelt[0] = 1.0 / (im.shape[3] * d2r * im.wcs.wcs.cdelt[0])
@@ -129,15 +129,15 @@ def create_convolutionfunction_from_image(im: numpy.array, nz=1, zstep=1e-7, zty
     cf_wcs.wcs.cdelt[4] = zstep
     cf_wcs.wcs.cdelt[5] = im.wcs.wcs.cdelt[2]
     cf_wcs.wcs.cdelt[6] = im.wcs.wcs.cdelt[3]
-
+    
     grid_data = im.data[..., numpy.newaxis, :, :].astype('complex')
     grid_data[...] = 0.0
-
+    
     nchan, npol, ny, nx = im.shape
     
     fconvfunc = ConvolutionFunction()
     fconvfunc.polarisation_frame = im.polarisation_frame
-
+    
     fconvfunc.data = numpy.zeros([nchan, npol, nz, oversampling, oversampling, support, support], dtype='complex')
     fconvfunc.grid_wcs = cf_wcs.deepcopy()
     fconvfunc.projection_wcs = im.wcs.deepcopy()
@@ -193,7 +193,7 @@ def calculate_bounding_box_convolutionfunction(cf, fractional_level=1e-4):
     """
     bboxes = list()
     for z in range(cf.data.shape[2]):
-        mask = numpy.max(numpy.abs(cf.data[:,:,z,...]), axis=(0, 1, 2, 3))
+        mask = numpy.max(numpy.abs(cf.data[:, :, z, ...]), axis=(0, 1, 2, 3))
         peak = numpy.max(numpy.abs(mask))
         mask /= peak
         coords = numpy.argwhere(mask > fractional_level)
@@ -201,3 +201,22 @@ def calculate_bounding_box_convolutionfunction(cf, fractional_level=1e-4):
         x1, y1 = coords.max(axis=0) + 1
         bboxes.append((z, (y0, y1), (x0, x1)))
     return bboxes
+
+
+def qa_convolutionfunction(cf, context="") -> QA:
+    """Assess the quality of a convolutionfunction
+
+    :param cf:
+    :return: QA
+    """
+    assert isinstance(cf, ConvolutionFunction), cf
+    data = {'shape': str(cf.data.shape),
+            'max': numpy.max(cf.data),
+            'min': numpy.min(cf.data),
+            'rms': numpy.std(cf.data),
+            'sum': numpy.sum(cf.data),
+            'medianabs': numpy.median(numpy.abs(cf.data)),
+            'median': numpy.median(cf.data)}
+    
+    qa = QA(origin="qa_image", data=data, context=context)
+    return qa

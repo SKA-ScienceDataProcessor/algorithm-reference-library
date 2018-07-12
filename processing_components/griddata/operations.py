@@ -16,6 +16,9 @@ import logging
 import numpy
 from astropy.wcs import WCS
 
+from data_models.memory_data_models import QA
+
+
 from data_models.memory_data_models import GridData
 from data_models.polarisation import PolarisationFrame
 from libs.fourier_transforms.fft_support import ifft, fft
@@ -61,10 +64,12 @@ def create_griddata_from_array(data: numpy.array, grid_wcs: WCS, projection_wcs:
     return fgriddata
 
 
-def create_griddata_from_image(im):
+def create_griddata_from_image(im, nw=1, wstep=1e15):
     """ Create a GridData from an image
 
-    :param im:
+    :param im: Image
+    :param nw: Number of w planes
+    :param wstep: Increment in w
     :return: GridData
     """
     assert len(im.shape) == 4
@@ -92,7 +97,7 @@ def create_griddata_from_image(im):
     
     grid_wcs.wcs.crpix[0] = im.shape[3] // 2 + 1
     grid_wcs.wcs.crpix[1] = im.shape[2] // 2 + 1
-    grid_wcs.wcs.crpix[2] = 1
+    grid_wcs.wcs.crpix[2] = nw // 2
     grid_wcs.wcs.crpix[3] = im.wcs.wcs.crpix[2]
     grid_wcs.wcs.crpix[4] = im.wcs.wcs.crpix[3]
     
@@ -104,12 +109,12 @@ def create_griddata_from_image(im):
     
     grid_wcs.wcs.cdelt[0] = 1.0 / (im.shape[3] * d2r * im.wcs.wcs.cdelt[0])
     grid_wcs.wcs.cdelt[1] = 1.0 / (im.shape[2] * d2r * im.wcs.wcs.cdelt[1])
-    grid_wcs.wcs.cdelt[2] = 1e15
+    grid_wcs.wcs.cdelt[2] = wstep
     grid_wcs.wcs.cdelt[3] = im.wcs.wcs.cdelt[2]
     grid_wcs.wcs.cdelt[4] = im.wcs.wcs.cdelt[3]
     
-    grid_data = im.data[..., numpy.newaxis, :, :].astype('complex')
-    grid_data[...] = 0.0
+    nchan, npol, ny, nx = im.shape
+    grid_data = numpy.zeros([nchan, npol, nw, ny, nx], dtype='complex')
     
     return create_griddata_from_array(grid_data, grid_wcs=grid_wcs,
                                       projection_wcs=projection_wcs,
@@ -151,3 +156,24 @@ def convert_griddata_to_image(gd):
     :return:
     """
     return create_image_from_array(gd.data, gd.grid_wcs, gd.polarisation_frame)
+
+
+def qa_griddata(gd, context="") -> QA:
+    """Assess the quality of a griddata
+
+    :param gd:
+    :return: QA
+    """
+    assert isinstance(gd, GridData), gd
+    data = {'shape': str(gd.data.shape),
+            'max': numpy.max(gd.data),
+            'min': numpy.min(gd.data),
+            'rms': numpy.std(gd.data),
+            'sum': numpy.sum(gd.data),
+            'medianabs': numpy.median(numpy.abs(gd.data)),
+            'median': numpy.median(gd.data)}
+    
+    qa = QA(origin="qa_image", data=data, context=context)
+    return qa
+
+

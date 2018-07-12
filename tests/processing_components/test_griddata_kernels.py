@@ -203,6 +203,42 @@ class TestGridDataKernels(unittest.TestCase):
         peak_location = numpy.unravel_index(numpy.argmax(numpy.abs(cf_clipped.data)), cf_clipped.shape)
         assert peak_location == (0, 0, 0, 8, 8, 5, 5), peak_location
 
+    def test_compare_aterm_kernels(self):
+        make_pb = functools.partial(create_pb_generic, diameter=35.0, blockage=0.0)
+        pb = make_pb(self.image)
+        _, cf = create_awterm_convolutionfunction(self.image, make_pb=make_pb, nw=1, wstep=1e-7, oversampling=128,
+                                                    support=32, use_aaf=True)
+        cf.data = numpy.real(cf.data)
+        _, cf_noover = create_awterm_convolutionfunction(self.image, make_pb=make_pb, nw=1, wstep=1e-7, oversampling=1,
+                                                    support=32, use_aaf=True)
+        cf_noover.data = numpy.real(cf_noover.data)
+        cf.data[...] -= cf_noover.data[0,0,0,0,0]
+        cf.data[...] /= numpy.max(cf_noover.data)
+        import matplotlib.pyplot as plt
+        plt.clf()
+        plt.imshow(cf.data[0,0,0,64,64])
+        plt.title('Fractional Discrepancy in centre plane')
+        plt.colorbar()
+        plt.show()
+
+    def test_compare_wterm_kernels(self):
+        make_pb = functools.partial(create_pb_generic, diameter=35.0, blockage=0.0)
+        pb = make_pb(self.image)
+        _, cf = create_awterm_convolutionfunction(self.image, nw=16, wstep=50, oversampling=16,
+                                                    support=32, use_aaf=True)
+        cf.data = numpy.real(cf.data)
+        _, cf_noover = create_awterm_convolutionfunction(self.image, nw=16, wstep=50, oversampling=1,
+                                                    support=32, use_aaf=True)
+        cf_noover.data = numpy.real(cf_noover.data)
+        cf.data[...] -= cf_noover.data[0,0,0,0,0]
+        cf.data[...] /= numpy.max(cf_noover.data)
+        import matplotlib.pyplot as plt
+        plt.clf()
+        plt.imshow(cf.data[0,0,0,8,8])
+        plt.title('Fractional Discrepancy in centre plane')
+        plt.colorbar()
+        plt.show()
+
     def test_fill_aterm_to_convolutionfunction_noover(self):
         make_pb = functools.partial(create_pb_generic, diameter=35.0, blockage=0.0)
         pb = make_pb(self.image)

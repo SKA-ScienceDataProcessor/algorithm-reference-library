@@ -95,7 +95,7 @@ def create_pswf_convolutionfunction(im, oversampling=8, support=6):
     return gcf_image, cf
 
 
-def create_awterm_convolutionfunction(im, make_pb=None, nw=1, wstep=1e-7, oversampling=8, support=6, use_aaf=True,
+def create_awterm_convolutionfunction(im, make_pb=None, nw=1, wstep=1e15, oversampling=8, support=6, use_aaf=True,
                                       maxsupport=512):
     """ Fill AW projection kernel into a GridData.
 
@@ -127,12 +127,12 @@ def create_awterm_convolutionfunction(im, make_pb=None, nw=1, wstep=1e-7, oversa
         w_list = cf.grid_wcs.sub([5]).wcs_pix2world(range(nw), 0)[0]
     else:
         w_list = [0.0]
-    
+        
     assert isinstance(oversampling, int)
     assert oversampling > 0
 
-    nx = maxsupport
-    ny = maxsupport
+    nx = max(maxsupport, 2 * oversampling * support)
+    ny = max(maxsupport, 2 * oversampling * support)
     
     qnx = nx // oversampling
     qny = ny // oversampling
@@ -145,8 +145,8 @@ def create_awterm_convolutionfunction(im, make_pb=None, nw=1, wstep=1e-7, oversa
     subim.data = numpy.zeros([nchan, npol, qny, qnx])
     subim.wcs.wcs.cdelt[0] = -ccell / d2r
     subim.wcs.wcs.cdelt[1] = +ccell / d2r
-    subim.wcs.wcs.crpix[0] = qnx // 2
-    subim.wcs.wcs.crpix[1] = qny // 2
+    subim.wcs.wcs.crpix[0] = qnx // 2 + 1.0
+    subim.wcs.wcs.crpix[1] = qny // 2 + 1.0
 
     if use_aaf:
         this_pswf_gcf, _ = create_pswf_convolutionfunction(subim, oversampling=1, support=6)
@@ -175,18 +175,7 @@ def create_awterm_convolutionfunction(im, make_pb=None, nw=1, wstep=1e-7, oversa
         thisplane = create_w_term_like(thisplane, w, dopol=True)
         thisplane.data *= norm
         paddedplane = pad_image(thisplane, padded_shape)
-        
-        if z == 0:
-            plt.clf()
-            show_image(thisplane, title='wbeam')
-            plt.show()
-
         paddedplane = fft_image(paddedplane)
-        
-        if z == 0:
-            plt.clf()
-            show_image(paddedplane, title='Convolution function')
-            plt.show()
         
         ycen, xcen = ny // 2, nx // 2
         for y in range(oversampling):
@@ -202,8 +191,8 @@ def create_awterm_convolutionfunction(im, make_pb=None, nw=1, wstep=1e-7, oversa
                     for pol in range(npol):
                         cf.data[chan, pol, z, y, x, :, :] = paddedplane.data[chan, pol, :, :][vv, :][:, uu]
 
-    cf.data /= numpy.sum(numpy.real(cf.data[0, 0, 0, oversampling // 2, oversampling // 2, :, :]))
-    #    cf.data = numpy.conjugate(cf.data)
+    cf.data /= numpy.sum(numpy.real(cf.data[0, 0, nw // 2, oversampling // 2, oversampling // 2, :, :]))
+    cf.data = numpy.conjugate(cf.data)
     
     if use_aaf:
         pswf_gcf, _ = create_pswf_convolutionfunction(im, oversampling=1, support=6)

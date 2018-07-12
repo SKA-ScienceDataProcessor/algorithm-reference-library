@@ -171,6 +171,9 @@ def show_image(im: Image, fig=None, title: str = '', pol=0, chan=0, cm='Greys', 
 def smooth_image(model: Image, width=1.0):
     """ Smooth an image with a kernel
     
+    :param model: Image
+    :param width: Kernel in pixels
+    
     """
     import astropy.convolution
     
