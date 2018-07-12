@@ -1,7 +1,7 @@
 # Universal image for running Notebook, Dask pipelines, libs, and lint checkers
 ARG PYTHON=python3
 
-FROM alpine:3.7
+FROM alpine:3.8
 
 ARG PYTHON
 
@@ -9,6 +9,28 @@ MAINTAINER Piers Harding "piers@catalyst.net.nz"
 
 ENV HOME /root
 ENV PYTHON_PIP_VERSION 10.0.1
+
+# runtime specific environment
+ENV JENKINS_URL 1
+ENV PYTHONPATH /arl
+ENV JUPYTER_PATH /arl/examples/arl
+
+RUN touch "${HOME}/.bash_profile"
+
+# Bundle app source
+ADD ./docker/boot.sh /
+ADD ./Makefile /arl/
+ADD ./setup.py ./README.md /arl/
+ADD ./data_models /arl/data_models/
+ADD ./examples /arl/examples/
+ADD ./ffiwrappers /arl/ffiwrappers/
+ADD ./k8s /arl/k8s/
+ADD ./libs /arl/libs/
+ADD ./processing_components /arl/processing_components/
+ADD ./scripts /arl/scripts/
+ADD ./tests /arl/tests/
+ADD ./util /arl/util/
+ADD ./workflows /arl/workflows/
 
 # Add and install Python modules
 ADD ./requirements.txt /src/requirements.txt
@@ -22,7 +44,7 @@ RUN apk add --update --no-cache ${PYTHON} py3-pip \
 RUN \
     apk add --update --no-cache --virtual build-dependencies \
     wget bash make tini \
-    git curl openssl ca-certificates net-tools vim \
+    git curl net-tools vim \
     py3-virtualenv \
     py3-nose nodejs nodejs-npm \
     graphviz freetype libpng \
@@ -33,7 +55,7 @@ RUN \
     build-base  python3-dev freetype-dev libpng-dev \
     gcc gfortran musl-dev g++ bzip2-dev coreutils \
     dpkg-dev dpkg expat-dev gdbm-dev libc-dev \
-    libnsl-dev libressl libressl-dev libtirpc-dev \
+    libnsl-dev openssl-dev libtirpc-dev \
     linux-headers ncurses-dev pax-utils \
     readline-dev sqlite-dev tcl-dev tk tk-dev \
     xz-dev zlib-dev libxml2-dev libxslt-dev \
@@ -64,6 +86,17 @@ RUN \
     rm -rf /root/.cache && \
     jupyter contrib nbextension install --system --symlink && \
     jupyter nbextensions_configurator enable --system && \
+    cd /src && \
+    wget -qO- http://heasarc.gsfc.nasa.gov/FTP/software/fitsio/c/cfitsio_latest.tar.gz | tar xz && \
+    cd /src/cfitsio && \
+    ./configure --prefix=/usr && \
+    make && make install && \
+    rm -rf /src/cfitsio && \
+    cd /arl && \
+    ${PYTHON} setup.py build && \
+    ${PYTHON} setup.py install && \
+    cd /arl/workflows/ffiwrapped/serial && \
+    make && \
     apk del .build-deps && \
     rm -rf /var/cache/apk/*
 
@@ -71,32 +104,11 @@ RUN \
 RUN \
     if [ ! -f /usr/bin/python ]; then ln -s /usr/bin/python3 /usr/bin/python ; fi
 
+# additional optional extensions
 #RUN pip3 install jupyterlab
 #RUN jupyter serverextension enable --py jupyterlab --sys-prefix
 #RUN jupyter labextension install @jupyter-widgets/jupyterlab-manager
 #RUN jupyter labextension install jupyterlab_bokeh
-
-# runtime specific environment
-ENV JENKINS_URL 1
-ENV PYTHONPATH /arl
-ENV JUPYTER_PATH /arl/examples/arl
-
-RUN touch "${HOME}/.bash_profile"
-
-# Bundle app source
-ADD ./docker/boot.sh /
-ADD ./libs /arl/libs/
-ADD ./Makefile /arl/
-ADD ./examples /arl/examples/
-ADD ./tests /arl/tests/
-ADD ./setup.py ./README.md /arl/
-ADD ./data_models /arl/data_models/
-ADD ./processing_components /arl/processing_components/
-ADD ./util /arl/util/
-ADD ./workflows /arl/workflows/
-
-# run setup
-RUN cd /arl && ${PYTHON} setup.py build && ${PYTHON} setup.py install
 
 # create space for libs
 RUN mkdir -p /arl/test_data /arl/test_results && \
