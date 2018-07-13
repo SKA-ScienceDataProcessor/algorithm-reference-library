@@ -95,6 +95,7 @@ RUN \
     cd /arl && \
     ${PYTHON} setup.py build && \
     ${PYTHON} setup.py install && \
+    cp /arl/build/lib*/*arlffi* /arl/ && \
     cd /arl/workflows/ffiwrapped/serial && \
     make && \
     apk del .build-deps && \
