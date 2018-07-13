@@ -496,6 +496,8 @@ def arl_simulate_gaintable_ffi(lowconfig, gt):
 #    print(py_gt.data['gain'].shape, py_gt.data['weight'].shape, py_gt.data['residual'].shape, py_gt.data['time'].shape)
 
     py_gt = simulate_gaintable(py_gt, phase_error = 1.0)
+#    py_gt = simulate_gaintable(py_gt, phase_error = 0.0)
+
 #    print("simulate_gaintable np.sum(gt.data): ", numpy.sum(py_gt.data['gain']))
 
 
@@ -755,10 +757,10 @@ def arl_create_test_image_ffi(frequency, cellsize, c_phasecentre, out_img):
 
     nchan, npol, ny, nx = res.data.shape
 
-    res.wcs.wcs.crval[0] = phasecentre.ra.deg
-    res.wcs.wcs.crval[1] = phasecentre.dec.deg
-    res.wcs.wcs.crpix[0] = float(nx // 2)
-    res.wcs.wcs.crpix[1] = float(ny // 2)
+#    res.wcs.wcs.crval[0] = phasecentre.ra.deg
+#    res.wcs.wcs.crval[1] = phasecentre.dec.deg
+#    res.wcs.wcs.crpix[0] = float(nx // 2)
+#    res.wcs.wcs.crpix[1] = float(ny // 2)
 
     store_image_in_c(py_outimg, res)
 
@@ -779,7 +781,6 @@ def arl_create_low_test_image_from_gleam_ffi(lowconfig, cellsize, npixel, c_phas
 
 
     nchan, npol, ny, nx = res.data.shape
-
 
 #    res.wcs.wcs.crval[0] = phasecentre.ra.deg
 #    res.wcs.wcs.crval[1] = phasecentre.dec.deg
@@ -836,16 +837,14 @@ def arl_predict_function_ffi(lowconfig, vis_in, img, vis_out, blockvis_out, cind
     polframe = str(ff.string(lowconfig.polframe), 'utf-8')
     py_visin.polarisation_frame = PolarisationFrame(polframe)
 
-    print("--------------------> predict_function Phasecentre : ", py_visin.phasecentre.ra.deg, py_visin.phasecentre.dec.deg)
-
-
+#    print("--------------------> predict_function Phasecentre : ", py_visin.phasecentre.ra.deg, py_visin.phasecentre.dec.deg)
 
     res = predict_function(py_visin, c_img, vis_slices=51, context='wstack')
-    print("--------------------> predict_function sizeof(py_visin.data), sizeof(res.data)", sys.getsizeof(py_visin.data[:]), sys.getsizeof(res.data[:]))
+#    print("--------------------> predict_function sizeof(py_visin.data), sizeof(res.data)", sys.getsizeof(py_visin.data[:]), sys.getsizeof(res.data[:]))
 #    print("--------------------> predict_function cindex",  type(res.cindex), type(res.cindex[0]), len(res.cindex))
 #    print("--------------------> predict_function sys.getsizeof(res.cindex)", sys.getsizeof(res.cindex))
 
-    print("--------------------> predict_function np.sum(predicted_vis.data): ", numpy.sum(res.data['vis']))
+#    print("--------------------> predict_function np.sum(predicted_vis.data): ", numpy.sum(res.data['vis']))
 #    print("--------------------> predict_function predicted_vis.data: ", res.data)
 #    print("--------------------> predict_function py_visin.data): ", py_visin.data)
 
@@ -879,102 +878,31 @@ def arl_predict_function_blockvis_ffi(lowconfig, vis_in, img):
 
     log.info(qa_image(c_img, context='arl_predict_function'))
 
-#    print("arl_predict_function_blockvis c_img metadata:")
-#    print(c_img.frequency)
-#    print(c_img.nchan)
-#    print(c_img.nheight)
-#    print(c_img.npol)
-#    print(c_img.nwidth)
-#    print(c_img.phasecentre)
-#    print(c_img.polarisation_frame.type)
-#    print(c_img.polarisation_frame.translations)
-#    print(c_img.polarisation_frame.fits_codes)
-#    print(c_img.polarisation_frame.polarisation_frames)
-#    print(c_img.polarisation_frame.npol)
-#    print(c_img.shape)
-#    print(c_img.size())
-#    print(c_img.wcs)
-#    print(qa_visibility(py_visin, context='arl_predict_function_blockvis py_visin'))
-
-    export_image_to_fits(c_img, '%s/imaging-blockvis_model_in_predicted_function.fits'%(results_dir))
-    export_blockvisibility_to_hdf5(py_visin, '%s/py_visin.hdf'%(results_dir))
-    export_image_to_hdf5(c_img, '%s/gleam_model_c_img.hdf'%(results_dir))
+#    export_image_to_fits(c_img, '%s/imaging-blockvis_model_in_predicted_function.fits'%(results_dir))
+#    export_blockvisibility_to_hdf5(py_visin, '%s/py_visin.hdf'%(results_dir))
+#    export_image_to_hdf5(c_img, '%s/gleam_model_c_img.hdf'%(results_dir))
 
     py_blockvis = predict_function(py_visin, c_img, vis_slices=51, context='wstack')
-    export_blockvisibility_to_hdf5(py_blockvis, '%s/py_blockvis.hdf'%(results_dir))
 
-    print(qa_visibility(py_blockvis, context='arl_predict_function_blockvis py_blockvis'))
+#    export_blockvisibility_to_hdf5(py_blockvis, '%s/py_blockvis.hdf'%(results_dir))
 
-
-#    py_blockvis = convert_visibility_to_blockvisibility(res)
-
-#    c_visin = cARLBlockVis(vis_in, lowconfig.nant, lowconfig.nfreqs)
-    print("arl_predict_function_blockvis :", py_visin, py_blockvis)
-
+#    print(qa_visibility(py_blockvis, context='arl_predict_function_blockvis py_blockvis'))
+#    print("arl_predict_function_blockvis :", py_visin, py_blockvis)
 
     numpy.copyto(c_visin, py_blockvis.data)
 #    store_phasecentre(vis_out.phasecentre, res.phasecentre)
-    print("arl_predict_function_blockvis np.sum(py_blockvis.data): ", numpy.sum(py_blockvis.data['vis']))
 
-    print("arl_predict_function_blockvis nchan npol nants ", py_blockvis.nchan, py_blockvis.npol, py_blockvis.nants)
-    print("arl_predict_function_blockvis sum(uvw) ", numpy.sum(py_blockvis.uvw))
-    print("arl_predict_function_blockvis sum(vis) ", numpy.sum(py_blockvis.vis))
-    print("arl_predict_function_blockvis sum(weight) ", numpy.sum(py_blockvis.weight))
-#    print("uvw", py_blockvis.uvw, numpy.sum(py_blockvis.uvw))
-#    print("vis", py_blockvis.vis, numpy.sum(py_blockvis.vis))
-#    print("weight", py_blockvis.weight, numpy.sum(py_blockvis.weight))
-    print("arl_predict_function_blockvis time", py_blockvis.time, numpy.sum(py_blockvis.time))
-    print("arl_predict_function_blockvis integration_time", py_blockvis.integration_time, numpy.sum(py_blockvis.integration_time))
-    print("arl_predict_function_blockvis nvis, size", py_blockvis.nvis, py_blockvis.size())
-
+#    print("arl_predict_function_blockvis np.sum(py_blockvis.data): ", numpy.sum(py_blockvis.data['vis']))
+#    print("arl_predict_function_blockvis nchan npol nants ", py_blockvis.nchan, py_blockvis.npol, py_blockvis.nants)
+#    print("arl_predict_function_blockvis sum(uvw) ", numpy.sum(py_blockvis.uvw))
+#    print("arl_predict_function_blockvis sum(vis) ", numpy.sum(py_blockvis.vis))
+#    print("arl_predict_function_blockvis sum(weight) ", numpy.sum(py_blockvis.weight))
+#    print("arl_predict_function_blockvis time", py_blockvis.time, numpy.sum(py_blockvis.time))
+#    print("arl_predict_function_blockvis integration_time", py_blockvis.integration_time, numpy.sum(py_blockvis.integration_time))
+#    print("arl_predict_function_blockvis nvis, size", py_blockvis.nvis, py_blockvis.size())
 
 arl_predict_function_blockvis=collections.namedtuple("FFIX", "address")
 arl_predict_function_blockvis.address=int(ff.cast("size_t", arl_predict_function_blockvis_ffi))
-
-
-
-#@ff.callback("void (*)(ARLConf *, const ARLVis *, const Image *, ARLVis *)")
-#def arl_predict_function_blockvis_ffi(lowconfig, vis_in, img, blockvis_out):
-
-#    lowcore_name = str(ff.string(lowconfig.confname), 'utf-8')
-#    lowcore = create_named_configuration(lowcore_name, rmax=lowconfig.rmax)
-
-#    cindex_size = lowconfig.nant*lowconfig.nant*lowconfig.nfreqs*lowconfig.ntimes
-#    py_cindex = numpy.frombuffer(ff.buffer(cindex_out, 8*cindex_size), dtype='int', count=cindex_size)
-
-#    c_visin = cARLBlockVis(vis_in, lowconfig.nant, lowconfig.nfreqs)
-#    frequency = numpy.frombuffer(ff.buffer(lowconfig.freqs, 8*lowconfig.nfreqs), dtype='f8', count=lowconfig.nfreqs)
-#    channel_bandwidth = numpy.frombuffer(ff.buffer(lowconfig.channel_bandwidth, 8*lowconfig.nchanwidth), dtype='f8', count=lowconfig.nchanwidth)
-#    py_visin = helper_create_blockvisibility_object(c_visin, frequency, channel_bandwidth, lowcore)
-#    c_img = cImage(img)
-#    py_visin.phasecentre = load_phasecentre(vis_in.phasecentre)
-#    polframe = str(ff.string(lowconfig.polframe), 'utf-8')
-#    py_visin.polarisation_frame = PolarisationFrame(polframe)
-
-#    print("--------------------> predict_function Phasecentre : ", py_visin.phasecentre.ra.deg, py_visin.phasecentre.dec.deg)
-
-
-#    res = predict_function(py_visin, c_img, vis_slices=51, context='wstack')
-#    print("--------------------> predict_function sizeof(py_visin.data), sizeof(res.data)", sys.getsizeof(py_visin.data[:]), sys.getsizeof(res.data[:]))
-
-#    print("--------------------> predict_function np.sum(predicted_vis.data): ", numpy.sum(res.data['vis']))
-#    print("--------------------> predict_function predicted_vis.data: ", res.data)
-#    print("--------------------> predict_function py_visin.data): ", py_visin.data)
-
-
-#    vis_out.npol = vis_in.npol
-#    c_visout = cARLVis(vis_out)
-#    numpy.copyto(c_visout, res.data)
-#    store_phasecentre(vis_out.phasecentre, res.phasecentre)
-#    numpy.copyto(py_cindex, res.cindex)
-
-#    py_blockvis_out = cARLBlockVis(blockvis_out, lowconfig.nant, lowconfig.nfreqs)
-#    numpy.copyto(py_blockvis_out, res.blockvis.data)
-#    store_phasecentre(blockvis_out.phasecentre, res.phasecentre)
-
-#arl_predict_function_blockvis=collections.namedtuple("FFIX", "address")
-#arl_predict_function_blockvis.address=int(ff.cast("size_t", arl_predict_function_blockvis_ffi))
-
 
 @ff.callback("void (*)(ARLConf *, ARLVis *, const Image *, ARLVis *, long long int *, int)")
 def arl_predict_function_ical_ffi(lowconfig, vis_inout, img, blockvis_inout, cindex_inout, vis_slices):
@@ -1005,7 +933,7 @@ def arl_predict_function_ical_ffi(lowconfig, vis_inout, img, blockvis_inout, cin
     res = predict_function(py_visinout, c_img, vis_slices=vis_slices, context='wstack', 
                     timeslice='auto', algorithm='hogbom', niter=1000, fractional_threshold=0.1,
                     threshold=0.1, nmajor=5, gain=0.1, first_selfcal=1, global_solution=False)
-    print("####################> arl_predict_function_ical: ", type(res))
+#    print("####################> arl_predict_function_ical: ", type(res))
 
     numpy.copyto(c_visinout, res.data)
     store_phasecentre(vis_inout.phasecentre, res.phasecentre)
@@ -1013,9 +941,8 @@ def arl_predict_function_ical_ffi(lowconfig, vis_inout, img, blockvis_inout, cin
 
     numpy.copyto(py_blockvis_inout, res.blockvis.data)
     store_phasecentre(blockvis_inout.phasecentre, res.phasecentre)
-    print("predict_function_ical np.sum(res.data): ", numpy.sum(res.data['vis']))
-    print("predict_function_ical np.sum(res.blockvis.data): ", numpy.sum(res.blockvis.data['vis']))
-
+#    print("predict_function_ical np.sum(res.data): ", numpy.sum(res.data['vis']))
+#    print("predict_function_ical np.sum(res.blockvis.data): ", numpy.sum(res.blockvis.data['vis']))
 
 arl_predict_function_ical=collections.namedtuple("FFIX", "address")
 arl_predict_function_ical.address=int(ff.cast("size_t", arl_predict_function_ical_ffi))
@@ -1041,10 +968,12 @@ def arl_invert_function_ffi(lowconfig, vis_in, img, vis_slices, img_dirty):
 # Re-creating images 
     py_img = cImage(img)
     py_img_dirty = cImage(img_dirty, new=True)
+
 # Calling invert_finction()
-    export_blockvisibility_to_hdf5(py_visin, '%s/py_visin_invert_function.hdf'%(results_dir))
-    export_image_to_hdf5(py_img, '%s/model_invert_function.hdf'%(results_dir))
-    print("arl_invert_function vis_slices: ", vis_slices)
+#    export_blockvisibility_to_hdf5(py_visin, '%s/py_visin_invert_function.hdf'%(results_dir))
+#    export_image_to_hdf5(py_img, '%s/model_invert_function.hdf'%(results_dir))
+#    print("arl_invert_function vis_slices: ", vis_slices)
+
     dirty, sumwt = invert_function(py_visin, py_img, vis_slices=vis_slices, dopsf=False, context='wstack')
     nchan, npol, ny, nx = dirty.data.shape
 
@@ -1080,9 +1009,9 @@ def arl_invert_function_blockvis_ffi(lowconfig, vis_in, img, vis_slices, img_dir
     py_img = cImage(img)
     py_img_dirty = cImage(img_dirty, new=True)
 # Calling invert_finction()
-    export_blockvisibility_to_hdf5(py_visin, '%s/py_visin_invert_function.hdf'%(results_dir))
-    export_image_to_hdf5(py_img, '%s/model_invert_function.hdf'%(results_dir))
-    print("arl_invert_function vis_slices: ", vis_slices)
+#    export_blockvisibility_to_hdf5(py_visin, '%s/py_visin_invert_function.hdf'%(results_dir))
+#    export_image_to_hdf5(py_img, '%s/model_invert_function.hdf'%(results_dir))
+#    print("arl_invert_function vis_slices: ", vis_slices)
     dirty, sumwt = invert_function(py_visin, py_img, vis_slices=vis_slices, dopsf=False, context='wstack')
     nchan, npol, ny, nx = dirty.data.shape
 
@@ -1124,10 +1053,10 @@ def arl_invert_function_ical_ffi(lowconfig, vis_in, img, vis_slices, img_dirty):
 
     nchan, npol, ny, nx = dirty.data.shape
 
-    dirty.wcs.wcs.crval[0] = py_visin.phasecentre.ra.deg
-    dirty.wcs.wcs.crval[1] = py_visin.phasecentre.dec.deg
-    dirty.wcs.wcs.crpix[0] = float(nx // 2)
-    dirty.wcs.wcs.crpix[1] = float(ny // 2)
+#    dirty.wcs.wcs.crval[0] = py_visin.phasecentre.ra.deg
+#    dirty.wcs.wcs.crval[1] = py_visin.phasecentre.dec.deg
+#    dirty.wcs.wcs.crpix[0] = float(nx // 2)
+#    dirty.wcs.wcs.crpix[1] = float(ny // 2)
 
 # Copy Python dirty image into C image
     store_image_in_c(py_img_dirty, dirty)
@@ -1164,10 +1093,10 @@ def arl_invert_function_psf_ffi(lowconfig, vis_in, img, vis_slices, img_psf):
 
     nchan, npol, ny, nx = psf.data.shape
 
-    psf.wcs.wcs.crval[0] = py_visin.phasecentre.ra.deg
-    psf.wcs.wcs.crval[1] = py_visin.phasecentre.dec.deg
-    psf.wcs.wcs.crpix[0] = float(nx // 2)
-    psf.wcs.wcs.crpix[1] = float(ny // 2)
+#    psf.wcs.wcs.crval[0] = py_visin.phasecentre.ra.deg
+#    psf.wcs.wcs.crval[1] = py_visin.phasecentre.dec.deg
+#    psf.wcs.wcs.crpix[0] = float(nx // 2)
+#    psf.wcs.wcs.crpix[1] = float(ny // 2)
 
 # Copy Python dirty image into C image
     store_image_in_c(py_img_psf, psf)
@@ -1206,26 +1135,26 @@ def arl_ical_ffi(lowconfig, blockvis_in, img_model, vis_slices, img_deconvolved,
 
 # Preparing deconvolved
     nchan, npol, ny, nx = deconvolved.data.shape
-    deconvolved.wcs.wcs.crval[0] = py_blockvisin.phasecentre.ra.deg
-    deconvolved.wcs.wcs.crval[1] = py_blockvisin.phasecentre.dec.deg
-    deconvolved.wcs.wcs.crpix[0] = float(nx // 2)
-    deconvolved.wcs.wcs.crpix[1] = float(ny // 2)
+#    deconvolved.wcs.wcs.crval[0] = py_blockvisin.phasecentre.ra.deg
+#    deconvolved.wcs.wcs.crval[1] = py_blockvisin.phasecentre.dec.deg
+#    deconvolved.wcs.wcs.crpix[0] = float(nx // 2)
+#    deconvolved.wcs.wcs.crpix[1] = float(ny // 2)
     store_image_in_c(py_img_deconvolved, deconvolved)
 
 # Preparing residual
     nchan, npol, ny, nx = residual.data.shape
-    residual.wcs.wcs.crval[0] = py_blockvisin.phasecentre.ra.deg
-    residual.wcs.wcs.crval[1] = py_blockvisin.phasecentre.dec.deg
-    residual.wcs.wcs.crpix[0] = float(nx // 2)
-    residual.wcs.wcs.crpix[1] = float(ny // 2)
+#    residual.wcs.wcs.crval[0] = py_blockvisin.phasecentre.ra.deg
+#    residual.wcs.wcs.crval[1] = py_blockvisin.phasecentre.dec.deg
+#    residual.wcs.wcs.crpix[0] = float(nx // 2)
+#    residual.wcs.wcs.crpix[1] = float(ny // 2)
     store_image_in_c(py_img_residual, residual)
 
 # Preparing restored
     nchan, npol, ny, nx = restored.data.shape
-    restored.wcs.wcs.crval[0] = py_blockvisin.phasecentre.ra.deg
-    restored.wcs.wcs.crval[1] = py_blockvisin.phasecentre.dec.deg
-    restored.wcs.wcs.crpix[0] = float(nx // 2)
-    restored.wcs.wcs.crpix[1] = float(ny // 2)
+#    restored.wcs.wcs.crval[0] = py_blockvisin.phasecentre.ra.deg
+#    restored.wcs.wcs.crval[1] = py_blockvisin.phasecentre.dec.deg
+#    restored.wcs.wcs.crpix[0] = float(nx // 2)
+#    restored.wcs.wcs.crpix[1] = float(ny // 2)
     store_image_in_c(py_img_restored, restored)
 
 arl_ical=collections.namedtuple("FFIX", "address")

@@ -17,7 +17,7 @@ ENV DEBIAN_FRONTEND noninteractive
 RUN \
     DEBIAN_FRONTEND=noninteractive apt-get update -y && \
     apt-get install -y locales tzdata python-pip net-tools vim-tiny software-properties-common \
-            python3-software-properties build-essential curl wget fonts-liberation ca-certificates && \
+            python3-software-properties build-essential curl wget fonts-liberation ca-certificates libcfitsio-dev && \
     echo "Setting locales  ..." && /usr/sbin/locale-gen en_US.UTF-8 && \
     /usr/sbin/locale-gen en_NZ.UTF-8 && \
     echo "Setting timezone ..." &&  /bin/echo 'Pacific/Auckland' | tee /etc/timezone && DEBIAN_FRONTEND=noninteractive dpkg-reconfigure --frontend noninteractive tzdata && \
@@ -66,18 +66,26 @@ RUN touch "${HOME}/.bash_profile"
 
 # Bundle app source
 ADD ./docker/boot.sh /
-ADD ./libs /arl/libs/
 ADD ./Makefile /arl/
-ADD ./examples /arl/examples/
-ADD ./tests /arl/tests/
 ADD ./setup.py ./README.md /arl/
 ADD ./data_models /arl/data_models/
+ADD ./examples /arl/examples/
+ADD ./ffiwrappers /arl/ffiwrappers/
+ADD ./k8s /arl/k8s/
+ADD ./libs /arl/libs/
 ADD ./processing_components /arl/processing_components/
+ADD ./scripts /arl/scripts/
+ADD ./tests /arl/tests/
 ADD ./util /arl/util/
 ADD ./workflows /arl/workflows/
 
 # run setup
-RUN cd /arl && ${PYTHON} setup.py build && ${PYTHON} setup.py install
+RUN \
+    cd /arl && \
+    ${PYTHON} setup.py build && \
+    ${PYTHON} setup.py install && \
+    cd /arl/workflows/ffiwrapped/serial && \
+    make
 
 # create space for libs
 RUN mkdir -p /arl/test_data /arl/test_results && \
