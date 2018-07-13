@@ -100,8 +100,8 @@ class TestGridDataKernels(unittest.TestCase):
         export_image_to_fits(cf_image, "%s/test_convolutionfunction_wterm_cf.fits" % self.dir)
 
         peak_location = numpy.unravel_index(numpy.argmax(numpy.abs(cf.data)), cf.shape)
-        assert peak_location == (0, 0, 22, 4, 4, 16, 16), peak_location
-        assert numpy.abs(cf.data[peak_location] - (0.002925996628466784-3.3867559496851644e-07j)) < 1e-7, \
+        assert peak_location == (0, 0, 10, 2, 2, 50, 50), peak_location
+        assert numpy.abs(cf.data[peak_location] - (0.18704594760349508-0j)) < 1e-7, \
             cf.data[peak_location]
         
         
@@ -111,10 +111,10 @@ class TestGridDataKernels(unittest.TestCase):
         export_image_to_fits(cf_image, "%s/test_convolutionfunction_wterm_clipped_cf.fits" % self.dir)
 
         peak_location = numpy.unravel_index(numpy.argmax(numpy.abs(cf_clipped.data)), cf_clipped.shape)
-        assert peak_location == (0, 0, 22, 4, 4, 128, 128), peak_location
-        assert numpy.abs(cf.data[peak_location] - (0.002925996628466784-3.3867559496851644e-07j)) < 1e-7, \
-            cf.data[peak_location]
-        u_peak, v_peak = cf.grid_wcs.sub([1, 2]).wcs_pix2world(peak_location[-2], peak_location[-1], 0)
+        assert peak_location == (0, 0, 10, 2, 2, 39, 39), peak_location
+        assert numpy.abs(cf_clipped.data[peak_location] - (0.18704594760349508-0j)) < 1e-7, \
+            cf_clipped.data[peak_location]
+        u_peak, v_peak = cf_clipped.grid_wcs.sub([1, 2]).wcs_pix2world(peak_location[-2], peak_location[-1], 0)
         assert numpy.abs(u_peak) < 1e-7, u_peak
         assert numpy.abs(v_peak) < 1e-7, u_peak
 
@@ -134,8 +134,8 @@ class TestGridDataKernels(unittest.TestCase):
         export_image_to_fits(cf_image, "%s/test_convolutionfunction_wterm_nopswf_clipped_cf.fits" % self.dir)
 
         peak_location = numpy.unravel_index(numpy.argmax(numpy.abs(cf_clipped.data)), cf_clipped.shape)
-        assert peak_location == (0, 0, 22, 4, 4, 25, 25), peak_location
-        assert numpy.abs(cf.data[peak_location] - (0.9939515718954506+0j)) < 1e-7, \
+        assert peak_location == (0, 0, 10, 4, 4, 25, 25), peak_location
+        assert numpy.abs(cf.data[peak_location] - (1-0j)) < 1e-7, \
             cf.data[peak_location]
         u_peak, v_peak = cf.grid_wcs.sub([1, 2]).wcs_pix2world(peak_location[-2], peak_location[-1], 0)
         assert numpy.abs(u_peak) < 1e-7, u_peak
@@ -155,24 +155,24 @@ class TestGridDataKernels(unittest.TestCase):
         export_image_to_fits(cf_image, "%s/test_convolutionfunction_awterm_cf.fits" % self.dir)
 
         peak_location = numpy.unravel_index(numpy.argmax(numpy.abs(cf.data)), cf.shape)
-        assert peak_location == (0, 0, 22, 2, 2, 50, 50), peak_location
-        assert numpy.abs(cf.data[peak_location] - (1.001529875884781+0j)) < 1e-7, \
+        assert peak_location == (0, 0, 10, 2, 2, 50, 50), peak_location
+        assert numpy.abs(cf.data[peak_location] - (0.07761529943522588-0j)) < 1e-7, \
             cf.data[peak_location]
         u_peak, v_peak = cf.grid_wcs.sub([1, 2]).wcs_pix2world(peak_location[-2], peak_location[-1], 0)
         assert numpy.abs(u_peak) < 1e-7, u_peak
         assert numpy.abs(v_peak) < 1e-7, u_peak
 
         bboxes = calculate_bounding_box_convolutionfunction(cf)
-        assert len(bboxes) == 45
-        assert len(bboxes[0]) == 3
-        assert bboxes[-1][0] == 4
+        assert len(bboxes) == 21, len(bboxes)
+        assert len(bboxes[0]) == 3, len(bboxes[0])
+        assert bboxes[-1][0] == 20, bboxes[-1][0]
         
         peak_location = numpy.unravel_index(numpy.argmax(numpy.abs(cf.data)), cf.shape)
-        assert peak_location == (0, 0, 2, 4, 4, 128, 128), peak_location
+        assert peak_location == (0, 0, 10, 2, 2, 50, 50), peak_location
         
         cf_clipped = apply_bounding_box_convolutionfunction(cf, fractional_level=1e-3)
         peak_location = numpy.unravel_index(numpy.argmax(numpy.abs(cf_clipped.data)), cf_clipped.shape)
-        assert peak_location == (0, 0, 2, 4, 4, 73, 73), peak_location
+        assert peak_location == (0, 0, 10, 2, 2, 23, 23), peak_location
         cf_image = convert_convolutionfunction_to_image(cf_clipped)
         cf_image.data = numpy.real(cf_image.data)
         export_image_to_fits(cf_image, "%s/test_convolutionfunction_awterm_clipped_cf.fits" % self.dir)
@@ -188,7 +188,7 @@ class TestGridDataKernels(unittest.TestCase):
         export_image_to_fits(cf_image, "%s/test_convolutionfunction_aterm_cf.fits" % self.dir)
     
         peak_location = numpy.unravel_index(numpy.argmax(numpy.abs(cf.data)), cf.shape)
-        assert numpy.abs(cf.data[peak_location] - 0.03448813178849909+0j) < 1e-7, cf.data[peak_location]
+        assert numpy.abs(cf.data[peak_location] - 0.07761522554113436-0j) < 1e-7, cf.data[peak_location]
         assert peak_location == (0, 0, 0, 8, 8, 16, 16), peak_location
         u_peak, v_peak = cf.grid_wcs.sub([1, 2]).wcs_pix2world(peak_location[-2], peak_location[-1], 0)
         assert numpy.abs(u_peak) < 1e-7, u_peak
@@ -206,20 +206,15 @@ class TestGridDataKernels(unittest.TestCase):
     def test_compare_aterm_kernels(self):
         make_pb = functools.partial(create_pb_generic, diameter=35.0, blockage=0.0)
         pb = make_pb(self.image)
-        _, cf = create_awterm_convolutionfunction(self.image, make_pb=make_pb, nw=1, wstep=1e-7, oversampling=128,
-                                                    support=32, use_aaf=True)
+        _, cf = create_awterm_convolutionfunction(self.image, make_pb=make_pb, oversampling=128, support=32,
+                                                  use_aaf=True)
         cf.data = numpy.real(cf.data)
-        _, cf_noover = create_awterm_convolutionfunction(self.image, make_pb=make_pb, nw=1, wstep=1e-7, oversampling=1,
+        _, cf_noover = create_awterm_convolutionfunction(self.image, make_pb=make_pb, oversampling=1,
                                                     support=32, use_aaf=True)
         cf_noover.data = numpy.real(cf_noover.data)
         cf.data[...] -= cf_noover.data[0,0,0,0,0]
         cf.data[...] /= numpy.max(cf_noover.data)
-        import matplotlib.pyplot as plt
-        plt.clf()
-        plt.imshow(cf.data[0,0,0,64,64])
-        plt.title('Fractional Discrepancy in centre plane')
-        plt.colorbar()
-        plt.show()
+        assert numpy.abs(cf.data[0,0,0,64,64,16,16]) < 1e-6, cf.data[0,0,0,64,64,16,16]
 
     def test_compare_wterm_kernels(self):
         make_pb = functools.partial(create_pb_generic, diameter=35.0, blockage=0.0)
@@ -232,12 +227,8 @@ class TestGridDataKernels(unittest.TestCase):
         cf_noover.data = numpy.real(cf_noover.data)
         cf.data[...] -= cf_noover.data[0,0,0,0,0]
         cf.data[...] /= numpy.max(cf_noover.data)
-        import matplotlib.pyplot as plt
-        plt.clf()
-        plt.imshow(cf.data[0,0,0,8,8])
-        plt.title('Fractional Discrepancy in centre plane')
-        plt.colorbar()
-        plt.show()
+        print(numpy.max(numpy.abs(cf.data)))
+        assert numpy.abs(cf.data[0,0,0,8,8,16,16]) < 5e-6, cf.data[0,0,0,8,8,16,16]
 
     def test_fill_aterm_to_convolutionfunction_noover(self):
         make_pb = functools.partial(create_pb_generic, diameter=35.0, blockage=0.0)

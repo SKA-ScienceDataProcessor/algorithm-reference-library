@@ -160,10 +160,6 @@ def create_awterm_convolutionfunction(im, make_pb=None, nw=1, wstep=1e15, oversa
         pb = make_pb(subim)
         rpb, footprint = reproject_image(pb, subim.wcs, shape=subim.shape)
         rpb.data[footprint.data < 1e-6] = 0.0
-        plt.clf()
-        show_image(rpb, title='Primary beam')
-        plt.show()
-        
         norm *= rpb.data
     
     # We might need to work with a larger image
