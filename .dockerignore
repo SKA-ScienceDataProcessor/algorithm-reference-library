@@ -5,6 +5,7 @@
 /.project
 /.eggs
 /algorithm_reference_library.egg-info
+/PrivateRules.mak
 
 *.pyc
 
