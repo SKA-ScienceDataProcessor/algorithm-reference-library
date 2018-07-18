@@ -83,6 +83,7 @@ typedef struct {
 	int wprojection_planes;
 	} ARLadvice;
 
+int arl_handle_error();
 
 // Prototypes to ARL routines
 void helper_get_image_shape(const double *frequency, double cellsize,
