@@ -41,6 +41,14 @@ log = logging.getLogger()
 log.setLevel(logging.INFO)
 log.addHandler(logging.StreamHandler(sys.stdout))
 
+arl_error = 0
+
+def handle_error(*args):
+    global arl_error
+    if(args[0] != ""):
+      arl_error = -1
+      print(args[0],"\n",args[1],"\n",args[2])
+ 
 ff.cdef("""
 typedef struct {
   size_t nvis;
@@ -104,6 +112,14 @@ typedef struct {
 #arl_copy_visibility=collections.namedtuple("FFIX", "address")    
 #arl_copy_visibility.address=int(ff.cast("size_t", arl_copy_visibility_ffi))    
 
+@ff.callback("int (*)()")
+def arl_handle_error_ffi():
+
+    global arl_error
+    return arl_error
+
+arl_handle_error=collections.namedtuple("FFIX", "address")    
+arl_handle_error.address=int(ff.cast("size_t", arl_handle_error_ffi))    
 
 @ff.callback("void (*)(ARLConf *, const ARLVis *, ARLVis *, int)")
 def arl_copy_visibility_ffi(lowconfig, vis_in, vis_out, zero_in):
@@ -317,7 +333,7 @@ def arl_create_visibility_ffi(lowconfig, c_res_vis):
 arl_create_visibility=collections.namedtuple("FFIX", "address")
 arl_create_visibility.address=int(ff.cast("size_t", arl_create_visibility_ffi))
 
-@ff.callback("void (*)(ARLConf *, ARLVis *)")
+@ff.callback("void (*)(ARLConf *, ARLVis *)",onerror=handle_error)
 def arl_create_blockvisibility_ffi(lowconfig, c_res_vis):
     lowcore_name = str(ff.string(lowconfig.confname), 'utf-8')
     print(lowconfig.rmax)
@@ -819,7 +835,7 @@ arl_predict_2d=collections.namedtuple("FFIX", "address")
 arl_predict_2d.address=int(ff.cast("size_t", arl_predict_2d_ffi))
 
 
-@ff.callback("void (*)(ARLConf *, const ARLVis *, const Image *, ARLVis *, ARLVis *, long long int *)")
+@ff.callback("void (*)(ARLConf *, const ARLVis *, const Image *, ARLVis *, ARLVis *, long long int *)",onerror=handle_error)
 def arl_predict_function_ffi(lowconfig, vis_in, img, vis_out, blockvis_out, cindex_out):
 
     lowcore_name = str(ff.string(lowconfig.confname), 'utf-8')
@@ -863,7 +879,7 @@ def arl_predict_function_ffi(lowconfig, vis_in, img, vis_out, blockvis_out, cind
 arl_predict_function=collections.namedtuple("FFIX", "address")
 arl_predict_function.address=int(ff.cast("size_t", arl_predict_function_ffi))
 
-@ff.callback("void (*)(ARLConf *, ARLVis *, const Image *)")
+@ff.callback("void (*)(ARLConf *, ARLVis *, const Image *)",onerror=handle_error)
 def arl_predict_function_blockvis_ffi(lowconfig, vis_in, img):
 
     lowcore_name = str(ff.string(lowconfig.confname), 'utf-8')
