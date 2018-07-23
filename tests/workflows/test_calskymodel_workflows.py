@@ -36,7 +36,7 @@ class TestCalibrationSkyModelcal(unittest.TestCase):
         from data_models.parameters import arl_path
         self.dir = arl_path('test_results')
         
-        arlexecute.set_client(use_dask=False)
+        arlexecute.set_client(use_dask=True)
         
         numpy.random.seed(180555)
 
@@ -109,26 +109,36 @@ class TestCalibrationSkyModelcal(unittest.TestCase):
             export_image_to_fits(dirty, "%s/test_calskymodel-initial-noiso-residual.fits" % self.dir)
         
         self.skymodels = [SkyModel(components=[cm], fixed=fixed) for cm in self.components]
-    
+
     def test_calskymodel_solve_workflow(self):
-        
+    
         self.actualSetup(doiso=True)
-        
+    
         self.skymodel_list = [arlexecute.execute(SkyModel, nout=1)(components=[cm])
                               for cm in self.components]
-        
+    
         calskymodel_list = calskymodel_solve_workflow(self.vis, skymodel_list=self.skymodel_list, niter=30,
-                                                       gain=0.25)
+                                                      gain=0.25)
         skymodel, residual_vis = arlexecute.compute(calskymodel_list, sync=True)
-        
+    
         residual_vis = convert_blockvisibility_to_visibility(residual_vis)
         residual_vis, _, _ = weight_visibility(residual_vis, self.beam)
         dirty, sumwt = invert_function(residual_vis, self.beam, context='2d')
         export_image_to_fits(dirty, "%s/test_calskymodel-%s-final-iso-residual.fits" % (self.dir, arlexecute.type()))
-        
+    
         qa = qa_image(dirty)
         assert qa.data['rms'] < 3.2e-3, qa
 
+    def test_calskymodel_solve_workflow_graph(self):
+    
+        self.actualSetup(doiso=True)
+    
+        self.skymodel_list = [arlexecute.execute(SkyModel, nout=1)(components=[cm])
+                              for cm in self.components]
+    
+        calskymodel_list = calskymodel_solve_workflow(self.vis, skymodel_list=self.skymodel_list, niter=3,
+                                                      gain=0.25)
+        calskymodel_list[0].visualize(filename="%s/test_calskymodel-graph.svg" % self.dir)
 
 if __name__ == '__main__':
     unittest.main()

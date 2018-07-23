@@ -1,3 +1,3 @@
 #!/usr/bin/env bash
 
-mpiexec -n $1 python $2
+mpiexec -n 4 python simple-mpi.py
