@@ -135,7 +135,7 @@ def calskymodel_maximisation_step_workflow(evislist, skymodel_list, **kwargs):
 
 
 def calskymodel_solve_workflow(vislist, skymodel_list, niter=10, tol=1e-8, gain=0.25, **kwargs):
-    """ Solve using calskymodel, arlexecute wrapper
+    """ Solve using calskymodel, dask.delayed wrapper
 
     Solve by iterating, performing E step and M step.
 
