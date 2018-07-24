@@ -2,7 +2,7 @@
 
 Run with:
 
-mpiexec -n 4 python simple-mpi.py
+mpiexec -n 4 python simple_mpi.py
 
 """
 

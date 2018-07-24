@@ -1,12 +1,4 @@
-"""The data models used in ARL are:
-
-.. image:: ./ARL_data.png
-   :scale: 75 %
-
-The principle transitions between the data models:
-
-.. image:: ./ARL_transitions.png
-   :scale: 75 %
+"""The data models used in ARL:
 
 .. note::
     There are two visibility formats:

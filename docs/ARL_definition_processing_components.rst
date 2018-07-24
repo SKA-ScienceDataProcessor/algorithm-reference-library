@@ -5,7 +5,7 @@
 Processing Components
 =====================
 
-These are python components that can be executed in workflows. They contain the core algorithms in ARL.
+These python components contain the core algorithms in ARL. They can be executed directly or via workflows.
 
 
 Image
@@ -53,7 +53,7 @@ Operations
 SkyModel calibration
 ++++++++++++++++++++
 
-.. automodule:: processing_components.calibration.calskymodel
+.. automodule:: processing_components.calibration.modelpartition
    :members:
 
 Imaging
