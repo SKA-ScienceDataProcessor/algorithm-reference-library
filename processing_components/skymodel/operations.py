@@ -48,7 +48,7 @@ def solve_skymodel(vis, skymodel, gain=0.1, **kwargs):
     """Fit a single skymodel to a visibility
     
     :param evis: Expected vis for this ssm
-    :param calskymodel: scm element being fit i.e. (skymodel, gaintable) tuple
+    :param modelpartition: scm element being fit i.e. (skymodel, gaintable) tuple
     :param gain: Gain in step
     :param method: 'fit' or 'sum'
     :param kwargs:

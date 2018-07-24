@@ -46,8 +46,8 @@ See the jupyter note books below:
    processing_components/imaging-fits.rst
    processing_components/imaging-wterm.rst
    processing_components/rcal.rst
-   workflows/simple-dask.rst
-   workflows/calskymodel.rst
-   workflows/imaging-pipelines.rst
+   workflows/simple-dask_arlexecute.rst
+   workflows/modelpartition_arlexecute.rst
+   workflows/imaging-pipelines_arlexecute.rst
 
 In addition, there are other notebooks that are not built as part of this documentation.

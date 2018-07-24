@@ -17,10 +17,12 @@ See :py:mod:`data_models.memory_data_models` for the following definitions:`
 * Telescope Configuration: :py:class:`data_models.memory_data_models.Configuration`
 * GainTable for gain solutions (as (e.g. output from solve_gaintable): :py:class:`data_models.memory_data_models.GainTable`
 * Image (data and WCS header): :py:class:`data_models.memory_data_models.Image`
+* Gridded data: :py:class:`data_models.memory_data_models.GridData`
 * Skycomponent ((data for a point source or a Gaussian source): :py:class:`data_models.memory_data_models.Skycomponent`
 * SkyModel (A collection of SkyComponents and Images: :py:class:`data_models.memory_data_models.SkyModel`
 * Baseline based visibility tables shape (npol,), length nvis) :py:class:`data_models.memory_data_models.Visibility`
 * Antenna-based visibility table, shape (nants, nants, nchan, npol), length ntimes): :py:class:`data_models.memory_data_models.BlockVisibility`
+* Science Data Model: :py:class:`data_models.memory_data_models.ScienceDataModel`
 
 Create empty data set for observation (a-la makeMS)
 ===================================================
@@ -76,6 +78,12 @@ Calibration
 * Solve for complex gains: :py:mod:`processing_components.calibration.solvers.solve_gaintable`
 * Apply complex gains: :py:mod:`processing_components.calibration.operations.apply_gaintable`
 
+Model Partition Calibration
+===========================
+
+* Define model partition: :py:mod:`processing_components.calibration.modelpartition.create_modelpartition`
+* Solve model partition: :py:mod:`processing_components.calibration.modelpartition.modelpartition_solve`
+
 Coordinate transforms
 =====================
 
@@ -116,4 +124,4 @@ Pipelines
 External interface
 ==================
 
-* Calling ARL functions externally: :py:mod:`workflows.arlexecute..processing_component_interface`
+* Calling ARL functions externally: :py:mod:`workflows.arlexecute.processing_component_interface`

@@ -15,6 +15,14 @@ image, visibility table, gaintable, etc.
    Definition of ARL functions <ARL_definition>
    Directory of ARL capabilities <ARL_directory>
 
+Workflows:
+
+.. toctree::
+   :maxdepth: 1
+
+   Definition of ARL workflow functions <ARL_definition_workflows>
+   Directory of ARL workflow capabilities <ARL_directory_workflows>
+
 Other material:
 
 .. toctree::

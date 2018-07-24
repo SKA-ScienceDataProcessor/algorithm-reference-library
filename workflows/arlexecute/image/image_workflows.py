@@ -1,6 +1,6 @@
 """ Generic functions converted to arlexecute components. arlexecute is a wrapper for`Dask <http://dask.pydata.org/>`_
 is a python-based flexible parallel computing library for analytic computing. Dask.delayed can be used to wrap
-functions for deferred execution thus allowing construction of components.
+functions for deferred execution thus allowing construction of graphs.
 
 For example, consider a trivial example to take the square root of an image::
 
@@ -50,13 +50,15 @@ def generic_image_workflow(image_unary_function, im: Image, facets=4, overlap=0,
 
     This generates a graph for imagefunction. Note that im cannot be a graph itself.
 
-    :func image_unary_function: Function to be applied to all pixels
+    :param func: image_unary_function: Function to be applied to all pixels
     :param im: Image to be processed
     :param facets: Number of facets on each axis
+    :param overlap: Overlap of facets in pixels
     :param kwargs: Parameters for functions in components
     :return: graph
     """
     output = arlexecute.execute(create_empty_image_like, nout=1, pure=True)(im)
-    scattered = arlexecute.execute(image_scatter_facets, pure=True, nout=facets ** 2)(im, facets=facets)
+    scattered = arlexecute.execute(image_scatter_facets, pure=True, nout=facets ** 2)(im, facets=facets,
+                                                                                      overlap=overlap)
     result = [arlexecute.execute(image_unary_function)(s, **kwargs) for s in scattered]
-    return arlexecute.execute(image_gather_facets, nout=1, pure=True)(result, output, facets=facets)
+    return arlexecute.execute(image_gather_facets, nout=1, pure=True)(result, output, facets=facets, overlap=overlap)
