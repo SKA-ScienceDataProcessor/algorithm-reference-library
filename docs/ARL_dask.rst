@@ -20,7 +20,7 @@ These are well-modeled in ARL. A example of three cycles of a major/minor cycle 
 
 
 In order that Dask.delayed processing can be switched on and off, and that the same code is used for Dask and
-non-Dask processing, we have wrapped Dask.delayed in :py:mod:`processing_components.component_support.arlexecute`.
+non-Dask processing, we have wrapped Dask.delayed in :py:mod:`workflows.arlexecute.execution_support.arlexecute.arlexecute`.
 An example is::
 
         arlexecute.set_client(use_dask=True)
@@ -35,26 +35,27 @@ An example is::
                                         deconvolve_taper='tukey')
         clean, residual, restored = arlexecute.compute(continuum_imaging_list, sync=True)
 
-The function :py:mod:`processing_components.component_support.arlexecute.arlexecute.set_client` must be called
+The function :py:mod:`workflows.arlexecute.execution_support.arlexecute.arlexecute.set_client` must be called
 before defining any components. If use_dask is True then a Dask graph is constructed for subsequent execution. If
-use_dask is False then the function is called immediately. The pipeline component
-:py:mod:`processing_components.pipelines.pipeline_components.continuum_imaging_component` is itself assembled using the
-:py:mod:`processing_components.component_support.arlexecute.execute` function.
+use_dask is False then the function is called immediately.
+
+The pipeline workflow
+:py:mod:`workflows.arlexecute.pipelines.pipeline_components.continuum_imaging_component` is itself assembled using the
+:py:mod:`workflows.arlexecute.execution_support.arlexecute.arlexecute.execute` function.
 
 The functions for creating graphs are:
 
-    - :py:mod:`processing_components.support_components.imaging_components`: Graphs to perform various types of
-    prediction and inversion of visibility data
-    - :py:mod:`processing_components.component_support.generic_components`: Graphs to perform generic image or
-    visibility unary operations
-    - :py:mod:`processing_components.util.testing_support`: Graphs to support testing and simulations
-    - :py:mod:`processing_components.pipelines.pipeline_components`: Graphs to implement the canonical pipelines
+    - :py:mod:`workflows.arlexecute.support_workflows.imaging_workflows`: Graphs to perform various types of prediction and inversion of visibility data
+    - :py:mod:`workflows.arlexecute.image.generic_workflows`: Graphs to perform generic image operations
+    - :py:mod:`workflows.arlexecute.visibility.generic_workflows`: Graphs to perform generic visibility perations
+    - :py:mod:`workflows.arlexecute.simulation.simulation_workflows`: Graphs to support simulations
+    - :py:mod:`workflows.arlexecute.pipelines.pipeline_workflows`: Graphs to implement the canonical pipelines
 
 In addition there are notebooks that use components in workflows/notebooks.
 
     - simple-dask: Demonstrates generic components
     - imaging-pipelines: Pipeline to run continuum imaging and ICAL pipelines on small LOW observation
-    - calskymodel: SAGECal calibration
+    - modelpartition: Model partition calibration
 
 These notebooks are scaled to run on a 2017-era laptop (4 cores, 16GB) but can be changed to larger scales. Both
 explicitly create a client and output the URL (usually http://127.0.0.1:8787) for the Dask diagnostics. Of these the

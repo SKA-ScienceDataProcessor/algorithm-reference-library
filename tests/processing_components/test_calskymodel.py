@@ -13,7 +13,7 @@ from data_models.polarisation import PolarisationFrame
 from data_models.memory_data_models import SkyModel
 
 from processing_components.calibration.operations import apply_gaintable, create_gaintable_from_blockvisibility
-from processing_components.calibration.calskymodel import calskymodel_solve
+from processing_components.calibration.modelpartition import modelpartition_solve
 from processing_components.calibration.calibration import solve_gaintable
 from processing_components.image.operations import export_image_to_fits, qa_image
 from processing_components.imaging.base import predict_skycomponent_visibility, create_image_from_visibility
@@ -110,7 +110,7 @@ class TestCalibrationSkyModelcal(unittest.TestCase):
     
     def test_skymodel_solve(self):
         self.actualSetup(ntimes=1, doiso=True)
-        calskymodel, residual_vis = calskymodel_solve(self.vis, self.skymodels, niter=30, gain=0.25)
+        modelpartition, residual_vis = modelpartition_solve(self.vis, self.skymodels, niter=30, gain=0.25)
         
         residual_vis = convert_blockvisibility_to_visibility(residual_vis)
         residual_vis, _, _ = weight_visibility(residual_vis, self.beam)
@@ -122,18 +122,18 @@ class TestCalibrationSkyModelcal(unittest.TestCase):
     
     def test_skymodel_solve_fixed(self):
         self.actualSetup(ntimes=1, doiso=True, fixed=True)
-        calskymodel, residual_vis = calskymodel_solve(self.vis, self.skymodels, niter=30, gain=0.25)
+        modelpartition, residual_vis = modelpartition_solve(self.vis, self.skymodels, niter=30, gain=0.25)
         
         # Check that the components are unchanged
-        calskymodel_skycomponents = list()
-        for sm in [csm[0] for csm in calskymodel]:
+        modelpartition_skycomponents = list()
+        for sm in [csm[0] for csm in modelpartition]:
             for comp in sm.components:
-                calskymodel_skycomponents.append(comp)
+                modelpartition_skycomponents.append(comp)
         
-        recovered_components = find_skycomponent_matches(calskymodel_skycomponents, self.components, 1e-5)
+        recovered_components = find_skycomponent_matches(modelpartition_skycomponents, self.components, 1e-5)
         for p in recovered_components:
-            assert numpy.abs(calskymodel_skycomponents[p[0]].flux[0, 0] - self.components[p[1]].flux[0, 0]) < 1e-15
-            assert calskymodel_skycomponents[p[0]].direction.separation(self.components[p[1]].direction).rad < 1e-15
+            assert numpy.abs(modelpartition_skycomponents[p[0]].flux[0, 0] - self.components[p[1]].flux[0, 0]) < 1e-15
+            assert modelpartition_skycomponents[p[0]].direction.separation(self.components[p[1]].direction).rad < 1e-15
         
         residual_vis = convert_blockvisibility_to_visibility(residual_vis)
         residual_vis, _, _ = weight_visibility(residual_vis, self.beam)
@@ -145,7 +145,7 @@ class TestCalibrationSkyModelcal(unittest.TestCase):
     
     def test_skymodel_solve_noiso(self):
         self.actualSetup(ntimes=1, doiso=False)
-        calskymodel, residual_vis = calskymodel_solve(self.vis, self.skymodels, niter=30, gain=0.25)
+        modelpartition, residual_vis = modelpartition_solve(self.vis, self.skymodels, niter=30, gain=0.25)
         
         residual_vis = convert_blockvisibility_to_visibility(residual_vis)
         residual_vis, _, _ = weight_visibility(residual_vis, self.beam)

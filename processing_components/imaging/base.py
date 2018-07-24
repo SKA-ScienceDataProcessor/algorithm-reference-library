@@ -262,6 +262,9 @@ def predict_skycomponent_visibility(vis: Union[Visibility, BlockVisibility],
 
 def create_image_from_visibility(vis, **kwargs) -> Image:
     """Make an empty image from params and Visibility
+    
+    This makes an empty, template image consistent with the visibility, allowing optional overriding of select
+    parameters. This is a convenience function and does not transform the visibilities.
 
     :param vis:
     :param phasecentre: Phasecentre (Skycoord)

@@ -1,9 +1,14 @@
-.. Definition
+.. Quick start
+
+Quick start
+===========
+
 
 Installation
-============
+++++++++++++
 
-Installation should be straightforward. A prepackage python system such as Anaconda https://www.anaconda.com is usually best as a base.
+Installation should be straightforward. We recommend the use of virtual environment. A prepackaged python
+system such as Anaconda https://www.anaconda.com is usually best as a base.
 
 # Use git to make a local clone of the Github respository::
 
@@ -25,10 +30,10 @@ Installation should be straightforward. A prepackage python system such as Anaco
 
    git-lfs pull
 
-Quick start
-===========
+Running notebooks
++++++++++++++++++
 
-The best way to run ARL is via jupyter notebooks. For example::
+The best way to get familiar with ARL is via jupyter notebooks. For example::
 
    jupyter-notebook imaging.ipynb
 
@@ -41,8 +46,8 @@ See the jupyter note books below:
    processing_components/imaging-fits.rst
    processing_components/imaging-wterm.rst
    processing_components/rcal.rst
-   workflows/simple-dask.rst
-   workflows/calskymodel.rst
-   workflows/imaging-pipelines.rst
+   workflows/simple-dask_arlexecute.rst
+   workflows/modelpartition_arlexecute.rst
+   workflows/imaging-pipelines_arlexecute.rst
 
 In addition, there are other notebooks that are not built as part of this documentation.

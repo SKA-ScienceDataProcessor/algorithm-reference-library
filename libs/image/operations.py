@@ -31,7 +31,7 @@ def image_sizeof(im: Image):
 def create_image(npixel=512, cellsize=0.000015, polarisation_frame=PolarisationFrame("stokesI"),
                  frequency=numpy.array([1e8]), channel_bandwidth=numpy.array([1e6]),
                  phasecentre=None) -> Image:
-    """Create image
+    """Create an empty template image consistent with the inputs.
 
     :param npixel: Number of pixels
     :param polarisation_frame: Polarisation frame (default PolarisationFrame("stokesI"))
@@ -65,9 +65,10 @@ def create_image(npixel=512, cellsize=0.000015, polarisation_frame=PolarisationF
     return create_image_from_array(numpy.zeros(shape), w, polarisation_frame=polarisation_frame)
 
 
-
 def create_image_from_array(data: numpy.array, wcs: WCS, polarisation_frame: PolarisationFrame) -> Image:
     """ Create an image from an array and optional wcs
+    
+    The output image preserves a reference to the input array.
 
     :param data: Numpy.array
     :param wcs: World coordinate system

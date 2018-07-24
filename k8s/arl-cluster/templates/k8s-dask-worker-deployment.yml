@@ -3,7 +3,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: dask-worker-{{ template "arl-cluster.fullname" . }}
-  namespace: default
+  namespace: {{ .Release.Namespace }}
   labels:
     app: dask-worker-{{ template "arl-cluster.name" . }}
     chart: {{ template "arl-cluster.chart" . }}
@@ -23,6 +23,8 @@ spec:
         release: {{ .Release.Name }}
     spec:
       # hostNetwork: true
+      imagePullSecrets:
+        - name: {{ .Values.image.pullSecret }}
       containers:
       - name: worker
         image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
@@ -37,7 +39,7 @@ spec:
               fieldRef:
                 fieldPath: status.podIP
           - name: DASK_SCHEDULER
-            value: dask-scheduler-{{ template "arl-cluster.fullname" . }}.default.svc.cluster.local
+            value: dask-scheduler-{{ template "arl-cluster.fullname" . }}.{{ .Release.Namespace }}.svc.cluster.local
           - name: DASK_PORT_NANNY
             value: "8789"
           - name: DASK_PORT_WORKER
@@ -86,7 +88,7 @@ spec:
           containerPort: 8787
         readinessProbe:
           httpGet:
-            path: /json/identity.json
+            path: /
             port: 8787
           initialDelaySeconds: 60
           timeoutSeconds: 10

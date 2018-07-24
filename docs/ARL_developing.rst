@@ -25,10 +25,9 @@ The ARL has been designed in line with the following principles:
 
 Additions and changes should adhere to these principles.
 
-Naming
-======
+Submitting code
+===============
 
-* Names should obey the `SIP Coding and Documentation Guide <https://confluence.ska-sdp.org/display/SIP/Coding+and+Documentation+Guide+for+SIP/>`_ guide.
-* For functions that move data in and out of ARL, use import/export.
-* For functions that provide persistent, use read/save.
+ARL is hosted on the `SDP github <https://github.com/SKA-ScienceDataProcessor/algorithm-reference-library.git>`_ .
 
+We are open to pull requests submitted via github.
