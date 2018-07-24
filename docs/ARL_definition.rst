@@ -24,3 +24,11 @@ The API consists of stateless functions operating on well-defined data classes.
    ARL_definition_data.rst
    ARL_definition_libs.rst
    ARL_definition_processing_components.rst
+
+Workflows
++++++++++
+
+.. toctree::
+   :maxdepth: 3
+
+   ARL_definition_workflows.rst

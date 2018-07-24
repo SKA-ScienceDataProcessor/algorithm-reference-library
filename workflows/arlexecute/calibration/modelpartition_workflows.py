@@ -52,7 +52,7 @@ from processing_components.visibility.operations import copy_visibility
 
 log = logging.getLogger(__name__)
 
-def initialise_modelpartition_workflow(vislist, skymodel_list, **kwargs):
+def create_modelpartition_workflow(vislist, skymodel_list, **kwargs):
     """Create the model partition
 
     Create the data model for each window, from the visibility and the skymodel
@@ -134,7 +134,7 @@ def modelpartition_maximisation_step_workflow(evislist, skymodel_list, **kwargs)
     return [arlexecute.execute(make_skymodel)(evislist[i], skymodel_list[i]) for i, _ in enumerate(evislist)]
 
 
-def modelpartition_solve_workflow(vislist, skymodel_list, niter=10, tol=1e-8, gain=0.25, **kwargs):
+def solve_modelpartition_workflow(vislist, skymodel_list, niter=10, tol=1e-8, gain=0.25, **kwargs):
     """ Solve using modelpartition, dask.delayed wrapper
 
     Solve by iterating, performing E step and M step.
@@ -145,7 +145,7 @@ def modelpartition_solve_workflow(vislist, skymodel_list, niter=10, tol=1e-8, ga
     :param kwargs:
     :return: A dask graph to calculate the individual data models and the residual visibility
     """
-    modelpartition_list = initialise_modelpartition_workflow(vislist, skymodel_list=skymodel_list, **kwargs)
+    modelpartition_list = create_modelpartition_workflow(vislist, skymodel_list=skymodel_list, **kwargs)
     
     for iter in range(niter):
         evis_all_list = modelpartition_expectation_all_workflow(vislist, modelpartition_list)

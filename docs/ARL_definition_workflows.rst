@@ -73,15 +73,3 @@ Execution helpers
 .. automodule:: workflows.arlexecute.processing_component_interface.execution_helper
    :members:
 
-MPI example
------------
-
-.. autoprogram:: workflows.mpi.simple_mpi
-   :members:
-
-ffiwrapped
-----------
-
-
-
-
