@@ -7,10 +7,12 @@ In this code:
 - A single model parition is taken to be a list composed of (skymodel, gaintable) tuples.
 
 - The E step for a specific model partition is the sum of the partition data model and the discrepancy between the
-observed data and the summed (over all partitions) data models.
+    observed data and the summed (over all partitions) data models.
+
 
 - The M step for a specific partition is the optimisation of the model partition given the model partition. This
-involves fitting a skycomponent and fitting for the gain phases.
+    involves fitting a skycomponent and fitting for the gain phases.
+
 
 """
 
@@ -132,7 +134,7 @@ def modelpartition_maximisation_step(evis: BlockVisibility, modelpartition, **kw
 
 
 def modelpartition_solve(vis, skymodels, niter=10, tol=1e-8, gain=0.25, **kwargs):
-    """ Solve
+    """ Solve for model partitions
     
     Solve by iterating, performing E step and M step.
     
