@@ -21,7 +21,7 @@ from processing_components.imaging.weighting import weight_visibility
 from processing_components.skycomponent.operations import apply_beam_to_skycomponent
 from processing_components.simulation.testing_support import create_named_configuration, simulate_gaintable, \
     create_low_test_skycomponents_from_gleam
-from primary_beams import create_low_test_beam
+from processing_components.imaging.primary_beams import create_low_test_beam
 from processing_components.visibility.base import copy_visibility, create_blockvisibility
 from processing_components.visibility.coalesce import convert_blockvisibility_to_visibility
 
