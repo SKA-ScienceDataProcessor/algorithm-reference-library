@@ -176,30 +176,6 @@ def subtract_vislist_workflow(vis_list, model_vislist):
             for i in range(len(vis_list))]
 
 
-def weight_vislist_workflow(vis_list, model_imagelist, weighting='uniform', **kwargs):
-    """ Weight the visibility data
-
-    :param vis_list:
-    :param model_imagelist: Model required to determine weighting parameters
-    :param weighting: Type of weighting
-    :param kwargs: Parameters for functions in components
-    :return: List of vis_lists
-   """
-    
-    def weight_vis(vis, model):
-        if vis is not None:
-            if model is not None:
-                vis, _, _ = weight_visibility(vis, model, weighting=weighting, **kwargs)
-                return vis
-            else:
-                return None
-        else:
-            return None
-    
-    return [arlexecute.execute(weight_vis, pure=True, nout=1)(vis_list[i], model_imagelist[i])
-            for i in range(len(vis_list))]
-
-
 def invert_workflow(vis_list, template_model_imagelist, dopsf=False, normalize=True,
                      facets=1, vis_slices=1, context='2d', **kwargs):
     """ Sum results from invert, iterating over the scattered image and vis_list
