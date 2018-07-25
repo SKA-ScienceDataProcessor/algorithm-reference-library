@@ -1,0 +1,4 @@
+gcc -I../../../ffiwrappers/include -o timg_serial timg_serial.c -L../../../ -larlffi.cpython-36m-darwin -lpython3.6m -ldl -framework CoreFoundation -Wl,-stack_size,1000000 -framework CoreFoundation -lcfitsio
+ld: library not found for -larlffi.cpython-36m-darwin
+clang: error: linker command failed with exit code 1 (use -v to see invocation)
+make: *** [timg_serial] Error 1
