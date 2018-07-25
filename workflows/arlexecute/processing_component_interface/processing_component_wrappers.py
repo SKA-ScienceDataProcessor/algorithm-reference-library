@@ -1,7 +1,5 @@
 """ Wrappers around ARL processing components, using JSON for configuration.
 
-These can be executed using processing_workflow_interface.py.
-
 """
 
 import numpy

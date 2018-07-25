@@ -97,10 +97,10 @@ class TestCreateMS(unittest.TestCase):
             bv = create_blockvisibility_from_ms(msfile, range(schan, max_chan))
             return integrate_visibility_by_channel(bv[0])
                 
-        vis_by_channel_workflow = \
+        vis_by_channel_graph = \
             [arlexecute.execute(create_and_average)(schan) for schan in range(0, nchan, nchan_ave)]
         
-        vis_by_channel = arlexecute.compute(vis_by_channel_workflow)
+        vis_by_channel = arlexecute.compute(vis_by_channel_graph)
         arlexecute.close()
     
         assert len(vis_by_channel) == 12
