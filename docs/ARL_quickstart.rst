@@ -44,10 +44,10 @@ See the jupyter note books below:
 .. toctree::
    :maxdepth: 3
 
-   processing_components/imaging.rst
-   processing_components/imaging-fits.rst
-   processing_components/imaging-wterm.rst
-   processing_components/rcal_serial.rst
+   workflows/imaging.rst
+   workflows/imaging-fits.rst
+   workflows/imaging-wterm.rst
+   workflows/rcal.rst
    workflows/simple-dask_arlexecute.rst
    workflows/modelpartition_arlexecute.rst
    workflows/imaging-pipelines_arlexecute.rst

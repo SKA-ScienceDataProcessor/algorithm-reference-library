@@ -61,13 +61,14 @@ make_example_rst = \
  if ls ../$1/notebooks/$2 1> /dev/null 2>&1; then cp -R ../$1/notebooks/$2 $1/; fi
 
 .PHONY: prepare_libs prepare_processing_components prepare_workflows prepare 
-#prepare_libs:
-#	+$(call make_example_rst,libs,*_files)
+prepare_libs:
+	+$(call make_example_rst,libs,*_files)
 prepare_processing_components:
 	+$(call make_example_rst,processing_components,*_files)
 prepare_workflows:
 	+$(call make_example_rst,workflows,*_files)
-prepare: prepare_processing_components prepare_workflows
+#prepare: prepare_libs prepare_processing_components prepare_workflows
+prepare: prepare_workflows
 
 .PHONY: html
 html: prepare
