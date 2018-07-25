@@ -18,7 +18,7 @@ processing_component_wrappers.py. For example, here is a simple wrapper::
         vis_list = buffer_data_model_to_memory(conf["buffer"], conf['inputs']['vis_list'])
         phase_error = json_to_quantity(conf['corrupt_vislist']['phase_error']).to('rad').value
         
-        corrupted_vislist = corrupt_workflow(vis_list,
+        corrupted_vislist = corrupt_arlexecute(vis_list,
                                               phase_error=phase_error,
                                               amplitude_error=conf['corrupt_vislist']['amplitude_error'])
         
@@ -58,7 +58,7 @@ the wrapper for predict is::
         future_vis_list = arlexecute.scatter(vis_list)
         predicted_vis_list = [arlexecute.execute(predict_skycomponent_visibility)(v, component_list)
                               for v in future_vis_list]
-        predicted_vis_list = predict_workflow(predicted_vis_list, image_list,
+        predicted_vis_list = predict_arlexecute(predicted_vis_list, image_list,
                                                context=conf['imaging']['context'],
                                                vis_slices=conf['imaging']['vis_slices'])
         

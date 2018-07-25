@@ -12,15 +12,15 @@ import numpy
 
 from data_models.memory_data_models import Visibility, Image
 
-from ..image.gather_scatter import image_scatter_facets
-from ..image.operations import create_empty_image_like
-from ..imaging.base import normalize_sumwt
-from ..imaging.base import predict_2d, invert_2d
-from ..imaging.timeslice_single import predict_timeslice_single, invert_timeslice_single
-from ..imaging.wstack_single import predict_wstack_single, invert_wstack_single
-from ..visibility.base import copy_visibility, create_visibility_from_rows
-from ..visibility.coalesce import convert_blockvisibility_to_visibility, convert_visibility_to_blockvisibility
-from ..visibility.iterators import vis_timeslice_iter, vis_null_iter, vis_wslice_iter
+from processing_components.image.gather_scatter import image_scatter_facets
+from processing_components.image.operations import create_empty_image_like
+from processing_components.imaging.base import normalize_sumwt
+from processing_components.imaging.base import predict_2d, invert_2d
+from processing_components.imaging.timeslice_single import predict_timeslice_single, invert_timeslice_single
+from processing_components.imaging.wstack_single import predict_wstack_single, invert_wstack_single
+from processing_components.visibility.base import copy_visibility, create_visibility_from_rows
+from processing_components.visibility.coalesce import convert_blockvisibility_to_visibility, convert_visibility_to_blockvisibility
+from processing_components.visibility.iterators import vis_timeslice_iter, vis_null_iter, vis_wslice_iter
 
 log = logging.getLogger(__name__)
 
@@ -71,8 +71,8 @@ def imaging_context(context='2d'):
     return contexts[context]
 
 
-def invert_function(vis, im: Image, dopsf=False, normalize=True, context='2d', inner=None, vis_slices=1,
-                    facets=1, overlap=0, taper=None, **kwargs):
+def invert_serial(vis, im: Image, dopsf=False, normalize=True, context='2d', inner=None, vis_slices=1,
+                  facets=1, overlap=0, taper=None, **kwargs):
     """ Invert using algorithm specified by context:
 
      * 2d: Two-dimensional transform
@@ -151,8 +151,8 @@ def invert_function(vis, im: Image, dopsf=False, normalize=True, context='2d', i
     return resultimage, totalwt
 
 
-def predict_function(vis, model: Image, context='2d', inner=None, vis_slices=1, facets=1, overlap=0, taper=None,
-                     **kwargs) -> Visibility:
+def predict_serial(vis, model: Image, context='2d', inner=None, vis_slices=1, facets=1, overlap=0, taper=None,
+                   **kwargs) -> Visibility:
     """Predict visibilities using algorithm specified by context
     
      * 2d: Two-dimensional transform

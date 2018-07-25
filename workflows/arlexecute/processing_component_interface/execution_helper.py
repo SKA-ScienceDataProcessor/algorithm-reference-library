@@ -36,7 +36,7 @@ def initialise_logging_wrapper(conf):
     else:
         level = logging.DEBUG
         
-    logging.basicConfig(filename=conf["buffer"]["directory"]+conf['logging']['filename'],
+    logging.basicConfig(filename=arl_path(conf["buffer"]["directory"]+conf['logging']['filename']),
                         filemode=conf['logging']['filemode'],
                         format=conf['logging']['format'],
                         datefmt=conf['logging']['datefmt'],

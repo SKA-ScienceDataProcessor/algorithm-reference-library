@@ -47,7 +47,7 @@ See the jupyter note books below:
    processing_components/imaging.rst
    processing_components/imaging-fits.rst
    processing_components/imaging-wterm.rst
-   processing_components/rcal.rst
+   processing_components/rcal_serial.rst
    workflows/simple-dask_arlexecute.rst
    workflows/modelpartition_arlexecute.rst
    workflows/imaging-pipelines_arlexecute.rst

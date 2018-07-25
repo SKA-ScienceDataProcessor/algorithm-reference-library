@@ -11,7 +11,7 @@ from data_models.parameters import get_parameter
 from ..image.deconvolution import deconvolve_cube
 from ..visibility.base import copy_visibility
 from ..imaging.base import predict_skycomponent_visibility
-from ..imaging.imaging_functions import predict_function, invert_function
+from workflows.serial.imaging.imaging_serial import predict_serial, invert_serial
 
 import logging
 
@@ -41,15 +41,15 @@ def solve_image(vis: Visibility, model: Image, components=None, context='2d', **
     vispred = copy_visibility(vis, zero=True)
     visres = copy_visibility(vis, zero=True)
 
-    vispred = predict_function(vispred, model, context=context, **kwargs)
+    vispred = predict_serial(vispred, model, context=context, **kwargs)
     
     if components is not None:
         vispred = predict_skycomponent_visibility(vispred, components)
     
     visres.data['vis'] = vis.data['vis'] - vispred.data['vis']
-    dirty, sumwt = invert_function(visres, model, context=context, dopsf=False, **kwargs)
+    dirty, sumwt = invert_serial(visres, model, context=context, dopsf=False, **kwargs)
     assert sumwt.any() > 0.0, "Sum of weights is zero"
-    psf, sumwt = invert_function(visres, model, context=context, dopsf=True, **kwargs)
+    psf, sumwt = invert_serial(visres, model, context=context, dopsf=True, **kwargs)
     assert sumwt.any() > 0.0, "Sum of weights is zero"
     
     for i in range(nmajor):
@@ -57,9 +57,9 @@ def solve_image(vis: Visibility, model: Image, components=None, context='2d', **
         cc, res = deconvolve_cube(dirty, psf, **kwargs)
         model.data += cc.data
         vispred.data['vis'][...]=0.0
-        vispred = predict_function(vispred, model, context=context, **kwargs)
+        vispred = predict_serial(vispred, model, context=context, **kwargs)
         visres.data['vis'] = vis.data['vis'] - vispred.data['vis']
-        dirty, sumwt = invert_function(visres, model, context=context, dopsf=False, **kwargs)
+        dirty, sumwt = invert_serial(visres, model, context=context, dopsf=False, **kwargs)
         if numpy.abs(dirty.data).max() < 1.1 * thresh:
             log.info("Reached stopping threshold %.6f Jy" % thresh)
             break

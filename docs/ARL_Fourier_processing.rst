@@ -46,7 +46,7 @@ The second approach is based on the same underlying functions, predict_2d and in
 of the above example::
 
         m31model=create_test_image()
-        vis = predict_function(vis, m31model, context='facets', nfacets=4)
+        vis = predict_serial(vis, m31model, context='facets', nfacets=4)
 
 The third approach implements imaging via arlexecute::
 

@@ -19,8 +19,8 @@ from processing_components.simulation.testing_support import create_named_config
 from processing_components.visibility.base import create_blockvisibility
 
 from workflows.arlexecute.execution_support.arlexecute import arlexecute
-from workflows.arlexecute.image.image_workflows import generic_image_iterator_workflow, generic_image_workflow
-from workflows.arlexecute.visibility.visibility_workflows import generic_blockvisibility_workflow
+from workflows.arlexecute.image.image_arlexecute import generic_image_iterator_arlexecute, generic_image_arlexecute
+from workflows.arlexecute.visibility.visibility_arlexecute import generic_blockvisibility_arlexecute
 
 
 class TestPipelinesGenericDask(unittest.TestCase):
@@ -51,7 +51,7 @@ class TestPipelinesGenericDask(unittest.TestCase):
                                        polarisation_frame=PolarisationFrame('stokesI'))
         self.image.data[self.image.data < 0.0] = 0.0
         
-        self.image_workflow = arlexecute.execute(create_test_image)(frequency=self.frequency,
+        self.image_arlexecute = arlexecute.execute(create_test_image)(frequency=self.frequency,
                                                                  phasecentre=self.phasecentre,
                                                                  cellsize=0.001,
                                                                  polarisation_frame=PolarisationFrame('stokesI'))
@@ -59,39 +59,39 @@ class TestPipelinesGenericDask(unittest.TestCase):
     def tearDown(self):
         arlexecute.close()
 
-    def test_create_generic_blockvisibility_workflow(self):
+    def test_create_generic_blockvisibility_arlexecute(self):
         self.blockvis = [create_blockvisibility(self.lowcore, self.times, self.frequency,
                                                 phasecentre=self.phasecentre,
                                                 channel_bandwidth=self.channel_bandwidth,
                                                 weight=1.0,
                                                 polarisation_frame=PolarisationFrame('stokesI'))]
         
-        self.blockvis = generic_blockvisibility_workflow(predict_skycomponent_visibility,
-                                                          vis_list=self.blockvis,
-                                                          sc=self.comp)[0]
+        self.blockvis = generic_blockvisibility_arlexecute(predict_skycomponent_visibility,
+                                                           vis_list=self.blockvis,
+                                                           sc=self.comp)[0]
         
         self.blockvis = arlexecute.compute(self.blockvis, sync=True)
         arlexecute.close()
 
         assert numpy.max(numpy.abs(self.blockvis[0].vis)) > 0.0
     
-    def test_create_generic_image_iterator_workflow(self):
+    def test_create_generic_image_iterator_arlexecute(self):
         def imagerooter(im):
             im.data = numpy.sqrt(numpy.abs(im.data))
             return im
         
-        root = generic_image_iterator_workflow(imagerooter, self.image, image_raster_iter, facets=4)
+        root = generic_image_iterator_arlexecute(imagerooter, self.image, image_raster_iter, facets=4)
         root = arlexecute.compute(root, sync=True)
         arlexecute.close()
         
         numpy.testing.assert_array_almost_equal_nulp(root.data ** 2, numpy.abs(self.image.data), 7)
     
-    def test_create_generic_image_workflow(self):
+    def test_create_generic_image_arlexecute(self):
         def imagerooter(im):
             im.data = numpy.sqrt(numpy.abs(im.data))
             return im
         
-        root = generic_image_workflow(imagerooter, self.image, facets=4)
+        root = generic_image_arlexecute(imagerooter, self.image, facets=4)
         root = arlexecute.compute(root, sync=True)
         arlexecute.close()
 

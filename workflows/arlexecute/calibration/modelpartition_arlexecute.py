@@ -8,13 +8,13 @@ from ..execution_support.arlexecute import arlexecute
 from processing_components.calibration.modelpartition import modelpartition_fit_skymodel, modelpartition_fit_gaintable
 from processing_components.calibration.operations import copy_gaintable, apply_gaintable, \
     create_gaintable_from_blockvisibility
-from workflows.arlexecute.imaging.imaging_workflows import sum_predict_results
+from workflows.arlexecute.imaging.imaging_arlexecute import sum_predict_results
 from processing_components.skymodel.operations import copy_skymodel, predict_skymodel_visibility
 from processing_components.visibility.operations import copy_visibility
 
 log = logging.getLogger(__name__)
 
-def create_modelpartition_workflow(vislist, skymodel_list, **kwargs):
+def create_modelpartition_arlexecute(vislist, skymodel_list, **kwargs):
     """Create the model partition
 
     Create the data model for each window, from the visibility and the skymodel
@@ -31,7 +31,7 @@ def create_modelpartition_workflow(vislist, skymodel_list, **kwargs):
     return [arlexecute.execute(create_modelpartition, nout=2)(vislist, sm) for sm in skymodel_list]
 
 
-def solve_modelpartition_workflow(vislist, skymodel_list, niter=10, tol=1e-8, gain=0.25, **kwargs):
+def solve_modelpartition_arlexecute(vislist, skymodel_list, niter=10, tol=1e-8, gain=0.25, **kwargs):
     """ Solve using modelpartition, dask.delayed wrapper
 
     Solve by iterating, performing E step and M step.
@@ -42,16 +42,16 @@ def solve_modelpartition_workflow(vislist, skymodel_list, niter=10, tol=1e-8, ga
     :param kwargs:
     :return: A dask graph to calculate the individual data models and the residual visibility
     """
-    modelpartition_list = create_modelpartition_workflow(vislist, skymodel_list=skymodel_list, **kwargs)
+    modelpartition_list = create_modelpartition_arlexecute(vislist, skymodel_list=skymodel_list, **kwargs)
     
     for iter in range(niter):
-        evis_all_list = modelpartition_expectation_all_workflow(vislist, modelpartition_list)
-        evislist = modelpartition_expectation_step_workflow(vislist, evis_all_list, modelpartition_list, gain=gain,
-                                                            **kwargs)
-        new_modelpartition_list = modelpartition_maximisation_step_workflow(evislist, modelpartition_list, **kwargs)
+        evis_all_list = modelpartition_expectation_all_arlexecute(vislist, modelpartition_list)
+        evislist = modelpartition_expectation_step_arlexecute(vislist, evis_all_list, modelpartition_list, gain=gain,
+                                                              **kwargs)
+        new_modelpartition_list = modelpartition_maximisation_step_arlexecute(evislist, modelpartition_list, **kwargs)
         modelpartition_list = new_modelpartition_list
     
-    final_vislist = modelpartition_expectation_all_workflow(vislist, modelpartition_list)
+    final_vislist = modelpartition_expectation_all_arlexecute(vislist, modelpartition_list)
     
     def res_vis(vis, final_vis):
         residual_vis = copy_visibility(vis)
@@ -61,7 +61,7 @@ def solve_modelpartition_workflow(vislist, skymodel_list, niter=10, tol=1e-8, ga
     return arlexecute.execute((modelpartition_list, arlexecute.execute(res_vis)(vislist, final_vislist)))
 
 
-def modelpartition_expectation_step_workflow(vislist, evis_all_list, modelpartition_list, **kwargs):
+def modelpartition_expectation_step_arlexecute(vislist, evis_all_list, modelpartition_list, **kwargs):
     """Calculates E step in equation A12
 
     This is the data model for this window plus the difference between observed data and summed data models
@@ -87,7 +87,7 @@ def modelpartition_expectation_step_workflow(vislist, evis_all_list, modelpartit
     return [arlexecute.execute(make_e)(vislist, csm, evis_all_list) for csm in modelpartition_list]
 
 
-def modelpartition_expectation_all_workflow(vislist, modelpartition_list):
+def modelpartition_expectation_all_arlexecute(vislist, modelpartition_list):
     """Calculates E step in equation A12
 
     This is the sum of the data models over all skymodel, It is a global sync point for modelpartition
@@ -108,7 +108,7 @@ def modelpartition_expectation_all_workflow(vislist, modelpartition_list):
     return arlexecute.execute(sum_predict_results, nout=1)(evislist)
 
 
-def modelpartition_maximisation_step_workflow(evislist, skymodel_list, **kwargs):
+def modelpartition_maximisation_step_arlexecute(evislist, skymodel_list, **kwargs):
     """Calculates M step in equation A13
 
     This maximises the likelihood of the skymodel parameters given the existing data model. Note that these are done

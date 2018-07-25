@@ -10,7 +10,7 @@ from libs.image.operations import copy_image
 
 from ..image.solvers import solve_image
 from ..imaging.base import predict_skycomponent_visibility
-from ..imaging.imaging_functions import predict_function
+from workflows.serial.imaging.imaging_serial import predict_serial
 from ..skycomponent.base import copy_skycomponent
 from ..visibility.visibility_fitting import fit_visibility
 
@@ -39,7 +39,7 @@ def predict_skymodel_visibility(vis, sm, **kwargs):
         vis = predict_skycomponent_visibility(vis, sm.components)
     if sm.images is not None:
         for im in sm.images:
-            vis = predict_function(vis, im, **kwargs)
+            vis = predict_serial(vis, im, **kwargs)
     
     return vis
 
