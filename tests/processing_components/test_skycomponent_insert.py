@@ -12,7 +12,7 @@ from astropy.coordinates import SkyCoord
 from data_models.polarisation import PolarisationFrame
 
 from processing_components.image.operations import export_image_to_fits
-from processing_components.imaging.imaging_functions import predict_function, invert_function
+from workflows.serial.imaging.imaging_serial import predict_function, invert_function
 from processing_components.imaging.base import predict_skycomponent_visibility
 from processing_components.skycomponent.operations import insert_skycomponent, create_skycomponent
 from processing_components.simulation.testing_support import create_test_image, create_named_configuration

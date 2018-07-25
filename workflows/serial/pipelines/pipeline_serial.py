@@ -10,18 +10,18 @@ import numpy
 from data_models.memory_data_models import Image, BlockVisibility, GainTable
 from data_models.parameters import get_parameter
 
-from ..calibration.calibration import solve_gaintable
-from ..calibration.calibration_control import calibrate_function, create_calibration_controls
-from ..image.deconvolution import deconvolve_cube, restore_cube
-from ..imaging.base import predict_skycomponent_visibility
-from ..imaging.imaging_functions import predict_function, invert_function
-from ..visibility.base import copy_visibility
-from ..visibility.coalesce import convert_blockvisibility_to_visibility
+from processing_components.calibration.calibration import solve_gaintable
+from processing_components.calibration.calibration_control import calibrate_function, create_calibration_controls
+from processing_components.image.deconvolution import deconvolve_cube, restore_cube
+from processing_components.imaging.base import predict_skycomponent_visibility
+from workflows.serial.imaging.imaging_serial import predict_serial, invert_serial
+from processing_components.visibility.base import copy_visibility
+from processing_components.visibility.coalesce import convert_blockvisibility_to_visibility
 
 log = logging.getLogger(__name__)
 
 
-def ical(block_vis: BlockVisibility, model: Image, components=None, context='2d', controls=None, **kwargs):
+def ical_serial(block_vis: BlockVisibility, model: Image, components=None, context='2d', controls=None, **kwargs):
     """ Post observation image, deconvolve, and self-calibrate
 
     :param vis:
@@ -32,7 +32,7 @@ def ical(block_vis: BlockVisibility, model: Image, components=None, context='2d'
     :return: model, residual, restored
     """
     nmajor = get_parameter(kwargs, 'nmajor', 5)
-    log.info("ical: Performing %d major cycles" % nmajor)
+    log.info("ical_serial: Performing %d major cycles" % nmajor)
     
     do_selfcal = get_parameter(kwargs, "do_selfcal", False)
     
@@ -64,7 +64,7 @@ def ical(block_vis: BlockVisibility, model: Image, components=None, context='2d'
     thresh = get_parameter(kwargs, "threshold", 0.0)
     
     for i in range(nmajor):
-        log.info("ical: Start of major cycle %d of %d" % (i, nmajor))
+        log.info("ical_serial: Start of major cycle %d of %d" % (i, nmajor))
         cc, res = deconvolve_cube(dirty, psf, **kwargs)
         model.data += cc.data
         vispred.data['vis'][...] = 0.0
@@ -76,17 +76,17 @@ def ical(block_vis: BlockVisibility, model: Image, components=None, context='2d'
         dirty, sumwt = invert_function(visres, model, context=context, **kwargs)
         log.info("Maximum in residual image is %s" % (numpy.max(numpy.abs(dirty.data))))
         if numpy.abs(dirty.data).max() < 1.1 * thresh:
-            log.info("ical: Reached stopping threshold %.6f Jy" % thresh)
+            log.info("ical_serial: Reached stopping threshold %.6f Jy" % thresh)
             break
-        log.info("ical: End of major cycle")
+        log.info("ical_serial: End of major cycle")
     
-    log.info("ical: End of major cycles")
+    log.info("ical_serial: End of major cycles")
     restored = restore_cube(model, psf, dirty, **kwargs)
     
     return model, dirty, restored
 
 
-def rcal(vis: BlockVisibility, components, **kwargs) -> GainTable:
+def rcal_serial(vis: BlockVisibility, components, **kwargs) -> GainTable:
     """ Real-time calibration pipeline.
 
     Reads visibilities through a BlockVisibility iterator, calculates model visibilities according to a

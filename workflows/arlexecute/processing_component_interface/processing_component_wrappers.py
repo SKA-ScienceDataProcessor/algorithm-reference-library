@@ -18,10 +18,10 @@ from processing_components.skycomponent.operations import insert_skycomponent
 from processing_components.imaging.primary_beams import create_pb
 from processing_components.simulation.testing_support import create_low_test_skycomponents_from_gleam
 
-from workflows.arlexecute.simulation.simulation_workflows import simulate_workflow, corrupt_workflow
-from workflows.arlexecute.imaging.imaging_workflows import predict_workflow
-from workflows.arlexecute.imaging.imaging_workflows import remove_sumwt
-from workflows.arlexecute.pipelines.pipeline_workflows import continuum_imaging_workflow, ical_workflow
+from workflows.arlexecute.simulation.simulation_arlexecute import simulate_arlexecute, corrupt_arlexecute
+from workflows.arlexecute.imaging.imaging_arlexecute import predict_arlexecute
+from workflows.arlexecute.imaging.imaging_arlexecute import remove_sumwt
+from workflows.arlexecute.pipelines.pipeline_arlexecute import continuum_imaging_arlexecute, ical_arlexecute
 from workflows.arlexecute.processing_component_interface.arl_json.json_helpers import json_to_quantity, \
     json_to_linspace, json_to_skycoord
 
@@ -44,22 +44,22 @@ def continuum_imaging_wrapper(conf):
     
     future_vis_list = arlexecute.scatter(vis_list)
     
-    result = continuum_imaging_workflow(vis_list=future_vis_list,
-                                         model_imagelist=model_imagelist,
-                                         context=conf["imaging"]["context"],
-                                         scales=conf["deconvolution"]["scales"],
-                                         algorithm=conf["deconvolution"]["algorithm"],
-                                         nmoment=conf["deconvolution"]["nmoment"],
-                                         niter=conf["deconvolution"]["niter"],
-                                         fractional_threshold=conf["deconvolution"]["fractional_threshold"],
-                                         threshold=conf["deconvolution"]["threshold"],
-                                         nmajor=conf["deconvolution"]["nmajor"],
-                                         gain=conf["deconvolution"]["gain"],
-                                         deconvolve_facets=conf["deconvolution"]["deconvolve_facets"],
-                                         deconvolve_overlap=conf["deconvolution"]["deconvolve_overlap"],
-                                         deconvolve_taper=conf["deconvolution"]["deconvolve_taper"],
-                                         vis_slices=conf["imaging"]["vis_slices"],
-                                         psf_support=conf["deconvolution"]["psf_support"])
+    result = continuum_imaging_arlexecute(vis_list=future_vis_list,
+                                          model_imagelist=model_imagelist,
+                                          context=conf["imaging"]["context"],
+                                          scales=conf["deconvolution"]["scales"],
+                                          algorithm=conf["deconvolution"]["algorithm"],
+                                          nmoment=conf["deconvolution"]["nmoment"],
+                                          niter=conf["deconvolution"]["niter"],
+                                          fractional_threshold=conf["deconvolution"]["fractional_threshold"],
+                                          threshold=conf["deconvolution"]["threshold"],
+                                          nmajor=conf["deconvolution"]["nmajor"],
+                                          gain=conf["deconvolution"]["gain"],
+                                          deconvolve_facets=conf["deconvolution"]["deconvolve_facets"],
+                                          deconvolve_overlap=conf["deconvolution"]["deconvolve_overlap"],
+                                          deconvolve_taper=conf["deconvolution"]["deconvolve_taper"],
+                                          vis_slices=conf["imaging"]["vis_slices"],
+                                          psf_support=conf["deconvolution"]["psf_support"])
 
     def output_images(result):
         BufferSkyModel(conf["buffer"], conf['outputs']['skymodel'], SkyModel(images=result[0])).sync()
@@ -95,22 +95,22 @@ def ical_wrapper(conf):
     
     future_vis_list = arlexecute.scatter(vis_list)
     
-    result = ical_workflow(vis_list=future_vis_list,
-                            model_imagelist=model_imagelist,
-                            context=conf["imaging"]["context"],
-                            scales=conf["deconvolution"]["scales"],
-                            algorithm=conf["deconvolution"]["algorithm"],
-                            nmoment=conf["deconvolution"]["nmoment"],
-                            niter=conf["deconvolution"]["niter"],
-                            fractional_threshold=conf["deconvolution"]["fractional_threshold"],
-                            threshold=conf["deconvolution"]["threshold"],
-                            nmajor=conf["deconvolution"]["nmajor"],
-                            gain=conf["deconvolution"]["gain"],
-                            deconvolve_facets=conf["deconvolution"]["deconvolve_facets"],
-                            deconvolve_overlap=conf["deconvolution"]["deconvolve_overlap"],
-                            deconvolve_taper=conf["deconvolution"]["deconvolve_taper"],
-                            vis_slices=conf["imaging"]["vis_slices"],
-                            psf_support=conf["deconvolution"]["psf_support"])
+    result = ical_arlexecute(vis_list=future_vis_list,
+                             model_imagelist=model_imagelist,
+                             context=conf["imaging"]["context"],
+                             scales=conf["deconvolution"]["scales"],
+                             algorithm=conf["deconvolution"]["algorithm"],
+                             nmoment=conf["deconvolution"]["nmoment"],
+                             niter=conf["deconvolution"]["niter"],
+                             fractional_threshold=conf["deconvolution"]["fractional_threshold"],
+                             threshold=conf["deconvolution"]["threshold"],
+                             nmajor=conf["deconvolution"]["nmajor"],
+                             gain=conf["deconvolution"]["gain"],
+                             deconvolve_facets=conf["deconvolution"]["deconvolve_facets"],
+                             deconvolve_overlap=conf["deconvolution"]["deconvolve_overlap"],
+                             deconvolve_taper=conf["deconvolution"]["deconvolve_taper"],
+                             vis_slices=conf["imaging"]["vis_slices"],
+                             psf_support=conf["deconvolution"]["psf_support"])
     
     def output_images(result):
         BufferSkyModel(conf["buffer"], conf['outputs']['skymodel'], SkyModel(images=result[0])).sync()
@@ -146,13 +146,13 @@ def create_vislist_wrapper(conf):
     
     times = json_to_linspace(conf['create_vislist']['times'])
     
-    vis_list = simulate_workflow(configuration,
-                                  rmax=rmax,
-                                  frequency=frequency,
-                                  channel_bandwidth=channel_bandwidth,
-                                  times=times,
-                                  phasecentre=phasecentre,
-                                  order='frequency')
+    vis_list = simulate_arlexecute(configuration,
+                                   rmax=rmax,
+                                   frequency=frequency,
+                                   channel_bandwidth=channel_bandwidth,
+                                   times=times,
+                                   phasecentre=phasecentre,
+                                   order='frequency')
     
     def output_vislist(v):
         bdm = BufferBlockVisibility(conf["buffer"], conf["outputs"]["vis_list"], v)
@@ -252,9 +252,9 @@ def predict_vislist_wrapper(conf):
     future_vis_list = arlexecute.scatter(vis_list)
     predicted_vis_list = [arlexecute.execute(predict_skycomponent_visibility)(v, component_list)
                           for v in future_vis_list]
-    predicted_vis_list = predict_workflow(predicted_vis_list, image_list,
-                                           context=conf['imaging']['context'],
-                                           vis_slices=conf['imaging']['vis_slices'])
+    predicted_vis_list = predict_arlexecute(predicted_vis_list, image_list,
+                                            context=conf['imaging']['context'],
+                                            vis_slices=conf['imaging']['vis_slices'])
     
     def output_vislist(v):
         bdm = BufferBlockVisibility(conf["buffer"], conf["outputs"]["vis_list"], v)
@@ -272,9 +272,9 @@ def corrupt_vislist_wrapper(conf):
     vis_list = BufferBlockVisibility(conf["buffer"], conf['inputs']['vis_list']).memory_data_model
     phase_error = json_to_quantity(conf['corrupt_vislist']['phase_error']).to('rad').value
     
-    corrupted_vislist = corrupt_workflow(vis_list,
-                                          phase_error=phase_error,
-                                          amplitude_error=conf['corrupt_vislist']['amplitude_error'])
+    corrupted_vislist = corrupt_arlexecute(vis_list,
+                                           phase_error=phase_error,
+                                           amplitude_error=conf['corrupt_vislist']['amplitude_error'])
     
     def output_vislist(v):
         bdm = BufferBlockVisibility(conf["buffer"], conf["outputs"]["vis_list"], v)

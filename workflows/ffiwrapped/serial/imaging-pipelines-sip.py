@@ -24,9 +24,9 @@ from processing_components.imaging.base import advise_wide_field
 from processing_components.simulation.testing_support import create_named_configuration, create_low_test_image_from_gleam, simulate_gaintable
 from data_models.polarisation import PolarisationFrame
 from processing_components.visibility.base import create_blockvisibility
-from processing_components.imaging.imaging_functions import invert_function, predict_function 
+from workflows.serial.imaging.imaging_serial import invert_function, predict_function
 from processing_components.visibility.coalesce import convert_visibility_to_blockvisibility
-from processing_components.functions.pipeline_functions import ical
+from workflows.serial.pipelines.pipeline_functions import ical
 
 
 import logging

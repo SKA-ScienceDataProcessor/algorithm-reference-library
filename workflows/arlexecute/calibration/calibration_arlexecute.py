@@ -10,8 +10,8 @@ from processing_components.visibility.gather_scatter import visibility_gather_ch
 from processing_components.visibility.operations import divide_visibility, integrate_visibility_by_channel
 
 
-def calibrate_workflow(vis_list, model_vislist, calibration_context='TG', global_solution=True,
-                        **kwargs):
+def calibrate_arlexecute(vis_list, model_vislist, calibration_context='TG', global_solution=True,
+                         **kwargs):
     """ Create a set of components for (optionally global) calibration of a list of visibilities
 
     If global solution is true then visibilities are gathered to a single visibility data set which is then

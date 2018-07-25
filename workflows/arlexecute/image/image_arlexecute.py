@@ -7,7 +7,7 @@ For example, consider a trivial example to take the square root of an image::
         def imagerooter(im, **kwargs):
             im.data_models = numpy.sqrt(numpy.abs(im.data_models))
             return im
-        root = generic_image_workflow(imagerooter, myimage,  image_raster_iter, facets=4).compute()
+        root = generic_image_arlexecute(imagerooter, myimage,  image_raster_iter, facets=4).compute()
 
 We create the graph and execute it immediately. We are using the  image_raster_iter so the image will be divided into 16
 subimages and passed to processing by imagerooter, and then the answers are reassembled.
@@ -20,8 +20,8 @@ from processing_components.image.gather_scatter import image_scatter_facets, ima
 from data_models.memory_data_models import Image
 from libs.image.operations import copy_image, create_empty_image_like
 
-def generic_image_iterator_workflow(imagefunction, im: Image, iterator, **kwargs):
-    """ Definition of interface for generic_image_workflow
+def generic_image_iterator_arlexecute(imagefunction, im: Image, iterator, **kwargs):
+    """ Definition of interface for generic_image_arlexecute
     
     This generates a graph for imagefunction. Note that im cannot be a graph itself.
 
@@ -45,8 +45,8 @@ def generic_image_iterator_workflow(imagefunction, im: Image, iterator, **kwargs
     return arlexecute.execute(accumulate_results, pure=True)(results, **kwargs)
 
 
-def generic_image_workflow(image_unary_function, im: Image, facets=4, overlap=0, **kwargs) :
-    """ Definition of interface for generic_image_workflow using scatter/gather
+def generic_image_arlexecute(image_unary_function, im: Image, facets=4, overlap=0, **kwargs) :
+    """ Definition of interface for generic_image_arlexecute using scatter/gather
 
     This generates a graph for imagefunction. Note that im cannot be a graph itself.
 

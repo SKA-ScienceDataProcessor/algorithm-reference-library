@@ -22,7 +22,7 @@ from processing_components.image.deconvolution import deconvolve_cube, restore_c
 from processing_components.image.gather_scatter import image_scatter_facets, image_gather_facets, \
     image_scatter_channels,    image_gather_channels
 from processing_components.imaging.base import normalize_sumwt
-from processing_components.imaging.imaging_functions import imaging_context
+from workflows.serial.imaging.imaging_serial import imaging_context
 from processing_components.imaging.weighting import weight_visibility
 from processing_components.visibility.base import copy_visibility
 from processing_components.visibility.gather_scatter import visibility_scatter, visibility_gather
@@ -31,7 +31,7 @@ from processing_components.image.operations import calculate_image_frequency_mom
 log = logging.getLogger(__name__)
 
 
-def predict_workflow(vis_list, model_imagelist, vis_slices=1, facets=1, context='2d', **kwargs):
+def predict_arlexecute(vis_list, model_imagelist, vis_slices=1, facets=1, context='2d', **kwargs):
     """Predict, iterating over both the scattered vis_list and image
     
     The visibility and image are scattered, the visibility is predicted on each part, and then the
@@ -107,8 +107,8 @@ def predict_workflow(vis_list, model_imagelist, vis_slices=1, facets=1, context=
     return image_results_list_list
 
 
-def invert_workflow(vis_list, template_model_imagelist, dopsf=False, normalize=True,
-                    facets=1, vis_slices=1, context='2d', **kwargs):
+def invert_arlexecute(vis_list, template_model_imagelist, dopsf=False, normalize=True,
+                      facets=1, vis_slices=1, context='2d', **kwargs):
     """ Sum results from invert, iterating over the scattered image and vis_list
 
     :param vis_list:
@@ -193,7 +193,7 @@ def invert_workflow(vis_list, template_model_imagelist, dopsf=False, normalize=T
     return results_vislist
 
 
-def residual_workflow(vis, model_imagelist, context='2d', **kwargs):
+def residual_arlexecute(vis, model_imagelist, context='2d', **kwargs):
     """ Create a graph to calculate residual image using w stacking and faceting
 
     :param context: 
@@ -204,14 +204,14 @@ def residual_workflow(vis, model_imagelist, context='2d', **kwargs):
     :param kwargs: Parameters for functions in components
     :return:
     """
-    model_vis = zero_vislist_workflow(vis)
-    model_vis = predict_workflow(model_vis, model_imagelist, context=context, **kwargs)
-    residual_vis = subtract_vislist_workflow(vis, model_vis)
-    return invert_workflow(residual_vis, model_imagelist, dopsf=False, normalize=True, context=context,
-                            **kwargs)
+    model_vis = zero_vislist_arlexecute(vis)
+    model_vis = predict_arlexecute(model_vis, model_imagelist, context=context, **kwargs)
+    residual_vis = subtract_vislist_arlexecute(vis, model_vis)
+    return invert_arlexecute(residual_vis, model_imagelist, dopsf=False, normalize=True, context=context,
+                             **kwargs)
 
 
-def restore_workflow(model_imagelist, psf_imagelist, residual_imagelist, **kwargs):
+def restore_arlexecute(model_imagelist, psf_imagelist, residual_imagelist, **kwargs):
     """ Create a graph to calculate the restored image
 
     :param model_imagelist: Model list
@@ -225,7 +225,7 @@ def restore_workflow(model_imagelist, psf_imagelist, residual_imagelist, **kwarg
             for i, _ in enumerate(model_imagelist)]
 
 
-def deconvolve_workflow(dirty_list, psf_list, model_imagelist, prefix='', **kwargs):
+def deconvolve_arlexecute(dirty_list, psf_list, model_imagelist, prefix='', **kwargs):
     """Create a graph for deconvolution, adding to the model
 
     :param dirty_list:
@@ -253,7 +253,7 @@ def deconvolve_workflow(dirty_list, psf_list, model_imagelist, prefix='', **kwar
             this_peak = numpy.max(numpy.abs(dirty.data[0,...]))
             
         if this_peak > 1.1 * gthreshold:
-            log.info("deconvolve_workflow %s: cleaning - peak %.6f > 1.1 * threshold %.6f" % (lprefix, this_peak,
+            log.info("deconvolve_arlexecute %s: cleaning - peak %.6f > 1.1 * threshold %.6f" % (lprefix, this_peak,
                                                                                          gthreshold))
             kwargs['threshold'] = gthreshold
             result, _ = deconvolve_cube(dirty, psf, prefix=lprefix, **kwargs)
@@ -261,7 +261,7 @@ def deconvolve_workflow(dirty_list, psf_list, model_imagelist, prefix='', **kwar
             if result.data.shape[0] == model.data.shape[0]:
                 result.data += model.data
             else:
-                log.warning("deconvolve_workflow %s: Initial model %s and clean result %s do not have the same shape" %
+                log.warning("deconvolve_arlexecute %s: Initial model %s and clean result %s do not have the same shape" %
                             (lprefix, str(model.data.shape[0]), str(result.data.shape[0])))
 
             flux = numpy.sum(result.data[0, 0, ...])
@@ -270,7 +270,7 @@ def deconvolve_workflow(dirty_list, psf_list, model_imagelist, prefix='', **kwar
 
             return result
         else:
-            log.info("deconvolve_workflow %s: Not cleaning - peak %.6f <= 1.1 * threshold %.6f" % (lprefix, this_peak,
+            log.info("deconvolve_arlexecute %s: Not cleaning - peak %.6f <= 1.1 * threshold %.6f" % (lprefix, this_peak,
                                                                                                   gthreshold))
             log.info('### %s, %.6f, %.6f, False, %.3f # cycle, facet, peak, cleaned flux, clean, time?'
                      % (lprefix, this_peak, 0.0, time.time()- starttime))
@@ -340,7 +340,7 @@ def deconvolve_workflow(dirty_list, psf_list, model_imagelist, prefix='', **kwar
     return arlexecute.execute(image_scatter_channels, nout=nchan)(gathered_results_list, subimages=nchan), flat_list
 
 
-def deconvolve_channel_workflow(dirty_list, psf_list, model_imagelist, subimages, **kwargs):
+def deconvolve_channel_arlexecute(dirty_list, psf_list, model_imagelist, subimages, **kwargs):
     """Create a graph for deconvolution by channels, adding to the model
 
     Does deconvolution channel by channel.
@@ -373,7 +373,7 @@ def deconvolve_channel_workflow(dirty_list, psf_list, model_imagelist, subimages
     return arlexecute.execute(add_model, nout=1, pure=True)(result, model_imagelist)
 
 
-def weight_workflow(vis_list, model_imagelist, weighting='uniform', **kwargs):
+def weight_arlexecute(vis_list, model_imagelist, weighting='uniform', **kwargs):
     """ Weight the visibility data
 
     :param vis_list:
@@ -397,7 +397,7 @@ def weight_workflow(vis_list, model_imagelist, weighting='uniform', **kwargs):
             for i in range(len(vis_list))]
 
 
-def zero_vislist_workflow(vis_list):
+def zero_vislist_arlexecute(vis_list):
     """ Initialise vis to zero: creates new data holders
 
     :param vis_list:
@@ -415,7 +415,7 @@ def zero_vislist_workflow(vis_list):
     return [arlexecute.execute(zero, pure=True, nout=1)(v) for v in vis_list]
 
 
-def subtract_vislist_workflow(vis_list, model_vislist):
+def subtract_vislist_arlexecute(vis_list, model_vislist):
     """ Initialise vis to zero
 
     :param vis_list:

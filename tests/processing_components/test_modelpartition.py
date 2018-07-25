@@ -17,7 +17,7 @@ from processing_components.calibration.modelpartition import solve_modelpartitio
 from processing_components.calibration.calibration import solve_gaintable
 from processing_components.image.operations import export_image_to_fits, qa_image
 from processing_components.imaging.base import predict_skycomponent_visibility, create_image_from_visibility
-from processing_components.imaging.imaging_functions import invert_function
+from workflows.serial.imaging.imaging_serial import invert_serial
 from processing_components.imaging.weighting import weight_visibility
 from processing_components.skycomponent.operations import apply_beam_to_skycomponent, find_skycomponent_matches
 from processing_components.simulation.testing_support import create_named_configuration, simulate_gaintable, \
@@ -91,12 +91,12 @@ class TestCalibrationSkyModelcal(unittest.TestCase):
         
         self.model_vis = convert_blockvisibility_to_visibility(self.model_vis)
         self.model_vis, _, _ = weight_visibility(self.model_vis, self.beam)
-        self.dirty_model, sumwt = invert_function(self.model_vis, self.beam, context='2d')
+        self.dirty_model, sumwt = invert_serial(self.model_vis, self.beam, context='2d')
         export_image_to_fits(self.dirty_model, "%s/test_skymodel-model_dirty.fits" % self.dir)
         
         lvis = convert_blockvisibility_to_visibility(self.vis)
         lvis, _, _ = weight_visibility(lvis, self.beam)
-        dirty, sumwt = invert_function(lvis, self.beam, context='2d')
+        dirty, sumwt = invert_serial(lvis, self.beam, context='2d')
         if doiso:
             export_image_to_fits(dirty, "%s/test_skymodel-initial-iso-residual.fits" % self.dir)
         else:
@@ -113,7 +113,7 @@ class TestCalibrationSkyModelcal(unittest.TestCase):
         
         residual_vis = convert_blockvisibility_to_visibility(residual_vis)
         residual_vis, _, _ = weight_visibility(residual_vis, self.beam)
-        dirty, sumwt = invert_function(residual_vis, self.beam, context='2d')
+        dirty, sumwt = invert_serial(residual_vis, self.beam, context='2d')
         export_image_to_fits(dirty, "%s/test_skymodel-final-iso-residual.fits" % self.dir)
         
         qa = qa_image(dirty)
@@ -136,7 +136,7 @@ class TestCalibrationSkyModelcal(unittest.TestCase):
         
         residual_vis = convert_blockvisibility_to_visibility(residual_vis)
         residual_vis, _, _ = weight_visibility(residual_vis, self.beam)
-        dirty, sumwt = invert_function(residual_vis, self.beam, context='2d')
+        dirty, sumwt = invert_serial(residual_vis, self.beam, context='2d')
         export_image_to_fits(dirty, "%s/test_skymodel-final-iso-residual.fits" % self.dir)
         
         qa = qa_image(dirty)
@@ -148,7 +148,7 @@ class TestCalibrationSkyModelcal(unittest.TestCase):
         
         residual_vis = convert_blockvisibility_to_visibility(residual_vis)
         residual_vis, _, _ = weight_visibility(residual_vis, self.beam)
-        dirty, sumwt = invert_function(residual_vis, self.beam, context='2d')
+        dirty, sumwt = invert_serial(residual_vis, self.beam, context='2d')
         export_image_to_fits(dirty, "%s/test_skymodel-final-noiso-residual.fits" % self.dir)
         
         qa = qa_image(dirty)
