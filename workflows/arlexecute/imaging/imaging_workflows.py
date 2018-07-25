@@ -1,24 +1,4 @@
-""" Common functions converted to Dask.execute components. `Dask <http://dask.pydata.org/>`_ is a python-based flexible
-parallel computing library for analytic computing. Dask.delayed can be used to wrap functions for deferred execution
-thus allowing construction of components. For example, to build a graph for a major/minor cycle algorithm::
-
-    model_imagelist = arlexecute.compute(create_image_from_visibility)(vt, npixel=512, cellsize=0.001, npol=1)
-    solution_list = create_solve_image_list(vt, model_imagelist=model_imagelist, psf_list=psf_list,
-                                            context='timeslice', algorithm='hogbom',
-                                            niter=1000, fractional_threshold=0.1,
-                                            threshold=1.0, nmajor=3, gain=0.1)
-    solution_list.visualize()
-
-The graph for one vis_list is executed as follows::
-
-    solution_list[0].compute()
-    
-or if a Dask.distributed client is available:
-
-    client.compute(solution_list)
-
-As well as the specific components constructed by functions in this module, there are generic versions in the module
-:mod:`libs.pipelines.generic_dask_lists`.
+""" Imaging workflows using arlexecute and processing_components functions.
 
 Construction of the components requires that the number of nodes (e.g. w slices or time-slices) be known at construction,
 rather than execution. To counteract this, at run time, a given node should be able to act as a no-op. We use None
@@ -49,217 +29,6 @@ from processing_components.visibility.gather_scatter import visibility_scatter, 
 from processing_components.image.operations import calculate_image_frequency_moments
 
 log = logging.getLogger(__name__)
-
-
-def sum_invert_results(image_list):
-    """ Sum a set of invert results with appropriate weighting
-
-    :param image_list: List of [image, sum weights] pairs
-    :return: image, sum of weights
-    """
-    if len(image_list) == 1:
-        return image_list[0]
-    
-    first = True
-    sumwt = 0.0
-    im = None
-    for i, arg in enumerate(image_list):
-        if arg is not None:
-            if isinstance(arg[1], numpy.ndarray):
-                scale = arg[1][..., numpy.newaxis, numpy.newaxis]
-            else:
-                scale = arg[1]
-            if first:
-                im = copy_image(arg[0])
-                im.data *= scale
-                sumwt = arg[1]
-                first = False
-            else:
-                im.data += scale * arg[0].data
-                sumwt += arg[1]
-    
-    assert not first, "No invert results"
-    
-    im = normalize_sumwt(im, sumwt)
-    return im, sumwt
-
-
-def remove_sumwt(results):
-    """ Remove sumwt term in list of tuples (image, sumwt)
-    
-    :param results:
-    :return: A list of just the dirty images
-    """
-    return [d[0] for d in results]
-
-
-def sum_predict_results(results):
-    """ Sum a set of predict results of the same shape
-
-    :param results: List of visibilities to be summed
-    :return: summed visibility
-    """
-    sum_results = None
-    for result in results:
-        if result is not None:
-            if sum_results is None:
-                sum_results = copy_visibility(result)
-            else:
-                assert sum_results.data['vis'].shape == result.data['vis'].shape
-                sum_results.data['vis'] += result.data['vis']
-    
-    return sum_results
-
-
-def threshold_list(results, threshold, fractional_threshold, use_moment0=True, prefix=''):
-    """ Find Threshold, optionally using moment 0
-    
-    :param results:
-    :param use_moment0: Use moment 0 for threshold
-    :return:
-    """
-    peak = 0.0
-    for result in results:
-        if use_moment0:
-            moments = calculate_image_frequency_moments(result)
-            peak = max(peak, numpy.max(numpy.abs(moments.data[0,...]/result.shape[0])))
-        else:
-            peak = max(peak, numpy.max(numpy.abs(result.data)))
-            
-    actual = max(peak * fractional_threshold, threshold)
-    
-    if use_moment0:
-        log.info("threshold_list %s: peak in moment 0 = %.6f, threshold will be %.6f" % (prefix, peak, actual))
-    else:
-        log.info("threshold_list %s: peak = %.6f, threshold will be %.6f" % (prefix, peak, actual))
-
-    return actual
-
-
-def zero_vislist_workflow(vis_list):
-    """ Initialise vis to zero: creates new data holders
-
-    :param vis_list:
-    :return: List of vis_lists
-   """
-    
-    def zero(vis):
-        if vis is not None:
-            zerovis = copy_visibility(vis)
-            zerovis.data['vis'][...] = 0.0
-            return zerovis
-        else:
-            return None
-    
-    return [arlexecute.execute(zero, pure=True, nout=1)(v) for v in vis_list]
-
-
-def subtract_vislist_workflow(vis_list, model_vislist):
-    """ Initialise vis to zero
-
-    :param vis_list:
-    :param model_vislist: Model to be subtracted
-    :return: List of vis_lists
-   """
-    
-    def subtract_vis(vis, model_vis):
-        if vis is not None and model_vis is not None:
-            assert vis.vis.shape == model_vis.vis.shape
-            subvis = copy_visibility(vis)
-            subvis.data['vis'][...] -= model_vis.data['vis'][...]
-            return subvis
-        else:
-            return None
-    
-    return [arlexecute.execute(subtract_vis, pure=True, nout=1)(vis=vis_list[i],
-                                                                model_vis=model_vislist[i])
-            for i in range(len(vis_list))]
-
-
-def invert_workflow(vis_list, template_model_imagelist, dopsf=False, normalize=True,
-                     facets=1, vis_slices=1, context='2d', **kwargs):
-    """ Sum results from invert, iterating over the scattered image and vis_list
-
-    :param vis_list:
-    :param template_model_imagelist: Model used to determine image parameters
-    :param dopsf: Make the PSF instead of the dirty image
-    :param facets: Number of facets
-    :param normalize: Normalize by sumwt
-    :param vis_slices: Number of slices
-    :param context: Imaging context
-    :param kwargs: Parameters for functions in components
-    :return for invert
-   """
-    
-    if not isinstance(template_model_imagelist, collections.Iterable):
-        template_model_imagelist = [template_model_imagelist]
-    
-    c = imaging_context(context)
-    vis_iter = c['vis_iterator']
-    invert = c['invert']
-    inner = c['inner']
-    
-    if facets % 2 == 0 or facets == 1:
-        actual_number_facets = facets
-    else:
-        actual_number_facets = max(1, (facets - 1))
-    
-    def gather_image_iteration_results(results, template_model):
-        result = create_empty_image_like(template_model)
-        i = 0
-        sumwt = numpy.zeros([template_model.nchan, template_model.npol])
-        for dpatch in image_scatter_facets(result, facets=facets):
-            assert i < len(results), "Too few results in gather_image_iteration_results"
-            if results[i] is not None:
-                assert len(results[i]) == 2, results[i]
-                dpatch.data[...] = results[i][0].data[...]
-                sumwt += results[i][1]
-                i += 1
-        return result, sumwt
-    
-    def invert_ignore_none(vis, model):
-        if vis is not None:
-            return invert(vis, model, context=context, dopsf=dopsf, normalize=normalize, facets=facets,
-                          vis_slices=vis_slices, **kwargs)
-        else:
-            return create_empty_image_like(model), 0.0
-    
-    # Loop over all vis_lists independently
-    results_vislist = list()
-    for freqwin, vis_list in enumerate(vis_list):
-        # Create the graph to divide an image into facets. This is by reference.
-        facet_lists = arlexecute.execute(image_scatter_facets, nout=actual_number_facets ** 2)(template_model_imagelist[
-                                                                                                   freqwin],
-                                                                                               facets=facets)
-        # Create the graph to divide the visibility into slices. This is by copy.
-        sub_vis_lists = arlexecute.execute(visibility_scatter, nout=vis_slices)(vis_list, vis_iter,
-                                                                                vis_slices=vis_slices)
-        
-        # Iterate within each vis_list
-        if inner == 'vis':
-            vis_results = list()
-            for facet_list in facet_lists:
-                facet_vis_results = list()
-                for sub_vis_list in sub_vis_lists:
-                    facet_vis_results.append(
-                        arlexecute.execute(invert_ignore_none, pure=True)(sub_vis_list, facet_list))
-                vis_results.append(arlexecute.execute(sum_invert_results)(facet_vis_results))
-            
-            results_vislist.append(arlexecute.execute(gather_image_iteration_results,
-                                                      nout=1)(vis_results, template_model_imagelist[freqwin]))
-        else:
-            vis_results = list()
-            for sub_vis_list in sub_vis_lists:
-                facet_vis_results = list()
-                for facet_list in facet_lists:
-                    facet_vis_results.append(
-                        arlexecute.execute(invert_ignore_none, pure=True)(sub_vis_list, facet_list))
-                vis_results.append(arlexecute.execute(gather_image_iteration_results, nout=1)(facet_vis_results,
-                                                                                              template_model_imagelist[
-                                                                                                  freqwin]))
-            results_vislist.append(arlexecute.execute(sum_invert_results)(vis_results))
-    
-    return results_vislist
 
 
 def predict_workflow(vis_list, model_imagelist, vis_slices=1, facets=1, context='2d', **kwargs):
@@ -336,6 +105,92 @@ def predict_workflow(vis_list, model_imagelist, vis_slices=1, facets=1, context=
                 arlexecute.execute(visibility_gather, nout=1)(facet_vis_lists, vis_list, vis_iter))
     
     return image_results_list_list
+
+
+def invert_workflow(vis_list, template_model_imagelist, dopsf=False, normalize=True,
+                    facets=1, vis_slices=1, context='2d', **kwargs):
+    """ Sum results from invert, iterating over the scattered image and vis_list
+
+    :param vis_list:
+    :param template_model_imagelist: Model used to determine image parameters
+    :param dopsf: Make the PSF instead of the dirty image
+    :param facets: Number of facets
+    :param normalize: Normalize by sumwt
+    :param vis_slices: Number of slices
+    :param context: Imaging context
+    :param kwargs: Parameters for functions in components
+    :return: List of (image, sumwt) tuple
+   """
+    
+    if not isinstance(template_model_imagelist, collections.Iterable):
+        template_model_imagelist = [template_model_imagelist]
+    
+    c = imaging_context(context)
+    vis_iter = c['vis_iterator']
+    invert = c['invert']
+    inner = c['inner']
+    
+    if facets % 2 == 0 or facets == 1:
+        actual_number_facets = facets
+    else:
+        actual_number_facets = max(1, (facets - 1))
+    
+    def gather_image_iteration_results(results, template_model):
+        result = create_empty_image_like(template_model)
+        i = 0
+        sumwt = numpy.zeros([template_model.nchan, template_model.npol])
+        for dpatch in image_scatter_facets(result, facets=facets):
+            assert i < len(results), "Too few results in gather_image_iteration_results"
+            if results[i] is not None:
+                assert len(results[i]) == 2, results[i]
+                dpatch.data[...] = results[i][0].data[...]
+                sumwt += results[i][1]
+                i += 1
+        return result, sumwt
+    
+    def invert_ignore_none(vis, model):
+        if vis is not None:
+            return invert(vis, model, context=context, dopsf=dopsf, normalize=normalize, facets=facets,
+                          vis_slices=vis_slices, **kwargs)
+        else:
+            return create_empty_image_like(model), 0.0
+    
+    # Loop over all vis_lists independently
+    results_vislist = list()
+    for freqwin, vis_list in enumerate(vis_list):
+        # Create the graph to divide an image into facets. This is by reference.
+        facet_lists = arlexecute.execute(image_scatter_facets, nout=actual_number_facets ** 2)(template_model_imagelist[
+                                                                                                   freqwin],
+                                                                                               facets=facets)
+        # Create the graph to divide the visibility into slices. This is by copy.
+        sub_vis_lists = arlexecute.execute(visibility_scatter, nout=vis_slices)(vis_list, vis_iter,
+                                                                                vis_slices=vis_slices)
+        
+        # Iterate within each vis_list
+        if inner == 'vis':
+            vis_results = list()
+            for facet_list in facet_lists:
+                facet_vis_results = list()
+                for sub_vis_list in sub_vis_lists:
+                    facet_vis_results.append(
+                        arlexecute.execute(invert_ignore_none, pure=True)(sub_vis_list, facet_list))
+                vis_results.append(arlexecute.execute(sum_invert_results)(facet_vis_results))
+            
+            results_vislist.append(arlexecute.execute(gather_image_iteration_results,
+                                                      nout=1)(vis_results, template_model_imagelist[freqwin]))
+        else:
+            vis_results = list()
+            for sub_vis_list in sub_vis_lists:
+                facet_vis_results = list()
+                for facet_list in facet_lists:
+                    facet_vis_results.append(
+                        arlexecute.execute(invert_ignore_none, pure=True)(sub_vis_list, facet_list))
+                vis_results.append(arlexecute.execute(gather_image_iteration_results, nout=1)(facet_vis_results,
+                                                                                              template_model_imagelist[
+                                                                                                  freqwin]))
+            results_vislist.append(arlexecute.execute(sum_invert_results)(vis_results))
+    
+    return results_vislist
 
 
 def residual_workflow(vis, model_imagelist, context='2d', **kwargs):
@@ -540,3 +395,130 @@ def weight_workflow(vis_list, model_imagelist, weighting='uniform', **kwargs):
     
     return [arlexecute.execute(weight_vis, pure=True, nout=1)(vis_list[i], model_imagelist[i])
             for i in range(len(vis_list))]
+
+
+def zero_vislist_workflow(vis_list):
+    """ Initialise vis to zero: creates new data holders
+
+    :param vis_list:
+    :return: List of vis_lists
+   """
+    
+    def zero(vis):
+        if vis is not None:
+            zerovis = copy_visibility(vis)
+            zerovis.data['vis'][...] = 0.0
+            return zerovis
+        else:
+            return None
+    
+    return [arlexecute.execute(zero, pure=True, nout=1)(v) for v in vis_list]
+
+
+def subtract_vislist_workflow(vis_list, model_vislist):
+    """ Initialise vis to zero
+
+    :param vis_list:
+    :param model_vislist: Model to be subtracted
+    :return: List of vis_lists
+   """
+    
+    def subtract_vis(vis, model_vis):
+        if vis is not None and model_vis is not None:
+            assert vis.vis.shape == model_vis.vis.shape
+            subvis = copy_visibility(vis)
+            subvis.data['vis'][...] -= model_vis.data['vis'][...]
+            return subvis
+        else:
+            return None
+    
+    return [arlexecute.execute(subtract_vis, pure=True, nout=1)(vis=vis_list[i],
+                                                                model_vis=model_vislist[i])
+            for i in range(len(vis_list))]
+
+
+def sum_invert_results(image_list):
+    """ Sum a set of invert results with appropriate weighting
+
+    :param image_list: List of [image, sum weights] pairs
+    :return: image, sum of weights
+    """
+    if len(image_list) == 1:
+        return image_list[0]
+    
+    first = True
+    sumwt = 0.0
+    im = None
+    for i, arg in enumerate(image_list):
+        if arg is not None:
+            if isinstance(arg[1], numpy.ndarray):
+                scale = arg[1][..., numpy.newaxis, numpy.newaxis]
+            else:
+                scale = arg[1]
+            if first:
+                im = copy_image(arg[0])
+                im.data *= scale
+                sumwt = arg[1]
+                first = False
+            else:
+                im.data += scale * arg[0].data
+                sumwt += arg[1]
+    
+    assert not first, "No invert results"
+    
+    im = normalize_sumwt(im, sumwt)
+    return im, sumwt
+
+
+def remove_sumwt(results):
+    """ Remove sumwt term in list of tuples (image, sumwt)
+
+    :param results:
+    :return: A list of just the dirty images
+    """
+    return [d[0] for d in results]
+
+
+def sum_predict_results(results):
+    """ Sum a set of predict results of the same shape
+
+    :param results: List of visibilities to be summed
+    :return: summed visibility
+    """
+    sum_results = None
+    for result in results:
+        if result is not None:
+            if sum_results is None:
+                sum_results = copy_visibility(result)
+            else:
+                assert sum_results.data['vis'].shape == result.data['vis'].shape
+                sum_results.data['vis'] += result.data['vis']
+    
+    return sum_results
+
+
+def threshold_list(results, threshold, fractional_threshold, use_moment0=True, prefix=''):
+    """ Find Threshold, optionally using moment 0
+
+    :param results:
+    :param use_moment0: Use moment 0 for threshold
+    :return:
+    """
+    peak = 0.0
+    for result in results:
+        if use_moment0:
+            moments = calculate_image_frequency_moments(result)
+            peak = max(peak, numpy.max(numpy.abs(moments.data[0, ...] / result.shape[0])))
+        else:
+            peak = max(peak, numpy.max(numpy.abs(result.data)))
+    
+    actual = max(peak * fractional_threshold, threshold)
+    
+    if use_moment0:
+        log.info("threshold_list %s: peak in moment 0 = %.6f, threshold will be %.6f" % (prefix, peak, actual))
+    else:
+        log.info("threshold_list %s: peak = %.6f, threshold will be %.6f" % (prefix, peak, actual))
+    
+    return actual
+
+

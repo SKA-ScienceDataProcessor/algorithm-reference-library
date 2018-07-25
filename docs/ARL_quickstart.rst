@@ -30,6 +30,8 @@ system such as Anaconda https://www.anaconda.com is usually best as a base.
 
    git-lfs pull
 
+The README.md file contains much more information about installation.
+
 Running notebooks
 +++++++++++++++++
 

@@ -75,7 +75,7 @@ Model Partition Calibration
 ===========================
 
 * Define model partition: :py:mod:`processing_components.calibration.modelpartition.create_modelpartition`
-* Solve model partition: :py:mod:`processing_components.calibration.modelpartition.modelpartition_solve`
+* Solve model partition: :py:mod:`processing_components.calibration.modelpartition.solve_modelpartition`
 
 Coordinate transforms
 =====================

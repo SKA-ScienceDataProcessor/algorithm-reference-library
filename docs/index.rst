@@ -16,12 +16,12 @@ The ARL structure maps that used in the SDP processing architecture:
 For clarity, not all connections are shown in this diagram.
 
 .. toctree::
-   :maxdepth: 3
+   :maxdepth: 1
 
    ARL_quickstart
-   ARL_definition
    ARL_directory
-   ARL_directory_workflows
+   ARL_API
+   ARL_directory_arlexecute_workflows
 
 Reference material:
 

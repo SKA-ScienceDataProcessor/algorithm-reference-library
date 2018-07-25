@@ -13,7 +13,7 @@ from data_models.polarisation import PolarisationFrame
 from data_models.memory_data_models import SkyModel
 
 from processing_components.calibration.operations import apply_gaintable, create_gaintable_from_blockvisibility
-from processing_components.calibration.modelpartition import modelpartition_solve
+from processing_components.calibration.modelpartition import solve_modelpartition
 from processing_components.calibration.calibration import solve_gaintable
 from processing_components.image.operations import export_image_to_fits, qa_image
 from processing_components.imaging.base import predict_skycomponent_visibility, create_image_from_visibility
@@ -109,7 +109,7 @@ class TestCalibrationSkyModelcal(unittest.TestCase):
     
     def test_skymodel_solve(self):
         self.actualSetup(ntimes=1, doiso=True)
-        modelpartition, residual_vis = modelpartition_solve(self.vis, self.skymodels, niter=30, gain=0.25)
+        modelpartition, residual_vis = solve_modelpartition(self.vis, self.skymodels, niter=30, gain=0.25)
         
         residual_vis = convert_blockvisibility_to_visibility(residual_vis)
         residual_vis, _, _ = weight_visibility(residual_vis, self.beam)
@@ -121,7 +121,7 @@ class TestCalibrationSkyModelcal(unittest.TestCase):
     
     def test_skymodel_solve_fixed(self):
         self.actualSetup(ntimes=1, doiso=True, fixed=True)
-        modelpartition, residual_vis = modelpartition_solve(self.vis, self.skymodels, niter=30, gain=0.25)
+        modelpartition, residual_vis = solve_modelpartition(self.vis, self.skymodels, niter=30, gain=0.25)
         
         # Check that the components are unchanged
         modelpartition_skycomponents = list()
@@ -144,7 +144,7 @@ class TestCalibrationSkyModelcal(unittest.TestCase):
     
     def test_skymodel_solve_noiso(self):
         self.actualSetup(ntimes=1, doiso=False)
-        modelpartition, residual_vis = modelpartition_solve(self.vis, self.skymodels, niter=30, gain=0.25)
+        modelpartition, residual_vis = solve_modelpartition(self.vis, self.skymodels, niter=30, gain=0.25)
         
         residual_vis = convert_blockvisibility_to_visibility(residual_vis)
         residual_vis, _, _ = weight_visibility(residual_vis, self.beam)

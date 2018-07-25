@@ -30,3 +30,27 @@ This is specified via a dictionary::
                 'P': {'shape': 'matrix', 'timeslice': 1e4, 'phase_only': False, 'first_iteration': 0},
                 'B': {'shape': 'vector', 'timeslice': 1e5, 'phase_only': False, 'first_iteration': 0},
                 'I': {'shape': 'vector', 'timeslice': 1.0, 'phase_only': True, 'first_iteration': 0}}
+
+Model Partition Calibration
+***************************
+
+Model Partition Calibration is inspired by the paper:
+
+Radio interferometric calibration with SAGE, S Kazemi, S Yatawatta, S Zaroubi, P Lampropoulos, A G de Bruyn, L V E
+Koopmans, and J Noordam, Monthly Notices of the Royal Astronomical Society, 2011 vol. 414 (2) pp. 1656-1666.
+
+In this code:
+
+- A single modelpartition is taken to be a vector composed of skycomponent, gaintable tuples.
+
+
+- The E step for a specific window is the sum of the window data model and the discrepancy between the observed data
+   and the summed modelpartitions.
+
+- The M step for a specific window is the optimisation of the skymodel vector given the window data model. This involves fitting a skycomponent and fitting for the gain phases.
+
+
+To run modelpartition, you must provide a visibility dataset and a set of skycomponents. The output will be the model
+parameters (component and gaintable for all skycomponents), and the residual visibility.
+
+modelpartition works best if an initial phase calibration has been obtained using an isoplanatic approximation.
