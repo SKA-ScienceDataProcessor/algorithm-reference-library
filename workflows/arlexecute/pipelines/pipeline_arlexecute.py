@@ -104,7 +104,7 @@ def continuum_imaging_arlexecute(vis_list, model_imagelist, context='2d', **kwar
 def spectral_line_imaging_arlexecute(vis_list, model_imagelist, continuum_model_imagelist=None, context='2d', **kwargs):
     """Create graph for spectral line imaging pipeline
 
-    Uses the ical_serial pipeline after subtraction of a continuum model
+    Uses the continuum imaging arlexecute pipeline after subtraction of a continuum model
     
     :param vis_list: List of visibility components
     :param model_imagelist: Spectral line model graph

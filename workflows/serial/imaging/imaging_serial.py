@@ -11,64 +11,15 @@ import logging
 import numpy
 
 from data_models.memory_data_models import Visibility, Image
+from workflows.shared.imaging.imaging_shared import imaging_context
 
 from processing_components.image.gather_scatter import image_scatter_facets
 from processing_components.image.operations import create_empty_image_like
 from processing_components.imaging.base import normalize_sumwt
-from processing_components.imaging.base import predict_2d, invert_2d
-from processing_components.imaging.timeslice_single import predict_timeslice_single, invert_timeslice_single
-from processing_components.imaging.wstack_single import predict_wstack_single, invert_wstack_single
 from processing_components.visibility.base import copy_visibility, create_visibility_from_rows
 from processing_components.visibility.coalesce import convert_blockvisibility_to_visibility, convert_visibility_to_blockvisibility
-from processing_components.visibility.iterators import vis_timeslice_iter, vis_null_iter, vis_wslice_iter
 
 log = logging.getLogger(__name__)
-
-
-def imaging_contexts():
-    """Contains all the context information for imaging
-    
-    The fields are:
-        predict: Predict function to be used
-        invert: Invert function to be used
-        image_iterator: Iterator for traversing images
-        vis_iterator: Iterator for traversing visibilities
-        inner: The innermost axis
-    
-    :return:
-    """
-    contexts = {'2d': {'predict': predict_2d,
-                       'invert': invert_2d,
-                       'vis_iterator': vis_null_iter,
-                       'inner': 'image'},
-                'facets': {'predict': predict_2d,
-                           'invert': invert_2d,
-                           'vis_iterator': vis_null_iter,
-                           'inner': 'image'},
-                'facets_timeslice': {'predict': predict_timeslice_single,
-                                     'invert': invert_timeslice_single,
-                                     'vis_iterator': vis_timeslice_iter,
-                                     'inner': 'image'},
-                'facets_wstack': {'predict': predict_wstack_single,
-                                  'invert': invert_wstack_single,
-                                  'vis_iterator': vis_wslice_iter,
-                                  'inner': 'image'},
-                'timeslice': {'predict': predict_timeslice_single,
-                              'invert': invert_timeslice_single,
-                              'vis_iterator': vis_timeslice_iter,
-                              'inner': 'image'},
-                'wstack': {'predict': predict_wstack_single,
-                           'invert': invert_wstack_single,
-                           'vis_iterator': vis_wslice_iter,
-                           'inner': 'image'}}
-    
-    return contexts
-
-
-def imaging_context(context='2d'):
-    contexts = imaging_contexts()
-    assert context in contexts.keys(), context
-    return contexts[context]
 
 
 def invert_serial(vis, im: Image, dopsf=False, normalize=True, context='2d', inner=None, vis_slices=1,
@@ -97,9 +48,7 @@ def invert_serial(vis, im: Image, dopsf=False, normalize=True, context='2d', inn
     c = imaging_context(context)
     vis_iter = c['vis_iterator']
     invert = c['invert']
-    if inner is None:
-        inner = c['inner']
-    
+
     if not isinstance(vis, Visibility):
         svis = convert_blockvisibility_to_visibility(vis)
     else:
@@ -107,42 +56,23 @@ def invert_serial(vis, im: Image, dopsf=False, normalize=True, context='2d', inn
     
     resultimage = create_empty_image_like(im)
     
-    if inner == 'image':
-        totalwt = None
-        for rows in vis_iter(svis, vis_slices=vis_slices):
-            if numpy.sum(rows):
-                visslice = create_visibility_from_rows(svis, rows)
-                sumwt = 0.0
-                workimage = create_empty_image_like(im)
-                for dpatch in image_scatter_facets(workimage, facets=facets, overlap=overlap, taper=taper):
-                    result, sumwt = invert(visslice, dpatch, dopsf, normalize=False, facets=facets,
-                                           vis_slices=vis_slices, **kwargs)
-                    # Ensure that we fill in the elements of dpatch instead of creating a new numpy arrray
-                    dpatch.data[...] = result.data[...]
-                # Assume that sumwt is the same for all patches
-                if totalwt is None:
-                    totalwt = sumwt
-                else:
-                    totalwt += sumwt
-                resultimage.data += workimage.data
-    else:
-        # We assume that the weight is the same for all image iterations
-        totalwt = None
-        workimage = create_empty_image_like(im)
-        for dpatch in image_scatter_facets(workimage, facets=facets, overlap=overlap, taper=taper):
-            totalwt = None
-            for rows in vis_iter(svis, vis_slices=vis_slices):
-                if numpy.sum(rows):
-                    visslice = create_visibility_from_rows(svis, rows)
-                    result, sumwt = invert(visslice, dpatch, dopsf, normalize=False, **kwargs)
-                    # Ensure that we fill in the elements of dpatch instead of creating a new numpy arrray
-                    dpatch.data[...] += result.data[...]
-                    if totalwt is None:
-                        totalwt = sumwt
-                    else:
-                        totalwt += sumwt
+    totalwt = None
+    for rows in vis_iter(svis, vis_slices=vis_slices):
+        if numpy.sum(rows):
+            visslice = create_visibility_from_rows(svis, rows)
+            sumwt = 0.0
+            workimage = create_empty_image_like(im)
+            for dpatch in image_scatter_facets(workimage, facets=facets, overlap=overlap, taper=taper):
+                result, sumwt = invert(visslice, dpatch, dopsf, normalize=False, facets=facets,
+                                       vis_slices=vis_slices, **kwargs)
+                # Ensure that we fill in the elements of dpatch instead of creating a new numpy arrray
+                dpatch.data[...] = result.data[...]
+            # Assume that sumwt is the same for all patches
+            if totalwt is None:
+                totalwt = sumwt
+            else:
+                totalwt += sumwt
             resultimage.data += workimage.data
-            workimage.data[...] = 0.0
     
     assert totalwt is not None, "No valid data found for imaging"
     if normalize:
@@ -187,23 +117,14 @@ def predict_serial(vis, model: Image, context='2d', inner=None, vis_slices=1, fa
     
     result = copy_visibility(vis, zero=True)
     
-    if inner == 'image':
-        for rows in vis_iter(svis, vis_slices=vis_slices):
-            if numpy.sum(rows):
-                visslice = create_visibility_from_rows(svis, rows)
-                visslice.data['vis'][...] = 0.0
-                for dpatch in image_scatter_facets(model, facets=facets, overlap=overlap, taper=taper):
-                    result.data['vis'][...] = 0.0
-                    result = predict(visslice, dpatch, **kwargs)
-                    svis.data['vis'][rows] += result.data['vis']
-    else:
-        for dpatch in image_scatter_facets(model, facets=facets, overlap=overlap, taper=taper):
-            for rows in vis_iter(svis, vis_slices=vis_slices):
-                if numpy.sum(rows):
-                    visslice = create_visibility_from_rows(svis, rows)
-                    result.data['vis'][...] = 0.0
-                    result = predict(visslice, dpatch, **kwargs)
-                    svis.data['vis'][rows] += result.data['vis']
+    for rows in vis_iter(svis, vis_slices=vis_slices):
+        if numpy.sum(rows):
+            visslice = create_visibility_from_rows(svis, rows)
+            visslice.data['vis'][...] = 0.0
+            for dpatch in image_scatter_facets(model, facets=facets, overlap=overlap, taper=taper):
+                result.data['vis'][...] = 0.0
+                result = predict(visslice, dpatch, **kwargs)
+                svis.data['vis'][rows] += result.data['vis']
 
     if not isinstance(vis, Visibility):
         svis = convert_visibility_to_blockvisibility(svis)

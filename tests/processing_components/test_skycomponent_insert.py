@@ -12,7 +12,7 @@ from astropy.coordinates import SkyCoord
 from data_models.polarisation import PolarisationFrame
 
 from processing_components.image.operations import export_image_to_fits
-from workflows.serial.imaging.imaging_serial import predict_serial, invert_serial
+from processing_components.imaging.base import predict_2d, invert_2d
 from processing_components.imaging.base import predict_skycomponent_visibility
 from processing_components.skycomponent.operations import insert_skycomponent, create_skycomponent
 from processing_components.simulation.testing_support import create_test_image, create_named_configuration
@@ -34,13 +34,13 @@ class TestSkycomponentInsert(unittest.TestCase):
         self.vis = create_visibility(self.lowcore, self.times, self.image_frequency,
                                      channel_bandwidth=self.channel_bandwidth,
                                      phasecentre=self.phasecentre, weight=1.0,
-                                     polarisation_frame=PolarisationFrame('stokesI'))
+                                     polarisation_frame=PolarisationFrame('stokesI'), zerow=True)
         self.vis.data['vis'] *= 0.0
         
         # Create model
         self.model = create_test_image(cellsize=0.0015, phasecentre=self.vis.phasecentre, frequency=self.image_frequency)
         self.model.data[self.model.data > 1.0] = 1.0
-        self.vis = predict_serial(self.vis, self.model)
+        self.vis = predict_2d(self.vis, self.model)
         assert numpy.max(numpy.abs(self.vis.vis)) > 0.0
         
         dphasecentre = SkyCoord(ra=+181.0 * u.deg, dec=-58.0 * u.deg, frame='icrs', equinox='J2000')
@@ -68,7 +68,7 @@ class TestSkycomponentInsert(unittest.TestCase):
         # If we predict the visibility, then the imaginary part must be zero. This is determined entirely
         # by shift_vis_to_image in libs.imaging.base
         self.vis.data['vis'][...] = 0.0
-        self.vis = predict_serial(self.vis, self.model)
+        self.vis = predict_2d(self.vis, self.model)
         # The actual phase centre of a numpy FFT is at nx //2, nx //2 (0 rel).
         assert numpy.max(numpy.abs(self.vis.vis.imag)) <1e-3
 
@@ -79,7 +79,7 @@ class TestSkycomponentInsert(unittest.TestCase):
 
         self.vis.data['vis'][...] = 0.0
         self.vis = predict_skycomponent_visibility(self.vis, self.sc)
-        im, sumwt = invert_serial(self.vis, self.model)
+        im, sumwt = invert_2d(self.vis, self.model)
         export_image_to_fits(im, '%s/test_skycomponent_dft.fits' % self.dir)
         assert numpy.max(numpy.abs(self.vis.vis.imag)) < 1e-3
     
