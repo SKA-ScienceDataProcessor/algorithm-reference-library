@@ -2,7 +2,7 @@
 
 #from setuptools import setup
 from setuptools import setup, Extension
-from distutils.sysconfig import get_config_var
+from distutils.sysconfig import get_config_var, get_config_vars
 from setuptools.command.build_ext import build_ext
 from subprocess import call
 import os
@@ -10,6 +10,16 @@ import sys
 
 # Bail on Python < 3
 assert sys.version_info[0] >= 3
+
+
+# MF. This is a workaround to be able to build the library with MacOS
+if sys.platform == 'darwin':
+	vars = get_config_vars()
+	vars['LDSHARED'] = vars['LDSHARED'].replace('-bundle','-dynamiclib')
+	os.environ["CC"] = "clang"
+
+
+
 
 # NB. These are not really Python extensions (i.e., they do not
 # Py_Initialize() and they do define main() ), we are just cheating to

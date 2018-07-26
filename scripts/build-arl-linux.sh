@@ -15,12 +15,22 @@
 #module load git-lfs-2.3.0-gcc-5.4.0-oktvmkw
 #module load cfitsio-3.410-gcc-5.4.0-tp3pkyv
 
+
+# ########################################################### #
+# If repository is cloned skip this part ....                 #
 # Clone the repository
-git clone https://github.com/SKA-ScienceDataProcessor/algorithm-reference-library/
-cd algorithm-reference-library/
+#git clone https://github.com/SKA-ScienceDataProcessor/algorithm-reference-library/
+#cd algorithm-reference-library/
 
 # Get the data
-git-lfs pull
+#git-lfs pull
+# ########################################################### #
+
+
+# ########################################################### #
+# This should be executed from ARLROOT                        #
+# i.e. source scripts/build-arl-linux.sh                      #
+# ########################################################### #
 
 # Start the building ARL through building a python virtualenvironment
 virtualenv -p `which python3` _build
@@ -29,16 +39,25 @@ pip install --upgrade pip
 pip install -U setuptools
 pip install coverage numpy
 pip install -r requirements.txt 
-
-# Build the ARL C Wrapper
-cd examples/ffi_demo/
 pip install virtualenvwrapper
-source virtualenvwrapper.sh
-add2virtualenv $PWD/../..
-add2virtualenv $PWD/src
-python setup.py build_ext
 
-# Test it
+echo 'Adding the arl and ffiwrappers path to the virtual environment'
+echo '(equivalent to setting up PYTHONPATH environment variable)'
+# this updates _build/lib/python3.x/site-packages/_virtualenv_path_extensions.pth
+source virtualenvwrapper.sh
+add2virtualenv $PWD
+add2virtualenv $PWD/ffiwrappers/src/
+
+# This is required for some systems (i.e. Jenkins server or macos) others
+# detect the python libraries alone and link with correct flags without setting up
+# the flags explicitely
+export LDFLAGS="$(python3-config --ldflags) -lcfitsio"
+python setup.py install
+
+# Test the ffiwrappers
+export ARLROOT=$PWD
+source tests/ffiwrapped/run-tests.sh
+
 #ldd libarlffi.so 
 #cd timg_serial/
 #make run

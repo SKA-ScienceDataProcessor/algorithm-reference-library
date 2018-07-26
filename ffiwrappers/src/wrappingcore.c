@@ -2,7 +2,9 @@
 
 #include "../include/wrappingcore.h"
 
-#ifdef __GNUC__
+#ifdef __clang__
+#define ARL_TLS
+#elif defined(__GNUC__)
 #define ARL_TLS __thread
 #else
 #define ARL_TLS
