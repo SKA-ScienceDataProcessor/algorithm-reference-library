@@ -23,10 +23,10 @@ from processing_components.simulation.testing_support import create_named_config
 from processing_components.visibility.base import copy_visibility, create_blockvisibility
 from processing_components.visibility.coalesce import convert_blockvisibility_to_visibility
 
-from workflows.arlexecute.processing_component_interface.execution_helper import arlexecute
+from workflows.arlexecute.execution_support.arlexecute import arlexecute
 from workflows.arlexecute.calibration.modelpartition_arlexecute import solve_modelpartition_arlexecute
 
-from workflows.serial.imaging.imaging_serial import predict_serial, invert_serial
+from workflows.arlexecute.imaging.imaging_arlexecute import predict_arlexecute, invert_arlexecute
 
 log = logging.getLogger(__name__)
 
@@ -98,12 +98,12 @@ class TestCalibrationSkyModelcal(unittest.TestCase):
         
         self.model_vis = convert_blockvisibility_to_visibility(self.model_vis)
         self.model_vis, _, _ = weight_visibility(self.model_vis, self.beam)
-        self.dirty_model, sumwt = invert_serial(self.model_vis, self.beam, context='2d')
+        self.dirty_model, sumwt = invert_arlexecute(self.model_vis, self.beam, context='2d')
         export_image_to_fits(self.dirty_model, "%s/test_modelpartition-model_dirty.fits" % self.dir)
         
         lvis = convert_blockvisibility_to_visibility(self.vis)
         lvis, _, _ = weight_visibility(lvis, self.beam)
-        dirty, sumwt = invert_serial(lvis, self.beam, context='2d')
+        dirty, sumwt = invert_arlexecute(lvis, self.beam, context='2d')
         if doiso:
             export_image_to_fits(dirty, "%s/test_modelpartition-initial-iso-residual.fits" % self.dir)
         else:
@@ -124,7 +124,7 @@ class TestCalibrationSkyModelcal(unittest.TestCase):
         
         residual_vis = convert_blockvisibility_to_visibility(residual_vis)
         residual_vis, _, _ = weight_visibility(residual_vis, self.beam)
-        dirty, sumwt = invert_serial(residual_vis, self.beam, context='2d')
+        dirty, sumwt = invert_arlexecute(residual_vis, self.beam, context='2d')
         export_image_to_fits(dirty, "%s/test_modelpartition-%s-final-iso-residual.fits" % (self.dir, arlexecute.type()))
         
         qa = qa_image(dirty)

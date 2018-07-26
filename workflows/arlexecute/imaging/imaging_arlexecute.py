@@ -22,7 +22,7 @@ from processing_components.image.deconvolution import deconvolve_cube, restore_c
 from processing_components.image.gather_scatter import image_scatter_facets, image_gather_facets, \
     image_scatter_channels,    image_gather_channels
 from processing_components.imaging.base import normalize_sumwt
-from workflows.serial.imaging.imaging_serial import imaging_context
+from imaging_shared import imaging_context
 from processing_components.imaging.weighting import weight_visibility
 from processing_components.visibility.base import copy_visibility
 from processing_components.visibility.gather_scatter import visibility_scatter, visibility_gather

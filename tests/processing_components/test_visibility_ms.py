@@ -79,35 +79,5 @@ class TestCreateMS(unittest.TestCase):
             assert v.vis.data.shape[-2] == 1
             assert v.polarisation_frame.type == "linear"
 
-
-    def test_create_list_spectral_average_arlexecute(self):
-        if not self.casacore_available:
-            return
-    
-        msfile = arl_path("data/vis/ASKAP_example.ms")
-        
-        from workflows.arlexecute.execution_support.arlexecute import arlexecute
-        arlexecute.set_client(use_dask=False)
-    
-        nchan_ave = 16
-        nchan = 192
-        
-        def create_and_average(schan):
-            max_chan = min(nchan, schan + nchan_ave)
-            bv = create_blockvisibility_from_ms(msfile, range(schan, max_chan))
-            return integrate_visibility_by_channel(bv[0])
-                
-        vis_by_channel_graph = \
-            [arlexecute.execute(create_and_average)(schan) for schan in range(0, nchan, nchan_ave)]
-        
-        vis_by_channel = arlexecute.compute(vis_by_channel_graph)
-        arlexecute.close()
-    
-        assert len(vis_by_channel) == 12
-        for v in vis_by_channel:
-            assert v.vis.data.shape[-1] == 4
-            assert v.polarisation_frame.type == "linear"
-            assert v.vis.data.shape[-2] == 1
-
 if __name__ == '__main__':
     unittest.main()
