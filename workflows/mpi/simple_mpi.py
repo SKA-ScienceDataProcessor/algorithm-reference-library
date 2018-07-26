@@ -2,7 +2,7 @@
 
 Run with:
 
-mpiexec -n 4 python simple-mpi.py
+mpiexec -n 4 python simple_mpi.py
 
 """
 
@@ -18,6 +18,7 @@ from astropy.coordinates import SkyCoord
 from data_models.polarisation import PolarisationFrame
 
 from libs.image.operations import create_empty_image_like
+from processing_components.image.operations import qa_image
 from processing_components.simulation.testing_support import create_test_image
 from processing_components.image.gather_scatter import image_gather_facets, image_scatter_facets
 
@@ -35,7 +36,7 @@ if __name__ == '__main__':
     
     logging.basicConfig(filename='simple-mpi.log',
                         filemode='a',
-                        format='%(thread)s %(asctime)s,%(msecs)d %(name)s %(levelname)s %(message)s',
+                        format='%(asctime)s,%(msecs)d %(name)s %(levelname)s %(message)s',
                         datefmt='%H:%M:%S',
                         level=logging.DEBUG)
     
@@ -71,3 +72,4 @@ if __name__ == '__main__':
         root_model = create_empty_image_like(model)
         result = image_gather_facets(results, root_model, facets=facets)
         numpy.testing.assert_array_almost_equal_nulp(result.data ** 2, numpy.abs(model.data), 7)
+        print(qa_image(result))

@@ -1,3 +1,5 @@
+**July 24, 2018** [Tim], Renamed calskymodel to modelpartition to 
+be in line with the SDP model views. Also documentation cleanup.
 
 **June 15, 2018** [Tim], Some more moves and renaming:
 * processing_components/component_support->libs/execution support

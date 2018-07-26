@@ -26,6 +26,13 @@ void arl_finalize(void)
 	Py_Finalize();
 }
 
+int arl_handle_error()
+{
+  int error = 0;
+  error = (int)(* ( int (*)())(bk_getfn("arl_handle_error")))();
+  return error;
+}
+
 void helper_get_image_shape(const double *frequency, double cellsize,
 		int *shape)
 {
