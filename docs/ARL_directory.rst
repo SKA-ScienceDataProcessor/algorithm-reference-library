@@ -52,8 +52,8 @@ Visibility Predict and Invert
 =============================
 
 * Predict BlockVisibility or Visibility for Skycomponent :py:mod:`processing_components.imaging.base.predict_skycomponent_visibility`
-* Predict by de-gridding visibilities :py:mod:`processing_components.imaging.imaging_functions.predict_serial`
-* Invert by gridding visibilities :py:mod:`processing_components.imaging.imaging_functions.invert_serial`
+* Predict by de-gridding visibilities :py:mod:`workflows.serial.imaging.imaging_serial.predict_serial`
+* Invert by gridding visibilities :py:mod:`workflows.serial.imaging.imaging_serial.invert_serial`
 
 Deconvolution
 =============
