@@ -21,6 +21,7 @@ For clarity, not all connections are shown in this diagram.
    ARL_quickstart
    ARL_directory
    ARL_API
+   ARL_directory_serial_workflows
    ARL_directory_arlexecute_workflows
 
 Reference material:

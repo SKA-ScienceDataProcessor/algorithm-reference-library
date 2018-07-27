@@ -1,3 +1,9 @@
+**July 26, 2018** [Tim], Extracted pure-serial uses of processing components 
+into workflows/serial (in analogy with workflows/arlexecute). This means that
+all functions remaining in processing components are suitable for use in
+workflows. The split between processing components and workflows is clearer.
+As a consequence nearly all notebooks have moved to workflows/notebooks.
+
 **July 24, 2018** [Tim], Renamed calskymodel to modelpartition to 
 be in line with the SDP model views. Also documentation cleanup.
 

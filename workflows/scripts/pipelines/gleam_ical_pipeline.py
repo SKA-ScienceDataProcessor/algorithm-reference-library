@@ -30,11 +30,11 @@ from processing_components.calibration.calibration_control import create_calibra
 from processing_components.image.operations import show_image, export_image_to_fits, qa_image
 from processing_components.imaging.base import create_image_from_visibility
 
-from workflows.arlexecute.pipelines.pipeline_workflows import ical_workflow
+from workflows.arlexecute.pipelines.pipeline_arlexecute import ical_arlexecute
 
 from workflows.arlexecute.execution_support.dask_init import get_dask_Client
 from workflows.arlexecute.execution_support.arlexecute import arlexecute
-from workflows.arlexecute.pipelines.pipeline_workflows import ical_workflow
+from workflows.arlexecute.pipelines.pipeline_arlexecute import ical_arlexecute
 
 import pprint
 
@@ -53,7 +53,7 @@ if __name__ == '__main__':
     pp = pprint.PrettyPrinter()
     
     log = logging.getLogger()
-    logging.info("Starting ical-pipeline")
+    logging.info("Starting ical_serial-pipeline")
     
     arlexecute.set_client(get_dask_Client())
     arlexecute.run(init_logging)
@@ -87,27 +87,27 @@ if __name__ == '__main__':
     
     future_vislist = arlexecute.scatter(vislist)
     ntimes = len(vislist[0].time)
-    ical_list = ical_workflow(future_vislist,
-                               model_imagelist=model_list,
-                               context='wstack',
-                               calibration_context='TG',
-                               controls=controls,
-                               scales=[0, 3, 10], algorithm='mmclean',
-                               nmoment=3, niter=1000,
-                               fractional_threshold=0.1,
-                               threshold=0.1, nmajor=5, gain=0.25,
-                               deconvolve_facets=8,
-                               deconvolve_overlap=32,
-                               deconvolve_taper='tukey',
-                               vis_slices=ntimes,
-                               timeslice='auto',
-                               global_solution=False,
-                               psf_support=64,
-                               do_selfcal=True)
+    ical_list = ical_arlexecute(future_vislist,
+                                model_imagelist=model_list,
+                                context='wstack',
+                                calibration_context='TG',
+                                controls=controls,
+                                scales=[0, 3, 10], algorithm='mmclean',
+                                nmoment=3, niter=1000,
+                                fractional_threshold=0.1,
+                                threshold=0.1, nmajor=5, gain=0.25,
+                                deconvolve_facets=8,
+                                deconvolve_overlap=32,
+                                deconvolve_taper='tukey',
+                                vis_slices=ntimes,
+                                timeslice='auto',
+                                global_solution=False,
+                                psf_support=64,
+                                do_selfcal=True)
     
     # In[ ]:
     
-    log.info('About to run ical')
+    log.info('About to run ical_serial')
     result = arlexecute.compute(ical_list, sync=True)
     deconvolved = result[0][0]
     residual = result[1][0]
