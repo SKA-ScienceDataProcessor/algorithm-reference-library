@@ -47,7 +47,7 @@ def ical_serial(block_vis: BlockVisibility, model: Image, components=None, conte
     vispred.data['vis'][...] = 0.0
     visres = copy_visibility(vispred)
     
-    vispred = predict_function(vispred, model, context=context, **kwargs)
+    vispred = predict_serial(vispred, model, context=context, **kwargs)
     
     if components is not None:
         vispred = predict_skycomponent_visibility(vispred, components)
@@ -56,10 +56,10 @@ def ical_serial(block_vis: BlockVisibility, model: Image, components=None, conte
         vis, gaintables = calibrate_function(vis, vispred, 'TGB', controls, iteration=-1)
     
     visres.data['vis'] = vis.data['vis'] - vispred.data['vis']
-    dirty, sumwt = invert_function(visres, model, context=context, **kwargs)
+    dirty, sumwt = invert_serial(visres, model, context=context, **kwargs)
     log.info("Maximum in residual image is %.6f" % (numpy.max(numpy.abs(dirty.data))))
     
-    psf, sumwt = invert_function(visres, model, dopsf=True, context=context, **kwargs)
+    psf, sumwt = invert_serial(visres, model, dopsf=True, context=context, **kwargs)
     
     thresh = get_parameter(kwargs, "threshold", 0.0)
     
@@ -68,12 +68,12 @@ def ical_serial(block_vis: BlockVisibility, model: Image, components=None, conte
         cc, res = deconvolve_cube(dirty, psf, **kwargs)
         model.data += cc.data
         vispred.data['vis'][...] = 0.0
-        vispred = predict_function(vispred, model, context=context, **kwargs)
+        vispred = predict_serial(vispred, model, context=context, **kwargs)
         if do_selfcal:
             vis, gaintables = calibrate_function(vis, vispred, 'TGB', controls, iteration=i)
         visres.data['vis'] = vis.data['vis'] - vispred.data['vis']
         
-        dirty, sumwt = invert_function(visres, model, context=context, **kwargs)
+        dirty, sumwt = invert_serial(visres, model, context=context, **kwargs)
         log.info("Maximum in residual image is %s" % (numpy.max(numpy.abs(dirty.data))))
         if numpy.abs(dirty.data).max() < 1.1 * thresh:
             log.info("ical_serial: Reached stopping threshold %.6f Jy" % thresh)
