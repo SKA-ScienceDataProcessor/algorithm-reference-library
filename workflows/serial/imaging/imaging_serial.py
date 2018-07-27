@@ -22,7 +22,7 @@ from processing_components.visibility.coalesce import convert_blockvisibility_to
 log = logging.getLogger(__name__)
 
 
-def invert_serial(vis, im: Image, dopsf=False, normalize=True, context='2d', inner=None, vis_slices=1,
+def invert_serial(vis, im: Image, dopsf=False, normalize=True, context='2d', vis_slices=1,
                   facets=1, overlap=0, taper=None, **kwargs):
     """ Invert using algorithm specified by context:
 
@@ -41,7 +41,6 @@ def invert_serial(vis, im: Image, dopsf=False, normalize=True, context='2d', inn
     :param dopsf: Make the psf instead of the dirty image (False)
     :param normalize: Normalize by the sum of weights (True)
     :param context: Imaging context e.g. '2d', 'timeslice', etc.
-    :param inner: Inner loop 'vis'|'image'
     :param kwargs:
     :return: Image, sum of weights
     """
@@ -81,7 +80,7 @@ def invert_serial(vis, im: Image, dopsf=False, normalize=True, context='2d', inn
     return resultimage, totalwt
 
 
-def predict_serial(vis, model: Image, context='2d', inner=None, vis_slices=1, facets=1, overlap=0, taper=None,
+def predict_serial(vis, model: Image, context='2d', vis_slices=1, facets=1, overlap=0, taper=None,
                    **kwargs) -> Visibility:
     """Predict visibilities using algorithm specified by context
     
@@ -107,8 +106,6 @@ def predict_serial(vis, model: Image, context='2d', inner=None, vis_slices=1, fa
     c = imaging_context(context)
     vis_iter = c['vis_iterator']
     predict = c['predict']
-    if inner is None:
-        inner = c['inner']
     
     if not isinstance(vis, Visibility):
         svis = convert_blockvisibility_to_visibility(vis)

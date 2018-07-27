@@ -125,7 +125,7 @@ class TestPipelinesFunctions(unittest.TestCase):
     def test_RCAL(self):
         self.setupVis(add_errors=True, block=True, freqwin=5)
         for igt, gt in enumerate(rcal_serial(vis=self.vis, components=self.comps)):
-            log.info("Chunk %d: %s" % (igt, qa_gaintable(gt)))
+            assert numpy.max(gt.residual) < 4e-5
 
 
 if __name__ == '__main__':
