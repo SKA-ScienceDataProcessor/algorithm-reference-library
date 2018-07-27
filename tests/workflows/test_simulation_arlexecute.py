@@ -17,7 +17,7 @@ from workflows.arlexecute.simulation.simulation_arlexecute import simulate_arlex
 log = logging.getLogger(__name__)
 
 
-class TestTestingDaskGraphSupport(unittest.TestCase):
+class TestSimulationArlexecuteSupport(unittest.TestCase):
     def setUp(self):
     
         from data_models.parameters import arl_path
@@ -27,16 +27,15 @@ class TestTestingDaskGraphSupport(unittest.TestCase):
         self.channel_bandwidth = numpy.array([2.5e7, 2.5e7, 2.5e7])
         self.phasecentre = SkyCoord(ra=+15.0 * u.deg, dec=-60.0 * u.deg, frame='icrs', equinox='J2000')
         self.times = numpy.linspace(-300.0, 300.0, 3) * numpy.pi / 43200.0
+        arlexecute.set_client(use_dask=False)
 
     def tearDown(self):
         arlexecute.close()
 
     def test_create_simulate_vis_list(self):
-        arlexecute.set_client(use_dask=False)
         vis_list = simulate_arlexecute(frequency=self.frequency, channel_bandwidth=self.channel_bandwidth)
         assert len(vis_list) == len(self.frequency)
         vt = arlexecute.compute(vis_list[0])
         assert isinstance(vt, BlockVisibility)
         assert vt.nvis > 0
-        arlexecute.close()
  

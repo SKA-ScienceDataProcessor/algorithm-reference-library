@@ -110,7 +110,7 @@ class TestCalibrationSkyModelcal(unittest.TestCase):
             export_image_to_fits(dirty, "%s/test_modelpartition-initial-noiso-residual.fits" % self.dir)
         
         self.skymodels = [SkyModel(components=[cm], fixed=fixed) for cm in self.components]
-    
+    @unittest.skip("Not converted to arlexecute")
     def test_modelpartition_solve_arlexecute(self):
         
         self.actualSetup(doiso=True)

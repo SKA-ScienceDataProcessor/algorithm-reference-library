@@ -22,7 +22,7 @@ from processing_components.image.deconvolution import deconvolve_cube, restore_c
 from processing_components.image.gather_scatter import image_scatter_facets, image_gather_facets, \
     image_scatter_channels,    image_gather_channels
 from processing_components.imaging.base import normalize_sumwt
-from imaging_shared import imaging_context
+from workflows.shared.imaging.imaging_shared import imaging_context
 from processing_components.imaging.weighting import weight_visibility
 from processing_components.visibility.base import copy_visibility
 from processing_components.visibility.gather_scatter import visibility_scatter, visibility_gather
@@ -51,7 +51,6 @@ def predict_arlexecute(vis_list, model_imagelist, vis_slices=1, facets=1, contex
     c = imaging_context(context)
     vis_iter = c['vis_iterator']
     predict = c['predict']
-    inner = c['inner']
     
     if facets % 2 == 0 or facets == 1:
         actual_number_facets = facets
@@ -73,36 +72,21 @@ def predict_arlexecute(vis_list, model_imagelist, vis_slices=1, facets=1, contex
         # Create the graph to divide the visibility into slices. This is by copy.
         sub_vis_lists = arlexecute.execute(visibility_scatter, nout=vis_slices)(vis_list, vis_iter, vis_slices)
         
-        if inner == 'vis':
-            facet_vis_lists = list()
+        facet_vis_lists = list()
+        # Loop over sub visibility
+        for sub_vis_list in sub_vis_lists:
+            facet_vis_results = list()
             # Loop over facets
             for facet_list in facet_lists:
-                facet_vis_results = list()
-                # Loop over sub visibility
-                for sub_vis_list in sub_vis_lists:
-                    facet_vis_list = arlexecute.execute(predict_ignore_none, pure=True, nout=1)(sub_vis_list,
-                                                                                                facet_list)
-                    facet_vis_results.append(facet_vis_list)
-                facet_vis_lists.append(
-                    arlexecute.execute(visibility_gather, nout=1)(facet_vis_results, vis_list, vis_iter))
+                # Predict visibility for this subvisibility from this facet
+                facet_vis_list = arlexecute.execute(predict_ignore_none, pure=True, nout=1)(sub_vis_list,
+                                                                                            facet_list)
+                facet_vis_results.append(facet_vis_list)
             # Sum the current sub-visibility over all facets
-            image_results_list_list.append(arlexecute.execute(sum_predict_results)(facet_vis_lists))
-        else:
-            facet_vis_lists = list()
-            # Loop over sub visibility
-            for sub_vis_list in sub_vis_lists:
-                facet_vis_results = list()
-                # Loop over facets
-                for facet_list in facet_lists:
-                    # Predict visibility for this subvisibility from this facet
-                    facet_vis_list = arlexecute.execute(predict_ignore_none, pure=True, nout=1)(sub_vis_list,
-                                                                                                facet_list)
-                    facet_vis_results.append(facet_vis_list)
-                # Sum the current sub-visibility over all facets
-                facet_vis_lists.append(arlexecute.execute(sum_predict_results)(facet_vis_results))
-            # Sum all sub-visibilties
-            image_results_list_list.append(
-                arlexecute.execute(visibility_gather, nout=1)(facet_vis_lists, vis_list, vis_iter))
+            facet_vis_lists.append(arlexecute.execute(sum_predict_results)(facet_vis_results))
+        # Sum all sub-visibilties
+        image_results_list_list.append(
+            arlexecute.execute(visibility_gather, nout=1)(facet_vis_lists, vis_list, vis_iter))
     
     return image_results_list_list
 
@@ -128,7 +112,6 @@ def invert_arlexecute(vis_list, template_model_imagelist, dopsf=False, normalize
     c = imaging_context(context)
     vis_iter = c['vis_iterator']
     invert = c['invert']
-    inner = c['inner']
     
     if facets % 2 == 0 or facets == 1:
         actual_number_facets = facets
@@ -167,29 +150,17 @@ def invert_arlexecute(vis_list, template_model_imagelist, dopsf=False, normalize
                                                                                 vis_slices=vis_slices)
         
         # Iterate within each vis_list
-        if inner == 'vis':
-            vis_results = list()
+        vis_results = list()
+        for sub_vis_list in sub_vis_lists:
+            facet_vis_results = list()
             for facet_list in facet_lists:
-                facet_vis_results = list()
-                for sub_vis_list in sub_vis_lists:
-                    facet_vis_results.append(
-                        arlexecute.execute(invert_ignore_none, pure=True)(sub_vis_list, facet_list))
-                vis_results.append(arlexecute.execute(sum_invert_results)(facet_vis_results))
-            
-            results_vislist.append(arlexecute.execute(gather_image_iteration_results,
-                                                      nout=1)(vis_results, template_model_imagelist[freqwin]))
-        else:
-            vis_results = list()
-            for sub_vis_list in sub_vis_lists:
-                facet_vis_results = list()
-                for facet_list in facet_lists:
-                    facet_vis_results.append(
-                        arlexecute.execute(invert_ignore_none, pure=True)(sub_vis_list, facet_list))
-                vis_results.append(arlexecute.execute(gather_image_iteration_results, nout=1)(facet_vis_results,
-                                                                                              template_model_imagelist[
-                                                                                                  freqwin]))
-            results_vislist.append(arlexecute.execute(sum_invert_results)(vis_results))
-    
+                facet_vis_results.append(
+                    arlexecute.execute(invert_ignore_none, pure=True)(sub_vis_list, facet_list))
+            vis_results.append(arlexecute.execute(gather_image_iteration_results, nout=1)(facet_vis_results,
+                                                                                          template_model_imagelist[
+                                                                                              freqwin]))
+        results_vislist.append(arlexecute.execute(sum_invert_results)(vis_results))
+
     return results_vislist
 
 
