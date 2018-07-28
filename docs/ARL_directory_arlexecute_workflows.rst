@@ -52,8 +52,3 @@ Execution
 =========
 
 * Execution framework (an interface to Dask): :py:mod:`workflows.arlexecute.execution_support.arlexecute`
-
-External interface
-==================
-
-* Calling ARL functions externally: :py:mod:`workflows.arlexecute.processing_component_interface`
