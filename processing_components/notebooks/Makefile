@@ -1,2 +1,2 @@
-NBs = imaging.ipynb imaging-fits.ipynb imaging-wterm.ipynb rcal.ipynb
+NBs =
 include ../jupyter.mk

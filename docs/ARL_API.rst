@@ -181,12 +181,6 @@ Base
 .. automodule:: processing_components.imaging.base
    :members:
 
-Imaging functions
-+++++++++++++++++
-
-.. automodule:: processing_components.imaging.imaging_functions
-   :members:
-
 Timeslice
 +++++++++
 
@@ -297,40 +291,40 @@ to denote a null node.
 Calibration
 -----------
 
-.. automodule:: workflows.arlexecute.calibration.calibration_workflows
+.. automodule:: workflows.arlexecute.calibration.calibration_arlexecute
    :members:
 
-.. automodule:: workflows.arlexecute.calibration.modelpartition_workflows
+.. automodule:: workflows.arlexecute.calibration.modelpartition_arlexecute
    :members:
 
 Image
 -----
 
-.. automodule:: workflows.arlexecute.image.image_workflows
+.. automodule:: workflows.arlexecute.image.image_arlexecute
    :members:
 
 Imaging
 -------
 
-.. automodule:: workflows.arlexecute.imaging.imaging_workflows
+.. automodule:: workflows.arlexecute.imaging.imaging_arlexecute
    :members:
 
 Pipelines
 ---------
 
-.. automodule:: workflows.arlexecute.pipelines.pipeline_workflows
+.. automodule:: workflows.arlexecute.pipelines.pipeline_arlexecute
    :members:
 
 Simulation
 ----------
 
-.. automodule:: workflows.arlexecute.simulation.simulation_workflows
+.. automodule:: workflows.arlexecute.simulation.simulation_arlexecute
    :members:
 
 Visibility
 ----------
 
-.. automodule:: workflows.arlexecute.visibility.visibility_workflows
+.. automodule:: workflows.arlexecute.visibility.visibility_arlexecute
    :members:
 
 Execution
@@ -383,5 +377,20 @@ Execution helpers
 +++++++++++++++++
 
 .. automodule:: workflows.arlexecute.processing_component_interface.execution_helper
+   :members:
+
+Serial workflows
+================
+
+Imaging functions
+-----------------
+
+.. automodule:: workflows.serial.imaging.imaging_serial
+   :members:
+
+Pipeline functions
+------------------
+
+.. automodule:: workflows.serial.pipelines.pipeline_serial
    :members:
 
