@@ -52,6 +52,7 @@ int main(int argc, char **argv)
 {
 	int *shape  = malloc(4*sizeof(int));
 	int *shape1 = malloc(4*sizeof(int));
+	int *c_rows;
 	int status;
 	int nvis;
 
@@ -204,6 +205,25 @@ int main(int argc, char **argv)
 	dirty = allocate_image(shape1);
 
 	// invert_function()
+
+	// Unrolled function
+	// Allocate c_rows array
+	if(!(c_rows = calloc(adv.vis_slices*nvis,sizeof(int)))) {
+		free(c_rows);
+		return -1;
+	}
+	
+	arl_create_rows(lowconfig, vt_gt, adv.vis_slices, c_rows);
+	printf("Size of int is %d\n", sizeof(int) );	
+	printf("%d %d %d\n", nvis, adv.vis_slices, adv.vis_slices*nvis);	
+
+	for(int i1 = 0;i1 < nvis; i1++)
+		for(int j1 = 0; j1 < 50; j1++)
+			printf("%d %d %d\n", i1, j1, c_rows[i1*nvis + j1]);
+
+	return 0;
+	
+	// Original function
 	arl_invert_function_blockvis(lowconfig, vt_gt, model, adv.vis_slices, dirty);
 
 	// FITS file output
@@ -359,6 +379,7 @@ int main(int argc, char **argv)
 	free(cindex_predict);
 	free(shape);
 	free(shape1);
+	free(c_rows); // TO BE MOVED UP WHEN IMPLEMENTING IN THE UNROLLED PART
 
 	return 0;
 

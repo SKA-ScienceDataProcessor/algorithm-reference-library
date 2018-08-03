@@ -24,6 +24,7 @@ from processing_components.image.operations import qa_image
 from processing_components.visibility.coalesce import convert_visibility_to_blockvisibility, convert_blockvisibility_to_visibility
 from processing_components.calibration.calibration import solve_gaintable
 from workflows.serial.pipelines.pipeline_serial import ical_serial
+from workflows.shared.imaging.imaging_shared import imaging_context
 from data_models.data_model_helpers import export_image_to_hdf5
 
 from ffiwrappers.src.arlwrap_support import *
@@ -117,6 +118,50 @@ def arl_handle_error_ffi():
 
 arl_handle_error=collections.namedtuple("FFIX", "address")    
 arl_handle_error.address=int(ff.cast("size_t", arl_handle_error_ffi))    
+
+
+@ff.callback("void (*)(ARLConf *, const ARLVis *, int, int *)")
+def arl_create_rows_ffi(lowconfig, vis_in, vis_slices, c_rows):
+
+# Create configuration object
+    lowcore_name = str(ff.string(lowconfig.confname), 'utf-8')
+    lowcore = create_named_configuration(lowcore_name, rmax=lowconfig.rmax)
+
+# Re-create input blockvisibility object
+    times = numpy.frombuffer(ff.buffer(lowconfig.times, 8*lowconfig.ntimes), dtype='f8', count=lowconfig.ntimes)
+    frequency = numpy.frombuffer(ff.buffer(lowconfig.freqs, 8*lowconfig.nfreqs), dtype='f8', count=lowconfig.nfreqs)
+    channel_bandwidth = numpy.frombuffer(ff.buffer(lowconfig.channel_bandwidth, 8*lowconfig.nchanwidth), dtype='f8', count=lowconfig.nchanwidth)
+
+    c_visin =  cARLBlockVis(vis_in, lowconfig.nant, lowconfig.nfreqs)
+    py_visin = helper_create_blockvisibility_object(c_visin, frequency, channel_bandwidth, lowcore)
+    py_visin.phasecentre = load_phasecentre(vis_in.phasecentre)
+    py_visin.configuration = lowcore
+    polframe = str(ff.string(lowconfig.polframe), 'utf-8')
+    py_visin.polarisation_frame = PolarisationFrame(polframe)
+
+# Create visibility object
+    
+    svis = convert_blockvisibility_to_visibility(py_visin)
+     
+    context='wstack'
+    c = imaging_context(context)
+    vis_iter = c['vis_iterator']   
+    rows_tmp = numpy.ndarray([])     
+
+    for rows in vis_iter(svis, vis_slices=vis_slices):
+        if numpy.sum(rows):
+             print(numpy.sum(rows))
+             rows_tmp = numpy.append(rows_tmp, rows.astype(int))
+
+    print(len(rows_tmp), rows_tmp.shape)
+    print(sys.getsizeof(rows_tmp[0]))
+    #data = rows_tmp.__array_interface__['data'][0]
+    c_rows = ff.cast ( "int *" , rows_tmp.ctypes.data )
+    
+
+
+arl_create_rows=collections.namedtuple("FFIX", "address")    
+arl_create_rows.address=int(ff.cast("size_t", arl_create_rows_ffi))    
 
 @ff.callback("void (*)(ARLConf *, const ARLVis *, ARLVis *, int)")
 def arl_copy_visibility_ffi(lowconfig, vis_in, vis_out, zero_in):

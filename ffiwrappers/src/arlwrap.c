@@ -212,3 +212,7 @@ void arl_invert_function_blockvis(ARLConf * lowconf, const ARLVis *blockvisin, I
  	BKFNPY(arl_invert_function_blockvis)(lowconf, blockvisin, img_model, vis_slices, img_dirty);
 }
 
+void arl_create_rows(ARLConf * lowconf, ARLVis * visin, int vis_slices, int * c_rows) {
+	BKFNPY(arl_create_rows)(lowconf, visin, vis_slices, c_rows);
+}
+

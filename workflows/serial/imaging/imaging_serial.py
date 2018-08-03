@@ -57,6 +57,8 @@ def invert_serial(vis, im: Image, dopsf=False, normalize=True, context='2d', vis
     
     totalwt = None
     for rows in vis_iter(svis, vis_slices=vis_slices):
+        print("invert_serial rows :", len(rows), rows.shape, numpy.count_nonzero(rows), numpy.sum(rows), svis.nvis, len(svis.time))
+        print(rows[0:50])
         if numpy.sum(rows):
             visslice = create_visibility_from_rows(svis, rows)
             sumwt = 0.0
