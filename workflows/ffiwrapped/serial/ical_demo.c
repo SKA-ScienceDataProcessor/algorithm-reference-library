@@ -74,8 +74,10 @@ int main(int argc, char **argv)
 	ARLVis *vtmodel;
 	ARLVis *vtmp;
 //	ARLVis *vtpredicted;		//Visibility
+	ARLVis *visslice;		//Visibility
 	ARLVis *vt_predictfunction;	//Blockvisibility
 	ARLVis *vt_gt;			//Blockvisibility after gain table applied
+	ARLVis *vt_gt_vis;		//Visibility after gain table applied
 	ARLVis *vis_ical, *vpred_ical;	//Visibility ICAL temp
 	ARLVis *vres_ical;		//Visibility ICAL temp
 	ARLVis *bvtmp_ical, *bvtmp2_ical, *bvpred_ical;//Blockvisibility ICAL temp
@@ -85,6 +87,7 @@ int main(int argc, char **argv)
 	Image *gleam_model;		//Image (GLEAM model)
 	Image *model;			//Image (a model for CLEAN)
 	Image *dirty;			//Image (dirty image by invert_function)
+	Image *dirty_slice;		//Image (dirty image by invert_function)
 	Image *deconvolved;		//Image (ICAL result)
 	Image *residual;		//Image (ICAL result)
 	Image *restored;		//Image (ICAL result)
@@ -142,7 +145,9 @@ int main(int argc, char **argv)
 	vt 		   = allocate_blockvis_data(lowconfig->nant, lowconfig->nfreqs, lowconfig->npol, lowconfig->ntimes); //Blockvisibility
 	vt_predictfunction = allocate_blockvis_data(lowconfig->nant, lowconfig->nfreqs, lowconfig->npol, lowconfig->ntimes); //Blockvisibility
 	vt_gt              = allocate_blockvis_data(lowconfig->nant, lowconfig->nfreqs, lowconfig->npol, lowconfig->ntimes); //Blockvisibility
-//	vtpredicted        = allocate_vis_data(lowconfig->npol, nvis);							     //Visibility
+//	vtpredicted        = allocate_vis_data(lowconfig->npol, nvis);	
+	visslice           = allocate_vis_data(lowconfig->npol, nvis);						     //Visibility
+	vt_gt_vis          = allocate_vis_data(lowconfig->npol, nvis);						     //Visibility
 
 	// Allocate cindex array where 8*sizeof(char) is sizeof(python int)
 	cindex_nbytes = lowconfig->ntimes * lowconfig->nant * lowconfig->nant * lowconfig->nfreqs * sizeof(long long int);
@@ -198,11 +203,19 @@ int main(int argc, char **argv)
 	shape1[0] = 1;
 	model = allocate_image(shape1);
 
-	// create_image_from_blockvisibility()
+	// create_image_from_blockvisibility() (temp image in the inversion loop)
 	arl_create_image_from_blockvisibility(lowconfig, vt, adv.cellsize, adv.npixel, vt->phasecentre, model);
 
-	// create a "dirty" image with nchan = 1
+	// create a "dirty" image with nchan = 1 (resulting image in the inversion loop)
 	dirty = allocate_image(shape1);
+	arl_create_image_from_blockvisibility(lowconfig, vt, adv.cellsize, adv.npixel, vt->phasecentre, dirty);
+
+	// create a "dirty_slice" image with nchan = 1 (resulting image in the inversion loop)
+	dirty_slice = allocate_image(shape1);
+	arl_create_image_from_blockvisibility(lowconfig, vt, adv.cellsize, adv.npixel, vt->phasecentre, dirty_slice);
+
+	// convert_blockvisibility_to_visibility
+//	arl_convert_blockvisibility_to_visibility(lowconfig, vt_gt, vt_gt_vis, cindex_predict, vt);
 
 	// invert_function()
 
@@ -212,23 +225,27 @@ int main(int argc, char **argv)
 		free(c_rows);
 		return -1;
 	}
-	
-	arl_create_rows(lowconfig, vt_gt, adv.vis_slices, c_rows);
-	printf("Size of int is %d\n", sizeof(int) );	
-	printf("%d %d %d\n", nvis, adv.vis_slices, adv.vis_slices*nvis);	
 
-	for(int i1 = 0;i1 < nvis; i1++)
-		for(int j1 = 0; j1 < 50; j1++)
-			printf("%d %d %d\n", i1, j1, c_rows[i1*nvis + j1]);
+	if(unrolled) {
 
-	return 0;
-	
+// Create all rows arrays for each vis_slice, a single rows array for a particular vis_slice can be extracted using
+// a pointer arithmetics, e.g. *(c_rows + i*nvis) where i is vis_slice	
+		arl_create_rows(lowconfig, vt_gt, adv.vis_slices, c_rows);
+// A loop over the visibility slices with precompiled rows = *(c_rows + i*nvis)
+		for( i = 0; i < adv.vis_slices; i++) {
+			printf("Vis slice %d\n", i);
+			arl_create_vis_from_rows_blockvis(lowconfig, vt_gt, visslice, cindex_predict, vt, (c_rows + i*nvis));
+			arl_invert_function_oneslice(lowconfig, visslice, vt, model, adv.vis_slices, dirty_slice);
+			arl_add_to_model(dirty, dirty_slice);
+		}
+
+		} else {		
 	// Original function
-	arl_invert_function_blockvis(lowconfig, vt_gt, model, adv.vis_slices, dirty);
-
+		arl_invert_function_blockvis(lowconfig, vt_gt, model, adv.vis_slices, dirty);
+		}
 	// FITS file output
 	status = export_image_to_fits_c(dirty, "!results/ical_c_api-dirty.fits");
-
+	return 0;
 	// ical() - serial version
 	// create images with nchan = 1
 	deconvolved = allocate_image(shape1);
@@ -368,6 +385,7 @@ int main(int argc, char **argv)
 	gleam_model 	= destroy_image(gleam_model);
 	model		= destroy_image(model);
 	dirty		= destroy_image(dirty);
+	dirty_slice	= destroy_image(dirty_slice);
 	deconvolved	= destroy_image(deconvolved);
 	residual	= destroy_image(residual);
 	restored	= destroy_image(restored);
@@ -375,6 +393,8 @@ int main(int argc, char **argv)
 //	vtpredicted 	= destroy_vis(vtpredicted);
 	vt_predictfunction = destroy_vis(vt_predictfunction);
 	vt_gt 		= destroy_vis(vt_gt);
+	vt_gt_vis 	= destroy_vis(vt_gt_vis);
+	visslice	= destroy_vis(visslice);
 	gt 		= destroy_gt(gt);
 	free(cindex_predict);
 	free(shape);

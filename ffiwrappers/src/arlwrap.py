@@ -11,10 +11,11 @@ from astropy.coordinates import SkyCoord
 from astropy import units as u
 
 from processing_components.calibration.operations import apply_gaintable, create_gaintable_from_blockvisibility, qa_gaintable
-from processing_components.visibility.base import create_visibility, copy_visibility
+from processing_components.visibility.base import create_visibility, copy_visibility, create_visibility_from_rows
 from data_models.memory_data_models import ReceptorFrame
 from processing_components.image.deconvolution import deconvolve_cube, restore_cube
 from processing_components.imaging.base import create_image_from_visibility, predict_2d, invert_2d
+from processing_components.imaging.wstack_single import invert_wstack_single 
 from processing_components.imaging.base import advise_wide_field
 from processing_components.simulation.testing_support import create_named_configuration, create_test_image, create_low_test_image_from_gleam, simulate_gaintable
 from data_models.polarisation import PolarisationFrame
@@ -146,22 +147,101 @@ def arl_create_rows_ffi(lowconfig, vis_in, vis_slices, c_rows):
     context='wstack'
     c = imaging_context(context)
     vis_iter = c['vis_iterator']   
-    rows_tmp = numpy.ndarray([])     
-
+    rows_tmp = numpy.empty(shape=(0), dtype =numpy.int32 )   
+    print("vis_slices : ", vis_slices)
+# Calculate rows for each vis_slice
     for rows in vis_iter(svis, vis_slices=vis_slices):
+        rows_len = len(rows)        
         if numpy.sum(rows):
              print(numpy.sum(rows))
-             rows_tmp = numpy.append(rows_tmp, rows.astype(int))
+# Convert BOOL to INT and append rows to rows_tmp ndarray
+             rows_tmp = numpy.append(rows_tmp, (rows*1).astype(numpy.int32))
 
-    print(len(rows_tmp), rows_tmp.shape)
-    print(sys.getsizeof(rows_tmp[0]))
+    print("rows_tmp array length :", len(rows_tmp), rows_tmp.shape, type(rows_tmp))
+
+#    for i in range(vis_slices):
+#        print(i, rows_tmp[i*rows_len : i*rows_len + 10])
+
+# Copy rows_tmp to c_rows and return to C program
+    rows_buf = numpy.frombuffer(ff.buffer(c_rows,
+                                 vis_slices*rows_len*4),
+                                 dtype=numpy.int32,
+                                 count=vis_slices*rows_len)
+    numpy.copyto(rows_buf, rows_tmp)
+
     #data = rows_tmp.__array_interface__['data'][0]
-    c_rows = ff.cast ( "int *" , rows_tmp.ctypes.data )
-    
-
+    #c_rows = ff.cast ( "int *" , data )
+    #c_rows = ff.cast ( "int *" , rows_tmp.ctypes.data )
 
 arl_create_rows=collections.namedtuple("FFIX", "address")    
 arl_create_rows.address=int(ff.cast("size_t", arl_create_rows_ffi))    
+
+@ff.callback("void (*)(ARLConf *, const ARLVis *, ARLVis *, long long int *, ARLVis *, int *)")
+def arl_create_vis_from_rows_blockvis_ffi(lowconfig, vis_in, vis_out, cindex_out, blockvis_out, c_rows):
+
+# Create configuration object
+    lowcore_name = str(ff.string(lowconfig.confname), 'utf-8')
+    lowcore = create_named_configuration(lowcore_name, rmax=lowconfig.rmax)
+
+# Re-create input blockvisibility object
+    times = numpy.frombuffer(ff.buffer(lowconfig.times, 8*lowconfig.ntimes), dtype='f8', count=lowconfig.ntimes)
+    frequency = numpy.frombuffer(ff.buffer(lowconfig.freqs, 8*lowconfig.nfreqs), dtype='f8', count=lowconfig.nfreqs)
+    channel_bandwidth = numpy.frombuffer(ff.buffer(lowconfig.channel_bandwidth, 8*lowconfig.nchanwidth), dtype='f8', count=lowconfig.nchanwidth)
+
+    c_visin =  cARLBlockVis(vis_in, lowconfig.nant, lowconfig.nfreqs)
+    py_visin = helper_create_blockvisibility_object(c_visin, frequency, channel_bandwidth, lowcore)
+    py_visin.phasecentre = load_phasecentre(vis_in.phasecentre)
+    py_visin.configuration = lowcore
+    polframe = str(ff.string(lowconfig.polframe), 'utf-8')
+    py_visin.polarisation_frame = PolarisationFrame(polframe)
+
+# Create visibility object
+    svis = convert_blockvisibility_to_visibility(py_visin)
+    print("arl_create_vis_from_rows_blockvis_ffi nvis: ", svis.nvis)
+    print(type(svis.cindex), type(svis.blockvis))
+   
+
+# Create rows ndarray for this vis_slice
+    rows_int = numpy.frombuffer(ff.buffer(c_rows, svis.nvis*4),dtype=numpy.int32,count=svis.nvis)
+
+# Convert rows_int into boolean
+    rows = rows_int.astype(bool)
+    print(len(rows), len(svis.cindex), len(svis.data), len(svis.blockvis.data))
+#    print("arl_create_vis_from_rows_blockvis_ffi rows: ", rows[0:10])
+
+# Create visslice from svis and rows
+    visslice = create_visibility_from_rows(svis, rows)
+
+# Copy vis data, blockvis data and cindex to the c arrays
+    print(len(visslice.data), visslice.size(), len(visslice.blockvis.data), visslice.blockvis.size(), sum(rows))
+#    print(visslice)
+#    print(visslice.blockvis)
+
+# Link Visout object, visout.cindex and visout.blockvis
+    py_visout = cARLVis_slice(vis_out, visslice.nvis)
+#    cindex_size = lowconfig.nant*lowconfig.nant*lowconfig.nfreqs*lowconfig.ntimes
+#    py_cindex = numpy.frombuffer(ff.buffer(cindex_out, 8*cindex_size), dtype='int', count=cindex_size)
+    py_blockvis_out = cARLBlockVis(blockvis_out, lowconfig.nant, lowconfig.nfreqs)
+
+    numpy.copyto(py_visout, visslice.data)
+    vis_out.nvis = visslice.nvis
+    store_phasecentre(vis_out.phasecentre, py_visin.phasecentre)
+
+# Copy vis.blockvis.data to C blockvisibility blockvis_out.data
+    numpy.copyto(py_blockvis_out, visslice.blockvis.data)
+
+# Copy vis.cindex to cindex_out
+#    numpy.copyto(py_cindex, visslice.cindex)
+
+arl_create_vis_from_rows_blockvis=collections.namedtuple("FFIX", "address")    
+arl_create_vis_from_rows_blockvis.address=int(ff.cast("size_t", arl_create_vis_from_rows_blockvis_ffi))    
+
+#@ff.callback("void (*)(ARLConf *, const ARLVis *, ARLVis *, int *)")
+#def arl_create_vis_from_rows_vis_ffi(lowconfig, vis_in, vis_out, c_rows):
+
+#arl_create_vis_from_rows_vis=collections.namedtuple("FFIX", "address")    
+#arl_create_vis_from_rows_vis.address=int(ff.cast("size_t", arl_create_vis_from_rows_vis_ffi))    
+
 
 @ff.callback("void (*)(ARLConf *, const ARLVis *, ARLVis *, int)")
 def arl_copy_visibility_ffi(lowconfig, vis_in, vis_out, zero_in):
@@ -1045,6 +1125,57 @@ def arl_invert_function_ffi(lowconfig, vis_in, img, vis_slices, img_dirty):
 
 arl_invert_function=collections.namedtuple("FFIX", "address")
 arl_invert_function.address=int(ff.cast("size_t", arl_invert_function_ffi))
+
+@ff.callback("void (*)(ARLConf *, const ARLVis *, const ARLVis *, Image *, int, Image *)")
+def arl_invert_function_oneslice_ffi(lowconfig, vis_in, blockvis_in, img, vis_slices, img_dirty):
+# Creating configuration
+    lowcore_name = str(ff.string(lowconfig.confname), 'utf-8')
+    lowcore = create_named_configuration(lowcore_name, rmax=lowconfig.rmax)
+
+# Re-creating Visibility object
+    times = numpy.frombuffer(ff.buffer(lowconfig.times, 8*lowconfig.ntimes), dtype='f8', count=lowconfig.ntimes)
+    frequency = numpy.frombuffer(ff.buffer(lowconfig.freqs, 8*lowconfig.nfreqs), dtype='f8', count=lowconfig.nfreqs)
+    channel_bandwidth = numpy.frombuffer(ff.buffer(lowconfig.channel_bandwidth, 8*lowconfig.nchanwidth), dtype='f8', count=lowconfig.nchanwidth)
+    c_visin = cARLVis(vis_in)
+    py_visin = helper_create_visibility_object(c_visin)
+    py_visin.phasecentre = load_phasecentre(vis_in.phasecentre)
+    py_visin.configuration = lowcore
+    polframe = str(ff.string(lowconfig.polframe), 'utf-8')
+    py_visin.polarisation_frame = PolarisationFrame(polframe)
+
+# Re-creating BlockVisibility object
+    c_blockvisin = cARLBlockVis(blockvis_in, lowconfig.nant, lowconfig.nfreqs)
+    py_blockvisin = helper_create_blockvisibility_object(c_blockvisin, frequency, channel_bandwidth, lowcore)
+    py_blockvisin.phasecentre = load_phasecentre(vis_in.phasecentre)
+    py_blockvisin.configuration = lowcore
+    polframe = str(ff.string(lowconfig.polframe), 'utf-8')
+    py_blockvisin.polarisation_frame = PolarisationFrame(polframe)
+
+    py_visin.blockvis = py_blockvisin
+
+# Re-creating images 
+    py_img = cImage(img)
+    py_img_dirty = cImage(img_dirty, new=True)
+
+# Calling invert_finction()
+#    export_blockvisibility_to_hdf5(py_visin, '%s/py_visin_invert_function.hdf'%(results_dir))
+#    export_image_to_hdf5(py_img, '%s/model_invert_function.hdf'%(results_dir))
+#    print("arl_invert_function vis_slices: ", vis_slices)
+
+    dirty, sumwt = invert_wstack_single(py_visin, py_img, vis_slices=vis_slices, dopsf=False, context='wstack')
+    nchan, npol, ny, nx = dirty.data.shape
+
+#    dirty.wcs.wcs.crval[0] = py_visin.phasecentre.ra.deg
+#    dirty.wcs.wcs.crval[1] = py_visin.phasecentre.dec.deg
+#    dirty.wcs.wcs.crpix[0] = float(nx // 2)
+#    dirty.wcs.wcs.crpix[1] = float(ny // 2)
+
+# Copy Python dirty image into C image
+    store_image_in_c(py_img_dirty, dirty)
+
+arl_invert_function_oneslice=collections.namedtuple("FFIX", "address")
+arl_invert_function_oneslice.address=int(ff.cast("size_t", arl_invert_function_oneslice_ffi))
+
 
 @ff.callback("void (*)(ARLConf *, const ARLVis *, Image *, int, Image *)")
 def arl_invert_function_blockvis_ffi(lowconfig, vis_in, img, vis_slices, img_dirty):

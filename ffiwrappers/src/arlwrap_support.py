@@ -39,6 +39,30 @@ def cARLVis(visin):
                                  count=nvis)
     return r
 
+def cARLVis_slice(visin, nvis):
+    """
+    Convert a const ARLVis * into the ARL Visiblity structure
+    """
+    npol=visin.npol
+#    nvis=visin.nvis
+    #print (ARLDataVisSize(nvis, npol))
+    desc = [('index', '>i8'),
+            ('uvw', '>f8', (3,)),
+            ('time', '>f8'),
+            ('frequency', '>f8'),
+            ('channel_bandwidth', '>f8'),
+            ('integration_time', '>f8'),
+            ('antenna1', '>i8'),
+            ('antenna2', '>i8'),
+            ('vis', '>c16', (npol,)),
+            ('weight', '>f8', (npol,)),
+            ('imaging_weight', '>f8', (npol,))]
+    r=numpy.frombuffer(ff.buffer(visin.data,
+                                 ARLDataVisSize(nvis, npol)),
+                                 dtype=desc,
+                                 count=nvis)
+    return r
+
 
 def ARLBlockDataVisSize(ntimes, nants, nchan, npol):
     return (24+24*int(nants*nants) + 24*int(nants*nants)*int(nchan)*int(npol))*int(ntimes)
