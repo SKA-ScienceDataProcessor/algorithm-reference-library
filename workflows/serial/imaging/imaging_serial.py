@@ -76,7 +76,7 @@ def predict_serial_workflow(vis_list, model_imagelist, vis_slices=1, facets=1, c
         # Sum all sub-visibilties
         image_results_list_list.append(visibility_gather(facet_vis_lists, vis_list, vis_iter))
         
-        return image_results_list_list
+    return image_results_list_list
 
 
 def invert_serial_workflow(vis_list, template_model_imagelist, dopsf=False, normalize=True,
@@ -142,7 +142,7 @@ def invert_serial_workflow(vis_list, template_model_imagelist, dopsf=False, norm
                                                               template_model_imagelist[freqwin]))
         results_vislist.append(sum_invert_results(vis_results))
         
-        return results_vislist
+    return results_vislist
 
 
 def residual_serial_workflow(vis, model_imagelist, context='2d', **kwargs):
