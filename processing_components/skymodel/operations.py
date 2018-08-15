@@ -4,14 +4,10 @@
 
 import logging
 
-from base import copy_skycomponent
 from data_models.memory_data_models import SkyModel
 
 from libs.image.operations import copy_image
-from memory_data_models import SkyModel
-from operations import copy_image
-from solvers import solve_image_arlexecute_workflow
-from visibility_fitting import fit_visibility
+from ..visibility.visibility_fitting import fit_visibility
 
 from ..skycomponent.base import copy_skycomponent
 
@@ -49,7 +45,7 @@ def solve_skymodel(vis, skymodel, gain=0.1, **kwargs):
     new_images = list()
     for im in skymodel.images:
         new_image = copy_image(im)
-        new_image = solve_image_arlexecute_workflow(vis, new_image, **kwargs)
+#        new_image = solve_image_arlexecute_workflow(vis, new_image, **kwargs)
         new_images.append(new_image)
     
     return SkyModel(components=new_comps, images=new_images)
