@@ -17,17 +17,16 @@ import numpy
 from data_models.memory_data_models import Image
 from data_models.parameters import get_parameter
 from libs.image.operations import copy_image, create_empty_image_like
+from wrappers.arlexecute.image.deconvolution import deconvolve_cube, restore_cube
+from wrappers.arlexecute.image.gather_scatter import image_scatter_facets, image_gather_facets, \
+    image_scatter_channels, image_gather_channels
+from wrappers.arlexecute.image.operations import calculate_image_frequency_moments
+from wrappers.arlexecute.imaging.base import normalize_sumwt
+from wrappers.arlexecute.imaging.weighting import weight_visibility
+from wrappers.arlexecute.visibility.base import copy_visibility
+from wrappers.arlexecute.visibility.gather_scatter import visibility_scatter, visibility_gather
+from workflows.shared.imaging.imaging_shared import imaging_context
 from ..execution_support.arlexecute import arlexecute
-from processing_components.image.deconvolution import deconvolve_cube, restore_cube
-from processing_components.image.gather_scatter import image_scatter_facets, image_gather_facets, \
-    image_scatter_channels,    image_gather_channels
-from processing_components.image.operations import calculate_image_frequency_moments
-from processing_components.imaging.base import normalize_sumwt
-from workflows.shared.imaging.imaging_shared import imaging_context
-from processing_components.imaging.weighting import weight_visibility
-from processing_components.visibility.base import copy_visibility
-from processing_components.visibility.gather_scatter import visibility_scatter, visibility_gather
-from workflows.shared.imaging.imaging_shared import imaging_context
 
 log = logging.getLogger(__name__)
 

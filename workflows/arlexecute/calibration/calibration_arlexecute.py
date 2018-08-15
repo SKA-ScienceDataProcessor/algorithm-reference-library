@@ -4,10 +4,10 @@
 
 from ..execution_support.arlexecute import arlexecute
 
-from processing_components.calibration.calibration_control import calibrate_function
-from processing_components.calibration.operations import apply_gaintable
-from processing_components.visibility.gather_scatter import visibility_gather_channel
-from processing_components.visibility.operations import divide_visibility, integrate_visibility_by_channel
+from wrappers.arlexecute.calibration.calibration_control import calibrate_function
+from wrappers.arlexecute.calibration.operations import apply_gaintable
+from wrappers.arlexecute.visibility.gather_scatter import visibility_gather_channel
+from wrappers.arlexecute.visibility.operations import divide_visibility, integrate_visibility_by_channel
 
 
 def calibrate_arlexecute(vis_list, model_vislist, calibration_context='TG', global_solution=True,

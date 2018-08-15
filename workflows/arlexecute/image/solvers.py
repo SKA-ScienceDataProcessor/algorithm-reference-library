@@ -6,9 +6,9 @@ import numpy
 from data_models.memory_data_models import Visibility, Image
 from data_models.parameters import get_parameter
 
-from processing_components.image.deconvolution import deconvolve_cube
-from processing_components.visibility.base import copy_visibility
-from processing_components.imaging.base import predict_skycomponent_visibility
+from wrappers.arlexecute.image.deconvolution import deconvolve_cube
+from wrappers.arlexecute.visibility.base import copy_visibility
+from wrappers.arlexecute.imaging.base import predict_skycomponent_visibility
 
 from workflows.arlexecute.imaging.imaging_arlexecute import predict_arlexecute_workflow, invert_arlexecute_workflow
 

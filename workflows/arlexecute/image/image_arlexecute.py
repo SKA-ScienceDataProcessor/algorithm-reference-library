@@ -16,7 +16,7 @@ We  could keep the graph and use it in other components. See the imaging-dask no
 """
 
 from ..execution_support.arlexecute import arlexecute
-from processing_components.image.gather_scatter import image_scatter_facets, image_gather_facets
+from wrappers.arlexecute.image.gather_scatter import image_scatter_facets, image_gather_facets
 from data_models.memory_data_models import Image
 from libs.image.operations import copy_image, create_empty_image_like
 

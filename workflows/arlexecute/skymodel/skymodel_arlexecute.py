@@ -5,7 +5,7 @@ import logging
 
 log = logging.getLogger(__name__)
 
-from processing_components.imaging.base import predict_skycomponent_visibility
+from wrappers.arlexecute.imaging.base import predict_skycomponent_visibility
 from workflows.arlexecute.imaging.imaging_arlexecute import predict_arlexecute_workflow
 
 

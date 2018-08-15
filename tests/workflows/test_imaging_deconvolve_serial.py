@@ -12,14 +12,13 @@ from astropy import units as u
 from astropy.coordinates import SkyCoord
 
 from data_models.polarisation import PolarisationFrame
-from processing_components.image.operations import export_image_to_fits, smooth_image
-from processing_components.imaging.base import predict_skycomponent_visibility
-from processing_components.simulation.testing_support import create_named_configuration, ingest_unittest_visibility, \
-    create_unittest_model, create_unittest_components, insert_unittest_errors
-from processing_components.skycomponent.operations import insert_skycomponent
-
 from workflows.serial.imaging.imaging_serial import invert_serial_workflow, deconvolve_serial_workflow, \
     residual_serial_workflow, restore_serial_workflow
+from wrappers.serial.image.operations import export_image_to_fits, smooth_image
+from wrappers.serial.imaging.base import predict_skycomponent_visibility
+from wrappers.serial.simulation.testing_support import create_named_configuration, ingest_unittest_visibility, \
+    create_unittest_model, create_unittest_components, insert_unittest_errors
+from wrappers.serial.skycomponent.operations import insert_skycomponent
 
 log = logging.getLogger(__name__)
 
@@ -36,7 +35,6 @@ class TestImagingDeconvolveGraph(unittest.TestCase):
         self.dir = arl_path('test_results')
     
     def tearDown(self):
-        
         pass
     
     def actualSetUp(self, add_errors=False, freqwin=7, block=False, dospectral=True, dopol=False,
@@ -89,8 +87,8 @@ class TestImagingDeconvolveGraph(unittest.TestCase):
                               for freqwin, _ in enumerate(self.frequency)]
         
         self.model_imagelist = [insert_skycomponent(self.model_imagelist[freqwin],
-                                                               self.componentlist[freqwin])
-        for freqwin, _ in enumerate(self.frequency)]
+                                                    self.componentlist[freqwin])
+                                for freqwin, _ in enumerate(self.frequency)]
         
         self.vis_list = [predict_skycomponent_visibility(self.vis_list[freqwin],
                                                          self.componentlist[freqwin])
@@ -102,7 +100,7 @@ class TestImagingDeconvolveGraph(unittest.TestCase):
         
         self.cmodel = smooth_image(model)
         export_image_to_fits(model, '%s/test_imaging_serial_deconvolved_model.fits' % self.dir)
-        export_image_to_fits(self.cmodel, '%s/test_imaging_)serial_deconvolved_cmodel.fits' % self.dir)
+        export_image_to_fits(self.cmodel, '%s/test_imaging_serial_deconvolved_cmodel.fits' % self.dir)
         
         if add_errors and block:
             self.vis_list = [insert_unittest_errors(self.vis_list[i])
@@ -113,13 +111,13 @@ class TestImagingDeconvolveGraph(unittest.TestCase):
     
     def test_deconvolve_spectral(self):
         self.actualSetUp(add_errors=True)
-        dirty_imagelist = invert_serial_workflow(self.vis_list, self.model_imagelist[0],
+        dirty_imagelist = invert_serial_workflow(self.vis_list, self.model_imagelist,
                                                  context='2d',
                                                  dopsf=False, normalize=True)
-        psf_imagelist = invert_serial_workflow(self.vis_list, self.model_imagelist[0],
+        psf_imagelist = invert_serial_workflow(self.vis_list, self.model_imagelist,
                                                context='2d',
                                                dopsf=True, normalize=True)
-        deconvolved, _ = deconvolve_serial_workflow(dirty_imagelist, psf_imagelist, self.model_imagelist[0], niter=1000,
+        deconvolved, _ = deconvolve_serial_workflow(dirty_imagelist, psf_imagelist, self.model_imagelist, niter=1000,
                                                     fractional_threshold=0.1, scales=[0, 3, 10],
                                                     threshold=0.1, gain=0.7)
         export_image_to_fits(deconvolved[0], '%s/test_imaging_serial_deconvolve_spectral.fits' %
@@ -127,11 +125,11 @@ class TestImagingDeconvolveGraph(unittest.TestCase):
     
     def test_deconvolve_and_restore_cube_mmclean(self):
         self.actualSetUp(add_errors=True)
-        dirty_imagelist = invert_serial_workflow(self.vis_list, self.model_imagelist[0], context='2d',
+        dirty_imagelist = invert_serial_workflow(self.vis_list, self.model_imagelist, context='2d',
                                                  dopsf=False, normalize=True)
-        psf_imagelist = invert_serial_workflow(self.vis_list, self.model_imagelist[0], context='2d',
+        psf_imagelist = invert_serial_workflow(self.vis_list, self.model_imagelist, context='2d',
                                                dopsf=True, normalize=True)
-        dec_imagelist, _ = deconvolve_serial_workflow(dirty_imagelist, psf_imagelist, self.model_imagelist[0], niter=1000,
+        dec_imagelist, _ = deconvolve_serial_workflow(dirty_imagelist, psf_imagelist, self.model_imagelist, niter=1000,
                                                       fractional_threshold=0.01, scales=[0, 3, 10],
                                                       algorithm='mmclean', nmoments=3, nchan=self.freqwin,
                                                       threshold=0.1, gain=0.7)
@@ -145,11 +143,11 @@ class TestImagingDeconvolveGraph(unittest.TestCase):
     
     def test_deconvolve_and_restore_cube_mmclean_facets(self):
         self.actualSetUp(add_errors=True)
-        dirty_imagelist = invert_serial_workflow(self.vis_list, self.model_imagelist[0],
+        dirty_imagelist = invert_serial_workflow(self.vis_list, self.model_imagelist,
                                                  context='2d', dopsf=False, normalize=True)
-        psf_imagelist = invert_serial_workflow(self.vis_list, self.model_imagelist[0],
+        psf_imagelist = invert_serial_workflow(self.vis_list, self.model_imagelist,
                                                context='2d', dopsf=True, normalize=True)
-        dec_imagelist, _ = deconvolve_serial_workflow(dirty_imagelist, psf_imagelist, self.model_imagelist[0], niter=1000,
+        dec_imagelist, _ = deconvolve_serial_workflow(dirty_imagelist, psf_imagelist, self.model_imagelist, niter=1000,
                                                       fractional_threshold=0.1, scales=[0, 3, 10],
                                                       algorithm='mmclean', nmoments=3, nchan=self.freqwin,
                                                       threshold=0.01, gain=0.7, deconvolve_facets=8,

@@ -10,9 +10,9 @@ from astropy.coordinates import SkyCoord
 from data_models.polarisation import PolarisationFrame
 
 from ..execution_support.arlexecute import arlexecute
-from processing_components.calibration.operations import apply_gaintable, create_gaintable_from_blockvisibility
-from processing_components.simulation.testing_support import create_named_configuration, simulate_gaintable
-from processing_components.visibility.base import create_blockvisibility, create_visibility
+from wrappers.arlexecute.calibration.operations import apply_gaintable, create_gaintable_from_blockvisibility
+from wrappers.arlexecute.simulation.testing_support import create_named_configuration, simulate_gaintable
+from wrappers.arlexecute.visibility.base import create_blockvisibility, create_visibility
 
 log = logging.getLogger(__name__)
 

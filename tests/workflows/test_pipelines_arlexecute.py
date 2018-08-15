@@ -13,13 +13,13 @@ from astropy.coordinates import SkyCoord
 
 from data_models.polarisation import PolarisationFrame
 
-from processing_components.calibration.calibration_control import create_calibration_controls
+from wrappers.arlexecute.calibration.calibration_control import create_calibration_controls
 from workflows.arlexecute.execution_support.arlexecute import arlexecute
 from workflows.arlexecute.pipelines.pipeline_arlexecute import ical_arlexecute_workflow, continuum_imaging_arlexecute_workflow
-from processing_components.image.operations import export_image_to_fits, qa_image, smooth_image
-from processing_components.imaging.base import predict_skycomponent_visibility
-from processing_components.skycomponent.operations import insert_skycomponent
-from processing_components.simulation.testing_support import create_named_configuration, ingest_unittest_visibility, \
+from wrappers.arlexecute.image.operations import export_image_to_fits, qa_image, smooth_image
+from wrappers.arlexecute.imaging.base import predict_skycomponent_visibility
+from wrappers.arlexecute.skycomponent.operations import insert_skycomponent
+from wrappers.arlexecute.simulation.testing_support import create_named_configuration, ingest_unittest_visibility, \
     create_unittest_model, \
     create_unittest_components, insert_unittest_errors
 

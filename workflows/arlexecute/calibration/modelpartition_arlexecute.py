@@ -6,14 +6,14 @@ import logging
 import numpy
 
 from data_models.memory_data_models import BlockVisibility
-from processing_components.calibration.calibration import solve_gaintable
-from processing_components.calibration.operations import copy_gaintable, apply_gaintable, \
+from wrappers.arlexecute.calibration.calibration import solve_gaintable
+from wrappers.arlexecute.calibration.operations import copy_gaintable, apply_gaintable, \
     create_gaintable_from_blockvisibility
-from processing_components.skymodel.operations import copy_skymodel
-from processing_components.visibility.coalesce import convert_blockvisibility_to_visibility
-from processing_components.visibility.operations import copy_visibility
+from wrappers.arlexecute.skymodel.operations import copy_skymodel
+from wrappers.arlexecute.visibility.coalesce import convert_blockvisibility_to_visibility
+from wrappers.arlexecute.visibility.base import copy_visibility
 from workflows.arlexecute.skymodel.skymodel_arlexecute import predict_skymodel_visibility_workflow
-from processing_components.skymodel.operations import solve_skymodel
+from wrappers.arlexecute.skymodel.operations import solve_skymodel
 from workflows.arlexecute.imaging.imaging_arlexecute import sum_predict_results
 from ..execution_support.arlexecute import arlexecute
 

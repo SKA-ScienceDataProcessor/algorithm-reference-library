@@ -12,16 +12,16 @@ from astropy.coordinates import SkyCoord
 from data_models.memory_data_models import SkyModel
 from data_models.polarisation import PolarisationFrame
 
-from processing_components.calibration.operations import apply_gaintable, create_gaintable_from_blockvisibility
-from processing_components.calibration.calibration import solve_gaintable
-from processing_components.image.operations import export_image_to_fits, qa_image
-from processing_components.imaging.base import predict_skycomponent_visibility, create_image_from_visibility
-from processing_components.imaging.weighting import weight_visibility
-from processing_components.skycomponent.operations import apply_beam_to_skycomponent
-from processing_components.simulation.testing_support import create_named_configuration, simulate_gaintable, \
+from wrappers.arlexecute.calibration.operations import apply_gaintable, create_gaintable_from_blockvisibility
+from wrappers.arlexecute.calibration.calibration import solve_gaintable
+from wrappers.arlexecute.image.operations import export_image_to_fits, qa_image
+from wrappers.arlexecute.imaging.base import predict_skycomponent_visibility, create_image_from_visibility
+from wrappers.arlexecute.imaging.weighting import weight_visibility
+from wrappers.arlexecute.skycomponent.operations import apply_beam_to_skycomponent
+from wrappers.arlexecute.simulation.testing_support import create_named_configuration, simulate_gaintable, \
     create_low_test_skycomponents_from_gleam, create_low_test_beam
-from processing_components.visibility.base import copy_visibility, create_blockvisibility
-from processing_components.visibility.coalesce import convert_blockvisibility_to_visibility
+from wrappers.arlexecute.visibility.base import copy_visibility, create_blockvisibility
+from wrappers.arlexecute.visibility.coalesce import convert_blockvisibility_to_visibility
 
 from workflows.arlexecute.execution_support.arlexecute import arlexecute
 from workflows.arlexecute.calibration.modelpartition_arlexecute import solve_modelpartition_arlexecute_workflow

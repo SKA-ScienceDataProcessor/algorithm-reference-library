@@ -12,11 +12,11 @@ from astropy import units as u
 from astropy.coordinates import SkyCoord
 
 from data_models.polarisation import PolarisationFrame
-from processing_components.image.operations import export_image_to_fits, smooth_image
-from processing_components.imaging.base import predict_skycomponent_visibility
-from processing_components.simulation.testing_support import create_named_configuration, ingest_unittest_visibility, \
+from wrappers.serial.image.operations import export_image_to_fits, smooth_image
+from wrappers.serial.imaging.base import predict_skycomponent_visibility
+from wrappers.serial.simulation.testing_support import create_named_configuration, ingest_unittest_visibility, \
     create_unittest_model, insert_unittest_errors, create_unittest_components
-from processing_components.skycomponent.operations import find_skycomponents, find_nearest_skycomponent, \
+from wrappers.serial.skycomponent.operations import find_skycomponents, find_nearest_skycomponent, \
     insert_skycomponent
 from workflows.serial.imaging.imaging_serial import predict_serial_workflow, invert_serial_workflow, \
     subtract_vislist_serial_workflow, zero_vislist_serial_workflow

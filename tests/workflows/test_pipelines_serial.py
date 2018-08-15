@@ -14,13 +14,14 @@ from astropy.wcs.utils import pixel_to_skycoord
 
 from data_models.polarisation import PolarisationFrame
 
-from processing_components.calibration.operations import qa_gaintable, create_gaintable_from_blockvisibility, apply_gaintable
-from processing_components.image.operations import copy_image, create_empty_image_like, export_image_to_fits
-from processing_components.imaging.base import predict_skycomponent_visibility, \
+from wrappers.serial.calibration.operations import qa_gaintable, create_gaintable_from_blockvisibility, apply_gaintable
+from wrappers.serial.image.operations import export_image_to_fits
+from libs.image.operations import copy_image, create_empty_image_like
+from wrappers.serial.imaging.base import predict_skycomponent_visibility, \
     create_image_from_visibility
-from processing_components.skycomponent.operations import create_skycomponent, insert_skycomponent
-from processing_components.simulation.testing_support import create_named_configuration, simulate_gaintable
-from processing_components.visibility.base import create_blockvisibility, create_visibility
+from wrappers.serial.skycomponent.operations import create_skycomponent, insert_skycomponent
+from wrappers.serial.simulation.testing_support import create_named_configuration, simulate_gaintable
+from wrappers.serial.visibility.base import create_blockvisibility, create_visibility
 
 from workflows.serial.pipelines.pipeline_serial import rcal_serial_workflow
 

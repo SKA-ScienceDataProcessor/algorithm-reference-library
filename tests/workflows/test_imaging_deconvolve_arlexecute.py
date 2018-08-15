@@ -16,11 +16,12 @@ from data_models.polarisation import PolarisationFrame
 from workflows.arlexecute.imaging.imaging_arlexecute import invert_arlexecute_workflow, deconvolve_arlexecute_workflow, \
     residual_arlexecute_workflow, restore_arlexecute_workflow
 from workflows.arlexecute.execution_support.arlexecute import arlexecute
-from processing_components.image.operations import export_image_to_fits, smooth_image
-from processing_components.imaging.base import predict_skycomponent_visibility
-from processing_components.skycomponent.operations import insert_skycomponent
-from processing_components.simulation.testing_support import create_named_configuration, ingest_unittest_visibility, \
+from wrappers.arlexecute.image.operations import export_image_to_fits, smooth_image
+from wrappers.arlexecute.imaging.base import predict_skycomponent_visibility
+from wrappers.arlexecute.skycomponent.operations import insert_skycomponent
+from wrappers.arlexecute.simulation.testing_support import create_named_configuration, ingest_unittest_visibility, \
     create_unittest_model, create_unittest_components, insert_unittest_errors
+from wrappers.arlexecute.skycomponent.operations import insert_skycomponent
 
 log = logging.getLogger(__name__)
 
@@ -102,8 +103,8 @@ class TestImagingDeconvolveGraph(unittest.TestCase):
         model = arlexecute.compute(self.model_imagelist[0], sync=True)
         
         self.cmodel = smooth_image(model)
-        export_image_to_fits(model, '%s/test_imaging_delayed_deconvolved_model.fits' % self.dir)
-        export_image_to_fits(self.cmodel, '%s/test_imaging_deconvolved_delayed_cmodel.fits' % self.dir)
+        export_image_to_fits(model, '%s/test_imaging_arlexecute_deconvolved_model.fits' % self.dir)
+        export_image_to_fits(self.cmodel, '%s/test_imaging_arlexecute_deconvolved_cmodel.fits' % self.dir)
         
         if add_errors and block:
             self.vis_list = [arlexecute.execute(insert_unittest_errors)(self.vis_list[i])
