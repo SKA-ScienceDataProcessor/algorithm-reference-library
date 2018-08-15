@@ -19,8 +19,8 @@ from processing_components.simulation.testing_support import create_named_config
 from processing_components.visibility.base import create_blockvisibility
 
 from workflows.arlexecute.execution_support.arlexecute import arlexecute
-from workflows.arlexecute.image.image_arlexecute import generic_image_iterator_arlexecute, generic_image_arlexecute
-from workflows.arlexecute.visibility.visibility_arlexecute import generic_blockvisibility_arlexecute
+from workflows.arlexecute.image.image_arlexecute import generic_image_iterator_arlexecute_workflow, generic_image_arlexecute_workflow
+from workflows.arlexecute.visibility.visibility_arlexecute import generic_blockvisibility_arlexecute_workflow
 
 
 class TestPipelinesGenericDask(unittest.TestCase):
@@ -66,9 +66,9 @@ class TestPipelinesGenericDask(unittest.TestCase):
                                                 weight=1.0,
                                                 polarisation_frame=PolarisationFrame('stokesI'))]
         
-        self.blockvis = generic_blockvisibility_arlexecute(predict_skycomponent_visibility,
-                                                           vis_list=self.blockvis,
-                                                           sc=self.comp)[0]
+        self.blockvis = generic_blockvisibility_arlexecute_workflow(predict_skycomponent_visibility,
+                                                                    vis_list=self.blockvis,
+                                                                    sc=self.comp)[0]
         
         self.blockvis = arlexecute.compute(self.blockvis, sync=True)
         arlexecute.close()
@@ -80,7 +80,7 @@ class TestPipelinesGenericDask(unittest.TestCase):
             im.data = numpy.sqrt(numpy.abs(im.data))
             return im
         
-        root = generic_image_iterator_arlexecute(imagerooter, self.image, image_raster_iter, facets=4)
+        root = generic_image_iterator_arlexecute_workflow(imagerooter, self.image, image_raster_iter, facets=4)
         root = arlexecute.compute(root, sync=True)
         arlexecute.close()
         
@@ -91,7 +91,7 @@ class TestPipelinesGenericDask(unittest.TestCase):
             im.data = numpy.sqrt(numpy.abs(im.data))
             return im
         
-        root = generic_image_arlexecute(imagerooter, self.image, facets=4)
+        root = generic_image_arlexecute_workflow(imagerooter, self.image, facets=4)
         root = arlexecute.compute(root, sync=True)
         arlexecute.close()
 

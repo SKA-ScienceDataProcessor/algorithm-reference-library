@@ -17,13 +17,13 @@ from processing_components.visibility.base import create_blockvisibility, create
 log = logging.getLogger(__name__)
 
 
-def simulate_arlexecute(config='LOWBD2',
-                        phasecentre=SkyCoord(ra=+15.0 * u.deg, dec=-60.0 * u.deg, frame='icrs', equinox='J2000'),
-                        frequency=None, channel_bandwidth=None, times=None,
-                        polarisation_frame=PolarisationFrame("stokesI"), order='frequency',
-                        format='blockvis',
-                        rmax=1000.0,
-                        zerow=False):
+def simulate_arlexecute_workflow(config='LOWBD2',
+                                 phasecentre=SkyCoord(ra=+15.0 * u.deg, dec=-60.0 * u.deg, frame='icrs', equinox='J2000'),
+                                 frequency=None, channel_bandwidth=None, times=None,
+                                 polarisation_frame=PolarisationFrame("stokesI"), order='frequency',
+                                 format='blockvis',
+                                 rmax=1000.0,
+                                 zerow=False):
     """ A component to simulate an observation
 
     The simulation step can generate a single BlockVisibility or a list of BlockVisibility's.
@@ -59,7 +59,7 @@ def simulate_arlexecute(config='LOWBD2',
     conf = create_named_configuration(config, rmax=rmax)
     
     if order == 'time':
-        log.debug("simulate_arlexecute: Simulating distribution in %s" % order)
+        log.debug("simulate_arlexecute_workflow: Simulating distribution in %s" % order)
         vis_list = list()
         for i, time in enumerate(times):
             vis_list.append(arlexecute.execute(create_vis, nout=1)(conf, numpy.array([times[i]]),
@@ -70,7 +70,7 @@ def simulate_arlexecute(config='LOWBD2',
                                                                    zerow=zerow))
     
     elif order == 'frequency':
-        log.debug("simulate_arlexecute: Simulating distribution in %s" % order)
+        log.debug("simulate_arlexecute_workflow: Simulating distribution in %s" % order)
         vis_list = list()
         for j, _ in enumerate(frequency):
             vis_list.append(arlexecute.execute(create_vis, nout=1)(conf, times,
@@ -82,7 +82,7 @@ def simulate_arlexecute(config='LOWBD2',
                                                                    zerow=zerow))
     
     elif order == 'both':
-        log.debug("simulate_arlexecute: Simulating distribution in time and frequency")
+        log.debug("simulate_arlexecute_workflow: Simulating distribution in time and frequency")
         vis_list = list()
         for i, _ in enumerate(times):
             for j, _ in enumerate(frequency):
@@ -95,7 +95,7 @@ def simulate_arlexecute(config='LOWBD2',
                                                                        zerow=zerow))
     
     elif order is None:
-        log.debug("simulate_arlexecute: Simulating into single %s" % format)
+        log.debug("simulate_arlexecute_workflow: Simulating into single %s" % format)
         vis_list = list()
         vis_list.append(arlexecute.execute(create_vis, nout=1)(conf, times, frequency=frequency,
                                                                channel_bandwidth=channel_bandwidth,
@@ -107,7 +107,7 @@ def simulate_arlexecute(config='LOWBD2',
     return vis_list
 
 
-def corrupt_arlexecute(vis_list, gt_list=None, **kwargs):
+def corrupt_arlexecute_workflow(vis_list, gt_list=None, **kwargs):
     """ Create a graph to apply gain errors to a vis_list
 
     :param vis_list:

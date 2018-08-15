@@ -18,8 +18,8 @@ from processing_components.simulation.testing_support import create_named_config
     create_unittest_model, insert_unittest_errors, create_unittest_components
 from processing_components.skycomponent.operations import find_skycomponents, find_nearest_skycomponent, \
     insert_skycomponent
-from processing_components.visibility.operations import copy_visibility
-from workflows.serial.imaging.imaging_serial import predict_serial, invert_serial
+from workflows.serial.imaging.imaging_serial import predict_serial_workflow, invert_serial_workflow, \
+    subtract_vislist_serial_workflow, zero_vislist_serial_workflow
 
 log = logging.getLogger(__name__)
 
@@ -65,30 +65,46 @@ class TestImaging(unittest.TestCase):
             flux = numpy.array([f])
         
         self.phasecentre = SkyCoord(ra=+180.0 * u.deg, dec=-60.0 * u.deg, frame='icrs', equinox='J2000')
-        self.vis = ingest_unittest_visibility(self.low,
-                                              self.frequency,
-                                              self.channelwidth,
-                                              self.times,
-                                              self.vis_pol,
-                                              self.phasecentre, block=block,
-                                              zerow=zerow)
+        self.vis_list = [ingest_unittest_visibility(self.low,
+                                                    [self.frequency[freqwin]],
+                                                    [self.channelwidth[freqwin]],
+                                                    self.times,
+                                                    self.vis_pol,
+                                                    self.phasecentre, block=block,
+                                                    zerow=zerow)
+                         for freqwin, _ in enumerate(self.frequency)]
         
-        self.model = create_unittest_model(self.vis,
-                                           self.image_pol,
-                                           npixel=self.npixel)
-        self.components = create_unittest_components(self.model,
-                                                     flux[0, :][numpy.newaxis, :])
+        self.model_list = [create_unittest_model(self.vis_list[freqwin],
+                                                 self.image_pol,
+                                                 npixel=self.npixel)
+                           for freqwin, _ in enumerate(self.frequency)]
         
-        self.model = insert_skycomponent(self.model, self.components)
+        self.components_list = [create_unittest_components(self.model_list[freqwin],
+                                                           flux[freqwin, :][numpy.newaxis, :])
+                                for freqwin, _ in enumerate(self.frequency)]
         
-        self.vis = predict_skycomponent_visibility(self.vis, self.components)
+        self.model_list = [insert_skycomponent(self.model_list[freqwin],
+                                               self.components_list[freqwin])
+                           for freqwin, _ in enumerate(self.frequency)]
+        
+        self.vis_list = [predict_skycomponent_visibility(self.vis_list[freqwin],
+                                                         self.components_list[freqwin])
+                         for freqwin, _ in enumerate(self.frequency)]
+        
+        # Calculate the model convolved with a Gaussian.
+        self.model = self.model_list[0]
         
         self.cmodel = smooth_image(self.model)
         export_image_to_fits(self.model, '%s/test_imaging_model.fits' % self.dir)
         export_image_to_fits(self.cmodel, '%s/test_imaging_cmodel.fits' % self.dir)
         
         if add_errors and block:
-            self.vis = insert_unittest_errors(self.vis)
+            self.vis_list = [insert_unittest_errors(self.vis_list[i])
+                             for i, _ in enumerate(self.frequency)]
+        
+        self.vis = self.vis_list[0]
+        
+        self.components = self.components_list[0]
     
     def test_time_setup(self):
         self.actualSetUp()
@@ -107,18 +123,16 @@ class TestImaging(unittest.TestCase):
     
     def _predict_base(self, context='2d', extra='', fluxthreshold=1.0, facets=1, vis_slices=1, **kwargs):
         
-        vis = copy_visibility(self.vis)
-        vis.data['vis'][...] = 0
-        vis = predict_serial(vis, self.model, context=context,
-                             vis_slices=vis_slices, facets=facets, **kwargs)
+        vis_list = zero_vislist_serial_workflow(self.vis_list)
+        vis_list = predict_serial_workflow(vis_list, self.model_list, context=context,
+                                           vis_slices=vis_slices, facets=facets, **kwargs)
+        vis_list = subtract_vislist_serial_workflow(self.vis_list, vis_list)[0]
         
-        vis.data['vis'][...] -= self.vis.data['vis'][...]
-        
-        dirty = invert_serial(vis, self.model, context='2d', dopsf=False,
-                              normalize=True)
+        dirty = invert_serial_workflow([vis_list], [self.model_list[0]], context='2d', dopsf=False,
+                                       normalize=True)[0]
         
         assert numpy.max(numpy.abs(dirty[0].data)), "Residual image is empty"
-        export_image_to_fits(dirty[0], '%s/test_imaging_predict_%s%s_dirty.fits' %
+        export_image_to_fits(dirty[0], '%s/test_imaging_predict_%s%s_serial_dirty.fits' %
                              (self.dir, context, extra))
         
         maxabs = numpy.max(numpy.abs(dirty[0].data))
@@ -127,10 +141,11 @@ class TestImaging(unittest.TestCase):
     def _invert_base(self, context, extra='', fluxthreshold=1.0, positionthreshold=1.0, check_components=True,
                      facets=1, vis_slices=1, **kwargs):
         
-        dirty = invert_serial(self.vis, self.model, context=context,
-                              dopsf=False, normalize=True, facets=facets, vis_slices=vis_slices,
-                              **kwargs)
-        export_image_to_fits(dirty[0], '%s/test_imaging_invert_%s%s_dirty.fits' %
+        dirty = invert_serial_workflow(self.vis_list, self.model_list, context=context,
+                                       dopsf=False, normalize=True, facets=facets, vis_slices=vis_slices,
+                                       **kwargs)[0]
+        
+        export_image_to_fits(dirty[0], '%s/test_imaging_invert_%s%s_serial_dirty.fits' %
                              (self.dir, context, extra))
         
         assert numpy.max(numpy.abs(dirty[0].data)), "Image is empty"

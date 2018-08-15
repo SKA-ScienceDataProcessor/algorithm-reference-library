@@ -47,7 +47,7 @@ See the jupyter note books below:
    workflows/imaging_serial.rst
    workflows/imaging-fits_serial.rst
    workflows/imaging-wterm_serial.rst
-   workflows/rcal_serial.rst
+   workflows/rcal_serial_workflow.rst
    workflows/simple-dask_arlexecute.rst
    workflows/modelpartition_arlexecute.rst
    workflows/imaging-pipelines_arlexecute.rst

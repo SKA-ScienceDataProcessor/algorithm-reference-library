@@ -19,11 +19,11 @@ from processing_components.imaging.base import advise_wide_field
 from processing_components.simulation.testing_support import create_named_configuration, create_test_image, create_low_test_image_from_gleam, simulate_gaintable
 from data_models.polarisation import PolarisationFrame
 from processing_components.visibility.base import create_blockvisibility
-from workflows.serial.imaging.imaging_serial import invert_serial, predict_serial
+from workflows.serial.imaging.imaging_serial import invert_serial_workflow, predict_serial_workflow
 from processing_components.image.operations import qa_image
 from processing_components.visibility.coalesce import convert_visibility_to_blockvisibility, convert_blockvisibility_to_visibility
 from processing_components.calibration.calibration import solve_gaintable
-from workflows.serial.pipelines.pipeline_serial import ical_serial
+from workflows.serial.pipelines.pipeline_serial import ical_serial_workflow
 from data_models.data_model_helpers import export_image_to_hdf5
 
 from ffiwrappers.src.arlwrap_support import *
@@ -850,18 +850,18 @@ def arl_predict_function_ffi(lowconfig, vis_in, img, vis_out, blockvis_out, cind
     polframe = str(ff.string(lowconfig.polframe), 'utf-8')
     py_visin.polarisation_frame = PolarisationFrame(polframe)
 
-#    print("--------------------> predict_serial Phasecentre : ", py_visin.phasecentre.ra.deg, py_visin.phasecentre.dec.deg)
+#    print("--------------------> predict_serial_workflow Phasecentre : ", py_visin.phasecentre.ra.deg, py_visin.phasecentre.dec.deg)
 
-    res = predict_serial(py_visin, c_img, vis_slices=51, context='wstack')
-#    print("--------------------> predict_serial sizeof(py_visin.data), sizeof(res.data)", sys.getsizeof(py_visin.data[:]), sys.getsizeof(res.data[:]))
-#    print("--------------------> predict_serial cindex",  type(res.cindex), type(res.cindex[0]), len(res.cindex))
-#    print("--------------------> predict_serial sys.getsizeof(res.cindex)", sys.getsizeof(res.cindex))
+    res = predict_serial_workflow(py_visin, c_img, vis_slices=51, context='wstack')
+#    print("--------------------> predict_serial_workflow sizeof(py_visin.data), sizeof(res.data)", sys.getsizeof(py_visin.data[:]), sys.getsizeof(res.data[:]))
+#    print("--------------------> predict_serial_workflow cindex",  type(res.cindex), type(res.cindex[0]), len(res.cindex))
+#    print("--------------------> predict_serial_workflow sys.getsizeof(res.cindex)", sys.getsizeof(res.cindex))
 
-#    print("--------------------> predict_serial np.sum(predicted_vis.data): ", numpy.sum(res.data['vis']))
-#    print("--------------------> predict_serial predicted_vis.data: ", res.data)
-#    print("--------------------> predict_serial py_visin.data): ", py_visin.data)
+#    print("--------------------> predict_serial_workflow np.sum(predicted_vis.data): ", numpy.sum(res.data['vis']))
+#    print("--------------------> predict_serial_workflow predicted_vis.data: ", res.data)
+#    print("--------------------> predict_serial_workflow py_visin.data): ", py_visin.data)
 
-#    print("predict_serial np.sum(predicted_vis.data): ", numpy.sum(res.data['vis']))
+#    print("predict_serial_workflow np.sum(predicted_vis.data): ", numpy.sum(res.data['vis']))
 
     vis_out.npol = vis_in.npol
     c_visout = cARLVis(vis_out)
@@ -895,7 +895,7 @@ def arl_predict_function_blockvis_ffi(lowconfig, vis_in, img):
 #    export_blockvisibility_to_hdf5(py_visin, '%s/py_visin.hdf'%(results_dir))
 #    export_image_to_hdf5(c_img, '%s/gleam_model_c_img.hdf'%(results_dir))
 
-    py_blockvis = predict_serial(py_visin, c_img, vis_slices=51, context='wstack')
+    py_blockvis = predict_serial_workflow(py_visin, c_img, vis_slices=51, context='wstack')
 
 #    export_blockvisibility_to_hdf5(py_blockvis, '%s/py_blockvis.hdf'%(results_dir))
 
@@ -943,9 +943,9 @@ def arl_predict_function_ical_ffi(lowconfig, vis_inout, img, blockvis_inout, cin
 
     c_img = cImage(img)
 
-    res = predict_serial(py_visinout, c_img, vis_slices=vis_slices, context='wstack', 
-                    timeslice='auto', algorithm='hogbom', niter=1000, fractional_threshold=0.1,
-                    threshold=0.1, nmajor=5, gain=0.1, first_selfcal=1, global_solution=False)
+    res = predict_serial_workflow(py_visinout, c_img, vis_slices=vis_slices, context='wstack',
+                                  timeslice='auto', algorithm='hogbom', niter=1000, fractional_threshold=0.1,
+                                  threshold=0.1, nmajor=5, gain=0.1, first_selfcal=1, global_solution=False)
 #    print("####################> arl_predict_function_ical: ", type(res))
 
     numpy.copyto(c_visinout, res.data)
@@ -987,7 +987,7 @@ def arl_invert_function_ffi(lowconfig, vis_in, img, vis_slices, img_dirty):
 #    export_image_to_hdf5(py_img, '%s/model_invert_function.hdf'%(results_dir))
 #    print("arl_invert_function vis_slices: ", vis_slices)
 
-    dirty, sumwt = invert_serial(py_visin, py_img, vis_slices=vis_slices, dopsf=False, context='wstack')
+    dirty, sumwt = invert_serial_workflow(py_visin, py_img, vis_slices=vis_slices, dopsf=False, context='wstack')
     nchan, npol, ny, nx = dirty.data.shape
 
 #    dirty.wcs.wcs.crval[0] = py_visin.phasecentre.ra.deg
@@ -1025,7 +1025,7 @@ def arl_invert_function_blockvis_ffi(lowconfig, vis_in, img, vis_slices, img_dir
 #    export_blockvisibility_to_hdf5(py_visin, '%s/py_visin_invert_function.hdf'%(results_dir))
 #    export_image_to_hdf5(py_img, '%s/model_invert_function.hdf'%(results_dir))
 #    print("arl_invert_function vis_slices: ", vis_slices)
-    dirty, sumwt = invert_serial(py_visin, py_img, vis_slices=vis_slices, dopsf=False, context='wstack')
+    dirty, sumwt = invert_serial_workflow(py_visin, py_img, vis_slices=vis_slices, dopsf=False, context='wstack')
     nchan, npol, ny, nx = dirty.data.shape
 
 #    dirty.wcs.wcs.crval[0] = py_visin.phasecentre.ra.deg
@@ -1060,9 +1060,9 @@ def arl_invert_function_ical_ffi(lowconfig, vis_in, img, vis_slices, img_dirty):
     py_img = cImage(img)
     py_img_dirty = cImage(img_dirty, new=True)
 # Calling invert_finction()
-    dirty, sumwt = invert_serial(py_visin, py_img, vis_slices=vis_slices, context='wstack',
-                    timeslice='auto', algorithm='hogbom', niter=1000, fractional_threshold=0.1,
-                    threshold=0.1, nmajor=5, gain=0.1, first_selfcal=1,global_solution=False)
+    dirty, sumwt = invert_serial_workflow(py_visin, py_img, vis_slices=vis_slices, context='wstack',
+                                          timeslice='auto', algorithm='hogbom', niter=1000, fractional_threshold=0.1,
+                                          threshold=0.1, nmajor=5, gain=0.1, first_selfcal=1, global_solution=False)
 
     nchan, npol, ny, nx = dirty.data.shape
 
@@ -1100,9 +1100,9 @@ def arl_invert_function_psf_ffi(lowconfig, vis_in, img, vis_slices, img_psf):
     py_img = cImage(img)
     py_img_psf = cImage(img_psf, new=True)
 # Calling invert_finction()
-    psf, sumwt = invert_serial(py_visin, py_img, vis_slices=vis_slices, dopsf=True, context='wstack',
-                    timeslice='auto', algorithm='hogbom', niter=1000, fractional_threshold=0.1,
-                    threshold=0.1, nmajor=5, gain=0.1, first_selfcal=1,global_solution=False)
+    psf, sumwt = invert_serial_workflow(py_visin, py_img, vis_slices=vis_slices, dopsf=True, context='wstack',
+                                        timeslice='auto', algorithm='hogbom', niter=1000, fractional_threshold=0.1,
+                                        threshold=0.1, nmajor=5, gain=0.1, first_selfcal=1, global_solution=False)
 
     nchan, npol, ny, nx = psf.data.shape
 
@@ -1140,12 +1140,12 @@ def arl_ical_ffi(lowconfig, blockvis_in, img_model, vis_slices, img_deconvolved,
     py_img_residual 	= cImage(img_residual, new=True)
     py_img_restored 	= cImage(img_restored, new=True)
 
-# Callinc ical_serial()
-    deconvolved, residual, restored = ical_serial(block_vis=py_blockvisin, model=py_model, vis_slices=vis_slices,
-                                            timeslice='auto',
-                                                  algorithm='hogbom', niter=1000, fractional_threshold=0.1, threshold=0.1,
-                                                  context='wstack', nmajor=5, gain=0.1, first_selfcal=1,
-                                                  global_solution=False)
+# Callinc ical_serial_workflow()
+    deconvolved, residual, restored = ical_serial_workflow(block_vis=py_blockvisin, model=py_model, vis_slices=vis_slices,
+                                                           timeslice='auto',
+                                                           algorithm='hogbom', niter=1000, fractional_threshold=0.1, threshold=0.1,
+                                                           context='wstack', nmajor=5, gain=0.1, first_selfcal=1,
+                                                           global_solution=False)
 
 # Preparing deconvolved
     nchan, npol, ny, nx = deconvolved.data.shape

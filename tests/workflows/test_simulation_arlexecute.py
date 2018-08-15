@@ -12,7 +12,7 @@ from astropy.coordinates import SkyCoord
 from data_models.memory_data_models import BlockVisibility
 from workflows.arlexecute.execution_support.arlexecute import arlexecute
 
-from workflows.arlexecute.simulation.simulation_arlexecute import simulate_arlexecute
+from workflows.arlexecute.simulation.simulation_arlexecute import simulate_arlexecute_workflow
 
 log = logging.getLogger(__name__)
 
@@ -33,7 +33,7 @@ class TestSimulationArlexecuteSupport(unittest.TestCase):
         arlexecute.close()
 
     def test_create_simulate_vis_list(self):
-        vis_list = simulate_arlexecute(frequency=self.frequency, channel_bandwidth=self.channel_bandwidth)
+        vis_list = simulate_arlexecute_workflow(frequency=self.frequency, channel_bandwidth=self.channel_bandwidth)
         assert len(vis_list) == len(self.frequency)
         vt = arlexecute.compute(vis_list[0])
         assert isinstance(vt, BlockVisibility)

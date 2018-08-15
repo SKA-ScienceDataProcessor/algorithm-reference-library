@@ -22,7 +22,7 @@ from processing_components.skycomponent.operations import create_skycomponent, i
 from processing_components.simulation.testing_support import create_named_configuration, simulate_gaintable
 from processing_components.visibility.base import create_blockvisibility, create_visibility
 
-from workflows.serial.pipelines.pipeline_serial import rcal_serial
+from workflows.serial.pipelines.pipeline_serial import rcal_serial_workflow
 
 log = logging.getLogger(__name__)
 
@@ -124,7 +124,7 @@ class TestPipelinesFunctions(unittest.TestCase):
         
     def test_RCAL(self):
         self.setupVis(add_errors=True, block=True, freqwin=5)
-        for igt, gt in enumerate(rcal_serial(vis=self.vis, components=self.comps)):
+        for igt, gt in enumerate(rcal_serial_workflow(vis=self.vis, components=self.comps)):
             assert numpy.max(gt.residual) < 4e-5
 
 

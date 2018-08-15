@@ -24,9 +24,9 @@ from processing_components.visibility.base import copy_visibility, create_blockv
 from processing_components.visibility.coalesce import convert_blockvisibility_to_visibility
 
 from workflows.arlexecute.execution_support.arlexecute import arlexecute
-from workflows.arlexecute.calibration.modelpartition_arlexecute import solve_modelpartition_arlexecute
+from workflows.arlexecute.calibration.modelpartition_arlexecute import solve_modelpartition_arlexecute_workflow
 
-from workflows.arlexecute.imaging.imaging_arlexecute import predict_arlexecute, invert_arlexecute
+from workflows.arlexecute.imaging.imaging_arlexecute import predict_arlexecute_workflow, invert_arlexecute_workflow
 
 log = logging.getLogger(__name__)
 
@@ -98,12 +98,12 @@ class TestCalibrationSkyModelcal(unittest.TestCase):
         
         self.model_vis = convert_blockvisibility_to_visibility(self.model_vis)
         self.model_vis, _, _ = weight_visibility(self.model_vis, self.beam)
-        self.dirty_model, sumwt = invert_arlexecute(self.model_vis, self.beam, context='2d')
+        self.dirty_model, sumwt = invert_arlexecute_workflow(self.model_vis, self.beam, context='2d')
         export_image_to_fits(self.dirty_model, "%s/test_modelpartition-model_dirty.fits" % self.dir)
         
         lvis = convert_blockvisibility_to_visibility(self.vis)
         lvis, _, _ = weight_visibility(lvis, self.beam)
-        dirty, sumwt = invert_arlexecute(lvis, self.beam, context='2d')
+        dirty, sumwt = invert_arlexecute_workflow(lvis, self.beam, context='2d')
         if doiso:
             export_image_to_fits(dirty, "%s/test_modelpartition-initial-iso-residual.fits" % self.dir)
         else:
@@ -118,13 +118,13 @@ class TestCalibrationSkyModelcal(unittest.TestCase):
         self.skymodel_list = [arlexecute.execute(SkyModel, nout=1)(components=[cm])
                               for cm in self.components]
         
-        modelpartition_list = solve_modelpartition_arlexecute(self.vis, skymodel_list=self.skymodel_list, niter=30,
-                                                              gain=0.25)
+        modelpartition_list = solve_modelpartition_arlexecute_workflow(self.vis, skymodel_list=self.skymodel_list, niter=30,
+                                                                       gain=0.25)
         skymodel, residual_vis = arlexecute.compute(modelpartition_list, sync=True)
         
         residual_vis = convert_blockvisibility_to_visibility(residual_vis)
         residual_vis, _, _ = weight_visibility(residual_vis, self.beam)
-        dirty, sumwt = invert_arlexecute(residual_vis, self.beam, context='2d')
+        dirty, sumwt = invert_arlexecute_workflow(residual_vis, self.beam, context='2d')
         export_image_to_fits(dirty, "%s/test_modelpartition-%s-final-iso-residual.fits" % (self.dir, arlexecute.type()))
         
         qa = qa_image(dirty)

@@ -6,7 +6,7 @@ functions for deferred execution thus allowing construction of components.
 from ..execution_support.arlexecute import arlexecute
 
 
-def generic_blockvisibility_arlexecute(visfunction, vis_list, additive=True, *args, **kwargs):
+def generic_blockvisibility_arlexecute_workflow(visfunction, vis_list, additive=True, *args, **kwargs):
     """ Definition of interface for create_generic_blockvisibility_graph_visfunction.
 
     :func visfunction: Function to be applied
