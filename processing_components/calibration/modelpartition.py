@@ -18,8 +18,8 @@ In this code:
 import logging
 
 from data_models.memory_data_models import BlockVisibility
-from modelpartition_arlexecute import modelpartition_expectation_step, modelpartition_expectation_all, \
-    modelpartition_maximisation_step
+from modelpartition_arlexecute import modelpartition_list_expectation_step, modelpartition_list_expectation_all, \
+    modelpartition_list_maximisation_step
 from processing_components.calibration.operations import copy_gaintable, create_gaintable_from_blockvisibility, qa_gaintable
 from processing_components.skymodel.operations import copy_skymodel
 from processing_components.visibility.operations import copy_visibility
@@ -54,11 +54,11 @@ def solve_modelpartition(vis, skymodels, niter=10, tol=1e-8, gain=0.25, **kwargs
     
     for iter in range(niter):
         new_modelpartitions = list()
-        evis_all = modelpartition_expectation_all(vis, model_partition)
+        evis_all = modelpartition_list_expectation_all(vis, model_partition)
         log.debug("solve_modelpartition: Iteration %d" % (iter))
         for window_index, csm in enumerate(model_partition):
-            evis = modelpartition_expectation_step(vis, evis_all, csm, gain=gain, **kwargs)
-            new_csm = modelpartition_maximisation_step(evis, csm, **kwargs)
+            evis = modelpartition_list_expectation_step(vis, evis_all, csm, gain=gain, **kwargs)
+            new_csm = modelpartition_list_maximisation_step(evis, csm, **kwargs)
             new_modelpartitions.append((new_csm[0], new_csm[1]))
             
             flux = new_csm[0].components[0].flux[0, 0]
@@ -73,7 +73,7 @@ def solve_modelpartition(vis, skymodels, niter=10, tol=1e-8, gain=0.25, **kwargs
         model_partition = [(copy_skymodel(csm[0]), copy_gaintable(csm[1])) for csm in new_modelpartitions]
     
     residual_vis = copy_visibility(vis)
-    final_vis = modelpartition_expectation_all(vis, model_partition)
+    final_vis = modelpartition_list_expectation_all(vis, model_partition)
     residual_vis.data['vis'][...] = vis.data['vis'][...] - final_vis.data['vis'][...]
     return model_partition, residual_vis
 

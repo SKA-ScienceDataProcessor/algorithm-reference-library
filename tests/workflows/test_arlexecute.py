@@ -7,7 +7,7 @@ import unittest
 
 import numpy
 
-from workflows.arlexecute.execution_support.arlexecute import arlexecute
+from wrappers.arlexecute.execution_support.arlexecute import arlexecute
 
 log = logging.getLogger(__name__)
 
