@@ -2,108 +2,129 @@
 completeness. Use parallel versions pipelines/components.py for speed.
 
 """
-import collections
-import logging
-
-import numpy
-
-from data_models.memory_data_models import Image, BlockVisibility, GainTable
 from data_models.parameters import get_parameter
 
-from processing_components.calibration.calibration import solve_gaintable
-from processing_components.calibration.calibration_control import calibrate_function, create_calibration_controls
-from processing_components.image.deconvolution import deconvolve_cube, restore_cube
-from processing_components.imaging.base import predict_skycomponent_visibility
-from workflows.serial.imaging.imaging_serial import predict_serial_workflow, invert_serial_workflow
-from processing_components.visibility.base import copy_visibility
-from processing_components.visibility.coalesce import convert_blockvisibility_to_visibility
-
-log = logging.getLogger(__name__)
+from ..calibration.calibration_serial import calibrate_list_serial_workflow
+from ..imaging.imaging_serial import invert_list_serial_workflow, residual_list_serial_workflow, \
+    predict_list_serial_workflow, zero_list_serial_workflow, subtract_list_serial_workflow, \
+    restore_list_serial_workflow, \
+    deconvolve_list_serial_workflow
 
 
-def ical_serial_workflow(block_vis: BlockVisibility, model: Image, components=None, context='2d', controls=None, **kwargs):
-    """ Post observation image, deconvolve, and self-calibrate
+def ical_list_serial_workflow(vis_list, model_imagelist, context='2d', calibration_context='TG', do_selfcal=True,
+                                  **kwargs):
+    """Create graph for ICAL pipeline
 
-    :param vis:
-    :param model: Model image
-    :param components: Initial components
-    :param context: Imaging context
-    :param controls: calibration controls dictionary
-    :return: model, residual, restored
+    :param vis_list:
+    :param model_imagelist:
+    :param context: imaging context e.g. '2d'
+    :param calibration_context: Sequence of calibration steps e.g. TGB
+    :param do_selfcal: Do the selfcalibration?
+    :param kwargs: Parameters for functions in components
+    :return:
     """
-    nmajor = get_parameter(kwargs, 'nmajor', 5)
-    log.info("ical_serial_workflow: Performing %d major cycles" % nmajor)
+    psf_imagelist = invert_list_serial_workflow(vis_list, model_imagelist, dopsf=True, context=context, **kwargs)
     
-    do_selfcal = get_parameter(kwargs, "do_selfcal", False)
-    
-    if controls is None:
-        controls = create_calibration_controls(**kwargs)
-    
-    # The model is added to each major cycle and then the visibilities are
-    # calculated from the full model
-    vis = convert_blockvisibility_to_visibility(block_vis)
-    block_vispred = copy_visibility(block_vis, zero=True)
-    vispred = convert_blockvisibility_to_visibility(block_vispred)
-    vispred.data['vis'][...] = 0.0
-    visres = copy_visibility(vispred)
-    
-    vispred = predict_serial_workflow(vispred, model, context=context, **kwargs)
-    
-    if components is not None:
-        vispred = predict_skycomponent_visibility(vispred, components)
-    
+    model_vislist = zero_list_serial_workflow(vis_list)
+    model_vislist = predict_list_serial_workflow(model_vislist, model_imagelist, context=context, **kwargs)
     if do_selfcal:
-        vis, gaintables = calibrate_function(vis, vispred, 'TGB', controls, iteration=-1)
+        # Make the predicted visibilities, selfcalibrate against it correcting the gains, then
+        # form the residual visibility, then make the residual image
+        vis_list = calibrate_list_serial_workflow(vis_list, model_vislist,
+                                                      calibration_context=calibration_context, **kwargs)
+        residual_vislist = subtract_list_serial_workflow(vis_list, model_vislist)
+        residual_imagelist = invert_list_serial_workflow(residual_vislist, model_imagelist, dopsf=True,
+                                                             context=context,
+                                                             iteration=0, **kwargs)
+    else:
+        # If we are not selfcalibrating it's much easier and we can avoid an unnecessary round of gather/scatter
+        # for visibility partitioning such as timeslices and wstack.
+        residual_imagelist = residual_list_serial_workflow(vis_list, model_imagelist, context=context, **kwargs)
     
-    visres.data['vis'] = vis.data['vis'] - vispred.data['vis']
-    dirty, sumwt = invert_serial_workflow(visres, model, context=context, **kwargs)
-    log.info("Maximum in residual image is %.6f" % (numpy.max(numpy.abs(dirty.data))))
+    deconvolve_model_imagelist, _ = deconvolve_list_serial_workflow(residual_imagelist, psf_imagelist,
+                                                                        model_imagelist,
+                                                                        prefix='cycle 0', **kwargs)
     
-    psf, sumwt = invert_serial_workflow(visres, model, dopsf=True, context=context, **kwargs)
+    nmajor = get_parameter(kwargs, "nmajor", 5)
+    if nmajor > 1:
+        for cycle in range(nmajor):
+            if do_selfcal:
+                model_vislist = zero_list_serial_workflow(vis_list)
+                model_vislist = predict_list_serial_workflow(model_vislist, deconvolve_model_imagelist,
+                                                                 context=context, **kwargs)
+                vis_list = calibrate_list_serial_workflow(vis_list, model_vislist,
+                                                              calibration_context=calibration_context,
+                                                              iteration=cycle, **kwargs)
+                residual_vislist = subtract_list_serial_workflow(vis_list, model_vislist)
+                residual_imagelist = invert_list_serial_workflow(residual_vislist, model_imagelist, dopsf=False,
+                                                                     context=context, **kwargs)
+            else:
+                residual_imagelist = residual_list_serial_workflow(vis_list, deconvolve_model_imagelist,
+                                                                       context=context, **kwargs)
+            
+            prefix = "cycle %d" % (cycle + 1)
+            deconvolve_model_imagelist, _ = deconvolve_list_serial_workflow(residual_imagelist, psf_imagelist,
+                                                                                deconvolve_model_imagelist,
+                                                                                prefix=prefix,
+                                                                                **kwargs)
+    residual_imagelist = residual_list_serial_workflow(vis_list, deconvolve_model_imagelist, context=context,
+                                                           **kwargs)
+    restore_imagelist = restore_list_serial_workflow(deconvolve_model_imagelist, psf_imagelist, residual_imagelist)
     
-    thresh = get_parameter(kwargs, "threshold", 0.0)
-    
-    for i in range(nmajor):
-        log.info("ical_serial_workflow: Start of major cycle %d of %d" % (i, nmajor))
-        cc, res = deconvolve_cube(dirty, psf, **kwargs)
-        model.data += cc.data
-        vispred.data['vis'][...] = 0.0
-        vispred = predict_serial_workflow(vispred, model, context=context, **kwargs)
-        if do_selfcal:
-            vis, gaintables = calibrate_function(vis, vispred, 'TGB', controls, iteration=i)
-        visres.data['vis'] = vis.data['vis'] - vispred.data['vis']
-        
-        dirty, sumwt = invert_serial_workflow(visres, model, context=context, **kwargs)
-        log.info("Maximum in residual image is %s" % (numpy.max(numpy.abs(dirty.data))))
-        if numpy.abs(dirty.data).max() < 1.1 * thresh:
-            log.info("ical_serial_workflow: Reached stopping threshold %.6f Jy" % thresh)
-            break
-        log.info("ical_serial_workflow: End of major cycle")
-    
-    log.info("ical_serial_workflow: End of major cycles")
-    restored = restore_cube(model, psf, dirty, **kwargs)
-    
-    return model, dirty, restored
+    return (deconvolve_model_imagelist, residual_imagelist, restore_imagelist)
 
 
-def rcal_serial_workflow(vis: BlockVisibility, components, **kwargs) -> GainTable:
-    """ Real-time calibration pipeline.
+def continuum_imaging_list_serial_workflow(vis_list, model_imagelist, context='2d', **kwargs):
+    """ Create graph for the continuum imaging pipeline.
 
-    Reads visibilities through a BlockVisibility iterator, calculates model visibilities according to a
-    component-based sky model, and performs calibration solution, writing a gaintable for each chunk of
-    visibilities.
+    Same as ICAL but with no selfcal.
 
-    :param vis: Visibility or Union(Visibility, Iterable)
-    :param components: Component-based sky model
-    :param kwargs: Parameters
-    :return: gaintable
-   """
+    :param vis_list:
+    :param model_imagelist:
+    :param context: Imaging context
+    :param kwargs: Parameters for functions in components
+    :return:
+    """
+    psf_imagelist = invert_list_serial_workflow(vis_list, model_imagelist, dopsf=True, context=context, **kwargs)
     
-    if not isinstance(vis, collections.Iterable):
-        vis = [vis]
+    residual_imagelist = residual_list_serial_workflow(vis_list, model_imagelist, context=context, **kwargs)
+    deconvolve_model_imagelist, _ = deconvolve_list_serial_workflow(residual_imagelist, psf_imagelist,
+                                                                        model_imagelist,
+                                                                        prefix='cycle 0',
+                                                                        **kwargs)
+    
+    nmajor = get_parameter(kwargs, "nmajor", 5)
+    if nmajor > 1:
+        for cycle in range(nmajor):
+            prefix = "cycle %d" % (cycle + 1)
+            residual_imagelist = residual_list_serial_workflow(vis_list, deconvolve_model_imagelist,
+                                                                   context=context, **kwargs)
+            deconvolve_model_imagelist, _ = deconvolve_list_serial_workflow(residual_imagelist, psf_imagelist,
+                                                                                deconvolve_model_imagelist,
+                                                                                prefix=prefix,
+                                                                                **kwargs)
+    
+    residual_imagelist = residual_list_serial_workflow(vis_list, deconvolve_model_imagelist, context=context,
+                                                           **kwargs)
+    restore_imagelist = restore_list_serial_workflow(deconvolve_model_imagelist, psf_imagelist, residual_imagelist)
+    return (deconvolve_model_imagelist, residual_imagelist, restore_imagelist)
 
-    for ichunk, vischunk in enumerate(vis):
-        vispred = copy_visibility(vischunk, zero=True)
-        vispred = predict_skycomponent_visibility(vispred, components)
-        gt = solve_gaintable(vischunk, vispred, **kwargs)
-        yield gt
+
+def spectral_line_imaging_list_serial_workflow(vis_list, model_imagelist, continuum_model_imagelist=None,
+                                                   context='2d', **kwargs):
+    """Create graph for spectral line imaging pipeline
+
+    Uses the continuum imaging serial pipeline after subtraction of a continuum model
+
+    :param vis_list: List of visibility components
+    :param model_imagelist: Spectral line model graph
+    :param continuum_model_imagelist: Continuum model list
+    :param context: Imaging context
+    :param kwargs: Parameters for functions in components
+    :return: (deconvolved model, residual, restored)
+    """
+    if continuum_model_imagelist is not None:
+        vis_list = predict_list_serial_workflow(vis_list, continuum_model_imagelist, context=context, **kwargs)
+    
+    return continuum_imaging_list_serial_workflow(vis_list, model_imagelist, context=context, **kwargs)
+

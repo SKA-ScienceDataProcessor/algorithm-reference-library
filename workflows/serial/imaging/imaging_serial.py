@@ -18,16 +18,17 @@ from processing_components.image.deconvolution import deconvolve_cube, restore_c
 from processing_components.image.gather_scatter import image_scatter_facets, image_gather_facets, \
     image_scatter_channels, image_gather_channels
 from processing_components.image.operations import calculate_image_frequency_moments
-from processing_components.imaging.base import normalize_sumwt
 from processing_components.imaging.weighting import weight_visibility
 from processing_components.visibility.base import copy_visibility
 from processing_components.visibility.gather_scatter import visibility_scatter, visibility_gather
 from workflows.shared.imaging.imaging_shared import imaging_context
+from workflows.shared.imaging.imaging_shared import sum_invert_results, remove_sumwt, sum_predict_results, \
+    threshold_list
 
 log = logging.getLogger(__name__)
 
 
-def predict_serial_workflow(vis_list, model_imagelist, vis_slices=1, facets=1, context='2d', **kwargs):
+def predict_list_serial_workflow(vis_list, model_imagelist, vis_slices=1, facets=1, context='2d', **kwargs):
     """Predict, iterating over both the scattered vis_list and image
 
     The visibility and image are scattered, the visibility is predicted on each part, and then the
@@ -75,12 +76,12 @@ def predict_serial_workflow(vis_list, model_imagelist, vis_slices=1, facets=1, c
             facet_vis_lists.append(sum_predict_results(facet_vis_results))
         # Sum all sub-visibilties
         image_results_list_list.append(visibility_gather(facet_vis_lists, vis_list, vis_iter))
-        
+    
     return image_results_list_list
 
 
-def invert_serial_workflow(vis_list, template_model_imagelist, dopsf=False, normalize=True,
-                           facets=1, vis_slices=1, context='2d', **kwargs):
+def invert_list_serial_workflow(vis_list, template_model_imagelist, dopsf=False, normalize=True,
+                                facets=1, vis_slices=1, context='2d', **kwargs):
     """ Sum results from invert, iterating over the scattered image and vis_list
 
     :param vis_list:
@@ -141,11 +142,11 @@ def invert_serial_workflow(vis_list, template_model_imagelist, dopsf=False, norm
             vis_results.append(gather_image_iteration_results(facet_vis_results,
                                                               template_model_imagelist[freqwin]))
         results_vislist.append(sum_invert_results(vis_results))
-        
+    
     return results_vislist
 
 
-def residual_serial_workflow(vis, model_imagelist, context='2d', **kwargs):
+def residual_list_serial_workflow(vis, model_imagelist, context='2d', **kwargs):
     """ Create a graph to calculate residual image using w stacking and faceting
 
     :param context:
@@ -156,14 +157,14 @@ def residual_serial_workflow(vis, model_imagelist, context='2d', **kwargs):
     :param kwargs: Parameters for functions in components
     :return:
     """
-    model_vis = zero_vislist_serial_workflow(vis)
-    model_vis = predict_serial_workflow(model_vis, model_imagelist, context=context, **kwargs)
-    residual_vis = subtract_vislist_serial_workflow(vis, model_vis)
-    return invert_serial_workflow(residual_vis, model_imagelist, dopsf=False, normalize=True, context=context,
-                                  **kwargs)
+    model_vis = zero_list_serial_workflow(vis)
+    model_vis = predict_list_serial_workflow(model_vis, model_imagelist, context=context, **kwargs)
+    residual_vis = subtract_list_serial_workflow(vis, model_vis)
+    return invert_list_serial_workflow(residual_vis, model_imagelist, dopsf=False, normalize=True, context=context,
+                                       **kwargs)
 
 
-def restore_serial_workflow(model_imagelist, psf_imagelist, residual_imagelist, **kwargs):
+def restore_list_serial_workflow(model_imagelist, psf_imagelist, residual_imagelist, **kwargs):
     """ Create a graph to calculate the restored image
 
     :param model_imagelist: Model list
@@ -177,7 +178,7 @@ def restore_serial_workflow(model_imagelist, psf_imagelist, residual_imagelist, 
             for i, _ in enumerate(model_imagelist)]
 
 
-def deconvolve_serial_workflow(dirty_list, psf_list, model_imagelist, prefix='', **kwargs):
+def deconvolve_list_serial_workflow(dirty_list, psf_list, model_imagelist, prefix='', **kwargs):
     """Create a graph for deconvolution, adding to the model
 
     :param dirty_list:
@@ -206,7 +207,7 @@ def deconvolve_serial_workflow(dirty_list, psf_list, model_imagelist, prefix='',
         
         if this_peak > 1.1 * gthreshold:
             log.info(
-                "deconvolve_serial_workflow %s: cleaning - peak %.6f > 1.1 * threshold %.6f" % (lprefix, this_peak,
+                "deconvolve_list_serial_workflow %s: cleaning - peak %.6f > 1.1 * threshold %.6f" % (lprefix, this_peak,
                                                                                                 gthreshold))
             kwargs['threshold'] = gthreshold
             result, _ = deconvolve_cube(dirty, psf, prefix=lprefix, **kwargs)
@@ -215,7 +216,7 @@ def deconvolve_serial_workflow(dirty_list, psf_list, model_imagelist, prefix='',
                 result.data += model.data
             else:
                 log.warning(
-                    "deconvolve_serial_workflow %s: Initial model %s and clean result %s do not have the same shape" %
+                    "deconvolve_list_serial_workflow %s: Initial model %s and clean result %s do not have the same shape" %
                     (lprefix, str(model.data.shape[0]), str(result.data.shape[0])))
             
             flux = numpy.sum(result.data[0, 0, ...])
@@ -224,7 +225,7 @@ def deconvolve_serial_workflow(dirty_list, psf_list, model_imagelist, prefix='',
             
             return result
         else:
-            log.info("deconvolve_serial_workflow %s: Not cleaning - peak %.6f <= 1.1 * threshold %.6f" % (
+            log.info("deconvolve_list_serial_workflow %s: Not cleaning - peak %.6f <= 1.1 * threshold %.6f" % (
                 lprefix, this_peak,
                 gthreshold))
             log.info('### %s, %.6f, %.6f, False, %.3f # cycle, facet, peak, cleaned flux, clean, time?'
@@ -273,9 +274,8 @@ def deconvolve_serial_workflow(dirty_list, psf_list, model_imagelist, prefix='',
     
     # Find the global threshold. This uses the peak in the average on the frequency axis since we
     # want to use it in a stopping criterion in a moment clean
-    global_threshold = threshold_list(scattered_facets_list, threshold,
-                                      fractional_threshold,
-                                      use_moment0=use_moment0, prefix=prefix)
+    global_threshold = threshold_list(scattered_facets_list, threshold, fractional_threshold, use_moment0=use_moment0,
+                                      prefix=prefix)
     
     facet_list = numpy.arange(deconvolve_number_facets).astype('int')
     scattered_results_list = [
@@ -295,7 +295,7 @@ def deconvolve_serial_workflow(dirty_list, psf_list, model_imagelist, prefix='',
     return image_scatter_channels(gathered_results_list, subimages=nchan), flat_list
 
 
-def deconvolve_channel_serial_workflow(dirty_list, psf_list, model_imagelist, subimages, **kwargs):
+def deconvolve_channel_list_serial_workflow(dirty_list, psf_list, model_imagelist, subimages, **kwargs):
     """Create a graph for deconvolution by channels, adding to the model
 
     Does deconvolution channel by channel.
@@ -328,7 +328,7 @@ def deconvolve_channel_serial_workflow(dirty_list, psf_list, model_imagelist, su
     return add_model(result, model_imagelist)
 
 
-def weight_serial_workflow(vis_list, model_imagelist, weighting='uniform', **kwargs):
+def weight_list_serial_workflow(vis_list, model_imagelist, weighting='uniform', **kwargs):
     """ Weight the visibility data
 
     :param vis_list:
@@ -352,7 +352,7 @@ def weight_serial_workflow(vis_list, model_imagelist, weighting='uniform', **kwa
             for i in range(len(vis_list))]
 
 
-def zero_vislist_serial_workflow(vis_list):
+def zero_list_serial_workflow(vis_list):
     """ Initialise vis to zero: creates new data holders
 
     :param vis_list:
@@ -370,7 +370,7 @@ def zero_vislist_serial_workflow(vis_list):
     return [zero(v) for v in vis_list]
 
 
-def subtract_vislist_serial_workflow(vis_list, model_vislist):
+def subtract_list_serial_workflow(vis_list, model_vislist):
     """ Initialise vis to zero
 
     :param vis_list:
@@ -390,126 +390,3 @@ def subtract_vislist_serial_workflow(vis_list, model_vislist):
     return [subtract_vis(vis=vis_list[i],
                          model_vis=model_vislist[i])
             for i in range(len(vis_list))]
-
-
-def sum_invert_results(image_list):
-    """ Sum a set of invert results with appropriate weighting
-
-    :param image_list: List of [image, sum weights] pairs
-    :return: image, sum of weights
-    """
-    if len(image_list) == 1:
-        return image_list[0]
-    
-    first = True
-    sumwt = 0.0
-    im = None
-    for i, arg in enumerate(image_list):
-        if arg is not None:
-            if isinstance(arg[1], numpy.ndarray):
-                scale = arg[1][..., numpy.newaxis, numpy.newaxis]
-            else:
-                scale = arg[1]
-            if first:
-                im = copy_image(arg[0])
-                im.data *= scale
-                sumwt = arg[1]
-                first = False
-            else:
-                im.data += scale * arg[0].data
-                sumwt += arg[1]
-    
-    assert not first, "No invert results"
-    
-    im = normalize_sumwt(im, sumwt)
-    return im, sumwt
-
-
-def remove_sumwt(results):
-    """ Remove sumwt term in list of tuples (image, sumwt)
-
-    :param results:
-    :return: A list of just the dirty images
-    """
-    return [d[0] for d in results]
-
-
-def sum_predict_results(results):
-    """ Sum a set of predict results of the same shape
-
-    :param results: List of visibilities to be summed
-    :return: summed visibility
-    """
-    sum_results = None
-    for result in results:
-        if result is not None:
-            if sum_results is None:
-                sum_results = copy_visibility(result)
-            else:
-                assert sum_results.data['vis'].shape == result.data['vis'].shape
-                sum_results.data['vis'] += result.data['vis']
-    
-    return sum_results
-
-
-def threshold_list(results, threshold, fractional_threshold, use_moment0=True, prefix=''):
-    """ Find Threshold, optionally using moment 0
-
-    :param results:
-    :param use_moment0: Use moment 0 for threshold
-    :return:
-    """
-    peak = 0.0
-    for result in results:
-        if use_moment0:
-            moments = calculate_image_frequency_moments(result)
-            peak = max(peak, numpy.max(numpy.abs(moments.data[0, ...] / result.shape[0])))
-        else:
-            peak = max(peak, numpy.max(numpy.abs(result.data)))
-    
-    actual = max(peak * fractional_threshold, threshold)
-    
-    if use_moment0:
-        log.info("threshold_list %s: peak in moment 0 = %.6f, threshold will be %.6f" % (prefix, peak, actual))
-    else:
-        log.info("threshold_list %s: peak = %.6f, threshold will be %.6f" % (prefix, peak, actual))
-    
-    return actual
-
-
-def zero_vislist_serial_workflow(vis_list):
-    """ Initialise vis to zero: creates new data holders
-
-    :param vis_list:
-    :return: List of vis_lists
-   """
-    
-    def zero(vis):
-        if vis is not None:
-            zerovis = copy_visibility(vis)
-            zerovis.data['vis'][...] = 0.0
-            return zerovis
-        else:
-            return None
-    
-    return [zero(v) for v in vis_list]
-
-
-def subtract_vislist_serial_workflow(vis_list, model_vislist):
-    """ Initialise vis to zero
-
-    :param vis_list:
-    :param model_vislist: Model to be subtracted
-    :return: List of vis_lists
-   """
-    
-    def subtract_vis(vis, model_vis):
-        if vis is not None and model_vis is not None:
-            assert vis.vis.shape == model_vis.vis.shape
-            subvis = copy_visibility(vis)
-            subvis.data['vis'][...] -= model_vis.data['vis'][...]
-            return subvis
-        else:
-            return None
-    
-    return [subtract_vis(vis=vis_list[i], model_vis=model_vislist[i]) for i in range(len(vis_list))]
