@@ -16,7 +16,7 @@ from data_models.polarisation import PolarisationFrame
 
 from wrappers.serial.calibration.operations import qa_gaintable, create_gaintable_from_blockvisibility, apply_gaintable
 from wrappers.serial.image.operations import export_image_to_fits
-from libs.image.operations import copy_image, create_empty_image_like
+from processing_library.image.operations import copy_image, create_empty_image_like
 from wrappers.serial.imaging.base import predict_skycomponent_visibility, \
     create_image_from_visibility
 from wrappers.serial.skycomponent.operations import create_skycomponent, insert_skycomponent

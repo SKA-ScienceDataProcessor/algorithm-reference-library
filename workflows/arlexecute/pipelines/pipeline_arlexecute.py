@@ -7,8 +7,8 @@ from wrappers.arlexecute.execution_support.arlexecute import arlexecute
 
 from ..calibration.calibration_arlexecute import calibrate_list_arlexecute_workflow
 from ..imaging.imaging_arlexecute import invert_list_arlexecute_workflow, residual_list_arlexecute_workflow, \
-    predict_list_arlexecute_workflow, zero_list_arlexecute_workflow, subtract_list_arlexecute_workflow, restore_list_arlexecute_workflow, \
-    deconvolve_list_arlexecute_workflow
+    predict_list_arlexecute_workflow, zero_list_arlexecute_workflow, subtract_list_arlexecute_workflow, \
+    restore_list_arlexecute_workflow, deconvolve_list_arlexecute_workflow
 
 
 def ical_list_arlexecute_workflow(vis_list, model_imagelist, context='2d', calibration_context='TG', do_selfcal=True, **kwargs):

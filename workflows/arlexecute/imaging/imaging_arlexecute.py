@@ -4,7 +4,7 @@ Construction of the components requires that the number of nodes (e.g. w slices 
 rather than execution. To counteract this, at run time, a given node should be able to act as a no-op. We use None
 to denote a null node.
 
-The actual imaging code executed eventually is specified by the context variable (see libs.imaging.imaging)context.
+The actual imaging code executed eventually is specified by the context variable (see processing_library.imaging.imaging)context.
 These are the same as executed in the imaging framework.
 
 """
@@ -14,7 +14,7 @@ import logging
 
 import numpy
 
-from libs.image.operations import copy_image, create_empty_image_like
+from processing_library.image.operations import copy_image, create_empty_image_like
 from data_models.memory_data_models import Image
 from data_models.parameters import get_parameter
 from workflows.shared.imaging.imaging_shared import imaging_context

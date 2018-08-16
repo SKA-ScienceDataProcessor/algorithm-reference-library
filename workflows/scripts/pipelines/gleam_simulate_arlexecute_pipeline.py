@@ -53,7 +53,7 @@ def init_logging():
 
 if __name__ == '__main__':
     log = logging.getLogger()
-    logging.info("Starting gleam_simulate_arlexecute_pipeline")
+    logging.info("Starting gleam_simulate_list_arlexecute_pipeline")
     
     arlexecute.set_client(get_dask_Client())
     arlexecute.run(init_logging)

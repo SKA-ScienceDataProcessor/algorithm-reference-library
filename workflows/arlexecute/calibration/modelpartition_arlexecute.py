@@ -12,7 +12,7 @@ from wrappers.arlexecute.calibration.operations import copy_gaintable, apply_gai
 from wrappers.arlexecute.skymodel.operations import copy_skymodel
 from wrappers.arlexecute.visibility.coalesce import convert_blockvisibility_to_visibility
 from wrappers.arlexecute.visibility.base import copy_visibility
-from workflows.arlexecute.skymodel.skymodel_arlexecute import predict_skymodel_visibility_workflow
+#from wrappers.arlexecute.skymodel.skymodel_arlexecute import predict_skymodel_visibility
 from wrappers.arlexecute.skymodel.operations import solve_skymodel
 from workflows.arlexecute.imaging.imaging_arlexecute import sum_predict_results
 from wrappers.arlexecute.execution_support.arlexecute import arlexecute
@@ -104,7 +104,7 @@ def modelpartition_list_expectation_all_arlexecute_workflow(vislist, modelpartit
     
     def predict_and_apply(ovis, modelpartition):
         tvis = copy_visibility(ovis, zero=True)
-        tvis = predict_skymodel_visibility_workflow(tvis, modelpartition[0])
+ #       tvis = predict_skymodel_visibility_workflow(tvis, modelpartition[0])
         tvis = apply_gaintable(tvis, modelpartition[1])
         return tvis
     

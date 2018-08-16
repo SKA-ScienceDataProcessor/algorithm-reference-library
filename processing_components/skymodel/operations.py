@@ -6,7 +6,7 @@ import logging
 
 from data_models.memory_data_models import SkyModel
 
-from libs.image.operations import copy_image
+from processing_library.image.operations import copy_image
 from ..visibility.visibility_fitting import fit_visibility
 
 from ..skycomponent.base import copy_skycomponent

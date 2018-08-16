@@ -1,4 +1,4 @@
-""" Unit libs for FFT support
+""" Unit processing_library for FFT support
 
 
 """
@@ -7,8 +7,8 @@ import unittest
 
 from numpy.testing import assert_allclose
 
-from libs.fourier_transforms.fft_support import extract_mid, pad_mid, extract_oversampled
-from libs.fourier_transforms.convolutional_gridding import coordinates2
+from processing_library.fourier_transforms.fft_support import extract_mid, pad_mid, extract_oversampled
+from processing_library.fourier_transforms.convolutional_gridding import coordinates2
 
 
 class TestFFTSupport(unittest.TestCase):

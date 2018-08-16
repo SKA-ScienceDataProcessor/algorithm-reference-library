@@ -13,7 +13,7 @@ import numpy
 
 from data_models.memory_data_models import Image
 from data_models.parameters import get_parameter
-from libs.image.operations import copy_image, create_empty_image_like
+from processing_library.image.operations import copy_image, create_empty_image_like
 from processing_components.image.deconvolution import deconvolve_cube, restore_cube
 from processing_components.image.gather_scatter import image_scatter_facets, image_gather_facets, \
     image_scatter_channels, image_gather_channels

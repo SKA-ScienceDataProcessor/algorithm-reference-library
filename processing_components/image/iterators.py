@@ -10,10 +10,8 @@ import numpy
 
 from data_models.memory_data_models import Image
 
-from libs.image.operations import create_image_from_array
-from libs.util.array_functions import tukey_filter
-
-from ..image.operations import create_empty_image_like
+from processing_library.image.operations import create_image_from_array, create_empty_image_like
+from processing_library.util.array_functions import tukey_filter
 
 log = logging.getLogger(__name__)
 

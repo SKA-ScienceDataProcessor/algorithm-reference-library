@@ -10,10 +10,8 @@ import numpy
 
 from data_models.memory_data_models import Image
 
-from libs.image.operations import create_image_from_array
-
-from libs.image.iterators import image_raster_iter, image_channel_iter
-
+from ..image.operations import create_image_from_array
+from ..image.iterators import image_raster_iter, image_channel_iter
 from ..image.operations import create_empty_image_like
 
 log = logging.getLogger(__name__)

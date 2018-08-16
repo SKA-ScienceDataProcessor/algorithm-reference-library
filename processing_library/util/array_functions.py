@@ -137,7 +137,7 @@ def insert_function_L(x, a=5):
 
 
 def insert_function_pswf(x, a=5):
-    from libs.fourier_transforms.convolutional_gridding import grdsf
+    from processing_library.fourier_transforms.convolutional_gridding import grdsf
     return grdsf(abs(x) / a)[1]
 
 

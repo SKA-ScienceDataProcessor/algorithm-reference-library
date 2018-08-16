@@ -20,7 +20,7 @@ These are well-modeled in ARL. A example of three cycles of a major/minor cycle 
 
 
 In order that Dask.delayed processing can be switched on and off, and that the same code is used for Dask and
-non-Dask processing, we have wrapped Dask.delayed in :py:mod:`workflows.arlexecute.execution_support.arlexecute.arlexecute`.
+non-Dask processing, we have wrapped Dask.delayed in :py:mod:`wrappers.arlexecute.execution_support.arlexecute.arlexecute`.
 An example is::
 
         arlexecute.set_client(use_dask=True)
@@ -35,13 +35,13 @@ An example is::
                                         deconvolve_taper='tukey')
         clean, residual, restored = arlexecute.compute(continuum_imaging_list, sync=True)
 
-The function :py:mod:`workflows.arlexecute.execution_support.arlexecute.arlexecute.set_client` must be called
+The function :py:mod:`wrappers.arlexecute.execution_support.arlexecute.arlexecute.set_client` must be called
 before defining any components. If use_dask is True then a Dask graph is constructed for subsequent execution. If
 use_dask is False then the function is called immediately.
 
 The pipeline workflow
 :py:mod:`workflows.arlexecute.pipelines.pipeline_components.continuum_imaging_component` is itself assembled using the
-:py:mod:`workflows.arlexecute.execution_support.arlexecute.arlexecute.execute` function.
+:py:mod:`wrappers.arlexecute.execution_support.arlexecute.arlexecute.execute` function.
 
 The functions for creating graphs are:
 

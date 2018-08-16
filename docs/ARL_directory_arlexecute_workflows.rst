@@ -51,4 +51,4 @@ Visibility workflows
 Execution
 =========
 
-* Execution framework (an interface to Dask): :py:mod:`workflows.arlexecute.execution_support.arlexecute`
+* Execution framework (an interface to Dask): :py:mod:`wrappers.arlexecute.execution_support.arlexecute`

@@ -19,7 +19,7 @@ from data_models.memory_data_models import Visibility, Image
 from data_models.parameters import get_parameter
 from data_models.memory_data_models import BlockVisibility, GainTable, assert_vis_gt_compatible
 
-from libs.calibration.solvers import solve_from_X
+from processing_library.calibration.solvers import solve_from_X
 
 from ..visibility.base import create_visibility_from_rows
 from ..calibration.operations import apply_gaintable, create_gaintable_from_blockvisibility

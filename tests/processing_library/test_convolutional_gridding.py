@@ -1,4 +1,4 @@
-""" Unit libs for convolutional Gridding
+""" Unit processing_library for convolutional Gridding
 
 
 """
@@ -8,7 +8,7 @@ import unittest
 import numpy
 from numpy.testing import assert_allclose
 
-from libs.fourier_transforms.convolutional_gridding import w_beam, coordinates, \
+from processing_library.fourier_transforms.convolutional_gridding import w_beam, coordinates, \
     coordinates2, coordinateBounds, anti_aliasing_calculate, \
     convolutional_degrid, convolutional_grid
 

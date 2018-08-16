@@ -44,8 +44,8 @@ from data_models.memory_data_models import Configuration, Image, GainTable, Skyc
 from data_models.parameters import arl_path
 from data_models.parameters import get_parameter
 from data_models.polarisation import PolarisationFrame
-from libs.image.operations import create_image_from_array
-from libs.util.coordinate_support import xyz_at_latitude
+from processing_library.image.operations import create_image_from_array
+from processing_library.util.coordinate_support import xyz_at_latitude
 from processing_components.calibration.calibration_control import create_calibration_controls
 from processing_components.calibration.operations import create_gaintable_from_blockvisibility, apply_gaintable
 from processing_components.image.operations import create_empty_image_like, import_image_from_fits, reproject_image, \
@@ -432,7 +432,7 @@ def create_low_test_skycomponents_from_gleam(flux_limit=0.1, polarisation_frame=
     catalogue. Hurley-Walker N., et al., Mon. Not. R. Astron. Soc., 464, 1146-1167 (2017), 2017MNRAS.464.1146H
 
 
-    :rtype: Union[None, List[libs.data_models.data_models.Skycomponent], List]
+    :rtype: Union[None, List[processing_library.data_models.data_models.Skycomponent], List]
     :param flux_limit: Only write components brighter than this (Jy)
     :param polarisation_frame: Polarisation frame (default PolarisationFrame("stokesI"))
     :param frequency: Frequencies at which the flux will be estimated

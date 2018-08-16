@@ -17,4 +17,3 @@ Pipeline workflows
 ==================
 
 * ICAL: :py:mod:`workflows.serial.pipelines.pipeline_serial.ical_list_serial_workflow`
-* RCAL: :py:mod:`workflows.serial.pipelines.pipeline_serial.rcal_serial_workflow`
