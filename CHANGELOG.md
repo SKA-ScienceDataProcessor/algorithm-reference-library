@@ -1,8 +1,7 @@
-**August 16, 2018** [Tim] Closer alignment with SDP architecture.
+**August 16, 2018** [Tim] More refactoring to being closer alignment with SDP architecture.
 1. There are now wrappers for all processing components, both serial and 
 arlexecute. At the moment, these are just pass-throughs but the point is that they can
 be expanded as appropriate. The non-python wrappers will be more substantial.
-Use these in workflows.
 2. There are only workflows for calibration, imaging, and pipelines.
 3. To distinguish the nature of the workflows, these are now all called something like
 predict_list_arlexecute_workflow since they all work on lists of data models rather 

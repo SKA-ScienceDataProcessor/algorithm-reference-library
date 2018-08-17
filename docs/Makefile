@@ -52,7 +52,7 @@ help:
 .PHONY: clean
 clean:
 	rm -rf $(BUILDDIR)/* libs processing_components workflows
-	make -C ../libs/notebooks ../processing_components/notebooks #../workflows/notebooks clean
+	make -C ../processing_library/notebooks ../processing_components/notebooks ../workflows/notebooks clean
 
 make_example_rst = \
  make -C ../$1/notebooks rst && \
@@ -61,14 +61,13 @@ make_example_rst = \
  if ls ../$1/notebooks/$2 1> /dev/null 2>&1; then cp -R ../$1/notebooks/$2 $1/; fi
 
 .PHONY: prepare_libs prepare_processing_components prepare_workflows prepare 
-prepare_libs:
-	+$(call make_example_rst,libs,*_files)
+prepare_processing_library:
+	+$(call make_example_rst,processing_library,*_files)
 prepare_processing_components:
 	+$(call make_example_rst,processing_components,*_files)
 prepare_workflows:
 	+$(call make_example_rst,workflows,*_files)
-#prepare: prepare_libs prepare_processing_components prepare_workflows
-prepare: prepare_workflows
+prepare: prepare_processing_components prepare_workflows
 
 .PHONY: html
 html: prepare
