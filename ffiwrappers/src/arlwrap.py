@@ -12,9 +12,10 @@ from astropy import units as u
 
 from processing_components.calibration.operations import apply_gaintable, create_gaintable_from_blockvisibility, qa_gaintable
 from processing_components.visibility.base import create_visibility, copy_visibility, create_visibility_from_rows
+from processing_components.visibility.operations import qa_visibility
 from data_models.memory_data_models import ReceptorFrame
 from processing_components.image.deconvolution import deconvolve_cube, restore_cube
-from processing_components.imaging.base import create_image_from_visibility, predict_2d, invert_2d
+from processing_components.imaging.base import create_image_from_visibility, predict_2d, invert_2d, normalize_sumwt
 from processing_components.imaging.wstack_single import invert_wstack_single 
 from processing_components.imaging.base import advise_wide_field
 from processing_components.simulation.testing_support import create_named_configuration, create_test_image, create_low_test_image_from_gleam, simulate_gaintable
@@ -160,7 +161,8 @@ def arl_create_rows_ffi(lowconfig, vis_in, vis_slices, c_rows):
     print("rows_tmp array length :", len(rows_tmp), rows_tmp.shape, type(rows_tmp))
 
 #    for i in range(vis_slices):
-#        print(i, rows_tmp[i*rows_len : i*rows_len + 10])
+#        print(i, rows_tmp[i*rows_len : i*rows_len + 10], numpy.sum(rows_tmp[i*rows_len : (i+1)*rows_len -1]))
+    
 
 # Copy rows_tmp to c_rows and return to C program
     rows_buf = numpy.frombuffer(ff.buffer(c_rows,
@@ -168,7 +170,6 @@ def arl_create_rows_ffi(lowconfig, vis_in, vis_slices, c_rows):
                                  dtype=numpy.int32,
                                  count=vis_slices*rows_len)
     numpy.copyto(rows_buf, rows_tmp)
-
     #data = rows_tmp.__array_interface__['data'][0]
     #c_rows = ff.cast ( "int *" , data )
     #c_rows = ff.cast ( "int *" , rows_tmp.ctypes.data )
@@ -197,23 +198,26 @@ def arl_create_vis_from_rows_blockvis_ffi(lowconfig, vis_in, vis_out, cindex_out
 
 # Create visibility object
     svis = convert_blockvisibility_to_visibility(py_visin)
-    print("arl_create_vis_from_rows_blockvis_ffi nvis: ", svis.nvis)
-    print(type(svis.cindex), type(svis.blockvis))
+#    print("arl_create_vis_from_rows_blockvis_ffi nvis: ", svis.nvis)
+#    print(type(svis.cindex), type(svis.blockvis))
    
 
 # Create rows ndarray for this vis_slice
     rows_int = numpy.frombuffer(ff.buffer(c_rows, svis.nvis*4),dtype=numpy.int32,count=svis.nvis)
+#    print(rows_int[0 : 10], numpy.sum(rows_int))
 
 # Convert rows_int into boolean
     rows = rows_int.astype(bool)
-    print(len(rows), len(svis.cindex), len(svis.data), len(svis.blockvis.data))
+#    print(rows[0 : 10])
+
+#    print(len(rows), len(svis.cindex), len(svis.data), len(svis.blockvis.data))
 #    print("arl_create_vis_from_rows_blockvis_ffi rows: ", rows[0:10])
 
 # Create visslice from svis and rows
     visslice = create_visibility_from_rows(svis, rows)
 
 # Copy vis data, blockvis data and cindex to the c arrays
-    print(len(visslice.data), visslice.size(), len(visslice.blockvis.data), visslice.blockvis.size(), sum(rows))
+#    print(len(visslice.data), visslice.size(), len(visslice.blockvis.data), visslice.blockvis.size(), sum(rows))
 #    print(visslice)
 #    print(visslice.blockvis)
 
@@ -229,6 +233,8 @@ def arl_create_vis_from_rows_blockvis_ffi(lowconfig, vis_in, vis_out, cindex_out
 
 # Copy vis.blockvis.data to C blockvisibility blockvis_out.data
     numpy.copyto(py_blockvis_out, visslice.blockvis.data)
+
+#    print(qa_visibility(visslice, "arl_create_vis_from_rows_blockvis visslice"))
 
 # Copy vis.cindex to cindex_out
 #    numpy.copyto(py_cindex, visslice.cindex)
@@ -633,8 +639,8 @@ def arl_simulate_gaintable_ffi(lowconfig, gt):
 #    print("simulate_gaintable 1 nrec: ", py_gt.receptor_frame.nrec)
 #    print(py_gt.data['gain'].shape, py_gt.data['weight'].shape, py_gt.data['residual'].shape, py_gt.data['time'].shape)
 
-    py_gt = simulate_gaintable(py_gt, phase_error = 1.0)
-#    py_gt = simulate_gaintable(py_gt, phase_error = 0.0)
+#    py_gt = simulate_gaintable(py_gt, phase_error = 1.0)
+    py_gt = simulate_gaintable(py_gt, phase_error = 0.0)
 
 #    print("simulate_gaintable np.sum(gt.data): ", numpy.sum(py_gt.data['gain']))
 
@@ -1126,8 +1132,8 @@ def arl_invert_function_ffi(lowconfig, vis_in, img, vis_slices, img_dirty):
 arl_invert_function=collections.namedtuple("FFIX", "address")
 arl_invert_function.address=int(ff.cast("size_t", arl_invert_function_ffi))
 
-@ff.callback("void (*)(ARLConf *, const ARLVis *, const ARLVis *, Image *, int, Image *)")
-def arl_invert_function_oneslice_ffi(lowconfig, vis_in, blockvis_in, img, vis_slices, img_dirty):
+@ff.callback("void (*)(ARLConf *, const ARLVis *, const ARLVis *, Image *, int, Image *, double *)")
+def arl_invert_function_oneslice_ffi(lowconfig, vis_in, blockvis_in, img, vis_slices, img_dirty, c_sumwt):
 # Creating configuration
     lowcore_name = str(ff.string(lowconfig.confname), 'utf-8')
     lowcore = create_named_configuration(lowcore_name, rmax=lowconfig.rmax)
@@ -1152,18 +1158,24 @@ def arl_invert_function_oneslice_ffi(lowconfig, vis_in, blockvis_in, img, vis_sl
     py_blockvisin.polarisation_frame = PolarisationFrame(polframe)
 
     py_visin.blockvis = py_blockvisin
-
+#    print(qa_visibility(py_visin, "arl_invert_function_oneslice py_visin"))
+#    print(py_visin)
 # Re-creating images 
     py_img = cImage(img)
     py_img_dirty = cImage(img_dirty, new=True)
+#    print(qa_image(py_img, "arl_invert_function_oneslice py_img"))
 
 # Calling invert_finction()
 #    export_blockvisibility_to_hdf5(py_visin, '%s/py_visin_invert_function.hdf'%(results_dir))
 #    export_image_to_hdf5(py_img, '%s/model_invert_function.hdf'%(results_dir))
 #    print("arl_invert_function vis_slices: ", vis_slices)
 
-    dirty, sumwt = invert_wstack_single(py_visin, py_img, vis_slices=vis_slices, dopsf=False, context='wstack')
+    dirty, sumwt = invert_wstack_single(py_visin, py_img, vis_slices=1, dopsf=False, context='wstack', normalize=False)
     nchan, npol, ny, nx = dirty.data.shape
+#    print("arl_invert_function_oneslice sumwt: ", sumwt, sumwt.shape)
+# Copy sumwt to c_sumwt (total weight for the normalization)
+    py_sumwt = numpy.frombuffer(ff.buffer(c_sumwt, nchan*npol*8),dtype=numpy.float64,count=nchan*npol)
+    numpy.copyto(py_sumwt, sumwt)
 
 #    dirty.wcs.wcs.crval[0] = py_visin.phasecentre.ra.deg
 #    dirty.wcs.wcs.crval[1] = py_visin.phasecentre.dec.deg
@@ -1172,6 +1184,7 @@ def arl_invert_function_oneslice_ffi(lowconfig, vis_in, blockvis_in, img, vis_sl
 
 # Copy Python dirty image into C image
     store_image_in_c(py_img_dirty, dirty)
+#    print(qa_image(dirty, "arl_invert_function_oneslice dirty"))
 
 arl_invert_function_oneslice=collections.namedtuple("FFIX", "address")
 arl_invert_function_oneslice.address=int(ff.cast("size_t", arl_invert_function_oneslice_ffi))
@@ -1293,6 +1306,24 @@ def arl_invert_function_psf_ffi(lowconfig, vis_in, img, vis_slices, img_psf):
 arl_invert_function_psf=collections.namedtuple("FFIX", "address")
 arl_invert_function_psf.address=int(ff.cast("size_t", arl_invert_function_psf_ffi))
 
+@ff.callback("void (*)(Image *, double *)")
+def arl_normalize_sumwt_ffi(dirty, sumwt):
+    c_dirty = cImage(dirty)
+    nchan, npol, ny, nx = c_dirty.data.shape
+    print("arl_normalize_sumwt nchan, npol: ", nchan, npol)
+
+# Copy sumwt to c_sumwt (total weight for the normalization)
+    py_sumwt = numpy.frombuffer(ff.buffer(sumwt, nchan*npol*8),dtype=numpy.float64,count=nchan*npol)
+    py_sumwt = py_sumwt.reshape((nchan,npol))
+    print("arl_normalize_sumwt py_sumwt: ", py_sumwt, py_sumwt.shape)
+    
+    py_result = normalize_sumwt(c_dirty, py_sumwt)
+
+    numpy.copyto(c_dirty.data, py_result.data)
+#    store_image_in_c(c_dirty, py_result)
+
+arl_normalize_sumwt=collections.namedtuple("FFIX", "address")    
+arl_normalize_sumwt.address=int(ff.cast("size_t", arl_normalize_sumwt_ffi))    
 
 
 @ff.callback("void (*)(ARLConf *, const ARLVis *, Image *, int, Image *, Image *, Image *)")

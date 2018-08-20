@@ -129,7 +129,7 @@ void arl_predict_function(ARLConf *lowconf, const ARLVis *visin, const Image *im
 void arl_predict_function_ical(ARLConf *lowconf, ARLVis *visinout, const Image *img, ARLVis *blockvisinout, long long int *cindexinout, int vis_slices);
 
 void arl_invert_function(ARLConf * lowconf, const ARLVis *visin, Image * img_model, int vis_slices, Image * img_dirty);
-void arl_invert_function_oneslice(ARLConf * lowconf, const ARLVis *visin, const ARLVis *blockvisin, Image * img_model, int vis_slices, Image * img_dirty);
+void arl_invert_function_oneslice(ARLConf * lowconf, const ARLVis *visin, const ARLVis *blockvisin, Image * img_model, int vis_slices, Image * img_dirty, double * sumwt);
 void arl_invert_function_psf(ARLConf * lowconf, const ARLVis *visin, Image * img_model, int vis_slices, Image * img_dirty);
 void arl_invert_function_ical(ARLConf *lowconf, const ARLVis *visin, Image * img_model, int vis_slices, Image * img_dirty);
 
@@ -152,6 +152,7 @@ void arl_add_to_model(Image* model, Image* res);
 void arl_invert_function_blockvis(ARLConf * lowconf, const ARLVis *blockvisin, Image * img_model, int vis_slices, Image * img_dirty);
 void arl_create_rows(ARLConf * lowconf, const ARLVis * visin, int vis_slices, int * c_rows);
 void arl_create_vis_from_rows_blockvis(ARLConf * lowconf, const ARLVis * visin, ARLVis * visout, long long int * cindexout, ARLVis * blockvisout,  int * c_rows);
+void arl_normalize_sumwt(Image *dirty, double* sumwt);
 
 /** Initialise the ARL library
  */

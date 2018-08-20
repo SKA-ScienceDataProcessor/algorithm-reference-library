@@ -56,8 +56,9 @@ int main(int argc, char **argv)
 	int status;
 	int nvis;
 
-	int wprojection_planes, i, nmajor, first_selfcal;
+	int wprojection_planes, i, j, isum, nmajor, first_selfcal;
 	double fstart, fend, fdelta, tstart, tend, tdelta, rmax, thresh;
+	double *totalwt, *totalwt_slice;
 	ARLadvice adv;
 	ant_t nb;			//nant and nbases
 	long long int *cindex_predict, *cindex_ical, *cindex2_ical;
@@ -170,6 +171,11 @@ int main(int argc, char **argv)
 	adv.wprojection_planes = 1;
 	printf("Calculating wide field parameters... ");
 	arl_advise_wide_field(lowconfig, vt, &adv);
+
+///////////////// To be removed later
+//	adv.vis_slices = 2;
+////////////////
+
 	printf("Done.\n");
 	printf("Vis_slices = %d,  npixel = %d, cellsize = %e\n", adv.vis_slices, adv.npixel, adv.cellsize);
 	cellsize = adv.cellsize;
@@ -228,20 +234,59 @@ int main(int argc, char **argv)
 
 	if(unrolled) {
 
+
+// Allocate total weight arrays for the normalization and set them to zero
+		
+		if(!(totalwt = calloc(shape1[0]*shape1[1],sizeof(double)))) {
+			free(totalwt);
+			return -1;
+		}
+
+		if(!(totalwt_slice = calloc(shape1[0]*shape1[1],sizeof(double)))) {
+			free(totalwt_slice);
+			return -1;
+		}
+
 // Create all rows arrays for each vis_slice, a single rows array for a particular vis_slice can be extracted using
 // a pointer arithmetics, e.g. *(c_rows + i*nvis) where i is vis_slice	
+
 		arl_create_rows(lowconfig, vt_gt, adv.vis_slices, c_rows);
-// A loop over the visibility slices with precompiled rows = *(c_rows + i*nvis)
 		for( i = 0; i < adv.vis_slices; i++) {
-			printf("Vis slice %d\n", i);
+			printf("%d [", i);
+			isum = 0;
+			for(j = 0; j < nvis; j++) {
+				if (j < 10) printf("%d ", *(c_rows + i*nvis +j));
+				isum += *(c_rows + i*nvis +j);
+				}
+			printf("] %d\n", isum);
+		}
+// A loop over the visibility slices with precompiled rows = *(c_rows + i*nvis)
+		arl_create_visibility(lowconfig, visslice);
+		for( i = 0; i < adv.vis_slices; i++) {
+			printf("Vis slice %d, ", i);
+//			arl_set_visibility_data_to_zero(lowconfig, visslice);			
 			arl_create_vis_from_rows_blockvis(lowconfig, vt_gt, visslice, cindex_predict, vt, (c_rows + i*nvis));
-			arl_invert_function_oneslice(lowconfig, visslice, vt, model, adv.vis_slices, dirty_slice);
+			printf(" nvis = %d\n", visslice->nvis);
+			arl_invert_function_oneslice(lowconfig, visslice, vt, model, adv.vis_slices, dirty_slice, totalwt_slice);
+			printf("Total weights:\n");
+			for (int i1 = 0; i1 < shape1[0]; i1++) {
+				for (int j1 = 0; j1 < shape1[1]; j1++) {
+					totalwt[i1*shape[1]+j1] += totalwt_slice[i1*shape[1]+j1];
+					printf("%d %d %f %f\n", i1, j1, totalwt[i1*shape[1]+j1], totalwt_slice[i1*shape[1]+j1]);
+				}
+			}
 			arl_add_to_model(dirty, dirty_slice);
 		}
+// Normalize the resulting image
+		arl_normalize_sumwt(dirty, totalwt);
+
+// Free total weight arrays
+		free(totalwt);
+		free(totalwt_slice);
 
 		} else {		
 	// Original function
-		arl_invert_function_blockvis(lowconfig, vt_gt, model, adv.vis_slices, dirty);
+			arl_invert_function_blockvis(lowconfig, vt_gt, model, adv.vis_slices, dirty);
 		}
 	// FITS file output
 	status = export_image_to_fits_c(dirty, "!results/ical_c_api-dirty.fits");
