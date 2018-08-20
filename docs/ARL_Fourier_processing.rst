@@ -27,17 +27,16 @@ The full layering is:
 + The core 2d imaging functions are defined in :py:mod:`processing_components.imaging.base`. W projection is included
     at this level by setting wstep to the desired non-zero value.
 
-+ Other algorithms (e.g. timeslice and wstack) are implemented as functions using the core 2d imaging functions.
-    These are defined in :py:mod:`processing_components.imaging.imaging_functions`
-
-+ Graph based algorithms are defined in :py:mod:`processing_components.imaging.imaging_components`
++ Other algorithms (e.g. timeslice and wstack) are implemented as workflowss using the core 2d imaging functions.
+    These are defined in :py:mod:`workflows.serial.imaging.imaging_serial` and
+    :py:mod:`workflows.arlexecute.imaging.imaging_arlexecute`
 
 The style of first approach is::
 
         m31model=create_test_image()
         for ipatch in image_raster_iter(m31model, facets=4):
             # each image patch can be used to add to the visibility data
-            vis + = predict_2dvis, ipatch)
+            vis.data['vis'] += predict_2d(vis, ipatch).data['vis'].data
 
 This relies upon the data objects (model and vis) possessing sufficient meta data to enable operations such as phase
 rotation from one frame to another.
