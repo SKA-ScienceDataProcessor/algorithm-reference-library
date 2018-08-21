@@ -84,6 +84,17 @@ typedef struct {
 } ARLConf;
 """)
 
+ff.cdef("""
+typedef struct {
+	int vis_slices;
+	int npixel;
+	double cellsize;
+	double guard_band_image;
+	double delA;
+	int wprojection_planes;
+} ARLadvice ;
+""")
+
 
 
 #@ff.callback("void (*)(const ARLVis *, ARLVis *, bool)")
@@ -118,7 +129,7 @@ def arl_handle_error_ffi():
 arl_handle_error=collections.namedtuple("FFIX", "address")    
 arl_handle_error.address=int(ff.cast("size_t", arl_handle_error_ffi))    
 
-@ff.callback("void (*)(ARLConf *, const ARLVis *, ARLVis *, int)")
+@ff.callback("void (*)(ARLConf *, const ARLVis *, ARLVis *, int)", onerror=handle_error)
 def arl_copy_visibility_ffi(lowconfig, vis_in, vis_out, zero_in):
 # Convert the input blockvisibilities into the ARL structure
 
@@ -158,7 +169,7 @@ arl_copy_visibility=collections.namedtuple("FFIX", "address")
 arl_copy_visibility.address=int(ff.cast("size_t", arl_copy_visibility_ffi))    
 
 
-@ff.callback("void (*)(ARLConf *, const ARLVis *, ARLVis *, int)")
+@ff.callback("void (*)(ARLConf *, const ARLVis *, ARLVis *, int)", onerror=handle_error)
 def arl_copy_blockvisibility_ffi(lowconfig, blockvis_in, blockvis_out, zero_in):
 # Convert the input blockvisibilities into the ARL structure
 
@@ -198,7 +209,7 @@ def arl_copy_blockvisibility_ffi(lowconfig, blockvis_in, blockvis_out, zero_in):
 arl_copy_blockvisibility=collections.namedtuple("FFIX", "address")    
 arl_copy_blockvisibility.address=int(ff.cast("size_t", arl_copy_blockvisibility_ffi))    
 
-@ff.callback("void (*)(ARLConf *, ARLVis *)")
+@ff.callback("void (*)(ARLConf *, ARLVis *)", onerror=handle_error)
 def arl_set_visibility_data_to_zero_ffi(lowconfig, vis_in):
     lowcore_name = str(ff.string(lowconfig.confname), 'utf-8')
     lowcore = create_named_configuration(lowcore_name, rmax=lowconfig.rmax)
@@ -219,7 +230,7 @@ def arl_set_visibility_data_to_zero_ffi(lowconfig, vis_in):
 arl_set_visibility_data_to_zero=collections.namedtuple("FFIX", "address")
 arl_set_visibility_data_to_zero.address=int(ff.cast("size_t", arl_set_visibility_data_to_zero_ffi))
 
-@ff.callback("void (*)(ARLConf *, const ARLVis *, const ARLVis *, ARLVis *, int)")
+@ff.callback("void (*)(ARLConf *, const ARLVis *, const ARLVis *, ARLVis *, int)", onerror=handle_error)
 def arl_manipulate_visibility_data_ffi(lowconfig, vis1_in, vis2_in, vis_out, operation):
     lowcore_name = str(ff.string(lowconfig.confname), 'utf-8')
     lowcore = create_named_configuration(lowcore_name, rmax=lowconfig.rmax)
@@ -293,7 +304,7 @@ arl_add_to_model=collections.namedtuple("FFIX", "address")
 arl_add_to_model.address=int(ff.cast("size_t", arl_add_to_model_ffi))
 
 
-@ff.callback("void (*)(ARLConf *, ARLVis *)")
+@ff.callback("void (*)(ARLConf *, ARLVis *)", onerror=handle_error)
 def arl_create_visibility_ffi(lowconfig, c_res_vis):
     lowcore_name = str(ff.string(lowconfig.confname), 'utf-8')
 # Temp fix for ffi_demo
@@ -330,7 +341,7 @@ def arl_create_visibility_ffi(lowconfig, c_res_vis):
 arl_create_visibility=collections.namedtuple("FFIX", "address")
 arl_create_visibility.address=int(ff.cast("size_t", arl_create_visibility_ffi))
 
-@ff.callback("void (*)(ARLConf *, ARLVis *)",onerror=handle_error)
+@ff.callback("void (*)(ARLConf *, ARLVis *)", onerror=handle_error)
 def arl_create_blockvisibility_ffi(lowconfig, c_res_vis):
     lowcore_name = str(ff.string(lowconfig.confname), 'utf-8')
     print(lowconfig.rmax)
@@ -368,7 +379,7 @@ def arl_create_blockvisibility_ffi(lowconfig, c_res_vis):
 arl_create_blockvisibility=collections.namedtuple("FFIX", "address")
 arl_create_blockvisibility.address=int(ff.cast("size_t", arl_create_blockvisibility_ffi))
 
-@ff.callback("void (*)(ARLConf *, const ARLVis *, const ARLVis *, long long int *, ARLVis *)")
+@ff.callback("void (*)(ARLConf *, const ARLVis *, const ARLVis *, long long int *, ARLVis *)", onerror=handle_error)
 def arl_convert_visibility_to_blockvisibility_ffi(lowconfig, vis_in, blockvis_in, cindex_in, blockvis_out):
     lowcore_name = str(ff.string(lowconfig.confname), 'utf-8')
     lowcore = create_named_configuration(lowcore_name, rmax=lowconfig.rmax)
@@ -408,7 +419,7 @@ def arl_convert_visibility_to_blockvisibility_ffi(lowconfig, vis_in, blockvis_in
 arl_convert_visibility_to_blockvisibility=collections.namedtuple("FFIX", "address")
 arl_convert_visibility_to_blockvisibility.address=int(ff.cast("size_t", arl_convert_visibility_to_blockvisibility_ffi))
 
-@ff.callback("void (*)(ARLConf *, const ARLVis *, ARLVis *, long long int *, ARLVis *)")
+@ff.callback("void (*)(ARLConf *, const ARLVis *, ARLVis *, long long int *, ARLVis *)", onerror=handle_error)
 def arl_convert_blockvisibility_to_visibility_ffi(lowconfig, blockvis_in, vis_out, cindex_out, blockvis_out):
 # Create configuration object
     lowcore_name = str(ff.string(lowconfig.confname), 'utf-8')
@@ -453,7 +464,7 @@ arl_convert_blockvisibility_to_visibility=collections.namedtuple("FFIX", "addres
 arl_convert_blockvisibility_to_visibility.address=int(ff.cast("size_t", arl_convert_blockvisibility_to_visibility_ffi))
 
 
-@ff.callback("void (*)(ARLConf *, const ARLVis *, ARLGt *)")
+@ff.callback("void (*)(ARLConf *, const ARLVis *, ARLGt *)", onerror=handle_error)
 def arl_create_gaintable_from_blockvisibility_ffi(lowconfig, blockvis_in, gt_out):
     lowcore_name = str(ff.string(lowconfig.confname), 'utf-8')
     lowcore = create_named_configuration(lowcore_name, rmax=lowconfig.rmax)
@@ -488,7 +499,7 @@ arl_create_gaintable_from_blockvisibility=collections.namedtuple("FFIX", "addres
 arl_create_gaintable_from_blockvisibility.address=int(ff.cast("size_t", arl_create_gaintable_from_blockvisibility_ffi))
 
 
-@ff.callback("void (*)(ARLConf *, ARLGt *)")
+@ff.callback("void (*)(ARLConf *, ARLGt *)", onerror=handle_error)
 def arl_simulate_gaintable_ffi(lowconfig, gt):
     lowcore_name = str(ff.string(lowconfig.confname), 'utf-8')
     lowcore = create_named_configuration(lowcore_name, rmax=lowconfig.rmax)
@@ -522,7 +533,7 @@ def arl_simulate_gaintable_ffi(lowconfig, gt):
 arl_simulate_gaintable=collections.namedtuple("FFIX", "address")
 arl_simulate_gaintable.address=int(ff.cast("size_t", arl_simulate_gaintable_ffi))
 
-@ff.callback("void (*)(ARLConf *, const ARLVis *, ARLGt *, ARLVis *, int )")
+@ff.callback("void (*)(ARLConf *, const ARLVis *, ARLGt *, ARLVis *, int )", onerror=handle_error)
 def arl_apply_gaintable_ffi(lowconfig, blockvis_in, gt, blockvis_out, inverse_in):
     
     if inverse_in == 0:
@@ -562,7 +573,7 @@ def arl_apply_gaintable_ffi(lowconfig, blockvis_in, gt, blockvis_out, inverse_in
 arl_apply_gaintable=collections.namedtuple("FFIX", "address")
 arl_apply_gaintable.address=int(ff.cast("size_t", arl_apply_gaintable_ffi))
 
-@ff.callback("void (*)(ARLConf *, ARLVis *, ARLGt *, int )")
+@ff.callback("void (*)(ARLConf *, ARLVis *, ARLGt *, int )", onerror=handle_error)
 def arl_apply_gaintable_ical_ffi(lowconfig, blockvis_in, gt, inverse_in):
     
     if inverse_in == 0:
@@ -600,7 +611,7 @@ def arl_apply_gaintable_ical_ffi(lowconfig, blockvis_in, gt, inverse_in):
 arl_apply_gaintable_ical=collections.namedtuple("FFIX", "address")
 arl_apply_gaintable_ical.address=int(ff.cast("size_t", arl_apply_gaintable_ical_ffi))
 
-@ff.callback("void (*)(ARLConf *, const ARLVis *, const ARLVis *, ARLGt *, int )")
+@ff.callback("void (*)(ARLConf *, const ARLVis *, const ARLVis *, ARLGt *, int )", onerror=handle_error)
 def arl_solve_gaintable_ical_ffi(lowconfig, blockvis_in, blockvis_pred, gt, vis_slices):
     lowcore_name = str(ff.string(lowconfig.confname), 'utf-8')
     lowcore = create_named_configuration(lowcore_name, rmax=lowconfig.rmax)
@@ -646,18 +657,7 @@ arl_solve_gaintable_ical=collections.namedtuple("FFIX", "address")
 arl_solve_gaintable_ical.address=int(ff.cast("size_t", arl_solve_gaintable_ical_ffi))
 
 
-ff.cdef("""
-typedef struct {
-	int vis_slices;
-	int npixel;
-	double cellsize;
-	double guard_band_image;
-	double delA;
-	int wprojection_planes;
-} ARLadvice ;
-""")
-
-@ff.callback("void (*)(ARLConf *, ARLVis *, ARLadvice *)")
+@ff.callback("void (*)(ARLConf *, ARLVis *, ARLadvice *)", onerror=handle_error)
 def arl_advise_wide_field_ffi(lowconfig, vis_in, adv):
     lowcore_name = str(ff.string(lowconfig.confname), 'utf-8')
     lowcore = create_named_configuration(lowcore_name, rmax=lowconfig.rmax)
@@ -681,7 +681,7 @@ def arl_advise_wide_field_ffi(lowconfig, vis_in, adv):
     adv.cellsize = advice['cellsize']
     adv.vis_slices = advice['vis_slices']
     adv.npixel = advice['npixels2']
-	
+
 arl_advise_wide_field=collections.namedtuple("FFIX", "address")
 arl_advise_wide_field.address=int(ff.cast("size_t", arl_advise_wide_field_ffi))
 
@@ -692,7 +692,7 @@ typedef struct {int nant, nbases;} ant_t;
 
 # Get the number of baselines for the given configuration
 # WARING!!! rmax is missing ! -ToDo
-@ff.callback("void (*) (char*, ant_t *)")
+@ff.callback("void (*) (char*, ant_t *)", onerror=handle_error)
 def helper_get_nbases_ffi(config_name, nbases_in):
     tconfig_name = str(ff.string(config_name), 'utf-8')
     lowcore = create_named_configuration(tconfig_name)
@@ -716,7 +716,7 @@ def helper_get_nbases_rmax_ffi(config_name, rmax, nbases_in):
 helper_get_nbases_rmax=collections.namedtuple("FFIX", "address")    
 helper_get_nbases_rmax.address=int(ff.cast("size_t", helper_get_nbases_rmax_ffi))  
 
-@ff.callback("void (*)(ARLConf *, double, int, int *)")
+@ff.callback("void (*)(ARLConf *, double, int, int *)", onerror=handle_error)
 def helper_get_image_shape_multifreq_ffi(lowconfig, cellsize, npixel, c_shape):
     frequency = numpy.frombuffer(ff.buffer(lowconfig.freqs, 8*lowconfig.nfreqs), dtype='f8', count=lowconfig.nfreqs)
     channel_bandwidth = numpy.frombuffer(ff.buffer(lowconfig.channel_bandwidth, 8*lowconfig.nchanwidth), dtype='f8', count=lowconfig.nchanwidth)
@@ -734,7 +734,7 @@ helper_get_image_shape_multifreq=collections.namedtuple("FFIX", "address")
 helper_get_image_shape_multifreq.address=int(ff.cast("size_t", helper_get_image_shape_multifreq_ffi))
 
 # TODO temporary until better solution found
-@ff.callback("void (*)(const double *, double, int *)")
+@ff.callback("void (*)(const double *, double, int *)", onerror=handle_error)
 def helper_get_image_shape_ffi(freq, cellsize, c_shape):
     res = create_test_image(freq, cellsize)
 
@@ -760,7 +760,7 @@ helper_get_image_shape.address=int(ff.cast("size_t", helper_get_image_shape_ffi)
 #helper_set_image_params=collections.namedtuple("FFIX", "address")
 #helper_set_image_params.address=int(ff.cast("size_t", helper_set_image_params_ffi))
 
-@ff.callback("void (*)(const double *, double, char*, Image *)")
+@ff.callback("void (*)(const double *, double, char*, Image *)", onerror=handle_error)
 def arl_create_test_image_ffi(frequency, cellsize, c_phasecentre, out_img):
     py_outimg = cImage(out_img, new=True)
 
@@ -780,7 +780,7 @@ def arl_create_test_image_ffi(frequency, cellsize, c_phasecentre, out_img):
 arl_create_test_image=collections.namedtuple("FFIX", "address")
 arl_create_test_image.address=int(ff.cast("size_t", arl_create_test_image_ffi))
 
-@ff.callback("void (*)(ARLConf *, double, int, char*, Image *)")
+@ff.callback("void (*)(ARLConf *, double, int, char*, Image *)", onerror=handle_error)
 def arl_create_low_test_image_from_gleam_ffi(lowconfig, cellsize, npixel, c_phasecentre, out_img):
     py_outimg = cImage(out_img, new=True)
     frequency = numpy.frombuffer(ff.buffer(lowconfig.freqs, 8*lowconfig.nfreqs), dtype='f8', count=lowconfig.nfreqs)
@@ -808,7 +808,7 @@ arl_create_low_test_image_from_gleam=collections.namedtuple("FFIX", "address")
 arl_create_low_test_image_from_gleam.address=int(ff.cast("size_t", arl_create_low_test_image_from_gleam_ffi))
 
 
-@ff.callback("void (*)(const ARLVis *, const Image *, ARLVis *)")
+@ff.callback("void (*)(const ARLVis *, const Image *, ARLVis *)", onerror=handle_error)
 def arl_predict_2d_ffi(vis_in, img, vis_out):
     c_visin = cARLVis(vis_in)
     py_visin = helper_create_visibility_object(c_visin)
@@ -832,7 +832,7 @@ arl_predict_2d=collections.namedtuple("FFIX", "address")
 arl_predict_2d.address=int(ff.cast("size_t", arl_predict_2d_ffi))
 
 
-@ff.callback("void (*)(ARLConf *, const ARLVis *, const Image *, ARLVis *, ARLVis *, long long int *)",onerror=handle_error)
+@ff.callback("void (*)(ARLConf *, const ARLVis *, const Image *, ARLVis *, ARLVis *, long long int *)", onerror=handle_error)
 def arl_predict_function_ffi(lowconfig, vis_in, img, vis_out, blockvis_out, cindex_out):
 
     lowcore_name = str(ff.string(lowconfig.confname), 'utf-8')
@@ -876,7 +876,7 @@ def arl_predict_function_ffi(lowconfig, vis_in, img, vis_out, blockvis_out, cind
 arl_predict_function=collections.namedtuple("FFIX", "address")
 arl_predict_function.address=int(ff.cast("size_t", arl_predict_function_ffi))
 
-@ff.callback("void (*)(ARLConf *, ARLVis *, const Image *)",onerror=handle_error)
+@ff.callback("void (*)(ARLConf *, ARLVis *, const Image *)", onerror=handle_error)
 def arl_predict_function_blockvis_ffi(lowconfig, vis_in, img):
 
     lowcore_name = str(ff.string(lowconfig.confname), 'utf-8')
@@ -917,7 +917,7 @@ def arl_predict_function_blockvis_ffi(lowconfig, vis_in, img):
 arl_predict_function_blockvis=collections.namedtuple("FFIX", "address")
 arl_predict_function_blockvis.address=int(ff.cast("size_t", arl_predict_function_blockvis_ffi))
 
-@ff.callback("void (*)(ARLConf *, ARLVis *, const Image *, ARLVis *, long long int *, int)")
+@ff.callback("void (*)(ARLConf *, ARLVis *, const Image *, ARLVis *, long long int *, int)", onerror=handle_error)
 def arl_predict_function_ical_ffi(lowconfig, vis_inout, img, blockvis_inout, cindex_inout, vis_slices):
 
     lowcore_name = str(ff.string(lowconfig.confname), 'utf-8')
@@ -961,7 +961,7 @@ arl_predict_function_ical=collections.namedtuple("FFIX", "address")
 arl_predict_function_ical.address=int(ff.cast("size_t", arl_predict_function_ical_ffi))
 
 
-@ff.callback("void (*)(ARLConf *, const ARLVis *, Image *, int, Image *)")
+@ff.callback("void (*)(ARLConf *, const ARLVis *, Image *, int, Image *)", onerror=handle_error)
 def arl_invert_function_ffi(lowconfig, vis_in, img, vis_slices, img_dirty):
 # Creating configuration
     lowcore_name = str(ff.string(lowconfig.confname), 'utf-8')
@@ -1001,7 +1001,7 @@ def arl_invert_function_ffi(lowconfig, vis_in, img, vis_slices, img_dirty):
 arl_invert_function=collections.namedtuple("FFIX", "address")
 arl_invert_function.address=int(ff.cast("size_t", arl_invert_function_ffi))
 
-@ff.callback("void (*)(ARLConf *, const ARLVis *, Image *, int, Image *)")
+@ff.callback("void (*)(ARLConf *, const ARLVis *, Image *, int, Image *)", onerror=handle_error)
 def arl_invert_function_blockvis_ffi(lowconfig, vis_in, img, vis_slices, img_dirty):
 # Creating configuration
     lowcore_name = str(ff.string(lowconfig.confname), 'utf-8')
@@ -1039,7 +1039,7 @@ def arl_invert_function_blockvis_ffi(lowconfig, vis_in, img, vis_slices, img_dir
 arl_invert_function_blockvis=collections.namedtuple("FFIX", "address")
 arl_invert_function_blockvis.address=int(ff.cast("size_t", arl_invert_function_blockvis_ffi))
 
-@ff.callback("void (*)(ARLConf *, const ARLVis *, Image *, int, Image *)")
+@ff.callback("void (*)(ARLConf *, const ARLVis *, Image *, int, Image *)", onerror=handle_error)
 def arl_invert_function_ical_ffi(lowconfig, vis_in, img, vis_slices, img_dirty):
 # Creating configuration
     lowcore_name = str(ff.string(lowconfig.confname), 'utf-8')
@@ -1079,7 +1079,7 @@ arl_invert_function_ical=collections.namedtuple("FFIX", "address")
 arl_invert_function_ical.address=int(ff.cast("size_t", arl_invert_function_ical_ffi))
 
 
-@ff.callback("void (*)(ARLConf *, const ARLVis *, Image *, int, Image *)")
+@ff.callback("void (*)(ARLConf *, const ARLVis *, Image *, int, Image *)", onerror=handle_error)
 def arl_invert_function_psf_ffi(lowconfig, vis_in, img, vis_slices, img_psf):
 # Creating configuration
     lowcore_name = str(ff.string(lowconfig.confname), 'utf-8')
@@ -1119,7 +1119,7 @@ arl_invert_function_psf.address=int(ff.cast("size_t", arl_invert_function_psf_ff
 
 
 
-@ff.callback("void (*)(ARLConf *, const ARLVis *, Image *, int, Image *, Image *, Image *)")
+@ff.callback("void (*)(ARLConf *, const ARLVis *, Image *, int, Image *, Image *, Image *)", onerror=handle_error)
 def arl_ical_ffi(lowconfig, blockvis_in, img_model, vis_slices, img_deconvolved, img_residual, img_restored):
 # Creating configuration
     lowcore_name = str(ff.string(lowconfig.confname), 'utf-8')
@@ -1193,7 +1193,7 @@ def arl_invert_2d_ffi(invis, in_image, dopsf, out_image, sumwt):
 arl_invert_2d=collections.namedtuple("FFIX", "address")
 arl_invert_2d.address=int(ff.cast("size_t", arl_invert_2d_ffi))
 
-@ff.callback("void (*)(const ARLVis *, Image *)")
+@ff.callback("void (*)(const ARLVis *, Image *)", onerror=handle_error)
 def arl_create_image_from_visibility_ffi(vis_in, img_in):
     c_vis = cARLVis(vis_in)
     c_img = cImage(img_in, new=True);
@@ -1219,7 +1219,7 @@ arl_create_image_from_visibility=collections.namedtuple("FFIX", "address")
 arl_create_image_from_visibility.address=int(ff.cast("size_t",
     arl_create_image_from_visibility_ffi))    
 
-@ff.callback("void (*)(ARLConf *, const ARLVis *, double, int, char*, Image *)")
+@ff.callback("void (*)(ARLConf *, const ARLVis *, double, int, char*, Image *)", onerror=handle_error)
 def arl_create_image_from_blockvisibility_ffi(lowconfig, blockvis_in, cellsize, npixel, c_phasecentre, img_out):
 # Creating configuration
     lowcore_name = str(ff.string(lowconfig.confname), 'utf-8')
@@ -1265,7 +1265,7 @@ arl_create_image_from_blockvisibility=collections.namedtuple("FFIX", "address")
 arl_create_image_from_blockvisibility.address=int(ff.cast("size_t",
     arl_create_image_from_blockvisibility_ffi))    
 
-@ff.callback("void (*)(Image *, Image *, Image *, Image *)")
+@ff.callback("void (*)(Image *, Image *, Image *, Image *)", onerror=handle_error)
 def arl_deconvolve_cube_ffi(dirty, psf, restored, residual):
     c_dirty = cImage(dirty)
     c_psf = cImage(psf)
@@ -1283,7 +1283,7 @@ def arl_deconvolve_cube_ffi(dirty, psf, restored, residual):
 arl_deconvolve_cube=collections.namedtuple("FFIX", "address")    
 arl_deconvolve_cube.address=int(ff.cast("size_t", arl_deconvolve_cube_ffi))    
 
-@ff.callback("void (*)(Image *, Image *, Image *, Image *)")
+@ff.callback("void (*)(Image *, Image *, Image *, Image *)", onerror=handle_error)
 def arl_deconvolve_cube_ical_ffi(dirty, psf, restored, residual):
     c_dirty = cImage(dirty)
     c_psf = cImage(psf)
@@ -1301,7 +1301,7 @@ def arl_deconvolve_cube_ical_ffi(dirty, psf, restored, residual):
 arl_deconvolve_cube_ical=collections.namedtuple("FFIX", "address")    
 arl_deconvolve_cube_ical.address=int(ff.cast("size_t", arl_deconvolve_cube_ical_ffi))    
 
-@ff.callback("void (*)(Image *, Image *, Image*, Image*)")
+@ff.callback("void (*)(Image *, Image *, Image*, Image*)", onerror=handle_error)
 def arl_restore_cube_ffi(model, psf, residual, restored):
     # Cast C Image structs to Python objects
     c_model = cImage(model)
@@ -1321,7 +1321,7 @@ def arl_restore_cube_ffi(model, psf, residual, restored):
 arl_restore_cube=collections.namedtuple("FFIX", "address")    
 arl_restore_cube.address=int(ff.cast("size_t", arl_restore_cube_ffi))    
 
-@ff.callback("void (*)(Image *, Image *, Image*, Image*)")
+@ff.callback("void (*)(Image *, Image *, Image*, Image*)", onerror=handle_error)
 def arl_restore_cube_ical_ffi(model, psf, residual, restored):
     # Cast C Image structs to Python objects
     c_model = cImage(model)

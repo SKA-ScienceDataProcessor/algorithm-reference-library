@@ -81,7 +81,7 @@ typedef struct {
 	double guard_band_image;
 	double delA;
 	int wprojection_planes;
-	} ARLadvice;
+} ARLadvice;
 
 int arl_handle_error();
 
@@ -149,6 +149,8 @@ void arl_manipulate_visibility_data(ARLConf *lowconf, const ARLVis *vis1in, cons
 void arl_add_to_model(Image* model, Image* res);
 
 void arl_invert_function_blockvis(ARLConf * lowconf, const ARLVis *blockvisin, Image * img_model, int vis_slices, Image * img_dirty);
+
+Image *allocate_image(int *shape);
 
 /** Initialise the ARL library
  */
