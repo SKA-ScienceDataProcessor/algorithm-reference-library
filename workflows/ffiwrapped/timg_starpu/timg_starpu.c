@@ -8,6 +8,7 @@
  * source/header for all helper routines.
  *
  * Author: Arjen Tamerus <at748@cam.ac.uk>
+ * Author: Chris Hadjigeorgiou <ch741@cam.ac.uk>
  */
 
 #include <stdarg.h>
@@ -16,8 +17,8 @@
 #include <sys/stat.h>
 #include <starpu.h>
 
-#include "../include/arlwrap.h"
-#include "../include/wrap_support.h"
+#include "../../../ffiwrappers/include/arlwrap.h"
+#include "../../../ffiwrappers/include/wrap_support.h"
 #include "timg_pu_routines.h"
 
 int main(int argc, char *argv[]) {
@@ -49,13 +50,22 @@ int main(int argc, char *argv[]) {
 
 	/* END setup_stolen_from_ffi_demo */
 
-	starpu_data_handle_t create_visibility_h[2];
-	starpu_variable_data_register(&create_visibility_h[0], STARPU_MAIN_RAM,
+  starpu_data_handle_t lowconfig_h;
+  starpu_data_handle_t vt_h;
+
+	starpu_variable_data_register(&lowconfig_h, STARPU_MAIN_RAM,
 			(uintptr_t)lowconfig, sizeof(ARLConf));
-	starpu_variable_data_register(&create_visibility_h[1], STARPU_MAIN_RAM,
+	starpu_variable_data_register(&vt_h, STARPU_MAIN_RAM,
 			(uintptr_t)vt, sizeof(ARLVis));
 
-	struct starpu_task *vis_task = create_task(&create_visibility_cl, create_visibility_h);
+  struct starpu_task *vis_task = starpu_task_create();
+
+  vis_task->cl = &create_visibility_cl;
+  vis_task->handles[0] = lowconfig_h;
+  vis_task->modes[0] = STARPU_R;
+  vis_task->handles[1] = vt_h;
+  vis_task->modes[1] = STARPU_W;
+
 	starpu_task_submit(vis_task);
 
 	helper_get_image_shape(lowconfig->freqs, cellsize, shape);
@@ -70,48 +80,68 @@ int main(int argc, char *argv[]) {
 
 	/* Data handles are used by StarPU to pass (pointers to) data to the codelets
 	 * at execution time */
-	starpu_data_handle_t test_image_h[4];
 
 	/* For now we are just passing the raw pointers to required data, to the data
 	 * handle. Most routines expect pointers at this point, and it is easier to
 	 * handle edge cases in the codelets, keeping this main routine clean. */
-	starpu_variable_data_register(&test_image_h[0], STARPU_MAIN_RAM,
+  starpu_data_handle_t cellsize_h;
+  starpu_data_handle_t m31image_h;
+
+	starpu_variable_data_register(&lowconfig_h, STARPU_MAIN_RAM,
 			(uintptr_t)lowconfig->freqs, sizeof(double*));
-	starpu_variable_data_register(&test_image_h[1], STARPU_MAIN_RAM,
+	starpu_variable_data_register(&vt_h, STARPU_MAIN_RAM,
+			(uintptr_t)vt->phasecentre, sizeof(char*));
+	starpu_variable_data_register(&cellsize_h, STARPU_MAIN_RAM,
 			(uintptr_t)&cellsize, sizeof(double));
-	starpu_variable_data_register(&test_image_h[2], STARPU_MAIN_RAM,
-			(uintptr_t)(vt->phasecentre), sizeof(char*));
-	starpu_variable_data_register(&test_image_h[3], STARPU_MAIN_RAM,
+	starpu_variable_data_register(&m31image_h, STARPU_MAIN_RAM,
 			(uintptr_t)m31image, sizeof(Image));
 
-	// Input: pointer to starpu codelet, data handle
-	// Create the StarPU task: associate the data in the data handle with the
-	// routine specified in the codelet, and schedule the task for execution.
-	struct starpu_task *test_img_task = create_task(&create_test_image_cl, test_image_h);
+  struct starpu_task *test_img_task = starpu_task_create();
 
-	// For some reason (TODO: find out why) StarPU is not getting data
-	// dependencies right, so we need to explicitly tell it about task
-	// dependencies instead.
-	starpu_task_declare_deps_array(test_img_task, 1, &vis_task);
+  test_img_task->cl = &create_test_image_cl;
+  test_img_task->handles[0] = lowconfig_h;
+  test_img_task->modes[0] = STARPU_R;
+  test_img_task->handles[1] = cellsize_h;
+  test_img_task->modes[1] = STARPU_R;
+  test_img_task->handles[2] = vt_h;
+  test_img_task->modes[2] = STARPU_W;
+  test_img_task->handles[3] = m31image_h;
+  test_img_task->modes[3] = STARPU_W;
 
-	// Hand the task over to 
-	starpu_task_submit(test_img_task);
+  starpu_task_submit(test_img_task);
+
 
 	// Use macros for data registration frome here, to improve readability
-	starpu_data_handle_t pred_handle[3];
-	SVDR(pred_handle, 0, vt, sizeof(ARLVis));
-	SVDR(pred_handle, 1, m31image, sizeof(Image));
-	SVDR(pred_handle, 2, vtmp, sizeof(ARLVis));
 
-	struct starpu_task *pred_task = create_task(&predict_2d_cl, pred_handle);
-	starpu_task_declare_deps_array(pred_task, 1, &test_img_task);
-	starpu_task_submit(pred_task);
+  starpu_data_handle_t vtmp_h;
+	starpu_variable_data_register(&vt_h, STARPU_MAIN_RAM,
+			(uintptr_t)vt, sizeof(ARLVis));
+	starpu_variable_data_register(&vtmp_h, STARPU_MAIN_RAM,
+			(uintptr_t)vtmp, sizeof(Image));
 
-	starpu_data_handle_t create_from_vis_handle[2];
-	SVDR(create_from_vis_handle, 0, vtmp, sizeof(ARLVis));
-	SVDR(create_from_vis_handle, 1, model, sizeof(Image));
-	struct starpu_task *create_from_vis_task = create_task(&create_from_visibility_cl, create_from_vis_handle);
-	starpu_task_declare_deps_array(create_from_vis_task, 1, &pred_task);
+  struct starpu_task *pred_task = starpu_task_create();
+
+  pred_task->cl = &predict_2d_cl;
+  pred_task->handles[0] = vt_h;
+  pred_task->modes[0] = STARPU_R;
+  pred_task->handles[1] = m31image_h;
+  pred_task->modes[1] = STARPU_R;
+  pred_task->handles[2] = vtmp_h;
+  pred_task->modes[2] = STARPU_W;
+
+  starpu_task_submit(pred_task);
+
+  starpu_data_handle_t model_h;
+	starpu_variable_data_register(&model_h, STARPU_MAIN_RAM,
+			(uintptr_t)model, sizeof(Image));
+
+	struct starpu_task *create_from_vis_task = starpu_task_create();
+  
+  create_from_vis_task->cl = &create_from_visibility_cl;
+  create_from_vis_task->handles[0] = vtmp_h;
+  create_from_vis_task->modes[0] = STARPU_R;
+  create_from_vis_task->handles[1] = model_h;
+  create_from_vis_task->modes[1] = STARPU_W;
 	starpu_task_submit(create_from_vis_task);
 
 	bool invert_false = false;
@@ -119,36 +149,74 @@ int main(int argc, char *argv[]) {
 
 	double *sumwt = malloc(sizeof(double));
 
-	starpu_data_handle_t invert_2d_dirty_handle[5];
-	SVDR(invert_2d_dirty_handle, 0, vt, sizeof(ARLVis));
-	SVDR(invert_2d_dirty_handle, 1, model, sizeof(Image));
-	SVDR(invert_2d_dirty_handle, 2, &invert_false, sizeof(bool));
-	SVDR(invert_2d_dirty_handle, 3, dirty, sizeof(Image));
-	SVDR(invert_2d_dirty_handle, 4, sumwt, sizeof(double));
+  starpu_data_handle_t invert_false_h;
+  starpu_data_handle_t dirty_h;
+  starpu_data_handle_t sumwt_h;
+	starpu_variable_data_register(&invert_false_h, STARPU_MAIN_RAM,
+			(uintptr_t)&invert_false, sizeof(bool));
+	starpu_variable_data_register(&dirty_h, STARPU_MAIN_RAM,
+			(uintptr_t)dirty, sizeof(Image));
+	starpu_variable_data_register(&sumwt_h, STARPU_MAIN_RAM,
+			(uintptr_t)sumwt, sizeof(double));
 
-	struct starpu_task *invert_2d_dirty_task = create_task(&invert_2d_cl, invert_2d_dirty_handle);
-	starpu_task_declare_deps_array(invert_2d_dirty_task, 1, &create_from_vis_task);
+	struct starpu_task *invert_2d_dirty_task = starpu_task_create();
+  invert_2d_dirty_task->cl = &invert_2d_cl;
+  invert_2d_dirty_task->handles[0] = vt_h ;
+  invert_2d_dirty_task->modes[0] = STARPU_R ;
+  invert_2d_dirty_task->handles[1] = model_h;
+  invert_2d_dirty_task->modes[1] = STARPU_R ;
+  invert_2d_dirty_task->handles[2] = invert_false_h;
+  invert_2d_dirty_task->modes[2] = STARPU_R ;
+  invert_2d_dirty_task->handles[3] = dirty_h;
+  invert_2d_dirty_task->modes[3] = STARPU_W ;
+  invert_2d_dirty_task->handles[4] = sumwt_h;
+  invert_2d_dirty_task->modes[4] = STARPU_RW ;
+
 	starpu_task_submit(invert_2d_dirty_task);
+  if(arl_handle_error() != 0)
+    return -1;
 
-	starpu_data_handle_t invert_2d_psf_handle[5];
-	SVDR(invert_2d_psf_handle, 0, vt, sizeof(ARLVis));
-	SVDR(invert_2d_psf_handle, 1, model, sizeof(Image));
-	SVDR(invert_2d_psf_handle, 2, &invert_true, sizeof(bool));
-	SVDR(invert_2d_psf_handle, 3, psf, sizeof(Image));
-	SVDR(invert_2d_psf_handle, 4, sumwt, sizeof(double));
+  starpu_data_handle_t invert_true_h;
+  starpu_data_handle_t psf_h;
+	starpu_variable_data_register(&invert_true_h, STARPU_MAIN_RAM,
+			(uintptr_t)&invert_true, sizeof(bool));
+	starpu_variable_data_register(&psf_h, STARPU_MAIN_RAM,
+			(uintptr_t)psf, sizeof(Image));
+  
+	struct starpu_task *invert_2d_psf_task = starpu_task_create();
 
-	struct starpu_task *invert_2d_psf_task = create_task(&invert_2d_cl, invert_2d_psf_handle);
-	starpu_task_declare_deps_array(invert_2d_psf_task, 1, &invert_2d_dirty_task);
+  invert_2d_psf_task->cl = &invert_2d_cl;
+  invert_2d_psf_task->handles[0] = vt_h;
+  invert_2d_psf_task->modes[0] = STARPU_R ;
+  invert_2d_psf_task->handles[1] = model_h;
+  invert_2d_psf_task->modes[1] = STARPU_R ;
+  invert_2d_psf_task->handles[2] = invert_true_h;
+  invert_2d_psf_task->modes[2] = STARPU_R ;
+  invert_2d_psf_task->handles[3] = psf_h;
+  invert_2d_psf_task->modes[3] = STARPU_W ;
+  invert_2d_psf_task->handles[4] = sumwt_h;
+  invert_2d_psf_task->modes[4] = STARPU_RW ;
+
 	starpu_task_submit(invert_2d_psf_task);
 
-	starpu_data_handle_t deconvolve_cube_handle[4];
-	SVDR(deconvolve_cube_handle, 0, dirty, sizeof(Image));
-	SVDR(deconvolve_cube_handle, 1, psf, sizeof(Image));
-	SVDR(deconvolve_cube_handle, 2, comp, sizeof(Image));
-	SVDR(deconvolve_cube_handle, 3, residual, sizeof(Image));
+  starpu_data_handle_t comp_h;
+  starpu_data_handle_t residual_h;
+	starpu_variable_data_register(&comp_h, STARPU_MAIN_RAM,
+			(uintptr_t)comp, sizeof(Image));
+	starpu_variable_data_register(&residual_h, STARPU_MAIN_RAM,
+			(uintptr_t)residual, sizeof(Image));
 
-	struct starpu_task *deconvolve_cube_task = create_task(&deconvolve_cube_cl, deconvolve_cube_handle);
-	starpu_task_declare_deps_array(deconvolve_cube_task, 1, &invert_2d_psf_task);
+	struct starpu_task *deconvolve_cube_task = starpu_task_create();
+  deconvolve_cube_task->cl = &deconvolve_cube_cl;
+  deconvolve_cube_task->handles[0] = dirty_h;
+  deconvolve_cube_task->modes[0] = STARPU_R ;
+  deconvolve_cube_task->handles[1] = psf_h;
+  deconvolve_cube_task->modes[1] = STARPU_R ;
+  deconvolve_cube_task->handles[2] = comp_h;
+  deconvolve_cube_task->modes[2] = STARPU_RW ;
+  deconvolve_cube_task->handles[3] = residual_h;
+  deconvolve_cube_task->modes[3] = STARPU_RW ;
+  
 	starpu_task_submit(deconvolve_cube_task);
 
 	// Set N_ITER > 1 for multithreading test
@@ -162,6 +230,10 @@ int main(int argc, char *argv[]) {
 	Image *comp_[N_ITER];
 	Image *residual_[N_ITER];
 	starpu_data_handle_t restore_cube_handle[N_ITER][4];
+  starpu_data_handle_t restored_n_h[N_ITER];
+  starpu_data_handle_t psf_n_h[N_ITER];
+  starpu_data_handle_t comp_n_h[N_ITER];
+  starpu_data_handle_t residual_n_h[N_ITER];
 	struct starpu_task *restore_cube_task[N_ITER];
 	for(i=0; i< N_ITER; i++) {
 		comp_[i] = allocate_image(shape);
@@ -178,15 +250,26 @@ int main(int argc, char *argv[]) {
 		memcpy(residual_[i]->polarisation_frame, residual->polarisation_frame, 117);
 		restored_[i] = allocate_image(shape);
 
-		SVDR(restore_cube_handle[i], 0, comp_[i], sizeof(Image));
-		SVDR(restore_cube_handle[i], 1, psf_[i], sizeof(Image));
-		SVDR(restore_cube_handle[i], 2, residual_[i], sizeof(Image));
-		SVDR(restore_cube_handle[i], 3, restored_[i], sizeof(Image));
-    restore_cube_task[i] = create_task(&restore_cube_cl, restore_cube_handle[i]);
+	  starpu_variable_data_register(&comp_n_h[i], STARPU_MAIN_RAM,
+			(uintptr_t)comp_[i], sizeof(Image));
+	  starpu_variable_data_register(&psf_n_h[i], STARPU_MAIN_RAM,
+			(uintptr_t)psf_[i], sizeof(Image));
+	  starpu_variable_data_register(&residual_n_h[i], STARPU_MAIN_RAM,
+			(uintptr_t)residual_[i], sizeof(Image));
+	  starpu_variable_data_register(&restored_n_h[i], STARPU_MAIN_RAM,
+			(uintptr_t)restored_[i], sizeof(Image));
 
-		//starpu_task_declare_deps_array(restore_cube_task, 1, &deconvolve_cube_task);
-		//if (i > 0)
-		//  starpu_task_declare_deps_array(restore_cube_task[i], 1, &restore_cube_task[i-1]);
+    restore_cube_task[i] = starpu_task_create();
+    restore_cube_task[i]->cl = &restore_cube_cl;
+    restore_cube_task[i]->handles[0] = comp_n_h[i];
+    restore_cube_task[i]->modes[0] = STARPU_R ;
+    restore_cube_task[i]->handles[1] = psf_n_h[i];
+    restore_cube_task[i]->modes[1] = STARPU_R ;
+    restore_cube_task[i]->handles[2] = residual_n_h[i];
+    restore_cube_task[i]->modes[2] = STARPU_RW ;
+    restore_cube_task[i]->handles[3] = restored_n_h[i];
+    restore_cube_task[i]->modes[3] = STARPU_RW ;
+
 		starpu_task_submit(restore_cube_task[i]);
 	}
 
