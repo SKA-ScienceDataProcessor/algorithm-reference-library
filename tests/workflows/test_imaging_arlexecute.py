@@ -12,14 +12,14 @@ from astropy import units as u
 from astropy.coordinates import SkyCoord
 
 from data_models.polarisation import PolarisationFrame
-from workflows.arlexecute.execution_support.arlexecute import arlexecute
-from processing_components.image.operations import export_image_to_fits, smooth_image
-from processing_components.imaging.base import predict_skycomponent_visibility
-from workflows.arlexecute.imaging.imaging_arlexecute import zero_vislist_arlexecute, predict_arlexecute, \
-    invert_arlexecute, subtract_vislist_arlexecute
-from processing_components.skycomponent.operations import find_skycomponents, find_nearest_skycomponent, \
+from wrappers.arlexecute.execution_support.arlexecute import arlexecute
+from wrappers.arlexecute.image.operations import export_image_to_fits, smooth_image
+from wrappers.arlexecute.imaging.base import predict_skycomponent_visibility
+from workflows.arlexecute.imaging.imaging_arlexecute import zero_list_arlexecute_workflow, predict_list_arlexecute_workflow, \
+    invert_list_arlexecute_workflow, subtract_list_arlexecute_workflow
+from wrappers.arlexecute.skycomponent.operations import find_skycomponents, find_nearest_skycomponent, \
     insert_skycomponent
-from processing_components.simulation.testing_support import create_named_configuration, ingest_unittest_visibility, \
+from wrappers.arlexecute.simulation.testing_support import create_named_configuration, ingest_unittest_visibility, \
     create_unittest_model, insert_unittest_errors, create_unittest_components
 
 log = logging.getLogger(__name__)
@@ -128,15 +128,15 @@ class TestImaging(unittest.TestCase):
                                                               separation / cellsize
     
     def _predict_base(self, context='2d', extra='', fluxthreshold=1.0, facets=1, vis_slices=1, **kwargs):
-        vis_list = zero_vislist_arlexecute(self.vis_list)
-        vis_list = predict_arlexecute(vis_list, self.model_list, context=context,
-                                      vis_slices=vis_slices, facets=facets, **kwargs)
-        vis_list = subtract_vislist_arlexecute(self.vis_list, vis_list)[0]
+        vis_list = zero_list_arlexecute_workflow(self.vis_list)
+        vis_list = predict_list_arlexecute_workflow(vis_list, self.model_list, context=context,
+                                                    vis_slices=vis_slices, facets=facets, **kwargs)
+        vis_list = subtract_list_arlexecute_workflow(self.vis_list, vis_list)[0]
         
         vis_list = arlexecute.compute(vis_list, sync=True)
         
-        dirty = invert_arlexecute([vis_list], [self.model_list[0]], context='2d', dopsf=False,
-                                  normalize=True)[0]
+        dirty = invert_list_arlexecute_workflow([vis_list], [self.model_list[0]], context='2d', dopsf=False,
+                                                normalize=True)[0]
         dirty = arlexecute.compute(dirty, sync=True)
         
         assert numpy.max(numpy.abs(dirty[0].data)), "Residual image is empty"
@@ -149,9 +149,9 @@ class TestImaging(unittest.TestCase):
     def _invert_base(self, context, extra='', fluxthreshold=1.0, positionthreshold=1.0, check_components=True,
                      facets=1, vis_slices=1, **kwargs):
         
-        dirty = invert_arlexecute(self.vis_list, self.model_list, context=context,
-                                  dopsf=False, normalize=True, facets=facets, vis_slices=vis_slices,
-                                  **kwargs)[0]
+        dirty = invert_list_arlexecute_workflow(self.vis_list, self.model_list, context=context,
+                                                dopsf=False, normalize=True, facets=facets, vis_slices=vis_slices,
+                                                **kwargs)[0]
         dirty = arlexecute.compute(dirty, sync=True)
         
         export_image_to_fits(dirty[0], '%s/test_imaging_invert_%s%s_%s_dirty.fits' %

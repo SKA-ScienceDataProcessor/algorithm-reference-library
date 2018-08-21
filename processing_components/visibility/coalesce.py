@@ -22,7 +22,7 @@ import numpy
 
 from astropy import constants
 
-from libs.util.array_functions import average_chunks, average_chunks2
+from processing_library.util.array_functions import average_chunks, average_chunks2
 
 from data_models.memory_data_models import Visibility, BlockVisibility
 from data_models.parameters import get_parameter

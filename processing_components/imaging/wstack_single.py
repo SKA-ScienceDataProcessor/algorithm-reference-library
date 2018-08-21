@@ -13,7 +13,7 @@ import numpy
 
 from data_models.memory_data_models import Visibility, Image, BlockVisibility
 
-from libs.image.operations import create_w_term_like
+from processing_library.image.operations import create_w_term_like
 
 from ..image.operations import copy_image
 from ..visibility.base import copy_visibility

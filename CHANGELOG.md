@@ -1,3 +1,21 @@
+**August 16, 2018** [Tim] More refactoring to being closer alignment with SDP architecture.
+1. There are now wrappers for all processing components, both serial and 
+arlexecute. At the moment, these are just pass-throughs but the point is that they can
+be expanded as appropriate. The non-python wrappers will be more substantial.
+2. There are only workflows for calibration, imaging, and pipelines.
+3. To distinguish the nature of the workflows, these are now all called something like
+predict_list_arlexecute_workflow since they all work on lists of data models rather 
+than just data models.
+4. The workflows for serial and arlexecute should work alike. For example, all now 
+expect lists of Data Models. This is compared to processing_components
+where only single Data Models are accepted. A necessary consequence is
+that the full range of imaging algorithms are only available via 
+workflows, either as serial or arlexecute versions (and soon other
+types of wrappers).
+5. libs has been renamed to processing_library.
+
+All Dask/arlexecute code now lives in either wrappers or workflows.
+
 **July 26, 2018** [Tim], Extracted pure-serial uses of processing components 
 into workflows/serial (in analogy with workflows/arlexecute). This means that
 all functions remaining in processing components are suitable for use in

@@ -10,8 +10,8 @@ from astropy.coordinates import SkyCoord
 
 from data_models.memory_data_models import BlockVisibility, Visibility, QA
 
-from libs.imaging.imaging_params import get_frequency_map
-from libs.util.coordinate_support import skycoord_to_lmn, simulate_point
+from processing_library.imaging.imaging_params import get_frequency_map
+from processing_library.util.coordinate_support import skycoord_to_lmn, simulate_point
 
 from ..visibility.base import copy_visibility
 

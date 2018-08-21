@@ -6,7 +6,7 @@ import numpy
 
 from scipy.optimize import minimize
 
-from libs.util.coordinate_support import lmn_to_skycoord, skycoord_to_lmn
+from processing_library.util.coordinate_support import lmn_to_skycoord, skycoord_to_lmn
 
 
 def fit_visibility(vis, sc, tol=1e-6, niter=20, verbose=False, method='trust-exact', **kwargs):
