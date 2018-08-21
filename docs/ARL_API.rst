@@ -166,12 +166,6 @@ Operations
 .. automodule:: processing_components.calibration.operations
    :members:
 
-Modelpartition calibration
-++++++++++++++++++++++++++
-
-.. automodule:: processing_components.calibration.modelpartition
-   :members:
-
 Imaging
 -------
 
@@ -293,10 +287,6 @@ Calibration
 
 .. automodule:: workflows.arlexecute.calibration.calibration_arlexecute
    :members:
-
-.. automodule:: workflows.arlexecute.calibration.modelpartition_arlexecute
-   :members:
-
 
 
 .. automodule:: workflows.arlexecute.imaging.imaging_arlexecute

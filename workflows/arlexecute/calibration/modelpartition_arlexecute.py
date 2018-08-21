@@ -35,7 +35,7 @@ def solve_modelpartition_consensus_list_arlexecute_workflow(vislist, skymodel_li
                              for i, _ in enumerate(vislist)]
         skymodel_list = calculate_modelpartition_consensus_arlexecute_workflow(partition_results)
     
-    return arlexecute.execute((skymodel_list)(skymodel_list)
+    return arlexecute.execute((skymodel_list)(skymodel_list))
 
 def calculate_modelpartition_consensus_arlexecute_workflow(partition_results, **kwargs):
     """ Find consensus of models
