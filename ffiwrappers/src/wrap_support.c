@@ -227,3 +227,19 @@ ARLGt *destroy_gt(ARLGt *gt)
 	return NULL;
 }
 
+ARLadvice *allocate_arladv_default()
+{
+  ARLadvice *adv;
+  if(!(adv = (ARLadvice *)calloc(1, sizeof(ARLadvice)))) {
+    return NULL;
+  }
+
+  adv->vis_slices= 41; //0
+  adv->npixel = 384; //0
+  adv->cellsize = 0.0014552998039974536; //0.0
+	adv->guard_band_image = 4.0; 
+	adv->delA=0.02;
+	adv->wprojection_planes = 1;
+ 
+  return adv;
+}
