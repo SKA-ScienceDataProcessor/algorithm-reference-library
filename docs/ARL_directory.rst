@@ -71,12 +71,6 @@ Calibration
 * Solve for complex gains: :py:mod:`processing_components.calibration.calibration.solve_gaintable`
 * Apply complex gains: :py:mod:`processing_components.calibration.operations.apply_gaintable`
 
-Model Partition Calibration
-===========================
-
-* Define model partition: :py:mod:`processing_components.calibration.modelpartition.create_modelpartition`
-* Solve model partition: :py:mod:`processing_components.calibration.modelpartition.solve_modelpartition`
-
 Coordinate transforms
 =====================
 
