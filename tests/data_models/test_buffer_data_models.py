@@ -10,9 +10,12 @@ import astropy.units as u
 import numpy
 from astropy.coordinates import SkyCoord
 
-from data_models.buffer_data_models import BufferImage, BufferBlockVisibility, BufferGainTable, BufferSkyModel
-from data_models.memory_data_models import Skycomponent, SkyModel, BlockVisibility
+from data_models.buffer_data_models import BufferImage, BufferBlockVisibility, BufferGainTable, BufferSkyModel, \
+    BufferConvolutionFunction, BufferGridData
+from data_models.memory_data_models import Skycomponent, SkyModel, BlockVisibility, GridData, ConvolutionFunction
 from data_models.polarisation import PolarisationFrame
+from processing_components.griddata.operations import create_griddata_from_image
+from processing_components.convolution_function.operations import create_convolutionfunction_from_image
 from processing_components.calibration.operations import create_gaintable_from_blockvisibility
 from processing_components.imaging.base import predict_skycomponent_visibility
 from processing_components.simulation.testing_support import create_named_configuration, \
@@ -126,6 +129,35 @@ class TestBufferDataModelHelpers(unittest.TestCase):
             new_bdm = BufferSkyModel(config["buffer"], config["image"])
             new_bdm.sync()
             newim = bdm.memory_data_model
+
+    def test_readwritegriddata(self):
+        im = create_test_image()
+        gd = create_griddata_from_image(im)
+        config = {"buffer": {"directory": self.dir},
+                  "griddata": {"name": "test_buffergriddata.hdf", "data_model": "GridData"}}
+        bdm = BufferGridData(config["buffer"], config["griddata"], gd)
+        bdm.sync()
+        new_bdm = BufferGridData(config["buffer"], config["griddata"])
+        new_bdm.sync()
+        newgd = bdm.memory_data_model
+
+        assert newgd.data.shape == gd.data.shape
+        assert numpy.max(numpy.abs(gd.data - newgd.data)) < 1e-15
+
+    def test_readwriteconvolutionfunction(self):
+        im = create_test_image()
+        cf = create_convolutionfunction_from_image(im)
+        config = {"buffer": {"directory": self.dir},
+                  "convolutionfunction": {"name": "test_bufferconvolutionfunction.hdf", "data_model":
+                      "ConvolutionFunction"}}
+        bdm = BufferConvolutionFunction(config["buffer"], config["convolutionfunction"], cf)
+        bdm.sync()
+        new_bdm = BufferConvolutionFunction(config["buffer"], config["convolutionfunction"])
+        new_bdm.sync()
+        newcf = bdm.memory_data_model
+
+        assert newcf.data.shape == cf.data.shape
+        assert numpy.max(numpy.abs(cf.data - newcf.data)) < 1e-15
 
 
 

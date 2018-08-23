@@ -46,6 +46,8 @@ class ARLExecuteBase():
         
         !!!This must be called before calling execute!!!!
         
+        If you want to customise the Client or use an externally defined Scheduler use get_dask_Client and pass it in.
+        
         :param use_dask: Use Dask?
         :param client: If None and use_dask is True, a client will be created otherwise the client is None
         :return:
