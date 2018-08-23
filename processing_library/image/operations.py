@@ -16,8 +16,8 @@ from astropy.wcs import WCS
 from data_models.polarisation import PolarisationFrame
 from data_models.memory_data_models import Image
 
-from libs.fourier_transforms.convolutional_gridding import w_beam
-from libs.fourier_transforms.fft_support import ifft, fft
+from processing_library.fourier_transforms.convolutional_gridding import w_beam
+from processing_library.fourier_transforms.fft_support import ifft, fft
 
 log = logging.getLogger(__name__)
 

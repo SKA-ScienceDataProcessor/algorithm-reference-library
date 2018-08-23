@@ -11,37 +11,21 @@ from astropy.coordinates import SkyCoord
 
 from data_models.memory_data_models import SkyModel
 from data_models.polarisation import PolarisationFrame
-
-<<<<<<< HEAD:tests/workflows/test_modelpartition_arlexecute.py
-from wrappers.arlexecute.calibration.operations import apply_gaintable, create_gaintable_from_blockvisibility
+from workflows.arlexecute.imaging.imaging_arlexecute import invert_list_arlexecute_workflow
 from wrappers.arlexecute.calibration.calibration import solve_gaintable
-from wrappers.arlexecute.image.operations import export_image_to_fits, qa_image
+from wrappers.arlexecute.calibration.operations import apply_gaintable, create_gaintable_from_blockvisibility
+from wrappers.arlexecute.execution_support.arlexecute import arlexecute
+from wrappers.arlexecute.image.operations import export_image_to_fits
 from wrappers.arlexecute.imaging.base import predict_skycomponent_visibility, create_image_from_visibility
+from wrappers.arlexecute.imaging.primary_beams import create_low_test_beam
 from wrappers.arlexecute.imaging.weighting import weight_visibility
-from wrappers.arlexecute.skycomponent.operations import apply_beam_to_skycomponent
 from wrappers.arlexecute.simulation.testing_support import create_named_configuration, simulate_gaintable, \
-    create_low_test_skycomponents_from_gleam, create_low_test_beam
+    create_low_test_skycomponents_from_gleam
+from wrappers.arlexecute.skycomponent.operations import apply_beam_to_skycomponent
 from wrappers.arlexecute.visibility.base import copy_visibility, create_blockvisibility
 from wrappers.arlexecute.visibility.coalesce import convert_blockvisibility_to_visibility
-=======
-from processing_components.calibration.operations import apply_gaintable, create_gaintable_from_blockvisibility
-from processing_components.calibration.calibration import solve_gaintable
-from processing_components.image.operations import export_image_to_fits, qa_image
-from processing_components.imaging.base import predict_skycomponent_visibility, create_image_from_visibility
-from processing_components.imaging.imaging_functions import invert_function
-from processing_components.imaging.weighting import weight_visibility
-from processing_components.skycomponent.operations import apply_beam_to_skycomponent
-from processing_components.simulation.testing_support import create_named_configuration, simulate_gaintable, \
-    create_low_test_skycomponents_from_gleam
-from processing_components.imaging.primary_beams import create_low_test_beam
-from processing_components.visibility.base import copy_visibility, create_blockvisibility
-from processing_components.visibility.coalesce import convert_blockvisibility_to_visibility
->>>>>>> griddata:tests/workflows/test_modelpartition_workflows.py
 
-from wrappers.arlexecute.execution_support.arlexecute import arlexecute
-#from workflows.arlexecute.calibration.modelpartition_arlexecute import solve_modelpartition_list_arlexecute_workflow
-
-from workflows.arlexecute.imaging.imaging_arlexecute import invert_list_arlexecute_workflow
+# from workflows.arlexecute.calibration.modelpartition_arlexecute import solve_modelpartition_list_arlexecute_workflow
 
 log = logging.getLogger(__name__)
 
@@ -55,10 +39,10 @@ class TestCalibrationSkyModelcal(unittest.TestCase):
         arlexecute.set_client(use_dask=False)
         
         numpy.random.seed(180555)
-
+    
     def tearDown(self):
         arlexecute.close()
-
+    
     def actualSetup(self, vnchan=1, doiso=True, ntimes=5, flux_limit=2.0, zerow=True, fixed=False):
         
         nfreqwin = vnchan
@@ -125,6 +109,7 @@ class TestCalibrationSkyModelcal(unittest.TestCase):
             export_image_to_fits(dirty, "%s/test_modelpartition-initial-noiso-residual.fits" % self.dir)
         
         self.skymodels = [SkyModel(components=[cm], fixed=fixed) for cm in self.components]
+    
     @unittest.skip("Not converted to arlexecute")
     def test_modelpartition_solve_arlexecute(self):
         

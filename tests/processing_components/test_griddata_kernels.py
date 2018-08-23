@@ -10,7 +10,7 @@ import astropy.units as u
 import numpy
 from astropy.coordinates import SkyCoord
 
-from libs.image.operations import create_image
+from processing_library.image.operations import create_image
 from processing_components.convolution_function.kernels import create_pswf_convolutionfunction, \
     create_awterm_convolutionfunction, create_box_convolutionfunction
 from processing_components.convolution_function.operations import convert_convolutionfunction_to_image, \

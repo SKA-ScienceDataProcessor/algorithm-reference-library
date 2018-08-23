@@ -13,7 +13,7 @@ from astropy.coordinates import SkyCoord, EarthLocation
 from astropy.units import Quantity
 from astropy.wcs import WCS
 
-from libs.image.operations import create_image_from_array
+from processing_library.image.operations import create_image_from_array
 from processing_components.griddata.operations import create_griddata_from_array
 from processing_components.convolution_function.operations import create_convolutionfunction_from_array
 

@@ -13,7 +13,7 @@ import logging
 import numpy
 import numpy.testing
 
-from libs.image.operations import fft, create_image_from_array
+from processing_library.image.operations import fft, create_image_from_array
 
 log = logging.getLogger(__name__)
 

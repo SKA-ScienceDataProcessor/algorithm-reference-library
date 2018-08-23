@@ -7,9 +7,9 @@ import logging
 import numpy
 
 from data_models.memory_data_models import Image
-from libs.fourier_transforms.convolutional_gridding import coordinates, grdsf
-from libs.image.operations import copy_image, create_w_term_like, pad_image, fft_image
-from libs.image.operations import create_image_from_array
+from processing_library.fourier_transforms.convolutional_gridding import coordinates, grdsf
+from processing_library.image.operations import copy_image, create_w_term_like, pad_image, fft_image
+from processing_library.image.operations import create_image_from_array
 from processing_components.convolution_function.operations import create_convolutionfunction_from_image
 from processing_components.image.operations import reproject_image, create_empty_image_like
 
