@@ -16,6 +16,9 @@ types of wrappers).
 
 All Dask/arlexecute code now lives in either wrappers or workflows.
 
+![ARL Module View](./docs/ARL_Module_View.png)
+
+
 **July 26, 2018** [Tim], Extracted pure-serial uses of processing components 
 into workflows/serial (in analogy with workflows/arlexecute). This means that
 all functions remaining in processing components are suitable for use in
@@ -59,8 +62,6 @@ need to be updated manually.
 * The docs have been updated
 * The use of the term 'graph' has been replaced in many places by 'list' to reflect the wrapping of dask in 
 arlexecute.
-
-![SDP Processing Architecture](./docs/SDP_processing_architecture.png)
 
 **April 18, 2018** [Tim], Deconvolution can now be done using overlapped, tapered sub-images (aka facets).
 Look for deconvolve_facets, deconvolve_overlap, and deconvolve_taper arguments.
