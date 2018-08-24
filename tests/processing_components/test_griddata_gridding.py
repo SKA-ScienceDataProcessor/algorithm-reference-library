@@ -14,19 +14,20 @@ from astropy.coordinates import SkyCoord
 from data_models.polarisation import PolarisationFrame
 from processing_components.convolution_function.kernels import create_awterm_convolutionfunction, \
     create_pswf_convolutionfunction, create_box_convolutionfunction
-from processing_components.convolution_function.operations import convert_convolutionfunction_to_image, \
-    apply_bounding_box_convolutionfunction
+from processing_components.convolution_function.operations import convert_convolutionfunction_to_image
 from processing_components.griddata.gridding import grid_visibility_to_griddata, \
-    grid_visibility_to_griddata_fast
+    fft_griddata_to_image, fft_image_to_griddata, \
+    degrid_visibility_from_griddata
 from processing_components.griddata.operations import create_griddata_from_image
 from processing_components.image.operations import export_image_to_fits
 from processing_components.image.operations import smooth_image
-from processing_components.imaging.base import normalize_sumwt, advise_wide_field
+from processing_components.imaging.base import normalize_sumwt
 from processing_components.imaging.base import predict_skycomponent_visibility
 from processing_components.imaging.primary_beams import create_pb_generic
 from processing_components.simulation.testing_support import create_named_configuration, create_unittest_model, \
     create_unittest_components, ingest_unittest_visibility
 from processing_components.skycomponent.operations import insert_skycomponent
+from processing_components.visibility.operations import qa_visibility
 
 log = logging.getLogger(__name__)
 
@@ -93,25 +94,27 @@ class TestGridDataGridding(unittest.TestCase):
     def test_time_setup(self):
         self.actualSetUp()
     
-    def test_convolution_mapping_pswf(self):
+    def test_griddata_invert_pswf(self):
         self.actualSetUp(zerow=True)
         gcf, cf = create_pswf_convolutionfunction(self.model, support=6, oversampling=128)
         griddata = create_griddata_from_image(self.model)
-        im, sumwt = grid_visibility_to_griddata(self.vis, griddata=griddata, gcf=gcf, cf=cf)
+        griddata, sumwt = grid_visibility_to_griddata(self.vis, griddata=griddata, cf=cf)
+        im = fft_griddata_to_image(griddata, gcf)
         im = normalize_sumwt(im, sumwt)
         export_image_to_fits(im, '%s/test_gridding_dirty_pswf.fits' % self.dir)
         self.check_peaks(im, 98.90874033367159)
     
-    def test_convolution_mapping_pswf_w(self):
+    def test_griddata_invert_pswf_w(self):
         self.actualSetUp(zerow=False)
         gcf, cf = create_pswf_convolutionfunction(self.model, support=6, oversampling=32)
         griddata = create_griddata_from_image(self.model)
-        im, sumwt = grid_visibility_to_griddata(self.vis, griddata=griddata, gcf=gcf, cf=cf)
+        griddata, sumwt = grid_visibility_to_griddata(self.vis, griddata=griddata, cf=cf)
+        im = fft_griddata_to_image(griddata, gcf)
         im = normalize_sumwt(im, sumwt)
         export_image_to_fits(im, '%s/test_gridding_dirty_pswf_w.fits' % self.dir)
         self.check_peaks(im, 99.82190517145392)
     
-    def test_convolution_mapping_aterm(self):
+    def test_griddata_invert_aterm(self):
         self.actualSetUp(zerow=True)
         make_pb = functools.partial(create_pb_generic, diameter=35.0, blockage=0.0)
         pb = make_pb(self.model)
@@ -119,12 +122,13 @@ class TestGridDataGridding(unittest.TestCase):
         gcf, cf = create_awterm_convolutionfunction(self.model, make_pb=make_pb, nw=1, oversampling=16, support=16,
                                                     use_aaf=False)
         griddata = create_griddata_from_image(self.model)
-        im, sumwt = grid_visibility_to_griddata(self.vis, griddata=griddata, gcf=gcf, cf=cf)
+        griddata, sumwt = grid_visibility_to_griddata(self.vis, griddata=griddata, cf=cf)
+        im = fft_griddata_to_image(griddata, gcf)
         im = normalize_sumwt(im, sumwt)
         export_image_to_fits(im, '%s/test_gridding_dirty_aterm.fits' % self.dir)
         self.check_peaks(im, 99.0672945056528)
     
-    def test_convolution_mapping_aterm_noover(self):
+    def test_griddata_invert_aterm_noover(self):
         self.actualSetUp(zerow=True)
         make_pb = functools.partial(create_pb_generic, diameter=35.0, blockage=0.0)
         pb = make_pb(self.model)
@@ -132,43 +136,47 @@ class TestGridDataGridding(unittest.TestCase):
         gcf, cf = create_awterm_convolutionfunction(self.model, make_pb=make_pb, nw=1, oversampling=1, support=16,
                                                     use_aaf=True)
         griddata = create_griddata_from_image(self.model)
-        im, sumwt = grid_visibility_to_griddata(self.vis, griddata=griddata, gcf=gcf, cf=cf)
+        griddata, sumwt = grid_visibility_to_griddata(self.vis, griddata=griddata, cf=cf)
+        im = fft_griddata_to_image(griddata, gcf)
         im = normalize_sumwt(im, sumwt)
         export_image_to_fits(im, '%s/test_gridding_dirty_aterm_noover.fits' % self.dir)
         self.check_peaks(im, 99.06949151553816)
     
-    def test_convolution_mapping_pswf_nooversampling(self):
+    def test_griddata_invert_pswf_nooversampling(self):
         self.actualSetUp(zerow=True)
         gcf, cf = create_pswf_convolutionfunction(self.model, support=6, oversampling=1)
         griddata = create_griddata_from_image(self.model)
-        im, sumwt = grid_visibility_to_griddata(self.vis, griddata=griddata, gcf=gcf, cf=cf)
+        griddata, sumwt = grid_visibility_to_griddata(self.vis, griddata=griddata, cf=cf)
+        im = fft_griddata_to_image(griddata, gcf)
         im = normalize_sumwt(im, sumwt)
         export_image_to_fits(im, '%s/test_gridding_dirty_pswf_nooversampling.fits' % self.dir)
         self.check_peaks(im, 99.0694915155382)
     
-    def test_convolution_mapping_box(self):
+    def test_griddata_invert_box(self):
         self.actualSetUp(zerow=True)
         gcf, cf = create_box_convolutionfunction(self.model)
         griddata = create_griddata_from_image(self.model)
-        im, sumwt = grid_visibility_to_griddata(self.vis, griddata=griddata, gcf=gcf, cf=cf)
+        griddata, sumwt = grid_visibility_to_griddata(self.vis, griddata=griddata, cf=cf)
+        im = fft_griddata_to_image(griddata, gcf)
         im = normalize_sumwt(im, sumwt)
         export_image_to_fits(im, '%s/test_gridding_dirty_box.fits' % self.dir)
         self.check_peaks(im, 99.06949151553818)
     
-    def test_convolution_mapping_fast(self):
+    def test_griddata_invert_fast(self):
         self.actualSetUp(zerow=True)
         gcf, cf = create_box_convolutionfunction(self.model)
         griddata = create_griddata_from_image(self.model)
-        im, sumwt = grid_visibility_to_griddata_fast(self.vis, griddata=griddata, gcf=gcf, cf=cf)
+        griddata, sumwt = grid_visibility_to_griddata(self.vis, griddata=griddata, cf=cf)
+        im = fft_griddata_to_image(griddata, gcf)
         im = normalize_sumwt(im, sumwt)
         export_image_to_fits(im, '%s/test_gridding_dirty_fast.fits' % self.dir)
         self.check_peaks(im, 99.06949151553818)
-
+    
     def check_peaks(self, im, peak=99.6754, tol=1e-3):
         assert numpy.abs(im.data[(0, 0, self.npixel // 2, self.npixel // 2)] - peak) < tol, \
             im.data[(0, 0, self.npixel // 2, self.npixel // 2)]
     
-    def test_convolution_mapping_wterm(self):
+    def test_griddata_invert_wterm(self):
         self.actualSetUp(zerow=False)
         gcf, cf = create_awterm_convolutionfunction(self.model, nw=100, wstep=8.0, oversampling=4, support=50,
                                                     use_aaf=True)
@@ -178,12 +186,13 @@ class TestGridDataGridding(unittest.TestCase):
         export_image_to_fits(cf_image, "%s/test_gridding_wterm_cf.fits" % self.dir)
         
         griddata = create_griddata_from_image(self.model, nw=100, wstep=8.0)
-        im, sumwt = grid_visibility_to_griddata(self.vis, griddata=griddata, gcf=gcf, cf=cf)
+        griddata, sumwt = grid_visibility_to_griddata(self.vis, griddata=griddata, cf=cf)
+        im = fft_griddata_to_image(griddata, gcf)
         im = normalize_sumwt(im, sumwt)
         export_image_to_fits(im, '%s/test_gridding_dirty_wterm.fits' % self.dir)
         self.check_peaks(im, 99.96890306008716)
     
-    def test_convolution_mapping_awterm(self):
+    def test_griddata_invert_awterm(self):
         self.actualSetUp(zerow=False)
         make_pb = functools.partial(create_pb_generic, diameter=35.0, blockage=0.0)
         pb = make_pb(self.model)
@@ -195,11 +204,65 @@ class TestGridDataGridding(unittest.TestCase):
         export_image_to_fits(cf_image, "%s/test_gridding_awterm_cf.fits" % self.dir)
         
         griddata = create_griddata_from_image(self.model, nw=100, wstep=8.0)
-        im, sumwt = grid_visibility_to_griddata(self.vis, griddata=griddata, gcf=gcf, cf=cf)
+        griddata, sumwt = grid_visibility_to_griddata(self.vis, griddata=griddata, cf=cf)
+        im = fft_griddata_to_image(griddata, gcf)
         im = normalize_sumwt(im, sumwt)
         export_image_to_fits(im, '%s/test_gridding_dirty_awterm.fits' % self.dir)
         self.check_peaks(im, 99.96885125478173)
+    
+    def test_griddata_predict_pswf(self):
+        self.actualSetUp(zerow=True)
+        gcf, cf = create_pswf_convolutionfunction(self.model, support=6, oversampling=128)
+        griddata = create_griddata_from_image(self.model)
+        griddata = fft_image_to_griddata(self.model, griddata, gcf)
+        newvis = degrid_visibility_from_griddata(self.vis, griddata=griddata, cf=cf)
+        qa = qa_visibility(newvis)
+        assert numpy.abs(qa.data['maxabs'] - 1368.3771657957427) < 1e-3, qa
 
+    def test_griddata_predict_box(self):
+        self.actualSetUp(zerow=True)
+        gcf, cf = create_box_convolutionfunction(self.model)
+        griddata = create_griddata_from_image(self.model)
+        griddata = fft_image_to_griddata(self.model, griddata, gcf)
+        newvis = degrid_visibility_from_griddata(self.vis, griddata=griddata, cf=cf)
+        qa = qa_visibility(newvis)
+        assert numpy.abs(qa.data['maxabs'] - 1368.3771657957427) < 1e-3, qa
+
+    def test_griddata_predict_aterm(self):
+        self.actualSetUp(zerow=True)
+        make_pb = functools.partial(create_pb_generic, diameter=35.0, blockage=0.0)
+        griddata = create_griddata_from_image(self.model)
+        gcf, cf = create_awterm_convolutionfunction(self.model, make_pb=make_pb, nw=1,
+                                                    oversampling=16, support=16,
+                                                    use_aaf=False)
+        griddata = fft_image_to_griddata(self.model, griddata, gcf)
+        newvis = degrid_visibility_from_griddata(self.vis, griddata=griddata, cf=cf)
+        qa = qa_visibility(newvis)
+        assert numpy.abs(qa.data['maxabs'] - 1368.3771657957427) < 1e-3, qa
+
+    def test_griddata_predict_wterm(self):
+        self.actualSetUp(zerow=True)
+        gcf, cf = create_awterm_convolutionfunction(self.model, nw=100, wstep=8.0, oversampling=4, support=50,
+                                                    use_aaf=True)
+
+        griddata = create_griddata_from_image(self.model, nw=100, wstep=8.0)
+        griddata = fft_image_to_griddata(self.model, griddata, gcf)
+        newvis = degrid_visibility_from_griddata(self.vis, griddata=griddata, cf=cf)
+        qa = qa_visibility(newvis)
+        assert numpy.abs(qa.data['maxabs'] - 1368.3771657957427) < 1e-3, qa
+
+    def test_griddata_predict_awterm(self):
+        self.actualSetUp(zerow=False)
+        make_pb = functools.partial(create_pb_generic, diameter=35.0, blockage=0.0)
+        pb = make_pb(self.model)
+        export_image_to_fits(pb, "%s/test_gridding_awterm_pb.fits" % self.dir)
+        gcf, cf = create_awterm_convolutionfunction(self.model, make_pb=make_pb, nw=100, wstep=8.0,
+                                                    oversampling=4, support=100, use_aaf=True)
+        griddata = create_griddata_from_image(self.model, nw=100, wstep=8.0)
+        griddata = fft_image_to_griddata(self.model, griddata, gcf)
+        newvis = degrid_visibility_from_griddata(self.vis, griddata=griddata, cf=cf)
+        qa = qa_visibility(newvis)
+        assert numpy.abs(qa.data['maxabs'] - 1354.4466313856985) < 1e-3, qa
 
 if __name__ == '__main__':
     unittest.main()

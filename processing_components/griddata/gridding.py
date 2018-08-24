@@ -13,7 +13,8 @@ import logging
 import numpy
 import numpy.testing
 
-from processing_library.image.operations import fft, create_image_from_array
+from processing_library.image.operations import ifft, fft, create_image_from_array
+from processing_components.visibility.operations import copy_visibility
 
 log = logging.getLogger(__name__)
 
@@ -70,7 +71,7 @@ def convolution_mapping(vis, griddata, cf, channel_tolerance=1e-8):
     return pu_grid, pu_offset, pv_grid, pv_offset, pw_grid, pw_fraction, pfreq_grid
 
 
-def grid_visibility_to_griddata(vis, griddata, cf, gcf):
+def grid_visibility_to_griddata(vis, griddata, cf):
     """Grid Visibility onto a GridData
 
     :param vis: Visibility to be gridded
@@ -92,12 +93,9 @@ def grid_visibility_to_griddata(vis, griddata, cf, gcf):
         griddata.data[chan, :, zz, (vv - dv):(vv + dv), (uu - du):(uu + du)] += \
             cf.data[chan, :, zz, vvf, uuf, :, :] * (numpy.conjugate(v) * vwt)[:, numpy.newaxis, numpy.newaxis]
         sumwt[chan, :] += vwt
-    
-    projected = numpy.sum(griddata.data, axis=2)
-    im_data = numpy.real(fft(projected)) * gcf.data
-    im = create_image_from_array(im_data, griddata.projection_wcs, griddata.polarisation_frame)
-    
-    return im, sumwt
+        
+    return griddata, sumwt
+
 
 
 def grid_visibility_to_griddata_fast(vis, griddata, cf, gcf):
@@ -125,7 +123,7 @@ def grid_visibility_to_griddata_fast(vis, griddata, cf, gcf):
     return im, sumwt
 
 
-def degrid_visibility_from_griddata(vis, griddata, cf_griddata, **kwargs):
+def degrid_visibility_from_griddata(vis, griddata, cf, **kwargs):
     """Degrid Visibility from a GridData
 
     :param vis: Visibility to be degridded
@@ -134,4 +132,53 @@ def degrid_visibility_from_griddata(vis, griddata, cf_griddata, **kwargs):
     :param kwargs:
     :return: Visibility
     """
+    nchan, npol, nz, oversampling, _, support, _ = cf.shape
+    pu_grid, pu_offset, pv_grid, pv_offset, pw_grid, pw_fraction, pfreq_grid = \
+        convolution_mapping(vis, griddata, cf)
+    _, _, _, _, _, gv, gu = cf.shape
+    
+    newvis = copy_visibility(vis, zero=True)
+
+    #coords = zip(pfreq_grid, pu_grid, pu_offset, pv_grid, pv_offset, pw_grid)
+
+    du = gu // 2
+    dv = gv // 2
+
+    nvis = vis.vis.shape[0]
+    
+    # TODO: Optimise
+    for i in range(nvis):
+        chan, uu, uuf, vv, vvf, zz = pfreq_grid[i], pu_grid[i], pu_offset[i], pv_grid[i], pv_offset[i], pw_grid[i]
+        newvis.vis[i, :] = numpy.sum(griddata.data[chan, :, zz, (vv - dv):(vv + dv), (uu - du):(uu + du)] *
+                                     cf.data[chan, :, zz, vvf, uuf, :, :], axis=(1, 2))
+
     return vis
+
+
+def fft_griddata_to_image(griddata, gcf):
+    """
+
+    :param griddata:
+    :param gcf: Grid correction image
+    :return:
+    """
+    
+    projected = numpy.sum(griddata.data, axis=2)
+    im_data = numpy.real(fft(projected)) * gcf.data
+    im = create_image_from_array(im_data, griddata.projection_wcs, griddata.polarisation_frame)
+    
+    return im
+
+
+def fft_image_to_griddata(im, griddata, gcf):
+    """Fill griddata with transform of im
+
+    :param griddata:
+    :param gcf: Grid correction image
+    :return:
+    """
+    # chan, pol, z, u, v, w
+    griddata.data[:,:,:,...] = ifft(im.data/gcf.data)[:, :, numpy.newaxis, ...]
+    
+    return griddata
+
