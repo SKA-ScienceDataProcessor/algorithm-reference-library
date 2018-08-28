@@ -11,6 +11,7 @@ import numpy
 from astropy import units as u
 from astropy.coordinates import SkyCoord
 
+from . import ARLExecuteTestCase
 from data_models.polarisation import PolarisationFrame
 from wrappers.arlexecute.execution_support.arlexecute import arlexecute
 from wrappers.arlexecute.image.operations import export_image_to_fits, smooth_image
@@ -29,18 +30,13 @@ log.addHandler(logging.StreamHandler(sys.stdout))
 log.addHandler(logging.StreamHandler(sys.stderr))
 
 
-class TestImaging(unittest.TestCase):
+class TestImaging(ARLExecuteTestCase, unittest.TestCase):
     def setUp(self):
-        
+        super(TestImaging, self).setUp()
         from data_models.parameters import arl_path
         self.dir = arl_path('test_results')
-    
-    def tearDown(self):
-        arlexecute.close()
-    
+
     def actualSetUp(self, add_errors=False, freqwin=1, block=False, dospectral=True, dopol=False, zerow=False):
-        
-        arlexecute.set_client(use_dask=False)
         
         self.npixel = 256
         self.low = create_named_configuration('LOWBD2', rmax=750.0)

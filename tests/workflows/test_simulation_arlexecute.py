@@ -9,6 +9,7 @@ import numpy
 from astropy import units as u
 from astropy.coordinates import SkyCoord
 
+from . import ARLExecuteTestCase
 from data_models.memory_data_models import BlockVisibility
 from wrappers.arlexecute.execution_support.arlexecute import arlexecute
 
@@ -17,9 +18,9 @@ from workflows.arlexecute.simulation.simulation_arlexecute import simulate_list_
 log = logging.getLogger(__name__)
 
 
-class TestSimulationArlexecuteSupport(unittest.TestCase):
+class TestSimulationArlexecuteSupport(ARLExecuteTestCase, unittest.TestCase):
     def setUp(self):
-    
+        super(TestSimulationArlexecuteSupport, self).setUp()
         from data_models.parameters import arl_path
         self.dir = arl_path('test_results')
         
@@ -27,10 +28,6 @@ class TestSimulationArlexecuteSupport(unittest.TestCase):
         self.channel_bandwidth = numpy.array([2.5e7, 2.5e7, 2.5e7])
         self.phasecentre = SkyCoord(ra=+15.0 * u.deg, dec=-60.0 * u.deg, frame='icrs', equinox='J2000')
         self.times = numpy.linspace(-300.0, 300.0, 3) * numpy.pi / 43200.0
-        arlexecute.set_client(use_dask=False)
-
-    def tearDown(self):
-        arlexecute.close()
 
     def test_create_simulate_vis_list(self):
         vis_list = simulate_list_arlexecute_workflow(frequency=self.frequency, channel_bandwidth=self.channel_bandwidth)
