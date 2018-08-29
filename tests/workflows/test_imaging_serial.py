@@ -212,7 +212,7 @@ class TestImaging(unittest.TestCase):
     
     def test_invert_2d(self):
         self.actualSetUp(zerow=True)
-        self._invert_base(context='2d', positionthreshold=2.0, check_components=False)
+        self._invert_base(context='2d', positionthreshold=2.0, check_components=True)
     
     def test_invert_facets(self):
         self.actualSetUp()

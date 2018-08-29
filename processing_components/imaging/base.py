@@ -32,13 +32,14 @@ from astropy.wcs.utils import pixel_to_skycoord
 from data_models.memory_data_models import Visibility, BlockVisibility, Image, Skycomponent, assert_same_chan_pol
 from data_models.parameters import get_parameter
 from data_models.polarisation import convert_pol_frame, PolarisationFrame
-
-from processing_library.fourier_transforms.convolutional_gridding import convolutional_grid, convolutional_degrid
-from processing_library.fourier_transforms.fft_support import fft, ifft, pad_mid, extract_mid
+from processing_components.convolution_function.kernels import create_pswf_convolutionfunction
+from processing_components.griddata.gridding import grid_visibility_to_griddata, \
+    fft_griddata_to_image, fft_image_to_griddata, \
+    degrid_visibility_from_griddata
+from processing_components.griddata.operations import create_griddata_from_image
 from processing_library.image.operations import create_image_from_array
-from processing_library.imaging.imaging_params import get_frequency_map, get_polarisation_map, get_uvw_map, get_kernel_list
+from processing_library.imaging.imaging_params import get_frequency_map
 from processing_library.util.coordinate_support import simulate_point, skycoord_to_lmn
-
 from ..visibility.base import copy_visibility, phaserotate_visibility
 from ..visibility.coalesce import coalesce_visibility, decoalesce_visibility, convert_blockvisibility_to_visibility
 
@@ -100,8 +101,8 @@ def normalize_sumwt(im: Image, sumwt) -> Image:
     return im
 
 
-def predict_2d(vis: Union[BlockVisibility, Visibility], model: Image,
-                    **kwargs) -> Union[BlockVisibility, Visibility]:
+def predict_2d(vis: Union[BlockVisibility, Visibility], model: Image, gcf=None, cf=None,
+               **kwargs) -> Union[BlockVisibility, Visibility]:
     """ Predict using convolutional degridding.
 
     This is at the bottom of the layering i.e. all transforms are eventually expressed in terms of
@@ -121,17 +122,14 @@ def predict_2d(vis: Union[BlockVisibility, Visibility], model: Image,
     
     _, _, ny, nx = model.data.shape
     
-    padding = {}
-    if get_parameter(kwargs, "padding", False):
-        padding = {'padding': get_parameter(kwargs, "padding", False)}
-    spectral_mode, vfrequencymap = get_frequency_map(avis, model)
-    polarisation_mode, vpolarisationmap = get_polarisation_map(avis, model)
-    uvw_mode, shape, padding, vuvwmap = get_uvw_map(avis, model, **padding)
-    kernel_name, gcf, vkernellist = get_kernel_list(avis, model, **kwargs)
+    if gcf is None or cf is None:
+        gcf, cf = create_pswf_convolutionfunction(model,
+                                                  support=get_parameter(kwargs, "support", 6),
+                                                  oversampling=get_parameter(kwargs, "oversampling", 128))
     
-    uvgrid = fft((pad_mid(model.data, int(round(padding * nx))) * gcf).astype(dtype=complex))
-    
-    avis.data['vis'] = convolutional_degrid(vkernellist, avis.data['vis'].shape, uvgrid, vuvwmap, vfrequencymap)
+    griddata = create_griddata_from_image(model)
+    griddata = fft_image_to_griddata(model, griddata, gcf)
+    avis = degrid_visibility_from_griddata(avis, griddata=griddata, cf=cf)
     
     # Now we can shift the visibility from the image frame to the original visibility frame
     svis = shift_vis_to_image(avis, model, tangent=True, inverse=True)
@@ -143,9 +141,9 @@ def predict_2d(vis: Union[BlockVisibility, Visibility], model: Image,
         return svis
 
 
-def invert_2d(vis: Visibility, im: Image, dopsf: bool = False, normalize: bool = True, **kwargs) \
-        -> (Image, numpy.ndarray):
-    """ Invert using 2D convolution function, including w projection optionally
+def invert_2d(vis: Visibility, im: Image, dopsf: bool = False, normalize: bool = True,
+              gcf=None, cf=None, **kwargs) -> (Image, numpy.ndarray):
+    """ Invert using 2D convolution function, using the specified convolution function
 
     Use the image im as a template. Do PSF in a separate call.
 
@@ -156,6 +154,8 @@ def invert_2d(vis: Visibility, im: Image, dopsf: bool = False, normalize: bool =
     :param im: image template (not changed)
     :param dopsf: Make the psf instead of the dirty image
     :param normalize: Normalize by the sum of weights (True)
+    :param gcf: Grid correction function i.e. in image space
+    :param cf: Convolution function i.e. in uv space
     :return: resulting image
 
     """
@@ -169,43 +169,27 @@ def invert_2d(vis: Visibility, im: Image, dopsf: bool = False, normalize: bool =
     
     svis = shift_vis_to_image(svis, im, tangent=True, inverse=False)
     
-    nchan, npol, ny, nx = im.data.shape
     
-    padding = {}
-    if get_parameter(kwargs, "padding", False):
-        padding = {'padding': get_parameter(kwargs, "padding", False)}
-    spectral_mode, vfrequencymap = get_frequency_map(svis, im)
-    polarisation_mode, vpolarisationmap = get_polarisation_map(svis, im)
-    uvw_mode, shape, padding, vuvwmap = get_uvw_map(svis, im, **padding)
-    kernel_name, gcf, vkernellist = get_kernel_list(svis, im, **kwargs)
+    if gcf is None or cf is None:
+        gcf, cf = create_pswf_convolutionfunction(im,
+                                                  support=get_parameter(kwargs, "support", 6),
+                                                  oversampling=get_parameter(kwargs, "oversampling", 128))
     
-    # Optionally pad to control aliasing
-    imgridpad = numpy.zeros([nchan, npol, int(round(padding * ny)), int(round(padding * nx))], dtype='complex')
-    imgridpad, sumwt = convolutional_grid(vkernellist, imgridpad, svis.data['vis'], svis.data['imaging_weight'],
-                                          vuvwmap, vfrequencymap)
-    
-    # Fourier transform the padded grid to image, multiply by the gridding correction
-    # function, and extract the unpadded inner part.
-    
-    # Normalise weights for consistency with transform
-    sumwt /= float(padding * int(round(padding * nx)) * ny)
+    griddata = create_griddata_from_image(im)
+    griddata, sumwt = grid_visibility_to_griddata(svis, griddata=griddata, cf=cf)
     
     imaginary = get_parameter(kwargs, "imaginary", False)
+    result = fft_griddata_to_image(griddata, gcf, imaginary=imaginary)
     if imaginary:
         log.debug("invert_2d: retaining imaginary part of dirty image")
-        result = extract_mid(ifft(imgridpad) * gcf, npixel=nx)
-        resultreal = create_image_from_array(result.real, im.wcs, im.polarisation_frame)
-        resultimag = create_image_from_array(result.imag, im.wcs, im.polarisation_frame)
         if normalize:
-            resultreal = normalize_sumwt(resultreal, sumwt)
-            resultimag = normalize_sumwt(resultimag, sumwt)
-        return resultreal, sumwt, resultimag
+            result[0] = normalize_sumwt(result[0], sumwt)
+            result[1] = normalize_sumwt(result[1], sumwt)
+        return result[0], sumwt, result[1]
     else:
-        result = extract_mid(numpy.real(ifft(imgridpad)) * gcf, npixel=nx)
-        resultimage = create_image_from_array(result, im.wcs, im.polarisation_frame)
         if normalize:
-            resultimage = normalize_sumwt(resultimage, sumwt)
-        return resultimage, sumwt
+            result = normalize_sumwt(result, sumwt)
+        return result, sumwt
 
 
 def predict_skycomponent_visibility(vis: Union[Visibility, BlockVisibility],
@@ -218,15 +202,15 @@ def predict_skycomponent_visibility(vis: Union[Visibility, BlockVisibility],
     """
     if not isinstance(sc, collections.Iterable):
         sc = [sc]
-
-    if isinstance(vis, Visibility):
     
+    if isinstance(vis, Visibility):
+        
         _, im_nchan = list(get_frequency_map(vis, None))
         npol = vis.polarisation_frame.npol
         
         for comp in sc:
             assert isinstance(comp, Skycomponent), comp
-
+            
             assert_same_chan_pol(vis, comp)
             
             l, m, n = skycoord_to_lmn(comp.direction, vis.phasecentre)
@@ -234,29 +218,29 @@ def predict_skycomponent_visibility(vis: Union[Visibility, BlockVisibility],
             for ivis in range(vis.nvis):
                 for pol in range(npol):
                     vis.data['vis'][ivis, pol] += comp.flux[im_nchan[ivis], pol] * phasor[ivis]
-                
+    
     elif isinstance(vis, BlockVisibility):
         
         ntimes, nant, _, nchan, npol = vis.vis.shape
-    
+        
         k = numpy.array(vis.frequency) / constants.c.to('m s^-1').value
-    
+        
         for comp in sc:
-#            assert isinstance(comp, Skycomponent), comp
+            #            assert isinstance(comp, Skycomponent), comp
             assert_same_chan_pol(vis, comp)
-    
+            
             flux = comp.flux
             if comp.polarisation_frame != vis.polarisation_frame:
                 flux = convert_pol_frame(flux, comp.polarisation_frame, vis.polarisation_frame)
-        
+            
             l, m, n = skycoord_to_lmn(comp.direction, vis.phasecentre)
             uvw = vis.uvw[..., numpy.newaxis] * k
             phasor = numpy.ones([ntimes, nant, nant, nchan, npol], dtype='complex')
             for chan in range(nchan):
-                phasor[:,:,:,chan,:] = simulate_point(uvw[...,chan], l, m)[...,numpy.newaxis]
-                
+                phasor[:, :, :, chan, :] = simulate_point(uvw[..., chan], l, m)[..., numpy.newaxis]
+            
             vis.data['vis'][..., :, :] += flux[:, :] * phasor[..., :]
-
+    
     return vis
 
 
@@ -405,81 +389,81 @@ def advise_wide_field(vis: Visibility, delA=0.02, oversampling_synthesised_beam=
     
     max_wavelength = constants.c.to('m s^-1').value / numpy.min(svis.frequency)
     log.info("advise_wide_field: Maximum wavelength %.3f (meters)" % (max_wavelength))
-
+    
     min_wavelength = constants.c.to('m s^-1').value / numpy.max(svis.frequency)
     log.info("advise_wide_field: Minimum wavelength %.3f (meters)" % (min_wavelength))
-
+    
     maximum_baseline = numpy.max(numpy.abs(svis.uvw))  # Wavelengths
     log.info("advise_wide_field: Maximum baseline %.1f (wavelengths)" % (maximum_baseline))
     
     diameter = numpy.min(svis.configuration.diameter)
     log.info("advise_wide_field: Station/antenna diameter %.1f (meters)" % (diameter))
-
+    
     primary_beam_fov = max_wavelength / diameter
     log.info("advise_wide_field: Primary beam %s" % (rad_and_deg(primary_beam_fov)))
-
+    
     image_fov = primary_beam_fov * guard_band_image
     log.info("advise_wide_field: Image field of view %s" % (rad_and_deg(image_fov)))
-
+    
     facet_fov = primary_beam_fov * guard_band_image / facets
     if facets > 1:
         log.info("advise_wide_field: Facet field of view %s" % (rad_and_deg(facet_fov)))
-
+    
     synthesized_beam = 1.0 / (maximum_baseline)
     log.info("advise_wide_field: Synthesized beam %s" % (rad_and_deg(synthesized_beam)))
-
+    
     cellsize = synthesized_beam / oversampling_synthesised_beam
     log.info("advise_wide_field: Cellsize %s" % (rad_and_deg(cellsize)))
-
+    
     def pwr23(n):
         ex = numpy.ceil(numpy.log(n) / numpy.log(2.0)).astype('int')
         best = numpy.power(2, ex)
         if best * 3 // 4 >= n:
             best = best * 3 // 4
         return best
-
+    
     npixels = int(round(image_fov / cellsize))
     log.info("advice_wide_field: Npixels per side = %d" % (npixels))
-
+    
     npixels2 = pwr23(npixels)
     log.info("advice_wide_field: Npixels (power of 2, 3) per side = %d" % (npixels2))
-
+    
     # Following equation is from Cornwell, Humphreys, and Voronkov (2012) (equation 24)
     # We will assume that the constraint holds at one quarter the entire FOV i.e. that
     # the full field of view includes the entire primary beam
-
+    
     w_sampling_image = numpy.sqrt(2.0 * delA) / (numpy.pi * image_fov ** 2)
     log.info("advice_wide_field: W sampling for full image = %.1f (wavelengths)" % (w_sampling_image))
-
+    
     if facets > 1:
         w_sampling_facet = numpy.sqrt(2.0 * delA) / (numpy.pi * facet_fov ** 2)
         log.info("advice_wide_field: W sampling for facet = %.1f (wavelengths)" % (w_sampling_facet))
     else:
         w_sampling_facet = w_sampling_image
-
+    
     w_sampling_primary_beam = numpy.sqrt(2.0 * delA) / (numpy.pi * primary_beam_fov ** 2)
     log.info("advice_wide_field: W sampling for primary beam = %.1f (wavelengths)" % (w_sampling_primary_beam))
-
+    
     time_sampling_image = 86400.0 * w_sampling_image / (numpy.pi * maximum_baseline)
     log.info("advice_wide_field: Time sampling for full image = %.1f (s)" % (time_sampling_image))
-
+    
     if facets > 1:
         time_sampling_facet = 86400.0 * w_sampling_facet / (numpy.pi * maximum_baseline)
         log.info("advice_wide_field: Time sampling for facet = %.1f (s)" % (time_sampling_facet))
-
+    
     time_sampling_primary_beam = 86400.0 * w_sampling_primary_beam / (numpy.pi * maximum_baseline)
     log.info("advice_wide_field: Time sampling for primary beam = %.1f (s)" % (time_sampling_primary_beam))
-
+    
     freq_sampling_image = numpy.max(vis.frequency) * w_sampling_image / (numpy.pi * maximum_baseline)
     log.info("advice_wide_field: Frequency sampling for full image = %.1f (Hz)" % (freq_sampling_image))
-
+    
     if facets > 1:
         freq_sampling_facet = numpy.max(vis.frequency) * w_sampling_facet / (numpy.pi * maximum_baseline)
         log.info("advice_wide_field: Frequency sampling for facet = %.1f (Hz)" % (freq_sampling_facet))
-
+    
     freq_sampling_primary_beam = numpy.max(vis.frequency) * w_sampling_primary_beam / (numpy.pi * maximum_baseline)
     log.info("advice_wide_field: Frequency sampling for primary beam = %.1f (Hz)" % (freq_sampling_primary_beam))
-
+    
     wstep = w_sampling_primary_beam
     vis_slices = max(1, int(maximum_baseline / (wstep * wprojection_planes)))
     log.info('advice_wide_field: Number of planes in w stack %d' % (vis_slices))
@@ -490,7 +474,7 @@ def advise_wide_field(vis: Visibility, delA=0.02, oversampling_synthesised_beam=
     else:
         log.info('advice_wide_field: Recommend that 2d gridding (i.e. no wprojection) is used')
         kernel = '2d'
-
+    
     del vis
     del svis
     del pwr23

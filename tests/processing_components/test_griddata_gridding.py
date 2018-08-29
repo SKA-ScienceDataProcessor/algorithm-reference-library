@@ -102,7 +102,7 @@ class TestGridDataGridding(unittest.TestCase):
         im = fft_griddata_to_image(griddata, gcf)
         im = normalize_sumwt(im, sumwt)
         export_image_to_fits(im, '%s/test_gridding_dirty_pswf.fits' % self.dir)
-        self.check_peaks(im, 98.90874033367159)
+        self.check_peaks(im, 98.90874033367159, tol=1e-7)
     
     def test_griddata_invert_pswf_w(self):
         self.actualSetUp(zerow=False)
@@ -112,7 +112,7 @@ class TestGridDataGridding(unittest.TestCase):
         im = fft_griddata_to_image(griddata, gcf)
         im = normalize_sumwt(im, sumwt)
         export_image_to_fits(im, '%s/test_gridding_dirty_pswf_w.fits' % self.dir)
-        self.check_peaks(im, 99.82190517145392)
+        self.check_peaks(im, 99.82190517145392, tol=1e-7)
     
     def test_griddata_invert_aterm(self):
         self.actualSetUp(zerow=True)
@@ -126,7 +126,7 @@ class TestGridDataGridding(unittest.TestCase):
         im = fft_griddata_to_image(griddata, gcf)
         im = normalize_sumwt(im, sumwt)
         export_image_to_fits(im, '%s/test_gridding_dirty_aterm.fits' % self.dir)
-        self.check_peaks(im, 99.0672945056528)
+        self.check_peaks(im, 99.0672945056528, tol=1e-7)
     
     def test_griddata_invert_aterm_noover(self):
         self.actualSetUp(zerow=True)
@@ -150,7 +150,7 @@ class TestGridDataGridding(unittest.TestCase):
         im = fft_griddata_to_image(griddata, gcf)
         im = normalize_sumwt(im, sumwt)
         export_image_to_fits(im, '%s/test_gridding_dirty_pswf_nooversampling.fits' % self.dir)
-        self.check_peaks(im, 99.0694915155382)
+        self.check_peaks(im, 99.0694915155382, tol=1e-7)
     
     def test_griddata_invert_box(self):
         self.actualSetUp(zerow=True)
@@ -160,7 +160,7 @@ class TestGridDataGridding(unittest.TestCase):
         im = fft_griddata_to_image(griddata, gcf)
         im = normalize_sumwt(im, sumwt)
         export_image_to_fits(im, '%s/test_gridding_dirty_box.fits' % self.dir)
-        self.check_peaks(im, 99.06949151553818)
+        self.check_peaks(im, 99.06949151553818, tol=1e-7)
     
     def test_griddata_invert_fast(self):
         self.actualSetUp(zerow=True)
@@ -170,7 +170,7 @@ class TestGridDataGridding(unittest.TestCase):
         im = fft_griddata_to_image(griddata, gcf)
         im = normalize_sumwt(im, sumwt)
         export_image_to_fits(im, '%s/test_gridding_dirty_fast.fits' % self.dir)
-        self.check_peaks(im, 99.06949151553818)
+        self.check_peaks(im, 99.06949151553818, tol=1e-7)
     
     def check_peaks(self, im, peak=99.6754, tol=1e-3):
         assert numpy.abs(im.data[(0, 0, self.npixel // 2, self.npixel // 2)] - peak) < tol, \
@@ -185,7 +185,7 @@ class TestGridDataGridding(unittest.TestCase):
         cf_image.data = numpy.real(cf_image.data)
         export_image_to_fits(cf_image, "%s/test_gridding_wterm_cf.fits" % self.dir)
         
-        griddata = create_griddata_from_image(self.model, nw=100, wstep=8.0)
+        griddata = create_griddata_from_image(self.model, nw=1)
         griddata, sumwt = grid_visibility_to_griddata(self.vis, griddata=griddata, cf=cf)
         im = fft_griddata_to_image(griddata, gcf)
         im = normalize_sumwt(im, sumwt)
@@ -217,7 +217,13 @@ class TestGridDataGridding(unittest.TestCase):
         griddata = fft_image_to_griddata(self.model, griddata, gcf)
         newvis = degrid_visibility_from_griddata(self.vis, griddata=griddata, cf=cf)
         qa = qa_visibility(newvis)
-        assert numpy.abs(qa.data['maxabs'] - 1368.3771657957427) < 1e-3, qa
+        assert numpy.abs(qa.data['rms'] - 64.5696088867013) < 1e-3, str(qa)
+        import matplotlib.pyplot as plt
+        r = numpy.sqrt(newvis.u**2+newvis.v**2)
+        for pol in range(4):
+            plt.plot(r, numpy.abs(newvis.vis[:,pol]))
+        plt.title('pswf')
+        plt.show()
 
     def test_griddata_predict_box(self):
         self.actualSetUp(zerow=True)
@@ -226,7 +232,13 @@ class TestGridDataGridding(unittest.TestCase):
         griddata = fft_image_to_griddata(self.model, griddata, gcf)
         newvis = degrid_visibility_from_griddata(self.vis, griddata=griddata, cf=cf)
         qa = qa_visibility(newvis)
-        assert numpy.abs(qa.data['maxabs'] - 1368.3771657957427) < 1e-3, qa
+        assert numpy.abs(qa.data['rms'] - 143.32823004409963) < 1e-3, str(qa)
+        import matplotlib.pyplot as plt
+        r = numpy.sqrt(newvis.u**2+newvis.v**2)
+        for pol in range(4):
+            plt.plot(r, numpy.abs(newvis.vis[:,pol]))
+        plt.title('box')
+        plt.show()
 
     def test_griddata_predict_aterm(self):
         self.actualSetUp(zerow=True)
@@ -234,11 +246,17 @@ class TestGridDataGridding(unittest.TestCase):
         griddata = create_griddata_from_image(self.model)
         gcf, cf = create_awterm_convolutionfunction(self.model, make_pb=make_pb, nw=1,
                                                     oversampling=16, support=16,
-                                                    use_aaf=False)
+                                                    use_aaf=True)
         griddata = fft_image_to_griddata(self.model, griddata, gcf)
         newvis = degrid_visibility_from_griddata(self.vis, griddata=griddata, cf=cf)
         qa = qa_visibility(newvis)
-        assert numpy.abs(qa.data['maxabs'] - 1368.3771657957427) < 1e-3, qa
+        assert numpy.abs(qa.data['rms'] - 40.80056297063105) < 1e-3, str(qa)
+        import matplotlib.pyplot as plt
+        r = numpy.sqrt(newvis.u**2+newvis.v**2)
+        for pol in range(4):
+            plt.plot(r, numpy.abs(newvis.vis[:,pol]))
+        plt.title('aterm')
+        plt.show()
 
     def test_griddata_predict_wterm(self):
         self.actualSetUp(zerow=True)
@@ -249,7 +267,14 @@ class TestGridDataGridding(unittest.TestCase):
         griddata = fft_image_to_griddata(self.model, griddata, gcf)
         newvis = degrid_visibility_from_griddata(self.vis, griddata=griddata, cf=cf)
         qa = qa_visibility(newvis)
-        assert numpy.abs(qa.data['maxabs'] - 1368.3771657957427) < 1e-3, qa
+        assert numpy.abs(qa.data['rms'] - 64.58586454254406) < 1e-3, str(qa)
+        import matplotlib.pyplot as plt
+        r = numpy.sqrt(newvis.u**2+newvis.v**2)
+        for pol in range(4):
+            plt.plot(r, numpy.abs(newvis.vis[:,pol]))
+        plt.title('wterm')
+        plt.show()
+
 
     def test_griddata_predict_awterm(self):
         self.actualSetUp(zerow=False)
@@ -257,12 +282,19 @@ class TestGridDataGridding(unittest.TestCase):
         pb = make_pb(self.model)
         export_image_to_fits(pb, "%s/test_gridding_awterm_pb.fits" % self.dir)
         gcf, cf = create_awterm_convolutionfunction(self.model, make_pb=make_pb, nw=100, wstep=8.0,
-                                                    oversampling=4, support=100, use_aaf=True)
+                                                    oversampling=4, support=50, use_aaf=True)
         griddata = create_griddata_from_image(self.model, nw=100, wstep=8.0)
         griddata = fft_image_to_griddata(self.model, griddata, gcf)
         newvis = degrid_visibility_from_griddata(self.vis, griddata=griddata, cf=cf)
         qa = qa_visibility(newvis)
-        assert numpy.abs(qa.data['maxabs'] - 1354.4466313856985) < 1e-3, qa
+        assert numpy.abs(qa.data['rms'] - 40.527024148387824) < 1e-3, str(qa)
+        import matplotlib.pyplot as plt
+        r = numpy.sqrt(newvis.u**2+newvis.v**2)
+        for pol in range(4):
+            plt.plot(r, numpy.abs(newvis.vis[:,pol]))
+        plt.title('awterm')
+        plt.show()
+
 
 if __name__ == '__main__':
     unittest.main()

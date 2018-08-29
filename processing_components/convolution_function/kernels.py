@@ -79,6 +79,8 @@ def create_pswf_convolutionfunction(im, oversampling=8, support=6):
     for y in range(oversampling):
         for x in range(oversampling):
             cf.data[:, :, 0, y, x, :, :] = numpy.outer(kernel[y, :], kernel[x, :])[numpy.newaxis, numpy.newaxis, ...]
+    norm = numpy.sum(numpy.real(cf.data[0, 0, 0, 0, 0, :, :]))
+    cf.data /= norm
     
     # Now calculate the gridding correction function as an image with the same coordinates as the image
     # which is necessary so that the correction function can be applied directly to the image
@@ -154,8 +156,6 @@ def create_awterm_convolutionfunction(im, make_pb=None, nw=1, wstep=1e15, oversa
     else:
         norm = 1.0
     
-    import matplotlib.pyplot as plt
-    from processing_components.image.operations import show_image
     if make_pb is not None:
         pb = make_pb(subim)
         rpb, footprint = reproject_image(pb, subim.wcs, shape=subim.shape)
