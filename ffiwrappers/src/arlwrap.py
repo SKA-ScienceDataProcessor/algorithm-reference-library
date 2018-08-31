@@ -16,7 +16,7 @@ from processing_components.visibility.operations import qa_visibility
 from data_models.memory_data_models import ReceptorFrame
 from processing_components.image.deconvolution import deconvolve_cube, restore_cube
 from processing_components.imaging.base import create_image_from_visibility, predict_2d, invert_2d, normalize_sumwt
-from processing_components.imaging.wstack_single import invert_wstack_single 
+from processing_components.imaging.wstack_single import invert_wstack_single, predict_wstack_single 
 from processing_components.imaging.base import advise_wide_field
 from processing_components.simulation.testing_support import create_named_configuration, create_test_image, create_low_test_image_from_gleam, simulate_gaintable
 from data_models.polarisation import PolarisationFrame
@@ -176,6 +176,63 @@ def arl_create_rows_ffi(lowconfig, vis_in, vis_slices, c_rows):
 
 arl_create_rows=collections.namedtuple("FFIX", "address")    
 arl_create_rows.address=int(ff.cast("size_t", arl_create_rows_ffi))    
+
+@ff.callback("void (*)(ARLConf *, const ARLVis *, long long int *, ARLVis *, ARLVis *, long long int *, ARLVis *, int *)")
+def arl_create_vis_from_rows_vis_ffi(lowconfig, vis_in, cindex_in, blockvis_in, vis_out, cindex_out, blockvis_out, c_rows):
+# Create configuration object
+    lowcore_name = str(ff.string(lowconfig.confname), 'utf-8')
+    lowcore = create_named_configuration(lowcore_name, rmax=lowconfig.rmax)
+
+    times = numpy.frombuffer(ff.buffer(lowconfig.times, 8*lowconfig.ntimes), dtype='f8', count=lowconfig.ntimes)
+    frequency = numpy.frombuffer(ff.buffer(lowconfig.freqs, 8*lowconfig.nfreqs), dtype='f8', count=lowconfig.nfreqs)
+    channel_bandwidth = numpy.frombuffer(ff.buffer(lowconfig.channel_bandwidth, 8*lowconfig.nchanwidth), dtype='f8', count=lowconfig.nchanwidth)
+
+# Re-create visibility object (+ cindex + vis.blockvis)
+    cindex_size = lowconfig.nant*lowconfig.nant*lowconfig.nfreqs*lowconfig.ntimes
+    py_cindex = numpy.frombuffer(ff.buffer(cindex_in, 8*cindex_size), dtype='int', count=cindex_size)
+
+    c_visin = cARLVis(vis_in)
+    py_visin = helper_create_visibility_object(c_visin)
+    py_visin.phasecentre = load_phasecentre(vis_in.phasecentre)
+    py_visin.configuration = lowcore
+    py_visin.cindex = py_cindex
+    polframe = str(ff.string(lowconfig.polframe), 'utf-8')
+    py_visin.polarisation_frame = PolarisationFrame(polframe)
+
+
+    c_blockvisin = cARLBlockVis(blockvis_in, lowconfig.nant, lowconfig.nfreqs)
+    py_blockvisin = helper_create_blockvisibility_object(c_blockvisin, frequency, channel_bandwidth, lowcore)
+    py_blockvisin.phasecentre = load_phasecentre(vis_in.phasecentre) # Take the phasecentre from visibility part ( a mess!)
+    py_blockvisin.configuration = lowcore
+    py_blockvisin.polarisation_frame = PolarisationFrame(polframe)
+
+    py_visin.blockvis = py_blockvisin
+
+# Create rows ndarray for this vis_slice
+    rows_int = numpy.frombuffer(ff.buffer(c_rows, py_visin.nvis*4),dtype=numpy.int32,count=py_visin.nvis)
+    rows = rows_int.astype(bool)
+
+# Create visslice from py_visin and rows
+    visslice = create_visibility_from_rows(py_visin, rows)
+
+# Link Visout object, visout.cindex and visout.blockvis
+    py_visout = cARLVis_slice(vis_out, visslice.nvis)
+#    cindex_size = lowconfig.nant*lowconfig.nant*lowconfig.nfreqs*lowconfig.ntimes
+#    py_cindex = numpy.frombuffer(ff.buffer(cindex_out, 8*cindex_size), dtype='int', count=cindex_size)
+    py_blockvis_out = cARLBlockVis(blockvis_out, lowconfig.nant, lowconfig.nfreqs)
+
+    numpy.copyto(py_visout, visslice.data)
+    vis_out.nvis = visslice.nvis
+    store_phasecentre(vis_out.phasecentre, py_visin.phasecentre)
+# Copy vis.blockvis.data to C blockvisibility blockvis_out.data
+    numpy.copyto(py_blockvis_out, visslice.blockvis.data)
+
+# Copy vis.cindex to cindex_out
+#    numpy.copyto(py_cindex, visslice.cindex)
+
+arl_create_vis_from_rows_vis=collections.namedtuple("FFIX", "address")    
+arl_create_vis_from_rows_vis.address=int(ff.cast("size_t", arl_create_vis_from_rows_vis_ffi))    
+
 
 @ff.callback("void (*)(ARLConf *, const ARLVis *, ARLVis *, long long int *, ARLVis *, int *)")
 def arl_create_vis_from_rows_blockvis_ffi(lowconfig, vis_in, vis_out, cindex_out, blockvis_out, c_rows):
@@ -401,6 +458,68 @@ def arl_manipulate_visibility_data_ffi(lowconfig, vis1_in, vis2_in, vis_out, ope
 arl_manipulate_visibility_data=collections.namedtuple("FFIX", "address")
 arl_manipulate_visibility_data.address=int(ff.cast("size_t", arl_manipulate_visibility_data_ffi))
 
+@ff.callback("void (*)(ARLConf *, ARLVis *, const ARLVis *)")
+def arl_add_to_visibility_data_ffi(lowconfig, vis_inout, vis_in):
+    lowcore_name = str(ff.string(lowconfig.confname), 'utf-8')
+    lowcore = create_named_configuration(lowcore_name, rmax=lowconfig.rmax)
+
+    times = numpy.frombuffer(ff.buffer(lowconfig.times, 8*lowconfig.ntimes), dtype='f8', count=lowconfig.ntimes)
+    frequency = numpy.frombuffer(ff.buffer(lowconfig.freqs, 8*lowconfig.nfreqs), dtype='f8', count=lowconfig.nfreqs)
+    channel_bandwidth = numpy.frombuffer(ff.buffer(lowconfig.channel_bandwidth, 8*lowconfig.nchanwidth), dtype='f8', count=lowconfig.nchanwidth)
+
+    c_visin = cARLVis(vis_in)
+    py_visin = helper_create_visibility_object(c_visin)
+    py_visin.phasecentre = load_phasecentre(vis_in.phasecentre)
+    py_visin.configuration = lowcore
+    polframe = str(ff.string(lowconfig.polframe), 'utf-8')
+    py_visin.polarisation_frame = PolarisationFrame(polframe)
+
+    c_visout = cARLVis(vis_inout)
+    py_visout = helper_create_visibility_object(c_visout)
+    py_visout.phasecentre = load_phasecentre(vis_out.phasecentre)
+    py_visout.configuration = lowcore
+    polframe = str(ff.string(lowconfig.polframe), 'utf-8')
+    py_visout.polarisation_frame = PolarisationFrame(polframe)
+
+    py_visout.data['vis'] += py_visin.data['vis']
+
+arl_add_to_visibility_data=collections.namedtuple("FFIX", "address")
+arl_add_to_visibility_data.address=int(ff.cast("size_t", arl_add_to_visibility_data_ffi))
+
+
+@ff.callback("void (*)(ARLConf *, ARLVis *, const ARLVis *, int *)")
+def arl_add_to_visibility_data_slice_ffi(lowconfig, vis_inout, vis_in, c_rows):
+    lowcore_name = str(ff.string(lowconfig.confname), 'utf-8')
+    lowcore = create_named_configuration(lowcore_name, rmax=lowconfig.rmax)
+
+    times = numpy.frombuffer(ff.buffer(lowconfig.times, 8*lowconfig.ntimes), dtype='f8', count=lowconfig.ntimes)
+    frequency = numpy.frombuffer(ff.buffer(lowconfig.freqs, 8*lowconfig.nfreqs), dtype='f8', count=lowconfig.nfreqs)
+    channel_bandwidth = numpy.frombuffer(ff.buffer(lowconfig.channel_bandwidth, 8*lowconfig.nchanwidth), dtype='f8', count=lowconfig.nchanwidth)
+
+    c_visin = cARLVis(vis_in)
+    py_visin = helper_create_visibility_object(c_visin)
+    py_visin.phasecentre = load_phasecentre(vis_in.phasecentre)
+    py_visin.configuration = lowcore
+    polframe = str(ff.string(lowconfig.polframe), 'utf-8')
+    py_visin.polarisation_frame = PolarisationFrame(polframe)
+
+    c_visout = cARLVis(vis_inout)
+    py_visout = helper_create_visibility_object(c_visout)
+    py_visout.phasecentre = load_phasecentre(vis_inout.phasecentre)
+    py_visout.configuration = lowcore
+    polframe = str(ff.string(lowconfig.polframe), 'utf-8')
+    py_visout.polarisation_frame = PolarisationFrame(polframe)
+
+# Create rows ndarray for this vis_slice
+    rows_int = numpy.frombuffer(ff.buffer(c_rows, py_visout.nvis*4),dtype=numpy.int32,count=py_visout.nvis)
+    rows = rows_int.astype(bool)
+
+    py_visout.data['vis'][rows] += py_visin.data['vis']
+    print(qa_visibility(py_visout, "arl_add_to_visibility_data_slice"))
+
+arl_add_to_visibility_data_slice=collections.namedtuple("FFIX", "address")
+arl_add_to_visibility_data_slice.address=int(ff.cast("size_t", arl_add_to_visibility_data_slice_ffi))
+
 ff.cdef("""
 typedef struct {
     size_t size;
@@ -529,8 +648,8 @@ def arl_convert_visibility_to_blockvisibility_ffi(lowconfig, vis_in, blockvis_in
     py_visin.blockvis = py_blockvisin
 
     py_blockvisout = convert_visibility_to_blockvisibility(py_visin)
-    print("convert_visibility_to_blockvisibility np.sum(block_vis.data): ", numpy.sum(py_blockvisout.data['vis']))
-
+#    print("convert_visibility_to_blockvisibility np.sum(block_vis.data): ", numpy.sum(py_blockvisout.data['vis']))
+    print(qa_visibility(py_blockvisout, "arl_convert_visibility_to_blockvisibility"))
 
     py_blockvis_out = cARLBlockVis(blockvis_out, lowconfig.nant, lowconfig.nfreqs)
     numpy.copyto(py_blockvis_out, py_blockvisout.data)
@@ -963,8 +1082,8 @@ arl_predict_2d=collections.namedtuple("FFIX", "address")
 arl_predict_2d.address=int(ff.cast("size_t", arl_predict_2d_ffi))
 
 
-@ff.callback("void (*)(ARLConf *, const ARLVis *, const Image *, ARLVis *, ARLVis *, long long int *)",onerror=handle_error)
-def arl_predict_function_ffi(lowconfig, vis_in, img, vis_out, blockvis_out, cindex_out):
+@ff.callback("void (*)(ARLConf *, const ARLVis *, const Image *, ARLVis *, ARLVis *, long long int *, int)",onerror=handle_error)
+def arl_predict_function_ffi(lowconfig, vis_in, img, vis_out, blockvis_out, cindex_out, vis_slices):
 
     lowcore_name = str(ff.string(lowconfig.confname), 'utf-8')
     lowcore = create_named_configuration(lowcore_name, rmax=lowconfig.rmax)
@@ -983,7 +1102,7 @@ def arl_predict_function_ffi(lowconfig, vis_in, img, vis_out, blockvis_out, cind
 
 #    print("--------------------> predict_serial Phasecentre : ", py_visin.phasecentre.ra.deg, py_visin.phasecentre.dec.deg)
 
-    res = predict_serial(py_visin, c_img, vis_slices=51, context='wstack')
+    res = predict_serial(py_visin, c_img, vis_slices=vis_slices, context='wstack')
 #    print("--------------------> predict_serial sizeof(py_visin.data), sizeof(res.data)", sys.getsizeof(py_visin.data[:]), sys.getsizeof(res.data[:]))
 #    print("--------------------> predict_serial cindex",  type(res.cindex), type(res.cindex[0]), len(res.cindex))
 #    print("--------------------> predict_serial sys.getsizeof(res.cindex)", sys.getsizeof(res.cindex))
@@ -1007,8 +1126,8 @@ def arl_predict_function_ffi(lowconfig, vis_in, img, vis_out, blockvis_out, cind
 arl_predict_function=collections.namedtuple("FFIX", "address")
 arl_predict_function.address=int(ff.cast("size_t", arl_predict_function_ffi))
 
-@ff.callback("void (*)(ARLConf *, ARLVis *, const Image *)",onerror=handle_error)
-def arl_predict_function_blockvis_ffi(lowconfig, vis_in, img):
+@ff.callback("void (*)(ARLConf *, ARLVis *, const Image *, int)",onerror=handle_error)
+def arl_predict_function_blockvis_ffi(lowconfig, vis_in, img, vis_slices):
 
     lowcore_name = str(ff.string(lowconfig.confname), 'utf-8')
     lowcore = create_named_configuration(lowcore_name, rmax=lowconfig.rmax)
@@ -1020,17 +1139,17 @@ def arl_predict_function_blockvis_ffi(lowconfig, vis_in, img):
     c_img = cImage(img)
     py_visin.phasecentre = load_phasecentre(vis_in.phasecentre)
 
-    log.info(qa_image(c_img, context='arl_predict_function'))
+    log.info(qa_image(c_img, context='arl_predict_function_blockvis'))
 
 #    export_image_to_fits(c_img, '%s/imaging-blockvis_model_in_predicted_function.fits'%(results_dir))
 #    export_blockvisibility_to_hdf5(py_visin, '%s/py_visin.hdf'%(results_dir))
 #    export_image_to_hdf5(c_img, '%s/gleam_model_c_img.hdf'%(results_dir))
 
-    py_blockvis = predict_serial(py_visin, c_img, vis_slices=51, context='wstack')
+    py_blockvis = predict_serial(py_visin, c_img, vis_slices=vis_slices, context='wstack')
 
 #    export_blockvisibility_to_hdf5(py_blockvis, '%s/py_blockvis.hdf'%(results_dir))
 
-#    print(qa_visibility(py_blockvis, context='arl_predict_function_blockvis py_blockvis'))
+    print(qa_visibility(py_blockvis, context='arl_predict_function_blockvis py_blockvis'))
 #    print("arl_predict_function_blockvis :", py_visin, py_blockvis)
 
     numpy.copyto(c_visin, py_blockvis.data)
@@ -1092,6 +1211,55 @@ arl_predict_function_ical=collections.namedtuple("FFIX", "address")
 arl_predict_function_ical.address=int(ff.cast("size_t", arl_predict_function_ical_ffi))
 
 
+@ff.callback("void (*)(ARLConf *, const ARLVis *, const ARLVis *, const Image *, ARLVis *)")
+def arl_predict_function_oneslice_ffi(lowconfig, vis_in, blockvis_in, img, vis_out):
+# Creating configuration
+    lowcore_name = str(ff.string(lowconfig.confname), 'utf-8')
+    lowcore = create_named_configuration(lowcore_name, rmax=lowconfig.rmax)
+
+# Re-creating input Visibility object
+    times = numpy.frombuffer(ff.buffer(lowconfig.times, 8*lowconfig.ntimes), dtype='f8', count=lowconfig.ntimes)
+    frequency = numpy.frombuffer(ff.buffer(lowconfig.freqs, 8*lowconfig.nfreqs), dtype='f8', count=lowconfig.nfreqs)
+    channel_bandwidth = numpy.frombuffer(ff.buffer(lowconfig.channel_bandwidth, 8*lowconfig.nchanwidth), dtype='f8', count=lowconfig.nchanwidth)
+    c_visin = cARLVis(vis_in)
+    py_visin = helper_create_visibility_object(c_visin)
+    py_visin.phasecentre = load_phasecentre(vis_in.phasecentre)
+    py_visin.configuration = lowcore
+    polframe = str(ff.string(lowconfig.polframe), 'utf-8')
+    py_visin.polarisation_frame = PolarisationFrame(polframe)
+
+# Re-creating vis.BlockVisibility object
+    c_blockvisin = cARLBlockVis(blockvis_in, lowconfig.nant, lowconfig.nfreqs)
+    py_blockvisin = helper_create_blockvisibility_object(c_blockvisin, frequency, channel_bandwidth, lowcore)
+    py_blockvisin.phasecentre = load_phasecentre(vis_in.phasecentre)
+    py_blockvisin.configuration = lowcore
+    polframe = str(ff.string(lowconfig.polframe), 'utf-8')
+    py_blockvisin.polarisation_frame = PolarisationFrame(polframe)
+
+    py_visin.blockvis = py_blockvisin
+
+# Re-creating image object
+    # Re-creating images 
+    py_img = cImage(img)
+
+# Re-creating output Visibility object
+    c_visout = cARLVis(vis_out)
+#    py_visout = helper_create_visibility_object(c_visout)
+#    py_visout.phasecentre = load_phasecentre(vis_out.phasecentre)
+#    py_visout.configuration = lowcore
+#    polframe = str(ff.string(lowconfig.polframe), 'utf-8')
+#    py_visout.polarisation_frame = PolarisationFrame(polframe)
+
+# Get predicted visibilities
+    result = predict_wstack_single(py_visin, py_img)
+# Copy visibility data to vis_out
+    numpy.copyto(c_visout, result.data)
+    
+
+arl_predict_function_oneslice=collections.namedtuple("FFIX", "address")
+arl_predict_function_oneslice.address=int(ff.cast("size_t", arl_predict_function_oneslice_ffi))
+
+
 @ff.callback("void (*)(ARLConf *, const ARLVis *, Image *, int, Image *)")
 def arl_invert_function_ffi(lowconfig, vis_in, img, vis_slices, img_dirty):
 # Creating configuration
@@ -1132,8 +1300,14 @@ def arl_invert_function_ffi(lowconfig, vis_in, img, vis_slices, img_dirty):
 arl_invert_function=collections.namedtuple("FFIX", "address")
 arl_invert_function.address=int(ff.cast("size_t", arl_invert_function_ffi))
 
-@ff.callback("void (*)(ARLConf *, const ARLVis *, const ARLVis *, Image *, int, Image *, double *)")
-def arl_invert_function_oneslice_ffi(lowconfig, vis_in, blockvis_in, img, vis_slices, img_dirty, c_sumwt):
+@ff.callback("void (*)(ARLConf *, const ARLVis *, const ARLVis *, Image *, int, Image *, double *, int)")
+def arl_invert_function_oneslice_ffi(lowconfig, vis_in, blockvis_in, img, vis_slices, img_dirty, c_sumwt, dopsf_in):
+# Get dopsf
+    if dopsf_in == 0:
+        dopsf = True
+    else:
+        dopsf = False
+
 # Creating configuration
     lowcore_name = str(ff.string(lowconfig.confname), 'utf-8')
     lowcore = create_named_configuration(lowcore_name, rmax=lowconfig.rmax)
@@ -1170,7 +1344,7 @@ def arl_invert_function_oneslice_ffi(lowconfig, vis_in, blockvis_in, img, vis_sl
 #    export_image_to_hdf5(py_img, '%s/model_invert_function.hdf'%(results_dir))
 #    print("arl_invert_function vis_slices: ", vis_slices)
 
-    dirty, sumwt = invert_wstack_single(py_visin, py_img, vis_slices=1, dopsf=False, context='wstack', normalize=False)
+    dirty, sumwt = invert_wstack_single(py_visin, py_img, vis_slices=1, dopsf=dopsf, context='wstack', normalize=False)
     nchan, npol, ny, nx = dirty.data.shape
 #    print("arl_invert_function_oneslice sumwt: ", sumwt, sumwt.shape)
 # Copy sumwt to c_sumwt (total weight for the normalization)

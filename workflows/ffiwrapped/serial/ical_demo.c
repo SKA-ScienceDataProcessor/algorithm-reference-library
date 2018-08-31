@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <assert.h>
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -61,21 +62,26 @@ int main(int argc, char **argv)
 	double *totalwt, *totalwt_slice;
 	ARLadvice adv;
 	ant_t nb;			//nant and nbases
-	long long int *cindex_predict, *cindex_ical, *cindex2_ical;
+	long long int *cindex_predict, *cindex_ical;
+	long long int *cindex2_ical, *cindex_slice, *cindex_rvis;
 	int cindex_nbytes;
 	ARLGt *gt;			//GainTable
 	ARLGt *gt_ical;			//GainTable (ICAL unrolled)
-	bool unrolled = true; // true - unrolled, false - arl.functions::ical()
+	bool unrolled_ical = true; // true - unrolled, false - arl.functions::ical()
+	bool unrolled_func = true; // true - unrolled invert, predict, etc
 
 	double cellsize = 0.0005;
 	char config_name[] = "LOWBD2-CORE";
 	char pol_frame [] = "stokesI";
 
 	ARLVis *vt;			//Blockvisibility
+	ARLVis *vt_vis, *vt_rvis;	//Visibility
+	ARLVis *vt_bvis, *vt_rbvis;	//Blockvisibility
 	ARLVis *vtmodel;
 	ARLVis *vtmp;
 //	ARLVis *vtpredicted;		//Visibility
 	ARLVis *visslice;		//Visibility
+	ARLVis *bvisslice;		//Blockvisibility
 	ARLVis *vt_predictfunction;	//Blockvisibility
 	ARLVis *vt_gt;			//Blockvisibility after gain table applied
 	ARLVis *vt_gt_vis;		//Visibility after gain table applied
@@ -144,10 +150,15 @@ int main(int argc, char **argv)
 	printf("Nvis = %d\n", nvis);
 	
 	vt 		   = allocate_blockvis_data(lowconfig->nant, lowconfig->nfreqs, lowconfig->npol, lowconfig->ntimes); //Blockvisibility
+	vt_vis             = allocate_vis_data(lowconfig->npol, nvis);						     //Visibility
+	vt_bvis		   = allocate_blockvis_data(lowconfig->nant, lowconfig->nfreqs, lowconfig->npol, lowconfig->ntimes); //Blockvisibility
+	vt_rvis            = allocate_vis_data(lowconfig->npol, nvis);						     //Visibility
+	vt_rbvis	   = allocate_blockvis_data(lowconfig->nant, lowconfig->nfreqs, lowconfig->npol, lowconfig->ntimes); //Blockvisibility
 	vt_predictfunction = allocate_blockvis_data(lowconfig->nant, lowconfig->nfreqs, lowconfig->npol, lowconfig->ntimes); //Blockvisibility
 	vt_gt              = allocate_blockvis_data(lowconfig->nant, lowconfig->nfreqs, lowconfig->npol, lowconfig->ntimes); //Blockvisibility
 //	vtpredicted        = allocate_vis_data(lowconfig->npol, nvis);	
 	visslice           = allocate_vis_data(lowconfig->npol, nvis);						     //Visibility
+	bvisslice          = allocate_blockvis_data(lowconfig->nant, lowconfig->nfreqs, lowconfig->npol, lowconfig->ntimes); //Blockvisibility
 	vt_gt_vis          = allocate_vis_data(lowconfig->npol, nvis);						     //Visibility
 
 	// Allocate cindex array where 8*sizeof(char) is sizeof(python int)
@@ -158,6 +169,16 @@ int main(int argc, char **argv)
 		return 1;
 	}
 	
+	if (!(cindex_slice = malloc(cindex_nbytes))) {
+		free(cindex_slice);
+		return 1;
+	}
+
+	if (!(cindex_rvis = malloc(cindex_nbytes))) {
+		free(cindex_rvis);
+		return 1;
+	}
+
 	// create_blockvisibility()
 	printf("Create blockvisibility... ");
 	arl_create_blockvisibility(lowconfig, vt);
@@ -190,8 +211,64 @@ int main(int argc, char **argv)
 	status = mkdir("results", S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
 	status = export_image_to_fits_c(gleam_model, "!results/ical_c_api-gleam_model.fits");
 
+	// For the unrolled functions
+	// Allocate c_rows array
+	if(!(c_rows = calloc(adv.vis_slices*nvis,sizeof(int)))) {
+		free(c_rows);
+		return -1;
+	}
+
+	// Objects needed for the unrolled functions
+	if(unrolled_func) {
+		// Create visibility object for a single slice, will be used later in several unrolled loops
+		arl_create_visibility(lowconfig, visslice);
+
+		// Create all rows arrays for each vis_slice, a single rows array for a particular vis_slice can be extracted using
+		// a pointer arithmetics, e.g. *(c_rows + i*nvis) where i is vis_slice	
+		arl_create_rows(lowconfig, vt, adv.vis_slices, c_rows);
+		for( i = 0; i < adv.vis_slices; i++) {
+			printf("%d [", i);
+			isum = 0;
+			for(j = 0; j < nvis; j++) {
+				if (j < 10) printf("%d ", *(c_rows + i*nvis +j));
+				isum += *(c_rows + i*nvis +j);
+				}
+			printf("] %d\n", isum);
+		}
+	}
+
 	// predict_function()
-	arl_predict_function_blockvis(lowconfig, vt, gleam_model);
+	if(unrolled_func) {
+	// Fill metadata in the visibility objects
+		arl_create_visibility(lowconfig, visslice);
+		arl_create_blockvisibility(lowconfig, vt_bvis);
+		arl_create_visibility(lowconfig, vt_vis);
+		arl_create_blockvisibility(lowconfig, vt_rbvis);
+		arl_create_visibility(lowconfig, vt_rvis);
+	// convert_blockvisibility_to_visibility
+		arl_convert_blockvisibility_to_visibility(lowconfig, vt, vt_vis, cindex_predict, vt_bvis);
+		for( i = 0; i < adv.vis_slices; i++) {
+			printf("Vis slice %d, ", i);
+			// A version of create_vis_from_rows using vis input - fast
+			arl_create_vis_from_rows_vis(lowconfig, vt_vis, cindex_predict, vt_bvis, visslice, cindex_slice, bvisslice, (c_rows + i*nvis));
+			arl_set_visibility_data_to_zero(lowconfig, visslice);			
+			// copy_visibility (vis, zero=True)
+			arl_copy_visibility(lowconfig, visslice, vt_rvis, 0);		
+			//arl_set_visibility_data_to_zero(lowconfig, vt_rvis);			
+			arl_predict_function_oneslice(lowconfig, visslice, bvisslice, gleam_model, vt_rvis);
+			printf(" nvis = %d %d %d\n", visslice->nvis, vt_rvis->nvis, nvis);
+			arl_add_to_visibility_data_slice(lowconfig, vt_vis, vt_rvis, (c_rows + i*nvis));
+		}
+
+	// convert_visibility_to_blockvisibility()
+		arl_convert_visibility_to_blockvisibility(lowconfig, vt_vis, vt_bvis, cindex_predict, vt);
+		
+			
+	} else {	
+		arl_predict_function_blockvis(lowconfig, vt, gleam_model, adv.vis_slices);
+	}
+
+	//return 0;
 
 	// create_gaintable_from_blockvisibility()
 	arl_create_gaintable_from_blockvisibility(lowconfig, vt, gt);
@@ -212,92 +289,78 @@ int main(int argc, char **argv)
 	// create_image_from_blockvisibility() (temp image in the inversion loop)
 	arl_create_image_from_blockvisibility(lowconfig, vt, adv.cellsize, adv.npixel, vt->phasecentre, model);
 
-	// create a "dirty" image with nchan = 1 (resulting image in the inversion loop)
+	// create a "dirty" image with nchan = 1 (resulting image in the invert loop)
 	dirty = allocate_image(shape1);
 	arl_create_image_from_blockvisibility(lowconfig, vt, adv.cellsize, adv.npixel, vt->phasecentre, dirty);
 
-	// create a "dirty_slice" image with nchan = 1 (resulting image in the inversion loop)
+	// create a "dirty_slice" image with nchan = 1 (temp image in the invert loops)
 	dirty_slice = allocate_image(shape1);
 	arl_create_image_from_blockvisibility(lowconfig, vt, adv.cellsize, adv.npixel, vt->phasecentre, dirty_slice);
 
 	// convert_blockvisibility_to_visibility
-//	arl_convert_blockvisibility_to_visibility(lowconfig, vt_gt, vt_gt_vis, cindex_predict, vt);
+	arl_convert_blockvisibility_to_visibility(lowconfig, vt_gt, vt_gt_vis, cindex_predict, vt);
 
 	// invert_function()
 
-	// Unrolled function
-	// Allocate c_rows array
-	if(!(c_rows = calloc(adv.vis_slices*nvis,sizeof(int)))) {
-		free(c_rows);
+	// For the unrolled invert functions
+	// Allocate total weight arrays for the normalization and set them to zero
+		
+	if(!(totalwt = calloc(shape1[0]*shape1[1],sizeof(double)))) {
+		free(totalwt);
 		return -1;
 	}
 
-	if(unrolled) {
+	if(!(totalwt_slice = calloc(shape1[0]*shape1[1],sizeof(double)))) {
+		free(totalwt_slice);
+		return -1;
+	}
+	
 
-
-// Allocate total weight arrays for the normalization and set them to zero
+// An unrolled loop for the invert_serial() function
+	if(unrolled_func) {
+// A loop over the visibility slices with precompiled rows = *(c_rows + i*nvis) for the invert function
 		
-		if(!(totalwt = calloc(shape1[0]*shape1[1],sizeof(double)))) {
-			free(totalwt);
-			return -1;
-		}
-
-		if(!(totalwt_slice = calloc(shape1[0]*shape1[1],sizeof(double)))) {
-			free(totalwt_slice);
-			return -1;
-		}
-
-// Create all rows arrays for each vis_slice, a single rows array for a particular vis_slice can be extracted using
-// a pointer arithmetics, e.g. *(c_rows + i*nvis) where i is vis_slice	
-
-		arl_create_rows(lowconfig, vt_gt, adv.vis_slices, c_rows);
-		for( i = 0; i < adv.vis_slices; i++) {
-			printf("%d [", i);
-			isum = 0;
-			for(j = 0; j < nvis; j++) {
-				if (j < 10) printf("%d ", *(c_rows + i*nvis +j));
-				isum += *(c_rows + i*nvis +j);
-				}
-			printf("] %d\n", isum);
-		}
-// A loop over the visibility slices with precompiled rows = *(c_rows + i*nvis)
-		arl_create_visibility(lowconfig, visslice);
 		for( i = 0; i < adv.vis_slices; i++) {
 			printf("Vis slice %d, ", i);
 //			arl_set_visibility_data_to_zero(lowconfig, visslice);			
-			arl_create_vis_from_rows_blockvis(lowconfig, vt_gt, visslice, cindex_predict, vt, (c_rows + i*nvis));
+
+			// A version of create_vis_from_rows using blockvis input, requires convert_blockvisibility_to_visibility() inside every time - slow
+//			arl_create_vis_from_rows_blockvis(lowconfig, vt_gt, visslice, cindex_slice, bvisslice, (c_rows + i*nvis));
+
+			// A version of create_vis_from_rows using vis input - fast
+			arl_create_vis_from_rows_vis(lowconfig, vt_gt_vis, cindex_predict, vt, visslice, cindex_slice, bvisslice, (c_rows + i*nvis));
+
 			printf(" nvis = %d\n", visslice->nvis);
-			arl_invert_function_oneslice(lowconfig, visslice, vt, model, adv.vis_slices, dirty_slice, totalwt_slice);
+			arl_invert_function_oneslice(lowconfig, visslice, bvisslice, model, adv.vis_slices, dirty_slice, totalwt_slice, 1); // dopsf = false
+			// Update weights			
 			printf("Total weights:\n");
 			for (int i1 = 0; i1 < shape1[0]; i1++) {
 				for (int j1 = 0; j1 < shape1[1]; j1++) {
-					totalwt[i1*shape[1]+j1] += totalwt_slice[i1*shape[1]+j1];
-					printf("%d %d %f %f\n", i1, j1, totalwt[i1*shape[1]+j1], totalwt_slice[i1*shape[1]+j1]);
+					totalwt[i1*shape1[1]+j1] += totalwt_slice[i1*shape1[1]+j1];
+					printf("%d %d %f %f\n", i1, j1, totalwt[i1*shape1[1]+j1], totalwt_slice[i1*shape1[1]+j1]);
 				}
 			}
+			// Update the image
 			arl_add_to_model(dirty, dirty_slice);
 		}
 // Normalize the resulting image
 		arl_normalize_sumwt(dirty, totalwt);
 
-// Free total weight arrays
-		free(totalwt);
-		free(totalwt_slice);
 
-		} else {		
+	} else {			
 	// Original function
-			arl_invert_function_blockvis(lowconfig, vt_gt, model, adv.vis_slices, dirty);
-		}
+		arl_invert_function_blockvis(lowconfig, vt_gt, model, adv.vis_slices, dirty);
+	}
 	// FITS file output
 	status = export_image_to_fits_c(dirty, "!results/ical_c_api-dirty.fits");
-	return 0;
+//	return 0;
 	// ical() - serial version
 	// create images with nchan = 1
 	deconvolved = allocate_image(shape1);
 	residual    = allocate_image(shape1);
 	restored    = allocate_image(shape1);
 
-	if(unrolled){
+	if(unrolled_ical){
 	// The same values as hard-coded in arlwrap.py calls
 		nmajor = 5; 
 		thresh = 0.1;
@@ -311,7 +374,10 @@ int main(int argc, char **argv)
 		bvtmp2_ical = allocate_blockvis_data(lowconfig->nant, lowconfig->nfreqs, lowconfig->npol, lowconfig->ntimes); //Blockvisibility vpred_ical.blockvis (ical.vispred.blockvis)
 		bvpred_ical = allocate_blockvis_data(lowconfig->nant, lowconfig->nfreqs, lowconfig->npol, lowconfig->ntimes); //Blockvisibility (ical.block_vispred)
 		psf_ical    = allocate_image(shape1);									// Image PSF
+		arl_create_image_from_blockvisibility(lowconfig, vt, adv.cellsize, adv.npixel, vt->phasecentre, psf_ical); // Fill metadata (phasecentre etc)
 		dirty_ical    = allocate_image(shape1);									// Image dirty (CLEAN loop)
+		arl_create_image_from_blockvisibility(lowconfig, vt, adv.cellsize, adv.npixel, vt->phasecentre, dirty_ical); // Fill metadata (phasecentre etc)
+
 		cc_ical    = allocate_image(shape1);									// Image restored tmp (CLEAN loop)
 		res_ical    = allocate_image(shape1);									// Image residual tmp (CLEAN loop)
 		if (!(cindex_ical = malloc(cindex_nbytes))) {								     // Cindex vtmp_ical.cindex (ical.vis.cindex)
@@ -350,10 +416,86 @@ int main(int argc, char **argv)
 	// Subtract visibility data to find residuals
         // vres = vtmp - vpred : 0 = add, 1 = subtract, 2 = mult, 3 = divide, else sets to zero
 		arl_manipulate_visibility_data(lowconfig, vis_ical, vpred_ical, vres_ical, 1); 
+
+		if(unrolled_func) {
+			// To be replaced with an unrolled version
+			// dirty_ical should be set to zero when created
+			// Reset total weights (to be replaced with memcpy?)
+			for (int i1 = 0; i1 < shape1[0]; i1++) {
+				for (int j1 = 0; j1 < shape1[1]; j1++) {
+					totalwt[i1*shape1[1]+j1] = 0.0;
+				}
+			}
+			// totalwt_slice can be re-used
+			// dirty_slice and visslice can be re-used
+
+			for( i = 0; i < adv.vis_slices; i++) {
+				printf("arl_invert_function_ical dirty, vis slice %d, ", i);
+
+			// A version of create_vis_from_rows using vis input - fast
+				arl_create_vis_from_rows_vis(lowconfig, vres_ical, cindex_ical, bvtmp_ical, visslice, cindex_slice, bvisslice, (c_rows + i*nvis));
+
+				printf(" nvis = %d\n", visslice->nvis);
+				arl_invert_function_oneslice(lowconfig, visslice, bvisslice, model, adv.vis_slices, dirty_slice, totalwt_slice, 1); // dopsf = false
+				// Update weights			
+				printf("Total weights:\n");
+				for (int i1 = 0; i1 < shape1[0]; i1++) {
+					for (int j1 = 0; j1 < shape1[1]; j1++) {
+						totalwt[i1*shape1[1]+j1] += totalwt_slice[i1*shape1[1]+j1];
+						printf("%d %d %f %f\n", i1, j1, totalwt[i1*shape1[1]+j1], totalwt_slice[i1*shape1[1]+j1]);
+					}
+				}
+				// Update the image
+				arl_add_to_model(dirty_ical, dirty_slice);
+			}
+			// Normalize the resulting image
+			arl_normalize_sumwt(dirty_ical, totalwt);
+
+			//arl_invert_function_ical(lowconfig, vres_ical, model, adv.vis_slices, dirty_ical);
+		} else {
 	// arl_invert_function_ical() (extra parameters in **kwargs -TBS later)
-		arl_invert_function_ical(lowconfig, vres_ical, model, adv.vis_slices, dirty_ical);
-	// arl_invert_function_psf() (extra parameters in **kwargs -TBS later)
+			arl_invert_function_ical(lowconfig, vres_ical, model, adv.vis_slices, dirty_ical);
+		}
+
+		// This loop can be merged with the upper one since they work on the same vis data constructing a dirty image and a PSF
+		if(unrolled_func) {
+			// To be replaced with an unrolled version
+			// dirty_ical should be set to zero when created
+			// Reset total weights (to be replaced with memcpy?)
+			for (int i1 = 0; i1 < shape1[0]; i1++) {
+				for (int j1 = 0; j1 < shape1[1]; j1++) {
+					totalwt[i1*shape1[1]+j1] = 0.0;
+				}
+			}
+			// totalwt_slice can be re-used
+			// dirty_slice and visslice can be re-used
+
+			for( i = 0; i < adv.vis_slices; i++) {
+				printf("arl_invert_function_ical psf, vis slice %d, ", i);
+
+			// A version of create_vis_from_rows using vis input - fast
+				arl_create_vis_from_rows_vis(lowconfig, vres_ical, cindex_ical, bvtmp_ical, visslice, cindex_slice, bvisslice, (c_rows + i*nvis));
+
+				printf(" nvis = %d\n", visslice->nvis);
+				arl_invert_function_oneslice(lowconfig, visslice, bvisslice, model, adv.vis_slices, dirty_slice, totalwt_slice, 0); // dopsf = true
+				// Update weights			
+				printf("Total weights:\n");
+				for (int i1 = 0; i1 < shape1[0]; i1++) {
+					for (int j1 = 0; j1 < shape1[1]; j1++) {
+						totalwt[i1*shape1[1]+j1] += totalwt_slice[i1*shape1[1]+j1];
+						printf("%d %d %f %f\n", i1, j1, totalwt[i1*shape1[1]+j1], totalwt_slice[i1*shape1[1]+j1]);
+					}
+				}
+				// Update the image
+				arl_add_to_model(psf_ical, dirty_slice);
+			}
+			// Normalize the resulting image
+			arl_normalize_sumwt(psf_ical, totalwt);
+		} else {
+
+		// arl_invert_function_psf() (extra parameters in **kwargs -TBS later)
 		arl_invert_function_psf(lowconfig, vres_ical, model, adv.vis_slices, psf_ical);
+		}
 	// CLEAN major cycles		
 		for(i = 0; i< nmajor; i++){
 			printf("ical: Start of major cycle %d of %d\n", i, nmajor);
@@ -380,9 +522,47 @@ int main(int argc, char **argv)
 */			
         	// vres = vtmp - vpred : 0 = add, 1 = subtract, 2 = mult, 3 = divide, else sets to zero
 			arl_manipulate_visibility_data(lowconfig, vis_ical, vpred_ical, vres_ical, 1); 
-		// arl_invert_function_ical() (extra parameters in **kwargs -TBS later)
-			arl_invert_function_ical(lowconfig, vres_ical, model, adv.vis_slices, dirty_ical);
 
+		// arl_invert_function_ical() (extra parameters in **kwargs -TBS later)
+			if(unrolled_func) {
+			// To be replaced with an unrolled version
+			// dirty_ical data should be set to zero 
+				memset(dirty_ical->data, 0, sizeof(double) * dirty_ical->size);
+			// Reset total weights (to be replaced with memcpy?)
+				for (int i1 = 0; i1 < shape1[0]; i1++) {
+					for (int j1 = 0; j1 < shape1[1]; j1++) {
+						totalwt[i1*shape1[1]+j1] = 0.0;
+					}
+				}
+				// totalwt_slice can be re-used
+				// dirty_slice and visslice can be re-used
+		
+				for( int i0 = 0; i0 < adv.vis_slices; i0++) {
+					printf("arl_invert_function_ical dirty (in a CLEAN loop), vis slice %d, ", i0);
+
+				// A version of create_vis_from_rows using vis input - fast
+					arl_create_vis_from_rows_vis(lowconfig, vres_ical, cindex_ical, bvtmp_ical, visslice, cindex_slice, bvisslice, (c_rows + i0*nvis));
+	
+					printf(" nvis = %d\n", visslice->nvis);
+					arl_invert_function_oneslice(lowconfig, visslice, bvisslice, model, adv.vis_slices, dirty_slice, totalwt_slice, 1); // dopsf = false
+					// Update weights			
+					printf("Total weights:\n");
+					for (int i1 = 0; i1 < shape1[0]; i1++) {
+						for (int j1 = 0; j1 < shape1[1]; j1++) {
+							totalwt[i1*shape1[1]+j1] += totalwt_slice[i1*shape1[1]+j1];
+							printf("%d %d %f %f\n", i1, j1, totalwt[i1*shape1[1]+j1], totalwt_slice[i1*shape1[1]+j1]);
+						}
+					}
+					// Update the image
+					arl_add_to_model(dirty_ical, dirty_slice);
+				}
+				// Normalize the resulting image
+				arl_normalize_sumwt(dirty_ical, totalwt);
+
+				//arl_invert_function_ical(lowconfig, vres_ical, model, adv.vis_slices, dirty_ical);
+			} else {
+				arl_invert_function_ical(lowconfig, vres_ical, model, adv.vis_slices, dirty_ical);
+			}
 		// ToDo - loop break on threshold
 
 			printf("ical: End of major cycle %d\n", i);
@@ -435,16 +615,26 @@ int main(int argc, char **argv)
 	residual	= destroy_image(residual);
 	restored	= destroy_image(restored);
 	vt 		= destroy_vis(vt);
+	vt_vis 		= destroy_vis(vt_vis);
+	vt_bvis 	= destroy_vis(vt_bvis);
+	vt_rvis 	= destroy_vis(vt_rvis);
+	vt_rbvis 	= destroy_vis(vt_rbvis);
+
 //	vtpredicted 	= destroy_vis(vtpredicted);
 	vt_predictfunction = destroy_vis(vt_predictfunction);
 	vt_gt 		= destroy_vis(vt_gt);
 	vt_gt_vis 	= destroy_vis(vt_gt_vis);
 	visslice	= destroy_vis(visslice);
+	bvisslice	= destroy_vis(bvisslice);
 	gt 		= destroy_gt(gt);
 	free(cindex_predict);
+	free(cindex_slice);
 	free(shape);
 	free(shape1);
-	free(c_rows); // TO BE MOVED UP WHEN IMPLEMENTING IN THE UNROLLED PART
+	free(c_rows); 
+// Free total weight arrays
+	free(totalwt);
+	free(totalwt_slice);
 
 	return 0;
 
