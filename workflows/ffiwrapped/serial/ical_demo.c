@@ -69,6 +69,8 @@ int main(int argc, char **argv)
 	ARLGt *gt_ical;			//GainTable (ICAL unrolled)
 	bool unrolled_ical = true; // true - unrolled, false - arl.functions::ical()
 	bool unrolled_func = true; // true - unrolled invert, predict, etc
+	bool unrolled_invert = true; // true - unrolled invert
+	bool unrolled_predict = true; // true - unrolled predict
 
 	double cellsize = 0.0005;
 	char config_name[] = "LOWBD2-CORE";
@@ -220,8 +222,12 @@ int main(int argc, char **argv)
 
 	// Objects needed for the unrolled functions
 	if(unrolled_func) {
-		// Create visibility object for a single slice, will be used later in several unrolled loops
+		// Fill metadata in the visibility objects
 		arl_create_visibility(lowconfig, visslice);
+		arl_create_blockvisibility(lowconfig, vt_bvis);
+		arl_create_visibility(lowconfig, vt_vis);
+		arl_create_blockvisibility(lowconfig, vt_rbvis);
+		arl_create_visibility(lowconfig, vt_rvis);
 
 		// Create all rows arrays for each vis_slice, a single rows array for a particular vis_slice can be extracted using
 		// a pointer arithmetics, e.g. *(c_rows + i*nvis) where i is vis_slice	
@@ -238,17 +244,11 @@ int main(int argc, char **argv)
 	}
 
 	// predict_function()
-	if(unrolled_func) {
-	// Fill metadata in the visibility objects
-		arl_create_visibility(lowconfig, visslice);
-		arl_create_blockvisibility(lowconfig, vt_bvis);
-		arl_create_visibility(lowconfig, vt_vis);
-		arl_create_blockvisibility(lowconfig, vt_rbvis);
-		arl_create_visibility(lowconfig, vt_rvis);
+	if(unrolled_predict) {
 	// convert_blockvisibility_to_visibility
 		arl_convert_blockvisibility_to_visibility(lowconfig, vt, vt_vis, cindex_predict, vt_bvis);
 		for( i = 0; i < adv.vis_slices; i++) {
-			printf("Vis slice %d, ", i);
+			printf("Predict_function vt/vt_vis, vis slice %d, ", i);
 			// A version of create_vis_from_rows using vis input - fast
 			arl_create_vis_from_rows_vis(lowconfig, vt_vis, cindex_predict, vt_bvis, visslice, cindex_slice, bvisslice, (c_rows + i*nvis));
 			arl_set_visibility_data_to_zero(lowconfig, visslice);			
@@ -317,11 +317,11 @@ int main(int argc, char **argv)
 	
 
 // An unrolled loop for the invert_serial() function
-	if(unrolled_func) {
+	if(unrolled_invert) {
 // A loop over the visibility slices with precompiled rows = *(c_rows + i*nvis) for the invert function
 		
 		for( i = 0; i < adv.vis_slices; i++) {
-			printf("Vis slice %d, ", i);
+			printf("Invert_function dirty, vis slice %d, ", i);
 //			arl_set_visibility_data_to_zero(lowconfig, visslice);			
 
 			// A version of create_vis_from_rows using blockvis input, requires convert_blockvisibility_to_visibility() inside every time - slow
@@ -407,9 +407,23 @@ int main(int argc, char **argv)
 	// copy_visibility (vis)
 		arl_copy_visibility(lowconfig, vpred_ical, vres_ical, 1);
 
-	// predict_function()
-		arl_predict_function_ical(lowconfig, vpred_ical, model, bvtmp2_ical, cindex2_ical, adv.vis_slices);
-
+	// predict_function() 
+		if(unrolled_predict) {
+			for( i = 0; i < adv.vis_slices; i++) {
+				printf("Predict_function vpred_ical, Vis slice %d, ", i);
+				// A version of create_vis_from_rows using vis input - fast
+				arl_create_vis_from_rows_vis(lowconfig, vpred_ical, cindex2_ical, bvtmp2_ical, visslice, cindex_slice, bvisslice, (c_rows + i*nvis));
+				arl_set_visibility_data_to_zero(lowconfig, visslice);			
+				// copy_visibility (vis, zero=True)
+				arl_copy_visibility(lowconfig, visslice, vt_rvis, 0);		
+				//arl_set_visibility_data_to_zero(lowconfig, vt_rvis);			
+				arl_predict_function_oneslice(lowconfig, visslice, bvisslice, model, vt_rvis);
+				printf(" nvis = %d %d %d\n", visslice->nvis, vt_rvis->nvis, nvis);
+				arl_add_to_visibility_data_slice(lowconfig, vpred_ical, vt_rvis, (c_rows + i*nvis));
+			}
+		} else {
+			arl_predict_function_ical(lowconfig, vpred_ical, model, bvtmp2_ical, cindex2_ical, adv.vis_slices);
+		}
 	// convert_visibility_to_blockvisibility()
 		arl_convert_visibility_to_blockvisibility(lowconfig, vpred_ical, bvtmp2_ical, cindex2_ical, bvpred_ical);
 
@@ -417,7 +431,7 @@ int main(int argc, char **argv)
         // vres = vtmp - vpred : 0 = add, 1 = subtract, 2 = mult, 3 = divide, else sets to zero
 		arl_manipulate_visibility_data(lowconfig, vis_ical, vpred_ical, vres_ical, 1); 
 
-		if(unrolled_func) {
+		if(unrolled_invert) {
 			// To be replaced with an unrolled version
 			// dirty_ical should be set to zero when created
 			// Reset total weights (to be replaced with memcpy?)
@@ -458,7 +472,7 @@ int main(int argc, char **argv)
 		}
 
 		// This loop can be merged with the upper one since they work on the same vis data constructing a dirty image and a PSF
-		if(unrolled_func) {
+		if(unrolled_invert) {
 			// To be replaced with an unrolled version
 			// dirty_ical should be set to zero when created
 			// Reset total weights (to be replaced with memcpy?)
@@ -506,7 +520,23 @@ int main(int argc, char **argv)
 		// Set vpred_ical.data to zero
 			arl_set_visibility_data_to_zero(lowconfig, vpred_ical);
 		// predict_function()
-			arl_predict_function_ical(lowconfig, vpred_ical, model, bvtmp2_ical, cindex2_ical, adv.vis_slices);
+			if(unrolled_predict) {
+				for( int i0 = 0; i0 < adv.vis_slices; i0++) {
+					printf("Predict_function vpred_ical (in a CLEAN loop), Vis slice %d, ", i0);
+					// A version of create_vis_from_rows using vis input - fast
+					arl_create_vis_from_rows_vis(lowconfig, vpred_ical, cindex2_ical, bvtmp2_ical, visslice, cindex_slice, bvisslice, (c_rows + i0*nvis));
+					arl_set_visibility_data_to_zero(lowconfig, visslice);			
+					// copy_visibility (vis, zero=True)
+					arl_copy_visibility(lowconfig, visslice, vt_rvis, 0);		
+					//arl_set_visibility_data_to_zero(lowconfig, vt_rvis);			
+					arl_predict_function_oneslice(lowconfig, visslice, bvisslice, model, vt_rvis);
+					printf(" nvis = %d %d %d\n", visslice->nvis, vt_rvis->nvis, nvis);
+					arl_add_to_visibility_data_slice(lowconfig, vpred_ical, vt_rvis, (c_rows + i0*nvis));
+				}
+			} else {
+
+				arl_predict_function_ical(lowconfig, vpred_ical, model, bvtmp2_ical, cindex2_ical, adv.vis_slices);
+			}
 		// if doselfcal (currently not working, to be replaced with calibrate_function)
 /*			if(i >= first_selfcal) {
 				printf("ical: Performing selfcalibration\n");
@@ -524,7 +554,7 @@ int main(int argc, char **argv)
 			arl_manipulate_visibility_data(lowconfig, vis_ical, vpred_ical, vres_ical, 1); 
 
 		// arl_invert_function_ical() (extra parameters in **kwargs -TBS later)
-			if(unrolled_func) {
+			if(unrolled_invert) {
 			// To be replaced with an unrolled version
 			// dirty_ical data should be set to zero 
 				memset(dirty_ical->data, 0, sizeof(double) * dirty_ical->size);
