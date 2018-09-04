@@ -1,6 +1,8 @@
 **September 4, 2018** [Rodrigo]  Added add support for daliuge as an (experimental) backend of the arlexecute module. 
 Support uses daliuge's delayed function, which accepts the same parameters as dask's; therefore the change is simple, 
-and transparent to the rest of the ARL code.
+and transparent to the rest of the ARL code. All these changes are within the context of [SDP ticket 
+TSK-2569](https://jira.ska-sdp.org/browse/TSK-2569). See also the 
+[Integration of ARL with the DALiuGE Execution Framework, part 2](https://confluence.ska-sdp.org/display/WBS/Integration+of+ARL+with+the+DALiuGE+Execution+Framework%2C+part+2)
 
 **August 16, 2018** [Tim] More refactoring to being closer alignment with SDP architecture.
 1. There are now wrappers for all processing components, both serial and 
