@@ -1,3 +1,7 @@
+**September 4, 2018** [Rodrigo]  Added add support for daliuge as an (experimental) backend of the arlexecute module. 
+Support uses daliuge's delayed function, which accepts the same parameters as dask's; therefore the change is simple, 
+and transparent to the rest of the ARL code.
+
 **August 16, 2018** [Tim] More refactoring to being closer alignment with SDP architecture.
 1. There are now wrappers for all processing components, both serial and 
 arlexecute. At the moment, these are just pass-throughs but the point is that they can
