@@ -201,7 +201,7 @@ def fft_griddata_to_image(griddata, gcf, imaginary=False):
     projected = numpy.sum(griddata.data, axis=2)
     _, _, ny, nx = projected.data.shape
     
-    im_data = numpy.real(ifft(projected)) * gcf.data * float(nx) * float(ny)
+    im_data = ifft(projected) * gcf.data * float(nx) * float(ny)
     
     im_real = create_image_from_array(im_data.real, griddata.projection_wcs, griddata.polarisation_frame)
 

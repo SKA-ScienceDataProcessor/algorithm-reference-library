@@ -19,9 +19,7 @@ from processing_components.simulation.testing_support import create_named_config
 from processing_components.skycomponent.operations import find_skycomponents, find_nearest_skycomponent, \
     insert_skycomponent
 from processing_components.imaging.primary_beams import create_pb_generic
-from processing_components.convolution_function.kernels import create_awterm_convolutionfunction, \
-    create_pswf_convolutionfunction, create_box_convolutionfunction
-
+from processing_components.convolution_function.kernels import create_awterm_convolutionfunction
 
 
 log = logging.getLogger(__name__)
@@ -37,7 +35,7 @@ class TestImaging(unittest.TestCase):
         from data_models.parameters import arl_path
         self.dir = arl_path('test_results')
     
-    def actualSetUp(self, add_errors=False, freqwin=1, block=False, dospectral=True, dopol=False, zerow=False):
+    def actualSetUp(self, freqwin=1, block=False, dospectral=True, dopol=False, zerow=False):
         
         self.npixel = 512
         self.low = create_named_configuration('LOWBD2', rmax=750.0)

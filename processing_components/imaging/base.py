@@ -32,14 +32,16 @@ from astropy.wcs.utils import pixel_to_skycoord
 from data_models.memory_data_models import Visibility, BlockVisibility, Image, Skycomponent, assert_same_chan_pol
 from data_models.parameters import get_parameter
 from data_models.polarisation import convert_pol_frame, PolarisationFrame
-from processing_components.convolution_function.kernels import create_pswf_convolutionfunction
-from processing_components.griddata.gridding import grid_visibility_to_griddata, \
-    fft_griddata_to_image, fft_image_to_griddata, \
-    degrid_visibility_from_griddata
-from processing_components.griddata.operations import create_griddata_from_image
+
 from processing_library.image.operations import create_image_from_array
 from processing_library.imaging.imaging_params import get_frequency_map
 from processing_library.util.coordinate_support import simulate_point, skycoord_to_lmn
+
+from ..convolution_function.kernels import create_pswf_convolutionfunction
+from ..griddata.gridding import grid_visibility_to_griddata, \
+    fft_griddata_to_image, fft_image_to_griddata, \
+    degrid_visibility_from_griddata
+from ..griddata.operations import create_griddata_from_image
 from ..visibility.base import copy_visibility, phaserotate_visibility
 from ..visibility.coalesce import coalesce_visibility, decoalesce_visibility, convert_blockvisibility_to_visibility
 
@@ -95,7 +97,7 @@ def normalize_sumwt(im: Image, sumwt) -> Image:
     for chan in range(nchan):
         for pol in range(npol):
             if sumwt[chan, pol] > 0.0:
-                im.data[chan, pol, :, :] /= sumwt[chan, pol]
+                im.data[chan, pol, :, :] = im.data[chan, pol, :, :] / sumwt[chan, pol]
             else:
                 im.data[chan, pol, :, :] = 0.0
     return im
@@ -169,7 +171,6 @@ def invert_2d(vis: Visibility, im: Image, dopsf: bool = False, normalize: bool =
     
     svis = shift_vis_to_image(svis, im, tangent=True, inverse=False)
     
-    
     if gcf is None or cf is None:
         gcf, cf = create_pswf_convolutionfunction(im,
                                                   support=get_parameter(kwargs, "support", 6),
@@ -179,14 +180,15 @@ def invert_2d(vis: Visibility, im: Image, dopsf: bool = False, normalize: bool =
     griddata, sumwt = grid_visibility_to_griddata(svis, griddata=griddata, cf=cf)
     
     imaginary = get_parameter(kwargs, "imaginary", False)
-    result = fft_griddata_to_image(griddata, gcf, imaginary=imaginary)
     if imaginary:
+        result0, result1 = fft_griddata_to_image(griddata, gcf, imaginary=imaginary)
         log.debug("invert_2d: retaining imaginary part of dirty image")
         if normalize:
-            result[0] = normalize_sumwt(result[0], sumwt)
-            result[1] = normalize_sumwt(result[1], sumwt)
-        return result[0], sumwt, result[1]
+            result0 = normalize_sumwt(result0, sumwt)
+            result1 = normalize_sumwt(result1, sumwt)
+        return result0, sumwt, result1
     else:
+        result = fft_griddata_to_image(griddata, gcf)
         if normalize:
             result = normalize_sumwt(result, sumwt)
         return result, sumwt
