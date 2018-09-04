@@ -36,7 +36,7 @@ class TestPipelineGraphs(unittest.TestCase):
         
         from data_models.parameters import arl_path
         self.dir = arl_path('test_results')
-        arlexecute.set_client(use_dask=False)
+        arlexecute.set_client(use_dask=True)
 
     def tearDown(self):
         arlexecute.close()
@@ -87,8 +87,8 @@ class TestPipelineGraphs(unittest.TestCase):
                          for i, _ in enumerate(self.frequency)]
         
         self.model_imagelist = [
-            arlexecute.execute(create_unittest_model, nout=freqwin)(self.vis_list[0], self.image_pol,
-                                                                    npixel=self.npixel)
+            arlexecute.execute(create_unittest_model, nout=freqwin)(self.vis_list[i], self.image_pol,
+                                                                    npixel=self.npixel, cellsize=0.0005)
             for i, _ in enumerate(self.frequency)]
         
         self.components_list = [
@@ -137,10 +137,11 @@ class TestPipelineGraphs(unittest.TestCase):
                                                        deconvolve_facets=8, deconvolve_overlap=16,
                                                        deconvolve_taper='tukey')
         clean, residual, restored = arlexecute.compute(continuum_imaging_list, sync=True)
-        export_image_to_fits(clean[0], '%s/test_pipelines_continuum_imaging_pipeline_clean.fits' % self.dir)
-        export_image_to_fits(residual[0][0],
+        centre = len(clean) // 2
+        export_image_to_fits(clean[centre], '%s/test_pipelines_continuum_imaging_pipeline_clean.fits' % self.dir)
+        export_image_to_fits(residual[centre][0],
                              '%s/test_pipelines_continuum_imaging_pipeline_residual.fits' % self.dir)
-        export_image_to_fits(restored[0],
+        export_image_to_fits(restored[centre],
                              '%s/test_pipelines_continuum_imaging_pipeline_restored.fits' % self.dir)
         
         qa = qa_image(restored[0])
@@ -174,9 +175,10 @@ class TestPipelineGraphs(unittest.TestCase):
                                           threshold=2.0, nmajor=5, gain=0.1,
                                           deconvolve_facets=8, deconvolve_overlap=16, deconvolve_taper='tukey')
         clean, residual, restored = arlexecute.compute(ical_list, sync=True)
-        export_image_to_fits(clean[0], '%s/test_pipelines_ical_pipeline_clean.fits' % self.dir)
-        export_image_to_fits(residual[0][0], '%s/test_pipelines_ical_pipeline_residual.fits' % self.dir)
-        export_image_to_fits(restored[0], '%s/test_pipelines_ical_pipeline_restored.fits' % self.dir)
+        centre = len(clean) // 2
+        export_image_to_fits(clean[centre], '%s/test_pipelines_ical_pipeline_clean.fits' % self.dir)
+        export_image_to_fits(residual[centre][0], '%s/test_pipelines_ical_pipeline_residual.fits' % self.dir)
+        export_image_to_fits(restored[centre], '%s/test_pipelines_ical_pipeline_restored.fits' % self.dir)
         
         qa = qa_image(restored[0])
         assert numpy.abs(qa.data['max'] - 116.9) < 1.0, str(qa)

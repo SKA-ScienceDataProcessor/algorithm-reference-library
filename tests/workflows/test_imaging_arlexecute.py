@@ -84,7 +84,7 @@ class TestImaging(unittest.TestCase):
         
         self.model_list = [arlexecute.execute(create_unittest_model, nout=freqwin)(self.vis_list[freqwin],
                                                                                     self.image_pol,
-                                                                                    npixel=self.npixel)
+                                                                                    npixel=self.npixel, cellsize=0.0005)
                             for freqwin, _ in enumerate(self.frequency)]
         
         self.components_list = [arlexecute.execute(create_unittest_components)(self.model_list[freqwin],
@@ -212,7 +212,7 @@ class TestImaging(unittest.TestCase):
         gcf, cf = create_awterm_convolutionfunction(self.model, nw=200, wstep=4.0,
                                                     oversampling=8, support=100, use_aaf=True)
         cf_clipped = apply_bounding_box_convolutionfunction(cf, fractional_level=1e-2)
-        self._predict_base(context='2d', extra='_wprojection', fluxthreshold=2.0, oversampling=2,
+        self._predict_base(context='2d', extra='_wprojection_clipped', fluxthreshold=2.0, oversampling=2,
                            gcf=gcf, cf=cf_clipped)
 
     def test_predict_wstack(self):
@@ -283,7 +283,7 @@ class TestImaging(unittest.TestCase):
         gcf, cf = create_awterm_convolutionfunction(self.model, nw=200, wstep=4.0,
                                                     oversampling=8, support=100, use_aaf=True)
         cf_clipped = apply_bounding_box_convolutionfunction(cf, fractional_level=1e-4)
-        self._invert_base(context='2d', extra='_wprojection', positionthreshold=2.0, gcf=gcf, cf=cf_clipped)
+        self._invert_base(context='2d', extra='_wprojection_clipped', positionthreshold=2.0, gcf=gcf, cf=cf_clipped)
 
     def test_invert_wprojection_wstack(self):
         self.actualSetUp()
