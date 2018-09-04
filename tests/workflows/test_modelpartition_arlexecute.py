@@ -12,6 +12,7 @@ from astropy.coordinates import SkyCoord
 from data_models.memory_data_models import SkyModel
 from data_models.polarisation import PolarisationFrame
 
+from . import ARLExecuteTestCase
 from wrappers.arlexecute.calibration.operations import apply_gaintable, create_gaintable_from_blockvisibility
 from wrappers.arlexecute.calibration.calibration import solve_gaintable
 from wrappers.arlexecute.image.operations import export_image_to_fits, qa_image
@@ -31,18 +32,13 @@ from workflows.arlexecute.imaging.imaging_arlexecute import invert_list_arlexecu
 log = logging.getLogger(__name__)
 
 
-class TestCalibrationSkyModelcal(unittest.TestCase):
+class TestCalibrationSkyModelcal(ARLExecuteTestCase, unittest.TestCase):
     def setUp(self):
         
         from data_models.parameters import arl_path
         self.dir = arl_path('test_results')
         
-        arlexecute.set_client(use_dask=False)
-        
         numpy.random.seed(180555)
-
-    def tearDown(self):
-        arlexecute.close()
 
     def actualSetup(self, vnchan=1, doiso=True, ntimes=5, flux_limit=2.0, zerow=True, fixed=False):
         
