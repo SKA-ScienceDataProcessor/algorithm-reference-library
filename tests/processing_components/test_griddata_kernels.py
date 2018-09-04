@@ -62,7 +62,7 @@ class TestGridDataKernels(unittest.TestCase):
         export_image_to_fits(cf_image, "%s/test_convolutionfunction_pwsf_cf.fits" % self.dir)
 
         peak_location = numpy.unravel_index(numpy.argmax(numpy.abs(cf.data)), cf.shape)
-        assert numpy.abs(cf.data[peak_location]-0.18712109669890536+0j) < 1e-7, cf.data[peak_location]
+        assert numpy.abs(cf.data[peak_location]-0.1871722034219655+0j) < 1e-7, cf.data[peak_location]
         
         assert peak_location == (0, 0, 0, 4, 4, 3, 3), peak_location
         u_peak, v_peak = cf.grid_wcs.sub([1, 2]).wcs_pix2world(peak_location[-2], peak_location[-1], 0)
@@ -103,7 +103,10 @@ class TestGridDataKernels(unittest.TestCase):
         assert peak_location == (0, 0, 10, 2, 2, 50, 50), peak_location
         assert numpy.abs(cf.data[peak_location] - (0.18704594760349508-0j)) < 1e-7, \
             cf.data[peak_location]
-        
+        u_peak, v_peak = cf.grid_wcs.sub([1, 2]).wcs_pix2world(peak_location[-2], peak_location[-1], 0)
+        assert numpy.abs(u_peak) < 1e-7, u_peak
+        assert numpy.abs(v_peak) < 1e-7, u_peak
+
         
         cf_clipped = apply_bounding_box_convolutionfunction(cf)
         cf_image = convert_convolutionfunction_to_image(cf_clipped)
@@ -111,7 +114,8 @@ class TestGridDataKernels(unittest.TestCase):
         export_image_to_fits(cf_image, "%s/test_convolutionfunction_wterm_clipped_cf.fits" % self.dir)
 
         peak_location = numpy.unravel_index(numpy.argmax(numpy.abs(cf_clipped.data)), cf_clipped.shape)
-        assert peak_location == (0, 0, 10, 2, 2, 39, 39), peak_location
+        assert peak_location == (0, 0, 10, 2, 2, 40, 40), peak_location
+        
         assert numpy.abs(cf_clipped.data[peak_location] - (0.18704594760349508-0j)) < 1e-7, \
             cf_clipped.data[peak_location]
         u_peak, v_peak = cf_clipped.grid_wcs.sub([1, 2]).wcs_pix2world(peak_location[-2], peak_location[-1], 0)
@@ -127,19 +131,6 @@ class TestGridDataKernels(unittest.TestCase):
         cf_image = convert_convolutionfunction_to_image(cf)
         cf_image.data = numpy.real(cf_image.data)
         export_image_to_fits(cf_image, "%s/test_convolutionfunction_wterm_nopswf_cf.fits" % self.dir)
-
-        cf_clipped = apply_bounding_box_convolutionfunction(cf)
-        cf_image = convert_convolutionfunction_to_image(cf_clipped)
-        cf_image.data = numpy.real(cf_image.data)
-        export_image_to_fits(cf_image, "%s/test_convolutionfunction_wterm_nopswf_clipped_cf.fits" % self.dir)
-
-        peak_location = numpy.unravel_index(numpy.argmax(numpy.abs(cf_clipped.data)), cf_clipped.shape)
-        assert peak_location == (0, 0, 10, 4, 4, 25, 25), peak_location
-        assert numpy.abs(cf.data[peak_location] - (1-0j)) < 1e-7, \
-            cf.data[peak_location]
-        u_peak, v_peak = cf.grid_wcs.sub([1, 2]).wcs_pix2world(peak_location[-2], peak_location[-1], 0)
-        assert numpy.abs(u_peak) < 1e-7, u_peak
-        assert numpy.abs(v_peak) < 1e-7, u_peak
 
     def test_fill_awterm_to_convolutionfunction(self):
         make_pb = functools.partial(create_pb_generic, diameter=35.0, blockage=0.0)
@@ -170,9 +161,9 @@ class TestGridDataKernels(unittest.TestCase):
         peak_location = numpy.unravel_index(numpy.argmax(numpy.abs(cf.data)), cf.shape)
         assert peak_location == (0, 0, 10, 2, 2, 50, 50), peak_location
         
-        cf_clipped = apply_bounding_box_convolutionfunction(cf, fractional_level=1e-3)
+        cf_clipped = apply_bounding_box_convolutionfunction(cf, fractional_level=1e-4)
         peak_location = numpy.unravel_index(numpy.argmax(numpy.abs(cf_clipped.data)), cf_clipped.shape)
-        assert peak_location == (0, 0, 10, 2, 2, 23, 23), peak_location
+        assert peak_location == (0, 0, 10, 2, 2, 29, 29), peak_location
         cf_image = convert_convolutionfunction_to_image(cf_clipped)
         cf_image.data = numpy.real(cf_image.data)
         export_image_to_fits(cf_image, "%s/test_convolutionfunction_awterm_clipped_cf.fits" % self.dir)
@@ -201,12 +192,11 @@ class TestGridDataKernels(unittest.TestCase):
         cf_image.data = numpy.real(cf_image.data)
         export_image_to_fits(cf_image, "%s/test_convolutionfunction_aterm_clipped_cf.fits" % self.dir)
         peak_location = numpy.unravel_index(numpy.argmax(numpy.abs(cf_clipped.data)), cf_clipped.shape)
-        assert peak_location == (0, 0, 0, 8, 8, 5, 5), peak_location
+        assert peak_location == (0, 0, 0, 8, 8, 6, 6), peak_location
 
     def test_compare_aterm_kernels(self):
         make_pb = functools.partial(create_pb_generic, diameter=35.0, blockage=0.0)
-        pb = make_pb(self.image)
-        _, cf = create_awterm_convolutionfunction(self.image, make_pb=make_pb, oversampling=128, support=32,
+        _, cf = create_awterm_convolutionfunction(self.image, make_pb=make_pb, oversampling=16, support=32,
                                                   use_aaf=True)
         cf.data = numpy.real(cf.data)
         _, cf_noover = create_awterm_convolutionfunction(self.image, make_pb=make_pb, oversampling=1,
@@ -214,7 +204,7 @@ class TestGridDataKernels(unittest.TestCase):
         cf_noover.data = numpy.real(cf_noover.data)
         cf.data[...] -= cf_noover.data[0,0,0,0,0]
         cf.data[...] /= numpy.max(cf_noover.data)
-        assert numpy.abs(cf.data[0,0,0,64,64,16,16]) < 1e-6, cf.data[0,0,0,64,64,16,16]
+        assert numpy.abs(cf.data[0,0,0,8,8,16,16]) < 1e-6, cf.data[0,0,0,8,8,16,16]
 
     def test_compare_wterm_kernels(self):
         make_pb = functools.partial(create_pb_generic, diameter=35.0, blockage=0.0)
@@ -227,7 +217,6 @@ class TestGridDataKernels(unittest.TestCase):
         cf_noover.data = numpy.real(cf_noover.data)
         cf.data[...] -= cf_noover.data[0,0,0,0,0]
         cf.data[...] /= numpy.max(cf_noover.data)
-        print(numpy.max(numpy.abs(cf.data)))
         assert numpy.abs(cf.data[0,0,0,8,8,16,16]) < 5e-6, cf.data[0,0,0,8,8,16,16]
 
     def test_fill_aterm_to_convolutionfunction_noover(self):
@@ -255,7 +244,7 @@ class TestGridDataKernels(unittest.TestCase):
         cf_image.data = numpy.real(cf_image.data)
         export_image_to_fits(cf_image, "%s/test_convolutionfunction_aterm_clipped_noover_cf.fits" % self.dir)
         peak_location = numpy.unravel_index(numpy.argmax(numpy.abs(cf_clipped.data)), cf_clipped.shape)
-        assert peak_location == (0, 0, 0, 0, 0, 4, 4), peak_location
+        assert peak_location == (0, 0, 0, 0, 0, 5, 5), peak_location
 
 
 if __name__ == '__main__':

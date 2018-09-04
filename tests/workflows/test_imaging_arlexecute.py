@@ -1,4 +1,4 @@
-""" Unit tests for pipelines expressed via dask.delayed
+""" Unit tests for pipelines expressed via arlexecute
 
 
 """
@@ -12,6 +12,7 @@ from astropy import units as u
 from astropy.coordinates import SkyCoord
 
 from data_models.polarisation import PolarisationFrame
+
 from wrappers.arlexecute.execution_support.arlexecute import arlexecute
 from wrappers.arlexecute.image.operations import export_image_to_fits, smooth_image
 from wrappers.arlexecute.imaging.base import predict_skycomponent_visibility
@@ -22,6 +23,7 @@ from wrappers.arlexecute.skycomponent.operations import find_skycomponents, find
 from wrappers.arlexecute.simulation.testing_support import create_named_configuration, ingest_unittest_visibility, \
     create_unittest_model, insert_unittest_errors, create_unittest_components
 from wrappers.arlexecute.convolution_function.kernels import create_awterm_convolutionfunction
+from wrappers.arlexecute.convolution_function.operations import apply_bounding_box_convolutionfunction
 
 log = logging.getLogger(__name__)
 
@@ -161,132 +163,150 @@ class TestImaging(unittest.TestCase):
         
         if check_components:
             self._checkcomponents(dirty[0], fluxthreshold, positionthreshold)
-    
+
     def test_predict_2d(self):
         self.actualSetUp(zerow=True)
         self._predict_base(context='2d')
-    
+
     @unittest.skip("Facets requires overlap")
     def test_predict_facets(self):
         self.actualSetUp()
         self._predict_base(context='facets', fluxthreshold=15.0, facets=4)
-    
+
     @unittest.skip("Timeslice predict needs better interpolation")
     def test_predict_facets_timeslice(self):
         self.actualSetUp()
         self._predict_base(context='facets_timeslice', fluxthreshold=19.0, facets=8, vis_slices=self.ntimes)
-    
+
     @unittest.skip("Facets requires overlap")
     def test_predict_facets_wprojection(self):
         self.actualSetUp()
         self._predict_base(context='facets', extra='_wprojection', facets=8, wstep=8.0, fluxthreshold=15.0,
                            oversampling=2)
-    
+
     @unittest.skip("Correcting twice?")
     def test_predict_facets_wstack(self):
         self.actualSetUp()
         self._predict_base(context='facets_wstack', fluxthreshold=15.0, facets=8, vis_slices=41)
-    
+
     @unittest.skip("Timeslice predict needs better interpolation")
     def test_predict_timeslice(self):
         self.actualSetUp()
         self._predict_base(context='timeslice', fluxthreshold=19.0, vis_slices=self.ntimes)
-    
+
     @unittest.skip("Timeslice predict needs better interpolation")
     def test_predict_timeslice_wprojection(self):
         self.actualSetUp()
         self._predict_base(context='timeslice', extra='_wprojection', fluxthreshold=3.0, wstep=10.0,
                            vis_slices=self.ntimes, oversampling=2)
-    
+
     def test_predict_wprojection(self):
         self.actualSetUp()
         gcf, cf = create_awterm_convolutionfunction(self.model, nw=200, wstep=4.0,
                                                     oversampling=8, support=100, use_aaf=True)
         self._predict_base(context='2d', extra='_wprojection', fluxthreshold=2.0, oversampling=2,
                            gcf=gcf, cf=cf)
-    
+
+    def test_predict_wprojection_clip(self):
+        self.actualSetUp()
+        gcf, cf = create_awterm_convolutionfunction(self.model, nw=200, wstep=4.0,
+                                                    oversampling=8, support=100, use_aaf=True)
+        cf_clipped = apply_bounding_box_convolutionfunction(cf, fractional_level=1e-2)
+        self._predict_base(context='2d', extra='_wprojection', fluxthreshold=2.0, oversampling=2,
+                           gcf=gcf, cf=cf_clipped)
+
     def test_predict_wstack(self):
         self.actualSetUp()
         self._predict_base(context='wstack', fluxthreshold=2.0, vis_slices=41)
-    
+
     def test_predict_wstack_wprojection(self):
         self.actualSetUp()
-        gcf, cf = create_awterm_convolutionfunction(self.model, nw=21, wstep=2.5,
+        gcf, cf = create_awterm_convolutionfunction(self.model, nw=100, wstep=8.0,
                                                     oversampling=4, support=100, use_aaf=True)
-
-        self._predict_base(context='wstack', extra='_wprojection', fluxthreshold=3.0, vis_slices=11,
-                           oversampling=2, gcf=gcf, cf=cf)
     
+        self._predict_base(context='wstack', extra='_wprojection', fluxthreshold=8.0, vis_slices=11,
+                           oversampling=4, gcf=gcf, cf=cf)
+
     def test_predict_wstack_spectral(self):
         self.actualSetUp(dospectral=True)
         self._predict_base(context='wstack', extra='_spectral', fluxthreshold=4.0, vis_slices=41)
-    
+
     def test_predict_wstack_spectral_pol(self):
         self.actualSetUp(dospectral=True, dopol=True)
         self._predict_base(context='wstack', extra='_spectral', fluxthreshold=4.0, vis_slices=41)
-    
+
     def test_invert_2d(self):
         self.actualSetUp(zerow=True)
         self._invert_base(context='2d', positionthreshold=2.0, check_components=False)
-    
+
     @unittest.skip("Needs padding?")
     def test_invert_facets(self):
         self.actualSetUp()
         self._invert_base(context='facets', positionthreshold=2.0, check_components=True, facets=8)
-    
+
     @unittest.skip("Correcting twice?")
     def test_invert_facets_timeslice(self):
         self.actualSetUp()
         self._invert_base(context='facets_timeslice', check_components=True, vis_slices=self.ntimes,
                           positionthreshold=5.0, flux_threshold=1.0, facets=8)
-    
+
     @unittest.skip("Correcting twice?")
     def test_invert_facets_wprojection(self):
         self.actualSetUp()
         self._invert_base(context='facets', extra='_wprojection', check_components=True,
                           positionthreshold=2.0, wstep=10.0, oversampling=2, facets=4)
-    
+
     @unittest.skip("Correcting twice?")
     def test_invert_facets_wstack(self):
         self.actualSetUp()
         self._invert_base(context='facets_wstack', positionthreshold=1.0, check_components=False, facets=4,
                           vis_slices=11)
-    
+
     def test_invert_timeslice(self):
         self.actualSetUp()
         self._invert_base(context='timeslice', positionthreshold=1.0, check_components=True,
                           vis_slices=self.ntimes)
-    
+
     def test_invert_timeslice_wprojection(self):
         self.actualSetUp()
         self._invert_base(context='timeslice', extra='_wprojection', positionthreshold=1.0,
                           check_components=True, wstep=20.0, vis_slices=self.ntimes, oversampling=2)
-    
+
     def test_invert_wprojection(self):
         self.actualSetUp()
         gcf, cf = create_awterm_convolutionfunction(self.model, nw=200, wstep=4.0,
                                                     oversampling=8, support=100, use_aaf=True)
         self._invert_base(context='2d', extra='_wprojection', positionthreshold=2.0, gcf=gcf, cf=cf)
-    
+
+    def test_invert_wprojection_clip(self):
+        self.actualSetUp()
+        gcf, cf = create_awterm_convolutionfunction(self.model, nw=200, wstep=4.0,
+                                                    oversampling=8, support=100, use_aaf=True)
+        cf_clipped = apply_bounding_box_convolutionfunction(cf, fractional_level=1e-4)
+        self._invert_base(context='2d', extra='_wprojection', positionthreshold=2.0, gcf=gcf, cf=cf_clipped)
+
     def test_invert_wprojection_wstack(self):
         self.actualSetUp()
         gcf, cf = create_awterm_convolutionfunction(self.model, nw=100, wstep=8.0,
                                                     oversampling=8, support=100, use_aaf=True)
-        self._invert_base(context='wstack', extra='_wprojection', positionthreshold=1.0, wstep=2.5, vis_slices=11,
-                          oversampling=2, gcf=gcf, cf=cf)
-    
+        cf_clipped = apply_bounding_box_convolutionfunction(cf)
+        self._invert_base(context='wstack', extra='_wprojection', positionthreshold=1.0, vis_slices=11,
+                          oversampling=2, gcf=gcf, cf=cf_clipped)
+
     def test_invert_wstack(self):
         self.actualSetUp()
         self._invert_base(context='wstack', positionthreshold=1.0, vis_slices=41)
-    
+
     def test_invert_wstack_spectral(self):
         self.actualSetUp(dospectral=True)
         self._invert_base(context='wstack', extra='_spectral', positionthreshold=2.0,
                           vis_slices=41)
-    
+
     def test_invert_wstack_spectral_pol(self):
         self.actualSetUp(dospectral=True, dopol=True)
         self._invert_base(context='wstack', extra='_spectral_pol', positionthreshold=2.0,
                           vis_slices=41)
+
+
 if __name__ == '__main__':
     unittest.main()

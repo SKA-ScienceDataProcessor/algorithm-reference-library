@@ -167,15 +167,20 @@ def apply_bounding_box_convolutionfunction(cf, fractional_level=1e-4):
     nx = newcf.data.shape[-1]
     ny = newcf.data.shape[-2]
     mask = numpy.max(numpy.abs(newcf.data), axis=(0, 1, 2, 3, 4))
-    peak = numpy.max(numpy.abs(mask))
-    mask /= peak
-    coords = numpy.argwhere(mask > fractional_level)
+    coords = numpy.argwhere(mask > fractional_level * numpy.max(numpy.abs(cf.data)))
+    crpx = int(numpy.round(cf.grid_wcs.wcs.crpix[0]))
+    crpy = int(numpy.round(cf.grid_wcs.wcs.crpix[1]))
     x0, y0 = coords.min(axis=0)
-    x1, y1 = coords.max(axis=0) + 1
+    dx = crpx - x0
+    dy = crpy - y0
+    x0 -= 1
+    y0 -= 1
+    x1 = crpx + dx - 1
+    y1 = crpy + dy - 1
     newcf.data = newcf.data[..., y0:y1, x0:x1]
     nny, nnx = newcf.data.shape[-2], newcf.data.shape[-1]
-    newcf.grid_wcs.wcs.crpix[0] += nnx // 2 - nx // 2
-    newcf.grid_wcs.wcs.crpix[1] += nny // 2 - ny // 2
+    newcf.grid_wcs.wcs.crpix[0] += nnx / 2 - nx / 2
+    newcf.grid_wcs.wcs.crpix[1] += nny / 2 - ny / 2
     return newcf
 
 
@@ -189,16 +194,15 @@ def calculate_bounding_box_convolutionfunction(cf, fractional_level=1e-4):
 
     :param cf:
     :param fractional_level:
-    :return: bounded convolution function
+    :return: list of bounding boxes
     """
     bboxes = list()
+    threshold = fractional_level * numpy.max(numpy.abs(cf.data))
     for z in range(cf.data.shape[2]):
         mask = numpy.max(numpy.abs(cf.data[:, :, z, ...]), axis=(0, 1, 2, 3))
-        peak = numpy.max(numpy.abs(mask))
-        mask /= peak
-        coords = numpy.argwhere(mask > fractional_level)
+        coords = numpy.argwhere(mask > threshold)
         x0, y0 = coords.min(axis=0)
-        x1, y1 = coords.max(axis=0) + 1
+        x1, y1 = coords.max(axis=0)
         bboxes.append((z, (y0, y1), (x0, x1)))
     return bboxes
 
