@@ -37,6 +37,7 @@
 #module load git-lfs-2.3.0-gcc-5.4.0-oktvmkw
 #module load cfitsio-3.410-gcc-5.4.0-tp3pkyv
 
+#load MPI module or install i.e. brew install mpich
 
 # ########################################################### #
 # If repository is cloned skip this part ....                 #
@@ -62,6 +63,9 @@ pip install -U setuptools
 pip install coverage numpy
 pip install -r requirements.txt 
 pip install virtualenvwrapper
+
+# Install mpi4py
+pip install mpi4py
 
 # Adding the ARL and FFIWRAPPERS path to the virtual environment
 # This should be equivalent to setting up the PYTHONPATH environemnt
