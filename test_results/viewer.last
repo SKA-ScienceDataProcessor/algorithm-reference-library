@@ -1,0 +1,12 @@
+taskname           = "viewer"
+infile             =  ""
+displaytype        =  "raster"
+channel            =  0
+zoom               =  1
+outfile            =  ""
+outscale           =  1.0
+outdpi             =  300
+outformat          =  "jpg"
+outlandscape       =  False
+gui                =  True
+#viewer(infile="",displaytype="raster",channel=0,zoom=1,outfile="",outscale=1.0,outdpi=300,outformat="jpg",outlandscape=False,gui=True)

@@ -111,7 +111,10 @@ class TestGridDataKernels(unittest.TestCase):
         cf_clipped = apply_bounding_box_convolutionfunction(cf)
         cf_image = convert_convolutionfunction_to_image(cf_clipped)
         cf_image.data = numpy.real(cf_image.data)
-        export_image_to_fits(cf_image, "%s/test_convolutionfunction_wterm_clipped_cf.fits" % self.dir)
+        export_image_to_fits(cf_image, "%s/test_convolutionfunction_wterm_clipped_real_cf.fits" % self.dir)
+        cf_image = convert_convolutionfunction_to_image(cf_clipped)
+        cf_image.data = numpy.imag(cf_image.data)
+        export_image_to_fits(cf_image, "%s/test_convolutionfunction_wterm_clipped_imag_cf.fits" % self.dir)
 
         peak_location = numpy.unravel_index(numpy.argmax(numpy.abs(cf_clipped.data)), cf_clipped.shape)
         assert peak_location == (0, 0, 10, 2, 2, 40, 40), peak_location

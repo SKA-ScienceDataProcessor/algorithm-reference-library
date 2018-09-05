@@ -102,7 +102,7 @@ class TestGridDataGridding(unittest.TestCase):
         im = fft_griddata_to_image(griddata, gcf)
         im = normalize_sumwt(im, sumwt)
         export_image_to_fits(im, '%s/test_gridding_dirty_pswf.fits' % self.dir)
-        self.check_peaks(im, 98.90874033367159, tol=1e-7)
+        self.check_peaks(im, 98.93575439937361, tol=1e-7)
     
     def test_griddata_invert_pswf_w(self):
         self.actualSetUp(zerow=False)
@@ -112,7 +112,7 @@ class TestGridDataGridding(unittest.TestCase):
         im = fft_griddata_to_image(griddata, gcf)
         im = normalize_sumwt(im, sumwt)
         export_image_to_fits(im, '%s/test_gridding_dirty_pswf_w.fits' % self.dir)
-        self.check_peaks(im, 99.82190517145392, tol=1e-7)
+        self.check_peaks(im, 99.84916864175699, tol=1e-7)
     
     def test_griddata_invert_aterm(self):
         self.actualSetUp(zerow=True)
@@ -217,7 +217,7 @@ class TestGridDataGridding(unittest.TestCase):
         griddata = fft_image_to_griddata(self.model, griddata, gcf)
         newvis = degrid_visibility_from_griddata(self.vis, griddata=griddata, cf=cf)
         qa = qa_visibility(newvis)
-        assert numpy.abs(qa.data['rms'] - 64.5696088867013) < 1e-3, str(qa)
+        assert numpy.abs(qa.data['rms'] - 163.47064019979751) < 1e-3, str(qa)
         import matplotlib.pyplot as plt
         r = numpy.sqrt(newvis.u**2+newvis.v**2)
         for pol in range(4):
@@ -232,7 +232,7 @@ class TestGridDataGridding(unittest.TestCase):
         griddata = fft_image_to_griddata(self.model, griddata, gcf)
         newvis = degrid_visibility_from_griddata(self.vis, griddata=griddata, cf=cf)
         qa = qa_visibility(newvis)
-        assert numpy.abs(qa.data['rms'] - 143.32823004409963) < 1e-3, str(qa)
+        assert numpy.abs(qa.data['rms'] - 192.28683248691866) < 1e-3, str(qa)
         import matplotlib.pyplot as plt
         r = numpy.sqrt(newvis.u**2+newvis.v**2)
         for pol in range(4):
@@ -250,7 +250,7 @@ class TestGridDataGridding(unittest.TestCase):
         griddata = fft_image_to_griddata(self.model, griddata, gcf)
         newvis = degrid_visibility_from_griddata(self.vis, griddata=griddata, cf=cf)
         qa = qa_visibility(newvis)
-        assert numpy.abs(qa.data['rms'] - 40.80056297063105) < 1e-3, str(qa)
+        assert numpy.abs(qa.data['rms'] - 44.08765413622353) < 1e-3, str(qa)
         import matplotlib.pyplot as plt
         r = numpy.sqrt(newvis.u**2+newvis.v**2)
         for pol in range(4):
@@ -267,7 +267,7 @@ class TestGridDataGridding(unittest.TestCase):
         griddata = fft_image_to_griddata(self.model, griddata, gcf)
         newvis = degrid_visibility_from_griddata(self.vis, griddata=griddata, cf=cf)
         qa = qa_visibility(newvis)
-        assert numpy.abs(qa.data['rms'] - 64.58586454254406) < 1e-3, str(qa)
+        assert numpy.abs(qa.data['rms'] - 163.3050979060864) < 1e-3, str(qa)
         import matplotlib.pyplot as plt
         r = numpy.sqrt(newvis.u**2+newvis.v**2)
         for pol in range(4):
@@ -287,7 +287,7 @@ class TestGridDataGridding(unittest.TestCase):
         griddata = fft_image_to_griddata(self.model, griddata, gcf)
         newvis = degrid_visibility_from_griddata(self.vis, griddata=griddata, cf=cf)
         qa = qa_visibility(newvis)
-        assert numpy.abs(qa.data['rms'] - 40.527024148387824) < 1e-3, str(qa)
+        assert numpy.abs(qa.data['rms'] - 43.199054679082124) < 1e-3, str(qa)
         import matplotlib.pyplot as plt
         r = numpy.sqrt(newvis.u**2+newvis.v**2)
         for pol in range(4):

@@ -85,7 +85,7 @@ class TestPipelineGraphs(unittest.TestCase):
                          for i, _ in enumerate(self.frequency)]
         
         self.model_imagelist = [
-            create_unittest_model(self.vis_list[0], self.image_pol,
+            create_unittest_model(self.vis_list[i], self.image_pol,
                                                                     npixel=self.npixel)
             for i, _ in enumerate(self.frequency)]
         
@@ -128,10 +128,11 @@ class TestPipelineGraphs(unittest.TestCase):
                                                        threshold=2.0, nmajor=5, gain=0.1,
                                                        deconvolve_facets=8, deconvolve_overlap=16,
                                                        deconvolve_taper='tukey')
-        export_image_to_fits(clean[0], '%s/test_pipelines_continuum_imaging_pipeline_clean.fits' % self.dir)
-        export_image_to_fits(residual[0][0],
+        centre = len(clean) // 2
+        export_image_to_fits(clean[centre], '%s/test_pipelines_continuum_imaging_pipeline_clean.fits' % self.dir)
+        export_image_to_fits(residual[centre][0],
                              '%s/test_pipelines_continuum_imaging_pipeline_residual.fits' % self.dir)
-        export_image_to_fits(restored[0],
+        export_image_to_fits(restored[centre],
                              '%s/test_pipelines_continuum_imaging_pipeline_restored.fits' % self.dir)
         
         qa = qa_image(restored[0])
@@ -164,9 +165,10 @@ class TestPipelineGraphs(unittest.TestCase):
                                           nmoments=2, nchan=self.freqwin,
                                           threshold=2.0, nmajor=5, gain=0.1,
                                           deconvolve_facets=8, deconvolve_overlap=16, deconvolve_taper='tukey')
-        export_image_to_fits(clean[0], '%s/test_pipelines_ical_pipeline_clean.fits' % self.dir)
-        export_image_to_fits(residual[0][0], '%s/test_pipelines_ical_pipeline_residual.fits' % self.dir)
-        export_image_to_fits(restored[0], '%s/test_pipelines_ical_pipeline_restored.fits' % self.dir)
+        centre = len(clean) // 2
+        export_image_to_fits(clean[centre], '%s/test_pipelines_ical_pipeline_clean.fits' % self.dir)
+        export_image_to_fits(residual[centre][0], '%s/test_pipelines_ical_pipeline_residual.fits' % self.dir)
+        export_image_to_fits(restored[centre], '%s/test_pipelines_ical_pipeline_restored.fits' % self.dir)
         
         qa = qa_image(restored[0])
         assert numpy.abs(qa.data['max'] - 116.9) < 1.0, str(qa)

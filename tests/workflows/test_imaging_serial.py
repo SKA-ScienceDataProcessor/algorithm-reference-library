@@ -49,7 +49,7 @@ class TestImaging(unittest.TestCase):
             self.frequency = numpy.linspace(0.8e8, 1.2e8, self.freqwin)
             self.channelwidth = numpy.array(freqwin * [self.frequency[1] - self.frequency[0]])
         else:
-            self.frequency = numpy.array([0.8e8])
+            self.frequency = numpy.array([1.0e8])
             self.channelwidth = numpy.array([1e6])
         
         if dopol:
@@ -78,7 +78,7 @@ class TestImaging(unittest.TestCase):
         
         self.model_list = [create_unittest_model(self.vis_list[freqwin],
                                                  self.image_pol,
-                                                 npixel=self.npixel)
+                                                 npixel=self.npixel, cellsize=0.0005)
                            for freqwin, _ in enumerate(self.frequency)]
         
         self.components_list = [create_unittest_components(self.model_list[freqwin],
@@ -127,8 +127,9 @@ class TestImaging(unittest.TestCase):
                                                 vis_slices=vis_slices, facets=facets, **kwargs)
         vis_list = subtract_list_serial_workflow(self.vis_list, vis_list)[0]
         
+        centre = self.freqwin // 2
         dirty = invert_list_serial_workflow([vis_list], [self.model_list[0]], context='2d', dopsf=False,
-                                            normalize=True)[0]
+                                            normalize=True)[centre]
         
         assert numpy.max(numpy.abs(dirty[0].data)), "Residual image is empty"
         export_image_to_fits(dirty[0], '%s/test_imaging_predict_%s%s_serial_dirty.fits' %
@@ -140,9 +141,10 @@ class TestImaging(unittest.TestCase):
     def _invert_base(self, context, extra='', fluxthreshold=1.0, positionthreshold=1.0, check_components=True,
                      facets=1, vis_slices=1, **kwargs):
         
+        centre = self.freqwin // 2
         dirty = invert_list_serial_workflow(self.vis_list, self.model_list, context=context,
                                             dopsf=False, normalize=True, facets=facets, vis_slices=vis_slices,
-                                            **kwargs)[0]
+                                            **kwargs)[centre]
         
         export_image_to_fits(dirty[0], '%s/test_imaging_invert_%s%s_serial_dirty.fits' %
                              (self.dir, context, extra))
@@ -212,7 +214,7 @@ class TestImaging(unittest.TestCase):
         gcf, cf = create_awterm_convolutionfunction(self.model, nw=100, wstep=8.0,
                                                     oversampling=4, support=100, use_aaf=True)
         
-        self._predict_base(context='wstack', extra='_wprojection', fluxthreshold=3.0, vis_slices=11,
+        self._predict_base(context='wstack', extra='_wprojection', fluxthreshold=8.0, vis_slices=11,
                            oversampling=4, gcf=gcf, cf=cf)
     
     def test_predict_wstack_spectral(self):
