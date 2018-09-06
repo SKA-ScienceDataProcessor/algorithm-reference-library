@@ -675,24 +675,25 @@ def ingest_unittest_visibility(config, frequency, channel_bandwidth, times, vis_
     return vt
 
 
-def create_unittest_components(model, flux, applypb=False, telescope='LOW', npixel=None):
+def create_unittest_components(model, flux, applypb=False, telescope='LOW', npixel=None, symmetrical=False,
+                               scale=1.0, single=False):
     # Fill the visibility with exactly computed point sources.
     
     if npixel == None:
         _, _, _, npixel = model.data.shape
-    spacing_pixels = npixel // 4
+    spacing_pixels = int(scale * npixel) // 4
     log.info('Spacing in pixels = %s' % spacing_pixels)
     
-    centers = list()
-    centers.append([0.0, 0.0])
     
-    for x in numpy.linspace(-1.2, 1.2, 7):
-        if abs(x) > 1e-15:
-            centers.append([x, x])
-            centers.append([x, -x])
+    centers = [(0.2, 1.1)]
+    if not single:
+        centers.append([0.0, 0.0])
     
-    centers.append((0.2, 1.1))
-    
+        for x in numpy.linspace(-1.2, 1.2, 7):
+            if abs(x) > 1e-15:
+                centers.append([x, x])
+                centers.append([x, -x])
+                
     model_pol = model.polarisation_frame
     # Make the list of components
     rpix = model.wcs.wcs.crpix

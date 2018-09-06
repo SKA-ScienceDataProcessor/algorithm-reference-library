@@ -476,7 +476,11 @@ def advise_wide_field(vis: Visibility, delA=0.02, oversampling_synthesised_beam=
     else:
         log.info('advice_wide_field: Recommend that 2d gridding (i.e. no wprojection) is used')
         kernel = '2d'
+
+    nwpixels = int(npixels * image_fov)
+    log.info('advice_wide_field: W support = %d (pixels)' % nwpixels)
     
+
     del vis
     del svis
     del pwr23
