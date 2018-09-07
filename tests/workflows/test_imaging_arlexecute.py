@@ -1,6 +1,4 @@
 """ Unit tests for pipelines expressed via arlexecute
-
-
 """
 
 import logging
@@ -13,11 +11,12 @@ from astropy.coordinates import SkyCoord
 
 from data_models.polarisation import PolarisationFrame
 
+from workflows.arlexecute.imaging.imaging_arlexecute import zero_list_arlexecute_workflow, predict_list_arlexecute_workflow, \
+    invert_list_arlexecute_workflow, subtract_list_arlexecute_workflow
+
 from wrappers.arlexecute.execution_support.arlexecute import arlexecute
 from wrappers.arlexecute.image.operations import export_image_to_fits, smooth_image
 from wrappers.arlexecute.imaging.base import predict_skycomponent_visibility
-from workflows.arlexecute.imaging.imaging_arlexecute import zero_list_arlexecute_workflow, predict_list_arlexecute_workflow, \
-    invert_list_arlexecute_workflow, subtract_list_arlexecute_workflow
 from wrappers.arlexecute.skycomponent.operations import find_skycomponents, find_nearest_skycomponent, \
     insert_skycomponent
 from wrappers.arlexecute.simulation.testing_support import create_named_configuration, ingest_unittest_visibility, \
@@ -45,6 +44,7 @@ class TestImaging(unittest.TestCase):
         arlexecute.set_client(use_dask=True)
         
         self.npixel = 256
+        self.cellsize = 0.0005
         self.low = create_named_configuration('LOWBD2', rmax=750.0)
         self.freqwin = freqwin
         self.vis_list = list()
@@ -56,7 +56,7 @@ class TestImaging(unittest.TestCase):
             self.channelwidth = numpy.array(freqwin * [self.frequency[1] - self.frequency[0]])
         else:
             self.frequency = numpy.array([1.0e8])
-            self.channelwidth = numpy.array([1e6])
+            self.channelwidth = numpy.array([4e7])
         
         if dopol:
             self.vis_pol = PolarisationFrame('linear')
@@ -84,11 +84,13 @@ class TestImaging(unittest.TestCase):
         
         self.model_list = [arlexecute.execute(create_unittest_model, nout=freqwin)(self.vis_list[freqwin],
                                                                                     self.image_pol,
-                                                                                    npixel=self.npixel, cellsize=0.0005)
+                                                                                    npixel=self.npixel,
+                                                                                   cellsize=self.cellsize)
                             for freqwin, _ in enumerate(self.frequency)]
         
         self.components_list = [arlexecute.execute(create_unittest_components)(self.model_list[freqwin],
-                                                                                flux[freqwin, :][numpy.newaxis, :])
+                                                                                flux[freqwin, :][numpy.newaxis, :],
+                                                                               single=True)
                                  for freqwin, _ in enumerate(self.frequency)]
         
         self.model_list = [arlexecute.execute(insert_skycomponent, nout=1)(self.model_list[freqwin],
@@ -199,24 +201,24 @@ class TestImaging(unittest.TestCase):
     @unittest.skip("Timeslice predict needs better interpolation")
     def test_predict_timeslice_wprojection(self):
         self.actualSetUp()
-        gcf, cf = create_awterm_convolutionfunction(self.model, nw=100, wstep=8.0,
-                                                    oversampling=4, support=100, use_aaf=True)
+        gcf, cf = create_awterm_convolutionfunction(self.model, nw=100, wstep=8.0, oversampling=4, support=30,
+                                                    use_aaf=True)
         self._predict_base(context='timeslice', extra='_wprojection', fluxthreshold=3.0, wstep=10.0,
                            vis_slices=self.ntimes, oversampling=2, gcf=gcf, cf=cf)
 
     def test_predict_wprojection(self):
         self.actualSetUp()
-        gcf, cf = create_awterm_convolutionfunction(self.model, nw=100, wstep=8.0,
-                                                    oversampling=4, support=100, use_aaf=True)
-        self._predict_base(context='2d', extra='_wprojection', fluxthreshold=2.0, oversampling=2,
+        gcf, cf = create_awterm_convolutionfunction(self.model, nw=100, wstep=8.0, oversampling=4, support=30,
+                                                    use_aaf=True)
+        self._predict_base(context='2d', extra='_wprojection', fluxthreshold=3.0, oversampling=2,
                            gcf=gcf, cf=cf)
 
     def test_predict_wprojection_clip(self):
         self.actualSetUp()
-        gcf, cf = create_awterm_convolutionfunction(self.model, nw=100, wstep=8.0,
-                                                    oversampling=4, support=100, use_aaf=True)
+        gcf, cf = create_awterm_convolutionfunction(self.model, nw=100, wstep=8.0, oversampling=4, support=30,
+                                                    use_aaf=True)
         cf_clipped = apply_bounding_box_convolutionfunction(cf, fractional_level=1e-2)
-        self._predict_base(context='2d', extra='_wprojection_clipped', fluxthreshold=2.0, oversampling=2,
+        self._predict_base(context='2d', extra='_wprojection_clipped', fluxthreshold=3.0, oversampling=2,
                            gcf=gcf, cf=cf_clipped)
 
     def test_predict_wstack(self):
@@ -225,8 +227,8 @@ class TestImaging(unittest.TestCase):
 
     def test_predict_wstack_wprojection(self):
         self.actualSetUp()
-        gcf, cf = create_awterm_convolutionfunction(self.model, nw=100, wstep=8.0,
-                                                    oversampling=4, support=100, use_aaf=True)
+        gcf, cf = create_awterm_convolutionfunction(self.model, nw=100, wstep=8.0, oversampling=4, support=30,
+                                                    use_aaf=True)
         self._predict_base(context='wstack', extra='_wprojection', fluxthreshold=8.0, vis_slices=11,
                            oversampling=4, gcf=gcf, cf=cf)
 
@@ -256,8 +258,8 @@ class TestImaging(unittest.TestCase):
     @unittest.skip("Correcting twice?")
     def test_invert_facets_wprojection(self):
         self.actualSetUp()
-        gcf, cf = create_awterm_convolutionfunction(self.model, nw=100, wstep=8.0,
-                                                    oversampling=4, support=100, use_aaf=True)
+        gcf, cf = create_awterm_convolutionfunction(self.model, nw=100, wstep=8.0, oversampling=4, support=30,
+                                                    use_aaf=True)
         self._invert_base(context='facets', extra='_wprojection', check_components=True,
                           positionthreshold=2.0, oversampling=2, facets=4, gcf=gcf, cf=cf)
 
@@ -279,24 +281,23 @@ class TestImaging(unittest.TestCase):
 
     def test_invert_wprojection(self):
         self.actualSetUp()
-        gcf, cf = create_awterm_convolutionfunction(self.model, nw=100, wstep=8.0,
-                                                    oversampling=4, support=100, use_aaf=True)
+        gcf, cf = create_awterm_convolutionfunction(self.model, nw=100, wstep=8.0, oversampling=4, support=30,
+                                                    use_aaf=True)
         self._invert_base(context='2d', extra='_wprojection', positionthreshold=2.0, gcf=gcf, cf=cf)
 
     def test_invert_wprojection_clip(self):
         self.actualSetUp()
-        gcf, cf = create_awterm_convolutionfunction(self.model, nw=100, wstep=8.0,
-                                                    oversampling=4, support=100, use_aaf=True)
-        cf_clipped = apply_bounding_box_convolutionfunction(cf, fractional_level=1e-4)
+        gcf, cf = create_awterm_convolutionfunction(self.model, nw=100, wstep=8.0, oversampling=4, support=30,
+                                                    use_aaf=True)
+        cf_clipped = apply_bounding_box_convolutionfunction(cf, fractional_level=1e-3)
         self._invert_base(context='2d', extra='_wprojection_clipped', positionthreshold=2.0, gcf=gcf, cf=cf_clipped)
 
     def test_invert_wprojection_wstack(self):
         self.actualSetUp()
-        gcf, cf = create_awterm_convolutionfunction(self.model, nw=100, wstep=8.0,
-                                                    oversampling=4, support=100, use_aaf=True)
-        cf_clipped = apply_bounding_box_convolutionfunction(cf)
+        gcf, cf = create_awterm_convolutionfunction(self.model, nw=100, wstep=8.0, oversampling=4, support=30,
+                                                    use_aaf=True)
         self._invert_base(context='wstack', extra='_wprojection', positionthreshold=1.0, vis_slices=11,
-                          oversampling=2, gcf=gcf, cf=cf_clipped)
+                          oversampling=2, gcf=gcf, cf=cf)
 
     def test_invert_wstack(self):
         self.actualSetUp()
