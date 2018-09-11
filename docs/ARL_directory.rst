@@ -52,8 +52,8 @@ Visibility Predict and Invert
 =============================
 
 * Predict BlockVisibility or Visibility for Skycomponent :py:mod:`processing_components.imaging.base.predict_skycomponent_visibility`
-* Predict by de-gridding visibilities :py:mod:`workflows.serial.imaging.imaging_serial.predict_serial`
-* Invert by gridding visibilities :py:mod:`workflows.serial.imaging.imaging_serial.invert_serial`
+* Predict by de-gridding visibilities :py:mod:`workflows.serial.imaging.imaging_serial.predict_list_serial_workflow`
+* Invert by gridding visibilities :py:mod:`workflows.serial.imaging.imaging_serial.invert_list_serial_workflow`
 
 Deconvolution
 =============
@@ -70,12 +70,6 @@ Calibration
 * Create empty gain table: :py:mod:`processing_components.calibration.operations.create_gaintable_from_blockvisibility`
 * Solve for complex gains: :py:mod:`processing_components.calibration.calibration.solve_gaintable`
 * Apply complex gains: :py:mod:`processing_components.calibration.operations.apply_gaintable`
-
-Model Partition Calibration
-===========================
-
-* Define model partition: :py:mod:`processing_components.calibration.modelpartition.create_modelpartition`
-* Solve model partition: :py:mod:`processing_components.calibration.modelpartition.solve_modelpartition`
 
 Coordinate transforms
 =====================

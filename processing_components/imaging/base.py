@@ -1,6 +1,6 @@
 """
 Functions that aid fourier transform processing. These are built on top of the core
-functions in libs.fourier_transforms.
+functions in processing_library.fourier_transforms.
 
 The measurement equation for a sufficently narrow field of view interferometer is:
 
@@ -33,11 +33,11 @@ from data_models.memory_data_models import Visibility, BlockVisibility, Image, S
 from data_models.parameters import get_parameter
 from data_models.polarisation import convert_pol_frame, PolarisationFrame
 
-from libs.fourier_transforms.convolutional_gridding import convolutional_grid, convolutional_degrid
-from libs.fourier_transforms.fft_support import fft, ifft, pad_mid, extract_mid
-from libs.image.operations import create_image_from_array
-from libs.imaging.imaging_params import get_frequency_map, get_polarisation_map, get_uvw_map, get_kernel_list
-from libs.util.coordinate_support import simulate_point, skycoord_to_lmn
+from processing_library.fourier_transforms.convolutional_gridding import convolutional_grid, convolutional_degrid
+from processing_library.fourier_transforms.fft_support import fft, ifft, pad_mid, extract_mid
+from processing_library.image.operations import create_image_from_array
+from processing_library.imaging.imaging_params import get_frequency_map, get_polarisation_map, get_uvw_map, get_kernel_list
+from processing_library.util.coordinate_support import simulate_point, skycoord_to_lmn
 
 from ..visibility.base import copy_visibility, phaserotate_visibility
 from ..visibility.coalesce import coalesce_visibility, decoalesce_visibility, convert_blockvisibility_to_visibility

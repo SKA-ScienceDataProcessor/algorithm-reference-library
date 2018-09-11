@@ -4,7 +4,7 @@ Construction of the components requires that the number of nodes (e.g. w slices 
 rather than execution. To counteract this, at run time, a given node should be able to act as a no-op. We use None
 to denote a null node.
 
-The actual imaging code executed eventually is specified by the context variable (see libs.imaging.imaging)context.
+The actual imaging code executed eventually is specified by the context variable (see processing_library.imaging.imaging)context.
 These are the same as executed in the imaging framework.
 
 """
@@ -14,24 +14,25 @@ import logging
 
 import numpy
 
+from processing_library.image.operations import copy_image, create_empty_image_like
 from data_models.memory_data_models import Image
 from data_models.parameters import get_parameter
-from libs.image.operations import copy_image, create_empty_image_like
-from ..execution_support.arlexecute import arlexecute
-from processing_components.image.deconvolution import deconvolve_cube, restore_cube
-from processing_components.image.gather_scatter import image_scatter_facets, image_gather_facets, \
-    image_scatter_channels,    image_gather_channels
-from processing_components.imaging.base import normalize_sumwt
 from workflows.shared.imaging.imaging_shared import imaging_context
-from processing_components.imaging.weighting import weight_visibility
-from processing_components.visibility.base import copy_visibility
-from processing_components.visibility.gather_scatter import visibility_scatter, visibility_gather
-from processing_components.image.operations import calculate_image_frequency_moments
+from workflows.shared.imaging.imaging_shared import sum_invert_results, remove_sumwt, sum_predict_results, \
+    threshold_list
+from wrappers.arlexecute.execution_support.arlexecute import arlexecute
+from wrappers.arlexecute.image.deconvolution import deconvolve_cube, restore_cube
+from wrappers.arlexecute.image.gather_scatter import image_scatter_facets, image_gather_facets, \
+    image_scatter_channels, image_gather_channels
+from wrappers.arlexecute.image.operations import calculate_image_frequency_moments
+from wrappers.arlexecute.imaging.weighting import weight_visibility
+from wrappers.arlexecute.visibility.base import copy_visibility
+from wrappers.arlexecute.visibility.gather_scatter import visibility_scatter, visibility_gather
 
 log = logging.getLogger(__name__)
 
 
-def predict_arlexecute(vis_list, model_imagelist, vis_slices=1, facets=1, context='2d', **kwargs):
+def predict_list_arlexecute_workflow(vis_list, model_imagelist, vis_slices=1, facets=1, context='2d', **kwargs):
     """Predict, iterating over both the scattered vis_list and image
     
     The visibility and image are scattered, the visibility is predicted on each part, and then the
@@ -91,8 +92,8 @@ def predict_arlexecute(vis_list, model_imagelist, vis_slices=1, facets=1, contex
     return image_results_list_list
 
 
-def invert_arlexecute(vis_list, template_model_imagelist, dopsf=False, normalize=True,
-                      facets=1, vis_slices=1, context='2d', **kwargs):
+def invert_list_arlexecute_workflow(vis_list, template_model_imagelist, dopsf=False, normalize=True,
+                                    facets=1, vis_slices=1, context='2d', **kwargs):
     """ Sum results from invert, iterating over the scattered image and vis_list
 
     :param vis_list:
@@ -160,11 +161,11 @@ def invert_arlexecute(vis_list, template_model_imagelist, dopsf=False, normalize
                                                                                           template_model_imagelist[
                                                                                               freqwin]))
         results_vislist.append(arlexecute.execute(sum_invert_results)(vis_results))
-
+    
     return results_vislist
 
 
-def residual_arlexecute(vis, model_imagelist, context='2d', **kwargs):
+def residual_list_arlexecute_workflow(vis, model_imagelist, context='2d', **kwargs):
     """ Create a graph to calculate residual image using w stacking and faceting
 
     :param context: 
@@ -175,14 +176,14 @@ def residual_arlexecute(vis, model_imagelist, context='2d', **kwargs):
     :param kwargs: Parameters for functions in components
     :return:
     """
-    model_vis = zero_vislist_arlexecute(vis)
-    model_vis = predict_arlexecute(model_vis, model_imagelist, context=context, **kwargs)
-    residual_vis = subtract_vislist_arlexecute(vis, model_vis)
-    return invert_arlexecute(residual_vis, model_imagelist, dopsf=False, normalize=True, context=context,
-                             **kwargs)
+    model_vis = zero_list_arlexecute_workflow(vis)
+    model_vis = predict_list_arlexecute_workflow(model_vis, model_imagelist, context=context, **kwargs)
+    residual_vis = subtract_list_arlexecute_workflow(vis, model_vis)
+    return invert_list_arlexecute_workflow(residual_vis, model_imagelist, dopsf=False, normalize=True, context=context,
+                                           **kwargs)
 
 
-def restore_arlexecute(model_imagelist, psf_imagelist, residual_imagelist, **kwargs):
+def restore_list_arlexecute_workflow(model_imagelist, psf_imagelist, residual_imagelist, **kwargs):
     """ Create a graph to calculate the restored image
 
     :param model_imagelist: Model list
@@ -196,7 +197,7 @@ def restore_arlexecute(model_imagelist, psf_imagelist, residual_imagelist, **kwa
             for i, _ in enumerate(model_imagelist)]
 
 
-def deconvolve_arlexecute(dirty_list, psf_list, model_imagelist, prefix='', **kwargs):
+def deconvolve_list_arlexecute_workflow(dirty_list, psf_list, model_imagelist, prefix='', **kwargs):
     """Create a graph for deconvolution, adding to the model
 
     :param dirty_list:
@@ -206,7 +207,7 @@ def deconvolve_arlexecute(dirty_list, psf_list, model_imagelist, prefix='', **kw
     :return: (graph for the deconvolution, graph for the flat)
     """
     nchan = len(dirty_list)
-
+    
     def deconvolve(dirty, psf, model, facet, gthreshold):
         import time
         starttime = time.time()
@@ -214,38 +215,41 @@ def deconvolve_arlexecute(dirty_list, psf_list, model_imagelist, prefix='', **kw
             lprefix = "facet %d" % facet
         else:
             lprefix = "%s, facet %d" % (prefix, facet)
-            
+        
         nmoments = get_parameter(kwargs, "nmoments", 0)
         
         if nmoments > 0:
             moment0 = calculate_image_frequency_moments(dirty)
-            this_peak = numpy.max(numpy.abs(moment0.data[0,...]))/dirty.data.shape[0]
+            this_peak = numpy.max(numpy.abs(moment0.data[0, ...])) / dirty.data.shape[0]
         else:
-            this_peak = numpy.max(numpy.abs(dirty.data[0,...]))
-            
+            this_peak = numpy.max(numpy.abs(dirty.data[0, ...]))
+        
         if this_peak > 1.1 * gthreshold:
-            log.info("deconvolve_arlexecute %s: cleaning - peak %.6f > 1.1 * threshold %.6f" % (lprefix, this_peak,
-                                                                                         gthreshold))
+            log.info(
+                "deconvolve_list_arlexecute_workflow %s: cleaning - peak %.6f > 1.1 * threshold %.6f" % (lprefix, this_peak,
+                                                                                                    gthreshold))
             kwargs['threshold'] = gthreshold
             result, _ = deconvolve_cube(dirty, psf, prefix=lprefix, **kwargs)
-
+            
             if result.data.shape[0] == model.data.shape[0]:
                 result.data += model.data
             else:
-                log.warning("deconvolve_arlexecute %s: Initial model %s and clean result %s do not have the same shape" %
-                            (lprefix, str(model.data.shape[0]), str(result.data.shape[0])))
-
+                log.warning(
+                    "deconvolve_list_arlexecute_workflow %s: Initial model %s and clean result %s do not have the same shape" %
+                    (lprefix, str(model.data.shape[0]), str(result.data.shape[0])))
+            
             flux = numpy.sum(result.data[0, 0, ...])
             log.info('### %s, %.6f, %.6f, True, %.3f # cycle, facet, peak, cleaned flux, clean, time?'
-                     % (lprefix, this_peak, flux, time.time()- starttime))
-
+                     % (lprefix, this_peak, flux, time.time() - starttime))
+            
             return result
         else:
-            log.info("deconvolve_arlexecute %s: Not cleaning - peak %.6f <= 1.1 * threshold %.6f" % (lprefix, this_peak,
-                                                                                                  gthreshold))
+            log.info("deconvolve_list_arlexecute_workflow %s: Not cleaning - peak %.6f <= 1.1 * threshold %.6f" % (
+                lprefix, this_peak,
+                gthreshold))
             log.info('### %s, %.6f, %.6f, False, %.3f # cycle, facet, peak, cleaned flux, clean, time?'
-                     % (lprefix, this_peak, 0.0, time.time()- starttime))
-
+                     % (lprefix, this_peak, 0.0, time.time() - starttime))
+            
             return copy_image(model)
     
     deconvolve_facets = get_parameter(kwargs, 'deconvolve_facets', 1)
@@ -280,19 +284,19 @@ def deconvolve_arlexecute(dirty_list, psf_list, model_imagelist, prefix='', **kw
         arlexecute.execute(image_scatter_facets, nout=deconvolve_number_facets)(model_imagelist,
                                                                                 facets=deconvolve_facets,
                                                                                 overlap=deconvolve_overlap)
-
+    
     # Work out the threshold. Need to find global peak over all dirty_list images
     threshold = get_parameter(kwargs, "threshold", 0.0)
     fractional_threshold = get_parameter(kwargs, "fractional_threshold", 0.1)
     nmoments = get_parameter(kwargs, "nmoments", 0)
     use_moment0 = nmoments > 0
-
+    
     # Find the global threshold. This uses the peak in the average on the frequency axis since we
     # want to use it in a stopping criterion in a moment clean
     global_threshold = arlexecute.execute(threshold_list, nout=1)(scattered_facets_list, threshold,
                                                                   fractional_threshold,
                                                                   use_moment0=use_moment0, prefix=prefix)
-
+    
     facet_list = numpy.arange(deconvolve_number_facets).astype('int')
     scattered_results_list = [
         arlexecute.execute(deconvolve, nout=1)(d, psf_list, m, facet, global_threshold)
@@ -311,7 +315,7 @@ def deconvolve_arlexecute(dirty_list, psf_list, model_imagelist, prefix='', **kw
     return arlexecute.execute(image_scatter_channels, nout=nchan)(gathered_results_list, subimages=nchan), flat_list
 
 
-def deconvolve_channel_arlexecute(dirty_list, psf_list, model_imagelist, subimages, **kwargs):
+def deconvolve_list_channel_arlexecute_workflow(dirty_list, psf_list, model_imagelist, subimages, **kwargs):
     """Create a graph for deconvolution by channels, adding to the model
 
     Does deconvolution channel by channel.
@@ -344,7 +348,7 @@ def deconvolve_channel_arlexecute(dirty_list, psf_list, model_imagelist, subimag
     return arlexecute.execute(add_model, nout=1, pure=True)(result, model_imagelist)
 
 
-def weight_arlexecute(vis_list, model_imagelist, weighting='uniform', **kwargs):
+def weight_list_arlexecute_workflow(vis_list, model_imagelist, weighting='uniform', **kwargs):
     """ Weight the visibility data
 
     :param vis_list:
@@ -368,7 +372,7 @@ def weight_arlexecute(vis_list, model_imagelist, weighting='uniform', **kwargs):
             for i in range(len(vis_list))]
 
 
-def zero_vislist_arlexecute(vis_list):
+def zero_list_arlexecute_workflow(vis_list):
     """ Initialise vis to zero: creates new data holders
 
     :param vis_list:
@@ -386,7 +390,7 @@ def zero_vislist_arlexecute(vis_list):
     return [arlexecute.execute(zero, pure=True, nout=1)(v) for v in vis_list]
 
 
-def subtract_vislist_arlexecute(vis_list, model_vislist):
+def subtract_list_arlexecute_workflow(vis_list, model_vislist):
     """ Initialise vis to zero
 
     :param vis_list:
@@ -406,90 +410,3 @@ def subtract_vislist_arlexecute(vis_list, model_vislist):
     return [arlexecute.execute(subtract_vis, pure=True, nout=1)(vis=vis_list[i],
                                                                 model_vis=model_vislist[i])
             for i in range(len(vis_list))]
-
-
-def sum_invert_results(image_list):
-    """ Sum a set of invert results with appropriate weighting
-
-    :param image_list: List of [image, sum weights] pairs
-    :return: image, sum of weights
-    """
-    if len(image_list) == 1:
-        return image_list[0]
-    
-    first = True
-    sumwt = 0.0
-    im = None
-    for i, arg in enumerate(image_list):
-        if arg is not None:
-            if isinstance(arg[1], numpy.ndarray):
-                scale = arg[1][..., numpy.newaxis, numpy.newaxis]
-            else:
-                scale = arg[1]
-            if first:
-                im = copy_image(arg[0])
-                im.data *= scale
-                sumwt = arg[1]
-                first = False
-            else:
-                im.data += scale * arg[0].data
-                sumwt += arg[1]
-    
-    assert not first, "No invert results"
-    
-    im = normalize_sumwt(im, sumwt)
-    return im, sumwt
-
-
-def remove_sumwt(results):
-    """ Remove sumwt term in list of tuples (image, sumwt)
-
-    :param results:
-    :return: A list of just the dirty images
-    """
-    return [d[0] for d in results]
-
-
-def sum_predict_results(results):
-    """ Sum a set of predict results of the same shape
-
-    :param results: List of visibilities to be summed
-    :return: summed visibility
-    """
-    sum_results = None
-    for result in results:
-        if result is not None:
-            if sum_results is None:
-                sum_results = copy_visibility(result)
-            else:
-                assert sum_results.data['vis'].shape == result.data['vis'].shape
-                sum_results.data['vis'] += result.data['vis']
-    
-    return sum_results
-
-
-def threshold_list(results, threshold, fractional_threshold, use_moment0=True, prefix=''):
-    """ Find Threshold, optionally using moment 0
-
-    :param results:
-    :param use_moment0: Use moment 0 for threshold
-    :return:
-    """
-    peak = 0.0
-    for result in results:
-        if use_moment0:
-            moments = calculate_image_frequency_moments(result)
-            peak = max(peak, numpy.max(numpy.abs(moments.data[0, ...] / result.shape[0])))
-        else:
-            peak = max(peak, numpy.max(numpy.abs(result.data)))
-    
-    actual = max(peak * fractional_threshold, threshold)
-    
-    if use_moment0:
-        log.info("threshold_list %s: peak in moment 0 = %.6f, threshold will be %.6f" % (prefix, peak, actual))
-    else:
-        log.info("threshold_list %s: peak = %.6f, threshold will be %.6f" % (prefix, peak, actual))
-    
-    return actual
-
-

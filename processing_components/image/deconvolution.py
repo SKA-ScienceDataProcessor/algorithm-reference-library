@@ -31,8 +31,8 @@ from photutils import fit_2dgaussian
 
 from data_models.memory_data_models import Image
 from data_models.parameters import get_parameter
-from libs.image.cleaners import hogbom, msclean, msmfsclean
-from libs.image.operations import create_image_from_array, copy_image
+from processing_library.arrays.cleaners import hogbom, msclean, msmfsclean
+from processing_library.image.operations import create_image_from_array, copy_image
 from ..image.operations import calculate_image_frequency_moments, calculate_image_from_frequency_moments
 
 log = logging.getLogger(__name__)

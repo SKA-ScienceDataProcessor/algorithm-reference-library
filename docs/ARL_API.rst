@@ -45,24 +45,18 @@ Polarisation
 .. automodule:: data_models.polarisation
    :members:
 
-Libs
-====
+Processing Library
+==================
 
 The following are functions that support the processing components but are not expected to interface to workflows.
 
 Image
 -----
 
-Iterators
-+++++++++
-
-.. automodule:: libs.image.iterators
-   :members:
-
 Cleaners
 ++++++++
 
-.. automodule:: libs.image.cleaners
+.. automodule:: processing_library.arrays.cleaners
    :members:
 
 Calibration
@@ -71,7 +65,7 @@ Calibration
 Solvers
 +++++++
 
-.. automodule:: libs.calibration.solvers
+.. automodule:: processing_library.calibration.solvers
    :members:
 
 Fourier transform
@@ -80,13 +74,13 @@ Fourier transform
 FFT support
 +++++++++++
 
-.. automodule:: libs.fourier_transforms.fft_support
+.. automodule:: processing_library.fourier_transforms.fft_support
    :members:
 
 Convolutional Gridding
 ++++++++++++++++++++++
 
-.. automodule:: libs.fourier_transforms.convolutional_gridding
+.. automodule:: processing_library.fourier_transforms.convolutional_gridding
    :members:
 
 
@@ -96,7 +90,7 @@ Imaging
 Parameters
 ++++++++++
 
-.. automodule:: libs.imaging.imaging_params
+.. automodule:: processing_library.imaging.imaging_params
    :members:
 
 Util
@@ -105,13 +99,13 @@ Util
 Array Functions
 +++++++++++++++
 
-.. automodule:: libs.util.array_functions
+.. automodule:: processing_library.util.array_functions
    :members:
 
 Coordinate Support
 ++++++++++++++++++
 
-.. automodule:: libs.util.coordinate_support
+.. automodule:: processing_library.util.coordinate_support
    :members:
       
 
@@ -151,6 +145,12 @@ Solvers
 .. automodule:: processing_components.image.solvers
    :members:
 
+Iterators
++++++++++
+
+.. automodule:: processing_components.image.iterators
+   :members:
+
 Calibration
 -----------
 
@@ -164,12 +164,6 @@ Operations
 ++++++++++
 
 .. automodule:: processing_components.calibration.operations
-   :members:
-
-Modelpartition calibration
-++++++++++++++++++++++++++
-
-.. automodule:: processing_components.calibration.modelpartition
    :members:
 
 Imaging
@@ -294,17 +288,6 @@ Calibration
 .. automodule:: workflows.arlexecute.calibration.calibration_arlexecute
    :members:
 
-.. automodule:: workflows.arlexecute.calibration.modelpartition_arlexecute
-   :members:
-
-Image
------
-
-.. automodule:: workflows.arlexecute.image.image_arlexecute
-   :members:
-
-Imaging
--------
 
 .. automodule:: workflows.arlexecute.imaging.imaging_arlexecute
    :members:
@@ -321,62 +304,19 @@ Simulation
 .. automodule:: workflows.arlexecute.simulation.simulation_arlexecute
    :members:
 
-Visibility
-----------
-
-.. automodule:: workflows.arlexecute.visibility.visibility_arlexecute
-   :members:
-
 Execution
 ---------
 
 Execution (optionally via Dask)
 +++++++++++++++++++++++++++++++
 
-.. automodule:: workflows.arlexecute.execution_support.arlexecute
+.. automodule:: wrappers.arlexecute.execution_support.arlexecute
    :members:
 
 Dask init
 +++++++++
 
-.. automodule:: workflows.arlexecute.execution_support.dask_init
-   :members:
-
-Processing Component Interface
-------------------------------
-
-Wrappers
-++++++++
-
-.. automodule:: workflows.arlexecute.processing_component_interface
-   :members:
-
-ARL JSON schema
-+++++++++++++++
-
-.. automodule:: workflows.arlexecute.processing_component_interface.arl_json
-   :members:
-
-.. automodule:: workflows.arlexecute.processing_component_interface.arl_json.json_helpers
-   :members:
-
-
-Component wrapper
-+++++++++++++++++
-
-.. automodule:: workflows.arlexecute.processing_component_interface.processing_component_interface
-   :members:
-
-Processing component wrapper
-++++++++++++++++++++++++++++
-
-.. automodule:: workflows.arlexecute.processing_component_interface.processing_component_wrappers
-   :members:
-
-Execution helpers
-+++++++++++++++++
-
-.. automodule:: workflows.arlexecute.processing_component_interface.execution_helper
+.. automodule:: wrappers.arlexecute.execution_support.dask_init
    :members:
 
 Serial workflows

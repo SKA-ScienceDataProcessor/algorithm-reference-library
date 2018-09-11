@@ -19,7 +19,7 @@ from scipy import interpolate
 
 from data_models.memory_data_models import Image, Skycomponent, assert_same_chan_pol
 from data_models.polarisation import PolarisationFrame
-from libs.util.array_functions import insert_function_sinc, insert_function_L, insert_function_pswf, insert_array
+from processing_library.util.array_functions import insert_function_sinc, insert_function_L, insert_function_pswf, insert_array
 
 log = logging.getLogger(__name__)
 

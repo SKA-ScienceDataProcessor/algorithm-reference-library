@@ -66,7 +66,7 @@ class TestSkycomponentInsert(unittest.TestCase):
         # The phase centre is at rpix[0], rpix[1] in 0-relative pixels
         assert self.model.data[2, 0, rpix[1], rpix[0]] == 1.0
         # If we predict the visibility, then the imaginary part must be zero. This is determined entirely
-        # by shift_vis_to_image in libs.imaging.base
+        # by shift_vis_to_image in processing_library.imaging.base
         self.vis.data['vis'][...] = 0.0
         self.vis = predict_2d(self.vis, self.model)
         # The actual phase centre of a numpy FFT is at nx //2, nx //2 (0 rel).

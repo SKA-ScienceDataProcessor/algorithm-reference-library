@@ -313,3 +313,12 @@ Now you can point the Dask client at the cluster with:
 export ARL_DASK_SCHEDULER=10.101.1.23:8786
 python examples/performance/pipelines-timings.py 4 4
 ```
+
+Dask with Daliuge backend
+-------------------------
+
+It is possible to use daliuge as an (experimental) backend of the arlexecute module. 
+This works by using daliuge's delayed function, which accepts the same parameters as dask's; therefore the change is 
+simple, and transparent to the rest of the ARL code. See the 
+[Integration of ARL with the DALiuGE Execution Framework, part 2](https://confluence.ska-sdp.org/display/WBS/Integration+of+ARL+with+the+DALiuGE+Execution+Framework%2C+part+2)
+

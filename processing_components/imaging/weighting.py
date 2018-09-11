@@ -9,13 +9,13 @@ There are two classes of functions:
 
 import numpy
 
-from libs.util.array_functions import tukey_filter
+from processing_library.util.array_functions import tukey_filter
 from data_models.memory_data_models import Visibility, Image
 from data_models.parameters import get_parameter
 
-from libs.fourier_transforms.convolutional_gridding import weight_gridding
-from libs.imaging.imaging_params import get_polarisation_map, get_uvw_map
-from libs.imaging.imaging_params import get_frequency_map
+from processing_library.fourier_transforms.convolutional_gridding import weight_gridding
+from processing_library.imaging.imaging_params import get_polarisation_map, get_uvw_map
+from processing_library.imaging.imaging_params import get_frequency_map
 
 def weight_visibility(vis: Visibility, im: Image, **kwargs) -> Visibility:
     """ Reweight the visibility data using a selected algorithm
@@ -55,7 +55,7 @@ def taper_visibility_gaussian(vis: Visibility, beam=None) -> Visibility:
     """ Taper the visibility weights
 
     These are cumulative. If You can reset the imaging_weights
-    using :py:mod:`libs.imaging.weighting.weight_visibility`
+    using :py:mod:`processing_library.imaging.weighting.weight_visibility`
 
     :param vis: Visibility with imaging_weight's to be tapered
     :param beam: desired resolution (Full width half maximum, radians)
@@ -87,7 +87,7 @@ def taper_visibility_tukey(vis: Visibility, tukey=0.1) -> Visibility:
     edge-tukey, a square-shaped taper that smooths the edge set by the uv grid and -taper-edge.
 
     These are cumulative. If You can reset the imaging_weights
-    using :py:mod:`libs.imaging.weighting.weight_visibility`
+    using :py:mod:`processing_library.imaging.weighting.weight_visibility`
 
     :param vis: Visibility with imaging_weight's to be tapered
     :return: visibility with imaging_weight column modified

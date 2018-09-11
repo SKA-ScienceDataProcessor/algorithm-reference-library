@@ -13,13 +13,14 @@ from astropy.coordinates import SkyCoord
 
 from data_models.polarisation import PolarisationFrame
 
-from processing_components.calibration.calibration_control import create_calibration_controls
-from workflows.arlexecute.execution_support.arlexecute import arlexecute
-from workflows.arlexecute.pipelines.pipeline_arlexecute import ical_arlexecute, continuum_imaging_arlexecute
-from processing_components.image.operations import export_image_to_fits, qa_image, smooth_image
-from processing_components.imaging.base import predict_skycomponent_visibility
-from processing_components.skycomponent.operations import insert_skycomponent
-from processing_components.simulation.testing_support import create_named_configuration, ingest_unittest_visibility, \
+from . import ARLExecuteTestCase
+from wrappers.arlexecute.calibration.calibration_control import create_calibration_controls
+from wrappers.arlexecute.execution_support.arlexecute import arlexecute
+from workflows.arlexecute.pipelines.pipeline_arlexecute import ical_list_arlexecute_workflow, continuum_imaging_list_arlexecute_workflow
+from wrappers.arlexecute.image.operations import export_image_to_fits, qa_image, smooth_image
+from wrappers.arlexecute.imaging.base import predict_skycomponent_visibility
+from wrappers.arlexecute.skycomponent.operations import insert_skycomponent
+from wrappers.arlexecute.simulation.testing_support import create_named_configuration, ingest_unittest_visibility, \
     create_unittest_model, \
     create_unittest_components, insert_unittest_errors
 
@@ -30,16 +31,12 @@ log.addHandler(logging.StreamHandler(sys.stdout))
 log.addHandler(logging.StreamHandler(sys.stderr))
 
 
-class TestPipelineGraphs(unittest.TestCase):
+class TestPipelineGraphs(ARLExecuteTestCase, unittest.TestCase):
     
     def setUp(self):
-        
+        super(TestPipelineGraphs, self).setUp()
         from data_models.parameters import arl_path
         self.dir = arl_path('test_results')
-        arlexecute.set_client(use_dask=False)
-
-    def tearDown(self):
-        arlexecute.close()
 
     def actualSetUp(self, add_errors=False, freqwin=5, block=False, dospectral=True, dopol=False,
                     amp_errors=None, phase_errors=None, zerow=True):
@@ -128,14 +125,14 @@ class TestPipelineGraphs(unittest.TestCase):
     def test_continuum_imaging_pipeline(self):
         self.actualSetUp(add_errors=False, block=True)
         continuum_imaging_list = \
-            continuum_imaging_arlexecute(self.vis_list, model_imagelist=self.model_imagelist, context='2d',
-                                         algorithm='mmclean', facets=1,
-                                         scales=[0, 3, 10],
-                                         niter=1000, fractional_threshold=0.1,
-                                         nmoments=2, nchan=self.freqwin,
-                                         threshold=2.0, nmajor=5, gain=0.1,
-                                         deconvolve_facets=8, deconvolve_overlap=16,
-                                         deconvolve_taper='tukey')
+            continuum_imaging_list_arlexecute_workflow(self.vis_list, model_imagelist=self.model_imagelist, context='2d',
+                                                       algorithm='mmclean', facets=1,
+                                                       scales=[0, 3, 10],
+                                                       niter=1000, fractional_threshold=0.1,
+                                                       nmoments=2, nchan=self.freqwin,
+                                                       threshold=2.0, nmajor=5, gain=0.1,
+                                                       deconvolve_facets=8, deconvolve_overlap=16,
+                                                       deconvolve_taper='tukey')
         clean, residual, restored = arlexecute.compute(continuum_imaging_list, sync=True)
         export_image_to_fits(clean[0], '%s/test_pipelines_continuum_imaging_pipeline_clean.fits' % self.dir)
         export_image_to_fits(residual[0][0],
@@ -163,16 +160,16 @@ class TestPipelineGraphs(unittest.TestCase):
         controls['B']['timescale'] = 1e5
         
         ical_list = \
-            ical_arlexecute(self.vis_list, model_imagelist=self.model_imagelist, context='2d',
-                            calibration_context='T', controls=controls, do_selfcal=True,
-                            global_solution=False,
-                            algorithm='mmclean',
-                            facets=1,
-                            scales=[0, 3, 10],
-                            niter=1000, fractional_threshold=0.1,
-                            nmoments=2, nchan=self.freqwin,
-                            threshold=2.0, nmajor=5, gain=0.1,
-                            deconvolve_facets=8, deconvolve_overlap=16, deconvolve_taper='tukey')
+            ical_list_arlexecute_workflow(self.vis_list, model_imagelist=self.model_imagelist, context='2d',
+                                          calibration_context='T', controls=controls, do_selfcal=True,
+                                          global_solution=False,
+                                          algorithm='mmclean',
+                                          facets=1,
+                                          scales=[0, 3, 10],
+                                          niter=1000, fractional_threshold=0.1,
+                                          nmoments=2, nchan=self.freqwin,
+                                          threshold=2.0, nmajor=5, gain=0.1,
+                                          deconvolve_facets=8, deconvolve_overlap=16, deconvolve_taper='tukey')
         clean, residual, restored = arlexecute.compute(ical_list, sync=True)
         export_image_to_fits(clean[0], '%s/test_pipelines_ical_pipeline_clean.fits' % self.dir)
         export_image_to_fits(residual[0][0], '%s/test_pipelines_ical_pipeline_residual.fits' % self.dir)

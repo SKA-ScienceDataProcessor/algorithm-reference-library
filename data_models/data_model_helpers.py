@@ -1,6 +1,6 @@
 """Functions to help with persistence of data models
 
-These do data conversion and persistence. Functions from libs and processing_components are used.
+These do data conversion and persistence. Functions from processing_library and processing_components are used.
 """
 
 import ast
@@ -13,7 +13,7 @@ from astropy.coordinates import SkyCoord, EarthLocation
 from astropy.units import Quantity
 from astropy.wcs import WCS
 
-from libs.image.operations import create_image_from_array
+from processing_library.image.operations import create_image_from_array
 from processing_components.image.operations import export_image_to_fits, import_image_from_fits
 from data_models.memory_data_models import Visibility, BlockVisibility, Configuration, \
     GainTable, SkyModel, Skycomponent, Image

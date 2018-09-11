@@ -17,7 +17,7 @@ from data_models.parameters import arl_path
 import logging
 log = logging.getLogger(__name__)
 
-from libs.image.operations import image_sizeof, polarisation_frame_from_wcs, create_image_from_array, checkwcs, \
+from processing_library.image.operations import image_sizeof, polarisation_frame_from_wcs, create_image_from_array, checkwcs, \
     copy_image, create_empty_image_like
 
 from data_models.polarisation import PolarisationFrame, convert_stokes_to_linear, convert_stokes_to_circular, \
