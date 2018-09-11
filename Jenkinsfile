@@ -106,10 +106,13 @@ pipeline {
              mail to: 'mf582@mrao.cam.ac.uk, pw410@cam.ac.uk, realtimcornwell@gmail.com',
              subject: "Jenkins Pipeline is back to normal: ${currentBuild.fullDisplayName}",
              body: "See ${env.BUILD_URL}"
+	}
+	success {
+	     sshPublisher(publishers: [sshPublisherDesc(configName: 'vm12', transfers: [sshTransfer(excludes: '', execCommand: '', execTimeout: 120000, flatten: false, makeEmptyDirs: false, noDefaultExcludes: false, patternSeparator: '[, ]+', remoteDirectory: 'algorithm-reference-library', remoteDirectorySDF: false, removePrefix: '', sourceFiles: 'docs/build/**'), sshTransfer(excludes: '', execCommand: '', execTimeout: 120000, flatten: false, makeEmptyDirs: false, noDefaultExcludes: false, patternSeparator: '[, ]+', remoteDirectory: 'algorithm-reference-library', remoteDirectorySDF: false, removePrefix: '', sourceFiles: 'coverage/**')], usePromotionTimestamp: false, useWorkspaceInPromotion: false, verbose: false)])
     	}
 // We could send slack notifications but pluggin needs to be installed and configured at server
 //	success {
-//        	slackSend channel: '#ops-room',
+//        	slackSend channel: '#arl',
 //                  color: 'good',
 //                  message: "The pipeline ${currentBuild.fullDisplayName} completed successfully."
 //       }
