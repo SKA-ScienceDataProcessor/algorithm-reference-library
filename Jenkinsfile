@@ -96,27 +96,22 @@ pipeline {
     post {
         always {
             echo 'FINISHED'
-	
+	    slackSend baseUrl: 'https://sdp-execution-engine.slack.com/services/hooks/jenkins-ci/', 
+	    channel: '#jenkins', 
+	    color: 'good', 
+	    message: 'Pipeline${currentBuild.fullDisplayName} ${env.JOB_NAME} ${env.BUILD_NUMBER} completed with Status: ${env.BUILD_STATUS}  (<${env.BUILD_URL}|Open>)', 
+	    tokenCredentialId: 'a06474f9-0c86-4dc7-a477-42d7d1a1cc71'
         }
     	failure {
              mail to: 'mf582@mrao.cam.ac.uk, pw410@cam.ac.uk, realtimcornwell@gmail.com',
-             subject: "Failed Jenkins Pipeline: ${currentBuild.fullDisplayName}",
-             body: "Something is wrong with ${env.BUILD_URL}"
+             subject: "Failed Jenkins Pipeline: ${currentBuild.fullDisplayName} Status:${env.BUILD_STATUS} ",
+             body: "Something is wrong with ${env.BUILD_URL} Status: ${env.BUILD_STATUS} "
             
-	     slackSend channel: '#jenkins',
-             color: 'danger',
-             message: "Something is wrong with: ${currentBuild.fullDisplayName} pipeline failed. ${env.JOB_NAME} ${env.BUILD_NUMBER} (<${env.BUILD_URL}|Open>)",
-	     tokenCredentialId: 'a06474f9-0c86-4dc7-a477-42d7d1a1cc71'
     	}
     	fixed {
              mail to: 'mf582@mrao.cam.ac.uk, pw410@cam.ac.uk, realtimcornwell@gmail.com',
-             subject: "Jenkins Pipeline is back to normal: ${currentBuild.fullDisplayName}",
+             subject: "Jenkins Pipeline is back to normal: ${currentBuild.fullDisplayName} Status:${env.BUILD_STATUS}  ",
              body: "See ${env.BUILD_URL}"
-	     
-	     slackSend channel: '#jenkins',
-             color: 'good',
-             message: "Pipeline ${currentBuild.fullDisplayName} is back to normal. ${env.JOB_NAME} ${env.BUILD_NUMBER} (<${env.BUILD_URL}|Open>)",
-	     tokenCredentialId: 'a06474f9-0c86-4dc7-a477-42d7d1a1cc71'
 	}
 	success {
 		sshPublisher alwaysPublishFromMaster: true, 
@@ -146,13 +141,6 @@ pipeline {
 				verbose: false)]
 
     	}
-	unstable {
-	     slackSend channel: '#jenkins',
-             color: 'warning',
-             message: "Pipeline ${currentBuild.fullDisplayName} is unstable. ${env.JOB_NAME} ${env.BUILD_NUMBER} (<${env.BUILD_URL}|Open>)",
-	     tokenCredentialId: 'a06474f9-0c86-4dc7-a477-42d7d1a1cc71'
-
-	}
     }	
 }
 
