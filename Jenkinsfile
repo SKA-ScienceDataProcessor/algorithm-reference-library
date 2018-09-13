@@ -99,7 +99,7 @@ pipeline {
 	    slackSend baseUrl: 'https://sdp-execution-engine.slack.com/services/hooks/jenkins-ci/', 
 	    channel: '#jenkins', 
 	    color: 'good', 
-	    message: 'Pipeline${currentBuild.fullDisplayName} ${env.JOB_NAME} ${env.BUILD_NUMBER} completed with Status: ${env.BUILD_STATUS}  (<${env.BUILD_URL}|Open>)', 
+	    message: "Pipeline ${currentBuild.fullDisplayName} ${env.JOB_NAME} ${env.BUILD_NUMBER} completed with Status: ${env.BUILD_STATUS} (<${env.BUILD_URL}|Open>)", 
 	    tokenCredentialId: 'a06474f9-0c86-4dc7-a477-42d7d1a1cc71'
         }
     	failure {
