@@ -32,7 +32,7 @@ class TestSimulationArlexecuteSupport(ARLExecuteTestCase, unittest.TestCase):
     def test_create_simulate_vis_list(self):
         vis_list = simulate_list_arlexecute_workflow(frequency=self.frequency, channel_bandwidth=self.channel_bandwidth)
         assert len(vis_list) == len(self.frequency)
-        vt = arlexecute.compute(vis_list[0])
+        vt = arlexecute.compute(vis_list[0], sync=True)
         assert isinstance(vt, BlockVisibility)
         assert vt.nvis > 0
  
