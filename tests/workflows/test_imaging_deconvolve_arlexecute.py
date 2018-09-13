@@ -13,7 +13,7 @@ from astropy.coordinates import SkyCoord
 
 from data_models.polarisation import PolarisationFrame
 
-from . import ARLExecuteTestCase
+from tests.workflows import ARLExecuteTestCase
 from workflows.arlexecute.imaging.imaging_arlexecute import invert_list_arlexecute_workflow, deconvolve_list_arlexecute_workflow, \
     residual_list_arlexecute_workflow, restore_list_arlexecute_workflow
 from wrappers.arlexecute.execution_support.arlexecute import arlexecute

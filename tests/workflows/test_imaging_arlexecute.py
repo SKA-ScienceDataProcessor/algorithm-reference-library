@@ -11,7 +11,7 @@ import numpy
 from astropy import units as u
 from astropy.coordinates import SkyCoord
 
-from . import ARLExecuteTestCase
+from tests.workflows import ARLExecuteTestCase
 from data_models.polarisation import PolarisationFrame
 from wrappers.arlexecute.execution_support.arlexecute import arlexecute
 from wrappers.arlexecute.image.operations import export_image_to_fits, smooth_image

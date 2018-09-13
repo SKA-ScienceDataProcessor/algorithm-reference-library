@@ -9,7 +9,7 @@ import numpy
 from astropy import units as u
 from astropy.coordinates import SkyCoord
 
-from . import ARLExecuteTestCase
+from tests.workflows import ARLExecuteTestCase
 from data_models.memory_data_models import BlockVisibility
 from wrappers.arlexecute.execution_support.arlexecute import arlexecute
 
