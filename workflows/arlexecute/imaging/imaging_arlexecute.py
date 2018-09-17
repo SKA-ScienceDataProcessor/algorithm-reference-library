@@ -14,9 +14,9 @@ import logging
 
 import numpy
 
-from processing_library.image.operations import copy_image, create_empty_image_like
 from data_models.memory_data_models import Image
 from data_models.parameters import get_parameter
+from processing_library.image.operations import copy_image, create_empty_image_like
 from workflows.shared.imaging.imaging_shared import imaging_context
 from workflows.shared.imaging.imaging_shared import sum_invert_results, remove_sumwt, sum_predict_results, \
     threshold_list
@@ -192,10 +192,14 @@ def restore_list_arlexecute_workflow(model_imagelist, psf_imagelist, residual_im
     :param kwargs: Parameters for functions in components
     :return:
     """
-    return [arlexecute.execute(restore_cube)(model_imagelist[i], psf_imagelist[i][0],
-                                             residual_imagelist[i][0], **kwargs)
-            for i, _ in enumerate(model_imagelist)]
-
+    psf_list = arlexecute.execute(remove_sumwt)(psf_imagelist)
+    residual_list = arlexecute.execute(remove_sumwt)(residual_imagelist)
+    print('model_imagelist', model_imagelist)
+    print('psf_imagelist', psf_imagelist)
+    print('residual_imagelist', residual_imagelist)
+    return [arlexecute.execute(restore_cube)(model_imagelist[i], psf_list[i],
+                                             residual_list[i], **kwargs)
+            for i, _ in enumerate(residual_imagelist)]
 
 def deconvolve_list_arlexecute_workflow(dirty_list, psf_list, model_imagelist, prefix='', **kwargs):
     """Create a graph for deconvolution, adding to the model
@@ -207,16 +211,13 @@ def deconvolve_list_arlexecute_workflow(dirty_list, psf_list, model_imagelist, p
     :return: (graph for the deconvolution, graph for the flat)
     """
     nchan = len(dirty_list)
-    
+    nmoments = get_parameter(kwargs, "nmoments", 0)
+
     def deconvolve(dirty, psf, model, facet, gthreshold):
-        import time
-        starttime = time.time()
         if prefix == '':
             lprefix = "facet %d" % facet
         else:
             lprefix = "%s, facet %d" % (prefix, facet)
-        
-        nmoments = get_parameter(kwargs, "nmoments", 0)
         
         if nmoments > 0:
             moment0 = calculate_image_frequency_moments(dirty)
@@ -225,30 +226,31 @@ def deconvolve_list_arlexecute_workflow(dirty_list, psf_list, model_imagelist, p
             this_peak = numpy.max(numpy.abs(dirty.data[0, ...]))
         
         if this_peak > 1.1 * gthreshold:
-            log.info(
-                "deconvolve_list_arlexecute_workflow %s: cleaning - peak %.6f > 1.1 * threshold %.6f" % (lprefix, this_peak,
-                                                                                                    gthreshold))
+            # log.info(
+            #     "deconvolve_list_arlexecute_workflow %s: cleaning - peak %.6f > 1.1 * threshold %.6f" % (
+            #     lprefix, this_peak,
+            #     gthreshold))
             kwargs['threshold'] = gthreshold
             result, _ = deconvolve_cube(dirty, psf, prefix=lprefix, **kwargs)
             
             if result.data.shape[0] == model.data.shape[0]:
                 result.data += model.data
-            else:
-                log.warning(
-                    "deconvolve_list_arlexecute_workflow %s: Initial model %s and clean result %s do not have the same shape" %
-                    (lprefix, str(model.data.shape[0]), str(result.data.shape[0])))
-            
+            # else:
+            #     log.warning(
+            #         "deconvolve_list_arlexecute_workflow %s: Initial model %s and clean result %s do not have the same shape" %
+            #         (lprefix, str(model.data.shape[0]), str(result.data.shape[0])))
+            #
             flux = numpy.sum(result.data[0, 0, ...])
-            log.info('### %s, %.6f, %.6f, True, %.3f # cycle, facet, peak, cleaned flux, clean, time?'
-                     % (lprefix, this_peak, flux, time.time() - starttime))
-            
+            # log.info('### %s, %.6f, %.6f, True, # cycle, facet, peak, cleaned flux, clean'
+            #          % (lprefix, this_peak, flux[0]))
+            #
             return result
         else:
-            log.info("deconvolve_list_arlexecute_workflow %s: Not cleaning - peak %.6f <= 1.1 * threshold %.6f" % (
-                lprefix, this_peak,
-                gthreshold))
-            log.info('### %s, %.6f, %.6f, False, %.3f # cycle, facet, peak, cleaned flux, clean, time?'
-                     % (lprefix, this_peak, 0.0, time.time() - starttime))
+            # log.info("deconvolve_list_arlexecute_workflow %s: Not cleaning - peak %.6f <= 1.1 * threshold %.6f" % (
+            #     lprefix, this_peak,
+            #     gthreshold))
+            # log.info('### %s, %.6f, %.6f, False, %.3f # cycle, facet, peak, cleaned flux, clean'
+            #          % (lprefix, this_peak, 0.0))
             
             return copy_image(model)
     
@@ -264,12 +266,12 @@ def deconvolve_list_arlexecute_workflow(dirty_list, psf_list, model_imagelist, p
     
     # Scatter the separate channel images into deconvolve facets and then gather channels for each facet.
     # This avoids constructing the entire spectral cube.
-    #    dirty_list = arlexecute.execute(remove_sumwt, nout=nchan)(dirty_list)
+    dirty_list_trimmed = arlexecute.execute(remove_sumwt, nout=nchan)(dirty_list)
     scattered_channels_facets_dirty_list = \
-        [arlexecute.execute(image_scatter_facets, nout=deconvolve_number_facets)(d[0], facets=deconvolve_facets,
+        [arlexecute.execute(image_scatter_facets, nout=deconvolve_number_facets)(d, facets=deconvolve_facets,
                                                                                  overlap=deconvolve_overlap,
                                                                                  taper=deconvolve_taper)
-         for d in dirty_list]
+         for d in dirty_list_trimmed]
     
     # Now we do a transpose and gather
     scattered_facets_list = [
@@ -277,8 +279,8 @@ def deconvolve_list_arlexecute_workflow(dirty_list, psf_list, model_imagelist, p
                                                            for chan in range(nchan)])
         for facet in range(deconvolve_number_facets)]
     
-    psf_list = arlexecute.execute(remove_sumwt, nout=nchan)(psf_list)
-    psf_list = arlexecute.execute(image_gather_channels, nout=1)(psf_list)
+    psf_list_trimmed = arlexecute.execute(remove_sumwt, nout=nchan)(psf_list)
+    psf_list_trimmed = arlexecute.execute(image_gather_channels, nout=1)(psf_list_trimmed)
     
     scattered_model_imagelist = \
         arlexecute.execute(image_scatter_facets, nout=deconvolve_number_facets)(model_imagelist,
@@ -299,7 +301,7 @@ def deconvolve_list_arlexecute_workflow(dirty_list, psf_list, model_imagelist, p
     
     facet_list = numpy.arange(deconvolve_number_facets).astype('int')
     scattered_results_list = [
-        arlexecute.execute(deconvolve, nout=1)(d, psf_list, m, facet, global_threshold)
+        arlexecute.execute(deconvolve, nout=1)(d, psf_list_trimmed, m, facet, global_threshold)
         for d, m, facet in zip(scattered_facets_list, scattered_model_imagelist, facet_list)]
     
     # Gather the results back into one image, correcting for overlaps as necessary. The taper function is is used to

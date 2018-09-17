@@ -13,7 +13,7 @@ from astropy.coordinates import SkyCoord
 
 from data_models.polarisation import PolarisationFrame
 
-from . import ARLExecuteTestCase
+from tests.workflows import ARLExecuteTestCase
 from wrappers.arlexecute.calibration.calibration_control import create_calibration_controls
 from wrappers.arlexecute.execution_support.arlexecute import arlexecute
 from workflows.arlexecute.pipelines.pipeline_arlexecute import ical_list_arlexecute_workflow, continuum_imaging_list_arlexecute_workflow
@@ -102,8 +102,7 @@ class TestPipelineGraphs(ARLExecuteTestCase, unittest.TestCase):
                          for freqwin, _ in enumerate(self.frequency)]
         
         # Calculate the model convolved with a Gaussian.
-        self.model_imagelist = arlexecute.compute(self.model_imagelist, sync=True)
-        model = self.model_imagelist[0]
+        model = arlexecute.compute(self.model_imagelist[0], sync=True)
         self.cmodel = smooth_image(model)
         export_image_to_fits(model, '%s/test_imaging_delayed_model.fits' % self.dir)
         export_image_to_fits(self.cmodel, '%s/test_imaging_delayed_cmodel.fits' % self.dir)
@@ -113,12 +112,7 @@ class TestPipelineGraphs(ARLExecuteTestCase, unittest.TestCase):
                 arlexecute.execute(insert_unittest_errors)(self.vis_list[i], amp_errors=amp_errors,
                                                            phase_errors=phase_errors)
                 for i, _ in enumerate(self.frequency)]
-        
-        self.vis_list = arlexecute.compute(self.vis_list, sync=True)
-        
-        self.vis_list = arlexecute.scatter(self.vis_list)
-        self.model_imagelist = arlexecute.scatter(self.model_imagelist)
-    
+            
     def test_time_setup(self):
         self.actualSetUp()
     

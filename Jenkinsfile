@@ -96,23 +96,51 @@ pipeline {
     post {
         always {
             echo 'FINISHED'
+	    slackSend baseUrl: 'https://sdp-execution-engine.slack.com/services/hooks/jenkins-ci/', 
+	    channel: '#jenkins', 
+	    color: 'good', 
+	    message: "Pipeline ${currentBuild.fullDisplayName} ${env.JOB_NAME} ${env.BUILD_NUMBER} completed with Status: ${env.BUILD_STATUS} (<${env.BUILD_URL}|Open>)", 
+	    tokenCredentialId: 'a06474f9-0c86-4dc7-a477-42d7d1a1cc71'
         }
     	failure {
              mail to: 'mf582@mrao.cam.ac.uk, pw410@cam.ac.uk, realtimcornwell@gmail.com',
-             subject: "Failed Jenkins Pipeline: ${currentBuild.fullDisplayName}",
-             body: "Something is wrong with ${env.BUILD_URL}"
+             subject: "Failed Jenkins Pipeline: ${currentBuild.fullDisplayName} Status:${env.BUILD_STATUS} ",
+             body: "Something is wrong with ${env.BUILD_URL} Status: ${env.BUILD_STATUS} "
+            
     	}
     	fixed {
              mail to: 'mf582@mrao.cam.ac.uk, pw410@cam.ac.uk, realtimcornwell@gmail.com',
-             subject: "Jenkins Pipeline is back to normal: ${currentBuild.fullDisplayName}",
+             subject: "Jenkins Pipeline is back to normal: ${currentBuild.fullDisplayName} Status:${env.BUILD_STATUS}  ",
              body: "See ${env.BUILD_URL}"
+	}
+	success {
+		sshPublisher alwaysPublishFromMaster: true, 
+		publishers: [sshPublisherDesc(configName: 'vm12', 
+				transfers: [sshTransfer(excludes: '', 
+					execCommand: '', execTimeout: 120000, 
+					flatten: false, 
+					makeEmptyDirs: false, 
+					noDefaultExcludes: false, 
+					patternSeparator: '[, ]+', 
+					remoteDirectory: 'algorithm-reference-library', 
+					remoteDirectorySDF: false, 
+					removePrefix: '', 
+					sourceFiles: 'docs/build/**'), 
+				sshTransfer(excludes: '', 
+					execCommand: '', execTimeout: 120000, 
+					flatten: false, 
+					makeEmptyDirs: false, 
+					noDefaultExcludes: false, 
+					patternSeparator: '[, ]+', 
+					remoteDirectory: 'algorithm-reference-library', 
+					remoteDirectorySDF: false, 
+					removePrefix: '', 
+					sourceFiles: 'coverage/**')], 
+				usePromotionTimestamp: false, 
+				useWorkspaceInPromotion: false, 
+				verbose: false)]
+
     	}
-// We could send slack notifications but pluggin needs to be installed and configured at server
-//	success {
-//        	slackSend channel: '#ops-room',
-//                  color: 'good',
-//                  message: "The pipeline ${currentBuild.fullDisplayName} completed successfully."
-//       }
     }	
 }
 
