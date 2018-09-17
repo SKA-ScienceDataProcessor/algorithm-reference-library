@@ -194,9 +194,6 @@ def restore_list_arlexecute_workflow(model_imagelist, psf_imagelist, residual_im
     """
     psf_list = arlexecute.execute(remove_sumwt)(psf_imagelist)
     residual_list = arlexecute.execute(remove_sumwt)(residual_imagelist)
-    print('model_imagelist', model_imagelist)
-    print('psf_imagelist', psf_imagelist)
-    print('residual_imagelist', residual_imagelist)
     return [arlexecute.execute(restore_cube)(model_imagelist[i], psf_list[i],
                                              residual_list[i], **kwargs)
             for i, _ in enumerate(residual_imagelist)]
