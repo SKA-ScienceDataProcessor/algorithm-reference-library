@@ -307,6 +307,19 @@ class TestImaging(unittest.TestCase):
         self._invert_base(context='wstack', extra='_spectral_pol', positionthreshold=2.0,
                           vis_slices=41)
 
+    def test_zero_list(self):
+        self.actualSetUp()
+        vis_list = zero_list_serial_workflow(self.vis_list)
+        assert numpy.max(numpy.abs(vis_list[0].vis)) < 1e-15, numpy.max(numpy.abs(vis_list[0].vis))
+    
+        predicted_vis_list = [predict_skycomponent_visibility(vis_list[freqwin],
+                                                                                  self.components_list[freqwin])
+                              for freqwin, _ in enumerate(self.frequency)]
+        assert numpy.max(numpy.abs(predicted_vis_list[0].vis)) > 0.0, numpy.max(numpy.abs(predicted_vis_list[0].vis))
+        diff_vis_list = subtract_list_serial_workflow(self.vis_list, predicted_vis_list)
+    
+        assert numpy.max(numpy.abs(diff_vis_list[0].vis)) < 1e-15, numpy.max(numpy.abs(diff_vis_list[0].vis))
+
 
 if __name__ == '__main__':
     unittest.main()

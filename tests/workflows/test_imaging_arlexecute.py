@@ -313,6 +313,22 @@ class TestImaging(unittest.TestCase):
         self.actualSetUp(dospectral=True, dopol=True)
         self._invert_base(context='wstack', extra='_spectral_pol', positionthreshold=2.0,
                           vis_slices=41)
+        
+    def test_zero_list(self):
+        self.actualSetUp()
+        vis_list = zero_list_arlexecute_workflow(self.vis_list)
+        vis_list = arlexecute.compute(vis_list, sync=True)
+        assert numpy.max(numpy.abs(vis_list[0].vis)) < 1e-15, numpy.max(numpy.abs(vis_list[0].vis))
+        
+        predicted_vis_list = [arlexecute.execute(predict_skycomponent_visibility)(vis_list[freqwin],
+                                                                             self.components_list[freqwin])
+                         for freqwin, _ in enumerate(self.frequency)]
+        predicted_vis_list = arlexecute.compute(predicted_vis_list, sync=True)
+        assert numpy.max(numpy.abs(predicted_vis_list[0].vis)) > 0.0, numpy.max(numpy.abs(predicted_vis_list[0].vis))
+        diff_vis_list = subtract_list_arlexecute_workflow(self.vis_list, predicted_vis_list)
+
+        diff_vis_list = arlexecute.compute(diff_vis_list, sync=True)
+        assert numpy.max(numpy.abs(diff_vis_list[0].vis)) < 1e-15, numpy.max(numpy.abs(diff_vis_list[0].vis))
 
 
 if __name__ == '__main__':
