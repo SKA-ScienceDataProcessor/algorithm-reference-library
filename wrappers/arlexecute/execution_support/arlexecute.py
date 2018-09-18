@@ -11,6 +11,7 @@ from dask.distributed import Client, wait
 # Support daliuge's delayed function, make it fail if not available but used
 try:
     from dlg import delayed as dlg_delayed
+    from dlg.dask_emulation import compute as dlg_compute
 except ImportError:
     def dlg_delayed(*args, **kwargs):
         raise Exception("daliuge is not available")
@@ -107,7 +108,7 @@ class ARLExecuteBase():
             return future
         elif self._using_dlg:
             kwargs = {'client': self._client} if self._client else {}
-            return value.compute(**kwargs)
+            return dlg_compute(value, **kwargs)
         else:
             return value
     

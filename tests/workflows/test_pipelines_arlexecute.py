@@ -13,6 +13,7 @@ from astropy.coordinates import SkyCoord
 
 from data_models.polarisation import PolarisationFrame
 
+from tests.workflows import ARLExecuteTestCase
 from wrappers.arlexecute.calibration.calibration_control import create_calibration_controls
 from wrappers.arlexecute.execution_support.arlexecute import arlexecute
 from workflows.arlexecute.pipelines.pipeline_arlexecute import ical_list_arlexecute_workflow, continuum_imaging_list_arlexecute_workflow
@@ -30,16 +31,12 @@ log.addHandler(logging.StreamHandler(sys.stdout))
 log.addHandler(logging.StreamHandler(sys.stderr))
 
 
-class TestPipelineGraphs(unittest.TestCase):
+class TestPipelineGraphs(ARLExecuteTestCase, unittest.TestCase):
     
     def setUp(self):
-        
+        super(TestPipelineGraphs, self).setUp()
         from data_models.parameters import arl_path
         self.dir = arl_path('test_results')
-        arlexecute.set_client(use_dask=True)
-
-    def tearDown(self):
-        arlexecute.close()
 
     def actualSetUp(self, add_errors=False, freqwin=5, block=False, dospectral=True, dopol=False,
                     amp_errors=None, phase_errors=None, zerow=True):

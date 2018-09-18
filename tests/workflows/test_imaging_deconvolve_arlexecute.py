@@ -12,9 +12,9 @@ from astropy import units as u
 from astropy.coordinates import SkyCoord
 
 from data_models.polarisation import PolarisationFrame
-
-from . import ARLExecuteTestCase
-from workflows.arlexecute.imaging.imaging_arlexecute import invert_list_arlexecute_workflow, deconvolve_list_arlexecute_workflow, \
+from tests.workflows import ARLExecuteTestCase
+from workflows.arlexecute.imaging.imaging_arlexecute import invert_list_arlexecute_workflow, \
+    deconvolve_list_arlexecute_workflow, \
     residual_list_arlexecute_workflow, restore_list_arlexecute_workflow
 from wrappers.arlexecute.execution_support.arlexecute import arlexecute
 from wrappers.arlexecute.image.operations import export_image_to_fits, smooth_image
@@ -96,7 +96,8 @@ class TestImagingDeconvolveGraph(ARLExecuteTestCase, unittest.TestCase):
         
         # Calculate the model convolved with a Gaussian.
         
-        model = arlexecute.compute(self.model_imagelist[0], sync=True)
+        self.model_imagelist = arlexecute.compute(self.model_imagelist, sync=True)
+        model = self.model_imagelist[0]
         
         self.cmodel = smooth_image(model)
         export_image_to_fits(model, '%s/test_imaging_arlexecute_deconvolved_model.fits' % self.dir)
@@ -105,6 +106,8 @@ class TestImagingDeconvolveGraph(ARLExecuteTestCase, unittest.TestCase):
         if add_errors and block:
             self.vis_list = [arlexecute.execute(insert_unittest_errors)(self.vis_list[i])
                              for i, _ in enumerate(self.frequency)]
+            
+        self.vis_list = arlexecute.compute(self.vis_list, sync=True)
     
     def test_time_setup(self):
         self.actualSetUp()
@@ -117,7 +120,8 @@ class TestImagingDeconvolveGraph(ARLExecuteTestCase, unittest.TestCase):
         psf_imagelist = invert_list_arlexecute_workflow(self.vis_list, self.model_imagelist,
                                                         context='2d',
                                                         dopsf=True, normalize=True)
-        deconvolved, _ = deconvolve_list_arlexecute_workflow(dirty_imagelist, psf_imagelist, self.model_imagelist, niter=1000,
+        deconvolved, _ = deconvolve_list_arlexecute_workflow(dirty_imagelist, psf_imagelist, self.model_imagelist,
+                                                             niter=1000,
                                                              fractional_threshold=0.1, scales=[0, 3, 10],
                                                              threshold=0.1, gain=0.7)
         deconvolved = arlexecute.compute(deconvolved, sync=True)
@@ -131,17 +135,18 @@ class TestImagingDeconvolveGraph(ARLExecuteTestCase, unittest.TestCase):
                                                           dopsf=False, normalize=True)
         psf_imagelist = invert_list_arlexecute_workflow(self.vis_list, self.model_imagelist, context='2d',
                                                         dopsf=True, normalize=True)
-        dec_imagelist, _ = deconvolve_list_arlexecute_workflow(dirty_imagelist, psf_imagelist, self.model_imagelist, niter=1000,
+        dec_imagelist, _ = deconvolve_list_arlexecute_workflow(dirty_imagelist, psf_imagelist, self.model_imagelist,
+                                                               niter=1000,
                                                                fractional_threshold=0.01, scales=[0, 3, 10],
                                                                algorithm='mmclean', nmoments=3, nchan=self.freqwin,
                                                                threshold=0.1, gain=0.7)
         residual_imagelist = residual_list_arlexecute_workflow(self.vis_list, model_imagelist=dec_imagelist,
                                                                context='wstack', vis_slices=51)
-        restored = restore_list_arlexecute_workflow(model_imagelist=dec_imagelist, psf_imagelist=psf_imagelist,
-                                                    residual_imagelist=residual_imagelist,
-                                                    empty=self.model_imagelist)[0]
+        restored_list = restore_list_arlexecute_workflow(model_imagelist=dec_imagelist, psf_imagelist=psf_imagelist,
+                                                         residual_imagelist=residual_imagelist,
+                                                         empty=self.model_imagelist)
         
-        restored = arlexecute.compute(restored, sync=True)
+        restored = arlexecute.compute(restored_list, sync=True)[0]
         
         export_image_to_fits(restored, '%s/test_imaging_%s_mmclean_restored.fits' % (self.dir, arlexecute.type()))
     
@@ -151,17 +156,19 @@ class TestImagingDeconvolveGraph(ARLExecuteTestCase, unittest.TestCase):
                                                           context='2d', dopsf=False, normalize=True)
         psf_imagelist = invert_list_arlexecute_workflow(self.vis_list, self.model_imagelist,
                                                         context='2d', dopsf=True, normalize=True)
-        dec_imagelist, _ = deconvolve_list_arlexecute_workflow(dirty_imagelist, psf_imagelist, self.model_imagelist, niter=1000,
+        dec_imagelist, _ = deconvolve_list_arlexecute_workflow(dirty_imagelist, psf_imagelist, self.model_imagelist,
+                                                               niter=1000,
                                                                fractional_threshold=0.1, scales=[0, 3, 10],
                                                                algorithm='mmclean', nmoments=3, nchan=self.freqwin,
                                                                threshold=0.01, gain=0.7, deconvolve_facets=8,
                                                                deconvolve_overlap=8, deconvolve_taper='tukey')
-        residual_imagelist = residual_list_arlexecute_workflow(self.vis_list, model_imagelist=dec_imagelist, context='2d')
-        restored = restore_list_arlexecute_workflow(model_imagelist=dec_imagelist, psf_imagelist=psf_imagelist,
-                                                    residual_imagelist=residual_imagelist,
-                                                    empty=self.model_imagelist)[0]
+        residual_imagelist = residual_list_arlexecute_workflow(self.vis_list, model_imagelist=dec_imagelist,
+                                                               context='2d')
+        restored_list = restore_list_arlexecute_workflow(model_imagelist=dec_imagelist, psf_imagelist=psf_imagelist,
+                                                         residual_imagelist=residual_imagelist,
+                                                         empty=self.model_imagelist)
         
-        restored = arlexecute.compute(restored, sync=True)
+        restored = arlexecute.compute(restored_list, sync=True)[0]
         
         export_image_to_fits(restored, '%s/test_imaging_%s_overlap_mmclean_restored.fits'
                              % (self.dir, arlexecute.type()))

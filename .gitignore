@@ -8,11 +8,15 @@ PrivateRules.mak
 /examples/experiments
 
 *.pyc
+*.o
 
 /docs/build
 .ipynb_checkpoints
 
 examples/performance/*
+
+workflows/ffiwrapped/ical_starpu/ical_starpu
+workflows/ffiwrapped/ical_starpu/ical_starpu_implicit
 
 __pycache__
 .cache

@@ -9,6 +9,7 @@ import numpy
 from astropy import units as u
 from astropy.coordinates import SkyCoord
 
+from tests.workflows import ARLExecuteTestCase
 from data_models.polarisation import PolarisationFrame
 
 from workflows.arlexecute.imaging.imaging_arlexecute import zero_list_arlexecute_workflow, predict_list_arlexecute_workflow, \
