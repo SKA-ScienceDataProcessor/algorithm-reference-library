@@ -1,3 +1,9 @@
+**September 18, 2018** [Rodrigo] Fix for daliuge port execution of list, to match dask.delayed capabilities. Need to
+update version of daliuge:
+
+    pip install "daliuge>=0.5.3" pytest
+
+
 **September 16, 2018** [Tim] Deleted imaging-pipelines-sip.ipynb. Use imaging-pipelines-serial.ipynb instead.
 
 **September 4, 2018** [Rodrigo]  Added add support for daliuge as an (experimental) backend of the arlexecute module. 
