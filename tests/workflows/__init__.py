@@ -9,7 +9,7 @@ class ARLExecuteTestCase(object):
         import os
         from wrappers.arlexecute.execution_support.arlexecute import arlexecute
         use_dlg = os.environ.get('ARL_TESTS_USE_DLG', '0') == '1'
-        use_dask = os.environ.get('ARL_TESTS_USE_DASK', '0') == '1'
+        use_dask = os.environ.get('ARL_TESTS_USE_DASK', '1') == '1'
         arlexecute.set_client(use_dask=use_dask, use_dlg=use_dlg)
 
         # Start a daliuge node manager for these tests; make sure it can see

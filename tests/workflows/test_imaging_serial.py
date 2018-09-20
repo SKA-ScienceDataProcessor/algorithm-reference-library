@@ -20,8 +20,8 @@ from wrappers.serial.skycomponent.operations import find_skycomponents, find_nea
     insert_skycomponent
 from wrappers.serial.simulation.testing_support import create_named_configuration, ingest_unittest_visibility, \
     create_unittest_model, insert_unittest_errors, create_unittest_components
-from wrappers.arlexecute.convolution_function.kernels import create_awterm_convolutionfunction
-from wrappers.arlexecute.convolution_function.operations import apply_bounding_box_convolutionfunction
+from wrappers.serial.convolution_function.kernels import create_awterm_convolutionfunction
+from wrappers.serial.convolution_function.operations import apply_bounding_box_convolutionfunction
 
 log = logging.getLogger(__name__)
 
@@ -39,7 +39,7 @@ class TestImaging(unittest.TestCase):
     def tearDown(self):
         pass
     
-    def actualSetUp(self, add_errors=False, freqwin=1, block=False, dospectral=True, dopol=False, zerow=False):
+    def actualSetUp(self, add_errors=False, freqwin=3, block=False, dospectral=True, dopol=False, zerow=False):
         
         self.npixel = 256
         self.cellsize = 0.0005
@@ -87,7 +87,7 @@ class TestImaging(unittest.TestCase):
                            for freqwin, _ in enumerate(self.frequency)]
         
         self.components_list = [create_unittest_components(self.model_list[freqwin],
-                                                           flux[freqwin, :][numpy.newaxis, :])
+                                                           flux[freqwin, :][numpy.newaxis, :], single=True)
                                 for freqwin, _ in enumerate(self.frequency)]
         
         self.model_list = [insert_skycomponent(self.model_list[freqwin],
@@ -97,9 +97,9 @@ class TestImaging(unittest.TestCase):
         self.vis_list = [predict_skycomponent_visibility(self.vis_list[freqwin],
                                                          self.components_list[freqwin])
                          for freqwin, _ in enumerate(self.frequency)]
-        
+        centre=self.freqwin // 2
         # Calculate the model convolved with a Gaussian.
-        self.model = self.model_list[0]
+        self.model = self.model_list[centre]
         
         self.cmodel = smooth_image(self.model)
         export_image_to_fits(self.model, '%s/test_imaging_model.fits' % self.dir)
@@ -109,14 +109,12 @@ class TestImaging(unittest.TestCase):
             self.vis_list = [insert_unittest_errors(self.vis_list[i])
                              for i, _ in enumerate(self.frequency)]
         
-        self.vis = self.vis_list[0]
-        
-        self.components = self.components_list[0]
-        self.gcf, self.cf = create_awterm_convolutionfunction(self.model, nw=111, wstep=8.0, oversampling=8, support=60,
+        self.components = self.components_list[centre]
+        self.gcf, self.cf = create_awterm_convolutionfunction(self.model, nw=121, wstep=8.0, oversampling=8, support=60,
                                                     use_aaf=True)
         self.cf_clipped = apply_bounding_box_convolutionfunction(self.cf, fractional_level=1e-3)
 
-        _, self.cf_joint = create_awterm_convolutionfunction(self.model, nw=11, wstep=8.0, oversampling=8, support=60,
+        _, self.cf_joint = create_awterm_convolutionfunction(self.model, nw=13, wstep=8.0, oversampling=8, support=60,
                                                     use_aaf=True)
         self.cf_joint_clipped = apply_bounding_box_convolutionfunction(self.cf_joint, fractional_level=1e-3)
 
@@ -138,13 +136,13 @@ class TestImaging(unittest.TestCase):
     
     def _predict_base(self, context='2d', extra='', fluxthreshold=1.0, facets=1, vis_slices=1, **kwargs):
         
+        centre=self.freqwin // 2
         vis_list = zero_list_serial_workflow(self.vis_list)
         vis_list = predict_list_serial_workflow(vis_list, self.model_list, context=context,
                                                 vis_slices=vis_slices, facets=facets, **kwargs)
-        vis_list = subtract_list_serial_workflow(self.vis_list, vis_list)[0]
+        vis_list = subtract_list_serial_workflow(self.vis_list, vis_list)
         
-        centre = self.freqwin // 2
-        dirty = invert_list_serial_workflow([vis_list], [self.model_list[0]], context='2d', dopsf=False,
+        dirty = invert_list_serial_workflow(vis_list, self.model_list, context='2d', dopsf=False,
                                             normalize=True)[centre]
         
         assert numpy.max(numpy.abs(dirty[0].data)), "Residual image is empty"
@@ -298,16 +296,20 @@ class TestImaging(unittest.TestCase):
 
     def test_zero_list(self):
         self.actualSetUp()
+        
+        centre = self.freqwin // 2
         vis_list = zero_list_serial_workflow(self.vis_list)
-        assert numpy.max(numpy.abs(vis_list[0].vis)) < 1e-15, numpy.max(numpy.abs(vis_list[0].vis))
+        
+        assert numpy.max(numpy.abs(vis_list[centre].vis)) < 1e-15, numpy.max(numpy.abs(vis_list[centre].vis))
     
-        predicted_vis_list = [predict_skycomponent_visibility(vis_list[freqwin],
-                                                                                  self.components_list[freqwin])
+        predicted_vis_list = [predict_skycomponent_visibility(vis_list[freqwin], self.components_list[freqwin])
                               for freqwin, _ in enumerate(self.frequency)]
-        assert numpy.max(numpy.abs(predicted_vis_list[0].vis)) > 0.0, numpy.max(numpy.abs(predicted_vis_list[0].vis))
+        assert numpy.max(numpy.abs(predicted_vis_list[centre].vis)) > 0.0, \
+            numpy.max(numpy.abs(predicted_vis_list[centre].vis))
 
         diff_vis_list = subtract_list_serial_workflow(self.vis_list, predicted_vis_list)
-        assert numpy.max(numpy.abs(diff_vis_list[0].vis)) < 1e-15, numpy.max(numpy.abs(diff_vis_list[0].vis))
+        
+        assert numpy.max(numpy.abs(diff_vis_list[centre].vis)) < 1e-15, numpy.max(numpy.abs(diff_vis_list[centre].vis))
 
 
 if __name__ == '__main__':

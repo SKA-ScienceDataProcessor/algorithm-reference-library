@@ -48,10 +48,10 @@ class TestGridDataGridding(unittest.TestCase):
         self.npixel = 256
         self.cellsize = 0.0009
         self.low = create_named_configuration('LOWBD2', rmax=750.0)
-        self.freqwin = 1
+        self.freqwin = 5
         self.vis_list = list()
-        self.ntimes = 3
-        self.times = numpy.linspace(-3.0, +3.0, self.ntimes) * numpy.pi / 12.0
+        self.ntimes = 5
+        self.times = numpy.linspace(-2.0, +2.0, self.ntimes) * numpy.pi / 12.0
         
         if self.freqwin == 1:
             self.frequency = numpy.array([1e8])
@@ -80,7 +80,7 @@ class TestGridDataGridding(unittest.TestCase):
         self.model = create_unittest_model(self.vis, self.image_pol, cellsize=self.cellsize,
                                            npixel=self.npixel, nchan=self.freqwin)
         self.components = create_unittest_components(self.model, flux, applypb=False,
-                                                     scale=0.5, single=True)
+                                                     scale=0.5, single=False)
         self.model = insert_skycomponent(self.model, self.components)
         self.vis = predict_skycomponent_visibility(self.vis, self.components)
         
@@ -170,7 +170,7 @@ class TestGridDataGridding(unittest.TestCase):
     
     def test_griddata_invert_wterm(self):
         self.actualSetUp(zerow=False)
-        gcf, cf = create_awterm_convolutionfunction(self.model, nw=100, wstep=8.0, oversampling=4, support=30,
+        gcf, cf = create_awterm_convolutionfunction(self.model, nw=101, wstep=8.0, oversampling=4, support=30,
                                                     use_aaf=True)
         
         cf_image = convert_convolutionfunction_to_image(cf)
