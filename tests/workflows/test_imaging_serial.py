@@ -46,8 +46,8 @@ class TestImaging(unittest.TestCase):
         self.low = create_named_configuration('LOWBD2', rmax=750.0)
         self.freqwin = freqwin
         self.vis_list = list()
-        self.ntimes = 5
-        self.times = numpy.linspace(-3.0, +3.0, self.ntimes) * numpy.pi / 12.0
+        self.ntimes = 11
+        self.times = numpy.linspace(-2.0, +2.0, self.ntimes) * numpy.pi / 12.0
         
         if freqwin > 1:
             self.frequency = numpy.linspace(0.8e8, 1.2e8, self.freqwin)
@@ -112,6 +112,14 @@ class TestImaging(unittest.TestCase):
         self.vis = self.vis_list[0]
         
         self.components = self.components_list[0]
+        self.gcf, self.cf = create_awterm_convolutionfunction(self.model, nw=111, wstep=8.0, oversampling=8, support=60,
+                                                    use_aaf=True)
+        self.cf_clipped = apply_bounding_box_convolutionfunction(self.cf, fractional_level=1e-3)
+
+        _, self.cf_joint = create_awterm_convolutionfunction(self.model, nw=11, wstep=8.0, oversampling=8, support=60,
+                                                    use_aaf=True)
+        self.cf_joint_clipped = apply_bounding_box_convolutionfunction(self.cf_joint, fractional_level=1e-3)
+
     
     def test_time_setup(self):
         self.actualSetUp()
@@ -166,146 +174,127 @@ class TestImaging(unittest.TestCase):
         self.actualSetUp(zerow=True)
         self._predict_base(context='2d')
 
-    @unittest.skip("Facets requires overlap")
+    @unittest.skip("Facets need overlap")
     def test_predict_facets(self):
         self.actualSetUp()
-        self._predict_base(context='facets', fluxthreshold=15.0, facets=4)
-    
-    @unittest.skip("Timeslice predict needs better interpolation")
+        self._predict_base(context='facets', fluxthreshold=17.0, facets=4)
+
+    @unittest.skip("Timeslice predict needs better interpolation and facets need overlap")
     def test_predict_facets_timeslice(self):
         self.actualSetUp()
         self._predict_base(context='facets_timeslice', fluxthreshold=19.0, facets=8, vis_slices=self.ntimes)
-    
-    @unittest.skip("Facets requires overlap")
+
+    @unittest.skip("Facets need overlap")
     def test_predict_facets_wprojection(self):
         self.actualSetUp()
-        self._predict_base(context='facets', extra='_wprojection', facets=8, wstep=8.0, fluxthreshold=15.0,
-                           oversampling=2)
-    
-    @unittest.skip("Correcting twice?")
+        self._predict_base(context='facets', extra='_wprojection', facets=8, fluxthreshold=15.0,
+                           gcf=self.gcf, cf=self.cf_joint)
+
+    @unittest.skip("Facets need overlap")
     def test_predict_facets_wstack(self):
         self.actualSetUp()
-        self._predict_base(context='facets_wstack', fluxthreshold=15.0, facets=8, vis_slices=41)
-    
-    @unittest.skip("Timeslice predict needs better interpolation")
+        self._predict_base(context='facets_wstack', fluxthreshold=15.0, facets=8, vis_slices=101)
+
     def test_predict_timeslice(self):
         self.actualSetUp()
-        self._predict_base(context='timeslice', fluxthreshold=19.0, vis_slices=self.ntimes)
-    
-    @unittest.skip("Timeslice predict needs better interpolation")
+        self._predict_base(context='timeslice', fluxthreshold=9.0, vis_slices=self.ntimes)
+
     def test_predict_timeslice_wprojection(self):
         self.actualSetUp()
-        gcf, cf = create_awterm_convolutionfunction(self.model, nw=100, wstep=8.0, oversampling=4, support=30,
-                                                    use_aaf=True)
-        self._predict_base(context='timeslice', extra='_wprojection', fluxthreshold=3.0, wstep=10.0,
-                           vis_slices=self.ntimes, oversampling=2, gcf=gcf, cf=cf)
-    
+        self._predict_base(context='timeslice', extra='_wprojection', fluxthreshold=9.0,
+                           vis_slices=self.ntimes, gcf=self.gcf, cf=self.cf_joint)
+
     def test_predict_wprojection(self):
         self.actualSetUp()
-        gcf, cf = create_awterm_convolutionfunction(self.model, nw=100, wstep=8.0, oversampling=4, support=30,
-                                                    use_aaf=True)
-        self._predict_base(context='2d', extra='_wprojection', fluxthreshold=3.0, oversampling=2,
-                           gcf=gcf, cf=cf)
-    
+        self._predict_base(context='2d', extra='_wprojection', fluxthreshold=3.0,
+                           gcf=self.gcf, cf=self.cf)
+
     def test_predict_wprojection_clip(self):
         self.actualSetUp()
-        gcf, cf = create_awterm_convolutionfunction(self.model, nw=100, wstep=8.0, oversampling=4, support=30,
-                                                    use_aaf=True)
-        cf_clipped = apply_bounding_box_convolutionfunction(cf, fractional_level=1e-2)
-        self._predict_base(context='2d', extra='_wprojection_clipped', fluxthreshold=3.0, oversampling=2,
-                           gcf=gcf, cf=cf_clipped)
-    
+        self._predict_base(context='2d', extra='_wprojection_clipped', fluxthreshold=3.0,
+                           gcf=self.gcf, cf=self.cf_clipped)
+
     def test_predict_wstack(self):
         self.actualSetUp()
-        self._predict_base(context='wstack', fluxthreshold=2.0, vis_slices=41)
-    
+        self._predict_base(context='wstack', fluxthreshold=2.0, vis_slices=101)
+
     def test_predict_wstack_wprojection(self):
         self.actualSetUp()
-        gcf, cf = create_awterm_convolutionfunction(self.model, nw=100, wstep=8.0, oversampling=4, support=30,
-                                                    use_aaf=True)
         self._predict_base(context='wstack', extra='_wprojection', fluxthreshold=8.0, vis_slices=11,
-                           oversampling=4, gcf=gcf, cf=cf)
-    
+                           gcf=self.gcf, cf=self.cf_joint)
+
     def test_predict_wstack_spectral(self):
         self.actualSetUp(dospectral=True)
-        self._predict_base(context='wstack', extra='_spectral', fluxthreshold=4.0, vis_slices=41)
-    
+        self._predict_base(context='wstack', extra='_spectral', fluxthreshold=4.0, vis_slices=101)
+
     def test_predict_wstack_spectral_pol(self):
         self.actualSetUp(dospectral=True, dopol=True)
-        self._predict_base(context='wstack', extra='_spectral', fluxthreshold=4.0, vis_slices=41)
-    
+        self._predict_base(context='wstack', extra='_spectral', fluxthreshold=4.0, vis_slices=101)
+
     def test_invert_2d(self):
         self.actualSetUp(zerow=True)
         self._invert_base(context='2d', positionthreshold=2.0, check_components=False)
-    
-    @unittest.skip("Needs padding?")
+
+    @unittest.skip("Facets need overlap")
     def test_invert_facets(self):
         self.actualSetUp()
         self._invert_base(context='facets', positionthreshold=2.0, check_components=True, facets=8)
-    
-    @unittest.skip("Correcting twice?")
+
+    @unittest.skip("Facets need overlap")
     def test_invert_facets_timeslice(self):
         self.actualSetUp()
         self._invert_base(context='facets_timeslice', check_components=True, vis_slices=self.ntimes,
                           positionthreshold=5.0, flux_threshold=1.0, facets=8)
-    
-    @unittest.skip("Correcting twice?")
+
+    @unittest.skip("Facets need overlap")
     def test_invert_facets_wprojection(self):
         self.actualSetUp()
-        gcf, cf = create_awterm_convolutionfunction(self.model, nw=100, wstep=8.0, oversampling=4, support=30,
-                                                    use_aaf=True)
         self._invert_base(context='facets', extra='_wprojection', check_components=True,
-                          positionthreshold=2.0, oversampling=2, facets=4, gcf=gcf, cf=cf)
-    
-    @unittest.skip("Correcting twice?")
+                          positionthreshold=2.0, facets=4, gcf=self.gcf, cf=self.cf_joint)
+
+    @unittest.skip("Facets need overlap")
     def test_invert_facets_wstack(self):
         self.actualSetUp()
         self._invert_base(context='facets_wstack', positionthreshold=1.0, check_components=False, facets=4,
-                          vis_slices=11)
-    
+                          vis_slices=101)
+
     def test_invert_timeslice(self):
         self.actualSetUp()
         self._invert_base(context='timeslice', positionthreshold=1.0, check_components=True,
                           vis_slices=self.ntimes)
-    
+
     def test_invert_timeslice_wprojection(self):
         self.actualSetUp()
         self._invert_base(context='timeslice', extra='_wprojection', positionthreshold=1.0,
-                          check_components=True, wstep=20.0, vis_slices=self.ntimes, oversampling=2)
-    
+                          check_components=True, vis_slices=self.ntimes // 2, gcf=self.gcf, cf=self.cf_joint)
+
     def test_invert_wprojection(self):
         self.actualSetUp()
-        gcf, cf = create_awterm_convolutionfunction(self.model, nw=100, wstep=8.0, oversampling=4, support=30,
-                                                    use_aaf=True)
-        self._invert_base(context='2d', extra='_wprojection', positionthreshold=2.0, gcf=gcf, cf=cf)
-    
+        self._invert_base(context='2d', extra='_wprojection', positionthreshold=2.0, gcf=self.gcf, cf=self.cf)
+
     def test_invert_wprojection_clip(self):
         self.actualSetUp()
-        gcf, cf = create_awterm_convolutionfunction(self.model, nw=100, wstep=8.0, oversampling=4, support=30,
-                                                    use_aaf=True)
-        cf_clipped = apply_bounding_box_convolutionfunction(cf, fractional_level=1e-3)
-        self._invert_base(context='2d', extra='_wprojection_clipped', positionthreshold=2.0, gcf=gcf, cf=cf_clipped)
-    
+        self._invert_base(context='2d', extra='_wprojection_clipped', positionthreshold=2.0, gcf=self.gcf,
+                          cf=self.cf_clipped)
+
     def test_invert_wprojection_wstack(self):
         self.actualSetUp()
-        gcf, cf = create_awterm_convolutionfunction(self.model, nw=100, wstep=8.0, oversampling=4, support=30,
-                                                    use_aaf=True)
-        self._invert_base(context='wstack', extra='_wprojection', positionthreshold=1.0, vis_slices=11,
-                          oversampling=2, gcf=gcf, cf=cf)
-    
+        self._invert_base(context='wstack', extra='_wprojection', positionthreshold=1.0, vis_slices=11, gcf=self.gcf,
+                          cf=self.cf_joint)
+
     def test_invert_wstack(self):
         self.actualSetUp()
-        self._invert_base(context='wstack', positionthreshold=1.0, vis_slices=41)
-    
+        self._invert_base(context='wstack', positionthreshold=1.0, vis_slices=101)
+
     def test_invert_wstack_spectral(self):
         self.actualSetUp(dospectral=True)
         self._invert_base(context='wstack', extra='_spectral', positionthreshold=2.0,
-                          vis_slices=41)
-    
+                          vis_slices=101)
+
     def test_invert_wstack_spectral_pol(self):
         self.actualSetUp(dospectral=True, dopol=True)
         self._invert_base(context='wstack', extra='_spectral_pol', positionthreshold=2.0,
-                          vis_slices=41)
+                          vis_slices=101)
 
     def test_zero_list(self):
         self.actualSetUp()
@@ -316,8 +305,8 @@ class TestImaging(unittest.TestCase):
                                                                                   self.components_list[freqwin])
                               for freqwin, _ in enumerate(self.frequency)]
         assert numpy.max(numpy.abs(predicted_vis_list[0].vis)) > 0.0, numpy.max(numpy.abs(predicted_vis_list[0].vis))
+
         diff_vis_list = subtract_list_serial_workflow(self.vis_list, predicted_vis_list)
-    
         assert numpy.max(numpy.abs(diff_vis_list[0].vis)) < 1e-15, numpy.max(numpy.abs(diff_vis_list[0].vis))
 
 
