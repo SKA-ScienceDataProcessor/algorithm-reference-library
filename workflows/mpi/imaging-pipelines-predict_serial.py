@@ -3,7 +3,7 @@
 
 # # Pipeline processing using serial workflows.
 # 
-# This notebook demonstrates the continuum imaging and ICAL pipelines. These are based on ARL functions wrapped up as SDP workflows using the serial class.
+# This is a serial unrolled version of the predict step
 
 # In[1]:
 
@@ -110,7 +110,7 @@ advice_high=advise_wide_field(vis_list[-1], guard_band_image=8.0, delA=0.02,
 vis_slices = advice_low['vis_slices']
 npixel=advice_high['npixels2']
 cellsize=min(advice_low['cellsize'], advice_high['cellsize'])
-
+print('After advice: vis_slices %d npixel %d cellsize %d' % (vis_slices, npixel, cellsize))
 
 # Now make a graph to fill with a model drawn from GLEAM 
 
@@ -131,50 +131,56 @@ log.info('About to make GLEAM model')
 
 # In[ ]:
 
-original_predict=True
+original_predict=False
 if original_predict:
-	log.info('About to run predict to get predicted visibility')
-	predicted_vislist = predict_list_serial_workflow(vis_list, gleam_model,  
+    log.info('About to run predict to get predicted visibility')
+    predicted_vislist = predict_list_serial_workflow(vis_list, gleam_model,  
                                                 context='wstack', vis_slices=vis_slices)
 else:
-	model_imagelist=gleam_model
-	context='wstack'
-	facets=1
-	
-    	assert len(vis_list) == len(model_imagelist), "Model must be the same length as the vis_list"
+    log.info('About to run predict to get predicted visibility')
+    model_imagelist=gleam_model
+    context='wstack'
+    facets=1
     
-    	c = imaging_context(context)
-    	vis_iter = c['vis_iterator']
-    	predict = c['predict']
+    assert len(vis_list) == len(model_imagelist), "Model must be the same length as the vis_list"
+    from workflows.shared.imaging.imaging_shared import imaging_context
+    from processing_components.image.gather_scatter import image_scatter_facets, image_gather_facets
+    from processing_components.visibility.gather_scatter import visibility_scatter, visibility_gather
+    from workflows.shared.imaging.imaging_shared import sum_invert_results, remove_sumwt, sum_predict_results, \
+		        threshold_list
+
+    c = imaging_context(context)
+    vis_iter = c['vis_iterator']
+    predict = c['predict']
     
-    	def predict_ignore_none(vis, model):
-        	if vis is not None:
-            		return predict(vis, model, context=context, facets=facets, vis_slices=vis_slices, **kwargs)
-        	else:
-            		return None
+    def predict_ignore_none(vis, model):
+        if vis is not None:
+            return predict(vis, model, context=context, facets=facets, vis_slices=vis_slices)
+        else:
+            return None
     
-    	image_results_list_list = list()
-    	# Loop over all frequency windows
-    	for freqwin, vis_list in enumerate(vis_list):
-        	# Create the graph to divide an image into facets. This is by reference.
-        	facet_lists = image_scatter_facets(model_imagelist[freqwin], facets=facets)
-        	# Create the graph to divide the visibility into slices. This is by copy.
-        	sub_vis_lists = visibility_scatter(vis_list, vis_iter, vis_slices)
-        	facet_vis_lists = list()
-        	# Loop over sub visibility
-        	for sub_vis_list in sub_vis_lists:
-            		facet_vis_results = list()
-            		# Loop over facets
-            		for facet_list in facet_lists:
-                		# Predict visibility for this subvisibility from this facet
-                		facet_vis_list = predict_ignore_none(sub_vis_list, facet_list)
-                		facet_vis_results.append(facet_vis_list)
-            		# Sum the current sub-visibility over all facets
-            		facet_vis_lists.append(sum_predict_results(facet_vis_results))
-        	# Sum all sub-visibilties
-        	image_results_list_list.append(visibility_gather(facet_vis_lists, vis_list, vis_iter))
+    image_results_list_list = list()
+    # Loop over all frequency windows
+    for freqwin, vis_lst in enumerate(vis_list):
+        # Create the graph to divide an image into facets. This is by reference.
+        facet_lists = image_scatter_facets(model_imagelist[freqwin], facets=facets)
+        # Create the graph to divide the visibility into slices. This is by copy.
+        sub_vis_lists = visibility_scatter(vis_lst, vis_iter, vis_slices)
+        facet_vis_lists = list()
+        # Loop over sub visibility
+        for sub_vis_list in sub_vis_lists:
+            facet_vis_results = list()
+            # Loop over facets
+            for facet_list in facet_lists:
+                # Predict visibility for this subvisibility from this facet
+                facet_vis_list = predict_ignore_none(sub_vis_list, facet_list)
+                facet_vis_results.append(facet_vis_list)
+            # Sum the current sub-visibility over all facets
+            facet_vis_lists.append(sum_predict_results(facet_vis_results))
+        # Sum all sub-visibilties
+        image_results_list_list.append(visibility_gather(facet_vis_lists, vis_lst, vis_iter))
     
-    	predicted_vislist=image_results_list_list
+    predicted_vislist=image_results_list_list
 
 log.info('About to run corrupt to get corrupted visibility')
 corrupted_vislist = corrupt_list_serial_workflow(predicted_vislist, phase_error=1.0)
