@@ -195,21 +195,21 @@ class TestImaging(unittest.TestCase):
 
     def test_predict_timeslice(self):
         self.actualSetUp()
-        self._predict_base(context='timeslice', fluxthreshold=9.0, vis_slices=self.ntimes)
+        self._predict_base(context='timeslice', fluxthreshold=17.0, vis_slices=self.ntimes)
 
     def test_predict_timeslice_wprojection(self):
         self.actualSetUp()
-        self._predict_base(context='timeslice', extra='_wprojection', fluxthreshold=9.0,
+        self._predict_base(context='timeslice', extra='_wprojection', fluxthreshold=17.0,
                            vis_slices=self.ntimes, gcf=self.gcf, cf=self.cf_joint)
 
     def test_predict_wprojection(self):
         self.actualSetUp()
-        self._predict_base(context='2d', extra='_wprojection', fluxthreshold=3.0,
+        self._predict_base(context='2d', extra='_wprojection', fluxthreshold=3.5,
                            gcf=self.gcf, cf=self.cf)
 
     def test_predict_wprojection_clip(self):
         self.actualSetUp()
-        self._predict_base(context='2d', extra='_wprojection_clipped', fluxthreshold=3.0,
+        self._predict_base(context='2d', extra='_wprojection_clipped', fluxthreshold=3.5,
                            gcf=self.gcf, cf=self.cf_clipped)
 
     def test_predict_wstack(self):

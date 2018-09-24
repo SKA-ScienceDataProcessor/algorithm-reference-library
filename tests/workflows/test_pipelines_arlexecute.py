@@ -12,17 +12,16 @@ from astropy import units as u
 from astropy.coordinates import SkyCoord
 
 from data_models.polarisation import PolarisationFrame
-
 from tests.workflows import ARLExecuteTestCase
+from workflows.arlexecute.pipelines.pipeline_arlexecute import ical_list_arlexecute_workflow, \
+    continuum_imaging_list_arlexecute_workflow
 from wrappers.arlexecute.calibration.calibration_control import create_calibration_controls
 from wrappers.arlexecute.execution_support.arlexecute import arlexecute
-from workflows.arlexecute.pipelines.pipeline_arlexecute import ical_list_arlexecute_workflow, continuum_imaging_list_arlexecute_workflow
 from wrappers.arlexecute.image.operations import export_image_to_fits, qa_image, smooth_image
 from wrappers.arlexecute.imaging.base import predict_skycomponent_visibility
-from wrappers.arlexecute.skycomponent.operations import insert_skycomponent
 from wrappers.arlexecute.simulation.testing_support import create_named_configuration, ingest_unittest_visibility, \
-    create_unittest_model, \
-    create_unittest_components, insert_unittest_errors
+    create_unittest_model, create_unittest_components, insert_unittest_errors
+from wrappers.arlexecute.skycomponent.operations import insert_skycomponent
 
 log = logging.getLogger(__name__)
 
@@ -37,7 +36,10 @@ class TestPipelineGraphs(ARLExecuteTestCase, unittest.TestCase):
         super(TestPipelineGraphs, self).setUp()
         from data_models.parameters import arl_path
         self.dir = arl_path('test_results')
-
+    
+    def tearDown(self):
+        pass
+    
     def actualSetUp(self, add_errors=False, freqwin=5, block=False, dospectral=True, dopol=False,
                     amp_errors=None, phase_errors=None, zerow=True):
         
@@ -125,7 +127,8 @@ class TestPipelineGraphs(ARLExecuteTestCase, unittest.TestCase):
     def test_continuum_imaging_pipeline(self):
         self.actualSetUp(add_errors=False, block=True)
         continuum_imaging_list = \
-            continuum_imaging_list_arlexecute_workflow(self.vis_list, model_imagelist=self.model_imagelist, context='2d',
+            continuum_imaging_list_arlexecute_workflow(self.vis_list, model_imagelist=self.model_imagelist,
+                                                       context='2d',
                                                        algorithm='mmclean', facets=1,
                                                        scales=[0, 3, 10],
                                                        niter=1000, fractional_threshold=0.1,
@@ -141,9 +144,9 @@ class TestPipelineGraphs(ARLExecuteTestCase, unittest.TestCase):
         export_image_to_fits(restored[centre],
                              '%s/test_pipelines_continuum_imaging_pipeline_restored.fits' % self.dir)
         
-        qa = qa_image(restored[0])
-        assert numpy.abs(qa.data['max'] - 116.9) < 1.0, str(qa)
-        assert numpy.abs(qa.data['min'] + 0.118) < 1.0, str(qa)
+        qa = qa_image(restored[centre])
+        assert numpy.abs(qa.data['max'] - 100.13762476849081) < 1.0, str(qa)
+        assert numpy.abs(qa.data['min'] + 0.03627273884170454) < 1.0, str(qa)
     
     def test_ical_pipeline(self):
         amp_errors = {'T': 0.0, 'G': 0.00, 'B': 0.0}
@@ -177,9 +180,9 @@ class TestPipelineGraphs(ARLExecuteTestCase, unittest.TestCase):
         export_image_to_fits(residual[centre][0], '%s/test_pipelines_ical_pipeline_residual.fits' % self.dir)
         export_image_to_fits(restored[centre], '%s/test_pipelines_ical_pipeline_restored.fits' % self.dir)
         
-        qa = qa_image(restored[0])
-        assert numpy.abs(qa.data['max'] - 116.9) < 1.0, str(qa)
-        assert numpy.abs(qa.data['min'] + 0.118) < 1.0, str(qa)
+        qa = qa_image(restored[centre])
+        assert numpy.abs(qa.data['max'] - 100.13739440876233) < 1.0, str(qa)
+        assert numpy.abs(qa.data['min'] + 0.03644435471804354) < 1.0, str(qa)
 
 
 if __name__ == '__main__':

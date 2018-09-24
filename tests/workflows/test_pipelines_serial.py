@@ -12,15 +12,13 @@ from astropy import units as u
 from astropy.coordinates import SkyCoord
 
 from data_models.polarisation import PolarisationFrame
-
+from workflows.serial.pipelines.pipeline_serial import ical_list_serial_workflow, continuum_imaging_list_serial_workflow
 from wrappers.serial.calibration.calibration_control import create_calibration_controls
 from wrappers.serial.image.operations import export_image_to_fits, qa_image, smooth_image
 from wrappers.serial.imaging.base import predict_skycomponent_visibility
-from wrappers.serial.skycomponent.operations import insert_skycomponent
 from wrappers.serial.simulation.testing_support import create_named_configuration, ingest_unittest_visibility, \
     create_unittest_model, create_unittest_components, insert_unittest_errors
-
-from workflows.serial.pipelines.pipeline_serial import ical_list_serial_workflow, continuum_imaging_list_serial_workflow
+from wrappers.serial.skycomponent.operations import insert_skycomponent
 
 log = logging.getLogger(__name__)
 
@@ -29,16 +27,16 @@ log.addHandler(logging.StreamHandler(sys.stdout))
 log.addHandler(logging.StreamHandler(sys.stderr))
 
 
-class TestPipelineGraphs(unittest.TestCase):
+class TestPipelines(unittest.TestCase):
     
     def setUp(self):
         
         from data_models.parameters import arl_path
         self.dir = arl_path('test_results')
-
+    
     def tearDown(self):
         pass
-
+    
     def actualSetUp(self, add_errors=False, freqwin=5, block=False, dospectral=True, dopol=False,
                     amp_errors=None, phase_errors=None, zerow=True):
         
@@ -76,17 +74,17 @@ class TestPipelineGraphs(unittest.TestCase):
         
         self.phasecentre = SkyCoord(ra=+180.0 * u.deg, dec=-60.0 * u.deg, frame='icrs', equinox='J2000')
         self.vis_list = [ingest_unittest_visibility(self.low,
-                                                                        [self.frequency[i]],
-                                                                        [self.channelwidth[i]],
-                                                                        self.times,
-                                                                        self.vis_pol,
-                                                                        self.phasecentre, block=block,
-                                                                        zerow=zerow)
+                                                    [self.frequency[i]],
+                                                    [self.channelwidth[i]],
+                                                    self.times,
+                                                    self.vis_pol,
+                                                    self.phasecentre, block=block,
+                                                    zerow=zerow)
                          for i, _ in enumerate(self.frequency)]
         
         self.model_imagelist = [
             create_unittest_model(self.vis_list[i], self.image_pol,
-                                                                    npixel=self.npixel)
+                                  npixel=self.npixel, cellsize=0.0005)
             for i, _ in enumerate(self.frequency)]
         
         self.components_list = [
@@ -95,11 +93,11 @@ class TestPipelineGraphs(unittest.TestCase):
         
         # Apply the LOW primary beam and insert into model
         self.model_imagelist = [insert_skycomponent(self.model_imagelist[freqwin],
-                                                                                self.components_list[freqwin])
+                                                    self.components_list[freqwin])
                                 for freqwin, _ in enumerate(self.frequency)]
         
         self.vis_list = [predict_skycomponent_visibility(self.vis_list[freqwin],
-                                                                             self.components_list[freqwin])
+                                                         self.components_list[freqwin])
                          for freqwin, _ in enumerate(self.frequency)]
         
         # Calculate the model convolved with a Gaussian.
@@ -110,9 +108,8 @@ class TestPipelineGraphs(unittest.TestCase):
         
         if add_errors and block:
             self.vis_list = [insert_unittest_errors(self.vis_list[i], amp_errors=amp_errors,
-                                                           phase_errors=phase_errors)
-                for i, _ in enumerate(self.frequency)]
-        
+                                                    phase_errors=phase_errors)
+                             for i, _ in enumerate(self.frequency)]
     
     def test_time_setup(self):
         self.actualSetUp()
@@ -121,13 +118,13 @@ class TestPipelineGraphs(unittest.TestCase):
         self.actualSetUp(add_errors=False, block=True)
         clean, residual, restored = \
             continuum_imaging_list_serial_workflow(self.vis_list, model_imagelist=self.model_imagelist, context='2d',
-                                                       algorithm='mmclean', facets=1,
-                                                       scales=[0, 3, 10],
-                                                       niter=1000, fractional_threshold=0.1,
-                                                       nmoments=2, nchan=self.freqwin,
-                                                       threshold=2.0, nmajor=5, gain=0.1,
-                                                       deconvolve_facets=8, deconvolve_overlap=16,
-                                                       deconvolve_taper='tukey')
+                                                   algorithm='mmclean', facets=1,
+                                                   scales=[0, 3, 10],
+                                                   niter=1000, fractional_threshold=0.1,
+                                                   nmoments=2, nchan=self.freqwin,
+                                                   threshold=2.0, nmajor=5, gain=0.1,
+                                                   deconvolve_facets=8, deconvolve_overlap=16,
+                                                   deconvolve_taper='tukey')
         centre = len(clean) // 2
         export_image_to_fits(clean[centre], '%s/test_pipelines_continuum_imaging_pipeline_clean.fits' % self.dir)
         export_image_to_fits(residual[centre][0],
@@ -135,9 +132,9 @@ class TestPipelineGraphs(unittest.TestCase):
         export_image_to_fits(restored[centre],
                              '%s/test_pipelines_continuum_imaging_pipeline_restored.fits' % self.dir)
         
-        qa = qa_image(restored[0])
-        assert numpy.abs(qa.data['max'] - 116.9) < 1.0, str(qa)
-        assert numpy.abs(qa.data['min'] + 0.118) < 1.0, str(qa)
+        qa = qa_image(restored[centre])
+        assert numpy.abs(qa.data['max'] - 100.13762476849081) < 1.0, str(qa)
+        assert numpy.abs(qa.data['min'] + 0.03627273884170454) < 1.0, str(qa)
     
     def test_ical_pipeline(self):
         amp_errors = {'T': 0.0, 'G': 0.00, 'B': 0.0}
@@ -153,26 +150,26 @@ class TestPipelineGraphs(unittest.TestCase):
         controls['T']['timescale'] = 'auto'
         controls['G']['timescale'] = 'auto'
         controls['B']['timescale'] = 1e5
-
+        
         clean, residual, restored = \
             ical_list_serial_workflow(self.vis_list, model_imagelist=self.model_imagelist, context='2d',
-                                          calibration_context='T', controls=controls, do_selfcal=True,
-                                          global_solution=False,
-                                          algorithm='mmclean',
-                                          facets=1,
-                                          scales=[0, 3, 10],
-                                          niter=1000, fractional_threshold=0.1,
-                                          nmoments=2, nchan=self.freqwin,
-                                          threshold=2.0, nmajor=5, gain=0.1,
-                                          deconvolve_facets=8, deconvolve_overlap=16, deconvolve_taper='tukey')
+                                      calibration_context='T', controls=controls, do_selfcal=True,
+                                      global_solution=False,
+                                      algorithm='mmclean',
+                                      facets=1,
+                                      scales=[0, 3, 10],
+                                      niter=1000, fractional_threshold=0.1,
+                                      nmoments=2, nchan=self.freqwin,
+                                      threshold=2.0, nmajor=5, gain=0.1,
+                                      deconvolve_facets=8, deconvolve_overlap=16, deconvolve_taper='tukey')
         centre = len(clean) // 2
         export_image_to_fits(clean[centre], '%s/test_pipelines_ical_pipeline_clean.fits' % self.dir)
         export_image_to_fits(residual[centre][0], '%s/test_pipelines_ical_pipeline_residual.fits' % self.dir)
         export_image_to_fits(restored[centre], '%s/test_pipelines_ical_pipeline_restored.fits' % self.dir)
         
-        qa = qa_image(restored[0])
-        assert numpy.abs(qa.data['max'] - 116.9) < 1.0, str(qa)
-        assert numpy.abs(qa.data['min'] + 0.118) < 1.0, str(qa)
+        qa = qa_image(restored[centre])
+        assert numpy.abs(qa.data['max'] - 100.13739440876233) < 1.0, str(qa)
+        assert numpy.abs(qa.data['min'] + 0.03644435471804354) < 1.0, str(qa)
 
 
 if __name__ == '__main__':
