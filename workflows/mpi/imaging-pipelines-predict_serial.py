@@ -131,7 +131,7 @@ log.info('About to make GLEAM model')
 
 # In[ ]:
 
-original_predict=False
+original_predict=True
 if original_predict:
     log.info('About to run predict to get predicted visibility')
     predicted_vislist = predict_list_serial_workflow(vis_list, gleam_model,  

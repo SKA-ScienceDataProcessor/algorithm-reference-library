@@ -22,6 +22,7 @@ from processing_components.image.operations import qa_image
 from processing_components.simulation.testing_support import create_test_image
 from processing_components.image.gather_scatter import image_gather_facets, image_scatter_facets
 
+#from matplotlib import pyplot as plt
 
 # Define a simple function to take the square root of an image
 def imagerooter(image_list) -> list():
@@ -51,9 +52,13 @@ if __name__ == '__main__':
     # Create test image
     frequency = numpy.array([1e8])
     phasecentre = SkyCoord(ra=+15.0 * u.deg, dec=-35.0 * u.deg, frame='icrs', equinox='J2000')
-    model = create_test_image(frequency=frequency, phasecentre=phasecentre, cellsize=0.001,
+    if rank == 0:
+        model = create_test_image(frequency=frequency, phasecentre=phasecentre, cellsize=0.001,
                               polarisation_frame=PolarisationFrame('stokesI'))
-    
+    #f=show_image(model, title='Model image', cm='Greys', vmax=1.0, vmin=-0.1)
+    #print(qa_image(model, context='Model image'))
+    #plt.show()
+
     # Rank 0 scatters the test image
     if rank == 0:
         subimages = image_scatter_facets(model, facets=facets)
