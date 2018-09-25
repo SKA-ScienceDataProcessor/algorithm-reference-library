@@ -11,7 +11,7 @@ ipywidgets
 numpy>=1.9
 scipy
 pyfits>=3.3
-matplotlib
+matplotlib<3.0
 Sphinx
 wcsaxes
 reproject
