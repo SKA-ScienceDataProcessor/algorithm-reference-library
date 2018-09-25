@@ -1,4 +1,21 @@
-""" Imaging workflows using arlexecute and processing_components functions.
+""" Common functions converted to Dask.execute components. `Dask <http://dask.pydata.org/>`_ is a python-based flexible
+parallel computing library for analytic computing. Dask.delayed can be used to wrap functions for deferred execution
+thus allowing construction of components. For example, to build a graph for a major/minor cycle algorithm::
+
+    model_imagelist = arlexecute.compute(create_image_from_visibility)(vt, npixel=512, cellsize=0.001, npol=1)
+    solution_list = create_solve_image_list(vt, model_imagelist=model_imagelist, psf_list=psf_list,
+                                            context='timeslice', algorithm='hogbom',
+                                            niter=1000, fractional_threshold=0.1,
+                                            threshold=1.0, nmajor=3, gain=0.1)
+    solution_list.visualize()
+
+The graph for one vis_list is executed as follows::
+
+    solution_list[0].compute()
+    
+or if a Dask.distributed client is available:
+
+    client.compute(solution_list)
 
 Construction of the components requires that the number of nodes (e.g. w slices or time-slices) be known at construction,
 rather than execution. To counteract this, at run time, a given node should be able to act as a no-op. We use None

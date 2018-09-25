@@ -31,4 +31,6 @@ cloudpickle
 seqfile
 h5py
 jsonschema
+bokeh
+
 

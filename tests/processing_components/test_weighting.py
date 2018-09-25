@@ -88,7 +88,7 @@ class TestWeighting(unittest.TestCase):
 
     def test_tapering_Gaussian(self):
         self.actualSetUp()
-        size_required = 0.01
+        size_required = 0.003542
         self.componentvis, _, _ = weight_visibility(self.componentvis, self.model, algoritm='uniform')
         self.componentvis = taper_visibility_gaussian(self.componentvis, beam=size_required)
         psf, sumwt = invert_2d(self.componentvis, self.model, dopsf=True)

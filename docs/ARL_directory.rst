@@ -37,8 +37,8 @@ Casacore must be installed:
 Gridding and degridding
 =======================
 
-* Convolutional gridding: :py:mod:`libs.fourier_transforms.convolutional_gridding.convolutional_grid`
-* Convolutional degridding: :py:mod:`libs.fourier_transforms.convolutional_gridding.convolutional_degrid`
+* Convolutional gridding: :py:mod:`processing_library.fourier_transforms.convolutional_gridding.convolutional_grid`
+* Convolutional degridding: :py:mod:`processing_library.fourier_transforms.convolutional_gridding.convolutional_degrid`
 * Generate gridding kernels (standard prolate spheroidal or W-projection): :py:mod:`libs.imaging.imaging_params.get_kernel_list`
 
 Visibility weighting and tapering
@@ -59,9 +59,9 @@ Deconvolution
 =============
 
 * Deconvolution: :py:mod:`processing_components.image.deconvolution.deconvolve_cube` wraps:
-   * Hogbom Clean: :py:mod:`libs.image.cleaners.hogbom`
-   * Multi-scale Clean: :py:mod:`libs.image.cleaners.msclean`
-   * Multi-scale multi-frequency Clean: :py:mod:`libs.image.cleaners.msmfsclean`
+   * Hogbom Clean: :py:mod:`processing_library.image.cleaners.hogbom`
+   * Multi-scale Clean: :py:mod:`processing_library.image.cleaners.msclean`
+   * Multi-scale multi-frequency Clean: :py:mod:`processing_library.image.cleaners.msmfsclean`
 * Restore: :py:mod:`processing_components.image.deconvolution.restore_cube`
 
 Calibration
@@ -85,7 +85,7 @@ Image
 * Export from FITS: :py:mod:`processing_components.image.operations.export_image_to_fits`
 * Reproject coordinate system: :py:mod:`processing_components.image.operations.reproject_image`
 * Smooth image: :py:mod:`processing_components.image.operations.smooth_image`
-* FFT: :py:mod:`libs.image.operations.fft_image`
+* FFT: :py:mod:`processing_library.image.operations.fft_image`
 * Remove continuum: :py:mod:`processing_components.image.operations.remove_continuum_image`
 * Convert polarisation:
    * From Stokes To Polarisation: :py:mod:`processing_components.image.operations.convert_stokes_to_polimage`

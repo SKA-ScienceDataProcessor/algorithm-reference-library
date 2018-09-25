@@ -4,15 +4,15 @@ Functions to create primary beam modelsw
 
 import collections
 import logging
-import warnings
 
 import numpy
 from astropy import constants as const
-from astropy.wcs import FITSFixedWarning
-from astropy.wcs.utils import skycoord_to_pixel
 
+from data_models.memory_data_models import Image
+from data_models.parameters import arl_path
 from processing_components.image.operations import create_empty_image_like
-from processing_components.simulation.testing_support import create_low_test_beam
+from ..image.operations import import_image_from_fits, create_image_from_array, \
+    reproject_image
 
 log = logging.getLogger(__name__)
 
@@ -36,7 +36,7 @@ def create_pb(model, telescope='MID', pointingcentre=None):
     if telescope[0:3] == 'MID':
         return create_pb_generic(model, pointingcentre=pointingcentre, diameter=15.0, blockage=0.0)
     elif telescope[0:3] == 'LOW':
-            return create_low_test_beam(model)
+        return create_low_test_beam(model)
     elif telescope[0:3] == 'VLA':
         return create_pb_generic(model, pointingcentre=pointingcentre, diameter=25.0, blockage=1.8)
     elif telescope[0:5] == 'ASKAP':
@@ -75,18 +75,14 @@ def create_pb_generic(model, pointingcentre=None, diameter=25.0, blockage=1.8):
     nchan, npol, ny, nx = model.shape
     
     if pointingcentre is not None:
-        cx, cy = skycoord_to_pixel(pointingcentre, model.wcs, 0, 'wcs')
+        cx, cy = pointingcentre.to_pixel(model.wcs, origin=0)
     else:
-        with warnings.catch_warnings():
-            warnings.simplefilter('ignore', FITSFixedWarning)
-            cx, cy = beam.wcs.sub(2).wcs.crpix[0] - 1, beam.wcs.sub(2).wcs.crpix[1] - 1
+        cx, cy = beam.wcs.sub(2).wcs.crpix[0] - 1, beam.wcs.sub(2).wcs.crpix[1] - 1
     
     for chan in range(nchan):
         
         # The frequency axis is the second to last in the beam
-        with warnings.catch_warnings():
-            warnings.simplefilter('ignore', FITSFixedWarning)
-            frequency = model.wcs.sub(['spectral']).wcs_pix2world([chan], 0)[0]
+        frequency = model.wcs.sub(['spectral']).wcs_pix2world([chan], 0)[0]
         wavelength = const.c.to('m s^-1').value / frequency
         
         d2r = numpy.pi / 180.0
@@ -104,3 +100,51 @@ def create_pb_generic(model, pointingcentre=None, diameter=25.0, blockage=1.8):
     
     beam.data *= beam.data
     return beam
+
+
+def create_low_test_beam(model: Image) -> Image:
+    """Create a test power beam for LOW using an image from OSKAR
+
+    :param model: Template image
+    :return: Image
+    """
+    
+    beam = import_image_from_fits(arl_path('data/models/SKA1_LOW_beam.fits'))
+    
+    # Scale the image cellsize to account for the different in frequencies. Eventually we will want to
+    # use a frequency cube
+    log.info("create_low_test_beam: primary beam is defined at %.3f MHz" % (beam.wcs.wcs.crval[2] * 1e-6))
+    
+    nchan, npol, ny, nx = model.shape
+    
+    # We need to interpolate each frequency channel separately. The beam is assumed to just scale with
+    # frequency.
+    
+    reprojected_beam = create_empty_image_like(model)
+    
+    for chan in range(nchan):
+        
+        model2dwcs = model.wcs.sub(2).deepcopy()
+        model2dshape = [model.shape[2], model.shape[3]]
+        beam2dwcs = beam.wcs.sub(2).deepcopy()
+        
+        # The frequency axis is the second to last in the beam
+        frequency = model.wcs.sub(['spectral']).wcs_pix2world([chan], 0)[0]
+        fscale = beam.wcs.wcs.crval[2] / frequency
+        
+        beam2dwcs.wcs.cdelt = fscale * beam.wcs.sub(2).wcs.cdelt
+        beam2dwcs.wcs.crpix = beam.wcs.sub(2).wcs.crpix
+        beam2dwcs.wcs.crval = model.wcs.sub(2).wcs.crval
+        beam2dwcs.wcs.ctype = model.wcs.sub(2).wcs.ctype
+        model2dwcs.wcs.crpix = [model.shape[2] // 2 + 1, model.shape[3] // 2 + 1]
+        
+        beam2d = create_image_from_array(beam.data[0, 0, :, :], beam2dwcs, model.polarisation_frame)
+        reprojected_beam2d, footprint = reproject_image(beam2d, model2dwcs, shape=model2dshape)
+        assert numpy.max(footprint.data) > 0.0, "No overlap between beam and model"
+        
+        reprojected_beam2d.data *= reprojected_beam2d.data
+        reprojected_beam2d.data[footprint.data <= 0.0] = 0.0
+        for pol in range(npol):
+            reprojected_beam.data[chan, pol, :, :] = reprojected_beam2d.data[:, :]
+    
+    return reprojected_beam

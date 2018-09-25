@@ -1,3 +1,6 @@
+**September 25, 2018** [Tim] Gridding/degridding code has been refactored to a cleaner design. It also allows more 
+control of AW projection.
+
 **September 18, 2018** [Rodrigo] Fix for daliuge port execution of list, to match dask.delayed capabilities. Need to
 update version of daliuge:
 
@@ -29,6 +32,9 @@ types of wrappers).
 5. libs has been renamed to processing_library.
 
 All Dask/arlexecute code now lives in either wrappers or workflows.
+
+![ARL Module View](./docs/ARL_Module_View.png)
+
 
 **July 26, 2018** [Tim], Extracted pure-serial uses of processing components 
 into workflows/serial (in analogy with workflows/arlexecute). This means that
@@ -73,8 +79,6 @@ need to be updated manually.
 * The docs have been updated
 * The use of the term 'graph' has been replaced in many places by 'list' to reflect the wrapping of dask in 
 arlexecute.
-
-![SDP Processing Architecture](./docs/SDP_processing_architecture.png)
 
 **April 18, 2018** [Tim], Deconvolution can now be done using overlapped, tapered sub-images (aka facets).
 Look for deconvolve_facets, deconvolve_overlap, and deconvolve_taper arguments.

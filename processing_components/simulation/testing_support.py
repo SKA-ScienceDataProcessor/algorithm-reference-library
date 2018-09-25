@@ -48,14 +48,14 @@ from processing_library.image.operations import create_image_from_array
 from processing_library.util.coordinate_support import xyz_at_latitude
 from processing_components.calibration.calibration_control import create_calibration_controls
 from processing_components.calibration.operations import create_gaintable_from_blockvisibility, apply_gaintable
-from processing_components.image.operations import create_empty_image_like, import_image_from_fits, reproject_image, \
-    qa_image
+from processing_components.image.operations import import_image_from_fits, qa_image
 from processing_components.imaging.base import predict_2d, predict_skycomponent_visibility, \
     create_image_from_visibility, advise_wide_field
 from processing_components.skycomponent.operations import create_skycomponent, insert_skycomponent, \
     apply_beam_to_skycomponent
 from processing_components.visibility.base import create_blockvisibility, create_visibility
 from processing_components.visibility.coalesce import convert_visibility_to_blockvisibility
+from processing_components.imaging.primary_beams import create_pb
 
 log = logging.getLogger(__name__)
 
@@ -408,7 +408,7 @@ def create_low_test_image_from_gleam(npixel=512, polarisation_frame=Polarisation
     
     model = insert_skycomponent(model, sc, insert_method=insert_method)
     if applybeam:
-        beam = create_low_test_beam(model)
+        beam = create_pb(model, telescope='LOW')
         model.data[...] *= beam.data[...]
     
     log.info(qa_image(model, context='create_low_test_image_from_gleam'))
@@ -503,54 +503,6 @@ def create_low_test_skycomponents_from_gleam(flux_limit=0.1, polarisation_frame=
     hdulist.close()
     
     return skycomps
-
-
-def create_low_test_beam(model: Image) -> Image:
-    """Create a test power beam for LOW using an image from OSKAR
-
-    :param model: Template image
-    :return: Image
-    """
-    
-    beam = import_image_from_fits(arl_path('data/models/SKA1_LOW_beam.fits'))
-    
-    # Scale the image cellsize to account for the different in frequencies. Eventually we will want to
-    # use a frequency cube
-    log.info("create_low_test_beam: primary beam is defined at %.3f MHz" % (beam.wcs.wcs.crval[2] * 1e-6))
-    
-    nchan, npol, ny, nx = model.shape
-    
-    # We need to interpolate each frequency channel separately. The beam is assumed to just scale with
-    # frequency.
-    
-    reprojected_beam = create_empty_image_like(model)
-    
-    for chan in range(nchan):
-        
-        model2dwcs = model.wcs.sub(2).deepcopy()
-        model2dshape = [model.shape[2], model.shape[3]]
-        beam2dwcs = beam.wcs.sub(2).deepcopy()
-        
-        # The frequency axis is the second to last in the beam
-        frequency = model.wcs.sub(['spectral']).wcs_pix2world([chan], 0)[0]
-        fscale = beam.wcs.wcs.crval[2] / frequency
-        
-        beam2dwcs.wcs.cdelt = fscale * beam.wcs.sub(2).wcs.cdelt
-        beam2dwcs.wcs.crpix = beam.wcs.sub(2).wcs.crpix
-        beam2dwcs.wcs.crval = model.wcs.sub(2).wcs.crval
-        beam2dwcs.wcs.ctype = model.wcs.sub(2).wcs.ctype
-        model2dwcs.wcs.crpix = [model.shape[2] // 2 + 1, model.shape[3] // 2 + 1]
-        
-        beam2d = create_image_from_array(beam.data[0, 0, :, :], beam2dwcs, model.polarisation_frame)
-        reprojected_beam2d, footprint = reproject_image(beam2d, model2dwcs, shape=model2dshape)
-        assert numpy.max(footprint.data) > 0.0, "No overlap between beam and model"
-        
-        reprojected_beam2d.data *= reprojected_beam2d.data
-        reprojected_beam2d.data[footprint.data <= 0.0] = 0.0
-        for pol in range(npol):
-            reprojected_beam.data[chan, pol, :, :] = reprojected_beam2d.data[:, :]
-    
-    return reprojected_beam
 
 
 def replicate_image(im: Image, polarisation_frame=PolarisationFrame('stokesI'), frequency=numpy.array([1e8])) \
@@ -723,24 +675,25 @@ def ingest_unittest_visibility(config, frequency, channel_bandwidth, times, vis_
     return vt
 
 
-def create_unittest_components(model, flux, applypb=False, npixel=None):
+def create_unittest_components(model, flux, applypb=False, telescope='LOW', npixel=None, symmetrical=False,
+                               scale=1.0, single=False):
     # Fill the visibility with exactly computed point sources.
     
     if npixel == None:
         _, _, _, npixel = model.data.shape
-    spacing_pixels = npixel // 4
+    spacing_pixels = int(scale * npixel) // 4
     log.info('Spacing in pixels = %s' % spacing_pixels)
     
-    centers = list()
-    centers.append([0.0, 0.0])
     
-    for x in numpy.linspace(-1.2, 1.2, 7):
-        if abs(x) > 1e-15:
-            centers.append([x, x])
-            centers.append([x, -x])
+    centers = [(0.2, 1.1)]
+    if not single:
+        centers.append([0.0, 0.0])
     
-    centers.append((0.2, 1.1))
-    
+        for x in numpy.linspace(-1.2, 1.2, 7):
+            if abs(x) > 1e-15:
+                centers.append([x, x])
+                centers.append([x, -x])
+                
     model_pol = model.polarisation_frame
     # Make the list of components
     rpix = model.wcs.wcs.crpix
@@ -759,7 +712,7 @@ def create_unittest_components(model, flux, applypb=False, npixel=None):
         components.append(comp)
     
     if applypb:
-        beam = create_low_test_beam(model)
+        beam = create_pb(model, telescope=telescope)
         components = apply_beam_to_skycomponent(components, beam)
     
     return components

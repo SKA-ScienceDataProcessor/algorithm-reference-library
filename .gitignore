@@ -41,5 +41,7 @@ dask-worker-space
 */notebooks/*.rst
 *.log
 *.fits
+/coverage
 *.hdf
-/_build
+.coverage.*
+.coverage
