@@ -1,3 +1,6 @@
+**September 25, 2018** [Tim] Gridding/degridding code has been refactored to a cleaner design. It also allows more 
+control of AW projection.
+
 **September 18, 2018** [Rodrigo] Fix for daliuge port execution of list, to match dask.delayed capabilities. Need to
 update version of daliuge:
 
