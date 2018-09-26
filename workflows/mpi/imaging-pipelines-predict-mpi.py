@@ -128,7 +128,9 @@ if rank == 0:
     vis_slices = advice_low['vis_slices']
     npixel=advice_high['npixels2']
     cellsize=min(advice_low['cellsize'], advice_high['cellsize'])
-    print('After advice: vis_slices %d npixel %d cellsize %d' % (vis_slices, npixel, cellsize))
+
+vis_slices = comm.bcast(vis_slices,root=0)
+print('%d: After advice: vis_slices %d npixel %d cellsize %d' % (rank,vis_slices, npixel, cellsize))
 
 # Now make a graph to fill with a model drawn from GLEAM 
 
@@ -189,7 +191,8 @@ else:
     # for i in range(vis_list_len):
     if rank == 0:
         for freqwin, vis_lst in enumerate(vis_list):
-            print('%d: freqwin %d vis_lst %d' %(rank,freqwin,vis_lst))
+            print('%d: freqwin %d vis_lst:' %(rank,freqwin))
+            print(vis_lst)
             # Create the graph to divide an image into facets. This is by reference.
             facet_lists = image_scatter_facets(model_imagelist[freqwin], facets=facets)
             facet_lists = numpy.array_split(facet_lists, size)
