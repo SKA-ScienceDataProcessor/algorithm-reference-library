@@ -129,8 +129,6 @@ if rank == 0:
     npixel=advice_high['npixels2']
     cellsize=min(advice_low['cellsize'], advice_high['cellsize'])
 
-vis_slices = comm.bcast(vis_slices,root=0)
-print('%d: After advice: vis_slices %d npixel %d cellsize %d' % (rank,vis_slices, npixel, cellsize))
 
 # Now make a graph to fill with a model drawn from GLEAM 
 
@@ -148,12 +146,13 @@ print('%d: After advice: vis_slices %d npixel %d cellsize %d' % (rank,vis_slices
                      for f, freq in enumerate(frequency)]
 else:
     gleam_model=list()
+    vis_slices = 0
+    npixel = 0
+    cellsize = 0
 
+vis_slices = comm.bcast(vis_slices,root=0)
+print('%d: After advice: vis_slices %d npixel %d cellsize %d' % (rank,vis_slices, npixel, cellsize))
 log.info('About to make GLEAM model')
-
-
-
-
 
 # In[ ]:
 
@@ -201,8 +200,8 @@ else:
             sub_vis_lists = numpy.array_split(sub_vis_lists, size)
 
             ## Scater facets and visibility lists to all processes
-            sub_facet_lists = comm.scatter(facet_lists, root=0)
-            sub_sub_vis_lists = comm.scatter(sub_vis_lists, root=0)
+            sub_facet_lists = comm.Scatter(facet_lists, root=0)
+            sub_sub_vis_lists = comm.Scatter(sub_vis_lists, root=0)
 
             ## All processes compute its part
             facet_vis_lists = list()
@@ -219,17 +218,18 @@ else:
             # Sum all sub-visibilties
             sub_vis_result=visibility_gather(facet_vis_lists, vis_lst, vis_iter)
             ## Gather results from all processes
-            vis_result_xf=comm.gather(sub_vis_result,root=0)
+            vis_result_xf=comm.Gather(sub_vis_result,root=0)
             image_results_list_list.append(vis_result_xf)
 
     else:
-        for freqwin, vis_lst in enumerate(vis_list):
-            print('%d: freqwin %d vis_lst %d' %(rank,freqwin,vis_lst))
+        for i in range(vis_list_len):
+        #for freqwin, vis_lst in enumerate(vis_list):
+            print('%d: iteration %d' %(rank,i))
             facet_lists = list()
             sub_vis_lists = list()
             ## Scater facets and visibility lists to all processes
-            sub_facet_lists = comm.scatter(facet_lists, root=0)
-            sub_sub_vis_lists = comm.scatter(sub_vis_lists, root=0)
+            sub_facet_lists = comm.Scatter(facet_lists, root=0)
+            sub_sub_vis_lists = comm.Scatter(sub_vis_lists, root=0)
 
             ## All processes compute its part
             facet_vis_lists = list()
@@ -246,7 +246,7 @@ else:
             # Sum all sub-visibilties
             sub_vis_result=visibility_gather(facet_vis_lists, vis_lst, vis_iter)
             ## Gather results from all processes
-            vis_result_xf=comm.gather(sub_vis_result,root=0)
+            vis_result_xf=comm.Gather(sub_vis_result,root=0)
             image_results_list_list=list()
     predicted_vislist=image_results_list_list
 
