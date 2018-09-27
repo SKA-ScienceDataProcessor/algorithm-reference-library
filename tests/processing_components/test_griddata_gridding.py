@@ -12,9 +12,9 @@ from astropy import units as u
 from astropy.coordinates import SkyCoord
 
 from data_models.polarisation import PolarisationFrame
-from processing_components.convolution_function.kernels import create_awterm_convolutionfunction, \
+from processing_components.griddata.kernels import create_awterm_convolutionfunction, \
     create_pswf_convolutionfunction, create_box_convolutionfunction
-from processing_components.convolution_function.operations import convert_convolutionfunction_to_image
+from processing_components.griddata.convolution_functions import convert_convolutionfunction_to_image
 from processing_components.griddata.gridding import grid_visibility_to_griddata, \
     fft_griddata_to_image, fft_image_to_griddata, \
     degrid_visibility_from_griddata
