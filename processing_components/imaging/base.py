@@ -37,7 +37,7 @@ from processing_library.image.operations import create_image_from_array
 from processing_library.imaging.imaging_params import get_frequency_map
 from processing_library.util.coordinate_support import simulate_point, skycoord_to_lmn
 
-from ..convolution_function.kernels import create_pswf_convolutionfunction
+from processing_components.griddata.kernels  import create_pswf_convolutionfunction
 from ..griddata.gridding import grid_visibility_to_griddata, \
     fft_griddata_to_image, fft_image_to_griddata, \
     degrid_visibility_from_griddata
@@ -471,10 +471,10 @@ def advise_wide_field(vis: Visibility, delA=0.02, oversampling_synthesised_beam=
     log.info('advice_wide_field: Number of planes in w stack %d' % (vis_slices))
     log.info('advice_wide_field: Number of planes in w projection %d' % wprojection_planes)
     if wprojection_planes > 1:
-        log.info('advice_wide_field: Recommend that wprojection gridding is used')
+        log.info('advice_wide_field: Recommend that wprojection griddata is used')
         kernel = 'wprojection'
     else:
-        log.info('advice_wide_field: Recommend that 2d gridding (i.e. no wprojection) is used')
+        log.info('advice_wide_field: Recommend that 2d griddata (i.e. no wprojection) is used')
         kernel = '2d'
 
     nwpixels = int(npixels * image_fov)

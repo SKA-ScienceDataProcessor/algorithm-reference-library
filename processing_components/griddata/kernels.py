@@ -10,7 +10,7 @@ from data_models.memory_data_models import Image
 from processing_library.fourier_transforms.convolutional_gridding import coordinates, grdsf
 from processing_library.image.operations import copy_image, create_w_term_like, pad_image, fft_image
 from processing_library.image.operations import create_image_from_array
-from processing_components.convolution_function.operations import create_convolutionfunction_from_image
+from processing_components.griddata.convolution_functions import create_convolutionfunction_from_image
 from processing_components.image.operations import reproject_image, create_empty_image_like
 
 log = logging.getLogger(__name__)
@@ -19,11 +19,11 @@ log = logging.getLogger(__name__)
 def create_box_convolutionfunction(im, oversampling=1, support=1):
     """ Fill a box car function into a ConvolutionFunction
 
-    Also returns the gridding correction function as an image
+    Also returns the griddata correction function as an image
 
     :param im: Image template
     :param oversampling: Oversampling of the convolution function in uv space
-    :return: gridding correction Image, gridding kernel as ConvolutionFunction
+    :return: griddata correction Image, griddata kernel as ConvolutionFunction
     """
     assert isinstance(im, Image)
     cf = create_convolutionfunction_from_image(im, oversampling=1, support=4)
@@ -33,7 +33,7 @@ def create_box_convolutionfunction(im, oversampling=1, support=1):
     cf.data[...] = 0.0 + 0.0j
     cf.data[..., 2, 2] = 1.0 + 0.0j
     
-    # Now calculate the gridding correction function as an image with the same coordinates as the image
+    # Now calculate the griddata correction function as an image with the same coordinates as the image
     # which is necessary so that the correction function can be applied directly to the image
     nchan, npol, ny, nx = im.data.shape
     nu = numpy.abs(coordinates(nx))
@@ -55,11 +55,11 @@ def create_pswf_convolutionfunction(im, oversampling=8, support=6):
     Fill the Prolate Spheroidal Wave Function into a GriData with the specified oversampling. Only the inner
     non-zero part is retained
 
-    Also returns the gridding correction function as an image
+    Also returns the griddata correction function as an image
 
     :param im: Image template
     :param oversampling: Oversampling of the convolution function in uv space
-    :return: gridding correction Image, gridding kernel as ConvolutionFunction
+    :return: griddata correction Image, griddata kernel as ConvolutionFunction
     """
     assert isinstance(im, Image)
     # Calculate the convolution kernel. We oversample in u,v space by the factor oversampling
@@ -82,7 +82,7 @@ def create_pswf_convolutionfunction(im, oversampling=8, support=6):
     norm = numpy.sum(numpy.real(cf.data[0, 0, 0, 0, 0, :, :]))
     cf.data /= norm
     
-    # Now calculate the gridding correction function as an image with the same coordinates as the image
+    # Now calculate the griddata correction function as an image with the same coordinates as the image
     # which is necessary so that the correction function can be applied directly to the image
     nchan, npol, ny, nx = im.data.shape
     nu = numpy.abs(2.0 * coordinates(nx))
@@ -106,11 +106,11 @@ def create_awterm_convolutionfunction(im, make_pb=None, nw=1, wstep=1e15, oversa
     :param nw: Number of w planes
     :param wstep: Step in w (wavelengths)
     :param oversampling: Oversampling of the convolution function in uv space
-    :return: gridding correction Image, gridding kernel as GridData
+    :return: griddata correction Image, griddata kernel as GridData
     """
     d2r = numpy.pi / 180.0
     
-    # We only need the gridding correction function for the PSWF so we make
+    # We only need the griddata correction function for the PSWF so we make
     # it for the shape of the image
     nchan, npol, ony, onx = im.data.shape
     

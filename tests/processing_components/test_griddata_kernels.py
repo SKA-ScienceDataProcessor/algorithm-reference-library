@@ -11,9 +11,9 @@ import numpy
 from astropy.coordinates import SkyCoord
 
 from processing_library.image.operations import create_image
-from processing_components.convolution_function.kernels import create_pswf_convolutionfunction, \
+from processing_components.griddata.kernels  import create_pswf_convolutionfunction, \
     create_awterm_convolutionfunction, create_box_convolutionfunction
-from processing_components.convolution_function.operations import convert_convolutionfunction_to_image, \
+from processing_components.griddata.convolution_functions import convert_convolutionfunction_to_image, \
     create_convolutionfunction_from_image, apply_bounding_box_convolutionfunction, \
     calculate_bounding_box_convolutionfunction
 from processing_components.image.operations import export_image_to_fits

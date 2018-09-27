@@ -15,7 +15,7 @@ from astropy.wcs import WCS
 
 from processing_library.image.operations import create_image_from_array
 from processing_components.griddata.operations import create_griddata_from_array
-from processing_components.convolution_function.operations import create_convolutionfunction_from_array
+from processing_components.griddata.convolution_functions import create_convolutionfunction_from_array
 
 from processing_components.image.operations import export_image_to_fits, import_image_from_fits
 from data_models.memory_data_models import Visibility, BlockVisibility, Configuration, \

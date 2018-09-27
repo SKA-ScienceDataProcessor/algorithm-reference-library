@@ -190,7 +190,7 @@ def calculate_bounding_box_convolutionfunction(cf, fractional_level=1e-4):
     Returns a list of bounding boxes where each element is
     (z, (y0, y1), (x0, x1))
     
-    These can be used in gridding/degridding.
+    These can be used in griddata/degridding.
 
     :param cf:
     :param fractional_level:

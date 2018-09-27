@@ -33,7 +33,9 @@ import numpy
 
 from data_models.memory_data_models import Image
 from data_models.parameters import get_parameter
+
 from processing_library.image.operations import copy_image, create_empty_image_like
+
 from workflows.shared.imaging.imaging_shared import imaging_context
 from workflows.shared.imaging.imaging_shared import sum_invert_results, remove_sumwt, sum_predict_results, \
     threshold_list

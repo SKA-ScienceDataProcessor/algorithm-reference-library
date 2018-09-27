@@ -1,9 +1,9 @@
 """ Imaging is based on used of the FFT to perform Fourier transforms efficiently. Since the observed visibility data_models
 do not arrive naturally on grid points, the sampled points are resampled on the FFT grid using a convolution function to
-smear out the sample points. The resulting grid points are then FFT'ed. The result can be corrected for the gridding
+smear out the sample points. The resulting grid points are then FFT'ed. The result can be corrected for the griddata
 convolution function by division in the image plane of the transform.
 
-This module contains functions for performing the gridding process and the inverse degridding process.
+This module contains functions for performing the griddata process and the inverse degridding process.
 
 The GridData data model is used to hold the specification of the desired result.
 """

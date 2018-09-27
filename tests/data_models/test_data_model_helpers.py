@@ -26,7 +26,7 @@ from processing_components.simulation.testing_support import create_named_config
     simulate_gaintable, create_test_image
 from processing_components.visibility.base import create_visibility, create_blockvisibility
 from processing_components.griddata.operations import create_griddata_from_image
-from processing_components.convolution_function.operations import create_convolutionfunction_from_image
+from processing_components.griddata.convolution_functions import create_convolutionfunction_from_image
 
 
 class TestDataModelHelpers(unittest.TestCase):

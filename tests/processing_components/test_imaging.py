@@ -19,8 +19,7 @@ from processing_components.simulation.testing_support import create_named_config
 from processing_components.skycomponent.operations import find_skycomponents, find_nearest_skycomponent, \
     insert_skycomponent
 from processing_components.imaging.primary_beams import create_pb_generic
-from processing_components.convolution_function.kernels import create_awterm_convolutionfunction
-
+from processing_components.griddata.kernels import create_awterm_convolutionfunction
 
 log = logging.getLogger(__name__)
 

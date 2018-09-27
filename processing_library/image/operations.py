@@ -154,7 +154,7 @@ def checkwcs(wcs1, wcs2):
 
 
 def convert_image_to_kernel(im: Image, oversampling, kernelwidth):
-    """ Convert an image to a gridding kernel
+    """ Convert an image to a griddata kernel
     
     :param im: Image to be converted
     :param oversampling: Oversampling of Image spatially

@@ -47,7 +47,7 @@ In this code:
 - A single modelpartition is taken to be a vector composed of skycomponent, gaintable tuples.
 
 - The E step for a specific window is the sum of the window data model and the discrepancy between the observed data
-and the summed modelpartitions.
+    and the summed modelpartitions.
 
 - The M step for a specific window is the optimisation of the skymodel vector given the window data model. This involves fitting a skycomponent and fitting for the gain phases.
 

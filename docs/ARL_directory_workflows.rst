@@ -12,7 +12,6 @@ Calibration workflows
 
 * Calibrate workflow: :py:mod:`workflows.arlexecute.calibration.calibration_arlexecute.calibrate_list_arlexecute_workflow`
 
-
 Imaging workflows
 =================
 
@@ -36,3 +35,33 @@ Execution
 =========
 
 * Execution framework (an interface to Dask): :py:mod:`wrappers.arlexecute.execution_support.arlexecute`
+
+Serial workflows
+****************
+
+Workflows created using the ARL processing components executed directly from python. These are higher level and fewer
+in number than processing components.
+
+Calibration workflows
+=====================
+
+* Calibrate workflow: :py:mod:`workflows.serial.calibration.calibration_serial.calibrate_list_serial_workflow`
+
+Imaging workflows
+=================
+
+* Invert: :py:mod:`workflows.serial.imaging.imaging_serial.invert_list_serial_workflow`
+* Predict: :py:mod:`workflows.serial.imaging.imaging_serial.predict_list_serial_workflow`
+* Deconvolve: :py:mod:`workflows.serial.imaging.imaging_serial.deconvolve_list_serial_workflow`
+
+Pipeline workflows
+==================
+
+* ICAL: :py:mod:`workflows.serial.pipelines.pipeline_serial.ical_list_serial_workflow`
+* Continuum imaging: :py:mod:`workflows.serial.pipelines.pipeline_serial.continuum_imaging_list_serial_workflow`
+* Spectral line imaging: :py:mod:`workflows.serial.pipelines.pipeline_serial.spectral_line_imaging_list_serial_workflow`
+
+Simulation workflows
+====================
+
+* Testing and simulation support: :py:mod:`workflows.serial.simulation.simulation_serial.simulate_list_serial_workflow`

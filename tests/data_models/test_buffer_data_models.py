@@ -12,10 +12,10 @@ from astropy.coordinates import SkyCoord
 
 from data_models.buffer_data_models import BufferImage, BufferBlockVisibility, BufferGainTable, BufferSkyModel, \
     BufferConvolutionFunction, BufferGridData
-from data_models.memory_data_models import Skycomponent, SkyModel, BlockVisibility, GridData, ConvolutionFunction
+from data_models.memory_data_models import Skycomponent, SkyModel, BlockVisibility
 from data_models.polarisation import PolarisationFrame
 from processing_components.griddata.operations import create_griddata_from_image
-from processing_components.convolution_function.operations import create_convolutionfunction_from_image
+from processing_components.griddata.convolution_functions import create_convolutionfunction_from_image
 from processing_components.calibration.operations import create_gaintable_from_blockvisibility
 from processing_components.imaging.base import predict_skycomponent_visibility
 from processing_components.simulation.testing_support import create_named_configuration, \
