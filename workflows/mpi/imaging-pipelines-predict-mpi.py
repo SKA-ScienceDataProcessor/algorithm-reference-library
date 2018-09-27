@@ -198,13 +198,12 @@ else:
             # Create the graph to divide the visibility into slices. This is by copy.
             sub_vis_lists = visibility_scatter(vis_lst, vis_iter, vis_slices)
             sub_vis_lists = numpy.array_split(sub_vis_lists, size)
-
             ## Scater facets and visibility lists to all processes
-            sub_facet_lists = comm.Scatter(facet_lists, root=0)
-            sub_sub_vis_lists = comm.Scatter(sub_vis_lists, root=0)
+            sub_facet_lists=comm.scatter(facet_lists,root=0)
+            sub_sub_vis_lists=comm.scatter(sub_vis_lists,root=0)
 
             ## All processes compute its part
-            facet_vis_lists = list()
+            facet_vis_sub_lists = list()
             # Loop over sub visibility
             for sub_vis_list in sub_sub_vis_lists:
                 facet_vis_results = list()
@@ -214,12 +213,13 @@ else:
                     facet_vis_list = predict_ignore_none(sub_vis_list, facet_list)
                     facet_vis_results.append(facet_vis_list)
                 # Sum the current sub-visibility over all facets
-                facet_vis_lists.append(sum_predict_results(facet_vis_results))
+                facet_vis_sub_lists.append(sum_predict_results(facet_vis_results))
+            ## gather results from all processes
+            facet_vis_lists=comm.gather(facet_vis_sub_lists,root=0)
             # Sum all sub-visibilties
-            sub_vis_result=visibility_gather(facet_vis_lists, vis_lst, vis_iter)
-            ## Gather results from all processes
-            vis_result_xf=comm.Gather(sub_vis_result,root=0)
-            image_results_list_list.append(vis_result_xf)
+            image_results_list_list.append(visibility_gather(facet_vis_lists,
+                                                             vis_lst,
+                                                             vis_iter))
 
     else:
         for i in range(vis_list_len):
@@ -228,11 +228,11 @@ else:
             facet_lists = list()
             sub_vis_lists = list()
             ## Scater facets and visibility lists to all processes
-            sub_facet_lists = comm.Scatter(facet_lists, root=0)
-            sub_sub_vis_lists = comm.Scatter(sub_vis_lists, root=0)
+            sub_facet_lists =comm.scatter(facet_lists,root=0)
+            sub_sub_vis_lists=comm.scatter(sub_vis_lists,root=0)
 
             ## All processes compute its part
-            facet_vis_lists = list()
+            facet_vis_sub_lists = list()
             # Loop over sub visibility
             for sub_vis_list in sub_sub_vis_lists:
                 facet_vis_results = list()
@@ -242,12 +242,11 @@ else:
                     facet_vis_list = predict_ignore_none(sub_vis_list, facet_list)
                     facet_vis_results.append(facet_vis_list)
                 # Sum the current sub-visibility over all facets
-                facet_vis_lists.append(sum_predict_results(facet_vis_results))
-            # Sum all sub-visibilties
-            sub_vis_result=visibility_gather(facet_vis_lists, vis_lst, vis_iter)
-            ## Gather results from all processes
-            vis_result_xf=comm.Gather(sub_vis_result,root=0)
+                facet_vis_sub_lists.append(sum_predict_results(facet_vis_results))
+            ## gather results from all processes
+            facet_vis_lists=comm.gather(facet_vis_sub_lists,root=0)
             image_results_list_list=list()
+
     predicted_vislist=image_results_list_list
 
 
