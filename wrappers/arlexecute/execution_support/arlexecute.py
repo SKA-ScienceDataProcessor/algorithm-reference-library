@@ -111,9 +111,21 @@ class ARLExecuteBase():
             return dlg_compute(value, **kwargs)
         else:
             return value
-    
+
+    def persist(self, graph):
+        """Persist graph data on workers
+
+        No-op if using_dask is False
+        :param graph:
+        :return:
+        """
+        if self.using_dask and self.client is not None:
+            return self.client.persist(graph)
+        else:
+            return graph
+
     def scatter(self, graph):
-        """Scatter graph to workers
+        """Scatter graph data to workers
 
         No-op if using_dask is False
         :param graph:
@@ -123,7 +135,7 @@ class ARLExecuteBase():
             return self.client.scatter(graph)
         else:
             return graph
-    
+
     def gather(self, graph):
         """Gather graph from workers
 

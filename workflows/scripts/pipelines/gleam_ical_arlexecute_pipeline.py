@@ -30,9 +30,9 @@ from processing_components.calibration.calibration_control import create_calibra
 from processing_components.image.operations import show_image, export_image_to_fits, qa_image
 from processing_components.imaging.base import create_image_from_visibility
 
-from workflows.arlexecute.execution_support.dask_init import get_dask_Client
+from workflows.arlexecute.pipelines.pipeline_arlexecute import ical_list_arlexecute_workflow
 
-from workflows.arlexecute.execution_support.arlexecute import arlexecute
+from wrappers.arlexecute.execution_support.arlexecute import arlexecute
 
 import pprint
 
@@ -53,14 +53,13 @@ if __name__ == '__main__':
     log = logging.getLogger()
     logging.info("Starting ical_list_arlexecute_workflow-pipeline")
     
-    arlexecute.set_client(get_dask_Client())
+    arlexecute.set_client(use_dask=True)
     arlexecute.run(init_logging)
 
     # Load data from previous simulation
     vislist = import_blockvisibility_from_hdf5('gleam_simulation_vislist.hdf')
-    
-    print(vislist[0])
-    
+    ntimes = len(vislist[0].time)
+
     cellsize = 0.001
     npixel = 1024
     pol_frame = PolarisationFrame("stokesI")
@@ -68,6 +67,7 @@ if __name__ == '__main__':
     model_list = [arlexecute.execute(create_image_from_visibility)(v, npixel=1024, cellsize=cellsize,
                                                                    polarisation_frame=pol_frame)
                   for v in vislist]
+    model_list = arlexecute.persist(model_list)
     
     controls = create_calibration_controls()
     
@@ -83,9 +83,8 @@ if __name__ == '__main__':
     
     # In[ ]:
     
-    future_vislist = arlexecute.scatter(vislist)
-    ntimes = len(vislist[0].time)
-    ical_list = ical_list_arlexecute_workflow(future_vislist,
+    vislist = arlexecute.scatter(vislist)
+    ical_list = ical_list_arlexecute_workflow(vislist,
                                               model_imagelist=model_list,
                                               context='wstack',
                                               calibration_context='TG',

@@ -35,12 +35,12 @@ from data_models.data_model_helpers import export_skymodel_to_hdf5, export_block
 from wrappers.arlexecute.simulation.testing_support import create_low_test_image_from_gleam
 from wrappers.arlexecute.imaging.base import advise_wide_field
 
-from workflows.arlexecute.imaging.imaging_workflows import predict_workflow
-from workflows.arlexecute.simulation.simulation_workflows import simulate_workflow, corrupt_workflow
+from workflows.arlexecute.imaging.imaging_arlexecute import predict_list_arlexecute_workflow
+from workflows.arlexecute.simulation.simulation_arlexecute import simulate_list_arlexecute_workflow, \
+    corrupt_list_arlexecute_workflow
 
-from workflows.arlexecute.execution_support.dask_init import get_dask_Client
+from wrappers.arlexecute.execution_support.arlexecute import arlexecute
 
-from workflows.arlexecute.execution_support.arlexecute import arlexecute
 
 pp = pprint.PrettyPrinter()
 
@@ -55,14 +55,12 @@ def init_logging():
 
 if __name__ == '__main__':
     log = logging.getLogger()
-    logging.info("Starting gleam_simulate_list_arlexecute_pipeline")
+    print("Starting gleam_simulate_list_arlexecute_pipeline")
     
-    arlexecute.set_client(get_dask_Client())
+    arlexecute.set_client(use_dask=True)
     arlexecute.run(init_logging)
     
     # We create a graph to make the visibility. The parameter rmax determines the distance of the furthest antenna/stations used. All over parameters are determined from this number.
-    
-    # In[ ]:
     
     nfreqwin = 7
     ntimes = 11
@@ -80,7 +78,8 @@ if __name__ == '__main__':
                                                  phasecentre=phasecentre,
                                                  order='frequency')
     print('%d elements in vis_list' % len(vis_list))
-    log.info('About to make visibility')
+    print('About to make visibility')
+    vis_list = arlexecute.persist(vis_list)
     vis_list = arlexecute.compute(vis_list, sync=True)
     
     print(vis_list[0])
@@ -88,11 +87,10 @@ if __name__ == '__main__':
     
     # In[ ]:
     
-    wprojection_planes = 1
-    advice_low = advise_wide_field(vis_list[0], guard_band_image=8.0, delA=0.02, wprojection_planes=wprojection_planes)
+    advice_low = advise_wide_field(vis_list[0], guard_band_image=8.0, delA=0.02, wprojection_planes=1)
     
     advice_high = advise_wide_field(vis_list[-1], guard_band_image=8.0, delA=0.02,
-                                    wprojection_planes=wprojection_planes)
+                                    wprojection_planes=1)
     
     vis_slices = advice_low['vis_slices']
     npixel = advice_high['npixels2']
@@ -111,21 +109,25 @@ if __name__ == '__main__':
                                                                         flux_limit=1.0,
                                                                         applybeam=True)
                    for f, freq in enumerate(frequency)]
-    log.info('About to make GLEAM model')
-    gleam_model = arlexecute.compute(gleam_model, sync=True)
-    gleam_skymodel = SkyModel(images=gleam_model)
-    export_skymodel_to_hdf5(gleam_skymodel, 'gleam_simulation_skymodel.hdf')
-    future_gleam_model = arlexecute.scatter(gleam_model)
+    print('About to make GLEAM model')
+    gleam_model = arlexecute.persist(gleam_model)
     
     # In[ ]:
     
-    log.info('About to run predict to get predicted visibility')
-    future_vis_graph = arlexecute.scatter(vis_list)
-    predicted_vislist = predict_list_arlexecute_workflow(future_vis_graph, gleam_model, context='wstack', vis_slices=vis_slices)
+    print('About to run predict to get predicted visibility')
+    vis_list = arlexecute.scatter(vis_list)
+    predicted_vislist = predict_list_arlexecute_workflow(vis_list, gleam_model, context='wstack',
+                                                         vis_slices=vis_slices)
+    predicted_vislist = arlexecute.persist(predicted_vislist)
     corrupted_vislist = corrupt_list_arlexecute_workflow(predicted_vislist, phase_error=1.0)
-    log.info('About to run corrupt to get corrupted visibility')
+    print('About to run corrupt to get corrupted visibility')
+    corrupted_vislist = arlexecute.persist(corrupted_vislist)
     corrupted_vislist = arlexecute.compute(corrupted_vislist, sync=True)
     
     export_blockvisibility_to_hdf5(corrupted_vislist, 'gleam_simulation_vislist.hdf')
-    
+
+    gleam_model = arlexecute.compute(gleam_model, sync=True)
+    gleam_skymodel = SkyModel(images=gleam_model)
+    export_skymodel_to_hdf5(gleam_skymodel, 'gleam_simulation_skymodel.hdf')
+
     arlexecute.close()
