@@ -8,7 +8,7 @@ pytz
 jupyter>=1.0
 notebook
 ipywidgets
-numpy>=1.9
+numpy<1.15.2
 scipy
 pyfits>=3.3
 matplotlib<3.0
