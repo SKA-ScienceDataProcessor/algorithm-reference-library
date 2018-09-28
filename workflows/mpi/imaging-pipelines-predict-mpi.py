@@ -217,6 +217,7 @@ else:
             ## gather results from all processes
             facet_vis_lists=comm.gather(facet_vis_sub_lists,root=0)
             # Sum all sub-visibilties
+            facet_vis_lists=numpy.concatenate(facet_vis_lists)
             image_results_list_list.append(visibility_gather(facet_vis_lists,
                                                              vis_lst,
                                                              vis_iter))
