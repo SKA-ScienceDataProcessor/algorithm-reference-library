@@ -10,8 +10,6 @@
 import os
 import sys
 
-sys.path.append(os.path.join('..', '..'))
-
 from data_models.parameters import arl_path
 
 results_dir = arl_path('test_results')

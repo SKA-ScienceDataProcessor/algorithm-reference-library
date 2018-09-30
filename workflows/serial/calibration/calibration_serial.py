@@ -33,7 +33,7 @@ def calibrate_list_serial_workflow(vis_list, model_vislist, calibration_context=
         global_point_vis_list = visibility_gather_channel(point_vislist)
         global_point_vis_list = integrate_visibility_by_channel(global_point_vis_list)
         # This is a global solution so we only compute one gain table
-        _, gt_list = solve_and_apply(global_point_vis_list, **kwargs)
+        _, gt_list = solve_and_apply(global_point_vis_list)
         return [apply_gaintable(v, gt_list, inverse=True)
                 for v in vis_list]
     else:

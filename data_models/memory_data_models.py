@@ -692,9 +692,11 @@ class Visibility:
         """Default printer for Skycomponent
 
         """
+        ufrequency = numpy.unique(self.frequency)
         s = "Visibility:\n"
         s += "\tNumber of visibilities: %s\n" % self.nvis
-        s += "\tFrequency: %s\n" % self.frequency
+        s += "\tNumber of channels: %d\n" % len(ufrequency)
+        s += "\tFrequency: %s\n" % ufrequency
         s += "\tNumber of polarisations: %s\n" % self.npol
         s += "\tVisibility shape: %s\n" % str(self.vis.shape)
         s += "\tPolarisation Frame: %s\n" % self.polarisation_frame.type
@@ -846,6 +848,7 @@ class BlockVisibility:
         s += "\tNumber of visibilities: %s\n" % self.nvis
         s += "\tNumber of integrations: %s\n" % len(self.time)
         s += "\tVisibility shape: %s\n" % str(self.vis.shape)
+        s += "\tNumber of channels: %d\n" % len(self.frequency)
         s += "\tFrequency: %s\n" % self.frequency
         s += "\tNumber of polarisations: %s\n" % self.npol
         s += "\tPolarisation Frame: %s\n" % self.polarisation_frame.type
