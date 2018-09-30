@@ -27,6 +27,7 @@ from wrappers.arlexecute.execution_support.arlexecute import arlexecute
 
 import logging
 
+import argparse
 
 def init_logging():
     logging.basicConfig(filename='%s/dprepb-pipeline.log' % results_dir,
@@ -38,10 +39,22 @@ def init_logging():
 
 if __name__ == '__main__':
     
+    parser = argparse.ArgumentParser(description='Benchmark pipelines in numpy and dask')
+    parser.add_argument('--no_use_dask', dest='use_dask', default=True, action='store_true', help='Use Dask?')
+    parser.add_argument('--serial_invert', dest='serial_invert', default=True, action='store_true',
+                        help='Use serial invert?')
+    parser.add_argument('--nworkers', type=int, default=4, help='Number of workers')
+    parser.add_argument('--npixel', type=int, default=1024, help='Number of pixels per axis')
+
+    args = parser.parse_args()
+    
     log = logging.getLogger()
     logging.info("Starting Imaging pipeline")
     
-    arlexecute.set_client(use_dask=True, threads_per_worker=1, memory_limit=16e10,
+    arlexecute.set_client(use_dask=args.use_dask,
+                          threads_per_worker=1,
+                          memory_limit=8589934592,
+                          n_workers=args.nworkers,
                           local_dir=dask_dir)
     print(arlexecute.client)
     arlexecute.run(init_logging)
@@ -51,7 +64,7 @@ if __name__ == '__main__':
     nfreqwin = 2
     centre = 0
     cellsize = 0.0001
-    npixel = 1024
+    npixel = args.npixel
     # This is about 9 pixels and causes the astropy.convolve function to take forever. Need to do
     # by FFT
     psfwidth = (((8.0 / 2.35482004503) / 60.0) * numpy.pi / 180.0) / cellsize
@@ -59,9 +72,10 @@ if __name__ == '__main__':
     
     context = 'wstack'
     vis_slices = 51
-    
+    context = '2d'
+    vis_slices = 1
+
     input_vis = [arl_path('data/vis/sim-1.ms'), arl_path('data/vis/sim-2.ms')]
-    
     
     def load_ms(c):
         v1 = create_visibility_from_ms(input_vis[0], channum=[c])[0]
@@ -95,8 +109,7 @@ if __name__ == '__main__':
     
     model_list = arlexecute.persist(model_list)
     
-    serial = False
-    if serial:
+    if args.serial_invert:
         print("Invert is serial")
         dirty_list = [arlexecute.execute(invert_list_serial_workflow)([vis_list[i]],
                                                                       template_model_imagelist=[model_list[i]],
