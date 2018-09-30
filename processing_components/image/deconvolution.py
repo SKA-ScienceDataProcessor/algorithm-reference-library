@@ -28,7 +28,7 @@ import logging
 from data_models.polarisation import PolarisationFrame
 
 import numpy
-from astropy.convolution import Gaussian2DKernel, convolve
+from astropy.convolution import Gaussian2DKernel, convolve_fft
 from photutils import fit_2dgaussian
 
 from data_models.memory_data_models import Image
@@ -327,7 +327,8 @@ def restore_cube(model: Image, psf: Image, residual=None, **kwargs) -> Image:
     gk = Gaussian2DKernel(size)
     for chan in range(model.shape[0]):
         for pol in range(model.shape[1]):
-            restored.data[chan, pol, :, :] = norm * convolve(model.data[chan, pol, :, :], gk, normalize_kernel=False)
+            restored.data[chan, pol, :, :] = norm * convolve_fft(model.data[chan, pol, :, :], gk,
+                                                                 normalize_kernel=False)
     if residual is not None:
         restored.data += residual.data
     return restored

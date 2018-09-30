@@ -21,6 +21,7 @@ from wrappers.arlexecute.imaging.base import create_image_from_visibility
 from wrappers.arlexecute.imaging.base import advise_wide_field
 
 from workflows.arlexecute.imaging.imaging_arlexecute import invert_list_arlexecute_workflow
+from workflows.serial.imaging.imaging_serial import invert_list_serial_workflow
 
 from wrappers.arlexecute.execution_support.arlexecute import arlexecute
 
@@ -55,10 +56,10 @@ if __name__ == '__main__':
     # by FFT
     psfwidth = (((8.0 / 2.35482004503) / 60.0) * numpy.pi / 180.0) / cellsize
     psfwidth = 3.0
-
+    
     context = 'wstack'
     vis_slices = 51
-
+    
     input_vis = [arl_path('data/vis/sim-1.ms'), arl_path('data/vis/sim-2.ms')]
     
     
@@ -94,25 +95,42 @@ if __name__ == '__main__':
     
     model_list = arlexecute.persist(model_list)
     
-    dirty_list = invert_list_arlexecute_workflow(vis_list, template_model_imagelist=model_list, context=context,
-                                                 vis_slices=vis_slices)
-    psf_list = invert_list_arlexecute_workflow(vis_list, template_model_imagelist=model_list, context=context,
-                                               dopsf=True, vis_slices=vis_slices)
-
+    serial = False
+    if serial:
+        print("Invert is serial")
+        dirty_list = [arlexecute.execute(invert_list_serial_workflow)([vis_list[i]],
+                                                                      template_model_imagelist=[model_list[i]],
+                                                                      context=context,
+                                                                      vis_slices=vis_slices)[0]
+                      for i in range(nchan)]
+        psf_list = [arlexecute.execute(invert_list_serial_workflow)([vis_list[i]],
+                                                                    template_model_imagelist=[model_list[i]],
+                                                                    context=context, dopsf=True,
+                                                                    vis_slices=vis_slices)[0]
+                    for i in range(nchan)]
+    else:
+        print("Invert is parallel")
+        dirty_list = invert_list_arlexecute_workflow(vis_list, template_model_imagelist=model_list, context=context,
+                                                     vis_slices=vis_slices)
+        psf_list = invert_list_arlexecute_workflow(vis_list, template_model_imagelist=model_list, context=context,
+                                                   dopsf=True, vis_slices=vis_slices)
+    
+    
     def deconvolve_and_restore(d, p, m):
         c, resid = deconvolve_cube(d[0], p[0], m, threshold=0.01, fracthresh=0.01, window_shape='quarter',
                                    niter=1, gain=0.1, algorithm='hogbom-complex')
         restored = restore_cube(c, p[0], resid, psfwidth=psfwidth)
         return restored
-
+    
+    
     log.info('About to deconvolve and restore each frequency')
     restored_list = [arlexecute.execute(deconvolve_and_restore)(dirty_list[c], psf_list[c], model_list[c])
-                    for c in range(nchan)]
+                     for c in range(nchan)]
     result = arlexecute.compute(restored_list, sync=True)
     restored_cube = image_gather_channels(result)
     print(qa_image(restored_cube, context='CLEAN restored cube'))
     export_image_to_fits(restored_cube, '%s/dprepb_arlexecute_clean_restored_cube.fits' % (results_dir))
-
+    
     try:
         arlexecute.close()
     except:
