@@ -98,9 +98,8 @@ def hogbom_complex(dirty_q, dirty_u, psf_q, psf_u, window, gain, thresh, niter, 
     assert niter > 0
     
     # Form complex Q+iU from the polarisation data:
-    dirty_complex = 1j * dirty_u
-    dirty_complex += dirty_q
-    
+    dirty_complex = dirty_q + 1j * dirty_u
+
     log.info("hogbom_mod: Max abs in dirty image = %.6f" % numpy.max(numpy.abs(dirty_complex)))
     absolutethresh = max(thresh, fracthresh * numpy.absolute(dirty_complex).max())
     log.info("hogbom_mod: Start of minor cycle")

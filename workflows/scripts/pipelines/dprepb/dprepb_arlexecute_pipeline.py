@@ -40,18 +40,19 @@ def init_logging():
 if __name__ == '__main__':
     
     parser = argparse.ArgumentParser(description='Benchmark pipelines in numpy and dask')
-    parser.add_argument('--no_use_dask', dest='use_dask', default=True, action='store_true', help='Use Dask?')
-    parser.add_argument('--serial_invert', dest='serial_invert', default=True, action='store_true',
+    parser.add_argument('--use_dask', type=str, default='True', help='Use Dask?')
+    parser.add_argument('--serial_invert', type=str, default='True',
                         help='Use serial invert?')
     parser.add_argument('--nworkers', type=int, default=4, help='Number of workers')
     parser.add_argument('--npixel', type=int, default=1024, help='Number of pixels per axis')
+    parser.add_argument('--context', dest='context', default='2d', help='Context: 2d|timeslice|wstack')
 
     args = parser.parse_args()
     
     log = logging.getLogger()
     logging.info("Starting Imaging pipeline")
     
-    arlexecute.set_client(use_dask=args.use_dask,
+    arlexecute.set_client(use_dask=args.use_dask=='True',
                           threads_per_worker=1,
                           memory_limit=8589934592,
                           n_workers=args.nworkers,
@@ -68,12 +69,19 @@ if __name__ == '__main__':
     # This is about 9 pixels and causes the astropy.convolve function to take forever. Need to do
     # by FFT
     psfwidth = (((8.0 / 2.35482004503) / 60.0) * numpy.pi / 180.0) / cellsize
-    psfwidth = 3.0
+    psfwidth = 1.0
     
-    context = 'wstack'
-    vis_slices = 51
-    context = '2d'
-    vis_slices = 1
+    context = args.context
+    if context == 'wstack':
+        vis_slices = 45
+        print('wstack processing')
+    elif context == 'timeslice':
+        print('timeslice processing')
+        vis_slices = 2
+    else:
+        print('2d processing')
+        context = '2d'
+        vis_slices = 1
 
     input_vis = [arl_path('data/vis/sim-1.ms'), arl_path('data/vis/sim-2.ms')]
     
@@ -82,6 +90,7 @@ if __name__ == '__main__':
         v2 = create_visibility_from_ms(input_vis[1], channum=[c])[0]
         vf = append_visibility(v1, v2)
         vf = convert_visibility_to_stokes(vf)
+        vf.configuration.diameter[...] = 35.0
         rows = vis_select_uvrange(vf, 0.0, uvmax=uvmax)
         return create_visibility_from_rows(vf, rows)
     
@@ -91,7 +100,6 @@ if __name__ == '__main__':
     
     print('Reading visibilities')
     vis_list = arlexecute.persist(vis_list)
-    vis_list = arlexecute.compute(vis_list, sync=True)
     
     # The vis data are on the workers so we run the advice function on the workers
     # without transfering the data back to the host.
@@ -109,7 +117,7 @@ if __name__ == '__main__':
     
     model_list = arlexecute.persist(model_list)
     
-    if args.serial_invert:
+    if args.serial_invert == 'True':
         print("Invert is serial")
         dirty_list = [arlexecute.execute(invert_list_serial_workflow)([vis_list[i]],
                                                                       template_model_imagelist=[model_list[i]],
@@ -129,18 +137,19 @@ if __name__ == '__main__':
                                                    dopsf=True, vis_slices=vis_slices)
     
     
-    def deconvolve_and_restore(d, p, m):
+    def deconvolve(d, p, m):
         c, resid = deconvolve_cube(d[0], p[0], m, threshold=0.01, fracthresh=0.01, window_shape='quarter',
-                                   niter=1, gain=0.1, algorithm='hogbom-complex')
-        restored = restore_cube(c, p[0], resid, psfwidth=psfwidth)
-        return restored
+                                   niter=1000, gain=0.1, algorithm='hogbom-complex')
+        r = restore_cube(c, p[0], resid)
+        return r
     
     
-    log.info('About to deconvolve and restore each frequency')
-    restored_list = [arlexecute.execute(deconvolve_and_restore)(dirty_list[c], psf_list[c], model_list[c])
+    log.info('About assemble cubes and restore each frequency')
+    restored_list = [arlexecute.execute(deconvolve)(dirty_list[c], psf_list[c], model_list[c])
                      for c in range(nchan)]
-    result = arlexecute.compute(restored_list, sync=True)
-    restored_cube = image_gather_channels(result)
+    restored_list = arlexecute.compute(restored_list, sync=True)
+    restored_cube = image_gather_channels(restored_list)
+
     print(qa_image(restored_cube, context='CLEAN restored cube'))
     export_image_to_fits(restored_cube, '%s/dprepb_arlexecute_clean_restored_cube.fits' % (results_dir))
     
