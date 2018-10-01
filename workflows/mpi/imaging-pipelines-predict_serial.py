@@ -182,8 +182,8 @@ else:
     
     predicted_vislist=image_results_list_list
 
-log.info('About to run corrupt to get corrupted visibility')
-corrupted_vislist = corrupt_list_serial_workflow(predicted_vislist, phase_error=1.0)
+#log.info('About to run corrupt to get corrupted visibility')
+#corrupted_vislist = corrupt_list_serial_workflow(predicted_vislist, phase_error=1.0)
 
 
 # Get the LSM. This is currently blank.
