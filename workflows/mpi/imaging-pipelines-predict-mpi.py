@@ -129,32 +129,40 @@ if rank == 0:
     npixel=advice_high['npixels2']
     cellsize=min(advice_low['cellsize'], advice_high['cellsize'])
 
+else:
+    vis_slices = 0
+    npixel = 0
+    cellsize = 0
+
+(vis_slices,npixel,cellsize) = comm.bcast((vis_slices,npixel,cellsize),root=0)
+print('%d: After advice: vis_slices %d npixel %d cellsize %d' % (rank,vis_slices, npixel, cellsize))
 
 # Now make a graph to fill with a model drawn from GLEAM 
 
 # In[ ]:
 
+sub_frequency = numpy.array_split(frequency, size)
+sub_channel_bandwidth = numpy.array_split(channel_bandwidth,size)
 
-    gleam_model = [create_low_test_image_from_gleam(npixel=npixel,
-                                                               frequency=[frequency[f]],
-                                                               channel_bandwidth=[channel_bandwidth[f]],
+sub_gleam_model = [create_low_test_image_from_gleam(npixel=npixel,
+                                                               frequency=[sub_frequency[rank][f]],
+                                                               channel_bandwidth=[sub_channel_bandwidth[rank][f]],
                                                                cellsize=cellsize,
                                                                phasecentre=phasecentre,
                                                                polarisation_frame=PolarisationFrame("stokesI"),
                                                                flux_limit=1.0,
                                                                applybeam=True)
-                     for f, freq in enumerate(frequency)]
+                     for f, freq in enumerate(sub_frequency[rank])]
+
+
+gleam_model=comm.gather(sub_gleam_model,root=0)
+if rank==0:
+    gleam_model=numpy.concatenate(gleam_model)
 else:
     gleam_model=list()
-    vis_slices = 0
-    npixel = 0
-    cellsize = 0
-
-vis_slices = comm.bcast(vis_slices,root=0)
-print('%d: After advice: vis_slices %d npixel %d cellsize %d' % (rank,vis_slices, npixel, cellsize))
-log.info('About to make GLEAM model')
 
 # In[ ]:
+log.info('About to make GLEAM model')
 
 original_predict=False
 if original_predict:
@@ -252,8 +260,8 @@ else:
 
 
 if rank == 0:
-    log.info('About to run corrupt to get corrupted visibility')
-    corrupted_vislist = corrupt_list_serial_workflow(predicted_vislist, phase_error=1.0)
+    #log.info('About to run corrupt to get corrupted visibility')
+    #corrupted_vislist = corrupt_list_serial_workflow(predicted_vislist, phase_error=1.0)
 
 
     # Get the LSM. This is currently blank.
