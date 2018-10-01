@@ -19,7 +19,7 @@ from processing_components.image.gather_scatter import image_scatter_facets, ima
     image_scatter_channels, image_gather_channels
 from processing_components.image.operations import calculate_image_frequency_moments
 from processing_components.imaging.weighting import weight_visibility
-from processing_components.visibility.base import copy_visibility
+from processing_components.visibility.base import copy_visibility, create_visibility_from_rows
 from processing_components.visibility.gather_scatter import visibility_scatter, visibility_gather
 from workflows.shared.imaging.imaging_shared import imaging_context
 from workflows.shared.imaging.imaging_shared import sum_invert_results, remove_sumwt, sum_predict_results, \
@@ -60,13 +60,10 @@ def predict_list_serial_workflow(vis_list, model_imagelist, vis_slices=1, facets
     if facets == 1:
         image_results_list = list()
         for freqwin, vis_list in enumerate(vis_list):
-            # Create the graph to divide an image into facets. This is by reference.
-            # Create the graph to divide the visibility into slices. This is by copy.
-            sub_vis_lists = visibility_scatter(vis_list, vis_iter, vis_slices)
-        
             image_vis_lists = list()
             # Loop over sub visibility
-            for sub_vis_list in sub_vis_lists:
+            for rows in vis_iter(vis_list, vis_slices=vis_slices):
+                sub_vis_list = create_visibility_from_rows(vis_list, rows)
                 # Predict visibility for this sub-visibility from this image
                 image_vis_list = predict_ignore_none(sub_vis_list, model_imagelist[freqwin])
                 # Sum all sub-visibilities
@@ -78,12 +75,10 @@ def predict_list_serial_workflow(vis_list, model_imagelist, vis_slices=1, facets
         for freqwin, vis_list in enumerate(vis_list):
             # Create the graph to divide an image into facets. This is by reference.
             facet_lists = image_scatter_facets(model_imagelist[freqwin], facets=facets)
-            # Create the graph to divide the visibility into slices. This is by copy.
-            sub_vis_lists = visibility_scatter(vis_list, vis_iter, vis_slices)
-        
             facet_vis_lists = list()
             # Loop over sub visibility
-            for sub_vis_list in sub_vis_lists:
+            for rows in vis_iter(vis_list, vis_slices=vis_slices):
+                sub_vis_list = create_visibility_from_rows(vis_list, rows)
                 facet_vis_results = list()
                 # Loop over facets
                 for facet_list in facet_lists:
@@ -143,12 +138,10 @@ def invert_list_serial_workflow(vis_list, template_model_imagelist, dopsf=False,
     results_vislist = list()
     if facets == 1:
         for freqwin, vis_list in enumerate(vis_list):
-            # Create the graph to divide the visibility into slices. This is by copy.
-            sub_vis_lists = visibility_scatter(vis_list, vis_iter, vis_slices=vis_slices)
-        
             # Iterate within each vis_list
             vis_results = list()
-            for sub_vis_list in sub_vis_lists:
+            for rows in vis_iter(vis_list, vis_slices=vis_slices):
+                sub_vis_list = create_visibility_from_rows(vis_list, rows)
                 vis_results.append(invert_ignore_none(sub_vis_list, template_model_imagelist[freqwin]))
             results_vislist.append(sum_invert_results(vis_results))
         return results_vislist
@@ -158,13 +151,10 @@ def invert_list_serial_workflow(vis_list, template_model_imagelist, dopsf=False,
             facet_lists = image_scatter_facets(template_model_imagelist[
                                                    freqwin],
                                                facets=facets)
-            # Create the graph to divide the visibility into slices. This is by copy.
-            sub_vis_lists = visibility_scatter(vis_list, vis_iter,
-                                               vis_slices=vis_slices)
-        
             # Iterate within each vis_list
             vis_results = list()
-            for sub_vis_list in sub_vis_lists:
+            for rows in vis_iter(vis_list, vis_slices=vis_slices):
+                sub_vis_list = create_visibility_from_rows(vis_list, rows)
                 facet_vis_results = list()
                 for facet_list in facet_lists:
                     facet_vis_results.append(invert_ignore_none(sub_vis_list, facet_list))
