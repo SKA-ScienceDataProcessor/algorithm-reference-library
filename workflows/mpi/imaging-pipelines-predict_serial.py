@@ -17,7 +17,7 @@ sys.path.append(os.path.join('..', '..'))
 
 from data_models.parameters import arl_path
 
-results_dir = './results'
+results_dir = './results/orig2'
 
 #from matplotlib import pylab
 
@@ -131,7 +131,7 @@ log.info('About to make GLEAM model')
 
 # In[ ]:
 
-original_predict=True
+original_predict=False
 if original_predict:
     log.info('About to run predict to get predicted visibility')
     predicted_vislist = predict_list_serial_workflow(vis_list, gleam_model,  
