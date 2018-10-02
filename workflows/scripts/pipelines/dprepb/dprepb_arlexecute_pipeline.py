@@ -41,20 +41,22 @@ if __name__ == '__main__':
     
     parser = argparse.ArgumentParser(description='Benchmark pipelines in numpy and dask')
     parser.add_argument('--use_dask', type=str, default='True', help='Use Dask?')
-    parser.add_argument('--serial_invert', type=str, default='True',
+    parser.add_argument('--serial_invert', type=str, default='False',
                         help='Use serial invert?')
     parser.add_argument('--nworkers', type=int, default=4, help='Number of workers')
-    parser.add_argument('--npixel', type=int, default=1024, help='Number of pixels per axis')
+    parser.add_argument('--npixel', type=int, default=512, help='Number of pixels per axis')
     parser.add_argument('--context', dest='context', default='2d', help='Context: 2d|timeslice|wstack')
+    parser.add_argument('--memory', dest='memory', default=8, help='Memory per worker (GB)')
 
     args = parser.parse_args()
+    print(args)
     
     log = logging.getLogger()
     logging.info("Starting Imaging pipeline")
     
     arlexecute.set_client(use_dask=args.use_dask=='True',
                           threads_per_worker=1,
-                          memory_limit=8589934592,
+                          memory_limit=args.memory * 1024 * 1024 * 1024,
                           n_workers=args.nworkers,
                           local_dir=dask_dir)
     print(arlexecute.client)
@@ -69,7 +71,6 @@ if __name__ == '__main__':
     # This is about 9 pixels and causes the astropy.convolve function to take forever. Need to do
     # by FFT
     psfwidth = (((8.0 / 2.35482004503) / 60.0) * numpy.pi / 180.0) / cellsize
-    psfwidth = 1.0
     
     context = args.context
     if context == 'wstack':
@@ -138,13 +139,18 @@ if __name__ == '__main__':
     
     
     def deconvolve(d, p, m):
+        import time
+        start = time.time()
         c, resid = deconvolve_cube(d[0], p[0], m, threshold=0.01, fracthresh=0.01, window_shape='quarter',
-                                   niter=1000, gain=0.1, algorithm='hogbom-complex')
+                                   niter=100, gain=0.1, algorithm='hogbom-complex')
+        print("clean time %f (s)" % (time.time() - start))
+        start = time.time()
         r = restore_cube(c, p[0], resid)
-        return r
+        print("restore time %f (s)" % (time.time() - start))
+        return resid
     
     
-    log.info('About assemble cubes and restore each frequency')
+    print('About assemble cubes and deconvolve each frequency')
     restored_list = [arlexecute.execute(deconvolve)(dirty_list[c], psf_list[c], model_list[c])
                      for c in range(nchan)]
     restored_list = arlexecute.compute(restored_list, sync=True)

@@ -77,7 +77,7 @@ def fit_uvwplane(vis: Visibility, remove=False) -> (Image, float, float):
 
 
 def predict_timeslice_single(vis: Visibility, model: Image, predict=predict_2d, remove=True,
-                             facets=1, vis_slices=1, **kwargs) -> Visibility:
+                             gcfcf=None, facets=1, vis_slices=1, **kwargs) -> Visibility:
     """ Predict using a single time slices.
     
     This fits a single plane and corrects the image geometry.
@@ -120,7 +120,7 @@ def predict_timeslice_single(vis: Visibility, model: Image, predict=predict_2d, 
                          fill_value=0.0,
                          rescale=True).reshape(workimage.data[chan, pol, ...].shape)
 
-    avis = predict(avis, workimage, facets=facets, vis_slices=vis_slices, **kwargs)
+    avis = predict(avis, workimage, facets=facets, vis_slices=vis_slices, gcfcf=gcfcf, **kwargs)
     
     return avis
 
@@ -152,8 +152,8 @@ def lm_distortion(im: Image, a, b) -> (numpy.ndarray, numpy.ndarray, numpy.ndarr
     return l2d, m2d, ldistorted, mdistorted
 
 
-def invert_timeslice_single(vis: Visibility, im: Image, dopsf, normalize=True, facets=1, vis_slices=1, **kwargs) -> (
-        Image, numpy.ndarray):
+def invert_timeslice_single(vis: Visibility, im: Image, dopsf, normalize=True, facets=1, vis_slices=1,
+                            gcfcf=None, **kwargs) -> (Image, numpy.ndarray):
     """Process single time slice
     
     Extracted for re-use in parallel version
@@ -174,7 +174,7 @@ def invert_timeslice_single(vis: Visibility, im: Image, dopsf, normalize=True, f
     avis, p, q = fit_uvwplane(avis, remove=True)
     
     workimage, sumwt = invert_2d(avis, im, dopsf, normalize=normalize, facets=facets,
-                                      vis_slices=vis_slices, **kwargs)
+                                      vis_slices=vis_slices, gcfcf=gcfcf, **kwargs)
 
     finalimage = create_empty_image_like(im)
     

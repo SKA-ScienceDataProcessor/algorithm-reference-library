@@ -291,7 +291,6 @@ def restore_cube(model: Image, psf: Image, residual=None, **kwargs) -> Image:
     :return: restored image
 
     """
-    from scipy.optimize import minpack
     assert isinstance(model, Image), model
     assert isinstance(psf, Image), psf
     assert residual is None or isinstance(residual, Image), residual
@@ -305,6 +304,7 @@ def restore_cube(model: Image, psf: Image, residual=None, **kwargs) -> Image:
     
     if size is None:
         # isotropic at the moment!
+        from scipy.optimize import minpack
         try:
             fit = fit_2dgaussian(psf.data[0, 0, sl, sl])
             if fit.x_stddev <= 0.0 or fit.y_stddev <= 0.0:

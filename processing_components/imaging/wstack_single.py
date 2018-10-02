@@ -24,7 +24,7 @@ import logging
 log = logging.getLogger(__name__)
 
 
-def predict_wstack_single(vis, model, remove=True, facets=1, vis_slices=1, **kwargs) -> Visibility:
+def predict_wstack_single(vis, model, remove=True, facets=1, vis_slices=1, gcfcf=None, **kwargs) -> Visibility:
     """ Predict using a single w slices.
     
     This processes a single w plane, rotating out the w beam for the average w
@@ -54,11 +54,11 @@ def predict_wstack_single(vis, model, remove=True, facets=1, vis_slices=1, **kwa
     
     # Do the real part
     workimage.data = w_beam.data.real * model.data
-    avis = predict_2d(avis, workimage, facets=1, vis_slices=1, **kwargs)
+    avis = predict_2d(avis, workimage, facets=1, vis_slices=1, gcfcf=gcfcf, **kwargs)
     
     # and now the imaginary part
     workimage.data = w_beam.data.imag * model.data
-    tempvis = predict_2d(tempvis, workimage, facets=facets, vis_slices=vis_slices, **kwargs)
+    tempvis = predict_2d(tempvis, workimage, facets=facets, vis_slices=vis_slices, gcfcf=gcfcf, **kwargs)
     avis.data['vis'] -= 1j * tempvis.data['vis']
     
     if not remove:
@@ -72,7 +72,7 @@ def predict_wstack_single(vis, model, remove=True, facets=1, vis_slices=1, **kwa
 
 
 def invert_wstack_single(vis: Visibility, im: Image, dopsf, normalize=True, remove=True, facets=1, vis_slices=1,
-                         **kwargs) -> (Image, numpy.ndarray):
+                         gcfcf=None, **kwargs) -> (Image, numpy.ndarray):
     """Process single w slice
     
     :param vis: Visibility to be inverted
@@ -91,7 +91,7 @@ def invert_wstack_single(vis: Visibility, im: Image, dopsf, normalize=True, remo
     vis.data['uvw'][..., 2] -= w_average
     
     reWorkimage, sumwt, imWorkimage = invert_2d(vis, im, dopsf, normalize=normalize, facets=facets,
-                                                     vis_slices=vis_slices, **kwargs)
+                                                     vis_slices=vis_slices, gcfcf=gcfcf, **kwargs)
     
     if not remove:
         vis.data['uvw'][..., 2] += w_average

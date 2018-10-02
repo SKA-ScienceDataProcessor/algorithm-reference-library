@@ -38,6 +38,7 @@ from workflows.shared.imaging.imaging_shared import imaging_context
 from workflows.shared.imaging.imaging_shared import sum_invert_results, remove_sumwt, sum_predict_results, \
     threshold_list
 from wrappers.arlexecute.execution_support.arlexecute import arlexecute
+from wrappers.arlexecute.griddata.kernels import create_pswf_convolutionfunction
 from wrappers.arlexecute.image.deconvolution import deconvolve_cube, restore_cube
 from wrappers.arlexecute.image.gather_scatter import image_scatter_facets, image_gather_facets, \
     image_scatter_channels, image_gather_channels
@@ -49,7 +50,8 @@ from wrappers.arlexecute.visibility.gather_scatter import visibility_scatter, vi
 log = logging.getLogger(__name__)
 
 
-def predict_list_arlexecute_workflow(vis_list, model_imagelist, vis_slices=1, facets=1, context='2d', **kwargs):
+def predict_list_arlexecute_workflow(vis_list, model_imagelist, vis_slices=1, facets=1, context='2d',
+                                     gcfcf=None, **kwargs):
     """Predict, iterating over both the scattered vis_list and image
     
     The visibility and image are scattered, the visibility is predicted on each part, and then the
@@ -75,11 +77,14 @@ def predict_list_arlexecute_workflow(vis_list, model_imagelist, vis_slices=1, fa
     else:
         actual_number_facets = facets - 1
     
-    def predict_ignore_none(vis, model):
+    def predict_ignore_none(vis, model, g):
         if vis is not None:
-            return predict(vis, model, context=context, facets=facets, vis_slices=vis_slices, **kwargs)
+            return predict(vis, model, context=context, facets=facets, vis_slices=vis_slices, gcfcf=g, **kwargs)
         else:
             return None
+    
+    if gcfcf is None:
+        gcfcf = [arlexecute.execute(create_pswf_convolutionfunction)(m) for m in model_imagelist]
     
     # Loop over all frequency windows
     if facets == 1:
@@ -94,7 +99,7 @@ def predict_list_arlexecute_workflow(vis_list, model_imagelist, vis_slices=1, fa
             for sub_vis_list in sub_vis_lists:
                 # Predict visibility for this sub-visibility from this image
                 image_vis_list = arlexecute.execute(predict_ignore_none, pure=True, nout=1) \
-                    (sub_vis_list, model_imagelist[freqwin])
+                    (sub_vis_list, model_imagelist[freqwin], gcfcf[freqwin])
                 # Sum all sub-visibilities
                 image_vis_lists.append(image_vis_list)
             image_results_list.append(arlexecute.execute(visibility_gather, nout=1)
@@ -119,7 +124,8 @@ def predict_list_arlexecute_workflow(vis_list, model_imagelist, vis_slices=1, fa
                 for facet_list in facet_lists:
                     # Predict visibility for this subvisibility from this facet
                     facet_vis_list = arlexecute.execute(predict_ignore_none, pure=True, nout=1)(sub_vis_list,
-                                                                                                facet_list)
+                                                                                                facet_list,
+                                                                                                gcfcf[freqwin])
                     facet_vis_results.append(facet_vis_list)
                 # Sum the current sub-visibility over all facets
                 facet_vis_lists.append(arlexecute.execute(sum_predict_results)(facet_vis_results))
@@ -131,7 +137,7 @@ def predict_list_arlexecute_workflow(vis_list, model_imagelist, vis_slices=1, fa
 
 
 def invert_list_arlexecute_workflow(vis_list, template_model_imagelist, dopsf=False, normalize=True,
-                                    facets=1, vis_slices=1, context='2d', **kwargs):
+                                    facets=1, vis_slices=1, context='2d', gcfcf=None, **kwargs):
     """ Sum results from invert, iterating over the scattered image and vis_list
 
     :param vis_list:
@@ -170,13 +176,16 @@ def invert_list_arlexecute_workflow(vis_list, template_model_imagelist, dopsf=Fa
                 i += 1
         return result, sumwt
     
-    def invert_ignore_none(vis, model):
+    def invert_ignore_none(vis, model, g):
         if vis is not None:
             return invert(vis, model, context=context, dopsf=dopsf, normalize=normalize, facets=facets,
-                          vis_slices=vis_slices, **kwargs)
+                          gcfcf=g, vis_slices=vis_slices, **kwargs)
         else:
             return create_empty_image_like(model), 0.0
-    
+
+    if gcfcf is None:
+        gcfcf = [arlexecute.execute(create_pswf_convolutionfunction)(m) for m in template_model_imagelist]
+
     # Loop over all vis_lists independently
     results_vislist = list()
     if facets == 1:
@@ -189,7 +198,7 @@ def invert_list_arlexecute_workflow(vis_list, template_model_imagelist, dopsf=Fa
             vis_results = list()
             for sub_vis_list in sub_vis_lists:
                 vis_results.append(arlexecute.execute(invert_ignore_none, pure=True)
-                                   (sub_vis_list, template_model_imagelist[freqwin]))
+                                   (sub_vis_list, template_model_imagelist[freqwin], gcfcf[freqwin]))
             results_vislist.append(arlexecute.execute(sum_invert_results)(vis_results))
         return results_vislist
     else:
@@ -209,7 +218,7 @@ def invert_list_arlexecute_workflow(vis_list, template_model_imagelist, dopsf=Fa
                 facet_vis_results = list()
                 for facet_list in facet_lists:
                     facet_vis_results.append(
-                        arlexecute.execute(invert_ignore_none, pure=True)(sub_vis_list, facet_list))
+                        arlexecute.execute(invert_ignore_none, pure=True)(sub_vis_list, facet_list, gcfcf[freqwin]))
                 vis_results.append(arlexecute.execute(gather_image_iteration_results, nout=1)(facet_vis_results,
                                                                                               template_model_imagelist[
                                                                                                   freqwin]))
