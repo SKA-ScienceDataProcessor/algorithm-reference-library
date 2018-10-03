@@ -112,47 +112,31 @@ if __name__ == '__main__':
     
     pol_frame = PolarisationFrame("stokesIQUV")
     
-    model_list = [arlexecute.execute(create_image_from_visibility)(v, npixel=npixel, cellsize=cellsize,
-                                                                   polarisation_frame=pol_frame)
-                  for v in vis_list]
+    def invert_and_deconvolve(v):
     
-    model_list = arlexecute.persist(model_list)
+        m = create_image_from_visibility(v, npixel=npixel, cellsize=cellsize,
+                                         polarisation_frame=pol_frame)
     
-    if args.serial_invert == 'True':
-        print("Invert is serial")
-        dirty_list = [arlexecute.execute(invert_list_serial_workflow)([vis_list[i]],
-                                                                      template_model_imagelist=[model_list[i]],
-                                                                      context=context,
-                                                                      vis_slices=vis_slices)[0]
-                      for i in range(nchan)]
-        psf_list = [arlexecute.execute(invert_list_serial_workflow)([vis_list[i]],
-                                                                    template_model_imagelist=[model_list[i]],
-                                                                    context=context, dopsf=True,
-                                                                    vis_slices=vis_slices)[0]
-                    for i in range(nchan)]
-    else:
-        print("Invert is parallel")
-        dirty_list = invert_list_arlexecute_workflow(vis_list, template_model_imagelist=model_list, context=context,
-                                                     vis_slices=vis_slices)
-        psf_list = invert_list_arlexecute_workflow(vis_list, template_model_imagelist=model_list, context=context,
-                                                   dopsf=True, vis_slices=vis_slices)
-    
-    
-    def deconvolve(d, p, m):
         import time
+        sinvert=time.time()
+        d, sumwt = invert_list_serial_workflow([v], [m], context=context, dopsf=False,
+                                               vis_slices=vis_slices)[0]
+        p, sumwt = invert_list_serial_workflow([v], [m], context=context, dopsf=True,
+                                               vis_slices=vis_slices)[0]
+        print("Invert of dirty image and PSF took %.3f s" % (time.time() - sinvert))
+        
         sclean = time.time()
-        c, resid = deconvolve_cube(d[0], p[0], m, threshold=0.01, fracthresh=0.01, window_shape='quarter',
+        c, resid = deconvolve_cube(d, p, m, threshold=0.01, fracthresh=0.01, window_shape='quarter',
                                    niter=100, gain=0.1, algorithm='hogbom-complex')
         srestore = time.time()
-        r = restore_cube(c, p[0], resid)
+        r = restore_cube(c, p, resid)
         send = time.time()
         print('Clean took %.3f s, Restore took %.3f s' % (srestore-sclean, send - srestore))
         return r
     
     
     print('About assemble cubes and deconvolve each frequency')
-    restored_list = [arlexecute.execute(deconvolve)(dirty_list[c], psf_list[c], model_list[c])
-                     for c in range(nchan)]
+    restored_list = [arlexecute.execute(invert_and_deconvolve)(vis_list[c]) for c in range(nchan)]
     restored_list = arlexecute.compute(restored_list, sync=True)
     restored_cube = image_gather_channels(restored_list)
 

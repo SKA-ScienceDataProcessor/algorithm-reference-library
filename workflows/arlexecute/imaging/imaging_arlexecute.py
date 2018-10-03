@@ -34,9 +34,6 @@ import numpy
 from data_models.memory_data_models import Image
 from data_models.parameters import get_parameter
 from processing_library.image.operations import copy_image, create_empty_image_like
-from workflows.shared.imaging.imaging_shared import imaging_context
-from workflows.shared.imaging.imaging_shared import sum_invert_results, remove_sumwt, sum_predict_results, \
-    threshold_list
 from wrappers.arlexecute.execution_support.arlexecute import arlexecute
 from wrappers.arlexecute.griddata.kernels import create_pswf_convolutionfunction
 from wrappers.arlexecute.image.deconvolution import deconvolve_cube, restore_cube
@@ -46,6 +43,10 @@ from wrappers.arlexecute.image.operations import calculate_image_frequency_momen
 from wrappers.arlexecute.imaging.weighting import weight_visibility
 from wrappers.arlexecute.visibility.base import copy_visibility
 from wrappers.arlexecute.visibility.gather_scatter import visibility_scatter, visibility_gather
+
+from workflows.shared.imaging.imaging_shared import imaging_context
+from workflows.shared.imaging.imaging_shared import sum_invert_results, remove_sumwt, sum_predict_results, \
+    threshold_list
 
 log = logging.getLogger(__name__)
 
