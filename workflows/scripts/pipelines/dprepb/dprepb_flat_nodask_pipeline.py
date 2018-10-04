@@ -6,23 +6,21 @@ import numpy
 
 from data_models.parameters import arl_path
 
+
 results_dir = arl_path('test_results')
-dask_dir = arl_path('test_results/dask-work-space')
 
 from data_models.polarisation import PolarisationFrame
-from wrappers.arlexecute.visibility.base import create_visibility_from_ms, create_visibility_from_rows
-from wrappers.arlexecute.visibility.operations import append_visibility, convert_visibility_to_stokes
-from wrappers.arlexecute.visibility.vis_select import vis_select_uvrange
+from wrappers.serial.visibility.base import create_visibility_from_ms, create_visibility_from_rows
+from wrappers.serial.visibility.operations import append_visibility, convert_visibility_to_stokes
+from wrappers.serial.visibility.vis_select import vis_select_uvrange
 
-from wrappers.arlexecute.image.deconvolution import deconvolve_cube, restore_cube
-from wrappers.arlexecute.image.operations import export_image_to_fits, qa_image
-from wrappers.arlexecute.image.gather_scatter import image_gather_channels
-from wrappers.arlexecute.imaging.base import create_image_from_visibility
-from wrappers.arlexecute.imaging.base import advise_wide_field, invert_2d
+from wrappers.serial.image.deconvolution import deconvolve_cube, restore_cube
+from wrappers.serial.image.operations import export_image_to_fits, qa_image
+from wrappers.serial.image.gather_scatter import image_gather_channels
+from wrappers.serial.imaging.base import create_image_from_visibility
+from wrappers.serial.imaging.base import advise_wide_field, invert_2d
 
 from workflows.serial.imaging.imaging_serial import invert_list_serial_workflow
-
-from wrappers.arlexecute.execution_support.arlexecute import arlexecute
 
 import logging
 
@@ -35,29 +33,17 @@ def init_logging():
                         datefmt='%H:%M:%S',
                         level=logging.INFO)
 
-
 if __name__ == '__main__':
     
-    parser = argparse.ArgumentParser(description='Benchmark pipelines in numpy and dask')
-    parser.add_argument('--use_dask', type=str, default='True', help='Use Dask?')
-    parser.add_argument('--nworkers', type=int, default=4, help='Number of workers')
+    parser = argparse.ArgumentParser(description='Benchmark pipelines')
     parser.add_argument('--npixel', type=int, default=512, help='Number of pixels per axis')
     parser.add_argument('--context', dest='context', default='2d', help='Context: 2d|timeslice|wstack')
-    parser.add_argument('--memory', dest='memory', default=8, help='Memory per worker (GB)')
 
     args = parser.parse_args()
     print(args)
     
     log = logging.getLogger()
     logging.info("Starting Imaging pipeline")
-    
-    arlexecute.set_client(use_dask=args.use_dask=='True',
-                          threads_per_worker=1,
-                          memory_limit=args.memory * 1024 * 1024 * 1024,
-                          n_workers=args.nworkers,
-                          local_dir=dask_dir)
-    print(arlexecute.client)
-    arlexecute.run(init_logging)
     
     nchan = 40
     uvmax = 450.0
@@ -92,18 +78,16 @@ if __name__ == '__main__':
         vf.configuration.diameter[...] = 35.0
         rows = vis_select_uvrange(vf, 0.0, uvmax=uvmax)
         return create_visibility_from_rows(vf, rows)
-       
+    
     # Load data from previous simulation
     print('Reading visibilities')
-    vis_list = [arlexecute.execute(load_ms)(c) for c in range(nchan)]
-    vis_list = arlexecute.persist(vis_list)
+    vis_list = [load_ms(c) for c in range(nchan)]
     
     # The vis data are on the workers so we run the advice function on the workers
     # without transfering the data back to the host.
-    advice_list = [arlexecute.execute(advise_wide_field)(v, guard_band_image=8.0, delA=0.02,
+    advice_list = [advise_wide_field(v, guard_band_image=8.0, delA=0.02,
                                                          wprojection_planes=1)
                    for _, v in enumerate(vis_list)]
-    advice_list = arlexecute.compute(advice_list, sync=True)
     print(advice_list[0])
     
     pol_frame = PolarisationFrame("stokesIQUV")
@@ -118,7 +102,7 @@ if __name__ == '__main__':
             p, sumwt = invert_2d(v, m, dopsf=True)
         else:
             d, sumwt = invert_list_serial_workflow([v], [m], context=context, dopsf=False,
-                                                   vis_slices=vis_slices)[0]
+                                               vis_slices=vis_slices)[0]
             p, sumwt = invert_list_serial_workflow([v], [m], context=context, dopsf=True,
                                                vis_slices=vis_slices)[0]
         c, resid = deconvolve_cube(d, p, m, threshold=0.01, fracthresh=0.01, window_shape='quarter',
@@ -128,16 +112,11 @@ if __name__ == '__main__':
     
     
     print('About assemble cubes and deconvolve each frequency')
-    restored_list = [arlexecute.execute(invert_and_deconvolve)(vis_list[c]) for c in range(nchan)]
-    restored_list = arlexecute.compute(restored_list, sync=True)
-
+    restored_list = [invert_and_deconvolve(vis_list[c]) for c in range(nchan)]
+    
     print("Processing took %.3f s" % (time.time() - start))
     restored_cube = image_gather_channels(restored_list)
 
     print(qa_image(restored_cube, context='CLEAN restored cube'))
-    export_image_to_fits(restored_cube, '%s/dprepb_arlexecute_%s_clean_restored_cube.fits' % (results_dir, context))
+    export_image_to_fits(restored_cube, '%s/dprepb_serial_%s_clean_restored_cube.fits' % (results_dir, context))
     
-    try:
-        arlexecute.close()
-    except:
-        pass

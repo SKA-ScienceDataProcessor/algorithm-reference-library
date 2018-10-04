@@ -86,6 +86,9 @@ if __name__ == '__main__':
 
     input_vis = [arl_path('data/vis/sim-1.ms'), arl_path('data/vis/sim-2.ms')]
     
+    import time
+    start = time.time()
+    
     def load_ms(c):
         v1 = create_visibility_from_ms(input_vis[0], channum=[c])[0]
         v2 = create_visibility_from_ms(input_vis[1], channum=[c])[0]
@@ -94,8 +97,7 @@ if __name__ == '__main__':
         vf.configuration.diameter[...] = 35.0
         rows = vis_select_uvrange(vf, 0.0, uvmax=uvmax)
         return create_visibility_from_rows(vf, rows)
-    
-    
+        
     # Load data from previous simulation
     vis_list = [arlexecute.execute(load_ms)(c) for c in range(nchan)]
     
@@ -154,6 +156,9 @@ if __name__ == '__main__':
     restored_list = [arlexecute.execute(deconvolve)(dirty_list[c], psf_list[c], model_list[c])
                      for c in range(nchan)]
     restored_list = arlexecute.compute(restored_list, sync=True)
+
+    print("Processing took %.3f s" % (time.time() - start))
+
     restored_cube = image_gather_channels(restored_list)
 
     print(qa_image(restored_cube, context='CLEAN restored cube'))
