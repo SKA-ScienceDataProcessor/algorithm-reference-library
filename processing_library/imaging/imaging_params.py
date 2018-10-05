@@ -6,6 +6,7 @@ import logging
 import warnings
 
 from astropy.wcs import FITSFixedWarning
+warnings.simplefilter('ignore', FITSFixedWarning)
 
 import numpy
 
@@ -40,9 +41,7 @@ def get_frequency_map(vis, im: Image = None):
     
     else:
         # We can map these to image channels
-        with warnings.catch_warnings():
-            warnings.simplefilter('ignore', FITSFixedWarning)
-            v2im_map = im.wcs.sub(['spectral']).wcs_world2pix(ufrequency, 0)[0].astype('int')
+        v2im_map = im.wcs.sub(['spectral']).wcs_world2pix(ufrequency, 0)[0].astype('int')
         
         spectral_mode = 'channel'
         nrows = len(vis.frequency)

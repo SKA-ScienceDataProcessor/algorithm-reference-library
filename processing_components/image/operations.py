@@ -4,10 +4,12 @@
 
 import copy
 import warnings
+from astropy.wcs import FITSFixedWarning
+warnings.simplefilter('ignore', FITSFixedWarning)
 
 import numpy
 from astropy.io import fits
-from astropy.wcs import FITSFixedWarning, WCS
+from astropy.wcs import WCS
 from astropy.wcs.utils import skycoord_to_pixel
 from reproject import reproject_interp
 
@@ -41,12 +43,11 @@ def import_image_from_fits(fitsfile: str) -> Image:
     :return: Image
     """
     fim = Image()
-    with warnings.catch_warnings():
-        warnings.simplefilter('ignore', FITSFixedWarning)
-        hdulist = fits.open(fitsfile)
-        fim.data = hdulist[0].data
-        fim.wcs = WCS(fitsfile)
-        hdulist.close()
+    warnings.simplefilter('ignore', FITSFixedWarning)
+    hdulist = fits.open(fitsfile)
+    fim.data = hdulist[0].data
+    fim.wcs = WCS(fitsfile)
+    hdulist.close()
     
     if len(fim.data) == 2:
         fim.polarisation_frame = PolarisationFrame('stokesI')
@@ -216,9 +217,7 @@ def calculate_image_frequency_moments(im: Image, reference_frequency=None, nmome
     assert isinstance(im, Image)
     nchan, npol, ny, nx = im.shape
     channels = numpy.arange(nchan)
-    with warnings.catch_warnings():
-        warnings.simplefilter('ignore', FITSFixedWarning)
-        freq = im.wcs.sub(['spectral']).wcs_pix2world(channels, 0)[0]
+    freq = im.wcs.sub(['spectral']).wcs_pix2world(channels, 0)[0]
     
     assert nmoments <= nchan, "Number of moments %d cannot exceed the number of channels %d" % (nmoments, nchan)
     
@@ -272,9 +271,7 @@ def calculate_image_from_frequency_moments(im: Image, moment_image: Image, refer
     assert moment_image.wcs.wcs.ctype[3] == 'MOMENT', "Second image should be a moment image"
     
     channels = numpy.arange(nchan)
-    with warnings.catch_warnings():
-        warnings.simplefilter('ignore', FITSFixedWarning)
-        freq = im.wcs.sub(['spectral']).wcs_pix2world(channels, 0)[0]
+    freq = im.wcs.sub(['spectral']).wcs_pix2world(channels, 0)[0]
     
     if reference_frequency is None:
         reference_frequency = numpy.average(freq)
@@ -309,9 +306,7 @@ def remove_continuum_image(im: Image, degree=1, mask=None):
     
     nchan, npol, ny, nx = im.shape
     channels = numpy.arange(nchan)
-    with warnings.catch_warnings():
-        warnings.simplefilter('ignore', FITSFixedWarning)
-        frequency = im.wcs.sub(['spectral']).wcs_pix2world(channels, 0)[0]
+    frequency = im.wcs.sub(['spectral']).wcs_pix2world(channels, 0)[0]
     frequency -= frequency[nchan // 2]
     frequency /= numpy.max(frequency)
     wt = numpy.ones_like(frequency)

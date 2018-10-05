@@ -5,12 +5,14 @@ Functions that define and manipulate images. Images are just data and a World Co
 import copy
 import logging
 import warnings
+from astropy.wcs import FITSFixedWarning
+warnings.simplefilter('ignore', FITSFixedWarning)
 
 import numpy
 
 import astropy.units as u
 from astropy.coordinates import SkyCoord
-from astropy.wcs import FITSFixedWarning
+
 from astropy.wcs import WCS
 
 from data_models.polarisation import PolarisationFrame
@@ -126,9 +128,7 @@ def polarisation_frame_from_wcs(wcs, shape) -> PolarisationFrame:
         polarisation_frame = PolarisationFrame("stokesI")
     else:
         npol = shape[1]
-        with warnings.catch_warnings():
-            warnings.simplefilter('ignore', FITSFixedWarning)
-            pol = wcs.sub(['stokes']).wcs_pix2world(range(npol), 0)[0]
+        pol = wcs.sub(['stokes']).wcs_pix2world(range(npol), 0)[0]
         pol = numpy.array(pol, dtype='int')
         for key in PolarisationFrame.fits_codes.keys():
             keypol = numpy.array(PolarisationFrame.fits_codes[key])
