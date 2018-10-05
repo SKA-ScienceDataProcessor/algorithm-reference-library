@@ -321,7 +321,12 @@ def restore_cube(model: Image, psf: Image, residual=None, **kwargs) -> Image:
             size = 1.0
     else:
         log.debug('restore_cube: Using specified psfwidth = %s' % (size))
-    
+
+    # TODO: Remove filter when astropy fixes convolve
+    import warnings
+    warnings.simplefilter(action='ignore', category=FutureWarning)
+    from astropy.convolution import Gaussian2DKernel, convolve_fft
+
     # By convention, we normalise the peak not the integral so this is the volume of the Gaussian
     norm = 2.0 * numpy.pi * size ** 2
     gk = Gaussian2DKernel(size)

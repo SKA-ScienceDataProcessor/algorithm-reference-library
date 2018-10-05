@@ -175,9 +175,13 @@ def smooth_image(model: Image, width=1.0):
     :param width: Kernel in pixels
     
     """
+    # TODO: Remove filter when astropy fixes convolve
+    import warnings
+    warnings.simplefilter(action='ignore', category=FutureWarning)
     import astropy.convolution
     
     assert isinstance(model, Image), model
+    
     kernel = astropy.convolution.kernels.Gaussian2DKernel(width)
     
     cmodel = create_empty_image_like(model)

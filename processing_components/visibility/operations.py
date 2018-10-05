@@ -5,6 +5,9 @@
 import logging
 from typing import Union
 
+import warnings
+warnings.simplefilter(action='ignore', category=FutureWarning)
+
 import numpy
 from astropy.coordinates import SkyCoord
 
