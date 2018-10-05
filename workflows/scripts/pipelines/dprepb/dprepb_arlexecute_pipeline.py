@@ -44,6 +44,7 @@ if __name__ == '__main__':
     parser.add_argument('--serial_invert', type=str, default='False',
                         help='Use serial invert?')
     parser.add_argument('--nworkers', type=int, default=4, help='Number of workers')
+    parser.add_argument('--threads', type=int, default=1, help='Number of threads per worker')
     parser.add_argument('--npixel', type=int, default=512, help='Number of pixels per axis')
     parser.add_argument('--context', dest='context', default='2d', help='Context: 2d|timeslice|wstack')
     parser.add_argument('--memory', dest='memory', default=8, help='Memory per worker (GB)')
@@ -55,7 +56,7 @@ if __name__ == '__main__':
     logging.info("Starting Imaging pipeline")
     
     arlexecute.set_client(use_dask=args.use_dask=='True',
-                          threads_per_worker=1,
+                          threads_per_worker=args.threads,
                           memory_limit=args.memory * 1024 * 1024 * 1024,
                           n_workers=args.nworkers,
                           local_dir=dask_dir)
@@ -66,7 +67,7 @@ if __name__ == '__main__':
     uvmax = 450.0
     nfreqwin = 2
     centre = 0
-    cellsize = 0.0001
+    cellsize = 0.0004
     npixel = args.npixel
     # This is about 9 pixels and causes the astropy.convolve function to take forever. Need to do
     # by FFT

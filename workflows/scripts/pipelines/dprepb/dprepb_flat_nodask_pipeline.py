@@ -49,7 +49,7 @@ if __name__ == '__main__':
     uvmax = 450.0
     nfreqwin = 2
     centre = 0
-    cellsize = 0.0001
+    cellsize = 0.0004
     npixel = args.npixel
     psfwidth = (((8.0 / 2.35482004503) / 60.0) * numpy.pi / 180.0) / cellsize
     
@@ -70,29 +70,17 @@ if __name__ == '__main__':
     import time
     start = time.time()
     
-    def load_ms(c):
+    pol_frame = PolarisationFrame("stokesIQUV")
+    
+    def load_invert_and_deconvolve(c):
+    
         v1 = create_visibility_from_ms(input_vis[0], channum=[c])[0]
         v2 = create_visibility_from_ms(input_vis[1], channum=[c])[0]
         vf = append_visibility(v1, v2)
         vf = convert_visibility_to_stokes(vf)
         vf.configuration.diameter[...] = 35.0
         rows = vis_select_uvrange(vf, 0.0, uvmax=uvmax)
-        return create_visibility_from_rows(vf, rows)
-    
-    # Load data from previous simulation
-    print('Reading visibilities')
-    vis_list = [load_ms(c) for c in range(nchan)]
-    
-    # The vis data are on the workers so we run the advice function on the workers
-    # without transfering the data back to the host.
-    advice_list = [advise_wide_field(v, guard_band_image=8.0, delA=0.02,
-                                                         wprojection_planes=1)
-                   for _, v in enumerate(vis_list)]
-    print(advice_list[0])
-    
-    pol_frame = PolarisationFrame("stokesIQUV")
-    
-    def invert_and_deconvolve(v):
+        v = create_visibility_from_rows(vf, rows)
     
         m = create_image_from_visibility(v, npixel=npixel, cellsize=cellsize,
                                          polarisation_frame=pol_frame)
@@ -107,12 +95,12 @@ if __name__ == '__main__':
                                                vis_slices=vis_slices)[0]
         c, resid = deconvolve_cube(d, p, m, threshold=0.01, fracthresh=0.01, window_shape='quarter',
                                    niter=100, gain=0.1, algorithm='hogbom-complex')
-        r = restore_cube(c, p, resid)
+        r = restore_cube(c, p, resid, psfwidth=psfwidth)
         return r
     
     
     print('About assemble cubes and deconvolve each frequency')
-    restored_list = [invert_and_deconvolve(vis_list[c]) for c in range(nchan)]
+    restored_list = [load_invert_and_deconvolve(c) for c in range(nchan)]
     
     print("Processing took %.3f s" % (time.time() - start))
     restored_cube = image_gather_channels(restored_list)
