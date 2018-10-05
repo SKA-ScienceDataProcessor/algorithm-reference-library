@@ -122,15 +122,6 @@ class TestVisibilityOperations(unittest.TestCase):
         assert (vis.data['vis'][0, 0].real == 1.0)
         assert (self.vis.data['vis'][0, 0].real == 0.0)
 
-    def test_visibilitysum(self):
-        self.vis = create_visibility(self.lowcore, self.times, self.frequency,
-                                     channel_bandwidth=self.channel_bandwidth, phasecentre=self.phasecentre, weight=1.0,
-                                     polarisation_frame=PolarisationFrame("stokesIQUV"))
-        self.vismodel = predict_skycomponent_visibility(self.vis, self.comp)
-        # Sum the visibilities in the correct_visibility direction. This is limited by numerical precision
-        summedflux, weight = sum_visibility(self.vismodel, self.compreldirection)
-        assert_allclose(self.flux, summedflux, rtol=1e-7)
-
     def test_phase_rotation_identity(self):
         self.vis = create_visibility(self.lowcore, self.times, self.frequency,
                                      channel_bandwidth=self.channel_bandwidth,

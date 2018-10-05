@@ -6,7 +6,8 @@ import logging
 from typing import Union
 
 import warnings
-warnings.simplefilter(action='ignore', category=FutureWarning)
+# TODO: Remove filter when fixed to use ndarray
+warnings.simplefilter(action='ignore', category=PendingDeprecationWarning)
 
 import numpy
 from astropy.coordinates import SkyCoord
