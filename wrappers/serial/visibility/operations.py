@@ -10,3 +10,4 @@ from processing_components.visibility.operations import qa_visibility
 from processing_components.visibility.operations import remove_continuum_blockvisibility
 from processing_components.visibility.operations import divide_visibility
 from processing_components.visibility.operations import integrate_visibility_by_channel
+from processing_components.visibility.operations import convert_visibility_to_stokes

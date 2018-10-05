@@ -10,6 +10,8 @@ import astropy.units as u
 import numpy
 from astropy.coordinates import SkyCoord
 
+from data_models.polarisation import PolarisationFrame
+
 from processing_library.image.operations import create_image
 from processing_components.griddata.kernels  import create_pswf_convolutionfunction, \
     create_awterm_convolutionfunction, create_box_convolutionfunction
@@ -29,7 +31,8 @@ class TestGridDataKernels(unittest.TestCase):
         self.dir = arl_path('test_results')
         
         self.phasecentre = SkyCoord(ra=+180.0 * u.deg, dec=-60.0 * u.deg, frame='icrs', equinox='J2000')
-        self.image = create_image(npixel=512, cellsize=0.0005, phasecentre=self.phasecentre)
+        self.image = create_image(npixel=512, cellsize=0.0005, phasecentre=self.phasecentre,
+                                  polarisation_frame=PolarisationFrame("stokesIQUV"))
     
     def test_create_convolutionfunction(self):
         cf = create_convolutionfunction_from_image(self.image, nz=1)

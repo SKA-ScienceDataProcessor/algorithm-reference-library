@@ -45,3 +45,4 @@ dask-worker-space
 *.hdf
 .coverage.*
 .coverage
+dask-work-space

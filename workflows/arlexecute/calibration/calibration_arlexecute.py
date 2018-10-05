@@ -34,7 +34,7 @@ def calibrate_list_arlexecute_workflow(vis_list, model_vislist, calibration_cont
         global_point_vis_list = arlexecute.execute(visibility_gather_channel, nout=1)(point_vislist)
         global_point_vis_list = arlexecute.execute(integrate_visibility_by_channel, nout=1)(global_point_vis_list)
         # This is a global solution so we only compute one gain table
-        _, gt_list = arlexecute.execute(solve_and_apply, pure=True, nout=2)(global_point_vis_list, **kwargs)
+        _, gt_list = arlexecute.execute(solve_and_apply, pure=True, nout=2)(global_point_vis_list)
         return [arlexecute.execute(apply_gaintable, nout=len(vis_list))(v, gt_list, inverse=True)
                 for v in vis_list]
     else:

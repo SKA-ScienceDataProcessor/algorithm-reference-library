@@ -409,7 +409,7 @@ def convert_image_to_hdf(im: Image, f):
     :param f: HDF root
     :return:
     """
-    assert isinstance(im, Image)
+    assert isinstance(im, Image), im
     
     f.attrs['ARL_data_model'] = 'Image'
     f['data'] = im.data

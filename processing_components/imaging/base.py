@@ -103,7 +103,7 @@ def normalize_sumwt(im: Image, sumwt) -> Image:
     return im
 
 
-def predict_2d(vis: Union[BlockVisibility, Visibility], model: Image, gcf=None, cf=None,
+def predict_2d(vis: Union[BlockVisibility, Visibility], model: Image, gcfcf=None,
                **kwargs) -> Union[BlockVisibility, Visibility]:
     """ Predict using convolutional degridding.
 
@@ -112,6 +112,7 @@ def predict_2d(vis: Union[BlockVisibility, Visibility], model: Image, gcf=None, 
 
     :param vis: Visibility to be predicted
     :param model: model image
+    :param gcfcf: (Grid correction function i.e. in image space, Convolution function i.e. in uv space)
     :return: resulting visibility (in place works)
     """
     if isinstance(vis, BlockVisibility):
@@ -124,10 +125,12 @@ def predict_2d(vis: Union[BlockVisibility, Visibility], model: Image, gcf=None, 
     
     _, _, ny, nx = model.data.shape
     
-    if gcf is None or cf is None:
+    if gcfcf is None:
         gcf, cf = create_pswf_convolutionfunction(model,
                                                   support=get_parameter(kwargs, "support", 6),
                                                   oversampling=get_parameter(kwargs, "oversampling", 128))
+    else:
+        gcf, cf = gcfcf
     
     griddata = create_griddata_from_image(model)
     griddata = fft_image_to_griddata(model, griddata, gcf)
@@ -144,7 +147,7 @@ def predict_2d(vis: Union[BlockVisibility, Visibility], model: Image, gcf=None, 
 
 
 def invert_2d(vis: Visibility, im: Image, dopsf: bool = False, normalize: bool = True,
-              gcf=None, cf=None, **kwargs) -> (Image, numpy.ndarray):
+              gcfcf=None, **kwargs) -> (Image, numpy.ndarray):
     """ Invert using 2D convolution function, using the specified convolution function
 
     Use the image im as a template. Do PSF in a separate call.
@@ -156,8 +159,7 @@ def invert_2d(vis: Visibility, im: Image, dopsf: bool = False, normalize: bool =
     :param im: image template (not changed)
     :param dopsf: Make the psf instead of the dirty image
     :param normalize: Normalize by the sum of weights (True)
-    :param gcf: Grid correction function i.e. in image space
-    :param cf: Convolution function i.e. in uv space
+    :param gcfcf: (Grid correction function i.e. in image space, Convolution function i.e. in uv space)
     :return: resulting image
 
     """
@@ -170,12 +172,14 @@ def invert_2d(vis: Visibility, im: Image, dopsf: bool = False, normalize: bool =
         svis.data['vis'] = numpy.ones_like(svis.data['vis'])
     
     svis = shift_vis_to_image(svis, im, tangent=True, inverse=False)
-    
-    if gcf is None or cf is None:
+
+    if gcfcf is None:
         gcf, cf = create_pswf_convolutionfunction(im,
                                                   support=get_parameter(kwargs, "support", 6),
                                                   oversampling=get_parameter(kwargs, "oversampling", 128))
-    
+    else:
+        gcf, cf = gcfcf
+
     griddata = create_griddata_from_image(im)
     griddata, sumwt = grid_visibility_to_griddata(svis, griddata=griddata, cf=cf)
     
