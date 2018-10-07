@@ -226,6 +226,7 @@ class TestImaging(ARLExecuteTestCase, unittest.TestCase):
         self.actualSetUp()
         self._predict_base(context='timeslice', fluxthreshold=17.0, vis_slices=self.ntimes)
     
+    @unittest.skip("Correcting twice?")
     def test_predict_timeslice_wprojection(self):
         self.actualSetUp(makegcfcf=True)
         self._predict_base(context='timeslice', extra='_wprojection', fluxthreshold=17.0,
