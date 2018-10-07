@@ -212,7 +212,7 @@ def invert_list_serial_workflow(vis_list, template_model_imagelist, dopsf=False,
     return results_vislist
 
 
-def residual_list_serial_workflow(vis, model_imagelist, context='2d', **kwargs):
+def residual_list_serial_workflow(vis, model_imagelist, context='2d', gcfcf=None, **kwargs):
     """ Create a graph to calculate residual image using w stacking and faceting
 
     :param context:

@@ -45,6 +45,7 @@ class TestImagingDeconvolveGraph(ARLExecuteTestCase, unittest.TestCase):
         self.freqwin = freqwin
         self.vis_list = list()
         self.ntimes = 5
+        cellsize=0.001
         self.times = numpy.linspace(-3.0, +3.0, self.ntimes) * numpy.pi / 12.0
         self.frequency = numpy.linspace(0.8e8, 1.2e8, self.freqwin)
         
@@ -79,6 +80,7 @@ class TestImagingDeconvolveGraph(ARLExecuteTestCase, unittest.TestCase):
         
         self.model_imagelist = [arlexecute.execute(create_unittest_model, nout=freqwin)(self.vis_list[freqwin],
                                                                                         self.image_pol,
+                                                                                        cellsize=cellsize,
                                                                                         npixel=self.npixel)
                                 for freqwin, _ in enumerate(self.frequency)]
         
@@ -107,23 +109,27 @@ class TestImagingDeconvolveGraph(ARLExecuteTestCase, unittest.TestCase):
             self.vis_list = [arlexecute.execute(insert_unittest_errors)(self.vis_list[i])
                              for i, _ in enumerate(self.frequency)]
             
-        self.vis_list = arlexecute.compute(self.vis_list, sync=True)
-    
+#        self.vis_list = arlexecute.compute(self.vis_list, sync=True)
+        self.vis_list = arlexecute.persist(self.vis_list)
+        self.model_imagelist = arlexecute.scatter(self.model_imagelist)
+
     def test_time_setup(self):
         self.actualSetUp()
     
     def test_deconvolve_spectral(self):
         self.actualSetUp(add_errors=True)
-        dirty_imagelist = invert_list_arlexecute_workflow(self.vis_list, self.model_imagelist,
-                                                          context='2d',
+        dirty_imagelist = invert_list_arlexecute_workflow(self.vis_list, self.model_imagelist, context='2d',
                                                           dopsf=False, normalize=True)
         psf_imagelist = invert_list_arlexecute_workflow(self.vis_list, self.model_imagelist,
                                                         context='2d',
                                                         dopsf=True, normalize=True)
+        dirty_imagelist = arlexecute.persist(dirty_imagelist)
+        psf_imagelist = arlexecute.persist(psf_imagelist)
         deconvolved, _ = deconvolve_list_arlexecute_workflow(dirty_imagelist, psf_imagelist, self.model_imagelist,
                                                              niter=1000,
                                                              fractional_threshold=0.1, scales=[0, 3, 10],
                                                              threshold=0.1, gain=0.7)
+        deconvolved = arlexecute.persist(deconvolved)
         deconvolved = arlexecute.compute(deconvolved, sync=True)
         
         export_image_to_fits(deconvolved[0], '%s/test_imaging_%s_deconvolve_spectral.fits' %
@@ -135,13 +141,17 @@ class TestImagingDeconvolveGraph(ARLExecuteTestCase, unittest.TestCase):
                                                           dopsf=False, normalize=True)
         psf_imagelist = invert_list_arlexecute_workflow(self.vis_list, self.model_imagelist, context='2d',
                                                         dopsf=True, normalize=True)
+        dirty_imagelist = arlexecute.persist(dirty_imagelist)
+        psf_imagelist = arlexecute.persist(psf_imagelist)
         dec_imagelist, _ = deconvolve_list_arlexecute_workflow(dirty_imagelist, psf_imagelist, self.model_imagelist,
                                                                niter=1000,
                                                                fractional_threshold=0.01, scales=[0, 3, 10],
                                                                algorithm='mmclean', nmoments=3, nchan=self.freqwin,
                                                                threshold=0.1, gain=0.7)
+        dec_imagelist = arlexecute.persist(dec_imagelist)
         residual_imagelist = residual_list_arlexecute_workflow(self.vis_list, model_imagelist=dec_imagelist,
-                                                               context='wstack', vis_slices=51)
+                                                               context='2d')
+        residual_imagelist = arlexecute.persist(residual_imagelist)
         restored_list = restore_list_arlexecute_workflow(model_imagelist=dec_imagelist, psf_imagelist=psf_imagelist,
                                                          residual_imagelist=residual_imagelist,
                                                          empty=self.model_imagelist)
@@ -152,18 +162,22 @@ class TestImagingDeconvolveGraph(ARLExecuteTestCase, unittest.TestCase):
     
     def test_deconvolve_and_restore_cube_mmclean_facets(self):
         self.actualSetUp(add_errors=True)
-        dirty_imagelist = invert_list_arlexecute_workflow(self.vis_list, self.model_imagelist,
-                                                          context='2d', dopsf=False, normalize=True)
-        psf_imagelist = invert_list_arlexecute_workflow(self.vis_list, self.model_imagelist,
-                                                        context='2d', dopsf=True, normalize=True)
+        dirty_imagelist = invert_list_arlexecute_workflow(self.vis_list, self.model_imagelist, context='2d',
+                                                          dopsf=False, normalize=True)
+        psf_imagelist = invert_list_arlexecute_workflow(self.vis_list, self.model_imagelist, context='2d',
+                                                        dopsf=True, normalize=True)
+        dirty_imagelist = arlexecute.persist(dirty_imagelist)
+        psf_imagelist = arlexecute.persist(psf_imagelist)
         dec_imagelist, _ = deconvolve_list_arlexecute_workflow(dirty_imagelist, psf_imagelist, self.model_imagelist,
                                                                niter=1000,
                                                                fractional_threshold=0.1, scales=[0, 3, 10],
                                                                algorithm='mmclean', nmoments=3, nchan=self.freqwin,
                                                                threshold=0.01, gain=0.7, deconvolve_facets=8,
                                                                deconvolve_overlap=8, deconvolve_taper='tukey')
+        dec_imagelist = arlexecute.persist(dec_imagelist)
         residual_imagelist = residual_list_arlexecute_workflow(self.vis_list, model_imagelist=dec_imagelist,
                                                                context='2d')
+        residual_imagelist = arlexecute.persist(residual_imagelist)
         restored_list = restore_list_arlexecute_workflow(model_imagelist=dec_imagelist, psf_imagelist=psf_imagelist,
                                                          residual_imagelist=residual_imagelist,
                                                          empty=self.model_imagelist)
