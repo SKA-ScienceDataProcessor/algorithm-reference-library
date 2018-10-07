@@ -115,11 +115,7 @@ def predict_list_arlexecute_workflow(vis_list, model_imagelist, vis_slices=1, fa
     else:
         image_results_list_list = list()
         for freqwin, vis_list in enumerate(vis_list):
-            if len(gcfcf) > 1:
-                g = gcfcf[freqwin]
-            else:
-                g = gcfcf[0]
-            # Create the graph to divide an image into facets. This is by reference.
+           # Create the graph to divide an image into facets. This is by reference.
             facet_lists = arlexecute.execute(image_scatter_facets, nout=actual_number_facets ** 2)(
                 model_imagelist[freqwin],
                 facets=facets)
@@ -135,7 +131,7 @@ def predict_list_arlexecute_workflow(vis_list, model_imagelist, vis_slices=1, fa
                     # Predict visibility for this subvisibility from this facet
                     facet_vis_list = arlexecute.execute(predict_ignore_none, pure=True, nout=1)(sub_vis_list,
                                                                                                 facet_list,
-                                                                                                g)
+                                                                                                None)
                     facet_vis_results.append(facet_vis_list)
                 # Sum the current sub-visibility over all facets
                 facet_vis_lists.append(arlexecute.execute(sum_predict_results)(facet_vis_results))
@@ -194,7 +190,8 @@ def invert_list_arlexecute_workflow(vis_list, template_model_imagelist, dopsf=Fa
         else:
             return create_empty_image_like(model), 0.0
 
-    if gcfcf is None:
+    # If we are doing facets, we need to create the gcf for each image
+    if gcfcf is None and facets == 1:
         gcfcf = [arlexecute.execute(create_pswf_convolutionfunction)(template_model_imagelist[0])]
 
     # Loop over all vis_lists independently
@@ -219,10 +216,6 @@ def invert_list_arlexecute_workflow(vis_list, template_model_imagelist, dopsf=Fa
         return results_vislist
     else:
         for freqwin, vis_list in enumerate(vis_list):
-            if len(gcfcf) > 1:
-                g = gcfcf[freqwin]
-            else:
-                g = gcfcf[0]
             # Create the graph to divide an image into facets. This is by reference.
             facet_lists = arlexecute.execute(image_scatter_facets, nout=actual_number_facets ** 2)(
                 template_model_imagelist[
@@ -238,7 +231,7 @@ def invert_list_arlexecute_workflow(vis_list, template_model_imagelist, dopsf=Fa
                 facet_vis_results = list()
                 for facet_list in facet_lists:
                     facet_vis_results.append(
-                        arlexecute.execute(invert_ignore_none, pure=True)(sub_vis_list, facet_list, g))
+                        arlexecute.execute(invert_ignore_none, pure=True)(sub_vis_list, facet_list, None))
                 vis_results.append(arlexecute.execute(gather_image_iteration_results, nout=1)
                                    (facet_vis_results, template_model_imagelist[freqwin]))
             results_vislist.append(arlexecute.execute(sum_invert_results)(vis_results))
