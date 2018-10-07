@@ -77,7 +77,7 @@ def fit_uvwplane(vis: Visibility, remove=False) -> (Image, float, float):
 
 
 def predict_timeslice_single(vis: Visibility, model: Image, predict=predict_2d, remove=True,
-                             gcfcf=None, facets=1, vis_slices=1, **kwargs) -> Visibility:
+                             gcfcf=None, **kwargs) -> Visibility:
     """ Predict using a single time slices.
     
     This fits a single plane and corrects the image geometry.
@@ -86,6 +86,7 @@ def predict_timeslice_single(vis: Visibility, model: Image, predict=predict_2d, 
     :param model: model image
     :param predict:
     :param remove: Remove fitted w (so that wprojection will do the right thing)
+    :param gcfcf: (Grid correction function, convolution function)
     :return: resulting visibility (in place works)
     """
     log.debug("predict_timeslice: predicting using time slices")
@@ -152,7 +153,7 @@ def lm_distortion(im: Image, a, b) -> (numpy.ndarray, numpy.ndarray, numpy.ndarr
     return l2d, m2d, ldistorted, mdistorted
 
 
-def invert_timeslice_single(vis: Visibility, im: Image, dopsf, normalize=True, facets=1, vis_slices=1,
+def invert_timeslice_single(vis: Visibility, im: Image, dopsf, normalize=True,
                             gcfcf=None, **kwargs) -> (Image, numpy.ndarray):
     """Process single time slice
     
@@ -160,6 +161,7 @@ def invert_timeslice_single(vis: Visibility, im: Image, dopsf, normalize=True, f
     :param vis: Visibility to be inverted
     :param im: image template (not changed)
     :param dopsf: Make the psf instead of the dirty image
+    :param gcfcf: (Grid correction function, convolution function)
     :param normalize: Normalize by the sum of weights (True)
     """
     inchan, inpol, ny, nx = im.shape

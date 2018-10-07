@@ -1,6 +1,8 @@
 # coding: utf-8
 
-# # Pipeline processing using Das
+# # Pipeline processing using MPI
+
+# Run using mpiexec -n nrank python dprepb_flat_mpi_pipeline.py
 
 import numpy
 
@@ -127,10 +129,10 @@ if __name__ == '__main__':
     restored_list = comm.gather(restored_images)
 
     if rank ==0:
-        print("Processing took %.3f s" % (time.time() - start))
         print('About to assemble cubes')
         restored_list = [item for sublist in restored_list for item in sublist]
         restored_cube = image_gather_channels(restored_list)
-    
+        print("Processing took %.3f s" % (time.time() - start))
+
         print(qa_image(restored_cube, context='CLEAN restored cube'))
         export_image_to_fits(restored_cube, '%s/dprepb_arlexecute_%s_clean_restored_cube.fits' % (results_dir, context))

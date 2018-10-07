@@ -212,7 +212,7 @@ class TestImaging(unittest.TestCase):
     def test_predict_timeslice_wprojection(self):
         self.actualSetUp(makegcfcf=True)
         self._predict_base(context='timeslice', extra='_wprojection', fluxthreshold=17.0,
-                           vis_slices=self.ntimes, gcfcf=self.gcfcf_joint)
+                           vis_slices=self.ntimes, gcfcf=self.gcfcf)
 
     def test_predict_wprojection(self):
         self.actualSetUp(makegcfcf=True)
@@ -276,7 +276,7 @@ class TestImaging(unittest.TestCase):
     def test_invert_timeslice_wprojection(self):
         self.actualSetUp(makegcfcf=True)
         self._invert_base(context='timeslice', extra='_wprojection', positionthreshold=1.0,
-                          check_components=True, vis_slices=self.ntimes // 2, gcfcf=self.gcfcf_joint)
+                          check_components=True, vis_slices=self.ntimes // 2, gcfcf=self.gcfcf)
 
     def test_invert_wprojection(self):
         self.actualSetUp(makegcfcf=True)

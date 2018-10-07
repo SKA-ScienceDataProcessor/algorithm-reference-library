@@ -349,23 +349,6 @@ def create_image_from_visibility(vis, **kwargs) -> Image:
     return create_image_from_array(numpy.zeros(shape), wcs=w, polarisation_frame=pol_frame)
 
 
-def residual_image(vis: Visibility, model: Image, invert_residual=invert_2d, predict_residual=predict_2d,
-                   **kwargs) -> Tuple[Visibility, Image, numpy.ndarray]:
-    """Calculate residual image and visibility
-
-    :param vis: Visibility to be inverted
-    :param im: image template (not changed)
-    :param invert: invert to be used (default invert_2d)
-    :param predict: predict to be used (default predict_2d)
-    :return: residual visibility, residual image, sum of weights
-    """
-    visres = copy_visibility(vis, zero=True)
-    visres = predict_residual(visres, model, **kwargs)
-    visres.data['vis'] = vis.data['vis'] - visres.data['vis']
-    dirty, sumwt = invert_residual(visres, model, dopsf=False, **kwargs)
-    return visres, dirty, sumwt
-
-
 def advise_wide_field(vis: Visibility, delA=0.02, oversampling_synthesised_beam=3.0, guard_band_image=6.0, facets=1,
                       wprojection_planes=1):
     """ Advise on parameters for wide field imaging.

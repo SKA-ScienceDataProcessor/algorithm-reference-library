@@ -1,6 +1,6 @@
 # coding: utf-8
 
-# # Pipeline processing using Das
+# # Pipeline processing using Dask
 
 import numpy
 
@@ -21,6 +21,7 @@ from wrappers.arlexecute.imaging.base import create_image_from_visibility
 from wrappers.arlexecute.imaging.base import invert_2d
 
 from workflows.serial.imaging.imaging_serial import invert_list_serial_workflow
+from workflows.arlexecute.imaging.imaging_arlexecute import invert_list_arlexecute_workflow
 
 from wrappers.arlexecute.execution_support.arlexecute import arlexecute
 
@@ -41,12 +42,15 @@ if __name__ == '__main__':
     
     parser = argparse.ArgumentParser(description='Benchmark pipelines in numpy and dask')
     parser.add_argument('--use_dask', type=str, default='True', help='Use Dask?')
+    parser.add_argument('--serial_invert', type=str, default='False',
+                        help='Use serial invert?')
     parser.add_argument('--nworkers', type=int, default=4, help='Number of workers')
     parser.add_argument('--threads', type=int, default=1, help='Number of threads per worker')
     parser.add_argument('--memory', dest='memory', default=8, help='Memory per worker (GB)')
     parser.add_argument('--npixel', type=int, default=512, help='Number of pixels per axis')
     parser.add_argument('--context', dest='context', default='2d', help='Context: 2d|timeslice|wstack')
-    
+    parser.add_argument('--nchan', type=int, default=40, help='Number of channels to process')
+
     args = parser.parse_args()
     print(args)
     
@@ -61,7 +65,7 @@ if __name__ == '__main__':
     print(arlexecute.client)
     arlexecute.run(init_logging)
     
-    nchan = 40
+    nchan = args.nchan
     uvmax = 450.0
     nfreqwin = 2
     centre = 0
@@ -84,11 +88,7 @@ if __name__ == '__main__':
     input_vis = [arl_path('data/vis/sim-1.ms'), arl_path('data/vis/sim-2.ms')]
     
     import time
-    
     start = time.time()
-    
-    pol_frame = PolarisationFrame("stokesIQUV")
-    
     
     def load_invert_and_deconvolve(c):
         
@@ -99,7 +99,9 @@ if __name__ == '__main__':
         vf.configuration.diameter[...] = 35.0
         rows = vis_select_uvrange(vf, 0.0, uvmax=uvmax)
         v = create_visibility_from_rows(vf, rows)
-        
+
+        pol_frame = PolarisationFrame("stokesIQUV")
+
         m = create_image_from_visibility(v, npixel=npixel, cellsize=cellsize,
                                          polarisation_frame=pol_frame)
         
@@ -119,11 +121,11 @@ if __name__ == '__main__':
     
     print('About assemble cubes and deconvolve each frequency')
     restored_list = [arlexecute.execute(load_invert_and_deconvolve)(c) for c in range(nchan)]
-    restored_list = arlexecute.compute(restored_list, sync=True)
-    
+    restored_cube = arlexecute.execute(image_gather_channels, nout=1)(restored_list)
+#    restored_cube.visualize('dprepb_flat_arlexecute_pipeline.svg')
+    restored_cube = arlexecute.compute(restored_cube, sync=True)
+
     print("Processing took %.3f s" % (time.time() - start))
-    restored_cube = image_gather_channels(restored_list)
-    
     print(qa_image(restored_cube, context='CLEAN restored cube'))
     export_image_to_fits(restored_cube, '%s/dprepb_arlexecute_%s_clean_restored_cube.fits' % (results_dir, context))
     

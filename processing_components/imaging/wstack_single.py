@@ -24,7 +24,7 @@ import logging
 log = logging.getLogger(__name__)
 
 
-def predict_wstack_single(vis, model, remove=True, facets=1, vis_slices=1, gcfcf=None, **kwargs) -> Visibility:
+def predict_wstack_single(vis, model, remove=True, gcfcf=None, **kwargs) -> Visibility:
     """ Predict using a single w slices.
     
     This processes a single w plane, rotating out the w beam for the average w
@@ -71,7 +71,7 @@ def predict_wstack_single(vis, model, remove=True, facets=1, vis_slices=1, gcfcf
         return avis
 
 
-def invert_wstack_single(vis: Visibility, im: Image, dopsf, normalize=True, remove=True, facets=1, vis_slices=1,
+def invert_wstack_single(vis: Visibility, im: Image, dopsf, normalize=True, remove=True,
                          gcfcf=None, **kwargs) -> (Image, numpy.ndarray):
     """Process single w slice
     
@@ -90,8 +90,7 @@ def invert_wstack_single(vis: Visibility, im: Image, dopsf, normalize=True, remo
     w_average = numpy.average(vis.w)
     vis.data['uvw'][..., 2] -= w_average
     
-    reWorkimage, sumwt, imWorkimage = invert_2d(vis, im, dopsf, normalize=normalize, facets=facets,
-                                                     vis_slices=vis_slices, gcfcf=gcfcf, **kwargs)
+    reWorkimage, sumwt, imWorkimage = invert_2d(vis, im, dopsf, normalize=normalize, gcfcf=gcfcf, **kwargs)
     
     if not remove:
         vis.data['uvw'][..., 2] += w_average

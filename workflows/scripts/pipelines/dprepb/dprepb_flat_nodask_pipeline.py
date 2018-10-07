@@ -18,7 +18,7 @@ from wrappers.serial.image.deconvolution import deconvolve_cube, restore_cube
 from wrappers.serial.image.operations import export_image_to_fits, qa_image
 from wrappers.serial.image.gather_scatter import image_gather_channels
 from wrappers.serial.imaging.base import create_image_from_visibility
-from wrappers.serial.imaging.base import advise_wide_field, invert_2d
+from wrappers.serial.imaging.base import invert_2d
 
 from workflows.serial.imaging.imaging_serial import invert_list_serial_workflow
 
@@ -38,6 +38,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Benchmark pipelines')
     parser.add_argument('--npixel', type=int, default=512, help='Number of pixels per axis')
     parser.add_argument('--context', dest='context', default='2d', help='Context: 2d|timeslice|wstack')
+    parser.add_argument('--nchan', type=int, default=40, help='Number of channels to process')
 
     args = parser.parse_args()
     print(args)
@@ -45,7 +46,7 @@ if __name__ == '__main__':
     log = logging.getLogger()
     logging.info("Starting Imaging pipeline")
     
-    nchan = 40
+    nchan = args.nchan
     uvmax = 450.0
     nfreqwin = 2
     centre = 0
@@ -70,8 +71,6 @@ if __name__ == '__main__':
     import time
     start = time.time()
     
-    pol_frame = PolarisationFrame("stokesIQUV")
-    
     def load_invert_and_deconvolve(c):
     
         v1 = create_visibility_from_ms(input_vis[0], channum=[c])[0]
@@ -82,6 +81,8 @@ if __name__ == '__main__':
         rows = vis_select_uvrange(vf, 0.0, uvmax=uvmax)
         v = create_visibility_from_rows(vf, rows)
     
+        pol_frame = PolarisationFrame("stokesIQUV")
+
         m = create_image_from_visibility(v, npixel=npixel, cellsize=cellsize,
                                          polarisation_frame=pol_frame)
     
@@ -101,9 +102,8 @@ if __name__ == '__main__':
     
     print('About assemble cubes and deconvolve each frequency')
     restored_list = [load_invert_and_deconvolve(c) for c in range(nchan)]
-    
-    print("Processing took %.3f s" % (time.time() - start))
     restored_cube = image_gather_channels(restored_list)
+    print("Processing took %.3f s" % (time.time() - start))
 
     print(qa_image(restored_cube, context='CLEAN restored cube'))
     export_image_to_fits(restored_cube, '%s/dprepb_serial_%s_clean_restored_cube.fits' % (results_dir, context))
