@@ -43,12 +43,13 @@ class TestImaging(unittest.TestCase):
                     makegcfcf=False):
         
         self.npixel = 256
-        self.cellsize = 0.0005
         self.low = create_named_configuration('LOWBD2', rmax=750.0)
         self.freqwin = freqwin
         self.vis_list = list()
-        self.ntimes = 11
-        self.times = numpy.linspace(-2.0, +2.0, self.ntimes) * numpy.pi / 12.0
+        self.ntimes = 5
+        self.cellsize = 0.001
+        self.times = numpy.linspace(-3.0, +3.0, self.ntimes) * numpy.pi / 12.0
+        self.frequency = numpy.linspace(0.8e8, 1.2e8, self.freqwin)
         
         if freqwin > 1:
             self.frequency = numpy.linspace(0.8e8, 1.2e8, self.freqwin)
@@ -83,8 +84,8 @@ class TestImaging(unittest.TestCase):
         
         self.model_list = [create_unittest_model(self.vis_list[freqwin],
                                                  self.image_pol,
-                                                 npixel=self.npixel,
-                                                 cellsize=self.cellsize)
+                                                 cellsize=self.cellsize,
+                                                 npixel=self.npixel)
                            for freqwin, _ in enumerate(self.frequency)]
         
         self.components_list = [create_unittest_components(self.model_list[freqwin],
@@ -113,15 +114,15 @@ class TestImaging(unittest.TestCase):
         self.components = self.components_list[centre]
 
         if makegcfcf:
-            self.gcfcf = [create_awterm_convolutionfunction(self.model, nw=121, wstep=8.0,
-                                                           oversampling=8,
+            self.gcfcf = [create_awterm_convolutionfunction(self.model, nw=61, wstep=16.0,
+                                                           oversampling=4,
                                                            support=60,
                                                            use_aaf=True)]
             self.gcfcf_clipped = [(self.gcfcf[0][0], apply_bounding_box_convolutionfunction(self.gcfcf[0][1],
                                                                                        fractional_level=1e-3))]
 
-            self.gcfcf_joint = [create_awterm_convolutionfunction(self.model, nw=21, wstep=8.0,
-                                                                 oversampling=8,
+            self.gcfcf_joint = [create_awterm_convolutionfunction(self.model, nw=11, wstep=16.0,
+                                                                 oversampling=4,
                                                                  support=60,
                                                                  use_aaf=True)]
             

@@ -54,11 +54,11 @@ def predict_wstack_single(vis, model, remove=True, gcfcf=None, **kwargs) -> Visi
     
     # Do the real part
     workimage.data = w_beam.data.real * model.data
-    avis = predict_2d(avis, workimage, facets=1, vis_slices=1, gcfcf=gcfcf, **kwargs)
+    avis = predict_2d(avis, workimage, gcfcf=gcfcf, **kwargs)
     
     # and now the imaginary part
     workimage.data = w_beam.data.imag * model.data
-    tempvis = predict_2d(tempvis, workimage, facets=facets, vis_slices=vis_slices, gcfcf=gcfcf, **kwargs)
+    tempvis = predict_2d(tempvis, workimage, gcfcf=gcfcf, **kwargs)
     avis.data['vis'] -= 1j * tempvis.data['vis']
     
     if not remove:

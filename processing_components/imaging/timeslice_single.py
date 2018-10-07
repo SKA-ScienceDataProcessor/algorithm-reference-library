@@ -121,7 +121,7 @@ def predict_timeslice_single(vis: Visibility, model: Image, predict=predict_2d, 
                          fill_value=0.0,
                          rescale=True).reshape(workimage.data[chan, pol, ...].shape)
 
-    avis = predict(avis, workimage, facets=facets, vis_slices=vis_slices, gcfcf=gcfcf, **kwargs)
+    avis = predict(avis, workimage, gcfcf=gcfcf, **kwargs)
     
     return avis
 
@@ -175,8 +175,7 @@ def invert_timeslice_single(vis: Visibility, im: Image, dopsf, normalize=True,
 
     avis, p, q = fit_uvwplane(avis, remove=True)
     
-    workimage, sumwt = invert_2d(avis, im, dopsf, normalize=normalize, facets=facets,
-                                      vis_slices=vis_slices, gcfcf=gcfcf, **kwargs)
+    workimage, sumwt = invert_2d(avis, im, dopsf, normalize=normalize, gcfcf=gcfcf, **kwargs)
 
     finalimage = create_empty_image_like(im)
     

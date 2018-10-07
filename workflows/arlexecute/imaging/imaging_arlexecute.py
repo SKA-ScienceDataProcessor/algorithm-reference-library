@@ -81,7 +81,7 @@ def predict_list_arlexecute_workflow(vis_list, model_imagelist, vis_slices=1, fa
     
     def predict_ignore_none(vis, model, g):
         if vis is not None:
-            return predict(vis, model, context=context, facets=facets, vis_slices=vis_slices, gcfcf=g, **kwargs)
+            return predict(vis, model, context=context, gcfcf=g, **kwargs)
         else:
             return None
     
@@ -189,8 +189,8 @@ def invert_list_arlexecute_workflow(vis_list, template_model_imagelist, dopsf=Fa
     
     def invert_ignore_none(vis, model, g):
         if vis is not None:
-            return invert(vis, model, context=context, dopsf=dopsf, normalize=normalize, facets=facets,
-                          gcfcf=g, vis_slices=vis_slices, **kwargs)
+            return invert(vis, model, context=context, dopsf=dopsf, normalize=normalize,
+                          gcfcf=g, **kwargs)
         else:
             return create_empty_image_like(model), 0.0
 

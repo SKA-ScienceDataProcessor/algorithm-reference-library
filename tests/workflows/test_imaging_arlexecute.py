@@ -9,10 +9,11 @@ import numpy
 from astropy import units as u
 from astropy.coordinates import SkyCoord
 
+from tests.workflows import ARLExecuteTestCase
+
 from data_models.polarisation import PolarisationFrame
 from processing_components.griddata.convolution_functions import apply_bounding_box_convolutionfunction
 from processing_components.griddata.kernels import create_awterm_convolutionfunction
-from tests.workflows import ARLExecuteTestCase
 from workflows.arlexecute.imaging.imaging_arlexecute import zero_list_arlexecute_workflow, \
     predict_list_arlexecute_workflow, invert_list_arlexecute_workflow, subtract_list_arlexecute_workflow
 from wrappers.arlexecute.execution_support.arlexecute import arlexecute
@@ -47,15 +48,15 @@ class TestImaging(ARLExecuteTestCase, unittest.TestCase):
                     makegcfcf=False):
         
         self.npixel = 256
-        self.cellsize = 0.0005
         self.low = create_named_configuration('LOWBD2', rmax=750.0)
         self.freqwin = freqwin
         self.vis_list = list()
-        self.ntimes = 11
-        self.times = numpy.linspace(-2.0, +2.0, self.ntimes) * numpy.pi / 12.0
+        self.ntimes = 5
+        self.cellsize = 0.001
+        self.times = numpy.linspace(-3.0, +3.0, self.ntimes) * numpy.pi / 12.0
+        self.frequency = numpy.linspace(0.8e8, 1.2e8, self.freqwin)
         
         if freqwin > 1:
-            self.frequency = numpy.linspace(0.8e8, 1.2e8, self.freqwin)
             self.channelwidth = numpy.array(freqwin * [self.frequency[1] - self.frequency[0]])
         else:
             self.frequency = numpy.array([1.0e8])
@@ -87,8 +88,8 @@ class TestImaging(ARLExecuteTestCase, unittest.TestCase):
         
         self.model_list = [arlexecute.execute(create_unittest_model, nout=freqwin)(self.vis_list[freqwin],
                                                                                    self.image_pol,
-                                                                                   npixel=self.npixel,
-                                                                                   cellsize=self.cellsize)
+                                                                                   cellsize=self.cellsize,
+                                                                                   npixel=self.npixel)
                            for freqwin, _ in enumerate(self.frequency)]
         
         self.components_list = [arlexecute.execute(create_unittest_components)(self.model_list[freqwin],
@@ -108,7 +109,7 @@ class TestImaging(ARLExecuteTestCase, unittest.TestCase):
                                                                              self.components_list[freqwin])
                          for freqwin, _ in enumerate(self.frequency)]
         
-        self.vis_list = arlexecute.compute(self.vis_list, sync=True)
+        # Calculate the model convolved with a Gaussian.
         
         centre = self.freqwin // 2
         self.model = self.model_list[centre]
@@ -124,15 +125,15 @@ class TestImaging(ARLExecuteTestCase, unittest.TestCase):
         self.components = self.components_list[centre]
         
         if makegcfcf:
-            self.gcfcf = [create_awterm_convolutionfunction(self.model, nw=121, wstep=8.0,
-                                                           oversampling=8,
+            self.gcfcf = [create_awterm_convolutionfunction(self.model, nw=61, wstep=16.0,
+                                                           oversampling=4,
                                                            support=60,
                                                            use_aaf=True)]
             self.gcfcf_clipped = [(self.gcfcf[0][0], apply_bounding_box_convolutionfunction(self.gcfcf[0][1],
                                                                                        fractional_level=1e-3))]
             
-            self.gcfcf_joint = [create_awterm_convolutionfunction(self.model, nw=21, wstep=8.0,
-                                                                 oversampling=8,
+            self.gcfcf_joint = [create_awterm_convolutionfunction(self.model, nw=11, wstep=16.0,
+                                                                 oversampling=4,
                                                                  support=60,
                                                                  use_aaf=True)]
             
