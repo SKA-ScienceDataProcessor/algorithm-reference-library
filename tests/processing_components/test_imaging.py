@@ -102,11 +102,11 @@ class TestImaging(unittest.TestCase):
             assert separation / cellsize < positionthreshold, "Component differs in position %.3f pixels" % \
                                                               separation / cellsize
     
-    def _predict_base(self, fluxthreshold=1.0, gcf=None, cf=None, name='predict_2d', **kwargs):
+    def _predict_base(self, fluxthreshold=1.0, gcf=None, cf=None, name='predict_2d', gcfcf=None, **kwargs):
         
-        vis = predict_2d(self.vis, self.model, gcf=gcf, cf=cf, **kwargs)
+        vis = predict_2d(self.vis, self.model, gcfcf = gcfcf, **kwargs)
         vis.data['vis'] = self.vis.data['vis'] - vis.data['vis']
-        dirty = invert_2d(vis, self.model, dopsf=False, normalize=True, gcf=gcf, cf=cf)
+        dirty = invert_2d(vis, self.model, dopsf=False, normalize=True, gcfcf = gcfcf)
         
         export_image_to_fits(dirty[0], '%s/test_imaging_%s_residual.fits' %
                              (self.dir, name))
@@ -116,9 +116,9 @@ class TestImaging(unittest.TestCase):
         assert maxabs < fluxthreshold, "Error %.3f greater than fluxthreshold %.3f " % (maxabs, fluxthreshold)
     
     def _invert_base(self, fluxthreshold=1.0, gcf=None, cf=None, positionthreshold=1.0, check_components=True,
-                     name='predict_2d', **kwargs):
+                     name='predict_2d', gcfcf=None, **kwargs):
         
-        dirty = invert_2d(self.vis, self.model, dopsf=False, normalize=True, gcf=gcf, cf=cf, **kwargs)
+        dirty = invert_2d(self.vis, self.model, dopsf=False, normalize=True, gcfcf = gcfcf, **kwargs)
         
         export_image_to_fits(dirty[0], '%s/test_imaging_%s_dirty.fits' %
                              (self.dir, name))
@@ -139,28 +139,28 @@ class TestImaging(unittest.TestCase):
     def test_predict_awterm(self):
         self.actualSetUp(zerow=False)
         make_pb = functools.partial(create_pb_generic, diameter=35.0, blockage=0.0)
-        gcf, cf = create_awterm_convolutionfunction(self.model, make_pb=make_pb, nw=100, wstep=8.0,
+        gcfcf = create_awterm_convolutionfunction(self.model, make_pb=make_pb, nw=100, wstep=8.0,
                                                     oversampling=4, support=100, use_aaf=True)
-        self._predict_base(name='predict_awterm', fluxthreshold=35.0, gcf=gcf, cf=cf)
+        self._predict_base(name='predict_awterm', fluxthreshold=35.0, gcfcf = gcfcf)
 
     def test_invert_awterm(self):
         self.actualSetUp(zerow=False)
         make_pb = functools.partial(create_pb_generic, diameter=35.0, blockage=0.0)
-        gcf, cf = create_awterm_convolutionfunction(self.model, make_pb=make_pb, nw=100, wstep=8.0,
+        gcfcf = create_awterm_convolutionfunction(self.model, make_pb=make_pb, nw=100, wstep=8.0,
                                                     oversampling=4, support=100, use_aaf=True)
-        self._invert_base(name='invert_awterm', positionthreshold=35.0, check_components=False, gcf=gcf, cf=cf)
+        self._invert_base(name='invert_awterm', positionthreshold=35.0, check_components=False, gcfcf = gcfcf)
 
     def test_predict_wterm(self):
         self.actualSetUp(zerow=False)
-        gcf, cf = create_awterm_convolutionfunction(self.model, nw=100, wstep=8.0,
+        gcfcf = create_awterm_convolutionfunction(self.model, nw=100, wstep=8.0,
                                                     oversampling=8, support=100, use_aaf=True)
-        self._predict_base(name='predict_wterm', gcf=gcf, cf=cf, fluxthreshold=20.0)
+        self._predict_base(name='predict_wterm', gcfcf = gcfcf, fluxthreshold=20.0)
 
     def test_invert_wterm(self):
         self.actualSetUp(zerow=False)
-        gcf, cf = create_awterm_convolutionfunction(self.model, nw=100, wstep=8.0,
+        gcfcf = create_awterm_convolutionfunction(self.model, nw=100, wstep=8.0,
                                                     oversampling=8, support=100, use_aaf=True)
-        self._invert_base(name='invert_wterm', positionthreshold=35.0, check_components=False, gcf=gcf, cf=cf)
+        self._invert_base(name='invert_wterm', positionthreshold=35.0, check_components=False, gcfcf = gcfcf)
 
 
 if __name__ == '__main__':

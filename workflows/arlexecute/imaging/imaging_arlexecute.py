@@ -62,7 +62,8 @@ def predict_list_arlexecute_workflow(vis_list, model_imagelist, vis_slices=1, fa
     :param model_imagelist: Model used to determine image parameters
     :param vis_slices: Number of vis slices (w stack or timeslice)
     :param facets: Number of facets (per axis)
-    :param context:
+    :param context: Type of processing e.g. 2d, wstack, timeslice or facets
+    :param gcfcg: tuple containing grid correction and convolution function
     :param kwargs: Parameters for functions in components
     :return: List of vis_lists
    """
@@ -85,12 +86,16 @@ def predict_list_arlexecute_workflow(vis_list, model_imagelist, vis_slices=1, fa
             return None
     
     if gcfcf is None:
-        gcfcf = [arlexecute.execute(create_pswf_convolutionfunction)(m) for m in model_imagelist]
-    
+        gcfcf = [arlexecute.execute(create_pswf_convolutionfunction)(model_imagelist[0])]
+        
     # Loop over all frequency windows
     if facets == 1:
         image_results_list = list()
         for freqwin, vis_list in enumerate(vis_list):
+            if len(gcfcf) > 1:
+                g = gcfcf[freqwin]
+            else:
+                g = gcfcf[0]
             # Create the graph to divide an image into facets. This is by reference.
             # Create the graph to divide the visibility into slices. This is by copy.
             sub_vis_lists = arlexecute.execute(visibility_scatter, nout=vis_slices)(vis_list, vis_iter, vis_slices)
@@ -100,7 +105,7 @@ def predict_list_arlexecute_workflow(vis_list, model_imagelist, vis_slices=1, fa
             for sub_vis_list in sub_vis_lists:
                 # Predict visibility for this sub-visibility from this image
                 image_vis_list = arlexecute.execute(predict_ignore_none, pure=True, nout=1) \
-                    (sub_vis_list, model_imagelist[freqwin], gcfcf[freqwin])
+                    (sub_vis_list, model_imagelist[freqwin], g)
                 # Sum all sub-visibilities
                 image_vis_lists.append(image_vis_list)
             image_results_list.append(arlexecute.execute(visibility_gather, nout=1)
@@ -110,6 +115,10 @@ def predict_list_arlexecute_workflow(vis_list, model_imagelist, vis_slices=1, fa
     else:
         image_results_list_list = list()
         for freqwin, vis_list in enumerate(vis_list):
+            if len(gcfcf) > 1:
+                g = gcfcf[freqwin]
+            else:
+                g = gcfcf[0]
             # Create the graph to divide an image into facets. This is by reference.
             facet_lists = arlexecute.execute(image_scatter_facets, nout=actual_number_facets ** 2)(
                 model_imagelist[freqwin],
@@ -126,7 +135,7 @@ def predict_list_arlexecute_workflow(vis_list, model_imagelist, vis_slices=1, fa
                     # Predict visibility for this subvisibility from this facet
                     facet_vis_list = arlexecute.execute(predict_ignore_none, pure=True, nout=1)(sub_vis_list,
                                                                                                 facet_list,
-                                                                                                gcfcf[freqwin])
+                                                                                                g)
                     facet_vis_results.append(facet_vis_list)
                 # Sum the current sub-visibility over all facets
                 facet_vis_lists.append(arlexecute.execute(sum_predict_results)(facet_vis_results))
@@ -148,6 +157,7 @@ def invert_list_arlexecute_workflow(vis_list, template_model_imagelist, dopsf=Fa
     :param normalize: Normalize by sumwt
     :param vis_slices: Number of slices
     :param context: Imaging context
+    :param gcfcg: tuple containing grid correction and convolution function
     :param kwargs: Parameters for functions in components
     :return: List of (image, sumwt) tuple
    """
@@ -185,12 +195,16 @@ def invert_list_arlexecute_workflow(vis_list, template_model_imagelist, dopsf=Fa
             return create_empty_image_like(model), 0.0
 
     if gcfcf is None:
-        gcfcf = [arlexecute.execute(create_pswf_convolutionfunction)(m) for m in template_model_imagelist]
+        gcfcf = [arlexecute.execute(create_pswf_convolutionfunction)(template_model_imagelist[0])]
 
     # Loop over all vis_lists independently
     results_vislist = list()
     if facets == 1:
         for freqwin, vis_list in enumerate(vis_list):
+            if len(gcfcf) > 1:
+                g = gcfcf[freqwin]
+            else:
+                g = gcfcf[0]
             # Create the graph to divide the visibility into slices. This is by copy.
             sub_vis_lists = arlexecute.execute(visibility_scatter, nout=vis_slices)(vis_list, vis_iter,
                                                                                     vis_slices=vis_slices)
@@ -198,12 +212,17 @@ def invert_list_arlexecute_workflow(vis_list, template_model_imagelist, dopsf=Fa
             # Iterate within each vis_list
             vis_results = list()
             for sub_vis_list in sub_vis_lists:
+                
                 vis_results.append(arlexecute.execute(invert_ignore_none, pure=True)
-                                   (sub_vis_list, template_model_imagelist[freqwin], gcfcf[freqwin]))
+                                   (sub_vis_list, template_model_imagelist[freqwin], g))
             results_vislist.append(arlexecute.execute(sum_invert_results)(vis_results))
         return results_vislist
     else:
         for freqwin, vis_list in enumerate(vis_list):
+            if len(gcfcf) > 1:
+                g = gcfcf[freqwin]
+            else:
+                g = gcfcf[0]
             # Create the graph to divide an image into facets. This is by reference.
             facet_lists = arlexecute.execute(image_scatter_facets, nout=actual_number_facets ** 2)(
                 template_model_imagelist[
@@ -219,31 +238,32 @@ def invert_list_arlexecute_workflow(vis_list, template_model_imagelist, dopsf=Fa
                 facet_vis_results = list()
                 for facet_list in facet_lists:
                     facet_vis_results.append(
-                        arlexecute.execute(invert_ignore_none, pure=True)(sub_vis_list, facet_list, gcfcf[freqwin]))
-                vis_results.append(arlexecute.execute(gather_image_iteration_results, nout=1)(facet_vis_results,
-                                                                                              template_model_imagelist[
-                                                                                                  freqwin]))
+                        arlexecute.execute(invert_ignore_none, pure=True)(sub_vis_list, facet_list, g))
+                vis_results.append(arlexecute.execute(gather_image_iteration_results, nout=1)
+                                   (facet_vis_results, template_model_imagelist[freqwin]))
             results_vislist.append(arlexecute.execute(sum_invert_results)(vis_results))
         
         return results_vislist
 
 
-def residual_list_arlexecute_workflow(vis, model_imagelist, context='2d', **kwargs):
+def residual_list_arlexecute_workflow(vis, model_imagelist, context='2d', gcfcf=None, **kwargs):
     """ Create a graph to calculate residual image using w stacking and faceting
 
-    :param context: 
     :param vis:
     :param model_imagelist: Model used to determine image parameters
     :param vis:
     :param model_imagelist: Model used to determine image parameters
+    :param context:
+    :param gcfcg: tuple containing grid correction and convolution function
     :param kwargs: Parameters for functions in components
     :return:
     """
     model_vis = zero_list_arlexecute_workflow(vis)
-    model_vis = predict_list_arlexecute_workflow(model_vis, model_imagelist, context=context, **kwargs)
+    model_vis = predict_list_arlexecute_workflow(model_vis, model_imagelist, context=context,
+                                                 gcfcf=gcfcf, **kwargs)
     residual_vis = subtract_list_arlexecute_workflow(vis, model_vis)
     return invert_list_arlexecute_workflow(residual_vis, model_imagelist, dopsf=False, normalize=True, context=context,
-                                           **kwargs)
+                                           gcfcf=gcfcf, **kwargs)
 
 
 def restore_list_arlexecute_workflow(model_imagelist, psf_imagelist, residual_imagelist, **kwargs):

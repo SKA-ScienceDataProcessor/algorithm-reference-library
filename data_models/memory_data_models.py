@@ -27,6 +27,10 @@ import numpy
 from astropy import units as u
 from astropy.coordinates import SkyCoord
 
+import warnings
+from astropy.wcs import FITSFixedWarning
+warnings.simplefilter('ignore', FITSFixedWarning)
+
 from data_models.polarisation import PolarisationFrame, ReceptorFrame
 
 log = logging.getLogger(__name__)

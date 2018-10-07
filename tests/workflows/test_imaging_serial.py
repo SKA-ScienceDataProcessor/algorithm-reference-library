@@ -39,7 +39,8 @@ class TestImaging(unittest.TestCase):
     def tearDown(self):
         pass
     
-    def actualSetUp(self, add_errors=False, freqwin=3, block=False, dospectral=True, dopol=False, zerow=False):
+    def actualSetUp(self, add_errors=False, freqwin=3, block=False, dospectral=True, dopol=False, zerow=False,
+                    makegcfcf=False):
         
         self.npixel = 256
         self.cellsize = 0.0005
@@ -110,14 +111,24 @@ class TestImaging(unittest.TestCase):
                              for i, _ in enumerate(self.frequency)]
         
         self.components = self.components_list[centre]
-        self.gcf, self.cf = create_awterm_convolutionfunction(self.model, nw=121, wstep=8.0, oversampling=8, support=60,
-                                                    use_aaf=True)
-        self.cf_clipped = apply_bounding_box_convolutionfunction(self.cf, fractional_level=1e-3)
 
-        _, self.cf_joint = create_awterm_convolutionfunction(self.model, nw=13, wstep=8.0, oversampling=8, support=60,
-                                                    use_aaf=True)
-        self.cf_joint_clipped = apply_bounding_box_convolutionfunction(self.cf_joint, fractional_level=1e-3)
+        if makegcfcf:
+            self.gcfcf = [create_awterm_convolutionfunction(self.model, nw=121, wstep=8.0,
+                                                           oversampling=8,
+                                                           support=60,
+                                                           use_aaf=True)]
+            self.gcfcf_clipped = [(self.gcfcf[0][0], apply_bounding_box_convolutionfunction(self.gcfcf[0][1],
+                                                                                       fractional_level=1e-3))]
 
+            self.gcfcf_joint = [create_awterm_convolutionfunction(self.model, nw=21, wstep=8.0,
+                                                                 oversampling=8,
+                                                                 support=60,
+                                                                 use_aaf=True)]
+            
+        else:
+            self.gcfcf = None
+            self.gcfcf_clipped = None
+            self.gcfcf_joint = None
     
     def test_time_setup(self):
         self.actualSetUp()
@@ -134,16 +145,17 @@ class TestImaging(unittest.TestCase):
             assert separation / cellsize < positionthreshold, "Component differs in position %.3f pixels" % \
                                                               separation / cellsize
     
-    def _predict_base(self, context='2d', extra='', fluxthreshold=1.0, facets=1, vis_slices=1, **kwargs):
+    def _predict_base(self, context='2d', extra='', fluxthreshold=1.0, facets=1, vis_slices=1,
+                      gcfcf=None, **kwargs):
         
         centre=self.freqwin // 2
         vis_list = zero_list_serial_workflow(self.vis_list)
         vis_list = predict_list_serial_workflow(vis_list, self.model_list, context=context,
-                                                vis_slices=vis_slices, facets=facets, **kwargs)
+                                                vis_slices=vis_slices, facets=facets, gcfcf=gcfcf, **kwargs)
         vis_list = subtract_list_serial_workflow(self.vis_list, vis_list)
         
         dirty = invert_list_serial_workflow(vis_list, self.model_list, context='2d', dopsf=False,
-                                            normalize=True)[centre]
+                                            gcfcf=gcfcf, normalize=True)[centre]
         
         assert numpy.max(numpy.abs(dirty[0].data)), "Residual image is empty"
         export_image_to_fits(dirty[0], '%s/test_imaging_predict_%s%s_serial_dirty.fits' %
@@ -153,12 +165,12 @@ class TestImaging(unittest.TestCase):
         assert maxabs < fluxthreshold, "Error %.3f greater than fluxthreshold %.3f " % (maxabs, fluxthreshold)
     
     def _invert_base(self, context, extra='', fluxthreshold=1.0, positionthreshold=1.0, check_components=True,
-                     facets=1, vis_slices=1, **kwargs):
+                     facets=1, vis_slices=1, gcfcf=None, **kwargs):
         
         centre = self.freqwin // 2
         dirty = invert_list_serial_workflow(self.vis_list, self.model_list, context=context,
                                             dopsf=False, normalize=True, facets=facets, vis_slices=vis_slices,
-                                            **kwargs)[centre]
+                                            gcfcf=gcfcf, **kwargs)[centre]
         
         export_image_to_fits(dirty[0], '%s/test_imaging_invert_%s%s_serial_dirty.fits' %
                              (self.dir, context, extra))
@@ -183,10 +195,10 @@ class TestImaging(unittest.TestCase):
         self._predict_base(context='facets_timeslice', fluxthreshold=19.0, facets=8, vis_slices=self.ntimes)
 
     @unittest.skip("Facets need overlap")
-    def test_predict_facets_wprojection(self):
+    def test_predict_facets_wprojection(self, makegcfcf=True):
         self.actualSetUp()
         self._predict_base(context='facets', extra='_wprojection', facets=8, fluxthreshold=15.0,
-                           gcf=self.gcf, cf=self.cf_joint)
+                           gcfcf=self.gcfcf_joint)
 
     @unittest.skip("Facets need overlap")
     def test_predict_facets_wstack(self):
@@ -198,28 +210,28 @@ class TestImaging(unittest.TestCase):
         self._predict_base(context='timeslice', fluxthreshold=17.0, vis_slices=self.ntimes)
 
     def test_predict_timeslice_wprojection(self):
-        self.actualSetUp()
+        self.actualSetUp(makegcfcf=True)
         self._predict_base(context='timeslice', extra='_wprojection', fluxthreshold=17.0,
-                           vis_slices=self.ntimes, gcf=self.gcf, cf=self.cf_joint)
+                           vis_slices=self.ntimes, gcfcf=self.gcfcf_joint)
 
     def test_predict_wprojection(self):
-        self.actualSetUp()
+        self.actualSetUp(makegcfcf=True)
         self._predict_base(context='2d', extra='_wprojection', fluxthreshold=3.5,
-                           gcf=self.gcf, cf=self.cf)
+                           gcfcf=self.gcfcf)
 
     def test_predict_wprojection_clip(self):
-        self.actualSetUp()
+        self.actualSetUp(makegcfcf=True)
         self._predict_base(context='2d', extra='_wprojection_clipped', fluxthreshold=3.5,
-                           gcf=self.gcf, cf=self.cf_clipped)
+                           gcfcf=self.gcfcf_clipped)
 
     def test_predict_wstack(self):
         self.actualSetUp()
         self._predict_base(context='wstack', fluxthreshold=2.0, vis_slices=101)
 
     def test_predict_wstack_wprojection(self):
-        self.actualSetUp()
+        self.actualSetUp(makegcfcf=True)
         self._predict_base(context='wstack', extra='_wprojection', fluxthreshold=8.0, vis_slices=11,
-                           gcf=self.gcf, cf=self.cf_joint)
+                           gcfcf=self.gcfcf)
 
     def test_predict_wstack_spectral(self):
         self.actualSetUp(dospectral=True)
@@ -246,9 +258,9 @@ class TestImaging(unittest.TestCase):
 
     @unittest.skip("Facets need overlap")
     def test_invert_facets_wprojection(self):
-        self.actualSetUp()
+        self.actualSetUp(makegcfcf=True)
         self._invert_base(context='facets', extra='_wprojection', check_components=True,
-                          positionthreshold=2.0, facets=4, gcf=self.gcf, cf=self.cf_joint)
+                          positionthreshold=2.0, facets=4, gcfcf=self.gcfcf)
 
     @unittest.skip("Facets need overlap")
     def test_invert_facets_wstack(self):
@@ -262,23 +274,23 @@ class TestImaging(unittest.TestCase):
                           vis_slices=self.ntimes)
 
     def test_invert_timeslice_wprojection(self):
-        self.actualSetUp()
+        self.actualSetUp(makegcfcf=True)
         self._invert_base(context='timeslice', extra='_wprojection', positionthreshold=1.0,
-                          check_components=True, vis_slices=self.ntimes // 2, gcf=self.gcf, cf=self.cf_joint)
+                          check_components=True, vis_slices=self.ntimes // 2, gcfcf=self.gcfcf_joint)
 
     def test_invert_wprojection(self):
-        self.actualSetUp()
-        self._invert_base(context='2d', extra='_wprojection', positionthreshold=2.0, gcf=self.gcf, cf=self.cf)
+        self.actualSetUp(makegcfcf=True)
+        self._invert_base(context='2d', extra='_wprojection', positionthreshold=2.0, gcfcf=self.gcfcf)
 
     def test_invert_wprojection_clip(self):
-        self.actualSetUp()
-        self._invert_base(context='2d', extra='_wprojection_clipped', positionthreshold=2.0, gcf=self.gcf,
-                          cf=self.cf_clipped)
+        self.actualSetUp(makegcfcf=True)
+        self._invert_base(context='2d', extra='_wprojection_clipped', positionthreshold=2.0,
+                          gcfcf=self.gcfcf_clipped)
 
     def test_invert_wprojection_wstack(self):
-        self.actualSetUp()
-        self._invert_base(context='wstack', extra='_wprojection', positionthreshold=1.0, vis_slices=11, gcf=self.gcf,
-                          cf=self.cf_joint)
+        self.actualSetUp(makegcfcf=True)
+        self._invert_base(context='wstack', extra='_wprojection', positionthreshold=1.0, vis_slices=11,
+                          gcfcf=self.gcfcf_joint)
 
     def test_invert_wstack(self):
         self.actualSetUp()

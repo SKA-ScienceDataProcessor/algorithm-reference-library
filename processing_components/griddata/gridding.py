@@ -61,7 +61,7 @@ def convolution_mapping(vis, griddata, cf, channel_tolerance=1e-8):
     # nchan, npol, w, dv, du, v, u
     pwc_pixel = cf.grid_wcs.sub([5]).wcs_world2pix(vis.uvw[:, 2], 0)[0]
     pwc_grid = numpy.round(pwc_pixel).astype('int')
-    assert numpy.min(pwc_grid) >= 0
+    assert numpy.min(pwc_grid) >= 0, "W axis overflows: %f" % numpy.max(pwc_grid)
     assert numpy.max(pwc_grid) < cf.shape[2], "W axis overflows: %f" % numpy.max(pwc_grid)
     pwc_fraction = pwc_pixel - pwc_grid
 
