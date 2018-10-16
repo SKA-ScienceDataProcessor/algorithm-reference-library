@@ -25,13 +25,15 @@ For example to make dirty image and PSF, deconvolve, and then restore::
 
 import logging
 
+from data_models.polarisation import PolarisationFrame
+
 import numpy
-from astropy.convolution import Gaussian2DKernel, convolve
+from astropy.convolution import Gaussian2DKernel, convolve_fft
 from photutils import fit_2dgaussian
 
 from data_models.memory_data_models import Image
 from data_models.parameters import get_parameter
-from processing_library.arrays.cleaners import hogbom, msclean, msmfsclean
+from processing_library.arrays.cleaners import hogbom, hogbom_complex, msclean, msmfsclean
 from processing_library.image.operations import create_image_from_array, copy_image
 from ..image.operations import calculate_image_frequency_moments, calculate_image_from_frequency_moments
 
@@ -223,6 +225,59 @@ def deconvolve_cube(dirty: Image, psf: Image, prefix='', **kwargs) -> (Image, Im
         
         comp_image = create_image_from_array(comp_array, dirty.wcs, dirty.polarisation_frame)
         residual_image = create_image_from_array(residual_array, dirty.wcs, dirty.polarisation_frame)
+    elif algorithm == 'hogbom-complex':
+        log.info("deconvolve_cube_complex: Hogbom-complex clean of each polarisation and channel separately")
+        gain = get_parameter(kwargs, 'gain', 0.7)
+        assert 0.0 < gain < 2.0, "Loop gain must be between 0 and 2"
+        thresh = get_parameter(kwargs, 'threshold', 0.0)
+        assert thresh >= 0.0
+        niter = get_parameter(kwargs, 'niter', 100)
+        assert niter > 0
+        fracthresh = get_parameter(kwargs, 'fractional_threshold', 0.1)
+        assert 0.0 <= fracthresh < 1.0
+    
+        comp_array = numpy.zeros(dirty.data.shape)
+        residual_array = numpy.zeros(dirty.data.shape)
+        for channel in range(dirty.data.shape[0]):
+            for pol in range(dirty.data.shape[1]):
+                if pol == 0 or pol == 3:
+                    if psf.data[channel, pol, :, :].max():
+                        log.info("deconvolve_cube_complex: Processing pol %d, channel %d" % (pol, channel))
+                        if window is None:
+                            comp_array[channel, pol, :, :], residual_array[channel, pol, :, :] = \
+                                hogbom(dirty.data[channel, pol, :, :], psf.data[channel, pol, :, :],
+                                       None, gain, thresh, niter, fracthresh)
+                        else:
+                            comp_array[channel, pol, :, :], residual_array[channel, pol, :, :] = \
+                                hogbom(dirty.data[channel, pol, :, :], psf.data[channel, pol, :, :],
+                                       window[channel, pol, :, :], gain, thresh, niter, fracthresh)
+                    else:
+                        log.info("deconvolve_cube_complex: Skipping pol %d, channel %d" % (pol, channel))
+                if pol == 1:
+                    if psf.data[channel, 1:2, :, :].max():
+                        log.info("deconvolve_cube_complex: Processing pol 1 and 2, channel %d" % (channel))
+                        if window is None:
+                            comp_array[channel, 1, :, :], comp_array[channel, 2, :, :], residual_array[channel, 1, :,
+                                                                                        :], residual_array[channel, 2,
+                                                                                            :, :] = hogbom_complex(
+                                dirty.data[channel, 1, :, :], dirty.data[channel, 2, :, :], psf.data[channel, 1, :, :],
+                                psf.data[channel, 2, :, :], None, gain, thresh, niter, fracthresh)
+                        else:
+                            comp_array[channel, 1, :, :], comp_array[channel, 2, :, :], residual_array[channel, 1, :,
+                                                                                        :], residual_array[channel, 2,
+                                                                                            :, :] = hogbom_complex(
+                                dirty.data[channel, 1, :, :], dirty.data[channel, 2, :, :], psf.data[channel, 1, :, :],
+                                psf.data[channel, 2, :, :], window[channel, pol, :, :], gain, thresh, niter, fracthresh)
+                    else:
+                        log.info("deconvolve_cube_complex: Skipping pol 1 and 2, channel %d" % (channel))
+                if pol == 2:
+                    continue
+    
+        comp_image = create_image_from_array(comp_array, dirty.wcs, polarisation_frame=PolarisationFrame('stokesIQUV'))
+        residual_image = create_image_from_array(residual_array, dirty.wcs,
+                                                 polarisation_frame=PolarisationFrame('stokesIQUV'))
+
+
     else:
         raise ValueError('deconvolve_cube %s: Unknown algorithm %s' % (prefix, algorithm))
     
@@ -236,7 +291,6 @@ def restore_cube(model: Image, psf: Image, residual=None, **kwargs) -> Image:
     :return: restored image
 
     """
-    from scipy.optimize import minpack
     assert isinstance(model, Image), model
     assert isinstance(psf, Image), psf
     assert residual is None or isinstance(residual, Image), residual
@@ -250,6 +304,7 @@ def restore_cube(model: Image, psf: Image, residual=None, **kwargs) -> Image:
     
     if size is None:
         # isotropic at the moment!
+        from scipy.optimize import minpack
         try:
             fit = fit_2dgaussian(psf.data[0, 0, sl, sl])
             if fit.x_stddev <= 0.0 or fit.y_stddev <= 0.0:
@@ -266,13 +321,19 @@ def restore_cube(model: Image, psf: Image, residual=None, **kwargs) -> Image:
             size = 1.0
     else:
         log.debug('restore_cube: Using specified psfwidth = %s' % (size))
-    
+
+    # TODO: Remove filter when astropy fixes convolve
+    import warnings
+    warnings.simplefilter(action='ignore', category=FutureWarning)
+    from astropy.convolution import Gaussian2DKernel, convolve_fft
+
     # By convention, we normalise the peak not the integral so this is the volume of the Gaussian
     norm = 2.0 * numpy.pi * size ** 2
     gk = Gaussian2DKernel(size)
     for chan in range(model.shape[0]):
         for pol in range(model.shape[1]):
-            restored.data[chan, pol, :, :] = norm * convolve(model.data[chan, pol, :, :], gk, normalize_kernel=False)
+            restored.data[chan, pol, :, :] = norm * convolve_fft(model.data[chan, pol, :, :], gk,
+                                                                 normalize_kernel=False)
     if residual is not None:
         restored.data += residual.data
     return restored

@@ -70,8 +70,10 @@ class TestImageDeconvolution(unittest.TestCase):
         assert s1 == (449, 512, 199, 299)
         assert s2 == (0, 63, 0, 100)
     
-    def test_deconvolve_hogbom(self):
+    def test_restore(self):
+        self.cmodel = restore_cube(self.model, self.psf)
         
+    def test_deconvolve_hogbom(self):
         self.comp, self.residual = deconvolve_cube(self.dirty, self.psf, niter=10000, gain=0.1, algorithm='hogbom',
                                                    threshold=0.01)
         export_image_to_fits(self.residual, "%s/test_deconvolve_hogbom-residual.fits" % (self.dir))

@@ -32,7 +32,8 @@ def ical_list_arlexecute_workflow(vis_list, model_imagelist, context='2d', calib
         vis_list = calibrate_list_arlexecute_workflow(vis_list, model_vislist,
                                                       calibration_context=calibration_context, **kwargs)
         residual_vislist = subtract_list_arlexecute_workflow(vis_list, model_vislist)
-        residual_imagelist = invert_list_arlexecute_workflow(residual_vislist, model_imagelist, dopsf=True, context=context,
+        residual_imagelist = invert_list_arlexecute_workflow(residual_vislist, model_imagelist, dopsf=False,
+                                                             context=context,
                                                              iteration=0, **kwargs)
     else:
         # If we are not selfcalibrating it's much easier and we can avoid an unnecessary round of gather/scatter
@@ -53,7 +54,7 @@ def ical_list_arlexecute_workflow(vis_list, model_imagelist, context='2d', calib
                                                               calibration_context=calibration_context,
                                                               iteration=cycle, **kwargs)
                 residual_vislist = subtract_list_arlexecute_workflow(vis_list, model_vislist)
-                residual_imagelist = invert_list_arlexecute_workflow(residual_vislist, model_imagelist, dopsf=False,
+                residual_imagelist = invert_list_arlexecute_workflow(residual_vislist, model_imagelist,
                                                                      context=context, **kwargs)
             else:
                 residual_imagelist = residual_list_arlexecute_workflow(vis_list, deconvolve_model_imagelist,

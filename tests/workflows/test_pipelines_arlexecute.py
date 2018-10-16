@@ -12,17 +12,16 @@ from astropy import units as u
 from astropy.coordinates import SkyCoord
 
 from data_models.polarisation import PolarisationFrame
-
 from tests.workflows import ARLExecuteTestCase
+from workflows.arlexecute.pipelines.pipeline_arlexecute import ical_list_arlexecute_workflow, \
+    continuum_imaging_list_arlexecute_workflow
 from wrappers.arlexecute.calibration.calibration_control import create_calibration_controls
 from wrappers.arlexecute.execution_support.arlexecute import arlexecute
-from workflows.arlexecute.pipelines.pipeline_arlexecute import ical_list_arlexecute_workflow, continuum_imaging_list_arlexecute_workflow
 from wrappers.arlexecute.image.operations import export_image_to_fits, qa_image, smooth_image
 from wrappers.arlexecute.imaging.base import predict_skycomponent_visibility
-from wrappers.arlexecute.skycomponent.operations import insert_skycomponent
 from wrappers.arlexecute.simulation.testing_support import create_named_configuration, ingest_unittest_visibility, \
-    create_unittest_model, \
-    create_unittest_components, insert_unittest_errors
+    create_unittest_model, create_unittest_components, insert_unittest_errors
+from wrappers.arlexecute.skycomponent.operations import insert_skycomponent
 
 log = logging.getLogger(__name__)
 
@@ -37,7 +36,10 @@ class TestPipelineGraphs(ARLExecuteTestCase, unittest.TestCase):
         super(TestPipelineGraphs, self).setUp()
         from data_models.parameters import arl_path
         self.dir = arl_path('test_results')
-
+    
+    def tearDown(self):
+        pass
+    
     def actualSetUp(self, add_errors=False, freqwin=5, block=False, dospectral=True, dopol=False,
                     amp_errors=None, phase_errors=None, zerow=True):
         
@@ -84,8 +86,8 @@ class TestPipelineGraphs(ARLExecuteTestCase, unittest.TestCase):
                          for i, _ in enumerate(self.frequency)]
         
         self.model_imagelist = [
-            arlexecute.execute(create_unittest_model, nout=freqwin)(self.vis_list[0], self.image_pol,
-                                                                    npixel=self.npixel)
+            arlexecute.execute(create_unittest_model, nout=freqwin)(self.vis_list[i], self.image_pol,
+                                                                    npixel=self.npixel, cellsize=0.0005)
             for i, _ in enumerate(self.frequency)]
         
         self.components_list = [
@@ -102,7 +104,8 @@ class TestPipelineGraphs(ARLExecuteTestCase, unittest.TestCase):
                          for freqwin, _ in enumerate(self.frequency)]
         
         # Calculate the model convolved with a Gaussian.
-        model = arlexecute.compute(self.model_imagelist[0], sync=True)
+        self.model_imagelist = arlexecute.compute(self.model_imagelist, sync=True)
+        model = self.model_imagelist[0]
         self.cmodel = smooth_image(model)
         export_image_to_fits(model, '%s/test_imaging_delayed_model.fits' % self.dir)
         export_image_to_fits(self.cmodel, '%s/test_imaging_delayed_cmodel.fits' % self.dir)
@@ -112,14 +115,20 @@ class TestPipelineGraphs(ARLExecuteTestCase, unittest.TestCase):
                 arlexecute.execute(insert_unittest_errors)(self.vis_list[i], amp_errors=amp_errors,
                                                            phase_errors=phase_errors)
                 for i, _ in enumerate(self.frequency)]
-            
+        
+        self.vis_list = arlexecute.compute(self.vis_list, sync=True)
+        
+        self.vis_list = arlexecute.scatter(self.vis_list)
+        self.model_imagelist = arlexecute.scatter(self.model_imagelist)
+    
     def test_time_setup(self):
         self.actualSetUp()
     
     def test_continuum_imaging_pipeline(self):
         self.actualSetUp(add_errors=False, block=True)
         continuum_imaging_list = \
-            continuum_imaging_list_arlexecute_workflow(self.vis_list, model_imagelist=self.model_imagelist, context='2d',
+            continuum_imaging_list_arlexecute_workflow(self.vis_list, model_imagelist=self.model_imagelist,
+                                                       context='2d',
                                                        algorithm='mmclean', facets=1,
                                                        scales=[0, 3, 10],
                                                        niter=1000, fractional_threshold=0.1,
@@ -128,15 +137,16 @@ class TestPipelineGraphs(ARLExecuteTestCase, unittest.TestCase):
                                                        deconvolve_facets=8, deconvolve_overlap=16,
                                                        deconvolve_taper='tukey')
         clean, residual, restored = arlexecute.compute(continuum_imaging_list, sync=True)
-        export_image_to_fits(clean[0], '%s/test_pipelines_continuum_imaging_pipeline_clean.fits' % self.dir)
-        export_image_to_fits(residual[0][0],
+        centre = len(clean) // 2
+        export_image_to_fits(clean[centre], '%s/test_pipelines_continuum_imaging_pipeline_clean.fits' % self.dir)
+        export_image_to_fits(residual[centre][0],
                              '%s/test_pipelines_continuum_imaging_pipeline_residual.fits' % self.dir)
-        export_image_to_fits(restored[0],
+        export_image_to_fits(restored[centre],
                              '%s/test_pipelines_continuum_imaging_pipeline_restored.fits' % self.dir)
         
-        qa = qa_image(restored[0])
-        assert numpy.abs(qa.data['max'] - 116.9) < 1.0, str(qa)
-        assert numpy.abs(qa.data['min'] + 0.118) < 1.0, str(qa)
+        qa = qa_image(restored[centre])
+        assert numpy.abs(qa.data['max'] - 100.13762476849081) < 1.0, str(qa)
+        assert numpy.abs(qa.data['min'] + 0.03627273884170454) < 1.0, str(qa)
     
     def test_ical_pipeline(self):
         amp_errors = {'T': 0.0, 'G': 0.00, 'B': 0.0}
@@ -165,13 +175,14 @@ class TestPipelineGraphs(ARLExecuteTestCase, unittest.TestCase):
                                           threshold=2.0, nmajor=5, gain=0.1,
                                           deconvolve_facets=8, deconvolve_overlap=16, deconvolve_taper='tukey')
         clean, residual, restored = arlexecute.compute(ical_list, sync=True)
-        export_image_to_fits(clean[0], '%s/test_pipelines_ical_pipeline_clean.fits' % self.dir)
-        export_image_to_fits(residual[0][0], '%s/test_pipelines_ical_pipeline_residual.fits' % self.dir)
-        export_image_to_fits(restored[0], '%s/test_pipelines_ical_pipeline_restored.fits' % self.dir)
+        centre = len(clean) // 2
+        export_image_to_fits(clean[centre], '%s/test_pipelines_ical_pipeline_clean.fits' % self.dir)
+        export_image_to_fits(residual[centre][0], '%s/test_pipelines_ical_pipeline_residual.fits' % self.dir)
+        export_image_to_fits(restored[centre], '%s/test_pipelines_ical_pipeline_restored.fits' % self.dir)
         
-        qa = qa_image(restored[0])
-        assert numpy.abs(qa.data['max'] - 116.9) < 1.0, str(qa)
-        assert numpy.abs(qa.data['min'] + 0.118) < 1.0, str(qa)
+        qa = qa_image(restored[centre])
+        assert numpy.abs(qa.data['max'] - 100.13739440876233) < 1.0, str(qa)
+        assert numpy.abs(qa.data['min'] + 0.03644435471804354) < 1.0, str(qa)
 
 
 if __name__ == '__main__':

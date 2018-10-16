@@ -14,9 +14,12 @@ from astropy.units import Quantity
 from astropy.wcs import WCS
 
 from processing_library.image.operations import create_image_from_array
+from processing_components.griddata.operations import create_griddata_from_array
+from processing_components.griddata.convolution_functions import create_convolutionfunction_from_array
+
 from processing_components.image.operations import export_image_to_fits, import_image_from_fits
 from data_models.memory_data_models import Visibility, BlockVisibility, Configuration, \
-    GainTable, SkyModel, Skycomponent, Image
+    GainTable, SkyModel, Skycomponent, Image, GridData, ConvolutionFunction
 from data_models.polarisation import PolarisationFrame, ReceptorFrame
 
 
@@ -406,7 +409,7 @@ def convert_image_to_hdf(im: Image, f):
     :param f: HDF root
     :return:
     """
-    assert isinstance(im, Image)
+    assert isinstance(im, Image), im
     
     f.attrs['ARL_data_model'] = 'Image'
     f['data'] = im.data
@@ -530,6 +533,10 @@ def memory_data_model_to_buffer(model, jbuff, dm):
             return export_image_to_fits(model, name)
         else:
             return export_image_to_hdf5(model, name)
+    elif dm["data_model"] == "GridData":
+        return export_griddata_to_hdf5(model, name)
+    elif dm["data_model"] == "ConvolutionFunction":
+        return export_convolutionfunction_to_hdf5(model, name)
     elif dm["data_model"] == "SkyModel":
         return export_skymodel_to_hdf5(model, name)
     elif dm["data_model"] == "GainTable":
@@ -565,5 +572,149 @@ def buffer_data_model_to_memory(jbuff, dm):
         return import_skymodel_from_hdf5(name)
     elif dm["data_model"] == "GainTable":
         return import_gaintable_from_hdf5(name)
+    elif dm["data_model"] == "GridData":
+        return import_griddata_from_hdf5(name)
+    elif dm["data_model"] == "ConvolutionFunction":
+        return import_convolutionfunction_from_hdf5(name)
     else:
         raise ValueError("Data model %s not supported" % dm["data_model"])
+
+
+def convert_griddata_to_hdf(gd: GridData, f):
+    """ Convert Griddata to HDF
+
+    :param im: GridData
+    :param f: HDF root
+    :return:
+    """
+    assert isinstance(gd, GridData)
+    
+    f.attrs['ARL_data_model'] = 'GridData'
+    f['data'] = gd.data
+    f.attrs['grid_wcs'] = numpy.string_(gd.grid_wcs.to_header_string())
+    f.attrs['projection_wcs'] = numpy.string_(gd.projection_wcs.to_header_string())
+    f.attrs['polarisation_frame'] = gd.polarisation_frame.type
+    return f
+
+
+def convert_hdf_to_griddata(f):
+    """ Convert HDF root to a GridData
+
+    :param f:
+    :return:
+    """
+    assert f.attrs['ARL_data_model'] == "GridData", "Not a GridData"
+    data = numpy.array(f['data'])
+    polarisation_frame = PolarisationFrame(f.attrs['polarisation_frame'])
+    grid_wcs = WCS(f.attrs['grid_wcs'])
+    projection_wcs = WCS(f.attrs['projection_wcs'])
+    gd = create_griddata_from_array(data, grid_wcs=grid_wcs, projection_wcs=projection_wcs,
+                                 polarisation_frame=polarisation_frame)
+    return gd
+
+
+def export_griddata_to_hdf5(gd, filename):
+    """ Export a GridData to HDF5 format
+
+    :param gd:
+    :param filename:
+    :return:
+    """
+    
+    if not isinstance(gd, collections.Iterable):
+        gd = [gd]
+    with h5py.File(filename, 'w') as f:
+        f.attrs['number_data_models'] = len(gd)
+        for i, m in enumerate(gd):
+            assert isinstance(m, GridData)
+            mf = f.create_group('GridData%d' % i)
+            convert_griddata_to_hdf(m, mf)
+        f.flush()
+        f.close()
+
+
+def import_griddata_from_hdf5(filename):
+    """Import GridData from HDF5 format
+
+    :param filename:
+    :return: single image or list of images
+    """
+    
+    with h5py.File(filename, 'r') as f:
+        nimlist = f.attrs['number_data_models']
+        gdlist = [convert_hdf_to_griddata(f['GridData%d' % i]) for i in range(nimlist)]
+        if nimlist == 1:
+            return gdlist[0]
+        else:
+            return gdlist
+
+
+def convert_convolutionfunction_to_hdf(cf: ConvolutionFunction, f):
+    """ Convert Griddata to HDF
+
+    :param im: ConvolutionFunction
+    :param f: HDF root
+    :return:
+    """
+    assert isinstance(cf, ConvolutionFunction)
+    
+    f.attrs['ARL_data_model'] = 'ConvolutionFunction'
+    f['data'] = cf.data
+    f.attrs['grid_wcs'] = numpy.string_(cf.grid_wcs.to_header_string())
+    f.attrs['projection_wcs'] = numpy.string_(cf.projection_wcs.to_header_string())
+    f.attrs['polarisation_frame'] = cf.polarisation_frame.type
+    return f
+
+
+def convert_hdf_to_convolutionfunction(f):
+    """ Convert HDF root to a ConvolutionFunction
+
+    :param f:
+    :return:
+    """
+    assert f.attrs['ARL_data_model'] == "ConvolutionFunction", "Not a ConvolutionFunction"
+    data = numpy.array(f['data'])
+    polarisation_frame = PolarisationFrame(f.attrs['polarisation_frame'])
+    grid_wcs = WCS(f.attrs['grid_wcs'])
+    projection_wcs = WCS(f.attrs['projection_wcs'])
+    gd = create_convolutionfunction_from_array(data, grid_wcs=grid_wcs, projection_wcs=projection_wcs,
+                                    polarisation_frame=polarisation_frame)
+    return gd
+
+
+def export_convolutionfunction_to_hdf5(cf, filename):
+    """ Export a ConvolutionFunction to HDF5 format
+
+    :param cf:
+    :param filename:
+    :return:
+    """
+    
+    if not isinstance(cf, collections.Iterable):
+        cf = [cf]
+    with h5py.File(filename, 'w') as f:
+        f.attrs['number_data_models'] = len(cf)
+        for i, m in enumerate(cf):
+            assert isinstance(m, ConvolutionFunction)
+            mf = f.create_group('ConvolutionFunction%d' % i)
+            convert_convolutionfunction_to_hdf(m, mf)
+        f.flush()
+        f.close()
+
+
+def import_convolutionfunction_from_hdf5(filename):
+    """Import ConvolutionFunction from HDF5 format
+
+    :param filename:
+    :return: single image or list of images
+    """
+    
+    with h5py.File(filename, 'r') as f:
+        nimlist = f.attrs['number_data_models']
+        cflist = [convert_hdf_to_convolutionfunction(f['ConvolutionFunction%d' % i]) for i in range(nimlist)]
+        if nimlist == 1:
+            return cflist[0]
+        else:
+            return cflist
+
+

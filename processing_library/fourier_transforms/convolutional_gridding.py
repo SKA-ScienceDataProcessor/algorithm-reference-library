@@ -1,11 +1,11 @@
 """ Imaging is based on used of the FFT to perform Fourier transforms efficiently. Since the observed visibility data_models
 do not arrive naturally on grid points, the sampled points are resampled on the FFT grid using a convolution function to
-smear out the sample points. The resulting grid points are then FFT'ed. The result can be corrected for the gridding
+smear out the sample points. The resulting grid points are then FFT'ed. The result can be corrected for the griddata
 convolution function by division in the image plane of the transform.
 
 This approach may be extended to include image plane effect such as the w term and the antenna/station primary beam.
 
-This module contains functions for performing the gridding process and the inverse degridding process.
+This module contains functions for performing the griddata process and the inverse degridding process.
 """
 
 import logging
@@ -70,9 +70,9 @@ def anti_aliasing_calculate(shape, oversampling=1, support=3):
     """
     Compute the prolate spheroidal anti-aliasing function
     
-    The kernel is to be used in gridding visibility data onto a grid on for degridding from a grid.
-    The gridding correction function (gcf) is used to correct the image for decorrelation due to
-    gridding.
+    The kernel is to be used in griddata visibility data onto a grid on for degridding from a grid.
+    The griddata correction function (gcf) is used to correct the image for decorrelation due to
+    griddata.
     
     Return the 2D grid correction function (gcf), and the convolving kernel (kernel
 
@@ -111,7 +111,7 @@ def grdsf(nu):
     approximations discussed by Fred Schwab in 'Indirect Imaging'.
     This routine was checked against Fred's SPHFN routine, and agreed
     to about the 7th significant digit.
-    The gridding function is (1-NU**2)*GRDSF(NU) where NU is the distance
+    The griddata function is (1-NU**2)*GRDSF(NU) where NU is the distance
     to the edge. The grid correction function is just 1/GRDSF(NU) where NU
     is now the distance to the edge of the image.
     """
@@ -148,7 +148,7 @@ def grdsf(nu):
     ok = numpy.abs(nu > 1.0)
     grdsf[ok] = 0.0
     
-    # Return the gridding function and the grid correction function
+    # Return the griddata function and the grid correction function
     return grdsf, (1 - nu ** 2) * grdsf
 
 

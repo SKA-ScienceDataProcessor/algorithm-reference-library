@@ -45,6 +45,7 @@ class TestImagingDeconvolveGraph(unittest.TestCase):
         self.freqwin = freqwin
         self.vis_list = list()
         self.ntimes = 5
+        cellsize = 0.001
         self.times = numpy.linspace(-3.0, +3.0, self.ntimes) * numpy.pi / 12.0
         self.frequency = numpy.linspace(0.8e8, 1.2e8, self.freqwin)
         
@@ -79,6 +80,7 @@ class TestImagingDeconvolveGraph(unittest.TestCase):
         
         self.model_imagelist = [create_unittest_model(self.vis_list[freqwin],
                                                       self.image_pol,
+                                                      cellsize=cellsize,
                                                       npixel=self.npixel)
                                 for freqwin, _ in enumerate(self.frequency)]
         
@@ -134,7 +136,7 @@ class TestImagingDeconvolveGraph(unittest.TestCase):
                                                            algorithm='mmclean', nmoments=3, nchan=self.freqwin,
                                                            threshold=0.1, gain=0.7)
         residual_imagelist = residual_list_serial_workflow(self.vis_list, model_imagelist=dec_imagelist,
-                                                           context='wstack', vis_slices=51)
+                                                           context='2d')
         restored = restore_list_serial_workflow(model_imagelist=dec_imagelist, psf_imagelist=psf_imagelist,
                                                 residual_imagelist=residual_imagelist,
                                                 empty=self.model_imagelist)[0]

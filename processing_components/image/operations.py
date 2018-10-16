@@ -4,10 +4,12 @@
 
 import copy
 import warnings
+from astropy.wcs import FITSFixedWarning
+warnings.simplefilter('ignore', FITSFixedWarning)
 
 import numpy
 from astropy.io import fits
-from astropy.wcs import FITSFixedWarning, WCS
+from astropy.wcs import WCS
 from astropy.wcs.utils import skycoord_to_pixel
 from reproject import reproject_interp
 
@@ -41,12 +43,11 @@ def import_image_from_fits(fitsfile: str) -> Image:
     :return: Image
     """
     fim = Image()
-    with warnings.catch_warnings():
-        warnings.simplefilter('ignore', FITSFixedWarning)
-        hdulist = fits.open(fitsfile)
-        fim.data = hdulist[0].data
-        fim.wcs = WCS(fitsfile)
-        hdulist.close()
+    warnings.simplefilter('ignore', FITSFixedWarning)
+    hdulist = fits.open(fitsfile)
+    fim.data = hdulist[0].data
+    fim.wcs = WCS(fitsfile)
+    hdulist.close()
     
     if len(fim.data) == 2:
         fim.polarisation_frame = PolarisationFrame('stokesI')
@@ -141,7 +142,9 @@ def show_image(im: Image, fig=None, title: str = '', pol=0, chan=0, cm='Greys', 
     if not fig:
         fig = plt.figure()
     plt.clf()
-    fig.add_subplot(111, projection=im.wcs.sub(['longitude', 'latitude']))
+
+    fig.add_subplot(111, projection=im.wcs.sub([1,2]))
+    
     if len(im.data.shape) == 4:
         data_array = numpy.real(im.data[chan, pol, :, :])
     else:
@@ -154,8 +157,8 @@ def show_image(im: Image, fig=None, title: str = '', pol=0, chan=0, cm='Greys', 
 
     plt.imshow(data_array, origin = 'lower', cmap = cm, vmax=vmax, vmin=vmin)
 
-    plt.xlabel('RA---SIN')
-    plt.ylabel('DEC--SIN')
+    plt.xlabel(im.wcs.wcs.ctype[0])
+    plt.ylabel(im.wcs.wcs.ctype[1])
     plt.title(title)
     plt.colorbar()
     
@@ -169,10 +172,17 @@ def show_image(im: Image, fig=None, title: str = '', pol=0, chan=0, cm='Greys', 
 def smooth_image(model: Image, width=1.0):
     """ Smooth an image with a kernel
     
+    :param model: Image
+    :param width: Kernel in pixels
+    
     """
+    # TODO: Remove filter when astropy fixes convolve
+    import warnings
+    warnings.simplefilter(action='ignore', category=FutureWarning)
     import astropy.convolution
     
     assert isinstance(model, Image), model
+    
     kernel = astropy.convolution.kernels.Gaussian2DKernel(width)
     
     cmodel = create_empty_image_like(model)
@@ -207,9 +217,7 @@ def calculate_image_frequency_moments(im: Image, reference_frequency=None, nmome
     assert isinstance(im, Image)
     nchan, npol, ny, nx = im.shape
     channels = numpy.arange(nchan)
-    with warnings.catch_warnings():
-        warnings.simplefilter('ignore', FITSFixedWarning)
-        freq = im.wcs.sub(['spectral']).wcs_pix2world(channels, 0)[0]
+    freq = im.wcs.sub(['spectral']).wcs_pix2world(channels, 0)[0]
     
     assert nmoments <= nchan, "Number of moments %d cannot exceed the number of channels %d" % (nmoments, nchan)
     
@@ -263,9 +271,7 @@ def calculate_image_from_frequency_moments(im: Image, moment_image: Image, refer
     assert moment_image.wcs.wcs.ctype[3] == 'MOMENT', "Second image should be a moment image"
     
     channels = numpy.arange(nchan)
-    with warnings.catch_warnings():
-        warnings.simplefilter('ignore', FITSFixedWarning)
-        freq = im.wcs.sub(['spectral']).wcs_pix2world(channels, 0)[0]
+    freq = im.wcs.sub(['spectral']).wcs_pix2world(channels, 0)[0]
     
     if reference_frequency is None:
         reference_frequency = numpy.average(freq)
@@ -300,9 +306,7 @@ def remove_continuum_image(im: Image, degree=1, mask=None):
     
     nchan, npol, ny, nx = im.shape
     channels = numpy.arange(nchan)
-    with warnings.catch_warnings():
-        warnings.simplefilter('ignore', FITSFixedWarning)
-        frequency = im.wcs.sub(['spectral']).wcs_pix2world(channels, 0)[0]
+    frequency = im.wcs.sub(['spectral']).wcs_pix2world(channels, 0)[0]
     frequency -= frequency[nchan // 2]
     frequency /= numpy.max(frequency)
     wt = numpy.ones_like(frequency)

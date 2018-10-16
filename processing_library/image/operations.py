@@ -5,19 +5,21 @@ Functions that define and manipulate images. Images are just data and a World Co
 import copy
 import logging
 import warnings
+from astropy.wcs import FITSFixedWarning
+warnings.simplefilter('ignore', FITSFixedWarning)
 
 import numpy
 
 import astropy.units as u
 from astropy.coordinates import SkyCoord
-from astropy.wcs import FITSFixedWarning
+
 from astropy.wcs import WCS
 
 from data_models.polarisation import PolarisationFrame
 from data_models.memory_data_models import Image
 
-from ..fourier_transforms.convolutional_gridding import w_beam
-from ..fourier_transforms.fft_support import ifft, fft
+from processing_library.fourier_transforms.convolutional_gridding import w_beam
+from processing_library.fourier_transforms.fft_support import ifft, fft
 
 log = logging.getLogger(__name__)
 
@@ -126,9 +128,7 @@ def polarisation_frame_from_wcs(wcs, shape) -> PolarisationFrame:
         polarisation_frame = PolarisationFrame("stokesI")
     else:
         npol = shape[1]
-        with warnings.catch_warnings():
-            warnings.simplefilter('ignore', FITSFixedWarning)
-            pol = wcs.sub(['stokes']).wcs_pix2world(range(npol), 0)[0]
+        pol = wcs.sub(['stokes']).wcs_pix2world(range(npol), 0)[0]
         pol = numpy.array(pol, dtype='int')
         for key in PolarisationFrame.fits_codes.keys():
             keypol = numpy.array(PolarisationFrame.fits_codes[key])
@@ -154,7 +154,7 @@ def checkwcs(wcs1, wcs2):
 
 
 def convert_image_to_kernel(im: Image, oversampling, kernelwidth):
-    """ Convert an image to a gridding kernel
+    """ Convert an image to a griddata kernel
     
     :param im: Image to be converted
     :param oversampling: Oversampling of Image spatially
@@ -359,7 +359,7 @@ def create_w_term_like(im: Image, w, phasecentre=None, remove_shift=False, dopol
     cellsize = abs(fim.wcs.wcs.cdelt[0]) * numpy.pi / 180.0
     nchan, npol, _, npixel = fim_shape
     if phasecentre is SkyCoord:
-        wcentre = phasecentre.to_pixel(im.wcs, origin=1) - 1.0
+        wcentre = phasecentre.to_pixel(im.wcs, origin=0)
     else:
         wcentre = [im.wcs.wcs.crpix[0] - 1.0, im.wcs.wcs.crpix[1] - 1.0]
     

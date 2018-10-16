@@ -5,6 +5,10 @@
 import logging
 from typing import Union
 
+import warnings
+# TODO: Remove filter when fixed to use ndarray
+warnings.simplefilter(action='ignore', category=PendingDeprecationWarning)
+
 import numpy
 from astropy.coordinates import SkyCoord
 
@@ -14,6 +18,8 @@ from processing_library.imaging.imaging_params import get_frequency_map
 from processing_library.util.coordinate_support import skycoord_to_lmn, simulate_point
 
 from ..visibility.base import copy_visibility
+
+from data_models.polarisation import convert_linear_to_stokes, convert_circular_to_stokes, PolarisationFrame
 
 log = logging.getLogger(__name__)
 
@@ -274,3 +280,21 @@ def integrate_visibility_by_channel(vis: BlockVisibility) -> BlockVisibility:
     newvis.data['vis'][mask] = newvis.data['vis'][mask] / newvis.data['weight'][mask]
     
     return newvis
+
+def convert_visibility_to_stokes(vis):
+    """Convert the polarisation frame data into Stokes parameters.
+
+    Args:
+    vis (obj): ARL visibility data.
+
+    Returns:
+    vis: Converted visibility data.
+    """
+    poldef = vis.polarisation_frame
+    if poldef == PolarisationFrame('linear'):
+        vis.data['vis'] = convert_linear_to_stokes(vis.data['vis'], polaxis=1)
+        vis.polarisation_frame = PolarisationFrame('stokesIQUV')
+    elif poldef == PolarisationFrame('circular'):
+        vis.data['vis'] = convert_circular_to_stokes(vis.data['vis'], polaxis=1)
+        vis.polarisation_frame = PolarisationFrame('stokesIQUV')
+    return vis

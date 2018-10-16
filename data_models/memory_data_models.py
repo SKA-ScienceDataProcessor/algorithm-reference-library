@@ -16,14 +16,20 @@
 
 """
 
-import logging
 import sys
+
+import logging
+
 from copy import deepcopy
 from typing import Union
 
 import numpy
 from astropy import units as u
 from astropy.coordinates import SkyCoord
+
+import warnings
+from astropy.wcs import FITSFixedWarning
+warnings.simplefilter('ignore', FITSFixedWarning)
 
 from data_models.polarisation import PolarisationFrame, ReceptorFrame
 
@@ -309,6 +315,186 @@ class Image:
         return s
 
 
+class GridData:
+    """Class to hold Gridded data for Fourier processing
+    - Has four or more coordinates: [chan, pol, z, y, x] where x can be u, l; y can be v, m; z can be w, n
+
+    The conventions for indexing in WCS and numpy are opposite.
+    - In astropy.wcs, the order is (longitude, latitude, polarisation, frequency)
+    - in numpy, the order is (frequency, polarisation, depth, latitude, longitude)
+
+    .. warning::
+        The polarisation_frame is kept in two places, the WCS and the polarisation_frame
+        variable. The latter should be considered definitive.
+
+    """
+    
+    def __init__(self):
+        """ Empty image
+        """
+        self.data = None
+        self.grid_wcs = None
+        self.projection_wcs = None
+        self.polarisation_frame = None
+    
+    def size(self):
+        """ Return size in GB
+        """
+        size = 0
+        size += self.data.nbytes
+        return size / 1024.0 / 1024.0 / 1024.0
+    
+    def __copy__(self):
+        cls = self.__class__
+        result = cls.__new__(cls)
+        result.__dict__.update(self.__dict__)
+        return result
+    
+    # noinspection PyArgumentList
+    def __deepcopy__(self, memo):
+        cls = self.__class__
+        result = cls.__new__(cls)
+        memo[id(self)] = result
+        for k, v in self.__dict__.items():
+            setattr(result, k, deepcopy(v, memo))
+        return result
+    
+    @property
+    def nchan(self):
+        return self.data.shape[0]
+    
+    @property
+    def npol(self):
+        return self.data.shape[1]
+    
+    @property
+    def nheight(self):
+        return self.data.shape[2]
+    
+    @property
+    def nwidth(self):
+        return self.data.shape[3]
+    
+    @property
+    def ndepth(self):
+        return self.data.shape[4]
+    
+    @property
+    def frequency(self):
+        w = self.grid_wcs.sub(['spectral'])
+        return w.wcs_pix2world(range(self.nchan), 0)[0]
+    
+    @property
+    def shape(self):
+        assert len(self.data.shape) == 5
+        return self.data.shape
+    
+    @property
+    def phasecentre(self):
+        return SkyCoord(self.projection_wcs.wcs.crval[0] * u.deg, self.projection_wcs.wcs.crval[1] * u.deg)
+    
+    def __str__(self):
+        """Default printer for GriddedData
+
+        """
+        s = "Gridded data:\n"
+        s += "\tShape: %s\n" % str(self.data.shape)
+        s += "\tGrid WCS: %s\n" % self.grid_wcs
+        s += "\tProjection WCS: %s\n" % self.projection_wcs
+        s += "\tPolarisation frame: %s\n" % str(self.polarisation_frame.type)
+        return s
+
+
+class ConvolutionFunction:
+    """Class to hold Gridded data for Fourier processing
+    - Has four or more coordinates: [chan, pol, z, y, x] where x can be u, l; y can be v, m; z can be w, n
+
+    The conventions for indexing in WCS and numpy are opposite.
+    - In astropy.wcs, the order is (longitude, latitude, polarisation, frequency)
+    - in numpy, the order is (frequency, polarisation, depth, latitude, longitude)
+
+    .. warning::
+        The polarisation_frame is kept in two places, the WCS and the polarisation_frame
+        variable. The latter should be considered definitive.
+
+    """
+    
+    def __init__(self):
+        """ Empty image
+        """
+        self.data = None
+        self.grid_wcs = None
+        self.projection_wcs = None
+        self.polarisation_frame = None
+    
+    def size(self):
+        """ Return size in GB
+        """
+        size = 0
+        size += self.data.nbytes
+        return size / 1024.0 / 1024.0 / 1024.0
+    
+    def __copy__(self):
+        cls = self.__class__
+        result = cls.__new__(cls)
+        result.__dict__.update(self.__dict__)
+        return result
+    
+    # noinspection PyArgumentList
+    def __deepcopy__(self, memo):
+        cls = self.__class__
+        result = cls.__new__(cls)
+        memo[id(self)] = result
+        for k, v in self.__dict__.items():
+            setattr(result, k, deepcopy(v, memo))
+        return result
+    
+    @property
+    def nchan(self):
+        return self.data.shape[0]
+    
+    @property
+    def npol(self):
+        return self.data.shape[1]
+    
+    @property
+    def nheight(self):
+        return self.data.shape[2]
+    
+    @property
+    def nwidth(self):
+        return self.data.shape[3]
+    
+    @property
+    def ndepth(self):
+        return self.data.shape[4]
+    
+    @property
+    def frequency(self):
+        w = self.grid_wcs.sub(['spectral'])
+        return w.wcs_pix2world(range(self.nchan), 0)[0]
+    
+    @property
+    def shape(self):
+        assert len(self.data.shape) == 7
+        return self.data.shape
+    
+    @property
+    def phasecentre(self):
+        return SkyCoord(self.projection_wcs.wcs.crval[0] * u.deg, self.projection_wcs.wcs.crval[1] * u.deg)
+    
+    def __str__(self):
+        """Default printer for GriddedData
+
+        """
+        s = "Convolution function:\n"
+        s += "\tShape: %s\n" % str(self.data.shape)
+        s += "\tGrid WCS: %s\n" % self.grid_wcs
+        s += "\tProjection WCS: %s\n" % self.projection_wcs
+        s += "\tPolarisation frame: %s\n" % str(self.polarisation_frame.type)
+        return s
+
+
 class Skycomponent:
     """Skycomponents are used to represent compact sources on the sky. They possess direction,
     flux as a function of frequency and polarisation, shape (with params), and polarisation frame.
@@ -510,9 +696,11 @@ class Visibility:
         """Default printer for Skycomponent
 
         """
+        ufrequency = numpy.unique(self.frequency)
         s = "Visibility:\n"
         s += "\tNumber of visibilities: %s\n" % self.nvis
-        s += "\tFrequency: %s\n" % self.frequency
+        s += "\tNumber of channels: %d\n" % len(ufrequency)
+        s += "\tFrequency: %s\n" % ufrequency
         s += "\tNumber of polarisations: %s\n" % self.npol
         s += "\tVisibility shape: %s\n" % str(self.vis.shape)
         s += "\tPolarisation Frame: %s\n" % self.polarisation_frame.type
@@ -664,6 +852,7 @@ class BlockVisibility:
         s += "\tNumber of visibilities: %s\n" % self.nvis
         s += "\tNumber of integrations: %s\n" % len(self.time)
         s += "\tVisibility shape: %s\n" % str(self.vis.shape)
+        s += "\tNumber of channels: %d\n" % len(self.frequency)
         s += "\tFrequency: %s\n" % self.frequency
         s += "\tNumber of polarisations: %s\n" % self.npol
         s += "\tPolarisation Frame: %s\n" % self.polarisation_frame.type

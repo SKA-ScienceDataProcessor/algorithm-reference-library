@@ -1,4 +1,4 @@
-""" Unit tests for pipelines
+"""Unit tests for pipelines expressed via dask.delayed
 
 
 """
@@ -10,20 +10,15 @@ import unittest
 import numpy
 from astropy import units as u
 from astropy.coordinates import SkyCoord
-from astropy.wcs.utils import pixel_to_skycoord
 
 from data_models.polarisation import PolarisationFrame
-
-from wrappers.serial.calibration.operations import qa_gaintable, create_gaintable_from_blockvisibility, apply_gaintable
-from wrappers.serial.image.operations import export_image_to_fits
-from processing_library.image.operations import copy_image, create_empty_image_like
-from wrappers.serial.imaging.base import predict_skycomponent_visibility, \
-    create_image_from_visibility
-from wrappers.serial.skycomponent.operations import create_skycomponent, insert_skycomponent
-from wrappers.serial.simulation.testing_support import create_named_configuration, simulate_gaintable
-from wrappers.serial.visibility.base import create_blockvisibility, create_visibility
-
-from wrappers.serial.calibration.rcal import rcal
+from workflows.serial.pipelines.pipeline_serial import ical_list_serial_workflow, continuum_imaging_list_serial_workflow
+from wrappers.serial.calibration.calibration_control import create_calibration_controls
+from wrappers.serial.image.operations import export_image_to_fits, qa_image, smooth_image
+from wrappers.serial.imaging.base import predict_skycomponent_visibility
+from wrappers.serial.simulation.testing_support import create_named_configuration, ingest_unittest_visibility, \
+    create_unittest_model, create_unittest_components, insert_unittest_errors
+from wrappers.serial.skycomponent.operations import insert_skycomponent
 
 log = logging.getLogger(__name__)
 
@@ -32,101 +27,149 @@ log.addHandler(logging.StreamHandler(sys.stdout))
 log.addHandler(logging.StreamHandler(sys.stderr))
 
 
-class TestPipelinesFunctions(unittest.TestCase):
+class TestPipelines(unittest.TestCase):
+    
     def setUp(self):
+        
         from data_models.parameters import arl_path
         self.dir = arl_path('test_results')
-        
-        self.setupVis(add_errors=False, block=True)
     
-    def setupVis(self, add_errors=False, block=True, freqwin=7, bandpass=False):
-        self.npixel = 256
-   
+    def tearDown(self):
+        pass
+    
+    def actualSetUp(self, add_errors=False, freqwin=5, block=False, dospectral=True, dopol=False,
+                    amp_errors=None, phase_errors=None, zerow=True):
+        
+        if amp_errors is None:
+            amp_errors = {'T': 0.0, 'G': 0.01, 'B': 0.01}
+        if phase_errors is None:
+            phase_errors = {'T': 1.0, 'G': 0.1, 'B': 0.01}
+        
+        self.npixel = 512
+        self.low = create_named_configuration('LOWBD2', rmax=750.0)
         self.freqwin = freqwin
+        self.vis_list = list()
         self.ntimes = 5
         self.times = numpy.linspace(-3.0, +3.0, self.ntimes) * numpy.pi / 12.0
         self.frequency = numpy.linspace(0.8e8, 1.2e8, self.freqwin)
+        
         if freqwin > 1:
-            self.channel_bandwidth = numpy.array(freqwin * [self.frequency[1] - self.frequency[0]])
+            self.channelwidth = numpy.array(freqwin * [self.frequency[1] - self.frequency[0]])
         else:
-            self.channel_bandwidth = numpy.array([4e7])
-        self.vis = self.ingest_visibility(self.frequency, chan_width=self.channel_bandwidth,
-                                          times=self.times, add_errors=add_errors, block=block,
-                                          bandpass=bandpass)
+            self.channelwidth = numpy.array([1e6])
+        
+        if dopol:
+            self.vis_pol = PolarisationFrame('linear')
+            self.image_pol = PolarisationFrame('stokesIQUV')
+            f = numpy.array([100.0, 20.0, -10.0, 1.0])
+        else:
+            self.vis_pol = PolarisationFrame('stokesI')
+            self.image_pol = PolarisationFrame('stokesI')
+            f = numpy.array([100.0])
+        
+        if dospectral:
+            flux = numpy.array([f * numpy.power(freq / 1e8, -0.7) for freq in self.frequency])
+        else:
+            flux = numpy.array([f])
+        
+        self.phasecentre = SkyCoord(ra=+180.0 * u.deg, dec=-60.0 * u.deg, frame='icrs', equinox='J2000')
+        self.vis_list = [ingest_unittest_visibility(self.low,
+                                                    [self.frequency[i]],
+                                                    [self.channelwidth[i]],
+                                                    self.times,
+                                                    self.vis_pol,
+                                                    self.phasecentre, block=block,
+                                                    zerow=zerow)
+                         for i, _ in enumerate(self.frequency)]
+        
+        self.model_imagelist = [
+            create_unittest_model(self.vis_list[i], self.image_pol,
+                                  npixel=self.npixel, cellsize=0.0005)
+            for i, _ in enumerate(self.frequency)]
+        
+        self.components_list = [
+            create_unittest_components(self.model_imagelist[i], flux[i, :][numpy.newaxis, :])
+            for i, _ in enumerate(self.frequency)]
+        
+        # Apply the LOW primary beam and insert into model
+        self.model_imagelist = [insert_skycomponent(self.model_imagelist[freqwin],
+                                                    self.components_list[freqwin])
+                                for freqwin, _ in enumerate(self.frequency)]
+        
+        self.vis_list = [predict_skycomponent_visibility(self.vis_list[freqwin],
+                                                         self.components_list[freqwin])
+                         for freqwin, _ in enumerate(self.frequency)]
+        
+        # Calculate the model convolved with a Gaussian.
+        model = self.model_imagelist[0]
+        self.cmodel = smooth_image(model)
+        export_image_to_fits(model, '%s/test_imaging_delayed_model.fits' % self.dir)
+        export_image_to_fits(self.cmodel, '%s/test_imaging_delayed_cmodel.fits' % self.dir)
+        
+        if add_errors and block:
+            self.vis_list = [insert_unittest_errors(self.vis_list[i], amp_errors=amp_errors,
+                                                    phase_errors=phase_errors)
+                             for i, _ in enumerate(self.frequency)]
     
-    def ingest_visibility(self, freq=None, chan_width=None, times=None, add_errors=False,
-                          block=True, bandpass=False):
-        if freq is None:
-            freq = [1e8]
-        if chan_width is None:
-            chan_width = [1e6]
-        if times is None:
-            times = (numpy.pi / 12.0) * numpy.linspace(-3.0, 3.0, 5)
-        
-        lowcore = create_named_configuration('LOWBD2', rmax=750.0)
-        frequency = numpy.array(freq)
-        channel_bandwidth = numpy.array(chan_width)
-        
-        phasecentre = SkyCoord(ra=+180.0 * u.deg, dec=-60.0 * u.deg, frame='icrs', equinox='J2000')
-        if block:
-            vt = create_blockvisibility(lowcore, times, frequency, channel_bandwidth=channel_bandwidth,
-                                        weight=1.0, phasecentre=phasecentre,
-                                        polarisation_frame=PolarisationFrame("stokesI"))
-        else:
-            vt = create_visibility(lowcore, times, frequency, channel_bandwidth=channel_bandwidth,
-                                   weight=1.0, phasecentre=phasecentre,
-                                   polarisation_frame=PolarisationFrame("stokesI"))
-        cellsize = 0.001
-        model = create_image_from_visibility(vt, npixel=self.npixel, cellsize=cellsize, npol=1,
-                                             frequency=frequency, phasecentre=phasecentre,
-                                             polarisation_frame=PolarisationFrame("stokesI"))
-        nchan = len(self.frequency)
-        flux = numpy.array(nchan * [[100.0]])
-        facets = 4
-        
-        rpix = model.wcs.wcs.crpix - 1.0
-        spacing_pixels = self.npixel // facets
-        centers = [-1.5, -0.5, 0.5, 1.5]
-        comps = list()
-        for iy in centers:
-            for ix in centers:
-                p = int(round(rpix[0] + ix * spacing_pixels * numpy.sign(model.wcs.wcs.cdelt[0]))), \
-                    int(round(rpix[1] + iy * spacing_pixels * numpy.sign(model.wcs.wcs.cdelt[1])))
-                sc = pixel_to_skycoord(p[0], p[1], model.wcs, origin=1)
-                comp = create_skycomponent(direction=sc, flux=flux, frequency=frequency,
-                                           polarisation_frame=PolarisationFrame("stokesI"))
-                comps.append(comp)
-        if block:
-            predict_skycomponent_visibility(vt, comps)
-        else:
-            predict_skycomponent_visibility(vt, comps)
-        insert_skycomponent(model, comps)
-        self.comps = comps
-        self.model = copy_image(model)
-        self.empty_model = create_empty_image_like(model)
-        export_image_to_fits(model, '%s/test_pipeline_functions_model.fits' % (self.dir))
-        
-        if add_errors:
-            # These will be the same for all calls
-            numpy.random.seed(180555)
-            gt = create_gaintable_from_blockvisibility(vt)
-            gt = simulate_gaintable(gt, phase_error=1.0, amplitude_error=0.0)
-            vt = apply_gaintable(vt, gt)
-            
-            if bandpass:
-                bgt = create_gaintable_from_blockvisibility(vt, timeslice=1e5)
-                bgt = simulate_gaintable(bgt, phase_error=0.01, amplitude_error=0.01, smooth_channels=4)
-                vt = apply_gaintable(vt, bgt)
-        
-        return vt
-
     def test_time_setup(self):
-        pass
+        self.actualSetUp()
+    
+    def test_continuum_imaging_pipeline(self):
+        self.actualSetUp(add_errors=False, block=True)
+        clean, residual, restored = \
+            continuum_imaging_list_serial_workflow(self.vis_list, model_imagelist=self.model_imagelist, context='2d',
+                                                   algorithm='mmclean', facets=1,
+                                                   scales=[0, 3, 10],
+                                                   niter=1000, fractional_threshold=0.1,
+                                                   nmoments=2, nchan=self.freqwin,
+                                                   threshold=2.0, nmajor=5, gain=0.1,
+                                                   deconvolve_facets=8, deconvolve_overlap=16,
+                                                   deconvolve_taper='tukey')
+        centre = len(clean) // 2
+        export_image_to_fits(clean[centre], '%s/test_pipelines_continuum_imaging_pipeline_clean.fits' % self.dir)
+        export_image_to_fits(residual[centre][0],
+                             '%s/test_pipelines_continuum_imaging_pipeline_residual.fits' % self.dir)
+        export_image_to_fits(restored[centre],
+                             '%s/test_pipelines_continuum_imaging_pipeline_restored.fits' % self.dir)
         
-    def test_RCAL(self):
-        self.setupVis(add_errors=True, block=True, freqwin=5)
-        for igt, gt in enumerate(rcal(vis=self.vis, components=self.comps)):
-            assert numpy.max(gt.residual) < 4e-5
+        qa = qa_image(restored[centre])
+        assert numpy.abs(qa.data['max'] - 100.13762476849081) < 1.0, str(qa)
+        assert numpy.abs(qa.data['min'] + 0.03627273884170454) < 1.0, str(qa)
+    
+    def test_ical_pipeline(self):
+        amp_errors = {'T': 0.0, 'G': 0.00, 'B': 0.0}
+        phase_errors = {'T': 0.1, 'G': 0.0, 'B': 0.0}
+        self.actualSetUp(add_errors=True, block=True, amp_errors=amp_errors, phase_errors=phase_errors)
+        
+        controls = create_calibration_controls()
+        
+        controls['T']['first_selfcal'] = 1
+        controls['G']['first_selfcal'] = 3
+        controls['B']['first_selfcal'] = 4
+        
+        controls['T']['timescale'] = 'auto'
+        controls['G']['timescale'] = 'auto'
+        controls['B']['timescale'] = 1e5
+        
+        clean, residual, restored = \
+            ical_list_serial_workflow(self.vis_list, model_imagelist=self.model_imagelist, context='2d',
+                                      calibration_context='T', controls=controls, do_selfcal=True,
+                                      global_solution=False,
+                                      algorithm='mmclean',
+                                      facets=1,
+                                      scales=[0, 3, 10],
+                                      niter=1000, fractional_threshold=0.1,
+                                      nmoments=2, nchan=self.freqwin,
+                                      threshold=2.0, nmajor=5, gain=0.1,
+                                      deconvolve_facets=8, deconvolve_overlap=16, deconvolve_taper='tukey')
+        centre = len(clean) // 2
+        export_image_to_fits(clean[centre], '%s/test_pipelines_ical_pipeline_clean.fits' % self.dir)
+        export_image_to_fits(residual[centre][0], '%s/test_pipelines_ical_pipeline_residual.fits' % self.dir)
+        export_image_to_fits(restored[centre], '%s/test_pipelines_ical_pipeline_restored.fits' % self.dir)
+        
+        qa = qa_image(restored[centre])
+        assert numpy.abs(qa.data['max'] - 100.13739440876233) < 1.0, str(qa)
+        assert numpy.abs(qa.data['min'] + 0.03644435471804354) < 1.0, str(qa)
 
 
 if __name__ == '__main__':

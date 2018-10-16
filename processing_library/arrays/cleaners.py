@@ -69,6 +69,68 @@ def hogbom(dirty, psf, window, gain, thresh, niter, fracthresh, prefix=''):
     return comps, res
 
 
+def hogbom_complex(dirty_q, dirty_u, psf_q, psf_u, window, gain, thresh, niter, fracthresh):
+    """Clean the point spread function from a dirty Q+iU image
+
+    This uses the complex Hogbom CLEAN for polarised data (2016MNRAS.462.3483P)
+
+    The starting-point for the code was the standard Hogbom clean algorithm available in ARL.
+
+    Args:
+    dirty_q (numpy array): The dirty Q Image, i.e., the Q Image to be deconvolved.
+    dirty_u (numpy array): The dirty U Image, i.e., the U Image to be deconvolved.
+    psf_q (numpy array): The point spread-function in Stokes Q.
+    psf_u (numpy array): The point spread-function in Stokes U.
+    window (float): Regions where clean components are allowed. If True, entire dirty Image is allowed.
+    gain (float): The "loop gain", i.e., the fraction of the brightest pixel that is removed in each iteration.
+    thresh (float): Cleaning stops when the maximum of the absolute deviation of the residual is less than this value.
+    niter (int): Maximum number of components to make if the threshold `thresh` is not hit.
+    fracthresh (float): The predefined fractional threshold at which to stop cleaning.
+
+    Returns:
+    comps.real: real clean component image.
+    comps.imag: imaginary clean component image.
+    res.real: real residual image.
+    res.imag: imaginary residual image.
+    """
+    
+    assert 0.0 < gain < 2.0
+    assert niter > 0
+    
+    # Form complex Q+iU from the polarisation data:
+    dirty_complex = dirty_q + 1j * dirty_u
+
+    log.info("hogbom_mod: Max abs in dirty image = %.6f" % numpy.max(numpy.abs(dirty_complex)))
+    absolutethresh = max(thresh, fracthresh * numpy.absolute(dirty_complex).max())
+    log.info("hogbom_mod: Start of minor cycle")
+    log.info("hogbom_mod: This minor cycle will stop at %d iterations or peak < %s" % (niter, absolutethresh))
+    
+    comps = numpy.zeros(dirty_complex.shape, dtype='complex128')
+    res = numpy.array(dirty_complex)
+    
+    assert numpy.all(psf_q == psf_u)
+    
+    pmax = psf_q.max()
+    assert pmax > 0.0
+    log.info("hogbom: Max abs in dirty Image = %.6f" % numpy.absolute(res).max())
+    for i in range(niter):
+        if window is not None:
+            mx, my = numpy.unravel_index((numpy.absolute(res * window)).argmax(), dirty_complex.shape)
+        else:
+            mx, my = numpy.unravel_index((numpy.absolute(res)).argmax(), dirty_complex.shape)
+        mval = res[mx, my] * gain / pmax
+        comps[mx, my] += mval
+        a1o, a2o = overlapIndices(dirty_complex, psf_q, mx, my)
+        if niter < 10 or i % (niter // 10) == 0:
+            log.info("hogbom: Minor cycle %d, peak %s at [%d, %d]" % (i, res[mx, my], mx, my))
+        res[a1o[0]:a1o[1], a1o[2]:a1o[3]] -= psf_q[a2o[0]:a2o[1], a2o[2]:a2o[3]] * mval
+        if numpy.abs(res[mx, my]) < absolutethresh:
+            log.info("hogbom: Stopped at iteration %d, peak %s at [%d, %d]" % (i, res[mx, my], mx, my))
+            break
+    log.info("hogbom: End of minor cycle")
+    return comps.real, comps.imag, res.real, res.imag
+
+
 def overlapIndices(res, psf, peakx, peaky):
     """ Find the indices where two arrays overlap
 

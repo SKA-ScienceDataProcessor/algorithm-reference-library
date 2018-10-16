@@ -11,6 +11,7 @@ from dask.distributed import Client, wait
 # Support daliuge's delayed function, make it fail if not available but used
 try:
     from dlg import delayed as dlg_delayed
+    from dlg.dask_emulation import compute as dlg_compute
 except ImportError:
     def dlg_delayed(*args, **kwargs):
         raise Exception("daliuge is not available")
@@ -63,6 +64,8 @@ class ARLExecuteBase():
         
         !!!This must be called before calling execute!!!!
         
+        If you want to customise the Client or use an externally defined Scheduler use get_dask_Client and pass it in.
+        
         :param use_dask: Use Dask?
         :param client: If None and use_dask is True, a client will be created otherwise the client is None
         :return:
@@ -105,12 +108,24 @@ class ARLExecuteBase():
             return future
         elif self._using_dlg:
             kwargs = {'client': self._client} if self._client else {}
-            return value.compute(**kwargs)
+            return dlg_compute(value, **kwargs)
         else:
             return value
-    
+
+    def persist(self, graph):
+        """Persist graph data on workers
+
+        No-op if using_dask is False
+        :param graph:
+        :return:
+        """
+        if self.using_dask and self.client is not None:
+            return self.client.persist(graph)
+        else:
+            return graph
+
     def scatter(self, graph):
-        """Scatter graph to workers
+        """Scatter graph data to workers
 
         No-op if using_dask is False
         :param graph:
@@ -120,7 +135,7 @@ class ARLExecuteBase():
             return self.client.scatter(graph)
         else:
             return graph
-    
+
     def gather(self, graph):
         """Gather graph from workers
 
@@ -159,7 +174,14 @@ class ARLExecuteBase():
     def close(self):
         if self._using_dask and isinstance(self._client, Client):
             print('arlexcute.close: closing down Dask Client')
-            self._client.close()
+            try:
+                self._client.cluster.close()
+            except:
+                pass
+            try:
+                self._client.close()
+            except:
+                pass
 
 
 arlexecute = ARLExecuteBase(use_dask=True)
