@@ -7,7 +7,7 @@ all: ical_starpu ical_starpu_implicit ical_demo_starpu
 ical_starpu: ical_starpu.so 
 	gcc arlvis_if.o ical_starpu.o ical_pu_routines.o ical_pu_codelets.o $(LDFLAGS) -o ical_starpu 
 
-ical_starpu: ical_demo_starpu.so arlvis_if
+ical_demo_starpu: ical_demo_starpu.so arlvis_if
 	gcc arlvis_if.o ical_demo_starpu.o ical_pu_routines.o ical_pu_codelets.o $(LDFLAGS) -o ical_demo_starpu 
 
 ical_starpu_implicit: ical_starpu_implicit.so
@@ -35,4 +35,4 @@ run: all
 	LD_LIBRARY_PATH=../.:$(LD_LIBRARY_PATH) ./ical_starpu
 
 clean:
-	rm -rf results ical_starpu *.o
+	rm -rf results ical_starpu ical_demo_starpu *.o
