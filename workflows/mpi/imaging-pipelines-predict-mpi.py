@@ -154,6 +154,8 @@ sub_gleam_model = [create_low_test_image_from_gleam(npixel=npixel,
                                                                applybeam=True)
                      for f, freq in enumerate(sub_frequency[rank])]
 
+# NOTE: We could do an allgather here to avoid bcast of
+# each freqw during predict, it would safe time but use more space
 
 gleam_model=comm.gather(sub_gleam_model,root=0)
 if rank==0:
@@ -196,6 +198,8 @@ else:
             return None
 
     image_results_list_list = list()
+    #NOTE: We could parallelize here by freqwin instead of inside that would
+    # reduce data transfers
     # Loop over all frequency windows
     # for i in range(vis_list_len):
     if rank == 0:
@@ -267,7 +271,6 @@ else:
     predicted_vislist=image_results_list_list
 
 
-if rank == 0:
     #log.info('About to run corrupt to get corrupted visibility')
     #corrupted_vislist = corrupt_list_serial_workflow(predicted_vislist, phase_error=1.0)
 
@@ -275,18 +278,27 @@ if rank == 0:
     # Get the LSM. This is currently blank.
 
     # In[ ]:
+    ### I need to scatter vis_list cause worker don't have it
+    ## frequency and channel_bandwidth are replicated and they have already
+    ## been split
 
+sub_vis_list= numpy.array_split(vis_list, size)
+sub_vis_list=comm.scatter(sub_vis_list,root=0)
 
-    model_list = [create_image_from_visibility(vis_list[f],
+sub_model_list = [create_image_from_visibility(sub_vis_list[f],
                                                      npixel=npixel,
-                                                     frequency=[frequency[f]],
-                                                     channel_bandwidth=[channel_bandwidth[f]],
+                                                     frequency=[sub_frequency[rank][f]],
+                                                     channel_bandwidth=[sub_channel_bandwidth[rank][f]],
                                                      cellsize=cellsize,
                                                      phasecentre=phasecentre,
                                                      polarisation_frame=PolarisationFrame("stokesI"))
-               for f, freq in enumerate(frequency)]
+               for f, freq in enumerate(sub_frequency[rank])]
 
 
+model_list=comm.gather(sub_model_list,root=0)
+
+if rank==0:
+    model_list=numpy.concatenate(model_list)
     # In[ ]:
 
 
