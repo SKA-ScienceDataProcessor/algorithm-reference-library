@@ -12,6 +12,7 @@
 
 import os
 import sys
+import pdb
 
 sys.path.append(os.path.join('..', '..'))
 
@@ -95,7 +96,7 @@ vis_list=simulate_list_serial_workflow('LOWBD2',
                                          order='frequency',
                                         rmax=rmax)
 print('%d elements in vis_list' % len(vis_list))
-
+pdb.set_trace()
 
 # In[4]:
 
@@ -155,10 +156,16 @@ else:
     
     def predict_ignore_none(vis, model):
         if vis is not None:
+            print("In predict:")
+            print(vis)
+            print(model)
+            print(facets)
+            print(vis_slices)
             return predict(vis, model, context=context, facets=facets, vis_slices=vis_slices)
         else:
             return None
     
+    pdb.set_trace()
     image_results_list_list = list()
     # Loop over all frequency windows
     for freqwin, vis_lst in enumerate(vis_list):
@@ -167,6 +174,8 @@ else:
         # Create the graph to divide the visibility into slices. This is by copy.
         sub_vis_lists = visibility_scatter(vis_lst, vis_iter, vis_slices)
         facet_vis_lists = list()
+
+        pdb.set_trace()
         # Loop over sub visibility
         for sub_vis_list in sub_vis_lists:
             facet_vis_results = list()
@@ -216,6 +225,8 @@ psf_list = invert_list_serial_workflow(predicted_vislist, model_list,
 
 # In[ ]:
 
+print("sumwts")
+print(dirty_list[0][1])
 
 log.info('About to run invert to get dirty image')
 dirty = dirty_list[0][0]
