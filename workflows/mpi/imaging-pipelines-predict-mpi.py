@@ -18,7 +18,7 @@ sys.path.append(os.path.join('..', '..'))
 from data_models.parameters import arl_path
 from mpi4py import MPI
 
-results_dir = './results'
+results_dir = './results/mpi'
 
 #from matplotlib import pylab
 
@@ -189,6 +189,8 @@ else:
 
     def predict_ignore_none(vis, model):
         if vis is not None:
+            print("%d: In predict:" % rank)
+            print(vis)
             return predict(vis, model, context=context, facets=facets, vis_slices=vis_slices)
         else:
             return None
@@ -202,28 +204,31 @@ else:
             print(vis_lst)
             # Create the graph to divide an image into facets. This is by reference.
             facet_lists = image_scatter_facets(model_imagelist[freqwin], facets=facets)
-            facet_lists = numpy.array_split(facet_lists, size)
+            # facet_lists = numpy.array_split(facet_lists, size)
             # Create the graph to divide the visibility into slices. This is by copy.
             sub_vis_lists = visibility_scatter(vis_lst, vis_iter, vis_slices)
+            print('%d: sub_vis_list after visibility_scatter in %d vis_slices'
+                  %(rank,vis_slices))
+            print(sub_vis_lists)
             sub_vis_lists = numpy.array_split(sub_vis_lists, size)
             ## Scater facets and visibility lists to all processes
-            sub_facet_lists=comm.scatter(facet_lists,root=0)
+            facet_lists=comm.bcast(facet_lists,root=0)
             sub_sub_vis_lists=comm.scatter(sub_vis_lists,root=0)
 
             ## All processes compute its part
-            facet_vis_sub_lists = list()
+            facet_vis_lists = list()
             # Loop over sub visibility
             for sub_vis_list in sub_sub_vis_lists:
                 facet_vis_results = list()
                 # Loop over facets
-                for facet_list in sub_facet_lists:
+                for facet_list in facet_lists:
                     # Predict visibility for this subvisibility from this facet
                     facet_vis_list = predict_ignore_none(sub_vis_list, facet_list)
                     facet_vis_results.append(facet_vis_list)
                 # Sum the current sub-visibility over all facets
-                facet_vis_sub_lists.append(sum_predict_results(facet_vis_results))
+                facet_vis_lists.append(sum_predict_results(facet_vis_results))
             ## gather results from all processes
-            facet_vis_lists=comm.gather(facet_vis_sub_lists,root=0)
+            facet_vis_lists=comm.gather(facet_vis_lists,root=0)
             # Sum all sub-visibilties
             facet_vis_lists=numpy.concatenate(facet_vis_lists)
             image_results_list_list.append(visibility_gather(facet_vis_lists,
@@ -237,23 +242,26 @@ else:
             facet_lists = list()
             sub_vis_lists = list()
             ## Scater facets and visibility lists to all processes
-            sub_facet_lists =comm.scatter(facet_lists,root=0)
+            facet_lists =comm.bcast(facet_lists,root=0)
             sub_sub_vis_lists=comm.scatter(sub_vis_lists,root=0)
-
+            print('%d sub_sub_vis_list' % rank)
+            print(sub_sub_vis_lists)
+            print('%d facet_lists' % rank)
+            print(facet_lists)
             ## All processes compute its part
-            facet_vis_sub_lists = list()
+            facet_vis_lists = list()
             # Loop over sub visibility
             for sub_vis_list in sub_sub_vis_lists:
                 facet_vis_results = list()
                 # Loop over facets
-                for facet_list in sub_facet_lists:
+                for facet_list in facet_lists:
                     # Predict visibility for this subvisibility from this facet
                     facet_vis_list = predict_ignore_none(sub_vis_list, facet_list)
                     facet_vis_results.append(facet_vis_list)
                 # Sum the current sub-visibility over all facets
-                facet_vis_sub_lists.append(sum_predict_results(facet_vis_results))
+                facet_vis_lists.append(sum_predict_results(facet_vis_results))
             ## gather results from all processes
-            facet_vis_lists=comm.gather(facet_vis_sub_lists,root=0)
+            facet_vis_lists=comm.gather(facet_vis_lists,root=0)
             image_results_list_list=list()
 
     predicted_vislist=image_results_list_list
@@ -294,6 +302,8 @@ if rank == 0:
 
     # In[ ]:
 
+    print("sumwts")
+    print(dirty_list[0][1])
 
     log.info('About to run invert to get dirty image')
     dirty = dirty_list[0][0]
