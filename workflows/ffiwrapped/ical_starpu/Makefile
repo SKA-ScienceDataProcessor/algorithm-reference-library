@@ -1,6 +1,6 @@
 CC      = gcc
-CFLAGS  = -ggdb -O0 -Wall $(shell pkg-config --cflags starpu-1.2) -I/opt/algorithm-reference-library/ffiwrappers/include
-LDFLAGS = $(shell pkg-config --libs starpu-1.2) -L/opt/algorithm-reference-library -L../../../ -L../. -larlffi.cpython-36m-x86_64-linux-gnu -larlffi -L/usr/lib64 -lcfitsio -lcurl -lm
+CFLAGS  = -ggdb -O0 -Wall $(shell pkg-config --cflags starpu-1.2) -I../../../ffiwrappers/include
+LDFLAGS = $(shell pkg-config --libs starpu-1.2) -L../../../ -L../. -larlffi.cpython-36m-x86_64-linux-gnu -L/usr/lib64 -lcfitsio -lcurl -lm
 
 all: ical_starpu ical_starpu_implicit ical_demo_starpu
 
