@@ -641,7 +641,7 @@ def arl_convert_visibility_to_blockvisibility_ffi(lowconfig, vis_in, blockvis_in
 
     c_blockvisin = cARLBlockVis(blockvis_in, lowconfig.nant, lowconfig.nfreqs)
     py_blockvisin = helper_create_blockvisibility_object(c_blockvisin, frequency, channel_bandwidth, lowcore)
-    py_blockvisin.phasecentre = load_phasecentre(blockvis_in.phasecentre)
+    py_blockvisin.phasecentre = load_phasecentre(vis_in.phasecentre)
     py_blockvisin.configuration = lowcore
     py_blockvisin.polarisation_frame = PolarisationFrame(polframe)
 
