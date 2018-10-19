@@ -20,7 +20,7 @@ alabaster
 photutils
 scikit-image
 dask
-distributed
+distributed==1.23.1
 paramiko
 toolz
 graphviz
