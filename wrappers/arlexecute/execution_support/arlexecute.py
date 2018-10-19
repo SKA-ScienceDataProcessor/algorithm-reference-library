@@ -112,7 +112,7 @@ class ARLExecuteBase():
         else:
             return value
 
-    def persist(self, graph):
+    def persist(self, graph, **kwargs):
         """Persist graph data on workers
 
         No-op if using_dask is False
@@ -120,11 +120,11 @@ class ARLExecuteBase():
         :return:
         """
         if self.using_dask and self.client is not None:
-            return self.client.persist(graph)
+            return self.client.persist(graph, **kwargs)
         else:
             return graph
 
-    def scatter(self, graph):
+    def scatter(self, graph, **kwargs):
         """Scatter graph data to workers
 
         No-op if using_dask is False
@@ -132,7 +132,7 @@ class ARLExecuteBase():
         :return:
         """
         if self.using_dask and self.client is not None:
-            return self.client.scatter(graph)
+            return self.client.scatter(graph, **kwargs)
         else:
             return graph
 
