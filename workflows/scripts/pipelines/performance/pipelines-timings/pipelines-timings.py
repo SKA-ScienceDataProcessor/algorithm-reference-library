@@ -323,7 +323,7 @@ def trial_case(results, seed=180555, context='wstack', nworkers=8, threads_per_w
                                               timeslice='auto',
                                               global_solution=False,
                                               psf_support=64,
-                                              do_selfcal=False)
+                                              do_selfcal=True)
 
     end = time.time()
     results['time ICAL graph'] = end - start
