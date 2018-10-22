@@ -51,6 +51,8 @@ from workflows.serial.imaging.imaging_serial import invert_list_serial_workflow,
 from workflows.serial.simulation.simulation_serial import simulate_list_serial_workflow,     corrupt_list_serial_workflow
 from workflows.serial.pipelines.pipeline_serial import continuum_imaging_list_serial_workflow,     ical_list_serial_workflow
 
+from workflows.mpi.imaging_mpi import predict_list_mpi_workflow, invert_list_mpi_workflow
+
 import pprint
 
 pp = pprint.PrettyPrinter()
@@ -110,9 +112,6 @@ else:
 
 print('%d: %d elements in vis_list' % (rank,len(vis_list)))
 print(vis_list)
-vis_list_len=comm.bcast(len(vis_list),root=0)
-print('%d: %d (%d) elements in vis_list' % (rank,len(vis_list),vis_list_len))
-print(vis_list)
 
 
 # In[4]:
@@ -168,108 +167,16 @@ log.info('About to make GLEAM model')
 
 original_predict=False
 if original_predict:
-    log.info('About to run predict to get predicted visibility')
-    predicted_vislist = predict_list_serial_workflow(vis_list, gleam_model,
+    if rank==0:
+        log.info('About to run predict to get predicted visibility')
+        predicted_vislist = predict_list_serial_workflow(vis_list, gleam_model,
                                                 context='wstack', vis_slices=vis_slices)
 else:
     log.info('About to run predict to get predicted visibility')
-    model_imagelist=gleam_model
-    context='wstack'
-    facets=1
-    # the assert only makes sense in proc 0 as for the others both lists are
-    # empty
-    assert len(vis_list) == len(model_imagelist), "Model must be the same length as the vis_list"
-    from workflows.shared.imaging.imaging_shared import imaging_context
-    from processing_components.image.gather_scatter import image_scatter_facets, image_gather_facets
-    from processing_components.visibility.gather_scatter import visibility_scatter, visibility_gather
-    from workflows.shared.imaging.imaging_shared import sum_invert_results, remove_sumwt, sum_predict_results, \
-        threshold_list
-
-    c = imaging_context(context)
-    vis_iter = c['vis_iterator']
-    predict = c['predict']
-
-    def predict_ignore_none(vis, model):
-        if vis is not None:
-            print("%d: In predict:" % rank)
-            print(vis)
-            return predict(vis, model, context=context, facets=facets, vis_slices=vis_slices)
-        else:
-            return None
-
-    image_results_list_list = list()
-    #NOTE: We could parallelize here by freqwin instead of inside that would
-    # reduce data transfers
-    # Loop over all frequency windows
-    # for i in range(vis_list_len):
-    if rank == 0:
-        for freqwin, vis_lst in enumerate(vis_list):
-            print('%d: freqwin %d vis_lst:' %(rank,freqwin))
-            print(vis_lst)
-            # Create the graph to divide an image into facets. This is by reference.
-            facet_lists = image_scatter_facets(model_imagelist[freqwin], facets=facets)
-            # facet_lists = numpy.array_split(facet_lists, size)
-            # Create the graph to divide the visibility into slices. This is by copy.
-            sub_vis_lists = visibility_scatter(vis_lst, vis_iter, vis_slices)
-            print('%d: sub_vis_list after visibility_scatter in %d vis_slices'
-                  %(rank,vis_slices))
-            print(sub_vis_lists)
-            sub_vis_lists = numpy.array_split(sub_vis_lists, size)
-            ## Scater facets and visibility lists to all processes
-            facet_lists=comm.bcast(facet_lists,root=0)
-            sub_sub_vis_lists=comm.scatter(sub_vis_lists,root=0)
-
-            ## All processes compute its part
-            facet_vis_lists = list()
-            # Loop over sub visibility
-            for sub_vis_list in sub_sub_vis_lists:
-                facet_vis_results = list()
-                # Loop over facets
-                for facet_list in facet_lists:
-                    # Predict visibility for this subvisibility from this facet
-                    facet_vis_list = predict_ignore_none(sub_vis_list, facet_list)
-                    facet_vis_results.append(facet_vis_list)
-                # Sum the current sub-visibility over all facets
-                facet_vis_lists.append(sum_predict_results(facet_vis_results))
-            ## gather results from all processes
-            facet_vis_lists=comm.gather(facet_vis_lists,root=0)
-            # Sum all sub-visibilties
-            facet_vis_lists=numpy.concatenate(facet_vis_lists)
-            image_results_list_list.append(visibility_gather(facet_vis_lists,
-                                                             vis_lst,
-                                                             vis_iter))
-
-    else:
-        for i in range(vis_list_len):
-        #for freqwin, vis_lst in enumerate(vis_list):
-            print('%d: iteration %d' %(rank,i))
-            facet_lists = list()
-            sub_vis_lists = list()
-            ## Scater facets and visibility lists to all processes
-            facet_lists =comm.bcast(facet_lists,root=0)
-            sub_sub_vis_lists=comm.scatter(sub_vis_lists,root=0)
-            print('%d sub_sub_vis_list' % rank)
-            print(sub_sub_vis_lists)
-            print('%d facet_lists' % rank)
-            print(facet_lists)
-            ## All processes compute its part
-            facet_vis_lists = list()
-            # Loop over sub visibility
-            for sub_vis_list in sub_sub_vis_lists:
-                facet_vis_results = list()
-                # Loop over facets
-                for facet_list in facet_lists:
-                    # Predict visibility for this subvisibility from this facet
-                    facet_vis_list = predict_ignore_none(sub_vis_list, facet_list)
-                    facet_vis_results.append(facet_vis_list)
-                # Sum the current sub-visibility over all facets
-                facet_vis_lists.append(sum_predict_results(facet_vis_results))
-            ## gather results from all processes
-            facet_vis_lists=comm.gather(facet_vis_lists,root=0)
-            image_results_list_list=list()
-
-    predicted_vislist=image_results_list_list
-
+    # All procs call the function but only rank=0 gets the predicted_vislist
+    predicted_vislist = predict_list_mpi_workflow(vis_list, gleam_model,
+                                                context='wstack',
+                                                  vis_slices=vis_slices)
 
     #log.info('About to run corrupt to get corrupted visibility')
     #corrupted_vislist = corrupt_list_serial_workflow(predicted_vislist, phase_error=1.0)
@@ -294,18 +201,26 @@ sub_model_list = [create_image_from_visibility(sub_vis_list[f],
                                                      polarisation_frame=PolarisationFrame("stokesI"))
                for f, freq in enumerate(sub_frequency[rank])]
 
-
+# NOTE: We could do allgather here, if enough memory space
 model_list=comm.gather(sub_model_list,root=0)
-
 if rank==0:
     model_list=numpy.concatenate(model_list)
     # In[ ]:
 
-
-    dirty_list = invert_list_serial_workflow(predicted_vislist, model_list, 
+original_invert=False
+if original_invert:
+    if rank==0:
+        dirty_list = invert_list_serial_workflow(predicted_vislist, model_list, 
                                   context='wstack',
                                   vis_slices=vis_slices, dopsf=False)
-    psf_list = invert_list_serial_workflow(predicted_vislist, model_list, 
+        psf_list = invert_list_serial_workflow(predicted_vislist, model_list, 
+                                context='wstack',
+                                vis_slices=vis_slices, dopsf=True)
+else:
+    dirty_list = invert_list_mpi_workflow(predicted_vislist, model_list, 
+                                  context='wstack',
+                                  vis_slices=vis_slices, dopsf=False)
+    psf_list = invert_list_mpi_workflow(predicted_vislist, model_list, 
                                 context='wstack',
                                 vis_slices=vis_slices, dopsf=True)
 
@@ -313,7 +228,8 @@ if rank==0:
     # Create and execute graphs to make the dirty image and PSF
 
     # In[ ]:
-
+        
+if rank==0:
     print("sumwts")
     print(dirty_list[0][1])
 
