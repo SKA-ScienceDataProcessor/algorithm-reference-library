@@ -34,6 +34,9 @@ import numpy
 from data_models.memory_data_models import Image
 from data_models.parameters import get_parameter
 from processing_library.image.operations import copy_image, create_empty_image_like
+from workflows.shared.imaging.imaging_shared import imaging_context
+from workflows.shared.imaging.imaging_shared import sum_invert_results, remove_sumwt, sum_predict_results, \
+    threshold_list
 from wrappers.arlexecute.execution_support.arlexecute import arlexecute
 from wrappers.arlexecute.griddata.kernels import create_pswf_convolutionfunction
 from wrappers.arlexecute.image.deconvolution import deconvolve_cube, restore_cube
@@ -43,10 +46,6 @@ from wrappers.arlexecute.image.operations import calculate_image_frequency_momen
 from wrappers.arlexecute.imaging.weighting import weight_visibility
 from wrappers.arlexecute.visibility.base import copy_visibility
 from wrappers.arlexecute.visibility.gather_scatter import visibility_scatter, visibility_gather
-
-from workflows.shared.imaging.imaging_shared import imaging_context
-from workflows.shared.imaging.imaging_shared import sum_invert_results, remove_sumwt, sum_predict_results, \
-    threshold_list
 
 log = logging.getLogger(__name__)
 
@@ -68,6 +67,14 @@ def predict_list_arlexecute_workflow(vis_list, model_imagelist, vis_slices=1, fa
     :return: List of vis_lists
    """
     
+    if get_parameter(kwargs, "use_serial_predict", False):
+        from workflows.serial.imaging.imaging_serial import predict_list_serial_workflow
+        return [arlexecute.execute(predict_list_serial_workflow, nout=1) \
+                    (vis_list=[vis_list[i]],
+                     model_imagelist=[model_imagelist[i]], vis_slices=vis_slices,
+                     facets=facets, context=context, gcfcf=gcfcf, **kwargs)[0]
+                for i, _ in enumerate(vis_list)]
+    
     assert len(vis_list) == len(model_imagelist), "Model must be the same length as the vis_list"
     
     c = imaging_context(context)
@@ -87,7 +94,7 @@ def predict_list_arlexecute_workflow(vis_list, model_imagelist, vis_slices=1, fa
     
     if gcfcf is None:
         gcfcf = [arlexecute.execute(create_pswf_convolutionfunction)(model_imagelist[0])]
-        
+    
     # Loop over all frequency windows
     if facets == 1:
         image_results_list = list()
@@ -115,7 +122,7 @@ def predict_list_arlexecute_workflow(vis_list, model_imagelist, vis_slices=1, fa
     else:
         image_results_list_list = list()
         for freqwin, vis_list in enumerate(vis_list):
-           # Create the graph to divide an image into facets. This is by reference.
+            # Create the graph to divide an image into facets. This is by reference.
             facet_lists = arlexecute.execute(image_scatter_facets, nout=actual_number_facets ** 2)(
                 model_imagelist[freqwin],
                 facets=facets)
@@ -158,6 +165,14 @@ def invert_list_arlexecute_workflow(vis_list, template_model_imagelist, dopsf=Fa
     :return: List of (image, sumwt) tuple
    """
     
+    if get_parameter(kwargs, "use_serial_invert", False):
+        from workflows.serial.imaging.imaging_serial import invert_list_serial_workflow
+        return [arlexecute.execute(invert_list_serial_workflow, nout=1) \
+                    (vis_list=[vis_list[i]], template_model_imagelist=[template_model_imagelist[i]],
+                     dopsf=dopsf, normalize=normalize, vis_slices=vis_slices,
+                     facets=facets, context=context, gcfcf=gcfcf, **kwargs)[0]
+                for i, _ in enumerate(vis_list)]
+    
     if not isinstance(template_model_imagelist, collections.Iterable):
         template_model_imagelist = [template_model_imagelist]
     
@@ -189,11 +204,11 @@ def invert_list_arlexecute_workflow(vis_list, template_model_imagelist, dopsf=Fa
                           gcfcf=g, **kwargs)
         else:
             return create_empty_image_like(model), 0.0
-
+    
     # If we are doing facets, we need to create the gcf for each image
     if gcfcf is None and facets == 1:
         gcfcf = [arlexecute.execute(create_pswf_convolutionfunction)(template_model_imagelist[0])]
-
+    
     # Loop over all vis_lists independently
     results_vislist = list()
     if facets == 1:
@@ -209,7 +224,6 @@ def invert_list_arlexecute_workflow(vis_list, template_model_imagelist, dopsf=Fa
             # Iterate within each vis_list
             vis_results = list()
             for sub_vis_list in sub_vis_lists:
-                
                 vis_results.append(arlexecute.execute(invert_ignore_none, pure=True)
                                    (sub_vis_list, template_model_imagelist[freqwin], g))
             results_vislist.append(arlexecute.execute(sum_invert_results)(vis_results))

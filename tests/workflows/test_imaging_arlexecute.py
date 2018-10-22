@@ -241,11 +241,15 @@ class TestImaging(ARLExecuteTestCase, unittest.TestCase):
         self.actualSetUp(makegcfcf=True)
         self._predict_base(context='2d', extra='_wprojection_clipped', fluxthreshold=3.5,
                            gcfcf=self.gcfcf_clipped)
-    
+
     def test_predict_wstack(self):
         self.actualSetUp()
         self._predict_base(context='wstack', fluxthreshold=2.0, vis_slices=101)
-    
+
+    def test_predict_wstack_serial(self):
+        self.actualSetUp()
+        self._predict_base(context='wstack', fluxthreshold=2.0, vis_slices=101, use_serial_predict=True)
+
     def test_predict_wstack_wprojection(self):
         self.actualSetUp(makegcfcf=True)
         self._predict_base(context='wstack', extra='_wprojection', fluxthreshold=8.0, vis_slices=11,

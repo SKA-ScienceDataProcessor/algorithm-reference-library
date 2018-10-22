@@ -12,11 +12,11 @@ from astropy import units as u
 from astropy.coordinates import SkyCoord
 
 from data_models.polarisation import PolarisationFrame
+from processing_components.calibration.calibration_control import create_calibration_controls
 from processing_components.image.operations import export_image_to_fits, qa_image, smooth_image
 from processing_components.imaging.base import create_image_from_visibility, advise_wide_field
 from processing_components.simulation.testing_support import create_low_test_image_from_gleam
 from processing_components.visibility.coalesce import convert_blockvisibility_to_visibility
-from processing_components.calibration.calibration_control import create_calibration_controls
 from workflows.arlexecute.imaging.imaging_arlexecute import predict_list_arlexecute_workflow, \
     invert_list_arlexecute_workflow
 from workflows.arlexecute.pipelines.pipeline_arlexecute import ical_list_arlexecute_workflow
@@ -24,7 +24,6 @@ from workflows.arlexecute.simulation.simulation_arlexecute import simulate_list_
     corrupt_list_arlexecute_workflow
 from wrappers.arlexecute.execution_support.arlexecute import arlexecute
 from wrappers.arlexecute.execution_support.dask_init import findNodes, get_dask_Client
-
 
 log = logging.getLogger()
 log.setLevel(logging.INFO)
@@ -46,7 +45,7 @@ def git_hash():
 
 def trial_case(results, seed=180555, context='wstack', nworkers=8, threads_per_worker=1, memory=8,
                processes=True, order='frequency', nfreqwin=7, ntimes=3, rmax=750.0,
-               facets=1, wprojection_planes=1, use_dask=True, use_serial=False):
+               facets=1, wprojection_planes=1, use_dask=True, use_serial_imaging=False):
     """ Single trial for performance-timings
     
     Simulates visibilities from GLEAM including phase errors
@@ -149,18 +148,15 @@ def trial_case(results, seed=180555, context='wstack', nworkers=8, threads_per_w
     
     if use_dask:
         client = get_dask_Client(threads_per_worker=threads_per_worker,
-                              memory_limit=memory * 1024 * 1024 * 1024,
-                              n_workers=nworkers)
+                                 memory_limit=memory * 1024 * 1024 * 1024,
+                                 n_workers=nworkers)
         arlexecute.set_client(client)
         nodes = findNodes(arlexecute.client)
-        unodes = list(numpy.unique(nodes))
-        results['nnodes'] = len(unodes)
-        print("Defined %d workers on %d nodes" % (nworkers, results['nnodes']))
+        print("Defined %d workers on %d nodes" % (nworkers, len(nodes)))
         print("Workers are: %s" % str(nodes))
     else:
         arlexecute.set_client(use_dask=use_dask)
         results['nnodes'] = 1
-        unodes = None
     
     vis_list = simulate_list_arlexecute_workflow('LOWBD2',
                                                  frequency=frequency,
@@ -178,10 +174,11 @@ def trial_case(results, seed=180555, context='wstack', nworkers=8, threads_per_w
     def get_wf(bv):
         v = convert_blockvisibility_to_visibility(bv)
         return advise_wide_field(v, guard_band_image=6.0,
-                               delA=0.02,
-                               facets=facets,
-                               wprojection_planes=wprojection_planes,
-                               oversampling_synthesised_beam=4.0)
+                                 delA=0.02,
+                                 facets=facets,
+                                 wprojection_planes=wprojection_planes,
+                                 oversampling_synthesised_beam=4.0)
+    
     wprojection_planes = 1
     advice = arlexecute.compute(arlexecute.execute(get_wf)(vis_list[0]), sync=True)
     
@@ -208,13 +205,11 @@ def trial_case(results, seed=180555, context='wstack', nworkers=8, threads_per_w
                          channel_bandwidth=[channel_bandwidth[f]],
                          cellsize=cellsize,
                          phasecentre=phasecentre,
-                         polarisation_frame=PolarisationFrame(
-                             "stokesI"),
+                         polarisation_frame=PolarisationFrame("stokesI"),
                          flux_limit=0.3,
                          applybeam=True)
                         for f, freq in enumerate(frequency)]
-
-
+    
     start = time.time()
     print("****** Starting GLEAM model creation ******")
     gleam_model_list = arlexecute.compute(gleam_model_list, sync=True)
@@ -225,7 +220,9 @@ def trial_case(results, seed=180555, context='wstack', nworkers=8, threads_per_w
     print("Creating GLEAM model took %.2f seconds" % (end - start))
     
     gleam_model_list = arlexecute.scatter(gleam_model_list)
-    vis_list = predict_list_arlexecute_workflow(vis_list, gleam_model_list, vis_slices=vis_slices, context=context)
+    vis_list = predict_list_arlexecute_workflow(vis_list, gleam_model_list, vis_slices=vis_slices,
+                                                context=context,
+                                                use_serial_predict=use_serial_imaging)
     start = time.time()
     print("****** Starting GLEAM model visibility prediction ******")
     vis_list = arlexecute.compute(vis_list, sync=True)
@@ -258,7 +255,8 @@ def trial_case(results, seed=180555, context='wstack', nworkers=8, threads_per_w
     model_list = arlexecute.scatter(model_list)
     
     psf_list = invert_list_arlexecute_workflow(vis_list, model_list, vis_slices=vis_slices,
-                                               context=context, facets=facets, dopsf=True)
+                                               context=context, facets=facets, dopsf=True,
+                                               use_serial_invert=use_serial_imaging)
     start = time.time()
     print("****** Starting PSF calculation ******")
     psf, sumwt = arlexecute.compute(psf_list, sync=True)[centre]
@@ -270,7 +268,8 @@ def trial_case(results, seed=180555, context='wstack', nworkers=8, threads_per_w
     results['psf_min'] = qa_image(psf).data['min']
     
     dirty_list = invert_list_arlexecute_workflow(vis_list, model_list, vis_slices=vis_slices,
-                                                 context=context, facets=facets)
+                                                 context=context, facets=facets,
+                                                 use_serial_invert=use_serial_imaging)
     start = time.time()
     print("****** Starting dirty image calculation ******")
     dirty, sumwt = arlexecute.compute(dirty_list, sync=True)[centre]
@@ -286,13 +285,13 @@ def trial_case(results, seed=180555, context='wstack', nworkers=8, threads_per_w
     # frequencies (i.e. Visibilities) is performed.
     start = time.time()
     print("****** Starting ICAL ******")
-
+    
     controls = create_calibration_controls()
-
+    
     controls['T']['first_selfcal'] = 1
     controls['G']['first_selfcal'] = 3
     controls['B']['first_selfcal'] = 4
-
+    
     controls['T']['timescale'] = 'auto'
     controls['G']['timescale'] = 'auto'
     controls['B']['timescale'] = 1e5
@@ -300,7 +299,7 @@ def trial_case(results, seed=180555, context='wstack', nworkers=8, threads_per_w
     if nfreqwin > 6:
         nmoment = 3
         algorithm = 'mmclean'
-    elif nfreqwin >2:
+    elif nfreqwin > 2:
         nmoment = 2
         algorithm = 'mmclean'
     else:
@@ -323,8 +322,10 @@ def trial_case(results, seed=180555, context='wstack', nworkers=8, threads_per_w
                                               timeslice='auto',
                                               global_solution=False,
                                               psf_support=64,
-                                              do_selfcal=True)
-
+                                              do_selfcal=True,
+                                              use_serial_predict=use_serial_imaging,
+                                              use_serial_invert=use_serial_imaging)
+    
     end = time.time()
     results['time ICAL graph'] = end - start
     print("Construction of ICAL graph took %.2f seconds" % (end - start))
@@ -381,6 +382,8 @@ def write_header(filename, fieldnames):
 def main(args):
     results = {}
     
+    results['jobid'] = args.jobid
+    
     nworkers = args.nworkers
     results['nworkers'] = nworkers
     
@@ -414,6 +417,13 @@ def main(args):
     results['epoch'] = time.strftime("%Y-%m-%d %H:%M:%S")
     results['driver'] = 'pipelines-timings-arlexecute'
     
+    use_serial_imaging = args.use_serial_imaging == 'True'
+    results['use_serial_imaging'] = use_serial_imaging
+    if use_serial_imaging:
+        print("Using serial imaging")
+    else:
+        print("Using arlexecut imaging")
+    
     threads_per_worker = args.nthreads
     
     print("Defining %d frequency windows" % nfreqwin)
@@ -424,7 +434,7 @@ def main(args):
                   'nfreqwin', 'ntimes', 'rmax', 'facets', 'wprojection_planes', 'vis_slices', 'npixel',
                   'cellsize', 'seed', 'dirty_max', 'dirty_min', 'psf_max', 'psf_min', 'deconvolved_max',
                   'deconvolved_min', 'restored_min', 'restored_max', 'residual_max', 'residual_min',
-                  'hostname', 'git_hash', 'epoch', 'context', 'use_dask', 'memory']
+                  'hostname', 'git_hash', 'epoch', 'context', 'use_dask', 'memory', 'jobid', 'use_serial_imaging']
     
     filename = seqfile.findNextFile(prefix='%s_%s_' % (results['driver'], results['hostname']), suffix='.csv')
     print('Saving results to %s' % filename)
@@ -432,7 +442,8 @@ def main(args):
     write_header(filename, fieldnames)
     
     results = trial_case(results, nworkers=nworkers, rmax=rmax, context=context, memory=memory,
-                         threads_per_worker=threads_per_worker, nfreqwin=nfreqwin, ntimes=ntimes)
+                         threads_per_worker=threads_per_worker, nfreqwin=nfreqwin, ntimes=ntimes,
+                         use_serial_imaging=use_serial_imaging)
     write_results(filename, fieldnames, results)
     
     print('Exiting %s' % results['driver'])
@@ -456,9 +467,10 @@ if __name__ == '__main__':
     parser.add_argument('--context', type=str, default='wstack',
                         help='Imaging context: 2d|timeslice|wstack')
     parser.add_argument('--rmax', type=float, default=750.0, help='Maximum baseline (m)')
-    parser.add_argument('--serial_invert', type=str, default='False',
-                        help='Use serial invert?')
-
+    parser.add_argument('--use_serial_imaging', type=str, default='False',
+                        help='Use serial imaging?')
+    parser.add_argument('--jobid', type=int, default=0, help='JOBID from slurm')
+    
     main(parser.parse_args())
     
     exit()
