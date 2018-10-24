@@ -61,7 +61,8 @@ def predict_list_mpi_workflow(vis_list, model_imagelist, vis_slices=1,
             return None
     
     vis_list_len=comm.bcast(len(vis_list),root=0)
-    print('%d: %d (%d) elements in vis_list' % (rank,len(vis_list),vis_list_len))
+    print('%d: %d (%d) In predict: elements in vis_list' %
+          (rank,len(vis_list),vis_list_len),flush=True)
     print(vis_list)
 
     image_results_list_list = list()
@@ -71,8 +72,8 @@ def predict_list_mpi_workflow(vis_list, model_imagelist, vis_slices=1,
     # for i in range(vis_list_len):
     if rank == 0:
         for freqwin, vis_lst in enumerate(vis_list):
-            print('%d: freqwin %d vis_lst:' %(rank,freqwin))
-            print(vis_lst)
+            #print('%d: freqwin %d vis_lst:' %(rank,freqwin),flush=True)
+            #print(vis_lst)
             # Create the graph to divide an image into facets. This is by reference.
             facet_lists = image_scatter_facets(model_imagelist[freqwin], facets=facets)
             # facet_lists = numpy.array_split(facet_lists, size)
@@ -109,7 +110,7 @@ def predict_list_mpi_workflow(vis_list, model_imagelist, vis_slices=1,
     else:
         for i in range(vis_list_len):
         #for freqwin, vis_lst in enumerate(vis_list):
-            print('%d: iteration %d' %(rank,i))
+            #print('%d: iteration %d' %(rank,i),flush=True)
             facet_lists = list()
             sub_vis_lists = list()
             ## Scater facets and visibility lists to all processes
@@ -189,7 +190,8 @@ def invert_list_mpi_workflow(vis_list, template_model_imagelist, dopsf=False, no
             return create_empty_image_like(model), 0.0
     
     vis_list_len=comm.bcast(len(vis_list),root=0)
-    print('%d: %d (%d) elements in vis_list' % (rank,len(vis_list),vis_list_len))
+    print('%d: %d (%d) In invert: elements in vis_list' %
+          (rank,len(vis_list),vis_list_len),flush=True)
     print(vis_list)
     results_vislist = list()
     #NOTE: We could parallelize here by freqwin instead of inside that would
@@ -197,6 +199,7 @@ def invert_list_mpi_workflow(vis_list, template_model_imagelist, dopsf=False, no
     # Loop over all vis_lists independently
     if rank == 0:
         for freqwin, vis_list in enumerate(vis_list):
+            print('%d: freqwin %d vis_lst:' %(rank,freqwin),flush=True)
             # Create the graph to divide an image into facets. This is by reference.
             template_model_imagelist_fwin=comm.bcast(template_model_imagelist[freqwin],root=0)
             facet_lists = image_scatter_facets(template_model_imagelist[
@@ -223,13 +226,12 @@ def invert_list_mpi_workflow(vis_list, template_model_imagelist, dopsf=False, no
     else:
         for i in range(vis_list_len):
         #for freqwin, vis_lst in enumerate(vis_list):
-            print('%d: iteration %d' %(rank,i))
+            print('%d: iteration %d' %(rank,i),flush=True)
             template_model_imagelist_fwin=list()
             template_model_imagelist_fwin=comm.bcast(template_model_imagelist_fwin,root=0)
             facet_lists = image_scatter_facets(template_model_imagelist_fwin,
                                            facets=facets)
             sub_vis_lists = list()
-            facet_lists=comm.bcast(facet_lists,root=0)
             sub_sub_vis_lists = comm.scatter(sub_vis_lists,root=0)
             # Iterate within each vis_list
             vis_results = list()

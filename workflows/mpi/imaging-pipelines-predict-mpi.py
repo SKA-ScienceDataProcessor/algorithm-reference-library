@@ -96,7 +96,7 @@ channel_bandwidth=numpy.array(nfreqwin*[frequency[1]-frequency[0]])
 times = numpy.linspace(-numpy.pi/3.0, numpy.pi/3.0, ntimes)
 phasecentre=SkyCoord(ra=+30.0 * u.deg, dec=-60.0 * u.deg, frame='icrs', equinox='J2000')
 
-print('frequency len %d frequency list:' % len(frequency))
+print('frequency len %d frequency list:' % len(frequency),flush=True)
 print(frequency)
 
 if rank == 0:
@@ -110,7 +110,7 @@ if rank == 0:
 else:
     vis_list=list()
 
-print('%d: %d elements in vis_list' % (rank,len(vis_list)))
+print('%d: %d elements in vis_list' % (rank,len(vis_list)),flush=True)
 print(vis_list)
 
 
@@ -134,7 +134,8 @@ else:
     cellsize = 0
 
 (vis_slices,npixel,cellsize) = comm.bcast((vis_slices,npixel,cellsize),root=0)
-print('%d: After advice: vis_slices %d npixel %d cellsize %d' % (rank,vis_slices, npixel, cellsize))
+print('%d: After advice: vis_slices %d npixel %d cellsize %d' %
+      (rank,vis_slices, npixel, cellsize),flush=True)
 
 # Now make a graph to fill with a model drawn from GLEAM 
 
@@ -207,6 +208,7 @@ if rank==0:
     model_list=numpy.concatenate(model_list)
     # In[ ]:
 
+print('%d: About to start invert'%(rank),flush=True)
 original_invert=False
 if original_invert:
     if rank==0:
@@ -230,7 +232,7 @@ else:
     # In[ ]:
         
 if rank==0:
-    print("sumwts")
+    print("sumwts",flush=True)
     print(dirty_list[0][1])
 
     log.info('About to run invert to get dirty image')
