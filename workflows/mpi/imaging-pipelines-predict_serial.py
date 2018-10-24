@@ -18,7 +18,7 @@ sys.path.append(os.path.join('..', '..'))
 
 from data_models.parameters import arl_path
 
-results_dir = './results/orig2'
+results_dir = './results/orig'
 
 #from matplotlib import pylab
 
@@ -96,7 +96,7 @@ vis_list=simulate_list_serial_workflow('LOWBD2',
                                          order='frequency',
                                         rmax=rmax)
 print('%d elements in vis_list' % len(vis_list))
-pdb.set_trace()
+#pdb.set_trace()
 
 # In[4]:
 
@@ -165,7 +165,7 @@ else:
         else:
             return None
     
-    pdb.set_trace()
+    #pdb.set_trace()
     image_results_list_list = list()
     # Loop over all frequency windows
     for freqwin, vis_lst in enumerate(vis_list):
@@ -175,7 +175,7 @@ else:
         sub_vis_lists = visibility_scatter(vis_lst, vis_iter, vis_slices)
         facet_vis_lists = list()
 
-        pdb.set_trace()
+        #pdb.set_trace()
         # Loop over sub visibility
         for sub_vis_list in sub_vis_lists:
             facet_vis_results = list()
