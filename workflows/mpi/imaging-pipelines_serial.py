@@ -17,7 +17,8 @@ sys.path.append(os.path.join('..', '..'))
 
 from data_models.parameters import arl_path
 
-results_dir = arl_path('test_results')
+#results_dir = arl_path('test_results')
+results_dir = './results/orig'
 
 #from matplotlib import pylab
 
@@ -135,8 +136,8 @@ log.info('About to make GLEAM model')
 log.info('About to run predict to get predicted visibility')
 predicted_vislist = predict_list_serial_workflow(vis_list, gleam_model,  
                                                 context='wstack', vis_slices=vis_slices)
-log.info('About to run corrupt to get corrupted visibility')
-corrupted_vislist = corrupt_list_serial_workflow(predicted_vislist, phase_error=1.0)
+#log.info('About to run corrupt to get corrupted visibility')
+#corrupted_vislist = corrupt_list_serial_workflow(predicted_vislist, phase_error=1.0)
 
 
 # Get the LSM. This is currently blank.
@@ -174,11 +175,17 @@ log.info('About to run invert to get dirty image')
 dirty = dirty_list[0][0]
 #show_image(dirty, cm='Greys', vmax=1.0, vmin=-0.1)
 #plt.show()
+print(qa_image(dirty))
+export_image_to_fits(dirty, '%s/imaging-dirty.fits' 
+                     %(results_dir))
 
 log.info('About to run invert to get PSF')
 psf = psf_list[0][0]
 #show_image(psf, cm='Greys', vmax=0.1, vmin=-0.01)
 #plt.show()
+print(qa_image(psf))
+export_image_to_fits(psf, '%s/imaging-psf.fits' 
+                     %(results_dir))
 
 
 # Now deconvolve using msclean
@@ -271,8 +278,10 @@ pp.pprint(controls)
 
 # In[ ]:
 
-
-ical_list = ical_list_serial_workflow(corrupted_vislist, 
+# TODO I change this to predicted_vislist to make it deterministic, I hope it makes
+# sense :)
+#ical_list = ical_list_serial_workflow(corrupted_vislist, 
+ical_list = ical_list_serial_workflow(predicted_vislist, 
                                         model_imagelist=model_list,  
                                         context='wstack', 
                                         calibration_context = 'TG', 
