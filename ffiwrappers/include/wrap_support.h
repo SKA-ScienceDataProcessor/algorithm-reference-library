@@ -12,5 +12,6 @@ ARLVis *allocate_blockvis_data(int nants, int nchan, int npol, int ntimes);
 ARLGt *allocate_gt_data(int nant, int nchan, int nrec, int ntimes);
 ARLVis *destroy_vis(ARLVis *vis);
 ARLGt *destroy_gt(ARLGt *gt);
+ARLadvice *allocate_arladv_default();
 
 #endif
