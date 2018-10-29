@@ -266,7 +266,12 @@ def residual_list_mpi_workflow(vis, model_imagelist, context='2d',comm=MPI.COMM_
     :param kwargs: Parameters for functions in components
     :return:
     """
+    rank = comm.Get_rank()
+    size = comm.Get_size()
     model_vis = zero_list_mpi_workflow(vis)
+    print('%d: In residual vis len %d model_imagelist len %d model_vis len %d'
+          %(rank,len(vis),len(model_imagelist),len(model_vis)),flush=True)
+
     model_vis = predict_list_mpi_workflow(model_vis, model_imagelist, context=context, **kwargs)
     residual_vis = subtract_list_mpi_workflow(vis, model_vis)
     return invert_list_mpi_workflow(residual_vis, model_imagelist, dopsf=False, normalize=True, context=context,
@@ -543,6 +548,8 @@ def subtract_list_mpi_workflow(vis_list, model_vislist,comm=MPI.COMM_WORLD):
     :param model_vislist: Model to be subtracted (rank0)
     :return: List of vis_lists
    """
+    rank = comm.Get_rank()
+    size = comm.Get_size()
     
     def subtract_vis(vis, model_vis):
         if vis is not None and model_vis is not None:
