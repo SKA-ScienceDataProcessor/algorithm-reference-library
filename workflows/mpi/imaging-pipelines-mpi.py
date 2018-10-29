@@ -51,6 +51,7 @@ from workflows.serial.imaging.imaging_serial import invert_list_serial_workflow,
 from workflows.serial.simulation.simulation_serial import simulate_list_serial_workflow,     corrupt_list_serial_workflow
 from workflows.serial.pipelines.pipeline_serial import continuum_imaging_list_serial_workflow,     ical_list_serial_workflow
 
+from workflows.mpi.pipelines.pipeline_mpi import continuum_imaging_list_mpi_workflow
 from workflows.mpi.imaging.imaging_mpi import predict_list_mpi_workflow, invert_list_mpi_workflow, deconvolve_list_mpi_workflow
 
 import pprint
@@ -73,6 +74,9 @@ logging.info("Starting imaging-pipeline")
 # In[2]:
 
 # ################### Rationale of data distribution: ################### #
+# In this version all data resides at rank0 and needs to be distributed   #
+# at every function when needed.                                          #
+# TODO: Pass on the comm parameter!
 # vis_list -> rank0                                                       #
 # vis_slices, npixel, cellsize -> rep                                     #
 # gleam_model -> rank0 (later rep)                                        #
@@ -219,7 +223,10 @@ model_list=comm.gather(sub_model_list,root=0)
 if rank==0:
     model_list=numpy.concatenate(model_list)
     # In[ ]:
+else:
+    model_list=list()
 
+print('%d model_list len %d' %(rank,len(model_list)),flush=True)
 print('%d: About to start invert'%(rank),flush=True)
 original_invert=False
 if original_invert:
@@ -298,7 +305,7 @@ else:
 log.info('About to run continuum imaging')
 print('%d: About to run continuum imaging'%(rank),flush=True)
 
-original_continuumimaging=True
+original_continuumimaging=False
 if original_continuumimaging:
     if rank==0:
         continuum_imaging_list =     continuum_imaging_list_serial_workflow(predicted_vislist, 
