@@ -72,6 +72,18 @@ logging.info("Starting imaging-pipeline")
 
 # In[2]:
 
+# ################### Rationale of data distribution: ################### #
+# vis_list -> rank0                                                       #
+# vis_slices, npixel, cellsize -> rep                                     #
+# gleam_model -> rank0 (later rep)                                        #
+# predicted_vis -> rank0 (later dist)                                     #
+# model_list ->rank0 (later rep)
+# disrty_list psf_list -> rank0 (later dist)
+# continuum_imaging_list -> rank0
+# ####################################################################### #
+
+
+
 
 #pylab.rcParams['figure.figsize'] = (12.0, 12.0)
 #pylab.rcParams['image.cmap'] = 'Greys'

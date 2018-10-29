@@ -10,6 +10,7 @@ from ..imaging.imaging_serial import invert_list_serial_workflow, residual_list_
     restore_list_serial_workflow, \
     deconvolve_list_serial_workflow
 
+from mpi4py import MPI
 
 def ical_list_serial_workflow(vis_list, model_imagelist, context='2d', calibration_context='TG', do_selfcal=True,
                                   **kwargs):
@@ -74,20 +75,25 @@ def ical_list_serial_workflow(vis_list, model_imagelist, context='2d', calibrati
     return (deconvolve_model_imagelist, residual_imagelist, restore_imagelist)
 
 
-def continuum_imaging_list_serial_workflow(vis_list, model_imagelist, context='2d', **kwargs):
+def continuum_imaging_list_mpi_workflow(vis_list, model_imagelist,
+                                        context='2d', comm=MPI.COMM_WORLD,
+                                        **kwargs):
     """ Create graph for the continuum imaging pipeline.
 
     Same as ICAL but with no selfcal.
 
-    :param vis_list:
-    :param model_imagelist:
+    :param vis_list: rank0
+    :param model_imagelist: rank0
     :param context: Imaging context
     :param kwargs: Parameters for functions in components
     :return:
     """
-    psf_imagelist = invert_list_serial_workflow(vis_list, model_imagelist, dopsf=True, context=context, **kwargs)
+    rank = comm.Get_rank()
+    size = comm.Get_size()
+
+    psf_imagelist = invert_list_mpi_workflow(vis_list, model_imagelist, dopsf=True, context=context, **kwargs)
     
-    residual_imagelist = residual_list_serial_workflow(vis_list, model_imagelist, context=context, **kwargs)
+    residual_imagelist = residual_list_mpi_workflow(vis_list, model_imagelist, context=context, **kwargs)
     deconvolve_model_imagelist, _ = deconvolve_list_serial_workflow(residual_imagelist, psf_imagelist,
                                                                         model_imagelist,
                                                                         prefix='cycle 0',
@@ -97,16 +103,16 @@ def continuum_imaging_list_serial_workflow(vis_list, model_imagelist, context='2
     if nmajor > 1:
         for cycle in range(nmajor):
             prefix = "cycle %d" % (cycle + 1)
-            residual_imagelist = residual_list_serial_workflow(vis_list, deconvolve_model_imagelist,
+            residual_imagelist = residual_list_mpi_workflow(vis_list, deconvolve_model_imagelist,
                                                                    context=context, **kwargs)
-            deconvolve_model_imagelist, _ = deconvolve_list_serial_workflow(residual_imagelist, psf_imagelist,
+            deconvolve_model_imagelist, _ = deconvolve_list_mpi_workflow(residual_imagelist, psf_imagelist,
                                                                                 deconvolve_model_imagelist,
                                                                                 prefix=prefix,
                                                                                 **kwargs)
     
-    residual_imagelist = residual_list_serial_workflow(vis_list, deconvolve_model_imagelist, context=context,
+    residual_imagelist = residual_list_mpi_workflow(vis_list, deconvolve_model_imagelist, context=context,
                                                            **kwargs)
-    restore_imagelist = restore_list_serial_workflow(deconvolve_model_imagelist, psf_imagelist, residual_imagelist)
+    restore_imagelist = restore_list_mpi_workflow(deconvolve_model_imagelist, psf_imagelist, residual_imagelist)
     return (deconvolve_model_imagelist, residual_imagelist, restore_imagelist)
 
 
