@@ -36,14 +36,15 @@ def predict_list_mpi_workflow(vis_list, model_imagelist, vis_slices=1,
     The visibility and image are scattered, the visibility is predicted on each part, and then the
     parts are assembled.
 
-    :param vis_list:
-    :param model_imagelist: Model used to determine image parameters
-    :param vis_slices: Number of vis slices (w stack or timeslice)
-    :param facets: Number of facets (per axis)
-    :param context:
+    :param vis_list: (lives in rank=0)
+    :param model_imagelist: Model used to determine image parameters (lives in
+    rank0)
+    :param vis_slices: Number of vis slices (w stack or timeslice)(rep)
+    :param facets: Number of facets (per axis)(rep)
+    :param context:(rep)
     :param comm: MPI communicator
     :param kwargs: Parameters for functions in components
-    :return: List of vis_lists
+    :return: List of vis_lists (rank0)
    """
     rank = comm.Get_rank()
     size = comm.Get_size()
@@ -104,6 +105,10 @@ def predict_list_mpi_workflow(vis_list, model_imagelist, vis_slices=1,
             facet_vis_lists=comm.gather(facet_vis_lists,root=0)
             # Sum all sub-visibilties
             facet_vis_lists=numpy.concatenate(facet_vis_lists)
+            #NOTE: visivility_gather is done within each freqwin, the result
+            # of each loop (freqwin) is just appended to the list
+            # -> in principle a subset of this list could live in each
+            # mpirank, effectively distributing vis object across nodes.
             image_results_list_list.append(visibility_gather(facet_vis_lists,
                                                              vis_lst,
                                                              vis_iter))
@@ -155,7 +160,7 @@ def invert_list_mpi_workflow(vis_list, template_model_imagelist, dopsf=False, no
     :param context: Imaging context
     :param comm: MPI Communicator
     :param kwargs: Parameters for functions in components
-    :return: List of (image, sumwt) tuple
+    :return: List of (image, sumwt) tuple (rank0)
    """
    
    # NOTE: Be careful with normalization as normalizing parts is not the 
@@ -203,6 +208,8 @@ def invert_list_mpi_workflow(vis_list, template_model_imagelist, dopsf=False, no
         for freqwin, vis_list in enumerate(vis_list):
             print('%d: freqwin %d vis_lst:' %(rank,freqwin),flush=True)
             # Create the graph to divide an image into facets. This is by reference.
+            # NOTE: if template_model)imagelist is replicated we would save
+            # this bcast
             template_model_imagelist_fwin=comm.bcast(template_model_imagelist[freqwin],root=0)
             facet_lists = image_scatter_facets(template_model_imagelist[
                                                freqwin],
@@ -224,6 +231,8 @@ def invert_list_mpi_workflow(vis_list, template_model_imagelist, dopsf=False, no
             all_vis_results=numpy.concatenate(all_vis_results)
             # sum_invert_results normalized according to weigths it must be
             # done to the full set of visibilities
+            # NOTE: Again this is done for each freqwin so in theory
+            # the results_vislist could be distributed across processes
             results_vislist.append(sum_invert_results(all_vis_results))
     else:
         for i in range(vis_list_len):
@@ -252,17 +261,15 @@ def residual_list_mpi_workflow(vis, model_imagelist, context='2d',comm=MPI.COMM_
     """ Create a graph to calculate residual image using w stacking and faceting
 
     :param context:
-    :param vis:
-    :param model_imagelist: Model used to determine image parameters
-    :param vis:
-    :param model_imagelist: Model used to determine image parameters
+    :param vis: rank0
+    :param model_imagelist: Model used to determine image parameters rank0
     :param kwargs: Parameters for functions in components
     :return:
     """
-    model_vis = zero_list_serial_workflow(vis)
-    model_vis = predict_list_serial_workflow(model_vis, model_imagelist, context=context, **kwargs)
-    residual_vis = subtract_list_serial_workflow(vis, model_vis)
-    return invert_list_serial_workflow(residual_vis, model_imagelist, dopsf=False, normalize=True, context=context,
+    model_vis = zero_list_mpi_workflow(vis)
+    model_vis = predict_list_mpi_workflow(model_vis, model_imagelist, context=context, **kwargs)
+    residual_vis = subtract_list_mpi_workflow(vis, model_vis)
+    return invert_list_mpi_workflow(residual_vis, model_imagelist, dopsf=False, normalize=True, context=context,
                                        **kwargs)
 
 
@@ -270,15 +277,22 @@ def restore_list_mpi_workflow(model_imagelist, psf_imagelist,
                               residual_imagelist,comm=MPI.COMM_WORLD, **kwargs):
     """ Create a graph to calculate the restored image
 
-    :param model_imagelist: Model list
-    :param psf_imagelist: PSF list
-    :param residual_imagelist: Residual list
+    :param model_imagelist: Model list (rank0)
+    :param psf_imagelist: PSF list (rank0)
+    :param residual_imagelist: Residual list (rank0)
     :param kwargs: Parameters for functions in components
     :return:
     """
-    return [restore_cube(model_imagelist[i], psf_imagelist[i][0],
+    rank = comm.Get_rank()
+    size = comm.Get_size()
+    #TODO Parallelize!
+    if rank==0:
+        result_list=[restore_cube(model_imagelist[i], psf_imagelist[i][0],
                          residual_imagelist[i][0], **kwargs)
-            for i, _ in enumerate(model_imagelist)]
+                for i, _ in enumerate(model_imagelist)]
+    else:
+        result_list=list()
+    return result_list
 
 
 def deconvolve_list_mpi_workflow(dirty_list, psf_list, model_imagelist,
@@ -433,3 +447,116 @@ def deconvolve_list_mpi_workflow(dirty_list, psf_list, model_imagelist,
         result=list(),list()
     return result
 
+def deconvolve_channel_list_mpi_workflow(dirty_list, psf_list, model_imagelist, subimages, **kwargs):
+    """Create a graph for deconvolution by channels, adding to the model
+
+    Does deconvolution channel by channel.
+    :param subimages:
+    :param dirty_list:
+    :param psf_list: Must be the size of a facet
+    :param model_imagelist: Current model
+    :param kwargs: Parameters for functions in components
+    :return:
+    """
+    assert True,"this function is not ready!!"
+
+    def deconvolve_subimage(dirty, psf):
+        assert isinstance(dirty, Image)
+        assert isinstance(psf, Image)
+        comp = deconvolve_cube(dirty, psf, **kwargs)
+        return comp[0]
+    
+    def add_model(sum_model, model):
+        assert isinstance(output, Image)
+        assert isinstance(model, Image)
+        sum_model.data += model.data
+        return sum_model
+    
+    output = create_empty_image_like(model_imagelist)
+    dirty_lists = image_scatter_channels(dirty_list[0],
+                                         subimages=subimages)
+    results = [deconvolve_subimage(dirty_list, psf_list[0])
+               for dirty_list in dirty_lists]
+    result = image_gather_channels(results, output, subimages=subimages)
+    return add_model(result, model_imagelist)
+
+
+def weight_list_mpi_workflow(vis_list, model_imagelist, weighting='uniform',
+                                comm=MPI.COMM_WORLD,**kwargs):
+    """ Weight the visibility data
+
+    :param vis_list:
+    :param model_imagelist: Model required to determine weighting parameters
+    :param weighting: Type of weighting
+    :param kwargs: Parameters for functions in graphs
+    :return: List of vis_graphs
+   """
+    
+    rank = comm.Get_rank()
+    size = comm.Get_size()
+    def weight_vis(vis, model):
+        if vis is not None:
+            if model is not None:
+                vis, _, _ = weight_visibility(vis, model, weighting=weighting, **kwargs)
+                return vis
+            else:
+                return None
+        else:
+            return None
+        # TODO make it parallel
+    if rank==0:
+        result_list = [weight_vis(vis_list[i], model_imagelist[i])
+                for i in range(len(vis_list))]
+    else:
+        result_list=list()
+    return result_list
+
+
+def zero_list_mpi_workflow(vis_list,comm=MPI.COMM_WORLD):
+    """ Initialise vis to zero: creates new data holders
+
+    :param vis_list:
+    :return: List of vis_lists
+   """
+    rank = comm.Get_rank()
+    size = comm.Get_size()
+    
+    def zero(vis):
+        if vis is not None:
+            zerovis = copy_visibility(vis)
+            zerovis.data['vis'][...] = 0.0
+            return zerovis
+        else:
+            return None
+        #TODO Make it parallel
+    if rank==0:    
+        result_list=[zero(v) for v in vis_list]
+    else:
+        result_list=list()
+    return result_list
+
+
+def subtract_list_mpi_workflow(vis_list, model_vislist,comm=MPI.COMM_WORLD):
+    """ Initialise vis to zero
+
+    :param vis_list: rank0
+    :param model_vislist: Model to be subtracted (rank0)
+    :return: List of vis_lists
+   """
+    
+    def subtract_vis(vis, model_vis):
+        if vis is not None and model_vis is not None:
+            assert vis.vis.shape == model_vis.vis.shape
+            subvis = copy_visibility(vis)
+            subvis.data['vis'][...] -= model_vis.data['vis'][...]
+            return subvis
+        else:
+            return None
+        # TODO; Parallelize
+    if rank==0:
+        result_list=[subtract_vis(vis=vis_list[i],
+                         model_vis=model_vislist[i])
+                for i in range(len(vis_list))]
+    else:
+        result_list=list()
+    return result_list
