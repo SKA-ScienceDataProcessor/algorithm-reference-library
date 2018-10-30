@@ -16,10 +16,9 @@ from typing import List
 import numpy
 
 from data_models.memory_data_models import Visibility, BlockVisibility
-
+from ..visibility.base import create_visibility_from_rows
 from ..visibility.coalesce import coalesce_visibility, decoalesce_visibility
 from ..visibility.iterators import vis_timeslice_iter, vis_wslice_iter
-from ..visibility.base import create_visibility_from_rows
 
 log = logging.getLogger(__name__)
 
@@ -45,12 +44,12 @@ def visibility_scatter(vis: Visibility, vis_iter, vis_slices=1) -> List[Visibili
         avis = coalesce_visibility(vis)
     else:
         avis = vis
-        
+    
     visibility_list = list()
     for i, rows in enumerate(vis_iter(avis, vis_slices=vis_slices)):
         subvis = create_visibility_from_rows(avis, rows)
         visibility_list.append(subvis)
-        
+    
     return visibility_list
 
 
@@ -72,11 +71,11 @@ def visibility_gather(visibility_list: List[Visibility], vis: Visibility, vis_it
     if vis_slices is None:
         vis_slices = len(visibility_list)
         
-    if vis_iter == vis_wslice_iter and isinstance(vis, BlockVisibility):
+    if (vis_iter == vis_wslice_iter or vis_iter == vis_timeslice_iter) and isinstance(vis, BlockVisibility):
         cvis = coalesce_visibility(vis, vis_slices=vis_slices)
     else:
         cvis = vis
-
+    
     rowses = []
     for i, rows in enumerate(vis_iter(cvis, vis_slices=vis_slices)):
         rowses.append(rows)
@@ -84,13 +83,16 @@ def visibility_gather(visibility_list: List[Visibility], vis: Visibility, vis_it
     for i, rows in enumerate(rowses):
         assert i < len(visibility_list), "Gather not consistent with scatter for slice %d" % i
         if visibility_list[i] is not None and numpy.sum(rows):
-            assert numpy.sum(rows) == visibility_list[i].nvis, "Mismatch in number of rows in gather for slice %d" % i
+            assert numpy.sum(rows) == visibility_list[i].nvis, \
+                "Mismatch in number of rows (%d, %d) in gather for slice %d" % \
+            (numpy.sum(rows), visibility_list[i].nvis, i)
             cvis.data[rows] = visibility_list[i].data[...]
     
-    if vis_iter == vis_wslice_iter and isinstance(vis, BlockVisibility):
+    if (vis_iter == vis_wslice_iter or vis_iter == vis_timeslice_iter) and isinstance(vis, BlockVisibility):
         return decoalesce_visibility(cvis)
     else:
         return cvis
+
 
 def visibility_scatter_w(vis: Visibility, vis_slices=1) -> List[Visibility]:
     if isinstance(vis, BlockVisibility):
@@ -98,7 +100,7 @@ def visibility_scatter_w(vis: Visibility, vis_slices=1) -> List[Visibility]:
         visibility_list = visibility_scatter(avis, vis_iter=vis_wslice_iter, vis_slices=vis_slices)
     else:
         visibility_list = visibility_scatter(vis, vis_iter=vis_wslice_iter, vis_slices=vis_slices)
-        
+    
     return visibility_list
 
 
@@ -125,10 +127,11 @@ def visibility_scatter_channel(vis: BlockVisibility) -> List[Visibility]:
     :param vis:
     :return:
     """
+    
     def extract_channel(v, chan):
         vis_shape = numpy.array(v.data['vis'].shape)
         vis_shape[3] = 1
-
+        
         vis = BlockVisibility(data=None,
                               frequency=numpy.array([v.frequency[chan]]),
                               channel_bandwidth=numpy.array([v.channel_bandwidth[chan]]),
@@ -156,7 +159,7 @@ def visibility_gather_channel(vis_list: List[Visibility], vis: Visibility = None
     cols = ['vis', 'weight']
     
     if vis is None:
-
+        
         vis_shape = numpy.array(vis_list[0].vis.shape)
         vis_shape[-2] = len(vis_list)
         for v in vis_list:
@@ -182,7 +185,7 @@ def visibility_gather_channel(vis_list: List[Visibility], vis: Visibility = None
         for col in cols:
             vis.data[col][..., chan, :] = subvis.data[col][..., 0, :]
         vis.frequency[chan] = subvis.frequency[0]
-        
+    
     nchan = vis.vis.shape[-2]
     assert nchan == len(vis.frequency)
     

@@ -411,8 +411,6 @@ def create_low_test_image_from_gleam(npixel=512, polarisation_frame=Polarisation
         beam = create_pb(model, telescope='LOW')
         model.data[...] *= beam.data[...]
     
-    log.info(qa_image(model, context='create_low_test_image_from_gleam'))
-    
     return model
 
 

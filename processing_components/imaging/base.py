@@ -454,20 +454,15 @@ def advise_wide_field(vis: Visibility, delA=0.02, oversampling_synthesised_beam=
     log.info("advice_wide_field: Frequency sampling for primary beam = %.1f (Hz)" % (freq_sampling_primary_beam))
     
     wstep = w_sampling_primary_beam
-    vis_slices = max(1, int(maximum_baseline / (wstep * wprojection_planes)))
-    log.info('advice_wide_field: Number of planes in w stack %d' % (vis_slices))
-    log.info('advice_wide_field: Number of planes in w projection %d' % wprojection_planes)
-    if wprojection_planes > 1:
-        log.info('advice_wide_field: Recommend that wprojection griddata is used')
-        kernel = 'wprojection'
-    else:
-        log.info('advice_wide_field: Recommend that 2d griddata (i.e. no wprojection) is used')
-        kernel = '2d'
+    vis_slices = max(1, int(2 * maximum_baseline / wstep))
+    wprojection_planes = vis_slices
+    log.info('advice_wide_field: Number of planes in w stack %d (primary beam)' % (vis_slices))
+    log.info('advice_wide_field: Number of planes in w projection %d (primary beam)' % (wprojection_planes))
 
-    nwpixels = int(npixels * image_fov)
-    log.info('advice_wide_field: W support = %d (pixels)' % nwpixels)
+    nwpixels = int(2.0 * npixels * primary_beam_fov)
+    nwpixels = nwpixels - nwpixels % 2
+    log.info('advice_wide_field: W support = %d (pixels) (primary beam)' % nwpixels)
     
-
     del vis
     del svis
     del pwr23
