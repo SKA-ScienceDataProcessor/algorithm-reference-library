@@ -4,7 +4,7 @@ completeness. Use parallel versions pipelines/components.py for speed.
 """
 from data_models.parameters import get_parameter
 
-#from ..calibration.calibration_serial import calibrate_list_mpi_workflow
+from ..calibration.calibration_mpi import calibrate_list_mpi_workflow
 
 from ..imaging.imaging_mpi import invert_list_mpi_workflow, residual_list_mpi_workflow, \
     predict_list_mpi_workflow, zero_list_mpi_workflow, subtract_list_mpi_workflow, \
@@ -12,7 +12,9 @@ from ..imaging.imaging_mpi import invert_list_mpi_workflow, residual_list_mpi_wo
     deconvolve_list_mpi_workflow
 from mpi4py import MPI
 
-def ical_list_mpi_workflow(vis_list, model_imagelist, context='2d', calibration_context='TG', do_selfcal=True,
+def ical_list_mpi_workflow(vis_list, model_imagelist, context='2d',
+                           calibration_context='TG', do_selfcal=True,
+                           comm=MPI.COMM_WORLD,
                                   **kwargs):
     """Create graph for ICAL pipeline
 
@@ -24,6 +26,10 @@ def ical_list_mpi_workflow(vis_list, model_imagelist, context='2d', calibration_
     :param kwargs: Parameters for functions in components
     :return:
     """
+    rank = comm.Get_rank()
+    size = comm.Get_size()
+    print('%d: ical: vis_list len %d model_imagelist len %d'
+          %(rank,len(vis_list),len(model_imagelist)),flush=True)
     psf_imagelist = invert_list_mpi_workflow(vis_list, model_imagelist, dopsf=True, context=context, **kwargs)
     
     model_vislist = zero_list_mpi_workflow(vis_list)
