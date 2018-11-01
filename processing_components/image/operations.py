@@ -190,7 +190,7 @@ def smooth_image(model: Image, width=1.0):
     for pol in range(npol):
         for chan in range(nchan):
             cmodel.data[chan, pol, :, :] = astropy.convolution.convolve(model.data[chan, pol, :, :], kernel,
-                                                                        normalize_kernel=False)
+                                                                        normalize_kernel=False, allow_huge=True)
     if isinstance(kernel, astropy.convolution.kernels.Gaussian2DKernel):
         cmodel.data *= 2 * numpy.pi * width ** 2
     
