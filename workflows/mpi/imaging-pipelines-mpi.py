@@ -51,7 +51,7 @@ from workflows.serial.imaging.imaging_serial import invert_list_serial_workflow,
 from workflows.serial.simulation.simulation_serial import simulate_list_serial_workflow,     corrupt_list_serial_workflow
 from workflows.serial.pipelines.pipeline_serial import continuum_imaging_list_serial_workflow,     ical_list_serial_workflow
 
-from workflows.mpi.pipelines.pipeline_mpi import continuum_imaging_list_mpi_workflow
+from workflows.mpi.pipelines.pipeline_mpi import continuum_imaging_list_mpi_workflow, ical_list_mpi_workflow
 from workflows.mpi.imaging.imaging_mpi import predict_list_mpi_workflow, invert_list_mpi_workflow, deconvolve_list_mpi_workflow
 
 import pprint
@@ -359,3 +359,103 @@ if rank==0:
     #plt.show()
     export_image_to_fits(residual[0], '%s/imaging-dask_continuum_imaging_residual.fits' 
                      %(results_dir))
+
+if rank==0:
+    for chan in range(nfreqwin):
+        residual = continuum_imaging_list[1][chan]
+        #show_image(residual[0], title='Channel %d' % chan, cm='Greys', 
+        #           vmax=0.1, vmin=-0.01)
+        #plt.show()
+
+
+# In[ ]:
+
+
+controls = create_calibration_controls()
+        
+controls['T']['first_selfcal'] = 1
+controls['G']['first_selfcal'] = 3
+controls['B']['first_selfcal'] = 4
+
+controls['T']['timescale'] = 'auto'
+controls['G']['timescale'] = 'auto'
+controls['B']['timescale'] = 1e5
+
+pp.pprint(controls)
+
+
+# In[ ]:
+
+# TODO I change this to predicted_vislist to make it deterministic, I hope it makes
+# sense :)
+#ical_list = ical_list_serial_workflow(corrupted_vislist, 
+
+original_ical=False
+if original_ical:
+    if rank==0:
+
+        ical_list = ical_list_serial_workflow(predicted_vislist, 
+                                        model_imagelist=model_list,  
+                                        context='wstack', 
+                                        calibration_context = 'TG', 
+                                        controls=controls,
+                                        scales=[0, 3, 10], algorithm='mmclean', 
+                                        nmoment=3, niter=1000, 
+                                        fractional_threshold=0.1,
+                                        threshold=0.1, nmajor=5, gain=0.25,
+                                        deconvolve_facets = 8, 
+                                        deconvolve_overlap=16,
+                                        deconvolve_taper='tukey',
+                                        vis_slices=ntimes,
+                                        timeslice='auto',
+                                        global_solution=False, 
+                                        psf_support=64,
+                                        do_selfcal=True)
+
+else:
+
+    ical_list = ical_list_mpi_workflow(predicted_vislist, 
+                                        model_imagelist=model_list,  
+                                        context='wstack', 
+                                        calibration_context = 'TG', 
+                                        controls=controls,
+                                        scales=[0, 3, 10], algorithm='mmclean', 
+                                        nmoment=3, niter=1000, 
+                                        fractional_threshold=0.1,
+                                        threshold=0.1, nmajor=5, gain=0.25,
+                                        deconvolve_facets = 8, 
+                                        deconvolve_overlap=16,
+                                        deconvolve_taper='tukey',
+                                        vis_slices=ntimes,
+                                        timeslice='auto',
+                                        global_solution=False, 
+                                        psf_support=64,
+                                        do_selfcal=True)
+
+
+# In[ ]:
+
+if rank==0:
+    log.info('About to run ical')
+    deconvolved = ical_list[0][0]
+    residual = ical_list[1][0]
+    restored = ical_list[2][0]
+
+    #f=show_image(deconvolved, title='Clean image', cm='Greys', vmax=1.0, vmin=-0.1)
+    print(qa_image(deconvolved, context='Clean image'))
+    #plt.show()
+
+    #f=show_image(restored, title='Restored clean image', cm='Greys', vmax=1.0, 
+    #             vmin=-0.1)
+    print(qa_image(restored, context='Restored clean image'))
+    #plt.show()
+    export_image_to_fits(restored, '%s/imaging-dask_ical_restored.fits' 
+                     %(results_dir))
+
+    #f=show_image(residual[0], title='Residual clean image', cm='Greys', 
+    #             vmax=0.1, vmin=-0.01)
+    print(qa_image(residual[0], context='Residual clean image'))
+    #plt.show()
+    export_image_to_fits(residual[0], '%s/imaging-dask_ical_residual.fits' 
+                     %(results_dir))
+
