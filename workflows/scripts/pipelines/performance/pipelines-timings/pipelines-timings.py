@@ -299,7 +299,18 @@ def trial_case(results, seed=180555, context='wstack', nworkers=8, threads_per_w
     results['dirty_max'] = qa.data['max']
     results['dirty_min'] = qa.data['min']
     export_image_to_fits(dirty, "pipelines-timings-%s-dirty.fits" % context)
-    
+
+    # Corrupt the visibility for the GLEAM model
+    print("****** Visibility corruption ******")
+    vis_list = corrupt_list_arlexecute_workflow(vis_list, phase_error=1.0, seed=seed)
+    start = time.time()
+    vis_list = arlexecute.compute(vis_list, sync=True)
+    vis_list = arlexecute.scatter(vis_list)
+
+    end = time.time()
+    results['time corrupt'] = end - start
+    print("Visibility corruption took %.2f seconds" % (end - start))
+
     # Create the ICAL pipeline to run 5 major cycles, starting selfcal at cycle 1. A global solution across all
     # frequencies (i.e. Visibilities) is performed.
     start = time.time()
@@ -446,6 +457,7 @@ def main(args):
     use_dask = args.use_dask == 'True'
     if use_dask:
         use_serial_imaging = args.use_serial_imaging == 'True'
+        print("Using Dask")
     else:
         use_serial_imaging = False
     results['use_serial_imaging'] = use_serial_imaging
@@ -487,7 +499,7 @@ if __name__ == '__main__':
     import argparse
     
     parser = argparse.ArgumentParser(description='Benchmark pipelines in numpy and dask')
-    parser.add_argument('--use_dask', type=bool, default=True, help='Use Dask?')
+    parser.add_argument('--use_dask', type=str, default='True', help='Use Dask?')
     parser.add_argument('--nnodes', type=int, default=1, help='Number of nodes')
     parser.add_argument('--nthreads', type=int, default=1, help='Number of threads')
     parser.add_argument('--memory', type=int, default=8, help='Memory per worker')
