@@ -79,7 +79,7 @@ def fit_uvwplane(vis: Visibility, remove=False) -> (Image, float, float):
 def predict_timeslice_single(vis: Visibility, model: Image, predict=predict_2d, remove=True,
                              gcfcf=None, **kwargs) -> Visibility:
     """ Predict using a single time slices.
-    
+
     This fits a single plane and corrects the image geometry.
 
     :param vis: Visibility to be predicted
@@ -90,7 +90,7 @@ def predict_timeslice_single(vis: Visibility, model: Image, predict=predict_2d, 
     :return: resulting visibility (in place works)
     """
     log.debug("predict_timeslice: predicting using time slices")
-
+    
     inchan, inpol, ny, nx = model.shape
     
     vis.data['vis'] *= 0.0
@@ -99,7 +99,7 @@ def predict_timeslice_single(vis: Visibility, model: Image, predict=predict_2d, 
         avis = coalesce_visibility(vis, **kwargs)
     else:
         avis = vis
-
+    
     # Fit and remove best fitting plane for this slice
     avis, p, q = fit_uvwplane(avis, remove=remove)
     
@@ -110,17 +110,17 @@ def predict_timeslice_single(vis: Visibility, model: Image, predict=predict_2d, 
     # Use griddata to do the conversion. This could be improved. Only cubic is possible in griddata.
     # The interpolation is ok for invert since the image is smooth but for clean images the
     # interpolation is particularly poor, leading to speckle in the residual image.
-    lnominal, mnominal, ldistorted, mdistorted = lm_distortion(model, -p, -q)
+    lnominal, mnominal, ldistorted, mdistorted = lm_distortion(model, p, q)
     for chan in range(inchan):
         for pol in range(inpol):
             workimage.data[chan, pol, ...] = \
-                griddata((mnominal.flatten(), lnominal.flatten()),
+                griddata((mdistorted.flatten(), ldistorted.flatten()),
                          values=workimage.data[chan, pol, ...].flatten(),
-                         xi=(mdistorted.flatten(), ldistorted.flatten()),
+                         xi=(mnominal.flatten(), lnominal.flatten()),
                          method='cubic',
                          fill_value=0.0,
                          rescale=True).reshape(workimage.data[chan, pol, ...].shape)
-
+    
     avis = predict(avis, workimage, gcfcf=gcfcf, **kwargs)
     
     return avis
@@ -156,7 +156,7 @@ def lm_distortion(im: Image, a, b) -> (numpy.ndarray, numpy.ndarray, numpy.ndarr
 def invert_timeslice_single(vis: Visibility, im: Image, dopsf, normalize=True,
                             gcfcf=None, **kwargs) -> (Image, numpy.ndarray):
     """Process single time slice
-    
+
     Extracted for re-use in parallel version
     :param vis: Visibility to be inverted
     :param im: image template (not changed)
@@ -165,18 +165,18 @@ def invert_timeslice_single(vis: Visibility, im: Image, dopsf, normalize=True,
     :param normalize: Normalize by the sum of weights (True)
     """
     inchan, inpol, ny, nx = im.shape
-
+    
     if not isinstance(vis, Visibility):
         avis = coalesce_visibility(vis, **kwargs)
     else:
         avis = vis
-
+    
     log.debug("invert_timeslice: inverting using time slices")
-
+    
     avis, p, q = fit_uvwplane(avis, remove=True)
     
     workimage, sumwt = invert_2d(avis, im, dopsf, normalize=normalize, gcfcf=gcfcf, **kwargs)
-
+    
     finalimage = create_empty_image_like(im)
     
     # Use griddata to do the conversion. This could be improved. Only cubic is possible in griddata.
@@ -184,16 +184,17 @@ def invert_timeslice_single(vis: Visibility, im: Image, dopsf, normalize=True,
     
     # Calculate nominal and distorted coordinates. The image is in distorted coordinates so we
     # need to convert back to nominal
-    lnominal, mnominal, ldistorted, mdistorted = lm_distortion(workimage, -p, -q)
-
+    lnominal, mnominal, ldistorted, mdistorted = lm_distortion(workimage, p, q)
+    
     for chan in range(inchan):
         for pol in range(inpol):
             finalimage.data[chan, pol, ...] = \
-                griddata((mdistorted.flatten(), ldistorted.flatten()),
+                griddata((mnominal.flatten(), lnominal.flatten()),
                          values=workimage.data[chan, pol, ...].flatten(),
                          method='cubic',
-                         xi=(mnominal.flatten(), lnominal.flatten()),
+                         xi=(mdistorted.flatten(), ldistorted.flatten()),
                          fill_value=0.0,
                          rescale=True).reshape(finalimage.data[chan, pol, ...].shape)
     
     return finalimage, sumwt
+
