@@ -100,3 +100,6 @@ source tests/ffiwrapped/run-tests.sh
 #cd timg_serial/
 #make run
 
+# Test the MPI version
+pip install pytest
+
