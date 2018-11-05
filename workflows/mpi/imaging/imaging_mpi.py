@@ -48,6 +48,8 @@ def predict_list_mpi_workflow(vis_list, model_imagelist, vis_slices=1,
    """
     rank = comm.Get_rank()
     size = comm.Get_size()
+    print('%d: %d In predict: elements in vis_list' %
+          (rank,len(vis_list)),flush=True)
     # the assert only makes sense in proc 0 as for the others both lists are
     # empty
     assert len(vis_list) == len(model_imagelist), "Model must be the same length as the vis_list"
@@ -104,6 +106,8 @@ def predict_list_mpi_workflow(vis_list, model_imagelist, vis_slices=1,
             ## gather results from all processes
             facet_vis_lists=comm.gather(facet_vis_lists,root=0)
             # Sum all sub-visibilties
+            print('%d: Predict before concatenate'% (rank), flush=True)
+            print(facet_vis_lists)
             facet_vis_lists=numpy.concatenate(facet_vis_lists)
             #NOTE: visivility_gather is done within each freqwin, the result
             # of each loop (freqwin) is just appended to the list
@@ -168,6 +172,8 @@ def invert_list_mpi_workflow(vis_list, template_model_imagelist, dopsf=False, no
 
     rank = comm.Get_rank()
     size = comm.Get_size()
+    print('%d: %d In invert: elements in vis_list %d in model' %
+          (rank,len(vis_list),len(template_model_imagelist)),flush=True)
     if rank==0:
         if not isinstance(template_model_imagelist, collections.Iterable):
             template_model_imagelist = [template_model_imagelist]
@@ -228,6 +234,10 @@ def invert_list_mpi_workflow(vis_list, template_model_imagelist, dopsf=False, no
                 vis_results.append(gather_image_iteration_results(facet_vis_results,
                                                               template_model_imagelist[freqwin]))
             all_vis_results=comm.gather(vis_results, root=0)
+            print('%d: Invert before concatenate'% (rank), flush=True)
+            print(all_vis_results,flush=True)
+            all_vis_results=[x for x in all_vis_results if x]
+            print(all_vis_results,flush=True)
             all_vis_results=numpy.concatenate(all_vis_results)
             # sum_invert_results normalized according to weigths it must be
             # done to the full set of visibilities
@@ -521,10 +531,12 @@ def zero_list_mpi_workflow(vis_list,comm=MPI.COMM_WORLD):
     """ Initialise vis to zero: creates new data holders
 
     :param vis_list:
-    :return: List of vis_lists
+    :return: List of vis_lists in rank0 empty list for others
    """
     rank = comm.Get_rank()
     size = comm.Get_size()
+    print('%d: %d In zero: elements in vis_list' %
+          (rank,len(vis_list)),flush=True)
     
     def zero(vis):
         if vis is not None:
@@ -550,6 +562,8 @@ def subtract_list_mpi_workflow(vis_list, model_vislist,comm=MPI.COMM_WORLD):
    """
     rank = comm.Get_rank()
     size = comm.Get_size()
+    print('%d: %d In subtract : elements in vis_list %d in model' %
+          (rank,len(vis_list),len(model_vislist)),flush=True)
     
     def subtract_vis(vis, model_vis):
         if vis is not None and model_vis is not None:
