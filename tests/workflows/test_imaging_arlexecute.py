@@ -54,9 +54,9 @@ class TestImaging(ARLExecuteTestCase, unittest.TestCase):
         self.ntimes = 5
         self.cellsize = 0.0005
         self.times = numpy.linspace(-3.0, +3.0, self.ntimes) * numpy.pi / 12.0
-        self.frequency = numpy.linspace(0.8e8, 1.2e8, self.freqwin)
         
         if freqwin > 1:
+            self.frequency = numpy.linspace(0.8e8, 1.2e8, self.freqwin)
             self.channelwidth = numpy.array(freqwin * [self.frequency[1] - self.frequency[0]])
         else:
             self.frequency = numpy.array([1.0e8])
@@ -108,10 +108,8 @@ class TestImaging(ARLExecuteTestCase, unittest.TestCase):
         self.vis_list = [arlexecute.execute(predict_skycomponent_visibility)(self.vis_list[freqwin],
                                                                              self.components_list[freqwin])
                          for freqwin, _ in enumerate(self.frequency)]
-        
-        # Calculate the model convolved with a Gaussian.
-        
         centre = self.freqwin // 2
+        # Calculate the model convolved with a Gaussian.
         self.model = self.model_list[centre]
         
         self.cmodel = smooth_image(self.model)
@@ -126,15 +124,15 @@ class TestImaging(ARLExecuteTestCase, unittest.TestCase):
         
         if makegcfcf:
             self.gcfcf = [create_awterm_convolutionfunction(self.model, nw=61, wstep=16.0,
-                                                           oversampling=4,
-                                                           support=60,
+                                                           oversampling=8,
+                                                           support=64,
                                                            use_aaf=True)]
             self.gcfcf_clipped = [(self.gcfcf[0][0], apply_bounding_box_convolutionfunction(self.gcfcf[0][1],
                                                                                        fractional_level=1e-3))]
             
             self.gcfcf_joint = [create_awterm_convolutionfunction(self.model, nw=11, wstep=16.0,
-                                                                 oversampling=4,
-                                                                 support=60,
+                                                                 oversampling=8,
+                                                                 support=64,
                                                                  use_aaf=True)]
             
         else:
@@ -169,8 +167,8 @@ class TestImaging(ARLExecuteTestCase, unittest.TestCase):
         vis_list = arlexecute.compute(vis_list, sync=True)
         
         centre = self.freqwin // 2
-        dirty = invert_list_arlexecute_workflow(vis_list, self.model_list, context='2d', dopsf=False,
-                                                gcfcf=gcfcf, normalize=True)
+        dirty = invert_list_arlexecute_workflow(vis_list, self.model_list, context=context, dopsf=False,
+                                                gcfcf=gcfcf, normalize=True, vis_slices=vis_slices)
         dirty = arlexecute.compute(dirty, sync=True)[centre]
         
         assert numpy.max(numpy.abs(dirty[0].data)), "Residual image is empty"
@@ -226,34 +224,33 @@ class TestImaging(ARLExecuteTestCase, unittest.TestCase):
         self.actualSetUp()
         self._predict_base(context='timeslice', fluxthreshold=3.0, vis_slices=self.ntimes)
     
-    @unittest.skip("Correcting twice?")
     def test_predict_timeslice_wprojection(self):
         self.actualSetUp(makegcfcf=True)
-        self._predict_base(context='timeslice', extra='_wprojection', fluxthreshold=17.0,
-                           vis_slices=self.ntimes // 2, gcfcf=self.gcfcf)
+        self._predict_base(context='timeslice', extra='_wprojection', fluxthreshold=3.0,
+                           vis_slices=self.ntimes, gcfcf=self.gcfcf_joint)
     
     def test_predict_wprojection(self):
         self.actualSetUp(makegcfcf=True)
-        self._predict_base(context='2d', extra='_wprojection', fluxthreshold=3.5,
+        self._predict_base(context='2d', extra='_wprojection', fluxthreshold=1.0,
                            gcfcf=self.gcfcf)
     
     def test_predict_wprojection_clip(self):
         self.actualSetUp(makegcfcf=True)
-        self._predict_base(context='2d', extra='_wprojection_clipped', fluxthreshold=3.5,
+        self._predict_base(context='2d', extra='_wprojection_clipped', fluxthreshold=1.0,
                            gcfcf=self.gcfcf_clipped)
 
     def test_predict_wstack(self):
         self.actualSetUp()
-        self._predict_base(context='wstack', fluxthreshold=2.0, vis_slices=101)
+        self._predict_base(context='wstack', fluxthreshold=1.0, vis_slices=101)
 
     def test_predict_wstack_serial(self):
         self.actualSetUp()
-        self._predict_base(context='wstack', fluxthreshold=2.0, vis_slices=101, use_serial_predict=True)
+        self._predict_base(context='wstack', fluxthreshold=1.0, vis_slices=101, use_serial_predict=True)
 
     def test_predict_wstack_wprojection(self):
         self.actualSetUp(makegcfcf=True)
-        self._predict_base(context='wstack', extra='_wprojection', fluxthreshold=8.0, vis_slices=11,
-                           gcfcf=self.gcfcf)
+        self._predict_base(context='wstack', extra='_wprojection', fluxthreshold=1.0, vis_slices=11,
+                           gcfcf=self.gcfcf_joint)
     
     def test_predict_wstack_spectral(self):
         self.actualSetUp(dospectral=True)
@@ -298,7 +295,7 @@ class TestImaging(ARLExecuteTestCase, unittest.TestCase):
     def test_invert_timeslice_wprojection(self):
         self.actualSetUp(makegcfcf=True)
         self._invert_base(context='timeslice', extra='_wprojection', positionthreshold=1.0,
-                          check_components=True, vis_slices=self.ntimes // 2, gcfcf=self.gcfcf)
+                          check_components=True, vis_slices=self.ntimes, gcfcf=self.gcfcf_joint)
     
     def test_invert_wprojection(self):
         self.actualSetUp(makegcfcf=True)

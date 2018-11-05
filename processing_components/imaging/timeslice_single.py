@@ -131,11 +131,13 @@ def predict_timeslice_single(vis: Visibility, model: Image, predict=predict_2d, 
         avis = vis
     
     # Fit and remove best fitting plane for this slice
+    uvw= avis.uvw
     avis, p, q = fit_uvwplane(avis, remove=remove)
     
     # We want to describe work image as distorted. We describe the distortion by putting
     # the olbiquity parameters in the wcs. The input model should be described as having
     # zero olbiquity parameters.
+    # Note that this has to be zero relative in first element, one relative in second!!!
     newwcs = model.wcs.deepcopy()
     newwcs.wcs.set_pv([(0, 1, -p), (0, 2, -q)])
     workimage, footprintimage = reproject_image(model, newwcs, shape=model.shape)
@@ -143,12 +145,15 @@ def predict_timeslice_single(vis: Visibility, model: Image, predict=predict_2d, 
     workimage.wcs.wcs.set_pv([(0, 1, -p), (0, 2, -q)])
     
     # Now we can do the predict
+    if remove:
+        avis.data['uvw'][...] = uvw
+        
     avis = predict(avis, workimage, gcfcf=gcfcf, **kwargs)
     
     return avis
 
 
-def invert_timeslice_single(vis: Visibility, im: Image, dopsf, normalize=True,
+def invert_timeslice_single(vis: Visibility, im: Image, dopsf, normalize=True, remove=True,
                             gcfcf=None, **kwargs) -> (Image, numpy.ndarray):
     """Process single time slice
 
@@ -166,15 +171,21 @@ def invert_timeslice_single(vis: Visibility, im: Image, dopsf, normalize=True,
     
     log.debug("invert_timeslice: inverting using time slices")
     
-    avis, p, q = fit_uvwplane(avis, remove=False)
+    uvw = avis.uvw
+    avis, p, q = fit_uvwplane(avis, remove=remove)
     
     workimage, sumwt = invert_2d(avis, im, dopsf, normalize=normalize, gcfcf=gcfcf, **kwargs)
     # Work image is distorted. We describe the distortion by putting the olbiquity parameters in
     # the wcs. The output image should be described as having zero olbiquity parameters.
+    
+    # Note that this has to be zero relative in first element, one relative in second!!!!
     workimage.wcs.wcs.set_pv([(0, 1, -p), (0, 2, -q)])
     
     finalimage, footprint = reproject_image(workimage, im.wcs, im.shape)
     finalimage.data[footprint.data <= 0.0] = 0.0
     finalimage.wcs.wcs.set_pv([(0, 1, 0.0), (0, 2, 0.0)])
+    
+    if remove:
+        avis.data['uvw'][...] = uvw
 
     return finalimage, sumwt
