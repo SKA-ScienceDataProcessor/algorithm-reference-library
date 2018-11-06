@@ -333,7 +333,7 @@ def restore_cube(model: Image, psf: Image, residual=None, **kwargs) -> Image:
     for chan in range(model.shape[0]):
         for pol in range(model.shape[1]):
             restored.data[chan, pol, :, :] = norm * convolve_fft(model.data[chan, pol, :, :], gk,
-                                                                 normalize_kernel=False)
+                                                                 normalize_kernel=False, allow_huge=True)
     if residual is not None:
         restored.data += residual.data
     return restored

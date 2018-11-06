@@ -164,7 +164,10 @@ def invert_list_arlexecute_workflow(vis_list, template_model_imagelist, dopsf=Fa
     :param kwargs: Parameters for functions in components
     :return: List of (image, sumwt) tuple
    """
-    
+
+    do_weighting = get_parameter(kwargs, "do_weighting", False)
+    weighting = get_parameter(kwargs, "weighting", "uniform")
+
     if get_parameter(kwargs, "use_serial_invert", False):
         from workflows.serial.imaging.imaging_serial import invert_list_serial_workflow
         return [arlexecute.execute(invert_list_serial_workflow, nout=1) \
@@ -200,6 +203,9 @@ def invert_list_arlexecute_workflow(vis_list, template_model_imagelist, dopsf=Fa
     
     def invert_ignore_none(vis, model, g):
         if vis is not None:
+            if do_weighting:
+                vis, _, _ = weight_visibility(vis, model, weighting=weighting, **kwargs)
+    
             return invert(vis, model, context=context, dopsf=dopsf, normalize=normalize,
                           gcfcf=g, **kwargs)
         else:

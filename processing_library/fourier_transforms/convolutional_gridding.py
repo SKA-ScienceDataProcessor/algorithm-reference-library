@@ -317,7 +317,7 @@ def weight_gridding(shape, visweights, vuvwmap, vfrequencymap, vpolarisationmap=
     """
     densitygrid = numpy.zeros(shape, dtype='float')
     if weighting == 'uniform':
-        log.info("weight_gridding: Performing uniform weighting")
+        log.debug("weight_gridding: Performing uniform weighting")
         inchan, inpol, ny, nx = shape
 
         wts = visweights[...]

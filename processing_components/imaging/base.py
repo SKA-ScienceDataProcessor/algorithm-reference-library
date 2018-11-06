@@ -222,8 +222,9 @@ def predict_skycomponent_visibility(vis: Union[Visibility, BlockVisibility],
             l, m, n = skycoord_to_lmn(comp.direction, vis.phasecentre)
             phasor = simulate_point(vis.uvw, l, m)
             for ivis in range(vis.nvis):
+                chan = im_nchan[ivis]
                 for pol in range(npol):
-                    vis.data['vis'][ivis, pol] += comp.flux[im_nchan[ivis], pol] * phasor[ivis]
+                    vis.data['vis'][ivis, pol] += comp.flux[chan, pol] * phasor[ivis]
     
     elif isinstance(vis, BlockVisibility):
         

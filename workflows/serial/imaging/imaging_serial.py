@@ -124,6 +124,17 @@ def invert_list_serial_workflow(vis_list, template_model_imagelist, dopsf=False,
     :return: List of (image, sumwt) tuple
    """
     
+    do_weighting = get_parameter(kwargs, "do_weighting", False)
+    weighting = get_parameter(kwargs, "weighting", "uniform")
+
+    if get_parameter(kwargs, "use_serial_invert", False):
+        from workflows.serial.imaging.imaging_serial import invert_list_serial_workflow
+        return [arlexecute.execute(invert_list_serial_workflow, nout=1) \
+                    (vis_list=[vis_list[i]], template_model_imagelist=[template_model_imagelist[i]],
+                     dopsf=dopsf, normalize=normalize, vis_slices=vis_slices,
+                     facets=facets, context=context, gcfcf=gcfcf, **kwargs)[0]
+                for i, _ in enumerate(vis_list)]
+    
     if not isinstance(template_model_imagelist, collections.Iterable):
         template_model_imagelist = [template_model_imagelist]
     
@@ -146,6 +157,9 @@ def invert_list_serial_workflow(vis_list, template_model_imagelist, dopsf=False,
     
     def invert_ignore_none(vis, model, g):
         if vis is not None:
+            if do_weighting:
+                vis, _, _ = weight_visibility(vis, model, weighting=weighting, **kwargs)
+    
             return invert(vis, model, context=context, dopsf=dopsf, normalize=normalize,
                           gcfcf=g, **kwargs)
         else:
