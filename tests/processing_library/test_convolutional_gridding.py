@@ -9,8 +9,7 @@ import numpy
 from numpy.testing import assert_allclose
 
 from processing_library.fourier_transforms.convolutional_gridding import w_beam, coordinates, \
-    coordinates2, coordinateBounds, anti_aliasing_calculate, \
-    convolutional_degrid, convolutional_grid
+    coordinates2, coordinateBounds, convolutional_degrid, convolutional_grid
 
 
 class TestConvolutionalGridding(unittest.TestCase):

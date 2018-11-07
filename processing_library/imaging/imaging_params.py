@@ -14,7 +14,6 @@ from data_models.memory_data_models import Visibility, Image
 from data_models.parameters import get_parameter
 from data_models.polarisation import PolarisationFrame
 
-from ..fourier_transforms.convolutional_gridding import anti_aliasing_calculate
 from ..image.operations import convert_image_to_kernel
 from ..image.operations import copy_image, fft_image, pad_image, create_w_term_like
 
