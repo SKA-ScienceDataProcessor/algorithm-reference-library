@@ -691,6 +691,7 @@ class Visibility:
         self.phasecentre = phasecentre  # Phase centre of observation
         self.configuration = configuration  # Antenna/station configuration
         self.polarisation_frame = polarisation_frame
+        self.frequency_map = None
     
     def __str__(self):
         """Default printer for Skycomponent
