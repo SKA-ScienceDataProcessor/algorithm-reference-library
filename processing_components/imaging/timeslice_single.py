@@ -24,19 +24,51 @@ Ignoring changes in the normalisation term, we have:
 
 """
 import numpy
-from scipy.interpolate import griddata
-
+from scipy.interpolate import RegularGridInterpolator
 from data_models.memory_data_models import Visibility, Image
-
 from ..image.operations import copy_image, create_empty_image_like
-
 from ..imaging.base import predict_2d, invert_2d
-
 from ..visibility.coalesce import coalesce_visibility
 
 import logging
 
 log = logging.getLogger(__name__)
+
+"""
+The w-term can be viewed as a time-variable distortion. Approximating the array as instantaneously
+co-planar, we have that w can be expressed in terms of u,v:
+
+.. math::
+    w = a u + b v
+
+Transforming to a new coordinate system:
+
+.. math::
+
+    l' = l + a ( \\sqrt{1-l^2-m^2}-1))
+
+.. math::
+
+    m' = m + b ( \\sqrt{1-l^2-m^2}-1))
+
+Ignoring changes in the normalisation term, we have:
+
+.. math::
+
+    V(u,v,w) =\\int \\frac{ I(l',m')} { \\sqrt{1-l'^2-m'^2}} e^{-2 \\pi j (ul'+um')} dl' dm'
+
+
+"""
+import numpy
+from scipy.interpolate import griddata, RectBivariateSpline, RegularGridInterpolator, interp2d
+
+from data_models.memory_data_models import Visibility, Image
+
+from processing_components.image.operations import copy_image, create_empty_image_like, reproject_image
+
+from processing_components.imaging.base import predict_2d, invert_2d
+
+from processing_components.visibility.coalesce import coalesce_visibility
 
 
 def fit_uvwplane_only(vis: Visibility) -> (float, float):
@@ -45,7 +77,7 @@ def fit_uvwplane_only(vis: Visibility) -> (float, float):
     :param vis: visibility to be fitted
     :return: direction cosines defining plane
     """
-        
+    
     su2 = numpy.sum(vis.u * vis.u)
     sv2 = numpy.sum(vis.v * vis.v)
     suv = numpy.sum(vis.u * vis.v)
@@ -65,11 +97,11 @@ def fit_uvwplane(vis: Visibility, remove=False) -> (Image, float, float):
     :return: direction cosines defining plane
     """
     nvis = len(vis.data)
-    before = numpy.max(numpy.std(vis.w))
+    before = numpy.max(numpy.abs(vis.w))
     p, q = fit_uvwplane_only(vis)
     residual = vis.data['uvw'][:, 2] - (p * vis.u + q * vis.v)
-    after = numpy.max(numpy.std(residual))
-    log.debug('fit_uvwplane: Fit to %d rows reduces rms w from %.1f to %.1f m'
+    after = numpy.max(numpy.abs(residual))
+    log.debug('fit_uvwplane: Fit to %d rows reduces max abs w from %.1f to %.1f m'
               % (nvis, before, after))
     if remove:
         vis.data['uvw'][:, 2] -= p * vis.u + q * vis.v
@@ -79,7 +111,7 @@ def fit_uvwplane(vis: Visibility, remove=False) -> (Image, float, float):
 def predict_timeslice_single(vis: Visibility, model: Image, predict=predict_2d, remove=True,
                              gcfcf=None, **kwargs) -> Visibility:
     """ Predict using a single time slices.
-    
+
     This fits a single plane and corrects the image geometry.
 
     :param vis: Visibility to be predicted
@@ -90,8 +122,6 @@ def predict_timeslice_single(vis: Visibility, model: Image, predict=predict_2d, 
     :return: resulting visibility (in place works)
     """
     log.debug("predict_timeslice: predicting using time slices")
-
-    inchan, inpol, ny, nx = model.shape
     
     vis.data['vis'] *= 0.0
     
@@ -99,64 +129,34 @@ def predict_timeslice_single(vis: Visibility, model: Image, predict=predict_2d, 
         avis = coalesce_visibility(vis, **kwargs)
     else:
         avis = vis
-
+    
     # Fit and remove best fitting plane for this slice
+    uvw= avis.uvw
     avis, p, q = fit_uvwplane(avis, remove=remove)
     
-    # Calculate nominal and distorted coordinate systems. We will convert the model
-    # from nominal to distorted before predicting.
-    workimage = copy_image(model)
+    # We want to describe work image as distorted. We describe the distortion by putting
+    # the olbiquity parameters in the wcs. The input model should be described as having
+    # zero olbiquity parameters.
+    # Note that this has to be zero relative in first element, one relative in second!!!
+    newwcs = model.wcs.deepcopy()
+    newwcs.wcs.set_pv([(0, 1, -p), (0, 2, -q)])
+    workimage, footprintimage = reproject_image(model, newwcs, shape=model.shape)
+    workimage.data[footprintimage.data <= 0.0] = 0.0
+    workimage.wcs.wcs.set_pv([(0, 1, -p), (0, 2, -q)])
     
-    # Use griddata to do the conversion. This could be improved. Only cubic is possible in griddata.
-    # The interpolation is ok for invert since the image is smooth but for clean images the
-    # interpolation is particularly poor, leading to speckle in the residual image.
-    lnominal, mnominal, ldistorted, mdistorted = lm_distortion(model, -p, -q)
-    for chan in range(inchan):
-        for pol in range(inpol):
-            workimage.data[chan, pol, ...] = \
-                griddata((mnominal.flatten(), lnominal.flatten()),
-                         values=workimage.data[chan, pol, ...].flatten(),
-                         xi=(mdistorted.flatten(), ldistorted.flatten()),
-                         method='cubic',
-                         fill_value=0.0,
-                         rescale=True).reshape(workimage.data[chan, pol, ...].shape)
-
+    # Now we can do the predict
+    if remove:
+        avis.data['uvw'][...] = uvw
+        
     avis = predict(avis, workimage, gcfcf=gcfcf, **kwargs)
     
     return avis
 
 
-def lm_distortion(im: Image, a, b) -> (numpy.ndarray, numpy.ndarray, numpy.ndarray, numpy.ndarray):
-    """Calculate the nominal and distorted coordinates for w=au+bv
-    
-    :param im: Image with the coordinate system
-    :param a, b: parameters in fit
-    :return: meshgrids for l,m nominal and distorted
-    """
-    ny = im.shape[2]
-    nx = im.shape[3]
-    cy = im.wcs.wcs.crpix[1] - 1
-    cx = im.wcs.wcs.crpix[0] - 1
-    dy = im.wcs.wcs.cdelt[1] * (numpy.pi / 180.0)
-    dx = im.wcs.wcs.cdelt[0] * (numpy.pi / 180.0)
-    
-    lnominal1d = (numpy.arange(0, nx) - cx) * dx
-    mnominal1d = (numpy.arange(0, ny) - cy) * dy
-    
-    l2d, m2d = numpy.meshgrid(lnominal1d, mnominal1d)
-    
-    dn2d = numpy.sqrt(1.0 - (l2d * l2d + m2d * m2d)) - 1.0
-    
-    ldistorted = l2d + a * dn2d
-    mdistorted = m2d + b * dn2d
-
-    return l2d, m2d, ldistorted, mdistorted
-
-
-def invert_timeslice_single(vis: Visibility, im: Image, dopsf, normalize=True,
+def invert_timeslice_single(vis: Visibility, im: Image, dopsf, normalize=True, remove=True,
                             gcfcf=None, **kwargs) -> (Image, numpy.ndarray):
     """Process single time slice
-    
+
     Extracted for re-use in parallel version
     :param vis: Visibility to be inverted
     :param im: image template (not changed)
@@ -164,36 +164,28 @@ def invert_timeslice_single(vis: Visibility, im: Image, dopsf, normalize=True,
     :param gcfcf: (Grid correction function, convolution function)
     :param normalize: Normalize by the sum of weights (True)
     """
-    inchan, inpol, ny, nx = im.shape
-
     if not isinstance(vis, Visibility):
         avis = coalesce_visibility(vis, **kwargs)
     else:
         avis = vis
-
+    
     log.debug("invert_timeslice: inverting using time slices")
-
-    avis, p, q = fit_uvwplane(avis, remove=True)
+    
+    uvw = avis.uvw
+    avis, p, q = fit_uvwplane(avis, remove=remove)
     
     workimage, sumwt = invert_2d(avis, im, dopsf, normalize=normalize, gcfcf=gcfcf, **kwargs)
+    # Work image is distorted. We describe the distortion by putting the olbiquity parameters in
+    # the wcs. The output image should be described as having zero olbiquity parameters.
+    
+    # Note that this has to be zero relative in first element, one relative in second!!!!
+    workimage.wcs.wcs.set_pv([(0, 1, -p), (0, 2, -q)])
+    
+    finalimage, footprint = reproject_image(workimage, im.wcs, im.shape)
+    finalimage.data[footprint.data <= 0.0] = 0.0
+    finalimage.wcs.wcs.set_pv([(0, 1, 0.0), (0, 2, 0.0)])
+    
+    if remove:
+        avis.data['uvw'][...] = uvw
 
-    finalimage = create_empty_image_like(im)
-    
-    # Use griddata to do the conversion. This could be improved. Only cubic is possible in griddata.
-    # The interpolation is ok for invert since the image is smooth.
-    
-    # Calculate nominal and distorted coordinates. The image is in distorted coordinates so we
-    # need to convert back to nominal
-    lnominal, mnominal, ldistorted, mdistorted = lm_distortion(workimage, -p, -q)
-
-    for chan in range(inchan):
-        for pol in range(inpol):
-            finalimage.data[chan, pol, ...] = \
-                griddata((mdistorted.flatten(), ldistorted.flatten()),
-                         values=workimage.data[chan, pol, ...].flatten(),
-                         method='cubic',
-                         xi=(mnominal.flatten(), lnominal.flatten()),
-                         fill_value=0.0,
-                         rescale=True).reshape(finalimage.data[chan, pol, ...].shape)
-    
     return finalimage, sumwt

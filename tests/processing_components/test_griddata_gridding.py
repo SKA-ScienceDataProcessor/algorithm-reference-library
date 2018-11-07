@@ -81,7 +81,7 @@ class TestGridDataGridding(unittest.TestCase):
         self.model = create_unittest_model(self.vis, self.image_pol, cellsize=self.cellsize,
                                            npixel=self.npixel, nchan=self.freqwin)
         self.components = create_unittest_components(self.model, flux, applypb=False,
-                                                     scale=0.5, single=False)
+                                                     scale=0.5, single=False, symmetric=True)
         self.model = insert_skycomponent(self.model, self.components)
         self.vis = predict_skycomponent_visibility(self.vis, self.components)
         
@@ -106,7 +106,7 @@ class TestGridDataGridding(unittest.TestCase):
         im = fft_griddata_to_image(griddata, gcf)
         im = normalize_sumwt(im, sumwt)
         export_image_to_fits(im, '%s/test_gridding_dirty_pswf.fits' % self.dir)
-        self.check_peaks(im, 96.63103230849241, tol=1e-7)
+        self.check_peaks(im, 97.00435128311616, tol=1e-7)
     
     def test_griddata_invert_pswf_w(self):
         self.actualSetUp(zerow=False)
@@ -116,7 +116,7 @@ class TestGridDataGridding(unittest.TestCase):
         im = fft_griddata_to_image(griddata, gcf)
         im = normalize_sumwt(im, sumwt)
         export_image_to_fits(im, '%s/test_gridding_dirty_pswf_w.fits' % self.dir)
-        self.check_peaks(im, 96.62754566597258, tol=1e-7)
+        self.check_peaks(im, 97.02498821941138, tol=1e-7)
     
     def test_griddata_invert_aterm(self):
         self.actualSetUp(zerow=True)
@@ -130,7 +130,7 @@ class TestGridDataGridding(unittest.TestCase):
         im = fft_griddata_to_image(griddata, gcf)
         im = normalize_sumwt(im, sumwt)
         export_image_to_fits(im, '%s/test_gridding_dirty_aterm.fits' % self.dir)
-        self.check_peaks(im, 96.7447282577198, tol=1e-7)
+        self.check_peaks(im, 97.11809546469424, tol=1e-7)
     
     def test_griddata_invert_aterm_noover(self):
         self.actualSetUp(zerow=True)
@@ -144,7 +144,7 @@ class TestGridDataGridding(unittest.TestCase):
         im = fft_griddata_to_image(griddata, gcf)
         im = normalize_sumwt(im, sumwt)
         export_image_to_fits(im, '%s/test_gridding_dirty_aterm_noover.fits' % self.dir)
-        self.check_peaks(im, 96.74492791536595)
+        self.check_peaks(im, 97.11833094589)
     
     def test_griddata_invert_box(self):
         self.actualSetUp(zerow=True)
@@ -154,7 +154,7 @@ class TestGridDataGridding(unittest.TestCase):
         im = fft_griddata_to_image(griddata, gcf)
         im = normalize_sumwt(im, sumwt)
         export_image_to_fits(im, '%s/test_gridding_dirty_box.fits' % self.dir)
-        self.check_peaks(im, 96.74492791536595, tol=1e-7)
+        self.check_peaks(im, 97.11833094588997, tol=1e-7)
     
     def test_griddata_invert_fast(self):
         self.actualSetUp(zerow=True)
@@ -164,14 +164,14 @@ class TestGridDataGridding(unittest.TestCase):
         im = fft_griddata_to_image(griddata, gcf)
         im = normalize_sumwt(im, sumwt)
         export_image_to_fits(im, '%s/test_gridding_dirty_fast.fits' % self.dir)
-        self.check_peaks(im, 96.74492791536595, tol=1e-7)
+        self.check_peaks(im, 97.11833094588997, tol=1e-7)
     
     def check_peaks(self, im, peak=100.0, tol=1e-3):
         assert numpy.abs(im.data[self.peak] - peak) < tol, im.data[self.peak]
     
     def test_griddata_invert_wterm(self):
         self.actualSetUp(zerow=False)
-        gcf, cf = create_awterm_convolutionfunction(self.model, nw=101, wstep=8.0, oversampling=4, support=30,
+        gcf, cf = create_awterm_convolutionfunction(self.model, nw=100, wstep=8.0, oversampling=8, support=32,
                                                     use_aaf=True)
         
         cf_image = convert_convolutionfunction_to_image(cf)
@@ -183,7 +183,7 @@ class TestGridDataGridding(unittest.TestCase):
         im = fft_griddata_to_image(griddata, gcf)
         im = normalize_sumwt(im, sumwt)
         export_image_to_fits(im, '%s/test_gridding_dirty_wterm.fits' % self.dir)
-        self.check_peaks(im, 96.74172600032597)
+        self.check_peaks(im, 97.13863141113761)
     
     def test_griddata_invert_awterm(self):
         self.actualSetUp(zerow=False)
@@ -191,7 +191,7 @@ class TestGridDataGridding(unittest.TestCase):
         pb = make_pb(self.model)
         export_image_to_fits(pb, "%s/test_gridding_awterm_pb.fits" % self.dir)
         gcf, cf = create_awterm_convolutionfunction(self.model, make_pb=make_pb, nw=100, wstep=8.0,
-                                                    oversampling=4, support=30, use_aaf=True)
+                                                    oversampling=16, support=32, use_aaf=True)
         cf_image = convert_convolutionfunction_to_image(cf)
         cf_image.data = numpy.real(cf_image.data)
         export_image_to_fits(cf_image, "%s/test_gridding_awterm_cf.fits" % self.dir)
@@ -201,7 +201,7 @@ class TestGridDataGridding(unittest.TestCase):
         im = fft_griddata_to_image(griddata, gcf)
         im = normalize_sumwt(im, sumwt)
         export_image_to_fits(im, '%s/test_gridding_dirty_awterm.fits' % self.dir)
-        self.check_peaks(im, 96.74145892405836)
+        self.check_peaks(im, 97.13891073376104)
     
     def test_griddata_predict_pswf(self):
         self.actualSetUp(zerow=True)
@@ -228,7 +228,7 @@ class TestGridDataGridding(unittest.TestCase):
         make_pb = functools.partial(create_pb_generic, diameter=35.0, blockage=0.0)
         griddata = create_griddata_from_image(self.model)
         gcf, cf = create_awterm_convolutionfunction(self.model, make_pb=make_pb, nw=1,
-                                                    oversampling=16, support=16,
+                                                    oversampling=16, support=32,
                                                     use_aaf=True)
         griddata = fft_image_to_griddata(self.model, griddata, gcf)
         newvis = degrid_visibility_from_griddata(self.vis, griddata=griddata, cf=cf)
@@ -237,7 +237,7 @@ class TestGridDataGridding(unittest.TestCase):
     
     def test_griddata_predict_wterm(self):
         self.actualSetUp(zerow=False)
-        gcf, cf = create_awterm_convolutionfunction(self.model, nw=100, wstep=10.0, oversampling=8, support=30,
+        gcf, cf = create_awterm_convolutionfunction(self.model, nw=100, wstep=10.0, oversampling=16, support=32,
                                                     use_aaf=True)
         griddata = create_griddata_from_image(self.model, nw=100, wstep=10.0)
         griddata = fft_image_to_griddata(self.model, griddata, gcf)
@@ -253,7 +253,7 @@ class TestGridDataGridding(unittest.TestCase):
         pb = make_pb(self.model)
         export_image_to_fits(pb, "%s/test_gridding_awterm_pb.fits" % self.dir)
         gcf, cf = create_awterm_convolutionfunction(self.model, make_pb=make_pb, nw=100, wstep=8.0,
-                                                    oversampling=4, support=30, use_aaf=True)
+                                                    oversampling=16, support=32, use_aaf=True)
         griddata = create_griddata_from_image(self.model, nw=100, wstep=8.0)
         griddata = fft_image_to_griddata(self.model, griddata, gcf)
         newvis = degrid_visibility_from_griddata(self.vis, griddata=griddata, cf=cf)

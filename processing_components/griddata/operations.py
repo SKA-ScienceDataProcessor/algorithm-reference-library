@@ -120,35 +120,6 @@ def create_griddata_from_image(im, nw=1, wstep=1e15):
                                       projection_wcs=projection_wcs,
                                       polarisation_frame=im.polarisation_frame)
 
-
-def fft_image_to_griddata(im):
-    """ FFT an image to GridData
-
-    :param im:
-    :return: GridData
-    """
-    gd = create_griddata_from_image(im)
-    assert gd.shape[2] == 1, "Multiple z planes not supported"
-    gd.data[:, :, 0, ...] = ifft(im.data[:, :, :, :].data)
-    
-    return gd
-
-
-def fft_griddata_to_image(gd: GridData):
-    """ FFT GridData to an Image, transform WCS as well
-
-    :param gd: GridData model
-    :return: Image
-    """
-    assert len(gd.shape) == 5
-    assert gd.grid_wcs.wcs.ctype[0] == 'UU'
-    assert gd.grid_wcs.wcs.ctype[1] == 'VV'
-    wcs = gd.projection_wcs.deepcopy()
-    assert gd.shape[2] == 1, "Multiple z planes not supported"
-    image_data = fft(gd.data[:, :, 0, ...].astype('complex'))
-    return create_image_from_array(image_data, wcs=wcs, polarisation_frame=gd.polarisation_frame)
-
-
 def convert_griddata_to_image(gd):
     """ Convert griddata to an image
     

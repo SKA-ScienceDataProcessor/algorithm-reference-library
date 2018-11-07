@@ -95,6 +95,18 @@ add2virtualenv /path/to/checked/out/algorithm-reference-library
 deactivate
 ```
 
+Using pipenv only
+-----------------
+
+Pipenv/pipfile now provides a complete integrated virtual requirement
+and tracking which seem to be effective. You can run it simply as:
+
+```
+pipenv shell
+```
+
+And this will leave you in a shell with the environment fully setup.
+
 Common Installation Process
 ---------------------------
 
