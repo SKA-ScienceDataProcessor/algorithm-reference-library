@@ -51,7 +51,7 @@ def git_hash():
 def trial_case(results, seed=180555, context='wstack', nworkers=8, threads_per_worker=1, memory=8,
                processes=True, order='frequency', nfreqwin=7, ntimes=3, rmax=750.0,
                facets=1, wprojection_planes=1, use_dask=True, use_serial_imaging=False,
-               flux_limit=0.3):
+               flux_limit=0.3, nmajor=10):
     """ Single trial for performance-timings
     
     Simulates visibilities from GLEAM including phase errors
@@ -147,7 +147,11 @@ def trial_case(results, seed=180555, context='wstack', nworkers=8, threads_per_w
         channel_bandwidth = numpy.array(nfreqwin * [frequency[1] - frequency[0]])
     else:
         channel_bandwidth = numpy.array([1e6])
-    times = numpy.linspace(-numpy.pi / 3.0, numpy.pi / 3.0, ntimes)
+        
+    # Time sampling should be about 720s for B=750
+    integration_time = (rmax / 750.0) * numpy.pi * (12 / (12 * 60))
+    times = numpy.linspace(-integration_time * (ntimes //2), integration_time * (ntimes //2), ntimes)
+    print("Times are ", times)
     
     phasecentre = SkyCoord(ra=+30.0 * u.deg, dec=-60.0 * u.deg, frame='icrs', equinox='J2000')
     
@@ -182,12 +186,15 @@ def trial_case(results, seed=180555, context='wstack', nworkers=8, threads_per_w
                                  delA=0.02,
                                  facets=facets,
                                  wprojection_planes=wprojection_planes,
-                                 oversampling_synthesised_beam=3.0)
+                                 oversampling_synthesised_beam=4.0)
     
     advice = arlexecute.compute(arlexecute.execute(get_wf)(vis_list[-1]), sync=True)
     
     npixel = advice['npixels2']
+    results['npixel'] = npixel
     cellsize = advice['cellsize']
+    results['cellsize'] = cellsize
+    print("Image will have %d by %d pixels, cellsize = %.6f rad" % (npixel, npixel, cellsize))
     
     # Create an empty model image
     model_list = [arlexecute.execute(create_image_from_visibility)
@@ -222,7 +229,7 @@ def trial_case(results, seed=180555, context='wstack', nworkers=8, threads_per_w
     
     gcfcf_list = None
     if context == 'timeslice':
-        vis_slices = ntimes
+        vis_slices = ntimes // 2
         print("Using timeslice with %d slices" % vis_slices)
     elif context == '2d':
         vis_slices = 1
@@ -350,7 +357,7 @@ def trial_case(results, seed=180555, context='wstack', nworkers=8, threads_per_w
                                               nmoment=nmoment,
                                               niter=1000,
                                               fractional_threshold=0.1,
-                                              threshold=0.1, nmajor=5, gain=0.25,
+                                              threshold=0.01, nmajor=nmajor, gain=0.25,
                                               vis_slices=vis_slices,
                                               timeslice='auto',
                                               global_solution=False,
@@ -449,10 +456,13 @@ def main(args):
     
     memory = args.memory
     results['memory'] = memory
-    
+
     ntimes = args.ntimes
     results['ntimes'] = ntimes
-    
+
+    nmajor = args.nmajor
+    results['nmajor'] = nmajor
+
     results['hostname'] = socket.gethostname()
     results['epoch'] = time.strftime("%Y-%m-%d %H:%M:%S")
     results['driver'] = 'pipelines-timings-arlexecute'
@@ -474,13 +484,13 @@ def main(args):
     print("Defining %d frequency windows" % nfreqwin)
     
     fieldnames = ['driver', 'nnodes', 'nworkers', 'time ICAL', 'time ICAL graph', 'time create gleam',
-                  'time predict', 'time corrupt', 'time invert', 'time psf invert', 'time overall',
+                  'time corrupt', 'time invert', 'time psf invert', 'time overall',
                   'threads_per_worker', 'processes', 'order',
                   'nfreqwin', 'ntimes', 'rmax', 'facets', 'wprojection_planes', 'vis_slices', 'npixel',
                   'cellsize', 'seed', 'dirty_max', 'dirty_min', 'psf_max', 'psf_min', 'deconvolved_max',
                   'deconvolved_min', 'restored_min', 'restored_max', 'residual_max', 'residual_min',
                   'hostname', 'git_hash', 'epoch', 'context', 'use_dask', 'memory', 'jobid', 'use_serial_imaging',
-                  'time create wprojection', 'flux_limit']
+                  'time create wprojection', 'flux_limit', 'nmajor']
     
     filename = seqfile.findNextFile(prefix='%s_%s_' % (results['driver'], results['hostname']), suffix='.csv')
     print('Saving results to %s' % filename)
@@ -507,7 +517,8 @@ if __name__ == '__main__':
     parser.add_argument('--nthreads', type=int, default=1, help='Number of threads')
     parser.add_argument('--memory', type=int, default=8, help='Memory per worker')
     parser.add_argument('--nworkers', type=int, default=1, help='Number of workers')
-    
+    parser.add_argument('--nmajor', type=int, default=10, help='Number of major cycles')
+
     parser.add_argument('--ntimes', type=int, default=7, help='Number of hour angles')
     parser.add_argument('--nfreqwin', type=int, default=16, help='Number of frequency windows')
     parser.add_argument('--context', type=str, default='wstack',

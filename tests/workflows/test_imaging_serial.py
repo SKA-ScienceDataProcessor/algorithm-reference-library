@@ -48,7 +48,10 @@ class TestImaging(unittest.TestCase):
         self.vis_list = list()
         self.ntimes = 5
         self.cellsize = 0.0005
-        self.times = numpy.linspace(-3.0, +3.0, self.ntimes) * numpy.pi / 12.0
+        # Choose the interval so that the maximum change in w is smallish
+        integration_time = numpy.pi * (24 / (12 * 60))
+        self.times = numpy.linspace(-integration_time * (self.ntimes // 2), integration_time * (self.ntimes // 2),
+                               self.ntimes)
         
         if freqwin > 1:
             self.frequency = numpy.linspace(0.8e8, 1.2e8, self.freqwin)
@@ -209,10 +212,10 @@ class TestImaging(unittest.TestCase):
         self.actualSetUp()
         self._predict_base(context='timeslice', fluxthreshold=3.0, vis_slices=self.ntimes)
 
-    def test_predict_timeslice_wprojection(self):
+    def test_predict_wsnapshots(self):
         self.actualSetUp(makegcfcf=True)
-        self._predict_base(context='timeslice', extra='_wprojection', fluxthreshold=3.0,
-                           vis_slices=self.ntimes, gcfcf=self.gcfcf_joint)
+        self._predict_base(context='wsnapshots', fluxthreshold=3.0,
+                           vis_slices=self.ntimes//2, gcfcf=self.gcfcf_joint)
 
     def test_predict_wprojection(self):
         self.actualSetUp(makegcfcf=True)
@@ -277,10 +280,10 @@ class TestImaging(unittest.TestCase):
         self._invert_base(context='timeslice', positionthreshold=1.0, check_components=True,
                           vis_slices=self.ntimes)
 
-    def test_invert_timeslice_wprojection(self):
+    def test_invert_wsnapshots(self):
         self.actualSetUp(makegcfcf=True)
-        self._invert_base(context='timeslice', extra='_wprojection', positionthreshold=1.0,
-                          check_components=True, vis_slices=self.ntimes, gcfcf=self.gcfcf_joint)
+        self._invert_base(context='wsnapshots', positionthreshold=1.0,
+                          check_components=True, vis_slices=self.ntimes//2, gcfcf=self.gcfcf_joint)
 
     def test_invert_wprojection(self):
         self.actualSetUp(makegcfcf=True)

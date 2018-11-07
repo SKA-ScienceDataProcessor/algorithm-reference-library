@@ -97,11 +97,11 @@ def fit_uvwplane(vis: Visibility, remove=False) -> (Image, float, float):
     :return: direction cosines defining plane
     """
     nvis = len(vis.data)
-    before = numpy.max(numpy.std(vis.w))
+    before = numpy.max(numpy.abs(vis.w))
     p, q = fit_uvwplane_only(vis)
     residual = vis.data['uvw'][:, 2] - (p * vis.u + q * vis.v)
-    after = numpy.max(numpy.std(residual))
-    log.debug('fit_uvwplane: Fit to %d rows reduces rms w from %.1f to %.1f m'
+    after = numpy.max(numpy.abs(residual))
+    log.debug('fit_uvwplane: Fit to %d rows reduces max abs w from %.1f to %.1f m'
               % (nvis, before, after))
     if remove:
         vis.data['uvw'][:, 2] -= p * vis.u + q * vis.v

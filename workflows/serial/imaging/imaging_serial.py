@@ -213,11 +213,12 @@ def invert_list_serial_workflow(vis_list, template_model_imagelist, dopsf=False,
 def residual_list_serial_workflow(vis, model_imagelist, context='2d', gcfcf=None, **kwargs):
     """ Create a graph to calculate residual image using w stacking and faceting
 
+    :param vis:
+    :param model_imagelist: Model used to determine image parameters
+    :param vis:
+    :param model_imagelist: Model used to determine image parameters
     :param context:
-    :param vis:
-    :param model_imagelist: Model used to determine image parameters
-    :param vis:
-    :param model_imagelist: Model used to determine image parameters
+    :param gcfcg: tuple containing grid correction and convolution function
     :param kwargs: Parameters for functions in components
     :return:
     """
@@ -228,7 +229,7 @@ def residual_list_serial_workflow(vis, model_imagelist, context='2d', gcfcf=None
                                        gcfcf=gcfcf, **kwargs)
 
 
-def restore_list_serial_workflow(model_imagelist, psf_imagelist, residual_imagelist, **kwargs):
+def restore_list_serial_workflow(model_imagelist, psf_imagelist, residual_imagelist=None, **kwargs):
     """ Create a graph to calculate the restored image
 
     :param model_imagelist: Model list
@@ -237,9 +238,18 @@ def restore_list_serial_workflow(model_imagelist, psf_imagelist, residual_imagel
     :param kwargs: Parameters for functions in components
     :return:
     """
-    return [restore_cube(model_imagelist[i], psf_imagelist[i][0],
+    
+    if residual_imagelist is None:
+        residual_imagelist = []
+
+    if len(residual_imagelist) > 0:
+        return [restore_cube(model_imagelist[i], psf_imagelist[i][0],
                          residual_imagelist[i][0], **kwargs)
-            for i, _ in enumerate(model_imagelist)]
+                for i, _ in enumerate(model_imagelist)]
+    else:
+        return [restore_cube(model_imagelist[i], psf_imagelist[i][0], **kwargs)
+                for i, _ in enumerate(model_imagelist)]
+
 
 
 def deconvolve_list_serial_workflow(dirty_list, psf_list, model_imagelist, prefix='', **kwargs):
@@ -252,16 +262,15 @@ def deconvolve_list_serial_workflow(dirty_list, psf_list, model_imagelist, prefi
     :return: (graph for the deconvolution, graph for the flat)
     """
     nchan = len(dirty_list)
+    nmoments = get_parameter(kwargs, "nmoments", 0)
     
     def deconvolve(dirty, psf, model, facet, gthreshold):
         import time
         starttime = time.time()
         if prefix == '':
-            lprefix = "facet %d" % facet
+            lprefix = "subimage %d" % facet
         else:
-            lprefix = "%s, facet %d" % (prefix, facet)
-        
-        nmoments = get_parameter(kwargs, "nmoments", 0)
+            lprefix = "%s, subimage %d" % (prefix, facet)
         
         if nmoments > 0:
             moment0 = calculate_image_frequency_moments(dirty)
