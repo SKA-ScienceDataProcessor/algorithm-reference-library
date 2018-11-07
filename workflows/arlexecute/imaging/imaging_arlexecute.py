@@ -279,7 +279,7 @@ def residual_list_arlexecute_workflow(vis, model_imagelist, context='2d', gcfcf=
                                            gcfcf=gcfcf, **kwargs)
 
 
-def restore_list_arlexecute_workflow(model_imagelist, psf_imagelist, residual_imagelist, **kwargs):
+def restore_list_arlexecute_workflow(model_imagelist, psf_imagelist, residual_imagelist=None, **kwargs):
     """ Create a graph to calculate the restored image
 
     :param model_imagelist: Model list
@@ -288,11 +288,19 @@ def restore_list_arlexecute_workflow(model_imagelist, psf_imagelist, residual_im
     :param kwargs: Parameters for functions in components
     :return:
     """
+    if residual_imagelist is None:
+        residual_imagelist = []
+
     psf_list = arlexecute.execute(remove_sumwt, nout=len(psf_imagelist))(psf_imagelist)
-    residual_list = arlexecute.execute(remove_sumwt, nout=len(residual_imagelist))(residual_imagelist)
-    return [arlexecute.execute(restore_cube)(model_imagelist[i], psf_list[i],
-                                             residual_list[i], **kwargs)
-            for i, _ in enumerate(residual_imagelist)]
+    if len(residual_imagelist)>0:
+        residual_list = arlexecute.execute(remove_sumwt, nout=len(residual_imagelist))(residual_imagelist)
+        return [arlexecute.execute(restore_cube)(model_imagelist[i], psf_list[i],
+                                                residual_list[i], **kwargs)
+                for i, _ in enumerate(model_imagelist)]
+    else:
+        return [arlexecute.execute(restore_cube)(model_imagelist[i], psf_list[i], **kwargs)
+                for i, _ in enumerate(model_imagelist)]
+
 
 
 def deconvolve_list_arlexecute_workflow(dirty_list, psf_list, model_imagelist, prefix='', **kwargs):
