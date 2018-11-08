@@ -133,14 +133,16 @@ class TestImage(unittest.TestCase):
         assert error < 0.2
 
     def test_create_w_term_image(self):
-        m31image = create_test_image(cellsize=0.001)
-        im = create_w_term_like(m31image, w=20000.0, remove_shift=True)
+        newimage = create_image(npixel=1024, cellsize=0.001, polarisation_frame=PolarisationFrame("stokesIQUV"),
+                                         frequency=numpy.linspace(0.8e9,1.2e9,5),
+                                         channel_bandwidth=1e7*numpy.ones([5]))
+        im = create_w_term_like(newimage, w=2000.0, remove_shift=True, dopol=True)
         im.data = im.data.real
-        for x in [64, 64 + 128]:
-            for y in [64, 64 + 128]:
-                self.assertAlmostEqual(im.data[0, 0, y, x], 0.84946344276442431, 7)
+        for x in [256, 768]:
+            for y in [256, 768]:
+                self.assertAlmostEqual(im.data[0, 0, y, x], -0.46042631800538464, 7)
         export_image_to_fits(im, '%s/test_wterm.fits' % self.dir)
-        assert im.data.shape == (1, 1, 256, 256)
+        assert im.data.shape == (5, 4, 1024, 1024), im.data.shape
         self.assertAlmostEqual(numpy.max(im.data.real), 1.0, 7)
 
     def test_fftim(self):

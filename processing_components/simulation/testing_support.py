@@ -483,10 +483,16 @@ def create_low_test_skycomponents_from_gleam(flux_limit=0.1, polarisation_frame=
         gleam_flux_freq[:, i] = filtered_recs['int_flux_%03d' % (f)][:]
     
     skycomps = []
-    
+
+    directions = SkyCoord(ra=ras * u.deg, dec=decs * u.deg)
+    if phasecentre is not None:
+        separations = directions.separation(phasecentre).to('rad').value
+    else:
+        separations = numpy.zeros(len(names))
+
     for isource, name in enumerate(names):
-        direction = SkyCoord(ra=ras[isource] * u.deg, dec=decs[isource] * u.deg)
-        if phasecentre is None or direction.separation(phasecentre).to('rad').value < radius:
+        direction = directions[isource]
+        if separations[isource] < radius:
             
             fint = interpolate.interp1d(gleam_freqs * 1.0e6, gleam_flux_freq[isource, :], kind=kind)
             flux = numpy.zeros([nchan, npol])
