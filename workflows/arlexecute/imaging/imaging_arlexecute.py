@@ -38,12 +38,13 @@ from workflows.shared.imaging.imaging_shared import imaging_context
 from workflows.shared.imaging.imaging_shared import sum_invert_results, remove_sumwt, sum_predict_results, \
     threshold_list
 from wrappers.arlexecute.execution_support.arlexecute import arlexecute
+from wrappers.arlexecute.griddata.gridding import grid_weight_to_griddata, griddata_reweight, griddata_merge_weights
 from wrappers.arlexecute.griddata.kernels import create_pswf_convolutionfunction
+from wrappers.arlexecute.griddata.operations import create_griddata_from_image
 from wrappers.arlexecute.image.deconvolution import deconvolve_cube, restore_cube
 from wrappers.arlexecute.image.gather_scatter import image_scatter_facets, image_gather_facets, \
     image_scatter_channels, image_gather_channels
 from wrappers.arlexecute.image.operations import calculate_image_frequency_moments
-from wrappers.arlexecute.imaging.weighting import weight_visibility
 from wrappers.arlexecute.visibility.base import copy_visibility
 from wrappers.arlexecute.visibility.gather_scatter import visibility_scatter, visibility_gather
 
@@ -164,10 +165,7 @@ def invert_list_arlexecute_workflow(vis_list, template_model_imagelist, dopsf=Fa
     :param kwargs: Parameters for functions in components
     :return: List of (image, sumwt) tuple
    """
-
-    do_weighting = get_parameter(kwargs, "do_weighting", False)
-    weighting = get_parameter(kwargs, "weighting", "uniform")
-
+    
     if get_parameter(kwargs, "use_serial_invert", False):
         from workflows.serial.imaging.imaging_serial import invert_list_serial_workflow
         return [arlexecute.execute(invert_list_serial_workflow, nout=1) \
@@ -203,9 +201,7 @@ def invert_list_arlexecute_workflow(vis_list, template_model_imagelist, dopsf=Fa
     
     def invert_ignore_none(vis, model, g):
         if vis is not None:
-            if do_weighting:
-                vis, _, _ = weight_visibility(vis, model, weighting=weighting, **kwargs)
-    
+            
             return invert(vis, model, context=context, dopsf=dopsf, normalize=normalize,
                           gcfcf=g, **kwargs)
         else:
@@ -290,17 +286,16 @@ def restore_list_arlexecute_workflow(model_imagelist, psf_imagelist, residual_im
     """
     if residual_imagelist is None:
         residual_imagelist = []
-
+    
     psf_list = arlexecute.execute(remove_sumwt, nout=len(psf_imagelist))(psf_imagelist)
-    if len(residual_imagelist)>0:
+    if len(residual_imagelist) > 0:
         residual_list = arlexecute.execute(remove_sumwt, nout=len(residual_imagelist))(residual_imagelist)
         return [arlexecute.execute(restore_cube)(model_imagelist[i], psf_list[i],
-                                                residual_list[i], **kwargs)
+                                                 residual_list[i], **kwargs)
                 for i, _ in enumerate(model_imagelist)]
     else:
         return [arlexecute.execute(restore_cube)(model_imagelist[i], psf_list[i], **kwargs)
                 for i, _ in enumerate(model_imagelist)]
-
 
 
 def deconvolve_list_arlexecute_workflow(dirty_list, psf_list, model_imagelist, prefix='', **kwargs):
@@ -452,8 +447,11 @@ def deconvolve_list_channel_arlexecute_workflow(dirty_list, psf_list, model_imag
     return arlexecute.execute(add_model, nout=1, pure=True)(result, model_imagelist)
 
 
-def weight_list_arlexecute_workflow(vis_list, model_imagelist, weighting='uniform', **kwargs):
+def weight_list_arlexecute_workflow(vis_list, model_imagelist, gcfcf=None, weighting='uniform', **kwargs):
     """ Weight the visibility data
+    
+    This is done collectively so the weights are summed over all vis_lists and then
+    corrected
 
     :param vis_list:
     :param model_imagelist: Model required to determine weighting parameters
@@ -461,19 +459,44 @@ def weight_list_arlexecute_workflow(vis_list, model_imagelist, weighting='unifor
     :param kwargs: Parameters for functions in graphs
     :return: List of vis_graphs
    """
+    centre = len(model_imagelist)
     
-    def weight_vis(vis, model):
+    if gcfcf is None:
+        print("centre is %d" % centre)
+        gcfcf = arlexecute.execute(create_pswf_convolutionfunction)(model_imagelist[centre])
+    
+    def grid_wt(vis, model, g):
         if vis is not None:
             if model is not None:
-                vis, _, _ = weight_visibility(vis, model, weighting=weighting, **kwargs)
-                return vis
+                griddata = create_griddata_from_image(model)
+                griddata = grid_weight_to_griddata(vis, griddata, g[0][1])
+                return griddata
             else:
                 return None
         else:
             return None
     
-    return [arlexecute.execute(weight_vis, pure=True, nout=1)(vis_list[i], model_imagelist[i])
-            for i in range(len(vis_list))]
+    weight_list = [arlexecute.execute(grid_wt, pure=True)(vis_list[i], model_imagelist[i], gcfcf)
+                   for i in range(len(vis_list))]
+    
+    merged_weight_grid = arlexecute.execute(griddata_merge_weights, nout=len(vis_list))(weight_list)
+    
+    def re_weight(vis, model, gd, g):
+        if gd is not None:
+            if vis is not None:
+                # Ensure that the griddata has the right axes so that the convolution
+                # function mapping works
+                agd = create_griddata_from_image(model)
+                agd.data = gd[0].data
+                vis = griddata_reweight(vis, agd, g[0][1])
+                return vis
+            else:
+                return None
+        else:
+            return vis
+    
+    return [arlexecute.execute(re_weight, nout=1)(v, model_imagelist[i], merged_weight_grid, gcfcf)
+            for i, v in enumerate(vis_list)]
 
 
 def zero_list_arlexecute_workflow(vis_list):

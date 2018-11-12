@@ -846,7 +846,7 @@ class BlockVisibility:
         self.polarisation_frame = polarisation_frame
     
     def __str__(self):
-        """Default printer for Skycomponent
+        """Default printer for BlockVisibility
 
         """
         s = "BlockVisibility:\n"

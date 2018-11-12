@@ -17,7 +17,7 @@ from processing_components.griddata.kernels import create_awterm_convolutionfunc
 from processing_components.griddata.convolution_functions import convert_convolutionfunction_to_image
 from processing_components.griddata.gridding import grid_visibility_to_griddata, \
     fft_griddata_to_image, fft_image_to_griddata, \
-    degrid_visibility_from_griddata
+    degrid_visibility_from_griddata, grid_weight_to_griddata, griddata_merge_weights, griddata_reweight
 from processing_components.griddata.operations import create_griddata_from_image
 from processing_components.image.operations import export_image_to_fits
 from processing_components.image.operations import smooth_image
@@ -260,6 +260,21 @@ class TestGridDataGridding(unittest.TestCase):
         qa = qa_visibility(newvis)
         assert qa.data['rms'] < 120.0, str(qa)
         self.plot_vis(newvis, 'awterm')
+        
+    def test_griddata_weight(self):
+        self.actualSetUp(zerow=True)
+        gcf, cf = create_box_convolutionfunction(self.model)
+        gd = create_griddata_from_image(self.model)
+        gd_list = [grid_weight_to_griddata(self.vis, gd, cf) for i in range(10)]
+        gd, sumwt = griddata_merge_weights(gd_list, algorithm='uniform')
+        self.vis = griddata_reweight(self.vis, gd, cf)
+        gd, sumwt = grid_visibility_to_griddata(self.vis, griddata=gd, cf=cf)
+        im = fft_griddata_to_image(gd, gcf)
+        im = normalize_sumwt(im, sumwt)
+        export_image_to_fits(im, '%s/test_gridding_dirty_2d_uniform.fits' % self.dir)
+        self.check_peaks(im, 99.42031190701735)
+
+
     
     def plot_vis(self, newvis, title=''):
         if self.doplot:

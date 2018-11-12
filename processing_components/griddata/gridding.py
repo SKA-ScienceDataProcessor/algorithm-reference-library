@@ -15,6 +15,7 @@ import numpy.testing
 
 from processing_components.visibility.operations import copy_visibility
 from processing_library.image.operations import ifft, fft, create_image_from_array
+from processing_components.griddata.operations import copy_griddata
 
 log = logging.getLogger(__name__)
 
@@ -72,7 +73,7 @@ def convolution_mapping(vis, griddata, cf, channel_tolerance=1e-8):
     pfreq_fraction = pfreq_pixel - pfreq_grid
     if numpy.max(numpy.abs(pfreq_fraction)) > channel_tolerance:
         log.warning("convolution_mapping: alignment of visibility and image grids exceeds tolerance %s" %
-                    (str(channel_tolerance)))
+                    (numpy.max(pfreq_fraction)))
     
     ######  TODO: Polarisation mapping
     
@@ -139,7 +140,7 @@ def grid_visibility_to_griddata_fast(vis, griddata, cf, gcf):
     return im, sumwt
 
 
-def grid_weight_to_griddata(vis, griddata, cf, gcf):
+def grid_weight_to_griddata(vis, griddata, cf):
     """Grid Visibility weight onto a GridData
 
     :param vis: Visibility to be gridded
@@ -161,6 +162,51 @@ def grid_weight_to_griddata(vis, griddata, cf, gcf):
     
     return griddata, sumwt
 
+def griddata_merge_weights(gd_list, algorithm='uniform'):
+    """ Merge weights into one grid
+    
+    :param gd_list:
+    :param gd:
+    :param algorithm:
+    :return:
+    """
+    centre = len(gd_list) // 2
+    gd = copy_griddata(gd_list[centre][0])
+    sumwt = gd_list[centre][1]
+    
+    frequency = 0.0
+    bandwidth = 0.0
+    
+    for i, g in enumerate(gd_list):
+        if i!=centre:
+            gd.data += g[0].data
+            sumwt += g[1]
+        frequency += g[0].grid_wcs.wcs.crval[4]
+        bandwidth += g[0].grid_wcs.wcs.cdelt[4]
+    
+    gd.grid_wcs.wcs.cdelt[4] = bandwidth
+    gd.grid_wcs.wcs.crval[4] = frequency / len(gd_list)
+    return gd, sumwt
+
+def griddata_reweight(vis, griddata, cf):
+    """Reweight Grid Visibility weight using the weights in griddata
+
+    :param vis: Visibility to be reweighted
+    :param griddata: GridData, sumwt
+    :param kwargs:
+    :return: GridData
+    """
+    nchan, npol, nz, ny, nx = griddata.shape
+    pu_grid, pu_offset, pv_grid, pv_offset, pwg_grid, pwg_fraction, pwc_grid, pwc_fraction, pfreq_grid = \
+        convolution_mapping(vis, griddata, cf)
+    _, _, _, _, _, gv, gu = cf.shape
+    coords = zip(vis.weight, pfreq_grid, pu_grid, pv_grid, pwg_grid)
+    
+    for vwt, chan, xx, yy, zzg in coords:
+        if numpy.real(griddata.data[chan, :, zzg, yy, xx]).all() > 0.0:
+            vwt /= numpy.real(griddata.data[chan, :, zzg, yy, xx])
+    
+    return vis
 
 def degrid_visibility_from_griddata(vis, griddata, cf, **kwargs):
     """Degrid Visibility from a GridData

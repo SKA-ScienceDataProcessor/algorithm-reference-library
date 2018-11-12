@@ -10,13 +10,16 @@ from astropy import units as u
 from astropy.coordinates import SkyCoord
 
 from data_models.polarisation import PolarisationFrame
-
-from workflows.serial.imaging.imaging_serial import predict_list_serial_workflow, invert_list_serial_workflow, \
-    subtract_list_serial_workflow, zero_list_serial_workflow
-
-from wrappers.serial.image.operations import export_image_to_fits, smooth_image
-from wrappers.serial.imaging.base import predict_skycomponent_visibility
-from wrappers.serial.skycomponent.operations import find_skycomponents, find_nearest_skycomponent, \
+from processing_components.griddata.convolution_functions import apply_bounding_box_convolutionfunction
+from processing_components.griddata.kernels import create_awterm_convolutionfunction, \
+    create_box_convolutionfunction
+from workflows.serial.imaging.imaging_serial import zero_list_serial_workflow, \
+    predict_list_serial_workflow, invert_list_serial_workflow, subtract_list_serial_workflow, \
+    weight_list_serial_workflow
+from wrappers.arlexecute.execution_support.arlexecute import arlexecute
+from wrappers.arlexecute.image.operations import export_image_to_fits, smooth_image
+from wrappers.arlexecute.imaging.base import predict_skycomponent_visibility
+from wrappers.arlexecute.skycomponent.operations import find_skycomponents, find_nearest_skycomponent, \
     insert_skycomponent
 from wrappers.serial.simulation.testing_support import create_named_configuration, ingest_unittest_visibility, \
     create_unittest_model, insert_unittest_errors, create_unittest_components
@@ -251,6 +254,12 @@ class TestImaging(unittest.TestCase):
     def test_invert_2d(self):
         self.actualSetUp(zerow=True)
         self._invert_base(context='2d', positionthreshold=2.0, check_components=False)
+
+    def test_invert_2d_uniform(self):
+        self.actualSetUp(zerow=True, makegcfcf=True)
+        self.vis_list = weight_list_arlexecute_workflow(self.vis_list, self.model_list, gcfcf=self.gcfcf,
+                                                        weighting='uniform')
+        self._invert_base(context='2d', extra='_uniform', positionthreshold=2.0, check_components=False)
 
     @unittest.skip("Facets need overlap")
     def test_invert_facets(self):

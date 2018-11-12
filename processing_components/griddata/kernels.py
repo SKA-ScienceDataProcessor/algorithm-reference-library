@@ -61,7 +61,7 @@ def create_pswf_convolutionfunction(im, oversampling=8, support=6):
     :param oversampling: Oversampling of the convolution function in uv space
     :return: griddata correction Image, griddata kernel as ConvolutionFunction
     """
-    assert isinstance(im, Image)
+    assert isinstance(im, Image), im
     # Calculate the convolution kernel. We oversample in u,v space by the factor oversampling
     cf = create_convolutionfunction_from_image(im, oversampling=oversampling, support=support)
     
