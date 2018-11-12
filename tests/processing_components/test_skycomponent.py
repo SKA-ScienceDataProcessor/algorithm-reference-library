@@ -10,10 +10,9 @@ import numpy
 from astropy.coordinates import SkyCoord
 
 from data_models.polarisation import PolarisationFrame
-
-from processing_components.skycomponent.operations import create_skycomponent, find_separation_skycomponents, \
-    find_skycomponent_matches, find_nearest_skycomponent, find_nearest_skycomponent_index
 from processing_components.simulation.testing_support import create_low_test_skycomponents_from_gleam
+from processing_components.skycomponent.operations import create_skycomponent, find_separation_skycomponents, \
+    find_skycomponent_matches, find_nearest_skycomponent, find_nearest_skycomponent_index, filter_skycomponents_by_flux
 
 log = logging.getLogger(__name__)
 
@@ -26,7 +25,7 @@ class TestSkycomponent(unittest.TestCase):
         self.frequency = numpy.array([1e8])
         self.channel_bandwidth = numpy.array([1e6])
         self.phasecentre = SkyCoord(ra=+30.0 * u.deg, dec=-45.0 * u.deg, frame='icrs', equinox='J2000')
-        self.components = create_low_test_skycomponents_from_gleam(flux_limit=2.0,
+        self.components = create_low_test_skycomponents_from_gleam(flux_limit=0.01,
                                                                    phasecentre=self.phasecentre,
                                                                    frequency=self.frequency,
                                                                    polarisation_frame=PolarisationFrame('stokesI'),
@@ -34,6 +33,14 @@ class TestSkycomponent(unittest.TestCase):
     
     def test_time_setup(self):
         pass
+    
+    def test_filter_flux(self):
+        newsc = filter_skycomponents_by_flux(self.components, 5.0, 8.0)
+        assert len(newsc) == 3, len(newsc)
+        newsc = filter_skycomponents_by_flux(self.components, flux_min=5.0)
+        assert len(newsc) == 7, newsc
+        newsc = filter_skycomponents_by_flux(self.components, flux_max=8.0)
+        assert len(newsc) == 1172, len(newsc)
     
     def test_copy(self):
         fluxes = numpy.linspace(0, 1.0, 10)

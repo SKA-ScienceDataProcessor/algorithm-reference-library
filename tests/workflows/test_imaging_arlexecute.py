@@ -274,6 +274,11 @@ class TestImaging(ARLExecuteTestCase, unittest.TestCase):
                                                         weighting='uniform')
         self._invert_base(context='2d', extra='_uniform', positionthreshold=2.0, check_components=False)
 
+    def test_invert_2d_uniform_nogcfcf(self):
+        self.actualSetUp(zerow=True, makegcfcf=True)
+        self.vis_list = weight_list_arlexecute_workflow(self.vis_list, self.model_list)
+        self._invert_base(context='2d', extra='_uniform', positionthreshold=2.0, check_components=False)
+
     @unittest.skip("Facets need overlap")
     def test_invert_facets(self):
         self.actualSetUp()

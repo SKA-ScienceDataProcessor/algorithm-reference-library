@@ -52,7 +52,7 @@ from processing_components.image.operations import import_image_from_fits, qa_im
 from processing_components.imaging.base import predict_2d, predict_skycomponent_visibility, \
     create_image_from_visibility, advise_wide_field
 from processing_components.skycomponent.operations import create_skycomponent, insert_skycomponent, \
-    apply_beam_to_skycomponent
+    apply_beam_to_skycomponent, filter_skycomponents_by_flux
 from processing_components.visibility.base import create_blockvisibility, create_visibility
 from processing_components.visibility.coalesce import convert_visibility_to_blockvisibility
 from processing_components.imaging.primary_beams import create_pb
@@ -356,6 +356,7 @@ def create_test_image_from_s3(npixel=16384, polarisation_frame=PolarisationFrame
 def create_low_test_image_from_gleam(npixel=512, polarisation_frame=PolarisationFrame("stokesI"), cellsize=0.000015,
                                      frequency=numpy.array([1e8]), channel_bandwidth=numpy.array([1e6]),
                                      phasecentre=None, kind='cubic', applybeam=False, flux_limit=0.1,
+                                     flux_max=numpy.inf, flux_min=-numpy.inf,
                                      radius=None, insert_method='Nearest') -> Image:
     """Create LOW test image from the GLEAM survey
 
@@ -388,6 +389,9 @@ def create_low_test_image_from_gleam(npixel=512, polarisation_frame=Polarisation
     sc = create_low_test_skycomponents_from_gleam(flux_limit=flux_limit, polarisation_frame=polarisation_frame,
                                                   frequency=frequency, phasecentre=phasecentre,
                                                   kind=kind, radius=radius)
+    
+    sc = filter_skycomponents_by_flux(sc, flux_min=flux_min, flux_max=flux_max)
+    
     if polarisation_frame is None:
         polarisation_frame = PolarisationFrame("stokesI")
     

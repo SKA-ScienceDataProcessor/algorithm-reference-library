@@ -314,6 +314,20 @@ def apply_beam_to_skycomponent(sc: Union[Skycomponent, List[Skycomponent]], beam
     else:
         return newsc
 
+def filter_skycomponents_by_flux(sc, flux_min=-numpy.inf, flux_max=numpy.inf):
+    """Filter sky components by flux
+    
+    :param sc:
+    :param flux_min:
+    :param flux_max:
+    :return:
+    """
+    newcomps = list()
+    for comp in sc:
+        if comp.flux > flux_min and comp.flux < flux_max:
+            newcomps.append(comp)
+            
+    return newcomps
 
 def insert_skycomponent(im: Image, sc: Union[Skycomponent, List[Skycomponent]], insert_method='Nearest',
                         bandwidth=1.0, support=8) -> Image:

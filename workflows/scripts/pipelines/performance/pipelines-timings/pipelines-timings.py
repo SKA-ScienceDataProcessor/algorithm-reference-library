@@ -20,10 +20,11 @@ from wrappers.arlexecute.imaging.base import create_image_from_visibility, advis
     predict_skycomponent_visibility
 from wrappers.arlexecute.imaging.primary_beams import create_pb
 from wrappers.arlexecute.simulation.testing_support import create_low_test_skycomponents_from_gleam
-from wrappers.arlexecute.skycomponent.operations import apply_beam_to_skycomponent, insert_skycomponent
+from wrappers.arlexecute.skycomponent.operations import apply_beam_to_skycomponent, insert_skycomponent, \
+    filter_skycomponents_by_flux
 from wrappers.arlexecute.visibility.coalesce import convert_blockvisibility_to_visibility
 from workflows.arlexecute.imaging.imaging_arlexecute import invert_list_arlexecute_workflow, \
-    restore_list_arlexecute_workflow
+    restore_list_arlexecute_workflow, predict_list_arlexecute_workflow
 from workflows.arlexecute.pipelines.pipeline_arlexecute import ical_list_arlexecute_workflow
 from workflows.arlexecute.simulation.simulation_arlexecute import simulate_list_arlexecute_workflow, \
     corrupt_list_arlexecute_workflow
@@ -141,7 +142,7 @@ def trial_case(results, seed=180555, context='wstack', nworkers=8, threads_per_w
     print("At start, configuration is {0!r}".format(results))
     
     # Parameters determining scale
-    frequency = numpy.linspace(0.8e8, 1.2e8, nfreqwin)
+    frequency = numpy.linspace(0.9e8, 1.1e8, nfreqwin)
     centre = nfreqwin // 2
     if nfreqwin > 1:
         channel_bandwidth = numpy.array(nfreqwin * [frequency[1] - frequency[0]])
@@ -178,18 +179,19 @@ def trial_case(results, seed=180555, context='wstack', nworkers=8, threads_per_w
     
     print("****** Visibility creation ******")
     vis_list = arlexecute.persist(vis_list)
-    
+
     # Find the best imaging parameters but don't bring the vis_list back here
     def get_wf(bv):
         v = convert_blockvisibility_to_visibility(bv)
+        print('Total number of visibilities = %d' % (len(vis_list) * numpy.product(v.vis.shape)))
+
         return advise_wide_field(v, guard_band_image=6.0,
-                                 delA=0.02,
-                                 facets=facets,
-                                 wprojection_planes=wprojection_planes,
+                                 delA=0.05,
                                  oversampling_synthesised_beam=4.0)
     
     advice = arlexecute.compute(arlexecute.execute(get_wf)(vis_list[-1]), sync=True)
     
+    # Deconvolution y sub-images requires 2^n
     npixel = advice['npixels2']
     results['npixel'] = npixel
     cellsize = advice['cellsize']
@@ -206,30 +208,10 @@ def trial_case(results, seed=180555, context='wstack', nworkers=8, threads_per_w
                   for f, freq in enumerate(frequency)]
     model_list = arlexecute.compute(model_list, sync=True)
     model_list = arlexecute.scatter(model_list)
-    
-    def make_gleam_sc(f, v, m):
-        sc = create_low_test_skycomponents_from_gleam(frequency=[frequency[f]],
-                                                      phasecentre=phasecentre,
-                                                      polarisation_frame=PolarisationFrame("stokesI"),
-                                                      flux_limit=flux_limit)
-        pb = create_pb(m, 'LOW')
-        sc = apply_beam_to_skycomponent(sc, pb, flux_limit=flux_limit/100.0)
-        m = insert_skycomponent(m, sc)
-        return predict_skycomponent_visibility(v, sc)
-    
-    vis_list = [arlexecute.execute(make_gleam_sc)(f, vis_list[f], model_list[f]) for f, freq in enumerate(frequency)]
-    
-    start = time.time()
-    print("****** Starting GLEAM visibility prediction ******")
-    vis_list = arlexecute.compute(vis_list, sync=True)
-    end = time.time()
-    results['time create gleam'] = end - start
-    print("Predicting GLEAM visibility took %.2f seconds" % (end - start))
-    vis_list = arlexecute.scatter(vis_list)
-    
+
     gcfcf_list = None
     if context == 'timeslice':
-        vis_slices = ntimes // 2
+        vis_slices = ntimes
         print("Using timeslice with %d slices" % vis_slices)
     elif context == '2d':
         vis_slices = 1
@@ -240,12 +222,12 @@ def trial_case(results, seed=180555, context='wstack', nworkers=8, threads_per_w
         support = advice['nwpixels']
         results['wprojection_planes'] = nw
         print("Using wprojection with %d planes with wstep %.1f wavelengths" % (nw, wstep))
-        
+    
         def make_gcfcf(m):
             gcf, cf = create_awterm_convolutionfunction(m, nw=nw, wstep=wstep, oversampling=8,
                                                         support=support, use_aaf=True)
             return (gcf, cf)
-        
+    
         start = time.time()
         print("****** Starting W projection kernel creation ******")
         gcfcf_list = [arlexecute.execute(make_gcfcf, nout=1)(m) for m in model_list]
@@ -256,14 +238,41 @@ def trial_case(results, seed=180555, context='wstack', nworkers=8, threads_per_w
         cf_image = convert_convolutionfunction_to_image(gcfcf_list[centre][1])
         cf_image.data = numpy.real(cf_image.data)
         export_image_to_fits(cf_image, "pipelines-timings-wterm-cf.fits")
-        
-        gcfcf_list = arlexecute.scatter(gcfcf_list)
     
+        gcfcf_list = arlexecute.scatter(gcfcf_list)
+
     else:
         context = 'wstack'
         vis_slices = advice['vis_slices']
         print("Using wstack with %d slices" % vis_slices)
-        
+
+    def make_gleam_sc(f, v, m):
+        sc = create_low_test_skycomponents_from_gleam(frequency=[frequency[f]],
+                                                      phasecentre=phasecentre,
+                                                      polarisation_frame=PolarisationFrame("stokesI"),
+                                                      flux_limit=flux_limit)
+        sc = filter_skycomponents_by_flux(sc, flux_max=10.0)
+        pb = create_pb(m, 'LOW')
+        sc = apply_beam_to_skycomponent(sc, pb)
+        weaksc = filter_skycomponents_by_flux(sc, flux_max=0.3)
+        brightsc = filter_skycomponents_by_flux(sc, flux_min=0.3)
+        print('Processing %d bright components by DFT and %d weak components by FFT' % (len(brightsc), len(weaksc)))
+        m = insert_skycomponent(m, weaksc)
+        return predict_skycomponent_visibility(v, brightsc)
+    
+    vis_list = predict_list_arlexecute_workflow(vis_list, model_list, context=context, vis_slices=vis_slices,
+                                                facets=facets, use_serial_predict=use_serial_imaging, gcfcf=gcfcf_list)
+    vis_list = [arlexecute.execute(make_gleam_sc)(f, vis_list[f], model_list[f]) for f, freq in enumerate(frequency)]
+
+    start = time.time()
+    print("****** Starting GLEAM visibility prediction ******")
+    vis_list = arlexecute.compute(vis_list, sync=True)
+    end = time.time()
+    results['time create gleam'] = end - start
+    print("Predicting GLEAM visibility took %.2f seconds" % (end - start))
+    vis_list = arlexecute.scatter(vis_list)
+    
+    
     psf_list = invert_list_arlexecute_workflow(vis_list, model_list, vis_slices=vis_slices, dopsf=True,
                                                  context=context, facets=facets, do_weighting=True,
                                                  use_serial_invert=use_serial_imaging, gcfcf=gcfcf_list)
@@ -363,7 +372,7 @@ def trial_case(results, seed=180555, context='wstack', nworkers=8, threads_per_w
                                               global_solution=False,
                                               psf_support=64,
                                               deconvolve_facets=8,
-                                              deconvolve_overlap=32,
+                                              deconvolve_overlap=64,
                                               deconvolve_taper='tukey',
                                               do_selfcal=True,
                                               use_serial_predict=use_serial_imaging,
