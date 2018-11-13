@@ -13,6 +13,8 @@ import logging
 import numpy
 import numpy.testing
 
+from data_models.memory_data_models import Visibility
+
 from processing_components.visibility.operations import copy_visibility
 from processing_library.image.operations import ifft, fft, create_image_from_array
 from processing_components.griddata.operations import copy_griddata
@@ -28,6 +30,9 @@ def convolution_mapping(vis, griddata, cf, channel_tolerance=1e-8):
     :param cf_griddata:
     :return:
     """
+    
+    assert isinstance(vis, Visibility), vis
+    
     numpy.testing.assert_almost_equal(griddata.grid_wcs.wcs.cdelt[0], cf.grid_wcs.wcs.cdelt[0], 7)
     numpy.testing.assert_almost_equal(griddata.grid_wcs.wcs.cdelt[1], cf.grid_wcs.wcs.cdelt[1], 7)
     
@@ -89,6 +94,9 @@ def grid_visibility_to_griddata(vis, griddata, cf):
     :param kwargs:
     :return: GridData
     """
+
+    assert isinstance(vis, Visibility), vis
+
     nchan, npol, nz, oversampling, _, support, _ = cf.shape
     sumwt = numpy.zeros([nchan, npol])
     pu_grid, pu_offset, pv_grid, pv_offset, pwg_grid, pwg_fraction, pwc_grid, pwc_fraction, pfreq_grid = \
@@ -121,6 +129,8 @@ def grid_visibility_to_griddata_fast(vis, griddata, cf, gcf):
     :param kwargs:
     :return: GridData
     """
+    assert isinstance(vis, Visibility), vis
+
     nchan, npol, nz, ny, nx = griddata.shape
     sumwt = numpy.zeros([nchan, npol])
     pu_grid, pu_offset, pv_grid, pv_offset, pwg_grid, pwg_fraction, pwc_grid, pwc_fraction, pfreq_grid = \
@@ -148,6 +158,8 @@ def grid_weight_to_griddata(vis, griddata, cf):
     :param kwargs:
     :return: GridData
     """
+    assert isinstance(vis, Visibility), vis
+
     nchan, npol, nz, ny, nx = griddata.shape
     sumwt = numpy.zeros([nchan, npol])
     pu_grid, pu_offset, pv_grid, pv_offset, pwg_grid, pwg_fraction, pwc_grid, pwc_fraction, pfreq_grid = \
@@ -196,6 +208,8 @@ def griddata_reweight(vis, griddata, cf):
     :param kwargs:
     :return: GridData
     """
+    assert isinstance(vis, Visibility), vis
+
     nchan, npol, nz, ny, nx = griddata.shape
     pu_grid, pu_offset, pv_grid, pv_offset, pwg_grid, pwg_fraction, pwc_grid, pwc_fraction, pfreq_grid = \
         convolution_mapping(vis, griddata, cf)
