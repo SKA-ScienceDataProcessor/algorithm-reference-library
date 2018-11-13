@@ -3,5 +3,5 @@
 See the SDP document "Model Partition Calibration View Packet"
 
 """
-from processing_components.calibration.modelpartition import create_modelpartition
-from processing_components.calibration.modelpartition import solve_modelpartition
+from processing_components.calibration.modelpartition import create_modelpartitions
+from processing_components.calibration.modelpartition import solve_modelpartitions

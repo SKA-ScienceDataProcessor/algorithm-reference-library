@@ -29,7 +29,7 @@ def solve_modelpartition_consensus_list_arlexecute_workflow(vislist, skymodel_li
     model_partitions = [arlexecute.execute(create_modelpartitions, nout=2)(vislist[i], skymodel_list[i],**kwargs)
                         for i, _ in enumerate(vislist)]
     for iter in range(coniter):
-        partition_results = [arlexecute.execute(solve_modelpartition, nout=2)(vislist[i], skymodel_list[i],
+        partition_results = [arlexecute.execute(solve_modelpartitions, nout=2)(vislist[i], skymodel_list[i],
                                                                               niter=niter, tol=1e-8, gain=0.25,
                                                                               **kwargs)
                              for i, _ in enumerate(vislist)]
