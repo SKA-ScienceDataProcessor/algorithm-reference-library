@@ -403,20 +403,28 @@ def advise_wide_field(vis: Visibility, delA=0.02, oversampling_synthesised_beam=
     
     cellsize = synthesized_beam / oversampling_synthesised_beam
     log.info("advise_wide_field: Cellsize %s" % (rad_and_deg(cellsize)))
-    
+
+    def pwr2(n):
+        ex = numpy.ceil(numpy.log(n) / numpy.log(2.0)).astype('int')
+        best = numpy.power(2, ex)
+        return best
+
     def pwr23(n):
         ex = numpy.ceil(numpy.log(n) / numpy.log(2.0)).astype('int')
         best = numpy.power(2, ex)
         if best * 3 // 4 >= n:
             best = best * 3 // 4
         return best
-    
+
     npixels = int(round(image_fov / cellsize))
     log.info("advice_wide_field: Npixels per side = %d" % (npixels))
     
-    npixels2 = pwr23(npixels)
-    log.info("advice_wide_field: Npixels (power of 2, 3) per side = %d" % (npixels2))
-    
+    npixels2 = pwr2(npixels)
+    log.info("advice_wide_field: Npixels (power of 2) per side = %d" % (npixels2))
+
+    npixels23 = pwr23(npixels)
+    log.info("advice_wide_field: Npixels (power of 2, 3) per side = %d" % (npixels23))
+
     # Following equation is from Cornwell, Humphreys, and Voronkov (2012) (equation 24)
     # We will assume that the constraint holds at one quarter the entire FOV i.e. that
     # the full field of view includes the entire primary beam
@@ -465,6 +473,7 @@ def advise_wide_field(vis: Visibility, delA=0.02, oversampling_synthesised_beam=
     
     del vis
     del svis
+    del pwr2
     del pwr23
     return locals()
 
