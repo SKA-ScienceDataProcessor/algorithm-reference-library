@@ -136,6 +136,8 @@ def decoalesce_visibility(vis: Visibility, overwrite=False, **kwargs) -> BlockVi
     assert numpy.max(vis.cindex) < vis.vis.shape[0], "Incorrect template used in decoalescing"
     for i in range(dvis.size // npol):
         decomp_vis.data['vis'].flat[i:i + npol] = vis.data['vis'][vis.cindex[i]]
+        decomp_vis.data['weight'].flat[i:i + npol] = vis.data['weight'][vis.cindex[i]]
+        decomp_vis.data['imaging_weight'].flat[i:i + npol] = vis.data['imaging_weight'][vis.cindex[i]]
 
     log.debug('decoalesce_visibility: Coalesced %s, decoalesced %s' % (vis_summary(vis),
                                                                        vis_summary(

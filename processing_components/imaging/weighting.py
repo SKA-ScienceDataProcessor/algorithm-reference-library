@@ -17,38 +17,31 @@ from processing_library.fourier_transforms.convolutional_gridding import weight_
 from processing_library.imaging.imaging_params import get_polarisation_map, get_uvw_map
 from processing_library.imaging.imaging_params import get_frequency_map
 
-def weight_visibility(vis: Visibility, im: Image, **kwargs) -> Visibility:
-    """ Reweight the visibility data using a selected algorithm
+from processing_components.griddata.gridding import grid_weight_to_griddata, griddata_reweight, griddata_merge_weights
+from processing_components.griddata.kernels import create_pswf_convolutionfunction
+from processing_components.griddata.operations import create_griddata_from_image
 
-    Imaging uses the column "imaging_weight" when imaging. This function sets that column using a
-    variety of algorithms
-    
-    Options are:
-        - Natural: by visibility weight (optimum for noise in final image)
-        - Uniform: weight of sample divided by sum of weights in cell (optimum for sidelobes)
-        - Super-uniform: As uniform, by sum of weights is over extended box region
-        - Briggs: Compromise between natural and uniform
-        - Super-briggs: As Briggs, by sum of weights is over extended box region
 
-    :param vis:
-    :param im:
-    :return: visibility with imaging_weights column added and filled
-    """
-    assert isinstance(vis, Visibility), "vis is not a Visibility: %r" % vis
+
+def weight_visibility(vis, model, gcfcf=None, weighting='uniform', **kwargs):
+    """ Weight the visibility data
+
+    This is done collectively so the weights are summed over all vis_lists and then
+    corrected
+
+    :param vis_list:
+    :param model_imagelist: Model required to determine weighting parameters
+    :param weighting: Type of weighting
+    :param kwargs: Parameters for functions in graphs
+    :return: List of vis_graphs
+   """
+    if gcfcf is None:
+        gcfcf = create_pswf_convolutionfunction(model)
     
-    assert get_parameter(kwargs, "padding", False) is False
-    spectral_mode, vfrequencymap = get_frequency_map(vis, im)
-    polarisation_mode, vpolarisationmap = get_polarisation_map(vis, im)
-    uvw_mode, shape, padding, vuvwmap = get_uvw_map(vis, im)
-    
-    density = None
-    densitygrid = None
-    
-    weighting = get_parameter(kwargs, "weighting", "uniform")
-    vis.data['imaging_weight'], density, densitygrid = weight_gridding(im.data.shape, vis.data['weight'], vuvwmap,
-                                                                       vfrequencymap, vpolarisationmap, weighting)
-    
-    return vis, density, densitygrid
+    griddata = create_griddata_from_image(model)
+    griddata, sumwt = grid_weight_to_griddata(vis, griddata, gcfcf[1])
+    vis = griddata_reweight(vis, griddata, gcfcf[1])
+    return vis
 
 
 def taper_visibility_gaussian(vis: Visibility, beam=None) -> Visibility:
