@@ -27,6 +27,7 @@ from wrappers.arlexecute.image.gather_scatter import image_scatter_facets, image
 from wrappers.arlexecute.image.operations import calculate_image_frequency_moments
 from wrappers.arlexecute.visibility.base import copy_visibility
 from wrappers.arlexecute.visibility.gather_scatter import visibility_scatter, visibility_gather
+from wrappers.arlexecute.imaging.weighting import taper_visibility_gaussian, taper_visibility_tukey
 
 log = logging.getLogger(__name__)
 
@@ -303,31 +304,14 @@ def deconvolve_list_arlexecute_workflow(dirty_list, psf_list, model_imagelist, p
             this_peak = numpy.max(numpy.abs(dirty.data[0, ...]))
         
         if this_peak > 1.1 * gthreshold:
-            # log.info(
-            #     "deconvolve_list_arlexecute_workflow %s: cleaning - peak %.6f > 1.1 * threshold %.6f" % (
-            #     lprefix, this_peak,
-            #     gthreshold))
             kwargs['threshold'] = gthreshold
             result, _ = deconvolve_cube(dirty, psf, prefix=lprefix, **kwargs)
             
             if result.data.shape[0] == model.data.shape[0]:
                 result.data += model.data
-            # else:
-            #     log.warning(
-            #         "deconvolve_list_arlexecute_workflow %s: Initial model %s and clean result %s do not have the same shape" %
-            #         (lprefix, str(model.data.shape[0]), str(result.data.shape[0])))
-            #
             flux = numpy.sum(result.data[0, 0, ...])
-            # log.info('### %s, %.6f, %.6f, True, # cycle, facet, peak, cleaned flux, clean'
-            #          % (lprefix, this_peak, flux[0]))
-            #
             return result
         else:
-            # log.info("deconvolve_list_arlexecute_workflow %s: Not cleaning - peak %.6f <= 1.1 * threshold %.6f" % (
-            #     lprefix, this_peak,
-            #     gthreshold))
-            # log.info('### %s, %.6f, %.6f, False, %.3f # cycle, facet, peak, cleaned flux, clean'
-            #          % (lprefix, this_peak, 0.0))
             
             return copy_image(model)
     
@@ -476,6 +460,15 @@ def weight_list_arlexecute_workflow(vis_list, model_imagelist, gcfcf=None, weigh
     
     return [arlexecute.execute(re_weight, nout=1)(v, model_imagelist[i], merged_weight_grid, gcfcf)
             for i, v in enumerate(vis_list)]
+
+def taper_list_arlexecute_workflow(vis_list, size_required):
+    """Taper to desired size
+    
+    :param vis_list:
+    :param size_required:
+    :return:
+    """
+    return [arlexecute.execute(taper_visibility_gaussian, nout=1)(v, beam=size_required) for v in vis_list]
 
 
 def zero_list_arlexecute_workflow(vis_list):

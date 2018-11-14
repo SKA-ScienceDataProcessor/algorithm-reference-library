@@ -42,7 +42,6 @@ def predict_wstack_single(vis, model, remove=True, gcfcf=None, **kwargs) -> Visi
         
     log.debug("predict_wstack_single: predicting using single w slice")
 
-    avis.data['vis'] *= 0.0
     # We might want to do wprojection so we remove the average w
     w_average = numpy.average(avis.w)
     if remove:

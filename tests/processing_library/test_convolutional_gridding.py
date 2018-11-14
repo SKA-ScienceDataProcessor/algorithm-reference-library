@@ -9,7 +9,7 @@ import numpy
 from numpy.testing import assert_allclose
 
 from processing_library.fourier_transforms.convolutional_gridding import w_beam, coordinates, \
-    coordinates2, coordinateBounds, convolutional_degrid, convolutional_grid
+    coordinates2, coordinateBounds
 
 
 class TestConvolutionalGridding(unittest.TestCase):
@@ -36,11 +36,6 @@ class TestConvolutionalGridding(unittest.TestCase):
     @staticmethod
     def _test_pattern(npixel):
         return coordinates2(npixel)[0] + coordinates2(npixel)[1] * 1j
-
-    def test_anti_aliasing_calculate(self):
-        for shape in [(64, 64), (128, 128), (256, 256)]:
-            _, aaf = anti_aliasing_calculate(shape, 8)
-            self.assertAlmostEqual(numpy.max(aaf[..., aaf.shape[1] // 2, aaf.shape[0] // 2]), 0.18712109669890534)
 
     def test_w_kernel_beam(self):
         assert_allclose(numpy.real(w_beam(5, 0.1, 0))[0, 0], 1.0)

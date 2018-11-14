@@ -9,18 +9,13 @@ There are two classes of functions:
 
 import numpy
 
-from processing_library.util.array_functions import tukey_filter
-from data_models.memory_data_models import Visibility, Image
-from data_models.parameters import get_parameter
-
-from processing_library.fourier_transforms.convolutional_gridding import weight_gridding
-from processing_library.imaging.imaging_params import get_polarisation_map, get_uvw_map
-from processing_library.imaging.imaging_params import get_frequency_map
-
-from processing_components.griddata.gridding import grid_weight_to_griddata, griddata_reweight, griddata_merge_weights
+from data_models.memory_data_models import Visibility, BlockVisibility
+from processing_components.griddata.gridding import grid_weight_to_griddata, griddata_reweight
 from processing_components.griddata.kernels import create_pswf_convolutionfunction
 from processing_components.griddata.operations import create_griddata_from_image
-
+from processing_library.util.array_functions import tukey_filter
+from processing_components.visibility.coalesce import convert_blockvisibility_to_visibility, \
+    convert_visibility_to_blockvisibility
 
 
 def weight_visibility(vis, model, gcfcf=None, weighting='uniform', **kwargs):
@@ -54,18 +49,24 @@ def taper_visibility_gaussian(vis: Visibility, beam=None) -> Visibility:
     :param beam: desired resolution (Full width half maximum, radians)
     :return: visibility with imaging_weight column modified
     """
-    assert isinstance(vis, Visibility), "vis is not a Visibility: %r" % vis
-
+    if isinstance(vis, BlockVisibility):
+        avis = convert_blockvisibility_to_visibility(vis)
+    else:
+        avis = vis
+    
     if beam is None:
         raise ValueError("Beam size not specified for Gaussian taper")
-    uvdistsq = vis.u ** 2 + vis.v ** 2
+    uvdistsq = avis.u ** 2 + avis.v ** 2
     # See http://mathworld.wolfram.com/FourierTransformGaussian.html
     scale_factor = numpy.pi ** 2 * beam ** 2 / (4.0 * numpy.log(2.0))
+    prior = avis.imaging_weight[:, :]
     wt = numpy.exp(-scale_factor * uvdistsq)
-    for row in range(vis.nvis):
-        vis.data['imaging_weight'][row, ...] = vis.imaging_weight[row, ...] * wt[row]
-
-    return vis
+    avis.data['imaging_weight'][:, :] = avis.imaging_weight[:, :] * wt[:, numpy.newaxis]
+    
+    if isinstance(vis, BlockVisibility):
+        return convert_visibility_to_blockvisibility(avis)
+    else:
+        return avis
 
 
 def taper_visibility_tukey(vis: Visibility, tukey=0.1) -> Visibility:
@@ -85,15 +86,19 @@ def taper_visibility_tukey(vis: Visibility, tukey=0.1) -> Visibility:
     :param vis: Visibility with imaging_weight's to be tapered
     :return: visibility with imaging_weight column modified
     """
-    assert isinstance(vis, Visibility), "vis is not a Visibility: %r" % vis
+    if isinstance(vis, BlockVisibility):
+        avis = convert_blockvisibility_to_visibility(vis)
+    else:
+        avis = vis
     
-    uvdist = numpy.sqrt(vis.u ** 2 + vis.v ** 2)
+    uvdist = numpy.sqrt(avis.u ** 2 + avis.v ** 2)
     uvdistmax = numpy.max(uvdist)
     uvdist /= uvdistmax
     wt = numpy.array([tukey_filter(uv, tukey) for uv in uvdist])
-    for row in range(vis.nvis):
-        vis.data['imaging_weight'][row, ...] = vis.imaging_weight[row, ...] * wt[row]
-   
-    return vis
-
+    avis.data['imaging_weight'][:, :] = avis.imaging_weight[:, :] * wt[:, numpy.newaxis]
+    
+    if isinstance(vis, BlockVisibility):
+        return convert_visibility_to_blockvisibility(avis)
+    else:
+        return avis
 

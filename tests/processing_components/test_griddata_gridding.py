@@ -17,7 +17,8 @@ from processing_components.griddata.kernels import create_awterm_convolutionfunc
 from processing_components.griddata.convolution_functions import convert_convolutionfunction_to_image
 from processing_components.griddata.gridding import grid_visibility_to_griddata, \
     fft_griddata_to_image, fft_image_to_griddata, \
-    degrid_visibility_from_griddata, grid_weight_to_griddata, griddata_merge_weights, griddata_reweight
+    degrid_visibility_from_griddata, grid_weight_to_griddata, griddata_merge_weights, griddata_reweight, \
+    grid_visibility_to_griddata_fast
 from processing_components.griddata.operations import create_griddata_from_image
 from processing_components.image.operations import export_image_to_fits
 from processing_components.image.operations import smooth_image
@@ -97,7 +98,17 @@ class TestGridDataGridding(unittest.TestCase):
     
     def test_time_setup(self):
         self.actualSetUp()
-    
+
+    def test_griddata_weight(self):
+        self.actualSetUp(zerow=True)
+        gcf, cf = create_pswf_convolutionfunction(self.model, support=6, oversampling=32)
+        griddata = create_griddata_from_image(self.model)
+        griddata, sumwt = grid_weight_to_griddata(self.vis, griddata=griddata, cf=cf)
+        im = fft_griddata_to_image(griddata, gcf)
+        im = normalize_sumwt(im, sumwt)
+        export_image_to_fits(im, '%s/test_gridding_weight.fits' % self.dir)
+        self.check_peaks(im, 97.00435128311616, tol=1e-7)
+
     def test_griddata_invert_pswf(self):
         self.actualSetUp(zerow=True)
         gcf, cf = create_pswf_convolutionfunction(self.model, support=6, oversampling=32)
@@ -160,7 +171,7 @@ class TestGridDataGridding(unittest.TestCase):
         self.actualSetUp(zerow=True)
         gcf, cf = create_box_convolutionfunction(self.model)
         griddata = create_griddata_from_image(self.model)
-        griddata, sumwt = grid_visibility_to_griddata(self.vis, griddata=griddata, cf=cf)
+        griddata, sumwt = grid_visibility_to_griddata_fast(self.vis, griddata=griddata, cf=cf, gcf=gcf)
         im = fft_griddata_to_image(griddata, gcf)
         im = normalize_sumwt(im, sumwt)
         export_image_to_fits(im, '%s/test_gridding_dirty_fast.fits' % self.dir)

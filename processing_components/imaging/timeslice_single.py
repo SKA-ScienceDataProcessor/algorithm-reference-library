@@ -123,15 +123,13 @@ def predict_timeslice_single(vis: Visibility, model: Image, predict=predict_2d, 
     """
     log.debug("predict_timeslice: predicting using time slices")
     
-    vis.data['vis'] *= 0.0
-    
     if not isinstance(vis, Visibility):
         avis = coalesce_visibility(vis, **kwargs)
     else:
         avis = vis
-    
+
     # Fit and remove best fitting plane for this slice
-    uvw= avis.uvw
+    uvw = avis.uvw
     avis, p, q = fit_uvwplane(avis, remove=remove)
     
     # We want to describe work image as distorted. We describe the distortion by putting

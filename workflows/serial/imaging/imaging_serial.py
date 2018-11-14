@@ -14,18 +14,19 @@ import numpy
 from data_models.memory_data_models import Image
 from data_models.parameters import get_parameter
 from processing_library.image.operations import copy_image, create_empty_image_like
+from workflows.shared.imaging.imaging_shared import imaging_context
+from workflows.shared.imaging.imaging_shared import sum_invert_results, remove_sumwt, sum_predict_results, \
+    threshold_list
+from wrappers.arlexecute.griddata.gridding import grid_weight_to_griddata, griddata_reweight, griddata_merge_weights
+from wrappers.arlexecute.griddata.kernels import create_pswf_convolutionfunction
+from wrappers.arlexecute.griddata.operations import create_griddata_from_image
 from wrappers.serial.image.deconvolution import deconvolve_cube, restore_cube
 from wrappers.serial.image.gather_scatter import image_scatter_facets, image_gather_facets, \
     image_scatter_channels, image_gather_channels
 from wrappers.serial.image.operations import calculate_image_frequency_moments
-from wrappers.serial.imaging.weighting import weight_visibility
-from wrappers.serial.visibility.base import copy_visibility, create_visibility_from_rows
+from wrappers.serial.visibility.base import copy_visibility
 from wrappers.serial.visibility.gather_scatter import visibility_scatter, visibility_gather
-from wrappers.serial.griddata.kernels import create_pswf_convolutionfunction
-
-from workflows.shared.imaging.imaging_shared import imaging_context
-from workflows.shared.imaging.imaging_shared import sum_invert_results, remove_sumwt, sum_predict_results, \
-    threshold_list
+from wrappers.serial.imaging.weighting import taper_visibility_gaussian, taper_visibility_tukey
 
 log = logging.getLogger(__name__)
 
@@ -82,7 +83,7 @@ def predict_list_serial_workflow(vis_list, model_imagelist, vis_slices=1, facets
                 # Sum all sub-visibilities
                 image_vis_lists.append(image_vis_list)
             image_results_list.append(visibility_gather(image_vis_lists, vis_list, vis_iter))
-    
+        
         return image_results_list
     else:
         image_results_list_list = list()
@@ -91,7 +92,7 @@ def predict_list_serial_workflow(vis_list, model_imagelist, vis_slices=1, facets
             facet_lists = image_scatter_facets(model_imagelist[freqwin], facets=facets)
             facet_vis_lists = list()
             sub_vis_lists = visibility_scatter(vis_list, vis_iter, vis_slices)
-
+            
             # Loop over sub visibility
             for sub_vis_list in sub_vis_lists:
                 facet_vis_results = list()
@@ -99,7 +100,7 @@ def predict_list_serial_workflow(vis_list, model_imagelist, vis_slices=1, facets
                 for facet_list in facet_lists:
                     # Predict visibility for this subvisibility from this facet
                     facet_vis_list = predict_ignore_none(sub_vis_list, facet_list,
-                        None)
+                                                         None)
                     facet_vis_results.append(facet_vis_list)
                 # Sum the current sub-visibility over all facets
                 facet_vis_lists.append(sum_predict_results(facet_vis_results))
@@ -124,7 +125,6 @@ def invert_list_serial_workflow(vis_list, template_model_imagelist, dopsf=False,
     :return: List of (image, sumwt) tuple
    """
     
-    
     if not isinstance(template_model_imagelist, collections.Iterable):
         template_model_imagelist = [template_model_imagelist]
     
@@ -147,16 +147,16 @@ def invert_list_serial_workflow(vis_list, template_model_imagelist, dopsf=False,
     
     def invert_ignore_none(vis, model, g):
         if vis is not None:
-    
+            
             return invert(vis, model, context=context, dopsf=dopsf, normalize=normalize,
                           gcfcf=g, **kwargs)
         else:
             return create_empty_image_like(model), 0.0
-
+    
     # If we are doing facets, we need to create the gcf for each image
     if gcfcf is None and facets == 1:
         gcfcf = [create_pswf_convolutionfunction(template_model_imagelist[0])]
-
+    
     # Loop over all vis_lists independently
     results_vislist = list()
     if facets == 1:
@@ -183,7 +183,7 @@ def invert_list_serial_workflow(vis_list, template_model_imagelist, dopsf=False,
                                                facets=facets)
             # Create the graph to divide the visibility into slices. This is by copy.
             sub_vis_lists = visibility_scatter(vis_list, vis_iter, vis_slices=vis_slices)
-
+            
             # Iterate within each vis_list
             vis_results = list()
             for sub_vis_list in sub_vis_lists:
@@ -194,7 +194,7 @@ def invert_list_serial_workflow(vis_list, template_model_imagelist, dopsf=False,
                 vis_results.append(gather_image_iteration_results(facet_vis_results,
                                                                   template_model_imagelist[freqwin]))
             results_vislist.append(sum_invert_results(vis_results))
-
+    
     return results_vislist
 
 
@@ -229,15 +229,14 @@ def restore_list_serial_workflow(model_imagelist, psf_imagelist, residual_imagel
     
     if residual_imagelist is None:
         residual_imagelist = []
-
+    
     if len(residual_imagelist) > 0:
         return [restore_cube(model_imagelist[i], psf_imagelist[i][0],
-                         residual_imagelist[i][0], **kwargs)
+                             residual_imagelist[i][0], **kwargs)
                 for i, _ in enumerate(model_imagelist)]
     else:
         return [restore_cube(model_imagelist[i], psf_imagelist[i][0], **kwargs)
                 for i, _ in enumerate(model_imagelist)]
-
 
 
 def deconvolve_list_serial_workflow(dirty_list, psf_list, model_imagelist, prefix='', **kwargs):
@@ -265,30 +264,14 @@ def deconvolve_list_serial_workflow(dirty_list, psf_list, model_imagelist, prefi
             this_peak = numpy.max(numpy.abs(dirty.data[0, ...]))
         
         if this_peak > 1.1 * gthreshold:
-            log.info(
-                "deconvolve_list_serial_workflow %s: cleaning - peak %.6f > 1.1 * threshold %.6f" % (lprefix, this_peak,
-                                                                                                gthreshold))
             kwargs['threshold'] = gthreshold
             result, _ = deconvolve_cube(dirty, psf, prefix=lprefix, **kwargs)
             
             if result.data.shape[0] == model.data.shape[0]:
                 result.data += model.data
-            else:
-                log.warning(
-                    "deconvolve_list_serial_workflow %s: Initial model %s and clean result %s do not have the same shape" %
-                    (lprefix, str(model.data.shape[0]), str(result.data.shape[0])))
-            
             flux = numpy.sum(result.data[0, 0, ...])
-            # log.info('### %s, %.6f, %.6f, True, # cycle, facet, peak, cleaned flux, clean'
-            #          % (lprefix, this_peak, flux[0]))
-            #
             return result
         else:
-            # log.info("deconvolve_list_serial_workflow %s: Not cleaning - peak %.6f <= 1.1 * threshold %.6f" % (
-            #     lprefix, this_peak,
-            #     gthreshold))
-            # log.info('### %s, %.6f, %.6f, False, %.3f # cycle, facet, peak, cleaned flux, clean, time?'
-            #         % (lprefix, this_peak, 0.0, time.time() - starttime))
             
             return copy_image(model)
     
@@ -386,6 +369,7 @@ def deconvolve_channel_list_serial_workflow(dirty_list, psf_list, model_imagelis
     result = image_gather_channels(results, output, subimages=subimages)
     return add_model(result, model_imagelist)
 
+
 def weight_list_serial_workflow(vis_list, model_imagelist, gcfcf=None, weighting='uniform', **kwargs):
     """ Weight the visibility data
 
@@ -398,11 +382,10 @@ def weight_list_serial_workflow(vis_list, model_imagelist, gcfcf=None, weighting
     :param kwargs: Parameters for functions in graphs
     :return: List of vis_graphs
    """
-    centre = len(model_imagelist)
+    centre = len(model_imagelist) // 2
     
     if gcfcf is None:
-        print("centre is %d" % centre)
-        gcfcf = arlexecute.execute(create_pswf_convolutionfunction)(model_imagelist[centre])
+        gcfcf = [create_pswf_convolutionfunction(model_imagelist[centre])]
     
     def grid_wt(vis, model, g):
         if vis is not None:
@@ -415,10 +398,9 @@ def weight_list_serial_workflow(vis_list, model_imagelist, gcfcf=None, weighting
         else:
             return None
     
-    weight_list = [arlexecute.execute(grid_wt, pure=True)(vis_list[i], model_imagelist[i], gcfcf)
-                   for i in range(len(vis_list))]
+    weight_list = [grid_wt(vis_list[i], model_imagelist[i], gcfcf) for i in range(len(vis_list))]
     
-    merged_weight_grid = arlexecute.execute(griddata_merge_weights, nout=len(vis_list))(weight_list)
+    merged_weight_grid = griddata_merge_weights(vis_list)(weight_list)
     
     def re_weight(vis, model, gd, g):
         if gd is not None:
@@ -436,8 +418,18 @@ def weight_list_serial_workflow(vis_list, model_imagelist, gcfcf=None, weighting
     
     return [re_weight(v, model_imagelist[i], merged_weight_grid, gcfcf)
             for i, v in enumerate(vis_list)]
+    
+def taper_list_serial_workflow(vis_list, size_required):
+    """Taper to desired size
+    
+    :param vis_list:
+    :param size_required:
+    :return:
+    """
+    return [taper_visibility_gaussian(v, beam=size_required) for v in vis_list]
 
-def zero_list_serial_workflow(vis_list):
+
+def zero_list_arlexecute_workflow(vis_list):
     """ Initialise vis to zero: creates new data holders
 
     :param vis_list:

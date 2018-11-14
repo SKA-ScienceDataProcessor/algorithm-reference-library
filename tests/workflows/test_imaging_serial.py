@@ -10,21 +10,17 @@ from astropy import units as u
 from astropy.coordinates import SkyCoord
 
 from data_models.polarisation import PolarisationFrame
-from processing_components.griddata.convolution_functions import apply_bounding_box_convolutionfunction
-from processing_components.griddata.kernels import create_awterm_convolutionfunction, \
-    create_box_convolutionfunction
 from workflows.serial.imaging.imaging_serial import zero_list_serial_workflow, \
     predict_list_serial_workflow, invert_list_serial_workflow, subtract_list_serial_workflow, \
     weight_list_serial_workflow
-from wrappers.arlexecute.execution_support.arlexecute import arlexecute
-from wrappers.arlexecute.image.operations import export_image_to_fits, smooth_image
-from wrappers.arlexecute.imaging.base import predict_skycomponent_visibility
-from wrappers.arlexecute.skycomponent.operations import find_skycomponents, find_nearest_skycomponent, \
+from wrappers.serial.image.operations import export_image_to_fits, smooth_image
+from wrappers.serial.imaging.base import predict_skycomponent_visibility
+from wrappers.serial.skycomponent.operations import find_skycomponents, find_nearest_skycomponent, \
     insert_skycomponent
+from wrappers.serial.griddata.convolution_functions import apply_bounding_box_convolutionfunction
+from wrappers.serial.griddata.kernels import create_awterm_convolutionfunction
 from wrappers.serial.simulation.testing_support import create_named_configuration, ingest_unittest_visibility, \
     create_unittest_model, insert_unittest_errors, create_unittest_components
-from wrappers.serial.griddata.kernels import create_awterm_convolutionfunction
-from wrappers.serial.griddata.convolution_functions import apply_bounding_box_convolutionfunction
 
 log = logging.getLogger(__name__)
 
@@ -54,7 +50,7 @@ class TestImaging(unittest.TestCase):
         # Choose the interval so that the maximum change in w is smallish
         integration_time = numpy.pi * (24 / (12 * 60))
         self.times = numpy.linspace(-integration_time * (self.ntimes // 2), integration_time * (self.ntimes // 2),
-                               self.ntimes)
+                                    self.ntimes)
         
         if freqwin > 1:
             self.frequency = numpy.linspace(0.8e8, 1.2e8, self.freqwin)
@@ -104,7 +100,7 @@ class TestImaging(unittest.TestCase):
         self.vis_list = [predict_skycomponent_visibility(self.vis_list[freqwin],
                                                          self.components_list[freqwin])
                          for freqwin, _ in enumerate(self.frequency)]
-        centre=self.freqwin // 2
+        centre = self.freqwin // 2
         # Calculate the model convolved with a Gaussian.
         self.model = self.model_list[centre]
         
@@ -117,20 +113,20 @@ class TestImaging(unittest.TestCase):
                              for i, _ in enumerate(self.frequency)]
         
         self.components = self.components_list[centre]
-
+        
         if makegcfcf:
             self.gcfcf = [create_awterm_convolutionfunction(self.model, nw=61, wstep=16.0,
-                                                           oversampling=8,
-                                                           support=64,
-                                                           use_aaf=True)]
+                                                            oversampling=8,
+                                                            support=64,
+                                                            use_aaf=True)]
             self.gcfcf_clipped = [(self.gcfcf[0][0], apply_bounding_box_convolutionfunction(self.gcfcf[0][1],
-                                                                                       fractional_level=1e-3))]
-
-            self.gcfcf_joint = [create_awterm_convolutionfunction(self.model, nw=11, wstep=16.0,
-                                                                 oversampling=8,
-                                                                 support=64,
-                                                                 use_aaf=True)]
+                                                                                            fractional_level=1e-3))]
             
+            self.gcfcf_joint = [create_awterm_convolutionfunction(self.model, nw=11, wstep=16.0,
+                                                                  oversampling=8,
+                                                                  support=64,
+                                                                  use_aaf=True)]
+        
         else:
             self.gcfcf = None
             self.gcfcf_clipped = None
@@ -154,7 +150,7 @@ class TestImaging(unittest.TestCase):
     def _predict_base(self, context='2d', extra='', fluxthreshold=1.0, facets=1, vis_slices=1,
                       gcfcf=None, **kwargs):
         
-        centre=self.freqwin // 2
+        centre = self.freqwin // 2
         vis_list = zero_list_serial_workflow(self.vis_list)
         vis_list = predict_list_serial_workflow(vis_list, self.model_list, context=context,
                                                 vis_slices=vis_slices, facets=facets, gcfcf=gcfcf, **kwargs)
@@ -185,143 +181,143 @@ class TestImaging(unittest.TestCase):
         
         if check_components:
             self._checkcomponents(dirty[0], fluxthreshold, positionthreshold)
-
+    
     def test_predict_2d(self):
         self.actualSetUp(zerow=True)
         self._predict_base(context='2d')
-
+    
     @unittest.skip("Facets need overlap")
     def test_predict_facets(self):
         self.actualSetUp()
         self._predict_base(context='facets', fluxthreshold=17.0, facets=4)
-
+    
     @unittest.skip("Timeslice predict needs better interpolation and facets need overlap")
     def test_predict_facets_timeslice(self):
         self.actualSetUp()
         self._predict_base(context='facets_timeslice', fluxthreshold=19.0, facets=8, vis_slices=self.ntimes)
-
+    
     @unittest.skip("Facets need overlap")
     def test_predict_facets_wprojection(self, makegcfcf=True):
         self.actualSetUp()
         self._predict_base(context='facets', extra='_wprojection', facets=8, fluxthreshold=15.0,
                            gcfcf=self.gcfcf_joint)
-
+    
     @unittest.skip("Facets need overlap")
     def test_predict_facets_wstack(self):
         self.actualSetUp()
         self._predict_base(context='facets_wstack', fluxthreshold=15.0, facets=8, vis_slices=101)
-
+    
     def test_predict_timeslice(self):
         self.actualSetUp()
         self._predict_base(context='timeslice', fluxthreshold=3.0, vis_slices=self.ntimes)
-
+    
     def test_predict_wsnapshots(self):
         self.actualSetUp(makegcfcf=True)
         self._predict_base(context='wsnapshots', fluxthreshold=3.0,
-                           vis_slices=self.ntimes//2, gcfcf=self.gcfcf_joint)
-
+                           vis_slices=self.ntimes // 2, gcfcf=self.gcfcf_joint)
+    
     def test_predict_wprojection(self):
         self.actualSetUp(makegcfcf=True)
         self._predict_base(context='2d', extra='_wprojection', fluxthreshold=1.0,
                            gcfcf=self.gcfcf)
-
+    
     def test_predict_wprojection_clip(self):
         self.actualSetUp(makegcfcf=True)
         self._predict_base(context='2d', extra='_wprojection_clipped', fluxthreshold=1.0,
                            gcfcf=self.gcfcf_clipped)
-
+    
     def test_predict_wstack(self):
         self.actualSetUp()
         self._predict_base(context='wstack', fluxthreshold=1.0, vis_slices=101)
-
+    
     def test_predict_wstack_serial(self):
         self.actualSetUp()
         self._predict_base(context='wstack', fluxthreshold=1.0, vis_slices=101, use_serial_predict=True)
-
+    
     def test_predict_wstack_wprojection(self):
         self.actualSetUp(makegcfcf=True)
         self._predict_base(context='wstack', extra='_wprojection', fluxthreshold=1.0, vis_slices=11,
                            gcfcf=self.gcfcf_joint)
-
+    
     def test_predict_wstack_spectral(self):
         self.actualSetUp(dospectral=True)
         self._predict_base(context='wstack', extra='_spectral', fluxthreshold=4.0, vis_slices=101)
-
+    
     def test_predict_wstack_spectral_pol(self):
         self.actualSetUp(dospectral=True, dopol=True)
         self._predict_base(context='wstack', extra='_spectral', fluxthreshold=4.0, vis_slices=101)
-
+    
     def test_invert_2d(self):
         self.actualSetUp(zerow=True)
         self._invert_base(context='2d', positionthreshold=2.0, check_components=False)
-
+    
     def test_invert_2d_uniform(self):
         self.actualSetUp(zerow=True, makegcfcf=True)
-        self.vis_list = weight_list_arlexecute_workflow(self.vis_list, self.model_list, gcfcf=self.gcfcf,
+        self.vis_list = weight_list_serial_workflow(self.vis_list, self.model_list, gcfcf=self.gcfcf,
                                                         weighting='uniform')
         self._invert_base(context='2d', extra='_uniform', positionthreshold=2.0, check_components=False)
-
+    
     @unittest.skip("Facets need overlap")
     def test_invert_facets(self):
         self.actualSetUp()
         self._invert_base(context='facets', positionthreshold=2.0, check_components=True, facets=8)
-
+    
     @unittest.skip("Facets need overlap")
     def test_invert_facets_timeslice(self):
         self.actualSetUp()
         self._invert_base(context='facets_timeslice', check_components=True, vis_slices=self.ntimes,
                           positionthreshold=5.0, flux_threshold=1.0, facets=8)
-
+    
     @unittest.skip("Facets need overlap")
     def test_invert_facets_wprojection(self):
         self.actualSetUp(makegcfcf=True)
         self._invert_base(context='facets', extra='_wprojection', check_components=True,
                           positionthreshold=2.0, facets=4, gcfcf=self.gcfcf)
-
+    
     @unittest.skip("Facets need overlap")
     def test_invert_facets_wstack(self):
         self.actualSetUp()
         self._invert_base(context='facets_wstack', positionthreshold=1.0, check_components=False, facets=4,
                           vis_slices=101)
-
+    
     def test_invert_timeslice(self):
         self.actualSetUp()
         self._invert_base(context='timeslice', positionthreshold=1.0, check_components=True,
                           vis_slices=self.ntimes)
-
+    
     def test_invert_wsnapshots(self):
         self.actualSetUp(makegcfcf=True)
         self._invert_base(context='wsnapshots', positionthreshold=1.0,
-                          check_components=True, vis_slices=self.ntimes//2, gcfcf=self.gcfcf_joint)
-
+                          check_components=True, vis_slices=self.ntimes // 2, gcfcf=self.gcfcf_joint)
+    
     def test_invert_wprojection(self):
         self.actualSetUp(makegcfcf=True)
         self._invert_base(context='2d', extra='_wprojection', positionthreshold=2.0, gcfcf=self.gcfcf)
-
+    
     def test_invert_wprojection_clip(self):
         self.actualSetUp(makegcfcf=True)
         self._invert_base(context='2d', extra='_wprojection_clipped', positionthreshold=2.0,
                           gcfcf=self.gcfcf_clipped)
-
+    
     def test_invert_wprojection_wstack(self):
         self.actualSetUp(makegcfcf=True)
         self._invert_base(context='wstack', extra='_wprojection', positionthreshold=1.0, vis_slices=11,
                           gcfcf=self.gcfcf_joint)
-
+    
     def test_invert_wstack(self):
         self.actualSetUp()
         self._invert_base(context='wstack', positionthreshold=1.0, vis_slices=101)
-
+    
     def test_invert_wstack_spectral(self):
         self.actualSetUp(dospectral=True)
         self._invert_base(context='wstack', extra='_spectral', positionthreshold=2.0,
                           vis_slices=101)
-
+    
     def test_invert_wstack_spectral_pol(self):
         self.actualSetUp(dospectral=True, dopol=True)
         self._invert_base(context='wstack', extra='_spectral_pol', positionthreshold=2.0,
                           vis_slices=101)
-
+    
     def test_zero_list(self):
         self.actualSetUp()
         
@@ -329,12 +325,12 @@ class TestImaging(unittest.TestCase):
         vis_list = zero_list_serial_workflow(self.vis_list)
         
         assert numpy.max(numpy.abs(vis_list[centre].vis)) < 1e-15, numpy.max(numpy.abs(vis_list[centre].vis))
-    
+        
         predicted_vis_list = [predict_skycomponent_visibility(vis_list[freqwin], self.components_list[freqwin])
                               for freqwin, _ in enumerate(self.frequency)]
         assert numpy.max(numpy.abs(predicted_vis_list[centre].vis)) > 0.0, \
             numpy.max(numpy.abs(predicted_vis_list[centre].vis))
-
+        
         diff_vis_list = subtract_list_serial_workflow(self.vis_list, predicted_vis_list)
         
         assert numpy.max(numpy.abs(diff_vis_list[centre].vis)) < 1e-15, numpy.max(numpy.abs(diff_vis_list[centre].vis))

@@ -315,7 +315,7 @@ def apply_beam_to_skycomponent(sc: Union[Skycomponent, List[Skycomponent]], beam
         return newsc
 
 def filter_skycomponents_by_flux(sc, flux_min=-numpy.inf, flux_max=numpy.inf):
-    """Filter sky components by flux
+    """Filter sky components by stokes I flux
     
     :param sc:
     :param flux_min:
@@ -324,7 +324,7 @@ def filter_skycomponents_by_flux(sc, flux_min=-numpy.inf, flux_max=numpy.inf):
     """
     newcomps = list()
     for comp in sc:
-        if comp.flux > flux_min and comp.flux < flux_max:
+        if comp.flux[:,0].all() > flux_min and comp.flux[:,0].all() < flux_max:
             newcomps.append(comp)
             
     return newcomps
