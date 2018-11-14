@@ -143,8 +143,11 @@ def threshold_list(imagelist, threshold, fractional_threshold, use_moment0=True,
     actual = max(peak * fractional_threshold, threshold)
     
     if use_moment0:
-        log.info("threshold_list %s: peak in moment 0 = %.6f, threshold will be %.6f" % (prefix, peak, actual))
+        log.info("threshold_list %s: Global peak in moment 0 = %.6f, sub-image clean threshold will be %.6f" % (prefix,
+                                                                                                           peak,
+                                                                                                   actual))
     else:
-        log.info("threshold_list %s: peak = %.6f, threshold will be %.6f" % (prefix, peak, actual))
+        log.info("threshold_list %s: Global peak = %.6f, sub-image clean threshold will be %.6f" % (prefix, peak,
+                                                                                                   actual))
     
     return actual

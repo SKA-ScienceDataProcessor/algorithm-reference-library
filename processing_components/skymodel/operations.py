@@ -24,7 +24,7 @@ def copy_skymodel(sm):
                     fixed=sm.fixed)
 
 
-def split_skycomponents_to_skymodel(sc, model, flux_threshold=-numpy.inf):
+def partition_skymodel_by_flux(sc, model, flux_threshold=-numpy.inf):
     """
     
     :param sc:

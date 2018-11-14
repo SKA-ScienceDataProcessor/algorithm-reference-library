@@ -1,6 +1,6 @@
 # # Pipeline processing using Dask
 # 
-# This notebook demonstrates the continuum imaging and ICAL pipelines.
+# This notebook demonstrates the ICAL pipeline.
 
 import logging
 import socket
@@ -11,8 +11,17 @@ import numpy
 from astropy import units as u
 from astropy.coordinates import SkyCoord
 
+from data_models.memory_data_models import SkyModel
 from data_models.polarisation import PolarisationFrame
+from workflows.arlexecute.imaging.imaging_arlexecute import invert_list_arlexecute_workflow, \
+    restore_list_arlexecute_workflow, predict_list_arlexecute_workflow, weight_list_arlexecute_workflow, \
+    taper_list_arlexecute_workflow, zero_list_arlexecute_workflow
+from workflows.arlexecute.pipelines.pipeline_arlexecute import ical_list_arlexecute_workflow
+from workflows.arlexecute.simulation.simulation_arlexecute import simulate_list_arlexecute_workflow, \
+    corrupt_list_arlexecute_workflow
 from wrappers.arlexecute.calibration.calibration_control import create_calibration_controls
+from wrappers.arlexecute.execution_support.arlexecute import arlexecute
+from wrappers.arlexecute.execution_support.dask_init import findNodes, get_dask_Client
 from wrappers.arlexecute.griddata.convolution_functions import convert_convolutionfunction_to_image
 from wrappers.arlexecute.griddata.kernels import create_awterm_convolutionfunction
 from wrappers.arlexecute.image.operations import export_image_to_fits, qa_image
@@ -22,18 +31,15 @@ from wrappers.arlexecute.imaging.primary_beams import create_pb
 from wrappers.arlexecute.simulation.testing_support import create_low_test_skycomponents_from_gleam
 from wrappers.arlexecute.skycomponent.operations import apply_beam_to_skycomponent, insert_skycomponent, \
     filter_skycomponents_by_flux
+from wrappers.arlexecute.visibility.base import copy_visibility
 from wrappers.arlexecute.visibility.coalesce import convert_blockvisibility_to_visibility
-from workflows.arlexecute.imaging.imaging_arlexecute import invert_list_arlexecute_workflow, \
-    restore_list_arlexecute_workflow, predict_list_arlexecute_workflow
-from workflows.arlexecute.pipelines.pipeline_arlexecute import ical_list_arlexecute_workflow
-from workflows.arlexecute.simulation.simulation_arlexecute import simulate_list_arlexecute_workflow, \
-    corrupt_list_arlexecute_workflow
-from wrappers.arlexecute.execution_support.arlexecute import arlexecute
-from wrappers.arlexecute.execution_support.dask_init import findNodes, get_dask_Client
 
 log = logging.getLogger()
 log.setLevel(logging.INFO)
 log.addHandler(logging.StreamHandler(sys.stdout))
+
+import pprint
+pp=pprint.PrettyPrinter()
 
 
 def git_hash():
@@ -52,7 +58,7 @@ def git_hash():
 def trial_case(results, seed=180555, context='wstack', nworkers=8, threads_per_worker=1, memory=8,
                processes=True, order='frequency', nfreqwin=7, ntimes=3, rmax=750.0,
                facets=1, wprojection_planes=1, use_dask=True, use_serial_imaging=False,
-               flux_limit=0.3, nmajor=10):
+               flux_limit=0.3, nmajor=5, dft_threshold=1.0):
     """ Single trial for performance-timings
     
     Simulates visibilities from GLEAM including phase errors
@@ -136,22 +142,24 @@ def trial_case(results, seed=180555, context='wstack', nworkers=8, threads_per_w
     results['rmax'] = rmax
     results['facets'] = facets
     results['wprojection_planes'] = wprojection_planes
+    results['dft threshold'] = dft_threshold
     
     results['use_dask'] = use_dask
     
-    print("At start, configuration is {0!r}".format(results))
+    print("At start, configuration is:")
+    pp.pprint(results)
     
     # Parameters determining scale
-    frequency = numpy.linspace(0.9e8, 1.1e8, nfreqwin)
+    frequency = numpy.linspace(0.8e8, 1.2e8, nfreqwin)
     centre = nfreqwin // 2
     if nfreqwin > 1:
         channel_bandwidth = numpy.array(nfreqwin * [frequency[1] - frequency[0]])
     else:
         channel_bandwidth = numpy.array([1e6])
-        
+    
     # Time sampling should be about 720s for B=750
     integration_time = (rmax / 750.0) * numpy.pi * (12 / (12 * 60))
-    times = numpy.linspace(-integration_time * (ntimes //2), integration_time * (ntimes //2), ntimes)
+    times = numpy.linspace(-integration_time * (ntimes // 2), integration_time * (ntimes // 2), ntimes)
     print("Times are ", times)
     
     phasecentre = SkyCoord(ra=+30.0 * u.deg, dec=-60.0 * u.deg, frame='icrs', equinox='J2000')
@@ -179,19 +187,19 @@ def trial_case(results, seed=180555, context='wstack', nworkers=8, threads_per_w
     
     print("****** Visibility creation ******")
     vis_list = arlexecute.persist(vis_list)
-
+    
     # Find the best imaging parameters but don't bring the vis_list back here
     def get_wf(bv):
         v = convert_blockvisibility_to_visibility(bv)
-        print('Total number of visibilities = %d' % (len(vis_list) * numpy.product(v.vis.shape)))
-
         return advise_wide_field(v, guard_band_image=6.0,
-                                 delA=0.05,
+                                 delA=0.02,
+                                 facets=facets,
+                                 wprojection_planes=wprojection_planes,
                                  oversampling_synthesised_beam=4.0)
     
     advice = arlexecute.compute(arlexecute.execute(get_wf)(vis_list[-1]), sync=True)
     
-    # Deconvolution y sub-images requires 2^n
+    # Deconvolution via sub-images requires 2^n
     npixel = advice['npixels2']
     results['npixel'] = npixel
     cellsize = advice['cellsize']
@@ -208,7 +216,18 @@ def trial_case(results, seed=180555, context='wstack', nworkers=8, threads_per_w
                   for f, freq in enumerate(frequency)]
     model_list = arlexecute.compute(model_list, sync=True)
     model_list = arlexecute.scatter(model_list)
-
+    
+    start = time.time()
+    vis_list = weight_list_arlexecute_workflow(vis_list, model_list)
+    vis_list = taper_list_arlexecute_workflow(vis_list, 0.003)
+    print("****** Starting weighting and tapering ******")
+    vis_list = arlexecute.compute(vis_list, sync=True)
+    end = time.time()
+    results['time weight'] = end - start
+    print("Weighting took %.2f seconds" % (end - start))
+    vis_list = arlexecute.scatter(vis_list)
+    
+    # Now set up the imaging parameters
     gcfcf_list = None
     if context == 'timeslice':
         vis_slices = ntimes
@@ -222,12 +241,12 @@ def trial_case(results, seed=180555, context='wstack', nworkers=8, threads_per_w
         support = advice['nwpixels']
         results['wprojection_planes'] = nw
         print("Using wprojection with %d planes with wstep %.1f wavelengths" % (nw, wstep))
-    
+        
         def make_gcfcf(m):
             gcf, cf = create_awterm_convolutionfunction(m, nw=nw, wstep=wstep, oversampling=8,
                                                         support=support, use_aaf=True)
             return (gcf, cf)
-    
+        
         start = time.time()
         print("****** Starting W projection kernel creation ******")
         gcfcf_list = [arlexecute.execute(make_gcfcf, nout=1)(m) for m in model_list]
@@ -238,15 +257,17 @@ def trial_case(results, seed=180555, context='wstack', nworkers=8, threads_per_w
         cf_image = convert_convolutionfunction_to_image(gcfcf_list[centre][1])
         cf_image.data = numpy.real(cf_image.data)
         export_image_to_fits(cf_image, "pipelines-timings-wterm-cf.fits")
-    
+        
         gcfcf_list = arlexecute.scatter(gcfcf_list)
-
+    
     else:
         context = 'wstack'
         vis_slices = advice['vis_slices']
         print("Using wstack with %d slices" % vis_slices)
-
-    def make_gleam_sc(f, v, m):
+    
+    # Make a set of components from GLEAM. We partition these according to flux. The
+    # bright ones are DFT'ed, and the weaker ones will be FFT'ed.
+    def make_gleam_sm(f, v, m):
         sc = create_low_test_skycomponents_from_gleam(frequency=[frequency[f]],
                                                       phasecentre=phasecentre,
                                                       polarisation_frame=PolarisationFrame("stokesI"),
@@ -254,28 +275,67 @@ def trial_case(results, seed=180555, context='wstack', nworkers=8, threads_per_w
         sc = filter_skycomponents_by_flux(sc, flux_max=10.0)
         pb = create_pb(m, 'LOW')
         sc = apply_beam_to_skycomponent(sc, pb)
-        weaksc = filter_skycomponents_by_flux(sc, flux_max=0.3)
-        brightsc = filter_skycomponents_by_flux(sc, flux_min=0.3)
-        print('Processing %d bright components by DFT and %d weak components by FFT' % (len(brightsc), len(weaksc)))
+        weaksc = filter_skycomponents_by_flux(sc, flux_max=dft_threshold)
+        brightsc = filter_skycomponents_by_flux(sc, flux_min=dft_threshold)
+        print('Processing %d bright components (>%.3f) by DFT and %d weak components (<%.3f) by FFT' %
+              (len(brightsc), dft_threshold, len(weaksc), dft_threshold))
         m = insert_skycomponent(m, weaksc)
-        return predict_skycomponent_visibility(v, brightsc)
+        return SkyModel(components=brightsc, images=[m])
     
-    vis_list = predict_list_arlexecute_workflow(vis_list, model_list, context=context, vis_slices=vis_slices,
-                                                facets=facets, use_serial_predict=use_serial_imaging, gcfcf=gcfcf_list)
-    vis_list = [arlexecute.execute(make_gleam_sc)(f, vis_list[f], model_list[f]) for f, freq in enumerate(frequency)]
-
+    skymodel_list = [arlexecute.execute(make_gleam_sm)(f, vis_list[f], model_list[f])
+                     for f, freq in enumerate(frequency)]
     start = time.time()
-    print("****** Starting GLEAM visibility prediction ******")
-    vis_list = arlexecute.compute(vis_list, sync=True)
+    print("****** Starting GLEAM Skymodel creation ******")
+    skymodel_list = arlexecute.compute(skymodel_list, sync=True)
     end = time.time()
-    results['time create gleam'] = end - start
-    print("Predicting GLEAM visibility took %.2f seconds" % (end - start))
-    vis_list = arlexecute.scatter(vis_list)
     
+    gleam_components_list = [sm.components for sm in skymodel_list]
+    gleam_model_list = [sm.images[0] for sm in skymodel_list]
     
-    psf_list = invert_list_arlexecute_workflow(vis_list, model_list, vis_slices=vis_slices, dopsf=True,
-                                                 context=context, facets=facets, do_weighting=True,
-                                                 use_serial_invert=use_serial_imaging, gcfcf=gcfcf_list)
+    results['time gleam skymodel'] = end - start
+    print("Creating GLEAM skymodel took %.2f seconds" % (end - start))
+    gleam_components_list = arlexecute.scatter(gleam_components_list)
+    gleam_model_list = arlexecute.scatter(gleam_model_list)
+    
+    # This does the DFT
+    dft_vis_list = zero_list_arlexecute_workflow(vis_list)
+    dft_vis_list = [arlexecute.execute(predict_skycomponent_visibility, nout=1)
+                    (dft_vis_list[i], gleam_components_list[i])
+                    for i, _ in enumerate(gleam_components_list)]
+    start = time.time()
+    print("****** Starting GLEAM component visibility prediction  ******")
+    dft_vis_list = arlexecute.compute(dft_vis_list, sync=True)
+    end = time.time()
+    results['time dft skymodel'] = end - start
+    print("Predicting GLEAM component visibility took %.2f seconds" % (end - start))
+    dft_vis_list = arlexecute.scatter(dft_vis_list)
+    
+    # This does the FFT of the model image
+    fft_vis_list = zero_list_arlexecute_workflow(vis_list)
+    fft_vis_list = predict_list_arlexecute_workflow(fft_vis_list, gleam_model_list, context=context,
+                                                    vis_slices=vis_slices, facets=facets,
+                                                    use_serial_predict=use_serial_imaging, gcfcf=gcfcf_list)
+    start = time.time()
+    print("****** Starting GLEAM image visibility prediction ******")
+    fft_vis_list = arlexecute.compute(fft_vis_list, sync=True)
+    end = time.time()
+    results['time fft gleam'] = end - start
+    print("Predicting GLEAM image visibility took %.2f seconds" % (end - start))
+    fft_vis_list = arlexecute.scatter(fft_vis_list)
+    
+    def vis_add(v1, v2):
+        vout = copy_visibility(v1)
+        vout.data['vis'] += v2.data['vis']
+        return vout
+    
+    predicted_vis_list = [arlexecute.execute(vis_add, nout=1)(dft_vis_list[i], fft_vis_list[i])
+                          for i, _ in enumerate(dft_vis_list)]
+    predicted_vis_list = arlexecute.compute(predicted_vis_list, sync=True)
+    predicted_vis_list = arlexecute.scatter(predicted_vis_list)
+    
+    psf_list = invert_list_arlexecute_workflow(predicted_vis_list, model_list, vis_slices=vis_slices, dopsf=True,
+                                               context=context, facets=facets,
+                                               use_serial_invert=use_serial_imaging, gcfcf=gcfcf_list)
     start = time.time()
     print("****** Starting psf image calculation ******")
     psf, sumwt = arlexecute.compute(psf_list, sync=True)[centre]
@@ -287,15 +347,15 @@ def trial_case(results, seed=180555, context='wstack', nworkers=8, threads_per_w
     results['psf_max'] = qa.data['max']
     results['psf_min'] = qa.data['min']
     export_image_to_fits(psf, "pipelines-timings-%s-psf.fits" % context)
-
     
+    # Make a smoothed model image for comparison
     smoothed_model_list = restore_list_arlexecute_workflow(model_list, psf_list)
     smoothed_model_list = arlexecute.compute(smoothed_model_list, sync=True)
     export_image_to_fits(smoothed_model_list[centre], "pipelines-timings-cmodel.fits")
     
     # Create an empty model image
     model_list = [arlexecute.execute(create_image_from_visibility)
-                  (vis_list[f],
+                  (predicted_vis_list[f],
                    npixel=npixel, cellsize=cellsize,
                    frequency=[frequency[f]],
                    channel_bandwidth=[channel_bandwidth[f]],
@@ -303,9 +363,9 @@ def trial_case(results, seed=180555, context='wstack', nworkers=8, threads_per_w
                   for f, freq in enumerate(frequency)]
     model_list = arlexecute.compute(model_list, sync=True)
     model_list = arlexecute.scatter(model_list)
-
-    dirty_list = invert_list_arlexecute_workflow(vis_list, model_list, vis_slices=vis_slices,
-                                                 context=context, facets=facets, do_weighting=True,
+    
+    dirty_list = invert_list_arlexecute_workflow(predicted_vis_list, model_list, vis_slices=vis_slices,
+                                                 context=context, facets=facets,
                                                  use_serial_invert=use_serial_imaging, gcfcf=gcfcf_list)
     start = time.time()
     print("****** Starting dirty image calculation ******")
@@ -318,21 +378,20 @@ def trial_case(results, seed=180555, context='wstack', nworkers=8, threads_per_w
     results['dirty_max'] = qa.data['max']
     results['dirty_min'] = qa.data['min']
     export_image_to_fits(dirty, "pipelines-timings-%s-dirty.fits" % context)
-
+    
     # Corrupt the visibility for the GLEAM model
     print("****** Visibility corruption ******")
-    vis_list = corrupt_list_arlexecute_workflow(vis_list, phase_error=1.0, seed=seed)
+    corrupted_vis_list = corrupt_list_arlexecute_workflow(predicted_vis_list, phase_error=1.0, seed=seed)
     start = time.time()
-    vis_list = arlexecute.compute(vis_list, sync=True)
-    vis_list = arlexecute.scatter(vis_list)
-
+    corrupted_vis_list = arlexecute.compute(corrupted_vis_list, sync=True)
+    corrupted_vis_list = arlexecute.scatter(corrupted_vis_list)
+    
     end = time.time()
     results['time corrupt'] = end - start
     print("Visibility corruption took %.2f seconds" % (end - start))
-
+    
     # Create the ICAL pipeline to run 5 major cycles, starting selfcal at cycle 1. A global solution across all
     # frequencies (i.e. Visibilities) is performed.
-    start = time.time()
     print("****** Starting ICAL ******")
     
     controls = create_calibration_controls()
@@ -356,7 +415,7 @@ def trial_case(results, seed=180555, context='wstack', nworkers=8, threads_per_w
         algorithm = 'msclean'
     
     start = time.time()
-    ical_list = ical_list_arlexecute_workflow(vis_list,
+    ical_list = ical_list_arlexecute_workflow(corrupted_vis_list,
                                               model_imagelist=model_list,
                                               context=context,
                                               calibration_context='TG',
@@ -372,7 +431,7 @@ def trial_case(results, seed=180555, context='wstack', nworkers=8, threads_per_w
                                               global_solution=False,
                                               psf_support=64,
                                               deconvolve_facets=8,
-                                              deconvolve_overlap=64,
+                                              deconvolve_overlap=32,
                                               deconvolve_taper='tukey',
                                               do_selfcal=True,
                                               use_serial_predict=use_serial_imaging,
@@ -411,7 +470,8 @@ def trial_case(results, seed=180555, context='wstack', nworkers=8, threads_per_w
     end_all = time.time()
     results['time overall'] = end_all - start_all
     
-    print("At end, results are {0!r}".format(results))
+    print("At end, results are:")
+    pp.pprint(results)
     
     return results
 
@@ -465,13 +525,13 @@ def main(args):
     
     memory = args.memory
     results['memory'] = memory
-
+    
     ntimes = args.ntimes
     results['ntimes'] = ntimes
-
+    
     nmajor = args.nmajor
     results['nmajor'] = nmajor
-
+    
     results['hostname'] = socket.gethostname()
     results['epoch'] = time.strftime("%Y-%m-%d %H:%M:%S")
     results['driver'] = 'pipelines-timings-arlexecute'
@@ -492,8 +552,9 @@ def main(args):
     
     print("Defining %d frequency windows" % nfreqwin)
     
-    fieldnames = ['driver', 'nnodes', 'nworkers', 'time ICAL', 'time ICAL graph', 'time create gleam',
-                  'time corrupt', 'time invert', 'time psf invert', 'time overall',
+    fieldnames = ['driver', 'nnodes', 'nworkers', 'time ICAL', 'time ICAL graph', 'time gleam skymodel',
+                  'time fft gleam', 'time dft skymodel', 'dft threshold',
+                  'time corrupt', 'time invert', 'time psf invert', 'time weight', 'time overall',
                   'threads_per_worker', 'processes', 'order',
                   'nfreqwin', 'ntimes', 'rmax', 'facets', 'wprojection_planes', 'vis_slices', 'npixel',
                   'cellsize', 'seed', 'dirty_max', 'dirty_min', 'psf_max', 'psf_min', 'deconvolved_max',
@@ -526,8 +587,8 @@ if __name__ == '__main__':
     parser.add_argument('--nthreads', type=int, default=1, help='Number of threads')
     parser.add_argument('--memory', type=int, default=8, help='Memory per worker')
     parser.add_argument('--nworkers', type=int, default=1, help='Number of workers')
-    parser.add_argument('--nmajor', type=int, default=10, help='Number of major cycles')
-
+    parser.add_argument('--nmajor', type=int, default=5, help='Number of major cycles')
+    
     parser.add_argument('--ntimes', type=int, default=7, help='Number of hour angles')
     parser.add_argument('--nfreqwin', type=int, default=16, help='Number of frequency windows')
     parser.add_argument('--context', type=str, default='wstack',
@@ -537,6 +598,7 @@ if __name__ == '__main__':
                         help='Use serial imaging?')
     parser.add_argument('--jobid', type=int, default=0, help='JOBID from slurm')
     parser.add_argument('--flux_limit', type=float, default=0.3, help='Flux limit for components')
+    parser.add_argument('--dft_threshold', type=float, default=1.0, help='Flux above which DFT is used')
 
     main(parser.parse_args())
     

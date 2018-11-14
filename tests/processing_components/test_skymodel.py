@@ -13,7 +13,7 @@ from data_models.memory_data_models import SkyModel
 from data_models.polarisation import PolarisationFrame
 
 from processing_components.skycomponent.operations import create_skycomponent
-from processing_components.skymodel.operations import copy_skymodel, split_skycomponents_to_skymodel
+from processing_components.skymodel.operations import copy_skymodel, partition_skymodel_by_flux
 from processing_components.simulation.testing_support import create_test_image, create_named_configuration
 from processing_components.visibility.base import create_blockvisibility
 
@@ -65,6 +65,6 @@ class TestSkyModel(unittest.TestCase):
         sc = [create_skycomponent(direction=self.phasecentre, flux=numpy.array([[f]]), frequency=self.frequency,
                                   polarisation_frame=PolarisationFrame('stokesI')) for f in fluxes]
         
-        sm = split_skycomponents_to_skymodel(sc, self.model, flux_threshold=0.31)
+        sm = partition_skymodel_by_flux(sc, self.model, flux_threshold=0.31)
         assert len(sm.components) == 7, len(sm.components)
 

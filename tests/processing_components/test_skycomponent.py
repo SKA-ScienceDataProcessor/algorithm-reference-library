@@ -25,23 +25,23 @@ class TestSkycomponent(unittest.TestCase):
         self.frequency = numpy.array([1e8])
         self.channel_bandwidth = numpy.array([1e6])
         self.phasecentre = SkyCoord(ra=+30.0 * u.deg, dec=-45.0 * u.deg, frame='icrs', equinox='J2000')
-        self.components = create_low_test_skycomponents_from_gleam(flux_limit=0.01,
+        self.components = create_low_test_skycomponents_from_gleam(flux_limit=0.1,
                                                                    phasecentre=self.phasecentre,
                                                                    frequency=self.frequency,
                                                                    polarisation_frame=PolarisationFrame('stokesI'),
-                                                                   radius=0.1)
+                                                                   radius=0.5)
     
     def test_time_setup(self):
         pass
     
     def test_filter_flux(self):
-        newsc = filter_skycomponents_by_flux(self.components, 5.0, 8.0)
-        assert len(newsc) == 3, len(newsc)
+        newsc = filter_skycomponents_by_flux(self.components, flux_min=0.3)
+        assert len(newsc) < len(self.components), len(self.components)
         newsc = filter_skycomponents_by_flux(self.components, flux_min=5.0)
-        assert len(newsc) == 7, newsc
+        assert len(newsc) == 143, len(newsc)
         newsc = filter_skycomponents_by_flux(self.components, flux_max=8.0)
-        assert len(newsc) == 1172, len(newsc)
-    
+        assert len(newsc) == 11864, len(newsc)
+
     def test_copy(self):
         fluxes = numpy.linspace(0, 1.0, 10)
         sc = [create_skycomponent(direction=self.phasecentre, flux=numpy.array([[f]]), frequency=self.frequency,
