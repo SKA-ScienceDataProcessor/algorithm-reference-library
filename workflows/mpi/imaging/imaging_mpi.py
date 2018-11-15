@@ -27,7 +27,15 @@ from workflows.shared.imaging.imaging_shared import sum_invert_results, remove_s
     threshold_list
 
 from mpi4py import MPI
+import sys
+
 log = logging.getLogger(__name__)
+
+# an attempt to flush the output and output in stdout
+# don't know how to flush to a file ...
+#h = logging.StreamHandler(sys.stdout)
+#h.flush = sys.stdout.flush
+#log.addHandler(h)
 
 def predict_list_mpi_workflow(vis_list, model_imagelist, vis_slices=1,
                                  facets=1, context='2d', comm=MPI.COMM_WORLD, **kwargs):
@@ -48,8 +56,7 @@ def predict_list_mpi_workflow(vis_list, model_imagelist, vis_slices=1,
    """
     rank = comm.Get_rank()
     size = comm.Get_size()
-    print('%d: %d In predict: elements in vis_list' %
-          (rank,len(vis_list)),flush=True)
+    log.info('%d: In predict_list_mpi_workflow: %d elements in vis_list' % (rank,len(vis_list)))
     # the assert only makes sense in proc 0 as for the others both lists are
     # empty
     assert len(vis_list) == len(model_imagelist), "Model must be the same length as the vis_list"
@@ -65,9 +72,9 @@ def predict_list_mpi_workflow(vis_list, model_imagelist, vis_slices=1,
             return None
     
     vis_list_len=comm.bcast(len(vis_list),root=0)
-    print('%d: %d (%d) In predict: elements in vis_list' %
-          (rank,len(vis_list),vis_list_len),flush=True)
-    print(vis_list)
+    log.debug('%d: %d (%d) In predict: elements in vis_list' %
+          (rank,len(vis_list),vis_list_len))
+    #print(vis_list)
 
     image_results_list_list = list()
     #NOTE: We could parallelize here by freqwin instead of inside that would
@@ -76,15 +83,14 @@ def predict_list_mpi_workflow(vis_list, model_imagelist, vis_slices=1,
     # for i in range(vis_list_len):
     if rank == 0:
         for freqwin, vis_lst in enumerate(vis_list):
-            #print('%d: freqwin %d vis_lst:' %(rank,freqwin),flush=True)
+            log.debug('%d: freqwin %d vis_lst:' %(rank,freqwin))
             #print(vis_lst)
             # Create the graph to divide an image into facets. This is by reference.
             facet_lists = image_scatter_facets(model_imagelist[freqwin], facets=facets)
             # facet_lists = numpy.array_split(facet_lists, size)
             # Create the graph to divide the visibility into slices. This is by copy.
             sub_vis_lists = visibility_scatter(vis_lst, vis_iter, vis_slices)
-            #print('%d: sub_vis_list after visibility_scatter in %d vis_slices'
-            #      %(rank,vis_slices))
+            log.debug('%d: sub_vis_list after visibility_scatter in %d vis_slices' %(rank,vis_slices))
             #print(sub_vis_lists)
             sub_vis_lists = numpy.array_split(sub_vis_lists, size)
             ## Scater facets and visibility lists to all processes
@@ -106,8 +112,8 @@ def predict_list_mpi_workflow(vis_list, model_imagelist, vis_slices=1,
             ## gather results from all processes
             facet_vis_lists=comm.gather(facet_vis_lists,root=0)
             # Sum all sub-visibilties
-            print('%d: Predict before concatenate'% (rank), flush=True)
-            print(facet_vis_lists)
+            log.debug('%d: Predict before concatenate'% (rank))
+            #print(facet_vis_lists)
             facet_vis_lists=numpy.concatenate(facet_vis_lists)
             #NOTE: visivility_gather is done within each freqwin, the result
             # of each loop (freqwin) is just appended to the list
@@ -172,8 +178,8 @@ def invert_list_mpi_workflow(vis_list, template_model_imagelist, dopsf=False, no
 
     rank = comm.Get_rank()
     size = comm.Get_size()
-    print('%d: %d In invert: elements in vis_list %d in model' %
-          (rank,len(vis_list),len(template_model_imagelist)),flush=True)
+    log.info('%d: In invert_list_mpi_workflow: %d elements in vis_list %d in model' %
+          (rank,len(vis_list),len(template_model_imagelist)))
     if rank==0:
         if not isinstance(template_model_imagelist, collections.Iterable):
             template_model_imagelist = [template_model_imagelist]
@@ -203,16 +209,16 @@ def invert_list_mpi_workflow(vis_list, template_model_imagelist, dopsf=False, no
             return create_empty_image_like(model), 0.0
     
     vis_list_len=comm.bcast(len(vis_list),root=0)
-    print('%d: %d (%d) In invert: elements in vis_list' %
-          (rank,len(vis_list),vis_list_len),flush=True)
-    print(vis_list)
+    log.debug('%d: %d (%d) In invert: elements in vis_list' %
+          (rank,len(vis_list),vis_list_len))
+    #print(vis_list)
     results_vislist = list()
     #NOTE: We could parallelize here by freqwin instead of inside that would
     # reduce data transfers
     # Loop over all vis_lists independently
     if rank == 0:
         for freqwin, vis_list in enumerate(vis_list):
-            print('%d: freqwin %d vis_lst:' %(rank,freqwin),flush=True)
+            log.debug('%d: freqwin %d vis_lst:' %(rank,freqwin))
             # Create the graph to divide an image into facets. This is by reference.
             # NOTE: if template_model)imagelist is replicated we would save
             # this bcast
@@ -234,10 +240,10 @@ def invert_list_mpi_workflow(vis_list, template_model_imagelist, dopsf=False, no
                 vis_results.append(gather_image_iteration_results(facet_vis_results,
                                                               template_model_imagelist[freqwin]))
             all_vis_results=comm.gather(vis_results, root=0)
-            print('%d: Invert before concatenate'% (rank), flush=True)
-            print(all_vis_results,flush=True)
+            log.debug('%d: Invert before concatenate'% (rank))
+            #print(all_vis_results,flush=True)
             all_vis_results=[x for x in all_vis_results if x]
-            print(all_vis_results,flush=True)
+            #print(all_vis_results,flush=True)
             all_vis_results=numpy.concatenate(all_vis_results)
             # sum_invert_results normalized according to weigths it must be
             # done to the full set of visibilities
@@ -247,7 +253,7 @@ def invert_list_mpi_workflow(vis_list, template_model_imagelist, dopsf=False, no
     else:
         for i in range(vis_list_len):
         #for freqwin, vis_lst in enumerate(vis_list):
-            print('%d: iteration %d' %(rank,i),flush=True)
+            log.debug('%d: iteration %d' %(rank,i))
             template_model_imagelist_fwin=list()
             template_model_imagelist_fwin=comm.bcast(template_model_imagelist_fwin,root=0)
             facet_lists = image_scatter_facets(template_model_imagelist_fwin,
@@ -279,8 +285,8 @@ def residual_list_mpi_workflow(vis, model_imagelist, context='2d',comm=MPI.COMM_
     rank = comm.Get_rank()
     size = comm.Get_size()
     model_vis = zero_list_mpi_workflow(vis)
-    print('%d: In residual vis len %d model_imagelist len %d model_vis len %d'
-          %(rank,len(vis),len(model_imagelist),len(model_vis)),flush=True)
+    log.info('%d: In residual_list_mpi_workflow vis len %d model_imagelist len %d model_vis len %d'
+          %(rank,len(vis),len(model_imagelist),len(model_vis)))
 
     model_vis = predict_list_mpi_workflow(model_vis, model_imagelist, context=context, **kwargs)
     residual_vis = subtract_list_mpi_workflow(vis, model_vis)
@@ -343,8 +349,8 @@ def deconvolve_list_mpi_workflow(dirty_list, psf_list, model_imagelist,
             this_peak = numpy.max(numpy.abs(dirty.data[0, ...]))
         
         if this_peak > 1.1 * gthreshold:
-            log.info(
-                "deconvolve_list_serial_workflow %s: cleaning - peak %.6f > 1.1 * threshold %.6f" % (lprefix, this_peak,
+            log.debug(
+                "deconvolve_list_mpi_workflow %s: cleaning - peak %.6f > 1.1 * threshold %.6f" % (lprefix, this_peak,
                                                                                                 gthreshold))
             kwargs['threshold'] = gthreshold
             result, _ = deconvolve_cube(dirty, psf, prefix=lprefix, **kwargs)
@@ -357,15 +363,15 @@ def deconvolve_list_mpi_workflow(dirty_list, psf_list, model_imagelist,
                     (lprefix, str(model.data.shape[0]), str(result.data.shape[0])))
             
             flux = numpy.sum(result.data[0, 0, ...])
-            log.info('### %s, %.6f, %.6f, True, %.3f # cycle, facet, peak, cleaned flux, clean, time?'
+            log.debug('### %s, %.6f, %.6f, True, %.3f # cycle, facet, peak, cleaned flux, clean, time?'
                      % (lprefix, this_peak, flux, time.time() - starttime))
             
             return result
         else:
-            log.info("deconvolve_list_serial_workflow %s: Not cleaning - peak %.6f <= 1.1 * threshold %.6f" % (
+            log.debug("deconvolve_list_serial_workflow %s: Not cleaning - peak %.6f <= 1.1 * threshold %.6f" % (
                 lprefix, this_peak,
                 gthreshold))
-            log.info('### %s, %.6f, %.6f, False, %.3f # cycle, facet, peak, cleaned flux, clean, time?'
+            log.debug('### %s, %.6f, %.6f, False, %.3f # cycle, facet, peak, cleaned flux, clean, time?'
                      % (lprefix, this_peak, 0.0, time.time() - starttime))
             
             return copy_image(model)
@@ -535,8 +541,8 @@ def zero_list_mpi_workflow(vis_list,comm=MPI.COMM_WORLD):
    """
     rank = comm.Get_rank()
     size = comm.Get_size()
-    print('%d: %d In zero: elements in vis_list' %
-          (rank,len(vis_list)),flush=True)
+    log.info('%d: In zero_list_mpi_workflow: %d elements in vis_list' %
+          (rank,len(vis_list)))
     
     def zero(vis):
         if vis is not None:
@@ -562,8 +568,8 @@ def subtract_list_mpi_workflow(vis_list, model_vislist,comm=MPI.COMM_WORLD):
    """
     rank = comm.Get_rank()
     size = comm.Get_size()
-    print('%d: %d In subtract : elements in vis_list %d in model' %
-          (rank,len(vis_list),len(model_vislist)),flush=True)
+    log.info('%d: In subtract_list_mpi_workflow : %d elements in vis_list %d in model' %
+          (rank,len(vis_list),len(model_vislist)))
     
     def subtract_vis(vis, model_vis):
         if vis is not None and model_vis is not None:

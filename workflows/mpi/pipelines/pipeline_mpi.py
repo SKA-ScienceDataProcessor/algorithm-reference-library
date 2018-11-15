@@ -11,6 +11,8 @@ from ..imaging.imaging_mpi import invert_list_mpi_workflow, residual_list_mpi_wo
     restore_list_mpi_workflow, \
     deconvolve_list_mpi_workflow
 from mpi4py import MPI
+import logging
+log = logging.getLogger(__name__)
 
 def ical_list_mpi_workflow(vis_list, model_imagelist, context='2d',
                            calibration_context='TG', do_selfcal=True,
@@ -28,8 +30,8 @@ def ical_list_mpi_workflow(vis_list, model_imagelist, context='2d',
     """
     rank = comm.Get_rank()
     size = comm.Get_size()
-    print('%d: ical: vis_list len %d model_imagelist len %d'
-          %(rank,len(vis_list),len(model_imagelist)),flush=True)
+    log.info('%d: ical_list_mpi_workflow: vis_list len %d model_imagelist len %d'
+          %(rank,len(vis_list),len(model_imagelist)))
     psf_imagelist = invert_list_mpi_workflow(vis_list, model_imagelist, dopsf=True, context=context, **kwargs)
     
     model_vislist = zero_list_mpi_workflow(vis_list)
@@ -96,8 +98,8 @@ def continuum_imaging_list_mpi_workflow(vis_list, model_imagelist,
     """
     rank = comm.Get_rank()
     size = comm.Get_size()
-    print('%d: vis_list len %d model_imagelist len %d'
-          %(rank,len(vis_list),len(model_imagelist)),flush=True)
+    log.info('%d: continuum_imaging_list_mpi_workflow: vis_list len %d model_imagelist len %d'
+          %(rank,len(vis_list),len(model_imagelist)))
     psf_imagelist = invert_list_mpi_workflow(vis_list, model_imagelist, dopsf=True, context=context, **kwargs)
     
     residual_imagelist = residual_list_mpi_workflow(vis_list, model_imagelist, context=context, **kwargs)
