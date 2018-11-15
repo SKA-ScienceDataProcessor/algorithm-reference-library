@@ -10,6 +10,8 @@ from processing_components.visibility.operations import divide_visibility, integ
 
 import numpy
 from mpi4py import MPI
+import logging
+log = logging.getLogger(__name__)
 
 
 def calibrate_list_mpi_workflow(vis_list, model_vislist,
@@ -31,6 +33,7 @@ def calibrate_list_mpi_workflow(vis_list, model_vislist,
     """
     rank = comm.Get_rank()
     size = comm.Get_size()
+    log.debug('%d: In calibrate_list_mpi_workflow : %d elements in vis_list' % (rank,len(vis_list)))
     
     def solve_and_apply(vis, modelvis=None):
         return calibrate_function(vis, modelvis, calibration_context=calibration_context, **kwargs)[0]

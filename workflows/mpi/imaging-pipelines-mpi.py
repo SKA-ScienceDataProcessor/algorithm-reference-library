@@ -54,6 +54,8 @@ from workflows.serial.pipelines.pipeline_serial import continuum_imaging_list_se
 from workflows.mpi.pipelines.pipeline_mpi import continuum_imaging_list_mpi_workflow, ical_list_mpi_workflow
 from workflows.mpi.imaging.imaging_mpi import predict_list_mpi_workflow, invert_list_mpi_workflow, deconvolve_list_mpi_workflow
 
+import time
+
 import pprint
 
 pp = pprint.PrettyPrinter()
@@ -61,12 +63,17 @@ pp = pprint.PrettyPrinter()
 import logging
 
 def init_logging():
-    log = logging.getLogger()
+    log = logging.getLogger(__name__)
     logging.basicConfig(filename='%s/imaging-predict.log' % results_dir,
-                        filemode='a',
+                        filemode='w',   # 'a' for append
                         format='%(asctime)s,%(msecs)d %(name)s %(levelname)s %(message)s',
                         datefmt='%H:%M:%S',
-                        level=logging.INFO)
+                        level=logging.ERROR) # DEBUG INFO WARNING ERROR CRITICAL
+    # an attempt to flush the output and output in stdout
+    # don't know how to flush to a file ...
+    #h = logging.StreamHandler(sys.stdout)
+    #h.flush = sys.stdout.flush
+    #log.addHandler(h)
     return log
 
 log = init_logging()
@@ -113,8 +120,10 @@ channel_bandwidth=numpy.array(nfreqwin*[frequency[1]-frequency[0]])
 times = numpy.linspace(-numpy.pi/3.0, numpy.pi/3.0, ntimes)
 phasecentre=SkyCoord(ra=+30.0 * u.deg, dec=-60.0 * u.deg, frame='icrs', equinox='J2000')
 
-#log.info("Starting imaging-pipeline with %d MPI processes nfreqwin %d ntimes %d",size,nfreqwin,ntimes)
-#logging.debug('%d: frequency len %d frequency list:'rank,len(frequency))
+log.info("Starting imaging-pipeline with %d MPI processes nfreqwin %d ntimes %d" %(size,nfreqwin,ntimes))
+print("Starting imaging-pipeline with %d MPI processes nfreqwin %d ntimes %d"
+      %(size,nfreqwin,ntimes),flush=True)
+log.debug('%d: frequency len %d frequency list:'%(rank,len(frequency)))
 #print(frequency,flush=True)
 
 
@@ -129,7 +138,8 @@ if rank == 0:
 else:
     vis_list=list()
 
-#print('%d: %d elements in vis_list' % (rank,len(vis_list)),flush=True)
+log.debug('%d: %d elements in vis_list' % (rank,len(vis_list)))
+#log.handlers[0].flush()
 #print(vis_list)
 
 
@@ -153,11 +163,12 @@ else:
     cellsize = 0
 
 (vis_slices,npixel,cellsize) = comm.bcast((vis_slices,npixel,cellsize),root=0)
-print('%d: After advice: vis_slices %d npixel %d cellsize %d' % (rank,vis_slices, npixel, cellsize),flush=True)
+log.debug('%d: After advice: vis_slices %d npixel %d cellsize %d' % (rank,vis_slices, npixel, cellsize))
 
 # Now make a graph to fill with a model drawn from GLEAM 
 
 # In[ ]:
+log.info('%d:About to make GLEAM model' %(rank))
 
 sub_frequency = numpy.array_split(frequency, size)
 sub_channel_bandwidth = numpy.array_split(channel_bandwidth,size)
@@ -182,7 +193,6 @@ else:
     gleam_model=list()
 
 # In[ ]:
-log.info('About to make GLEAM model')
 
 original_predict=False
 if original_predict:
@@ -191,12 +201,14 @@ if original_predict:
         predicted_vislist = predict_list_serial_workflow(vis_list, gleam_model,
                                                 context='wstack', vis_slices=vis_slices)
 else:
-    log.info('About to run predict to get predicted visibility')
+    log.info('%d: About to run predict to get predicted visibility'%(rank))
+    print('%d: About to run predict to get predicted visibility'%(rank),flush=True)
+    start=time.time()
     # All procs call the function but only rank=0 gets the predicted_vislist
     predicted_vislist = predict_list_mpi_workflow(vis_list, gleam_model,
                                                 context='wstack',
                                                   vis_slices=vis_slices)
-
+    end=time.time()
     #log.info('About to run corrupt to get corrupted visibility')
     #corrupted_vislist = corrupt_list_serial_workflow(predicted_vislist, phase_error=1.0)
 
@@ -208,6 +220,10 @@ else:
     ## frequency and channel_bandwidth are replicated and they have already
     ## been split
 
+    log.info('%d: predict finished in %f seconds'%(rank,end-start))
+    print('%d: predict finished in %f seconds'%(rank,end-start),flush=True)
+
+log.info('%d: About create image from visibility'%(rank))
 sub_vis_list= numpy.array_split(vis_list, size)
 sub_vis_list=comm.scatter(sub_vis_list,root=0)
 
@@ -228,8 +244,10 @@ if rank==0:
 else:
     model_list=list()
 
-print('%d model_list len %d' %(rank,len(model_list)),flush=True)
+log.debug('%d model_list len %d' %(rank,len(model_list)))
+log.info('%d: About to start invert'%(rank))
 print('%d: About to start invert'%(rank),flush=True)
+start=time.time()
 original_invert=False
 if original_invert:
     if rank==0:
@@ -251,12 +269,15 @@ else:
     # Create and execute graphs to make the dirty image and PSF
 
     # In[ ]:
+end=time.time()
+log.info('%d: invert finished'%(rank))
+print('%d: invert finished in %f seconds'%(rank,end-start),flush=True)
         
 if rank==0:
-    print("sumwts",flush=True)
-    print(dirty_list[0][1])
+    #print("sumwts",flush=True)
+    #print(dirty_list[0][1])
 
-    log.info('About to run invert to get dirty image')
+    log.info('After invert to get dirty image')
     dirty = dirty_list[0][0]
     #show_image(dirty, cm='Greys', vmax=1.0, vmin=-0.1)
     #plt.show()
@@ -264,7 +285,7 @@ if rank==0:
     export_image_to_fits(dirty, '%s/imaging-dirty.fits' 
                      %(results_dir))
 
-    log.info('About to run invert to get PSF')
+    log.info('After invert to get PSF')
     psf = psf_list[0][0]
     #show_image(psf, cm='Greys', vmax=0.1, vmin=-0.01)
     #plt.show()
@@ -277,8 +298,9 @@ if rank==0:
 # In[ ]:
 
 
-log.info('About to run deconvolve')
+log.info('%d: About to run deconvolve'%(rank))
 print('%d: About to run deconvolve'%(rank),flush=True)
+start=time.time()
 original_deconv=False
 if original_deconv:
     if rank==0:
@@ -300,13 +322,17 @@ else:
     
 #show_image(deconvolved[0], cm='Greys', vmax=0.1, vmin=-0.01)
 #plt.show()
+end=time.time()
 
+log.info('%d: After deconvolve'%(rank))
+print('%d: deconvolve finished in %f sec'%(rank,end-start))
 
 # In[ ]:
 
-log.info('About to run continuum imaging')
+log.info('%d: About to run continuum imaging'%(rank))
 print('%d: About to run continuum imaging'%(rank),flush=True)
 
+start=time.time()
 original_continuumimaging=False
 if original_continuumimaging:
     if rank==0:
@@ -334,7 +360,9 @@ else:
 
 
 # In[ ]:
-log.info('About to run continuum imaging')
+end=time.time()
+log.info('%d: continuum imaging finished'%(rank))
+print('%d: continuum imaging finished in %f sec.'%(rank,end-start),flush=True)
 
 if rank==0:
 
@@ -391,7 +419,10 @@ pp.pprint(controls)
 # TODO I change this to predicted_vislist to make it deterministic, I hope it makes
 # sense :)
 #ical_list = ical_list_serial_workflow(corrupted_vislist, 
+log.info('%d: About to run ical'%(rank))
+print('%d: About to run ical'%(rank),flush=True)
 
+start=time.time()
 original_ical=False
 if original_ical:
     if rank==0:
@@ -436,9 +467,12 @@ else:
 
 
 # In[ ]:
+end=time.time()
+log.info('%d: ical finished '%(rank))
+print('%d: ical finished in %f sec.'%(rank,end-start),flush=True)
 
 if rank==0:
-    log.info('About to run ical')
+    log.info('After ical')
     deconvolved = ical_list[0][0]
     residual = ical_list[1][0]
     restored = ical_list[2][0]
