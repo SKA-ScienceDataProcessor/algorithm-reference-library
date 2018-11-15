@@ -67,8 +67,9 @@ def init_logging():
                         format='%(asctime)s,%(msecs)d %(name)s %(levelname)s %(message)s',
                         datefmt='%H:%M:%S',
                         level=logging.INFO)
-log = logging.getLogger()
-logging.info("Starting imaging-pipeline")
+    return log
+
+log = init_logging()
 
 
 # In[2]:
@@ -112,8 +113,10 @@ channel_bandwidth=numpy.array(nfreqwin*[frequency[1]-frequency[0]])
 times = numpy.linspace(-numpy.pi/3.0, numpy.pi/3.0, ntimes)
 phasecentre=SkyCoord(ra=+30.0 * u.deg, dec=-60.0 * u.deg, frame='icrs', equinox='J2000')
 
-print('frequency len %d frequency list:' % len(frequency),flush=True)
-print(frequency)
+#log.info("Starting imaging-pipeline with %d MPI processes nfreqwin %d ntimes %d",size,nfreqwin,ntimes)
+#logging.debug('%d: frequency len %d frequency list:'rank,len(frequency))
+#print(frequency,flush=True)
+
 
 if rank == 0:
     vis_list=simulate_list_serial_workflow('LOWBD2',
@@ -126,8 +129,8 @@ if rank == 0:
 else:
     vis_list=list()
 
-print('%d: %d elements in vis_list' % (rank,len(vis_list)),flush=True)
-print(vis_list)
+#print('%d: %d elements in vis_list' % (rank,len(vis_list)),flush=True)
+#print(vis_list)
 
 
 # In[4]:
@@ -150,8 +153,7 @@ else:
     cellsize = 0
 
 (vis_slices,npixel,cellsize) = comm.bcast((vis_slices,npixel,cellsize),root=0)
-print('%d: After advice: vis_slices %d npixel %d cellsize %d' %
-      (rank,vis_slices, npixel, cellsize),flush=True)
+print('%d: After advice: vis_slices %d npixel %d cellsize %d' % (rank,vis_slices, npixel, cellsize),flush=True)
 
 # Now make a graph to fill with a model drawn from GLEAM 
 
