@@ -52,7 +52,7 @@ from workflows.serial.simulation.simulation_serial import simulate_list_serial_w
 from workflows.serial.pipelines.pipeline_serial import continuum_imaging_list_serial_workflow,     ical_list_serial_workflow
 
 import pprint
-
+import time
 pp = pprint.PrettyPrinter()
 
 import logging
@@ -64,7 +64,7 @@ def init_logging():
                         format='%(asctime)s,%(msecs)d %(name)s %(levelname)s %(message)s',
                         datefmt='%H:%M:%S',
                         level=logging.INFO)
-log = logging.getLogger()
+log = init_logging()
 logging.info("Starting imaging-pipeline")
 
 
@@ -95,7 +95,7 @@ vis_list=simulate_list_serial_workflow('LOWBD2',
                                          phasecentre=phasecentre,
                                          order='frequency',
                                         rmax=rmax)
-print('%d elements in vis_list' % len(vis_list))
+log.debug('%d elements in vis_list' % len(vis_list))
 
 
 # In[4]:
@@ -134,11 +134,15 @@ log.info('About to make GLEAM model')
 
 
 log.info('About to run predict to get predicted visibility')
+log.info('About to run predict to get predicted visibility')
+start=time.time()
 predicted_vislist = predict_list_serial_workflow(vis_list, gleam_model,  
                                                 context='wstack', vis_slices=vis_slices)
 #log.info('About to run corrupt to get corrupted visibility')
 #corrupted_vislist = corrupt_list_serial_workflow(predicted_vislist, phase_error=1.0)
 
+end=time.time()
+print('predict finished in %f seconds'%(end-start),flush=True)
 
 # Get the LSM. This is currently blank.
 
@@ -157,6 +161,8 @@ model_list = [create_image_from_visibility(vis_list[f],
 
 # In[ ]:
 
+start=time.time()
+print('About to start invert' ,flush=True)
 
 dirty_list = invert_list_serial_workflow(predicted_vislist, model_list, 
                                   context='wstack',
@@ -165,6 +171,8 @@ psf_list = invert_list_serial_workflow(predicted_vislist, model_list,
                                 context='wstack',
                                 vis_slices=vis_slices, dopsf=True)
 
+end=time.time()
+print('invert finished in %f seconds'%(end-start),flush=True)
 
 # Create and execute graphs to make the dirty image and PSF
 
@@ -194,6 +202,7 @@ export_image_to_fits(psf, '%s/imaging-psf.fits'
 
 
 log.info('About to run deconvolve')
+start=time.time()
 
 deconvolved, _ =     deconvolve_list_serial_workflow(dirty_list, psf_list, model_imagelist=model_list, 
                             deconvolve_facets=8, deconvolve_overlap=16, deconvolve_taper='tukey',
@@ -202,13 +211,16 @@ deconvolved, _ =     deconvolve_list_serial_workflow(dirty_list, psf_list, model
                             fractional_threshold=0.1,
                             threshold=0.1, gain=0.1, psf_support=64)
     
+end=time.time()
+print('deconvolve finished in %f seconds'%(end-start),flush=True)
 #show_image(deconvolved[0], cm='Greys', vmax=0.1, vmin=-0.01)
 #plt.show()
 
 
 # In[ ]:
 
-
+log.info('About to run continuum imaging')
+start=time.time()
 continuum_imaging_list =     continuum_imaging_list_serial_workflow(predicted_vislist, 
                                             model_imagelist=model_list, 
                                             context='wstack', vis_slices=vis_slices, 
@@ -222,8 +234,9 @@ continuum_imaging_list =     continuum_imaging_list_serial_workflow(predicted_vi
 
 # In[ ]:
 
+end=time.time()
+print('continuum imaging finished in %f seconds'%(end-start),flush=True)
 
-log.info('About to run continuum imaging')
 
 deconvolved = continuum_imaging_list[0][0]
 residual = continuum_imaging_list[1][0]
@@ -277,6 +290,8 @@ pp.pprint(controls)
 
 
 # In[ ]:
+start=time.time()
+log.info('About to run ical')
 
 # TODO I change this to predicted_vislist to make it deterministic, I hope it makes
 # sense :)
@@ -302,8 +317,9 @@ ical_list = ical_list_serial_workflow(predicted_vislist,
 
 # In[ ]:
 
+end=time.time()
+print('ical finished in %f seconds'%(end-start),flush=True)
 
-log.info('About to run ical')
 deconvolved = ical_list[0][0]
 residual = ical_list[1][0]
 restored = ical_list[2][0]
