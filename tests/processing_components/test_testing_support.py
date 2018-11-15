@@ -20,7 +20,7 @@ from processing_components.simulation.testing_support import create_test_image_f
     create_low_test_skycomponents_from_gleam
 from processing_components.imaging.primary_beams import create_low_test_beam
 from processing_components.visibility.base import create_visibility, create_blockvisibility
-from processing_components.visibility.coalesce import coalesce_visibility
+from processing_components.visibility.coalesce import convert_blockvisibility_to_visibility
 from processing_components.visibility.operations import append_visibility
 
 log = logging.getLogger(__name__)
@@ -245,5 +245,5 @@ class TestTesting_Support(unittest.TestCase):
                                           weight=1.0, polarisation_frame=PolarisationFrame('stokesI'),
                                           channel_bandwidth=self.channel_bandwidth)
         self.vis = predict_skycomponent_visibility(self.vis, sc)
-        cvt = coalesce_visibility(self.vis, time_coal=1.0)
+        cvt = convert_blockvisibility_to_visibility(self.vis, time_coal=1.0)
         assert cvt.cindex is not None

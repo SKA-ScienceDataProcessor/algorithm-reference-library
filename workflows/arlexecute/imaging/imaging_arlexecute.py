@@ -59,6 +59,9 @@ def predict_list_arlexecute_workflow(vis_list, model_imagelist, vis_slices=1, fa
     
     assert len(vis_list) == len(model_imagelist), "Model must be the same length as the vis_list"
     
+    # Predict_2d do not clear the vis so we have to do it here.
+    vis_list = zero_list_arlexecute_workflow(vis_list)
+
     c = imaging_context(context)
     vis_iter = c['vis_iterator']
     predict = c['predict']
