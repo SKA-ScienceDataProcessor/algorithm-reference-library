@@ -17,7 +17,7 @@ import numpy
 
 from data_models.memory_data_models import Visibility, BlockVisibility
 from ..visibility.base import create_visibility_from_rows
-from ..visibility.coalesce import coalesce_visibility, decoalesce_visibility
+from ..visibility.coalesce import convert_blockvisibility_to_visibility, convert_visibility_to_blockvisibility
 from ..visibility.iterators import vis_timeslice_iter, vis_wslice_iter
 
 log = logging.getLogger(__name__)
@@ -41,7 +41,7 @@ def visibility_scatter(vis: Visibility, vis_iter, vis_slices=1) -> List[Visibili
         return [vis]
     
     if isinstance(vis, BlockVisibility):
-        avis = coalesce_visibility(vis)
+        avis = convert_blockvisibility_to_visibility(vis)
     else:
         avis = vis
     
@@ -72,7 +72,7 @@ def visibility_gather(visibility_list: List[Visibility], vis: Visibility, vis_it
         vis_slices = len(visibility_list)
         
     if (vis_iter == vis_wslice_iter or vis_iter == vis_timeslice_iter) and isinstance(vis, BlockVisibility):
-        cvis = coalesce_visibility(vis, vis_slices=vis_slices)
+        cvis = convert_blockvisibility_to_visibility(vis)
     else:
         cvis = vis
     
@@ -89,14 +89,14 @@ def visibility_gather(visibility_list: List[Visibility], vis: Visibility, vis_it
             cvis.data[rows] = visibility_list[i].data[...]
     
     if (vis_iter == vis_wslice_iter or vis_iter == vis_timeslice_iter) and isinstance(vis, BlockVisibility):
-        return decoalesce_visibility(cvis)
+        return convert_visibility_to_blockvisibility(cvis)
     else:
         return cvis
 
 
 def visibility_scatter_w(vis: Visibility, vis_slices=1) -> List[Visibility]:
     if isinstance(vis, BlockVisibility):
-        avis = coalesce_visibility(vis)
+        avis = convert_blockvisibility_to_visibility(vis)
         visibility_list = visibility_scatter(avis, vis_iter=vis_wslice_iter, vis_slices=vis_slices)
     else:
         visibility_list = visibility_scatter(vis, vis_iter=vis_wslice_iter, vis_slices=vis_slices)
@@ -110,8 +110,8 @@ def visibility_scatter_time(vis: Visibility, vis_slices=1) -> List[Visibility]:
 
 def visibility_gather_w(visibility_list: List[Visibility], vis: Visibility, vis_slices=1) -> Visibility:
     if isinstance(vis, BlockVisibility):
-        cvis = coalesce_visibility(vis, vis_slices=vis_slices)
-        return decoalesce_visibility(visibility_gather(visibility_list, cvis, vis_iter=vis_wslice_iter,
+        cvis = convert_blockvisibility_to_visibility(vis)
+        return convert_visibility_to_blockvisibility(visibility_gather(visibility_list, cvis, vis_iter=vis_wslice_iter,
                                                        vis_slices=vis_slices))
     else:
         return visibility_gather(visibility_list, vis, vis_iter=vis_wslice_iter, vis_slices=vis_slices)

@@ -12,7 +12,7 @@ format. For e.g. SKA1-LOW, coalescing typically reduces the number of visibiliti
 A typical use might be::
 
     vt = predict_skycomponent_visibility(vt, comps)
-    cvt = coalesce_visibility(vt, time_coal=1.0, max_time_coal=100, frequency_coal=0.0,
+    cvt = convert_blockvisibility_to_visibility(vt, time_coal=1.0, max_time_coal=100, frequency_coal=0.0,
         max_frequency_coal=1)
     dirtyimage, sumwt = invert_2d(cvt, model)
 

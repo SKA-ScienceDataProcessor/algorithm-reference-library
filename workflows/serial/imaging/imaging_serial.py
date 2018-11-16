@@ -429,7 +429,7 @@ def taper_list_serial_workflow(vis_list, size_required):
     return [taper_visibility_gaussian(v, beam=size_required) for v in vis_list]
 
 
-def zero_list_arlexecute_workflow(vis_list):
+def zero_list_serial_workflow(vis_list):
     """ Initialise vis to zero: creates new data holders
 
     :param vis_list:

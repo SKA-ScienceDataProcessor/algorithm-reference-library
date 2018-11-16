@@ -43,7 +43,7 @@ from ..griddata.gridding import grid_visibility_to_griddata, \
     degrid_visibility_from_griddata
 from ..griddata.operations import create_griddata_from_image
 from ..visibility.base import copy_visibility, phaserotate_visibility
-from ..visibility.coalesce import coalesce_visibility, decoalesce_visibility, convert_blockvisibility_to_visibility
+from ..visibility.coalesce import convert_blockvisibility_to_visibility, convert_visibility_to_blockvisibility
 
 log = logging.getLogger(__name__)
 
@@ -116,8 +116,7 @@ def predict_2d(vis: Union[BlockVisibility, Visibility], model: Image, gcfcf=None
     :return: resulting visibility (in place works)
     """
     if isinstance(vis, BlockVisibility):
-        log.debug("imaging.predict: coalescing prior to prediction")
-        avis = coalesce_visibility(vis, **kwargs)
+        avis = convert_blockvisibility_to_visibility(vis)
     else:
         avis = vis
     
@@ -141,7 +140,7 @@ def predict_2d(vis: Union[BlockVisibility, Visibility], model: Image, gcfcf=None
     
     if isinstance(vis, BlockVisibility) and isinstance(svis, Visibility):
         log.debug("imaging.predict decoalescing post prediction")
-        return decoalesce_visibility(svis)
+        return convert_visibility_to_blockvisibility(svis)
     else:
         return svis
 
@@ -164,7 +163,7 @@ def invert_2d(vis: Visibility, im: Image, dopsf: bool = False, normalize: bool =
 
     """
     if not isinstance(vis, Visibility):
-        svis = coalesce_visibility(vis, **kwargs)
+        svis = convert_blockvisibility_to_visibility(vis)
     else:
         svis = copy_visibility(vis)
     

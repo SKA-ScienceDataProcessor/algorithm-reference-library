@@ -17,7 +17,7 @@ from processing_library.image.operations import create_w_term_like
 
 from ..image.operations import copy_image
 from ..visibility.base import copy_visibility
-from ..visibility.coalesce import coalesce_visibility, decoalesce_visibility
+from ..visibility.coalesce import convert_blockvisibility_to_visibility, convert_visibility_to_blockvisibility
 from ..imaging.base import predict_2d, invert_2d
 
 import logging
@@ -36,10 +36,12 @@ def predict_wstack_single(vis, model, remove=True, gcfcf=None, **kwargs) -> Visi
 
     if not isinstance(vis, Visibility):
         log.debug("predict_wstack_single: Coalescing")
-        avis = coalesce_visibility(vis, **kwargs)
+        avis = convert_blockvisibility_to_visibility(vis)
     else:
         avis = vis
         
+    avis.data['vis'][...] = 0.0
+
     log.debug("predict_wstack_single: predicting using single w slice")
 
     # We might want to do wprojection so we remove the average w
@@ -50,7 +52,7 @@ def predict_wstack_single(vis, model, remove=True, gcfcf=None, **kwargs) -> Visi
 
     # Calculate w beam and apply to the model. The imaginary part is not needed
     workimage = copy_image(model)
-    w_beam = create_w_term_like(model, w_average, vis.phasecentre)
+    w_beam = create_w_term_like(model, w_average, avis.phasecentre)
     
     # Do the real part
     workimage.data = w_beam.data.real * model.data
@@ -65,8 +67,7 @@ def predict_wstack_single(vis, model, remove=True, gcfcf=None, **kwargs) -> Visi
         avis.data['uvw'][..., 2] += w_average
 
     if isinstance(vis, BlockVisibility) and isinstance(avis, Visibility):
-        log.debug("imaging.predict decoalescing post prediction")
-        return decoalesce_visibility(avis)
+        return convert_visibility_to_blockvisibility(avis)
     else:
         return avis
 

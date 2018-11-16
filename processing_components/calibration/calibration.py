@@ -23,7 +23,7 @@ from processing_library.calibration.solvers import solve_from_X
 
 from ..visibility.base import create_visibility_from_rows
 from ..calibration.operations import apply_gaintable, create_gaintable_from_blockvisibility
-from ..visibility.coalesce import convert_blockvisibility_to_visibility, decoalesce_visibility
+from ..visibility.coalesce import convert_blockvisibility_to_visibility, convert_visibility_to_blockvisibility
 from ..visibility.base import copy_visibility
 from ..imaging.base import predict_skycomponent_visibility, predict_2d
 from ..visibility.operations import divide_visibility

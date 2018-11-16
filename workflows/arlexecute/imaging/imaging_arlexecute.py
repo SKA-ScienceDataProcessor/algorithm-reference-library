@@ -304,7 +304,8 @@ def deconvolve_list_arlexecute_workflow(dirty_list, psf_list, model_imagelist, p
             moment0 = calculate_image_frequency_moments(dirty)
             this_peak = numpy.max(numpy.abs(moment0.data[0, ...])) / dirty.data.shape[0]
         else:
-            this_peak = numpy.max(numpy.abs(dirty.data[0, ...]))
+            ref_chan = dirty.data.shape[0] // 2
+            this_peak = numpy.max(numpy.abs(dirty.data[ref_chan, ...]))
         
         if this_peak > 1.1 * gthreshold:
             kwargs['threshold'] = gthreshold
@@ -312,10 +313,8 @@ def deconvolve_list_arlexecute_workflow(dirty_list, psf_list, model_imagelist, p
             
             if result.data.shape[0] == model.data.shape[0]:
                 result.data += model.data
-            flux = numpy.sum(result.data[0, 0, ...])
             return result
         else:
-            
             return copy_image(model)
     
     deconvolve_facets = get_parameter(kwargs, 'deconvolve_facets', 1)
@@ -354,8 +353,8 @@ def deconvolve_list_arlexecute_workflow(dirty_list, psf_list, model_imagelist, p
     # Work out the threshold. Need to find global peak over all dirty_list images
     threshold = get_parameter(kwargs, "threshold", 0.0)
     fractional_threshold = get_parameter(kwargs, "fractional_threshold", 0.1)
-    nmoments = get_parameter(kwargs, "nmoments", 0)
-    use_moment0 = nmoments > 0
+    nmoment = get_parameter(kwargs, "nmoment", 0)
+    use_moment0 = nmoment > 0
     
     # Find the global threshold. This uses the peak in the average on the frequency axis since we
     # want to use it in a stopping criterion in a moment clean

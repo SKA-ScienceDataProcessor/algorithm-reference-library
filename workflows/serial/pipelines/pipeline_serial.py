@@ -1,6 +1,5 @@
-""" Pipeline functions. SDP standard pipelinee expressed as functions. This is quite slow and is provided mainly for
-completeness. Use parallel versions pipelines/components.py for speed.
-
+""" Pipeline functions. SDP standard pipelines expressed as functions. This is quite slow and is provided mainly for
+completeness. Use arlexecute versions pipelines/components.py for speed.
 """
 from data_models.parameters import get_parameter
 
@@ -13,7 +12,7 @@ from ..imaging.imaging_serial import invert_list_serial_workflow, residual_list_
 
 def ical_list_serial_workflow(vis_list, model_imagelist, context='2d', calibration_context='TG', do_selfcal=True,
                                   **kwargs):
-    """Create graph for ICAL pipeline
+    """Function for ICAL pipeline
 
     :param vis_list:
     :param model_imagelist:
@@ -44,7 +43,6 @@ def ical_list_serial_workflow(vis_list, model_imagelist, context='2d', calibrati
     deconvolve_model_imagelist, _ = deconvolve_list_serial_workflow(residual_imagelist, psf_imagelist,
                                                                         model_imagelist,
                                                                         prefix='cycle 0', **kwargs)
-    
     nmajor = get_parameter(kwargs, "nmajor", 5)
     if nmajor > 1:
         for cycle in range(nmajor):

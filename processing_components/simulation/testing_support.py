@@ -40,22 +40,22 @@ from astropy.wcs import WCS
 from astropy.wcs.utils import pixel_to_skycoord
 from scipy import interpolate
 
-from data_models.memory_data_models import Configuration, Image, GainTable, Skycomponent
+from data_models.memory_data_models import Configuration, Image, GainTable, Skycomponent, SkyModel
 from data_models.parameters import arl_path
 from data_models.parameters import get_parameter
 from data_models.polarisation import PolarisationFrame
-from processing_library.image.operations import create_image_from_array
-from processing_library.util.coordinate_support import xyz_at_latitude
 from processing_components.calibration.calibration_control import create_calibration_controls
 from processing_components.calibration.operations import create_gaintable_from_blockvisibility, apply_gaintable
-from processing_components.image.operations import import_image_from_fits, qa_image
+from processing_components.image.operations import import_image_from_fits
 from processing_components.imaging.base import predict_2d, predict_skycomponent_visibility, \
     create_image_from_visibility, advise_wide_field
+from processing_components.imaging.primary_beams import create_pb
 from processing_components.skycomponent.operations import create_skycomponent, insert_skycomponent, \
     apply_beam_to_skycomponent, filter_skycomponents_by_flux
 from processing_components.visibility.base import create_blockvisibility, create_visibility
 from processing_components.visibility.coalesce import convert_visibility_to_blockvisibility
-from processing_components.imaging.primary_beams import create_pb
+from processing_library.image.operations import create_image_from_array
+from processing_library.util.coordinate_support import xyz_at_latitude
 
 log = logging.getLogger(__name__)
 
@@ -306,7 +306,7 @@ def create_test_image_from_s3(npixel=16384, polarisation_frame=PolarisationFrame
         assert fov in [10, 20, 40], "Field of view invalid: use one of %s" % ([10, 20, 40])
         csvfilename = arl_path('data/models/S3_151MHz_%ddeg.csv' % (fov))
         log.info('create_test_image_from_s3: Reading S3 sources from %s ' % csvfilename)
-
+    
     with open(csvfilename) as csvfile:
         readCSV = csv.reader(csvfile, delimiter=',')
         r = 0
@@ -328,11 +328,11 @@ def create_test_image_from_s3(npixel=16384, polarisation_frame=PolarisationFrame
             r += 1
     
     csvfile.close()
-
+    
     assert len(fluxes) > 0, "No sources found above flux limit %s" % flux_limit
-
+    
     log.info('create_test_image_from_s3: %d sources read' % (len(fluxes)))
-
+    
     p = w.sub(2).wcs_world2pix(numpy.array(ras), numpy.array(decs), 1)
     total_flux = numpy.sum(fluxes)
     fluxes = numpy.array(fluxes)
@@ -361,9 +361,9 @@ def create_low_test_image_from_gleam(npixel=512, polarisation_frame=Polarisation
     """Create LOW test image from the GLEAM survey
 
     Stokes I is estimated from a cubic spline fit to the measured fluxes. The polarised flux is always zero.
-    
+
     See http://www.mwatelescope.org/science/gleam-survey The catalog is available from Vizier.
-    
+
     VIII/100   GaLactic and Extragalactic All-sky MWA survey  (Hurley-Walker+, 2016)
 
     GaLactic and Extragalactic All-sky Murchison Wide Field Array (GLEAM) survey. I: A low-frequency extragalactic
@@ -377,7 +377,7 @@ def create_low_test_image_from_gleam(npixel=512, polarisation_frame=Polarisation
     :param phasecentre: phasecentre (SkyCoord)
     :param kind: Kind of interpolation (see scipy.interpolate.interp1d) Default: linear
     :return: Image
-    
+
     """
     
     if phasecentre is None:
@@ -418,6 +418,81 @@ def create_low_test_image_from_gleam(npixel=512, polarisation_frame=Polarisation
     return model
 
 
+def create_low_test_skymodel_from_gleam(npixel=512, polarisation_frame=PolarisationFrame("stokesI"), cellsize=0.000015,
+                                        frequency=numpy.array([1e8]), channel_bandwidth=numpy.array([1e6]),
+                                        phasecentre=None, kind='cubic', applybeam=True, flux_limit=0.1,
+                                        flux_max=numpy.inf, flux_threshold=1.0, insert_method='Nearest',
+                                        telescope='LOW') -> SkyModel:
+    """Create LOW test skymodel from the GLEAM survey
+
+    Stokes I is estimated from a cubic spline fit to the measured fluxes. The polarised flux is always zero.
+
+    See http://www.mwatelescope.org/science/gleam-survey The catalog is available from Vizier.
+
+    VIII/100   GaLactic and Extragalactic All-sky MWA survey  (Hurley-Walker+, 2016)
+
+    GaLactic and Extragalactic All-sky Murchison Wide Field Array (GLEAM) survey. I: A low-frequency extragalactic
+    catalogue. Hurley-Walker N., et al., Mon. Not. R. Astron. Soc., 464, 1146-1167 (2017), 2017MNRAS.464.1146H
+
+    :param telescope:
+    :param npixel: Number of pixels
+    :param polarisation_frame: Polarisation frame (default PolarisationFrame("stokesI"))
+    :param cellsize: cellsize in radians
+    :param frequency:
+    :param channel_bandwidth: Channel width (Hz)
+    :param phasecentre: phasecentre (SkyCoord)
+    :param kind: Kind of interpolation (see scipy.interpolate.interp1d) Default: cubic
+    :param applybeam: Apply the primary beam?
+    :param flux_limit: Weakest component
+    :param flux_max: Maximum strength component to be included in components
+    :param flux_threshold: Split between components (brighter) and image (weaker)
+    :param insert_method: Nearest | PSWF | Lanczos
+    :return:
+    :return: SkyModel
+
+    """
+    
+    if phasecentre is None:
+        phasecentre = SkyCoord(ra=+15.0 * u.deg, dec=-35.0 * u.deg, frame='icrs', equinox='J2000')
+    
+    radius = npixel * cellsize
+    
+    sc = create_low_test_skycomponents_from_gleam(flux_limit=flux_limit, polarisation_frame=polarisation_frame,
+                                                  frequency=frequency, phasecentre=phasecentre,
+                                                  kind=kind, radius=radius)
+    
+    sc = filter_skycomponents_by_flux(sc, flux_max=flux_max)
+    if polarisation_frame is None:
+        polarisation_frame = PolarisationFrame("stokesI")
+    
+    npol = polarisation_frame.npol
+    nchan = len(frequency)
+    shape = [nchan, npol, npixel, npixel]
+    w = WCS(naxis=4)
+    # The negation in the longitude is needed by definition of RA, DEC
+    w.wcs.cdelt = [-cellsize * 180.0 / numpy.pi, cellsize * 180.0 / numpy.pi, 1.0, channel_bandwidth[0]]
+    w.wcs.crpix = [npixel // 2 + 1, npixel // 2 + 1, 1.0, 1.0]
+    w.wcs.ctype = ["RA---SIN", "DEC--SIN", 'STOKES', 'FREQ']
+    w.wcs.crval = [phasecentre.ra.deg, phasecentre.dec.deg, 1.0, frequency[0]]
+    w.naxis = 4
+    w.wcs.radesys = 'ICRS'
+    w.wcs.equinox = 2000.0
+    
+    model = create_image_from_array(numpy.zeros(shape), w, polarisation_frame=polarisation_frame)
+
+    if applybeam:
+        beam = create_pb(model, telescope=telescope)
+        sc = apply_beam_to_skycomponent(sc, beam)
+
+    weaksc = filter_skycomponents_by_flux(sc, flux_max=flux_threshold)
+    brightsc = filter_skycomponents_by_flux(sc, flux_min=flux_threshold)
+    model = insert_skycomponent(model, weaksc, insert_method=insert_method)
+    log.info('create_low_test_skymodel_from_gleam: %d bright sources above flux threshold %.3f, %d weak sources below ' %
+             (len(brightsc), flux_threshold, len(weaksc)))
+    
+    return SkyModel(components=brightsc, images=[model])
+
+
 def create_low_test_skycomponents_from_gleam(flux_limit=0.1, polarisation_frame=PolarisationFrame("stokesI"),
                                              frequency=numpy.array([1e8]), kind='cubic', phasecentre=None,
                                              radius=1.0) \
@@ -434,7 +509,6 @@ def create_low_test_skycomponents_from_gleam(flux_limit=0.1, polarisation_frame=
     catalogue. Hurley-Walker N., et al., Mon. Not. R. Astron. Soc., 464, 1146-1167 (2017), 2017MNRAS.464.1146H
 
 
-    :rtype: Union[None, List[processing_library.data_models.data_models.Skycomponent], List]
     :param flux_limit: Only write components brighter than this (Jy)
     :param polarisation_frame: Polarisation frame (default PolarisationFrame("stokesI"))
     :param frequency: Frequencies at which the flux will be estimated
@@ -487,13 +561,13 @@ def create_low_test_skycomponents_from_gleam(flux_limit=0.1, polarisation_frame=
         gleam_flux_freq[:, i] = filtered_recs['int_flux_%03d' % (f)][:]
     
     skycomps = []
-
+    
     directions = SkyCoord(ra=ras * u.deg, dec=decs * u.deg)
     if phasecentre is not None:
         separations = directions.separation(phasecentre).to('rad').value
     else:
         separations = numpy.zeros(len(names))
-
+    
     for isource, name in enumerate(names):
         direction = directions[isource]
         if separations[isource] < radius:
@@ -692,15 +766,14 @@ def create_unittest_components(model, flux, applypb=False, telescope='LOW', npix
     spacing_pixels = int(scale * npixel) // 4
     log.info('Spacing in pixels = %s' % spacing_pixels)
     
-    
     if not symmetric:
         centers = [(0.2, 1.1)]
     else:
         centers = list()
-        
+    
     if not single:
         centers.append([0.0, 0.0])
-    
+        
         for x in numpy.linspace(-1.2, 1.2, 7):
             if abs(x) > 1e-15:
                 centers.append([x, x])

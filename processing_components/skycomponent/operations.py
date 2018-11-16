@@ -268,13 +268,12 @@ def find_skycomponents(im: Image, fwhm=1.0, threshold=10.0, npixels=5) -> List[S
     return comps
 
 
-def apply_beam_to_skycomponent(sc: Union[Skycomponent, List[Skycomponent]], beam: Image, flux_limit=0.0) \
+def apply_beam_to_skycomponent(sc: Union[Skycomponent, List[Skycomponent]], beam: Image) \
         -> Union[Skycomponent, List[Skycomponent]]:
     """ Insert a Skycomponent into an image
     
     :param beam:
     :param sc: SkyComponent or list of SkyComponents
-    :param flux_limit: flux limit on input
     :return: List of skycomponents
     """
     assert isinstance(beam, Image)
@@ -306,13 +305,11 @@ def apply_beam_to_skycomponent(sc: Union[Skycomponent, List[Skycomponent]], beam
             x, y = int(round(float(pixloc[0]))), int(round(float(pixloc[1])))
             if x >= 0 and x < nx and y >= 0 and y < ny:
                 comp.flux[:, :] *= beam.data[:, :, y, x]
-                #                if comp.flux[:, :].any() > flux_limit:
-                if comp.flux[0, 0] > flux_limit:
-                    total_flux += comp.flux
-                    newsc.append(Skycomponent(comp.direction, comp.frequency, comp.name, comp.flux,
-                                              shape=comp.shape,
-                                              polarisation_frame=comp.polarisation_frame))
-    
+                total_flux += comp.flux
+                newsc.append(Skycomponent(comp.direction, comp.frequency, comp.name, comp.flux,
+                                          shape=comp.shape,
+                                          polarisation_frame=comp.polarisation_frame))
+
     log.debug('apply_beam_to_skycomponent: %d components with total flux %s' %
               (len(newsc), total_flux))
     if single:
@@ -320,9 +317,24 @@ def apply_beam_to_skycomponent(sc: Union[Skycomponent, List[Skycomponent]], beam
     else:
         return newsc
 
+
+def filter_skycomponents_by_index(sc, indices):
+    """Filter sky components by index
+
+    :param sc:
+    :param indices:
+    :return:
+    """
+    newcomps = list()
+    for i in indices:
+        newcomps.append(sc[i])
+    
+    return newcomps
+
+
 def filter_skycomponents_by_flux(sc, flux_min=-numpy.inf, flux_max=numpy.inf):
     """Filter sky components by stokes I flux
-    
+
     :param sc:
     :param flux_min:
     :param flux_max:
@@ -330,10 +342,11 @@ def filter_skycomponents_by_flux(sc, flux_min=-numpy.inf, flux_max=numpy.inf):
     """
     newcomps = list()
     for comp in sc:
-        if (numpy.max(comp.flux[:,0]) > flux_min) and (numpy.max(comp.flux[:,0]) < flux_max):
+        if (numpy.max(comp.flux[:, 0]) > flux_min) and (numpy.max(comp.flux[:, 0]) < flux_max):
             newcomps.append(comp)
-            
+    
     return newcomps
+
 
 def insert_skycomponent(im: Image, sc: Union[Skycomponent, List[Skycomponent]], insert_method='Nearest',
                         bandwidth=1.0, support=8) -> Image:
