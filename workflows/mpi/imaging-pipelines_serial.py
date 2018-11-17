@@ -64,8 +64,10 @@ def init_logging():
                         format='%(asctime)s,%(msecs)d %(name)s %(levelname)s %(message)s',
                         datefmt='%H:%M:%S',
                         level=logging.INFO)
+    return log
+
 log = init_logging()
-logging.info("Starting imaging-pipeline")
+log.info("Starting imaging-pipeline")
 
 
 # In[2]:
