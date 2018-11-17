@@ -43,7 +43,6 @@ from ..griddata.gridding import grid_visibility_to_griddata, \
     degrid_visibility_from_griddata
 from ..griddata.operations import create_griddata_from_image
 from ..visibility.base import copy_visibility, phaserotate_visibility
-from ..visibility.coalesce import convert_blockvisibility_to_visibility, convert_visibility_to_blockvisibility
 
 log = logging.getLogger(__name__)
 
@@ -115,13 +114,8 @@ def predict_2d(vis: Union[BlockVisibility, Visibility], model: Image, gcfcf=None
     :param gcfcf: (Grid correction function i.e. in image space, Convolution function i.e. in uv space)
     :return: resulting visibility (in place works)
     """
-    if isinstance(vis, BlockVisibility):
-        avis = convert_blockvisibility_to_visibility(vis)
-    else:
-        avis = vis
-    
-    assert isinstance(avis, Visibility), avis
-    
+    assert isinstance(vis, Visibility), vis
+
     _, _, ny, nx = model.data.shape
     
     if gcfcf is None:
@@ -133,16 +127,12 @@ def predict_2d(vis: Union[BlockVisibility, Visibility], model: Image, gcfcf=None
     
     griddata = create_griddata_from_image(model)
     griddata = fft_image_to_griddata(model, griddata, gcf)
-    avis = degrid_visibility_from_griddata(avis, griddata=griddata, cf=cf)
+    vis = degrid_visibility_from_griddata(vis, griddata=griddata, cf=cf)
     
     # Now we can shift the visibility from the image frame to the original visibility frame
-    svis = shift_vis_to_image(avis, model, tangent=True, inverse=True)
+    svis = shift_vis_to_image(vis, model, tangent=True, inverse=True)
     
-    if isinstance(vis, BlockVisibility) and isinstance(svis, Visibility):
-        log.debug("imaging.predict decoalescing post prediction")
-        return convert_visibility_to_blockvisibility(svis)
-    else:
-        return svis
+    return svis
 
 
 def invert_2d(vis: Visibility, im: Image, dopsf: bool = False, normalize: bool = True,
@@ -162,13 +152,12 @@ def invert_2d(vis: Visibility, im: Image, dopsf: bool = False, normalize: bool =
     :return: resulting image
 
     """
-    if not isinstance(vis, Visibility):
-        svis = convert_blockvisibility_to_visibility(vis)
-    else:
-        svis = copy_visibility(vis)
+    assert isinstance(vis, Visibility), vis
+    
+    svis = copy_visibility(vis)
     
     if dopsf:
-        svis.data['vis'] = numpy.ones_like(svis.data['vis'])
+        svis.data['vis'][...] = 1.0+0.0j
     
     svis = shift_vis_to_image(svis, im, tangent=True, inverse=False)
 
@@ -211,7 +200,6 @@ def predict_skycomponent_visibility(vis: Union[Visibility, BlockVisibility],
     if isinstance(vis, Visibility):
         
         _, im_nchan = list(get_frequency_map(vis, None))
-        npol = vis.polarisation_frame.npol
         
         for comp in sc:
             assert isinstance(comp, Skycomponent), comp
@@ -369,22 +357,18 @@ def advise_wide_field(vis: Visibility, delA=0.02, oversampling_synthesised_beam=
     :return: dict of advice
     """
     
-    if isinstance(vis, BlockVisibility):
-        svis = convert_blockvisibility_to_visibility(vis)
-    else:
-        svis = vis
-    assert isinstance(svis, Visibility), svis
+    assert isinstance(vis, Visibility), vis
     
-    max_wavelength = constants.c.to('m s^-1').value / numpy.min(svis.frequency)
+    max_wavelength = constants.c.to('m s^-1').value / numpy.min(vis.frequency)
     log.info("advise_wide_field: Maximum wavelength %.3f (meters)" % (max_wavelength))
     
-    min_wavelength = constants.c.to('m s^-1').value / numpy.max(svis.frequency)
+    min_wavelength = constants.c.to('m s^-1').value / numpy.max(vis.frequency)
     log.info("advise_wide_field: Minimum wavelength %.3f (meters)" % (min_wavelength))
     
-    maximum_baseline = numpy.max(numpy.abs(svis.uvw))  # Wavelengths
+    maximum_baseline = numpy.max(numpy.abs(vis.uvw))  # Wavelengths
     log.info("advise_wide_field: Maximum baseline %.1f (wavelengths)" % (maximum_baseline))
     
-    diameter = numpy.min(svis.configuration.diameter)
+    diameter = numpy.min(vis.configuration.diameter)
     log.info("advise_wide_field: Station/antenna diameter %.1f (meters)" % (diameter))
     
     primary_beam_fov = max_wavelength / diameter
@@ -470,8 +454,6 @@ def advise_wide_field(vis: Visibility, delA=0.02, oversampling_synthesised_beam=
     nwpixels = nwpixels - nwpixels % 2
     log.info('advice_wide_field: W support = %d (pixels) (primary beam)' % nwpixels)
     
-    del vis
-    del svis
     del pwr2
     del pwr23
     return locals()

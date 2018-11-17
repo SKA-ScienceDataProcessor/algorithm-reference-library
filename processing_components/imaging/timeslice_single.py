@@ -25,8 +25,6 @@ Ignoring changes in the normalisation term, we have:
 """
 import logging
 
-from ..visibility.coalesce import convert_blockvisibility_to_visibility, convert_visibility_to_blockvisibility
-
 log = logging.getLogger(__name__)
 
 """
@@ -56,13 +54,11 @@ Ignoring changes in the normalisation term, we have:
 """
 import numpy
 
-from data_models.memory_data_models import BlockVisibility, Visibility, Image
+from data_models.memory_data_models import Visibility, Image
 
 from processing_components.image.operations import reproject_image
 
 from processing_components.imaging.base import predict_2d, invert_2d
-
-from processing_components.visibility.coalesce import convert_blockvisibility_to_visibility
 
 
 def fit_uvwplane_only(vis: Visibility) -> (float, float):
@@ -117,16 +113,13 @@ def predict_timeslice_single(vis: Visibility, model: Image, predict=predict_2d, 
     """
     log.debug("predict_timeslice: predicting using time slices")
     
-    if not isinstance(vis, Visibility):
-        avis = convert_blockvisibility_to_visibility(vis)
-    else:
-        avis = vis
+    assert isinstance(vis, Visibility), vis
     
-    avis.data['vis'][...] = 0.0
+    vis.data['vis'][...] = 0.0
     
     # Fit and remove best fitting plane for this slice
-    uvw = avis.uvw
-    avis, p, q = fit_uvwplane(avis, remove=remove)
+    uvw = vis.uvw
+    avis, p, q = fit_uvwplane(vis, remove=remove)
     
     # We want to describe work image as distorted. We describe the distortion by putting
     # the olbiquity parameters in the wcs. The input model should be described as having
@@ -142,12 +135,10 @@ def predict_timeslice_single(vis: Visibility, model: Image, predict=predict_2d, 
     if remove:
         avis.data['uvw'][...] = uvw
     
-    avis = predict(avis, workimage, gcfcf=gcfcf, **kwargs)
+    vis = predict(avis, workimage, gcfcf=gcfcf, **kwargs)
     
-    if isinstance(vis, BlockVisibility) and isinstance(avis, Visibility):
-        return convert_visibility_to_blockvisibility(avis)
-    else:
-        return avis
+
+    return vis
 
 
 def invert_timeslice_single(vis: Visibility, im: Image, dopsf, normalize=True, remove=True,
@@ -161,17 +152,14 @@ def invert_timeslice_single(vis: Visibility, im: Image, dopsf, normalize=True, r
     :param gcfcf: (Grid correction function, convolution function)
     :param normalize: Normalize by the sum of weights (True)
     """
-    if not isinstance(vis, Visibility):
-        avis = convert_blockvisibility_to_visibility(vis)
-    else:
-        avis = vis
+    assert isinstance(vis, Visibility), vis
     
     log.debug("invert_timeslice: inverting using time slices")
     
-    uvw = avis.uvw
-    avis, p, q = fit_uvwplane(avis, remove=remove)
+    uvw = vis.uvw
+    vis, p, q = fit_uvwplane(vis, remove=remove)
     
-    workimage, sumwt = invert_2d(avis, im, dopsf, normalize=normalize, gcfcf=gcfcf, **kwargs)
+    workimage, sumwt = invert_2d(vis, im, dopsf, normalize=normalize, gcfcf=gcfcf, **kwargs)
     # Work image is distorted. We describe the distortion by putting the olbiquity parameters in
     # the wcs. The output image should be described as having zero olbiquity parameters.
     
@@ -183,6 +171,6 @@ def invert_timeslice_single(vis: Visibility, im: Image, dopsf, normalize=True, r
     finalimage.wcs.wcs.set_pv([(0, 1, 0.0), (0, 2, 0.0)])
     
     if remove:
-        avis.data['uvw'][...] = uvw
+        vis.data['uvw'][...] = uvw
     
     return finalimage, sumwt

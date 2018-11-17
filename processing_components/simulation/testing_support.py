@@ -757,7 +757,7 @@ def ingest_unittest_visibility(config, frequency, channel_bandwidth, times, vis_
     return vt
 
 
-def create_unittest_components(model, flux, applypb=False, telescope='LOW', npixel=None, symmetrical=False,
+def create_unittest_components(model, flux, applypb=False, telescope='LOW', npixel=None,
                                scale=1.0, single=False, symmetric=False):
     # Fill the visibility with exactly computed point sources.
     
@@ -814,7 +814,7 @@ def create_unittest_model(vis, model_pol, npixel=None, cellsize=None, nchan=1):
     return model
 
 
-def insert_unittest_errors(vt, seed=180555, amp_errors=None, phase_errors=None):
+def insert_unittest_errors(vt, seed=180555, calibration_context="TGB", amp_errors=None, phase_errors=None):
     """Simulate gain errors and apply
     
     :param vt:
@@ -832,7 +832,7 @@ def insert_unittest_errors(vt, seed=180555, amp_errors=None, phase_errors=None):
     if phase_errors is None:
         phase_errors = {'T': 1.0, 'G': 0.1, 'B': 0.01}
     
-    for c in "TGB":
+    for c in calibration_context:
         gaintable = \
             create_gaintable_from_blockvisibility(vt, timeslice=controls[c]['timeslice'])
         gaintable = simulate_gaintable(gaintable,

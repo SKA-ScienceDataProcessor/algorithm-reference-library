@@ -17,7 +17,6 @@ import numpy
 
 from data_models.memory_data_models import Visibility, BlockVisibility
 from ..visibility.base import create_visibility_from_rows
-from ..visibility.coalesce import convert_blockvisibility_to_visibility, convert_visibility_to_blockvisibility
 from ..visibility.iterators import vis_timeslice_iter, vis_wslice_iter
 
 log = logging.getLogger(__name__)
@@ -40,14 +39,9 @@ def visibility_scatter(vis: Visibility, vis_iter, vis_slices=1) -> List[Visibili
     if vis_slices == 1:
         return [vis]
     
-    if isinstance(vis, BlockVisibility):
-        avis = convert_blockvisibility_to_visibility(vis)
-    else:
-        avis = vis
-    
     visibility_list = list()
-    for i, rows in enumerate(vis_iter(avis, vis_slices=vis_slices)):
-        subvis = create_visibility_from_rows(avis, rows)
+    for i, rows in enumerate(vis_iter(vis, vis_slices=vis_slices)):
+        subvis = create_visibility_from_rows(vis, rows)
         visibility_list.append(subvis)
     
     return visibility_list
@@ -70,14 +64,9 @@ def visibility_gather(visibility_list: List[Visibility], vis: Visibility, vis_it
     
     if vis_slices is None:
         vis_slices = len(visibility_list)
-        
-    if (vis_iter == vis_wslice_iter or vis_iter == vis_timeslice_iter) and isinstance(vis, BlockVisibility):
-        cvis = convert_blockvisibility_to_visibility(vis)
-    else:
-        cvis = vis
     
     rowses = []
-    for i, rows in enumerate(vis_iter(cvis, vis_slices=vis_slices)):
+    for i, rows in enumerate(vis_iter(vis, vis_slices=vis_slices)):
         rowses.append(rows)
 
     for i, rows in enumerate(rowses):
@@ -86,48 +75,35 @@ def visibility_gather(visibility_list: List[Visibility], vis: Visibility, vis_it
             assert numpy.sum(rows) == visibility_list[i].nvis, \
                 "Mismatch in number of rows (%d, %d) in gather for slice %d" % \
             (numpy.sum(rows), visibility_list[i].nvis, i)
-            cvis.data[rows] = visibility_list[i].data[...]
+            vis.data[rows] = visibility_list[i].data[...]
     
-    if (vis_iter == vis_wslice_iter or vis_iter == vis_timeslice_iter) and isinstance(vis, BlockVisibility):
-        return convert_visibility_to_blockvisibility(cvis)
-    else:
-        return cvis
+    return vis
 
 
 def visibility_scatter_w(vis: Visibility, vis_slices=1) -> List[Visibility]:
-    if isinstance(vis, BlockVisibility):
-        avis = convert_blockvisibility_to_visibility(vis)
-        visibility_list = visibility_scatter(avis, vis_iter=vis_wslice_iter, vis_slices=vis_slices)
-    else:
-        visibility_list = visibility_scatter(vis, vis_iter=vis_wslice_iter, vis_slices=vis_slices)
-    
-    return visibility_list
-
+    assert isinstance(vis, Visibility), vis
+    return visibility_scatter(vis, vis_iter=vis_wslice_iter, vis_slices=vis_slices)
 
 def visibility_scatter_time(vis: Visibility, vis_slices=1) -> List[Visibility]:
     return visibility_scatter(vis, vis_iter=vis_timeslice_iter, vis_slices=vis_slices)
 
 
 def visibility_gather_w(visibility_list: List[Visibility], vis: Visibility, vis_slices=1) -> Visibility:
-    if isinstance(vis, BlockVisibility):
-        cvis = convert_blockvisibility_to_visibility(vis)
-        return convert_visibility_to_blockvisibility(visibility_gather(visibility_list, cvis, vis_iter=vis_wslice_iter,
-                                                       vis_slices=vis_slices))
-    else:
-        return visibility_gather(visibility_list, vis, vis_iter=vis_wslice_iter, vis_slices=vis_slices)
+    assert isinstance(vis, Visibility), vis
+    return visibility_gather(visibility_list, vis, vis_iter=vis_wslice_iter, vis_slices=vis_slices)
 
 
 def visibility_gather_time(visibility_list: List[Visibility], vis: Visibility, vis_slices=1) -> Visibility:
     return visibility_gather(visibility_list, vis, vis_iter=vis_timeslice_iter, vis_slices=vis_slices)
 
-
 def visibility_scatter_channel(vis: BlockVisibility) -> List[Visibility]:
-    """ Scatter channels to separate images
+    """ Scatter channels to separate visibilities
     
     :param vis:
     :return:
     """
-    
+    assert isinstance(vis, BlockVisibility), vis
+
     def extract_channel(v, chan):
         vis_shape = numpy.array(v.data['vis'].shape)
         vis_shape[3] = 1
@@ -148,7 +124,7 @@ def visibility_scatter_channel(vis: BlockVisibility) -> List[Visibility]:
     return [extract_channel(vis, channel) for channel, _ in enumerate(vis.frequency)]
 
 
-def visibility_gather_channel(vis_list: List[Visibility], vis: Visibility = None):
+def visibility_gather_channel(vis_list: List[BlockVisibility], vis: BlockVisibility = None):
     """ Gather a visibility by channel
     
     :param vis_list:

@@ -2,11 +2,16 @@
 
 """
 
+import numpy
+
 from wrappers.arlexecute.execution_support.arlexecute import arlexecute
 from wrappers.arlexecute.calibration.calibration_control import calibrate_function
 from wrappers.arlexecute.calibration.operations import apply_gaintable
 from wrappers.arlexecute.visibility.gather_scatter import visibility_gather_channel
+from wrappers.arlexecute.visibility.base import copy_visibility
 from wrappers.arlexecute.visibility.operations import divide_visibility, integrate_visibility_by_channel
+from wrappers.arlexecute.visibility.coalesce import convert_blockvisibility_to_visibility, convert_visibility_to_blockvisibility
+
 
 def calibrate_list_arlexecute_workflow(vis_list, model_vislist, calibration_context='TG', global_solution=True,
                                        **kwargs):
@@ -23,19 +28,30 @@ def calibrate_list_arlexecute_workflow(vis_list, model_vislist, calibration_cont
     :param kwargs: Parameters for functions in components
     :return:
     """
-    
+
     def solve_and_apply(vis, modelvis=None):
-        return calibrate_function(vis, modelvis, calibration_context=calibration_context, **kwargs)[0]
-    
+        # If the model is zero, just ignore
+        if modelvis is None or numpy.max(numpy.abs(modelvis.vis)) > 0.0:
+            return calibrate_function(vis, modelvis, calibration_context=calibration_context, **kwargs)[0]
+        else:
+            return vis
+
+    def apply(vis, gt):
+        bvis = convert_visibility_to_blockvisibility(vis)
+        bvis = apply_gaintable(bvis, gt, Inverse=True, **kwargs)
+        return convert_blockvisibility_to_visibility(bvis)
+
     if global_solution:
         point_vislist = [arlexecute.execute(divide_visibility, nout=len(vis_list))(vis_list[i],
                                                                                    model_vislist[i])
                          for i, _ in enumerate(vis_list)]
+        point_vislist = [arlexecute.execute(convert_visibility_to_blockvisibility, nout=len(vis_list))(pv)
+                         for pv in point_vislist]
         global_point_vis_list = arlexecute.execute(visibility_gather_channel, nout=1)(point_vislist)
         global_point_vis_list = arlexecute.execute(integrate_visibility_by_channel, nout=1)(global_point_vis_list)
         # This is a global solution so we only compute one gain table
-        _, gt_list = arlexecute.execute(solve_and_apply, pure=True, nout=2)(global_point_vis_list)
-        return [arlexecute.execute(apply_gaintable, nout=len(vis_list))(v, gt_list, inverse=True)
+        _, gt = arlexecute.execute(solve_and_apply, pure=True, nout=2)(global_point_vis_list)
+        return [arlexecute.execute(apply, nout=len(vis_list))(v, gt, inverse=True)
                 for v in vis_list]
     else:
         

@@ -13,10 +13,8 @@ import logging
 import numpy
 import numpy.testing
 
-from data_models.memory_data_models import Visibility, BlockVisibility
+from data_models.memory_data_models import Visibility
 from processing_components.griddata.operations import copy_griddata
-from processing_components.visibility.coalesce import convert_blockvisibility_to_visibility, \
-    convert_visibility_to_blockvisibility
 from processing_components.visibility.operations import copy_visibility
 from processing_library.image.operations import ifft, fft, create_image_from_array
 
@@ -156,17 +154,14 @@ def grid_weight_to_griddata(vis, griddata, cf):
     :param kwargs:
     :return: GridData
     """
-    if isinstance(vis, BlockVisibility):
-        avis = convert_blockvisibility_to_visibility(vis)
-    else:
-        avis = vis
+    assert isinstance(vis, Visibility), vis
     
     nchan, npol, nz, ny, nx = griddata.shape
     sumwt = numpy.zeros([nchan, npol])
     pu_grid, pu_offset, pv_grid, pv_offset, pwg_grid, pwg_fraction, pwc_grid, pwc_fraction, pfreq_grid = \
-        convolution_mapping(avis, griddata, cf)
+        convolution_mapping(vis, griddata, cf)
     _, _, _, _, _, gv, gu = cf.shape
-    coords = zip(avis.imaging_weight, pfreq_grid, pu_grid, pv_grid, pwg_grid)
+    coords = zip(vis.imaging_weight, pfreq_grid, pu_grid, pv_grid, pwg_grid)
     griddata.data[...] = 0.0
     
     for vwt, chan, xx, yy, zzg in coords:
@@ -211,25 +206,16 @@ def griddata_reweight(vis, griddata, cf):
     :param kwargs:
     :return: GridData
     """
-    if isinstance(vis, BlockVisibility):
-        avis = convert_blockvisibility_to_visibility(vis)
-    else:
-        avis = vis
-    
     pu_grid, pu_offset, pv_grid, pv_offset, pwg_grid, pwg_fraction, pwc_grid, pwc_fraction, pfreq_grid = \
-        convolution_mapping(avis, griddata, cf)
+        convolution_mapping(vis, griddata, cf)
     _, _, _, _, _, gv, gu = cf.shape
-    coords = zip(avis.imaging_weight, pfreq_grid, pu_grid, pv_grid, pwg_grid)
+    coords = zip(vis.imaging_weight, pfreq_grid, pu_grid, pv_grid, pwg_grid)
     
     for vwt, chan, xx, yy, zzg in coords:
         if numpy.real(griddata.data[chan, :, zzg, yy, xx]).all() > 0.0:
             vwt /= numpy.real(griddata.data[chan, :, zzg, yy, xx])
     
-    if isinstance(vis, BlockVisibility):
-        vis = convert_visibility_to_blockvisibility(avis)
-        return vis
-    else:
-        return avis
+    return vis
 
 
 def degrid_visibility_from_griddata(vis, griddata, cf, **kwargs):
@@ -276,7 +262,7 @@ def fft_griddata_to_image(griddata, gcf, imaginary=False):
     :param gcf: Grid correction image
     :return:
     """
-    
+   
     projected = numpy.sum(griddata.data, axis=2)
     _, _, ny, nx = projected.data.shape
     
