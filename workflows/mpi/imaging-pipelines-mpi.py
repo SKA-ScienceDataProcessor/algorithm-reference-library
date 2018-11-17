@@ -52,7 +52,7 @@ from workflows.serial.simulation.simulation_serial import simulate_list_serial_w
 from workflows.serial.pipelines.pipeline_serial import continuum_imaging_list_serial_workflow,     ical_list_serial_workflow
 
 from workflows.mpi.pipelines.pipeline_mpi import continuum_imaging_list_mpi_workflow, ical_list_mpi_workflow
-from workflows.mpi.imaging.imaging_mpi import predict_list_mpi_workflow, invert_list_mpi_workflow, deconvolve_list_mpi_workflow
+from workflows.mpi.imaging.imaging_mpi_opt import predict_list_mpi_workflow, invert_list_mpi_workflow, deconvolve_list_mpi_workflow
 
 import time
 
