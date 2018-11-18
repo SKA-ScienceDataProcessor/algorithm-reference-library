@@ -46,7 +46,7 @@ def create_calibration_controls(**kwargs):
     return controls
 
 
-def calibrate_function(vis, model_vis, calibration_context='T', controls=None, iteration=0, **kwargs):
+def calibrate_function(vis, model_vis, calibration_context='T', controls=None, iteration=0, tol=1e-6, **kwargs):
     """ Calibrate using algorithm specified by calibration_context
     
     The context string can denote a sequence of calibrations e.g. TGB with different timescales.
@@ -83,7 +83,8 @@ def calibrate_function(vis, model_vis, calibration_context='T', controls=None, i
             gaintables[c] = solve_gaintable(avis, amvis,
                                             timeslice=controls[c]['timeslice'],
                                             phase_only=controls[c]['phase_only'],
-                                            crosspol=controls[c]['shape'] == 'matrix')
+                                            crosspol=controls[c]['shape'] == 'matrix',
+                                            tol=tol)
             log.debug('calibrate_function: Jones matrix %s, iteration %d' % (c, iteration))
             log.debug(qa_gaintable(gaintables[c], context='Jones matrix %s, iteration %d' % (c, iteration)))
             avis = apply_gaintable(avis, gaintables[c], inverse=True, timeslice=controls[c]['timeslice'])

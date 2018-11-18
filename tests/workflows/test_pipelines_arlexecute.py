@@ -180,10 +180,10 @@ class TestPipelineGraphs(ARLExecuteTestCase, unittest.TestCase):
         ical_list = \
             ical_list_arlexecute_workflow(self.vis_list, model_imagelist=self.model_imagelist,
                                           context='2d',
-                                          algorithm='msclean', facets=1,
+                                          algorithm='mmclean', facets=1,
                                           scales=[0, 3, 10],
                                           niter=1000, fractional_threshold=0.1, threshold=0.1,
-                                          nmoment=0,
+                                          nmoment=3,
                                           nmajor=5, gain=0.1,
                                           deconvolve_facets=4, deconvolve_overlap=32,
                                           deconvolve_taper='tukey', psf_support=64,

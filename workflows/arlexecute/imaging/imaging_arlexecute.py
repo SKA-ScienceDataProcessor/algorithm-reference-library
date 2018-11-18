@@ -11,7 +11,7 @@ import logging
 
 import numpy
 
-from data_models.memory_data_models import Image
+from data_models.memory_data_models import Image, Visibility
 from data_models.parameters import get_parameter
 from processing_library.image.operations import copy_image, create_empty_image_like
 from workflows.shared.imaging.imaging_shared import imaging_context
@@ -32,7 +32,7 @@ from wrappers.arlexecute.imaging.weighting import taper_visibility_gaussian, tap
 log = logging.getLogger(__name__)
 
 
-def predict_list_arlexecute_workflow(vis_list, model_imagelist, vis_slices=1, facets=1, context='2d',
+def predict_list_arlexecute_workflow(vis_list, model_imagelist, context, vis_slices=1, facets=1,
                                      gcfcf=None, **kwargs):
     """Predict, iterating over both the scattered vis_list and image
     
@@ -48,7 +48,6 @@ def predict_list_arlexecute_workflow(vis_list, model_imagelist, vis_slices=1, fa
     :param kwargs: Parameters for functions in components
     :return: List of vis_lists
    """
-    
     if get_parameter(kwargs, "use_serial_predict", False):
         from workflows.serial.imaging.imaging_serial import predict_list_serial_workflow
         return [arlexecute.execute(predict_list_serial_workflow, nout=1) \
@@ -59,7 +58,7 @@ def predict_list_arlexecute_workflow(vis_list, model_imagelist, vis_slices=1, fa
     
     assert len(vis_list) == len(model_imagelist), "Model must be the same length as the vis_list"
     
-    # Predict_2d do not clear the vis so we have to do it here.
+    # Predict_2d does not clear the vis so we have to do it here.
     vis_list = zero_list_arlexecute_workflow(vis_list)
 
     c = imaging_context(context)
@@ -73,12 +72,14 @@ def predict_list_arlexecute_workflow(vis_list, model_imagelist, vis_slices=1, fa
     
     def predict_ignore_none(vis, model, g):
         if vis is not None:
+            assert isinstance(vis, Visibility), vis
+            assert isinstance(model, Image), model
             return predict(vis, model, context=context, gcfcf=g, **kwargs)
         else:
             return None
     
     if gcfcf is None:
-        gcfcf = [arlexecute.execute(create_pswf_convolutionfunction)(model_imagelist[0])]
+        gcfcf = [arlexecute.execute(create_pswf_convolutionfunction)(m) for m in model_imagelist]
     
     # Loop over all frequency windows
     if facets == 1:
@@ -134,8 +135,8 @@ def predict_list_arlexecute_workflow(vis_list, model_imagelist, vis_slices=1, fa
         return image_results_list_list
 
 
-def invert_list_arlexecute_workflow(vis_list, template_model_imagelist, dopsf=False, normalize=True,
-                                    facets=1, vis_slices=1, context='2d', gcfcf=None, **kwargs):
+def invert_list_arlexecute_workflow(vis_list, template_model_imagelist, context, dopsf=False, normalize=True,
+                                    facets=1, vis_slices=1, gcfcf=None, **kwargs):
     """ Sum results from invert, iterating over the scattered image and vis_list
 
     :param vis_list:
@@ -154,8 +155,8 @@ def invert_list_arlexecute_workflow(vis_list, template_model_imagelist, dopsf=Fa
         from workflows.serial.imaging.imaging_serial import invert_list_serial_workflow
         return [arlexecute.execute(invert_list_serial_workflow, nout=1) \
                     (vis_list=[vis_list[i]], template_model_imagelist=[template_model_imagelist[i]],
-                     dopsf=dopsf, normalize=normalize, vis_slices=vis_slices,
-                     facets=facets, context=context, gcfcf=gcfcf, **kwargs)[0]
+                     context=context, dopsf=dopsf, normalize=normalize, vis_slices=vis_slices,
+                     facets=facets, gcfcf=gcfcf, **kwargs)[0]
                 for i, _ in enumerate(vis_list)]
     
     if not isinstance(template_model_imagelist, collections.Iterable):
