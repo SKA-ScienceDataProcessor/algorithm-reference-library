@@ -61,6 +61,7 @@ import pprint
 pp = pprint.PrettyPrinter()
 
 import logging
+import argparse 
 
 def init_logging():
     log = logging.getLogger(__name__)
@@ -77,6 +78,13 @@ def init_logging():
     return log
 
 log = init_logging()
+
+
+parser = argparse.ArgumentParser(description='Imaging pipelines in MPI.')
+parser.add_argument('--nfreqwin', type=int, nargs='?', default=7,
+                                       help='The number of frequency windows')
+
+args = parser.parse_args()
 
 
 # In[2]:
@@ -112,7 +120,8 @@ size = comm.Get_size()
 # In[3]:
 
 
-nfreqwin=7
+#nfreqwin=7
+nfreqwin=args.nfreqwin
 ntimes=11
 rmax=300.0
 frequency=numpy.linspace(0.9e8,1.1e8,nfreqwin)
