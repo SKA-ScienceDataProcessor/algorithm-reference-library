@@ -19,7 +19,7 @@ module load cfitsio-3.410-gcc-5.4.0-tp3pkyv
 git-lfs pull
 
 # Start the building ARL through building a python virtualenvironment
-#virtualenv -p `which python3` _build
+virtualenv -p `which python3` _build
 source _build/bin/activate
 pip install --upgrade pip
 pip install -U setuptools
