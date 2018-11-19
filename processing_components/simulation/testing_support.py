@@ -836,13 +836,13 @@ def insert_unittest_errors(vt, seed=180555, calibration_context="TGB", amp_error
         phase_errors = {'T': 1.0, 'G': 0.1, 'B': 0.01}
     
     for c in calibration_context:
-        gaintable = \
-            create_gaintable_from_blockvisibility(vt, timeslice=controls[c]['timeslice'])
+        gaintable = create_gaintable_from_blockvisibility(vt, timeslice=controls[c]['timeslice'])
         gaintable = simulate_gaintable(gaintable,
                                        timeslice=controls[c]['timeslice'],
                                        phase_only=controls[c]['phase_only'],
                                        crosspol=controls[c]['shape'] == 'matrix',
                                        phase_error=phase_errors[c], amplitude_error=amp_errors[c])
+        
         vt = apply_gaintable(vt, gaintable, inverse=True, timeslice=controls[c]['timeslice'])
     
     return vt

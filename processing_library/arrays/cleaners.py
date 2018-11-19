@@ -511,8 +511,8 @@ def msmfsclean(dirty, psf, window, gain, thresh, niter, scales, fracthresh, find
     lpsf = psf / pmax
     ldirty = dirty / pmax
 
-    nmoments, ny, nx = dirty.shape
-    assert psf.shape[0] == 2 * nmoments
+    nmoment, ny, nx = dirty.shape
+    assert psf.shape[0] == 2 * nmoment
 
     # Create the "scale basis functions" in Algorithm 1
     scaleshape = [nscales, ldirty.shape[1], ldirty.shape[2]]
@@ -556,7 +556,7 @@ def msmfsclean(dirty, psf, window, gain, thresh, niter, scales, fracthresh, find
 
     aiter = 0
     log.info('mmclean %s: Timing for setup: %.3f (s) for dirty shape %s, PSF shape %s , scales %s, %d moments' %
-             (prefix, time.time() - starttime, str(dirty.shape), str(psf.shape), str(scales), nmoments))
+             (prefix, time.time() - starttime, str(dirty.shape), str(psf.shape), str(scales), nmoment))
     starttime = time.time()
     for i in range(niter):
         aiter = i + 1
@@ -592,7 +592,7 @@ def msmfsclean(dirty, psf, window, gain, thresh, niter, scales, fracthresh, find
     dtime = time.time() - starttime
     log.info('mmclean %s: Timing for clean: %.3f (s) for dirty shape %s, PSF shape %s , scales %s, %d moments, '
              '%d iterations, time per clean %.3f (ms)' %
-             (prefix, dtime, str(dirty.shape), str(psf.shape), str(scales), nmoments, aiter, 1000.0 * dtime / aiter))
+             (prefix, dtime, str(dirty.shape), str(psf.shape), str(scales), nmoment, aiter, 1000.0 * dtime / aiter))
 
     return m_model, pmax * smresidual[0, :, :, :]
 
@@ -611,12 +611,12 @@ def find_global_optimum(hsmmpsf, ihsmmpsf, smresidual, windowstack, findpeak):
         # CASA 4.7 version
         smpsol = calculate_scale_moment_principal_solution(smresidual, ihsmmpsf)
         #        smpsol = calculate_scale_moment_approximate_principal_solution(smresidual, hsmmpsf)
-        nscales, nmoments, nx, ny = smpsol.shape  # pylint: disable=no-member
+        nscales, nmoment, nx, ny = smpsol.shape  # pylint: disable=no-member
         dchisq = numpy.zeros([nscales, 1, nx, ny])
         for scale in range(nscales):
-            for moment1 in range(nmoments):
+            for moment1 in range(nmoment):
                 dchisq[scale, 0, ...] += 2.0 * smpsol[scale, moment1, ...] * smresidual[scale, moment1, ...]
-                for moment2 in range(nmoments):
+                for moment2 in range(nmoment):
                     dchisq[scale, 0, ...] -= hsmmpsf[scale, moment1, moment2] * \
                         smpsol[scale, moment1, ...] * smpsol[scale, moment2, ...]
 
@@ -637,7 +637,7 @@ def update_scale_moment_residual(smresidual, ssmmpsf, lhs, rhs, gain, mscale, mv
 
     """
     # Lines 30 - 32 of Algorithm 1.
-    nscales, nmoments, _, _ = smresidual.shape
+    nscales, nmoment, _, _ = smresidual.shape
     smresidual[:, :, lhs[0]:lhs[1], lhs[2]:lhs[3]] -= \
         gain * numpy.einsum("stqxy,q->stxy", ssmmpsf[mscale, :, :, :, rhs[0]:rhs[1], rhs[2]:rhs[3]], mval)
 
@@ -649,8 +649,8 @@ def update_moment_model(m_model, scalestack, lhs, rhs, gain, mscale, mval):
 
     """
     # Lines 28 - 33 of Algorithm 1
-    nmoments, _, _ = m_model.shape
-    for t in range(nmoments):
+    nmoment, _, _ = m_model.shape
+    for t in range(nmoment):
         # Line 29 of Algorithm 1. Note that the convolution is implemented here as an
         # appropriate shift.
         m_model[t, lhs[0]:lhs[1], lhs[2]:lhs[3]] += \
@@ -665,15 +665,15 @@ def calculate_scale_moment_residual(residual, scalestack):
     Part of the initialisation for Algorithm 1: lines 12 - 17
 
     :param scalestack:
-    :param residual: residual [nmoments, nx, ny]
-    :return: scale-dependent moment residual [nscales, nmoments, nx, ny]
+    :param residual: residual [nmoment, nx, ny]
+    :return: scale-dependent moment residual [nscales, nmoment, nx, ny]
     """
-    nmoments, nx, ny = residual.shape
+    nmoment, nx, ny = residual.shape
     nscales = scalestack.shape[0]
 
     # Lines 12 - 17 from Algorithm 1
-    scale_moment_residual = numpy.zeros([nscales, nmoments, nx, ny])
-    for t in range(nmoments):
+    scale_moment_residual = numpy.zeros([nscales, nmoment, nx, ny])
+    for t in range(nmoment):
         scale_moment_residual[:, t, ...] = convolve_scalestack(scalestack, residual[t, ...])
     return scale_moment_residual
 
@@ -685,16 +685,16 @@ def calculate_scale_scale_moment_moment_psf(psf, scalestack):
 
     :param scalestack:
     :param psf: psf
-    :return: scale-dependent moment psf [nscales, nscales, nmoments, nmoments, nx, ny]
+    :return: scale-dependent moment psf [nscales, nscales, nmoment, nmoment, nx, ny]
     """
-    nmoments2, nx, ny = psf.shape
-    nmoments = nmoments2 // 2
+    nmoment2, nx, ny = psf.shape
+    nmoment = nmoment2 // 2
     nscales = scalestack.shape[0]
 
     # Lines 3 - 5 from Algorithm 1
-    scale_scale_moment_moment_psf = numpy.zeros([nscales, nscales, nmoments, nmoments, nx, ny])
-    for t in range(nmoments):
-        for q in range(nmoments):
+    scale_scale_moment_moment_psf = numpy.zeros([nscales, nscales, nmoment, nmoment, nx, ny])
+    for t in range(nmoment):
+        for q in range(nmoment):
             scale_scale_moment_moment_psf[:, :, t, q] = convolve_convolve_scalestack(scalestack, psf[t + q])
     return scale_scale_moment_moment_psf
 
@@ -704,11 +704,11 @@ def calculate_scale_inverse_moment_moment_hessian(scale_scale_moment_moment_psf)
 
     Part of the initialisation for Algorithm 1. Lines 7 - 9
 
-    :param scale_scale_moment_moment_psf: scale_moment_psf [nscales, nscales, nmoments, nmoments]
+    :param scale_scale_moment_moment_psf: scale_moment_psf [nscales, nscales, nmoment, nmoment]
     :return: scale-dependent moment-moment inverse hessian
     """
-    nscales, _, nmoments, _, nx, ny = scale_scale_moment_moment_psf.shape
-    hessian_shape = [nscales, nmoments, nmoments]
+    nscales, _, nmoment, _, nx, ny = scale_scale_moment_moment_psf.shape
+    hessian_shape = [nscales, nmoment, nmoment]
 
     scale_moment_moment_hessian = numpy.zeros(hessian_shape)
     scale_inverse_moment_moment_hessian = numpy.zeros(hessian_shape)
@@ -723,12 +723,12 @@ def calculate_scale_moment_principal_solution(smresidual, ihsmmpsf):
 
     Lines 20 - 26
 
-    :param smresidual: scale-dependent moment residual [nscales, nmoments, nx, ny]
+    :param smresidual: scale-dependent moment residual [nscales, nmoment, nx, ny]
     :param ihsmmpsf: Inverse of scale dependent moment moment Hessian
-    :return: Decoupled residual images [nscales, nmoments, nx, ny]
+    :return: Decoupled residual images [nscales, nmoment, nx, ny]
     """
-    # ihsmmpsf: nscales, nmoments, nmoments
-    # smresidual: nscales, nmoments, nx, ny
+    # ihsmmpsf: nscales, nmoment, nmoment
+    # smresidual: nscales, nmoment, nx, ny
     smpsol = numpy.einsum("smn,smxy->snxy", ihsmmpsf, smresidual)
 
     return smpsol
@@ -743,7 +743,7 @@ def find_optimum_scale_zero_moment(smpsol, windowstack):
     :param smpsol: Decoupled residual images for each scale and moment
     :return: x, y, optimum scale for peak
     """
-    nscales, nmoments, nx, ny = smpsol.shape
+    nscales, nmoment, nx, ny = smpsol.shape
     sscale = 0
     sx = 0
     sy = 0

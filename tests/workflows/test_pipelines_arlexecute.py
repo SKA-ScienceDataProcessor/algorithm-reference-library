@@ -199,6 +199,41 @@ class TestPipelineGraphs(ARLExecuteTestCase, unittest.TestCase):
         assert numpy.abs(qa.data['max'] - 100.13739440876233) < 1.0, str(qa)
         assert numpy.abs(qa.data['min'] + 0.03644435471804354) < 1.0, str(qa)
 
+    def test_ical_pipeline_global(self):
+        amp_errors = {'T': 0.0, 'G': 0.00, 'B': 0.0}
+        phase_errors = {'T': 1.0, 'G': 0.0, 'B': 0.0}
+        self.actualSetUp(add_errors=True, amp_errors=amp_errors, phase_errors=phase_errors)
+    
+        controls = create_calibration_controls()
+    
+        controls['T']['first_selfcal'] = 1
+        controls['G']['first_selfcal'] = 3
+    
+        controls['T']['timescale'] = 'auto'
+        controls['G']['timescale'] = 'auto'
+    
+        ical_list = \
+            ical_list_arlexecute_workflow(self.vis_list, model_imagelist=self.model_imagelist,
+                                          context='2d',
+                                          algorithm='mmclean', facets=1,
+                                          scales=[0, 3, 10],
+                                          niter=1000, fractional_threshold=0.1, threshold=0.1,
+                                          nmoment=3,
+                                          nmajor=5, gain=0.1,
+                                          deconvolve_facets=4, deconvolve_overlap=32,
+                                          deconvolve_taper='tukey', psf_support=64,
+                                          calibration_context='T', controls=controls, do_selfcal=True,
+                                          global_solution=True)
+        clean, residual, restored = arlexecute.compute(ical_list, sync=True)
+        centre = len(clean) // 2
+        export_image_to_fits(clean[centre], '%s/test_pipelines_ical_pipeline_clean.fits' % self.dir)
+        export_image_to_fits(residual[centre][0], '%s/test_pipelines_ical_pipeline_residual.fits' % self.dir)
+        export_image_to_fits(restored[centre], '%s/test_pipelines_ical_pipeline_restored.fits' % self.dir)
+    
+        qa = qa_image(restored[centre])
+        assert numpy.abs(qa.data['max'] - 100.13739440876233) < 1.0, str(qa)
+        assert numpy.abs(qa.data['min'] + 0.03644435471804354) < 1.0, str(qa)
+
 
 if __name__ == '__main__':
     unittest.main()

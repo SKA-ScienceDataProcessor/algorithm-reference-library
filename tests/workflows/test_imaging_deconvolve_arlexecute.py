@@ -146,7 +146,7 @@ class TestImagingDeconvolveGraph(ARLExecuteTestCase, unittest.TestCase):
         dec_imagelist, _ = deconvolve_list_arlexecute_workflow(dirty_imagelist, psf_imagelist, self.model_imagelist,
                                                                niter=1000,
                                                                fractional_threshold=0.01, scales=[0, 3, 10],
-                                                               algorithm='mmclean', nmoments=3, nchan=self.freqwin,
+                                                               algorithm='mmclean', nmoment=3, nchan=self.freqwin,
                                                                threshold=0.1, gain=0.7)
         dec_imagelist = arlexecute.persist(dec_imagelist)
         residual_imagelist = residual_list_arlexecute_workflow(self.vis_list, model_imagelist=dec_imagelist,
@@ -171,7 +171,7 @@ class TestImagingDeconvolveGraph(ARLExecuteTestCase, unittest.TestCase):
         dec_imagelist, _ = deconvolve_list_arlexecute_workflow(dirty_imagelist, psf_imagelist, self.model_imagelist,
                                                                niter=1000,
                                                                fractional_threshold=0.1, scales=[0, 3, 10],
-                                                               algorithm='mmclean', nmoments=3, nchan=self.freqwin,
+                                                               algorithm='mmclean', nmoment=3, nchan=self.freqwin,
                                                                threshold=0.01, gain=0.7, deconvolve_facets=8,
                                                                deconvolve_overlap=8, deconvolve_taper='tukey')
         dec_imagelist = arlexecute.persist(dec_imagelist)

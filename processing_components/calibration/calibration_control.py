@@ -46,9 +46,43 @@ def create_calibration_controls(**kwargs):
     return controls
 
 
-def calibrate_function(vis, model_vis, calibration_context='T', controls=None, iteration=0, tol=1e-6, **kwargs):
+def apply_calibration_function(vis, gaintables, calibration_context='T', controls=None, iteration=0, tol=1e-6,
+                               **kwargs):
     """ Calibrate using algorithm specified by calibration_context
     
+    The context string can denote a sequence of calibrations e.g. TGB with different timescales.
+
+    :param vis:
+    :param model_vis:
+    :param calibration_context: calibration contexts in order of correction e.g. 'TGB'
+    :param control: controls dictionary, modified as necessary
+    :param iteration: Iteration number to be compared to the 'first_selfcal' field.
+    :param kwargs:
+    :return: Calibrated data_models, dict(gaintables)
+    """
+
+    if controls is None:
+        controls = create_calibration_controls(**kwargs)
+    
+    isVis = isinstance(vis, Visibility)
+    if isVis:
+        avis = convert_visibility_to_blockvisibility(vis)
+    else:
+        avis = vis
+        
+    for c in calibration_context:
+        if iteration >= controls[c]['first_selfcal']:
+            avis = apply_gaintable(avis, gaintables[c], inverse=True, timeslice=controls[c]['timeslice'])
+            
+    if isVis:
+        return convert_blockvisibility_to_visibility(avis)
+    else:
+        return avis
+
+
+def calibrate_function(vis, model_vis, calibration_context='T', controls=None, iteration=0, tol=1e-6, **kwargs):
+    """ Calibrate using algorithm specified by calibration_context
+
     The context string can denote a sequence of calibrations e.g. TGB with different timescales.
 
     :param vis:
@@ -94,3 +128,48 @@ def calibrate_function(vis, model_vis, calibration_context='T', controls=None, i
         return convert_blockvisibility_to_visibility(avis), gaintables
     else:
         return avis, gaintables
+
+
+def solve_calibrate_function(vis, model_vis, calibration_context='T', controls=None, iteration=0, tol=1e-6, **kwargs):
+    """ Calibrate using algorithm specified by calibration_context
+
+    The context string can denote a sequence of calibrations e.g. TGB with different timescales.
+
+    :param vis:
+    :param model_vis:
+    :param calibration_context: calibration contexts in order of correction e.g. 'TGB'
+    :param control: controls dictionary, modified as necessary
+    :param iteration: Iteration number to be compared to the 'first_selfcal' field.
+    :param kwargs:
+    :return: Calibrated data_models, dict(gaintables)
+    """
+    gaintables = {}
+    
+    if controls is None:
+        controls = create_calibration_controls(**kwargs)
+    
+    isVis = isinstance(vis, Visibility)
+    if isVis:
+        avis = convert_visibility_to_blockvisibility(vis)
+    else:
+        avis = vis
+    
+    isMVis = isinstance(model_vis, Visibility)
+    if isMVis:
+        amvis = convert_visibility_to_blockvisibility(model_vis)
+    else:
+        amvis = model_vis
+    
+    for c in calibration_context:
+        if iteration >= controls[c]['first_selfcal']:
+            gaintables[c] = \
+                create_gaintable_from_blockvisibility(avis, timeslice=controls[c]['timeslice'])
+            gaintables[c] = solve_gaintable(avis, amvis,
+                                            timeslice=controls[c]['timeslice'],
+                                            phase_only=controls[c]['phase_only'],
+                                            crosspol=controls[c]['shape'] == 'matrix',
+                                            tol=tol)
+            log.debug(qa_gaintable(gaintables[c], context='Jones matrix %s, iteration %d' % (c, iteration)))
+        else:
+            log.debug('calibrate_function: Jones matrix %s not solved, iteration %d' % (c, iteration))
+    return gaintables

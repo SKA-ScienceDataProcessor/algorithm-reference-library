@@ -249,7 +249,7 @@ def deconvolve_list_serial_workflow(dirty_list, psf_list, model_imagelist, prefi
     :return: (graph for the deconvolution, graph for the flat)
     """
     nchan = len(dirty_list)
-    nmoments = get_parameter(kwargs, "nmoments", 0)
+    nmoment = get_parameter(kwargs, "nmoment", 0)
     
     def deconvolve(dirty, psf, model, facet, gthreshold):
         if prefix == '':
@@ -257,7 +257,7 @@ def deconvolve_list_serial_workflow(dirty_list, psf_list, model_imagelist, prefi
         else:
             lprefix = "%s, facet %d" % (prefix, facet)
         
-        if nmoments > 0:
+        if nmoment > 0:
             moment0 = calculate_image_frequency_moments(dirty)
             this_peak = numpy.max(numpy.abs(moment0.data[0, ...])) / dirty.data.shape[0]
         else:
@@ -311,8 +311,8 @@ def deconvolve_list_serial_workflow(dirty_list, psf_list, model_imagelist, prefi
     # Work out the threshold. Need to find global peak over all dirty_list images
     threshold = get_parameter(kwargs, "threshold", 0.0)
     fractional_threshold = get_parameter(kwargs, "fractional_threshold", 0.1)
-    nmoments = get_parameter(kwargs, "nmoments", 0)
-    use_moment0 = nmoments > 0
+    nmoment = get_parameter(kwargs, "nmoment", 0)
+    use_moment0 = nmoment > 0
     
     # Find the global threshold. This uses the peak in the average on the frequency axis since we
     # want to use it in a stopping criterion in a moment clean

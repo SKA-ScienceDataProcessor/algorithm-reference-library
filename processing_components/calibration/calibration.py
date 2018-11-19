@@ -46,8 +46,7 @@ def solve_gaintable(vis: BlockVisibility, modelvis: BlockVisibility = None, gt=N
     assert isinstance(vis, BlockVisibility), vis
     if modelvis is not None:
         assert isinstance(modelvis, BlockVisibility), modelvis
-        
-    assert numpy.max(numpy.abs(modelvis.vis)) > 0.0, "Model visibility is zero"
+        assert numpy.max(numpy.abs(modelvis.vis)) > 0.0, "Model visibility is zero"
     
     if phase_only:
         log.debug('solve_gaintable: Solving for phase only')

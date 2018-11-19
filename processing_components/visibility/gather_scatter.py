@@ -141,6 +141,7 @@ def visibility_gather_channel(vis_list: List[BlockVisibility], vis: BlockVisibil
         for v in vis_list:
             assert len(v.frequency) == 1
             assert len(v.channel_bandwidth) == 1
+            
         vis = BlockVisibility(data=None,
                               frequency=numpy.array([v.frequency[0] for v in vis_list]),
                               channel_bandwidth=numpy.array([v.channel_bandwidth[0] for v in vis_list]),
