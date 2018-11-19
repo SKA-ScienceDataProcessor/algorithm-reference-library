@@ -130,18 +130,21 @@ def apply_gaintable(vis: BlockVisibility, gt: GainTable, inverse=False, vis_slic
             original = vis.vis[rows]
             applied = copy.deepcopy(original)
             for time in range(ntimes):
-                for a1 in range(vis.nants - 1):
-                    for a2 in range(a1 + 1, vis.nants):
-                        if is_scalar:
-                            smueller = gain[time, a1, :, 0] * numpy.conjugate(gain[time, a2, :, 0])
-                            if inverse:
-                                if numpy.abs(smueller).all() > 0.0:
-                                    applied[time, a2, a1, :, 0][..., numpy.newaxis] = \
-                                        original[time, a2, a1, :, 0][..., numpy.newaxis] / smueller
-                            else:
+                if is_scalar:
+                    if inverse:
+                        lgain = numpy.ones_like(gain)
+                        lgain[numpy.abs(gain) > 0.0] = 1.0 / gain[numpy.abs(gain) > 0.0]
+                    else:
+                        lgain = gain
+                    for a1 in range(vis.nants - 1):
+                        for a2 in range(a1 + 1, vis.nants):
+                            if is_scalar:
+                                smueller = lgain[time, a1, :, 0] * numpy.conjugate(lgain[time, a2, :, 0])
                                 applied[time, a2, a1, :, 0][..., numpy.newaxis] = \
                                     original[time, a2, a1, :, 0][..., numpy.newaxis] * smueller
-                        else:
+                else:
+                    for a1 in range(vis.nants - 1):
+                        for a2 in range(a1 + 1, vis.nants):
                             for chan in range(nchan):
                                 mueller = numpy.kron(gain[time, a1, chan, :, :],
                                                      numpy.conjugate(gain[time, a2, chan, :, :]))

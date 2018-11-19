@@ -293,7 +293,7 @@ def deconvolve_list_arlexecute_workflow(dirty_list, psf_list, model_imagelist, p
     :return: (graph for the deconvolution, graph for the flat)
     """
     nchan = len(dirty_list)
-    nmoments = get_parameter(kwargs, "nmoments", 0)
+    nmoment = get_parameter(kwargs, "nmoment", 0)
     
     def deconvolve(dirty, psf, model, facet, gthreshold):
         if prefix == '':
@@ -301,7 +301,7 @@ def deconvolve_list_arlexecute_workflow(dirty_list, psf_list, model_imagelist, p
         else:
             lprefix = "%s, facet %d" % (prefix, facet)
         
-        if nmoments > 0:
+        if nmoment > 0:
             moment0 = calculate_image_frequency_moments(dirty)
             this_peak = numpy.max(numpy.abs(moment0.data[0, ...])) / dirty.data.shape[0]
         else:

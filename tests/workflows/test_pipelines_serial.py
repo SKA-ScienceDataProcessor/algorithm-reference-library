@@ -121,7 +121,7 @@ class TestPipelines(unittest.TestCase):
                                                    algorithm='mmclean', facets=1,
                                                    scales=[0, 3, 10],
                                                    niter=1000, fractional_threshold=0.1,
-                                                   nmoments=2, nchan=self.freqwin,
+                                                   nmoment=2, nchan=self.freqwin,
                                                    threshold=2.0, nmajor=5, gain=0.1,
                                                    deconvolve_facets=8, deconvolve_overlap=16,
                                                    deconvolve_taper='tukey')
@@ -159,7 +159,7 @@ class TestPipelines(unittest.TestCase):
                                       facets=1,
                                       scales=[0, 3, 10],
                                       niter=1000, fractional_threshold=0.1,
-                                      nmoments=2, nchan=self.freqwin,
+                                      nmoment=2, nchan=self.freqwin,
                                       threshold=2.0, nmajor=5, gain=0.1,
                                       deconvolve_facets=8, deconvolve_overlap=16, deconvolve_taper='tukey')
         centre = len(clean) // 2

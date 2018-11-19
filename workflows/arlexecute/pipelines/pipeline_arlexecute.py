@@ -43,7 +43,7 @@ def ical_list_arlexecute_workflow(vis_list, model_imagelist, context, vis_slices
         model_vislist = predict_list_arlexecute_workflow(model_vislist, model_imagelist,
                                                          context=context, vis_slices=vis_slices, facets=facets,
                                                          gcgcf=gcfcf, **kwargs)
-        cal_vis_list = calibrate_list_arlexecute_workflow(cal_vis_list, model_vislist,
+        cal_vis_list, _ = calibrate_list_arlexecute_workflow(cal_vis_list, model_vislist,
                                                           calibration_context=calibration_context, **kwargs)
         residual_vislist = subtract_list_arlexecute_workflow(cal_vis_list, model_vislist)
         residual_imagelist = invert_list_arlexecute_workflow(residual_vislist, model_imagelist,
@@ -69,7 +69,7 @@ def ical_list_arlexecute_workflow(vis_list, model_imagelist, context, vis_slices
                                                                  context=context, vis_slices=vis_slices, facets=facets,
                                                                  gcgcf=gcfcf, **kwargs)
                 cal_vis_list = [arlexecute.execute(copy_visibility, nout=1)(v) for v in vis_list]
-                cal_vis_list = calibrate_list_arlexecute_workflow(cal_vis_list, model_vislist,
+                cal_vis_list, _ = calibrate_list_arlexecute_workflow(cal_vis_list, model_vislist,
                                                                   calibration_context=calibration_context,
                                                                   iteration=cycle, **kwargs)
                 residual_vislist = subtract_list_arlexecute_workflow(cal_vis_list, model_vislist)

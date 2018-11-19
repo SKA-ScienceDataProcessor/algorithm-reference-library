@@ -124,7 +124,7 @@ class TestImage(unittest.TestCase):
         cube = create_low_test_image_from_gleam(npixel=512, cellsize=0.0001, frequency=frequency, flux_limit=1.0)
         log.debug(export_image_to_fits(cube, fitsfile='%s/test_moments_cube.fits' % (self.dir)))
         original_cube = copy_image(cube)
-        moment_cube = calculate_image_frequency_moments(cube, nmoments=3)
+        moment_cube = calculate_image_frequency_moments(cube, nmoment=3)
         log.debug(export_image_to_fits(moment_cube, fitsfile='%s/test_moments_moment_cube.fits' % (self.dir)))
         reconstructed_cube = calculate_image_from_frequency_moments(cube, moment_cube)
         log.debug(export_image_to_fits(reconstructed_cube, fitsfile='%s/test_moments_reconstructed_cube.fits' % (
