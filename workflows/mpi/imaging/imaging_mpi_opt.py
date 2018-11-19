@@ -100,6 +100,7 @@ def predict_list_mpi_workflow(vis_list, model_imagelist, vis_slices=1,
     
     image_results_list_list=comm.gather(image_results_list_list,root=0)
     if rank == 0:
+        #image_results_list_list=[x for x in image_results_list_list if x]
         image_results_list_list=numpy.concatenate(image_results_list_list)
     else:
         image_results_list_list=list()
@@ -191,7 +192,7 @@ def invert_list_mpi_workflow(vis_list, template_model_imagelist, dopsf=False, no
     if rank == 0:
         # This may be necessary before concatenate in case one of the
         # sublists is emplty (i.e. there was not enough work for all procs)
-        #all_vis_results=[x for x in all_vis_results if x]
+        results_vislist=[x for x in results_vislist if x]
         results_vislist=numpy.concatenate(results_vislist)
     else:
         results_vislist=list()
@@ -378,6 +379,7 @@ def deconvolve_list_mpi_workflow(dirty_list, psf_list, model_imagelist,
     scattered_results_list=comm.gather(sub_scattered_results_list)
     if rank==0:
         # Gather results from different procs
+        # scattered_results_list=[x for x in scattered_results_list if x]
         scattered_results_list=numpy.concatenate(scattered_results_list)  
     # Gather the results back into one image, correcting for overlaps as necessary. The taper function is is used to
     # feather the facets together
