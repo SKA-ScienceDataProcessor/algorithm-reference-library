@@ -56,12 +56,11 @@ if __name__ == '__main__':
     log = logging.getLogger()
     logging.info("Starting Imaging pipeline")
     
-    arlexecute.set_client(use_dask=args.use_dask == 'True',
-                          threads_per_worker=args.threads,
+    use_dask = args.use_dask == 'True'
+    arlexecute.set_client(use_dask=use_dask, threads_per_worker=args.threads,
                           memory_limit=args.memory * 1024 * 1024 * 1024,
                           n_workers=args.nworkers,
                           local_dir=dask_dir)
-    print(arlexecute.client)
     arlexecute.run(init_logging)
     
     nchan = args.nchan

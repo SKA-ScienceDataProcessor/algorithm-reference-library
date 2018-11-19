@@ -3,17 +3,16 @@
 
 """
 
+import logging
 import os
 
 from distributed import Client, LocalCluster
-
-import logging
 
 log = logging.getLogger(__name__)
 
 
 def get_dask_Client(timeout=30, n_workers=None, threads_per_worker=1, processes=True, create_cluster=True,
-                    memory_limit=None):
+                    memory_limit=None, local_dir='.'):
     """ Get a Dask.distributed Client for the scheduler defined externally, otherwise create
 
     The environment variable ARL_DASK_SCHEDULER is interpreted as pointing to the scheduler.
@@ -36,22 +35,22 @@ def get_dask_Client(timeout=30, n_workers=None, threads_per_worker=1, processes=
         if n_workers is not None:
             if memory_limit is not None:
                 cluster = LocalCluster(n_workers=n_workers, threads_per_worker=threads_per_worker, processes=processes,
-                                    memory_limit=memory_limit)
+                                       memory_limit=memory_limit, local_dir=local_dir)
             else:
-                cluster = LocalCluster(n_workers=n_workers, threads_per_worker=threads_per_worker, processes=processes)
+                cluster = LocalCluster(n_workers=n_workers, threads_per_worker=threads_per_worker, processes=processes,
+                                       local_dir=local_dir)
         else:
             if memory_limit is not None:
                 cluster = LocalCluster(threads_per_worker=threads_per_worker, processes=processes,
-                                    memory_limit=memory_limit)
+                                       memory_limit=memory_limit, local_dir=local_dir)
             else:
-                cluster = LocalCluster(threads_per_worker=threads_per_worker, processes=processes)
-
+                cluster = LocalCluster(threads_per_worker=threads_per_worker, processes=processes, local_dir=local_dir)
+        
         print("Creating LocalCluster and Dask Client")
         c = Client(cluster)
     else:
-        c = Client()
-    
-    print(c)
+        c = Client(threads_per_worker=threads_per_worker, processes=processes,
+                   memory_limit=memory_limit, local_dir=local_dir)
     
     addr = c.scheduler_info()['address']
     services = c.scheduler_info()['services']
@@ -72,7 +71,7 @@ def get_nodes():
     if hostfile is None:
         print("No hostfile specified")
         return None
-
+    
     import socket
     with open(hostfile, 'r') as file:
         nodes = [line.replace('\n', '') for line in file.readlines()]
@@ -80,7 +79,7 @@ def get_nodes():
         nodes = [socket.gethostbyname(node) for node in nodes]
         print("Nodes IPs are %s" % nodes)
         return nodes
-    
+
 
 def findNodes(c):
     """ Find Nodes being used for this Client

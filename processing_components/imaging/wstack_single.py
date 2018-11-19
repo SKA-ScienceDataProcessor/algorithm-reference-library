@@ -45,7 +45,8 @@ def predict_wstack_single(vis, model, remove=True, gcfcf=None, **kwargs) -> Visi
     avis.data['vis'] *= 0.0
     # We might want to do wprojection so we remove the average w
     w_average = numpy.average(avis.w)
-    avis.data['uvw'][..., 2] -= w_average
+    if remove:
+     avis.data['uvw'][..., 2] -= w_average
     tempvis = copy_visibility(avis)
 
     # Calculate w beam and apply to the model. The imaginary part is not needed
@@ -61,7 +62,7 @@ def predict_wstack_single(vis, model, remove=True, gcfcf=None, **kwargs) -> Visi
     tempvis = predict_2d(tempvis, workimage, gcfcf=gcfcf, **kwargs)
     avis.data['vis'] -= 1j * tempvis.data['vis']
     
-    if not remove:
+    if remove:
         avis.data['uvw'][..., 2] += w_average
 
     if isinstance(vis, BlockVisibility) and isinstance(avis, Visibility):
@@ -88,11 +89,12 @@ def invert_wstack_single(vis: Visibility, im: Image, dopsf, normalize=True, remo
     
     # We might want to do wprojection so we remove the average w
     w_average = numpy.average(vis.w)
-    vis.data['uvw'][..., 2] -= w_average
+    if remove:
+        vis.data['uvw'][..., 2] -= w_average
     
     reWorkimage, sumwt, imWorkimage = invert_2d(vis, im, dopsf, normalize=normalize, gcfcf=gcfcf, **kwargs)
     
-    if not remove:
+    if remove:
         vis.data['uvw'][..., 2] += w_average
 
     # Calculate w beam and apply to the model. The imaginary part is not needed

@@ -13,8 +13,8 @@ import logging
 import numpy
 import numpy.testing
 
-from processing_library.image.operations import ifft, fft, create_image_from_array
 from processing_components.visibility.operations import copy_visibility
+from processing_library.image.operations import ifft, fft, create_image_from_array
 
 log = logging.getLogger(__name__)
 
@@ -29,7 +29,7 @@ def convolution_mapping(vis, griddata, cf, channel_tolerance=1e-8):
     """
     numpy.testing.assert_almost_equal(griddata.grid_wcs.wcs.cdelt[0], cf.grid_wcs.wcs.cdelt[0], 7)
     numpy.testing.assert_almost_equal(griddata.grid_wcs.wcs.cdelt[1], cf.grid_wcs.wcs.cdelt[1], 7)
-
+    
     ####### UV mapping
     # We use the grid_wcs's to do the coordinate conversion
     # Find the nearest grid points
@@ -47,7 +47,7 @@ def convolution_mapping(vis, griddata, cf, channel_tolerance=1e-8):
     
     pu_offset, pv_offset = \
         numpy.floor(cf.grid_wcs.sub([3, 4]).wcs_world2pix(wu_subsample, wv_subsample, 0)).astype('int')
-
+    
     ###### W mapping for Grid
     # nchan, npol, w, v, u
     pwg_pixel = griddata.grid_wcs.sub([3]).wcs_world2pix(vis.uvw[:, 2], 0)[0]
@@ -56,7 +56,7 @@ def convolution_mapping(vis, griddata, cf, channel_tolerance=1e-8):
     assert numpy.min(pwg_grid) >= 0
     assert numpy.max(pwg_grid) < cf.shape[2], "W axis overflows: %f" % numpy.max(pwg_grid)
     pwg_fraction = pwg_pixel - pwg_grid
-
+    
     ###### W mapping for CF
     # nchan, npol, w, dv, du, v, u
     pwc_pixel = cf.grid_wcs.sub([5]).wcs_world2pix(vis.uvw[:, 2], 0)[0]
@@ -64,7 +64,7 @@ def convolution_mapping(vis, griddata, cf, channel_tolerance=1e-8):
     assert numpy.min(pwc_grid) >= 0, "W axis overflows: %f" % numpy.max(pwc_grid)
     assert numpy.max(pwc_grid) < cf.shape[2], "W axis overflows: %f" % numpy.max(pwc_grid)
     pwc_fraction = pwc_pixel - pwc_grid
-
+    
     ###### Frequency mapping
     pfreq_pixel = griddata.grid_wcs.sub([5]).wcs_world2pix(vis.frequency, 0)[0]
     # Find the nearest grid point
@@ -93,16 +93,22 @@ def grid_visibility_to_griddata(vis, griddata, cf):
     pu_grid, pu_offset, pv_grid, pv_offset, pwg_grid, pwg_fraction, pwc_grid, pwc_fraction, pfreq_grid = \
         convolution_mapping(vis, griddata, cf)
     _, _, _, _, _, gv, gu = cf.shape
-    coords = zip(vis.vis, vis.weight, pfreq_grid, pu_grid, pu_offset, pv_grid, pv_offset, pwg_grid, pwc_grid)
+    coords = zip(vis.vis * vis.weight, vis.weight, pfreq_grid, pu_grid, pu_offset, pv_grid, pv_offset, pwg_grid,
+                 pwc_grid)
     griddata.data[...] = 0.0
+    
+    # Do this in place to avoid creating a new copy. Doing the conjugation outside the loop
+    # reduces run time immensely
+    cf.data = numpy.conjugate(cf.data)
     
     du = gu // 2
     dv = gv // 2
     for v, vwt, chan, uu, uuf, vv, vvf, zzg, zzc in coords:
         griddata.data[chan, :, zzg, (vv - dv):(vv + dv), (uu - du):(uu + du)] += \
-            numpy.conjugate(cf.data[chan, :, zzc, vvf, uuf, :, :]) * (v * vwt)[:, numpy.newaxis, numpy.newaxis]
+            cf.data[chan, :, zzc, vvf, uuf, :, :] * v[:, numpy.newaxis, numpy.newaxis]
         sumwt[chan, :] += vwt
     
+    cf.data = numpy.conjugate(cf.data)
     return griddata, sumwt
 
 
@@ -172,21 +178,26 @@ def degrid_visibility_from_griddata(vis, griddata, cf, **kwargs):
     _, _, _, _, _, gv, gu = cf.shape
     
     newvis = copy_visibility(vis, zero=True)
-
-    #coords = zip(pfreq_grid, pu_grid, pu_offset, pv_grid, pv_offset, pw_grid)
-
+    
+    # coords = zip(pfreq_grid, pu_grid, pu_offset, pv_grid, pv_offset, pw_grid)
+    
     du = gu // 2
     dv = gv // 2
-
+    
     nvis = vis.vis.shape[0]
     
     # TODO: Optimise
     for i in range(nvis):
         chan, uu, uuf, vv, vvf, zzg, zzc = pfreq_grid[i], pu_grid[i], pu_offset[i], pv_grid[i], pv_offset[i], \
                                            pwg_grid[i], pwc_grid[i]
-        newvis.vis[i, :] = numpy.sum(griddata.data[chan, :, zzg, (vv - dv):(vv + dv), (uu - du):(uu + du)] *
-                                     cf.data[chan, :, zzc, vvf, uuf, :, :], axis=(1, 2))
-
+        # Use einsum to replace the following:
+        # newvis.vis[i,:] = numpy.sum(griddata.data[chan, :, zzg, (vv - dv):(vv + dv), (uu - du):(uu + du)] *
+        #                              cf.data[chan, :, zzc, vvf, uuf, :, :], axis=(1, 2))
+    
+        newvis.vis[i, :] = numpy.einsum('ijk,ijk->i',
+                                        griddata.data[chan, :, zzg, (vv - dv):(vv + dv), (uu - du):(uu + du)],
+                                        cf.data[chan, :, zzc, vvf, uuf, :, :])
+        
     return newvis
 
 
@@ -204,7 +215,7 @@ def fft_griddata_to_image(griddata, gcf, imaginary=False):
     im_data = ifft(projected) * gcf.data * float(nx) * float(ny)
     
     im_real = create_image_from_array(im_data.real, griddata.projection_wcs, griddata.polarisation_frame)
-
+    
     if imaginary:
         im_imag = create_image_from_array(im_data.imag, griddata.projection_wcs, griddata.polarisation_frame)
         return im_real, im_imag
@@ -220,7 +231,6 @@ def fft_image_to_griddata(im, griddata, gcf):
     :return:
     """
     # chan, pol, z, u, v, w
-    griddata.data[:,:,:,...] = fft(im.data*gcf.data)[:, :, numpy.newaxis, ...]
+    griddata.data[:, :, :, ...] = fft(im.data * gcf.data)[:, :, numpy.newaxis, ...]
     
     return griddata
-

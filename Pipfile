@@ -1,0 +1,47 @@
+[[source]]
+url = "https://pypi.org/simple"
+verify_ssl = true
+name = "pypi"
+
+[dev-packages]
+
+[packages]
+six = "*"
+docutils = "*"
+imagesize = "*"
+pytz = "*"
+jupyter = ">=1.0"
+notebook = "*"
+ipywidgets = "*"
+numpy = "*"
+scipy = "*"
+pyfits = ">=3.3"
+matplotlib = "<3.0"
+wcsaxes = "*"
+reproject = "*"
+astropy = ">=2.0"
+alabaster = "*"
+photutils = "*"
+scikit-image = "*"
+dask = "*"
+distributed = "*"
+paramiko = "*"
+toolz = "*"
+graphviz = "*"
+pandoc = "*"
+psutil = "*"
+cloudpickle = "*"
+seqfile = "*"
+"h5py" = "*"
+jsonschema = "*"
+bokeh = "*"
+"Jinja2" = "*"
+Babel = "*"
+MarkupSafe = "*"
+Sphinx = "*"
+sphinx_rtd_theme = "*"
+"d2to1" = "*"
+nose = "*"
+
+[requires]
+python_version = "3.6"

@@ -6,9 +6,6 @@ import logging
 from typing import Union
 
 import warnings
-# TODO: Remove filter when fixed to use ndarray
-warnings.simplefilter(action='ignore', category=PendingDeprecationWarning)
-
 import numpy
 from astropy.coordinates import SkyCoord
 
@@ -231,6 +228,9 @@ def divide_visibility(vis: BlockVisibility, modelvis: BlockVisibility):
         xshape = (nrows, nants, nants, nchan, nrec, nrec)
         x = numpy.zeros(xshape, dtype='complex')
         xwt = numpy.zeros(xshape)
+        # TODO: Remove filter when fixed to use ndarray
+        warnings.simplefilter("ignore", category=PendingDeprecationWarning)
+
         for row in range(nrows):
             for ant1 in range(nants):
                 for ant2 in range(ant1 + 1, nants):

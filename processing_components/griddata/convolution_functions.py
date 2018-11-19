@@ -24,10 +24,10 @@ from processing_library.image.operations import create_image_from_array
 log = logging.getLogger(__name__)
 
 
-def griddata_sizeof(gd: GridData):
+def convolutionfunction_sizeof(cf: ConvolutionFunction):
     """ Return size in GB
     """
-    return gd.size()
+    return cf.size()
 
 
 def create_convolutionfunction_from_array(data: numpy.array, grid_wcs: WCS, projection_wcs: WCS,
@@ -163,7 +163,7 @@ def apply_bounding_box_convolutionfunction(cf, fractional_level=1e-4):
     :param fractional_level:
     :return: bounded convolution function
     """
-    newcf = copy.deepcopy(cf)
+    newcf = copy_convolutionfunction(cf)
     nx = newcf.data.shape[-1]
     ny = newcf.data.shape[-2]
     mask = numpy.max(numpy.abs(newcf.data), axis=(0, 1, 2, 3, 4))
@@ -224,3 +224,21 @@ def qa_convolutionfunction(cf, context="") -> QA:
     
     qa = QA(origin="qa_image", data=data, context=context)
     return qa
+
+def copy_convolutionfunction(cf):
+    """Make a copy of a convolution function
+    
+    :param cf:
+    :return:
+    """
+    assert isinstance(cf, ConvolutionFunction), cf
+    fcf = ConvolutionFunction()
+    fcf.polarisation_frame = cf.polarisation_frame
+    fcf.data = copy.deepcopy(cf.data)
+    fcf.projection_wcs = copy.deepcopy(cf.projection_wcs)
+    fcf.grid_wcs = copy.deepcopy(cf.grid_wcs)
+    if convolutionfunction_sizeof(fcf) >= 1.0:
+        log.debug("copy_convolutionfunction: copied %s convolution function of shape %s, size %.3f (GB)" %
+                  (fcf.data.dtype, str(fcf.shape), convolutionfunction_sizeof(fcf)))
+    assert isinstance(fcf, ConvolutionFunction), fcf
+    return fcf

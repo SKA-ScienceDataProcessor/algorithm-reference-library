@@ -11,15 +11,9 @@ warnings.simplefilter('ignore', FITSFixedWarning)
 import numpy
 
 from data_models.memory_data_models import Visibility, Image
-from data_models.parameters import get_parameter
 from data_models.polarisation import PolarisationFrame
 
-from ..fourier_transforms.convolutional_gridding import anti_aliasing_calculate
-from ..image.operations import convert_image_to_kernel
-from ..image.operations import copy_image, fft_image, pad_image, create_w_term_like
-
 log = logging.getLogger(__name__)
-
 
 def get_frequency_map(vis, im: Image = None):
     """ Map channels from visibilities to image
@@ -32,13 +26,22 @@ def get_frequency_map(vis, im: Image = None):
     
     if im is None:
         spectral_mode = 'channel'
-        vfrequencymap = get_rowmap(vis.frequency, ufrequency)
+        if vis.frequency_map is None:
+            vfrequencymap = get_rowmap(vis.frequency, ufrequency)
+            vis.frequencymap = vfrequencymap
+        else:
+            vfrequencymap = vis.frequency_map
+            
         assert min(vfrequencymap) >= 0, "Invalid frequency map: visibility channel < 0: %s" % str(vfrequencymap)
     
     elif im.data.shape[0] == 1 and vnchan >= 1:
         spectral_mode = 'mfs'
-        vfrequencymap = numpy.zeros_like(vis.frequency, dtype='int')
-    
+        if vis.frequency_map is None:
+            vfrequencymap = numpy.zeros_like(vis.frequency, dtype='int')
+            vis.frequencymap = vfrequencymap
+        else:
+            vfrequencymap = vis.frequency_map
+
     else:
         # We can map these to image channels
         v2im_map = im.wcs.sub(['spectral']).wcs_world2pix(ufrequency, 0)[0].astype('int')
