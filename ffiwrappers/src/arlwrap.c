@@ -33,6 +33,35 @@ int arl_handle_error()
   return error;
 }
 
+void arlvis_vis2proto(const ARLVis *visin, void *visout)
+{
+  ARLVisPB vispb = ARLVIS_PB__INIT;//(ARLVisPB *)malloc(sizeof(ARLVisPB));
+  Data data = DATA__INIT;
+//  arlvis_pb__init(&vispb);
+  vispb.nvis = visin->nvis;
+  vispb.npol = visin->npol;
+  data.uvw = ((int *)visin->data)[0]; // uvw
+  printf("uvw %d\n", data.uvw);
+  data.time = ((int *)visin->data)[1]; // time
+  data.frequency = ((int *)visin->data)[2];  // frequency
+  data.channel_bandwidth = ((int *)visin->data)[3];  //  channel_bandwidth
+  data.integration_time = ((int *)visin->data)[4];
+  data.antenna1 = ((int *)visin->data)[5];
+  data.antenna2 = ((int *)visin->data)[6];
+  data.vis = ((int *)visin->data)[7];
+  data.weight = ((int *)visin->data)[8];
+  vispb.data = &data;
+  vispb.phasecentre = visin->phasecentre;
+  visout = malloc(arlvis_pb__get_packed_size(&vispb));
+  arlvis_pb__pack(&vispb, visout);
+//  BKFNPY(arlvis_vis2proto)(visin, visout);
+}
+
+void arlvis_proto2vis(const void *visin, ARLVis *visout)
+{
+  BKFNPY(arlvis_proto)(visin, visout);
+}
+
 void helper_get_image_shape(const double *frequency, double cellsize,
 		int *shape)
 {
@@ -52,6 +81,11 @@ void helper_set_image_params(const ARLVis *vis, Image *image) {
 void arl_invert_2d(const ARLVis *visin, const Image *img_in, bool dopsf, Image *out, double *sumwt)
 {
   BKFNPY(arl_invert_2d)(visin, img_in, dopsf, out, sumwt);
+}
+
+void arl_invert_2d_proto(const void *visin, const Image *img_in, bool dopsf, Image *out, double *sumwt)
+{
+  BKFNPY(arl_invert_2d_proto)(visin, img_in, dopsf, out, sumwt);
 }
 
 void arl_create_visibility(ARLConf *lowconf, ARLVis *res_vis)
@@ -102,8 +136,15 @@ void arl_predict_2d(const ARLVis *visin, const Image *img, ARLVis *visout) {
   BKFNPY(arl_predict_2d)(visin, img, visout);
 }
 
+void arl_predict_2d_proto(const ARLVis *visin, const Image *img, void *visout) {
+  BKFNPY(arl_predict_2d_proto)(visin, img, visout);
+}
+
 void arl_create_image_from_visibility(const ARLVis *vis, Image *model) {
   BKFNPY(arl_create_image_from_visibility)(vis, model);
+}
+void arl_create_image_from_visibility_proto(const uint8_t *vis, Image *model) {
+  BKFNPY(arl_create_image_from_visibility_proto)((uint8_t)vis, model);
 }
 
 void arl_create_image_from_blockvisibility(ARLConf *lowconf, const ARLVis *blockvis, double cellsize, int npixel, char* phasecentre, Image *model){

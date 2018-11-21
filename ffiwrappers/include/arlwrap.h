@@ -6,6 +6,7 @@
 
 #include <complex.h>
 #include <stdbool.h>
+#include "arl.pb-c.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -85,6 +86,8 @@ typedef struct {
 
 int arl_handle_error();
 
+void arlvis_proto2vis(const void *visin, ARLVis *visout);
+void arlvis_vis2proto(const ARLVis *visin, void *visout);
 // Prototypes to ARL routines
 void helper_get_image_shape(const double *frequency, double cellsize,
 		int *shape);
@@ -110,9 +113,12 @@ void arl_create_low_test_image_from_gleam(ARLConf *lowconf, double cellsize, int
 
 
 void arl_predict_2d(const ARLVis *visin, const Image *img, ARLVis *visout);
+void arl_predict_2d_proto(const ARLVis *visin, const Image *img, void *visout);
 void arl_invert_2d(const ARLVis *visin, const Image *img_in, bool dopsf, Image *out, double *sumwt);
+void arl_invert_2d_proto(const void *visin, const Image *img_in, bool dopsf, Image *out, double *sumwt);
 
 void arl_create_image_from_visibility(const ARLVis *vis, Image *model);
+void arl_create_image_from_visibility_proto(const uint8_t *vis, Image *model);
 void arl_create_image_from_blockvisibility(ARLConf *lowconf, const ARLVis *blockvis, double cellsize, int npixel, char* phasecentre, Image *model);
 void arl_deconvolve_cube(Image *dirty, Image *psf, Image *restored,
 		Image *residual);

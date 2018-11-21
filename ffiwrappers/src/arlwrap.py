@@ -31,6 +31,8 @@ from ffiwrappers.src.arlwrap_support import *
 import logging
 import os
 
+import arl_pb2
+
 results_dir = './results'
 os.makedirs(results_dir, exist_ok=True)
 
@@ -45,7 +47,7 @@ def handle_error(*args):
     if(args[0] != ""):
       arl_error = -1
       print(args[0],"\n",args[1],"\n",args[2])
- 
+
 ff.cdef("""
 typedef struct {
   size_t nvis;
@@ -120,6 +122,54 @@ typedef struct {
 #arl_copy_visibility=collections.namedtuple("FFIX", "address")    
 #arl_copy_visibility.address=int(ff.cast("size_t", arl_copy_visibility_ffi))    
 
+@ff.callback("void (*)(const ARLVis *, void *)", onerror=handle_error)
+def arlvis_vis2proto_ffi(vis_in, vis_out):
+    vispb = arl_pb2.ARLVisPB()
+    print("test",flush=True)
+    vispb.npol = vis_in.npol
+    vispb.phasecentre = (ff.string(vis_in.phasecentre)).decode('windows-1252')
+#    vispb.data = arl_pb2.Data()
+    vispb.data.index = vis_in.data['index']
+    print("test", ff.string(vis_in.phasecentre), flush=True)
+    vispb.data.uvw = vis_in.data['uvw']
+    vispb.data.time = vis_in.data['time']
+    vispb.data.frequency = vis_in.data['frequency']
+    vispb.data.channel_bandwidth = vis_in.data['channel_bandwidth']
+    vispb.data.integration_time = vis_in.data['integration_time']
+    vispb.data.antenna1 = vis_in.data['.antenna1']
+    vispb.data.antenna2 = vis_in.data['antenna2']
+    vispb.data.vis = vis_in.data['vis']
+    vispb.data.weight = vis_in.data['weight']
+    vispb.data.imaging_weight = vis_in.data['imaging_weight']
+    vis_out = vispb.SerializeToString()
+
+arlvis_vis2proto=collections.namedtuple("FFIX", "address")    
+arlvis_vis2proto.address=int(ff.cast("size_t", arlvis_vis2proto_ffi))    
+
+
+@ff.callback("void (*)(const void *, ARLVis *)", onerror=handle_error)
+def arlvis_proto2vis_ffi(vis_in, vis_out):
+    vis_pb = arl_pb2.ARLVisPB()
+    vis_out.nvis = vis_pb.ParseFromInt(vis_in.nvis)
+    vis_out.npol = vis_pb.ParseFromInt(vis_in.npol)
+    vis_out.phasecentre = vis_pb.ParseFromString(vis_in.phasecentre)
+    vis_out.data.index = vis_pb.ParseFromInt(vis_in.data.index)
+    vis_out.data.uvw = vis_pb.ParseFromFloat(vis_in.data.uvw)
+    vis_out.data.time = vis_pb.ParseFromFloat(vis_in.Data.time)
+    vis_out.data.frequency = vis_pb.ParseFromFloat(vis_in.Data.frequency)
+    vis_out.data.channel_bandwidth = vis_pb.ParseFromFloat(vis_in.Data.channel_bandwidth)
+    vis_out.data.integration_time = vis_pb.ParseFromFloat(vis_in.Data.integration_time)
+    vis_out.data.antenna1 = vis_pb.ParseFromInt(vis_in.Data.antenna1)
+    vis_out.data.antenna2 = vis_pb.ParseFromInt(vis_in.Data.antenna2)
+    vis_out.data.vis = vis_pb.ParseFromString(vis_in.Data.vis)
+    vis_out.data.weight = vis_pb.ParseFromFloat(vis_in.Data.weight)
+    vis_out.data.imaging_weight = vis_pb.ParseFromFloat(vis_in.Data.imaging_weight)
+    
+#    return vis_out
+
+arlvis_proto2vis=collections.namedtuple("FFIX", "address")    
+arlvis_proto2vis.address=int(ff.cast("size_t", arlvis_proto2vis_ffi))    
+ 
 @ff.callback("int (*)()")
 def arl_handle_error_ffi():
 
@@ -658,11 +708,11 @@ arl_solve_gaintable_ical.address=int(ff.cast("size_t", arl_solve_gaintable_ical_
 
 
 @ff.callback("void (*)(ARLConf *, ARLVis *, ARLadvice *)", onerror=handle_error)
-def arl_advise_wide_field_ffi(lowconfig, vis_in, adv):
+def arl_advise_wide_field_ffi(lowconfig, vis_in, adv): 
     lowcore_name = str(ff.string(lowconfig.confname), 'utf-8')
     lowcore = create_named_configuration(lowcore_name, rmax=lowconfig.rmax)
     c_visin = cARLBlockVis(vis_in, lowconfig.nant, lowconfig.nfreqs)
-
+    
     frequency = numpy.frombuffer(ff.buffer(lowconfig.freqs, 8*lowconfig.nfreqs), dtype='f8', count=lowconfig.nfreqs)
     channel_bandwidth = numpy.frombuffer(ff.buffer(lowconfig.channel_bandwidth, 8*lowconfig.nchanwidth), dtype='f8', count=lowconfig.nchanwidth)
 
@@ -671,7 +721,7 @@ def arl_advise_wide_field_ffi(lowconfig, vis_in, adv):
     
     polframe = str(ff.string(lowconfig.polframe), 'utf-8')
     py_visin.polarisation_frame = PolarisationFrame(polframe)
-
+    visin_proto = arlvis_proto2vis(vis_in)
     print("Index :", py_visin.data['index'])
 
     advice=advise_wide_field(py_visin, guard_band_image=adv.guard_band_image, delA=adv.delA,
@@ -831,6 +881,55 @@ def arl_predict_2d_ffi(vis_in, img, vis_out):
 arl_predict_2d=collections.namedtuple("FFIX", "address")
 arl_predict_2d.address=int(ff.cast("size_t", arl_predict_2d_ffi))
 
+@ff.callback("void (*)(const ARLVis *, const Image *, void *)", onerror=handle_error)
+def arl_predict_2d_proto_ffi(vis_in, img, vis_out):
+    c_visin = cARLVis(vis_in)
+    py_visin = helper_create_visibility_object(c_visin)
+    c_img = cImage(img)
+
+    
+    py_visin.phasecentre = load_phasecentre(vis_in.phasecentre)
+
+    res = predict_2d(py_visin, c_img)
+    vis_pb = arl_pb2.ARLVisPB()
+    vis_pb.nvis = vis_in.nvis
+    vis_pb.npol = vis_in.npol
+    c_visout = cARLVis(vis_in)
+    vis_data = arl_pb2.Data()
+    vis_data.index.extend(res.data['index'])
+    for i in  res.data['uvw']:
+      vis_data.uvw.extend(i)
+    vis_data.frequency.extend(res.data['frequency'])
+    vis_data.channel_bandwidth.extend(res.data['channel_bandwidth'])
+    vis_data.integration_time.extend(res.data['integration_time'])
+    vis_data.antenna1.extend(res.data['antenna1'])
+    vis_data.antenna2.extend(res.data['antenna2'])
+    #vis_data.vis.extend(res.data['vis'])
+    for i in  res.data['vis']:
+      vis_vis = vis_data.vis.add()
+      vis_vis.real = i.real
+      vis_vis.imag = i.imag
+    for i in  res.data['weight']:
+      vis_data.weight.extend(i)
+    for i in  res.data['imaging_weight']:
+      vis_data.imaging_weight.extend(i)
+    
+    numpy.copyto(c_visout, res.data)
+    vis_pb.data.CopyFrom(vis_data)
+    vis_pb.phasecentre.ra = res.phasecentre.ra.to_string()
+    vis_pb.phasecentre.dec = res.phasecentre.dec.to_string()
+    vis_out = vis_pb.SerializeToString() 
+    print("size ", vis_pb.ByteSize())
+#    vis_test = arl_pb2.ARLVisPB()
+#    vis_test.ParseFromString(vis_out)
+    #store_phasecentre(vis_out.phasecentre, res.phasecentre)
+
+    #arl_copy_visibility(py_visin, c_visout, False)
+
+arl_predict_2d_proto=collections.namedtuple("FFIX", "address")
+arl_predict_2d_proto.address=int(ff.cast("size_t", arl_predict_2d_proto_ffi))
+
+
 
 @ff.callback("void (*)(ARLConf *, const ARLVis *, const Image *, ARLVis *, ARLVis *, long long int *)", onerror=handle_error)
 def arl_predict_function_ffi(lowconfig, vis_in, img, vis_out, blockvis_out, cindex_out):
@@ -888,7 +987,6 @@ def arl_predict_function_blockvis_ffi(lowconfig, vis_in, img):
     py_visin = helper_create_blockvisibility_object(c_visin, frequency, channel_bandwidth, lowcore)
     c_img = cImage(img)
     py_visin.phasecentre = load_phasecentre(vis_in.phasecentre)
-
     log.info(qa_image(c_img, context='arl_predict_function'))
 
 #    export_image_to_fits(c_img, '%s/imaging-blockvis_model_in_predicted_function.fits'%(results_dir))
@@ -1193,6 +1291,26 @@ def arl_invert_2d_ffi(invis, in_image, dopsf, out_image, sumwt):
 arl_invert_2d=collections.namedtuple("FFIX", "address")
 arl_invert_2d.address=int(ff.cast("size_t", arl_invert_2d_ffi))
 
+@ff.callback("void (*)(const void *, const Image *, bool dopsf, Image *, double *)")
+def arl_invert_2d_proto_ffi(invis, in_image, dopsf, out_image, sumwt):
+    py_visin = helper_create_visibility_object(cARLVis(invis))
+#    py_visin = arlvis_proto2vis(ff.cast("void *",invis))
+    c_in_img = cImage(in_image)
+    c_out_img = cImage(out_image, new=True)
+    py_visin.phasecentre = load_phasecentre(py_visin.phasecentre)
+
+    if dopsf:
+        out, sumwt = invert_2d(py_visin, c_in_img, dopsf=True)
+    else:
+        out, sumwt = invert_2d(py_visin, c_in_img)
+
+
+    store_image_in_c_2(c_out_img, out)
+
+arl_invert_2d_proto=collections.namedtuple("FFIX", "address")
+arl_invert_2d_proto.address=int(ff.cast("size_t", arl_invert_2d_proto_ffi))
+
+
 @ff.callback("void (*)(const ARLVis *, Image *)", onerror=handle_error)
 def arl_create_image_from_visibility_ffi(vis_in, img_in):
     c_vis = cARLVis(vis_in)
@@ -1214,10 +1332,38 @@ def arl_create_image_from_visibility_ffi(vis_in, img_in):
     #store_image_pickles(c_img, image)
     store_image_in_c(c_img, image)
 
+@ff.callback("void (*)(const void *, Image *)", onerror=handle_error)
+def arl_create_image_from_visibility_proto_ffi(vis_in, img_in):
+    size = 1361979
+    c_vis = arl_pb2.ARLVisPB()
+    vis = ff.buffer(ff.cast('void *',vis_in),8)
+    print("parse",ff.sizeof(vis_in))
+    
+    c_vis.ParseFromString(vis)
+    print(c_vis.data.uvw)
+    c_img = cImage(img_in, new=True);
 
-arl_create_image_from_visibility=collections.namedtuple("FFIX", "address")    
-arl_create_image_from_visibility.address=int(ff.cast("size_t",
-    arl_create_image_from_visibility_ffi))    
+    # We need a proper Visibility object - not this, and not a cARLVis
+    # This is temporary - just so we have some data to pass to
+    # the create_... routine
+    tvis = helper_create_visibility_object(c_vis)
+    tvis.phasecentre = load_phasecentre(vis_in.phasecentre)
+
+    # Default args for now
+    image = create_image_from_visibility(tvis, cellsize=0.001, npixel=256)
+
+    #numpy.copyto(c_img.data, image.data)
+
+    # Pickle WCS and polframe, until better way is found to handle these data
+    # structures
+    #store_image_pickles(c_img, image)
+    store_image_in_c(c_img, image)
+
+
+
+arl_create_image_from_visibility_proto=collections.namedtuple("FFIX", "address")    
+arl_create_image_from_visibility_proto.address=int(ff.cast("size_t",
+    arl_create_image_from_visibility_proto_ffi))    
 
 @ff.callback("void (*)(ARLConf *, const ARLVis *, double, int, char*, Image *)", onerror=handle_error)
 def arl_create_image_from_blockvisibility_ffi(lowconfig, blockvis_in, cellsize, npixel, c_phasecentre, img_out):
