@@ -29,7 +29,7 @@ log.addHandler(logging.StreamHandler(sys.stdout))
 log.addHandler(logging.StreamHandler(sys.stderr))
 
 
-class TestCalibratGraphs(ARLExecuteTestCase, unittest.TestCase):
+class TestCalibrateGraphs(ARLExecuteTestCase, unittest.TestCase):
     
     def setUp(self):
         #super(TestPipelineGraphs, self).setUp()
