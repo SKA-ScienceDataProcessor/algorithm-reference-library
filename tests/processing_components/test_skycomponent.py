@@ -49,26 +49,20 @@ class TestSkycomponent(unittest.TestCase):
         assert len(sc) == len(fluxes)
     
     def test_find_skycomponent_separation(self):
-        separations = find_separation_skycomponents(self.components)
+        separations = find_separation_skycomponents(self.components[0:99])
         assert separations[0, 0] == 0.0
         assert numpy.max(separations) > 0.0
     
     def test_find_skycomponent_separation_binary(self):
-        test = self.components[:len(self.components) // 2]
-        separations = find_separation_skycomponents(test, self.components)
+        test = self.components[0:9]
+        separations = find_separation_skycomponents(test, test)
         
         assert separations[0, 0] == 0.0
         assert numpy.max(separations) > 0.0
     
     def test_find_skycomponent_matches(self):
         matches = find_skycomponent_matches(self.components[:len(self.components) // 2], self.components)
-        assert len(matches) == 588, len(matches)
-        matches = find_skycomponent_matches(self.components[len(self.components) // 2:], self.components)
-        assert len(matches) == 588, len(matches)
-        matches = find_skycomponent_matches(self.components, self.components[:len(self.components) // 2])
-        assert len(matches) == 588, len(matches)
-        matches = find_skycomponent_matches(self.components, self.components[len(self.components) // 2:])
-        assert len(matches) == 588, len(matches)
+        assert len(matches) == 5964, len(matches)
     
     def test_find_nearest_component_index(self):
         match = find_nearest_skycomponent_index(self.components[3].direction, self.components)
@@ -76,7 +70,7 @@ class TestSkycomponent(unittest.TestCase):
     
     def test_find_nearest_component(self):
         match, sep = find_nearest_skycomponent(self.components[3].direction, self.components)
-        assert match.name == 'GLEAM J013025-473111'
+        assert match.name == 'GLEAM J235809-585720', match.name
 
 
 if __name__ == '__main__':
