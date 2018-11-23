@@ -400,7 +400,7 @@ def weight_list_serial_workflow(vis_list, model_imagelist, gcfcf=None, weighting
     
     weight_list = [grid_wt(vis_list[i], model_imagelist[i], gcfcf) for i in range(len(vis_list))]
     
-    merged_weight_grid = griddata_merge_weights(vis_list)(weight_list)
+    merged_weight_grid = griddata_merge_weights(weight_list)
     
     def re_weight(vis, model, gd, g):
         if gd is not None:
