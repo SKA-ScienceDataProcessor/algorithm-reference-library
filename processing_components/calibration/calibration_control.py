@@ -1,8 +1,10 @@
-"""Manages the calibration context. This take a string and returns a dictionary containing:
- * Predict function
- * Invert function
- * image_iterator function
- * vis_iterator function
+"""Manages the calibration context. This take a string and returns a dictionary e.g.
+
+{'T': {'shape': 'scalar', 'timeslice': 'auto', 'phase_only': True, 'first_selfcal': 0},
+                'G': {'shape': 'vector', 'timeslice': 60.0, 'phase_only': False, 'first_selfcal': 0},
+                'P': {'shape': 'matrix', 'timeslice': 1e4, 'phase_only': False, 'first_selfcal': 0},
+                'B': {'shape': 'vector', 'timeslice': 1e5, 'phase_only': False, 'first_selfcal': 0},
+                'I': {'shape': 'vector', 'timeslice': 1.0, 'phase_only': True, 'first_selfcal': 0}}
 
 """
 
@@ -80,7 +82,7 @@ def apply_calibration_function(vis, gaintables, calibration_context='T', control
         return avis
 
 
-def calibrate_function(vis, model_vis, calibration_context='T', controls=None, iteration=0, tol=1e-6, **kwargs):
+def calibrate_function(vis, model_vis, calibration_context='T', controls=None, iteration=0, tol=1e-8, **kwargs):
     """ Calibrate using algorithm specified by calibration_context
 
     The context string can denote a sequence of calibrations e.g. TGB with different timescales.
@@ -88,7 +90,7 @@ def calibrate_function(vis, model_vis, calibration_context='T', controls=None, i
     :param vis:
     :param model_vis:
     :param calibration_context: calibration contexts in order of correction e.g. 'TGB'
-    :param control: controls dictionary, modified as necessary
+    :param controls: controls dictionary, modified as necessary
     :param iteration: Iteration number to be compared to the 'first_selfcal' field.
     :param kwargs:
     :return: Calibrated data_models, dict(gaintables)
@@ -138,7 +140,7 @@ def solve_calibrate_function(vis, model_vis, calibration_context='T', controls=N
     :param vis:
     :param model_vis:
     :param calibration_context: calibration contexts in order of correction e.g. 'TGB'
-    :param control: controls dictionary, modified as necessary
+    :param controls: controls dictionary, modified as necessary
     :param iteration: Iteration number to be compared to the 'first_selfcal' field.
     :param kwargs:
     :return: Calibrated data_models, dict(gaintables)
