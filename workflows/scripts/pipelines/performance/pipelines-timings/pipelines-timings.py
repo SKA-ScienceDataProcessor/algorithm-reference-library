@@ -129,10 +129,12 @@ def trial_case(results, seed=180555, context='wstack', nworkers=8, threads_per_w
                             datefmt='%H:%M:%S',
                             level=logging.INFO)
 
-    arlexecute.run(init_logging)
     init_logging()
-    
     log = logging.getLogger()
+    
+    # Initialise logging on the workers. This appears to only work using the process scheduler.
+    arlexecute.run(init_logging)
+
     
     def lprint(s):
         log.info(s)
@@ -170,7 +172,7 @@ def trial_case(results, seed=180555, context='wstack', nworkers=8, threads_per_w
     lprint(results)
     
     # Parameters determining scale
-    frequency = numpy.linspace(0.9e8, 1.1e8, nfreqwin)
+    frequency = numpy.linspace(1.0e8, 1.2e8, nfreqwin)
     centre = nfreqwin // 2
     if nfreqwin > 1:
         channel_bandwidth = numpy.array(nfreqwin * [frequency[1] - frequency[0]])
@@ -206,7 +208,6 @@ def trial_case(results, seed=180555, context='wstack', nworkers=8, threads_per_w
     advice = arlexecute.compute(arlexecute.execute(get_wf)(vis_list[-1]), sync=True)
     
     # Deconvolution via sub-images requires 2^n
-    context = 'wstack'
     npixel = advice['npixels2']
     results['npixel'] = npixel
     cellsize = advice['cellsize']
