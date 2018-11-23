@@ -236,8 +236,7 @@ class TestTesting_Support(unittest.TestCase):
         
         fullvis = None
         totalnvis = 0
-        for i, vis in enumerate(vis_iter):
-            bvis = convert_blockvisibility_to_visibility(vis)
+        for i, bvis in enumerate(vis_iter):
             assert bvis.phasecentre == self.phasecentre
             assert bvis.nvis
             if i == 0:
@@ -245,7 +244,7 @@ class TestTesting_Support(unittest.TestCase):
                 totalnvis = bvis.nvis
             else:
                 fullvis = append_visibility(fullvis, bvis)
-                totalnvis += vis.nvis
+                totalnvis += bvis.nvis
         
         assert fullvis.nvis == totalnvis
     

@@ -53,7 +53,8 @@ from processing_components.imaging.primary_beams import create_pb
 from processing_components.skycomponent.operations import create_skycomponent, insert_skycomponent, \
     apply_beam_to_skycomponent, filter_skycomponents_by_flux
 from processing_components.visibility.base import create_blockvisibility, create_visibility
-from processing_components.visibility.coalesce import convert_visibility_to_blockvisibility
+from processing_components.visibility.coalesce import convert_blockvisibility_to_visibility, \
+    convert_visibility_to_blockvisibility
 from processing_library.image.operations import create_image_from_array
 from processing_library.util.coordinate_support import xyz_at_latitude
 
@@ -668,11 +669,12 @@ def create_blockvisibility_iterator(config: Configuration, times: numpy.array, f
                                       channel_bandwidth=channel_bandwidth)
         
         if model is not None:
-            vis = predict(bvis, model, **kwargs)
+            vis = convert_blockvisibility_to_visibility(bvis)
+            vis = predict(vis, model, **kwargs)
             bvis = convert_visibility_to_blockvisibility(vis)
         
         if components is not None:
-            bvis = predict_skycomponent_visibility(bvis, components)
+            vis = predict_skycomponent_visibility(bvis, components)
         
         # Add phase errors
         if phase_error > 0.0 or amplitude_error > 0.0:
