@@ -102,9 +102,9 @@ class TestTesting_Support(unittest.TestCase):
         export_image_to_fits(im, '%s/test_test_support_low_gleam.fits' % (self.dir))
         
         comp = sm.components
-        assert len(comp) == 297, len(comp)
-        assert comp[0].name == 'GLEAM J001441-400840'
-        assert comp[-1].name == 'GLEAM J013840-295509'
+        assert len(comp) == 44, len(comp)
+        assert comp[0].name == 'GLEAM J005658-390449', comp[0].name
+        assert comp[-1].name == 'GLEAM J011412-321730', comp[-1].name
     
     def test_create_low_test_image_from_gleam(self):
         im = create_low_test_image_from_gleam(npixel=256, cellsize=0.001,
@@ -237,13 +237,14 @@ class TestTesting_Support(unittest.TestCase):
         fullvis = None
         totalnvis = 0
         for i, vis in enumerate(vis_iter):
-            assert vis.phasecentre == self.phasecentre
-            assert vis.nvis
+            bvis = convert_blockvisibility_to_visibility(vis)
+            assert bvis.phasecentre == self.phasecentre
+            assert bvis.nvis
             if i == 0:
-                fullvis = vis
-                totalnvis = vis.nvis
+                fullvis = bvis
+                totalnvis = bvis.nvis
             else:
-                fullvis = append_visibility(fullvis, vis)
+                fullvis = append_visibility(fullvis, bvis)
                 totalnvis += vis.nvis
         
         assert fullvis.nvis == totalnvis
