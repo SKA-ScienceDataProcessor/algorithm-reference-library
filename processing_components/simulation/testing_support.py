@@ -491,8 +491,6 @@ def create_low_test_skymodel_from_gleam(npixel=512, polarisation_frame=Polarisat
     
     log.info('create_low_test_skymodel_from_gleam: %d bright sources above flux threshold %.3f, %d weak sources below ' %
              (len(brightsc), flux_threshold, len(weaksc)))
-    print('create_low_test_skymodel_from_gleam: %d bright sources above flux threshold %.3f, %d weak sources below ' %
-             (len(brightsc), flux_threshold, len(weaksc)))
 
     return SkyModel(components=brightsc, images=[model])
 

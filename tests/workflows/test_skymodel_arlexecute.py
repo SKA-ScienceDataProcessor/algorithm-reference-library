@@ -97,7 +97,7 @@ class TestSkyModel(unittest.TestCase):
         self.skymodel_list = arlexecute.compute(self.skymodel_list, sync=True)
         assert isinstance(self.skymodel_list[0].images[0], Image), self.skymodel_list[0].images[0]
         assert isinstance(self.skymodel_list[0].components[0], Skycomponent), self.skymodel_list[0].components[0]
-        assert len(self.skymodel_list[0].components) == 164, len(self.skymodel_list[0].components)
+        assert len(self.skymodel_list[0].components) == 119, len(self.skymodel_list[0].components)
         assert len(self.skymodel_list[0].images) == 1, len(self.skymodel_list[0].images)
         assert numpy.max(numpy.abs(self.skymodel_list[0].images[0].data)) > 0.0, "Image is empty"
 
