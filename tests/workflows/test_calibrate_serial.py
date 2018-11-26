@@ -12,15 +12,13 @@ from astropy import units as u
 from astropy.coordinates import SkyCoord
 
 from data_models.polarisation import PolarisationFrame
-from tests.workflows import ARLExecuteTestCase
-from workflows.arlexecute.calibration.calibration_arlexecute import calibrate_list_arlexecute_workflow
-from wrappers.arlexecute.calibration.calibration_control import create_calibration_controls
-from wrappers.arlexecute.execution_support.arlexecute import arlexecute
-from wrappers.arlexecute.imaging.base import predict_skycomponent_visibility
-from wrappers.arlexecute.simulation.testing_support import create_named_configuration, ingest_unittest_visibility, \
-    create_unittest_model, create_unittest_components, insert_unittest_errors
-from wrappers.arlexecute.visibility.base import copy_visibility
-from wrappers.arlexecute.visibility.coalesce import convert_blockvisibility_to_visibility
+from workflows.serial.calibration.calibration_serial import calibrate_list_serial_workflow
+from wrappers.serial.calibration.calibration_control import create_calibration_controls
+from wrappers.serial.imaging.base import predict_skycomponent_visibility
+from wrappers.serial.simulation.testing_support import create_named_configuration, ingest_unittest_visibility, \
+    create_unittest_components, insert_unittest_errors, create_unittest_model
+from wrappers.serial.visibility.base import copy_visibility
+from wrappers.serial.visibility.coalesce import convert_blockvisibility_to_visibility
 
 log = logging.getLogger(__name__)
 
@@ -29,10 +27,9 @@ log.addHandler(logging.StreamHandler(sys.stdout))
 log.addHandler(logging.StreamHandler(sys.stderr))
 
 
-class TestCalibrateGraphs(ARLExecuteTestCase, unittest.TestCase):
+class TestCalibrateGraphs(unittest.TestCase):
     
     def setUp(self):
-        super(TestCalibrateGraphs, self).setUp()
         from data_models.parameters import arl_path
         self.dir = arl_path('test_results')
     
@@ -75,52 +72,42 @@ class TestCalibrateGraphs(ARLExecuteTestCase, unittest.TestCase):
             flux = numpy.array([f])
         
         self.phasecentre = SkyCoord(ra=+180.0 * u.deg, dec=-60.0 * u.deg, frame='icrs', equinox='J2000')
-        self.blockvis_list = [arlexecute.execute(ingest_unittest_visibility, nout=1)(self.low,
-                                                                                     [self.frequency[i]],
-                                                                                     [self.channelwidth[i]],
-                                                                                     self.times,
-                                                                                     self.vis_pol,
-                                                                                     self.phasecentre, block=True,
-                                                                                     zerow=zerow)
+        self.blockvis_list = [ingest_unittest_visibility(self.low,
+                                                         [self.frequency[i]],
+                                                         [self.channelwidth[i]],
+                                                         self.times,
+                                                         self.vis_pol,
+                                                         self.phasecentre, block=True,
+                                                         zerow=zerow)
                               for i in range(nfreqwin)]
-        self.blockvis_list = arlexecute.compute(self.blockvis_list, sync=True)
-        self.blockvis_list = arlexecute.scatter(self.blockvis_list)
         
-        self.vis_list = [arlexecute.execute(convert_blockvisibility_to_visibility, nout=1)(bv) for bv in
+        self.vis_list = [convert_blockvisibility_to_visibility(bv) for bv in
                          self.blockvis_list]
-        self.vis_list = arlexecute.compute(self.vis_list, sync=True)
-        self.vis_list = arlexecute.scatter(self.vis_list)
         
-        self.model_imagelist = [arlexecute.execute(create_unittest_model, nout=1)
+        self.model_imagelist = [create_unittest_model
                                 (self.vis_list[i], self.image_pol, npixel=self.npixel, cellsize=0.0005)
                                 for i in range(nfreqwin)]
-        self.model_imagelist = arlexecute.compute(self.model_imagelist, sync=True)
-        self.model_imagelist = arlexecute.scatter(self.model_imagelist)
         
-        self.components_list = [arlexecute.execute(create_unittest_components)
+        self.components_list = [create_unittest_components
                                 (self.model_imagelist[freqwin], flux[freqwin, :][numpy.newaxis, :])
                                 for freqwin, m in enumerate(self.model_imagelist)]
-        self.components_list = arlexecute.compute(self.components_list, sync=True)
-        self.components_list = arlexecute.scatter(self.components_list)
         
-        self.blockvis_list = [arlexecute.execute(predict_skycomponent_visibility)
+        self.blockvis_list = [predict_skycomponent_visibility
                               (self.blockvis_list[freqwin], self.components_list[freqwin])
                               for freqwin, _ in enumerate(self.blockvis_list)]
-        self.blockvis_list = arlexecute.compute(self.blockvis_list, sync=True)
-
-        self.error_blockvis_list = [arlexecute.execute(copy_visibility(v)) for v in self.blockvis_list]
-        self.error_blockvis_list = [arlexecute.execute(insert_unittest_errors, nout=1)
+        
+        self.error_blockvis_list = [copy_visibility(v) for v in self.blockvis_list]
+        self.error_blockvis_list = [insert_unittest_errors
                                     (self.error_blockvis_list[i], amp_errors=amp_errors, phase_errors=phase_errors,
                                      calibration_context="TG")
                                     for i in range(self.freqwin)]
-        self.error_blockvis_list = arlexecute.compute(self.error_blockvis_list, sync=True)
-
+        
         assert numpy.max(numpy.abs(self.error_blockvis_list[0].vis - self.blockvis_list[0].vis)) > 1.0
     
     def test_time_setup(self):
         self.actualSetUp()
     
-    def test_calibrate_arlexecute(self):
+    def test_calibrate_serial(self):
         amp_errors = {'T': 0.0, 'G': 0.0}
         phase_errors = {'T': 1.0, 'G': 0.0}
         self.actualSetUp(amp_errors=amp_errors, phase_errors=phase_errors)
@@ -130,14 +117,13 @@ class TestCalibrateGraphs(ARLExecuteTestCase, unittest.TestCase):
         controls['T']['timescale'] = 'auto'
         
         calibrate_list = \
-            calibrate_list_arlexecute_workflow(self.error_blockvis_list, self.blockvis_list,
-                                               calibration_context='T', controls=controls, do_selfcal=True,
-                                               global_solution=False)
-        calibrate_list = arlexecute.compute(calibrate_list, sync=True)
+            calibrate_list_serial_workflow(self.error_blockvis_list, self.blockvis_list,
+                                           calibration_context='T', controls=controls, do_selfcal=True,
+                                           global_solution=False)
         assert numpy.max(calibrate_list[1][0]['T'].residual) < 7e-6, numpy.max(calibrate_list[1][0]['T'].residual)
-        assert numpy.max(numpy.abs(self.error_blockvis_list[0].vis-self.blockvis_list[0].vis)) > 1e-3
+        assert numpy.max(numpy.abs(self.error_blockvis_list[0].vis - self.blockvis_list[0].vis)) > 1e-3
     
-    def test_calibrate_arlexecute_global(self):
+    def test_calibrate_serial_global(self):
         amp_errors = {'T': 0.0, 'G': 0.0}
         phase_errors = {'T': 1.0, 'G': 0.0}
         self.actualSetUp(amp_errors=amp_errors, phase_errors=phase_errors)
@@ -147,14 +133,12 @@ class TestCalibrateGraphs(ARLExecuteTestCase, unittest.TestCase):
         controls['T']['timescale'] = 'auto'
         
         calibrate_list = \
-            calibrate_list_arlexecute_workflow(self.error_blockvis_list, self.blockvis_list,
-                                               calibration_context='T', controls=controls, do_selfcal=True,
-                                               global_solution=True)
+            calibrate_list_serial_workflow(self.error_blockvis_list, self.blockvis_list,
+                                           calibration_context='T', controls=controls, do_selfcal=True,
+                                           global_solution=True)
         
-        calibrate_list = arlexecute.compute(calibrate_list, sync=True)
         assert numpy.max(calibrate_list[1]['T'].residual) < 7e-6, numpy.max(calibrate_list[1]['T'].residual)
         assert numpy.max(numpy.abs(self.error_blockvis_list[0].vis - self.blockvis_list[0].vis)) > 1e-3
-        
         assert numpy.max(calibrate_list[1]['T'].residual) < 1e-6, numpy.max(calibrate_list[1]['T'].residual)
 
 

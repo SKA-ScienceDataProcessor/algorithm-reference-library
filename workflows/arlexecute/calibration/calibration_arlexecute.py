@@ -4,14 +4,12 @@
 
 import numpy
 
-from wrappers.arlexecute.execution_support.arlexecute import arlexecute
 from wrappers.arlexecute.calibration.calibration_control import calibrate_function, apply_calibration_function, \
     solve_calibrate_function
-from wrappers.arlexecute.calibration.operations import apply_gaintable
+from wrappers.arlexecute.execution_support.arlexecute import arlexecute
+from wrappers.arlexecute.visibility.coalesce import convert_visibility_to_blockvisibility
 from wrappers.arlexecute.visibility.gather_scatter import visibility_gather_channel
-from wrappers.arlexecute.visibility.base import copy_visibility
 from wrappers.arlexecute.visibility.operations import divide_visibility, integrate_visibility_by_channel
-from wrappers.arlexecute.visibility.coalesce import convert_blockvisibility_to_visibility, convert_visibility_to_blockvisibility
 
 
 def calibrate_list_arlexecute_workflow(vis_list, model_vislist, calibration_context='TG', global_solution=True,
@@ -29,26 +27,25 @@ def calibrate_list_arlexecute_workflow(vis_list, model_vislist, calibration_cont
     :param kwargs: Parameters for functions in components
     :return:
     """
-
+    
     def solve(vis, modelvis=None):
         if modelvis is None or numpy.max(numpy.abs(modelvis.vis)) > 0.0:
             # Returns the gaintables
             return solve_calibrate_function(vis, modelvis, calibration_context=calibration_context, **kwargs)
         else:
             return None
-
+    
     def solve_and_apply(vis, modelvis=None):
         if modelvis is None or numpy.max(numpy.abs(modelvis.vis)) > 0.0:
             # Returns the block visibility and the gaintable
             return calibrate_function(vis, modelvis, calibration_context=calibration_context, **kwargs)
         else:
             return vis, None
-
+    
     def apply(vis, gt):
         # Returns just the block visibility
         return apply_calibration_function(vis, gt, calibration_context=calibration_context, **kwargs)
-
-
+    
     if global_solution:
         point_vislist = [arlexecute.execute(convert_visibility_to_blockvisibility, nout=1)(v) for v in vis_list]
         point_modelvislist = [arlexecute.execute(convert_visibility_to_blockvisibility, nout=1)(mv)
@@ -65,6 +62,6 @@ def calibrate_list_arlexecute_workflow(vis_list, model_vislist, calibration_cont
     else:
         
         result = [arlexecute.execute(solve_and_apply, nout=1)(vis_list[i], model_vislist[i])
-                for i, v in enumerate(vis_list)]
+                  for i, v in enumerate(vis_list)]
         # Return list of BVs and list of gaintables
         return [r[0] for r in result], [r[1] for r in result]
