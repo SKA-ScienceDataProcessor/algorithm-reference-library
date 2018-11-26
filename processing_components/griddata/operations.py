@@ -26,6 +26,30 @@ from processing_library.image.operations import create_image_from_array
 
 log = logging.getLogger(__name__)
 
+def copy_griddata(gd):
+    """ Copy griddata
+    
+    :param gd:
+    :return:
+    """
+    assert isinstance(gd, GridData), gd
+    newgd = GridData()
+    newgd.polarisation_frame = gd.polarisation_frame
+    newgd.data = copy.deepcopy(gd.data)
+    if gd.grid_wcs is None:
+        newgd.grid_wcs = None
+    else:
+        newgd.grid_wcs = copy.deepcopy(gd.grid_wcs)
+    if gd.projection_wcs is None:
+        newgd.projection_wcs = None
+    else:
+        newgd.projection_wcs = copy.deepcopy(gd.projection_wcs)
+    if griddata_sizeof(newgd) >= 1.0:
+        log.debug("copy_image: copied %s image of shape %s, size %.3f (GB)" %
+                  (newgd.data.dtype, str(newgd.shape), griddata_sizeof(newgd)))
+    assert type(newgd) == GridData
+    return newgd
+
 
 def griddata_sizeof(gd: GridData):
     """ Return size in GB

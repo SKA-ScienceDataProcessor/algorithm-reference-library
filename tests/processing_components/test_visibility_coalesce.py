@@ -11,11 +11,13 @@ import astropy.units as u
 
 from data_models.polarisation import PolarisationFrame
 
+from processing_components.imaging.base import create_image_from_visibility
 from processing_components.simulation.testing_support import create_named_configuration
 from processing_components.visibility.coalesce import coalesce_visibility, decoalesce_visibility, \
     convert_blockvisibility_to_visibility
 from processing_components.visibility.base import create_blockvisibility, create_visibility_from_rows
 from processing_components.visibility.iterators import vis_timeslice_iter
+from processing_components.imaging.weighting import weight_visibility
 
 import logging
 
@@ -34,7 +36,6 @@ class TestCoalesce(unittest.TestCase):
         self.blockvis = create_blockvisibility(self.lowcore, self.times, self.frequency, phasecentre=self.phasecentre,
                                                weight=1.0, polarisation_frame=PolarisationFrame('stokesI'),
                                                channel_bandwidth=self.channel_bandwidth)
-
     def test_coalesce_decoalesce_zero(self):
         cvis = coalesce_visibility(self.blockvis, time_coal=0.0, frequency_coal=0.0)
         assert numpy.min(cvis.frequency) == numpy.min(self.frequency)
@@ -42,6 +43,16 @@ class TestCoalesce(unittest.TestCase):
         dvis = decoalesce_visibility(cvis)
         assert dvis.nvis == self.blockvis.nvis
         dvis = decoalesce_visibility(cvis, overwrite=True)
+        assert dvis.nvis == self.blockvis.nvis
+
+    def test_convert_weight(self):
+        cvis = convert_blockvisibility_to_visibility(self.blockvis)
+        cvis.data['imaging_weight'] = 10.0
+        model = create_image_from_visibility(vis=cvis, npixel=256, cellsize=0.001, phasecentre=self.phasecentre,
+                                             polarisation_frame=PolarisationFrame('stokesI'))
+        cvis = weight_visibility(cvis, model)
+        dvis = decoalesce_visibility(cvis, overwrite=True)
+        assert numpy.max(dvis.data['imaging_weight']-10.0) < 1e-7
         assert dvis.nvis == self.blockvis.nvis
 
     def test_convert_decoalesce_zero(self):

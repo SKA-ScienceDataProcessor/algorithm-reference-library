@@ -9,13 +9,13 @@ import numpy
 from astropy import units as u
 from astropy.coordinates import SkyCoord
 
-from tests.workflows import ARLExecuteTestCase
-
 from data_models.polarisation import PolarisationFrame
 from processing_components.griddata.convolution_functions import apply_bounding_box_convolutionfunction
 from processing_components.griddata.kernels import create_awterm_convolutionfunction
+from tests.workflows import ARLExecuteTestCase
 from workflows.arlexecute.imaging.imaging_arlexecute import zero_list_arlexecute_workflow, \
-    predict_list_arlexecute_workflow, invert_list_arlexecute_workflow, subtract_list_arlexecute_workflow
+    predict_list_arlexecute_workflow, invert_list_arlexecute_workflow, subtract_list_arlexecute_workflow, \
+    weight_list_arlexecute_workflow
 from wrappers.arlexecute.execution_support.arlexecute import arlexecute
 from wrappers.arlexecute.image.operations import export_image_to_fits, smooth_image
 from wrappers.arlexecute.imaging.base import predict_skycomponent_visibility
@@ -56,7 +56,7 @@ class TestImaging(ARLExecuteTestCase, unittest.TestCase):
         # Choose the interval so that the maximum change in w is smallish
         integration_time = numpy.pi * (24 / (12 * 60))
         self.times = numpy.linspace(-integration_time * (self.ntimes // 2), integration_time * (self.ntimes // 2),
-                               self.ntimes)
+                                    self.ntimes)
         
         if freqwin > 1:
             self.frequency = numpy.linspace(0.8e8, 1.2e8, self.freqwin)
@@ -127,17 +127,17 @@ class TestImaging(ARLExecuteTestCase, unittest.TestCase):
         
         if makegcfcf:
             self.gcfcf = [create_awterm_convolutionfunction(self.model, nw=61, wstep=16.0,
-                                                           oversampling=8,
-                                                           support=64,
-                                                           use_aaf=True)]
+                                                            oversampling=8,
+                                                            support=64,
+                                                            use_aaf=True)]
             self.gcfcf_clipped = [(self.gcfcf[0][0], apply_bounding_box_convolutionfunction(self.gcfcf[0][1],
-                                                                                       fractional_level=1e-3))]
+                                                                                            fractional_level=1e-3))]
             
             self.gcfcf_joint = [create_awterm_convolutionfunction(self.model, nw=11, wstep=16.0,
-                                                                 oversampling=8,
-                                                                 support=64,
-                                                                 use_aaf=True)]
-            
+                                                                  oversampling=8,
+                                                                  support=64,
+                                                                  use_aaf=True)]
+        
         else:
             self.gcfcf = None
             self.gcfcf_clipped = None
@@ -229,7 +229,7 @@ class TestImaging(ARLExecuteTestCase, unittest.TestCase):
     def test_predict_wsnapshots(self):
         self.actualSetUp(makegcfcf=True)
         self._predict_base(context='wsnapshots', fluxthreshold=3.0,
-                           vis_slices=self.ntimes//2, gcfcf=self.gcfcf_joint)
+                           vis_slices=self.ntimes // 2, gcfcf=self.gcfcf_joint)
     
     def test_predict_wprojection(self):
         self.actualSetUp(makegcfcf=True)
@@ -240,15 +240,15 @@ class TestImaging(ARLExecuteTestCase, unittest.TestCase):
         self.actualSetUp(makegcfcf=True)
         self._predict_base(context='2d', extra='_wprojection_clipped', fluxthreshold=1.0,
                            gcfcf=self.gcfcf_clipped)
-
+    
     def test_predict_wstack(self):
         self.actualSetUp()
         self._predict_base(context='wstack', fluxthreshold=1.0, vis_slices=101)
-
+    
     def test_predict_wstack_serial(self):
         self.actualSetUp()
         self._predict_base(context='wstack', fluxthreshold=1.0, vis_slices=101, use_serial_predict=True)
-
+    
     def test_predict_wstack_wprojection(self):
         self.actualSetUp(makegcfcf=True)
         self._predict_base(context='wstack', extra='_wprojection', fluxthreshold=1.0, vis_slices=11,
@@ -265,6 +265,17 @@ class TestImaging(ARLExecuteTestCase, unittest.TestCase):
     def test_invert_2d(self):
         self.actualSetUp(zerow=True)
         self._invert_base(context='2d', positionthreshold=2.0, check_components=False)
+    
+    def test_invert_2d_uniform(self):
+        self.actualSetUp(zerow=True, makegcfcf=True)
+        self.vis_list = weight_list_arlexecute_workflow(self.vis_list, self.model_list, gcfcf=self.gcfcf,
+                                                        weighting='uniform')
+        self._invert_base(context='2d', extra='_uniform', positionthreshold=2.0, check_components=False)
+    
+    def test_invert_2d_uniform_nogcfcf(self):
+        self.actualSetUp(zerow=True)
+        self.vis_list = weight_list_arlexecute_workflow(self.vis_list, self.model_list)
+        self._invert_base(context='2d', extra='_uniform', positionthreshold=2.0, check_components=False)
     
     @unittest.skip("Facets need overlap")
     def test_invert_facets(self):
@@ -297,7 +308,7 @@ class TestImaging(ARLExecuteTestCase, unittest.TestCase):
     def test_invert_wsnapshots(self):
         self.actualSetUp(makegcfcf=True)
         self._invert_base(context='wsnapshots', positionthreshold=1.0,
-                          check_components=True, vis_slices=self.ntimes//2, gcfcf=self.gcfcf_joint)
+                          check_components=True, vis_slices=self.ntimes // 2, gcfcf=self.gcfcf_joint)
     
     def test_invert_wprojection(self):
         self.actualSetUp(makegcfcf=True)

@@ -13,7 +13,6 @@ from astropy.coordinates import SkyCoord
 from data_models.polarisation import PolarisationFrame
 
 from processing_components.imaging.base import create_image_from_visibility
-from processing_components.imaging.weighting import weight_visibility
 from processing_components.simulation.testing_support import create_named_configuration, ingest_unittest_visibility, create_unittest_model
 
 log = logging.getLogger(__name__)
@@ -61,17 +60,6 @@ class TestImagingFunctions(unittest.TestCase):
                                               self.vis_pol, self.phasecentre, block=block)
         
         self.model = create_unittest_model(self.vis, self.image_pol, npixel=self.npixel)
-    
-    def test_weighting(self):
-        self.actualSetUp()
-        vis, density, densitygrid = weight_visibility(self.vis, self.model, weighting='uniform')
-        assert vis.nvis == self.vis.nvis
-        assert len(density) == vis.nvis
-        assert numpy.std(vis.imaging_weight) > 0.0
-        assert densitygrid.data.shape == self.model.data.shape
-        vis, density, densitygrid = weight_visibility(self.vis, self.model, weighting='natural')
-        assert density is None
-        assert densitygrid is None
     
     def test_create_image_from_visibility(self):
         self.actualSetUp()

@@ -15,12 +15,12 @@ from data_models.memory_data_models import Skycomponent
 from data_models.polarisation import PolarisationFrame
 from processing_components.image.operations import export_image_to_fits
 from processing_components.imaging.base import predict_skycomponent_visibility
+from processing_components.imaging.primary_beams import create_low_test_beam
 from processing_components.simulation.testing_support import create_test_image_from_s3, create_named_configuration, \
     create_test_image, create_blockvisibility_iterator, create_low_test_image_from_gleam, \
-    create_low_test_skycomponents_from_gleam
-from processing_components.imaging.primary_beams import create_low_test_beam
+    create_low_test_skycomponents_from_gleam, create_low_test_skymodel_from_gleam
 from processing_components.visibility.base import create_visibility, create_blockvisibility
-from processing_components.visibility.coalesce import coalesce_visibility
+from processing_components.visibility.coalesce import convert_blockvisibility_to_visibility
 from processing_components.visibility.operations import append_visibility
 
 log = logging.getLogger(__name__)
@@ -89,17 +89,34 @@ class TestTesting_Support(unittest.TestCase):
         assert im.data.shape[0] == 1
         assert im.data.shape[1] == 4
     
+    def test_create_low_test_skymodel_from_gleam(self):
+        sm = create_low_test_skymodel_from_gleam(npixel=256, cellsize=0.001, frequency=self.frequency,
+                                                 channel_bandwidth=self.channel_bandwidth, phasecentre=self.phasecentre,
+                                                 kind='cubic', flux_limit=0.3, flux_threshold=1.0)
+        
+        im = sm.images[0]
+        assert im.data.shape[0] == 5
+        assert im.data.shape[1] == 1
+        assert im.data.shape[2] == 256
+        assert im.data.shape[3] == 256
+        export_image_to_fits(im, '%s/test_test_support_low_gleam.fits' % (self.dir))
+        
+        comp = sm.components
+        assert len(comp) == 44, len(comp)
+        assert comp[0].name == 'GLEAM J005658-390449', comp[0].name
+        assert comp[-1].name == 'GLEAM J011412-321730', comp[-1].name
+    
     def test_create_low_test_image_from_gleam(self):
         im = create_low_test_image_from_gleam(npixel=256, cellsize=0.001,
                                               channel_bandwidth=self.channel_bandwidth,
                                               frequency=self.frequency,
                                               phasecentre=self.phasecentre,
-                                              kind='cubic', flux_limit=1.0)
+                                              kind='cubic', flux_limit=0.3)
         assert im.data.shape[0] == 5
         assert im.data.shape[1] == 1
         assert im.data.shape[2] == 256
         assert im.data.shape[3] == 256
-        export_image_to_fits(im, '%s/test_test_support_test_support_low_gleam.fits' % (self.dir))
+        export_image_to_fits(im, '%s/test_test_support_low_gleam.fits' % (self.dir))
     
     def test_create_low_test_image_from_gleam_with_pb(self):
         im = create_low_test_image_from_gleam(npixel=256, cellsize=0.001,
@@ -219,15 +236,15 @@ class TestTesting_Support(unittest.TestCase):
         
         fullvis = None
         totalnvis = 0
-        for i, vis in enumerate(vis_iter):
-            assert vis.phasecentre == self.phasecentre
-            assert vis.nvis
+        for i, bvis in enumerate(vis_iter):
+            assert bvis.phasecentre == self.phasecentre
+            assert bvis.nvis
             if i == 0:
-                fullvis = vis
-                totalnvis = vis.nvis
+                fullvis = bvis
+                totalnvis = bvis.nvis
             else:
-                fullvis = append_visibility(fullvis, vis)
-                totalnvis += vis.nvis
+                fullvis = append_visibility(fullvis, bvis)
+                totalnvis += bvis.nvis
         
         assert fullvis.nvis == totalnvis
     
@@ -245,5 +262,8 @@ class TestTesting_Support(unittest.TestCase):
                                           weight=1.0, polarisation_frame=PolarisationFrame('stokesI'),
                                           channel_bandwidth=self.channel_bandwidth)
         self.vis = predict_skycomponent_visibility(self.vis, sc)
-        cvt = coalesce_visibility(self.vis, time_coal=1.0)
+        cvt = convert_blockvisibility_to_visibility(self.vis)
         assert cvt.cindex is not None
+
+if __name__ == '__main__':
+    unittest.main()

@@ -133,18 +133,27 @@ def threshold_list(imagelist, threshold, fractional_threshold, use_moment0=True,
     :return:
     """
     peak = 0.0
-    for result in imagelist:
+    for i, result in enumerate(imagelist):
         if use_moment0:
             moments = calculate_image_frequency_moments(result)
-            peak = max(peak, numpy.max(numpy.abs(moments.data[0, ...] / result.shape[0])))
+            this_peak = numpy.max(numpy.abs(moments.data[0, ...] / result.shape[0]))
+            peak = max(peak, this_peak)
+            log.info("threshold_list: using moment 0, sub_image %d, peak = %f," % (i, this_peak))
         else:
-            peak = max(peak, numpy.max(numpy.abs(result.data)))
-    
+            ref_chan = result.data.shape[0] // 2
+            this_peak = numpy.max(numpy.abs(result.data[ref_chan]))
+            peak = max(peak, this_peak)
+            log.info("threshold_list: using refchan %d , sub_image %d, peak = %f," % (ref_chan, i, this_peak))
+
     actual = max(peak * fractional_threshold, threshold)
     
+    
     if use_moment0:
-        log.info("threshold_list %s: peak in moment 0 = %.6f, threshold will be %.6f" % (prefix, peak, actual))
+        log.info("threshold_list %s: Global peak in moment 0 = %.6f, sub-image clean threshold will be %.6f" % (prefix,
+                                                                                                           peak,
+                                                                                                   actual))
     else:
-        log.info("threshold_list %s: peak = %.6f, threshold will be %.6f" % (prefix, peak, actual))
+        log.info("threshold_list %s: Global peak = %.6f, sub-image clean threshold will be %.6f" % (prefix, peak,
+                                                                                                   actual))
     
     return actual

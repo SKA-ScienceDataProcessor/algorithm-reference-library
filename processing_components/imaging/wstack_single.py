@@ -17,7 +17,6 @@ from processing_library.image.operations import create_w_term_like
 
 from ..image.operations import copy_image
 from ..visibility.base import copy_visibility
-from ..visibility.coalesce import coalesce_visibility, decoalesce_visibility
 from ..imaging.base import predict_2d, invert_2d
 
 import logging
@@ -34,20 +33,17 @@ def predict_wstack_single(vis, model, remove=True, gcfcf=None, **kwargs) -> Visi
     :return: resulting visibility (in place works)
     """
 
-    if not isinstance(vis, Visibility):
-        log.debug("predict_wstack_single: Coalescing")
-        avis = coalesce_visibility(vis, **kwargs)
-    else:
-        avis = vis
-        
+    assert isinstance(vis, Visibility), vis
+    
+    vis.data['vis'][...] = 0.0
+
     log.debug("predict_wstack_single: predicting using single w slice")
 
-    avis.data['vis'] *= 0.0
     # We might want to do wprojection so we remove the average w
-    w_average = numpy.average(avis.w)
+    w_average = numpy.average(vis.w)
     if remove:
-     avis.data['uvw'][..., 2] -= w_average
-    tempvis = copy_visibility(avis)
+        vis.data['uvw'][..., 2] -= w_average
+    tempvis = copy_visibility(vis)
 
     # Calculate w beam and apply to the model. The imaginary part is not needed
     workimage = copy_image(model)
@@ -55,21 +51,17 @@ def predict_wstack_single(vis, model, remove=True, gcfcf=None, **kwargs) -> Visi
     
     # Do the real part
     workimage.data = w_beam.data.real * model.data
-    avis = predict_2d(avis, workimage, gcfcf=gcfcf, **kwargs)
+    vis = predict_2d(vis, workimage, gcfcf=gcfcf, **kwargs)
     
     # and now the imaginary part
     workimage.data = w_beam.data.imag * model.data
     tempvis = predict_2d(tempvis, workimage, gcfcf=gcfcf, **kwargs)
-    avis.data['vis'] -= 1j * tempvis.data['vis']
+    vis.data['vis'] -= 1j * tempvis.data['vis']
     
     if remove:
-        avis.data['uvw'][..., 2] += w_average
+        vis.data['uvw'][..., 2] += w_average
 
-    if isinstance(vis, BlockVisibility) and isinstance(avis, Visibility):
-        log.debug("imaging.predict decoalescing post prediction")
-        return decoalesce_visibility(avis)
-    else:
-        return avis
+    return vis
 
 
 def invert_wstack_single(vis: Visibility, im: Image, dopsf, normalize=True, remove=True,

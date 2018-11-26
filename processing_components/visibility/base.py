@@ -191,8 +191,7 @@ def create_blockvisibility(config: Configuration,
     return vis
 
 
-def create_visibility_from_rows(vis: Union[Visibility, BlockVisibility], rows: numpy.ndarray, makecopy=True) \
-        -> None:
+def create_visibility_from_rows(vis: Union[Visibility, BlockVisibility], rows: numpy.ndarray, makecopy=True):
     """ Create a Visibility from selected rows
 
     :param vis: Visibility

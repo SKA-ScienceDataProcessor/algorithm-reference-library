@@ -77,7 +77,7 @@ class TestCalibrationSkyModelcal(unittest.TestCase):
                                                                    polarisation_frame=PolarisationFrame('stokesI'),
                                                                    radius=npixel * cellsize)
         self.beam = create_low_test_beam(self.beam)
-        self.components = apply_beam_to_skycomponent(self.components, self.beam, flux_limit=flux_limit)
+        self.components = apply_beam_to_skycomponent(self.components, self.beam)
         
         self.vis = copy_visibility(block_vis, zero=True)
         gt = create_gaintable_from_blockvisibility(block_vis, timeslice='auto')

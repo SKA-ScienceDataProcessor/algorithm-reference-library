@@ -59,7 +59,7 @@ def deconvolve_cube(dirty: Image, psf: Image, prefix='', **kwargs) -> (Image, Im
         comp, residual = deconvolve_cube(dirty, psf, niter=1000, gain=0.7, algorithm='msclean',
                                          scales=[0, 3, 10, 30], threshold=0.01)
                                          
-    For the MFS clean, the psf must have number of channels >= 2 * nmoments
+    For the MFS clean, the psf must have number of channels >= 2 * nmoment
     
     :param dirty: Image dirty image
     :param psf: Image Point Spread Function
@@ -69,7 +69,7 @@ def deconvolve_cube(dirty: Image, psf: Image, prefix='', **kwargs) -> (Image, Im
     :param threshold: Clean threshold (0.0)
     :param fractional_threshold: Fractional threshold (0.01)
     :param scales: Scales (in pixels) for multiscale ([0, 3, 10, 30])
-    :param nmoments: Number of frequency moments (default 3)
+    :param nmoment: Number of frequency moments (default 3)
     :param findpeak: Method of finding peak in mfsclean: 'Algorithm1'|'ASKAPSoft'|'CASA'|'ARL', Default is ARL.
     :return: componentimage, residual
     
@@ -137,12 +137,12 @@ def deconvolve_cube(dirty: Image, psf: Image, prefix='', **kwargs) -> (Image, Im
         
         log.info("deconvolve_cube %s: Multi-scale multi-frequency clean of each polarisation separately"
                  % prefix)
-        nmoments = get_parameter(kwargs, "nmoments", 3)
-        assert nmoments > 0, "Number of frequency moments must be greater than zero"
+        nmoment = get_parameter(kwargs, "nmoment", 3)
+        assert nmoment > 0, "Number of frequency moments must be greater than zero"
         nchan = dirty.shape[0]
-        assert nchan > 2 * nmoments, "Require nchan %d > 2 * nmoments %d" % (nchan, 2 * nmoments)
-        dirty_taylor = calculate_image_frequency_moments(dirty, nmoments=nmoments)
-        psf_taylor = calculate_image_frequency_moments(psf, nmoments=2 * nmoments)
+        assert nchan > 2 * nmoment, "Require nchan %d > 2 * nmoment %d" % (nchan, 2 * nmoment)
+        dirty_taylor = calculate_image_frequency_moments(dirty, nmoment=nmoment)
+        psf_taylor = calculate_image_frequency_moments(psf, nmoment=2 * nmoment)
         psf_peak = numpy.max(psf_taylor.data)
         dirty_taylor.data /= psf_peak
         psf_taylor.data /= psf_peak

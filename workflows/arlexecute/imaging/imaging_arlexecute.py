@@ -1,28 +1,8 @@
-""" Common functions converted to Dask.execute components. `Dask <http://dask.pydata.org/>`_ is a python-based flexible
-parallel computing library for analytic computing. Dask.delayed can be used to wrap functions for deferred execution
-thus allowing construction of components. For example, to build a graph for a major/minor cycle algorithm::
-
-    model_imagelist = arlexecute.compute(create_image_from_visibility)(vt, npixel=512, cellsize=0.001, npol=1)
-    solution_list = create_solve_image_list(vt, model_imagelist=model_imagelist, psf_list=psf_list,
-                                            context='timeslice', algorithm='hogbom',
-                                            niter=1000, fractional_threshold=0.1,
-                                            threshold=1.0, nmajor=3, gain=0.1)
-    solution_list.visualize()
-
-The graph for one vis_list is executed as follows::
-
-    solution_list[0].compute()
-    
-or if a Dask.distributed client is available:
-
-    client.compute(solution_list)
-
-Construction of the components requires that the number of nodes (e.g. w slices or time-slices) be known at construction,
-rather than execution. To counteract this, at run time, a given node should be able to act as a no-op. We use None
-to denote a null node.
-
-The actual imaging code executed eventually is specified by the context variable (see processing_library.imaging.imaging)context.
-These are the same as executed in the imaging framework.
+"""Manages the imaging context. This take a string and returns a dictionary containing:
+ * Predict function
+ * Invert function
+ * image_iterator function
+ * vis_iterator function
 
 """
 
@@ -31,26 +11,28 @@ import logging
 
 import numpy
 
-from data_models.memory_data_models import Image
+from data_models.memory_data_models import Image, Visibility
 from data_models.parameters import get_parameter
 from processing_library.image.operations import copy_image, create_empty_image_like
 from workflows.shared.imaging.imaging_shared import imaging_context
 from workflows.shared.imaging.imaging_shared import sum_invert_results, remove_sumwt, sum_predict_results, \
     threshold_list
 from wrappers.arlexecute.execution_support.arlexecute import arlexecute
+from wrappers.arlexecute.griddata.gridding import grid_weight_to_griddata, griddata_reweight, griddata_merge_weights
 from wrappers.arlexecute.griddata.kernels import create_pswf_convolutionfunction
+from wrappers.arlexecute.griddata.operations import create_griddata_from_image
 from wrappers.arlexecute.image.deconvolution import deconvolve_cube, restore_cube
 from wrappers.arlexecute.image.gather_scatter import image_scatter_facets, image_gather_facets, \
     image_scatter_channels, image_gather_channels
 from wrappers.arlexecute.image.operations import calculate_image_frequency_moments
-from wrappers.arlexecute.imaging.weighting import weight_visibility
 from wrappers.arlexecute.visibility.base import copy_visibility
 from wrappers.arlexecute.visibility.gather_scatter import visibility_scatter, visibility_gather
+from wrappers.arlexecute.imaging.weighting import taper_visibility_gaussian, taper_visibility_tukey
 
 log = logging.getLogger(__name__)
 
 
-def predict_list_arlexecute_workflow(vis_list, model_imagelist, vis_slices=1, facets=1, context='2d',
+def predict_list_arlexecute_workflow(vis_list, model_imagelist, context, vis_slices=1, facets=1,
                                      gcfcf=None, **kwargs):
     """Predict, iterating over both the scattered vis_list and image
     
@@ -66,7 +48,6 @@ def predict_list_arlexecute_workflow(vis_list, model_imagelist, vis_slices=1, fa
     :param kwargs: Parameters for functions in components
     :return: List of vis_lists
    """
-    
     if get_parameter(kwargs, "use_serial_predict", False):
         from workflows.serial.imaging.imaging_serial import predict_list_serial_workflow
         return [arlexecute.execute(predict_list_serial_workflow, nout=1) \
@@ -77,6 +58,9 @@ def predict_list_arlexecute_workflow(vis_list, model_imagelist, vis_slices=1, fa
     
     assert len(vis_list) == len(model_imagelist), "Model must be the same length as the vis_list"
     
+    # Predict_2d does not clear the vis so we have to do it here.
+    vis_list = zero_list_arlexecute_workflow(vis_list)
+
     c = imaging_context(context)
     vis_iter = c['vis_iterator']
     predict = c['predict']
@@ -88,12 +72,14 @@ def predict_list_arlexecute_workflow(vis_list, model_imagelist, vis_slices=1, fa
     
     def predict_ignore_none(vis, model, g):
         if vis is not None:
+            assert isinstance(vis, Visibility), vis
+            assert isinstance(model, Image), model
             return predict(vis, model, context=context, gcfcf=g, **kwargs)
         else:
             return None
     
     if gcfcf is None:
-        gcfcf = [arlexecute.execute(create_pswf_convolutionfunction)(model_imagelist[0])]
+        gcfcf = [arlexecute.execute(create_pswf_convolutionfunction)(m) for m in model_imagelist]
     
     # Loop over all frequency windows
     if facets == 1:
@@ -149,8 +135,8 @@ def predict_list_arlexecute_workflow(vis_list, model_imagelist, vis_slices=1, fa
         return image_results_list_list
 
 
-def invert_list_arlexecute_workflow(vis_list, template_model_imagelist, dopsf=False, normalize=True,
-                                    facets=1, vis_slices=1, context='2d', gcfcf=None, **kwargs):
+def invert_list_arlexecute_workflow(vis_list, template_model_imagelist, context, dopsf=False, normalize=True,
+                                    facets=1, vis_slices=1, gcfcf=None, **kwargs):
     """ Sum results from invert, iterating over the scattered image and vis_list
 
     :param vis_list:
@@ -164,16 +150,13 @@ def invert_list_arlexecute_workflow(vis_list, template_model_imagelist, dopsf=Fa
     :param kwargs: Parameters for functions in components
     :return: List of (image, sumwt) tuple
    """
-
-    do_weighting = get_parameter(kwargs, "do_weighting", False)
-    weighting = get_parameter(kwargs, "weighting", "uniform")
-
+    
     if get_parameter(kwargs, "use_serial_invert", False):
         from workflows.serial.imaging.imaging_serial import invert_list_serial_workflow
         return [arlexecute.execute(invert_list_serial_workflow, nout=1) \
                     (vis_list=[vis_list[i]], template_model_imagelist=[template_model_imagelist[i]],
-                     dopsf=dopsf, normalize=normalize, vis_slices=vis_slices,
-                     facets=facets, context=context, gcfcf=gcfcf, **kwargs)[0]
+                     context=context, dopsf=dopsf, normalize=normalize, vis_slices=vis_slices,
+                     facets=facets, gcfcf=gcfcf, **kwargs)[0]
                 for i, _ in enumerate(vis_list)]
     
     if not isinstance(template_model_imagelist, collections.Iterable):
@@ -203,9 +186,7 @@ def invert_list_arlexecute_workflow(vis_list, template_model_imagelist, dopsf=Fa
     
     def invert_ignore_none(vis, model, g):
         if vis is not None:
-            if do_weighting:
-                vis, _, _ = weight_visibility(vis, model, weighting=weighting, **kwargs)
-    
+            
             return invert(vis, model, context=context, dopsf=dopsf, normalize=normalize,
                           gcfcf=g, **kwargs)
         else:
@@ -290,17 +271,16 @@ def restore_list_arlexecute_workflow(model_imagelist, psf_imagelist, residual_im
     """
     if residual_imagelist is None:
         residual_imagelist = []
-
+    
     psf_list = arlexecute.execute(remove_sumwt, nout=len(psf_imagelist))(psf_imagelist)
-    if len(residual_imagelist)>0:
+    if len(residual_imagelist) > 0:
         residual_list = arlexecute.execute(remove_sumwt, nout=len(residual_imagelist))(residual_imagelist)
         return [arlexecute.execute(restore_cube)(model_imagelist[i], psf_list[i],
-                                                residual_list[i], **kwargs)
+                                                 residual_list[i], **kwargs)
                 for i, _ in enumerate(model_imagelist)]
     else:
         return [arlexecute.execute(restore_cube)(model_imagelist[i], psf_list[i], **kwargs)
                 for i, _ in enumerate(model_imagelist)]
-
 
 
 def deconvolve_list_arlexecute_workflow(dirty_list, psf_list, model_imagelist, prefix='', **kwargs):
@@ -313,7 +293,7 @@ def deconvolve_list_arlexecute_workflow(dirty_list, psf_list, model_imagelist, p
     :return: (graph for the deconvolution, graph for the flat)
     """
     nchan = len(dirty_list)
-    nmoments = get_parameter(kwargs, "nmoments", 0)
+    nmoment = get_parameter(kwargs, "nmoment", 0)
     
     def deconvolve(dirty, psf, model, facet, gthreshold):
         if prefix == '':
@@ -321,39 +301,21 @@ def deconvolve_list_arlexecute_workflow(dirty_list, psf_list, model_imagelist, p
         else:
             lprefix = "%s, facet %d" % (prefix, facet)
         
-        if nmoments > 0:
+        if nmoment > 0:
             moment0 = calculate_image_frequency_moments(dirty)
             this_peak = numpy.max(numpy.abs(moment0.data[0, ...])) / dirty.data.shape[0]
         else:
-            this_peak = numpy.max(numpy.abs(dirty.data[0, ...]))
+            ref_chan = dirty.data.shape[0] // 2
+            this_peak = numpy.max(numpy.abs(dirty.data[ref_chan, ...]))
         
         if this_peak > 1.1 * gthreshold:
-            # log.info(
-            #     "deconvolve_list_arlexecute_workflow %s: cleaning - peak %.6f > 1.1 * threshold %.6f" % (
-            #     lprefix, this_peak,
-            #     gthreshold))
             kwargs['threshold'] = gthreshold
             result, _ = deconvolve_cube(dirty, psf, prefix=lprefix, **kwargs)
             
             if result.data.shape[0] == model.data.shape[0]:
                 result.data += model.data
-            # else:
-            #     log.warning(
-            #         "deconvolve_list_arlexecute_workflow %s: Initial model %s and clean result %s do not have the same shape" %
-            #         (lprefix, str(model.data.shape[0]), str(result.data.shape[0])))
-            #
-            flux = numpy.sum(result.data[0, 0, ...])
-            # log.info('### %s, %.6f, %.6f, True, # cycle, facet, peak, cleaned flux, clean'
-            #          % (lprefix, this_peak, flux[0]))
-            #
             return result
         else:
-            # log.info("deconvolve_list_arlexecute_workflow %s: Not cleaning - peak %.6f <= 1.1 * threshold %.6f" % (
-            #     lprefix, this_peak,
-            #     gthreshold))
-            # log.info('### %s, %.6f, %.6f, False, %.3f # cycle, facet, peak, cleaned flux, clean'
-            #          % (lprefix, this_peak, 0.0))
-            
             return copy_image(model)
     
     deconvolve_facets = get_parameter(kwargs, 'deconvolve_facets', 1)
@@ -392,8 +354,8 @@ def deconvolve_list_arlexecute_workflow(dirty_list, psf_list, model_imagelist, p
     # Work out the threshold. Need to find global peak over all dirty_list images
     threshold = get_parameter(kwargs, "threshold", 0.0)
     fractional_threshold = get_parameter(kwargs, "fractional_threshold", 0.1)
-    nmoments = get_parameter(kwargs, "nmoments", 0)
-    use_moment0 = nmoments > 0
+    nmoment = get_parameter(kwargs, "nmoment", 0)
+    use_moment0 = nmoment > 0
     
     # Find the global threshold. This uses the peak in the average on the frequency axis since we
     # want to use it in a stopping criterion in a moment clean
@@ -452,8 +414,11 @@ def deconvolve_list_channel_arlexecute_workflow(dirty_list, psf_list, model_imag
     return arlexecute.execute(add_model, nout=1, pure=True)(result, model_imagelist)
 
 
-def weight_list_arlexecute_workflow(vis_list, model_imagelist, weighting='uniform', **kwargs):
+def weight_list_arlexecute_workflow(vis_list, model_imagelist, gcfcf=None, weighting='uniform', **kwargs):
     """ Weight the visibility data
+    
+    This is done collectively so the weights are summed over all vis_lists and then
+    corrected
 
     :param vis_list:
     :param model_imagelist: Model required to determine weighting parameters
@@ -461,19 +426,52 @@ def weight_list_arlexecute_workflow(vis_list, model_imagelist, weighting='unifor
     :param kwargs: Parameters for functions in graphs
     :return: List of vis_graphs
    """
+    centre = len(model_imagelist) // 2
     
-    def weight_vis(vis, model):
+    if gcfcf is None:
+        gcfcf = [arlexecute.execute(create_pswf_convolutionfunction)(model_imagelist[centre])]
+    
+    def grid_wt(vis, model, g):
         if vis is not None:
             if model is not None:
-                vis, _, _ = weight_visibility(vis, model, weighting=weighting, **kwargs)
-                return vis
+                griddata = create_griddata_from_image(model)
+                griddata = grid_weight_to_griddata(vis, griddata, g[0][1])
+                return griddata
             else:
                 return None
         else:
             return None
     
-    return [arlexecute.execute(weight_vis, pure=True, nout=1)(vis_list[i], model_imagelist[i])
-            for i in range(len(vis_list))]
+    weight_list = [arlexecute.execute(grid_wt, pure=True)(vis_list[i], model_imagelist[i], gcfcf)
+                   for i in range(len(vis_list))]
+    
+    merged_weight_grid = arlexecute.execute(griddata_merge_weights, nout=len(vis_list))(weight_list)
+    
+    def re_weight(vis, model, gd, g):
+        if gd is not None:
+            if vis is not None:
+                # Ensure that the griddata has the right axes so that the convolution
+                # function mapping works
+                agd = create_griddata_from_image(model)
+                agd.data = gd[0].data
+                vis = griddata_reweight(vis, agd, g[0][1])
+                return vis
+            else:
+                return None
+        else:
+            return vis
+    
+    return [arlexecute.execute(re_weight, nout=1)(v, model_imagelist[i], merged_weight_grid, gcfcf)
+            for i, v in enumerate(vis_list)]
+
+def taper_list_arlexecute_workflow(vis_list, size_required):
+    """Taper to desired size
+    
+    :param vis_list:
+    :param size_required:
+    :return:
+    """
+    return [arlexecute.execute(taper_visibility_gaussian, nout=1)(v, beam=size_required) for v in vis_list]
 
 
 def zero_list_arlexecute_workflow(vis_list):
