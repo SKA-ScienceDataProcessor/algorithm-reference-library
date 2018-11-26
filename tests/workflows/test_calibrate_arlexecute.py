@@ -84,29 +84,9 @@ class TestCalibrateGraphs(ARLExecuteTestCase, unittest.TestCase):
                                                                                      zerow=zerow)
                               for i in range(nfreqwin)]
         self.blockvis_list = arlexecute.compute(self.blockvis_list, sync=True)
-        self.blockvis_list = arlexecute.scatter(self.blockvis_list)
         
-        self.vis_list = [arlexecute.execute(convert_blockvisibility_to_visibility, nout=1)(bv) for bv in
-                         self.blockvis_list]
-        self.vis_list = arlexecute.compute(self.vis_list, sync=True)
-        self.vis_list = arlexecute.scatter(self.vis_list)
-        
-        self.model_imagelist = [arlexecute.execute(create_unittest_model, nout=1)
-                                (self.vis_list[i], self.image_pol, npixel=self.npixel, cellsize=0.0005)
-                                for i in range(nfreqwin)]
-        self.model_imagelist = arlexecute.compute(self.model_imagelist, sync=True)
-        self.model_imagelist = arlexecute.scatter(self.model_imagelist)
-        
-        self.components_list = [arlexecute.execute(create_unittest_components)
-                                (self.model_imagelist[freqwin], flux[freqwin, :][numpy.newaxis, :])
-                                for freqwin, m in enumerate(self.model_imagelist)]
-        self.components_list = arlexecute.compute(self.components_list, sync=True)
-        self.components_list = arlexecute.scatter(self.components_list)
-        
-        self.blockvis_list = [arlexecute.execute(predict_skycomponent_visibility)
-                              (self.blockvis_list[freqwin], self.components_list[freqwin])
-                              for freqwin, _ in enumerate(self.blockvis_list)]
-        self.blockvis_list = arlexecute.compute(self.blockvis_list, sync=True)
+        for v in self.blockvis_list:
+            v.data['vis'][...] = 1.0 + 0.0j
 
         self.error_blockvis_list = [arlexecute.execute(copy_visibility(v)) for v in self.blockvis_list]
         self.error_blockvis_list = [arlexecute.execute(insert_unittest_errors, nout=1)
@@ -134,29 +114,28 @@ class TestCalibrateGraphs(ARLExecuteTestCase, unittest.TestCase):
                                                calibration_context='T', controls=controls, do_selfcal=True,
                                                global_solution=False)
         calibrate_list = arlexecute.compute(calibrate_list, sync=True)
+        
         assert numpy.max(calibrate_list[1][0]['T'].residual) < 7e-6, numpy.max(calibrate_list[1][0]['T'].residual)
-        assert numpy.max(numpy.abs(self.error_blockvis_list[0].vis-self.blockvis_list[0].vis)) > 1e-3
-    
+        print(numpy.max(numpy.abs(calibrate_list[0][0].vis - self.blockvis_list[0].vis)))
+        assert numpy.max(numpy.abs(calibrate_list[0][0].vis - self.blockvis_list[0].vis)) < 1e-7
+
     def test_calibrate_arlexecute_global(self):
         amp_errors = {'T': 0.0, 'G': 0.0}
         phase_errors = {'T': 1.0, 'G': 0.0}
         self.actualSetUp(amp_errors=amp_errors, phase_errors=phase_errors)
-        
+    
         controls = create_calibration_controls()
         controls['T']['first_selfcal'] = 0
         controls['T']['timescale'] = 'auto'
-        
+    
         calibrate_list = \
             calibrate_list_arlexecute_workflow(self.error_blockvis_list, self.blockvis_list,
                                                calibration_context='T', controls=controls, do_selfcal=True,
                                                global_solution=True)
-        
+    
         calibrate_list = arlexecute.compute(calibrate_list, sync=True)
         assert numpy.max(calibrate_list[1]['T'].residual) < 7e-6, numpy.max(calibrate_list[1]['T'].residual)
-        assert numpy.max(numpy.abs(self.error_blockvis_list[0].vis - self.blockvis_list[0].vis)) > 1e-3
-        
-        assert numpy.max(calibrate_list[1]['T'].residual) < 1e-6, numpy.max(calibrate_list[1]['T'].residual)
-
+        assert numpy.max(numpy.abs(calibrate_list[0][0].vis - self.blockvis_list[0].vis)) < 2e-6
 
 if __name__ == '__main__':
     unittest.main()

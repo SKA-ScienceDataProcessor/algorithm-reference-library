@@ -33,6 +33,7 @@ def calibrate_list_serial_workflow(vis_list, model_vislist, calibration_context=
             # Returns the gaintables
             return solve_calibrate_function(vis, modelvis, calibration_context=calibration_context, **kwargs)
         else:
+            print("No solution in solve")
             return None
     
     def solve_and_apply(vis, modelvis=None):
@@ -40,6 +41,7 @@ def calibrate_list_serial_workflow(vis_list, model_vislist, calibration_context=
             # Returns the block visibility and the gaintable
             return calibrate_function(vis, modelvis, calibration_context=calibration_context, **kwargs)
         else:
+            print("No solution in solve and apply")
             return vis, None
     
     def apply(vis, gt):

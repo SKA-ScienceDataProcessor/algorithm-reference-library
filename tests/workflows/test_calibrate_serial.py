@@ -13,6 +13,7 @@ from astropy.coordinates import SkyCoord
 
 from data_models.polarisation import PolarisationFrame
 from workflows.serial.calibration.calibration_serial import calibrate_list_serial_workflow
+from wrappers.serial.calibration.operations import qa_gaintable
 from wrappers.serial.calibration.calibration_control import create_calibration_controls
 from wrappers.serial.imaging.base import predict_skycomponent_visibility
 from wrappers.serial.simulation.testing_support import create_named_configuration, ingest_unittest_visibility, \
@@ -80,21 +81,9 @@ class TestCalibrateGraphs(unittest.TestCase):
                                                          self.phasecentre, block=True,
                                                          zerow=zerow)
                               for i in range(nfreqwin)]
-        
-        self.vis_list = [convert_blockvisibility_to_visibility(bv) for bv in
-                         self.blockvis_list]
-        
-        self.model_imagelist = [create_unittest_model
-                                (self.vis_list[i], self.image_pol, npixel=self.npixel, cellsize=0.0005)
-                                for i in range(nfreqwin)]
-        
-        self.components_list = [create_unittest_components
-                                (self.model_imagelist[freqwin], flux[freqwin, :][numpy.newaxis, :])
-                                for freqwin, m in enumerate(self.model_imagelist)]
-        
-        self.blockvis_list = [predict_skycomponent_visibility
-                              (self.blockvis_list[freqwin], self.components_list[freqwin])
-                              for freqwin, _ in enumerate(self.blockvis_list)]
+                        
+        for v in self.blockvis_list:
+            v.data['vis'][...] = 1.0+0.0j
         
         self.error_blockvis_list = [copy_visibility(v) for v in self.blockvis_list]
         self.error_blockvis_list = [insert_unittest_errors
@@ -121,8 +110,8 @@ class TestCalibrateGraphs(unittest.TestCase):
                                            calibration_context='T', controls=controls, do_selfcal=True,
                                            global_solution=False)
         assert numpy.max(calibrate_list[1][0]['T'].residual) < 7e-6, numpy.max(calibrate_list[1][0]['T'].residual)
-        assert numpy.max(numpy.abs(self.error_blockvis_list[0].vis - self.blockvis_list[0].vis)) > 1e-3
-    
+        assert numpy.max(numpy.abs(calibrate_list[0][0].vis - self.blockvis_list[0].vis)) < 1e-7
+
     def test_calibrate_serial_global(self):
         amp_errors = {'T': 0.0, 'G': 0.0}
         phase_errors = {'T': 1.0, 'G': 0.0}
@@ -138,9 +127,7 @@ class TestCalibrateGraphs(unittest.TestCase):
                                            global_solution=True)
         
         assert numpy.max(calibrate_list[1]['T'].residual) < 7e-6, numpy.max(calibrate_list[1]['T'].residual)
-        assert numpy.max(numpy.abs(self.error_blockvis_list[0].vis - self.blockvis_list[0].vis)) > 1e-3
-        assert numpy.max(calibrate_list[1]['T'].residual) < 1e-6, numpy.max(calibrate_list[1]['T'].residual)
-
+        assert numpy.max(numpy.abs(calibrate_list[0][0].vis - self.blockvis_list[0].vis)) < 2e-6
 
 if __name__ == '__main__':
     unittest.main()
