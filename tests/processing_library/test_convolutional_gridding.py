@@ -42,7 +42,6 @@ class TestConvolutionalGridding(unittest.TestCase):
         self.assertAlmostEqualScalar(w_beam(5, 0.1, 100)[2, 2], 1)
         self.assertAlmostEqualScalar(w_beam(10, 0.1, 100)[5, 5], 1)
         self.assertAlmostEqualScalar(w_beam(11, 0.1, 1000)[5, 5], 1)
-    
 
 if __name__ == '__main__':
     unittest.main()
