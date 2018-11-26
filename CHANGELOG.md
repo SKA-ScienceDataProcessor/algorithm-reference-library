@@ -1,3 +1,10 @@
+**November 26, 2018** [Tim] Many changes in run up to demo:
+1. Parallel weighting, imaging weight added to BlockVisibility
+2. GLEAM lookup optimised, can now generate a skymodel and predict from it.
+3. Added skycomponent filtering
+4. Default visibility format is Visibility not BlockVisibility. This means fewer conversions.
+5. arl_demo notebook in place
+
 **September 25, 2018** [Tim] Gridding/degridding code has been refactored to a cleaner design. It also allows more 
 control of AW projection.
 
