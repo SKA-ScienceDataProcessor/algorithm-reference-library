@@ -19,7 +19,7 @@ from processing_components.simulation.testing_support import create_named_config
 from processing_components.imaging.base import predict_skycomponent_visibility
 from processing_components.visibility.coalesce import convert_blockvisibility_to_visibility
 from processing_components.visibility.operations import append_visibility, qa_visibility, \
-    sum_visibility, subtract_visibility
+    sum_visibility, subtract_visibility, divide_visibility
 from processing_components.visibility.base import copy_visibility, create_visibility, create_blockvisibility, create_visibility_from_rows,\
     phaserotate_visibility
 
@@ -111,6 +111,21 @@ class TestVisibilityOperations(unittest.TestCase):
             self.vis = append_visibility(self.vis, self.othervis)
             assert self.vis.nvis == len(self.vis.time)
             assert self.vis.nvis == len(self.vis.frequency)
+
+    def test_divide_visibility(self):
+            self.vis = create_blockvisibility(self.lowcore, self.times, self.frequency,
+                                         channel_bandwidth=self.channel_bandwidth,
+                                         phasecentre=self.phasecentre,
+                                         weight=1.0, polarisation_frame=PolarisationFrame("stokesIQUV"))
+            self.vis.data['vis'][...,:] = [2.0+0.0j, 0.0j, 0.0j, 2.0+0.0j]
+            self.othervis = create_blockvisibility(self.lowcore, self.times, self.frequency,
+                                              channel_bandwidth=self.channel_bandwidth,
+                                              phasecentre=self.phasecentre,
+                                              weight=1.0, polarisation_frame=PolarisationFrame("stokesIQUV"))
+            self.othervis.data['vis'][...,:] = [1.0+0.0j, 0.0j, 0.0j, 1.0+0.0j]
+            self.ratiovis = divide_visibility(self.vis, self.othervis)
+            assert self.ratiovis.nvis == self.vis.nvis
+            assert numpy.max(numpy.abs(self.ratiovis.vis)) == 2.0, numpy.max(numpy.abs(self.ratiovis.vis))
 
     def test_copy_visibility(self):
         self.vis = create_visibility(self.lowcore, self.times, self.frequency,
