@@ -11,27 +11,27 @@ import logging
 
 import numpy
 
-from data_models.memory_data_models import Image
+from data_models.memory_data_models import Image, Visibility
 from data_models.parameters import get_parameter
 from processing_library.image.operations import copy_image, create_empty_image_like
 from workflows.shared.imaging.imaging_shared import imaging_context
 from workflows.shared.imaging.imaging_shared import sum_invert_results, remove_sumwt, sum_predict_results, \
     threshold_list
-from wrappers.arlexecute.griddata.gridding import grid_weight_to_griddata, griddata_reweight, griddata_merge_weights
-from wrappers.arlexecute.griddata.kernels import create_pswf_convolutionfunction
-from wrappers.arlexecute.griddata.operations import create_griddata_from_image
+from wrappers.serial.griddata.gridding import grid_weight_to_griddata, griddata_reweight, griddata_merge_weights
+from wrappers.serial.griddata.kernels import create_pswf_convolutionfunction
+from wrappers.serial.griddata.operations import create_griddata_from_image
 from wrappers.serial.image.deconvolution import deconvolve_cube, restore_cube
 from wrappers.serial.image.gather_scatter import image_scatter_facets, image_gather_facets, \
     image_scatter_channels, image_gather_channels
 from wrappers.serial.image.operations import calculate_image_frequency_moments
 from wrappers.serial.visibility.base import copy_visibility
 from wrappers.serial.visibility.gather_scatter import visibility_scatter, visibility_gather
-from wrappers.serial.imaging.weighting import taper_visibility_gaussian, taper_visibility_tukey
+from wrappers.serial.imaging.weighting import taper_visibility_gaussian
 
 log = logging.getLogger(__name__)
 
 
-def predict_list_serial_workflow(vis_list, model_imagelist, vis_slices=1, facets=1, context='2d',
+def predict_list_serial_workflow(vis_list, model_imagelist, context, vis_slices=1, facets=1,
                                  gcfcf=None, **kwargs):
     """Predict, iterating over both the scattered vis_list and image
 
@@ -50,18 +50,28 @@ def predict_list_serial_workflow(vis_list, model_imagelist, vis_slices=1, facets
     
     assert len(vis_list) == len(model_imagelist), "Model must be the same length as the vis_list"
     
+    # Predict_2d does not clear the vis so we have to do it here.
+    vis_list = zero_list_serial_workflow(vis_list)
+
     c = imaging_context(context)
     vis_iter = c['vis_iterator']
     predict = c['predict']
     
+    if facets % 2 == 0 or facets == 1:
+        actual_number_facets = facets
+    else:
+        actual_number_facets = facets - 1
+    
     def predict_ignore_none(vis, model, g):
         if vis is not None:
+            assert isinstance(vis, Visibility), vis
+            assert isinstance(model, Image), model
             return predict(vis, model, context=context, gcfcf=g, **kwargs)
         else:
             return None
     
     if gcfcf is None:
-        gcfcf = [create_pswf_convolutionfunction(model_imagelist[0])]
+        gcfcf = [create_pswf_convolutionfunction(m) for m in model_imagelist]
     
     # Loop over all frequency windows
     if facets == 1:
@@ -464,6 +474,4 @@ def subtract_list_serial_workflow(vis_list, model_vislist):
         else:
             return None
     
-    return [subtract_vis(vis=vis_list[i],
-                         model_vis=model_vislist[i])
-            for i in range(len(vis_list))]
+    return [subtract_vis(vis=vis_list[i], model_vis=model_vislist[i]) for i in range(len(vis_list))]

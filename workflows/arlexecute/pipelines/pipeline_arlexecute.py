@@ -36,7 +36,7 @@ def ical_list_arlexecute_workflow(vis_list, model_imagelist, context, vis_slices
         cal_vis_list = [arlexecute.execute(copy_visibility, nout=1)(v) for v in vis_list]
     else:
         cal_vis_list = vis_list
-
+    
     if do_selfcal:
         # Make the predicted visibilities, selfcalibrate against it correcting the gains, then
         # form the residual visibility, then make the residual image
@@ -44,7 +44,7 @@ def ical_list_arlexecute_workflow(vis_list, model_imagelist, context, vis_slices
                                                          context=context, vis_slices=vis_slices, facets=facets,
                                                          gcgcf=gcfcf, **kwargs)
         cal_vis_list, _ = calibrate_list_arlexecute_workflow(cal_vis_list, model_vislist,
-                                                          calibration_context=calibration_context, **kwargs)
+                                                             calibration_context=calibration_context, **kwargs)
         residual_vislist = subtract_list_arlexecute_workflow(cal_vis_list, model_vislist)
         residual_imagelist = invert_list_arlexecute_workflow(residual_vislist, model_imagelist,
                                                              context=context, dopsf=False,
@@ -70,8 +70,8 @@ def ical_list_arlexecute_workflow(vis_list, model_imagelist, context, vis_slices
                                                                  gcgcf=gcfcf, **kwargs)
                 cal_vis_list = [arlexecute.execute(copy_visibility, nout=1)(v) for v in vis_list]
                 cal_vis_list, _ = calibrate_list_arlexecute_workflow(cal_vis_list, model_vislist,
-                                                                  calibration_context=calibration_context,
-                                                                  iteration=cycle, **kwargs)
+                                                                     calibration_context=calibration_context,
+                                                                     iteration=cycle, **kwargs)
                 residual_vislist = subtract_list_arlexecute_workflow(cal_vis_list, model_vislist)
                 residual_imagelist = invert_list_arlexecute_workflow(residual_vislist, model_imagelist,
                                                                      context=context,

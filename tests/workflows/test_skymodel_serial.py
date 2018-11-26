@@ -8,14 +8,12 @@ import unittest
 import numpy
 from astropy import units as u
 from astropy.coordinates import SkyCoord
+from workflows.serial.skymodel.skymodel_serial import predict_skymodel_list_serial_workflow
 
 from data_models.memory_data_models import Image
 from data_models.memory_data_models import Skycomponent
 from data_models.polarisation import PolarisationFrame
-from workflows.arlexecute.skymodel.skymodel_arlexecute import predict_skymodel_list_arlexecute_workflow
-from wrappers.arlexecute.execution_support.arlexecute import arlexecute
-from wrappers.arlexecute.execution_support.dask_init import get_dask_Client
-from wrappers.arlexecute.simulation.testing_support import create_named_configuration, ingest_unittest_visibility, \
+from wrappers.serial.simulation.testing_support import create_named_configuration, ingest_unittest_visibility, \
     create_low_test_skymodel_from_gleam
 
 log = logging.getLogger(__name__)
@@ -28,17 +26,11 @@ log.addHandler(logging.StreamHandler(sys.stderr))
 class TestSkyModel(unittest.TestCase):
     def setUp(self):
         
-        client = get_dask_Client(memory_limit=4 * 1024 * 1024 * 1024)
-        arlexecute.set_client(client)
-        
         from data_models.parameters import arl_path
         self.dir = arl_path('test_results')
-        
+    
     def tearDown(self):
-        try:
-            arlexecute.close()
-        except:
-            pass
+        pass
     
     def actualSetUp(self, freqwin=3, block=False, dopol=False, zerow=False):
         
@@ -70,40 +62,36 @@ class TestSkyModel(unittest.TestCase):
             f = numpy.array([100.0])
         
         self.phasecentre = SkyCoord(ra=+30.0 * u.deg, dec=-60.0 * u.deg, frame='icrs', equinox='J2000')
-        self.vis_list = [arlexecute.execute(ingest_unittest_visibility)(self.low,
-                                                                        [self.frequency[freqwin]],
-                                                                        [self.channelwidth[freqwin]],
-                                                                        self.times,
-                                                                        self.vis_pol,
-                                                                        self.phasecentre, block=block,
-                                                                        zerow=zerow)
+        self.vis_list = [ingest_unittest_visibility(self.low,
+                                                    [self.frequency[freqwin]],
+                                                    [self.channelwidth[freqwin]],
+                                                    self.times,
+                                                    self.vis_pol,
+                                                    self.phasecentre, block=block,
+                                                    zerow=zerow)
                          for freqwin, _ in enumerate(self.frequency)]
-        
     
     def test_time_setup(self):
         self.actualSetUp()
     
     def test_predict(self):
         self.actualSetUp(zerow=True)
-
-        self.skymodel_list = [arlexecute.execute(create_low_test_skymodel_from_gleam)
+        
+        self.skymodel_list = [create_low_test_skymodel_from_gleam
                               (npixel=self.npixel, cellsize=self.cellsize, frequency=[self.frequency[f]],
                                phasecentre=self.phasecentre,
                                polarisation_frame=PolarisationFrame("stokesI"),
                                flux_limit=0.3,
                                flux_threshold=0.3,
                                flux_max=5.0) for f, freq in enumerate(self.frequency)]
-
-        self.skymodel_list = arlexecute.compute(self.skymodel_list, sync=True)
+        
         assert isinstance(self.skymodel_list[0].images[0], Image), self.skymodel_list[0].images[0]
         assert isinstance(self.skymodel_list[0].components[0], Skycomponent), self.skymodel_list[0].components[0]
         assert len(self.skymodel_list[0].components) == 119, len(self.skymodel_list[0].components)
         assert len(self.skymodel_list[0].images) == 1, len(self.skymodel_list[0].images)
         assert numpy.max(numpy.abs(self.skymodel_list[0].images[0].data)) > 0.0, "Image is empty"
-
-        self.skymodel_list = arlexecute.scatter(self.skymodel_list)
-        skymodel_vislist = predict_skymodel_list_arlexecute_workflow(self.vis_list, self.skymodel_list, context='2d')
-        skymodel_vislist = arlexecute.compute(skymodel_vislist, sync=True)
+        
+        skymodel_vislist = predict_skymodel_list_serial_workflow(self.vis_list, self.skymodel_list, context='2d')
         assert numpy.max(numpy.abs(skymodel_vislist[0].vis)) > 0.0
 
 

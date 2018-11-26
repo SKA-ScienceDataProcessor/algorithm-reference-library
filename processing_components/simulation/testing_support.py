@@ -817,7 +817,7 @@ def create_unittest_model(vis, model_pol, npixel=None, cellsize=None, nchan=1):
     return model
 
 
-def insert_unittest_errors(vt, seed=180555, calibration_context="TGB", amp_errors=None, phase_errors=None):
+def insert_unittest_errors(vt, seed=180555, calibration_context="TG", amp_errors=None, phase_errors=None):
     """Simulate gain errors and apply
     
     :param vt:
