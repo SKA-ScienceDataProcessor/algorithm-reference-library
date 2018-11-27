@@ -8,6 +8,8 @@ from subprocess import call
 import os
 import sys
 
+import pkgconfig
+
 # Bail on Python < 3
 assert sys.version_info[0] >= 3
 
@@ -26,10 +28,11 @@ if sys.platform == 'darwin':
 # re-use the setuptools build support.
 
 libarlffi = Extension('libarlffi',
-                   sources = ['ffiwrappers/src/arlwrap.c', 'ffiwrappers/src/wrap_support.c', 'ffiwrappers/src/wrappingcore.c'],
+                   sources = ['ffiwrappers/src/arlwrap.c', 'ffiwrappers/src/wrap_support.c', 'ffiwrappers/src/wrappingcore.c', 'ffiwrappers/src/arl.pb-c.c'],
+                   include_dirs=['/usr/include/cfitsio'],
                    undef_macros = ['NDEBUG'],
-                   extra_compile_args = ['-Wno-strict-prototypes'],
-                   libraries= ['cfitsio'],
+                   extra_compile_args = ['-Wno-strict-prototypes', pkgconfig.cflags('libprotobuf-c'), pkgconfig.cflags('cfitsio') ],
+                   libraries = ['cfitsio'],
 		   optional=True,
 )
 
