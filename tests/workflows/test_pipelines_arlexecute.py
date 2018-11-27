@@ -125,7 +125,7 @@ class TestPipelineGraphs(ARLExecuteTestCase, unittest.TestCase):
             self.blockvis_list = [arlexecute.execute(insert_unittest_errors, nout=1)
                                   (self.blockvis_list[i],
                                    amp_errors=amp_errors, phase_errors=phase_errors,
-                                   calibration_context="T")
+                                   calibration_context="T", seed=18051955)
                                   for i in range(self.freqwin)]
             self.blockvis_list = arlexecute.compute(self.blockvis_list, sync=True)
             self.blockvis_list = arlexecute.scatter(self.blockvis_list)
@@ -228,8 +228,8 @@ class TestPipelineGraphs(ARLExecuteTestCase, unittest.TestCase):
         export_image_to_fits(restored[centre], '%s/test_pipelines_ical_global_pipeline_arlexecute_restored.fits' % self.dir)
         
         qa = qa_image(restored[centre])
-        assert numpy.abs(qa.data['max'] - 99.32729396999524) < 1.0, str(qa)
-        assert numpy.abs(qa.data['min'] + 0.6501547522800477) < 1.0, str(qa)
+        assert numpy.abs(qa.data['max'] - 98.85733209793565) < 1.0, str(qa)
+        assert numpy.abs(qa.data['min'] + 0.6886012014158345) < 1.0, str(qa)
 
 
 if __name__ == '__main__':
