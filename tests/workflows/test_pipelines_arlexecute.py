@@ -194,8 +194,8 @@ class TestPipelineGraphs(ARLExecuteTestCase, unittest.TestCase):
         export_image_to_fits(restored[centre], '%s/test_pipelines_ical_pipeline_restored.fits' % self.dir)
         
         qa = qa_image(restored[centre])
-        assert numpy.abs(qa.data['max'] - 100.13739440876233) < 1.0, str(qa)
-        assert numpy.abs(qa.data['min'] + 0.03644435471804354) < 1.0, str(qa)
+        assert numpy.abs(qa.data['max'] - 99.32729396999524) < 1.0, str(qa)
+        assert numpy.abs(qa.data['min'] + 0.6501547522800477) < 1.0, str(qa)
     
     def test_ical_pipeline_global(self):
         amp_errors = {'T': 0.0}
@@ -225,8 +225,8 @@ class TestPipelineGraphs(ARLExecuteTestCase, unittest.TestCase):
         export_image_to_fits(restored[centre], '%s/test_pipelines_ical_pipeline_restored.fits' % self.dir)
         
         qa = qa_image(restored[centre])
-        assert numpy.abs(qa.data['max'] - 97.6495471691351) < 1.0, str(qa)
-        assert numpy.abs(qa.data['min'] + 0.7981143014438079) < 1.0, str(qa)
+        assert numpy.abs(qa.data['max'] - 99.32729396999524) < 1.0, str(qa)
+        assert numpy.abs(qa.data['min'] + 0.6501547522800477) < 1.0, str(qa)
 
 
 if __name__ == '__main__':
