@@ -12,4 +12,4 @@ function can be stored in a GridData, most probably with finer spatial sampling.
 """
 
 from processing_components.griddata.operations import griddata_sizeof, create_griddata_from_array, \
-    create_griddata_from_image, convert_griddata_to_image, qa_griddata
+    create_griddata_from_image, convert_griddata_to_image, qa_griddata, copy_griddata

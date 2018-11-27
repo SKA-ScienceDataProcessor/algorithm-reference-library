@@ -4,14 +4,16 @@
 
 import logging
 
-from data_models.memory_data_models import SkyModel
+import numpy
 
+from data_models.memory_data_models import SkyModel
 from processing_library.image.operations import copy_image
+from ..skycomponent.base import copy_skycomponent
+from ..skycomponent.operations import filter_skycomponents_by_flux, insert_skycomponent
 from ..visibility.visibility_fitting import fit_visibility
 
-from ..skycomponent.base import copy_skycomponent
-
 log = logging.getLogger(__name__)
+
 
 def copy_skymodel(sm):
     """ Copy a sky model
@@ -20,6 +22,25 @@ def copy_skymodel(sm):
     return SkyModel(components=[copy_skycomponent(comp) for comp in sm.components],
                     images=[copy_image(im) for im in sm.images],
                     fixed=sm.fixed)
+
+
+def partition_skymodel_by_flux(sc, model, flux_threshold=-numpy.inf):
+    """
+    
+    :param sc:
+    :param model:
+    :param flux_threshold:
+    :return:
+    """
+    brightsc = filter_skycomponents_by_flux(sc, flux_min=flux_threshold)
+    weaksc = filter_skycomponents_by_flux(sc, flux_max=flux_threshold)
+    log.info('Converted %d components into %d bright components and one image containing %d components'
+             % (len(sc), len(brightsc), len(weaksc)))
+    im = copy_image(model)
+    im = insert_skycomponent(im, weaksc)
+    return SkyModel(components=[copy_skycomponent(comp) for comp in brightsc],
+                    images=[copy_image(im)],
+                    fixed=False)
 
 
 def solve_skymodel(vis, skymodel, gain=0.1, **kwargs):
@@ -45,7 +66,7 @@ def solve_skymodel(vis, skymodel, gain=0.1, **kwargs):
     new_images = list()
     for im in skymodel.images:
         new_image = copy_image(im)
-#        new_image = solve_image_arlexecute_workflow(vis, new_image, **kwargs)
+        #        new_image = solve_image_arlexecute_workflow(vis, new_image, **kwargs)
         new_images.append(new_image)
     
     return SkyModel(components=new_comps, images=new_images)

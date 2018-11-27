@@ -129,14 +129,11 @@ def w_beam(npixel, field_of_view, w, cx=None, cy=None, remove_shift=False):
     if cy is None:
         cy = npixel // 2
     ly, mx = coordinates2Offset(npixel, cx, cy)
-    mx *= field_of_view
-    ly *= field_of_view
-    r2 = ly ** 2 + mx ** 2
-    n2 = 1.0 - r2
-    ph = numpy.zeros_like(n2)
-    ph[r2 < 1.0] = w * (1 - numpy.sqrt(1.0 - r2[r2 < 1.0]))
-    cp = numpy.zeros_like(n2, dtype='complex')
-    cp[r2 < 1.0] = numpy.exp(-2j * numpy.pi * ph[r2 < 1.0])
+    r2 = field_of_view**2*(ly ** 2 + mx ** 2)
+    ph = numpy.zeros_like(r2)
+    ph[r2 < 1.0] = -2 * numpy.pi * w * (1 - numpy.sqrt(1.0 - r2[r2 < 1.0]))
+    cp = numpy.zeros_like(r2, dtype='complex')
+    cp[r2 < 1.0] = numpy.exp(1j * ph[r2 < 1.0])
     cp[r2 == 0] = 1.0 + 0j
     # Correct for linear phase shift in faceting
     if remove_shift:

@@ -12,7 +12,7 @@ format. For e.g. SKA1-LOW, coalescing typically reduces the number of visibiliti
 A typical use might be::
 
     vt = predict_skycomponent_visibility(vt, comps)
-    cvt = coalesce_visibility(vt, time_coal=1.0, max_time_coal=100, frequency_coal=0.0,
+    cvt = convert_blockvisibility_to_visibility(vt, time_coal=1.0, max_time_coal=100, frequency_coal=0.0,
         max_frequency_coal=1)
     dirtyimage, sumwt = invert_2d(cvt, model)
 
@@ -136,6 +136,8 @@ def decoalesce_visibility(vis: Visibility, overwrite=False, **kwargs) -> BlockVi
     assert numpy.max(vis.cindex) < vis.vis.shape[0], "Incorrect template used in decoalescing"
     for i in range(dvis.size // npol):
         decomp_vis.data['vis'].flat[i:i + npol] = vis.data['vis'][vis.cindex[i]]
+        decomp_vis.data['weight'].flat[i:i + npol] = vis.data['weight'][vis.cindex[i]]
+        decomp_vis.data['imaging_weight'].flat[i:i + npol] = vis.data['imaging_weight'][vis.cindex[i]]
 
     log.debug('decoalesce_visibility: Coalesced %s, decoalesced %s' % (vis_summary(vis),
                                                                        vis_summary(

@@ -197,7 +197,7 @@ def smooth_image(model: Image, width=1.0):
     return cmodel
 
 
-def calculate_image_frequency_moments(im: Image, reference_frequency=None, nmoments=3) -> Image:
+def calculate_image_frequency_moments(im: Image, reference_frequency=None, nmoment=3) -> Image:
     """Calculate frequency weighted moments
     
     Weights are ((freq-reference_frequency)/reference_frequency)**moment
@@ -206,12 +206,12 @@ def calculate_image_frequency_moments(im: Image, reference_frequency=None, nmome
     
     For example, to find the moments and then reconstruct from just the moments::
     
-        moment_cube = calculate_image_frequency_moments(model_multichannel, nmoments=5)
+        moment_cube = calculate_image_frequency_moments(model_multichannel, nmoment=5)
         reconstructed_cube = calculate_image_from_frequency_moments(model_multichannel, moment_cube)
 
     :param im: Image cube
     :param reference_frequency: Reference frequency (default None uses average)
-    :param nmoments: Number of moments to calculate
+    :param nmoment: Number of moments to calculate
     :return: Moments image
     """
     assert isinstance(im, Image)
@@ -219,15 +219,15 @@ def calculate_image_frequency_moments(im: Image, reference_frequency=None, nmome
     channels = numpy.arange(nchan)
     freq = im.wcs.sub(['spectral']).wcs_pix2world(channels, 0)[0]
     
-    assert nmoments <= nchan, "Number of moments %d cannot exceed the number of channels %d" % (nmoments, nchan)
+    assert nmoment <= nchan, "Number of moments %d cannot exceed the number of channels %d" % (nmoment, nchan)
     
     if reference_frequency is None:
         reference_frequency = numpy.average(freq)
     log.debug("calculate_image_frequency_moments: Reference frequency = %.3f (MHz)" % (reference_frequency/1e6))
     
-    moment_data = numpy.zeros([nmoments, npol, ny, nx])
+    moment_data = numpy.zeros([nmoment, npol, ny, nx])
     
-    for moment in range(nmoments):
+    for moment in range(nmoment):
         for chan in range(nchan):
             weight = numpy.power((freq[chan] - reference_frequency) / reference_frequency, moment)
             moment_data[moment, ...] += im.data[chan, ...] * weight
@@ -251,7 +251,7 @@ def calculate_image_from_frequency_moments(im: Image, moment_image: Image, refer
     
     For example, to find the moments and then reconstruct from just the moments::
     
-        moment_cube = calculate_image_frequency_moments(model_multichannel, nmoments=5)
+        moment_cube = calculate_image_frequency_moments(model_multichannel, nmoment=5)
         reconstructed_cube = calculate_image_from_frequency_moments(model_multichannel, moment_cube)
 
 
@@ -262,7 +262,7 @@ def calculate_image_from_frequency_moments(im: Image, moment_image: Image, refer
     """
     assert isinstance(im, Image)
     nchan, npol, ny, nx = im.shape
-    nmoments, mnpol, mny, mnx = moment_image.shape
+    nmoment, mnpol, mny, mnx = moment_image.shape
     
     assert npol == mnpol
     assert ny == mny
@@ -281,7 +281,7 @@ def calculate_image_from_frequency_moments(im: Image, moment_image: Image, refer
     
     newim.data[...] = 0.0
     
-    for moment in range(nmoments):
+    for moment in range(nmoment):
         for chan in range(nchan):
             weight = numpy.power((freq[chan] - reference_frequency) / reference_frequency, moment)
             newim.data[chan, ...] += moment_image.data[moment, ...] * weight

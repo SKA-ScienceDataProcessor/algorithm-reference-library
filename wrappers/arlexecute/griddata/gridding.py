@@ -20,4 +20,4 @@ log = logging.getLogger(__name__)
 
 from processing_components.griddata.gridding import convolution_mapping, grid_visibility_to_griddata, \
     grid_visibility_to_griddata_fast, grid_weight_to_griddata, degrid_visibility_from_griddata, \
-    fft_griddata_to_image, fft_image_to_griddata
+    fft_griddata_to_image, fft_image_to_griddata, griddata_reweight, griddata_merge_weights

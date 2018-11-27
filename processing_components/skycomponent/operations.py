@@ -268,13 +268,12 @@ def find_skycomponents(im: Image, fwhm=1.0, threshold=10.0, npixels=5) -> List[S
     return comps
 
 
-def apply_beam_to_skycomponent(sc: Union[Skycomponent, List[Skycomponent]], beam: Image, flux_limit=0.0) \
+def apply_beam_to_skycomponent(sc: Union[Skycomponent, List[Skycomponent]], beam: Image) \
         -> Union[Skycomponent, List[Skycomponent]]:
     """ Insert a Skycomponent into an image
     
     :param beam:
     :param sc: SkyComponent or list of SkyComponents
-    :param flux_limit: flux limit on input
     :return: List of skycomponents
     """
     assert isinstance(beam, Image)
@@ -287,32 +286,66 @@ def apply_beam_to_skycomponent(sc: Union[Skycomponent, List[Skycomponent]], beam
     
     log.debug('apply_beam_to_skycomponent: Processing %d components' % (len(sc)))
     
+    ras = [comp.direction.ra.radian for comp in sc]
+    decs = [comp.direction.dec.radian for comp in sc]
+    skycoords = SkyCoord(ras * u.rad, decs * u.rad, frame='icrs')
+    pixlocs = skycoord_to_pixel(skycoords, beam.wcs, origin=0, mode='wcs')
+
+    
     newsc = []
     total_flux = numpy.zeros([nchan, npol])
-    for comp in sc:
+    for icomp, comp in enumerate(sc):
         
         assert comp.shape == 'Point', "Cannot handle shape %s" % comp.shape
         
         assert_same_chan_pol(beam, comp)
         
-        pixloc = skycoord_to_pixel(comp.direction, beam.wcs, 1, 'wcs')
+        pixloc = (pixlocs[0][icomp], pixlocs[1][icomp])
         if not numpy.isnan(pixloc).any():
             x, y = int(round(float(pixloc[0]))), int(round(float(pixloc[1])))
             if x >= 0 and x < nx and y >= 0 and y < ny:
                 comp.flux[:, :] *= beam.data[:, :, y, x]
-                #                if comp.flux[:, :].any() > flux_limit:
-                if comp.flux[0, 0] > flux_limit:
-                    total_flux += comp.flux
-                    newsc.append(Skycomponent(comp.direction, comp.frequency, comp.name, comp.flux,
-                                              shape=comp.shape,
-                                              polarisation_frame=comp.polarisation_frame))
-    
+                total_flux += comp.flux
+                newsc.append(Skycomponent(comp.direction, comp.frequency, comp.name, comp.flux,
+                                          shape=comp.shape,
+                                          polarisation_frame=comp.polarisation_frame))
+
     log.debug('apply_beam_to_skycomponent: %d components with total flux %s' %
               (len(newsc), total_flux))
     if single:
         return newsc[0]
     else:
         return newsc
+
+
+def filter_skycomponents_by_index(sc, indices):
+    """Filter sky components by index
+
+    :param sc:
+    :param indices:
+    :return:
+    """
+    newcomps = list()
+    for i in indices:
+        newcomps.append(sc[i])
+    
+    return newcomps
+
+
+def filter_skycomponents_by_flux(sc, flux_min=-numpy.inf, flux_max=numpy.inf):
+    """Filter sky components by stokes I flux
+
+    :param sc:
+    :param flux_min:
+    :param flux_max:
+    :return:
+    """
+    newcomps = list()
+    for comp in sc:
+        if (numpy.max(comp.flux[:, 0]) > flux_min) and (numpy.max(comp.flux[:, 0]) < flux_max):
+            newcomps.append(comp)
+    
+    return newcomps
 
 
 def insert_skycomponent(im: Image, sc: Union[Skycomponent, List[Skycomponent]], insert_method='Nearest',
@@ -341,13 +374,17 @@ def insert_skycomponent(im: Image, sc: Union[Skycomponent, List[Skycomponent]], 
     
     image_frequency = im.frequency
     
-    for comp in sc:
+    ras = [comp.direction.ra.radian for comp in sc]
+    decs = [comp.direction.dec.radian for comp in sc]
+    skycoords = SkyCoord(ras * u.rad, decs * u.rad, frame='icrs')
+    pixlocs = skycoord_to_pixel(skycoords, im.wcs, origin=0, mode='wcs')
+
+    for icomp, comp in enumerate(sc):
         
         assert comp.shape == 'Point', "Cannot handle shape %s" % comp.shape
         
         assert_same_chan_pol(im, comp)
-        pixloc = skycoord_to_pixel(comp.direction, im.wcs, origin=0, mode='wcs')
-        
+        pixloc = (pixlocs[0][icomp], pixlocs[1][icomp])
         flux = numpy.zeros([nchan, npol])
         
         if comp.flux.shape[0] > 1:

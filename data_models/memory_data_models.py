@@ -804,7 +804,8 @@ class BlockVisibility:
                  data=None, frequency=None, channel_bandwidth=None,
                  phasecentre=None, configuration=None, uvw=None,
                  time=None, vis=None, weight=None, integration_time=None,
-                 polarisation_frame=PolarisationFrame('stokesI')):
+                 polarisation_frame=PolarisationFrame('stokesI'),
+                 imaging_weight=None):
         """BlockVisibility
 
         :param data:
@@ -829,7 +830,8 @@ class BlockVisibility:
                     ('time', '>f8'),
                     ('integration_time', '>f8'),
                     ('vis', '>c16', (nants, nants, nchan, npol)),
-                    ('weight', '>f8', (nants, nants, nchan, npol))]
+                    ('weight', '>f8', (nants, nants, nchan, npol)),
+                    ('imaging_weight', '>f8', (nants, nants, nchan, npol))]
             data = numpy.zeros(shape=[ntimes], dtype=desc)
             data['index'] = list(range(ntimes))
             data['uvw'] = uvw
@@ -837,7 +839,8 @@ class BlockVisibility:
             data['integration_time'] = integration_time
             data['vis'] = vis
             data['weight'] = weight
-        
+            data['imaging_weight'] = imaging_weight
+
         self.data = data  # numpy structured array
         self.frequency = frequency
         self.channel_bandwidth = channel_bandwidth
@@ -846,7 +849,7 @@ class BlockVisibility:
         self.polarisation_frame = polarisation_frame
     
     def __str__(self):
-        """Default printer for Skycomponent
+        """Default printer for BlockVisibility
 
         """
         s = "BlockVisibility:\n"
@@ -918,6 +921,9 @@ class BlockVisibility:
     def nvis(self):
         return self.data.size
 
+    @property
+    def imaging_weight(self):
+        return self.data['imaging_weight']
 
 class QA:
     """ Quality assessment

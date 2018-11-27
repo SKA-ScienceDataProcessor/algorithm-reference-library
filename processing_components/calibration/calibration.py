@@ -22,10 +22,7 @@ from data_models.memory_data_models import BlockVisibility, GainTable, assert_vi
 from processing_library.calibration.solvers import solve_from_X
 
 from ..visibility.base import create_visibility_from_rows
-from ..calibration.operations import apply_gaintable, create_gaintable_from_blockvisibility
-from ..visibility.coalesce import convert_blockvisibility_to_visibility, decoalesce_visibility
-from ..visibility.base import copy_visibility
-from ..imaging.base import predict_skycomponent_visibility, predict_2d
+from ..calibration.operations import create_gaintable_from_blockvisibility
 from ..visibility.operations import divide_visibility
 
 log = logging.getLogger(__name__)
@@ -49,6 +46,7 @@ def solve_gaintable(vis: BlockVisibility, modelvis: BlockVisibility = None, gt=N
     assert isinstance(vis, BlockVisibility), vis
     if modelvis is not None:
         assert isinstance(modelvis, BlockVisibility), modelvis
+        assert numpy.max(numpy.abs(modelvis.vis)) > 0.0, "Model visibility is zero"
     
     if phase_only:
         log.debug('solve_gaintable: Solving for phase only')
