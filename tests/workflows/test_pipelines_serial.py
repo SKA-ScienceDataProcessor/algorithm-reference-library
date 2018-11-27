@@ -42,9 +42,10 @@ class TestPipelines(unittest.TestCase):
                     amp_errors=None, phase_errors=None, zerow=True):
         
         if amp_errors is None:
-            amp_errors = {'T': 0.0, 'G': 0.01, 'B': 0.01}
+            amp_errors = {'T': 0.0}
+ 
         if phase_errors is None:
-            phase_errors = {'T': 1.0, 'G': 0.1, 'B': 0.01}
+            phase_errors = {'T': 1.0}
         
         self.npixel = 512
         self.low = create_named_configuration('LOWBD2', rmax=750.0)
@@ -105,7 +106,8 @@ class TestPipelines(unittest.TestCase):
         export_image_to_fits(self.cmodel, '%s/test_imaging_serial_cmodel.fits' % self.dir)
         
         if add_errors:
-            self.blockvis_list = [insert_unittest_errors(self.blockvis_list[i], amp_errors=amp_errors,
+            self.blockvis_list = [insert_unittest_errors(self.blockvis_list[i],
+                                                         amp_errors=amp_errors,
                                                          phase_errors=phase_errors,
                                                          calibration_context="T")
                                   for i in range(self.freqwin)]
@@ -133,11 +135,11 @@ class TestPipelines(unittest.TestCase):
                                                    deconvolve_facets=4, deconvolve_overlap=32,
                                                    deconvolve_taper='tukey', psf_support=64)
         centre = len(clean) // 2
-        export_image_to_fits(clean[centre], '%s/test_pipelines_continuum_imaging_pipeline_clean.fits' % self.dir)
+        export_image_to_fits(clean[centre], '%s/test_pipelines_continuum_imaging_pipeline_serial_clean.fits' % self.dir)
         export_image_to_fits(residual[centre][0],
-                             '%s/test_pipelines_continuum_imaging_pipeline_residual.fits' % self.dir)
+                             '%s/test_pipelines_continuum_imaging_pipeline_serial_residual.fits' % self.dir)
         export_image_to_fits(restored[centre],
-                             '%s/test_pipelines_continuum_imaging_pipeline_restored.fits' % self.dir)
+                             '%s/test_pipelines_continuum_imaging_pipeline_serial_restored.fits' % self.dir)
         
         qa = qa_image(restored[centre])
         assert numpy.abs(qa.data['max'] - 100.13762476849081) < 1.0, str(qa)
@@ -149,7 +151,7 @@ class TestPipelines(unittest.TestCase):
         phase_errors = {'T': 1.0}
         self.actualSetUp(add_errors=True, amp_errors=amp_errors, phase_errors=phase_errors)
         controls = create_calibration_controls()
-        controls['T']['first_selfcal'] = 0
+        controls['T']['first_selfcal'] = 1
         controls['T']['timescale'] = 'auto'
     
         clean, residual, restored = \
@@ -166,9 +168,9 @@ class TestPipelines(unittest.TestCase):
                                       calibration_context='T', controls=controls, do_selfcal=True,
                                       global_solution=False)
         centre = len(clean) // 2
-        export_image_to_fits(clean[centre], '%s/test_pipelines_ical_pipeline_clean.fits' % self.dir)
-        export_image_to_fits(residual[centre][0], '%s/test_pipelines_ical_pipeline_residual.fits' % self.dir)
-        export_image_to_fits(restored[centre], '%s/test_pipelines_ical_pipeline_restored.fits' % self.dir)
+        export_image_to_fits(clean[centre], '%s/test_pipelines_ical_pipeline_serial_clean.fits' % self.dir)
+        export_image_to_fits(residual[centre][0], '%s/test_pipelines_ical_pipeline_serial_residual.fits' % self.dir)
+        export_image_to_fits(restored[centre], '%s/test_pipelines_ical_pipeline_serial_restored.fits' % self.dir)
         
         qa = qa_image(restored[centre])
         assert numpy.abs(qa.data['max'] - 100.13739440876233) < 1.0, str(qa)
@@ -180,7 +182,7 @@ class TestPipelines(unittest.TestCase):
         phase_errors = {'T': 1.0}
         self.actualSetUp(add_errors=True, amp_errors=amp_errors, phase_errors=phase_errors)
         controls = create_calibration_controls()
-        controls['T']['first_selfcal'] = 0
+        controls['T']['first_selfcal'] = 1
         controls['T']['timescale'] = 'auto'
         
         clean, residual, restored = \
@@ -198,9 +200,9 @@ class TestPipelines(unittest.TestCase):
                                       global_solution=True)
         
         centre = len(clean) // 2
-        export_image_to_fits(clean[centre], '%s/test_pipelines_ical_pipeline_clean.fits' % self.dir)
-        export_image_to_fits(residual[centre][0], '%s/test_pipelines_ical_pipeline_residual.fits' % self.dir)
-        export_image_to_fits(restored[centre], '%s/test_pipelines_ical_pipeline_restored.fits' % self.dir)
+        export_image_to_fits(clean[centre], '%s/test_pipelines_ical_global_pipeline_serial_clean.fits' % self.dir)
+        export_image_to_fits(residual[centre][0], '%s/test_pipelines_ical_global_pipeline_serial_residual.fits' % self.dir)
+        export_image_to_fits(restored[centre], '%s/test_pipelines_ical_global_pipeline_serial_restored.fits' % self.dir)
         
         qa = qa_image(restored[centre])
         assert numpy.abs(qa.data['max'] - 97.6495471691351) < 1.0, str(qa)
