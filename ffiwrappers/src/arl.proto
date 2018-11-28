@@ -1,0 +1,38 @@
+syntax = "proto2";
+
+message UVW {
+  required double u = 1;  
+  required double v = 2;  
+  required double w = 3;  
+}
+message VIS {
+  required double real = 1;  
+  required double imag = 2;  
+}
+
+message Data {
+  repeated int32 index = 1;
+  repeated double uvw = 2;
+  repeated double  time = 3;
+  repeated double frequency = 4;
+  repeated double channel_bandwidth = 5;
+  repeated double integration_time = 6;
+  repeated int32 antenna1 = 7;
+  repeated int32 antenna2 = 8;
+  repeated VIS vis = 9;
+  repeated double weight = 10;
+  repeated double imaging_weight = 11;
+}
+
+message Phasecentre {
+  required string ra = 1;
+  required string dec = 2;
+}
+
+ 
+message ARLVisPB {
+  required int32 nvis = 1;
+  required int32 npol = 2;
+  required Data data = 3; 
+  required Phasecentre phasecentre = 4;
+}

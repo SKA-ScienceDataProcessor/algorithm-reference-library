@@ -72,8 +72,8 @@ int main(int argc, char **argv)
 	ARLVis *vt;			//Blockvisibility
 	ARLVis *vtmodel;
 	ARLVis *vtmp;
-//	ARLVis *vtpredicted;		//Visibility
-	ARLVis *vt_predictfunction;	//Blockvisibility
+	ARLVis *vtpredicted;		//Visibility
+  ARLVis *vt_predictfunction;	//Blockvisibility
 	ARLVis *vt_gt;			//Blockvisibility after gain table applied
 	ARLVis *vis_ical, *vpred_ical;	//Visibility ICAL temp
 	ARLVis *vres_ical;		//Visibility ICAL temp
@@ -138,10 +138,13 @@ int main(int argc, char **argv)
 	nvis = (lowconfig->nbases)*(lowconfig->nfreqs)*(lowconfig->ntimes);
 	printf("Nvis = %d\n", nvis);
 	
-	vt 		   = allocate_blockvis_data(lowconfig->nant, lowconfig->nfreqs, lowconfig->npol, lowconfig->ntimes); //Blockvisibility
-	vt_predictfunction = allocate_blockvis_data(lowconfig->nant, lowconfig->nfreqs, lowconfig->npol, lowconfig->ntimes); //Blockvisibility
-	vt_gt              = allocate_blockvis_data(lowconfig->nant, lowconfig->nfreqs, lowconfig->npol, lowconfig->ntimes); //Blockvisibility
-//	vtpredicted        = allocate_vis_data(lowconfig->npol, nvis);							     //Visibility
+//	vt 		   = allocate_blockvis_data(lowconfig->nant, lowconfig->nfreqs, lowconfig->npol, lowconfig->ntimes); //Blockvisibility
+//	vt_predictfunction = allocate_blockvis_data(lowconfig->nant, lowconfig->nfreqs, lowconfig->npol, lowconfig->ntimes); //Blockvisibility
+//	vt_gt              = allocate_blockvis_data(lowconfig->nant, lowconfig->nfreqs, lowconfig->npol, lowconfig->ntimes); //Blockvisibility
+	vt 		   = allocate_vis_data(lowconfig->npol, nvis); //Blockvisibility
+	vt_predictfunction = allocate_vis_data(lowconfig->npol, nvis); //Blockvisibility
+	vt_gt              = allocate_vis_data(lowconfig->npol, nvis); //Blockvisibility
+	vtpredicted        = allocate_vis_data(lowconfig->npol, nvis);							     //Visibility
 
 	// Allocate cindex array where 8*sizeof(char) is sizeof(python int)
 	cindex_nbytes = lowconfig->ntimes * lowconfig->nant * lowconfig->nant * lowconfig->nfreqs * sizeof(long long int);
@@ -153,11 +156,10 @@ int main(int argc, char **argv)
 	
 	// create_blockvisibility()
 	printf("Create blockvisibility... ");
-	arl_create_blockvisibility(lowconfig, vt);
+	arl_create_visibility(lowconfig, vt);
 	printf("Nrec = %d\n", lowconfig->nrec);
 	// Allocating gaintable data
 	gt = allocate_gt_data(lowconfig->nant, lowconfig->nfreqs, lowconfig->nrec, lowconfig->ntimes);
-
 	// adwise_wide_field()
 	adv.guard_band_image = 4.0;
 	adv.delA=0.02;
@@ -179,10 +181,11 @@ int main(int argc, char **argv)
 	status = export_image_to_fits_c(gleam_model, "!results/ical_c_api-gleam_model.fits");
 
 	// predict_function()
-	arl_predict_function_blockvis(lowconfig, vt, gleam_model);
+  //	arl_predict_function_blockvis(lowconfig, vt, gleam_model);
+  arl_predict_function_oneslice(lowconfig, vt, vt_predictfunction, gleam_model, vtpredicted);
 
 	// create_gaintable_from_blockvisibility()
-	arl_create_gaintable_from_blockvisibility(lowconfig, vt, gt);
+	arl_create_gaintable_from_visibility(lowconfig, vt, gt);
 
 	// simulate_gaintable()
 	arl_simulate_gaintable(lowconfig, gt);

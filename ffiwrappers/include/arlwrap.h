@@ -132,6 +132,7 @@ void arl_restore_cube_ical(Image *model, Image *psf, Image *residual,
 		Image *restored);
 
 void arl_predict_function(ARLConf *lowconf, const ARLVis *visin, const Image *img, ARLVis *visout, ARLVis *blockvisout, long long int *cindexout);
+void arl_predict_function_oneslice(ARLConf *lowconf, const ARLVis *visin, ARLVis *blockvisin, const Image *img, ARLVis *visout);
 void arl_predict_function_ical(ARLConf *lowconf, ARLVis *visinout, const Image *img, ARLVis *blockvisinout, long long int *cindexinout, int vis_slices);
 
 void arl_invert_function(ARLConf * lowconf, const ARLVis *visin, Image * img_model, int vis_slices, Image * img_dirty);

@@ -21,7 +21,7 @@ def cARLVis(visin):
     """
     npol=visin.npol
     nvis=visin.nvis
-    #print (ARLDataVisSize(nvis, npol))
+    print (ARLDataVisSize(nvis, npol))
     desc = [('index', '>i8'),
             ('uvw', '>f8', (3,)),
             ('time', '>f8'),
@@ -41,7 +41,8 @@ def cARLVis(visin):
 
 
 def ARLBlockDataVisSize(ntimes, nants, nchan, npol):
-    return (24+24*int(nants*nants) + 24*int(nants*nants)*int(nchan)*int(npol))*int(ntimes)
+    return (24+24*int(nants*nants) + 32*int(nants*nants)*int(nchan)*int(npol))*int(ntimes)
+#    return (24+24*int(nants*nants) + 32*int(nants*nants)*int(nchan)*int(npol))*int(ntimes)
 
 def cARLBlockVis(visin, nants, nchan):
     """
@@ -55,7 +56,8 @@ def cARLBlockVis(visin, nants, nchan):
             ('time', '>f8'),
             ('integration_time', '>f8'),
             ('vis', '>c16', (nants, nants, nchan, npol)),
-            ('weight', '>f8', (nants, nants, nchan, npol))]
+            ('weight', '>f8', (nants, nants, nchan, npol)),
+            ('imaging_weight', '>f8', (nants, nants, nchan, npol))]
     r=numpy.frombuffer(ff.buffer(visin.data,
                                  ARLBlockDataVisSize(ntimes, nants, nchan, npol)),
                                  dtype=desc,
@@ -103,11 +105,12 @@ def store_image_pickles(c_img, py_img):
     store_pickle(c_img.polarisation_frame, py_img.polarisation_frame)
 
 # Turns ARLVis struct into Visibility object
-def helper_create_visibility_object(c_vis):
+def helper_create_visibility_object(c_vis, config):
     # This may be incorrect
     # especially the data field...
     tvis= Visibility(
             data=c_vis,
+            configuration = config,
             frequency=c_vis['frequency'],
             channel_bandwidth=c_vis['channel_bandwidth'],
             integration_time=c_vis['integration_time'],

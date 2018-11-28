@@ -19,6 +19,7 @@ from processing_components.imaging.base import advise_wide_field
 from processing_components.simulation.testing_support import create_named_configuration, create_test_image, create_low_test_image_from_gleam, simulate_gaintable
 from data_models.polarisation import PolarisationFrame
 from processing_components.visibility.base import create_blockvisibility
+from processing_components.imaging.wstack_single import invert_wstack_single, predict_wstack_single
 from workflows.serial.imaging.imaging_serial import invert_list_serial_workflow, predict_list_serial_workflow
 from processing_components.image.operations import qa_image
 from processing_components.visibility.coalesce import convert_visibility_to_blockvisibility, convert_blockvisibility_to_visibility
@@ -169,7 +170,11 @@ def arlvis_proto2vis_ffi(vis_in, vis_out):
 
 arlvis_proto2vis=collections.namedtuple("FFIX", "address")    
 arlvis_proto2vis.address=int(ff.cast("size_t", arlvis_proto2vis_ffi))    
- 
+
+def trace(frame, event, arg):
+    print("%s, %s:%d" % (event, frame.f_code.co_filename, frame.f_lineno))
+    return trace
+
 @ff.callback("int (*)()")
 def arl_handle_error_ffi():
 
@@ -362,7 +367,6 @@ def arl_create_visibility_ffi(lowconfig, c_res_vis):
        lowcore = create_named_configuration(lowcore_name)
     else:
        lowcore = create_named_configuration(lowcore_name, rmax=lowconfig.rmax)
-
     times = numpy.frombuffer(ff.buffer(lowconfig.times, 8*lowconfig.ntimes), dtype='f8', count=lowconfig.ntimes)
     frequency = numpy.frombuffer(ff.buffer(lowconfig.freqs, 8*lowconfig.nfreqs), dtype='f8', count=lowconfig.nfreqs)
     channel_bandwidth = numpy.frombuffer(ff.buffer(lowconfig.channel_bandwidth, 8*lowconfig.nchanwidth), dtype='f8', count=lowconfig.nchanwidth)
@@ -393,10 +397,10 @@ arl_create_visibility.address=int(ff.cast("size_t", arl_create_visibility_ffi))
 
 @ff.callback("void (*)(ARLConf *, ARLVis *)", onerror=handle_error)
 def arl_create_blockvisibility_ffi(lowconfig, c_res_vis):
+#    sys.settrace(trace)
     lowcore_name = str(ff.string(lowconfig.confname), 'utf-8')
-    print(lowconfig.rmax)
     lowcore = create_named_configuration(lowcore_name, rmax=lowconfig.rmax)
-
+    print("blvkcis")
     times = numpy.frombuffer(ff.buffer(lowconfig.times, 8*lowconfig.ntimes), dtype='f8', count=lowconfig.ntimes)
     frequency = numpy.frombuffer(ff.buffer(lowconfig.freqs, 8*lowconfig.nfreqs), dtype='f8', count=lowconfig.nfreqs)
     channel_bandwidth = numpy.frombuffer(ff.buffer(lowconfig.channel_bandwidth, 8*lowconfig.nchanwidth), dtype='f8', count=lowconfig.nchanwidth)
@@ -420,6 +424,7 @@ def arl_create_blockvisibility_ffi(lowconfig, c_res_vis):
     py_res_vis = cARLBlockVis(c_res_vis, lowconfig.nant, lowconfig.nfreqs)
 
     numpy.copyto(py_res_vis, vt.data)
+    print("rmax: ", lowconfig.rmax)
 
     store_phasecentre(c_res_vis.phasecentre, phasecentre)
 
@@ -711,19 +716,21 @@ arl_solve_gaintable_ical.address=int(ff.cast("size_t", arl_solve_gaintable_ical_
 def arl_advise_wide_field_ffi(lowconfig, vis_in, adv): 
     lowcore_name = str(ff.string(lowconfig.confname), 'utf-8')
     lowcore = create_named_configuration(lowcore_name, rmax=lowconfig.rmax)
-    c_visin = cARLBlockVis(vis_in, lowconfig.nant, lowconfig.nfreqs)
-    
+    c_visin = cARLVis(vis_in)
+#    c_visin = cARLBlockVis(vis_in, lowconfig.nant, lowconfig.nfreqs)
     frequency = numpy.frombuffer(ff.buffer(lowconfig.freqs, 8*lowconfig.nfreqs), dtype='f8', count=lowconfig.nfreqs)
     channel_bandwidth = numpy.frombuffer(ff.buffer(lowconfig.channel_bandwidth, 8*lowconfig.nchanwidth), dtype='f8', count=lowconfig.nchanwidth)
 
-    py_visin = helper_create_blockvisibility_object(c_visin, frequency, channel_bandwidth, lowcore)
+#    py_blockvisin = helper_create_blockvisibility_object(c_visin, frequency, channel_bandwidth, lowcore)
+#    py_visin = convert_blockvisibility_to_visibility(py_blockvisin)
+    py_visin = helper_create_visibility_object(c_visin, lowcore)
     py_visin.phasecentre = load_phasecentre(vis_in.phasecentre)
     
     polframe = str(ff.string(lowconfig.polframe), 'utf-8')
     py_visin.polarisation_frame = PolarisationFrame(polframe)
-    visin_proto = arlvis_proto2vis(vis_in)
+#    visin_proto = arlvis_proto2vis(vis_in)
     print("Index :", py_visin.data['index'])
-
+    print("type " , py_visin.configuration)
     advice=advise_wide_field(py_visin, guard_band_image=adv.guard_band_image, delA=adv.delA,
                              wprojection_planes=adv.wprojection_planes)
     print(advice['vis_slices'], advice['npixels2'], advice['cellsize'])
@@ -940,18 +947,21 @@ def arl_predict_function_ffi(lowconfig, vis_in, img, vis_out, blockvis_out, cind
     cindex_size = lowconfig.nant*lowconfig.nant*lowconfig.nfreqs*lowconfig.ntimes
     py_cindex = numpy.frombuffer(ff.buffer(cindex_out, 8*cindex_size), dtype='int', count=cindex_size)
 
-    c_visin = cARLBlockVis(vis_in, lowconfig.nant, lowconfig.nfreqs)
+#    c_visin = cARLBlockVis(vis_in, lowconfig.nant, lowconfig.nfreqs)
+    c_visin = cARLVis(vis_in)
     frequency = numpy.frombuffer(ff.buffer(lowconfig.freqs, 8*lowconfig.nfreqs), dtype='f8', count=lowconfig.nfreqs)
     channel_bandwidth = numpy.frombuffer(ff.buffer(lowconfig.channel_bandwidth, 8*lowconfig.nchanwidth), dtype='f8', count=lowconfig.nchanwidth)
-    py_visin = helper_create_blockvisibility_object(c_visin, frequency, channel_bandwidth, lowcore)
+#    py_visin = helper_create_blockvisibility_object(c_visin, frequency, channel_bandwidth, lowcore)
+    py_visin = helper_create_visibility_object(c_visin, lowcore)
     c_img = cImage(img)
     py_visin.phasecentre = load_phasecentre(vis_in.phasecentre)
     polframe = str(ff.string(lowconfig.polframe), 'utf-8')
     py_visin.polarisation_frame = PolarisationFrame(polframe)
+    print("visou", py_visin.polarisation_frame)
 
 #    print("--------------------> predict_list_serial_workflow Phasecentre : ", py_visin.phasecentre.ra.deg, py_visin.phasecentre.dec.deg)
 
-    res = predict_list_serial_workflow(py_visin, c_img, vis_slices=51, context='wstack')
+    res = predict_list_serial_workflow([py_visin], [c_img], vis_slices=51, context='wstack')
 #    print("--------------------> predict_list_serial_workflow sizeof(py_visin.data), sizeof(res.data)", sys.getsizeof(py_visin.data[:]), sys.getsizeof(res.data[:]))
 #    print("--------------------> predict_list_serial_workflow cindex",  type(res.cindex), type(res.cindex[0]), len(res.cindex))
 #    print("--------------------> predict_list_serial_workflow sys.getsizeof(res.cindex)", sys.getsizeof(res.cindex))
@@ -961,7 +971,6 @@ def arl_predict_function_ffi(lowconfig, vis_in, img, vis_out, blockvis_out, cind
 #    print("--------------------> predict_list_serial_workflow py_visin.data): ", py_visin.data)
 
 #    print("predict_list_serial_workflow np.sum(predicted_vis.data): ", numpy.sum(res.data['vis']))
-
     vis_out.npol = vis_in.npol
     c_visout = cARLVis(vis_out)
     numpy.copyto(c_visout, res.data)
@@ -1014,6 +1023,54 @@ def arl_predict_function_blockvis_ffi(lowconfig, vis_in, img):
 
 arl_predict_function_blockvis=collections.namedtuple("FFIX", "address")
 arl_predict_function_blockvis.address=int(ff.cast("size_t", arl_predict_function_blockvis_ffi))
+
+@ff.callback("void (*)(ARLConf *, const ARLVis *, const ARLVis *, const Image *, ARLVis *)")
+def arl_predict_function_oneslice_ffi(lowconfig, vis_in, blockvis_in, img, vis_out):
+# Creating configuration
+    lowcore_name = str(ff.string(lowconfig.confname), 'utf-8')
+    lowcore = create_named_configuration(lowcore_name, rmax=lowconfig.rmax)
+
+# Re-creating input Visibility object
+    times = numpy.frombuffer(ff.buffer(lowconfig.times, 8*lowconfig.ntimes), dtype='f8', count=lowconfig.ntimes)
+    frequency = numpy.frombuffer(ff.buffer(lowconfig.freqs, 8*lowconfig.nfreqs), dtype='f8', count=lowconfig.nfreqs)
+    channel_bandwidth = numpy.frombuffer(ff.buffer(lowconfig.channel_bandwidth, 8*lowconfig.nchanwidth), dtype='f8', count=lowconfig.nchanwidth)
+    c_visin = cARLVis(vis_in)
+    py_visin = helper_create_visibility_object(c_visin, lowcore)
+    py_visin.phasecentre = load_phasecentre(vis_in.phasecentre)
+    py_visin.configuration = lowcore
+    polframe = str(ff.string(lowconfig.polframe), 'utf-8')
+    py_visin.polarisation_frame = PolarisationFrame(polframe)
+
+# Re-creating vis.BlockVisibility object
+    c_blockvisin = cARLBlockVis(blockvis_in, lowconfig.nant, lowconfig.nfreqs)
+    py_blockvisin = helper_create_blockvisibility_object(c_blockvisin, frequency, channel_bandwidth, lowcore)
+    py_blockvisin.phasecentre = load_phasecentre(vis_in.phasecentre)
+    py_blockvisin.configuration = lowcore
+    polframe = str(ff.string(lowconfig.polframe), 'utf-8')
+    py_blockvisin.polarisation_frame = PolarisationFrame(polframe)
+
+    py_visin.blockvis = py_blockvisin
+
+# Re-creating image object
+    # Re-creating images 
+    py_img = cImage(img)
+
+# Re-creating output Visibility object
+    c_visout = cARLVis(vis_out)
+#    py_visout = helper_create_visibility_object(c_visout)
+#    py_visout.phasecentre = load_phasecentre(vis_out.phasecentre)
+#    py_visout.configuration = lowcore
+#    polframe = str(ff.string(lowconfig.polframe), 'utf-8')
+#    py_visout.polarisation_frame = PolarisationFrame(polframe)
+
+# Get predicted visibilities
+    result = predict_wstack_single(py_visin, py_img)
+# Copy visibility data to vis_out
+    numpy.copyto(c_visout, result.data)
+    
+
+arl_predict_function_oneslice=collections.namedtuple("FFIX", "address")
+arl_predict_function_oneslice.address=int(ff.cast("size_t", arl_predict_function_oneslice_ffi))
 
 @ff.callback("void (*)(ARLConf *, ARLVis *, const Image *, ARLVis *, long long int *, int)", onerror=handle_error)
 def arl_predict_function_ical_ffi(lowconfig, vis_inout, img, blockvis_inout, cindex_inout, vis_slices):
@@ -1331,6 +1388,9 @@ def arl_create_image_from_visibility_ffi(vis_in, img_in):
     # structures
     #store_image_pickles(c_img, image)
     store_image_in_c(c_img, image)
+
+arl_create_image_from_visibility=collections.namedtuple("FFIX", "address")    
+arl_create_image_from_visibility.address=int(ff.cast("size_t",arl_create_image_from_visibility_ffi))
 
 @ff.callback("void (*)(const void *, Image *)", onerror=handle_error)
 def arl_create_image_from_visibility_proto_ffi(vis_in, img_in):

@@ -185,6 +185,10 @@ void arl_predict_function(ARLConf *lowconf, const ARLVis *visin, const Image *im
 	BKFNPY(arl_predict_function)(lowconf, visin, img, visout, blockvisout, cindexout);
 }
 
+void arl_predict_function_oneslice(ARLConf *lowconf, const ARLVis *visin, ARLVis *blockvisin, const Image *img, ARLVis *visout) {
+	BKFNPY(arl_predict_function_oneslice)(lowconf, visin, blockvisin, img, visout);
+}
+
 void arl_predict_function_ical(ARLConf *lowconf, ARLVis *visinout, const Image *img, ARLVis *blockvisinout, long long int *cindexinout, int vis_slices) {
 	BKFNPY(arl_predict_function_ical)(lowconf, visinout, img, blockvisinout, cindexinout, vis_slices);
 }
