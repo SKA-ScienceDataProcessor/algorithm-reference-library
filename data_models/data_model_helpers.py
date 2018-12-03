@@ -488,7 +488,11 @@ def export_skymodel_to_hdf5(sm, filename):
         for i, im in enumerate(sm.images):
             cf = f.create_group('image%d' % i)
             convert_image_to_hdf(im, cf)
-        
+        f.attrs['number_gaintables'] = len(sm.gaintables)
+        for i, im in enumerate(sm.gaintables):
+            gt = f.create_group('gaintables%d' % i)
+            convert_gaintable_to_hdf(im, gt)
+
         f.flush()
         f.close()
 
@@ -504,11 +508,14 @@ def import_skymodel_from_hdf5(filename):
         ncomponents = f.attrs['number_skycomponents']
         components = [convert_hdf_to_skycomponent(f['skycomponent%d' % i])
                       for i in range(ncomponents)]
-        
+
         nimages = f.attrs['number_images']
         images = [convert_hdf_to_image(f['image%d' % i]) for i in range(nimages)]
-        
-        return SkyModel(components=components, images=images)
+
+        ngaintables = f.attrs['number_gaintables']
+        gaintables = [convert_hdf_to_gaintable(f['gaintables%d' % i]) for i in range(ngaintables)]
+
+        return SkyModel(components=components, images=images, gaintables=gaintables)
 
 
 def memory_data_model_to_buffer(model, jbuff, dm):
