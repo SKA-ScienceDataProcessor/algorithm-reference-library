@@ -54,7 +54,8 @@ def image_raster_iter(im: Image, facets=1, overlap=0, taper='flat', make_flat=Fa
     :param make_flat: Make the flat images
     """
     nchan, npol, ny, nx = im.shape
-    log.debug("image_raster_iter: predicting using %d x %d image partitions" % (facets, facets))
+    if facets > 1:
+        log.debug("image_raster_iter: predicting using %d x %d image partitions" % (facets, facets))
     assert facets <= ny, "Cannot have more raster elements than pixels"
     assert facets <= nx, "Cannot have more raster elements than pixels"
     
@@ -115,7 +116,8 @@ def image_raster_iter(im: Image, facets=1, overlap=0, taper='flat', make_flat=Fa
             result = numpy.outer(t, t)
             return result
 
-        log.debug('image_raster_iter: spacing of raster (%d, %d)' % (dx, dy))
+        if facets > 1:
+            log.debug('image_raster_iter: spacing of raster (%d, %d)' % (dx, dy))
         
         i = 0
         for fy in range(facets):
