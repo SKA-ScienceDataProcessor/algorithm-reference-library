@@ -32,5 +32,5 @@ seqfile
 h5py
 jsonschema
 bokeh
-
+pkgconfig
 

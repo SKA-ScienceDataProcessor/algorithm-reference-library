@@ -7,7 +7,6 @@ from setuptools.command.build_ext import build_ext
 from subprocess import call
 import os
 import sys
-
 import pkgconfig
 
 # Bail on Python < 3
