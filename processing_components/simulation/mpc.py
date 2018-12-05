@@ -37,13 +37,14 @@ def find_pierce_points(station_locations, ha, dec, phasecentre, height):
     return pierce_points
 
 
-def create_gaintable_from_screen(vis, sc, screen, height=3e5, vis_slices=None, **kwargs):
+def create_gaintable_from_screen(vis, sc, screen, height=3e5, vis_slices=None, scale=1.0, **kwargs):
     """ Create gaintables from a screen calculated using ARatmospy
     
     :param vis:
     :param sc: Sky components for which pierce points are needed
     :param screen:
     :param height: Height (in m) of screen above telescope e.g. 3e5
+    :param scale: Multiply the screen by this factor
     :return:
     """
     assert isinstance(vis, BlockVisibility)
@@ -69,10 +70,8 @@ def create_gaintable_from_screen(vis, sc, screen, height=3e5, vis_slices=None, *
                 worldloc = [pp0[0], pp0[1], ha, 1e8]
                 try:
                     pixloc = screen.wcs.wcs_world2pix([worldloc], 0)[0].astype('int')
-                    scr[ant] = screen.data[pixloc[3], pixloc[2], pixloc[1], pixloc[0]]
+                    scr[ant] = scale * screen.data[pixloc[3], pixloc[2], pixloc[1], pixloc[0]]
                 except:
-                    if number_bad == 0:
-                        print(worldloc, pixloc)
                     number_bad += 1
                     scr[ant] = 0.0
                 

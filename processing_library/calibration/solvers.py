@@ -313,14 +313,6 @@ def solution_residual_scalar(gain, x, xwt):
     residual = numpy.zeros([nchan, nrec, nrec])
     sumwt = numpy.zeros([nchan, nrec, nrec])
     
-    # for ant1 in range(nants):
-    #     for ant2 in range(nants):
-    #         for chan in range(nchan):
-    #             error = x[ant2, ant1, chan, 0, 0] - \
-    #                 gain[ant1, chan, 0, 0] * numpy.conjugate(gain[ant2, chan, 0, 0])
-    #             residual += (error * xwt[ant2, ant1, chan, 0, 0] * numpy.conjugate(error)).real
-    #             sumwt += xwt[ant2, ant1, chan, 0, 0]
-
     for chan in range(nchan):
         lgain = gain[:, chan, 0, 0]
         clgain = numpy.conjugate(lgain)
