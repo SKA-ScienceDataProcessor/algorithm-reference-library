@@ -29,7 +29,7 @@ class TestCalibrationOperations(unittest.TestCase):
         
     def actualSetup(self, sky_pol_frame='stokesIQUV', data_pol_frame='linear'):
         self.lowcore = create_named_configuration('LOWBD2', rmax=300.0)
-        self.times = (numpy.pi / 43200.0) * numpy.arange(0.0, 300.0, 30.0)
+        self.times = (numpy.pi / 43200.0) * numpy.arange(0.0, 3000.0, 30.0)
         vnchan = 3
         self.frequency = numpy.linspace(1.0e8, 1.1e8, vnchan)
         self.channel_bandwidth = numpy.array(vnchan * [self.frequency[1] - self.frequency[0]])

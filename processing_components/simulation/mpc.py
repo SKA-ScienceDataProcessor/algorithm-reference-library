@@ -1,10 +1,11 @@
+
 import logging
 
-from astropy import constants as const
+import numpy
 from astropy import units as u
 from astropy.coordinates import SkyCoord
 
-from data_models.memory_data_models import BlockVisibility
+from data_models.memory_data_models import BlockVisibility, SkyModel
 
 log = logging.getLogger()
 
@@ -12,9 +13,9 @@ from processing_library.util.coordinate_support import xyz_to_uvw, skycoord_to_l
 from processing_components.calibration.operations import create_gaintable_from_blockvisibility
 from processing_components.visibility.iterators import vis_timeslice_iter
 from processing_components.visibility.base import create_visibility_from_rows
-
-import numpy
-
+from processing_components.image.operations import copy_image
+from processing_components.visibility.operations import copy_visibility
+from processing_components.calibration.operations import copy_gaintable
 
 def find_pierce_points(station_locations, ha, dec, phasecentre, height):
     """Find the pierce points for a screen at specified height
@@ -37,7 +38,7 @@ def find_pierce_points(station_locations, ha, dec, phasecentre, height):
 
 
 def create_gaintable_from_screen(vis, sc, screen, height=3e5, vis_slices=None, **kwargs):
-    """ Create gaintable from a screen calculated using ARatmospy
+    """ Create gaintables from a screen calculated using ARatmospy
     
     :param vis:
     :param sc: Sky components for which pierce points are needed
@@ -53,7 +54,7 @@ def create_gaintable_from_screen(vis, sc, screen, height=3e5, vis_slices=None, *
     t2r = numpy.pi / 43200.0
     gaintables = [create_gaintable_from_blockvisibility(vis, **kwargs) for i in sc]
 
-    # Assuming that the time in the Visibility is hour angle in seconds!
+    # The time in the Visibility is hour angle in seconds!
     for iha, rows in enumerate(vis_timeslice_iter(vis, vis_slices=vis_slices)):
         v = create_visibility_from_rows(vis, rows)
         ha = numpy.average(v.time)
@@ -70,6 +71,8 @@ def create_gaintable_from_screen(vis, sc, screen, height=3e5, vis_slices=None, *
                     pixloc = screen.wcs.wcs_world2pix([worldloc], 0)[0].astype('int')
                     scr[ant] = screen.data[pixloc[3], pixloc[2], pixloc[1], pixloc[0]]
                 except:
+                    if number_bad == 0:
+                        print(worldloc, pixloc)
                     number_bad += 1
                     scr[ant] = 0.0
                 
@@ -79,3 +82,27 @@ def create_gaintable_from_screen(vis, sc, screen, height=3e5, vis_slices=None, *
             log.warning("create_gaintable_from_screen: %d pierce points are outside the screen image" % (number_bad))
 
     return gaintables
+
+def expand_skymodel_by_skycomponents(sm, **kwargs):
+    """ Expand a sky model so that all components are in separate skymodels
+
+    """
+    return [SkyModel(components=[comp],
+                    images=[copy_image(im) for im in sm.images],
+                    gaintables=[copy_gaintable(gt) for gt in sm.gaintables],
+                    fixed=sm.fixed) for comp in sm.components]
+
+def sum_visibility_over_partitions(blockvis_list):
+    """Sum all the visibility partitions
+    
+    :param blockvis_list:
+    :return: Single visibility
+    """
+    result = copy_visibility(blockvis_list[0])
+    for i, v in enumerate(blockvis_list):
+        if i > 0:
+            result.data['vis'] += v.data['vis']
+            
+    return result
+
+

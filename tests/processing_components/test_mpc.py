@@ -11,10 +11,11 @@ from astropy.coordinates import SkyCoord
 
 from data_models.parameters import arl_path
 from data_models.polarisation import PolarisationFrame
+from data_models.memory_data_models import SkyModel
 from processing_components.calibration.operations import qa_gaintable
 from processing_components.image.operations import import_image_from_fits
 from processing_components.imaging.primary_beams import create_low_test_beam
-from processing_components.simulation.mpc import create_gaintable_from_screen
+from processing_components.simulation.mpc import create_gaintable_from_screen, expand_skymodel_by_skycomponents
 from processing_components.simulation.testing_support import create_named_configuration, \
     create_low_test_skycomponents_from_gleam
 from processing_components.simulation.testing_support import create_test_image
@@ -75,3 +76,31 @@ class TestMPC(unittest.TestCase):
         gaintables = create_gaintable_from_screen(self.vis, actual_components, screen)
         assert len(gaintables) == len(actual_components), len(gaintables)
         assert gaintables[0].gain.shape == (3, 94, 1, 1, 1), gaintables[0].gain.shape
+        
+    def test_expand_skymodel_by_skycomponents(self):
+        beam = create_test_image(cellsize=0.0015, phasecentre=self.vis.phasecentre,
+                                 frequency=self.frequency)
+    
+        beam = create_low_test_beam(beam)
+    
+        gleam_components = create_low_test_skycomponents_from_gleam(flux_limit=1.0,
+                                                                    phasecentre=self.phasecentre,
+                                                                    frequency=self.frequency,
+                                                                    polarisation_frame=PolarisationFrame(
+                                                                        'stokesI'),
+                                                                    radius=0.2)
+    
+        pb_gleam_components = apply_beam_to_skycomponent(gleam_components, beam)
+    
+        actual_components = filter_skycomponents_by_flux(pb_gleam_components, flux_min=1.0)
+
+        assert len(actual_components) == 16, len(actual_components)
+        sm = SkyModel(images=[self.model], components=actual_components)
+        assert len(sm.components) == len(actual_components)
+        
+        scatter_sm = expand_skymodel_by_skycomponents(sm)
+        assert len(scatter_sm) == len(actual_components)
+        assert len(scatter_sm[0].components) == 1
+
+        
+        
