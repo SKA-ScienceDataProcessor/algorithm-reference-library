@@ -29,9 +29,9 @@ class TestCalibrationSolvers(unittest.TestCase):
     def setUp(self):
         numpy.random.seed(180555)
         
-    def actualSetup(self, sky_pol_frame='stokesIQUV', data_pol_frame='linear', f=None, vnchan=3):
+    def actualSetup(self, sky_pol_frame='stokesIQUV', data_pol_frame='linear', f=None, vnchan=3, ntimes=3):
         self.lowcore = create_named_configuration('LOWBD2', rmax=300.0)
-        self.times = (numpy.pi / 43200.0) * numpy.linspace(0.0, 30.0, 3)
+        self.times = (numpy.pi / 43200.0) * numpy.linspace(0.0, 30.0, ntimes)
         self.frequency = numpy.linspace(1.0e8, 1.1e8, vnchan)
         self.channel_bandwidth = numpy.array(vnchan * [self.frequency[1] - self.frequency[0]])
         
@@ -86,7 +86,7 @@ class TestCalibrationSolvers(unittest.TestCase):
         gt = simulate_gaintable(gt, phase_error=10.0, amplitude_error=0.01, smooth_channels=8)
         original = copy_visibility(self.vis)
         self.vis = apply_gaintable(self.vis, gt)
-        gtsol = solve_gaintable(self.vis, original, phase_only=False, niter=200)
+        gtsol = solve_gaintable(self.vis, original, phase_only=False, niter=200, damping=0.5)
         residual = numpy.max(gtsol.residual)
         assert residual < 3e-8, "Max residual = %s" % (residual)
         assert numpy.max(numpy.abs(gtsol.gain - 1.0)) > 0.1
