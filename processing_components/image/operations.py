@@ -164,7 +164,7 @@ def show_image(im: Image, fig=None, title: str = '', pol=0, chan=0, cm='Greys', 
     
     if components is not None:
         for sc in components:
-            x, y = skycoord_to_pixel(sc.direction, im.wcs, 1, 'wcs')
+            x, y = skycoord_to_pixel(sc.direction, im.wcs, 0, 'wcs')
             plt.plot(x, y, marker='+', color='red')
     return fig
 

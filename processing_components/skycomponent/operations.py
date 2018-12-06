@@ -289,7 +289,7 @@ def apply_beam_to_skycomponent(sc: Union[Skycomponent, List[Skycomponent]], beam
     ras = [comp.direction.ra.radian for comp in sc]
     decs = [comp.direction.dec.radian for comp in sc]
     skycoords = SkyCoord(ras * u.rad, decs * u.rad, frame='icrs')
-    pixlocs = skycoord_to_pixel(skycoords, beam.wcs, origin=0, mode='wcs')
+    pixlocs = skycoord_to_pixel(skycoords, beam.wcs, origin=1, mode='wcs')
 
     
     newsc = []
