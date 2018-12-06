@@ -102,17 +102,6 @@ class TestGridDataGridding(unittest.TestCase):
     def test_time_setup(self):
         self.actualSetUp()
 
-    def test_griddata_weight(self):
-        self.actualSetUp(zerow=True)
-        gcf, cf = create_pswf_convolutionfunction(self.model, support=6, oversampling=32)
-        griddata = create_griddata_from_image(self.model)
-        griddata, sumwt = grid_weight_to_griddata(self.vis, griddata=griddata, cf=cf)
-        im = fft_griddata_to_image(griddata, gcf)
-        im = normalize_sumwt(im, sumwt)
-        if self.persist:
-            export_image_to_fits(im, '%s/test_gridding_weight.fits' % self.dir)
-        self.check_peaks(im, 97.00435128311616, tol=1e-7)
-
     def test_griddata_invert_pswf(self):
         self.actualSetUp(zerow=True)
         gcf, cf = create_pswf_convolutionfunction(self.model, support=6, oversampling=32)
@@ -290,7 +279,7 @@ class TestGridDataGridding(unittest.TestCase):
         assert qa.data['rms'] < 120.0, str(qa)
         self.plot_vis(newvis, 'awterm')
         
-    def test_griddata_weight_1(self):
+    def test_griddata_weight(self):
         self.actualSetUp(zerow=True)
         gcf, cf = create_box_convolutionfunction(self.model)
         gd = create_griddata_from_image(self.model)
@@ -303,8 +292,6 @@ class TestGridDataGridding(unittest.TestCase):
         if self.persist:
             export_image_to_fits(im, '%s/test_gridding_dirty_2d_uniform.fits' % self.dir)
         self.check_peaks(im, 99.42031190701735)
-
-
     
     def plot_vis(self, newvis, title=''):
         if self.doplot:
