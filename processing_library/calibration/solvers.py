@@ -56,7 +56,8 @@ def solve_from_X(gt: GainTable, x: numpy.ndarray, xwt: numpy.ndarray, chunk, cro
     return gt
 
 
-def solve_antenna_gains_itsubs_scalar(gain, gwt, x, xwt, niter=30, tol=1e-8, phase_only=True, refant=0):
+def solve_antenna_gains_itsubs_scalar(gain, gwt, x, xwt, niter=30, tol=1e-8, phase_only=True, refant=0,
+                                      damping=0.5):
     """Solve for the antenna gains
 
     x(antenna2, antenna1) = gain(antenna1) conj(gain(antenna2))
@@ -93,11 +94,11 @@ def solve_antenna_gains_itsubs_scalar(gain, gwt, x, xwt, niter=30, tol=1e-8, pha
             gain[mask] = gain[mask] / numpy.abs(gain[mask])
         angles = numpy.angle(gain)
         gain *= numpy.exp(-1j * angles)[refant, ...]
-        gain = 0.5 * (gain + gainLast)
+        gain = (1.0 - damping) * gain + damping * gainLast
         change = numpy.max(numpy.abs(gain - gainLast))
         if change < tol:
             return gain, gwt, solution_residual_scalar(gain, x, xwt)
-    
+
     return gain, gwt, solution_residual_scalar(gain, x, xwt)
 
 
@@ -113,7 +114,7 @@ def gain_substitution_scalar(gain, x, xwt):
         top = numpy.sum(x[:, ant1, :, 0, 0] * gain[:, :, 0, 0] * xwt[:, ant1, :, 0, 0], axis=0)
         bot = numpy.sum((gain[:, :, 0, 0] * numpy.conjugate(gain[:, :, 0, 0]) *
                          xwt[:, ant1, :, 0, 0]).real, axis=0)
-        
+    
         if bot.all() > 0.0:
             newgain[ant1, :, 0, 0] = top / bot
             gwt[ant1, :, 0, 0] = bot
@@ -304,22 +305,24 @@ def solution_residual_scalar(gain, x, xwt):
     :return: residual[...]
     """
     
-    nants, nchan, nrec, _ = gain.shape
-    x = x.reshape(nants, nants, nchan, nrec, nrec)
+    nant, nchan, nrec, _ = gain.shape
+    x = x.reshape(nant, nant, nchan, nrec, nrec)
     
-    xwt = xwt.reshape(nants, nants, nchan, nrec, nrec)
+    xwt = xwt.reshape(nant, nant, nchan, nrec, nrec)
     
     residual = numpy.zeros([nchan, nrec, nrec])
     sumwt = numpy.zeros([nchan, nrec, nrec])
     
-    for ant1 in range(nants):
-        for ant2 in range(nants):
-            for chan in range(nchan):
-                error = x[ant2, ant1, chan, 0, 0] - \
-                    gain[ant1, chan, 0, 0] * numpy.conjugate(gain[ant2, chan, 0, 0])
-                residual += (error * xwt[ant2, ant1, chan, 0, 0] * numpy.conjugate(error)).real
-                sumwt += xwt[ant2, ant1, chan, 0, 0]
-    
+    for chan in range(nchan):
+        lgain = gain[:, chan, 0, 0]
+        clgain = numpy.conjugate(lgain)
+        smueller = numpy.ma.outer(clgain, lgain).reshape([nant, nant])
+        error = x[:, :, chan, 0, 0] - smueller
+        for i in range(nant):
+            error[i,i]=0.0
+        residual += numpy.sum(error * xwt[:, :, chan, 0, 0] * numpy.conjugate(error)).real
+        sumwt += numpy.sum(xwt[:, :, chan, 0, 0])
+
     residual[sumwt > 0.0] = numpy.sqrt(residual[sumwt > 0.0] / sumwt[sumwt > 0.0])
     residual[sumwt <= 0.0] = 0.0
     
