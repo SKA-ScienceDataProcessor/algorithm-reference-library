@@ -118,8 +118,14 @@ class TestDataModelHelpers(unittest.TestCase):
         assert numpy.max(numpy.abs(newsc.flux - self.comp.flux)) < 1e-15
 
     def test_readwriteskymodel(self):
+        self.vis = create_blockvisibility(self.lowcore, self.times, self.frequency,
+                                          channel_bandwidth=self.channel_bandwidth,
+                                          phasecentre=self.phasecentre,
+                                          polarisation_frame=PolarisationFrame("linear"),
+                                          weight=1.0)
         im = create_test_image()
-        sm = SkyModel(components=[self.comp], images=[im, im])
+        gt = create_gaintable_from_blockvisibility(self.vis, timeslice='auto')
+        sm = SkyModel(components=[self.comp], images=[im, im], gaintables=[gt])
         export_skymodel_to_hdf5(sm, '%s/test_data_model_helpers_skymodel.hdf' % self.dir)
         newsm = import_skymodel_from_hdf5('%s/test_data_model_helpers_skymodel.hdf' % self.dir)
     
