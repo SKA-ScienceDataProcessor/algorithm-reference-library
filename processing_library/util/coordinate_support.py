@@ -185,7 +185,7 @@ def lmn_to_skycoord(lmn, phasecentre: SkyCoord):
     # Convert l,m,n to SkyCoord convention, also enforce celestial sphere
     n = numpy.sqrt(1 - lmn[0] ** 2 - lmn[1] ** 2) - 1.0
     dc = n + 1, lmn[0], lmn[1]
-    target = SkyCoord(x=dc[0], y=dc[1], z=dc[2], representation='cartesian', frame=phasecentre.skyoffset_frame())
+    target = SkyCoord(x=dc[0], y=dc[1], z=dc[2], representation_type='cartesian', frame=phasecentre.skyoffset_frame())
     return target.transform_to(phasecentre.frame)
 
 
