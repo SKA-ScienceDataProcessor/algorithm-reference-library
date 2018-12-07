@@ -21,6 +21,8 @@ from wrappers.serial.simulation.testing_support import create_named_configuratio
     create_unittest_model, create_unittest_components, insert_unittest_errors
 from wrappers.serial.skycomponent.operations import insert_skycomponent
 from wrappers.serial.visibility.coalesce import convert_blockvisibility_to_visibility
+from wrappers.serial.simulation.testing_support import simulate_gaintable
+from wrappers.serial.calibration.operations import create_gaintable_from_blockvisibility, apply_gaintable
 
 log = logging.getLogger(__name__)
 
@@ -109,10 +111,10 @@ class TestPipelines(unittest.TestCase):
             export_image_to_fits(self.cmodel, '%s/test_imaging_serial_cmodel.fits' % self.dir)
         
         if add_errors:
-            self.blockvis_list = [insert_unittest_errors(self.blockvis_list[i],
-                                                         amp_errors=amp_errors,
-                                                         phase_errors=phase_errors,
-                                                         calibration_context="T", seed=180555)
+            gt = create_gaintable_from_blockvisibility(self.blockvis_list[0])
+            gt = simulate_gaintable(gt, phase_error=0.1, amplitude_error=0.0, smooth_channels=1,
+                       leakage=0.0, seed=180555)
+            self.blockvis_list = [apply_gaintable(self.blockvis_list[i], gt)
                                   for i in range(self.freqwin)]
         
         self.vis_list = [convert_blockvisibility_to_visibility(bv) for bv in self.blockvis_list]

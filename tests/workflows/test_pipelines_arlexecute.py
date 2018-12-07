@@ -23,6 +23,9 @@ from wrappers.arlexecute.simulation.testing_support import create_named_configur
     create_unittest_model, create_unittest_components, insert_unittest_errors
 from wrappers.arlexecute.skycomponent.operations import insert_skycomponent
 from wrappers.arlexecute.visibility.coalesce import convert_blockvisibility_to_visibility
+from wrappers.arlexecute.simulation.testing_support import simulate_gaintable
+from wrappers.arlexecute.calibration.operations import create_gaintable_from_blockvisibility, apply_gaintable
+
 
 from tests.workflows import ARLExecuteTestCase
 
@@ -113,6 +116,7 @@ class TestPipelineGraphs(ARLExecuteTestCase, unittest.TestCase):
                               (self.blockvis_list[freqwin], self.components_list[freqwin])
                               for freqwin, _ in enumerate(self.blockvis_list)]
         self.blockvis_list = arlexecute.compute(self.blockvis_list, sync=True)
+        self.vis = self.blockvis_list[0]
         self.blockvis_list = arlexecute.scatter(self.blockvis_list)
         
         self.model_imagelist = [arlexecute.execute(insert_skycomponent, nout=1)
@@ -126,10 +130,11 @@ class TestPipelineGraphs(ARLExecuteTestCase, unittest.TestCase):
             export_image_to_fits(self.cmodel, '%s/test_pipelines_arlexecute_cmodel.fits' % self.dir)
         
         if add_errors:
-            self.blockvis_list = [arlexecute.execute(insert_unittest_errors, nout=1)
-                                  (self.blockvis_list[i],
-                                   amp_errors=amp_errors, phase_errors=phase_errors,
-                                   calibration_context="T", seed=180555)
+            gt = create_gaintable_from_blockvisibility(self.vis)
+            gt = simulate_gaintable(gt, phase_error=0.1, amplitude_error=0.0, smooth_channels=1,
+                       leakage=0.0, seed=180555)
+            self.blockvis_list = [arlexecute.execute(apply_gaintable, nout=1)
+                                  (self.blockvis_list[i], gt)
                                   for i in range(self.freqwin)]
             self.blockvis_list = arlexecute.compute(self.blockvis_list, sync=True)
             self.blockvis_list = arlexecute.scatter(self.blockvis_list)
