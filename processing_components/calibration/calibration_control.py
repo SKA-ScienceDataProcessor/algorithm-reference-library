@@ -12,7 +12,7 @@ import logging
 
 import numpy
 
-from data_models.memory_data_models import Visibility
+from data_models.memory_data_models import Visibility, BlockVisibility
 
 from ..calibration.operations import create_gaintable_from_blockvisibility, apply_gaintable, qa_gaintable
 from ..calibration.calibration import solve_gaintable
@@ -80,6 +80,8 @@ def apply_calibration_function(vis, gaintables, calibration_context='T', control
         else:
             avis = vis
 
+        assert isinstance(avis, BlockVisibility), avis
+
         for c in calibration_context:
             if iteration >= controls[c]['first_selfcal']:
                 avis = apply_gaintable(avis, gaintables[c], inverse=True, timeslice=controls[c]['timeslice'])
@@ -129,7 +131,9 @@ def calibrate_function(vis, model_vis, calibration_context='T', controls=None, i
             amvis = convert_visibility_to_blockvisibility(model_vis)
         else:
             amvis = model_vis
-    
+
+        assert isinstance(avis, BlockVisibility), avis
+
         for c in calibration_context:
             if iteration >= controls[c]['first_selfcal']:
                 changed = True
@@ -191,7 +195,8 @@ def solve_calibrate_function(vis, model_vis, calibration_context='T', controls=N
             amvis = convert_visibility_to_blockvisibility(model_vis)
         else:
             amvis = model_vis
-
+            
+        assert isinstance(avis, BlockVisibility), avis
     
         for c in calibration_context:
             if iteration >= controls[c]['first_selfcal']:

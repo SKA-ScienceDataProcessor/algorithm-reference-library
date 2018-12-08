@@ -2,12 +2,13 @@
 completeness. Use arlexecute versions pipelines/components.py for speed.
 """
 from data_models.parameters import get_parameter
-from workflows.serial.calibration.calibration_serial import calibrate_list_serial_workflow
-from workflows.serial.imaging.imaging_serial import invert_list_serial_workflow, residual_list_serial_workflow, \
-    predict_list_serial_workflow, subtract_list_serial_workflow, \
-    restore_list_serial_workflow, deconvolve_list_serial_workflow
 from wrappers.serial.griddata.kernels import create_pswf_convolutionfunction
 from wrappers.serial.visibility.base import copy_visibility
+
+from ..calibration.calibration_serial import calibrate_list_serial_workflow
+from ..imaging.imaging_serial import invert_list_serial_workflow, residual_list_serial_workflow, \
+    predict_list_serial_workflow, subtract_list_serial_workflow, \
+    restore_list_serial_workflow, deconvolve_list_serial_workflow
 
 
 def ical_list_serial_workflow(vis_list, model_imagelist, context, vis_slices=1, facets=1,
