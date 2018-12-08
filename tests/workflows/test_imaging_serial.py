@@ -12,8 +12,8 @@ from astropy.coordinates import SkyCoord
 from data_models.polarisation import PolarisationFrame
 from workflows.serial.imaging.imaging_serial import zero_list_serial_workflow, \
     predict_list_serial_workflow, invert_list_serial_workflow, subtract_list_serial_workflow, \
-    weight_list_serial_workflow
-from wrappers.serial.image.operations import export_image_to_fits, smooth_image
+    weight_list_serial_workflow, residual_list_serial_workflow
+from wrappers.serial.image.operations import export_image_to_fits, smooth_image, qa_image
 from wrappers.serial.imaging.base import predict_skycomponent_visibility
 from wrappers.serial.skycomponent.operations import find_skycomponents, find_nearest_skycomponent, \
     insert_skycomponent
@@ -335,6 +335,14 @@ class TestImaging(unittest.TestCase):
         
         assert numpy.max(numpy.abs(diff_vis_list[centre].vis)) < 1e-15, numpy.max(numpy.abs(diff_vis_list[centre].vis))
 
+    def test_residual_list(self):
+        self.actualSetUp(zerow=True)
+    
+        centre = self.freqwin // 2
+        residual_image_list = residual_list_serial_workflow(self.vis_list, self.model_list, context='2d')
+        qa = qa_image(residual_image_list[centre][0])
+        assert numpy.abs(qa.data['max'] - 0.35139716991480785) < 1.0, str(qa)
+        assert numpy.abs(qa.data['min'] + 0.7681701460717593) < 1.0, str(qa)
 
 if __name__ == '__main__':
     unittest.main()

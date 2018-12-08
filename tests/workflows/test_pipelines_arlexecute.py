@@ -47,14 +47,7 @@ class TestPipelineGraphs(ARLExecuteTestCase, unittest.TestCase):
     def tearDown(self):
         pass
     
-    def actualSetUp(self, add_errors=False, nfreqwin=7, dospectral=True, dopol=False,
-                    amp_errors=None, phase_errors=None, zerow=True):
-        
-        if amp_errors is None:
-            amp_errors = {'T': 0.0}
- 
-        if phase_errors is None:
-            phase_errors = {'T': 1.0}
+    def actualSetUp(self, add_errors=False, nfreqwin=7, dospectral=True, dopol=False, zerow=True):
         
         self.npixel = 512
         self.low = create_named_configuration('LOWBD2', rmax=750.0)
@@ -180,9 +173,7 @@ class TestPipelineGraphs(ARLExecuteTestCase, unittest.TestCase):
         assert numpy.abs(qa.data['min'] + 0.03627273884170454) < 1.0, str(qa)
     
     def test_ical_pipeline(self):
-        amp_errors = {'T': 0.0}
-        phase_errors = {'T': 1.0}
-        self.actualSetUp(add_errors=True, amp_errors=amp_errors, phase_errors=phase_errors)
+        self.actualSetUp(add_errors=True)
         controls = create_calibration_controls()
         controls['T']['first_selfcal'] = 1
         controls['T']['timescale'] = 'auto'
@@ -195,7 +186,7 @@ class TestPipelineGraphs(ARLExecuteTestCase, unittest.TestCase):
                                           scales=[0, 3, 10],
                                           niter=1000, fractional_threshold=0.1, threshold=0.1,
                                           nmoment=3,
-                                          nmajor=5, gain=0.1,
+                                          nmajor=1, gain=0.1,
                                           deconvolve_facets=4, deconvolve_overlap=32,
                                           deconvolve_taper='tukey', psf_support=64,
                                           calibration_context='T', controls=controls, do_selfcal=True,
@@ -212,9 +203,7 @@ class TestPipelineGraphs(ARLExecuteTestCase, unittest.TestCase):
         assert numpy.abs(qa.data['min'] + 0.6501547522800477) < 1.0, str(qa)
     
     def test_ical_pipeline_global(self):
-        amp_errors = {'T': 0.0}
-        phase_errors = {'T': 1.0}
-        self.actualSetUp(add_errors=True, amp_errors=amp_errors, phase_errors=phase_errors)
+        self.actualSetUp(add_errors=True)
         controls = create_calibration_controls()
         controls['T']['first_selfcal'] = 1
         controls['T']['timescale'] = 'auto'
