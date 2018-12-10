@@ -84,8 +84,6 @@ class TestSkycomponent(unittest.TestCase):
         bright_components = filter_skycomponents_by_flux(self.components, flux_min=2.0)
         model = create_image(npixel=512, phasecentre=self.phasecentre, frequency=self.frequency,
                              polarisation_frame=PolarisationFrame('stokesI'))
-        print(model)
-
         vor, vor_image = voronoi_decomposition(model, bright_components)
         print(vor_image)
 
