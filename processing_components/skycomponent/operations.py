@@ -179,6 +179,23 @@ def select_components_by_flux(comps, fmax=numpy.infty, fmin=-numpy.infty) -> [Sk
             selected.append(comp)
     return selected
 
+def select_neighbouring_components(comps, target_comps, **kwargs):
+    """ Assign components to nearest in the target
+    
+    :param comps:
+    :param target_comps:
+    :param kwargs:
+    :return: Indices of components in target_comps
+    """
+    target_catalog = SkyCoord([c.direction.ra.rad for c in target_comps] * u.rad,
+                              [c.direction.dec.rad for c in target_comps] * u.rad)
+
+    all_catalog = SkyCoord([c.direction.ra.rad for c in comps] * u.rad,
+                           [c.direction.dec.rad for c in comps] * u.rad)
+
+    from astropy.coordinates import match_coordinates_sky
+    idx, d2d, d3d = match_coordinates_sky(all_catalog, target_catalog)
+    return idx, d2d
 
 def find_skycomponents(im: Image, fwhm=1.0, threshold=10.0, npixels=5) -> List[Skycomponent]:
     """ Find gaussian components in Image above a certain threshold as Skycomponent

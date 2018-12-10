@@ -12,7 +12,8 @@ from astropy.coordinates import SkyCoord
 from data_models.polarisation import PolarisationFrame
 from processing_components.simulation.testing_support import create_low_test_skycomponents_from_gleam
 from processing_components.skycomponent.operations import create_skycomponent, find_separation_skycomponents, \
-    find_skycomponent_matches, find_nearest_skycomponent, find_nearest_skycomponent_index, filter_skycomponents_by_flux
+    find_skycomponent_matches, find_nearest_skycomponent, find_nearest_skycomponent_index, \
+    filter_skycomponents_by_flux, select_neighbouring_components
 
 log = logging.getLogger(__name__)
 
@@ -71,6 +72,12 @@ class TestSkycomponent(unittest.TestCase):
     def test_find_nearest_component(self):
         match, sep = find_nearest_skycomponent(self.components[3].direction, self.components)
         assert match.name == 'GLEAM J235809-585720', match.name
+        
+    def test_select_neighbouring_components(self):
+        bright_components = filter_skycomponents_by_flux(self.components, flux_min=2.0)
+        indices, d2d = select_neighbouring_components(self.components, bright_components)
+        assert len(indices) == 11929, len(indices)
+        assert numpy.max(indices) == (len(bright_components) - 1)
 
 
 if __name__ == '__main__':

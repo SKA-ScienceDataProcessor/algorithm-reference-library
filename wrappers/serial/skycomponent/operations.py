@@ -13,3 +13,4 @@ from processing_components.skycomponent.operations import find_skycomponents
 from processing_components.skycomponent.operations import apply_beam_to_skycomponent
 from processing_components.skycomponent.operations import insert_skycomponent
 from processing_components.skycomponent.operations import filter_skycomponents_by_flux
+from processing_components.skycomponent.operations import select_neighbouring_components
