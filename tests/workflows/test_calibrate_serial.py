@@ -110,7 +110,7 @@ class TestCalibrateGraphs(unittest.TestCase):
                                            calibration_context='T', controls=controls, do_selfcal=True,
                                            global_solution=False)
         assert numpy.max(calibrate_list[1][0]['T'].residual) < 7e-6, numpy.max(calibrate_list[1][0]['T'].residual)
-        assert numpy.max(numpy.abs(calibrate_list[0][0].vis - self.blockvis_list[0].vis)) < 1e-7
+        assert numpy.max(numpy.abs(calibrate_list[0][0].vis - self.blockvis_list[0].vis)) < 2e-6
 
     def test_calibrate_serial_global(self):
         amp_errors = {'T': 0.0, 'G': 0.0}
@@ -126,7 +126,7 @@ class TestCalibrateGraphs(unittest.TestCase):
                                            calibration_context='T', controls=controls, do_selfcal=True,
                                            global_solution=True)
         
-        assert numpy.max(calibrate_list[1]['T'].residual) < 7e-6, numpy.max(calibrate_list[1]['T'].residual)
+        assert numpy.max(calibrate_list[1][0]['T'].residual) < 7e-6, numpy.max(calibrate_list[1][0]['T'].residual)
         assert numpy.max(numpy.abs(calibrate_list[0][0].vis - self.blockvis_list[0].vis)) < 2e-6
 
 if __name__ == '__main__':

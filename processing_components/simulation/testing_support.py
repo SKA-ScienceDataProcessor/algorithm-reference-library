@@ -826,7 +826,6 @@ def insert_unittest_errors(vt, seed=180555, calibration_context="TG", amp_errors
     :param amp_errors: e.g. {'T': 0.0, 'G': 0.01, 'B': 0.01}
     :return:
     """
-    numpy.random.seed(seed)
     controls = create_calibration_controls()
     
     if amp_errors is None:
@@ -841,7 +840,8 @@ def insert_unittest_errors(vt, seed=180555, calibration_context="TG", amp_errors
                                        timeslice=controls[c]['timeslice'],
                                        phase_only=controls[c]['phase_only'],
                                        crosspol=controls[c]['shape'] == 'matrix',
-                                       phase_error=phase_errors[c], amplitude_error=amp_errors[c])
+                                       phase_error=phase_errors[c], amplitude_error=amp_errors[c],
+                                       seed=seed)
         
         vt = apply_gaintable(vt, gaintable, inverse=True, timeslice=controls[c]['timeslice'])
     

@@ -120,7 +120,7 @@ if __name__ == '__main__':
         predicted_vislist = predict_list_arlexecute_workflow(vis_list, dprepb_model, context='timeslice',
                                                              vis_slices=ntimes)
     
-    corrupted_vislist = corrupt_list_arlexecute_workflow(predicted_vislist, phase_error=1.0, seed=18051955)
+    corrupted_vislist = corrupt_list_arlexecute_workflow(predicted_vislist, phase_error=1.0, seed=180555)
     
     export_list = [arlexecute.execute(export_blockvisibility_to_hdf5)
                    (corrupted_vislist[v], arl_path('%s/ska-pipeline_simulation_vislist_%d.hdf' % (results_dir, v)))

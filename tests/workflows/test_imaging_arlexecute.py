@@ -15,9 +15,9 @@ from processing_components.griddata.kernels import create_awterm_convolutionfunc
 from tests.workflows import ARLExecuteTestCase
 from workflows.arlexecute.imaging.imaging_arlexecute import zero_list_arlexecute_workflow, \
     predict_list_arlexecute_workflow, invert_list_arlexecute_workflow, subtract_list_arlexecute_workflow, \
-    weight_list_arlexecute_workflow
+    weight_list_arlexecute_workflow, residual_list_arlexecute_workflow
 from wrappers.arlexecute.execution_support.arlexecute import arlexecute
-from wrappers.arlexecute.image.operations import export_image_to_fits, smooth_image
+from wrappers.arlexecute.image.operations import export_image_to_fits, smooth_image, qa_image
 from wrappers.arlexecute.imaging.base import predict_skycomponent_visibility
 from wrappers.arlexecute.simulation.testing_support import create_named_configuration, ingest_unittest_visibility, \
     create_unittest_model, insert_unittest_errors, create_unittest_components
@@ -359,6 +359,15 @@ class TestImaging(ARLExecuteTestCase, unittest.TestCase):
         
         assert numpy.max(numpy.abs(diff_vis_list[centre].vis)) < 1e-15, numpy.max(numpy.abs(diff_vis_list[centre].vis))
 
+    def test_residual_list(self):
+        self.actualSetUp(zerow=True)
+    
+        centre = self.freqwin // 2
+        residual_image_list = residual_list_arlexecute_workflow(self.vis_list, self.model_list, context='2d')
+        residual_image_list = arlexecute.compute(residual_image_list, sync=True)
+        qa = qa_image(residual_image_list[centre][0])
+        assert numpy.abs(qa.data['max'] - 0.35139716991480785) < 1.0, str(qa)
+        assert numpy.abs(qa.data['min'] + 0.7681701460717593) < 1.0, str(qa)
 
 if __name__ == '__main__':
     unittest.main()

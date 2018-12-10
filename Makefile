@@ -86,7 +86,7 @@ code-lint:
 code-analysis: code-flake code-lint
 
 examples: inplace
-	$(MAKE) -C libs/notebooks
+	$(MAKE) -C processing_library/notebooks
 	$(MAKE) -C processing_components/notebooks
 	$(MAKE) -C workflows/notebooks
 

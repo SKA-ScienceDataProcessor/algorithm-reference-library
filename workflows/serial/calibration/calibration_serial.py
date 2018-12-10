@@ -35,33 +35,23 @@ def calibrate_list_serial_workflow(vis_list, model_vislist, calibration_context=
         else:
             return None
     
-    def solve_and_apply(vis, modelvis=None):
-        if modelvis is None or numpy.max(numpy.abs(modelvis.vis)) > 0.0:
-            # Returns the block visibility and the gaintable
-            return calibrate_function(vis, modelvis, calibration_context=calibration_context, **kwargs)
-        else:
-            return vis, None
-    
     def apply(vis, gt):
         # Returns just the block visibility
         return apply_calibration_function(vis, gt, calibration_context=calibration_context, **kwargs)
     
-    if global_solution:
-        point_vislist = [convert_visibility_to_blockvisibility(v) for v in vis_list]
-        point_modelvislist = [convert_visibility_to_blockvisibility(mv)
+    point_vislist = [convert_visibility_to_blockvisibility(v) for v in vis_list]
+    point_modelvislist = [convert_visibility_to_blockvisibility(mv)
                               for mv in model_vislist]
-        point_vislist = [divide_visibility(point_vislist[i], point_modelvislist[i])
+    point_vislist = [divide_visibility(point_vislist[i], point_modelvislist[i])
                          for i, _ in enumerate(point_vislist)]
-        point_vislist = [convert_visibility_to_blockvisibility(pv)
+    point_vislist = [convert_visibility_to_blockvisibility(pv)
                          for pv in point_vislist]
+    if global_solution:
         global_point_vis_list = visibility_gather_channel(point_vislist)
         global_point_vis_list = integrate_visibility_by_channel(global_point_vis_list)
         # This is a global solution so we only compute one gain table
-        gt = solve(global_point_vis_list)
-        return [apply(v, gt) for v in vis_list], gt
+        gt_list = [solve(global_point_vis_list)]
+        return [apply(v, gt_list[0]) for i, v in enumerate(vis_list)], gt_list
     else:
-        
-        result = [solve_and_apply(vis_list[i], model_vislist[i])
-                  for i, v in enumerate(vis_list)]
-        # Return list of BVs and list of gaintables
-        return [r[0] for r in result], [r[1] for r in result]
+        gt_list = [solve(v) for i, v in enumerate(point_vislist)]
+        return [apply(v, gt_list[i]) for i, v in enumerate(vis_list)], gt_list

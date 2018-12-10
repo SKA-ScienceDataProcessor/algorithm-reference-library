@@ -279,7 +279,6 @@ def deconvolve_list_serial_workflow(dirty_list, psf_list, model_imagelist, prefi
             
             if result.data.shape[0] == model.data.shape[0]:
                 result.data += model.data
-            flux = numpy.sum(result.data[0, 0, ...])
             return result
         else:
             
