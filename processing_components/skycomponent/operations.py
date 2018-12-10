@@ -16,6 +16,7 @@ from astropy.wcs.utils import pixel_to_skycoord
 from astropy.wcs.utils import skycoord_to_pixel
 from photutils import segmentation
 from scipy import interpolate
+from scipy.spatial import Voronoi, voronoi_plot_2d
 
 from data_models.memory_data_models import Image, Skycomponent, assert_same_chan_pol
 from data_models.polarisation import PolarisationFrame
@@ -196,6 +197,40 @@ def select_neighbouring_components(comps, target_comps, **kwargs):
     from astropy.coordinates import match_coordinates_sky
     idx, d2d, d3d = match_coordinates_sky(all_catalog, target_catalog)
     return idx, d2d
+
+def voronoi_decomposition(im, comps):
+    """Construct a Voronoi decomposition of a set of components
+    
+    The array return contains the index into the Voronoi structure
+    
+    :param im:
+    :param comps:
+    :return: Voronoi structure, vertex image
+    """
+    def voronoi_vertex(y, x, vertex_y, vertex_x):
+        """ Return the nearest Voronoi vertex
+        
+        :param y:
+        :param x:
+        :param vertex_y:
+        :param vertex_x:
+        :return:
+        """
+        return numpy.argmin(numpy.hypot(y - vertex_y, x - vertex_x))
+    
+    directions = SkyCoord([u.rad * c.direction.ra.rad for c in comps],
+                          [u.rad * c.direction.dec.rad for c in comps])
+    x, y = skycoord_to_pixel(directions, im.wcs, 0, 'wcs')
+    points = [(x[i], y[i]) for i, _ in enumerate(x)]
+    vor = Voronoi(points)
+    
+    nchan, npol, ny, nx = im.shape
+    vertex_image = numpy.zeros([ny, nx]).astype('int')
+    for j in range(ny):
+        for i in range(nx):
+            vertex_image[j,i] = voronoi_vertex(j, i, vor.points[:,1], vor.points[:,0])
+            
+    return vor, vertex_image
 
 def find_skycomponents(im: Image, fwhm=1.0, threshold=10.0, npixels=5) -> List[Skycomponent]:
     """ Find gaussian components in Image above a certain threshold as Skycomponent
