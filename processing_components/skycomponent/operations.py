@@ -21,6 +21,7 @@ from scipy.spatial import Voronoi, voronoi_plot_2d
 from data_models.memory_data_models import Image, Skycomponent, assert_same_chan_pol
 from data_models.polarisation import PolarisationFrame
 from processing_library.util.array_functions import insert_function_sinc, insert_function_L, insert_function_pswf, insert_array
+from processing_library.image.operations import create_image_from_array, copy_image
 
 log = logging.getLogger(__name__)
 
@@ -231,6 +232,25 @@ def voronoi_decomposition(im, comps):
             vertex_image[j,i] = voronoi_vertex(j, i, vor.points[:,1], vor.points[:,0])
             
     return vor, vertex_image
+
+
+def image_voronoi_iter(im: Image, components: Skycomponent, make_flat=False) -> collections.Iterable:
+    """Iterate through Voronoi decompostion generator, returning fullsize images
+
+    :param im: Image
+    :param components: Components to define Voronoi decomposition
+    :param overlap: overlap in pixels
+    :param taper: method of tapering at the edges: 'flat' or 'linear' or 'quadratic' or 'tukey'
+    :param make_flat: Make the flat images
+    """
+    vor, vertex_array = voronoi_decomposition(im, components)
+    
+    nregions = numpy.max(vertex_array) + 1
+    for region in range(nregions):
+        mask = (vertex_array == region)
+        yield create_image_from_array(im.data*mask[numpy.newaxis, numpy.newaxis, ...], wcs=im.wcs,
+                                      polarisation_frame=im.polarisation_frame)
+
 
 def find_skycomponents(im: Image, fwhm=1.0, threshold=10.0, npixels=5) -> List[Skycomponent]:
     """ Find gaussian components in Image above a certain threshold as Skycomponent
