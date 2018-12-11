@@ -843,6 +843,6 @@ def insert_unittest_errors(vt, seed=180555, calibration_context="TG", amp_errors
                                        phase_error=phase_errors[c], amplitude_error=amp_errors[c],
                                        seed=seed)
         
-        vt = apply_gaintable(vt, gaintable, inverse=True, timeslice=controls[c]['timeslice'])
+        vt = apply_gaintable(vt, gaintable, timeslice=controls[c]['timeslice'], inverse=True)
     
     return vt

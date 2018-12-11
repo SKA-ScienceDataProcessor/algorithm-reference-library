@@ -10,7 +10,7 @@ from data_models.memory_data_models import SkyModel, GainTable
 from processing_library.image.operations import copy_image
 from ..skycomponent.base import copy_skycomponent
 from ..calibration.operations import copy_gaintable
-from ..skycomponent.operations import filter_skycomponents_by_flux, insert_skycomponent
+from ..skycomponent.operations import filter_skycomponents_by_flux, insert_skycomponent, image_voronoi_iter
 from ..visibility.visibility_fitting import fit_visibility
 
 log = logging.getLogger(__name__)
@@ -27,7 +27,7 @@ def copy_skymodel(sm):
 
 
 def partition_skymodel_by_flux(sc, model, flux_threshold=-numpy.inf):
-    """
+    """Partition skymodel according to flux
     
     :param sc:
     :param model:
@@ -42,4 +42,19 @@ def partition_skymodel_by_flux(sc, model, flux_threshold=-numpy.inf):
     im = insert_skycomponent(im, weaksc)
     return SkyModel(components=[copy_skycomponent(comp) for comp in brightsc],
                     images=[copy_image(im)],
+                    fixed=False)
+
+
+def partition_skymodel_by_voronoi(sc, model, flux_threshold=-numpy.inf):
+    """Partition skymodel according to flux
+
+    :param sc:
+    :param model:
+    :param flux_threshold:
+    :return:
+    """
+    brightsc = filter_skycomponents_by_flux(sc, flux_min=flux_threshold)
+    log.info('Partitioning uses %d components to define a Voronoi tesselation'
+             % (len(brightsc)))
+    return SkyModel(images=[copy_image(im) for im in image_voronoi_iter(model, brightsc)],
                     fixed=False)

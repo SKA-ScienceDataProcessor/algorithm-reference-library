@@ -91,8 +91,9 @@ def fit_uvwplane(vis: Visibility, remove=False) -> (Image, float, float):
     p, q = fit_uvwplane_only(vis)
     residual = vis.data['uvw'][:, 2] - (p * vis.u + q * vis.v)
     after = numpy.max(numpy.abs(residual))
-    log.debug('fit_uvwplane: Fit to %d rows reduces max abs w from %.1f to %.1f m'
-              % (nvis, before, after))
+    if numpy.abs(p) > 1e-7 or numpy.abs(q) > 1e-7:
+        log.debug('fit_uvwplane: Fit to %d rows reduces max abs w from %.1f to %.1f m'
+                % (nvis, before, after))
     if remove:
         vis.data['uvw'][:, 2] -= p * vis.u + q * vis.v
     return vis, p, q
@@ -111,7 +112,6 @@ def predict_timeslice_single(vis: Visibility, model: Image, predict=predict_2d, 
     :param gcfcf: (Grid correction function, convolution function)
     :return: resulting visibility (in place works)
     """
-    log.debug("predict_timeslice: predicting using time slices")
     
     assert isinstance(vis, Visibility), vis
     
@@ -156,8 +156,6 @@ def invert_timeslice_single(vis: Visibility, im: Image, dopsf, normalize=True, r
     :param normalize: Normalize by the sum of weights (True)
     """
     assert isinstance(vis, Visibility), vis
-    
-    log.debug("invert_timeslice: inverting using time slices")
     
     uvw = vis.uvw
     vis, p, q = fit_uvwplane(vis, remove=remove)

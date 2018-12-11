@@ -84,7 +84,7 @@ def apply_calibration_function(vis, gaintables, calibration_context='T', control
 
         for c in calibration_context:
             if iteration >= controls[c]['first_selfcal']:
-                avis = apply_gaintable(avis, gaintables[c], inverse=True, timeslice=controls[c]['timeslice'])
+                avis = apply_gaintable(avis, gaintables[c], timeslice=controls[c]['timeslice'])
             
         if isVis:
             return convert_blockvisibility_to_visibility(avis)

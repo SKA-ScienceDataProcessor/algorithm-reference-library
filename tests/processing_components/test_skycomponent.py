@@ -14,7 +14,7 @@ from processing_components.simulation.testing_support import create_low_test_sky
 from processing_components.skycomponent.operations import create_skycomponent, find_separation_skycomponents, \
     find_skycomponent_matches, find_nearest_skycomponent, find_nearest_skycomponent_index, \
     filter_skycomponents_by_flux, select_neighbouring_components, voronoi_decomposition, \
-    apply_beam_to_skycomponent
+    apply_beam_to_skycomponent, image_voronoi_iter
 from processing_library.image.operations import create_image
 from processing_components.imaging.primary_beams import create_low_test_beam
 
@@ -131,6 +131,22 @@ class TestSkycomponent(unittest.TestCase):
 
         vor, vor_array = voronoi_decomposition(model, bright_components)
         assert len(bright_components) == (numpy.max(vor_array) + 1)
+
+    def test_image_voronoi_iter(self):
+        bright_components = create_low_test_skycomponents_from_gleam(flux_limit=1.0,
+                                                                     phasecentre=self.phasecentre,
+                                                                     frequency=self.frequency,
+                                                                     polarisation_frame=PolarisationFrame('stokesI'),
+                                                                     radius=0.5)
+        model = create_image(npixel=512, cellsize=0.001, phasecentre=self.phasecentre,
+                             frequency=self.frequency, polarisation_frame=PolarisationFrame('stokesI'))
+        model.data[...] = 1.0
+        beam = create_low_test_beam(model)
+        bright_components = apply_beam_to_skycomponent(bright_components, beam)
+        bright_components = filter_skycomponents_by_flux(bright_components, flux_min=2.0)
+
+        for im in image_voronoi_iter(model, bright_components):
+            assert numpy.sum(im.data) > 1
 
 
 if __name__ == '__main__':

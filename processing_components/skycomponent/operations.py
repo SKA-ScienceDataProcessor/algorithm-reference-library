@@ -16,12 +16,13 @@ from astropy.wcs.utils import pixel_to_skycoord
 from astropy.wcs.utils import skycoord_to_pixel
 from photutils import segmentation
 from scipy import interpolate
-from scipy.spatial import Voronoi, voronoi_plot_2d
+from scipy.spatial import Voronoi
 
 from data_models.memory_data_models import Image, Skycomponent, assert_same_chan_pol
 from data_models.polarisation import PolarisationFrame
-from processing_library.util.array_functions import insert_function_sinc, insert_function_L, insert_function_pswf, insert_array
-from processing_library.image.operations import create_image_from_array, copy_image
+from processing_library.image.operations import create_image_from_array
+from processing_library.util.array_functions import insert_function_sinc, insert_function_L, \
+    insert_function_pswf, insert_array
 
 log = logging.getLogger(__name__)
 
@@ -31,6 +32,7 @@ def create_skycomponent(direction: SkyCoord, flux: numpy.array, frequency: numpy
         -> Skycomponent:
     """ A single Skycomponent with direction, flux, shape, and params for the shape
 
+    :param polarisation_frame:
     :param params:
     :param direction:
     :param flux:
@@ -107,6 +109,7 @@ def find_skycomponent_matches_atomic(comps_test, comps_ref, tol=1e-7):
 
     many to one is allowed.
 
+    :param tol:
     :param comps_test:
     :param comps_ref:
     :return:
@@ -149,19 +152,19 @@ def find_skycomponent_matches(comps_test, comps_ref, tol=1e-7):
     return matches
 
 
-def select_components_by_separation(home, comps, max=2 * numpy.pi, min=0.0) -> [Skycomponent]:
+def select_components_by_separation(home, comps, rmax=2 * numpy.pi, rmin=0.0) -> [Skycomponent]:
     """ Select components with a range in separation
 
     :param home: Home direction
     :param comps: list of skycomponents
-    :param min: minimum range
-    :param max: maximum range
+    :param rmin: minimum range
+    :param rmax: maximum range
     :return: selected components
     """
     selected = list()
     for comp in comps:
         thissep = comp.direction.separation(home).rad
-        if thissep >= min and thissep <= max:
+        if rmin <= thissep <= rmax:
             selected.append(comp)
     return selected
 
@@ -177,88 +180,36 @@ def select_components_by_flux(comps, fmax=numpy.infty, fmin=-numpy.infty) -> [Sk
     selected = list()
     for comp in comps:
         flux = numpy.max(comp.flux)
-        if flux >= fmin and flux <= fmax:
+        if fmin <= flux <= fmax:
             selected.append(comp)
     return selected
 
-def select_neighbouring_components(comps, target_comps, **kwargs):
+
+def select_neighbouring_components(comps, target_comps):
     """ Assign components to nearest in the target
     
     :param comps:
     :param target_comps:
-    :param kwargs:
     :return: Indices of components in target_comps
     """
     target_catalog = SkyCoord([c.direction.ra.rad for c in target_comps] * u.rad,
                               [c.direction.dec.rad for c in target_comps] * u.rad)
-
+    
     all_catalog = SkyCoord([c.direction.ra.rad for c in comps] * u.rad,
                            [c.direction.dec.rad for c in comps] * u.rad)
-
+    
     from astropy.coordinates import match_coordinates_sky
     idx, d2d, d3d = match_coordinates_sky(all_catalog, target_catalog)
     return idx, d2d
 
-def voronoi_decomposition(im, comps):
-    """Construct a Voronoi decomposition of a set of components
-    
-    The array return contains the index into the Voronoi structure
-    
-    :param im:
-    :param comps:
-    :return: Voronoi structure, vertex image
-    """
-    def voronoi_vertex(y, x, vertex_y, vertex_x):
-        """ Return the nearest Voronoi vertex
-        
-        :param y:
-        :param x:
-        :param vertex_y:
-        :param vertex_x:
-        :return:
-        """
-        return numpy.argmin(numpy.hypot(y - vertex_y, x - vertex_x))
-    
-    directions = SkyCoord([u.rad * c.direction.ra.rad for c in comps],
-                          [u.rad * c.direction.dec.rad for c in comps])
-    x, y = skycoord_to_pixel(directions, im.wcs, 0, 'wcs')
-    points = [(x[i], y[i]) for i, _ in enumerate(x)]
-    vor = Voronoi(points)
-    
-    nchan, npol, ny, nx = im.shape
-    vertex_image = numpy.zeros([ny, nx]).astype('int')
-    for j in range(ny):
-        for i in range(nx):
-            vertex_image[j,i] = voronoi_vertex(j, i, vor.points[:,1], vor.points[:,0])
-            
-    return vor, vertex_image
 
-
-def image_voronoi_iter(im: Image, components: Skycomponent, make_flat=False) -> collections.Iterable:
-    """Iterate through Voronoi decompostion generator, returning fullsize images
-
-    :param im: Image
-    :param components: Components to define Voronoi decomposition
-    :param overlap: overlap in pixels
-    :param taper: method of tapering at the edges: 'flat' or 'linear' or 'quadratic' or 'tukey'
-    :param make_flat: Make the flat images
-    """
-    vor, vertex_array = voronoi_decomposition(im, components)
-    
-    nregions = numpy.max(vertex_array) + 1
-    for region in range(nregions):
-        mask = (vertex_array == region)
-        yield create_image_from_array(im.data*mask[numpy.newaxis, numpy.newaxis, ...], wcs=im.wcs,
-                                      polarisation_frame=im.polarisation_frame)
-
-
-def find_skycomponents(im: Image, fwhm=1.0, threshold=10.0, npixels=5) -> List[Skycomponent]:
+def find_skycomponents(im: Image, fwhm=1.0, threshold=1.0, npixels=5) -> List[Skycomponent]:
     """ Find gaussian components in Image above a certain threshold as Skycomponent
 
-    :param fwhm: Full width half maximum of gaussian
-    :param threshold: Threshold for component detection. Default: 10 standard deviations over median.
     :param im: Image to be searched
-    :param params:
+    :param fwhm: Full width half maximum of gaussian in pixels
+    :param threshold: Threshold for component detection. Default: 1 Jy.
+    :param npixels: Number of connected pixels required
     :return: list of sky components
     """
     
@@ -277,7 +228,7 @@ def find_skycomponents(im: Image, fwhm=1.0, threshold=10.0, npixels=5) -> List[S
     kernel.normalize()
     
     # Segment the average over all channels of Stokes I
-    image_sum = numpy.sum(im.data, axis=(0))[0, ...] / float(im.shape[0])
+    image_sum = numpy.sum(im.data, axis=0)[0, ...] / float(im.shape[0])
     segments = segmentation.detect_sources(image_sum, threshold, npixels=npixels, filter_kernel=kernel)
     log.info("find_skycomponents: Identified %d segments" % segments.nlabels)
     
@@ -335,7 +286,6 @@ def find_skycomponents(im: Image, fwhm=1.0, threshold=10.0, npixels=5) -> List[S
             shape='Point',
             polarisation_frame=im.polarisation_frame,
             params={}))
-    #           params={'xpixel': xs, 'ypixel': ys, 'sum_flux': flux}))  # Table has lots of data_models, could add more in future
     
     return comps
 
@@ -362,7 +312,6 @@ def apply_beam_to_skycomponent(sc: Union[Skycomponent, List[Skycomponent]], beam
     decs = [comp.direction.dec.radian for comp in sc]
     skycoords = SkyCoord(ras * u.rad, decs * u.rad, frame='icrs')
     pixlocs = skycoord_to_pixel(skycoords, beam.wcs, origin=1, mode='wcs')
-
     
     newsc = []
     total_flux = numpy.zeros([nchan, npol])
@@ -375,13 +324,13 @@ def apply_beam_to_skycomponent(sc: Union[Skycomponent, List[Skycomponent]], beam
         pixloc = (pixlocs[0][icomp], pixlocs[1][icomp])
         if not numpy.isnan(pixloc).any():
             x, y = int(round(float(pixloc[0]))), int(round(float(pixloc[1])))
-            if x >= 0 and x < nx and y >= 0 and y < ny:
+            if 0 <= x < nx and 0 <= y < ny:
                 comp.flux[:, :] *= beam.data[:, :, y, x]
                 total_flux += comp.flux
                 newsc.append(Skycomponent(comp.direction, comp.frequency, comp.name, comp.flux,
                                           shape=comp.shape,
                                           polarisation_frame=comp.polarisation_frame))
-
+    
     log.debug('apply_beam_to_skycomponent: %d components with total flux %s' %
               (len(newsc), total_flux))
     if single:
@@ -424,7 +373,6 @@ def insert_skycomponent(im: Image, sc: Union[Skycomponent, List[Skycomponent]], 
                         bandwidth=1.0, support=8) -> Image:
     """ Insert a Skycomponent into an image
     
-    :param params:
     :param im:
     :param sc: SkyComponent or list of SkyComponents
     :param insert_method: '' | 'Sinc' | 'Lanczos'
@@ -450,7 +398,7 @@ def insert_skycomponent(im: Image, sc: Union[Skycomponent, List[Skycomponent]], 
     decs = [comp.direction.dec.radian for comp in sc]
     skycoords = SkyCoord(ras * u.rad, decs * u.rad, frame='icrs')
     pixlocs = skycoord_to_pixel(skycoords, im.wcs, origin=0, mode='wcs')
-
+    
     for icomp, comp in enumerate(sc):
         
         assert comp.shape == 'Point', "Cannot handle shape %s" % comp.shape
@@ -478,7 +426,58 @@ def insert_skycomponent(im: Image, sc: Union[Skycomponent, List[Skycomponent]], 
         else:
             insert_method = 'Nearest'
             y, x = numpy.round(pixloc[1]).astype('int'), numpy.round(pixloc[0]).astype('int')
-            if x >= 0 and x < nx and y >= 0 and y < ny:
+            if 0 <= x < nx and 0 <= y < ny:
                 im.data[:, :, y, x] += flux[...]
     
     return im
+
+
+def voronoi_decomposition(im, comps):
+    """Construct a Voronoi decomposition of a set of components
+
+    The array return contains the index into the Voronoi structure
+
+    :param im:
+    :param comps:
+    :return: Voronoi structure, vertex image
+    """
+    
+    def voronoi_vertex(vy, vx, vertex_y, vertex_x):
+        """ Return the nearest Voronoi vertex
+
+        :param vy:
+        :param vx:
+        :param vertex_y:
+        :param vertex_x:
+        :return:
+        """
+        return numpy.argmin(numpy.hypot(vy - vertex_y, vx - vertex_x))
+    
+    directions = SkyCoord([u.rad * c.direction.ra.rad for c in comps],
+                          [u.rad * c.direction.dec.rad for c in comps])
+    x, y = skycoord_to_pixel(directions, im.wcs, 0, 'wcs')
+    points = [(x[i], y[i]) for i, _ in enumerate(x)]
+    vor = Voronoi(points)
+    
+    nchan, npol, ny, nx = im.shape
+    vertex_image = numpy.zeros([ny, nx]).astype('int')
+    for j in range(ny):
+        for i in range(nx):
+            vertex_image[j, i] = voronoi_vertex(j, i, vor.points[:, 1], vor.points[:, 0])
+    
+    return vor, vertex_image
+
+
+def image_voronoi_iter(im: Image, components: Skycomponent) -> collections.Iterable:
+    """Iterate through Voronoi decomposition, returning a generator yielding fullsize images
+
+    :param im: Image
+    :param components: Components to define Voronoi decomposition
+    """
+    vor, vertex_array = voronoi_decomposition(im, components)
+    
+    nregions = numpy.max(vertex_array) + 1
+    for region in range(nregions):
+        mask = (vertex_array == region)
+        yield create_image_from_array(im.data * mask[numpy.newaxis, numpy.newaxis, ...], wcs=im.wcs,
+                                      polarisation_frame=im.polarisation_frame)

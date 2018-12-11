@@ -20,6 +20,9 @@ from wrappers.serial.simulation.testing_support import create_named_configuratio
     create_unittest_components, insert_unittest_errors, create_unittest_model
 from wrappers.serial.visibility.base import copy_visibility
 from wrappers.serial.visibility.coalesce import convert_blockvisibility_to_visibility
+from wrappers.serial.simulation.testing_support import simulate_gaintable
+from wrappers.serial.calibration.operations import create_gaintable_from_blockvisibility, apply_gaintable
+
 
 log = logging.getLogger(__name__)
 
@@ -86,12 +89,13 @@ class TestCalibrateGraphs(unittest.TestCase):
             v.data['vis'][...] = 1.0+0.0j
         
         self.error_blockvis_list = [copy_visibility(v) for v in self.blockvis_list]
-        self.error_blockvis_list = [insert_unittest_errors
-                                    (self.error_blockvis_list[i], amp_errors=amp_errors, phase_errors=phase_errors,
-                                     calibration_context="TG")
-                                    for i in range(self.freqwin)]
-        
-        assert numpy.max(numpy.abs(self.error_blockvis_list[0].vis - self.blockvis_list[0].vis)) > 1.0
+        gt = create_gaintable_from_blockvisibility(self.blockvis_list[0])
+        gt = simulate_gaintable(gt, phase_error=0.1, amplitude_error=0.0, smooth_channels=1,
+                    leakage=0.0, seed=180555)
+        self.error_blockvis_list = [apply_gaintable(self.error_blockvis_list[i], gt)
+                                  for i in range(self.freqwin)]
+
+        assert numpy.max(numpy.abs(self.error_blockvis_list[0].vis - self.blockvis_list[0].vis)) > 0.0
     
     def test_time_setup(self):
         self.actualSetUp()
@@ -110,7 +114,8 @@ class TestCalibrateGraphs(unittest.TestCase):
                                            calibration_context='T', controls=controls, do_selfcal=True,
                                            global_solution=False)
         assert numpy.max(calibrate_list[1][0]['T'].residual) < 7e-6, numpy.max(calibrate_list[1][0]['T'].residual)
-        assert numpy.max(numpy.abs(calibrate_list[0][0].vis - self.blockvis_list[0].vis)) < 2e-6
+        err = numpy.max(numpy.abs(calibrate_list[0][0].vis - self.blockvis_list[0].vis))
+        assert err< 2e-6, err
 
     def test_calibrate_serial_global(self):
         amp_errors = {'T': 0.0, 'G': 0.0}
@@ -127,7 +132,8 @@ class TestCalibrateGraphs(unittest.TestCase):
                                            global_solution=True)
         
         assert numpy.max(calibrate_list[1][0]['T'].residual) < 7e-6, numpy.max(calibrate_list[1][0]['T'].residual)
-        assert numpy.max(numpy.abs(calibrate_list[0][0].vis - self.blockvis_list[0].vis)) < 2e-6
+        err = numpy.max(numpy.abs(calibrate_list[0][0].vis - self.blockvis_list[0].vis))
+        assert err< 2e-6, err
 
 if __name__ == '__main__':
     unittest.main()
