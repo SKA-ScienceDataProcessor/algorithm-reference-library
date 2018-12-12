@@ -16,4 +16,5 @@ from processing_components.skycomponent.operations import filter_skycomponents_b
 from processing_components.skycomponent.operations import select_neighbouring_components
 from processing_components.skycomponent.operations import image_voronoi_iter
 from processing_components.skycomponent.operations import voronoi_decomposition
+from processing_components.skycomponent.operations import partition_skycomponent_neighbours
 

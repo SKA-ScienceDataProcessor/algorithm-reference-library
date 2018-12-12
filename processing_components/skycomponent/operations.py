@@ -481,3 +481,19 @@ def image_voronoi_iter(im: Image, components: Skycomponent) -> collections.Itera
         mask = (vertex_array == region)
         yield create_image_from_array(im.data * mask[numpy.newaxis, numpy.newaxis, ...], wcs=im.wcs,
                                       polarisation_frame=im.polarisation_frame)
+
+def partition_skycomponent_neighbours(comps, targets):
+    """ Partition sky components by nearest target source
+    :param comps:
+    :param targets:
+    :return:
+    """
+    idx, d2d = select_neighbouring_components(comps, targets)
+
+    from itertools import compress
+    comps_lists = list()
+    for comp_id in numpy.unique(idx):
+        selected_comps = list(compress(comps, idx == comp_id))
+        comps_lists.append(selected_comps)
+        
+    return comps_lists
