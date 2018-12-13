@@ -100,25 +100,44 @@ class TestCalibrateGraphs(ARLExecuteTestCase, unittest.TestCase):
     
     def test_time_setup(self):
         self.actualSetUp()
-    
+
     def test_calibrate_arlexecute(self):
         amp_errors = {'T': 0.0, 'G': 0.0}
         phase_errors = {'T': 1.0, 'G': 0.0}
         self.actualSetUp(amp_errors=amp_errors, phase_errors=phase_errors)
-        
+    
         controls = create_calibration_controls()
         controls['T']['first_selfcal'] = 0
         controls['T']['timescale'] = 'auto'
-        
+    
         calibrate_list = \
             calibrate_list_arlexecute_workflow(self.error_blockvis_list, self.blockvis_list,
                                                calibration_context='T', controls=controls, do_selfcal=True,
                                                global_solution=False)
         calibrate_list = arlexecute.compute(calibrate_list, sync=True)
-        
+    
         assert numpy.max(calibrate_list[1][0]['T'].residual) < 7e-6, numpy.max(calibrate_list[1][0]['T'].residual)
         assert numpy.max(numpy.abs(calibrate_list[0][0].vis - self.blockvis_list[0].vis)) < 2e-6
-    
+
+    def test_calibrate_arlexecute_empty(self):
+        amp_errors = {'T': 0.0, 'G': 0.0}
+        phase_errors = {'T': 1.0, 'G': 0.0}
+        self.actualSetUp(amp_errors=amp_errors, phase_errors=phase_errors)
+
+        for v in self.blockvis_list:
+            v.data['vis'][...] = 0.0 + 0.0j
+
+        controls = create_calibration_controls()
+        controls['T']['first_selfcal'] = 0
+        controls['T']['timescale'] = 'auto'
+
+        calibrate_list = \
+            calibrate_list_arlexecute_workflow(self.error_blockvis_list, self.blockvis_list,
+                                               calibration_context='T', controls=controls, do_selfcal=True,
+                                               global_solution=False)
+        calibrate_list = arlexecute.compute(calibrate_list, sync=True)
+        assert calibrate_list[1][0] is None
+
     def test_calibrate_arlexecute_global(self):
         amp_errors = {'T': 0.0, 'G': 0.0}
         phase_errors = {'T': 1.0, 'G': 0.0}
@@ -135,9 +154,30 @@ class TestCalibrateGraphs(ARLExecuteTestCase, unittest.TestCase):
 
         calibrate_list = arlexecute.compute(calibrate_list, sync=True)
 
-        assert numpy.max(calibrate_list[1]['T'].residual) < 7e-6, numpy.max(calibrate_list[1]['T'].residual)
+        assert numpy.max(calibrate_list[1][0]['T'].residual) < 7e-6, numpy.max(calibrate_list[1][0]['T'].residual)
         err = numpy.max(numpy.abs(calibrate_list[0][0].vis - self.blockvis_list[0].vis))
         assert err < 2e-6, err
+
+    def test_calibrate_arlexecute_global_empty(self):
+        amp_errors = {'T': 0.0, 'G': 0.0}
+        phase_errors = {'T': 1.0, 'G': 0.0}
+        self.actualSetUp(amp_errors=amp_errors, phase_errors=phase_errors)
+    
+        for v in self.blockvis_list:
+            v.data['vis'][...] = 0.0 + 0.0j
+    
+        controls = create_calibration_controls()
+        controls['T']['first_selfcal'] = 0
+        controls['T']['timescale'] = 'auto'
+    
+        calibrate_list = \
+            calibrate_list_arlexecute_workflow(self.error_blockvis_list, self.blockvis_list,
+                                               calibration_context='T', controls=controls, do_selfcal=True,
+                                               global_solution=True)
+
+        calibrate_list = arlexecute.compute(calibrate_list, sync=True)
+
+        assert calibrate_list[1][0] is None, calibrate_list
 
 
 if __name__ == '__main__':

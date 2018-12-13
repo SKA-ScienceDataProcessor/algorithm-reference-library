@@ -136,7 +136,6 @@ def calibrate_function(vis, model_vis, calibration_context='T', controls=None, i
 
         for c in calibration_context:
             if iteration >= controls[c]['first_selfcal']:
-                changed = True
                 gaintables[c] = \
                     create_gaintable_from_blockvisibility(avis, timeslice=controls[c]['timeslice'])
                 gaintables[c] = solve_gaintable(avis, amvis,

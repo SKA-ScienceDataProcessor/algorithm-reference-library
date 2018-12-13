@@ -24,12 +24,16 @@ from copy import deepcopy
 from typing import Union
 
 import numpy
-from astropy import units as u
-from astropy.coordinates import SkyCoord
 
 import warnings
+
+from astropy import units as u
+from astropy.coordinates import SkyCoord
+from astropy.utils.exceptions import AstropyDeprecationWarning
+
 from astropy.wcs import FITSFixedWarning
 warnings.simplefilter('ignore', FITSFixedWarning)
+warnings.simplefilter('ignore', AstropyDeprecationWarning)
 
 from data_models.polarisation import PolarisationFrame, ReceptorFrame
 

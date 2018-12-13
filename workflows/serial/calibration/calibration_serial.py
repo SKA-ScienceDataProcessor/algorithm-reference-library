@@ -13,7 +13,7 @@ from wrappers.serial.visibility.operations import integrate_visibility_by_channe
 
 
 def calibrate_list_serial_workflow(vis_list, model_vislist, calibration_context='TG', global_solution=True,
-                                   **kwargs):
+                                       **kwargs):
     """ Create a set of components for (optionally global) calibration of a list of visibilities
 
     If global solution is true then visibilities are gathered to a single visibility data set which is then
@@ -27,31 +27,33 @@ def calibrate_list_serial_workflow(vis_list, model_vislist, calibration_context=
     :param kwargs: Parameters for functions in components
     :return:
     """
-    
+
     def solve(vis, modelvis=None):
-        if modelvis is None or numpy.max(numpy.abs(modelvis.vis)) > 0.0:
-            # Returns the gaintables
-            return solve_calibrate_function(vis, modelvis, calibration_context=calibration_context, **kwargs)
-        else:
+        if modelvis is not None:
+            if not numpy.max(numpy.abs(modelvis.vis)) > 0.0:
+                return None
+        if not numpy.max(numpy.abs(vis.weight)) > 0.0:
             return None
-    
+        return solve_calibrate_function(vis, modelvis, calibration_context=calibration_context, **kwargs)
+
     def apply(vis, gt):
-        # Returns just the block visibility
-        return apply_calibration_function(vis, gt, calibration_context=calibration_context, **kwargs)
-    
-    point_vislist = [convert_visibility_to_blockvisibility(v) for v in vis_list]
-    point_modelvislist = [convert_visibility_to_blockvisibility(mv)
-                              for mv in model_vislist]
-    point_vislist = [divide_visibility(point_vislist[i], point_modelvislist[i])
-                         for i, _ in enumerate(point_vislist)]
-    point_vislist = [convert_visibility_to_blockvisibility(pv)
-                         for pv in point_vislist]
+        if gt is not None:
+            return apply_calibration_function(vis, gt, calibration_context=calibration_context, **kwargs)
+        else:
+            return vis
+
     if global_solution:
+        point_vislist = [convert_visibility_to_blockvisibility(v) for v in vis_list]
+        point_modelvislist = [convert_visibility_to_blockvisibility(mv)
+                              for mv in model_vislist]
+        point_vislist = [divide_visibility(point_vislist[i], point_modelvislist[i])
+                         for i, _ in enumerate(point_vislist)]
         global_point_vis_list = visibility_gather_channel(point_vislist)
         global_point_vis_list = integrate_visibility_by_channel(global_point_vis_list)
         # This is a global solution so we only compute one gain table
         gt_list = [solve(global_point_vis_list)]
-        return [apply(v, gt_list[0]) for i, v in enumerate(vis_list)], gt_list
+        return [apply(v, gt_list[0]) for v in vis_list], gt_list
     else:
-        gt_list = [solve(v) for i, v in enumerate(point_vislist)]
+        gt_list = [solve(v, model_vislist[i])
+                   for i, v in enumerate(vis_list)]
         return [apply(v, gt_list[i]) for i, v in enumerate(vis_list)], gt_list
