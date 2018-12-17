@@ -46,3 +46,4 @@ dask-worker-space
 .coverage.*
 .coverage
 dask-work-space
+*.lock

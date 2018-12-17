@@ -348,7 +348,7 @@ def convert_skycomponent_to_hdf(sc: Skycomponent, f):
 
 
 def convert_hdf_to_skycomponent(f):
-    """ Convert HDF root to a GainTable
+    """ Convert HDF root to a SkyComponent
 
     :param f:
     :return:
@@ -501,15 +501,11 @@ def convert_skymodel_to_hdf(sm, f):
     f.attrs['number_skycomponents'] = len(sm.components)
     for i, sc in enumerate(sm.components):
         cf = f.create_group('skycomponent%d' % i)
-        convert_skycomponent_to_hdf(sc, cf)
-    f.attrs['number_images'] = len(sm.images)
-    for i, im in enumerate(sm.images):
-        cf = f.create_group('image%d' % i)
-        convert_image_to_hdf(im, cf)
-    f.attrs['number_gaintables'] = len(sm.gaintables)
-    for i, g in enumerate(sm.gaintables):
-        gt = f.create_group('gaintables%d' % i)
-        convert_gaintable_to_hdf(g, gt)
+        convert_skycomponent_to_hdf(sm.components[i], cf)
+    cf = f.create_group('image')
+    convert_image_to_hdf(sm.image, cf)
+    cf = f.create_group('gaintable')
+    convert_gaintable_to_hdf(sm.gaintable, cf)
     return f
 
 
@@ -539,15 +535,16 @@ def convert_hdf_to_skymodel(f):
     fixed = f.attrs['fixed']
 
     ncomponents = f.attrs['number_skycomponents']
-    components = [convert_hdf_to_skycomponent(f['skycomponent%d' % i])
-                      for i in range(ncomponents)]
-    nimages = f.attrs['number_images']
-    images = [convert_hdf_to_image(f['image%d' % i]) for i in range(nimages)]
-
-    ngaintables = f.attrs['number_gaintables']
-    gaintables = [convert_hdf_to_gaintable(f['gaintables%d' % i]) for i in range(ngaintables)]
+    components = list()
+    for i in range(ncomponents):
+        cf = f[('skycomponent%d' % i)]
+        components.append(convert_hdf_to_skycomponent(cf))
+    cf = f['image']
+    image = convert_hdf_to_image(cf)
+    cf = f['gaintable']
+    gaintable = convert_hdf_to_gaintable(cf)
     
-    return SkyModel(images=images, components=components, gaintables=gaintables, fixed=fixed)
+    return SkyModel(image=image, components=components, gaintable=gaintable, fixed=fixed)
 
 
 def convert_griddata_to_hdf(gd: GridData, f):

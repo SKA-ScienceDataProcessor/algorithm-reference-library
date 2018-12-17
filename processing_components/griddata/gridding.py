@@ -40,9 +40,9 @@ def convolution_mapping(vis, griddata, cf, channel_tolerance=1e-8):
     # Find the nearest grid points
     pu_grid, pv_grid = \
         numpy.round(griddata.grid_wcs.sub([1, 2]).wcs_world2pix(vis.uvw[:, 0], vis.uvw[:, 1], 0)).astype('int')
-    assert numpy.min(pu_grid) >= 0
+    assert numpy.min(pu_grid) >= 0, "U axis underflows: %f" % numpy.min(pu_grid)
     assert numpy.max(pu_grid) < griddata.shape[3], "U axis overflows: %f" % numpy.max(pu_grid)
-    assert numpy.min(pv_grid) >= 0
+    assert numpy.min(pv_grid) >= 0, "V axis underflows: %f" % numpy.min(pv_grid)
     assert numpy.max(pv_grid) < griddata.shape[4], "V axis overflows: %f" % numpy.max(pv_grid)
     
     # We now have the location of grid points, convert back to uv space and find the remainder (in wavelengths). We
@@ -58,7 +58,7 @@ def convolution_mapping(vis, griddata, cf, channel_tolerance=1e-8):
     pwg_pixel = griddata.grid_wcs.sub([3]).wcs_world2pix(vis.uvw[:, 2], 0)[0]
     # Find the nearest grid point
     pwg_grid = numpy.round(pwg_pixel).astype('int')
-    assert numpy.min(pwg_grid) >= 0
+    assert numpy.min(pwg_grid) >= 0, "W axis underflows: %f" % numpy.min(pwg_grid)
     assert numpy.max(pwg_grid) < cf.shape[2], "W axis overflows: %f" % numpy.max(pwg_grid)
     pwg_fraction = pwg_pixel - pwg_grid
     
@@ -66,7 +66,7 @@ def convolution_mapping(vis, griddata, cf, channel_tolerance=1e-8):
     # nchan, npol, w, dv, du, v, u
     pwc_pixel = cf.grid_wcs.sub([5]).wcs_world2pix(vis.uvw[:, 2], 0)[0]
     pwc_grid = numpy.round(pwc_pixel).astype('int')
-    assert numpy.min(pwc_grid) >= 0, "W axis overflows: %f" % numpy.max(pwc_grid)
+    assert numpy.min(pwc_grid) >= 0, "W axis underflows: %f" % numpy.min(pwc_grid)
     assert numpy.max(pwc_grid) < cf.shape[2], "W axis overflows: %f" % numpy.max(pwc_grid)
     pwc_fraction = pwc_pixel - pwc_grid
     
@@ -74,6 +74,8 @@ def convolution_mapping(vis, griddata, cf, channel_tolerance=1e-8):
     pfreq_pixel = griddata.grid_wcs.sub([5]).wcs_world2pix(vis.frequency, 0)[0]
     # Find the nearest grid point
     pfreq_grid = numpy.round(pfreq_pixel).astype('int')
+    assert numpy.min(pfreq_grid) >= 0, "Frequency axis underflows: %f" % numpy.max(pfreq_grid)
+    assert numpy.max(pfreq_grid) < cf.shape[0], "Frequency axis overflows: %f" % numpy.max(pfreq_grid)
     pfreq_fraction = pfreq_pixel - pfreq_grid
     if numpy.max(numpy.abs(pfreq_fraction)) > channel_tolerance:
         log.warning("convolution_mapping: alignment of visibility and image grids exceeds tolerance %s" %
@@ -241,14 +243,14 @@ def degrid_visibility_from_griddata(vis, griddata, cf, **kwargs):
     
     nvis = vis.vis.shape[0]
     
-    for i in range(nvis):
-        chan, uu, uuf, vv, vvf, zzg, zzc = pfreq_grid[i], pu_grid[i], pu_offset[i], pv_grid[i], pv_offset[i], \
-                                           pwg_grid[i], pwc_grid[i]
+    for ivis in range(nvis):
+        chan, uu, uuf, vv, vvf, zzg, zzc = pfreq_grid[ivis], pu_grid[ivis], pu_offset[ivis], pv_grid[ivis], \
+                                           pv_offset[ivis], pwg_grid[ivis], pwc_grid[ivis]
         # Use einsum to replace the following:
         # newvis.vis[i,:] = numpy.sum(griddata.data[chan, :, zzg, (vv - dv):(vv + dv), (uu - du):(uu + du)] *
         #                              cf.data[chan, :, zzc, vvf, uuf, :, :], axis=(1, 2))
         
-        newvis.vis[i, :] += numpy.einsum('ijk,ijk->i',
+        newvis.vis[ivis, :] += numpy.einsum('ijk,ijk->i',
                                          griddata.data[chan, :, zzg, (vv - dv):(vv + dv), (uu - du):(uu + du)],
                                          cf.data[chan, :, zzc, vvf, uuf, :, :])
     

@@ -94,7 +94,7 @@ class TestTesting_Support(unittest.TestCase):
                                                  channel_bandwidth=self.channel_bandwidth, phasecentre=self.phasecentre,
                                                  kind='cubic', flux_limit=0.3, flux_threshold=1.0)
         
-        im = sm.images[0]
+        im = sm.image
         assert im.data.shape[0] == 5
         assert im.data.shape[1] == 1
         assert im.data.shape[2] == 256

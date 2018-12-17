@@ -44,15 +44,14 @@ class TestSkyModel(unittest.TestCase):
         fluxes = numpy.linspace(0, 1.0, 11)
         sc = [create_skycomponent(direction=self.phasecentre, flux=numpy.array([[f]]), frequency=self.frequency,
                                   polarisation_frame=PolarisationFrame('stokesI')) for f in fluxes]
-        sm = SkyModel(images=[self.model], components=sc)
-        assert len(sm.images) == 1
+        sm = SkyModel(image=self.model, components=sc)
         assert len(sm.components) == 11
     
     def test_copy(self):
         fluxes = numpy.linspace(0, 1.0, 11)
         sc = [create_skycomponent(direction=self.phasecentre, flux=numpy.array([[f]]), frequency=self.frequency,
                                   polarisation_frame=PolarisationFrame('stokesI')) for f in fluxes]
-        sm = SkyModel(images=[self.model], components=sc)
+        sm = SkyModel(image=self.model, components=sc)
         sm_copy = copy_skymodel(sm)
         assert len(sm.components) == len(sm_copy.components)
         sm_fluxes = numpy.array([c.flux[0,0] for c in sm.components])

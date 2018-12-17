@@ -125,13 +125,13 @@ class TestDataModelHelpers(unittest.TestCase):
                                           weight=1.0)
         im = create_test_image()
         gt = create_gaintable_from_blockvisibility(self.vis, timeslice='auto')
-        sm = SkyModel(components=[self.comp], images=[im, im], gaintables=[gt])
+        sm = SkyModel(components=[self.comp], image=im, gaintable=gt)
         export_skymodel_to_hdf5(sm, '%s/test_data_model_helpers_skymodel.hdf' % self.dir)
         newsm = import_skymodel_from_hdf5('%s/test_data_model_helpers_skymodel.hdf' % self.dir)
     
         assert newsm.components[0].flux.shape == self.comp.flux.shape
-        assert newsm.images[0].data.shape == im.data.shape
-        assert numpy.max(numpy.abs(newsm.images[0].data - im.data)) < 1e-15
+        assert newsm.image.data.shape == im.data.shape
+        assert numpy.max(numpy.abs(newsm.image.data - im.data)) < 1e-15
 
     def test_readwritegriddata(self):
         im = create_test_image()

@@ -176,11 +176,14 @@ def append_gaintable(gt: GainTable, othergt: GainTable) -> GainTable:
     return gt
 
 
-def copy_gaintable(gt: GainTable, zero=False) -> GainTable:
+def copy_gaintable(gt: GainTable, zero=False):
     """Copy a GainTable
 
     Performs a deepcopy of the data array
     """
+    if isinstance(gt, list):
+        return list()
+    
     assert isinstance(gt, GainTable), gt
     
     newgt = copy.copy(gt)

@@ -87,8 +87,8 @@ def expand_skymodel_by_skycomponents(sm, **kwargs):
 
     """
     return [SkyModel(components=[comp],
-                    images=[copy_image(im) for im in sm.images],
-                    gaintables=[copy_gaintable(gt) for gt in sm.gaintables],
+                    image=copy_image(sm.image),
+                    gaintable=copy_gaintable(sm.gaintable),
                     fixed=sm.fixed) for comp in sm.components]
 
 def sum_visibility_over_partitions(blockvis_list):
@@ -105,3 +105,28 @@ def sum_visibility_over_partitions(blockvis_list):
     return result
 
 
+def calculate_sf_from_screen(screen):
+    """ Calculate structure function image from screen
+
+    Screen axes are ['XX', 'YY', 'TIME', 'FREQ']
+    :param screen:
+    :return:
+    """
+    from scipy.signal import fftconvolve
+    nchan, ntimes, ny, nx = screen.data.shape
+    
+    sf = numpy.zeros([nchan, 1, 2 * ny - 1, 2 * nx - 1])
+    for chan in range(nchan):
+        sf[chan, 0, ...] = fftconvolve(screen.data[chan, 0, ...], screen.data[chan, 0, ::-1, ::-1])
+        for itime in range(ntimes):
+            sf += fftconvolve(screen.data[chan, itime, ...], screen.data[chan, itime, ::-1, ::-1])
+        sf[chan, 0, ...] /= numpy.max(sf[chan, 0, ...])
+        sf[chan, 0, ...] = 1.0 - sf[chan, 0, ...]
+    
+    sf_image = copy_image(screen)
+    sf_image.data = sf[:, :, (ny - ny // 4):(ny + ny // 4), (nx - nx // 4):(nx + nx // 4)]
+    sf_image.wcs.wcs.crpix[0] = ny // 4 + 1
+    sf_image.wcs.wcs.crpix[1] = ny // 4 + 1
+    sf_image.wcs.wcs.crpix[2] = 1
+
+    return sf_image

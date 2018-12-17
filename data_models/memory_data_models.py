@@ -578,21 +578,21 @@ class SkyModel:
     """ A model for the sky, includinggaintables
     """
     
-    def __init__(self, images=None, components=None, gaintables=None, fixed=False):
+    def __init__(self, image=None, components=None, gaintable=None, fixed=False):
         """ A model of the sky as a list of images and a list of components
 
         Use copy_skymodel to make a proper copy of skymodel
 
         """
-        if images is None:
-            images = []
+        if image is None:
+            image = []
         if components is None:
             components = []
-        if gaintables is None:
-            gaintables = []
-        self.images = [im for im in images]
+        if gaintable is None:
+            gaintable = []
+        self.image = image
         self.components = [sc for sc in components]
-        self.gaintables = [gt for gt in gaintables]
+        self.gaintable = gaintable
         self.fixed = fixed
     
     def __str__(self):
@@ -604,11 +604,11 @@ class SkyModel:
             s += str(sc)
         s += "\n"
 
-        for i, im in enumerate(self.images):
+        for i, im in enumerate(self.image):
             s += str(im)
         s += "\n"
 
-        for i, gt in enumerate(self.gaintables):
+        for i, gt in enumerate(self.gaintable):
             s += str(gt)
         
         return s

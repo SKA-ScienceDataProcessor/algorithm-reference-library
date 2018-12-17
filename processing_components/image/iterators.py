@@ -55,7 +55,7 @@ def image_raster_iter(im: Image, facets=1, overlap=0, taper='flat', make_flat=Fa
     """
     nchan, npol, ny, nx = im.shape
     if facets > 1:
-        log.debug("image_raster_iter: predicting using %d x %d image partitions" % (facets, facets))
+        log.debug("image_raster_iter: using %d x %d image partitions" % (facets, facets))
     assert facets <= ny, "Cannot have more raster elements than pixels"
     assert facets <= nx, "Cannot have more raster elements than pixels"
     

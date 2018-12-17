@@ -98,7 +98,7 @@ class TestBufferDataModelHelpers(unittest.TestCase):
         gt = simulate_gaintable(gt, phase_error=1.0, amplitude_error=0.1)
         im = create_test_image()
         gt = create_gaintable_from_blockvisibility(vis)
-        sm = SkyModel(components=[self.comp], images=[im, im], gaintables=[gt, gt])
+        sm = SkyModel(components=[self.comp], image=im, gaintable=gt)
 
         config = {"buffer": {"directory": self.dir},
                   "skymodel": {"name": "test_bufferskymodel.hdf", "data_model": "SkyModel"}}
@@ -109,9 +109,9 @@ class TestBufferDataModelHelpers(unittest.TestCase):
         newsm = bdm.memory_data_model
 
         assert newsm.components[0].flux.shape == self.comp.flux.shape
-        assert newsm.images[0].data.shape == im.data.shape
-        assert newsm.gaintables[0].data.shape == gt.data.shape
-        assert numpy.max(numpy.abs(newsm.images[0].data - im.data)) < 1e-15
+        assert newsm.image.data.shape == im.data.shape
+        assert newsm.gaintable.data.shape == gt.data.shape
+        assert numpy.max(numpy.abs(newsm.image.data - im.data)) < 1e-15
 
     def test_readwriteimage(self):
         im = create_test_image()

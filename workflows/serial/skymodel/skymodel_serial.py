@@ -32,7 +32,7 @@ def predict_skymodel_list_serial_workflow(vis_list, skymodel_list, context, vis_
         return sm.components
     
     def extract_image(sm):
-        return sm.images[0]
+        return sm.image
     
     comp = [extract_comps(sm) for sm in skymodel_list]
     images = [extract_image(sm) for sm in skymodel_list]
@@ -41,8 +41,10 @@ def predict_skymodel_list_serial_workflow(vis_list, skymodel_list, context, vis_
     dft_vis_list = [predict_skycomponent_visibility(dft_vis_list[i], comp[i]) for i, _ in enumerate(dft_vis_list)]
     
     fft_vis_list = zero_list_serial_workflow(vis_list)
-    fft_vis_list = predict_list_serial_workflow(fft_vis_list, images, context=context,
-                                                vis_slices=vis_slices, facets=facets, gcfcf=gcfcf, **kwargs)
+    fft_vis_list = [predict_list_serial_workflow([fft_vis_list[i]], images[i], context=context,
+                                                vis_slices=vis_slices, facets=facets,
+                                                gcfcf=gcfcf, **kwargs)
+    for i, _ in enumerate(fft_vis_list)]
     
     def vis_add(v1, v2):
         vout = copy_visibility(v1)
@@ -74,17 +76,17 @@ def predictcal_skymodel_list_serial_workflow(vis_list, skymodel_list, context, v
     def dft_cal_sm(bv, sm):
         if len(sm.components) > 0:
             bv = predict_skycomponent_visibility(bv, sm.components)
-            bv = apply_gaintable(bv, sm.gaintables[0])
+            bv = apply_gaintable(bv, sm.gaintable)
         return bv
     
     def fft_cal_sm(bv, sm):
-        if len(sm.images) > 0:
+        if sm.image is not None:
             v = convert_blockvisibility_to_visibility(bv)
-            v = predict_list_serial_workflow([v], sm.images, context=context,
+            v = predict_list_serial_workflow([v], [sm.image], context=context,
                                              vis_slices=vis_slices, facets=facets, gcfcf=gcfcf,
                                              **kwargs)[0]
             bv = convert_visibility_to_blockvisibility(v)
-            bv = apply_gaintable(bv, sm.gaintables[0])
+            bv = apply_gaintable(bv, sm.gaintable)
         return bv
     
     dft_vis_list = zero_list_serial_workflow(vis_list)
@@ -126,14 +128,14 @@ def invertcal_skymodel_list_serial_workflow(vis_list, skymodel_list, context, vi
     bv = vis_list[0]
     results = list()
     for sm in skymodel_list:
-        if len(sm.images) > 0:
+        if sm.image is not None:
             cbv = copy_visibility(bv)
-            cbv = apply_gaintable(cbv, sm.gaintables[0], inverse=True)
+            cbv = apply_gaintable(cbv, sm.gaintable, inverse=True)
             cv = convert_blockvisibility_to_visibility(cbv)
-            results.append(invert_list_serial_workflow([cv], sm.images, context=context,
+            results.append(invert_list_serial_workflow([cv], [sm.image], context=context,
                                                        vis_slices=vis_slices, facets=facets, gcfcf=gcfcf,
                                                        **kwargs)[0])
         else:
             results.append(None)
-            
+    
     return results

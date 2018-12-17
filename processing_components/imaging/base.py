@@ -114,6 +114,10 @@ def predict_2d(vis: Union[BlockVisibility, Visibility], model: Image, gcfcf=None
     :param gcfcf: (Grid correction function i.e. in image space, Convolution function i.e. in uv space)
     :return: resulting visibility (in place works)
     """
+    
+    if model is None:
+        return vis
+    
     assert isinstance(vis, Visibility), vis
 
     _, _, ny, nx = model.data.shape
@@ -194,8 +198,12 @@ def predict_skycomponent_visibility(vis: Union[Visibility, BlockVisibility],
     :param sc: Skycomponent or list of SkyComponents
     :return: Visibility or BlockVisibility
     """
+    if sc is None:
+        return vis
+    
     if not isinstance(sc, collections.Iterable):
         sc = [sc]
+
     
     if isinstance(vis, Visibility):
         

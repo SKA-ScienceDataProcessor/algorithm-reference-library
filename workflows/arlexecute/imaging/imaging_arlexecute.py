@@ -84,9 +84,9 @@ def predict_list_arlexecute_workflow(vis_list, model_imagelist, context, vis_sli
     # Loop over all frequency windows
     if facets == 1:
         image_results_list = list()
-        for freqwin, vis_list in enumerate(vis_list):
+        for ivis, vis_list in enumerate(vis_list):
             if len(gcfcf) > 1:
-                g = gcfcf[freqwin]
+                g = gcfcf[ivis]
             else:
                 g = gcfcf[0]
             # Create the graph to divide an image into facets. This is by reference.
@@ -98,7 +98,7 @@ def predict_list_arlexecute_workflow(vis_list, model_imagelist, context, vis_sli
             for sub_vis_list in sub_vis_lists:
                 # Predict visibility for this sub-visibility from this image
                 image_vis_list = arlexecute.execute(predict_ignore_none, pure=True, nout=1) \
-                    (sub_vis_list, model_imagelist[freqwin], g)
+                    (sub_vis_list, model_imagelist[ivis], g)
                 # Sum all sub-visibilities
                 image_vis_lists.append(image_vis_list)
             image_results_list.append(arlexecute.execute(visibility_gather, nout=1)
@@ -107,10 +107,10 @@ def predict_list_arlexecute_workflow(vis_list, model_imagelist, context, vis_sli
         return image_results_list
     else:
         image_results_list_list = list()
-        for freqwin, vis_list in enumerate(vis_list):
+        for ivis, vis_list in enumerate(vis_list):
             # Create the graph to divide an image into facets. This is by reference.
             facet_lists = arlexecute.execute(image_scatter_facets, nout=actual_number_facets ** 2)(
-                model_imagelist[freqwin],
+                model_imagelist[ivis],
                 facets=facets)
             # Create the graph to divide the visibility into slices. This is by copy.
             sub_vis_lists = arlexecute.execute(visibility_scatter, nout=vis_slices)(vis_list, vis_iter, vis_slices)
@@ -199,9 +199,9 @@ def invert_list_arlexecute_workflow(vis_list, template_model_imagelist, context,
     # Loop over all vis_lists independently
     results_vislist = list()
     if facets == 1:
-        for freqwin, vis_list in enumerate(vis_list):
+        for ivis, vis_list in enumerate(vis_list):
             if len(gcfcf) > 1:
-                g = gcfcf[freqwin]
+                g = gcfcf[ivis]
             else:
                 g = gcfcf[0]
             # Create the graph to divide the visibility into slices. This is by copy.
@@ -212,15 +212,15 @@ def invert_list_arlexecute_workflow(vis_list, template_model_imagelist, context,
             vis_results = list()
             for sub_vis_list in sub_vis_lists:
                 vis_results.append(arlexecute.execute(invert_ignore_none, pure=True)
-                                   (sub_vis_list, template_model_imagelist[freqwin], g))
+                                   (sub_vis_list, template_model_imagelist[ivis], g))
             results_vislist.append(arlexecute.execute(sum_invert_results)(vis_results))
         return results_vislist
     else:
-        for freqwin, vis_list in enumerate(vis_list):
+        for ivis, vis_list in enumerate(vis_list):
             # Create the graph to divide an image into facets. This is by reference.
             facet_lists = arlexecute.execute(image_scatter_facets, nout=actual_number_facets ** 2)(
                 template_model_imagelist[
-                    freqwin],
+                    ivis],
                 facets=facets)
             # Create the graph to divide the visibility into slices. This is by copy.
             sub_vis_lists = arlexecute.execute(visibility_scatter, nout=vis_slices)(vis_list, vis_iter,
@@ -234,7 +234,7 @@ def invert_list_arlexecute_workflow(vis_list, template_model_imagelist, context,
                     facet_vis_results.append(
                         arlexecute.execute(invert_ignore_none, pure=True)(sub_vis_list, facet_list, None))
                 vis_results.append(arlexecute.execute(gather_image_iteration_results, nout=1)
-                                   (facet_vis_results, template_model_imagelist[freqwin]))
+                                   (facet_vis_results, template_model_imagelist[ivis]))
             results_vislist.append(arlexecute.execute(sum_invert_results)(vis_results))
         
         return results_vislist
