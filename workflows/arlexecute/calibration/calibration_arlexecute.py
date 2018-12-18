@@ -30,17 +30,13 @@ def calibrate_list_arlexecute_workflow(vis_list, model_vislist, calibration_cont
     """
     def solve(vis, modelvis=None):
         if modelvis is not None:
-            if not numpy.max(numpy.abs(modelvis.vis)) > 0.0:
-                return None
-        if not numpy.max(numpy.abs(vis.weight)) > 0.0:
-            return None
+            assert numpy.max(numpy.abs(modelvis.vis)) > 0.0
+        assert numpy.max(numpy.abs(vis.weight)) > 0.0
         return solve_calibrate_function(vis, modelvis, calibration_context=calibration_context, **kwargs)
     
     def apply(vis, gt):
-        if gt is not None:
-            return apply_calibration_function(vis, gt, calibration_context=calibration_context, **kwargs)
-        else:
-            return vis
+        assert gt is not None
+        return apply_calibration_function(vis, gt, calibration_context=calibration_context, **kwargs)
     
     if global_solution:
         point_vislist = [arlexecute.execute(convert_visibility_to_blockvisibility, nout=1)(v) for v in vis_list]
