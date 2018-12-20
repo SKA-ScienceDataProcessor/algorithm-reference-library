@@ -42,19 +42,19 @@ def predict_skymodel_list_arlexecute_workflow(vis_list, skymodel_list, context, 
             if docal and isinstance(sm.gaintable, GainTable):
                 bv = convert_visibility_to_blockvisibility(v)
                 bv = apply_gaintable(bv, sm.gaintable)
-                v = convert_visibility_to_blockvisibility(bv)
+                v = convert_blockvisibility_to_visibility(bv)
         else:
             v.data['vis'][...] = 0.0 + 0.0j
         return v
     
     def fft_cal_sm(v, sm):
         assert isinstance(v, Visibility), v
-        if isinstance(sm.image, Image) and isinstance(sm.gaintable, GainTable):
+        if isinstance(sm.image, Image):
             if numpy.max(numpy.abs(sm.image.data)) > 0.0:
                 v = predict_list_serial_workflow([v], [sm.image], context=context,
                                                  vis_slices=vis_slices, facets=facets, gcfcf=gcfcf,
                                                  **kwargs)[0]
-                if docal:
+                if docal and isinstance(sm.gaintable, GainTable):
                     bv = convert_visibility_to_blockvisibility(v)
                     bv = apply_gaintable(bv, sm.gaintable)
                     v = convert_blockvisibility_to_visibility(bv)
