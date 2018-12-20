@@ -38,13 +38,14 @@ def predict_skymodel_list_serial_workflow(vis_list, skymodel_list, context, vis_
     images = [extract_image(sm) for sm in skymodel_list]
     
     dft_vis_list = zero_list_serial_workflow(vis_list)
-    dft_vis_list = [predict_skycomponent_visibility(dft_vis_list[i], comp[i]) for i, _ in enumerate(dft_vis_list)]
+    dft_vis_list = [predict_skycomponent_visibility(dft_vis_list[i], comp[i])
+                    for i, _ in enumerate(dft_vis_list)]
     
     fft_vis_list = zero_list_serial_workflow(vis_list)
     fft_vis_list = [predict_list_serial_workflow([fft_vis_list[i]], images[i], context=context,
-                                                vis_slices=vis_slices, facets=facets,
-                                                gcfcf=gcfcf, **kwargs)
-    for i, _ in enumerate(fft_vis_list)]
+                                                 vis_slices=vis_slices, facets=facets,
+                                                 gcfcf=gcfcf, **kwargs)
+                    for i, _ in enumerate(fft_vis_list)]
     
     def vis_add(v1, v2):
         vout = copy_visibility(v1)

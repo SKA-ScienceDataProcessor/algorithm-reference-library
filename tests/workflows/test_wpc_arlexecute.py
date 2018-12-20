@@ -12,7 +12,7 @@ from astropy.coordinates import SkyCoord
 from data_models.memory_data_models import Image
 from data_models.memory_data_models import Skycomponent
 from data_models.polarisation import PolarisationFrame
-from workflows.arlexecute.skymodel.skymodel_arlexecute import predictcal_skymodel_list_arlexecute_workflow, \
+from workflows.arlexecute.skymodel.skymodel_arlexecute import predict_skymodel_list_arlexecute_workflow, \
     invertcal_skymodel_list_arlexecute_workflow
 from wrappers.arlexecute.execution_support.arlexecute import arlexecute
 from wrappers.arlexecute.execution_support.dask_init import get_dask_Client
@@ -103,7 +103,8 @@ class TestSkyModel(unittest.TestCase):
         assert numpy.max(numpy.abs(self.skymodel_list[0].images[0].data)) > 0.0, "Image is empty"
 
         self.skymodel_list = arlexecute.scatter(self.skymodel_list)
-        skymodel_vislist = predictcal_skymodel_list_arlexecute_workflow(self.vis_list, self.skymodel_list, context='2d')
+        skymodel_vislist = predict_skymodel_list_arlexecute_workflow(self.vis_list, self.skymodel_list,
+                                                                     context='2d', docal=True)
         skymodel_vislist = arlexecute.compute(skymodel_vislist, sync=True)
         assert numpy.max(numpy.abs(skymodel_vislist[0].vis)) > 0.0
 

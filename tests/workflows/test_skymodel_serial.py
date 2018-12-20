@@ -85,11 +85,10 @@ class TestSkyModel(unittest.TestCase):
                                flux_threshold=0.3,
                                flux_max=5.0) for f, freq in enumerate(self.frequency)]
         
-        assert isinstance(self.skymodel_list[0].images[0], Image), self.skymodel_list[0].images[0]
+        assert isinstance(self.skymodel_list[0].image, Image), self.skymodel_list[0].image
         assert isinstance(self.skymodel_list[0].components[0], Skycomponent), self.skymodel_list[0].components[0]
-        assert len(self.skymodel_list[0].components) == 119, len(self.skymodel_list[0].components)
-        assert len(self.skymodel_list[0].images) == 1, len(self.skymodel_list[0].images)
-        assert numpy.max(numpy.abs(self.skymodel_list[0].images[0].data)) > 0.0, "Image is empty"
+        assert len(self.skymodel_list[0].components) == 121, len(self.skymodel_list[0].components)
+        assert numpy.max(numpy.abs(self.skymodel_list[0].image.data)) > 0.0, "Image is empty"
         
         skymodel_vislist = predict_skymodel_list_serial_workflow(self.vis_list, self.skymodel_list, context='2d')
         assert numpy.max(numpy.abs(skymodel_vislist[0].vis)) > 0.0

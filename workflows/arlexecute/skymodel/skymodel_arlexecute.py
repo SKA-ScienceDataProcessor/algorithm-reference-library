@@ -1,4 +1,5 @@
 import logging
+import numpy
 
 from data_models.memory_data_models import Image, GainTable, SkyModel
 from workflows.arlexecute.imaging.imaging_arlexecute import predict_list_arlexecute_workflow, \
@@ -39,17 +40,25 @@ def predict_skymodel_list_arlexecute_workflow(vis_list, skymodel_list, context, 
             bv = predict_skycomponent_visibility(bv, sm.components)
             if docal:
                 bv = apply_gaintable(bv, sm.gaintable)
+        else:
+            bv.data['vis'][...] = 0.0+0.0j
         return bv
 
     def fft_cal_sm(bv, sm):
         if isinstance(sm.image, Image) and isinstance(sm.gaintable, GainTable):
-            v = convert_blockvisibility_to_visibility(bv)
-            v = predict_list_serial_workflow([v], [sm.image], context=context,
+            if numpy.max(numpy.abs(sm.image.data)) > 0.0:
+                v = convert_blockvisibility_to_visibility(bv)
+                v = predict_list_serial_workflow([v], [sm.image], context=context,
                                              vis_slices=vis_slices, facets=facets, gcfcf=gcfcf,
-                                             **kwargs)[0]
-            bv = convert_visibility_to_blockvisibility(v)
-            if docal:
-                bv = apply_gaintable(bv, sm.gaintable)
+                                                 **kwargs)[0]
+                bv = convert_visibility_to_blockvisibility(v)
+                if docal:
+                    bv = apply_gaintable(bv, sm.gaintable)
+            else:
+                bv.data['vis'][...] = 0.0 + 0.0j
+                
+        else:
+            bv.data['vis'][...] = 0.0+0.0j
         return bv
 
     dft_vis_list = zero_list_arlexecute_workflow(vis_list)
@@ -65,58 +74,6 @@ def predict_skymodel_list_arlexecute_workflow(vis_list, skymodel_list, context, 
         vout.data['vis'] += v2.data['vis']
         return vout
 
-    return [arlexecute.execute(vis_add, nout=1)(dft_vis_list[i], fft_vis_list[i])
-            for i, _ in enumerate(dft_vis_list)]
-
-
-def predictcal_skymodel_list_arlexecute_workflow(vis_list, skymodel_list, context, vis_slices=1, facets=1,
-                                                 gcfcf=None, **kwargs):
-    """Predict and calibrate from a skymodel, iterating over both the vis_list and skymodel
-
-    The visibility and image are scattered, the visibility is predicted and calibrated on each part, and then the
-    parts are assembled.
-
-    :param vis_list:
-    :param skymodel_list: skymodel list
-    :param vis_slices: Number of vis slices (w stack or timeslice)
-    :param facets: Number of facets (per axis)
-    :param context: Type of processing e.g. 2d, wstack, timeslice or facets
-    :param gcfcg: tuple containing grid correction and convolution function
-    :param kwargs: Parameters for functions in components
-    :return: List of vis_lists
-   """
-    
-    assert len(vis_list) == len(skymodel_list)
-    
-    def dft_cal_sm(bv, sm):
-        if len(sm.components) > 0:
-            bv = predict_skycomponent_visibility(bv, sm.components)
-            bv = apply_gaintable(bv, sm.gaintable)
-        return bv
-    
-    def fft_cal_sm(bv, sm):
-        if isinstance(sm.image, Image) and isinstance(sm.gaintable, GainTable):
-            v = convert_blockvisibility_to_visibility(bv)
-            v = predict_list_serial_workflow([v], [sm.image], context=context,
-                                             vis_slices=vis_slices, facets=facets, gcfcf=gcfcf,
-                                             **kwargs)[0]
-            bv = convert_visibility_to_blockvisibility(v)
-            bv = apply_gaintable(bv, sm.gaintable)
-        return bv
-    
-    dft_vis_list = zero_list_arlexecute_workflow(vis_list)
-    dft_vis_list = [arlexecute.execute(dft_cal_sm, nout=1)(dft_vis_list[i], skymodel_list[i])
-                    for i, _ in enumerate(dft_vis_list)]
-    
-    fft_vis_list = zero_list_arlexecute_workflow(vis_list)
-    fft_vis_list = [arlexecute.execute(fft_cal_sm)(fft_vis_list[i], skymodel_list[i])
-                    for i, _ in enumerate(fft_vis_list)]
-    
-    def vis_add(v1, v2):
-        vout = copy_visibility(v1)
-        vout.data['vis'] += v2.data['vis']
-        return vout
-    
     return [arlexecute.execute(vis_add, nout=1)(dft_vis_list[i], fft_vis_list[i])
             for i, _ in enumerate(dft_vis_list)]
 

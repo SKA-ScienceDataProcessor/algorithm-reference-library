@@ -29,9 +29,6 @@ def calibrate_list_arlexecute_workflow(vis_list, model_vislist, calibration_cont
     :return:
     """
     def solve(vis, modelvis=None):
-        if modelvis is not None:
-            assert numpy.max(numpy.abs(modelvis.vis)) > 0.0
-        assert numpy.max(numpy.abs(vis.weight)) > 0.0
         return solve_calibrate_function(vis, modelvis, calibration_context=calibration_context, **kwargs)
     
     def apply(vis, gt):
