@@ -57,7 +57,7 @@ def hogbom(dirty, psf, window, gain, thresh, niter, fracthresh, prefix=''):
         if niter < 10 or i % (niter // 10) == 0:
             log.info("hogbom %s Minor cycle %d, peak %s at [%d, %d]" % (prefix, i, res[mx, my], mx, my))
         res[a1o[0]:a1o[1], a1o[2]:a1o[3]] -= psf[a2o[0]:a2o[1], a2o[2]:a2o[3]] * mval
-        if numpy.abs(res[mx, my]) < absolutethresh:
+        if numpy.abs(res[mx, my]) < 0.9 * absolutethresh:
             log.info("hogbom %s Stopped at iteration %d, peak %s at [%d, %d]" % (prefix, i, res[mx, my], mx, my))
             break
     log.info("hogbom %s End of minor cycle" % prefix)
