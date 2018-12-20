@@ -604,12 +604,10 @@ class SkyModel:
             s += str(sc)
         s += "\n"
 
-        for i, im in enumerate(self.image):
-            s += str(im)
+        s += str(self.image)
         s += "\n"
 
-        for i, gt in enumerate(self.gaintable):
-            s += str(gt)
+        s += str(self.gaintable)
         
         return s
 
