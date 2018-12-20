@@ -69,7 +69,7 @@ def apply_calibration_function(vis, gaintables, calibration_context='T', control
     # Check to see if changes are required
     changes = False
     for c in calibration_context:
-        if iteration >= controls[c]['first_selfcal']:
+        if (iteration >= controls[c]['first_selfcal']) and (c in gaintables.keys()):
             changes = True
 
     if changes:

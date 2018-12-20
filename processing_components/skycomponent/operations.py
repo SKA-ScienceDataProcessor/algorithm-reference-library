@@ -169,6 +169,7 @@ def select_components_by_separation(home, comps, rmax=2 * numpy.pi, rmin=0.0) ->
     return selected
 
 
+
 def select_components_by_flux(comps, fmax=numpy.infty, fmin=-numpy.infty) -> [Skycomponent]:
     """ Select components with a range in flux
 
@@ -201,6 +202,32 @@ def select_neighbouring_components(comps, target_comps):
     from astropy.coordinates import match_coordinates_sky
     idx, d2d, d3d = match_coordinates_sky(all_catalog, target_catalog)
     return idx, d2d
+
+
+def remove_neighbouring_components(comps, distance):
+    """ Remove the faintest of a pair of components that are within a specified distance
+
+    :param comps:
+    :param target_comps:
+    :param distance: Minimum distance
+    :return: Indices of components in target_comps, selected components
+    """
+    ncomps = len(comps)
+    ok = ncomps * [True]
+    for i in range(ncomps):
+        for j in range(i+1, ncomps):
+            d = comps[i].direction.separation(comps[j].direction).rad
+            if d < distance:
+                if numpy.max(comps[i].flux) > numpy.max(comps[j].flux):
+                    ok[j] = False
+                else:
+                    ok[i] = False
+                break
+
+    from itertools import compress
+    idx = list(compress(list(range(ncomps)), ok))
+    comps_sel = list(compress(comps, ok))
+    return idx, comps_sel
 
 
 def find_skycomponents(im: Image, fwhm=1.0, threshold=1.0, npixels=5) -> List[Skycomponent]:

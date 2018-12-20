@@ -14,7 +14,8 @@ from processing_components.simulation.testing_support import create_low_test_sky
 from processing_components.skycomponent.operations import create_skycomponent, find_separation_skycomponents, \
     find_skycomponent_matches, find_nearest_skycomponent, find_nearest_skycomponent_index, \
     filter_skycomponents_by_flux, select_neighbouring_components, voronoi_decomposition, \
-    apply_beam_to_skycomponent, image_voronoi_iter, partition_skycomponent_neighbours
+    apply_beam_to_skycomponent, image_voronoi_iter, partition_skycomponent_neighbours, \
+    remove_neighbouring_components
 from processing_library.image.operations import create_image
 from processing_components.imaging.primary_beams import create_low_test_beam
 
@@ -150,10 +151,10 @@ class TestSkycomponent(unittest.TestCase):
 
     def test_partition_skycomponent_neighbours(self):
         all_components = create_low_test_skycomponents_from_gleam(flux_limit=0.1,
-                                                                   phasecentre=self.phasecentre,
-                                                                   frequency=self.frequency,
-                                                                   polarisation_frame=PolarisationFrame('stokesI'),
-                                                                   radius=0.5)
+                                                                  phasecentre=self.phasecentre,
+                                                                  frequency=self.frequency,
+                                                                  polarisation_frame=PolarisationFrame('stokesI'),
+                                                                  radius=0.5)
     
         bright_components = create_low_test_skycomponents_from_gleam(flux_limit=1.0,
                                                                      phasecentre=self.phasecentre,
@@ -168,11 +169,29 @@ class TestSkycomponent(unittest.TestCase):
         all_components = filter_skycomponents_by_flux(all_components, flux_min=0.1)
         bright_components = apply_beam_to_skycomponent(bright_components, beam)
         bright_components = filter_skycomponents_by_flux(bright_components, flux_min=2.0)
-        
+    
         comps_lists = partition_skycomponent_neighbours(all_components, bright_components)
         assert len(comps_lists) == len(bright_components)
         assert len(comps_lists[0]) > 0
         assert len(comps_lists[-1]) > 0
+
+    def test_remove_neighbouring_components(self):
+        all_components = create_low_test_skycomponents_from_gleam(flux_limit=3.0,
+                                                                  phasecentre=self.phasecentre,
+                                                                  frequency=self.frequency,
+                                                                  polarisation_frame=PolarisationFrame('stokesI'),
+                                                                  radius=0.5)
+
+        model = create_image(npixel=512, cellsize=0.001, phasecentre=self.phasecentre,
+                             frequency=self.frequency, polarisation_frame=PolarisationFrame('stokesI'))
+        beam = create_low_test_beam(model)
+        all_components = apply_beam_to_skycomponent(all_components, beam)
+        all_components = filter_skycomponents_by_flux(all_components, flux_min=0.1)
+
+        idx, comps = remove_neighbouring_components(all_components, 0.1)
+        assert idx == [0, 3, 5, 6, 7, 8, 10, 12, 16, 19], idx
+        assert comps[0].name == 'GLEAM J234118-581606', comps[0].name
+
 
 if __name__ == '__main__':
     unittest.main()
