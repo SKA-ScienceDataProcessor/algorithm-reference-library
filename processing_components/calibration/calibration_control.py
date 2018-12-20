@@ -172,6 +172,9 @@ def solve_calibrate_function(vis, model_vis, calibration_context='T', controls=N
     """
     gaintables = {}
     
+    if model_vis is not None and (numpy.max(numpy.abs(model_vis.vis)) == 0.0):
+        return gaintables
+    
     if controls is None:
         controls = create_calibration_controls(**kwargs)
 
