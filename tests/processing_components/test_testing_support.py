@@ -102,8 +102,8 @@ class TestTesting_Support(unittest.TestCase):
         export_image_to_fits(im, '%s/test_test_support_low_gleam.fits' % (self.dir))
         
         comp = sm.components
-        assert len(comp) == 44, len(comp)
-        assert comp[0].name == 'GLEAM J005658-390449', comp[0].name
+        assert len(comp) == 45, len(comp)
+        assert comp[0].name == 'GLEAM J003826-385949', comp[0].name
         assert comp[-1].name == 'GLEAM J011412-321730', comp[-1].name
     
     def test_create_low_test_image_from_gleam(self):
