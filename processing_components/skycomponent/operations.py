@@ -215,14 +215,16 @@ def remove_neighbouring_components(comps, distance):
     ncomps = len(comps)
     ok = ncomps * [True]
     for i in range(ncomps):
-        for j in range(i+1, ncomps):
-            d = comps[i].direction.separation(comps[j].direction).rad
-            if d < distance:
-                if numpy.max(comps[i].flux) > numpy.max(comps[j].flux):
-                    ok[j] = False
-                else:
-                    ok[i] = False
-                break
+        if ok[i]:
+            for j in range(i+1, ncomps):
+                if ok[j]:
+                    d = comps[i].direction.separation(comps[j].direction).rad
+                    if d < distance:
+                        if numpy.max(comps[i].flux) > numpy.max(comps[j].flux):
+                            ok[j] = False
+                        else:
+                            ok[i] = False
+                        break
 
     from itertools import compress
     idx = list(compress(list(range(ncomps)), ok))
