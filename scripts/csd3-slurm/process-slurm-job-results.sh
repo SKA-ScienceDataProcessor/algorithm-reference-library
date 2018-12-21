@@ -5,15 +5,15 @@
 
 #TEMPLATE=slurm_submit.peta4-skylake.template
 #OUTPUT=slurm_job.peta4
-NUMNODES_LIST='2 4'
+NUMNODES_LIST='2 4 8 16'
 NODETYPE_LIST='skylake-himem'
-NFREQ_LIST='71 101'
+NFREQ_LIST='41 71 101 203 407'
 
 RESULTS_OUTPUT=mpitest
 
-#JOB_FOLDER=../../scripts/csd3-slurm/
-#WORK_DIRECTORY=../../workflows/mpi
+WORK_DIRECTORY=../../workflows/mpi
 
+cd $WORK_DIRECTORY
 cd results/mpi
 echo 'Current directory' $PWD
 for NUMNODES in $NUMNODES_LIST 
@@ -29,6 +29,7 @@ for NUMNODES in $NUMNODES_LIST
 			elif [ $NODETYPE == 'skylake-himem' ] 
 				then
 				NUMCORES_LIST='16 32'
+				NUMCORES_LIST='32'
 			else 
 				echo 'Wrong nodetype'
 			fi

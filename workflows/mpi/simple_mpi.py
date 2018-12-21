@@ -22,6 +22,9 @@ from processing_components.image.operations import qa_image
 from processing_components.simulation.testing_support import create_test_image
 from processing_components.image.gather_scatter import image_gather_facets, image_scatter_facets
 
+# Uncomment following line if profiling with extrae/paraver toolset
+#import pyextrae.mpi as pyextrae
+
 #from matplotlib import pyplot as plt
 
 # Define a simple function to take the square root of an image

@@ -58,6 +58,9 @@ import time
 
 import pprint
 
+# Uncomment this line if profiling with extrae/paraver toolset
+#import pyextrae.mpi as pyextrae
+
 pp = pprint.PrettyPrinter()
 
 import logging

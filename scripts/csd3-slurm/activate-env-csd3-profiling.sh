@@ -15,13 +15,13 @@ module load cfitsio-3.410-gcc-5.4.0-tp3pkyv
 echo module load cfitsio-3.410-gcc-5.4.0-tp3pkyv
 module load intel/bundles/complib/2017.4
 echo module load intel/bundles/complib/2017.4
-#module load use.own
-#echo "Module path:"
-#echo $MODULEPATH
-#echo "Loading Extrae"
-#export MODULEPATH=$MODULEPATH:$HOME/privatemodules
-#module load EXTRAE/impi/3.6.1
-#export EXTRAE_HOME=/home/mf582/scratch/Extrae/extrae-3.6.1-install/impi/
+module load use.own
+echo "Module path:"
+echo $MODULEPATH
+echo "Loading Extrae"
+export MODULEPATH=$MODULEPATH:$HOME/privatemodules
+module load EXTRAE/impi/3.6.1
+export EXTRAE_HOME=/home/mf582/scratch/Extrae/extrae-3.6.1-install/impi/
 
 ## ARLROOT should be defined already
 ## export ARLROOT=/home/mf582/scratch/ARL/algorithm-reference-library

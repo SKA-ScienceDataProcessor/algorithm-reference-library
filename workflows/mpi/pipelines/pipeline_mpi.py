@@ -6,7 +6,7 @@ from data_models.parameters import get_parameter
 
 from ..calibration.calibration_mpi import calibrate_list_mpi_workflow
 
-from ..imaging.imaging_mpi import invert_list_mpi_workflow, residual_list_mpi_workflow, \
+from ..imaging.imaging_mpi_opt import invert_list_mpi_workflow, residual_list_mpi_workflow, \
     predict_list_mpi_workflow, zero_list_mpi_workflow, subtract_list_mpi_workflow, \
     restore_list_mpi_workflow, \
     deconvolve_list_mpi_workflow
