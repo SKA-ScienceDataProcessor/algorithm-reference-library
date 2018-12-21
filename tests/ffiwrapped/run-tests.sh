@@ -7,7 +7,8 @@
 #make clean;
 
 TESTPATH=$ARLROOT/workflows/ffiwrapped/serial
-TESTLIST='timg_serial ical_demo'
+#TESTLIST='timg_serial ical_demo'
+TESTLIST='ical_demo'
 
 #clean current directory
 #rm *.out
