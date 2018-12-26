@@ -409,12 +409,13 @@ def convert_image_to_hdf(im: Image, f):
     :param f: HDF root
     :return:
     """
-    assert isinstance(im, Image), im
+    if isinstance(im, Image):
     
-    f.attrs['ARL_data_model'] = 'Image'
-    f['data'] = im.data
-    f.attrs['wcs'] = numpy.string_(im.wcs.to_header_string())
-    f.attrs['polarisation_frame'] = im.polarisation_frame.type
+        f.attrs['ARL_data_model'] = 'Image'
+        f['data'] = im.data
+        f.attrs['wcs'] = numpy.string_(im.wcs.to_header_string())
+        f.attrs['polarisation_frame'] = im.polarisation_frame.type
+        
     return f
 
 
@@ -424,13 +425,15 @@ def convert_hdf_to_image(f):
     :param f:
     :return:
     """
-    assert f.attrs['ARL_data_model'] == "Image", "Not an Image"
-    data = numpy.array(f['data'])
-    polarisation_frame = PolarisationFrame(f.attrs['polarisation_frame'])
-    wcs = WCS(f.attrs['wcs'])
-    im = create_image_from_array(data, wcs=wcs,
+    if 'ARL_data_model' in f.attrs.keys() and f.attrs['ARL_data_model'] == "Image":
+        data = numpy.array(f['data'])
+        polarisation_frame = PolarisationFrame(f.attrs['polarisation_frame'])
+        wcs = WCS(f.attrs['wcs'])
+        im = create_image_from_array(data, wcs=wcs,
                                  polarisation_frame=polarisation_frame)
-    return im
+        return im
+    else:
+        return None
 
 
 def export_image_to_hdf5(im, filename):
@@ -504,6 +507,8 @@ def convert_skymodel_to_hdf(sm, f):
         convert_skycomponent_to_hdf(sm.components[i], cf)
     cf = f.create_group('image')
     convert_image_to_hdf(sm.image, cf)
+    cf = f.create_group('mask')
+    convert_image_to_hdf(sm.mask, cf)
     cf = f.create_group('gaintable')
     convert_gaintable_to_hdf(sm.gaintable, cf)
     return f
@@ -539,12 +544,24 @@ def convert_hdf_to_skymodel(f):
     for i in range(ncomponents):
         cf = f[('skycomponent%d' % i)]
         components.append(convert_hdf_to_skycomponent(cf))
-    cf = f['image']
-    image = convert_hdf_to_image(cf)
-    cf = f['gaintable']
-    gaintable = convert_hdf_to_gaintable(cf)
+    if 'image' in f.keys():
+        cf = f['image']
+        image = convert_hdf_to_image(cf)
+    else:
+        image = None
+    if 'mask' in f.keys():
+        cf = f['mask']
+        mask = convert_hdf_to_image(cf)
+    else:
+        mask = None
+    if 'gaintable' in f.keys():
+        cf = f['gaintable']
+        gaintable = convert_hdf_to_gaintable(cf)
+    else:
+        gaintable = None
+
     
-    return SkyModel(image=image, components=components, gaintable=gaintable, fixed=fixed)
+    return SkyModel(image=image, components=components, gaintable=gaintable, mask=mask, fixed=fixed)
 
 
 def convert_griddata_to_hdf(gd: GridData, f):

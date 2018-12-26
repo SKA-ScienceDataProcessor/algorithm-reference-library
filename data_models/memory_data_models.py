@@ -575,24 +575,21 @@ class Skycomponent:
 
 
 class SkyModel:
-    """ A model for the sky, includinggaintables
+    """ A model for the sky, including an image, components, gaintable and a mask
     """
     
-    def __init__(self, image=None, components=None, gaintable=None, fixed=False):
-        """ A model of the sky as a list of images and a list of components
+    def __init__(self, image=None, components=None, gaintable=None, mask=None, fixed=False):
+        """ A model of the sky as an image, components, gaintable and a mask
 
         Use copy_skymodel to make a proper copy of skymodel
 
         """
-        if image is None:
-            image = []
         if components is None:
             components = []
-        if gaintable is None:
-            gaintable = []
         self.image = image
         self.components = [sc for sc in components]
         self.gaintable = gaintable
+        self.mask = mask
         self.fixed = fixed
     
     def __str__(self):
@@ -605,6 +602,9 @@ class SkyModel:
         s += "\n"
 
         s += str(self.image)
+        s += "\n"
+
+        s += str(self.mask)
         s += "\n"
 
         s += str(self.gaintable)

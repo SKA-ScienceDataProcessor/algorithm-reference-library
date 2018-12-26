@@ -47,12 +47,14 @@ class TestCoalesce(unittest.TestCase):
 
     def test_convert_weight(self):
         cvis = convert_blockvisibility_to_visibility(self.blockvis)
-        cvis.data['imaging_weight'] = 10.0
         model = create_image_from_visibility(vis=cvis, npixel=256, cellsize=0.001, phasecentre=self.phasecentre,
                                              polarisation_frame=PolarisationFrame('stokesI'))
         cvis = weight_visibility(cvis, model)
+        assert numpy.mean(cvis.data['imaging_weight']) < 1.0
+        assert numpy.std(cvis.data['imaging_weight']) > 0.0
         dvis = decoalesce_visibility(cvis, overwrite=True)
-        assert numpy.max(dvis.data['imaging_weight']-10.0) < 1e-7
+        assert numpy.mean(dvis.data['imaging_weight']) < 1.0
+        assert numpy.std(dvis.data['imaging_weight']) > 0.0
         assert dvis.nvis == self.blockvis.nvis
 
     def test_convert_decoalesce_zero(self):
