@@ -6,44 +6,97 @@ This works as follows:
 
 import logging
 
-from wrappers.arlexecute.calibration.modelpartition import solve_modelpartitions, create_modelpartitions
-from wrappers.arlexecute.calibration.operations import copy_gaintable, create_gaintable_from_blockvisibility
+from data_models.parameters import get_parameter
 from wrappers.arlexecute.execution_support.arlexecute import arlexecute
-from wrappers.arlexecute.skymodel.operations import copy_skymodel
+from wrappers.arlexecute.griddata.kernels import create_pswf_convolutionfunction
 from wrappers.arlexecute.visibility.base import copy_visibility
+from ..calibration.calibration_arlexecute import calibrate_list_arlexecute_workflow
+from ..imaging.imaging_arlexecute import invert_list_arlexecute_workflow, residual_list_arlexecute_workflow, \
+    predict_list_arlexecute_workflow, subtract_list_arlexecute_workflow, \
+    restore_list_arlexecute_workflow, deconvolve_list_arlexecute_workflow
 
 log = logging.getLogger(__name__)
 
 
-def solve_modelpartition_consensus_list_arlexecute_workflow(vislist, skymodel_list, niter=10, coniter=10, tol=1e-8,
-                                                       gain=0.25, **kwargs):
-    """ Solve using modelpartition with consensus optimisation, dask.delayed wrapper
+def mpccal_list_arlexecute_workflow(vis_list, model_imagelist, context, vis_slices=1, facets=1,
+                                  gcfcf=None, calibration_context='TG', do_selfcal=True, **kwargs):
+    """Create graph for MPCCAL pipeline
 
-    Solve by iterating, performing E step and M step.
-
-    :param vis_list: Initial visibility
-    :param skymodel_list: List of sky models, one per vis
-    :param kwargs:
-    :return: A dask graph to calculate the individual data models and the residual visibility
-    """
-    model_partitions = [arlexecute.execute(create_modelpartitions, nout=2)(vislist[i], skymodel_list[i],**kwargs)
-                        for i, _ in enumerate(vislist)]
-    for iter in range(coniter):
-        partition_results = [arlexecute.execute(solve_modelpartitions, nout=2)(vislist[i], skymodel_list[i],
-                                                                              niter=niter, tol=1e-8, gain=0.25,
-                                                                              **kwargs)
-                             for i, _ in enumerate(vislist)]
-        skymodel_list = calculate_modelpartition_consensus_arlexecute_workflow(partition_results)
-    
-    return arlexecute.execute((skymodel_list)(skymodel_list))
-
-def calculate_modelpartition_consensus_arlexecute_workflow(partition_results, **kwargs):
-    """ Find consensus of models
-    
-    :param partition_results: List of (vis, skymodel)
-    :param skymodel_list:
-    :param kwargs:
+    :param vis_list:
+    :param model_imagelist:
+    :param context: imaging context e.g. '2d'
+    :param calibration_context: Sequence of calibration steps e.g. TGB
+    :param do_selfcal: Do the selfcalibration?
+    :param kwargs: Parameters for functions in components
     :return:
-
     """
-    return skymodel_list
+    
+    if gcfcf is None:
+        gcfcf = [arlexecute.execute(create_pswf_convolutionfunction)(model_imagelist[0])]
+    
+    psf_imagelist = invert_list_arlexecute_workflow(vis_list, model_imagelist, dopsf=True, context=context,
+                                                    vis_slices=vis_slices, facets=facets, gcgcf=gcfcf, **kwargs)
+    
+    model_vislist = [arlexecute.execute(copy_visibility, nout=1)(v, zero=True) for v in vis_list]
+    
+    if do_selfcal:
+        cal_vis_list = [arlexecute.execute(copy_visibility, nout=1)(v) for v in vis_list]
+    else:
+        cal_vis_list = vis_list
+    
+    if do_selfcal:
+        # Make the predicted visibilities, selfcalibrate against it correcting the gains, then
+        # form the residual visibility, then make the residual image
+        model_vislist = predict_list_arlexecute_workflow(model_vislist, model_imagelist,
+                                                         context=context, vis_slices=vis_slices, facets=facets,
+                                                         gcgcf=gcfcf, **kwargs)
+        cal_vis_list, _ = calibrate_list_arlexecute_workflow(cal_vis_list, model_vislist,
+                                                             calibration_context=calibration_context, **kwargs)
+        residual_vislist = subtract_list_arlexecute_workflow(cal_vis_list, model_vislist)
+        residual_imagelist = invert_list_arlexecute_workflow(residual_vislist, model_imagelist,
+                                                             context=context, dopsf=False,
+                                                             vis_slices=vis_slices, facets=facets, gcgcf=gcfcf,
+                                                             iteration=0, **kwargs)
+    else:
+        # If we are not selfcalibrating it's much easier and we can avoid an unnecessary round of gather/scatter
+        # for visibility partitioning such as timeslices and wstack.
+        residual_imagelist = residual_list_arlexecute_workflow(cal_vis_list, model_imagelist, context=context,
+                                                               vis_slices=vis_slices, facets=facets, gcgcf=gcfcf,
+                                                               **kwargs)
+    
+    deconvolve_model_imagelist, _ = deconvolve_list_arlexecute_workflow(residual_imagelist, psf_imagelist,
+                                                                        model_imagelist,
+                                                                        prefix='cycle 0',
+                                                                        **kwargs)
+    nmajor = get_parameter(kwargs, "nmajor", 5)
+    if nmajor > 1:
+        for cycle in range(nmajor):
+            if do_selfcal:
+                model_vislist = predict_list_arlexecute_workflow(model_vislist, deconvolve_model_imagelist,
+                                                                 context=context, vis_slices=vis_slices, facets=facets,
+                                                                 gcgcf=gcfcf, **kwargs)
+                cal_vis_list = [arlexecute.execute(copy_visibility, nout=1)(v) for v in vis_list]
+                cal_vis_list, _ = calibrate_list_arlexecute_workflow(cal_vis_list, model_vislist,
+                                                                     calibration_context=calibration_context,
+                                                                     iteration=cycle, **kwargs)
+                residual_vislist = subtract_list_arlexecute_workflow(cal_vis_list, model_vislist)
+                residual_imagelist = invert_list_arlexecute_workflow(residual_vislist, model_imagelist,
+                                                                     context=context,
+                                                                     vis_slices=vis_slices, facets=facets,
+                                                                     gcgcf=gcfcf, **kwargs)
+            else:
+                residual_imagelist = residual_list_arlexecute_workflow(cal_vis_list, deconvolve_model_imagelist,
+                                                                       context=context,
+                                                                       vis_slices=vis_slices, facets=facets,
+                                                                       gcgcf=gcfcf,
+                                                                       **kwargs)
+            
+            prefix = "cycle %d" % (cycle + 1)
+            deconvolve_model_imagelist, _ = deconvolve_list_arlexecute_workflow(residual_imagelist, psf_imagelist,
+                                                                                deconvolve_model_imagelist,
+                                                                                prefix=prefix,
+                                                                                **kwargs)
+    residual_imagelist = residual_list_arlexecute_workflow(cal_vis_list, deconvolve_model_imagelist, context=context,
+                                                           vis_slices=vis_slices, facets=facets, gcgcf=gcfcf, **kwargs)
+    restore_imagelist = restore_list_arlexecute_workflow(deconvolve_model_imagelist, psf_imagelist, residual_imagelist)
+    return arlexecute.execute((deconvolve_model_imagelist, residual_imagelist, restore_imagelist))
