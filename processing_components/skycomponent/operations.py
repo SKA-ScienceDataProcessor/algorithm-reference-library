@@ -306,7 +306,7 @@ def find_skycomponents(im: Image, fwhm=1.0, threshold=1.0, npixels=5) -> List[Sk
 def apply_beam_to_skycomponent(sc: Union[Skycomponent, List[Skycomponent]], beam: Image) \
         -> Union[Skycomponent, List[Skycomponent]]:
     """ Insert a Skycomponent into an image
-    
+
     :param beam:
     :param sc: SkyComponent or list of SkyComponents
     :return: List of skycomponents
@@ -491,8 +491,9 @@ def image_voronoi_iter(im: Image, components: Skycomponent) -> collections.Itera
     
     nregions = numpy.max(vertex_array) + 1
     for region in range(nregions):
-        mask = (vertex_array == region)
-        yield create_image_from_array(im.data * mask[numpy.newaxis, numpy.newaxis, ...], wcs=im.wcs,
+        mask = numpy.zeros(im.data.shape)
+        mask[(vertex_array == region)[numpy.newaxis, numpy.newaxis,...]] = 1.0
+        yield create_image_from_array(mask, wcs=im.wcs,
                                       polarisation_frame=im.polarisation_frame)
 
 def partition_skycomponent_neighbours(comps, targets):
