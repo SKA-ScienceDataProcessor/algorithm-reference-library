@@ -18,11 +18,8 @@ log = logging.getLogger(__name__)
 
 def predict_skymodel_list_arlexecute_workflow(vis_list, skymodel_list, context, vis_slices=1, facets=1,
                                               gcfcf=None, docal=False, **kwargs):
-    """Predict from a skymodel, iterating over both the vis_list and skymodel
+    """Predict from skymodels, iterating over both the vis_list and skymodel
     
-    The visibility and image are scattered, the visibility is predicted on each part, and then the
-    parts are assembled.
-
     :param vis_list: List of Visibility data models
     :param skymodel_list: skymodel list
     :param vis_slices: Number of vis slices (w stack or timeslice)
@@ -87,7 +84,7 @@ def invert_skymodel_list_arlexecute_workflow(vis_list, skymodel_list, context, v
     :param gcfcg: tuple containing grid correction and convolution function
     :param docal: Apply calibration table in skymodel
     :param kwargs: Parameters for functions in components
-    :return: List of vis_lists
+    :return: List of (image, weight) tuples)
    """
     
     assert len(vis_list) == len(skymodel_list)
@@ -108,4 +105,4 @@ def invert_skymodel_list_arlexecute_workflow(vis_list, skymodel_list, context, v
             result[0].data *= sm.mask
         return result
     
-    return [arlexecute.execute(ift_ical_sm)(vis_list[0], sm) for sm in skymodel_list]
+    return [arlexecute.execute(ift_ical_sm)(vis_list[i], sm) for i, sm in enumerate(skymodel_list)]

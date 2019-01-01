@@ -9,7 +9,7 @@ import numpy
 from astropy import units as u
 from astropy.coordinates import SkyCoord
 
-from data_models.memory_data_models import Image
+from data_models.memory_data_models import Image, SkyModel
 from data_models.memory_data_models import Skycomponent
 from data_models.polarisation import PolarisationFrame
 from workflows.arlexecute.skymodel.skymodel_arlexecute import predict_skymodel_list_arlexecute_workflow, \
@@ -20,6 +20,9 @@ from wrappers.arlexecute.simulation.testing_support import create_named_configur
     create_low_test_skymodel_from_gleam
 from wrappers.arlexecute.visibility.coalesce import convert_visibility_to_blockvisibility, \
     convert_blockvisibility_to_visibility
+from wrappers.arlexecute.visibility.base import copy_visibility
+from processing_components.simulation.mpc import expand_skymodel_by_skycomponents
+
 
 log = logging.getLogger(__name__)
 
@@ -28,7 +31,7 @@ log.addHandler(logging.StreamHandler(sys.stdout))
 log.addHandler(logging.StreamHandler(sys.stderr))
 
 
-class TestSkyModel(unittest.TestCase):
+class TestMPC(unittest.TestCase):
     def setUp(self):
         
         client = get_dask_Client(memory_limit=4 * 1024 * 1024 * 1024)
@@ -36,6 +39,7 @@ class TestSkyModel(unittest.TestCase):
         
         from data_models.parameters import arl_path
         self.dir = arl_path('test_results')
+        self.plot = False
         
     def tearDown(self):
         try:
@@ -72,7 +76,7 @@ class TestSkyModel(unittest.TestCase):
             self.image_pol = PolarisationFrame('stokesI')
             f = numpy.array([100.0])
         
-        self.phasecentre = SkyCoord(ra=+30.0 * u.deg, dec=-60.0 * u.deg, frame='icrs', equinox='J2000')
+        self.phasecentre = SkyCoord(ra=+0.0 * u.deg, dec=-40.0 * u.deg, frame='icrs', equinox='J2000')
         self.blockvis_list = [arlexecute.execute(ingest_unittest_visibility)(self.low,
                                                                         [self.frequency[freqwin]],
                                                                         [self.channelwidth[freqwin]],
@@ -85,61 +89,71 @@ class TestSkyModel(unittest.TestCase):
         self.vis_list = [arlexecute.execute(convert_blockvisibility_to_visibility)(bv) for bv in self.blockvis_list]
         self.vis_list = arlexecute.compute(self.vis_list, sync=True)
 
-        
+        self.skymodel_list = [arlexecute.execute(create_low_test_skymodel_from_gleam)
+                              (npixel=self.npixel, cellsize=self.cellsize, frequency=[self.frequency[f]],
+                               phasecentre=self.phasecentre,
+                               polarisation_frame=PolarisationFrame("stokesI"),
+                               flux_limit=0.6,
+                               flux_threshold=1.0,
+                               flux_max=5.0) for f, freq in enumerate(self.frequency)]
+
+        self.skymodel_list = arlexecute.compute(self.skymodel_list, sync=True)
+        assert isinstance(self.skymodel_list[0].image, Image), self.skymodel_list[0].image
+        assert isinstance(self.skymodel_list[0].components[0], Skycomponent), self.skymodel_list[0].components[0]
+        assert len(self.skymodel_list[0].components) == 19, len(self.skymodel_list[0].components)
+        self.skymodel_list = expand_skymodel_by_skycomponents(self.skymodel_list[0])
+        assert len(self.skymodel_list) == 20, len(self.skymodel_list)
+        assert numpy.max(numpy.abs(self.skymodel_list[-1].image.data)) > 0.0, "Image is empty"
+        self.vis_list = [copy_visibility(self.vis_list[0]) for i, _ in enumerate(self.skymodel_list)]
+        self.vis_list = arlexecute.scatter(self.vis_list)
+
     
     def test_time_setup(self):
         self.actualSetUp()
     
     def test_predictcal(self):
+        
         self.actualSetUp(zerow=True)
 
-        self.skymodel_list = [arlexecute.execute(create_low_test_skymodel_from_gleam)
-                              (npixel=self.npixel, cellsize=self.cellsize, frequency=[self.frequency[f]],
-                               phasecentre=self.phasecentre,
-                               polarisation_frame=PolarisationFrame("stokesI"),
-                               flux_limit=0.3,
-                               flux_threshold=0.3,
-                               flux_max=5.0) for f, freq in enumerate(self.frequency)]
-
-        self.skymodel_list = arlexecute.compute(self.skymodel_list, sync=True)
-        self.vis_list = arlexecute.scatter(self.vis_list)
-        assert isinstance(self.skymodel_list[0].image, Image), self.skymodel_list[0].image
-        assert isinstance(self.skymodel_list[0].components[0], Skycomponent), self.skymodel_list[0].components[0]
-        assert len(self.skymodel_list[0].components) == 72, len(self.skymodel_list[0].components)
-        assert numpy.max(numpy.abs(self.skymodel_list[0].image.data)) > 0.0, "Image is empty"
-
-        self.skymodel_list = arlexecute.scatter(self.skymodel_list)
         skymodel_vislist = predict_skymodel_list_arlexecute_workflow(self.vis_list, self.skymodel_list,
                                                                      context='2d', docal=True)
         skymodel_vislist = arlexecute.compute(skymodel_vislist, sync=True)
-        assert numpy.max(numpy.abs(skymodel_vislist[0].vis)) > 0.0
+
+        if self.plot:
+            def plotvis(i, v):
+                import matplotlib.pyplot as plt
+                uvr = numpy.hypot(v.u, v.v)
+                amp = numpy.abs(v.vis[:, 0])
+                plt.plot(uvr, amp, '.')
+                plt.title(str(i))
+                plt.show()
+    
+            for i, v in enumerate(skymodel_vislist):
+                assert numpy.max(numpy.abs(v.vis)) > 0.0
+                plotvis(i, v)
 
     def test_invertcal(self):
         self.actualSetUp(zerow=True)
 
-        self.skymodel_list = [arlexecute.execute(create_low_test_skymodel_from_gleam)
-                              (npixel=self.npixel, cellsize=self.cellsize, frequency=[self.frequency[f]],
-                               phasecentre=self.phasecentre,
-                               polarisation_frame=PolarisationFrame("stokesI"),
-                               flux_limit=0.3,
-                               flux_threshold=0.3,
-                               flux_max=5.0) for f, freq in enumerate(self.frequency)]
-
-        self.skymodel_list = arlexecute.compute(self.skymodel_list, sync=True)
-        assert isinstance(self.skymodel_list[0].image, Image), self.skymodel_list[0].image
-        assert isinstance(self.skymodel_list[0].components[0], Skycomponent), self.skymodel_list[0].components[0]
-        assert len(self.skymodel_list[0].components) == 72, len(self.skymodel_list[0].components)
-        self.skymodel_list = arlexecute.scatter(self.skymodel_list)
-        self.vis_list = arlexecute.scatter(self.vis_list)
         skymodel_vislist = predict_skymodel_list_arlexecute_workflow(self.vis_list, self.skymodel_list,
                                                                      context='2d', docal=True)
         skymodel_vislist = arlexecute.compute(skymodel_vislist, sync=True)
         
-        result_skymodel = invert_skymodel_list_arlexecute_workflow(skymodel_vislist, self.skymodel_list,
+        result_skymodel = [SkyModel(components=None, image=self.skymodel_list[-1].image)
+                           for v in skymodel_vislist]
+        
+        self.vis_list = arlexecute.scatter(self.vis_list)
+        result_skymodel = invert_skymodel_list_arlexecute_workflow(skymodel_vislist, result_skymodel,
                                                                      context='2d', docal=True)
         results = arlexecute.compute(result_skymodel, sync=True)
         assert numpy.max(numpy.abs(results[0][0].data)) > 0.0
         assert numpy.max(numpy.abs(results[0][1])) > 0.0
+        if self.plot:
+            import matplotlib.pyplot as plt
+            from wrappers.arlexecute.image.operations import show_image
+            for result in results:
+                show_image(result[0])
+                plt.show()
 
 if __name__ == '__main__':
     unittest.main()

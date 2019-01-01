@@ -10,14 +10,25 @@ from processing_components.calibration.operations import copy_gaintable
 
 
 def expand_skymodel_by_skycomponents(sm, **kwargs):
-    """ Expand a sky model so that all components are in separate skymodels
-
+    """ Expand a sky model so that all components and the image are in separate skymodels
+    
+    The mask and gaintable are taken to apply for all new skymodels.
+    
+    :param sm: SkyModel
+    :return: List of SkyModels
     """
-    return [SkyModel(components=[comp],
-                     image=copy_image(sm.image),
-                     gaintable=copy_gaintable(sm.gaintable),
-                     mask=copy_image(sm.mask),
-                     fixed=sm.fixed) for comp in sm.components]
+    result = [SkyModel(components=[comp],
+                       image=None,
+                       gaintable=copy_gaintable(sm.gaintable),
+                       mask=copy_image(sm.mask),
+                       fixed=sm.fixed) for comp in sm.components]
+    if sm.image is not None:
+        result.append(SkyModel(components=None,
+                               image=copy_image(sm.image),
+                               gaintable=copy_gaintable(sm.gaintable),
+                               mask=copy_image(sm.mask),
+                               fixed=sm.fixed))
+    return result
 
 
 def sum_visibility_over_partitions(blockvis_list):
@@ -32,5 +43,3 @@ def sum_visibility_over_partitions(blockvis_list):
             result.data['vis'] += v.data['vis']
     
     return result
-
-
