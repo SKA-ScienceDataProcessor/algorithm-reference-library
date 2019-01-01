@@ -1,4 +1,3 @@
-
 import logging
 
 import numpy
@@ -16,6 +15,7 @@ from processing_components.visibility.base import create_visibility_from_rows
 from processing_components.image.operations import copy_image
 from processing_components.visibility.operations import copy_visibility
 from processing_components.calibration.operations import copy_gaintable
+
 
 def find_pierce_points(station_locations, ha, dec, phasecentre, height):
     """Find the pierce points for a screen at specified height
@@ -54,13 +54,13 @@ def create_gaintable_from_screen(vis, sc, screen, height=3e5, vis_slices=None, s
     nant = station_locations.shape[0]
     t2r = numpy.pi / 43200.0
     gaintables = [create_gaintable_from_blockvisibility(vis, **kwargs) for i in sc]
-
+    
     # The time in the Visibility is hour angle in seconds!
     for iha, rows in enumerate(vis_timeslice_iter(vis, vis_slices=vis_slices)):
         v = create_visibility_from_rows(vis, rows)
         ha = numpy.average(v.time)
         number_bad = 0
-
+        
         for icomp, comp in enumerate(sc):
             pp = find_pierce_points(station_locations, (comp.direction.ra.rad + t2r * ha) * u.rad, comp.direction.dec,
                                     height=height, phasecentre=vis.phasecentre)
@@ -74,22 +74,25 @@ def create_gaintable_from_screen(vis, sc, screen, height=3e5, vis_slices=None, s
                 except:
                     number_bad += 1
                     scr[ant] = 0.0
-                
+            
             gaintables[icomp].gain[iha, :, :, :] = numpy.exp(1j * scr[:, numpy.newaxis, numpy.newaxis, numpy.newaxis])
         
         if number_bad > 0:
             log.warning("create_gaintable_from_screen: %d pierce points are outside the screen image" % (number_bad))
-
+    
     return gaintables
+
 
 def expand_skymodel_by_skycomponents(sm, **kwargs):
     """ Expand a sky model so that all components are in separate skymodels
 
     """
     return [SkyModel(components=[comp],
-                    image=copy_image(sm.image),
-                    gaintable=copy_gaintable(sm.gaintable),
-                    fixed=sm.fixed) for comp in sm.components]
+                     image=copy_image(sm.image),
+                     gaintable=copy_gaintable(sm.gaintable),
+                     mask=copy_image(sm.mask),
+                     fixed=sm.fixed) for comp in sm.components]
+
 
 def sum_visibility_over_partitions(blockvis_list):
     """Sum all the visibility partitions
@@ -101,7 +104,7 @@ def sum_visibility_over_partitions(blockvis_list):
     for i, v in enumerate(blockvis_list):
         if i > 0:
             result.data['vis'] += v.data['vis']
-            
+    
     return result
 
 
@@ -128,5 +131,5 @@ def calculate_sf_from_screen(screen):
     sf_image.wcs.wcs.crpix[0] = ny // 4 + 1
     sf_image.wcs.wcs.crpix[1] = ny // 4 + 1
     sf_image.wcs.wcs.crpix[2] = 1
-
+    
     return sf_image

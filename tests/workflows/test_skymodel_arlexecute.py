@@ -145,7 +145,7 @@ class TestSkyModel(unittest.TestCase):
 
         self.skymodel_list = arlexecute.compute(self.skymodel_list, sync=True)
         for i, sm in enumerate(self.skymodel_list):
-            sm.image= []
+            sm.image= None
             
         assert isinstance(self.skymodel_list[0].components[0], Skycomponent), self.skymodel_list[0].components[0]
         assert len(self.skymodel_list[0].components) == 13, len(self.skymodel_list[0].components)

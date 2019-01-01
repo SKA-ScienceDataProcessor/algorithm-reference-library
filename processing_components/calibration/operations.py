@@ -181,8 +181,9 @@ def copy_gaintable(gt: GainTable, zero=False):
 
     Performs a deepcopy of the data array
     """
-    if isinstance(gt, list):
-        return list()
+    
+    if gt is None:
+        return gt
     
     assert isinstance(gt, GainTable), gt
     

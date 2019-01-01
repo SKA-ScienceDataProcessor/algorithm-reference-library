@@ -214,7 +214,7 @@ def convert_image_to_kernel(im: Image, oversampling, kernelwidth):
     return create_image_from_array(newdata, newwcs, polarisation_frame=im.polarisation_frame)
 
 
-def copy_image(im: Image) -> Image:
+def copy_image(im: Image):
     """ Create an image from an array
     
     Performs deepcopy of data_models, breaking reference semantics
@@ -223,6 +223,10 @@ def copy_image(im: Image) -> Image:
     :return: Image
     
     """
+    
+    if im is None:
+        return im
+    
     assert isinstance(im, Image), im
     fim = Image()
     fim.polarisation_frame = im.polarisation_frame

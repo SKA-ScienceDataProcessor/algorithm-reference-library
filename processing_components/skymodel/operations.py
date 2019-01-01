@@ -24,9 +24,28 @@ def copy_skymodel(sm):
     """ Copy a sky model
     
     """
-    return SkyModel(components=[copy_skycomponent(comp) for comp in sm.components],
-                    image=copy_image(sm.image),
-                    gaintable=copy_gaintable(sm.gaintable),
+    if sm.components is not None:
+        newcomps = [copy_skycomponent(comp) for comp in sm.components]
+    else:
+        newcomps = None
+
+    if sm.image is not None:
+        newimage = copy_image(sm.image)
+    else:
+        newimage = None
+
+    if sm.mask is not None:
+        newmask = copy_image(sm.mask)
+    else:
+        newmask = None
+
+    if sm.gaintable is not None:
+        newgt = copy_gaintable(sm.gaintable)
+    else:
+        newgt = None
+
+        
+    return SkyModel(components=newcomps, image=newimage, gaintable=newgt, mask=newmask,
                     fixed=sm.fixed)
 
 
@@ -45,7 +64,7 @@ def partition_skymodel_by_flux(sc, model, flux_threshold=-numpy.inf):
     im = copy_image(model)
     im = insert_skycomponent(im, weaksc)
     return SkyModel(components=[copy_skycomponent(comp) for comp in brightsc],
-                    image=copy_image(im),
+                    image=copy_image(im), mask=None,
                     fixed=False)
 
 
@@ -88,18 +107,3 @@ def show_skymodel(sms, psf_width=1.75, cm='Greys', vmax=None, vmin=None):
             plt.xlabel('Dish/Station')
             plt.ylabel('Integration')
             plt.show()
-
-
-def partition_skymodel_by_voronoi(sc, model, flux_threshold=-numpy.inf):
-    """Partition skymodel according to flux
-
-    :param sc:
-    :param model:
-    :param flux_threshold:
-    :return:
-    """
-    brightsc = filter_skycomponents_by_flux(sc, flux_min=flux_threshold)
-    log.info('Partitioning uses %d components to define a Voronoi tesselation'
-             % (len(brightsc)))
-    return SkyModel(images=[copy_image(im) for im in image_voronoi_iter(model, brightsc)],
-                    fixed=False)

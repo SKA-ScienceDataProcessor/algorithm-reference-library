@@ -128,7 +128,7 @@ class TestSkyModel(unittest.TestCase):
                                flux_max=5.0) for f, freq in enumerate(self.frequency)]
         
         for i, sm in enumerate(self.skymodel_list):
-            sm.image= []
+            sm.image= None
 
         assert isinstance(self.skymodel_list[0].components[0], Skycomponent), self.skymodel_list[0].components[0]
         assert len(self.skymodel_list[0].components) == 13, len(self.skymodel_list[0].components)
