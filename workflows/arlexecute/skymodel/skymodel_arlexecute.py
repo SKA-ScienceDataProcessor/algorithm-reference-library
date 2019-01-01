@@ -18,7 +18,10 @@ log = logging.getLogger(__name__)
 
 def predict_skymodel_list_arlexecute_workflow(vis_list, skymodel_list, context, vis_slices=1, facets=1,
                                               gcfcf=None, docal=False, **kwargs):
-    """Predict from skymodels, iterating over both the vis_list and skymodel
+    """Predict from a skymodel, iterating over both the vis_list and skymodel
+
+    The visibility and image are scattered, the visibility is predicted on each part, and then the
+    parts are assembled.
     
     :param vis_list: List of Visibility data models
     :param skymodel_list: skymodel list
