@@ -170,22 +170,6 @@ def select_components_by_separation(home, comps, rmax=2 * numpy.pi, rmin=0.0) ->
 
 
 
-def select_components_by_flux(comps, fmax=numpy.infty, fmin=-numpy.infty) -> [Skycomponent]:
-    """ Select components with a range in flux
-
-    :param comps: list of skycomponents
-    :param fmin: minimum range
-    :param fmax: maximum range
-    :return: selected components
-    """
-    selected = list()
-    for comp in comps:
-        flux = numpy.max(comp.flux)
-        if fmin <= flux <= fmax:
-            selected.append(comp)
-    return selected
-
-
 def select_neighbouring_components(comps, target_comps):
     """ Assign components to nearest in the target
     
