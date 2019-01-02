@@ -137,7 +137,7 @@ class TestCalibrateGraphs(ARLExecuteTestCase, unittest.TestCase):
                                                calibration_context='T', controls=controls, do_selfcal=True,
                                                global_solution=False)
         calibrate_list = arlexecute.compute(calibrate_list, sync=True)
-        assert len(calibrate_list[1][0]) == 0
+        assert len(calibrate_list[1][0]) > 0
 
     def test_calibrate_arlexecute_global(self):
         amp_errors = {'T': 0.0, 'G': 0.0}
@@ -178,7 +178,7 @@ class TestCalibrateGraphs(ARLExecuteTestCase, unittest.TestCase):
                                                global_solution=True)
 
         calibrate_list = arlexecute.compute(calibrate_list, sync=True)
-        assert len(calibrate_list[1][0]) == 0
+        assert len(calibrate_list[1][0]) > 0
 
 if __name__ == '__main__':
     unittest.main()

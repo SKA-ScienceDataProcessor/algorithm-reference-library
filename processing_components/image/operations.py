@@ -169,7 +169,7 @@ def show_image(im: Image, fig=None, title: str = '', pol=0, chan=0, cm='Greys', 
     return fig
 
 
-def show_components(im, comps, npixels=128, fig=None):
+def show_components(im, comps, npixels=128, fig=None, vmax=None, vmin=None):
     """ Show components against an image
 
     :param im:
@@ -179,6 +179,11 @@ def show_components(im, comps, npixels=128, fig=None):
     :return:
     """
     import matplotlib.pyplot as plt
+    
+    if vmax is None:
+        vmax = numpy.max(im.data[0, 0, ...])
+    if vmin is None:
+        vmin = numpy.min(im.data[0, 0, ...])
     
     if not fig:
         fig = plt.figure()
@@ -193,7 +198,7 @@ def show_components(im, comps, npixels=128, fig=None):
                      (centre[0] - npixels // 2):(centre[0] + npixels // 2)]
         newim.wcs.wcs.crpix[0] -= centre[0] - npixels // 2
         newim.wcs.wcs.crpix[1] -= centre[1] - npixels // 2
-        plt.imshow(newim.data[0, 0, ...], origin='lower', cmap='Greys')
+        plt.imshow(newim.data[0, 0, ...], origin='lower', cmap='Greys', vmax=vmax, vmin=vmin)
         x, y = skycoord_to_pixel(sc.direction, newim.wcs, 0, 'wcs')
         plt.plot(x, y, marker='+', color='red')
         plt.title('Name = %s, flux = %s' % (sc.name, sc.flux))

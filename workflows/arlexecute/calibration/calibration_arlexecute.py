@@ -4,6 +4,7 @@
 
 import numpy
 
+from data_models.data_model_helpers import GainTable
 from wrappers.arlexecute.execution_support.arlexecute import arlexecute
 from wrappers.arlexecute.calibration.calibration_control import calibrate_function, apply_calibration_function, \
     solve_calibrate_function
