@@ -5,6 +5,8 @@ import numpy
 from data_models.memory_data_models import Image, GainTable, Visibility
 from processing_library.image.operations import copy_image
 from workflows.serial.imaging.imaging_serial import predict_list_serial_workflow, invert_list_serial_workflow
+from workflows.shared.imaging.imaging_shared import sum_invert_results
+from wrappers.arlexecute.visibility.base import copy_visibility
 from wrappers.arlexecute.calibration.operations import apply_gaintable
 from wrappers.arlexecute.execution_support.arlexecute import arlexecute
 from wrappers.arlexecute.imaging.base import predict_skycomponent_visibility
@@ -16,14 +18,11 @@ from wrappers.arlexecute.visibility.coalesce import convert_blockvisibility_to_v
 log = logging.getLogger(__name__)
 
 
-def predict_skymodel_list_arlexecute_workflow(vis_list, skymodel_list, context, vis_slices=1, facets=1,
+def predict_skymodel_list_arlexecute_workflow(obsvis, skymodel_list, context, vis_slices=1, facets=1,
                                               gcfcf=None, docal=False, **kwargs):
-    """Predict from a skymodel, iterating over both the vis_list and skymodel
+    """Predict from a list of skymodels, producing one visibility per skymodel
 
-    The visibility and image are scattered, the visibility is predicted on each part, and then the
-    parts are assembled.
-    
-    :param vis_list: List of Visibility data models
+    :param obsvis: "Observed Visibility"
     :param skymodel_list: skymodel list
     :param vis_slices: Number of vis slices (w stack or timeslice)
     :param facets: Number of facets (per axis)
@@ -34,10 +33,9 @@ def predict_skymodel_list_arlexecute_workflow(vis_list, skymodel_list, context, 
     :return: List of vis_lists
    """
     
-    assert len(vis_list) == len(skymodel_list)
-    
-    def ft_cal_sm(v, sm):
-        assert isinstance(v, Visibility), v
+    def ft_cal_sm(ov, sm):
+        assert isinstance(ov, Visibility), ov
+        v = copy_visibility(ov)
         
         v.data['vis'][...] = 0.0 + 0.0j
         
@@ -68,8 +66,8 @@ def predict_skymodel_list_arlexecute_workflow(vis_list, skymodel_list, context, 
         
         return v
     
-    return [arlexecute.execute(ft_cal_sm, nout=1)(vis_list[i], skymodel_list[i])
-            for i, _ in enumerate(vis_list)]
+    return [arlexecute.execute(ft_cal_sm, nout=1)(obsvis, skymodel_list[i])
+            for i, _ in enumerate(skymodel_list)]
 
 
 def invert_skymodel_list_arlexecute_workflow(vis_list, skymodel_list, context, vis_slices=1, facets=1,
@@ -105,7 +103,42 @@ def invert_skymodel_list_arlexecute_workflow(vis_list, skymodel_list, context, v
                                              vis_slices=vis_slices, facets=facets, gcfcf=gcfcf,
                                              **kwargs)[0]
         if isinstance(sm.mask, Image):
-            result[0].data *= sm.mask
+            result[0].data *= sm.mask.data
         return result
     
-    return [arlexecute.execute(ift_ical_sm)(vis_list[i], sm) for i, sm in enumerate(skymodel_list)]
+    im_list = [arlexecute.execute(ift_ical_sm)(vis_list[i], sm) for i, sm in enumerate(skymodel_list)]
+    
+    def add_images(im):
+        im0 = copy_image(im[0][0])
+        sumwt = im[0][1]
+        for i in range(1, len(im)):
+            im0.data += im[i][0].data
+        return im0, sumwt
+    
+    return arlexecute.execute(add_images)(im_list)
+
+
+def extract_datamodels_skymodel_list_arlexecute_workflow(obsvis, modelvis_list):
+    """Form data models by subtracting sum and adding back each one
+    
+    vmodel[p] = vobs - sum(i!=p) modelvis[i]
+
+    :param obsvis: "Observed" visibility
+    :param modelvis_list: List of Visibility data model predictions
+    :return: List of (image, weight) tuples)
+   """
+    # Now do the meaty part. We probably want to refactor this for performance once it works.
+    def vsum(v, mv):
+        # Observed vis minus the sum of all predictions
+        verr = copy_visibility(v)
+        for m in mv:
+            verr.data['vis'] -= m.data['vis']
+        # Now add back each model in turn
+        result = list()
+        for m in mv:
+            vr = copy_visibility(verr)
+            vr.data['vis'] += m.data['vis']
+            result.append(vr)
+        return result
+        
+    return arlexecute.execute(vsum)(obsvis, modelvis_list)

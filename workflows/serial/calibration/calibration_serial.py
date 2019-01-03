@@ -32,8 +32,7 @@ def calibrate_list_serial_workflow(vis_list, model_vislist, calibration_context=
         return solve_calibrate_function(vis, modelvis, calibration_context=calibration_context, **kwargs)
 
     def apply(vis, gt):
-        if len(gt) ==0:
-            return vis
+        assert gt is not None
         return apply_calibration_function(vis, gt, calibration_context=calibration_context, **kwargs)
 
     if global_solution:

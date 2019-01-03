@@ -47,3 +47,4 @@ dask-worker-space
 .coverage
 dask-work-space
 *.lock
+/test_results
