@@ -39,6 +39,7 @@ from wrappers.serial.calibration.calibration import solve_gaintable
 from wrappers.serial.calibration.operations import apply_gaintable
 from wrappers.serial.calibration.calibration_control import create_calibration_controls
 from wrappers.serial.visibility.base import create_blockvisibility
+from wrappers.serial.visibility.coalesce import convert_blockvisibility_to_visibility,     convert_visibility_to_blockvisibility
 from wrappers.serial.skycomponent.operations import create_skycomponent
 from wrappers.serial.image.deconvolution import deconvolve_cube
 #from wrappers.serial.image.operations import show_image, export_image_to_fits, qa_image
@@ -83,22 +84,28 @@ log.info("Starting imaging-pipeline")
 
 
 nfreqwin=7
-ntimes=11
+ntimes=5
 rmax=300.0
-frequency=numpy.linspace(0.9e8,1.1e8,nfreqwin)
+frequency=numpy.linspace(1.0e8,1.2e8,nfreqwin)
+#ntimes=11
+#rmax=300.0
+#frequency=numpy.linspace(0.9e8,1.1e8,nfreqwin)
 channel_bandwidth=numpy.array(nfreqwin*[frequency[1]-frequency[0]])
 times = numpy.linspace(-numpy.pi/3.0, numpy.pi/3.0, ntimes)
-phasecentre=SkyCoord(ra=+30.0 * u.deg, dec=-60.0 * u.deg, frame='icrs', equinox='J2000')
+#phasecentre=SkyCoord(ra=+30.0 * u.deg, dec=-60.0 * u.deg, frame='icrs', equinox='J2000')
+phasecentre=SkyCoord(ra=+0.0 * u.deg, dec=-40.0 * u.deg, frame='icrs', equinox='J2000')
 
-vis_list=simulate_list_serial_workflow('LOWBD2',
+bvis_list=simulate_list_serial_workflow('LOWBD2',
                                          frequency=frequency, 
                                          channel_bandwidth=channel_bandwidth,
                                          times=times,
                                          phasecentre=phasecentre,
                                          order='frequency',
                                         rmax=rmax)
-log.debug('%d elements in vis_list' % len(vis_list))
 
+vis_list = [convert_blockvisibility_to_visibility(bv) for bv in bvis_list]
+print('%d elements in vis_list' % len(vis_list))
+log.debug('%d elements in vis_list' % len(vis_list))
 
 # In[4]:
 
@@ -268,8 +275,8 @@ export_image_to_fits(residual[0], '%s/imaging-dask_continuum_imaging_residual.fi
 # In[ ]:
 
 
-for chan in range(nfreqwin):
-    residual = continuum_imaging_list[1][chan]
+#for chan in range(nfreqwin):
+#    residual = continuum_imaging_list[1][chan]
     #show_image(residual[0], title='Channel %d' % chan, cm='Greys', 
     #           vmax=0.1, vmin=-0.01)
     #plt.show()
