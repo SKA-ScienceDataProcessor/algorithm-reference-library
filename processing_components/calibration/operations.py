@@ -78,7 +78,7 @@ def create_gaintable_from_blockvisibility(vis: BlockVisibility, timeslice = None
     
     gt = GainTable(gain=gain, time=gain_time, interval=gain_interval, weight=gain_weight, residual=gain_residual,
                    frequency=gain_frequency,
-                   receptor_frame=receptor_frame)
+                   receptor_frame=receptor_frame, phasecentre=vis.phasecentre)
     
     assert isinstance(gt, GainTable), "gt is not a GainTable: %r" % gt
     assert_vis_gt_compatible(vis, gt)
@@ -226,8 +226,8 @@ def qa_gaintable(gt: GainTable, context=None) -> QA:
     :param gt:
     :return: AQ
     """
-    agt = numpy.abs(gt.gain)
-    pgt = numpy.angle(gt.gain)
+    agt = numpy.abs(gt.gain[gt.weight>0.0])
+    pgt = numpy.angle(gt.gain[gt.weight>0.0])
     data = {'shape': gt.gain.shape,
             'maxabs-amp': numpy.max(agt),
             'minabs-amp': numpy.min(agt),

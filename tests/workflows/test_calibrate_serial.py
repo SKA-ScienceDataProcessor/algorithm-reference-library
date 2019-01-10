@@ -128,7 +128,8 @@ class TestCalibrateGraphs(unittest.TestCase):
             calibrate_list_serial_workflow(self.error_blockvis_list, self.blockvis_list,
                                                 calibration_context='T', controls=controls, do_selfcal=True,
                                                 global_solution=False)
-        assert len(calibrate_list[1][0]) == 0
+        assert len(calibrate_list[1][0]) == 1
+        assert numpy.max(calibrate_list[1][0]['T'].residual) == 0.0, numpy.max(calibrate_list[1][0]['T'].residual)
 
 
     def test_calibrate_serial_global(self):
@@ -166,7 +167,8 @@ class TestCalibrateGraphs(unittest.TestCase):
             calibrate_list_serial_workflow(self.error_blockvis_list, self.blockvis_list,
                                                     calibration_context='T', controls=controls, do_selfcal=True,
                                                     global_solution=True)
-        assert len(calibrate_list[1][0]) == 0
+        assert len(calibrate_list[1][0]) == 1
+        assert numpy.max(calibrate_list[1][0]['T'].residual) == 0.0, numpy.max(calibrate_list[1][0]['T'].residual)
 
 
 if __name__ == '__main__':

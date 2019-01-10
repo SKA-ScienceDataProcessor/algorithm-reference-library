@@ -4,18 +4,17 @@
 
 import logging
 
-import numpy
-
 import matplotlib.pyplot as plt
-
+import numpy
 from astropy.wcs.utils import skycoord_to_pixel
 
-from data_models.memory_data_models import SkyModel, GainTable
+from data_models.memory_data_models import SkyModel
 from processing_library.image.operations import copy_image
-from ..image.operations import show_image, smooth_image
-from ..skycomponent.base import copy_skycomponent
 from ..calibration.operations import copy_gaintable
-from ..skycomponent.operations import filter_skycomponents_by_flux, insert_skycomponent, image_voronoi_iter
+from ..image.operations import smooth_image
+from ..skycomponent.base import copy_skycomponent
+from ..skycomponent.operations import filter_skycomponents_by_flux, insert_skycomponent, image_voronoi_iter, \
+    find_skycomponent_matches, find_skycomponent_matches_atomic
 
 log = logging.getLogger(__name__)
 
@@ -28,23 +27,22 @@ def copy_skymodel(sm):
         newcomps = [copy_skycomponent(comp) for comp in sm.components]
     else:
         newcomps = None
-
+    
     if sm.image is not None:
         newimage = copy_image(sm.image)
     else:
         newimage = None
-
+    
     if sm.mask is not None:
         newmask = copy_image(sm.mask)
     else:
         newmask = None
-
+    
     if sm.gaintable is not None:
         newgt = copy_gaintable(sm.gaintable)
     else:
         newgt = None
-
-        
+    
     return SkyModel(components=newcomps, image=newimage, gaintable=newgt, mask=newmask,
                     fixed=sm.fixed)
 
@@ -107,3 +105,71 @@ def show_skymodel(sms, psf_width=1.75, cm='Greys', vmax=None, vmin=None):
             plt.xlabel('Dish/Station')
             plt.ylabel('Integration')
             plt.show()
+
+
+def initialize_skymodel_voronoi(model, comps, gt=None):
+    """Create a skymodel by Voronoi partitioning of the components, fill with components
+    
+    :param model: Model image
+    :param comps: Skycomponents
+    :param gt: Gaintable
+    :return:
+    """
+    skymodel_images = list()
+    for imask, mask in enumerate(image_voronoi_iter(model, comps)):
+        im = copy_image(model)
+        im.data *= mask.data
+        newgt = copy_gaintable(gt)
+        newgt.phasecentre = comps[imask].direction
+        skymodel_images.append(SkyModel(image=im, components=None, gaintable=newgt, mask=mask))
+    
+    return skymodel_images
+
+
+def calculate_skymodel_equivalent_image(sm):
+    """Calculate an equivalent image for a skymodel
+    
+    :param sm:
+    :return:
+    """
+    combined_model = copy_image(sm[0].image)
+    combined_model.data[...] = 0.0
+    for th in sm:
+        if th.image is not None:
+            if th.mask is not None:
+                combined_model.data += th.mask.data * th.image.data
+            else:
+                combined_model.data += th.image.data
+    
+    return combined_model
+
+
+def update_skymodel_from_image(sm, im):
+    """Update a skymodel for an image
+
+    :param sm:
+    :param im:
+    :return:
+    """
+    for i, th in enumerate(sm):
+        newim = copy_image(im)
+        if th.mask is not None:
+            newim.data *= th.mask.data
+        th.image.data += newim.data
+    
+    return sm
+
+
+def update_skymodel_from_gaintables(sm, gt_list, calibration_context='T'):
+    """Update a skymodel from a list of gaintables
+
+    :param sm:
+    :param im:
+    :return:
+    """
+    assert len(sm) == len(gt_list)
+    
+    for i, th in enumerate(sm):
+        th.gaintable.data['gain'] *= gt_list[i][calibration_context].gain
+    
+    return sm

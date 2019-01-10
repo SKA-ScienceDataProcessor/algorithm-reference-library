@@ -244,9 +244,7 @@ def residual_list_arlexecute_workflow(vis, model_imagelist, context='2d', gcfcf=
     """ Create a graph to calculate residual image using w stacking and faceting
 
     :param vis:
-    :param model_imagelist: Model used to determine image parameters
-    :param vis:
-    :param model_imagelist: Model used to determine image parameters
+    :param model_imagelist: Model
     :param context:
     :param gcfcg: tuple containing grid correction and convolution function
     :param kwargs: Parameters for functions in components
@@ -283,7 +281,7 @@ def restore_list_arlexecute_workflow(model_imagelist, psf_imagelist, residual_im
                 for i, _ in enumerate(model_imagelist)]
 
 
-def deconvolve_list_arlexecute_workflow(dirty_list, psf_list, model_imagelist, prefix='', **kwargs):
+def deconvolve_list_arlexecute_workflow(dirty_list, psf_list, model_imagelist, prefix='', mask=None, **kwargs):
     """Create a graph for deconvolution, adding to the model
 
     :param dirty_list:
@@ -295,7 +293,7 @@ def deconvolve_list_arlexecute_workflow(dirty_list, psf_list, model_imagelist, p
     nchan = len(dirty_list)
     nmoment = get_parameter(kwargs, "nmoment", 0)
     
-    def deconvolve(dirty, psf, model, facet, gthreshold):
+    def deconvolve(dirty, psf, model, facet, gthreshold, msk=None):
         if prefix == '':
             lprefix = "facet %d" % facet
         else:
@@ -310,7 +308,7 @@ def deconvolve_list_arlexecute_workflow(dirty_list, psf_list, model_imagelist, p
         
         if this_peak > 1.1 * gthreshold:
             kwargs['threshold'] = gthreshold
-            result, _ = deconvolve_cube(dirty, psf, prefix=lprefix, **kwargs)
+            result, _ = deconvolve_cube(dirty, psf, prefix=lprefix, mask=msk, **kwargs)
             
             if result.data.shape[0] == model.data.shape[0]:
                 result.data += model.data
@@ -350,7 +348,6 @@ def deconvolve_list_arlexecute_workflow(dirty_list, psf_list, model_imagelist, p
         arlexecute.execute(image_scatter_facets, nout=deconvolve_number_facets)(model_imagelist,
                                                                                 facets=deconvolve_facets,
                                                                                 overlap=deconvolve_overlap)
-    
     # Work out the threshold. Need to find global peak over all dirty_list images
     threshold = get_parameter(kwargs, "threshold", 0.0)
     fractional_threshold = get_parameter(kwargs, "fractional_threshold", 0.1)
@@ -364,10 +361,19 @@ def deconvolve_list_arlexecute_workflow(dirty_list, psf_list, model_imagelist, p
                                                                   use_moment0=use_moment0, prefix=prefix)
     
     facet_list = numpy.arange(deconvolve_number_facets).astype('int')
-    scattered_results_list = [
-        arlexecute.execute(deconvolve, nout=1)(d, psf_list_trimmed, m, facet, global_threshold)
-        for d, m, facet in zip(scattered_facets_list, scattered_model_imagelist, facet_list)]
-    
+    if mask is None:
+        scattered_results_list = [
+            arlexecute.execute(deconvolve, nout=1)(d, psf_list_trimmed, m, facet, global_threshold)
+            for d, m, facet in zip(scattered_facets_list, scattered_model_imagelist, facet_list)]
+    else:
+        mask_list = \
+            arlexecute.execute(image_scatter_facets, nout=deconvolve_number_facets)(mask,
+                                                                                    facets=deconvolve_facets,
+                                                                                    overlap=deconvolve_overlap)
+        scattered_results_list = [
+            arlexecute.execute(deconvolve, nout=1)(d, psf_list_trimmed, m, facet, global_threshold, msk)
+            for d, m, facet, msk in zip(scattered_facets_list, scattered_model_imagelist, facet_list, mask_list)]
+
     # Gather the results back into one image, correcting for overlaps as necessary. The taper function is is used to
     # feather the facets together
     gathered_results_list = arlexecute.execute(image_gather_facets, nout=1)(scattered_results_list, model_imagelist,

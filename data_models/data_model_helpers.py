@@ -275,6 +275,8 @@ def convert_gaintable_to_hdf(gt: GainTable, f):
     f.attrs['ARL_data_model'] = 'GainTable'
     f.attrs['frequency'] = gt.frequency
     f.attrs['receptor_frame'] = gt.receptor_frame.type
+    f.attrs['phasecentre_coords'] = gt.phasecentre.to_string()
+    f.attrs['phasecentre_frame'] = gt.phasecentre.frame.name
     f['data'] = gt.data
     return f
 
@@ -289,7 +291,10 @@ def convert_hdf_to_gaintable(f):
     receptor_frame = ReceptorFrame(f.attrs['receptor_frame'])
     frequency = numpy.array(f.attrs['frequency'])
     data = numpy.array(f['data'])
-    gt = GainTable(data=data, receptor_frame=receptor_frame, frequency=frequency)
+    s = f.attrs['phasecentre_coords'].split()
+    ss = [float(s[0]), float(s[1])] * u.deg
+    phasecentre = SkyCoord(ra=ss[0], dec=ss[1], frame=f.attrs['phasecentre_frame'])
+    gt = GainTable(data=data, receptor_frame=receptor_frame, frequency=frequency, phasecentre=phasecentre)
     return gt
 
 

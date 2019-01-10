@@ -152,11 +152,11 @@ class TestMPC(unittest.TestCase):
         if self.plot:
             import matplotlib.pyplot as plt
             from wrappers.arlexecute.image.operations import show_image
-            show_image(results[0], title='Dirty image, no cross-subtraction')
+            show_image(results[0], title='Dirty image, no cross-subtraction', vmax=0.1, vmin=-0.01)
             plt.show()
 
 
-    def test_cross_subtract(self):
+    def test_extract_datamodel(self):
         self.actualSetUp(zerow=True)
         
         skymodel_vislist = predict_skymodel_list_arlexecute_workflow(self.vis_list[0], self.skymodel_list,
@@ -180,7 +180,7 @@ class TestMPC(unittest.TestCase):
         if self.plot:
             import matplotlib.pyplot as plt
             from wrappers.arlexecute.image.operations import show_image
-            show_image(results[0], title='Dirty image after cross-subtraction')
+            show_image(results[0], title='Dirty image after cross-subtraction', vmax=0.1, vmin=-0.01)
             plt.show()
     
 

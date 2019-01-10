@@ -8,7 +8,6 @@ import unittest
 import numpy
 from astropy import units as u
 from astropy.coordinates import SkyCoord
-from workflows.serial.skymodel.skymodel_serial import predict_skymodel_list_serial_workflow
 
 from data_models.memory_data_models import Image
 from data_models.memory_data_models import Skycomponent
