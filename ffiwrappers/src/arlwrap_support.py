@@ -21,7 +21,28 @@ def cARLVis(visin):
     """
     npol=visin.npol
     nvis=visin.nvis
-    print (ARLDataVisSize(nvis, npol))
+    desc = [('index', '>i8'),
+            ('uvw', '>f8', (3,)),
+            ('time', '>f8'),
+            ('frequency', '>f8'),
+            ('channel_bandwidth', '>f8'),
+            ('integration_time', '>f8'),
+            ('antenna1', '>i8'),
+            ('antenna2', '>i8'),
+            ('vis', '>c16', (npol,)),
+            ('weight', '>f8', (npol,)),
+            ('imaging_weight', '>f8', (npol,))]
+    r=numpy.frombuffer(ff.buffer(visin.data,
+                                 ARLDataVisSize(nvis, npol)),
+                                 dtype=desc,
+                                 count=nvis)
+    return r
+
+def cARLVis_slice(visin, nvis):
+    """
+    Convert a const ARLVis * into the ARL Visiblity structure
+    """
+    npol=visin.npol
     desc = [('index', '>i8'),
             ('uvw', '>f8', (3,)),
             ('time', '>f8'),
@@ -105,12 +126,11 @@ def store_image_pickles(c_img, py_img):
     store_pickle(c_img.polarisation_frame, py_img.polarisation_frame)
 
 # Turns ARLVis struct into Visibility object
-def helper_create_visibility_object(c_vis, config):
+def helper_create_visibility_object(c_vis):
     # This may be incorrect
     # especially the data field...
     tvis= Visibility(
             data=c_vis,
-            configuration = config,
             frequency=c_vis['frequency'],
             channel_bandwidth=c_vis['channel_bandwidth'],
             integration_time=c_vis['integration_time'],

@@ -3,11 +3,14 @@
 #from setuptools import setup
 from setuptools import setup, Extension
 from distutils.sysconfig import get_config_var, get_config_vars
+from distutils.spawn import find_executable
 from setuptools.command.build_ext import build_ext
 from subprocess import call
+import subprocess
 import os
 import sys
 import pkgconfig
+import shutil
 
 # Bail on Python < 3
 assert sys.version_info[0] >= 3
@@ -19,12 +22,55 @@ if sys.platform == 'darwin':
 	vars['LDSHARED'] = vars['LDSHARED'].replace('-bundle','-dynamiclib')
 	os.environ["CC"] = "clang"
 
+if 'PROTOC' in os.environ and os.path.exists(os.environ['PROTOC']):
+  protoc = os.environ['PROTOC']
+else:
+  protoc = find_executable("protoc")
 
+if 'PROTOC_C' in os.environ and os.path.exists(os.environ['PROTOC_C']):
+  protocc = os.environ['PROTOC_C']
+else:
+  protocc = find_executable("protoc-c")
 
+def generate_proto(source, srcdir):
+  """Invokes the Protocol Compiler to generate a _pb2.py from the given
+  .proto file.  Does nothing if the output already exists and is newer than
+  the input."""
 
+  output = source.replace(".proto", "_pb2.py").replace("../src/", "")
+
+  if (not os.path.exists(output) or
+      (os.path.exists(source) and
+       os.path.getmtime(source) > os.path.getmtime(output))):
+    print("Generating %s..." % output)
+
+    if not os.path.exists(srcdir + '/' + source):
+      sys.stderr.write("Can't find required file: %s\n" % source)
+      sys.exit(-1)
+
+    if protoc == None:
+      sys.stderr.write(
+          "protoc is not installed nor found in ../src.  Please compile it "
+          "or install the binary package.\n")
+      sys.exit(-1)
+
+    protoc_command = [ protoc, "-I./", "--python_out=.", source ]
+    if subprocess.call(protoc_command, cwd=srcdir) != 0:
+      sys.exit(-1)
+    protocc_command = [ protocc, "-I.",  "--c_out=.", source ]
+    if subprocess.call(protocc_command, cwd=srcdir) != 0:
+      sys.exit(-1)
+
+generate_proto('arl.proto', 'ffiwrappers/src')
+shutil.copy('ffiwrappers/src/arl.pb-c.h','ffiwrappers/include/arl.pb-c.h')
 # NB. These are not really Python extensions (i.e., they do not
 # Py_Initialize() and they do define main() ), we are just cheating to
 # re-use the setuptools build support.
+
+arlproto = Extension('arlproto',
+		   sources = ['ffiwrappers/src/arl.proto']
+		   
+)
 
 libarlffi = Extension('libarlffi',
                    sources = ['ffiwrappers/src/arlwrap.c', 'ffiwrappers/src/wrap_support.c', 'ffiwrappers/src/wrappingcore.c', 'ffiwrappers/src/arl.pb-c.c'],

@@ -217,6 +217,15 @@ void arl_convert_blockvisibility_to_visibility(ARLConf *lowconf, const ARLVis *b
 	BKFNPY(arl_convert_blockvisibility_to_visibility)(lowconf, blockvisin, visout, cindexout, blockvisout);
 }
 
+void arl_create_rows(ARLConf *lowconf, const ARLVis *visin, int visslices, int *c_rows) {
+  BKFNPY(arl_create_rows)(lowconf, visin, visslices, c_rows);
+}
+
+void arl_create_vis_from_rows_vis(ARLConf *lowconf, const ARLVis *visin, long long int * cindex_in, ARLVis *blockvis_in, ARLVis *visout,
+    long long int *cindex_out, ARLVis *blockvis_out, int *c_rows) {
+  BKFNPY(arl_create_vis_from_rows_vis)(lowconf, visin, cindex_in, blockvis_in, visout, cindex_out, blockvis_out, c_rows);
+}
+
 void arl_create_gaintable_from_blockvisibility(ARLConf *lowconf, const ARLVis *visin, ARLGt *gtout) {
 	BKFNPY(arl_create_gaintable_from_blockvisibility)(lowconf, visin, gtout);
 }
@@ -255,5 +264,9 @@ void arl_predict_function_blockvis(ARLConf * lowconf, ARLVis * visin, const Imag
 
 void arl_invert_function_blockvis(ARLConf * lowconf, const ARLVis *blockvisin, Image * img_model, int vis_slices, Image * img_dirty){
  	BKFNPY(arl_invert_function_blockvis)(lowconf, blockvisin, img_model, vis_slices, img_dirty);
+}
+
+void arl_invert_function_oneslice(ARLConf * lowconf, const ARLVis * vis_in, const ARLVis *blockvisin, Image * img_model, int vis_slices, Image * img_dirty, double * sumwt, int dopsf_in){
+ 	BKFNPY(arl_invert_function_blockvis)(lowconf, blockvisin, img_model, vis_slices, img_dirty, sumwt, dopsf_in);
 }
 

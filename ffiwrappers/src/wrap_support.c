@@ -148,7 +148,7 @@ ARLVis *allocate_vis_data(int npol, int nvis)
 	printf("Allocating %ld bytes for a visibility structure.\n", nbytes);
 
 	// (80 bytes static data + 32 bytes * npol) * nvis
-	if (!(vis->data = malloc((80+(32*npol))*nvis * sizeof(char)))) {
+	if (!(vis->data = malloc(nbytes))) {
 		free(vis);
 		return NULL;
 	}
@@ -181,10 +181,11 @@ ARLVis *allocate_blockvis_data(int nant, int nchan, int npol, int ntimes)
 
 	vis->nvis = ntimes; // storing ntime instead of nvis, ToDo: add extra struct element(s)
 	vis->npol = npol;
-	nbytes = (24+24*nant*nant+24*nant*nant*nchan*npol)*ntimes * sizeof(char);
+	// nbytes is calculated from the desc variable in 'data_models/memory_data_models.py'
+	// (24 bytes static data + 24 bytes * nant*nant + 32 bytes *nant*nant*nchan*npol) *ntime
+	nbytes = ((24+24*nant*nant+32*nant*nant*nchan*npol)*(ntimes)) * sizeof(char);
 	printf("Allocating %ld bytes for a blockvisibility structure.\n", nbytes);
-	// (24 bytes static data + 24 bytes * nant*nant + 24 bytes *nant*nant*nchan*npol) *ntime
-	if ( !( vis->data = malloc( (24+24*nant*nant+24*nant*nant*nchan*npol)*ntimes * sizeof(char) ) ) ) {
+	if ( !( vis->data = malloc(nbytes) ) ) {
 		free(vis);
 		return NULL;
 	}

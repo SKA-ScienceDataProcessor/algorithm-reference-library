@@ -46,3 +46,7 @@ dask-worker-space
 .coverage.*
 .coverage
 dask-work-space
+
+ffiwrappers/src/arl_pb2.py
+ffiwrappers/src/arl.pb-c.c
+ffiwrappers/include/arl.pb-c.h

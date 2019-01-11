@@ -143,6 +143,9 @@ void arl_ical(ARLConf * lowconf, const ARLVis *visin, Image * img_model, int vis
 void arl_convert_visibility_to_blockvisibility(ARLConf *lowconf, const ARLVis *visin, const ARLVis *blockvisin, long long int *cindexin, ARLVis *visout);
 void arl_convert_blockvisibility_to_visibility(ARLConf *lowconf, const ARLVis *blockvisin, ARLVis *visout, long long int *cindexout, ARLVis *blockvisout);
 
+void arl_create_rows(ARLConf *lowconf, const ARLVis *visin, int visslices, int *c_rows);
+void arl_create_vis_from_rows_vis(ARLConf *lowconf, const ARLVis *visin, long long int * cindex_in, ARLVis *blockvis_in, ARLVis *visout,
+    long long int *cindex_out, ARLVis *blockvis_out, int *c_rows) ;
 void arl_create_gaintable_from_blockvisibility(ARLConf *lowconf, const ARLVis *visin, ARLGt *gtout);
 void arl_predict_function_blockvis(ARLConf *, ARLVis *, const Image *);
 //void arl_invert_function(ARLConf *, const ARLVis *, Image *, int, Image *);
@@ -156,6 +159,7 @@ void arl_manipulate_visibility_data(ARLConf *lowconf, const ARLVis *vis1in, cons
 void arl_add_to_model(Image* model, Image* res);
 
 void arl_invert_function_blockvis(ARLConf * lowconf, const ARLVis *blockvisin, Image * img_model, int vis_slices, Image * img_dirty);
+void arl_invert_function_oneslice(ARLConf * lowconf, const ARLVis * vis_in, const ARLVis *blockvisin, Image * img_model, int vis_slices, Image * img_dirty, double * sumwt, int dopsf_in);
 
 Image *allocate_image(int *shape);
 
