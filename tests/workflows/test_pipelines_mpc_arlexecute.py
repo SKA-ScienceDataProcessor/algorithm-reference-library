@@ -144,6 +144,7 @@ class TestMPCCAL(ARLExecuteTestCase, unittest.TestCase):
     def test_time_setup(self):
         self.actualSetUp(add_errors=True)
     
+    @unittest.skip("Test not ready")
     def test_mpccal_pipeline(self):
         self.actualSetUp(add_errors=True)
         controls = create_calibration_controls()
