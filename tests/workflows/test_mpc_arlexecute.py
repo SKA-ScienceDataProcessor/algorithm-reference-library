@@ -41,7 +41,7 @@ class TestMPC(unittest.TestCase):
         
         from data_models.parameters import arl_path
         self.dir = arl_path('test_results')
-        self.plot = True
+        self.plot = False
         
     def tearDown(self):
         try:
@@ -147,12 +147,12 @@ class TestMPC(unittest.TestCase):
         result_skymodel = invert_skymodel_list_arlexecute_workflow(skymodel_vislist, result_skymodel,
                                                                    context='2d', docal=True)
         results = arlexecute.compute(result_skymodel, sync=True)
-        assert numpy.max(numpy.abs(results[0].data)) > 0.0
-        assert numpy.max(numpy.abs(results[1])) > 0.0
+        assert numpy.max(numpy.abs(results[0][0].data)) > 0.0
+        assert numpy.max(numpy.abs(results[0][1])) > 0.0
         if self.plot:
             import matplotlib.pyplot as plt
             from wrappers.arlexecute.image.operations import show_image
-            show_image(results[0], title='Dirty image, no cross-subtraction', vmax=0.1, vmin=-0.01)
+            show_image(results[0][0], title='Dirty image, no cross-subtraction', vmax=0.1, vmin=-0.01)
             plt.show()
 
 
@@ -175,12 +175,12 @@ class TestMPC(unittest.TestCase):
         result_skymodel = invert_skymodel_list_arlexecute_workflow(skymodel_vislist, result_skymodel,
                                                                    context='2d', docal=True)
         results = arlexecute.compute(result_skymodel, sync=True)
-        assert numpy.max(numpy.abs(results[0].data)) > 0.0
-        assert numpy.max(numpy.abs(results[1])) > 0.0
+        assert numpy.max(numpy.abs(results[0][0].data)) > 0.0
+        assert numpy.max(numpy.abs(results[0][1])) > 0.0
         if self.plot:
             import matplotlib.pyplot as plt
             from wrappers.arlexecute.image.operations import show_image
-            show_image(results[0], title='Dirty image after cross-subtraction', vmax=0.1, vmin=-0.01)
+            show_image(results[0][0], title='Dirty image after cross-subtraction', vmax=0.1, vmin=-0.01)
             plt.show()
     
 

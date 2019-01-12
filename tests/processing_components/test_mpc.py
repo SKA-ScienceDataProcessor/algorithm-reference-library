@@ -70,7 +70,7 @@ class TestMPC(unittest.TestCase):
         assert len(sm.components) == len(actual_components)
         
         scatter_sm = expand_skymodel_by_skycomponents(sm)
-        assert len(scatter_sm) == len(actual_components)
+        assert len(scatter_sm) == len(actual_components) + 1
         assert len(scatter_sm[0].components) == 1
     
     def test_expand_skymodel_voronoi(self):
@@ -106,5 +106,5 @@ class TestMPC(unittest.TestCase):
         assert len(sm.components) == len(actual_components)
         
         scatter_sm = expand_skymodel_by_skycomponents(sm)
-        assert len(scatter_sm) == len(actual_components)
+        assert len(scatter_sm) == len(actual_components) + 1
         assert len(scatter_sm[0].components) == 1

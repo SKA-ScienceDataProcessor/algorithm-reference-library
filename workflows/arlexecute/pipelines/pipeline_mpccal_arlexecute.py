@@ -10,7 +10,7 @@ from ..imaging.imaging_arlexecute import subtract_list_arlexecute_workflow, inve
     restore_list_arlexecute_workflow, deconvolve_list_arlexecute_workflow, residual_list_arlexecute_workflow
 from ..skymodel.skymodel_arlexecute import predict_skymodel_list_arlexecute_workflow, \
     invert_skymodel_list_arlexecute_workflow, convolve_skymodel_list_arlexecute_workflow
-from operations import update_skymodel_from_image, update_skymodel_from_gaintables
+from wrappers.arlexecute.skymodel.operations import update_skymodel_from_image, update_skymodel_from_gaintables
 
 from workflows.arlexecute.skymodel.skymodel_arlexecute import predict_skymodel_list_arlexecute_workflow, \
     invert_skymodel_list_arlexecute_workflow, convert_blockvisibility_to_visibility, \

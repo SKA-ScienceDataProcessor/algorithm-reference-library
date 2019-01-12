@@ -201,7 +201,8 @@ class TestPipelines(unittest.TestCase):
             export_image_to_fits(clean[centre], '%s/test_pipelines_ical_global_pipeline_serial_clean.fits' % self.dir)
             export_image_to_fits(residual[centre][0], '%s/test_pipelines_ical_global_pipeline_serial_residual.fits' % self.dir)
             export_image_to_fits(restored[centre], '%s/test_pipelines_ical_global_pipeline_serial_restored.fits' % self.dir)
-            export_gaintable_to_hdf5(gt_list[centre], '%s/test_pipelines_ical_global_pipeline_serial_gaintable.hdf5' %
+            export_gaintable_to_hdf5(gt_list[0]['T'],
+                                     '%s/test_pipelines_ical_global_pipeline_serial_gaintable.hdf5' %
                                      self.dir)
 
         qa = qa_image(restored[centre])
