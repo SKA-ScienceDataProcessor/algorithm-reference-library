@@ -8,7 +8,7 @@ import sys
 sys.path.append(os.path.join('..', '..'))
 
 
-results_dir = './results/timing-csd3'
+results_dir = './results/timing-csd3/16'
 #from matplotlib import pylab
 
 #pylab.rcParams['figure.figsize'] = (12.0, 12.0)
@@ -49,6 +49,8 @@ def plot_freqwin(data,fignum,figtitle):
              (nfreqwin))
         plt.ylabel('time in seconds')
         plt.xlabel('number of processes')
+        plt.yscale('log')
+        plt.xscale('log')
         plt.legend(prop={'size':10})
     #fig.savefig('%s-fig.jpg'%(figtitle))
     return
