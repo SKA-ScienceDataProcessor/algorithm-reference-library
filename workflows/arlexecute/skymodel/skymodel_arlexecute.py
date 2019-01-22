@@ -87,8 +87,6 @@ def invert_skymodel_list_arlexecute_workflow(vis_list, skymodel_list, context, v
     :return: List of (image, weight) tuples)
    """
     
-    assert len(vis_list) == len(skymodel_list)
-    
     def ift_ical_sm(v, sm):
         assert isinstance(v, Visibility), v
         assert isinstance(sm.image, Image), sm.image
@@ -123,9 +121,9 @@ def extract_datamodels_skymodel_list_arlexecute_workflow(obsvis, modelvis_list):
     :return: List of (image, weight) tuples)
    """
     # Now do the meaty part. We probably want to refactor this for performance once it works.
-    def vsum(v, mv):
+    def vsum(ov, mv):
         # Observed vis minus the sum of all predictions
-        verr = copy_visibility(v)
+        verr = copy_visibility(ov)
         for m in mv:
             verr.data['vis'] -= m.data['vis']
         # Now add back each model in turn
@@ -134,9 +132,10 @@ def extract_datamodels_skymodel_list_arlexecute_workflow(obsvis, modelvis_list):
             vr = copy_visibility(verr)
             vr.data['vis'] += m.data['vis']
             result.append(vr)
+        assert len(result) == len(mv)
         return result
         
-    return arlexecute.execute(vsum)(obsvis, modelvis_list)
+    return arlexecute.execute(vsum, nout=len(modelvis_list))(obsvis, modelvis_list)
 
 
 def convolve_skymodel_list_arlexecute_workflow(obsvis, skymodel_list, context, vis_slices=1, facets=1,
@@ -191,4 +190,4 @@ def convolve_skymodel_list_arlexecute_workflow(obsvis, skymodel_list, context, v
             result[0].data *= sm.mask.data
         return result
     
-    return [arlexecute.execute(ft_ift_sm)(obsvis, sm) for sm in skymodel_list]
+    return [arlexecute.execute(ft_ift_sm, nout=len(skymodel_list))(obsvis, sm) for sm in skymodel_list]

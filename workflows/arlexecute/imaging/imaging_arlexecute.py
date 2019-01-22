@@ -287,6 +287,8 @@ def deconvolve_list_arlexecute_workflow(dirty_list, psf_list, model_imagelist, p
     :param dirty_list:
     :param psf_list:
     :param model_imagelist:
+    :param prefix: Informative prefix to log messages
+    :param mask: Mask for deconvolution
     :param kwargs: Parameters for functions in components
     :return: (graph for the deconvolution, graph for the flat)
     """

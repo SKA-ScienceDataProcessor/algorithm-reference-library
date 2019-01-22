@@ -46,7 +46,7 @@ class TestMPCCAL(ARLExecuteTestCase, unittest.TestCase):
     def tearDown(self):
         pass
     
-    def actualSetUp(self, add_errors=False, nfreqwin=7, dospectral=True, dopol=False, zerow=True):
+    def actualSetUp(self, add_errors=False, nfreqwin=1, dospectral=True, dopol=False, zerow=True):
         
         self.npixel = 512
         self.low = create_named_configuration('LOWBD2', rmax=750.0)
@@ -151,7 +151,7 @@ class TestMPCCAL(ARLExecuteTestCase, unittest.TestCase):
         controls['T']['first_selfcal'] = 1
         controls['T']['timescale'] = 'auto'
         
-        ical_list = \
+        mpccal_list = \
             mpccal_skymodel_list_arlexecute_workflow(self.vis_list,
                                           model_imagelist=self.model_imagelist,
                                           context='2d',
@@ -164,7 +164,7 @@ class TestMPCCAL(ARLExecuteTestCase, unittest.TestCase):
                                           deconvolve_taper='tukey', psf_support=64,
                                           calibration_context='T', controls=controls, do_selfcal=True,
                                           global_solution=False)
-        clean, residual, restored = arlexecute.compute(ical_list, sync=True)
+        clean, residual, restored = arlexecute.compute(mpccal_list, sync=True)
         centre = len(clean) // 2
         if self.persist:
             export_image_to_fits(clean[centre], '%s/test_pipelines_ical_pipeline_arlexecute_clean.fits' % self.dir)
