@@ -754,7 +754,15 @@ class Visibility:
     @property
     def w(self):
         return self.data['uvw'][:, 2]
-    
+
+    @property
+    def uvdist(self):
+        return numpy.hypot(self.u, self.v)
+
+    @property
+    def uvwdist(self):
+        return numpy.hypot(self.u, self.v, self.w)
+
     @property
     def time(self):
         return self.data['time']
