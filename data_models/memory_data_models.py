@@ -229,6 +229,7 @@ class GainTable:
         s += "\tTimes: %s\n" % str(self.ntimes)
         s += "\tData shape: %s\n" % str(self.data.shape)
         s += "\tReceptor frame: %s\n" % str(self.receptor_frame.type)
+        s += "\tPhasecentre: %s\n" % str(self.phasecentre)
         return s
 
 

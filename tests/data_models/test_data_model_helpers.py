@@ -59,6 +59,10 @@ class TestDataModelHelpers(unittest.TestCase):
         newvis = import_visibility_from_hdf5('%s/test_data_model_helpers_visibility.hdf' % self.dir)
         
         assert str(newvis) == str(self.vis), "Original %s, import %s" % (str(newvis), str(self.vis))
+        
+        for key in self.vis.data.dtype.fields:
+            assert numpy.max(numpy.abs(newvis.data[key]-self.vis.data[key])) < 1e-15
+
         assert numpy.array_equal(newvis.frequency, self.vis.frequency)
         assert newvis.data.shape == self.vis.data.shape
         assert numpy.array_equal(newvis.frequency, self.vis.frequency)
@@ -78,7 +82,10 @@ class TestDataModelHelpers(unittest.TestCase):
         self.vis = predict_skycomponent_visibility(self.vis, self.comp)
         export_blockvisibility_to_hdf5(self.vis, '%s/test_data_model_helpers_blockvisibility.hdf' % self.dir)
         newvis = import_blockvisibility_from_hdf5('%s/test_data_model_helpers_blockvisibility.hdf' % self.dir)
-        
+
+        for key in self.vis.data.dtype.fields:
+            assert numpy.max(numpy.abs(newvis.data[key]-self.vis.data[key])) < 1e-15
+
         assert numpy.array_equal(newvis.frequency, self.vis.frequency)
         assert newvis.data.shape == self.vis.data.shape
         assert numpy.max(numpy.abs(self.vis.vis - newvis.vis)) < 1e-15
@@ -99,6 +106,9 @@ class TestDataModelHelpers(unittest.TestCase):
         export_gaintable_to_hdf5(gt, '%s/test_data_model_helpers_gaintable.hdf' % self.dir)
         newgt = import_gaintable_from_hdf5('%s/test_data_model_helpers_gaintable.hdf' % self.dir)
         
+        for key in gt.data.dtype.fields:
+            assert numpy.max(numpy.abs(newgt.data[key]-gt.data[key])) < 1e-15
+
         assert gt.data.shape == newgt.data.shape
         assert numpy.max(numpy.abs(gt.gain - newgt.gain)) < 1e-15
     
