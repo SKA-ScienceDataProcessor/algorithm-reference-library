@@ -25,7 +25,7 @@ from processing_library.image.operations import create_image
 log = logging.getLogger(__name__)
 
 
-class TestMPC(unittest.TestCase):
+class TestSkymodelMPC(unittest.TestCase):
     def setUp(self):
         from data_models.parameters import arl_path
         dec = -40.0 * u.deg
