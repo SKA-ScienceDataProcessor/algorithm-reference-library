@@ -41,7 +41,7 @@ class TestMPC(unittest.TestCase):
         
         from data_models.parameters import arl_path
         self.dir = arl_path('test_results')
-        self.plot = True
+        self.plot = False
         
     def tearDown(self):
         try:

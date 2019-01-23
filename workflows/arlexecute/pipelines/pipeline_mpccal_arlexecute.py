@@ -29,19 +29,13 @@ def mpccal_skymodel_list_arlexecute_workflow(visobs, model, theta_list, nmajor=1
     :return:
     """
     
-    model = create_empty_image_like(theta_list[0].image)
-    
-    future_vobs = arlexecute.scatter(visobs)
-    future_model = arlexecute.scatter(model)
+    psf_obs = invert_list_arlexecute_workflow([visobs], [model], context=context, dopsf=True)
 
-    psf_obs = invert_list_arlexecute_workflow([future_vobs], [future_model], context=context, dopsf=True)
-    theta_list = arlexecute.scatter(theta_list)
-    
     for iteration in range(nmajor):
-        vdatamodel_list = predict_skymodel_list_arlexecute_workflow(future_vobs, theta_list, context=context,
+        vdatamodel_list = predict_skymodel_list_arlexecute_workflow(visobs, theta_list, context=context,
                                                                     docal=True, **kwargs)
-        vdatamodel_list = extract_datamodels_skymodel_list_arlexecute_workflow(future_vobs, vdatamodel_list)
-        dirty_all_conv = convolve_skymodel_list_arlexecute_workflow(future_vobs, theta_list, context=context,
+        vdatamodel_list = extract_datamodels_skymodel_list_arlexecute_workflow(visobs, vdatamodel_list)
+        dirty_all_conv = convolve_skymodel_list_arlexecute_workflow(visobs, theta_list, context=context,
                                                                     docal=True, **kwargs)
         dirty_all_cal = invert_skymodel_list_arlexecute_workflow(vdatamodel_list, theta_list, context=context,
                                                                  docal=True, **kwargs)
@@ -68,7 +62,7 @@ def mpccal_skymodel_list_arlexecute_workflow(visobs, model, theta_list, nmajor=1
             arlexecute.execute(update_skymodel_from_image, nout=len(theta_list))(theta_list,
                                                                                  deconvolved[0][0])
         
-        vpredicted_list = predict_skymodel_list_arlexecute_workflow(future_vobs, theta_list, context=context,
+        vpredicted_list = predict_skymodel_list_arlexecute_workflow(visobs, theta_list, context=context,
                                                                     docal=True, **kwargs)
         vcalibrated, gaintable_list = calibrate_list_arlexecute_workflow(vdatamodel_list, vpredicted_list,
                                                                          calibration_context='T',

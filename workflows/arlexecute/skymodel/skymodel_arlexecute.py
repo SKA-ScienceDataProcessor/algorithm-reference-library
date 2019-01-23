@@ -2,7 +2,7 @@ import logging
 
 import numpy
 
-from data_models.memory_data_models import Image, GainTable, Visibility
+from data_models.memory_data_models import Image, GainTable, Visibility, SkyModel
 from processing_library.image.operations import copy_image
 from workflows.serial.imaging.imaging_serial import predict_list_serial_workflow, invert_list_serial_workflow
 from wrappers.arlexecute.visibility.base import copy_visibility
@@ -34,6 +34,7 @@ def predict_skymodel_list_arlexecute_workflow(obsvis, skymodel_list, context, vi
     
     def ft_cal_sm(ov, sm):
         assert isinstance(ov, Visibility), ov
+        assert isinstance(sm, SkyModel), sm
         v = copy_visibility(ov)
         
         v.data['vis'][...] = 0.0 + 0.0j
