@@ -66,7 +66,7 @@ class TestImaging(ARLExecuteTestCase, unittest.TestCase):
             self.channelwidth = numpy.array([4e7])
         
         if dopol:
-            self.vis_pol = PolarisationFrame('linear')
+            self.vis_pol = PolarisationFrame('stokesIQUV')
             self.image_pol = PolarisationFrame('stokesIQUV')
             f = numpy.array([100.0, 20.0, -10.0, 1.0])
         else:

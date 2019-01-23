@@ -114,8 +114,8 @@ def predict_2d(vis: Union[BlockVisibility, Visibility], model: Image, gcfcf=None
     """
     assert isinstance(vis, Visibility), vis
     
-    assert vis.polarisation_frame == model.polarisation_frame, "Polarisation frame differ %s %s " % \
-                                                               (vis.polarisation_frame, model.polarisation_frame)
+    assert vis.polarisation_frame == model.polarisation_frame,\
+        "Polarisation frame differ %s %s " % (str(vis.polarisation_frame), str(model.polarisation_frame))
     
     _, _, ny, nx = model.data.shape
     
