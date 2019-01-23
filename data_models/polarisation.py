@@ -167,18 +167,6 @@ def convert_linear_to_stokes(linear, polaxis=1):
     return polmatrixmultiply(conversion_matrix, linear, polaxis)
 
 
-def convert_linear_to_stokesI(linear, polaxis=1):
-    """ Convert Linear to Stokes I
-
-    :param linear: [...,4] linear vector in XX, XY, YX, YY sequence
-    :param polaxis: Axis of linear with polarisation (default 1)
-    :return: Complex I
-
-    Equation 4.58 TMS, inverted with numpy.linalg.inv
-    """
-    return 0.5 * (linear[...,0]+linear[...,3])[..., numpy.newaxis]
-
-
 def convert_stokes_to_circular(stokes, polaxis=1):
     """ Convert Stokes IQUV to Circular
 
@@ -212,18 +200,6 @@ def convert_circular_to_stokes(circular, polaxis=1):
                                      [0.5 + 0.j, 0.0 + 0.j, 0.0 + 0.j, -0.5 - 0.j]])
 
     return polmatrixmultiply(conversion_matrix, circular, polaxis)
-
-def convert_circular_to_stokesI(circular, polaxis=1):
-    """ Convert Circular to Stokes I
-
-    :param circular: [...,4] linear vector in RR, RL, LR, LL sequence
-    :param polaxis: Axis of circular with polarisation (default 1)
-    :return: Complex I
-
-    Equation 4.58 TMS, inverted with numpy.linalg.inv
-    """
-
-    return 0.5 * (circular[...,0] + circular[...,3])[..., numpy.newaxis]
 
 
 def convert_pol_frame(polvec, ipf: PolarisationFrame, opf: PolarisationFrame, polaxis=1):
