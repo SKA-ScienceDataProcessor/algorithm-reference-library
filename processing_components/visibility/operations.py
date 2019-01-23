@@ -3,20 +3,18 @@
 """
 
 import logging
+import warnings
 from typing import Union
 
-import warnings
 import numpy
 from astropy.coordinates import SkyCoord
 
 from data_models.memory_data_models import BlockVisibility, Visibility, QA
-
+from data_models.polarisation import convert_linear_to_stokes, convert_circular_to_stokes, PolarisationFrame, \
+    convert_linear_to_stokesI, convert_circular_to_stokesI
 from processing_library.imaging.imaging_params import get_frequency_map
 from processing_library.util.coordinate_support import skycoord_to_lmn, simulate_point
-
 from ..visibility.base import copy_visibility
-
-from data_models.polarisation import convert_linear_to_stokes, convert_circular_to_stokes, PolarisationFrame
 
 log = logging.getLogger(__name__)
 
@@ -135,8 +133,8 @@ def subtract_visibility(vis, model_vis, inplace=False):
     else:
         raise RuntimeError("Types of vis and model visibility are invalid")
     
-    assert vis.vis.shape == model_vis.vis.shape, "Observed %s and model visibilities %s have different shapes"\
-        % (vis.vis.shape, model_vis.vis.shape)
+    assert vis.vis.shape == model_vis.vis.shape, "Observed %s and model visibilities %s have different shapes" \
+                                                 % (vis.vis.shape, model_vis.vis.shape)
     
     if inplace:
         vis.data['vis'] = vis.data['vis'] - model_vis.data['vis']
@@ -230,7 +228,7 @@ def divide_visibility(vis: BlockVisibility, modelvis: BlockVisibility):
         xwt = numpy.zeros(xshape)
         # TODO: Remove filter when fixed to use ndarray
         warnings.simplefilter("ignore", category=PendingDeprecationWarning)
-
+        
         for row in range(nrows):
             for ant1 in range(nants):
                 for ant2 in range(ant1 + 1, nants):
@@ -281,6 +279,7 @@ def integrate_visibility_by_channel(vis: BlockVisibility) -> BlockVisibility:
     
     return newvis
 
+
 def convert_visibility_to_stokes(vis):
     """Convert the polarisation frame data into Stokes parameters.
 
@@ -298,3 +297,31 @@ def convert_visibility_to_stokes(vis):
         vis.data['vis'] = convert_circular_to_stokes(vis.data['vis'], polaxis=1)
         vis.polarisation_frame = PolarisationFrame('stokesIQUV')
     return vis
+
+
+def convert_visibility_to_stokesI(vis):
+    """Convert the polarisation frame data into Stokes I dropping other polarisations, return new Visibility
+
+    Args:
+    vis (obj): ARL visibility data.
+
+    Returns:
+    vis: New, converted visibility data.
+    """
+    polarisation_frame = PolarisationFrame('stokesI')
+    poldef = vis.polarisation_frame
+    if poldef == PolarisationFrame('linear'):
+        vis_data = convert_linear_to_stokesI(vis.data['vis'])
+        vis_weight = (vis.weight[...,0] + vis.weight[...,3])[..., numpy.newaxis]
+        vis_imaging_weight = (vis.imaging_weight[...,0] + vis.imaging_weight[...,3])[..., numpy.newaxis]
+    elif poldef == PolarisationFrame('circular'):
+        vis_data = convert_circular_to_stokesI(vis.data['vis'])
+        vis_weight = (vis.weight[...,0] + vis.weight[...,3])[..., numpy.newaxis]
+        vis_imaging_weight = (vis.imaging_weight[...,0] + vis.imaging_weight[...,3])[..., numpy.newaxis]
+
+    return Visibility(frequency=vis.frequency, channel_bandwidth=vis.channel_bandwidth,
+                      phasecentre=vis.phasecentre, configuration=vis.configuration, uvw=vis.uvw,
+                      time=vis.time, antenna1=vis.antenna1, antenna2=vis.antenna2, vis=vis_data,
+                      weight=vis_weight, imaging_weight=vis_imaging_weight, integration_time=vis.integration_time,
+                      polarisation_frame=polarisation_frame, cindex=vis.cindex,
+                      blockvis=vis.blockvis)

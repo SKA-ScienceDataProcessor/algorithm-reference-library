@@ -35,6 +35,10 @@ def convolution_mapping(vis, griddata, cf, channel_tolerance=1e-8):
     numpy.testing.assert_almost_equal(griddata.grid_wcs.wcs.cdelt[0], cf.grid_wcs.wcs.cdelt[0], 7)
     numpy.testing.assert_almost_equal(griddata.grid_wcs.wcs.cdelt[1], cf.grid_wcs.wcs.cdelt[1], 7)
     
+    assert vis.vis.shape[-1] == griddata.data.shape[1], \
+        "Mismatch in visibility (%d polarisations) and grid (%d polarisations)" % (
+        vis.vis.shape[-1], griddata.data.shape[1])
+    
     ####### UV mapping
     # We use the grid_wcs's to do the coordinate conversion
     # Find the nearest grid points
@@ -95,7 +99,11 @@ def grid_visibility_to_griddata(vis, griddata, cf):
     """
     
     assert isinstance(vis, Visibility), vis
-    
+
+    assert vis.vis.shape[-1] == griddata.data.shape[1], \
+        "Mismatch in visibility (%d polarisations) and grid (%d polarisations)" % (
+            vis.vis.shape[-1], griddata.data.shape[1])
+
     nchan, npol, nz, oversampling, _, support, _ = cf.shape
     sumwt = numpy.zeros([nchan, npol])
     pu_grid, pu_offset, pv_grid, pv_offset, pwg_grid, pwg_fraction, pwc_grid, pwc_fraction, pfreq_grid = \
