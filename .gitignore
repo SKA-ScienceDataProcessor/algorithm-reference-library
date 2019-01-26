@@ -48,3 +48,7 @@ dask-worker-space
 dask-work-space
 *.lock
 /test_results
+
+*~
+.DS_Store
+**/.DS_Store
