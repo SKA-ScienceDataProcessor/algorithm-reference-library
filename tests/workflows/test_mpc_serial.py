@@ -1,4 +1,4 @@
-""" Unit tests for pipelines expressed via serial
+""" Unit tests for pipelines expressed via arlexecute
 """
 
 import logging
@@ -12,9 +12,10 @@ from astropy.coordinates import SkyCoord
 from data_models.memory_data_models import Image, SkyModel
 from data_models.memory_data_models import Skycomponent
 from data_models.polarisation import PolarisationFrame
-from processing_components.simulation.mpc import expand_skymodel_by_skycomponents
+from operations import expand_skymodel_by_skycomponents
 from workflows.serial.skymodel.skymodel_serial import predict_skymodel_list_serial_workflow, \
-    invert_skymodel_list_serial_workflow
+    invert_skymodel_list_serial_workflow, extract_datamodels_skymodel_list_serial_workflow
+from workflows.shared.imaging.imaging_shared import sum_predict_results
 from wrappers.serial.simulation.testing_support import create_named_configuration, ingest_unittest_visibility, \
     create_low_test_skymodel_from_gleam
 from wrappers.serial.visibility.base import copy_visibility
@@ -64,17 +65,17 @@ class TestMPC(unittest.TestCase):
             f = numpy.array([100.0])
         
         self.phasecentre = SkyCoord(ra=+0.0 * u.deg, dec=-40.0 * u.deg, frame='icrs', equinox='J2000')
-        self.blockvis_list = [ingest_unittest_visibility(self.low,
-                                                         [self.frequency[freqwin]],
-                                                         [self.channelwidth[freqwin]],
-                                                         self.times,
-                                                         self.vis_pol,
-                                                         self.phasecentre, block=block,
-                                                         zerow=zerow)
+        self.blockvis_list = [serial.execute(ingest_unittest_visibility)(self.low,
+                                                                             [self.frequency[freqwin]],
+                                                                             [self.channelwidth[freqwin]],
+                                                                             self.times,
+                                                                             self.vis_pol,
+                                                                             self.phasecentre, block=block,
+                                                                             zerow=zerow)
                               for freqwin, _ in enumerate(self.frequency)]
-        self.vis_list = [convert_blockvisibility_to_visibility(bv) for bv in self.blockvis_list]
+        self.vis_list = [serial.execute(convert_blockvisibility_to_visibility)(bv) for bv in self.blockvis_list]
         
-        self.skymodel_list = [create_low_test_skymodel_from_gleam
+        self.skymodel_list = [serial.execute(create_low_test_skymodel_from_gleam)
                               (npixel=self.npixel, cellsize=self.cellsize, frequency=[self.frequency[f]],
                                phasecentre=self.phasecentre,
                                polarisation_frame=PolarisationFrame("stokesI"),
@@ -88,7 +89,7 @@ class TestMPC(unittest.TestCase):
         self.skymodel_list = expand_skymodel_by_skycomponents(self.skymodel_list[0])
         assert len(self.skymodel_list) == 20, len(self.skymodel_list)
         assert numpy.max(numpy.abs(self.skymodel_list[-1].image.data)) > 0.0, "Image is empty"
-        self.vis_list = [copy_visibility(self.vis_list[0]) for i, _ in enumerate(self.skymodel_list)]
+        self.vis_list = [copy_visibility(self.vis_list[0], zero=True) for i, _ in enumerate(self.skymodel_list)]
     
     def test_time_setup(self):
         self.actualSetUp()
@@ -97,8 +98,9 @@ class TestMPC(unittest.TestCase):
         
         self.actualSetUp(zerow=True)
         
-        skymodel_vislist = predict_skymodel_list_serial_workflow(self.vis_list, self.skymodel_list,
-                                                                 context='2d', docal=True)
+        skymodel_vislist = predict_skymodel_list_serial_workflow(self.vis_list[0], self.skymodel_list,
+                                                                     context='2d', docal=True)
+        vobs = sum_predict_results(skymodel_vislist)
         
         if self.plot:
             def plotvis(i, v):
@@ -109,29 +111,47 @@ class TestMPC(unittest.TestCase):
                 plt.title(str(i))
                 plt.show()
             
-            for i, v in enumerate(skymodel_vislist):
-                assert numpy.max(numpy.abs(v.vis)) > 0.0
-                plotvis(i, v)
+            plotvis(0, vobs)
     
     def test_invertcal(self):
         self.actualSetUp(zerow=True)
         
-        skymodel_vislist = predict_skymodel_list_serial_workflow(self.vis_list, self.skymodel_list,
-                                                                 context='2d', docal=True)
+        skymodel_vislist = predict_skymodel_list_serial_workflow(self.vis_list[0], self.skymodel_list,
+                                                                     context='2d', docal=True)
+        result_skymodel = [SkyModel(components=None, image=self.skymodel_list[-1].image)
+                           for v in skymodel_vislist]
         
-        results_skymodel = [SkyModel(components=None, image=self.skymodel_list[-1].image)
-                            for v in skymodel_vislist]
-        
-        results_skymodel = invert_skymodel_list_serial_workflow(skymodel_vislist, results_skymodel,
-                                                                context='2d', docal=True)
-        assert numpy.max(numpy.abs(results_skymodel[0][0].data)) > 0.0
-        assert numpy.max(numpy.abs(results_skymodel[0][1])) > 0.0
+        results = invert_skymodel_list_serial_workflow(skymodel_vislist, result_skymodel,
+                                                                   context='2d', docal=True)
+        assert numpy.max(numpy.abs(results[0][0].data)) > 0.0
+        assert numpy.max(numpy.abs(results[0][1])) > 0.0
         if self.plot:
             import matplotlib.pyplot as plt
             from wrappers.serial.image.operations import show_image
-            for result in results_skymodel:
-                show_image(result[0])
-                plt.show()
+            show_image(results[0][0], title='Dirty image, no cross-subtraction', vmax=0.1, vmin=-0.01)
+            plt.show()
+    
+    def test_extract_datamodel(self):
+        self.actualSetUp(zerow=True)
+        
+        skymodel_vislist = predict_skymodel_list_serial_workflow(self.vis_list[0], self.skymodel_list,
+                                                                     context='2d', docal=True)
+        vobs = sum_predict_results(skymodel_vislist)
+        
+        skymodel_vislist = extract_datamodels_skymodel_list_serial_workflow(vobs, skymodel_vislist)
+        
+        result_skymodel = [SkyModel(components=None, image=self.skymodel_list[-1].image)
+                           for v in skymodel_vislist]
+        
+        results = invert_skymodel_list_serial_workflow(skymodel_vislist, result_skymodel,
+                                                                   context='2d', docal=True)
+        assert numpy.max(numpy.abs(results[0][0].data)) > 0.0
+        assert numpy.max(numpy.abs(results[0][1])) > 0.0
+        if self.plot:
+            import matplotlib.pyplot as plt
+            from wrappers.serial.image.operations import show_image
+            show_image(results[0][0], title='Dirty image after cross-subtraction', vmax=0.1, vmin=-0.01)
+            plt.show()
 
 
 if __name__ == '__main__':

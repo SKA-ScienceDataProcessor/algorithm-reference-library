@@ -85,7 +85,7 @@ if __name__ == '__main__':
     print(vis_list[0])
 
     
-    # In[ ]:
+
     
     advice_low = advise_wide_field(vis_list[0], guard_band_image=8.0, delA=0.02, wprojection_planes=1)
     
@@ -98,7 +98,7 @@ if __name__ == '__main__':
     
     # Now make a graph to fill with a model drawn from GLEAM
     
-    # In[ ]:
+
     
     gleam_model = [arlexecute.execute(create_low_test_image_from_gleam)(npixel=npixel,
                                                                         frequency=[frequency[f]],
@@ -112,7 +112,7 @@ if __name__ == '__main__':
     print('About to make GLEAM model')
     gleam_model = arlexecute.persist(gleam_model)
     
-    # In[ ]:
+
     
     print('About to run predict to get predicted visibility')
     vis_list = arlexecute.scatter(vis_list)

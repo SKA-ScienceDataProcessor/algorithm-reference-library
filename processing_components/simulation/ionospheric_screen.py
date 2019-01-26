@@ -1,3 +1,7 @@
+""" Functions for ionospheric modelling: see SDP memo 97
+
+"""
+
 import astropy.units as u
 import numpy
 from astropy.coordinates import SkyCoord
@@ -15,7 +19,7 @@ import logging
 log = logging.getLogger(__name__)
 
 def find_pierce_points(station_locations, ha, dec, phasecentre, height):
-    """Find the pierce points for a screen at specified height
+    """Find the pierce points for a flat screen at specified height
     
     :param station_locations: All station locations [:3]
     :param ha: Hour angle
@@ -57,7 +61,8 @@ def create_gaintable_from_screen(vis, sc, screen, height=3e5, vis_slices=None, s
         v = create_visibility_from_rows(vis, rows)
         ha = numpy.average(v.time)
         number_bad = 0
-        
+        number_good = 0
+
         for icomp, comp in enumerate(sc):
             pp = find_pierce_points(station_locations, (comp.direction.ra.rad + t2r * ha) * u.rad, comp.direction.dec,
                                     height=height, phasecentre=vis.phasecentre)
@@ -68,6 +73,7 @@ def create_gaintable_from_screen(vis, sc, screen, height=3e5, vis_slices=None, s
                 try:
                     pixloc = screen.wcs.wcs_world2pix([worldloc], 0)[0].astype('int')
                     scr[ant] = scale * screen.data[pixloc[3], pixloc[2], pixloc[1], pixloc[0]]
+                    number_good += 1
                 except:
                     number_bad += 1
                     scr[ant] = 0.0
@@ -76,8 +82,9 @@ def create_gaintable_from_screen(vis, sc, screen, height=3e5, vis_slices=None, s
             gaintables[icomp].phasecentre = comp.direction
         
         if number_bad > 0:
+            log.warning("create_gaintable_from_screen: %d pierce points are inside the screen image" % (number_good))
             log.warning("create_gaintable_from_screen: %d pierce points are outside the screen image" % (number_bad))
-    
+
     return gaintables
 
 
@@ -164,3 +171,46 @@ def calculate_sf_from_screen(screen):
     sf_image.wcs.wcs.crpix[2] = 1
     
     return sf_image
+
+
+def plot_gaintable_on_screen(vis, gaintables, height=3e5, gaintable_slices=None, plotfile=None):
+    """ Plot a gaintable on an ionospheric screen
+
+    :param vis:
+    :param sc: Sky components for which pierce points are needed
+    :param height: Height (in m) of screen above telescope e.g. 3e5
+    :param scale: Multiply the screen by this factor
+    :return: gridded screen image, weights image
+    """
+    
+    import matplotlib.pyplot as plt
+    
+    assert isinstance(vis, BlockVisibility)
+    
+    station_locations = vis.configuration.xyz
+    
+    t2r = numpy.pi / 43200.0
+    
+    # The time in the Visibility is hour angle in seconds!
+    plt.clf()
+    for gaintable in gaintables:
+        for iha, rows in enumerate(gaintable_timeslice_iter(gaintable, gaintable_slices=gaintable_slices)):
+            gt = create_gaintable_from_rows(gaintable, rows)
+            ha = numpy.average(gt.time)
+            
+            pp = find_pierce_points(station_locations,
+                                    (gt.phasecentre.ra.rad + t2r * ha) * u.rad,
+                                    gt.phasecentre.dec,
+                                    height=height,
+                                    phasecentre=vis.phasecentre)
+            phases = numpy.angle(gt.gain[0, :, 0, 0, 0])
+            plt.scatter(pp[:,0],pp[:,1], c=phases, cmap='hsv', alpha=0.75, s=0.1)
+            
+    plt.title('Pierce point phases')
+    plt.xlabel('X (m)')
+    plt.ylabel('Y (m)')
+    
+    if plotfile is not None:
+        plt.savefig(plotfile)
+
+    plt.show()

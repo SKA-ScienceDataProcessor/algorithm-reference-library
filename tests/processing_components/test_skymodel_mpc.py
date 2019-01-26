@@ -12,7 +12,7 @@ from astropy.coordinates import SkyCoord
 from data_models.memory_data_models import SkyModel, Image
 from data_models.polarisation import PolarisationFrame
 from processing_components.imaging.primary_beams import create_low_test_beam
-from processing_components.simulation.mpc import expand_skymodel_by_skycomponents
+from operations import expand_skymodel_by_skycomponents
 from processing_components.simulation.testing_support import create_named_configuration, \
     create_low_test_skycomponents_from_gleam
 from processing_components.simulation.testing_support import create_test_image

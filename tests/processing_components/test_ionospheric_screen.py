@@ -15,7 +15,7 @@ from processing_components.image.operations import import_image_from_fits, creat
     export_image_to_fits
 from processing_components.imaging.primary_beams import create_low_test_beam
 from processing_components.simulation.ionospheric_screen import create_gaintable_from_screen, \
-    grid_gaintable_to_screen
+    grid_gaintable_to_screen, plot_gaintable_on_screen
 from processing_components.simulation.testing_support import create_named_configuration, \
     create_low_test_skycomponents_from_gleam
 from processing_components.simulation.testing_support import create_test_image
@@ -104,3 +104,28 @@ class TestIonosphericScreen(unittest.TestCase):
         assert numpy.max(numpy.abs(screen.data)) > 0.0
         export_image_to_fits(newscreen, arl_path('test_results/test_mpc_screen_gridded.fits'))
         export_image_to_fits(weights, arl_path('test_results/test_mpc_screen_gridded_weights.fits'))
+
+    def test_plot_gaintable_to_screen(self):
+        screen = import_image_from_fits(arl_path('data/models/test_mpc_screen.fits'))
+        beam = create_test_image(cellsize=0.0015, phasecentre=self.vis.phasecentre,
+                                 frequency=self.frequency)
+    
+        beam = create_low_test_beam(beam)
+    
+        gleam_components = create_low_test_skycomponents_from_gleam(flux_limit=1.0,
+                                                                    phasecentre=self.phasecentre,
+                                                                    frequency=self.frequency,
+                                                                    polarisation_frame=PolarisationFrame(
+                                                                        'stokesI'),
+                                                                    radius=0.2)
+    
+        pb_gleam_components = apply_beam_to_skycomponent(gleam_components, beam)
+    
+        actual_components = filter_skycomponents_by_flux(pb_gleam_components, flux_min=1.0)
+    
+        gaintables = create_gaintable_from_screen(self.vis, actual_components, screen)
+        assert len(gaintables) == len(actual_components), len(gaintables)
+        assert gaintables[0].gain.shape == (3, 94, 1, 1, 1), gaintables[0].gain.shape
+    
+        plot_gaintable_on_screen(self.vis, gaintables, plotfile=arl_path(
+            'test_results/test_plot_gaintable_to_screen.png'))

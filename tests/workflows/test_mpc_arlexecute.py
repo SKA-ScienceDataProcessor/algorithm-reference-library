@@ -12,19 +12,16 @@ from astropy.coordinates import SkyCoord
 from data_models.memory_data_models import Image, SkyModel
 from data_models.memory_data_models import Skycomponent
 from data_models.polarisation import PolarisationFrame
+from operations import expand_skymodel_by_skycomponents
 from workflows.arlexecute.skymodel.skymodel_arlexecute import predict_skymodel_list_arlexecute_workflow, \
     invert_skymodel_list_arlexecute_workflow, extract_datamodels_skymodel_list_arlexecute_workflow
+from workflows.shared.imaging.imaging_shared import sum_predict_results
 from wrappers.arlexecute.execution_support.arlexecute import arlexecute
 from wrappers.arlexecute.execution_support.dask_init import get_dask_Client
 from wrappers.arlexecute.simulation.testing_support import create_named_configuration, ingest_unittest_visibility, \
     create_low_test_skymodel_from_gleam
-from wrappers.arlexecute.visibility.coalesce import convert_visibility_to_blockvisibility, \
-    convert_blockvisibility_to_visibility
 from wrappers.arlexecute.visibility.base import copy_visibility
-from wrappers.arlexecute.image.operations import qa_image
-from processing_components.simulation.mpc import expand_skymodel_by_skycomponents
-from workflows.shared.imaging.imaging_shared import sum_predict_results
-
+from wrappers.arlexecute.visibility.coalesce import convert_blockvisibility_to_visibility
 
 log = logging.getLogger(__name__)
 
@@ -42,7 +39,7 @@ class TestMPC(unittest.TestCase):
         from data_models.parameters import arl_path
         self.dir = arl_path('test_results')
         self.plot = False
-        
+    
     def tearDown(self):
         try:
             import time
@@ -82,17 +79,17 @@ class TestMPC(unittest.TestCase):
         
         self.phasecentre = SkyCoord(ra=+0.0 * u.deg, dec=-40.0 * u.deg, frame='icrs', equinox='J2000')
         self.blockvis_list = [arlexecute.execute(ingest_unittest_visibility)(self.low,
-                                                                        [self.frequency[freqwin]],
-                                                                        [self.channelwidth[freqwin]],
-                                                                        self.times,
-                                                                        self.vis_pol,
-                                                                        self.phasecentre, block=block,
-                                                                        zerow=zerow)
-                         for freqwin, _ in enumerate(self.frequency)]
+                                                                             [self.frequency[freqwin]],
+                                                                             [self.channelwidth[freqwin]],
+                                                                             self.times,
+                                                                             self.vis_pol,
+                                                                             self.phasecentre, block=block,
+                                                                             zerow=zerow)
+                              for freqwin, _ in enumerate(self.frequency)]
         self.blockvis_list = arlexecute.compute(self.blockvis_list, sync=True)
         self.vis_list = [arlexecute.execute(convert_blockvisibility_to_visibility)(bv) for bv in self.blockvis_list]
         self.vis_list = arlexecute.compute(self.vis_list, sync=True)
-
+        
         self.skymodel_list = [arlexecute.execute(create_low_test_skymodel_from_gleam)
                               (npixel=self.npixel, cellsize=self.cellsize, frequency=[self.frequency[f]],
                                phasecentre=self.phasecentre,
@@ -100,7 +97,7 @@ class TestMPC(unittest.TestCase):
                                flux_limit=0.6,
                                flux_threshold=1.0,
                                flux_max=5.0) for f, freq in enumerate(self.frequency)]
-
+        
         self.skymodel_list = arlexecute.compute(self.skymodel_list, sync=True)
         assert isinstance(self.skymodel_list[0].image, Image), self.skymodel_list[0].image
         assert isinstance(self.skymodel_list[0].components[0], Skycomponent), self.skymodel_list[0].components[0]
@@ -116,12 +113,12 @@ class TestMPC(unittest.TestCase):
     def test_predictcal(self):
         
         self.actualSetUp(zerow=True)
-
+        
         skymodel_vislist = predict_skymodel_list_arlexecute_workflow(self.vis_list[0], self.skymodel_list,
                                                                      context='2d', docal=True)
         skymodel_vislist = arlexecute.compute(skymodel_vislist, sync=True)
         vobs = sum_predict_results(skymodel_vislist)
-
+        
         if self.plot:
             def plotvis(i, v):
                 import matplotlib.pyplot as plt
@@ -130,19 +127,19 @@ class TestMPC(unittest.TestCase):
                 plt.plot(uvr, amp, '.')
                 plt.title(str(i))
                 plt.show()
-    
+            
             plotvis(0, vobs)
-
+    
     def test_invertcal(self):
         self.actualSetUp(zerow=True)
-    
+        
         skymodel_vislist = predict_skymodel_list_arlexecute_workflow(self.vis_list[0], self.skymodel_list,
                                                                      context='2d', docal=True)
         skymodel_vislist = arlexecute.compute(skymodel_vislist, sync=True)
-    
+        
         result_skymodel = [SkyModel(components=None, image=self.skymodel_list[-1].image)
                            for v in skymodel_vislist]
-    
+        
         self.vis_list = arlexecute.scatter(self.vis_list)
         result_skymodel = invert_skymodel_list_arlexecute_workflow(skymodel_vislist, result_skymodel,
                                                                    context='2d', docal=True)
@@ -154,8 +151,7 @@ class TestMPC(unittest.TestCase):
             from wrappers.arlexecute.image.operations import show_image
             show_image(results[0][0], title='Dirty image, no cross-subtraction', vmax=0.1, vmin=-0.01)
             plt.show()
-
-
+    
     def test_extract_datamodel(self):
         self.actualSetUp(zerow=True)
         
@@ -163,11 +159,11 @@ class TestMPC(unittest.TestCase):
                                                                      context='2d', docal=True)
         skymodel_vislist = arlexecute.compute(skymodel_vislist, sync=True)
         vobs = sum_predict_results(skymodel_vislist)
-
+        
         skymodel_vislist = extract_datamodels_skymodel_list_arlexecute_workflow(vobs, skymodel_vislist)
-
+        
         skymodel_vislist = arlexecute.compute(skymodel_vislist, sync=True)
-
+        
         result_skymodel = [SkyModel(components=None, image=self.skymodel_list[-1].image)
                            for v in skymodel_vislist]
         
@@ -182,7 +178,7 @@ class TestMPC(unittest.TestCase):
             from wrappers.arlexecute.image.operations import show_image
             show_image(results[0][0], title='Dirty image after cross-subtraction', vmax=0.1, vmin=-0.01)
             plt.show()
-    
+
 
 if __name__ == '__main__':
     unittest.main()

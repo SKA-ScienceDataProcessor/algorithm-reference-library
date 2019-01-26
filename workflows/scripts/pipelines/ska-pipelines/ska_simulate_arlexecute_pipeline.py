@@ -85,7 +85,7 @@ if __name__ == '__main__':
     
     # Now make a graph to fill with a model drawn from GLEAM
     
-    # In[ ]:
+
     
     dprepb_model = [arlexecute.execute(create_low_test_image_from_gleam)(npixel=npixel,
                                                                          frequency=[frequency[f]],
@@ -106,7 +106,7 @@ if __name__ == '__main__':
     zero_skymodel = SkyModel(images=zero_model)
     export_skymodel_to_hdf5(zero_skymodel, arl_path('%s/ska-pipeline_simulation_skymodel.hdf' % results_dir))
     
-    # In[ ]:
+
     
     #    vis_list = arlexecute.scatter(vis_list)
     
