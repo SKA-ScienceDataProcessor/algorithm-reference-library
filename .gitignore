@@ -46,3 +46,7 @@ dask-worker-space
 .coverage.*
 .coverage
 dask-work-space
+
+*~
+.DS_Store
+**/.DS_Store
