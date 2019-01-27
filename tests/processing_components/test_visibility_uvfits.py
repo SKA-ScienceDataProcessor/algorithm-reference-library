@@ -58,36 +58,35 @@ class TestCreateMS(unittest.TestCase):
         uvfitsfile = arl_path("data/vis/ASKAP_example.fits")
         
         vis_by_channel = list()
-            nchan_ave = 16
-            nchan = 192
-            for schan in range(0, nchan, nchan_ave):
-                max_chan = min(nchan, schan + nchan_ave)
-                v = create_blockvisibility_from_uvfits(uvfitsfile, range(schan, max_chan))
-                vis_by_channel.append(integrate_visibility_by_channel(v[0]))
+        nchan_ave = 16
+        nchan = 192
+        for schan in range(0, nchan, nchan_ave):
+            max_chan = min(nchan, schan + nchan_ave)
+            v = create_blockvisibility_from_uvfits(uvfitsfile, range(schan, max_chan))
+            vis_by_channel.append(integrate_visibility_by_channel(v[0]))
 
         assert len(vis_by_channel) == 12
-            for v in vis_by_channel:
-                assert v.vis.data.shape[-1] == 4
-                assert v.vis.data.shape[-2] == 1
-                assert v.polarisation_frame.type == "linear"
+        for v in vis_by_channel:
+            assert v.vis.data.shape[-1] == 4
+            assert v.vis.data.shape[-2] == 1
+            assert v.polarisation_frame.type == "linear"
 
     def test_invert(self):
         
         uvfitsfile = arl_path("data/vis/ASKAP_example.fits")
         
         nchan_ave = 32
-            nchan = 192
-            for schan in range(0, nchan, nchan_ave):
-                max_chan = min(nchan, schan + nchan_ave)
-                bv = create_blockvisibility_from_uvfits(uvfitsfile, range(schan, max_chan))[0]
-                vis = convert_blockvisibility_to_visibility(bv)
-                from processing_components.visibility.operations import convert_visibility_to_stokesI
-                vis = convert_visibility_to_stokesI(vis)
-                print(vis)
-                model = create_image_from_visibility(vis, npixel=256, polarisation_frame=PolarisationFrame('stokesI'))
-                dirty, sumwt = invert_2d(vis, model, context='2d')
-                assert (numpy.max(numpy.abs(dirty.data))) > 0.0
-                assert dirty.shape == (nchan_ave, 1, 256, 256)
+        nchan = 192
+        for schan in range(0, nchan, nchan_ave):
+            max_chan = min(nchan, schan + nchan_ave)
+            bv = create_blockvisibility_from_uvfits(uvfitsfile, range(schan, max_chan))[0]
+            vis = convert_blockvisibility_to_visibility(bv)
+            from processing_components.visibility.operations import convert_visibility_to_stokesI
+            vis = convert_visibility_to_stokesI(vis)
+            model = create_image_from_visibility(vis, npixel=256, polarisation_frame=PolarisationFrame('stokesI'))
+            dirty, sumwt = invert_2d(vis, model, context='2d')
+            assert (numpy.max(numpy.abs(dirty.data))) > 0.0
+            assert dirty.shape == (nchan_ave, 1, 256, 256)
 
 
 if __name__ == '__main__':
