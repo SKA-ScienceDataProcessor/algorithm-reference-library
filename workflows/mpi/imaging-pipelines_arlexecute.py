@@ -17,6 +17,7 @@ sys.path.append(os.path.join('..', '..'))
 from data_models.parameters import arl_path
 
 results_dir = arl_path('./results/dask')
+#results_dir = './workflows/mpi/results/dask'
 
 #from matplotlib import pylab
 
@@ -51,15 +52,19 @@ from workflows.arlexecute.simulation.simulation_arlexecute import simulate_list_
 from workflows.arlexecute.pipelines.pipeline_arlexecute import continuum_imaging_list_arlexecute_workflow,     ical_list_arlexecute_workflow
 
 from wrappers.arlexecute.execution_support.arlexecute import arlexecute
+from wrappers.arlexecute.execution_support.dask_init import findNodes, get_dask_Client
 
+import time
 import pprint
 
 pp = pprint.PrettyPrinter()
 
 import logging
+import argparse 
 
 def init_logging():
     log = logging.getLogger()
+    print('Results dir: %s' % results_dir)
     logging.basicConfig(filename='%s/imaging-pipeline.log' % results_dir,
                         filemode='a',
                         format='%(asctime)s,%(msecs)d %(name)s %(levelname)s %(message)s',
@@ -68,12 +73,29 @@ def init_logging():
 log = logging.getLogger()
 logging.info("Starting imaging-pipeline")
 
+parser = argparse.ArgumentParser(description='Imaging pipelines in Dask.')
+parser.add_argument('--nfreqwin', type=int, nargs='?', default=7,
+                                       help='The number of frequency windows')
+
+args = parser.parse_args()
 
 # We will use dask
 
 # In[2]:
 
-arlexecute.set_client(use_dask=True)
+threads_per_worker=16
+memory=384
+nworkers=1
+
+client = get_dask_Client(threads_per_worker=threads_per_worker,
+                         processes = threads_per_worker == 1,
+                         memory_limit=memory * 1024 * 1024 * 1024,
+                         n_workers=nworkers)
+arlexecute.set_client(client)
+nodes = findNodes(arlexecute.client)
+print("Defined %d workers on %d nodes" % (nworkers, len(nodes)))
+print("Workers are: %s" % str(nodes))
+#arlexecute.set_client(use_dask=True)
 arlexecute.run(init_logging)
 
 
@@ -87,7 +109,8 @@ arlexecute.run(init_logging)
 
 # In[4]:
 
-nfreqwin=7
+#nfreqwin=7
+nfreqwin=args.nfreqwin
 ntimes=5
 rmax=300.0
 frequency=numpy.linspace(1.0e8,1.2e8,nfreqwin)
@@ -143,10 +166,12 @@ future_gleam_model = arlexecute.scatter(gleam_model)
 # In[7]:
 
 log.info('About to run predict to get predicted visibility')
+start=time.time()
 future_vis_graph = arlexecute.scatter(vis_list)
 predicted_vislist = predict_list_arlexecute_workflow(future_vis_graph, gleam_model,  
                                                 context='wstack', vis_slices=vis_slices)
 predicted_vislist = arlexecute.compute(predicted_vislist, sync=True)
+end=time.time()
 corrupted_vislist = corrupt_list_arlexecute_workflow(predicted_vislist, phase_error=1.0)
 log.info('About to run corrupt to get corrupted visibility')
 corrupted_vislist =  arlexecute.compute(corrupted_vislist, sync=True)
@@ -157,6 +182,7 @@ future_predicted_vislist=arlexecute.scatter(predicted_vislist)
 
 # In[8]:
 
+print('predict finished in %f seconds'%(end-start),flush=True)
 model_list = [arlexecute.execute(create_image_from_visibility)(vis_list[f],
                                                      npixel=npixel,
                                                      frequency=[frequency[f]],
@@ -168,6 +194,7 @@ model_list = [arlexecute.execute(create_image_from_visibility)(vis_list[f],
 
 
 # In[9]:
+start=time.time()
 
 dirty_list = invert_list_arlexecute_workflow(future_predicted_vislist, model_list, 
                                   context='wstack',
@@ -184,6 +211,10 @@ psf_list = invert_list_arlexecute_workflow(future_predicted_vislist, model_list,
 log.info('About to run invert to get dirty image')
 
 dirty_list =  arlexecute.compute(dirty_list, sync=True)
+psf_list =  arlexecute.compute(psf_list, sync=True)
+end=time.time()
+print('invert finished in %f seconds'%(end-start),flush=True)
+
 dirty = dirty_list[0][0]
 #show_image(dirty, cm='Greys', vmax=1.0, vmin=-0.1)
 #plt.show()
@@ -194,7 +225,6 @@ export_image_to_fits(dirty, '%s/imaging-dirty.fits'
 log.info('About to run invert to get PSF')
 
 
-psf_list =  arlexecute.compute(psf_list, sync=True)
 psf = psf_list[0][0]
 #show_image(psf, cm='Greys', vmax=0.1, vmin=-0.01)
 #plt.show()
@@ -208,6 +238,7 @@ export_image_to_fits(psf, '%s/imaging-psf.fits'
 # In[11]:
 
 log.info('About to run deconvolve')
+start=time.time()
 
 deconvolve_list, _ =     deconvolve_list_arlexecute_workflow(dirty_list, psf_list, model_imagelist=model_list, 
                             deconvolve_facets=8, deconvolve_overlap=16, deconvolve_taper='tukey',
@@ -220,8 +251,11 @@ deconvolved = arlexecute.compute(deconvolve_list, sync=True)
 #show_image(deconvolved[0], cm='Greys', vmax=0.1, vmin=-0.01)
 #plt.show()
 
+end=time.time()
+print('deconvolve finished in %f sec'%(end-start))
 
 # In[12]:
+start=time.time()
 
 continuum_imaging_list =     continuum_imaging_list_arlexecute_workflow(future_predicted_vislist, 
                                             model_imagelist=model_list, 
@@ -239,6 +273,8 @@ continuum_imaging_list =     continuum_imaging_list_arlexecute_workflow(future_p
 log.info('About to run continuum imaging')
 
 result=arlexecute.compute(continuum_imaging_list, sync=True)
+end=time.time()
+print('continuum imaging finished in %f sec.'%(end-start),flush=True)
 deconvolved = result[0][0]
 residual = result[1][0]
 restored = result[2][0]
@@ -281,6 +317,7 @@ pp.pprint(controls)
 
 # In[15]:
 
+start=time.time()
 ical_list = ical_list_arlexecute_workflow(corrupted_vislist, 
                                         model_imagelist=model_list,  
                                         context='wstack', 
@@ -304,6 +341,8 @@ ical_list = ical_list_arlexecute_workflow(corrupted_vislist,
 
 log.info('About to run ical')
 ical_list = arlexecute.compute(ical_list, sync=True)
+end=time.time()
+print('ical finished in %f sec.'%(end-start),flush=True)
 deconvolved = ical_list[0][0]
 residual = ical_list[1][0]
 restored = ical_list[2][0]
