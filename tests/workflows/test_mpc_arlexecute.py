@@ -12,9 +12,9 @@ from astropy.coordinates import SkyCoord
 from data_models.memory_data_models import Image, SkyModel
 from data_models.memory_data_models import Skycomponent
 from data_models.polarisation import PolarisationFrame
-from operations import expand_skymodel_by_skycomponents
+from wrappers.arlexecute.skymodel.operations import expand_skymodel_by_skycomponents
 from workflows.arlexecute.skymodel.skymodel_arlexecute import predict_skymodel_list_arlexecute_workflow, \
-    invert_skymodel_list_arlexecute_workflow, extract_datamodels_skymodel_list_arlexecute_workflow
+    invert_skymodel_list_arlexecute_workflow, crosssubtract_datamodels_skymodel_list_arlexecute_workflow
 from workflows.shared.imaging.imaging_shared import sum_predict_results
 from wrappers.arlexecute.execution_support.arlexecute import arlexecute
 from wrappers.arlexecute.execution_support.dask_init import get_dask_Client
@@ -160,7 +160,7 @@ class TestMPC(unittest.TestCase):
         skymodel_vislist = arlexecute.compute(skymodel_vislist, sync=True)
         vobs = sum_predict_results(skymodel_vislist)
         
-        skymodel_vislist = extract_datamodels_skymodel_list_arlexecute_workflow(vobs, skymodel_vislist)
+        skymodel_vislist = crosssubtract_datamodels_skymodel_list_arlexecute_workflow(vobs, skymodel_vislist)
         
         skymodel_vislist = arlexecute.compute(skymodel_vislist, sync=True)
         

@@ -63,11 +63,9 @@ def predict_skymodel_list_arlexecute_workflow(obsvis, skymodel_list, context, vi
             bv = convert_visibility_to_blockvisibility(v)
             bv = apply_gaintable(bv, sm.gaintable, inverse=True)
             v = convert_blockvisibility_to_visibility(bv)
-        
         return v
     
-    return [arlexecute.execute(ft_cal_sm, nout=1)(obsvis, skymodel_list[i])
-            for i, _ in enumerate(skymodel_list)]
+    return [arlexecute.execute(ft_cal_sm, nout=1)(obsvis, sm) for sm in skymodel_list]
 
 
 def invert_skymodel_list_arlexecute_workflow(vis_list, skymodel_list, context, vis_slices=1, facets=1,
@@ -105,12 +103,12 @@ def invert_skymodel_list_arlexecute_workflow(vis_list, skymodel_list, context, v
         
         return result
     
-    im_list = [arlexecute.execute(ift_ical_sm)(vis_list[i], sm) for i, sm in enumerate(skymodel_list)]
+    im_list = [arlexecute.execute(ift_ical_sm, nout=1)(vis_list[i], sm) for i, sm in enumerate(skymodel_list)]
     
     return im_list
 
 
-def extract_datamodels_skymodel_list_arlexecute_workflow(obsvis, modelvis_list):
+def crosssubtract_datamodels_skymodel_list_arlexecute_workflow(obsvis, modelvis_list):
     """Form data models by subtracting sum from the observed and adding back each model in turn
     
     vmodel[p] = vobs - sum(i!=p) modelvis[i]
