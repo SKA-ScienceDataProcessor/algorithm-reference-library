@@ -190,6 +190,8 @@ def solve_calibrate_function(vis, model_vis, calibration_context='T', controls=N
         
     assert isinstance(avis, BlockVisibility), avis
 
+    assert amvis.__repr__() != avis.__repr__(), "Vis and model vis are the same object: convert problem"
+
     # Always return a gain table, even if null
     for c in calibration_context:
         gaintables[c] = \

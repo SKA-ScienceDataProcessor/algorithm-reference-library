@@ -12,7 +12,7 @@ from astropy.coordinates import SkyCoord
 from data_models.memory_data_models import Image, SkyModel
 from data_models.memory_data_models import Skycomponent
 from data_models.polarisation import PolarisationFrame
-from operations import expand_skymodel_by_skycomponents
+from wrappers.serial.skymodel.operations import expand_skymodel_by_skycomponents
 from workflows.serial.skymodel.skymodel_serial import predict_skymodel_list_serial_workflow, \
     invert_skymodel_list_serial_workflow, extract_datamodels_skymodel_list_serial_workflow
 from workflows.shared.imaging.imaging_shared import sum_predict_results

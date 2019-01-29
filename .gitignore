@@ -52,3 +52,4 @@ dask-work-space
 *~
 .DS_Store
 **/.DS_Store
+*.dirlock

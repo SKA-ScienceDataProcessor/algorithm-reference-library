@@ -487,14 +487,19 @@ def image_voronoi_iter(im: Image, components: Skycomponent) -> collections.Itera
     :param im: Image
     :param components: Components to define Voronoi decomposition
     """
-    vor, vertex_array = voronoi_decomposition(im, components)
-    
-    nregions = numpy.max(vertex_array) + 1
-    for region in range(nregions):
-        mask = numpy.zeros(im.data.shape)
-        mask[(vertex_array == region)[numpy.newaxis, numpy.newaxis,...]] = 1.0
+    if len(components) == 1:
+        mask = numpy.ones(im.data.shape)
         yield create_image_from_array(mask, wcs=im.wcs,
                                       polarisation_frame=im.polarisation_frame)
+    else:
+        vor, vertex_array = voronoi_decomposition(im, components)
+        
+        nregions = numpy.max(vertex_array) + 1
+        for region in range(nregions):
+            mask = numpy.zeros(im.data.shape)
+            mask[(vertex_array == region)[numpy.newaxis, numpy.newaxis,...]] = 1.0
+            yield create_image_from_array(mask, wcs=im.wcs,
+                                          polarisation_frame=im.polarisation_frame)
 
 def partition_skycomponent_neighbours(comps, targets):
     """ Partition sky components by nearest target source

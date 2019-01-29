@@ -42,7 +42,7 @@ class TestCoalesce(unittest.TestCase):
         assert numpy.min(cvis.frequency) > 0.0
         dvis = decoalesce_visibility(cvis)
         assert dvis.nvis == self.blockvis.nvis
-        dvis = decoalesce_visibility(cvis, overwrite=True)
+        dvis = decoalesce_visibility(cvis)
         assert dvis.nvis == self.blockvis.nvis
 
     def test_convert_weight(self):
@@ -52,7 +52,7 @@ class TestCoalesce(unittest.TestCase):
         cvis = weight_visibility(cvis, model)
         assert numpy.mean(cvis.data['imaging_weight']) < 1.0
         assert numpy.std(cvis.data['imaging_weight']) > 0.0
-        dvis = decoalesce_visibility(cvis, overwrite=True)
+        dvis = decoalesce_visibility(cvis)
         assert numpy.mean(dvis.data['imaging_weight']) < 1.0
         assert numpy.std(dvis.data['imaging_weight']) > 0.0
         assert dvis.nvis == self.blockvis.nvis
@@ -63,7 +63,7 @@ class TestCoalesce(unittest.TestCase):
         assert numpy.min(cvis.frequency) > 0.0
         dvis = decoalesce_visibility(cvis)
         assert dvis.nvis == self.blockvis.nvis
-        dvis = decoalesce_visibility(cvis, overwrite=True)
+        dvis = decoalesce_visibility(cvis)
         assert dvis.nvis == self.blockvis.nvis
 
     def test_coalesce_decoalesce(self):
@@ -72,7 +72,7 @@ class TestCoalesce(unittest.TestCase):
         assert numpy.min(cvis.frequency) > 0.0
         dvis = decoalesce_visibility(cvis)
         assert dvis.nvis == self.blockvis.nvis
-        dvis = decoalesce_visibility(cvis, overwrite=True)
+        dvis = decoalesce_visibility(cvis)
         assert dvis.nvis == self.blockvis.nvis
 
     def test_coalesce_decoalesce_frequency(self):
@@ -81,7 +81,7 @@ class TestCoalesce(unittest.TestCase):
         assert numpy.min(cvis.frequency) > 0.0
         dvis = decoalesce_visibility(cvis)
         assert dvis.nvis == self.blockvis.nvis
-        dvis = decoalesce_visibility(cvis, overwrite=True)
+        dvis = decoalesce_visibility(cvis)
         assert dvis.nvis == self.blockvis.nvis
 
     def test_coalesce_decoalesce_time(self):
@@ -90,7 +90,7 @@ class TestCoalesce(unittest.TestCase):
         assert numpy.min(cvis.frequency) > 0.0
         dvis = decoalesce_visibility(cvis)
         assert dvis.nvis == self.blockvis.nvis
-        dvis = decoalesce_visibility(cvis, overwrite=True)
+        dvis = decoalesce_visibility(cvis)
         assert dvis.nvis == self.blockvis.nvis
 
     def test_coalesce_decoalesce_singletime(self):
