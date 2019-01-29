@@ -12,6 +12,7 @@ from astropy import units as u
 from astropy.coordinates import SkyCoord
 
 from data_models.polarisation import PolarisationFrame
+from data_models.data_model_helpers import export_gaintable_to_hdf5
 
 from workflows.serial.pipelines.pipeline_serial import ical_list_serial_workflow, continuum_imaging_list_serial_workflow
 from wrappers.serial.calibration.calibration_control import create_calibration_controls
@@ -150,7 +151,7 @@ class TestPipelines(unittest.TestCase):
         controls['T']['first_selfcal'] = 1
         controls['T']['timescale'] = 'auto'
     
-        clean, residual, restored = \
+        clean, residual, restored, gt_list = \
             ical_list_serial_workflow(self.vis_list,
                                       model_imagelist=self.model_imagelist,
                                       context='2d',
@@ -168,7 +169,9 @@ class TestPipelines(unittest.TestCase):
             export_image_to_fits(clean[centre], '%s/test_pipelines_ical_pipeline_serial_clean.fits' % self.dir)
             export_image_to_fits(residual[centre][0], '%s/test_pipelines_ical_pipeline_serial_residual.fits' % self.dir)
             export_image_to_fits(restored[centre], '%s/test_pipelines_ical_pipeline_serial_restored.fits' % self.dir)
-        
+            export_gaintable_to_hdf5(gt_list[centre]['T'], '%s/test_pipelines_ical_pipeline_serial_gaintable.hdf5' %
+                                     self.dir)
+
         qa = qa_image(restored[centre])
         assert numpy.abs(qa.data['max'] - 99.32729396999524) < 1.0, str(qa)
         assert numpy.abs(qa.data['min'] + 0.6501547522800477) < 1.0, str(qa)
@@ -179,7 +182,7 @@ class TestPipelines(unittest.TestCase):
         controls['T']['first_selfcal'] = 1
         controls['T']['timescale'] = 'auto'
         
-        clean, residual, restored = \
+        clean, residual, restored, gt_list = \
             ical_list_serial_workflow(self.vis_list,
                                       model_imagelist=self.model_imagelist,
                                       context='2d',
@@ -198,7 +201,10 @@ class TestPipelines(unittest.TestCase):
             export_image_to_fits(clean[centre], '%s/test_pipelines_ical_global_pipeline_serial_clean.fits' % self.dir)
             export_image_to_fits(residual[centre][0], '%s/test_pipelines_ical_global_pipeline_serial_residual.fits' % self.dir)
             export_image_to_fits(restored[centre], '%s/test_pipelines_ical_global_pipeline_serial_restored.fits' % self.dir)
-        
+            export_gaintable_to_hdf5(gt_list[0]['T'],
+                                     '%s/test_pipelines_ical_global_pipeline_serial_gaintable.hdf5' %
+                                     self.dir)
+
         qa = qa_image(restored[centre])
         assert numpy.abs(qa.data['max'] - 98.92656340122159) < 1.0, str(qa)
         assert numpy.abs(qa.data['min'] + 0.7024492707920869) < 1.0, str(qa)

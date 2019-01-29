@@ -76,9 +76,9 @@ def predict_list_serial_workflow(vis_list, model_imagelist, context, vis_slices=
     # Loop over all frequency windows
     if facets == 1:
         image_results_list = list()
-        for freqwin, vis_list in enumerate(vis_list):
+        for ivis, vis_list in enumerate(vis_list):
             if len(gcfcf) > 1:
-                g = gcfcf[freqwin]
+                g = gcfcf[ivis]
             else:
                 g = gcfcf[0]
             # Create the graph to divide an image into facets. This is by reference.
@@ -89,7 +89,7 @@ def predict_list_serial_workflow(vis_list, model_imagelist, context, vis_slices=
             # Loop over sub visibility
             for sub_vis_list in sub_vis_lists:
                 # Predict visibility for this sub-visibility from this image
-                image_vis_list = predict_ignore_none(sub_vis_list, model_imagelist[freqwin], g)
+                image_vis_list = predict_ignore_none(sub_vis_list, model_imagelist[ivis], g)
                 # Sum all sub-visibilities
                 image_vis_lists.append(image_vis_list)
             image_results_list.append(visibility_gather(image_vis_lists, vis_list, vis_iter))
@@ -97,9 +97,9 @@ def predict_list_serial_workflow(vis_list, model_imagelist, context, vis_slices=
         return image_results_list
     else:
         image_results_list_list = list()
-        for freqwin, vis_list in enumerate(vis_list):
+        for ivis, vis_list in enumerate(vis_list):
             # Create the graph to divide an image into facets. This is by reference.
-            facet_lists = image_scatter_facets(model_imagelist[freqwin], facets=facets)
+            facet_lists = image_scatter_facets(model_imagelist[ivis], facets=facets)
             facet_vis_lists = list()
             sub_vis_lists = visibility_scatter(vis_list, vis_iter, vis_slices)
             
@@ -170,9 +170,9 @@ def invert_list_serial_workflow(vis_list, template_model_imagelist, dopsf=False,
     # Loop over all vis_lists independently
     results_vislist = list()
     if facets == 1:
-        for freqwin, vis_list in enumerate(vis_list):
+        for ivis, vis_list in enumerate(vis_list):
             if len(gcfcf) > 1:
-                g = gcfcf[freqwin]
+                g = gcfcf[ivis]
             else:
                 g = gcfcf[0]
             # Create the graph to divide the visibility into slices. This is by copy.
@@ -181,15 +181,15 @@ def invert_list_serial_workflow(vis_list, template_model_imagelist, dopsf=False,
             # Iterate within each vis_list
             vis_results = list()
             for sub_vis_list in sub_vis_lists:
-                vis_results.append(invert_ignore_none(sub_vis_list, template_model_imagelist[freqwin],
+                vis_results.append(invert_ignore_none(sub_vis_list, template_model_imagelist[ivis],
                                                       g))
             results_vislist.append(sum_invert_results(vis_results))
         return results_vislist
     else:
-        for freqwin, vis_list in enumerate(vis_list):
+        for ivis, vis_list in enumerate(vis_list):
             # Create the graph to divide an image into facets. This is by reference.
             facet_lists = image_scatter_facets(template_model_imagelist[
-                                                   freqwin],
+                                                   ivis],
                                                facets=facets)
             # Create the graph to divide the visibility into slices. This is by copy.
             sub_vis_lists = visibility_scatter(vis_list, vis_iter, vis_slices=vis_slices)
@@ -202,7 +202,7 @@ def invert_list_serial_workflow(vis_list, template_model_imagelist, dopsf=False,
                     facet_vis_results.append(invert_ignore_none(sub_vis_list, facet_list,
                                                                 None))
                 vis_results.append(gather_image_iteration_results(facet_vis_results,
-                                                                  template_model_imagelist[freqwin]))
+                                                                  template_model_imagelist[ivis]))
             results_vislist.append(sum_invert_results(vis_results))
     
     return results_vislist
@@ -249,19 +249,25 @@ def restore_list_serial_workflow(model_imagelist, psf_imagelist, residual_imagel
                 for i, _ in enumerate(model_imagelist)]
 
 
-def deconvolve_list_serial_workflow(dirty_list, psf_list, model_imagelist, prefix='', **kwargs):
+def deconvolve_list_serial_workflow(dirty_list, psf_list, model_imagelist, prefix='', mask=None, **kwargs):
     """Create a graph for deconvolution, adding to the model
 
     :param dirty_list:
     :param psf_list:
     :param model_imagelist:
+    :param prefix: Informative prefix to log messages
+    :param mask: Mask for deconvolution
     :param kwargs: Parameters for functions in components
     :return: (graph for the deconvolution, graph for the flat)
     """
     nchan = len(dirty_list)
     nmoment = get_parameter(kwargs, "nmoment", 0)
     
-    def deconvolve(dirty, psf, model, facet, gthreshold):
+    assert isinstance(dirty_list, list), dirty_list
+    assert isinstance(psf_list, list), psf_list
+    assert isinstance(model_imagelist, list), model_imagelist
+
+    def deconvolve(dirty, psf, model, facet, gthreshold, msk=None):
         if prefix == '':
             lprefix = "facet %d" % facet
         else:
@@ -271,11 +277,12 @@ def deconvolve_list_serial_workflow(dirty_list, psf_list, model_imagelist, prefi
             moment0 = calculate_image_frequency_moments(dirty)
             this_peak = numpy.max(numpy.abs(moment0.data[0, ...])) / dirty.data.shape[0]
         else:
-            this_peak = numpy.max(numpy.abs(dirty.data[0, ...]))
+            ref_chan = dirty.data.shape[0] // 2
+            this_peak = numpy.max(numpy.abs(dirty.data[ref_chan, ...]))
         
         if this_peak > 1.1 * gthreshold:
             kwargs['threshold'] = gthreshold
-            result, _ = deconvolve_cube(dirty, psf, prefix=lprefix, **kwargs)
+            result, _ = deconvolve_cube(dirty, psf, prefix=lprefix, mask=msk, **kwargs)
             
             if result.data.shape[0] == model.data.shape[0]:
                 result.data += model.data
@@ -296,12 +303,12 @@ def deconvolve_list_serial_workflow(dirty_list, psf_list, model_imagelist, prefi
     
     # Scatter the separate channel images into deconvolve facets and then gather channels for each facet.
     # This avoids constructing the entire spectral cube.
-    #    dirty_list = remove_sumwt, nout=nchan)(dirty_list)
+    dirty_list_trimmed = remove_sumwt(dirty_list)
     scattered_channels_facets_dirty_list = \
-        [image_scatter_facets(d[0], facets=deconvolve_facets,
+        [image_scatter_facets(d, facets=deconvolve_facets,
                               overlap=deconvolve_overlap,
                               taper=deconvolve_taper)
-         for d in dirty_list]
+         for d in dirty_list_trimmed]
     
     # Now we do a transpose and gather
     scattered_facets_list = [
@@ -309,8 +316,8 @@ def deconvolve_list_serial_workflow(dirty_list, psf_list, model_imagelist, prefi
                                for chan in range(nchan)])
         for facet in range(deconvolve_number_facets)]
     
-    psf_list = remove_sumwt(psf_list)
-    psf_list = image_gather_channels(psf_list)
+    psf_list_trimmed = remove_sumwt(psf_list)
+    psf_list_trimmed = image_gather_channels(psf_list_trimmed)
     
     scattered_model_imagelist = \
         image_scatter_facets(model_imagelist,
@@ -329,9 +336,18 @@ def deconvolve_list_serial_workflow(dirty_list, psf_list, model_imagelist, prefi
                                       prefix=prefix)
     
     facet_list = numpy.arange(deconvolve_number_facets).astype('int')
-    scattered_results_list = [
-        deconvolve(d, psf_list, m, facet, global_threshold)
-        for d, m, facet in zip(scattered_facets_list, scattered_model_imagelist, facet_list)]
+    if mask is None:
+        scattered_results_list = [
+            deconvolve(d, psf_list_trimmed, m, facet, global_threshold)
+            for d, m, facet in zip(scattered_facets_list, scattered_model_imagelist, facet_list)]
+    else:
+        mask_list = \
+            image_scatter_facets(mask,
+                                 facets=deconvolve_facets,
+                                 overlap=deconvolve_overlap)
+        scattered_results_list = [
+            deconvolve(d, psf_list_trimmed, m, facet, global_threshold, msk)
+            for d, m, facet, msk in zip(scattered_facets_list, scattered_model_imagelist, facet_list, mask_list)]
     
     # Gather the results back into one image, correcting for overlaps as necessary. The taper function is is used to
     # feather the facets together

@@ -40,7 +40,7 @@ class TestSkyModel(unittest.TestCase):
         except:
             pass
     
-    def actualSetUp(self, freqwin=3, block=False, dopol=False, zerow=False):
+    def actualSetUp(self, freqwin=1, block=False, dopol=False, zerow=False):
         
         self.npixel = 1024
         self.low = create_named_configuration('LOWBD2', rmax=750.0)
@@ -91,18 +91,66 @@ class TestSkyModel(unittest.TestCase):
                                phasecentre=self.phasecentre,
                                polarisation_frame=PolarisationFrame("stokesI"),
                                flux_limit=0.3,
-                               flux_threshold=0.3,
+                               flux_threshold=1.0,
                                flux_max=5.0) for f, freq in enumerate(self.frequency)]
 
         self.skymodel_list = arlexecute.compute(self.skymodel_list, sync=True)
-        assert isinstance(self.skymodel_list[0].images[0], Image), self.skymodel_list[0].images[0]
+        assert isinstance(self.skymodel_list[0].image, Image), self.skymodel_list[0].image
         assert isinstance(self.skymodel_list[0].components[0], Skycomponent), self.skymodel_list[0].components[0]
-        assert len(self.skymodel_list[0].components) == 119, len(self.skymodel_list[0].components)
-        assert len(self.skymodel_list[0].images) == 1, len(self.skymodel_list[0].images)
-        assert numpy.max(numpy.abs(self.skymodel_list[0].images[0].data)) > 0.0, "Image is empty"
+        assert len(self.skymodel_list[0].components) == 13, len(self.skymodel_list[0].components)
+        assert numpy.max(numpy.abs(self.skymodel_list[0].image.data)) > 0.0, "Image is empty"
 
         self.skymodel_list = arlexecute.scatter(self.skymodel_list)
-        skymodel_vislist = predict_skymodel_list_arlexecute_workflow(self.vis_list, self.skymodel_list, context='2d')
+        skymodel_vislist = predict_skymodel_list_arlexecute_workflow(self.vis_list[0], self.skymodel_list, context='2d')
+        skymodel_vislist = arlexecute.compute(skymodel_vislist, sync=True)
+        assert numpy.max(numpy.abs(skymodel_vislist[0].vis)) > 0.0
+
+
+    def test_predict_nocomponents(self):
+        self.actualSetUp(zerow=True)
+
+        self.skymodel_list = [arlexecute.execute(create_low_test_skymodel_from_gleam)
+                              (npixel=self.npixel, cellsize=self.cellsize, frequency=[self.frequency[f]],
+                               phasecentre=self.phasecentre,
+                               polarisation_frame=PolarisationFrame("stokesI"),
+                               flux_limit=0.3,
+                               flux_threshold=1.0,
+                               flux_max=5.0) for f, freq in enumerate(self.frequency)]
+
+        self.skymodel_list = arlexecute.compute(self.skymodel_list, sync=True)
+        
+        for i, sm in enumerate(self.skymodel_list):
+            sm.components = []
+
+        assert isinstance(self.skymodel_list[0].image, Image), self.skymodel_list[0].image
+        assert numpy.max(numpy.abs(self.skymodel_list[0].image.data)) > 0.0, "Image is empty"
+
+        self.skymodel_list = arlexecute.scatter(self.skymodel_list)
+        skymodel_vislist = predict_skymodel_list_arlexecute_workflow(self.vis_list[0], self.skymodel_list, context='2d')
+        skymodel_vislist = arlexecute.compute(skymodel_vislist, sync=True)
+        assert numpy.max(numpy.abs(skymodel_vislist[0].vis)) > 0.0
+
+
+    def test_predict_noimage(self):
+        self.actualSetUp(zerow=True)
+
+        self.skymodel_list = [arlexecute.execute(create_low_test_skymodel_from_gleam)
+                              (npixel=self.npixel, cellsize=self.cellsize, frequency=[self.frequency[f]],
+                               phasecentre=self.phasecentre,
+                               polarisation_frame=PolarisationFrame("stokesI"),
+                               flux_limit=0.3,
+                               flux_threshold=1.0,
+                               flux_max=5.0) for f, freq in enumerate(self.frequency)]
+
+        self.skymodel_list = arlexecute.compute(self.skymodel_list, sync=True)
+        for i, sm in enumerate(self.skymodel_list):
+            sm.image= None
+            
+        assert isinstance(self.skymodel_list[0].components[0], Skycomponent), self.skymodel_list[0].components[0]
+        assert len(self.skymodel_list[0].components) == 13, len(self.skymodel_list[0].components)
+
+        self.skymodel_list = arlexecute.scatter(self.skymodel_list)
+        skymodel_vislist = predict_skymodel_list_arlexecute_workflow(self.vis_list[0], self.skymodel_list, context='2d')
         skymodel_vislist = arlexecute.compute(skymodel_vislist, sync=True)
         assert numpy.max(numpy.abs(skymodel_vislist[0].vis)) > 0.0
 

@@ -21,7 +21,7 @@ extra phase term in the Fourier transform cannot be ignored.
 
 import collections
 import logging
-from typing import List, Union
+from typing import List, Union, Tuple
 
 import numpy
 from astropy import constants as constants
@@ -32,10 +32,12 @@ from astropy.wcs.utils import pixel_to_skycoord
 from data_models.memory_data_models import Visibility, BlockVisibility, Image, Skycomponent, assert_same_chan_pol
 from data_models.parameters import get_parameter
 from data_models.polarisation import convert_pol_frame, PolarisationFrame
-from processing_components.griddata.kernels import create_pswf_convolutionfunction
+
 from processing_library.image.operations import create_image_from_array
 from processing_library.imaging.imaging_params import get_frequency_map
 from processing_library.util.coordinate_support import simulate_point, skycoord_to_lmn
+
+from processing_components.griddata.kernels  import create_pswf_convolutionfunction
 from ..griddata.gridding import grid_visibility_to_griddata, \
     fft_griddata_to_image, fft_image_to_griddata, \
     degrid_visibility_from_griddata
@@ -112,11 +114,12 @@ def predict_2d(vis: Union[BlockVisibility, Visibility], model: Image, gcfcf=None
     :param gcfcf: (Grid correction function i.e. in image space, Convolution function i.e. in uv space)
     :return: resulting visibility (in place works)
     """
+    
+    if model is None:
+        return vis
+    
     assert isinstance(vis, Visibility), vis
-    
-    assert vis.polarisation_frame == model.polarisation_frame,\
-        "Polarisation frame differ %s %s " % (str(vis.polarisation_frame), str(model.polarisation_frame))
-    
+
     _, _, ny, nx = model.data.shape
     
     if gcfcf is None:
@@ -154,24 +157,21 @@ def invert_2d(vis: Visibility, im: Image, dopsf: bool = False, normalize: bool =
 
     """
     assert isinstance(vis, Visibility), vis
-
-    assert vis.polarisation_frame == im.polarisation_frame, "Polarisation frame differ %s %s " % \
-                                                               (vis.polarisation_frame, im.polarisation_frame)
-
+    
     svis = copy_visibility(vis)
     
     if dopsf:
-        svis.data['vis'][...] = 1.0 + 0.0j
+        svis.data['vis'][...] = 1.0+0.0j
     
     svis = shift_vis_to_image(svis, im, tangent=True, inverse=False)
-    
+
     if gcfcf is None:
         gcf, cf = create_pswf_convolutionfunction(im,
                                                   support=get_parameter(kwargs, "support", 6),
                                                   oversampling=get_parameter(kwargs, "oversampling", 128))
     else:
         gcf, cf = gcfcf
-    
+
     griddata = create_griddata_from_image(im)
     griddata, sumwt = grid_visibility_to_griddata(svis, griddata=griddata, cf=cf)
     
@@ -198,8 +198,12 @@ def predict_skycomponent_visibility(vis: Union[Visibility, BlockVisibility],
     :param sc: Skycomponent or list of SkyComponents
     :return: Visibility or BlockVisibility
     """
+    if sc is None:
+        return vis
+    
     if not isinstance(sc, collections.Iterable):
         sc = [sc]
+
     
     if isinstance(vis, Visibility):
         
@@ -214,8 +218,8 @@ def predict_skycomponent_visibility(vis: Union[Visibility, BlockVisibility],
             phasor = simulate_point(vis.uvw, l, m)
             
             comp = comp.flux[im_nchan, :]
-            vis.data['vis'][...] += comp[:, :] * phasor[:, numpy.newaxis]
-    
+            vis.data['vis'][...] += comp[:,:] * phasor[:, numpy.newaxis]
+
     elif isinstance(vis, BlockVisibility):
         
         ntimes, nant, _, nchan, npol = vis.vis.shape
@@ -390,28 +394,28 @@ def advise_wide_field(vis: Visibility, delA=0.02, oversampling_synthesised_beam=
     
     cellsize = synthesized_beam / oversampling_synthesised_beam
     log.info("advise_wide_field: Cellsize %s" % (rad_and_deg(cellsize)))
-    
+
     def pwr2(n):
         ex = numpy.ceil(numpy.log(n) / numpy.log(2.0)).astype('int')
         best = numpy.power(2, ex)
         return best
-    
+
     def pwr23(n):
         ex = numpy.ceil(numpy.log(n) / numpy.log(2.0)).astype('int')
         best = numpy.power(2, ex)
         if best * 3 // 4 >= n:
             best = best * 3 // 4
         return best
-    
+
     npixels = int(round(image_fov / cellsize))
     log.info("advice_wide_field: Npixels per side = %d" % (npixels))
     
     npixels2 = pwr2(npixels)
     log.info("advice_wide_field: Npixels (power of 2) per side = %d" % (npixels2))
-    
+
     npixels23 = pwr23(npixels)
     log.info("advice_wide_field: Npixels (power of 2, 3) per side = %d" % (npixels23))
-    
+
     # Following equation is from Cornwell, Humphreys, and Voronkov (2012) (equation 24)
     # We will assume that the constraint holds at one quarter the entire FOV i.e. that
     # the full field of view includes the entire primary beam
@@ -453,7 +457,7 @@ def advise_wide_field(vis: Visibility, delA=0.02, oversampling_synthesised_beam=
     wprojection_planes = vis_slices
     log.info('advice_wide_field: Number of planes in w stack %d (primary beam)' % (vis_slices))
     log.info('advice_wide_field: Number of planes in w projection %d (primary beam)' % (wprojection_planes))
-    
+
     nwpixels = int(2.0 * npixels * primary_beam_fov)
     nwpixels = nwpixels - nwpixels % 2
     log.info('advice_wide_field: W support = %d (pixels) (primary beam)' % nwpixels)

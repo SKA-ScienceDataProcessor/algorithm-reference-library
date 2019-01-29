@@ -63,7 +63,8 @@ def deconvolve_cube(dirty: Image, psf: Image, prefix='', **kwargs) -> (Image, Im
     
     :param dirty: Image dirty image
     :param psf: Image Point Spread Function
-    :param window: Window image (Bool) - clean where True
+    :param window_shape: Window image (Bool) - clean where True
+    :param mask: Window in the form of an image, overrides woindow_shape
     :param algorithm: Cleaning algorithm: 'msclean'|'hogbom'|'mfsmsclean'
     :param gain: loop gain (float) 0.7
     :param threshold: Clean threshold (0.0)
@@ -85,9 +86,22 @@ def deconvolve_cube(dirty: Image, psf: Image, prefix='', **kwargs) -> (Image, Im
         window = numpy.zeros_like(dirty.data)
         window[..., (qy + 1):3 * qy, (qx + 1):3 * qx] = 1.0
         log.info('deconvolve_cube %s: Cleaning inner quarter of each sky plane' % prefix)
+    elif window_shape == 'no_edge':
+        edge = 16
+        nx = dirty.shape[3]
+        ny = dirty.shape[2]
+        window = numpy.zeros_like(dirty.data)
+        window[..., (edge + 1):(ny - edge), (edge + 1):(nx - edge)] = 1.0
+        log.info('deconvolve_cube %s: Cleaning omitting %d-pixel edge of each sky plane' % (prefix, edge))
     else:
         window = None
-    
+        
+    mask = get_parameter(kwargs, 'mask', None)
+    if isinstance(mask, Image):
+        if window is not None:
+            log.warning('deconvolve_cube %s: Overriding window_shape with mask image' % (prefix))
+        window = mask.data
+
     psf_support = get_parameter(kwargs, 'psf_support', max(dirty.shape[2] // 2, dirty.shape[3] // 2))
     if (psf_support <= psf.shape[2] // 2) and ((psf_support <= psf.shape[3] // 2)):
         centre = [psf.shape[2] // 2, psf.shape[3] // 2]

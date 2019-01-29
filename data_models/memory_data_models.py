@@ -24,12 +24,16 @@ from copy import deepcopy
 from typing import Union
 
 import numpy
-from astropy import units as u
-from astropy.coordinates import SkyCoord
 
 import warnings
+
+from astropy import units as u
+from astropy.coordinates import SkyCoord
+from astropy.utils.exceptions import AstropyDeprecationWarning
+
 from astropy.wcs import FITSFixedWarning
 warnings.simplefilter('ignore', FITSFixedWarning)
+warnings.simplefilter('ignore', AstropyDeprecationWarning)
 
 from data_models.polarisation import PolarisationFrame, ReceptorFrame
 
@@ -133,7 +137,7 @@ class GainTable:
     
     def __init__(self, data=None, gain: numpy.array = None, time: numpy.array = None, interval=None,
                  weight: numpy.array = None, residual: numpy.array = None, frequency: numpy.array = None,
-                 receptor_frame: ReceptorFrame = ReceptorFrame("linear")):
+                 receptor_frame: ReceptorFrame = ReceptorFrame("linear"), phasecentre=None):
         """ Create a gaintable from arrays
 
         The definition of gain is:
@@ -172,6 +176,7 @@ class GainTable:
         self.data = data
         self.frequency = frequency
         self.receptor_frame = receptor_frame
+        self.phasecentre = phasecentre
     
     def size(self):
         """ Return size in GB
@@ -224,6 +229,7 @@ class GainTable:
         s += "\tTimes: %s\n" % str(self.ntimes)
         s += "\tData shape: %s\n" % str(self.data.shape)
         s += "\tReceptor frame: %s\n" % str(self.receptor_frame.type)
+        s += "\tPhasecentre: %s\n" % str(self.phasecentre)
         return s
 
 
@@ -571,21 +577,21 @@ class Skycomponent:
 
 
 class SkyModel:
-    """ A model for the sky
+    """ A model for the sky, including an image, components, gaintable and a mask
     """
     
-    def __init__(self, images=None, components=None, fixed=False):
-        """ A model of the sky as a list of images and a list of components
+    def __init__(self, image=None, components=None, gaintable=None, mask=None, fixed=False):
+        """ A model of the sky as an image, components, gaintable and a mask
 
         Use copy_skymodel to make a proper copy of skymodel
 
         """
-        if images is None:
-            images = []
         if components is None:
             components = []
-        self.images = [im for im in images]
+        self.image = image
         self.components = [sc for sc in components]
+        self.gaintable = gaintable
+        self.mask = mask
         self.fixed = fixed
     
     def __str__(self):
@@ -596,10 +602,14 @@ class SkyModel:
         for i, sc in enumerate(self.components):
             s += str(sc)
         s += "\n"
-        
-        for i, im in enumerate(self.images):
-            s += str(im)
+
+        s += str(self.image)
         s += "\n"
+
+        s += str(self.mask)
+        s += "\n"
+
+        s += str(self.gaintable)
         
         return s
 
@@ -745,7 +755,15 @@ class Visibility:
     @property
     def w(self):
         return self.data['uvw'][:, 2]
-    
+
+    @property
+    def uvdist(self):
+        return numpy.hypot(self.u, self.v)
+
+    @property
+    def uvwdist(self):
+        return numpy.hypot(self.u, self.v, self.w)
+
     @property
     def time(self):
         return self.data['time']

@@ -214,7 +214,7 @@ def convert_image_to_kernel(im: Image, oversampling, kernelwidth):
     return create_image_from_array(newdata, newwcs, polarisation_frame=im.polarisation_frame)
 
 
-def copy_image(im: Image) -> Image:
+def copy_image(im: Image):
     """ Create an image from an array
     
     Performs deepcopy of data_models, breaking reference semantics
@@ -223,6 +223,10 @@ def copy_image(im: Image) -> Image:
     :return: Image
     
     """
+    
+    if im is None:
+        return im
+    
     assert isinstance(im, Image), im
     fim = Image()
     fim.polarisation_frame = im.polarisation_frame
@@ -297,6 +301,31 @@ def fft_image(im, template_image=None):
         ft_wcs.wcs.cdelt[1] = template_image.wcs.wcs.cdelt[1]
         ft_data = fft(im.data.astype('complex'))
         return create_image_from_array(ft_data, wcs=ft_wcs, polarisation_frame=im.polarisation_frame)
+    elif im.wcs.wcs.ctype[0] == 'XX' and im.wcs.wcs.ctype[1] == 'YY':
+        ft_wcs.wcs.axis_types[0] = 0
+        ft_wcs.wcs.axis_types[1] = 0
+        ft_wcs.wcs.crval[0] = 0.0
+        ft_wcs.wcs.crval[1] = 0.0
+        ft_wcs.wcs.crpix[0] = ft_shape[3] // 2 + 1
+        ft_wcs.wcs.crpix[1] = ft_shape[2] // 2 + 1
+        ft_wcs.wcs.ctype[0] = 'KX'
+        ft_wcs.wcs.ctype[1] = 'KY'
+        ft_wcs.wcs.cdelt[0] = 1.0 / (ft_shape[3] * im.wcs.wcs.cdelt[0])
+        ft_wcs.wcs.cdelt[1] = 1.0 / (ft_shape[2] * im.wcs.wcs.cdelt[1])
+        ft_data = ifft(im.data.astype('complex'))
+        return create_image_from_array(ft_data, wcs=ft_wcs, polarisation_frame=im.polarisation_frame)
+    elif im.wcs.wcs.ctype[0] == 'KX' and im.wcs.wcs.ctype[1] == 'KY':
+        ft_wcs.wcs.crval[0] = template_image.wcs.wcs.crval[0]
+        ft_wcs.wcs.crval[1] = template_image.wcs.wcs.crval[1]
+        ft_wcs.wcs.crpix[0] = template_image.wcs.wcs.crpix[0]
+        ft_wcs.wcs.crpix[0] = template_image.wcs.wcs.crpix[1]
+        ft_wcs.wcs.ctype[0] = template_image.wcs.wcs.ctype[0]
+        ft_wcs.wcs.ctype[1] = template_image.wcs.wcs.ctype[1]
+        ft_wcs.wcs.cdelt[0] = template_image.wcs.wcs.cdelt[0]
+        ft_wcs.wcs.cdelt[1] = template_image.wcs.wcs.cdelt[1]
+        ft_data = fft(im.data.astype('complex'))
+        return create_image_from_array(ft_data, wcs=ft_wcs, polarisation_frame=im.polarisation_frame)
+
     else:
         raise NotImplementedError("Cannot FFT specified axes")
 

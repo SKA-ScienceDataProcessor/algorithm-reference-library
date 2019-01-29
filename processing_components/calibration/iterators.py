@@ -51,7 +51,7 @@ def gaintable_timeslice_iter(gt: GainTable, **kwargs) -> numpy.ndarray:
         boxes = numpy.arange(timemin, timemax, timeslice)
     else:
         gt_slices = get_parameter(kwargs, "gaintable_slices", None)
-        assert gt_slices is not None, "Time slicing not specified: set either timeslice or gt_slices"
+        assert gt_slices is not None, "Time slicing not specified: set either timeslice or gaintable_slices"
         boxes = numpy.linspace(timemin, timemax, gt_slices)
         if gt_slices > 1:
             timeslice = boxes[1] - boxes[0]

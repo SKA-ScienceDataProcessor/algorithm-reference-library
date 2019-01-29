@@ -13,13 +13,11 @@ from astropy.coordinates import SkyCoord
 
 from data_models.polarisation import PolarisationFrame
 from workflows.serial.calibration.calibration_serial import calibrate_list_serial_workflow
-from wrappers.serial.calibration.operations import qa_gaintable
 from wrappers.serial.calibration.calibration_control import create_calibration_controls
-from wrappers.serial.imaging.base import predict_skycomponent_visibility
-from wrappers.serial.simulation.testing_support import create_named_configuration, ingest_unittest_visibility, \
-    create_unittest_components, insert_unittest_errors, create_unittest_model
+from wrappers.serial.calibration.operations import create_gaintable_from_blockvisibility, apply_gaintable
+from wrappers.serial.simulation.testing_support import create_named_configuration, ingest_unittest_visibility
+from wrappers.serial.simulation.testing_support import simulate_gaintable
 from wrappers.serial.visibility.base import copy_visibility
-from wrappers.serial.visibility.coalesce import convert_blockvisibility_to_visibility
 
 log = logging.getLogger(__name__)
 
@@ -81,17 +79,18 @@ class TestCalibrateGraphs(unittest.TestCase):
                                                          self.phasecentre, block=True,
                                                          zerow=zerow)
                               for i in range(nfreqwin)]
-                        
+        
         for v in self.blockvis_list:
-            v.data['vis'][...] = 1.0+0.0j
+            v.data['vis'][...] = 1.0 + 0.0j
         
         self.error_blockvis_list = [copy_visibility(v) for v in self.blockvis_list]
-        self.error_blockvis_list = [insert_unittest_errors
-                                    (self.error_blockvis_list[i], amp_errors=amp_errors, phase_errors=phase_errors,
-                                     calibration_context="TG")
+        gt = create_gaintable_from_blockvisibility(self.blockvis_list[0])
+        gt = simulate_gaintable(gt, phase_error=0.1, amplitude_error=0.0, smooth_channels=1,
+                                leakage=0.0, seed=180555)
+        self.error_blockvis_list = [apply_gaintable(self.error_blockvis_list[i], gt)
                                     for i in range(self.freqwin)]
         
-        assert numpy.max(numpy.abs(self.error_blockvis_list[0].vis - self.blockvis_list[0].vis)) > 1.0
+        assert numpy.max(numpy.abs(self.error_blockvis_list[0].vis - self.blockvis_list[0].vis)) > 0.0
     
     def test_time_setup(self):
         self.actualSetUp()
@@ -109,8 +108,29 @@ class TestCalibrateGraphs(unittest.TestCase):
             calibrate_list_serial_workflow(self.error_blockvis_list, self.blockvis_list,
                                            calibration_context='T', controls=controls, do_selfcal=True,
                                            global_solution=False)
+        assert len(calibrate_list) == 2
         assert numpy.max(calibrate_list[1][0]['T'].residual) < 7e-6, numpy.max(calibrate_list[1][0]['T'].residual)
         assert numpy.max(numpy.abs(calibrate_list[0][0].vis - self.blockvis_list[0].vis)) < 2e-6
+    
+    def test_calibrate_serial_empty(self):
+        amp_errors = {'T': 0.0, 'G': 0.0}
+        phase_errors = {'T': 1.0, 'G': 0.0}
+        self.actualSetUp(amp_errors=amp_errors, phase_errors=phase_errors)
+        
+        for v in self.blockvis_list:
+            v.data['vis'][...] = 0.0 + 0.0j
+        
+        controls = create_calibration_controls()
+        controls['T']['first_selfcal'] = 0
+        controls['T']['timescale'] = 'auto'
+        
+        calibrate_list = \
+            calibrate_list_serial_workflow(self.error_blockvis_list, self.blockvis_list,
+                                                calibration_context='T', controls=controls, do_selfcal=True,
+                                                global_solution=False)
+        assert len(calibrate_list[1][0]) == 1
+        assert numpy.max(calibrate_list[1][0]['T'].residual) == 0.0, numpy.max(calibrate_list[1][0]['T'].residual)
+
 
     def test_calibrate_serial_global(self):
         amp_errors = {'T': 0.0, 'G': 0.0}
@@ -126,8 +146,30 @@ class TestCalibrateGraphs(unittest.TestCase):
                                            calibration_context='T', controls=controls, do_selfcal=True,
                                            global_solution=True)
         
+        assert len(calibrate_list) == 2
         assert numpy.max(calibrate_list[1][0]['T'].residual) < 7e-6, numpy.max(calibrate_list[1][0]['T'].residual)
-        assert numpy.max(numpy.abs(calibrate_list[0][0].vis - self.blockvis_list[0].vis)) < 2e-6
+        err = numpy.max(numpy.abs(calibrate_list[0][0].vis - self.blockvis_list[0].vis))
+        assert err < 2e-6, err
+    
+    def test_calibrate_serial_global_empty(self):
+        amp_errors = {'T': 0.0, 'G': 0.0}
+        phase_errors = {'T': 1.0, 'G': 0.0}
+        self.actualSetUp(amp_errors=amp_errors, phase_errors=phase_errors)
+        
+        for v in self.blockvis_list:
+            v.data['vis'][...] = 0.0 + 0.0j
+        
+        controls = create_calibration_controls()
+        controls['T']['first_selfcal'] = 0
+        controls['T']['timescale'] = 'auto'
+        
+        calibrate_list = \
+            calibrate_list_serial_workflow(self.error_blockvis_list, self.blockvis_list,
+                                                    calibration_context='T', controls=controls, do_selfcal=True,
+                                                    global_solution=True)
+        assert len(calibrate_list[1][0]) == 1
+        assert numpy.max(calibrate_list[1][0]['T'].residual) == 0.0, numpy.max(calibrate_list[1][0]['T'].residual)
+
 
 if __name__ == '__main__':
     unittest.main()

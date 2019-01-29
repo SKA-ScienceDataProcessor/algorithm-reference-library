@@ -99,16 +99,23 @@ class TestImageDeconvolution(unittest.TestCase):
         self.cmodel = restore_cube(self.comp, self.psf, self.residual)
         export_image_to_fits(self.cmodel, "%s/test_deconvolve_msclean_1scale-clean.fits" % (self.dir))
         assert numpy.max(self.residual.data) < 1.2
-    
+
+    def test_deconvolve_hogbom_no_edge(self):
+        self.comp, self.residual = deconvolve_cube(self.dirty, self.psf, window='no_edge', niter=10000,
+                                                   gain=0.1, algorithm='hogbom', threshold=0.01)
+        export_image_to_fits(self.residual, "%s/test_deconvolve_hogbom_noedge-residual.fits" % (self.dir))
+        self.cmodel = restore_cube(self.comp, self.psf, self.residual)
+        export_image_to_fits(self.cmodel, "%s/test_deconvolve_hogbom_no_edge-clean.fits" % (self.dir))
+        assert numpy.max(self.residual.data) < 1.2
+
     def test_deconvolve_hogbom_inner_quarter(self):
-        
         self.comp, self.residual = deconvolve_cube(self.dirty, self.psf, window='quarter', niter=10000,
                                                    gain=0.1, algorithm='hogbom', threshold=0.01)
         export_image_to_fits(self.residual, "%s/test_deconvolve_hogbom_innerquarter-residual.fits" % (self.dir))
         self.cmodel = restore_cube(self.comp, self.psf, self.residual)
         export_image_to_fits(self.cmodel, "%s/test_deconvolve_hogbom_innerquarter-clean.fits" % (self.dir))
         assert numpy.max(self.residual.data) < 1.2
-    
+
     def test_deconvolve_msclean_inner_quarter(self):
         
         self.comp, self.residual = deconvolve_cube(self.dirty, self.psf, window='quarter', niter=1000, gain=0.7,

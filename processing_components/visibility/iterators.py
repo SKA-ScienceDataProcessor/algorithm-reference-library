@@ -32,7 +32,7 @@ def vis_null_iter(vis: Union[Visibility, BlockVisibility], vis_slices=1) -> nump
     yield numpy.ones_like(vis.time, dtype=bool)
 
 
-def vis_timeslice_iter(vis: Visibility, vis_slices=None) -> numpy.ndarray:
+def vis_timeslice_iter(vis: Union[Visibility, BlockVisibility], vis_slices=None) -> numpy.ndarray:
     """ Time slice iterator
 
     :param vis:

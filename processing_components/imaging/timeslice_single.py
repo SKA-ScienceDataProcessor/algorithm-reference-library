@@ -91,8 +91,9 @@ def fit_uvwplane(vis: Visibility, remove=False) -> (Image, float, float):
     p, q = fit_uvwplane_only(vis)
     residual = vis.data['uvw'][:, 2] - (p * vis.u + q * vis.v)
     after = numpy.max(numpy.abs(residual))
-    log.debug('fit_uvwplane: Fit to %d rows reduces max abs w from %.1f to %.1f m'
-              % (nvis, before, after))
+    if numpy.abs(p) > 1e-7 or numpy.abs(q) > 1e-7:
+        log.debug('fit_uvwplane: Fit to %d rows reduces max abs w from %.1f to %.1f m'
+                % (nvis, before, after))
     if remove:
         vis.data['uvw'][:, 2] -= p * vis.u + q * vis.v
     return vis, p, q
@@ -111,7 +112,6 @@ def predict_timeslice_single(vis: Visibility, model: Image, predict=predict_2d, 
     :param gcfcf: (Grid correction function, convolution function)
     :return: resulting visibility (in place works)
     """
-    log.debug("predict_timeslice: predicting using time slices")
     
     assert isinstance(vis, Visibility), vis
     
@@ -125,18 +125,21 @@ def predict_timeslice_single(vis: Visibility, model: Image, predict=predict_2d, 
     # the olbiquity parameters in the wcs. The input model should be described as having
     # zero olbiquity parameters.
     # Note that this has to be zero relative in first element, one relative in second!!!
-    newwcs = model.wcs.deepcopy()
-    newwcs.wcs.set_pv([(0, 1, -p), (0, 2, -q)])
-    workimage, footprintimage = reproject_image(model, newwcs, shape=model.shape)
-    workimage.data[footprintimage.data <= 0.0] = 0.0
-    workimage.wcs.wcs.set_pv([(0, 1, -p), (0, 2, -q)])
+    if numpy.abs(p) > 1e-7 or numpy.abs(q) > 1e-7:
+
+        newwcs = model.wcs.deepcopy()
+        newwcs.wcs.set_pv([(0, 1, -p), (0, 2, -q)])
+        workimage, footprintimage = reproject_image(model, newwcs, shape=model.shape)
+        workimage.data[footprintimage.data <= 0.0] = 0.0
+        workimage.wcs.wcs.set_pv([(0, 1, -p), (0, 2, -q)])
     
-    # Now we can do the predict
+        # Now we can do the predict
+        vis = predict(avis, workimage, gcfcf=gcfcf, **kwargs)
+    else:
+        vis = predict(avis, model, gcfcf=gcfcf, **kwargs)
+    
     if remove:
         avis.data['uvw'][...] = uvw
-    
-    vis = predict(avis, workimage, gcfcf=gcfcf, **kwargs)
-    
 
     return vis
 
@@ -154,8 +157,6 @@ def invert_timeslice_single(vis: Visibility, im: Image, dopsf, normalize=True, r
     """
     assert isinstance(vis, Visibility), vis
     
-    log.debug("invert_timeslice: inverting using time slices")
-    
     uvw = vis.uvw
     vis, p, q = fit_uvwplane(vis, remove=remove)
     
@@ -163,14 +164,20 @@ def invert_timeslice_single(vis: Visibility, im: Image, dopsf, normalize=True, r
     # Work image is distorted. We describe the distortion by putting the olbiquity parameters in
     # the wcs. The output image should be described as having zero olbiquity parameters.
     
-    # Note that this has to be zero relative in first element, one relative in second!!!!
-    workimage.wcs.wcs.set_pv([(0, 1, -p), (0, 2, -q)])
+    if numpy.abs(p) > 1e-7 or numpy.abs(q) > 1e-7:
+        # Note that this has to be zero relative in first element, one relative in second!!!!
+        workimage.wcs.wcs.set_pv([(0, 1, -p), (0, 2, -q)])
     
-    finalimage, footprint = reproject_image(workimage, im.wcs, im.shape)
-    finalimage.data[footprint.data <= 0.0] = 0.0
-    finalimage.wcs.wcs.set_pv([(0, 1, 0.0), (0, 2, 0.0)])
+        finalimage, footprint = reproject_image(workimage, im.wcs, im.shape)
+        finalimage.data[footprint.data <= 0.0] = 0.0
+        finalimage.wcs.wcs.set_pv([(0, 1, 0.0), (0, 2, 0.0)])
+
+        if remove:
+            vis.data['uvw'][...] = uvw
+
+        return finalimage, sumwt
+    else:
+        if remove:
+            vis.data['uvw'][...] = uvw
     
-    if remove:
-        vis.data['uvw'][...] = uvw
-    
-    return finalimage, sumwt
+        return workimage, sumwt

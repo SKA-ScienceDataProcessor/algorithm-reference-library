@@ -126,8 +126,8 @@ def show_image(im: Image, fig=None, title: str = '', pol=0, chan=0, cm='Greys', 
                vmin=None, vmax=None):
     """ Show an Image with coordinates using matplotlib, optionally with components
 
-    :param im:
-    :param fig:
+    :param im: Image
+    :param fig: Matplotlib figure
     :param title:
     :param pol: Polarisation
     :param chan: Channel
@@ -144,7 +144,7 @@ def show_image(im: Image, fig=None, title: str = '', pol=0, chan=0, cm='Greys', 
     plt.clf()
 
     fig.add_subplot(111, projection=im.wcs.sub([1,2]))
-    
+
     if len(im.data.shape) == 4:
         data_array = numpy.real(im.data[chan, pol, :, :])
     else:
@@ -164,9 +164,45 @@ def show_image(im: Image, fig=None, title: str = '', pol=0, chan=0, cm='Greys', 
     
     if components is not None:
         for sc in components:
-            x, y = skycoord_to_pixel(sc.direction, im.wcs, 1, 'wcs')
+            x, y = skycoord_to_pixel(sc.direction, im.wcs, 0, 'wcs')
             plt.plot(x, y, marker='+', color='red')
     return fig
+
+
+def show_components(im, comps, npixels=128, fig=None, vmax=None, vmin=None):
+    """ Show components against an image
+
+    :param im:
+    :param comps:
+    :param npixels:
+    :param fig:
+    :return:
+    """
+    import matplotlib.pyplot as plt
+    
+    if vmax is None:
+        vmax = numpy.max(im.data[0, 0, ...])
+    if vmin is None:
+        vmin = numpy.min(im.data[0, 0, ...])
+    
+    if not fig:
+        fig = plt.figure()
+    plt.clf()
+    
+    for isc, sc in enumerate(comps):
+        newim = copy_image(im)
+        plt.subplot(111, projection=newim.wcs.sub([1, 2]))
+        centre = numpy.round(skycoord_to_pixel(sc.direction, newim.wcs, 1, 'wcs')).astype('int')
+        newim.data = newim.data[:, :,
+                     (centre[1] - npixels // 2):(centre[1] + npixels // 2),
+                     (centre[0] - npixels // 2):(centre[0] + npixels // 2)]
+        newim.wcs.wcs.crpix[0] -= centre[0] - npixels // 2
+        newim.wcs.wcs.crpix[1] -= centre[1] - npixels // 2
+        plt.imshow(newim.data[0, 0, ...], origin='lower', cmap='Greys', vmax=vmax, vmin=vmin)
+        x, y = skycoord_to_pixel(sc.direction, newim.wcs, 0, 'wcs')
+        plt.plot(x, y, marker='+', color='red')
+        plt.title('Name = %s, flux = %s' % (sc.name, sc.flux))
+        plt.show()
 
 
 def smooth_image(model: Image, width=1.0):

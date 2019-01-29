@@ -111,7 +111,7 @@ def simulate_list_arlexecute_workflow(config='LOWBD2',
     return vis_list
 
 
-def corrupt_list_arlexecute_workflow(vis_list, gt_list=None, **kwargs):
+def corrupt_list_arlexecute_workflow(vis_list, gt_list=None, seed=None, **kwargs):
     """ Create a graph to apply gain errors to a vis_list
 
     :param vis_list:
@@ -127,7 +127,7 @@ def corrupt_list_arlexecute_workflow(vis_list, gt_list=None, **kwargs):
             bv = vis
         if gt is None:
             gt = create_gaintable_from_blockvisibility(bv, **kwargs)
-            gt = simulate_gaintable(gt, **kwargs)
+            gt = simulate_gaintable(gt, seed=seed, **kwargs)
             bv = apply_gaintable(bv, gt)
             
         if isinstance(vis, Visibility):

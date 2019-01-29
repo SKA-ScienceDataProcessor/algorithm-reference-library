@@ -162,6 +162,7 @@ def create_blockvisibility(config: Configuration,
     visshape = [ntimes, nants, nants, nch, npol]
     rvis = numpy.zeros(visshape, dtype='complex')
     rweight = weight * numpy.ones(visshape)
+    rimaging_weight = numpy.ones(visshape)
     rtimes = numpy.zeros([ntimes])
     ruvw = numpy.zeros([ntimes, nants, nants, 3])
     
@@ -184,6 +185,7 @@ def create_blockvisibility(config: Configuration,
     if zerow:
         ruvw[..., 2] = 0.0
     vis = BlockVisibility(uvw=ruvw, time=rtimes, frequency=frequency, vis=rvis, weight=rweight,
+                          imaging_weight=rimaging_weight,
                           integration_time=rintegration_time, channel_bandwidth=rchannel_bandwidth,
                           polarisation_frame=polarisation_frame)
     vis.phasecentre = phasecentre

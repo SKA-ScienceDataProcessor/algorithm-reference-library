@@ -289,9 +289,9 @@ def trial_case(results, seed=180555, context='wstack', nworkers=8, threads_per_w
     
     lprint("****** Starting GLEAM skymodel prediction ******")
     start = time.time()
-    predicted_vis_list = predict_skymodel_list_arlexecute_workflow(vis_list, skymodel_list,
-                                                                   context=context, vis_slices=vis_slices,
-                                                                   facets=facets, gcfcf=gcfcf_list)
+    predicted_vis_list = predict_skymodel_list_arlexecute_workflow(vis_list, skymodel_list, context=context,
+                                                                   vis_slices=vis_slices, facets=facets,
+                                                                   gcfcf=gcfcf_list)
     predicted_vis_list = arlexecute.compute(predicted_vis_list, sync=True)
     end = time.time()
     lprint("GLEAM skymodel prediction took %.3f seconds" % (end - start))

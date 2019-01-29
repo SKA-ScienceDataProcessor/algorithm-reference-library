@@ -69,7 +69,7 @@ def apply_calibration_function(vis, gaintables, calibration_context='T', control
     # Check to see if changes are required
     changes = False
     for c in calibration_context:
-        if iteration >= controls[c]['first_selfcal']:
+        if (iteration >= controls[c]['first_selfcal']) and (c in gaintables.keys()):
             changes = True
 
     if changes:
@@ -84,7 +84,7 @@ def apply_calibration_function(vis, gaintables, calibration_context='T', control
 
         for c in calibration_context:
             if iteration >= controls[c]['first_selfcal']:
-                avis = apply_gaintable(avis, gaintables[c], inverse=True, timeslice=controls[c]['timeslice'])
+                avis = apply_gaintable(avis, gaintables[c], timeslice=controls[c]['timeslice'])
             
         if isVis:
             return convert_blockvisibility_to_visibility(avis)
@@ -136,7 +136,6 @@ def calibrate_function(vis, model_vis, calibration_context='T', controls=None, i
 
         for c in calibration_context:
             if iteration >= controls[c]['first_selfcal']:
-                changed = True
                 gaintables[c] = \
                     create_gaintable_from_blockvisibility(avis, timeslice=controls[c]['timeslice'])
                 gaintables[c] = solve_gaintable(avis, amvis,
@@ -176,39 +175,36 @@ def solve_calibrate_function(vis, model_vis, calibration_context='T', controls=N
     if controls is None:
         controls = create_calibration_controls(**kwargs)
 
-    # Check to see if changes are required
-    changes = False
-    for c in calibration_context:
-        if iteration >= controls[c]['first_selfcal']:
-            changes = True
+    
+    isVis = isinstance(vis, Visibility)
+    if isVis:
+        avis = convert_visibility_to_blockvisibility(vis)
+    else:
+        avis = vis
 
-    if changes:
-    
-        isVis = isinstance(vis, Visibility)
-        if isVis:
-            avis = convert_visibility_to_blockvisibility(vis)
-        else:
-            avis = vis
-    
-        isMVis = isinstance(model_vis, Visibility)
-        if isMVis:
-            amvis = convert_visibility_to_blockvisibility(model_vis)
-        else:
-            amvis = model_vis
-            
-        assert isinstance(avis, BlockVisibility), avis
-    
-        for c in calibration_context:
-            if iteration >= controls[c]['first_selfcal']:
-                gaintables[c] = \
-                    create_gaintable_from_blockvisibility(avis, timeslice=controls[c]['timeslice'])
+    isMVis = isinstance(model_vis, Visibility)
+    if isMVis:
+        amvis = convert_visibility_to_blockvisibility(model_vis)
+    else:
+        amvis = model_vis
+        
+    assert isinstance(avis, BlockVisibility), avis
+
+    assert amvis.__repr__() != avis.__repr__(), "Vis and model vis are the same object: convert problem"
+
+    # Always return a gain table, even if null
+    for c in calibration_context:
+        gaintables[c] = \
+            create_gaintable_from_blockvisibility(avis, timeslice=controls[c]['timeslice'])
+        if iteration >= controls[c]['first_selfcal']:
+            if numpy.max(numpy.abs(vis.weight)) > 0.0 and (amvis is None or numpy.max(numpy.abs(amvis.vis)) > 0.0):
                 gaintables[c] = solve_gaintable(avis, amvis,
                                                 timeslice=controls[c]['timeslice'],
                                                 phase_only=controls[c]['phase_only'],
                                                 crosspol=controls[c]['shape'] == 'matrix',
                                                 tol=tol)
                 log.debug(qa_gaintable(gaintables[c], context='Jones matrix %s, iteration %d' % (c, iteration)))
-            else:
-                log.debug('calibrate_function: Jones matrix %s not solved, iteration %d' % (c, iteration))
+        else:
+            log.debug('calibrate_function: Jones matrix %s not solved, iteration %d' % (c, iteration))
                 
     return gaintables

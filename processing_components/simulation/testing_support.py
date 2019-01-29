@@ -492,7 +492,7 @@ def create_low_test_skymodel_from_gleam(npixel=512, polarisation_frame=Polarisat
     log.info('create_low_test_skymodel_from_gleam: %d bright sources above flux threshold %.3f, %d weak sources below ' %
              (len(brightsc), flux_threshold, len(weaksc)))
 
-    return SkyModel(components=brightsc, images=[model])
+    return SkyModel(components=brightsc, image=model, mask=None, gaintable=None)
 
 
 def create_low_test_skycomponents_from_gleam(flux_limit=0.1, polarisation_frame=PolarisationFrame("stokesI"),
@@ -843,6 +843,6 @@ def insert_unittest_errors(vt, seed=180555, calibration_context="TG", amp_errors
                                        phase_error=phase_errors[c], amplitude_error=amp_errors[c],
                                        seed=seed)
         
-        vt = apply_gaintable(vt, gaintable, inverse=True, timeslice=controls[c]['timeslice'])
+        vt = apply_gaintable(vt, gaintable, timeslice=controls[c]['timeslice'], inverse=True)
     
     return vt
