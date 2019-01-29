@@ -50,3 +50,5 @@ dask-work-space
 *~
 .DS_Store
 **/.DS_Store
+*.lock
+*.hdf5
