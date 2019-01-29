@@ -7,9 +7,12 @@ import logging
 from typing import Union
 
 import numpy
+import re
 from astropy import constants as constants
 from astropy import units as u
 from astropy.coordinates import SkyCoord
+from astropy.io import fits
+from astropy.time import Time
 
 from data_models.memory_data_models import Visibility, BlockVisibility, Configuration
 from data_models.polarisation import PolarisationFrame, ReceptorFrame, correlate_polarisation
@@ -422,3 +425,188 @@ def create_visibility_from_ms(msname, channum=None, ack=False):
     return [convert_blockvisibility_to_visibility(v)
             for v in create_blockvisibility_from_ms(msname=msname, channum=channum, ack=ack)]
 
+
+def create_blockvisibility_from_uvfits(fitsname, channum=None, ack=False, antnum=None):
+    """ Minimal UVFIT to BlockVisibility converter
+
+    The UVFITS format is much more general than the ARL BlockVisibility so we cut many corners. 
+    
+    Creates a list of BlockVisibility's, split by field and spectral window
+    
+    :param msname: File name of UVFITS
+    :param channum: range of channels e.g. range(17,32), default is None meaning all
+    :param antnum: the number of antenna
+    :return:
+    """
+    def ParamDict(hdul):
+        "Return the dictionary of the random parameters"
+
+        """
+        The keys of the dictionary are the parameter names uppercased for
+        consistency. The values are the column numbers.
+
+        If multiple parameters have the same name (e.g., DATE) their
+        columns are entered as a list.
+        """
+
+        pre=re.compile(r"PTYPE(?P<i>\d+)")
+        res={}
+        for k,v in hdul.header.items():
+            m=pre.match(k)
+            if m :
+                vu=v.upper()
+                if vu in res:
+                    res[ vu ] = [ res[vu], int(m.group("i")) ]
+                else:
+                    res[ vu ] = int(m.group("i"))
+        return res
+
+
+    # Open the file
+    with fits.open(fitsname) as hdul:
+
+        # Read Spectral Window
+        nspw = hdul[0].header['NAXIS5']
+        # Read Channel and Frequency Interval
+        freq_ref = hdul[0].header['CRVAL4']
+        mid_chan_freq = hdul[0].header['CRPIX4']
+        delt_freq = hdul[0].header['CDELT4']
+        # Real the number of channels in one spectral window
+        channels = hdul[0].header['NAXIS4']
+        freq = numpy.zeros([nspw, channels])
+        # Read Frequency or IF
+        freqhdulname="AIPS FQ"
+        sdhu  = hdul.index_of(freqhdulname)
+        if_freq = hdul[sdhu].data['IF FREQ'].ravel()
+        for i in range(nspw):
+            temp = numpy.array([if_freq[i] + freq_ref+delt_freq* ff for ff in range(channels)])
+            freq[i,:] = temp[:]
+        freq_delt = numpy.ones(channels) * delt_freq
+        if channum is None:
+            channum = range(channels)
+
+        primary = hdul[0].data
+        # Read time
+        bvtimes = Time(hdul[0].data['DATE'], hdul[0].data['_DATE'], format='jd')
+        bv_times  = numpy.unique(bvtimes.jd)
+        ntimes   = len(bv_times)
+
+                # # Get Antenna
+        # blin = hdul[0].data['BASELINE']
+        antennahdulname="AIPS AN"
+        adhu  = hdul.index_of(antennahdulname)
+        try:
+            antenna_name = hdul[adhu].data['ANNAME']
+            antenna_name = antenna_name.encode('ascii','ignore')
+        except:
+            antenna_name = None
+
+        antenna_xyz = hdul[adhu].data['STABXYZ']
+        antenna_mount =  hdul[adhu].data['MNTSTA']
+        try:
+            antenna_diameter = hdul[adhu].data['DIAMETER']
+        except:
+            antenna_diameter = None
+        # To reading some UVFITS with wrong numbers of antenna
+        if antnum is not None:
+            if antenna_name is not None:
+                antenna_name = antenna_name[:antnum]
+                antenna_xyz = antenna_xyz[:antnum]
+                antenna_mount = antenna_mount[:antnum]
+                if antenna_diameter is not None:
+                    antenna_diameter = antenna_diameter[:antnum]
+        nants = len(antenna_xyz)
+
+        # res= {}
+        # for i,row in enumerate(fin[ahdul].data):
+        #     res[row.field("ANNAME") ]  = i +1
+
+        # Get polarisation info
+        npol = hdul[0].header['NAXIS3']
+        corr_type = numpy.arange(hdul[0].header['NAXIS3']) - (hdul[0].header['CRPIX3'] - 1)
+        corr_type *= hdul[0].header['CDELT3']
+        corr_type += hdul[0].header['CRVAL3']
+        # xx yy xy yx
+        # These correspond to the CASA Stokes enumerations
+        if numpy.array_equal(corr_type, [1, 2, 3, 4]):
+            polarisation_frame = PolarisationFrame('stokesIQUV')
+        elif numpy.array_equal(corr_type, [-1, -2, -3, -4]):
+            polarisation_frame = PolarisationFrame('circular')
+        elif numpy.array_equal(corr_type, [-5, -6, -7, -8]):
+            polarisation_frame = PolarisationFrame('linear')
+        else:
+            raise KeyError("Polarisation not understood: %s" % str(corr_type))            
+
+        configuration = Configuration(name='', data=None, location=None,
+                                        names=antenna_name, xyz=antenna_xyz, mount=antenna_mount, frame=None,
+                                        receptor_frame=polarisation_frame,
+                                        diameter=antenna_diameter)       
+
+        # Get RA and DEC
+        phase_center_ra_degrees = numpy.float(hdul[0].header['CRVAL6'])
+        phase_center_dec_degrees = numpy.float(hdul[0].header['CRVAL7'])
+
+        # Get phasecentres
+        phasecentre = SkyCoord(ra=phase_center_ra_degrees * u.deg, dec=phase_center_dec_degrees * u.deg, frame='icrs', equinox='J2000')
+                    
+        # Get UVW
+        d=ParamDict(hdul[0])
+        if "UU" in d:
+            uu = hdul[0].data['UU'] 
+            vv = hdul[0].data['VV'] 
+            ww = hdul[0].data['WW'] 
+        else:
+            uu = hdul[0].data['UU---SIN'] 
+            vv = shdul[0].data['VV---SIN'] 
+            ww = hdul[0].data['WW---SIN'] 
+        _vis = hdul[0].data['DATA']
+
+        #_vis.shape = (nchan, ntimes, (nants*(nants-1)//2 ), npol, -1)
+        #self.vis = -(_vis[...,0] * 1.j + _vis[...,1])
+        row = 0
+        nchan = len(channum)
+        vis_list = list()
+        for spw_index in range(nspw):
+            bv_vis = numpy.zeros([ntimes, nants, nants, nchan, npol]).astype('complex')
+            bv_weight = numpy.zeros([ntimes, nants, nants, nchan, npol])
+            bv_uvw = numpy.zeros([ntimes, nants, nants, 3])     
+            for time_index , time in enumerate(bv_times):
+                #restfreq = freq[channel_index] 
+                for antenna1 in range(nants-1):
+                    for antenna2 in range(antenna1 + 1, nants):
+                        for channel_no, channel_index in enumerate(channum):
+                            for pol_index in range(npol):
+                                bv_vis[time_index, antenna2, antenna1, channel_no,pol_index] = complex(_vis[row,:,:,spw_index,channel_index, pol_index ,0],_vis[row,:,:,spw_index,channel_index,pol_index ,1])
+                                bv_weight[time_index, antenna2, antenna1, channel_no, pol_index] = _vis[row,:,:,spw_index,channel_index,pol_index ,2]
+                        bv_uvw[time_index, antenna2, antenna1, 0] = uu[row]* constants.c.value
+                        bv_uvw[time_index, antenna2, antenna1, 1] = vv[row]* constants.c.value
+                        bv_uvw[time_index, antenna2, antenna1, 2] = ww[row]* constants.c.value
+                        row += 1 
+            vis_list.append(BlockVisibility(uvw=bv_uvw,
+                                            time=bv_times,
+                                            frequency=freq[spw_index][channum],
+                                            channel_bandwidth=freq_delt[channum],
+                                            vis=bv_vis,
+                                            weight=bv_weight,
+                                            imaging_weight= bv_weight,
+                                            configuration=configuration,
+                                            phasecentre=phasecentre,
+                                            polarisation_frame=polarisation_frame))
+    return vis_list
+
+def create_visibility_from_uvfits(fitsname, channum=None, ack=False, antnum=None):
+    """ Minimal MS to BlockVisibility converter
+
+    The MS format is much more general than the ARL BlockVisibility so we cut ma ny corners. This requires casacore to be
+    installed. If not an exception ModuleNotFoundError is raised.
+
+    Creates a list of BlockVisibility's, split by field and spectral window
+
+    :param msname: File name of MS
+    :param channum: range of channels e.g. range(17,32), default is None meaning all
+    :param antnum: the number of antenna
+    :return:
+    """
+    from processing_components.visibility.coalesce import convert_blockvisibility_to_visibility
+    return [convert_blockvisibility_to_visibility(v)
+            for v in create_blockvisibility_from_uvfits(fitsname=fitsname, channum=channum, ack=ack, antnum=antnum)]

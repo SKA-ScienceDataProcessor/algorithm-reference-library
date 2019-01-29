@@ -46,10 +46,9 @@ dask-worker-space
 .coverage.*
 .coverage
 dask-work-space
-*.lock
-/test_results
 
 *~
 .DS_Store
 **/.DS_Store
-*.dirlock
+*.lock
+*.hdf5
