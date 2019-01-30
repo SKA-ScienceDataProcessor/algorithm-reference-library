@@ -58,8 +58,12 @@ def mpccal_skymodel_list_arlexecute_workflow(visobs, model, theta_list, nmajor=1
             res = create_empty_image_like(dcal[0][0])
             for i, d in enumerate(dcal):
                 assert numpy.max(numpy.abs(d[0].data)) > 0.0, "Residual subimage is zero"
-                assert numpy.max(numpy.abs(tl[i].mask.data)) > 0.0, "Mask image is zero"
-                res.data += d[0].data * tl[i].mask.data
+                if tl[i].mask is None:
+                    res.data += d[0].data
+                else:
+                    assert numpy.max(numpy.abs(tl[i].mask.data)) > 0.0, "Mask image is zero"
+                    res.data += d[0].data * tl[i].mask.data
+                    
             assert numpy.max(numpy.abs(res.data)) > 0.0, "Residual image is zero"
             # import matplotlib.pyplot as plt
             # from processing_components.image.operations import show_image
