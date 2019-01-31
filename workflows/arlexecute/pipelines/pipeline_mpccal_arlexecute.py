@@ -1,4 +1,4 @@
-""" Pipeline functions. SDP standard pipelines expressed as functions.
+""" SDP MPCCAL pipeline expressed as functions.
 """
 
 import logging
@@ -22,9 +22,12 @@ def mpccal_skymodel_list_arlexecute_workflow(visobs, model, theta_list, nmajor=1
                                              mpccal_progress=None, **kwargs):
     """Run MPC pipeline
     
+    This runs the Model Partition Calibration algorithm. See SDP Memo 97 for more details,
+    and see workflows/scripts/pipelines/mpccal-demo.py for an example of the application
+    
     :param visobs: Visibility (not a list!)
     :param model: Model image
-    :param theta_list: SkyModel i.e. theta in memo 97.
+    :param theta_list: List of SkyModels i.e. theta in memo 97.
     :param nmajor: Number of major cycles
     :param context: Imaging context
     :param mpccal_progress: Function to display progress

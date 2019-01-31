@@ -25,6 +25,7 @@ Pipeline workflows
 * ICAL: :py:mod:`workflows.arlexecute.pipelines.pipeline_arlexecute.ical_list_arlexecute_workflow`
 * Continuum imaging: :py:mod:`workflows.arlexecute.pipelines.pipeline_arlexecute.continuum_imaging_list_arlexecute_workflow`
 * Spectral line imaging: :py:mod:`workflows.arlexecute.pipelines.pipeline_arlexecute.spectral_line_imaging_list_arlexecute_workflow`
+* MPCCAL: :py:mod:`workflows.arlexecute.pipelines.pipeline_mpccal_arlexecute.mpccal_skymodel_list_arlexecute_workflow`
 
 Simulation workflows
 ====================
