@@ -298,3 +298,30 @@ def convert_visibility_to_stokes(vis):
         vis.data['vis'] = convert_circular_to_stokes(vis.data['vis'], polaxis=1)
         vis.polarisation_frame = PolarisationFrame('stokesIQUV')
     return vis
+
+def convert_visibility_to_stokesI(vis):
+    """Convert the polarisation frame data into Stokes I dropping other polarisations, return new Visibility
+
+    Args:
+    vis (obj): ARL visibility data.
+
+    Returns:
+    vis: New, converted visibility data.
+    """
+    polarisation_frame = PolarisationFrame('stokesI')
+    poldef = vis.polarisation_frame
+    if poldef == PolarisationFrame('linear'):
+        vis_data = convert_linear_to_stokesI(vis.data['vis'])
+        vis_weight = (vis.weight[...,0] + vis.weight[...,3])[..., numpy.newaxis]
+        vis_imaging_weight = (vis.imaging_weight[...,0] + vis.imaging_weight[...,3])[..., numpy.newaxis]
+    elif poldef == PolarisationFrame('circular'):
+        vis_data = convert_circular_to_stokesI(vis.data['vis'])
+        vis_weight = (vis.weight[...,0] + vis.weight[...,3])[..., numpy.newaxis]
+        vis_imaging_weight = (vis.imaging_weight[...,0] + vis.imaging_weight[...,3])[..., numpy.newaxis]
+
+    return Visibility(frequency=vis.frequency, channel_bandwidth=vis.channel_bandwidth,
+                      phasecentre=vis.phasecentre, configuration=vis.configuration, uvw=vis.uvw,
+                      time=vis.time, antenna1=vis.antenna1, antenna2=vis.antenna2, vis=vis_data,
+                      weight=vis_weight, imaging_weight=vis_imaging_weight, integration_time=vis.integration_time,
+                      polarisation_frame=polarisation_frame, cindex=vis.cindex,
+                      blockvis=vis.blockvis)
