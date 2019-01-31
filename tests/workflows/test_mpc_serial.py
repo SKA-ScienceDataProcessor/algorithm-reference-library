@@ -65,7 +65,7 @@ class TestMPC(unittest.TestCase):
             f = numpy.array([100.0])
         
         self.phasecentre = SkyCoord(ra=+0.0 * u.deg, dec=-40.0 * u.deg, frame='icrs', equinox='J2000')
-        self.blockvis_list = [serial.execute(ingest_unittest_visibility)(self.low,
+        self.blockvis_list = [ingest_unittest_visibility(self.low,
                                                                              [self.frequency[freqwin]],
                                                                              [self.channelwidth[freqwin]],
                                                                              self.times,
@@ -73,9 +73,9 @@ class TestMPC(unittest.TestCase):
                                                                              self.phasecentre, block=block,
                                                                              zerow=zerow)
                               for freqwin, _ in enumerate(self.frequency)]
-        self.vis_list = [serial.execute(convert_blockvisibility_to_visibility)(bv) for bv in self.blockvis_list]
+        self.vis_list = [convert_blockvisibility_to_visibility(bv) for bv in self.blockvis_list]
         
-        self.skymodel_list = [serial.execute(create_low_test_skymodel_from_gleam)
+        self.skymodel_list = [create_low_test_skymodel_from_gleam
                               (npixel=self.npixel, cellsize=self.cellsize, frequency=[self.frequency[f]],
                                phasecentre=self.phasecentre,
                                polarisation_frame=PolarisationFrame("stokesI"),

@@ -16,7 +16,8 @@ from processing_library.util.coordinate_support import skycoord_to_lmn, simulate
 
 from ..visibility.base import copy_visibility
 
-from data_models.polarisation import convert_linear_to_stokes, convert_circular_to_stokes, PolarisationFrame
+from data_models.polarisation import convert_linear_to_stokes, convert_circular_to_stokesI, convert_linear_to_stokesI, \
+    convert_circular_to_stokes, PolarisationFrame
 
 log = logging.getLogger(__name__)
 
