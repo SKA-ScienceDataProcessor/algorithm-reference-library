@@ -73,7 +73,7 @@ def solve_antenna_gains_itsubs_scalar(gain, gwt, x, xwt, niter=30, tol=1e-8, pha
     :param niter: Number of iterations
     :param tol: tolerance on solution change
     :param phase_only: Do solution for only the phase? (default True)
-    :param refant: Reference antenna for phase (default=0.0)
+    :param refant: Reference antenna for phase (default=0)
     :return: gain [nants, ...], weight [nants, ...]
 
     """

@@ -147,7 +147,7 @@ def calculate_skymodel_equivalent_image(sm):
     return combined_model
 
 
-def update_skymodel_from_image(sm, im):
+def update_skymodel_from_image(sm, im, damping=0.5):
     """Update a skymodel for an image
 
     :param sm:
@@ -158,12 +158,12 @@ def update_skymodel_from_image(sm, im):
         newim = copy_image(im)
         if th.mask is not None:
             newim.data *= th.mask.data
-        th.image.data += newim.data
+        th.image.data += damping * newim.data
     
     return sm
 
 
-def update_skymodel_from_gaintables(sm, gt_list, calibration_context='T'):
+def update_skymodel_from_gaintables(sm, gt_list, calibration_context='T', damping=0.5):
     """Update a skymodel from a list of gaintables
 
     :param sm:
@@ -174,7 +174,8 @@ def update_skymodel_from_gaintables(sm, gt_list, calibration_context='T'):
     
     for i, th in enumerate(sm):
         assert isinstance(th.gaintable, GainTable), th.gaintable
-        th.gaintable.data['gain'] *= gt_list[i][calibration_context].gain
+        delta = numpy.exp(damping*1j*gt_list[i][calibration_context].gain)
+        th.gaintable.data['gain'] *= numpy.exp(damping*1j*numpy.angle(gt_list[i][calibration_context].gain))
     
     return sm
 
