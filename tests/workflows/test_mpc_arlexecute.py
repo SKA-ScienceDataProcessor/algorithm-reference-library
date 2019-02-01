@@ -114,7 +114,9 @@ class TestMPC(unittest.TestCase):
         
         self.actualSetUp(zerow=True)
         
-        skymodel_vislist = predict_skymodel_list_arlexecute_workflow(self.vis_list[0], self.skymodel_list,
+        future_vis = arlexecute.scatter(self.vis_list[0])
+        future_skymodel = arlexecute.scatter(self.skymodel_list)
+        skymodel_vislist = predict_skymodel_list_arlexecute_workflow(future_vis, future_skymodel,
                                                                      context='2d', docal=True)
         skymodel_vislist = arlexecute.compute(skymodel_vislist, sync=True)
         vobs = sum_predict_results(skymodel_vislist)
@@ -133,8 +135,10 @@ class TestMPC(unittest.TestCase):
     def test_invertcal(self):
         self.actualSetUp(zerow=True)
         
-        skymodel_vislist = predict_skymodel_list_arlexecute_workflow(self.vis_list[0], self.skymodel_list,
-                                                                     context='2d', docal=True)
+        future_vis = arlexecute.scatter(self.vis_list[0])
+        future_skymodel = arlexecute.scatter(self.skymodel_list)
+        skymodel_vislist = predict_skymodel_list_arlexecute_workflow(future_vis, future_skymodel,
+                                                                    context='2d', docal=True)
         skymodel_vislist = arlexecute.compute(skymodel_vislist, sync=True)
         
         result_skymodel = [SkyModel(components=None, image=self.skymodel_list[-1].image)
@@ -152,15 +156,18 @@ class TestMPC(unittest.TestCase):
             show_image(results[0][0], title='Dirty image, no cross-subtraction', vmax=0.1, vmin=-0.01)
             plt.show()
     
-    def test_extract_datamodel(self):
+    def test_crosssubtract_datamodel(self):
         self.actualSetUp(zerow=True)
         
-        skymodel_vislist = predict_skymodel_list_arlexecute_workflow(self.vis_list[0], self.skymodel_list,
-                                                                     context='2d', docal=True)
+        future_vis = arlexecute.scatter(self.vis_list[0])
+        future_skymodel_list = arlexecute.scatter(self.skymodel_list)
+        skymodel_vislist = predict_skymodel_list_arlexecute_workflow(future_vis, future_skymodel_list,
+                                                                    context='2d', docal=True)
         skymodel_vislist = arlexecute.compute(skymodel_vislist, sync=True)
         vobs = sum_predict_results(skymodel_vislist)
         
-        skymodel_vislist = crosssubtract_datamodels_skymodel_list_arlexecute_workflow(vobs, skymodel_vislist)
+        future_vobs = arlexecute.scatter(vobs)
+        skymodel_vislist = crosssubtract_datamodels_skymodel_list_arlexecute_workflow(future_vobs, skymodel_vislist)
         
         skymodel_vislist = arlexecute.compute(skymodel_vislist, sync=True)
         

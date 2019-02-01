@@ -14,7 +14,7 @@ from data_models.memory_data_models import Skycomponent
 from data_models.polarisation import PolarisationFrame
 from wrappers.serial.skymodel.operations import expand_skymodel_by_skycomponents
 from workflows.serial.skymodel.skymodel_serial import predict_skymodel_list_serial_workflow, \
-    invert_skymodel_list_serial_workflow, extract_datamodels_skymodel_list_serial_workflow
+    invert_skymodel_list_serial_workflow, crosssubtract_datamodels_skymodel_list_serial_workflow
 from workflows.shared.imaging.imaging_shared import sum_predict_results
 from wrappers.serial.simulation.testing_support import create_named_configuration, ingest_unittest_visibility, \
     create_low_test_skymodel_from_gleam
@@ -131,14 +131,14 @@ class TestMPC(unittest.TestCase):
             show_image(results[0][0], title='Dirty image, no cross-subtraction', vmax=0.1, vmin=-0.01)
             plt.show()
     
-    def test_extract_datamodel(self):
+    def test_crosssubtract_datamodel(self):
         self.actualSetUp(zerow=True)
         
         skymodel_vislist = predict_skymodel_list_serial_workflow(self.vis_list[0], self.skymodel_list,
                                                                      context='2d', docal=True)
         vobs = sum_predict_results(skymodel_vislist)
         
-        skymodel_vislist = extract_datamodels_skymodel_list_serial_workflow(vobs, skymodel_vislist)
+        skymodel_vislist = crosssubtract_datamodels_skymodel_list_serial_workflow(vobs, skymodel_vislist)
         
         result_skymodel = [SkyModel(components=None, image=self.skymodel_list[-1].image)
                            for v in skymodel_vislist]

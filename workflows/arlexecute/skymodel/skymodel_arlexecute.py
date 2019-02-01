@@ -103,9 +103,8 @@ def invert_skymodel_list_arlexecute_workflow(vis_list, skymodel_list, context, v
         
         return result
     
-    im_list = [arlexecute.execute(ift_ical_sm, nout=1)(vis_list[i], sm) for i, sm in enumerate(skymodel_list)]
+    return [arlexecute.execute(ift_ical_sm, nout=1)(vis_list[i], sm) for i, sm in enumerate(skymodel_list)]
     
-    return im_list
 
 
 def crosssubtract_datamodels_skymodel_list_arlexecute_workflow(obsvis, modelvis_list):

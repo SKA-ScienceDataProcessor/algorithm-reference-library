@@ -2,7 +2,7 @@ import logging
 
 import numpy
 
-from data_models.memory_data_models import Image, GainTable, Visibility
+from data_models.memory_data_models import Image, GainTable, Visibility, SkyModel
 from processing_library.image.operations import copy_image
 from workflows.serial.imaging.imaging_serial import predict_list_serial_workflow, invert_list_serial_workflow
 from wrappers.serial.calibration.operations import apply_gaintable
@@ -16,14 +16,11 @@ from wrappers.serial.visibility.coalesce import convert_blockvisibility_to_visib
 log = logging.getLogger(__name__)
 
 
-def predict_skymodel_list_serial_workflow(vis_list, skymodel_list, context, vis_slices=1, facets=1,
+def predict_skymodel_list_serial_workflow(obsvis, skymodel_list, context, vis_slices=1, facets=1,
                                           gcfcf=None, docal=False, **kwargs):
-    """Predict from a skymodel, iterating over both the vis_list and skymodel
+    """Predict from a list of skymodels, producing one visibility per skymodel
 
-    The visibility and image are scattered, the visibility is predicted on each part, and then the
-    parts are assembled.
-
-    :param vis_list: List of Visibility data models
+    :param obsvis: "Observed Visibility"
     :param skymodel_list: skymodel list
     :param vis_slices: Number of vis slices (w stack or timeslice)
     :param facets: Number of facets (per axis)
@@ -34,10 +31,10 @@ def predict_skymodel_list_serial_workflow(vis_list, skymodel_list, context, vis_
     :return: List of vis_lists
    """
     
-    assert len(vis_list) == len(skymodel_list)
-    
-    def ft_cal_sm(v, sm):
-        assert isinstance(v, Visibility), v
+    def ft_cal_sm(ov, sm):
+        assert isinstance(ov, Visibility), ov
+        assert isinstance(sm, SkyModel), sm
+        v = copy_visibility(ov)
         
         v.data['vis'][...] = 0.0 + 0.0j
         
@@ -63,12 +60,12 @@ def predict_skymodel_list_serial_workflow(vis_list, skymodel_list, context, vis_
         
         if docal and isinstance(sm.gaintable, GainTable):
             bv = convert_visibility_to_blockvisibility(v)
-            bv = apply_gaintable(bv, sm.gaintable)
+            bv = apply_gaintable(bv, sm.gaintable, inverse=True)
             v = convert_blockvisibility_to_visibility(bv)
         
         return v
     
-    return [ft_cal_sm(vis_list[i], skymodel_list[i]) for i, _ in enumerate(vis_list)]
+    return [ft_cal_sm(obsvis, sm) for sm in skymodel_list]
 
 
 def invert_skymodel_list_serial_workflow(vis_list, skymodel_list, context, vis_slices=1, facets=1,
@@ -89,28 +86,27 @@ def invert_skymodel_list_serial_workflow(vis_list, skymodel_list, context, vis_s
     :return: List of (image, weight) tuples)
    """
     
-    assert len(vis_list) == len(skymodel_list)
-    
     def ift_ical_sm(v, sm):
         assert isinstance(v, Visibility), v
         assert isinstance(sm.image, Image), sm.image
         
         if docal and isinstance(sm.gaintable, GainTable):
             bv = convert_visibility_to_blockvisibility(v)
-            bv = apply_gaintable(bv, sm.gaintable, inverse=True)
+            bv = apply_gaintable(bv, sm.gaintable)
             v = convert_blockvisibility_to_visibility(bv)
         
         result = invert_list_serial_workflow([v], [sm.image], context=context,
                                              vis_slices=vis_slices, facets=facets, gcfcf=gcfcf,
                                              **kwargs)[0]
         if isinstance(sm.mask, Image):
-            result[0].data *= sm.mask
+            result[0].data *= sm.mask.data
+        
         return result
     
     return [ift_ical_sm(vis_list[i], sm) for i, sm in enumerate(skymodel_list)]
 
 
-def extract_datamodels_skymodel_list_serial_workflow(obsvis, modelvis_list):
+def crosssubtract_datamodels_skymodel_list_serial_workflow(obsvis, modelvis_list):
     """Form data models by subtracting sum from the observed and adding back each model in turn
 
     vmodel[p] = vobs - sum(i!=p) modelvis[i]
