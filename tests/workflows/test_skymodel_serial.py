@@ -90,7 +90,8 @@ class TestSkyModel(unittest.TestCase):
         assert len(self.skymodel_list[0].components) == 13, len(self.skymodel_list[0].components)
         assert numpy.max(numpy.abs(self.skymodel_list[0].image.data)) > 0.0, "Image is empty"
         
-        skymodel_vislist = predict_skymodel_list_serial_workflow(self.vis_list, self.skymodel_list, context='2d')
+        skymodel_vislist = predict_skymodel_list_serial_workflow(self.vis_list[0],
+                                                                 self.skymodel_list, context='2d')
         assert numpy.max(numpy.abs(skymodel_vislist[0].vis)) > 0.0
 
 
@@ -107,12 +108,12 @@ class TestSkyModel(unittest.TestCase):
         
         
         for i, sm in enumerate(self.skymodel_list):
-            sm.components = {}
+            sm.components = []
         
         assert isinstance(self.skymodel_list[0].image, Image), self.skymodel_list[0].image
         assert numpy.max(numpy.abs(self.skymodel_list[0].image.data)) > 0.0, "Image is empty"
         
-        skymodel_vislist = predict_skymodel_list_serial_workflow(self.vis_list, self.skymodel_list, context='2d')
+        skymodel_vislist = predict_skymodel_list_serial_workflow(self.vis_list[0], self.skymodel_list, context='2d')
         assert numpy.max(numpy.abs(skymodel_vislist[0].vis)) > 0.0
     
     
@@ -133,7 +134,7 @@ class TestSkyModel(unittest.TestCase):
         assert isinstance(self.skymodel_list[0].components[0], Skycomponent), self.skymodel_list[0].components[0]
         assert len(self.skymodel_list[0].components) == 13, len(self.skymodel_list[0].components)
         
-        skymodel_vislist = predict_skymodel_list_serial_workflow(self.vis_list, self.skymodel_list, context='2d')
+        skymodel_vislist = predict_skymodel_list_serial_workflow(self.vis_list[0], self.skymodel_list, context='2d')
         assert numpy.max(numpy.abs(skymodel_vislist[0].vis)) > 0.0
 
 

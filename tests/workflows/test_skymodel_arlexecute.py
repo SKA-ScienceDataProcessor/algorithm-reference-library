@@ -101,7 +101,8 @@ class TestSkyModel(unittest.TestCase):
         assert numpy.max(numpy.abs(self.skymodel_list[0].image.data)) > 0.0, "Image is empty"
 
         self.skymodel_list = arlexecute.scatter(self.skymodel_list)
-        skymodel_vislist = predict_skymodel_list_arlexecute_workflow(self.vis_list[0], self.skymodel_list, context='2d')
+        skymodel_vislist = predict_skymodel_list_arlexecute_workflow(self.vis_list[0],
+                                                                     self.skymodel_list, context='2d')
         skymodel_vislist = arlexecute.compute(skymodel_vislist, sync=True)
         assert numpy.max(numpy.abs(skymodel_vislist[0].vis)) > 0.0
 
