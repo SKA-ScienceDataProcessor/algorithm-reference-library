@@ -8,7 +8,7 @@ import sys
 sys.path.append(os.path.join('..', '..'))
 
 
-results_dir = './results/timing-csd3/16'
+results_dir = './results/timing-csd3/dask'
 #from matplotlib import pylab
 
 #pylab.rcParams['figure.figsize'] = (12.0, 12.0)
@@ -37,7 +37,7 @@ def plot_freqwin(data,fignum,figtitle):
         names': ('numnodes','numprocs','nfreqw','time'),
         formats': ('i','i','i','f')},
     """
-    nfreqwin_list=[71,101,203,407]
+    nfreqwin_list=[41,71,101,203]
     plot_shapes=['ro','bs','g^','y*']
     fig=plt.figure(fignum)
     fig.suptitle(figtitle)
@@ -45,7 +45,9 @@ def plot_freqwin(data,fignum,figtitle):
         procs= [x['numprocs'] for x in data if x['nfreqw']==nfreqwin]
         nodes= [x['numnodes'] for x in data if x['nfreqw']==nfreqwin]
         times= [x['time'] for x in data if x['nfreqw']==nfreqwin]
-        plt.plot(procs,times,plot_shapes[i],linestyle='--',label="nfreqwin %d" %
+        #plt.plot(procs,times,plot_shapes[i],linestyle='--',label="nfreqwin %d" %
+        #     (nfreqwin))
+        plt.plot(nodes,times,plot_shapes[i],linestyle='--',label="nfreqwin %d" %
              (nfreqwin))
         plt.ylabel('time in seconds')
         plt.xlabel('number of processes')
