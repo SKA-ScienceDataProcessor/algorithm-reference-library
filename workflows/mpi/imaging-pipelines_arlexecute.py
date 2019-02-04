@@ -70,12 +70,13 @@ def init_logging():
                         format='%(asctime)s,%(msecs)d %(name)s %(levelname)s %(message)s',
                         datefmt='%H:%M:%S',
                         level=logging.INFO)
-log = logging.getLogger()
-logging.info("Starting imaging-pipeline")
 
 parser = argparse.ArgumentParser(description='Imaging pipelines in Dask.')
 parser.add_argument('--nfreqwin', type=int, nargs='?', default=7,
                                        help='The number of frequency windows')
+parser.add_argument('--schedulerfile', type=str, nargs='?',
+                    default='./scheduler.json',
+                    help='The scheduler file if starting with dask-mpi')
 
 args = parser.parse_args()
 
@@ -86,16 +87,24 @@ args = parser.parse_args()
 threads_per_worker=16
 memory=384
 nworkers=1
-
+filename=args.schedulerfile
 client = get_dask_Client(threads_per_worker=threads_per_worker,
                          processes = threads_per_worker == 1,
                          memory_limit=memory * 1024 * 1024 * 1024,
-                         n_workers=nworkers)
+                         n_workers=nworkers, with_file=True,
+                         scheduler_file=filename)
 arlexecute.set_client(client)
 nodes = findNodes(arlexecute.client)
 print("Defined %d workers on %d nodes" % (nworkers, len(nodes)))
 print("Workers are: %s" % str(nodes))
 #arlexecute.set_client(use_dask=True)
+
+init_logging()
+log = logging.getLogger()
+logging.info("Starting imaging-pipeline")
+
+# Initialise logging on the workers. This appears to only work using
+#   the process scheduler.
 arlexecute.run(init_logging)
 
 
@@ -111,12 +120,15 @@ arlexecute.run(init_logging)
 
 #nfreqwin=7
 nfreqwin=args.nfreqwin
-ntimes=5
+#ntimes=5
 rmax=300.0
-frequency=numpy.linspace(1.0e8,1.2e8,nfreqwin)
+#frequency=numpy.linspace(1.0e8,1.2e8,nfreqwin)
+ntimes=11
+frequency=numpy.linspace(0.9e8,1.1e8,nfreqwin)
 channel_bandwidth=numpy.array(nfreqwin*[frequency[1]-frequency[0]])
 times = numpy.linspace(-numpy.pi/3.0, numpy.pi/3.0, ntimes)
-phasecentre=SkyCoord(ra=+0.0 * u.deg, dec=-40.0 * u.deg, frame='icrs', equinox='J2000')
+#phasecentre=SkyCoord(ra=+0.0 * u.deg, dec=-40.0 * u.deg, frame='icrs', equinox='J2000')
+phasecentre=SkyCoord(ra=+30.0 * u.deg, dec=-60.0 * u.deg, frame='icrs', equinox='J2000')
 
 bvis_list=simulate_list_arlexecute_workflow('LOWBD2',
                                          frequency=frequency, 
