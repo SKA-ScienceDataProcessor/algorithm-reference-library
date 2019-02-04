@@ -73,7 +73,7 @@ def solve_antenna_gains_itsubs_scalar(gain, gwt, x, xwt, niter=30, tol=1e-8, pha
     :param niter: Number of iterations
     :param tol: tolerance on solution change
     :param phase_only: Do solution for only the phase? (default True)
-    :param refant: Reference antenna for phase (default=0.0)
+    :param refant: Reference antenna for phase (default=0)
     :return: gain [nants, ...], weight [nants, ...]
 
     """
@@ -89,8 +89,8 @@ def solve_antenna_gains_itsubs_scalar(gain, gwt, x, xwt, niter=30, tol=1e-8, pha
     for iter in range(niter):
         gainLast = gain
         gain, gwt = gain_substitution_scalar(gain, x, xwt)
-        mask = numpy.abs(gain) > 0.0
         if phase_only:
+            mask = numpy.abs(gain) > 0.0
             gain[mask] = gain[mask] / numpy.abs(gain[mask])
         angles = numpy.angle(gain)
         gain *= numpy.exp(-1j * angles)[refant, ...]
@@ -110,10 +110,13 @@ def gain_substitution_scalar(gain, x, xwt):
     x = x.reshape(nants, nants, nchan, nrec, nrec)
     xwt = xwt.reshape(nants, nants, nchan, nrec, nrec)
     
+    xxwt = x[:, :, :, 0, 0] * xwt[:, :, :, 0, 0]
+    cgain = numpy.conjugate(gain)
+    gcg = gain[:, :, 0, 0] * cgain[:, :, 0, 0]
+    
     for ant1 in range(nants):
-        top = numpy.sum(x[:, ant1, :, 0, 0] * gain[:, :, 0, 0] * xwt[:, ant1, :, 0, 0], axis=0)
-        bot = numpy.sum((gain[:, :, 0, 0] * numpy.conjugate(gain[:, :, 0, 0]) *
-                         xwt[:, ant1, :, 0, 0]).real, axis=0)
+        top = numpy.sum(gain[:, :, 0, 0] * xxwt[:, ant1, :], axis=0)
+        bot = numpy.sum((gcg[:, :] * xwt[:, ant1, :, 0, 0]).real, axis=0)
     
         if bot.all() > 0.0:
             newgain[ant1, :, 0, 0] = top / bot

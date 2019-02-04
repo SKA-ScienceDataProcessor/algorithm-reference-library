@@ -59,6 +59,10 @@ class TestDataModelHelpers(unittest.TestCase):
         newvis = import_visibility_from_hdf5('%s/test_data_model_helpers_visibility.hdf' % self.dir)
         
         assert str(newvis) == str(self.vis), "Original %s, import %s" % (str(newvis), str(self.vis))
+        
+        for key in self.vis.data.dtype.fields:
+            assert numpy.max(numpy.abs(newvis.data[key]-self.vis.data[key])) < 1e-15
+
         assert numpy.array_equal(newvis.frequency, self.vis.frequency)
         assert newvis.data.shape == self.vis.data.shape
         assert numpy.array_equal(newvis.frequency, self.vis.frequency)
@@ -78,7 +82,10 @@ class TestDataModelHelpers(unittest.TestCase):
         self.vis = predict_skycomponent_visibility(self.vis, self.comp)
         export_blockvisibility_to_hdf5(self.vis, '%s/test_data_model_helpers_blockvisibility.hdf' % self.dir)
         newvis = import_blockvisibility_from_hdf5('%s/test_data_model_helpers_blockvisibility.hdf' % self.dir)
-        
+
+        for key in self.vis.data.dtype.fields:
+            assert numpy.max(numpy.abs(newvis.data[key]-self.vis.data[key])) < 1e-15
+
         assert numpy.array_equal(newvis.frequency, self.vis.frequency)
         assert newvis.data.shape == self.vis.data.shape
         assert numpy.max(numpy.abs(self.vis.vis - newvis.vis)) < 1e-15
@@ -99,6 +106,9 @@ class TestDataModelHelpers(unittest.TestCase):
         export_gaintable_to_hdf5(gt, '%s/test_data_model_helpers_gaintable.hdf' % self.dir)
         newgt = import_gaintable_from_hdf5('%s/test_data_model_helpers_gaintable.hdf' % self.dir)
         
+        for key in gt.data.dtype.fields:
+            assert numpy.max(numpy.abs(newgt.data[key]-gt.data[key])) < 1e-15
+
         assert gt.data.shape == newgt.data.shape
         assert numpy.max(numpy.abs(gt.gain - newgt.gain)) < 1e-15
     
@@ -118,14 +128,20 @@ class TestDataModelHelpers(unittest.TestCase):
         assert numpy.max(numpy.abs(newsc.flux - self.comp.flux)) < 1e-15
 
     def test_readwriteskymodel(self):
+        self.vis = create_blockvisibility(self.lowcore, self.times, self.frequency,
+                                          channel_bandwidth=self.channel_bandwidth,
+                                          phasecentre=self.phasecentre,
+                                          polarisation_frame=PolarisationFrame("linear"),
+                                          weight=1.0)
         im = create_test_image()
-        sm = SkyModel(components=[self.comp], images=[im, im])
+        gt = create_gaintable_from_blockvisibility(self.vis, timeslice='auto')
+        sm = SkyModel(components=[self.comp], image=im, gaintable=gt)
         export_skymodel_to_hdf5(sm, '%s/test_data_model_helpers_skymodel.hdf' % self.dir)
         newsm = import_skymodel_from_hdf5('%s/test_data_model_helpers_skymodel.hdf' % self.dir)
     
         assert newsm.components[0].flux.shape == self.comp.flux.shape
-        assert newsm.images[0].data.shape == im.data.shape
-        assert numpy.max(numpy.abs(newsm.images[0].data - im.data)) < 1e-15
+        assert newsm.image.data.shape == im.data.shape
+        assert numpy.max(numpy.abs(newsm.image.data - im.data)) < 1e-15
 
     def test_readwritegriddata(self):
         im = create_test_image()

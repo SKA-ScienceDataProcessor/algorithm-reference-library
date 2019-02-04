@@ -3,18 +3,21 @@
 """
 
 import logging
-import warnings
 from typing import Union
 
+import warnings
 import numpy
 from astropy.coordinates import SkyCoord
 
 from data_models.memory_data_models import BlockVisibility, Visibility, QA
-from data_models.polarisation import convert_linear_to_stokes, convert_circular_to_stokes, PolarisationFrame, \
-    convert_linear_to_stokesI, convert_circular_to_stokesI
+
 from processing_library.imaging.imaging_params import get_frequency_map
 from processing_library.util.coordinate_support import skycoord_to_lmn, simulate_point
-from processing_components.visibility.base import copy_visibility
+
+from ..visibility.base import copy_visibility
+
+from data_models.polarisation import convert_linear_to_stokes, convert_circular_to_stokesI, convert_linear_to_stokesI, \
+    convert_circular_to_stokes, PolarisationFrame
 
 log = logging.getLogger(__name__)
 
@@ -133,8 +136,8 @@ def subtract_visibility(vis, model_vis, inplace=False):
     else:
         raise RuntimeError("Types of vis and model visibility are invalid")
     
-    assert vis.vis.shape == model_vis.vis.shape, "Observed %s and model visibilities %s have different shapes" \
-                                                 % (vis.vis.shape, model_vis.vis.shape)
+    assert vis.vis.shape == model_vis.vis.shape, "Observed %s and model visibilities %s have different shapes"\
+        % (vis.vis.shape, model_vis.vis.shape)
     
     if inplace:
         vis.data['vis'] = vis.data['vis'] - model_vis.data['vis']
@@ -228,7 +231,7 @@ def divide_visibility(vis: BlockVisibility, modelvis: BlockVisibility):
         xwt = numpy.zeros(xshape)
         # TODO: Remove filter when fixed to use ndarray
         warnings.simplefilter("ignore", category=PendingDeprecationWarning)
-        
+
         for row in range(nrows):
             for ant1 in range(nants):
                 for ant2 in range(ant1 + 1, nants):
@@ -279,7 +282,6 @@ def integrate_visibility_by_channel(vis: BlockVisibility) -> BlockVisibility:
     
     return newvis
 
-
 def convert_visibility_to_stokes(vis):
     """Convert the polarisation frame data into Stokes parameters.
 
@@ -297,7 +299,6 @@ def convert_visibility_to_stokes(vis):
         vis.data['vis'] = convert_circular_to_stokes(vis.data['vis'], polaxis=1)
         vis.polarisation_frame = PolarisationFrame('stokesIQUV')
     return vis
-
 
 def convert_visibility_to_stokesI(vis):
     """Convert the polarisation frame data into Stokes I dropping other polarisations, return new Visibility

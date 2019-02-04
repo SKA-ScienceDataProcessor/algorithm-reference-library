@@ -275,6 +275,8 @@ def convert_gaintable_to_hdf(gt: GainTable, f):
     f.attrs['ARL_data_model'] = 'GainTable'
     f.attrs['frequency'] = gt.frequency
     f.attrs['receptor_frame'] = gt.receptor_frame.type
+    f.attrs['phasecentre_coords'] = gt.phasecentre.to_string()
+    f.attrs['phasecentre_frame'] = gt.phasecentre.frame.name
     f['data'] = gt.data
     return f
 
@@ -289,7 +291,10 @@ def convert_hdf_to_gaintable(f):
     receptor_frame = ReceptorFrame(f.attrs['receptor_frame'])
     frequency = numpy.array(f.attrs['frequency'])
     data = numpy.array(f['data'])
-    gt = GainTable(data=data, receptor_frame=receptor_frame, frequency=frequency)
+    s = f.attrs['phasecentre_coords'].split()
+    ss = [float(s[0]), float(s[1])] * u.deg
+    phasecentre = SkyCoord(ra=ss[0], dec=ss[1], frame=f.attrs['phasecentre_frame'])
+    gt = GainTable(data=data, receptor_frame=receptor_frame, frequency=frequency, phasecentre=phasecentre)
     return gt
 
 
@@ -348,7 +353,7 @@ def convert_skycomponent_to_hdf(sc: Skycomponent, f):
 
 
 def convert_hdf_to_skycomponent(f):
-    """ Convert HDF root to a GainTable
+    """ Convert HDF root to a SkyComponent
 
     :param f:
     :return:
@@ -409,12 +414,13 @@ def convert_image_to_hdf(im: Image, f):
     :param f: HDF root
     :return:
     """
-    assert isinstance(im, Image), im
+    if isinstance(im, Image):
     
-    f.attrs['ARL_data_model'] = 'Image'
-    f['data'] = im.data
-    f.attrs['wcs'] = numpy.string_(im.wcs.to_header_string())
-    f.attrs['polarisation_frame'] = im.polarisation_frame.type
+        f.attrs['ARL_data_model'] = 'Image'
+        f['data'] = im.data
+        f.attrs['wcs'] = numpy.string_(im.wcs.to_header_string())
+        f.attrs['polarisation_frame'] = im.polarisation_frame.type
+        
     return f
 
 
@@ -424,13 +430,15 @@ def convert_hdf_to_image(f):
     :param f:
     :return:
     """
-    assert f.attrs['ARL_data_model'] == "Image", "Not an Image"
-    data = numpy.array(f['data'])
-    polarisation_frame = PolarisationFrame(f.attrs['polarisation_frame'])
-    wcs = WCS(f.attrs['wcs'])
-    im = create_image_from_array(data, wcs=wcs,
+    if 'ARL_data_model' in f.attrs.keys() and f.attrs['ARL_data_model'] == "Image":
+        data = numpy.array(f['data'])
+        polarisation_frame = PolarisationFrame(f.attrs['polarisation_frame'])
+        wcs = WCS(f.attrs['wcs'])
+        im = create_image_from_array(data, wcs=wcs,
                                  polarisation_frame=polarisation_frame)
-    return im
+        return im
+    else:
+        return None
 
 
 def export_image_to_hdf5(im, filename):
@@ -477,20 +485,38 @@ def export_skymodel_to_hdf5(sm, filename):
     :return:
     """
     
-    assert isinstance(sm, SkyModel)
+    if not isinstance(sm, collections.Iterable):
+        sm = [sm]
     
     with h5py.File(filename, 'w') as f:
-        f.attrs['number_skycomponents'] = len(sm.components)
-        for i, sc in enumerate(sm.components):
-            cf = f.create_group('skycomponent%d' % i)
-            convert_skycomponent_to_hdf(sc, cf)
-        f.attrs['number_images'] = len(sm.images)
-        for i, im in enumerate(sm.images):
-            cf = f.create_group('image%d' % i)
-            convert_image_to_hdf(im, cf)
-        
+        f.attrs['number_data_models'] = len(sm)
+        for i, s in enumerate(sm):
+            assert isinstance(s, SkyModel)
+            sf = f.create_group('SkyModel%d' % i)
+            convert_skymodel_to_hdf(s, sf)
         f.flush()
         f.close()
+        
+def convert_skymodel_to_hdf(sm, f):
+    """
+    
+    :param sm:
+    :param f:
+    :return:
+    """
+    f.attrs['ARL_data_model'] = 'SkyModel'
+    f.attrs['fixed'] = sm.fixed
+    f.attrs['number_skycomponents'] = len(sm.components)
+    for i, sc in enumerate(sm.components):
+        cf = f.create_group('skycomponent%d' % i)
+        convert_skycomponent_to_hdf(sm.components[i], cf)
+    cf = f.create_group('image')
+    convert_image_to_hdf(sm.image, cf)
+    cf = f.create_group('mask')
+    convert_image_to_hdf(sm.mask, cf)
+    cf = f.create_group('gaintable')
+    convert_gaintable_to_hdf(sm.gaintable, cf)
+    return f
 
 
 def import_skymodel_from_hdf5(filename):
@@ -501,83 +527,46 @@ def import_skymodel_from_hdf5(filename):
     """
     
     with h5py.File(filename, 'r') as f:
-        ncomponents = f.attrs['number_skycomponents']
-        components = [convert_hdf_to_skycomponent(f['skycomponent%d' % i])
-                      for i in range(ncomponents)]
-        
-        nimages = f.attrs['number_images']
-        images = [convert_hdf_to_image(f['image%d' % i]) for i in range(nimages)]
-        
-        return SkyModel(components=components, images=images)
-
-
-def memory_data_model_to_buffer(model, jbuff, dm):
-    """ Copy a memory data model to a buffer data model
-    
-    The file type is derived from the file extension. All are hdf only with the exception of Imaghe which can also be
-    fits.
-
-    :param model: Memory data model to be sent to buffer
-    :param jbuff: JSON describing buffer
-    :param dm: JSON describing data model
-    """
-    name = jbuff["directory"] + dm["name"]
-
-    import os
-    _, file_extension = os.path.splitext(dm["name"])
-
-    if dm["data_model"] == "BlockVisibility":
-        return export_blockvisibility_to_hdf5(model, name)
-    elif dm["data_model"] == "Image":
-        if file_extension == ".fits":
-            return export_image_to_fits(model, name)
+        nsmlist = f.attrs['number_data_models']
+        smlist = [convert_hdf_to_skymodel(f['SkyModel%d' % i]) for i in range(nsmlist)]
+        if nsmlist == 1:
+            return smlist[0]
         else:
-            return export_image_to_hdf5(model, name)
-    elif dm["data_model"] == "GridData":
-        return export_griddata_to_hdf5(model, name)
-    elif dm["data_model"] == "ConvolutionFunction":
-        return export_convolutionfunction_to_hdf5(model, name)
-    elif dm["data_model"] == "SkyModel":
-        return export_skymodel_to_hdf5(model, name)
-    elif dm["data_model"] == "GainTable":
-        return export_gaintable_to_hdf5(model, name)
-    else:
-        raise ValueError("Data model %s not supported" % dm["data_model"])
-
-
-def buffer_data_model_to_memory(jbuff, dm):
-    """Copy a buffer data model into memory data model
+            return smlist
     
-    The file type is derived from the file extension. All are hdf only with the exception of Imaghe which can also be
-    fits.
-
-    :param jbuff: JSON describing buffer
-    :param dm: JSON describing data model
-    :return: data model
+def convert_hdf_to_skymodel(f):
     """
-    import os
-    name = os.path.join(jbuff["directory"], dm["name"])
-
-    import os
-    _, file_extension = os.path.splitext(dm["name"])
     
-    if dm["data_model"] == "BlockVisibility":
-        return import_blockvisibility_from_hdf5(name)
-    elif dm["data_model"] == "Image":
-        if file_extension == ".fits":
-            return import_image_from_fits(name)
-        else:
-            return import_image_from_hdf5(name)
-    elif dm["data_model"] == "SkyModel":
-        return import_skymodel_from_hdf5(name)
-    elif dm["data_model"] == "GainTable":
-        return import_gaintable_from_hdf5(name)
-    elif dm["data_model"] == "GridData":
-        return import_griddata_from_hdf5(name)
-    elif dm["data_model"] == "ConvolutionFunction":
-        return import_convolutionfunction_from_hdf5(name)
+    :param f:
+    :return:
+    """
+    assert f.attrs['ARL_data_model'] == "SkyModel", f.attrs['ARL_data_model']
+
+    fixed = f.attrs['fixed']
+
+    ncomponents = f.attrs['number_skycomponents']
+    components = list()
+    for i in range(ncomponents):
+        cf = f[('skycomponent%d' % i)]
+        components.append(convert_hdf_to_skycomponent(cf))
+    if 'image' in f.keys():
+        cf = f['image']
+        image = convert_hdf_to_image(cf)
     else:
-        raise ValueError("Data model %s not supported" % dm["data_model"])
+        image = None
+    if 'mask' in f.keys():
+        cf = f['mask']
+        mask = convert_hdf_to_image(cf)
+    else:
+        mask = None
+    if 'gaintable' in f.keys():
+        cf = f['gaintable']
+        gaintable = convert_hdf_to_gaintable(cf)
+    else:
+        gaintable = None
+
+    
+    return SkyModel(image=image, components=components, gaintable=gaintable, mask=mask, fixed=fixed)
 
 
 def convert_griddata_to_hdf(gd: GridData, f):
@@ -716,5 +705,74 @@ def import_convolutionfunction_from_hdf5(filename):
             return cflist[0]
         else:
             return cflist
+
+
+def memory_data_model_to_buffer(model, jbuff, dm):
+    """ Copy a memory data model to a buffer data model
+
+    The file type is derived from the file extension. All are hdf only with the exception of Imaghe which can also be
+    fits.
+
+    :param model: Memory data model to be sent to buffer
+    :param jbuff: JSON describing buffer
+    :param dm: JSON describing data model
+    """
+    name = jbuff["directory"] + dm["name"]
+    
+    import os
+    _, file_extension = os.path.splitext(dm["name"])
+    
+    if dm["data_model"] == "BlockVisibility":
+        return export_blockvisibility_to_hdf5(model, name)
+    elif dm["data_model"] == "Image":
+        if file_extension == ".fits":
+            return export_image_to_fits(model, name)
+        else:
+            return export_image_to_hdf5(model, name)
+    elif dm["data_model"] == "GridData":
+        return export_griddata_to_hdf5(model, name)
+    elif dm["data_model"] == "ConvolutionFunction":
+        return export_convolutionfunction_to_hdf5(model, name)
+    elif dm["data_model"] == "SkyModel":
+        return export_skymodel_to_hdf5(model, name)
+    elif dm["data_model"] == "GainTable":
+        return export_gaintable_to_hdf5(model, name)
+    else:
+        raise ValueError("Data model %s not supported" % dm["data_model"])
+
+
+def buffer_data_model_to_memory(jbuff, dm):
+    """Copy a buffer data model into memory data model
+
+    The file type is derived from the file extension. All are hdf only with the exception of Imaghe which can also be
+    fits.
+
+    :param jbuff: JSON describing buffer
+    :param dm: JSON describing data model
+    :return: data model
+    """
+    import os
+    name = os.path.join(jbuff["directory"], dm["name"])
+    
+    import os
+    _, file_extension = os.path.splitext(dm["name"])
+    
+    if dm["data_model"] == "BlockVisibility":
+        return import_blockvisibility_from_hdf5(name)
+    elif dm["data_model"] == "Image":
+        if file_extension == ".fits":
+            return import_image_from_fits(name)
+        else:
+            return import_image_from_hdf5(name)
+    elif dm["data_model"] == "SkyModel":
+        return import_skymodel_from_hdf5(name)
+    elif dm["data_model"] == "GainTable":
+        return import_gaintable_from_hdf5(name)
+    elif dm["data_model"] == "GridData":
+        return import_griddata_from_hdf5(name)
+    elif dm["data_model"] == "ConvolutionFunction":
+        return import_convolutionfunction_from_hdf5(name)
+    else:
+        raise ValueError("Data model %s not supported" % dm["data_model"])
 
 

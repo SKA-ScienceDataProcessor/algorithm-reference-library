@@ -8,6 +8,7 @@ from processing_components.image.operations import reproject_image
 from processing_components.image.operations import add_image
 from processing_components.image.operations import qa_image
 from processing_components.image.operations import show_image
+from processing_components.image.operations import show_components
 from processing_components.image.operations import smooth_image
 from processing_components.image.operations import calculate_image_frequency_moments
 from processing_components.image.operations import calculate_image_from_frequency_moments

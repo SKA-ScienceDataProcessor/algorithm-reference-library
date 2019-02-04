@@ -39,26 +39,34 @@ class TestSkyModel(unittest.TestCase):
         self.model = create_test_image(cellsize=0.0015, phasecentre=self.vis.phasecentre,
                                        frequency=self.frequency)
         self.model.data[self.model.data > 1.0] = 1.0
-    
+
+        self.mask = create_test_image(cellsize=0.0015, phasecentre=self.vis.phasecentre,
+                                   frequency=self.frequency)
+        self.mask.data[self.mask.data > 0.1] = 1.0
+        self.mask.data[self.mask.data <= 0.1] = 0.0
+
+
     def test_create(self):
         fluxes = numpy.linspace(0, 1.0, 11)
         sc = [create_skycomponent(direction=self.phasecentre, flux=numpy.array([[f]]), frequency=self.frequency,
                                   polarisation_frame=PolarisationFrame('stokesI')) for f in fluxes]
-        sm = SkyModel(images=[self.model], components=sc)
-        assert len(sm.images) == 1
+        sm = SkyModel(image=self.model, components=sc, mask=self.mask)
         assert len(sm.components) == 11
     
     def test_copy(self):
         fluxes = numpy.linspace(0, 1.0, 11)
         sc = [create_skycomponent(direction=self.phasecentre, flux=numpy.array([[f]]), frequency=self.frequency,
                                   polarisation_frame=PolarisationFrame('stokesI')) for f in fluxes]
-        sm = SkyModel(images=[self.model], components=sc)
+        sm = SkyModel(image=self.model, components=sc, mask=self.mask)
         sm_copy = copy_skymodel(sm)
         assert len(sm.components) == len(sm_copy.components)
         sm_fluxes = numpy.array([c.flux[0,0] for c in sm.components])
         sm_copy_fluxes = numpy.array([c.flux[0,0] for c in sm_copy.components])
         
         assert numpy.max(numpy.abs(sm_fluxes - sm_copy_fluxes)) < 1e-7
+        
+        assert numpy.abs(numpy.max(sm.mask.data - 1.0)) < 1e-7
+        assert numpy.abs(numpy.min(sm.mask.data - 0.0)) < 1e-7
 
     def test_filter(self):
         fluxes = numpy.linspace(0, 1.0, 11)

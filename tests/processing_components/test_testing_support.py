@@ -94,7 +94,7 @@ class TestTesting_Support(unittest.TestCase):
                                                  channel_bandwidth=self.channel_bandwidth, phasecentre=self.phasecentre,
                                                  kind='cubic', flux_limit=0.3, flux_threshold=1.0)
         
-        im = sm.images[0]
+        im = sm.image
         assert im.data.shape[0] == 5
         assert im.data.shape[1] == 1
         assert im.data.shape[2] == 256
@@ -102,8 +102,8 @@ class TestTesting_Support(unittest.TestCase):
         export_image_to_fits(im, '%s/test_test_support_low_gleam.fits' % (self.dir))
         
         comp = sm.components
-        assert len(comp) == 44, len(comp)
-        assert comp[0].name == 'GLEAM J005658-390449', comp[0].name
+        assert len(comp) == 45, len(comp)
+        assert comp[0].name == 'GLEAM J003826-385949', comp[0].name
         assert comp[-1].name == 'GLEAM J011412-321730', comp[-1].name
     
     def test_create_low_test_image_from_gleam(self):

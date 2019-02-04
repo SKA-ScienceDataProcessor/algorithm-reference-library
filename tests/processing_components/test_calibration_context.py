@@ -25,11 +25,14 @@ class TestCalibrationContext(unittest.TestCase):
     def setUp(self):
         numpy.random.seed(180555)
     
-    def actualSetup(self, sky_pol_frame='stokesIQUV', data_pol_frame='linear', f=None, vnchan=3):
+    def actualSetup(self, sky_pol_frame='stokesIQUV', data_pol_frame='linear', f=None, vnchan=1):
         self.lowcore = create_named_configuration('LOWBD2-CORE')
         self.times = (numpy.pi / 43200.0) * numpy.linspace(0.0, 30.0, 3)
         self.frequency = numpy.linspace(1.0e8, 1.1e8, vnchan)
-        self.channel_bandwidth = numpy.array(vnchan * [self.frequency[1] - self.frequency[0]])
+        if vnchan > 1:
+            self.channel_bandwidth = numpy.array(vnchan * [self.frequency[1] - self.frequency[0]])
+        else:
+            self.channel_bandwidth = numpy.array([2e7])
         
         if f is None:
             f = [100.0, 50.0, -10.0, 40.0]
@@ -61,18 +64,55 @@ class TestCalibrationContext(unittest.TestCase):
         # Now get the control dictionary and calibrate
         controls = create_calibration_controls()
         controls['T']['first_selfcal'] = 0
+        controls['T']['phase_only'] = False
         calibrated_vis, gaintables = calibrate_function(self.vis, original, calibration_context='T',
                                                         controls=controls)
         residual = numpy.max(gaintables['T'].residual)
         assert residual < 1e-8, "Max T residual = %s" % (residual)
 
 
-    def test_calibrate_TG_function(self):
+    def test_calibrate_T_function_phase_only(self):
         self.actualSetup('stokesI', 'stokesI', f=[100.0])
         # Prepare the corrupted visibility data_models
         gt = create_gaintable_from_blockvisibility(self.vis)
         log.info("Created gain table: %s" % (gaintable_summary(gt)))
         gt = simulate_gaintable(gt, phase_error=10.0, amplitude_error=0.0)
+        original = copy_visibility(self.vis)
+        self.vis = apply_gaintable(self.vis, gt, vis_slices=None)
+        # Now get the control dictionary and calibrate
+        controls = create_calibration_controls()
+        controls['T']['first_selfcal'] = 0
+        controls['T']['phase_only'] = True
+        calibrated_vis, gaintables = calibrate_function(self.vis, original, calibration_context='T',
+                                                        controls=controls)
+        residual = numpy.max(gaintables['T'].residual)
+        assert residual < 1e-8, "Max T residual = %s" % (residual)
+
+
+    @unittest.skip("G converges slowly")
+    def test_calibrate_G_function(self):
+        self.actualSetup('stokesIQUV', 'linear', f=[100.0, 0.0, 0.0, 50.0])
+        # Prepare the corrupted visibility data_models
+        gt = create_gaintable_from_blockvisibility(self.vis)
+        log.info("Created gain table: %s" % (gaintable_summary(gt)))
+        gt = simulate_gaintable(gt, phase_error=0.0, amplitude_error=0.1)
+        original = copy_visibility(self.vis)
+        self.vis = apply_gaintable(self.vis, gt, vis_slices=None)
+        # Now get the control dictionary and calibrate
+        controls = create_calibration_controls()
+        controls['G']['first_selfcal'] = 0
+        calibrated_vis, gaintables = calibrate_function(self.vis, original, calibration_context='G',
+                                                        controls=controls)
+        residual = numpy.max(gaintables['G'].residual)
+        assert residual < 1e-8, "Max T residual = %s" % residual
+
+    @unittest.skip("G converges slowly")
+    def test_calibrate_TG_function(self):
+        self.actualSetup('stokesI', 'stokesI', f=[100.0])
+        # Prepare the corrupted visibility data_models
+        gt = create_gaintable_from_blockvisibility(self.vis)
+        log.info("Created gain table: %s" % (gaintable_summary(gt)))
+        gt = simulate_gaintable(gt, phase_error=10.0, amplitude_error=0.1)
         original = copy_visibility(self.vis)
         self.vis = apply_gaintable(self.vis, gt, vis_slices=None)
         # Now get the control dictionary and calibrate

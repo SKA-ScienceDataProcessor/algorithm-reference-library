@@ -1,3 +1,21 @@
+**January 23, 2019** [Tim] Work on MPC. Documented in SDP memo 97.
+Branch feature_mpc merged into master. The old modelpartition code has
+been removed.
+1. SkyModel now has image, mask, and gaintable.
+2. Gaintable now has phasecentre, as needed for non-isoplanatic 
+processing.
+3. Improved speed of scalar calibration.
+4. Improved HDF5 for SkyModel. Old ones not compatible.
+5. Functions for working with skycomponents e.g. filtering, 
+neighbour filtering.
+6. Voronoi partitioning.
+7. Predict and invert workflows for skymodel.
+8. Ensure imaging_weights retained in BlockVisibility.
+9. Ionospheric phase screen simulation using 
+ARatmospy: create_gaintable_from_screen. Gaintable phases can be 
+back-propagated to screen: grid_gaintable_to_screen.
+10. Pipeline for MPCCAL: mpccal_skymodel_list_arlexecute_workflow.
+
 **November 26, 2018** [Tim] Many changes in run up to demo:
 1. Parallel weighting, imaging weight added to BlockVisibility
 2. GLEAM lookup optimised, can now generate a skymodel and predict from it.

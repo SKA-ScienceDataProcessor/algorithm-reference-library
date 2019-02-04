@@ -12,6 +12,7 @@ from astropy import units as u
 from astropy.coordinates import SkyCoord
 
 from data_models.polarisation import PolarisationFrame
+from data_models.data_model_helpers import export_gaintable_to_hdf5
 
 from workflows.arlexecute.pipelines.pipeline_arlexecute import ical_list_arlexecute_workflow, \
     continuum_imaging_list_arlexecute_workflow
@@ -191,12 +192,14 @@ class TestPipelineGraphs(ARLExecuteTestCase, unittest.TestCase):
                                           deconvolve_taper='tukey', psf_support=64,
                                           calibration_context='T', controls=controls, do_selfcal=True,
                                           global_solution=False)
-        clean, residual, restored = arlexecute.compute(ical_list, sync=True)
+        clean, residual, restored, gt_list = arlexecute.compute(ical_list, sync=True)
         centre = len(clean) // 2
         if self.persist:
             export_image_to_fits(clean[centre], '%s/test_pipelines_ical_pipeline_arlexecute_clean.fits' % self.dir)
             export_image_to_fits(residual[centre][0], '%s/test_pipelines_ical_pipeline_arlexecute_residual.fits' % self.dir)
             export_image_to_fits(restored[centre], '%s/test_pipelines_ical_pipeline_arlexecute_restored.fits' % self.dir)
+            export_gaintable_to_hdf5(gt_list[centre]['T'], '%s/test_pipelines_ical_pipeline_arlexecute_gaintable.hdf5' %
+                                     self.dir)
         
         qa = qa_image(restored[centre])
         assert numpy.abs(qa.data['max'] - 99.32729396999524) < 1.0, str(qa)
@@ -221,13 +224,16 @@ class TestPipelineGraphs(ARLExecuteTestCase, unittest.TestCase):
                                           deconvolve_taper='tukey', psf_support=64,
                                           calibration_context='T', controls=controls, do_selfcal=True,
                                           global_solution=True)
-        clean, residual, restored = arlexecute.compute(ical_list, sync=True)
+        clean, residual, restored, gt_list = arlexecute.compute(ical_list, sync=True)
         centre = len(clean) // 2
         if self.persist:
             export_image_to_fits(clean[centre], '%s/test_pipelines_ical_global_pipeline_arlexecute_clean.fits' % self.dir)
             export_image_to_fits(residual[centre][0], '%s/test_pipelines_ical_global_pipeline_arlexecute_residual.fits' % self.dir)
             export_image_to_fits(restored[centre], '%s/test_pipelines_ical_global_pipeline_arlexecute_restored.fits' % self.dir)
-        
+            export_gaintable_to_hdf5(gt_list[0]['T'],
+                                     '%s/test_pipelines_ical_global_pipeline_arlexecute_gaintable.hdf5' %
+                                     self.dir)
+
         qa = qa_image(restored[centre])
         assert numpy.abs(qa.data['max'] - 98.92656340122159) < 1.0, str(qa)
         assert numpy.abs(qa.data['min'] + 0.7024492707920869) < 1.0, str(qa)

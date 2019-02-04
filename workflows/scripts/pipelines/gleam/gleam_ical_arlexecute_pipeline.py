@@ -79,7 +79,7 @@ if __name__ == '__main__':
     
     pp.pprint(controls)
     
-    # In[ ]:
+
     
     vislist = arlexecute.scatter(vislist)
     ical_list = ical_list_arlexecute_workflow(vislist,
@@ -100,7 +100,7 @@ if __name__ == '__main__':
                                               psf_support=64,
                                               do_selfcal=True)
     
-    # In[ ]:
+
     
     log.info('About to run ical_list_serial_workflow')
     result = arlexecute.compute(ical_list, sync=True)

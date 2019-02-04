@@ -55,8 +55,8 @@ def create_gaintable_from_blockvisibility(vis: BlockVisibility, timeslice = None
         utimes = numpy.linspace(numpy.min(vis.time), numpy.max(vis.time), ntimes)
         gain_interval = timeslice * numpy.ones([ntimes])
     
-    log.debug('create_gaintable_from_blockvisibility: times are %s' % str(utimes))
-    log.debug('create_gaintable_from_blockvisibility: intervals are %s' % str(gain_interval))
+#    log.debug('create_gaintable_from_blockvisibility: times are %s' % str(utimes))
+#    log.debug('create_gaintable_from_blockvisibility: intervals are %s' % str(gain_interval))
 
     ntimes = len(utimes)
     ufrequency = numpy.unique(vis.frequency)
@@ -78,7 +78,7 @@ def create_gaintable_from_blockvisibility(vis: BlockVisibility, timeslice = None
     
     gt = GainTable(gain=gain, time=gain_time, interval=gain_interval, weight=gain_weight, residual=gain_residual,
                    frequency=gain_frequency,
-                   receptor_frame=receptor_frame)
+                   receptor_frame=receptor_frame, phasecentre=vis.phasecentre)
     
     assert isinstance(gt, GainTable), "gt is not a GainTable: %r" % gt
     assert_vis_gt_compatible(vis, gt)
@@ -136,12 +136,11 @@ def apply_gaintable(vis: BlockVisibility, gt: GainTable, inverse=False, vis_slic
                         lgain[numpy.abs(gain) > 0.0] = 1.0 / gain[numpy.abs(gain) > 0.0]
                     else:
                         lgain = gain
-                    for a1 in range(vis.nants - 1):
-                        for a2 in range(a1 + 1, vis.nants):
-                            if is_scalar:
-                                smueller = lgain[time, a1, :, 0] * numpy.conjugate(lgain[time, a2, :, 0])
-                                applied[time, a2, a1, :, 0][..., numpy.newaxis] = \
-                                    original[time, a2, a1, :, 0][..., numpy.newaxis] * smueller
+                    clgain = numpy.conjugate(lgain)
+                    for chan in range(nchan):
+                        smueller = numpy.ma.outer(lgain[time, :, chan, 0],
+                                                  clgain[time, :, chan, 0]).reshape([nant, nant])
+                        applied[time, :, :, chan, 0] = original[time, :, :, chan, 0] * smueller
                 else:
                     for a1 in range(vis.nants - 1):
                         for a2 in range(a1 + 1, vis.nants):
@@ -177,11 +176,15 @@ def append_gaintable(gt: GainTable, othergt: GainTable) -> GainTable:
     return gt
 
 
-def copy_gaintable(gt: GainTable, zero=False) -> GainTable:
+def copy_gaintable(gt: GainTable, zero=False):
     """Copy a GainTable
 
     Performs a deepcopy of the data array
     """
+    
+    if gt is None:
+        return gt
+    
     assert isinstance(gt, GainTable), gt
     
     newgt = copy.copy(gt)
@@ -223,8 +226,8 @@ def qa_gaintable(gt: GainTable, context=None) -> QA:
     :param gt:
     :return: AQ
     """
-    agt = numpy.abs(gt.gain)
-    pgt = numpy.angle(gt.gain)
+    agt = numpy.abs(gt.gain[gt.weight>0.0])
+    pgt = numpy.angle(gt.gain[gt.weight>0.0])
     data = {'shape': gt.gain.shape,
             'maxabs-amp': numpy.max(agt),
             'minabs-amp': numpy.min(agt),

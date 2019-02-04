@@ -21,15 +21,16 @@ log = logging.getLogger(__name__)
 
 class ARLExecuteBase():
     
-    def __init__(self, use_dask=True, use_dlg=False):
+    def __init__(self, use_dask=True, use_dlg=False, verbose=False):
         if bool(use_dask) and bool(use_dlg):
             raise ValueError('use_dask and use_dlg cannot be specified together')
-        self._set_state(use_dask, use_dlg, None)
+        self._set_state(use_dask, use_dlg, None, verbose)
 
-    def _set_state(self, use_dask, use_dlg, client):
+    def _set_state(self, use_dask, use_dlg, client, verbose):
         self._using_dask = use_dask
         self._using_dlg = use_dlg
         self._client = client
+        self._verbose = verbose
 
     def execute(self, func, *args, **kwargs):
         """ Wrap for immediate or deferred execution
@@ -59,7 +60,7 @@ class ARLExecuteBase():
         else:
             return 'function'
     
-    def set_client(self, client=None, use_dask=True, use_dlg=False, **kwargs):
+    def set_client(self, client=None, use_dask=True, use_dlg=False, verbose=False, **kwargs):
         """Set the Dask/DALiuGE client to be used
         
         !!!This must be called before calling execute!!!!
@@ -79,11 +80,11 @@ class ARLExecuteBase():
         if use_dask:
             client = client or Client(**kwargs)
             assert isinstance(client, Client)
-            self._set_state(True, False, client)
+            self._set_state(True, False, client, verbose)
         elif use_dlg:
-            self._set_state(False, True, client)
+            self._set_state(False, True, client, verbose)
         else:
-            self._set_state(False, False, None)
+            self._set_state(False, False, None, verbose)
     
     def compute(self, value, sync=False):
         """Get the actual value
@@ -102,9 +103,10 @@ class ARLExecuteBase():
             else:
                 future = self.client.compute(value, sync=sync)
                 wait(future)
-                duration = time.time() - start
-                log.debug("arlexecute.compute: Execution using Dask took %.3f seconds" % duration)
-                print("arlexecute.compute: Execution using Dask took %.3f seconds" % duration)
+                if self._verbose:
+                    duration = time.time() - start
+                    log.debug("arlexecute.compute: Execution using Dask took %.3f seconds" % duration)
+                    print("arlexecute.compute: Execution using Dask took %.3f seconds" % duration)
             return future
         elif self._using_dlg:
             kwargs = {'client': self._client} if self._client else {}
@@ -173,7 +175,8 @@ class ARLExecuteBase():
 
     def close(self):
         if self._using_dask and isinstance(self._client, Client):
-            print('arlexcute.close: closing down Dask Client')
+            if self._verbose:
+                print('arlexcute.close: closing down Dask Client')
             try:
                 self._client.cluster.close()
             except:
