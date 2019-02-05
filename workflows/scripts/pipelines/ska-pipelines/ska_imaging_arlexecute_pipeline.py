@@ -19,6 +19,8 @@ from processing_components.imaging.base import create_image_from_visibility
 from workflows.arlexecute.imaging.imaging_arlexecute import invert_list_arlexecute_workflow
 
 from wrappers.arlexecute.execution_support.arlexecute import arlexecute
+from wrappers.arlexecute.visibility.coalesce import convert_visibility_to_blockvisibility, \
+    convert_blockvisibility_to_visibility
 
 import logging
 
@@ -36,7 +38,7 @@ if __name__ == '__main__':
     log = logging.getLogger()
     logging.info("Starting Imaging pipeline")
     
-    arlexecute.set_client(use_dask=True, threads_per_worker=1, memory_limit=8e9,
+    arlexecute.set_client(use_dask=True, threads_per_worker=1, memory_limit=32 * 1024 * 1024 * 1024, n_workers=8,
                           local_dir=dask_dir)
     print(arlexecute.client)
     arlexecute.run(init_logging)
@@ -47,9 +49,11 @@ if __name__ == '__main__':
     centre = nfreqwin // 2
     
     # Load data from previous simulation
-    vis_list = [arlexecute.execute(import_blockvisibility_from_hdf5)
-                (arl_path('%s/ska-pipeline_simulation_vislist_%d.hdf' % (results_dir, v)))
-                for v in range(nfreqwin)]
+    block_vislist = [arlexecute.execute(import_blockvisibility_from_hdf5)
+                     (arl_path('%s/ska-pipeline_simulation_vislist_%d.hdf' % (results_dir, v)))
+                     for v in range(nfreqwin)]
+
+    vis_list = [arlexecute.execute(convert_blockvisibility_to_visibility, nout=1)(bv) for bv in block_vislist]
     print('Reading visibilities')
     vis_list = arlexecute.persist(vis_list)
     
@@ -72,6 +76,4 @@ if __name__ == '__main__':
     
     arlexecute.close()
     
-    show_image(dirty, title='Dirty image', cm='Greys', vmax=0.1, vmin=-0.01)
-    print(qa_image(dirty, context='Dirty image'))
     export_image_to_fits(dirty, '%s/ska-imaging_arlexecute_dirty.fits' % (results_dir))

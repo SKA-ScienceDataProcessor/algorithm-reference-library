@@ -97,7 +97,6 @@ class TestBufferDataModelHelpers(unittest.TestCase):
         gt = create_gaintable_from_blockvisibility(vis, timeslice='auto')
         gt = simulate_gaintable(gt, phase_error=1.0, amplitude_error=0.1)
         im = create_test_image()
-        gt = create_gaintable_from_blockvisibility(vis)
         sm = SkyModel(components=[self.comp], image=im, gaintable=gt)
 
         config = {"buffer": {"directory": self.dir},
@@ -112,6 +111,28 @@ class TestBufferDataModelHelpers(unittest.TestCase):
         assert newsm.image.data.shape == im.data.shape
         assert newsm.gaintable.data.shape == gt.data.shape
         assert numpy.max(numpy.abs(newsm.image.data - im.data)) < 1e-15
+
+    def test_readwriteskymodel_no_image(self):
+        vis = create_blockvisibility(self.lowcore, self.times, self.frequency,
+                                          channel_bandwidth=self.channel_bandwidth,
+                                          phasecentre=self.phasecentre,
+                                          polarisation_frame=PolarisationFrame("linear"),
+                                          weight=1.0)
+        gt = create_gaintable_from_blockvisibility(vis, timeslice='auto')
+        gt = simulate_gaintable(gt, phase_error=1.0, amplitude_error=0.1)
+        sm = SkyModel(components=[self.comp], gaintable=gt)
+
+        config = {"buffer": {"directory": self.dir},
+                  "skymodel": {"name": "test_bufferskymodel.hdf", "data_model": "SkyModel"}}
+        bdm = BufferSkyModel(config["buffer"], config["skymodel"], sm)
+        bdm.sync()
+        new_bdm = BufferSkyModel(config["buffer"], config["skymodel"])
+        new_bdm.sync()
+        newsm = bdm.memory_data_model
+
+        assert newsm.components[0].flux.shape == self.comp.flux.shape
+        assert newsm.gaintable.data.shape == gt.data.shape
+
 
     def test_readwriteimage(self):
         im = create_test_image()
