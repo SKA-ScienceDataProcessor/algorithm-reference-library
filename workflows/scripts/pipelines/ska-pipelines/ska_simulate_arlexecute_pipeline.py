@@ -18,6 +18,8 @@ from data_models.data_model_helpers import export_skymodel_to_hdf5, export_block
 
 from wrappers.arlexecute.simulation.testing_support import create_low_test_image_from_gleam
 from wrappers.arlexecute.imaging.base import advise_wide_field
+from wrappers.arlexecute.visibility.coalesce import convert_blockvisibility_to_visibility, \
+    convert_visibility_to_blockvisibility
 
 from workflows.arlexecute.imaging.imaging_arlexecute import predict_list_arlexecute_workflow
 from workflows.arlexecute.simulation.simulation_arlexecute import simulate_list_arlexecute_workflow, \
@@ -37,9 +39,9 @@ def init_logging():
 
 if __name__ == '__main__':
     log = logging.getLogger()
-    print("Starting ska-pipelines pipeline")
+    print("Starting ska-pipelines simulation pipeline")
     
-    arlexecute.set_client(use_dask=True, threads_per_worker=1, memory_limit=4e9,
+    arlexecute.set_client(use_dask=True, threads_per_worker=1, memory_limit=32 * 1024 * 1024 * 1024, n_workers=8,
                           local_dir=dask_dir)
     print(arlexecute.client)
     arlexecute.run(init_logging)
@@ -57,15 +59,17 @@ if __name__ == '__main__':
     times = numpy.linspace(-numpy.pi / 3.0, numpy.pi / 3.0, ntimes)
     phasecentre = SkyCoord(ra=+30.0 * u.deg, dec=-60.0 * u.deg, frame='icrs', equinox='J2000')
     
-    vis_list = simulate_list_arlexecute_workflow('LOWBD2',
-                                                 rmax=rmax,
-                                                 frequency=frequency,
-                                                 channel_bandwidth=channel_bandwidth,
-                                                 times=times,
-                                                 phasecentre=phasecentre,
-                                                 order='frequency')
-    print('%d elements in vis_list' % len(vis_list))
+    blockvis_list = simulate_list_arlexecute_workflow('LOWBD2',
+                                                      rmax=rmax,
+                                                      frequency=frequency,
+                                                      channel_bandwidth=channel_bandwidth,
+                                                      times=times,
+                                                      phasecentre=phasecentre,
+                                                      order='frequency',
+                                                      format='blockvis')
+    print('%d elements in vis_list' % len(blockvis_list))
     print('About to make visibility')
+    vis_list = [arlexecute.execute(convert_blockvisibility_to_visibility, nout=1)(bv) for bv in blockvis_list]
     vis_list = arlexecute.persist(vis_list)
     
     # The vis data are on the workers so we run the advice function on the workers
@@ -85,8 +89,6 @@ if __name__ == '__main__':
     
     # Now make a graph to fill with a model drawn from GLEAM
     
-
-    
     dprepb_model = [arlexecute.execute(create_low_test_image_from_gleam)(npixel=npixel,
                                                                          frequency=[frequency[f]],
                                                                          channel_bandwidth=[channel_bandwidth[f]],
@@ -100,13 +102,11 @@ if __name__ == '__main__':
     # Put the model on the cluster
     dprepb_model = arlexecute.persist(dprepb_model)
     
-    print('About to make GLEAM model')
+    print('About to make initial skymodel')
     zero_model = [arlexecute.execute(create_empty_image_like)(im) for im in dprepb_model]
     zero_model = arlexecute.compute(zero_model, sync=True)
-    zero_skymodel = SkyModel(images=zero_model)
+    zero_skymodel = SkyModel(image=zero_model)
     export_skymodel_to_hdf5(zero_skymodel, arl_path('%s/ska-pipeline_simulation_skymodel.hdf' % results_dir))
-    
-
     
     #    vis_list = arlexecute.scatter(vis_list)
     
@@ -119,8 +119,8 @@ if __name__ == '__main__':
         print('Using timeslicing with %d slices' % ntimes)
         predicted_vislist = predict_list_arlexecute_workflow(vis_list, dprepb_model, context='timeslice',
                                                              vis_slices=ntimes)
-    
-    corrupted_vislist = corrupt_list_arlexecute_workflow(predicted_vislist, phase_error=1.0, seed=180555)
+    corrupted_vislist = [arlexecute.execute(convert_visibility_to_blockvisibility)(v) for v in predicted_vislist]
+    corrupted_vislist = corrupt_list_arlexecute_workflow(corrupted_vislist, phase_error=1.0, seed=180555)
     
     export_list = [arlexecute.execute(export_blockvisibility_to_hdf5)
                    (corrupted_vislist[v], arl_path('%s/ska-pipeline_simulation_vislist_%d.hdf' % (results_dir, v)))

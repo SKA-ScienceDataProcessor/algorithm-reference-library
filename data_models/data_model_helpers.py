@@ -506,16 +506,22 @@ def convert_skymodel_to_hdf(sm, f):
     """
     f.attrs['ARL_data_model'] = 'SkyModel'
     f.attrs['fixed'] = sm.fixed
-    f.attrs['number_skycomponents'] = len(sm.components)
-    for i, sc in enumerate(sm.components):
-        cf = f.create_group('skycomponent%d' % i)
-        convert_skycomponent_to_hdf(sm.components[i], cf)
-    cf = f.create_group('image')
-    convert_image_to_hdf(sm.image, cf)
-    cf = f.create_group('mask')
-    convert_image_to_hdf(sm.mask, cf)
-    cf = f.create_group('gaintable')
-    convert_gaintable_to_hdf(sm.gaintable, cf)
+    if sm.components is not None:
+        f.attrs['number_skycomponents'] = len(sm.components)
+        for i, sc in enumerate(sm.components):
+            cf = f.create_group('skycomponent%d' % i)
+            convert_skycomponent_to_hdf(sm.components[i], cf)
+        else:
+            f.attrs['number_skycomponents'] = len(sm.components)
+    if sm.image is not None:
+        cf = f.create_group('image')
+        convert_image_to_hdf(sm.image, cf)
+    if sm.mask is not None:
+        cf = f.create_group('mask')
+        convert_image_to_hdf(sm.mask, cf)
+    if sm.gaintable is not None:
+        cf = f.create_group('gaintable')
+        convert_gaintable_to_hdf(sm.gaintable, cf)
     return f
 
 
