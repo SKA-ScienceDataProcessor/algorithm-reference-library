@@ -127,7 +127,7 @@ if __name__ == '__main__':
     export_blockvisibility_to_hdf5(corrupted_vislist, 'gleam_simulation_vislist.hdf')
 
     gleam_model = arlexecute.compute(gleam_model, sync=True)
-    gleam_skymodel = SkyModel(images=gleam_model)
+    gleam_skymodel = SkyModel(image=gleam_model)
     export_skymodel_to_hdf5(gleam_skymodel, 'gleam_simulation_skymodel.hdf')
 
     arlexecute.close()

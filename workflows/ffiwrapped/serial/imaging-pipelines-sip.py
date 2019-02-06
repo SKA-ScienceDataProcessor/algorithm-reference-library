@@ -24,9 +24,9 @@ from processing_components.imaging.base import advise_wide_field
 from processing_components.simulation.testing_support import create_named_configuration, create_low_test_image_from_gleam, simulate_gaintable
 from data_models.polarisation import PolarisationFrame
 from processing_components.visibility.base import create_blockvisibility
-from workflows.serial.imaging.imaging_serial import invert_function, predict_function
+from workflows.serial.imaging.imaging_serial import invert_list_serial_workflow, predict_list_serial_workflow
 from processing_components.visibility.coalesce import convert_visibility_to_blockvisibility
-from workflows.serial.pipelines.pipeline_functions import ical
+from workflows.serial.pipelines.pipeline_serial import ical_list_serial_workflow
 
 
 import logging
@@ -66,7 +66,7 @@ gleam_model = create_low_test_image_from_gleam(npixel=npixel, frequency=frequenc
     channel_bandwidth=channel_bandwidth, cellsize=cellsize, phasecentre=phasecentre, flux_limit = 1.0, applybeam=True)
 
 
-predicted_vis = predict_function(block_vis, gleam_model, vis_slices=51, context='wstack')
+predicted_vis = predict_list_serial_workflow(block_vis, gleam_model, vis_slices=51, context='wstack')
 #print("np.sum(predicted_vis.data): ", numpy.sum(predicted_vis.data['vis']))
 block_vis=convert_visibility_to_blockvisibility(predicted_vis)
 #print("np.sum(block_vis.data): ", numpy.sum(block_vis.data['vis']))
@@ -96,7 +96,7 @@ print(qa_image(model, context='Blockvis model image'))
 export_image_to_fits(model, '%s/imaging-blockvis_model.fits'
                      % (results_dir))
 
-dirty, sumwt = invert_function(predicted_vis, model, vis_slices=vis_slices, dopsf=False, context='wstack')
+dirty, sumwt = invert_list_serial_workflow(predicted_vis, model, vis_slices=vis_slices, dopsf=False, context='wstack')
 
 
 print(qa_image(dirty, context='Dirty image'))
@@ -104,7 +104,9 @@ export_image_to_fits(dirty, '%s/imaging-dirty.fits'
                      % (results_dir))
 
 
-deconvolved, residual, restored = ical(block_vis=blockvis, model=model, vis_slices=vis_slices, timeslice='auto',
+deconvolved, residual, restored = ical_list_serial_workflow(vis_list=[blockvis],
+                                                            model_imagelist=[model], vis_slices=vis_slices,
+                                                            timeslice='auto',
                                                   algorithm='hogbom', niter=1000, fractional_threshold=0.1, threshold=0.1,
                                                   context='wstack', nmajor=5, gain=0.1, first_selfcal=1,
                                                   global_solution=False)

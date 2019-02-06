@@ -106,7 +106,6 @@ def trial_case(results, seed=180555, context='wstack', nworkers=8, threads_per_w
     :param facets: Number of facets to use
     :param wprojection_planes: Number of wprojection planes to use
     :param use_dask: Use dask or immediate evaluation
-    :param kwargs:
     :return: results dictionary
     """
     if use_dask:

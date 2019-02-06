@@ -1196,7 +1196,7 @@ arl_invert_2d.address=int(ff.cast("size_t", arl_invert_2d_ffi))
 @ff.callback("void (*)(const ARLVis *, Image *)", onerror=handle_error)
 def arl_create_image_from_visibility_ffi(vis_in, img_in):
     c_vis = cARLVis(vis_in)
-    c_img = cImage(img_in, new=True);
+    c_img = cImage(img_in, new=True)
 
     # We need a proper Visibility object - not this, and not a cARLVis
     # This is temporary - just so we have some data to pass to
@@ -1240,7 +1240,7 @@ def arl_create_image_from_blockvisibility_ffi(lowconfig, blockvis_in, cellsize, 
             equinox='J2000')
 
 # Re-creating Image object
-    py_outimg = cImage(img_out, new=True);
+    py_outimg = cImage(img_out, new=True)
 
 # Construct a model from py_blockvisin
     res = create_image_from_visibility(py_blockvisin, npixel=npixel, frequency=[numpy.average(frequency)], nchan=1,

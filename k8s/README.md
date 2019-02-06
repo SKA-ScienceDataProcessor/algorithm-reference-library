@@ -145,7 +145,8 @@ There are two choices for running the ARL on Kubernetes :-
 
 Resource Descriptors
 --------------------
-For each of the above describe container types, there is a separate resource descriptor file for - scheduler, worker, and notebook.  These can be found in the [k8s/resources/](k8s/resources/) directory.
+For each of the above describe container types, there is a separate resource descriptor file for - scheduler, worker,
+ and notebook.  These can be found in the [resources](resources) directory.
 Launch them all with:
 ```
 make k8s_deploy DOCKER_REPO="" DOCKER_IMAGE=arl_img:latest

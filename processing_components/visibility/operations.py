@@ -319,6 +319,8 @@ def convert_visibility_to_stokesI(vis):
         vis_data = convert_circular_to_stokesI(vis.data['vis'])
         vis_weight = (vis.weight[...,0] + vis.weight[...,3])[..., numpy.newaxis]
         vis_imaging_weight = (vis.imaging_weight[...,0] + vis.imaging_weight[...,3])[..., numpy.newaxis]
+    else:
+        raise NameError("Polarisation frame %s unknown" % poldef)
 
     return Visibility(frequency=vis.frequency, channel_bandwidth=vis.channel_bandwidth,
                       phasecentre=vis.phasecentre, configuration=vis.configuration, uvw=vis.uvw,

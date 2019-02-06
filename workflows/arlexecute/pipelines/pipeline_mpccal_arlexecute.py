@@ -34,6 +34,8 @@ def mpccal_skymodel_list_arlexecute_workflow(visobs, model, theta_list, nmajor=1
     :return: Delayed tuple (theta_list, residual)
     """
     psf_obs = invert_list_arlexecute_workflow([visobs], [model], context=context, dopsf=True)
+
+    result = arlexecute.execute((theta_list, model))
     
     for iteration in range(nmajor):
         # The E step of decoupling the data models
