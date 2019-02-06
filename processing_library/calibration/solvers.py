@@ -107,8 +107,8 @@ def gain_substitution_scalar(gain, x, xwt):
     newgain = numpy.ones_like(gain, dtype='complex')
     gwt = numpy.zeros_like(gain, dtype='float')
     
-    x = x.reshape(nants, nants, nchan, nrec, nrec)
-    xwt = xwt.reshape(nants, nants, nchan, nrec, nrec)
+    x = x.reshape([nants, nants, nchan, nrec, nrec])
+    xwt = xwt.reshape([nants, nants, nchan, nrec, nrec])
     
     xxwt = x[:, :, :, 0, 0] * xwt[:, :, :, 0, 0]
     cgain = numpy.conjugate(gain)
@@ -276,8 +276,8 @@ def gain_substitution_matrix(gain, x, xwt):
     
     # We are going to work with Jones 2x2 matrix formalism so everything has to be
     # converted to that format
-    x = x.reshape(nants, nants, nchan, nrec, nrec)
-    xwt = xwt.reshape(nants, nants, nchan, nrec, nrec)
+    x = x.reshape([nants, nants, nchan, nrec, nrec])
+    xwt = xwt.reshape([nants, nants, nchan, nrec, nrec])
     
     # Write these loops out explicitly. Derivation of these vector equations is tedious but they are
     # structurally identical to the scalar case with the following changes
