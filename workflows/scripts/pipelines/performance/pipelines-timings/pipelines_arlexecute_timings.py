@@ -123,7 +123,7 @@ def trial_case(results, seed=180555, context='wstack', nworkers=8, threads_per_w
         results['nnodes'] = 1
 
     def init_logging():
-        logging.basicConfig(filename='pipelines-timings.log',
+        logging.basicConfig(filename='pipelines-arlexecute-timings.log',
                             filemode='a',
                             format='%(asctime)s,%(msecs)d %(name)s %(levelname)s %(message)s',
                             datefmt='%H:%M:%S',
@@ -140,7 +140,7 @@ def trial_case(results, seed=180555, context='wstack', nworkers=8, threads_per_w
         log.info(s)
         print(s)
     
-    lprint("Starting pipelines-timings")
+    lprint("Starting pipelines-arlexecute-timings")
     
     numpy.random.seed(seed)
     results['seed'] = seed
@@ -236,7 +236,8 @@ def trial_case(results, seed=180555, context='wstack', nworkers=8, threads_per_w
     vis_list = arlexecute.scatter(vis_list)
     
     # Now set up the imaging parameters
-    gcfcf_list = None
+    gcfcf_list = [None for i in range(nfreqwin)]
+    
     if context == 'timeslice':
         vis_slices = ntimes
         lprint("Using timeslice with %d slices" % vis_slices)
@@ -261,8 +262,7 @@ def trial_case(results, seed=180555, context='wstack', nworkers=8, threads_per_w
         lprint("Creating W projection kernel took %.3f seconds" % (end - start))
         cf_image = convert_convolutionfunction_to_image(gcfcf_list[centre][1])
         cf_image.data = numpy.real(cf_image.data)
-        export_image_to_fits(cf_image, "pipelines-timings-wterm-cf.fits")
-        
+        export_image_to_fits(cf_image, "pipelines-arlexecute-timings-wterm-cf.fits")
         gcfcf_list = arlexecute.scatter(gcfcf_list)
     
     else:
@@ -289,9 +289,10 @@ def trial_case(results, seed=180555, context='wstack', nworkers=8, threads_per_w
     
     lprint("****** Starting GLEAM skymodel prediction ******")
     start = time.time()
-    predicted_vis_list = predict_skymodel_list_arlexecute_workflow(vis_list, skymodel_list, context=context,
+    predicted_vis_list = [predict_skymodel_list_arlexecute_workflow(vis_list[f], [skymodel_list[f]], context=context,
                                                                    vis_slices=vis_slices, facets=facets,
-                                                                   gcfcf=gcfcf_list)
+                                                                   gcfcf=[gcfcf_list[f]])[0]
+                          for f, freq in enumerate(frequency)]
     predicted_vis_list = arlexecute.compute(predicted_vis_list, sync=True)
     end = time.time()
     lprint("GLEAM skymodel prediction took %.3f seconds" % (end - start))
@@ -311,14 +312,14 @@ def trial_case(results, seed=180555, context='wstack', nworkers=8, threads_per_w
     qa = qa_image(psf)
     results['psf_max'] = qa.data['max']
     results['psf_min'] = qa.data['min']
-    export_image_to_fits(psf, "pipelines-timings-%s-psf.fits" % context)
+    export_image_to_fits(psf, "pipelines-arlexecute-timings-%s-psf.fits" % context)
     
     # Make a smoothed model image for comparison
     
     # smoothed_model_list = restore_list_arlexecute_workflow(gleam_model_list, psf_list)
     # smoothed_model_list = arlexecute.compute(smoothed_model_list, sync=True)
     # smoothed_cube = image_gather_channels(smoothed_model_list)
-    # export_image_to_fits(smoothed_cube, "pipelines-timings-cmodel.fits")
+    # export_image_to_fits(smoothed_cube, "pipelines-arlexecute-timings-cmodel.fits")
     
     # Create an empty model image
     model_list = [arlexecute.execute(create_image_from_visibility)
@@ -344,7 +345,7 @@ def trial_case(results, seed=180555, context='wstack', nworkers=8, threads_per_w
     qa = qa_image(dirty)
     results['dirty_max'] = qa.data['max']
     results['dirty_min'] = qa.data['min']
-    export_image_to_fits(dirty, "pipelines-timings-%s-dirty.fits" % context)
+    export_image_to_fits(dirty, "pipelines-arlexecute-timings-%s-dirty.fits" % context)
     
     # Corrupt the visibility for the GLEAM model
     lprint("****** Visibility corruption ******")
@@ -394,7 +395,7 @@ def trial_case(results, seed=180555, context='wstack', nworkers=8, threads_per_w
     # Execute the graph
     start = time.time()
     result = arlexecute.compute(ical_list, sync=True)
-    deconvolved, residual, restored = result
+    deconvolved, residual, restored, gaintables = result
     end = time.time()
     
     results['time ICAL'] = end - start
@@ -403,20 +404,20 @@ def trial_case(results, seed=180555, context='wstack', nworkers=8, threads_per_w
     results['deconvolved_max'] = qa.data['max']
     results['deconvolved_min'] = qa.data['min']
     deconvolved_cube = image_gather_channels(deconvolved)
-    export_image_to_fits(deconvolved_cube, "pipelines-timings-%s-ical_deconvolved.fits" % context)
+    export_image_to_fits(deconvolved_cube, "pipelines-arlexecute-timings-%s-ical_deconvolved.fits" % context)
     
     qa = qa_image(residual[centre][0])
     results['residual_max'] = qa.data['max']
     results['residual_min'] = qa.data['min']
     residual_cube = remove_sumwt(residual)
     residual_cube = image_gather_channels(residual_cube)
-    export_image_to_fits(residual_cube, "pipelines-timings-%s-ical_residual.fits" % context)
+    export_image_to_fits(residual_cube, "pipelines-arlexecute-timings-%s-ical_residual.fits" % context)
     
     qa = qa_image(restored[centre])
     results['restored_max'] = qa.data['max']
     results['restored_min'] = qa.data['min']
     restored_cube = image_gather_channels(restored)
-    export_image_to_fits(restored_cube, "pipelines-timings-%s-ical_restored.fits" % context)
+    export_image_to_fits(restored_cube, "pipelines-arlexecute-timings-%s-ical_restored.fits" % context)
     #
     arlexecute.close()
     
@@ -490,7 +491,7 @@ def main(args):
     
     results['hostname'] = socket.gethostname()
     results['epoch'] = time.strftime("%Y-%m-%d %H:%M:%S")
-    results['driver'] = 'pipelines-timings-arlexecute'
+    results['driver'] = 'pipelines-arlexecute-timings-arlexecute'
     
     use_dask = args.use_dask == 'True'
     if use_dask:
@@ -556,7 +557,7 @@ if __name__ == '__main__':
     parser.add_argument('--jobid', type=int, default=0, help='JOBID from slurm')
     parser.add_argument('--flux_limit', type=float, default=0.3, help='Flux limit for components')
     parser.add_argument('--dft_threshold', type=float, default=1.0, help='Flux above which DFT is used')
-    parser.add_argument('--log_file', type=str, default='pipelines-timings.log',
+    parser.add_argument('--log_file', type=str, default='pipelines-arlexecute-timings.log',
                         help='Name of output log file')
     
     main(parser.parse_args())

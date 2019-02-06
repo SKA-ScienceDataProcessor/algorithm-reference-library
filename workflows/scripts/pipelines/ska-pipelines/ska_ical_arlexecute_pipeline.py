@@ -12,13 +12,16 @@ from data_models.data_model_helpers import import_blockvisibility_from_hdf5
 
 from processing_components.image.operations import export_image_to_fits, qa_image
 from processing_components.imaging.base import create_image_from_visibility
+from processing_components.calibration.calibration_control import create_calibration_controls
 
-from workflows.arlexecute.pipelines.pipeline_arlexecute import continuum_imaging_list_arlexecute_workflow
+
+from workflows.arlexecute.pipelines.pipeline_arlexecute import ical_list_arlexecute_workflow
 
 from wrappers.arlexecute.execution_support.arlexecute import arlexecute
 from wrappers.arlexecute.visibility.coalesce import convert_blockvisibility_to_visibility
 
 import logging
+
 
 def init_logging():
     logging.basicConfig(filename='%s/ska-pipeline.log' % results_dir,
@@ -29,9 +32,8 @@ def init_logging():
 
 
 if __name__ == '__main__':
-    
     log = logging.getLogger()
-    logging.info("Starting continuum imaging pipeline")
+    logging.info("Starting ICAL pipeline")
     
     arlexecute.set_client(use_dask=True, threads_per_worker=1, memory_limit=32 * 1024 * 1024 * 1024, n_workers=8,
                           local_dir=dask_dir, verbose=True)
@@ -45,8 +47,8 @@ if __name__ == '__main__':
     
     # Load data from previous simulation
     block_vislist = [arlexecute.execute(import_blockvisibility_from_hdf5)
-                (arl_path('%s/ska-pipeline_simulation_vislist_%d.hdf' % (results_dir, v)))
-                for v in range(nfreqwin)]
+                     (arl_path('%s/ska-pipeline_simulation_vislist_%d.hdf' % (results_dir, v)))
+                     for v in range(nfreqwin)]
     
     vis_list = [arlexecute.execute(convert_blockvisibility_to_visibility, nout=1)(bv) for bv in block_vislist]
     print('Reading visibilities')
@@ -66,22 +68,35 @@ if __name__ == '__main__':
     print('Creating graph')
     future_vis_list = arlexecute.scatter(vis_list)
     future_model_list = arlexecute.scatter(model_list)
+
+    controls = create_calibration_controls()
+
+    controls['T']['first_selfcal'] = 1
+    controls['G']['first_selfcal'] = 3
+    controls['B']['first_selfcal'] = 4
+
+    controls['T']['timescale'] = 'auto'
+    controls['G']['timescale'] = 'auto'
+    controls['B']['timescale'] = 1e5
+
+    ical_list = ical_list_arlexecute_workflow(future_vis_list,
+                                              model_imagelist=future_model_list,
+                                              context='wstack', vis_slices=51,
+                                              scales=[0, 3, 10], algorithm='mmclean',
+                                              nmoment=3, niter=1000,
+                                              fractional_threshold=0.1,
+                                              threshold=0.1, nmajor=5, gain=0.25,
+                                              deconvolve_facets=1,
+                                              deconvolve_overlap=0,
+                                              deconvolve_taper='tukey',
+                                              timeslice='auto',
+                                              psf_support=64,
+                                              global_solution=False,
+                                              calibration_context='T',
+                                              do_selfcal=True)
     
-    continuum_imaging_list = continuum_imaging_list_arlexecute_workflow(future_vis_list,
-                                                                        model_imagelist=future_model_list,
-                                                                        context='wstack', vis_slices=51,
-                                                                        scales=[0, 3, 10], algorithm='mmclean',
-                                                                        nmoment=3, niter=1000,
-                                                                        fractional_threshold=0.1,
-                                                                        threshold=0.1, nmajor=5, gain=0.25,
-                                                                        deconvolve_facets=1,
-                                                                        deconvolve_overlap=0,
-                                                                        deconvolve_taper='tukey',
-                                                                        timeslice='auto',
-                                                                        psf_support=64)
-    
-    log.info('About to run continuum imaging workflow')
-    result = arlexecute.compute(continuum_imaging_list, sync=True)
+    log.info('About to run ICAL workflow')
+    result = arlexecute.compute(ical_list, sync=True)
     arlexecute.close()
     
     deconvolved = result[0][centre]
@@ -89,10 +104,10 @@ if __name__ == '__main__':
     restored = result[2][centre]
     
     print(qa_image(deconvolved, context='Clean image'))
-    export_image_to_fits(deconvolved, '%s/ska-continuum-imaging_arlexecute_deconvolved.fits' % (results_dir))
+    export_image_to_fits(deconvolved, '%s/ska-ical_arlexecute_deconvolved.fits' % (results_dir))
     
     print(qa_image(restored, context='Restored clean image'))
-    export_image_to_fits(restored, '%s/ska-continuum-imaging_arlexecute_restored.fits' % (results_dir))
+    export_image_to_fits(restored, '%s/ska-ical_arlexecute_restored.fits' % (results_dir))
     
     print(qa_image(residual[0], context='Residual clean image'))
-    export_image_to_fits(residual[0], '%s/ska-continuum-imaging_arlexecute_residual.fits' % (results_dir))
+    export_image_to_fits(residual[0], '%s/ska-ical_arlexecute_residual.fits' % (results_dir))
