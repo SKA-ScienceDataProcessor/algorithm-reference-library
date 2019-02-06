@@ -23,7 +23,7 @@ def mpccal_skymodel_list_arlexecute_workflow(visobs, model, theta_list, nmajor=1
     """Run MPC pipeline
     
     This runs the Model Partition Calibration algorithm. See SDP Memo 97 for more details,
-    and see workflows/scripts/pipelines/mpccal-demo.py for an example of the application
+    and see workflows/scripts/pipelines/mpccal_arlexecute_pipeline.py for an example of the application
     
     :param visobs: Visibility (not a list!)
     :param model: Model image

@@ -54,7 +54,7 @@ if __name__ == '__main__':
     
     vis_list = [arlexecute.execute(convert_blockvisibility_to_visibility, nout=1)(bv) for bv in block_vislist]
     print('Reading visibilities')
-    vis_list = arlexecute.persist(vis_list)
+    vis_list = arlexecute.compute(vis_list, sync=True)
     
     cellsize = 0.001
     npixel = 1024
@@ -65,15 +65,19 @@ if __name__ == '__main__':
                   for v in vis_list]
     
     print('Creating model images')
-    model_list = arlexecute.persist(model_list)
+    model_list = arlexecute.compute(model_list, sync=True)
     
     print('Creating graph')
-    continuum_imaging_list = continuum_imaging_list_arlexecute_workflow(vis_list, model_imagelist=model_list,
+    future_vis_list = arlexecute.scatter(vis_list)
+    future_model_list = arlexecute.scatter(model_list)
+    
+    continuum_imaging_list = continuum_imaging_list_arlexecute_workflow(future_vis_list,
+                                                                        model_imagelist=future_model_list,
                                                                         context='wstack', vis_slices=51,
                                                                         scales=[0, 3, 10], algorithm='mmclean',
                                                                         nmoment=3, niter=1000,
                                                                         fractional_threshold=0.1,
-                                                                        threshold=0.1, nmajor=5, gain=0.25,
+                                                                        threshold=0.1, nmajor=1, gain=0.25,
                                                                         deconvolve_facets=1,
                                                                         deconvolve_overlap=1,
                                                                         deconvolve_taper='tukey',
