@@ -7,6 +7,9 @@ import subprocess
 from jupyter_core.paths import jupyter_data_dir
 from notebook.auth import passwd
 
+# Add global to quiet error checking but I suspect that this file is defunct
+global c
+
 # Setup the Notebook to listen on all interfaces on port 8888 by default
 c.NotebookApp.ip = '*'
 c.NotebookApp.port = 8888

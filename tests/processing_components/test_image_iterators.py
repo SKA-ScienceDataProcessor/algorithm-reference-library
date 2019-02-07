@@ -43,7 +43,7 @@ class TestImageIterators(unittest.TestCase):
         m31original = create_test_image(polarisation_frame=PolarisationFrame('stokesI'))
         assert numpy.max(numpy.abs(m31original.data)), "Original is empty"
     
-        for nraster, overlap in [(1, 1e6), (2, 128), (1e6, 127)]:
+        for nraster, overlap in [(-1, -1), (-1, 0), (2, 128), (1e6, 127)]:
             
             with self.assertRaises(AssertionError) as context:
                 m31model = create_test_image(polarisation_frame=PolarisationFrame('stokesI'))

@@ -49,8 +49,7 @@ setup(name='algorithm-reference-library',
       )
 
 
-
-
+# noinspection PyCompatibility
 class CFFIBuild(build_ext):
         def run(self):
             super().run()

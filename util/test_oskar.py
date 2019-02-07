@@ -3,7 +3,7 @@ import unittest
 
 from util.read_oskar_vis import *
 
-from arl.data.parameters import arl_path
+from data_models.parameters import arl_path
 
 log = logging.getLogger(__name__)
 

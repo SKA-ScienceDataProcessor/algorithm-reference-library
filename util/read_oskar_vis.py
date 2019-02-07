@@ -1,15 +1,15 @@
 # -*- coding: utf-8 -*-
 """Read OSKAR binary files from python."""
 
-import struct
 import collections
-import numpy
 import os
+import struct
 
-from astropy.coordinates import ICRS, EarthLocation
-from astropy.wcs import WCS
+import astropy.units as u
+import numpy
+from astropy.coordinates import ICRS, EarthLocation, SkyCoord
 
-from arl.data.data_models import *
+from data_models.memory_data_models import Visibility, Configuration
 
 
 class OskarBinary(object):

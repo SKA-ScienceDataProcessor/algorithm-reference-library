@@ -57,9 +57,11 @@ def image_raster_iter(im: Image, facets=1, overlap=0, taper='flat', make_flat=Fa
     assert facets <= ny, "Cannot have more raster elements than pixels"
     assert facets <= nx, "Cannot have more raster elements than pixels"
     
-    if facets == 1 and overlap == 0:
-        yield im
+    assert facets >=1, "Facets cannot be zero or less"
+    assert overlap >= 0, "Overlap must be zero or greater"
     
+    if facets == 1:
+        yield im
     else:
         
         assert overlap < (nx // facets), "Overlap in facets is too large"

@@ -294,7 +294,7 @@ def deconvolve_list_serial_workflow(dirty_list, psf_list, model_imagelist, prefi
     deconvolve_facets = get_parameter(kwargs, 'deconvolve_facets', 1)
     deconvolve_overlap = get_parameter(kwargs, 'deconvolve_overlap', 0)
     deconvolve_taper = get_parameter(kwargs, 'deconvolve_taper', None)
-    if deconvolve_overlap > 0:
+    if deconvolve_facets > 1 and deconvolve_overlap > 0:
         deconvolve_number_facets = (deconvolve_facets - 2) ** 2
     else:
         deconvolve_number_facets = deconvolve_facets ** 2

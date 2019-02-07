@@ -145,7 +145,7 @@ gn = sigmaG * (random.randn(N,1) + 1j*random.randn(N,1) )
 gt = g + gn
 
 # phase referencing:
-ref = 0;
+ref = 0
 gt_ref = gt * exp(-1j*angle(gt[ref]))
 
 #----------------------------------------------------------------------------------------------------------------------#
@@ -287,14 +287,14 @@ print ("%+e exp(%+ei)" % (abs(gt_ref[ant]), angle(gt_ref[ant])*r2d))
 print (
     "----------------------------------------------------------------------------------------------------------------")
 
-print ("%+e exp(%+ei) -> %+e exp(%+ei)" % (abs(g1_ref[ant]), r2d*angle(g1_ref[ant]), \
-       abs(g1_ref[ant])-abs(gt_ref[ant]), r2d*angle(g1_ref[ant])-r2d*angle(gt_ref[ant])))
-print ("%+e exp(%+ei) -> %+e exp(%+ei)" % (abs(g2_ref[ant]), r2d*angle(g2_ref[ant]), \
-       abs(g2_ref[ant])-abs(gt_ref[ant]), r2d*angle(g2_ref[ant])-r2d*angle(gt_ref[ant])))
-print ("%+e exp(%+ei) -> %+e exp(%+ei)" % (abs(g3_ref[ant]), r2d*angle(g3_ref[ant]), \
-       abs(g3_ref[ant])-abs(gt_ref[ant]), r2d*angle(g3_ref[ant])-r2d*angle(gt_ref[ant])))
-print ("%+e exp(%+ei) -> %+e exp(%+ei)" % (abs(g4_ref[ant]), r2d*angle(g4_ref[ant]), \
-       abs(g4_ref[ant])-abs(gt_ref[ant]), r2d*angle(g4_ref[ant])-r2d*angle(gt_ref[ant])))
+print ("%+e exp(%+ei) -> %+e exp(%+ei)" % (abs(g1_ref[ant]), r2d*angle(g1_ref[ant]),
+                                           abs(g1_ref[ant])-abs(gt_ref[ant]), r2d*angle(g1_ref[ant])-r2d*angle(gt_ref[ant])))
+print ("%+e exp(%+ei) -> %+e exp(%+ei)" % (abs(g2_ref[ant]), r2d*angle(g2_ref[ant]),
+                                           abs(g2_ref[ant])-abs(gt_ref[ant]), r2d*angle(g2_ref[ant])-r2d*angle(gt_ref[ant])))
+print ("%+e exp(%+ei) -> %+e exp(%+ei)" % (abs(g3_ref[ant]), r2d*angle(g3_ref[ant]),
+                                           abs(g3_ref[ant])-abs(gt_ref[ant]), r2d*angle(g3_ref[ant])-r2d*angle(gt_ref[ant])))
+print ("%+e exp(%+ei) -> %+e exp(%+ei)" % (abs(g4_ref[ant]), r2d*angle(g4_ref[ant]),
+                                           abs(g4_ref[ant])-abs(gt_ref[ant]), r2d*angle(g4_ref[ant])-r2d*angle(gt_ref[ant])))
 print ()
 
 #----------------------------------------------------------------------------------------------------------------------#
@@ -309,6 +309,7 @@ err2.append( sqrt(mean(abs(g2_ref-gt_ref)**2)) )
 err3.append( sqrt(mean(abs(g3_ref-gt_ref)**2)) )
 err4.append( sqrt(mean(abs(g4_ref-gt_ref)**2)) )
 
+it = 0
 for it in range(0,Nit):
 
     # Normal equation approach
@@ -412,14 +413,14 @@ for it in range(0,Nit):
     err4.append( sqrt(mean(abs(g4_ref-gt_ref)**2)) )
 
     if 1:
-        print ("%+e exp(%+ei) -> %+e exp(%+ei)" % (abs(g1_ref[ant]), r2d*angle(g1_ref[ant]), \
-               abs(g1_ref[ant])-abs(gt_ref[ant]), r2d*angle(g1_ref[ant])-r2d*angle(gt_ref[ant])))
-        print ("%+e exp(%+ei) -> %+e exp(%+ei)" % (abs(g2_ref[ant]), r2d*angle(g2_ref[ant]), \
-               abs(g2_ref[ant])-abs(gt_ref[ant]), r2d*angle(g2_ref[ant])-r2d*angle(gt_ref[ant])))
-        print ("%+e exp(%+ei) -> %+e exp(%+ei)" % (abs(g3_ref[ant]), r2d*angle(g3_ref[ant]), \
-               abs(g3_ref[ant])-abs(gt_ref[ant]), r2d*angle(g3_ref[ant])-r2d*angle(gt_ref[ant])))
-        print ("%+e exp(%+ei) -> %+e exp(%+ei)" % (abs(g4_ref[ant]), r2d*angle(g4_ref[ant]), \
-               abs(g4_ref[ant])-abs(gt_ref[ant]), r2d*angle(g4_ref[ant])-r2d*angle(gt_ref[ant])))
+        print ("%+e exp(%+ei) -> %+e exp(%+ei)" % (abs(g1_ref[ant]), r2d*angle(g1_ref[ant]),
+                                                   abs(g1_ref[ant])-abs(gt_ref[ant]), r2d*angle(g1_ref[ant])-r2d*angle(gt_ref[ant])))
+        print ("%+e exp(%+ei) -> %+e exp(%+ei)" % (abs(g2_ref[ant]), r2d*angle(g2_ref[ant]),
+                                                   abs(g2_ref[ant])-abs(gt_ref[ant]), r2d*angle(g2_ref[ant])-r2d*angle(gt_ref[ant])))
+        print ("%+e exp(%+ei) -> %+e exp(%+ei)" % (abs(g3_ref[ant]), r2d*angle(g3_ref[ant]),
+                                                   abs(g3_ref[ant])-abs(gt_ref[ant]), r2d*angle(g3_ref[ant])-r2d*angle(gt_ref[ant])))
+        print ("%+e exp(%+ei) -> %+e exp(%+ei)" % (abs(g4_ref[ant]), r2d*angle(g4_ref[ant]),
+                                                   abs(g4_ref[ant])-abs(gt_ref[ant]), r2d*angle(g4_ref[ant])-r2d*angle(gt_ref[ant])))
         print ()
 
     # test for convergence
@@ -428,14 +429,14 @@ for it in range(0,Nit):
        abs(err3[-1]-err3[-2])/err3[-1]<1e-3 and \
        abs(err4[-1]-err4[-2])/err4[-1]<1e-3: break
 
-print ("%+e exp(%+ei) -> %+e exp(%+ei)" % (abs(g1_ref[ant]), r2d*angle(g1_ref[ant]), \
-       abs(g1_ref[ant])-abs(gt_ref[ant]), r2d*angle(g1_ref[ant])-r2d*angle(gt_ref[ant])))
-print ("%+e exp(%+ei) -> %+e exp(%+ei)" % (abs(g2_ref[ant]), r2d*angle(g2_ref[ant]), \
-       abs(g2_ref[ant])-abs(gt_ref[ant]), r2d*angle(g2_ref[ant])-r2d*angle(gt_ref[ant])))
-print ("%+e exp(%+ei) -> %+e exp(%+ei)" % (abs(g3_ref[ant]), r2d*angle(g3_ref[ant]), \
-       abs(g3_ref[ant])-abs(gt_ref[ant]), r2d*angle(g3_ref[ant])-r2d*angle(gt_ref[ant])))
-print ("%+e exp(%+ei) -> %+e exp(%+ei)" % (abs(g4_ref[ant]), r2d*angle(g4_ref[ant]), \
-       abs(g4_ref[ant])-abs(gt_ref[ant]), r2d*angle(g4_ref[ant])-r2d*angle(gt_ref[ant])))
+print ("%+e exp(%+ei) -> %+e exp(%+ei)" % (abs(g1_ref[ant]), r2d*angle(g1_ref[ant]),
+                                           abs(g1_ref[ant])-abs(gt_ref[ant]), r2d*angle(g1_ref[ant])-r2d*angle(gt_ref[ant])))
+print ("%+e exp(%+ei) -> %+e exp(%+ei)" % (abs(g2_ref[ant]), r2d*angle(g2_ref[ant]),
+                                           abs(g2_ref[ant])-abs(gt_ref[ant]), r2d*angle(g2_ref[ant])-r2d*angle(gt_ref[ant])))
+print ("%+e exp(%+ei) -> %+e exp(%+ei)" % (abs(g3_ref[ant]), r2d*angle(g3_ref[ant]),
+                                           abs(g3_ref[ant])-abs(gt_ref[ant]), r2d*angle(g3_ref[ant])-r2d*angle(gt_ref[ant])))
+print ("%+e exp(%+ei) -> %+e exp(%+ei)" % (abs(g4_ref[ant]), r2d*angle(g4_ref[ant]),
+                                           abs(g4_ref[ant])-abs(gt_ref[ant]), r2d*angle(g4_ref[ant])-r2d*angle(gt_ref[ant])))
 print ()
 
 print ("converged in %d iterations. 1/SNR = %.1e, 1/SNR/sqrt(N-1)/sqrt(Nsamples) = %.1e" % \

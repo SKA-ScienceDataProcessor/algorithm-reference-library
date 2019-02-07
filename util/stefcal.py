@@ -72,9 +72,8 @@ def stefcal(vis, num_ants, antA, antB, weights=1.0, num_iters=10, ref_ant=0, ini
         # Normalise g_new to match g_curr so that taking their average and diff
         # make sense (without copy() the elements of g_new are mangled up)
         g_new /= g_new[..., ref_ant][..., np.newaxis].copy()
-        print
-        "Iteration %d: mean absolute gain change = %f" % \
-        (n + 1, 0.5 * np.abs(g_new - g_curr).mean())
+        print("Iteration %d: mean absolute gain change = %f" % \
+        (n + 1, 0.5 * np.abs(g_new - g_curr).mean()))
         # Avoid getting stuck during iteration
         g_curr = 0.5 * (g_new + g_curr)
     return g_curr

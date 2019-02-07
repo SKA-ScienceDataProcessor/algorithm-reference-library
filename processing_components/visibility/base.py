@@ -433,7 +433,7 @@ def create_blockvisibility_from_uvfits(fitsname, channum=None, ack=False, antnum
     
     Creates a list of BlockVisibility's, split by field and spectral window
     
-    :param msname: File name of UVFITS
+    :param fitsname: File name of UVFITS
     :param channum: range of channels e.g. range(17,32), default is None meaning all
     :param antnum: the number of antenna
     :return:
@@ -557,7 +557,7 @@ def create_blockvisibility_from_uvfits(fitsname, channum=None, ack=False, antnum
             ww = hdul[0].data['WW'] 
         else:
             uu = hdul[0].data['UU---SIN'] 
-            vv = shdul[0].data['VV---SIN'] 
+            vv = hdul[0].data['VV---SIN']
             ww = hdul[0].data['WW---SIN'] 
         _vis = hdul[0].data['DATA']
 
@@ -595,14 +595,11 @@ def create_blockvisibility_from_uvfits(fitsname, channum=None, ack=False, antnum
     return vis_list
 
 def create_visibility_from_uvfits(fitsname, channum=None, ack=False, antnum=None):
-    """ Minimal MS to BlockVisibility converter
-
-    The MS format is much more general than the ARL BlockVisibility so we cut ma ny corners. This requires casacore to be
-    installed. If not an exception ModuleNotFoundError is raised.
+    """ Minimal UVFITS to BlockVisibility converter
 
     Creates a list of BlockVisibility's, split by field and spectral window
 
-    :param msname: File name of MS
+    :param fitsname: File name of UVFITS file
     :param channum: range of channels e.g. range(17,32), default is None meaning all
     :param antnum: the number of antenna
     :return:
