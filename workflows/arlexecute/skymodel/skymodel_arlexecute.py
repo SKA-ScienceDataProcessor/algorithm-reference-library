@@ -2,7 +2,7 @@ import logging
 
 import numpy
 
-from data_models.memory_data_models import Image, GainTable, Visibility, SkyModel
+from data_models.memory_data_models import Image, GainTable, Visibility, SkyModel, ConvolutionFunction
 from processing_library.image.operations import copy_image
 from workflows.serial.imaging.imaging_serial import predict_list_serial_workflow, invert_list_serial_workflow
 from wrappers.arlexecute.visibility.base import copy_visibility
@@ -32,9 +32,14 @@ def predict_skymodel_list_arlexecute_workflow(obsvis, skymodel_list, context, vi
     :return: List of vis_lists
    """
     
-    def ft_cal_sm(ov, sm):
+    def ft_cal_sm(ov, sm, g):
         assert isinstance(ov, Visibility), ov
         assert isinstance(sm, SkyModel), sm
+        if g is not None:
+            assert len(g) == 2, g
+            assert isinstance(g[0], Image), g[0]
+            assert isinstance(g[1], ConvolutionFunction), g[1]
+
         v = copy_visibility(ov)
         
         v.data['vis'][...] = 0.0 + 0.0j
@@ -56,7 +61,7 @@ def predict_skymodel_list_arlexecute_workflow(obsvis, skymodel_list, context, vi
                 else:
                     model = sm.image
                 v = predict_list_serial_workflow([v], [model], context=context,
-                                                 vis_slices=vis_slices, facets=facets, gcfcf=gcfcf,
+                                                 vis_slices=vis_slices, facets=facets, gcfcf=[g],
                                                  **kwargs)[0]
         
         if docal and isinstance(sm.gaintable, GainTable):
@@ -65,7 +70,8 @@ def predict_skymodel_list_arlexecute_workflow(obsvis, skymodel_list, context, vi
             v = convert_blockvisibility_to_visibility(bv)
         return v
     
-    return [arlexecute.execute(ft_cal_sm, nout=1)(obsvis, sm) for sm in skymodel_list]
+    return [arlexecute.execute(ft_cal_sm, nout=1)(obsvis, sm, gcfcf[ism])
+            for ism, sm in enumerate(skymodel_list)]
 
 
 def invert_skymodel_list_arlexecute_workflow(vis_list, skymodel_list, context, vis_slices=1, facets=1,
@@ -86,9 +92,13 @@ def invert_skymodel_list_arlexecute_workflow(vis_list, skymodel_list, context, v
     :return: List of (image, weight) tuples)
    """
     
-    def ift_ical_sm(v, sm):
+    def ift_ical_sm(v, sm, g):
         assert isinstance(v, Visibility), v
-        assert isinstance(sm.image, Image), sm.image
+        assert isinstance(sm, SkyModel), sm
+        if g is not None:
+            assert len(g) == 2, g
+            assert isinstance(g[0], Image), g[0]
+            assert isinstance(g[1], ConvolutionFunction), g[1]
         
         if docal and isinstance(sm.gaintable, GainTable):
             bv = convert_visibility_to_blockvisibility(v)
@@ -96,14 +106,15 @@ def invert_skymodel_list_arlexecute_workflow(vis_list, skymodel_list, context, v
             v = convert_blockvisibility_to_visibility(bv)
             
         result = invert_list_serial_workflow([v], [sm.image], context=context,
-                                             vis_slices=vis_slices, facets=facets, gcfcf=gcfcf,
+                                             vis_slices=vis_slices, facets=facets, gcfcf=[g],
                                              **kwargs)[0]
         if isinstance(sm.mask, Image):
             result[0].data *= sm.mask.data
         
         return result
     
-    return [arlexecute.execute(ift_ical_sm, nout=1)(vis_list[i], sm) for i, sm in enumerate(skymodel_list)]
+    return [arlexecute.execute(ift_ical_sm, nout=1)(vis_list[i], sm, gcfcf[i])
+            for i, sm in enumerate(skymodel_list)]
     
 
 
@@ -153,8 +164,14 @@ def convolve_skymodel_list_arlexecute_workflow(obsvis, skymodel_list, context, v
     :return: List of (image, weight) tuples)
    """
 
-    def ft_ift_sm(ov, sm):
+    def ft_ift_sm(ov, sm, g):
         assert isinstance(ov, Visibility), ov
+        assert isinstance(sm, SkyModel), sm
+        if g is not None:
+            assert len(g) == 2, g
+            assert isinstance(g[0], Image), g[0]
+            assert isinstance(g[1], ConvolutionFunction), g[1]
+            
         v = copy_visibility(ov)
     
         v.data['vis'][...] = 0.0 + 0.0j
@@ -176,16 +193,17 @@ def convolve_skymodel_list_arlexecute_workflow(obsvis, skymodel_list, context, v
                 else:
                     model = sm.image
                 v = predict_list_serial_workflow([v], [model], context=context,
-                                                 vis_slices=vis_slices, facets=facets, gcfcf=gcfcf,
+                                                 vis_slices=vis_slices, facets=facets, gcfcf=[g],
                                                  **kwargs)[0]
     
         assert isinstance(sm.image, Image), sm.image
         
         result = invert_list_serial_workflow([v], [sm.image], context=context,
-                                             vis_slices=vis_slices, facets=facets, gcfcf=gcfcf,
+                                             vis_slices=vis_slices, facets=facets, gcfcf=[g],
                                              **kwargs)[0]
         if isinstance(sm.mask, Image):
             result[0].data *= sm.mask.data
         return result
     
-    return [arlexecute.execute(ft_ift_sm, nout=len(skymodel_list))(obsvis, sm) for sm in skymodel_list]
+    return [arlexecute.execute(ft_ift_sm, nout=len(skymodel_list))(obsvis, sm, gcfcf[ism])
+            for ism, sm in enumerate(skymodel_list)]

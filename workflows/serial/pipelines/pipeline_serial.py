@@ -29,7 +29,7 @@ def ical_list_serial_workflow(vis_list, model_imagelist, context, vis_slices=1, 
         gcfcf = [create_pswf_convolutionfunction(model_imagelist[0])]
     
     psf_imagelist = invert_list_serial_workflow(vis_list, model_imagelist, dopsf=True, context=context,
-                                                vis_slices=vis_slices, facets=facets, gcgcf=gcfcf, **kwargs)
+                                                vis_slices=vis_slices, facets=facets, gcfcf=gcfcf, **kwargs)
     
     model_vislist = [copy_visibility(v, zero=True) for v in vis_list]
     
@@ -43,19 +43,19 @@ def ical_list_serial_workflow(vis_list, model_imagelist, context, vis_slices=1, 
         # form the residual visibility, then make the residual image
         model_vislist = predict_list_serial_workflow(model_vislist, model_imagelist,
                                                      context=context, vis_slices=vis_slices, facets=facets,
-                                                     gcgcf=gcfcf, **kwargs)
+                                                     gcfcf=gcfcf, **kwargs)
         cal_vis_list, gt_list = calibrate_list_serial_workflow(cal_vis_list, model_vislist,
                                                          calibration_context=calibration_context, **kwargs)
         residual_vislist = subtract_list_serial_workflow(cal_vis_list, model_vislist)
         residual_imagelist = invert_list_serial_workflow(residual_vislist, model_imagelist,
                                                          context=context, dopsf=False,
-                                                         vis_slices=vis_slices, facets=facets, gcgcf=gcfcf,
+                                                         vis_slices=vis_slices, facets=facets, gcfcf=gcfcf,
                                                          iteration=0, **kwargs)
     else:
         # If we are not selfcalibrating it's much easier and we can avoid an unnecessary round of gather/scatter
         # for visibility partitioning such as timeslices and wstack.
         residual_imagelist = residual_list_serial_workflow(cal_vis_list, model_imagelist, context=context,
-                                                           vis_slices=vis_slices, facets=facets, gcgcf=gcfcf,
+                                                           vis_slices=vis_slices, facets=facets, gcfcf=gcfcf,
                                                            **kwargs)
     
     deconvolve_model_imagelist, _ = deconvolve_list_serial_workflow(residual_imagelist, psf_imagelist,
@@ -67,7 +67,7 @@ def ical_list_serial_workflow(vis_list, model_imagelist, context, vis_slices=1, 
             if do_selfcal:
                 model_vislist = predict_list_serial_workflow(model_vislist, deconvolve_model_imagelist,
                                                              context=context, vis_slices=vis_slices, facets=facets,
-                                                             gcgcf=gcfcf, **kwargs)
+                                                             gcfcf=gcfcf, **kwargs)
                 cal_vis_list = [copy_visibility(v) for v in vis_list]
                 cal_vis_list, gt_list = calibrate_list_serial_workflow(cal_vis_list, model_vislist,
                                                                  calibration_context=calibration_context,
@@ -76,12 +76,12 @@ def ical_list_serial_workflow(vis_list, model_imagelist, context, vis_slices=1, 
                 residual_imagelist = invert_list_serial_workflow(residual_vislist, model_imagelist,
                                                                  context=context,
                                                                  vis_slices=vis_slices, facets=facets,
-                                                                 gcgcf=gcfcf, **kwargs)
+                                                                 gcfcf=gcfcf, **kwargs)
             else:
                 residual_imagelist = residual_list_serial_workflow(cal_vis_list, deconvolve_model_imagelist,
                                                                    context=context,
                                                                    vis_slices=vis_slices, facets=facets,
-                                                                   gcgcf=gcfcf,
+                                                                   gcfcf=gcfcf,
                                                                    **kwargs)
             
             prefix = "cycle %d" % (cycle + 1)
@@ -90,7 +90,7 @@ def ical_list_serial_workflow(vis_list, model_imagelist, context, vis_slices=1, 
                                                                             prefix=prefix,
                                                                             **kwargs)
     residual_imagelist = residual_list_serial_workflow(cal_vis_list, deconvolve_model_imagelist, context=context,
-                                                       vis_slices=vis_slices, facets=facets, gcgcf=gcfcf, **kwargs)
+                                                       vis_slices=vis_slices, facets=facets, gcfcf=gcfcf, **kwargs)
     restore_imagelist = restore_list_serial_workflow(deconvolve_model_imagelist, psf_imagelist, residual_imagelist)
     return deconvolve_model_imagelist, residual_imagelist, restore_imagelist, gt_list
 
