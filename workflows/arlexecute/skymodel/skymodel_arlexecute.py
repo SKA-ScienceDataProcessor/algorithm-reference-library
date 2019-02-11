@@ -70,8 +70,13 @@ def predict_skymodel_list_arlexecute_workflow(obsvis, skymodel_list, context, vi
             v = convert_blockvisibility_to_visibility(bv)
         return v
     
-    return [arlexecute.execute(ft_cal_sm, nout=1)(obsvis, sm, gcfcf[ism])
-            for ism, sm in enumerate(skymodel_list)]
+    if gcfcf is None:
+       return [arlexecute.execute(ft_cal_sm, nout=1)(obsvis, sm, None)
+                for ism, sm in enumerate(skymodel_list)]
+    else:
+        return [arlexecute.execute(ft_cal_sm, nout=1)(obsvis, sm, gcfcf[ism])
+                for ism, sm in enumerate(skymodel_list)]
+
 
 
 def invert_skymodel_list_arlexecute_workflow(vis_list, skymodel_list, context, vis_slices=1, facets=1,
@@ -112,10 +117,12 @@ def invert_skymodel_list_arlexecute_workflow(vis_list, skymodel_list, context, v
             result[0].data *= sm.mask.data
         
         return result
-    
-    return [arlexecute.execute(ift_ical_sm, nout=1)(vis_list[i], sm, gcfcf[i])
-            for i, sm in enumerate(skymodel_list)]
-    
+    if gcfcf is None:
+        return [arlexecute.execute(ift_ical_sm, nout=1)(vis_list[i], sm, None)
+                for i, sm in enumerate(skymodel_list)]
+    else:
+        return [arlexecute.execute(ift_ical_sm, nout=1)(vis_list[i], sm, gcfcf[i])
+                for i, sm in enumerate(skymodel_list)]
 
 
 def crosssubtract_datamodels_skymodel_list_arlexecute_workflow(obsvis, modelvis_list):
@@ -205,5 +212,9 @@ def convolve_skymodel_list_arlexecute_workflow(obsvis, skymodel_list, context, v
             result[0].data *= sm.mask.data
         return result
     
-    return [arlexecute.execute(ft_ift_sm, nout=len(skymodel_list))(obsvis, sm, gcfcf[ism])
-            for ism, sm in enumerate(skymodel_list)]
+    if gcfcf is None:
+        return [arlexecute.execute(ft_ift_sm, nout=len(skymodel_list))(obsvis, sm, None)
+                for ism, sm in enumerate(skymodel_list)]
+    else:
+        return [arlexecute.execute(ft_ift_sm, nout=len(skymodel_list))(obsvis, sm, gcfcf[ism])
+                for ism, sm in enumerate(skymodel_list)]
