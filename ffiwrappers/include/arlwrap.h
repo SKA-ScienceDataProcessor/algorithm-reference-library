@@ -86,8 +86,8 @@ typedef struct {
 
 int arl_handle_error();
 
-void arlvis_proto2vis(const void *visin, ARLVis *visout);
-void arlvis_vis2proto(const ARLVis *visin, void *visout);
+void arlvis_proto2vis(const char *visin, ARLVis * visout);
+void arlvis_vis2proto(const ARLVis *visin, char * visout);
 // Prototypes to ARL routines
 void helper_get_image_shape(const double *frequency, double cellsize,
 		int *shape);
@@ -132,7 +132,7 @@ void arl_restore_cube_ical(Image *model, Image *psf, Image *residual,
 		Image *restored);
 
 void arl_predict_function(ARLConf *lowconf, const ARLVis *visin, const Image *img, ARLVis *visout, ARLVis *blockvisout, long long int *cindexout);
-void arl_predict_function_oneslice(ARLConf *lowconf, const ARLVis *visin, ARLVis *blockvisin, const Image *img, ARLVis *visout);
+void arl_predict_function_oneslice(ARLConf *lowconf, const char *visin, ARLVis *blockvisin, const Image *img, ARLVis *visout);
 void arl_predict_function_ical(ARLConf *lowconf, ARLVis *visinout, const Image *img, ARLVis *blockvisinout, long long int *cindexinout, int vis_slices);
 
 void arl_invert_function(ARLConf * lowconf, const ARLVis *visin, Image * img_model, int vis_slices, Image * img_dirty);
@@ -144,7 +144,7 @@ void arl_convert_visibility_to_blockvisibility(ARLConf *lowconf, const ARLVis *v
 void arl_convert_blockvisibility_to_visibility(ARLConf *lowconf, const ARLVis *blockvisin, ARLVis *visout, long long int *cindexout, ARLVis *blockvisout);
 
 void arl_create_rows(ARLConf *lowconf, const ARLVis *visin, int visslices, int *c_rows);
-void arl_create_vis_from_rows_vis(ARLConf *lowconf, const ARLVis *visin, long long int * cindex_in, ARLVis *blockvis_in, ARLVis *visout,
+void arl_create_vis_from_rows_vis(ARLConf *lowconf, const ARLVis *visin, long long int * cindex_in, ARLVis *blockvis_in, void *visout,
     long long int *cindex_out, ARLVis *blockvis_out, int *c_rows) ;
 void arl_create_gaintable_from_blockvisibility(ARLConf *lowconf, const ARLVis *visin, ARLGt *gtout);
 void arl_predict_function_blockvis(ARLConf *, ARLVis *, const Image *);

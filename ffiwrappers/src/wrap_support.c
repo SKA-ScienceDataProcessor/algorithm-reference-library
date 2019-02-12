@@ -64,12 +64,13 @@ Image *allocate_image(int *shape)
 		free(image);
 		return NULL;
 	}
-	if(!(image->wcs = calloc(2997,sizeof(char)))) {
+	if(!(image->wcs = calloc(2996,sizeof(char)))) {
 		free(image->data);
 		free(image);
 		return NULL;
 	}
-	if(!(image->polarisation_frame = calloc(115,sizeof(char)))) {
+//	if(!(image->polarisation_frame = calloc(115,sizeof(char)))) {
+	if(!(image->polarisation_frame = calloc(117,sizeof(char)))) {
 		free(image->data);
 		free(image->wcs);
 		free(image);

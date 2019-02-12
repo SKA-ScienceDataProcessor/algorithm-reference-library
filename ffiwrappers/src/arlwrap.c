@@ -33,31 +33,31 @@ int arl_handle_error()
   return error;
 }
 
-void arlvis_vis2proto(const ARLVis *visin, void *visout)
+void arlvis_vis2proto(const ARLVis *visin, char * visout)
 {
   ARLVisPB vispb = ARLVIS_PB__INIT;//(ARLVisPB *)malloc(sizeof(ARLVisPB));
-  Data data = DATA__INIT;
+//#  vispb.data = ARLVIS_PB__DATA__INIT;
 //  arlvis_pb__init(&vispb);
   vispb.nvis = visin->nvis;
   vispb.npol = visin->npol;
-  data.uvw = ((int *)visin->data)[0]; // uvw
-  printf("uvw %d\n", data.uvw);
-  data.time = ((int *)visin->data)[1]; // time
-  data.frequency = ((int *)visin->data)[2];  // frequency
-  data.channel_bandwidth = ((int *)visin->data)[3];  //  channel_bandwidth
-  data.integration_time = ((int *)visin->data)[4];
-  data.antenna1 = ((int *)visin->data)[5];
-  data.antenna2 = ((int *)visin->data)[6];
-  data.vis = ((int *)visin->data)[7];
-  data.weight = ((int *)visin->data)[8];
-  vispb.data = &data;
+  vispb.data[0] = ((int *)visin->data)[0]; // uvw
+  printf("uvw %d\n", vispb.data[0]);
+  vispb.data[1] = ((int *)visin->data)[1]; // time
+  vispb.data[2] = ((int *)visin->data)[2];  // frequency
+  vispb.data[3] = ((int *)visin->data)[3];  //  channel_bandwidth
+  vispb.data[4] = ((int *)visin->data)[4];
+  vispb.data[5] = ((int *)visin->data)[5];
+  vispb.data[6] = ((int *)visin->data)[6];
+  vispb.data[7] = ((int *)visin->data)[7];
+  vispb.data[8] = ((int *)visin->data)[8];
+//  vispb.data = &data;
   vispb.phasecentre = visin->phasecentre;
-  visout = malloc(arlvis_pb__get_packed_size(&vispb));
+//  visout = malloc(arlvis_pb__get_packed_size(&vispb));
   arlvis_pb__pack(&vispb, visout);
 //  BKFNPY(arlvis_vis2proto)(visin, visout);
 }
 
-void arlvis_proto2vis(const void *visin, ARLVis *visout)
+void arlvis_proto2vis(const char *visin, ARLVis * visout)
 {
   BKFNPY(arlvis_proto)(visin, visout);
 }
@@ -185,7 +185,7 @@ void arl_predict_function(ARLConf *lowconf, const ARLVis *visin, const Image *im
 	BKFNPY(arl_predict_function)(lowconf, visin, img, visout, blockvisout, cindexout);
 }
 
-void arl_predict_function_oneslice(ARLConf *lowconf, const ARLVis *visin, ARLVis *blockvisin, const Image *img, ARLVis *visout) {
+void arl_predict_function_oneslice(ARLConf *lowconf, const char *visin, ARLVis *blockvisin, const Image *img, ARLVis *visout) {
 	BKFNPY(arl_predict_function_oneslice)(lowconf, visin, blockvisin, img, visout);
 }
 
@@ -221,7 +221,7 @@ void arl_create_rows(ARLConf *lowconf, const ARLVis *visin, int visslices, int *
   BKFNPY(arl_create_rows)(lowconf, visin, visslices, c_rows);
 }
 
-void arl_create_vis_from_rows_vis(ARLConf *lowconf, const ARLVis *visin, long long int * cindex_in, ARLVis *blockvis_in, ARLVis *visout,
+void arl_create_vis_from_rows_vis(ARLConf *lowconf, const ARLVis *visin, long long int * cindex_in, ARLVis *blockvis_in, void *visout,
     long long int *cindex_out, ARLVis *blockvis_out, int *c_rows) {
   BKFNPY(arl_create_vis_from_rows_vis)(lowconf, visin, cindex_in, blockvis_in, visout, cindex_out, blockvis_out, c_rows);
 }
@@ -267,6 +267,6 @@ void arl_invert_function_blockvis(ARLConf * lowconf, const ARLVis *blockvisin, I
 }
 
 void arl_invert_function_oneslice(ARLConf * lowconf, const ARLVis * vis_in, const ARLVis *blockvisin, Image * img_model, int vis_slices, Image * img_dirty, double * sumwt, int dopsf_in){
- 	BKFNPY(arl_invert_function_blockvis)(lowconf, blockvisin, img_model, vis_slices, img_dirty, sumwt, dopsf_in);
+ 	BKFNPY(arl_invert_function_oneslice)(lowconf, vis_in, blockvisin, img_model, vis_slices, img_dirty, sumwt, dopsf_in);
 }
 
