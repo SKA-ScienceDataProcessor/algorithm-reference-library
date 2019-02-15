@@ -184,11 +184,11 @@ def invert_list_arlexecute_workflow(vis_list, template_model_imagelist, context,
                 i += 1
         return result, sumwt
     
-    def invert_ignore_none(vis, model, g):
+    def invert_ignore_none(vis, model, gg):
         if vis is not None:
             
             return invert(vis, model, context=context, dopsf=dopsf, normalize=normalize,
-                          gcfcf=g, **kwargs)
+                          gcfcf=gg, **kwargs)
         else:
             return create_empty_image_like(model), 0.0
     
