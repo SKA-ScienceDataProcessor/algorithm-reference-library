@@ -5,7 +5,7 @@
 import logging
 import time
 
-from dask import delayed
+from dask import delayed, optimize
 from dask.distributed import Client, wait
 
 # Support daliuge's delayed function, make it fail if not available but used
@@ -21,16 +21,17 @@ log = logging.getLogger(__name__)
 
 class ARLExecuteBase():
     
-    def __init__(self, use_dask=True, use_dlg=False, verbose=False):
+    def __init__(self, use_dask=True, use_dlg=False, verbose=False, optimize=True):
         if bool(use_dask) and bool(use_dlg):
             raise ValueError('use_dask and use_dlg cannot be specified together')
-        self._set_state(use_dask, use_dlg, None, verbose)
+        self._set_state(use_dask, use_dlg, None, verbose, optimize)
 
-    def _set_state(self, use_dask, use_dlg, client, verbose):
+    def _set_state(self, use_dask, use_dlg, client, verbose, optimize):
         self._using_dask = use_dask
         self._using_dlg = use_dlg
         self._client = client
         self._verbose = verbose
+        self._optimize = optimize
 
     def execute(self, func, *args, **kwargs):
         """ Wrap for immediate or deferred execution
@@ -60,7 +61,7 @@ class ARLExecuteBase():
         else:
             return 'function'
     
-    def set_client(self, client=None, use_dask=True, use_dlg=False, verbose=False, **kwargs):
+    def set_client(self, client=None, use_dask=True, use_dlg=False, verbose=False, optim=True, **kwargs):
         """Set the Dask/DALiuGE client to be used
         
         !!!This must be called before calling execute!!!!
@@ -69,6 +70,9 @@ class ARLExecuteBase():
         
         :param use_dask: Use Dask?
         :param client: If None and use_dask is True, a client will be created otherwise the client is None
+        :param use_dlg: Use Daliuge to execute graphs?
+        :param verbose: Be verbose in output
+        :param optim: Use dask.optimize via arlexecute.optimize function.
         :return:
         """
         if bool(use_dask) and bool(use_dlg):
@@ -80,11 +84,11 @@ class ARLExecuteBase():
         if use_dask:
             client = client or Client(**kwargs)
             assert isinstance(client, Client)
-            self._set_state(True, False, client, verbose)
+            self._set_state(True, False, client, verbose, optim)
         elif use_dlg:
-            self._set_state(False, True, client, verbose)
+            self._set_state(False, True, client, verbose, optim)
         else:
-            self._set_state(False, False, None, verbose)
+            self._set_state(False, False, None, verbose, optim)
     
     def compute(self, value, sync=False):
         """Get the actual value
@@ -160,6 +164,21 @@ class ARLExecuteBase():
             return self.client.run(func, *args, **kwargs)
         else:
             return func
+        
+    def optimize(self, *args, **kwargs):
+        """ Run optimisation of graphs
+        
+        Only does something when using dask
+        
+        :param args:
+        :param kwargs:
+        :return:
+        """
+        if self.using_dask and self._optimize:
+            return optimize(*args, **kwargs)[0]
+        else:
+            return args
+
     
     @property
     def client(self):
@@ -172,6 +191,10 @@ class ARLExecuteBase():
     @property
     def using_dlg(self):
         return self._using_dlg
+
+    @property
+    def optimizing(self):
+        return self._optimize
 
     def close(self):
         if self._using_dask and isinstance(self._client, Client):
