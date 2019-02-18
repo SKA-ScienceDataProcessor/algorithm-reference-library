@@ -111,7 +111,7 @@ class ARLExecuteBase():
                     duration = time.time() - start
                     log.debug("arlexecute.compute: Execution using Dask took %.3f seconds" % duration)
                     print("arlexecute.compute: Execution using Dask took %.3f seconds" % duration)
-            return future
+                return future
         elif self._using_dlg:
             kwargs = {'client': self._client} if self._client else {}
             return dlg_compute(value, **kwargs)

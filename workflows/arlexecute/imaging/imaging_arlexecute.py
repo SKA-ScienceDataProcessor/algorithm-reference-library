@@ -56,9 +56,6 @@ def predict_list_arlexecute_workflow(vis_list, model_imagelist, context, vis_sli
                      facets=facets, context=context, gcfcf=gcfcf, **kwargs)[0]
                 for i, _ in enumerate(vis_list)]
     
-    assert len(vis_list) == len(model_imagelist), \
-        "Vis list %r must be the same length as the model list %r" % (vis_list, model_imagelist)
-    
     # Predict_2d does not clear the vis so we have to do it here.
     vis_list = zero_list_arlexecute_workflow(vis_list)
 
@@ -300,10 +297,15 @@ def deconvolve_list_arlexecute_workflow(dirty_list, psf_list, model_imagelist, p
     :param prefix: Informative prefix to log messages
     :param mask: Mask for deconvolution
     :param kwargs: Parameters for functions in components
-    :return: (graph for the deconvolution, graph for the flat)
+    :return: graph for the deconvolution
     """
     nchan = len(dirty_list)
     nmoment = get_parameter(kwargs, "nmoment", 0)
+    
+    if get_parameter(kwargs, "use_serial_clean", False):
+        from workflows.serial.imaging.imaging_serial import deconvolve_list_serial_workflow
+        return arlexecute.execute(deconvolve_list_serial_workflow, nout=nchan)\
+            (dirty_list, psf_list, model_imagelist, prefix=prefix, mask=mask, **kwargs)
     
     def deconvolve(dirty, psf, model, facet, gthreshold, msk=None):
         if prefix == '':
@@ -395,9 +397,9 @@ def deconvolve_list_arlexecute_workflow(dirty_list, psf_list, model_imagelist, p
     flat_list = arlexecute.execute(image_gather_facets, nout=1)(scattered_results_list, model_imagelist,
                                                                 facets=deconvolve_facets, overlap=deconvolve_overlap,
                                                                 taper=deconvolve_taper, return_flat=True)
+    result_list = arlexecute.execute(image_scatter_channels, nout=nchan)(gathered_results_list, subimages=nchan)
     
-    result = arlexecute.execute(image_scatter_channels, nout=nchan)(gathered_results_list, subimages=nchan), flat_list
-    return arlexecute.optimize(result)
+    return arlexecute.optimize(result_list)
 
 
 def deconvolve_list_channel_arlexecute_workflow(dirty_list, psf_list, model_imagelist, subimages, **kwargs):
@@ -463,10 +465,12 @@ def weight_list_arlexecute_workflow(vis_list, model_imagelist, gcfcf=None, weigh
         else:
             return None
     
-    weight_list = [arlexecute.execute(grid_wt, pure=True)(vis_list[i], model_imagelist[i], gcfcf)
+    weight_list = [arlexecute.execute(grid_wt, pure=True, nout=1)(vis_list[i], model_imagelist[i],
+                                                                  gcfcf)
                    for i in range(len(vis_list))]
     
-    merged_weight_grid = arlexecute.execute(griddata_merge_weights, nout=len(vis_list))(weight_list)
+    merged_weight_grid = arlexecute.execute(griddata_merge_weights, nout=1)(weight_list)
+    merged_weight_grid = arlexecute.persist(merged_weight_grid, broadcast=True)
     
     def re_weight(vis, model, gd, g):
         if gd is not None:

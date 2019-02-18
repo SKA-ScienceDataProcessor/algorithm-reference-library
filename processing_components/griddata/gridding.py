@@ -197,7 +197,7 @@ def griddata_merge_weights(gd_list, algorithm='uniform'):
     
     gd.grid_wcs.wcs.cdelt[4] = bandwidth
     gd.grid_wcs.wcs.crval[4] = frequency / len(gd_list)
-    return gd, sumwt
+    return (gd, sumwt)
 
 
 def griddata_reweight(vis, griddata, cf):

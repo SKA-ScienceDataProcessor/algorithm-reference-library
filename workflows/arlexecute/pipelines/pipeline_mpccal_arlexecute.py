@@ -92,7 +92,7 @@ def mpccal_skymodel_list_arlexecute_workflow(visobs, model, theta_list, nmajor=1
             theta_list = arlexecute.execute(mpccal_progress, nout=len(theta_list))(residual, theta_list,
                                                                       gaintable_list, iteration)
         theta_list = \
-            arlexecute.execute(update_skymodel_from_image, nout=len(theta_list))(theta_list, deconvolved[0][0])
+            arlexecute.execute(update_skymodel_from_image, nout=len(theta_list))(theta_list, deconvolved[0])
 
         theta_list = arlexecute.execute(update_skymodel_from_gaintables, nout=len(theta_list))(theta_list,
                                                                                                gaintable_list,

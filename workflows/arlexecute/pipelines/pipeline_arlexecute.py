@@ -59,7 +59,7 @@ def ical_list_arlexecute_workflow(vis_list, model_imagelist, context, vis_slices
                                                                vis_slices=vis_slices, facets=facets, gcfcf=gcfcf,
                                                                **kwargs)
     
-    deconvolve_model_imagelist, _ = deconvolve_list_arlexecute_workflow(residual_imagelist, psf_imagelist,
+    deconvolve_model_imagelist = deconvolve_list_arlexecute_workflow(residual_imagelist, psf_imagelist,
                                                                         model_imagelist,
                                                                         prefix='cycle 0',
                                                                         **kwargs)
@@ -87,14 +87,14 @@ def ical_list_arlexecute_workflow(vis_list, model_imagelist, context, vis_slices
                                                                        **kwargs)
             
             prefix = "cycle %d" % (cycle + 1)
-            deconvolve_model_imagelist, _ = deconvolve_list_arlexecute_workflow(residual_imagelist, psf_imagelist,
+            deconvolve_model_imagelist = deconvolve_list_arlexecute_workflow(residual_imagelist, psf_imagelist,
                                                                                 deconvolve_model_imagelist,
                                                                                 prefix=prefix,
                                                                                 **kwargs)
     residual_imagelist = residual_list_arlexecute_workflow(cal_vis_list, deconvolve_model_imagelist, context=context,
                                                            vis_slices=vis_slices, facets=facets, gcfcf=gcfcf, **kwargs)
     restore_imagelist = restore_list_arlexecute_workflow(deconvolve_model_imagelist, psf_imagelist, residual_imagelist)
-    return arlexecute.execute((deconvolve_model_imagelist, residual_imagelist, restore_imagelist, gt_list))
+    return (deconvolve_model_imagelist, residual_imagelist, restore_imagelist, gt_list)
 
 
 def continuum_imaging_list_arlexecute_workflow(vis_list, model_imagelist, context, gcfcf=None,
@@ -118,7 +118,7 @@ def continuum_imaging_list_arlexecute_workflow(vis_list, model_imagelist, contex
     residual_imagelist = residual_list_arlexecute_workflow(vis_list, model_imagelist, context=context, gcfcf=gcfcf,
                                                            vis_slices=vis_slices, facets=facets, **kwargs)
     
-    deconvolve_model_imagelist, _ = deconvolve_list_arlexecute_workflow(residual_imagelist, psf_imagelist,
+    deconvolve_model_imagelist = deconvolve_list_arlexecute_workflow(residual_imagelist, psf_imagelist,
                                                                         model_imagelist,
                                                                         prefix='cycle 0',
                                                                         **kwargs)
@@ -130,7 +130,7 @@ def continuum_imaging_list_arlexecute_workflow(vis_list, model_imagelist, contex
                                                                    context=context, vis_slices=vis_slices,
                                                                    facets=facets,
                                                                    gcfcf=gcfcf, **kwargs)
-            deconvolve_model_imagelist, _ = deconvolve_list_arlexecute_workflow(residual_imagelist, psf_imagelist,
+            deconvolve_model_imagelist = deconvolve_list_arlexecute_workflow(residual_imagelist, psf_imagelist,
                                                                                 deconvolve_model_imagelist,
                                                                                 prefix=prefix,
                                                                                 **kwargs)
@@ -138,7 +138,7 @@ def continuum_imaging_list_arlexecute_workflow(vis_list, model_imagelist, contex
     residual_imagelist = residual_list_arlexecute_workflow(vis_list, deconvolve_model_imagelist, context=context,
                                                            vis_slices=vis_slices, facets=facets, gcfcf=gcfcf, **kwargs)
     restore_imagelist = restore_list_arlexecute_workflow(deconvolve_model_imagelist, psf_imagelist, residual_imagelist)
-    return arlexecute.execute((deconvolve_model_imagelist, residual_imagelist, restore_imagelist))
+    return (deconvolve_model_imagelist, residual_imagelist, restore_imagelist)
 
 
 def spectral_line_imaging_list_arlexecute_workflow(vis_list, model_imagelist, context, continuum_model_imagelist=None,

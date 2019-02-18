@@ -359,7 +359,7 @@ def deconvolve_list_serial_workflow(dirty_list, psf_list, model_imagelist, prefi
                                     facets=deconvolve_facets, overlap=deconvolve_overlap,
                                     taper=deconvolve_taper, return_flat=True)
     
-    return image_scatter_channels(gathered_results_list, subimages=nchan), flat_list
+    return image_scatter_channels(gathered_results_list, subimages=nchan)
 
 
 def deconvolve_channel_list_serial_workflow(dirty_list, psf_list, model_imagelist, subimages, **kwargs):

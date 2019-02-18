@@ -17,8 +17,7 @@ from processing_library.util.sizeof import get_size
 from workflows.arlexecute.imaging.imaging_arlexecute import invert_list_arlexecute_workflow, \
     weight_list_arlexecute_workflow, \
     taper_list_arlexecute_workflow, remove_sumwt
-from workflows.arlexecute.pipelines.pipeline_arlexecute import ical_list_arlexecute_workflow, \
-    continuum_imaging_list_arlexecute_workflow
+from workflows.arlexecute.pipelines.pipeline_arlexecute import ical_list_arlexecute_workflow
 from workflows.arlexecute.simulation.simulation_arlexecute import simulate_list_arlexecute_workflow, \
     corrupt_list_arlexecute_workflow
 from workflows.arlexecute.skymodel.skymodel_arlexecute import predict_skymodel_list_arlexecute_workflow
@@ -33,6 +32,12 @@ from wrappers.arlexecute.simulation.testing_support import create_low_test_skymo
 from wrappers.arlexecute.visibility.coalesce import convert_blockvisibility_to_visibility
 
 pp = pprint.PrettyPrinter()
+
+def sort_dict(dc):
+    newdc = dict()
+    for d in sorted(dc):
+        newdc[d] = dc[d]
+    return dc
 
 
 def git_hash():
@@ -52,8 +57,8 @@ def git_hash():
 
 def trial_case(results, seed=180555, context='wstack', nworkers=8, threads_per_worker=1, memory=8,
                processes=True, order='frequency', nfreqwin=7, ntimes=3, rmax=750.0,
-               facets=1, wprojection_planes=1, use_dask=True, distribute_imaging=True,
-               flux_limit=0.3, nmajor=5, dft_threshold=1.0, distribute_clean=True,
+               facets=1, wprojection_planes=1, use_dask=True, use_serial_imaging=True,
+               flux_limit=0.3, nmajor=5, dft_threshold=1.0, use_serial_clean=True,
                write_fits=False):
     """ Single trial for performance-timings
     
@@ -170,7 +175,7 @@ def trial_case(results, seed=180555, context='wstack', nworkers=8, threads_per_w
     results['use_dask'] = use_dask
     
     lprint("At start, configuration is:")
-    lprint(results)
+    lprint(sort_dict(results))
     
     # Parameters determining scale of simulation.
     frequency = numpy.linspace(1.0e8, 1.2e8, nfreqwin)
@@ -185,7 +190,7 @@ def trial_case(results, seed=180555, context='wstack', nworkers=8, threads_per_w
     
     lprint("****** Visibility creation ******")
     # Create the empty BlockVisibility's and persist these on the cluster
-    bvis_list = simulate_list_arlexecute_workflow('LOWBD2',
+    future_bvis_list = simulate_list_arlexecute_workflow('LOWBD2',
                                                   frequency=frequency,
                                                   channel_bandwidth=channel_bandwidth,
                                                   times=times,
@@ -193,19 +198,25 @@ def trial_case(results, seed=180555, context='wstack', nworkers=8, threads_per_w
                                                   order=order,
                                                   format='blockvis',
                                                   rmax=rmax)
-    bvis_list = arlexecute.persist(bvis_list)
-    
-    # We also need the Visibility versions
-    vis_list = [arlexecute.execute(convert_blockvisibility_to_visibility)(bv) for bv in bvis_list]
-    future_vis_list = arlexecute.persist(vis_list)
-    
+    future_vis_list = [arlexecute.execute(convert_blockvisibility_to_visibility)(bv)
+                       for bv in future_bvis_list]
+    future_vis_list = arlexecute.client.compute(future_vis_list, sync=True)
+    vis_list = arlexecute.gather(future_vis_list)
+    arlexecute.client.cancel(future_bvis_list)
+    future_vis_list = arlexecute.scatter(vis_list)
+
     # Find the best imaging parameters but don't bring the vis_list back here
+    print("****** Finding wide field parameters ******")
+    
     def get_wf(v):
         return advise_wide_field(v, guard_band_image=6.0, delA=0.1, facets=facets,
                                  wprojection_planes=wprojection_planes, oversampling_synthesised_beam=4.0)
     
     future_advice = [arlexecute.execute(get_wf)(v) for v in future_vis_list]
-    advice = arlexecute.compute(future_advice, sync=True)[-1]
+    future_advice = arlexecute.compute(future_advice)
+    advice = arlexecute.client.gather(future_advice)[-1]
+    arlexecute.client.cancel(future_advice)
+
     # Deconvolution via sub-images requires 2^n
     npixel = advice['npixels2']
     results['npixel'] = npixel
@@ -215,23 +226,31 @@ def trial_case(results, seed=180555, context='wstack', nworkers=8, threads_per_w
     
     # Create an empty model image
     future_model_list = [arlexecute.execute(create_image_from_visibility)
-                         (vis_list[f],
+                         (future_vis_list[f],
                           npixel=npixel, cellsize=cellsize,
                           frequency=[frequency[f]],
                           channel_bandwidth=[channel_bandwidth[f]],
                           polarisation_frame=PolarisationFrame("stokesI"))
                          for f, freq in enumerate(frequency)]
-    
+    future_model_list = arlexecute.client.compute(future_model_list)
+    model_list = arlexecute.gather(future_model_list)
+    arlexecute.client.cancel(future_model_list)
+
+    future_model_list = arlexecute.scatter(model_list)
+    future_vis_list = arlexecute.scatter(vis_list)
+
     start = time.time()
     lprint("****** Starting weighting and tapering ******")
     future_vis_list = weight_list_arlexecute_workflow(future_vis_list, future_model_list)
     future_vis_list = taper_list_arlexecute_workflow(future_vis_list, 0.003 * 750.0 / rmax)
-    lprint('Size of weighting and tapering graph is %.3E bytes' % (get_size(vis_list)))
-    future_vis_list = arlexecute.compute(future_vis_list, sync=True)
-    future_vis_list = arlexecute.scatter(future_vis_list)
+    lprint('Size of weighting and tapering graph is %.3E bytes' % (get_size(future_vis_list)))
+    future_vis_list = arlexecute.compute(future_vis_list)
     end = time.time()
     results['time weight'] = end - start
     lprint("Weighting and tapering took %.3f seconds" % (end - start))
+    vis_list = arlexecute.client.gather(future_vis_list)
+    arlexecute.client.cancel(future_vis_list)
+    future_vis_list = arlexecute.scatter(vis_list)
     
     lprint("****** Setting up imaging parameters ******")
     # Now set up the imaging parameters
@@ -283,11 +302,13 @@ def trial_case(results, seed=180555, context='wstack', nworkers=8, threads_per_w
                              flux_threshold=dft_threshold,
                              flux_max=5.0) for f, freq in enumerate(frequency)]
     lprint('Size of skymodel creation graph is %.3E bytes' % (get_size(future_skymodel_list)))
-    skymodel_list = arlexecute.compute(future_skymodel_list, sync=True)
+    future_skymodel_list = arlexecute.compute(future_skymodel_list, sync=True)
+    skymodel_list = arlexecute.gather(future_skymodel_list)
     end = time.time()
     lprint("GLEAM skymodel creation took %.3f seconds" % (end - start))
     results['time create gleam'] = end - start
-    
+    arlexecute.client.cancel(future_skymodel_list)
+
     # We use predict_skymodel so that we can use skycomponents as well as images
     lprint("****** Starting GLEAM skymodel prediction ******")
     future_skymodel_list = arlexecute.scatter(skymodel_list)
@@ -305,13 +326,14 @@ def trial_case(results, seed=180555, context='wstack', nworkers=8, threads_per_w
     lprint("GLEAM skymodel prediction took %.3f seconds" % (end - start))
     results['time predict gleam'] = end - start
     future_predicted_vis_list = arlexecute.scatter(predicted_vis_list)
+    arlexecute.client.cancel(future_skymodel_list)
     
     lprint("****** Starting dirty image calculation ******")
     start = time.time()
     dirty_list = invert_list_arlexecute_workflow(future_predicted_vis_list, future_model_list,
                                                  vis_slices=vis_slices,
                                                  context=context, facets=facets,
-                                                 use_serial_invert=not distribute_imaging,
+                                                 use_serial_invert=use_serial_imaging,
                                                  gcfcf=future_gcfcf_list)
     results['size invert graph'] = get_size(dirty_list)
     lprint('Size of dirty graph is %.3E bytes' % (results['size invert graph']))
@@ -334,83 +356,28 @@ def trial_case(results, seed=180555, context='wstack', nworkers=8, threads_per_w
     # Corrupt the visibility for the GLEAM model
     lprint("****** Visibility corruption ******")
     start = time.time()
-    future_corrupted_vis_list = corrupt_list_arlexecute_workflow(future_predicted_vis_list, phase_error=1.0, seed=seed)
+    future_corrupted_vis_list = corrupt_list_arlexecute_workflow(future_predicted_vis_list,
+                                                                 phase_error=1.0, seed=seed)
     lprint('Size of visibility corruption graph is %.3E bytes' % (get_size(future_corrupted_vis_list)))
-    corrupted_vis_list = arlexecute.compute(future_corrupted_vis_list, sync=True)
+    future_corrupted_vis_list = arlexecute.compute(future_corrupted_vis_list, sync=True)
     end = time.time()
     results['time corrupt'] = end - start
     lprint("Visibility corruption took %.3f seconds" % (end - start))
+    
+    corrupted_vis_list = arlexecute.gather(future_corrupted_vis_list)
+    arlexecute.client.cancel(predicted_vis_list)
+    arlexecute.client.cancel(future_corrupted_vis_list)
     future_corrupted_vis_list = arlexecute.scatter(corrupted_vis_list)
     
     # Create the ICAL pipeline to run major cycles, starting selfcal at cycle 1. A global solution across all
     # frequencies (i.e. Visibilities) is performed.
     
-    if distribute_clean:
-        print("Using distributed clean")
-        deconvolve_facets = 8
-        deconvolve_overlap = 16
-        deconvolve_taper = 'tukey'
-    else:
-        print("Using single thread clean")
-        deconvolve_facets = 1
-        deconvolve_overlap = 0
-        deconvolve_taper = 'tukey'
-    
-    lprint("****** Starting continuum imaging graph creation ******")
-    start = time.time()
-    contimg_list = continuum_imaging_list_arlexecute_workflow(future_predicted_vis_list,
-                                                              model_imagelist=future_model_list,
-                                                              context=context,
-                                                              vis_slices=vis_slices,
-                                                              scales=[0, 3, 10],
-                                                              algorithm='msclean',
-                                                              niter=1000,
-                                                              fractional_threshold=0.1,
-                                                              threshold=0.01, nmajor=nmajor,
-                                                              gain=0.25,
-                                                              psf_support=64,
-                                                              deconvolve_facets=deconvolve_facets,
-                                                              deconvolve_overlap=deconvolve_overlap,
-                                                              deconvolve_taper=deconvolve_taper,
-                                                              use_serial_predict=not distribute_imaging,
-                                                              use_serial_invert=not distribute_imaging,
-                                                              gcfcf=future_gcfcf_list)
-    
-    results['size contimg graph'] = get_size(contimg_list)
-    lprint('Size of contimg graph is %.3E bytes' % results['size contimg graph'])
-    end = time.time()
-    results['time contimg graph'] = end - start
-    lprint("Construction of contimg graph took %.3f seconds" % (end - start))
-    
-    # Execute the graph
-    lprint("****** Executing contimg graph ******")
-    start = time.time()
-    deconvolved, residual, restored = arlexecute.compute(contimg_list, sync=True)
-    end = time.time()
-    
-    results['time contimg'] = end - start
-    lprint("contimg graph execution took %.3f seconds" % (end - start))
-    qa = qa_image(deconvolved[centre])
-    results['deconvolved_max'] = qa.data['max']
-    results['deconvolved_min'] = qa.data['min']
-    deconvolved_cube = image_gather_channels(deconvolved)
-    if write_fits:
-        export_image_to_fits(deconvolved_cube, "pipelines_arlexecute_timings-%s-contimg_deconvolved.fits" % context)
-    
-    qa = qa_image(residual[centre][0])
-    results['residual_max'] = qa.data['max']
-    results['residual_min'] = qa.data['min']
-    residual_cube = remove_sumwt(residual)
-    residual_cube = image_gather_channels(residual_cube)
-    if write_fits:
-        export_image_to_fits(residual_cube, "pipelines_arlexecute_timings-%s-contimg_residual.fits" % context)
-    
-    qa = qa_image(restored[centre])
-    results['restored_max'] = qa.data['max']
-    results['restored_min'] = qa.data['min']
-    restored_cube = image_gather_channels(restored)
-    if write_fits:
-        export_image_to_fits(restored_cube, "pipelines_arlexecute_timings-%s-contimg_restored.fits" % context)
+    # At this point the only futures are of scatter'ed data so no repeated calculations should be
+    # incurred.
+    print("Using subimage clean")
+    deconvolve_facets = 8
+    deconvolve_overlap = 16
+    deconvolve_taper = 'tukey'
     
     lprint("****** Starting ICAL graph creation ******")
     
@@ -439,8 +406,9 @@ def trial_case(results, seed=180555, context='wstack', nworkers=8, threads_per_w
                                               do_selfcal=True,
                                               calibration_context='T',
                                               controls=controls,
-                                              use_serial_predict=not distribute_imaging,
-                                              use_serial_invert=not distribute_imaging,
+                                              use_serial_predict=use_serial_imaging,
+                                              use_serial_invert=use_serial_imaging,
+                                              use_serial_clean=use_serial_clean,
                                               gcfcf=future_gcfcf_list)
     
     results['size ICAL graph'] = get_size(ical_list)
@@ -448,6 +416,9 @@ def trial_case(results, seed=180555, context='wstack', nworkers=8, threads_per_w
     end = time.time()
     results['time ICAL graph'] = end - start
     lprint("Construction of ICAL graph took %.3f seconds" % (end - start))
+    
+    print("Current objects on cluster: ")
+    pp.pprint(arlexecute.client.who_has())
     
     # Execute the graph
     lprint("****** Executing ICAL graph ******")
@@ -485,6 +456,7 @@ def trial_case(results, seed=180555, context='wstack', nworkers=8, threads_per_w
     results['time overall'] = end_all - start_all
     
     lprint("At end, results are:")
+    results = sort_dict(results)
     lprint(results)
     
     return results
@@ -555,19 +527,24 @@ def main(args):
     
     use_dask = args.use_dask == 'True'
     if use_dask:
-        distribute_imaging = args.distribute_imaging == 'True'
         print("Using Dask")
-    else:
-        distribute_imaging = False
-    results['distribute_imaging'] = distribute_imaging
-    if distribute_imaging:
-        print("Using distributed imaging")
-    else:
+
+    use_serial_imaging = args.use_serial_imaging == 'True'
+    results['use_serial_imaging'] = use_serial_imaging
+    
+    if use_serial_imaging:
         print("Using serial imaging")
-    
-    distribute_clean = args.distribute_clean == 'True'
-    results['distribute_clean'] = distribute_clean
-    
+    else:
+        print("Using distributed imaging")
+
+    use_serial_clean = args.use_serial_clean == 'True'
+    results['use_serial_clean'] = use_serial_clean
+
+    if use_serial_clean:
+        print("Using serial clean")
+    else:
+        print("Using distributed clean")
+
     threads_per_worker = args.nthreads
     
     write_fits = args.write_fits == 'True'
@@ -581,8 +558,6 @@ def main(args):
                   'dft threshold',
                   'dirty_max',
                   'dirty_min',
-                  'distribute_clean',
-                  'distribute_imaging',
                   'driver',
                   'epoch',
                   'facets',
@@ -607,14 +582,11 @@ def main(args):
                   'rmax',
                   'seed',
                   'size ICAL graph',
-                  'size contimg graph',
                   'size invert graph',
                   'threads_per_worker',
                   'time ICAL',
                   'time ICAL graph',
                   'time corrupt',
-                  'time contimg',
-                  'time contimg graph',
                   'time create gleam',
                   'time create wprojection',
                   'time invert',
@@ -623,6 +595,8 @@ def main(args):
                   'time predict gleam',
                   'time weight',
                   'use_dask',
+                  'use_serial_clean',
+                  'use_serial_imaging',
                   'vis_slices',
                   'wprojection_planes']
     
@@ -633,8 +607,8 @@ def main(args):
     
     results = trial_case(results, use_dask=use_dask, nworkers=nworkers, rmax=rmax, context=context, memory=memory,
                          threads_per_worker=threads_per_worker, nfreqwin=nfreqwin, ntimes=ntimes,
-                         distribute_imaging=distribute_imaging, flux_limit=flux_limit, nmajor=nmajor,
-                         dft_threshold=dft_threshold, distribute_clean=distribute_clean,
+                         flux_limit=flux_limit, nmajor=nmajor, dft_threshold=dft_threshold,
+                         use_serial_imaging=use_serial_imaging, use_serial_clean=use_serial_clean,
                          write_fits=write_fits)
     write_results(filename, fieldnames, results)
     
@@ -660,10 +634,10 @@ if __name__ == '__main__':
     parser.add_argument('--context', type=str, default='wstack',
                         help='Imaging context: 2d|timeslice|wstack')
     parser.add_argument('--rmax', type=float, default=750.0, help='Maximum baseline (m)')
-    parser.add_argument('--distribute_imaging', type=str, default='False',
-                        help='Use distributed imaging?')
-    parser.add_argument('--distribute_clean', type=str, default='True',
-                        help='Use distributed clean?')
+    parser.add_argument('--use_serial_imaging', type=str, default='True',
+                        help='Use serial imaging?')
+    parser.add_argument('--use_serial_clean', type=str, default='True',
+                        help='Use serial clean?')
     parser.add_argument('--jobid', type=int, default=0, help='JOBID from slurm')
     parser.add_argument('--flux_limit', type=float, default=0.3, help='Flux limit for components')
     parser.add_argument('--dft_threshold', type=float, default=1.0, help='Flux above which DFT is used')
