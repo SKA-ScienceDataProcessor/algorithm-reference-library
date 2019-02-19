@@ -207,12 +207,12 @@ def trial_case(results, seed=180555, context='wstack', nworkers=8, threads_per_w
 
     # Find the best imaging parameters but don't bring the vis_list back here
     print("****** Finding wide field parameters ******")
+    future_advice = [arlexecute.execute(advise_wide_field)(v, guard_band_image=6.0, delA=0.1,
+                                                           facets=facets,
+                                                           wprojection_planes=wprojection_planes,
+                                                           oversampling_synthesised_beam=4.0)
+                     for v in future_vis_list]
     
-    def get_wf(v):
-        return advise_wide_field(v, guard_band_image=6.0, delA=0.1, facets=facets,
-                                 wprojection_planes=wprojection_planes, oversampling_synthesised_beam=4.0)
-    
-    future_advice = [arlexecute.execute(get_wf)(v) for v in future_vis_list]
     future_advice = arlexecute.compute(future_advice)
     advice = arlexecute.client.gather(future_advice)[-1]
     arlexecute.client.cancel(future_advice)

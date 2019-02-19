@@ -82,14 +82,15 @@ def predict_list_arlexecute_workflow(vis_list, model_imagelist, context, vis_sli
     # Loop over all frequency windows
     if facets == 1:
         image_results_list = list()
-        for ivis, vis_list in enumerate(vis_list):
+        for ivis, subvis in enumerate(vis_list):
             if len(gcfcf) > 1:
                 g = gcfcf[ivis]
             else:
                 g = gcfcf[0]
             # Create the graph to divide an image into facets. This is by reference.
             # Create the graph to divide the visibility into slices. This is by copy.
-            sub_vis_lists = arlexecute.execute(visibility_scatter, nout=vis_slices)(vis_list, vis_iter, vis_slices)
+            sub_vis_lists = arlexecute.execute(visibility_scatter, nout=vis_slices)(subvis,
+                                                                                    vis_iter, vis_slices)
             
             image_vis_lists = list()
             # Loop over sub visibility
@@ -100,18 +101,19 @@ def predict_list_arlexecute_workflow(vis_list, model_imagelist, context, vis_sli
                 # Sum all sub-visibilities
                 image_vis_lists.append(image_vis_list)
             image_results_list.append(arlexecute.execute(visibility_gather, nout=1)
-                                      (image_vis_lists, vis_list, vis_iter))
+                                      (image_vis_lists, subvis, vis_iter))
         
         result = image_results_list
     else:
         image_results_list_list = list()
-        for ivis, vis_list in enumerate(vis_list):
+        for ivis, subvis in enumerate(vis_list):
             # Create the graph to divide an image into facets. This is by reference.
             facet_lists = arlexecute.execute(image_scatter_facets, nout=actual_number_facets ** 2)(
                 model_imagelist[ivis],
                 facets=facets)
             # Create the graph to divide the visibility into slices. This is by copy.
-            sub_vis_lists = arlexecute.execute(visibility_scatter, nout=vis_slices)(vis_list, vis_iter, vis_slices)
+            sub_vis_lists = arlexecute.execute(visibility_scatter, nout=vis_slices)(subvis,
+                                                                                    vis_iter, vis_slices)
             
             facet_vis_lists = list()
             # Loop over sub visibility
@@ -128,7 +130,7 @@ def predict_list_arlexecute_workflow(vis_list, model_imagelist, context, vis_sli
                 facet_vis_lists.append(arlexecute.execute(sum_predict_results)(facet_vis_results))
             # Sum all sub-visibilities
             image_results_list_list.append(
-                arlexecute.execute(visibility_gather, nout=1)(facet_vis_lists, vis_list, vis_iter))
+                arlexecute.execute(visibility_gather, nout=1)(facet_vis_lists, subvis, vis_iter))
         
         result = image_results_list_list
     return arlexecute.optimize(result)
