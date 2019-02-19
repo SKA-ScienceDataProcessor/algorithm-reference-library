@@ -119,7 +119,7 @@ class TestImagingDeconvolveGraph(unittest.TestCase):
         psf_imagelist = invert_list_serial_workflow(self.vis_list, self.model_imagelist,
                                                     context='2d',
                                                     dopsf=True, normalize=True)
-        deconvolved, _ = deconvolve_list_serial_workflow(dirty_imagelist, psf_imagelist, self.model_imagelist, niter=1000,
+        deconvolved = deconvolve_list_serial_workflow(dirty_imagelist, psf_imagelist, self.model_imagelist, niter=1000,
                                                          fractional_threshold=0.1, scales=[0, 3, 10],
                                                          threshold=0.1, gain=0.7)
         export_image_to_fits(deconvolved[0], '%s/test_imaging_serial_deconvolve_spectral.fits' %
@@ -131,7 +131,7 @@ class TestImagingDeconvolveGraph(unittest.TestCase):
                                                       dopsf=False, normalize=True)
         psf_imagelist = invert_list_serial_workflow(self.vis_list, self.model_imagelist, context='2d',
                                                     dopsf=True, normalize=True)
-        dec_imagelist, _ = deconvolve_list_serial_workflow(dirty_imagelist, psf_imagelist, self.model_imagelist, niter=1000,
+        dec_imagelist = deconvolve_list_serial_workflow(dirty_imagelist, psf_imagelist, self.model_imagelist, niter=1000,
                                                            fractional_threshold=0.01, scales=[0, 3, 10],
                                                            algorithm='mmclean', nmoment=3, nchan=self.freqwin,
                                                            threshold=0.1, gain=0.7)
@@ -149,7 +149,7 @@ class TestImagingDeconvolveGraph(unittest.TestCase):
                                                       context='2d', dopsf=False, normalize=True)
         psf_imagelist = invert_list_serial_workflow(self.vis_list, self.model_imagelist,
                                                     context='2d', dopsf=True, normalize=True)
-        dec_imagelist, _ = deconvolve_list_serial_workflow(dirty_imagelist, psf_imagelist, self.model_imagelist, niter=1000,
+        dec_imagelist = deconvolve_list_serial_workflow(dirty_imagelist, psf_imagelist, self.model_imagelist, niter=1000,
                                                            fractional_threshold=0.1, scales=[0, 3, 10],
                                                            algorithm='mmclean', nmoment=3, nchan=self.freqwin,
                                                            threshold=0.01, gain=0.7, deconvolve_facets=8,

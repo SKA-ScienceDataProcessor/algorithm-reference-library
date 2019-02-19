@@ -58,7 +58,7 @@ def ical_list_serial_workflow(vis_list, model_imagelist, context, vis_slices=1, 
                                                            vis_slices=vis_slices, facets=facets, gcfcf=gcfcf,
                                                            **kwargs)
     
-    deconvolve_model_imagelist, _ = deconvolve_list_serial_workflow(residual_imagelist, psf_imagelist,
+    deconvolve_model_imagelist = deconvolve_list_serial_workflow(residual_imagelist, psf_imagelist,
                                                                     model_imagelist,
                                                                     prefix='cycle 0', **kwargs)
     nmajor = get_parameter(kwargs, "nmajor", 5)
@@ -85,7 +85,7 @@ def ical_list_serial_workflow(vis_list, model_imagelist, context, vis_slices=1, 
                                                                    **kwargs)
             
             prefix = "cycle %d" % (cycle + 1)
-            deconvolve_model_imagelist, _ = deconvolve_list_serial_workflow(residual_imagelist, psf_imagelist,
+            deconvolve_model_imagelist = deconvolve_list_serial_workflow(residual_imagelist, psf_imagelist,
                                                                             deconvolve_model_imagelist,
                                                                             prefix=prefix,
                                                                             **kwargs)
@@ -116,7 +116,7 @@ def continuum_imaging_list_serial_workflow(vis_list, model_imagelist, context, g
     residual_imagelist = residual_list_serial_workflow(vis_list, model_imagelist, context=context, gcfcf=gcfcf,
                                                        vis_slices=vis_slices, facets=facets, **kwargs)
     
-    deconvolve_model_imagelist, _ = deconvolve_list_serial_workflow(residual_imagelist, psf_imagelist,
+    deconvolve_model_imagelist = deconvolve_list_serial_workflow(residual_imagelist, psf_imagelist,
                                                                     model_imagelist,
                                                                     prefix='cycle 0',
                                                                     **kwargs)
@@ -129,7 +129,7 @@ def continuum_imaging_list_serial_workflow(vis_list, model_imagelist, context, g
                                                                context=context, vis_slices=vis_slices,
                                                                facets=facets,
                                                                gcfcf=gcfcf, **kwargs)
-            deconvolve_model_imagelist, _ = deconvolve_list_serial_workflow(residual_imagelist, psf_imagelist,
+            deconvolve_model_imagelist = deconvolve_list_serial_workflow(residual_imagelist, psf_imagelist,
                                                                             deconvolve_model_imagelist,
                                                                             prefix=prefix,
                                                                             **kwargs)
