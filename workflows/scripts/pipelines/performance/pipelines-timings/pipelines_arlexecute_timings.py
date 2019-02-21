@@ -191,20 +191,25 @@ def trial_case(results, seed=180555, context='wstack', nworkers=8, threads_per_w
     lprint("****** Visibility creation ******")
     # Create the empty BlockVisibility's and persist these on the cluster
     future_bvis_list = simulate_list_arlexecute_workflow('LOWBD2',
-                                                  frequency=frequency,
-                                                  channel_bandwidth=channel_bandwidth,
-                                                  times=times,
-                                                  phasecentre=phasecentre,
-                                                  order=order,
-                                                  format='blockvis',
-                                                  rmax=rmax)
+                                                         frequency=frequency,
+                                                         channel_bandwidth=channel_bandwidth,
+                                                         times=times,
+                                                         phasecentre=phasecentre,
+                                                         order=order,
+                                                         format='blockvis',
+                                                         rmax=rmax)
+    future_bvis_list = arlexecute.client.compute(future_bvis_list, sync=True)
+    bvis_list = arlexecute.gather(future_bvis_list)
+    arlexecute.client.cancel(future_bvis_list)
+    future_bvis_list = arlexecute.scatter(bvis_list)
+    
     future_vis_list = [arlexecute.execute(convert_blockvisibility_to_visibility)(bv)
                        for bv in future_bvis_list]
     future_vis_list = arlexecute.client.compute(future_vis_list, sync=True)
     vis_list = arlexecute.gather(future_vis_list)
-    arlexecute.client.cancel(future_bvis_list)
+    arlexecute.client.cancel(future_vis_list)
     future_vis_list = arlexecute.scatter(vis_list)
-
+    
     # Find the best imaging parameters but don't bring the vis_list back here
     print("****** Finding wide field parameters ******")
     future_advice = [arlexecute.execute(advise_wide_field)(v, guard_band_image=6.0, delA=0.1,
@@ -216,7 +221,7 @@ def trial_case(results, seed=180555, context='wstack', nworkers=8, threads_per_w
     future_advice = arlexecute.compute(future_advice)
     advice = arlexecute.client.gather(future_advice)[-1]
     arlexecute.client.cancel(future_advice)
-
+    
     # Deconvolution via sub-images requires 2^n
     npixel = advice['npixels2']
     results['npixel'] = npixel
@@ -235,10 +240,10 @@ def trial_case(results, seed=180555, context='wstack', nworkers=8, threads_per_w
     future_model_list = arlexecute.client.compute(future_model_list)
     model_list = arlexecute.gather(future_model_list)
     arlexecute.client.cancel(future_model_list)
-
+    
     future_model_list = arlexecute.scatter(model_list)
     future_vis_list = arlexecute.scatter(vis_list)
-
+    
     start = time.time()
     lprint("****** Starting weighting and tapering ******")
     future_vis_list = weight_list_arlexecute_workflow(future_vis_list, future_model_list)
@@ -528,7 +533,7 @@ def main(args):
     use_dask = args.use_dask == 'True'
     if use_dask:
         print("Using Dask")
-
+    
     use_serial_imaging = args.use_serial_imaging == 'True'
     results['use_serial_imaging'] = use_serial_imaging
     
@@ -536,15 +541,15 @@ def main(args):
         print("Using serial imaging")
     else:
         print("Using distributed imaging")
-
+    
     use_serial_clean = args.use_serial_clean == 'True'
     results['use_serial_clean'] = use_serial_clean
-
+    
     if use_serial_clean:
         print("Using serial clean")
     else:
         print("Using distributed clean")
-
+    
     threads_per_worker = args.nthreads
     
     write_fits = args.write_fits == 'True'
