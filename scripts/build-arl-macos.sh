@@ -78,6 +78,7 @@ add2virtualenv $PWD/ffiwrappers/src/
 # For MacOS PYTHONPATH needs to be set to the arlroot, and ffiwrappers plus the modules in 
 # the created virtual environmet
 export ARLROOT=$PWD
+export ARL=$PWD
 export PYTHONPATH=$ARLROOT/:$ARLROOT/ffiwrappers/src/:$ARLROOT/_build/lib/python3.6/site-packages/
 
 # This is required for some systems (i.e. Jenkins server or macos) others
@@ -94,7 +95,7 @@ export CC=clang
 # relative path, so we define a fallback path to look for libraries
 # if they are not found anywhere else.
 export DYLD_FALLBACK_LIBRARY_PATH=$ARLROOT
-source tests/ffiwrapped/run-tests.sh
+#source tests/ffiwrapped/run-tests.sh
 
 #ldd libarlffi.so 
 #cd timg_serial/
