@@ -72,7 +72,6 @@ def ical_list_arlexecute_workflow(vis_list, model_imagelist, context, vis_slices
                                                                            context=context, vis_slices=vis_slices,
                                                                            facets=facets,
                                                                            gcfcf=gcfcf, **kwargs)
-                cal_vis_list = [arlexecute.execute(copy_visibility, nout=1)(v) for v in vis_list]
                 recal_vis_list, gt_list = calibrate_list_arlexecute_workflow(cal_vis_list,
                                                                            predicted_model_vislist,
                                                                            calibration_context=calibration_context,

@@ -241,10 +241,9 @@ def invert_list_arlexecute_workflow(vis_list, template_model_imagelist, context,
 
 
 def residual_list_arlexecute_workflow(vis, model_imagelist, context='2d', gcfcf=None, **kwargs):
-    """ Create a graph to calculate residual image using w stacking and faceting
-
+    """ Create a graph to calculate residual image
     :param vis:
-    :param model_imagelist: Model
+    :param model_imagelist: Model used to determine image parameters
     :param context:
     :param gcfcg: tuple containing grid correction and convolution function
     :param kwargs: Parameters for functions in components
@@ -335,7 +334,7 @@ def deconvolve_list_arlexecute_workflow(dirty_list, psf_list, model_imagelist, p
     else:
         deconvolve_number_facets = deconvolve_facets ** 2
     
-    model_imagelist = arlexecute.execute(image_gather_channels, nout=1)(model_imagelist)
+    deconvolve_model_imagelist = arlexecute.execute(image_gather_channels, nout=1)(model_imagelist)
     
     # Scatter the separate channel images into deconvolve facets and then gather channels for each facet.
     # This avoids constructing the entire spectral cube.
@@ -356,7 +355,7 @@ def deconvolve_list_arlexecute_workflow(dirty_list, psf_list, model_imagelist, p
     psf_list_trimmed = arlexecute.execute(image_gather_channels, nout=1)(psf_list_trimmed)
     
     scattered_model_imagelist = \
-        arlexecute.execute(image_scatter_facets, nout=deconvolve_number_facets)(model_imagelist,
+        arlexecute.execute(image_scatter_facets, nout=deconvolve_number_facets)(deconvolve_model_imagelist,
                                                                                 facets=deconvolve_facets,
                                                                                 overlap=deconvolve_overlap)
     # Work out the threshold. Need to find global peak over all dirty_list images
@@ -387,11 +386,12 @@ def deconvolve_list_arlexecute_workflow(dirty_list, psf_list, model_imagelist, p
     
     # Gather the results back into one image, correcting for overlaps as necessary. The taper function is is used to
     # feather the facets together
-    gathered_results_list = arlexecute.execute(image_gather_facets, nout=1)(scattered_results_list, model_imagelist,
+    gathered_results_list = arlexecute.execute(image_gather_facets, nout=1)(scattered_results_list,
+                                                                            deconvolve_model_imagelist,
                                                                             facets=deconvolve_facets,
                                                                             overlap=deconvolve_overlap,
                                                                             taper=deconvolve_taper)
-    flat_list = arlexecute.execute(image_gather_facets, nout=1)(scattered_results_list, model_imagelist,
+    flat_list = arlexecute.execute(image_gather_facets, nout=1)(scattered_results_list, deconvolve_model_imagelist,
                                                                 facets=deconvolve_facets, overlap=deconvolve_overlap,
                                                                 taper=deconvolve_taper, return_flat=True)
     result_list = arlexecute.execute(image_scatter_channels, nout=nchan)(gathered_results_list, subimages=nchan)
