@@ -132,7 +132,7 @@ def trial_case(results, seed=180555, context='wstack', nworkers=8, threads_per_w
     
     def init_logging():
         logging.basicConfig(filename='pipelines_arlexecute_timings.log',
-                            filemode='a',
+                            filemode='w',
                             format='%(asctime)s,%(msecs)d %(name)s %(levelname)s %(message)s',
                             datefmt='%H:%M:%S',
                             level=logging.INFO)
@@ -203,6 +203,21 @@ def trial_case(results, seed=180555, context='wstack', nworkers=8, threads_per_w
                     for bv in tmp_bvis_list]
     tmp_vis_list = arlexecute.client.compute(tmp_vis_list, sync=True)
     vis_list = arlexecute.gather(tmp_vis_list)
+    
+    min_number_vis = vis_list[centre].nvis * 0.001
+    
+    import matplotlib.pyplot as plt
+    plt.clf()
+    plt.hist(vis_list[0].w, bins=100)
+    plt.title('Histogram of w samples: rms=%.1f (wavelengths)' % numpy.std(vis_list[0].w))
+    plt.xlabel('W (wavelengths)')
+    plt.show()
+    plt.clf()
+    plt.hist(vis_list[0].uvdist, bins=100)
+    plt.title('Histogram of uvdistance samples')
+    plt.xlabel('UV Distance (wavelengths)')
+    plt.show()
+
     arlexecute.client.cancel(tmp_vis_list)
     future_vis_list = arlexecute.scatter(vis_list)
     
