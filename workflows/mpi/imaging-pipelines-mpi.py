@@ -39,7 +39,7 @@ from wrappers.serial.calibration.calibration import solve_gaintable
 from wrappers.serial.calibration.operations import apply_gaintable
 from wrappers.serial.calibration.calibration_control import create_calibration_controls
 from wrappers.serial.visibility.base import create_blockvisibility
-from wrappers.serial.visibility.coalesce import convert_blockvisibility_to_visibility,     convert_visibility_to_blockvisibility
+#from wrappers.serial.visibility.coalesce import convert_blockvisibility_to_visibility,     convert_visibility_to_blockvisibility
 from wrappers.serial.skycomponent.operations import create_skycomponent
 from wrappers.serial.image.deconvolution import deconvolve_cube
 #from wrappers.serial.image.operations import show_image, export_image_to_fits, qa_image
@@ -53,7 +53,7 @@ from workflows.serial.simulation.simulation_serial import simulate_list_serial_w
 from workflows.serial.pipelines.pipeline_serial import continuum_imaging_list_serial_workflow,     ical_list_serial_workflow
 
 from workflows.mpi.pipelines.pipeline_mpi import continuum_imaging_list_mpi_workflow, ical_list_mpi_workflow
-from workflows.mpi.imaging.imaging_mpi_opt import predict_list_mpi_workflow, invert_list_mpi_workflow, deconvolve_list_mpi_workflow
+from workflows.mpi.imaging.imaging_mpi import predict_list_mpi_workflow, invert_list_mpi_workflow, deconvolve_list_mpi_workflow
 
 import time
 
@@ -144,17 +144,17 @@ log.debug('%d: frequency len %d frequency list:'%(rank,len(frequency)))
 
 
 if rank == 0:
-    bvis_list=simulate_list_serial_workflow('LOWBD2',
+    vis_list=simulate_list_serial_workflow('LOWBD2',
                                          frequency=frequency, 
                                          channel_bandwidth=channel_bandwidth,
                                          times=times,
                                          phasecentre=phasecentre,
                                          order='frequency',
-                                        rmax=rmax)
+                                        rmax=rmax, format='vis')
 else:
-    bvis_list=list()
+    vis_list=list()
 
-vis_list = [convert_blockvisibility_to_visibility(bv) for bv in bvis_list]
+#vis_list = [convert_blockvisibility_to_visibility(bv) for bv in bvis_list]
 log.debug('%d: %d elements in vis_list' % (rank,len(vis_list)))
 #log.handlers[0].flush()
 #print(vis_list
@@ -252,10 +252,21 @@ sub_model_list = [create_image_from_visibility(sub_vis_list[f],
                                                      polarisation_frame=PolarisationFrame("stokesI"))
                for f, freq in enumerate(sub_frequency[rank])]
 
+def concat_tuples(list_of_tuples):
+    if len(list_of_tuples)<2:
+        result_list=list_of_tuples
+    else:
+        result_list=list_of_tuples[0]
+        for l in list_of_tuples[1:]:
+            result_list+=l
+    return result_list
+
+
 # NOTE: We could do allgather here, if enough memory space
 model_list=comm.gather(sub_model_list,root=0)
 if rank==0:
-    model_list=numpy.concatenate(model_list)
+    #model_list=numpy.concatenate(model_list)
+    model_list=concat_tuples(model_list)
     # In[ ]:
 else:
     model_list=list()
@@ -321,15 +332,15 @@ original_deconv=False
 if original_deconv:
     if rank==0:
 
-        deconvolved, _ =     deconvolve_list_serial_workflow(dirty_list, psf_list, model_imagelist=model_list, 
+        deconvolved,_ =     deconvolve_list_serial_workflow(dirty_list, psf_list, model_imagelist=model_list, 
                             deconvolve_facets=8, deconvolve_overlap=16, deconvolve_taper='tukey',
                             scales=[0, 3, 10],
                             algorithm='msclean', niter=1000, 
                             fractional_threshold=0.1,
                             threshold=0.1, gain=0.1, psf_support=64)
 else:
-
-    deconvolved, _ =     deconvolve_list_mpi_workflow(dirty_list, psf_list, model_imagelist=model_list, 
+    print(" types of dirty list",type(dirty_list)," and psf_list",type(psf_list))
+    deconvolved =     deconvolve_list_mpi_workflow(dirty_list, psf_list, model_imagelist=model_list, 
                             deconvolve_facets=8, deconvolve_overlap=16, deconvolve_taper='tukey',
                             scales=[0, 3, 10],
                             algorithm='msclean', niter=1000, 
