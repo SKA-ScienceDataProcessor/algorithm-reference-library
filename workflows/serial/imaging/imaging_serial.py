@@ -24,11 +24,10 @@ from wrappers.serial.image.deconvolution import deconvolve_cube, restore_cube
 from wrappers.serial.image.gather_scatter import image_scatter_facets, image_gather_facets, \
     image_scatter_channels, image_gather_channels
 from wrappers.serial.image.operations import calculate_image_frequency_moments
+from wrappers.serial.imaging.base import normalize_sumwt
+from wrappers.serial.imaging.weighting import taper_visibility_gaussian
 from wrappers.serial.visibility.base import copy_visibility, create_visibility_from_rows
 from wrappers.serial.visibility.gather_scatter import visibility_scatter, visibility_gather
-from wrappers.serial.imaging.weighting import taper_visibility_gaussian
-from wrappers.serial.imaging.base import normalize_sumwt
-
 
 log = logging.getLogger(__name__)
 
@@ -54,7 +53,7 @@ def predict_list_serial_workflow(vis_list, model_imagelist, context, vis_slices=
     
     # Predict_2d does not clear the vis so we have to do it here.
     vis_list = zero_list_serial_workflow(vis_list)
-
+    
     c = imaging_context(context)
     vis_iter = c['vis_iterator']
     predict = c['predict']
@@ -84,12 +83,12 @@ def predict_list_serial_workflow(vis_list, model_imagelist, context, vis_slices=
                 row_vis = create_visibility_from_rows(sub_vis_list, rows)
                 row_vis_predicted = predict_ignore_none(row_vis, model_imagelist[ivis], g)
                 if row_vis_predicted is not None:
-                    vis_predicted.data['vis'][rows,...] = row_vis_predicted.data['vis']
+                    vis_predicted.data['vis'][rows, ...] = row_vis_predicted.data['vis']
             image_results_list.append(vis_predicted)
         
         return image_results_list
     else:
-        image_results_list_list = list()
+        image_results_list = list()
         for ivis, sub_vis_list in enumerate(vis_list):
             # Create the graph to divide an image into facets. This is by reference.
             facet_lists = image_scatter_facets(model_imagelist[ivis], facets=facets)
@@ -108,8 +107,8 @@ def predict_list_serial_workflow(vis_list, model_imagelist, context, vis_slices=
                 # Sum the current sub-visibility over all facets
                 facet_vis_lists.append(sum_predict_results(facet_vis_results))
             # Sum all sub-visibilties
-            image_results_list_list.append(visibility_gather(facet_vis_lists, sub_vis_list, vis_iter))
-        return image_results_list_list
+            image_results_list.append(visibility_gather(facet_vis_lists, sub_vis_list, vis_iter))
+        return image_results_list
 
 
 def invert_list_serial_workflow(vis_list, template_model_imagelist, dopsf=False, normalize=True,
@@ -148,11 +147,11 @@ def invert_list_serial_workflow(vis_list, template_model_imagelist, dopsf=False,
                 i += 1
         return result, sumwt
     
-    def invert_ignore_none(vis, model, g):
+    def invert_ignore_none(vis, model, gg):
         if vis is not None:
             
             return invert(vis, model, context=context, dopsf=dopsf, normalize=normalize,
-                          gcfcf=g, **kwargs)
+                          gcfcf=gg, **kwargs)
         else:
             return create_empty_image_like(model), numpy.zeros([model.nchan, model.npol])
     
@@ -176,7 +175,7 @@ def invert_list_serial_workflow(vis_list, template_model_imagelist, dopsf=False,
                 row_vis = create_visibility_from_rows(sub_vis_list, rows)
                 result = invert_ignore_none(row_vis, template_model_imagelist[ivis], g)
                 if result is not None:
-                    result_image.data += result[1][:,:,numpy.newaxis,numpy.newaxis] * result[0].data
+                    result_image.data += result[1][:, :, numpy.newaxis, numpy.newaxis] * result[0].data
                     result_sumwt += result[1]
             result_image = normalize_sumwt(result_image, result_sumwt)
             results_vislist.append((result_image, result_sumwt))
@@ -184,18 +183,17 @@ def invert_list_serial_workflow(vis_list, template_model_imagelist, dopsf=False,
     else:
         for ivis, sub_vis_list in enumerate(vis_list):
             # Create the graph to divide an image into facets. This is by reference.
-            facet_lists = image_scatter_facets(template_model_imagelist[
-                                                   ivis],
+            facet_lists = image_scatter_facets(template_model_imagelist[ivis],
                                                facets=facets)
             # Create the graph to divide the visibility into slices. This is by copy.
-            sub_vis_lists = visibility_scatter(sub_vis_list, vis_iter, vis_slices=vis_slices)
+            sub_sub_vis_lists = visibility_scatter(sub_vis_list, vis_iter, vis_slices=vis_slices)
             
             # Iterate within each vis_list
             vis_results = list()
-            for sub_vis in sub_vis_lists:
+            for sub_sub_vis_list in sub_sub_vis_lists:
                 facet_vis_results = list()
                 for facet_list in facet_lists:
-                    facet_vis_results.append(invert_ignore_none(sub_vis, facet_list, None))
+                    facet_vis_results.append(invert_ignore_none(sub_sub_vis_list, facet_list, None))
                 vis_results.append(gather_image_iteration_results(facet_vis_results,
                                                                   template_model_imagelist[ivis]))
             results_vislist.append(sum_invert_results(vis_results))
@@ -204,10 +202,8 @@ def invert_list_serial_workflow(vis_list, template_model_imagelist, dopsf=False,
 
 
 def residual_list_serial_workflow(vis, model_imagelist, context='2d', gcfcf=None, **kwargs):
-    """ Create a graph to calculate residual image using w stacking and faceting
+    """ Create a graph to calculate residual image
 
-    :param vis:
-    :param model_imagelist: Model used to determine image parameters
     :param vis:
     :param model_imagelist: Model used to determine image parameters
     :param context:
@@ -216,10 +212,13 @@ def residual_list_serial_workflow(vis, model_imagelist, context='2d', gcfcf=None
     :return:
     """
     model_vis = zero_list_serial_workflow(vis)
-    model_vis = predict_list_serial_workflow(model_vis, model_imagelist, context=context, gcfcf=gcfcf, **kwargs)
+    model_vis = predict_list_serial_workflow(model_vis, model_imagelist, context=context,
+                                             gcfcf=gcfcf, **kwargs)
     residual_vis = subtract_list_serial_workflow(vis, model_vis)
-    return invert_list_serial_workflow(residual_vis, model_imagelist, dopsf=False, normalize=True, context=context,
-                                       gcfcf=gcfcf, **kwargs)
+    result = invert_list_serial_workflow(residual_vis, model_imagelist, dopsf=False, normalize=True,
+                                         context=context,
+                                         gcfcf=gcfcf, **kwargs)
+    return result
 
 
 def restore_list_serial_workflow(model_imagelist, psf_imagelist, residual_imagelist=None, **kwargs):
@@ -261,7 +260,7 @@ def deconvolve_list_serial_workflow(dirty_list, psf_list, model_imagelist, prefi
     assert isinstance(dirty_list, list), dirty_list
     assert isinstance(psf_list, list), psf_list
     assert isinstance(model_imagelist, list), model_imagelist
-
+    
     def deconvolve(dirty, psf, model, facet, gthreshold, msk=None):
         if prefix == '':
             lprefix = "facet %d" % facet
@@ -438,7 +437,8 @@ def weight_list_serial_workflow(vis_list, model_imagelist, gcfcf=None, weighting
     
     return [re_weight(v, model_imagelist[i], merged_weight_grid, gcfcf)
             for i, v in enumerate(vis_list)]
-    
+
+
 def taper_list_serial_workflow(vis_list, size_required):
     """Taper to desired size
     

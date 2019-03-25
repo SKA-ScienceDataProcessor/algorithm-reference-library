@@ -135,5 +135,10 @@ def corrupt_list_arlexecute_workflow(vis_list, gt_list=None, seed=None, **kwargs
         else:
             return bv
 
+    if gt_list is None:
+        return [arlexecute.execute(corrupt_vis, nout=1)(vis_list[ivis], None, **kwargs)
+                for ivis, v in enumerate(vis_list)]
+    else:
+        return [arlexecute.execute(corrupt_vis, nout=1)(vis_list[ivis], gt_list[ivis], **kwargs)
+                for ivis, v in enumerate(vis_list)]
     
-    return [arlexecute.execute(corrupt_vis, nout=1)(vis_list, gt_list, **kwargs) for vis_list in vis_list]

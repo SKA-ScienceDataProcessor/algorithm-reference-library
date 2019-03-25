@@ -8,11 +8,14 @@ from astropy import units as u
 from astropy.coordinates import SkyCoord
 
 from data_models.polarisation import PolarisationFrame
+from data_models.memory_data_models import  Visibility, BlockVisibility
 
 
 from wrappers.serial.calibration.operations import apply_gaintable, create_gaintable_from_blockvisibility
 from wrappers.serial.simulation.testing_support import create_named_configuration, simulate_gaintable
 from wrappers.serial.visibility.base import create_blockvisibility, create_visibility
+from wrappers.serial.visibility.coalesce import convert_blockvisibility_to_visibility, \
+    convert_visibility_to_blockvisibility
 
 log = logging.getLogger(__name__)
 
@@ -107,7 +110,7 @@ def simulate_list_serial_workflow(config='LOWBD2',
     return vis_list
 
 
-def corrupt_list_serial_workflow(vis_list, gt_list=None, **kwargs):
+def corrupt_list_serial_workflow(vis_list, gt_list=None, seed=None, **kwargs):
     """ Create a graph to apply gain errors to a vis_list
 
     :param vis_list:
@@ -117,9 +120,24 @@ def corrupt_list_serial_workflow(vis_list, gt_list=None, **kwargs):
     """
     
     def corrupt_vis(vis, gt, **kwargs):
+        if isinstance(vis, Visibility):
+            bv = convert_visibility_to_blockvisibility(vis)
+        else:
+            bv = vis
         if gt is None:
-            gt = create_gaintable_from_blockvisibility(vis, **kwargs)
-            gt = simulate_gaintable(gt, **kwargs)
-        return apply_gaintable(vis, gt)
+            gt = create_gaintable_from_blockvisibility(bv, **kwargs)
+            gt = simulate_gaintable(gt, seed=seed, **kwargs)
+            bv = apply_gaintable(bv, gt)
+            
+        if isinstance(vis, Visibility):
+            return convert_blockvisibility_to_visibility(bv)
+        else:
+            return bv
     
-    return [corrupt_vis(vis_list, gt_list, **kwargs) for vis_list in vis_list]
+    if gt_list is None:
+        return [corrupt_vis(vis_list[ivis], None, **kwargs)
+                for ivis, v in enumerate(vis_list)]
+    else:
+        return [corrupt_vis(vis_list[ivis], gt_list[ivis], **kwargs)
+                for ivis, v in enumerate(vis_list)]
+    

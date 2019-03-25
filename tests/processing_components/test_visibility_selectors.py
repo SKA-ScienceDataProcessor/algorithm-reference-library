@@ -9,7 +9,7 @@ from astropy.coordinates import SkyCoord
 import astropy.units as u
 
 from processing_components.simulation.testing_support import create_named_configuration
-from processing_components.visibility.vis_select import vis_select_uvrange
+from processing_components.visibility.vis_select import vis_select_uvrange, vis_select_wrange
 from processing_components.visibility.base import create_visibility
 
 import logging
@@ -33,3 +33,6 @@ class TestVisibilitySelectors(unittest.TestCase):
 
     def test_vis_select_uvrange(self):
         assert self.vis.nvis > numpy.sum(vis_select_uvrange(self.vis, uvmin=50.0, uvmax=60.0))
+
+    def test_vis_select_wrange(self):
+        assert self.vis.nvis > numpy.sum(vis_select_wrange(self.vis, wmax=60.0))

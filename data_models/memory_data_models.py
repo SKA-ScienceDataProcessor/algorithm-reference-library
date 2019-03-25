@@ -904,7 +904,7 @@ class BlockVisibility:
         return self.data['vis'].shape[1]
     
     @property
-    def uvw(self):  # In wavelengths meters
+    def uvw(self):  # In meters
         return self.data['uvw']
     
     @property
