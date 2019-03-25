@@ -204,8 +204,6 @@ def trial_case(results, seed=180555, context='wstack', nworkers=8, threads_per_w
     tmp_vis_list = arlexecute.client.compute(tmp_vis_list, sync=True)
     vis_list = arlexecute.gather(tmp_vis_list)
     
-    min_number_vis = vis_list[centre].nvis * 0.001
-    
     import matplotlib.pyplot as plt
     plt.clf()
     plt.hist(vis_list[0].w, bins=100)
