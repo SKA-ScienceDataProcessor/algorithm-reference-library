@@ -32,6 +32,7 @@ def ical_list_mpi_workflow(vis_list, model_imagelist, context,
     """
     rank = comm.Get_rank()
     size = comm.Get_size()
+    assert isinstance(model_imagelist, list), model_imagelist
     log.info('%d: ical_list_mpi_workflow: vis_list len %d model_imagelist len %d'
           %(rank,len(vis_list),len(model_imagelist)))
     gt_list =list()
@@ -56,12 +57,14 @@ def ical_list_mpi_workflow(vis_list, model_imagelist, context,
     if do_selfcal:
         # Make the predicted visibilities, selfcalibrate against it correcting the gains, then
         # form the residual visibility, then make the residual image
-        model_vislist = predict_list_mpi_workflow(model_vislist, model_imagelist,
+        predicted_model_vislist = predict_list_mpi_workflow(model_vislist, model_imagelist,
                                                          context=context, vis_slices=vis_slices, facets=facets,
                                                          gcfcf=gcfcf, **kwargs)
-        cal_vis_list,gt_list = calibrate_list_mpi_workflow(cal_vis_list, model_vislist,
+        recal_vis_list,gt_list = calibrate_list_mpi_workflow(cal_vis_list,
+                                                             predicted_model_vislist,
                                                       calibration_context=calibration_context, **kwargs)
-        residual_vislist = subtract_list_mpi_workflow(cal_vis_list, model_vislist)
+        residual_vislist = subtract_list_mpi_workflow(recal_vis_list,
+                                                      predicted_model_vislist)
         residual_imagelist = invert_list_mpi_workflow(residual_vislist, model_imagelist, dopsf=True,
                                                              context=context,
                                                       vis_slices=vis_slices,
@@ -77,6 +80,7 @@ def ical_list_mpi_workflow(vis_list, model_imagelist, context,
                                                         vis_slices=vis_slices,
                                                         facets=facets, gcfcf=gcfcf,**kwargs)
     
+    assert isinstance(model_imagelist, list), model_imagelist
     deconvolve_model_imagelist = deconvolve_list_mpi_workflow(residual_imagelist, psf_imagelist,
                                                                         model_imagelist,
                                                                         prefix='cycle 0', **kwargs)
@@ -85,15 +89,14 @@ def ical_list_mpi_workflow(vis_list, model_imagelist, context,
     if nmajor > 1:
         for cycle in range(nmajor):
             if do_selfcal:
-                model_vislist = predict_list_mpi_workflow(model_vislist, deconvolve_model_imagelist,
+                predicted_model_vislist = predict_list_mpi_workflow(model_vislist, deconvolve_model_imagelist,
                                                                  context=context,vis_slices=vis_slices, facets=facets,
                                                                  gcfcf=gcfcf,  **kwargs)
-                cal_vis_list = [copy_visibility(v) for v in vis_list]
-                cal_vis_list = calibrate_list_mpi_workflow(cal_vis_list, model_vislist,
+                recal_vis_list,gt_list = calibrate_list_mpi_workflow(cal_vis_list, predicted_model_vislist,
                                                               calibration_context=calibration_context,
                                                               iteration=cycle, **kwargs)
-                residual_vislist = subtract_list_mpi_workflow(cal_vis_list, model_vislist)
-                residual_imagelist = invert_list_mpi_workflow(residual_vislist, model_imagelist, dopsf=False,
+                residual_vislist = subtract_list_mpi_workflow(recal_vis_list, model_vislist)
+                residual_imagelist = invert_list_mpi_workflow(residual_vislist, model_imagelist, 
                                                                      context=context,vis_slices=vis_slices, facets=facets,
                                                                  gcfcf=gcfcf,   **kwargs)
             else:
@@ -111,7 +114,7 @@ def ical_list_mpi_workflow(vis_list, model_imagelist, context,
                                                            **kwargs)
     restore_imagelist = restore_list_mpi_workflow(deconvolve_model_imagelist, psf_imagelist, residual_imagelist)
     
-    return (deconvolve_model_imagelist, residual_imagelist, restore_imagelist)
+    return (deconvolve_model_imagelist, residual_imagelist, restore_imagelist,gt_list)
 
 
 def continuum_imaging_list_mpi_workflow(vis_list, model_imagelist,

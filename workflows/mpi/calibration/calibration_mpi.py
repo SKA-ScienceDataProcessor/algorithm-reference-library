@@ -63,6 +63,8 @@ def calibrate_list_mpi_workflow(vis_list, model_vislist, calibration_context='TG
             global_point_vis_list = integrate_visibility_by_channel(global_point_vis_list)
             # This is a global solution so we only compute one gain table
             gt_list = [solve(global_point_vis_list)]
+        else:
+            gt_list=list()
         gt_list=comm.bcast(gt_list,root=0)
         
         sub_result = [apply(v, gt_list[0]) for v in sub_vis_list]

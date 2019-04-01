@@ -262,11 +262,14 @@ def deconvolve_list_mpi_workflow(dirty_list, psf_list, model_imagelist,
     rank = comm.Get_rank()
     size = comm.Get_size()
     nchan = len(dirty_list)
+    log.info('%d: deconvolve_list_mpi_workflow: dirty_list len %d psf_list len %d model_imagelist len %d' %(rank,len(dirty_list),len(psf_list),len(model_imagelist)))
+
     nmoment = get_parameter(kwargs, "nmoment", 0)
     assert get_parameter(kwargs, "use_serial_clean", True),"Only serial deconvolution implemented"
     if get_parameter(kwargs, "use_serial_clean", True):
         from workflows.serial.imaging.imaging_serial import deconvolve_list_serial_workflow
         if rank==0:
+            assert isinstance(model_imagelist, list), model_imagelist
             result_list=deconvolve_list_serial_workflow (dirty_list, psf_list, model_imagelist, prefix=prefix, mask=mask, **kwargs)
         else:
             result_list=list()
@@ -458,7 +461,7 @@ def subtract_list_mpi_workflow(vis_list, model_vislist,comm=MPI.COMM_WORLD ):
     
     def subtract_vis(vis, model_vis):
         if vis is not None and model_vis is not None:
-            assert vis.vis.shape == model_vis.vis.shape
+            assert vis.vis.shape == model_vis.vis.shape,vis
             subvis = copy_visibility(vis)
             subvis.data['vis'][...] -= model_vis.data['vis'][...]
             return subvis
@@ -466,11 +469,12 @@ def subtract_list_mpi_workflow(vis_list, model_vislist,comm=MPI.COMM_WORLD ):
             return None
     rank = comm.Get_rank()
     size = comm.Get_size()
+    print("%d: In substract: vis_list" %rank,vis_list)
     sub_vis_list= numpy.array_split(vis_list, size)
     sub_vis_list=comm.scatter(sub_vis_list,root=0)
     sub_model_vislist= numpy.array_split(model_vislist, size)
     sub_model_vislist=comm.scatter(sub_model_vislist,root=0)
-    
+    print("%d In substract" %rank,"model:",sub_model_vislist,"vis:",sub_vis_list)
     sub_result = [subtract_vis(vis=sub_vis_list[i], model_vis=sub_model_vislist[i])
             for i in range(len(sub_vis_list))]
     result=comm.gather(sub_result,root=0)
