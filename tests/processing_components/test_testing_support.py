@@ -18,7 +18,7 @@ from processing_components.imaging.base import predict_skycomponent_visibility
 from processing_components.imaging.primary_beams import create_low_test_beam
 from processing_components.simulation.testing_support import create_test_image_from_s3, create_named_configuration, \
     create_test_image, create_blockvisibility_iterator, create_low_test_image_from_gleam, \
-    create_low_test_skycomponents_from_gleam, create_low_test_skymodel_from_gleam
+    create_low_test_skycomponents_from_gleam, create_low_test_skymodel_from_gleam, create_configuration_from_SKAfile
 from processing_components.visibility.base import create_visibility, create_blockvisibility
 from processing_components.visibility.coalesce import convert_blockvisibility_to_visibility
 from processing_components.visibility.operations import append_visibility
@@ -53,15 +53,20 @@ class TestTesting_Support(unittest.TestCase):
                                      channel_bandwidth=self.channel_bandwidth,
                                      phasecentre=self.phasecentre, weight=1.0,
                                      polarisation_frame=PolarisationFrame('stokesI'))
-    
+
     def test_named_configurations(self):
         for config in ['LOWBD2', 'LOWBD2-CORE', 'LOWBD1', 'LOFAR', 'ASKAP']:
             self.createVis(config)
             assert self.config.size() > 0.0
-        
+    
         self.createVis('VLAA', +35.0)
         self.createVis('VLAA_north', +35.0)
-    
+
+    def test_SKA_configurations(self):
+        for config in ['MIDR5', 'LOWR3']:
+            self.config = create_named_configuration(config)
+            assert self.config.size() > 0.0
+
     def test_clip_configuration(self):
         for rmax in [100.0, 3000.0, 1000.0, 3000.0, 10000.0, 30000.0, 100000.0]:
             self.config = create_named_configuration('LOWBD2', rmax=rmax)

@@ -96,6 +96,44 @@ def create_configuration_from_file(antfile: str, location: EarthLocation = None,
     return fc
 
 
+def create_configuration_from_SKAfile(antfile: str,
+                                      mount: str = 'altaz',
+                                      names: str = "%d",
+                                      rmax=None, name='') -> Configuration:
+    """ Define from a file
+
+    :param names: Antenna names
+    :param antfile: Antenna file name
+    :param mount: mount type: 'altaz', 'xy'
+    :return: Configuration
+    """
+    antdiamlonglat = numpy.genfromtxt(antfile, skip_header=0, usecols=[0, 1, 2], delimiter="\t")
+    assert antdiamlonglat.shape[1] == 3, ("Antenna array has wrong shape %s" % antdiamlonglat.shape)
+    antxyz = numpy.zeros([antdiamlonglat.shape[0]-1, 3])
+    diameters = numpy.zeros([antdiamlonglat.shape[0]-1])
+    location = EarthLocation(lon=antdiamlonglat[-1,1], lat=antdiamlonglat[-1,2], height=0.0)
+
+    for ant in range(antdiamlonglat.shape[0]-1):
+        loc = EarthLocation(lon=antdiamlonglat[ant,1], lat=antdiamlonglat[ant,2], height=0.0).geocentric
+        
+        antxyz[ant] = [loc[1].to(u.m).value, loc[0].to(u.m).value, loc[2].to(u.m).value]
+        diameters[ant]=antdiamlonglat[ant, 0]
+    if rmax is not None:
+        lantxyz = antxyz - numpy.average(antxyz, axis=0)
+        r = numpy.sqrt(lantxyz[:, 0] ** 2 + lantxyz[:, 1] ** 2 + lantxyz[:, 2] ** 2)
+        antxyz = antxyz[r < rmax]
+        log.debug('create_configuration_from_file: Maximum radius %.1f m includes %d antennas/stations' %
+                  (rmax, antxyz.shape[0]))
+        diameters = diameters[r < rmax]
+    
+    nants = antxyz.shape[0]
+    anames = [names % ant for ant in range(nants)]
+    mounts = numpy.repeat(mount, nants)
+    fc = Configuration(location=location, names=anames, mount=mounts, xyz=antxyz, frame='global',
+                       diameter=diameters, name=name)
+    return fc
+
+
 def create_LOFAR_configuration(antfile: str) -> Configuration:
     """ Define from the LOFAR configuration file
 
@@ -145,6 +183,14 @@ def create_named_configuration(name: str = 'LOWBD2', **kwargs) -> Configuration:
         fc = create_configuration_from_file(antfile=arl_path("data/configurations/LOWBD2-CORE.csv"),
                                             location=location, mount='xy', names='LOWBD2_%d',
                                             diameter=35.0, name=name, **kwargs)
+    elif name == 'LOWR3':
+        fc = create_configuration_from_SKAfile(antfile=arl_path("data/configurations/LOW_SKA-TEL-SKO-0000422_Rev3.txt"),
+                                            mount='xy', names='LOWR3_%d',
+                                            name=name, **kwargs)
+    elif name == 'MIDR5':
+        fc = create_configuration_from_SKAfile(antfile=arl_path("data/configurations/MID_SKA-TEL-INSA-0000537_Rev05.txt"),
+                                               mount='xy', names='MIDR5_%d',
+                                               name=name, **kwargs)
     elif name == 'ASKAP':
         location = EarthLocation(lon="+116.6356824", lat="-26.7013006", height=377.0)
         fc = create_configuration_from_file(antfile=arl_path("data/configurations/A27CR3P6B.in.csv"),
@@ -480,18 +526,19 @@ def create_low_test_skymodel_from_gleam(npixel=512, polarisation_frame=Polarisat
     w.wcs.equinox = 2000.0
     
     model = create_image_from_array(numpy.zeros(shape), w, polarisation_frame=polarisation_frame)
-
+    
     if applybeam:
         beam = create_pb(model, telescope=telescope)
         sc = apply_beam_to_skycomponent(sc, beam)
-
+    
     weaksc = filter_skycomponents_by_flux(sc, flux_max=flux_threshold)
     brightsc = filter_skycomponents_by_flux(sc, flux_min=flux_threshold)
     model = insert_skycomponent(model, weaksc, insert_method=insert_method)
     
-    log.info('create_low_test_skymodel_from_gleam: %d bright sources above flux threshold %.3f, %d weak sources below ' %
-             (len(brightsc), flux_threshold, len(weaksc)))
-
+    log.info(
+        'create_low_test_skymodel_from_gleam: %d bright sources above flux threshold %.3f, %d weak sources below ' %
+        (len(brightsc), flux_threshold, len(weaksc)))
+    
     return SkyModel(components=brightsc, image=model, mask=None, gaintable=None)
 
 
