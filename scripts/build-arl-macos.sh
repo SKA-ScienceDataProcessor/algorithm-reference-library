@@ -37,6 +37,7 @@
 #module load git-lfs-2.3.0-gcc-5.4.0-oktvmkw
 #module load cfitsio-3.410-gcc-5.4.0-tp3pkyv
 
+#load MPI module or install i.e. brew install mpich
 
 # ########################################################### #
 # If repository is cloned skip this part ....                 #
@@ -63,6 +64,9 @@ pip install coverage numpy
 pip install -r requirements.txt 
 pip install virtualenvwrapper
 
+# Install mpi4py
+pip install mpi4py
+
 # Adding the ARL and FFIWRAPPERS path to the virtual environment
 # This should be equivalent to setting up the PYTHONPATH environemnt
 # variable. (I.e. in MacOS this needs to be done as the 
@@ -74,6 +78,7 @@ add2virtualenv $PWD/ffiwrappers/src/
 # For MacOS PYTHONPATH needs to be set to the arlroot, and ffiwrappers plus the modules in 
 # the created virtual environmet
 export ARLROOT=$PWD
+export ARL=$PWD
 export PYTHONPATH=$ARLROOT/:$ARLROOT/ffiwrappers/src/:$ARLROOT/_build/lib/python3.6/site-packages/
 
 # This is required for some systems (i.e. Jenkins server or macos) others
@@ -90,9 +95,12 @@ export CC=clang
 # relative path, so we define a fallback path to look for libraries
 # if they are not found anywhere else.
 export DYLD_FALLBACK_LIBRARY_PATH=$ARLROOT
-source tests/ffiwrapped/run-tests.sh
+#source tests/ffiwrapped/run-tests.sh
 
 #ldd libarlffi.so 
 #cd timg_serial/
 #make run
+
+# Test the MPI version
+pip install pytest
 

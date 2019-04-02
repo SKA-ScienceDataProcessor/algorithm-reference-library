@@ -63,6 +63,34 @@ def imaging_context(context='2d'):
     return contexts[context]
 
 
+def sum_invert_results_local(image_list):
+    """ Sum a set of invert results with appropriate weighting
+    without normalize_sumwt at the end
+    :param image_list: List of [image, sum weights] pairs
+    :return: image, sum of weights
+    """
+    
+    first = True
+    sumwt = 0.0
+    im = None
+    for i, arg in enumerate(image_list):
+        if arg is not None:
+            if isinstance(arg[1], numpy.ndarray):
+                scale = arg[1][..., numpy.newaxis, numpy.newaxis]
+            else:
+                scale = arg[1]
+            if first:
+                im = copy_image(arg[0])
+                im.data *= scale
+                sumwt = arg[1]
+                first = False
+            else:
+                im.data += scale * arg[0].data
+                sumwt += arg[1]
+    
+    assert not first, "No invert results"
+    return im, sumwt
+
 def sum_invert_results(image_list):
     """ Sum a set of invert results with appropriate weighting
 

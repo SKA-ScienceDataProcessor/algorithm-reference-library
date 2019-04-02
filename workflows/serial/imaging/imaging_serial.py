@@ -179,7 +179,6 @@ def invert_list_serial_workflow(vis_list, template_model_imagelist, dopsf=False,
                     result_sumwt += result[1]
             result_image = normalize_sumwt(result_image, result_sumwt)
             results_vislist.append((result_image, result_sumwt))
-        return results_vislist
     else:
         for ivis, sub_vis_list in enumerate(vis_list):
             # Create the graph to divide an image into facets. This is by reference.
@@ -198,6 +197,7 @@ def invert_list_serial_workflow(vis_list, template_model_imagelist, dopsf=False,
                                                                   template_model_imagelist[ivis]))
             results_vislist.append(sum_invert_results(vis_results))
     
+    print("facets %d" %facets,results_vislist)
     return results_vislist
 
 
@@ -241,6 +241,28 @@ def restore_list_serial_workflow(model_imagelist, psf_imagelist, residual_imagel
     else:
         return [restore_cube(model_imagelist[i], psf_imagelist[i][0], **kwargs)
                 for i, _ in enumerate(model_imagelist)]
+
+def restore_list_serial_workflow_nosumwt(model_imagelist, psf_imagelist, residual_imagelist=None, **kwargs):
+    """ Create a graph to calculate the restored image
+
+    :param model_imagelist: Model list
+    :param psf_imagelist: PSF list (without the sumwt term)
+    :param residual_imagelist: Residual list (without the sumwt term)
+    :param kwargs: Parameters for functions in components
+    :return:
+    """
+    
+    if residual_imagelist is None:
+        residual_imagelist = []
+    
+    if len(residual_imagelist) > 0:
+        return [restore_cube(model_imagelist[i], psf_imagelist[i],
+                             residual_imagelist[i], **kwargs)
+                for i, _ in enumerate(model_imagelist)]
+    else:
+        return [restore_cube(model_imagelist[i], psf_imagelist[i], **kwargs)
+                for i, _ in enumerate(model_imagelist)]
+
 
 
 def deconvolve_list_serial_workflow(dirty_list, psf_list, model_imagelist, prefix='', mask=None, **kwargs):
