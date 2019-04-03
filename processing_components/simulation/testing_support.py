@@ -111,12 +111,11 @@ def create_configuration_from_SKAfile(antfile: str,
     assert antdiamlonglat.shape[1] == 3, ("Antenna array has wrong shape %s" % antdiamlonglat.shape)
     antxyz = numpy.zeros([antdiamlonglat.shape[0]-1, 3])
     diameters = numpy.zeros([antdiamlonglat.shape[0]-1])
-    location = EarthLocation(lon=antdiamlonglat[-1,1], lat=antdiamlonglat[-1,2], height=0.0)
+    location = EarthLocation(lon=-antdiamlonglat[-1,1], lat=antdiamlonglat[-1,2], height=0.0)
 
     for ant in range(antdiamlonglat.shape[0]-1):
-        loc = EarthLocation(lon=antdiamlonglat[ant,1], lat=antdiamlonglat[ant,2], height=0.0).geocentric
-        
-        antxyz[ant] = [loc[1].to(u.m).value, loc[0].to(u.m).value, loc[2].to(u.m).value]
+        loc = EarthLocation(lon=-antdiamlonglat[ant,1], lat=antdiamlonglat[ant,2], height=0.0).geocentric
+        antxyz[ant] = [loc[0].to(u.m).value, loc[1].to(u.m).value, loc[2].to(u.m).value]
         diameters[ant]=antdiamlonglat[ant, 0]
     if rmax is not None:
         lantxyz = antxyz - numpy.average(antxyz, axis=0)
