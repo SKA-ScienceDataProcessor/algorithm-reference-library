@@ -197,7 +197,6 @@ def invert_list_serial_workflow(vis_list, template_model_imagelist, dopsf=False,
                                                                   template_model_imagelist[ivis]))
             results_vislist.append(sum_invert_results(vis_results))
     
-    print("facets %d" %facets,results_vislist)
     return results_vislist
 
 
