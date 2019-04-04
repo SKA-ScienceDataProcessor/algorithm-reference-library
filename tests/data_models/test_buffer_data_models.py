@@ -11,15 +11,16 @@ import numpy
 from astropy.coordinates import SkyCoord
 
 from data_models.buffer_data_models import BufferImage, BufferBlockVisibility, BufferGainTable, BufferSkyModel, \
-    BufferConvolutionFunction, BufferGridData
+    BufferConvolutionFunction, BufferGridData, BufferPointingTable
 from data_models.memory_data_models import Skycomponent, SkyModel, BlockVisibility
 from data_models.polarisation import PolarisationFrame
 from processing_components.griddata.operations import create_griddata_from_image
 from processing_components.griddata.convolution_functions import create_convolutionfunction_from_image
 from processing_components.calibration.operations import create_gaintable_from_blockvisibility
+from processing_components.calibration.pointing import create_pointingtable_from_blockvisibility
 from processing_components.imaging.base import predict_skycomponent_visibility
 from processing_components.simulation.testing_support import create_named_configuration, \
-    simulate_gaintable, create_test_image
+    simulate_gaintable, simulate_pointingtable, create_test_image
 from processing_components.visibility.base import create_blockvisibility
 
 
@@ -67,7 +68,7 @@ class TestBufferDataModelHelpers(unittest.TestCase):
         assert numpy.abs(newvis.configuration.location.y.value - self.vis.configuration.location.y.value) < 1e-15
         assert numpy.abs(newvis.configuration.location.z.value - self.vis.configuration.location.z.value) < 1e-15
         assert numpy.max(numpy.abs(newvis.configuration.xyz - self.vis.configuration.xyz)) < 1e-15
-    
+
     def test_readwritegaintable(self):
         self.vis = create_blockvisibility(self.lowcore, self.times, self.frequency,
                                           channel_bandwidth=self.channel_bandwidth,
@@ -76,7 +77,7 @@ class TestBufferDataModelHelpers(unittest.TestCase):
                                           weight=1.0)
         gt = create_gaintable_from_blockvisibility(self.vis, timeslice='auto')
         gt = simulate_gaintable(gt, phase_error=1.0, amplitude_error=0.1)
-
+    
         config = {"buffer": {"directory": self.dir},
                   "gaintable": {"name": "test_buffergaintable.hdf", "data_model": "GainTable"}}
         bdm = BufferGainTable(config["buffer"], config["gaintable"], gt)
@@ -84,10 +85,30 @@ class TestBufferDataModelHelpers(unittest.TestCase):
         new_bdm = BufferGainTable(config["buffer"], config["gaintable"])
         new_bdm.sync()
         newgt = bdm.memory_data_model
-
+    
         assert gt.data.shape == newgt.data.shape
         assert numpy.max(numpy.abs(gt.gain - newgt.gain)) < 1e-15
+
+    def test_readwritepointingtable(self):
+        self.vis = create_blockvisibility(self.lowcore, self.times, self.frequency,
+                                          channel_bandwidth=self.channel_bandwidth,
+                                          phasecentre=self.phasecentre,
+                                          polarisation_frame=PolarisationFrame("linear"),
+                                          weight=1.0)
+        pt = create_pointingtable_from_blockvisibility(self.vis, timeslice='auto')
+        pt = simulate_pointingtable(pt, pointing_error=0.1, static_pointing_error=0.)
+        
+        config = {"buffer": {"directory": self.dir},
+                  "pointingtable": {"name": "test_bufferpointingtable.hdf", "data_model": "PointingTable"}}
+        bdm = BufferPointingTable(config["buffer"], config["pointingtable"], pt)
+        bdm.sync()
+        new_bdm = BufferPointingTable(config["buffer"], config["pointingtable"])
+        new_bdm.sync()
+        newpt = bdm.memory_data_model
     
+        assert pt.data.shape == newpt.data.shape
+        assert numpy.max(numpy.abs(pt.pointing - newpt.pointing)) < 1e-15
+
     def test_readwriteskymodel(self):
         vis = create_blockvisibility(self.lowcore, self.times, self.frequency,
                                           channel_bandwidth=self.channel_bandwidth,

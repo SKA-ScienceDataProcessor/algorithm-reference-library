@@ -40,7 +40,7 @@ from astropy.wcs import WCS
 from astropy.wcs.utils import pixel_to_skycoord
 from scipy import interpolate
 
-from data_models.memory_data_models import Configuration, Image, GainTable, Skycomponent, SkyModel
+from data_models.memory_data_models import Configuration, Image, GainTable, Skycomponent, SkyModel, PointingTable
 from data_models.parameters import arl_path
 from data_models.parameters import get_parameter
 from data_models.polarisation import PolarisationFrame
@@ -735,7 +735,7 @@ def create_blockvisibility_iterator(config: Configuration, times: numpy.array, f
 def simulate_gaintable(gt: GainTable, phase_error=0.1, amplitude_error=0.0, smooth_channels=1,
                        leakage=0.0, seed=None, **kwargs) -> GainTable:
     """ Simulate a gain table
-    
+
     :type gt: GainTable
     :param phase_error: std of normal distribution, zero mean
     :param amplitude_error: std of log normal distribution
@@ -744,7 +744,7 @@ def simulate_gaintable(gt: GainTable, phase_error=0.1, amplitude_error=0.0, smoo
     :param smooth_channels: Use bspline over smooth_channels
     :param kwargs:
     :return: Gaintable
-    
+
     """
     
     def moving_average(a, n=3):
@@ -792,6 +792,36 @@ def simulate_gaintable(gt: GainTable, phase_error=0.1, amplitude_error=0.0, smoo
             gt.data['gain'][..., 1, 0] = 0.0
     
     return gt
+
+
+def simulate_pointingtable(pt: PointingTable, pointing_error, static_pointing_error=0.0,
+                           seed=None, **kwargs) -> PointingTable:
+    """ Simulate a gain table
+
+    :type pt: PointingTable
+    :param pointing_error: std of normal distribution
+    :param static_pointing_error: std of normal distribution
+    :param seed: Seed for random numbers def: 180555
+    :param smooth_channels: Use bspline over smooth_channels
+    :param kwargs:
+    :return: Gaintable
+
+    """
+    
+    if seed is not None:
+        numpy.random.seed(seed)
+    
+    log.debug("simulate_pointingtable: Simulating pointing error = %.4f (rad)"
+              % (pointing_error))
+
+    ntimes, nant, nchan, nrec, _ = pt.data['pointing'].shape
+    if pointing_error > 0.0:
+        pt.data['pointing'] = numpy.random.normal(0.0, pointing_error, pt.data['pointing'].shape)
+    if static_pointing_error > 0.0:
+        pt.data['pointing'] += numpy.random.normal(0.0, static_pointing_error, pt.data['pointing'].shape[1:])[
+            numpy.newaxis,...]
+    
+    return pt
 
 
 def ingest_unittest_visibility(config, frequency, channel_bandwidth, times, vis_pol, phasecentre, block=False,

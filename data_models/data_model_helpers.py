@@ -19,7 +19,7 @@ from processing_components.griddata.convolution_functions import create_convolut
 
 from processing_components.image.operations import export_image_to_fits, import_image_from_fits
 from data_models.memory_data_models import Visibility, BlockVisibility, Configuration, \
-    GainTable, SkyModel, Skycomponent, Image, GridData, ConvolutionFunction
+    GainTable, SkyModel, Skycomponent, Image, GridData, ConvolutionFunction, PointingTable
 from data_models.polarisation import PolarisationFrame, ReceptorFrame
 
 
@@ -331,6 +331,79 @@ def import_gaintable_from_hdf5(filename):
             return gtlist[0]
         else:
             return gtlist
+
+
+def convert_pointingtable_to_hdf(pt: PointingTable, f):
+    """ Convert PointingTable to HDF
+
+    :param pt:
+    :param f: HDF root
+    :return:
+    """
+    assert isinstance(pt, PointingTable)
+    
+    f.attrs['ARL_data_model'] = 'PointingTable'
+    f.attrs['frequency'] = pt.frequency
+    f.attrs['receptor_frame'] = pt.receptor_frame.type
+    f.attrs['phasecentre_coords'] = pt.phasecentre.to_string()
+    f.attrs['phasecentre_frame'] = pt.phasecentre.frame.name
+    f.attrs['pointing_frame'] = pt.pointing_frame
+    f['data'] = pt.data
+    return f
+
+
+def convert_hdf_to_pointingtable(f):
+    """ Convert HDF root to a PointingTable
+
+    :param f:
+    :return:
+    """
+    assert f.attrs['ARL_data_model'] == "PointingTable", "Not a PointingTable"
+    receptor_frame = ReceptorFrame(f.attrs['receptor_frame'])
+    frequency = numpy.array(f.attrs['frequency'])
+    data = numpy.array(f['data'])
+    s = f.attrs['phasecentre_coords'].split()
+    ss = [float(s[0]), float(s[1])] * u.deg
+    phasecentre = SkyCoord(ra=ss[0], dec=ss[1], frame=f.attrs['phasecentre_frame'])
+    pointing_frame = f.attrs['pointing_frame']
+    pt = PointingTable(data=data, receptor_frame=receptor_frame, frequency=frequency, phasecentre=phasecentre,
+                       pointing_frame=pointing_frame)
+    return pt
+
+
+def export_pointingtable_to_hdf5(pt: PointingTable, filename):
+    """ Export a PointingTable to HDF5 format
+
+    :param pt:
+    :param filename:
+    :return:
+    """
+    
+    if not isinstance(pt, collections.Iterable):
+        pt = [pt]
+    with h5py.File(filename, 'w') as f:
+        f.attrs['number_data_models'] = len(pt)
+        for i, g in enumerate(pt):
+            assert isinstance(g, PointingTable)
+            gf = f.create_group('PointingTable%d' % i)
+            convert_pointingtable_to_hdf(g, gf)
+        f.flush()
+
+
+def import_pointingtable_from_hdf5(filename):
+    """Import PointingTable(s) from HDF5 format
+
+    :param filename:
+    :return: single pointingtable or list of pointingtables
+    """
+    
+    with h5py.File(filename, 'r') as f:
+        nptlist = f.attrs['number_data_models']
+        ptlist = [convert_hdf_to_pointingtable(f['PointingTable%d' % i]) for i in range(nptlist)]
+        if nptlist == 1:
+            return ptlist[0]
+        else:
+            return ptlist
 
 
 def convert_skycomponent_to_hdf(sc: Skycomponent, f):
@@ -743,6 +816,8 @@ def memory_data_model_to_buffer(model, jbuff, dm):
         return export_skymodel_to_hdf5(model, name)
     elif dm["data_model"] == "GainTable":
         return export_gaintable_to_hdf5(model, name)
+    elif dm["data_model"] == "PointingTable":
+        return export_pointingtable_to_hdf5(model, name)
     else:
         raise ValueError("Data model %s not supported" % dm["data_model"])
 
@@ -774,6 +849,8 @@ def buffer_data_model_to_memory(jbuff, dm):
         return import_skymodel_from_hdf5(name)
     elif dm["data_model"] == "GainTable":
         return import_gaintable_from_hdf5(name)
+    elif dm["data_model"] == "PointingTable":
+        return import_pointingtable_from_hdf5(name)
     elif dm["data_model"] == "GridData":
         return import_griddata_from_hdf5(name)
     elif dm["data_model"] == "ConvolutionFunction":

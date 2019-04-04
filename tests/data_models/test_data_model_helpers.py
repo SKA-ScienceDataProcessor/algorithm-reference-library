@@ -13,6 +13,7 @@ from astropy.coordinates import SkyCoord
 from data_models.data_model_helpers import import_visibility_from_hdf5, export_visibility_to_hdf5, \
     import_blockvisibility_from_hdf5, export_blockvisibility_to_hdf5, \
     import_gaintable_from_hdf5, export_gaintable_to_hdf5, \
+    import_pointingtable_from_hdf5, export_pointingtable_to_hdf5, \
     import_image_from_hdf5, export_image_to_hdf5, \
     import_skycomponent_from_hdf5, export_skycomponent_to_hdf5, \
     import_skymodel_from_hdf5, export_skymodel_to_hdf5, \
@@ -21,9 +22,10 @@ from data_models.data_model_helpers import import_visibility_from_hdf5, export_v
 from data_models.memory_data_models import Skycomponent, SkyModel
 from data_models.polarisation import PolarisationFrame
 from processing_components.calibration.operations import create_gaintable_from_blockvisibility
+from processing_components.calibration.pointing import create_pointingtable_from_blockvisibility
 from processing_components.imaging.base import predict_skycomponent_visibility
 from processing_components.simulation.testing_support import create_named_configuration, \
-    simulate_gaintable, create_test_image
+    simulate_gaintable, create_test_image, simulate_pointingtable
 from processing_components.visibility.base import create_visibility, create_blockvisibility
 from processing_components.griddata.operations import create_griddata_from_image
 from processing_components.griddata.convolution_functions import create_convolutionfunction_from_image
@@ -94,7 +96,7 @@ class TestDataModelHelpers(unittest.TestCase):
         assert numpy.abs(newvis.configuration.location.y.value - self.vis.configuration.location.y.value) < 1e-15
         assert numpy.abs(newvis.configuration.location.z.value - self.vis.configuration.location.z.value) < 1e-15
         assert numpy.max(numpy.abs(newvis.configuration.xyz - self.vis.configuration.xyz)) < 1e-15
-    
+
     def test_readwritegaintable(self):
         self.vis = create_blockvisibility(self.lowcore, self.times, self.frequency,
                                           channel_bandwidth=self.channel_bandwidth,
@@ -105,13 +107,30 @@ class TestDataModelHelpers(unittest.TestCase):
         gt = simulate_gaintable(gt, phase_error=1.0, amplitude_error=0.1)
         export_gaintable_to_hdf5(gt, '%s/test_data_model_helpers_gaintable.hdf' % self.dir)
         newgt = import_gaintable_from_hdf5('%s/test_data_model_helpers_gaintable.hdf' % self.dir)
-        
+    
         for key in gt.data.dtype.fields:
-            assert numpy.max(numpy.abs(newgt.data[key]-gt.data[key])) < 1e-15
-
+            assert numpy.max(numpy.abs(newgt.data[key] - gt.data[key])) < 1e-15
+    
         assert gt.data.shape == newgt.data.shape
         assert numpy.max(numpy.abs(gt.gain - newgt.gain)) < 1e-15
+
+    def test_readwritepointingtable(self):
+        self.vis = create_blockvisibility(self.lowcore, self.times, self.frequency,
+                                          channel_bandwidth=self.channel_bandwidth,
+                                          phasecentre=self.phasecentre,
+                                          polarisation_frame=PolarisationFrame("linear"),
+                                          weight=1.0)
+        gt = create_pointingtable_from_blockvisibility(self.vis, timeslice='auto')
+        gt = simulate_pointingtable(gt, phase_error=1.0, amplitude_error=0.1)
+        export_pointingtable_to_hdf5(gt, '%s/test_data_model_helpers_pointingtable.hdf' % self.dir)
+        newgt = import_pointingtable_from_hdf5('%s/test_data_model_helpers_pointingtable.hdf' % self.dir)
     
+        for key in gt.data.dtype.fields:
+            assert numpy.max(numpy.abs(newgt.data[key] - gt.data[key])) < 1e-15
+    
+        assert gt.data.shape == newgt.data.shape
+        assert numpy.max(numpy.abs(gt.pointing - newgt.pointing)) < 1e-15
+
     def test_readwriteimage(self):
         im = create_test_image()
         export_image_to_hdf5(im, '%s/test_data_model_helpers_image.hdf' % self.dir)
