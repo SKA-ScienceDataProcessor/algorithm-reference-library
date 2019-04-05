@@ -14,7 +14,7 @@ from data_models.polarisation import PolarisationFrame
 
 from processing_components.image.operations import export_image_to_fits
 from processing_components.imaging.base import create_image_from_visibility
-from processing_components.imaging.primary_beams import create_pb
+from processing_components.imaging.primary_beams import create_pb, create_vp
 from processing_components.simulation.testing_support import create_named_configuration
 from processing_components.visibility.base import create_visibility
 
@@ -52,3 +52,11 @@ class TestPrimaryBeams(unittest.TestCase):
             beam=create_pb(model, telescope=telescope)
             assert numpy.max(beam.data) > 0.0
             export_image_to_fits(beam, "%s/test_primary_beam_%s.fits" % (self.dir, telescope))
+            
+    def test_create_voltage_patterns(self):
+        self.createVis(config='LOWBD2', rmax=1000.0)
+        for telescope in ['VLA', 'ASKAP', 'MID', 'LOW']:
+            model = create_image_from_visibility(self.vis, cellsize=0.001, override_cellsize=False)
+            beam=create_vp(model, telescope=telescope)
+            assert numpy.max(numpy.abs(beam.data.real)) > 0.0
+            assert numpy.max(numpy.abs(beam.data.imag)) < 1e-15
