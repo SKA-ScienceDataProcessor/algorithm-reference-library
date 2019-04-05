@@ -94,7 +94,7 @@ def grid_gaintable_to_screen(vis, gaintables, screen, height=3e5, gaintable_slic
     The phases are just average per grid cell, no phase unwrapping is performed.
 
     :param vis:
-    :param sc: Sky components for which pierce points are needed
+    :param gaintables: input gaintables
     :param screen:
     :param height: Height (in m) of screen above telescope e.g. 3e5
     :param scale: Multiply the screen by this factor

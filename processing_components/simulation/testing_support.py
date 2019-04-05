@@ -286,9 +286,9 @@ def create_test_image_from_s3(npixel=16384, polarisation_frame=PolarisationFrame
         data/models/S3_151MHz_10deg.csv, use fov=10
         data/models/S3_151MHz_20deg.csv, use fov=20
         data/models/S3_151MHz_40deg.csv, use fov=40
-        
+
     For frequencies > 610MHz, there are three tables:
-    
+
         data/models/S3_1400MHz_1mJy_10deg.csv, use flux_limit>= 1e-3
         data/models/S3_1400MHz_100uJy_10deg.csv, use flux_limit < 1e-3
         data/models/S3_1400MHz_1mJy_18deg.csv, use flux_limit>= 1e-3
@@ -361,13 +361,13 @@ def create_test_image_from_s3(npixel=16384, polarisation_frame=PolarisationFrame
             if r > 0:
                 ra = float(row[4]) + phasecentre.ra.deg
                 dec = float(row[5]) + phasecentre.dec.deg
-                if numpy.max(frequency) > 6.1E9:
+                if numpy.max(frequency) > 6.1E8:
                     alpha = (float(row[11]) - float(row[10])) / numpy.log10(1400.0 / 610.0)
                     flux = numpy.power(10, float(row[10])) * numpy.power(frequency / 1.4e9, alpha)
                 else:
                     alpha = (float(row[10]) - float(row[9])) / numpy.log10(610.0 / 151.0)
                     flux = numpy.power(10, float(row[9])) * numpy.power(frequency / 1.51e8, alpha)
-                if flux.any() > flux_limit:
+                if numpy.max(flux) > flux_limit:
                     ras.append(ra)
                     decs.append(dec)
                     fluxes.append(flux)
@@ -397,6 +397,119 @@ def create_test_image_from_s3(npixel=16384, polarisation_frame=PolarisationFrame
             model.data[chan, 0, ps[1, iflux], ps[0, iflux]] = flux[chan]
     
     return model
+
+
+def create_test_skycomponents_from_s3(polarisation_frame=PolarisationFrame("stokesI"),
+                              frequency=numpy.array([1e8]), channel_bandwidth=numpy.array([1e6]),
+                              phasecentre=None, fov=20, flux_limit=1e-3,
+                                      radius=None):
+    """Create test image from S3
+
+    The input catalog was generated at http://s-cubed.physics.ox.ac.uk/s3_sex using the following query::
+        Database: s3_sex
+        SQL: select * from Galaxies where (pow(10,itot_151)*1000 > 1.0) and (right_ascension between -5 and 5) and (declination between -5 and 5);;
+
+    Number of rows returned: 29966
+
+    For frequencies < 610MHz, there are three tables to use::
+
+        data/models/S3_151MHz_10deg.csv, use fov=10
+        data/models/S3_151MHz_20deg.csv, use fov=20
+        data/models/S3_151MHz_40deg.csv, use fov=40
+
+    For frequencies > 610MHz, there are three tables:
+
+        data/models/S3_1400MHz_1mJy_10deg.csv, use flux_limit>= 1e-3
+        data/models/S3_1400MHz_100uJy_10deg.csv, use flux_limit < 1e-3
+        data/models/S3_1400MHz_1mJy_18deg.csv, use flux_limit>= 1e-3
+        data/models/S3_1400MHz_100uJy_18deg.csv, use flux_limit < 1e-3
+
+    The component spectral index is calculated from the 610MHz and 151MHz or 1400MHz and 610MHz, and then calculated
+    for the specified frequencies.
+
+    If polarisation_frame is not stokesI then the image will a polarised axis but the values will be zero.
+
+    :param npixel: Number of pixels
+    :param polarisation_frame: Polarisation frame (default PolarisationFrame("stokesI"))
+    :param cellsize: cellsize in radians
+    :param frequency:
+    :param channel_bandwidth: Channel width (Hz)
+    :param phasecentre: phasecentre (SkyCoord)
+    :param fov: fov 10 | 20 | 40
+    :param flux_limit: Minimum flux (Jy)
+    :return: Image
+    """
+    
+    ras = []
+    decs = []
+    fluxes = []
+    names = []
+    
+    if phasecentre is None:
+        phasecentre = SkyCoord(ra=+180.0 * u.deg, dec=-60.0 * u.deg, frame='icrs', equinox='J2000')
+    
+    if polarisation_frame is None:
+        polarisation_frame = PolarisationFrame("stokesI")
+    
+    if numpy.max(frequency) > 6.1E8:
+        if fov > 10:
+            fovstr = '18'
+        else:
+            fovstr = '10'
+        if flux_limit >= 1e-3:
+            csvfilename = arl_path('data/models/S3_1400MHz_1mJy_%sdeg.csv' % fovstr)
+        else:
+            csvfilename = arl_path('data/models/S3_1400MHz_100uJy_%sdeg.csv' % fovstr)
+        log.info('create_test_image_from_s3: Reading S3 sources from %s ' % csvfilename)
+    else:
+        assert fov in [10, 20, 40], "Field of view invalid: use one of %s" % ([10, 20, 40])
+        csvfilename = arl_path('data/models/S3_151MHz_%ddeg.csv' % (fov))
+        log.info('create_test_image_from_s3: Reading S3 sources from %s ' % csvfilename)
+        
+    skycomps = list()
+    
+    with open(csvfilename) as csvfile:
+        readCSV = csv.reader(csvfile, delimiter=',')
+        r = 0
+        for row in readCSV:
+            # Skip first row
+            if r > 0:
+                ra = float(row[4]) + phasecentre.ra.deg
+                dec = float(row[5]) + phasecentre.dec.deg
+                if numpy.max(frequency) > 6.1E8:
+                    alpha = (float(row[11]) - float(row[10])) / numpy.log10(1400.0 / 610.0)
+                    flux = numpy.power(10, float(row[10])) * numpy.power(frequency / 1.4e9, alpha)
+                else:
+                    alpha = (float(row[10]) - float(row[9])) / numpy.log10(610.0 / 151.0)
+                    flux = numpy.power(10, float(row[9])) * numpy.power(frequency / 1.51e8, alpha)
+                if numpy.max(flux) > flux_limit:
+                    ras.append(ra)
+                    decs.append(dec)
+                    fluxes.append([[f] for f in flux])
+                    names.append("S3_%s" % row[0])
+            r += 1
+    
+    csvfile.close()
+
+    assert len(fluxes) > 0, "No sources found above flux limit %s" % flux_limit
+
+    directions = SkyCoord(ra=ras * u.deg, dec=decs * u.deg)
+    if phasecentre is not None:
+        separations = directions.separation(phasecentre).to('rad').value
+    else:
+        separations = numpy.zeros(len(names))
+
+    for isource, name in enumerate(names):
+        direction = directions[isource]
+        if separations[isource] < radius:
+            if not numpy.isnan(flux).any():
+                skycomps.append(Skycomponent(direction=direction, flux=fluxes[isource], frequency=frequency,
+                                             name=names[isource], shape='Point',
+                                             polarisation_frame=polarisation_frame))
+
+    log.info('create_test_skycomponents_from_s3: %d sources read' % (len(fluxes)))
+    
+    return skycomps
 
 
 def create_low_test_image_from_gleam(npixel=512, polarisation_frame=PolarisationFrame("stokesI"), cellsize=0.000015,
