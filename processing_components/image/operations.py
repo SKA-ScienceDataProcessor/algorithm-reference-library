@@ -113,6 +113,7 @@ def qa_image(im, context="") -> QA:
     data = {'shape': str(im.data.shape),
             'max': numpy.max(im.data),
             'min': numpy.min(im.data),
+            'maxabs': numpy.max(numpy.abs(im.data)),
             'rms': numpy.std(im.data),
             'sum': numpy.sum(im.data),
             'medianabs': numpy.median(numpy.abs(im.data)),

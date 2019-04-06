@@ -48,10 +48,10 @@ def create_gaintable_from_pointingtable(vis, sc, pt, vp, vis_slices=None, scale=
             for ant in range(nant):
                 worldloc = [float((comp.direction.ra.rad + pointing_ha[0, ant, 0, 0, 0])*r2d) ,
                             float((comp.direction.dec.rad + pointing_ha[0, ant, 0, 0, 1])*r2d),
-                            1.0, 1e8]
+                            1.0, 1e9]
                 try:
                     pixloc = vp.wcs.wcs_world2pix([worldloc], 0)[0].astype('int')
-                    antgain[ant] = scale * vp.data[pixloc[3], pixloc[2], pixloc[1], pixloc[0]]
+                    antgain[ant] = 1.0 / (scale * vp.data[pixloc[3], pixloc[2], pixloc[1], pixloc[0]])
                     number_good += 1
                 except:
                     number_bad += 1
@@ -61,7 +61,7 @@ def create_gaintable_from_pointingtable(vis, sc, pt, vp, vis_slices=None, scale=
             gaintables[icomp].phasecentre = comp.direction
         
         if number_bad > 0:
-            log.warning("create_gaintable_from_screen: %d points are inside the voltage pattern image" % (number_good))
-            log.warning("create_gaintable_from_screen: %d points are outside the voltage pattern image" % (number_bad))
+            log.warning("create_gaintable_from_pointingtable: %d points are inside the voltage pattern image" % (number_good))
+            log.warning("create_gaintable_from_pointingtable: %d points are outside the voltage pattern image" % (number_bad))
 
     return gaintables
