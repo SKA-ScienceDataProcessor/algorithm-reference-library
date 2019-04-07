@@ -924,9 +924,11 @@ def simulate_pointingtable(pt: PointingTable, pointing_error, static_pointing_er
     if seed is not None:
         numpy.random.seed(seed)
     
-    log.debug("simulate_pointingtable: Simulating pointing error = %.6f (rad), static pointing error = %.6f (rad)"
+    log.debug("simulate_pointingtable: Simulating pointing error = %g (rad), static pointing error = %g (rad)"
               % (pointing_error, static_pointing_error))
 
+    pt.data['pointing'] = numpy.zeros(pt.data['pointing'].shape)
+    
     ntimes, nant, nchan, nrec, _ = pt.data['pointing'].shape
     if pointing_error > 0.0:
         pt.data['pointing'] = numpy.random.normal(0.0, pointing_error, pt.data['pointing'].shape)
