@@ -55,7 +55,7 @@ def create_gaintable_from_pointingtable(vis, sc, pt, vp, vis_slices=None, scale=
             for ant in range(nant):
                 worldloc = [float((comp.direction.ra.rad + pointing_ha[0, ant, 0, 0, 0])*r2d) ,
                             float((comp.direction.dec.rad + pointing_ha[0, ant, 0, 0, 1])*r2d),
-                            1.0, 1e9]
+                            vp.wcs.wcs.crval[2], vp.wcs.wcs.crval[3]]
                 try:
                     pixloc = vp.wcs.wcs_world2pix([worldloc], 0)[0][0:2]
                     gain = real_spline.ev(pixloc[1], pixloc[0]) + 1j * imag_spline(pixloc[1], pixloc[0])
