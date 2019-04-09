@@ -39,7 +39,7 @@ from wrappers.serial.calibration.calibration import solve_gaintable
 from wrappers.serial.calibration.operations import apply_gaintable
 from wrappers.serial.calibration.calibration_control import create_calibration_controls
 from wrappers.serial.visibility.base import create_blockvisibility
-#from wrappers.serial.visibility.coalesce import convert_blockvisibility_to_visibility,     convert_visibility_to_blockvisibility
+from wrappers.serial.visibility.coalesce import convert_blockvisibility_to_visibility
 from wrappers.serial.skycomponent.operations import create_skycomponent
 from wrappers.serial.image.deconvolution import deconvolve_cube
 #from wrappers.serial.image.operations import show_image, export_image_to_fits, qa_image
@@ -144,17 +144,17 @@ log.debug('%d: frequency len %d frequency list:'%(rank,len(frequency)))
 
 
 if rank == 0:
-    vis_list=simulate_list_serial_workflow('LOWBD2',
+    bvis_list=simulate_list_serial_workflow('LOWBD2',
                                          frequency=frequency, 
                                          channel_bandwidth=channel_bandwidth,
                                          times=times,
                                          phasecentre=phasecentre,
                                          order='frequency',
-                                        rmax=rmax, format='vis')
+                                        rmax=rmax, format='blockvis')
 else:
-    vis_list=list()
+    bvis_list=list()
 
-#vis_list = [convert_blockvisibility_to_visibility(bv) for bv in bvis_list]
+vis_list = [convert_blockvisibility_to_visibility(bv) for bv in bvis_list]
 log.debug('%d: %d elements in vis_list' % (rank,len(vis_list)))
 #log.handlers[0].flush()
 #print(vis_list
