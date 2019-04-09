@@ -20,3 +20,4 @@ dask-worker-space
 *.hdf5
 *.pyc
 /build
+/test_results

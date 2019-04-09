@@ -135,8 +135,9 @@ The prime focus of the ARL is on learning and experimentation,
 not usage. If you are here to learn about the process of imaging, here
 is a quick guide to the project:
 
-  * `arl`: The main Python source code
-  * `examples`: Usage examples, mainly using Jupyter notebooks.
+  * `processing_library`: Algorithm inpendent library code
+  * `processing_components`: Processing functions used in algorithms
+  * `workflows`: Serial and distributed processing workflows
   * `tests`: Unit and regression tests
   * `docs`: Complete documentation. Includes non-interactive output of examples.
   * `data`: Data used
@@ -148,7 +149,7 @@ Running Notebooks
 [Jupyter notebooks](http://jupyter.org/) end with `.ipynb` and can be run as follows from the
 command line:
 
-     $ jupyter notebook examples/arl/imaging.ipynb
+     $ jupyter-notebook examples/arl/imaging.ipynb
 
 Building documentation
 ----------------------

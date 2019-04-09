@@ -158,6 +158,7 @@ def create_low_test_vp(model: Image) -> Image:
     # frequency.
     
     reprojected_beam = create_empty_image_like(model)
+    reprojected_beam.data = reprojected_beam.data.astype('complex')
     
     for chan in range(nchan):
         
@@ -175,13 +176,16 @@ def create_low_test_vp(model: Image) -> Image:
         beam2dwcs.wcs.ctype = model.wcs.sub(2).wcs.ctype
         model2dwcs.wcs.crpix = [model.shape[2] // 2 + 1, model.shape[3] // 2 + 1]
         
-        beam2d = create_image_from_array(beam.data[0, 0, :, :], beam2dwcs, model.polarisation_frame)
-        reprojected_beam2d, footprint = reproject_image(beam2d, model2dwcs, shape=model2dshape)
+        beam2d_real = create_image_from_array(numpy.real(beam.data[0, 0, :, :]), beam2dwcs, model.polarisation_frame)
+        beam2d_imag = create_image_from_array(numpy.imag(beam.data[0, 0, :, :]), beam2dwcs, model.polarisation_frame)
+        reprojected_beam2d_real, footprint = reproject_image(beam2d_real, model2dwcs, shape=model2dshape)
+        reprojected_beam2d_imag, footprint = reproject_image(beam2d_imag, model2dwcs, shape=model2dshape)
         assert numpy.max(footprint.data) > 0.0, "No overlap between beam and model"
         
-        reprojected_beam2d.data *= reprojected_beam2d.data
-        reprojected_beam2d.data[footprint.data <= 0.0] = 0.0
+        reprojected_beam2d_real.data[footprint.data <= 0.0] = 0.0
+        reprojected_beam2d_imag.data[footprint.data <= 0.0] = 0.0
         for pol in range(npol):
-            reprojected_beam.data[chan, pol, :, :] = reprojected_beam2d.data[:, :]
+            reprojected_beam.data[chan, pol, :, :] = reprojected_beam2d_real.data[:, :] \
+            + 1j * reprojected_beam2d_imag.data[:, :]
     
     return reprojected_beam

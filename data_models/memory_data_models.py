@@ -264,8 +264,8 @@ class PointingTable:
             nchan = pointing.shape[2]
             assert len(frequency) == nchan, "Discrepancy in frequency channels"
             desc = [('pointing', '>f16', (nants, nchan, nrec, 2)),
-                    ('weight', '>f8', (nants, nchan, nrec, nrec)),
-                    ('residual', '>f8', (nchan, nrec, nrec)),
+                    ('weight', '>f8', (nants, nchan, nrec, 2)),
+                    ('residual', '>f8', (nchan, nrec, 2)),
                     ('time', '>f8'),
                     ('interval', '>f8')]
             data = numpy.zeros(shape=[nrows], dtype=desc)
@@ -691,10 +691,25 @@ class SkyModel:
         """
         if components is None:
             components = []
+
+        if image is not None:
+            assert isinstance(image, Image), image
         self.image = image
+
+        if components is not None:
+            assert isinstance(components, list)
+            for comp in components:
+                assert isinstance(comp, Skycomponent), comp
         self.components = [sc for sc in components]
+        
+        if gaintable is not None:
+            assert isinstance(gaintable, GainTable), gaintable
         self.gaintable = gaintable
+        
+        if mask is not None:
+            assert isinstance(mask, Image), mask
         self.mask = mask
+        
         self.fixed = fixed
     
     def __str__(self):

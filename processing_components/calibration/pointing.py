@@ -63,7 +63,7 @@ def create_pointingtable_from_blockvisibility(vis: BlockVisibility, pointing_fra
     nrec = receptor_frame.nrec
     
     pointingshape = [ntimes, nants, nfrequency, nrec, 2]
-    pointing = numpy.ones(pointingshape)
+    pointing = numpy.zeros(pointingshape)
     if nrec > 1:
         pointing[..., 0, 0] = 0.0
         pointing[..., 1, 0] = 0.0
@@ -74,7 +74,7 @@ def create_pointingtable_from_blockvisibility(vis: BlockVisibility, pointing_fra
     pointing_time = utimes
     pointing_frequency = ufrequency
     pointing_residual = numpy.zeros([ntimes, nfrequency, nrec, 2])
-    pointing_frame = 'local'
+    pointing_frame = 'sky'
     
     pt = PointingTable(pointing=pointing, time=pointing_time, interval=pointing_interval, weight=pointing_weight,
                        residual=pointing_residual, frequency=pointing_frequency,

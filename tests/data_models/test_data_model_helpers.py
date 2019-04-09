@@ -121,7 +121,7 @@ class TestDataModelHelpers(unittest.TestCase):
                                           polarisation_frame=PolarisationFrame("linear"),
                                           weight=1.0)
         gt = create_pointingtable_from_blockvisibility(self.vis, timeslice='auto')
-        gt = simulate_pointingtable(gt, phase_error=1.0, amplitude_error=0.1)
+        gt = simulate_pointingtable(gt, pointing_error=0.001)
         export_pointingtable_to_hdf5(gt, '%s/test_data_model_helpers_pointingtable.hdf' % self.dir)
         newgt = import_pointingtable_from_hdf5('%s/test_data_model_helpers_pointingtable.hdf' % self.dir)
     
