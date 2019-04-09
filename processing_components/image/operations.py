@@ -117,6 +117,7 @@ def qa_image(im, context="") -> QA:
             'rms': numpy.std(im.data),
             'sum': numpy.sum(im.data),
             'medianabs': numpy.median(numpy.abs(im.data)),
+            'medianabsdevmedian': numpy.median(numpy.abs(im.data-numpy.median(im.data))),
             'median': numpy.median(im.data)}
     
     qa = QA(origin="qa_image", data=data, context=context)
