@@ -38,7 +38,7 @@ def create_gaintable_from_pointingtable(vis, sc, pt, vp, vis_slices=None, scale=
     nchan, npol, ny, nx = vp.data.shape
     
     real_spline = RectBivariateSpline(range(ny), range(nx), vp.data[0,0,...].real, kx=order, ky=order)
-    imag_spline = RectBivariateSpline(range(ny), range(nx), vp.data[0,0,...].imag)
+    imag_spline = RectBivariateSpline(range(ny), range(nx), vp.data[0,0,...].imag, kx=order, ky=order)
 
     # The time in the Visibility is hour angle in seconds!
     for iha, rows in enumerate(vis_timeslice_iter(vis, vis_slices=vis_slices)):

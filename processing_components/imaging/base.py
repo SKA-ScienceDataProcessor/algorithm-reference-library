@@ -310,11 +310,11 @@ def create_image_from_visibility(vis, **kwargs) -> Image:
     log.info("create_image_from_visibility: Critical cellsize = %f radians, %f degrees" % (
         criticalcellsize, criticalcellsize * 180.0 / numpy.pi))
     cellsize = get_parameter(kwargs, "cellsize", 0.5 * criticalcellsize)
-    log.info("create_image_from_visibility: Cellsize          = %f radians, %f degrees" % (cellsize,
+    log.info("create_image_from_visibility: Cellsize          = %g radians, %g degrees" % (cellsize,
                                                                                            cellsize * 180.0 / numpy.pi))
     override_cellsize = get_parameter(kwargs, "override_cellsize", True)
     if override_cellsize and cellsize > criticalcellsize:
-        log.info("create_image_from_visibility: Resetting cellsize %f radians to criticalcellsize %f radians" % (
+        log.info("create_image_from_visibility: Resetting cellsize %g radians to criticalcellsize %g radians" % (
             cellsize, criticalcellsize))
         cellsize = criticalcellsize
     pol_frame = get_parameter(kwargs, "polarisation_frame", PolarisationFrame("stokesI"))
@@ -323,6 +323,7 @@ def create_image_from_visibility(vis, **kwargs) -> Image:
     # Now we can define the WCS, which is a convenient place to hold the info above
     # Beware of python indexing order! wcs and the array have opposite ordering
     shape = [inchan, inpol, npixel, npixel]
+    log.info("create_image_from_visibility: image shape is %s" % str(shape))
     w = wcs.WCS(naxis=4)
     # The negation in the longitude is needed by definition of RA, DEC
     w.wcs.cdelt = [-cellsize * 180.0 / numpy.pi, cellsize * 180.0 / numpy.pi, 1.0, channel_bandwidth.to(units.Hz).value]
@@ -471,4 +472,4 @@ def rad_and_deg(x):
     """ Stringify x in radian and degress forms
     
     """
-    return "%.6f (rad) %.3f (deg)" % (x, 180.0 * x / numpy.pi)
+    return "%.3g (rad) %.3g (deg)" % (x, 180.0 * x / numpy.pi)

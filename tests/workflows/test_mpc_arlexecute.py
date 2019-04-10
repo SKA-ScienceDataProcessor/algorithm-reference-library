@@ -103,7 +103,7 @@ class TestMPC(unittest.TestCase):
         assert isinstance(self.skymodel_list[0].components[0], Skycomponent), self.skymodel_list[0].components[0]
         assert len(self.skymodel_list[0].components) == 35, len(self.skymodel_list[0].components)
         self.skymodel_list = expand_skymodel_by_skycomponents(self.skymodel_list[0])
-        assert len(self.skymodel_list) == 20, len(self.skymodel_list)
+        assert len(self.skymodel_list) == 36, len(self.skymodel_list)
         assert numpy.max(numpy.abs(self.skymodel_list[-1].image.data)) > 0.0, "Image is empty"
         self.vis_list = [copy_visibility(self.vis_list[0], zero=True) for i, _ in enumerate(self.skymodel_list)]
     
