@@ -59,8 +59,6 @@ class TestPipelineMPC(ARLExecuteTestCase, unittest.TestCase):
         :return:
         """
         
-        combined_model = calculate_skymodel_equivalent_image(tl_list)
-        
         import matplotlib.pyplot as plt
         plt.clf()
         for i in range(len(tl_list)):
@@ -241,8 +239,8 @@ class TestPipelineMPC(ARLExecuteTestCase, unittest.TestCase):
         
         recovered_mpccal_components = sorted(recovered_mpccal_components, key=max_flux, reverse=True)
         
-        assert recovered_mpccal_components[0].name == 'Segment 2', recovered_mpccal_components[0].name
-        assert numpy.abs(recovered_mpccal_components[0].flux[0, 0] - 4.610608321224427) < 1e-7, \
+        assert recovered_mpccal_components[0].name == 'Segment 5', recovered_mpccal_components[0].name
+        assert numpy.abs(recovered_mpccal_components[0].flux[0, 0] - 7.070880092426026) < 1e-7, \
             recovered_mpccal_components[0].flux[0, 0]
         
         newscreen = create_empty_image_like(self.screen)
@@ -296,7 +294,7 @@ class TestPipelineMPC(ARLExecuteTestCase, unittest.TestCase):
         recovered_mpccal_components = sorted(recovered_mpccal_components, key=max_flux, reverse=True)
         
         assert recovered_mpccal_components[0].name == 'Segment 0', recovered_mpccal_components[0].name
-        assert numpy.abs(recovered_mpccal_components[0].flux[0, 0] - 0.856961369051132) < 1e-6, \
+        assert numpy.abs(recovered_mpccal_components[0].flux[0, 0] - 1.2439910508631968) < 1e-6, \
             recovered_mpccal_components[0].flux[0, 0]
         
         newscreen = create_empty_image_like(self.screen)
@@ -349,8 +347,8 @@ class TestPipelineMPC(ARLExecuteTestCase, unittest.TestCase):
     
         recovered_mpccal_components = sorted(recovered_mpccal_components, key=max_flux, reverse=True)
     
-        assert recovered_mpccal_components[0].name == 'Segment 2', recovered_mpccal_components[0].name
-        assert numpy.abs(recovered_mpccal_components[0].flux[0, 0] - 5.064144682946242) < 1e-7, \
+        assert recovered_mpccal_components[0].name == 'Segment 8', recovered_mpccal_components[0].name
+        assert numpy.abs(recovered_mpccal_components[0].flux[0, 0] - 7.325944736695269) < 1e-7, \
             recovered_mpccal_components[0].flux[0, 0]
     
         newscreen = create_empty_image_like(self.screen)
@@ -403,8 +401,8 @@ class TestPipelineMPC(ARLExecuteTestCase, unittest.TestCase):
     
         recovered_mpccal_components = sorted(recovered_mpccal_components, key=max_flux, reverse=True)
     
-        assert recovered_mpccal_components[0].name == 'Segment 2', recovered_mpccal_components[0].name
-        assert numpy.abs(recovered_mpccal_components[0].flux[0, 0] - 5.064144682946242) < 1e-7, \
+        assert recovered_mpccal_components[0].name == 'Segment 8', recovered_mpccal_components[0].name
+        assert numpy.abs(recovered_mpccal_components[0].flux[0, 0] - 7.325944736695269) < 1e-7, \
             recovered_mpccal_components[0].flux[0, 0]
     
         newscreen = create_empty_image_like(self.screen)
@@ -459,8 +457,8 @@ class TestPipelineMPC(ARLExecuteTestCase, unittest.TestCase):
     
         recovered_mpccal_components = sorted(recovered_mpccal_components, key=max_flux, reverse=True)
     
-        assert recovered_mpccal_components[0].name == 'Segment 2', recovered_mpccal_components[0].name
-        assert numpy.abs(recovered_mpccal_components[0].flux[0, 0] - 5.081513237874154) < 1e-7, \
+        assert recovered_mpccal_components[0].name == 'Segment 10', recovered_mpccal_components[0].name
+        assert numpy.abs(recovered_mpccal_components[0].flux[0, 0] - 7.564685453717106) < 1e-7, \
             recovered_mpccal_components[0].flux[0, 0]
     
         newscreen = create_empty_image_like(self.screen)

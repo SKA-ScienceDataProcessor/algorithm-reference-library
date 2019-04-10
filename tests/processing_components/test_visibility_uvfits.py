@@ -15,6 +15,8 @@ from processing_components.visibility.operations import integrate_visibility_by_
 from processing_components.imaging.base import invert_2d, create_image_from_visibility
 from processing_components.visibility.coalesce import convert_visibility_to_blockvisibility, \
     convert_blockvisibility_to_visibility
+from processing_components.image.operations import export_image_to_fits
+
 
 log = logging.getLogger(__name__)
 
@@ -26,6 +28,8 @@ log.addHandler(logging.StreamHandler(sys.stderr))
 class TestCreateMS(unittest.TestCase):
     
     def setUp(self):
+        self.dir = arl_path('test_results')
+    
         return
     
     # def test_create_list(self):
@@ -87,6 +91,11 @@ class TestCreateMS(unittest.TestCase):
             dirty, sumwt = invert_2d(vis, model, context='2d')
             assert (numpy.max(numpy.abs(dirty.data))) > 0.0
             assert dirty.shape == (nchan_ave, 1, 256, 256)
+            import matplotlib.pyplot as plt
+            from processing_components.image.operations import show_image
+            show_image(dirty)
+            plt.show()
+            export_image_to_fits(dirty, '%s/test_visibility_uvfits_dirty.fits' % self.dir)
 
 
 if __name__ == '__main__':

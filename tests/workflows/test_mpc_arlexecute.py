@@ -101,7 +101,7 @@ class TestMPC(unittest.TestCase):
         self.skymodel_list = arlexecute.compute(self.skymodel_list, sync=True)
         assert isinstance(self.skymodel_list[0].image, Image), self.skymodel_list[0].image
         assert isinstance(self.skymodel_list[0].components[0], Skycomponent), self.skymodel_list[0].components[0]
-        assert len(self.skymodel_list[0].components) == 19, len(self.skymodel_list[0].components)
+        assert len(self.skymodel_list[0].components) == 35, len(self.skymodel_list[0].components)
         self.skymodel_list = expand_skymodel_by_skycomponents(self.skymodel_list[0])
         assert len(self.skymodel_list) == 20, len(self.skymodel_list)
         assert numpy.max(numpy.abs(self.skymodel_list[-1].image.data)) > 0.0, "Image is empty"

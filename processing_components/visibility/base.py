@@ -381,6 +381,7 @@ def create_blockvisibility_from_ms(msname, channum=None, ack=False):
             
             bv_vis = numpy.zeros([ntimes, nants, nants, nchan, npol]).astype('complex')
             bv_weight = numpy.zeros([ntimes, nants, nants, nchan, npol])
+            bv_imaging_weight = numpy.zeros([ntimes, nants, nants, nchan, npol])
             bv_uvw = numpy.zeros([ntimes, nants, nants, 3])
             
             time_last = time[0]
@@ -394,6 +395,7 @@ def create_blockvisibility_from_ms(msname, channum=None, ack=False):
                     time_last = time[row]
                 bv_vis[time_index, antenna2[row], antenna1[row], ...] = ms_vis[row, ...]
                 bv_weight[time_index, antenna2[row], antenna1[row], :, ...] = ms_weight[row, numpy.newaxis, ...]
+                bv_imaging_weight[time_index, antenna2[row], antenna1[row], :, ...] = ms_weight[row, numpy.newaxis, ...]
                 bv_uvw[time_index, antenna2[row], antenna1[row], :] = uvw[row, :]
     
             vis_list.append(BlockVisibility(uvw=bv_uvw,
@@ -402,6 +404,7 @@ def create_blockvisibility_from_ms(msname, channum=None, ack=False):
                                             channel_bandwidth=cchannel_bandwidth,
                                             vis=bv_vis,
                                             weight=bv_weight,
+                                            imaging_weight=bv_imaging_weight,
                                             configuration=configuration,
                                             phasecentre=phasecentre,
                                             polarisation_frame=polarisation_frame))
