@@ -12,7 +12,7 @@ import astropy.units as u
 from data_models.polarisation import PolarisationFrame
 
 from processing_components.imaging.base import create_image_from_visibility
-from processing_components.simulation.testing_support import create_named_configuration
+from processing_components.simulation.configurations import create_named_configuration
 from processing_components.visibility.coalesce import coalesce_visibility, decoalesce_visibility, \
     convert_blockvisibility_to_visibility
 from processing_components.visibility.base import create_blockvisibility, create_visibility_from_rows

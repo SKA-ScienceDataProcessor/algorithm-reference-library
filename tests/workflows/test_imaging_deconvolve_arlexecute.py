@@ -19,8 +19,9 @@ from workflows.arlexecute.imaging.imaging_arlexecute import invert_list_arlexecu
 from wrappers.arlexecute.execution_support.arlexecute import arlexecute
 from wrappers.arlexecute.image.operations import export_image_to_fits, smooth_image
 from wrappers.arlexecute.imaging.base import predict_skycomponent_visibility
-from wrappers.arlexecute.simulation.testing_support import create_named_configuration, ingest_unittest_visibility, \
+from wrappers.arlexecute.simulation.testing_support import ingest_unittest_visibility, \
     create_unittest_model, create_unittest_components, insert_unittest_errors
+from processing_components.simulation.configurations import create_named_configuration
 from wrappers.arlexecute.skycomponent.operations import insert_skycomponent
 
 log = logging.getLogger(__name__)

@@ -16,9 +16,9 @@ from data_models.polarisation import PolarisationFrame
 from processing_components.image.operations import export_image_to_fits
 from processing_components.imaging.base import predict_skycomponent_visibility
 from processing_components.imaging.primary_beams import create_low_test_beam
-from processing_components.simulation.testing_support import create_test_image_from_s3, create_named_configuration, \
-    create_test_image, create_blockvisibility_iterator, create_low_test_image_from_gleam, \
+from processing_components.simulation.testing_support import create_test_image_from_s3, create_test_image, create_blockvisibility_iterator, create_low_test_image_from_gleam, \
     create_low_test_skycomponents_from_gleam, create_low_test_skymodel_from_gleam, create_test_skycomponents_from_s3
+from processing_components.simulation.configurations import create_named_configuration
 from processing_components.visibility.base import create_visibility, create_blockvisibility
 from processing_components.visibility.coalesce import convert_blockvisibility_to_visibility
 from processing_components.visibility.operations import append_visibility
@@ -53,28 +53,6 @@ class TestTesting_Support(unittest.TestCase):
                                      channel_bandwidth=self.channel_bandwidth,
                                      phasecentre=self.phasecentre, weight=1.0,
                                      polarisation_frame=PolarisationFrame('stokesI'))
-
-    def test_named_configurations(self):
-        for config in ['LOWBD2', 'LOWBD2-CORE', 'LOWBD1', 'LOFAR', 'ASKAP', 'LOWR3', 'MIDR5']:
-            self.createVis(config)
-            assert self.config.size() > 0.0
-    
-        self.createVis('VLAA', +35.0)
-        self.createVis('VLAA_north', +35.0)
-
-    def test_SKA_configurations(self):
-        for config in ['MIDR5', 'LOWR3']:
-            self.config = create_named_configuration(config)
-            assert self.config.size() > 0.0
-
-    def test_clip_configuration(self):
-        for rmax in [100.0, 3000.0, 1000.0, 3000.0, 10000.0, 30000.0, 100000.0]:
-            self.config = create_named_configuration('LOWBD2', rmax=rmax)
-            assert self.config.size() > 0.0
-    
-    def test_unknown_configuration(self):
-        with self.assertRaises(ValueError):
-            self.config = create_named_configuration("SKA1-OWL")
     
     def test_create_test_image(self):
         im = create_test_image(canonical=False)
@@ -135,7 +113,7 @@ class TestTesting_Support(unittest.TestCase):
         assert im.data.shape[2] == 256
         assert im.data.shape[3] == 256
         export_image_to_fits(im, '%s/test_test_support_low_gleam_with_pb.fits' % (self.dir))
-
+    
     def test_create_low_test_skycomponents_from_gleam(self):
         sc = create_low_test_skycomponents_from_gleam(flux_limit=1.0,
                                                       phasecentre=SkyCoord("17h20m31s", "-00d58m45s"),
@@ -144,17 +122,17 @@ class TestTesting_Support(unittest.TestCase):
         assert len(sc) == 1, "Only expected one source, actually found %d" % len(sc)
         assert sc[0].name == 'GLEAM J172031-005845'
         self.assertAlmostEqual(sc[0].flux[0, 0], 357.2599499089219, 7)
-
+    
     def test_create_test_skycomponents_from_s3(self):
         self.frequency = numpy.linspace(0.8e9, 1.2e9, 5)
         sc = create_test_skycomponents_from_s3(flux_limit=3.0,
-                                                      phasecentre=self.phasecentre,
-                                                      polarisation_frame=PolarisationFrame("stokesI"),
-                                                      frequency=self.frequency, radius=0.1)
+                                               phasecentre=self.phasecentre,
+                                               polarisation_frame=PolarisationFrame("stokesI"),
+                                               frequency=self.frequency, radius=0.1)
         assert len(sc) == 9, "Only expected nine sources, actually found %d" % len(sc)
         assert sc[0].name == 'S3_36133023'
         self.assertAlmostEqual(sc[0].flux[0, 0], 4.54336938, 7)
-
+    
     def test_create_test_image_from_s3_low(self):
         im = create_test_image_from_s3(npixel=1024, channel_bandwidth=numpy.array([1e6]),
                                        frequency=numpy.array([1e8]),
@@ -279,6 +257,7 @@ class TestTesting_Support(unittest.TestCase):
         self.vis = predict_skycomponent_visibility(self.vis, sc)
         cvt = convert_blockvisibility_to_visibility(self.vis)
         assert cvt.cindex is not None
+
 
 if __name__ == '__main__':
     unittest.main()

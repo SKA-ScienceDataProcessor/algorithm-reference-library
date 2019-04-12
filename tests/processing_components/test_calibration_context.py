@@ -15,7 +15,8 @@ from data_models.polarisation import PolarisationFrame
 from processing_components.calibration.calibration_control import calibrate_function, create_calibration_controls, apply_gaintable
 from processing_components.calibration.operations import create_gaintable_from_blockvisibility, gaintable_summary
 from processing_components.imaging.base import predict_skycomponent_visibility
-from processing_components.simulation.testing_support import create_named_configuration, simulate_gaintable
+from processing_components.simulation.testing_support import simulate_gaintable
+from processing_components.simulation.configurations import create_named_configuration
 from processing_components.visibility.base import copy_visibility, create_blockvisibility
 
 log = logging.getLogger(__name__)

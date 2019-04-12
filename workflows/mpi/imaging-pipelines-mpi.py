@@ -45,7 +45,8 @@ from wrappers.serial.image.deconvolution import deconvolve_cube
 #from wrappers.serial.image.operations import show_image, export_image_to_fits, qa_image
 from wrappers.serial.image.operations import export_image_to_fits, qa_image
 from wrappers.serial.visibility.iterators import vis_timeslice_iter
-from wrappers.serial.simulation.testing_support import create_named_configuration, create_low_test_image_from_gleam
+from wrappers.serial.simulation.testing_support import create_low_test_image_from_gleam
+from processing_components.simulation.configurations import create_named_configuration
 from wrappers.serial.imaging.base import predict_2d, create_image_from_visibility, advise_wide_field
 
 from workflows.serial.imaging.imaging_serial import invert_list_serial_workflow,     predict_list_serial_workflow, deconvolve_list_serial_workflow

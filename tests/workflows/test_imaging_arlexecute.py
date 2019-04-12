@@ -19,8 +19,9 @@ from workflows.arlexecute.imaging.imaging_arlexecute import zero_list_arlexecute
 from wrappers.arlexecute.execution_support.arlexecute import arlexecute
 from wrappers.arlexecute.image.operations import export_image_to_fits, smooth_image, qa_image
 from wrappers.arlexecute.imaging.base import predict_skycomponent_visibility
-from wrappers.arlexecute.simulation.testing_support import create_named_configuration, ingest_unittest_visibility, \
+from wrappers.arlexecute.simulation.testing_support import ingest_unittest_visibility, \
     create_unittest_model, insert_unittest_errors, create_unittest_components
+from processing_components.simulation.configurations import create_named_configuration
 from wrappers.arlexecute.skycomponent.operations import find_skycomponents, find_nearest_skycomponent, \
     insert_skycomponent
 

@@ -54,8 +54,11 @@ def create_pb(model, telescope='MID', pointingcentre=None):
     :param telescope: 'VLA' or 'ASKAP'
     :return: Primary beam image
     """
-    beam = create_vp(model, telescope, pointingcentre)
-    beam.data = numpy.real(beam.data * numpy.conjugate(beam.data))
+    if telescope=='LOW':
+        beam = create_low_test_beam(model)
+    else:
+        beam = create_vp(model, telescope, pointingcentre)
+        beam.data = numpy.real(beam.data * numpy.conjugate(beam.data))
     return beam
 
 
@@ -132,10 +135,44 @@ def create_low_test_beam(model: Image) -> Image:
     :param model: Template image
     :return: Image
     """
-    beam = create_low_test_vp(model)
-    beam.data = numpy.real(beam.data * numpy.conjugate(beam.data))
-    return beam
+    beam = import_image_from_fits(arl_path('data/models/SKA1_LOW_beam.fits'))
 
+    # Scale the image cellsize to account for the different in frequencies. Eventually we will want to
+    # use a frequency cube
+    log.debug("create_low_test_beam: LOW voltage pattern is defined at %.3f MHz" % (beam.wcs.wcs.crval[2] * 1e-6))
+
+    nchan, npol, ny, nx = model.shape
+
+    # We need to interpolate each frequency channel separately. The beam is assumed to just scale with
+    # frequency.
+
+    reprojected_beam = create_empty_image_like(model)
+
+    for chan in range(nchan):
+    
+        model2dwcs = model.wcs.sub(2).deepcopy()
+        model2dshape = [model.shape[2], model.shape[3]]
+        beam2dwcs = beam.wcs.sub(2).deepcopy()
+    
+        # The frequency axis is the second to last in the beam
+        frequency = model.wcs.sub(['spectral']).wcs_pix2world([chan], 0)[0]
+        fscale = beam.wcs.wcs.crval[2] / frequency
+    
+        beam2dwcs.wcs.cdelt = fscale * beam.wcs.sub(2).wcs.cdelt
+        beam2dwcs.wcs.crpix = beam.wcs.sub(2).wcs.crpix
+        beam2dwcs.wcs.crval = model.wcs.sub(2).wcs.crval
+        beam2dwcs.wcs.ctype = model.wcs.sub(2).wcs.ctype
+        model2dwcs.wcs.crpix = [model.shape[2] // 2 + 1, model.shape[3] // 2 + 1]
+    
+        beam2d = create_image_from_array(beam.data[0, 0, :, :], beam2dwcs, model.polarisation_frame)
+        reprojected_beam2d, footprint = reproject_image(beam2d, model2dwcs, shape=model2dshape)
+        assert numpy.max(footprint.data) > 0.0, "No overlap between beam and model"
+    
+        reprojected_beam2d.data[footprint.data <= 0.0] = 0.0
+        for pol in range(npol):
+            reprojected_beam.data[chan, pol, :, :] = reprojected_beam2d.data[:, :]
+            
+    return reprojected_beam
 
 def create_low_test_vp(model: Image) -> Image:
     """Create a test power beam for LOW using an image from OSKAR

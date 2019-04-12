@@ -19,8 +19,8 @@ from processing_components.griddata.convolution_functions import create_convolut
 from processing_components.calibration.operations import create_gaintable_from_blockvisibility
 from processing_components.calibration.pointing import create_pointingtable_from_blockvisibility
 from processing_components.imaging.base import predict_skycomponent_visibility
-from processing_components.simulation.testing_support import create_named_configuration, \
-    simulate_gaintable, simulate_pointingtable, create_test_image
+from processing_components.simulation.testing_support import simulate_gaintable, simulate_pointingtable, create_test_image
+from processing_components.simulation.configurations import create_named_configuration
 from processing_components.visibility.base import create_blockvisibility
 
 

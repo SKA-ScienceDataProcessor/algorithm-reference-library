@@ -2,9 +2,7 @@
 Functions that aid testing in various ways. 
 """
 
-from processing_components.simulation.testing_support import create_configuration_from_file
-from processing_components.simulation.testing_support import create_LOFAR_configuration
-from processing_components.simulation.testing_support import create_named_configuration
+from processing_components.simulation.configurations import create_configuration_from_file, create_LOFAR_configuration, create_named_configuration
 from processing_components.simulation.testing_support import create_test_image
 from processing_components.simulation.testing_support import create_test_image_from_s3
 from processing_components.simulation.testing_support import create_low_test_image_from_gleam

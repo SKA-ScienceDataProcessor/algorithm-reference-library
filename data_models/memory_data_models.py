@@ -241,9 +241,8 @@ class PointingTable:
     
     def __init__(self, data=None, pointing: numpy.array = None, time: numpy.array = None, interval=None,
                  weight: numpy.array = None, residual: numpy.array = None, frequency: numpy.array = None,
-                 receptor_frame: ReceptorFrame = ReceptorFrame("linear"),
-                 pointing_frame: str = "local",
-                 phasecentre=None):
+                 receptor_frame: ReceptorFrame = ReceptorFrame("linear"), pointing_frame: str = "local",
+                 pointingcentre=None):
         """ Create a pointing from arrays
 
         :param interval:
@@ -279,7 +278,7 @@ class PointingTable:
         self.frequency = frequency
         self.receptor_frame = receptor_frame
         self.pointing_frame = pointing_frame
-        self.phasecentre = phasecentre
+        self.pointingcentre = pointingcentre
     
     def size(self):
         """ Return size in GB
@@ -332,7 +331,7 @@ class PointingTable:
         s += "\tTimes: %s\n" % str(self.ntimes)
         s += "\tData shape: %s\n" % str(self.data.shape)
         s += "\tReceptor frame: %s\n" % str(self.receptor_frame.type)
-        s += "\tPhasecentre: %s\n" % str(self.phasecentre)
+        s += "\tPointing centre: %s\n" % str(self.pointingcentre)
         return s
 
 

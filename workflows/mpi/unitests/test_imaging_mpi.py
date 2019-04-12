@@ -14,8 +14,9 @@ from astropy.coordinates import SkyCoord
 from data_models.polarisation import PolarisationFrame
 from wrappers.serial.image.operations import export_image_to_fits, smooth_image
 from wrappers.serial.imaging.base import predict_skycomponent_visibility
-from wrappers.serial.simulation.testing_support import create_named_configuration, ingest_unittest_visibility, \
+from wrappers.serial.simulation.testing_support import ingest_unittest_visibility, \
     create_unittest_model, insert_unittest_errors, create_unittest_components
+from processing_components.simulation.configurations import create_named_configuration
 from wrappers.serial.skycomponent.operations import find_skycomponents, find_nearest_skycomponent, \
     insert_skycomponent
 from workflows.mpi.imaging.imaging_mpi import predict_list_mpi_workflow, invert_list_mpi_workflow, \

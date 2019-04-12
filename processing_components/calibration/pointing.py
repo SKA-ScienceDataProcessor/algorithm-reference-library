@@ -77,9 +77,8 @@ def create_pointingtable_from_blockvisibility(vis: BlockVisibility, pointing_fra
     pointing_frame = 'sky'
     
     pt = PointingTable(pointing=pointing, time=pointing_time, interval=pointing_interval, weight=pointing_weight,
-                       residual=pointing_residual, frequency=pointing_frequency,
-                       receptor_frame=receptor_frame, phasecentre=vis.phasecentre,
-                       pointing_frame=pointing_frame)
+                       residual=pointing_residual, frequency=pointing_frequency, receptor_frame=receptor_frame,
+                       pointing_frame=pointing_frame, pointingcentre=vis.phasecentre)
     
     assert isinstance(pt, PointingTable), "pt is not a PointingTable: %r" % pt
     

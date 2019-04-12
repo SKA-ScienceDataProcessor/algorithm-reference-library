@@ -14,7 +14,8 @@ from data_models.polarisation import PolarisationFrame
 
 from processing_components.skycomponent.operations import create_skycomponent
 from processing_components.skymodel.operations import copy_skymodel, partition_skymodel_by_flux
-from processing_components.simulation.testing_support import create_test_image, create_named_configuration
+from processing_components.simulation.testing_support import create_test_image
+from processing_components.simulation.configurations import create_named_configuration
 from processing_components.visibility.base import create_blockvisibility
 
 log = logging.getLogger(__name__)

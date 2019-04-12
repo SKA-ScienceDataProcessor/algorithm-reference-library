@@ -15,8 +15,8 @@ from processing_library.image.operations import create_image_from_array
 
 from processing_components.image.deconvolution import deconvolve_cube, restore_cube
 from processing_components.image.operations import export_image_to_fits
-from processing_components.simulation.testing_support import create_low_test_image_from_gleam, \
-    create_named_configuration
+from processing_components.simulation.testing_support import create_low_test_image_from_gleam
+from processing_components.simulation.configurations import create_named_configuration
 from processing_components.imaging.primary_beams import create_low_test_beam
 from processing_components.visibility.base import create_visibility
 from processing_components.imaging.base import predict_2d, invert_2d, create_image_from_visibility

@@ -366,8 +366,8 @@ def convert_hdf_to_pointingtable(f):
     ss = [float(s[0]), float(s[1])] * u.deg
     phasecentre = SkyCoord(ra=ss[0], dec=ss[1], frame=f.attrs['phasecentre_frame'])
     pointing_frame = f.attrs['pointing_frame']
-    pt = PointingTable(data=data, receptor_frame=receptor_frame, frequency=frequency, phasecentre=phasecentre,
-                       pointing_frame=pointing_frame)
+    pt = PointingTable(data=data, frequency=frequency, receptor_frame=receptor_frame, pointing_frame=pointing_frame,
+                       pointingcentre=phasecentre)
     return pt
 
 

@@ -16,8 +16,9 @@ from wrappers.serial.skymodel.operations import expand_skymodel_by_skycomponents
 from workflows.serial.skymodel.skymodel_serial import predict_skymodel_list_serial_workflow, \
     invert_skymodel_list_serial_workflow, crosssubtract_datamodels_skymodel_list_serial_workflow
 from workflows.shared.imaging.imaging_shared import sum_predict_results
-from wrappers.serial.simulation.testing_support import create_named_configuration, ingest_unittest_visibility, \
+from wrappers.serial.simulation.testing_support import ingest_unittest_visibility, \
     create_low_test_skymodel_from_gleam
+from processing_components.simulation.configurations import create_named_configuration
 from wrappers.serial.visibility.base import copy_visibility
 from wrappers.serial.visibility.coalesce import convert_blockvisibility_to_visibility
 

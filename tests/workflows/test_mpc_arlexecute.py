@@ -18,8 +18,9 @@ from workflows.arlexecute.skymodel.skymodel_arlexecute import predict_skymodel_l
 from workflows.shared.imaging.imaging_shared import sum_predict_results
 from wrappers.arlexecute.execution_support.arlexecute import arlexecute
 from wrappers.arlexecute.execution_support.dask_init import get_dask_Client
-from wrappers.arlexecute.simulation.testing_support import create_named_configuration, ingest_unittest_visibility, \
+from wrappers.arlexecute.simulation.testing_support import ingest_unittest_visibility, \
     create_low_test_skymodel_from_gleam
+from processing_components.simulation.configurations import create_named_configuration
 from wrappers.arlexecute.visibility.base import copy_visibility
 from wrappers.arlexecute.visibility.coalesce import convert_blockvisibility_to_visibility
 

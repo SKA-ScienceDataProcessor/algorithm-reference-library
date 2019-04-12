@@ -25,8 +25,9 @@ from processing_components.image.operations import smooth_image
 from processing_components.imaging.base import normalize_sumwt
 from processing_components.imaging.base import predict_skycomponent_visibility
 from processing_components.imaging.primary_beams import create_pb_generic
-from processing_components.simulation.testing_support import create_named_configuration, create_unittest_model, \
+from processing_components.simulation.testing_support import create_unittest_model, \
     create_unittest_components, ingest_unittest_visibility
+from processing_components.simulation.configurations import create_named_configuration
 from processing_components.skycomponent.operations import insert_skycomponent
 from processing_components.visibility.operations import qa_visibility
 

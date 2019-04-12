@@ -17,7 +17,8 @@ from workflows.arlexecute.calibration.calibration_arlexecute import calibrate_li
 from wrappers.arlexecute.calibration.calibration_control import create_calibration_controls
 from wrappers.arlexecute.calibration.operations import create_gaintable_from_blockvisibility, apply_gaintable
 from wrappers.arlexecute.execution_support.arlexecute import arlexecute
-from wrappers.arlexecute.simulation.testing_support import create_named_configuration, ingest_unittest_visibility
+from wrappers.arlexecute.simulation.testing_support import ingest_unittest_visibility
+from processing_components.simulation.configurations import create_named_configuration
 from wrappers.arlexecute.simulation.testing_support import simulate_gaintable
 from wrappers.arlexecute.visibility.base import copy_visibility
 

@@ -14,8 +14,9 @@ from astropy.coordinates import SkyCoord
 from data_models.polarisation import PolarisationFrame
 from processing_components.image.operations import export_image_to_fits, smooth_image
 from processing_components.imaging.base import predict_2d, invert_2d, predict_skycomponent_visibility
-from processing_components.simulation.testing_support import create_named_configuration, ingest_unittest_visibility, \
+from processing_components.simulation.testing_support import ingest_unittest_visibility, \
     create_unittest_model, create_unittest_components
+from processing_components.simulation.configurations import create_named_configuration
 from processing_components.skycomponent.operations import find_skycomponents, find_nearest_skycomponent, \
     insert_skycomponent
 from processing_components.imaging.primary_beams import create_pb_generic

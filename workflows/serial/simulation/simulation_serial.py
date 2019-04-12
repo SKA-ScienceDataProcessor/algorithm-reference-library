@@ -12,7 +12,8 @@ from data_models.memory_data_models import  Visibility, BlockVisibility
 
 
 from wrappers.serial.calibration.operations import apply_gaintable, create_gaintable_from_blockvisibility
-from wrappers.serial.simulation.testing_support import create_named_configuration, simulate_gaintable
+from wrappers.serial.simulation.testing_support import simulate_gaintable
+from processing_components.simulation.configurations import create_named_configuration
 from wrappers.serial.visibility.base import create_blockvisibility, create_visibility
 from wrappers.serial.visibility.coalesce import convert_blockvisibility_to_visibility, \
     convert_visibility_to_blockvisibility

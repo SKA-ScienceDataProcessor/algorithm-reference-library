@@ -34,7 +34,7 @@ from typing import List
 
 import astropy.units as u
 import numpy
-from astropy.coordinates import EarthLocation, SkyCoord
+from astropy.coordinates import SkyCoord
 from astropy.io import fits
 from astropy.wcs import WCS
 from astropy.wcs.utils import pixel_to_skycoord
@@ -42,7 +42,6 @@ from scipy import interpolate
 
 from data_models.memory_data_models import Configuration, Image, GainTable, Skycomponent, SkyModel, PointingTable
 from data_models.parameters import arl_path
-from data_models.parameters import get_parameter
 from data_models.polarisation import PolarisationFrame
 from processing_components.calibration.calibration_control import create_calibration_controls
 from processing_components.calibration.operations import create_gaintable_from_blockvisibility, apply_gaintable
@@ -56,165 +55,9 @@ from processing_components.visibility.base import create_blockvisibility, create
 from processing_components.visibility.coalesce import convert_blockvisibility_to_visibility, \
     convert_visibility_to_blockvisibility
 from processing_library.image.operations import create_image_from_array
-from processing_library.util.coordinate_support import xyz_at_latitude
+from processing_library.util.coordinate_support import parallactic_angle
 
 log = logging.getLogger(__name__)
-
-
-def create_configuration_from_file(antfile: str, location: EarthLocation = None,
-                                   mount: str = 'altaz',
-                                   names: str = "%d", frame: str = 'local',
-                                   diameter=35.0,
-                                   rmax=None, name='') -> Configuration:
-    """ Define from a file
-
-    :param names: Antenna names
-    :param antfile: Antenna file name
-    :param location:
-    :param mount: mount type: 'altaz', 'xy'
-    :param frame: 'local' | 'global'
-    :param diameter: Effective diameter of station or antenna
-    :return: Configuration
-    """
-    antxyz = numpy.genfromtxt(antfile, delimiter=",")
-    assert antxyz.shape[1] == 3, ("Antenna array has wrong shape %s" % antxyz.shape)
-    if frame == 'local':
-        latitude = location.geodetic[1].to(u.rad).value
-        antxyz = xyz_at_latitude(antxyz, latitude)
-    if rmax is not None:
-        lantxyz = antxyz - numpy.average(antxyz, axis=0)
-        r = numpy.sqrt(lantxyz[:, 0] ** 2 + lantxyz[:, 1] ** 2 + lantxyz[:, 2] ** 2)
-        antxyz = antxyz[r < rmax]
-        log.debug('create_configuration_from_file: Maximum radius %.1f m includes %d antennas/stations' %
-                  (rmax, antxyz.shape[0]))
-    
-    nants = antxyz.shape[0]
-    anames = [names % ant for ant in range(nants)]
-    mounts = numpy.repeat(mount, nants)
-    fc = Configuration(location=location, names=anames, mount=mounts, xyz=antxyz, frame=frame,
-                       diameter=diameter, name=name)
-    return fc
-
-
-def create_configuration_from_SKAfile(antfile: str,
-                                      mount: str = 'altaz',
-                                      names: str = "%d",
-                                      rmax=None, name='') -> Configuration:
-    """ Define from a file
-
-    :param names: Antenna names
-    :param antfile: Antenna file name
-    :param mount: mount type: 'altaz', 'xy'
-    :return: Configuration
-    """
-    antdiamlonglat = numpy.genfromtxt(antfile, skip_header=0, usecols=[0, 1, 2], delimiter="\t")
-    assert antdiamlonglat.shape[1] == 3, ("Antenna array has wrong shape %s" % antdiamlonglat.shape)
-    antxyz = numpy.zeros([antdiamlonglat.shape[0]-1, 3])
-    diameters = numpy.zeros([antdiamlonglat.shape[0]-1])
-    location = EarthLocation(lon=-antdiamlonglat[-1,1], lat=antdiamlonglat[-1,2], height=0.0)
-
-    for ant in range(antdiamlonglat.shape[0]-1):
-        loc = EarthLocation(lon=-antdiamlonglat[ant,1], lat=antdiamlonglat[ant,2], height=0.0).geocentric
-        antxyz[ant] = [loc[0].to(u.m).value, loc[1].to(u.m).value, loc[2].to(u.m).value]
-        diameters[ant]=antdiamlonglat[ant, 0]
-    if rmax is not None:
-        lantxyz = antxyz - numpy.average(antxyz, axis=0)
-        r = numpy.sqrt(lantxyz[:, 0] ** 2 + lantxyz[:, 1] ** 2 + lantxyz[:, 2] ** 2)
-        antxyz = antxyz[r < rmax]
-        log.debug('create_configuration_from_file: Maximum radius %.1f m includes %d antennas/stations' %
-                  (rmax, antxyz.shape[0]))
-        diameters = diameters[r < rmax]
-    
-    nants = antxyz.shape[0]
-    anames = [names % ant for ant in range(nants)]
-    mounts = numpy.repeat(mount, nants)
-    fc = Configuration(location=location, names=anames, mount=mounts, xyz=antxyz, frame='global',
-                       diameter=diameters, name=name)
-    return fc
-
-
-def create_LOFAR_configuration(antfile: str) -> Configuration:
-    """ Define from the LOFAR configuration file
-
-    :param antfile:
-    :return: Configuration
-    """
-    antxyz = numpy.genfromtxt(antfile, skip_header=2, usecols=[1, 2, 3], delimiter=",")
-    nants = antxyz.shape[0]
-    assert antxyz.shape[1] == 3, "Antenna array has wrong shape %s" % antxyz.shape
-    anames = numpy.genfromtxt(antfile, dtype='str', skip_header=2, usecols=[0], delimiter=",")
-    mounts = numpy.repeat('XY', nants)
-    location = EarthLocation(x=[3826923.9] * u.m, y=[460915.1] * u.m, z=[5064643.2] * u.m)
-    fc = Configuration(location=location, names=anames, mount=mounts, xyz=antxyz, frame='global',
-                       diameter=35.0, name='LOFAR')
-    return fc
-
-
-def create_named_configuration(name: str = 'LOWBD2', **kwargs) -> Configuration:
-    """ Standard configurations e.g. LOWBD2, MIDBD2
-
-    :param name: name of Configuration LOWBD2, LOWBD1, LOFAR, VLAA, ASKAP
-    :param rmax: Maximum distance of station from the average (m)
-    :return:
-    
-    For LOWBD2, setting rmax gives the following number of stations
-    100.0       13
-    300.0       94
-    1000.0      251
-    3000.0      314
-    10000.0     398
-    30000.0     476
-    100000.0    512
-    """
-    
-    if name == 'LOWBD2':
-        location = EarthLocation(lon="116.4999", lat="-26.7000", height=300.0)
-        fc = create_configuration_from_file(antfile=arl_path("data/configurations/LOWBD2.csv"),
-                                            location=location, mount='xy', names='LOWBD2_%d',
-                                            diameter=35.0, name=name, **kwargs)
-    elif name == 'LOWBD1':
-        location = EarthLocation(lon="116.4999", lat="-26.7000", height=300.0)
-        fc = create_configuration_from_file(antfile=arl_path("data/configurations/LOWBD1.csv"),
-                                            location=location, mount='xy', names='LOWBD1_%d',
-                                            diameter=35.0, name=name, **kwargs)
-    elif name == 'LOWBD2-CORE':
-        location = EarthLocation(lon="116.4999", lat="-26.7000", height=300.0)
-        fc = create_configuration_from_file(antfile=arl_path("data/configurations/LOWBD2-CORE.csv"),
-                                            location=location, mount='xy', names='LOWBD2_%d',
-                                            diameter=35.0, name=name, **kwargs)
-    elif name == 'LOWR3':
-        fc = create_configuration_from_SKAfile(antfile=arl_path("data/configurations/LOW_SKA-TEL-SKO-0000422_Rev3.txt"),
-                                            mount='xy', names='LOWR3_%d',
-                                            name=name, **kwargs)
-    elif name == 'MIDR5':
-        fc = create_configuration_from_SKAfile(antfile=arl_path("data/configurations/MID_SKA-TEL-INSA-0000537_Rev05.txt"),
-                                               mount='xy', names='MIDR5_%d',
-                                               name=name, **kwargs)
-    elif name == 'ASKAP':
-        location = EarthLocation(lon="+116.6356824", lat="-26.7013006", height=377.0)
-        fc = create_configuration_from_file(antfile=arl_path("data/configurations/A27CR3P6B.in.csv"),
-                                            mount='equatorial', names='ASKAP_%d',
-                                            diameter=12.0, name=name, location=location, **kwargs)
-    elif name == 'LOFAR':
-        assert get_parameter(kwargs, "meta", False) is False
-        fc = create_LOFAR_configuration(antfile=arl_path("data/configurations/LOFAR.csv"))
-    elif name == 'VLAA':
-        location = EarthLocation(lon="-107.6184", lat="34.0784", height=2124.0)
-        fc = create_configuration_from_file(antfile=arl_path("data/configurations/VLA_A_hor_xyz.csv"),
-                                            location=location,
-                                            mount='altaz',
-                                            names='VLA_%d',
-                                            diameter=25.0, name=name, **kwargs)
-    elif name == 'VLAA_north':
-        location = EarthLocation(lon="-107.6184", lat="90.000", height=2124.0)
-        fc = create_configuration_from_file(antfile=arl_path("data/configurations/VLA_A_hor_xyz.csv"),
-                                            location=location,
-                                            mount='altaz',
-                                            names='VLA_%d',
-                                            diameter=25.0, name=name, **kwargs)
-    else:
-        raise ValueError("No such Configuration %s" % name)
-    return fc
 
 
 def create_test_image(canonical=True, cellsize=None, frequency=None, channel_bandwidth=None,
@@ -273,7 +116,7 @@ def create_test_image(canonical=True, cellsize=None, frequency=None, channel_ban
 def create_test_image_from_s3(npixel=16384, polarisation_frame=PolarisationFrame("stokesI"), cellsize=0.000015,
                               frequency=numpy.array([1e8]), channel_bandwidth=numpy.array([1e6]),
                               phasecentre=None, fov=20, flux_limit=1e-3) -> Image:
-    """Create LOW test image from S3
+    """Create MID test image from S3
 
     The input catalog was generated at http://s-cubed.physics.ox.ac.uk/s3_sex using the following query::
         Database: s3_sex
@@ -400,8 +243,8 @@ def create_test_image_from_s3(npixel=16384, polarisation_frame=PolarisationFrame
 
 
 def create_test_skycomponents_from_s3(polarisation_frame=PolarisationFrame("stokesI"),
-                              frequency=numpy.array([1e8]), channel_bandwidth=numpy.array([1e6]),
-                              phasecentre=None, fov=20, flux_limit=1e-3,
+                                      frequency=numpy.array([1e8]), channel_bandwidth=numpy.array([1e6]),
+                                      phasecentre=None, fov=20, flux_limit=1e-3,
                                       radius=None):
     """Create test image from S3
 
@@ -465,7 +308,7 @@ def create_test_skycomponents_from_s3(polarisation_frame=PolarisationFrame("stok
         assert fov in [10, 20, 40], "Field of view invalid: use one of %s" % ([10, 20, 40])
         csvfilename = arl_path('data/models/S3_151MHz_%ddeg.csv' % (fov))
         log.info('create_test_image_from_s3: Reading S3 sources from %s ' % csvfilename)
-        
+    
     skycomps = list()
     
     with open(csvfilename) as csvfile:
@@ -490,15 +333,15 @@ def create_test_skycomponents_from_s3(polarisation_frame=PolarisationFrame("stok
             r += 1
     
     csvfile.close()
-
+    
     assert len(fluxes) > 0, "No sources found above flux limit %s" % flux_limit
-
+    
     directions = SkyCoord(ra=ras * u.deg, dec=decs * u.deg)
     if phasecentre is not None:
         separations = directions.separation(phasecentre).to('rad').value
     else:
         separations = numpy.zeros(len(names))
-
+    
     for isource, name in enumerate(names):
         direction = directions[isource]
         if separations[isource] < radius:
@@ -506,7 +349,7 @@ def create_test_skycomponents_from_s3(polarisation_frame=PolarisationFrame("stok
                 skycomps.append(Skycomponent(direction=direction, flux=fluxes[isource], frequency=frequency,
                                              name=names[isource], shape='Point',
                                              polarisation_frame=polarisation_frame))
-
+    
     log.info('create_test_skycomponents_from_s3: %d sources read' % (len(fluxes)))
     
     return skycomps
@@ -907,35 +750,51 @@ def simulate_gaintable(gt: GainTable, phase_error=0.1, amplitude_error=0.0, smoo
     return gt
 
 
-def simulate_pointingtable(pt: PointingTable, pointing_error, static_pointing_error=0.0,
-                           seed=None, **kwargs) -> PointingTable:
+def simulate_pointingtable(pt: PointingTable, pointing_error, static_pointing_error=0.0, global_pointing_error=None,
+                           seed=None, config: Configuration = None, **kwargs) -> PointingTable:
     """ Simulate a gain table
 
     :type pt: PointingTable
     :param pointing_error: std of normal distribution
     :param static_pointing_error: std of normal distribution
     :param seed: Seed for random numbers def: 180555
-    :param smooth_channels: Use bspline over smooth_channels
     :param kwargs:
-    :return: Gaintable
+    :return: PointingTable
 
     """
     
     if seed is not None:
         numpy.random.seed(seed)
+    r2s = 180.0 * 3600.0 / numpy.pi
+    log.debug("simulate_pointingtable: Simulating dynamic pointing error = %g (rad) %g (arcsec)"
+              % (pointing_error, r2s * pointing_error))
     
-    log.debug("simulate_pointingtable: Simulating pointing error = %g (rad), static pointing error = %g (rad)"
-              % (pointing_error, static_pointing_error))
-
+    log.debug("simulate_pointingtable: Simulating static pointing error = %g (rad) %g (arcsec)"
+              % (static_pointing_error, r2s * static_pointing_error))
+    
     pt.data['pointing'] = numpy.zeros(pt.data['pointing'].shape)
     
     ntimes, nant, nchan, nrec, _ = pt.data['pointing'].shape
     if pointing_error > 0.0:
         pt.data['pointing'] = numpy.random.normal(0.0, pointing_error, pt.data['pointing'].shape)
     if static_pointing_error > 0.0:
-        pt.data['pointing'] += numpy.random.normal(0.0, static_pointing_error, pt.data['pointing'].shape[1:])[
-            numpy.newaxis,...]
-    
+        static_pe = numpy.random.normal(0.0, static_pointing_error, pt.data['pointing'].shape[1:])[
+            numpy.newaxis, ...]
+        pt.data['pointing'] += static_pe
+        
+    if global_pointing_error is not None:
+        pt.data['pointing'][...,:] = global_pointing_error
+        
+    # Now apply parallactic angle rotation if defined
+    if isinstance(config, Configuration) and (config.mount[0] == 'altaz'):
+        lat = config.location.geodetic[1]
+        time = numpy.pi * pt.time / 43200.0
+        pa = parallactic_angle(time, pt.pointingcentre.dec.to('rad').value, lat.to('rad').value)
+        pa = pa[..., numpy.newaxis, numpy.newaxis, numpy.newaxis]
+        pe_original = pt.data['pointing'].copy()
+        pt.data['pointing'][..., 0] =  numpy.cos(pa) * pe_original[..., 0] + numpy.sin(pa) * pe_original[..., 1]
+        pt.data['pointing'][..., 1] = -numpy.sin(pa) * pe_original[..., 0] + numpy.cos(pa) * pe_original[..., 1]
+
     return pt
 
 
