@@ -345,8 +345,8 @@ def convert_pointingtable_to_hdf(pt: PointingTable, f):
     f.attrs['ARL_data_model'] = 'PointingTable'
     f.attrs['frequency'] = pt.frequency
     f.attrs['receptor_frame'] = pt.receptor_frame.type
-    f.attrs['phasecentre_coords'] = pt.phasecentre.to_string()
-    f.attrs['phasecentre_frame'] = pt.phasecentre.frame.name
+    f.attrs['pointingcentre_coords'] = pt.pointingcentre.to_string()
+    f.attrs['pointingcentre_frame'] = pt.pointingcentre.frame.name
     f.attrs['pointing_frame'] = pt.pointing_frame
     f['data'] = pt.data
     return f
@@ -362,12 +362,12 @@ def convert_hdf_to_pointingtable(f):
     receptor_frame = ReceptorFrame(f.attrs['receptor_frame'])
     frequency = numpy.array(f.attrs['frequency'])
     data = numpy.array(f['data'])
-    s = f.attrs['phasecentre_coords'].split()
+    s = f.attrs['pointingcentre_coords'].split()
     ss = [float(s[0]), float(s[1])] * u.deg
-    phasecentre = SkyCoord(ra=ss[0], dec=ss[1], frame=f.attrs['phasecentre_frame'])
+    pointingcentre = SkyCoord(ra=ss[0], dec=ss[1], frame=f.attrs['pointingcentre_frame'])
     pointing_frame = f.attrs['pointing_frame']
     pt = PointingTable(data=data, frequency=frequency, receptor_frame=receptor_frame, pointing_frame=pointing_frame,
-                       pointingcentre=phasecentre)
+                       pointingcentre=pointingcentre)
     return pt
 
 
