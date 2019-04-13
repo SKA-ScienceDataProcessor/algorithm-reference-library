@@ -6,7 +6,7 @@ from data_models.parameters import arl_path
 import numpy
 
 from wrappers.serial.visibility.base import create_blockvisibility_from_ms
-from wrappers.serial.image.operations import show_image, export_image_to_fits
+from wrappers.serial.image.operations import export_image_to_fits, qa_image
 from wrappers.serial.image.deconvolution import deconvolve_cube, restore_cube
 from wrappers.serial.imaging.base import create_image_from_visibility
 from wrappers.serial.visibility.coalesce import convert_blockvisibility_to_visibility
@@ -45,12 +45,6 @@ class TestImagingSim2(unittest.TestCase):
                                              polarisation_frame=PolarisationFrame('stokesIQUV'))
         dirty, sumwt = invert_list_serial_workflow([vt], [model], context='2d')[0]
         psf, sumwt = invert_list_serial_workflow([vt], [model], context='2d', dopsf=True)[0]
-        show_image(dirty)
-        
-        print("Max, min in dirty image = %.6f, %.6f, sumwt = %s" % (dirty.data.max(), dirty.data.min(), str(sumwt)))
-        
-        print("Max, min in PSF         = %.6f, %.6f, sumwt = %s" % (psf.data.max(), psf.data.min(), str(sumwt)))
-        
         export_image_to_fits(dirty, '%s/imaging_sim2_dirty.fits' % (self.dir))
         export_image_to_fits(psf, '%s/imaging_sim2_psf.fits' % (self.dir))
         
@@ -61,6 +55,15 @@ class TestImagingSim2(unittest.TestCase):
         restored = restore_cube(comp, psf, residual)
         export_image_to_fits(restored, '%s/imaging_sim2_restored.fits' % (self.dir))
         export_image_to_fits(residual, '%s/imaging_sim2_residual.fits' % (self.dir))
+        
+        qa = qa_image(restored)
+        
+        assert numpy.abs(qa.data['max'] - 1.006140596404203) < 1e-7, qa
+        assert numpy.abs(qa.data['maxabs'] - 1.006140596404203) < 1e-7, qa
+        assert numpy.abs(qa.data['min'] + 0.23890808520954754) < 1e-7, qa
+        assert numpy.abs(qa.data['rms'] - 0.007366519782047875) < 1e-7, qa
+        assert numpy.abs(qa.data['medianabs'] - 0.0005590537883509844) < 1e-7, qa
+
 
 if __name__ == '__main__':
     unittest.main()
