@@ -79,7 +79,6 @@ class TestPointing(unittest.TestCase):
         pt = create_pointingtable_from_blockvisibility(self.vis)
         pt = simulate_pointingtable(pt, pointing_error=0.0, static_pointing_error=0.0,
                                     global_pointing_error=[0.0, 1.0], config=self.vis.configuration)
-        print(pt.pointing[:, 0, 0, 0])
         vp = create_vp(self.model, 'MID')
         gt = create_gaintable_from_pointingtable(self.vis, s3_components, pt, vp)
         assert gt[0].gain.shape == (3, 63, 1, 1, 1), gt[0].gain.shape

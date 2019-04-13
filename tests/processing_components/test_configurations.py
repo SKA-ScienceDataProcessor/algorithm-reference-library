@@ -64,28 +64,5 @@ class TestConfigurations(unittest.TestCase):
         with self.assertRaises(ValueError):
             self.config = create_named_configuration("SKA1-OWL")
 
-    def test_plot_LOWs(self):
-        lowbd2 = create_named_configuration('LOWBD2')
-        askap = create_named_configuration('ASKAP')
-        lowr3 = create_named_configuration('LOWR3')
-    
-        import matplotlib.pyplot as plt
-        plt.clf()
-        plt.plot(lowbd2.xyz[:, 0], lowbd2.xyz[:, 1], '.')
-        plt.plot(lowr3.xyz[:, 0], lowr3.xyz[:, 1], '.')
-        plt.plot(askap.xyz[:, 0], askap.xyz[:, 1], '.')
-        plt.show()
-
-    def tesplot_MID(self):
-        mid = create_named_configuration('MID')
-        midr5 = create_named_configuration('MIDR5')
-
-        import matplotlib.pyplot as plt
-        plt.clf()
-        plt.plot(mid.xyz[:, 0], mid.xyz[:, 1], '.')
-        plt.plot(midr5.xyz[:, 0], midr5.xyz[:, 1], '.')
-        plt.show()
-
-
 if __name__ == '__main__':
     unittest.main()

@@ -783,7 +783,7 @@ def simulate_pointingtable(pt: PointingTable, pointing_error, static_pointing_er
         pt.data['pointing'] += static_pe
         
     if global_pointing_error is not None:
-        pt.data['pointing'][...,:] = global_pointing_error
+        pt.data['pointing'][...,:] += global_pointing_error
         
     # Now apply parallactic angle rotation if defined
     if isinstance(config, Configuration) and (config.mount[0] == 'altaz'):
