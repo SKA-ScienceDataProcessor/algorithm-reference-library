@@ -92,27 +92,3 @@ def get_rowmap(col, ucol=None):
         vmap.append(pdict[phash(p)])
 
     return vmap
-
-
-def get_uvw_map(vis: Visibility, im: Image, padding=2):
-    """ Get the generators that map channels uvw to pixels
-
-    :param vis:
-    :param im:
-    :param padding:
-    :return: uvw mode, shape, padding, uvw mapping
-    """
-    # Transform parameters
-    
-    # Model image information
-    inchan, inpol, ny, nx = im.data.shape
-    shape = (1, int(round(padding * ny)), int(round(padding * nx)))
-    # UV sampling information
-    uvwscale = numpy.zeros([3])
-    uvwscale[0:2] = im.wcs.wcs.cdelt[0:2] * numpy.pi / 180.0
-    assert uvwscale[0] != 0.0, "Error in uv scaling"
-    
-    vuvwmap = uvwscale * vis.uvw
-    uvw_mode = "2d"
-    
-    return uvw_mode, shape, padding, vuvwmap
