@@ -75,7 +75,8 @@ class TestImagingSim2(unittest.TestCase):
             assert numpy.abs(qa.data['min'] + 0.23890808520954754) < 1e-7, qa
             assert numpy.abs(qa.data['rms'] - 0.007366519782047875) < 1e-7, qa
             assert numpy.abs(qa.data['medianabs'] - 0.0005590537883509844) < 1e-7, qa
-        except ModuleNotFoundError:
+        except ModuleNotFoundError as error:
+            print(error.__class__.__name__ + ": " + error.msg)
             pass
 
 
