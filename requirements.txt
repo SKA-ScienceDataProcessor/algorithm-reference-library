@@ -12,7 +12,7 @@ ipywidgets
 numpy
 scipy
 pyfits>=3.3
-matplotlib<3.0
+matplotlib
 Sphinx
 wcsaxes
 reproject
