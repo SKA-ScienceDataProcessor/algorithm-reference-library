@@ -766,23 +766,26 @@ def simulate_pointingtable(pt: PointingTable, pointing_error, static_pointing_er
     if seed is not None:
         numpy.random.seed(seed)
     r2s = 180.0 * 3600.0 / numpy.pi
-    log.debug("simulate_pointingtable: Simulating dynamic pointing error = %g (rad) %g (arcsec)"
-              % (pointing_error, r2s * pointing_error))
-    
-    log.debug("simulate_pointingtable: Simulating static pointing error = %g (rad) %g (arcsec)"
-              % (static_pointing_error, r2s * static_pointing_error))
-    
     pt.data['pointing'] = numpy.zeros(pt.data['pointing'].shape)
     
     ntimes, nant, nchan, nrec, _ = pt.data['pointing'].shape
     if pointing_error > 0.0:
+        log.debug("simulate_pointingtable: Simulating dynamic pointing error = %g (rad) %g (arcsec)"
+                  % (pointing_error, r2s * pointing_error))
+    
         pt.data['pointing'] = numpy.random.normal(0.0, pointing_error, pt.data['pointing'].shape)
     if static_pointing_error > 0.0:
+        log.debug("simulate_pointingtable: Simulating static pointing error = %g (rad) %g (arcsec)"
+                  % (static_pointing_error, r2s * static_pointing_error))
+    
         static_pe = numpy.random.normal(0.0, static_pointing_error, pt.data['pointing'].shape[1:])[
             numpy.newaxis, ...]
         pt.data['pointing'] += static_pe
         
     if global_pointing_error is not None:
+        log.debug("simulate_pointingtable: Simulating global pointing error = [%g, %g] (rad) [%g,s %g] (arcsec)"
+                % (global_pointing_error[0], global_pointing_error[1],
+                    r2s * global_pointing_error[0], r2s * global_pointing_error[1]))
         pt.data['pointing'][...,:] += global_pointing_error
         
     # Now apply parallactic angle rotation if defined
@@ -792,8 +795,8 @@ def simulate_pointingtable(pt: PointingTable, pointing_error, static_pointing_er
         pa = parallactic_angle(time, pt.pointingcentre.dec.to('rad').value, lat.to('rad').value)
         pa = pa[..., numpy.newaxis, numpy.newaxis, numpy.newaxis]
         pe_original = pt.data['pointing'].copy()
-        pt.data['pointing'][..., 0] =  numpy.cos(pa) * pe_original[..., 0] + numpy.sin(pa) * pe_original[..., 1]
-        pt.data['pointing'][..., 1] = -numpy.sin(pa) * pe_original[..., 0] + numpy.cos(pa) * pe_original[..., 1]
+        pt.data['pointing'][..., 0] =  numpy.cos(pa) * pe_original[..., 0] - numpy.sin(pa) * pe_original[..., 1]
+        pt.data['pointing'][..., 1] =  numpy.sin(pa) * pe_original[..., 0] + numpy.cos(pa) * pe_original[..., 1]
 
     return pt
 

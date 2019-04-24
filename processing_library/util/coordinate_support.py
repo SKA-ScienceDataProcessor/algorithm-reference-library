@@ -32,7 +32,6 @@ from Bottom to Top.
 
 import numpy
 from astropy.coordinates import SkyCoord, CartesianRepresentation
-import astropy.units as u
 
 
 def xyz_at_latitude(local_xyz, lat):
@@ -252,6 +251,7 @@ def uvw_transform(uvw, transform_matrix):
     # Restack with original w values
     return numpy.hstack([uv1, uvw[:, 2:3]])
 
+
 def parallactic_angle(ha, dec, lat):
     """Calculate parallactic angle of source at ha, dec observed from site at latitude dec
     
@@ -260,6 +260,6 @@ def parallactic_angle(ha, dec, lat):
     :param lat: Site latitude (radians)
     :return:
     """
-    taneta = numpy.cos(lat)*numpy.sin(ha) / \
-             (numpy.sin(lat)*numpy.cos(dec) - numpy.cos(lat)*numpy.sin(dec)*numpy.cos(ha))
+    taneta = numpy.cos(lat) * numpy.sin(ha) / \
+             (numpy.sin(lat) * numpy.cos(dec) - numpy.cos(lat) * numpy.sin(dec) * numpy.cos(ha))
     return numpy.arctan(taneta)
