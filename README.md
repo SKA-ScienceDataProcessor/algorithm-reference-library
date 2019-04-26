@@ -34,12 +34,7 @@ The Python dependencies will install (amongst other things) Jupyter, numpy, scip
 
 Note that git-lfs is required for some data files. Complete platform dependent installation [instructions can be found here](https://github.com/git-lfs/git-lfs/wiki/Installation).
 
-The current version of Python 3.6 (3.6.1 on Ubuntu 16.04/17.04) has a problem when running Dask throwing the following error:
-```
-SystemError: unknown opcode
-```
-It is possible to down grade to Python 3.5, with the caveat that lint and flake8 checking will complain about ModuleError (3.6+ dependency).
-
+Finally, add the location of the installation (e.g. ~/algorithm-reference-library/ )to PYTHONPATH
 
 Platform Specific Instructions
 ------------------------------
@@ -135,7 +130,7 @@ The prime focus of the ARL is on learning and experimentation,
 not usage. If you are here to learn about the process of imaging, here
 is a quick guide to the project:
 
-  * `processing_library`: Algorithm inpendent library code
+  * `processing_library`: Algorithm independent library code
   * `processing_components`: Processing functions used in algorithms
   * `workflows`: Serial and distributed processing workflows
   * `tests`: Unit and regression tests
@@ -149,7 +144,7 @@ Running Notebooks
 [Jupyter notebooks](http://jupyter.org/) end with `.ipynb` and can be run as follows from the
 command line:
 
-     $ jupyter-notebook examples/arl/imaging.ipynb
+     $ jupyter-notebook workflow/notebooks/imaging_serial.ipynb
 
 Building documentation
 ----------------------
