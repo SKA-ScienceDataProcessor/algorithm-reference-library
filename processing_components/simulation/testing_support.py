@@ -303,11 +303,11 @@ def create_test_skycomponents_from_s3(polarisation_frame=PolarisationFrame("stok
             csvfilename = arl_path('data/models/S3_1400MHz_1mJy_%sdeg.csv' % fovstr)
         else:
             csvfilename = arl_path('data/models/S3_1400MHz_100uJy_%sdeg.csv' % fovstr)
-        log.info('create_test_image_from_s3: Reading S3 sources from %s ' % csvfilename)
+        log.info('create_test_skycomponents_from_s3: Reading S3-SEX sources from %s ' % csvfilename)
     else:
         assert fov in [10, 20, 40], "Field of view invalid: use one of %s" % ([10, 20, 40])
         csvfilename = arl_path('data/models/S3_151MHz_%ddeg.csv' % (fov))
-        log.info('create_test_image_from_s3: Reading S3 sources from %s ' % csvfilename)
+        log.info('create_test_skycomponents_from_s3: Reading S3-SEX sources from %s ' % csvfilename)
     
     skycomps = list()
     
@@ -350,7 +350,7 @@ def create_test_skycomponents_from_s3(polarisation_frame=PolarisationFrame("stok
                                              name=names[isource], shape='Point',
                                              polarisation_frame=polarisation_frame))
     
-    log.info('create_test_skycomponents_from_s3: %d sources read' % (len(fluxes)))
+    log.info('create_test_skycomponents_from_s3: %d sources found above fluxlimit inside search radius' % (len(fluxes)))
     
     return skycomps
 
