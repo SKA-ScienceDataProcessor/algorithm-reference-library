@@ -531,7 +531,6 @@ def create_low_test_skycomponents_from_gleam(flux_limit=0.1, polarisation_frame=
     hdulist = fits.open(fitsfile, lazy_load_hdus=False)
     recs = hdulist[1].data[0].array
     
-    # Do the simple forms of filtering in pyfits. Filtering on radious is done below.
     fluxes = recs['peak_flux_wide']
     
     mask = fluxes > flux_limit
