@@ -264,7 +264,7 @@ def create_image_from_visibility(vis, **kwargs) -> Image:
     assert isinstance(vis, Visibility) or isinstance(vis, BlockVisibility), \
         "vis is not a Visibility or a BlockVisibility: %r" % (vis)
     
-    log.info("create_image_from_visibility: Parsing parameters to get definition of WCS")
+    log.debug("create_image_from_visibility: Parsing parameters to get definition of WCS")
     
     imagecentre = get_parameter(kwargs, "imagecentre", vis.phasecentre)
     phasecentre = get_parameter(kwargs, "phasecentre", vis.phasecentre)
@@ -279,22 +279,22 @@ def create_image_from_visibility(vis, **kwargs) -> Image:
     channel_bandwidth = get_parameter(kwargs, "channel_bandwidth", 0.99999999999 * vis.channel_bandwidth[0]) * units.Hz
     
     if (inchan == vnchan) and vnchan > 1:
-        log.info(
+        log.debug(
             "create_image_from_visibility: Defining %d channel Image at %s, starting frequency %s, and bandwidth %s"
             % (inchan, imagecentre, reffrequency, channel_bandwidth))
     elif (inchan == 1) and vnchan > 1:
         assert numpy.abs(channel_bandwidth.value) > 0.0, "Channel width must be non-zero for mfs mode"
-        log.info("create_image_from_visibility: Defining single channel MFS Image at %s, starting frequency %s, "
+        log.debug("create_image_from_visibility: Defining single channel MFS Image at %s, starting frequency %s, "
                  "and bandwidth %s"
                  % (imagecentre, reffrequency, channel_bandwidth))
     elif inchan > 1 and vnchan > 1:
         assert numpy.abs(channel_bandwidth.value) > 0.0, "Channel width must be non-zero for mfs mode"
-        log.info("create_image_from_visibility: Defining multi-channel MFS Image at %s, starting frequency %s, "
+        log.debug("create_image_from_visibility: Defining multi-channel MFS Image at %s, starting frequency %s, "
                  "and bandwidth %s"
                  % (imagecentre, reffrequency, channel_bandwidth))
     elif (inchan == 1) and (vnchan == 1):
         assert numpy.abs(channel_bandwidth.value) > 0.0, "Channel width must be non-zero for mfs mode"
-        log.info("create_image_from_visibility: Defining single channel Image at %s, starting frequency %s, "
+        log.debug("create_image_from_visibility: Defining single channel Image at %s, starting frequency %s, "
                  "and bandwidth %s"
                  % (imagecentre, reffrequency, channel_bandwidth))
     else:
@@ -305,16 +305,16 @@ def create_image_from_visibility(vis, **kwargs) -> Image:
     uvmax = numpy.max((numpy.abs(vis.data['uvw'][:, 0:1])))
     if isinstance(vis, BlockVisibility):
         uvmax *= numpy.max(frequency) / constants.c.to('m s^-1').value
-    log.info("create_image_from_visibility: uvmax = %f wavelengths" % uvmax)
+    log.debug("create_image_from_visibility: uvmax = %f wavelengths" % uvmax)
     criticalcellsize = 1.0 / (uvmax * 2.0)
-    log.info("create_image_from_visibility: Critical cellsize = %f radians, %f degrees" % (
+    log.debug("create_image_from_visibility: Critical cellsize = %f radians, %f degrees" % (
         criticalcellsize, criticalcellsize * 180.0 / numpy.pi))
     cellsize = get_parameter(kwargs, "cellsize", 0.5 * criticalcellsize)
-    log.info("create_image_from_visibility: Cellsize          = %g radians, %g degrees" % (cellsize,
+    log.debug("create_image_from_visibility: Cellsize          = %g radians, %g degrees" % (cellsize,
                                                                                            cellsize * 180.0 / numpy.pi))
     override_cellsize = get_parameter(kwargs, "override_cellsize", True)
     if override_cellsize and cellsize > criticalcellsize:
-        log.info("create_image_from_visibility: Resetting cellsize %g radians to criticalcellsize %g radians" % (
+        log.debug("create_image_from_visibility: Resetting cellsize %g radians to criticalcellsize %g radians" % (
             cellsize, criticalcellsize))
         cellsize = criticalcellsize
     pol_frame = get_parameter(kwargs, "polarisation_frame", PolarisationFrame("stokesI"))
@@ -323,7 +323,7 @@ def create_image_from_visibility(vis, **kwargs) -> Image:
     # Now we can define the WCS, which is a convenient place to hold the info above
     # Beware of python indexing order! wcs and the array have opposite ordering
     shape = [inchan, inpol, npixel, npixel]
-    log.info("create_image_from_visibility: image shape is %s" % str(shape))
+    log.debug("create_image_from_visibility: image shape is %s" % str(shape))
     w = wcs.WCS(naxis=4)
     # The negation in the longitude is needed by definition of RA, DEC
     w.wcs.cdelt = [-cellsize * 180.0 / numpy.pi, cellsize * 180.0 / numpy.pi, 1.0, channel_bandwidth.to(units.Hz).value]
@@ -334,10 +334,11 @@ def create_image_from_visibility(vis, **kwargs) -> Image:
     w.wcs.crval = [phasecentre.ra.deg, phasecentre.dec.deg, 1.0, reffrequency.to(units.Hz).value]
     w.naxis = 4
     
-    direction_centre = pixel_to_skycoord(npixel // 2 + 1, npixel // 2 + 1, wcs=w, origin=1)
-    assert direction_centre.separation(imagecentre).value < 1e-7, \
-        "Image phase centre [npixel//2, npixel//2] should be %s, actually is %s" % \
-        (str(imagecentre), str(direction_centre))
+    # TODO: Why is this check being done?
+    # direction_centre = pixel_to_skycoord(npixel // 2 + 1, npixel // 2 + 1, wcs=w, origin=1)
+    # assert direction_centre.separation(imagecentre).value < 1e-7, \
+    #     "Image phase centre [npixel//2, npixel//2] should be %s, actually is %s" % \
+    #     (str(imagecentre), str(direction_centre))
     
     w.wcs.radesys = get_parameter(kwargs, 'frame', 'ICRS')
     w.wcs.equinox = get_parameter(kwargs, 'equinox', 2000.0)
