@@ -2,7 +2,7 @@ import logging
 
 import numpy
 
-from data_models.memory_data_models import Image, GainTable, Visibility, SkyModel, ConvolutionFunction
+from data_models.memory_data_models import Image, GainTable, Visibility, SkyModel, ConvolutionFunction, BlockVisibility
 from processing_library.image.operations import copy_image
 from workflows.serial.imaging.imaging_serial import predict_list_serial_workflow, invert_list_serial_workflow
 from wrappers.arlexecute.visibility.base import copy_visibility
@@ -39,7 +39,7 @@ def predict_skymodel_list_arlexecute_workflow(obsvis, skymodel_list, context, vi
             assert len(g) == 2, g
             assert isinstance(g[0], Image), g[0]
             assert isinstance(g[1], ConvolutionFunction), g[1]
-
+        
         v = copy_visibility(ov)
         
         v.data['vis'][...] = 0.0 + 0.0j
@@ -71,12 +71,48 @@ def predict_skymodel_list_arlexecute_workflow(obsvis, skymodel_list, context, vi
         return v
     
     if gcfcf is None:
-       return [arlexecute.execute(ft_cal_sm, nout=1)(obsvis, sm, None)
+        return [arlexecute.execute(ft_cal_sm, nout=1)(obsvis, sm, None)
                 for ism, sm in enumerate(skymodel_list)]
     else:
         return [arlexecute.execute(ft_cal_sm, nout=1)(obsvis, sm, gcfcf[ism])
                 for ism, sm in enumerate(skymodel_list)]
 
+
+def predict_skymodel_list_compsonly_arlexecute_workflow(obsvis, skymodel_list, docal=False, **kwargs):
+    """Predict from a list of component-only skymodels, producing one visibility per skymodel
+    
+    This is an optimised version of predict_skymodel_list_arlexecute_workflow, working on block
+    visibilities and ignoring the image in a skymodel
+
+    :param obsvis: "Observed Block Visibility"
+    :param skymodel_list: skymodel list
+    :param context: Type of processing e.g. 2d, wstack, timeslice or facets
+    :param docal: Apply calibration table in skymodel
+    :param kwargs: Parameters for functions in components
+    :return: List of vis_lists
+   """
+    
+    def ft_cal_sm(obv, sm):
+        assert isinstance(obv, BlockVisibility), obv
+        bv = copy_visibility(obv)
+        
+        bv.data['vis'][...] = 0.0 + 0.0j
+        
+        assert len(sm.components) > 0
+            
+        if isinstance(sm.mask, Image):
+            comps = copy_skycomponent(sm.components)
+            comps = apply_beam_to_skycomponent(comps, sm.mask)
+            bv = predict_skycomponent_visibility(bv, comps)
+        else:
+            bv = predict_skycomponent_visibility(bv, sm.components)
+        
+        if docal and isinstance(sm.gaintable, GainTable):
+            bv = apply_gaintable(bv, sm.gaintable, inverse=True)
+            
+        return bv
+    
+    return [arlexecute.execute(ft_cal_sm, nout=1)(obsvis, sm) for sm in skymodel_list]
 
 
 def invert_skymodel_list_arlexecute_workflow(vis_list, skymodel_list, context, vis_slices=1, facets=1,
