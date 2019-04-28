@@ -66,8 +66,11 @@ if __name__ == '__main__':
     parser.add_argument('--memory', type=int, default=8, help='Memory per worker')
     parser.add_argument('--nworkers', type=int, default=1, help='Number of workers')
     parser.add_argument('--flux_limit', type=float, default=1.0, help='Flux limit (Jy)')
+    parser.add_argument('--show', type=str, default='False', help='Show images?')
+    parser.add_argument('--ngroup', type=int, default=8, help='Process in groups this large')
 
     args = parser.parse_args()
+    show = args.show == 'True'
     context = args.context
     rmax = args.rmax
     flux_limit = args.flux_limit
@@ -76,6 +79,8 @@ if __name__ == '__main__':
     nnodes = args.nnodes
     threads_per_worker = args.nthreads
     memory = args.memory
+    
+    ngroup = args.ngroup
 
     print("Using %s workers" % nworkers)
     print("Using %s threads per worker" % threads_per_worker)
@@ -124,9 +129,10 @@ if __name__ == '__main__':
         pb_npixel = 4096
         pb_cellsize = HWHM / pb_npixel
 
-    plt.clf()
-    plt.plot(vis.u, vis.v, '.')
-    plt.show()
+    if show:
+        plt.clf()
+        plt.plot(vis.u, vis.v, '.')
+        plt.show(block=False)
     
     # Uniform weighting
     model = create_image_from_visibility(vis, npixel=npixel, frequency=frequency,
@@ -169,8 +175,10 @@ if __name__ == '__main__':
                                       override_cellsize=False)
     
     pb = create_pb(vp, 'MID', pointingcentre=pb_direction)
-    show_image(pb, title='%s: primary beam' % context)
-    plt.show()
+    
+    if show:
+        show_image(pb, title='%s: primary beam' % context)
+        plt.show(block=False)
 
     print("Constructing voltage pattern with no errors")
     vp = create_vp(vp, 'MID', pointingcentre=pb_direction)
@@ -185,7 +193,7 @@ if __name__ == '__main__':
     
     # We do this in chunks of eight to avoid creating all visibilities at once
     no_error_blockvis = copy_visibility(block_vis, zero=True)
-    ngroup = 8
+
     print("Predicting no error visibilities in chunks of %d skymodels" %  ngroup)
     future_vis = arlexecute.scatter(no_error_blockvis)
     chunks = [no_error_sm[i:i + ngroup] for i in range(0, len(no_error_sm), ngroup)]
@@ -204,9 +212,10 @@ if __name__ == '__main__':
     pes = [1.0, 2.0, 4.0, 8.0, 16.0, 32.0, 64.0, 128.0, 256.0]
     results = []
     
-    filename = seqfile.findNextFile(prefix='pointingsimulation', suffix='.csv')
+    filename = seqfile.findNextFile(prefix='pointingsimulation_%s_' % socket.gethostname(), suffix='.csv')
     print('Saving results to %s' % filename)
-    
+    plotfile = seqfile.findNextFile(prefix='pointingsimulation_%s_' % socket.gethostname(), suffix='.jpg')
+
     epoch = time.strftime("%Y-%m-%d %H:%M:%S")
     
     # Now loop over all pointing errors
@@ -215,10 +224,12 @@ if __name__ == '__main__':
         result = dict()
         result['context'] = context
         result['nb_name'] = sys.argv[0]
+        result['plotfile'] = plotfile
         result['hostname'] = socket.gethostname()
         result['epoch'] = epoch
         result['npixel'] = npixel
         result['pb_npixel'] = pb_npixel
+        result['flux_limit'] = flux_limit
         
         a2r = numpy.pi / (3600.0 * 180.0)
         static_pointing_error = static * pe
@@ -241,7 +252,6 @@ if __name__ == '__main__':
         
         error_blockvis = copy_visibility(block_vis, zero=True)
 
-        ngroup = 8
         print("Predicting corrupted visibilities in chunks of %d skymodels" % ngroup)
         future_vis = arlexecute.scatter(error_blockvis)
         chunks = [error_sm[i:i + ngroup] for i in range(0, len(error_sm), ngroup)]
@@ -258,8 +268,11 @@ if __name__ == '__main__':
         error_vis = convert_blockvisibility_to_visibility(error_blockvis)
         dirty = invert_list_arlexecute_workflow([error_vis], [model], '2d')
         dirty, sumwt = arlexecute.compute(dirty, sync=True)[0]
-        show_image(dirty, cm='gray_r', title='Residual image on-source')
-        plt.show()
+        
+        if show:
+            show_image(dirty, cm='gray_r', title='Residual image on-source')
+            plt.show(block=False)
+            
         qa = qa_image(dirty)
         for field in ['maxabs', 'rms', 'medianabs']:
             result["onsource_" + field] = qa.data[field]
@@ -270,8 +283,11 @@ if __name__ == '__main__':
                                                      phasecentre=outlier_phasecentre)
         outlier_dirty = invert_list_arlexecute_workflow([error_vis], [outlier_model], '2d')
         outlier_dirty, outlier_sumwt = arlexecute.compute(outlier_dirty, sync=True)[0]
-        show_image(outlier_dirty, cm='gray_r', title='Outlier residual image (dec -35deg)')
-        plt.show()
+        
+        if show:
+            show_image(outlier_dirty, cm='gray_r', title='Outlier residual image (dec -35deg)')
+            plt.show(block=False)
+            
         qa = qa_image(outlier_dirty)
         for field in ['maxabs', 'rms', 'medianabs']:
             result["outlier_" + field] = qa.data[field]
@@ -302,9 +318,9 @@ if __name__ == '__main__':
     plt.title('%s, %g Hz, %d times, full array: dynamic %g, static %g' %
               (context, frequency[0], ntimes, dynamic, static))
     plt.legend()
-    plotfile = seqfile.findNextFile(prefix='pointingsimulation', suffix='.jpg')
     print('Saving plot to %s' % plotfile)
 
     plt.savefig(plotfile)
+    plt.show()
     plt.show()
     
