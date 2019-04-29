@@ -6,6 +6,12 @@
 
 """
 
+__all__ = ['predict_list_arlexecute_workflow', 'invert_list_arlexecute_workflow', 'residual_list_arlexecute_workflow',
+           'restore_list_arlexecute_workflow', 'deconvolve_list_arlexecute_workflow',
+           'deconvolve_list_channel_arlexecute_workflow', 'weight_list_arlexecute_workflow',
+           'taper_list_arlexecute_workflow', 'zero_list_arlexecute_workflow', 'subtract_list_arlexecute_workflow']
+
+
 import collections
 import logging
 
@@ -30,7 +36,6 @@ from wrappers.arlexecute.visibility.base import copy_visibility
 from wrappers.arlexecute.visibility.gather_scatter import visibility_scatter, visibility_gather
 
 log = logging.getLogger(__name__)
-
 
 def predict_list_arlexecute_workflow(vis_list, model_imagelist, context, vis_slices=1, facets=1,
                                      gcfcf=None, **kwargs):
