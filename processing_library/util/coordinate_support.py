@@ -255,11 +255,34 @@ def uvw_transform(uvw, transform_matrix):
 def parallactic_angle(ha, dec, lat):
     """Calculate parallactic angle of source at ha, dec observed from site at latitude dec
     
+    H = t - α
+    sin(a) = sin(δ) sin(φ) + cos(δ) cos(φ) cos(H)
+    sin(A) = - sin(H) cos(δ) / cos(a)
+    cos(A) = { sin(δ) - sin(φ) sin(a) } / cos(φ) cos(a)
+    
     :param ha: Hour angle (radians)
     :param dec: Declination (radians)
     :param lat: Site latitude (radians)
     :return:
     """
-    taneta = numpy.cos(lat) * numpy.sin(ha) / \
-             (numpy.sin(lat) * numpy.cos(dec) - numpy.cos(lat) * numpy.sin(dec) * numpy.cos(ha))
-    return numpy.arctan(taneta)
+    return numpy.arctan2(numpy.cos(lat) * numpy.sin(ha),
+                         (numpy.sin(lat) * numpy.cos(dec) - numpy.cos(lat) * numpy.sin(dec) * numpy.cos(ha)))
+
+
+def pa_z(ha, dec, lat):
+    """Calculate parallactic angle and zenith angle of source at ha, dec observed from site at latitude dec
+
+    H = t - α
+    sin(a) = sin(δ) sin(φ) + cos(δ) cos(φ) cos(H)
+    sin(A) = - sin(H) cos(δ) / cos(a)
+    cos(A) = { sin(δ) - sin(φ) sin(a) } / cos(φ) cos(a)
+    
+    :param ha: Hour angle (radians)
+    :param dec: Declination (radians)
+    :param lat: Site latitude (radians)
+    :return:
+    """
+    sinz = numpy.sin(dec) * numpy.sin(lat) + numpy.cos(dec) * numpy.cos(lat) * numpy.cos(ha)
+    return numpy.arctan2(numpy.cos(lat) * numpy.sin(ha),
+                         (numpy.sin(lat) * numpy.cos(dec) - numpy.cos(lat) * numpy.sin(dec) * numpy.cos(ha))), \
+           numpy.arcsin(sinz)
