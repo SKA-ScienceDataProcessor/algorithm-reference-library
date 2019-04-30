@@ -750,7 +750,7 @@ def simulate_gaintable(gt: GainTable, phase_error=0.1, amplitude_error=0.0, smoo
 
 
 def simulate_pointingtable(pt: PointingTable, pointing_error, static_pointing_error=0.0, global_pointing_error=None,
-                           seed=None, config: Configuration = None, **kwargs) -> PointingTable:
+                           seed=None, **kwargs) -> PointingTable:
     """ Simulate a gain table
 
     :type pt: PointingTable
@@ -771,32 +771,36 @@ def simulate_pointingtable(pt: PointingTable, pointing_error, static_pointing_er
     if pointing_error > 0.0:
         log.debug("simulate_pointingtable: Simulating dynamic pointing error = %g (rad) %g (arcsec)"
                   % (pointing_error, r2s * pointing_error))
-    
+        
         pt.data['pointing'] = numpy.random.normal(0.0, pointing_error, pt.data['pointing'].shape)
     if static_pointing_error > 0.0:
         log.debug("simulate_pointingtable: Simulating static pointing error = %g (rad) %g (arcsec)"
                   % (static_pointing_error, r2s * static_pointing_error))
-    
+        
         static_pe = numpy.random.normal(0.0, static_pointing_error, pt.data['pointing'].shape[1:])[
             numpy.newaxis, ...]
         pt.data['pointing'] += static_pe
-        
+    
     if global_pointing_error is not None:
         log.debug("simulate_pointingtable: Simulating global pointing error = [%g, %g] (rad) [%g,s %g] (arcsec)"
-                % (global_pointing_error[0], global_pointing_error[1],
-                    r2s * global_pointing_error[0], r2s * global_pointing_error[1]))
-        pt.data['pointing'][...,:] += global_pointing_error
-        
+                  % (global_pointing_error[0], global_pointing_error[1],
+                     r2s * global_pointing_error[0], r2s * global_pointing_error[1]))
+        pt.data['pointing'][..., :] += global_pointing_error
+    
     # Now apply parallactic angle rotation if defined
-    if isinstance(config, Configuration) and (config.mount[0] == 'altaz'):
+    config = pt.configuration
+    assert isinstance(config, Configuration), "No configuration data available"
+    if config.mount[0] == 'altaz':
         lat = config.location.geodetic[1]
         time = numpy.pi * pt.time / 43200.0
-        pa = parallactic_angle(time, pt.pointingcentre.dec.to('rad').value, lat.to('rad').value)
+        pa = -1.0 * parallactic_angle(time, pt.pointingcentre.dec.to('rad').value, lat.to('rad').value)
         pa = pa[..., numpy.newaxis, numpy.newaxis, numpy.newaxis]
         pe_original = pt.data['pointing'].copy()
-        pt.data['pointing'][..., 0] =  numpy.cos(pa) * pe_original[..., 0] - numpy.sin(pa) * pe_original[..., 1]
-        pt.data['pointing'][..., 1] =  numpy.sin(pa) * pe_original[..., 0] + numpy.cos(pa) * pe_original[..., 1]
-
+        pt.data['pointing'][..., 0] = numpy.cos(pa) * pe_original[..., 0] - numpy.sin(pa) * pe_original[..., 1]
+        pt.data['pointing'][..., 1] = numpy.sin(pa) * pe_original[..., 0] + numpy.cos(pa) * pe_original[..., 1]
+    else:
+        raise ValueError("simulate_pointingtable: no support yet for mount type %s" % config.mount[0])
+    
     return pt
 
 

@@ -349,6 +349,7 @@ def convert_pointingtable_to_hdf(pt: PointingTable, f):
     f.attrs['pointingcentre_frame'] = pt.pointingcentre.frame.name
     f.attrs['pointing_frame'] = pt.pointing_frame
     f['data'] = pt.data
+    f = convert_configuration_to_hdf(pt.configuration, f)
     return f
 
 
@@ -366,8 +367,9 @@ def convert_hdf_to_pointingtable(f):
     ss = [float(s[0]), float(s[1])] * u.deg
     pointingcentre = SkyCoord(ra=ss[0], dec=ss[1], frame=f.attrs['pointingcentre_frame'])
     pointing_frame = f.attrs['pointing_frame']
+    configuration = convert_configuration_from_hdf(f)
     pt = PointingTable(data=data, frequency=frequency, receptor_frame=receptor_frame, pointing_frame=pointing_frame,
-                       pointingcentre=pointingcentre)
+                       pointingcentre=pointingcentre, configuration=configuration)
     return pt
 
 

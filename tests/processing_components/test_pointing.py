@@ -64,7 +64,7 @@ class TestPointing(unittest.TestCase):
                                                            radius=0.2)[0]]
         
         pt = create_pointingtable_from_blockvisibility(self.vis)
-        pt = simulate_pointingtable(pt, pointing_error=0.01, static_pointing_error=0.001, config=self.vis.configuration)
+        pt = simulate_pointingtable(pt, pointing_error=0.01, static_pointing_error=0.001)
         vp = create_vp(self.model, 'MID')
         gt = create_gaintable_from_pointingtable(self.vis, s3_components, pt, vp)
         assert gt[0].gain.shape == (3, 63, 1, 1, 1), gt[0].gain.shape
@@ -78,7 +78,7 @@ class TestPointing(unittest.TestCase):
     
         pt = create_pointingtable_from_blockvisibility(self.vis)
         pt = simulate_pointingtable(pt, pointing_error=0.0, static_pointing_error=0.0,
-                                    global_pointing_error=[0.0001, 0.0001], config=self.vis.configuration)
+                                    global_pointing_error=[0.0001, 0.0001])
         import matplotlib.pyplot as plt
         plt.clf()
         plt.plot(pt.pointing[...,0].flat, pt.pointing[...,1].flat, '.')
