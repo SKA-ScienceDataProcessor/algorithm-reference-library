@@ -793,7 +793,7 @@ def simulate_pointingtable(pt: PointingTable, pointing_error, static_pointing_er
     if config.mount[0] == 'altaz':
         lat = config.location.geodetic[1]
         time = numpy.pi * pt.time / 43200.0
-        pa = -1.0 * parallactic_angle(time, pt.pointingcentre.dec.to('rad').value, lat.to('rad').value)
+        pa = parallactic_angle(time, pt.pointingcentre.dec.to('rad').value, lat.to('rad').value)
         pa = pa[..., numpy.newaxis, numpy.newaxis, numpy.newaxis]
         pe_original = pt.data['pointing'].copy()
         pt.data['pointing'][..., 0] = numpy.cos(pa) * pe_original[..., 0] - numpy.sin(pa) * pe_original[..., 1]

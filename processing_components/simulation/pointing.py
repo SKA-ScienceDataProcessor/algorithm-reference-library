@@ -37,13 +37,15 @@ def create_gaintable_from_pointingtable(vis, sc, pt, vp, vis_slices=None, scale=
     imag_spline = RectBivariateSpline(range(ny), range(nx), vp.data[0, 0, ...].imag, kx=order, ky=order)
     
     # The time in the Visibility is hour angle in seconds!
+    # pixlocs = []
+    number_bad = 0
+    number_good = 0
+
     for iha, rows in enumerate(vis_timeslice_iter(vis, vis_slices=vis_slices)):
         v = create_visibility_from_rows(vis, rows)
         ha = numpy.average(v.time)
         pt_rows = (pt.time == ha)
         pointing_ha = pt.pointing[pt_rows]
-        number_bad = 0
-        number_good = 0
         
         r2d = 180.0 / numpy.pi
         for icomp, comp in enumerate(sc):
@@ -54,6 +56,7 @@ def create_gaintable_from_pointingtable(vis, sc, pt, vp, vis_slices=None, scale=
                             vp.wcs.wcs.crval[2], vp.wcs.wcs.crval[3]]
                 try:
                     pixloc = vp.wcs.wcs_world2pix([worldloc], 0)[0][0:2]
+                    # pixlocs.append(pixloc)
                     gain = real_spline.ev(pixloc[1], pixloc[0]) + 1j * imag_spline(pixloc[1], pixloc[0])
                     antgain[ant] = 1.0 / (scale * gain)
                     number_good += 1
@@ -63,11 +66,19 @@ def create_gaintable_from_pointingtable(vis, sc, pt, vp, vis_slices=None, scale=
             
             gaintables[icomp].gain[iha, :, :, :] = antgain[:, numpy.newaxis, numpy.newaxis, numpy.newaxis]
             gaintables[icomp].phasecentre = comp.direction
+            
         
-        if number_bad > 0:
-            log.warning(
-                "create_gaintable_from_pointingtable: %d points are inside the voltage pattern image" % (number_good))
-            log.warning(
-                "create_gaintable_from_pointingtable: %d points are outside the voltage pattern image" % (number_bad))
+    if number_bad > 0:
+        log.warning(
+            "create_gaintable_from_pointingtable: %d points are inside the voltage pattern image" % (number_good))
+        log.warning(
+            "create_gaintable_from_pointingtable: %d points are outside the voltage pattern image" % (number_bad))
+
+    # apixlocs = numpy.array(pixlocs)
+
+    # import matplotlib.pyplot as plt
+    # plt.clf()
+    # plt.plot(apixlocs[:, 0], apixlocs[:, 1], '.')
+    # plt.show()
     
     return gaintables
