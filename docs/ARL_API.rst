@@ -139,12 +139,6 @@ Deconvolution
 .. automodule:: processing_components.image.deconvolution
    :members:
 
-Solvers
-+++++++
-
-.. automodule:: processing_components.image.solvers
-   :members:
-
 Iterators
 +++++++++
 
@@ -202,15 +196,6 @@ Operations
 ++++++++++
 
 .. automodule:: processing_components.skycomponent.operations
-   :members:
-
-SkyModel
---------
-
-Operations
-++++++++++
-
-.. automodule:: processing_components.skymodel.operations
    :members:
 
 Visibility

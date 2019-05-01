@@ -1,3 +1,18 @@
+**May 1, 2019** [Tim] New workflow to map a function across an image: image_arlexecute_map_workflow
+
+**April 28, 2019** [Tim] Fill in all __init__.py files so that tab completion works.
+
+**April 16, 2019** [Tim] Added examples/comparisons directory hold code for comparing ARL results with those from 
+other packages.
+
+**April 04, 2019** [Tim] Pointing simulation capabilities put in place. New data model PointingTable similar to 
+GainTable. testing_support now has a function to simulate pointing errors. See workflows/scripts/SKA_SIM for examples.
+
+**March 25, 2019** [Tim] Performance measurement capabilites and improvements. See workflows/scripts/performance for 
+tests.
+
+**January 26, 2019** [Feng] Added create_blockvisibility_from_uvfits.
+
 **January 23, 2019** [Tim] Work on MPC. Documented in SDP memo 97.
 Branch feature_mpc merged into master. The old modelpartition code has
 been removed.
@@ -30,7 +45,6 @@ control of AW projection.
 update version of daliuge:
 
     pip install "daliuge>=0.5.3" pytest
-
 
 **September 16, 2018** [Tim] Deleted imaging-pipelines-sip.ipynb. Use imaging-pipelines-serial.ipynb instead.
 

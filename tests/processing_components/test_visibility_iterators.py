@@ -7,7 +7,7 @@ import unittest
 
 from astropy.coordinates import SkyCoord
 import astropy.units as u
-from processing_components.simulation.testing_support import create_named_configuration
+from processing_components.simulation.configurations import create_named_configuration
 from processing_components.visibility.iterators import vis_timeslice_iter, vis_wslice_iter, vis_null_iter, vis_timeslices, vis_wslices
 from processing_components.visibility.base import create_visibility, create_visibility_from_rows
 

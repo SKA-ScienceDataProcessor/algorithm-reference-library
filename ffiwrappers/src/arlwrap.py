@@ -16,7 +16,8 @@ from data_models.memory_data_models import ReceptorFrame
 from processing_components.image.deconvolution import deconvolve_cube, restore_cube
 from processing_components.imaging.base import create_image_from_visibility, predict_2d, invert_2d
 from processing_components.imaging.base import advise_wide_field
-from processing_components.simulation.testing_support import create_named_configuration, create_test_image, create_low_test_image_from_gleam, simulate_gaintable
+from processing_components.simulation.testing_support import create_test_image, create_low_test_image_from_gleam, simulate_gaintable
+from processing_components.simulation.configurations import create_named_configuration
 from data_models.polarisation import PolarisationFrame
 from processing_components.visibility.base import create_blockvisibility
 from workflows.serial.imaging.imaging_serial import invert_list_serial_workflow, predict_list_serial_workflow

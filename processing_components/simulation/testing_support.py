@@ -34,15 +34,14 @@ from typing import List
 
 import astropy.units as u
 import numpy
-from astropy.coordinates import EarthLocation, SkyCoord
+from astropy.coordinates import SkyCoord
 from astropy.io import fits
 from astropy.wcs import WCS
 from astropy.wcs.utils import pixel_to_skycoord
 from scipy import interpolate
 
-from data_models.memory_data_models import Configuration, Image, GainTable, Skycomponent, SkyModel
+from data_models.memory_data_models import Configuration, Image, GainTable, Skycomponent, SkyModel, PointingTable
 from data_models.parameters import arl_path
-from data_models.parameters import get_parameter
 from data_models.polarisation import PolarisationFrame
 from processing_components.calibration.calibration_control import create_calibration_controls
 from processing_components.calibration.operations import create_gaintable_from_blockvisibility, apply_gaintable
@@ -56,120 +55,9 @@ from processing_components.visibility.base import create_blockvisibility, create
 from processing_components.visibility.coalesce import convert_blockvisibility_to_visibility, \
     convert_visibility_to_blockvisibility
 from processing_library.image.operations import create_image_from_array
-from processing_library.util.coordinate_support import xyz_at_latitude
+from processing_library.util.coordinate_support import parallactic_angle
 
 log = logging.getLogger(__name__)
-
-
-def create_configuration_from_file(antfile: str, location: EarthLocation = None,
-                                   mount: str = 'altaz',
-                                   names: str = "%d", frame: str = 'local',
-                                   diameter=35.0,
-                                   rmax=None, name='') -> Configuration:
-    """ Define from a file
-
-    :param names: Antenna names
-    :param antfile: Antenna file name
-    :param location:
-    :param mount: mount type: 'altaz', 'xy'
-    :param frame: 'local' | 'global'
-    :param diameter: Effective diameter of station or antenna
-    :return: Configuration
-    """
-    antxyz = numpy.genfromtxt(antfile, delimiter=",")
-    assert antxyz.shape[1] == 3, ("Antenna array has wrong shape %s" % antxyz.shape)
-    if frame == 'local':
-        latitude = location.geodetic[1].to(u.rad).value
-        antxyz = xyz_at_latitude(antxyz, latitude)
-    if rmax is not None:
-        lantxyz = antxyz - numpy.average(antxyz, axis=0)
-        r = numpy.sqrt(lantxyz[:, 0] ** 2 + lantxyz[:, 1] ** 2 + lantxyz[:, 2] ** 2)
-        antxyz = antxyz[r < rmax]
-        log.debug('create_configuration_from_file: Maximum radius %.1f m includes %d antennas/stations' %
-                  (rmax, antxyz.shape[0]))
-    
-    nants = antxyz.shape[0]
-    anames = [names % ant for ant in range(nants)]
-    mounts = numpy.repeat(mount, nants)
-    fc = Configuration(location=location, names=anames, mount=mounts, xyz=antxyz, frame=frame,
-                       diameter=diameter, name=name)
-    return fc
-
-
-def create_LOFAR_configuration(antfile: str) -> Configuration:
-    """ Define from the LOFAR configuration file
-
-    :param antfile:
-    :return: Configuration
-    """
-    antxyz = numpy.genfromtxt(antfile, skip_header=2, usecols=[1, 2, 3], delimiter=",")
-    nants = antxyz.shape[0]
-    assert antxyz.shape[1] == 3, "Antenna array has wrong shape %s" % antxyz.shape
-    anames = numpy.genfromtxt(antfile, dtype='str', skip_header=2, usecols=[0], delimiter=",")
-    mounts = numpy.repeat('XY', nants)
-    location = EarthLocation(x=[3826923.9] * u.m, y=[460915.1] * u.m, z=[5064643.2] * u.m)
-    fc = Configuration(location=location, names=anames, mount=mounts, xyz=antxyz, frame='global',
-                       diameter=35.0, name='LOFAR')
-    return fc
-
-
-def create_named_configuration(name: str = 'LOWBD2', **kwargs) -> Configuration:
-    """ Standard configurations e.g. LOWBD2, MIDBD2
-
-    :param name: name of Configuration LOWBD2, LOWBD1, LOFAR, VLAA, ASKAP
-    :param rmax: Maximum distance of station from the average (m)
-    :return:
-    
-    For LOWBD2, setting rmax gives the following number of stations
-    100.0       13
-    300.0       94
-    1000.0      251
-    3000.0      314
-    10000.0     398
-    30000.0     476
-    100000.0    512
-    """
-    
-    if name == 'LOWBD2':
-        location = EarthLocation(lon="116.4999", lat="-26.7000", height=300.0)
-        fc = create_configuration_from_file(antfile=arl_path("data/configurations/LOWBD2.csv"),
-                                            location=location, mount='xy', names='LOWBD2_%d',
-                                            diameter=35.0, name=name, **kwargs)
-    elif name == 'LOWBD1':
-        location = EarthLocation(lon="116.4999", lat="-26.7000", height=300.0)
-        fc = create_configuration_from_file(antfile=arl_path("data/configurations/LOWBD1.csv"),
-                                            location=location, mount='xy', names='LOWBD1_%d',
-                                            diameter=35.0, name=name, **kwargs)
-    elif name == 'LOWBD2-CORE':
-        location = EarthLocation(lon="116.4999", lat="-26.7000", height=300.0)
-        fc = create_configuration_from_file(antfile=arl_path("data/configurations/LOWBD2-CORE.csv"),
-                                            location=location, mount='xy', names='LOWBD2_%d',
-                                            diameter=35.0, name=name, **kwargs)
-    elif name == 'ASKAP':
-        location = EarthLocation(lon="+116.6356824", lat="-26.7013006", height=377.0)
-        fc = create_configuration_from_file(antfile=arl_path("data/configurations/A27CR3P6B.in.csv"),
-                                            mount='equatorial', names='ASKAP_%d',
-                                            diameter=12.0, name=name, location=location, **kwargs)
-    elif name == 'LOFAR':
-        assert get_parameter(kwargs, "meta", False) is False
-        fc = create_LOFAR_configuration(antfile=arl_path("data/configurations/LOFAR.csv"))
-    elif name == 'VLAA':
-        location = EarthLocation(lon="-107.6184", lat="34.0784", height=2124.0)
-        fc = create_configuration_from_file(antfile=arl_path("data/configurations/VLA_A_hor_xyz.csv"),
-                                            location=location,
-                                            mount='altaz',
-                                            names='VLA_%d',
-                                            diameter=25.0, name=name, **kwargs)
-    elif name == 'VLAA_north':
-        location = EarthLocation(lon="-107.6184", lat="90.000", height=2124.0)
-        fc = create_configuration_from_file(antfile=arl_path("data/configurations/VLA_A_hor_xyz.csv"),
-                                            location=location,
-                                            mount='altaz',
-                                            names='VLA_%d',
-                                            diameter=25.0, name=name, **kwargs)
-    else:
-        raise ValueError("No such Configuration %s" % name)
-    return fc
 
 
 def create_test_image(canonical=True, cellsize=None, frequency=None, channel_bandwidth=None,
@@ -228,7 +116,7 @@ def create_test_image(canonical=True, cellsize=None, frequency=None, channel_ban
 def create_test_image_from_s3(npixel=16384, polarisation_frame=PolarisationFrame("stokesI"), cellsize=0.000015,
                               frequency=numpy.array([1e8]), channel_bandwidth=numpy.array([1e6]),
                               phasecentre=None, fov=20, flux_limit=1e-3) -> Image:
-    """Create LOW test image from S3
+    """Create MID test image from S3
 
     The input catalog was generated at http://s-cubed.physics.ox.ac.uk/s3_sex using the following query::
         Database: s3_sex
@@ -241,9 +129,9 @@ def create_test_image_from_s3(npixel=16384, polarisation_frame=PolarisationFrame
         data/models/S3_151MHz_10deg.csv, use fov=10
         data/models/S3_151MHz_20deg.csv, use fov=20
         data/models/S3_151MHz_40deg.csv, use fov=40
-        
+
     For frequencies > 610MHz, there are three tables:
-    
+
         data/models/S3_1400MHz_1mJy_10deg.csv, use flux_limit>= 1e-3
         data/models/S3_1400MHz_100uJy_10deg.csv, use flux_limit < 1e-3
         data/models/S3_1400MHz_1mJy_18deg.csv, use flux_limit>= 1e-3
@@ -316,13 +204,13 @@ def create_test_image_from_s3(npixel=16384, polarisation_frame=PolarisationFrame
             if r > 0:
                 ra = float(row[4]) + phasecentre.ra.deg
                 dec = float(row[5]) + phasecentre.dec.deg
-                if numpy.max(frequency) > 6.1E9:
+                if numpy.max(frequency) > 6.1E8:
                     alpha = (float(row[11]) - float(row[10])) / numpy.log10(1400.0 / 610.0)
                     flux = numpy.power(10, float(row[10])) * numpy.power(frequency / 1.4e9, alpha)
                 else:
                     alpha = (float(row[10]) - float(row[9])) / numpy.log10(610.0 / 151.0)
                     flux = numpy.power(10, float(row[9])) * numpy.power(frequency / 1.51e8, alpha)
-                if flux.any() > flux_limit:
+                if numpy.max(flux) > flux_limit:
                     ras.append(ra)
                     decs.append(dec)
                     fluxes.append(flux)
@@ -352,6 +240,119 @@ def create_test_image_from_s3(npixel=16384, polarisation_frame=PolarisationFrame
             model.data[chan, 0, ps[1, iflux], ps[0, iflux]] = flux[chan]
     
     return model
+
+
+def create_test_skycomponents_from_s3(polarisation_frame=PolarisationFrame("stokesI"),
+                                      frequency=numpy.array([1e8]), channel_bandwidth=numpy.array([1e6]),
+                                      phasecentre=None, fov=20, flux_limit=1e-3,
+                                      radius=None):
+    """Create test image from S3
+
+    The input catalog was generated at http://s-cubed.physics.ox.ac.uk/s3_sex using the following query::
+        Database: s3_sex
+        SQL: select * from Galaxies where (pow(10,itot_151)*1000 > 1.0) and (right_ascension between -5 and 5) and (declination between -5 and 5);;
+
+    Number of rows returned: 29966
+
+    For frequencies < 610MHz, there are three tables to use::
+
+        data/models/S3_151MHz_10deg.csv, use fov=10
+        data/models/S3_151MHz_20deg.csv, use fov=20
+        data/models/S3_151MHz_40deg.csv, use fov=40
+
+    For frequencies > 610MHz, there are three tables:
+
+        data/models/S3_1400MHz_1mJy_10deg.csv, use flux_limit>= 1e-3
+        data/models/S3_1400MHz_100uJy_10deg.csv, use flux_limit < 1e-3
+        data/models/S3_1400MHz_1mJy_18deg.csv, use flux_limit>= 1e-3
+        data/models/S3_1400MHz_100uJy_18deg.csv, use flux_limit < 1e-3
+
+    The component spectral index is calculated from the 610MHz and 151MHz or 1400MHz and 610MHz, and then calculated
+    for the specified frequencies.
+
+    If polarisation_frame is not stokesI then the image will a polarised axis but the values will be zero.
+
+    :param npixel: Number of pixels
+    :param polarisation_frame: Polarisation frame (default PolarisationFrame("stokesI"))
+    :param cellsize: cellsize in radians
+    :param frequency:
+    :param channel_bandwidth: Channel width (Hz)
+    :param phasecentre: phasecentre (SkyCoord)
+    :param fov: fov 10 | 20 | 40
+    :param flux_limit: Minimum flux (Jy)
+    :return: Image
+    """
+    
+    ras = []
+    decs = []
+    fluxes = []
+    names = []
+    
+    if phasecentre is None:
+        phasecentre = SkyCoord(ra=+180.0 * u.deg, dec=-60.0 * u.deg, frame='icrs', equinox='J2000')
+    
+    if polarisation_frame is None:
+        polarisation_frame = PolarisationFrame("stokesI")
+    
+    if numpy.max(frequency) > 6.1E8:
+        if fov > 10:
+            fovstr = '18'
+        else:
+            fovstr = '10'
+        if flux_limit >= 1e-3:
+            csvfilename = arl_path('data/models/S3_1400MHz_1mJy_%sdeg.csv' % fovstr)
+        else:
+            csvfilename = arl_path('data/models/S3_1400MHz_100uJy_%sdeg.csv' % fovstr)
+        log.info('create_test_skycomponents_from_s3: Reading S3-SEX sources from %s ' % csvfilename)
+    else:
+        assert fov in [10, 20, 40], "Field of view invalid: use one of %s" % ([10, 20, 40])
+        csvfilename = arl_path('data/models/S3_151MHz_%ddeg.csv' % (fov))
+        log.info('create_test_skycomponents_from_s3: Reading S3-SEX sources from %s ' % csvfilename)
+    
+    skycomps = list()
+    
+    with open(csvfilename) as csvfile:
+        readCSV = csv.reader(csvfile, delimiter=',')
+        r = 0
+        for row in readCSV:
+            # Skip first row
+            if r > 0:
+                ra = float(row[4]) + phasecentre.ra.deg
+                dec = float(row[5]) + phasecentre.dec.deg
+                if numpy.max(frequency) > 6.1E8:
+                    alpha = (float(row[11]) - float(row[10])) / numpy.log10(1400.0 / 610.0)
+                    flux = numpy.power(10, float(row[10])) * numpy.power(frequency / 1.4e9, alpha)
+                else:
+                    alpha = (float(row[10]) - float(row[9])) / numpy.log10(610.0 / 151.0)
+                    flux = numpy.power(10, float(row[9])) * numpy.power(frequency / 1.51e8, alpha)
+                if numpy.max(flux) > flux_limit:
+                    ras.append(ra)
+                    decs.append(dec)
+                    fluxes.append([[f] for f in flux])
+                    names.append("S3_%s" % row[0])
+            r += 1
+    
+    csvfile.close()
+    
+    assert len(fluxes) > 0, "No sources found above flux limit %s" % flux_limit
+    
+    directions = SkyCoord(ra=ras * u.deg, dec=decs * u.deg)
+    if phasecentre is not None:
+        separations = directions.separation(phasecentre).to('rad').value
+    else:
+        separations = numpy.zeros(len(names))
+    
+    for isource, name in enumerate(names):
+        direction = directions[isource]
+        if separations[isource] < radius:
+            if not numpy.isnan(flux).any():
+                skycomps.append(Skycomponent(direction=direction, flux=fluxes[isource], frequency=frequency,
+                                             name=names[isource], shape='Point',
+                                             polarisation_frame=polarisation_frame))
+    
+    log.info('create_test_skycomponents_from_s3: %d sources found above fluxlimit inside search radius' % (len(fluxes)))
+    
+    return skycomps
 
 
 def create_low_test_image_from_gleam(npixel=512, polarisation_frame=PolarisationFrame("stokesI"), cellsize=0.000015,
@@ -480,18 +481,19 @@ def create_low_test_skymodel_from_gleam(npixel=512, polarisation_frame=Polarisat
     w.wcs.equinox = 2000.0
     
     model = create_image_from_array(numpy.zeros(shape), w, polarisation_frame=polarisation_frame)
-
+    
     if applybeam:
         beam = create_pb(model, telescope=telescope)
         sc = apply_beam_to_skycomponent(sc, beam)
-
+    
     weaksc = filter_skycomponents_by_flux(sc, flux_max=flux_threshold)
     brightsc = filter_skycomponents_by_flux(sc, flux_min=flux_threshold)
     model = insert_skycomponent(model, weaksc, insert_method=insert_method)
     
-    log.info('create_low_test_skymodel_from_gleam: %d bright sources above flux threshold %.3f, %d weak sources below ' %
-             (len(brightsc), flux_threshold, len(weaksc)))
-
+    log.info(
+        'create_low_test_skymodel_from_gleam: %d bright sources above flux threshold %.3f, %d weak sources below ' %
+        (len(brightsc), flux_threshold, len(weaksc)))
+    
     return SkyModel(components=brightsc, image=model, mask=None, gaintable=None)
 
 
@@ -529,7 +531,6 @@ def create_low_test_skycomponents_from_gleam(flux_limit=0.1, polarisation_frame=
     hdulist = fits.open(fitsfile, lazy_load_hdus=False)
     recs = hdulist[1].data[0].array
     
-    # Do the simple forms of filtering in pyfits. Filtering on radious is done below.
     fluxes = recs['peak_flux_wide']
     
     mask = fluxes > flux_limit
@@ -689,7 +690,7 @@ def create_blockvisibility_iterator(config: Configuration, times: numpy.array, f
 def simulate_gaintable(gt: GainTable, phase_error=0.1, amplitude_error=0.0, smooth_channels=1,
                        leakage=0.0, seed=None, **kwargs) -> GainTable:
     """ Simulate a gain table
-    
+
     :type gt: GainTable
     :param phase_error: std of normal distribution, zero mean
     :param amplitude_error: std of log normal distribution
@@ -698,7 +699,7 @@ def simulate_gaintable(gt: GainTable, phase_error=0.1, amplitude_error=0.0, smoo
     :param smooth_channels: Use bspline over smooth_channels
     :param kwargs:
     :return: Gaintable
-    
+
     """
     
     def moving_average(a, n=3):
@@ -746,6 +747,61 @@ def simulate_gaintable(gt: GainTable, phase_error=0.1, amplitude_error=0.0, smoo
             gt.data['gain'][..., 1, 0] = 0.0
     
     return gt
+
+
+def simulate_pointingtable(pt: PointingTable, pointing_error, static_pointing_error=0.0, global_pointing_error=None,
+                           seed=None, **kwargs) -> PointingTable:
+    """ Simulate a gain table
+
+    :type pt: PointingTable
+    :param pointing_error: std of normal distribution
+    :param static_pointing_error: std of normal distribution
+    :param seed: Seed for random numbers def: 180555
+    :param kwargs:
+    :return: PointingTable
+
+    """
+    
+    if seed is not None:
+        numpy.random.seed(seed)
+    r2s = 180.0 * 3600.0 / numpy.pi
+    pt.data['pointing'] = numpy.zeros(pt.data['pointing'].shape)
+    
+    ntimes, nant, nchan, nrec, _ = pt.data['pointing'].shape
+    if pointing_error > 0.0:
+        log.debug("simulate_pointingtable: Simulating dynamic pointing error = %g (rad) %g (arcsec)"
+                  % (pointing_error, r2s * pointing_error))
+        
+        pt.data['pointing'] = numpy.random.normal(0.0, pointing_error, pt.data['pointing'].shape)
+    if static_pointing_error > 0.0:
+        log.debug("simulate_pointingtable: Simulating static pointing error = %g (rad) %g (arcsec)"
+                  % (static_pointing_error, r2s * static_pointing_error))
+        
+        static_pe = numpy.random.normal(0.0, static_pointing_error, pt.data['pointing'].shape[1:])[
+            numpy.newaxis, ...]
+        pt.data['pointing'] += static_pe
+    
+    if global_pointing_error is not None:
+        log.debug("simulate_pointingtable: Simulating global pointing error = [%g, %g] (rad) [%g,s %g] (arcsec)"
+                  % (global_pointing_error[0], global_pointing_error[1],
+                     r2s * global_pointing_error[0], r2s * global_pointing_error[1]))
+        pt.data['pointing'][..., :] += global_pointing_error
+    
+    # Now apply parallactic angle rotation if defined
+    config = pt.configuration
+    assert isinstance(config, Configuration), "No configuration data available"
+    if config.mount[0] == 'altaz':
+        lat = config.location.geodetic[1]
+        time = numpy.pi * pt.time / 43200.0
+        pa = parallactic_angle(time, pt.pointingcentre.dec.to('rad').value, lat.to('rad').value)
+        pa = pa[..., numpy.newaxis, numpy.newaxis, numpy.newaxis]
+        pe_original = pt.data['pointing'].copy()
+        pt.data['pointing'][..., 0] = numpy.cos(pa) * pe_original[..., 0] - numpy.sin(pa) * pe_original[..., 1]
+        pt.data['pointing'][..., 1] = numpy.sin(pa) * pe_original[..., 0] + numpy.cos(pa) * pe_original[..., 1]
+    else:
+        raise ValueError("simulate_pointingtable: no support yet for mount type %s" % config.mount[0])
+    
+    return pt
 
 
 def ingest_unittest_visibility(config, frequency, channel_bandwidth, times, vis_pol, phasecentre, block=False,

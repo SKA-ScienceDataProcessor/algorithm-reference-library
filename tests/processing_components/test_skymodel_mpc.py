@@ -13,8 +13,8 @@ from data_models.memory_data_models import SkyModel, Image
 from data_models.polarisation import PolarisationFrame
 from processing_components.imaging.primary_beams import create_low_test_beam
 from processing_components.skymodel.operations import expand_skymodel_by_skycomponents
-from processing_components.simulation.testing_support import create_named_configuration, \
-    create_low_test_skycomponents_from_gleam
+from processing_components.simulation.testing_support import create_low_test_skycomponents_from_gleam
+from processing_components.simulation.configurations import create_named_configuration
 from processing_components.simulation.testing_support import create_test_image
 from processing_components.skycomponent.operations import apply_beam_to_skycomponent, remove_neighbouring_components
 from processing_components.skycomponent.operations import filter_skycomponents_by_flux
@@ -65,7 +65,7 @@ class TestSkymodelMPC(unittest.TestCase):
         
         actual_components = filter_skycomponents_by_flux(pb_gleam_components, flux_min=1.0)
         
-        assert len(actual_components) == 15, len(actual_components)
+        assert len(actual_components) == 37, len(actual_components)
         sm = SkyModel(image=self.model, components=actual_components)
         assert len(sm.components) == len(actual_components)
         
@@ -101,7 +101,7 @@ class TestSkymodelMPC(unittest.TestCase):
             # show_image(mask)
             # plt.show()
 
-        assert len(actual_components) == 6, len(actual_components)
+        assert len(actual_components) == 9, len(actual_components)
         sm = SkyModel(image=self.model, components=actual_components)
         assert len(sm.components) == len(actual_components)
         

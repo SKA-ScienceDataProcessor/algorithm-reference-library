@@ -44,8 +44,8 @@ from wrappers.serial.imaging.base import create_image_from_visibility, advise_wi
 from wrappers.serial.imaging.primary_beams import create_low_test_beam
 from wrappers.serial.simulation.ionospheric_screen import create_gaintable_from_screen
 from wrappers.serial.simulation.ionospheric_screen import grid_gaintable_to_screen, plot_gaintable_on_screen
-from wrappers.serial.simulation.testing_support import create_named_configuration, \
-    create_low_test_skycomponents_from_gleam
+from wrappers.serial.simulation.testing_support import create_low_test_skycomponents_from_gleam
+from processing_components.simulation.configurations import create_named_configuration
 from wrappers.serial.skycomponent.operations import apply_beam_to_skycomponent, insert_skycomponent
 from wrappers.serial.skycomponent.operations import filter_skycomponents_by_flux
 from wrappers.serial.visibility.base import create_blockvisibility, copy_visibility

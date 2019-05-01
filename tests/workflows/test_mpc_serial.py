@@ -16,8 +16,9 @@ from wrappers.serial.skymodel.operations import expand_skymodel_by_skycomponents
 from workflows.serial.skymodel.skymodel_serial import predict_skymodel_list_serial_workflow, \
     invert_skymodel_list_serial_workflow, crosssubtract_datamodels_skymodel_list_serial_workflow
 from workflows.shared.imaging.imaging_shared import sum_predict_results
-from wrappers.serial.simulation.testing_support import create_named_configuration, ingest_unittest_visibility, \
+from wrappers.serial.simulation.testing_support import ingest_unittest_visibility, \
     create_low_test_skymodel_from_gleam
+from processing_components.simulation.configurations import create_named_configuration
 from wrappers.serial.visibility.base import copy_visibility
 from wrappers.serial.visibility.coalesce import convert_blockvisibility_to_visibility
 
@@ -85,9 +86,9 @@ class TestMPC(unittest.TestCase):
         
         assert isinstance(self.skymodel_list[0].image, Image), self.skymodel_list[0].image
         assert isinstance(self.skymodel_list[0].components[0], Skycomponent), self.skymodel_list[0].components[0]
-        assert len(self.skymodel_list[0].components) == 19, len(self.skymodel_list[0].components)
+        assert len(self.skymodel_list[0].components) == 35, len(self.skymodel_list[0].components)
         self.skymodel_list = expand_skymodel_by_skycomponents(self.skymodel_list[0])
-        assert len(self.skymodel_list) == 20, len(self.skymodel_list)
+        assert len(self.skymodel_list) == 36, len(self.skymodel_list)
         assert numpy.max(numpy.abs(self.skymodel_list[-1].image.data)) > 0.0, "Image is empty"
         self.vis_list = [copy_visibility(self.vis_list[0], zero=True) for i, _ in enumerate(self.skymodel_list)]
     

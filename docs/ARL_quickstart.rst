@@ -10,6 +10,8 @@ Installation
 Installation should be straightforward. We recommend the use of virtual environment. A prepackaged python
 system such as Anaconda https://www.anaconda.com is usually best as a base.
 
+ARL requires python 3.6 or higher.
+
 # Use git to make a local clone of the Github respository::
 
    git clone https://github.com/SKA-ScienceDataProcessor/algorithm-reference-library
@@ -18,9 +20,11 @@ system such as Anaconda https://www.anaconda.com is usually best as a base.
 
    cd algorithm-reference-library
 
-# Install required python package::
+# Install required python packages::
 
    pip install -r requirements.txt
+
+There may be some dependencies that require either conda (or brew install on a mac).
 
 # Setup ARL::
 

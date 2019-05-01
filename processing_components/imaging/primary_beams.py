@@ -1,5 +1,5 @@
 """
-Functions to create primary beam modelsw
+Functions to create primary beam and voltage pattern models
 """
 
 import collections
@@ -19,11 +19,32 @@ log = logging.getLogger(__name__)
 
 def ft_disk(r):
     from scipy.special import jn  # pylint: disable=no-name-in-module
-    result = numpy.zeros_like(r)
+    result = numpy.zeros_like(r, dtype='complex')
     result[r > 0] = 2.0 * jn(1, r[r > 0]) / r[r > 0]
     rsmall = 1e-9
     result[r == 0] = 2.0 * jn(1, rsmall) / rsmall
     return result
+
+
+def create_vp(model, telescope='MID', pointingcentre=None):
+    """
+    Make an image like model and fill it with an analytical model of the voltage pattern
+    :param model: Template image
+    :param telescope: 'VLA' or 'ASKAP'
+    :return: Primary beam image
+    """
+    if telescope[0:3] == 'MID':
+        return create_vp_generic(model, pointingcentre=pointingcentre, diameter=15.0, blockage=0.0)
+    elif telescope[0:3] == 'MEERKAT':
+        return create_vp_generic(model, pointingcentre=pointingcentre, diameter=13.5, blockage=0.0)
+    elif telescope[0:3] == 'LOW':
+        return create_low_test_vp(model)
+    elif telescope[0:3] == 'VLA':
+        return create_vp_generic(model, pointingcentre=pointingcentre, diameter=25.0, blockage=1.8)
+    elif telescope[0:5] == 'ASKAP':
+        return create_vp_generic(model, pointingcentre=pointingcentre, diameter=12.0, blockage=1.0)
+    else:
+        raise NotImplementedError('Telescope %s has no voltage pattern model' % telescope)
 
 
 def create_pb(model, telescope='MID', pointingcentre=None):
@@ -33,16 +54,12 @@ def create_pb(model, telescope='MID', pointingcentre=None):
     :param telescope: 'VLA' or 'ASKAP'
     :return: Primary beam image
     """
-    if telescope[0:3] == 'MID':
-        return create_pb_generic(model, pointingcentre=pointingcentre, diameter=15.0, blockage=0.0)
-    elif telescope[0:3] == 'LOW':
-        return create_low_test_beam(model)
-    elif telescope[0:3] == 'VLA':
-        return create_pb_generic(model, pointingcentre=pointingcentre, diameter=25.0, blockage=1.8)
-    elif telescope[0:5] == 'ASKAP':
-        return create_pb_generic(model, pointingcentre=pointingcentre, diameter=12.0, blockage=1.0)
+    if telescope=='LOW':
+        beam = create_low_test_beam(model)
     else:
-        raise NotImplementedError('Telescope %s has no primary beam model' % telescope)
+        beam = create_vp(model, telescope, pointingcentre)
+        beam.data = numpy.real(beam.data * numpy.conjugate(beam.data))
+    return beam
 
 
 def mosaic_pb(model, telescope, pointingcentres):
@@ -63,14 +80,25 @@ def mosaic_pb(model, telescope, pointingcentres):
     sumpb.data = numpy.sqrt(sumpb.data)
     return sumpb
 
-
 def create_pb_generic(model, pointingcentre=None, diameter=25.0, blockage=1.8):
     """
     Make an image like model and fill it with an analytical model of the primary beam
     :param model:
     :return:
     """
+    beam = create_vp_generic(model, pointingcentre, diameter, blockage)
+    beam.data = numpy.real(beam.data * numpy.conjugate(beam.data))
+    return beam
+
+
+def create_vp_generic(model, pointingcentre=None, diameter=25.0, blockage=1.8):
+    """
+    Make an image like model and fill it with an analytical model of the primary beam
+    :param model:
+    :return:
+    """
     beam = create_empty_image_like(model)
+    beam.data = numpy.zeros(beam.data.shape, dtype='complex')
     
     nchan, npol, ny, nx = model.shape
     
@@ -98,7 +126,6 @@ def create_pb_generic(model, pointingcentre=None, diameter=25.0, blockage=1.8):
             blockage = ft_disk(rr * numpy.pi * blockage / wavelength)
             beam.data[chan, pol, ...] = reflector - blockage_factor * blockage
     
-    beam.data *= beam.data
     return beam
 
 
@@ -108,12 +135,59 @@ def create_low_test_beam(model: Image) -> Image:
     :param model: Template image
     :return: Image
     """
-    
     beam = import_image_from_fits(arl_path('data/models/SKA1_LOW_beam.fits'))
+
+    # Scale the image cellsize to account for the different in frequencies. Eventually we will want to
+    # use a frequency cube
+    log.debug("create_low_test_beam: LOW voltage pattern is defined at %.3f MHz" % (beam.wcs.wcs.crval[2] * 1e-6))
+
+    nchan, npol, ny, nx = model.shape
+
+    # We need to interpolate each frequency channel separately. The beam is assumed to just scale with
+    # frequency.
+
+    reprojected_beam = create_empty_image_like(model)
+
+    for chan in range(nchan):
+    
+        model2dwcs = model.wcs.sub(2).deepcopy()
+        model2dshape = [model.shape[2], model.shape[3]]
+        beam2dwcs = beam.wcs.sub(2).deepcopy()
+    
+        # The frequency axis is the second to last in the beam
+        frequency = model.wcs.sub(['spectral']).wcs_pix2world([chan], 0)[0]
+        fscale = beam.wcs.wcs.crval[2] / frequency
+    
+        beam2dwcs.wcs.cdelt = fscale * beam.wcs.sub(2).wcs.cdelt
+        beam2dwcs.wcs.crpix = beam.wcs.sub(2).wcs.crpix
+        beam2dwcs.wcs.crval = model.wcs.sub(2).wcs.crval
+        beam2dwcs.wcs.ctype = model.wcs.sub(2).wcs.ctype
+        model2dwcs.wcs.crpix = [model.shape[2] // 2 + 1, model.shape[3] // 2 + 1]
+    
+        beam2d = create_image_from_array(beam.data[0, 0, :, :], beam2dwcs, model.polarisation_frame)
+        reprojected_beam2d, footprint = reproject_image(beam2d, model2dwcs, shape=model2dshape)
+        assert numpy.max(footprint.data) > 0.0, "No overlap between beam and model"
+    
+        reprojected_beam2d.data[footprint.data <= 0.0] = 0.0
+        for pol in range(npol):
+            reprojected_beam.data[chan, pol, :, :] = reprojected_beam2d.data[:, :]
+            
+    return reprojected_beam
+
+def create_low_test_vp(model: Image) -> Image:
+    """Create a test power beam for LOW using an image from OSKAR
+
+    :param model: Template image
+    :return: Image
+    """
+    
+    # TODO: Get true voltage beam from OSKAR
+    beam = import_image_from_fits(arl_path('data/models/SKA1_LOW_beam.fits'))
+    beam.data = numpy.sqrt(beam.data).astype('complex')
     
     # Scale the image cellsize to account for the different in frequencies. Eventually we will want to
     # use a frequency cube
-    log.debug("create_low_test_beam: primary beam is defined at %.3f MHz" % (beam.wcs.wcs.crval[2] * 1e-6))
+    log.debug("create_low_test_beam: LOW voltage pattern is defined at %.3f MHz" % (beam.wcs.wcs.crval[2] * 1e-6))
     
     nchan, npol, ny, nx = model.shape
     
@@ -121,6 +195,7 @@ def create_low_test_beam(model: Image) -> Image:
     # frequency.
     
     reprojected_beam = create_empty_image_like(model)
+    reprojected_beam.data = reprojected_beam.data.astype('complex')
     
     for chan in range(nchan):
         
@@ -138,13 +213,16 @@ def create_low_test_beam(model: Image) -> Image:
         beam2dwcs.wcs.ctype = model.wcs.sub(2).wcs.ctype
         model2dwcs.wcs.crpix = [model.shape[2] // 2 + 1, model.shape[3] // 2 + 1]
         
-        beam2d = create_image_from_array(beam.data[0, 0, :, :], beam2dwcs, model.polarisation_frame)
-        reprojected_beam2d, footprint = reproject_image(beam2d, model2dwcs, shape=model2dshape)
+        beam2d_real = create_image_from_array(numpy.real(beam.data[0, 0, :, :]), beam2dwcs, model.polarisation_frame)
+        beam2d_imag = create_image_from_array(numpy.imag(beam.data[0, 0, :, :]), beam2dwcs, model.polarisation_frame)
+        reprojected_beam2d_real, footprint = reproject_image(beam2d_real, model2dwcs, shape=model2dshape)
+        reprojected_beam2d_imag, footprint = reproject_image(beam2d_imag, model2dwcs, shape=model2dshape)
         assert numpy.max(footprint.data) > 0.0, "No overlap between beam and model"
         
-        reprojected_beam2d.data *= reprojected_beam2d.data
-        reprojected_beam2d.data[footprint.data <= 0.0] = 0.0
+        reprojected_beam2d_real.data[footprint.data <= 0.0] = 0.0
+        reprojected_beam2d_imag.data[footprint.data <= 0.0] = 0.0
         for pol in range(npol):
-            reprojected_beam.data[chan, pol, :, :] = reprojected_beam2d.data[:, :]
+            reprojected_beam.data[chan, pol, :, :] = reprojected_beam2d_real.data[:, :] \
+            + 1j * reprojected_beam2d_imag.data[:, :]
     
     return reprojected_beam

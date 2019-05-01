@@ -15,8 +15,9 @@ from data_models.polarisation import PolarisationFrame
 from workflows.arlexecute.skymodel.skymodel_arlexecute import predict_skymodel_list_arlexecute_workflow
 from wrappers.arlexecute.execution_support.arlexecute import arlexecute
 from wrappers.arlexecute.execution_support.dask_init import get_dask_Client
-from wrappers.arlexecute.simulation.testing_support import create_named_configuration, ingest_unittest_visibility, \
+from wrappers.arlexecute.simulation.testing_support import ingest_unittest_visibility, \
     create_low_test_skymodel_from_gleam
+from processing_components.simulation.configurations import create_named_configuration
 
 log = logging.getLogger(__name__)
 
@@ -97,7 +98,7 @@ class TestSkyModel(unittest.TestCase):
         self.skymodel_list = arlexecute.compute(self.skymodel_list, sync=True)
         assert isinstance(self.skymodel_list[0].image, Image), self.skymodel_list[0].image
         assert isinstance(self.skymodel_list[0].components[0], Skycomponent), self.skymodel_list[0].components[0]
-        assert len(self.skymodel_list[0].components) == 13, len(self.skymodel_list[0].components)
+        assert len(self.skymodel_list[0].components) == 25, len(self.skymodel_list[0].components)
         assert numpy.max(numpy.abs(self.skymodel_list[0].image.data)) > 0.0, "Image is empty"
 
         self.skymodel_list = arlexecute.scatter(self.skymodel_list)
@@ -148,7 +149,7 @@ class TestSkyModel(unittest.TestCase):
             sm.image= None
             
         assert isinstance(self.skymodel_list[0].components[0], Skycomponent), self.skymodel_list[0].components[0]
-        assert len(self.skymodel_list[0].components) == 13, len(self.skymodel_list[0].components)
+        assert len(self.skymodel_list[0].components) == 25, len(self.skymodel_list[0].components)
 
         self.skymodel_list = arlexecute.scatter(self.skymodel_list)
         skymodel_vislist = predict_skymodel_list_arlexecute_workflow(self.vis_list[0], self.skymodel_list, context='2d')

@@ -13,7 +13,8 @@ from data_models.memory_data_models import  Visibility, BlockVisibility
 from wrappers.arlexecute.execution_support.arlexecute import arlexecute
 
 from wrappers.arlexecute.calibration.operations import apply_gaintable, create_gaintable_from_blockvisibility
-from wrappers.arlexecute.simulation.testing_support import create_named_configuration, simulate_gaintable
+from wrappers.arlexecute.simulation.testing_support import simulate_gaintable
+from processing_components.simulation.configurations import create_named_configuration
 from wrappers.arlexecute.visibility.base import create_blockvisibility, create_visibility
 from wrappers.arlexecute.visibility.coalesce import convert_blockvisibility_to_visibility, \
     convert_visibility_to_blockvisibility
@@ -135,5 +136,10 @@ def corrupt_list_arlexecute_workflow(vis_list, gt_list=None, seed=None, **kwargs
         else:
             return bv
 
+    if gt_list is None:
+        return [arlexecute.execute(corrupt_vis, nout=1)(vis_list[ivis], None, **kwargs)
+                for ivis, v in enumerate(vis_list)]
+    else:
+        return [arlexecute.execute(corrupt_vis, nout=1)(vis_list[ivis], gt_list[ivis], **kwargs)
+                for ivis, v in enumerate(vis_list)]
     
-    return [arlexecute.execute(corrupt_vis, nout=1)(vis_list, gt_list, **kwargs) for vis_list in vis_list]

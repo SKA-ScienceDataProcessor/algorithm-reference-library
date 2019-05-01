@@ -20,8 +20,9 @@ from wrappers.arlexecute.calibration.calibration_control import create_calibrati
 from wrappers.arlexecute.execution_support.arlexecute import arlexecute
 from wrappers.arlexecute.image.operations import export_image_to_fits, qa_image, smooth_image
 from wrappers.arlexecute.imaging.base import predict_skycomponent_visibility
-from wrappers.arlexecute.simulation.testing_support import create_named_configuration, ingest_unittest_visibility, \
+from wrappers.arlexecute.simulation.testing_support import ingest_unittest_visibility, \
     create_unittest_model, create_unittest_components, insert_unittest_errors
+from processing_components.simulation.configurations import create_named_configuration
 from wrappers.arlexecute.skycomponent.operations import insert_skycomponent
 from wrappers.arlexecute.visibility.coalesce import convert_blockvisibility_to_visibility
 from wrappers.arlexecute.simulation.testing_support import simulate_gaintable
@@ -145,7 +146,7 @@ class TestPipelineGraphs(ARLExecuteTestCase, unittest.TestCase):
     
     def test_time_setup(self):
         self.actualSetUp(add_errors=True)
-    
+
     def test_continuum_imaging_pipeline(self):
         self.actualSetUp(add_errors=False, zerow=True)
         continuum_imaging_list = \
@@ -163,16 +164,44 @@ class TestPipelineGraphs(ARLExecuteTestCase, unittest.TestCase):
         centre = len(clean) // 2
         if self.persist:
             export_image_to_fits(clean[centre], '%s/test_pipelines_continuum_imaging_pipeline_arlexecute_clean.fits' %
-                                self.dir)
+                                 self.dir)
             export_image_to_fits(residual[centre][0],
-                                '%s/test_pipelines_continuum_imaging_pipeline_arlexecute_residual.fits' % self.dir)
+                                 '%s/test_pipelines_continuum_imaging_pipeline_arlexecute_residual.fits' % self.dir)
             export_image_to_fits(restored[centre],
-                                '%s/test_pipelines_continuum_imaging_pipeline_arlexecute_restored.fits' % self.dir)
-        
+                                 '%s/test_pipelines_continuum_imaging_pipeline_arlexecute_restored.fits' % self.dir)
+    
         qa = qa_image(restored[centre])
         assert numpy.abs(qa.data['max'] - 100.13762476849081) < 1.0, str(qa)
         assert numpy.abs(qa.data['min'] + 0.03627273884170454) < 1.0, str(qa)
+
+    def test_continuum_imaging_pipeline_serialclean(self):
+        self.actualSetUp(add_errors=False, zerow=True)
+        continuum_imaging_list = \
+            continuum_imaging_list_arlexecute_workflow(self.vis_list,
+                                                       model_imagelist=self.model_imagelist,
+                                                       context='2d',
+                                                       algorithm='mmclean', facets=1,
+                                                       scales=[0, 3, 10],
+                                                       niter=1000, fractional_threshold=0.1, threshold=0.1,
+                                                       nmoment=3,
+                                                       nmajor=5, gain=0.1,
+                                                       deconvolve_facets=4, deconvolve_overlap=32,
+                                                       deconvolve_taper='tukey', psf_support=64,
+                                                       use_serial_clean=True)
+        clean, residual, restored = arlexecute.compute(continuum_imaging_list, sync=True)
+        centre = len(clean) // 2
+        if self.persist:
+            export_image_to_fits(clean[centre], '%s/test_pipelines_continuum_imaging_pipeline_arlexecute_clean.fits' %
+                                 self.dir)
+            export_image_to_fits(residual[centre][0],
+                                 '%s/test_pipelines_continuum_imaging_pipeline_arlexecute_residual.fits' % self.dir)
+            export_image_to_fits(restored[centre],
+                                 '%s/test_pipelines_continuum_imaging_pipeline_arlexecute_restored.fits' % self.dir)
     
+        qa = qa_image(restored[centre])
+        assert numpy.abs(qa.data['max'] - 100.13762476849081) < 1.0, str(qa)
+        assert numpy.abs(qa.data['min'] + 0.03627273884170454) < 1.0, str(qa)
+
     def test_ical_pipeline(self):
         self.actualSetUp(add_errors=True)
         controls = create_calibration_controls()
@@ -219,7 +248,7 @@ class TestPipelineGraphs(ARLExecuteTestCase, unittest.TestCase):
                                           scales=[0, 3, 10],
                                           niter=1000, fractional_threshold=0.1, threshold=0.1,
                                           nmoment=3,
-                                          nmajor=5, gain=0.1,
+                                          nmajor=1, gain=0.1,
                                           deconvolve_facets=4, deconvolve_overlap=32,
                                           deconvolve_taper='tukey', psf_support=64,
                                           calibration_context='T', controls=controls, do_selfcal=True,

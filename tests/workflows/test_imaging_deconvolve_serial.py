@@ -16,8 +16,9 @@ from workflows.serial.imaging.imaging_serial import invert_list_serial_workflow,
     residual_list_serial_workflow, restore_list_serial_workflow
 from wrappers.serial.image.operations import export_image_to_fits, smooth_image
 from wrappers.serial.imaging.base import predict_skycomponent_visibility
-from wrappers.serial.simulation.testing_support import create_named_configuration, ingest_unittest_visibility, \
+from wrappers.serial.simulation.testing_support import ingest_unittest_visibility, \
     create_unittest_model, create_unittest_components, insert_unittest_errors
+from processing_components.simulation.configurations import create_named_configuration
 from wrappers.serial.skycomponent.operations import insert_skycomponent
 
 log = logging.getLogger(__name__)
@@ -119,7 +120,7 @@ class TestImagingDeconvolveGraph(unittest.TestCase):
         psf_imagelist = invert_list_serial_workflow(self.vis_list, self.model_imagelist,
                                                     context='2d',
                                                     dopsf=True, normalize=True)
-        deconvolved, _ = deconvolve_list_serial_workflow(dirty_imagelist, psf_imagelist, self.model_imagelist, niter=1000,
+        deconvolved = deconvolve_list_serial_workflow(dirty_imagelist, psf_imagelist, self.model_imagelist, niter=1000,
                                                          fractional_threshold=0.1, scales=[0, 3, 10],
                                                          threshold=0.1, gain=0.7)
         export_image_to_fits(deconvolved[0], '%s/test_imaging_serial_deconvolve_spectral.fits' %
@@ -131,7 +132,7 @@ class TestImagingDeconvolveGraph(unittest.TestCase):
                                                       dopsf=False, normalize=True)
         psf_imagelist = invert_list_serial_workflow(self.vis_list, self.model_imagelist, context='2d',
                                                     dopsf=True, normalize=True)
-        dec_imagelist, _ = deconvolve_list_serial_workflow(dirty_imagelist, psf_imagelist, self.model_imagelist, niter=1000,
+        dec_imagelist = deconvolve_list_serial_workflow(dirty_imagelist, psf_imagelist, self.model_imagelist, niter=1000,
                                                            fractional_threshold=0.01, scales=[0, 3, 10],
                                                            algorithm='mmclean', nmoment=3, nchan=self.freqwin,
                                                            threshold=0.1, gain=0.7)
@@ -149,7 +150,7 @@ class TestImagingDeconvolveGraph(unittest.TestCase):
                                                       context='2d', dopsf=False, normalize=True)
         psf_imagelist = invert_list_serial_workflow(self.vis_list, self.model_imagelist,
                                                     context='2d', dopsf=True, normalize=True)
-        dec_imagelist, _ = deconvolve_list_serial_workflow(dirty_imagelist, psf_imagelist, self.model_imagelist, niter=1000,
+        dec_imagelist = deconvolve_list_serial_workflow(dirty_imagelist, psf_imagelist, self.model_imagelist, niter=1000,
                                                            fractional_threshold=0.1, scales=[0, 3, 10],
                                                            algorithm='mmclean', nmoment=3, nchan=self.freqwin,
                                                            threshold=0.01, gain=0.7, deconvolve_facets=8,

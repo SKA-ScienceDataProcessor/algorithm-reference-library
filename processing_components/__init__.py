@@ -2,3 +2,14 @@
 Framework
 
 """
+__all__ = [
+    'calibration',
+    'griddata',
+    'image',
+    'imaging',
+    'non_imaging',
+    'notebooks',
+    'simulation',
+    'skycomponent',
+    'skymodel',
+    'visibility']

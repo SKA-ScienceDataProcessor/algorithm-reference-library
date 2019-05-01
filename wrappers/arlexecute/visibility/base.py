@@ -9,3 +9,4 @@ from processing_components.visibility.base import create_visibility_from_rows
 from processing_components.visibility.base import phaserotate_visibility
 from processing_components.visibility.base import create_blockvisibility_from_ms
 from processing_components.visibility.base import create_visibility_from_ms
+from processing_components.visibility.base import create_blockvisibility_from_uvfits

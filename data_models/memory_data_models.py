@@ -233,6 +233,110 @@ class GainTable:
         return s
 
 
+class PointingTable:
+    """ Pointing table with data_models: time, antenna, offset[:, chan, rec, 2], weight columns
+
+    The weight is usually that output from gain solvers.
+    """
+    
+    def __init__(self, data=None, pointing: numpy.array = None, time: numpy.array = None, interval=None,
+                 weight: numpy.array = None, residual: numpy.array = None, frequency: numpy.array = None,
+                 receptor_frame: ReceptorFrame = ReceptorFrame("linear"), pointing_frame: str = "local",
+                 pointingcentre=None, configuration=None):
+        """ Create a pointing from arrays
+
+        :param interval:
+        :param data:
+        :param pointing: [:, nchan, nrec, 2]
+        :param time: Centroid of solution
+        :param interval: Interval of validity
+        :param weight:
+        :param residual:
+        :param frequency:
+        :param receptor_frame:
+        :return: Gaintable
+        """
+        if data is None and pointing is not None:
+            nrec = receptor_frame.nrec
+            nrows = pointing.shape[0]
+            nants = pointing.shape[1]
+            nchan = pointing.shape[2]
+            assert len(frequency) == nchan, "Discrepancy in frequency channels"
+            desc = [('pointing', '>f16', (nants, nchan, nrec, 2)),
+                    ('weight', '>f8', (nants, nchan, nrec, 2)),
+                    ('residual', '>f8', (nchan, nrec, 2)),
+                    ('time', '>f8'),
+                    ('interval', '>f8')]
+            data = numpy.zeros(shape=[nrows], dtype=desc)
+            data['pointing'] = pointing
+            data['weight'] = weight
+            data['time'] = time
+            data['interval'] = interval
+            data['residual'] = residual
+        
+        self.data = data
+        self.frequency = frequency
+        self.receptor_frame = receptor_frame
+        self.pointing_frame = pointing_frame
+        self.pointingcentre = pointingcentre
+        self.configuration = configuration
+
+    def size(self):
+        """ Return size in GB
+        """
+        size = 0
+        size += self.data.size * sys.getsizeof(self.data)
+        return size / 1024.0 / 1024.0 / 1024.0
+    
+    @property
+    def time(self):
+        return self.data['time']
+    
+    @property
+    def interval(self):
+        return self.data['interval']
+
+    @property
+    def pointing(self):
+        return self.data['pointing']
+
+    @property
+    def weight(self):
+        return self.data['weight']
+    
+    @property
+    def residual(self):
+        return self.data['residual']
+    
+    @property
+    def ntimes(self):
+        return self.data['pointing'].shape[0]
+    
+    @property
+    def nants(self):
+        return self.data['pointing'].shape[1]
+    
+    @property
+    def nchan(self):
+        return self.data['pointing'].shape[2]
+    
+    @property
+    def nrec(self):
+        return self.receptor_frame.nrec
+    
+    def __str__(self):
+        """Default printer for GainTable
+
+        """
+        s = "GainTable:\n"
+        s += "\tTimes: %s\n" % str(self.ntimes)
+        s += "\tData shape: %s\n" % str(self.data.shape)
+        s += "\tReceptor frame: %s\n" % str(self.receptor_frame.type)
+        s += "\tPointing centre: %s\n" % str(self.pointingcentre)
+        s += "\tConfiguration: %s\n" % str(self.configuration)
+        return s
+
+
 class Image:
     """Image class with Image data (as a numpy.array) and the AstroPy `implementation of
     a World Coodinate System <http://docs.astropy.org/en/stable/wcs>`_
@@ -588,10 +692,25 @@ class SkyModel:
         """
         if components is None:
             components = []
+
+        if image is not None:
+            assert isinstance(image, Image), image
         self.image = image
+
+        if components is not None:
+            assert isinstance(components, list)
+            for comp in components:
+                assert isinstance(comp, Skycomponent), comp
         self.components = [sc for sc in components]
+        
+        if gaintable is not None:
+            assert isinstance(gaintable, GainTable), gaintable
         self.gaintable = gaintable
+        
+        if mask is not None:
+            assert isinstance(mask, Image), mask
         self.mask = mask
+        
         self.fixed = fixed
     
     def __str__(self):
@@ -904,7 +1023,7 @@ class BlockVisibility:
         return self.data['vis'].shape[1]
     
     @property
-    def uvw(self):  # In wavelengths meters
+    def uvw(self):  # In meters
         return self.data['uvw']
     
     @property

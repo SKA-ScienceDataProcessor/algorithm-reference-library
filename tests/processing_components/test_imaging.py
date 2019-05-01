@@ -14,8 +14,9 @@ from astropy.coordinates import SkyCoord
 from data_models.polarisation import PolarisationFrame
 from processing_components.image.operations import export_image_to_fits, smooth_image
 from processing_components.imaging.base import predict_2d, invert_2d, predict_skycomponent_visibility
-from processing_components.simulation.testing_support import create_named_configuration, ingest_unittest_visibility, \
+from processing_components.simulation.testing_support import ingest_unittest_visibility, \
     create_unittest_model, create_unittest_components
+from processing_components.simulation.configurations import create_named_configuration
 from processing_components.skycomponent.operations import find_skycomponents, find_nearest_skycomponent, \
     insert_skycomponent
 from processing_components.imaging.primary_beams import create_pb_generic
@@ -117,7 +118,7 @@ class TestImaging(unittest.TestCase):
         maxabs = numpy.max(numpy.abs(dirty[0].data))
         assert maxabs < fluxthreshold, "Error %.3f greater than fluxthreshold %.3f " % (maxabs, fluxthreshold)
     
-    def _invert_base(self, fluxthreshold=1.0, gcf=None, cf=None, positionthreshold=1.0, check_components=True,
+    def _invert_base(self, fluxthreshold=1.0, positionthreshold=1.0, check_components=True,
                      name='predict_2d', gcfcf=None, **kwargs):
         
         dirty = invert_2d(self.vis, self.model, dopsf=False, normalize=True, gcfcf = gcfcf, **kwargs)
@@ -156,7 +157,7 @@ class TestImaging(unittest.TestCase):
         self.actualSetUp(zerow=False)
         gcfcf = create_awterm_convolutionfunction(self.model, nw=100, wstep=8.0,
                                                     oversampling=8, support=100, use_aaf=True)
-        self._predict_base(name='predict_wterm', gcfcf = gcfcf, fluxthreshold=20.0)
+        self._predict_base(name='predict_wterm', gcfcf = gcfcf, fluxthreshold=5.0)
 
     def test_invert_wterm(self):
         self.actualSetUp(zerow=False)

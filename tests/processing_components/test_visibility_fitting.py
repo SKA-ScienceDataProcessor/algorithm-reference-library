@@ -13,7 +13,7 @@ from data_models.memory_data_models import Skycomponent
 from data_models.polarisation import PolarisationFrame
 
 from processing_components.imaging.base import predict_skycomponent_visibility
-from processing_components.simulation.testing_support import create_named_configuration
+from processing_components.simulation.configurations import create_named_configuration
 from processing_components.visibility.base import create_visibility
 from processing_components.visibility.visibility_fitting import fit_visibility
 

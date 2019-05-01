@@ -10,7 +10,7 @@
 
 #! sbatch directives begin here ###############################
 #! Name of the job:
-#SBATCH -J NNUMBER_NODES_WNUMBER_TASKS
+#SBATCH -J NNUMBER_NODESFNUMBER_FREQUENCY_WINDOWS
 #! Which project should be charged:
 #SBATCH -A SKA-SDP-SL2-CPU
 #! How many whole nodes should be allocated?
@@ -42,6 +42,8 @@
 #module purge                               # Removes all modules still loaded
 
 #! Set up python
+ulimit -n 65536
+
 . $HOME/arlenv/bin/activate
 export PYTHONPATH=$PYTHONPATH:$ARL
 echo "PYTHONPATH is ${PYTHONPATH}"
@@ -56,7 +58,7 @@ echo ${SLURM_JOB_NODELIST}
 cd $SLURM_SUBMIT_DIR
 echo -e "Changed directory to `pwd`.\n"
 # Archive the results
-archive="output_NNUMBER_NODES_WNUMBER_TASKS_${JOBID}_INCOMPLETE"
+archive="output_${JOBID}_NNUMBER_NODES_FNUMBER_FREQUENCY_WINDOWS_CCONTEXT_RRMAX_INCOMPLETE"
 mkdir ${archive}
 cd ${archive}
 
@@ -92,13 +94,16 @@ export ARL_DASK_SCHEDULER=${scheduler}:8786
 echo "Scheduler is running at ${scheduler}"
 
 root=${ARL}/workflows/scripts/pipelines/performance/pipelines-timings
-CMD="python ${root}/pipelines-timings.py --nnodes NUMBER_NODES --nworkers NUMBER_TASKS --memory MEMORY --nfreqwin NUMBER_FREQUENCY_WINDOWS --nthreads NUMBER_THREADS --jobid $JOBID --use_serial_imaging False --rmax 3000 --context wstack > pipelines-timings.out"
+cp ${root}/pipelines_arlexecute_timings.py .
+CMD="python pipelines_arlexecute_timings.py --nnodes NUMBER_NODES --nworkers NUMBER_TASKS --memory
+MEMORY
+--nfreqwin NUMBER_FREQUENCY_WINDOWS --nthreads NUMBER_THREADS --jobid $JOBID --use_serial_imaging SERIAL 
+--use_serial_clean SERIAL --rmax RMAX --context CONTEXT > pipelines_arlexecute_timings.out"
 echo "About to execute $CMD"
 eval $CMD
 
-cp ${root}/pipelines-timings.py .
 cp ${0}  ./
 mv ../slurm-${JOBID}.out .
-mv ../${archive} ../output_NNUMBER_NODES_WNUMBER_TASKS_${JOBID}_COMPLETE
+mv ../${archive} ../output_${JOBID}_NNUMBER_NODES_FNUMBER_FREQUENCY_WINDOWS_CCONTEXT_RRMAX_COMPLETE
 exit
 

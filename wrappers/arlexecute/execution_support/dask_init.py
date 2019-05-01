@@ -12,7 +12,8 @@ log = logging.getLogger(__name__)
 
 
 def get_dask_Client(timeout=30, n_workers=None, threads_per_worker=1, processes=True, create_cluster=True,
-                    memory_limit=None, local_dir='.'):
+                    memory_limit=None, local_dir='.', with_file=False,
+                    scheduler_file='./scheduler.json'):
     """ Get a Dask.distributed Client for the scheduler defined externally, otherwise create
 
     The environment variable ARL_DASK_SCHEDULER is interpreted as pointing to the scheduler.
@@ -30,7 +31,10 @@ def get_dask_Client(timeout=30, n_workers=None, threads_per_worker=1, processes=
     if scheduler is not None:
         print("Creating Dask Client using externally defined scheduler")
         c = Client(scheduler, timeout=timeout)
-    
+    elif with_file:
+        print("Creating Dask Client using externally defined scheduler in file  %s" % scheduler_file)
+        c = Client(scheduler_file=scheduler_file, timeout=timeout)
+        
     elif create_cluster:
         if n_workers is not None:
             if memory_limit is not None:

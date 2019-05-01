@@ -19,8 +19,9 @@ from wrappers.serial.skycomponent.operations import find_skycomponents, find_nea
     insert_skycomponent
 from wrappers.serial.griddata.convolution_functions import apply_bounding_box_convolutionfunction
 from wrappers.serial.griddata.kernels import create_awterm_convolutionfunction
-from wrappers.serial.simulation.testing_support import create_named_configuration, ingest_unittest_visibility, \
+from wrappers.serial.simulation.testing_support import ingest_unittest_visibility, \
     create_unittest_model, insert_unittest_errors, create_unittest_components
+from processing_components.simulation.configurations import create_named_configuration
 
 log = logging.getLogger(__name__)
 

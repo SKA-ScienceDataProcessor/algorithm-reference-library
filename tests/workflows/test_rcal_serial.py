@@ -20,7 +20,8 @@ from processing_library.image.operations import copy_image, create_empty_image_l
 from wrappers.serial.imaging.base import predict_skycomponent_visibility, \
     create_image_from_visibility
 from wrappers.serial.skycomponent.operations import create_skycomponent, insert_skycomponent
-from wrappers.serial.simulation.testing_support import create_named_configuration, simulate_gaintable
+from wrappers.serial.simulation.testing_support import simulate_gaintable
+from processing_components.simulation.configurations import create_named_configuration
 from wrappers.serial.visibility.base import create_blockvisibility, create_visibility
 
 from wrappers.serial.calibration.rcal import rcal

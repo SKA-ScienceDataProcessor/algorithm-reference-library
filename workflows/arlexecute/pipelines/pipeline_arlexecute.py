@@ -23,9 +23,9 @@ def ical_list_arlexecute_workflow(vis_list, model_imagelist, context, vis_slices
     :param kwargs: Parameters for functions in components
     :return:
     """
-
+    
     gt_list = list()
-
+    
     if gcfcf is None:
         gcfcf = [arlexecute.execute(create_pswf_convolutionfunction)(model_imagelist[0])]
     
@@ -42,12 +42,13 @@ def ical_list_arlexecute_workflow(vis_list, model_imagelist, context, vis_slices
     if do_selfcal:
         # Make the predicted visibilities, selfcalibrate against it correcting the gains, then
         # form the residual visibility, then make the residual image
-        model_vislist = predict_list_arlexecute_workflow(model_vislist, model_imagelist,
-                                                         context=context, vis_slices=vis_slices, facets=facets,
-                                                         gcfcf=gcfcf, **kwargs)
-        cal_vis_list, gt_list = calibrate_list_arlexecute_workflow(cal_vis_list, model_vislist,
-                                                             calibration_context=calibration_context, **kwargs)
-        residual_vislist = subtract_list_arlexecute_workflow(cal_vis_list, model_vislist)
+        predicted_model_vislist = predict_list_arlexecute_workflow(model_vislist, model_imagelist,
+                                                                   context=context, vis_slices=vis_slices,
+                                                                   facets=facets,
+                                                                   gcfcf=gcfcf, **kwargs)
+        recal_vis_list, gt_list = calibrate_list_arlexecute_workflow(cal_vis_list, predicted_model_vislist,
+                                                                   calibration_context=calibration_context, **kwargs)
+        residual_vislist = subtract_list_arlexecute_workflow(recal_vis_list, predicted_model_vislist)
         residual_imagelist = invert_list_arlexecute_workflow(residual_vislist, model_imagelist,
                                                              context=context, dopsf=False,
                                                              vis_slices=vis_slices, facets=facets, gcfcf=gcfcf,
@@ -59,22 +60,23 @@ def ical_list_arlexecute_workflow(vis_list, model_imagelist, context, vis_slices
                                                                vis_slices=vis_slices, facets=facets, gcfcf=gcfcf,
                                                                **kwargs)
     
-    deconvolve_model_imagelist, _ = deconvolve_list_arlexecute_workflow(residual_imagelist, psf_imagelist,
-                                                                        model_imagelist,
-                                                                        prefix='cycle 0',
-                                                                        **kwargs)
+    deconvolve_model_imagelist = deconvolve_list_arlexecute_workflow(residual_imagelist, psf_imagelist,
+                                                                     model_imagelist,
+                                                                     prefix='cycle 0',
+                                                                     **kwargs)
     nmajor = get_parameter(kwargs, "nmajor", 5)
     if nmajor > 1:
         for cycle in range(nmajor):
             if do_selfcal:
-                model_vislist = predict_list_arlexecute_workflow(model_vislist, deconvolve_model_imagelist,
-                                                                 context=context, vis_slices=vis_slices, facets=facets,
-                                                                 gcfcf=gcfcf, **kwargs)
-                cal_vis_list = [arlexecute.execute(copy_visibility, nout=1)(v) for v in vis_list]
-                cal_vis_list, gt_list = calibrate_list_arlexecute_workflow(cal_vis_list, model_vislist,
-                                                                     calibration_context=calibration_context,
-                                                                     iteration=cycle, **kwargs)
-                residual_vislist = subtract_list_arlexecute_workflow(cal_vis_list, model_vislist)
+                predicted_model_vislist = predict_list_arlexecute_workflow(model_vislist, deconvolve_model_imagelist,
+                                                                           context=context, vis_slices=vis_slices,
+                                                                           facets=facets,
+                                                                           gcfcf=gcfcf, **kwargs)
+                recal_vis_list, gt_list = calibrate_list_arlexecute_workflow(cal_vis_list,
+                                                                           predicted_model_vislist,
+                                                                           calibration_context=calibration_context,
+                                                                           iteration=cycle, **kwargs)
+                residual_vislist = subtract_list_arlexecute_workflow(recal_vis_list, model_vislist)
                 residual_imagelist = invert_list_arlexecute_workflow(residual_vislist, model_imagelist,
                                                                      context=context,
                                                                      vis_slices=vis_slices, facets=facets,
@@ -87,14 +89,14 @@ def ical_list_arlexecute_workflow(vis_list, model_imagelist, context, vis_slices
                                                                        **kwargs)
             
             prefix = "cycle %d" % (cycle + 1)
-            deconvolve_model_imagelist, _ = deconvolve_list_arlexecute_workflow(residual_imagelist, psf_imagelist,
-                                                                                deconvolve_model_imagelist,
-                                                                                prefix=prefix,
-                                                                                **kwargs)
+            deconvolve_model_imagelist = deconvolve_list_arlexecute_workflow(residual_imagelist, psf_imagelist,
+                                                                             deconvolve_model_imagelist,
+                                                                             prefix=prefix,
+                                                                             **kwargs)
     residual_imagelist = residual_list_arlexecute_workflow(cal_vis_list, deconvolve_model_imagelist, context=context,
                                                            vis_slices=vis_slices, facets=facets, gcfcf=gcfcf, **kwargs)
     restore_imagelist = restore_list_arlexecute_workflow(deconvolve_model_imagelist, psf_imagelist, residual_imagelist)
-    return arlexecute.execute((deconvolve_model_imagelist, residual_imagelist, restore_imagelist, gt_list))
+    return (deconvolve_model_imagelist, residual_imagelist, restore_imagelist, gt_list)
 
 
 def continuum_imaging_list_arlexecute_workflow(vis_list, model_imagelist, context, gcfcf=None,
@@ -118,10 +120,10 @@ def continuum_imaging_list_arlexecute_workflow(vis_list, model_imagelist, contex
     residual_imagelist = residual_list_arlexecute_workflow(vis_list, model_imagelist, context=context, gcfcf=gcfcf,
                                                            vis_slices=vis_slices, facets=facets, **kwargs)
     
-    deconvolve_model_imagelist, _ = deconvolve_list_arlexecute_workflow(residual_imagelist, psf_imagelist,
-                                                                        model_imagelist,
-                                                                        prefix='cycle 0',
-                                                                        **kwargs)
+    deconvolve_model_imagelist = deconvolve_list_arlexecute_workflow(residual_imagelist, psf_imagelist,
+                                                                     model_imagelist,
+                                                                     prefix='cycle 0',
+                                                                     **kwargs)
     nmajor = get_parameter(kwargs, "nmajor", 5)
     if nmajor > 1:
         for cycle in range(nmajor):
@@ -130,15 +132,15 @@ def continuum_imaging_list_arlexecute_workflow(vis_list, model_imagelist, contex
                                                                    context=context, vis_slices=vis_slices,
                                                                    facets=facets,
                                                                    gcfcf=gcfcf, **kwargs)
-            deconvolve_model_imagelist, _ = deconvolve_list_arlexecute_workflow(residual_imagelist, psf_imagelist,
-                                                                                deconvolve_model_imagelist,
-                                                                                prefix=prefix,
-                                                                                **kwargs)
+            deconvolve_model_imagelist = deconvolve_list_arlexecute_workflow(residual_imagelist, psf_imagelist,
+                                                                             deconvolve_model_imagelist,
+                                                                             prefix=prefix,
+                                                                             **kwargs)
     
     residual_imagelist = residual_list_arlexecute_workflow(vis_list, deconvolve_model_imagelist, context=context,
                                                            vis_slices=vis_slices, facets=facets, gcfcf=gcfcf, **kwargs)
     restore_imagelist = restore_list_arlexecute_workflow(deconvolve_model_imagelist, psf_imagelist, residual_imagelist)
-    return arlexecute.execute((deconvolve_model_imagelist, residual_imagelist, restore_imagelist))
+    return (deconvolve_model_imagelist, residual_imagelist, restore_imagelist)
 
 
 def spectral_line_imaging_list_arlexecute_workflow(vis_list, model_imagelist, context, continuum_model_imagelist=None,

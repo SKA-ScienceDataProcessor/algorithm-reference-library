@@ -15,8 +15,10 @@ dask-worker-space
 */notebooks/*_files
 */notebooks/*.rst
 *.log
-*.fits
 *.lock
 *.hdf5
 *.pyc
 /build
+/test_results
+*.so
+*.egg

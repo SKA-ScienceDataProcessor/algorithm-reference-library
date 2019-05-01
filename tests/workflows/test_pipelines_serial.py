@@ -18,8 +18,9 @@ from workflows.serial.pipelines.pipeline_serial import ical_list_serial_workflow
 from wrappers.serial.calibration.calibration_control import create_calibration_controls
 from wrappers.serial.image.operations import export_image_to_fits, qa_image, smooth_image
 from wrappers.serial.imaging.base import predict_skycomponent_visibility
-from wrappers.serial.simulation.testing_support import create_named_configuration, ingest_unittest_visibility, \
+from wrappers.serial.simulation.testing_support import ingest_unittest_visibility, \
     create_unittest_model, create_unittest_components, insert_unittest_errors
+from processing_components.simulation.configurations import create_named_configuration
 from wrappers.serial.skycomponent.operations import insert_skycomponent
 from wrappers.serial.visibility.coalesce import convert_blockvisibility_to_visibility
 from wrappers.serial.simulation.testing_support import simulate_gaintable
