@@ -6,3 +6,5 @@ ARL contributors
 * **[Bojan Nikolic](http://github.com/bnikolic)**
   
 * **[Peter Wortmann](http://github.com/scpmw)**
+
+* **[Montse Farreras](http://github.com/mfarrera)**

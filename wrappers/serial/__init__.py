@@ -7,8 +7,6 @@ __all__ = [
     'griddata',
     'image',
     'imaging',
-    'non_imaging',
-    'notebooks',
     'simulation',
     'skycomponent',
     'skymodel',
