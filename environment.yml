@@ -1,0 +1,31 @@
+# conda environment for arl
+#
+# Create it using:
+#
+#   conda env create -f environment.yml 
+#   conda activate arl
+#   conda config --env --prepend channels astropy
+#
+name: arl
+channels:
+  - astropy
+  - defaults
+dependencies:
+  - numpy
+  - scipy
+  - scikit-image
+  - matplotlib
+  - h5py
+  - dask
+  - distributed
+  - python-graphviz
+  - bokeh
+  - jupyter
+  - sphinx
+  - sphinx_rtd_theme
+  - astropy
+  - photutils
+  - reproject
+  - pip
+  - pip:
+    - seqfile
