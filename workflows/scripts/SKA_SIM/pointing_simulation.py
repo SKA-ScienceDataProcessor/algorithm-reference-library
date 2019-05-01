@@ -1,6 +1,5 @@
-# # Simulation of the effect of pointing errors on MID observations
-
-
+"""Simulation of the effect of pointing errors on MID observations
+"""
 import csv
 import socket
 import sys
@@ -16,6 +15,10 @@ import numpy
 
 from astropy.coordinates import SkyCoord
 from astropy import units as u
+
+import matplotlib as mpl
+
+mpl.use('Agg')
 
 from matplotlib import pyplot as plt
 
@@ -57,34 +60,38 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Simulate pointing errors')
     parser.add_argument('--context', type=str, default='singlesource',
                         help='s3sky or singlesource')
-
+    
     parser.add_argument('--rmax', type=float, default=1e5,
                         help='Maximum distance of station from centre (m)')
-
+    
+    parser.add_argument('--global_pe', type=float, nargs=2, default=[0.0, 0.0], help='Global pointing error')
+    parser.add_argument('--static_pe', type=float, default=0.0, help='Multiplier for static errors')
+    parser.add_argument('--dynamic_pe', type=float, default=1.0, help='Multiplier for dynamic errors')
     parser.add_argument('--nnodes', type=int, default=1, help='Number of nodes')
     parser.add_argument('--nthreads', type=int, default=1, help='Number of threads')
     parser.add_argument('--memory', type=int, default=8, help='Memory per worker')
-    parser.add_argument('--nworkers', type=int, default=1, help='Number of workers')
+    parser.add_argument('--nworkers', type=int, default=8, help='Number of workers')
     parser.add_argument('--flux_limit', type=float, default=1.0, help='Flux limit (Jy)')
     parser.add_argument('--show', type=str, default='False', help='Show images?')
     parser.add_argument('--ngroup', type=int, default=8, help='Process in groups this large')
-
+    
     args = parser.parse_args()
+    
     show = args.show == 'True'
     context = args.context
     rmax = args.rmax
     flux_limit = args.flux_limit
-
+    
     nworkers = args.nworkers
     nnodes = args.nnodes
     threads_per_worker = args.nthreads
     memory = args.memory
     
     ngroup = args.ngroup
-
+    
     print("Using %s workers" % nworkers)
     print("Using %s threads per worker" % threads_per_worker)
-
+    
     # Set up DASK
     client = get_dask_Client(threads_per_worker=threads_per_worker,
                              processes=threads_per_worker == 1,
@@ -112,13 +119,13 @@ if __name__ == '__main__':
     
     vis = convert_blockvisibility_to_visibility(block_vis)
     advice = advise_wide_field(vis, guard_band_image=1.0, delA=0.02)
-
+    
     # We need the HWHM of the primary beam. Got this by trial and error
     HWHM_deg = 1.03 * 180.0 * 3e8 / (numpy.pi * diameter * frequency[0])
-
+    
     print('HWHM beam = %g deg' % HWHM_deg)
     HWHM = HWHM_deg * numpy.pi / 180.0
-
+    
     cellsize = advice['cellsize']
     if context == 's3sky':
         pb_npixel = 4096
@@ -128,7 +135,7 @@ if __name__ == '__main__':
         npixel = 512
         pb_npixel = 4096
         pb_cellsize = HWHM / pb_npixel
-
+    
     if show:
         plt.clf()
         plt.plot(vis.u, vis.v, '.')
@@ -140,7 +147,7 @@ if __name__ == '__main__':
     
     vis = weight_list_serial_workflow([vis], [model])[0]
     block_vis = convert_visibility_to_blockvisibility(vis)
-
+    
     # Construct the skycomponents
     if context == 'singlesource':
         print("Constructing single component")
@@ -179,8 +186,8 @@ if __name__ == '__main__':
     if show:
         show_image(pb, title='%s: primary beam' % context)
         plt.show(block=False)
-
-    print("Constructing voltage pattern with no errors")
+    
+    print("Constructing voltage pattern")
     vp = create_vp(vp, 'MID', pointingcentre=pb_direction)
     pt = create_pointingtable_from_blockvisibility(block_vis, vp)
     
@@ -193,8 +200,8 @@ if __name__ == '__main__':
     
     # We do this in chunks of eight to avoid creating all visibilities at once
     no_error_blockvis = copy_visibility(block_vis, zero=True)
-
-    print("Predicting no error visibilities in chunks of %d skymodels" %  ngroup)
+    
+    print("Predicting error-free visibilities in chunks of %d skymodels" % ngroup)
     future_vis = arlexecute.scatter(no_error_blockvis)
     chunks = [no_error_sm[i:i + ngroup] for i in range(0, len(no_error_sm), ngroup)]
     for chunk in chunks:
@@ -203,20 +210,21 @@ if __name__ == '__main__':
         for w in work_vis:
             no_error_blockvis.data['vis'] += w.data['vis']
         assert numpy.max(numpy.abs(no_error_blockvis.data['vis'])) > 0.0
-
+    
     no_error_vis = convert_blockvisibility_to_visibility(no_error_blockvis)
-
-    static = 0.0
-    dynamic = 1.0
-    fwhm = 1.0
+    
     pes = [1.0, 2.0, 4.0, 8.0, 16.0, 32.0, 64.0, 128.0, 256.0]
     results = []
     
     filename = seqfile.findNextFile(prefix='pointingsimulation_%s_' % socket.gethostname(), suffix='.csv')
     print('Saving results to %s' % filename)
     plotfile = seqfile.findNextFile(prefix='pointingsimulation_%s_' % socket.gethostname(), suffix='.jpg')
-
+    
     epoch = time.strftime("%Y-%m-%d %H:%M:%S")
+    
+    global_pe = numpy.array(args.global_pe)
+    static_pe = args.static_pe
+    dynamic_pe = args.dynamic_pe
     
     # Now loop over all pointing errors
     for pe in pes:
@@ -231,17 +239,26 @@ if __name__ == '__main__':
         result['pb_npixel'] = pb_npixel
         result['flux_limit'] = flux_limit
         
+        result['global_pe'] = global_pe
+        result['static_pe'] = static_pe
+        result['dynamic_pe'] = dynamic_pe
+        
         a2r = numpy.pi / (3600.0 * 180.0)
-        static_pointing_error = static * pe
-        pointing_error = dynamic * pe
+        global_pointing_error = global_pe
+        static_pointing_error = static_pe * pe
+        pointing_error = dynamic_pe * pe
         
         result['static_pointing_error'] = static_pointing_error
         result['dynamic_pointing_error'] = pointing_error
+        result['global_pointing_error'] = global_pointing_error
         
-        print("Pointing errors: static %.1f arcsec, dynamic %.1f arcsec" % (static_pointing_error, pointing_error))
+        print("Pointing errors: global (%.1f, %.1f) arcsec, static %.1f arcsec, dynamic %.1f arcsec" %
+              (global_pointing_error[0], global_pointing_error[1], static_pointing_error,
+               pointing_error))
         
         error_pt = simulate_pointingtable(pt, pointing_error=pointing_error * a2r,
-                                          static_pointing_error=static_pointing_error * a2r, seed=18051955)
+                                          static_pointing_error=static_pointing_error * a2r,
+                                          global_pointing_error=global_pointing_error * a2r, seed=18051955)
         export_pointingtable_to_hdf5(error_pt,
                                      'pointingsim_%s_error_%.0farcsec_pointingtable.hdf5' % (context, pe))
         
@@ -251,7 +268,7 @@ if __name__ == '__main__':
                     for i, _ in enumerate(original_components)]
         
         error_blockvis = copy_visibility(block_vis, zero=True)
-
+        
         print("Predicting corrupted visibilities in chunks of %d skymodels" % ngroup)
         future_vis = arlexecute.scatter(error_blockvis)
         chunks = [error_sm[i:i + ngroup] for i in range(0, len(error_sm), ngroup)]
@@ -272,7 +289,7 @@ if __name__ == '__main__':
         if show:
             show_image(dirty, cm='gray_r', title='Residual image on-source')
             plt.show(block=False)
-            
+        
         qa = qa_image(dirty)
         for field in ['maxabs', 'rms', 'medianabs']:
             result["onsource_" + field] = qa.data[field]
@@ -287,7 +304,7 @@ if __name__ == '__main__':
         if show:
             show_image(outlier_dirty, cm='gray_r', title='Outlier residual image (dec -35deg)')
             plt.show(block=False)
-            
+        
         qa = qa_image(outlier_dirty)
         for field in ['maxabs', 'rms', 'medianabs']:
             result["outlier_" + field] = qa.data[field]
@@ -306,7 +323,7 @@ if __name__ == '__main__':
         for result in results:
             writer.writerow(result)
         csvfile.close()
-
+    
     plt.clf()
     colors = ['r', 'b', 'g']
     for ifield, field in enumerate(['onsource_maxabs', 'onsource_rms', 'onsource_medianabs']):
@@ -315,12 +332,13 @@ if __name__ == '__main__':
         plt.loglog(pes, [result[field] for result in results], '--', label=field, color=colors[ifield])
     plt.xlabel('Pointing error (arcsec)')
     plt.ylabel('Error (Jy)')
-    plt.title('%s, %g Hz, %d times, full array: dynamic %g, static %g' %
-              (context, frequency[0], ntimes, dynamic, static))
-    plt.legend()
+    
+    title = '%s, %.3f GHz, %d times: dynamic %g, static %g \n%s %s' % \
+        (context, frequency[0] * 1e-9, ntimes, dynamic_pe, static_pe, socket.gethostname(), epoch)
+    plt.title(title)
+    plt.legend(fontsize='x-small')
     print('Saving plot to %s' % plotfile)
-
+    
     plt.savefig(plotfile)
     plt.show()
     plt.show()
-    

@@ -59,11 +59,11 @@ class TestPointing(unittest.TestCase):
             assert pt.pointing.shape == (300, 63, 1, 1, 2), pt.pointing.shape
     
     def test_create_gaintable_from_pointingtable(self):
-        s3_components = [create_test_skycomponents_from_s3(flux_limit=5.0,
+        s3_components = create_test_skycomponents_from_s3(flux_limit=5.0,
                                                            phasecentre=self.phasecentre,
                                                            frequency=self.frequency,
                                                            polarisation_frame=PolarisationFrame('stokesI'),
-                                                           radius=0.2)[0]]
+                                                           radius=0.2)
         
         pt = create_pointingtable_from_blockvisibility(self.vis)
         pt = simulate_pointingtable(pt, pointing_error=0.01, static_pointing_error=0.001)
