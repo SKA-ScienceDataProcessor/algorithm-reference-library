@@ -13,15 +13,12 @@ numpy
 scipy
 matplotlib
 Sphinx
-wcsaxes
 reproject
 astropy
 alabaster
 photutils
-scikit-image
 dask
 distributed
-paramiko
 toolz
 graphviz
 pandoc
