@@ -1,3 +1,5 @@
+**May 1, 2019** [Tim] New workflow to map a function across an image: image_arlexecute_map_workflow
+
 **April 28, 2019** [Tim] Fill in all __init__.py files so that tab completion works.
 
 **April 16, 2019** [Tim] Added examples/comparisons directory hold code for comparing ARL results with those from 
