@@ -79,6 +79,7 @@ class TestSkyModel(unittest.TestCase):
                                                                         self.phasecentre, block=block,
                                                                         zerow=zerow)
                          for freqwin, _ in enumerate(self.frequency)]
+        self.vis_list = arlexecute.persist(self.vis_list)
         
     
     def test_time_setup(self):
