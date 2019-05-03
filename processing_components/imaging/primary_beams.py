@@ -10,9 +10,11 @@ from astropy import constants as const
 
 from data_models.memory_data_models import Image
 from data_models.parameters import arl_path
+from processing_library.image.operations import fft_image, pad_image
 from processing_components.image.operations import create_empty_image_like
 from ..image.operations import import_image_from_fits, create_image_from_array, \
     reproject_image
+
 
 log = logging.getLogger(__name__)
 
@@ -25,8 +27,18 @@ def ft_disk(r):
     result[r == 0] = 2.0 * jn(1, rsmall) / rsmall
     return result
 
+def tapered_disk(r, radius, blockage=0.0, taper='gaussian', edge=1.0):
+    
+    result = numpy.zeros_like(r, dtype='complex')
+    if taper == 'gaussian':
+        # exp(-gscale*radius**2) = taper
+        gscale = -numpy.log(edge)/radius**2
+        result[r < radius] = numpy.exp(- gscale * r[r < radius]**2)
+    result[r < blockage] = 0.0
+    return result
 
-def create_vp(model, telescope='MID', pointingcentre=None):
+
+def create_vp(model, telescope='MID', pointingcentre=None, numeric=True, padding=4):
     """
     Make an image like model and fill it with an analytical model of the voltage pattern
     :param model: Template image
@@ -34,7 +46,17 @@ def create_vp(model, telescope='MID', pointingcentre=None):
     :return: Primary beam image
     """
     if telescope[0:3] == 'MID':
-        return create_vp_generic(model, pointingcentre=pointingcentre, diameter=15.0, blockage=0.0)
+        # Should actually have -12dB (0.07918124604762482) taper at the edge: will require numerical approach
+        if numeric:
+            log.info("create_vp: Using numeric tapered Gaussian model for MID primary beam")
+    
+            return create_vp_generic_numeric(model, pointingcentre=pointingcentre, diameter=15.0, blockage=0.0,
+                                         edge=0.07918124604762482, padding=padding)
+        else:
+            log.info("create_vp: Using no taper analytic model for MID primary beam")
+            return create_vp_generic(model, pointingcentre=pointingcentre, diameter=15.0, blockage=0.0)
+
+            
     elif telescope[0:3] == 'MEERKAT':
         return create_vp_generic(model, pointingcentre=pointingcentre, diameter=13.5, blockage=0.0)
     elif telescope[0:3] == 'LOW':
@@ -47,7 +69,7 @@ def create_vp(model, telescope='MID', pointingcentre=None):
         raise NotImplementedError('Telescope %s has no voltage pattern model' % telescope)
 
 
-def create_pb(model, telescope='MID', pointingcentre=None):
+def create_pb(model, telescope='MID', pointingcentre=None, numeric=True):
     """
     Make an image like model and fill it with an analytical model of the primary beam
     :param model: Template image
@@ -57,12 +79,12 @@ def create_pb(model, telescope='MID', pointingcentre=None):
     if telescope=='LOW':
         beam = create_low_test_beam(model)
     else:
-        beam = create_vp(model, telescope, pointingcentre)
+        beam = create_vp(model, telescope, pointingcentre, numeric=numeric)
         beam.data = numpy.real(beam.data * numpy.conjugate(beam.data))
     return beam
 
 
-def mosaic_pb(model, telescope, pointingcentres):
+def mosaic_pb(model, telescope, pointingcentres, numeric=True):
     """ Create a mosaic primary beam by adding primary beams for a set of pointing centres
     
     Note that the addition is root sum of squares
@@ -75,23 +97,23 @@ def mosaic_pb(model, telescope, pointingcentres):
     assert isinstance(pointingcentres, collections.Iterable), "Need a list of pointing centres"
     sumpb = create_empty_image_like(model)
     for pc in pointingcentres:
-        pb = create_pb(model, telescope, pointingcentre=pc)
+        pb = create_pb(model, telescope, pointingcentre=pc, numeric=numeric)
         sumpb.data += pb.data ** 2
     sumpb.data = numpy.sqrt(sumpb.data)
     return sumpb
 
-def create_pb_generic(model, pointingcentre=None, diameter=25.0, blockage=1.8):
+def create_pb_generic(model, pointingcentre=None, diameter=25.0, blockage=1.8, numeric=True):
     """
     Make an image like model and fill it with an analytical model of the primary beam
     :param model:
     :return:
     """
-    beam = create_vp_generic(model, pointingcentre, diameter, blockage)
+    beam = create_vp_generic(model, pointingcentre, diameter, blockage, numeric=numeric)
     beam.data = numpy.real(beam.data * numpy.conjugate(beam.data))
     return beam
 
 
-def create_vp_generic(model, pointingcentre=None, diameter=25.0, blockage=1.8):
+def create_vp_generic(model, pointingcentre=None, diameter=25.0, blockage=1.8, numeric=True):
     """
     Make an image like model and fill it with an analytical model of the primary beam
     :param model:
@@ -126,6 +148,55 @@ def create_vp_generic(model, pointingcentre=None, diameter=25.0, blockage=1.8):
             blockage = ft_disk(rr * numpy.pi * blockage / wavelength)
             beam.data[chan, pol, ...] = reflector - blockage_factor * blockage
     
+    return beam
+
+
+def create_vp_generic_numeric(model, pointingcentre=None, diameter=15.0, blockage=0.0, taper='gaussian',
+                              edge=0.03162278, padding=4):
+    """
+    Make an image like model and fill it with an analytical model of the primary beam
+    :param model:
+    :return:
+    """
+    beam = create_empty_image_like(model)
+    nchan, npol, ny, nx = beam.shape
+    padded_shape = [nchan, npol, padding*ny, padding*nx]
+    padded_beam = pad_image(beam, padded_shape)
+    padded_beam.data = numpy.zeros(padded_beam.data.shape, dtype='complex')
+    _, _, pny, pnx = padded_beam.shape
+
+    xfr = fft_image(padded_beam)
+    cx, cy = xfr.wcs.sub(2).wcs.crpix[0] - 1, xfr.wcs.sub(2).wcs.crpix[1] - 1
+
+    for chan in range(nchan):
+        
+        # The frequency axis is the second to last in the beam
+        frequency = xfr.wcs.sub(['spectral']).wcs_pix2world([chan], 0)[0]
+        wavelength = const.c.to('m s^-1').value / frequency
+        
+        scalex = xfr.wcs.sub(2).wcs.cdelt[0] * wavelength
+        scaley = xfr.wcs.sub(2).wcs.cdelt[1] * wavelength
+        xx, yy = numpy.meshgrid(scalex * (range(pnx) - cx), scaley * (range(pny) - cy))
+        
+        # Radius of each cell in radians
+        rr = numpy.sqrt(xx ** 2 + yy ** 2)
+        for pol in range(npol):
+            xfr.data[chan, pol, ...] = tapered_disk(rr, diameter/2.0, blockage=blockage/2.0, edge=edge, taper=taper)
+
+        if pointingcentre is not None:
+            # Correct for pointing centre
+            pcx, pcy = pointingcentre.to_pixel(padded_beam.wcs, origin=0)
+            pxx, pyy = numpy.meshgrid((range(pnx) - cx), (range(pny) - cy))
+            xfr.data[chan, pol, ...] *= numpy.exp(numpy.pi * 2j * ((pcx - cx)* pxx / float(pnx) +
+                                                                    (pcy - cy)* pyy / float(pny)))
+
+    padded_beam = fft_image(xfr, padded_beam)
+    
+    # Undo padding
+    beam = create_empty_image_like(model)
+    beam.data = padded_beam.data[...,(pny//2 - ny//2):(pny//2 + ny//2), (pnx//2 - nx//2):(pnx//2 + nx//2) ]
+    for chan in range(nchan):
+        beam.data[chan,...] /= numpy.max(numpy.abs(beam.data[chan,...]))
     return beam
 
 
