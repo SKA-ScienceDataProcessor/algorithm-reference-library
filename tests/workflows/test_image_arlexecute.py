@@ -19,17 +19,15 @@ from processing_components.visibility.base import create_visibility
 
 from workflows.arlexecute.image.image_arlexecute import image_arlexecute_map_workflow
 from wrappers.arlexecute.image.operations import export_image_to_fits
-from wrappers.arlexecute.execution_support.dask_init import get_dask_Client
+from tests.workflows import ARLExecuteTestCase
 from wrappers.arlexecute.execution_support.arlexecute import arlexecute
 
 log = logging.getLogger(__name__)
 
 
-class TestImageGraph(unittest.TestCase):
+class TestImageGraph(ARLExecuteTestCase, unittest.TestCase):
     def setUp(self):
-        client = get_dask_Client(memory_limit=4 * 1024 * 1024 * 1024)
-
-        arlexecute.set_client(client)
+        super(TestImageGraph, self).setUp()
         from data_models.parameters import arl_path
         self.dir = arl_path('test_results')
         

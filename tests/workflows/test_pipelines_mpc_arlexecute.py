@@ -11,6 +11,7 @@ from data_models.parameters import arl_path
 from data_models.polarisation import PolarisationFrame
 from processing_components.image.operations import create_empty_image_like
 from processing_components.simulation.ionospheric_screen import grid_gaintable_to_screen
+from tests.workflows import ARLExecuteTestCase
 from workflows.arlexecute.imaging.imaging_arlexecute import invert_list_arlexecute_workflow
 from workflows.arlexecute.imaging.imaging_arlexecute import restore_list_arlexecute_workflow
 from workflows.arlexecute.pipelines.pipeline_mpccal_arlexecute import mpccal_skymodel_list_arlexecute_workflow
@@ -33,7 +34,6 @@ from processing_components.simulation.configurations import create_named_configu
 from wrappers.serial.skycomponent.operations import apply_beam_to_skycomponent
 from wrappers.serial.skycomponent.operations import filter_skycomponents_by_flux
 from wrappers.serial.visibility.base import create_blockvisibility
-from wrappers.arlexecute.execution_support.dask_init import get_dask_Client
 
 log = logging.getLogger(__name__)
 
@@ -42,11 +42,11 @@ log.addHandler(logging.StreamHandler(sys.stdout))
 log.addHandler(logging.StreamHandler(sys.stderr))
 
 
-class TestPipelineMPC(unittest.TestCase):
+class TestPipelineMPC(ARLExecuteTestCase, unittest.TestCase):
     def setUp(self):
-        client = get_dask_Client(memory_limit=4 * 1024 * 1024 * 1024)
-        arlexecute.set_client(client)
-
+        
+        super(TestPipelineMPC, self).setUp()
+    
     def progress(self, res, tl_list, gt_list, it):
         """Write progress information
         
