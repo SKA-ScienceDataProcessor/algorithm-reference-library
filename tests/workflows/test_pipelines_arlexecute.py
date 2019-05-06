@@ -18,6 +18,7 @@ from workflows.arlexecute.pipelines.pipeline_arlexecute import ical_list_arlexec
     continuum_imaging_list_arlexecute_workflow
 from wrappers.arlexecute.calibration.calibration_control import create_calibration_controls
 from wrappers.arlexecute.execution_support.arlexecute import arlexecute
+from wrappers.arlexecute.execution_support.dask_init import get_dask_Client
 from wrappers.arlexecute.image.operations import export_image_to_fits, qa_image, smooth_image
 from wrappers.arlexecute.imaging.base import predict_skycomponent_visibility
 from wrappers.arlexecute.simulation.testing_support import ingest_unittest_visibility, \
@@ -28,9 +29,6 @@ from wrappers.arlexecute.visibility.coalesce import convert_blockvisibility_to_v
 from wrappers.arlexecute.simulation.testing_support import simulate_gaintable
 from wrappers.arlexecute.calibration.operations import create_gaintable_from_blockvisibility, apply_gaintable
 
-
-from tests.workflows import ARLExecuteTestCase
-
 log = logging.getLogger(__name__)
 
 log.setLevel(logging.DEBUG)
@@ -38,10 +36,11 @@ log.addHandler(logging.StreamHandler(sys.stdout))
 log.addHandler(logging.StreamHandler(sys.stderr))
 
 
-class TestPipelineGraphs(ARLExecuteTestCase, unittest.TestCase):
+class TestPipelineGraphs(unittest.TestCase):
     
     def setUp(self):
-        super(TestPipelineGraphs, self).setUp()
+        client = get_dask_Client(memory_limit=4 * 1024 * 1024 * 1024)
+        arlexecute.set_client(client)
         from data_models.parameters import arl_path
         self.dir = arl_path('test_results')
         self.persist = True

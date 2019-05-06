@@ -17,6 +17,7 @@ from workflows.arlexecute.calibration.calibration_arlexecute import calibrate_li
 from wrappers.arlexecute.calibration.calibration_control import create_calibration_controls
 from wrappers.arlexecute.calibration.operations import create_gaintable_from_blockvisibility, apply_gaintable
 from wrappers.arlexecute.execution_support.arlexecute import arlexecute
+from wrappers.arlexecute.execution_support.dask_init import get_dask_Client
 from wrappers.arlexecute.simulation.testing_support import ingest_unittest_visibility
 from processing_components.simulation.configurations import create_named_configuration
 from wrappers.arlexecute.simulation.testing_support import simulate_gaintable
@@ -29,10 +30,12 @@ log.addHandler(logging.StreamHandler(sys.stdout))
 log.addHandler(logging.StreamHandler(sys.stderr))
 
 
-class TestCalibrateGraphs(ARLExecuteTestCase, unittest.TestCase):
+class TestCalibrateGraphs(unittest.TestCase):
     
     def setUp(self):
-        super(TestCalibrateGraphs, self).setUp()
+        client = get_dask_Client(memory_limit=4 * 1024 * 1024 * 1024)
+        arlexecute.set_client(client)
+    
         from data_models.parameters import arl_path
         self.dir = arl_path('test_results')
     
