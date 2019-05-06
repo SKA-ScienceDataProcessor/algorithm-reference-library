@@ -62,9 +62,11 @@ class TestPrimaryBeams(unittest.TestCase):
             assert numpy.max(numpy.abs(beam.data.imag)) < 1e-15, numpy.max(numpy.abs(beam.data.imag))
 
     def test_create_voltage_patterns_numeric(self):
-        self.createVis(freq=1.4e9)
-        model = create_image_from_visibility(self.vis, npixel=512, cellsize=0.0004, override_cellsize=False)
-        pointingcentre = SkyCoord(ra=+17.0 * u.deg, dec=-37.0 * u.deg, frame='icrs', equinox='J2000')
+        self.createVis(freq=1.35e9)
+        cellsize=1.031324e+02*numpy.pi/(180.0*3600.0)
+
+        model = create_image_from_visibility(self.vis, npixel=281, cellsize=cellsize, override_cellsize=False)
+        pointingcentre = None
         for telescope in ['MID']:
             beam=create_vp(model, telescope=telescope, padding=4, pointingcentre=pointingcentre)
             beam_data = beam.data
@@ -76,3 +78,20 @@ class TestPrimaryBeams(unittest.TestCase):
             beam=create_vp(model, telescope=telescope, numeric=False, pointingcentre=pointingcentre)
             beam.data = numpy.real(beam.data)
             export_image_to_fits(beam, "%s/test_primary_beam_analytic_%s.fits" % (self.dir, telescope))
+
+    def test_create_voltage_patterns_numeric_offset(self):
+        self.createVis(freq=1.4e9)
+        cellsize=8*numpy.pi/180.0/280
+        model = create_image_from_visibility(self.vis, npixel=512, cellsize=cellsize, override_cellsize=False)
+        pointingcentre = SkyCoord(ra=+17.0 * u.deg, dec=-37.0 * u.deg, frame='icrs', equinox='J2000')
+        for telescope in ['MID']:
+            beam=create_vp(model, telescope=telescope, padding=4, pointingcentre=pointingcentre)
+            beam_data = beam.data
+            beam.data = numpy.real(beam_data)
+            export_image_to_fits(beam, "%s/test_primary_beam_offset_numeric_real_%s.fits" % (self.dir, telescope))
+            beam.data = numpy.imag(beam_data)
+            export_image_to_fits(beam, "%s/test_primary_beam_offset_numeric_imag_%s.fits" % (self.dir, telescope))
+
+            beam=create_vp(model, telescope=telescope, numeric=False, pointingcentre=pointingcentre)
+            beam.data = numpy.real(beam.data)
+            export_image_to_fits(beam, "%s/test_primary_beam_offset_analytic_%s.fits" % (self.dir, telescope))

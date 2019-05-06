@@ -34,6 +34,7 @@ from processing_components.simulation.configurations import create_named_configu
 from wrappers.serial.skycomponent.operations import apply_beam_to_skycomponent
 from wrappers.serial.skycomponent.operations import filter_skycomponents_by_flux
 from wrappers.serial.visibility.base import create_blockvisibility
+from wrappers.arlexecute.execution_support.dask_init import get_dask_Client
 
 log = logging.getLogger(__name__)
 
@@ -42,11 +43,13 @@ log.addHandler(logging.StreamHandler(sys.stdout))
 log.addHandler(logging.StreamHandler(sys.stderr))
 
 
-class TestPipelineMPC(ARLExecuteTestCase, unittest.TestCase):
+class TestPipelineMPC(unittest.TestCase):
     def setUp(self):
         
-        super(TestPipelineMPC, self).setUp()
-    
+        client = get_dask_Client(memory_limit=4 * 1024 * 1024 * 1024)
+        arlexecute.set_client(client)
+
+
     def progress(self, res, tl_list, gt_list, it):
         """Write progress information
         

@@ -18,6 +18,22 @@ from ..image.operations import import_image_from_fits, create_image_from_array, 
 
 log = logging.getLogger(__name__)
 
+def set_pb_header(pb, use_local=False):
+    """Fill in PB header correctly
+    
+    :param pb:
+    :return:
+    """
+    if use_local:
+        nchan, npol, ny, nx = pb.shape
+        pb.wcs.wcs.ctype[0] = 'AZELGEO long'
+        pb.wcs.wcs.ctype[1] = 'AZELGEO lati'
+        pb.wcs.wcs.crval[0] = 0.0
+        pb.wcs.wcs.crval[1] = 0.0
+        pb.wcs.wcs.crpix[0] = nx // 2
+        pb.wcs.wcs.crpix[1] = ny // 2
+
+    return pb
 
 def ft_disk(r):
     from scipy.special import jn  # pylint: disable=no-name-in-module
@@ -38,7 +54,7 @@ def tapered_disk(r, radius, blockage=0.0, taper='gaussian', edge=1.0):
     return result
 
 
-def create_vp(model, telescope='MID', pointingcentre=None, numeric=True, padding=4):
+def create_vp(model, telescope='MID', pointingcentre=None, numeric=True, padding=4, use_local=False):
     """
     Make an image like model and fill it with an analytical model of the voltage pattern
     :param model: Template image
@@ -69,7 +85,7 @@ def create_vp(model, telescope='MID', pointingcentre=None, numeric=True, padding
         raise NotImplementedError('Telescope %s has no voltage pattern model' % telescope)
 
 
-def create_pb(model, telescope='MID', pointingcentre=None, numeric=True):
+def create_pb(model, telescope='MID', pointingcentre=None, numeric=True, use_local=False):
     """
     Make an image like model and fill it with an analytical model of the primary beam
     :param model: Template image
@@ -81,10 +97,12 @@ def create_pb(model, telescope='MID', pointingcentre=None, numeric=True):
     else:
         beam = create_vp(model, telescope, pointingcentre, numeric=numeric)
         beam.data = numpy.real(beam.data * numpy.conjugate(beam.data))
+        
+    set_pb_header(beam, use_local=use_local)
     return beam
 
 
-def mosaic_pb(model, telescope, pointingcentres, numeric=True):
+def mosaic_pb(model, telescope, pointingcentres, numeric=True, use_local=False):
     """ Create a mosaic primary beam by adding primary beams for a set of pointing centres
     
     Note that the addition is root sum of squares
@@ -102,7 +120,7 @@ def mosaic_pb(model, telescope, pointingcentres, numeric=True):
     sumpb.data = numpy.sqrt(sumpb.data)
     return sumpb
 
-def create_pb_generic(model, pointingcentre=None, diameter=25.0, blockage=1.8, numeric=True):
+def create_pb_generic(model, pointingcentre=None, diameter=25.0, blockage=1.8, numeric=True, use_local=False):
     """
     Make an image like model and fill it with an analytical model of the primary beam
     :param model:
@@ -110,10 +128,11 @@ def create_pb_generic(model, pointingcentre=None, diameter=25.0, blockage=1.8, n
     """
     beam = create_vp_generic(model, pointingcentre, diameter, blockage, numeric=numeric)
     beam.data = numpy.real(beam.data * numpy.conjugate(beam.data))
+    set_pb_header(beam, use_local=use_local)
     return beam
 
 
-def create_vp_generic(model, pointingcentre=None, diameter=25.0, blockage=1.8, numeric=True):
+def create_vp_generic(model, pointingcentre=None, diameter=25.0, blockage=1.8, numeric=True, use_local=False):
     """
     Make an image like model and fill it with an analytical model of the primary beam
     :param model:
@@ -148,11 +167,12 @@ def create_vp_generic(model, pointingcentre=None, diameter=25.0, blockage=1.8, n
             blockage = ft_disk(rr * numpy.pi * blockage / wavelength)
             beam.data[chan, pol, ...] = reflector - blockage_factor * blockage
     
+    set_pb_header(beam, use_local=use_local)
     return beam
 
 
 def create_vp_generic_numeric(model, pointingcentre=None, diameter=15.0, blockage=0.0, taper='gaussian',
-                              edge=0.03162278, padding=4):
+                              edge=0.03162278, coma=None, padding=4, use_local=False):
     """
     Make an image like model and fill it with an analytical model of the primary beam
     :param model:
@@ -176,19 +196,27 @@ def create_vp_generic_numeric(model, pointingcentre=None, diameter=15.0, blockag
         
         scalex = xfr.wcs.sub(2).wcs.cdelt[0] * wavelength
         scaley = xfr.wcs.sub(2).wcs.cdelt[1] * wavelength
+        # xx, yy in metres
         xx, yy = numpy.meshgrid(scalex * (range(pnx) - cx), scaley * (range(pny) - cy))
         
-        # Radius of each cell in radians
+        # rr in metres
         rr = numpy.sqrt(xx ** 2 + yy ** 2)
         for pol in range(npol):
             xfr.data[chan, pol, ...] = tapered_disk(rr, diameter/2.0, blockage=blockage/2.0, edge=edge, taper=taper)
 
+        phase = None
         if pointingcentre is not None:
             # Correct for pointing centre
             pcx, pcy = pointingcentre.to_pixel(padded_beam.wcs, origin=0)
             pxx, pyy = numpy.meshgrid((range(pnx) - cx), (range(pny) - cy))
-            xfr.data[chan, pol, ...] *= numpy.exp(numpy.pi * 2j * ((pcx - cx)* pxx / float(pnx) +
-                                                                    (pcy - cy)* pyy / float(pny)))
+            phase = 2 * numpy.pi * ((pcx - cx)* pxx / float(pnx) + (pcy - cy)* pyy / float(pny))
+            for pol in range(npol):
+                xfr.data[chan, pol, ...] *= numpy.exp(1j * phase)
+
+        if isinstance(coma, float):
+            phase = 2.0 * numpy.pi * coma * (numpy.power(yy / (diameter / 2.0), 3) - 2.4 * yy / (diameter / 2.0))
+            for pol in range(npol):
+                xfr.data[chan, pol, ...] *= numpy.exp(1j * phase)
 
     padded_beam = fft_image(xfr, padded_beam)
     
@@ -197,10 +225,12 @@ def create_vp_generic_numeric(model, pointingcentre=None, diameter=15.0, blockag
     beam.data = padded_beam.data[...,(pny//2 - ny//2):(pny//2 + ny//2), (pnx//2 - nx//2):(pnx//2 + nx//2) ]
     for chan in range(nchan):
         beam.data[chan,...] /= numpy.max(numpy.abs(beam.data[chan,...]))
+
+    set_pb_header(beam, use_local=use_local)
     return beam
 
 
-def create_low_test_beam(model: Image) -> Image:
+def create_low_test_beam(model: Image, use_local=False) -> Image:
     """Create a test power beam for LOW using an image from OSKAR
 
     :param model: Template image
@@ -242,10 +272,11 @@ def create_low_test_beam(model: Image) -> Image:
         reprojected_beam2d.data[footprint.data <= 0.0] = 0.0
         for pol in range(npol):
             reprojected_beam.data[chan, pol, :, :] = reprojected_beam2d.data[:, :]
-            
+
+    set_pb_header(reprojected_beam)
     return reprojected_beam
 
-def create_low_test_vp(model: Image) -> Image:
+def create_low_test_vp(model: Image, use_local=False) -> Image:
     """Create a test power beam for LOW using an image from OSKAR
 
     :param model: Template image
@@ -296,4 +327,5 @@ def create_low_test_vp(model: Image) -> Image:
             reprojected_beam.data[chan, pol, :, :] = reprojected_beam2d_real.data[:, :] \
             + 1j * reprojected_beam2d_imag.data[:, :]
     
+    set_pb_header(reprojected_beam, use_local=use_local)
     return reprojected_beam
