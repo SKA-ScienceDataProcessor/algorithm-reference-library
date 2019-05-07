@@ -84,6 +84,7 @@ class TestSkyModel(unittest.TestCase):
     def test_time_setup(self):
         self.actualSetUp()
     
+    @unittest("Does not build on jenkins")
     def test_predict(self):
         self.actualSetUp(zerow=True)
 
@@ -108,6 +109,7 @@ class TestSkyModel(unittest.TestCase):
         assert numpy.max(numpy.abs(skymodel_vislist[0].vis)) > 0.0
 
 
+    @unittest("Does not build on jenkins")
     def test_predict_nocomponents(self):
         self.actualSetUp(zerow=True)
 

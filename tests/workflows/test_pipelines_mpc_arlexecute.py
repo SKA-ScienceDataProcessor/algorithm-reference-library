@@ -416,6 +416,7 @@ class TestPipelineMPC(unittest.TestCase):
     
         arlexecute.close()
 
+    @unittest("Does not build on jenkins")
     def test_mpccal_MPCCAL_manysources_subimages(self):
     
         self.actualSetup()
