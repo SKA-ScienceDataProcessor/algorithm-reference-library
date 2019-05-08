@@ -29,7 +29,7 @@ log.addHandler(logging.StreamHandler(sys.stderr))
 class TestSkyModel(unittest.TestCase):
     def setUp(self):
         
-        client = get_dask_Client(memory_limit=4 * 1024 * 1024 * 1024)
+        client = get_dask_Client(memory_limit=4 * 1024 * 1024 * 1024, n_workers=4, bokeh=None)
         arlexecute.set_client(client)
         
         from data_models.parameters import arl_path
@@ -84,7 +84,7 @@ class TestSkyModel(unittest.TestCase):
     def test_time_setup(self):
         self.actualSetUp()
     
-    @unittest("Does not build on jenkins")
+    @unittest.skip("Does not build on jenkins")
     def test_predict(self):
         self.actualSetUp(zerow=True)
 
@@ -109,7 +109,7 @@ class TestSkyModel(unittest.TestCase):
         assert numpy.max(numpy.abs(skymodel_vislist[0].vis)) > 0.0
 
 
-    @unittest("Does not build on jenkins")
+    @unittest.skip("Does not build on jenkins")
     def test_predict_nocomponents(self):
         self.actualSetUp(zerow=True)
 

@@ -46,7 +46,7 @@ log.addHandler(logging.StreamHandler(sys.stderr))
 class TestPipelineMPC(unittest.TestCase):
     def setUp(self):
         
-        client = get_dask_Client(memory_limit=4 * 1024 * 1024 * 1024)
+        client = get_dask_Client(memory_limit=4 * 1024 * 1024 * 1024, n_workers=4, bokeh=None)
         arlexecute.set_client(client)
 
 
@@ -416,7 +416,7 @@ class TestPipelineMPC(unittest.TestCase):
     
         arlexecute.close()
 
-    @unittest("Does not build on jenkins")
+    @unittest.skip("Does not build on jenkins")
     def test_mpccal_MPCCAL_manysources_subimages(self):
     
         self.actualSetup()
