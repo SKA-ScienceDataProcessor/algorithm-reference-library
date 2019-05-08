@@ -36,7 +36,7 @@ log.addHandler(logging.StreamHandler(sys.stderr))
 class TestImaging(unittest.TestCase):
     def setUp(self):
         
-        client = get_dask_Client(memory_limit=4 * 1024 * 1024 * 1024, n_workers=4, bokeh=None)
+        client = get_dask_Client(memory_limit=4 * 1024 * 1024 * 1024, n_workers=4, dashboard_address=None)
         arlexecute.set_client(client)
 
         from data_models.parameters import arl_path
