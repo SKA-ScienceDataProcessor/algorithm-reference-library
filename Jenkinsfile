@@ -77,7 +77,7 @@ pipeline {
 		sh '''
 		source _build/bin/activate
 		export ARLROOT=$WORKSPACE
-		//source tests/ffiwrapped/run-tests.sh
+		// source tests/ffiwrapped/run-tests.sh
 		'''
             }
         }
