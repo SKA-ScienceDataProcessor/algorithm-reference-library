@@ -71,16 +71,16 @@ pipeline {
 		//coverage html --include=processing_library/*,processing_components/*,workflows/* -d coverage
             }
         }
-        stage('TestFfiwrappers') {
-            steps {
-                echo 'Testing ffiwrappers..'
-		sh '''
-		source _build/bin/activate
-		export ARLROOT=$WORKSPACE
+        // stage('TestFfiwrappers') {
+        //     steps {
+        //         echo 'Testing ffiwrappers..'
+		// sh '''
+		// source _build/bin/activate
+		// export ARLROOT=$WORKSPACE
 		// source tests/ffiwrapped/run-tests.sh
 		'''
-            }
-        }
+        //     }
+        // }
         stage('Deploy') {
             steps {
                 echo 'Make documentation....'
