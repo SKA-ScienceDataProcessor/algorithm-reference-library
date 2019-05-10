@@ -9,18 +9,20 @@ import numpy
 from astropy import units as u
 from astropy.coordinates import SkyCoord
 
-from tests.workflows import ARLExecuteTestCase
 from data_models.memory_data_models import BlockVisibility
 from wrappers.arlexecute.execution_support.arlexecute import arlexecute
+from wrappers.arlexecute.execution_support.dask_init import get_dask_Client
 
 from workflows.arlexecute.simulation.simulation_arlexecute import simulate_list_arlexecute_workflow
 
 log = logging.getLogger(__name__)
 
 
-class TestSimulationArlexecuteSupport(ARLExecuteTestCase, unittest.TestCase):
+class TestSimulationArlexecuteSupport(unittest.TestCase):
     def setUp(self):
-        super(TestSimulationArlexecuteSupport, self).setUp()
+        client = get_dask_Client(memory_limit=4 * 1024 * 1024 * 1024, n_workers=4, dashboard_address=None)
+        arlexecute.set_client(client)
+
         from data_models.parameters import arl_path
         self.dir = arl_path('test_results')
         

@@ -37,17 +37,14 @@ class TestImaging(unittest.TestCase):
     def setUp(self):
         
         client = get_dask_Client(memory_limit=4 * 1024 * 1024 * 1024, n_workers=4, dashboard_address=None)
-        arlexecute.set_client(client)
+        arlexecute.set_client(client, verbose=True)
 
         from data_models.parameters import arl_path
         self.dir = arl_path('test_results')
     
     def tearDown(self):
-        try:
-            arlexecute.close()
-        except:
-            pass
-    
+        arlexecute.close()
+
     def actualSetUp(self, add_errors=False, freqwin=3, block=False, dospectral=True, dopol=False, zerow=False,
                     makegcfcf=False):
         
