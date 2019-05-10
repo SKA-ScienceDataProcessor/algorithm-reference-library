@@ -46,8 +46,8 @@ class TestPipelineGraphs(unittest.TestCase):
         self.persist = True
     
     def tearDown(self):
-        pass
-    
+        arlexecute.close()
+
     def actualSetUp(self, add_errors=False, nfreqwin=7, dospectral=True, dopol=False, zerow=True):
         
         self.npixel = 512

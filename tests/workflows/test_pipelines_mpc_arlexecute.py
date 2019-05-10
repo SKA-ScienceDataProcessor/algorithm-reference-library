@@ -49,6 +49,9 @@ class TestPipelineMPC(unittest.TestCase):
         client = get_dask_Client(memory_limit=4 * 1024 * 1024 * 1024, n_workers=4, dashboard_address=None)
         arlexecute.set_client(client)
 
+    def tearDown(self):
+        arlexecute.close()
+
 
     def progress(self, res, tl_list, gt_list, it):
         """Write progress information

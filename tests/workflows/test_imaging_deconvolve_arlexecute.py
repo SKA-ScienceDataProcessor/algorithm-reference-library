@@ -12,7 +12,6 @@ from astropy import units as u
 from astropy.coordinates import SkyCoord
 
 from data_models.polarisation import PolarisationFrame
-from tests.workflows import ARLExecuteTestCase
 from workflows.arlexecute.imaging.imaging_arlexecute import invert_list_arlexecute_workflow, \
     deconvolve_list_arlexecute_workflow, \
     residual_list_arlexecute_workflow, restore_list_arlexecute_workflow
@@ -24,6 +23,9 @@ from wrappers.arlexecute.simulation.testing_support import ingest_unittest_visib
 from processing_components.simulation.configurations import create_named_configuration
 from wrappers.arlexecute.skycomponent.operations import insert_skycomponent
 
+from wrappers.arlexecute.execution_support.arlexecute import arlexecute
+from wrappers.arlexecute.execution_support.dask_init import get_dask_Client
+
 log = logging.getLogger(__name__)
 
 log.setLevel(logging.DEBUG)
@@ -31,13 +33,18 @@ log.addHandler(logging.StreamHandler(sys.stdout))
 log.addHandler(logging.StreamHandler(sys.stderr))
 
 
-class TestImagingDeconvolveGraph(ARLExecuteTestCase, unittest.TestCase):
+class TestImagingDeconvolveGraph(unittest.TestCase):
     
     def setUp(self):
-        super(TestImagingDeconvolveGraph, self).setUp()
+        client = get_dask_Client(memory_limit=4 * 1024 * 1024 * 1024, n_workers=4, dashboard_address=None)
+        arlexecute.set_client(client)
+    
         from data_models.parameters import arl_path
         self.dir = arl_path('test_results')
-    
+
+    def tearDown(self):
+        arlexecute.close()
+
     def actualSetUp(self, add_errors=False, freqwin=7, block=False, dospectral=True, dopol=False,
                     zerow=True):
         

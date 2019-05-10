@@ -40,7 +40,7 @@ class TestCalibrateGraphs(unittest.TestCase):
         self.dir = arl_path('test_results')
     
     def tearDown(self):
-        pass
+        arlexecute.close()
     
     def actualSetUp(self, nfreqwin=3, dospectral=True, dopol=False,
                     amp_errors=None, phase_errors=None, zerow=True):

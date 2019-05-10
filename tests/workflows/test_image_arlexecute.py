@@ -41,7 +41,10 @@ class TestImageGraph(ARLExecuteTestCase, unittest.TestCase):
         assert nants > 1
         assert len(self.config.names) == nants
         assert len(self.config.mount) == nants
-    
+
+    def tearDown(self):
+        arlexecute.close()
+
     def createVis(self, config, dec=-35.0, rmax=None):
         self.config = create_named_configuration(config, rmax=rmax)
         self.phasecentre = SkyCoord(ra=+15 * u.deg, dec=dec * u.deg, frame='icrs', equinox='J2000')
