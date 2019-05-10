@@ -8,7 +8,7 @@ import unittest
 import numpy
 
 # Import the base and then make a global version
-from wrappers.arlexecute.execution_support.arlexecute import arlexecutebase
+from wrappers.arlexecute.execution_support.arlexecute import ARLExecuteBase
 
 log = logging.getLogger(__name__)
 
