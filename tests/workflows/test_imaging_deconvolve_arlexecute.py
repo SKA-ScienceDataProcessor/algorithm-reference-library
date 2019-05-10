@@ -16,7 +16,7 @@ from processing_components.simulation.configurations import create_named_configu
 from workflows.arlexecute.imaging.imaging_arlexecute import invert_list_arlexecute_workflow, \
     deconvolve_list_arlexecute_workflow, \
     residual_list_arlexecute_workflow, restore_list_arlexecute_workflow
-from wrappers.arlexecute.execution_support.arlexecute import arlexecute
+from wrappers.arlexecute.execution_support.arlexecutebase import ARLExecuteBase
 from wrappers.arlexecute.execution_support.dask_init import get_dask_Client
 from wrappers.arlexecute.image.operations import export_image_to_fits, smooth_image
 from wrappers.arlexecute.imaging.base import predict_skycomponent_visibility
@@ -35,14 +35,18 @@ class TestImagingDeconvolveGraph(unittest.TestCase):
     
     def setUp(self):
         client = get_dask_Client(memory_limit=4 * 1024 * 1024 * 1024, n_workers=4, dashboard_address=None)
+        global arlexecute
+        arlexecute = ARLExecuteBase(use_dask=True)
         arlexecute.set_client(client, verbose=True)
         
         from data_models.parameters import arl_path
         self.dir = arl_path('test_results')
     
     def tearDown(self):
+        global arlexecute
         arlexecute.close()
-    
+        del arlexecute
+
     def actualSetUp(self, add_errors=False, freqwin=7, block=False, dospectral=True, dopol=False,
                     zerow=True):
         

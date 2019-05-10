@@ -15,7 +15,7 @@ from processing_components.griddata.kernels import create_awterm_convolutionfunc
 from workflows.arlexecute.imaging.imaging_arlexecute import zero_list_arlexecute_workflow, \
     predict_list_arlexecute_workflow, invert_list_arlexecute_workflow, subtract_list_arlexecute_workflow, \
     weight_list_arlexecute_workflow, residual_list_arlexecute_workflow
-from wrappers.arlexecute.execution_support.arlexecute import arlexecute
+from wrappers.arlexecute.execution_support.arlexecutebase import ARLExecuteBase
 from wrappers.arlexecute.execution_support.dask_init import get_dask_Client
 
 from wrappers.arlexecute.image.operations import export_image_to_fits, smooth_image, qa_image
@@ -37,13 +37,17 @@ class TestImaging(unittest.TestCase):
     def setUp(self):
         
         client = get_dask_Client(memory_limit=4 * 1024 * 1024 * 1024, n_workers=4, dashboard_address=None)
+        global arlexecute
+        arlexecute = ARLExecuteBase(use_dask=True)
         arlexecute.set_client(client, verbose=True)
 
         from data_models.parameters import arl_path
         self.dir = arl_path('test_results')
     
     def tearDown(self):
+        global arlexecute
         arlexecute.close()
+        del arlexecute
 
     def actualSetUp(self, add_errors=False, freqwin=3, block=False, dospectral=True, dopol=False, zerow=False,
                     makegcfcf=False):

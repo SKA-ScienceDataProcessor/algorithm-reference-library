@@ -17,7 +17,7 @@ from workflows.arlexecute.imaging.imaging_arlexecute import restore_list_arlexec
 from workflows.arlexecute.pipelines.pipeline_mpccal_arlexecute import mpccal_skymodel_list_arlexecute_workflow
 from workflows.arlexecute.skymodel.skymodel_arlexecute import predict_skymodel_list_arlexecute_workflow
 from workflows.serial.imaging.imaging_serial import weight_list_serial_workflow, taper_list_serial_workflow
-from wrappers.arlexecute.execution_support.arlexecute import arlexecute
+from wrappers.arlexecute.execution_support.arlexecutebase import ARLExecuteBase
 from wrappers.arlexecute.execution_support.dask_init import get_dask_Client
 from wrappers.arlexecute.image.operations import export_image_to_fits
 from wrappers.arlexecute.skycomponent.operations import remove_neighbouring_components, \
@@ -46,11 +46,14 @@ class TestPipelineMPC(unittest.TestCase):
     def setUp(self):
         
         client = get_dask_Client(memory_limit=4 * 1024 * 1024 * 1024, n_workers=4, dashboard_address=None)
+        global arlexecute
+        arlexecute = ARLExecuteBase(use_dask=True)
         arlexecute.set_client(client)
 
     def tearDown(self):
+        global arlexecute
         arlexecute.close()
-
+        del arlexecute
 
     def progress(self, res, tl_list, gt_list, it):
         """Write progress information

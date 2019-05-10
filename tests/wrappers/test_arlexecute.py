@@ -7,13 +7,16 @@ import unittest
 
 import numpy
 
-from wrappers.arlexecute.execution_support.arlexecute import arlexecute
+# Import the base and then make a global version
+from wrappers.arlexecute.execution_support.arlexecute import arlexecutebase
 
 log = logging.getLogger(__name__)
 
 class TestARLExecute(unittest.TestCase):
     
     def setUp(self):
+        global arlexecute
+        arlexecute = ARLExecuteBase(use_dask=True)
         arlexecute.set_client(use_dask=True, verbose=True)
         
     def tearDown(self):
