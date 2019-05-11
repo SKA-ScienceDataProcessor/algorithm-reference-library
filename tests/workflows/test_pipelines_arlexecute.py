@@ -17,7 +17,7 @@ from data_models.data_model_helpers import export_gaintable_to_hdf5
 from workflows.arlexecute.pipelines.pipeline_arlexecute import ical_list_arlexecute_workflow, \
     continuum_imaging_list_arlexecute_workflow
 from wrappers.arlexecute.calibration.calibration_control import create_calibration_controls
-from wrappers.arlexecute.execution_support.arlexecute import arlexecute
+from wrappers.arlexecute.execution_support.arlexecutebase import ARLExecuteBase
 from wrappers.arlexecute.execution_support.dask_init import get_dask_Client
 from wrappers.arlexecute.image.operations import export_image_to_fits, qa_image, smooth_image
 from wrappers.arlexecute.imaging.base import predict_skycomponent_visibility
@@ -40,7 +40,9 @@ class TestPipelineGraphs(unittest.TestCase):
     
     def setUp(self):
         client = get_dask_Client(memory_limit=4 * 1024 * 1024 * 1024, n_workers=4, dashboard_address=None)
-        arlexecute.set_client(client)
+        global arlexecute
+        arlexecute = ARLExecuteBase(use_dask=True)
+        arlexecute.set_client(client, verbose=True)
         from data_models.parameters import arl_path
         self.dir = arl_path('test_results')
         self.persist = True

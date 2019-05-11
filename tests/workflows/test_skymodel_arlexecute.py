@@ -13,7 +13,7 @@ from data_models.memory_data_models import Image
 from data_models.memory_data_models import Skycomponent
 from data_models.polarisation import PolarisationFrame
 from workflows.arlexecute.skymodel.skymodel_arlexecute import predict_skymodel_list_arlexecute_workflow
-from wrappers.arlexecute.execution_support.arlexecute import arlexecute
+from wrappers.arlexecute.execution_support.arlexecutebase import ARLExecuteBase
 from wrappers.arlexecute.execution_support.dask_init import get_dask_Client
 from wrappers.arlexecute.simulation.testing_support import ingest_unittest_visibility, \
     create_low_test_skymodel_from_gleam
@@ -30,16 +30,18 @@ class TestSkyModel(unittest.TestCase):
     def setUp(self):
         
         client = get_dask_Client(memory_limit=4 * 1024 * 1024 * 1024, n_workers=4, dashboard_address=None)
-        arlexecute.set_client(client)
+        global arlexecute
+        arlexecute = ARLExecuteBase(use_dask=True)
+        arlexecute.set_client(client, verbose=True)
         
         from data_models.parameters import arl_path
         self.dir = arl_path('test_results')
         
     def tearDown(self):
-        try:
-            arlexecute.close()
-        except:
-            pass
+        global arlexecute
+        arlexecute.close()
+        del arlexecute
+
     
     def actualSetUp(self, freqwin=1, block=False, dopol=False, zerow=False):
         
@@ -84,7 +86,6 @@ class TestSkyModel(unittest.TestCase):
     def test_time_setup(self):
         self.actualSetUp()
     
-    @unittest.skip("Does not build on jenkins")
     def test_predict(self):
         self.actualSetUp(zerow=True)
 
@@ -109,7 +110,6 @@ class TestSkyModel(unittest.TestCase):
         assert numpy.max(numpy.abs(skymodel_vislist[0].vis)) > 0.0
 
 
-    @unittest.skip("Does not build on jenkins")
     def test_predict_nocomponents(self):
         self.actualSetUp(zerow=True)
 

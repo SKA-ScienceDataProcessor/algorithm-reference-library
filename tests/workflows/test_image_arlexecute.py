@@ -19,15 +19,19 @@ from processing_components.visibility.base import create_visibility
 
 from workflows.arlexecute.image.image_arlexecute import image_arlexecute_map_workflow
 from wrappers.arlexecute.image.operations import export_image_to_fits
-from tests.workflows import ARLExecuteTestCase
-from wrappers.arlexecute.execution_support.arlexecute import arlexecute
+from wrappers.arlexecute.execution_support.dask_init import get_dask_Client
+from wrappers.arlexecute.execution_support.arlexecutebase import ARLExecuteBase
 
 log = logging.getLogger(__name__)
 
 
-class TestImageGraph(ARLExecuteTestCase, unittest.TestCase):
+class TestImageGraph(unittest.TestCase):
     def setUp(self):
-        super(TestImageGraph, self).setUp()
+        client = get_dask_Client(memory_limit=4 * 1024 * 1024 * 1024, n_workers=4, dashboard_address=None)
+        global arlexecute
+        arlexecute = ARLExecuteBase(use_dask=True)
+        arlexecute.set_client(client, verbose=True)
+
         from data_models.parameters import arl_path
         self.dir = arl_path('test_results')
         
@@ -43,7 +47,9 @@ class TestImageGraph(ARLExecuteTestCase, unittest.TestCase):
         assert len(self.config.mount) == nants
 
     def tearDown(self):
+        global arlexecute
         arlexecute.close()
+        del arlexecute
 
     def createVis(self, config, dec=-35.0, rmax=None):
         self.config = create_named_configuration(config, rmax=rmax)
