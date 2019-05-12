@@ -57,6 +57,5 @@ class TestVisibilityFitting(unittest.TestCase):
                                         flux=2.0 * self.flux, polarisation_frame=PolarisationFrame("stokesI"))
     
             sc, res = fit_visibility(self.vismodel, initial_comp, niter=200, tol=1e-5, method=method, verbose=False)
-#            print(method, res)
             assert sc.direction.separation(self.comp_actual_direction).to('rad').value < 1e-6, \
                 sc.direction.separation(self.comp_actual_direction).to('rad')

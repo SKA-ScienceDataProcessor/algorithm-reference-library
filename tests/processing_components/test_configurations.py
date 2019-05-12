@@ -42,13 +42,14 @@ class TestConfigurations(unittest.TestCase):
                                      polarisation_frame=PolarisationFrame('stokesI'))
     
     def test_named_configurations(self):
-        for config in ['LOWBD2', 'LOWBD2-CORE', 'LOWBD1', 'LOFAR', 'ASKAP', 'LOWR3', 'MIDR5']:
+        for config in ['LOWBD2', 'LOWBD2-CORE', 'LOWBD1', 'LOWR3', 'ASKAP', 'MID', 'MIDR5']:
             self.createVis(config)
             assert self.config.size() > 0.0
-            print("Config ", config, " has centre", self.config.location.geodetic)
-        
-        self.createVis('VLAA', +35.0)
-        self.createVis('VLAA_north', +35.0)
+            #print("Config ", config, " has centre", self.config.location.geodetic)
+        for config in ['LOFAR', 'VLAA', 'VLAA_north']:
+            self.createVis(config, +35.0)
+            assert self.config.size() > 0.0
+
     
     def test_SKA_configurations(self):
         for config in ['MIDR5', 'LOWR3']:
