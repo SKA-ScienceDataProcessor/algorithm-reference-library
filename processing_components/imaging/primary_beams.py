@@ -54,7 +54,7 @@ def tapered_disk(r, radius, blockage=0.0, taper='gaussian', edge=1.0):
     return result
 
 
-def create_vp(model, telescope='MID', pointingcentre=None, numeric=True, padding=4, use_local=False):
+def create_vp(model, telescope='MID', pointingcentre=None, numeric=False, padding=4, use_local=False):
     """
     Make an image like model and fill it with an analytical model of the voltage pattern
     :param model: Template image
@@ -85,7 +85,7 @@ def create_vp(model, telescope='MID', pointingcentre=None, numeric=True, padding
         raise NotImplementedError('Telescope %s has no voltage pattern model' % telescope)
 
 
-def create_pb(model, telescope='MID', pointingcentre=None, numeric=True, use_local=False):
+def create_pb(model, telescope='MID', pointingcentre=None, numeric=False, use_local=False):
     """
     Make an image like model and fill it with an analytical model of the primary beam
     :param model: Template image

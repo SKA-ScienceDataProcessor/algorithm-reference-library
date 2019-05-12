@@ -46,7 +46,7 @@ class Configuration:
     """
     
     def __init__(self, name='', data=None, location=None,
-                 names="%s", xyz=None, mount="alt-az", frame=None,
+                 names="%s", xyz=None, mount="alt-az", frame='',
                  receptor_frame=ReceptorFrame("linear"),
                  diameter=None):
         

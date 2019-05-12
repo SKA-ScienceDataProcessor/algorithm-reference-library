@@ -136,8 +136,6 @@ def create_visibility(config: Configuration, times: numpy.array, frequency: nump
     assert isinstance(vis, Visibility), "vis is not a Visibility: %r" % vis
     log.info('create_visibility: flagged %d/%d visibilities below elevation limit %f (rad)' %
              (n_flagged, vis.nvis, elevation_limit))
-    print('create_visibility: flagged %d/%d visibilities below elevation limit %f (rad)' %
-          (n_flagged, vis.nvis, elevation_limit))
     return vis
 
 
@@ -217,8 +215,6 @@ def create_blockvisibility(config: Configuration,
     assert isinstance(vis, BlockVisibility), "vis is not a BlockVisibility: %r" % vis
     log.info('create_blockvisibility: flagged %d/%d rows below elevation limit %f (rad)' %
              (n_flagged, vis.nvis, elevation_limit))
-    print('create_blockvisibility: flagged %d/%d rows below elevation limit %f (rad)' %
-          (n_flagged, vis.nvis, elevation_limit))
 
     return vis
 

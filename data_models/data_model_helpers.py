@@ -81,8 +81,8 @@ def convert_configuration_to_hdf(config: Configuration, f):
     cf.attrs['name'] = config.name
     cf.attrs['location'] = convert_earthlocation_to_string(config.location)
     cf.attrs['frame'] = config.frame
-    cf.attrs['receptor_frame'] = config.frame
-    
+    cf.attrs['receptor_frame'] = config.receptor_frame.type
+
     cf['configuration/xyz'] = config.xyz
     cf['configuration/diameter'] = config.diameter
     cf['configuration/names'] = [numpy.string_(name) for name in config.names]
@@ -102,14 +102,14 @@ def convert_configuration_from_hdf(f):
     
     name = cf.attrs['name']
     location = convert_earthlocation_from_string(cf.attrs['location'])
+    receptor_frame = ReceptorFrame(cf.attrs['receptor_frame'])
     frame = cf.attrs['frame']
-    receptor_frame = cf.attrs['receptor_frame']
-    
+
     xyz = cf['configuration/xyz']
     diameter = cf['configuration/diameter']
     names = [str(n) for n in cf['configuration/names']]
     mount = [str(m) for m in cf['configuration/mount']]
-    return Configuration(name=name, location=location, frame=frame, receptor_frame=receptor_frame, xyz=xyz,
+    return Configuration(name=name, location=location, receptor_frame=receptor_frame, xyz=xyz, frame=frame,
                          diameter=diameter, names=names, mount=mount)
 
 
