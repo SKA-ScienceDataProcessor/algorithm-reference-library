@@ -16,7 +16,7 @@ from astropy.time import Time
 
 from data_models.memory_data_models import Visibility, BlockVisibility, Configuration
 from data_models.polarisation import PolarisationFrame, ReceptorFrame, correlate_polarisation
-from processing_library.util.coordinate_support import xyz_to_uvw, uvw_to_xyz, skycoord_to_lmn, simulate_point
+from processing_library.util.coordinate_support import xyz_to_uvw, uvw_to_xyz, skycoord_to_lmn, simulate_point, pa_z
 
 log = logging.getLogger(__name__)
 
@@ -49,7 +49,7 @@ def create_visibility(config: Configuration, times: numpy.array, frequency: nump
                       channel_bandwidth, phasecentre: SkyCoord,
                       weight: float, polarisation_frame=PolarisationFrame('stokesI'),
                       integration_time=1.0,
-                      zerow=False) -> Visibility:
+                      zerow=False, elevation_limit=0.1) -> Visibility:
     """ Create a Visibility from Configuration, hour angles, and direction of source
 
     Note that we keep track of the integration time for BDA purposes
@@ -86,7 +86,10 @@ def create_visibility(config: Configuration, times: numpy.array, frequency: nump
     rantenna1 = numpy.zeros([nrows], dtype='int')
     rantenna2 = numpy.zeros([nrows], dtype='int')
     ruvw = numpy.zeros([nrows, 3])
+    latitude = config.location.geodetic[1].to('rad').value
     
+    n_flagged = 0
+
     # Do each hour angle in turn
     for iha, ha in enumerate(times):
         
@@ -94,12 +97,18 @@ def create_visibility(config: Configuration, times: numpy.array, frequency: nump
         # and declination
         ant_pos = xyz_to_uvw(ants_xyz, ha, phasecentre.dec.rad)
         rtimes[row:row + nrowsperintegration] = ha * 43200.0 / numpy.pi
-        
+        _, elevation = pa_z(ha, phasecentre.dec.rad, latitude)
+        if elevation < elevation_limit:
+            flag_weight = -1.0
+        else:
+            flag_weight = 1.0
+            
         # Loop over all pairs of antennas. Note that a2>a1
         for a1 in range(nants):
             for a2 in range(a1 + 1, nants):
                 rantenna1[row:row + nch] = a1
                 rantenna2[row:row + nch] = a2
+                rweight[row:row+nch,...] = flag_weight
                 
                 # Loop over all frequencies and polarisations
                 for ch in range(nch):
@@ -109,6 +118,8 @@ def create_visibility(config: Configuration, times: numpy.array, frequency: nump
                     rfrequency[row] = frequency[ch]
                     rchannel_bandwidth[row] = channel_bandwidth[ch]
                     row += 1
+        if flag_weight < 0.0:
+            n_flagged += nch * nants * (nants-1) /2
     
     if zerow:
         ruvw[..., 2] = 0.0
@@ -123,6 +134,10 @@ def create_visibility(config: Configuration, times: numpy.array, frequency: nump
     vis.configuration = config
     log.info("create_visibility: %s" % (vis_summary(vis)))
     assert isinstance(vis, Visibility), "vis is not a Visibility: %r" % vis
+    log.info('create_visibility: flagged %d/%d visibilities below elevation limit %f (rad)' %
+             (n_flagged, vis.nvis, elevation_limit))
+    print('create_visibility: flagged %d/%d visibilities below elevation limit %f (rad)' %
+          (n_flagged, vis.nvis, elevation_limit))
     return vis
 
 
@@ -134,7 +149,9 @@ def create_blockvisibility(config: Configuration,
                            polarisation_frame: PolarisationFrame = None,
                            integration_time=1.0,
                            channel_bandwidth=1e6,
-                           zerow=False, **kwargs) -> BlockVisibility:
+                           zerow=False,
+                           elevation_limit=0.1,
+                           **kwargs) -> BlockVisibility:
     """ Create a BlockVisibility from Configuration, hour angles, and direction of source
 
     Note that we keep track of the integration time for BDA purposes
@@ -165,15 +182,21 @@ def create_blockvisibility(config: Configuration,
     rimaging_weight = numpy.ones(visshape)
     rtimes = numpy.zeros([ntimes])
     ruvw = numpy.zeros([ntimes, nants, nants, 3])
+    latitude = config.location.geodetic[1].to('rad').value
     
     # Do each hour angle in turn
+    n_flagged = 0
     for iha, ha in enumerate(times):
         
         # Calculate the positions of the antennas as seen for this hour angle
         # and declination
         ant_pos = xyz_to_uvw(ants_xyz, ha, phasecentre.dec.rad)
         rtimes[iha] = ha * 43200.0 / numpy.pi
-        
+        _, elevation = pa_z(ha, phasecentre.dec.rad, latitude)
+        if elevation < elevation_limit:
+            rweight[iha, ...] = -1.0
+            n_flagged += 1
+
         # Loop over all pairs of antennas. Note that a2>a1
         for a1 in range(nants):
             for a2 in range(a1 + 1, nants):
@@ -192,7 +215,11 @@ def create_blockvisibility(config: Configuration,
     vis.configuration = config
     log.info("create_blockvisibility: %s" % (vis_summary(vis)))
     assert isinstance(vis, BlockVisibility), "vis is not a BlockVisibility: %r" % vis
-    
+    log.info('create_blockvisibility: flagged %d/%d rows below elevation limit %f (rad)' %
+             (n_flagged, vis.nvis, elevation_limit))
+    print('create_blockvisibility: flagged %d/%d rows below elevation limit %f (rad)' %
+          (n_flagged, vis.nvis, elevation_limit))
+
     return vis
 
 

@@ -138,7 +138,6 @@ def grid_gaintable_to_screen(vis, gaintables, screen, height=3e5, gaintable_slic
                 if wt[ant] == 0.0:
                     number_no_weight += 1
     if number_no_weight > 0:
-        print("grid_gaintable_to_screen: %d pierce points are have no weight" % (number_no_weight))
         log.warning("grid_gaintable_to_screen: %d pierce points are have no weight" % (number_no_weight))
 
     newscreen.data[weights.data > 0.0] = newscreen.data[weights.data > 0.0] / weights.data[weights.data > 0.0]
