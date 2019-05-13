@@ -109,7 +109,6 @@ def create_configuration_from_MIDfile(antfile: str, location=None,
         diameters[ant] = float(lline[3])
         names.append(lline[4])
 
-    print(name, antxyz[0,:])
     nants = antxyz.shape[0]
     mounts = numpy.repeat(mount, nants)
     antxyz, diameters, names, mounts = limit_rmax(antxyz, diameters, names, mounts, rmax)
