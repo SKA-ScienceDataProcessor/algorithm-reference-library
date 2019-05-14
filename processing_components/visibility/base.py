@@ -368,6 +368,7 @@ def create_blockvisibility_from_ms(msname, channum=None, ack=False):
             nchan = cfrequency.shape[0]
             
             # Get polarisation info
+            npol = 4
             poltab = table('%s/POLARIZATION' % msname, ack=False)
             corr_type = poltab.getcol('CORR_TYPE')
             # These correspond to the CASA Stokes enumerations
@@ -377,10 +378,12 @@ def create_blockvisibility_from_ms(msname, channum=None, ack=False):
                 polarisation_frame = PolarisationFrame('circular')
             elif numpy.array_equal(corr_type[0], [9, 10, 11, 12]):
                 polarisation_frame = PolarisationFrame('linear')
+            elif numpy.array_equal(corr_type[0], [9]):
+                npol = 1
+                polarisation_frame = PolarisationFrame('stokesI')
             else:
                 raise KeyError("Polarisation not understood: %s" % str(corr_type))
             
-            npol = 4
             
             # Get configuration
             anttab = table('%s/ANTENNA' % msname, ack=False)
