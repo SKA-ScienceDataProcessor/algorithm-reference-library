@@ -64,12 +64,12 @@ def create_vp(model, telescope='MID', pointingcentre=None, numeric=False, paddin
     if telescope[0:3] == 'MID':
         # Should actually have -12dB (0.07918124604762482) taper at the edge: will require numerical approach
         if numeric:
-            log.info("create_vp: Using numeric tapered Gaussian model for MID primary beam")
+            log.info("create_vp: Using numeric tapered Gaussian model for MID voltage pattern")
     
             return create_vp_generic_numeric(model, pointingcentre=pointingcentre, diameter=15.0, blockage=0.0,
                                          edge=0.07918124604762482, padding=padding)
         else:
-            log.info("create_vp: Using no taper analytic model for MID primary beam")
+            log.info("create_vp: Using no taper analytic model for MID voltage pattern")
             return create_vp_generic(model, pointingcentre=pointingcentre, diameter=15.0, blockage=0.0)
 
             

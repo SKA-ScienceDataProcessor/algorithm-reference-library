@@ -10,6 +10,8 @@ from processing_library.util.coordinate_support import xyz_at_latitude
 from data_models.memory_data_models import Configuration
 from data_models.parameters import arl_path, get_parameter
 from processing_components.simulation.testing_support import log
+from processing_library.util.coordinate_support import xyz_to_uvw, uvw_to_xyz
+
 
 
 def create_configuration_from_file(antfile: str, location: EarthLocation = None,
@@ -63,12 +65,16 @@ def create_configuration_from_SKAfile(antfile: str,
     assert antdiamlonglat.shape[1] == 3, ("Antenna array has wrong shape %s" % antdiamlonglat.shape)
     antxyz = numpy.zeros([antdiamlonglat.shape[0] - 1, 3])
     diameters = numpy.zeros([antdiamlonglat.shape[0] - 1])
-    refloc = location.geocentric
     for ant in range(antdiamlonglat.shape[0] - 1):
         loc = EarthLocation(lon=antdiamlonglat[ant, 1], lat=antdiamlonglat[ant, 2], height=0.0).geocentric
         antxyz[ant] = [loc[0].to(u.m).value, loc[1].to(u.m).value, loc[2].to(u.m).value]
         diameters[ant] = antdiamlonglat[ant, 0]
-   
+
+    if True:
+        local = xyz_to_uvw(antxyz, 0.0, location.geodetic[1].rad)
+        local[:, 0], local[:, 1], local[:, 2] = local[:, 1], local[:, 2], local[:, 0]
+        antxyz = uvw_to_xyz(local, 0.0, location.geodetic[1].rad)
+
     nants = antxyz.shape[0]
     anames = [names % ant for ant in range(nants)]
     mounts = numpy.repeat(mount, nants)
@@ -89,32 +95,28 @@ def create_configuration_from_MIDfile(antfile: str, location=None,
     :param mount: mount type: 'altaz', 'xy'
     :return: Configuration
     """
+
     # X Y Z Diam Station
     # 5109237.714735 2006795.661955 -3239109.183708 13.5 M000
-    antdiamlonglat = numpy.genfromtxt(antfile, skip_header=5, usecols=[0, 1, 2, 3, 4], delimiter=" ",
-                                      dtype="f8, f8, f8, f8, S8")
-    antxyz = numpy.zeros([len(antdiamlonglat), 3])
-    diameters = numpy.zeros([len(antdiamlonglat)])
-    names = list()
-    for ant, line in enumerate(antdiamlonglat):
-        lline=list(line)
-        # antxyz[ant, :] = lline[0:3]
-        # 0 1 2 wrong
-        # 0 2 1 wrong
-        # 1 0 2 wrong
-        # 1 2 0 wrong
-        # 2 0 1 close but not right
-        # 2 1 0 close but not right
-        antxyz[ant, :] = [lline[0], lline[1], lline[2]]
-        diameters[ant] = float(lline[3])
-        names.append(lline[4])
-
+    antxyz = numpy.genfromtxt(antfile, skip_header=5, usecols=[0, 1, 2], delimiter=" ")
     nants = antxyz.shape[0]
+    assert antxyz.shape[1] == 3, "Antenna array has wrong shape %s" % antxyz.shape
+
+    flip = False
+    if flip:
+        local = xyz_to_uvw(antxyz, 0.0, location.geodetic[1].rad)
+        local[:, 0], local[:, 1], local[:, 2] = local[:, 1], local[:, 2], local[:, 0]
+        antxyz = uvw_to_xyz(local, 0.0, location.geodetic[1].rad)
+
+    anames = numpy.genfromtxt(antfile, dtype='str', skip_header=5, usecols=[4], delimiter=" ")
     mounts = numpy.repeat(mount, nants)
-    antxyz, diameters, names, mounts = limit_rmax(antxyz, diameters, names, mounts, rmax)
-    
-    fc = Configuration(location=location, names=names, mount=mounts, xyz=antxyz,
+    diameters = numpy.genfromtxt(antfile, dtype='str', skip_header=5, usecols=[3], delimiter=" ")
+
+    antxyz, diameters, anames, mounts = limit_rmax(antxyz, diameters, anames, mounts, rmax)
+
+    fc = Configuration(location=location, names=anames, mount=mounts, xyz=antxyz,
                        diameter=diameters, name=name)
+
     return fc
 
 
@@ -181,54 +183,54 @@ def create_named_configuration(name: str = 'LOWBD2', **kwargs) -> Configuration:
     
     if name == 'LOWBD2':
         location = EarthLocation(lon="116.4999", lat="-26.7000", height=300.0)
-        log.info("%s\n\t%s\n\t%s" % (name, location.geocentric, location.geodetic))
+        log.info("create_named_configuration: %s\n\t%s\n\t%s" % (name, location.geocentric, location.geodetic))
         fc = create_configuration_from_file(antfile=arl_path("data/configurations/LOWBD2.csv"),
                                             location=location, mount='xy', names='LOWBD2_%d',
                                             diameter=35.0, name=name, **kwargs)
     elif name == 'LOWBD1':
         location = EarthLocation(lon="116.4999", lat="-26.7000", height=300.0)
-        log.info("%s\n\t%s\n\t%s" % (name, location.geocentric, location.geodetic))
+        log.info("create_named_configuration: %s\n\t%s\n\t%s" % (name, location.geocentric, location.geodetic))
         fc = create_configuration_from_file(antfile=arl_path("data/configurations/LOWBD1.csv"),
                                             location=location, mount='xy', names='LOWBD1_%d',
                                             diameter=35.0, name=name, **kwargs)
     elif name == 'LOWBD2-CORE':
         location = EarthLocation(lon="116.4999", lat="-26.7000", height=300.0)
-        log.info("%s\n\t%s\n\t%s" % (name, location.geocentric, location.geodetic))
+        log.info("create_named_configuration: %s\n\t%s\n\t%s" % (name, location.geocentric, location.geodetic))
         fc = create_configuration_from_file(antfile=arl_path("data/configurations/LOWBD2-CORE.csv"),
                                             location=location, mount='xy', names='LOWBD2_%d',
                                             diameter=35.0, name=name, **kwargs)
     elif name == 'LOWR3':
         location = EarthLocation(lon="116.4525771", lat="-26.60055525", height=300.0)
-        log.info("%s\n\t%s\n\t%s" % (name, location.geocentric, location.geodetic))
+        log.info("create_named_configuration: %s\n\t%s\n\t%s" % (name, location.geocentric, location.geodetic))
         fc = create_configuration_from_SKAfile(antfile=arl_path("data/configurations/LOW_SKA-TEL-SKO-0000422_Rev3.txt"),
                                                mount='xy', names='LOWR3_%d', location=location,
                                                name=name, **kwargs)
     elif name == 'MID':
         location = EarthLocation(lon="21.443803", lat="-30.712925", height=0.0)
-        log.info("%s\n\t%s\n\t%s" % (name, location.geocentric, location.geodetic))
+        log.info("create_named_configuration: %s\n\t%s\n\t%s" % (name, location.geocentric, location.geodetic))
         fc = create_configuration_from_MIDfile(antfile=arl_path("data/configurations/ska1mid.cfg"),
             mount='altaz', name=name, location=location, **kwargs)
     elif name == 'MIDR5':
         location = EarthLocation(lon="21.443803", lat="-30.712925", height=0.0)
-        log.info("%s\n\t%s\n\t%s" % (name, location.geocentric, location.geodetic))
+        log.info("create_named_configuration: %s\n\t%s\n\t%s" % (name, location.geocentric, location.geodetic))
         fc = create_configuration_from_SKAfile(
             antfile=arl_path("data/configurations/MID_SKA-TEL-INSA-0000537_Rev05.txt"),
             mount='altaz', names='MIDR5_%d', location=location,
             name=name, **kwargs)
     elif name == 'ASKAP':
         location = EarthLocation(lon="+116.6356824", lat="-26.7013006", height=377.0)
-        log.info("%s\n\t%s\n\t%s" % (name, location.geocentric, location.geodetic))
+        log.info("create_named_configuration: %s\n\t%s\n\t%s" % (name, location.geocentric, location.geodetic))
         fc = create_configuration_from_file(antfile=arl_path("data/configurations/A27CR3P6B.in.csv"),
                                             mount='equatorial', names='ASKAP_%d',
                                             diameter=12.0, name=name, location=location, **kwargs)
     elif name == 'LOFAR':
         location = EarthLocation(x=[3826923.9] * u.m, y=[460915.1] * u.m, z=[5064643.2] * u.m)
-        log.info("%s\n\t%s\n\t%s" % (name, location.geocentric, location.geodetic))
+        log.info("create_named_configuration: %s\n\t%s\n\t%s" % (name, location.geocentric, location.geodetic))
         assert get_parameter(kwargs, "meta", False) is False
         fc = create_LOFAR_configuration(antfile=arl_path("data/configurations/LOFAR.csv"), location=location)
     elif name == 'VLAA':
         location = EarthLocation(lon="-107.6184", lat="34.0784", height=2124.0)
-        log.info("%s\n\t%s\n\t%s" % (name, location.geocentric, location.geodetic))
+        log.info("create_named_configuration: %s\n\t%s\n\t%s" % (name, location.geocentric, location.geodetic))
         fc = create_configuration_from_file(antfile=arl_path("data/configurations/VLA_A_hor_xyz.csv"),
                                             location=location,
                                             mount='altaz',
@@ -236,7 +238,7 @@ def create_named_configuration(name: str = 'LOWBD2', **kwargs) -> Configuration:
                                             diameter=25.0, name=name, **kwargs)
     elif name == 'VLAA_north':
         location = EarthLocation(lon="-107.6184", lat="90.000", height=0.0)
-        log.info("%s\n\t%s\n\t%s" % (name, location.geocentric, location.geodetic))
+        log.info("create_named_configuration: %s\n\t%s\n\t%s" % (name, location.geocentric, location.geodetic))
         fc = create_configuration_from_file(antfile=arl_path("data/configurations/VLA_A_hor_xyz.csv"),
                                             location=location,
                                             mount='altaz',

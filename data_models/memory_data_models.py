@@ -823,7 +823,7 @@ class Visibility:
         self.frequency_map = None
     
     def __str__(self):
-        """Default printer for Skycomponent
+        """Default printer for Visibility
 
         """
         ufrequency = numpy.unique(self.frequency)
