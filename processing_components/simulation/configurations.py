@@ -70,11 +70,6 @@ def create_configuration_from_SKAfile(antfile: str,
         antxyz[ant] = [loc[0].to(u.m).value, loc[1].to(u.m).value, loc[2].to(u.m).value]
         diameters[ant] = antdiamlonglat[ant, 0]
 
-    if True:
-        local = xyz_to_uvw(antxyz, 0.0, location.geodetic[1].rad)
-        local[:, 0], local[:, 1], local[:, 2] = local[:, 1], local[:, 2], local[:, 0]
-        antxyz = uvw_to_xyz(local, 0.0, location.geodetic[1].rad)
-
     nants = antxyz.shape[0]
     anames = [names % ant for ant in range(nants)]
     mounts = numpy.repeat(mount, nants)
@@ -97,16 +92,16 @@ def create_configuration_from_MIDfile(antfile: str, location=None,
     """
 
     # X Y Z Diam Station
-    # 5109237.714735 2006795.661955 -3239109.183708 13.5 M000
+    # 9.36976 35.48262 1052.99987 13.50 M001
     antxyz = numpy.genfromtxt(antfile, skip_header=5, usecols=[0, 1, 2], delimiter=" ")
+    
+    antxyz = xyz_at_latitude(antxyz, location.latitude.rad)
+    antxyz += [location.geocentric[0].to(u.m).value,
+               location.geocentric[1].to(u.m).value,
+               location.geocentric[2].to(u.m).value]
+
     nants = antxyz.shape[0]
     assert antxyz.shape[1] == 3, "Antenna array has wrong shape %s" % antxyz.shape
-
-    flip = False
-    if flip:
-        local = xyz_to_uvw(antxyz, 0.0, location.geodetic[1].rad)
-        local[:, 0], local[:, 1], local[:, 2] = local[:, 1], local[:, 2], local[:, 0]
-        antxyz = uvw_to_xyz(local, 0.0, location.geodetic[1].rad)
 
     anames = numpy.genfromtxt(antfile, dtype='str', skip_header=5, usecols=[4], delimiter=" ")
     mounts = numpy.repeat(mount, nants)
@@ -208,7 +203,7 @@ def create_named_configuration(name: str = 'LOWBD2', **kwargs) -> Configuration:
     elif name == 'MID':
         location = EarthLocation(lon="21.443803", lat="-30.712925", height=0.0)
         log.info("create_named_configuration: %s\n\t%s\n\t%s" % (name, location.geocentric, location.geodetic))
-        fc = create_configuration_from_MIDfile(antfile=arl_path("data/configurations/ska1mid.cfg"),
+        fc = create_configuration_from_MIDfile(antfile=arl_path("data/configurations/ska1mid_local.cfg"),
             mount='altaz', name=name, location=location, **kwargs)
     elif name == 'MIDR5':
         location = EarthLocation(lon="21.443803", lat="-30.712925", height=0.0)
