@@ -9,18 +9,22 @@ import numpy
 from astropy import units as u
 from astropy.coordinates import SkyCoord
 
-from tests.workflows import ARLExecuteTestCase
 from data_models.memory_data_models import BlockVisibility
-from wrappers.arlexecute.execution_support.arlexecute import arlexecute
+from wrappers.arlexecute.execution_support.arlexecutebase import ARLExecuteBase
+from wrappers.arlexecute.execution_support.dask_init import get_dask_Client
 
 from workflows.arlexecute.simulation.simulation_arlexecute import simulate_list_arlexecute_workflow
 
 log = logging.getLogger(__name__)
 
 
-class TestSimulationArlexecuteSupport(ARLExecuteTestCase, unittest.TestCase):
+class TestSimulationArlexecuteSupport(unittest.TestCase):
     def setUp(self):
-        super(TestSimulationArlexecuteSupport, self).setUp()
+        client = get_dask_Client(memory_limit=4 * 1024 * 1024 * 1024, n_workers=4, dashboard_address=None)
+        global arlexecute
+        arlexecute = ARLExecuteBase(use_dask=True)
+        arlexecute.set_client(client)
+
         from data_models.parameters import arl_path
         self.dir = arl_path('test_results')
         
@@ -29,7 +33,9 @@ class TestSimulationArlexecuteSupport(ARLExecuteTestCase, unittest.TestCase):
         self.phasecentre = SkyCoord(ra=+15.0 * u.deg, dec=-60.0 * u.deg, frame='icrs', equinox='J2000')
         self.times = numpy.linspace(-300.0, 300.0, 3) * numpy.pi / 43200.0
     def tearDown(self):
+        global arlexecute
         arlexecute.close()
+        del arlexecute
 
     def test_create_simulate_vis_list(self):
         vis_list = simulate_list_arlexecute_workflow(frequency=self.frequency, channel_bandwidth=self.channel_bandwidth)

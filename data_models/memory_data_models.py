@@ -46,7 +46,7 @@ class Configuration:
     """
     
     def __init__(self, name='', data=None, location=None,
-                 names="%s", xyz=None, mount="alt-az", frame=None,
+                 names="%s", xyz=None, mount="alt-az", frame='',
                  receptor_frame=ReceptorFrame("linear"),
                  diameter=None):
         
@@ -823,7 +823,7 @@ class Visibility:
         self.frequency_map = None
     
     def __str__(self):
-        """Default printer for Skycomponent
+        """Default printer for Visibility
 
         """
         ufrequency = numpy.unique(self.frequency)

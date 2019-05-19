@@ -790,7 +790,7 @@ def simulate_pointingtable(pt: PointingTable, pointing_error, static_pointing_er
     # Now apply parallactic angle rotation if defined
     config = pt.configuration
     assert isinstance(config, Configuration), "No configuration data available"
-    if config.mount[0] == 'altaz':
+    if (config.mount[0] == 'altaz') or (config.mount[0] == 'ALT-A'):
         lat = config.location.geodetic[1]
         time = numpy.pi * pt.time / 43200.0
         pa = parallactic_angle(time, pt.pointingcentre.dec.to('rad').value, lat.to('rad').value)

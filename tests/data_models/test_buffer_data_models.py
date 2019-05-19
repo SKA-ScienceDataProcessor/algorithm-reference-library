@@ -29,9 +29,9 @@ class TestBufferDataModelHelpers(unittest.TestCase):
         from data_models.parameters import arl_path
         self.dir = arl_path('test_results/')
         
-        self.lowcore = create_named_configuration('LOWBD2-CORE')
+        self.midcore = create_named_configuration('MID', rmax=3000.0)
         self.times = (numpy.pi / 43200.0) * numpy.arange(0.0, 300.0, 100.0)
-        self.frequency = numpy.linspace(1.0e8, 1.1e8, 3)
+        self.frequency = numpy.linspace(1.0e9, 1.1e9, 3)
         self.channel_bandwidth = numpy.array([1e7, 1e7, 1e7])
         # Define the component and give it some spectral behaviour
         f = numpy.array([100.0, 20.0, -10.0, 1.0])
@@ -44,7 +44,7 @@ class TestBufferDataModelHelpers(unittest.TestCase):
         self.comp = Skycomponent(direction=self.compabsdirection, frequency=self.frequency, flux=self.flux)
     
     def test_readwriteblockvisibility(self):
-        self.vis = create_blockvisibility(self.lowcore, self.times, self.frequency,
+        self.vis = create_blockvisibility(self.midcore, self.times, self.frequency,
                                           channel_bandwidth=self.channel_bandwidth,
                                           phasecentre=self.phasecentre,
                                           polarisation_frame=PolarisationFrame("linear"),
@@ -70,7 +70,7 @@ class TestBufferDataModelHelpers(unittest.TestCase):
         assert numpy.max(numpy.abs(newvis.configuration.xyz - self.vis.configuration.xyz)) < 1e-15
 
     def test_readwritegaintable(self):
-        self.vis = create_blockvisibility(self.lowcore, self.times, self.frequency,
+        self.vis = create_blockvisibility(self.midcore, self.times, self.frequency,
                                           channel_bandwidth=self.channel_bandwidth,
                                           phasecentre=self.phasecentre,
                                           polarisation_frame=PolarisationFrame("linear"),
@@ -90,7 +90,7 @@ class TestBufferDataModelHelpers(unittest.TestCase):
         assert numpy.max(numpy.abs(gt.gain - newgt.gain)) < 1e-15
 
     def test_readwritepointingtable(self):
-        self.vis = create_blockvisibility(self.lowcore, self.times, self.frequency,
+        self.vis = create_blockvisibility(self.midcore, self.times, self.frequency,
                                           channel_bandwidth=self.channel_bandwidth,
                                           phasecentre=self.phasecentre,
                                           polarisation_frame=PolarisationFrame("linear"),
@@ -110,7 +110,7 @@ class TestBufferDataModelHelpers(unittest.TestCase):
         assert numpy.max(numpy.abs(pt.pointing - newpt.pointing)) < 1e-15
 
     def test_readwriteskymodel(self):
-        vis = create_blockvisibility(self.lowcore, self.times, self.frequency,
+        vis = create_blockvisibility(self.midcore, self.times, self.frequency,
                                           channel_bandwidth=self.channel_bandwidth,
                                           phasecentre=self.phasecentre,
                                           polarisation_frame=PolarisationFrame("linear"),
@@ -134,7 +134,7 @@ class TestBufferDataModelHelpers(unittest.TestCase):
         assert numpy.max(numpy.abs(newsm.image.data - im.data)) < 1e-15
 
     def test_readwriteskymodel_no_image(self):
-        vis = create_blockvisibility(self.lowcore, self.times, self.frequency,
+        vis = create_blockvisibility(self.midcore, self.times, self.frequency,
                                           channel_bandwidth=self.channel_bandwidth,
                                           phasecentre=self.phasecentre,
                                           polarisation_frame=PolarisationFrame("linear"),

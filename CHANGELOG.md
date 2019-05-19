@@ -120,5 +120,5 @@ need to be updated manually.
 arlexecute.
 
 **April 18, 2018** [Tim], Deconvolution can now be done using overlapped, tapered sub-images (aka facets).
-Look for deconvolve_facets, deconvolve_overlap, and deconvolve_taper arguments.
+Look for deconvolve_facets, deconvolve_overlap, and deconvolve_taper.
 

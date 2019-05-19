@@ -18,6 +18,7 @@ dependencies:
   - h5py
   - dask
   - distributed
+  - paramiko
   - python-graphviz
   - bokeh
   - jupyter

@@ -56,7 +56,7 @@ class TestPointing(unittest.TestCase):
             vp = create_vp(beam, telescope)
             pt = create_pointingtable_from_blockvisibility(self.vis, vp)
             pt = simulate_pointingtable(pt, 0.1, static_pointing_error=0.01)
-            assert pt.pointing.shape == (300, 63, 1, 1, 2), pt.pointing.shape
+            assert pt.pointing.shape == (300, 58, 1, 1, 2), pt.pointing.shape
     
     def test_create_gaintable_from_pointingtable(self):
         s3_components = create_test_skycomponents_from_s3(flux_limit=5.0,
@@ -69,7 +69,7 @@ class TestPointing(unittest.TestCase):
         pt = simulate_pointingtable(pt, pointing_error=0.01, static_pointing_error=0.001)
         vp = create_vp(self.model, 'MID')
         gt = create_gaintable_from_pointingtable(self.vis, s3_components, pt, vp)
-        assert gt[0].gain.shape == (300, 63, 1, 1, 1), gt[0].gain.shape
+        assert gt[0].gain.shape == (300, 58, 1, 1, 1), gt[0].gain.shape
 
     def test_create_gaintable_from_pointingtable_dynamic(self):
         comp = create_skycomponent(direction=self.phasecentre, flux=[[1.0]], frequency=self.frequency,
@@ -86,7 +86,7 @@ class TestPointing(unittest.TestCase):
         plt.plot(gt[0].time, numpy.real(1.0 / gt[0].gain[:, 0, 0, 0, 0]), '.')
         plt.plot(gt[0].time, numpy.imag(1.0 / gt[0].gain[:, 0, 0, 0, 0]), '.')
         plt.show()
-        assert gt[0].gain.shape == (300, 63, 1, 1, 1), gt[0].gain.shape
+        assert gt[0].gain.shape == (300, 58, 1, 1, 1), gt[0].gain.shape
 
     def test_create_gaintable_from_pointingtable_static(self):
         comp = create_skycomponent(direction=self.phasecentre, flux=[[1.0]], frequency=self.frequency,
@@ -102,7 +102,7 @@ class TestPointing(unittest.TestCase):
         plt.plot(gt[0].time, numpy.real(1.0 / gt[0].gain[:, 0, 0, 0, 0]), '.')
         plt.plot(gt[0].time, numpy.imag(1.0 / gt[0].gain[:, 0, 0, 0, 0]), '.')
         plt.show()
-        assert gt[0].gain.shape == (300, 63, 1, 1, 1), gt[0].gain.shape
+        assert gt[0].gain.shape == (300, 58, 1, 1, 1), gt[0].gain.shape
 
     def test_create_gaintable_from_pointingtable_dynamic_static(self):
         comp = create_skycomponent(direction=self.phasecentre, flux=[[1.0]], frequency=self.frequency,
@@ -119,7 +119,7 @@ class TestPointing(unittest.TestCase):
         plt.plot(gt[0].time, numpy.real(1.0 / gt[0].gain[:, 0, 0, 0, 0]), '.')
         plt.plot(gt[0].time, numpy.imag(1.0 / gt[0].gain[:, 0, 0, 0, 0]), '.')
         plt.show()
-        assert gt[0].gain.shape == (300, 63, 1, 1, 1), gt[0].gain.shape
+        assert gt[0].gain.shape == (300, 58, 1, 1, 1), gt[0].gain.shape
 
     def test_create_gaintable_from_pointingtable_global(self):
 
@@ -139,7 +139,7 @@ class TestPointing(unittest.TestCase):
         plt.plot(gt[0].time, numpy.real(1.0 / gt[0].gain[:, 0, 0, 0, 0]), '.')
         plt.plot(gt[0].time, numpy.imag(1.0 / gt[0].gain[:, 0, 0, 0, 0]), '.')
         plt.show()
-        assert gt[0].gain.shape == (300, 63, 1, 1, 1), gt[0].gain.shape
+        assert gt[0].gain.shape == (300, 58, 1, 1, 1), gt[0].gain.shape
 
     def test_create_gaintable_from_pointingtable_global_dynamic(self):
         comp = create_skycomponent(direction=self.phasecentre, flux=[[1.0]], frequency=self.frequency,
@@ -156,5 +156,5 @@ class TestPointing(unittest.TestCase):
         plt.plot(gt[0].time, numpy.real(1.0 / gt[0].gain[:, 0, 0, 0, 0]), '.')
         plt.plot(gt[0].time, numpy.imag(1.0 / gt[0].gain[:, 0, 0, 0, 0]), '.')
         plt.show()
-        assert gt[0].gain.shape == (300, 63, 1, 1, 1), gt[0].gain.shape
+        assert gt[0].gain.shape == (300, 58, 1, 1, 1), gt[0].gain.shape
 

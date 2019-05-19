@@ -16,7 +16,8 @@ from tests.workflows import ARLExecuteTestCase
 from workflows.arlexecute.calibration.calibration_arlexecute import calibrate_list_arlexecute_workflow
 from wrappers.arlexecute.calibration.calibration_control import create_calibration_controls
 from wrappers.arlexecute.calibration.operations import create_gaintable_from_blockvisibility, apply_gaintable
-from wrappers.arlexecute.execution_support.arlexecute import arlexecute
+from wrappers.arlexecute.execution_support.arlexecutebase import ARLExecuteBase
+from wrappers.arlexecute.execution_support.dask_init import get_dask_Client
 from wrappers.arlexecute.simulation.testing_support import ingest_unittest_visibility
 from processing_components.simulation.configurations import create_named_configuration
 from wrappers.arlexecute.simulation.testing_support import simulate_gaintable
@@ -29,16 +30,22 @@ log.addHandler(logging.StreamHandler(sys.stdout))
 log.addHandler(logging.StreamHandler(sys.stderr))
 
 
-class TestCalibrateGraphs(ARLExecuteTestCase, unittest.TestCase):
+class TestCalibrateGraphs(unittest.TestCase):
     
     def setUp(self):
-        super(TestCalibrateGraphs, self).setUp()
+        client = get_dask_Client(memory_limit=4 * 1024 * 1024 * 1024, n_workers=4, dashboard_address=None)
+        global arlexecute
+        arlexecute = ARLExecuteBase(use_dask=True)
+        arlexecute.set_client(client, verbose=True)
+    
         from data_models.parameters import arl_path
         self.dir = arl_path('test_results')
     
     def tearDown(self):
-        pass
-    
+        global arlexecute
+        arlexecute.close()
+        del arlexecute
+        
     def actualSetUp(self, nfreqwin=3, dospectral=True, dopol=False,
                     amp_errors=None, phase_errors=None, zerow=True):
         

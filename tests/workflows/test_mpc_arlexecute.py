@@ -16,7 +16,7 @@ from wrappers.arlexecute.skymodel.operations import expand_skymodel_by_skycompon
 from workflows.arlexecute.skymodel.skymodel_arlexecute import predict_skymodel_list_arlexecute_workflow, \
     invert_skymodel_list_arlexecute_workflow, crosssubtract_datamodels_skymodel_list_arlexecute_workflow
 from workflows.shared.imaging.imaging_shared import sum_predict_results
-from wrappers.arlexecute.execution_support.arlexecute import arlexecute
+from wrappers.arlexecute.execution_support.arlexecutebase import ARLExecuteBase
 from wrappers.arlexecute.execution_support.dask_init import get_dask_Client
 from wrappers.arlexecute.simulation.testing_support import ingest_unittest_visibility, \
     create_low_test_skymodel_from_gleam
@@ -34,7 +34,9 @@ log.addHandler(logging.StreamHandler(sys.stderr))
 class TestMPC(unittest.TestCase):
     def setUp(self):
         
-        client = get_dask_Client(memory_limit=4 * 1024 * 1024 * 1024)
+        client = get_dask_Client(memory_limit=4 * 1024 * 1024 * 1024, n_workers=4, dashboard_address=None)
+        global arlexecute
+        arlexecute = ARLExecuteBase(use_dask=True)
         arlexecute.set_client(client)
         
         from data_models.parameters import arl_path
@@ -42,13 +44,10 @@ class TestMPC(unittest.TestCase):
         self.plot = False
     
     def tearDown(self):
-        try:
-            import time
-            time.sleep(5.0)
-            arlexecute.close()
-        except:
-            pass
-    
+        global arlexecute
+        arlexecute.close()
+        del arlexecute
+
     def actualSetUp(self, freqwin=1, block=True, dopol=False, zerow=False):
         
         self.npixel = 1024
