@@ -112,7 +112,7 @@ class TestGridDataGridding(unittest.TestCase):
         im = normalize_sumwt(im, sumwt)
         if self.persist:
             export_image_to_fits(im, '%s/test_gridding_dirty_pswf.fits' % self.dir)
-        self.check_peaks(im, 97.00435128311616, tol=1e-7)
+        self.check_peaks(im, 96.99180596927563, tol=1e-7)
     
     def test_griddata_invert_pswf_w(self):
         self.actualSetUp(zerow=False)
@@ -123,7 +123,7 @@ class TestGridDataGridding(unittest.TestCase):
         im = normalize_sumwt(im, sumwt)
         if self.persist:
             export_image_to_fits(im, '%s/test_gridding_dirty_pswf_w.fits' % self.dir)
-        self.check_peaks(im, 97.02498821941138, tol=1e-7)
+        self.check_peaks(im, 97.01838776845877, tol=1e-7)
     
     def test_griddata_invert_aterm(self):
         self.actualSetUp(zerow=True)
@@ -139,7 +139,7 @@ class TestGridDataGridding(unittest.TestCase):
         im = normalize_sumwt(im, sumwt)
         if self.persist:
             export_image_to_fits(im, '%s/test_gridding_dirty_aterm.fits' % self.dir)
-        self.check_peaks(im, 97.11809546469424, tol=1e-7)
+        self.check_peaks(im, 97.10568506868603, tol=1e-7)
     
     def test_griddata_invert_aterm_noover(self):
         self.actualSetUp(zerow=True)
@@ -155,7 +155,7 @@ class TestGridDataGridding(unittest.TestCase):
         im = normalize_sumwt(im, sumwt)
         if self.persist:
             export_image_to_fits(im, '%s/test_gridding_dirty_aterm_noover.fits' % self.dir)
-        self.check_peaks(im, 97.11833094589)
+        self.check_peaks(im, 97.10594988491549)
     
     def test_griddata_invert_box(self):
         self.actualSetUp(zerow=True)
@@ -166,7 +166,7 @@ class TestGridDataGridding(unittest.TestCase):
         im = normalize_sumwt(im, sumwt)
         if self.persist:
             export_image_to_fits(im, '%s/test_gridding_dirty_box.fits' % self.dir)
-        self.check_peaks(im, 97.11833094588997, tol=1e-7)
+        self.check_peaks(im, 97.10594988491546, tol=1e-7)
     
     def test_griddata_invert_fast(self):
         self.actualSetUp(zerow=True)
@@ -177,7 +177,7 @@ class TestGridDataGridding(unittest.TestCase):
         im = normalize_sumwt(im, sumwt)
         if self.persist:
             export_image_to_fits(im, '%s/test_gridding_dirty_fast.fits' % self.dir)
-        self.check_peaks(im, 97.11833094588997, tol=1e-7)
+        self.check_peaks(im, 97.10594988491546, tol=1e-7)
     
     def check_peaks(self, im, peak=100.0, tol=1e-3):
         assert numpy.abs(im.data[self.peak] - peak) < tol, im.data[self.peak]
@@ -198,7 +198,7 @@ class TestGridDataGridding(unittest.TestCase):
         im = normalize_sumwt(im, sumwt)
         if self.persist:
             export_image_to_fits(im, '%s/test_gridding_dirty_wterm.fits' % self.dir)
-        self.check_peaks(im, 97.13863141113761)
+        self.check_peaks(im, 97.13215242859648)
     
     def test_griddata_invert_awterm(self):
         self.actualSetUp(zerow=False)
@@ -219,7 +219,7 @@ class TestGridDataGridding(unittest.TestCase):
         im = normalize_sumwt(im, sumwt)
         if self.persist:
             export_image_to_fits(im, '%s/test_gridding_dirty_awterm.fits' % self.dir)
-        self.check_peaks(im, 97.13891073376104)
+        self.check_peaks(im, 97.13240677427714)
     
     def test_griddata_predict_pswf(self):
         self.actualSetUp(zerow=True)
