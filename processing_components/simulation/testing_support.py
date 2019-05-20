@@ -754,8 +754,9 @@ def simulate_pointingtable(pt: PointingTable, pointing_error, static_pointing_er
     """ Simulate a gain table
 
     :type pt: PointingTable
-    :param pointing_error: std of normal distribution
-    :param static_pointing_error: std of normal distribution
+    :param pointing_error: std of normal distribution (radians)
+    :param static_pointing_error: std of normal distribution (radians)
+    :param global_pointing_error: 2-vector of global pointing error (rad)
     :param seed: Seed for random numbers def: 180555
     :param kwargs:
     :return: PointingTable
@@ -786,21 +787,7 @@ def simulate_pointingtable(pt: PointingTable, pointing_error, static_pointing_er
                   % (global_pointing_error[0], global_pointing_error[1],
                      r2s * global_pointing_error[0], r2s * global_pointing_error[1]))
         pt.data['pointing'][..., :] += global_pointing_error
-    
-    # Now apply parallactic angle rotation if defined
-    config = pt.configuration
-    assert isinstance(config, Configuration), "No configuration data available"
-    if (config.mount[0] == 'altaz') or (config.mount[0] == 'ALT-A'):
-        lat = config.location.geodetic[1]
-        time = numpy.pi * pt.time / 43200.0
-        pa = parallactic_angle(time, pt.pointingcentre.dec.to('rad').value, lat.to('rad').value)
-        pa = pa[..., numpy.newaxis, numpy.newaxis, numpy.newaxis]
-        pe_original = pt.data['pointing'].copy()
-        pt.data['pointing'][..., 0] = numpy.cos(pa) * pe_original[..., 0] - numpy.sin(pa) * pe_original[..., 1]
-        pt.data['pointing'][..., 1] = numpy.sin(pa) * pe_original[..., 0] + numpy.cos(pa) * pe_original[..., 1]
-    else:
-        raise ValueError("simulate_pointingtable: no support yet for mount type %s" % config.mount[0])
-    
+        
     return pt
 
 

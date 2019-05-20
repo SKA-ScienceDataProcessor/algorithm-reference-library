@@ -75,7 +75,7 @@ class TestPrimaryBeams(unittest.TestCase):
             beam.data = numpy.imag(beam_data)
             export_image_to_fits(beam, "%s/test_primary_beam_numeric_imag_%s.fits" % (self.dir, telescope))
 
-            beam=create_vp(model, telescope=telescope, numeric=False, pointingcentre=pointingcentre)
+            beam=create_vp(model, telescope=telescope, pointingcentre=pointingcentre)
             beam.data = numpy.real(beam.data)
             export_image_to_fits(beam, "%s/test_primary_beam_analytic_%s.fits" % (self.dir, telescope))
 
@@ -92,6 +92,6 @@ class TestPrimaryBeams(unittest.TestCase):
             beam.data = numpy.imag(beam_data)
             export_image_to_fits(beam, "%s/test_primary_beam_offset_numeric_imag_%s.fits" % (self.dir, telescope))
 
-            beam=create_vp(model, telescope=telescope, numeric=False, pointingcentre=pointingcentre)
+            beam=create_vp(model, telescope=telescope, pointingcentre=pointingcentre)
             beam.data = numpy.real(beam.data)
             export_image_to_fits(beam, "%s/test_primary_beam_offset_analytic_%s.fits" % (self.dir, telescope))
