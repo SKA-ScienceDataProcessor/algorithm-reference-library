@@ -54,26 +54,22 @@ def tapered_disk(r, radius, blockage=0.0, taper='gaussian', edge=1.0):
     return result
 
 
-def create_vp(model, telescope='MID', pointingcentre=None, numeric=False, padding=4, use_local=False):
+def create_vp(model, telescope='MID', pointingcentre=None, padding=4, use_local=False):
     """
     Make an image like model and fill it with an analytical model of the voltage pattern
     :param model: Template image
     :param telescope: 'VLA' or 'ASKAP'
     :return: Primary beam image
     """
-    if telescope[0:3] == 'MID':
-        # Should actually have -12dB (0.07918124604762482) taper at the edge: will require numerical approach
-        if numeric:
-            log.info("create_vp: Using numeric tapered Gaussian model for MID voltage pattern")
+    if telescope == 'MID_GAUSS':
+        log.info("create_vp: Using numeric tapered Gaussian model for MID voltage pattern")
     
-            return create_vp_generic_numeric(model, pointingcentre=pointingcentre, diameter=15.0, blockage=0.0,
+        return create_vp_generic_numeric(model, pointingcentre=pointingcentre, diameter=15.0, blockage=0.0,
                                          edge=0.07918124604762482, padding=padding)
-        else:
-            log.info("create_vp: Using no taper analytic model for MID voltage pattern")
-            return create_vp_generic(model, pointingcentre=pointingcentre, diameter=15.0, blockage=0.0)
-
-            
-    elif telescope[0:3] == 'MEERKAT':
+    elif telescope == 'MID':
+        log.info("create_vp: Using no taper analytic model for MID voltage pattern")
+        return create_vp_generic(model, pointingcentre=pointingcentre, diameter=15.0, blockage=0.0)
+    elif telescope == 'MEERKAT':
         return create_vp_generic(model, pointingcentre=pointingcentre, diameter=13.5, blockage=0.0)
     elif telescope[0:3] == 'LOW':
         return create_low_test_vp(model)
@@ -85,7 +81,7 @@ def create_vp(model, telescope='MID', pointingcentre=None, numeric=False, paddin
         raise NotImplementedError('Telescope %s has no voltage pattern model' % telescope)
 
 
-def create_pb(model, telescope='MID', pointingcentre=None, numeric=False, use_local=False):
+def create_pb(model, telescope='MID', pointingcentre=None, use_local=False):
     """
     Make an image like model and fill it with an analytical model of the primary beam
     :param model: Template image
@@ -95,14 +91,14 @@ def create_pb(model, telescope='MID', pointingcentre=None, numeric=False, use_lo
     if telescope=='LOW':
         beam = create_low_test_beam(model)
     else:
-        beam = create_vp(model, telescope, pointingcentre, numeric=numeric)
+        beam = create_vp(model, telescope, pointingcentre)
         beam.data = numpy.real(beam.data * numpy.conjugate(beam.data))
         
     set_pb_header(beam, use_local=use_local)
     return beam
 
 
-def mosaic_pb(model, telescope, pointingcentres, numeric=True, use_local=False):
+def mosaic_pb(model, telescope, pointingcentres, use_local=False):
     """ Create a mosaic primary beam by adding primary beams for a set of pointing centres
     
     Note that the addition is root sum of squares
@@ -115,24 +111,24 @@ def mosaic_pb(model, telescope, pointingcentres, numeric=True, use_local=False):
     assert isinstance(pointingcentres, collections.Iterable), "Need a list of pointing centres"
     sumpb = create_empty_image_like(model)
     for pc in pointingcentres:
-        pb = create_pb(model, telescope, pointingcentre=pc, numeric=numeric)
+        pb = create_pb(model, telescope, pointingcentre=pc)
         sumpb.data += pb.data ** 2
     sumpb.data = numpy.sqrt(sumpb.data)
     return sumpb
 
-def create_pb_generic(model, pointingcentre=None, diameter=25.0, blockage=1.8, numeric=True, use_local=False):
+def create_pb_generic(model, pointingcentre=None, diameter=25.0, blockage=1.8, use_local=False):
     """
     Make an image like model and fill it with an analytical model of the primary beam
     :param model:
     :return:
     """
-    beam = create_vp_generic(model, pointingcentre, diameter, blockage, numeric=numeric)
+    beam = create_vp_generic(model, pointingcentre, diameter, blockage)
     beam.data = numpy.real(beam.data * numpy.conjugate(beam.data))
     set_pb_header(beam, use_local=use_local)
     return beam
 
 
-def create_vp_generic(model, pointingcentre=None, diameter=25.0, blockage=1.8, numeric=True, use_local=False):
+def create_vp_generic(model, pointingcentre=None, diameter=25.0, blockage=1.8, use_local=False):
     """
     Make an image like model and fill it with an analytical model of the primary beam
     :param model:
