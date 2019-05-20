@@ -286,3 +286,53 @@ def pa_z(ha, dec, lat):
     return numpy.arctan2(numpy.cos(lat) * numpy.sin(ha),
                          (numpy.sin(lat) * numpy.cos(dec) - numpy.cos(lat) * numpy.sin(dec) * numpy.cos(ha))), \
            numpy.arcsin(sinz)
+
+def hadec_to_azel(ha, dec, latitude):
+    """ Convert HA Dec to Az El
+    
+    TMS Appendix 4.1
+    
+    sinel = sinlat sindec + coslat cosdec cosha
+    cosel cosaz = coslat sindec - sinlat cosdec cosha
+    cosel sinaz = - cosdec sinha
+    
+    :param ha:
+    :param dec:
+    :param latitude:
+    :return: az, el
+    """
+    coslat = numpy.cos(latitude)
+    sinlat = numpy.sin(latitude)
+    cosdec = numpy.cos(dec)
+    sindec = numpy.sin(dec)
+    cosha = numpy.cos(ha)
+    sinha = numpy.sin(ha)
+    
+    az = numpy.arctan2(- cosdec * sinha, (coslat * sindec - sinlat * cosdec * cosha))
+    el = numpy.arcsin(sinlat * sindec + coslat * cosdec * cosha)
+    return az, el
+    
+def azel_to_hadec(az, el, latitude):
+    """Converting Az El to HA Dec
+    
+    TMS Appendix 4.1
+    
+    sindec = sinlat sinel + coslat cosel cosaz
+    cosdec cosha = coslat sinel - sinlat cosel cosaz
+    cosdec sinha = -cosel sinaz
+    
+    :param az:
+    :param el:
+    :param latitude:
+    :return: ha, dec
+    """
+    cosel = numpy.cos(el)
+    sinel = numpy.sin(el)
+    coslat = numpy.cos(latitude)
+    sinlat = numpy.sin(latitude)
+    cosaz = numpy.cos(az)
+    sinaz = numpy.sin(az)
+
+    ha = numpy.arctan2(-cosel * sinaz, coslat * sinel - sinlat * cosel * cosaz)
+    dec = numpy.arcsin(sinlat * sinel + coslat * cosel * cosaz)
+    return ha, dec
