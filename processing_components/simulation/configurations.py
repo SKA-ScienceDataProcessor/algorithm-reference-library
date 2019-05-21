@@ -15,7 +15,7 @@ from processing_library.util.coordinate_support import xyz_to_uvw, uvw_to_xyz
 
 
 def create_configuration_from_file(antfile: str, location: EarthLocation = None,
-                                   mount: str = 'altaz',
+                                   mount: str = 'azel',
                                    names: str = "%d",
                                    diameter=35.0,
                                    rmax=None, name='') -> Configuration:
@@ -24,7 +24,7 @@ def create_configuration_from_file(antfile: str, location: EarthLocation = None,
     :param names: Antenna names
     :param antfile: Antenna file name
     :param location:
-    :param mount: mount type: 'altaz', 'xy', 'equatorial'
+    :param mount: mount type: 'azel', 'xy', 'equatorial'
     :param diameter: Effective diameter of station or antenna
     :return: Configuration
     """
@@ -48,7 +48,7 @@ def create_configuration_from_file(antfile: str, location: EarthLocation = None,
 
 
 def create_configuration_from_SKAfile(antfile: str,
-                                      mount: str = 'altaz',
+                                      mount: str = 'azel',
                                       names: str = "%d",
                                       rmax=None, name='', location=None) -> Configuration:
     """ Define from a file
@@ -56,7 +56,7 @@ def create_configuration_from_SKAfile(antfile: str,
     :param names: Antenna names
     :param antfile: Antenna file name
     :param location:
-    :param mount: mount type: 'altaz', 'xy', 'equatorial'
+    :param mount: mount type: 'azel', 'xy', 'equatorial'
     :param diameter: Effective diameter of station or antenna
     :return: Configuration
     """
@@ -81,13 +81,13 @@ def create_configuration_from_SKAfile(antfile: str,
 
 
 def create_configuration_from_MIDfile(antfile: str, location=None,
-                                      mount: str = 'altaz',
+                                      mount: str = 'azel',
                                       rmax=None, name='') -> Configuration:
     """ Define from a file
 
     :param names: Antenna names
     :param antfile: Antenna file name
-    :param mount: mount type: 'altaz', 'xy'
+    :param mount: mount type: 'azel', 'xy'
     :return: Configuration
     """
 
@@ -203,7 +203,7 @@ def create_named_configuration(name: str = 'LOWBD2', **kwargs) -> Configuration:
         location = EarthLocation(lon="21.443803", lat="-30.712925", height=0.0)
         log.info("create_named_configuration: %s\n\t%s\n\t%s" % (name, location.geocentric, location.geodetic))
         fc = create_configuration_from_MIDfile(antfile=arl_path("data/configurations/ska1mid_local.cfg"),
-            mount='altaz', name=name, location=location, **kwargs)
+            mount='azel', name=name, location=location, **kwargs)
     elif name == 'ASKAP':
         location = EarthLocation(lon="+116.6356824", lat="-26.7013006", height=377.0)
         log.info("create_named_configuration: %s\n\t%s\n\t%s" % (name, location.geocentric, location.geodetic))
@@ -220,7 +220,7 @@ def create_named_configuration(name: str = 'LOWBD2', **kwargs) -> Configuration:
         log.info("create_named_configuration: %s\n\t%s\n\t%s" % (name, location.geocentric, location.geodetic))
         fc = create_configuration_from_file(antfile=arl_path("data/configurations/VLA_A_hor_xyz.csv"),
                                             location=location,
-                                            mount='altaz',
+                                            mount='azel',
                                             names='VLA_%d',
                                             diameter=25.0, name=name, **kwargs)
     elif name == 'VLAA_north':
@@ -228,7 +228,7 @@ def create_named_configuration(name: str = 'LOWBD2', **kwargs) -> Configuration:
         log.info("create_named_configuration: %s\n\t%s\n\t%s" % (name, location.geocentric, location.geodetic))
         fc = create_configuration_from_file(antfile=arl_path("data/configurations/VLA_A_hor_xyz.csv"),
                                             location=location,
-                                            mount='altaz',
+                                            mount='azel',
                                             names='VLA_%d',
                                             diameter=25.0, name=name, **kwargs)
     else:

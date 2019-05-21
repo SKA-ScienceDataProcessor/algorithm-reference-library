@@ -31,7 +31,7 @@ def create_gaintable_from_pointingtable(vis, sc, pt, vp, vis_slices=None, scale=
     assert vp.wcs.wcs.ctype[0] == 'AZELGEO long', vp.wcs.wcs.ctype[0]
     assert vp.wcs.wcs.ctype[1] == 'AZELGEO lati', vp.wcs.wcs.ctype[1]
     
-    assert vis.configuration.mount[0] == 'altaz', "Mount %s not supported yet" % vis.configuration.mount[0]
+    assert vis.configuration.mount[0] == 'azel', "Mount %s not supported yet" % vis.configuration.mount[0]
 
     nant = vis.vis.shape[1]
     gaintables = [create_gaintable_from_blockvisibility(vis, **kwargs) for i in sc]
@@ -57,8 +57,10 @@ def create_gaintable_from_pointingtable(vis, sc, pt, vp, vis_slices=None, scale=
         ha = numpy.average(v.time)
         pt_rows = (pt.time == ha)
         pointing_ha = pt.pointing[pt_rows]
+        har = s2r * ha
         
-        azimuth_centre, elevation_centre = hadec_to_azel(vis.phasecentre.ra.rad + ha * s2r,
+        # Calculate the az el for this hourangle and the phasecentre declination
+        azimuth_centre, elevation_centre = hadec_to_azel(har,
                                                          vis.phasecentre.dec.rad,
                                                          latitude)
         
@@ -66,18 +68,22 @@ def create_gaintable_from_pointingtable(vis, sc, pt, vp, vis_slices=None, scale=
             antgain = numpy.zeros([nant], dtype='complex')
             # Calculate the location of the component in AZELGEO, then add the pointing offset
             # for each antenna
-            azimuth_comp, elevation_comp = hadec_to_azel(comp.direction.ra.rad + ha * s2r,
+            azimuth_comp, elevation_comp = hadec_to_azel(comp.direction.ra.rad - vis.phasecentre.ra.rad + har,
                                                          comp.direction.dec.rad,
                                                          latitude)
             azimuth_diff = azimuth_comp - azimuth_centre
             elevation_diff = elevation_comp - elevation_centre
             for ant in range(nant):
     
-                worldloc = [float((azimuth_diff + pointing_ha[0, ant, 0, 0, 0]) * r2d),
-                            float((elevation_diff + pointing_ha[0, ant, 0, 0, 1]) * r2d),
+                worldloc = [float((azimuth_diff + pointing_ha[0, ant, 0, 0, 0])*r2d),
+                            float((elevation_diff + pointing_ha[0, ant, 0, 0, 1])*r2d),
                             vp.wcs.wcs.crval[2], vp.wcs.wcs.crval[3]]
                 try:
                     pixloc = vp.wcs.sub(2).wcs_world2pix([worldloc[:2]], 1)[0]
+                    assert pixloc[0] > 2
+                    assert pixloc[0] < nx - 3
+                    assert pixloc[1] > 2
+                    assert pixloc[1] < ny - 3
                     gain = real_spline.ev(pixloc[1], pixloc[0]) + 1j * imag_spline(pixloc[1], pixloc[0])
                     antgain[ant] = 1.0 / (scale * gain)
                     number_good += 1
