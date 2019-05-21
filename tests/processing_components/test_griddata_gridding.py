@@ -292,7 +292,7 @@ class TestGridDataGridding(unittest.TestCase):
         im = normalize_sumwt(im, sumwt)
         if self.persist:
             export_image_to_fits(im, '%s/test_gridding_dirty_2d_uniform.fits' % self.dir)
-        self.check_peaks(im, 99.42031190701735)
+        self.check_peaks(im, 99.40822097133994)
     
     def plot_vis(self, newvis, title=''):
         if self.doplot:
