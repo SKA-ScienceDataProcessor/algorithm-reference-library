@@ -89,9 +89,9 @@ def create_pb(model, telescope='MID', pointingcentre=None, use_local=True):
     :return: Primary beam image
     """
     if telescope=='LOW':
-        beam = create_low_test_beam(model)
+        beam = create_low_test_beam(model, use_local=use_local)
     else:
-        beam = create_vp(model, telescope, pointingcentre)
+        beam = create_vp(model, telescope, pointingcentre, use_local=use_local)
         beam.data = numpy.real(beam.data * numpy.conjugate(beam.data))
         
     set_pb_header(beam, use_local=use_local)
@@ -111,7 +111,7 @@ def mosaic_pb(model, telescope, pointingcentres, use_local=True):
     assert isinstance(pointingcentres, collections.Iterable), "Need a list of pointing centres"
     sumpb = create_empty_image_like(model)
     for pc in pointingcentres:
-        pb = create_pb(model, telescope, pointingcentre=pc)
+        pb = create_pb(model, telescope, pointingcentre=pc, use_local=use_local)
         sumpb.data += pb.data ** 2
     sumpb.data = numpy.sqrt(sumpb.data)
     return sumpb
@@ -122,7 +122,7 @@ def create_pb_generic(model, pointingcentre=None, diameter=25.0, blockage=1.8, u
     :param model:
     :return:
     """
-    beam = create_vp_generic(model, pointingcentre, diameter, blockage)
+    beam = create_vp_generic(model, pointingcentre, diameter, blockage, use_local=use_local)
     beam.data = numpy.real(beam.data * numpy.conjugate(beam.data))
     set_pb_header(beam, use_local=use_local)
     return beam
@@ -269,7 +269,7 @@ def create_low_test_beam(model: Image, use_local=True) -> Image:
         for pol in range(npol):
             reprojected_beam.data[chan, pol, :, :] = reprojected_beam2d.data[:, :]
 
-    set_pb_header(reprojected_beam)
+    set_pb_header(reprojected_beam, use_local=use_local)
     return reprojected_beam
 
 def create_low_test_vp(model: Image, use_local=True) -> Image:

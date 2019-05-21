@@ -207,8 +207,8 @@ class TestPipelines(unittest.TestCase):
                                      self.dir)
 
         qa = qa_image(restored[centre])
-        assert numpy.abs(qa.data['max'] - 98.92656340122159) < 1.0, str(qa)
-        assert numpy.abs(qa.data['min'] + 0.7024492707920869) < 1.0, str(qa)
+        assert numpy.abs(qa.data['max'] - 99.96071696416537) < 1.0, str(qa)
+        assert numpy.abs(qa.data['min'] + 0.40259277141095084) < 1.0, str(qa)
 
 
 if __name__ == '__main__':

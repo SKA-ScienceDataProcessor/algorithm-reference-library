@@ -93,7 +93,7 @@ class TestGridDataGridding(unittest.TestCase):
         if self.persist:
             export_image_to_fits(self.model, '%s/test_gridding_model.fits' % self.dir)
             export_image_to_fits(self.cmodel, '%s/test_gridding_cmodel.fits' % self.dir)
-        pb = create_pb_generic(self.model, diameter=35.0, blockage=0.0)
+        pb = create_pb_generic(self.model, diameter=35.0, blockage=0.0, use_local=False)
         self.cmodel.data *= pb.data
         if self.persist:
             export_image_to_fits(self.cmodel, '%s/test_gridding_cmodel_pb.fits' % self.dir)
@@ -127,7 +127,7 @@ class TestGridDataGridding(unittest.TestCase):
     
     def test_griddata_invert_aterm(self):
         self.actualSetUp(zerow=True)
-        make_pb = functools.partial(create_pb_generic, diameter=35.0, blockage=0.0)
+        make_pb = functools.partial(create_pb_generic, diameter=35.0, blockage=0.0, use_local=False)
         pb = make_pb(self.model)
         if self.persist:
             export_image_to_fits(pb, "%s/test_gridding_aterm_pb.fits" % self.dir)
@@ -143,7 +143,7 @@ class TestGridDataGridding(unittest.TestCase):
     
     def test_griddata_invert_aterm_noover(self):
         self.actualSetUp(zerow=True)
-        make_pb = functools.partial(create_pb_generic, diameter=35.0, blockage=0.0)
+        make_pb = functools.partial(create_pb_generic, diameter=35.0, blockage=0.0, use_local=False)
         pb = make_pb(self.model)
         if self.persist:
             export_image_to_fits(pb, "%s/test_gridding_aterm_pb.fits" % self.dir)
@@ -202,7 +202,7 @@ class TestGridDataGridding(unittest.TestCase):
     
     def test_griddata_invert_awterm(self):
         self.actualSetUp(zerow=False)
-        make_pb = functools.partial(create_pb_generic, diameter=35.0, blockage=0.0)
+        make_pb = functools.partial(create_pb_generic, diameter=35.0, blockage=0.0, use_local=False)
         pb = make_pb(self.model)
         if self.persist:
             export_image_to_fits(pb, "%s/test_gridding_awterm_pb.fits" % self.dir)
@@ -243,7 +243,7 @@ class TestGridDataGridding(unittest.TestCase):
     
     def test_griddata_predict_aterm(self):
         self.actualSetUp(zerow=True)
-        make_pb = functools.partial(create_pb_generic, diameter=35.0, blockage=0.0)
+        make_pb = functools.partial(create_pb_generic, diameter=35.0, blockage=0.0, use_local=False)
         griddata = create_griddata_from_image(self.model)
         gcf, cf = create_awterm_convolutionfunction(self.model, make_pb=make_pb, nw=1,
                                                     oversampling=16, support=32,
@@ -267,7 +267,7 @@ class TestGridDataGridding(unittest.TestCase):
     
     def test_griddata_predict_awterm(self):
         self.actualSetUp(zerow=False)
-        make_pb = functools.partial(create_pb_generic, diameter=35.0, blockage=0.0)
+        make_pb = functools.partial(create_pb_generic, diameter=35.0, blockage=0.0, use_local=False)
         pb = make_pb(self.model)
         if self.persist:
             export_image_to_fits(pb, "%s/test_gridding_awterm_pb.fits" % self.dir)

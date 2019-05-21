@@ -136,7 +136,7 @@ class TestPipelineMPC(unittest.TestCase):
         
         beam = create_image_from_visibility(blockvis, npixel=npixel, frequency=frequency,
                                             nchan=nfreqwin, cellsize=cellsize, phasecentre=phasecentre)
-        beam = create_low_test_beam(beam)
+        beam = create_low_test_beam(beam, use_local=False)
         
         flux_limit = 0.5
         original_gleam_components = create_low_test_skycomponents_from_gleam(flux_limit=flux_limit,

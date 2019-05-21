@@ -59,7 +59,7 @@ class TestIonosphericScreen(unittest.TestCase):
         beam = create_test_image(cellsize=0.0015, phasecentre=self.vis.phasecentre,
                                  frequency=self.frequency)
         
-        beam = create_low_test_beam(beam)
+        beam = create_low_test_beam(beam, use_local=False)
         
         gleam_components = create_low_test_skycomponents_from_gleam(flux_limit=1.0,
                                                                     phasecentre=self.phasecentre,
@@ -81,7 +81,7 @@ class TestIonosphericScreen(unittest.TestCase):
         beam = create_test_image(cellsize=0.0015, phasecentre=self.vis.phasecentre,
                                  frequency=self.frequency)
         
-        beam = create_low_test_beam(beam)
+        beam = create_low_test_beam(beam, use_local=False)
         
         gleam_components = create_low_test_skycomponents_from_gleam(flux_limit=1.0,
                                                                     phasecentre=self.phasecentre,
@@ -110,7 +110,7 @@ class TestIonosphericScreen(unittest.TestCase):
         beam = create_test_image(cellsize=0.0015, phasecentre=self.vis.phasecentre,
                                  frequency=self.frequency)
     
-        beam = create_low_test_beam(beam)
+        beam = create_low_test_beam(beam, use_local=False)
     
         gleam_components = create_low_test_skycomponents_from_gleam(flux_limit=1.0,
                                                                     phasecentre=self.phasecentre,

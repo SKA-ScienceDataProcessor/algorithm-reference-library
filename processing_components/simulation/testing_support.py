@@ -414,7 +414,7 @@ def create_low_test_image_from_gleam(npixel=512, polarisation_frame=Polarisation
     
     model = insert_skycomponent(model, sc, insert_method=insert_method)
     if applybeam:
-        beam = create_pb(model, telescope='LOW')
+        beam = create_pb(model, telescope='LOW', use_local=False)
         model.data[...] *= beam.data[...]
     
     return model
@@ -483,7 +483,7 @@ def create_low_test_skymodel_from_gleam(npixel=512, polarisation_frame=Polarisat
     model = create_image_from_array(numpy.zeros(shape), w, polarisation_frame=polarisation_frame)
     
     if applybeam:
-        beam = create_pb(model, telescope=telescope)
+        beam = create_pb(model, telescope=telescope, use_local=False)
         sc = apply_beam_to_skycomponent(sc, beam)
     
     weaksc = filter_skycomponents_by_flux(sc, flux_max=flux_threshold)
@@ -842,7 +842,7 @@ def create_unittest_components(model, flux, applypb=False, telescope='LOW', npix
         components.append(comp)
     
     if applypb:
-        beam = create_pb(model, telescope=telescope)
+        beam = create_pb(model, telescope=telescope, use_local=False)
         components = apply_beam_to_skycomponent(components, beam)
     
     return components

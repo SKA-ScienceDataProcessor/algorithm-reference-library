@@ -141,14 +141,14 @@ class TestImaging(unittest.TestCase):
 
     def test_predict_awterm(self):
         self.actualSetUp(zerow=False)
-        make_pb = functools.partial(create_pb_generic, diameter=35.0, blockage=0.0)
+        make_pb = functools.partial(create_pb_generic, diameter=35.0, blockage=0.0, use_local=False)
         gcfcf = create_awterm_convolutionfunction(self.model, make_pb=make_pb, nw=100, wstep=8.0,
                                                     oversampling=4, support=100, use_aaf=True)
         self._predict_base(name='predict_awterm', fluxthreshold=35.0, gcfcf = gcfcf)
 
     def test_invert_awterm(self):
         self.actualSetUp(zerow=False)
-        make_pb = functools.partial(create_pb_generic, diameter=35.0, blockage=0.0)
+        make_pb = functools.partial(create_pb_generic, diameter=35.0, blockage=0.0, use_local=False)
         gcfcf = create_awterm_convolutionfunction(self.model, make_pb=make_pb, nw=100, wstep=8.0,
                                                     oversampling=4, support=100, use_aaf=True)
         self._invert_base(name='invert_awterm', positionthreshold=35.0, check_components=False, gcfcf = gcfcf)

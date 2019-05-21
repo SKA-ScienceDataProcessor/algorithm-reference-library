@@ -52,7 +52,7 @@ class TestSkymodelMPC(unittest.TestCase):
         beam = create_test_image(cellsize=0.0015, phasecentre=self.vis.phasecentre,
                                  frequency=self.frequency)
         
-        beam = create_low_test_beam(beam)
+        beam = create_low_test_beam(beam, use_local=False)
         
         gleam_components = create_low_test_skycomponents_from_gleam(flux_limit=1.0,
                                                                     phasecentre=self.phasecentre,
@@ -77,7 +77,7 @@ class TestSkymodelMPC(unittest.TestCase):
         self.model = create_image(npixel=256, cellsize=0.001, polarisation_frame=PolarisationFrame("stokesI"),
                                   frequency=self.frequency, channel_bandwidth=self.channel_bandwidth,
                                   phasecentre=self.phasecentre)
-        beam = create_low_test_beam(self.model)
+        beam = create_low_test_beam(self.model, use_local=False)
         
         gleam_components = create_low_test_skycomponents_from_gleam(flux_limit=1.0,
                                                                     phasecentre=self.phasecentre,

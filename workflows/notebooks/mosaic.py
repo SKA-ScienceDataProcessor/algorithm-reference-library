@@ -62,7 +62,7 @@ if __name__ == '__main__':
                                              imagecentre=vis_list[0].phasecentre,
                                              polarisation_frame=PolarisationFrame('stokesIQUV'))
     
-        beam = create_pb(channel_model, telescope='VLA', pointingcentre=vt.phasecentre)
+        beam = create_pb(channel_model, telescope='VLA', pointingcentre=vt.phasecentre, use_local=False)
         beam.data /= numpy.max(beam.data)
         dirty, sumwt = invert_list_serial_workflow([vt], [channel_model])[0]
         print(sumwt)
