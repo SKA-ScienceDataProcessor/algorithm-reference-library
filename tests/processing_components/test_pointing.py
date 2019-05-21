@@ -168,5 +168,25 @@ class TestPointing(unittest.TestCase):
             plt.show()
         assert gt[0].gain.shape == (self.ntimes, self.nants, 1, 1, 1), gt[0].gain.shape
 
+    def test_create_gaintable_from_pointingtable_GRASP(self):
+        comp = create_skycomponent(direction=self.phasecentre, flux=[[1.0]], frequency=self.frequency,
+                                   polarisation_frame=PolarisationFrame('stokesI'))
+    
+        pt = create_pointingtable_from_blockvisibility(self.vis)
+        pt = simulate_pointingtable(pt, pointing_error=0.0,
+                                    static_pointing_error=0.0,
+                                    global_pointing_error=[0.0, 0.01])
+        vp = create_vp(self.model, 'MID_GRASP')
+        gt = create_gaintable_from_pointingtable(self.vis, [comp], pt, vp)
+        if self.doplot:
+            import matplotlib.pyplot as plt
+            plt.clf()
+            plt.plot(gt[0].time, numpy.real(1.0 / gt[0].gain[:, 0, 0, 0, 0]), '.')
+            plt.plot(gt[0].time, numpy.imag(1.0 / gt[0].gain[:, 0, 0, 0, 0]), '.')
+            plt.title('test_create_gaintable_from_pointingtable_global_dynamic')
+            plt.show()
+        assert gt[0].gain.shape == (self.ntimes, self.nants, 1, 1, 1), gt[0].gain.shape
+
+
 if __name__ == '__main__':
     unittest.main()

@@ -70,9 +70,10 @@ def create_vp(model, telescope='MID', pointingcentre=None, padding=4, use_local=
         log.info("create_vp: Using no taper analytic model for MID voltage pattern")
         return create_vp_generic(model, pointingcentre=pointingcentre, diameter=15.0, blockage=0.0, use_local=use_local)
     elif telescope == 'MID_GRASP':
-        real_vp = import_image_from_fits(arl_path('data/models/data/models/MID_GRASP_VP_real.fits'))
-        imag_vp = import_image_from_fits(arl_path('data/models/data/models/MID_GRASP_VP_imag.fits'))
+        real_vp = import_image_from_fits(arl_path('data/models/MID_GRASP_VP_real.fits'))
+        imag_vp = import_image_from_fits(arl_path('data/models/MID_GRASP_VP_imag.fits'))
         real_vp.data = real_vp.data + 1j * imag_vp.data
+        real_vp.data /= numpy.max(numpy.abs(real_vp.data))
         return real_vp
     elif telescope == 'MEERKAT':
         return create_vp_generic(model, pointingcentre=pointingcentre, diameter=13.5, blockage=0.0, use_local=use_local)
