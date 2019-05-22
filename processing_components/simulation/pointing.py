@@ -11,7 +11,7 @@ from data_models.memory_data_models import BlockVisibility
 from processing_components.calibration.operations import create_gaintable_from_blockvisibility
 from processing_components.visibility.base import create_visibility_from_rows
 from processing_components.visibility.iterators import vis_timeslice_iter
-from processing_library.util.coordinate_support import hadec_to_azel
+from processing_library.util.coordinate_support import hadec_to_azel, azel_to_hadec
 
 log = logging.getLogger(__name__)
 
@@ -60,26 +60,33 @@ def create_gaintable_from_pointingtable(vis, sc, pt, vp, vis_slices=None, scale=
         har = s2r * ha
         
         # Calculate the az el for this hourangle and the phasecentre declination
-        azimuth_centre, elevation_centre = hadec_to_azel(har,
-                                                         vis.phasecentre.dec.rad,
-                                                         latitude)
-        
+        azimuth_centre, elevation_centre = hadec_to_azel(har, vis.phasecentre.dec.rad, latitude)
+
         for icomp, comp in enumerate(sc):
             antgain = numpy.zeros([nant], dtype='complex')
             # Calculate the location of the component in AZELGEO, then add the pointing offset
             # for each antenna
-            azimuth_comp, elevation_comp = hadec_to_azel(comp.direction.ra.rad - vis.phasecentre.ra.rad + har,
-                                                         comp.direction.dec.rad,
-                                                         latitude)
-            azimuth_diff = azimuth_comp - azimuth_centre
-            elevation_diff = elevation_comp - elevation_centre
+            hacomp = comp.direction.ra.rad - vis.phasecentre.ra.rad + har
+            deccomp = comp.direction.dec.rad
+            azimuth_comp, elevation_comp = hadec_to_azel(hacomp, deccomp, latitude)
+            
             for ant in range(nant):
     
-                worldloc = [float((azimuth_diff + pointing_ha[0, ant, 0, 0, 0])*r2d),
-                            float((elevation_diff + pointing_ha[0, ant, 0, 0, 1])*r2d),
+                wcs_azel = vp.wcs.deepcopy()
+    
+                az_comp = (azimuth_centre + pointing_ha[0, ant, 0, 0, 0])*r2d
+                el_comp = (elevation_centre + pointing_ha[0, ant, 0, 0, 1])*r2d
+                
+                # We use WCS sensible coordinate handling by labelling the axes misleadingly
+                wcs_azel.wcs.crval[0] = az_comp
+                wcs_azel.wcs.crval[1] = el_comp
+                wcs_azel.wcs.ctype[0] = 'RA---SIN'
+                wcs_azel.wcs.ctype[1] = 'DEC--SIN'
+
+                worldloc = [azimuth_comp*r2d, elevation_comp*r2d,
                             vp.wcs.wcs.crval[2], vp.wcs.wcs.crval[3]]
                 try:
-                    pixloc = vp.wcs.sub(2).wcs_world2pix([worldloc[:2]], 1)[0]
+                    pixloc = wcs_azel.sub(2).wcs_world2pix([worldloc[:2]], 1)[0]
                     assert pixloc[0] > 2
                     assert pixloc[0] < nx - 3
                     assert pixloc[1] > 2
@@ -93,7 +100,6 @@ def create_gaintable_from_pointingtable(vis, sc, pt, vp, vis_slices=None, scale=
             
             gaintables[icomp].gain[iha, :, :, :] = antgain[:, numpy.newaxis, numpy.newaxis, numpy.newaxis]
             gaintables[icomp].phasecentre = comp.direction
-            
         
     if number_bad > 0:
         log.warning(

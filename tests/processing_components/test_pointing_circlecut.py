@@ -33,12 +33,12 @@ class TestPointing(unittest.TestCase):
         self.midcore = create_named_configuration('MID', rmax=300.0)
         self.nants = len(self.midcore.names)
         self.dir = arl_path('test_results')
-        self.ntimes = 300
-        self.times = numpy.linspace(-12.0, 12.0, self.ntimes) * numpy.pi / (12.0)
+        self.ntimes = 301
+        self.times = numpy.linspace(-6.0, 6.0, self.ntimes) * numpy.pi / (12.0)
         
-        self.frequency = numpy.array([1e9])
+        self.frequency = numpy.array([1.4e9])
         self.channel_bandwidth = numpy.array([1e7])
-        self.phasecentre = SkyCoord(ra=+15.0 * u.deg, dec=-90.0 * u.deg, frame='icrs', equinox='J2000')
+        self.phasecentre = SkyCoord(ra=+15.0 * u.deg, dec=-50.0 * u.deg, frame='icrs', equinox='J2000')
         self.vis = create_blockvisibility(self.midcore, self.times, self.frequency,
                                           channel_bandwidth=self.channel_bandwidth,
                                           phasecentre=self.phasecentre, weight=1.0,
@@ -46,16 +46,17 @@ class TestPointing(unittest.TestCase):
         self.vis.data['vis'] *= 0.0
         
         # Create model
-        self.model = create_image(npixel=2048, cellsize=0.00015, polarisation_frame=PolarisationFrame("stokesI"),
+        self.model = create_image(npixel=2048, cellsize=0.0003, polarisation_frame=PolarisationFrame("stokesI"),
                                   frequency=self.frequency, channel_bandwidth=self.channel_bandwidth,
                                   phasecentre=self.phasecentre)
     
-    def test_create_gaintable_from_pointingtable_roll(self):
-        self.sidelobe = SkyCoord(ra=+15.0 * u.deg, dec=-88.5 * u.deg, frame='icrs', equinox='J2000')
+    def test_create_gaintable_from_pointingtable_circlecut(self):
+        self.sidelobe = SkyCoord(ra=+15.0 * u.deg, dec=-48.5 * u.deg, frame='icrs', equinox='J2000')
         comp = create_skycomponent(direction=self.sidelobe, flux=[[1.0]], frequency=self.frequency,
                                    polarisation_frame=PolarisationFrame('stokesI'))
     
-        for telescope in ['MID', 'MID_GAUSS', 'MID_GRASP']:
+        telescopes = ['MID', 'MID_GAUSS', 'MID_GRASP']
+        for telescope in telescopes:
             pt = create_pointingtable_from_blockvisibility(self.vis)
             pt = simulate_pointingtable(pt, pointing_error=0.0,
                                         static_pointing_error=0.0,
@@ -65,8 +66,11 @@ class TestPointing(unittest.TestCase):
             if self.doplot:
                 import matplotlib.pyplot as plt
                 plt.clf()
-                plt.plot(gt[0].time, numpy.real(1.0 / gt[0].gain[:, 0, 0, 0, 0]), '.')
-                plt.plot(gt[0].time, numpy.imag(1.0 / gt[0].gain[:, 0, 0, 0, 0]), '.')
+                plt.plot(gt[0].time, numpy.real(1.0 / gt[0].gain[:, 0, 0, 0, 0]), '.', label='Real')
+                plt.plot(gt[0].time, numpy.imag(1.0 / gt[0].gain[:, 0, 0, 0, 0]), '.', label='Imaginary')
+                plt.legend()
+                plt.xlabel('Time (s)')
+                plt.ylabel('Gain')
                 plt.title('test_create_gaintable_from_pointingtable_%s' % telescope)
                 plt.show()
             assert gt[0].gain.shape == (self.ntimes, self.nants, 1, 1, 1), gt[0].gain.shape
