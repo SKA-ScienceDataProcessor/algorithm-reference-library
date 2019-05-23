@@ -174,10 +174,30 @@ def create_vp_generic(model, pointingcentre=None, diameter=25.0, blockage=1.8, u
 
 
 def create_vp_generic_numeric(model, pointingcentre=None, diameter=15.0, blockage=0.0, taper='gaussian',
-                              edge=0.03162278, coma=None, padding=4, use_local=True):
+                              edge=0.03162278, zernikes=None, padding=4, use_local=True):
     """
     Make an image like model and fill it with an analytical model of the primary beam
+    
+    The elements of the analytical model are:
+    - dish, optionally blocked
+    - Gaussian taper, default is -12dB at the edge
+    - Offset to pointing centre (optional)
+    - zernikes in a list of dictionaries. Each list element is of the form {"coeff":0.1, "noll":5}. See aotools for
+    more details
+    - Output image can be in RA, DEC coordinates or AZELGEO coordinates (the default). use_local=True means to use
+    AZELGEO coordinates centered on 0deg 0deg.
+    
+    The dish is zero padded according to padding and FFT'ed to get the voltage pattern.
+    
     :param model:
+    :param pointingcentre: SkyCoord of desired pointing centre
+    :param diameter: Diameter of dish in metres
+    :param blockage: Blockage of dish in metres
+    :param taper: "Gaussian" or None
+    :param edge: Value of taper at the end of the dish (default corresponds to -12dB)
+    :param zernikes: Zernikes to be applied as phase across the dish (see above)
+    :param padding: Pad the image by this amount
+    :param use_local: Use local frame (AZELGEO)?
     :return:
     """
     beam = create_empty_image_like(model)
@@ -206,7 +226,6 @@ def create_vp_generic_numeric(model, pointingcentre=None, diameter=15.0, blockag
         for pol in range(npol):
             xfr.data[chan, pol, ...] = tapered_disk(rr, diameter/2.0, blockage=blockage/2.0, edge=edge, taper=taper)
 
-        phase = None
         if pointingcentre is not None:
             # Correct for pointing centre
             pcx, pcy = pointingcentre.to_pixel(padded_beam.wcs, origin=0)
@@ -215,10 +234,28 @@ def create_vp_generic_numeric(model, pointingcentre=None, diameter=15.0, blockag
             for pol in range(npol):
                 xfr.data[chan, pol, ...] *= numpy.exp(1j * phase)
 
-        if isinstance(coma, float):
-            phase = 2.0 * numpy.pi * coma * (numpy.power(yy / (diameter / 2.0), 3) - 2.4 * yy / (diameter / 2.0))
+        if isinstance(zernikes, collections.Iterable):
+            try:
+                import aotools
+            except ModuleNotFoundError:
+                raise ModuleNotFoundError("aotools is not installed")
+    
+            ndisk = numpy.ceil(numpy.abs(diameter / scalex)).astype('int')[0]
+            ndisk = 2*((ndisk + 1 )//2)
+            phase = numpy.zeros([ndisk, ndisk])
+            for zernike in zernikes:
+                phase = zernike['coeff'] * aotools.functions.zernike(zernike['noll'], ndisk)
+                
+            # import matplotlib.pyplot as plt
+            # plt.clf()
+            # plt.imshow(phase)
+            # plt.colorbar()
+            # plt.show()
+            #
+            blc=pnx//2-ndisk//2
+            trc=pnx//2+ndisk//2
             for pol in range(npol):
-                xfr.data[chan, pol, ...] *= numpy.exp(1j * phase)
+                xfr.data[chan, pol, blc:trc, blc:trc] = xfr.data[chan, pol, blc:trc, blc:trc] * numpy.exp(1j * phase)
 
     padded_beam = fft_image(xfr, padded_beam)
     
