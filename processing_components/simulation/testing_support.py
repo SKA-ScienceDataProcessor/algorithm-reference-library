@@ -910,7 +910,7 @@ def calculate_noise(bandwidth, int_time):
 def addnoise_visibility(vis, bandwidth, int_time):
     """Add noise to a visibility
     """
-    #assert isinstance(vis, Visibility) or isinstance(vis, BlockVisibility), vis
+    assert isinstance(vis, Visibility) or isinstance(vis, BlockVisibility), vis
     rms = calculate_noise(bandwidth, int_time)
 
 
