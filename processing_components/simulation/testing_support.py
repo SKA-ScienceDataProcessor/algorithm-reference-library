@@ -56,6 +56,7 @@ from processing_components.visibility.coalesce import convert_blockvisibility_to
     convert_visibility_to_blockvisibility
 from processing_library.image.operations import create_image_from_array
 from processing_library.util.coordinate_support import parallactic_angle
+from data_models.memory_data_models import Visibility, BlockVisibility
 
 log = logging.getLogger(__name__)
 
@@ -889,3 +890,31 @@ def insert_unittest_errors(vt, seed=180555, calibration_context="TG", amp_errors
         vt = apply_gaintable(vt, gaintable, timeslice=controls[c]['timeslice'], inverse=True)
     
     return vt
+
+def calculate_noise(bandwidth, int_time):
+    """Determine noise rms per visibility
+    """
+    print ('calc noise')
+    k_b = 1.38064852e-23
+    T_sys = 20
+    area = numpy.pi*(15/2.)**2 ####??
+    eta = 0.78 #####????
+    bandwidth = bandwidth
+    int_time = int_time
+    rms_noise =( numpy.sqrt(2) * k_b * T_sys ) / (area * eta * (numpy.sqrt(bandwidth * int_time)))
+    rms_noise*=1e26
+    print ('rms_noise', rms_noise)
+    return rms_noise
+
+
+def addnoise_visibility(vis, bandwidth, int_time):
+    """Add noise to a visibility
+    """
+    #assert isinstance(vis, Visibility) or isinstance(vis, BlockVisibility), vis
+    rms = calculate_noise(bandwidth, int_time)
+
+
+
+    vis.data["vis"][:,0].real += numpy.random.normal(0, rms, vis.vis.shape[0])# + 1j * numpy.random.normal(0, rms, vis.vis.shape[0])
+    vis.data["vis"][:,0].imag += numpy.random.normal(0, rms, vis.vis.shape[0])
+    return vis
