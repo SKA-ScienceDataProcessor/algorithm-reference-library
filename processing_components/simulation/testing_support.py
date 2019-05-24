@@ -897,8 +897,8 @@ def calculate_noise(bandwidth, int_time):
     print ('calc noise')
     k_b = 1.38064852e-23
     T_sys = 20
-    area = numpy.pi*(15/2.)**2 ####??
-    eta = 0.78 #####????
+    area = numpy.pi*(15/2.)**2 
+    eta = 0.78 
     bandwidth = bandwidth
     int_time = int_time
     rms_noise =( numpy.sqrt(2) * k_b * T_sys ) / (area * eta * (numpy.sqrt(bandwidth * int_time)))
