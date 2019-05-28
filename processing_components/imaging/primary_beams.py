@@ -10,13 +10,13 @@ from astropy import constants as const
 
 from data_models.memory_data_models import Image
 from data_models.parameters import arl_path
-from processing_library.image.operations import fft_image, pad_image
 from processing_components.image.operations import create_empty_image_like
+from processing_library.image.operations import fft_image, pad_image
 from ..image.operations import import_image_from_fits, create_image_from_array, \
     reproject_image
 
-
 log = logging.getLogger(__name__)
+
 
 def set_pb_header(pb, use_local=True):
     """Fill in PB header correctly
@@ -32,8 +32,23 @@ def set_pb_header(pb, use_local=True):
         pb.wcs.wcs.crval[1] = 0.0
         pb.wcs.wcs.crpix[0] = nx // 2
         pb.wcs.wcs.crpix[1] = ny // 2
-
+    
     return pb
+
+
+def gauss(x0, y0, amp, sigma, rho, diff, a):
+    """
+    2D gaussian
+ 
+    :param a: Grid of aperture plane coordinates
+    """
+    dx = a[..., 0] - x0
+    dy = a[..., 1] - y0
+    r = numpy.hypot(dx, dy)
+    return amp * numpy.exp(-1.0 / (2 * sigma ** 2) * (r ** 2 +
+                                                      rho * (dx * dy) +
+                                                      diff * (dx ** 2 - dy ** 2)))
+
 
 def ft_disk(r):
     from scipy.special import jn  # pylint: disable=no-name-in-module
@@ -43,14 +58,32 @@ def ft_disk(r):
     result[r == 0] = 2.0 * jn(1, rsmall) / rsmall
     return result
 
-def tapered_disk(r, radius, blockage=0.0, taper='gaussian', edge=1.0):
+
+def tapered_disk(xx, yy, radius, blockage=0.0, taper='gaussian', edge=1.0, rho=0.0, diff=0.0):
+    """ Provide tapering and phase effects for a disk
     
-    result = numpy.zeros_like(r, dtype='complex')
+    :param xx: X coordinate (meters)
+    :param yy: Y coordinate (meters)
+    :param radius: Radius of disk in metres
+    :param blockage: Radius of blockage in metres
+    :param taper: Type of taper 'gaussian' or 'uniform'
+    :param edge: Fractional taper at edge of the dish
+    :param rho: Asymmetry (see code)
+    :param diff: Skew (see code)
+    :return:
+    """
+    rr = numpy.hypot(xx, yy)
+    result = numpy.zeros_like(rr, dtype='complex')
     if taper == 'gaussian':
-        # exp(-gscale*radius**2) = taper
-        gscale = -numpy.log(edge)/radius**2
-        result[r < radius] = numpy.exp(- gscale * r[r < radius]**2)
-    result[r < blockage] = 0.0
+        gscale = -numpy.log(edge) / radius ** 2
+        arr = xx ** 2 + yy ** 2 + rho * (xx * yy) + diff * (xx ** 2 - yy ** 2)
+        result[rr < radius] = numpy.exp(- gscale * arr[rr < radius] ** 2)
+    elif taper == 'uniform':
+        result[rr < radius] = 1.0
+    else:
+        raise NotImplementedError('Tapter %s not known' % taper)
+    
+    result[rr < blockage] = 0.0
     return result
 
 
@@ -63,7 +96,7 @@ def create_vp(model, telescope='MID', pointingcentre=None, padding=4, use_local=
     """
     if telescope == 'MID_GAUSS':
         log.info("create_vp: Using numeric tapered Gaussian model for MID voltage pattern")
-    
+        
         return create_vp_generic_numeric(model, pointingcentre=pointingcentre, diameter=15.0, blockage=0.0,
                                          edge=0.07918124604762482, padding=padding, use_local=use_local)
     elif telescope == 'MID':
@@ -94,12 +127,12 @@ def create_pb(model, telescope='MID', pointingcentre=None, use_local=True):
     :param telescope: 'VLA' or 'ASKAP'
     :return: Primary beam image
     """
-    if telescope=='LOW':
+    if telescope == 'LOW':
         beam = create_low_test_beam(model, use_local=use_local)
     else:
         beam = create_vp(model, telescope, pointingcentre, use_local=use_local)
         beam.data = numpy.real(beam.data * numpy.conjugate(beam.data))
-        
+    
     set_pb_header(beam, use_local=use_local)
     return beam
 
@@ -121,6 +154,7 @@ def mosaic_pb(model, telescope, pointingcentres, use_local=True):
         sumpb.data += pb.data ** 2
     sumpb.data = numpy.sqrt(sumpb.data)
     return sumpb
+
 
 def create_pb_generic(model, pointingcentre=None, diameter=25.0, blockage=1.8, use_local=True):
     """
@@ -174,7 +208,7 @@ def create_vp_generic(model, pointingcentre=None, diameter=25.0, blockage=1.8, u
 
 
 def create_vp_generic_numeric(model, pointingcentre=None, diameter=15.0, blockage=0.0, taper='gaussian',
-                              edge=0.03162278, zernikes=None, padding=4, use_local=True):
+                              edge=0.03162278, zernikes=None, padding=4, use_local=True, rho=0.0, diff=0.0):
     """
     Make an image like model and fill it with an analytical model of the primary beam
     
@@ -202,14 +236,14 @@ def create_vp_generic_numeric(model, pointingcentre=None, diameter=15.0, blockag
     """
     beam = create_empty_image_like(model)
     nchan, npol, ny, nx = beam.shape
-    padded_shape = [nchan, npol, padding*ny, padding*nx]
+    padded_shape = [nchan, npol, padding * ny, padding * nx]
     padded_beam = pad_image(beam, padded_shape)
     padded_beam.data = numpy.zeros(padded_beam.data.shape, dtype='complex')
     _, _, pny, pnx = padded_beam.shape
-
+    
     xfr = fft_image(padded_beam)
     cx, cy = xfr.wcs.sub(2).wcs.crpix[0] - 1, xfr.wcs.sub(2).wcs.crpix[1] - 1
-
+    
     for chan in range(nchan):
         
         # The frequency axis is the second to last in the beam
@@ -222,49 +256,50 @@ def create_vp_generic_numeric(model, pointingcentre=None, diameter=15.0, blockag
         xx, yy = numpy.meshgrid(scalex * (range(pnx) - cx), scaley * (range(pny) - cy))
         
         # rr in metres
-        rr = numpy.sqrt(xx ** 2 + yy ** 2)
         for pol in range(npol):
-            xfr.data[chan, pol, ...] = tapered_disk(rr, diameter/2.0, blockage=blockage/2.0, edge=edge, taper=taper)
-
+            xfr.data[chan, pol, ...] = tapered_disk(xx, yy, diameter / 2.0, blockage=blockage / 2.0, edge=edge,
+                                                    taper=taper, rho=rho, diff=diff)
+        
         if pointingcentre is not None:
             # Correct for pointing centre
             pcx, pcy = pointingcentre.to_pixel(padded_beam.wcs, origin=0)
             pxx, pyy = numpy.meshgrid((range(pnx) - cx), (range(pny) - cy))
-            phase = 2 * numpy.pi * ((pcx - cx)* pxx / float(pnx) + (pcy - cy)* pyy / float(pny))
+            phase = 2 * numpy.pi * ((pcx - cx) * pxx / float(pnx) + (pcy - cy) * pyy / float(pny))
             for pol in range(npol):
                 xfr.data[chan, pol, ...] *= numpy.exp(1j * phase)
-
+        
         if isinstance(zernikes, collections.Iterable):
             try:
                 import aotools
             except ModuleNotFoundError:
                 raise ModuleNotFoundError("aotools is not installed")
-    
+            
             ndisk = numpy.ceil(numpy.abs(diameter / scalex)).astype('int')[0]
-            ndisk = 2*((ndisk + 1 )//2)
+            ndisk = 2 * ((ndisk + 1) // 2)
             phase = numpy.zeros([ndisk, ndisk])
             for zernike in zernikes:
                 phase = zernike['coeff'] * aotools.functions.zernike(zernike['noll'], ndisk)
-                
+            
             # import matplotlib.pyplot as plt
             # plt.clf()
             # plt.imshow(phase)
             # plt.colorbar()
             # plt.show()
             #
-            blc=pnx//2-ndisk//2
-            trc=pnx//2+ndisk//2
+            blc = pnx // 2 - ndisk // 2
+            trc = pnx // 2 + ndisk // 2
             for pol in range(npol):
                 xfr.data[chan, pol, blc:trc, blc:trc] = xfr.data[chan, pol, blc:trc, blc:trc] * numpy.exp(1j * phase)
-
+    
     padded_beam = fft_image(xfr, padded_beam)
     
     # Undo padding
     beam = create_empty_image_like(model)
-    beam.data = padded_beam.data[...,(pny//2 - ny//2):(pny//2 + ny//2), (pnx//2 - nx//2):(pnx//2 + nx//2) ]
+    beam.data = padded_beam.data[..., (pny // 2 - ny // 2):(pny // 2 + ny // 2),
+                (pnx // 2 - nx // 2):(pnx // 2 + nx // 2)]
     for chan in range(nchan):
-        beam.data[chan,...] /= numpy.max(numpy.abs(beam.data[chan,...]))
-
+        beam.data[chan, ...] /= numpy.max(numpy.abs(beam.data[chan, ...]))
+    
     set_pb_header(beam, use_local=use_local)
     return beam
 
@@ -276,44 +311,45 @@ def create_low_test_beam(model: Image, use_local=True) -> Image:
     :return: Image
     """
     beam = import_image_from_fits(arl_path('data/models/SKA1_LOW_beam.fits'))
-
+    
     # Scale the image cellsize to account for the different in frequencies. Eventually we will want to
     # use a frequency cube
     log.debug("create_low_test_beam: LOW voltage pattern is defined at %.3f MHz" % (beam.wcs.wcs.crval[2] * 1e-6))
-
+    
     nchan, npol, ny, nx = model.shape
-
+    
     # We need to interpolate each frequency channel separately. The beam is assumed to just scale with
     # frequency.
-
-    reprojected_beam = create_empty_image_like(model)
-
-    for chan in range(nchan):
     
+    reprojected_beam = create_empty_image_like(model)
+    
+    for chan in range(nchan):
+        
         model2dwcs = model.wcs.sub(2).deepcopy()
         model2dshape = [model.shape[2], model.shape[3]]
         beam2dwcs = beam.wcs.sub(2).deepcopy()
-    
+        
         # The frequency axis is the second to last in the beam
         frequency = model.wcs.sub(['spectral']).wcs_pix2world([chan], 0)[0]
         fscale = beam.wcs.wcs.crval[2] / frequency
-    
+        
         beam2dwcs.wcs.cdelt = fscale * beam.wcs.sub(2).wcs.cdelt
         beam2dwcs.wcs.crpix = beam.wcs.sub(2).wcs.crpix
         beam2dwcs.wcs.crval = model.wcs.sub(2).wcs.crval
         beam2dwcs.wcs.ctype = model.wcs.sub(2).wcs.ctype
         model2dwcs.wcs.crpix = [model.shape[2] // 2 + 1, model.shape[3] // 2 + 1]
-    
+        
         beam2d = create_image_from_array(beam.data[0, 0, :, :], beam2dwcs, model.polarisation_frame)
         reprojected_beam2d, footprint = reproject_image(beam2d, model2dwcs, shape=model2dshape)
         assert numpy.max(footprint.data) > 0.0, "No overlap between beam and model"
-    
+        
         reprojected_beam2d.data[footprint.data <= 0.0] = 0.0
         for pol in range(npol):
             reprojected_beam.data[chan, pol, :, :] = reprojected_beam2d.data[:, :]
-
+    
     set_pb_header(reprojected_beam, use_local=use_local)
     return reprojected_beam
+
 
 def create_low_test_vp(model: Image, use_local=True) -> Image:
     """Create a test power beam for LOW using an image from OSKAR
@@ -364,7 +400,7 @@ def create_low_test_vp(model: Image, use_local=True) -> Image:
         reprojected_beam2d_imag.data[footprint.data <= 0.0] = 0.0
         for pol in range(npol):
             reprojected_beam.data[chan, pol, :, :] = reprojected_beam2d_real.data[:, :] \
-            + 1j * reprojected_beam2d_imag.data[:, :]
+                                                     + 1j * reprojected_beam2d_imag.data[:, :]
     
     set_pb_header(reprojected_beam, use_local=use_local)
     return reprojected_beam
