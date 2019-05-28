@@ -891,30 +891,28 @@ def insert_unittest_errors(vt, seed=180555, calibration_context="TG", amp_errors
     
     return vt
 
-def calculate_noise(bandwidth, int_time):
+def calculate_noise(bandwidth, int_time, diameter):
     """Determine noise rms per visibility
     """
-    print ('calc noise')
+
     k_b = 1.38064852e-23
     T_sys = 20
-    area = numpy.pi*(15/2.)**2 
+    area = numpy.pi*(diameter/2.)**2 
     eta = 0.78 
-    bandwidth = bandwidth
-    int_time = int_time
-    rms_noise =( numpy.sqrt(2) * k_b * T_sys ) / (area * eta * (numpy.sqrt(bandwidth * int_time)))
-    rms_noise*=1e26
-    print ('rms_noise', rms_noise)
-    return rms_noise
+    sigma = ( numpy.sqrt(2) * k_b * T_sys ) / (area * eta * (numpy.sqrt(bandwidth * int_time)))
+    sigma *= 1e26
+    log.info('first rms noise value: %g'%rms_noise[0])
+    return sigma
 
 
-def addnoise_visibility(vis, bandwidth, int_time):
+def addnoise_visibility(vis):
     """Add noise to a visibility
     """
     assert isinstance(vis, Visibility) or isinstance(vis, BlockVisibility), vis
-    rms = calculate_noise(bandwidth, int_time)
 
+    sigma = calculate_noise(vis.data['channel_bandwidth'], vis.data['integration_time'], vis.configuration.diameter[0])
 
+    vis.data["vis"][:,0].real += numpy.random.normal(0, sigma)
+    vis.data["vis"][:,0].imag += numpy.random.normal(0, sigma)
 
-    vis.data["vis"][:,0].real += numpy.random.normal(0, rms, vis.vis.shape[0])# + 1j * numpy.random.normal(0, rms, vis.vis.shape[0])
-    vis.data["vis"][:,0].imag += numpy.random.normal(0, rms, vis.vis.shape[0])
     return vis
