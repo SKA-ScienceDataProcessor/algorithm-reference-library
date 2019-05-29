@@ -19,7 +19,7 @@ from processing_components.imaging.primary_beams import create_low_test_beam
 from processing_components.simulation.testing_support import create_test_image_from_s3, create_test_image, \
     create_blockvisibility_iterator, create_low_test_image_from_gleam, \
     create_low_test_skycomponents_from_gleam, create_low_test_skymodel_from_gleam, \
-    create_test_skycomponents_from_s3, addnoise_visibility
+    create_test_skycomponents_from_s3
 from processing_components.simulation.configurations import create_named_configuration
 from processing_components.visibility.base import create_visibility, create_blockvisibility, copy_visibility
 from processing_components.visibility.coalesce import convert_blockvisibility_to_visibility
