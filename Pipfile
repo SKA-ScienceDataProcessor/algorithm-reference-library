@@ -6,6 +6,7 @@ name = "pypi"
 [dev-packages]
 
 [packages]
+aotools = "*"
 six = "*"
 docutils = "*"
 imagesize = "*"
@@ -23,7 +24,7 @@ alabaster = "*"
 photutils = "*"
 scikit-image = "*"
 dask = "*"
-distributed = "*"
+distributed = ">=1.28.1"
 paramiko = "*"
 toolz = "*"
 graphviz = "*"
@@ -31,7 +32,7 @@ pandoc = "*"
 psutil = "*"
 cloudpickle = "*"
 seqfile = "*"
-"h5py" = "*"
+"h5py" = ">=2.9.0"
 jsonschema = "*"
 bokeh = "*"
 "Jinja2" = "*"
@@ -43,4 +44,6 @@ sphinx_rtd_theme = "*"
 nose = "*"
 
 [requires]
-python_version = "3.6"
+# Currently pipenv does not support >=semver syntax for python
+# https://github.com/pypa/pipenv/issues/1050
+# python_version = "3.6"
