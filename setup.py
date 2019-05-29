@@ -7,6 +7,7 @@ from setuptools.command.build_ext import build_ext
 from subprocess import call
 import os
 import sys
+import glob
 
 # Bail on Python < 3
 assert sys.version_info[0] >= 3
@@ -33,6 +34,8 @@ libarlffi = Extension('libarlffi',
 		   optional=True,
 )
 
+packages = ['data_models', 'processing_library', 'processing_components', 'workflows', 'wrappers']
+package_data = [i for p in packages for i in glob.glob(p+'/*/')]
 setup(name='algorithm-reference-library',
       version='0.9',
       python_requires='>=3',
@@ -42,7 +45,7 @@ setup(name='algorithm-reference-library',
       author_email='realtimcornwell@gmail.com',
       url='https://github.com/SKA-ScienceDataProcessor/algorithm-reference-library',
       license='Apache License Version 2.0',
-      packages=['data_models', 'processing_library', 'processing_components', 'workflows', 'wrappers'],
+      packages=(packages + package_data),
       test_suite="tests",
       tests_require=['pytest'],
       ext_modules = [libarlffi]
@@ -68,4 +71,3 @@ class CFFIBuild(build_ext):
 #    ext_modules = [libarlffi])
 #,
 #    cmdclass = {'build_ext': CFFIBuild})
-
