@@ -41,6 +41,7 @@ from astropy.wcs.utils import pixel_to_skycoord
 from scipy import interpolate
 
 from data_models.memory_data_models import Configuration, Image, GainTable, Skycomponent, SkyModel, PointingTable
+from data_models.memory_data_models import Visibility, BlockVisibility
 from data_models.parameters import arl_path
 from data_models.polarisation import PolarisationFrame
 from processing_components.calibration.calibration_control import create_calibration_controls
@@ -55,8 +56,6 @@ from processing_components.visibility.base import create_blockvisibility, create
 from processing_components.visibility.coalesce import convert_blockvisibility_to_visibility, \
     convert_visibility_to_blockvisibility
 from processing_library.image.operations import create_image_from_array
-from processing_library.util.coordinate_support import parallactic_angle
-from data_models.memory_data_models import Visibility, BlockVisibility
 
 log = logging.getLogger(__name__)
 
@@ -788,7 +787,7 @@ def simulate_pointingtable(pt: PointingTable, pointing_error, static_pointing_er
                   % (global_pointing_error[0], global_pointing_error[1],
                      r2s * global_pointing_error[0], r2s * global_pointing_error[1]))
         pt.data['pointing'][..., :] += global_pointing_error
-        
+    
     return pt
 
 
@@ -890,29 +889,3 @@ def insert_unittest_errors(vt, seed=180555, calibration_context="TG", amp_errors
         vt = apply_gaintable(vt, gaintable, timeslice=controls[c]['timeslice'], inverse=True)
     
     return vt
-
-def calculate_noise(bandwidth, int_time, diameter):
-    """Determine noise rms per visibility
-    """
-
-    k_b = 1.38064852e-23
-    T_sys = 20
-    area = numpy.pi*(diameter/2.)**2 
-    eta = 0.78 
-    sigma = ( numpy.sqrt(2) * k_b * T_sys ) / (area * eta * (numpy.sqrt(bandwidth * int_time)))
-    sigma *= 1e26
-    log.info('first rms noise value: %g'%rms_noise[0])
-    return sigma
-
-
-def addnoise_visibility(vis):
-    """Add noise to a visibility
-    """
-    assert isinstance(vis, Visibility) or isinstance(vis, BlockVisibility), vis
-
-    sigma = calculate_noise(vis.data['channel_bandwidth'], vis.data['integration_time'], vis.configuration.diameter[0])
-
-    vis.data["vis"][:,0].real += numpy.random.normal(0, sigma)
-    vis.data["vis"][:,0].imag += numpy.random.normal(0, sigma)
-
-    return vis
