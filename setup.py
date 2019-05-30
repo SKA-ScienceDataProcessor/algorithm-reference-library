@@ -35,7 +35,7 @@ libarlffi = Extension('libarlffi',
 )
 
 packages = ['data_models', 'processing_library', 'processing_components', 'workflows', 'wrappers']
-package_data = [i for p in packages for i in glob.glob(p+'/*/')]
+package_data = [i for p in packages for i in glob.glob(p+'/*/') + glob.glob(p+'/*/*/')]
 setup(name='algorithm-reference-library',
       version='0.9',
       python_requires='>=3',
