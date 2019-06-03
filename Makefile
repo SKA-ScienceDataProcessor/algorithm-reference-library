@@ -1,7 +1,7 @@
 # simple makefile to simplify repetitive build env management tasks under posix
 PYTHON ?= python3
-PYLINT ?= /usr/bin/pylint
-NOSETESTS ?= /usr/bin/nosetests
+PYLINT ?= pylint
+NOSETESTS ?= nosetests
 MAKE_DBG ?= ""
 TESTS ?= tests/
 FLAKE ?= flake8
@@ -26,6 +26,8 @@ NFS_SERVER ?= "127.0.0.1"
 # define overides for above variables in here
 -include PrivateRules.mak
 
+.DEFAULT_GOAL := help
+
 checkvars:
 	@echo "Image: $(DOCKER_IMAGE)"
 	@echo "Repo: $(DOCKER_REPO)"
@@ -36,41 +38,42 @@ all: clean build nosetests
 
 docker_all: clean build docker_build docker_tests
 
-clean:
+clean: cleantests
 	$(PYTHON) setup.py clean --all
-	rm libarlffi.*.so
+	rm -f libarlffi.*.so
 	rm -rf dist
 
 in: inplace # just a shortcut
 inplace:
 	$(PYTHON) setup.py build >/dev/null 2>&1 && $(PYTHON) setup.py install >/dev/null 2>&1 || (echo "'$(PYTHON) setup.py install' failed."; exit -1)
 
-build: in
+build: in  ## build and install this project - make sure pipenv shell is activated
 
-# clean out the cache before tests are run
-cleantests:
+cleantests: ## clean out the cache before tests are run
+	rm -rf coverage zernikes.png workers-*.dirlock
 	cd tests && rm -rf __pycache__
 
-unittest: cleantests
-	$(PYTHON) -m unittest discover -f --locals -s tests -p "test_*.py"
+unittest: cleantests  ## run tests using unittest
+	MPLBACKEND=agg $(PYTHON) -m unittest -f --locals tests/*/test_*.py
 
-pytest: cleantests
-	pytest -x -v $(TESTS)
+pytest: cleantests  ## run tests using pytest
+	pip install pytest >/dev/null 2>&1
+	pytest -x $(TESTS)
 
-nosetests: cleantests
+nosetests: cleantests  ## run tests using nosetests
 	rm -f predict_facet_timeslice_graph_wprojection.png pipelines-timings_*.csv
-	$(NOSETESTS) -s -v -e create_low_test_beam -e create_low_test_skycomponents_from_gleam $(TESTS)
+	ARL=$$(pwd) $(NOSETESTS) -s -v -e create_low_test_beam -e create_low_test_skycomponents_from_gleam $(TESTS)
 
-nosetests-coverage: inplace cleantests
+nosetests-coverage: inplace cleantests  ## run nosetests with coverage
 	rm -rf coverage .coverage
-	$(NOSETESTS) -s -v --with-coverage libs
+	ARL=$$(pwd) $(NOSETESTS) -s -v --with-coverage libs
 
 trailing-spaces:
 	find libs -name "*.py" -exec perl -pi -e 's/[ \t]*$$//' {} \;
 	find processing_components -name "*.py" -exec perl -pi -e 's/[ \t]*$$//' {} \;
 	find workflows -name "*.py" -exec perl -pi -e 's/[ \t]*$$//' {} \;
 
-docs: inplace
+docs: inplace  ## build docs - you must have graphviz installed
 	# you must have graphviz installed
 	$(MAKE) -C docs dirhtml
 
@@ -83,14 +86,14 @@ code-lint:
 	  --ignored-classes=astropy.units,astropy.constants,HDUList \
 	  -E libs/ tests/
 
-code-analysis: code-flake code-lint
+code-analysis: code-flake code-lint  ## run pylint and flake8 checks
 
-examples: inplace
+examples: inplace  ## launch examples
 	$(MAKE) -C processing_library/notebooks
 	$(MAKE) -C processing_components/notebooks
 	$(MAKE) -C workflows/notebooks
 
-notebook:
+notebook:  ## launch local jupyter notebook server
 	DEVICE=`ip link | grep -E " ens| wlan| eth" | grep BROADCAST | tail -1 | cut -d : -f 2  | sed "s/ //"` && \
 	IP=`ip a show $${DEVICE} | grep ' inet ' | awk '{print $$2}' | sed 's/\/.*//'` && \
 	echo "Launching at IP: $${IP}" && \
@@ -157,7 +160,7 @@ docker_notebook: docker_build
 	sleep 3
 	$(DOCKER) logs $(NAME)_notebook
 
-k8s_deploy: k8s_deploy_scheduler k8s_deploy_worker k8s_deploy_notebook  
+k8s_deploy: k8s_deploy_scheduler k8s_deploy_worker k8s_deploy_notebook
 
 k8s_delete: k8s_delete_notebook k8s_delete_worker k8s_delete_scheduler
 
@@ -200,3 +203,10 @@ docker_shell:
 
 launch_dask:
 	cd tools && ansible-playbook -i ./inventory ./docker.yml
+
+
+help:  ## show this help.
+	@echo "make targets:"
+	@grep -E '^[0-9a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ": .*?## "}; {printf "\033[36m%-30s\033[0m %s\n", $$1, $$2}'
+	@echo ""; echo "make vars (+defaults):"
+	@grep -E '^[0-9a-zA-Z_-]+ \?=.*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = " \\?\\= "}; {printf "\033[36m%-30s\033[0m %s\n", $$1, $$2}'
