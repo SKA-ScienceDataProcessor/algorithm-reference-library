@@ -77,7 +77,7 @@ def create_gaintable_from_pointingtable(vis, sc, pt, vp, vis_slices=None, scale=
         
                     wcs_azel = vp.wcs.deepcopy()
         
-                    az_comp = (azimuth_centre + pointing_ha[0, ant, 0, 0, 0])*r2d
+                    az_comp = (azimuth_centre   + pointing_ha[0, ant, 0, 0, 0]/numpy.cos(elevation_centre))*r2d
                     el_comp = (elevation_centre + pointing_ha[0, ant, 0, 0, 1])*r2d
                     
                     # We use WCS sensible coordinate handling by labelling the axes misleadingly
@@ -112,7 +112,6 @@ def create_gaintable_from_pointingtable(vis, sc, pt, vp, vis_slices=None, scale=
         number_bad = 0
         number_good = 0
     
-        latitude = vis.configuration.location.lat.rad
         d2r = numpy.pi / 180.0
         ra_centre = vp.wcs.wcs.crval[0] * d2r
         dec_centre = vp.wcs.wcs.crval[1] * d2r
