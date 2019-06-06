@@ -136,7 +136,7 @@ def create_gaintable_from_pointingtable(vis, sc, pt, vp, vis_slices=None, scale=
                 dec_comp = comp.direction.dec.rad
                 for ant in range(nant):
                     wcs_azel = vp.wcs.deepcopy()
-                    ra_pointing = (ra_centre + pointing_ha[0, ant, 0, 0, 0]) * r2d
+                    ra_pointing = (ra_centre + pointing_ha[0, ant, 0, 0, 0]/numpy.cos(dec_centre)) * r2d
                     dec_pointing = (dec_centre + pointing_ha[0, ant, 0, 0, 1]) * r2d
                 
                     # We use WCS sensible coordinate handling by labelling the axes misleadingly
