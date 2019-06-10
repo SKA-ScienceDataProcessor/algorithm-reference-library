@@ -1,0 +1,31 @@
+{{- if .Values.ingress.enabled -}}
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  name: notebook-{{ template "arl-cluster.name" . }}-{{ .Release.Name }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app.kubernetes.io/name: notebook-{{ template "arl-cluster.name" . }}
+    app.kubernetes.io/instance: "{{ .Release.Name }}"
+    app.kubernetes.io/managed-by: "{{ .Release.Service }}"
+    helm.sh/chart: "{{ template "arl-cluster.chart" . }}"
+  annotations:
+    {{- range $key, $value := .Values.ingress.annotations }}
+      {{ $key }}: {{ $value | quote }}
+    {{- end }}
+spec:
+  rules:
+    - host: {{ .Values.ingress.hostname }}
+      http:
+        paths:
+          - path: /
+            backend:
+              serviceName:  notebook-{{ template "arl-cluster.name" . }}-{{ .Release.Name }}
+              servicePort: 8888
+{{- if .Values.ingress.tls.enabled }}
+  tls:
+    - secretName: {{ tpl .Values.ingress.tls.secretname . }}
+      hosts:
+        - {{ tpl .Values.ingress.hostname . }}
+{{- end -}}
+{{- end -}}
