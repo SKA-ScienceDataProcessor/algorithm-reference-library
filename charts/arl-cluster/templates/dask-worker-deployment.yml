@@ -2,29 +2,36 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: dask-worker
-  namespace: default
+  name: dask-worker-{{ template "arl-cluster.name" . }}-{{ .Release.Name }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app.kubernetes.io/name: dask-worker-{{ template "arl-cluster.name" . }}
+    app.kubernetes.io/instance: "{{ .Release.Name }}"
+    app.kubernetes.io/managed-by: "{{ .Release.Service }}"
+    helm.sh/chart: "{{ template "arl-cluster.chart" . }}"
 spec:
   selector:
     matchLabels:
-      k8s-app: dask-worker
-  replicas: ${WORKER_REPLICAS}
+      app.kubernetes.io/name: dask-worker-{{ template "arl-cluster.name" . }}
+      app.kubernetes.io/instance: "{{ .Release.Name }}"
+  replicas: {{ .Values.worker.replicaCount }}
   template:
     metadata:
       labels:
-        k8s-app: dask-worker
+        app.kubernetes.io/name: dask-worker-{{ template "arl-cluster.name" . }}
+        app.kubernetes.io/instance: "{{ .Release.Name }}"
+        app.kubernetes.io/managed-by: "{{ .Release.Service }}"
+        helm.sh/chart: "{{ template "arl-cluster.chart" . }}"
     spec:
       # hostNetwork: true
       imagePullSecrets:
-        - name: arlregcred
+        - name: {{ .Values.image.pullSecret }}
       containers:
       - name: worker
-        image: ${DOCKER_IMAGE}
-        imagePullPolicy: IfNotPresent
+        image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+        imagePullPolicy: {{ .Values.image.pullPolicy }}
         resources:
-          limits:
-            memory: "${WORKER_MEM}"    # 512Mi = 0.5 GB mem
-            cpu: "${WORKER_CPU}"       # 500m = 0.5 CPU
+{{ toYaml .Values.resources | indent 10 }}
         command:
           - /usr/local/bin/start-dask-worker.sh
         env:
@@ -33,7 +40,7 @@ spec:
               fieldRef:
                 fieldPath: status.podIP
           - name: DASK_SCHEDULER
-            value: "dask-scheduler.default.svc.cluster.local"
+            value: dask-scheduler-{{ template "arl-cluster.name" . }}-{{ .Release.Name }}.{{ .Release.Namespace }}
           - name: DASK_PORT_NANNY
             value: "8789"
           - name: DASK_PORT_WORKER
@@ -81,8 +88,7 @@ spec:
         - name: bokeh
           containerPort: 8787
         readinessProbe:
-          httpGet:
-            path: /json/identity.json
+          tcpSocket:
             port: 8787
           initialDelaySeconds: 60
           timeoutSeconds: 10
@@ -98,6 +104,21 @@ spec:
       #     type: DirectoryOrCreate
       #   name: arldata
       - name: arldata
-        nfs:
-          server: ${NFS_SERVER}
-          path: "/data"
+        persistentVolumeClaim:
+          claimName: arldata-{{ template "arl-cluster.name" . }}-{{ .Release.Name }}
+      # - name: arldata
+      #   nfs:
+      #     server: "{{ .Values.nfs.server }}"
+      #     path: "/data"
+    {{- with .Values.nodeSelector }}
+      nodeSelector:
+{{ toYaml . | indent 8 }}
+    {{- end }}
+    {{- with .Values.affinity }}
+      affinity:
+{{ toYaml . | indent 8 }}
+    {{- end }}
+    {{- with .Values.tolerations }}
+      tolerations:
+{{ toYaml . | indent 8 }}
+    {{- end }}

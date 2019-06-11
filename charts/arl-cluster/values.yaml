@@ -3,11 +3,13 @@
 # Declare variables to be passed into your templates.
 
 worker:
-  replicaCount: 1
+  replicaCount: 3
+
+arldatadir: ./data
 
 image:
-  repository: arl_img
-  tag: latest
+  repository: arl
+  tag: ubuntu18.04
   pullPolicy: IfNotPresent
   pullSecret: gitlab-registry
 
@@ -19,7 +21,6 @@ nfs:
 
 notebook:
   service:
-    type: ClusterIP # NodePort or ClusterIP
     jupyter:
       port: 8888
 
@@ -35,6 +36,25 @@ resources:
   limits:
    cpu: 500m     # 500m = 0.5 CPU
    memory: 512Mi # 512Mi = 0.5 GB mem
+
+# Configure Ingress resource that allow you to access the Tango REST API
+ingress:
+  enabled: true
+  hostname: arl.minikube.local
+
+  # Ingress annotations
+  annotations:
+    kubernetes.io/ingress.class: nginx
+    nginx.ingress.kubernetes.io/x-forwarded-prefix: true
+    nginx.ingress.kubernetes.io/ssl-redirect: false
+
+  # Ingress TLS configuration
+  #
+  tls:
+    enabled: true
+    secretname: "tls-secret-arl-{{ .Release.Name }}"
+    hostname: "{{ .Values.ingress.hostname }}"
+
 
 nodeSelector: {}
 
