@@ -791,7 +791,7 @@ def simulate_pointingtable(pt: PointingTable, pointing_error, static_pointing_er
     return pt
 
 
-def simulate_pointingtable_from_timeseries(pt, type='tracking', scaling=1.0):
+def simulate_pointingtable_from_timeseries(pt, type='tracking', seed=None, scaling=1.0):
     """Create a pointing table with time series created from PSD.
 
     :param pt: Pointing table to be filled
@@ -800,6 +800,9 @@ def simulate_pointingtable_from_timeseries(pt, type='tracking', scaling=1.0):
     :return:
     """
     
+    if seed is not None:
+        numpy.random.seed(seed)
+
     pt.data['pointing'] = numpy.zeros(pt.data['pointing'].shape)
 
     ntimes, nant, nchan, nrec, _ = pt.data['pointing'].shape
@@ -837,10 +840,8 @@ def simulate_pointingtable_from_timeseries(pt, type='tracking', scaling=1.0):
             freq_max_index = numpy.argwhere(freq > max_freq)[0][0]
         else:
             az_max_index = 400  # not max; just a break
-            print('frequency break: ', az_max_index)
             max_freq = 2.0 / pt.interval[0]
             freq_max_index = numpy.argwhere(freq > max_freq)[0][0]
-            print('max frequency: ', max_freq)
         
         # fit polynomial to psd up to max value
         p_az1 = numpy.polyfit(freq[:az_max_index], az[:az_max_index], 5)
@@ -862,11 +863,15 @@ def simulate_pointingtable_from_timeseries(pt, type='tracking', scaling=1.0):
             regular_freq = numpy.arange(freq[0], freq[az_max_index], freq_interval)
             regular_az = f_az1(regular_freq)
 
+        original_regular_freq = regular_freq
+        original_regular_az = regular_az
         # get amplitudes from psd values
         amp_az = numpy.zeros_like(regular_az, dtype='float')
         amp_az[regular_az>0.0] = numpy.sqrt(regular_az[regular_az>0.0])
         # Now we generate some random phases
         for ant in range(nant):
+            regular_freq = original_regular_freq
+            regular_az = original_regular_az
             phi_az = numpy.random.rand(len(regular_az)) * 2 * numpy.pi
             # create complex array
             z_az = amp_az * numpy.exp(1j * phi_az)  # polar
