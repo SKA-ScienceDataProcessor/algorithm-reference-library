@@ -791,10 +791,11 @@ def simulate_pointingtable(pt: PointingTable, pointing_error, static_pointing_er
     return pt
 
 
-def simulate_pointingtable_from_timeseries(pt, scaling=1.0):
+def simulate_pointingtable_from_timeseries(pt, type='tracking', scaling=1.0):
     """Create a pointing table with time series created from PSD.
 
-    :param pt:
+    :param pt: Pointing table to be filled
+    :param type: Type of pointing: 'tracking' or 'wind'
     :param scaling: Multiply time series by this factor
     :return:
     """
@@ -814,7 +815,14 @@ def simulate_pointingtable_from_timeseries(pt, scaling=1.0):
         "pel": psd[:, 4]
     }
     
-    axes = ["az", "el"]
+    if type == 'tracking':
+        log.info("simulate_pointingtable_from_timeseries: Pointing created using %s PSD" % type)
+        axes = ["az", "el"]
+    elif type == 'wind':
+        log.info("simulate_pointingtable_from_timeseries: Pointing created using %s PSD" % type)
+        axes = ["pxel", "pel"]
+    else:
+        raise ValueError("Pointing type %s not known" % type)
     
     for axis in axes:
         
@@ -824,14 +832,13 @@ def simulate_pointingtable_from_timeseries(pt, scaling=1.0):
         if (axis == "az") or (axis == "el"):
             # determine index of maximum PSD value; add 50 for better fit
             az_max_index = numpy.argwhere(az == numpy.max(az))[0][0] + 50
-            max_freq = 0.4
-            # max_freq = 1.0 / pt.interval[0]
-            
+            az_max_index = min(az_max_index, len(az))
+            max_freq = 2.0 / pt.interval[0]
             freq_max_index = numpy.argwhere(freq > max_freq)[0][0]
         else:
             az_max_index = 400  # not max; just a break
             print('frequency break: ', az_max_index)
-            max_freq = 0.1
+            max_freq = 2.0 / pt.interval[0]
             freq_max_index = numpy.argwhere(freq > max_freq)[0][0]
             print('max frequency: ', max_freq)
         
@@ -839,19 +846,25 @@ def simulate_pointingtable_from_timeseries(pt, scaling=1.0):
         p_az1 = numpy.polyfit(freq[:az_max_index], az[:az_max_index], 5)
         f_az1 = numpy.poly1d(p_az1)
         # fit polynomial to psd beyond max value
-        p_az2 = numpy.polyfit(freq[az_max_index:freq_max_index], az[az_max_index:freq_max_index], 5)
-        f_az2 = numpy.poly1d(p_az2)
-        
-        # resampled to construct regularly-spaced frequencies
-        regular_freq1 = numpy.arange(freq[0], freq[az_max_index], freq_interval)
-        regular_az1 = f_az1(regular_freq1)
-        regular_freq2 = numpy.arange(freq[az_max_index], freq[freq_max_index], freq_interval)
-        regular_az2 = f_az2(regular_freq2)
-        regular_freq = numpy.append(regular_freq1, regular_freq2)
-        regular_az = numpy.append(regular_az1, regular_az2)
-        
+        if az_max_index <= freq_max_index:
+            p_az2 = numpy.polyfit(freq[az_max_index:freq_max_index], az[az_max_index:freq_max_index], 5)
+            f_az2 = numpy.poly1d(p_az2)
+            
+            # resampled to construct regularly-spaced frequencies
+            regular_freq1 = numpy.arange(freq[0], freq[az_max_index], freq_interval)
+            regular_az1 = f_az1(regular_freq1)
+            regular_freq2 = numpy.arange(freq[az_max_index], freq[freq_max_index], freq_interval)
+            regular_az2 = f_az2(regular_freq2)
+            regular_freq = numpy.append(regular_freq1, regular_freq2)
+            regular_az = numpy.append(regular_az1, regular_az2)
+        else:
+            # resampled to construct regularly-spaced frequencies
+            regular_freq = numpy.arange(freq[0], freq[az_max_index], freq_interval)
+            regular_az = f_az1(regular_freq)
+
         # get amplitudes from psd values
-        amp_az = numpy.sqrt(regular_az)
+        amp_az = numpy.zeros_like(regular_az, dtype='float')
+        amp_az[regular_az>0.0] = numpy.sqrt(regular_az[regular_az>0.0])
         # Now we generate some random phases
         for ant in range(nant):
             phi_az = numpy.random.rand(len(regular_az)) * 2 * numpy.pi
@@ -875,28 +888,32 @@ def simulate_pointingtable_from_timeseries(pt, scaling=1.0):
             ts = numpy.fft.ifft(z_az)
             
             # set up and check scalings
-            M = len(regular_freq)
             N = len(ts)
-            Fmax = numpy.max(regular_freq)
-            Dt = 1 / Fmax
-            tmax = (N - 1) * Dt
-            ts.real *= N  # the result is scaled by number of points in the signal, so multiply - real part - by this
+            Dt = pt.interval[0]
+            ts = numpy.real(ts)
+            ts *= N  # the result is scaled by number of points in the signal, so multiply - real part - by this
             
             # The output of the iFFT will be a random time series on the finite
             # (bounded, limited) time interval t = 0 to tmax = (N-1) X Dt, #
             # where Dt = 1 / (2 X Fmax)
             
             # scale to time interval
-            times = numpy.arange(len(ts)) * Dt
+            times = numpy.arange(ntimes) * Dt
             
             ts *= numpy.pi/(180.0*3600.0)
             
 #            pt.data['time'] = times[:ntimes]
             if axis == 'az':
-                pt.data['pointing'][:, ant, :, :, 0] = numpy.real(ts[:ntimes,numpy.newaxis,numpy.newaxis,...])
+                pt.data['pointing'][:, ant, :, :, 0] = ts[:ntimes,numpy.newaxis,numpy.newaxis,...]
+            elif axis == 'el':
+                pt.data['pointing'][:, ant, :, :, 1] = ts[:ntimes,numpy.newaxis,numpy.newaxis,...]
+            elif axis == 'pxel':
+                pt.data['pointing'][:, ant, :, :, 0] = ts[:ntimes,numpy.newaxis,numpy.newaxis,...]
+            elif axis == 'pel':
+                pt.data['pointing'][:, ant, :, :, 1] = ts[:ntimes,numpy.newaxis,numpy.newaxis,...]
             else:
-                pt.data['pointing'][:, ant, :, :, 1] = numpy.real(ts[:ntimes,numpy.newaxis,numpy.newaxis,...])
-                
+                raise ValueError("Unknown axis %s" % axis)
+
     return pt
 
 

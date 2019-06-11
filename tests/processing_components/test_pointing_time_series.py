@@ -9,18 +9,13 @@ import astropy.units as u
 import numpy
 from astropy.coordinates import SkyCoord
 
-from data_models.parameters import arl_path
-from data_models.polarisation import PolarisationFrame
 from data_models.memory_data_models import Skycomponent
-
-from processing_components.skycomponent.operations import create_skycomponent
+from data_models.polarisation import PolarisationFrame
 from processing_components.calibration.pointing import create_pointingtable_from_blockvisibility
 from processing_components.imaging.primary_beams import create_vp
 from processing_components.simulation.configurations import create_named_configuration
 from processing_components.simulation.pointing import create_gaintable_from_pointingtable
-from processing_components.simulation.testing_support import create_test_image, simulate_pointingtable, \
-    simulate_pointingtable_from_timeseries
-from processing_components.simulation.testing_support import create_test_skycomponents_from_s3
+from processing_components.simulation.testing_support import simulate_pointingtable_from_timeseries
 from processing_components.visibility.base import create_blockvisibility
 from processing_library.image.operations import create_image
 
@@ -36,8 +31,10 @@ class TestPointing(unittest.TestCase):
         self.midcore = create_named_configuration('MID', rmax=100.0)
         self.nants = len(self.midcore.names)
         self.dir = arl_path('test_results')
-        self.ntimes = 203
-        self.times = numpy.linspace(-0.28194, 0.28194, self.ntimes)
+        self.ntimes = 200
+        interval = 10.0
+        self.times = numpy.arange(0.0, float(self.ntimes)) * interval
+        self.times *= numpy.pi / 43200.0
         
         self.frequency = numpy.array([1.4e9])
         self.channel_bandwidth = numpy.array([1e7])
@@ -57,26 +54,31 @@ class TestPointing(unittest.TestCase):
         numpy.random.seed(18051955)
         offset_phasecentre = SkyCoord(ra=+15.0 * u.deg, dec=-44.58 * u.deg, frame='icrs', equinox='J2000')
         component = [Skycomponent(frequency=self.frequency, direction=offset_phasecentre,
-                                      polarisation_frame=PolarisationFrame("stokesI"), flux=[[1.0]])]
+                                  polarisation_frame=PolarisationFrame("stokesI"), flux=[[1.0]])]
         
-        pt = create_pointingtable_from_blockvisibility(self.vis)
-        pt = simulate_pointingtable_from_timeseries(pt, scaling=1.0)
-        
-        import matplotlib.pyplot as plt
-        plt.clf()
-        plt.plot(pt.time, pt.pointing[:,0,0,0,0], '.')
-        plt.plot(pt.time, pt.pointing[:,0,0,0,1], '.')
-        plt.show()
-
-        vp = create_vp(self.model, 'MID')
-        gt = create_gaintable_from_pointingtable(self.vis, component, pt, vp)
-        assert gt[0].gain.shape == (self.ntimes, self.nants, 1, 1, 1), gt[0].gain.shape
-        
-        plt.clf()
-        plt.plot(gt[0].time, 1.0/numpy.real(gt[0].gain[:,0,0,0,0]), '.')
-#        plt.plot(gt[0].time, numpy.imag(gt[0].gain[:,0,0,0,0]), '.')
-        plt.show()
-
+        for type in ['tracking', 'wind']:
+            pt = create_pointingtable_from_blockvisibility(self.vis)
+            pt = simulate_pointingtable_from_timeseries(pt, type=type, scaling=1.0)
+            
+            import matplotlib.pyplot as plt
+            plt.clf()
+            plt.plot(pt.time, pt.pointing[:, 0, 0, 0, 0], '.')
+            plt.plot(pt.time, pt.pointing[:, 0, 0, 0, 1], '.')
+            plt.xlabel('Time (s)')
+            plt.ylabel('Pointing (rad)')
+            plt.title("Pointing for %s" % type)
+            plt.show()
+            
+            vp = create_vp(self.model, 'MID')
+            gt = create_gaintable_from_pointingtable(self.vis, component, pt, vp)
+            assert gt[0].gain.shape == (self.ntimes, self.nants, 1, 1, 1), gt[0].gain.shape
+            
+            plt.clf()
+            plt.plot(gt[0].time, 1.0 / numpy.real(gt[0].gain[:, 0, 0, 0, 0]), '.')
+            plt.xlabel('Time (s)')
+            plt.ylabel('Gain')
+            plt.title("Gain for %s" % type)
+            plt.show()
 
 
 if __name__ == '__main__':
