@@ -773,7 +773,7 @@ def simulate_pointingtable(pt: PointingTable, pointing_error, static_pointing_er
         log.debug("simulate_pointingtable: Simulating dynamic pointing error = %g (rad) %g (arcsec)"
                   % (pointing_error, r2s * pointing_error))
         
-        pt.data['pointing'] = numpy.random.normal(0.0, pointing_error, pt.data['pointing'].shape)
+        pt.data['pointing'] += numpy.random.normal(0.0, pointing_error, pt.data['pointing'].shape)
     if static_pointing_error > 0.0:
         log.debug("simulate_pointingtable: Simulating static pointing error = %g (rad) %g (arcsec)"
                   % (static_pointing_error, r2s * static_pointing_error))
@@ -788,6 +788,112 @@ def simulate_pointingtable(pt: PointingTable, pointing_error, static_pointing_er
                      r2s * global_pointing_error[0], r2s * global_pointing_error[1]))
         pt.data['pointing'][..., :] += global_pointing_error
     
+    return pt
+
+
+def create_pointingtable_from_timeseries(pt, scaling=1.0):
+    """Create a pointing table with time series created from PSD.
+
+    :param pt:
+    :param scaling: Multiply time series by this factor
+    :return:
+    """
+    
+    pt.data['pointing'] = numpy.zeros(pt.data['pointing'].shape)
+
+    ntimes, nant, nchan, nrec, _ = pt.data['pointing'].shape
+
+    psd = numpy.loadtxt(arl_path("data/models/El45Az135.dat"))
+    
+    # define some arrays
+    freq = psd[:, 0]
+    axesdict = {
+        "az": psd[:, 1],
+        "el": psd[:, 2],
+        "pxel": psd[:, 3],
+        "pel": psd[:, 4]
+    }
+    
+    axes = ["az", "el"]
+    
+    for axis in axes:
+        
+        az = axesdict[axis]
+        
+        freq_interval = 0.001
+        if (axis == "az") or (axis == "el"):
+            # determine index of maximum PSD value; add 50 for better fit
+            az_max_index = numpy.argwhere(az == numpy.max(az))[0][0] + 50
+            max_freq = 0.4
+            
+            freq_max_index = numpy.argwhere(freq > max_freq)[0][0]
+        else:
+            az_max_index = 400  # not max; just a break
+            print('frequency break: ', az_max_index)
+            max_freq = 0.1
+            freq_max_index = numpy.argwhere(freq > max_freq)[0][0]
+            print('max frequency: ', max_freq)
+        
+        # fit polynomial to psd up to max value
+        p_az1 = numpy.polyfit(freq[:az_max_index], az[:az_max_index], 5)
+        f_az1 = numpy.poly1d(p_az1)
+        # fit polynomial to psd beyond max value
+        p_az2 = numpy.polyfit(freq[az_max_index:freq_max_index], az[az_max_index:freq_max_index], 5)
+        f_az2 = numpy.poly1d(p_az2)
+        
+        # resampled to construct regularly-spaced frequencies
+        regular_freq1 = numpy.arange(freq[0], freq[az_max_index], freq_interval)
+        regular_az1 = f_az1(regular_freq1)
+        regular_freq2 = numpy.arange(freq[az_max_index], freq[freq_max_index], freq_interval)
+        regular_az2 = f_az2(regular_freq2)
+        regular_freq = numpy.append(regular_freq1, regular_freq2)
+        regular_az = numpy.append(regular_az1, regular_az2)
+        
+        # get amplitudes from psd values
+        amp_az = numpy.sqrt(regular_az)
+        # Now we generate some random phases
+        for ant in range(nant):
+            phi_az = numpy.random.rand(len(regular_az)) * 2 * numpy.pi
+            # create complex array
+            z_az = amp_az * numpy.exp(1j * phi_az)  # polar
+            # make symmetrical frequencies
+            mirror_z_az = numpy.copy(z_az)
+            # make complex conjugates
+            mirror_z_az.imag -= 2 * z_az.imag
+            # make negative frequencies
+            mirror_regular_freq = -regular_freq
+            # join
+            z_az = numpy.append(z_az, mirror_z_az[::-1])
+            regular_freq = numpy.append(regular_freq, mirror_regular_freq[::-1])
+            
+            # add a 0 Fourier term
+            z_az = numpy.append(0 + 0 * 1j, z_az)
+            regular_freq = numpy.append(0, regular_freq)
+            
+            # perform inverse fft
+            ts = numpy.fft.ifft(z_az)
+            
+            # set up and check scalings
+            M = len(regular_freq)
+            N = len(ts)
+            Fmax = numpy.max(regular_freq)
+            Dt = 1 / Fmax
+            tmax = (N - 1) * Dt
+            ts.real *= N  # the result is scaled by number of points in the signal, so multiply - real part - by this
+            
+            # The output of the iFFT will be a random time series on the finite
+            # (bounded, limited) time interval t = 0 to tmax = (N-1) X Dt, #
+            # where Dt = 1 / (2 X Fmax)
+            
+            # scale to time interval
+            times = numpy.arange(len(ts)) * Dt
+            
+            pt.data['time'] = times[:ntimes]
+            if axis == 'az':
+                pt.data['pointing'][:, ant, 0] = numpy.real(ts[:ntimes,...])
+            else:
+                pt.data['pointing'][:, ant, 0] = numpy.real(ts[:ntimes,...])
+                
     return pt
 
 
@@ -889,3 +995,4 @@ def insert_unittest_errors(vt, seed=180555, calibration_context="TG", amp_errors
         vt = apply_gaintable(vt, gaintable, timeslice=controls[c]['timeslice'], inverse=True)
     
     return vt
+

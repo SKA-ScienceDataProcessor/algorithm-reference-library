@@ -328,7 +328,7 @@ class PointingTable:
         """Default printer for GainTable
 
         """
-        s = "GainTable:\n"
+        s = "PointingTable:\n"
         s += "\tTimes: %s\n" % str(self.ntimes)
         s += "\tData shape: %s\n" % str(self.data.shape)
         s += "\tReceptor frame: %s\n" % str(self.receptor_frame.type)
