@@ -791,7 +791,7 @@ def simulate_pointingtable(pt: PointingTable, pointing_error, static_pointing_er
     return pt
 
 
-def create_pointingtable_from_timeseries(pt, scaling=1.0):
+def simulate_pointingtable_from_timeseries(pt, scaling=1.0):
     """Create a pointing table with time series created from PSD.
 
     :param pt:
@@ -825,6 +825,7 @@ def create_pointingtable_from_timeseries(pt, scaling=1.0):
             # determine index of maximum PSD value; add 50 for better fit
             az_max_index = numpy.argwhere(az == numpy.max(az))[0][0] + 50
             max_freq = 0.4
+            # max_freq = 1.0 / pt.interval[0]
             
             freq_max_index = numpy.argwhere(freq > max_freq)[0][0]
         else:
@@ -888,11 +889,13 @@ def create_pointingtable_from_timeseries(pt, scaling=1.0):
             # scale to time interval
             times = numpy.arange(len(ts)) * Dt
             
-            pt.data['time'] = times[:ntimes]
+            ts *= numpy.pi/(180.0*3600.0)
+            
+#            pt.data['time'] = times[:ntimes]
             if axis == 'az':
-                pt.data['pointing'][:, ant, 0] = numpy.real(ts[:ntimes,...])
+                pt.data['pointing'][:, ant, :, :, 0] = numpy.real(ts[:ntimes,numpy.newaxis,numpy.newaxis,...])
             else:
-                pt.data['pointing'][:, ant, 0] = numpy.real(ts[:ntimes,...])
+                pt.data['pointing'][:, ant, :, :, 1] = numpy.real(ts[:ntimes,numpy.newaxis,numpy.newaxis,...])
                 
     return pt
 

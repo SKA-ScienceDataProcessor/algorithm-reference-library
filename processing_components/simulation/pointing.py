@@ -59,6 +59,7 @@ def create_gaintable_from_pointingtable(vis, sc, pt, vp, vis_slices=None, scale=
             v = create_visibility_from_rows(vis, rows)
             ha = numpy.average(v.time)
             pt_rows = (pt.time == ha)
+            assert numpy.sum(pt_rows) > 0
             pointing_ha = pt.pointing[pt_rows]
             har = s2r * ha
             
