@@ -1,0 +1,10 @@
+name: arl-cluster
+version: 0.1.0
+description: A Helm chart for the ARL on Kubernetes
+home: https://www.skatelescope.org/
+icon: http://www.skatelescope.org/wp-content/uploads/2016/07/09545_NEW_LOGO_2014.png
+sources:
+- https://github.com/SKA-ScienceDataProcessor/algorithm-reference-library/
+maintainers:
+- name: Piers
+  email: piers@catalyst.net.nz

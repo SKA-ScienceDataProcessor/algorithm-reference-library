@@ -1,0 +1,40 @@
+---
+kind: PersistentVolume
+apiVersion: v1
+metadata:
+  name: arldata-{{ template "arl-cluster.name" . }}-{{ .Release.Name }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app.kubernetes.io/name: arldata-{{ template "arl-cluster.name" . }}
+    app.kubernetes.io/instance: "{{ .Release.Name }}"
+    app.kubernetes.io/managed-by: "{{ .Release.Service }}"
+    helm.sh/chart: "{{ template "arl-cluster.chart" . }}"
+spec:
+  storageClassName: standard
+  volumeMode: Filesystem
+  capacity:
+    storage: 1Gi
+  accessModes:
+    - ReadWriteMany
+  hostPath:
+    path: {{ .Values.arldatadir }}
+
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: arldata-{{ template "arl-cluster.name" . }}-{{ .Release.Name }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app.kubernetes.io/name: arldata-{{ template "arl-cluster.name" . }}
+    app.kubernetes.io/instance: "{{ .Release.Name }}"
+    app.kubernetes.io/managed-by: "{{ .Release.Service }}"
+    helm.sh/chart: "{{ template "arl-cluster.chart" . }}"
+spec:
+  storageClassName: standard
+  accessModes:
+    - ReadWriteMany
+  resources:
+    requests:
+      storage: 1Gi
+  volumeName: arldata-{{ template "arl-cluster.name" . }}-{{ .Release.Name }}
