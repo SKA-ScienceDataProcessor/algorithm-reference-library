@@ -16,8 +16,8 @@ from processing_library.util.coordinate_support import hadec_to_azel, azel_to_ha
 log = logging.getLogger(__name__)
 
 
-def create_gaintable_from_pointingtable(vis, sc, pt, vp, vis_slices=None, scale=1.0, order=3,
-                                        use_radec=False, **kwargs):
+def simulate_gaintable_from_pointingtable(vis, sc, pt, vp, vis_slices=None, scale=1.0, order=3,
+                                          use_radec=False, **kwargs):
     """ Create gaintables from a pointing table
 
     :param vis:
@@ -95,7 +95,7 @@ def create_gaintable_from_pointingtable(vis, sc, pt, vp, vis_slices=None, scale=
                         assert pixloc[0] < nx - 3
                         assert pixloc[1] > 2
                         assert pixloc[1] < ny - 3
-                        gain = real_spline.ev(pixloc[1], pixloc[0]) + 1j * imag_spline(pixloc[1], pixloc[0])
+                        gain = real_spline.ev(pixloc[0], pixloc[1]) + 1j * imag_spline(pixloc[0], pixloc[1])
                         antgain[ant] = 1.0 / (scale * gain)
                         number_good += 1
                     except:
@@ -166,8 +166,8 @@ def create_gaintable_from_pointingtable(vis, sc, pt, vp, vis_slices=None, scale=
 
     if number_bad > 0:
         log.warning(
-            "create_gaintable_from_pointingtable: %d points are inside the voltage pattern image" % (number_good))
+            "simulate_gaintable_from_pointingtable: %d points are inside the voltage pattern image" % (number_good))
         log.warning(
-            "create_gaintable_from_pointingtable: %d points are outside the voltage pattern image" % (number_bad))
+            "simulate_gaintable_from_pointingtable: %d points are outside the voltage pattern image" % (number_bad))
 
     return gaintables
