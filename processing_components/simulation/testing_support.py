@@ -687,15 +687,13 @@ def create_blockvisibility_iterator(config: Configuration, times: numpy.array, f
         yield bvis
 
 
-def simulate_gaintable(gt: GainTable, phase_error=0.1, amplitude_error=0.0, smooth_channels=1,
-                       leakage=0.0, seed=None, **kwargs) -> GainTable:
+def simulate_gaintable(gt: GainTable, phase_error=0.1, amplitude_error=0.0, smooth_channels=1, leakage=0.0, **kwargs) -> GainTable:
     """ Simulate a gain table
 
     :type gt: GainTable
     :param phase_error: std of normal distribution, zero mean
     :param amplitude_error: std of log normal distribution
     :param leakage: std of cross hand leakage
-    :param seed: Seed for random numbers def: 180555
     :param smooth_channels: Use bspline over smooth_channels
     :param kwargs:
     :return: Gaintable
@@ -704,9 +702,6 @@ def simulate_gaintable(gt: GainTable, phase_error=0.1, amplitude_error=0.0, smoo
     
     def moving_average(a, n=3):
         return numpy.convolve(a, numpy.ones((n,)) / n, mode='valid')
-    
-    if seed is not None:
-        numpy.random.seed(seed)
     
     log.debug("simulate_gaintable: Simulating amplitude error = %.4f, phase error = %.4f"
               % (amplitude_error, phase_error))
@@ -750,21 +745,18 @@ def simulate_gaintable(gt: GainTable, phase_error=0.1, amplitude_error=0.0, smoo
 
 
 def simulate_pointingtable(pt: PointingTable, pointing_error, static_pointing_error=0.0, global_pointing_error=None,
-                           seed=None, **kwargs) -> PointingTable:
+                           **kwargs) -> PointingTable:
     """ Simulate a gain table
 
     :type pt: PointingTable
     :param pointing_error: std of normal distribution (radians)
     :param static_pointing_error: std of normal distribution (radians)
     :param global_pointing_error: 2-vector of global pointing error (rad)
-    :param seed: Seed for random numbers def: 180555
     :param kwargs:
     :return: PointingTable
 
     """
     
-    if seed is not None:
-        numpy.random.seed(seed)
     r2s = 180.0 * 3600.0 / numpy.pi
     pt.data['pointing'] = numpy.zeros(pt.data['pointing'].shape)
     
@@ -791,7 +783,7 @@ def simulate_pointingtable(pt: PointingTable, pointing_error, static_pointing_er
     return pt
 
 
-def simulate_pointingtable_from_timeseries(pt, type='tracking', seed=None, scaling=1.0):
+def simulate_pointingtable_from_timeseries(pt, type='tracking', scaling=1.0):
     """Create a pointing table with time series created from PSD.
 
     :param pt: Pointing table to be filled
@@ -800,9 +792,6 @@ def simulate_pointingtable_from_timeseries(pt, type='tracking', seed=None, scali
     :return:
     """
     
-    if seed is not None:
-        numpy.random.seed(seed)
-
     pt.data['pointing'] = numpy.zeros(pt.data['pointing'].shape)
 
     ntimes, nant, nchan, nrec, _ = pt.data['pointing'].shape
@@ -1010,12 +999,9 @@ def insert_unittest_errors(vt, seed=180555, calibration_context="TG", amp_errors
     
     for c in calibration_context:
         gaintable = create_gaintable_from_blockvisibility(vt, timeslice=controls[c]['timeslice'])
-        gaintable = simulate_gaintable(gaintable,
-                                       timeslice=controls[c]['timeslice'],
-                                       phase_only=controls[c]['phase_only'],
-                                       crosspol=controls[c]['shape'] == 'matrix',
-                                       phase_error=phase_errors[c], amplitude_error=amp_errors[c],
-                                       seed=seed)
+        gaintable = simulate_gaintable(gaintable, phase_error=phase_errors[c], amplitude_error=amp_errors[c],
+                                       timeslice=controls[c]['timeslice'], phase_only=controls[c]['phase_only'],
+                                       crosspol=controls[c]['shape'] == 'matrix')
         
         vt = apply_gaintable(vt, gaintable, timeslice=controls[c]['timeslice'], inverse=True)
     

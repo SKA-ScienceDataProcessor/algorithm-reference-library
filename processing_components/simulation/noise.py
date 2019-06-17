@@ -83,7 +83,7 @@ def addnoise_visibility(vis, t_sys=None, eta=None):
     if isinstance(vis, Visibility):
         sigma = calculate_noise_visibility(vis.data['channel_bandwidth'], vis.data['integration_time'],
                                            vis.configuration.diameter[0], t_sys=t_sys, eta=eta)
-        log.info('addnoise_visibility: RMS noise value: %g' % sigma[0])
+        log.debug('addnoise_visibility: RMS noise value: %g' % sigma[0])
         # Each pol gets a separate noise
         for pol in range(vis.npol):
             vis.data["vis"][:, pol].real += numpy.random.normal(0, sigma)
@@ -91,7 +91,7 @@ def addnoise_visibility(vis, t_sys=None, eta=None):
     elif isinstance(vis, BlockVisibility):
         sigma = calculate_noise_blockvisibility(vis.channel_bandwidth, vis.data['integration_time'],
                                                 vis.configuration.diameter[0], t_sys=t_sys, eta=eta)
-        log.info('addnoise_visibility: RMS noise value (first integration, first channel): %g' % sigma[0, 0])
+        log.debug('addnoise_visibility: RMS noise value (first integration, first channel): %g' % sigma[0, 0])
         for row in range(vis.nvis):
             for ant1 in range(vis.nants):
                 for ant2 in range(ant1, vis.nants):

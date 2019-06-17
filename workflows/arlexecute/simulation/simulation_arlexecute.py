@@ -128,7 +128,7 @@ def corrupt_list_arlexecute_workflow(vis_list, gt_list=None, seed=None, **kwargs
             bv = vis
         if gt is None:
             gt = create_gaintable_from_blockvisibility(bv, **kwargs)
-            gt = simulate_gaintable(gt, seed=seed, **kwargs)
+            gt = simulate_gaintable(gt, **kwargs)
             bv = apply_gaintable(bv, gt)
             
         if isinstance(vis, Visibility):
