@@ -13,7 +13,7 @@ from data_models.polarisation import PolarisationFrame
 from processing_components.calibration.pointing import create_pointingtable_from_blockvisibility
 from processing_components.imaging.primary_beams import create_vp
 from processing_components.simulation.configurations import create_named_configuration
-from processing_components.simulation.pointing import create_gaintable_from_pointingtable
+from processing_components.simulation.pointing import simulate_gaintable_from_pointingtable
 from processing_components.simulation.testing_support import create_test_image, simulate_pointingtable
 from processing_components.simulation.testing_support import create_test_skycomponents_from_s3
 from processing_components.skycomponent.operations import create_skycomponent
@@ -69,7 +69,7 @@ class TestPointing(unittest.TestCase):
         pt = create_pointingtable_from_blockvisibility(self.vis)
         pt = simulate_pointingtable(pt, pointing_error=0.01, static_pointing_error=0.001)
         vp = create_vp(self.model, 'MID')
-        gt = create_gaintable_from_pointingtable(self.vis, s3_components, pt, vp)
+        gt = simulate_gaintable_from_pointingtable(self.vis, s3_components, pt, vp)
         assert gt[0].gain.shape == (self.ntimes, self.nants, 1, 1, 1), gt[0].gain.shape
     
     def test_create_gaintable_from_pointingtable_dynamic(self):
@@ -80,7 +80,7 @@ class TestPointing(unittest.TestCase):
         pt = simulate_pointingtable(pt, pointing_error=0.01, static_pointing_error=0.0,
                                     global_pointing_error=[0.0, 0.0])
         vp = create_vp(self.model, 'MID')
-        gt = create_gaintable_from_pointingtable(self.vis, [comp], pt, vp)
+        gt = simulate_gaintable_from_pointingtable(self.vis, [comp], pt, vp)
         if self.doplot:
             import matplotlib.pyplot as plt
             plt.clf()
@@ -98,7 +98,7 @@ class TestPointing(unittest.TestCase):
         pt = simulate_pointingtable(pt, pointing_error=0.01, static_pointing_error=0.0,
                                     global_pointing_error=[0.0, 0.0])
         vp = create_vp(self.model, 'MID', use_local=False)
-        gt = create_gaintable_from_pointingtable(self.vis, [comp], pt, vp, use_radec=True)
+        gt = simulate_gaintable_from_pointingtable(self.vis, [comp], pt, vp, use_radec=True)
         if self.doplot:
             import matplotlib.pyplot as plt
             plt.clf()
@@ -116,7 +116,7 @@ class TestPointing(unittest.TestCase):
         pt = simulate_pointingtable(pt, pointing_error=0.0, static_pointing_error=0.01,
                                     global_pointing_error=[0.0, 0.0])
         vp = create_vp(self.model, 'MID')
-        gt = create_gaintable_from_pointingtable(self.vis, [comp], pt, vp)
+        gt = simulate_gaintable_from_pointingtable(self.vis, [comp], pt, vp)
         if self.doplot:
             import matplotlib.pyplot as plt
             plt.clf()
@@ -132,11 +132,10 @@ class TestPointing(unittest.TestCase):
                                    polarisation_frame=PolarisationFrame('stokesI'))
         
         pt = create_pointingtable_from_blockvisibility(self.vis)
-        pt = simulate_pointingtable(pt, pointing_error=0.01,
-                                    static_pointing_error=0.01,
+        pt = simulate_pointingtable(pt, pointing_error=0.01, static_pointing_error=0.01,
                                     global_pointing_error=[0.0, 0.0])
         vp = create_vp(self.model, 'MID')
-        gt = create_gaintable_from_pointingtable(self.vis, [comp], pt, vp)
+        gt = simulate_gaintable_from_pointingtable(self.vis, [comp], pt, vp)
         if self.doplot:
             import matplotlib.pyplot as plt
             plt.clf()
@@ -156,7 +155,7 @@ class TestPointing(unittest.TestCase):
         pt = simulate_pointingtable(pt, pointing_error=0.0, static_pointing_error=0.0,
                                     global_pointing_error=[0.0, 0.01])
         vp = create_vp(self.model, 'MID')
-        gt = create_gaintable_from_pointingtable(self.vis, [comp], pt, vp)
+        gt = simulate_gaintable_from_pointingtable(self.vis, [comp], pt, vp)
         if self.doplot:
             plt.clf()
             plt.plot(gt[0].time, numpy.real(1.0 / gt[0].gain[:, 0, 0, 0, 0]), '.')
@@ -170,11 +169,10 @@ class TestPointing(unittest.TestCase):
                                    polarisation_frame=PolarisationFrame('stokesI'))
         
         pt = create_pointingtable_from_blockvisibility(self.vis)
-        pt = simulate_pointingtable(pt, pointing_error=0.01,
-                                    static_pointing_error=0.0,
+        pt = simulate_pointingtable(pt, pointing_error=0.01, static_pointing_error=0.0,
                                     global_pointing_error=[0.0, 0.01])
         vp = create_vp(self.model, 'MID')
-        gt = create_gaintable_from_pointingtable(self.vis, [comp], pt, vp)
+        gt = simulate_gaintable_from_pointingtable(self.vis, [comp], pt, vp)
         if self.doplot:
             import matplotlib.pyplot as plt
             plt.clf()
@@ -189,11 +187,10 @@ class TestPointing(unittest.TestCase):
                                    polarisation_frame=PolarisationFrame('stokesI'))
         
         pt = create_pointingtable_from_blockvisibility(self.vis)
-        pt = simulate_pointingtable(pt, pointing_error=0.0,
-                                    static_pointing_error=0.0,
+        pt = simulate_pointingtable(pt, pointing_error=0.0, static_pointing_error=0.0,
                                     global_pointing_error=[0.0, 0.01])
         vp = create_vp(self.model, 'MID_GRASP')
-        gt = create_gaintable_from_pointingtable(self.vis, [comp], pt, vp)
+        gt = simulate_gaintable_from_pointingtable(self.vis, [comp], pt, vp)
         if self.doplot:
             import matplotlib.pyplot as plt
             plt.clf()

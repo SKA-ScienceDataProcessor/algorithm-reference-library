@@ -15,6 +15,7 @@ from processing_components.imaging.base import predict_2d, invert_2d
 from processing_components.visibility.iterators import vis_null_iter, vis_timeslice_iter, vis_wslice_iter
 from processing_components.imaging.timeslice_single import predict_timeslice_single, invert_timeslice_single
 from processing_components.imaging.wstack_single import predict_wstack_single, invert_wstack_single
+from processing_components.image.operations import create_empty_image_like
 
 
 def imaging_contexts():
@@ -82,7 +83,7 @@ def sum_invert_results_local(image_list):
             if first:
                 im = copy_image(arg[0])
                 im.data *= scale
-                sumwt = arg[1]
+                sumwt = arg[1].copy()
                 first = False
             else:
                 im.data += scale * arg[0].data
@@ -100,26 +101,15 @@ def sum_invert_results(image_list):
     if len(image_list) == 1:
         return image_list[0]
     
-    first = True
-    sumwt = 0.0
-    im = None
+    im = create_empty_image_like(image_list[0][0])
+    sumwt = image_list[0][1].copy()
+    sumwt *= 0.0
+
     for i, arg in enumerate(image_list):
         if arg is not None:
-            if isinstance(arg[1], numpy.ndarray):
-                scale = arg[1][..., numpy.newaxis, numpy.newaxis]
-            else:
-                scale = arg[1]
-            if first:
-                im = copy_image(arg[0])
-                im.data *= scale
-                sumwt = arg[1]
-                first = False
-            else:
-                im.data += scale * arg[0].data
-                sumwt += arg[1]
-    
-    assert not first, "No invert results"
-    
+            im.data += arg[1] * arg[0].data
+            sumwt += arg[1]
+
     im = normalize_sumwt(im, sumwt)
     return im, sumwt
 

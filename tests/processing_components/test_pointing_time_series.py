@@ -14,7 +14,7 @@ from data_models.polarisation import PolarisationFrame
 from processing_components.calibration.pointing import create_pointingtable_from_blockvisibility
 from processing_components.imaging.primary_beams import create_vp
 from processing_components.simulation.configurations import create_named_configuration
-from processing_components.simulation.pointing import create_gaintable_from_pointingtable
+from processing_components.simulation.pointing import simulate_gaintable_from_pointingtable
 from processing_components.simulation.testing_support import simulate_pointingtable_from_timeseries
 from processing_components.visibility.base import create_blockvisibility
 from processing_library.image.operations import create_image
@@ -70,7 +70,7 @@ class TestPointing(unittest.TestCase):
             plt.show()
             
             vp = create_vp(self.model, 'MID')
-            gt = create_gaintable_from_pointingtable(self.vis, component, pt, vp)
+            gt = simulate_gaintable_from_pointingtable(self.vis, component, pt, vp)
             assert gt[0].gain.shape == (self.ntimes, self.nants, 1, 1, 1), gt[0].gain.shape
             
             plt.clf()

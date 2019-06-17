@@ -127,8 +127,7 @@ class TestPipelineGraphs(unittest.TestCase):
         
         if add_errors:
             gt = create_gaintable_from_blockvisibility(self.vis)
-            gt = simulate_gaintable(gt, phase_error=0.1, amplitude_error=0.0, smooth_channels=1,
-                       leakage=0.0, seed=180555)
+            gt = simulate_gaintable(gt, phase_error=0.1, amplitude_error=0.0, smooth_channels=1, leakage=0.0)
             self.blockvis_list = [arlexecute.execute(apply_gaintable, nout=1)
                                   (self.blockvis_list[i], gt)
                                   for i in range(self.freqwin)]

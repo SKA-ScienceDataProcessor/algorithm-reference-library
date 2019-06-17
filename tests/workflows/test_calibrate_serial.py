@@ -86,8 +86,7 @@ class TestCalibrateGraphs(unittest.TestCase):
         
         self.error_blockvis_list = [copy_visibility(v) for v in self.blockvis_list]
         gt = create_gaintable_from_blockvisibility(self.blockvis_list[0])
-        gt = simulate_gaintable(gt, phase_error=0.1, amplitude_error=0.0, smooth_channels=1,
-                                leakage=0.0, seed=180555)
+        gt = simulate_gaintable(gt, phase_error=0.1, amplitude_error=0.0, smooth_channels=1, leakage=0.0)
         self.error_blockvis_list = [apply_gaintable(self.error_blockvis_list[i], gt)
                                     for i in range(self.freqwin)]
         

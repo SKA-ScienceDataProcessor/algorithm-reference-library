@@ -1,4 +1,5 @@
 import logging
+import collections
 
 import numpy
 
@@ -111,7 +112,7 @@ def predict_skymodel_list_compsonly_arlexecute_workflow(obsvis, skymodel_list, d
             bv = apply_gaintable(bv, sm.gaintable, inverse=True)
             
         return bv
-    
+
     return [arlexecute.execute(ft_cal_sm, nout=1)(obsvis, sm) for sm in skymodel_list]
 
 
