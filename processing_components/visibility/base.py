@@ -213,8 +213,9 @@ def create_blockvisibility(config: Configuration,
     vis.configuration = config
     log.info("create_blockvisibility: %s" % (vis_summary(vis)))
     assert isinstance(vis, BlockVisibility), "vis is not a BlockVisibility: %r" % vis
-    log.info('create_blockvisibility: flagged %d/%d rows below elevation limit %f (rad)' %
-             (n_flagged, vis.nvis, elevation_limit))
+    if n_flagged > 0:
+        log.info('create_blockvisibility: flagged %d/%d rows below elevation limit %f (rad)' %
+                (n_flagged, vis.nvis, elevation_limit))
 
     return vis
 
