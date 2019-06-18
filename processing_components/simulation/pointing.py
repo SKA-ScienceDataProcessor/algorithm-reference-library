@@ -95,7 +95,7 @@ def simulate_gaintable_from_pointingtable(vis, sc, pt, vp, vis_slices=None, scal
                         assert pixloc[0] < nx - 3
                         assert pixloc[1] > 2
                         assert pixloc[1] < ny - 3
-                        gain = real_spline.ev(pixloc[0], pixloc[1]) + 1j * imag_spline(pixloc[0], pixloc[1])
+                        gain = real_spline.ev(pixloc[1], pixloc[0]) + 1j * imag_spline(pixloc[1], pixloc[0])
                         antgain[ant] = 1.0 / (scale * gain)
                         number_good += 1
                     except:

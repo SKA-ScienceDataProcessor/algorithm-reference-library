@@ -51,7 +51,7 @@ class TestPointing(unittest.TestCase):
                                   phasecentre=self.phasecentre)
     
     def test_create_gaintable_from_pointingtable_circlecut(self):
-        self.sidelobe = SkyCoord(ra=+15.0 * u.deg, dec=-48.5 * u.deg, frame='icrs', equinox='J2000')
+        self.sidelobe = SkyCoord(ra=+15.0 * u.deg, dec=-49.4 * u.deg, frame='icrs', equinox='J2000')
         comp = create_skycomponent(direction=self.sidelobe, flux=[[1.0]], frequency=self.frequency,
                                    polarisation_frame=PolarisationFrame('stokesI'))
     

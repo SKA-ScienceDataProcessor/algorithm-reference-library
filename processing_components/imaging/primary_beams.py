@@ -59,31 +59,13 @@ def ft_disk(r):
     return result
 
 
-def tapered_disk(xx, yy, radius, blockage=0.0, taper='gaussian', edge=1.0, rho=0.0, diff=0.0):
-    """ Provide tapering and phase effects for a disk
-    
-    :param xx: X coordinate (meters)
-    :param yy: Y coordinate (meters)
-    :param radius: Radius of disk in metres
-    :param blockage: Radius of blockage in metres
-    :param taper: Type of taper 'gaussian' or 'uniform'
-    :param edge: Fractional taper at edge of the dish
-    :param rho: Asymmetry (see code)
-    :param diff: Skew (see code)
-    :return:
-    """
-    rr = numpy.hypot(xx, yy)
-    result = numpy.zeros_like(rr, dtype='complex')
+def tapered_disk(r, radius, blockage=0.0, taper='gaussian', edge=1.0):
+    result = numpy.zeros_like(r, dtype='complex')
     if taper == 'gaussian':
+        # exp(-gscale*radius**2) = taper
         gscale = -numpy.log(edge) / radius ** 2
-        arr = xx ** 2 + yy ** 2 + rho * (xx * yy) + diff * (xx ** 2 - yy ** 2)
-        result[rr < radius] = numpy.exp(- gscale * arr[rr < radius] ** 2)
-    elif taper == 'uniform':
-        result[rr < radius] = 1.0
-    else:
-        raise NotImplementedError('Tapter %s not known' % taper)
-    
-    result[rr < blockage] = 0.0
+        result[r < radius] = numpy.exp(- gscale * r[r < radius] ** 2)
+    result[r < blockage] = 0.0
     return result
 
 
@@ -103,6 +85,7 @@ def create_vp(model, telescope='MID', pointingcentre=None, padding=4, use_local=
         log.info("create_vp: Using no taper analytic model for MID voltage pattern")
         return create_vp_generic(model, pointingcentre=pointingcentre, diameter=15.0, blockage=0.0, use_local=use_local)
     elif telescope == 'MID_GRASP':
+        log.info("create_vp: Using GRASP model for MID voltage pattern")
         real_vp = import_image_from_fits(arl_path('data/models/MID_GRASP_VP_real.fits'))
         imag_vp = import_image_from_fits(arl_path('data/models/MID_GRASP_VP_imag.fits'))
         real_vp.data = real_vp.data + 1j * imag_vp.data
@@ -256,9 +239,10 @@ def create_vp_generic_numeric(model, pointingcentre=None, diameter=15.0, blockag
         xx, yy = numpy.meshgrid(scalex * (range(pnx) - cx), scaley * (range(pny) - cy))
         
         # rr in metres
+        rr = numpy.sqrt(xx**2 + yy**2)
         for pol in range(npol):
-            xfr.data[chan, pol, ...] = tapered_disk(xx, yy, diameter / 2.0, blockage=blockage / 2.0, edge=edge,
-                                                    taper=taper, rho=rho, diff=diff)
+            xfr.data[chan, pol, ...] = tapered_disk(rr, diameter / 2.0, blockage=blockage / 2.0, edge=edge,
+                                                    taper=taper)
         
         if pointingcentre is not None:
             # Correct for pointing centre
