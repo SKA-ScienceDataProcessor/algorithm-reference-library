@@ -745,7 +745,7 @@ def simulate_gaintable(gt: GainTable, phase_error=0.1, amplitude_error=0.0, smoo
 
 
 def simulate_pointingtable(pt: PointingTable, pointing_error, static_pointing_error=0.0, global_pointing_error=None,
-                           **kwargs) -> PointingTable:
+                           seed=None, **kwargs) -> PointingTable:
     """ Simulate a gain table
 
     :type pt: PointingTable
@@ -756,6 +756,9 @@ def simulate_pointingtable(pt: PointingTable, pointing_error, static_pointing_er
     :return: PointingTable
 
     """
+    
+    if seed is not None:
+        numpy.random.seed(seed)
     
     r2s = 180.0 * 3600.0 / numpy.pi
     pt.data['pointing'] = numpy.zeros(pt.data['pointing'].shape)
