@@ -77,15 +77,15 @@ def create_vp(model, telescope='MID', pointingcentre=None, padding=4, use_local=
     :return: Primary beam image
     """
     if telescope == 'MID_GAUSS':
-        log.info("create_vp: Using numeric tapered Gaussian model for MID voltage pattern")
+        log.debug("create_vp: Using numeric tapered Gaussian model for MID voltage pattern")
         
         return create_vp_generic_numeric(model, pointingcentre=pointingcentre, diameter=15.0, blockage=0.0,
                                          edge=0.07918124604762482, padding=padding, use_local=use_local)
     elif telescope == 'MID':
-        log.info("create_vp: Using no taper analytic model for MID voltage pattern")
+        log.debug("create_vp: Using no taper analytic model for MID voltage pattern")
         return create_vp_generic(model, pointingcentre=pointingcentre, diameter=15.0, blockage=0.0, use_local=use_local)
     elif telescope == 'MID_GRASP':
-        log.info("create_vp: Using GRASP model for MID voltage pattern")
+        log.debug("create_vp: Using GRASP model for MID voltage pattern")
         real_vp = import_image_from_fits(arl_path('data/models/MID_GRASP_VP_real.fits'))
         imag_vp = import_image_from_fits(arl_path('data/models/MID_GRASP_VP_imag.fits'))
         real_vp.data = real_vp.data + 1j * imag_vp.data

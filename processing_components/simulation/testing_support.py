@@ -41,7 +41,6 @@ from astropy.wcs.utils import pixel_to_skycoord
 from scipy import interpolate
 
 from data_models.memory_data_models import Configuration, Image, GainTable, Skycomponent, SkyModel, PointingTable
-from data_models.memory_data_models import Visibility, BlockVisibility
 from data_models.parameters import arl_path
 from data_models.polarisation import PolarisationFrame
 from processing_components.calibration.calibration_control import create_calibration_controls
@@ -687,7 +686,8 @@ def create_blockvisibility_iterator(config: Configuration, times: numpy.array, f
         yield bvis
 
 
-def simulate_gaintable(gt: GainTable, phase_error=0.1, amplitude_error=0.0, smooth_channels=1, leakage=0.0, **kwargs) -> GainTable:
+def simulate_gaintable(gt: GainTable, phase_error=0.1, amplitude_error=0.0, smooth_channels=1, leakage=0.0,
+                       **kwargs) -> GainTable:
     """ Simulate a gain table
 
     :type gt: GainTable
@@ -786,7 +786,8 @@ def simulate_pointingtable(pt: PointingTable, pointing_error, static_pointing_er
     return pt
 
 
-def simulate_pointingtable_from_timeseries(pt, type='tracking', scaling=1.0):
+def simulate_pointingtable_from_timeseries(pt, type='tracking', scaling=1.0,
+                                           reference_times=None):
     """Create a pointing table with time series created from PSD.
 
     :param pt: Pointing table to be filled
@@ -796,9 +797,9 @@ def simulate_pointingtable_from_timeseries(pt, type='tracking', scaling=1.0):
     """
     
     pt.data['pointing'] = numpy.zeros(pt.data['pointing'].shape)
-
+    
     ntimes, nant, nchan, nrec, _ = pt.data['pointing'].shape
-
+    
     psd = numpy.loadtxt(arl_path("data/models/El45Az135.dat"))
     
     # define some arrays
@@ -854,12 +855,12 @@ def simulate_pointingtable_from_timeseries(pt, type='tracking', scaling=1.0):
             # resampled to construct regularly-spaced frequencies
             regular_freq = numpy.arange(freq[0], freq[az_max_index], freq_interval)
             regular_az = f_az1(regular_freq)
-
+        
         original_regular_freq = regular_freq
         original_regular_az = regular_az
         # get amplitudes from psd values
         amp_az = numpy.zeros_like(regular_az, dtype='float')
-        amp_az[regular_az>0.0] = numpy.sqrt(regular_az[regular_az>0.0])
+        amp_az[regular_az > 0.0] = numpy.sqrt(regular_az[regular_az > 0.0])
         # Now we generate some random phases
         for ant in range(nant):
             regular_freq = original_regular_freq
@@ -897,20 +898,20 @@ def simulate_pointingtable_from_timeseries(pt, type='tracking', scaling=1.0):
             # scale to time interval
             times = numpy.arange(ntimes) * Dt
             
-            ts *= numpy.pi/(180.0*3600.0)
+            ts *= numpy.pi / (180.0 * 3600.0)
             
-#            pt.data['time'] = times[:ntimes]
+            #            pt.data['time'] = times[:ntimes]
             if axis == 'az':
-                pt.data['pointing'][:, ant, :, :, 0] = ts[:ntimes,numpy.newaxis,numpy.newaxis,...]
+                pt.data['pointing'][:, ant, :, :, 0] = ts[:ntimes, numpy.newaxis, numpy.newaxis, ...]
             elif axis == 'el':
-                pt.data['pointing'][:, ant, :, :, 1] = ts[:ntimes,numpy.newaxis,numpy.newaxis,...]
+                pt.data['pointing'][:, ant, :, :, 1] = ts[:ntimes, numpy.newaxis, numpy.newaxis, ...]
             elif axis == 'pxel':
-                pt.data['pointing'][:, ant, :, :, 0] = ts[:ntimes,numpy.newaxis,numpy.newaxis,...]
+                pt.data['pointing'][:, ant, :, :, 0] = ts[:ntimes, numpy.newaxis, numpy.newaxis, ...]
             elif axis == 'pel':
-                pt.data['pointing'][:, ant, :, :, 1] = ts[:ntimes,numpy.newaxis,numpy.newaxis,...]
+                pt.data['pointing'][:, ant, :, :, 1] = ts[:ntimes, numpy.newaxis, numpy.newaxis, ...]
             else:
                 raise ValueError("Unknown axis %s" % axis)
-
+    
     return pt
 
 
@@ -1009,4 +1010,3 @@ def insert_unittest_errors(vt, seed=180555, calibration_context="TG", amp_errors
         vt = apply_gaintable(vt, gaintable, timeslice=controls[c]['timeslice'], inverse=True)
     
     return vt
-
