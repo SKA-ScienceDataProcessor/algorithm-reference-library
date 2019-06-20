@@ -349,7 +349,8 @@ def create_test_skycomponents_from_s3(polarisation_frame=PolarisationFrame("stok
                                              name=names[isource], shape='Point',
                                              polarisation_frame=polarisation_frame))
     
-    log.info('create_test_skycomponents_from_s3: %d sources found above fluxlimit inside search radius' % (len(fluxes)))
+    log.info('create_test_skycomponents_from_s3: %d sources found above fluxlimit inside search radius' %
+             len(skycomps))
     
     return skycomps
 
