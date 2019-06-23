@@ -123,13 +123,17 @@ def apply_gaintable(vis: BlockVisibility, gt: GainTable, inverse=False, vis_slic
             
             # Lookup the gain for this set of visibilities
             gain = gt.data['gain'][gaintable_rows]
-            
+            gainwt = gt.data['weight'][gaintable_rows]
+
             # The shape of the mueller matrix is
             ntimes, nant, nchan, nrec, _ = gain.shape
             
             original = vis.vis[rows]
+            originalwt = vis.weight[rows]
             applied = copy.deepcopy(original)
+            appliedwt = copy.deepcopy(originalwt)
             for time in range(ntimes):
+                antantwt = numpy.outer(gainwt, gainwt)
                 if is_scalar:
                     if inverse:
                         lgain = numpy.ones_like(gain)
@@ -141,6 +145,9 @@ def apply_gaintable(vis: BlockVisibility, gt: GainTable, inverse=False, vis_slic
                         smueller = numpy.ma.outer(lgain[time, :, chan, 0],
                                                   clgain[time, :, chan, 0]).reshape([nant, nant])
                         applied[time, :, :, chan, 0] = original[time, :, :, chan, 0] * smueller
+                        antantwt = numpy.outer(gainwt[time, :, chan, 0, 0], gainwt[time, :, chan, 0, 0])
+                        applied[time, :, :, chan, 0][antantwt==0.0] = 0.0
+                        appliedwt[time, :, :, chan, 0][antantwt==0.0] = 0.0
                 else:
                     for a1 in range(vis.nants - 1):
                         for a2 in range(a1 + 1, vis.nants):
@@ -159,7 +166,10 @@ def apply_gaintable(vis: BlockVisibility, gt: GainTable, inverse=False, vis_slic
                                 else:
                                     applied[time, a2, a1, chan, :] = \
                                         numpy.matmul(mueller, original[time, a2, a1, chan, :])
-            
+                                if (gainwt[time, a1, chan, 0, 0] <= 0.0) or (gainwt[time, a1, chan, 0, 0] <= 0.0):
+                                    applied[time, a2, a1, chan, 0]= 0.0
+                                    appliedwt[time, a2, a1, chan, 0] = 0.0
+
             vis.data['vis'][rows] = applied
     return vis
 

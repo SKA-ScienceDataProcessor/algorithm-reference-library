@@ -131,6 +131,7 @@ def simulate_gaintable_from_pointingtable(vis, sc, pt, vp, vis_slices=None, scal
         
             for icomp, comp in enumerate(sc):
                 antgain = numpy.zeros([nant], dtype='complex')
+                antwt = numpy.zeros([nant])
                 # Calculate the location of the component in AZELGEO, then add the pointing offset
                 # for each antenna
                 ra_comp = comp.direction.ra.rad
@@ -156,12 +157,15 @@ def simulate_gaintable_from_pointingtable(vis, sc, pt, vp, vis_slices=None, scal
                         assert pixloc[1] < ny - 3
                         gain = real_spline.ev(pixloc[1], pixloc[0]) + 1j * imag_spline(pixloc[1], pixloc[0])
                         antgain[ant] = 1.0 / (scale * gain)
+                        antwt[ant] = 1.0
                         number_good += 1
                     except:
                         number_bad += 1
-                        antgain[ant] = 0.0
-            
+                        antgain[ant] = 1e15
+                        antwt[ant] = 0.0
+
                 gaintables[icomp].gain[iha, :, :, :] = antgain[:, numpy.newaxis, numpy.newaxis, numpy.newaxis]
+                gaintables[icomp].weight[iha, :, :, :] = antwt[:, numpy.newaxis, numpy.newaxis, numpy.newaxis]
                 gaintables[icomp].phasecentre = comp.direction
 
     if number_bad > 0:

@@ -254,7 +254,7 @@ class PointingTable:
         :param residual:
         :param frequency:
         :param receptor_frame:
-        :return: Gaintable
+        :return: PointingTable
         """
         if data is None and pointing is not None:
             nrec = receptor_frame.nrec
