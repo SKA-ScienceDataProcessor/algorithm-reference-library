@@ -787,21 +787,25 @@ def simulate_pointingtable(pt: PointingTable, pointing_error, static_pointing_er
     return pt
 
 
-def simulate_pointingtable_from_timeseries(pt, type='tracking', scaling=1.0,
-                                           reference_times=None):
+def simulate_pointingtable_from_timeseries(pt, type='tracking', pointing_file=None, scaling=1.0,
+                                           reference_pointing=False):
     """Create a pointing table with time series created from PSD.
 
     :param pt: Pointing table to be filled
     :param type: Type of pointing: 'tracking' or 'wind'
+    :param pointing_file: Name of pointing file
     :param scaling: Multiply time series by this factor
+    :param reference_pointing: Use reference pointing?
     :return:
     """
     
+    if pointing_file is None:
+        pointing_file = arl_path("data/models/El45Az135.dat")
     pt.data['pointing'] = numpy.zeros(pt.data['pointing'].shape)
     
     ntimes, nant, nchan, nrec, _ = pt.data['pointing'].shape
     
-    psd = numpy.loadtxt(arl_path("data/models/El45Az135.dat"))
+    psd = numpy.loadtxt(pointing_file)
     
     # define some arrays
     freq = psd[:, 0]
@@ -899,7 +903,13 @@ def simulate_pointingtable_from_timeseries(pt, type='tracking', scaling=1.0,
             # scale to time interval
             times = numpy.arange(ntimes) * Dt
             
+            # Convert from arcsec to radiants
             ts *= numpy.pi / (180.0 * 3600.0)
+            
+            # We take reference pointing to mean that the pointing errors are zero at the beginning
+            # of the set of integrations
+            if reference_pointing:
+                ts[:] -= ts[0]
             
             #            pt.data['time'] = times[:ntimes]
             if axis == 'az':

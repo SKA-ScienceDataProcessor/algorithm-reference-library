@@ -56,29 +56,32 @@ class TestPointing(unittest.TestCase):
         component = [Skycomponent(frequency=self.frequency, direction=offset_phasecentre,
                                   polarisation_frame=PolarisationFrame("stokesI"), flux=[[1.0]])]
         
-        for type in ['tracking', 'wind']:
-            pt = create_pointingtable_from_blockvisibility(self.vis)
-            pt = simulate_pointingtable_from_timeseries(pt, type=type, scaling=1.0)
-            
-            import matplotlib.pyplot as plt
-            plt.clf()
-            plt.plot(pt.time, pt.pointing[:, 0, 0, 0, 0], '.')
-            plt.plot(pt.time, pt.pointing[:, 0, 0, 0, 1], '.')
-            plt.xlabel('Time (s)')
-            plt.ylabel('Pointing (rad)')
-            plt.title("Pointing for %s" % type)
-            plt.show()
-            
-            vp = create_vp(self.model, 'MID')
-            gt = simulate_gaintable_from_pointingtable(self.vis, component, pt, vp)
-            assert gt[0].gain.shape == (self.ntimes, self.nants, 1, 1, 1), gt[0].gain.shape
-            
-            plt.clf()
-            plt.plot(gt[0].time, 1.0 / numpy.real(gt[0].gain[:, 0, 0, 0, 0]), '.')
-            plt.xlabel('Time (s)')
-            plt.ylabel('Gain')
-            plt.title("Gain for %s" % type)
-            plt.show()
+        for type in ['wind']:
+            for reference_pointing in [False, True]:
+                pt = create_pointingtable_from_blockvisibility(self.vis)
+                pt = simulate_pointingtable_from_timeseries(pt, type=type, scaling=1.0,
+                                                            reference_pointing=reference_pointing)
+                
+                import matplotlib.pyplot as plt
+                ant = 15
+                plt.clf()
+                plt.plot(pt.time, pt.pointing[:, ant, 0, 0, 0], '.')
+                plt.plot(pt.time, pt.pointing[:, ant, 0, 0, 1], '.')
+                plt.xlabel('Time (s)')
+                plt.ylabel('Pointing (rad)')
+                plt.title("Pointing for %s, reference pointing %s" % (type, reference_pointing))
+                plt.show()
+                
+                vp = create_vp(self.model, 'MID')
+                gt = simulate_gaintable_from_pointingtable(self.vis, component, pt, vp)
+                assert gt[0].gain.shape == (self.ntimes, self.nants, 1, 1, 1), gt[0].gain.shape
+                
+                plt.clf()
+                plt.plot(gt[0].time, 1.0 / numpy.real(gt[0].gain[:, ant, 0, 0, 0]), '.')
+                plt.xlabel('Time (s)')
+                plt.ylabel('Gain')
+                plt.title("Gain for %s, reference pointing %s" % (type, reference_pointing))
+                plt.show()
 
 
 if __name__ == '__main__':
