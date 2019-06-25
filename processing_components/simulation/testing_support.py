@@ -787,24 +787,51 @@ def simulate_pointingtable(pt: PointingTable, pointing_error, static_pointing_er
     return pt
 
 
-def simulate_pointingtable_from_timeseries(pt, type='tracking', pointing_file=None, scaling=1.0,
-                                           reference_pointing=False):
+def simulate_pointingtable_from_timeseries(pt, type='tracking',
+                                           pointing_directory=None, reference_pointing=False):
     """Create a pointing table with time series created from PSD.
 
     :param pt: Pointing table to be filled
     :param type: Type of pointing: 'tracking' or 'wind'
     :param pointing_file: Name of pointing file
-    :param scaling: Multiply time series by this factor
     :param reference_pointing: Use reference pointing?
     :return:
     """
     
-    if pointing_file is None:
-        pointing_file = arl_path("data/models/El45Az135.dat")
+    if pointing_directory is None:
+        pointing_directory = arl_path("data/models/precision")
+        
     pt.data['pointing'] = numpy.zeros(pt.data['pointing'].shape)
     
     ntimes, nant, nchan, nrec, _ = pt.data['pointing'].shape
     
+    # Use az and el at the beginning of this pointingtable
+    az = pt.nominal[0,0,0,0,0]
+    el = pt.nominal[0,0,0,0,1]
+    
+    el_deg = el * 180.0 / numpy.pi
+    az_deg = az * 180.0 / numpy.pi
+    
+    if el_deg < 30.0:
+        el_deg = 15.0
+    elif el_deg < (90.0+45.0)/2.0:
+        el_deg = 45.0
+    else:
+        el_deg = 90.0
+        
+    if abs(az_deg) < 45.0 / 2.0:
+        az_deg = 0.0
+    elif abs(az_deg) < (45.0 + 90.0)/2.0:
+        az_deg = 45.0
+    elif abs(az_deg) < (90.0 + 135.0)/2.0:
+        az_deg = 90.0
+    elif abs(az_deg) < (135.0 + 180.0)/2.0:
+        az_deg = 135.0
+    else:
+        az_deg = 180.0
+    
+    pointing_file = '%s/El%dAz%d.dat' % (pointing_directory, int(el_deg), int(az_deg))
+    log.info("simulate_pointingtable_from_timeseries: Reading wind PSD from %s" % pointing_file)
     psd = numpy.loadtxt(pointing_file)
     
     # define some arrays
@@ -817,11 +844,9 @@ def simulate_pointingtable_from_timeseries(pt, type='tracking', pointing_file=No
     }
     
     if type == 'tracking':
-        log.info("simulate_pointingtable_from_timeseries: Pointing created using %s PSD" % type)
         axes = ["az", "el"]
     elif type == 'wind':
-        log.info("simulate_pointingtable_from_timeseries: Pointing created using %s PSD" % type)
-        axes = ["pxel", "pel"]
+         axes = ["pxel", "pel"]
     else:
         raise ValueError("Pointing type %s not known" % type)
     

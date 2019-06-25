@@ -57,11 +57,22 @@ class TestPointing(unittest.TestCase):
                                   polarisation_frame=PolarisationFrame("stokesI"), flux=[[1.0]])]
         
         for type in ['wind']:
+    
+            pt = create_pointingtable_from_blockvisibility(self.vis)
+
+            import matplotlib.pyplot as plt
+            ant = 15
+            plt.clf()
+            plt.plot(pt.time, pt.nominal[:, ant, 0, 0, 0], '.')
+            plt.plot(pt.time, pt.nominal[:, ant, 0, 0, 1], '.')
+            plt.xlabel('Time (s)')
+            plt.ylabel('Nominal (rad)')
+            plt.title("Nominal pointing for %s" % (type))
+            plt.show()
+    
             for reference_pointing in [False, True]:
-                pt = create_pointingtable_from_blockvisibility(self.vis)
-                pt = simulate_pointingtable_from_timeseries(pt, type=type, scaling=1.0,
-                                                            reference_pointing=reference_pointing)
-                
+                pt = simulate_pointingtable_from_timeseries(pt, type=type, reference_pointing=reference_pointing)
+
                 import matplotlib.pyplot as plt
                 ant = 15
                 plt.clf()
