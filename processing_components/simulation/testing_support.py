@@ -809,11 +809,11 @@ def simulate_pointingtable_from_timeseries(pt, type='tracking',
     ntimes, nant, nchan, nrec, _ = pt.data['pointing'].shape
     
     # Use az and el at the beginning of this pointingtable
-    az = pt.nominal[0,0,0,0,0]
+    axis_values = pt.nominal[0,0,0,0,0]
     el = pt.nominal[0,0,0,0,1]
     
     el_deg = el * 180.0 / numpy.pi
-    az_deg = az * 180.0 / numpy.pi
+    az_deg = axis_values * 180.0 / numpy.pi
     
     if el_deg < 30.0:
         el_deg = 15.0
@@ -852,71 +852,96 @@ def simulate_pointingtable_from_timeseries(pt, type='tracking',
          axes = ["pxel", "pel"]
     else:
         raise ValueError("Pointing type %s not known" % type)
+
+    freq_interval = 0.0001
     
     for axis in axes:
         
-        az = axesdict[axis]
-        
-        freq_interval = 0.001
+        axis_values = axesdict[axis]
+
         if (axis == "az") or (axis == "el"):
             # determine index of maximum PSD value; add 50 for better fit
-            az_max_index = numpy.argwhere(az == numpy.max(az))[0][0] + 50
-            az_max_index = min(az_max_index, len(az))
-            max_freq = 2.0 / pt.interval[0]
+            axis_values_max_index = numpy.argwhere(axis_values == numpy.max(axis_values))[0][0] + 50
+            axis_values_max_index = min(axis_values_max_index, len(axis_values))
+            # max_freq = 2.0 / pt.interval[0]
+            max_freq = 0.4
             freq_max_index = numpy.argwhere(freq > max_freq)[0][0]
         else:
-            az_max_index = 400  # not max; just a break
-            max_freq = 2.0 / pt.interval[0]
+            break_freq = 0.01 # not max; just a break
+            axis_values_max_index = numpy.argwhere(freq>break_freq)[0][0]
+            # max_freq = 2.0 / pt.interval[0]
+            max_freq = 0.1
             freq_max_index = numpy.argwhere(freq > max_freq)[0][0]
-        
+
+        # construct regularly-spaced frequencies
+        regular_freq = numpy.arange(freq[0], freq[freq_max_index], freq_interval)
+
+        regular_axis_values_max_index =  numpy.argwhere(numpy.abs(regular_freq-freq[axis_values_max_index])==numpy.min(numpy.abs(regular_freq-freq[axis_values_max_index])))[0][0]
+
+        # print ('Frequency break: ', freq[az_max_index])
+        # print ('Max frequency: ', max_freq)
+        #
+        # print ('New frequency break: ', regular_freq[regular_az_max_index])
+        # print ('New max frequency: ', regular_freq[-1])
+
+        if axis_values_max_index>=freq_max_index:
+            raise ValueError('Frequency break is higher than highest frequency; select a lower break')
+
+        # use original frequency break and max frequency to fit function
         # fit polynomial to psd up to max value
-        p_az1 = numpy.polyfit(freq[:az_max_index], az[:az_max_index], 5)
-        f_az1 = numpy.poly1d(p_az1)
+        p_axis_values1 = numpy.polyfit(freq[:axis_values_max_index], axis_values[:axis_values_max_index], 5)
+        f_axis_values1 = numpy.poly1d(p_axis_values1)
         # fit polynomial to psd beyond max value
-        if az_max_index <= freq_max_index:
-            p_az2 = numpy.polyfit(freq[az_max_index:freq_max_index], az[az_max_index:freq_max_index], 5)
-            f_az2 = numpy.poly1d(p_az2)
-            
-            # resampled to construct regularly-spaced frequencies
-            regular_freq1 = numpy.arange(freq[0], freq[az_max_index], freq_interval)
-            regular_az1 = f_az1(regular_freq1)
-            regular_freq2 = numpy.arange(freq[az_max_index], freq[freq_max_index], freq_interval)
-            regular_az2 = f_az2(regular_freq2)
-            regular_freq = numpy.append(regular_freq1, regular_freq2)
-            regular_az = numpy.append(regular_az1, regular_az2)
-        else:
-            # resampled to construct regularly-spaced frequencies
-            regular_freq = numpy.arange(freq[0], freq[az_max_index], freq_interval)
-            regular_az = f_az1(regular_freq)
+        p_axis_values2 = numpy.polyfit(freq[axis_values_max_index:freq_max_index], axis_values[axis_values_max_index:freq_max_index], 5)
+        f_axis_values2 = numpy.poly1d(p_axis_values2)
+
+        # use new frequency break and max frequency to apply function (ensures equal spacing of frequency intervals)
+
+        # resampled to construct regularly-spaced frequencies
+        regular_axis_values1 = f_axis_values1(regular_freq[:regular_axis_values_max_index])
+        regular_axis_values2 = f_axis_values2(regular_freq[regular_axis_values_max_index:])
+
+        # join
+        regular_axis_values = numpy.append(regular_axis_values1, regular_axis_values2)
         
+        #  check rms of resampled PSD
+        # df = regular_freq[1:]-regular_freq[:-1]
+        # psd2rms_pxel = numpy.sqrt(numpy.sum(regular_az[:-1]*df))
+        # print ('Calculate rms of resampled PSD: ', psd2rms_pxel)
+
         original_regular_freq = regular_freq
-        original_regular_az = regular_az
+        original_regular_axis_values = regular_axis_values
         # get amplitudes from psd values
-        amp_az = numpy.zeros_like(regular_az, dtype='float')
-        amp_az[regular_az > 0.0] = numpy.sqrt(regular_az[regular_az > 0.0])
+        
+        if (regular_axis_values<0).any():
+            raise ValueError('Resampling returns negative power values; change fit range')
+
+        amp_axis_values = numpy.sqrt(regular_axis_values*2*freq_interval)
+        # need to scale PSD by 2* frequency interval before square rooting, then by number of modes in resampled PSD
+
         # Now we generate some random phases
         for ant in range(nant):
             regular_freq = original_regular_freq
-            regular_az = original_regular_az
-            phi_az = numpy.random.rand(len(regular_az)) * 2 * numpy.pi
+            regular_axis_values = original_regular_axis_values
+            phi_axis_values = numpy.random.rand(len(regular_axis_values)) * 2 * numpy.pi
             # create complex array
-            z_az = amp_az * numpy.exp(1j * phi_az)  # polar
+            z_axis_values = amp_axis_values * numpy.exp(1j * phi_axis_values)  # polar
             # make symmetrical frequencies
-            mirror_z_az = numpy.copy(z_az)
+            mirror_z_axis_values = numpy.copy(z_axis_values)
             # make complex conjugates
-            mirror_z_az.imag -= 2 * z_az.imag
+            mirror_z_axis_values.imag -= 2 * z_axis_values.imag
             # make negative frequencies
             mirror_regular_freq = -regular_freq
             # join
-            z_az = numpy.append(z_az, mirror_z_az[::-1])
+            z_axis_values = numpy.append(z_axis_values, mirror_z_axis_values[::-1])
             regular_freq = numpy.append(regular_freq, mirror_regular_freq[::-1])
             
             # add a 0 Fourier term
-            z_az = numpy.append(0 + 0 * 1j, z_az)
+            z_axis_values = numpy.append(0 + 0 * 1j, z_axis_values)
             regular_freq = numpy.append(0, regular_freq)
             
             # perform inverse fft
-            ts = numpy.fft.ifft(z_az)
+            ts = numpy.fft.ifft(z_axis_values)
             
             # set up and check scalings
             N = len(ts)
@@ -931,7 +956,7 @@ def simulate_pointingtable_from_timeseries(pt, type='tracking',
             # scale to time interval
             times = numpy.arange(ntimes) * Dt
             
-            # Convert from arcsec to radiants
+            # Convert from arcsec to radians
             ts *= numpy.pi / (180.0 * 3600.0)
             
             # We take reference pointing to mean that the pointing errors are zero at the beginning

@@ -31,7 +31,7 @@ class TestPointing(unittest.TestCase):
         self.midcore = create_named_configuration('MID', rmax=100.0)
         self.nants = len(self.midcore.names)
         self.dir = arl_path('test_results')
-        self.ntimes = 200
+        self.ntimes = 100
         interval = 10.0
         self.times = numpy.arange(0.0, float(self.ntimes)) * interval
         self.times *= numpy.pi / 43200.0
