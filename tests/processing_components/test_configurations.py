@@ -27,9 +27,9 @@ class TestConfigurations(unittest.TestCase):
         from data_models.parameters import arl_path
         self.dir = arl_path('test_results')
         
-        self.frequency = numpy.linspace(0.8e8, 1.2e8, 5)
-        self.channel_bandwidth = numpy.array([1e7, 1e7, 1e7, 1e7, 1e7])
-        self.flux = numpy.array([[100.0], [100.0], [100.0], [100.0], [100.0]])
+        self.frequency = numpy.linspace(0.8e8, 1.2e8, 3)
+        self.channel_bandwidth = numpy.array([1e7, 1e7, 1e7])
+        self.flux = numpy.array([[100.0], [100.0], [100.0]])
         self.phasecentre = SkyCoord(ra=+15.0 * u.deg, dec=-35.0 * u.deg, frame='icrs', equinox='J2000')
         self.times = numpy.linspace(-300.0, 300.0, 3) * numpy.pi / 43200.0
     
@@ -42,17 +42,18 @@ class TestConfigurations(unittest.TestCase):
                                      polarisation_frame=PolarisationFrame('stokesI'))
     
     def test_named_configurations(self):
-        for config in ['LOWBD2', 'LOWBD2-CORE', 'LOWBD1', 'LOWR3', 'ASKAP', 'MID', 'MIDR5']:
+        for config in ['LOW', 'LOWBD2', 'LOWBD2-CORE', 'LOWBD1', 'LOWR3', 'ASKAP', 'MID', 'MIDR5']:
             self.createVis(config)
             assert self.config.size() > 0.0
             #print("Config ", config, " has centre", self.config.location.geodetic)
+ 
         for config in ['LOFAR', 'VLAA', 'VLAA_north']:
             self.createVis(config, +35.0)
             assert self.config.size() > 0.0
 
     
     def test_SKA_configurations(self):
-        for config in ['MIDR5', 'LOWR3']:
+        for config in ['MID', 'MIDR5', 'LOW', 'LOWR3']:
             self.config = create_named_configuration(config)
             assert self.config.size() > 0.0
     

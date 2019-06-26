@@ -126,7 +126,7 @@ class TestSkycomponent(unittest.TestCase):
                                                                      radius=0.5)
         model = create_image(npixel=512, cellsize=0.001, phasecentre=self.phasecentre,
                              frequency=self.frequency, polarisation_frame=PolarisationFrame('stokesI'))
-        beam = create_low_test_beam(model)
+        beam = create_low_test_beam(model, use_local=False)
         bright_components = apply_beam_to_skycomponent(bright_components, beam)
         bright_components = filter_skycomponents_by_flux(bright_components, flux_min=2.0)
 
@@ -142,7 +142,7 @@ class TestSkycomponent(unittest.TestCase):
         model = create_image(npixel=512, cellsize=0.001, phasecentre=self.phasecentre,
                              frequency=self.frequency, polarisation_frame=PolarisationFrame('stokesI'))
         model.data[...] = 1.0
-        beam = create_low_test_beam(model)
+        beam = create_low_test_beam(model, use_local=False)
         bright_components = apply_beam_to_skycomponent(bright_components, beam)
         bright_components = filter_skycomponents_by_flux(bright_components, flux_min=2.0)
 
@@ -164,7 +164,7 @@ class TestSkycomponent(unittest.TestCase):
                                                                      radius=0.5)
         model = create_image(npixel=512, cellsize=0.001, phasecentre=self.phasecentre,
                              frequency=self.frequency, polarisation_frame=PolarisationFrame('stokesI'))
-        beam = create_low_test_beam(model)
+        beam = create_low_test_beam(model, use_local=False)
         all_components = apply_beam_to_skycomponent(all_components, beam)
         all_components = filter_skycomponents_by_flux(all_components, flux_min=0.1)
         bright_components = apply_beam_to_skycomponent(bright_components, beam)
@@ -184,7 +184,7 @@ class TestSkycomponent(unittest.TestCase):
 
         model = create_image(npixel=512, cellsize=0.001, phasecentre=self.phasecentre,
                              frequency=self.frequency, polarisation_frame=PolarisationFrame('stokesI'))
-        beam = create_low_test_beam(model)
+        beam = create_low_test_beam(model, use_local=False)
         all_components = apply_beam_to_skycomponent(all_components, beam)
         all_components = filter_skycomponents_by_flux(all_components, flux_min=0.1)
 

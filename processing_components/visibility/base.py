@@ -400,7 +400,7 @@ def create_blockvisibility_from_ms(msname, channum=None, ack=False):
             # Get phasecentres
             fieldtab = table('%s/FIELD' % msname, ack=False)
             pc = fieldtab.getcol('PHASE_DIR')[field, 0, :]
-            phasecentre = SkyCoord(ra=[pc[0]] * u.rad, dec=pc[1] * u.rad, frame='icrs', equinox='J2000')
+            phasecentre = SkyCoord(ra=pc[0] * u.rad, dec=pc[1] * u.rad, frame='icrs', equinox='J2000')
             
             bv_times = numpy.unique(time)
             ntimes = len(bv_times)

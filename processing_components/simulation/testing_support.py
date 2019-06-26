@@ -41,6 +41,7 @@ from astropy.wcs.utils import pixel_to_skycoord
 from scipy import interpolate
 
 from data_models.memory_data_models import Configuration, Image, GainTable, Skycomponent, SkyModel, PointingTable
+from data_models.memory_data_models import Visibility, BlockVisibility
 from data_models.parameters import arl_path
 from data_models.polarisation import PolarisationFrame
 from processing_components.calibration.calibration_control import create_calibration_controls
@@ -55,7 +56,6 @@ from processing_components.visibility.base import create_blockvisibility, create
 from processing_components.visibility.coalesce import convert_blockvisibility_to_visibility, \
     convert_visibility_to_blockvisibility
 from processing_library.image.operations import create_image_from_array
-from processing_library.util.coordinate_support import parallactic_angle
 
 log = logging.getLogger(__name__)
 
@@ -414,7 +414,7 @@ def create_low_test_image_from_gleam(npixel=512, polarisation_frame=Polarisation
     
     model = insert_skycomponent(model, sc, insert_method=insert_method)
     if applybeam:
-        beam = create_pb(model, telescope='LOW')
+        beam = create_pb(model, telescope='LOW', use_local=False)
         model.data[...] *= beam.data[...]
     
     return model
@@ -483,7 +483,7 @@ def create_low_test_skymodel_from_gleam(npixel=512, polarisation_frame=Polarisat
     model = create_image_from_array(numpy.zeros(shape), w, polarisation_frame=polarisation_frame)
     
     if applybeam:
-        beam = create_pb(model, telescope=telescope)
+        beam = create_pb(model, telescope=telescope, use_local=False)
         sc = apply_beam_to_skycomponent(sc, beam)
     
     weaksc = filter_skycomponents_by_flux(sc, flux_max=flux_threshold)
@@ -754,8 +754,9 @@ def simulate_pointingtable(pt: PointingTable, pointing_error, static_pointing_er
     """ Simulate a gain table
 
     :type pt: PointingTable
-    :param pointing_error: std of normal distribution
-    :param static_pointing_error: std of normal distribution
+    :param pointing_error: std of normal distribution (radians)
+    :param static_pointing_error: std of normal distribution (radians)
+    :param global_pointing_error: 2-vector of global pointing error (rad)
     :param seed: Seed for random numbers def: 180555
     :param kwargs:
     :return: PointingTable
@@ -786,20 +787,6 @@ def simulate_pointingtable(pt: PointingTable, pointing_error, static_pointing_er
                   % (global_pointing_error[0], global_pointing_error[1],
                      r2s * global_pointing_error[0], r2s * global_pointing_error[1]))
         pt.data['pointing'][..., :] += global_pointing_error
-    
-    # Now apply parallactic angle rotation if defined
-    config = pt.configuration
-    assert isinstance(config, Configuration), "No configuration data available"
-    if (config.mount[0] == 'altaz') or (config.mount[0] == 'ALT-A'):
-        lat = config.location.geodetic[1]
-        time = numpy.pi * pt.time / 43200.0
-        pa = parallactic_angle(time, pt.pointingcentre.dec.to('rad').value, lat.to('rad').value)
-        pa = pa[..., numpy.newaxis, numpy.newaxis, numpy.newaxis]
-        pe_original = pt.data['pointing'].copy()
-        pt.data['pointing'][..., 0] = numpy.cos(pa) * pe_original[..., 0] - numpy.sin(pa) * pe_original[..., 1]
-        pt.data['pointing'][..., 1] = numpy.sin(pa) * pe_original[..., 0] + numpy.cos(pa) * pe_original[..., 1]
-    else:
-        raise ValueError("simulate_pointingtable: no support yet for mount type %s" % config.mount[0])
     
     return pt
 
@@ -855,7 +842,7 @@ def create_unittest_components(model, flux, applypb=False, telescope='LOW', npix
         components.append(comp)
     
     if applypb:
-        beam = create_pb(model, telescope=telescope)
+        beam = create_pb(model, telescope=telescope, use_local=False)
         components = apply_beam_to_skycomponent(components, beam)
     
     return components

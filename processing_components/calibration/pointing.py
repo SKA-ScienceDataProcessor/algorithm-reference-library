@@ -21,7 +21,7 @@ def pointingtable_summary(pt: PointingTable):
     return "%s rows, %.3f GB" % (pt.data.shape, pt.size())
 
 
-def create_pointingtable_from_blockvisibility(vis: BlockVisibility, pointing_frame=None, timeslice=None,
+def create_pointingtable_from_blockvisibility(vis: BlockVisibility, pointing_frame='azel', timeslice=None,
                                               frequencyslice: float = None, **kwargs) -> PointingTable:
     """ Create pointing table from visibility.
     
@@ -74,7 +74,7 @@ def create_pointingtable_from_blockvisibility(vis: BlockVisibility, pointing_fra
     pointing_time = utimes
     pointing_frequency = ufrequency
     pointing_residual = numpy.zeros([ntimes, nfrequency, nrec, 2])
-    pointing_frame = 'sky'
+    pointing_frame = pointing_frame
     
     pt = PointingTable(pointing=pointing, time=pointing_time, interval=pointing_interval, weight=pointing_weight,
                        residual=pointing_residual, frequency=pointing_frequency, receptor_frame=receptor_frame,

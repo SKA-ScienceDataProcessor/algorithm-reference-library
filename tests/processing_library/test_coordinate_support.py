@@ -10,7 +10,7 @@ from astropy.coordinates import SkyCoord
 from numpy.testing import assert_allclose
 
 from processing_library.util.coordinate_support import xyz_to_uvw, xyz_at_latitude, simulate_point, baselines, uvw_to_xyz, \
-    skycoord_to_lmn
+    skycoord_to_lmn, azel_to_hadec, hadec_to_azel
 
 
 class TestCoordinates(unittest.TestCase):
@@ -169,6 +169,19 @@ class TestCoordinates(unittest.TestCase):
                     
                     # Difference should be given by phasor
                     assert_allclose(vis * phasor, vis_rotated, atol=1e-10)
+
+    def test_azel_hadec(self):
+        
+        poses = [SkyCoord(17, -35, unit=u.deg), SkyCoord(17, -30, unit=u.deg),
+               SkyCoord(12, -89.909, unit=u.deg), SkyCoord(11, -35, unit=u.deg),
+               SkyCoord(51, -35, unit=u.deg), SkyCoord(15, -70, unit=u.deg)]
+        
+        for pos in poses:
+            ha, dec = pos.ra.rad, pos.dec.rad
+            az, el = hadec_to_azel(ha, dec, latitude=-numpy.pi/4.0)
+            har, decr = azel_to_hadec(az, el, latitude=-numpy.pi/4.0)
+            assert_allclose(ha, har)
+            assert_allclose(dec, decr)
 
 
 if __name__ == '__main__':

@@ -1,13 +1,14 @@
-/.gitignore~
-/.git
+/.git*
 /.idea
+/.coverage
 /.cproject
 /.project
 /.eggs
 /algorithm_reference_library.egg-info
 /PrivateRules.mak
+/Makefile.save
 
-*.pyc
+/*.pyc
 
 /data
 /docs
@@ -17,13 +18,7 @@
 /alorithm_reference_library.egg-info
 /build
 /dist
-/docs/build
-/docs/pyweave
-/docs/notebooks
-/docs/anna
-/docs/ben
-/docs/arl
-.ipynb_checkpoints
+/.ipynb_checkpoints
 
 /examples/**/*.rst
 /examples/**/*.html
@@ -35,20 +30,12 @@
 /examples/pyweave/docset.zip
 /examples/anna/simulated_data.txt
 /examples/arl/*.png
-out.fits
-dirty.fits
-psf.fits
+/*.fits
 
 /.ipynb_checkpoints
-.DS_Store
-~$functions_status.xlsx
-arl_fourier_processing.xlsx
-functions_status.xlsx
+/.DS_Store
+/*.xls
 /.cache
-/docs/crocodile requirements.xlsx
-reproject_footprint.fits
-reproject_image.fits
-temp.fits
 /tests/test_ftprocessor_results
 /.pydevproject
 /tests/test_results
@@ -56,3 +43,32 @@ temp.fits
 /test_coverage
 /tests/test_data
 /tests/unittest_results
+
+/algorithm-reference-library
+/algorithm_reference_library.egg-info
+/build
+/.coverage
+/dask-worker-space
+/data
+/dist
+/Dockerfile*
+/.dockerignore
+/docs
+/environment.yml
+/global.lock
+/libarlffi.cpython-37m-x86_64-linux-gnu.so
+/*.yaml
+/PrivateRules.mak
+/purge.lock
+/.pytest_cache
+/README.html
+/requirements.txt
+/*.sh
+/test_data
+/test_results
+/*.log
+/tmp
+/tools
+/worker*
+/k8s_client_api.py
+/venv

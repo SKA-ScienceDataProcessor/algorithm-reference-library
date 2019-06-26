@@ -151,7 +151,7 @@ class TestGridDataKernels(unittest.TestCase):
             export_image_to_fits(cf_image, "%s/test_convolutionfunction_wterm_nopswf_cf.fits" % self.dir)
 
     def test_fill_awterm_to_convolutionfunction(self):
-        make_pb = functools.partial(create_pb_generic, diameter=35.0, blockage=0.0)
+        make_pb = functools.partial(create_pb_generic, diameter=35.0, blockage=0.0, use_local=False)
         pb = make_pb(self.image)
         if self.persist:
             export_image_to_fits(pb, "%s/test_convolutionfunction_awterm_pb.fits" % self.dir)
@@ -191,7 +191,7 @@ class TestGridDataKernels(unittest.TestCase):
             export_image_to_fits(cf_image, "%s/test_convolutionfunction_awterm_clipped_cf.fits" % self.dir)
 
     def test_fill_aterm_to_convolutionfunction(self):
-        make_pb = functools.partial(create_pb_generic, diameter=35.0, blockage=0.0)
+        make_pb = functools.partial(create_pb_generic, diameter=35.0, blockage=0.0, use_local=False)
         pb = make_pb(self.image)
         if self.persist:
             export_image_to_fits(pb, "%s/test_convolutionfunction_aterm_pb.fits" % self.dir)
@@ -221,7 +221,7 @@ class TestGridDataKernels(unittest.TestCase):
         assert peak_location == (0, 0, 0, 8, 8, 6, 6), peak_location
 
     def test_compare_aterm_kernels(self):
-        make_pb = functools.partial(create_pb_generic, diameter=35.0, blockage=0.0)
+        make_pb = functools.partial(create_pb_generic, diameter=35.0, blockage=0.0, use_local=False)
         _, cf = create_awterm_convolutionfunction(self.image, make_pb=make_pb, oversampling=16, support=32,
                                                   use_aaf=True)
         cf.data = numpy.real(cf.data)
@@ -296,7 +296,7 @@ class TestGridDataKernels(unittest.TestCase):
         assert numpy.abs(cf.data[p1] - numpy.conjugate(cf.data[p2])) < 1e-15
 
     def test_fill_aterm_to_convolutionfunction_noover(self):
-        make_pb = functools.partial(create_pb_generic, diameter=35.0, blockage=0.0)
+        make_pb = functools.partial(create_pb_generic, diameter=35.0, blockage=0.0, use_local=False)
         pb = make_pb(self.image)
 
         if self.persist:

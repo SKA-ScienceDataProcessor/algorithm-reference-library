@@ -28,9 +28,13 @@ class TestPointing(unittest.TestCase):
     def setUp(self):
         from data_models.parameters import arl_path
         
+        self.doplot = True
+        
         self.midcore = create_named_configuration('MID', rmax=300.0)
+        self.nants = len(self.midcore.names)
         self.dir = arl_path('test_results')
-        self.times = numpy.linspace(-12.0, 12.0, 300) * numpy.pi / (12.0)
+        self.ntimes = 300
+        self.times = numpy.linspace(-12.0, 12.0, self.ntimes) * numpy.pi / (12.0)
         
         self.frequency = numpy.array([1e9])
         self.channel_bandwidth = numpy.array([1e7])
@@ -42,11 +46,9 @@ class TestPointing(unittest.TestCase):
         self.vis.data['vis'] *= 0.0
         
         # Create model
-        self.model = create_image(npixel=512, cellsize=0.0015, polarisation_frame=PolarisationFrame("stokesI"),
+        self.model = create_image(npixel=512, cellsize=0.00015, polarisation_frame=PolarisationFrame("stokesI"),
                                   frequency=self.frequency, channel_bandwidth=self.channel_bandwidth,
                                   phasecentre=self.phasecentre)
-        
-        self.vp = create_vp(self.model, 'LOW')
     
     def test_create_pointingtable(self):
         beam = create_test_image(cellsize=0.0015, phasecentre=self.vis.phasecentre,
@@ -56,20 +58,20 @@ class TestPointing(unittest.TestCase):
             vp = create_vp(beam, telescope)
             pt = create_pointingtable_from_blockvisibility(self.vis, vp)
             pt = simulate_pointingtable(pt, 0.1, static_pointing_error=0.01)
-            assert pt.pointing.shape == (300, 58, 1, 1, 2), pt.pointing.shape
-    
+            assert pt.pointing.shape == (self.ntimes, self.nants, 1, 1, 2), pt.pointing.shape
+
     def test_create_gaintable_from_pointingtable(self):
         s3_components = create_test_skycomponents_from_s3(flux_limit=5.0,
-                                                           phasecentre=self.phasecentre,
-                                                           frequency=self.frequency,
-                                                           polarisation_frame=PolarisationFrame('stokesI'),
-                                                           radius=0.2)
-        
+                                                          phasecentre=self.phasecentre,
+                                                          frequency=self.frequency,
+                                                          polarisation_frame=PolarisationFrame('stokesI'),
+                                                          radius=0.2)
+    
         pt = create_pointingtable_from_blockvisibility(self.vis)
         pt = simulate_pointingtable(pt, pointing_error=0.01, static_pointing_error=0.001)
         vp = create_vp(self.model, 'MID')
         gt = create_gaintable_from_pointingtable(self.vis, s3_components, pt, vp)
-        assert gt[0].gain.shape == (300, 58, 1, 1, 1), gt[0].gain.shape
+        assert gt[0].gain.shape == (self.ntimes, self.nants, 1, 1, 1), gt[0].gain.shape
 
     def test_create_gaintable_from_pointingtable_dynamic(self):
         comp = create_skycomponent(direction=self.phasecentre, flux=[[1.0]], frequency=self.frequency,
@@ -77,49 +79,74 @@ class TestPointing(unittest.TestCase):
 
     
         pt = create_pointingtable_from_blockvisibility(self.vis)
-        pt = simulate_pointingtable(pt, pointing_error=0.5*numpy.pi/180.0, static_pointing_error=0.0,
+        pt = simulate_pointingtable(pt, pointing_error=0.01, static_pointing_error=0.0,
                                     global_pointing_error=[0.0, 0.0])
         vp = create_vp(self.model, 'MID')
         gt = create_gaintable_from_pointingtable(self.vis, [comp], pt, vp)
-        import matplotlib.pyplot as plt
-        plt.clf()
-        plt.plot(gt[0].time, numpy.real(1.0 / gt[0].gain[:, 0, 0, 0, 0]), '.')
-        plt.plot(gt[0].time, numpy.imag(1.0 / gt[0].gain[:, 0, 0, 0, 0]), '.')
-        plt.show()
-        assert gt[0].gain.shape == (300, 58, 1, 1, 1), gt[0].gain.shape
+        if self.doplot:
+            import matplotlib.pyplot as plt
+            plt.clf()
+            plt.plot(gt[0].time, numpy.real(1.0 / gt[0].gain[:, 0, 0, 0, 0]), '.')
+            plt.plot(gt[0].time, numpy.imag(1.0 / gt[0].gain[:, 0, 0, 0, 0]), '.')
+            plt.title('test_create_gaintable_from_pointingtable_dynamic')
+            plt.show()
+        assert gt[0].gain.shape == (self.ntimes, self.nants, 1, 1, 1), gt[0].gain.shape
+
+    def test_create_gaintable_from_pointingtable_dynamic_radec(self):
+        comp = create_skycomponent(direction=self.phasecentre, flux=[[1.0]], frequency=self.frequency,
+                                   polarisation_frame=PolarisationFrame('stokesI'))
+    
+        pt = create_pointingtable_from_blockvisibility(self.vis)
+        pt = simulate_pointingtable(pt, pointing_error=0.01, static_pointing_error=0.0,
+                                    global_pointing_error=[0.0, 0.0])
+        vp = create_vp(self.model, 'MID', use_local=False)
+        gt = create_gaintable_from_pointingtable(self.vis, [comp], pt, vp, use_radec=True)
+        if self.doplot:
+            import matplotlib.pyplot as plt
+            plt.clf()
+            plt.plot(gt[0].time, numpy.real(1.0 / gt[0].gain[:, 0, 0, 0, 0]), '.')
+            plt.plot(gt[0].time, numpy.imag(1.0 / gt[0].gain[:, 0, 0, 0, 0]), '.')
+            plt.title('test_create_gaintable_from_pointingtable_dynamic_radec')
+            plt.show()
+        assert gt[0].gain.shape == (self.ntimes, self.nants, 1, 1, 1), gt[0].gain.shape
 
     def test_create_gaintable_from_pointingtable_static(self):
         comp = create_skycomponent(direction=self.phasecentre, flux=[[1.0]], frequency=self.frequency,
                                    polarisation_frame=PolarisationFrame('stokesI'))
     
         pt = create_pointingtable_from_blockvisibility(self.vis)
-        pt = simulate_pointingtable(pt, pointing_error=0.0, static_pointing_error=0.5 * numpy.pi / 180.0,
+        pt = simulate_pointingtable(pt, pointing_error=0.0, static_pointing_error=0.01,
                                     global_pointing_error=[0.0, 0.0])
         vp = create_vp(self.model, 'MID')
         gt = create_gaintable_from_pointingtable(self.vis, [comp], pt, vp)
-        import matplotlib.pyplot as plt
-        plt.clf()
-        plt.plot(gt[0].time, numpy.real(1.0 / gt[0].gain[:, 0, 0, 0, 0]), '.')
-        plt.plot(gt[0].time, numpy.imag(1.0 / gt[0].gain[:, 0, 0, 0, 0]), '.')
-        plt.show()
-        assert gt[0].gain.shape == (300, 58, 1, 1, 1), gt[0].gain.shape
+        if self.doplot:
+            import matplotlib.pyplot as plt
+            plt.clf()
+            plt.plot(gt[0].time, numpy.real(1.0 / gt[0].gain[:, 0, 0, 0, 0]), '.')
+            plt.plot(gt[0].time, numpy.imag(1.0 / gt[0].gain[:, 0, 0, 0, 0]), '.')
+            plt.title('test_create_gaintable_from_pointingtable_static')
+            plt.show()
+
+        assert gt[0].gain.shape == (self.ntimes, self.nants, 1, 1, 1), gt[0].gain.shape
 
     def test_create_gaintable_from_pointingtable_dynamic_static(self):
         comp = create_skycomponent(direction=self.phasecentre, flux=[[1.0]], frequency=self.frequency,
                                    polarisation_frame=PolarisationFrame('stokesI'))
     
         pt = create_pointingtable_from_blockvisibility(self.vis)
-        pt = simulate_pointingtable(pt, pointing_error=0.1 * numpy.pi / 180.0,
-                                    static_pointing_error=0.5 * numpy.pi / 180.0,
+        pt = simulate_pointingtable(pt, pointing_error=0.01,
+                                    static_pointing_error=0.01,
                                     global_pointing_error=[0.0, 0.0])
         vp = create_vp(self.model, 'MID')
         gt = create_gaintable_from_pointingtable(self.vis, [comp], pt, vp)
-        import matplotlib.pyplot as plt
-        plt.clf()
-        plt.plot(gt[0].time, numpy.real(1.0 / gt[0].gain[:, 0, 0, 0, 0]), '.')
-        plt.plot(gt[0].time, numpy.imag(1.0 / gt[0].gain[:, 0, 0, 0, 0]), '.')
-        plt.show()
-        assert gt[0].gain.shape == (300, 58, 1, 1, 1), gt[0].gain.shape
+        if self.doplot:
+            import matplotlib.pyplot as plt
+            plt.clf()
+            plt.plot(gt[0].time, numpy.real(1.0 / gt[0].gain[:, 0, 0, 0, 0]), '.')
+            plt.plot(gt[0].time, numpy.imag(1.0 / gt[0].gain[:, 0, 0, 0, 0]), '.')
+            plt.title('test_create_gaintable_from_pointingtable_dynamic_static')
+            plt.show()
+        assert gt[0].gain.shape == (self.ntimes, self.nants, 1, 1, 1), gt[0].gain.shape
 
     def test_create_gaintable_from_pointingtable_global(self):
 
@@ -129,32 +156,55 @@ class TestPointing(unittest.TestCase):
         import matplotlib.pyplot as plt
         pt = create_pointingtable_from_blockvisibility(self.vis)
         pt = simulate_pointingtable(pt, pointing_error=0.0, static_pointing_error=0.0,
-                                    global_pointing_error=[0.0, 0.5*numpy.pi/180.0])
-        plt.clf()
-        plt.plot(pt.pointing[:,...,0].flat, pt.pointing[:,...,1].flat, '.')
-        plt.show()
+                                    global_pointing_error=[0.0, 0.01])
         vp = create_vp(self.model, 'MID')
         gt = create_gaintable_from_pointingtable(self.vis, [comp], pt, vp)
-        plt.clf()
-        plt.plot(gt[0].time, numpy.real(1.0 / gt[0].gain[:, 0, 0, 0, 0]), '.')
-        plt.plot(gt[0].time, numpy.imag(1.0 / gt[0].gain[:, 0, 0, 0, 0]), '.')
-        plt.show()
-        assert gt[0].gain.shape == (300, 58, 1, 1, 1), gt[0].gain.shape
+        if self.doplot:
+            plt.clf()
+            plt.plot(gt[0].time, numpy.real(1.0 / gt[0].gain[:, 0, 0, 0, 0]), '.')
+            plt.plot(gt[0].time, numpy.imag(1.0 / gt[0].gain[:, 0, 0, 0, 0]), '.')
+            plt.title('test_create_gaintable_from_pointingtable_global')
+            plt.show()
+        assert gt[0].gain.shape == (self.ntimes, self.nants, 1, 1, 1), gt[0].gain.shape
 
     def test_create_gaintable_from_pointingtable_global_dynamic(self):
         comp = create_skycomponent(direction=self.phasecentre, flux=[[1.0]], frequency=self.frequency,
                                    polarisation_frame=PolarisationFrame('stokesI'))
     
         pt = create_pointingtable_from_blockvisibility(self.vis)
-        pt = simulate_pointingtable(pt, pointing_error=0.1 * numpy.pi / 180.0,
+        pt = simulate_pointingtable(pt, pointing_error=0.01,
                                     static_pointing_error=0.0,
-                                    global_pointing_error=[0.0, 0.5 * numpy.pi / 180.0])
+                                    global_pointing_error=[0.0, 0.01])
         vp = create_vp(self.model, 'MID')
         gt = create_gaintable_from_pointingtable(self.vis, [comp], pt, vp)
-        import matplotlib.pyplot as plt
-        plt.clf()
-        plt.plot(gt[0].time, numpy.real(1.0 / gt[0].gain[:, 0, 0, 0, 0]), '.')
-        plt.plot(gt[0].time, numpy.imag(1.0 / gt[0].gain[:, 0, 0, 0, 0]), '.')
-        plt.show()
-        assert gt[0].gain.shape == (300, 58, 1, 1, 1), gt[0].gain.shape
+        if self.doplot:
+            import matplotlib.pyplot as plt
+            plt.clf()
+            plt.plot(gt[0].time, numpy.real(1.0 / gt[0].gain[:, 0, 0, 0, 0]), '.')
+            plt.plot(gt[0].time, numpy.imag(1.0 / gt[0].gain[:, 0, 0, 0, 0]), '.')
+            plt.title('test_create_gaintable_from_pointingtable_global_dynamic')
+            plt.show()
+        assert gt[0].gain.shape == (self.ntimes, self.nants, 1, 1, 1), gt[0].gain.shape
 
+    def test_create_gaintable_from_pointingtable_GRASP(self):
+        comp = create_skycomponent(direction=self.phasecentre, flux=[[1.0]], frequency=self.frequency,
+                                   polarisation_frame=PolarisationFrame('stokesI'))
+    
+        pt = create_pointingtable_from_blockvisibility(self.vis)
+        pt = simulate_pointingtable(pt, pointing_error=0.0,
+                                    static_pointing_error=0.0,
+                                    global_pointing_error=[0.0, 0.01])
+        vp = create_vp(self.model, 'MID_GRASP')
+        gt = create_gaintable_from_pointingtable(self.vis, [comp], pt, vp)
+        if self.doplot:
+            import matplotlib.pyplot as plt
+            plt.clf()
+            plt.plot(gt[0].time, numpy.real(1.0 / gt[0].gain[:, 0, 0, 0, 0]), '.')
+            plt.plot(gt[0].time, numpy.imag(1.0 / gt[0].gain[:, 0, 0, 0, 0]), '.')
+            plt.title('test_create_gaintable_from_pointingtable_global_dynamic')
+            plt.show()
+        assert gt[0].gain.shape == (self.ntimes, self.nants, 1, 1, 1), gt[0].gain.shape
+
+
+if __name__ == '__main__':
+    unittest.main()
