@@ -76,10 +76,11 @@ class TestPointing(unittest.TestCase):
                 import matplotlib.pyplot as plt
                 ant = 15
                 plt.clf()
-                plt.plot(pt.time, pt.pointing[:, ant, 0, 0, 0], '.')
-                plt.plot(pt.time, pt.pointing[:, ant, 0, 0, 1], '.')
+                r2a = 180.0 * 3600.0 / numpy.pi
+                plt.plot(pt.time, r2a * pt.pointing[:, ant, 0, 0, 0], '.')
+                plt.plot(pt.time, r2a * pt.pointing[:, ant, 0, 0, 1], '.')
                 plt.xlabel('Time (s)')
-                plt.ylabel('Pointing (rad)')
+                plt.ylabel('Pointing (arcsec)')
                 plt.title("Pointing for %s, reference pointing %s" % (type, reference_pointing))
                 plt.show()
                 
