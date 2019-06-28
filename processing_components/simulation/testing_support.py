@@ -787,7 +787,7 @@ def simulate_pointingtable(pt: PointingTable, pointing_error, static_pointing_er
     return pt
 
 
-def simulate_pointingtable_from_timeseries(pt, type='tracking',
+def simulate_pointingtable_from_timeseries(pt, type='tracking', time_series_type='precision',
                                            pointing_directory=None, reference_pointing=False,
                                            seed=None):
     """Create a pointing table with time series created from PSD.
@@ -802,7 +802,7 @@ def simulate_pointingtable_from_timeseries(pt, type='tracking',
         numpy.random.seed(seed)
     
     if pointing_directory is None:
-        pointing_directory = arl_path("data/models/precision")
+        pointing_directory = arl_path("data/models/%s" % time_series_type)
         
     pt.data['pointing'] = numpy.zeros(pt.data['pointing'].shape)
     
