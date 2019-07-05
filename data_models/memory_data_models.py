@@ -63,7 +63,7 @@ class Configuration:
         :param diameter:
         """
         if data is None and xyz is not None:
-            desc = [('names', '>U6'),
+            desc = [('names', '>U12'),
                     ('xyz', '>f8', (3,)),
                     ('diameter', '>f8'),
                     ('mount', '>U5')]

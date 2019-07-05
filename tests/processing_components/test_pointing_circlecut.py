@@ -58,7 +58,7 @@ class TestPointing(unittest.TestCase):
         telescopes = ['MID', 'MID_GAUSS', 'MID_GRASP']
         for telescope in telescopes:
             pt = create_pointingtable_from_blockvisibility(self.vis)
-            pt = simulate_pointingtable(pt, pointing_error=0.0, static_pointing_error=0.0,
+            pt = simulate_pointingtable(pt, pointing_error=0.0,
                                         global_pointing_error=[0.0, 0.0])
             vp = create_vp(self.model, telescope)
             gt = simulate_gaintable_from_pointingtable(self.vis, [comp], pt, vp)

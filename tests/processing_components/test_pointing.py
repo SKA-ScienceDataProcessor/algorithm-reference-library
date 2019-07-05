@@ -56,7 +56,7 @@ class TestPointing(unittest.TestCase):
         for telescope in ['MID', 'LOW', 'ASKAP']:
             vp = create_vp(beam, telescope)
             pt = create_pointingtable_from_blockvisibility(self.vis, vp)
-            pt = simulate_pointingtable(pt, 0.1, static_pointing_error=0.01)
+            pt = simulate_pointingtable(pt, 0.1, static_pointing_error=[0.01, 0.001])
             assert pt.pointing.shape == (self.ntimes, self.nants, 1, 1, 2), pt.pointing.shape
     
     def test_create_gaintable_from_pointingtable(self):
@@ -67,7 +67,7 @@ class TestPointing(unittest.TestCase):
                                                           radius=0.2)
         
         pt = create_pointingtable_from_blockvisibility(self.vis)
-        pt = simulate_pointingtable(pt, pointing_error=0.01, static_pointing_error=0.001)
+        pt = simulate_pointingtable(pt, pointing_error=0.01, static_pointing_error=[0.001,0.0001])
         vp = create_vp(self.model, 'MID')
         gt = simulate_gaintable_from_pointingtable(self.vis, s3_components, pt, vp)
         assert gt[0].gain.shape == (self.ntimes, self.nants, 1, 1, 1), gt[0].gain.shape
@@ -77,7 +77,7 @@ class TestPointing(unittest.TestCase):
                                    polarisation_frame=PolarisationFrame('stokesI'))
         
         pt = create_pointingtable_from_blockvisibility(self.vis)
-        pt = simulate_pointingtable(pt, pointing_error=0.01, static_pointing_error=0.0,
+        pt = simulate_pointingtable(pt, pointing_error=0.01, static_pointing_error=None,
                                     global_pointing_error=[0.0, 0.0])
         vp = create_vp(self.model, 'MID')
         gt = simulate_gaintable_from_pointingtable(self.vis, [comp], pt, vp)
@@ -95,7 +95,7 @@ class TestPointing(unittest.TestCase):
                                    polarisation_frame=PolarisationFrame('stokesI'))
         
         pt = create_pointingtable_from_blockvisibility(self.vis)
-        pt = simulate_pointingtable(pt, pointing_error=0.01, static_pointing_error=0.0,
+        pt = simulate_pointingtable(pt, pointing_error=0.01, static_pointing_error=None,
                                     global_pointing_error=[0.0, 0.0])
         vp = create_vp(self.model, 'MID', use_local=False)
         gt = simulate_gaintable_from_pointingtable(self.vis, [comp], pt, vp, use_radec=True)
@@ -113,7 +113,7 @@ class TestPointing(unittest.TestCase):
                                    polarisation_frame=PolarisationFrame('stokesI'))
         
         pt = create_pointingtable_from_blockvisibility(self.vis)
-        pt = simulate_pointingtable(pt, pointing_error=0.0, static_pointing_error=0.01,
+        pt = simulate_pointingtable(pt, pointing_error=0.0, static_pointing_error=[0.01, 0.001],
                                     global_pointing_error=[0.0, 0.0])
         vp = create_vp(self.model, 'MID')
         gt = simulate_gaintable_from_pointingtable(self.vis, [comp], pt, vp)
@@ -132,7 +132,7 @@ class TestPointing(unittest.TestCase):
                                    polarisation_frame=PolarisationFrame('stokesI'))
         
         pt = create_pointingtable_from_blockvisibility(self.vis)
-        pt = simulate_pointingtable(pt, pointing_error=0.01, static_pointing_error=0.01,
+        pt = simulate_pointingtable(pt, pointing_error=0.01, static_pointing_error=[0.01, 0.001],
                                     global_pointing_error=[0.0, 0.0])
         vp = create_vp(self.model, 'MID')
         gt = simulate_gaintable_from_pointingtable(self.vis, [comp], pt, vp)
@@ -152,7 +152,7 @@ class TestPointing(unittest.TestCase):
         
         import matplotlib.pyplot as plt
         pt = create_pointingtable_from_blockvisibility(self.vis)
-        pt = simulate_pointingtable(pt, pointing_error=0.0, static_pointing_error=0.0,
+        pt = simulate_pointingtable(pt, pointing_error=0.0, static_pointing_error=None,
                                     global_pointing_error=[0.0, 0.01])
         vp = create_vp(self.model, 'MID')
         gt = simulate_gaintable_from_pointingtable(self.vis, [comp], pt, vp)
@@ -169,7 +169,7 @@ class TestPointing(unittest.TestCase):
                                    polarisation_frame=PolarisationFrame('stokesI'))
         
         pt = create_pointingtable_from_blockvisibility(self.vis)
-        pt = simulate_pointingtable(pt, pointing_error=0.01, static_pointing_error=0.0,
+        pt = simulate_pointingtable(pt, pointing_error=0.01, static_pointing_error=None,
                                     global_pointing_error=[0.0, 0.01])
         vp = create_vp(self.model, 'MID')
         gt = simulate_gaintable_from_pointingtable(self.vis, [comp], pt, vp)
@@ -187,7 +187,7 @@ class TestPointing(unittest.TestCase):
                                    polarisation_frame=PolarisationFrame('stokesI'))
         
         pt = create_pointingtable_from_blockvisibility(self.vis)
-        pt = simulate_pointingtable(pt, pointing_error=0.0, static_pointing_error=0.0,
+        pt = simulate_pointingtable(pt, pointing_error=0.0, static_pointing_error=None,
                                     global_pointing_error=[0.0, 0.01])
         vp = create_vp(self.model, 'MID_GRASP')
         gt = simulate_gaintable_from_pointingtable(self.vis, [comp], pt, vp)

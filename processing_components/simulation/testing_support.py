@@ -745,7 +745,7 @@ def simulate_gaintable(gt: GainTable, phase_error=0.1, amplitude_error=0.0, smoo
     return gt
 
 
-def simulate_pointingtable(pt: PointingTable, pointing_error, static_pointing_error=0.0, global_pointing_error=None,
+def simulate_pointingtable(pt: PointingTable, pointing_error, static_pointing_error=None, global_pointing_error=None,
                            seed=None, **kwargs) -> PointingTable:
     """ Simulate a gain table
 
@@ -760,6 +760,9 @@ def simulate_pointingtable(pt: PointingTable, pointing_error, static_pointing_er
     
     if seed is not None:
         numpy.random.seed(seed)
+        
+    if static_pointing_error is None:
+        static_pointing_error = [0.0, 0.0]
     
     r2s = 180.0 * 3600.0 / numpy.pi
     pt.data['pointing'] = numpy.zeros(pt.data['pointing'].shape)
@@ -770,14 +773,18 @@ def simulate_pointingtable(pt: PointingTable, pointing_error, static_pointing_er
                   % (pointing_error, r2s * pointing_error))
         
         pt.data['pointing'] += numpy.random.normal(0.0, pointing_error, pt.data['pointing'].shape)
-    if static_pointing_error > 0.0:
-        log.debug("simulate_pointingtable: Simulating static pointing error = %g (rad) %g (arcsec)"
-                  % (static_pointing_error, r2s * static_pointing_error))
+    if (abs(static_pointing_error[0]) > 0.0) or (abs(static_pointing_error[1]) > 0.0):
+        log.debug("simulate_pointingtable: Simulating static pointing error = (%g, %g) (rad) (%g, %g)(arcsec)"
+                  % (static_pointing_error[0], static_pointing_error[1],
+                     r2s * static_pointing_error[0], r2s * static_pointing_error[1]))
         
-        static_pe = numpy.random.normal(0.0, static_pointing_error, pt.data['pointing'].shape[1:])[
-            numpy.newaxis, ...]
+        static_pe = numpy.zeros(pt.data['pointing'].shape[1:])
+        static_pe[...,0] = numpy.random.normal(0.0, static_pointing_error[0],
+                                               static_pe[...,0].shape)[numpy.newaxis, ...]
+        static_pe[...,1] = numpy.random.normal(0.0, static_pointing_error[1],
+                                               static_pe[...,1].shape)[numpy.newaxis, ...]
         pt.data['pointing'] += static_pe
-    
+
     if global_pointing_error is not None:
         log.debug("simulate_pointingtable: Simulating global pointing error = [%g, %g] (rad) [%g,s %g] (arcsec)"
                   % (global_pointing_error[0], global_pointing_error[1],
@@ -787,7 +794,7 @@ def simulate_pointingtable(pt: PointingTable, pointing_error, static_pointing_er
     return pt
 
 
-def simulate_pointingtable_from_timeseries(pt, type='tracking', time_series_type='precision',
+def simulate_pointingtable_from_timeseries(pt, type='wind', time_series_type='precision',
                                            pointing_directory=None, reference_pointing=False,
                                            seed=None):
     """Create a pointing table with time series created from PSD.
@@ -889,17 +896,19 @@ def simulate_pointingtable_from_timeseries(pt, type='tracking', time_series_type
 
         # use original frequency break and max frequency to fit function
         # fit polynomial to psd up to max value
-        p_axis_values1 = numpy.polyfit(freq[:axis_values_max_index], axis_values[:axis_values_max_index], 5)
+        p_axis_values1 = numpy.polyfit(freq[:axis_values_max_index],
+                                       numpy.log(axis_values[:axis_values_max_index]), 5)
         f_axis_values1 = numpy.poly1d(p_axis_values1)
         # fit polynomial to psd beyond max value
-        p_axis_values2 = numpy.polyfit(freq[axis_values_max_index:freq_max_index], axis_values[axis_values_max_index:freq_max_index], 5)
+        p_axis_values2 = numpy.polyfit(freq[axis_values_max_index:freq_max_index],
+                                       numpy.log(axis_values[axis_values_max_index:freq_max_index]), 5)
         f_axis_values2 = numpy.poly1d(p_axis_values2)
 
         # use new frequency break and max frequency to apply function (ensures equal spacing of frequency intervals)
 
         # resampled to construct regularly-spaced frequencies
-        regular_axis_values1 = f_axis_values1(regular_freq[:regular_axis_values_max_index])
-        regular_axis_values2 = f_axis_values2(regular_freq[regular_axis_values_max_index:])
+        regular_axis_values1 = numpy.exp(f_axis_values1(regular_freq[:regular_axis_values_max_index]))
+        regular_axis_values2 = numpy.exp(f_axis_values2(regular_freq[regular_axis_values_max_index:]))
 
         # join
         regular_axis_values = numpy.append(regular_axis_values1, regular_axis_values2)
