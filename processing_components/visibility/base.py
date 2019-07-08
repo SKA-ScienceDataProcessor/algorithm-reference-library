@@ -2,6 +2,7 @@
 Base simple visibility operations, placed here to avoid circular dependencies
 """
 
+import os
 import copy
 import logging
 from typing import Union
@@ -17,6 +18,7 @@ from astropy.time import Time
 from data_models.memory_data_models import Visibility, BlockVisibility, Configuration
 from data_models.polarisation import PolarisationFrame, ReceptorFrame, correlate_polarisation
 from processing_library.util.coordinate_support import xyz_to_uvw, uvw_to_xyz, skycoord_to_lmn, simulate_point, pa_z
+from processing_components.visibility import msv2
 
 log = logging.getLogger(__name__)
 
@@ -314,6 +316,64 @@ def phaserotate_visibility(vis: Visibility, newphasecentre: SkyCoord, tangent=Tr
     else:
         return vis
 
+def export_blockbivisility_to_ms(msname, vis, ack=False):
+    """ Minimal BlockVisibility to MS converter
+
+    The MS format is much more general than the ARL BlockVisibility so we cut many corners. This requires casacore to be
+    installed. If not an exception ModuleNotFoundError is raised.
+
+    Write a list of BlockVisibility's to a MS file, split by field and spectral window
+
+    :param msname: File name of MS
+    :param vislist: BlockVisibility
+    :return:
+    """
+    try:
+        import casacore.tables.tableutil as pt
+        from casacore.tables import (makescacoldesc, makearrcoldesc, table, maketabdesc, tableexists, tableiswritable,
+                             tableinfo, tablefromascii, tabledelete, makecoldesc, msconcat, removeDerivedMSCal,
+                             taql, tablerename, tablecopy, tablecolumn, addDerivedMSCal, removeImagingColumns,
+                             addImagingColumns, required_ms_desc, tabledefinehypercolumn, default_ms, makedminfo,
+                             default_ms_subtable)
+    except ModuleNotFoundError:
+        raise ModuleNotFoundError("casacore is not installed")
+
+    # log.debug("create_blockvisibility_from_ms: %s" % str(tab.info()))
+    # Start the table
+    tbl = msv2.Ms(msname, ref_time=0, ifdelete=True)
+
+    # Current ARL suppots I
+    tbl.set_stokes(['XX','XY','YX','YY'])
+    tbl.set_frequency(vis.frequency)
+    n_ant = len(vis.configuration.xyz)
+    antenna1 = list(range(n_ant))
+    tbl.set_geometry(vis.configuration, antenna1)
+    # Set baselines and data
+    blList = []
+    N = len(antenna1)
+    antenna2 = antenna1
+
+    for i in range(0, N - 1):
+        for j in range(i + 1, N):
+            blList.append((antenna1[i], antenna2[j]))
+    ntimes = len(vis.data['time'])
+    ms_vis = numpy.zeros([ntimes*vis.nants*vis.nants, vis.nchan, vis.npol]).astype('complex')
+    
+    # for row, _ in enumerate(vis.data['vis']):
+    #     # MS has shape [row, npol, nchan]
+    #     # BV has shape [ntimes, nants, nants, nchan, npol]
+    #     if vis.data['time'][row] != time_last:
+    #             assert vis.data['time'][row] > time_last, "MS is not time-sorted - cannot convert"
+    #             time_index += 1
+    #             time_last = vis.data['time'][row]
+    #     ms_vis[row, ...] = vis.data['vis'][0, antenna2[row], antenna1[row], ...]
+    ms_vis = vis.data['vis'].reshape(-1, vis.nchan, vis.npol)
+    # msvis = ms_vis.reshape(-1, vis.nchan, vis.npol)
+    tbl.add_data_set(vis.data['time'], vis.data['integration_time'], blList, ms_vis[...,0],pol='XX')
+    tbl.add_data_set(vis.data['time'], vis.data['integration_time'], blList, ms_vis[...,1],pol='XY')
+    tbl.add_data_set(vis.data['time'], vis.data['integration_time'], blList, ms_vis[...,2],pol='YX')
+    tbl.add_data_set(vis.data['time'], vis.data['integration_time'], blList, ms_vis[...,3],pol='YY')
+    tbl.write()
 
 def create_blockvisibility_from_ms(msname, channum=None, ack=False):
     """ Minimal MS to BlockVisibility converter
@@ -396,7 +456,6 @@ def create_blockvisibility_from_ms(msname, channum=None, ack=False):
                                           names=names, xyz=xyz, mount=mount, frame=None,
                                           receptor_frame=ReceptorFrame("linear"),
                                           diameter=diameter)
-            
             # Get phasecentres
             fieldtab = table('%s/FIELD' % msname, ack=False)
             pc = fieldtab.getcol('PHASE_DIR')[field, 0, :]
