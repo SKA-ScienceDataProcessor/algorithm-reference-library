@@ -78,8 +78,7 @@ class TestCreateMS():
         for schan in range(0, nchan, nchan_ave):
             max_chan = min(nchan, schan+nchan_ave)
             v = create_blockvisibility_from_ms(msfile, range(schan, max_chan))
-            export_blockbivisility_to_ms(msoutfile,v[0])
-            # vis_by_channel.append(integrate_visibility_by_channel(v[0]))
+        export_blockbivisility_to_ms(msoutfile,v[0])                # vis_by_channel.append(integrate_visibility_by_channel(v[0]))
         
 if __name__ == '__main__':
     ms = TestCreateMS()

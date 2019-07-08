@@ -1,8 +1,7 @@
 #
-# Some codes are
+# MeasurementSets V2 Reference Codes Based on Python-casacore 
 #
-from casacore.tables import table
-from casacore.tables import tableutil
+
 import os
 import gc
 import re
@@ -48,9 +47,10 @@ def split_baseline(baseline, shift=16):
 
 try:
     from casacore.tables import table, tableutil
+
     class Antenna(object):
         """
-        Holds information describing the location and properties of an antenna.
+        Information describing the location and properties of an antenna.
         """
 
         def __init__(self, id, x, y, z, name='', bits=8):
@@ -71,7 +71,7 @@ try:
 
     class Frequency:
         """
-        Holds information about the frequency setup used in the file.
+        Information about the frequency setup used in the file.
         """
 
         def __init__(self, bandFreq, channelWidth, bandwidth):
@@ -84,11 +84,11 @@ try:
 
     class VISData(object):
         """
-        Represents one UV visibility data set for a given observation time.
+        One UV visibility data set for a given observation time.
         """
-        def __init__(self, obsTime, intTime, baselines, visibilities, weights=None, pol=STOKES_CODES['XX'], source='z'):
-            self.obsTime = obsTime
-            self.intTime = intTime
+        def __init__(self, obstime, inttime, baselines, visibilities, weights=None, pol=STOKES_CODES['XX'], source='z'):
+            self.obstime = obstime
+            self.inttime = inttime
             self.baselines = baselines
             self.visibilities = visibilities
             self.weights = weights
@@ -99,10 +99,11 @@ try:
             """
             Function to sort the self.data list in order of time and then
             polarization code.
+            TODO @Wangfeng, support order
             """
 
-            sID = (self.obsTime, abs(self.pol))
-            yID = (y.obsTime, abs(y.pol))
+            sID = (self.obstime, abs(self.pol))
+            yID = (y.obstime, abs(y.pol))
 
             if sID > yID:
                 return 1
@@ -112,9 +113,12 @@ try:
                 return 0
 
         def time(self):
-            return self.obsTime
+            return self.obstime
 
         def get_uvw(self, HA, dec, obs):
+            # Need rewrite: 1) calculate uvw from xyz and observatory
+            #               2) Copy from ARL 
+
             Nbase = len(self.baselines)
             uvw = numpy.zeros((Nbase, 3), dtype=numpy.float32)
 
@@ -147,6 +151,8 @@ try:
             return uvw
 
         def argsort(self, mapper=None, shift=16):
+            # For a real application, we have to consider the mapper of antenna name and ID
+            # TODO @wangfeng
             packed = []
             for a1, a2 in self.baselines:
                 if mapper is None:
@@ -160,39 +166,14 @@ try:
 
     class MS_UVData(VISData):
         """
-        Represents one MS UV visibility data set for a given observation time.
+        One MS UV visibility data set for a given observation time.
         """
 
         def get_uvw(self, HA, dec, obs):
             
-            # Nbase = len(self.baselines)
-            # uvw = numpy.zeros((Nbase, 3), dtype=numpy.float32)
+            # Simple example, just for testing
+            # Set all uvw=1
 
-            # # Phase center coordinates
-            # # Convert numbers to radians and, for HA, hours to degrees
-            # HA2 = HA * 15.0 * numpy.pi / 180
-            # dec2 = dec * numpy.pi / 180
-            # lat2 = obs.lat
-
-            # # Coordinate transformation matrices
-            # trans1 = numpy.matrix([[0, -numpy.sin(lat2), numpy.cos(lat2)],
-            #                     [1, 0, 0],
-            #                     [0, numpy.cos(lat2), numpy.sin(lat2)]])
-            # trans2 = numpy.matrix([[numpy.sin(HA2), numpy.cos(HA2), 0],
-            #                     [-numpy.sin(dec2) * numpy.cos(HA2), numpy.sin(dec2) * numpy.sin(HA2),
-            #                         numpy.cos(dec2)],
-            #                     [numpy.cos(dec2) * numpy.cos(HA2), -numpy.cos(dec2) * numpy.sin(HA2),
-            #                         numpy.sin(dec2)]])
-
-            # for i, (a1, a2) in enumerate(self.baselines):
-            #     # Go from a east, north, up coordinate system to a celestial equation,
-            #     # east, north celestial pole system
-            #     xyzPrime = a1.stand - a2.stand
-            #     xyz = trans1 * numpy.matrix([[xyzPrime[0]], [xyzPrime[1]], [xyzPrime[2]]])
-
-            #     # Go from CE, east, NCP to u, v, w
-            #     temp = trans2 * xyz
-            #     uvw[i, :] = numpy.squeeze(temp)
             Nbase = len(self.baselines)
             uvw = numpy.ones((Nbase, 3), dtype=numpy.float32)
             return uvw
@@ -323,7 +304,7 @@ try:
 
             raise NotImplementedError
 
-        def add_data_set(self, obsTime, intTime, baselines, visibilities, weights=None, pol='XX', source='z'):
+        def add_data_set(self, obstime, inttime, baselines, visibilities, weights=None, pol='XX', source='z'):
             """
             Create a UVData object to store a collection of visibilities.
 
@@ -335,7 +316,7 @@ try:
                 numericPol = pol
 
             self.data.append(
-                VISData(obsTime, intTime, baselines, visibilities, weights=weights, pol=numericPol, source=source))
+                VISData(obstime, inttime, baselines, visibilities, weights=weights, pol=numericPol, source=source))
 
         def write(self):
             """
@@ -362,9 +343,8 @@ try:
         def __init__(self, filename, ref_time=0.0, verbose=False, memmap=None, ifdelete=False):
             """
             Initialize a new Measurement set object using a filename and a reference time
-            given in seconds since the UNIX 1970 ephWriteMsem, a python datetime object, or a
+            given in seconds since the UNIX 1970 ephem, a python datetime object, or a
             string in the format of 'YYYY-MM-DDTHH:MM:SS'.
-
             """
 
             # Open the file and get going
@@ -436,7 +416,7 @@ try:
             self.nant = len(ants)
             self.array.append({'center': [  arrayX, arrayY, arrayZ], 'ants': ants, 'mapper': mapper, 'inputAnts': antennas})
 
-        def add_data_set(self, obsTime, intTime, baselines, visibilities, pol='XX', source='z'):
+        def add_data_set(self, obstime, inttime, baselines, visibilities, pol='XX', source='z'):
             """
             Create a UVData object to store a collection of visibilities.
             """
@@ -446,7 +426,7 @@ try:
             else:
                 numericPol = pol
 
-            self.data.append(MS_UVData(obsTime, intTime, baselines, visibilities, pol=numericPol, source=source))
+            self.data.append(MS_UVData(obstime, inttime, baselines, visibilities, pol=numericPol, source=source))
 
         def write(self):
             """
@@ -724,7 +704,9 @@ try:
             tb.close()
 
             # Source
-
+            # TODO @wangfeng
+            #      We need to transfer the observatory information from ARL
+            #         and replace the lat, lon, elev 
             arrayGeo = 110.
             arrayGeo = 21.
 
@@ -739,6 +721,8 @@ try:
             sourceID = 0
             for dataSet in self.data:
                 if dataSet.pol == self.stokes[0]:
+                    # TODO @wangfeng
+                    #      observational time: utc
                     utc = 0 
                     # date = 
                     # date.hours = 0
@@ -1059,8 +1043,8 @@ try:
                 # Deal with defininig the values of the new data set
                 if dataSet.pol == self.stokes[0]:
                     ## Figure out the new date/time for the observation
-                    # TODO Wang feng - observational date & time
-                    utc = dataSet.obsTime #. astro.taimjd_to_utcjd(dataSet.obsTime)
+                    # TODO @Wangfeng - observational date & time
+                    utc = dataSet.obstime #. astro.taimjd_to_utcjd(dataSet.obstime)
                     # date = astro.get_date(utc)
                     # date.hours = 0
                     # date.minutes = 0
@@ -1110,11 +1094,11 @@ try:
 
                     ### Add in the new date/time and integration time
                     # timeList = [utc - astro.MJD_OFFSET for bl in dataSet.baselines]
-                    # intTimeList = [dataSet.intTime for bl in dataSet.baselines]
-                    # timeList = [(utc - astro.MJD_OFFSET) * 86400 + dataSet.intTime / 2.0 for bl in dataSet.baselines]
-                    intTimeList = [2 for bl in dataSet.baselines]
-                    # timeList = [utc * 86400 + 0./ 2.0 for bl in dataSet.baselines]  #dataSet.intTime 
-                    timeList = [1* 86400 + 0./ 2.0 for bl in dataSet.baselines]  #dataSet.intTime 
+                    # inttimeList = [dataSet.inttime for bl in dataSet.baselines]
+                    # timeList = [(utc - astro.MJD_OFFSET) * 86400 + dataSet.inttime / 2.0 for bl in dataSet.baselines]
+                    inttimeList = [2 for bl in dataSet.baselines]
+                    # timeList = [utc * 86400 + 0./ 2.0 for bl in dataSet.baselines]  #dataSet.inttime 
+                    timeList = [1* 86400 + 0./ 2.0 for bl in dataSet.baselines]  #dataSet.inttime 
 
                     ### Add in the new new source ID and name
                     sourceList = [sourceID for bl in dataSet.baselines]
@@ -1151,12 +1135,12 @@ try:
                         tb.putcol('ANTENNA2', ant2List, i, nBL)
                         tb.putcol('ARRAY_ID', [0, ] * nBL, i, nBL)
                         tb.putcol('DATA_DESC_ID', [j, ] * nBL, i, nBL)
-                        tb.putcol('EXPOSURE', intTimeList, i, nBL)
+                        tb.putcol('EXPOSURE', inttimeList, i, nBL)
                         tb.putcol('FEED1', [0, ] * nBL, i, nBL)
                         tb.putcol('FEED2', [0, ] * nBL, i, nBL)
                         tb.putcol('FIELD_ID', sourceList, i, nBL)
                         tb.putcol('FLAG_ROW', [False, ] * nBL, i, nBL)
-                        tb.putcol('INTERVAL', intTimeList, i, nBL)
+                        tb.putcol('INTERVAL', inttimeList, i, nBL)
                         tb.putcol('OBSERVATION_ID', [0, ] * nBL, i, nBL)
                         tb.putcol('PROCESSOR_ID', [-1, ] * nBL, i, nBL)
                         tb.putcol('SCAN_NUMBER', [s, ] * nBL, i, nBL)
