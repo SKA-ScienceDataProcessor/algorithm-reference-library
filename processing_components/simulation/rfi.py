@@ -100,9 +100,10 @@ def calculate_station_fringe_rotation(ants_xyz, times, frequency, phasecentre, p
     """
     
     uvw = xyz_to_uvw(ants_xyz, times, phasecentre.dec.rad)
-    nants, nuvw = uvw.shape
+    nants, _ = uvw.shape
     ntimes = len(times)
-    uvw = uvw.reshape([nants, ntimes, 3])
+    uvw = uvw.reshape([nants, 3, ntimes])
+    uvw = numpy.transpose(uvw, [0, 2, 1])
     lmn = skycoord_to_lmn(phasecentre, pole)
     delay = numpy.dot(uvw, lmn)
     nchan = len(frequency)
@@ -171,7 +172,9 @@ def simulate_rfi_block(config, times, frequency, phasecentre, emitter_location, 
     # Station fringe rotation: shape [nants, ntimes, nchan] complex phasor to be applied to
     # reference to the pole.
     pole = SkyCoord(ra=+0.0 * u.deg, dec=-90.0 * u.deg, frame='icrs', equinox='J2000')
-    fringe_rotation, uvw = calculate_station_fringe_rotation(config.xyz, times, frequency, phasecentre, pole)
+    ha = times * numpy.pi / 43200.0
+
+    fringe_rotation, uvw = calculate_station_fringe_rotation(config.xyz, ha, frequency, phasecentre, pole)
     
     # Calculate the rfi correlationm using the fringe rotation and the rfi at the station
     # [nants, nants, ntimes, nchan]
