@@ -958,7 +958,7 @@ def simulate_pointingtable_from_timeseries(pt, type='wind', time_series_type='pr
             N = len(ts)
             Dt = pt.interval[0]
             ts = numpy.real(ts)
-            ts *= N  # the result is scaled by number of points in the signal, so multiply - real part - by this
+            ts *= M0  # the result is scaled by number of points in the signal, so multiply - real part - by this
             
             # The output of the iFFT will be a random time series on the finite
             # (bounded, limited) time interval t = 0 to tmax = (N-1) X Dt, #
