@@ -912,6 +912,8 @@ def simulate_pointingtable_from_timeseries(pt, type='wind', time_series_type='pr
 
         # join
         regular_axis_values = numpy.append(regular_axis_values1, regular_axis_values2)
+
+        M0 = len(regular_axis_values)
         
         #  check rms of resampled PSD
         # df = regular_freq[1:]-regular_freq[:-1]
