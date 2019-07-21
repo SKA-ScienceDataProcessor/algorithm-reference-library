@@ -774,6 +774,7 @@ def simulate_pointingtable(pt: PointingTable, pointing_error, static_pointing_er
         
         pt.data['pointing'] += numpy.random.normal(0.0, pointing_error, pt.data['pointing'].shape)
     if (abs(static_pointing_error[0]) > 0.0) or (abs(static_pointing_error[1]) > 0.0):
+        numpy.random.seed(18051955)
         log.debug("simulate_pointingtable: Simulating static pointing error = (%g, %g) (rad) (%g, %g)(arcsec)"
                   % (static_pointing_error[0], static_pointing_error[1],
                      r2s * static_pointing_error[0], r2s * static_pointing_error[1]))
@@ -786,6 +787,9 @@ def simulate_pointingtable(pt: PointingTable, pointing_error, static_pointing_er
         pt.data['pointing'] += static_pe
 
     if global_pointing_error is not None:
+        if seed is not None:
+            numpy.random.seed(seed)
+    
         log.debug("simulate_pointingtable: Simulating global pointing error = [%g, %g] (rad) [%g,s %g] (arcsec)"
                   % (global_pointing_error[0], global_pointing_error[1],
                      r2s * global_pointing_error[0], r2s * global_pointing_error[1]))
