@@ -171,7 +171,7 @@ def show_image(im: Image, fig=None, title: str = '', pol=0, chan=0, cm='Greys', 
     return fig
 
 
-def show_components(im, comps, npixels=128, fig=None, vmax=None, vmin=None):
+def show_components(im, comps, npixels=128, fig=None, vmax=None, vmin=None, title=''):
     """ Show components against an image
 
     :param im:

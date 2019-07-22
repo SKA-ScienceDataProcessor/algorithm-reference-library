@@ -2,4 +2,4 @@
 
 """
 
-from processing_components.simulation.pointing import create_gaintable_from_pointingtable
+from processing_components.simulation.pointing import simulate_gaintable_from_pointingtable

@@ -96,7 +96,7 @@ class TestBufferDataModelHelpers(unittest.TestCase):
                                           polarisation_frame=PolarisationFrame("linear"),
                                           weight=1.0)
         pt = create_pointingtable_from_blockvisibility(self.vis, timeslice='auto')
-        pt = simulate_pointingtable(pt, pointing_error=0.1, static_pointing_error=0.)
+        pt = simulate_pointingtable(pt, pointing_error=0.1)
         
         config = {"buffer": {"directory": self.dir},
                   "pointingtable": {"name": "test_bufferpointingtable.hdf", "data_model": "PointingTable"}}

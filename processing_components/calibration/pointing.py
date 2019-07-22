@@ -10,7 +10,8 @@ import numpy.linalg
 
 from data_models.memory_data_models import PointingTable, BlockVisibility, QA
 from data_models.memory_data_models import ReceptorFrame
-from ..visibility.iterators import vis_timeslice_iter
+
+from processing_library.util.coordinate_support import hadec_to_azel
 
 log = logging.getLogger(__name__)
 
@@ -69,14 +70,23 @@ def create_pointingtable_from_blockvisibility(vis: BlockVisibility, pointing_fra
         pointing[..., 1, 0] = 0.0
         pointing[..., 0, 1] = 0.0
         pointing[..., 1, 1] = 0.0
-    
+
+    ha = numpy.pi * vis.time / 43200.0
+    dec = vis.phasecentre.dec.rad
+    latitude = vis.configuration.location.lat.rad
+    az, el = hadec_to_azel(ha, dec, latitude)
+
+    pointing_nominal = numpy.zeros([ntimes, nants, nfrequency, nrec, 2])
+    pointing_nominal[...,0] = az[:, numpy.newaxis, numpy.newaxis, numpy.newaxis]
+    pointing_nominal[...,1] = el[:, numpy.newaxis, numpy.newaxis, numpy.newaxis]
     pointing_weight = numpy.ones(pointingshape)
     pointing_time = utimes
     pointing_frequency = ufrequency
     pointing_residual = numpy.zeros([ntimes, nfrequency, nrec, 2])
     pointing_frame = pointing_frame
     
-    pt = PointingTable(pointing=pointing, time=pointing_time, interval=pointing_interval, weight=pointing_weight,
+    pt = PointingTable(pointing=pointing, nominal=pointing_nominal,
+                       time=pointing_time, interval=pointing_interval, weight=pointing_weight,
                        residual=pointing_residual, frequency=pointing_frequency, receptor_frame=receptor_frame,
                        pointing_frame=pointing_frame, pointingcentre=vis.phasecentre, configuration=vis.configuration)
     

@@ -41,7 +41,6 @@ from astropy.wcs.utils import pixel_to_skycoord
 from scipy import interpolate
 
 from data_models.memory_data_models import Configuration, Image, GainTable, Skycomponent, SkyModel, PointingTable
-from data_models.memory_data_models import Visibility, BlockVisibility
 from data_models.parameters import arl_path
 from data_models.polarisation import PolarisationFrame
 from processing_components.calibration.calibration_control import create_calibration_controls
@@ -317,7 +316,7 @@ def create_test_skycomponents_from_s3(polarisation_frame=PolarisationFrame("stok
         for row in readCSV:
             # Skip first row
             if r > 0:
-                ra = float(row[4]) + phasecentre.ra.deg
+                ra = float(row[4])/numpy.cos(phasecentre.dec.rad) + phasecentre.ra.deg
                 dec = float(row[5]) + phasecentre.dec.deg
                 if numpy.max(frequency) > 6.1E8:
                     alpha = (float(row[11]) - float(row[10])) / numpy.log10(1400.0 / 610.0)
@@ -350,7 +349,8 @@ def create_test_skycomponents_from_s3(polarisation_frame=PolarisationFrame("stok
                                              name=names[isource], shape='Point',
                                              polarisation_frame=polarisation_frame))
     
-    log.info('create_test_skycomponents_from_s3: %d sources found above fluxlimit inside search radius' % (len(fluxes)))
+    log.info('create_test_skycomponents_from_s3: %d sources found above fluxlimit inside search radius' %
+             len(skycomps))
     
     return skycomps
 
@@ -687,15 +687,14 @@ def create_blockvisibility_iterator(config: Configuration, times: numpy.array, f
         yield bvis
 
 
-def simulate_gaintable(gt: GainTable, phase_error=0.1, amplitude_error=0.0, smooth_channels=1,
-                       leakage=0.0, seed=None, **kwargs) -> GainTable:
+def simulate_gaintable(gt: GainTable, phase_error=0.1, amplitude_error=0.0, smooth_channels=1, leakage=0.0,
+                       **kwargs) -> GainTable:
     """ Simulate a gain table
 
     :type gt: GainTable
     :param phase_error: std of normal distribution, zero mean
     :param amplitude_error: std of log normal distribution
     :param leakage: std of cross hand leakage
-    :param seed: Seed for random numbers def: 180555
     :param smooth_channels: Use bspline over smooth_channels
     :param kwargs:
     :return: Gaintable
@@ -704,9 +703,6 @@ def simulate_gaintable(gt: GainTable, phase_error=0.1, amplitude_error=0.0, smoo
     
     def moving_average(a, n=3):
         return numpy.convolve(a, numpy.ones((n,)) / n, mode='valid')
-    
-    if seed is not None:
-        numpy.random.seed(seed)
     
     log.debug("simulate_gaintable: Simulating amplitude error = %.4f, phase error = %.4f"
               % (amplitude_error, phase_error))
@@ -749,7 +745,7 @@ def simulate_gaintable(gt: GainTable, phase_error=0.1, amplitude_error=0.0, smoo
     return gt
 
 
-def simulate_pointingtable(pt: PointingTable, pointing_error, static_pointing_error=0.0, global_pointing_error=None,
+def simulate_pointingtable(pt: PointingTable, pointing_error, static_pointing_error=None, global_pointing_error=None,
                            seed=None, **kwargs) -> PointingTable:
     """ Simulate a gain table
 
@@ -757,7 +753,6 @@ def simulate_pointingtable(pt: PointingTable, pointing_error, static_pointing_er
     :param pointing_error: std of normal distribution (radians)
     :param static_pointing_error: std of normal distribution (radians)
     :param global_pointing_error: 2-vector of global pointing error (rad)
-    :param seed: Seed for random numbers def: 180555
     :param kwargs:
     :return: PointingTable
 
@@ -765,6 +760,10 @@ def simulate_pointingtable(pt: PointingTable, pointing_error, static_pointing_er
     
     if seed is not None:
         numpy.random.seed(seed)
+        
+    if static_pointing_error is None:
+        static_pointing_error = [0.0, 0.0]
+    
     r2s = 180.0 * 3600.0 / numpy.pi
     pt.data['pointing'] = numpy.zeros(pt.data['pointing'].shape)
     
@@ -773,20 +772,224 @@ def simulate_pointingtable(pt: PointingTable, pointing_error, static_pointing_er
         log.debug("simulate_pointingtable: Simulating dynamic pointing error = %g (rad) %g (arcsec)"
                   % (pointing_error, r2s * pointing_error))
         
-        pt.data['pointing'] = numpy.random.normal(0.0, pointing_error, pt.data['pointing'].shape)
-    if static_pointing_error > 0.0:
-        log.debug("simulate_pointingtable: Simulating static pointing error = %g (rad) %g (arcsec)"
-                  % (static_pointing_error, r2s * static_pointing_error))
+        pt.data['pointing'] += numpy.random.normal(0.0, pointing_error, pt.data['pointing'].shape)
+    if (abs(static_pointing_error[0]) > 0.0) or (abs(static_pointing_error[1]) > 0.0):
+        numpy.random.seed(18051955)
+        log.debug("simulate_pointingtable: Simulating static pointing error = (%g, %g) (rad) (%g, %g)(arcsec)"
+                  % (static_pointing_error[0], static_pointing_error[1],
+                     r2s * static_pointing_error[0], r2s * static_pointing_error[1]))
         
-        static_pe = numpy.random.normal(0.0, static_pointing_error, pt.data['pointing'].shape[1:])[
-            numpy.newaxis, ...]
+        static_pe = numpy.zeros(pt.data['pointing'].shape[1:])
+        static_pe[...,0] = numpy.random.normal(0.0, static_pointing_error[0],
+                                               static_pe[...,0].shape)[numpy.newaxis, ...]
+        static_pe[...,1] = numpy.random.normal(0.0, static_pointing_error[1],
+                                               static_pe[...,1].shape)[numpy.newaxis, ...]
         pt.data['pointing'] += static_pe
-    
+
     if global_pointing_error is not None:
+        if seed is not None:
+            numpy.random.seed(seed)
+    
         log.debug("simulate_pointingtable: Simulating global pointing error = [%g, %g] (rad) [%g,s %g] (arcsec)"
                   % (global_pointing_error[0], global_pointing_error[1],
                      r2s * global_pointing_error[0], r2s * global_pointing_error[1]))
         pt.data['pointing'][..., :] += global_pointing_error
+    
+    return pt
+
+
+def simulate_pointingtable_from_timeseries(pt, type='wind', time_series_type='precision',
+                                           pointing_directory=None, reference_pointing=False,
+                                           seed=None):
+    """Create a pointing table with time series created from PSD.
+
+    :param pt: Pointing table to be filled
+    :param type: Type of pointing: 'tracking' or 'wind'
+    :param pointing_file: Name of pointing file
+    :param reference_pointing: Use reference pointing?
+    :return:
+    """
+    if seed is not None:
+        numpy.random.seed(seed)
+    
+    if pointing_directory is None:
+        pointing_directory = arl_path("data/models/%s" % time_series_type)
+        
+    pt.data['pointing'] = numpy.zeros(pt.data['pointing'].shape)
+    
+    ntimes, nant, nchan, nrec, _ = pt.data['pointing'].shape
+    
+    # Use az and el at the beginning of this pointingtable
+    axis_values = pt.nominal[0,0,0,0,0]
+    el = pt.nominal[0,0,0,0,1]
+    
+    el_deg = el * 180.0 / numpy.pi
+    az_deg = axis_values * 180.0 / numpy.pi
+    
+    if el_deg < 30.0:
+        el_deg = 15.0
+    elif el_deg < (90.0+45.0)/2.0:
+        el_deg = 45.0
+    else:
+        el_deg = 90.0
+        
+    if abs(az_deg) < 45.0 / 2.0:
+        az_deg = 0.0
+    elif abs(az_deg) < (45.0 + 90.0)/2.0:
+        az_deg = 45.0
+    elif abs(az_deg) < (90.0 + 135.0)/2.0:
+        az_deg = 90.0
+    elif abs(az_deg) < (135.0 + 180.0)/2.0:
+        az_deg = 135.0
+    else:
+        az_deg = 180.0
+    
+    pointing_file = '%s/El%dAz%d.dat' % (pointing_directory, int(el_deg), int(az_deg))
+    log.info("simulate_pointingtable_from_timeseries: Reading wind PSD from %s" % pointing_file)
+    psd = numpy.loadtxt(pointing_file)
+    
+    # define some arrays
+    freq = psd[:, 0]
+    axesdict = {
+        "az": psd[:, 1],
+        "el": psd[:, 2],
+        "pxel": psd[:, 3],
+        "pel": psd[:, 4]
+    }
+    
+    if type == 'tracking':
+        axes = ["az", "el"]
+    elif type == 'wind':
+         axes = ["pxel", "pel"]
+    else:
+        raise ValueError("Pointing type %s not known" % type)
+
+    freq_interval = 0.0001
+    
+    for axis in axes:
+        
+        axis_values = axesdict[axis]
+
+        if (axis == "az") or (axis == "el"):
+            # determine index of maximum PSD value; add 50 for better fit
+            axis_values_max_index = numpy.argwhere(axis_values == numpy.max(axis_values))[0][0] + 50
+            axis_values_max_index = min(axis_values_max_index, len(axis_values))
+            # max_freq = 2.0 / pt.interval[0]
+            max_freq = 0.4
+            freq_max_index = numpy.argwhere(freq > max_freq)[0][0]
+        else:
+            break_freq = 0.01 # not max; just a break
+            axis_values_max_index = numpy.argwhere(freq>break_freq)[0][0]
+            # max_freq = 2.0 / pt.interval[0]
+            max_freq = 0.1
+            freq_max_index = numpy.argwhere(freq > max_freq)[0][0]
+
+        # construct regularly-spaced frequencies
+        regular_freq = numpy.arange(freq[0], freq[freq_max_index], freq_interval)
+
+        regular_axis_values_max_index =  numpy.argwhere(numpy.abs(regular_freq-freq[axis_values_max_index])==numpy.min(numpy.abs(regular_freq-freq[axis_values_max_index])))[0][0]
+
+        # print ('Frequency break: ', freq[az_max_index])
+        # print ('Max frequency: ', max_freq)
+        #
+        # print ('New frequency break: ', regular_freq[regular_az_max_index])
+        # print ('New max frequency: ', regular_freq[-1])
+
+        if axis_values_max_index>=freq_max_index:
+            raise ValueError('Frequency break is higher than highest frequency; select a lower break')
+
+        # use original frequency break and max frequency to fit function
+        # fit polynomial to psd up to max value
+        p_axis_values1 = numpy.polyfit(freq[:axis_values_max_index],
+                                       numpy.log(axis_values[:axis_values_max_index]), 5)
+        f_axis_values1 = numpy.poly1d(p_axis_values1)
+        # fit polynomial to psd beyond max value
+        p_axis_values2 = numpy.polyfit(freq[axis_values_max_index:freq_max_index],
+                                       numpy.log(axis_values[axis_values_max_index:freq_max_index]), 5)
+        f_axis_values2 = numpy.poly1d(p_axis_values2)
+
+        # use new frequency break and max frequency to apply function (ensures equal spacing of frequency intervals)
+
+        # resampled to construct regularly-spaced frequencies
+        regular_axis_values1 = numpy.exp(f_axis_values1(regular_freq[:regular_axis_values_max_index]))
+        regular_axis_values2 = numpy.exp(f_axis_values2(regular_freq[regular_axis_values_max_index:]))
+
+        # join
+        regular_axis_values = numpy.append(regular_axis_values1, regular_axis_values2)
+
+        M0 = len(regular_axis_values)
+        
+        #  check rms of resampled PSD
+        # df = regular_freq[1:]-regular_freq[:-1]
+        # psd2rms_pxel = numpy.sqrt(numpy.sum(regular_az[:-1]*df))
+        # print ('Calculate rms of resampled PSD: ', psd2rms_pxel)
+
+        original_regular_freq = regular_freq
+        original_regular_axis_values = regular_axis_values
+        # get amplitudes from psd values
+        
+        if (regular_axis_values<0).any():
+            raise ValueError('Resampling returns negative power values; change fit range')
+
+        amp_axis_values = numpy.sqrt(regular_axis_values*2*freq_interval)
+        # need to scale PSD by 2* frequency interval before square rooting, then by number of modes in resampled PSD
+
+        # Now we generate some random phases
+        for ant in range(nant):
+            regular_freq = original_regular_freq
+            regular_axis_values = original_regular_axis_values
+            phi_axis_values = numpy.random.rand(len(regular_axis_values)) * 2 * numpy.pi
+            # create complex array
+            z_axis_values = amp_axis_values * numpy.exp(1j * phi_axis_values)  # polar
+            # make symmetrical frequencies
+            mirror_z_axis_values = numpy.copy(z_axis_values)
+            # make complex conjugates
+            mirror_z_axis_values.imag -= 2 * z_axis_values.imag
+            # make negative frequencies
+            mirror_regular_freq = -regular_freq
+            # join
+            z_axis_values = numpy.append(z_axis_values, mirror_z_axis_values[::-1])
+            regular_freq = numpy.append(regular_freq, mirror_regular_freq[::-1])
+            
+            # add a 0 Fourier term
+            z_axis_values = numpy.append(0 + 0 * 1j, z_axis_values)
+            regular_freq = numpy.append(0, regular_freq)
+            
+            # perform inverse fft
+            ts = numpy.fft.ifft(z_axis_values)
+            
+            # set up and check scalings
+            N = len(ts)
+            Dt = pt.interval[0]
+            ts = numpy.real(ts)
+            ts *= M0  # the result is scaled by number of points in the signal, so multiply - real part - by this
+            
+            # The output of the iFFT will be a random time series on the finite
+            # (bounded, limited) time interval t = 0 to tmax = (N-1) X Dt, #
+            # where Dt = 1 / (2 X Fmax)
+            
+            # scale to time interval
+            times = numpy.arange(ntimes) * Dt
+            
+            # Convert from arcsec to radians
+            ts *= numpy.pi / (180.0 * 3600.0)
+            
+            # We take reference pointing to mean that the pointing errors are zero at the beginning
+            # of the set of integrations
+            if reference_pointing:
+                ts[:] -= ts[0]
+            
+            #            pt.data['time'] = times[:ntimes]
+            if axis == 'az':
+                pt.data['pointing'][:, ant, :, :, 0] = ts[:ntimes, numpy.newaxis, numpy.newaxis, ...]
+            elif axis == 'el':
+                pt.data['pointing'][:, ant, :, :, 1] = ts[:ntimes, numpy.newaxis, numpy.newaxis, ...]
+            elif axis == 'pxel':
+                pt.data['pointing'][:, ant, :, :, 0] = ts[:ntimes, numpy.newaxis, numpy.newaxis, ...]
+            elif axis == 'pel':
+                pt.data['pointing'][:, ant, :, :, 1] = ts[:ntimes, numpy.newaxis, numpy.newaxis, ...]
+            else:
+                raise ValueError("Unknown axis %s" % axis)
     
     return pt
 
@@ -879,12 +1082,9 @@ def insert_unittest_errors(vt, seed=180555, calibration_context="TG", amp_errors
     
     for c in calibration_context:
         gaintable = create_gaintable_from_blockvisibility(vt, timeslice=controls[c]['timeslice'])
-        gaintable = simulate_gaintable(gaintable,
-                                       timeslice=controls[c]['timeslice'],
-                                       phase_only=controls[c]['phase_only'],
-                                       crosspol=controls[c]['shape'] == 'matrix',
-                                       phase_error=phase_errors[c], amplitude_error=amp_errors[c],
-                                       seed=seed)
+        gaintable = simulate_gaintable(gaintable, phase_error=phase_errors[c], amplitude_error=amp_errors[c],
+                                       timeslice=controls[c]['timeslice'], phase_only=controls[c]['phase_only'],
+                                       crosspol=controls[c]['shape'] == 'matrix')
         
         vt = apply_gaintable(vt, gaintable, timeslice=controls[c]['timeslice'], inverse=True)
     

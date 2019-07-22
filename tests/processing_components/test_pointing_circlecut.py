@@ -15,7 +15,7 @@ from processing_components.skycomponent.operations import create_skycomponent
 from processing_components.calibration.pointing import create_pointingtable_from_blockvisibility
 from processing_components.imaging.primary_beams import create_vp
 from processing_components.simulation.configurations import create_named_configuration
-from processing_components.simulation.pointing import create_gaintable_from_pointingtable
+from processing_components.simulation.pointing import simulate_gaintable_from_pointingtable
 from processing_components.simulation.testing_support import create_test_image, simulate_pointingtable
 from processing_components.simulation.testing_support import create_test_skycomponents_from_s3
 from processing_components.visibility.base import create_blockvisibility
@@ -51,7 +51,7 @@ class TestPointing(unittest.TestCase):
                                   phasecentre=self.phasecentre)
     
     def test_create_gaintable_from_pointingtable_circlecut(self):
-        self.sidelobe = SkyCoord(ra=+15.0 * u.deg, dec=-48.5 * u.deg, frame='icrs', equinox='J2000')
+        self.sidelobe = SkyCoord(ra=+15.0 * u.deg, dec=-49.4 * u.deg, frame='icrs', equinox='J2000')
         comp = create_skycomponent(direction=self.sidelobe, flux=[[1.0]], frequency=self.frequency,
                                    polarisation_frame=PolarisationFrame('stokesI'))
     
@@ -59,10 +59,9 @@ class TestPointing(unittest.TestCase):
         for telescope in telescopes:
             pt = create_pointingtable_from_blockvisibility(self.vis)
             pt = simulate_pointingtable(pt, pointing_error=0.0,
-                                        static_pointing_error=0.0,
                                         global_pointing_error=[0.0, 0.0])
             vp = create_vp(self.model, telescope)
-            gt = create_gaintable_from_pointingtable(self.vis, [comp], pt, vp)
+            gt = simulate_gaintable_from_pointingtable(self.vis, [comp], pt, vp)
             if self.doplot:
                 import matplotlib.pyplot as plt
                 plt.clf()

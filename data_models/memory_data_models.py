@@ -63,7 +63,7 @@ class Configuration:
         :param diameter:
         """
         if data is None and xyz is not None:
-            desc = [('names', '>U6'),
+            desc = [('names', '>U12'),
                     ('xyz', '>f8', (3,)),
                     ('diameter', '>f8'),
                     ('mount', '>U5')]
@@ -239,7 +239,8 @@ class PointingTable:
     The weight is usually that output from gain solvers.
     """
 
-    def __init__(self, data=None, pointing: numpy.array = None, time: numpy.array = None, interval=None,
+    def __init__(self, data=None, pointing: numpy.array = None, nominal: numpy.array = None,
+                 time: numpy.array = None, interval=None,
                  weight: numpy.array = None, residual: numpy.array = None, frequency: numpy.array = None,
                  receptor_frame: ReceptorFrame = ReceptorFrame("linear"), pointing_frame: str = "local",
                  pointingcentre=None, configuration=None):
@@ -248,13 +249,14 @@ class PointingTable:
         :param interval:
         :param data:
         :param pointing: [:, nchan, nrec, 2]
+        :param nominal: [:, nchan, nrec, 2]
         :param time: Centroid of solution
         :param interval: Interval of validity
         :param weight:
         :param residual:
         :param frequency:
         :param receptor_frame:
-        :return: Gaintable
+        :return: PointingTable
         """
         if data is None and pointing is not None:
             nrec = receptor_frame.nrec
@@ -263,6 +265,7 @@ class PointingTable:
             nchan = pointing.shape[2]
             assert len(frequency) == nchan, "Discrepancy in frequency channels"
             desc = [('pointing', 'f16', (nants, nchan, nrec, 2)),
+                    ('nominal', 'f16', (nants, nchan, nrec, 2)),
                     ('weight', '>f8', (nants, nchan, nrec, 2)),
                     ('residual', '>f8', (nchan, nrec, 2)),
                     ('time', '>f8'),
@@ -273,6 +276,7 @@ class PointingTable:
             data['time'] = time
             data['interval'] = interval
             data['residual'] = residual
+            data['nominal'] = nominal
 
         self.data = data
         self.frequency = frequency
@@ -295,6 +299,10 @@ class PointingTable:
     @property
     def interval(self):
         return self.data['interval']
+
+    @property
+    def nominal(self):
+        return self.data['nominal']
 
     @property
     def pointing(self):
@@ -328,7 +336,7 @@ class PointingTable:
         """Default printer for GainTable
 
         """
-        s = "GainTable:\n"
+        s = "PointingTable:\n"
         s += "\tTimes: %s\n" % str(self.ntimes)
         s += "\tData shape: %s\n" % str(self.data.shape)
         s += "\tReceptor frame: %s\n" % str(self.receptor_frame.type)

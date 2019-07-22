@@ -17,9 +17,10 @@ from processing_library.image.operations import create_empty_image_like
 def image_gradients(im: Image):
     """Calculate image gradients numerically
     
+    Gradient units are (incoming unit)/pixel e.g. Jy/beam/pixel
+    
     :param im: Image
-    :param reference_frequency: Reference frequency (default None uses average)
-    :return: Moments images
+    :return: Gradient images
     """
     assert isinstance(im, Image)
     nchan, npol, ny, nx = im.shape

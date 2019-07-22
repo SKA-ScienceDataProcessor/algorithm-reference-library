@@ -16,8 +16,8 @@ from processing_library.util.coordinate_support import hadec_to_azel, azel_to_ha
 log = logging.getLogger(__name__)
 
 
-def create_gaintable_from_pointingtable(vis, sc, pt, vp, vis_slices=None, scale=1.0, order=3,
-                                        use_radec=False, **kwargs):
+def simulate_gaintable_from_pointingtable(vis, sc, pt, vp, vis_slices=None, scale=1.0, order=3,
+                                          use_radec=False, **kwargs):
     """ Create gaintables from a pointing table
 
     :param vis:
@@ -59,6 +59,7 @@ def create_gaintable_from_pointingtable(vis, sc, pt, vp, vis_slices=None, scale=
             v = create_visibility_from_rows(vis, rows)
             ha = numpy.average(v.time)
             pt_rows = (pt.time == ha)
+            assert numpy.sum(pt_rows) > 0
             pointing_ha = pt.pointing[pt_rows]
             har = s2r * ha
             
@@ -130,6 +131,7 @@ def create_gaintable_from_pointingtable(vis, sc, pt, vp, vis_slices=None, scale=
         
             for icomp, comp in enumerate(sc):
                 antgain = numpy.zeros([nant], dtype='complex')
+                antwt = numpy.zeros([nant])
                 # Calculate the location of the component in AZELGEO, then add the pointing offset
                 # for each antenna
                 ra_comp = comp.direction.ra.rad
@@ -155,18 +157,21 @@ def create_gaintable_from_pointingtable(vis, sc, pt, vp, vis_slices=None, scale=
                         assert pixloc[1] < ny - 3
                         gain = real_spline.ev(pixloc[1], pixloc[0]) + 1j * imag_spline(pixloc[1], pixloc[0])
                         antgain[ant] = 1.0 / (scale * gain)
+                        antwt[ant] = 1.0
                         number_good += 1
                     except:
                         number_bad += 1
-                        antgain[ant] = 0.0
-            
+                        antgain[ant] = 1e15
+                        antwt[ant] = 0.0
+
                 gaintables[icomp].gain[iha, :, :, :] = antgain[:, numpy.newaxis, numpy.newaxis, numpy.newaxis]
+                gaintables[icomp].weight[iha, :, :, :] = antwt[:, numpy.newaxis, numpy.newaxis, numpy.newaxis]
                 gaintables[icomp].phasecentre = comp.direction
 
     if number_bad > 0:
         log.warning(
-            "create_gaintable_from_pointingtable: %d points are inside the voltage pattern image" % (number_good))
+            "simulate_gaintable_from_pointingtable: %d points are inside the voltage pattern image" % (number_good))
         log.warning(
-            "create_gaintable_from_pointingtable: %d points are outside the voltage pattern image" % (number_bad))
+            "simulate_gaintable_from_pointingtable: %d points are outside the voltage pattern image" % (number_bad))
 
     return gaintables
