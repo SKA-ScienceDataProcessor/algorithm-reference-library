@@ -1,3 +1,20 @@
+"""Functions used to simulate RFI. Developed as part of SP-122/SIM.
+
+The scenario is:
+* There is a TV station at a remote location (e.g. Perth), emitting a broadband signal (7MHz) of known power (50kW).
+* The emission from the TV station arrives at LOW stations with phase delay and attenuation. Neither of these are
+well known but they are probably static.
+* The RFI enters LOW stations in a sidelobe of the main beam. Calulations by Fred Dulwich indicate that this
+provides attenuation of about 55 - 60dB for a source close to the horizon.
+* The RFI enters each LOW station with fixed delay and zero fringe rate (assuming no e.g. ionospheric ducting)
+* In tracking a source on the sky, the signal from one station is delayed and fringe-rotated to stop the fringes for one direction on the sky.
+* The fringe rotation stops the fringe from a source at the phase tracking centre but phase rotates the RFI, which
+now becomes time-variable.
+* The correlation data are time- and frequency-averaged over a timescale appropriate for the station field of view.
+This averaging decorrelates the RFI signal.
+* We want to study the effects of this RFI on statistics of the images: on source and at the pole.
+"""
+
 import numpy
 from astropy import constants
 import astropy.units as u
@@ -104,15 +121,17 @@ def calculate_station_fringe_rotation(ants_xyz, times, frequency, phasecentre, p
     ntimes = len(times)
     uvw = uvw.reshape([nants, 3, ntimes])
     uvw = numpy.transpose(uvw, [0, 2, 1])
-    lmn = skycoord_to_lmn(phasecentre, pole)
-    delay = numpy.dot(uvw, lmn)
+    
+    l, m, n = skycoord_to_lmn(phasecentre, pole)
+    s = numpy.array([l, m, numpy.sqrt(1 - l ** 2 - m ** 2) - 1.0])
+    delay = numpy.dot(uvw, s)
     nchan = len(frequency)
     phase = numpy.zeros([nants, ntimes, nchan])
     for ant in range(nants):
         for chan in range(nchan):
             phase[ant, :, chan] = delay[ant] * frequency[chan] / constants.c.value
     phase[...] -= phase[0, :, :][numpy.newaxis,...]
-    return numpy.exp(2.0 * numpy.pi * 1j * phase), uvw
+    return numpy.exp(-2.0 * numpy.pi * 1j * phase), uvw
 
 
 def calculate_station_correlation_rfi(fringe_rotation, rfi_at_station):
@@ -126,10 +145,12 @@ def calculate_station_correlation_rfi(fringe_rotation, rfi_at_station):
     nants, ntimes, nchan = fringe_rotation.shape
     correlation = numpy.zeros([nants, nants, ntimes, nchan], dtype='complex')
     
+    # We only phaserotate one station in an interferometer
     for time in range(ntimes):
         for chan in range(nchan):
-            correlation[..., time, chan] = numpy.outer(phased_rotated_rfi_at_station[..., time, chan],
+            correlation[..., time, chan] = numpy.outer(rfi_at_station[..., time, chan],
                                                        numpy.conjugate(phased_rotated_rfi_at_station[..., time, chan]))
+
     return correlation * 1e26
 
 
