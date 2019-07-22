@@ -6,12 +6,13 @@ MAKE_DBG ?= ""
 TESTS ?= tests/
 FLAKE ?= flake8
 NAME = arl
-IMG ?= $(NAME)_img
+IMG ?= $(NAME)
 TAG ?= ubuntu18.04
 DOCKER_IMAGE = $(IMG):$(TAG)
-DOCKERFILE ?= Dockerfile.ubuntu18.04
+BASE_IMAGE ?= piersharding/mpibase:ubuntu18.04
+DOCKERFILE ?= Dockerfile
 DOCKER = docker
-DOCKER_REPO ?= ""
+DOCKER_REPO ?= piersharding/
 DOCKER_USER ?= ""
 DOCKER_PASSWORD ?= ""
 WORKER_MEM ?= 512Mi
@@ -23,7 +24,21 @@ JUPYTER_PASSWORD ?= changeme
 SERVER_DEVICE ?= $(shell ip link | grep BROADCAST | head -1 | awk '{print $$2}' | sed 's/://')
 NFS_SERVER ?= "127.0.0.1"
 
+# Kubernetes vars
+KUBE_NAMESPACE ?= "default"
+KUBECTL_VERSION ?= 1.14.1
+HELM_VERSION ?= v2.14.0
+HELM_CHART = arl-cluster
+HELM_RELEASE ?= test
+
+# ARL data directory usualy found in ./data
+ARLDATA = $(CURRENT_DIR)/data
+
+# INGRESS_HOST is the host name used in the Ingress resource definition for
+# publishing services via the Ingress Controller
+INGRESS_HOST ?= $(HELM_RELEASE).$(HELM_CHART).local
 # define overides for above variables in here
+
 -include PrivateRules.mak
 
 .DEFAULT_GOAL := help
@@ -100,9 +115,11 @@ notebook:  ## launch local jupyter notebook server
 	jupyter notebook --no-browser --ip=$${IP} --port=8888 examples/arl/
 
 docker_build:
-	$(DOCKER) build -t $(DOCKER_IMAGE) -f $(DOCKERFILE) --build-arg PYTHON=$(PYTHON) .
+	$(DOCKER) build -t $(DOCKER_IMAGE) -f $(DOCKERFILE) \
+	  --build-arg PYTHON=$(PYTHON) \
+		--build-arg BASE_IMAGE=$(BASE_IMAGE) .
 
-docker_push: docker_build
+push: docker_build
 	docker tag $(DOCKER_IMAGE) $(DOCKER_REPO)$(DOCKER_IMAGE)
 	docker push $(DOCKER_REPO)$(DOCKER_IMAGE)
 
@@ -112,42 +129,6 @@ docker_nfs_arl_data:
 	docker run -d --name nfs --privileged -p 2049:2049 \
 	-v $(CURRENT_DIR)/:/arl \
 	-e SHARED_DIRECTORY=/arl itsthenetwork/nfs-server-alpine:latest
-
-k8s_deploy_scheduler:
-	DOCKER_IMAGE=$(DOCKER_REPO)$(DOCKER_IMAGE) \
-	 envsubst < k8s/resources/k8s-dask-scheduler-deployment.yml | kubectl apply -f -
-
-k8s_delete_scheduler:
-	DOCKER_IMAGE=$(DOCKER_REPO)$(DOCKER_IMAGE) \
-	 envsubst < k8s/resources/k8s-dask-scheduler-deployment.yml | kubectl delete -f - || true
-
-k8s_deploy_worker:
-	DOCKER_IMAGE=$(DOCKER_REPO)$(DOCKER_IMAGE) \
-	WORKER_MEM=$(WORKER_MEM) WORKER_CPU=$(WORKER_CPU) \
-	WORKER_REPLICAS=$(WORKER_REPLICAS) \
-	WORKER_ARL_DATA=$(WORKER_ARL_DATA) \
-	NFS_SERVER=$(NFS_SERVER) \
-	 envsubst < k8s/resources/k8s-dask-worker-deployment.yml | kubectl apply -f -
-
-k8s_delete_worker:
-	DOCKER_IMAGE=$(DOCKER_REPO)$(DOCKER_IMAGE) \
-	WORKER_MEM=$(WORKER_MEM) WORKER_CPU=$(WORKER_CPU) \
-	WORKER_REPLICAS=$(WORKER_REPLICAS) \
-	WORKER_ARL_DATA=$(WORKER_ARL_DATA) \
-	NFS_SERVER=$(NFS_SERVER) \
-	 envsubst < k8s/resources/k8s-dask-worker-deployment.yml | kubectl delete -f - || true
-
-k8s_deploy_notebook:
-	DOCKER_IMAGE=$(DOCKER_REPO)$(DOCKER_IMAGE) \
-	WORKER_ARL_DATA=$(WORKER_ARL_DATA) \
-	NFS_SERVER=$(NFS_SERVER) \
-	 envsubst < k8s/resources/k8s-dask-notebook-deployment.yml | kubectl apply -f -
-
-k8s_delete_notebook:
-	DOCKER_IMAGE=$(DOCKER_REPO)$(DOCKER_IMAGE) \
-	WORKER_ARL_DATA=$(WORKER_ARL_DATA) \
-	NFS_SERVER=$(NFS_SERVER) \
-	 envsubst < k8s/resources/k8s-dask-notebook-deployment.yml | kubectl delete -f - || true
 
 docker_notebook: docker_build
 	CTNR=`$(DOCKER) ps -q -f name=$(NAME)_notebook` && \
@@ -159,10 +140,6 @@ docker_notebook: docker_build
             --net=host -p 8888:8888 -p 8787:8787 -p 8788:8788 -p 8789:8789 -d $(DOCKER_IMAGE)
 	sleep 3
 	$(DOCKER) logs $(NAME)_notebook
-
-k8s_deploy: k8s_deploy_scheduler k8s_deploy_worker k8s_deploy_notebook
-
-k8s_delete: k8s_delete_notebook k8s_delete_worker k8s_delete_scheduler
 
 docker_test_data:
 	CTNR=`$(DOCKER) ps -q -f name=helper` && \
@@ -204,6 +181,145 @@ docker_shell:
 launch_dask:
 	cd tools && ansible-playbook -i ./inventory ./docker.yml
 
+namespace: ## create the kubernetes namespace
+	kubectl describe namespace $(KUBE_NAMESPACE) || kubectl create namespace $(KUBE_NAMESPACE)
+
+delete_namespace: ## delete the kubernetes namespace
+	@if [ "default" == "$(KUBE_NAMESPACE)" ] || [ "kube-system" == "$(KUBE_NAMESPACE)" ]; then \
+	echo "You cannot delete Namespace: $(KUBE_NAMESPACE)"; \
+	exit 1; \
+	else \
+	kubectl describe namespace $(KUBE_NAMESPACE) && kubectl delete namespace $(KUBE_NAMESPACE); \
+	fi
+
+deploy: namespace mkcerts  ## deploy the helm chart
+	@helm template charts/$(HELM_CHART)/ --name $(HELM_RELEASE) \
+				 --namespace $(KUBE_NAMESPACE) \
+         --tiller-namespace $(KUBE_NAMESPACE) \
+				 --set helmTests=false \
+				 --set arldatadir=$(ARLDATA) \
+				 --set ingress.hostname=$(INGRESS_HOST) | kubectl -n $(KUBE_NAMESPACE) apply -f -
+
+install: namespace mkcerts  ## install the helm chart (with Tiller)
+	@helm tiller run $(KUBE_NAMESPACE) -- helm install charts/$(HELM_CHART)/ --name $(HELM_RELEASE) \
+		--wait \
+		--namespace $(KUBE_NAMESPACE) \
+		--tiller-namespace $(KUBE_NAMESPACE) \
+		--set arldatadir=$(ARLDATA) \
+		--set ingress.hostname=$(INGRESS_HOST)
+
+helm_delete: ## delete the helm chart release (with Tiller)
+	@helm tiller run $(KUBE_NAMESPACE) -- helm delete $(HELM_RELEASE) --purge \
+		--tiller-namespace $(KUBE_NAMESPACE)
+
+show: mkcerts ## show the helm chart
+	@helm template charts/$(HELM_CHART)/ --name $(HELM_RELEASE) \
+				 --namespace $(KUBE_NAMESPACE) \
+         --tiller-namespace $(KUBE_NAMESPACE) \
+				 --set arldatadir=$(ARLDATA) \
+				 --set ingress.hostname=$(INGRESS_HOST)
+
+lint: ## lint check the helm chart
+	@helm lint charts/$(HELM_CHART)/ \
+				 --namespace $(KUBE_NAMESPACE) \
+         --tiller-namespace $(KUBE_NAMESPACE) \
+				 --set arldatadir=$(ARLDATA) \
+				 --set ingress.hostname=$(INGRESS_HOST)
+
+delete: ## delete the helm chart release
+	@helm template charts/$(HELM_CHART)/ --name $(HELM_RELEASE) \
+				 --namespace $(KUBE_NAMESPACE) \
+         --tiller-namespace $(KUBE_NAMESPACE) | kubectl -n $(KUBE_NAMESPACE) delete -f -
+
+logs: ## show Helm chart POD logs
+	@for i in `kubectl -n $(KUBE_NAMESPACE) get pods -l app.kubernetes.io/instance=$(HELM_RELEASE) -o=name`; \
+	do \
+		echo "---------------------------------------------------"; \
+		echo "Logs for $${i}"; \
+		echo kubectl -n $(KUBE_NAMESPACE) logs $${i}; \
+		echo kubectl -n $(KUBE_NAMESPACE) get $${i} -o jsonpath="{.spec.initContainers[*].name}"; \
+		echo "---------------------------------------------------"; \
+		for j in `kubectl -n $(KUBE_NAMESPACE) get $${i} -o jsonpath="{.spec.initContainers[*].name}"`; do \
+			RES=`kubectl -n $(KUBE_NAMESPACE) logs $${i} -c $${j} 2>/dev/null`; \
+			echo "initContainer: $${j}"; echo "$${RES}"; \
+			echo "---------------------------------------------------";\
+		done; \
+		echo "Main Pod logs for $${i}"; \
+		echo "---------------------------------------------------"; \
+		for j in `kubectl -n $(KUBE_NAMESPACE) get $${i} -o jsonpath="{.spec.containers[*].name}"`; do \
+			RES=`kubectl -n $(KUBE_NAMESPACE) logs $${i} -c $${j} 2>/dev/null`; \
+			echo "Container: $${j}"; echo "$${RES}"; \
+			echo "---------------------------------------------------";\
+		done; \
+		echo "---------------------------------------------------"; \
+		echo ""; echo ""; echo ""; \
+	done
+
+describe: ## describe Pods executed from Helm chart
+	@for i in `kubectl -n $(KUBE_NAMESPACE) get pods -l app.kubernetes.io/instance=$(HELM_RELEASE) -o=name`; \
+	do echo "---------------------------------------------------"; \
+	echo "Describe for $${i}"; \
+	echo kubectl -n $(KUBE_NAMESPACE) describe $${i}; \
+	echo "---------------------------------------------------"; \
+	kubectl -n $(KUBE_NAMESPACE) describe $${i}; \
+	echo "---------------------------------------------------"; \
+	echo ""; echo ""; echo ""; \
+	done
+
+helm_tests:  ## run Helm chart tests
+	helm tiller run $(KUBE_NAMESPACE) -- helm test $(HELM_RELEASE) --cleanup
+
+helm_dependencies: ## Utility target to install Helm dependencies
+	@which helm ; rc=$$?; \
+	if [ $$rc != 0 ]; then \
+	curl "https://kubernetes-helm.storage.googleapis.com/helm-$(HELM_VERSION)-linux-amd64.tar.gz" | tar zx; \
+	mv linux-amd64/helm /usr/bin/; \
+	helm init --client-only; \
+	fi
+	@helm init --client-only
+	@if [ ! -d $$HOME/.helm/plugins/helm-tiller ]; then \
+	echo "installing tiller plugin..."; \
+	helm plugin install https://github.com/rimusz/helm-tiller; \
+	fi
+	helm version --client
+	@helm tiller stop 2>/dev/null || true
+
+kubectl_dependencies: ## Utility target to install K8s dependencies
+	@([ -n "$(KUBE_CONFIG_BASE64)" ] && [ -n "$(KUBECONFIG)" ]) || (echo "unset variables [KUBE_CONFIG_BASE64/KUBECONFIG] - abort!"; exit 1)
+	@which kubectl ; rc=$$?; \
+	if [[ $$rc != 0 ]]; then \
+		curl -L -o /usr/bin/kubectl "https://storage.googleapis.com/kubernetes-release/release/$(KUBERNETES_VERSION)/bin/linux/amd64/kubectl"; \
+		chmod +x /usr/bin/kubectl; \
+		mkdir -p /etc/deploy; \
+		echo $(KUBE_CONFIG_BASE64) | base64 -d > $(KUBECONFIG); \
+	fi
+	@echo -e "\nkubectl client version:"
+	@kubectl version --client
+	@echo -e "\nkubectl config view:"
+	@kubectl config view
+	@echo -e "\nkubectl config get-contexts:"
+	@kubectl config get-contexts
+	@echo -e "\nkubectl version:"
+	@kubectl version
+
+localip:  ## set local Minikube IP in /etc/hosts file for Ingress $(INGRESS_HOST)
+	@new_ip=`minikube ip` && \
+	existing_ip=`grep $(INGRESS_HOST) /etc/hosts || true` && \
+	echo "New IP is: $${new_ip}" && \
+	echo "Existing IP: $${existing_ip}" && \
+	if [ -z "$${existing_ip}" ]; then echo "$${new_ip} $(INGRESS_HOST)" | sudo tee -a /etc/hosts; \
+	else sudo perl -i -ne "s/\d+\.\d+.\d+\.\d+/$${new_ip}/ if /$(INGRESS_HOST)/; print" /etc/hosts; fi && \
+	echo "/etc/hosts is now: " `grep $(INGRESS_HOST) /etc/hosts`
+
+mkcerts:  ## Make dummy certificates for $(INGRESS_HOST) and Ingress
+	@if [ ! -f charts/$(HELM_CHART)/secrets/tls.key ]; then \
+	openssl req -x509 -sha256 -nodes -days 365 -newkey rsa:2048 \
+	   -keyout charts/$(HELM_CHART)/secrets/tls.key \
+		 -out charts/$(HELM_CHART)/secrets/tls.crt \
+		 -subj "/CN=$(INGRESS_HOST)/O=Minikube"; \
+	else \
+	echo "SSL cert already exits in charts/$(HELM_CHART)/secrets ... skipping"; \
+	fi
 
 help:  ## show this help.
 	@echo "make targets:"

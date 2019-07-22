@@ -1,26 +1,52 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: dask-scheduler-{{ template "arl-cluster.name" . }}-{{ .Release.Name }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app.kubernetes.io/name: dask-scheduler-{{ template "arl-cluster.name" . }}
+    app.kubernetes.io/instance: "{{ .Release.Name }}"
+    app.kubernetes.io/managed-by: "{{ .Release.Service }}"
+    helm.sh/chart: "{{ template "arl-cluster.chart" . }}"
+spec:
+  selector:
+    app.kubernetes.io/name:  dask-scheduler-{{ template "arl-cluster.name" . }}
+    app.kubernetes.io/instance: "{{ .Release.Name }}"
+  type: {{ .Values.daskscheduler.service.type }}
+  ports:
+  - name: scheduler
+    port: {{ .Values.daskscheduler.service.scheduler.port }}
+    targetPort: scheduler
+    protocol: TCP
+  - name: bokeh
+    port: {{ .Values.daskscheduler.service.bokeh.port }}
+    targetPort: bokeh
+    protocol: TCP
+
 ---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: dask-scheduler
+  name: dask-scheduler-{{ template "arl-cluster.name" . }}-{{ .Release.Name }}
   namespace: {{ .Release.Namespace }}
   labels:
-    app: dask-scheduler-{{ template "arl-cluster.name" . }}
-    chart: {{ template "arl-cluster.chart" . }}
-    release: {{ .Release.Name }}
-    heritage: {{ .Release.Service }}
+    app.kubernetes.io/name: dask-scheduler-{{ template "arl-cluster.name" . }}
+    app.kubernetes.io/instance: "{{ .Release.Name }}"
+    app.kubernetes.io/managed-by: "{{ .Release.Service }}"
+    helm.sh/chart: "{{ template "arl-cluster.chart" . }}"
 spec:
   selector:
     matchLabels:
-      app: dask-scheduler-{{ template "arl-cluster.name" . }}
-      release: {{ .Release.Name }}
+      app.kubernetes.io/name: dask-scheduler-{{ template "arl-cluster.name" . }}
+      app.kubernetes.io/instance: "{{ .Release.Name }}"
   replicas: 1
   template:
     metadata:
       labels:
-        k8s-app: dask-scheduler-{{ template "arl-cluster.name" . }}
-        app: dask-scheduler-{{ template "arl-cluster.name" . }}
-        release: {{ .Release.Name }}
+        app.kubernetes.io/name: dask-scheduler-{{ template "arl-cluster.name" . }}
+        app.kubernetes.io/instance: "{{ .Release.Name }}"
+        app.kubernetes.io/managed-by: "{{ .Release.Service }}"
+        helm.sh/chart: "{{ template "arl-cluster.chart" . }}"
     spec:
       imagePullSecrets:
         - name: {{ .Values.image.pullSecret }}
@@ -36,13 +62,13 @@ spec:
               fieldRef:
                 fieldPath: status.podIP
           - name: DASK_SCHEDULER
-            value: dask-scheduler-{{ template "arl-cluster.fullname" . }}.default.svc.cluster.local
+            value: dask-scheduler-{{ template "arl-cluster.name" . }}-{{ .Release.Name }}.{{ .Release.Namespace }}
           - name: DASK_PORT_SCHEDULER
             value: "8786"
           - name: DASK_PORT_BOKEH
             value: "8787"
           - name: DASK_BOKEH_WHITELIST
-            value: dask-scheduler-{{ template "arl-cluster.fullname" . }}.default.svc.cluster.local
+            value: dask-scheduler-{{ template "arl-cluster.name" . }}-{{ .Release.Name }}.{{ .Release.Namespace }}
           - name: DASK_BOKEH_APP_PREFIX
             value: "/"
           - name: DASK_LOCAL_DIRECTORY
@@ -60,7 +86,7 @@ spec:
               fieldRef:
                 fieldPath: metadata.name
           - name: DASK_SCHEDULER
-            value: dask-scheduler-{{ template "arl-cluster.fullname" . }}.default.svc.cluster.local
+            value: dask-scheduler-{{ template "arl-cluster.name" . }}-{{ .Release.Name }}.{{ .Release.Namespace }}
           - name: DASK_CPU_LIMIT
             valueFrom:
               resourceFieldRef:
