@@ -18,7 +18,6 @@ from astropy.time import Time
 from data_models.memory_data_models import Visibility, BlockVisibility, Configuration
 from data_models.polarisation import PolarisationFrame, ReceptorFrame, correlate_polarisation
 from processing_library.util.coordinate_support import xyz_to_uvw, uvw_to_xyz, skycoord_to_lmn, simulate_point, pa_z
-from processing_components.visibility import msv2
 
 log = logging.getLogger(__name__)
 

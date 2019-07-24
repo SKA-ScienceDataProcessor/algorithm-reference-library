@@ -3,31 +3,25 @@
 """Unit test for the measurementset module."""
 
 import os
+import shutil
+import tempfile
 import time
 import unittest
-import tempfile
+
 import numpy
-import shutil
 
-import logging
-import sys
-import unittest
-
-import astropy.units as u
-import numpy
-from astropy.coordinates import SkyCoord
-
-from data_models.polarisation import PolarisationFrame
-from processing_components.simulation.configurations import create_named_configuration
-from processing_components.visibility.base import create_visibility
-from processing_components.visibility import msv2
-from data_models.memory_data_models import Visibility, BlockVisibility, Configuration
-from data_models.polarisation import PolarisationFrame, ReceptorFrame, correlate_polarisation
-
+from data_models.memory_data_models import Configuration
+from data_models.polarisation import ReceptorFrame
 
 run_ms_tests = False
 try:
     import casacore
+    run_ms_tests = True
+except ImportError:
+    pass
+
+try:
+    from processing_components.visibility import msv2
     run_ms_tests = True
 except ImportError:
     pass
