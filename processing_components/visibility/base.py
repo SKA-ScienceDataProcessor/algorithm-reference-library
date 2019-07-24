@@ -339,6 +339,11 @@ def export_blockbivisility_to_ms(msname, vis, ack=False):
     except ModuleNotFoundError:
         raise ModuleNotFoundError("casacore is not installed")
 
+    try:
+        from processing_components.visibility import msv2
+    except ModuleNotFoundError:
+        raise ModuleNotFoundError("cannot import msv2")
+
     # log.debug("create_blockvisibility_from_ms: %s" % str(tab.info()))
     # Start the table
     tbl = msv2.Ms(msname, ref_time=0, ifdelete=True)
@@ -392,7 +397,12 @@ def create_blockvisibility_from_ms(msname, channum=None, ack=False):
         from casacore.tables import table  # pylint: disable=import-error
     except ModuleNotFoundError:
         raise ModuleNotFoundError("casacore is not installed")
-    
+    try:
+        from processing_components.visibility import msv2
+    except ModuleNotFoundError:
+        raise ModuleNotFoundError("cannot import msv2")
+
+
     tab = table(msname, ack=ack)
     log.debug("create_blockvisibility_from_ms: %s" % str(tab.info()))
 
