@@ -21,7 +21,8 @@ import astropy.units as u
 from astropy.coordinates import SkyCoord
 
 from processing_library.util.array_functions import average_chunks2
-from processing_library.util.coordinate_support import xyz_to_uvw, skycoord_to_lmn
+from processing_library.util.compass_bearing import calculate_initial_compass_bearing
+from processing_library.util.coordinate_support import skycoord_to_lmn, azel_to_hadec, hadec_to_azel
 from processing_components.visibility.base import simulate_point
 
 def simulate_DTV(frequency, times, power=50e3, timevariable=False, frequency_variable=False):
@@ -117,7 +118,7 @@ def calculate_averaged_correlation(correlation, channel_width, time_width):
     return average_chunks2(correlation, wts, (channel_width, time_width))[0]
 
 
-def simulate_rfi_block(bvis, emitter_location, emitter_power=5e4, attenuation=1.0):
+def simulate_rfi_block(bvis, emitter_location, emitter_power=5e4, attenuation=1.0, use_pole=False):
     """ Simulate RFI block
 
     :param config: ARL telescope Configuration
@@ -127,6 +128,7 @@ def simulate_rfi_block(bvis, emitter_location, emitter_power=5e4, attenuation=1.
     :param emitter_location: EarthLocation of emitter
     :param emitter_power: Power of emitter
     :param attenuation: Attenuation to be applied to signal
+    :param use_pole: Set the emitter to nbe at the southern celestial pole
     :return:
     """
 
@@ -147,17 +149,45 @@ def simulate_rfi_block(bvis, emitter_location, emitter_power=5e4, attenuation=1.
 
     ntimes, nant, _, nchan, npol = bvis.vis.shape
 
-    pole = SkyCoord(ra=+0.0 * u.deg, dec=-90.0 * u.deg, frame='icrs', equinox='J2000')
-
-    # Calculate phasor needed to shift from the phasecentre to the pole
-    l, m, n = skycoord_to_lmn(pole, bvis.phasecentre)
+    s2r = numpy.pi / 43200.0
     k = numpy.array(bvis.frequency) / constants.c.to('m s^-1').value
     uvw = bvis.uvw[..., numpy.newaxis] * k
-    phasor = numpy.ones([ntimes, nant, nant, nchan, npol], dtype='complex')
-    for chan in range(nchan):
-        phasor[:, :, :, chan, :] = simulate_point(uvw[..., chan], l, m)[..., numpy.newaxis]
 
-    # Now fill this into the BlockVisibility
-    bvis.data['vis'] = bvis.data['vis'] * phasor
+    pole = SkyCoord(ra=+0.0 * u.deg, dec=-90.0 * u.deg, frame='icrs', equinox='J2000')
+
+    if use_pole:
+        # Calculate phasor needed to shift from the phasecentre to the pole
+        l, m, n = skycoord_to_lmn(pole, bvis.phasecentre)
+        phasor = numpy.ones([ntimes, nant, nant, nchan, npol], dtype='complex')
+        for chan in range(nchan):
+            phasor[:, :, :, chan, :] = simulate_point(uvw[..., chan], l, m)[..., numpy.newaxis]
+    
+        # Now fill this into the BlockVisibility
+        bvis.data['vis'] = bvis.data['vis'] * phasor
+    else:
+        # We know where the emitter is. Calculate the bearing to the emitter from
+        # the site, generate az, el, and convert to ha, dec. ha, dec is static.
+        site = bvis.configuration.location
+        site_tup = (site.lat.deg, site.lon.deg)
+        emitter_tup = (emitter_location.lat.deg, emitter_location.lon.deg)
+        az = - calculate_initial_compass_bearing(site_tup, emitter_tup) * numpy.pi / 180.0
+        el = 0.0
+        hadec = azel_to_hadec(az, el, site.lat.rad)
+
+        # Now step through the time stamps, calculating the effective
+        # sky position for the emitter, and performing phase rotation
+        # appropriately
+        for itime, time in enumerate(bvis.time):
+            ra = - hadec[0] + s2r * time
+            dec = hadec[1]
+            emitter_sky = SkyCoord(ra * u.rad, dec * u.rad)
+            l, m, n = skycoord_to_lmn(emitter_sky, bvis.phasecentre)
+
+            phasor = numpy.ones([nant, nant, nchan, npol], dtype='complex')
+            for chan in range(nchan):
+                phasor[:, :, chan, :] = simulate_point(uvw[itime, ..., chan], l, m)[..., numpy.newaxis]
+
+            # Now fill this into the BlockVisibility
+            bvis.data['vis'][itime, ...] = bvis.data['vis'][itime, ...] * phasor
 
     return bvis
