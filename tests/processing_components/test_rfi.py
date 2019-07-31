@@ -12,8 +12,7 @@ from astropy.coordinates import SkyCoord, EarthLocation
 
 from processing_components.simulation.configurations import create_named_configuration
 from processing_components.simulation.rfi import create_propagators, calculate_rfi_at_station, \
-    calculate_station_correlation_rfi, calculate_station_fringe_rotation, \
-    simulate_DTV
+    calculate_station_correlation_rfi, simulate_DTV
 
 log = logging.getLogger(__name__)
 
@@ -30,9 +29,6 @@ class TestRFISim(unittest.TestCase):
         ntimes = 100
         integration_time = 0.5
         times = numpy.arange(ntimes) * integration_time
-        
-        phasecentre = SkyCoord(ra=+30.0 * u.deg, dec=-45.0 * u.deg, frame='icrs', equinox='J2000')
-        pole = SkyCoord(ra=+0.0 * u.deg, dec=-90.0 * u.deg, frame='icrs', equinox='J2000')
         
         # Perth from Google for the moment
         perth = EarthLocation(lon="115.8605", lat="-31.9505", height=0.0)
@@ -57,17 +53,12 @@ class TestRFISim(unittest.TestCase):
         
         # Now calculate the RFI at the stations, based on the emitter and the propagators
         rfi_at_station = calculate_rfi_at_station(propagators, emitter)
-        assert rfi_at_station.shape == (nants, ntimes, nchannels), rfi_at_station.shape
+        assert rfi_at_station.shape == (ntimes, nants, nchannels), rfi_at_station.shape
         
-        # Station fringe rotation: shape [nants, ntimes, nchan] complex phasor to be applied to
-        # reference to the pole.
-        fringe_rotation, uvw = calculate_station_fringe_rotation(low.xyz, times, frequency, phasecentre, pole)
-        numpy.testing.assert_allclose(numpy.abs(fringe_rotation), 1.0)
-        
-        # Calculate the rfi correlationm using the fringe rotation and the rfi at the station
+        # Calculate the rfi correlation
         # [nants, nants, ntimes, nchan]
-        correlation = calculate_station_correlation_rfi(fringe_rotation, rfi_at_station)
-        assert correlation.shape == (nants, nants, ntimes, nchannels), correlation.shape
+        correlation = calculate_station_correlation_rfi(rfi_at_station)
+        assert correlation.shape == (ntimes, nants, nants, nchannels, 1), correlation.shape
 
 
 if __name__ == '__main__':
