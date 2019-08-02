@@ -203,7 +203,7 @@ def create_blockvisibility(config: Configuration,
                 ruvw[iha, a1, a2, :] = (ant_pos[a1, :] - ant_pos[a2, :])
     
     rintegration_time = numpy.full_like(rtimes, integration_time)
-    rchannel_bandwidth = numpy.full_like(frequency, channel_bandwidth)
+    rchannel_bandwidth = channel_bandwidth
     if zerow:
         ruvw[..., 2] = 0.0
     vis = BlockVisibility(uvw=ruvw, time=rtimes, frequency=frequency, vis=rvis, weight=rweight,
@@ -335,6 +335,7 @@ def export_blockbivisility_to_ms(msname, vis, ack=False):
                              taql, tablerename, tablecopy, tablecolumn, addDerivedMSCal, removeImagingColumns,
                              addImagingColumns, required_ms_desc, tabledefinehypercolumn, default_ms, makedminfo,
                              default_ms_subtable)
+        from processing_components.visibility.msv2fund import Antenna, Stand
     except ModuleNotFoundError:
         raise ModuleNotFoundError("casacore is not installed")
 
@@ -347,37 +348,81 @@ def export_blockbivisility_to_ms(msname, vis, ack=False):
     # Start the table
     tbl = msv2.Ms(msname, ref_time=0, ifdelete=True)
 
+    # Check polarisition
+    npol = vis.npol
+    nchan = vis.nchan
+    nants = vis.nants
+    if vis.polarisation_frame.type == 'linear':
+        polarization = ['XX','XY','YX','YY']
+    elif vis.polarisation_frame.type == 'stokesI':
+        polarization = ['XX']
+    elif vis.polarisation_frame.type == 'circular':
+        polarization = ['RR','RL','LR','LL']
+    elif vis.polarisation_frame.type == 'stokesIQUV':
+        polarization = ['I','Q','U','V']
     # Current ARL suppots I
-    tbl.set_stokes(['XX','XY','YX','YY'])
-    tbl.set_frequency(vis.frequency)
+    tbl.set_stokes(polarization)
+    tbl.set_frequency(vis.frequency,vis.channel_bandwidth)
     n_ant = len(vis.configuration.xyz)
-    antenna1 = list(range(n_ant))
-    tbl.set_geometry(vis.configuration, antenna1)
+
+    antennas = []
+    names = vis.configuration.names
+    mount = vis.configuration.mount
+    diameter = vis.configuration.diameter
+    xyz = vis.configuration.xyz
+    for i in range(len(names)):
+        antennas.append(Antenna(i, Stand(names[i], xyz[i, 0], xyz[i, 1], xyz[i, 2])))
+
     # Set baselines and data
     blList = []
-    N = len(antenna1)
-    antenna2 = antenna1
 
-    for i in range(0, N - 1):
-        for j in range(i + 1, N):
-            blList.append((antenna1[i], antenna2[j]))
+    antennas2 = antennas
+
+    for i in range(0, n_ant - 1):
+        for j in range(i + 1, n_ant):
+            blList.append((antennas[i], antennas2[j]))
+
+    tbl.set_geometry(vis.configuration, antennas)
+    nbaseline = len(blList)
     ntimes = len(vis.data['time'])
-    ms_vis = numpy.zeros([ntimes*vis.nants*vis.nants, vis.nchan, vis.npol]).astype('complex')
-    
-    # for row, _ in enumerate(vis.data['vis']):
-    #     # MS has shape [row, npol, nchan]
-    #     # BV has shape [ntimes, nants, nants, nchan, npol]
-    #     if vis.data['time'][row] != time_last:
-    #             assert vis.data['time'][row] > time_last, "MS is not time-sorted - cannot convert"
-    #             time_index += 1
-    #             time_last = vis.data['time'][row]
-    #     ms_vis[row, ...] = vis.data['vis'][0, antenna2[row], antenna1[row], ...]
-    ms_vis = vis.data['vis'].reshape(-1, vis.nchan, vis.npol)
-    # msvis = ms_vis.reshape(-1, vis.nchan, vis.npol)
-    tbl.add_data_set(vis.data['time'], vis.data['integration_time'], blList, ms_vis[...,0],pol='XX')
-    tbl.add_data_set(vis.data['time'], vis.data['integration_time'], blList, ms_vis[...,1],pol='XY')
-    tbl.add_data_set(vis.data['time'], vis.data['integration_time'], blList, ms_vis[...,2],pol='YX')
-    tbl.add_data_set(vis.data['time'], vis.data['integration_time'], blList, ms_vis[...,3],pol='YY')
+
+    ms_vis = numpy.zeros([ntimes, nbaseline, nchan, npol]).astype('complex')
+    ms_uvw = numpy.zeros([ntimes, nbaseline, 3])
+    # bv_vis = numpy.zeros([ntimes, nants, nants, nchan, npol]).astype('complex')
+    # bv_weight = numpy.zeros([ntimes, nants, nants, nchan, npol])
+    # bv_imaging_weight = numpy.zeros([ntimes, nants, nants, nchan, npol])
+    # bv_uvw = numpy.zeros([ntimes, nants, nants, 3])
+    time = vis.data['time']
+    int_time = vis.data['integration_time']
+    bv_vis = vis.data['vis']
+    bv_uvw = vis.data['uvw']
+
+    # bv_antenna1 = vis.data['antenna1']
+    # bv_antenna2 = vis.data['antenna2']
+
+    time_last = time[0]
+    time_index = 0
+    for row,_ in enumerate(time):
+        # MS has shape [row, npol, nchan]
+        # BV has shape [ntimes, nants, nants, nchan, npol]
+        bl = 0
+        for i in range(0, n_ant - 1):
+            for j in range(i + 1, n_ant):
+                ms_vis[row, bl,...] = bv_vis[row, j, i, ...]
+                # bv_weight[time_index, antenna2[row], antenna1[row], :, ...] = ms_weight[row, numpy.newaxis, ...]
+                # bv_imaging_weight[time_index, antenna2[row], antenna1[row], :, ...] = ms_weight[row, numpy.newaxis, ...]
+                ms_uvw[row,bl,:] = bv_uvw[row, j, i, :]
+                bl += 1
+
+    # ms_vis = numpy.zeros([ntimes*vis.nants*vis.nants, vis.nchan, vis.npol]).astype('complex')
+    # ms_uvw = vis.uvw.reshape(ntimes,-1,3)
+    for ntime, time in enumerate(vis.data['time']):
+        for ipol, pol in enumerate(polarization):
+            if int_time[ntime] is not None:
+                tbl.add_data_set(time, int_time[ntime], blList, ms_vis[ntime,...,ipol],pol=pol,source=vis.phasecentre, uvw=ms_uvw[ntime,:,:])
+            else:
+                tbl.add_data_set(time, 0, blList, ms_vis[ntime, ..., ipol], pol=pol,
+                                 source=vis.phasecentre, uvw=ms_uvw[ntime, :, :])
     tbl.write()
 
 def create_blockvisibility_from_ms(msname, channum=None, ack=False):
@@ -430,7 +475,9 @@ def create_blockvisibility_from_ms(msname, channum=None, ack=False):
             antenna1 = ms.getcol('ANTENNA1')
             antenna2 = ms.getcol('ANTENNA2')
             integration_time = ms.getcol('INTERVAL')
-            
+
+            time = Time((time-integration_time/2.0)/86400+ 2400000.5,format='jd',scale='utc').unix
+
             # Now get info from the subtables
             spwtab = table('%s/SPECTRAL_WINDOW' % msname, ack=False)
             cfrequency = spwtab.getcol('CHAN_FREQ')[dd][channum]
@@ -492,13 +539,16 @@ def create_blockvisibility_from_ms(msname, channum=None, ack=False):
                 bv_weight[time_index, antenna2[row], antenna1[row], :, ...] = ms_weight[row, numpy.newaxis, ...]
                 bv_imaging_weight[time_index, antenna2[row], antenna1[row], :, ...] = ms_weight[row, numpy.newaxis, ...]
                 bv_uvw[time_index, antenna2[row], antenna1[row], :] = uvw[row, :]
-    
+
+            bv_integration_time = numpy.full_like(bv_times, numpy.unique(integration_time))
+
             vis_list.append(BlockVisibility(uvw=bv_uvw,
                                             time=bv_times,
                                             frequency=cfrequency,
                                             channel_bandwidth=cchannel_bandwidth,
                                             vis=bv_vis,
                                             weight=bv_weight,
+                                            integration_time = bv_integration_time,
                                             imaging_weight=bv_imaging_weight,
                                             configuration=configuration,
                                             phasecentre=phasecentre,
