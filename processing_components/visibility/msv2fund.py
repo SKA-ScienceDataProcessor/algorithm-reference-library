@@ -236,12 +236,20 @@ try:
             self.sideBand = 1
             self.baseBand = 0
 
+    class Source:
+        """
+        Information about the observational target
+        """
+        def __init__(self, name=None, phasecenter=None):
+            self.name = name
+            self.phasecenter = phasecenter
+
     @cmp_to_total
     class MS_UVData(object):
         """
         UV visibility data set for a given observation time.
         """
-        def __init__(self, obstime, inttime, baselines, visibilities, weights=None, pol=STOKES_CODES['XX'], source='z', uvw=None):
+        def __init__(self, obstime, inttime, baselines, visibilities, weights=None, pol=STOKES_CODES['XX'], source=None, uvw=None):
             self.obstime = obstime
             self.inttime = inttime
             self.baselines = baselines
@@ -412,13 +420,14 @@ try:
 
             return ref_time
 
-        def __init__(self, filename, ref_time=0.0, verbose=False):
+        def __init__(self, filename, ref_time=0.0, frame='ITRF', verbose=False):
             # File-specific information
             self.filename = filename
             self.verbose = verbose
             self.site_config = None
             # Observatory-specific information
             self.siteName = 'Unknown'
+            self.frame = frame
 
             # Observation-specific information
             self.ref_time = self.parse_time(ref_time)
@@ -473,9 +482,6 @@ try:
                 self.nchan = len(freq)
                 self.refVal = freq[0]
                 self.refPix = 1
-                # if self.nchan >1:
-                #     self.channelWidth = numpy.abs(freq[1] - freq[0])
-                # else:
                 self.channelWidth = channel_width[0]
                 offset = 0.0
             else:
@@ -499,7 +505,7 @@ try:
 
             raise NotImplementedError
 
-        def add_data_set(self, obstime, inttime, baselines, visibilities, weights=None, pol='XX', source='z'):
+        def add_data_set(self, obstime, inttime, baselines, visibilities, weights=None, pol='XX', source=None):
             """
             Create a UVData object to store a collection of visibilities.
 

@@ -316,7 +316,7 @@ def phaserotate_visibility(vis: Visibility, newphasecentre: SkyCoord, tangent=Tr
     else:
         return vis
 
-def export_blockbivisility_to_ms(msname, vis, ack=False):
+def export_blockvisility_to_ms(msname, vis, ack=False):
     """ Minimal BlockVisibility to MS converter
 
     The MS format is much more general than the ARL BlockVisibility so we cut many corners. This requires casacore to be
@@ -346,7 +346,7 @@ def export_blockbivisility_to_ms(msname, vis, ack=False):
 
     # log.debug("create_blockvisibility_from_ms: %s" % str(tab.info()))
     # Start the table
-    tbl = msv2.Ms(msname, ref_time=0, ifdelete=True)
+    tbl = msv2.Ms(msname, ref_time=0, if_delete=True)
 
     # Check polarisition
     npol = vis.npol
@@ -418,11 +418,12 @@ def export_blockbivisility_to_ms(msname, vis, ack=False):
     # ms_uvw = vis.uvw.reshape(ntimes,-1,3)
     for ntime, time in enumerate(vis.data['time']):
         for ipol, pol in enumerate(polarization):
+            from processing_components.visibility.msv2fund import Source
             if int_time[ntime] is not None:
-                tbl.add_data_set(time, int_time[ntime], blList, ms_vis[ntime,...,ipol],pol=pol,source=vis.phasecentre, uvw=ms_uvw[ntime,:,:])
+                tbl.add_data_set(time, int_time[ntime], blList, ms_vis[ntime,...,ipol],pol=pol,source=Source('ARL',vis.phasecentre), uvw=ms_uvw[ntime,:,:])
             else:
                 tbl.add_data_set(time, 0, blList, ms_vis[ntime, ..., ipol], pol=pol,
-                                 source=vis.phasecentre, uvw=ms_uvw[ntime, :, :])
+                                 source=Source('ARL',vis.phasecentre), uvw=ms_uvw[ntime, :, :])
     tbl.write()
 
 def create_blockvisibility_from_ms(msname, channum=None, ack=False):

@@ -14,7 +14,7 @@ from astropy.time import Time
 from processing_components.visibility.msv2supp import cmp_to_total, STOKES_CODES, NUMERIC_STOKES, merge_baseline, \
     geo_to_ecef, get_eci_transform
 
-from processing_components.visibility.msv2fund import Stand, Observatory, Antenna, Frequency, MS_UVData, BaseData
+from processing_components.visibility.msv2fund import Stand, Observatory, Antenna, Frequency, Source, MS_UVData, BaseData
 
 try:
     from casacore.tables import table, tableutil
@@ -28,7 +28,7 @@ try:
 
         _STOKES_CODES = STOKES_CODES
 
-        def __init__(self, filename, ref_time=0.0, verbose=False, memmap=None, ifdelete=False):
+        def __init__(self, filename, ref_time=0.0, frame ='ITRF', verbose=False, memmap=None, if_delete=False):
             """
             Initialize a new Measurement set object using a filename and a reference time
             given in seconds since the UNIX 1970 ephem, a python datetime object, or a
@@ -37,16 +37,16 @@ try:
 
             # Open the file and get going
             if os.path.exists(filename):
-                if ifdelete:
+                if if_delete:
                     shutil.rmtree(filename, ignore_errors=False)
                 else:
                     raise IOError("File '%s' already exists" % filename)
             self.basename = filename
 
             # File-specific information
-            super(WriteMs, self).__init__(filename, ref_time=ref_time, verbose=verbose)
+            super(WriteMs, self).__init__(filename, ref_time=ref_time, frame = frame, verbose=verbose)
 
-        def set_geometry(self, site_config, antennas, bits=8, ecef=False):
+        def set_geometry(self, site_config, antennas, bits=8):
             """
             Given a station and an array of stands, set the relevant common observation
             parameters and add entries to the self.array list.
@@ -78,11 +78,11 @@ try:
             # No use if don't need to consider antenna name
             mapper = []
             ants = []
-            if ecef == True:
+            if (self.frame).upper() == 'WGS84':
                 topo2eci = get_eci_transform(latitude)
                 for i in range(len(stands)):
                     eci = numpy.dot(topo2eci, xyz[i, :])
-                    ants.append(self._Antenna(stands[i], eci[0], eci[1], eci[2], bits=bits))
+                    ants.append(self._Antenna(stands[i], eci[0]+arrayX, eci[1]+arrayY, eci[2]+arrayZ, bits=bits))
                     mapper.append(stands[i])
             else:
                 for i, ant_name in enumerate(stands):
@@ -91,9 +91,10 @@ try:
 
             self.nant = len(ants)
             self.array.append(
-                {'center': [arrayX, arrayY, arrayZ], 'ants': ants, 'mapper': mapper, 'inputAnts': antennas})
+                {'center': [0.,0.,0.], 'ants': ants, 'mapper': mapper, 'inputAnts': antennas})
+                # {'center': [arrayX, arrayY, arrayZ], 'ants': ants, 'mapper': mapper, 'inputAnts': antennas})
 
-        def add_data_set(self, obstime, inttime, baselines, visibilities, pol='XX', source='z', uvw=None):
+        def add_data_set(self, obstime, inttime, baselines, visibilities, pol='XX', source=None, uvw=None):
             """
             Create a UVData object to store a collection of visibilities.
             """
@@ -398,13 +399,9 @@ try:
                     utc0 = Time(dataSet.obstime, format='unix', scale='utc')
                     utc = utc0.jd
 
-                    try:
-                        currSourceName = dataSet.source.name
-                    except AttributeError:
-                        currSourceName = dataSet.source
+                    if dataSet.source is None:
+                        # currSourceName = dataSet.source.name
 
-                    if isinstance(dataSet.source, str):
-                        # if dataSet.source == 'z':
                         ### Zenith pointings
                         sidereal = Time(dataSet.obstime, format='unix', scale='utc', location=self.site_config.location)
                         sidereal_time = sidereal.sidereal_time('apparent').value
@@ -416,10 +413,9 @@ try:
                         d, m, s = raHms.dms
                         ### format 'source' name based on local sidereal time
                         name = "T%02d%02d%02d%01d" % (d, m, int(s), int((s - int(s)) * 10.0))
-
                     else:
-                        ra = dataSet.source.ra.value
-                        dec = dataSet.source.dec.value
+                        ra = dataSet.source.phasecenter.ra.value
+                        dec = dataSet.source.phasecenter.dec.value
                         name = dataSet.source.name
 
                     # J2000 zenith equatorial coordinates
@@ -730,8 +726,7 @@ try:
                     utc = Time(dataSet.obstime, format='unix', scale='utc')
                     utc0 = utc.jd
 
-                    if isinstance(dataSet.source, str):
-                        # if dataSet.source == 'z':
+                    if dataSet.source is None:
                         ### Zenith pointings
                         sidereal = Time(dataSet.obstime, format='unix', scale='utc', location=self.site_config.location)
                         sidereal_time = sidereal.sidereal_time('apparent').value
@@ -743,9 +738,9 @@ try:
                         name = "T%02d%02d%02d%01d" % (d, m, int(s), int((s - int(s)) * 10.0))
                     else:
                         ### Real-live sources (ephem.Body instances)
-                        ra = dataSet.source.ra.value
-                        dec = dataSet.source.dec.value
-                        name = "ARL%03d%03d" % (int(ra), int(dec))
+                        ra = dataSet.source.phasecenter.ra.value
+                        dec = dataSet.source.phasecenter.dec.value
+                        name = dataSet.source.name
 
                     ## Update the source ID
                     try:
@@ -755,17 +750,17 @@ try:
                         sourceID = _sourceTable.index(name)
 
                     ## Compute the uvw coordinates of all baselines
-                    if isinstance(dataSet.source, str):
+                    if dataSet.source is None:
                         HA = 0.0
                         dec = latitude
                     else:
-                        HA = dataSet.source.ra.value / 15
-                        dec = dataSet.source.dec.value
+                        HA = dataSet.source.phasecenter.ra.value / 15
+                        dec = dataSet.source.phasecenter.dec.value
                         # HA = (sidereal- dataSet.source.ra) * 12 / numpy.pi
                         # dec = dataSet.source.dec * 180 / numpy.pi
 
                     # Just for testing
-                    if isinstance(dataSet.source, str):
+                    if dataSet.uvw is None:
                         uvwCoords = dataSet.get_uvw(HA, dec, self.site_config)
                     else:
                         uvwCoords = dataSet.uvw
@@ -1026,14 +1021,14 @@ try:
 
         _STOKES_CODES = STOKES_CODES
 
-        def __init__(self, filename, ref_time=0.0, verbose=False, ifdelete=False):
+        def __init__(self, filename, ref_time=0.0, frame='IRTF', verbose=False, if_delete=False):
             """
             Initialize a new MeasurementSets object using a filename and a reference time 
             given in seconds since the UNIX 1970 ephem, a python datetime object, or a 
             string in the format of 'YYYY-MM-DDTHH:MM:SS'.
             
             """
-            super(Ms, self).__init__(filename, ref_time, verbose, ifdelete=ifdelete)
+            super(Ms, self).__init__(filename, ref_time, frame, verbose, if_delete=if_delete)
 
 except ImportError:
     import warnings

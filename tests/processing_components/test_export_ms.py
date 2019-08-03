@@ -60,10 +60,11 @@ class measurementset_tests(unittest.TestCase):
 
         # Frequency range
         freq = numpy.arange(0,512)*20e6/512 + 40e6
-        channel_width = numpy.fulllike(freq,20e6/512.)
+        channel_width = numpy.full_like(freq,20e6/512.)
 
         # Site and stands
         obs = EarthLocation(lon="116.76444824", lat="-26.824722084", height=300.0)
+
         mount = numpy.array(['equat','equat','equat','equat','equat','equat','equat','equat','equat','equat'])
         names = numpy.array(['ak02','ak04','ak05','ak12','ak13','ak14','ak16','ak24','ak28','ak30'])
         diameter = numpy.array([12.,12.,12.,12.,12.,12.,12.,12.,12.,12.])
@@ -77,6 +78,7 @@ class measurementset_tests(unittest.TestCase):
             [-2555959.34313275,  5096979.52802882, -2849303.57702486],
             [-2556552.97431815,  5097767.23612874, -2847354.29540396],
             [-2557348.40370367,  5097170.17682775, -2847716.21368966]])
+
         site_config = Configuration(name='ASKAP', data=None, location= obs,
                                         names=names, xyz=xyz, mount=mount, frame=None,
                                         receptor_frame=ReceptorFrame("linear"),
@@ -99,19 +101,126 @@ class measurementset_tests(unittest.TestCase):
         visData = visData.astype(numpy.complex64)
         
         return {'freq': freq, 'channel_width':channel_width, 'site': site_config, 'antennas': antennas, 'bl': blList, 'vis': visData}
-        
-    def test_write_tables(self):
+
+    def __initData_WGS84(self):
+        """Private function to generate a random set of data for writing a UVFITS
+        file.  The data is returned as a dictionary with keys:
+         * freq - frequency array in Hz
+         * site - lwa.common.stations object
+         * stands - array of stand numbers
+         * bl - list of baseline pairs in real stand numbers
+         * vis - array of visibility data in baseline x freq format
+        """
+
+        # Frequency range
+        freq = numpy.arange(0, 512) * 20e6 / 512 + 40e6
+        channel_width = numpy.full_like(freq, 20e6 / 512.)
+
+
+        # Site and stands
+        obs = EarthLocation(lon="+116.6356824", lat="-26.70130064", height=377.0)
+
+        names = numpy.array(['A%02d' % i for i in range(36)])
+        mount = numpy.array(['equat' for i in range(36)])
+        diameter = numpy.array([12 for i in range(36)])
+        xyz = numpy.array([[-175.233429, +1673.460938, 0.0000],
+                   [+261.119019, +796.922119, 0.0000],
+                   [-29.2005200, +744.432068, 0.0000],
+                   [-289.355286, +586.936035, 0.0000],
+                   [-157.031570, +815.570068, 0.0000],
+                   [-521.311646, +754.674927, 0.0000],
+                   [-1061.114258, +840.541443, 0.0000],
+                   [-921.829407, +997.627686, 0.0000],
+                   [-818.293579, +1142.272095, 0.0000],
+                   [-531.752808, +850.726257, 0.0000],
+                   [+81.352448, +790.245117, 0.0000],
+                   [+131.126358, +1208.831909, 0.0000],
+                   [-1164.709351, +316.779236, 0.0000],
+                   [-686.248901, +590.285278, 0.0000],
+                   [-498.987305, +506.338226, 0.0000],
+                   [-182.249146, +365.113464, 0.0000],
+                   [+420.841858, +811.081543, 0.0000],
+                   [+804.107910, +1273.328369, 0.0000],
+                   [-462.810394, +236.353790, 0.0000],
+                   [-449.772339, +15.039755, 0.0000],
+                   [+13.791821, +110.971809, 0.0000],
+                   [-425.687317, -181.908752, 0.0000],
+                   [-333.404053, -503.603394, 0.0000],
+                   [-1495.472412, +1416.063232, 0.0000],
+                   [-1038.578857, +1128.367920, 0.0000],
+                   [-207.151749, +956.312561, 0.0000],
+                   [-389.051880, +482.405670, 0.0000],
+                   [-434.000000, +510.000000, 0.0000],
+                   [-398.000000, +462.000000, 0.0000],
+                   [-425.000000, +475.000000, 0.0000],
+                   [-400.000000, +3664.000000, 0.0000],
+                   [+1796.000000, +1468.000000, 0.0000],
+                   [+2600.000000, -1532.000000, 0.0000],
+                   [-400.000000, -2336.000000, 0.0000],
+                   [-3400.00000, -1532.000000, 0.0000],
+                   [-2596.000000, +1468.000000, 0.0000]])
+
+        site_config = Configuration(name='ASKAP', data=None, location=obs,
+                                    names=names, xyz=xyz, mount=mount, frame=None,
+                                    receptor_frame=ReceptorFrame("linear"),
+                                    diameter=diameter)
+        antennas = []
+        for i in range(len(names)):
+            antennas.append(Antenna(i, Stand(names[i], xyz[i, 0], xyz[i, 1], xyz[i, 2])))
+
+        # Set baselines and data
+        blList = []
+        N = len(antennas)
+
+        antennas2 = antennas
+
+        for i in range(0, N - 1):
+            for j in range(i + 1, N):
+                blList.append((antennas[i], antennas2[j]))
+
+        visData = numpy.random.rand(len(blList), len(freq))
+        visData = visData.astype(numpy.complex64)
+
+        return {'freq': freq, 'channel_width': channel_width, 'site': site_config, 'antennas': antennas, 'bl': blList,
+                'vis': visData}
+
+    # def test_write_tables(self):
+    #     """Test if the MeasurementSet writer writes all of the tables."""
+    #     if run_ms_tests==False:
+    #         return
+    #     testTime = time.time()
+    #     testFile = os.path.join(self.testPath, 'ms-test-W.ms')
+    #
+    #     # Get some data
+    #     data = self.__initData()
+    #
+    #     # Start the table
+    #     tbl = msv2.Ms(testFile, ref_time=testTime)
+    #     tbl.set_stokes(['xx'])
+    #     tbl.set_frequency(data['freq'],data['channel_width'])
+    #     tbl.set_geometry(data['site'], data['antennas'])
+    #     tbl.add_data_set(testTime, 2.0, data['bl'], data['vis'])
+    #     tbl.write()
+    #
+    #     # Make sure everyone is there
+    #     self.assertTrue(os.path.exists(testFile))
+    #     for tbl in ('ANTENNA', 'DATA_DESCRIPTION', 'FEED', 'FIELD', 'FLAG_CMD', 'HISTORY',
+    #                 'OBSERVATION', 'POINTING', 'POLARIZATION', 'PROCESSOR', 'SOURCE',
+    #                 'SPECTRAL_WINDOW', 'STATE'):
+    #         self.assertTrue(os.path.exists(os.path.join(testFile, tbl)))
+
+    def test_write_tables_wgs84(self):
         """Test if the MeasurementSet writer writes all of the tables."""
         if run_ms_tests==False:
             return
         testTime = time.time()
-        testFile = os.path.join(self.testPath, 'ms-test-W.ms')
+        testFile = os.path.join(self.testPath, 'ms-test-WGS.ms')
 
         # Get some data
-        data = self.__initData()
+        data = self.__initData_WGS84()
 
         # Start the table
-        tbl = msv2.Ms(testFile, ref_time=testTime)
+        tbl = msv2.Ms(testFile, ref_time=testTime, frame='wgs84')
         tbl.set_stokes(['xx'])
         tbl.set_frequency(data['freq'],data['channel_width'])
         tbl.set_geometry(data['site'], data['antennas'])
@@ -124,7 +233,7 @@ class measurementset_tests(unittest.TestCase):
                     'OBSERVATION', 'POINTING', 'POLARIZATION', 'PROCESSOR', 'SOURCE',
                     'SPECTRAL_WINDOW', 'STATE'):
             self.assertTrue(os.path.exists(os.path.join(testFile, tbl)))
-            
+
     def test_main_table(self):
         """Test the primary data table."""
         if run_ms_tests==False:

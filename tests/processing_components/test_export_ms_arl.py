@@ -14,7 +14,7 @@ import numpy
 from data_models.parameters import arl_path
 
 from processing_components.visibility.base import create_blockvisibility, create_blockvisibility_from_ms
-from processing_components.visibility.base import export_blockbivisility_to_ms
+from processing_components.visibility.base import export_blockvisility_to_ms
 from processing_components.visibility.operations import integrate_visibility_by_channel
 from processing_components.visibility.coalesce import convert_visibility_to_blockvisibility, convert_blockvisibility_to_visibility
 from processing_components.imaging.base import predict_2d, predict_skycomponent_visibility, \
@@ -118,7 +118,7 @@ class export_ms_arl_test(unittest.TestCase):
         export_image_to_fits(psf, '%s/imaging_psf.fits' % (results_dir))
 
         v = convert_visibility_to_blockvisibility(vt)
-        export_blockbivisility_to_ms(msoutfile, v)
+        export_blockvisility_to_ms(msoutfile, v)
 
 class export_measurementset_test_suite(unittest.TestSuite):
     """A unittest.TestSuite class which tests exporting measurementset
