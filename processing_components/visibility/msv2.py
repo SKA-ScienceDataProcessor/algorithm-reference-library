@@ -1,20 +1,22 @@
+#
+# MeasurementSets V2 Codes Based on Python-casacore For ARL
+# Ver 0.1
+#
+
 import os
 import gc
-import re
 import glob
-import math
 import numpy
 import shutil
-import scipy
-from scipy.constants import speed_of_light
-from datetime import datetime
-from collections import OrderedDict
+import logging
 from astropy.time import Time
 
 from processing_components.visibility.msv2supp import cmp_to_total, STOKES_CODES, NUMERIC_STOKES, merge_baseline, \
     geo_to_ecef, get_eci_transform
 
-from processing_components.visibility.msv2fund import Stand, Observatory, Antenna, Frequency, Source, MS_UVData, BaseData
+from processing_components.visibility.msv2fund import Stand, Observatory, Antenna, Frequency, MS_UVData, BaseData
+
+log = logging.getLogger(__name__)
 
 try:
     from casacore.tables import table, tableutil
@@ -33,6 +35,14 @@ try:
             Initialize a new Measurement set object using a filename and a reference time
             given in seconds since the UNIX 1970 ephem, a python datetime object, or a
             string in the format of 'YYYY-MM-DDTHH:MM:SS'.
+
+            :param filename: Measurementsets file
+            :param ref_time: Observational date & time
+            :param frame: Antenna's frame (ITRF or WGS84)
+            :param verbose: verbose
+            :param memmap: Preserved
+            :param if_delete: delete original filename
+
             """
 
             # Open the file and get going
@@ -52,6 +62,9 @@ try:
             parameters and add entries to the self.array list.
 
             configuration - base.py
+            :param site_config:  ARL Configuration
+            :param antennas: Antenna array
+            :param bits: Preserved
 
             """
 
@@ -94,7 +107,7 @@ try:
                 {'center': [0.,0.,0.], 'ants': ants, 'mapper': mapper, 'inputAnts': antennas})
                 # {'center': [arrayX, arrayY, arrayZ], 'ants': ants, 'mapper': mapper, 'inputAnts': antennas})
 
-        def add_data_set(self, obstime, inttime, baselines, visibilities, pol='XX', source=None, uvw=None):
+        def add_data_set(self, obstime, inttime, baselines, visibilities, pol='XX', source=None, phasecentre=None, uvw=None):
             """
             Create a UVData object to store a collection of visibilities.
             """
@@ -105,7 +118,7 @@ try:
                 numericPol = pol
 
             self.data.append(
-                MS_UVData(obstime, inttime, baselines, visibilities, pol=numericPol, source=source, uvw=uvw))
+                MS_UVData(obstime, inttime, baselines, visibilities, pol=numericPol, source=source, phasecentre=phasecentre,uvw=uvw))
 
         def write(self):
             """
@@ -368,9 +381,9 @@ try:
 
             # from astropy.time import Time
             utc = Time(self.data[0].obstime, format='unix',scale='utc')
-            tStart = utc.jd
+            tStart = utc.mjd
             utc = Time(self.data[-1].obstime, format='unix', scale='utc')
-            tStop = utc.jd
+            tStop = utc.mjd
 
             tb.putcell('TIME_RANGE', 0, [tStart * 86400, tStop * 86400])
             tb.putcell('LOG', 0, 'Not provided')
@@ -399,30 +412,35 @@ try:
                     utc0 = Time(dataSet.obstime, format='unix', scale='utc')
                     utc = utc0.jd
 
-                    if dataSet.source is None:
-                        # currSourceName = dataSet.source.name
+                    currSourceName = dataSet.source
 
-                        ### Zenith pointings
-                        sidereal = Time(dataSet.obstime, format='unix', scale='utc', location=self.site_config.location)
-                        sidereal_time = sidereal.sidereal_time('apparent').value
-                        ra = sidereal_time * 15
-                        dec = latitude
-                        # equ = astro.equ_posn(obs.sidereal_time() * 180 / numpy.pi, obs.lat * 180 / numpy.pi)
-                        from astropy.coordinates import Angle
-                        raHms = Angle(sidereal_time, 'hour')
-                        d, m, s = raHms.dms
-                        ### format 'source' name based on local sidereal time
-                        name = "T%02d%02d%02d%01d" % (d, m, int(s), int((s - int(s)) * 10.0))
-                    else:
-                        ra = dataSet.source.phasecenter.ra.value
-                        dec = dataSet.source.phasecenter.dec.value
-                        name = dataSet.source.name
+                    if currSourceName is None or currSourceName not in nameList:
+                        sourceID += 1
 
-                    # J2000 zenith equatorial coordinates
-                    posList.append([ra * numpy.pi / 180, dec * numpy.pi / 180])
+                        if dataSet.source is None:
+                            # currSourceName = dataSet.source.name
 
-                    # name
-                    nameList.append(name)
+                            ### Zenith pointings
+                            sidereal = Time(dataSet.obstime, format='unix', scale='utc', location=self.site_config.location)
+                            sidereal_time = sidereal.sidereal_time('apparent').value
+                            ra = sidereal_time * 15
+                            dec = latitude
+                            # equ = astro.equ_posn(obs.sidereal_time() * 180 / numpy.pi, obs.lat * 180 / numpy.pi)
+                            from astropy.coordinates import Angle
+                            raHms = Angle(sidereal_time, 'hour')
+                            d, m, s = raHms.dms
+                            ### format 'source' name based on local sidereal time
+                            name = "T%02d%02d%02d%01d" % (d, m, int(s), int((s - int(s)) * 10.0))
+                        else:
+                            ra = dataSet.phasecentre.ra.value
+                            dec = dataSet.phasecentre.dec.value
+                            name = dataSet.source
+
+                        # J2000 zenith equatorial coordinates
+                        posList.append([ra * numpy.pi / 180, dec * numpy.pi / 180])
+
+                        # name
+                        nameList.append(name)
 
             nSource = len(nameList)
 
@@ -609,7 +627,7 @@ try:
             tb = table("%s/SPECTRAL_WINDOW" % self.basename, desc, nrow=nBand, ack=False)
 
             for i, freq in enumerate(self.freq):
-                tb.putcell('MEAS_FREQ_REF', i, 5)
+                tb.putcell('MEAS_FREQ_REF', i, 5)  #https://github.com/ska-sa/pyxis/issues/27
                 tb.putcell('CHAN_FREQ', i, self.refVal + freq.bandFreq + numpy.arange(self.nchan) * self.channelWidth)
                 tb.putcell('REF_FREQUENCY', i, self.refVal)
                 tb.putcell('CHAN_WIDTH', i, [freq.chWidth for j in range(self.nchan)])
@@ -738,9 +756,9 @@ try:
                         name = "T%02d%02d%02d%01d" % (d, m, int(s), int((s - int(s)) * 10.0))
                     else:
                         ### Real-live sources (ephem.Body instances)
-                        ra = dataSet.source.phasecenter.ra.value
-                        dec = dataSet.source.phasecenter.dec.value
-                        name = dataSet.source.name
+                        ra = dataSet.phasecentre.ra.value
+                        dec = dataSet.phasecentre.dec.value
+                        name = dataSet.source
 
                     ## Update the source ID
                     try:
@@ -754,8 +772,8 @@ try:
                         HA = 0.0
                         dec = latitude
                     else:
-                        HA = dataSet.source.phasecenter.ra.value / 15
-                        dec = dataSet.source.phasecenter.dec.value
+                        HA = dataSet.phasecentre.ra.value / 15
+                        dec = dataSet.phasecentre.dec.value
                         # HA = (sidereal- dataSet.source.ra) * 12 / numpy.pi
                         # dec = dataSet.source.dec * 180 / numpy.pi
 

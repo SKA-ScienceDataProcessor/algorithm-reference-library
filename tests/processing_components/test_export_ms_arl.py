@@ -3,11 +3,8 @@ import os
 sys.path.append('.')
 import unittest
 
-# import msutils
-
 # dir = '/Users/wangfeng/dev/algorithm-reference-library/data/vis/ASKAP_example.ms'
 
-# msutils.summary(dir)
 import logging
 import numpy
 
@@ -15,10 +12,7 @@ from data_models.parameters import arl_path
 
 from processing_components.visibility.base import create_blockvisibility, create_blockvisibility_from_ms
 from processing_components.visibility.base import export_blockvisility_to_ms
-from processing_components.visibility.operations import integrate_visibility_by_channel
 from processing_components.visibility.coalesce import convert_visibility_to_blockvisibility, convert_blockvisibility_to_visibility
-from processing_components.imaging.base import predict_2d, predict_skycomponent_visibility, \
-    create_image_from_visibility, advise_wide_field
 
 log = logging.getLogger(__name__)
 
@@ -41,16 +35,16 @@ class export_ms_arl_test(unittest.TestCase):
 
         pass
 
-    # def test_copy_ms(self):
-    #     if run_ms_tests == False:
-    #         return
-    #
-    #     msfile = arl_path("data/vis/ASKAP_example.ms")
-    #     msoutfile = arl_path("data/vis/ASKAP_output.ms")
-    #
-    #     vis_by_channel = list()
-    #     v = create_blockvisibility_from_ms(msfile)
-    #     export_blockbivisility_to_ms(msoutfile,v[0])                # vis_by_channel.append(integrate_visibility_by_channel(v[0]))
+    def test_copy_ms(self):
+        if run_ms_tests == False:
+            return
+
+        msfile = arl_path("data/vis/ASKAP_example.ms")
+        msoutfile = arl_path("data/vis/ASKAP_output.ms")
+
+        vis_by_channel = list()
+        v = create_blockvisibility_from_ms(msfile)
+        export_blockvisility_to_ms(msoutfile,v[0])                # vis_by_channel.append(integrate_visibility_by_channel(v[0]))
 
     def test_export_ms(self):
         if run_ms_tests == False:
@@ -60,15 +54,8 @@ class export_ms_arl_test(unittest.TestCase):
 
         from astropy.coordinates import SkyCoord
         from astropy import units as u
-        from astropy.wcs.utils import pixel_to_skycoord
 
-        from processing_components.image.iterators import image_raster_iter
-
-        from wrappers.serial.visibility.base import create_visibility
-        from wrappers.serial.skycomponent.operations import create_skycomponent
         from wrappers.serial.image.operations import show_image, export_image_to_fits
-        from wrappers.serial.image.deconvolution import deconvolve_cube, restore_cube
-        from wrappers.serial.visibility.iterators import vis_timeslice_iter
         from wrappers.serial.simulation.configurations import create_named_configuration
         from wrappers.serial.simulation.testing_support import create_test_image
         from wrappers.serial.imaging.base import create_image_from_visibility
@@ -103,19 +90,19 @@ class export_ms_arl_test(unittest.TestCase):
         m31image.wcs.wcs.crpix[0] = float(nx // 2)
         m31image.wcs.wcs.crpix[1] = float(ny // 2)
         vt = predict_list_serial_workflow([vt], [m31image], context='2d')[0]
-        uvdist = numpy.sqrt(vt.data['uvw'][:, 0] ** 2 + vt.data['uvw'][:, 1] ** 2)
-
-        model = create_image_from_visibility(vt, cellsize=cellsize, npixel=512)
-        dirty, sumwt = invert_list_serial_workflow([vt], [model], context='2d')[0]
-        psf, sumwt = invert_list_serial_workflow([vt], [model], context='2d', dopsf=True)[0]
-
+        # uvdist = numpy.sqrt(vt.data['uvw'][:, 0] ** 2 + vt.data['uvw'][:, 1] ** 2)
+        #
+        # model = create_image_from_visibility(vt, cellsize=cellsize, npixel=512)
+        # dirty, sumwt = invert_list_serial_workflow([vt], [model], context='2d')[0]
+        # psf, sumwt = invert_list_serial_workflow([vt], [model], context='2d', dopsf=True)[0]
+        #
         # show_image(dirty)
-        print("Max, min in dirty image = %.6f, %.6f, sumwt = %f" % (dirty.data.max(), dirty.data.min(), sumwt))
-
-        print("Max, min in PSF         = %.6f, %.6f, sumwt = %f" % (psf.data.max(), psf.data.min(), sumwt))
-        results_dir="/Users/f.wang"
-        export_image_to_fits(dirty, '%s/imaging_dirty.fits' % (results_dir))
-        export_image_to_fits(psf, '%s/imaging_psf.fits' % (results_dir))
+        # print("Max, min in dirty image = %.6f, %.6f, sumwt = %f" % (dirty.data.max(), dirty.data.min(), sumwt))
+        #
+        # print("Max, min in PSF         = %.6f, %.6f, sumwt = %f" % (psf.data.max(), psf.data.min(), sumwt))
+        # results_dir="/Users/f.wang"
+        # export_image_to_fits(dirty, '%s/imaging_dirty.fits' % (results_dir))
+        # export_image_to_fits(psf, '%s/imaging_psf.fits' % (results_dir))
 
         v = convert_visibility_to_blockvisibility(vt)
         export_blockvisility_to_ms(msoutfile, v)

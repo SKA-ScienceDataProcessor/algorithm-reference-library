@@ -2,29 +2,26 @@
 # MeasurementSets V2 Reference Codes Based on Python-casacore
 #
 
-import os
-import gc
 import re
-import glob
-import math
 import numpy
-import shutil
-import scipy
-from scipy.constants import speed_of_light
 from datetime import datetime
-from collections import OrderedDict
 
 from processing_components.visibility.msv2supp import cmp_to_total, STOKES_CODES, NUMERIC_STOKES, merge_baseline, \
     geo_to_ecef, get_eci_transform
 
 from data_models.memory_data_models import Visibility, BlockVisibility, Configuration
 
+import logging
+
+log = logging.getLogger(__name__)
+
 __version__ = '0.1'
 __revision__ = '$Rev$'
-__all__ = ['STOKES_CODES', 'NUMERIC_STOKES']
+__all__ = ['STOKES_CODES', 'NUMERIC_STOKES', 'Stand', 'Observatory', 'Antenna', 'BaseData']
 
 try:
     from casacore.tables import table, tableutil
+
 
     @cmp_to_total
     class Stand(object):
@@ -47,31 +44,31 @@ try:
             self.z = float(z)
 
         def __lt__(self, y):
-            if self.id  < y.id:
+            if self.id < y.id:
                 return True
             else:
                 return False
 
         def __le__(self, y):
-            if self.id  <= y.id:
+            if self.id <= y.id:
                 return True
             else:
                 return False
 
         def __eq__(self, y):
-            if self.id  == y.id:
+            if self.id == y.id:
                 return True
             else:
                 return False
 
         def __gt__(self, y):
-            if self.id  > y.id:
+            if self.id > y.id:
                 return True
             else:
                 return False
 
         def __ge__(self, y):
-            if self.id  >= y.id:
+            if self.id >= y.id:
                 return True
             else:
                 return False
@@ -136,12 +133,14 @@ try:
 
             return out
 
+
     class Observatory(object):
         def __init__(self, name, lon, lat, alt):
             self.name = name
             self.lon = lon
             self.lat = lat
             self.alt = alt
+
 
     class Antenna(object):
         """
@@ -177,40 +176,39 @@ try:
 
             self.cable = cable
 
-
         def __str__(self):
-            return "Antenna %i: stand=%i, polarization=%i; " % ( self.id, self.stand.id, self.pol)
+            return "Antenna %i: stand=%i, polarization=%i; " % (self.id, self.stand.id, self.pol)
 
         def __reduce__(self):
             return (Antenna, (
                 self.id, self.stand, self.pol, self.theta, self.phi, self.fee, self.feePort, self.cable))
 
         def __lt__(self, y):
-            if self.id  < y.id:
+            if self.id < y.id:
                 return True
             else:
                 return False
 
         def __le__(self, y):
-            if self.id  <= y.id:
+            if self.id <= y.id:
                 return True
             else:
                 return False
 
         def __eq__(self, y):
-            if self.id  == y.id:
+            if self.id == y.id:
                 return True
             else:
                 return False
 
         def __gt__(self, y):
-            if self.id  > y.id:
+            if self.id > y.id:
                 return True
             else:
                 return False
 
         def __ge__(self, y):
-            if self.id  >= y.id:
+            if self.id >= y.id:
                 return True
             else:
                 return False
@@ -222,6 +220,7 @@ try:
                 return -1
             else:
                 return 0
+
 
     class Frequency:
         """
@@ -236,20 +235,15 @@ try:
             self.sideBand = 1
             self.baseBand = 0
 
-    class Source:
-        """
-        Information about the observational target
-        """
-        def __init__(self, name=None, phasecenter=None):
-            self.name = name
-            self.phasecenter = phasecenter
 
     @cmp_to_total
     class MS_UVData(object):
         """
         UV visibility data set for a given observation time.
         """
-        def __init__(self, obstime, inttime, baselines, visibilities, weights=None, pol=STOKES_CODES['XX'], source=None, uvw=None):
+
+        def __init__(self, obstime, inttime, baselines, visibilities, weights=None, pol=STOKES_CODES['XX'], source=None,
+                     phasecentre=None, uvw=None):
             self.obstime = obstime
             self.inttime = inttime
             self.baselines = baselines
@@ -257,6 +251,7 @@ try:
             self.weights = weights
             self.pol = pol
             self.source = source
+            self.phasecentre = phasecentre
             self.uvw = uvw
 
         def __lt__(self, y):
@@ -331,13 +326,13 @@ try:
 
             # Coordinate transformation matrices
             trans1 = numpy.array([[0, -numpy.sin(lat2), numpy.cos(lat2)],
-                                    [1, 0, 0],
-                                    [0, numpy.cos(lat2), numpy.sin(lat2)]])
+                                  [1, 0, 0],
+                                  [0, numpy.cos(lat2), numpy.sin(lat2)]])
             trans2 = numpy.array([[numpy.sin(HA2), numpy.cos(HA2), 0],
-                                    [-numpy.sin(dec2) * numpy.cos(HA2), numpy.sin(dec2) * numpy.sin(HA2),
-                                    numpy.cos(dec2)],
-                                    [numpy.cos(dec2) * numpy.cos(HA2), -numpy.cos(dec2) * numpy.sin(HA2),
-                                    numpy.sin(dec2)]])
+                                  [-numpy.sin(dec2) * numpy.cos(HA2), numpy.sin(dec2) * numpy.sin(HA2),
+                                   numpy.cos(dec2)],
+                                  [numpy.cos(dec2) * numpy.cos(HA2), -numpy.cos(dec2) * numpy.sin(HA2),
+                                   numpy.sin(dec2)]])
 
             for i, (a1, a2) in enumerate(self.baselines):
                 # Go from a east, north, up coordinate system to a celestial equation,
@@ -347,7 +342,7 @@ try:
 
                 # Go from CE, east, NCP to u, v, w
                 temp = trans2 @ xyz
-                uvw[i, :] = numpy.squeeze(temp) #/ speed_of_light
+                uvw[i, :] = numpy.squeeze(temp)  # / speed_of_light
 
             return uvw
 
@@ -362,6 +357,7 @@ try:
             packed = numpy.array(packed, dtype=numpy.int32)
 
             return numpy.argsort(packed)
+
 
     class BaseData(object):
         """
@@ -535,6 +531,7 @@ try:
 
 except ImportError:
     import warnings
+
     warnings.warn('Cannot import casacore.tables, MS support disabled', ImportWarning)
 
     raise RuntimeError("Cannot import casacore.tables, MS support disabled")

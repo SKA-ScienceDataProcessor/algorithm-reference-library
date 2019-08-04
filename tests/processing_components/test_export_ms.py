@@ -13,13 +13,7 @@ import numpy
 from data_models.memory_data_models import Configuration
 from data_models.polarisation import ReceptorFrame
 
-
-from astropy import constants as constants
-from astropy import units as u
-from astropy.coordinates import SkyCoord
 from astropy.coordinates import EarthLocation
-
-
 
 run_ms_tests = False
 try:
@@ -52,7 +46,7 @@ class measurementset_tests(unittest.TestCase):
         """Private function to generate a random set of data for writing a UVFITS
         file.  The data is returned as a dictionary with keys:
          * freq - frequency array in Hz
-         * site - lwa.common.stations object
+         * site - Observatory object
          * stands - array of stand numbers
          * bl - list of baseline pairs in real stand numbers
          * vis - array of visibility data in baseline x freq format
@@ -103,10 +97,10 @@ class measurementset_tests(unittest.TestCase):
         return {'freq': freq, 'channel_width':channel_width, 'site': site_config, 'antennas': antennas, 'bl': blList, 'vis': visData}
 
     def __initData_WGS84(self):
-        """Private function to generate a random set of data for writing a UVFITS
+        """Private function to generate a random set of data for writing a Measurements
         file.  The data is returned as a dictionary with keys:
          * freq - frequency array in Hz
-         * site - lwa.common.stations object
+         * site - observatory object
          * stands - array of stand numbers
          * bl - list of baseline pairs in real stand numbers
          * vis - array of visibility data in baseline x freq format
@@ -184,30 +178,30 @@ class measurementset_tests(unittest.TestCase):
         return {'freq': freq, 'channel_width': channel_width, 'site': site_config, 'antennas': antennas, 'bl': blList,
                 'vis': visData}
 
-    # def test_write_tables(self):
-    #     """Test if the MeasurementSet writer writes all of the tables."""
-    #     if run_ms_tests==False:
-    #         return
-    #     testTime = time.time()
-    #     testFile = os.path.join(self.testPath, 'ms-test-W.ms')
-    #
-    #     # Get some data
-    #     data = self.__initData()
-    #
-    #     # Start the table
-    #     tbl = msv2.Ms(testFile, ref_time=testTime)
-    #     tbl.set_stokes(['xx'])
-    #     tbl.set_frequency(data['freq'],data['channel_width'])
-    #     tbl.set_geometry(data['site'], data['antennas'])
-    #     tbl.add_data_set(testTime, 2.0, data['bl'], data['vis'])
-    #     tbl.write()
-    #
-    #     # Make sure everyone is there
-    #     self.assertTrue(os.path.exists(testFile))
-    #     for tbl in ('ANTENNA', 'DATA_DESCRIPTION', 'FEED', 'FIELD', 'FLAG_CMD', 'HISTORY',
-    #                 'OBSERVATION', 'POINTING', 'POLARIZATION', 'PROCESSOR', 'SOURCE',
-    #                 'SPECTRAL_WINDOW', 'STATE'):
-    #         self.assertTrue(os.path.exists(os.path.join(testFile, tbl)))
+    def test_write_tables(self):
+        """Test if the MeasurementSet writer writes all of the tables."""
+        if run_ms_tests==False:
+            return
+        testTime = time.time()
+        testFile = os.path.join(self.testPath, 'ms-test-W.ms')
+
+        # Get some data
+        data = self.__initData()
+
+        # Start the table
+        tbl = msv2.Ms(testFile, ref_time=testTime)
+        tbl.set_stokes(['xx'])
+        tbl.set_frequency(data['freq'],data['channel_width'])
+        tbl.set_geometry(data['site'], data['antennas'])
+        tbl.add_data_set(testTime, 2.0, data['bl'], data['vis'])
+        tbl.write()
+
+        # Make sure everyone is there
+        self.assertTrue(os.path.exists(testFile))
+        for tbl in ('ANTENNA', 'DATA_DESCRIPTION', 'FEED', 'FIELD', 'FLAG_CMD', 'HISTORY',
+                    'OBSERVATION', 'POINTING', 'POLARIZATION', 'PROCESSOR', 'SOURCE',
+                    'SPECTRAL_WINDOW', 'STATE'):
+            self.assertTrue(os.path.exists(os.path.join(testFile, tbl)))
 
     def test_write_tables_wgs84(self):
         """Test if the MeasurementSet writer writes all of the tables."""

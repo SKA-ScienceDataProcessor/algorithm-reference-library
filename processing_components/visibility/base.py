@@ -418,12 +418,12 @@ def export_blockvisility_to_ms(msname, vis, ack=False):
     # ms_uvw = vis.uvw.reshape(ntimes,-1,3)
     for ntime, time in enumerate(vis.data['time']):
         for ipol, pol in enumerate(polarization):
-            from processing_components.visibility.msv2fund import Source
             if int_time[ntime] is not None:
-                tbl.add_data_set(time, int_time[ntime], blList, ms_vis[ntime,...,ipol],pol=pol,source=Source('ARL',vis.phasecentre), uvw=ms_uvw[ntime,:,:])
+                tbl.add_data_set(time, int_time[ntime], blList, ms_vis[ntime, ..., ipol], pol=pol, source='ARL',
+                                 phasecentre=vis.phasecentre, uvw=ms_uvw[ntime, :, :])
             else:
                 tbl.add_data_set(time, 0, blList, ms_vis[ntime, ..., ipol], pol=pol,
-                                 source=Source('ARL',vis.phasecentre), uvw=ms_uvw[ntime, :, :])
+                                 source='ARL', phasecentre = vis.phasecentre, uvw=ms_uvw[ntime, :, :])
     tbl.write()
 
 def create_blockvisibility_from_ms(msname, channum=None, ack=False):
