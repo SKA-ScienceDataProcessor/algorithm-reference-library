@@ -416,7 +416,7 @@ try:
 
             return ref_time
 
-        def __init__(self, filename, ref_time=0.0, frame='ITRF', verbose=False):
+        def __init__(self, filename, ref_time=0.0, source_name = None, frame='ITRF', verbose=False):
             # File-specific information
             self.filename = filename
             self.verbose = verbose
@@ -424,6 +424,7 @@ try:
             # Observatory-specific information
             self.siteName = 'Unknown'
             self.frame = frame
+            self.source_name = source_name
 
             # Observation-specific information
             self.ref_time = self.parse_time(ref_time)

@@ -30,7 +30,7 @@ try:
 
         _STOKES_CODES = STOKES_CODES
 
-        def __init__(self, filename, ref_time=0.0, frame ='ITRF', verbose=False, memmap=None, if_delete=False):
+        def __init__(self, filename, ref_time=0.0, source_name = None, frame ='ITRF', verbose=False, memmap=None, if_delete=False):
             """
             Initialize a new Measurement set object using a filename and a reference time
             given in seconds since the UNIX 1970 ephem, a python datetime object, or a
@@ -54,7 +54,7 @@ try:
             self.basename = filename
 
             # File-specific information
-            super(WriteMs, self).__init__(filename, ref_time=ref_time, frame = frame, verbose=verbose)
+            super(WriteMs, self).__init__(filename, ref_time=ref_time, source_name=source_name, frame = frame, verbose=verbose)
 
         def set_geometry(self, site_config, antennas, bits=8):
             """
@@ -1039,14 +1039,14 @@ try:
 
         _STOKES_CODES = STOKES_CODES
 
-        def __init__(self, filename, ref_time=0.0, frame='IRTF', verbose=False, if_delete=False):
+        def __init__(self, filename, ref_time=0.0, source_name = None, frame='IRTF', verbose=False, if_delete=False):
             """
-            Initialize a new MeasurementSets object using a filename and a reference time 
-            given in seconds since the UNIX 1970 ephem, a python datetime object, or a 
+            Initialize a new MeasurementSets object using a filename and a reference time
+            given in seconds since the UNIX 1970 ephem, a python datetime object, or a
             string in the format of 'YYYY-MM-DDTHH:MM:SS'.
-            
+
             """
-            super(Ms, self).__init__(filename, ref_time, frame, verbose, if_delete=if_delete)
+            super(Ms, self).__init__(filename, ref_time, source_name, frame, verbose, if_delete=if_delete)
 
 except ImportError:
     import warnings

@@ -316,7 +316,7 @@ def phaserotate_visibility(vis: Visibility, newphasecentre: SkyCoord, tangent=Tr
     else:
         return vis
 
-def export_blockvisility_to_ms(msname, vis, ack=False):
+def export_blockvisility_to_ms(msname, vis_list, source_name=None, ack=False):
     """ Minimal BlockVisibility to MS converter
 
     The MS format is much more general than the ARL BlockVisibility so we cut many corners. This requires casacore to be
@@ -346,84 +346,86 @@ def export_blockvisility_to_ms(msname, vis, ack=False):
 
     # log.debug("create_blockvisibility_from_ms: %s" % str(tab.info()))
     # Start the table
-    tbl = msv2.Ms(msname, ref_time=0, if_delete=True)
+    tbl = msv2.Ms(msname, ref_time=0, source_name= source_name, if_delete=True)
+    if source_name is None:
+        source_name = 'ARL'
+    for vis in vis_list:
+        # Check polarisition
+        npol = vis.npol
+        nchan = vis.nchan
+        nants = vis.nants
+        if vis.polarisation_frame.type == 'linear':
+            polarization = ['XX','XY','YX','YY']
+        elif vis.polarisation_frame.type == 'stokesI':
+            polarization = ['XX']
+        elif vis.polarisation_frame.type == 'circular':
+            polarization = ['RR','RL','LR','LL']
+        elif vis.polarisation_frame.type == 'stokesIQUV':
+            polarization = ['I','Q','U','V']
+        # Current ARL suppots I
+        tbl.set_stokes(polarization)
+        tbl.set_frequency(vis.frequency,vis.channel_bandwidth)
+        n_ant = len(vis.configuration.xyz)
 
-    # Check polarisition
-    npol = vis.npol
-    nchan = vis.nchan
-    nants = vis.nants
-    if vis.polarisation_frame.type == 'linear':
-        polarization = ['XX','XY','YX','YY']
-    elif vis.polarisation_frame.type == 'stokesI':
-        polarization = ['XX']
-    elif vis.polarisation_frame.type == 'circular':
-        polarization = ['RR','RL','LR','LL']
-    elif vis.polarisation_frame.type == 'stokesIQUV':
-        polarization = ['I','Q','U','V']
-    # Current ARL suppots I
-    tbl.set_stokes(polarization)
-    tbl.set_frequency(vis.frequency,vis.channel_bandwidth)
-    n_ant = len(vis.configuration.xyz)
+        antennas = []
+        names = vis.configuration.names
+        mount = vis.configuration.mount
+        diameter = vis.configuration.diameter
+        xyz = vis.configuration.xyz
+        for i in range(len(names)):
+            antennas.append(Antenna(i, Stand(names[i], xyz[i, 0], xyz[i, 1], xyz[i, 2])))
 
-    antennas = []
-    names = vis.configuration.names
-    mount = vis.configuration.mount
-    diameter = vis.configuration.diameter
-    xyz = vis.configuration.xyz
-    for i in range(len(names)):
-        antennas.append(Antenna(i, Stand(names[i], xyz[i, 0], xyz[i, 1], xyz[i, 2])))
+        # Set baselines and data
+        blList = []
 
-    # Set baselines and data
-    blList = []
+        antennas2 = antennas
 
-    antennas2 = antennas
-
-    for i in range(0, n_ant - 1):
-        for j in range(i + 1, n_ant):
-            blList.append((antennas[i], antennas2[j]))
-
-    tbl.set_geometry(vis.configuration, antennas)
-    nbaseline = len(blList)
-    ntimes = len(vis.data['time'])
-
-    ms_vis = numpy.zeros([ntimes, nbaseline, nchan, npol]).astype('complex')
-    ms_uvw = numpy.zeros([ntimes, nbaseline, 3])
-    # bv_vis = numpy.zeros([ntimes, nants, nants, nchan, npol]).astype('complex')
-    # bv_weight = numpy.zeros([ntimes, nants, nants, nchan, npol])
-    # bv_imaging_weight = numpy.zeros([ntimes, nants, nants, nchan, npol])
-    # bv_uvw = numpy.zeros([ntimes, nants, nants, 3])
-    time = vis.data['time']
-    int_time = vis.data['integration_time']
-    bv_vis = vis.data['vis']
-    bv_uvw = vis.data['uvw']
-
-    # bv_antenna1 = vis.data['antenna1']
-    # bv_antenna2 = vis.data['antenna2']
-
-    time_last = time[0]
-    time_index = 0
-    for row,_ in enumerate(time):
-        # MS has shape [row, npol, nchan]
-        # BV has shape [ntimes, nants, nants, nchan, npol]
-        bl = 0
         for i in range(0, n_ant - 1):
             for j in range(i + 1, n_ant):
-                ms_vis[row, bl,...] = bv_vis[row, j, i, ...]
-                # bv_weight[time_index, antenna2[row], antenna1[row], :, ...] = ms_weight[row, numpy.newaxis, ...]
-                # bv_imaging_weight[time_index, antenna2[row], antenna1[row], :, ...] = ms_weight[row, numpy.newaxis, ...]
-                ms_uvw[row,bl,:] = bv_uvw[row, j, i, :]
-                bl += 1
+                blList.append((antennas[i], antennas2[j]))
 
-    # ms_vis = numpy.zeros([ntimes*vis.nants*vis.nants, vis.nchan, vis.npol]).astype('complex')
-    # ms_uvw = vis.uvw.reshape(ntimes,-1,3)
-    for ntime, time in enumerate(vis.data['time']):
-        for ipol, pol in enumerate(polarization):
-            if int_time[ntime] is not None:
-                tbl.add_data_set(time, int_time[ntime], blList, ms_vis[ntime, ..., ipol], pol=pol, source='ARL',
-                                 phasecentre=vis.phasecentre, uvw=ms_uvw[ntime, :, :])
-            else:
-                tbl.add_data_set(time, 0, blList, ms_vis[ntime, ..., ipol], pol=pol,
-                                 source='ARL', phasecentre = vis.phasecentre, uvw=ms_uvw[ntime, :, :])
+        tbl.set_geometry(vis.configuration, antennas)
+        nbaseline = len(blList)
+        ntimes = len(vis.data['time'])
+
+        ms_vis = numpy.zeros([ntimes, nbaseline, nchan, npol]).astype('complex')
+        ms_uvw = numpy.zeros([ntimes, nbaseline, 3])
+        # bv_vis = numpy.zeros([ntimes, nants, nants, nchan, npol]).astype('complex')
+        # bv_weight = numpy.zeros([ntimes, nants, nants, nchan, npol])
+        # bv_imaging_weight = numpy.zeros([ntimes, nants, nants, nchan, npol])
+        # bv_uvw = numpy.zeros([ntimes, nants, nants, 3])
+        time = vis.data['time']
+        int_time = vis.data['integration_time']
+        bv_vis = vis.data['vis']
+        bv_uvw = vis.data['uvw']
+
+        # bv_antenna1 = vis.data['antenna1']
+        # bv_antenna2 = vis.data['antenna2']
+
+        time_last = time[0]
+        time_index = 0
+        for row,_ in enumerate(time):
+            # MS has shape [row, npol, nchan]
+            # BV has shape [ntimes, nants, nants, nchan, npol]
+            bl = 0
+            for i in range(0, n_ant - 1):
+                for j in range(i + 1, n_ant):
+                    ms_vis[row, bl,...] = bv_vis[row, j, i, ...]
+                    # bv_weight[time_index, antenna2[row], antenna1[row], :, ...] = ms_weight[row, numpy.newaxis, ...]
+                    # bv_imaging_weight[time_index, antenna2[row], antenna1[row], :, ...] = ms_weight[row, numpy.newaxis, ...]
+                    ms_uvw[row,bl,:] = bv_uvw[row, j, i, :]
+                    bl += 1
+
+        # ms_vis = numpy.zeros([ntimes*vis.nants*vis.nants, vis.nchan, vis.npol]).astype('complex')
+        # ms_uvw = vis.uvw.reshape(ntimes,-1,3)
+        for ntime, time in enumerate(vis.data['time']):
+            for ipol, pol in enumerate(polarization):
+                if int_time[ntime] is not None:
+                    tbl.add_data_set(time, int_time[ntime], blList, ms_vis[ntime, ..., ipol], pol=pol, source=source_name,
+                                     phasecentre=vis.phasecentre, uvw=ms_uvw[ntime, :, :])
+                else:
+                    tbl.add_data_set(time, 0, blList, ms_vis[ntime, ..., ipol], pol=pol,
+                                     source=source_name, phasecentre = vis.phasecentre, uvw=ms_uvw[ntime, :, :])
     tbl.write()
 
 def create_blockvisibility_from_ms(msname, channum=None, ack=False):

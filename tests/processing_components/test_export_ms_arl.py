@@ -44,7 +44,7 @@ class export_ms_arl_test(unittest.TestCase):
 
         vis_by_channel = list()
         v = create_blockvisibility_from_ms(msfile)
-        export_blockvisility_to_ms(msoutfile,v[0])                # vis_by_channel.append(integrate_visibility_by_channel(v[0]))
+        export_blockvisility_to_ms(msoutfile,v)                # vis_by_channel.append(integrate_visibility_by_channel(v[0]))
 
     def test_export_ms(self):
         if run_ms_tests == False:
@@ -105,7 +105,9 @@ class export_ms_arl_test(unittest.TestCase):
         # export_image_to_fits(psf, '%s/imaging_psf.fits' % (results_dir))
 
         v = convert_visibility_to_blockvisibility(vt)
-        export_blockvisility_to_ms(msoutfile, v)
+        vis_list=[]
+        vis_list.append(v)
+        export_blockvisility_to_ms(msoutfile, vis_list,source_name='M31')
 
 class export_measurementset_test_suite(unittest.TestSuite):
     """A unittest.TestSuite class which tests exporting measurementset
