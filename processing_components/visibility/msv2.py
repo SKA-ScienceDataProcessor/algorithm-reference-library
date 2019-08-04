@@ -800,7 +800,7 @@ try:
                         ant2List = a2List
 
                     ### Add in the new u, v, and w coordinates
-                    uvwList = uvwCoords[order, :]
+                    uvwList = -uvwCoords[order, :]
 
                     ### Add in the new date/time and integration time
                     # timeList = [utc - astro.MJD_OFFSET for bl in dataSet.baselines]
