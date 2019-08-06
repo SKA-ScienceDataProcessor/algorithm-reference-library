@@ -10,8 +10,6 @@ import numpy
 
 from data_models.parameters import arl_path
 
-from processing_components.visibility.base import create_blockvisibility, create_blockvisibility_from_ms
-from processing_components.visibility.base import export_blockvisility_to_ms
 from processing_components.visibility.coalesce import convert_visibility_to_blockvisibility, convert_blockvisibility_to_visibility
 
 log = logging.getLogger(__name__)
@@ -23,6 +21,9 @@ log.addHandler(logging.StreamHandler(sys.stderr))
 run_ms_tests = False
 try:
     import casacore
+    from processing_components.visibility.base import create_blockvisibility, create_blockvisibility_from_ms
+    from processing_components.visibility.base import export_blockvisility_to_ms
+
     run_ms_tests = True
 except ImportError:
     pass
@@ -32,7 +33,6 @@ class export_ms_arl_test(unittest.TestCase):
 
     def setUp(self):
         """Turn off all numpy warnings and create the temporary file directory."""
-
         pass
 
     def test_copy_ms(self):

@@ -15,21 +15,17 @@ from data_models.polarisation import ReceptorFrame
 
 from astropy.coordinates import EarthLocation
 
-run_ms_tests = False
 try:
     import casacore
-    run_ms_tests = True
-except ImportError:
-    pass
-
-try:
+    from casacore.tables import table  # pylint: disable=import-error
     from processing_components.visibility import msv2
     from processing_components.visibility.msv2fund import Stand, Antenna
     run_ms_tests = True
-except ImportError:
-    pass
+#            except ModuleNotFoundError:
+except:
+    run_ms_tests = False
 
-@unittest.skipUnless(run_ms_tests, "requires the 'casacore' module")
+
 class measurementset_tests(unittest.TestCase):
     """A unittest.TestCase collection of unit tests for the lsl.writer.measurementset.Ms
     class."""
@@ -51,6 +47,8 @@ class measurementset_tests(unittest.TestCase):
          * bl - list of baseline pairs in real stand numbers
          * vis - array of visibility data in baseline x freq format
         """
+        if run_ms_tests == False:
+            return
 
         # Frequency range
         freq = numpy.arange(0,512)*20e6/512 + 40e6
@@ -105,6 +103,8 @@ class measurementset_tests(unittest.TestCase):
          * bl - list of baseline pairs in real stand numbers
          * vis - array of visibility data in baseline x freq format
         """
+        if run_ms_tests == False:
+            return
 
         # Frequency range
         freq = numpy.arange(0, 512) * 20e6 / 512 + 40e6
@@ -182,6 +182,7 @@ class measurementset_tests(unittest.TestCase):
         """Test if the MeasurementSet writer writes all of the tables."""
         if run_ms_tests==False:
             return
+
         testTime = time.time()
         testFile = os.path.join(self.testPath, 'ms-test-W.ms')
 
@@ -207,6 +208,7 @@ class measurementset_tests(unittest.TestCase):
         """Test if the MeasurementSet writer writes all of the tables."""
         if run_ms_tests==False:
             return
+
         testTime = time.time()
         testFile = os.path.join(self.testPath, 'ms-test-WGS.ms')
 
@@ -232,6 +234,7 @@ class measurementset_tests(unittest.TestCase):
         """Test the primary data table."""
         if run_ms_tests==False:
             return
+
         testTime = time.time()
         testFile = os.path.join(self.testPath, 'ms-test-UV.ms')
 
