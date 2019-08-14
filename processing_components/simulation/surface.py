@@ -15,8 +15,8 @@ from processing_library.util.coordinate_support import hadec_to_azel, azel_to_ha
 
 log = logging.getLogger(__name__)
 
-def simulate_gaintable_from_voltage_patterns(vis, sc, vp_list, vp_coeffs, vis_slices=None,
-                                             order=3, use_radec=False, **kwargs):
+def simulate_gaintable_from_voltage_patterns(vis, sc, vp_list, vp_coeffs, vis_slices=None, order=3, use_radec=False,
+                                             **kwargs):
     """ Create gaintables for a set of zernikes
 
     :param vis:
@@ -27,7 +27,8 @@ def simulate_gaintable_from_voltage_patterns(vis, sc, vp_list, vp_coeffs, vis_sl
     :return:
     """
 
-    nant = vis.vis.shape[1]
+    ntimes, nant = vis.vis.shape[0:2]
+    vp_coeffs = numpy.array(vp_coeffs)
     gaintables = [create_gaintable_from_blockvisibility(vis, **kwargs) for i in sc]
 
     if not use_radec:
