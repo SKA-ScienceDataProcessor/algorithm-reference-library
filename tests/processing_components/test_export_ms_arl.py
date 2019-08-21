@@ -22,7 +22,7 @@ run_ms_tests = False
 try:
     import casacore
     from processing_components.visibility.base import create_blockvisibility, create_blockvisibility_from_ms
-    from processing_components.visibility.base import export_blockvisility_to_ms
+    from processing_components.visibility.base import export_blockvisibility_to_ms
 
     run_ms_tests = True
 except ImportError:
@@ -43,7 +43,7 @@ class export_ms_arl_test(unittest.TestCase):
         msoutfile = arl_path("test_results/test_export_ms_ASKAP_output.ms")
 
         v = create_blockvisibility_from_ms(msfile)
-        export_blockvisility_to_ms(msoutfile,v)                # vis_by_channel.append(integrate_visibility_by_channel(v[0]))
+        export_blockvisibility_to_ms(msoutfile, v)                # vis_by_channel.append(integrate_visibility_by_channel(v[0]))
 
     def test_export_ms(self):
         if run_ms_tests == False:
@@ -106,7 +106,7 @@ class export_ms_arl_test(unittest.TestCase):
         v = convert_visibility_to_blockvisibility(vt)
         vis_list=[]
         vis_list.append(v)
-        export_blockvisility_to_ms(msoutfile, vis_list,source_name='M31')
+        export_blockvisibility_to_ms(msoutfile, vis_list, source_name='M31')
 
 class export_measurementset_test_suite(unittest.TestSuite):
     """A unittest.TestSuite class which tests exporting measurementset

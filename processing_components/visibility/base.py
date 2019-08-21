@@ -316,7 +316,7 @@ def phaserotate_visibility(vis: Visibility, newphasecentre: SkyCoord, tangent=Tr
     else:
         return vis
 
-def export_blockvisility_to_ms(msname, vis_list, source_name=None, ack=False):
+def export_blockvisibility_to_ms(msname, vis_list, source_name=None, ack=False):
     """ Minimal BlockVisibility to MS converter
 
     The MS format is much more general than the ARL BlockVisibility so we cut many corners. This requires casacore to be
