@@ -55,7 +55,7 @@ class TestPrimaryBeams(unittest.TestCase):
 
     def test_create_primary_beams_AZELGEO(self):
         self.createVis()
-        for telescope in ['VLA', 'ASKAP', 'MID', 'MID_GAUSS', 'MID_GRASP', 'LOW']:
+        for telescope in ['VLA', 'ASKAP', 'MID', 'MID_GAUSS', 'MID_FEKO', 'MID_GRASP', 'LOW']:
             model = create_image_from_visibility(self.vis, cellsize=0.001, override_cellsize=False)
             beam = create_pb(model, telescope=telescope, use_local=True)
             assert numpy.max(beam.data) > 0.0
@@ -90,7 +90,7 @@ class TestPrimaryBeams(unittest.TestCase):
         self.createVis(freq=1.4e9)
         cellsize=8*numpy.pi/180.0/280
         model = create_image_from_visibility(self.vis, npixel=512, cellsize=cellsize, override_cellsize=False)
-        for telescope in ['MID']:
+        for telescope in ['MID', 'MID_FEKO']:
             beam=create_vp(model, telescope=telescope, padding=4)
             beam_data = beam.data
             beam.data = numpy.real(beam_data)
