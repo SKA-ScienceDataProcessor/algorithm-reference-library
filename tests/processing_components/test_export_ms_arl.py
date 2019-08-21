@@ -40,9 +40,8 @@ class export_ms_arl_test(unittest.TestCase):
             return
 
         msfile = arl_path("data/vis/ASKAP_example.ms")
-        msoutfile = arl_path("data/vis/ASKAP_output.ms")
+        msoutfile = arl_path("test_results/test_export_ms_ASKAP_output.ms")
 
-        vis_by_channel = list()
         v = create_blockvisibility_from_ms(msfile)
         export_blockvisility_to_ms(msoutfile,v)                # vis_by_channel.append(integrate_visibility_by_channel(v[0]))
 
@@ -50,7 +49,7 @@ class export_ms_arl_test(unittest.TestCase):
         if run_ms_tests == False:
             return
 
-        msoutfile = arl_path("data/vis/Test_output.ms")
+        msoutfile = arl_path("test_results/test_export_ms_ASKAP_output.ms")
 
         from astropy.coordinates import SkyCoord
         from astropy import units as u
