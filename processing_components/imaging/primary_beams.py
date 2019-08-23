@@ -95,7 +95,7 @@ def create_vp(model, telescope='MID', pointingcentre=None, padding=4, use_local=
     elif telescope == 'MID_FEKO':
         log.debug("create_vp: Using FEKO model for MID voltage pattern")
         real_vp = import_image_from_fits(arl_path('data/models/MID_FEKO_VP_B2_45_1360_real.fits'))
-        imag_vp = import_image_from_fits(arl_path('data/models/MID_FEKO_VP_B2_45_1360_imag.fitsx'))
+        imag_vp = import_image_from_fits(arl_path('data/models/MID_FEKO_VP_B2_45_1360_imag.fits'))
         real_vp.data = real_vp.data + 1j * imag_vp.data
         real_vp.data /= numpy.max(numpy.abs(real_vp.data))
         return real_vp
