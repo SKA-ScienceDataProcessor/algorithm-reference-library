@@ -247,7 +247,8 @@ def find_skycomponents(im: Image, fwhm=1.0, threshold=1.0, npixels=5) -> List[Sk
     
     # Now compute source properties for all polarisations and frequencies
     comp_tbl = [[segmentation.source_properties(im.data[chan, pol], segments,
-                                                filter_kernel=kernel, wcs=im.wcs)
+                                                filter_kernel=kernel,
+                                                wcs=im.wcs.sub([1,2])).to_table()
                  for pol in [0]]
                 for chan in range(im.nchan)]
     
