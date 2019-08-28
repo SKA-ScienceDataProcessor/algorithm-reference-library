@@ -79,7 +79,7 @@ def create_vp(model, telescope='MID', pointingcentre=None, padding=4, use_local=
     if telescope == 'MID_GAUSS':
         log.debug("create_vp: Using numeric tapered Gaussian model for MID voltage pattern")
         
-        edge = numpy.power(10, -1.2)
+        edge = numpy.power(10, -0.6)
         return create_vp_generic_numeric(model, pointingcentre=pointingcentre, diameter=15.0, blockage=0.0,
                                          edge=edge, padding=padding, use_local=use_local)
     elif telescope == 'MID':
