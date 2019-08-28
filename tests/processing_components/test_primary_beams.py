@@ -26,14 +26,17 @@ class TestPrimaryBeams(unittest.TestCase):
         from data_models.parameters import arl_path
         self.dir = arl_path('test_results')
         
-    def createVis(self, config='MID', dec=-35.0, rmax=1e3, freq=1e9):
-        self.frequency = numpy.linspace(freq, 1.5*freq, 3)
-        self.channel_bandwidth = numpy.array([2.5e7, 2.5e7, 2.5e7])
-        self.flux = numpy.array([[100.0], [100.0], [100.0]])
+    def createVis(self, config='MID', dec=-35.0, rmax=1e3, freq=1.3e9):
+        self.frequency = [freq]
+        self.channel_bandwidth = [1e6]
+        self.flux = numpy.array([[100.0]])
         self.phasecentre = SkyCoord(ra=+15.0 * u.deg, dec=-35.0 * u.deg, frame='icrs', equinox='J2000')
         self.config = create_named_configuration(config)
         self.times = numpy.linspace(-300.0, 300.0, 3) * numpy.pi / 43200.0
         nants = self.config.xyz.shape[0]
+        self.npixel = 1024
+        self.fov = 8
+        self.cellsize = numpy.pi * self.fov / (self.npixel * 180.0)
         assert nants > 1
         assert len(self.config.names) == nants
         assert len(self.config.mount) == nants
@@ -48,7 +51,7 @@ class TestPrimaryBeams(unittest.TestCase):
     def test_create_primary_beams_RADEC(self):
         self.createVis()
         for telescope in ['VLA', 'ASKAP', 'MID', 'LOW']:
-            model = create_image_from_visibility(self.vis, cellsize=0.001, override_cellsize=False)
+            model = create_image_from_visibility(self.vis, cellsize=self.cellsize, npixel=self.npixel, override_cellsize=False)
             beam = create_pb(model, telescope=telescope, use_local=False)
             assert numpy.max(beam.data) > 0.0
             export_image_to_fits(beam, "%s/test_primary_beam_RADEC_%s.fits" % (self.dir, telescope))
@@ -56,7 +59,7 @@ class TestPrimaryBeams(unittest.TestCase):
     def test_create_primary_beams_AZELGEO(self):
         self.createVis()
         for telescope in ['VLA', 'ASKAP', 'MID', 'MID_GAUSS', 'MID_FEKO', 'MID_GRASP', 'LOW']:
-            model = create_image_from_visibility(self.vis, cellsize=0.001, override_cellsize=False)
+            model = create_image_from_visibility(self.vis, cellsize=self.cellsize, npixel=self.npixel, override_cellsize=False)
             beam = create_pb(model, telescope=telescope, use_local=True)
             assert numpy.max(beam.data) > 0.0
             export_image_to_fits(beam, "%s/test_primary_beam_AZELGEO_%s.fits" % (self.dir, telescope))
@@ -64,32 +67,27 @@ class TestPrimaryBeams(unittest.TestCase):
     def test_create_voltage_patterns(self):
         self.createVis()
         for telescope in ['VLA', 'ASKAP', 'LOW']:
-            model = create_image_from_visibility(self.vis, cellsize=0.001, override_cellsize=False)
+            model = create_image_from_visibility(self.vis, cellsize=self.cellsize, npixel=self.npixel, override_cellsize=False)
             beam=create_vp(model, telescope=telescope)
             assert numpy.max(numpy.abs(beam.data.real)) > 0.0
             assert numpy.max(numpy.abs(beam.data.imag)) < 1e-15, numpy.max(numpy.abs(beam.data.imag))
 
     def test_create_voltage_patterns_MID_GAUSS(self):
-        self.createVis(freq=1.4e9)
-        cellsize=8*numpy.pi/180.0/280
-        model = create_image_from_visibility(self.vis, npixel=512, cellsize=cellsize, override_cellsize=False)
-        pointingcentre = SkyCoord(ra=+17.0 * u.deg, dec=-37.0 * u.deg, frame='icrs', equinox='J2000')
+        self.createVis()
+        model = create_image_from_visibility(self.vis, npixel=self.npixel, cellsize=self.cellsize,
+                                             override_cellsize=False)
         for telescope in ['MID_GAUSS']:
-            beam=create_vp(model, telescope=telescope, padding=4, pointingcentre=pointingcentre)
+            beam=create_vp(model, telescope=telescope, padding=4)
             beam_data = beam.data
             beam.data = numpy.real(beam_data)
             export_image_to_fits(beam, "%s/test_voltage_pattern_real_%s.fits" % (self.dir, telescope))
             beam.data = numpy.imag(beam_data)
             export_image_to_fits(beam, "%s/test_voltage_pattern_imag_%s.fits" % (self.dir, telescope))
 
-            beam=create_vp(model, telescope=telescope, pointingcentre=pointingcentre)
-            beam.data = numpy.real(beam.data)
-            export_image_to_fits(beam, "%s/test_voltage_pattern_offset_%s.fits" % (self.dir, telescope))
-
     def test_create_voltage_patterns_MID(self):
         self.createVis(freq=1.4e9)
-        cellsize=8*numpy.pi/180.0/280
-        model = create_image_from_visibility(self.vis, npixel=512, cellsize=cellsize, override_cellsize=False)
+        model = create_image_from_visibility(self.vis, npixel=self.npixel, cellsize=self.cellsize,
+                                             override_cellsize=False)
         for telescope in ['MID', 'MID_FEKO']:
             beam=create_vp(model, telescope=telescope, padding=4)
             beam_data = beam.data
