@@ -59,6 +59,44 @@ class TestCreateMS(unittest.TestCase):
             assert v.vis.data.shape[-1] == 4
             assert v.polarisation_frame.type == "linear"
 
+    def test_create_list_slice(self):
+        if not self.casacore_available:
+            return
+    
+        msfile = arl_path("data/vis/ASKAP_example.ms")
+    
+        vis_by_channel = list()
+        nchan_ave = 16
+        nchan = 192
+        for schan in range(0, nchan, nchan_ave):
+            max_chan = min(nchan, schan + nchan_ave)
+            v = create_visibility_from_ms(msfile, start_chan=schan, end_chan=max_chan-1)
+            vis_by_channel.append(v[0])
+    
+        assert len(vis_by_channel) == 12
+        for v in vis_by_channel:
+            assert v.vis.data.shape[-1] == 4
+            assert v.polarisation_frame.type == "linear"
+
+    def test_create_list_single(self):
+        if not self.casacore_available:
+            return
+    
+        msfile = arl_path("data/vis/ASKAP_example.ms")
+    
+        vis_by_channel = list()
+        nchan_ave = 1
+        nchan = 8
+        for schan in range(0, nchan, nchan_ave):
+            max_chan = min(nchan, schan + nchan_ave)
+            v = create_visibility_from_ms(msfile, start_chan=schan, end_chan=schan)
+            vis_by_channel.append(v[0])
+    
+        assert len(vis_by_channel) == 8, len(vis_by_channel)
+        for v in vis_by_channel:
+            assert v.vis.data.shape[-1] == 4
+            assert v.polarisation_frame.type == "linear"
+
     def test_create_list_spectral_average(self):
         if not self.casacore_available:
             return

@@ -50,7 +50,7 @@ def create_visibility(config: Configuration, times: numpy.array, frequency: nump
                       channel_bandwidth, phasecentre: SkyCoord,
                       weight: float, polarisation_frame=PolarisationFrame('stokesI'),
                       integration_time=1.0,
-                      zerow=False, elevation_limit=0.1) -> Visibility:
+                      zerow=False, elevation_limit=15.0 * numpy.pi / 180.0) -> Visibility:
     """ Create a Visibility from Configuration, hour angles, and direction of source
 
     Note that we keep track of the integration time for BDA purposes
@@ -70,15 +70,26 @@ def create_visibility(config: Configuration, times: numpy.array, frequency: nump
     if polarisation_frame is None:
         polarisation_frame = correlate_polarisation(config.receptor_frame)
     
+    latitude = config.location.geodetic[1].to('rad').value
+
     nch = len(frequency)
     ants_xyz = config.data['xyz']
     nants = len(config.data['names'])
     nbaselines = int(nants * (nants - 1) / 2)
-    ntimes = len(times)
+    ntimes = 0
+    
+    for iha, ha in enumerate(times):
+    
+        # Calculate the positions of the antennas as seen for this hour angle
+        # and declination
+        ant_pos = xyz_to_uvw(ants_xyz, ha, phasecentre.dec.rad)
+        _, elevation = pa_z(ha, phasecentre.dec.rad, latitude)
+        if elevation_limit is None or (elevation > elevation_limit):
+            ntimes += 1
+
     npol = polarisation_frame.npol
     nrows = nbaselines * ntimes * nch
     nrowsperintegration = nbaselines * nch
-    row = 0
     rvis = numpy.zeros([nrows, npol], dtype='complex')
     rweight = weight * numpy.ones([nrows, npol])
     rtimes = numpy.zeros([nrows])
@@ -87,40 +98,35 @@ def create_visibility(config: Configuration, times: numpy.array, frequency: nump
     rantenna1 = numpy.zeros([nrows], dtype='int')
     rantenna2 = numpy.zeros([nrows], dtype='int')
     ruvw = numpy.zeros([nrows, 3])
-    latitude = config.location.geodetic[1].to('rad').value
     
     n_flagged = 0
 
     # Do each hour angle in turn
+    row = 0
     for iha, ha in enumerate(times):
         
         # Calculate the positions of the antennas as seen for this hour angle
         # and declination
-        ant_pos = xyz_to_uvw(ants_xyz, ha, phasecentre.dec.rad)
-        rtimes[row:row + nrowsperintegration] = ha * 43200.0 / numpy.pi
         _, elevation = pa_z(ha, phasecentre.dec.rad, latitude)
-        if elevation < elevation_limit:
-            flag_weight = -1.0
-        else:
-            flag_weight = 1.0
-            
-        # Loop over all pairs of antennas. Note that a2>a1
-        for a1 in range(nants):
-            for a2 in range(a1 + 1, nants):
-                rantenna1[row:row + nch] = a1
-                rantenna2[row:row + nch] = a2
-                rweight[row:row+nch,...] = flag_weight
+        if elevation_limit is None or (elevation > elevation_limit):
+            rtimes[row:row + nrowsperintegration] = ha * 43200.0 / numpy.pi
+           
+            # Loop over all pairs of antennas. Note that a2>a1
+            ant_pos = xyz_to_uvw(ants_xyz, ha, phasecentre.dec.rad)
+            for a1 in range(nants):
+                for a2 in range(a1 + 1, nants):
+                    rantenna1[row:row + nch] = a1
+                    rantenna2[row:row + nch] = a2
+                    rweight[row:row+nch,...] = 1.0
                 
-                # Loop over all frequencies and polarisations
-                for ch in range(nch):
-                    # noinspection PyUnresolvedReferences
-                    k = frequency[ch] / constants.c.value
-                    ruvw[row, :] = (ant_pos[a2, :] - ant_pos[a1, :]) * k
-                    rfrequency[row] = frequency[ch]
-                    rchannel_bandwidth[row] = channel_bandwidth[ch]
-                    row += 1
-        if flag_weight < 0.0:
-            n_flagged += nch * nants * (nants-1) /2
+                    # Loop over all frequencies and polarisations
+                    for ch in range(nch):
+                        # noinspection PyUnresolvedReferences
+                        k = frequency[ch] / constants.c.value
+                        ruvw[row, :] = (ant_pos[a2, :] - ant_pos[a1, :]) * k
+                        rfrequency[row] = frequency[ch]
+                        rchannel_bandwidth[row] = channel_bandwidth[ch]
+                        row += 1
     
     if zerow:
         ruvw[..., 2] = 0.0
@@ -135,8 +141,12 @@ def create_visibility(config: Configuration, times: numpy.array, frequency: nump
     vis.configuration = config
     log.info("create_visibility: %s" % (vis_summary(vis)))
     assert isinstance(vis, Visibility), "vis is not a Visibility: %r" % vis
-    log.info('create_visibility: flagged %d/%d visibilities below elevation limit %f (rad)' %
-             (n_flagged, vis.nvis, elevation_limit))
+    if elevation_limit is not None:
+        log.info('create_visibility: flagged %d/%d visibilities below elevation limit %f (rad)' %
+                (n_flagged, vis.nvis, elevation_limit))
+    else:
+        log.info('create_visibility: created %d visibilities' % (vis.nvis))
+
     return vis
 
 
@@ -149,7 +159,7 @@ def create_blockvisibility(config: Configuration,
                            integration_time=1.0,
                            channel_bandwidth=1e6,
                            zerow=False,
-                           elevation_limit=0.1,
+                           elevation_limit=15.0 * numpy.pi / 180.0,
                            **kwargs) -> BlockVisibility:
     """ Create a BlockVisibility from Configuration, hour angles, and direction of source
 
@@ -170,10 +180,31 @@ def create_blockvisibility(config: Configuration,
     if polarisation_frame is None:
         polarisation_frame = correlate_polarisation(config.receptor_frame)
     
+    latitude = config.location.geodetic[1].to('rad').value
     nch = len(frequency)
     ants_xyz = config.data['xyz']
     nants = len(config.data['names'])
-    ntimes = len(times)
+
+    ntimes = 0
+    n_flagged = 0
+    for iha, ha in enumerate(times):
+    
+        # Calculate the positions of the antennas as seen for this hour angle
+        # and declination
+        ant_pos = xyz_to_uvw(ants_xyz, ha, phasecentre.dec.rad)
+        _, elevation = pa_z(ha, phasecentre.dec.rad, latitude)
+        if elevation_limit is None or (elevation > elevation_limit):
+            ntimes +=1
+        else:
+            n_flagged += 1
+
+    assert ntimes > 0, "No unflagged points"
+    if elevation_limit is not None:
+        log.info('create_visibility: flagged %d/%d times below elevation limit %f (rad)' %
+                (n_flagged, ntimes, elevation_limit))
+    else:
+        log.info('create_visibility: created %d times' % (ntimes))
+    
     npol = polarisation_frame.npol
     visshape = [ntimes, nants, nants, nch, npol]
     rvis = numpy.zeros(visshape, dtype='complex')
@@ -181,26 +212,25 @@ def create_blockvisibility(config: Configuration,
     rimaging_weight = numpy.ones(visshape)
     rtimes = numpy.zeros([ntimes])
     ruvw = numpy.zeros([ntimes, nants, nants, 3])
-    latitude = config.location.geodetic[1].to('rad').value
     
     # Do each hour angle in turn
-    n_flagged = 0
+    itime = 0
     for iha, ha in enumerate(times):
         
         # Calculate the positions of the antennas as seen for this hour angle
         # and declination
         ant_pos = xyz_to_uvw(ants_xyz, ha, phasecentre.dec.rad)
-        rtimes[iha] = ha * 43200.0 / numpy.pi
         _, elevation = pa_z(ha, phasecentre.dec.rad, latitude)
-        if elevation < elevation_limit:
-            rweight[iha, ...] = -1.0
-            n_flagged += 1
+        if elevation_limit is None or (elevation > elevation_limit):
+            rtimes[itime] = ha * 43200.0 / numpy.pi
+            rweight[itime, ...] = -1.0
 
-        # Loop over all pairs of antennas. Note that a2>a1
-        for a1 in range(nants):
-            for a2 in range(a1 + 1, nants):
-                ruvw[iha, a2, a1, :] = (ant_pos[a2, :] - ant_pos[a1, :])
-                ruvw[iha, a1, a2, :] = (ant_pos[a1, :] - ant_pos[a2, :])
+            # Loop over all pairs of antennas. Note that a2>a1
+            for a1 in range(nants):
+                for a2 in range(a1 + 1, nants):
+                    ruvw[itime, a2, a1, :] = (ant_pos[a2, :] - ant_pos[a1, :])
+                    ruvw[itime, a1, a2, :] = (ant_pos[a1, :] - ant_pos[a2, :])
+            itime += 1
     
     rintegration_time = numpy.full_like(rtimes, integration_time)
     rchannel_bandwidth = channel_bandwidth
@@ -214,9 +244,6 @@ def create_blockvisibility(config: Configuration,
     vis.configuration = config
     log.info("create_blockvisibility: %s" % (vis_summary(vis)))
     assert isinstance(vis, BlockVisibility), "vis is not a BlockVisibility: %r" % vis
-    if n_flagged > 0:
-        log.info('create_blockvisibility: flagged %d/%d rows below elevation limit %f (rad)' %
-                (n_flagged, vis.nvis, elevation_limit))
 
     return vis
 
@@ -428,7 +455,86 @@ def export_blockvisibility_to_ms(msname, vis_list, source_name=None, ack=False):
                                      source=source_name, phasecentre = vis.phasecentre, uvw=ms_uvw[ntime, :, :])
     tbl.write()
 
-def create_blockvisibility_from_ms(msname, channum=None, ack=False):
+
+def create_blockvisibility_from_ms(msname, channum=None, start_chan=None, end_chan=None, ack=False):
+    """ Minimal MS to BlockVisibility converter
+
+    The MS format is much more general than the ARL BlockVisibility so we cut many corners. This requires casacore to be
+    installed. If not an exception ModuleNotFoundError is raised.
+
+    Creates a list of BlockVisibility's, split by field and spectral window
+
+    Reading of a subset of channels is possible using either start_chan and end_chan or channnum. Using start_chan
+    and end_chan is preferred since it only reads the channels required. Channum is more flexible and can be used to
+    read a random list of channels.
+
+    :param msname: File name of MS
+    :param channum: range of channels e.g. range(17,32), default is None meaning all
+    :return:
+    """
+    try:
+        from casacore.tables import table  # pylint: disable=import-error
+    except ModuleNotFoundError:
+        raise ModuleNotFoundError("casacore is not installed")
+    try:
+        from processing_components.visibility import msv2
+    except ModuleNotFoundError:
+        raise ModuleNotFoundError("cannot import msv2")
+    
+    tab = table(msname, ack=ack)
+    log.debug("create_blockvisibility_from_ms: %s" % str(tab.info()))
+    
+    fields = numpy.unique(tab.getcol('FIELD_ID'))
+    dds = numpy.unique(tab.getcol('DATA_DESC_ID'))
+    log.debug("create_blockvisibility_from_ms: Found unique fields %s, unique data descriptions %s" % (
+        str(fields), str(dds)))
+    vis_list = list()
+    for dd in dds:
+        dtab = table(msname, ack=ack).query('DATA_DESC_ID==%d' % dd, style='')
+        for field in fields:
+            ms = dtab.query('FIELD_ID==%d' % field, style='')
+            assert ms.nrows() > 0, "Empty selection for FIELD_ID=%d and DATA_DESC_ID=%d" % (field, dd)
+            log.debug("create_blockvisibility_from_ms: Found %d rows" % (ms.nrows()))
+            time = ms.getcol('TIME')
+            datacol = ms.getcol('DATA', nrow=1)
+            datacol_shape = list(datacol.shape)
+            channels = datacol.shape[-2]
+            log.debug("create_visibility_from_ms: Found %d channels" % (channels))
+            if channum is None:
+                if start_chan is not None and end_chan is not None:
+                    try:
+                        log.debug("create_visibility_from_ms: Reading channels from %d to %d" %
+                                  (start_chan, end_chan))
+                        print("create_visibility_from_ms: Reading channels from %d to %d" %
+                              (start_chan, end_chan))
+                        blc = [start_chan, 0]
+                        trc = [end_chan - 1, datacol_shape[-1] - 1]
+                        channum = range(start_chan, end_chan)
+                        ms_vis = ms.getcolslice('DATA', blc=blc, trc=trc)
+                        ms_weight = ms.getcol('WEIGHT')
+                    except IndexError:
+                        raise IndexError("channel number exceeds max. within ms")
+                
+                else:
+                    log.debug("create_visibility_from_ms: Reading all %d channels" % (channels))
+                    print("create_visibility_from_ms: Reading all %d channels" % (channels))
+                    try:
+                        ms_vis = ms.getcol('DATA')
+                        ms_weight = ms.getcol('WEIGHT')
+                    except IndexError:
+                        raise IndexError("channel number exceeds max. within ms")
+            else:
+                log.debug("create_visibility_from_ms: Reading channels %s " % (channum))
+                print("create_visibility_from_ms: Reading channels %s " % (channum))
+                channum = range(channels)
+                try:
+                    ms_vis = ms.getcol('DATA')[:, channum, :]
+                    ms_weight = ms.getcol('WEIGHT')[:, :]
+                except IndexError:
+                    raise IndexError("channel number exceeds max. within ms")
+
+
+def create_blockvisibility_from_ms(msname, channum=None, start_chan=None, end_chan=None, ack=False):
     """ Minimal MS to BlockVisibility converter
 
     The MS format is much more general than the ARL BlockVisibility so we cut many corners. This requires casacore to be
@@ -436,8 +542,14 @@ def create_blockvisibility_from_ms(msname, channum=None, ack=False):
 
     Creates a list of BlockVisibility's, split by field and spectral window
     
+    Reading of a subset of channels is possible using either start_chan and end_chan or channnum. Using start_chan 
+    and end_chan is preferred since it only reads the channels required. Channum is more flexible and can be used to
+    read a random list of channels.
+    
     :param msname: File name of MS
     :param channum: range of channels e.g. range(17,32), default is None meaning all
+    :param start_chan: Starting channel to read
+    :param end_chan: End channel to read
     :return:
     """
     try:
@@ -465,15 +577,43 @@ def create_blockvisibility_from_ms(msname, channum=None, ack=False):
             assert ms.nrows() > 0, "Empty selection for FIELD_ID=%d and DATA_DESC_ID=%d" % (field, dd)
             log.debug("create_blockvisibility_from_ms: Found %d rows" % (ms.nrows()))
             time = ms.getcol('TIME')
-            channels = ms.getcol('DATA').shape[-2]
+            datacol = ms.getcol('DATA', nrow=1)
+            datacol_shape = list(datacol.shape)
+            channels = datacol.shape[-2]
             log.debug("create_visibility_from_ms: Found %d channels" % (channels))
             if channum is None:
+                if start_chan is not None and end_chan is not None:
+                    try:
+                        log.debug("create_visibility_from_ms: Reading channels from %d to %d" %
+                                  (start_chan, end_chan))
+                        print("create_visibility_from_ms: Reading channels from %d to %d (inclusive)" %
+                              (start_chan, end_chan))
+                        blc = [start_chan, 0]
+                        trc = [end_chan, datacol_shape[-1] - 1]
+                        channum = range(start_chan, end_chan+1)
+                        ms_vis = ms.getcolslice('DATA', blc=blc, trc=trc)
+                        ms_weight = ms.getcol('WEIGHT')
+                    except IndexError:
+                        raise IndexError("channel number exceeds max. within ms")
+
+                else:
+                    log.debug("create_visibility_from_ms: Reading all %d channels" % (channels))
+                    print("create_visibility_from_ms: Reading all %d channels" % (channels))
+                    try:
+                        ms_vis = ms.getcol('DATA')
+                        ms_weight = ms.getcol('WEIGHT')
+                    except IndexError:
+                        raise IndexError("channel number exceeds max. within ms")
+            else:
+                log.debug("create_visibility_from_ms: Reading channels %s " % (channum))
+                print("create_visibility_from_ms: Reading channels %s " % (channum))
                 channum = range(channels)
-            try:
-                ms_vis = ms.getcol('DATA')[:, channum, :]
-                ms_weight = ms.getcol('WEIGHT')[:, :]
-            except IndexError:
-                raise IndexError("channel number exceeds max. within ms")
+                try:
+                    ms_vis = ms.getcol('DATA')[:, channum, :]
+                    ms_weight = ms.getcol('WEIGHT')[:, :]
+                except IndexError:
+                    raise IndexError("channel number exceeds max. within ms")
+
             uvw = -1 * ms.getcol('UVW')
             antenna1 = ms.getcol('ANTENNA1')
             antenna2 = ms.getcol('ANTENNA2')
@@ -560,7 +700,7 @@ def create_blockvisibility_from_ms(msname, channum=None, ack=False):
     return vis_list
 
 
-def create_visibility_from_ms(msname, channum=None, ack=False):
+def create_visibility_from_ms(msname, channum=None, start_chan=None, end_chan=None,  ack=False):
     """ Minimal MS to BlockVisibility converter
 
     The MS format is much more general than the ARL BlockVisibility so we cut many corners. This requires casacore to be
@@ -568,13 +708,20 @@ def create_visibility_from_ms(msname, channum=None, ack=False):
 
     Creates a list of BlockVisibility's, split by field and spectral window
 
+    Reading of a subset of channels is possible using either start_chan and end_chan or channnum. Using start_chan
+    and end_chan is preferred since it only reads the channels required. Channum is more flexible and can be used to
+    read a random list of channels.
+    
     :param msname: File name of MS
     :param channum: range of channels e.g. range(17,32), default is None meaning all
+    :param start_chan: Starting channel to read
+    :param end_chan: End channel to read
     :return:
     """
     from processing_components.visibility.coalesce import convert_blockvisibility_to_visibility
     return [convert_blockvisibility_to_visibility(v)
-            for v in create_blockvisibility_from_ms(msname=msname, channum=channum, ack=ack)]
+            for v in create_blockvisibility_from_ms(msname=msname, channum=channum,
+                                                    start_chan=start_chan, end_chan=end_chan, ack=ack)]
 
 
 def create_blockvisibility_from_uvfits(fitsname, channum=None, ack=False, antnum=None):
