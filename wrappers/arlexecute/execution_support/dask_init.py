@@ -40,19 +40,19 @@ def get_dask_Client(timeout=30, n_workers=None, threads_per_worker=1, processes=
         if n_workers is not None:
             if memory_limit is not None:
                 cluster = LocalCluster(n_workers=n_workers, threads_per_worker=threads_per_worker, processes=processes,
-                                       memory_limit=memory_limit, local_dir=local_dir,
+                                       memory_limit=memory_limit, local_directory=local_dir,
                                        dashboard_address=dashboard_address)
             else:
                 cluster = LocalCluster(n_workers=n_workers, threads_per_worker=threads_per_worker, processes=processes,
-                                       local_dir=local_dir,
+                                       local_directory=local_dir,
                                        dashboard_address=dashboard_address)
         else:
             if memory_limit is not None:
                 cluster = LocalCluster(threads_per_worker=threads_per_worker, processes=processes,
-                                       memory_limit=memory_limit, local_dir=local_dir,
+                                       memory_limit=memory_limit, local_directory=local_dir,
                                        dashboard_address=dashboard_address)
             else:
-                cluster = LocalCluster(threads_per_worker=threads_per_worker, processes=processes, local_dir=local_dir,
+                cluster = LocalCluster(threads_per_worker=threads_per_worker, processes=processes, local_directory=local_dir,
                                        dashboard_address=dashboard_address)
         
         print("Creating LocalCluster and Dask Client")
