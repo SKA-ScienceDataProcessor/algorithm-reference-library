@@ -46,7 +46,7 @@ class Configuration:
     """
 
     def __init__(self, name='', data=None, location=None,
-                 names="%s", xyz=None, mount="alt-az", frame='',
+                 names="%s", xyz=None, mount="alt-az", frame="",
                  receptor_frame=ReceptorFrame("linear"),
                  diameter=None):
 
@@ -835,10 +835,12 @@ class Visibility:
 
         """
         ufrequency = numpy.unique(self.frequency)
+        uchannel_bandwidth = numpy.unique(self.channel_bandwidth)
         s = "Visibility:\n"
         s += "\tNumber of visibilities: %s\n" % self.nvis
         s += "\tNumber of channels: %d\n" % len(ufrequency)
         s += "\tFrequency: %s\n" % ufrequency
+        s += "\tChannel bandwidth: %s\n" % uchannel_bandwidth
         s += "\tNumber of polarisations: %s\n" % self.npol
         s += "\tVisibility shape: %s\n" % str(self.vis.shape)
         s += "\tPolarisation Frame: %s\n" % self.polarisation_frame.type
@@ -1003,6 +1005,7 @@ class BlockVisibility:
         s += "\tVisibility shape: %s\n" % str(self.vis.shape)
         s += "\tNumber of channels: %d\n" % len(self.frequency)
         s += "\tFrequency: %s\n" % self.frequency
+        s += "\tChannel bandwidth: %s\n" % self.channel_bandwidth
         s += "\tNumber of polarisations: %s\n" % self.npol
         s += "\tPolarisation Frame: %s\n" % self.polarisation_frame.type
         s += "\tPhasecentre: %s\n" % self.phasecentre
