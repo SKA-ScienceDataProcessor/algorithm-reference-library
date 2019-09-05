@@ -217,6 +217,37 @@ class TestVisibilityOperations(unittest.TestCase):
         self.assertAlmostEqual(qa.data['medianabs'], 11.0, 7)
         assert qa.context == 'test_qa'
 
+    def test_elevation(self):
+        self.phasecentre = SkyCoord(ra=+180.0 * u.deg, dec=+15.0 * u.deg, frame='icrs', equinox='J2000')
+        self.times = (numpy.pi / 43200.0) * numpy.arange(-43200, +43200, 3600.0)
+        self.vis = create_visibility(self.lowcore, self.times, self.frequency,
+                                     channel_bandwidth=self.channel_bandwidth,
+                                     phasecentre=self.phasecentre, weight=1.0,
+                                     polarisation_frame=PolarisationFrame("stokesIQUV"),
+                                     elevation_limit=numpy.pi * 15.0/180.0)
+        n_elevation_limit = len(numpy.unique(self.vis.time))
+        self.vis = create_visibility(self.lowcore, self.times, self.frequency,
+                                     channel_bandwidth=self.channel_bandwidth,
+                                     phasecentre=self.phasecentre, weight=1.0,
+                                     polarisation_frame=PolarisationFrame("stokesIQUV"),
+                                     elevation_limit=None)
+        assert len(numpy.unique(self.vis.time)) >= n_elevation_limit
+
+    def test_elevation_block(self):
+        self.phasecentre = SkyCoord(ra=+180.0 * u.deg, dec=+15.0 * u.deg, frame='icrs', equinox='J2000')
+        self.times = (numpy.pi / 43200.0) * numpy.arange(-43200, +43200, 3600.0)
+        self.vis = create_blockvisibility(self.lowcore, self.times, self.frequency,
+                                     channel_bandwidth=self.channel_bandwidth,
+                                     phasecentre=self.phasecentre, weight=1.0,
+                                     polarisation_frame=PolarisationFrame("stokesIQUV"),
+                                     elevation_limit=numpy.pi * 15.0/180.0)
+        n_elevation_limit = len(numpy.unique(self.vis.time))
+        self.vis = create_blockvisibility(self.lowcore, self.times, self.frequency,
+                                     channel_bandwidth=self.channel_bandwidth,
+                                     phasecentre=self.phasecentre, weight=1.0,
+                                     polarisation_frame=PolarisationFrame("stokesIQUV"),
+                                     elevation_limit=None)
+        assert len(numpy.unique(self.vis.time)) >= n_elevation_limit
 
 if __name__ == '__main__':
     unittest.main()
