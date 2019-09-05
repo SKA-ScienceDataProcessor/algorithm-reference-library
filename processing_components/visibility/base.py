@@ -17,7 +17,8 @@ from astropy.time import Time
 
 from data_models.memory_data_models import Visibility, BlockVisibility, Configuration
 from data_models.polarisation import PolarisationFrame, ReceptorFrame, correlate_polarisation
-from processing_library.util.coordinate_support import xyz_to_uvw, uvw_to_xyz, skycoord_to_lmn, simulate_point, pa_z
+from processing_library.util.coordinate_support import xyz_to_uvw, uvw_to_xyz, skycoord_to_lmn, simulate_point, \
+    hadec_to_azel
 
 log = logging.getLogger(__name__)
 
@@ -77,15 +78,13 @@ def create_visibility(config: Configuration, times: numpy.array, frequency: nump
     nants = len(config.data['names'])
     nbaselines = int(nants * (nants - 1) / 2)
     ntimes = 0
-    
     for iha, ha in enumerate(times):
     
         # Calculate the positions of the antennas as seen for this hour angle
         # and declination
-        ant_pos = xyz_to_uvw(ants_xyz, ha, phasecentre.dec.rad)
-        _, elevation = pa_z(ha, phasecentre.dec.rad, latitude)
+        _, elevation = hadec_to_azel(ha, phasecentre.dec.rad, latitude)
         if elevation_limit is None or (elevation > elevation_limit):
-            ntimes += 1
+            ntimes +=1
 
     npol = polarisation_frame.npol
     nrows = nbaselines * ntimes * nch
@@ -107,7 +106,7 @@ def create_visibility(config: Configuration, times: numpy.array, frequency: nump
         
         # Calculate the positions of the antennas as seen for this hour angle
         # and declination
-        _, elevation = pa_z(ha, phasecentre.dec.rad, latitude)
+        _, elevation = hadec_to_azel(ha, phasecentre.dec.rad, latitude)
         if elevation_limit is None or (elevation > elevation_limit):
             rtimes[row:row + nrowsperintegration] = ha * 43200.0 / numpy.pi
            
@@ -191,8 +190,7 @@ def create_blockvisibility(config: Configuration,
     
         # Calculate the positions of the antennas as seen for this hour angle
         # and declination
-        ant_pos = xyz_to_uvw(ants_xyz, ha, phasecentre.dec.rad)
-        _, elevation = pa_z(ha, phasecentre.dec.rad, latitude)
+        _, elevation = hadec_to_azel(ha, phasecentre.dec.rad, latitude)
         if elevation_limit is None or (elevation > elevation_limit):
             ntimes +=1
         else:
@@ -220,7 +218,7 @@ def create_blockvisibility(config: Configuration,
         # Calculate the positions of the antennas as seen for this hour angle
         # and declination
         ant_pos = xyz_to_uvw(ants_xyz, ha, phasecentre.dec.rad)
-        _, elevation = pa_z(ha, phasecentre.dec.rad, latitude)
+        _, elevation = hadec_to_azel(ha, phasecentre.dec.rad, latitude)
         if elevation_limit is None or (elevation > elevation_limit):
             rtimes[itime] = ha * 43200.0 / numpy.pi
             rweight[itime, ...] = -1.0
