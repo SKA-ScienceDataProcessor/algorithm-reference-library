@@ -6,6 +6,12 @@
 
 """
 
+__all__ = ['predict_list_serial_workflow', 'invert_list_serial_workflow', 'residual_list_serial_workflow',
+           'restore_list_serial_workflow', 'deconvolve_list_serial_workflow',
+           'weight_list_serial_workflow',
+           'taper_list_serial_workflow', 'zero_list_serial_workflow', 'subtract_list_serial_workflow']
+
+
 import collections
 import logging
 
@@ -57,6 +63,11 @@ def predict_list_serial_workflow(vis_list, model_imagelist, context, vis_slices=
     c = imaging_context(context)
     vis_iter = c['vis_iterator']
     predict = c['predict']
+    
+    if facets % 2 == 0 or facets == 1:
+        actual_number_facets = facets
+    else:
+        actual_number_facets = facets - 1
     
     def predict_ignore_none(vis, model, g):
         if vis is not None:
@@ -133,6 +144,11 @@ def invert_list_serial_workflow(vis_list, template_model_imagelist, dopsf=False,
     c = imaging_context(context)
     vis_iter = c['vis_iterator']
     invert = c['invert']
+    
+    if facets % 2 == 0 or facets == 1:
+        actual_number_facets = facets
+    else:
+        actual_number_facets = max(1, (facets - 1))
     
     def gather_image_iteration_results(results, template_model):
         result = create_empty_image_like(template_model)

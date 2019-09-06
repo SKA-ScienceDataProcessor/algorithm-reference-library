@@ -180,7 +180,7 @@ class ARLExecuteBase():
         if self.using_dask and self._optimize:
             return optimize(*args, **kwargs)[0]
         else:
-            return args
+            return args[0]
 
     
     @property
