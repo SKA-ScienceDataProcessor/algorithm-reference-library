@@ -6,6 +6,8 @@ import sys
 import unittest
 import logging
 
+import numpy
+
 from data_models.parameters import arl_path
 
 from processing_components.visibility.base import create_blockvisibility_from_ms, create_visibility_from_ms
@@ -70,7 +72,29 @@ class TestCreateMS(unittest.TestCase):
         nchan = 192
         for schan in range(0, nchan, nchan_ave):
             max_chan = min(nchan, schan + nchan_ave)
-            v = create_visibility_from_ms(msfile, start_chan=schan, end_chan=max_chan-1)
+            v = create_blockvisibility_from_ms(msfile, start_chan=schan, end_chan=max_chan - 1)
+            assert v[0].vis.shape[-2] == nchan_ave
+            vis_by_channel.append(v[0])
+    
+        assert len(vis_by_channel) == 12
+        for v in vis_by_channel:
+            assert v.vis.data.shape[-1] == 4
+            assert v.polarisation_frame.type == "linear"
+
+    def test_create_list_slice_visibility(self):
+        if not self.casacore_available:
+            return
+    
+        msfile = arl_path("data/vis/ASKAP_example.ms")
+    
+        vis_by_channel = list()
+        nchan_ave = 16
+        nchan = 192
+        for schan in range(0, nchan, nchan_ave):
+            max_chan = min(nchan, schan + nchan_ave)
+            v = create_visibility_from_ms(msfile, start_chan=schan, end_chan=max_chan - 1)
+            nchannels = len(numpy.unique(v[0].frequency))
+            assert nchannels == nchan_ave
             vis_by_channel.append(v[0])
     
         assert len(vis_by_channel) == 12

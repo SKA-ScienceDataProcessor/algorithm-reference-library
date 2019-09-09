@@ -158,7 +158,7 @@ def create_blockvisibility(config: Configuration,
                            integration_time=1.0,
                            channel_bandwidth=1e6,
                            zerow=False,
-                           elevation_limit=15.0 * numpy.pi / 180.0,
+                           elevation_limit=None,
                            **kwargs) -> BlockVisibility:
     """ Create a BlockVisibility from Configuration, hour angles, and direction of source
 
@@ -600,6 +600,7 @@ def create_blockvisibility_from_ms(msname, channum=None, start_chan=None, end_ch
                     try:
                         ms_vis = ms.getcol('DATA')
                         ms_weight = ms.getcol('WEIGHT')
+                        channum = range(channels)
                     except IndexError:
                         raise IndexError("channel number exceeds max. within ms")
             else:
