@@ -221,7 +221,7 @@ def create_blockvisibility(config: Configuration,
         _, elevation = hadec_to_azel(ha, phasecentre.dec.rad, latitude)
         if elevation_limit is None or (elevation > elevation_limit):
             rtimes[itime] = ha * 43200.0 / numpy.pi
-            rweight[itime, ...] = -1.0
+            rweight[itime, ...] = 1.0
 
             # Loop over all pairs of antennas. Note that a2>a1
             for a1 in range(nants):
