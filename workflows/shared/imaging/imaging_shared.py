@@ -92,7 +92,7 @@ def sum_invert_results_local(image_list):
     assert not first, "No invert results"
     return im, sumwt
 
-def sum_invert_results(image_list):
+def sum_invert_results(image_list, normalize=True):
     """ Sum a set of invert results with appropriate weighting
 
     :param image_list: List of [image, sum weights] pairs
@@ -110,7 +110,8 @@ def sum_invert_results(image_list):
             im.data += arg[1][..., numpy.newaxis, numpy.newaxis] * arg[0].data
             sumwt += arg[1]
 
-    im = normalize_sumwt(im, sumwt)
+    if normalize:
+        im = normalize_sumwt(im, sumwt)
     return im, sumwt
 
 

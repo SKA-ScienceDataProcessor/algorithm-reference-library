@@ -9,7 +9,8 @@
 __all__ = ['predict_list_arlexecute_workflow', 'invert_list_arlexecute_workflow', 'residual_list_arlexecute_workflow',
            'restore_list_arlexecute_workflow', 'deconvolve_list_arlexecute_workflow',
            'deconvolve_list_channel_arlexecute_workflow', 'weight_list_arlexecute_workflow',
-           'taper_list_arlexecute_workflow', 'zero_list_arlexecute_workflow', 'subtract_list_arlexecute_workflow']
+           'taper_list_arlexecute_workflow', 'zero_list_arlexecute_workflow', 'subtract_list_arlexecute_workflow',
+           'sum_invert_results_arlexecute']
 
 
 import collections
@@ -21,8 +22,8 @@ from data_models.memory_data_models import Image, Visibility
 from data_models.parameters import get_parameter
 from processing_library.image.operations import copy_image, create_empty_image_like
 from workflows.shared.imaging.imaging_shared import imaging_context
-from workflows.shared.imaging.imaging_shared import sum_invert_results, remove_sumwt, sum_predict_results, \
-    threshold_list
+from workflows.shared.imaging.imaging_shared import remove_sumwt, sum_predict_results, sum_invert_results_local, \
+    threshold_list, sum_invert_results
 from wrappers.arlexecute.execution_support.arlexecute import arlexecute
 from wrappers.arlexecute.griddata.gridding import grid_weight_to_griddata, griddata_reweight, griddata_merge_weights
 from wrappers.arlexecute.griddata.kernels import create_pswf_convolutionfunction
@@ -217,7 +218,8 @@ def invert_list_arlexecute_workflow(vis_list, template_model_imagelist, context,
             for sub_sub_vis_list in sub_sub_vis_lists:
                 vis_results.append(arlexecute.execute(invert_ignore_none, pure=True)
                                    (sub_sub_vis_list, template_model_imagelist[ivis], g))
-            results_vislist.append(arlexecute.execute(sum_invert_results)(vis_results))
+            results_vislist.append(sum_invert_results_arlexecute(vis_results))
+
         result = results_vislist
     else:
         for ivis, sub_vis_list in enumerate(vis_list):
@@ -239,7 +241,7 @@ def invert_list_arlexecute_workflow(vis_list, template_model_imagelist, context,
                         arlexecute.execute(invert_ignore_none, pure=True)(sub_sub_vis_list, facet_list, None))
                 vis_results.append(arlexecute.execute(gather_image_iteration_results, nout=1)
                                    (facet_vis_results, template_model_imagelist[ivis]))
-            results_vislist.append(arlexecute.execute(sum_invert_results)(vis_results))
+            results_vislist.append(sum_invert_results_arlexecute(vis_results))
         
         result = results_vislist
     return arlexecute.optimize(result)
@@ -543,3 +545,20 @@ def subtract_list_arlexecute_workflow(vis_list, model_vislist):
                                                                   model_vis=model_vislist[i])
               for i in range(len(vis_list))]
     return arlexecute.optimize(result)
+
+
+def sum_invert_results_arlexecute(image_list, split=2):
+    """ Sum a set of invert results with appropriate weighting
+
+    :param image_list: List of (image, sum weights) tuples
+    :param split: Split into
+    :return: image, sum of weights
+    """
+    if len(image_list) > split:
+        centre = len(image_list) // split
+        result = [sum_invert_results_arlexecute(image_list[:centre])]
+        result.append(sum_invert_results_arlexecute(image_list[centre:]))
+        return arlexecute.execute(sum_invert_results, nout=2)(result)
+    else:
+        return arlexecute.execute(sum_invert_results, nout=2)(image_list)
+

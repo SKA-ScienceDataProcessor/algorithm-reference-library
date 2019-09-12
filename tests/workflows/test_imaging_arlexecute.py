@@ -14,7 +14,8 @@ from processing_components.griddata.convolution_functions import apply_bounding_
 from processing_components.griddata.kernels import create_awterm_convolutionfunction
 from workflows.arlexecute.imaging.imaging_arlexecute import zero_list_arlexecute_workflow, \
     predict_list_arlexecute_workflow, invert_list_arlexecute_workflow, subtract_list_arlexecute_workflow, \
-    weight_list_arlexecute_workflow, residual_list_arlexecute_workflow
+    weight_list_arlexecute_workflow, residual_list_arlexecute_workflow, sum_invert_results_arlexecute
+from workflows.shared.imaging.imaging_shared import sum_invert_results, sum_invert_results_local
 from wrappers.arlexecute.execution_support.arlexecutebase import ARLExecuteBase
 from wrappers.arlexecute.execution_support.dask_init import get_dask_Client
 
@@ -194,6 +195,7 @@ class TestImaging(unittest.TestCase):
                                                 gcfcf=gcfcf, **kwargs)
         dirty = arlexecute.compute(dirty, sync=True)[centre]
         
+        print(dirty)
         export_image_to_fits(dirty[0], '%s/test_imaging_invert_%s%s_%s_dirty.fits' %
                              (self.dir, context, extra, arlexecute.type()))
         
@@ -373,6 +375,21 @@ class TestImaging(unittest.TestCase):
         qa = qa_image(residual_image_list[centre][0])
         assert numpy.abs(qa.data['max'] - 0.35139716991480785) < 1.0, str(qa)
         assert numpy.abs(qa.data['min'] + 0.7681701460717593) < 1.0, str(qa)
+
+    def test_sum_invert_list(self):
+        self.actualSetUp(zerow=True)
+    
+        residual_image_list = residual_list_arlexecute_workflow(self.vis_list, self.model_list, context='2d')
+        residual_image_list = arlexecute.compute(residual_image_list, sync=True)
+        route2 = sum_invert_results(residual_image_list)
+        route1 = sum_invert_results_arlexecute(residual_image_list)
+        route1 = arlexecute.compute(route1, sync=True)
+        for r in route1, route2:
+            assert len(r) == 2
+            qa = qa_image(r[0])
+            assert numpy.abs(qa.data['max'] - 0.35139716991480785) < 1.0, str(qa)
+            assert numpy.abs(qa.data['min'] + 0.7681701460717593) < 1.0, str(qa)
+            assert numpy.abs(r[1]-415950.0) < 1e-7
 
 if __name__ == '__main__':
     unittest.main()
