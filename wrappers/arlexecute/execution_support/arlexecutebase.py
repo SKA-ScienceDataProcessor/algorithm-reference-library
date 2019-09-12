@@ -203,6 +203,7 @@ class ARLExecuteBase():
         if self._using_dask and isinstance(self._client, Client):
             if self._verbose:
                 print('arlexcute.close: closed down Dask Client')
-            self._client.cluster.close()
+            if self._client.cluster is not None:
+                self._client.cluster.close()
             self._client.close()
             self._client = None
