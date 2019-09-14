@@ -377,7 +377,6 @@ def create_w_term_like(im: Image, w, phasecentre=None, remove_shift=False, dopol
     :return: Image
     """
     
-    fim = copy_image(im)
     fim_shape = list(im.shape)
     if not dopol:
         fim_shape[1] = 1
