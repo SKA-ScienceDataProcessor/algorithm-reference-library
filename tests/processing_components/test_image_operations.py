@@ -20,7 +20,6 @@ from processing_components.simulation.testing_support import create_test_image, 
 
 log = logging.getLogger(__name__)
 
-
 class TestImage(unittest.TestCase):
 
     def setUp(self):
@@ -128,6 +127,19 @@ class TestImage(unittest.TestCase):
         log.debug(export_image_to_fits(moment_cube, fitsfile='%s/test_moments_moment_cube.fits' % (self.dir)))
         reconstructed_cube = calculate_image_from_frequency_moments(cube, moment_cube)
         log.debug(export_image_to_fits(reconstructed_cube, fitsfile='%s/test_moments_reconstructed_cube.fits' % (
+            self.dir)))
+        error = numpy.std(reconstructed_cube.data - original_cube.data)
+        assert error < 0.2
+
+    def test_calculate_image_frequency_moments_1(self):
+        frequency = numpy.linspace(0.9e8, 1.1e8, 9)
+        cube = create_low_test_image_from_gleam(npixel=512, cellsize=0.0001, frequency=frequency, flux_limit=1.0)
+        log.debug(export_image_to_fits(cube, fitsfile='%s/test_moments_1_cube.fits' % (self.dir)))
+        original_cube = copy_image(cube)
+        moment_cube = calculate_image_frequency_moments(cube, nmoment=1)
+        log.debug(export_image_to_fits(moment_cube, fitsfile='%s/test_moments_1_moment_cube.fits' % (self.dir)))
+        reconstructed_cube = calculate_image_from_frequency_moments(cube, moment_cube)
+        log.debug(export_image_to_fits(reconstructed_cube, fitsfile='%s/test_moments_1_reconstructed_cube.fits' % (
             self.dir)))
         error = numpy.std(reconstructed_cube.data - original_cube.data)
         assert error < 0.2

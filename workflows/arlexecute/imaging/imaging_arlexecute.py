@@ -157,6 +157,9 @@ def invert_list_arlexecute_workflow(vis_list, template_model_imagelist, context,
     :return: List of (image, sumwt) tuple
    """
     
+    # Use serial invert for each element of the visibility list. This means that e.g. iteration
+    # through w-planes or timeslices is done sequentially thus not incurring the memory cost
+    # of doing all at once.
     if get_parameter(kwargs, "use_serial_invert", False):
         from workflows.serial.imaging.imaging_serial import invert_list_serial_workflow
         return [arlexecute.execute(invert_list_serial_workflow, nout=1) \
@@ -303,7 +306,8 @@ def deconvolve_list_arlexecute_workflow(dirty_list, psf_list, model_imagelist, p
     :return: graph for the deconvolution
     """
     nchan = len(dirty_list)
-    nmoment = get_parameter(kwargs, "nmoment", 0)
+    # Number of moments. 1 is the sum.
+    nmoment = get_parameter(kwargs, "nmoment", 1)
     
     if get_parameter(kwargs, "use_serial_clean", False):
         from workflows.serial.imaging.imaging_serial import deconvolve_list_serial_workflow
@@ -368,7 +372,7 @@ def deconvolve_list_arlexecute_workflow(dirty_list, psf_list, model_imagelist, p
     # Work out the threshold. Need to find global peak over all dirty_list images
     threshold = get_parameter(kwargs, "threshold", 0.0)
     fractional_threshold = get_parameter(kwargs, "fractional_threshold", 0.1)
-    nmoment = get_parameter(kwargs, "nmoment", 0)
+    nmoment = get_parameter(kwargs, "nmoment", 1)
     use_moment0 = nmoment > 0
     
     # Find the global threshold. This uses the peak in the average on the frequency axis since we
@@ -398,9 +402,6 @@ def deconvolve_list_arlexecute_workflow(dirty_list, psf_list, model_imagelist, p
                                                                             facets=deconvolve_facets,
                                                                             overlap=deconvolve_overlap,
                                                                             taper=deconvolve_taper)
-    flat_list = arlexecute.execute(image_gather_facets, nout=1)(scattered_results_list, deconvolve_model_imagelist,
-                                                                facets=deconvolve_facets, overlap=deconvolve_overlap,
-                                                                taper=deconvolve_taper, return_flat=True)
     result_list = arlexecute.execute(image_scatter_channels, nout=nchan)(gathered_results_list, subimages=nchan)
     
     return arlexecute.optimize(result_list)

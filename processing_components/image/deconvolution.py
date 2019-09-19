@@ -152,11 +152,14 @@ def deconvolve_cube(dirty: Image, psf: Image, prefix='', **kwargs) -> (Image, Im
         log.info("deconvolve_cube %s: Multi-scale multi-frequency clean of each polarisation separately"
                  % prefix)
         nmoment = get_parameter(kwargs, "nmoment", 3)
-        assert nmoment > 0, "Number of frequency moments must be greater than zero"
+        assert nmoment >= 1, "Number of frequency moments must be greater than or equal to one"
         nchan = dirty.shape[0]
-        assert nchan > 2 * nmoment, "Require nchan %d > 2 * nmoment %d" % (nchan, 2 * nmoment)
+        assert nchan > 2 * (nmoment - 1), "Require nchan %d > 2 * (nmoment %d - 1)" % (nchan, 2 * (nmoment - 1))
         dirty_taylor = calculate_image_frequency_moments(dirty, nmoment=nmoment)
-        psf_taylor = calculate_image_frequency_moments(psf, nmoment=2 * nmoment)
+        if nmoment > 1:
+            psf_taylor = calculate_image_frequency_moments(psf, nmoment=2 * nmoment)
+        else:
+            psf_taylor = calculate_image_frequency_moments(psf, nmoment=1)
         psf_peak = numpy.max(psf_taylor.data)
         dirty_taylor.data /= psf_peak
         psf_taylor.data /= psf_peak

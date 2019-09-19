@@ -235,7 +235,7 @@ def smooth_image(model: Image, width=1.0):
     return cmodel
 
 
-def calculate_image_frequency_moments(im: Image, reference_frequency=None, nmoment=3) -> Image:
+def calculate_image_frequency_moments(im: Image, reference_frequency=None, nmoment=4) -> Image:
     """Calculate frequency weighted moments
     
     Weights are ((freq-reference_frequency)/reference_frequency)**moment
@@ -253,6 +253,7 @@ def calculate_image_frequency_moments(im: Image, reference_frequency=None, nmome
     :return: Moments image
     """
     assert isinstance(im, Image)
+    assert nmoment > 0
     nchan, npol, ny, nx = im.shape
     channels = numpy.arange(nchan)
     freq = im.wcs.sub(['spectral']).wcs_pix2world(channels, 0)[0]
@@ -301,7 +302,8 @@ def calculate_image_from_frequency_moments(im: Image, moment_image: Image, refer
     assert isinstance(im, Image)
     nchan, npol, ny, nx = im.shape
     nmoment, mnpol, mny, mnx = moment_image.shape
-    
+    assert nmoment > 0
+
     assert npol == mnpol
     assert ny == mny
     assert nx == mnx

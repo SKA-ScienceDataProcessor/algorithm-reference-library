@@ -102,7 +102,7 @@ def create_awterm_convolutionfunction(im, make_pb=None, nw=1, wstep=1e15, oversa
     """ Fill AW projection kernel into a GridData.
 
     :param im: Image template
-    :param make_pb: Function to make the primary beam model image
+    :param make_pb: Function to make the primary beam model image (hint: use a partial)
     :param nw: Number of w planes
     :param wstep: Step in w (wavelengths)
     :param oversampling: Oversampling of the convolution function in uv space

@@ -512,7 +512,8 @@ def msmfsclean(dirty, psf, window, gain, thresh, niter, scales, fracthresh, find
     ldirty = dirty / pmax
 
     nmoment, ny, nx = dirty.shape
-    assert psf.shape[0] == 2 * nmoment
+    if nmoment > 1:
+        assert psf.shape[0] == 2 * nmoment
 
     # Create the "scale basis functions" in Algorithm 1
     scaleshape = [nscales, ldirty.shape[1], ldirty.shape[2]]
@@ -688,7 +689,7 @@ def calculate_scale_scale_moment_moment_psf(psf, scalestack):
     :return: scale-dependent moment psf [nscales, nscales, nmoment, nmoment, nx, ny]
     """
     nmoment2, nx, ny = psf.shape
-    nmoment = nmoment2 // 2
+    nmoment = max(nmoment2 // 2, 1)
     nscales = scalestack.shape[0]
 
     # Lines 3 - 5 from Algorithm 1
