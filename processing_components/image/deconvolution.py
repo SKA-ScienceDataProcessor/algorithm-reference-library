@@ -87,7 +87,7 @@ def deconvolve_cube(dirty: Image, psf: Image, prefix='', **kwargs) -> (Image, Im
         window[..., (qy + 1):3 * qy, (qx + 1):3 * qx] = 1.0
         log.info('deconvolve_cube %s: Cleaning inner quarter of each sky plane' % prefix)
     elif window_shape == 'no_edge':
-        edge = 16
+        edge = get_parameter(kwargs, 'window_edge', 16)
         nx = dirty.shape[3]
         ny = dirty.shape[2]
         window = numpy.zeros_like(dirty.data)
@@ -182,20 +182,16 @@ def deconvolve_cube(dirty: Image, psf: Image, prefix='', **kwargs) -> (Image, Im
             if psf_taylor.data[0, pol, :, :].max():
                 log.info("deconvolve_cube %s: Processing pol %d" % (prefix, pol))
                 if window is None:
+                    log.info('No clean window')
                     comp_array[:, pol, :, :], residual_array[:, pol, :, :] = \
                         msmfsclean(dirty_taylor.data[:, pol, :, :], psf_taylor.data[:, pol, :, :],
                                    None, gain, thresh, niter, scales, fracthresh, findpeak, prefix)
                 else:
-                    qx = dirty.shape[3] // 4
-                    qy = dirty.shape[2] // 4
-                    window_taylor = numpy.zeros_like(dirty_taylor.data)
-                    window_taylor[..., (qy + 1):3 * qy, (qx + 1):3 * qx] = 1.0
-                    log.info('deconvolve_cube %s: Cleaning inner quarter of each moment plane'
-                             % prefix)
-                    
+                    log.info('deconvolve_cube %s: Clean window has %d valid pixels'
+                             % (prefix, int(numpy.sum(window[0,pol]))))
                     comp_array[:, pol, :, :], residual_array[:, pol, :, :] = \
                         msmfsclean(dirty_taylor.data[:, pol, :, :], psf_taylor.data[:, pol, :, :],
-                                   window_taylor[0, pol, :, :], gain, thresh, niter, scales, fracthresh,
+                                   window[0, pol, :, :], gain, thresh, niter, scales, fracthresh,
                                    findpeak, prefix)
             else:
                 log.info("deconvolve_cube %s: Skipping pol %d" % (prefix, pol))

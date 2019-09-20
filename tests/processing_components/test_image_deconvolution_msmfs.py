@@ -72,7 +72,18 @@ class TestImageDeconvolutionMSMFS(unittest.TestCase):
         self.cmodel = restore_cube(self.comp, self.psf, self.residual)
         export_image_to_fits(self.cmodel, "%s/test_deconvolve_mmclean_notaylor-clean.fits" % self.dir)
         assert numpy.max(self.residual.data) < 3.0
-    
+
+    def test_deconvolve_mmclean_no_taylor_edge(self):
+        self.comp, self.residual = deconvolve_cube(self.dirty, self.psf, niter=self.niter, gain=0.1,
+                                                   algorithm='mmclean',
+                                                   scales=[0, 3, 10], threshold=0.01, nmoment=1, findpeak='ARL',
+                                                   fractional_threshold=0.01, window_shape='no_edge', window_edge=32)
+        export_image_to_fits(self.comp, "%s/test_deconvolve_mmclean_notaylor-comp.fits" % self.dir)
+        export_image_to_fits(self.residual, "%s/test_deconvolve_mmclean_notaylor-residual.fits" % self.dir)
+        self.cmodel = restore_cube(self.comp, self.psf, self.residual)
+        export_image_to_fits(self.cmodel, "%s/test_deconvolve_mmclean_notaylor-clean.fits" % self.dir)
+        assert numpy.max(self.residual.data) < 3.0
+
     def test_deconvolve_mmclean_no_taylor_noscales(self):
         self.comp, self.residual = deconvolve_cube(self.dirty, self.psf, niter=self.niter, gain=0.1,
                                                    algorithm='mmclean',
