@@ -50,7 +50,7 @@ def coordinates2(npixel: int):
     return (numpy.mgrid[0:npixel, 0:npixel] - npixel // 2) / npixel
 
 
-def coordinates2Offset(npixel: int, cx: int, cy: int, quardant=False):
+def coordinates2Offset(npixel: int, cx: int, cy: int, quadrant=False):
     """Two dimensional grids of coordinates centred on an arbitrary point.
 
     This is used for A and w beams.
@@ -62,12 +62,11 @@ def coordinates2Offset(npixel: int, cx: int, cy: int, quardant=False):
         cx = npixel // 2
     if cy is None:
         cy = npixel // 2
-    if quardant == False:
+    if quadrant == False:
         mg = numpy.mgrid[0:npixel, 0:npixel]
-        return (mg[0] - cy) / npixel, (mg[1] - cx) / npixel
     else:
         mg = numpy.mgrid[0:npixel//2+1, 0:npixel//2+1]
-        return (mg[0] - cy) / npixel, (mg[1] - cx) / npixel
+    return (mg[0] - cy) / npixel, (mg[1] - cx) / npixel
 
 def grdsf(nu):
     """Calculate PSWF using an old SDE routine re-written in Python
@@ -134,15 +133,15 @@ def w_beam(npixel, field_of_view, w, cx=None, cy=None, remove_shift=False):
         cy = npixel // 2
 
     # Original codes
-    ly, mx = coordinates2Offset(npixel, cx, cy)
-    r2 = field_of_view**2*(ly ** 2 + mx ** 2)
-    ph = numpy.zeros_like(r2)
-    ph[r2 < 1.0] = -2 * numpy.pi * w * (1 - numpy.sqrt(1.0 - r2[r2 < 1.0]))
-    cp1 = numpy.zeros_like(r2, dtype='complex')
-    cp1[r2 < 1.0] = numpy.exp(1j * ph[r2 < 1.0])
-    cp1[r2 == 0] = 1.0 + 0j
-    if remove_shift:
-        cp1 /= cp1[npixel // 2, npixel // 2]
+    # ly, mx = coordinates2Offset(npixel, cx, cy)
+    # r2 = field_of_view**2*(ly ** 2 + mx ** 2)
+    # ph = numpy.zeros_like(r2)
+    # ph[r2 < 1.0] = -2 * numpy.pi * w * (1 - numpy.sqrt(1.0 - r2[r2 < 1.0]))
+    # cp = numpy.zeros_like(r2, dtype='complex')
+    # cp[r2 < 1.0] = numpy.exp(1j * ph[r2 < 1.0])
+    # cp[r2 == 0] = 1.0 + 0j
+    # if remove_shift:
+    #     cp /= cp[npixel // 2, npixel // 2]
 
     # numpy.putmask
     # ly, mx = coordinates2Offset(npixel, cx, cy)
@@ -153,6 +152,8 @@ def w_beam(npixel, field_of_view, w, cx=None, cy=None, remove_shift=False):
     # numpy.putmask(ph, m, -2 * numpy.pi * w * (1 - numpy.sqrt(1.0 - r2)))
     # numpy.putmask(cp, m, numpy.exp(1j * ph))
     # numpy.putmask(cp, r2 == 0, 1.0 + 0j)
+    # if remove_shift:
+    #     cp /= cp[npixel // 2, npixel // 2]
 
     # numpy.putmask - 2
     # ly, mx = coordinates2Offset(npixel, cx, cy)
@@ -163,10 +164,11 @@ def w_beam(npixel, field_of_view, w, cx=None, cy=None, remove_shift=False):
     # cp = numpy.exp(1j * ph)
     # numpy.putmask(cp, r2 >= 1.0, 0 + 0j)
     # numpy.putmask(cp, r2 == 0, 1.0 + 0j)
+    # if remove_shift:
+    #     cp /= cp[npixel // 2, npixel // 2]
 
-    # Symmetry
-    # ly,mx = coordinates2Offset(16, 8, 8, quardant=True)
-    ly, mx = coordinates2Offset(npixel, cx, cy, quardant=True)
+    # SubArray Copy Symmetrically
+    ly, mx = coordinates2Offset(npixel, cx, cy, quadrant=True)
     r2 = field_of_view ** 2 * (ly ** 2 + mx ** 2)
     ph = -2 * numpy.pi * w * (1 - numpy.sqrt(1.0 - r2))
     numpy.putmask(ph, r2 >= 1.0, 0)
