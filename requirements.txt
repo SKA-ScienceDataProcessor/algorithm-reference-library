@@ -1,4 +1,3 @@
-mpi4py
 six
 docutils
 jinja2
@@ -29,7 +28,7 @@ seqfile
 h5py
 jsonschema
 bokeh
-aotools
+aotools<0.5.1
 
 
 
