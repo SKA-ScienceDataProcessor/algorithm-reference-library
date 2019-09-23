@@ -14,7 +14,7 @@ from astropy.wcs.utils import skycoord_to_pixel
 from reproject import reproject_interp
 
 from data_models.memory_data_models import Image, QA
-from data_models.parameters import arl_path
+from data_models.parameters import get_parameter
 
 import logging
 log = logging.getLogger(__name__)
@@ -235,7 +235,7 @@ def smooth_image(model: Image, width=1.0):
     return cmodel
 
 
-def calculate_image_frequency_moments(im: Image, reference_frequency=None, nmoment=3) -> Image:
+def calculate_image_frequency_moments(im: Image, reference_frequency=None, nmoment=1) -> Image:
     """Calculate frequency weighted moments
     
     Weights are ((freq-reference_frequency)/reference_frequency)**moment
@@ -395,5 +395,37 @@ def convert_polimage_to_stokes(im: Image):
         return create_image_from_array(cimarr, im.wcs, PolarisationFrame('stokesIQUV'))
     else:
         raise ValueError("Cannot convert %s to stokes" % (im.polarisation_frame.type))
+
+def create_window(template, window_type, **kwargs):
+    """
+    
+    :param template:
+    :param type: 
+    :return:
+    """
+    window = create_empty_image_like(template)
+    if window_type == 'quarter':
+        qx = template.shape[3] // 4
+        qy = template.shape[2] // 4
+        window.data[..., (qy + 1):3 * qy, (qx + 1):3 * qx] = 1.0
+        log.info('create_mask: Cleaning inner quarter of each sky plane')
+    elif window_type == 'no_edge':
+        edge = get_parameter(kwargs, 'window_edge', 16)
+        nx = template.shape[3]
+        ny = template.shape[2]
+        window.data[..., (edge + 1):(ny - edge), (edge + 1):(nx - edge)] = 1.0
+        log.info('create_mask: Window omits %d-pixel edge of each sky plane' % (edge))
+    elif window_type == 'threshold':
+        window_threshold = get_parameter(kwargs, 'window_threshold', None)
+        if window_threshold is None:
+            window_threshold = 10.0 * numpy.std(template.data)
+        window[template.data >= window_threshold] = 1.0
+        log.info('create_mask: Window omits all points below %g' % (window_threshold))
+    elif window_type is None:
+        log.info("create_mask: Mask covers entire image")
+    else:
+        raise ValueError("Window shape %s is not recognized" % window_type)
+    
+    return window
 
 
