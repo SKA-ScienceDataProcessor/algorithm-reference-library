@@ -235,7 +235,7 @@ def smooth_image(model: Image, width=1.0):
     return cmodel
 
 
-def calculate_image_frequency_moments(im: Image, reference_frequency=None, nmoment=4) -> Image:
+def calculate_image_frequency_moments(im: Image, reference_frequency=None, nmoment=3) -> Image:
     """Calculate frequency weighted moments
     
     Weights are ((freq-reference_frequency)/reference_frequency)**moment
