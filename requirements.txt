@@ -29,7 +29,8 @@ seqfile
 h5py
 jsonschema
 bokeh
-aotools
+aotools<0.5.1
+
 
 
 
