@@ -93,13 +93,13 @@ pipeline {
 	    tokenCredentialId: 'a06474f9-0c86-4dc7-a477-42d7d1a1cc71'
         }
     	failure {
-             mail to: 'mf582@mrao.cam.ac.uk, pw410@cam.ac.uk, realtimcornwell@gmail.com',
+             mail to: 'pw410@cam.ac.uk, realtimcornwell@gmail.com F.Wang@skatelescope.org',
              subject: "Failed Jenkins Pipeline: ${currentBuild.fullDisplayName} Status:${env.BUILD_STATUS} ",
              body: "Something is wrong with ${env.BUILD_URL} Status: ${env.BUILD_STATUS} "
             
     	}
     	fixed {
-             mail to: 'mf582@mrao.cam.ac.uk, pw410@cam.ac.uk, realtimcornwell@gmail.com',
+             mail to: 'pw410@cam.ac.uk, realtimcornwell@gmail.com F.Wang@skatelescope.org',
              subject: "Jenkins Pipeline is back to normal: ${currentBuild.fullDisplayName} Status:${env.BUILD_STATUS}  ",
              body: "See ${env.BUILD_URL}"
 	}
