@@ -62,13 +62,23 @@ def average_chunks(arr, wts, chunksize):
     """
     if chunksize <= 1:
         return arr, wts
-    
-    places = range(0, len(arr), chunksize)
-    chunks = numpy.add.reduceat(wts * arr, places)
-    weights = numpy.add.reduceat(wts, places)
-    
-    chunks[weights > 0.0] = chunks[weights > 0.0] / weights[weights > 0.0]
-    
+
+    # Original codes
+    # places = range(0, len(arr), chunksize)
+    # chunks = numpy.add.reduceat(wts * arr, places)
+    # weights = numpy.add.reduceat(wts, places)
+    # chunks[weights > 0.0] = chunks[weights > 0.0] / weights[weights > 0.0]
+
+    # Codes optimized
+
+    mask = numpy.zeros(((len(arr)-1)//chunksize + 1, arr.shape[0]), dtype=bool)
+    for enumerate_id,i in enumerate(range(0, len(arr), chunksize)):
+        mask[enumerate_id,i:i+chunksize]=1
+    chunks = mask.dot(wts*arr)
+    weights = mask.dot(wts)
+    # chunks[weights > 0.0] = chunks[weights > 0.0] / weights[weights > 0.0]
+    numpy.putmask(chunks, weights>0.0, chunks/weights)
+
     return chunks, weights
 
 
