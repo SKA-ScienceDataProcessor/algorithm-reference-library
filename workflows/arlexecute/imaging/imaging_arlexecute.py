@@ -12,7 +12,6 @@ __all__ = ['predict_list_arlexecute_workflow', 'invert_list_arlexecute_workflow'
            'taper_list_arlexecute_workflow', 'zero_list_arlexecute_workflow', 'subtract_list_arlexecute_workflow',
            'sum_invert_results_arlexecute']
 
-
 import collections
 import logging
 
@@ -22,8 +21,8 @@ from data_models.memory_data_models import Image, Visibility
 from data_models.parameters import get_parameter
 from processing_library.image.operations import copy_image, create_empty_image_like
 from workflows.shared.imaging.imaging_shared import imaging_context
-from workflows.shared.imaging.imaging_shared import remove_sumwt, sum_predict_results, sum_invert_results_local, \
-    threshold_list, sum_invert_results
+from workflows.shared.imaging.imaging_shared import remove_sumwt, sum_predict_results, threshold_list, \
+    sum_invert_results
 from wrappers.arlexecute.execution_support.arlexecute import arlexecute
 from wrappers.arlexecute.griddata.gridding import grid_weight_to_griddata, griddata_reweight, griddata_merge_weights
 from wrappers.arlexecute.griddata.kernels import create_pswf_convolutionfunction
@@ -37,6 +36,7 @@ from wrappers.arlexecute.visibility.base import copy_visibility
 from wrappers.arlexecute.visibility.gather_scatter import visibility_scatter, visibility_gather
 
 log = logging.getLogger(__name__)
+
 
 def predict_list_arlexecute_workflow(vis_list, model_imagelist, context, vis_slices=1, facets=1,
                                      gcfcf=None, **kwargs):
@@ -118,7 +118,7 @@ def predict_list_arlexecute_workflow(vis_list, model_imagelist, context, vis_sli
                 model_imagelist[ivis],
                 facets=facets)
             # Create the graph to divide the visibility into slices. This is by copy.
-            sub_vis_lists = arlexecute.execute(visibility_scatter, nout=vis_slices)\
+            sub_vis_lists = arlexecute.execute(visibility_scatter, nout=vis_slices) \
                 (subvis, vis_iter, vis_slices)
             
             facet_vis_lists = list()
@@ -128,7 +128,7 @@ def predict_list_arlexecute_workflow(vis_list, model_imagelist, context, vis_sli
                 # Loop over facets
                 for facet_list in facet_lists:
                     # Predict visibility for this subvisibility from this facet
-                    facet_vis_list = arlexecute.execute(predict_ignore_none, pure=True, nout=1)\
+                    facet_vis_list = arlexecute.execute(predict_ignore_none, pure=True, nout=1) \
                         (sub_vis_list, facet_list, None)
                     facet_vis_results.append(facet_vis_list)
                 # Sum the current sub-visibility over all facets
@@ -213,7 +213,7 @@ def invert_list_arlexecute_workflow(vis_list, template_model_imagelist, context,
             else:
                 g = gcfcf[0]
             # Create the graph to divide the visibility into slices. This is by copy.
-            sub_sub_vis_lists = arlexecute.execute(visibility_scatter, nout=vis_slices)\
+            sub_sub_vis_lists = arlexecute.execute(visibility_scatter, nout=vis_slices) \
                 (sub_vis_list, vis_iter, vis_slices=vis_slices)
             
             # Iterate within each sub_sub_vis_list
@@ -222,7 +222,7 @@ def invert_list_arlexecute_workflow(vis_list, template_model_imagelist, context,
                 vis_results.append(arlexecute.execute(invert_ignore_none, pure=True)
                                    (sub_sub_vis_list, template_model_imagelist[ivis], g))
             results_vislist.append(sum_invert_results_arlexecute(vis_results))
-
+        
         result = results_vislist
     else:
         for ivis, sub_vis_list in enumerate(vis_list):
@@ -232,7 +232,7 @@ def invert_list_arlexecute_workflow(vis_list, template_model_imagelist, context,
                     ivis],
                 facets=facets)
             # Create the graph to divide the visibility into slices. This is by copy.
-            sub_sub_vis_lists = arlexecute.execute(visibility_scatter, nout=vis_slices)\
+            sub_sub_vis_lists = arlexecute.execute(visibility_scatter, nout=vis_slices) \
                 (sub_vis_list, vis_iter, vis_slices=vis_slices)
             
             # Iterate within each vis_list
@@ -269,7 +269,8 @@ def residual_list_arlexecute_workflow(vis, model_imagelist, context='2d', gcfcf=
     return arlexecute.optimize(result)
 
 
-def restore_list_arlexecute_workflow(model_imagelist, psf_imagelist, residual_imagelist=None, **kwargs):
+def restore_list_arlexecute_workflow(model_imagelist, psf_imagelist, residual_imagelist=None, deconvolve_facets=1,
+                                     deconvolve_overlap=0, deconvolve_taper='tukey', **kwargs):
     """ Create a graph to calculate the restored image
 
     :param model_imagelist: Model list
@@ -278,20 +279,49 @@ def restore_list_arlexecute_workflow(model_imagelist, psf_imagelist, residual_im
     :param kwargs: Parameters for functions in components
     :return:
     """
-    if residual_imagelist is None:
-        residual_imagelist = []
+    assert len(model_imagelist) == len(psf_imagelist)
+    if residual_imagelist is not None:
+        assert len(model_imagelist) == len(residual_imagelist)
+
+    if deconvolve_facets % 2 == 0 or deconvolve_facets == 1:
+        actual_number_facets = deconvolve_facets - 2
+    else:
+        actual_number_facets = deconvolve_facets - 1
     
     psf_list = arlexecute.execute(remove_sumwt, nout=len(psf_imagelist))(psf_imagelist)
-    if len(residual_imagelist) > 0:
-        residual_list = arlexecute.execute(remove_sumwt, nout=len(residual_imagelist))(residual_imagelist)
-        result = [arlexecute.execute(restore_cube)(model_imagelist[i], psf_list[i],
-                                                   residual_list[i], **kwargs)
-                  for i, _ in enumerate(model_imagelist)]
-    else:
-        result = [arlexecute.execute(restore_cube)(model_imagelist[i], psf_list[i], **kwargs)
-                  for i, _ in enumerate(model_imagelist)]
     
-    return arlexecute.optimize(result)
+    # Scatter each list element into a list. We will then run restore_cube on each
+    facet_model_list = [arlexecute.execute(image_scatter_facets, nout=actual_number_facets * actual_number_facets)
+                        (model, facets=deconvolve_facets, overlap=deconvolve_overlap, taper=deconvolve_taper)
+                        for model in model_imagelist]
+    facet_psf_list = [arlexecute.execute(image_scatter_facets, nout=actual_number_facets * actual_number_facets)
+                      (psf, facets=deconvolve_facets, overlap=deconvolve_overlap, taper=deconvolve_taper)
+                      for psf in psf_list]
+    
+    if residual_imagelist is not None:
+        residual_list = arlexecute.execute(remove_sumwt, nout=len(residual_imagelist))(residual_imagelist)
+        facet_residual_list = [
+            arlexecute.execute(image_scatter_facets, nout=actual_number_facets * actual_number_facets)
+            (residual, facets=deconvolve_facets, overlap=deconvolve_overlap, taper=deconvolve_taper)
+            for residual in residual_list]
+        facet_restored_list = [[arlexecute.execute(restore_cube, nout=actual_number_facets * actual_number_facets)
+                                (model=facet_model_list[i][im], psf=facet_psf_list[i][im],
+                                 residual=facet_residual_list[i][im],
+                                 **kwargs)
+                                for im, _ in enumerate(facet_model_list[i])] for i, _ in enumerate(model_imagelist)]
+    else:
+        facet_restored_list = [[arlexecute.execute(restore_cube, nout=actual_number_facets * actual_number_facets)
+                                (model=facet_model_list[i][im], psf=facet_psf_list[i][im],
+                                 **kwargs)
+                                for im, _ in enumerate(facet_model_list[i])] for i, _ in enumerate(model_imagelist)]
+    
+    # Now we run restore_cube on each and gather the results across all facets
+    restored_imagelist = [arlexecute.execute(image_gather_facets)
+                          (facet_restored_list[i], model_imagelist[i], facets=deconvolve_facets,
+                           overlap=deconvolve_overlap, taper=deconvolve_taper)
+                          for i, _ in enumerate(model_imagelist)]
+    
+    return arlexecute.optimize(restored_imagelist)
 
 
 def deconvolve_list_arlexecute_workflow(dirty_list, psf_list, model_imagelist, prefix='', mask=None, **kwargs):
@@ -562,4 +592,3 @@ def sum_invert_results_arlexecute(image_list, split=2):
         return arlexecute.execute(sum_invert_results, nout=2)(result)
     else:
         return arlexecute.execute(sum_invert_results, nout=2)(image_list)
-
