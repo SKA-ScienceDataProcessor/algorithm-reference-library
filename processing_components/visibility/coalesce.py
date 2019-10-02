@@ -72,8 +72,9 @@ def coalesce_visibility(vis: BlockVisibility, **kwargs) -> Visibility:
                                polarisation_frame=vis.polarisation_frame, cindex=cindex,
                                blockvis=vis)
 
-    log.debug('coalesce_visibility: Created new Visibility for coalesced data_models, coalescence factors (t,f) = (%.3f,%.3f)'
-              % (time_coal, frequency_coal))
+    log.debug(
+        'coalesce_visibility: Created new Visibility for coalesced data_models, coalescence factors (t,f) = (%.3f,%.3f)'
+        % (time_coal, frequency_coal))
     log.debug('coalesce_visibility: Maximum coalescence (t,f) = (%d, %d)' % (max_time_coal, max_frequency_coal))
     log.debug('coalesce_visibility: Original %s, coalesced %s' % (vis_summary(vis),
                                                                   vis_summary(coalesced_vis)))
@@ -137,7 +138,7 @@ def decoalesce_visibility(vis: Visibility, **kwargs) -> BlockVisibility:
 
     log.debug('decoalesce_visibility: Coalesced %s, decoalesced %s' % (vis_summary(vis),
                                                                        vis_summary(
-        decomp_vis)))
+                                                                           decomp_vis)))
 
     return decomp_vis
 
@@ -154,31 +155,62 @@ def average_in_blocks(vis, uvw, wts, imaging_wts, times, integration_time, frequ
     ntimes, nant, _, nchan, npol = vis.shape
 
     # Pol independent weighting
-    allpwtsgrid = numpy.sum(wts, axis=4)
+    # allpwtsgrid = numpy.sum(wts, axis=4)
+    allpwtsgrid = numpy.einsum('ijklm->ijkl', wts, optimize=True)
     # Pol and frequency independent weighting
-    allcpwtsgrid = numpy.sum(allpwtsgrid, axis=3)
+    # allcpwtsgrid = numpy.sum(allpwtsgrid, axis=3)
+    allcpwtsgrid = numpy.einsum('ijkl->ijk', allpwtsgrid, optimize=True)
     # Pol and time independent weighting
-    alltpwtsgrid = numpy.sum(allpwtsgrid, axis=0)
+    # alltpwtsgrid = numpy.sum(allpwtsgrid, axis=0)
+    alltpwtsgrid = numpy.einsum('ijkl->jkl', allpwtsgrid, optimize=True)
 
     # Now calculate on a baseline basis the time and frequency averaging. We do this by looking at
     # the maximum uv distance for all data and for a given baseline. The integration time and
     # channel bandwidth are scale appropriately.
-    uvmax = numpy.sqrt(numpy.max(uvw[:, 0] ** 2 + uvw[:, 1] ** 2 + uvw[:, 2] ** 2))
+    # uvmax = numpy.sqrt(numpy.max(uvw[:, 0] ** 2 + uvw[:, 1] ** 2 + uvw[:, 2] ** 2))
+    uvw[...,2] = 0
+    uvdist = numpy.einsum('ijkm,ijkm->ijk', uvw, uvw, optimize=True)
+    uvmax = numpy.sqrt(numpy.max(uvdist))
+
+    # uvdist = numpy.sqrt(numpy.einsum('ijkm,ijkm->ijk', uvw, uvw, optimize=True))
+    uvdist_max = numpy.max(uvdist, axis=0)
+
     time_average = numpy.ones([nant, nant], dtype='int')
     frequency_average = numpy.ones([nant, nant], dtype='int')
     ua = numpy.arange(nant)
-    for a2 in ua:
-        for a1 in ua:
-            if allpwtsgrid[:, a2, a1, :].any() > 0.0:
-                uvdist = numpy.max(numpy.sqrt(uvw[:, a2, a1, 0] ** 2 + uvw[:, a2, a1, 1] ** 2), axis=0)
-                if uvdist > 0.0:
-                    time_average[a2, a1] = min(max_time_coal,
-                                               max(1, int(round((time_coal * uvmax / uvdist)))))
-                    frequency_average[a2, a1] = min(max_frequency_coal,
-                                                    max(1, int(round(frequency_coal * uvmax / uvdist))))
-                else:
-                    time_average[a2, a1] = max_time_coal
-                    frequency_average[a2, a1] = max_frequency_coal
+
+    allpwtsgrid_bool = numpy.einsum('ijklm->jk',wts,optimize=True)
+    # for a2 in ua:
+    #     for a1 in ua:
+    #         if allpwtsgrid[:, a2, a1, :].any() > 0.0:
+    #             uvdist = numpy.max(numpy.sqrt(uvw[:, a2, a1, 0] ** 2 + uvw[:, a2, a1, 1] ** 2), axis=0)
+    #             if uvdist > 0.0:
+    #                 time_average[a2, a1] = min(max_time_coal,
+    #                                            max(1, int(round((time_coal * uvmax / uvdist)))))
+    #                 frequency_average[a2, a1] = min(max_frequency_coal,
+    #                                                 max(1, int(round(frequency_coal * uvmax / uvdist))))
+    #             else:
+    #                 time_average[a2, a1] = max_time_coal
+    #                 frequency_average[a2, a1] = max_frequency_coal
+
+    # Output the results for time_average range from 1 - max_time_coal, and 1 - max_frequency_coal for frequency_average
+    mask = numpy.where(uvdist_max>0)
+    mask0 = numpy.where(uvdist_max<=0.)
+    time_average[mask] = numpy.round((time_coal * uvmax / uvdist_max[mask]))
+    time_average[mask0] = max_time_coal
+    numpy.putmask(time_average, allpwtsgrid_bool==0, 0)
+    numpy.putmask(time_average, time_average<1, 1)
+    numpy.putmask(time_average, time_average>max_time_coal, max_time_coal)
+    time_average.dtype = 'int'
+    #
+    # # time_average = max_time_coal - numpy.round((uvdist_max / (time_coal * uvmax) * (max_time_coal - 1)))
+    #
+    frequency_average[mask] = numpy.round((frequency_coal * uvmax/ uvdist_max[mask]))
+    frequency_average[mask0] = max_frequency_coal
+    numpy.putmask(frequency_average, allpwtsgrid_bool == 0, 0)
+    numpy.putmask(frequency_average, frequency_average<1, 1)
+    numpy.putmask(frequency_average, frequency_average>max_frequency_coal, max_frequency_coal)
+    frequency_average.dtype = 'int'
 
     # See how many time chunks and frequency we need for each baseline. To do this we use the same averaging that
     # we will use later for the actual data_models. This tells us the number of chunks required for each baseline.
