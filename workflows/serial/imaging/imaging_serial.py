@@ -67,7 +67,7 @@ def predict_list_serial_workflow(vis_list, model_imagelist, context, vis_slices=
     if facets % 2 == 0 or facets == 1:
         actual_number_facets = facets
     else:
-        actual_number_facets = max(1, facets - 1)
+        actual_number_facets = facets - 1
     
     def predict_ignore_none(vis, model, g):
         if vis is not None:

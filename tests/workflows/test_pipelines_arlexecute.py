@@ -159,8 +159,7 @@ class TestPipelineGraphs(unittest.TestCase):
                                                        nmoment=3,
                                                        nmajor=5, gain=0.1,
                                                        deconvolve_facets=4, deconvolve_overlap=32,
-                                                       deconvolve_taper='tukey', psf_support=64,
-                                                       restore_facets=4, psfwidth=1.0)
+                                                       deconvolve_taper='tukey', psf_support=64)
         clean, residual, restored = arlexecute.compute(continuum_imaging_list, sync=True)
         centre = len(clean) // 2
         if self.persist:
@@ -188,7 +187,7 @@ class TestPipelineGraphs(unittest.TestCase):
                                                        nmajor=5, gain=0.1,
                                                        deconvolve_facets=4, deconvolve_overlap=32,
                                                        deconvolve_taper='tukey', psf_support=64,
-                                                       use_serial_clean=True, restore_facets=4, psfwidth=1.0)
+                                                       use_serial_clean=True)
         clean, residual, restored = arlexecute.compute(continuum_imaging_list, sync=True)
         centre = len(clean) // 2
         if self.persist:
@@ -220,7 +219,6 @@ class TestPipelineGraphs(unittest.TestCase):
                                           nmajor=1, gain=0.1,
                                           deconvolve_facets=4, deconvolve_overlap=32,
                                           deconvolve_taper='tukey', psf_support=64,
-                                          restore_facets=4, psfwidth=1.0,
                                           calibration_context='T', controls=controls, do_selfcal=True,
                                           global_solution=False)
         clean, residual, restored, gt_list = arlexecute.compute(ical_list, sync=True)
@@ -253,7 +251,6 @@ class TestPipelineGraphs(unittest.TestCase):
                                           nmajor=1, gain=0.1,
                                           deconvolve_facets=4, deconvolve_overlap=32,
                                           deconvolve_taper='tukey', psf_support=64,
-                                          restore_facets=4, psfwidth=1.0,
                                           calibration_context='T', controls=controls, do_selfcal=True,
                                           global_solution=True)
         clean, residual, restored, gt_list = arlexecute.compute(ical_list, sync=True)

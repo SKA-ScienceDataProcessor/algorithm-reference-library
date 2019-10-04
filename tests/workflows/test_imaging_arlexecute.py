@@ -383,19 +383,18 @@ class TestImaging(unittest.TestCase):
         centre = self.freqwin // 2
         psf_image_list = invert_list_arlexecute_workflow(self.vis_list, self.model_list, context='2d', dopsf=True)
         residual_image_list = residual_list_arlexecute_workflow(self.vis_list, self.model_list, context='2d')
-        restored_image_list = restore_list_arlexecute_workflow(self.model_list, psf_image_list, residual_image_list,
-                                                               psfwidth=1.0)
+        restored_image_list = restore_list_arlexecute_workflow(self.model_list, psf_image_list, residual_image_list)
         restored_image_list = arlexecute.compute(restored_image_list, sync=True)
         qa = qa_image(restored_image_list[centre])
-        assert numpy.abs(qa.data['max'] - 99.43438263927834) < 1e-7, str(qa)
-        assert numpy.abs(qa.data['min'] + 0.6328915148563365) < 1e-7, str(qa)
+        assert numpy.abs(qa.data['max'] - 99.43438263927835) < 1e-7, str(qa)
+        assert numpy.abs(qa.data['min'] + 0.10573397064211756) < 1e-7, str(qa)
 
     def test_restored_list_noresidual(self):
         self.actualSetUp(zerow=True)
     
         centre = self.freqwin // 2
         psf_image_list = invert_list_arlexecute_workflow(self.vis_list, self.model_list, context='2d', dopsf=True)
-        restored_image_list = restore_list_arlexecute_workflow(self.model_list, psf_image_list, psfwidth=1.0)
+        restored_image_list = restore_list_arlexecute_workflow(self.model_list, psf_image_list)
         restored_image_list = arlexecute.compute(restored_image_list, sync=True)
         qa = qa_image(restored_image_list[centre])
         assert numpy.abs(qa.data['max'] - 100.0) < 1e-7, str(qa)
@@ -408,12 +407,12 @@ class TestImaging(unittest.TestCase):
         psf_image_list = invert_list_arlexecute_workflow(self.vis_list, self.model_list, context='2d', dopsf=True)
         residual_image_list = residual_list_arlexecute_workflow(self.vis_list, self.model_list, context='2d')
         restored_image_list = restore_list_arlexecute_workflow(self.model_list, psf_image_list, residual_image_list,
-                                                               restore_facets=4, psfwidth=1.0)
+                                                               deconvolve_facets=4, deconvolve_overlap=16)
         restored_image_list = arlexecute.compute(restored_image_list, sync=True)
         qa = qa_image(restored_image_list[centre])
-        assert numpy.abs(qa.data['max'] - 99.43438263927833) < 1e-7, str(qa)
-        assert numpy.abs(qa.data['min'] + 0.6328915148563354) < 1e-7, str(qa)
-
+        assert numpy.abs(qa.data['max'] - 99.58966507686858) < 1e-7, str(qa)
+        assert numpy.abs(qa.data['min'] + 0.08001878984837464) < 1e-7, str(qa)
+        
     def test_sum_invert_list(self):
         self.actualSetUp(zerow=True)
     

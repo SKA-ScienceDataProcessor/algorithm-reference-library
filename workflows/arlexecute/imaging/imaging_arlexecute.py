@@ -72,7 +72,7 @@ def predict_list_arlexecute_workflow(vis_list, model_imagelist, context, vis_sli
     if facets % 2 == 0 or facets == 1:
         actual_number_facets = facets
     else:
-        actual_number_facets = max(1, (facets - 1))
+        actual_number_facets = facets - 1
     
     def predict_ignore_none(vis, model, g):
         if vis is not None:
@@ -269,43 +269,40 @@ def residual_list_arlexecute_workflow(vis, model_imagelist, context='2d', gcfcf=
     return arlexecute.optimize(result)
 
 
-def restore_list_arlexecute_workflow(model_imagelist, psf_imagelist, residual_imagelist=None, restore_facets=1,
-                                     restore_overlap=0, restore_taper='tukey', **kwargs):
+def restore_list_arlexecute_workflow(model_imagelist, psf_imagelist, residual_imagelist=None, deconvolve_facets=1,
+                                     deconvolve_overlap=0, deconvolve_taper='tukey', **kwargs):
     """ Create a graph to calculate the restored image
 
     :param model_imagelist: Model list
     :param psf_imagelist: PSF list
     :param residual_imagelist: Residual list
     :param kwargs: Parameters for functions in components
-    :param restore_facets: Number of facets used per axis (used to distribute)
-    :param restore_overlap: Overlap in pixels (0 is best)
-    :param restore_taper: Type of taper.
     :return:
     """
     assert len(model_imagelist) == len(psf_imagelist)
     if residual_imagelist is not None:
         assert len(model_imagelist) == len(residual_imagelist)
 
-    if restore_facets % 2 == 0 or restore_facets == 1:
-        actual_number_facets = restore_facets
+    if deconvolve_facets % 2 == 0 or deconvolve_facets == 1:
+        actual_number_facets = deconvolve_facets - 2
     else:
-        actual_number_facets = max(1, (restore_facets - 1))
+        actual_number_facets = deconvolve_facets - 1
     
     psf_list = arlexecute.execute(remove_sumwt, nout=len(psf_imagelist))(psf_imagelist)
     
     # Scatter each list element into a list. We will then run restore_cube on each
     facet_model_list = [arlexecute.execute(image_scatter_facets, nout=actual_number_facets * actual_number_facets)
-                        (model, facets=restore_facets, overlap=restore_overlap, taper=restore_taper)
+                        (model, facets=deconvolve_facets, overlap=deconvolve_overlap, taper=deconvolve_taper)
                         for model in model_imagelist]
     facet_psf_list = [arlexecute.execute(image_scatter_facets, nout=actual_number_facets * actual_number_facets)
-                      (psf, facets=restore_facets, overlap=restore_overlap, taper=restore_taper)
+                      (psf, facets=deconvolve_facets, overlap=deconvolve_overlap, taper=deconvolve_taper)
                       for psf in psf_list]
     
     if residual_imagelist is not None:
         residual_list = arlexecute.execute(remove_sumwt, nout=len(residual_imagelist))(residual_imagelist)
         facet_residual_list = [
             arlexecute.execute(image_scatter_facets, nout=actual_number_facets * actual_number_facets)
-            (residual, facets=restore_facets, overlap=restore_overlap, taper=restore_taper)
+            (residual, facets=deconvolve_facets, overlap=deconvolve_overlap, taper=deconvolve_taper)
             for residual in residual_list]
         facet_restored_list = [[arlexecute.execute(restore_cube, nout=actual_number_facets * actual_number_facets)
                                 (model=facet_model_list[i][im], psf=facet_psf_list[i][im],
@@ -320,8 +317,8 @@ def restore_list_arlexecute_workflow(model_imagelist, psf_imagelist, residual_im
     
     # Now we run restore_cube on each and gather the results across all facets
     restored_imagelist = [arlexecute.execute(image_gather_facets)
-                          (facet_restored_list[i], model_imagelist[i], facets=restore_facets,
-                           overlap=restore_overlap, taper=restore_taper)
+                          (facet_restored_list[i], model_imagelist[i], facets=deconvolve_facets,
+                           overlap=deconvolve_overlap, taper=deconvolve_taper)
                           for i, _ in enumerate(model_imagelist)]
     
     return arlexecute.optimize(restored_imagelist)
