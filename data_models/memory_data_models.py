@@ -63,10 +63,10 @@ class Configuration:
         :param diameter:
         """
         if data is None and xyz is not None:
-            desc = [('names', '>U12'),
-                    ('xyz', '>f8', (3,)),
-                    ('diameter', '>f8'),
-                    ('mount', '>U5')]
+            desc = [('names', 'U12'),
+                    ('xyz', 'f8', (3,)),
+                    ('diameter', 'f8'),
+                    ('mount', 'U5')]
             nants = xyz.shape[0]
             if isinstance(names, str):
                 names = [names % ant for ant in range(nants)]
@@ -161,11 +161,11 @@ class GainTable:
             nants = gain.shape[1]
             nchan = gain.shape[2]
             assert len(frequency) == nchan, "Discrepancy in frequency channels"
-            desc = [('gain', '>c16', (nants, nchan, nrec, nrec)),
-                    ('weight', '>f8', (nants, nchan, nrec, nrec)),
-                    ('residual', '>f8', (nchan, nrec, nrec)),
-                    ('time', '>f8'),
-                    ('interval', '>f8')]
+            desc = [('gain', 'c16', (nants, nchan, nrec, nrec)),
+                    ('weight', 'f8', (nants, nchan, nrec, nrec)),
+                    ('residual', 'f8', (nchan, nrec, nrec)),
+                    ('time', 'f8'),
+                    ('interval', 'f8')]
             data = numpy.zeros(shape=[nrows], dtype=desc)
             data['gain'] = gain
             data['weight'] = weight
@@ -266,10 +266,10 @@ class PointingTable:
             assert len(frequency) == nchan, "Discrepancy in frequency channels"
             desc = [('pointing', 'f16', (nants, nchan, nrec, 2)),
                     ('nominal', 'f16', (nants, nchan, nrec, 2)),
-                    ('weight', '>f8', (nants, nchan, nrec, 2)),
-                    ('residual', '>f8', (nchan, nrec, 2)),
-                    ('time', '>f8'),
-                    ('interval', '>f8')]
+                    ('weight', 'f8', (nants, nchan, nrec, 2)),
+                    ('residual', 'f8', (nchan, nrec, 2)),
+                    ('time', 'f8'),
+                    ('interval', 'f8')]
             data = numpy.zeros(shape=[nrows], dtype=desc)
             data['pointing'] = pointing
             data['weight'] = weight
@@ -798,17 +798,17 @@ class Visibility:
             assert len(antenna2) == nvis
 
             npol = polarisation_frame.npol
-            desc = [('index', '>i8'),
-                    ('uvw', '>f8', (3,)),
-                    ('time', '>f8'),
-                    ('frequency', '>f8'),
-                    ('channel_bandwidth', '>f8'),
-                    ('integration_time', '>f8'),
-                    ('antenna1', '>i8'),
-                    ('antenna2', '>i8'),
-                    ('vis', '>c16', (npol,)),
-                    ('weight', '>f8', (npol,)),
-                    ('imaging_weight', '>f8', (npol,))]
+            desc = [('index', 'i8'),
+                    ('uvw', 'f8', (3,)),
+                    ('time', 'f8'),
+                    ('frequency', 'f8'),
+                    ('channel_bandwidth', 'f8'),
+                    ('integration_time', 'f8'),
+                    ('antenna1', 'i8'),
+                    ('antenna2', 'i8'),
+                    ('vis', 'c16', (npol,)),
+                    ('weight', 'f8', (npol,)),
+                    ('imaging_weight', 'f8', (npol,))]
             data = numpy.zeros(shape=[nvis], dtype=desc)
             data['index'] = list(range(nvis))
             data['uvw'] = uvw
@@ -972,13 +972,13 @@ class BlockVisibility:
             assert vis.shape == weight.shape
             assert len(frequency) == nchan
             assert len(channel_bandwidth) == nchan
-            desc = [('index', '>i8'),
-                    ('uvw', '>f8', (nants, nants, 3)),
-                    ('time', '>f8'),
-                    ('integration_time', '>f8'),
-                    ('vis', '>c16', (nants, nants, nchan, npol)),
-                    ('weight', '>f8', (nants, nants, nchan, npol)),
-                    ('imaging_weight', '>f8', (nants, nants, nchan, npol))]
+            desc = [('index', 'i8'),
+                    ('uvw', 'f8', (nants, nants, 3)),
+                    ('time', 'f8'),
+                    ('integration_time', 'f8'),
+                    ('vis', 'c16', (nants, nants, nchan, npol)),
+                    ('weight', 'f8', (nants, nants, nchan, npol)),
+                    ('imaging_weight', 'f8', (nants, nants, nchan, npol))]
             data = numpy.zeros(shape=[ntimes], dtype=desc)
             data['index'] = list(range(ntimes))
             data['uvw'] = uvw

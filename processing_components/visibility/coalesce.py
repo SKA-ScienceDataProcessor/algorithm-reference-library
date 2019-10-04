@@ -154,16 +154,19 @@ def average_in_blocks(vis, uvw, wts, imaging_wts, times, integration_time, frequ
     ntimes, nant, _, nchan, npol = vis.shape
 
     times.dtype = numpy.float64
-    # Pol independent weighting
-    allpwtsgrid = numpy.sum(wts, axis=4)
-    # Pol and frequency independent weighting
-    allcpwtsgrid = numpy.sum(allpwtsgrid, axis=3)
-    # Pol and time independent weighting
-    alltpwtsgrid = numpy.sum(allpwtsgrid, axis=0)
 
-    # allpwtsgrid = numpy.einsum('ijklm->ijkl', wts, optimize=True)
-    # allcpwtsgrid = numpy.einsum('ijkl->ijk', allpwtsgrid, optimize=True)
-    # alltpwtsgrid = numpy.einsum('ijkl->jkl', allpwtsgrid, optimize=True)
+    # Original
+    # Pol independent weighting
+    # allpwtsgrid = numpy.sum(wts, axis=4)
+    # # Pol and frequency independent weighting
+    # allcpwtsgrid = numpy.sum(allpwtsgrid, axis=3)
+    # # Pol and time independent weighting
+    # alltpwtsgrid = numpy.sum(allpwtsgrid, axis=0)
+
+    # Optimized
+    allpwtsgrid = numpy.einsum('ijklm->ijkl', wts, optimize=True)
+    allcpwtsgrid = numpy.einsum('ijkl->ijk', allpwtsgrid, optimize=True)
+    alltpwtsgrid = numpy.einsum('ijkl->jkl', allpwtsgrid, optimize=True)
 
     # Now calculate on a baseline basis the time and frequency averaging. We do this by looking at
     # the maximum uv distance for all data and for a given baseline. The integration time and
@@ -188,6 +191,7 @@ def average_in_blocks(vis, uvw, wts, imaging_wts, times, integration_time, frequ
     #                 frequency_average[a2, a1] = max_frequency_coal
 
     # Optimized
+    # Calculate uvdist instead of uvwdist
     uvwd = uvw[...,0:2]
     uvdist = numpy.einsum('ijkm,ijkm->ijk', uvwd, uvwd, optimize=True)
     uvmax = numpy.sqrt(numpy.max(uvdist))

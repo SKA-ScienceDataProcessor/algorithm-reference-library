@@ -22,17 +22,17 @@ def cARLVis(visin):
     npol=visin.npol
     nvis=visin.nvis
     #print (ARLDataVisSize(nvis, npol))
-    desc = [('index', '>i8'),
-            ('uvw', '>f8', (3,)),
-            ('time', '>f8'),
-            ('frequency', '>f8'),
-            ('channel_bandwidth', '>f8'),
-            ('integration_time', '>f8'),
-            ('antenna1', '>i8'),
-            ('antenna2', '>i8'),
-            ('vis', '>c16', (npol,)),
-            ('weight', '>f8', (npol,)),
-            ('imaging_weight', '>f8', (npol,))]
+    desc = [('index', 'i8'),
+            ('uvw', 'f8', (3,)),
+            ('time', 'f8'),
+            ('frequency', 'f8'),
+            ('channel_bandwidth', 'f8'),
+            ('integration_time', 'f8'),
+            ('antenna1', 'i8'),
+            ('antenna2', 'i8'),
+            ('vis', 'c16', (npol,)),
+            ('weight', 'f8', (npol,)),
+            ('imaging_weight', 'f8', (npol,))]
     r=numpy.frombuffer(ff.buffer(visin.data,
                                  ARLDataVisSize(nvis, npol)),
                                  dtype=desc,
@@ -50,12 +50,12 @@ def cARLBlockVis(visin, nants, nchan):
     npol=visin.npol
     ntimes=visin.nvis
     #print (ARLDataVisSize(nvis, npol))
-    desc = [('index', '>i8'),
-            ('uvw', '>f8', (nants, nants, 3)),
-            ('time', '>f8'),
-            ('integration_time', '>f8'),
-            ('vis', '>c16', (nants, nants, nchan, npol)),
-            ('weight', '>f8', (nants, nants, nchan, npol))]
+    desc = [('index', 'i8'),
+            ('uvw', 'f8', (nants, nants, 3)),
+            ('time', 'f8'),
+            ('integration_time', 'f8'),
+            ('vis', 'c16', (nants, nants, nchan, npol)),
+            ('weight', 'f8', (nants, nants, nchan, npol))]
     r=numpy.frombuffer(ff.buffer(visin.data,
                                  ARLBlockDataVisSize(ntimes, nants, nchan, npol)),
                                  dtype=desc,
@@ -70,11 +70,11 @@ def cARLGt(gtin, nants, nchan, nrec):
     Convert a const ARLGt * into the ARL GainTable structure 
     """
     ntimes=gtin.nrows
-    desc = [('gain', '>c16', (nants, nchan, nrec, nrec)),
-            ('weight', '>f8', (nants, nchan, nrec, nrec)),
-            ('residual', '>f8', (nchan, nrec, nrec)),
-            ('time', '>f8'),
-            ('interval', '>f8')]
+    desc = [('gain', 'c16', (nants, nchan, nrec, nrec)),
+            ('weight', 'f8', (nants, nchan, nrec, nrec)),
+            ('residual', 'f8', (nchan, nrec, nrec)),
+            ('time', 'f8'),
+            ('interval', 'f8')]
     r=numpy.frombuffer(ff.buffer(gtin.data,
                                  ARLDataGTSize(ntimes, nants, nchan, nrec)),
                                  dtype=desc,

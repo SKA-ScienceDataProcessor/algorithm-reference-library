@@ -1,7 +1,7 @@
 """Useful array functions.
 
 """
-# import numba
+import numba
 import numpy
 
 
@@ -46,17 +46,14 @@ def average_chunks_jit(arr, wts, chunksize):
     return chunks, weights
 
 
-# @numba.jit([
-#             numba.types.Tuple((numba.c16[:], numba.f8[:]))(numba.c16[:], numba.f8[:], numba.i8),
-#             ], nopython=True)
+@numba.jit([
+            numba.types.Tuple((numba.c16[:], numba.f8[:]))(numba.c16[:], numba.f8[:], numba.i8),
+            ], nopython=True)
 def average_chunks_complex(arr, wts, chunksize):
     """ Average the array arr with weights by chunks
 
     Array len does not have to be multiple of chunksize
-
-    This version is optimised for plain numpy. It is roughly ten times faster that average_chunks_jit when used
-    without numba jit. It cannot (yet) be used with numba because the add.reduceat is not support in numba
-    0.31
+    The function is used for processing arr with complex data type.
 
     :param arr: 1D array of values
     :param wts: 1D array of weights
@@ -65,24 +62,6 @@ def average_chunks_complex(arr, wts, chunksize):
     """
     if chunksize <= 1:
         return arr, wts
-
-    # Original codes
-    # places = range(0, len(arr), chunksize)
-    # chunks = numpy.add.reduceat(wts * arr, places)
-    # weights = numpy.add.reduceat(wts, places)
-    # chunks[weights > 0.0] = chunks[weights > 0.0] / weights[weights > 0.0]
-
-    # Codes optimized
-
-    # mask = numpy.zeros(((len(arr)-1)//chunksize + 1, arr.shape[0]), dtype=numba.boolean)
-    # for enumerate_id, i in enumerate(range(0, len(arr), chunksize)):
-    #     mask[enumerate_id,i:i+chunksize]= 1
-    # chunks = mask.dot(wts*arr)
-    # weights = mask.dot(wts)
-    # # chunks[weights > 0.0] = chunks[weights > 0.0] / weights[weights > 0.0]
-    # numpy.putmask(chunks, weights>0.0, chunks/weights)
-
-    # Numba
 
     mask = numpy.zeros(((len(arr) - 1) // chunksize + 1, arr.shape[0]), dtype=arr.dtype)
     maskwts = numpy.zeros_like(mask, dtype=wts.dtype)
@@ -96,12 +75,11 @@ def average_chunks_complex(arr, wts, chunksize):
 
     return chunks, weights
 
-# @numba.jit([numba.types.Tuple((numba.float64[:], numba.float64[:]))(numba.float64[:], numba.float64[:], numba.int64),
-#             # numba.types.Tuple((numba.c16[:],numba.f8[:]))(numba.c16[:], numba.f8[:], numba.i8),
-#             numba.types.Tuple((numba.f8[:],numba.float64[:]))(numba.f8[:], numba.float64[:], numba.int64),
-#             numba.types.Tuple((numba.f8[:],numba.float64[:]))(numba.f8[:], numba.float64[:], numba.int32),
-#             numba.types.Tuple((numba.f8[:],numba.float64[:]))(numba.f8[:], numba.float64[:], numba.int8)
-#             ], nopython=True)
+@numba.jit([numba.types.Tuple((numba.float64[:], numba.float64[:]))(numba.float64[:], numba.float64[:], numba.int64),
+            numba.types.Tuple((numba.f8[:],numba.float64[:]))(numba.f8[:], numba.float64[:], numba.int64),
+            numba.types.Tuple((numba.f8[:],numba.float64[:]))(numba.f8[:], numba.float64[:], numba.int32),
+            numba.types.Tuple((numba.f8[:],numba.float64[:]))(numba.f8[:], numba.float64[:], numba.int8)
+            ], nopython=True)
 def average_chunks(arr, wts, chunksize):
     """ Average the array arr with weights by chunks
 
@@ -127,24 +105,24 @@ def average_chunks(arr, wts, chunksize):
 
     # Codes optimized
 
-    mask = numpy.zeros(((len(arr)-1)//chunksize + 1, arr.shape[0]), dtype=bool)
-    for enumerate_id, i in enumerate(range(0, len(arr), chunksize)):
-        mask[enumerate_id,i:i+chunksize]= 1
-    chunks = mask.dot(wts*arr)
-    weights = mask.dot(wts)
-    # chunks[weights > 0.0] = chunks[weights > 0.0] / weights[weights > 0.0]
-    numpy.putmask(chunks, weights>0.0, chunks/weights)
-
-    # Numba
-    # mask = numpy.zeros(((len(arr)-1)//chunksize + 1, arr.shape[0]), dtype=arr.dtype)
-    # maskwts = numpy.zeros_like(mask,dtype=wts.dtype)
+    # mask = numpy.zeros(((len(arr)-1)//chunksize + 1, arr.shape[0]), dtype=bool)
     # for enumerate_id, i in enumerate(range(0, len(arr), chunksize)):
     #     mask[enumerate_id,i:i+chunksize]= 1
-    #     maskwts[enumerate_id,i:i+chunksize]= 1
-    # tmp = wts*arr
-    # chunks = mask.dot(tmp)
-    # weights = maskwts.dot(wts)
-    # chunks[weights > 0.0] = chunks[weights > 0.0] / weights[weights > 0.0]
+    # chunks = mask.dot(wts*arr)
+    # weights = mask.dot(wts)
+    # # chunks[weights > 0.0] = chunks[weights > 0.0] / weights[weights > 0.0]
+    # numpy.putmask(chunks, weights>0.0, chunks/weights)
+
+    # Numba
+    mask = numpy.zeros(((len(arr)-1)//chunksize + 1, arr.shape[0]), dtype=arr.dtype)
+    maskwts = numpy.zeros_like(mask,dtype=wts.dtype)
+    for enumerate_id, i in enumerate(range(0, len(arr), chunksize)):
+        mask[enumerate_id,i:i+chunksize]= 1
+        maskwts[enumerate_id,i:i+chunksize]= 1
+    tmp = wts*arr
+    chunks = mask.dot(tmp)
+    weights = maskwts.dot(wts)
+    chunks[weights > 0.0] = chunks[weights > 0.0] / weights[weights > 0.0]
 
     return chunks, weights
 
@@ -163,72 +141,65 @@ def average_chunks2(arr, wts, chunksize):
     #    assert arr.shape == wts.shape, "Shapes of arrays must be the same"
     # It is possible that there is a dangling null axis on wts
     wts = wts.reshape(arr.shape)
+    #
+    # # For numba
+    if arr.dtype=='c16':
+        l0 = len(average_chunks_complex(arr[:, 0].flatten(), wts[:, 0].flatten(), chunksize[0])[0])
+        l1 = len(average_chunks_complex(arr[0, :].flatten(), wts[0, :].flatten(), chunksize[1])[0])
 
-    # For numba
+        tempchunks = numpy.zeros([arr.shape[0], l1], dtype=arr.dtype)
+        tempwt = numpy.zeros([arr.shape[0], l1])
 
-    # if arr.dtype=='>f8':
-    #     arr.dtype='f8'
-    # if arr.dtype == '>c16':
-    #     arr.dtype = 'c16'
-    # if wts.dtype=='>f8':
-    #     wts.dtype='f8'
+        tempchunks *= tempwt
+        for i in range(arr.shape[0]):
+            result = average_chunks_complex(arr[i, :], wts[i, :], chunksize[1])
+            tempchunks[i, :], tempwt[i, :] = result[0].flatten(), result[1].flatten()
 
-    # if arr.dtype=='c16':
-    #     l0 = len(average_chunks_complex(arr[:, 0].flatten(), wts[:, 0].flatten(), chunksize[0])[0])
-    #     l1 = len(average_chunks_complex(arr[0, :].flatten(), wts[0, :].flatten(), chunksize[1])[0])
-    #
-    #     tempchunks = numpy.zeros([arr.shape[0], l1], dtype=arr.dtype)
-    #     tempwt = numpy.zeros([arr.shape[0], l1])
-    #
-    #     tempchunks *= tempwt
-    #     for i in range(arr.shape[0]):
-    #         result = average_chunks_complex(arr[i, :], wts[i, :], chunksize[1])
-    #         tempchunks[i, :], tempwt[i, :] = result[0].flatten(), result[1].flatten()
-    #
-    #     chunks = numpy.zeros([l0, l1], dtype=arr.dtype)
-    #     weights = numpy.zeros([l0, l1])
-    #
-    #     for i in range(l1):
-    #         result = average_chunks_complex(tempchunks[:, i], tempwt[:, i], chunksize[0])
-    #         chunks[:, i], weights[:, i] = result[0].flatten(), result[1].flatten()
-    #
-    # else:
-    #     l0 = len(average_chunks(arr[:, 0].flatten(), wts[:, 0].flatten(), chunksize[0])[0])
-    #     l1 = len(average_chunks(arr[0, :].flatten(), wts[0, :].flatten(), chunksize[1])[0])
-    #
-    #     tempchunks = numpy.zeros([arr.shape[0], l1], dtype=arr.dtype)
-    #     tempwt = numpy.zeros([arr.shape[0], l1])
-    #
-    #     tempchunks *= tempwt
-    #     for i in range(arr.shape[0]):
-    #         result = average_chunks(arr[i, :], wts[i, :], chunksize[1])
-    #         tempchunks[i, :], tempwt[i, :] = result[0].flatten(), result[1].flatten()
-    #
-    #     chunks = numpy.zeros([l0, l1], dtype=arr.dtype)
-    #     weights = numpy.zeros([l0, l1])
-    #
-    #     for i in range(l1):
-    #         result = average_chunks(tempchunks[:, i], tempwt[:, i], chunksize[0])
-    #         chunks[:, i], weights[:, i] = result[0].flatten(), result[1].flatten()
+        chunks = numpy.zeros([l0, l1], dtype=arr.dtype)
+        weights = numpy.zeros([l0, l1])
+
+        for i in range(l1):
+            result = average_chunks_complex(tempchunks[:, i], tempwt[:, i], chunksize[0])
+            chunks[:, i], weights[:, i] = result[0].flatten(), result[1].flatten()
+
+    else:
+        l0 = len(average_chunks(arr[:, 0].flatten(), wts[:, 0].flatten(), chunksize[0])[0])
+        l1 = len(average_chunks(arr[0, :].flatten(), wts[0, :].flatten(), chunksize[1])[0])
+
+        tempchunks = numpy.zeros([arr.shape[0], l1], dtype=arr.dtype)
+        tempwt = numpy.zeros([arr.shape[0], l1])
+
+        tempchunks *= tempwt
+        for i in range(arr.shape[0]):
+            result = average_chunks(arr[i, :], wts[i, :], chunksize[1])
+            tempchunks[i, :], tempwt[i, :] = result[0].flatten(), result[1].flatten()
+
+        chunks = numpy.zeros([l0, l1], dtype=arr.dtype)
+        weights = numpy.zeros([l0, l1])
+
+        for i in range(l1):
+            result = average_chunks(tempchunks[:, i], tempwt[:, i], chunksize[0])
+            chunks[:, i], weights[:, i] = result[0].flatten(), result[1].flatten()
 
 
-    l0 = len(average_chunks(arr[:, 0].flatten(), wts[:, 0].flatten(), chunksize[0])[0])
-    l1 = len(average_chunks(arr[0, :].flatten(), wts[0, :].flatten(), chunksize[1])[0])
-
-    tempchunks = numpy.zeros([arr.shape[0], l1], dtype=arr.dtype)
-    tempwt = numpy.zeros([arr.shape[0], l1])
-
-    tempchunks *= tempwt
-    for i in range(arr.shape[0]):
-        result = average_chunks(arr[i, :], wts[i, :], chunksize[1])
-        tempchunks[i, :], tempwt[i, :] = result[0].flatten(), result[1].flatten()
-
-    chunks = numpy.zeros([l0, l1], dtype=arr.dtype)
-    weights = numpy.zeros([l0, l1])
-
-    for i in range(l1):
-        result = average_chunks(tempchunks[:, i], tempwt[:, i], chunksize[0])
-        chunks[:, i], weights[:, i] = result[0].flatten(), result[1].flatten()
+    # Original
+    # l0 = len(average_chunks(arr[:, 0].flatten(), wts[:, 0].flatten(), chunksize[0])[0])
+    # l1 = len(average_chunks(arr[0, :].flatten(), wts[0, :].flatten(), chunksize[1])[0])
+    #
+    # tempchunks = numpy.zeros([arr.shape[0], l1], dtype=arr.dtype)
+    # tempwt = numpy.zeros([arr.shape[0], l1])
+    #
+    # tempchunks *= tempwt
+    # for i in range(arr.shape[0]):
+    #     result = average_chunks(arr[i, :], wts[i, :], chunksize[1])
+    #     tempchunks[i, :], tempwt[i, :] = result[0].flatten(), result[1].flatten()
+    #
+    # chunks = numpy.zeros([l0, l1], dtype=arr.dtype)
+    # weights = numpy.zeros([l0, l1])
+    #
+    # for i in range(l1):
+    #     result = average_chunks(tempchunks[:, i], tempwt[:, i], chunksize[0])
+    #     chunks[:, i], weights[:, i] = result[0].flatten(), result[1].flatten()
 
     return chunks, weights
 
