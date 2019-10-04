@@ -19,7 +19,7 @@ def image_arlexecute_map_workflow(im, imfunction, facets=1, overlap=0, taper=Non
     if facets % 2 == 0 or facets == 1:
         actual_number_facets = facets
     else:
-        actual_number_facets = facets - 1
+        actual_number_facets = max(1, facets - 1)
 
     facets_list = arlexecute.execute(image_scatter_facets, nout=actual_number_facets*actual_number_facets)\
         (im, facets=facets, overlap=overlap, taper=taper)
