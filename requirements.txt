@@ -30,7 +30,7 @@ h5py
 jsonschema
 bokeh
 aotools<0.5.1
-
+numba
 
 
 
