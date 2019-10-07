@@ -143,30 +143,6 @@ def w_beam(npixel, field_of_view, w, cx=None, cy=None, remove_shift=False):
     # if remove_shift:
     #     cp /= cp[npixel // 2, npixel // 2]
 
-    # numpy.putmask
-    # ly, mx = coordinates2Offset(npixel, cx, cy)
-    # r2 = field_of_view**2*(ly ** 2 + mx ** 2)
-    # ph = numpy.zeros_like(r2)
-    # m = r2 < 1.0
-    # cp = numpy.zeros_like(r2, dtype='complex')
-    # numpy.putmask(ph, m, -2 * numpy.pi * w * (1 - numpy.sqrt(1.0 - r2)))
-    # numpy.putmask(cp, m, numpy.exp(1j * ph))
-    # numpy.putmask(cp, r2 == 0, 1.0 + 0j)
-    # if remove_shift:
-    #     cp /= cp[npixel // 2, npixel // 2]
-
-    # numpy.putmask - 2
-    # ly, mx = coordinates2Offset(npixel, cx, cy)
-    # r2 = field_of_view ** 2 * (ly ** 2 + mx ** 2)
-    # ph = -2 * numpy.pi * w * (1 - numpy.sqrt(1.0 - r2))
-    # numpy.putmask(ph, r2 >= 1.0, 0)
-    # cp = numpy.zeros_like(r2, dtype='complex')
-    # cp = numpy.exp(1j * ph)
-    # numpy.putmask(cp, r2 >= 1.0, 0 + 0j)
-    # numpy.putmask(cp, r2 == 0, 1.0 + 0j)
-    # if remove_shift:
-    #     cp /= cp[npixel // 2, npixel // 2]
-
     # SubArray Copy Symmetrically
     ly, mx = coordinates2Offset(npixel, cx, cy, quadrant=True)
     r2 = field_of_view ** 2 * (ly ** 2 + mx ** 2)
@@ -181,8 +157,6 @@ def w_beam(npixel, field_of_view, w, cx=None, cy=None, remove_shift=False):
         cp /= cp[-1, -1]
 
     cp = numpy.pad(cp, ((0, int(cx)-1), (0, int(cy)-1)), 'reflect')
-
-    # assert((cp==cp1).all())
 
     return cp
 
