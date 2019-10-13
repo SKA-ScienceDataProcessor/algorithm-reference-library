@@ -65,6 +65,7 @@ def coordinates2Offset(npixel: int, cx: int, cy: int, quadrant=False):
     if quadrant == False:
         mg = numpy.mgrid[0:npixel, 0:npixel]
     else:
+        # If npixel is even, we should create a grid with npixel//2+1
         mg = numpy.mgrid[0:npixel//2+1, 0:npixel//2+1]
     return (mg[0] - cy) / npixel, (mg[1] - cx) / npixel
 
@@ -180,7 +181,7 @@ def w_beam(npixel, field_of_view, w, cx=None, cy=None, remove_shift=False):
     if remove_shift:
         cp /= cp[-1, -1]
 
-    cp = numpy.pad(cp, ((0, int(cx)-1), (0, int(cy)-1)), 'reflect')
+    cp = numpy.pad(cp, ((0, int(cx) + npixel % 2 - 1), (0, int(cy) + npixel % 2 - 1)), 'reflect')
 
     # assert((cp==cp1).all())
 

@@ -87,8 +87,12 @@ def get_rowmap(col, ucol=None):
         
     for i, f in enumerate(ucol):
         pdict[phash(f)] = i
-    vmap = []
-    for p in col:
-        vmap.append(pdict[phash(p)])
+    # vmap = []
+    # vmap = [pdict[phash(p)] for p in col]
+    # for p in col:
+    #     vmap.append(pdict[phash(p)])
 
-    return vmap
+    n_ucol = numpy.round(col).astype(('int'))
+    vmap = numpy.vectorize(pdict.__getitem__)(n_ucol)
+
+    return vmap.tolist()

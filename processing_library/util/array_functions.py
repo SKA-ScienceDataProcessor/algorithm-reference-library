@@ -1,7 +1,7 @@
 """Useful array functions.
 
 """
-import numba
+from numba import jit, types as nbtypes, c16, f8, i8,float64, int64, int32,int8
 import numpy
 
 
@@ -46,8 +46,8 @@ def average_chunks_jit(arr, wts, chunksize):
     return chunks, weights
 
 
-@numba.jit([
-            numba.types.Tuple((numba.c16[:], numba.f8[:]))(numba.c16[:], numba.f8[:], numba.i8),
+@jit([
+            nbtypes.Tuple((c16[:], f8[:]))(c16[:], f8[:], i8),
             ], nopython=True)
 def average_chunks_complex(arr, wts, chunksize):
     """ Average the array arr with weights by chunks
@@ -75,10 +75,10 @@ def average_chunks_complex(arr, wts, chunksize):
 
     return chunks, weights
 
-@numba.jit([numba.types.Tuple((numba.float64[:], numba.float64[:]))(numba.float64[:], numba.float64[:], numba.int64),
-            numba.types.Tuple((numba.f8[:],numba.float64[:]))(numba.f8[:], numba.float64[:], numba.int64),
-            numba.types.Tuple((numba.f8[:],numba.float64[:]))(numba.f8[:], numba.float64[:], numba.int32),
-            numba.types.Tuple((numba.f8[:],numba.float64[:]))(numba.f8[:], numba.float64[:], numba.int8)
+@jit([nbtypes.Tuple((float64[:], float64[:]))(float64[:], float64[:], int64),
+            nbtypes.Tuple((f8[:],float64[:]))(f8[:], float64[:], int64),
+            nbtypes.Tuple((f8[:],float64[:]))(f8[:], float64[:], int32),
+            nbtypes.Tuple((f8[:],float64[:]))(f8[:], float64[:], int8)
             ], nopython=True)
 def average_chunks(arr, wts, chunksize):
     """ Average the array arr with weights by chunks
@@ -142,7 +142,7 @@ def average_chunks2(arr, wts, chunksize):
     # It is possible that there is a dangling null axis on wts
     wts = wts.reshape(arr.shape)
     #
-    # # For numba
+    # For numba
     if arr.dtype=='c16':
         l0 = len(average_chunks_complex(arr[:, 0].flatten(), wts[:, 0].flatten(), chunksize[0])[0])
         l1 = len(average_chunks_complex(arr[0, :].flatten(), wts[0, :].flatten(), chunksize[1])[0])
