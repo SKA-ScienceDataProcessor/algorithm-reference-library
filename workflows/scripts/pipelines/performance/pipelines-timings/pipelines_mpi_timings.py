@@ -16,11 +16,9 @@ from data_models.polarisation import PolarisationFrame
 from processing_library.image.operations import create_image
 from processing_library.util.sizeof import get_size
 from workflows.mpi.imaging.imaging_mpi import invert_list_mpi_workflow, \
-    weight_list_mpi_workflow, predict_list_mpi_workflow, \
-    taper_list_mpi_workflow, remove_sumwt
-from workflows.serial.imaging.imaging_serial import invert_list_serial_workflow, \
-    weight_list_serial_workflow, predict_list_serial_workflow, \
-    taper_list_serial_workflow
+    predict_list_mpi_workflow, \
+    remove_sumwt
+from workflows.serial.imaging.imaging_serial import weight_list_serial_workflow, taper_list_serial_workflow
 from workflows.mpi.pipelines.pipeline_mpi import ical_list_mpi_workflow
 #from workflows.mpi.simulation.simulation_mpi import simulate_list_mpi_workflow, \
 #    corrupt_list_mpi_workflow
@@ -33,8 +31,8 @@ from wrappers.mpi.griddata.kernels import create_awterm_convolutionfunction, cre
 from wrappers.mpi.image.gather_scatter import image_gather_channels
 from wrappers.mpi.image.operations import export_image_to_fits, qa_image
 from wrappers.mpi.imaging.base import advise_wide_field
-from wrappers.mpi.simulation.testing_support import create_low_test_skymodel_from_gleam
-from wrappers.mpi.visibility.coalesce import convert_blockvisibility_to_visibility
+from simulation import create_low_test_skymodel_from_gleam
+from visibility import convert_blockvisibility_to_visibility
 
 pp = pprint.PrettyPrinter()
 

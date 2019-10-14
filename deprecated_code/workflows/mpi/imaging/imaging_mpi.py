@@ -13,23 +13,19 @@ import numpy
 
 from data_models.memory_data_models import Image, Visibility
 from data_models.parameters import get_parameter
-from processing_library.image.operations import copy_image, create_empty_image_like
-from workflows.shared.imaging.imaging_shared import imaging_context
-from workflows.shared.imaging.imaging_shared import sum_invert_results, remove_sumwt, sum_predict_results, \
-    threshold_list
+from processing_library.image.operations import create_empty_image_like
+from workflows.shared.imaging.imaging_shared import sum_invert_results, remove_sumwt, sum_predict_results
 from wrappers.mpi.griddata.gridding import grid_weight_to_griddata, griddata_reweight, griddata_merge_weights
 from wrappers.mpi.griddata.kernels import create_pswf_convolutionfunction
 from wrappers.mpi.griddata.operations import create_griddata_from_image
 from wrappers.mpi.image.deconvolution import deconvolve_cube, restore_cube
-from wrappers.mpi.image.gather_scatter import image_scatter_facets, image_gather_facets, \
+from wrappers.mpi.image.gather_scatter import image_gather_facets, \
     image_scatter_channels, image_gather_channels
 from wrappers.mpi.image.operations import calculate_image_frequency_moments
-from wrappers.mpi.visibility.base import copy_visibility
-from wrappers.mpi.visibility.gather_scatter import visibility_scatter, visibility_gather
+from visibility import copy_visibility
 from wrappers.mpi.imaging.weighting import taper_visibility_gaussian, taper_visibility_tukey
 
 from mpi4py import MPI
-import sys
 
 log = logging.getLogger(__name__)
 
