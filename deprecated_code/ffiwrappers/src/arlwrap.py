@@ -3,7 +3,6 @@
 # In this file we declare the functions that need to be exposed to C (wrapped) --with the callback modifier
 # and the needed structs -- with cdef
 
-import numpy
 import collections
 import sys
 
@@ -27,7 +26,7 @@ from processing_components.calibration.calibration import solve_gaintable
 from workflows.serial.pipelines.pipeline_serial import ical_list_serial_workflow
 from data_models.data_model_helpers import export_image_to_hdf5
 
-from ffiwrappers.src.arlwrap_support import *
+from src.arlwrap_support import *
 
 import logging
 import os
