@@ -32,7 +32,7 @@ def image_sizeof(im: Image):
 
 def create_image(npixel=512, cellsize=0.000015, polarisation_frame=PolarisationFrame("stokesI"),
                  frequency=numpy.array([1e8]), channel_bandwidth=numpy.array([1e6]),
-                 phasecentre=None) -> Image:
+                 phasecentre=None, nchan=None) -> Image:
     """Create an empty template image consistent with the inputs.
 
     :param npixel: Number of pixels
@@ -52,7 +52,9 @@ def create_image(npixel=512, cellsize=0.000015, polarisation_frame=PolarisationF
         polarisation_frame = PolarisationFrame("stokesI")
     
     npol = polarisation_frame.npol
-    nchan = len(frequency)
+    if nchan is None:
+        nchan = len(frequency)
+        
     shape = [nchan, npol, npixel, npixel]
     w = WCS(naxis=4)
     # The negation in the longitude is needed by definition of RA, DEC

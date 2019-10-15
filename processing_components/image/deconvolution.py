@@ -81,6 +81,7 @@ def deconvolve_cube(dirty: Image, psf: Image, prefix='', **kwargs) -> (Image, Im
     
     window_shape = get_parameter(kwargs, 'window_shape', None)
     if window_shape == 'quarter':
+        log.info("deconvolve_cube %s: window is inner quarter" % prefix)
         qx = dirty.shape[3] // 4
         qy = dirty.shape[2] // 4
         window = numpy.zeros_like(dirty.data)
@@ -92,9 +93,12 @@ def deconvolve_cube(dirty: Image, psf: Image, prefix='', **kwargs) -> (Image, Im
         ny = dirty.shape[2]
         window = numpy.zeros_like(dirty.data)
         window[..., (edge + 1):(ny - edge), (edge + 1):(nx - edge)] = 1.0
-        log.info('deconvolve_cube %s: Cleaning omitting %d-pixel edge of each sky plane' % (prefix, edge))
-    else:
+        log.info('deconvolve_cube %s: Window omits %d-pixel edge of each sky plane' % (prefix, edge))
+    elif window_shape is None:
+        log.info("deconvolve_cube %s: Cleaning entire image" % prefix)
         window = None
+    else:
+        raise ValueError("Window shape %s is not recognized" % window_shape)
         
     mask = get_parameter(kwargs, 'mask', None)
     if isinstance(mask, Image):
@@ -182,7 +186,6 @@ def deconvolve_cube(dirty: Image, psf: Image, prefix='', **kwargs) -> (Image, Im
             if psf_taylor.data[0, pol, :, :].max():
                 log.info("deconvolve_cube %s: Processing pol %d" % (prefix, pol))
                 if window is None:
-                    log.info('No clean window')
                     comp_array[:, pol, :, :], residual_array[:, pol, :, :] = \
                         msmfsclean(dirty_taylor.data[:, pol, :, :], psf_taylor.data[:, pol, :, :],
                                    None, gain, thresh, niter, scales, fracthresh, findpeak, prefix)

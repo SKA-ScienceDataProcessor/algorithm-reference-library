@@ -4,12 +4,11 @@
 
 import numpy
 
-from data_models.data_model_helpers import GainTable
-from wrappers.mpi.calibration.calibration_control import calibrate_function, apply_calibration_function, \
+from wrappers.mpi.calibration.calibration_control import apply_calibration_function, \
     solve_calibrate_function
-from wrappers.mpi.visibility.coalesce import convert_visibility_to_blockvisibility
-from wrappers.mpi.visibility.gather_scatter import visibility_gather_channel
-from wrappers.mpi.visibility.operations import integrate_visibility_by_channel, \
+from visibility import convert_visibility_to_blockvisibility
+from visibility import visibility_gather_channel
+from visibility.operations import integrate_visibility_by_channel, \
     divide_visibility
 
 from mpi4py import MPI

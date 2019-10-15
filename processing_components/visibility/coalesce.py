@@ -144,6 +144,22 @@ def decoalesce_visibility(vis: Visibility, **kwargs) -> BlockVisibility:
 
 def average_in_blocks(vis, uvw, wts, imaging_wts, times, integration_time, frequency, channel_bandwidth,
                       time_coal=1.0, max_time_coal=100, frequency_coal=1.0, max_frequency_coal=100):
+    """ Average visibility in blocks
+    
+    :param vis:
+    :param uvw:
+    :param wts:
+    :param imaging_wts:
+    :param times:
+    :param integration_time:
+    :param frequency:
+    :param channel_bandwidth:
+    :param time_coal:
+    :param max_time_coal:
+    :param frequency_coal:
+    :param max_frequency_coal:
+    :return:
+    """
     # Calculate the averaging factors for time and frequency making them the same for all times
     # for this baseline
     # Find the maximum possible baseline and then scale to this.
@@ -233,8 +249,8 @@ def average_in_blocks(vis, uvw, wts, imaging_wts, times, integration_time, frequ
                 nrows = time_chunk_len[a2, a1] * frequency_chunk_len[a2, a1]
                 cnvis += nrows
 
-    # Now we know enough to define the output coalesced arrays. The shape will be
-    # succesive a1, a2: [len_time_chunks[a2,a1], a2, a1, len_frequency_chunks[a2,a1]]
+    # Now we know enough to define the output coalesced arrays. The output will be
+    # successive a1, a2: [len_time_chunks[a2,a1], a2, a1, len_frequency_chunks[a2,a1]]
     ctime = numpy.zeros([cnvis])
     cfrequency = numpy.zeros([cnvis])
     cchannel_bandwidth = numpy.zeros([cnvis])
@@ -262,58 +278,68 @@ def average_in_blocks(vis, uvw, wts, imaging_wts, times, integration_time, frequ
     visstart = 0
     for a2 in ua:
         for a1 in ua:
-            if (time_chunk_len[a2, a1] > 0) & (frequency_chunk_len[a2, a1] > 0) & \
-                    (allpwtsgrid[:, a2, a1, :].any() > 0.0):
+            nrows = time_chunk_len[a2, a1] * frequency_chunk_len[a2, a1]
+            rows = slice(visstart, visstart + nrows)
+    
+            cindex.flat[rowgrid[:, a2, a1, :]] = numpy.array(range(visstart, visstart + nrows))
+    
+            ca1[rows] = a1
+            ca2[rows] = a2
 
-                nrows = time_chunk_len[a2, a1] * frequency_chunk_len[a2, a1]
-                rows = slice(visstart, visstart + nrows)
+            # Average over time and frequency for case where polarisation isn't an issue
+            def average_from_grid(arr):
+                return average_chunks2(arr, allpwtsgrid[:, a2, a1, :],
+                                       (time_average[a2, a1], frequency_average[a2, a1]))[0]
 
-                cindex.flat[rowgrid[:, a2, a1, :]] = numpy.array(range(visstart, visstart + nrows))
+            ctime[rows] = average_from_grid(time_grid).flatten()
+            cfrequency[rows] = average_from_grid(frequency_grid).flatten()
 
-                ca1[rows] = a1
-                ca2[rows] = a2
+            for axis in range(3):
+                uvwgrid = numpy.outer(uvw[:, a2, a1, axis], frequency / constants.c.value)
+                cuvw[rows, axis] = average_from_grid(uvwgrid).flatten()
 
-                # Average over time and frequency for case where polarisation isn't an issue
-                def average_from_grid(arr):
-                    return average_chunks2(arr, allpwtsgrid[:, a2, a1, :],
-                                           (time_average[a2, a1], frequency_average[a2, a1]))[0]
+            # For some variables, we need the sum not the average
+            def sum_from_grid(arr):
+                result = average_chunks2(arr, allpwtsgrid[:, a2, a1, :],
+                                         (time_average[a2, a1], frequency_average[a2, a1]))
+                return result[0] * result[0].size
 
-                ctime[rows] = average_from_grid(time_grid).flatten()
-                cfrequency[rows] = average_from_grid(frequency_grid).flatten()
+            cintegration_time[rows] = sum_from_grid(integration_time_grid).flatten()
+            cchannel_bandwidth[rows] = sum_from_grid(channel_bandwidth_grid).flatten()
 
-                for axis in range(3):
-                    uvwgrid = numpy.outer(uvw[:, a2, a1, axis], frequency / constants.c.value)
-                    cuvw[rows, axis] = average_from_grid(uvwgrid).flatten()
+            # For the polarisations we have to perform the time-frequency average separately for each polarisation
+            for pol in range(npol):
+                result = average_chunks2(vis[:, a2, a1, :, pol], wts[:, a2, a1, :, pol],
+                                         (time_average[a2, a1], frequency_average[a2, a1]))
+                cvis[rows, pol], cwts[rows, pol] = result[0].flatten(), result[1].flatten()
 
-                # For some variables, we need the sum not the average
-                def sum_from_grid(arr):
-                    result = average_chunks2(arr, allpwtsgrid[:, a2, a1, :],
-                                             (time_average[a2, a1], frequency_average[a2, a1]))
-                    return result[0] * result[0].size
+            # Now do the imaging weights
+            for pol in range(npol):
+                result = average_chunks2(imaging_wts[:, a2, a1, :, pol], wts[:, a2, a1, :, pol],
+                                         (time_average[a2, a1], frequency_average[a2, a1]))
+                cimwts[rows, pol] = result[0].flatten()
 
-                cintegration_time[rows] = sum_from_grid(integration_time_grid).flatten()
-                cchannel_bandwidth[rows] = sum_from_grid(channel_bandwidth_grid).flatten()
+            visstart += nrows
 
-                # For the polarisations we have to perform the time-frequency average separately for each polarisation
-                for pol in range(npol):
-                    result = average_chunks2(vis[:, a2, a1, :, pol], wts[:, a2, a1, :, pol],
-                                             (time_average[a2, a1], frequency_average[a2, a1]))
-                    cvis[rows, pol], cwts[rows, pol] = result[0].flatten(), result[1].flatten()
-
-                # Now do the imaging weights
-                for pol in range(npol):
-                    result = average_chunks2(imaging_wts[:, a2, a1, :, pol], wts[:, a2, a1, :, pol],
-                                             (time_average[a2, a1], frequency_average[a2, a1]))
-                    cimwts[rows, pol] = result[0].flatten()
-
-                visstart += nrows
-
-    assert cnvis == visstart, "Mismatch between number of rows in coalesced visibility and index"
+    assert cnvis == visstart, "Mismatch between number of rows in coalesced visibility %d and index %d" % \
+                              (cnvis, visstart)
 
     return cvis, cuvw, cwts, cimwts, ctime, cfrequency, cchannel_bandwidth, ca1, ca2, cintegration_time, cindex
 
 
 def convert_blocks(vis, uvw, wts, imaging_wts, times, integration_time, frequency, channel_bandwidth):
+    """ Convert with no averaging
+    
+    :param vis:
+    :param uvw:
+    :param wts:
+    :param imaging_wts:
+    :param times:
+    :param integration_time:
+    :param frequency:
+    :param channel_bandwidth:
+    :return:
+    """
     # The input visibility is a block of shape [ntimes, nant, nant, nchan, npol]. We will map this
     # into rows like vis[npol] and with additional columns antenna1, antenna2, frequency
 
