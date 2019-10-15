@@ -4,6 +4,13 @@
 
 import numpy
 
+try:
+    import pyfftw
+
+    pyfftw_exists = True
+except ImportError:
+    pyfftw_exists = False
+
 
 def fft(a):
     """ Fourier transformation from image to grid space
@@ -15,12 +22,31 @@ def fft(a):
     :param a: image in `lm` coordinate space
     :return: `uv` grid
     """
-    if (len(a.shape) == 4):
-        return numpy.fft.fftshift(numpy.fft.fft2(numpy.fft.ifftshift(a, axes=[2, 3])), axes=[2, 3])
-    if (len(a.shape) == 5):
-        return numpy.fft.fftshift(numpy.fft.fft2(numpy.fft.ifftshift(a, axes=[3, 4])), axes=[3, 4])
+
+    if pyfftw_exists == False:
+        if (len(a.shape) == 4):
+            return numpy.fft.fftshift(numpy.fft.fft2(numpy.fft.ifftshift(a, axes=[2, 3])), axes=[2, 3])
+        if (len(a.shape) == 5):
+            return numpy.fft.fftshift(numpy.fft.fft2(numpy.fft.ifftshift(a, axes=[3, 4])), axes=[3, 4])
+        else:
+            return numpy.fft.fftshift(numpy.fft.fft2(numpy.fft.ifftshift(a)))
     else:
-        return numpy.fft.fftshift(numpy.fft.fft2(numpy.fft.ifftshift(a)))
+        # a = pyfftw.byte_align(a)
+        if (len(a.shape) == 4):
+            b = pyfftw.interfaces.numpy_fft.fftshift(
+                pyfftw.interfaces.numpy_fft.fft2(pyfftw.interfaces.numpy_fft.ifftshift(a, axes=[2, 3])
+                                                 , auto_align_input=False, planner_effort='FFTW_ESTIMATE',threads=8
+                                                 ), axes=[2, 3])
+        if (len(a.shape) == 5):
+            b = pyfftw.interfaces.numpy_fft.fftshift(
+                pyfftw.interfaces.numpy_fft.fft2(pyfftw.interfaces.numpy_fft.ifftshift(a, axes=[3, 4])
+                                                 , auto_align_input=False, threads=8
+                                                 ), axes=[3, 4])
+        else:
+            b = pyfftw.interfaces.numpy_fft.fftshift(
+                pyfftw.interfaces.numpy_fft.fft2(pyfftw.interfaces.numpy_fft.ifftshift(a), auto_align_input=False,
+                                                 threads=8))
+        return b
 
 
 def ifft(a):
@@ -33,12 +59,29 @@ def ifft(a):
     :param a: `uv` grid to transform
     :return: an image in `lm` coordinate space
     """
-    if (len(a.shape) == 4):
-        return numpy.fft.fftshift(numpy.fft.ifft2(numpy.fft.ifftshift(a, axes=[2, 3])), axes=[2, 3])
-    elif (len(a.shape) == 5):
-        return numpy.fft.fftshift(numpy.fft.ifft2(numpy.fft.ifftshift(a, axes=[2, 3, 4])), axes=[2, 3, 4])
+    if pyfftw_exists == False:
+        if (len(a.shape) == 4):
+            return numpy.fft.fftshift(numpy.fft.ifft2(numpy.fft.ifftshift(a, axes=[2, 3])), axes=[2, 3])
+        elif (len(a.shape) == 5):
+            return numpy.fft.fftshift(numpy.fft.ifft2(numpy.fft.ifftshift(a, axes=[2, 3, 4])), axes=[2, 3, 4])
+        else:
+            return numpy.fft.fftshift(numpy.fft.ifft2(numpy.fft.ifftshift(a)))
     else:
-        return numpy.fft.fftshift(numpy.fft.ifft2(numpy.fft.ifftshift(a)))
+        # a = pyfftw.byte_align(a)
+        if (len(a.shape) == 4):
+            b = pyfftw.interfaces.numpy_fft.fftshift(
+                pyfftw.interfaces.numpy_fft.ifft2(pyfftw.interfaces.numpy_fft.ifftshift(a, axes=[2, 3]),
+                                                  auto_align_input=False, planner_effort='FFTW_ESTIMATE',threads=8), axes=[2, 3])
+        elif (len(a.shape) == 5):
+            b = pyfftw.interfaces.numpy_fft.fftshift(
+                pyfftw.interfaces.numpy_fft.ifft2(pyfftw.interfaces.numpy_fft.ifftshift(a, axes=[2, 3, 4]),
+                                                  auto_align_input=False, planner_effort='FFTW_ESTIMATE'),
+                axes=[2, 3, 4])
+        else:
+            b = pyfftw.interfaces.numpy_fft.fftshift(
+                pyfftw.interfaces.numpy_fft.ifft2(pyfftw.interfaces.numpy_fft.ifftshift(a), auto_align_input=False,
+                                                  threads=8))
+        return b
 
 
 def pad_mid(ff, npixel):
@@ -116,7 +159,7 @@ def extract_oversampled(a, xf, yf, kernel_oversampling, kernelwidth):
     :param kernel_oversampling: oversampling factor
     :param kernelwidth: size of section
     """
-    
+
     assert 0 <= xf < kernel_oversampling
     assert 0 <= yf < kernel_oversampling
     # Determine start offset.
@@ -126,6 +169,6 @@ def extract_oversampled(a, xf, yf, kernel_oversampling, kernelwidth):
     assert mx >= 0 and my >= 0, "mx %d and my %d" % (mx, my)
     # Extract every kernel_oversampling-th pixel
     mid = a[my: my + kernel_oversampling * kernelwidth: kernel_oversampling,
-            mx: mx + kernel_oversampling * kernelwidth: kernel_oversampling]
+          mx: mx + kernel_oversampling * kernelwidth: kernel_oversampling]
     # normalise
     return kernel_oversampling * kernel_oversampling * mid
