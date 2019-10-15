@@ -58,6 +58,9 @@ def convolution_mapping(vis, griddata, cf, channel_tolerance=1e-8):
     pwg_pixel = griddata.grid_wcs.sub([3]).wcs_world2pix(vis.uvw[:, 2], 0)[0]
     # Find the nearest grid point
     pwg_grid = numpy.round(pwg_pixel).astype('int')
+    if numpy.min(pwg_grid) < 0:
+        print(vis.uvw[0:10, 2])
+        print(cf.grid_wcs.sub([5]).__repr__())
     assert numpy.min(pwg_grid) >= 0, "W axis underflows: %f" % numpy.min(pwg_grid)
     assert numpy.max(pwg_grid) < cf.shape[2], "W axis overflows: %f" % numpy.max(pwg_grid)
     pwg_fraction = pwg_pixel - pwg_grid
@@ -66,6 +69,9 @@ def convolution_mapping(vis, griddata, cf, channel_tolerance=1e-8):
     # nchan, npol, w, dv, du, v, u
     pwc_pixel = cf.grid_wcs.sub([5]).wcs_world2pix(vis.uvw[:, 2], 0)[0]
     pwc_grid = numpy.round(pwc_pixel).astype('int')
+    if numpy.min(pwc_grid) < 0:
+        print(vis.uvw[0:10, 2])
+        print(cf.grid_wcs.sub([5]).__repr__())
     assert numpy.min(pwc_grid) >= 0, "W axis underflows: %f" % numpy.min(pwc_grid)
     assert numpy.max(pwc_grid) < cf.shape[2], "W axis overflows: %f" % numpy.max(pwc_grid)
     pwc_fraction = pwc_pixel - pwc_grid
@@ -77,10 +83,14 @@ def convolution_mapping(vis, griddata, cf, channel_tolerance=1e-8):
     assert numpy.min(pfreq_grid) >= 0, "Frequency axis underflows: %f" % numpy.max(pfreq_grid)
     assert numpy.max(pfreq_grid) < cf.shape[0], "Frequency axis overflows: %f" % numpy.max(pfreq_grid)
     pfreq_fraction = pfreq_pixel - pfreq_grid
-    if numpy.max(numpy.abs(pfreq_fraction)) > channel_tolerance:
-        log.warning("convolution_mapping: alignment of visibility and image grids exceeds tolerance %s" %
+    # If we are doing spectral imaging, check the tolerances
+    is_spectral = cf.shape[0] > 1
+    if is_spectral and (numpy.max(numpy.abs(pfreq_fraction)) > channel_tolerance):
+        print("convolution_mapping: alignment of visibility and image frequency grids exceeds tolerance %s" %
                     (numpy.max(pfreq_fraction)))
-    
+        log.warning("convolution_mapping: alignment of visibility and image frequency grids exceeds tolerance %s" %
+                    (numpy.max(pfreq_fraction)))
+
     ######  TODO: Polarisation mapping
     
     return pu_grid, pu_offset, pv_grid, pv_offset, pwg_grid, pwg_fraction, pwc_grid, pwc_fraction, pfreq_grid

@@ -347,7 +347,7 @@ def create_image_from_visibility(vis, **kwargs) -> Image:
 
 
 def advise_wide_field(vis: Visibility, delA=0.02, oversampling_synthesised_beam=3.0, guard_band_image=6.0, facets=1,
-                      wprojection_planes=1):
+                      wprojection_planes=1, verbose=True):
     """ Advise on parameters for wide field imaging.
     
     Calculate sampling requirements on various parameters
@@ -370,32 +370,45 @@ def advise_wide_field(vis: Visibility, delA=0.02, oversampling_synthesised_beam=
     assert isinstance(vis, Visibility), vis
     
     max_wavelength = constants.c.to('m s^-1').value / numpy.min(vis.frequency)
-    log.info("advise_wide_field: Maximum wavelength %.3f (meters)" % (max_wavelength))
+    if verbose:
+        log.info("advise_wide_field: Maximum wavelength %.3f (meters)" % (max_wavelength))
     
     min_wavelength = constants.c.to('m s^-1').value / numpy.max(vis.frequency)
-    log.info("advise_wide_field: Minimum wavelength %.3f (meters)" % (min_wavelength))
-    
+    if verbose:
+        log.info("advise_wide_field: Minimum wavelength %.3f (meters)" % (min_wavelength))
+
     maximum_baseline = numpy.max(numpy.abs(vis.uvw))  # Wavelengths
-    log.info("advise_wide_field: Maximum baseline %.1f (wavelengths)" % (maximum_baseline))
-    
+    if verbose:
+        log.info("advise_wide_field: Maximum baseline %.1f (wavelengths)" % (maximum_baseline))
+
+    maximum_w = numpy.max(numpy.abs(vis.w))  # Wavelengths
+    if verbose:
+        log.info("advise_wide_field: Maximum w %.1f (wavelengths)" % (maximum_w))
+
     diameter = numpy.min(vis.configuration.diameter)
-    log.info("advise_wide_field: Station/antenna diameter %.1f (meters)" % (diameter))
+    if verbose:
+        log.info("advise_wide_field: Station/antenna diameter %.1f (meters)" % (diameter))
     
     primary_beam_fov = max_wavelength / diameter
-    log.info("advise_wide_field: Primary beam %s" % (rad_and_deg(primary_beam_fov)))
+    if verbose:
+        log.info("advise_wide_field: Primary beam %s" % (rad_deg_arcsec(primary_beam_fov)))
     
     image_fov = primary_beam_fov * guard_band_image
-    log.info("advise_wide_field: Image field of view %s" % (rad_and_deg(image_fov)))
+    if verbose:
+        log.info("advise_wide_field: Image field of view %s" % (rad_deg_arcsec(image_fov)))
     
     facet_fov = primary_beam_fov * guard_band_image / facets
     if facets > 1:
-        log.info("advise_wide_field: Facet field of view %s" % (rad_and_deg(facet_fov)))
+        if verbose:
+            log.info("advise_wide_field: Facet field of view %s" % (rad_deg_arcsec(facet_fov)))
     
     synthesized_beam = 1.0 / (maximum_baseline)
-    log.info("advise_wide_field: Synthesized beam %s" % (rad_and_deg(synthesized_beam)))
+    if verbose:
+        log.info("advise_wide_field: Synthesized beam %s" % (rad_deg_arcsec(synthesized_beam)))
     
     cellsize = synthesized_beam / oversampling_synthesised_beam
-    log.info("advise_wide_field: Cellsize %s" % (rad_and_deg(cellsize)))
+    if verbose:
+        log.info("advise_wide_field: Cellsize %s" % (rad_deg_arcsec(cellsize)))
 
     def pwr2(n):
         ex = numpy.ceil(numpy.log(n) / numpy.log(2.0)).astype('int')
@@ -409,68 +422,91 @@ def advise_wide_field(vis: Visibility, delA=0.02, oversampling_synthesised_beam=
             best = best * 3 // 4
         return best
 
+    def pwr2345(n):
+        number = numpy.array([2, 3, 4, 5])
+        ex = numpy.ceil(numpy.log(n) / numpy.log(number)).astype('int')
+        best = numpy.power(number[:], ex[:])
+        return min(best)
+
     npixels = int(round(image_fov / cellsize))
-    log.info("advice_wide_field: Npixels per side = %d" % (npixels))
+    if verbose:
+        log.info("advice_wide_field: Npixels per side = %d" % (npixels))
     
     npixels2 = pwr2(npixels)
-    log.info("advice_wide_field: Npixels (power of 2) per side = %d" % (npixels2))
+    if verbose:
+        log.info("advice_wide_field: Npixels (power of 2) per side = %d" % (npixels2))
 
     npixels23 = pwr23(npixels)
-    log.info("advice_wide_field: Npixels (power of 2, 3) per side = %d" % (npixels23))
+    if verbose:
+        log.info("advice_wide_field: Npixels (power of 2, 3) per side = %d" % (npixels23))
+
+    npixels_min = pwr2345(npixels)
+    log.info("advice_wide_field: Npixels (power of 2, 3, 4, 5) per side = %d" % (npixels_min))
 
     # Following equation is from Cornwell, Humphreys, and Voronkov (2012) (equation 24)
     # We will assume that the constraint holds at one quarter the entire FOV i.e. that
     # the full field of view includes the entire primary beam
     
     w_sampling_image = numpy.sqrt(2.0 * delA) / (numpy.pi * image_fov ** 2)
-    log.info("advice_wide_field: W sampling for full image = %.1f (wavelengths)" % (w_sampling_image))
+    if verbose:
+        log.info("advice_wide_field: W sampling for full image = %.1f (wavelengths)" % (w_sampling_image))
     
     if facets > 1:
         w_sampling_facet = numpy.sqrt(2.0 * delA) / (numpy.pi * facet_fov ** 2)
-        log.info("advice_wide_field: W sampling for facet = %.1f (wavelengths)" % (w_sampling_facet))
+        if verbose:
+            log.info("advice_wide_field: W sampling for facet = %.1f (wavelengths)" % (w_sampling_facet))
     else:
         w_sampling_facet = w_sampling_image
     
     w_sampling_primary_beam = numpy.sqrt(2.0 * delA) / (numpy.pi * primary_beam_fov ** 2)
-    log.info("advice_wide_field: W sampling for primary beam = %.1f (wavelengths)" % (w_sampling_primary_beam))
+    if verbose:
+        log.info("advice_wide_field: W sampling for primary beam = %.1f (wavelengths)" % (w_sampling_primary_beam))
     
     time_sampling_image = 86400.0 * w_sampling_image / (numpy.pi * maximum_baseline)
-    log.info("advice_wide_field: Time sampling for full image = %.1f (s)" % (time_sampling_image))
+    if verbose:
+        log.info("advice_wide_field: Time sampling for full image = %.1f (s)" % (time_sampling_image))
     
     if facets > 1:
         time_sampling_facet = 86400.0 * w_sampling_facet / (numpy.pi * maximum_baseline)
-        log.info("advice_wide_field: Time sampling for facet = %.1f (s)" % (time_sampling_facet))
+        if verbose:
+            log.info("advice_wide_field: Time sampling for facet = %.1f (s)" % (time_sampling_facet))
     
     time_sampling_primary_beam = 86400.0 * w_sampling_primary_beam / (numpy.pi * maximum_baseline)
-    log.info("advice_wide_field: Time sampling for primary beam = %.1f (s)" % (time_sampling_primary_beam))
+    if verbose:
+        log.info("advice_wide_field: Time sampling for primary beam = %.1f (s)" % (time_sampling_primary_beam))
     
     freq_sampling_image = numpy.max(vis.frequency) * w_sampling_image / (numpy.pi * maximum_baseline)
-    log.info("advice_wide_field: Frequency sampling for full image = %.1f (Hz)" % (freq_sampling_image))
+    if verbose:
+        log.info("advice_wide_field: Frequency sampling for full image = %.1f (Hz)" % (freq_sampling_image))
     
     if facets > 1:
         freq_sampling_facet = numpy.max(vis.frequency) * w_sampling_facet / (numpy.pi * maximum_baseline)
-        log.info("advice_wide_field: Frequency sampling for facet = %.1f (Hz)" % (freq_sampling_facet))
+        if verbose:
+            log.info("advice_wide_field: Frequency sampling for facet = %.1f (Hz)" % (freq_sampling_facet))
     
     freq_sampling_primary_beam = numpy.max(vis.frequency) * w_sampling_primary_beam / (numpy.pi * maximum_baseline)
-    log.info("advice_wide_field: Frequency sampling for primary beam = %.1f (Hz)" % (freq_sampling_primary_beam))
+    if verbose:
+        log.info("advice_wide_field: Frequency sampling for primary beam = %.1f (Hz)" % (freq_sampling_primary_beam))
     
     wstep = w_sampling_primary_beam
-    vis_slices = max(1, int(2 * maximum_baseline / wstep))
+    vis_slices = max(1, int(2 * maximum_w / wstep))
     wprojection_planes = vis_slices
-    log.info('advice_wide_field: Number of planes in w stack %d (primary beam)' % (vis_slices))
-    log.info('advice_wide_field: Number of planes in w projection %d (primary beam)' % (wprojection_planes))
+    if verbose:
+        log.info('advice_wide_field: Number of planes in w stack %d (primary beam)' % (vis_slices))
+        log.info('advice_wide_field: Number of planes in w projection %d (primary beam)' % (wprojection_planes))
 
-    nwpixels = int(2.0 * npixels * primary_beam_fov)
+    nwpixels = int(2.0 * wprojection_planes * primary_beam_fov)
     nwpixels = nwpixels - nwpixels % 2
-    log.info('advice_wide_field: W support = %d (pixels) (primary beam)' % nwpixels)
+    if verbose:
+        log.info('advice_wide_field: W support = %d (pixels) (primary beam)' % nwpixels)
     
     del pwr2
     del pwr23
     return locals()
 
 
-def rad_and_deg(x):
+def rad_deg_arcsec(x):
     """ Stringify x in radian and degress forms
     
     """
-    return "%.3g (rad) %.3g (deg)" % (x, 180.0 * x / numpy.pi)
+    return "%.3g (rad) %.3g (deg) %.3g (asec)" % (x, 180.0 * x / numpy.pi, 3600.0 * 180.0 * x / numpy.pi)

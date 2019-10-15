@@ -1,5 +1,6 @@
 import logging
 
+from processing_library.image.operations import copy_image
 from wrappers.arlexecute.execution_support.arlexecute import arlexecute
 from wrappers.arlexecute.image.gather_scatter import image_scatter_facets, image_gather_facets
 
@@ -23,3 +24,24 @@ def image_arlexecute_map_workflow(im, imfunction, facets=1, overlap=0, taper=Non
     gathered = arlexecute.execute(image_gather_facets)(root_list, im, facets=facets, overlap=overlap,
                                                        taper=taper)
     return gathered
+
+
+def sum_images_arlexecute(image_list, split=2):
+    """ Sum a set of images
+
+    :param image_list: List of (image, sum weights) tuples
+    :param split: Split into
+    :return: image
+    """
+    def sum_images(imagelist):
+        out = copy_image(imagelist[0])
+        out.data += imagelist[1].data
+        return out
+    
+    if len(image_list) > split:
+        centre = len(image_list) // split
+        result = [sum_images_arlexecute(image_list[:centre])]
+        result.append(sum_images_arlexecute(image_list[centre:]))
+        return arlexecute.execute(sum_images, nout=2)(result)
+    else:
+        return arlexecute.execute(sum_images, nout=2)(image_list)

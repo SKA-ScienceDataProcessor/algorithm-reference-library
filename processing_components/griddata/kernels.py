@@ -177,15 +177,16 @@ def create_awterm_convolutionfunction(im, make_pb=None, nw=1, wstep=1e15, oversa
         for y in range(oversampling):
             ybeg = y + ycen + (support * oversampling) // 2 - oversampling // 2
             yend = y + ycen - (support * oversampling) // 2 - oversampling // 2
-            vv = range(ybeg, yend, -oversampling)
+            # vv = range(ybeg, yend, -oversampling)
             for x in range(oversampling):
                 xbeg = x + xcen + (support * oversampling) // 2 - oversampling // 2
                 xend = x + xcen - (support * oversampling) // 2 - oversampling // 2
-                
-                uu = range(xbeg, xend, -oversampling)
-                for chan in range(nchan):
-                    for pol in range(npol):
-                        cf.data[chan, pol, z, y, x, :, :] = paddedplane.data[chan, pol, :, :][vv, :][:, uu]
+
+                # uu = range(xbeg, xend, -oversampling)
+                cf.data[..., z, y, x, :, :] = paddedplane.data[..., ybeg:yend:-oversampling, xbeg:xend:-oversampling]
+                # for chan in range(nchan):
+                #     for pol in range(npol):
+                #         cf.data[chan, pol, z, y, x, :, :] = paddedplane.data[chan, pol, :, :][vv, :][:, uu]
 
     cf.data /= numpy.sum(numpy.real(cf.data[0, 0, nw // 2, oversampling // 2, oversampling // 2, :, :]))
     cf.data = numpy.conjugate(cf.data)
