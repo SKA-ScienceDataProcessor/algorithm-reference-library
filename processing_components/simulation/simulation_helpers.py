@@ -37,7 +37,7 @@ def find_times_above_elevation_limit(start_times, end_times, location, phasecent
     return valid_start_times
 
 
-def plot_uvcoverage(vis_list, plot_file='uvcoverage.png'):
+def plot_uvcoverage(vis_list, plot_file='uvcoverage.png', **kwargs):
     plt.clf()
     for ivis, vis in enumerate(vis_list):
         plt.plot(-vis.u, -vis.v, '.', color='b', markersize=0.2)
@@ -49,7 +49,7 @@ def plot_uvcoverage(vis_list, plot_file='uvcoverage.png'):
     plt.show(block=False)
 
 
-def plot_azel(bvis_list, plot_file='azel.png'):
+def plot_azel(bvis_list, plot_file='azel.png', **kwargs):
     plt.clf()
     r2d = 180.0 / numpy.pi
     for ibvis, bvis in enumerate(bvis_list):
@@ -71,15 +71,7 @@ def plot_azel(bvis_list, plot_file='azel.png'):
     plt.show(block=False)
 
 
-def plot_pb(pb, components=None, plot_file='PB_png', title=''):
-    
-    show_image(pb, title=title, components=components, vmax=1.0, vmin=0.0)
-    
-    plt.savefig(plot_file)
-    plt.show(block=False)
-
-
-def plot_gaintable(gt_list, title='', plot_file='gaintable.png'):
+def plot_gaintable(gt_list, title='', plot_file='gaintable.png', **kwargs):
     plt.clf()
     for gt in gt_list:
         amp = numpy.abs(gt[0].gain[:, 0, 0, 0, 0])
@@ -89,7 +81,7 @@ def plot_gaintable(gt_list, title='', plot_file='gaintable.png'):
     plt.savefig(plot_file)
     plt.show(block=False)
 
-def plot_pointingtable(pt_list, plot_file, title):
+def plot_pointingtable(pt_list, plot_file, title, **kwargs):
     plt.clf()
     r2a = 180.0 * 3600.0 / numpy.pi
     rms_az = 0.0
@@ -111,7 +103,7 @@ def plot_pointingtable(pt_list, plot_file, title):
     plt.show(block=False)
 
 
-def find_pb_width_null(pbtype, frequency):
+def find_pb_width_null(pbtype, frequency, **kwargs):
     if pbtype == 'MID':
         HWHM_deg = 0.596 * 1.36e9 / frequency[0]
         null_az_deg = 2.0 * HWHM_deg
@@ -136,8 +128,8 @@ def find_pb_width_null(pbtype, frequency):
     return HWHM_deg, null_az_deg, null_el_deg
 
 
-def calculate_simulation_components(context, phasecentre, frequency, pbtype, offset_dir, flux_limit,
-                                    pbradius, pb_npixel, pb_cellsize):
+def create_simulation_components(context, phasecentre, frequency, pbtype, offset_dir, flux_limit,
+                                 pbradius, pb_npixel, pb_cellsize):
     # Construct the skycomponents
     
     HWHM_deg, null_az_deg, null_el_deg = find_pb_width_null(pbtype, frequency)
