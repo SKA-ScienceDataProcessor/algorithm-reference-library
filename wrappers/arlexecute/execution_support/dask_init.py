@@ -65,7 +65,10 @@ def get_dask_Client(timeout=30, n_workers=None, threads_per_worker=1, processes=
     services = c.scheduler_info()['services']
     if 'bokeh' in services.keys():
         bokeh_addr = 'http:%s:%s' % (addr.split(':')[1], services['bokeh'])
-        print('Diagnostic pages available on port %s' % bokeh_addr)
+        print('Diagnostic bokeh pages available on port %s' % bokeh_addr)
+    if 'dashboard' in services.keys():
+        dashboard_addr = 'http:%s:%s' % (addr.split(':')[1], services['dashboard'])
+        print('Diagnostic dashboard pages available on port %s' % dashboard_addr)
     return c
 
 
