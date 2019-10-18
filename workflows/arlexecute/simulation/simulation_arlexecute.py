@@ -5,33 +5,38 @@ import logging
 
 import numpy
 from astropy import units as u
-from astropy.coordinates import SkyCoord
+from astropy.coordinates import SkyCoord, EarthLocation
 
+from data_models.memory_data_models import Visibility, SkyModel
 from data_models.polarisation import PolarisationFrame
-from data_models.memory_data_models import  Visibility, BlockVisibility, SkyModel
 
-from wrappers.arlexecute.execution_support.arlexecute import arlexecute
 
 from processing_library.image.operations import create_empty_image_like
+from processing_components.visibility.operations import copy_visibility
+from processing_components.simulation.simulation_helpers import plot_pointingtable, plot_gaintable
+from processing_components.simulation.simulation_helpers import find_times_above_elevation_limit
+from processing_library.util.coordinate_support import hadec_to_azel
 from wrappers.arlexecute.calibration.operations import apply_gaintable, create_gaintable_from_blockvisibility
+from wrappers.arlexecute.execution_support.arlexecute import arlexecute
 from wrappers.arlexecute.simulation.testing_support import simulate_gaintable
 from processing_components.simulation.configurations import create_named_configuration
-from wrappers.arlexecute.visibility.base import create_blockvisibility, create_visibility, copy_visibility
+from wrappers.arlexecute.visibility.base import create_blockvisibility, create_visibility
 from wrappers.arlexecute.visibility.coalesce import convert_blockvisibility_to_visibility, \
     convert_visibility_to_blockvisibility
-from wrappers.serial.simulation.testing_support import simulate_pointingtable, simulate_pointingtable_from_timeseries
 from wrappers.serial.calibration.pointing import create_pointingtable_from_blockvisibility
+from wrappers.serial.image.operations import import_image_from_fits
 from wrappers.serial.simulation.pointing import simulate_gaintable_from_pointingtable
-
-from workflows.arlexecute.skymodel.skymodel_arlexecute import predict_skymodel_list_compsonly_arlexecute_workflow
+from wrappers.serial.simulation.testing_support import simulate_pointingtable, simulate_pointingtable_from_timeseries
+from wrappers.serial.simulation.configurations import create_configuration_from_MIDfile
 from workflows.arlexecute.imaging.imaging_arlexecute import invert_list_arlexecute_workflow
-from processing_components.simulation.simulation_helpers import plot_pointingtable, plot_gaintable
+from workflows.arlexecute.skymodel.skymodel_arlexecute import predict_skymodel_list_compsonly_arlexecute_workflow
 
 log = logging.getLogger(__name__)
 
 
 def simulate_list_arlexecute_workflow(config='LOWBD2',
-                                      phasecentre=SkyCoord(ra=+15.0 * u.deg, dec=-60.0 * u.deg, frame='icrs', equinox='J2000'),
+                                      phasecentre=SkyCoord(ra=+15.0 * u.deg, dec=-60.0 * u.deg, frame='icrs',
+                                                           equinox='J2000'),
                                       frequency=None, channel_bandwidth=None, times=None,
                                       polarisation_frame=PolarisationFrame("stokesI"), order='frequency',
                                       format='blockvis',
@@ -119,7 +124,6 @@ def simulate_list_arlexecute_workflow(config='LOWBD2',
         raise NotImplementedError("order $s not known" % order)
     return vis_list
 
-
 def corrupt_list_arlexecute_workflow(vis_list, gt_list=None, seed=None, **kwargs):
     """ Create a graph to apply gain errors to a vis_list
 
@@ -138,12 +142,12 @@ def corrupt_list_arlexecute_workflow(vis_list, gt_list=None, seed=None, **kwargs
             gt = create_gaintable_from_blockvisibility(bv, **kwargs)
             gt = simulate_gaintable(gt, **kwargs)
             bv = apply_gaintable(bv, gt)
-            
+        
         if isinstance(vis, Visibility):
             return convert_blockvisibility_to_visibility(bv)
         else:
             return bv
-
+    
     if gt_list is None:
         return [arlexecute.execute(corrupt_vis, nout=1)(vis_list[ivis], None, **kwargs)
                 for ivis, v in enumerate(vis_list)]
@@ -213,14 +217,10 @@ def calculate_residual_from_gaintables(sub_bvis_list, sub_components, sub_model_
     
     return dirty_list
 
-
-# Process a set of BlockVisibility's, creating pointing errors, converting to gainables, applying
-# the gaintables to the FT of the skycomponents, and dirty images, one per BlockVisibility
-def create_pointingerrors_gaintable(sub_bvis_list, sub_components, sub_vp_list,
-                                    use_radec=False, pointing_error=0.0, static_pointing_error=None,
-                                    global_pointing_error=None, time_series='', time_series_type='',
-                                    seeds=None, pointing_directory=None, show=False, basename=''):
-    
+def create_pointing_errors_gaintable(sub_bvis_list, sub_components, sub_vp_list,
+                                     use_radec=False, pointing_error=0.0, static_pointing_error=None,
+                                     global_pointing_error=None, time_series='', time_series_type='',
+                                     seeds=None, pointing_directory=None, show=False, basename=''):
     if global_pointing_error is None:
         global_pointing_error = [0.0, 0.0]
     
@@ -279,4 +279,116 @@ def create_pointingerrors_gaintable(sub_bvis_list, sub_components, sub_vp_list,
     # Each component in original components becomes a separate skymodel
     # Inner nest is over skymodels, outer is over bvis's
 
+def create_surface_errors_gaintable(band, sub_bvis_list, sub_components, vp_directory, use_radec=False,
+                                    elevation_sampling=5.0, show=False, basename=''):
+    def get_band_vp(band, el):
+        
+        if band == 'B1':
+            vpa = import_image_from_fits('%s/B1_%d_0565_real_interpolated.fits' % (vp_directory, int(el)))
+            vpa_imag = import_image_from_fits('%s/B1_%d_0565_imag_interpolated.fits' % (vp_directory, int(el)))
+        elif band == 'B2':
+            vpa = import_image_from_fits('%s/B2_%d_1360_real_interpolated.fits' % (vp_directory, int(el)))
+            vpa_imag = import_image_from_fits('%s/B2_%d_1360_imag_interpolated.fits' % (vp_directory, int(el)))
+        elif band == 'Ku':
+            vpa = import_image_from_fits('%s/Ku_%d_11700_real_interpolated.fits' % (vp_directory, int(el)))
+            vpa_imag = import_image_from_fits('%s/Ku_%d_11700_imag_interpolated.fits' % (vp_directory, int(el)))
+        else:
+            raise ValueError("Unknown band %s" % band)
+        
+        vpa.data = vpa.data + 1j * vpa_imag.data
+        return vpa
+    
+    def find_vp(band, vis):
+        ha = numpy.pi * numpy.average(vis.time) / 43200.0
+        dec = vis.phasecentre.dec.rad
+        latitude = vis.configuration.location.lat.rad
+        az, el = hadec_to_azel(ha, dec, latitude)
+        
+        el_deg = el * 180.0 / numpy.pi
+        el_table = max(0.0,
+                       min(90.1, elevation_sampling * ((el_deg + elevation_sampling / 2.0) // elevation_sampling)))
+        return get_band_vp(band, el_table)
+    
+    def find_vp_nominal(band):
+        el_nominal_deg = 45.0
+        return get_band_vp(band, el_nominal_deg)
+    
+    error_pt_list = [arlexecute.execute(create_pointingtable_from_blockvisibility)(bvis) for bvis in sub_bvis_list]
+    no_error_pt_list = [arlexecute.execute(create_pointingtable_from_blockvisibility)(bvis) for bvis in sub_bvis_list]
+    
+    vp_nominal_list = [arlexecute.execute(find_vp_nominal)(band) for bv in sub_bvis_list]
+    vp_actual_list = [arlexecute.execute(find_vp)(band, bv) for bv in sub_bvis_list]
+    
+    # Create the gain tables, one per Visibility and per component
+    no_error_gt_list = [arlexecute.execute(simulate_gaintable_from_pointingtable)
+                        (bvis, sub_components, no_error_pt_list[ibv], vp_nominal_list[ibv], use_radec=use_radec)
+                        for ibv, bvis in enumerate(sub_bvis_list)]
+    error_gt_list = [arlexecute.execute(simulate_gaintable_from_pointingtable)
+                     (bvis, sub_components, error_pt_list[ibv], vp_actual_list[ibv], use_radec=use_radec)
+                     for ibv, bvis in enumerate(sub_bvis_list)]
+    if show:
+        plot_file = 'gaintable.png'
+        tmp_gt_list = arlexecute.compute(error_gt_list, sync=True)
+        plot_gaintable(tmp_gt_list, plot_file=plot_file, title=basename)
+    
+    return no_error_gt_list, error_gt_list
 
+def create_standard_mid_simulation(band, rmax, phasecentre, time_range, time_chunk, integration_time,
+                                   shared_directory):
+    """ Create the standard MID simulation
+    
+    :param band:
+    :param rmax:
+    :param ra:
+    :param declination:
+    :param time_range:
+    :param time_chunk:
+    :param integration_time:
+    :param shared_directory:
+    :return:
+    """
+    
+    # Set up details of simulated observation
+    nfreqwin = 1
+    diameter = 15.0
+    if band == 'B1':
+        frequency = [0.765e9]
+    elif band == 'B2':
+        frequency = [1.36e9]
+    elif band == 'Ku':
+        frequency = [12.179e9]
+    else:
+        raise ValueError("Unknown band %s" % band)
+    
+    channel_bandwidth = [1e7]
+    mid_location = EarthLocation(lon="21.443803", lat="-30.712925", height=0.0)
+    
+    # Do each time_chunk in parallel
+    start_times = numpy.arange(time_range[0] * 3600, time_range[1] * 3600, time_chunk)
+    end_times = start_times + time_chunk
+    
+    start_times = find_times_above_elevation_limit(start_times, end_times, location=mid_location,
+                                                   phasecentre=phasecentre, elevation_limit=15.0)
+    times = [numpy.arange(start_times[itime], end_times[itime], integration_time) for itime in
+             range(len(start_times))]
+    
+    s2r = numpy.pi / (12.0 * 3600)
+    rtimes = s2r * numpy.array(times)
+    ntimes = len(rtimes.flat)
+    nchunks = len(start_times)
+    
+    assert ntimes > 0, "No data above elevation limit"
+    
+    print('%d integrations of duration %.1f s processed in %d chunks' % (ntimes, integration_time, nchunks))
+    
+    mid = create_configuration_from_MIDfile('%s/ska1mid_local.cfg' % shared_directory, rmax=rmax,
+                                            location=mid_location)
+    
+    bvis_graph = [arlexecute.execute(create_blockvisibility)(mid, rtimes[itime], frequency=frequency,
+                                                             channel_bandwidth=channel_bandwidth, weight=1.0,
+                                                             phasecentre=phasecentre,
+                                                             polarisation_frame=PolarisationFrame("stokesI"),
+                                                             zerow=True)
+                  for itime in range(nchunks)]
+    
+    return bvis_graph
