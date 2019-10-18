@@ -9,6 +9,7 @@ jupyter
 notebook
 ipywidgets
 numpy
+import pyfftw
 scipy
 matplotlib
 Sphinx
