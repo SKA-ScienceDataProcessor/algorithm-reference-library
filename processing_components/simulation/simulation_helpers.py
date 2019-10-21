@@ -182,7 +182,7 @@ def find_pb_width_null(pbtype, frequency, **kwargs):
 
 
 def create_simulation_components(context, phasecentre, frequency, pbtype, offset_dir, flux_limit,
-                                 pbradius, pb_npixel, pb_cellsize):
+                                 pbradius, pb_npixel, pb_cellsize, show=False):
     """ Construct components for simulation
     
     :param context:
@@ -214,7 +214,6 @@ def create_simulation_components(context, phasecentre, frequency, pbtype, offset
         
         original_components = [Skycomponent(flux=[[1.0]], direction=offset_direction, frequency=frequency,
                                             polarisation_frame=PolarisationFrame('stokesI'))]
-        print(original_components[0])
     
     elif context == 'null':
         log.info("create_simulation_components: Constructing single component at the null")
@@ -231,7 +230,6 @@ def create_simulation_components(context, phasecentre, frequency, pbtype, offset
         
         original_components = [Skycomponent(flux=[[1.0]], direction=offset_direction, frequency=frequency,
                                             polarisation_frame=PolarisationFrame('stokesI'))]
-        print(original_components[0])
     
     
     else:
@@ -273,16 +271,17 @@ def create_simulation_components(context, phasecentre, frequency, pbtype, offset
         log.info("create_simulation_components: Strongest components is %g (Jy)" % max_flux)
         log.info("create_simulation_components: Total flux in components is %g (Jy)" % total_flux)
         original_components = [copy_skycomponent(c) for c in filtered_components]
-        plt.clf()
-        show_image(pb, components=original_components)
-        plt.show(block=False)
+        if show:
+            plt.clf()
+            show_image(pb, components=original_components)
+            plt.show(block=False)
         
         log.info("create_simulation_components: Created %d components" % len(original_components))
         # Primary beam points to the phasecentre
         offset_direction = SkyCoord(ra=ra * units.deg, dec=dec * units.deg, frame='icrs',
                                     equinox='J2000')
         
-        return original_components, offset_direction
+    return original_components, offset_direction
 
 
 

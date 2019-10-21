@@ -156,8 +156,8 @@ def corrupt_list_arlexecute_workflow(vis_list, gt_list=None, seed=None, **kwargs
                 for ivis, v in enumerate(vis_list)]
 
 
-def calculate_residual_from_gaintables(sub_bvis_list, sub_components, sub_model_list,
-                                       no_error_gt_list, error_gt_list):
+def calculate_residual_from_gaintables_arlexecute_workflow(sub_bvis_list, sub_components, sub_model_list,
+                                                           no_error_gt_list, error_gt_list):
     """Calculate residual image corresponding to a set of gaintables
 
     The visibility difference for a set of components for error and no error gaintables
@@ -217,10 +217,10 @@ def calculate_residual_from_gaintables(sub_bvis_list, sub_components, sub_model_
     
     return dirty_list
 
-def create_pointing_errors_gaintable(sub_bvis_list, sub_components, sub_vp_list,
-                                     use_radec=False, pointing_error=0.0, static_pointing_error=None,
-                                     global_pointing_error=None, time_series='', time_series_type='',
-                                     seeds=None, pointing_directory=None, show=False, basename=''):
+def create_pointing_errors_gaintable_arlexecute_workflow(sub_bvis_list, sub_components, sub_vp_list,
+                                                         use_radec=False, pointing_error=0.0, static_pointing_error=None,
+                                                         global_pointing_error=None, time_series='', time_series_type='',
+                                                         seed=None, pointing_directory=None, show=False, basename=''):
     if global_pointing_error is None:
         global_pointing_error = [0.0, 0.0]
     
@@ -233,13 +233,13 @@ def create_pointing_errors_gaintable(sub_bvis_list, sub_components, sub_vp_list,
         error_pt_list = [arlexecute.execute(simulate_pointingtable)(pt, pointing_error=pointing_error,
                                                                     static_pointing_error=static_pointing_error,
                                                                     global_pointing_error=global_pointing_error,
-                                                                    seed=seeds[ipt])
+                                                                    seed=seed)
                          for ipt, pt in enumerate(error_pt_list)]
     else:
         error_pt_list = [arlexecute.execute(simulate_pointingtable_from_timeseries)(pt, type=time_series,
                                                                                     time_series_type=time_series_type,
                                                                                     pointing_directory=pointing_directory,
-                                                                                    seed=seeds[ipt])
+                                                                                    seed=seed)
                          for ipt, pt in enumerate(error_pt_list)]
     
     if show:
@@ -276,11 +276,9 @@ def create_pointing_errors_gaintable(sub_bvis_list, sub_components, sub_vp_list,
                        plot_file=plot_file)
     
     return no_error_gt_list, error_gt_list
-    # Each component in original components becomes a separate skymodel
-    # Inner nest is over skymodels, outer is over bvis's
 
-def create_surface_errors_gaintable(band, sub_bvis_list, sub_components, vp_directory, use_radec=False,
-                                    elevation_sampling=5.0, show=False, basename=''):
+def create_surface_errors_gaintable_arlexecute_workflow(band, sub_bvis_list, sub_components, vp_directory, use_radec=False,
+                                                        elevation_sampling=5.0, show=False, basename=''):
     def get_band_vp(band, el):
         
         if band == 'B1':
@@ -333,8 +331,8 @@ def create_surface_errors_gaintable(band, sub_bvis_list, sub_components, vp_dire
     
     return no_error_gt_list, error_gt_list
 
-def create_standard_mid_simulation(band, rmax, phasecentre, time_range, time_chunk, integration_time,
-                                   shared_directory):
+def create_standard_mid_simulation_arlexecute_workflow(band, rmax, phasecentre, time_range, time_chunk, integration_time,
+                                                       shared_directory):
     """ Create the standard MID simulation
     
     :param band:
@@ -349,8 +347,6 @@ def create_standard_mid_simulation(band, rmax, phasecentre, time_range, time_chu
     """
     
     # Set up details of simulated observation
-    nfreqwin = 1
-    diameter = 15.0
     if band == 'B1':
         frequency = [0.765e9]
     elif band == 'B2':
@@ -379,7 +375,7 @@ def create_standard_mid_simulation(band, rmax, phasecentre, time_range, time_chu
     
     assert ntimes > 0, "No data above elevation limit"
     
-    print('%d integrations of duration %.1f s processed in %d chunks' % (ntimes, integration_time, nchunks))
+    #print('%d integrations of duration %.1f s processed in %d chunks' % (ntimes, integration_time, nchunks))
     
     mid = create_configuration_from_MIDfile('%s/ska1mid_local.cfg' % shared_directory, rmax=rmax,
                                             location=mid_location)
