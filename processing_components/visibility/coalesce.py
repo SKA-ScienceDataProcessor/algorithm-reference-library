@@ -346,20 +346,31 @@ def convert_blocks(vis, uvw, wts, imaging_wts, times, integration_time, frequenc
     ntimes, nant, _, nchan, npol = vis.shape
     assert nchan == len(frequency)
 
+    mask = ntimes * nant * (nant - 1) // 2
     cnvis = ntimes * nant * (nant - 1) * nchan // 2
 
     # Now we know enough to define the output coalesced arrays. The shape will be
     # succesive a1, a2: [len_time_chunks[a2,a1], a2, a1, len_frequency_chunks[a2,a1]]
-    ctime = numpy.zeros([cnvis])
-    cfrequency = numpy.zeros([cnvis])
-    cchannel_bandwidth = numpy.zeros([cnvis])
-    cvis = numpy.zeros([cnvis, npol], dtype='complex')
-    cwts = numpy.zeros([cnvis, npol])
-    cimaging_weights = numpy.ones([cnvis, npol])
-    cuvw = numpy.zeros([cnvis, 3])
+    # ctime1 = numpy.zeros([cnvis])
+    # cfrequency1 = numpy.zeros([cnvis])
+    # cchannel_bandwidth1 = numpy.zeros([cnvis])
+    # cvis1 = numpy.zeros([cnvis, npol], dtype='complex')
+    # cwts1 = numpy.zeros([cnvis, npol])
+    # cimaging_weights1 = numpy.ones([cnvis, npol])
+    # cuvw1 = numpy.zeros([cnvis, 3])
+    # cintegration_time1 = numpy.zeros([cnvis])
+
     ca1 = numpy.zeros([cnvis], dtype='int')
     ca2 = numpy.zeros([cnvis], dtype='int')
-    cintegration_time = numpy.zeros([cnvis])
+
+    # ctime = numpy.zeros([cnvis])
+    # cfrequency = numpy.zeros([cnvis])
+    # cchannel_bandwidth = numpy.zeros([cnvis])
+    # cvis = numpy.zeros([cnvis, npol], dtype='complex')
+    # cwts = numpy.zeros([cnvis, npol])
+    # cimaging_weights = numpy.ones([cnvis, npol])
+    # cuvw = numpy.zeros([cnvis, 3])
+    # cintegration_time = numpy.zeros([cnvis])
 
     # For decoalescence we keep an index to map back to the original BlockVisibility
     rowgrid = numpy.zeros([ntimes, nant, nant, nchan], dtype='int')
@@ -367,32 +378,63 @@ def convert_blocks(vis, uvw, wts, imaging_wts, times, integration_time, frequenc
 
     cindex = numpy.zeros([rowgrid.size], dtype='int')
 
+    mask_uvw = numpy.zeros_like(uvw, dtype='bool')
+    mask_vis = numpy.zeros_like(vis, dtype='bool')
+    mask_wts = numpy.zeros_like(wts, dtype='bool')
+    mask_imaging_wts = numpy.zeros_like(imaging_wts,dtype='bool')
     # Now go through, chunking up the various arrays. Everything is converted into an array with
     # axes [time, channel] and then it is averaged over time and frequency chunks for
     # this baseline.
     # To aid decoalescence we will need an index of which output elements a given input element
     # contributes to. This is a many to one. The decoalescence will then just consist of using
     # this index to extract the coalesced value that a given input element contributes towards.
+    # row = 0
+    # for itime in range(ntimes):
+    #     for a2 in range(nant):
+    #         for a1 in range(a2 + 1, nant):
+    #             for chan in range(nchan):
+    #                 ca1[row] = a1
+    #                 ca2[row] = a2
+    #                 cfrequency[row] = frequency[chan]
+    #                 ctime[row] = times[itime]
+    #
+    #                 cuvw[row, :] = uvw[itime, a2, a1, :] * frequency[chan] / constants.c.value
+    #
+    #                 cindex.flat[rowgrid[itime, a2, a1, chan]] = row
+    #                 cintegration_time[row] = integration_time[itime]
+    #                 cchannel_bandwidth[row] = channel_bandwidth[chan]
+    #                 cvis[row, :] = vis[itime, a2, a1, chan, :]
+    #                 cwts[row, :] = wts[itime, a2, a1, chan, :]
+    #                 cimaging_weights[row, :] = imaging_wts[itime, a2, a1, chan, :]
+    #                 row += 1
 
     row = 0
     for itime in range(ntimes):
-        for a1 in range(nant):
-            for a2 in range(a1 + 1, nant):
+        for a2 in range(nant):
+            for a1 in range(a2 + 1, nant):
                 for chan in range(nchan):
                     ca1[row] = a1
                     ca2[row] = a2
-                    cfrequency[row] = frequency[chan]
-                    ctime[row] = times[itime]
-
-                    cuvw[row, :] = uvw[itime, a2, a1, :] * frequency[chan] / constants.c.value
-
+                    mask_uvw[itime, a2, a1, :] = True
+                    mask_vis[itime, a2, a1, chan, :] = True
+                    mask_wts[itime, a2, a1, chan, :] = True
+                    mask_imaging_wts[itime, a2, a1, chan, :] = True
                     cindex.flat[rowgrid[itime, a2, a1, chan]] = row
-                    cintegration_time[row] = integration_time[itime]
-                    cchannel_bandwidth[row] = channel_bandwidth[chan]
-                    cvis[row, :] = vis[itime, a2, a1, chan, :]
-                    cwts[row, :] = wts[itime, a2, a1, chan, :]
-                    cimaging_weights[row, :] = imaging_wts[itime, a2, a1, chan, :]
                     row += 1
+
+    cfrequency = numpy.tile(frequency, ntimes*nant*(nant-1)//2)
+    cchannel_bandwidth = numpy.tile(channel_bandwidth, ntimes*nant*(nant-1)//2)
+
+    ctime = numpy.repeat(times, nchan*nant*(nant-1)//2)
+    cintegration_time = numpy.repeat(integration_time,nchan*nant*(nant-1)//2)
+
+    cuvw = (numpy.tile(uvw[mask_uvw].reshape(-1,3),nchan)).reshape(-1,3)
+    freq =  numpy.repeat(cfrequency,nchan).reshape(-1,3)
+    cuvw[...,:] *= freq[:] / constants.c.value
+
+    cvis = vis[mask_vis].reshape(-1,npol)
+    cwts = wts[mask_wts].reshape(-1,npol)
+    cimaging_weights = imaging_wts[mask_imaging_wts].reshape(-1,npol)
 
     return cvis, cuvw, cwts, cimaging_weights, ctime, cfrequency, cchannel_bandwidth, ca1, ca2, \
            cintegration_time, cindex
