@@ -32,7 +32,7 @@ from wrappers.arlexecute.visibility.coalesce import convert_blockvisibility_to_v
 
 from workflows.arlexecute.imaging.imaging_arlexecute import sum_invert_results_arlexecute
 from workflows.arlexecute.simulation.simulation_arlexecute import \
-    calculate_residual_from_gaintables_arlexecute_workflow, \
+    calculate_residual_from_gaintables_arlexecute_workflow, create_surface_errors_gaintable_arlexecute_workflow, \
     create_pointing_errors_gaintable_arlexecute_workflow, create_standard_mid_simulation_arlexecute_workflow
 
 from wrappers.arlexecute.execution_support.arlexecute import arlexecute
@@ -48,7 +48,7 @@ mpl_logger.setLevel(logging.WARNING)
 
 class TestPointingSimulation(unittest.TestCase):
     
-    def simulation(self, args, time_series='wind', band='B2', context='singlesource'):
+    def simulation(self, args, time_series='wind', band='B2', context='singlesource', vp_directory=''):
         
         ra = args.ra
         declination = args.declination
@@ -63,6 +63,7 @@ class TestPointingSimulation(unittest.TestCase):
         flux_limit = args.flux_limit
         npixel = args.npixel
         shared_directory = args.shared_directory
+        vp_directory = args.vp_directory
         
         # Simulation specific parameters
         global_pe = numpy.array(args.global_pe)
@@ -132,9 +133,11 @@ class TestPointingSimulation(unittest.TestCase):
                                                                               polarisation_frame=PolarisationFrame(
                                                                                   "stokesI"))
                              for i, _ in enumerate(original_components)]
-        
+    
         a2r = numpy.pi / (3600.0 * 1800)
         
+        no_error_gtl = None
+        error_gtl = None
         if time_series == '':
             global_pointing_error = global_pe
             static_pointing_error = static_pe
@@ -150,7 +153,8 @@ class TestPointingSimulation(unittest.TestCase):
                                                                      seed=seed,
                                                                      show=False, basename=basename)
         
-        else:
+        elif time_series == 'wind':
+            
             no_error_gtl, error_gtl = \
                 create_pointing_errors_gaintable_arlexecute_workflow(future_bvis_list, original_components,
                                                                      sub_vp_list=future_vp_list,
@@ -159,7 +163,15 @@ class TestPointingSimulation(unittest.TestCase):
                                                                      time_series_type='precision',
                                                                      seed=seed,
                                                                      show=False, basename=basename)
-        
+        elif time_series == 'gravity':
+            no_error_gtl, error_gtl = \
+                create_surface_errors_gaintable_arlexecute_workflow(band, future_bvis_list, original_components,
+                                                                    vp_directory=vp_directory, use_radec=use_radec,
+                                                                    show=False, basename=basename)
+        else:
+            raise ValueError("Unknown type of error %s" % time_series)
+    
+
         # Now make all the residual images
         vis_comp_chunk_dirty_list = \
             calculate_residual_from_gaintables_arlexecute_workflow(future_bvis_list, original_components,
@@ -204,7 +216,7 @@ class TestPointingSimulation(unittest.TestCase):
         
         # Control parameters
         parser.add_argument('--use_radec', type=str, default="False", help='Calculate in RADEC (false)?')
-        parser.add_argument('--shared_directory', type=str, default='/Users/timcornwell/Code/sim-mid-pointing/shared',
+        parser.add_argument('--shared_directory', type=str, default=arl_path('data/configurations'),
                             help='Location of configuration files')
         
         # Dask parameters
@@ -222,9 +234,11 @@ class TestPointingSimulation(unittest.TestCase):
                             help='Multipliers for static errors')
         parser.add_argument('--dynamic_pe', type=float, default=1.0, help='Multiplier for dynamic errors')
         parser.add_argument('--pointing_file', type=str, default=None, help="Pointing file")
-        parser.add_argument('--pointing_directory', type=str, default='../../pointing_error_models/PSD_data/',
+        parser.add_argument('--pointing_directory', type=str, default=arl_path('data/models'),
                             help='Location of pointing files')
-        
+        parser.add_argument('--vp_directory', type=str, default=arl_path('data/models/interpolated'),
+                            help='Location of pointing files')
+
         args = parser.parse_args()
         
         return args
@@ -248,5 +262,18 @@ class TestPointingSimulation(unittest.TestCase):
         numpy.testing.assert_almost_equal(qa.data['max'], 2.2055849698035616e-06, 12)
         numpy.testing.assert_almost_equal(qa.data['min'], -6.838117387793031e-07, 12)
         numpy.testing.assert_almost_equal(qa.data['rms'], 3.7224203394509413e-07, 12)
+
+
+    def test_gravity(self):
+    
+        if os.path.isdir(arl_path('models/interpolated')):
+            
+            error_dirty, sumwt = self.simulation(self.get_args(), 'gravity')
+        
+            qa = qa_image(error_dirty)
+        
+            numpy.testing.assert_almost_equal(qa.data['max'], 2.2055849698035616e-06, 12)
+            numpy.testing.assert_almost_equal(qa.data['min'], -6.838117387793031e-07, 12)
+            numpy.testing.assert_almost_equal(qa.data['rms'], 3.7224203394509413e-07, 12)
 
 
