@@ -366,9 +366,9 @@ def convert_blocks(vis, uvw, wts, imaging_wts, times, integration_time, frequenc
     # ctime = numpy.zeros([cnvis])
     # cfrequency = numpy.zeros([cnvis])
     # cchannel_bandwidth = numpy.zeros([cnvis])
-    # cvis = numpy.zeros([cnvis, npol], dtype='complex')
-    # cwts = numpy.zeros([cnvis, npol])
-    # cimaging_weights = numpy.ones([cnvis, npol])
+    cvis = numpy.zeros([cnvis, npol], dtype='complex')
+    cwts = numpy.zeros([cnvis, npol])
+    cimaging_weights = numpy.ones([cnvis, npol])
     # cuvw = numpy.zeros([cnvis, 3])
     # cintegration_time = numpy.zeros([cnvis])
 
@@ -410,11 +410,11 @@ def convert_blocks(vis, uvw, wts, imaging_wts, times, integration_time, frequenc
 
     row = 0
     for itime in range(ntimes):
-        for a2 in range(nant):
-            for a1 in range(a2 + 1, nant):
+        for a1 in range(nant):
+            for a2 in range(a1 + 1, nant):
                 for chan in range(nchan):
-                    ca1[row] = a1
-                    ca2[row] = a2
+                    ca1[row] = a2
+                    ca2[row] = a1
                     mask_uvw[itime, a2, a1, :] = True
                     mask_vis[itime, a2, a1, chan, :] = True
                     mask_wts[itime, a2, a1, chan, :] = True
@@ -429,7 +429,7 @@ def convert_blocks(vis, uvw, wts, imaging_wts, times, integration_time, frequenc
     cintegration_time = numpy.repeat(integration_time,nchan*nant*(nant-1)//2)
 
     cuvw = (numpy.tile(uvw[mask_uvw].reshape(-1,3),nchan)).reshape(-1,3)
-    freq =  numpy.repeat(cfrequency,nchan).reshape(-1,nchan)
+    freq =  numpy.repeat(cfrequency,3).reshape(-1,3)
     cuvw[...,:] *= freq[:] / constants.c.value
 
     cvis = vis[mask_vis].reshape(-1,npol)
