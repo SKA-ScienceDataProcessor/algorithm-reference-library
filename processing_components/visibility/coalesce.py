@@ -429,7 +429,7 @@ def convert_blocks(vis, uvw, wts, imaging_wts, times, integration_time, frequenc
     cintegration_time = numpy.repeat(integration_time,nchan*nant*(nant-1)//2)
 
     cuvw = (numpy.tile(uvw[mask_uvw].reshape(-1,3),nchan)).reshape(-1,3)
-    freq =  numpy.repeat(cfrequency,nchan).reshape(-1,3)
+    freq =  numpy.repeat(cfrequency,nchan).reshape(-1,nchan)
     cuvw[...,:] *= freq[:] / constants.c.value
 
     cvis = vis[mask_vis].reshape(-1,npol)
