@@ -24,8 +24,8 @@ build:
   stage: build
   script:
     - source _build/bin/activate
-	- export LDFLAGS="$(python3-config --ldflags) -lcfitsio"
-	- python setup.py install
+    - export LDFLAGS="$(python3-config --ldflags) -lcfitsio"
+    - python setup.py install
 
 test:
   stage: test
