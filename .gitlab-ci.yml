@@ -1,43 +1,33 @@
 image: "python:3.7"
 
 before_script:
-  - virtualenv -p `which python3` _build
-  - echo 'Activating virtual environment...'
-  - source _build/bin/activate
   - echo 'Installing requirements'
-  - pip install -U pip setuptools
-  - pip install coverage numpy
-  - pip install virtualenvwrapper
   - pip install -r requirements.txt
-  - echo 'Adding the arl and ffiwrappers path to the virtual environment'
-  - echo '(equivalent to setting up PYTHONPATH environment variable)'
-  - source virtualenvwrapper.sh
-  - add2virtualenv $WORKSPACE
-  - add2virtualenv $WORKSPACE/ffiwrappers/src
 
 stages:
   - build
   - test
   - deploy
 
+variables:
+  MPLBACKEND: "agg"
+
 build:
   stage: build
   script:
-    - source _build/bin/activate
-    - export LDFLAGS="$(python3-config --ldflags) -lcfitsio"
     - python setup.py install
 
 test:
   stage: test
   script:
-    - source _build/bin/activate
-    - export MPLBACKEND=agg
     - pip install pytest pytest-xdist pytest-cov
-    - py.test tests -n 4 --verbose --cov=processing_library --cov=processing_components --cov=workflows --cov-report=html:coverage tests
+    - py.test tests -n 4 --verbose
+      --cov=processing_library
+      --cov=processing_components
+      --cov=workflows
+      --cov-report=html:coverage tests
 
 deploy:
   stage: deploy
   script:
-    - source  _build/bin/activate
-    - export MPLBACKEND=agg
     - make -k -j -C docs html
