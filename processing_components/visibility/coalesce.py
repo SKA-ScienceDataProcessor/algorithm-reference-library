@@ -347,7 +347,6 @@ def convert_blocks(vis, uvw, wts, imaging_wts, times, integration_time, frequenc
     ntimes, nant, _, nchan, npol = vis.shape
     assert nchan == len(frequency)
 
-    mask = ntimes * nant * (nant - 1) // 2
     cnvis = ntimes * nant * (nant - 1) * nchan // 2
 
     # Now we know enough to define the output coalesced arrays. The shape will be
@@ -367,19 +366,19 @@ def convert_blocks(vis, uvw, wts, imaging_wts, times, integration_time, frequenc
     # ctime = numpy.zeros([cnvis])
     # cfrequency = numpy.zeros([cnvis])
     # cchannel_bandwidth = numpy.zeros([cnvis])
-    cvis = numpy.zeros([cnvis, npol], dtype='complex')
-    cwts = numpy.zeros([cnvis, npol])
-    cimaging_weights = numpy.ones([cnvis, npol])
+    # cvis = numpy.zeros([cnvis, npol], dtype='complex')
+    # cwts = numpy.zeros([cnvis, npol])
+    # cimaging_weights = numpy.ones([cnvis, npol])
     # cuvw = numpy.zeros([cnvis, 3])
     # cintegration_time = numpy.zeros([cnvis])
 
     # For decoalescence we keep an index to map back to the original BlockVisibility
     rowgrid = numpy.zeros([ntimes, nant, nant, nchan], dtype='int')
+
     rowgrid.flat = range(rowgrid.size)
 
     cindex = numpy.zeros([rowgrid.size], dtype='int')
-
-    mask_ant = numpy.zeros((nant, nant), dtype='bool')
+    mask_rowgrid = numpy.zeros_like(rowgrid, dtype='bool')
     mask_uvw = numpy.zeros_like(uvw, dtype='bool')
     mask_vis = numpy.zeros_like(vis, dtype='bool')
     mask_wts = numpy.zeros_like(wts, dtype='bool')
@@ -417,18 +416,16 @@ def convert_blocks(vis, uvw, wts, imaging_wts, times, integration_time, frequenc
             mask_vis[:, a2, a1, :, :] = True
             mask_wts[:, a2, a1, :, :] = True
             mask_imaging_wts[:, a2, a1, :, :] = True
+            mask_rowgrid[:, a2, a1, :] = True
 
     vis_mask = numpy.argwhere(mask_vis == True)
-    uvw_mask = numpy.argwhere(mask_uvw == True)
+    rowgrid_mask = numpy.argwhere(mask_rowgrid == True)
     # uvw_mask.flat = range(len(uvw_mask))
-    ca2 = vis_mask[:, 0]
-    ca1 = vis_mask[:, 1]
+    ca2 = vis_mask[:, 1]
+    ca1 = vis_mask[:, 0]
 
     # Recalcute the position
-    if rowgrid.shape[0] ==1:
-        cindex.flat[rowgrid[0, uvw_mask[:][1], uvw_mask[:][2], uvw_mask[:][3]]] = range(cnvis)
-    else:
-        cindex.flat[rowgrid[uvw_mask[...][0], uvw_mask[...][1], uvw_mask[...][2], uvw_mask[...][3]]] = range(cnvis)
+    cindex.flat[rowgrid[rowgrid_mask[:, 0], rowgrid_mask[:, 1], rowgrid_mask[:, 2], rowgrid_mask[:, 3]]] = range(cnvis)
 
     cfrequency = numpy.tile(frequency, ntimes * nant * (nant - 1) // 2)
     cchannel_bandwidth = numpy.tile(channel_bandwidth, ntimes * nant * (nant - 1) // 2)
