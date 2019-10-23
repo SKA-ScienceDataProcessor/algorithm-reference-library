@@ -391,8 +391,8 @@ def convert_blocks(vis, uvw, wts, imaging_wts, times, integration_time, frequenc
     # this index to extract the coalesced value that a given input element contributes towards.
     # row = 0
     # for itime in range(ntimes):
-    #     for a2 in range(nant):
-    #         for a1 in range(a2 + 1, nant):
+    #     for a1 in range(nant):
+    #         for a2 in range(a1 + 1, nant):
     #             for chan in range(nchan):
     #                 ca1[row] = a1
     #                 ca2[row] = a2
@@ -421,8 +421,8 @@ def convert_blocks(vis, uvw, wts, imaging_wts, times, integration_time, frequenc
     vis_mask = numpy.argwhere(mask_vis == True)
     rowgrid_mask = numpy.argwhere(mask_rowgrid == True)
     # uvw_mask.flat = range(len(uvw_mask))
-    ca2 = vis_mask[:, 1]
-    ca1 = vis_mask[:, 0]
+    ca2 = vis_mask[:, 0]
+    ca1 = vis_mask[:, 1]
 
     # Recalcute the position
     cindex.flat[rowgrid[rowgrid_mask[:, 0], rowgrid_mask[:, 1], rowgrid_mask[:, 2], rowgrid_mask[:, 3]]] = range(cnvis)
