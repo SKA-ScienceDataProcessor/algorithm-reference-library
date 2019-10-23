@@ -378,6 +378,7 @@ def convert_blocks(vis, uvw, wts, imaging_wts, times, integration_time, frequenc
     rowgrid.flat = range(rowgrid.size)
 
     cindex = numpy.zeros([rowgrid.size], dtype='int')
+
     mask_rowgrid = numpy.zeros_like(rowgrid, dtype='bool')
     mask_uvw = numpy.zeros_like(uvw, dtype='bool')
     mask_vis = numpy.zeros_like(vis, dtype='bool')
@@ -409,7 +410,6 @@ def convert_blocks(vis, uvw, wts, imaging_wts, times, integration_time, frequenc
     #                 cimaging_weights[row, :] = imaging_wts[itime, a2, a1, chan, :]
     #                 row += 1
 
-    row = 0
     for a1 in range(nant):
         for a2 in range(a1 + 1, nant):
             mask_uvw[:, a2, a1, :] = True
@@ -418,11 +418,10 @@ def convert_blocks(vis, uvw, wts, imaging_wts, times, integration_time, frequenc
             mask_imaging_wts[:, a2, a1, :, :] = True
             mask_rowgrid[:, a2, a1, :] = True
 
-    vis_mask = numpy.argwhere(mask_vis == True)
     rowgrid_mask = numpy.argwhere(mask_rowgrid == True)
     # uvw_mask.flat = range(len(uvw_mask))
-    ca2 = vis_mask[:, 0]
-    ca1 = vis_mask[:, 1]
+    ca2 = rowgrid_mask[:, 1]
+    ca1 = rowgrid_mask[:, 2]
 
     # Recalcute the position
     cindex.flat[rowgrid[rowgrid_mask[:, 0], rowgrid_mask[:, 1], rowgrid_mask[:, 2], rowgrid_mask[:, 3]]] = range(cnvis)
