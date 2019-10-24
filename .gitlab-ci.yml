@@ -1,33 +1,34 @@
 image: "python:3.7"
 
 before_script:
-  - echo 'Installing requirements'
   - pip install -r requirements.txt
 
 stages:
-  - build
   - test
-  - deploy
 
 variables:
   MPLBACKEND: "agg"
 
-build:
-  stage: build
-  script:
-    - python setup.py install
-
 test:
   stage: test
   script:
-    - pip install pytest pytest-xdist pytest-cov
+    - pip install -r requirements-test.txt
     - py.test tests -n 4 --verbose
       --cov=processing_library
       --cov=processing_components
       --cov=workflows
       --cov-report=html:coverage tests
+  artifacts:
+    paths:
+      - coverage/
 
-deploy:
-  stage: deploy
+docs:
+  stage: test
   script:
+    - apt-cache update
+    - apt-get install pandoc
+    - pip install -r requirements-docs.txt
     - make -k -j -C docs html
+  artifacts:
+    paths:
+      - docs/build/html/
