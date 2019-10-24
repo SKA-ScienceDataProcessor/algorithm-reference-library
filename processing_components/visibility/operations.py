@@ -184,6 +184,7 @@ def remove_continuum_blockvisibility(vis: BlockVisibility, degree=1, mask=None) 
         assert numpy.sum(mask) > 2 * degree, "Insufficient channels for fit"
     
     nchan = len(vis.frequency)
+    # TODO: optimise loop
     x = (vis.frequency - vis.frequency[nchan // 2]) / (vis.frequency[0] - vis.frequency[nchan // 2])
     for row in range(vis.nvis):
         for ant2 in range(vis.nants):
@@ -232,6 +233,7 @@ def divide_visibility(vis: BlockVisibility, modelvis: BlockVisibility):
         # TODO: Remove filter when fixed to use ndarray
         warnings.simplefilter("ignore", category=PendingDeprecationWarning)
 
+        # TODO: optimise loop
         for row in range(nrows):
             for ant1 in range(nants):
                 for ant2 in range(ant1 + 1, nants):

@@ -72,8 +72,9 @@ def coalesce_visibility(vis: BlockVisibility, **kwargs) -> Visibility:
                                polarisation_frame=vis.polarisation_frame, cindex=cindex,
                                blockvis=vis)
 
-    log.debug('coalesce_visibility: Created new Visibility for coalesced data_models, coalescence factors (t,f) = (%.3f,%.3f)'
-              % (time_coal, frequency_coal))
+    log.debug(
+        'coalesce_visibility: Created new Visibility for coalesced data_models, coalescence factors (t,f) = (%.3f,%.3f)'
+        % (time_coal, frequency_coal))
     log.debug('coalesce_visibility: Maximum coalescence (t,f) = (%d, %d)' % (max_time_coal, max_frequency_coal))
     log.debug('coalesce_visibility: Original %s, coalesced %s' % (vis_summary(vis),
                                                                   vis_summary(coalesced_vis)))
@@ -137,7 +138,7 @@ def decoalesce_visibility(vis: Visibility, **kwargs) -> BlockVisibility:
 
     log.debug('decoalesce_visibility: Coalesced %s, decoalesced %s' % (vis_summary(vis),
                                                                        vis_summary(
-        decomp_vis)))
+                                                                           decomp_vis)))
 
     return decomp_vis
 
@@ -208,7 +209,7 @@ def average_in_blocks(vis, uvw, wts, imaging_wts, times, integration_time, frequ
 
     # Optimized
     # Calculate uvdist instead of uvwdist
-    uvwd = uvw[...,0:2]
+    uvwd = uvw[..., 0:2]
     uvdist = numpy.einsum('ijkm,ijkm->ijk', uvwd, uvwd, optimize=True)
     uvmax = numpy.sqrt(numpy.max(uvdist))
 
@@ -216,20 +217,20 @@ def average_in_blocks(vis, uvw, wts, imaging_wts, times, integration_time, frequ
     uvdist_max = numpy.sqrt(numpy.max(uvdist, axis=0))
 
     allpwtsgrid_bool = numpy.einsum('ijklm->jk', wts, optimize=True)
-    mask = numpy.where(uvdist_max>0.)
-    mask0 = numpy.where(uvdist_max<=0.)
+    mask = numpy.where(uvdist_max > 0.)
+    mask0 = numpy.where(uvdist_max <= 0.)
     time_average[mask] = numpy.round((time_coal * uvmax / uvdist_max[mask]))
     time_average.dtype = numpy.int64
     time_average[mask0] = max_time_coal
-    numpy.putmask(time_average, allpwtsgrid_bool==0, 0)
-    numpy.putmask(time_average, time_average<1, 1)
-    numpy.putmask(time_average, time_average>max_time_coal, max_time_coal)
-    frequency_average[mask] = numpy.round((frequency_coal * uvmax/ uvdist_max[mask]))
+    numpy.putmask(time_average, allpwtsgrid_bool == 0, 0)
+    numpy.putmask(time_average, time_average < 1, 1)
+    numpy.putmask(time_average, time_average > max_time_coal, max_time_coal)
+    frequency_average[mask] = numpy.round((frequency_coal * uvmax / uvdist_max[mask]))
     frequency_average.dtype = numpy.int64
     frequency_average[mask0] = max_frequency_coal
     numpy.putmask(frequency_average, allpwtsgrid_bool == 0, 0)
-    numpy.putmask(frequency_average, frequency_average<1, 1)
-    numpy.putmask(frequency_average, frequency_average>max_frequency_coal, max_frequency_coal)
+    numpy.putmask(frequency_average, frequency_average < 1, 1)
+    numpy.putmask(frequency_average, frequency_average > max_frequency_coal, max_frequency_coal)
 
     # See how many time chunks and frequency we need for each baseline. To do this we use the same averaging that
     # we will use later for the actual data_models. This tells us the number of chunks required for each baseline.
@@ -280,9 +281,9 @@ def average_in_blocks(vis, uvw, wts, imaging_wts, times, integration_time, frequ
         for a1 in ua:
             nrows = time_chunk_len[a2, a1] * frequency_chunk_len[a2, a1]
             rows = slice(visstart, visstart + nrows)
-    
+
             cindex.flat[rowgrid[:, a2, a1, :]] = numpy.array(range(visstart, visstart + nrows))
-    
+
             ca1[rows] = a1
             ca2[rows] = a2
 
@@ -350,49 +351,94 @@ def convert_blocks(vis, uvw, wts, imaging_wts, times, integration_time, frequenc
 
     # Now we know enough to define the output coalesced arrays. The shape will be
     # succesive a1, a2: [len_time_chunks[a2,a1], a2, a1, len_frequency_chunks[a2,a1]]
-    ctime = numpy.zeros([cnvis])
-    cfrequency = numpy.zeros([cnvis])
-    cchannel_bandwidth = numpy.zeros([cnvis])
-    cvis = numpy.zeros([cnvis, npol], dtype='complex')
-    cwts = numpy.zeros([cnvis, npol])
-    cimaging_weights = numpy.ones([cnvis, npol])
-    cuvw = numpy.zeros([cnvis, 3])
+    # ctime1 = numpy.zeros([cnvis])
+    # cfrequency1 = numpy.zeros([cnvis])
+    # cchannel_bandwidth1 = numpy.zeros([cnvis])
+    # cvis1 = numpy.zeros([cnvis, npol], dtype='complex')
+    # cwts1 = numpy.zeros([cnvis, npol])
+    # cimaging_weights1 = numpy.ones([cnvis, npol])
+    # cuvw1 = numpy.zeros([cnvis, 3])
+    # cintegration_time1 = numpy.zeros([cnvis])
+
     ca1 = numpy.zeros([cnvis], dtype='int')
     ca2 = numpy.zeros([cnvis], dtype='int')
-    cintegration_time = numpy.zeros([cnvis])
+
+    # ctime = numpy.zeros([cnvis])
+    # cfrequency = numpy.zeros([cnvis])
+    # cchannel_bandwidth = numpy.zeros([cnvis])
+    # cvis = numpy.zeros([cnvis, npol], dtype='complex')
+    # cwts = numpy.zeros([cnvis, npol])
+    # cimaging_weights = numpy.ones([cnvis, npol])
+    # cuvw = numpy.zeros([cnvis, 3])
+    # cintegration_time = numpy.zeros([cnvis])
 
     # For decoalescence we keep an index to map back to the original BlockVisibility
     rowgrid = numpy.zeros([ntimes, nant, nant, nchan], dtype='int')
+
     rowgrid.flat = range(rowgrid.size)
 
     cindex = numpy.zeros([rowgrid.size], dtype='int')
 
+    mask_rowgrid = numpy.zeros_like(rowgrid, dtype='bool')
+    mask_uvw = numpy.zeros_like(uvw, dtype='bool')
+    mask_vis = numpy.zeros_like(vis, dtype='bool')
+    mask_wts = numpy.zeros_like(wts, dtype='bool')
+    mask_imaging_wts = numpy.zeros_like(imaging_wts, dtype='bool')
     # Now go through, chunking up the various arrays. Everything is converted into an array with
     # axes [time, channel] and then it is averaged over time and frequency chunks for
     # this baseline.
     # To aid decoalescence we will need an index of which output elements a given input element
     # contributes to. This is a many to one. The decoalescence will then just consist of using
     # this index to extract the coalesced value that a given input element contributes towards.
+    # row = 0
+    # for itime in range(ntimes):
+    #     for a1 in range(nant):
+    #         for a2 in range(a1 + 1, nant):
+    #             for chan in range(nchan):
+    #                 ca1[row] = a1
+    #                 ca2[row] = a2
+    #                 cfrequency[row] = frequency[chan]
+    #                 ctime[row] = times[itime]
+    #
+    #                 cuvw[row, :] = uvw[itime, a2, a1, :] * frequency[chan] / constants.c.value
+    #
+    #                 cindex.flat[rowgrid[itime, a2, a1, chan]] = row
+    #                 cintegration_time[row] = integration_time[itime]
+    #                 cchannel_bandwidth[row] = channel_bandwidth[chan]
+    #                 cvis[row, :] = vis[itime, a2, a1, chan, :]
+    #                 cwts[row, :] = wts[itime, a2, a1, chan, :]
+    #                 cimaging_weights[row, :] = imaging_wts[itime, a2, a1, chan, :]
+    #                 row += 1
 
-    row = 0
-    for itime in range(ntimes):
-        for a1 in range(nant):
-            for a2 in range(a1 + 1, nant):
-                for chan in range(nchan):
-                    ca1[row] = a1
-                    ca2[row] = a2
-                    cfrequency[row] = frequency[chan]
-                    ctime[row] = times[itime]
+    for a1 in range(nant):
+        for a2 in range(a1 + 1, nant):
+            mask_uvw[:, a2, a1, :] = True
+            mask_vis[:, a2, a1, :, :] = True
+            mask_wts[:, a2, a1, :, :] = True
+            mask_imaging_wts[:, a2, a1, :, :] = True
+            mask_rowgrid[:, a2, a1, :] = True
 
-                    cuvw[row, :] = uvw[itime, a2, a1, :] * frequency[chan] / constants.c.value
+    rowgrid_mask = numpy.argwhere(mask_rowgrid == True)
+    # uvw_mask.flat = range(len(uvw_mask))
+    ca2 = rowgrid_mask[:, 1]
+    ca1 = rowgrid_mask[:, 2]
 
-                    cindex.flat[rowgrid[itime, a2, a1, chan]] = row
-                    cintegration_time[row] = integration_time[itime]
-                    cchannel_bandwidth[row] = channel_bandwidth[chan]
-                    cvis[row, :] = vis[itime, a2, a1, chan, :]
-                    cwts[row, :] = wts[itime, a2, a1, chan, :]
-                    cimaging_weights[row, :] = imaging_wts[itime, a2, a1, chan, :]
-                    row += 1
+    # Recalcute the position
+    cindex.flat[rowgrid[rowgrid_mask[:, 0], rowgrid_mask[:, 1], rowgrid_mask[:, 2], rowgrid_mask[:, 3]]] = range(cnvis)
+
+    cfrequency = numpy.tile(frequency, ntimes * nant * (nant - 1) // 2)
+    cchannel_bandwidth = numpy.tile(channel_bandwidth, ntimes * nant * (nant - 1) // 2)
+
+    ctime = numpy.repeat(times, nchan * nant * (nant - 1) // 2)
+    cintegration_time = numpy.repeat(integration_time, nchan * nant * (nant - 1) // 2)
+
+    cuvw = (numpy.tile(uvw[mask_uvw].reshape(-1, 3), nchan)).reshape(-1, 3)
+    freq = numpy.repeat(cfrequency, 3).reshape(-1, 3)
+    cuvw[..., :] *= freq[:] / constants.c.value
+
+    cvis = vis[mask_vis].reshape(-1, npol)
+    cwts = wts[mask_wts].reshape(-1, npol)
+    cimaging_weights = imaging_wts[mask_imaging_wts].reshape(-1, npol)
 
     return cvis, cuvw, cwts, cimaging_weights, ctime, cfrequency, cchannel_bandwidth, ca1, ca2, \
            cintegration_time, cindex

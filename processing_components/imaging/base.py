@@ -380,6 +380,7 @@ def advise_wide_field(vis: Visibility, delA=0.02, oversampling_synthesised_beam=
     maximum_baseline = numpy.max(numpy.abs(vis.uvw))  # Wavelengths
     if verbose:
         log.info("advise_wide_field: Maximum baseline %.1f (wavelengths)" % (maximum_baseline))
+    assert maximum_baseline > 0.0, "Error in UVW coordinates: all uvw are zero"
 
     maximum_w = numpy.max(numpy.abs(vis.w))  # Wavelengths
     if verbose:
@@ -387,8 +388,9 @@ def advise_wide_field(vis: Visibility, delA=0.02, oversampling_synthesised_beam=
 
     diameter = numpy.min(vis.configuration.diameter)
     if verbose:
-        log.info("advise_wide_field: Station/antenna diameter %.1f (meters)" % (diameter))
-    
+        log.info("advise_wide_field: Station/dish diameter %.1f (meters)" % (diameter))
+    assert diameter > 0.0, "Station/dish diameter must be greater than zero"
+
     primary_beam_fov = max_wavelength / diameter
     if verbose:
         log.info("advise_wide_field: Primary beam %s" % (rad_deg_arcsec(primary_beam_fov)))
