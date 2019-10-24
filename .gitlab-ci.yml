@@ -11,7 +11,7 @@ test:
   before_script:
     - pip install -r requirements.txt -r requirements-test.txt
   script:
-    - py.test tests -n 4 --verbose
+    - py.test tests --verbose
       --cov=processing_library
       --cov=processing_components
       --cov=workflows
