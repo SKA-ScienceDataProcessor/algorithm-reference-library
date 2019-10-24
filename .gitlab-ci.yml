@@ -1,8 +1,5 @@
 image: "python:3.7"
 
-before_script:
-  - pip install -r requirements.txt
-
 stages:
   - test
 
@@ -11,8 +8,9 @@ variables:
 
 test:
   stage: test
+  before_script:
+    - pip install -r requirements.txt -r requirements-test.txt
   script:
-    - pip install -r requirements-test.txt
     - py.test tests -n 4 --verbose
       --cov=processing_library
       --cov=processing_components
@@ -21,14 +19,19 @@ test:
   artifacts:
     paths:
       - coverage/
+    expire_in: 1 week
 
 docs:
   stage: test
-  script:
-    - apt-cache update
+  before_script:
+    - apt-get update
     - apt-get install pandoc
-    - pip install -r requirements-docs.txt
+    - pip install -r requirements.txt -r requirements-docs.txt
+  script:
     - make -k -j -C docs html
+  after_script:
+    - mv docs/build/html html
   artifacts:
     paths:
-      - docs/build/html/
+      - html/
+    expire_in: 1 week
