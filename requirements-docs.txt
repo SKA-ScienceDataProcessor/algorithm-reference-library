@@ -1,0 +1,4 @@
+graphviz
+pandoc
+sphinx
+sphinx_rtd_theme
