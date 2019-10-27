@@ -7,6 +7,11 @@ import numpy
 try:
     import pyfftw
 
+    # Enable the PyFFTW cache
+    if not pyfftw.interfaces.cache.is_enabled():
+        pyfftw.interfaces.cache.enable()
+        pyfftw.interfaces.cache.set_keepalive_time(60)
+
     pyfftw_exists = True
 except ImportError:
     pyfftw_exists = False
@@ -35,17 +40,14 @@ def fft(a):
         if (len(a.shape) == 4):
             b = pyfftw.interfaces.numpy_fft.fftshift(
                 pyfftw.interfaces.numpy_fft.fft2(pyfftw.interfaces.numpy_fft.ifftshift(a, axes=[2, 3])
-                                                 , auto_align_input=False, planner_effort='FFTW_ESTIMATE', threads=8
                                                  ), axes=[2, 3])
         if (len(a.shape) == 5):
             b = pyfftw.interfaces.numpy_fft.fftshift(
                 pyfftw.interfaces.numpy_fft.fft2(pyfftw.interfaces.numpy_fft.ifftshift(a, axes=[3, 4])
-                                                 , auto_align_input=False, threads=8, planner_effort='FFTW_ESTIMATE'
                                                  ), axes=[3, 4])
         else:
             b = pyfftw.interfaces.numpy_fft.fftshift(
-                pyfftw.interfaces.numpy_fft.fft2(pyfftw.interfaces.numpy_fft.ifftshift(a), auto_align_input=False,
-                                                 planner_effort='FFTW_ESTIMATE', threads=8))
+                pyfftw.interfaces.numpy_fft.fft2(pyfftw.interfaces.numpy_fft.ifftshift(a)))
         return b
 
 
