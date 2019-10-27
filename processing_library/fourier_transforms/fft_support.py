@@ -47,8 +47,8 @@ def fft(a):
                                                  auto_align_input=False, planner_effort='FFTW_ESTIMATE'), axes=[3, 4])
         else:
             b = pyfftw.interfaces.numpy_fft.fftshift(
-                pyfftw.interfaces.numpy_fft.fft2(pyfftw.interfaces.numpy_fft.ifftshift(a)), auto_align_input=False,
-                planner_effort='FFTW_ESTIMATE')
+                pyfftw.interfaces.numpy_fft.fft2(pyfftw.interfaces.numpy_fft.ifftshift(a), auto_align_input=False,
+                                                 planner_effort='FFTW_ESTIMATE'))
         return b
 
 
