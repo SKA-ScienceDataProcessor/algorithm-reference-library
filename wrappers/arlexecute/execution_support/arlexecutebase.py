@@ -230,22 +230,27 @@ class ARLExecuteBase():
             self.client.profile(plot='save', filename="%s_profile.html" % name)
         
             def print_ts(ts):
-                print(">>> Time used in each function")
+                print(">>> Processor time used in each function")
                 summary = {}
+                number = {}
                 for t in ts:
                     name = t['key'].split('-')[0]
                     elapsed = t['startstops'][0][2] - t['startstops'][0][1]
                     if name not in summary.keys():
                         summary[name] = elapsed
+                        number[name] = 1
                     else:
                         summary[name] += elapsed
+                        number[name] += 1
                 total = 0.0
                 for key in summary.keys():
                     total += summary[key]
                 for key in summary.keys():
-                    print(">>> %s %.3f (s) %.1f %s" % (key, summary[key], 100.0 * summary[key] / total, '%'))
-                print(">>> Total time %.3f (s)" % total)
+                    print(">>> %s %.3f (s) %.1f %s %d (calls)" %
+                          (key, summary[key], 100.0 * summary[key] / total, '%', number[key]))
+                print(">>> Total processor time %.3f (s)" % total)
                 duration = time.time() - self.start_time
+                print(">>> Total wallclock time %.3f (s)" % duration)
                 speedup = (total / duration)
                 print(">>> Speedup = %.2f" % speedup)
                 
