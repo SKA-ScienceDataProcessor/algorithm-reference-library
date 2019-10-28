@@ -40,19 +40,18 @@ def get_dask_Client(timeout=30, n_workers=None, threads_per_worker=1, processes=
         if n_workers is not None:
             if memory_limit is not None:
                 cluster = LocalCluster(n_workers=n_workers, threads_per_worker=threads_per_worker, processes=processes,
-                                       memory_limit=memory_limit, local_directory=local_dir,
+                                       memory_limit=memory_limit,
                                        dashboard_address=dashboard_address)
             else:
                 cluster = LocalCluster(n_workers=n_workers, threads_per_worker=threads_per_worker, processes=processes,
-                                       local_directory=local_dir,
                                        dashboard_address=dashboard_address)
         else:
             if memory_limit is not None:
                 cluster = LocalCluster(threads_per_worker=threads_per_worker, processes=processes,
-                                       memory_limit=memory_limit, local_directory=local_dir,
+                                       memory_limit=memory_limit,
                                        dashboard_address=dashboard_address)
             else:
-                cluster = LocalCluster(threads_per_worker=threads_per_worker, processes=processes, local_directory=local_dir,
+                cluster = LocalCluster(threads_per_worker=threads_per_worker, processes=processes,
                                        dashboard_address=dashboard_address)
         
         print("Creating LocalCluster and Dask Client")
@@ -66,6 +65,9 @@ def get_dask_Client(timeout=30, n_workers=None, threads_per_worker=1, processes=
     if 'bokeh' in services.keys():
         bokeh_addr = 'http:%s:%s' % (addr.split(':')[1], services['bokeh'])
         print('Diagnostic pages available on port %s' % bokeh_addr)
+    if 'dashboard' in services.keys():
+        db_addr = 'http:%s:%s' % (addr.split(':')[1], services['dashboard'])
+        print('Diagnostic pages available on port %s' % db_addr)
     return c
 
 
