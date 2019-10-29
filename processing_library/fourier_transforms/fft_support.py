@@ -39,16 +39,14 @@ def fft(a):
         # a = pyfftw.byte_align(a)
         if (len(a.shape) == 4):
             b = pyfftw.interfaces.numpy_fft.fftshift(
-                pyfftw.interfaces.numpy_fft.fft2(pyfftw.interfaces.numpy_fft.ifftshift(a, axes=[2, 3]),
-                                                 auto_align_input=False, planner_effort='FFTW_MEASURE'), axes=[2, 3])
+                pyfftw.interfaces.numpy_fft.fft2(pyfftw.interfaces.numpy_fft.ifftshift(a, axes=[2, 3])
+                                                 ), axes=[2, 3])
         if (len(a.shape) == 5):
             b = pyfftw.interfaces.numpy_fft.fftshift(
-                pyfftw.interfaces.numpy_fft.fft2(pyfftw.interfaces.numpy_fft.ifftshift(a, axes=[3, 4]),
-                                                 auto_align_input=False, planner_effort='FFTW_MEASURE'), axes=[3, 4])
+                pyfftw.interfaces.numpy_fft.fft2(pyfftw.interfaces.numpy_fft.ifftshift(a, axes=[3, 4])), axes=[3, 4])
         else:
             b = pyfftw.interfaces.numpy_fft.fftshift(
-                pyfftw.interfaces.numpy_fft.fft2(pyfftw.interfaces.numpy_fft.ifftshift(a), auto_align_input=False,
-                                                 planner_effort='FFTW_MEASURE'))
+                pyfftw.interfaces.numpy_fft.fft2(pyfftw.interfaces.numpy_fft.ifftshift(a)))
         return b
 
 
@@ -72,20 +70,17 @@ def ifft(a):
     else:
         # a = pyfftw.byte_align(a)
         b = pyfftw.interfaces.numpy_fft.fftshift(
-            pyfftw.interfaces.numpy_fft.ifft2(pyfftw.interfaces.numpy_fft.ifftshift(a, axes=[2, 3]),
-                                              auto_align_input=False, planner_effort='FFTW_MEASURE'),
+            pyfftw.interfaces.numpy_fft.ifft2(pyfftw.interfaces.numpy_fft.ifftshift(a, axes=[2, 3])),
             axes=[2, 3])
         if (len(a.shape) == 4):
             pass
         elif (len(a.shape) == 5):
             b = pyfftw.interfaces.numpy_fft.fftshift(
-                pyfftw.interfaces.numpy_fft.ifft2(pyfftw.interfaces.numpy_fft.ifftshift(a, axes=[2, 3, 4]),
-                                                  auto_align_input=False, planner_effort='FFTW_MEASURE'),
+                pyfftw.interfaces.numpy_fft.ifft2(pyfftw.interfaces.numpy_fft.ifftshift(a, axes=[2, 3, 4])),
                 axes=[2, 3, 4])
         else:
             b = pyfftw.interfaces.numpy_fft.fftshift(
-                pyfftw.interfaces.numpy_fft.ifft2(pyfftw.interfaces.numpy_fft.ifftshift(a), auto_align_input=False,
-                                                  planner_effort='FFTW_MEASURE'))
+                pyfftw.interfaces.numpy_fft.ifft2(pyfftw.interfaces.numpy_fft.ifftshift(a)))
         return b
 
 
