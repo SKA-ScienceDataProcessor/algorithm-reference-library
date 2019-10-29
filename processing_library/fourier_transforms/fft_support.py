@@ -6,7 +6,9 @@ import numpy
 
 try:
     import pyfftw
+    import multiprocessing
 
+    nthread = multiprocessing.cpu_count()
     # Enable the PyFFTW cache
     if not pyfftw.interfaces.cache.is_enabled():
         pyfftw.interfaces.cache.enable()
@@ -40,14 +42,14 @@ def fft(a):
         if (len(a.shape) == 4):
             b = pyfftw.interfaces.numpy_fft.fftshift(
                 pyfftw.interfaces.numpy_fft.fft2(pyfftw.interfaces.numpy_fft.ifftshift(a, axes=[2, 3]),
-                                                 auto_align_input=False, planner_effort='FFTW_MEASURE'), axes=[2, 3])
+                                                 auto_align_input=False, planner_effort='FFTW_MEASURE', threads=nthread), axes=[2, 3])
         if (len(a.shape) == 5):
             b = pyfftw.interfaces.numpy_fft.fftshift(
                 pyfftw.interfaces.numpy_fft.fft2(pyfftw.interfaces.numpy_fft.ifftshift(a, axes=[3, 4]),
-                                                 auto_align_input=False, planner_effort='FFTW_MEASURE'), axes=[3, 4])
+                                                 auto_align_input=False, planner_effort='FFTW_MEASURE', threads=nthread), axes=[3, 4])
         else:
             b = pyfftw.interfaces.numpy_fft.fftshift(
-                pyfftw.interfaces.numpy_fft.fft2(pyfftw.interfaces.numpy_fft.ifftshift(a), auto_align_input=False,
+                pyfftw.interfaces.numpy_fft.fft2(pyfftw.interfaces.numpy_fft.ifftshift(a), auto_align_input=False, threads=nthread,
                                                  planner_effort='FFTW_MEASURE'))
         return b
 
