@@ -432,8 +432,8 @@ def advise_wide_field(vis: Visibility, delA=0.02, oversampling_synthesised_beam=
         except ImportError:
             number = numpy.array([2, 3, 4, 5])
             ex = numpy.ceil(numpy.log(n) / numpy.log(number)).astype('int')
-            best = numpy.power(number[:], ex[:])
-        return min(best)
+            best = min(numpy.power(number[:], ex[:]))
+        return best
 
     npixels = int(round(image_fov / cellsize))
     if verbose:
