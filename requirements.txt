@@ -31,6 +31,8 @@ bokeh
 aotools<0.5.1
 numba
 python-casacore
+pyfftw
+
 
 
 
