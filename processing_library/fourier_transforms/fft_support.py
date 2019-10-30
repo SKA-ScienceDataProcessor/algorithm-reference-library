@@ -6,9 +6,8 @@ import numpy
 
 try:
     import pyfftw
-    import multiprocessing
-
-    nthread = multiprocessing.cpu_count()
+    # import multiprocessing
+    nthread = 4 #multiprocessing.cpu_count()
     # Enable the PyFFTW cache
     if not pyfftw.interfaces.cache.is_enabled():
         pyfftw.interfaces.cache.enable()
@@ -38,7 +37,6 @@ def fft(a):
         else:
             return numpy.fft.fftshift(numpy.fft.fft2(numpy.fft.ifftshift(a)))
     else:
-        # a = pyfftw.byte_align(a)
         if (len(a.shape) == 4):
             b = pyfftw.interfaces.numpy_fft.fftshift(
                 pyfftw.interfaces.numpy_fft.fft2(pyfftw.interfaces.numpy_fft.ifftshift(a, axes=[2, 3]),
