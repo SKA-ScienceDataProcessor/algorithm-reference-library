@@ -52,6 +52,8 @@ def create_gaintable_from_screen(vis, sc, screen, height=3e5, vis_slices=None, s
     
     station_locations = vis.configuration.xyz
     
+    # Convert to TEC
+    # phase = image[pixel] * -8.44797245e9 / frequency
     nant = station_locations.shape[0]
     t2r = numpy.pi / 43200.0
     gaintables = [create_gaintable_from_blockvisibility(vis, **kwargs) for i in sc]
@@ -60,6 +62,8 @@ def create_gaintable_from_screen(vis, sc, screen, height=3e5, vis_slices=None, s
     for iha, rows in enumerate(vis_timeslice_iter(vis, vis_slices=vis_slices)):
         v = create_visibility_from_rows(vis, rows)
         ha = numpy.average(v.time)
+        tec2phase = - 8.44797245e9 / vis.frequency
+
         number_bad = 0
         number_good = 0
 
@@ -78,7 +82,9 @@ def create_gaintable_from_screen(vis, sc, screen, height=3e5, vis_slices=None, s
                     number_bad += 1
                     scr[ant] = 0.0
             
-            gaintables[icomp].gain[iha, :, :, :] = numpy.exp(1j * scr[:, numpy.newaxis, numpy.newaxis, numpy.newaxis])
+            scr = scr[:, numpy.newaxis] * tec2phase[numpy.newaxis, :]
+            # axes of gaintable.gain are time, ant, nchan, nrec
+            gaintables[icomp].gain[iha, :, :, :] = numpy.exp(1j * scr[..., numpy.newaxis, numpy.newaxis])
             gaintables[icomp].phasecentre = comp.direction
         
         if number_bad > 0:
