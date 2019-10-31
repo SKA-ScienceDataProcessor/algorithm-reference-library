@@ -393,10 +393,13 @@ def create_w_term_like(im: Image, w, phasecentre=None, remove_shift=False, dopol
     else:
         wcentre = [im.wcs.wcs.crpix[0] - 1.0, im.wcs.wcs.crpix[1] - 1.0]
     
-    for chan in range(nchan):
-        for pol in range(npol):
-            fim.data[chan, pol, ...] = w_beam(npixel, npixel * cellsize, w=w, cx=wcentre[0],
-                                              cy=wcentre[1], remove_shift=remove_shift)
+    # for chan in range(nchan):
+    #     for pol in range(npol):
+    #         fim.data[chan, pol, ...] = w_beam(npixel, npixel * cellsize, w=w, cx=wcentre[0],
+    #                                           cy=wcentre[1], remove_shift=remove_shift)
+
+    fim.data[:, :, ...] = w_beam(npixel, npixel * cellsize, w=w, cx=wcentre[0], cy=wcentre[1], remove_shift=remove_shift)
+
     fov = npixel * cellsize
     fresnel = numpy.abs(w) * (0.5 * fov) ** 2
     log.debug('create_w_term_image: For w = %.1f, field of view = %.6f, Fresnel number = %.2f' % (w, fov, fresnel))
