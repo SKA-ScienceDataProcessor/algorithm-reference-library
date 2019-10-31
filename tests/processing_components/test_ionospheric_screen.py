@@ -37,7 +37,7 @@ class TestIonosphericScreen(unittest.TestCase):
         self.times = numpy.linspace(-10.0, 10.0, 3) * numpy.pi / (3600.0 * 12.0)
         
         self.frequency = numpy.array([1e8, 1.5e8, 2.0e8])
-        self.channel_bandwidth = numpy.array([1e6, 1e6, 1e6])
+        self.channel_bandwidth = numpy.array([5e7, 5e7, 5e7])
         self.phasecentre = SkyCoord(ra=+0.0 * u.deg, dec=dec, frame='icrs', equinox='J2000')
         self.vis = create_blockvisibility(self.lowcore, self.times, self.frequency,
                                           channel_bandwidth=self.channel_bandwidth,

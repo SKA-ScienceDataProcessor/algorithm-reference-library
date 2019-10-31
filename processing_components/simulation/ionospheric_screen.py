@@ -134,14 +134,15 @@ def grid_gaintable_to_screen(vis, gaintables, screen, height=3e5, gaintable_slic
             for ant in range(nant):
                 pp0 = pp[ant][0:2]
                 for freq in vis.frequency:
-                    phase2tec = - freq / 8.44797245e9    
+                    phase2tec = - freq / 8.44797245e9
                     worldloc = [pp0[0], pp0[1], ha, freq]
                     pixloc = newscreen.wcs.wcs_world2pix([worldloc], 0)[0].astype('int')
                     assert pixloc[0] >= 0
                     assert pixloc[0] < nx
                     assert pixloc[1] >= 0
                     assert pixloc[1] < ny
-                    newscreen.data[pixloc[3], pixloc[2], pixloc[1], pixloc[0]] += wt[ant] * scr[ant]
+                    pixloc[3] = 0
+                    newscreen.data[pixloc[3], pixloc[2], pixloc[1], pixloc[0]] += wt[ant] * phase2tec * scr[ant]
                     weights.data[pixloc[3], pixloc[2], pixloc[1], pixloc[0]] += wt[ant]
                     if wt[ant] == 0.0:
                         number_no_weight += 1
