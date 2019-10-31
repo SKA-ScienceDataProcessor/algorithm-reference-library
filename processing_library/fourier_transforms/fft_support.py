@@ -6,6 +6,12 @@ import numpy
 
 try:
     import pyfftw
+    # import multiprocessing
+    nthread = 4 #multiprocessing.cpu_count()
+    # Enable the PyFFTW cache
+    if not pyfftw.interfaces.cache.is_enabled():
+        pyfftw.interfaces.cache.enable()
+        pyfftw.interfaces.cache.set_keepalive_time(60)
 
     pyfftw_exists = True
 except ImportError:
@@ -31,21 +37,18 @@ def fft(a):
         else:
             return numpy.fft.fftshift(numpy.fft.fft2(numpy.fft.ifftshift(a)))
     else:
-        # a = pyfftw.byte_align(a)
         if (len(a.shape) == 4):
             b = pyfftw.interfaces.numpy_fft.fftshift(
-                pyfftw.interfaces.numpy_fft.fft2(pyfftw.interfaces.numpy_fft.ifftshift(a, axes=[2, 3])
-                                                 , auto_align_input=False, planner_effort='FFTW_ESTIMATE', threads=8
-                                                 ), axes=[2, 3])
+                pyfftw.interfaces.numpy_fft.fft2(pyfftw.interfaces.numpy_fft.ifftshift(a, axes=[2, 3]),
+                                                 auto_align_input=False, planner_effort='FFTW_MEASURE', threads=nthread), axes=[2, 3])
         if (len(a.shape) == 5):
             b = pyfftw.interfaces.numpy_fft.fftshift(
-                pyfftw.interfaces.numpy_fft.fft2(pyfftw.interfaces.numpy_fft.ifftshift(a, axes=[3, 4])
-                                                 , auto_align_input=False, threads=8, planner_effort='FFTW_ESTIMATE'
-                                                 ), axes=[3, 4])
+                pyfftw.interfaces.numpy_fft.fft2(pyfftw.interfaces.numpy_fft.ifftshift(a, axes=[3, 4]),
+                                                 auto_align_input=False, planner_effort='FFTW_MEASURE', threads=nthread), axes=[3, 4])
         else:
             b = pyfftw.interfaces.numpy_fft.fftshift(
-                pyfftw.interfaces.numpy_fft.fft2(pyfftw.interfaces.numpy_fft.ifftshift(a), auto_align_input=False,
-                                                 planner_effort='FFTW_ESTIMATE', threads=8))
+                pyfftw.interfaces.numpy_fft.fft2(pyfftw.interfaces.numpy_fft.ifftshift(a), auto_align_input=False, threads=nthread,
+                                                 planner_effort='FFTW_MEASURE'))
         return b
 
 
@@ -68,20 +71,21 @@ def ifft(a):
             return numpy.fft.fftshift(numpy.fft.ifft2(numpy.fft.ifftshift(a)))
     else:
         # a = pyfftw.byte_align(a)
+        b = pyfftw.interfaces.numpy_fft.fftshift(
+            pyfftw.interfaces.numpy_fft.ifft2(pyfftw.interfaces.numpy_fft.ifftshift(a, axes=[2, 3]),
+                                              auto_align_input=False, planner_effort='FFTW_MEASURE'),
+            axes=[2, 3])
         if (len(a.shape) == 4):
-            b = pyfftw.interfaces.numpy_fft.fftshift(
-                pyfftw.interfaces.numpy_fft.ifft2(pyfftw.interfaces.numpy_fft.ifftshift(a, axes=[2, 3]),
-                                                  auto_align_input=False, planner_effort='FFTW_ESTIMATE', threads=8),
-                axes=[2, 3])
+            pass
         elif (len(a.shape) == 5):
             b = pyfftw.interfaces.numpy_fft.fftshift(
                 pyfftw.interfaces.numpy_fft.ifft2(pyfftw.interfaces.numpy_fft.ifftshift(a, axes=[2, 3, 4]),
-                                                  auto_align_input=False, planner_effort='FFTW_ESTIMATE', threads=8),
+                                                  auto_align_input=False, planner_effort='FFTW_MEASURE'),
                 axes=[2, 3, 4])
         else:
             b = pyfftw.interfaces.numpy_fft.fftshift(
                 pyfftw.interfaces.numpy_fft.ifft2(pyfftw.interfaces.numpy_fft.ifftshift(a), auto_align_input=False,
-                                                  planner_effort='FFTW_ESTIMATE', threads=8))
+                                                  planner_effort='FFTW_MEASURE'))
         return b
 
 

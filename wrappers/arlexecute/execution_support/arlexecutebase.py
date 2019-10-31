@@ -85,6 +85,10 @@ class ARLExecuteBase():
             client = client or Client(**kwargs)
             assert isinstance(client, Client)
             self._set_state(True, False, client, verbose, optim)
+            self._client.profile()
+            self._client.get_task_stream()
+            self.start_time = time.time()
+
         elif use_dlg:
             self._set_state(False, True, client, verbose, optim)
         else:
@@ -207,3 +211,48 @@ class ARLExecuteBase():
                 self._client.cluster.close()
             self._client.close()
             self._client = None
+
+    def init_statistics(self):
+        """
+        Initialise the profile and task stream info
+        :return:
+        """
+        self.start_time = time.time()
+        if self._using_dask:
+            self._client.profile()
+            self._client.get_task_stream()
+
+    def save_statistics(self, name='dask'):
+        
+        if self._using_dask:
+            task_stream, graph = self.client.get_task_stream(plot='save',
+                                                             filename="%s_task_stream.html" % name)
+            self.client.profile(plot='save', filename="%s_profile.html" % name)
+        
+            def print_ts(ts):
+                print(">>> Processor time used in each function")
+                summary = {}
+                number = {}
+                for t in ts:
+                    name = t['key'].split('-')[0]
+                    elapsed = t['startstops'][0][2] - t['startstops'][0][1]
+                    if name not in summary.keys():
+                        summary[name] = elapsed
+                        number[name] = 1
+                    else:
+                        summary[name] += elapsed
+                        number[name] += 1
+                total = 0.0
+                for key in summary.keys():
+                    total += summary[key]
+                for key in summary.keys():
+                    print(">>> %s %.3f (s) %.1f %s %d (calls)" %
+                          (key, summary[key], 100.0 * summary[key] / total, '%', number[key]))
+                print(">>> Total processor time %.3f (s)" % total)
+                duration = time.time() - self.start_time
+                print(">>> Total wallclock time %.3f (s)" % duration)
+                speedup = (total / duration)
+                print(">>> Speedup = %.2f" % speedup)
+                
+            print_ts(task_stream)
+
