@@ -52,6 +52,8 @@ def create_gaintable_from_screen(vis, sc, screen, height=3e5, vis_slices=None, s
     
     station_locations = vis.configuration.xyz
     
+    # Convert to TEC
+    # phase = image[pixel] * -8.44797245e9 / frequency
     nant = station_locations.shape[0]
     t2r = numpy.pi / 43200.0
     gaintables = [create_gaintable_from_blockvisibility(vis, **kwargs) for i in sc]
@@ -60,6 +62,8 @@ def create_gaintable_from_screen(vis, sc, screen, height=3e5, vis_slices=None, s
     for iha, rows in enumerate(vis_timeslice_iter(vis, vis_slices=vis_slices)):
         v = create_visibility_from_rows(vis, rows)
         ha = numpy.average(v.time)
+        tec2phase = - 8.44797245e9 / numpy.array(vis.frequency)
+
         number_bad = 0
         number_good = 0
 
@@ -78,7 +82,9 @@ def create_gaintable_from_screen(vis, sc, screen, height=3e5, vis_slices=None, s
                     number_bad += 1
                     scr[ant] = 0.0
             
-            gaintables[icomp].gain[iha, :, :, :] = numpy.exp(1j * scr[:, numpy.newaxis, numpy.newaxis, numpy.newaxis])
+            scr = scr[:, numpy.newaxis] * tec2phase[numpy.newaxis, :]
+            # axes of gaintable.gain are time, ant, nchan, nrec
+            gaintables[icomp].gain[iha, :, :, :] = numpy.exp(1j * scr[..., numpy.newaxis, numpy.newaxis])
             gaintables[icomp].phasecentre = comp.direction
         
         if number_bad > 0:
@@ -117,7 +123,7 @@ def grid_gaintable_to_screen(vis, gaintables, screen, height=3e5, gaintable_slic
         for iha, rows in enumerate(gaintable_timeslice_iter(gaintable, gaintable_slices=gaintable_slices)):
             gt = create_gaintable_from_rows(gaintable, rows)
             ha = numpy.average(gt.time)
-        
+
             pp = find_pierce_points(station_locations,
                                     (gt.phasecentre.ra.rad + t2r * ha) * u.rad,
                                     gt.phasecentre.dec,
@@ -127,16 +133,19 @@ def grid_gaintable_to_screen(vis, gaintables, screen, height=3e5, gaintable_slic
             wt = gt.weight[0, :, 0, 0, 0]
             for ant in range(nant):
                 pp0 = pp[ant][0:2]
-                worldloc = [pp0[0], pp0[1], ha, 1e8]
-                pixloc = newscreen.wcs.wcs_world2pix([worldloc], 0)[0].astype('int')
-                assert pixloc[0] >= 0
-                assert pixloc[0] < nx
-                assert pixloc[1] >= 0
-                assert pixloc[1] < ny
-                newscreen.data[pixloc[3], pixloc[2], pixloc[1], pixloc[0]] += wt[ant] * scr[ant]
-                weights.data[pixloc[3], pixloc[2], pixloc[1], pixloc[0]] += wt[ant]
-                if wt[ant] == 0.0:
-                    number_no_weight += 1
+                for freq in vis.frequency:
+                    phase2tec = - freq / 8.44797245e9
+                    worldloc = [pp0[0], pp0[1], ha, freq]
+                    pixloc = newscreen.wcs.wcs_world2pix([worldloc], 0)[0].astype('int')
+                    assert pixloc[0] >= 0
+                    assert pixloc[0] < nx
+                    assert pixloc[1] >= 0
+                    assert pixloc[1] < ny
+                    pixloc[3] = 0
+                    newscreen.data[pixloc[3], pixloc[2], pixloc[1], pixloc[0]] += wt[ant] * phase2tec * scr[ant]
+                    weights.data[pixloc[3], pixloc[2], pixloc[1], pixloc[0]] += wt[ant]
+                    if wt[ant] == 0.0:
+                        number_no_weight += 1
     if number_no_weight > 0:
         log.warning("grid_gaintable_to_screen: %d pierce points are have no weight" % (number_no_weight))
 

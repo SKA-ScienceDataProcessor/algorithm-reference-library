@@ -36,8 +36,8 @@ class TestIonosphericScreen(unittest.TestCase):
         self.dir = arl_path('test_results')
         self.times = numpy.linspace(-10.0, 10.0, 3) * numpy.pi / (3600.0 * 12.0)
         
-        self.frequency = numpy.array([1e8])
-        self.channel_bandwidth = numpy.array([1e6])
+        self.frequency = numpy.array([1e8, 1.5e8, 2.0e8])
+        self.channel_bandwidth = numpy.array([5e7, 5e7, 5e7])
         self.phasecentre = SkyCoord(ra=+0.0 * u.deg, dec=dec, frame='icrs', equinox='J2000')
         self.vis = create_blockvisibility(self.lowcore, self.times, self.frequency,
                                           channel_bandwidth=self.channel_bandwidth,
@@ -74,7 +74,7 @@ class TestIonosphericScreen(unittest.TestCase):
         
         gaintables = create_gaintable_from_screen(self.vis, actual_components, screen)
         assert len(gaintables) == len(actual_components), len(gaintables)
-        assert gaintables[0].gain.shape == (3, 94, 1, 1, 1), gaintables[0].gain.shape
+        assert gaintables[0].gain.shape == (3, 94, 3, 1, 1), gaintables[0].gain.shape
     
     def test_grid_gaintable_to_screen(self):
         screen = import_image_from_fits(arl_path('data/models/test_mpc_screen.fits'))
@@ -96,7 +96,7 @@ class TestIonosphericScreen(unittest.TestCase):
         
         gaintables = create_gaintable_from_screen(self.vis, actual_components, screen)
         assert len(gaintables) == len(actual_components), len(gaintables)
-        assert gaintables[0].gain.shape == (3, 94, 1, 1, 1), gaintables[0].gain.shape
+        assert gaintables[0].gain.shape == (3, 94, 3, 1, 1), gaintables[0].gain.shape
         
         newscreen = create_empty_image_like(screen)
         
@@ -125,7 +125,7 @@ class TestIonosphericScreen(unittest.TestCase):
     
         gaintables = create_gaintable_from_screen(self.vis, actual_components, screen)
         assert len(gaintables) == len(actual_components), len(gaintables)
-        assert gaintables[0].gain.shape == (3, 94, 1, 1, 1), gaintables[0].gain.shape
+        assert gaintables[0].gain.shape == (3, 94, 3, 1, 1), gaintables[0].gain.shape
     
         plot_gaintable_on_screen(self.vis, gaintables, plotfile=arl_path(
             'test_results/test_plot_gaintable_to_screen.png'))
