@@ -23,3 +23,4 @@ dask-worker-space
 *.so
 *.egg
 /data_models/.idea
+*.fits

@@ -3,6 +3,9 @@
 """
 from numba import jit, types as nbtypes, c16, f8, i8,float64, int64, int32,int8
 import numpy
+import warnings
+from numba import  NumbaPerformanceWarning
+warnings.simplefilter('ignore', NumbaPerformanceWarning)
 
 
 # @numba.jit([numba.types.Tuple((numba.float64[:], numba.float64[:]))
