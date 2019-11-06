@@ -106,7 +106,7 @@ def calculate_station_correlation_rfi(rfi_at_station):
     return correlation[..., numpy.newaxis] * 1e26
 
 
-def calculate_averaged_correlation(correlation, channel_width, time_width):
+def calculate_averaged_correlation(correlation, time_width, channel_width):
     """ Average the correlation in time and frequency
     
     :param correlation: Correlation(nant, nants, ntimes, nchan]
@@ -115,7 +115,7 @@ def calculate_averaged_correlation(correlation, channel_width, time_width):
     :return:
     """
     wts = numpy.ones(correlation.shape, dtype='float')
-    return average_chunks2(correlation, wts, (channel_width, time_width))[0]
+    return average_chunks2(correlation, wts, (time_width, channel_width))[0]
 
 
 def simulate_rfi_block(bvis, emitter_location, emitter_power=5e4, attenuation=1.0, use_pole=False):
