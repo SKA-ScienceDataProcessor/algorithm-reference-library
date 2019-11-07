@@ -13,7 +13,8 @@ from data_models.polarisation import PolarisationFrame
 from processing_components.imaging.base import create_image_from_visibility
 from processing_components.imaging.primary_beams import create_pb
 from processing_components.simulation.configurations import create_named_configuration
-from processing_components.visibility.base import create_visibility
+from processing_components.visibility.base import create_blockvisibility
+from processing_components.visibility.coalesce import convert_blockvisibility_to_visibility
 from workflows.arlexecute.image.image_arlexecute import image_arlexecute_map_workflow
 from wrappers.arlexecute.execution_support.arlexecute import arlexecute
 from wrappers.arlexecute.execution_support.dask_init import get_dask_Client
@@ -52,13 +53,15 @@ if __name__ == '__main__':
     
     config = create_named_configuration('LOWBD2', rmax=1000.0)
     phasecentre = SkyCoord(ra=+15 * u.deg, dec=-45.0 * u.deg, frame='icrs', equinox='J2000')
-    vis = create_visibility(config, times, frequency,
+    
+    bvis_graph = arlexecute.execute(create_blockvisibility)(config, times, frequency,
                             channel_bandwidth=channel_bandwidth,
                             phasecentre=phasecentre, weight=1.0,
                             polarisation_frame=PolarisationFrame('stokesI'))
+    vis_graph = arlexecute.execute(convert_blockvisibility_to_visibility)(bvis_graph)
     
-    model = create_image_from_visibility(vis, npixel=4096, cellsize=0.001, override_cellsize=False)
-    beam = image_arlexecute_map_workflow(model, create_pb, facets=16, pointingcentre=phasecentre,
+    model_graph = arlexecute.execute(create_image_from_visibility)(vis_graph, npixel=4096, cellsize=0.001, override_cellsize=False)
+    beam = image_arlexecute_map_workflow(model_graph, create_pb, facets=16, pointingcentre=phasecentre,
                                          telescope='MID')
     beam = arlexecute.compute(beam, sync=True)
     from time import sleep

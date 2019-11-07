@@ -79,7 +79,7 @@ echo "Scheduler and workers now running"
 export ARL_DASK_SCHEDULER=${scheduler}:8786
 echo "Scheduler is running at ${scheduler}"
 
-CMD="python cluster_dask_test.py | tee cluster_dask_test.log"
+CMD="python cluster_test_image.py | tee cluster_test_image.log"
 
 eval $CMD
 
