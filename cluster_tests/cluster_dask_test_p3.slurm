@@ -32,10 +32,11 @@
 #SBATCH -p compute
 
 #SBATCH --exclusive
-
-#! Modify the settings below to specify the application's environment, location
-#! and launch method:
-
+#! Same switch
+#SBATCH --switches=1
+#! Uncomment this to prevent the job from being requeued (e.g. if
+#! interrupted by node failure or system downtime):
+##SBATCH --no-requeue
 #! Optionally modify the environment seen by the application
 #! (note that SLURM reproduces the environment at submission irrespective of ~/.bashrc):
 module purge                               # Removes all modules still loaded
@@ -74,7 +75,7 @@ echo "Scheduler and workers now running"
 export ARL_DASK_SCHEDULER=${scheduler}:8786
 echo "Scheduler is running at ${scheduler}"
 
-CMD="python cluster_test_image.py | tee cluster_test_image.log"
+CMD="python cluster_dask_test.py | tee cluster_dask_test.log"
 
 eval $CMD
 
