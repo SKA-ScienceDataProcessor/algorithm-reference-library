@@ -138,8 +138,94 @@ def predict_2d(vis: Union[BlockVisibility, Visibility], model: Image, gcfcf=None
     
     return svis
 
+def predict_ng(vis: Union[BlockVisibility, Visibility], model: Image, gcfcf=None,
+               **kwargs) -> Union[BlockVisibility, Visibility]:
+    """ Predict using convolutional degridding.
+
+    This is at the bottom of the layering i.e. all transforms are eventually expressed in terms of
+    this function. Any shifting needed is performed here.
+
+    :param vis: Visibility to be predicted
+    :param model: model image
+    :param gcfcf: (Grid correction function i.e. in image space, Convolution function i.e. in uv space)
+    :return: resulting visibility (in place works)
+    """
+    
+    if model is None:
+        return vis
+    
+    assert isinstance(vis, Visibility), vis
+
+    _, _, ny, nx = model.data.shape
+    
+    if gcfcf is None:
+        gcf, cf = create_pswf_convolutionfunction(model,
+                                                  support=get_parameter(kwargs, "support", 6),
+                                                  oversampling=get_parameter(kwargs, "oversampling", 128))
+    else:
+        gcf, cf = gcfcf
+    
+    griddata = create_griddata_from_image(model)
+    griddata = fft_image_to_griddata(model, griddata, gcf)
+    vis = degrid_visibility_from_griddata(vis, griddata=griddata, cf=cf)
+    
+    # Now we can shift the visibility from the image frame to the original visibility frame
+    svis = shift_vis_to_image(vis, model, tangent=True, inverse=True)
+    
+    return svis
+
 
 def invert_2d(vis: Visibility, im: Image, dopsf: bool = False, normalize: bool = True,
+              gcfcf=None, **kwargs) -> (Image, numpy.ndarray):
+    """ Invert using 2D convolution function, using the specified convolution function
+
+    Use the image im as a template. Do PSF in a separate call.
+
+    This is at the bottom of the layering i.e. all transforms are eventually expressed in terms
+    of this function. . Any shifting needed is performed here.
+
+    :param vis: Visibility to be inverted
+    :param im: image template (not changed)
+    :param dopsf: Make the psf instead of the dirty image
+    :param normalize: Normalize by the sum of weights (True)
+    :param gcfcf: (Grid correction function i.e. in image space, Convolution function i.e. in uv space)
+    :return: resulting image
+
+    """
+    assert isinstance(vis, Visibility), vis
+    
+    svis = copy_visibility(vis)
+    
+    if dopsf:
+        svis.data['vis'][...] = 1.0+0.0j
+    
+    svis = shift_vis_to_image(svis, im, tangent=True, inverse=False)
+
+    if gcfcf is None:
+        gcf, cf = create_pswf_convolutionfunction(im,
+                                                  support=get_parameter(kwargs, "support", 6),
+                                                  oversampling=get_parameter(kwargs, "oversampling", 128))
+    else:
+        gcf, cf = gcfcf
+
+    griddata = create_griddata_from_image(im)
+    griddata, sumwt = grid_visibility_to_griddata(svis, griddata=griddata, cf=cf)
+    
+    imaginary = get_parameter(kwargs, "imaginary", False)
+    if imaginary:
+        result0, result1 = fft_griddata_to_image(griddata, gcf, imaginary=imaginary)
+        log.debug("invert_2d: retaining imaginary part of dirty image")
+        if normalize:
+            result0 = normalize_sumwt(result0, sumwt)
+            result1 = normalize_sumwt(result1, sumwt)
+        return result0, sumwt, result1
+    else:
+        result = fft_griddata_to_image(griddata, gcf)
+        if normalize:
+            result = normalize_sumwt(result, sumwt)
+        return result, sumwt
+
+def invert_ng(vis: Visibility, im: Image, dopsf: bool = False, normalize: bool = True,
               gcfcf=None, **kwargs) -> (Image, numpy.ndarray):
     """ Invert using 2D convolution function, using the specified convolution function
 
