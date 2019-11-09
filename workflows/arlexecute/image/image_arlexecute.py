@@ -18,7 +18,7 @@ def image_arlexecute_map_workflow(im, imfunction, facets=1, overlap=0, taper=Non
     :return: output image
     """
     
-    facets_list = arlexecute.execute(image_scatter_facets, nout=16)(im, facets=facets, overlap=overlap,
+    facets_list = arlexecute.execute(image_scatter_facets, nout=facets**2)(im, facets=facets, overlap=overlap,
                                                                     taper=taper)
     root_list = [arlexecute.execute(imfunction)(facet, **kwargs) for facet in facets_list]
     gathered = arlexecute.execute(image_gather_facets)(root_list, im, facets=facets, overlap=overlap,
