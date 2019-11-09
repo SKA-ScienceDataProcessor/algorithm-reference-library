@@ -19,7 +19,9 @@ except ImportError:
 log = logging.getLogger(__name__)
 
 
-class ARLExecuteBase():
+class _ARLExecuteBase():
+    
+    _instance = None
     
     def __init__(self, use_dask=True, use_dlg=False, verbose=False, optimize=True):
         if bool(use_dask) and bool(use_dlg):
@@ -94,7 +96,7 @@ class ARLExecuteBase():
         else:
             self._set_state(False, False, None, verbose, optim)
         if self._verbose:
-            print('arlexcute.set_client: defined Dask Client')
+            print('arlexecute.set_client: defined Dask Client')
 
 
     def compute(self, value, sync=False):
@@ -256,3 +258,10 @@ class ARLExecuteBase():
                 
             print_ts(task_stream)
 
+def ARLExecuteBase(*args, **kwargs):
+    if _ARLExecuteBase._instance is None:
+        _ARLExecuteBase._instance = _ARLExecuteBase(*args, **kwargs)
+    return _ARLExecuteBase._instance
+
+# Any new arlexecute created by import of this file points to the only _ARLExecuteBase
+arlexecute = ARLExecuteBase(use_dask=True)
