@@ -27,17 +27,20 @@ def init_sparse(n, margin=0.1):
     return init_sparse_pre(n, margin)
 
 # Put the points onto a grid and FFT
-# @numba.jit('c16[:,:](f8[:,:],list(i8))',nopython=True)
-def grid_and_invert_data_pre(sparse_data, shape):
-    grid = numpy.zeros(shape, dtype=numpy.complex128)
-    loc = numpy.round(shape * sparse_data).astype(numpy.int64)
+@numba.jit('c16[:,:](f8[:,:])',nopython=True)
+def grid_and_invert_data_pre(sparse_data):
+    shape=[1024, 1024]
+    grid = numpy.zeros((1024,1024), dtype=numpy.complex128)
+    loc = numpy.array([1024.,1024.]) * sparse_data
+    out = numpy.empty_like(loc)
+    loc = numpy.round_(loc,0,out).astype(numpy.int64)
     for i in range(0, sparse_data.shape[0]):
         grid[loc[i,:]] = 1.0
     return(grid)
 
 def grid_and_invert_data(sparse_data, shape):
-    print("OK")
-    return numpy.fft.fft(grid_and_invert_data_pre(sparse_data, shape)).real
+    grid = grid_and_invert_data_pre(sparse_data)
+    return numpy.fft.fft(grid).real
 
 if __name__ == '__main__':
     import sys
