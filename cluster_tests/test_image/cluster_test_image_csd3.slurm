@@ -17,8 +17,8 @@
 #SBATCH --nodes=4
 #! How many (MPI) tasks will there be in total? (<= nodes*16)
 #SBATCH --ntasks=16
-#! Memory limit: P3 has roughly 107GB per node
-#SBATCH --mem 100000
+#! Memory limit
+#SBATCH --mem 10000
 #! How much wallclock time will be required?
 #SBATCH --time=01:00:00
 #! What types of email messages do you wish to receive?

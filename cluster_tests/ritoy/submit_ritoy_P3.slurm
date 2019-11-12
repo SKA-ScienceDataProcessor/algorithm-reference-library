@@ -76,7 +76,7 @@ for host in `cat hostfile.$JOBID`; do
 done
 echo "Scheduler and workers now running"
 
-CMD="python ./ritoy.py ${scheduler}:8786 > ritoy_${JOBID}.out"
+CMD="python ./cluster_test_ritoy.py ${scheduler}:8786 | tee ritoy.log"
 echo "About to execute $CMD"
 
 eval $CMD
