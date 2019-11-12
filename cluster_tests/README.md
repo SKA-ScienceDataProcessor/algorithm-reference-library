@@ -10,6 +10,7 @@ These are tests of the ability to run dask in various contexts. These are intend
  
  Known exceptions
  
- - ritoy_numba fails on P3
+ - ritoy_numba fails on P3 if the number of workers per node is greater than one. For this reason we do not currently
+  recommend using numba.
  
  Tim Cornwell 12/11/2019
