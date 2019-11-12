@@ -24,6 +24,7 @@ import logging
 from typing import List, Union, Tuple
 
 import numpy
+import nifty_gridder as ng
 from astropy import constants as constants
 from astropy import units as units
 from astropy import wcs
@@ -225,55 +226,83 @@ def invert_2d(vis: Visibility, im: Image, dopsf: bool = False, normalize: bool =
             result = normalize_sumwt(result, sumwt)
         return result, sumwt
 
-def invert_ng(vis: Visibility, im: Image, dopsf: bool = False, normalize: bool = True,
-              gcfcf=None, **kwargs) -> (Image, numpy.ndarray):
-    """ Invert using 2D convolution function, using the specified convolution function
+def invert_ng(bvis: BlockVisibility, im: Image, dataCube: bool = True, nthreads=4, epsilon=6.0e-6, 
+               normalize: bool = True)-> (Image, numpy.ndarray):
+    """ Invert using nifty-gridder module
 
     Use the image im as a template. Do PSF in a separate call.
 
     This is at the bottom of the layering i.e. all transforms are eventually expressed in terms
     of this function. . Any shifting needed is performed here.
 
-    :param vis: Visibility to be inverted
+    :param bvis: BlockVisibility to be inverted
     :param im: image template (not changed)
-    :param dopsf: Make the psf instead of the dirty image
     :param normalize: Normalize by the sum of weights (True)
-    :param gcfcf: (Grid correction function i.e. in image space, Convolution function i.e. in uv space)
+    :param dataCube: make inversion for each frequency
+    :param nthreads: OpenMP thread number
+    :param epsilon: a level of tolerance
     :return: resulting image
+    :return: sum of the weights for each frequency and polarization
 
     """
-    assert isinstance(vis, Visibility), vis
     
-    svis = copy_visibility(vis)
+    assert isinstance(bvis, BlockVisibility), bvis
     
-    if dopsf:
-        svis.data['vis'][...] = 1.0+0.0j
+    # Extracting data from BlockVisibility
+    freq = bvis.frequency                         #frequency, Hz
+    uvw_nonzero = numpy.nonzero(bvis.uvw[:,:,:,0])
+    uvw = bvis.uvw[uvw_nonzero]                   # UVW, meters [:,3]
+    ms = bvis.vis[uvw_nonzero]                    # Visibility data [:,nfreq,npol]
+    wgt = numpy.ones((ms.shape[0],ms.shape[2]))      # All weights equal to 1.0
+    # Add up XX and YY if polarized data
+    if ms.shape[2] == 1: # Scalar
+        idx = [0]        # Only I
+    else:                # Polar
+        idx = [0,3]      # XX and YY
+    ms = numpy.sum(ms[:,:,idx],axis=2)
+    wgt = 1/numpy.sum(1/wgt, axis=1)
     
-    svis = shift_vis_to_image(svis, im, tangent=True, inverse=False)
-
-    if gcfcf is None:
-        gcf, cf = create_pswf_convolutionfunction(im,
-                                                  support=get_parameter(kwargs, "support", 6),
-                                                  oversampling=get_parameter(kwargs, "oversampling", 128))
+    # Assing the weights to all frequencies
+    wgt = numpy.repeat(wgt[:,None], len(freq),axis=1)
+    print(wgt.shape)
+    do_wstacking=True
+    if epsilon > 5.0e-6:
+        ms = ms.astype("c8")
+        wgt = wgt.astype("f4")
+    
+    # Find out the image size/resolution
+    npixdirty = im.nwidth
+    pixsize = numpy.abs(numpy.radians(im.wcs.wcs.cdelt[0]))
+    
+    # If non-spectral image
+    if im.nchan == 1:
+        dataCube = False
+        # Else check if the number of frequencies in the image and MS match
     else:
-        gcf, cf = gcfcf
+        assert(im.nchan == len(freq))
 
-    griddata = create_griddata_from_image(im)
-    griddata, sumwt = grid_visibility_to_griddata(svis, griddata=griddata, cf=cf)
-    
-    imaginary = get_parameter(kwargs, "imaginary", False)
-    if imaginary:
-        result0, result1 = fft_griddata_to_image(griddata, gcf, imaginary=imaginary)
-        log.debug("invert_2d: retaining imaginary part of dirty image")
+    sumwt = numpy.ones((im.nchan, im.npol))    
+    if not dataCube:
+        dirty = ng.ms2dirty(
+           uvw, freq, ms, wgt, npixdirty, npixdirty, pixsize, pixsize, epsilon,
+           do_wstacking=do_wstacking, nthreads=nthreads, verbosity=2)
+        sumwt[0,0] = numpy.sum(wgt)
         if normalize:
-            result0 = normalize_sumwt(result0, sumwt)
-            result1 = normalize_sumwt(result1, sumwt)
-        return result0, sumwt, result1
+            dirty = dirty/sumwt[0,0]
+        im.data[0][0] = dirty.T
     else:
-        result = fft_griddata_to_image(griddata, gcf)
-        if normalize:
-            result = normalize_sumwt(result, sumwt)
-        return result, sumwt
+        for i in range(len(freq)):
+            print(i, freq[i], freq[i:i+1].shape, ms[:,i:i+1].shape, wgt[:,i:i+1].shape )
+            dirty = ng.ms2dirty(
+              uvw, freq[i:i+1], ms[:,i:i+1], wgt[:,i:i+1], npixdirty, npixdirty, pixsize, pixsize, epsilon,
+              do_wstacking=do_wstacking, nthreads=nthreads, verbosity=2)
+            sumwt[i,0] = numpy.sum(wgt[:,i:i+1])
+            if normalize:
+                dirty = dirty/sumwt[i,0]
+            im.data[i][0] = dirty.T
+    
+    return im, sumwt
+
 
 
 def predict_skycomponent_visibility(vis: Union[Visibility, BlockVisibility],
