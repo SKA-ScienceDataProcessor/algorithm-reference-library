@@ -72,10 +72,9 @@ done
 echo "Scheduler and workers now running"
 
 #! We need to tell dask Client (inside python) where the scheduler is running
-export ARL_DASK_SCHEDULER=${scheduler}:8786
 echo "Scheduler is running at ${scheduler}"
 
-CMD="python cluster_dask_test.py | tee cluster_dask_test.log"
+CMD="python cluster_dask_test.py ${scheduler}:8786 | tee cluster_dask_test.log"
 
 eval $CMD
 

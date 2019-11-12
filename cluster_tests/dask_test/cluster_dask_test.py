@@ -1,5 +1,6 @@
 import random
 import time
+import sys
 import os
 
 from dask.distributed import Client
@@ -21,14 +22,13 @@ if __name__ == '__main__':
         return x + y
     
     print("Starting cluster_dask_test")
-    scheduler = os.getenv('ARL_DASK_SCHEDULER', None)
-    if scheduler is not None:
-        print("Creating Dask Client using externally defined scheduler")
+    # We pass in the scheduler from the invoking script
+    if len(sys.argv) > 1:
+        scheduler = sys.argv[1]
         client = Client(scheduler)
     else:
-        print("Using Dask on this computer")
-        client = Client(threads_per_worker=1, n_workers=8)
-        
+        client = Client()
+
     import dask
     inc = dask.delayed(inc)
     dec = dask.delayed(dec)
@@ -52,7 +52,7 @@ if __name__ == '__main__':
 
     result = dask.compute(L, sync=True)
     assert result[0][0] == 65536
-    print("Finished cluster_dask_test correctly")
+    print("Successfully finished cluster_dask_test")
     
     client.close()
     

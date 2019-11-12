@@ -81,6 +81,7 @@ class _ARLExecuteBase():
             raise ValueError('use_dask and use_dlg cannot be specified together')
 
         if isinstance(self._client, Client):
+            print("Removing existing client")
             self.client.close()
 
         if use_dask:
