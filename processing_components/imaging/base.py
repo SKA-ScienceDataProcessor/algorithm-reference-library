@@ -281,10 +281,13 @@ def invert_ng(bvis: BlockVisibility, im: Image, dataCube: bool = True, nthreads=
     else:
         assert(im.nchan == len(freq))
 
-    sumwt = numpy.ones((im.nchan, im.npol))    
+    sumwt = numpy.ones((im.nchan, im.npol))
+    fuvw = uvw.copy()
+    # We need to flip the u axis.
+    fuvw[:,0] *= -1.0
     if not dataCube:
         dirty = ng.ms2dirty(
-           uvw, freq, ms, wgt, npixdirty, npixdirty, pixsize, pixsize, epsilon,
+           fuvw, freq, ms, wgt, npixdirty, npixdirty, pixsize, pixsize, epsilon,
            do_wstacking=do_wstacking, nthreads=nthreads, verbosity=2)
         sumwt[0,0] = numpy.sum(wgt)
         if normalize:
@@ -294,7 +297,7 @@ def invert_ng(bvis: BlockVisibility, im: Image, dataCube: bool = True, nthreads=
         for i in range(len(freq)):
             print(i, freq[i], freq[i:i+1].shape, ms[:,i:i+1].shape, wgt[:,i:i+1].shape )
             dirty = ng.ms2dirty(
-              uvw, freq[i:i+1], ms[:,i:i+1], wgt[:,i:i+1], npixdirty, npixdirty, pixsize, pixsize, epsilon,
+              fuvw, freq[i:i+1], ms[:,i:i+1], wgt[:,i:i+1], npixdirty, npixdirty, pixsize, pixsize, epsilon,
               do_wstacking=do_wstacking, nthreads=nthreads, verbosity=2)
             sumwt[i,0] = numpy.sum(wgt[:,i:i+1])
             if normalize:
