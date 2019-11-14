@@ -139,42 +139,72 @@ def predict_2d(vis: Union[BlockVisibility, Visibility], model: Image, gcfcf=None
     
     return svis
 
-def predict_ng(vis: Union[BlockVisibility, Visibility], model: Image, gcfcf=None,
-               **kwargs) -> Union[BlockVisibility, Visibility]:
+def predict_ng(bvis: Union[BlockVisibility, Visibility], model: Image, nthreads=4, 
+                epsilon=6.0e-6) -> Union[BlockVisibility, Visibility]:
     """ Predict using convolutional degridding.
+    Nifty-gridder version.
 
-    This is at the bottom of the layering i.e. all transforms are eventually expressed in terms of
-    this function. Any shifting needed is performed here.
-
-    :param vis: Visibility to be predicted
+    :param bvis: BlockVisibility to be predicted
     :param model: model image
-    :param gcfcf: (Grid correction function i.e. in image space, Convolution function i.e. in uv space)
-    :return: resulting visibility (in place works)
+    :param nthreads: OpenMP threads number
+    :param epsilon: a level of tolerance
+ 
+    :return: resulting BlockVisibility (in place works)
     """
     
     if model is None:
-        return vis
+        return bvis
     
-    assert isinstance(vis, Visibility), vis
+    assert isinstance(bvis, BlockVisibility), bvis
 
-    _, _, ny, nx = model.data.shape
+    # Extracting data from BlockVisibility
+    freq = bvis.frequency                         #frequency, Hz
+    uvw_nonzero = np.nonzero(bvis.uvw[:,:,:,0])
+    uvw = bvis.uvw[uvw_nonzero]                   # UVW, meters [:,3]
+    ms = bvis.vis[uvw_nonzero]                    # Visibility data [:,nfreq,npol]
+    ms[:,:,:] = 0.0 + 0.0j                        # Make all vis data equal to 0 +0j 
+    wgt = np.ones((ms.shape[0],ms.shape[2]))      # All weights equal to 1.0
+    v_nchan = ms.shape[1]
+    v_npol = ms.shape[2]
     
-    if gcfcf is None:
-        gcf, cf = create_pswf_convolutionfunction(model,
-                                                  support=get_parameter(kwargs, "support", 6),
-                                                  oversampling=get_parameter(kwargs, "oversampling", 128))
-    else:
-        gcf, cf = gcfcf
+    # Get the image properties
+    m_nchan, m_npol, ny, nx = model.data.shape
+    #print(m_nchan, v_nchan, m_npol, v_npol, nx,ny)
+    # Check if the number of frequency channels matches in bvis and a model
+    assert(m_nchan == v_nchan)
+    assert(m_npol == v_npol)
     
-    griddata = create_griddata_from_image(model)
-    griddata = fft_image_to_griddata(model, griddata, gcf)
-    vis = degrid_visibility_from_griddata(vis, griddata=griddata, cf=cf)
+    # Set parameters for ng.dirty2ms()
+    do_wstacking=True
+    # Find out the image size/resolution
+    pixsize = np.abs(np.radians(model.wcs.wcs.cdelt[0])) 
+    dirty = model.data[0,0,:,:].astype(np.float64)
+    wgtt = None
     
-    # Now we can shift the visibility from the image frame to the original visibility frame
-    svis = shift_vis_to_image(vis, model, tangent=True, inverse=True)
-    
-    return svis
-
+    # Make de-gridding over a frequency range and pol fields
+    for i in range(v_nchan):
+        for j in range(v_npol):
+            ngvis = ng.dirty2ms(uvw.astype(np.float64), 
+                            freq[i:i+1].astype(np.float64), 
+                            model.data[i,j,:,:], 
+                            wgtt,
+                            pixsize, 
+                            pixsize, 
+                            epsilon,
+                            do_wstacking=do_wstacking, 
+                            nthreads=nthreads, 
+                            verbosity=2)
+            #print(i, j, len(ngvis), ngvis.shape)
+        # re-write ngvis into bvis
+            iflat = 0
+            for it in range(bvis.data["uvw"].shape[0]):
+                for iant1 in range(bvis.data["uvw"].shape[1]):
+                    for iant2 in range(bvis.data["uvw"].shape[1]):
+                        if(iant1 > iant2):
+                            bvis.data['vis'][it,iant1,iant2,i,j] = ngvis[iflat]
+                            #print(iflat, bvis.data["uvw"][it,iant1,iant2], uvw[iflat])
+                            iflat += 1
+    return bvis
 
 def invert_2d(vis: Visibility, im: Image, dopsf: bool = False, normalize: bool = True,
               gcfcf=None, **kwargs) -> (Image, numpy.ndarray):
@@ -239,7 +269,7 @@ def invert_ng(bvis: BlockVisibility, im: Image, dataCube: bool = True, nthreads=
     :param im: image template (not changed)
     :param normalize: Normalize by the sum of weights (True)
     :param dataCube: make inversion for each frequency
-    :param nthreads: OpenMP thread number
+    :param nthreads: OpenMP threads number
     :param epsilon: a level of tolerance
     :return: resulting image
     :return: sum of the weights for each frequency and polarization
