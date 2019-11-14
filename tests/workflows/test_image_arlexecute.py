@@ -45,6 +45,8 @@ class TestImageGraph(unittest.TestCase):
         assert nants > 1
         assert len(self.config.names) == nants
         assert len(self.config.mount) == nants
+        
+        self.persist = False
 
     def tearDown(self):
         global arlexecute
@@ -66,5 +68,5 @@ class TestImageGraph(unittest.TestCase):
                                              telescope='MID')
         beam = arlexecute.compute(beam, sync=True)
         assert numpy.max(beam.data) > 0.0
-        export_image_to_fits(beam, "%s/test_image_arlexecute_scatter_gather.fits" % (self.dir))
+        if self.persist: export_image_to_fits(beam, "%s/test_image_arlexecute_scatter_gather.fits" % (self.dir))
             

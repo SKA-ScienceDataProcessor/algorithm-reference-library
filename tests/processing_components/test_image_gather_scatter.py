@@ -22,6 +22,7 @@ class TestImageGatherScatters(unittest.TestCase):
     def setUp(self):
         from data_models.parameters import arl_path
         self.dir = arl_path('test_results')
+        self.persist = False
 
     def test_scatter_gather_facet(self):
         
@@ -94,10 +95,10 @@ class TestImageGatherScatters(unittest.TestCase):
                                                        taper=taper)
                 flat = image_gather_facets(image_list, m31reconstructed, facets=nraster, overlap=overlap,
                                            taper=taper, return_flat=True)
-                export_image_to_fits(m31reconstructed,
+                if self.persist: export_image_to_fits(m31reconstructed,
                                      "%s/test_image_gather_scatter_%dnraster_%doverlap_%s_reconstructed.fits" %
                                      (self.dir, nraster, overlap, taper))
-                export_image_to_fits(flat,
+                if self.persist: export_image_to_fits(flat,
                                      "%s/test_image_gather_scatter_%dnraster_%doverlap_%s_flat.fits" %
                                      (self.dir, nraster, overlap, taper))
     

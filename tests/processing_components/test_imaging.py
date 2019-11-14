@@ -36,6 +36,8 @@ class TestImaging(unittest.TestCase):
         
         from data_models.parameters import arl_path
         self.dir = arl_path('test_results')
+        
+        self.persist = False
     
     def actualSetUp(self, freqwin=1, block=False, dospectral=True, dopol=False, zerow=False):
         
@@ -87,8 +89,8 @@ class TestImaging(unittest.TestCase):
         # Calculate the model convolved with a Gaussian.
         
         self.cmodel = smooth_image(self.model)
-        export_image_to_fits(self.model, '%s/test_imaging_model.fits' % self.dir)
-        export_image_to_fits(self.cmodel, '%s/test_imaging_cmodel.fits' % self.dir)
+        if self.persist: export_image_to_fits(self.model, '%s/test_imaging_model.fits' % self.dir)
+        if self.persist: export_image_to_fits(self.cmodel, '%s/test_imaging_cmodel.fits' % self.dir)
     
     def test_time_setup(self):
         self.actualSetUp()
@@ -111,7 +113,7 @@ class TestImaging(unittest.TestCase):
         vis.data['vis'] = self.vis.data['vis'] - vis.data['vis']
         dirty = invert_2d(vis, self.model, dopsf=False, normalize=True, gcfcf = gcfcf)
         
-        export_image_to_fits(dirty[0], '%s/test_imaging_%s_residual.fits' %
+        if self.persist: export_image_to_fits(dirty[0], '%s/test_imaging_%s_residual.fits' %
                              (self.dir, name))
         assert numpy.max(numpy.abs(dirty[0].data)), "Residual image is empty"
 
@@ -123,7 +125,7 @@ class TestImaging(unittest.TestCase):
         
         dirty = invert_2d(self.vis, self.model, dopsf=False, normalize=True, gcfcf = gcfcf, **kwargs)
         
-        export_image_to_fits(dirty[0], '%s/test_imaging_%s_dirty.fits' %
+        if self.persist: export_image_to_fits(dirty[0], '%s/test_imaging_%s_dirty.fits' %
                              (self.dir, name))
         
         assert numpy.max(numpy.abs(dirty[0].data)), "Image is empty"

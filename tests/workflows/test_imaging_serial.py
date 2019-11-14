@@ -35,6 +35,8 @@ class TestImaging(unittest.TestCase):
         
         from data_models.parameters import arl_path
         self.dir = arl_path('test_results')
+        
+        self.persist = False
     
     def tearDown(self):
         pass
@@ -106,8 +108,8 @@ class TestImaging(unittest.TestCase):
         self.model = self.model_list[centre]
         
         self.cmodel = smooth_image(self.model)
-        export_image_to_fits(self.model, '%s/test_imaging_model.fits' % self.dir)
-        export_image_to_fits(self.cmodel, '%s/test_imaging_cmodel.fits' % self.dir)
+        if self.persist: export_image_to_fits(self.model, '%s/test_imaging_model.fits' % self.dir)
+        if self.persist: export_image_to_fits(self.cmodel, '%s/test_imaging_cmodel.fits' % self.dir)
         
         if add_errors and block:
             self.vis_list = [insert_unittest_errors(self.vis_list[i])
@@ -161,7 +163,7 @@ class TestImaging(unittest.TestCase):
                                             gcfcf=gcfcf, normalize=True, vis_slices=vis_slices)[centre]
         
         assert numpy.max(numpy.abs(dirty[0].data)), "Residual image is empty"
-        export_image_to_fits(dirty[0], '%s/test_imaging_predict_%s%s_serial_dirty.fits' %
+        if self.persist: export_image_to_fits(dirty[0], '%s/test_imaging_predict_%s%s_serial_dirty.fits' %
                              (self.dir, context, extra))
         
         maxabs = numpy.max(numpy.abs(dirty[0].data))
@@ -175,7 +177,7 @@ class TestImaging(unittest.TestCase):
                                             dopsf=False, normalize=True, facets=facets, vis_slices=vis_slices,
                                             gcfcf=gcfcf, **kwargs)[centre]
         
-        export_image_to_fits(dirty[0], '%s/test_imaging_invert_%s%s_serial_dirty.fits' %
+        if self.persist: export_image_to_fits(dirty[0], '%s/test_imaging_invert_%s%s_serial_dirty.fits' %
                              (self.dir, context, extra))
         
         assert numpy.max(numpy.abs(dirty[0].data)), "Image is empty"
