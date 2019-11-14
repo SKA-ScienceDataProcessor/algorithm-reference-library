@@ -27,6 +27,7 @@ from processing_components.simulation.configurations import create_named_configu
 from wrappers.arlexecute.skycomponent.operations import find_skycomponents, find_nearest_skycomponent, \
     insert_skycomponent
 
+
 log = logging.getLogger(__name__)
 
 log.setLevel(logging.DEBUG)
@@ -44,11 +45,11 @@ class TestImaging(unittest.TestCase):
 
         from data_models.parameters import arl_path
         self.dir = arl_path('test_results')
+        
+        self.persist = False
     
     def tearDown(self):
-        global arlexecute
         arlexecute.close()
-        del arlexecute
 
     def actualSetUp(self, add_errors=False, freqwin=3, block=False, dospectral=True, dopol=False, zerow=False,
                     makegcfcf=False):
@@ -122,8 +123,8 @@ class TestImaging(unittest.TestCase):
         self.model = self.model_list[centre]
         
         self.cmodel = smooth_image(self.model)
-        export_image_to_fits(self.model, '%s/test_imaging_model.fits' % self.dir)
-        export_image_to_fits(self.cmodel, '%s/test_imaging_cmodel.fits' % self.dir)
+        if self.persist: export_image_to_fits(self.model, '%s/test_imaging_model.fits' % self.dir)
+        if self.persist: export_image_to_fits(self.cmodel, '%s/test_imaging_cmodel.fits' % self.dir)
         
         if add_errors and block:
             self.vis_list = [arlexecute.execute(insert_unittest_errors)(self.vis_list[i])
@@ -180,7 +181,7 @@ class TestImaging(unittest.TestCase):
         dirty = arlexecute.compute(dirty, sync=True)[centre]
         
         assert numpy.max(numpy.abs(dirty[0].data)), "Residual image is empty"
-        export_image_to_fits(dirty[0], '%s/test_imaging_predict_%s%s_%s_dirty.fits' %
+        if self.persist: export_image_to_fits(dirty[0], '%s/test_imaging_predict_%s%s_%s_dirty.fits' %
                              (self.dir, context, extra, arlexecute.type()))
         
         maxabs = numpy.max(numpy.abs(dirty[0].data))
@@ -196,7 +197,7 @@ class TestImaging(unittest.TestCase):
         dirty = arlexecute.compute(dirty, sync=True)[centre]
         
         print(dirty)
-        export_image_to_fits(dirty[0], '%s/test_imaging_invert_%s%s_%s_dirty.fits' %
+        if self.persist: export_image_to_fits(dirty[0], '%s/test_imaging_invert_%s%s_%s_dirty.fits' %
                              (self.dir, context, extra, arlexecute.type()))
         
         assert numpy.max(numpy.abs(dirty[0].data)), "Image is empty"
