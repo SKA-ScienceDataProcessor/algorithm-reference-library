@@ -283,8 +283,9 @@ def invert_ng(bvis: BlockVisibility, im: Image, dataCube: bool = True, nthreads=
 
     sumwt = numpy.ones((im.nchan, im.npol))
     fuvw = uvw.copy()
-    # We need to flip the u axis.
+    # We need to flip the u and w axes.
     fuvw[:,0] *= -1.0
+    fuvw[:,2] *= -1.0
     if not dataCube:
         dirty = ng.ms2dirty(
            fuvw, freq, ms, wgt, npixdirty, npixdirty, pixsize, pixsize, epsilon,
