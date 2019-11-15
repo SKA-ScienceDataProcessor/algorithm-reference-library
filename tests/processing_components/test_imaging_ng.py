@@ -19,6 +19,7 @@ from processing_components.simulation.testing_support import ingest_unittest_vis
 from processing_components.skycomponent.operations import find_skycomponents, find_nearest_skycomponent, \
     insert_skycomponent
 from processing_components.visibility.coalesce import convert_blockvisibility_to_visibility
+from processing_components.visibility.base import copy_visibility
 
 log = logging.getLogger(__name__)
 
@@ -108,11 +109,17 @@ class TestImagingNG(unittest.TestCase):
     
     def _predict_base(self, fluxthreshold=1.0, name='predict_ng', **kwargs):
         
+        original_vis = copy_visibility(self.blockvis)
         vis = predict_ng(self.blockvis, self.model, **kwargs)
-        vis.data['vis'] = self.blockvis.data['vis'] - vis.data['vis']
+        #vis.data['vis'] = vis.data['vis'] - original_vis.data['vis']
         # dirty = invert_ng(vis, self.model, dopsf=False, normalize=True)
         dirty = invert_ng(vis, self.model, normalize=True)
         
+        import matplotlib.pyplot as plt
+        from processing_components.image.operations import show_image
+        show_image(dirty[0])
+        plt.show(block=False)
+
         if self.persist: export_image_to_fits(dirty[0], '%s/test_imaging_ng_%s_residual.fits' %
                                               (self.dir, name))
         assert numpy.max(numpy.abs(dirty[0].data)), "Residual image is empty"
@@ -129,17 +136,17 @@ class TestImagingNG(unittest.TestCase):
         if self.persist: export_image_to_fits(dirty[0], '%s/test_imaging_ng_%s_dirty.fits' %
                                               (self.dir, name))
         
-        assert numpy.max(numpy.abs(dirty[0].data)), "Image is empty"
-        
         import matplotlib.pyplot as plt
         from processing_components.image.operations import show_image
         show_image(dirty[0])
         plt.show(block=False)
-        
+
+        assert numpy.max(numpy.abs(dirty[0].data)), "Image is empty"
+
         if check_components:
             self._checkcomponents(dirty[0], fluxthreshold, positionthreshold)
     
-    @unittest.skip("predict_ng not yet implemented")
+    #@unittest.skip("predict_ng not yet implemented")
     def test_predict_ng(self):
         self.actualSetUp()
         self._predict_base(name='predict_ng')

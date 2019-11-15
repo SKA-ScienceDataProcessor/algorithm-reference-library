@@ -139,8 +139,8 @@ def predict_2d(vis: Union[BlockVisibility, Visibility], model: Image, gcfcf=None
     
     return svis
 
-def predict_ng(bvis: Union[BlockVisibility, Visibility], model: Image, nthreads=4, 
-                epsilon=6.0e-6) -> Union[BlockVisibility, Visibility]:
+def predict_ng(bvis: Union[BlockVisibility, Visibility], model: Image, gcfcf=None, nthreads=4,
+                epsilon=6.0e-6, **kwargs) -> Union[BlockVisibility, Visibility]:
     """ Predict using convolutional degridding.
     Nifty-gridder version.
 
@@ -156,6 +156,8 @@ def predict_ng(bvis: Union[BlockVisibility, Visibility], model: Image, nthreads=
         return bvis
     
     assert isinstance(bvis, BlockVisibility), bvis
+
+    newbvis = copy_visibility(bvis, zero=True)
 
     # Extracting data from BlockVisibility
     freq = bvis.frequency                         #frequency, Hz
@@ -178,9 +180,9 @@ def predict_ng(bvis: Union[BlockVisibility, Visibility], model: Image, nthreads=
     do_wstacking=True
     # Find out the image size/resolution
     pixsize = numpy.abs(numpy.radians(model.wcs.wcs.cdelt[0]))
-    dirty = model.data[0,0,:,:].astype(numpy.float64)
     wgtt = None
     
+    bvis.data['vis'][...] = 0.0 + 0.0j
     # Make de-gridding over a frequency range and pol fields
     for i in range(v_nchan):
         for j in range(v_npol):
@@ -197,14 +199,23 @@ def predict_ng(bvis: Union[BlockVisibility, Visibility], model: Image, nthreads=
             #print(i, j, len(ngvis), ngvis.shape)
         # re-write ngvis into bvis
             iflat = 0
-            for it in range(bvis.data["uvw"].shape[0]):
-                for iant1 in range(bvis.data["uvw"].shape[1]):
-                    for iant2 in range(bvis.data["uvw"].shape[1]):
-                        if(iant1 > iant2):
-                            bvis.data['vis'][it,iant1,iant2,i,j] = ngvis[iflat]
-                            #print(iflat, bvis.data["uvw"][it,iant1,iant2], uvw[iflat])
-                            iflat += 1
-    return bvis
+            nants = bvis.data["uvw"].shape[1]
+            ntimes = bvis.uvw.shape[0]
+            for it in range(ntimes):
+                for iant2 in range(nants):
+                    for iant1 in range(iant2+1, nants):
+                        newbvis.data['vis'][it,iant2,iant1,i,j] = ngvis[iflat]
+                        newbvis.data['vis'][it,iant1,iant2,i,j] = numpy.conjugate(ngvis[iflat])
+                        #print(iflat, bvis.data["uvw"][it,iant1,iant2], uvw[iflat])
+                        iflat += 1
+                    # if iflat + nants < len(ngvis):
+                    #     newbvis.data['vis'][it, iant2, range(nants), i, j] = ngvis[iflat:(iflat+nants)][:,0]
+                    # iflat += nants
+                            
+    # Now we can shift the visibility from the image frame to the original visibility frame
+    #sbvis = shift_vis_to_image(bvis, model, tangent=True, inverse=True)
+
+    return newbvis
 
 def invert_2d(vis: Visibility, im: Image, dopsf: bool = False, normalize: bool = True,
               gcfcf=None, **kwargs) -> (Image, numpy.ndarray):
@@ -256,8 +267,8 @@ def invert_2d(vis: Visibility, im: Image, dopsf: bool = False, normalize: bool =
             result = normalize_sumwt(result, sumwt)
         return result, sumwt
 
-def invert_ng(bvis: BlockVisibility, im: Image, dataCube: bool = True, nthreads=4, epsilon=6.0e-6, 
-               normalize: bool = True)-> (Image, numpy.ndarray):
+def invert_ng(bvis: BlockVisibility, im: Image, dopsf: bool = False, normalize: bool = True,
+              dataCube: bool = True, nthreads=4, epsilon=6.0e-6, **kwargs)-> (Image, numpy.ndarray):
     """ Invert using nifty-gridder module
 
     Use the image im as a template. Do PSF in a separate call.
@@ -277,12 +288,19 @@ def invert_ng(bvis: BlockVisibility, im: Image, dataCube: bool = True, nthreads=
     """
     
     assert isinstance(bvis, BlockVisibility), bvis
-    
+
+    sbvis = copy_visibility(bvis)
+
+    if dopsf:
+        sbvis.data['vis'][...] = 1.0 + 0.0j
+
+    #sbvis = shift_vis_to_image(sbvis, im, tangent=True, inverse=False)
+
     # Extracting data from BlockVisibility
-    freq = bvis.frequency                         #frequency, Hz
-    uvw_nonzero = numpy.nonzero(bvis.uvw[:,:,:,0])
-    uvw = bvis.uvw[uvw_nonzero]                   # UVW, meters [:,3]
-    ms = bvis.vis[uvw_nonzero]                    # Visibility data [:,nfreq,npol]
+    freq = sbvis.frequency                         #frequency, Hz
+    uvw_nonzero = numpy.nonzero(sbvis.uvw[:,:,:,0])
+    uvw = sbvis.uvw[uvw_nonzero]                   # UVW, meters [:,3]
+    ms = sbvis.vis[uvw_nonzero]                    # Visibility data [:,nfreq,npol]
     wgt = numpy.ones((ms.shape[0],ms.shape[2]))      # All weights equal to 1.0
     # Add up XX and YY if polarized data
     if ms.shape[2] == 1: # Scalar
