@@ -159,11 +159,11 @@ def predict_ng(bvis: Union[BlockVisibility, Visibility], model: Image, nthreads=
 
     # Extracting data from BlockVisibility
     freq = bvis.frequency                         #frequency, Hz
-    uvw_nonzero = np.nonzero(bvis.uvw[:,:,:,0])
+    uvw_nonzero = numpy.nonzero(bvis.uvw[:,:,:,0])
     uvw = bvis.uvw[uvw_nonzero]                   # UVW, meters [:,3]
     ms = bvis.vis[uvw_nonzero]                    # Visibility data [:,nfreq,npol]
     ms[:,:,:] = 0.0 + 0.0j                        # Make all vis data equal to 0 +0j 
-    wgt = np.ones((ms.shape[0],ms.shape[2]))      # All weights equal to 1.0
+    wgt = numpy.ones((ms.shape[0],ms.shape[2]))      # All weights equal to 1.0
     v_nchan = ms.shape[1]
     v_npol = ms.shape[2]
     
@@ -177,15 +177,15 @@ def predict_ng(bvis: Union[BlockVisibility, Visibility], model: Image, nthreads=
     # Set parameters for ng.dirty2ms()
     do_wstacking=True
     # Find out the image size/resolution
-    pixsize = np.abs(np.radians(model.wcs.wcs.cdelt[0])) 
-    dirty = model.data[0,0,:,:].astype(np.float64)
+    pixsize = numpy.abs(numpy.radians(model.wcs.wcs.cdelt[0]))
+    dirty = model.data[0,0,:,:].astype(numpy.float64)
     wgtt = None
     
     # Make de-gridding over a frequency range and pol fields
     for i in range(v_nchan):
         for j in range(v_npol):
-            ngvis = ng.dirty2ms(uvw.astype(np.float64), 
-                            freq[i:i+1].astype(np.float64), 
+            ngvis = ng.dirty2ms(uvw.astype(numpy.float64),
+                            freq[i:i+1].astype(numpy.float64),
                             model.data[i,j,:,:], 
                             wgtt,
                             pixsize, 
