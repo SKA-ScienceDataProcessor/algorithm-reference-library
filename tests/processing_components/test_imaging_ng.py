@@ -12,7 +12,8 @@ from astropy.coordinates import SkyCoord
 
 from data_models.polarisation import PolarisationFrame
 from processing_components.image.operations import export_image_to_fits, smooth_image
-from processing_components.imaging.base import predict_ng, invert_ng, predict_skycomponent_visibility
+from processing_components.imaging.ng import predict_ng, invert_ng
+from processing_components.imaging.base import predict_skycomponent_visibility, invert_2d
 from processing_components.simulation.configurations import create_named_configuration
 from processing_components.simulation.testing_support import ingest_unittest_visibility, \
     create_unittest_model, create_unittest_components
@@ -66,7 +67,7 @@ class TestImagingNG(unittest.TestCase):
         else:
             flux = numpy.array([f])
         
-        self.phasecentre = SkyCoord(ra=+180.0 * u.deg, dec=-60.0 * u.deg, frame='icrs', equinox='J2000')
+        self.phasecentre = SkyCoord(ra=+180.0 * u.deg, dec=-45.0 * u.deg, frame='icrs', equinox='J2000')
         self.blockvis = ingest_unittest_visibility(self.low,
                                                    self.frequency,
                                                    self.channelwidth,
@@ -81,6 +82,7 @@ class TestImagingNG(unittest.TestCase):
         self.model = create_unittest_model(self.vis, self.image_pol, npixel=self.npixel)
         
         self.components = create_unittest_components(self.model, flux)
+        #self.components = [self.components[0]]
         
         self.model = insert_skycomponent(self.model, self.components)
         
@@ -95,7 +97,7 @@ class TestImagingNG(unittest.TestCase):
     def test_time_setup(self):
         self.actualSetUp()
     
-    def _checkcomponents(self, dirty, fluxthreshold=0.6, positionthreshold=1.0):
+    def _checkcomponents(self, dirty, fluxthreshold=0.6, positionthreshold=0.1):
         comps = find_skycomponents(dirty, fwhm=1.0, threshold=10 * fluxthreshold, npixels=5)
         assert len(comps) == len(self.components), "Different number of components found: original %d, recovered %d" % \
                                                    (len(self.components), len(comps))
@@ -111,17 +113,16 @@ class TestImagingNG(unittest.TestCase):
         
         original_vis = copy_visibility(self.blockvis)
         vis = predict_ng(self.blockvis, self.model, **kwargs)
-        #vis.data['vis'] = vis.data['vis'] - original_vis.data['vis']
-        # dirty = invert_ng(vis, self.model, dopsf=False, normalize=True)
-        dirty = invert_ng(vis, self.model, normalize=True)
+        vis.data['vis'] = vis.data['vis'] - original_vis.data['vis']
+        dirty = invert_ng(vis, self.model, dopsf=False, normalize=True, **kwargs)
         
         import matplotlib.pyplot as plt
         from processing_components.image.operations import show_image
         show_image(dirty[0])
         plt.show(block=False)
 
-        if self.persist: export_image_to_fits(dirty[0], '%s/test_imaging_ng_%s_residual.fits' %
-                                              (self.dir, name))
+        if self.persist: export_image_to_fits(dirty[0], '%s/test_imaging_ng_residual.fits' %
+                                              (self.dir))
         assert numpy.max(numpy.abs(dirty[0].data)), "Residual image is empty"
         
         maxabs = numpy.max(numpy.abs(dirty[0].data))
@@ -132,9 +133,9 @@ class TestImagingNG(unittest.TestCase):
         
         # dirty = invert_ng(self.blockvis, self.model, dopsf=False, normalize=True, **kwargs)
         dirty = invert_ng(self.blockvis, self.model, normalize=True, **kwargs)
-        
-        if self.persist: export_image_to_fits(dirty[0], '%s/test_imaging_ng_%s_dirty.fits' %
-                                              (self.dir, name))
+
+        if self.persist: export_image_to_fits(dirty[0], '%s/test_imaging_ng_dirty.fits' %
+                                              (self.dir))
         
         import matplotlib.pyplot as plt
         from processing_components.image.operations import show_image
@@ -154,7 +155,6 @@ class TestImagingNG(unittest.TestCase):
     def test_invert_ng(self):
         self.actualSetUp()
         self._invert_base(name='invert_ng', positionthreshold=2.0, check_components=True)
-
 
 if __name__ == '__main__':
     unittest.main()

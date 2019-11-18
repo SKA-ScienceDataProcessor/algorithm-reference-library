@@ -24,7 +24,6 @@ import logging
 from typing import List, Union, Tuple
 
 import numpy
-import nifty_gridder as ng
 from astropy import constants as constants
 from astropy import units as units
 from astropy import wcs
@@ -139,83 +138,6 @@ def predict_2d(vis: Union[BlockVisibility, Visibility], model: Image, gcfcf=None
     
     return svis
 
-def predict_ng(bvis: Union[BlockVisibility, Visibility], model: Image, gcfcf=None, nthreads=4,
-                epsilon=6.0e-6, **kwargs) -> Union[BlockVisibility, Visibility]:
-    """ Predict using convolutional degridding.
-    Nifty-gridder version.
-
-    :param bvis: BlockVisibility to be predicted
-    :param model: model image
-    :param nthreads: OpenMP threads number
-    :param epsilon: a level of tolerance
- 
-    :return: resulting BlockVisibility (in place works)
-    """
-    
-    if model is None:
-        return bvis
-    
-    assert isinstance(bvis, BlockVisibility), bvis
-
-    newbvis = copy_visibility(bvis, zero=True)
-
-    # Extracting data from BlockVisibility
-    freq = bvis.frequency                         #frequency, Hz
-    uvw_nonzero = numpy.nonzero(bvis.uvw[:,:,:,0])
-    uvw = bvis.uvw[uvw_nonzero]                   # UVW, meters [:,3]
-    ms = bvis.vis[uvw_nonzero]                    # Visibility data [:,nfreq,npol]
-    ms[:,:,:] = 0.0 + 0.0j                        # Make all vis data equal to 0 +0j 
-    wgt = numpy.ones((ms.shape[0],ms.shape[2]))      # All weights equal to 1.0
-    v_nchan = ms.shape[1]
-    v_npol = ms.shape[2]
-    
-    # Get the image properties
-    m_nchan, m_npol, ny, nx = model.data.shape
-    #print(m_nchan, v_nchan, m_npol, v_npol, nx,ny)
-    # Check if the number of frequency channels matches in bvis and a model
-    assert(m_nchan == v_nchan)
-    assert(m_npol == v_npol)
-    
-    # Set parameters for ng.dirty2ms()
-    do_wstacking=True
-    # Find out the image size/resolution
-    pixsize = numpy.abs(numpy.radians(model.wcs.wcs.cdelt[0]))
-    wgtt = None
-    
-    bvis.data['vis'][...] = 0.0 + 0.0j
-    # Make de-gridding over a frequency range and pol fields
-    for i in range(v_nchan):
-        for j in range(v_npol):
-            ngvis = ng.dirty2ms(uvw.astype(numpy.float64),
-                            freq[i:i+1].astype(numpy.float64),
-                            model.data[i,j,:,:], 
-                            wgtt,
-                            pixsize, 
-                            pixsize, 
-                            epsilon,
-                            do_wstacking=do_wstacking, 
-                            nthreads=nthreads, 
-                            verbosity=2)
-            #print(i, j, len(ngvis), ngvis.shape)
-        # re-write ngvis into bvis
-            iflat = 0
-            nants = bvis.data["uvw"].shape[1]
-            ntimes = bvis.uvw.shape[0]
-            for it in range(ntimes):
-                for iant2 in range(nants):
-                    for iant1 in range(iant2+1, nants):
-                        newbvis.data['vis'][it,iant2,iant1,i,j] = ngvis[iflat]
-                        newbvis.data['vis'][it,iant1,iant2,i,j] = numpy.conjugate(ngvis[iflat])
-                        #print(iflat, bvis.data["uvw"][it,iant1,iant2], uvw[iflat])
-                        iflat += 1
-                    # if iflat + nants < len(ngvis):
-                    #     newbvis.data['vis'][it, iant2, range(nants), i, j] = ngvis[iflat:(iflat+nants)][:,0]
-                    # iflat += nants
-                            
-    # Now we can shift the visibility from the image frame to the original visibility frame
-    #sbvis = shift_vis_to_image(bvis, model, tangent=True, inverse=True)
-
-    return newbvis
 
 def invert_2d(vis: Visibility, im: Image, dopsf: bool = False, normalize: bool = True,
               gcfcf=None, **kwargs) -> (Image, numpy.ndarray):
@@ -266,95 +188,6 @@ def invert_2d(vis: Visibility, im: Image, dopsf: bool = False, normalize: bool =
         if normalize:
             result = normalize_sumwt(result, sumwt)
         return result, sumwt
-
-def invert_ng(bvis: BlockVisibility, im: Image, dopsf: bool = False, normalize: bool = True,
-              dataCube: bool = True, nthreads=4, epsilon=6.0e-6, **kwargs)-> (Image, numpy.ndarray):
-    """ Invert using nifty-gridder module
-
-    Use the image im as a template. Do PSF in a separate call.
-
-    This is at the bottom of the layering i.e. all transforms are eventually expressed in terms
-    of this function. . Any shifting needed is performed here.
-
-    :param bvis: BlockVisibility to be inverted
-    :param im: image template (not changed)
-    :param normalize: Normalize by the sum of weights (True)
-    :param dataCube: make inversion for each frequency
-    :param nthreads: OpenMP threads number
-    :param epsilon: a level of tolerance
-    :return: resulting image
-    :return: sum of the weights for each frequency and polarization
-
-    """
-    
-    assert isinstance(bvis, BlockVisibility), bvis
-
-    sbvis = copy_visibility(bvis)
-
-    if dopsf:
-        sbvis.data['vis'][...] = 1.0 + 0.0j
-
-    #sbvis = shift_vis_to_image(sbvis, im, tangent=True, inverse=False)
-
-    # Extracting data from BlockVisibility
-    freq = sbvis.frequency                         #frequency, Hz
-    uvw_nonzero = numpy.nonzero(sbvis.uvw[:,:,:,0])
-    uvw = sbvis.uvw[uvw_nonzero]                   # UVW, meters [:,3]
-    ms = sbvis.vis[uvw_nonzero]                    # Visibility data [:,nfreq,npol]
-    wgt = numpy.ones((ms.shape[0],ms.shape[2]))      # All weights equal to 1.0
-    # Add up XX and YY if polarized data
-    if ms.shape[2] == 1: # Scalar
-        idx = [0]        # Only I
-    else:                # Polar
-        idx = [0,3]      # XX and YY
-    ms = numpy.sum(ms[:,:,idx],axis=2)
-    wgt = 1/numpy.sum(1/wgt, axis=1)
-    
-    # Assing the weights to all frequencies
-    wgt = numpy.repeat(wgt[:,None], len(freq),axis=1)
-    print(wgt.shape)
-    do_wstacking=True
-    if epsilon > 5.0e-6:
-        ms = ms.astype("c8")
-        wgt = wgt.astype("f4")
-    
-    # Find out the image size/resolution
-    npixdirty = im.nwidth
-    pixsize = numpy.abs(numpy.radians(im.wcs.wcs.cdelt[0]))
-    
-    # If non-spectral image
-    if im.nchan == 1:
-        dataCube = False
-        # Else check if the number of frequencies in the image and MS match
-    else:
-        assert(im.nchan == len(freq))
-
-    sumwt = numpy.ones((im.nchan, im.npol))
-    fuvw = uvw.copy()
-    # We need to flip the u and w axes.
-    fuvw[:,0] *= -1.0
-    fuvw[:,2] *= -1.0
-    if not dataCube:
-        dirty = ng.ms2dirty(
-           fuvw, freq, ms, wgt, npixdirty, npixdirty, pixsize, pixsize, epsilon,
-           do_wstacking=do_wstacking, nthreads=nthreads, verbosity=2)
-        sumwt[0,0] = numpy.sum(wgt)
-        if normalize:
-            dirty = dirty/sumwt[0,0]
-        im.data[0][0] = dirty.T
-    else:
-        for i in range(len(freq)):
-            print(i, freq[i], freq[i:i+1].shape, ms[:,i:i+1].shape, wgt[:,i:i+1].shape )
-            dirty = ng.ms2dirty(
-              fuvw, freq[i:i+1], ms[:,i:i+1], wgt[:,i:i+1], npixdirty, npixdirty, pixsize, pixsize, epsilon,
-              do_wstacking=do_wstacking, nthreads=nthreads, verbosity=2)
-            sumwt[i,0] = numpy.sum(wgt[:,i:i+1])
-            if normalize:
-                dirty = dirty/sumwt[i,0]
-            im.data[i][0] = dirty.T
-    
-    return im, sumwt
-
 
 
 def predict_skycomponent_visibility(vis: Union[Visibility, BlockVisibility],
@@ -412,7 +245,7 @@ def predict_skycomponent_visibility(vis: Union[Visibility, BlockVisibility],
     return vis
 
 
-def create_image_from_visibility(vis, **kwargs) -> Image:
+def create_image_from_visibility(vis: Union[BlockVisibility, Visibility], **kwargs) -> Image:
     """Make an empty image from params and Visibility
     
     This makes an empty, template image consistent with the visibility, allowing optional overriding of select
@@ -513,8 +346,8 @@ def create_image_from_visibility(vis, **kwargs) -> Image:
     return create_image_from_array(numpy.zeros(shape), wcs=w, polarisation_frame=pol_frame)
 
 
-def advise_wide_field(vis: Visibility, delA=0.02, oversampling_synthesised_beam=3.0, guard_band_image=6.0, facets=1,
-                      wprojection_planes=1, verbose=True):
+def advise_wide_field(vis: Union[BlockVisibility, Visibility], delA=0.02, oversampling_synthesised_beam=3.0,
+                      guard_band_image=6.0, facets=1, wprojection_planes=1, verbose=True):
     """ Advise on parameters for wide field imaging.
     
     Calculate sampling requirements on various parameters
@@ -534,7 +367,7 @@ def advise_wide_field(vis: Visibility, delA=0.02, oversampling_synthesised_beam=
     :return: dict of advice
     """
     
-    assert isinstance(vis, Visibility), vis
+    isblock = isinstance(vis, BlockVisibility)
     
     max_wavelength = constants.c.to('m s^-1').value / numpy.min(vis.frequency)
     if verbose:
@@ -544,12 +377,17 @@ def advise_wide_field(vis: Visibility, delA=0.02, oversampling_synthesised_beam=
     if verbose:
         log.info("advise_wide_field: Minimum wavelength %.3f (meters)" % (min_wavelength))
 
-    maximum_baseline = numpy.max(numpy.abs(vis.uvw))  # Wavelengths
+    if isblock:
+        maximum_baseline = numpy.max(numpy.abs(vis.uvw))/min_wavelength # Wavelengths
+        maximum_w = numpy.max(numpy.abs(vis.w))/min_wavelength # Wavelengths
+    else:
+        maximum_baseline = numpy.max(numpy.abs(vis.uvw)) # Wavelengths
+        maximum_w = numpy.max(numpy.abs(vis.w))  # Wavelengths
+
     if verbose:
         log.info("advise_wide_field: Maximum baseline %.1f (wavelengths)" % (maximum_baseline))
     assert maximum_baseline > 0.0, "Error in UVW coordinates: all uvw are zero"
 
-    maximum_w = numpy.max(numpy.abs(vis.w))  # Wavelengths
     if verbose:
         log.info("advise_wide_field: Maximum w %.1f (wavelengths)" % (maximum_w))
 

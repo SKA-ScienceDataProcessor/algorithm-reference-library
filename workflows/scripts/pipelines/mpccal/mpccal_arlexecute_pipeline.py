@@ -147,7 +147,7 @@ if __name__ == '__main__':
         nchan=nfreqwin,
         cellsize=cellsize,
         phasecentre=phasecentre)
-    beam = create_low_test_beam(beam, use_local=False
+    beam = create_low_test_beam(beam, use_local=False)
     
     original_gleam_components = create_low_test_skycomponents_from_gleam(
         flux_limit=flux_limit,

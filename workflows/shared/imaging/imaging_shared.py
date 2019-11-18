@@ -11,7 +11,8 @@ from processing_components.image.operations import copy_image, calculate_image_f
 
 log = logging.getLogger(__name__)
 
-from processing_components.imaging.base import predict_2d, invert_2d, predict_ng, invert_ng
+from processing_components.imaging.base import predict_2d, invert_2d
+from processing_components.imaging.ng import predict_ng, invert_ng
 from processing_components.visibility.iterators import vis_null_iter, vis_timeslice_iter, vis_wslice_iter
 from processing_components.imaging.timeslice_single import predict_timeslice_single, invert_timeslice_single
 from processing_components.imaging.wstack_single import predict_wstack_single, invert_wstack_single
