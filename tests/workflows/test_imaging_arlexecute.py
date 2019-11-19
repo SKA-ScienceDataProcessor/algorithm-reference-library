@@ -12,18 +12,17 @@ from astropy.coordinates import SkyCoord
 from data_models.polarisation import PolarisationFrame
 from processing_components.griddata.convolution_functions import apply_bounding_box_convolutionfunction
 from processing_components.griddata.kernels import create_awterm_convolutionfunction
+from processing_components.simulation.configurations import create_named_configuration
 from workflows.arlexecute.imaging.imaging_arlexecute import zero_list_arlexecute_workflow, \
     predict_list_arlexecute_workflow, invert_list_arlexecute_workflow, subtract_list_arlexecute_workflow, \
     weight_list_arlexecute_workflow, residual_list_arlexecute_workflow, sum_invert_results_arlexecute
 from workflows.shared.imaging.imaging_shared import sum_invert_results
 from wrappers.arlexecute.execution_support.arlexecutebase import ARLExecuteBase
 from wrappers.arlexecute.execution_support.dask_init import get_dask_Client
-
 from wrappers.arlexecute.image.operations import export_image_to_fits, smooth_image, qa_image
 from wrappers.arlexecute.imaging.base import predict_skycomponent_visibility
 from wrappers.arlexecute.simulation.testing_support import ingest_unittest_visibility, \
     create_unittest_model, insert_unittest_errors, create_unittest_components
-from processing_components.simulation.configurations import create_named_configuration
 from wrappers.arlexecute.skycomponent.operations import find_skycomponents, find_nearest_skycomponent, \
     insert_skycomponent
 
@@ -42,7 +41,7 @@ class TestImaging(unittest.TestCase):
         global arlexecute
         arlexecute = ARLExecuteBase(use_dask=True)
         arlexecute.set_client(client, verbose=True)
-
+        
         from data_models.parameters import arl_path
         self.dir = arl_path('test_results')
         
@@ -366,20 +365,82 @@ class TestImaging(unittest.TestCase):
         diff_vis_list = arlexecute.compute(diff_vis_list, sync=True)
         
         assert numpy.max(numpy.abs(diff_vis_list[centre].vis)) < 1e-15, numpy.max(numpy.abs(diff_vis_list[centre].vis))
-
+    
     def test_residual_list(self):
         self.actualSetUp(zerow=True)
-    
+        
         centre = self.freqwin // 2
         residual_image_list = residual_list_arlexecute_workflow(self.vis_list, self.model_list, context='2d')
         residual_image_list = arlexecute.compute(residual_image_list, sync=True)
         qa = qa_image(residual_image_list[centre][0])
         assert numpy.abs(qa.data['max'] - 0.35139716991480785) < 1.0, str(qa)
         assert numpy.abs(qa.data['min'] + 0.7681701460717593) < 1.0, str(qa)
-
+    
+    def test_restored_list(self):
+        self.actualSetUp(zerow=True)
+        
+        centre = self.freqwin // 2
+        psf_image_list = invert_list_arlexecute_workflow(self.vis_list, self.model_list, context='2d', dopsf=True)
+        residual_image_list = residual_list_arlexecute_workflow(self.vis_list, self.model_list, context='2d')
+        restored_image_list = restore_list_arlexecute_workflow(self.model_list, psf_image_list, residual_image_list,
+                                                               psfwidth=1.0)
+        restored_image_list = arlexecute.compute(restored_image_list, sync=True)
+        if self.persist: export_image_to_fits(restored_image_list[centre], '%s/test_imaging_invert_%s_restored.fits' %
+                                              (self.dir, arlexecute.type()))
+        
+        qa = qa_image(restored_image_list[centre])
+        assert numpy.abs(qa.data['max'] - 99.43438263927834) < 1e-7, str(qa)
+        assert numpy.abs(qa.data['min'] + 0.6328915148563365) < 1e-7, str(qa)
+    
+    def test_restored_list_noresidual(self):
+        self.actualSetUp(zerow=True)
+        
+        centre = self.freqwin // 2
+        psf_image_list = invert_list_arlexecute_workflow(self.vis_list, self.model_list, context='2d', dopsf=True)
+        restored_image_list = restore_list_arlexecute_workflow(self.model_list, psf_image_list, psfwidth=1.0)
+        restored_image_list = arlexecute.compute(restored_image_list, sync=True)
+        if self.persist: export_image_to_fits(restored_image_list[centre],
+                                              '%s/test_imaging_invert_%s_restored_noresidual.fits' %
+                                              (self.dir, arlexecute.type()))
+        
+        qa = qa_image(restored_image_list[centre])
+        assert numpy.abs(qa.data['max'] - 100.0) < 1e-7, str(qa)
+        assert numpy.abs(qa.data['min']) < 1e-7, str(qa)
+    
+    def test_restored_list_facet(self):
+        self.actualSetUp(zerow=True)
+        
+        centre = self.freqwin // 2
+        psf_image_list = invert_list_arlexecute_workflow(self.vis_list, self.model_list, context='2d', dopsf=True)
+        residual_image_list = residual_list_arlexecute_workflow(self.vis_list, self.model_list, context='2d')
+        restored_4facets_image_list = restore_list_arlexecute_workflow(self.model_list, psf_image_list,
+                                                                       residual_image_list,
+                                                                       restore_facets=4, psfwidth=1.0)
+        restored_4facets_image_list = arlexecute.compute(restored_4facets_image_list, sync=True)
+        
+        restored_1facets_image_list = restore_list_arlexecute_workflow(self.model_list, psf_image_list,
+                                                                       residual_image_list,
+                                                                       restore_facets=1, psfwidth=1.0)
+        restored_1facets_image_list = arlexecute.compute(restored_1facets_image_list, sync=True)
+        
+        if self.persist: export_image_to_fits(restored_4facets_image_list[0],
+                                              '%s/test_imaging_invert_%s_restored_4facets.fits' %
+                                              (self.dir, arlexecute.type()))
+        
+        qa = qa_image(restored_4facets_image_list[centre])
+        assert numpy.abs(qa.data['max'] - 99.43438263927833) < 1e-7, str(qa)
+        assert numpy.abs(qa.data['min'] + 0.6328915148563354) < 1e-7, str(qa)
+        
+        restored_4facets_image_list[centre].data -= restored_1facets_image_list[centre].data
+        if self.persist: export_image_to_fits(restored_4facets_image_list[centre],
+                                              '%s/test_imaging_invert_%s_restored_4facets_error.fits' %
+                                              (self.dir, arlexecute.type()))
+        qa = qa_image(restored_4facets_image_list[centre])
+        assert numpy.abs(qa.data['max']) < 1e-10, str(qa)
+    
     def test_sum_invert_list(self):
         self.actualSetUp(zerow=True)
-    
+        
         residual_image_list = residual_list_arlexecute_workflow(self.vis_list, self.model_list, context='2d')
         residual_image_list = arlexecute.compute(residual_image_list, sync=True)
         route2 = sum_invert_results(residual_image_list)
@@ -390,7 +451,8 @@ class TestImaging(unittest.TestCase):
             qa = qa_image(r[0])
             assert numpy.abs(qa.data['max'] - 0.35139716991480785) < 1.0, str(qa)
             assert numpy.abs(qa.data['min'] + 0.7681701460717593) < 1.0, str(qa)
-            assert numpy.abs(r[1]-415950.0) < 1e-7
+            assert numpy.abs(r[1] - 415950.0) < 1e-7
+
 
 if __name__ == '__main__':
     unittest.main()
