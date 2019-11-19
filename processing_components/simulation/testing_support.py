@@ -845,7 +845,7 @@ def simulate_pointingtable_from_timeseries(pt, type='wind', time_series_type='pr
         az_deg = 180.0
     
     pointing_file = '%s/El%dAz%d.dat' % (pointing_directory, int(el_deg), int(az_deg))
-    log.info("simulate_pointingtable_from_timeseries: Reading wind PSD from %s" % pointing_file)
+    log.debug("simulate_pointingtable_from_timeseries: Reading wind PSD from %s" % pointing_file)
     psd = numpy.loadtxt(pointing_file)
     
     # define some arrays
@@ -900,6 +900,10 @@ def simulate_pointingtable_from_timeseries(pt, type='wind', time_series_type='pr
 
         # use original frequency break and max frequency to fit function
         # fit polynomial to psd up to max value
+        import warnings
+        from numpy import RankWarning
+        warnings.simplefilter('ignore', RankWarning)
+
         p_axis_values1 = numpy.polyfit(freq[:axis_values_max_index],
                                        numpy.log(axis_values[:axis_values_max_index]), 5)
         f_axis_values1 = numpy.poly1d(p_axis_values1)
