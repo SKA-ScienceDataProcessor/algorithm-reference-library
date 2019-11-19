@@ -1,6 +1,8 @@
 """ Pipeline functions. SDP standard pipelines expressed as functions.
 """
 
+import logging
+
 from data_models.parameters import get_parameter
 from wrappers.arlexecute.execution_support.arlexecute import arlexecute
 from wrappers.arlexecute.griddata.kernels import create_pswf_convolutionfunction
@@ -9,6 +11,8 @@ from ..calibration.calibration_arlexecute import calibrate_list_arlexecute_workf
 from ..imaging.imaging_arlexecute import invert_list_arlexecute_workflow, residual_list_arlexecute_workflow, \
     predict_list_arlexecute_workflow, subtract_list_arlexecute_workflow, \
     restore_list_arlexecute_workflow, deconvolve_list_arlexecute_workflow
+
+log = logging.getLogger(__name__)
 
 
 def ical_list_arlexecute_workflow(vis_list, model_imagelist, context, vis_slices=1, facets=1,
@@ -48,11 +52,18 @@ def ical_list_arlexecute_workflow(vis_list, model_imagelist, context, vis_slices
                                                                    gcfcf=gcfcf, **kwargs)
         recal_vis_list, gt_list = calibrate_list_arlexecute_workflow(cal_vis_list, predicted_model_vislist,
                                                                    calibration_context=calibration_context, **kwargs)
-        residual_vislist = subtract_list_arlexecute_workflow(recal_vis_list, predicted_model_vislist)
-        residual_imagelist = invert_list_arlexecute_workflow(residual_vislist, model_imagelist,
-                                                             context=context, dopsf=False,
-                                                             vis_slices=vis_slices, facets=facets, gcfcf=gcfcf,
-                                                             iteration=0, **kwargs)
+        
+        def zero_model_image(im):
+            log.info("ical_list_arlexecute_workflow: setting initial mode to zero after initial selfcal")
+            im.data[...]=0.0
+            return im
+        
+        model_imagelist = [arlexecute.execute(zero_model_image, nout=1)(model) for model in model_imagelist]
+
+        residual_imagelist = invert_list_arlexecute_workflow(recal_vis_list, model_imagelist, context=context,
+                                                               vis_slices=vis_slices, facets=facets, gcfcf=gcfcf,
+                                                               **kwargs)
+
     else:
         # If we are not selfcalibrating it's much easier and we can avoid an unnecessary round of gather/scatter
         # for visibility partitioning such as timeslices and wstack.

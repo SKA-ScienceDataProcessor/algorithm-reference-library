@@ -1039,15 +1039,15 @@ class BlockVisibility:
 
     @property
     def u(self):
-        return self.data['uvw'][:, 0]
+        return self.data['uvw'][..., 0]
 
     @property
     def v(self):
-        return self.data['uvw'][:, 1]
+        return self.data['uvw'][..., 1]
 
     @property
     def w(self):
-        return self.data['uvw'][:, 2]
+        return self.data['uvw'][..., 2]
 
     @property
     def vis(self):

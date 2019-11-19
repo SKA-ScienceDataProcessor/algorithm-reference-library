@@ -17,7 +17,7 @@ import logging
 
 import numpy
 
-from data_models.memory_data_models import Image, Visibility
+from data_models.memory_data_models import Image, Visibility, BlockVisibility
 from data_models.parameters import get_parameter
 from processing_library.image.operations import copy_image, create_empty_image_like
 from workflows.shared.imaging.imaging_shared import imaging_context
@@ -71,7 +71,7 @@ def predict_list_serial_workflow(vis_list, model_imagelist, context, vis_slices=
     
     def predict_ignore_none(vis, model, g):
         if vis is not None:
-            assert isinstance(vis, Visibility), vis
+            assert isinstance(vis, Visibility) or isinstance(vis, BlockVisibility), vis
             assert isinstance(model, Image), model
             return predict(vis, model, context=context, gcfcf=g, **kwargs)
         else:

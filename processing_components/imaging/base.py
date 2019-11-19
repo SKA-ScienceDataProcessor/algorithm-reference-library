@@ -58,7 +58,8 @@ def shift_vis_to_image(vis: Visibility, im: Image, tangent: bool = True, inverse
     :return: visibility with phase shift applied and phasecentre updated
 
     """
-    assert isinstance(vis, Visibility), "vis is not a Visibility: %r" % vis
+    assert isinstance(vis, Visibility) or isinstance(vis, BlockVisibility), "vis is not a Visibility or " \
+                                                                            "BlockVisibility: %r" % vis
     
     nchan, npol, ny, nx = im.data.shape
     
@@ -302,7 +303,7 @@ def create_image_from_visibility(vis: Union[BlockVisibility, Visibility], **kwar
     
     # Image sampling options
     npixel = get_parameter(kwargs, "npixel", 512)
-    uvmax = numpy.max((numpy.abs(vis.data['uvw'][:, 0:1])))
+    uvmax = numpy.max((numpy.abs(vis.data['uvw'][..., 0:1])))
     if isinstance(vis, BlockVisibility):
         uvmax *= numpy.max(frequency) / constants.c.to('m s^-1').value
     log.debug("create_image_from_visibility: uvmax = %f wavelengths" % uvmax)

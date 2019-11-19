@@ -10,6 +10,7 @@ from astropy import units as u
 from astropy.coordinates import SkyCoord
 
 from data_models.polarisation import PolarisationFrame
+from data_models.memory_data_models import BlockVisibility, Visibility
 from processing_components.griddata.convolution_functions import apply_bounding_box_convolutionfunction
 from processing_components.griddata.kernels import create_awterm_convolutionfunction
 from workflows.arlexecute.imaging.imaging_arlexecute import zero_list_arlexecute_workflow, \
@@ -26,6 +27,8 @@ from wrappers.arlexecute.simulation.testing_support import ingest_unittest_visib
 from processing_components.simulation.configurations import create_named_configuration
 from wrappers.arlexecute.skycomponent.operations import find_skycomponents, find_nearest_skycomponent, \
     insert_skycomponent
+
+from processing_components.visibility.coalesce import convert_blockvisibility_to_visibility
 
 log = logging.getLogger(__name__)
 
@@ -86,14 +89,15 @@ class TestImaging(unittest.TestCase):
             flux = numpy.array([f])
         
         self.phasecentre = SkyCoord(ra=+180.0 * u.deg, dec=-60.0 * u.deg, frame='icrs', equinox='J2000')
-        self.vis_list = [arlexecute.execute(ingest_unittest_visibility)(self.low,
+        self.bvis_list = [arlexecute.execute(ingest_unittest_visibility)(self.low,
                                                                         [self.frequency[freqwin]],
                                                                         [self.channelwidth[freqwin]],
                                                                         self.times,
                                                                         self.vis_pol,
-                                                                        self.phasecentre, block=block,
+                                                                        self.phasecentre, block=True,
                                                                         zerow=zerow)
                          for freqwin, _ in enumerate(self.frequency)]
+        self.vis_list = [arlexecute.execute(convert_blockvisibility_to_visibility)(bvis) for bvis in self.bvis_list]
         
         self.model_list = [arlexecute.execute(create_unittest_model, nout=freqwin)(self.vis_list[freqwin],
                                                                                    self.image_pol,
@@ -272,13 +276,20 @@ class TestImaging(unittest.TestCase):
     def test_invert_2d(self):
         self.actualSetUp(zerow=True)
         self._invert_base(context='2d', positionthreshold=2.0, check_components=False)
-    
+
     def test_invert_2d_uniform(self):
         self.actualSetUp(zerow=True, makegcfcf=True)
         self.vis_list = weight_list_arlexecute_workflow(self.vis_list, self.model_list, gcfcf=self.gcfcf,
                                                         weighting='uniform')
         self._invert_base(context='2d', extra='_uniform', positionthreshold=2.0, check_components=False)
-    
+
+    def test_invert_2d_uniform_block(self):
+        self.actualSetUp(zerow=True, makegcfcf=True, block=True)
+        self.bvis_list = weight_list_arlexecute_workflow(self.bvis_list, self.model_list, gcfcf=self.gcfcf,
+                                                        weighting='uniform')
+        self.bvis_list = arlexecute.compute(self.bvis_list, sync=True)
+        assert isinstance(self.bvis_list[0], BlockVisibility)
+
     def test_invert_2d_uniform_nogcfcf(self):
         self.actualSetUp(zerow=True)
         self.vis_list = weight_list_arlexecute_workflow(self.vis_list, self.model_list)
@@ -389,7 +400,7 @@ class TestImaging(unittest.TestCase):
             qa = qa_image(r[0])
             assert numpy.abs(qa.data['max'] - 0.35139716991480785) < 1.0, str(qa)
             assert numpy.abs(qa.data['min'] + 0.7681701460717593) < 1.0, str(qa)
-            assert numpy.abs(r[1]-415950.0) < 1e-7
-
+            assert numpy.abs(r[1]-415950.0) < 1e-7, str(qa)
+            
 if __name__ == '__main__':
     unittest.main()

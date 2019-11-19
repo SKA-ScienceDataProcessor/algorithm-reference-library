@@ -33,29 +33,29 @@ from ..visibility.base import copy_visibility, phaserotate_visibility
 log = logging.getLogger(__name__)
 
 
-def predict_ng(bvis: Union[BlockVisibility, Visibility], model: Image, gcfcf=None, nthreads=4,
-               epsilon=1e-13, **kwargs) -> Union[BlockVisibility, Visibility]:
+def predict_ng(bvis: Union[BlockVisibility, Visibility], model: Image, gcfcf=None, **kwargs) -> \
+        Union[BlockVisibility, Visibility]:
     """ Predict using convolutional degridding.
     Nifty-gridder version.
 
     :param bvis: BlockVisibility to be predicted
     :param model: model image
-    :param nthreads: OpenMP threads number
-    :param epsilon: a level of tolerance
  
     :return: resulting BlockVisibility (in place works)
     """
     
     if model is None:
         return bvis
-    
+
+    nthreads = get_parameter(kwargs, "threads", 4)
+    epsilon = get_parameter(kwargs, "epsilon", 6.0e-6)
+
     assert isinstance(bvis, BlockVisibility), bvis
     
     newbvis = copy_visibility(bvis, zero=True)
     
     # Extracting data from BlockVisibility
     freq = bvis.frequency  # frequency, Hz
-    
     nants = bvis.uvw.shape[1]
     ntimes = bvis.uvw.shape[0]
     nbaselines = nants * (nants - 1) // 2
@@ -77,13 +77,13 @@ def predict_ng(bvis: Union[BlockVisibility, Visibility], model: Image, gcfcf=Non
     
     # Get the image properties
     m_nchan, m_npol, ny, nx = model.data.shape
-    # print(m_nchan, v_nchan, m_npol, v_npol, nx,ny)
     # Check if the number of frequency channels matches in bvis and a model
     assert (m_nchan == v_nchan)
     assert (m_npol == v_npol)
     
     fuvw = uvw.copy()
-    # We need to flip the u and w axes.
+    # We need to flip the u and w axes. The flip in w is equivalent to the conjugation of the
+    # convolution function grid_visibility to griddata
     fuvw[:, 0] *= -1.0
     fuvw[:, 2] *= -1.0
     
@@ -91,7 +91,6 @@ def predict_ng(bvis: Union[BlockVisibility, Visibility], model: Image, gcfcf=Non
     do_wstacking = True
     # Find out the image size/resolution
     pixsize = numpy.abs(numpy.radians(model.wcs.wcs.cdelt[0]))
-    wgtt = None
     
     # Make de-gridding over a frequency range and pol fields
     for i in range(v_nchan):
@@ -99,25 +98,20 @@ def predict_ng(bvis: Union[BlockVisibility, Visibility], model: Image, gcfcf=Non
             ngvis = ng.dirty2ms(fuvw.astype(numpy.float64),
                                 freq[i:i + 1].astype(numpy.float64),
                                 model.data[i, j, :, :].T.astype(numpy.float64),
+                                wgt=wgt,
                                 pixsize_x=pixsize,
                                 pixsize_y=pixsize,
                                 epsilon=epsilon,
                                 do_wstacking=do_wstacking,
                                 nthreads=nthreads,
                                 verbosity=2)
-            # print(i, j, len(ngvis), ngvis.shape)
-            # re-write ngvis into bvis
             iflat = 0
             for it in range(ntimes):
                 for iant1 in range(nants):
                     for iant2 in range(iant1 + 1, nants):
                         newbvis.data['vis'][it, iant2, iant1, i, j] = ngvis[iflat]
                         newbvis.data['vis'][it, iant1, iant2, i, j] = numpy.conjugate(ngvis[iflat])
-                        # print(iflat, bvis.data["uvw"][it,iant1,iant2], uvw[iflat])
                         iflat += 1
-                    # if iflat + nants < len(ngvis):
-                    #     newbvis.data['vis'][it, iant2, range(nants), i, j] = ngvis[iflat:(iflat+nants)][:,0]
-                    # iflat += nants
     
     # Now we can shift the visibility from the image frame to the original visibility frame
     # sbvis = shift_vis_to_image(bvis, model, tangent=True, inverse=True)
@@ -160,17 +154,20 @@ Image, numpy.ndarray):
     uvw_nonzero = numpy.nonzero(sbvis.uvw[:, :, :, 0])
     uvw = sbvis.uvw[uvw_nonzero]  # UVW, meters [:,3]
     ms = sbvis.vis[uvw_nonzero]  # Visibility data [:,nfreq,npol]
-    wgt = numpy.ones((ms.shape[0], ms.shape[2]))  # All weights equal to 1.0
+    #wgt = numpy.ones((ms.shape[0], ms.shape[2]))  # All weights equal to 1.0
+    wgt = sbvis.imaging_weight[uvw_nonzero]
+    
     # Add up XX and YY if polarized data
     if ms.shape[2] == 1:  # Scalar
         idx = [0]  # Only I
     else:  # Polar
         idx = [0, 3]  # XX and YY
     ms = numpy.sum(ms[:, :, idx], axis=2)
-    wgt = 1 / numpy.sum(1 / wgt, axis=1)
+    wgt = numpy.sum(wgt[:, :, idx], axis=2)
+    #wgt = 1 / numpy.sum(1 / wgt, axis=1)
     
-    # Assing the weights to all frequencies
-    wgt = numpy.repeat(wgt[:, None], len(freq), axis=1)
+    # Assign the weights to all frequencies
+    #wgt = numpy.repeat(wgt[:, None], len(freq), axis=1)
     print(wgt.shape)
     do_wstacking = True
     if epsilon > 5.0e-6:
