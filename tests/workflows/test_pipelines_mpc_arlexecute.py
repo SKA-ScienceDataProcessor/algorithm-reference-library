@@ -250,7 +250,7 @@ class TestPipelineMPC(unittest.TestCase):
         recovered_mpccal_components = sorted(recovered_mpccal_components, key=max_flux, reverse=True)
         
         assert recovered_mpccal_components[0].name == 'Segment 5', recovered_mpccal_components[0].name
-        assert numpy.abs(recovered_mpccal_components[0].flux[0, 0] - 7.315576274701464) < 1e-7, \
+        assert numpy.abs(recovered_mpccal_components[0].flux[0, 0] - 7.318399477857547) < 1e-7, \
             recovered_mpccal_components[0].flux[0, 0]
         
         newscreen = create_empty_image_like(self.screen)

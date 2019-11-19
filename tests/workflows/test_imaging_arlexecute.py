@@ -15,7 +15,8 @@ from processing_components.griddata.kernels import create_awterm_convolutionfunc
 from processing_components.simulation.configurations import create_named_configuration
 from workflows.arlexecute.imaging.imaging_arlexecute import zero_list_arlexecute_workflow, \
     predict_list_arlexecute_workflow, invert_list_arlexecute_workflow, subtract_list_arlexecute_workflow, \
-    weight_list_arlexecute_workflow, residual_list_arlexecute_workflow, sum_invert_results_arlexecute
+    weight_list_arlexecute_workflow, residual_list_arlexecute_workflow, sum_invert_results_arlexecute, \
+    restore_list_arlexecute_workflow
 from workflows.shared.imaging.imaging_shared import sum_invert_results
 from wrappers.arlexecute.execution_support.arlexecutebase import ARLExecuteBase
 from wrappers.arlexecute.execution_support.dask_init import get_dask_Client
