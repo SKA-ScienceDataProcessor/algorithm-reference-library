@@ -93,7 +93,6 @@ def predict_list_arlexecute_workflow(vis_list, model_imagelist, context, vis_sli
                 g = gcfcf[ivis]
             else:
                 g = gcfcf[0]
-            # Create the graph to divide an image into facets. This is by reference.
             # Create the graph to divide the visibility into slices. This is by copy.
             sub_vis_lists = arlexecute.execute(visibility_scatter, nout=vis_slices)(subvis,
                                                                                     vis_iter, vis_slices)

@@ -15,8 +15,7 @@ from processing_components.griddata.kernels import create_awterm_convolutionfunc
 from processing_components.simulation.configurations import create_named_configuration
 from workflows.arlexecute.imaging.imaging_arlexecute import zero_list_arlexecute_workflow, \
     predict_list_arlexecute_workflow, invert_list_arlexecute_workflow, subtract_list_arlexecute_workflow, \
-    weight_list_arlexecute_workflow, residual_list_arlexecute_workflow, sum_invert_results_arlexecute, \
-    restore_list_arlexecute_workflow
+    weight_list_arlexecute_workflow, residual_list_arlexecute_workflow, sum_invert_results_arlexecute
 from workflows.shared.imaging.imaging_shared import sum_invert_results
 from wrappers.arlexecute.execution_support.arlexecutebase import ARLExecuteBase
 from wrappers.arlexecute.execution_support.dask_init import get_dask_Client
@@ -26,6 +25,7 @@ from wrappers.arlexecute.simulation.testing_support import ingest_unittest_visib
     create_unittest_model, insert_unittest_errors, create_unittest_components
 from wrappers.arlexecute.skycomponent.operations import find_skycomponents, find_nearest_skycomponent, \
     insert_skycomponent
+
 
 log = logging.getLogger(__name__)
 
@@ -48,10 +48,8 @@ class TestImaging(unittest.TestCase):
         self.persist = False
     
     def tearDown(self):
-        global arlexecute
         arlexecute.close()
-        del arlexecute
-    
+
     def actualSetUp(self, add_errors=False, freqwin=3, block=False, dospectral=True, dopol=False, zerow=False,
                     makegcfcf=False):
         
@@ -183,7 +181,7 @@ class TestImaging(unittest.TestCase):
         
         assert numpy.max(numpy.abs(dirty[0].data)), "Residual image is empty"
         if self.persist: export_image_to_fits(dirty[0], '%s/test_imaging_predict_%s%s_%s_dirty.fits' %
-                                              (self.dir, context, extra, arlexecute.type()))
+                             (self.dir, context, extra, arlexecute.type()))
         
         maxabs = numpy.max(numpy.abs(dirty[0].data))
         assert maxabs < fluxthreshold, "Error %.3f greater than fluxthreshold %.3f " % (maxabs, fluxthreshold)
@@ -199,7 +197,7 @@ class TestImaging(unittest.TestCase):
         
         print(dirty)
         if self.persist: export_image_to_fits(dirty[0], '%s/test_imaging_invert_%s%s_%s_dirty.fits' %
-                                              (self.dir, context, extra, arlexecute.type()))
+                             (self.dir, context, extra, arlexecute.type()))
         
         assert numpy.max(numpy.abs(dirty[0].data)), "Image is empty"
         

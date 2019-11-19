@@ -29,6 +29,8 @@ class TestSkyModel(unittest.TestCase):
         
         from data_models.parameters import arl_path
         self.dir = arl_path('test_results')
+        
+        self.persist = False
     
     def tearDown(self):
         pass

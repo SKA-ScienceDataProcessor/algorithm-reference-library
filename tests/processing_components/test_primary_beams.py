@@ -26,6 +26,8 @@ class TestPrimaryBeams(unittest.TestCase):
         from data_models.parameters import arl_path
         self.dir = arl_path('test_results')
         
+        self.persist = False
+        
     def createVis(self, config='MID', dec=-35.0, rmax=1e3, freq=1.3e9):
         self.frequency = [freq]
         self.channel_bandwidth = [1e6]
@@ -54,7 +56,7 @@ class TestPrimaryBeams(unittest.TestCase):
             model = create_image_from_visibility(self.vis, cellsize=self.cellsize, npixel=self.npixel, override_cellsize=False)
             beam = create_pb(model, telescope=telescope, use_local=False)
             assert numpy.max(beam.data) > 0.0
-            export_image_to_fits(beam, "%s/test_primary_beam_RADEC_%s.fits" % (self.dir, telescope))
+            if self.persist: export_image_to_fits(beam, "%s/test_primary_beam_RADEC_%s.fits" % (self.dir, telescope))
 
     def test_create_primary_beams_AZELGEO(self):
         self.createVis()
@@ -62,7 +64,7 @@ class TestPrimaryBeams(unittest.TestCase):
             model = create_image_from_visibility(self.vis, cellsize=self.cellsize, npixel=self.npixel, override_cellsize=False)
             beam = create_pb(model, telescope=telescope, use_local=True)
             assert numpy.max(beam.data) > 0.0
-            export_image_to_fits(beam, "%s/test_primary_beam_AZELGEO_%s.fits" % (self.dir, telescope))
+            if self.persist: export_image_to_fits(beam, "%s/test_primary_beam_AZELGEO_%s.fits" % (self.dir, telescope))
 
     def test_create_voltage_patterns(self):
         self.createVis()
@@ -80,9 +82,9 @@ class TestPrimaryBeams(unittest.TestCase):
             beam=create_vp(model, telescope=telescope, padding=4)
             beam_data = beam.data
             beam.data = numpy.real(beam_data)
-            export_image_to_fits(beam, "%s/test_voltage_pattern_real_%s.fits" % (self.dir, telescope))
+            if self.persist: export_image_to_fits(beam, "%s/test_voltage_pattern_real_%s.fits" % (self.dir, telescope))
             beam.data = numpy.imag(beam_data)
-            export_image_to_fits(beam, "%s/test_voltage_pattern_imag_%s.fits" % (self.dir, telescope))
+            if self.persist: export_image_to_fits(beam, "%s/test_voltage_pattern_imag_%s.fits" % (self.dir, telescope))
 
     def test_create_voltage_patterns_MID(self):
         self.createVis(freq=1.4e9)
@@ -94,7 +96,7 @@ class TestPrimaryBeams(unittest.TestCase):
             beam.data = numpy.real(beam_data)
             beam.wcs.wcs.crval[0]=0.0
             beam.wcs.wcs.crval[1]=90.0
-            export_image_to_fits(beam, "%s/test_voltage_pattern_real_zenith_%s.fits" % (self.dir, telescope))
+            if self.persist: export_image_to_fits(beam, "%s/test_voltage_pattern_real_zenith_%s.fits" % (self.dir, telescope))
 
 
 if __name__ == '__main__':

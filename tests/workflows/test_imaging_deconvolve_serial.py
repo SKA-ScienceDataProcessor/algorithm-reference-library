@@ -34,6 +34,8 @@ class TestImagingDeconvolveGraph(unittest.TestCase):
         
         from data_models.parameters import arl_path
         self.dir = arl_path('test_results')
+        
+        self.persist = False
     
     def tearDown(self):
         pass
@@ -102,8 +104,8 @@ class TestImagingDeconvolveGraph(unittest.TestCase):
         model = self.model_imagelist[0]
         
         self.cmodel = smooth_image(model)
-        export_image_to_fits(model, '%s/test_imaging_serial_deconvolved_model.fits' % self.dir)
-        export_image_to_fits(self.cmodel, '%s/test_imaging_serial_deconvolved_cmodel.fits' % self.dir)
+        if self.persist: export_image_to_fits(model, '%s/test_imaging_serial_deconvolved_model.fits' % self.dir)
+        if self.persist: export_image_to_fits(self.cmodel, '%s/test_imaging_serial_deconvolved_cmodel.fits' % self.dir)
         
         if add_errors and block:
             self.vis_list = [insert_unittest_errors(self.vis_list[i])
@@ -123,7 +125,7 @@ class TestImagingDeconvolveGraph(unittest.TestCase):
         deconvolved = deconvolve_list_serial_workflow(dirty_imagelist, psf_imagelist, self.model_imagelist, niter=1000,
                                                          fractional_threshold=0.1, scales=[0, 3, 10],
                                                          threshold=0.1, gain=0.7)
-        export_image_to_fits(deconvolved[0], '%s/test_imaging_serial_deconvolve_spectral.fits' %
+        if self.persist: export_image_to_fits(deconvolved[0], '%s/test_imaging_serial_deconvolve_spectral.fits' %
                              (self.dir))
     
     def test_deconvolve_and_restore_cube_mmclean(self):
@@ -142,7 +144,7 @@ class TestImagingDeconvolveGraph(unittest.TestCase):
                                                 residual_imagelist=residual_imagelist,
                                                 empty=self.model_imagelist)[0]
         
-        export_image_to_fits(restored, '%s/test_imaging_serial_mmclean_restored.fits' % (self.dir))
+        if self.persist: export_image_to_fits(restored, '%s/test_imaging_serial_mmclean_restored.fits' % (self.dir))
     
     def test_deconvolve_and_restore_cube_mmclean_facets(self):
         self.actualSetUp(add_errors=True)
@@ -161,7 +163,7 @@ class TestImagingDeconvolveGraph(unittest.TestCase):
                                                 residual_imagelist=residual_imagelist,
                                                 empty=self.model_imagelist)[0]
         
-        export_image_to_fits(restored, '%s/test_imaging_serial_overlap_mmclean_restored.fits'
+        if self.persist: export_image_to_fits(restored, '%s/test_imaging_serial_overlap_mmclean_restored.fits'
                              % (self.dir))
 
 

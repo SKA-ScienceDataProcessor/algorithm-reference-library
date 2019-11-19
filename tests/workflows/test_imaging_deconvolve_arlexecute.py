@@ -41,6 +41,8 @@ class TestImagingDeconvolveGraph(unittest.TestCase):
         
         from data_models.parameters import arl_path
         self.dir = arl_path('test_results')
+        
+        self.persist = False
     
     def tearDown(self):
         global arlexecute
@@ -112,8 +114,8 @@ class TestImagingDeconvolveGraph(unittest.TestCase):
         model = self.model_imagelist[0]
         
         self.cmodel = smooth_image(model)
-        export_image_to_fits(model, '%s/test_imaging_arlexecute_deconvolved_model.fits' % self.dir)
-        export_image_to_fits(self.cmodel, '%s/test_imaging_arlexecute_deconvolved_cmodel.fits' % self.dir)
+        if self.persist: export_image_to_fits(model, '%s/test_imaging_arlexecute_deconvolved_model.fits' % self.dir)
+        if self.persist: export_image_to_fits(self.cmodel, '%s/test_imaging_arlexecute_deconvolved_cmodel.fits' % self.dir)
         
         if add_errors and block:
             self.vis_list = [arlexecute.execute(insert_unittest_errors)(self.vis_list[i])
@@ -142,7 +144,7 @@ class TestImagingDeconvolveGraph(unittest.TestCase):
         deconvolved = arlexecute.persist(deconvolved)
         deconvolved = arlexecute.compute(deconvolved, sync=True)
         
-        export_image_to_fits(deconvolved[0], '%s/test_imaging_%s_deconvolve_spectral.fits' %
+        if self.persist: export_image_to_fits(deconvolved[0], '%s/test_imaging_%s_deconvolve_spectral.fits' %
                              (self.dir, arlexecute.type()))
     
     def test_deconvolve_and_restore_cube_mmclean(self):
@@ -168,7 +170,7 @@ class TestImagingDeconvolveGraph(unittest.TestCase):
         
         restored = arlexecute.compute(restored_list, sync=True)[0]
         
-        export_image_to_fits(restored, '%s/test_imaging_%s_mmclean_restored.fits' % (self.dir, arlexecute.type()))
+        if self.persist: export_image_to_fits(restored, '%s/test_imaging_%s_mmclean_restored.fits' % (self.dir, arlexecute.type()))
     
     def test_deconvolve_and_restore_cube_mmclean_serialclean(self):
         self.actualSetUp(add_errors=True)
@@ -194,7 +196,7 @@ class TestImagingDeconvolveGraph(unittest.TestCase):
         
         restored = arlexecute.compute(restored_list, sync=True)[0]
         
-        export_image_to_fits(restored, '%s/test_imaging_%s_mmclean_restored.fits' % (self.dir, arlexecute.type()))
+        if self.persist: export_image_to_fits(restored, '%s/test_imaging_%s_mmclean_restored.fits' % (self.dir, arlexecute.type()))
     
     def test_deconvolve_and_restore_cube_mmclean_facets(self):
         self.actualSetUp(add_errors=True)
@@ -220,7 +222,7 @@ class TestImagingDeconvolveGraph(unittest.TestCase):
         
         restored = arlexecute.compute(restored_list, sync=True)[0]
         
-        export_image_to_fits(restored, '%s/test_imaging_%s_overlap_mmclean_restored.fits'
+        if self.persist: export_image_to_fits(restored, '%s/test_imaging_%s_overlap_mmclean_restored.fits'
                              % (self.dir, arlexecute.type()))
 
 
