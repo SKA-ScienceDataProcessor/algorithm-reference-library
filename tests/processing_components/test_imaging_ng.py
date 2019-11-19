@@ -22,6 +22,13 @@ from processing_components.skycomponent.operations import find_skycomponents, fi
 from processing_components.visibility.coalesce import convert_blockvisibility_to_visibility
 from processing_components.visibility.base import copy_visibility
 
+try:
+    import nifty_gridder
+    run_ng_tests = True
+#            except ModuleNotFoundError:
+except:
+    run_ng_tests = False
+
 log = logging.getLogger(__name__)
 
 log.setLevel(logging.DEBUG)
@@ -94,9 +101,6 @@ class TestImagingNG(unittest.TestCase):
         if self.persist: export_image_to_fits(self.model, '%s/test_imaging_ng_model.fits' % self.dir)
         if self.persist: export_image_to_fits(self.cmodel, '%s/test_imaging_ng_cmodel.fits' % self.dir)
     
-    def test_time_setup(self):
-        self.actualSetUp()
-    
     def _checkcomponents(self, dirty, fluxthreshold=0.6, positionthreshold=0.1):
         comps = find_skycomponents(dirty, fwhm=1.0, threshold=10 * fluxthreshold, npixels=5)
         assert len(comps) == len(self.components), "Different number of components found: original %d, recovered %d" % \
@@ -146,12 +150,13 @@ class TestImagingNG(unittest.TestCase):
 
         if check_components:
             self._checkcomponents(dirty[0], fluxthreshold, positionthreshold)
-    
-    #@unittest.skip("predict_ng not yet implemented")
+
+    @unittest.skipUnless(run_ng_tests, "requires the nifty_gridder module")
     def test_predict_ng(self):
         self.actualSetUp()
         self._predict_base(name='predict_ng')
     
+    @unittest.skipUnless(run_ng_tests, "requires the nifty_gridder module")
     def test_invert_ng(self):
         self.actualSetUp()
         self._invert_base(name='invert_ng', positionthreshold=2.0, check_components=True)
