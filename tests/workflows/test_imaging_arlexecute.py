@@ -15,7 +15,8 @@ from processing_components.griddata.convolution_functions import apply_bounding_
 from processing_components.griddata.kernels import create_awterm_convolutionfunction
 from workflows.arlexecute.imaging.imaging_arlexecute import zero_list_arlexecute_workflow, \
     predict_list_arlexecute_workflow, invert_list_arlexecute_workflow, subtract_list_arlexecute_workflow, \
-    weight_list_arlexecute_workflow, residual_list_arlexecute_workflow, sum_invert_results_arlexecute
+    weight_list_arlexecute_workflow, residual_list_arlexecute_workflow, sum_invert_results_arlexecute, \
+    restore_list_arlexecute_workflow
 from workflows.shared.imaging.imaging_shared import sum_invert_results, sum_invert_results_local
 from wrappers.arlexecute.execution_support.arlexecutebase import ARLExecuteBase
 from wrappers.arlexecute.execution_support.dask_init import get_dask_Client
@@ -47,6 +48,8 @@ class TestImaging(unittest.TestCase):
 
         from data_models.parameters import arl_path
         self.dir = arl_path('test_results')
+    
+        self.persist = False
     
     def tearDown(self):
         global arlexecute
@@ -126,8 +129,8 @@ class TestImaging(unittest.TestCase):
         self.model = self.model_list[centre]
         
         self.cmodel = smooth_image(self.model)
-        export_image_to_fits(self.model, '%s/test_imaging_model.fits' % self.dir)
-        export_image_to_fits(self.cmodel, '%s/test_imaging_cmodel.fits' % self.dir)
+        if self.persist: export_image_to_fits(self.model, '%s/test_imaging_model.fits' % self.dir)
+        if self.persist: export_image_to_fits(self.cmodel, '%s/test_imaging_cmodel.fits' % self.dir)
         
         if add_errors and block:
             self.vis_list = [arlexecute.execute(insert_unittest_errors)(self.vis_list[i])
@@ -184,7 +187,7 @@ class TestImaging(unittest.TestCase):
         dirty = arlexecute.compute(dirty, sync=True)[centre]
         
         assert numpy.max(numpy.abs(dirty[0].data)), "Residual image is empty"
-        export_image_to_fits(dirty[0], '%s/test_imaging_predict_%s%s_%s_dirty.fits' %
+        if self.persist: export_image_to_fits(dirty[0], '%s/test_imaging_predict_%s%s_%s_dirty.fits' %
                              (self.dir, context, extra, arlexecute.type()))
         
         maxabs = numpy.max(numpy.abs(dirty[0].data))
@@ -200,7 +203,7 @@ class TestImaging(unittest.TestCase):
         dirty = arlexecute.compute(dirty, sync=True)[centre]
         
         print(dirty)
-        export_image_to_fits(dirty[0], '%s/test_imaging_invert_%s%s_%s_dirty.fits' %
+        if self.persist: export_image_to_fits(dirty[0], '%s/test_imaging_invert_%s%s_%s_dirty.fits' %
                              (self.dir, context, extra, arlexecute.type()))
         
         assert numpy.max(numpy.abs(dirty[0].data)), "Image is empty"
@@ -387,6 +390,68 @@ class TestImaging(unittest.TestCase):
         assert numpy.abs(qa.data['max'] - 0.35139716991480785) < 1.0, str(qa)
         assert numpy.abs(qa.data['min'] + 0.7681701460717593) < 1.0, str(qa)
 
+    def test_restored_list(self):
+        self.actualSetUp(zerow=True)
+        
+        centre = self.freqwin // 2
+        psf_image_list = invert_list_arlexecute_workflow(self.vis_list, self.model_list, context='2d', dopsf=True)
+        residual_image_list = residual_list_arlexecute_workflow(self.vis_list, self.model_list, context='2d')
+        restored_image_list = restore_list_arlexecute_workflow(self.model_list, psf_image_list, residual_image_list,
+                                                               psfwidth=1.0)
+        restored_image_list = arlexecute.compute(restored_image_list, sync=True)
+        if self.persist: export_image_to_fits(restored_image_list[centre], '%s/test_imaging_invert_%s_restored.fits' %
+                                              (self.dir, arlexecute.type()))
+        
+        qa = qa_image(restored_image_list[centre])
+        assert numpy.abs(qa.data['max'] - 99.43438263927834) < 1e-7, str(qa)
+        assert numpy.abs(qa.data['min'] + 0.6328915148563365) < 1e-7, str(qa)
+    
+    def test_restored_list_noresidual(self):
+        self.actualSetUp(zerow=True)
+        
+        centre = self.freqwin // 2
+        psf_image_list = invert_list_arlexecute_workflow(self.vis_list, self.model_list, context='2d', dopsf=True)
+        restored_image_list = restore_list_arlexecute_workflow(self.model_list, psf_image_list, psfwidth=1.0)
+        restored_image_list = arlexecute.compute(restored_image_list, sync=True)
+        if self.persist: export_image_to_fits(restored_image_list[centre],
+                                              '%s/test_imaging_invert_%s_restored_noresidual.fits' %
+                                              (self.dir, arlexecute.type()))
+        
+        qa = qa_image(restored_image_list[centre])
+        assert numpy.abs(qa.data['max'] - 100.0) < 1e-7, str(qa)
+        assert numpy.abs(qa.data['min']) < 1e-7, str(qa)
+    
+    def test_restored_list_facet(self):
+        self.actualSetUp(zerow=True)
+        
+        centre = self.freqwin // 2
+        psf_image_list = invert_list_arlexecute_workflow(self.vis_list, self.model_list, context='2d', dopsf=True)
+        residual_image_list = residual_list_arlexecute_workflow(self.vis_list, self.model_list, context='2d')
+        restored_4facets_image_list = restore_list_arlexecute_workflow(self.model_list, psf_image_list,
+                                                                       residual_image_list,
+                                                                       restore_facets=4, psfwidth=1.0)
+        restored_4facets_image_list = arlexecute.compute(restored_4facets_image_list, sync=True)
+        
+        restored_1facets_image_list = restore_list_arlexecute_workflow(self.model_list, psf_image_list,
+                                                                       residual_image_list,
+                                                                       restore_facets=1, psfwidth=1.0)
+        restored_1facets_image_list = arlexecute.compute(restored_1facets_image_list, sync=True)
+        
+        if self.persist: export_image_to_fits(restored_4facets_image_list[0],
+                                              '%s/test_imaging_invert_%s_restored_4facets.fits' %
+                                              (self.dir, arlexecute.type()))
+        
+        qa = qa_image(restored_4facets_image_list[centre])
+        assert numpy.abs(qa.data['max'] - 99.43438263927833) < 1e-7, str(qa)
+        assert numpy.abs(qa.data['min'] + 0.6328915148563354) < 1e-7, str(qa)
+        
+        restored_4facets_image_list[centre].data -= restored_1facets_image_list[centre].data
+        if self.persist: export_image_to_fits(restored_4facets_image_list[centre],
+                                              '%s/test_imaging_invert_%s_restored_4facets_error.fits' %
+                                              (self.dir, arlexecute.type()))
+        qa = qa_image(restored_4facets_image_list[centre])
+        assert numpy.abs(qa.data['max']) < 1e-10, str(qa)
+    
     def test_sum_invert_list(self):
         self.actualSetUp(zerow=True)
     
