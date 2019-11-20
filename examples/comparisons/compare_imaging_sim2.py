@@ -13,12 +13,12 @@ from data_models.parameters import arl_path
 
 import numpy
 
-from processing_components.visibility.base import create_blockvisibility_from_ms
-from processing_components.image.operations import export_image_to_fits, qa_image
-from processing_components.image.deconvolution import deconvolve_cube, restore_cube
-from processing_components.imaging.base import create_image_from_visibility
-from processing_components.visibility.coalesce import convert_blockvisibility_to_visibility
-from processing_components.visibility.operations import convert_visibility_to_stokes
+from wrappers.serial.visibility.base import create_blockvisibility_from_ms
+from wrappers.serial.image.operations import export_image_to_fits, qa_image
+from wrappers.serial.image.deconvolution import deconvolve_cube, restore_cube
+from wrappers.serial.imaging.base import create_image_from_visibility
+from wrappers.serial.visibility.coalesce import convert_blockvisibility_to_visibility
+from wrappers.serial.visibility.operations import convert_visibility_to_stokes
 
 from workflows.serial.imaging.imaging_serial import invert_list_serial_workflow
 

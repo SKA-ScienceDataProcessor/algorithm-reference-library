@@ -18,7 +18,7 @@ from processing_components.calibration.calibration_control import create_calibra
 from workflows.arlexecute.pipelines.pipeline_arlexecute import ical_list_arlexecute_workflow
 
 from wrappers.arlexecute.execution_support.arlexecute import arlexecute
-from processing_components.visibility.coalesce import convert_blockvisibility_to_visibility
+from wrappers.arlexecute.visibility.coalesce import convert_blockvisibility_to_visibility
 
 import logging
 

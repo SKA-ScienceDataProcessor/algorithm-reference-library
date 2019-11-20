@@ -9,7 +9,7 @@ from processing_library.image.operations import create_empty_image_like
 from workflows.arlexecute.skymodel.skymodel_arlexecute import predict_skymodel_list_arlexecute_workflow, \
     invert_skymodel_list_arlexecute_workflow, crosssubtract_datamodels_skymodel_list_arlexecute_workflow
 from wrappers.arlexecute.execution_support.arlexecute import arlexecute
-from processing_components.skymodel.operations import update_skymodel_from_image, update_skymodel_from_gaintables
+from wrappers.arlexecute.skymodel.operations import update_skymodel_from_image, update_skymodel_from_gaintables
 from ..calibration.calibration_arlexecute import calibrate_list_arlexecute_workflow
 from ..imaging.imaging_arlexecute import invert_list_arlexecute_workflow, \
     deconvolve_list_arlexecute_workflow

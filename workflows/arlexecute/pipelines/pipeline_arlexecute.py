@@ -5,8 +5,8 @@ import logging
 
 from data_models.parameters import get_parameter
 from wrappers.arlexecute.execution_support.arlexecute import arlexecute
-from processing_components.griddata.kernels import create_pswf_convolutionfunction
-from processing_components.visibility.base import copy_visibility
+from wrappers.arlexecute.griddata.kernels import create_pswf_convolutionfunction
+from wrappers.arlexecute.visibility.base import copy_visibility
 from ..calibration.calibration_arlexecute import calibrate_list_arlexecute_workflow
 from ..imaging.imaging_arlexecute import invert_list_arlexecute_workflow, residual_list_arlexecute_workflow, \
     predict_list_arlexecute_workflow, subtract_list_arlexecute_workflow, \

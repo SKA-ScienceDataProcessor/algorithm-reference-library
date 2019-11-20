@@ -13,10 +13,10 @@ from data_models.memory_data_models import Skycomponent
 from data_models.polarisation import PolarisationFrame
 from processing_library.image.operations import create_image
 from processing_library.util.coordinate_support import hadec_to_azel
-from processing_components.image.operations import show_image
-from processing_components.imaging.primary_beams import create_pb
-from processing_components.skycomponent.base import copy_skycomponent
-from processing_components.skycomponent.operations import apply_beam_to_skycomponent
+from wrappers.serial.image.operations import show_image
+from wrappers.serial.imaging.primary_beams import create_pb
+from wrappers.serial.skycomponent.base import copy_skycomponent
+from wrappers.serial.skycomponent.operations import apply_beam_to_skycomponent
 
 log = logging.getLogger(__name__)
 
@@ -238,7 +238,7 @@ def create_simulation_components(context, phasecentre, frequency, pbtype, offset
         max_flux = 0.0
         total_flux = 0.0
         log.info("create_simulation_components: Constructing s3sky components")
-        from processing_components.simulation.testing_support import create_test_skycomponents_from_s3
+        from wrappers.serial.simulation.testing_support import create_test_skycomponents_from_s3
         
         original_components = create_test_skycomponents_from_s3(flux_limit=flux_limit / 100.0,
                                                                 phasecentre=phasecentre,

@@ -24,11 +24,11 @@ from astropy import units as u
 
 from data_models.polarisation import PolarisationFrame
 
-from processing_components.image.operations import qa_image
-from processing_components.imaging.primary_beams import create_vp
-from processing_components.imaging.base import create_image_from_visibility, advise_wide_field
+from wrappers.serial.image.operations import qa_image
+from wrappers.serial.imaging.primary_beams import create_vp
+from wrappers.serial.imaging.base import create_image_from_visibility, advise_wide_field
 from processing_components.simulation.simulation_helpers import find_pb_width_null, create_simulation_components
-from processing_components.visibility.coalesce import convert_blockvisibility_to_visibility
+from wrappers.arlexecute.visibility.coalesce import convert_blockvisibility_to_visibility
 
 from workflows.arlexecute.imaging.imaging_arlexecute import sum_invert_results_arlexecute
 from workflows.arlexecute.simulation.simulation_arlexecute import \

@@ -28,27 +28,27 @@ from workflows.arlexecute.imaging.imaging_arlexecute import restore_list_arlexec
 from workflows.arlexecute.pipelines.pipeline_mpccal_arlexecute import mpccal_skymodel_list_arlexecute_workflow
 from workflows.arlexecute.skymodel.skymodel_arlexecute import predict_skymodel_list_arlexecute_workflow
 from workflows.serial.imaging.imaging_serial import weight_list_serial_workflow, taper_list_serial_workflow
-from processing_components.calibration.operations import create_gaintable_from_blockvisibility
+from wrappers.arlexecute.calibration.operations import create_gaintable_from_blockvisibility
 from wrappers.arlexecute.execution_support.arlexecute import arlexecute
 from wrappers.arlexecute.execution_support.dask_init import get_dask_Client
-from processing_components.image.operations import export_image_to_fits
-from processing_components.skycomponent.operations import remove_neighbouring_components, \
+from wrappers.arlexecute.image.operations import export_image_to_fits
+from wrappers.arlexecute.skycomponent.operations import remove_neighbouring_components, \
     find_skycomponents
-from processing_components.skymodel.operations import calculate_skymodel_equivalent_image
-from processing_components.skymodel.operations import initialize_skymodel_voronoi
-from processing_components.visibility.coalesce import convert_blockvisibility_to_visibility, \
+from wrappers.arlexecute.skymodel.operations import calculate_skymodel_equivalent_image
+from wrappers.arlexecute.skymodel.operations import initialize_skymodel_voronoi
+from wrappers.arlexecute.visibility.coalesce import convert_blockvisibility_to_visibility, \
     convert_visibility_to_blockvisibility
-from processing_components.image.operations import import_image_from_fits
-from processing_components.image.operations import qa_image, show_image
-from processing_components.imaging.base import create_image_from_visibility, advise_wide_field
-from processing_components.imaging.primary_beams import create_low_test_beam
-from processing_components.simulation.ionospheric_screen import create_gaintable_from_screen
-from processing_components.simulation.ionospheric_screen import grid_gaintable_to_screen, plot_gaintable_on_screen
-from processing_components.simulation.testing_support import create_low_test_skycomponents_from_gleam
+from wrappers.serial.image.operations import import_image_from_fits
+from wrappers.serial.image.operations import qa_image, show_image
+from wrappers.serial.imaging.base import create_image_from_visibility, advise_wide_field
+from wrappers.serial.imaging.primary_beams import create_low_test_beam
+from wrappers.serial.simulation.ionospheric_screen import create_gaintable_from_screen
+from wrappers.serial.simulation.ionospheric_screen import grid_gaintable_to_screen, plot_gaintable_on_screen
+from wrappers.serial.simulation.testing_support import create_low_test_skycomponents_from_gleam
 from processing_components.simulation.configurations import create_named_configuration
-from processing_components.skycomponent.operations import apply_beam_to_skycomponent, insert_skycomponent
-from processing_components.skycomponent.operations import filter_skycomponents_by_flux
-from processing_components.visibility.base import create_blockvisibility, copy_visibility
+from wrappers.serial.skycomponent.operations import apply_beam_to_skycomponent, insert_skycomponent
+from wrappers.serial.skycomponent.operations import filter_skycomponents_by_flux
+from wrappers.serial.visibility.base import create_blockvisibility, copy_visibility
 
 if __name__ == '__main__':
     log = logging.getLogger()

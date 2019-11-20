@@ -54,11 +54,11 @@ class export_ms_arl_test(unittest.TestCase):
         from astropy.coordinates import SkyCoord
         from astropy import units as u
 
-        from processing_components.image.operations import show_image, export_image_to_fits
-        from processing_components.simulation.configurations import create_named_configuration
-        from processing_components.simulation.testing_support import create_test_image
-        from processing_components.imaging.base import create_image_from_visibility
-        from processing_components.imaging.base import advise_wide_field
+        from wrappers.serial.image.operations import show_image, export_image_to_fits
+        from wrappers.serial.simulation.configurations import create_named_configuration
+        from wrappers.serial.simulation.testing_support import create_test_image
+        from wrappers.serial.imaging.base import create_image_from_visibility
+        from wrappers.serial.imaging.base import advise_wide_field
 
         from workflows.serial.imaging.imaging_serial import invert_list_serial_workflow, predict_list_serial_workflow
 

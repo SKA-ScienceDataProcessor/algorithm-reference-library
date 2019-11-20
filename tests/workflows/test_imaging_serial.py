@@ -13,13 +13,13 @@ from data_models.polarisation import PolarisationFrame
 from workflows.serial.imaging.imaging_serial import zero_list_serial_workflow, \
     predict_list_serial_workflow, invert_list_serial_workflow, subtract_list_serial_workflow, \
     weight_list_serial_workflow, residual_list_serial_workflow
-from processing_components.image.operations import export_image_to_fits, smooth_image, qa_image
-from processing_components.imaging.base import predict_skycomponent_visibility
-from processing_components.skycomponent.operations import find_skycomponents, find_nearest_skycomponent, \
+from wrappers.serial.image.operations import export_image_to_fits, smooth_image, qa_image
+from wrappers.serial.imaging.base import predict_skycomponent_visibility
+from wrappers.serial.skycomponent.operations import find_skycomponents, find_nearest_skycomponent, \
     insert_skycomponent
-from processing_components.griddata.convolution_functions import apply_bounding_box_convolutionfunction
-from processing_components.griddata.kernels import create_awterm_convolutionfunction
-from processing_components.simulation.testing_support import ingest_unittest_visibility, \
+from wrappers.serial.griddata.convolution_functions import apply_bounding_box_convolutionfunction
+from wrappers.serial.griddata.kernels import create_awterm_convolutionfunction
+from wrappers.serial.simulation.testing_support import ingest_unittest_visibility, \
     create_unittest_model, insert_unittest_errors, create_unittest_components
 from processing_components.simulation.configurations import create_named_configuration
 

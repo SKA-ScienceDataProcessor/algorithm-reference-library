@@ -15,7 +15,7 @@ from data_models.polarisation import PolarisationFrame
 from workflows.arlexecute.skymodel.skymodel_arlexecute import predict_skymodel_list_arlexecute_workflow
 from wrappers.arlexecute.execution_support.arlexecutebase import ARLExecuteBase
 from wrappers.arlexecute.execution_support.dask_init import get_dask_Client
-from processing_components.simulation.testing_support import ingest_unittest_visibility, \
+from wrappers.arlexecute.simulation.testing_support import ingest_unittest_visibility, \
     create_low_test_skymodel_from_gleam
 from processing_components.simulation.configurations import create_named_configuration
 

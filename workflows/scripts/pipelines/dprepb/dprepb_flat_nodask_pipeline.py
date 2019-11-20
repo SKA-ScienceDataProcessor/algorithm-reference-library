@@ -10,15 +10,15 @@ from data_models.parameters import arl_path
 results_dir = arl_path('test_results')
 
 from data_models.polarisation import PolarisationFrame
-from processing_components.visibility.base import create_visibility_from_ms, create_visibility_from_rows
-from processing_components.visibility.operations import append_visibility, convert_visibility_to_stokes
-from processing_components.visibility.vis_select import vis_select_uvrange
+from wrappers.serial.visibility.base import create_visibility_from_ms, create_visibility_from_rows
+from wrappers.serial.visibility.operations import append_visibility, convert_visibility_to_stokes
+from wrappers.serial.visibility.vis_select import vis_select_uvrange
 
-from processing_components.image.deconvolution import deconvolve_cube, restore_cube
-from processing_components.image.operations import export_image_to_fits, qa_image
-from processing_components.image.gather_scatter import image_gather_channels
-from processing_components.imaging.base import create_image_from_visibility
-from processing_components.imaging.base import invert_2d
+from wrappers.serial.image.deconvolution import deconvolve_cube, restore_cube
+from wrappers.serial.image.operations import export_image_to_fits, qa_image
+from wrappers.serial.image.gather_scatter import image_gather_channels
+from wrappers.serial.imaging.base import create_image_from_visibility
+from wrappers.serial.imaging.base import invert_2d
 
 from workflows.serial.imaging.imaging_serial import invert_list_serial_workflow
 
