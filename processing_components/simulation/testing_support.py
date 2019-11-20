@@ -1011,7 +1011,7 @@ def ingest_unittest_visibility(config, frequency, channel_bandwidth, times, vis_
 
 
 def create_unittest_components(model, flux, applypb=False, telescope='LOW', npixel=None,
-                               scale=1.0, single=False, symmetric=False):
+                               scale=1.0, single=False, symmetric=False, angular_scale=1.0):
     # Fill the visibility with exactly computed point sources.
     
     if npixel == None:
@@ -1020,14 +1020,14 @@ def create_unittest_components(model, flux, applypb=False, telescope='LOW', npix
     log.info('Spacing in pixels = %s' % spacing_pixels)
     
     if not symmetric:
-        centers = [(0.2, 1.1)]
+        centers = [(0.2*angular_scale, 1.1*angular_scale)]
     else:
         centers = list()
     
     if not single:
         centers.append([0.0, 0.0])
         
-        for x in numpy.linspace(-1.2, 1.2, 7):
+        for x in numpy.linspace(-1.2*angular_scale, 1.2*angular_scale, 7):
             if abs(x) > 1e-15:
                 centers.append([x, x])
                 centers.append([x, -x])

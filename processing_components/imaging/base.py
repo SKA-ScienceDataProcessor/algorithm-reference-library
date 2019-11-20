@@ -58,7 +58,8 @@ def shift_vis_to_image(vis: Visibility, im: Image, tangent: bool = True, inverse
     :return: visibility with phase shift applied and phasecentre updated
 
     """
-    assert isinstance(vis, Visibility), "vis is not a Visibility: %r" % vis
+    assert isinstance(vis, Visibility) or isinstance(vis, BlockVisibility), "vis is not a Visibility or " \
+                                                                            "BlockVisibility: %r" % vis
     
     nchan, npol, ny, nx = im.data.shape
     
@@ -245,7 +246,7 @@ def predict_skycomponent_visibility(vis: Union[Visibility, BlockVisibility],
     return vis
 
 
-def create_image_from_visibility(vis, **kwargs) -> Image:
+def create_image_from_visibility(vis: Union[BlockVisibility, Visibility], **kwargs) -> Image:
     """Make an empty image from params and Visibility
     
     This makes an empty, template image consistent with the visibility, allowing optional overriding of select
@@ -302,7 +303,7 @@ def create_image_from_visibility(vis, **kwargs) -> Image:
     
     # Image sampling options
     npixel = get_parameter(kwargs, "npixel", 512)
-    uvmax = numpy.max((numpy.abs(vis.data['uvw'][:, 0:1])))
+    uvmax = numpy.max((numpy.abs(vis.data['uvw'][..., 0:1])))
     if isinstance(vis, BlockVisibility):
         uvmax *= numpy.max(frequency) / constants.c.to('m s^-1').value
     log.debug("create_image_from_visibility: uvmax = %f wavelengths" % uvmax)
@@ -346,8 +347,8 @@ def create_image_from_visibility(vis, **kwargs) -> Image:
     return create_image_from_array(numpy.zeros(shape), wcs=w, polarisation_frame=pol_frame)
 
 
-def advise_wide_field(vis: Visibility, delA=0.02, oversampling_synthesised_beam=3.0, guard_band_image=6.0, facets=1,
-                      wprojection_planes=1, verbose=True):
+def advise_wide_field(vis: Union[BlockVisibility, Visibility], delA=0.02, oversampling_synthesised_beam=3.0,
+                      guard_band_image=6.0, facets=1, wprojection_planes=1, verbose=True):
     """ Advise on parameters for wide field imaging.
     
     Calculate sampling requirements on various parameters
@@ -367,7 +368,7 @@ def advise_wide_field(vis: Visibility, delA=0.02, oversampling_synthesised_beam=
     :return: dict of advice
     """
     
-    assert isinstance(vis, Visibility), vis
+    isblock = isinstance(vis, BlockVisibility)
     
     max_wavelength = constants.c.to('m s^-1').value / numpy.min(vis.frequency)
     if verbose:
@@ -377,12 +378,17 @@ def advise_wide_field(vis: Visibility, delA=0.02, oversampling_synthesised_beam=
     if verbose:
         log.info("advise_wide_field: Minimum wavelength %.3f (meters)" % (min_wavelength))
 
-    maximum_baseline = numpy.max(numpy.abs(vis.uvw))  # Wavelengths
+    if isblock:
+        maximum_baseline = numpy.max(numpy.abs(vis.uvw))/min_wavelength # Wavelengths
+        maximum_w = numpy.max(numpy.abs(vis.w))/min_wavelength # Wavelengths
+    else:
+        maximum_baseline = numpy.max(numpy.abs(vis.uvw)) # Wavelengths
+        maximum_w = numpy.max(numpy.abs(vis.w))  # Wavelengths
+
     if verbose:
         log.info("advise_wide_field: Maximum baseline %.1f (wavelengths)" % (maximum_baseline))
     assert maximum_baseline > 0.0, "Error in UVW coordinates: all uvw are zero"
 
-    maximum_w = numpy.max(numpy.abs(vis.w))  # Wavelengths
     if verbose:
         log.info("advise_wide_field: Maximum w %.1f (wavelengths)" % (maximum_w))
 

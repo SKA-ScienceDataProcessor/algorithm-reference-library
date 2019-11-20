@@ -501,13 +501,13 @@ def create_blockvisibility_from_ms(msname, channum=None, start_chan=None, end_ch
             datacol = ms.getcol('DATA', nrow=1)
             datacol_shape = list(datacol.shape)
             channels = datacol.shape[-2]
-            log.debug("create_visibility_from_ms: Found %d channels" % (channels))
+            log.debug("create_blockvisibility_from_ms: Found %d channels" % (channels))
             if channum is None:
                 if start_chan is not None and end_chan is not None:
                     try:
-                        log.debug("create_visibility_from_ms: Reading channels from %d to %d" %
+                        log.debug("create_blockvisibility_from_ms: Reading channels from %d to %d" %
                                   (start_chan, end_chan))
-                        print("create_visibility_from_ms: Reading channels from %d to %d (inclusive)" %
+                        print("create_blockvisibility_from_ms: Reading channels from %d to %d (inclusive)" %
                               (start_chan, end_chan))
                         blc = [start_chan, 0]
                         trc = [end_chan, datacol_shape[-1] - 1]
@@ -518,8 +518,8 @@ def create_blockvisibility_from_ms(msname, channum=None, start_chan=None, end_ch
                         raise IndexError("channel number exceeds max. within ms")
 
                 else:
-                    log.debug("create_visibility_from_ms: Reading all %d channels" % (channels))
-                    print("create_visibility_from_ms: Reading all %d channels" % (channels))
+                    log.debug("create_blockvisibility_from_ms: Reading all %d channels" % (channels))
+                    print("create_blockvisibility_from_ms: Reading all %d channels" % (channels))
                     try:
                         ms_vis = ms.getcol('DATA')
                         ms_weight = ms.getcol('WEIGHT')

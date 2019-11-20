@@ -12,17 +12,20 @@ __all__ = ['predict_list_arlexecute_workflow', 'invert_list_arlexecute_workflow'
            'taper_list_arlexecute_workflow', 'zero_list_arlexecute_workflow', 'subtract_list_arlexecute_workflow',
            'sum_invert_results_arlexecute']
 
+
 import collections
 import logging
 
 import numpy
 
-from data_models.memory_data_models import Image, Visibility
+from data_models.memory_data_models import Image, Visibility, BlockVisibility
 from data_models.parameters import get_parameter
 from processing_library.image.operations import copy_image, create_empty_image_like
 from workflows.shared.imaging.imaging_shared import imaging_context
-from workflows.shared.imaging.imaging_shared import remove_sumwt, sum_predict_results, threshold_list, \
-    sum_invert_results
+from workflows.shared.imaging.imaging_shared import remove_sumwt, sum_predict_results, \
+    threshold_list, sum_invert_results
+from processing_components.visibility.coalesce import convert_blockvisibility_to_visibility, \
+    convert_visibility_to_blockvisibility
 from wrappers.arlexecute.execution_support.arlexecute import arlexecute
 from wrappers.arlexecute.griddata.gridding import grid_weight_to_griddata, griddata_reweight, griddata_merge_weights
 from wrappers.arlexecute.griddata.kernels import create_pswf_convolutionfunction
@@ -36,7 +39,6 @@ from wrappers.arlexecute.visibility.base import copy_visibility
 from wrappers.arlexecute.visibility.gather_scatter import visibility_scatter, visibility_gather
 
 log = logging.getLogger(__name__)
-
 
 def predict_list_arlexecute_workflow(vis_list, model_imagelist, context, vis_slices=1, facets=1,
                                      gcfcf=None, **kwargs):
@@ -76,7 +78,7 @@ def predict_list_arlexecute_workflow(vis_list, model_imagelist, context, vis_sli
     
     def predict_ignore_none(vis, model, g):
         if vis is not None:
-            assert isinstance(vis, Visibility), vis
+            assert isinstance(vis, Visibility) or isinstance(vis, BlockVisibility), vis
             assert isinstance(model, Image), model
             return predict(vis, model, context=context, gcfcf=g, **kwargs)
         else:
@@ -117,7 +119,7 @@ def predict_list_arlexecute_workflow(vis_list, model_imagelist, context, vis_sli
                 model_imagelist[ivis],
                 facets=facets)
             # Create the graph to divide the visibility into slices. This is by copy.
-            sub_vis_lists = arlexecute.execute(visibility_scatter, nout=vis_slices) \
+            sub_vis_lists = arlexecute.execute(visibility_scatter, nout=vis_slices)\
                 (subvis, vis_iter, vis_slices)
             
             facet_vis_lists = list()
@@ -127,7 +129,7 @@ def predict_list_arlexecute_workflow(vis_list, model_imagelist, context, vis_sli
                 # Loop over facets
                 for facet_list in facet_lists:
                     # Predict visibility for this subvisibility from this facet
-                    facet_vis_list = arlexecute.execute(predict_ignore_none, pure=True, nout=1) \
+                    facet_vis_list = arlexecute.execute(predict_ignore_none, pure=True, nout=1)\
                         (sub_vis_list, facet_list, None)
                     facet_vis_results.append(facet_vis_list)
                 # Sum the current sub-visibility over all facets
@@ -212,7 +214,7 @@ def invert_list_arlexecute_workflow(vis_list, template_model_imagelist, context,
             else:
                 g = gcfcf[0]
             # Create the graph to divide the visibility into slices. This is by copy.
-            sub_sub_vis_lists = arlexecute.execute(visibility_scatter, nout=vis_slices) \
+            sub_sub_vis_lists = arlexecute.execute(visibility_scatter, nout=vis_slices)\
                 (sub_vis_list, vis_iter, vis_slices=vis_slices)
             
             # Iterate within each sub_sub_vis_list
@@ -221,7 +223,7 @@ def invert_list_arlexecute_workflow(vis_list, template_model_imagelist, context,
                 vis_results.append(arlexecute.execute(invert_ignore_none, pure=True)
                                    (sub_sub_vis_list, template_model_imagelist[ivis], g))
             results_vislist.append(sum_invert_results_arlexecute(vis_results))
-        
+
         result = results_vislist
     else:
         for ivis, sub_vis_list in enumerate(vis_list):
@@ -231,7 +233,7 @@ def invert_list_arlexecute_workflow(vis_list, template_model_imagelist, context,
                     ivis],
                 facets=facets)
             # Create the graph to divide the visibility into slices. This is by copy.
-            sub_sub_vis_lists = arlexecute.execute(visibility_scatter, nout=vis_slices) \
+            sub_sub_vis_lists = arlexecute.execute(visibility_scatter, nout=vis_slices)\
                 (sub_vis_list, vis_iter, vis_slices=vis_slices)
             
             # Iterate within each vis_list
@@ -525,6 +527,15 @@ def weight_list_arlexecute_workflow(vis_list, model_imagelist, gcfcf=None, weigh
     
     if gcfcf is None:
         gcfcf = [arlexecute.execute(create_pswf_convolutionfunction)(model_imagelist[centre])]
+        
+    def to_vis(v):
+        if isinstance(v, BlockVisibility):
+            av = convert_blockvisibility_to_visibility(v)
+            return av
+        else:
+            return v
+    
+    avis_list = [arlexecute.execute(to_vis, nout=1)(vis) for vis in vis_list]
     
     def grid_wt(vis, model, g):
         if vis is not None:
@@ -537,7 +548,7 @@ def weight_list_arlexecute_workflow(vis_list, model_imagelist, gcfcf=None, weigh
         else:
             return None
     
-    weight_list = [arlexecute.execute(grid_wt, pure=True, nout=1)(vis_list[i], model_imagelist[i],
+    weight_list = [arlexecute.execute(grid_wt, pure=True, nout=1)(avis_list[i], model_imagelist[i],
                                                                   gcfcf)
                    for i in range(len(vis_list))]
     
@@ -558,8 +569,18 @@ def weight_list_arlexecute_workflow(vis_list, model_imagelist, gcfcf=None, weigh
         else:
             return vis
     
-    result = [arlexecute.execute(re_weight, nout=1)(v, model_imagelist[i], merged_weight_grid, gcfcf)
-              for i, v in enumerate(vis_list)]
+    avis_list = [arlexecute.execute(re_weight, nout=1)(v, model_imagelist[i], merged_weight_grid, gcfcf)
+              for i, v in enumerate(avis_list)]
+
+    def to_bvis(v, ov):
+        if isinstance(ov, BlockVisibility):
+            av = convert_visibility_to_blockvisibility(v)
+            return av
+        else:
+            return v
+
+    result = [arlexecute.execute(to_bvis, nout=1)(vis, ovis) for vis, ovis in zip(avis_list, vis_list)]
+
     return arlexecute.optimize(result)
 
 
@@ -630,3 +651,4 @@ def sum_invert_results_arlexecute(image_list, split=2):
         return arlexecute.execute(sum_invert_results, nout=2)(result)
     else:
         return arlexecute.execute(sum_invert_results, nout=2)(image_list)
+

@@ -443,27 +443,6 @@ def convert_blocks(vis, uvw, wts, imaging_wts, times, integration_time, frequenc
     return cvis, cuvw, cwts, cimaging_weights, ctime, cfrequency, cchannel_bandwidth, ca1, ca2, \
            cintegration_time, cindex
 
-
-def decoalesce_vis(vshape, cvis, cindex):
-    """Decoalesce data
-
-    We use the index into the coalesced data_models. For every output row, this gives the
-    corresponding row in the coalesced data_models.
-
-    :param vshape: Shape of template visibility data_models
-    :param cvis: Coalesced visibility values
-    :param cindex: Index array from coalescence
-    :return: uncoalesced vis
-    """
-    npol = vshape[-1]
-    dvis = numpy.zeros(vshape, dtype='complex')
-    assert numpy.max(cindex) < dvis.size
-    for i in range(dvis.size // npol):
-        dvis.flat[i:i + npol] = cvis[cindex[i]]
-
-    return dvis
-
-
 def convert_visibility_to_blockvisibility(vis: Visibility) -> BlockVisibility:
     """ Convert a Visibility to equivalent BlockVisibility format
 
