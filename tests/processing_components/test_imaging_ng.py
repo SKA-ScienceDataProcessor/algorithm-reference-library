@@ -25,7 +25,7 @@ try:
     import nifty_gridder
     run_ng_tests = True
 #            except ModuleNotFoundError:
-except ModuleNotFoundError:
+except ImportError:
     run_ng_tests = False
 
 log = logging.getLogger(__name__)
