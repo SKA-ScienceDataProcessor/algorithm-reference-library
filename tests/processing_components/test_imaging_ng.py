@@ -12,8 +12,7 @@ from astropy.coordinates import SkyCoord
 
 from data_models.polarisation import PolarisationFrame
 from processing_components.image.operations import export_image_to_fits, smooth_image
-from processing_components.imaging.ng import predict_ng, invert_ng
-from processing_components.imaging.base import predict_skycomponent_visibility, invert_2d
+from processing_components.imaging.base import predict_skycomponent_visibility
 from processing_components.simulation.configurations import create_named_configuration
 from processing_components.simulation.testing_support import ingest_unittest_visibility, \
     create_unittest_model, create_unittest_components
@@ -26,7 +25,7 @@ try:
     import nifty_gridder
     run_ng_tests = True
 #            except ModuleNotFoundError:
-except:
+except ModuleNotFoundError:
     run_ng_tests = False
 
 log = logging.getLogger(__name__)
