@@ -27,6 +27,8 @@ class TestPrimaryBeams(unittest.TestCase):
     def setUp(self):
         from data_models.parameters import arl_path
         self.dir = arl_path('test_results')
+        
+        self.persist = False
     
     def createVis(self, config='MID', dec=-35.0, rmax=1e3, freq=1e9):
         self.frequency = numpy.linspace(freq, 1.5 * freq, 3)
@@ -61,7 +63,7 @@ class TestPrimaryBeams(unittest.TestCase):
                                             edge=0.03162278, padding=2, use_local=True, rho=rho, diff=diff)
                 vp_data = vp.data
                 vp.data = numpy.real(vp_data)
-                export_image_to_fits(vp, "%s/test_voltage_pattern_real_%s_rho%.3f_diff%.3f.fits" %
+                if self.persist: export_image_to_fits(vp, "%s/test_voltage_pattern_real_%s_rho%.3f_diff%.3f.fits" %
                                      (self.dir, "MID_TAPER", rho, diff))
                 ax = axs[irho, idiff]
                 ax.imshow(vp.data[0,0])#, vmax=0.1, vmin=-0.01)

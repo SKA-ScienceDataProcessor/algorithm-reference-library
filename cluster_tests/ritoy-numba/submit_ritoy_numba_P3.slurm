@@ -1,6 +1,6 @@
 #!/bin/bash
 #!
-#! Dask job script for CSD3
+#! Dask job script for P3
 #! Tim Cornwell
 #!
 
@@ -10,47 +10,48 @@
 
 #! sbatch directives begin here ###############################
 #! Name of the job:
-#SBATCH -J CLUSTER_TEST
+#SBATCH -J SDP_ARL
 #! Which project should be charged:
-#SBATCH -A SKA-SDP-SL2-CPU
+#SBATCH -A SKA-SDP
 #! How many whole nodes should be allocated?
-#SBATCH --nodes=4
+#SBATCH --nodes=8
 #! How many (MPI) tasks will there be in total? (<= nodes*16)
 #SBATCH --ntasks=16
-#! Memory limit: P3 has roughly 107GB per node
-#SBATCH --mem 100000
+#! Memory limit
+##SBATCH --mem 50000
 #! How much wallclock time will be required?
-#SBATCH --time=01:00:00
+#SBATCH --time=00:20:00
 #! What types of email messages do you wish to receive?
-#SBATCH --mail-type=FAIL,END
-#! Where to send email messages
-#SBATCH --mail-user=realtimcornwell@gmail.com
+#SBATCH --mail-type=FAIL
 #! Uncomment this to prevent the job from being requeued (e.g. if
 #! interrupted by node failure or system downtime):
 ##SBATCH --no-requeue
 #! Do not change:
-#SBATCH -p skylake
-#! What types of email messages do you wish to receivewhich?
+#SBATCH -p compute
+#! What types of email messages do you wish to receive?
 #SBATCH --mail-type=FAIL
-#! Ask for exclusive access
-#SBATCH --exclusive
-#! Same switch
-#SBATCH --switches=1
 #! Uncomment this to prevent the job from being requeued (e.g. if
 #! interrupted by node failure or system downtime):
 ##SBATCH --no-requeue
+
+#! Modify the settings below to specify the application's environment, location
+#! and launch method:
+
 #! Optionally modify the environment seen by the application
 #! (note that SLURM reproduces the environment at submission irrespective of ~/.bashrc):
 module purge                               # Removes all modules still loaded
 
 #! Set up python
+export PYTHONPATH=$PYTHONPATH:$ARL
+echo "PYTHONPATH is ${PYTHONPATH}"
+
 echo -e "Running python: `which python`"
 echo -e "Running dask-scheduler: `which dask-scheduler`"
 
-module load slurm
-
 cd $SLURM_SUBMIT_DIR
 echo -e "Changed directory to `pwd`.\n"
+
+module load slurm
 
 JOBID=${SLURM_JOB_ID}
 echo ${SLURM_JOB_NODELIST}
@@ -68,18 +69,14 @@ for host in `cat hostfile.$JOBID`; do
         sleep 5
     fi
     echo "run dask-worker"
-    ssh $host dask-worker --nprocs 4 --nthreads 1 \
-    --memory-limit 10GB $scheduler:8786  &
+    ssh $host dask-worker --host ${host} --nprocs 2 --nthreads 1  \
+    --memory-limit 100GB $scheduler:8786 &
         sleep 1
     hostIndex="1"
 done
 echo "Scheduler and workers now running"
 
-#! We need to tell dask Client (inside python) where the scheduler is running
-export ARL_DASK_SCHEDULER=${scheduler}:8786
-echo "Scheduler is running at ${scheduler}"
-
-CMD="python cluster_test_image.py | tee cluster_test_image.log"
+CMD="python ./cluster_test_ritoy_numba.py ${scheduler}:8786 | tee cluster_test_ritoy_numba.log"
+echo "About to execute $CMD"
 
 eval $CMD
-

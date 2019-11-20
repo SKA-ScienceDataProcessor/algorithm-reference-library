@@ -29,6 +29,8 @@ class TestCreateMS(unittest.TestCase):
     
     def setUp(self):
         self.dir = arl_path('test_results')
+        
+        self.persist = False
     
         return
     
@@ -95,7 +97,7 @@ class TestCreateMS(unittest.TestCase):
             from processing_components.image.operations import show_image
             show_image(dirty)
             plt.show()
-            export_image_to_fits(dirty, '%s/test_visibility_uvfits_dirty.fits' % self.dir)
+            if self.persist: export_image_to_fits(dirty, '%s/test_visibility_uvfits_dirty.fits' % self.dir)
 
 
 if __name__ == '__main__':

@@ -1,6 +1,6 @@
 #!/bin/bash
 #!
-#! Dask job script for Darwin (Sandy Bridge, ConnectX3)
+#! Dask job script for CSD3
 #! Tim Cornwell
 #!
 
@@ -12,11 +12,11 @@
 #! Name of the job:
 #SBATCH -J CLUSTER_TEST
 #! Which project should be charged:
-#SBATCH -A SKA-SDP
+#SBATCH -A SKA-SDP-SL2-CPU
 #! How many whole nodes should be allocated?
-#SBATCH --nodes=8
+#SBATCH --nodes=4
 #! How many (MPI) tasks will there be in total? (<= nodes*16)
-#SBATCH --ntasks=32
+#SBATCH --ntasks=16
 #! Memory limit: P3 has roughly 107GB per node
 #SBATCH --mem 100000
 #! How much wallclock time will be required?
@@ -29,8 +29,10 @@
 #! interrupted by node failure or system downtime):
 ##SBATCH --no-requeue
 #! Do not change:
-#SBATCH -p compute
-
+#SBATCH -p skylake
+#! What types of email messages do you wish to receivewhich?
+#SBATCH --mail-type=FAIL
+#! Ask for exclusive access
 #SBATCH --exclusive
 #! Same switch
 #SBATCH --switches=1
@@ -44,6 +46,8 @@ module purge                               # Removes all modules still loaded
 #! Set up python
 echo -e "Running python: `which python`"
 echo -e "Running dask-scheduler: `which dask-scheduler`"
+
+module load slurm
 
 cd $SLURM_SUBMIT_DIR
 echo -e "Changed directory to `pwd`.\n"
@@ -64,18 +68,16 @@ for host in `cat hostfile.$JOBID`; do
         sleep 5
     fi
     echo "run dask-worker"
-    ssh $host dask-worker --nprocs 4 --nthreads 1 --interface ib0 \
-    --memory-limit 200GB $scheduler:8786  &
+    ssh $host dask-worker --nprocs 4 --nthreads 1 \
+    --memory-limit 10GB $scheduler:8786  &
         sleep 1
     hostIndex="1"
 done
 echo "Scheduler and workers now running"
 
-#! We need to tell dask Client (inside python) where the scheduler is running
-export ARL_DASK_SCHEDULER=${scheduler}:8786
-echo "Scheduler is running at ${scheduler}"
+echo "Scheduler is running at ${scheduler}:8786"
 
-CMD="python cluster_dask_test.py | tee cluster_dask_test.log"
+CMD="python cluster_dask_test.py ${scheduler}:8786 | tee cluster_dask_test.log"
 
 eval $CMD
 

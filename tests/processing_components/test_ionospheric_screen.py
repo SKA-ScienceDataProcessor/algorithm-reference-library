@@ -29,6 +29,8 @@ log = logging.getLogger(__name__)
 
 class TestIonosphericScreen(unittest.TestCase):
     def setUp(self):
+        
+        self.persist = False
         from data_models.parameters import arl_path
         dec = -40.0 * u.deg
         
@@ -102,8 +104,8 @@ class TestIonosphericScreen(unittest.TestCase):
         
         newscreen, weights = grid_gaintable_to_screen(self.vis, gaintables, newscreen)
         assert numpy.max(numpy.abs(screen.data)) > 0.0
-        export_image_to_fits(newscreen, arl_path('test_results/test_mpc_screen_gridded.fits'))
-        export_image_to_fits(weights, arl_path('test_results/test_mpc_screen_gridded_weights.fits'))
+        if self.persist: export_image_to_fits(newscreen, arl_path('test_results/test_mpc_screen_gridded.fits'))
+        if self.persist: export_image_to_fits(weights, arl_path('test_results/test_mpc_screen_gridded_weights.fits'))
 
     def test_plot_gaintable_to_screen(self):
         screen = import_image_from_fits(arl_path('data/models/test_mpc_screen.fits'))

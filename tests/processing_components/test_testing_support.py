@@ -36,6 +36,7 @@ class TestTesting_Support(unittest.TestCase):
     def setUp(self):
         from data_models.parameters import arl_path
         self.dir = arl_path('test_results')
+        self.persist = False
         
         self.frequency = numpy.linspace(0.8e8, 1.2e8, 5)
         self.channel_bandwidth = numpy.array([1e7, 1e7, 1e7, 1e7, 1e7])
@@ -84,7 +85,7 @@ class TestTesting_Support(unittest.TestCase):
         assert im.data.shape[1] == 1
         assert im.data.shape[2] == 256
         assert im.data.shape[3] == 256
-        export_image_to_fits(im, '%s/test_test_support_low_gleam.fits' % (self.dir))
+        if self.persist: export_image_to_fits(im, '%s/test_test_support_low_gleam.fits' % (self.dir))
         
         comp = sm.components
         assert len(comp) == 79, len(comp)
@@ -101,7 +102,7 @@ class TestTesting_Support(unittest.TestCase):
         assert im.data.shape[1] == 1
         assert im.data.shape[2] == 256
         assert im.data.shape[3] == 256
-        export_image_to_fits(im, '%s/test_test_support_low_gleam.fits' % (self.dir))
+        if self.persist: export_image_to_fits(im, '%s/test_test_support_low_gleam.fits' % (self.dir))
     
     def test_create_low_test_image_from_gleam_with_pb(self):
         im = create_low_test_image_from_gleam(npixel=256, cellsize=0.001,
@@ -114,7 +115,7 @@ class TestTesting_Support(unittest.TestCase):
         assert im.data.shape[1] == 1
         assert im.data.shape[2] == 256
         assert im.data.shape[3] == 256
-        export_image_to_fits(im, '%s/test_test_support_low_gleam_with_pb.fits' % (self.dir))
+        if self.persist: export_image_to_fits(im, '%s/test_test_support_low_gleam_with_pb.fits' % (self.dir))
     
     def test_create_low_test_skycomponents_from_gleam(self):
         sc = create_low_test_skycomponents_from_gleam(flux_limit=1.0,
@@ -143,7 +144,7 @@ class TestTesting_Support(unittest.TestCase):
         assert im.data.shape[1] == 1
         assert im.data.shape[2] == 1024
         assert im.data.shape[3] == 1024
-        export_image_to_fits(im, '%s/test_test_support_low_s3.fits' % (self.dir))
+        if self.persist: export_image_to_fits(im, '%s/test_test_support_low_s3.fits' % (self.dir))
     
     def test_create_test_image_from_s3_mid(self):
         im = create_test_image_from_s3(npixel=1024, channel_bandwidth=numpy.array([1e6]),
@@ -154,7 +155,7 @@ class TestTesting_Support(unittest.TestCase):
         assert im.data.shape[1] == 1
         assert im.data.shape[2] == 1024
         assert im.data.shape[3] == 1024
-        export_image_to_fits(im, '%s/test_test_support_mid_s3.fits' % (self.dir))
+        if self.persist: export_image_to_fits(im, '%s/test_test_support_mid_s3.fits' % (self.dir))
     
     def test_create_test_image_s3_spectral(self):
         im = create_test_image_from_s3(npixel=1024, channel_bandwidth=numpy.array([1e6, 1e6, 1e6]),
@@ -175,7 +176,7 @@ class TestTesting_Support(unittest.TestCase):
         assert im.data.shape[1] == 4
         assert im.data.shape[2] == 1024
         assert im.data.shape[3] == 1024
-        export_image_to_fits(im, '%s/test_test_support_low_s3.fits' % (self.dir))
+        if self.persist: export_image_to_fits(im, '%s/test_test_support_low_s3.fits' % (self.dir))
     
     def test_create_low_test_beam(self):
         im = create_test_image(canonical=True, cellsize=0.002,
@@ -184,7 +185,7 @@ class TestTesting_Support(unittest.TestCase):
                                polarisation_frame=PolarisationFrame("stokesIQUV"),
                                phasecentre=self.phasecentre)
         bm = create_low_test_beam(model=im)
-        export_image_to_fits(bm, '%s/test_test_support_low_beam.fits' % (self.dir))
+        if self.persist: export_image_to_fits(bm, '%s/test_test_support_low_beam.fits' % (self.dir))
         
         assert bm.data.shape[0] == 3
         assert bm.data.shape[1] == 4
