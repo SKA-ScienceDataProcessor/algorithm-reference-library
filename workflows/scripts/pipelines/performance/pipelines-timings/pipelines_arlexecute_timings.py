@@ -22,15 +22,15 @@ from workflows.arlexecute.pipelines.pipeline_arlexecute import ical_list_arlexec
 from workflows.arlexecute.simulation.simulation_arlexecute import simulate_list_arlexecute_workflow, \
     corrupt_list_arlexecute_workflow
 from workflows.arlexecute.skymodel.skymodel_arlexecute import predict_skymodel_list_arlexecute_workflow
-from wrappers.arlexecute.calibration.calibration_control import create_calibration_controls
+from processing_components.calibration.calibration_control import create_calibration_controls
 from wrappers.arlexecute.execution_support.arlexecute import arlexecute
 from wrappers.arlexecute.execution_support.dask_init import findNodes, get_dask_Client
-from wrappers.arlexecute.griddata.kernels import create_awterm_convolutionfunction, create_pswf_convolutionfunction
-from wrappers.arlexecute.image.gather_scatter import image_gather_channels
-from wrappers.arlexecute.image.operations import export_image_to_fits, qa_image
-from wrappers.arlexecute.imaging.base import advise_wide_field
-from wrappers.arlexecute.simulation.testing_support import create_low_test_skymodel_from_gleam
-from wrappers.arlexecute.visibility.coalesce import convert_blockvisibility_to_visibility
+from processing_components.griddata.kernels import create_awterm_convolutionfunction, create_pswf_convolutionfunction
+from processing_components.image.gather_scatter import image_gather_channels
+from processing_components.image.operations import export_image_to_fits, qa_image
+from processing_components.imaging.base import advise_wide_field
+from processing_components.simulation.testing_support import create_low_test_skymodel_from_gleam
+from processing_components.visibility.coalesce import convert_blockvisibility_to_visibility
 
 pp = pprint.PrettyPrinter()
 

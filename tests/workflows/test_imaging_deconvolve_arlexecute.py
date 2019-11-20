@@ -18,11 +18,11 @@ from workflows.arlexecute.imaging.imaging_arlexecute import invert_list_arlexecu
     residual_list_arlexecute_workflow, restore_list_arlexecute_workflow
 from wrappers.arlexecute.execution_support.arlexecutebase import ARLExecuteBase
 from wrappers.arlexecute.execution_support.dask_init import get_dask_Client
-from wrappers.arlexecute.image.operations import export_image_to_fits, smooth_image
-from wrappers.arlexecute.imaging.base import predict_skycomponent_visibility
-from wrappers.arlexecute.simulation.testing_support import ingest_unittest_visibility, \
+from processing_components.image.operations import export_image_to_fits, smooth_image
+from processing_components.imaging.base import predict_skycomponent_visibility
+from processing_components.simulation.testing_support import ingest_unittest_visibility, \
     create_unittest_model, create_unittest_components, insert_unittest_errors
-from wrappers.arlexecute.skycomponent.operations import insert_skycomponent
+from processing_components.skycomponent.operations import insert_skycomponent
 
 log = logging.getLogger(__name__)
 

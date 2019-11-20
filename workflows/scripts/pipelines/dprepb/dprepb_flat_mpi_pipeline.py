@@ -11,15 +11,15 @@ from data_models.parameters import arl_path
 from mpi4py import MPI
 
 from data_models.polarisation import PolarisationFrame
-from wrappers.arlexecute.visibility.base import create_visibility_from_ms, create_visibility_from_rows
-from wrappers.arlexecute.visibility.operations import append_visibility, convert_visibility_to_stokes
-from wrappers.arlexecute.visibility.vis_select import vis_select_uvrange
+from processing_components.visibility.base import create_visibility_from_ms, create_visibility_from_rows
+from processing_components.visibility.operations import append_visibility, convert_visibility_to_stokes
+from processing_components.visibility.vis_select import vis_select_uvrange
 
-from wrappers.arlexecute.image.deconvolution import deconvolve_cube, restore_cube
-from wrappers.arlexecute.image.operations import export_image_to_fits, qa_image
-from wrappers.arlexecute.image.gather_scatter import image_gather_channels
-from wrappers.arlexecute.imaging.base import create_image_from_visibility
-from wrappers.arlexecute.imaging.base import invert_2d
+from processing_components.image.deconvolution import deconvolve_cube, restore_cube
+from processing_components.image.operations import export_image_to_fits, qa_image
+from processing_components.image.gather_scatter import image_gather_channels
+from processing_components.imaging.base import create_image_from_visibility
+from processing_components.imaging.base import invert_2d
 
 from workflows.serial.imaging.imaging_serial import invert_list_serial_workflow
 

@@ -6,11 +6,11 @@ import numpy
 
 from data_models.data_model_helpers import GainTable
 from wrappers.arlexecute.execution_support.arlexecute import arlexecute
-from wrappers.arlexecute.calibration.calibration_control import calibrate_function, apply_calibration_function, \
+from processing_components.calibration.calibration_control import calibrate_function, apply_calibration_function, \
     solve_calibrate_function
-from wrappers.arlexecute.visibility.coalesce import convert_visibility_to_blockvisibility
-from wrappers.arlexecute.visibility.gather_scatter import visibility_gather_channel
-from wrappers.arlexecute.visibility.operations import integrate_visibility_by_channel, \
+from processing_components.visibility.coalesce import convert_visibility_to_blockvisibility
+from processing_components.visibility.gather_scatter import visibility_gather_channel
+from processing_components.visibility.operations import integrate_visibility_by_channel, \
     divide_visibility
 
 

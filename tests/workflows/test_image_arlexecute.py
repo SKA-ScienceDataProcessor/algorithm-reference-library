@@ -18,7 +18,7 @@ from processing_components.simulation.configurations import create_named_configu
 from processing_components.visibility.base import create_visibility
 
 from workflows.arlexecute.image.image_arlexecute import image_arlexecute_map_workflow
-from wrappers.arlexecute.image.operations import export_image_to_fits
+from processing_components.image.operations import export_image_to_fits
 from wrappers.arlexecute.execution_support.dask_init import get_dask_Client
 from wrappers.arlexecute.execution_support.arlexecutebase import ARLExecuteBase
 

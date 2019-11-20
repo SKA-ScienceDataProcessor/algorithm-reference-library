@@ -2,8 +2,8 @@
 completeness. Use arlexecute versions pipelines/components.py for speed.
 """
 from data_models.parameters import get_parameter
-from wrappers.serial.griddata.kernels import create_pswf_convolutionfunction
-from wrappers.serial.visibility.base import copy_visibility
+from processing_components.griddata.kernels import create_pswf_convolutionfunction
+from processing_components.visibility.base import copy_visibility
 
 from ..calibration.calibration_serial import calibrate_list_serial_workflow
 from ..imaging.imaging_serial import invert_list_serial_workflow, residual_list_serial_workflow, \

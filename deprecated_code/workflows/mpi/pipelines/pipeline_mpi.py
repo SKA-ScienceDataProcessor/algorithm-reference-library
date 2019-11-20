@@ -4,7 +4,7 @@ completeness. Use parallel versions pipelines/components.py for speed.
 """
 from data_models.parameters import get_parameter
 
-from wrappers.arlexecute.visibility.base import copy_visibility
+from processing_components.visibility.base import copy_visibility
 from ..calibration.calibration_mpi import calibrate_list_mpi_workflow
 from wrappers.mpi.griddata.kernels import create_pswf_convolutionfunction
 

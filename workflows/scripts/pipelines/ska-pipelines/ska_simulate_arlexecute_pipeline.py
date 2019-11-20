@@ -16,9 +16,9 @@ from data_models.memory_data_models import SkyModel
 from data_models.polarisation import PolarisationFrame
 from data_models.data_model_helpers import export_skymodel_to_hdf5, export_blockvisibility_to_hdf5
 
-from wrappers.arlexecute.simulation.testing_support import create_low_test_image_from_gleam
-from wrappers.arlexecute.imaging.base import advise_wide_field
-from wrappers.arlexecute.visibility.coalesce import convert_blockvisibility_to_visibility, \
+from processing_components.simulation.testing_support import create_low_test_image_from_gleam
+from processing_components.imaging.base import advise_wide_field
+from processing_components.visibility.coalesce import convert_blockvisibility_to_visibility, \
     convert_visibility_to_blockvisibility
 
 from workflows.arlexecute.imaging.imaging_arlexecute import predict_list_arlexecute_workflow

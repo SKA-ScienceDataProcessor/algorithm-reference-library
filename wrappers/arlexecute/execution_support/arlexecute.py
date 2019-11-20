@@ -2,5 +2,5 @@
 
 """
 
-from wrappers.arlexecute.execution_support.arlexecutebase import ARLExecuteBase
+from arlexecutebase import ARLExecuteBase
 arlexecute = ARLExecuteBase(use_dask=True)

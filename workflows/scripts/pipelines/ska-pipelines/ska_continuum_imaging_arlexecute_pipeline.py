@@ -16,7 +16,7 @@ from processing_components.imaging.base import create_image_from_visibility
 from workflows.arlexecute.pipelines.pipeline_arlexecute import continuum_imaging_list_arlexecute_workflow
 
 from wrappers.arlexecute.execution_support.arlexecute import arlexecute
-from wrappers.arlexecute.visibility.coalesce import convert_blockvisibility_to_visibility
+from processing_components.visibility.coalesce import convert_blockvisibility_to_visibility
 
 import logging
 

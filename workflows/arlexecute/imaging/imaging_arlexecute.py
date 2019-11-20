@@ -27,16 +27,16 @@ from workflows.shared.imaging.imaging_shared import remove_sumwt, sum_predict_re
 from processing_components.visibility.coalesce import convert_blockvisibility_to_visibility, \
     convert_visibility_to_blockvisibility
 from wrappers.arlexecute.execution_support.arlexecute import arlexecute
-from wrappers.arlexecute.griddata.gridding import grid_weight_to_griddata, griddata_reweight, griddata_merge_weights
-from wrappers.arlexecute.griddata.kernels import create_pswf_convolutionfunction
-from wrappers.arlexecute.griddata.operations import create_griddata_from_image
-from wrappers.arlexecute.image.deconvolution import deconvolve_cube, restore_cube
-from wrappers.arlexecute.image.gather_scatter import image_scatter_facets, image_gather_facets, \
+from processing_components.griddata.gridding import grid_weight_to_griddata, griddata_reweight, griddata_merge_weights
+from processing_components.griddata.kernels import create_pswf_convolutionfunction
+from processing_components.griddata.operations import create_griddata_from_image
+from processing_components.image.deconvolution import deconvolve_cube, restore_cube
+from processing_components.image.gather_scatter import image_scatter_facets, image_gather_facets, \
     image_scatter_channels, image_gather_channels
-from wrappers.arlexecute.image.operations import calculate_image_frequency_moments
-from wrappers.arlexecute.imaging.weighting import taper_visibility_gaussian
-from wrappers.arlexecute.visibility.base import copy_visibility
-from wrappers.arlexecute.visibility.gather_scatter import visibility_scatter, visibility_gather
+from processing_components.image.operations import calculate_image_frequency_moments
+from processing_components.imaging.weighting import taper_visibility_gaussian
+from processing_components.visibility.base import copy_visibility
+from processing_components.visibility.gather_scatter import visibility_scatter, visibility_gather
 
 log = logging.getLogger(__name__)
 

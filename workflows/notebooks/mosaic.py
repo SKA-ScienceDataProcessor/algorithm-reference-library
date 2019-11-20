@@ -17,11 +17,11 @@ from data_models.polarisation import PolarisationFrame
 
 from data_models.parameters import arl_path
 
-from wrappers.serial.visibility.base import create_visibility_from_ms
-from wrappers.serial.image.operations import show_image
+from processing_components.visibility.base import create_visibility_from_ms
+from processing_components.image.operations import show_image
 from processing_library.image.operations import copy_image
-from wrappers.serial.imaging.primary_beams import create_pb
-from wrappers.serial.imaging.base import create_image_from_visibility
+from processing_components.imaging.primary_beams import create_pb
+from processing_components.imaging.base import create_image_from_visibility
 from workflows.serial.imaging.imaging_serial import invert_list_serial_workflow
 
 import logging
@@ -76,7 +76,7 @@ if __name__ == '__main__':
     show_image(mosaicsens, cm='Greys', title='Linear mosaic sensitivity')
     plt.show()
     
-    from wrappers.serial.image.operations import export_image_to_fits
+    from processing_components.image.operations import export_image_to_fits
     
     export_image_to_fits(mosaic, "mosaics.fits")
     export_image_to_fits(mosaicsens, "mosaicsens.fits")
