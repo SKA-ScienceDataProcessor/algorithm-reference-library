@@ -272,6 +272,7 @@ class TestImaging(unittest.TestCase):
         self.actualSetUp(dospectral=True)
         self._predict_base(context='wstack', extra='_spectral', fluxthreshold=4.0, vis_slices=101)
     
+    @unittest.skip("Too much for jenkins")
     def test_predict_wstack_spectral_pol(self):
         self.actualSetUp(dospectral=True, dopol=True)
         self._predict_base(context='wstack', extra='_spectral', fluxthreshold=4.0, vis_slices=101)
