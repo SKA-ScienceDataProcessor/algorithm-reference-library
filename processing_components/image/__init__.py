@@ -1,1 +1,1 @@
-__all__ = ['deconvolution', 'gather_scatter', 'iterators', 'operations']
+__all__ = ['deconvolution', 'gather_scatter', 'gradients', 'iterators', 'operations']

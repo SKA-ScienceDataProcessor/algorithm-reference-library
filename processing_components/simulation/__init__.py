@@ -1,1 +1,2 @@
-__all__ = ['configurations', 'ionospheric_screen', 'pointing', 'testing_support']
+__all__ = ['configurations', 'ionospheric_screen', 'noise', 'pointing', 'rfi', 'simulation_helpers',
+           'surface', 'testing_support']

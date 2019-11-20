@@ -53,6 +53,8 @@ spectral_mode           Visibility processing mode          'mfs' or 'channel'
 
 """
 
+__all__ = ['arl_path', 'get_parameter']
+
 import logging
 import os
 

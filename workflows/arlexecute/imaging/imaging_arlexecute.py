@@ -1,8 +1,4 @@
-"""Manages the imaging context. This take a string and returns a dictionary containing:
- * Predict function
- * Invert function
- * image_iterator function
- * vis_iterator function
+"""Workflows for imaging, including predict, invert, residual, restore, deconvolve, weight, taper, zero, subtract and sum results from invert
 
 """
 
