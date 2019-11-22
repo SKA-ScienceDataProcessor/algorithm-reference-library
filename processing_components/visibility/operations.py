@@ -41,7 +41,8 @@ def append_visibility(vis: Union[Visibility, BlockVisibility], othervis: Union[V
     assert abs(vis.phasecentre.dec.value - othervis.phasecentre.dec.value) < 1e-15, "Declinations differ"
     assert vis.phasecentre.separation(othervis.phasecentre).value < 1e-15, "Phasecentres differ"
     assert vis.source == othervis.source, "Not the same source"
-    assert numpy.testing.assert_array_almost_equal_nulp(vis.frequency, othervis.frequency, nulp=12)
+    if isinstance(vis, BlockVisibility): 
+        assert numpy.testing.assert_array_almost_equal_nulp(vis.frequency, othervis.frequency, nulp=12)
     
     vis.data = numpy.hstack((vis.data, othervis.data))
     return vis
