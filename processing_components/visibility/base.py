@@ -494,6 +494,7 @@ def create_blockvisibility_from_ms(msname, channum=None, start_chan=None, end_ch
     for dd in dds:
         dtab = table(msname, ack=ack).query('DATA_DESC_ID==%d' % dd, style='')
         for field in fields:
+            meta = {'MSV2':{'DATA_DESC_ID':dd, 'FIELD_ID': field}}
             ms = dtab.query('FIELD_ID==%d' % field, style='')
             assert ms.nrows() > 0, "Empty selection for FIELD_ID=%d and DATA_DESC_ID=%d" % (field, dd)
             log.debug("create_blockvisibility_from_ms: Found %d rows" % (ms.nrows()))
@@ -519,7 +520,6 @@ def create_blockvisibility_from_ms(msname, channum=None, start_chan=None, end_ch
 
                 else:
                     log.debug("create_blockvisibility_from_ms: Reading all %d channels" % (channels))
-                    print("create_blockvisibility_from_ms: Reading all %d channels" % (channels))
                     try:
                         ms_vis = ms.getcol('DATA')
                         ms_weight = ms.getcol('WEIGHT')
@@ -528,7 +528,6 @@ def create_blockvisibility_from_ms(msname, channum=None, start_chan=None, end_ch
                         raise IndexError("channel number exceeds max. within ms")
             else:
                 log.debug("create_visibility_from_ms: Reading channels %s " % (channum))
-                print("create_visibility_from_ms: Reading channels %s " % (channum))
                 channum = range(channels)
                 try:
                     ms_vis = ms.getcol('DATA')[:, channum, :]
@@ -581,6 +580,7 @@ def create_blockvisibility_from_ms(msname, channum=None, start_chan=None, end_ch
             # Get phasecentres
             fieldtab = table('%s/FIELD' % msname, ack=False)
             pc = fieldtab.getcol('PHASE_DIR')[field, 0, :]
+            source = fieldtab.getcol('NAME')[field]
             phasecentre = SkyCoord(ra=pc[0] * u.rad, dec=pc[1] * u.rad, frame='icrs', equinox='J2000')
             
             bv_times = numpy.unique(time)
@@ -590,7 +590,8 @@ def create_blockvisibility_from_ms(msname, channum=None, start_chan=None, end_ch
             bv_weight = numpy.zeros([ntimes, nants, nants, nchan, npol])
             bv_imaging_weight = numpy.zeros([ntimes, nants, nants, nchan, npol])
             bv_uvw = numpy.zeros([ntimes, nants, nants, 3])
-            
+            bv_integration_time = numpy.zeros([ntimes])
+
             time_last = time[0]
             time_index = 0
             for row, _ in enumerate(ms_vis):
@@ -604,8 +605,7 @@ def create_blockvisibility_from_ms(msname, channum=None, start_chan=None, end_ch
                 bv_weight[time_index, antenna2[row], antenna1[row], :, ...] = ms_weight[row, numpy.newaxis, ...]
                 bv_imaging_weight[time_index, antenna2[row], antenna1[row], :, ...] = ms_weight[row, numpy.newaxis, ...]
                 bv_uvw[time_index, antenna2[row], antenna1[row], :] = uvw[row, :]
-
-            bv_integration_time = numpy.full_like(bv_times, numpy.unique(integration_time))
+                bv_integration_time[time_index] = integration_time[row]
 
             vis_list.append(BlockVisibility(uvw=bv_uvw,
                                             time=bv_times,
@@ -617,7 +617,8 @@ def create_blockvisibility_from_ms(msname, channum=None, start_chan=None, end_ch
                                             imaging_weight=bv_imaging_weight,
                                             configuration=configuration,
                                             phasecentre=phasecentre,
-                                            polarisation_frame=polarisation_frame))
+                                            polarisation_frame=polarisation_frame,
+                                            source=source, meta=meta))
         tab.close()
     return vis_list
 

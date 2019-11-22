@@ -952,7 +952,7 @@ class BlockVisibility:
                  phasecentre=None, configuration=None, uvw=None,
                  time=None, vis=None, weight=None, integration_time=None,
                  polarisation_frame=PolarisationFrame('stokesI'),
-                 imaging_weight=None):
+                 imaging_weight=None, source='anonymous', meta=dict()):
         """BlockVisibility
 
         :param data:
@@ -966,6 +966,7 @@ class BlockVisibility:
         :param weight:
         :param integration_time:
         :param polarisation_frame:
+        :param source:
         """
         if data is None and vis is not None:
             ntimes, nants, _, nchan, npol = vis.shape
@@ -994,12 +995,15 @@ class BlockVisibility:
         self.phasecentre = phasecentre  # Phase centre of observation
         self.configuration = configuration  # Antenna/station configuration
         self.polarisation_frame = polarisation_frame
+        self.source = source
+        self.meta = meta
 
     def __str__(self):
         """Default printer for BlockVisibility
 
         """
         s = "BlockVisibility:\n"
+        s += "\tSource %s\n" % self.source
         s += "\tNumber of visibilities: %s\n" % self.nvis
         s += "\tNumber of integrations: %s\n" % len(self.time)
         s += "\tVisibility shape: %s\n" % str(self.vis.shape)
@@ -1010,6 +1014,7 @@ class BlockVisibility:
         s += "\tPolarisation Frame: %s\n" % self.polarisation_frame.type
         s += "\tPhasecentre: %s\n" % self.phasecentre
         s += "\tConfiguration: %s\n" % self.configuration.name
+        s += "\tMetadata: %s\n" % self.meta
 
         return s
 

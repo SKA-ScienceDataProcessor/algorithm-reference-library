@@ -35,10 +35,14 @@ def append_visibility(vis: Union[Visibility, BlockVisibility], othervis: Union[V
         return othervis
     
     assert isinstance(vis, Visibility) or isinstance(vis, BlockVisibility), vis
-    assert vis.polarisation_frame == othervis.polarisation_frame
-    assert abs(vis.phasecentre.ra.value - othervis.phasecentre.ra.value) < 1e-15
-    assert abs(vis.phasecentre.dec.value - othervis.phasecentre.dec.value) < 1e-15
-    assert vis.phasecentre.separation(othervis.phasecentre).value < 1e-15
+    
+    assert vis.polarisation_frame == othervis.polarisation_frame, "Polarisation frames differ"
+    assert abs(vis.phasecentre.ra.value - othervis.phasecentre.ra.value) < 1e-15, "RAs differ"
+    assert abs(vis.phasecentre.dec.value - othervis.phasecentre.dec.value) < 1e-15, "Declinations differ"
+    assert vis.phasecentre.separation(othervis.phasecentre).value < 1e-15, "Phasecentres differ"
+    assert vis.source == othervis.source, "Not the same source"
+    assert numpy.testing.assert_array_almost_equal_nulp(vis.frequency, othervis.frequency, nulp=12)
+    
     vis.data = numpy.hstack((vis.data, othervis.data))
     return vis
 
