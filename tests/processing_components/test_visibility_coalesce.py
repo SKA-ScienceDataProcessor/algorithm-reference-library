@@ -35,7 +35,7 @@ class TestCoalesce(unittest.TestCase):
         self.phasecentre = SkyCoord(ra=+0.0 * u.deg, dec=-35.0 * u.deg, frame='icrs', equinox='J2000')
         self.blockvis = create_blockvisibility(self.lowcore, self.times, self.frequency, phasecentre=self.phasecentre,
                                                weight=1.0, polarisation_frame=PolarisationFrame('stokesI'),
-                                               channel_bandwidth=self.channel_bandwidth)
+                                               channel_bandwidth=self.channel_bandwidth, meta={"ARL":0.9})
     def test_coalesce_decoalesce_zero(self):
         cvis = coalesce_visibility(self.blockvis, time_coal=0.0, frequency_coal=0.0)
         assert numpy.min(cvis.frequency) == numpy.min(self.frequency)
