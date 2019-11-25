@@ -767,7 +767,7 @@ class Visibility:
                  time=None, antenna1=None, antenna2=None, vis=None,
                  weight=None, imaging_weight=None, integration_time=None,
                  polarisation_frame=PolarisationFrame('stokesI'), cindex=None,
-                 blockvis=None, source='anonymous'):
+                 blockvis=None, source='anonymous', meta=None):
         """Visibility
 
         :param data:
@@ -787,6 +787,7 @@ class Visibility:
         :param cindex:
         :param blockvis:
         :param source:
+        :param meta:
         """
         if data is None and vis is not None:
             if imaging_weight is None:
@@ -831,6 +832,7 @@ class Visibility:
         self.polarisation_frame = polarisation_frame
         self.frequency_map = None
         self.source = source
+        self.meta = meta
 
     def __str__(self):
         """Default printer for Visibility
@@ -849,6 +851,7 @@ class Visibility:
         s += "\tPolarisation Frame: %s\n" % self.polarisation_frame.type
         s += "\tPhasecentre: %s\n" % self.phasecentre
         s += "\tConfiguration: %s\n" % self.configuration.name
+        s += "\tMetadata: %s\n" % self.meta
 
         return s
 

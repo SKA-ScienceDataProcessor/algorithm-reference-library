@@ -48,7 +48,7 @@ class TestBufferDataModelHelpers(unittest.TestCase):
                                           channel_bandwidth=self.channel_bandwidth,
                                           phasecentre=self.phasecentre,
                                           polarisation_frame=PolarisationFrame("linear"),
-                                          weight=1.0)
+                                          weight=1.0, meta={"ARL":0.0})
         self.vis = predict_skycomponent_visibility(self.vis, self.comp)
         
         config = {"buffer": {"directory": self.dir},
@@ -68,6 +68,7 @@ class TestBufferDataModelHelpers(unittest.TestCase):
         assert numpy.abs(newvis.configuration.location.y.value - self.vis.configuration.location.y.value) < 1e-15
         assert numpy.abs(newvis.configuration.location.z.value - self.vis.configuration.location.z.value) < 1e-15
         assert numpy.max(numpy.abs(newvis.configuration.xyz - self.vis.configuration.xyz)) < 1e-15
+        assert newvis.meta == self.vis.meta
 
     def test_readwritegaintable(self):
         self.vis = create_blockvisibility(self.midcore, self.times, self.frequency,
