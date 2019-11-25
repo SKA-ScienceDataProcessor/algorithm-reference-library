@@ -839,7 +839,7 @@ class Visibility:
         ufrequency = numpy.unique(self.frequency)
         uchannel_bandwidth = numpy.unique(self.channel_bandwidth)
         s = "Visibility:\n"
-        s += "\tSource: %s\n" % source
+        s += "\tSource: %s\n" % self.source
         s += "\tNumber of visibilities: %s\n" % self.nvis
         s += "\tNumber of channels: %d\n" % len(ufrequency)
         s += "\tFrequency: %s\n" % ufrequency

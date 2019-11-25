@@ -128,6 +128,7 @@ def convert_visibility_to_hdf(vis, f):
     f.attrs['phasecentre_coords'] = vis.phasecentre.to_string()
     f.attrs['phasecentre_frame'] = vis.phasecentre.frame.name
     f.attrs['polarisation_frame'] = vis.polarisation_frame.type
+    f.attrs['source'] = vis.source
     f['data'] = vis.data
     f = convert_configuration_to_hdf(vis.configuration, f)
     return f
@@ -145,8 +146,9 @@ def convert_hdf_to_visibility(f):
     phasecentre = SkyCoord(ra=ss[0], dec=ss[1], frame=f.attrs['phasecentre_frame'])
     polarisation_frame = PolarisationFrame(f.attrs['polarisation_frame'])
     data = numpy.array(f['data'])
+    source = str(f.attrs['source'])
     vis = Visibility(data=data, polarisation_frame=polarisation_frame,
-                     phasecentre=phasecentre)
+                     phasecentre=phasecentre, source=source)
     vis.configuration = convert_configuration_from_hdf(f)
     return vis
 
@@ -167,6 +169,7 @@ def convert_blockvisibility_to_hdf(vis: BlockVisibility, f):
     f.attrs['phasecentre_frame'] = vis.phasecentre.frame.name
     f.attrs['polarisation_frame'] = vis.polarisation_frame.type
     f.attrs['frequency'] = vis.frequency
+    f.attrs['source'] = vis.source
     f.attrs['channel_bandwidth'] = vis.channel_bandwidth
     f['data'] = vis.data
     f = convert_configuration_to_hdf(vis.configuration, f)
@@ -187,9 +190,10 @@ def convert_hdf_to_blockvisibility(f):
     frequency = f.attrs['frequency']
     channel_bandwidth = f.attrs['channel_bandwidth']
     data = numpy.array(f['data'])
+    source = f.attrs['source']
     vis = BlockVisibility(data=data, polarisation_frame=polarisation_frame,
                           phasecentre=phasecentre, frequency=frequency,
-                          channel_bandwidth=channel_bandwidth)
+                          channel_bandwidth=channel_bandwidth, source=source)
     vis.configuration = convert_configuration_from_hdf(f)
     return vis
 

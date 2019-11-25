@@ -8,8 +8,9 @@ import astropy.units as units
 import matplotlib.pyplot as plt
 import numpy
 from astropy.coordinates import SkyCoord
+import astropy.constants as constants
 
-from data_models.memory_data_models import Skycomponent
+from data_models.memory_data_models import Skycomponent, BlockVisibility
 from data_models.polarisation import PolarisationFrame
 from processing_library.image.operations import create_image
 from processing_library.util.coordinate_support import hadec_to_azel
@@ -53,9 +54,9 @@ def find_times_above_elevation_limit(start_times, end_times, location, phasecent
     return valid_start_times
 
 
-def plot_uvcoverage(vis_list, plot_file='uvcoverage.png', **kwargs):
+def plot_uvcoverage(vis_list, fig=None, plot_file='uvcoverage.png', title='UV coverage', **kwargs):
     """ Standard plot of uv coverage
-    
+
     :param vis_list:
     :param plot_file:
     :param kwargs:
@@ -63,11 +64,21 @@ def plot_uvcoverage(vis_list, plot_file='uvcoverage.png', **kwargs):
     """
     plt.clf()
     for ivis, vis in enumerate(vis_list):
-        plt.plot(-vis.u, -vis.v, '.', color='b', markersize=0.2)
-        plt.plot(vis.u, vis.v, '.', color='b', markersize=0.2)
+        u = numpy.array(vis.u[...].flat)
+        v = numpy.array(vis.v[...].flat)
+        if isinstance(vis, BlockVisibility):
+            k = vis.frequency / constants.c
+            u = numpy.array(numpy.outer(u, k).flat)
+            v = numpy.array(numpy.outer(v, k).flat)
+        else:
+            k = vis.frequency / constants.c
+            u = u * k
+            v = v * k
+        plt.plot(u, v, '.', color='b', markersize=0.2)
+        plt.plot(-u, -v, '.', color='b', markersize=0.2)
     plt.xlabel('U (wavelengths)')
     plt.ylabel('V (wavelengths)')
-    plt.title('UV coverage')
+    plt.title(title)
     plt.savefig(plot_file)
     plt.show(block=False)
 
