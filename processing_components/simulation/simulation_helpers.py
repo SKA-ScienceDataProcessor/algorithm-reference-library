@@ -54,6 +54,30 @@ def find_times_above_elevation_limit(start_times, end_times, location, phasecent
     return valid_start_times
 
 
+def plot_visibility(vis_list, fig=None, plot_file='visibility.png', title='Visibility',
+                    y='amp', x='uvdist', **kwargs):
+    """ Standard plot of visibility
+
+    :param vis_list:
+    :param plot_file:
+    :param kwargs:
+    :return:
+    """
+    plt.clf()
+    for ivis, vis in enumerate(vis_list):
+        if y == 'amp':
+            yvalue = numpy.abs(vis.vis[...,0,0].flat)
+        else:
+            yvalue = numpy.angle(vis.vis[...,0,0].flat)
+        xvalue = vis.uvdist.flat
+        plt.plot(xvalue, yvalue, '.', color='b', markersize=0.2)
+    plt.xlabel(x)
+    plt.ylabel(y)
+    plt.title(title)
+    plt.savefig(plot_file)
+    plt.show(block=False)
+
+
 def plot_uvcoverage(vis_list, fig=None, plot_file='uvcoverage.png', title='UV coverage', **kwargs):
     """ Standard plot of uv coverage
 

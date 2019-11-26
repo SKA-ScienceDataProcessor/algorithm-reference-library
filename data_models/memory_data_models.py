@@ -989,8 +989,8 @@ class BlockVisibility:
             data = numpy.zeros(shape=[ntimes], dtype=desc)
             data['index'] = list(range(ntimes))
             data['uvw'] = uvw
-            data['time'] = time
-            data['integration_time'] = integration_time
+            data['time'] = time # MJD in seconds
+            data['integration_time'] = integration_time  # seconds
             data['vis'] = vis
             data['weight'] = weight
             data['imaging_weight'] = imaging_weight
@@ -1059,6 +1059,14 @@ class BlockVisibility:
     @property
     def w(self):
         return self.data['uvw'][..., 2]
+
+    @property
+    def uvdist(self):
+        return numpy.hypot(self.u, self.v)
+
+    @property
+    def uvwdist(self):
+        return numpy.hypot(self.u, self.v, self.w)
 
     @property
     def vis(self):

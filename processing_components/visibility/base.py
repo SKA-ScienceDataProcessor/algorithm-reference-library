@@ -455,7 +455,8 @@ def export_blockvisibility_to_ms(msname, vis_list, source_name=None, ack=False):
     tbl.write()
 
 
-def create_blockvisibility_from_ms(msname, channum=None, start_chan=None, end_chan=None, ack=False):
+def create_blockvisibility_from_ms(msname, channum=None, start_chan=None, end_chan=None, ack=False,
+                                   datacolumn='DATA'):
     """ Minimal MS to BlockVisibility converter
 
     The MS format is much more general than the ARL BlockVisibility so we cut many corners. This requires casacore to be
@@ -482,7 +483,6 @@ def create_blockvisibility_from_ms(msname, channum=None, start_chan=None, end_ch
     except ModuleNotFoundError:
         raise ModuleNotFoundError("cannot import msv2")
 
-
     tab = table(msname, ack=ack)
     log.debug("create_blockvisibility_from_ms: %s" % str(tab.info()))
 
@@ -491,15 +491,19 @@ def create_blockvisibility_from_ms(msname, channum=None, start_chan=None, end_ch
     log.debug("create_blockvisibility_from_ms: Found unique fields %s, unique data descriptions %s" % (
         str(fields), str(dds)))
     vis_list = list()
-    for dd in dds:
-        dtab = table(msname, ack=ack).query('DATA_DESC_ID==%d' % dd, style='')
-        for field in fields:
-            meta = {'MSV2':{'DATA_DESC_ID':dd, 'FIELD_ID': field}}
-            ms = dtab.query('FIELD_ID==%d' % field, style='')
+    for field in fields:
+        ftab = table(msname, ack=ack).query('FIELD_ID==%d' % field, style='')
+        for dd in dds:
+            meta = {'MSV2':{'FIELD_ID': field, 'DATA_DESC_ID':dd}}
+            ms = ftab.query('DATA_DESC_ID==%d' % dd, style='')
             assert ms.nrows() > 0, "Empty selection for FIELD_ID=%d and DATA_DESC_ID=%d" % (field, dd)
             log.debug("create_blockvisibility_from_ms: Found %d rows" % (ms.nrows()))
-            time = ms.getcol('TIME')
-            datacol = ms.getcol('DATA', nrow=1)
+            # The TIME column has descriptor:
+            # {'valueType': 'double', 'dataManagerType': 'IncrementalStMan', 'dataManagerGroup': 'TIME',
+            # 'option': 0, 'maxlen': 0, 'comment': 'Modified Julian Day',
+            # 'keywords': {'QuantumUnits': ['s'], 'MEASINFO': {'type': 'epoch', 'Ref': 'UTC'}}}
+            otime = ms.getcol('TIME')
+            datacol = ms.getcol(datacolumn, nrow=1)
             datacol_shape = list(datacol.shape)
             channels = datacol.shape[-2]
             log.debug("create_blockvisibility_from_ms: Found %d channels" % (channels))
@@ -513,7 +517,7 @@ def create_blockvisibility_from_ms(msname, channum=None, start_chan=None, end_ch
                         blc = [start_chan, 0]
                         trc = [end_chan, datacol_shape[-1] - 1]
                         channum = range(start_chan, end_chan+1)
-                        ms_vis = ms.getcolslice('DATA', blc=blc, trc=trc)
+                        ms_vis = ms.getcolslice(datacolumn, blc=blc, trc=trc)
                         ms_weight = ms.getcol('WEIGHT')
                     except IndexError:
                         raise IndexError("channel number exceeds max. within ms")
@@ -521,16 +525,16 @@ def create_blockvisibility_from_ms(msname, channum=None, start_chan=None, end_ch
                 else:
                     log.debug("create_blockvisibility_from_ms: Reading all %d channels" % (channels))
                     try:
-                        ms_vis = ms.getcol('DATA')
+                        ms_vis = ms.getcol(datacolumn)
                         ms_weight = ms.getcol('WEIGHT')
                         channum = range(channels)
                     except IndexError:
                         raise IndexError("channel number exceeds max. within ms")
             else:
-                log.debug("create_visibility_from_ms: Reading channels %s " % (channum))
+                log.debug("create_blockvisibility_from_ms: Reading channels %s " % (channum))
                 channum = range(channels)
                 try:
-                    ms_vis = ms.getcol('DATA')[:, channum, :]
+                    ms_vis = ms.getcol(datacolumn)[:, channum, :]
                     ms_weight = ms.getcol('WEIGHT')[:, :]
                 except IndexError:
                     raise IndexError("channel number exceeds max. within ms")
@@ -540,7 +544,14 @@ def create_blockvisibility_from_ms(msname, channum=None, start_chan=None, end_ch
             antenna2 = ms.getcol('ANTENNA2')
             integration_time = ms.getcol('INTERVAL')
 
-            time = Time((time-integration_time/2.0)/86400+ 2400000.5,format='jd',scale='utc').unix
+#            time = Time((time-integration_time/2.0)/86400+ 2400000.5,format='jd',scale='utc').utc.value
+            time = (otime - integration_time / 2.0)
+
+            start_time = numpy.min(time)/86400.0
+            end_time = numpy.max(time)/86400.0
+            
+            log.debug("create_blockvisibility_from_ms: Observation from %s to %s" %
+                      (Time(start_time, format='mjd').iso, Time(end_time, format='mjd').iso))
 
             # Now get info from the subtables
             spwtab = table('%s/SPECTRAL_WINDOW' % msname, ack=False)
@@ -582,8 +593,25 @@ def create_blockvisibility_from_ms(msname, channum=None, start_chan=None, end_ch
             pc = fieldtab.getcol('PHASE_DIR')[field, 0, :]
             source = fieldtab.getcol('NAME')[field]
             phasecentre = SkyCoord(ra=pc[0] * u.rad, dec=pc[1] * u.rad, frame='icrs', equinox='J2000')
-            
-            bv_times = numpy.unique(time)
+
+            time_last = time[0]
+            time_index = 0
+            for row, _ in enumerate(time):
+                if time[row] > time_last + integration_time[row]:
+                    assert time[row] > time_last, "MS is not time-sorted - cannot convert"
+                    time_index += 1
+                    time_last = time[row]
+
+            bv_times = numpy.zeros([time_index+1])
+            time_last = time[0]
+            time_index = 0
+            for row, _ in enumerate(time):
+                if time[row] > time_last + integration_time[row]:
+                    assert time[row] > time_last, "MS is not time-sorted - cannot convert"
+                    bv_times[time_index] = time[row]
+                    time_index += 1
+                    time_last = time[row]
+                    
             ntimes = len(bv_times)
             
             bv_vis = numpy.zeros([ntimes, nants, nants, nchan, npol]).astype('complex')
@@ -594,18 +622,16 @@ def create_blockvisibility_from_ms(msname, channum=None, start_chan=None, end_ch
 
             time_last = time[0]
             time_index = 0
-            for row, _ in enumerate(ms_vis):
-                # MS has shape [row, npol, nchan]
-                # BV has shape [ntimes, nants, nants, nchan, npol]
-                if time[row] != time_last:
-                    assert time[row] > time_last, "MS is not time-sorted - cannot convert"
-                    time_index += 1
-                    time_last = time[row]
+            for row, _ in enumerate(time):
                 bv_vis[time_index, antenna2[row], antenna1[row], ...] = ms_vis[row, ...]
                 bv_weight[time_index, antenna2[row], antenna1[row], :, ...] = ms_weight[row, numpy.newaxis, ...]
                 bv_imaging_weight[time_index, antenna2[row], antenna1[row], :, ...] = ms_weight[row, numpy.newaxis, ...]
                 bv_uvw[time_index, antenna2[row], antenna1[row], :] = uvw[row, :]
                 bv_integration_time[time_index] = integration_time[row]
+                if time[row] > time_last + integration_time[row]:
+                    assert time[row] > time_last, "MS is not time-sorted - cannot convert"
+                    time_index += 1
+                    time_last = time[row]
 
             vis_list.append(BlockVisibility(uvw=bv_uvw,
                                             time=bv_times,
