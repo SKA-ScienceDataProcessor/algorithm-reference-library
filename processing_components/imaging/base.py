@@ -454,7 +454,8 @@ def advise_wide_field(vis: Union[BlockVisibility, Visibility], delA=0.02, oversa
         log.info("advice_wide_field: Npixels (power of 2, 3) per side = %d" % (npixels23))
 
     npixels_min = pwr2345(npixels)
-    log.info("advice_wide_field: Npixels (power of 2, 3, 4, 5) per side = %d" % (npixels_min))
+    if verbose:
+        log.info("advice_wide_field: Npixels (power of 2, 3, 4, 5) per side = %d" % (npixels_min))
 
     # Following equation is from Cornwell, Humphreys, and Voronkov (2012) (equation 24)
     # We will assume that the constraint holds at one quarter the entire FOV i.e. that

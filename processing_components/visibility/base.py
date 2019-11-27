@@ -51,7 +51,7 @@ def create_visibility(config: Configuration, times: numpy.array, frequency: nump
                       channel_bandwidth, phasecentre: SkyCoord,
                       weight: float, polarisation_frame=PolarisationFrame('stokesI'),
                       integration_time=1.0,
-                      zerow=False, elevation_limit=15.0 * numpy.pi / 180.0) -> Visibility:
+                      zerow=False, elevation_limit=15.0 * numpy.pi / 180.0, source='unknown', meta=None) -> Visibility:
     """ Create a Visibility from Configuration, hour angles, and direction of source
 
     Note that we keep track of the integration time for BDA purposes
@@ -136,7 +136,7 @@ def create_visibility(config: Configuration, times: numpy.array, frequency: nump
                      frequency=rfrequency, vis=rvis,
                      weight=rweight, imaging_weight=rweight,
                      integration_time=rintegration_time, channel_bandwidth=rchannel_bandwidth,
-                     polarisation_frame=polarisation_frame)
+                     polarisation_frame=polarisation_frame, source=source, meta=meta)
     vis.phasecentre = phasecentre
     vis.configuration = config
     log.info("create_visibility: %s" % (vis_summary(vis)))
@@ -160,6 +160,8 @@ def create_blockvisibility(config: Configuration,
                            channel_bandwidth=1e6,
                            zerow=False,
                            elevation_limit=None,
+                           source='unknown',
+                           meta=None,
                            **kwargs) -> BlockVisibility:
     """ Create a BlockVisibility from Configuration, hour angles, and direction of source
 
@@ -238,7 +240,7 @@ def create_blockvisibility(config: Configuration,
     vis = BlockVisibility(uvw=ruvw, time=rtimes, frequency=frequency, vis=rvis, weight=rweight,
                           imaging_weight=rimaging_weight,
                           integration_time=rintegration_time, channel_bandwidth=rchannel_bandwidth,
-                          polarisation_frame=polarisation_frame)
+                          polarisation_frame=polarisation_frame, source=source, meta=meta)
     vis.phasecentre = phasecentre
     vis.configuration = config
     log.info("create_blockvisibility: %s" % (vis_summary(vis)))
@@ -455,8 +457,34 @@ def export_blockvisibility_to_ms(msname, vis_list, source_name=None, ack=False):
     tbl.write()
 
 
+def list_ms(msname, ack=False):
+    """ List sources and data descriptors in a MeasurementSet
+
+    :param msname: File name of MS
+    :return:
+    """
+    try:
+        from casacore.tables import table  # pylint: disable=import-error
+    except ModuleNotFoundError:
+        raise ModuleNotFoundError("casacore is not installed")
+    try:
+        from processing_components.visibility import msv2
+    except ModuleNotFoundError:
+        raise ModuleNotFoundError("cannot import msv2")
+    
+    tab = table(msname, ack=ack)
+    log.debug("list_ms: %s" % str(tab.info()))
+    
+    fieldtab = table('%s/FIELD' % msname, ack=False)
+    sources = fieldtab.getcol('NAME')
+    
+    dds = list(numpy.unique(tab.getcol('DATA_DESC_ID')))
+    
+    return sources, dds
+
+
 def create_blockvisibility_from_ms(msname, channum=None, start_chan=None, end_chan=None, ack=False,
-                                   datacolumn='DATA'):
+                                   datacolumn='DATA', selected_sources=None, selected_dds=None):
     """ Minimal MS to BlockVisibility converter
 
     The MS format is much more general than the ARL BlockVisibility so we cut many corners. This requires casacore to be
@@ -486,9 +514,22 @@ def create_blockvisibility_from_ms(msname, channum=None, start_chan=None, end_ch
     tab = table(msname, ack=ack)
     log.debug("create_blockvisibility_from_ms: %s" % str(tab.info()))
 
-    fields = numpy.unique(tab.getcol('FIELD_ID'))
-    dds = numpy.unique(tab.getcol('DATA_DESC_ID'))
-    log.debug("create_blockvisibility_from_ms: Found unique fields %s, unique data descriptions %s" % (
+    if selected_sources is None:
+        fields = numpy.unique(tab.getcol('FIELD_ID'))
+    else:
+        fieldtab = table('%s/FIELD' % msname, ack=False)
+        sources = fieldtab.getcol('NAME')
+        fields = list()
+        for field, source in enumerate(sources):
+            if source in selected_sources: fields.append(field)
+        assert len(fields) > 0, "No sources selected"
+        
+    if selected_dds is None:
+        dds = numpy.unique(tab.getcol('DATA_DESC_ID'))
+    else:
+        dds = selected_dds
+        
+    log.debug("create_blockvisibility_from_ms: Reading unique fields %s, unique data descriptions %s" % (
         str(fields), str(dds)))
     vis_list = list()
     for field in fields:

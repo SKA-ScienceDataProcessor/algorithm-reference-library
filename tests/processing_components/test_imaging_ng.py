@@ -114,6 +114,7 @@ class TestImagingNG(unittest.TestCase):
     
     def _predict_base(self, fluxthreshold=1.0, name='predict_ng', **kwargs):
         
+        from processing_components.imaging.ng import predict_ng, invert_ng
         original_vis = copy_visibility(self.blockvis)
         vis = predict_ng(self.blockvis, self.model, **kwargs)
         vis.data['vis'] = vis.data['vis'] - original_vis.data['vis']
@@ -135,6 +136,7 @@ class TestImagingNG(unittest.TestCase):
                      name='predict_ng', **kwargs):
         
         # dirty = invert_ng(self.blockvis, self.model, dopsf=False, normalize=True, **kwargs)
+        from processing_components.imaging.ng import predict_ng, invert_ng
         dirty = invert_ng(self.blockvis, self.model, normalize=True, **kwargs)
 
         if self.persist: export_image_to_fits(dirty[0], '%s/test_imaging_ng_dirty.fits' %

@@ -54,7 +54,7 @@ def find_times_above_elevation_limit(start_times, end_times, location, phasecent
     return valid_start_times
 
 
-def plot_visibility(vis_list, fig=None, plot_file='visibility.png', title='Visibility',
+def plot_visibility(vis_list, ax=None, title='Visibility',
                     y='amp', x='uvdist', **kwargs):
     """ Standard plot of visibility
 
@@ -63,22 +63,19 @@ def plot_visibility(vis_list, fig=None, plot_file='visibility.png', title='Visib
     :param kwargs:
     :return:
     """
-    plt.clf()
     for ivis, vis in enumerate(vis_list):
         if y == 'amp':
             yvalue = numpy.abs(vis.vis[...,0,0].flat)
         else:
             yvalue = numpy.angle(vis.vis[...,0,0].flat)
         xvalue = vis.uvdist.flat
-        plt.plot(xvalue, yvalue, '.', color='b', markersize=0.2)
-    plt.xlabel(x)
-    plt.ylabel(y)
-    plt.title(title)
-    plt.savefig(plot_file)
-    plt.show(block=False)
+        ax.plot(xvalue, yvalue, '.', color='b', markersize=0.2)
+    ax.set_xlabel(x)
+    ax.set_ylabel(y)
+    ax.set_title(title)
+    
 
-
-def plot_uvcoverage(vis_list, fig=None, plot_file='uvcoverage.png', title='UV coverage', **kwargs):
+def plot_uvcoverage(vis_list, ax=None, plot_file='uvcoverage.png', title='UV coverage', **kwargs):
     """ Standard plot of uv coverage
 
     :param vis_list:
@@ -86,7 +83,7 @@ def plot_uvcoverage(vis_list, fig=None, plot_file='uvcoverage.png', title='UV co
     :param kwargs:
     :return:
     """
-    plt.clf()
+    
     for ivis, vis in enumerate(vis_list):
         u = numpy.array(vis.u[...].flat)
         v = numpy.array(vis.v[...].flat)
@@ -98,13 +95,11 @@ def plot_uvcoverage(vis_list, fig=None, plot_file='uvcoverage.png', title='UV co
             k = vis.frequency / constants.c
             u = u * k
             v = v * k
-        plt.plot(u, v, '.', color='b', markersize=0.2)
-        plt.plot(-u, -v, '.', color='b', markersize=0.2)
-    plt.xlabel('U (wavelengths)')
-    plt.ylabel('V (wavelengths)')
-    plt.title(title)
-    plt.savefig(plot_file)
-    plt.show(block=False)
+        ax.plot(u, v, '.', color='b', markersize=0.2)
+        ax.plot(-u, -v, '.', color='b', markersize=0.2)
+    ax.set_xlabel('U (wavelengths)')
+    ax.set_ylabel('V (wavelengths)')
+    ax.set_title(title)
 
 
 def plot_azel(bvis_list, plot_file='azel.png', **kwargs):
