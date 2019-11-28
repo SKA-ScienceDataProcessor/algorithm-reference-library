@@ -69,7 +69,7 @@ def plot_visibility(vis_list, ax=None, title='Visibility',
         else:
             yvalue = numpy.angle(vis.vis[...,0,0].flat)
         xvalue = vis.uvdist.flat
-        ax.plot(xvalue, yvalue, '.', color='b', markersize=0.2)
+        ax.plot(xvalue[yvalue>0.0], yvalue[yvalue>0.0], '.', color='b', markersize=0.2)
     ax.set_xlabel(x)
     ax.set_ylabel(y)
     ax.set_title(title)
