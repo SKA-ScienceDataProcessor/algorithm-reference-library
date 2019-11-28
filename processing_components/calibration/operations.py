@@ -39,21 +39,12 @@ def create_gaintable_from_blockvisibility(vis: BlockVisibility, timeslice=None,
     nants = vis.nants
     
     if timeslice is None or timeslice == 'auto':
-        utimes = numpy.unique(vis.time)
-        ntimes = len(utimes)
-        gain_interval = numpy.zeros([ntimes])
-        if ntimes > 1:
-            gain_interval[:-1] = utimes[1:] - utimes[0:-1]
-            gain_interval[-1] = utimes[-1] - utimes[-2]
-            gain_interval[0] = gain_interval[1]
-        else:
-            gain_interval[...] = 1.0
+        timeslice = numpy.min(vis.integration_time)
     
-    else:
-        ntimes = numpy.ceil((numpy.max(vis.time) - numpy.min(vis.time)) / timeslice).astype('int')
-        utimes = numpy.linspace(numpy.min(vis.time), numpy.max(vis.time), ntimes)
-        gain_interval = timeslice * numpy.ones([ntimes])
-    
+    utimes = timeslice * numpy.unique(numpy.round(vis.time / timeslice))
+    ntimes = len(utimes)
+    gain_interval = timeslice * numpy.ones([ntimes])
+
     #    log.debug('create_gaintable_from_blockvisibility: times are %s' % str(utimes))
     #    log.debug('create_gaintable_from_blockvisibility: intervals are %s' % str(gain_interval))
     
@@ -267,7 +258,7 @@ def gaintable_plot(gt: GainTable, ax, title='', value='amp', **kwargs):
             ax.plot(gt.time[gt.time > 0.0][amp > 0.0], 1.0 / amp[amp > 0.0], '.')
         else:
             angle = numpy.angle(gt.gain[:, ant, 0, 0, 0])
-            ax.plot(gt.time[gt[0].time > 0.0][amp > 0.0], angle[amp[amp > 0.0]], '.')
+            ax.plot(gt.time[gt.time > 0.0][amp > 0.0], angle[amp > 0.0], '.')
     
     ax.set_title(title)
     ax.set_xlabel('Time (s)')
