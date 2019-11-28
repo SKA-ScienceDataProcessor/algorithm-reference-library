@@ -47,8 +47,6 @@ def convert_earthlocation_from_string(s: str):
 def convert_direction_to_string(d: SkyCoord):
     """Convert SkyCoord to string
 
-    TODO: Make more general!
-
     :param d: SkyCoord
     :return:
     """
@@ -58,8 +56,6 @@ def convert_direction_to_string(d: SkyCoord):
 def convert_direction_from_string(s: str):
     """Convert direction (SkyCoord) from string
     
-    TODO: Make more general!
-
     :param s: String
 
     :return:

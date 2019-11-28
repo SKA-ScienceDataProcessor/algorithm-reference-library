@@ -335,12 +335,6 @@ def create_image_from_visibility(vis: Union[BlockVisibility, Visibility], **kwar
     w.wcs.crval = [phasecentre.ra.deg, phasecentre.dec.deg, 1.0, reffrequency.to(units.Hz).value]
     w.naxis = 4
     
-    # TODO: Why is this check being done?
-    # direction_centre = pixel_to_skycoord(npixel // 2 + 1, npixel // 2 + 1, wcs=w, origin=1)
-    # assert direction_centre.separation(imagecentre).value < 1e-7, \
-    #     "Image phase centre [npixel//2, npixel//2] should be %s, actually is %s" % \
-    #     (str(imagecentre), str(direction_centre))
-    
     w.wcs.radesys = get_parameter(kwargs, 'frame', 'ICRS')
     w.wcs.equinox = get_parameter(kwargs, 'equinox', 2000.0)
     
