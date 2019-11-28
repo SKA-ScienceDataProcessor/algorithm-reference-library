@@ -4,15 +4,13 @@ merging gaintables.
 """
 
 import copy
+import logging
 
 import numpy.linalg
 
 from data_models.memory_data_models import GainTable, BlockVisibility, QA, assert_vis_gt_compatible
 from data_models.memory_data_models import ReceptorFrame
-
 from ..visibility.iterators import vis_timeslice_iter
-
-import logging
 
 log = logging.getLogger(__name__)
 
@@ -24,7 +22,7 @@ def gaintable_summary(gt: GainTable):
     return "%s rows, %.3f GB" % (gt.data.shape, gt.size())
 
 
-def create_gaintable_from_blockvisibility(vis: BlockVisibility, timeslice = None,
+def create_gaintable_from_blockvisibility(vis: BlockVisibility, timeslice=None,
                                           frequencyslice: float = None, **kwargs) -> GainTable:
     """ Create gain table from visibility.
     
@@ -45,19 +43,20 @@ def create_gaintable_from_blockvisibility(vis: BlockVisibility, timeslice = None
         ntimes = len(utimes)
         gain_interval = numpy.zeros([ntimes])
         if ntimes > 1:
-            gain_interval[:-1] =utimes[1:]- utimes[0:-1]
-            gain_interval[-1] =utimes[-1]- utimes[-2]
+            gain_interval[:-1] = utimes[1:] - utimes[0:-1]
+            gain_interval[-1] = utimes[-1] - utimes[-2]
+            gain_interval[0] = gain_interval[1]
         else:
             gain_interval[...] = 1.0
     
     else:
-        ntimes = numpy.ceil((numpy.max(vis.time) - numpy.min(vis.time))/timeslice).astype('int')
+        ntimes = numpy.ceil((numpy.max(vis.time) - numpy.min(vis.time)) / timeslice).astype('int')
         utimes = numpy.linspace(numpy.min(vis.time), numpy.max(vis.time), ntimes)
         gain_interval = timeslice * numpy.ones([ntimes])
     
-#    log.debug('create_gaintable_from_blockvisibility: times are %s' % str(utimes))
-#    log.debug('create_gaintable_from_blockvisibility: intervals are %s' % str(gain_interval))
-
+    #    log.debug('create_gaintable_from_blockvisibility: times are %s' % str(utimes))
+    #    log.debug('create_gaintable_from_blockvisibility: intervals are %s' % str(gain_interval))
+    
     ntimes = len(utimes)
     ufrequency = numpy.unique(vis.frequency)
     nfrequency = len(ufrequency)
@@ -82,7 +81,7 @@ def create_gaintable_from_blockvisibility(vis: BlockVisibility, timeslice = None
     
     assert isinstance(gt, GainTable), "gt is not a GainTable: %r" % gt
     assert_vis_gt_compatible(vis, gt)
-
+    
     return gt
 
 
@@ -104,7 +103,7 @@ def apply_gaintable(vis: BlockVisibility, gt: GainTable, inverse=False, vis_slic
     """
     assert isinstance(vis, BlockVisibility), "vis is not a BlockVisibility: %r" % vis
     assert isinstance(gt, GainTable), "gt is not a GainTable: %r" % gt
-
+    
     assert_vis_gt_compatible(vis, gt)
     
     if inverse:
@@ -115,7 +114,7 @@ def apply_gaintable(vis: BlockVisibility, gt: GainTable, inverse=False, vis_slic
     is_scalar = gt.gain.shape[-2:] == (1, 1)
     if is_scalar:
         log.debug('apply_gaintable: scalar gains')
-
+    
     for chunk, rows in enumerate(vis_timeslice_iter(vis, vis_slices=vis_slices)):
         if numpy.sum(rows) > 0:
             vistime = numpy.average(vis.time[rows])
@@ -124,7 +123,7 @@ def apply_gaintable(vis: BlockVisibility, gt: GainTable, inverse=False, vis_slic
             # Lookup the gain for this set of visibilities
             gain = gt.data['gain'][gaintable_rows]
             gainwt = gt.data['weight'][gaintable_rows]
-
+            
             # The shape of the mueller matrix is
             ntimes, nant, nchan, nrec, _ = gain.shape
             
@@ -146,8 +145,8 @@ def apply_gaintable(vis: BlockVisibility, gt: GainTable, inverse=False, vis_slic
                                                   clgain[time, :, chan, 0]).reshape([nant, nant])
                         applied[time, :, :, chan, 0] = original[time, :, :, chan, 0] * smueller
                         antantwt = numpy.outer(gainwt[time, :, chan, 0, 0], gainwt[time, :, chan, 0, 0])
-                        applied[time, :, :, chan, 0][antantwt==0.0] = 0.0
-                        appliedwt[time, :, :, chan, 0][antantwt==0.0] = 0.0
+                        applied[time, :, :, chan, 0][antantwt == 0.0] = 0.0
+                        appliedwt[time, :, :, chan, 0][antantwt == 0.0] = 0.0
                 else:
                     for a1 in range(vis.nants - 1):
                         for a2 in range(a1 + 1, vis.nants):
@@ -167,9 +166,9 @@ def apply_gaintable(vis: BlockVisibility, gt: GainTable, inverse=False, vis_slic
                                     applied[time, a2, a1, chan, :] = \
                                         numpy.matmul(mueller, original[time, a2, a1, chan, :])
                                 if (gainwt[time, a1, chan, 0, 0] <= 0.0) or (gainwt[time, a1, chan, 0, 0] <= 0.0):
-                                    applied[time, a2, a1, chan, 0]= 0.0
+                                    applied[time, a2, a1, chan, 0] = 0.0
                                     appliedwt[time, a2, a1, chan, 0] = 0.0
-
+            
             vis.data['vis'][rows] = applied
     return vis
 
@@ -219,7 +218,7 @@ def create_gaintable_from_rows(gt: GainTable, rows: numpy.ndarray, makecopy=True
     assert len(rows) == gt.ntimes, "Length of rows does not agree with length of GainTable"
     
     assert isinstance(gt, GainTable), gt
-        
+    
     if makecopy:
         newgt = copy_gaintable(gt)
         newgt.data = copy.deepcopy(gt.data[rows])
@@ -236,8 +235,8 @@ def qa_gaintable(gt: GainTable, context=None) -> QA:
     :param gt:
     :return: AQ
     """
-    agt = numpy.abs(gt.gain[gt.weight>0.0])
-    pgt = numpy.angle(gt.gain[gt.weight>0.0])
+    agt = numpy.abs(gt.gain[gt.weight > 0.0])
+    pgt = numpy.angle(gt.gain[gt.weight > 0.0])
     data = {'shape': gt.gain.shape,
             'maxabs-amp': numpy.max(agt),
             'minabs-amp': numpy.min(agt),
@@ -250,3 +249,26 @@ def qa_gaintable(gt: GainTable, context=None) -> QA:
             'residual': numpy.max(gt.residual)
             }
     return QA(origin='qa_gaintable', data=data, context=context)
+
+
+def gaintable_plot(gt: GainTable, ax, title='', value='amp', **kwargs):
+    """ Standard plot of gain table
+
+    :param gt: Gaintable
+    :param ax: matplotlib axes
+    :param value: 'amp' or 'phase'
+    :param kwargs:
+    :return:
+    """
+    nants = gt.nants
+    for ant in range(nants):
+        amp = numpy.abs(gt.gain[:, ant, 0, 0, 0])
+        if value == 'amp':
+            ax.plot(gt.time[gt.time > 0.0][amp > 0.0], 1.0 / amp[amp > 0.0], '.')
+        else:
+            angle = numpy.angle(gt.gain[:, ant, 0, 0, 0])
+            ax.plot(gt.time[gt[0].time > 0.0][amp > 0.0], angle[amp[amp > 0.0]], '.')
+    
+    ax.set_title(title)
+    ax.set_xlabel('Time (s)')
+    ax.set_ylabel(value)

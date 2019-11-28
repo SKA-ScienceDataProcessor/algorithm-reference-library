@@ -653,6 +653,8 @@ def create_blockvisibility_from_ms(msname, channum=None, start_chan=None, end_ch
                     time_index += 1
                     time_last = time[row]
                     
+            bv_times[-1] = time[-1]
+                    
             ntimes = len(bv_times)
             
             bv_vis = numpy.zeros([ntimes, nants, nants, nchan, npol]).astype('complex')
