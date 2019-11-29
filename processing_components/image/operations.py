@@ -124,7 +124,7 @@ def qa_image(im, context="") -> QA:
 
 
 def show_image(im: Image, fig=None, title: str = '', pol=0, chan=0, cm='Greys', components=None,
-               vmin=None, vmax=None):
+               vmin=None, vmax=None, vscale=1.0):
     """ Show an Image with coordinates using matplotlib, optionally with components
 
     :param im: Image
@@ -135,38 +135,39 @@ def show_image(im: Image, fig=None, title: str = '', pol=0, chan=0, cm='Greys', 
     :param components: Optional components
     :param vmin: Clip to this minimum
     :param vmax: Clip to this maximum
+    :param vscale: scale max, min by this amount
     :return:
     """
     import matplotlib.pyplot as plt
     
     assert isinstance(im, Image), im
-    if not fig:
-        fig = plt.figure()
-    plt.clf()
 
-    fig.add_subplot(111, projection=im.wcs.sub([1,2]))
-
+    fig = plt.figure()
+    ax = fig.add_subplot(1, 1, 1, projection=im.wcs.sub([1,2]))
+    
     if len(im.data.shape) == 4:
         data_array = numpy.real(im.data[chan, pol, :, :])
     else:
         data_array = numpy.real(im.data)
         
     if vmax is None:
-        vmax = numpy.max(data_array)
+        vmax = vscale * numpy.max(data_array)
     if vmin is None:
-        vmin = numpy.min(data_array)
+        vmin = vscale * numpy.min(data_array)
 
-    plt.imshow(data_array, origin = 'lower', cmap = cm, vmax=vmax, vmin=vmin)
+    cm = ax.imshow(data_array, origin = 'lower', cmap = cm, vmax=vmax, vmin=vmin)
 
-    plt.xlabel(im.wcs.wcs.ctype[0])
-    plt.ylabel(im.wcs.wcs.ctype[1])
-    plt.title(title)
-    plt.colorbar()
+    ax.set_xlabel(im.wcs.wcs.ctype[0])
+    ax.set_ylabel(im.wcs.wcs.ctype[1])
+    ax.set_title(title)
+    
+    fig.colorbar(cm, orientation='vertical', shrink=0.7)
     
     if components is not None:
         for sc in components:
             x, y = skycoord_to_pixel(sc.direction, im.wcs, 0, 'wcs')
-            plt.plot(x, y, marker='+', color='red')
+            ax.plot(x, y, marker='+', color='red')
+            
     return fig
 
 
@@ -213,11 +214,6 @@ def smooth_image(model: Image, width=1.0):
     :param width: Kernel in pixels
     
     """
-    # TODO: Remove filter when astropy fixes convolve
-    import warnings
-    warnings.simplefilter(action='ignore', category=FutureWarning)
-    import astropy.convolution
-    
     assert isinstance(model, Image), model
     
     kernel = astropy.convolution.kernels.Gaussian2DKernel(width)

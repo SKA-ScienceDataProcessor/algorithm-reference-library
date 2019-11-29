@@ -137,7 +137,7 @@ class GainTable:
 
     def __init__(self, data=None, gain: numpy.array = None, time: numpy.array = None, interval=None,
                  weight: numpy.array = None, residual: numpy.array = None, frequency: numpy.array = None,
-                 receptor_frame: ReceptorFrame = ReceptorFrame("linear"), phasecentre=None):
+                 receptor_frame: ReceptorFrame = ReceptorFrame("linear"), phasecentre=None, configuration=None):
         """ Create a gaintable from arrays
 
         The definition of gain is:
@@ -177,6 +177,7 @@ class GainTable:
         self.frequency = frequency
         self.receptor_frame = receptor_frame
         self.phasecentre = phasecentre
+        self.configuration = configuration
 
     def size(self):
         """ Return size in GB
