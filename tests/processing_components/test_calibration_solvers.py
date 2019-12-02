@@ -51,7 +51,7 @@ class TestCalibrationSolvers(unittest.TestCase):
                                           channel_bandwidth=self.channel_bandwidth, weight=1.0,
                                           polarisation_frame=PolarisationFrame(data_pol_frame))
         self.vis = predict_skycomponent_visibility(self.vis, self.comp)
-    
+
     def test_solve_gaintable_scalar(self):
         self.actualSetup('stokesI', 'stokesI', f=[100.0])
         gt = create_gaintable_from_blockvisibility(self.vis)
@@ -63,7 +63,19 @@ class TestCalibrationSolvers(unittest.TestCase):
         residual = numpy.max(gtsol.residual)
         assert residual < 3e-8, "Max residual = %s" % (residual)
         assert numpy.max(numpy.abs(gtsol.gain - 1.0)) > 0.1
-    
+
+    def test_solve_gaintable_scalar_timeslice(self):
+        self.actualSetup('stokesI', 'stokesI', f=[100.0], ntimes=10)
+        gt = create_gaintable_from_blockvisibility(self.vis, timeslice=120.0)
+        log.info("Created gain table: %s" % (gaintable_summary(gt)))
+        gt = simulate_gaintable(gt, phase_error=10.0, amplitude_error=0.0)
+        original = copy_visibility(self.vis)
+        self.vis = apply_gaintable(self.vis, gt)
+        gtsol = solve_gaintable(self.vis, original, phase_only=True, niter=200)
+        residual = numpy.max(gtsol.residual)
+        assert residual < 3e-8, "Max residual = %s" % (residual)
+        assert numpy.max(numpy.abs(gtsol.gain - 1.0)) > 0.1
+
     def test_solve_gaintable_scalar_normalise(self):
         self.actualSetup('stokesI', 'stokesI', f=[100.0])
         gt = create_gaintable_from_blockvisibility(self.vis)
@@ -103,11 +115,12 @@ class TestCalibrationSolvers(unittest.TestCase):
         assert numpy.max(numpy.abs(gtsol.gain - 1.0)) > 0.1
     
     def core_solve(self, spf, dpf, phase_error=0.1, amplitude_error=0.0, leakage=0.0,
-                   phase_only=True, niter=200, crosspol=False, residual_tol=1e-6, f=None, vnchan=3):
+                   phase_only=True, niter=200, crosspol=False, residual_tol=1e-6, f=None, vnchan=3,
+                   timeslice='auto'):
         if f is None:
             f = [100.0, 50.0, -10.0, 40.0]
         self.actualSetup(spf, dpf, f=f, vnchan=vnchan)
-        gt = create_gaintable_from_blockvisibility(self.vis)
+        gt = create_gaintable_from_blockvisibility(self.vis, timeslice=timeslice)
         log.info("Created gain table: %s" % (gaintable_summary(gt)))
         gt = simulate_gaintable(gt, phase_error=phase_error, amplitude_error=amplitude_error, leakage=leakage)
         original = copy_visibility(self.vis)

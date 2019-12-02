@@ -151,7 +151,7 @@ class TestPipelines(unittest.TestCase):
         self.actualSetUp(add_errors=True)
         controls = create_calibration_controls()
         controls['T']['first_selfcal'] = 1
-        controls['T']['timescale'] = 'auto'
+        controls['T']['timeslice'] = 'auto'
     
         clean, residual, restored, gt_list = \
             ical_list_serial_workflow(self.vis_list,
@@ -183,7 +183,7 @@ class TestPipelines(unittest.TestCase):
         self.actualSetUp(add_errors=True)
         controls = create_calibration_controls()
         controls['T']['first_selfcal'] = 1
-        controls['T']['timescale'] = 'auto'
+        controls['T']['timeslice'] = 'auto'
         
         clean, residual, restored, gt_list = \
             ical_list_serial_workflow(self.vis_list,

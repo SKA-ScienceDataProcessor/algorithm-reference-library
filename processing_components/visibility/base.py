@@ -51,7 +51,7 @@ def create_visibility(config: Configuration, times: numpy.array, frequency: nump
                       channel_bandwidth, phasecentre: SkyCoord,
                       weight: float, polarisation_frame=PolarisationFrame('stokesI'),
                       integration_time=1.0,
-                      zerow=False, elevation_limit=15.0 * numpy.pi / 180.0) -> Visibility:
+                      zerow=False, elevation_limit=15.0 * numpy.pi / 180.0, source='unknown', meta=None) -> Visibility:
     """ Create a Visibility from Configuration, hour angles, and direction of source
 
     Note that we keep track of the integration time for BDA purposes
@@ -136,7 +136,7 @@ def create_visibility(config: Configuration, times: numpy.array, frequency: nump
                      frequency=rfrequency, vis=rvis,
                      weight=rweight, imaging_weight=rweight,
                      integration_time=rintegration_time, channel_bandwidth=rchannel_bandwidth,
-                     polarisation_frame=polarisation_frame)
+                     polarisation_frame=polarisation_frame, source=source, meta=meta)
     vis.phasecentre = phasecentre
     vis.configuration = config
     log.info("create_visibility: %s" % (vis_summary(vis)))
@@ -160,6 +160,8 @@ def create_blockvisibility(config: Configuration,
                            channel_bandwidth=1e6,
                            zerow=False,
                            elevation_limit=None,
+                           source='unknown',
+                           meta=None,
                            **kwargs) -> BlockVisibility:
     """ Create a BlockVisibility from Configuration, hour angles, and direction of source
 
@@ -238,7 +240,7 @@ def create_blockvisibility(config: Configuration,
     vis = BlockVisibility(uvw=ruvw, time=rtimes, frequency=frequency, vis=rvis, weight=rweight,
                           imaging_weight=rimaging_weight,
                           integration_time=rintegration_time, channel_bandwidth=rchannel_bandwidth,
-                          polarisation_frame=polarisation_frame)
+                          polarisation_frame=polarisation_frame, source=source, meta=meta)
     vis.phasecentre = phasecentre
     vis.configuration = config
     log.info("create_blockvisibility: %s" % (vis_summary(vis)))
@@ -455,7 +457,34 @@ def export_blockvisibility_to_ms(msname, vis_list, source_name=None, ack=False):
     tbl.write()
 
 
-def create_blockvisibility_from_ms(msname, channum=None, start_chan=None, end_chan=None, ack=False):
+def list_ms(msname, ack=False):
+    """ List sources and data descriptors in a MeasurementSet
+
+    :param msname: File name of MS
+    :return:
+    """
+    try:
+        from casacore.tables import table  # pylint: disable=import-error
+    except ModuleNotFoundError:
+        raise ModuleNotFoundError("casacore is not installed")
+    try:
+        from processing_components.visibility import msv2
+    except ModuleNotFoundError:
+        raise ModuleNotFoundError("cannot import msv2")
+    
+    tab = table(msname, ack=ack)
+    log.debug("list_ms: %s" % str(tab.info()))
+    
+    fieldtab = table('%s/FIELD' % msname, ack=False)
+    sources = fieldtab.getcol('NAME')
+    
+    dds = list(numpy.unique(tab.getcol('DATA_DESC_ID')))
+    
+    return sources, dds
+
+
+def create_blockvisibility_from_ms(msname, channum=None, start_chan=None, end_chan=None, ack=False,
+                                   datacolumn='DATA', selected_sources=None, selected_dds=None):
     """ Minimal MS to BlockVisibility converter
 
     The MS format is much more general than the ARL BlockVisibility so we cut many corners. This requires casacore to be
@@ -482,23 +511,40 @@ def create_blockvisibility_from_ms(msname, channum=None, start_chan=None, end_ch
     except ModuleNotFoundError:
         raise ModuleNotFoundError("cannot import msv2")
 
-
     tab = table(msname, ack=ack)
     log.debug("create_blockvisibility_from_ms: %s" % str(tab.info()))
 
-    fields = numpy.unique(tab.getcol('FIELD_ID'))
-    dds = numpy.unique(tab.getcol('DATA_DESC_ID'))
-    log.debug("create_blockvisibility_from_ms: Found unique fields %s, unique data descriptions %s" % (
+    if selected_sources is None:
+        fields = numpy.unique(tab.getcol('FIELD_ID'))
+    else:
+        fieldtab = table('%s/FIELD' % msname, ack=False)
+        sources = fieldtab.getcol('NAME')
+        fields = list()
+        for field, source in enumerate(sources):
+            if source in selected_sources: fields.append(field)
+        assert len(fields) > 0, "No sources selected"
+        
+    if selected_dds is None:
+        dds = numpy.unique(tab.getcol('DATA_DESC_ID'))
+    else:
+        dds = selected_dds
+        
+    log.debug("create_blockvisibility_from_ms: Reading unique fields %s, unique data descriptions %s" % (
         str(fields), str(dds)))
     vis_list = list()
-    for dd in dds:
-        dtab = table(msname, ack=ack).query('DATA_DESC_ID==%d' % dd, style='')
-        for field in fields:
-            ms = dtab.query('FIELD_ID==%d' % field, style='')
+    for field in fields:
+        ftab = table(msname, ack=ack).query('FIELD_ID==%d' % field, style='')
+        for dd in dds:
+            meta = {'MSV2':{'FIELD_ID': field, 'DATA_DESC_ID':dd}}
+            ms = ftab.query('DATA_DESC_ID==%d' % dd, style='')
             assert ms.nrows() > 0, "Empty selection for FIELD_ID=%d and DATA_DESC_ID=%d" % (field, dd)
             log.debug("create_blockvisibility_from_ms: Found %d rows" % (ms.nrows()))
-            time = ms.getcol('TIME')
-            datacol = ms.getcol('DATA', nrow=1)
+            # The TIME column has descriptor:
+            # {'valueType': 'double', 'dataManagerType': 'IncrementalStMan', 'dataManagerGroup': 'TIME',
+            # 'option': 0, 'maxlen': 0, 'comment': 'Modified Julian Day',
+            # 'keywords': {'QuantumUnits': ['s'], 'MEASINFO': {'type': 'epoch', 'Ref': 'UTC'}}}
+            otime = ms.getcol('TIME')
+            datacol = ms.getcol(datacolumn, nrow=1)
             datacol_shape = list(datacol.shape)
             channels = datacol.shape[-2]
             log.debug("create_blockvisibility_from_ms: Found %d channels" % (channels))
@@ -512,26 +558,25 @@ def create_blockvisibility_from_ms(msname, channum=None, start_chan=None, end_ch
                         blc = [start_chan, 0]
                         trc = [end_chan, datacol_shape[-1] - 1]
                         channum = range(start_chan, end_chan+1)
-                        ms_vis = ms.getcolslice('DATA', blc=blc, trc=trc)
+                        ms_vis = ms.getcolslice(datacolumn, blc=blc, trc=trc)
                         ms_weight = ms.getcol('WEIGHT')
                     except IndexError:
                         raise IndexError("channel number exceeds max. within ms")
 
                 else:
                     log.debug("create_blockvisibility_from_ms: Reading all %d channels" % (channels))
-                    print("create_blockvisibility_from_ms: Reading all %d channels" % (channels))
                     try:
-                        ms_vis = ms.getcol('DATA')
+                        channum = range(channels)
+                        ms_vis = ms.getcol(datacolumn)[:, channum, :]
                         ms_weight = ms.getcol('WEIGHT')
                         channum = range(channels)
                     except IndexError:
                         raise IndexError("channel number exceeds max. within ms")
             else:
-                log.debug("create_visibility_from_ms: Reading channels %s " % (channum))
-                print("create_visibility_from_ms: Reading channels %s " % (channum))
+                log.debug("create_blockvisibility_from_ms: Reading channels %s " % (channum))
                 channum = range(channels)
                 try:
-                    ms_vis = ms.getcol('DATA')[:, channum, :]
+                    ms_vis = ms.getcol(datacolumn)[:, channum, :]
                     ms_weight = ms.getcol('WEIGHT')[:, :]
                 except IndexError:
                     raise IndexError("channel number exceeds max. within ms")
@@ -541,7 +586,14 @@ def create_blockvisibility_from_ms(msname, channum=None, start_chan=None, end_ch
             antenna2 = ms.getcol('ANTENNA2')
             integration_time = ms.getcol('INTERVAL')
 
-            time = Time((time-integration_time/2.0)/86400+ 2400000.5,format='jd',scale='utc').unix
+#            time = Time((time-integration_time/2.0)/86400+ 2400000.5,format='jd',scale='utc').utc.value
+            time = (otime - integration_time / 2.0)
+
+            start_time = numpy.min(time)/86400.0
+            end_time = numpy.max(time)/86400.0
+            
+            log.debug("create_blockvisibility_from_ms: Observation from %s to %s" %
+                      (Time(start_time, format='mjd').iso, Time(end_time, format='mjd').iso))
 
             # Now get info from the subtables
             spwtab = table('%s/SPECTRAL_WINDOW' % msname, ack=False)
@@ -581,31 +633,35 @@ def create_blockvisibility_from_ms(msname, channum=None, start_chan=None, end_ch
             # Get phasecentres
             fieldtab = table('%s/FIELD' % msname, ack=False)
             pc = fieldtab.getcol('PHASE_DIR')[field, 0, :]
+            source = fieldtab.getcol('NAME')[field]
             phasecentre = SkyCoord(ra=pc[0] * u.rad, dec=pc[1] * u.rad, frame='icrs', equinox='J2000')
-            
-            bv_times = numpy.unique(time)
+
+            time_index_row = numpy.zeros_like(time, dtype='int')
+            time_last = time[0]
+            time_index = 0
+            for row, _ in enumerate(time):
+                if time[row] > time_last + integration_time[row]:
+                    assert time[row] > time_last, "MS is not time-sorted - cannot convert"
+                    time_index += 1
+                    time_last = time[row]
+                time_index_row[row] = time_index
+
+            bv_times = numpy.unique(time_index_row)
             ntimes = len(bv_times)
             
             bv_vis = numpy.zeros([ntimes, nants, nants, nchan, npol]).astype('complex')
             bv_weight = numpy.zeros([ntimes, nants, nants, nchan, npol])
             bv_imaging_weight = numpy.zeros([ntimes, nants, nants, nchan, npol])
             bv_uvw = numpy.zeros([ntimes, nants, nants, 3])
-            
-            time_last = time[0]
-            time_index = 0
-            for row, _ in enumerate(ms_vis):
-                # MS has shape [row, npol, nchan]
-                # BV has shape [ntimes, nants, nants, nchan, npol]
-                if time[row] != time_last:
-                    assert time[row] > time_last, "MS is not time-sorted - cannot convert"
-                    time_index += 1
-                    time_last = time[row]
+            bv_integration_time = numpy.zeros([ntimes])
+
+            for row, _ in enumerate(time):
+                time_index = time_index_row[row]
                 bv_vis[time_index, antenna2[row], antenna1[row], ...] = ms_vis[row, ...]
                 bv_weight[time_index, antenna2[row], antenna1[row], :, ...] = ms_weight[row, numpy.newaxis, ...]
                 bv_imaging_weight[time_index, antenna2[row], antenna1[row], :, ...] = ms_weight[row, numpy.newaxis, ...]
                 bv_uvw[time_index, antenna2[row], antenna1[row], :] = uvw[row, :]
-
-            bv_integration_time = numpy.full_like(bv_times, numpy.unique(integration_time))
+                bv_integration_time[time_index] = integration_time[row]
 
             vis_list.append(BlockVisibility(uvw=bv_uvw,
                                             time=bv_times,
@@ -617,7 +673,8 @@ def create_blockvisibility_from_ms(msname, channum=None, start_chan=None, end_ch
                                             imaging_weight=bv_imaging_weight,
                                             configuration=configuration,
                                             phasecentre=phasecentre,
-                                            polarisation_frame=polarisation_frame))
+                                            polarisation_frame=polarisation_frame,
+                                            source=source, meta=meta))
         tab.close()
     return vis_list
 

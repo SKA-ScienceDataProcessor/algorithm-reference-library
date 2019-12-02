@@ -24,3 +24,4 @@ dask-worker-space
 *.egg
 /data_models/.idea
 *.fits
+/sourcetree.txt

@@ -207,7 +207,7 @@ class TestPipelineGraphs(unittest.TestCase):
         self.actualSetUp(add_errors=True)
         controls = create_calibration_controls()
         controls['T']['first_selfcal'] = 1
-        controls['T']['timescale'] = 'auto'
+        controls['T']['timeslice'] = 'auto'
         
         ical_list = \
             ical_list_arlexecute_workflow(self.vis_list,
@@ -240,7 +240,7 @@ class TestPipelineGraphs(unittest.TestCase):
         self.actualSetUp(add_errors=True)
         controls = create_calibration_controls()
         controls['T']['first_selfcal'] = 1
-        controls['T']['timescale'] = 'auto'
+        controls['T']['timeslice'] = 'auto'
         
         ical_list = \
             ical_list_arlexecute_workflow(self.vis_list,

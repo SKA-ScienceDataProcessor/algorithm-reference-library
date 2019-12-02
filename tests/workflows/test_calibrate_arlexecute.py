@@ -118,7 +118,7 @@ class TestCalibrateGraphs(unittest.TestCase):
     
         controls = create_calibration_controls()
         controls['T']['first_selfcal'] = 0
-        controls['T']['timescale'] = 'auto'
+        controls['T']['timeslice'] = 'auto'
     
         calibrate_list = \
             calibrate_list_arlexecute_workflow(self.error_blockvis_list, self.blockvis_list,
@@ -140,7 +140,7 @@ class TestCalibrateGraphs(unittest.TestCase):
 
         controls = create_calibration_controls()
         controls['T']['first_selfcal'] = 0
-        controls['T']['timescale'] = 'auto'
+        controls['T']['timeslice'] = 'auto'
 
         calibrate_list = \
             calibrate_list_arlexecute_workflow(self.error_blockvis_list, self.blockvis_list,
@@ -156,7 +156,7 @@ class TestCalibrateGraphs(unittest.TestCase):
         
         controls = create_calibration_controls()
         controls['T']['first_selfcal'] = 0
-        controls['T']['timescale'] = 'auto'
+        controls['T']['timeslice'] = 'auto'
         
         calibrate_list = \
             calibrate_list_arlexecute_workflow(self.error_blockvis_list, self.blockvis_list,
@@ -180,7 +180,7 @@ class TestCalibrateGraphs(unittest.TestCase):
     
         controls = create_calibration_controls()
         controls['T']['first_selfcal'] = 0
-        controls['T']['timescale'] = 'auto'
+        controls['T']['timeslice'] = 'auto'
     
         calibrate_list = \
             calibrate_list_arlexecute_workflow(self.error_blockvis_list, self.blockvis_list,

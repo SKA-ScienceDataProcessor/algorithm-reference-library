@@ -70,7 +70,7 @@ def coalesce_visibility(vis: BlockVisibility, **kwargs) -> Visibility:
                                weight=cwts, imaging_weight=cimwt,
                                configuration=vis.configuration, integration_time=cintegration_time,
                                polarisation_frame=vis.polarisation_frame, cindex=cindex,
-                               blockvis=vis)
+                               blockvis=vis, meta=vis.meta)
 
     log.debug(
         'coalesce_visibility: Created new Visibility for coalesced data_models, coalescence factors (t,f) = (%.3f,%.3f)'
@@ -101,7 +101,7 @@ def convert_blockvisibility_to_visibility(vis: BlockVisibility) -> Visibility:
                                weight=cwts, imaging_weight=cimaging_wts,
                                configuration=vis.configuration, integration_time=cintegration_time,
                                polarisation_frame=vis.polarisation_frame, cindex=cindex,
-                               blockvis=vis)
+                               blockvis=vis, meta=vis.meta)
 
     log.debug('convert_visibility: Original %s, converted %s' % (vis_summary(vis),
                                                                  vis_summary(converted_vis)))

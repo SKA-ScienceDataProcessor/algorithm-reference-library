@@ -335,12 +335,6 @@ def create_image_from_visibility(vis: Union[BlockVisibility, Visibility], **kwar
     w.wcs.crval = [phasecentre.ra.deg, phasecentre.dec.deg, 1.0, reffrequency.to(units.Hz).value]
     w.naxis = 4
     
-    # TODO: Why is this check being done?
-    # direction_centre = pixel_to_skycoord(npixel // 2 + 1, npixel // 2 + 1, wcs=w, origin=1)
-    # assert direction_centre.separation(imagecentre).value < 1e-7, \
-    #     "Image phase centre [npixel//2, npixel//2] should be %s, actually is %s" % \
-    #     (str(imagecentre), str(direction_centre))
-    
     w.wcs.radesys = get_parameter(kwargs, 'frame', 'ICRS')
     w.wcs.equinox = get_parameter(kwargs, 'equinox', 2000.0)
     
@@ -454,7 +448,8 @@ def advise_wide_field(vis: Union[BlockVisibility, Visibility], delA=0.02, oversa
         log.info("advice_wide_field: Npixels (power of 2, 3) per side = %d" % (npixels23))
 
     npixels_min = pwr2345(npixels)
-    log.info("advice_wide_field: Npixels (power of 2, 3, 4, 5) per side = %d" % (npixels_min))
+    if verbose:
+        log.info("advice_wide_field: Npixels (power of 2, 3, 4, 5) per side = %d" % (npixels_min))
 
     # Following equation is from Cornwell, Humphreys, and Voronkov (2012) (equation 24)
     # We will assume that the constraint holds at one quarter the entire FOV i.e. that

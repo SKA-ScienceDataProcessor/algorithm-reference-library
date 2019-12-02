@@ -210,7 +210,7 @@ class TestTesting_Support(unittest.TestCase):
         for i, vis in enumerate(vis_iter):
             assert vis.nvis
             if i == 0:
-                fullvis = vis
+                fullvis = copy_visibility(vis)
                 totalnvis = vis.nvis
             else:
                 fullvis = append_visibility(fullvis, vis)

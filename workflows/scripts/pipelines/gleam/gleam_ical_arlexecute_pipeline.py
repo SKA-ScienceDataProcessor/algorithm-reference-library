@@ -73,9 +73,9 @@ if __name__ == '__main__':
     controls['G']['first_selfcal'] = 3
     controls['B']['first_selfcal'] = 4
     
-    controls['T']['timescale'] = 'auto'
-    controls['G']['timescale'] = 'auto'
-    controls['B']['timescale'] = 1e5
+    controls['T']['timeslice'] = 'auto'
+    controls['G']['timeslice'] = 'auto'
+    controls['B']['timeslice'] = 1e5
     
     pp.pprint(controls)
     

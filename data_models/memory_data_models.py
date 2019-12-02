@@ -137,7 +137,7 @@ class GainTable:
 
     def __init__(self, data=None, gain: numpy.array = None, time: numpy.array = None, interval=None,
                  weight: numpy.array = None, residual: numpy.array = None, frequency: numpy.array = None,
-                 receptor_frame: ReceptorFrame = ReceptorFrame("linear"), phasecentre=None):
+                 receptor_frame: ReceptorFrame = ReceptorFrame("linear"), phasecentre=None, configuration=None):
         """ Create a gaintable from arrays
 
         The definition of gain is:
@@ -177,6 +177,7 @@ class GainTable:
         self.frequency = frequency
         self.receptor_frame = receptor_frame
         self.phasecentre = phasecentre
+        self.configuration = configuration
 
     def size(self):
         """ Return size in GB
@@ -767,7 +768,7 @@ class Visibility:
                  time=None, antenna1=None, antenna2=None, vis=None,
                  weight=None, imaging_weight=None, integration_time=None,
                  polarisation_frame=PolarisationFrame('stokesI'), cindex=None,
-                 blockvis=None):
+                 blockvis=None, source='anonymous', meta=None):
         """Visibility
 
         :param data:
@@ -786,6 +787,8 @@ class Visibility:
         :param polarisation_frame:
         :param cindex:
         :param blockvis:
+        :param source:
+        :param meta:
         """
         if data is None and vis is not None:
             if imaging_weight is None:
@@ -829,6 +832,8 @@ class Visibility:
         self.configuration = configuration  # Antenna/station configuration
         self.polarisation_frame = polarisation_frame
         self.frequency_map = None
+        self.source = source
+        self.meta = meta
 
     def __str__(self):
         """Default printer for Visibility
@@ -837,6 +842,7 @@ class Visibility:
         ufrequency = numpy.unique(self.frequency)
         uchannel_bandwidth = numpy.unique(self.channel_bandwidth)
         s = "Visibility:\n"
+        s += "\tSource: %s\n" % self.source
         s += "\tNumber of visibilities: %s\n" % self.nvis
         s += "\tNumber of channels: %d\n" % len(ufrequency)
         s += "\tFrequency: %s\n" % ufrequency
@@ -846,6 +852,7 @@ class Visibility:
         s += "\tPolarisation Frame: %s\n" % self.polarisation_frame.type
         s += "\tPhasecentre: %s\n" % self.phasecentre
         s += "\tConfiguration: %s\n" % self.configuration.name
+        s += "\tMetadata: %s\n" % self.meta
 
         return s
 
@@ -952,7 +959,7 @@ class BlockVisibility:
                  phasecentre=None, configuration=None, uvw=None,
                  time=None, vis=None, weight=None, integration_time=None,
                  polarisation_frame=PolarisationFrame('stokesI'),
-                 imaging_weight=None):
+                 imaging_weight=None, source='anonymous', meta=dict()):
         """BlockVisibility
 
         :param data:
@@ -966,6 +973,7 @@ class BlockVisibility:
         :param weight:
         :param integration_time:
         :param polarisation_frame:
+        :param source:
         """
         if data is None and vis is not None:
             ntimes, nants, _, nchan, npol = vis.shape
@@ -982,8 +990,8 @@ class BlockVisibility:
             data = numpy.zeros(shape=[ntimes], dtype=desc)
             data['index'] = list(range(ntimes))
             data['uvw'] = uvw
-            data['time'] = time
-            data['integration_time'] = integration_time
+            data['time'] = time # MJD in seconds
+            data['integration_time'] = integration_time  # seconds
             data['vis'] = vis
             data['weight'] = weight
             data['imaging_weight'] = imaging_weight
@@ -994,12 +1002,16 @@ class BlockVisibility:
         self.phasecentre = phasecentre  # Phase centre of observation
         self.configuration = configuration  # Antenna/station configuration
         self.polarisation_frame = polarisation_frame
+        self.source = source
+        self.meta = meta
 
     def __str__(self):
         """Default printer for BlockVisibility
 
         """
         s = "BlockVisibility:\n"
+        s += "\tSource %s\n" % self.source
+        s += "\tPhasecentre: %s\n" % self.phasecentre
         s += "\tNumber of visibilities: %s\n" % self.nvis
         s += "\tNumber of integrations: %s\n" % len(self.time)
         s += "\tVisibility shape: %s\n" % str(self.vis.shape)
@@ -1008,8 +1020,8 @@ class BlockVisibility:
         s += "\tChannel bandwidth: %s\n" % self.channel_bandwidth
         s += "\tNumber of polarisations: %s\n" % self.npol
         s += "\tPolarisation Frame: %s\n" % self.polarisation_frame.type
-        s += "\tPhasecentre: %s\n" % self.phasecentre
         s += "\tConfiguration: %s\n" % self.configuration.name
+        s += "\tMetadata: %s\n" % self.meta
 
         return s
 
@@ -1048,6 +1060,14 @@ class BlockVisibility:
     @property
     def w(self):
         return self.data['uvw'][..., 2]
+
+    @property
+    def uvdist(self):
+        return numpy.hypot(self.u, self.v)
+
+    @property
+    def uvwdist(self):
+        return numpy.hypot(self.u, self.v, self.w)
 
     @property
     def vis(self):

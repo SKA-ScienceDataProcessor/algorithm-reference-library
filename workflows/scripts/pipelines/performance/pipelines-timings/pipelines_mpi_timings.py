@@ -400,7 +400,7 @@ def trial_case(results, seed=180555, context='wstack', nworkers=8, threads_per_w
     controls = create_calibration_controls()
     
     controls['T']['first_selfcal'] = 1
-    controls['T']['timescale'] = 'auto'
+    controls['T']['timeslice'] = 'auto'
     
     start = time.time()
     ical_list = ical_list_mpi_workflow(corrupted_vis_list,

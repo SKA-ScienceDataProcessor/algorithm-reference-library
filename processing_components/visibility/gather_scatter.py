@@ -117,8 +117,11 @@ def visibility_scatter_channel(vis: BlockVisibility) -> List[Visibility]:
                               time=v.time,
                               vis=v.vis[..., chan, :][..., numpy.newaxis, :],
                               weight=v.weight[..., chan, :][..., numpy.newaxis, :],
+                              imaging_weight=v.imaging_weight[..., chan, :][..., numpy.newaxis, :],
                               integration_time=v.integration_time,
-                              polarisation_frame=v.polarisation_frame)
+                              polarisation_frame=v.polarisation_frame,
+                              source=v.source,
+                              meta=v.meta)
         return vis
     
     return [extract_channel(vis, channel) for channel, _ in enumerate(vis.frequency)]
@@ -151,8 +154,11 @@ def visibility_gather_channel(vis_list: List[BlockVisibility], vis: BlockVisibil
                               time=vis_list[0].time,
                               vis=numpy.zeros(vis_shape, dtype=vis_list[0].vis.dtype),
                               weight=numpy.ones(vis_shape, dtype=vis_list[0].weight.dtype),
+                              imaging_weight=numpy.ones(vis_shape, dtype=vis_list[0].weight.dtype),
                               integration_time=vis_list[0].integration_time,
-                              polarisation_frame=vis_list[0].polarisation_frame)
+                              polarisation_frame=vis_list[0].polarisation_frame,
+                              source=vis_list[0].source,
+                              meta=vis_list[0].meta)
     
     assert len(vis.frequency) == len(vis_list)
     

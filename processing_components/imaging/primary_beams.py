@@ -358,13 +358,12 @@ def create_low_test_beam(model: Image, use_local=True) -> Image:
 
 
 def create_low_test_vp(model: Image, use_local=True) -> Image:
-    """Create a test power beam for LOW using an image from OSKAR
+    """Create a test power beam for LOW using an example image from OSKAR
 
     :param model: Template image
     :return: Image
     """
     
-    # TODO: Get true voltage beam from OSKAR
     beam = import_image_from_fits(arl_path('data/models/SKA1_LOW_beam.fits'))
     beam.data = numpy.sqrt(beam.data).astype('complex')
     
