@@ -566,7 +566,8 @@ def create_blockvisibility_from_ms(msname, channum=None, start_chan=None, end_ch
                 else:
                     log.debug("create_blockvisibility_from_ms: Reading all %d channels" % (channels))
                     try:
-                        ms_vis = ms.getcol(datacolumn)
+                        channum = range(channels)
+                        ms_vis = ms.getcol(datacolumn)[:, channum, :]
                         ms_weight = ms.getcol('WEIGHT')
                         channum = range(channels)
                     except IndexError:
@@ -635,6 +636,7 @@ def create_blockvisibility_from_ms(msname, channum=None, start_chan=None, end_ch
             source = fieldtab.getcol('NAME')[field]
             phasecentre = SkyCoord(ra=pc[0] * u.rad, dec=pc[1] * u.rad, frame='icrs', equinox='J2000')
 
+            time_index_row = numpy.zeros_like(time, dtype='int')
             time_last = time[0]
             time_index = 0
             for row, _ in enumerate(time):
@@ -642,19 +644,9 @@ def create_blockvisibility_from_ms(msname, channum=None, start_chan=None, end_ch
                     assert time[row] > time_last, "MS is not time-sorted - cannot convert"
                     time_index += 1
                     time_last = time[row]
+                time_index_row[row] = time_index
 
-            bv_times = numpy.zeros([time_index+1])
-            time_last = time[0]
-            time_index = 0
-            for row, _ in enumerate(time):
-                if time[row] > time_last + integration_time[row]:
-                    assert time[row] > time_last, "MS is not time-sorted - cannot convert"
-                    bv_times[time_index] = time[row]
-                    time_index += 1
-                    time_last = time[row]
-                    
-            bv_times[-1] = time[-1]
-                    
+            bv_times = numpy.unique(time_index_row)
             ntimes = len(bv_times)
             
             bv_vis = numpy.zeros([ntimes, nants, nants, nchan, npol]).astype('complex')
@@ -663,18 +655,13 @@ def create_blockvisibility_from_ms(msname, channum=None, start_chan=None, end_ch
             bv_uvw = numpy.zeros([ntimes, nants, nants, 3])
             bv_integration_time = numpy.zeros([ntimes])
 
-            time_last = time[0]
-            time_index = 0
             for row, _ in enumerate(time):
+                time_index = time_index_row[row]
                 bv_vis[time_index, antenna2[row], antenna1[row], ...] = ms_vis[row, ...]
                 bv_weight[time_index, antenna2[row], antenna1[row], :, ...] = ms_weight[row, numpy.newaxis, ...]
                 bv_imaging_weight[time_index, antenna2[row], antenna1[row], :, ...] = ms_weight[row, numpy.newaxis, ...]
                 bv_uvw[time_index, antenna2[row], antenna1[row], :] = uvw[row, :]
                 bv_integration_time[time_index] = integration_time[row]
-                if time[row] > time_last + integration_time[row]:
-                    assert time[row] > time_last, "MS is not time-sorted - cannot convert"
-                    time_index += 1
-                    time_last = time[row]
 
             vis_list.append(BlockVisibility(uvw=bv_uvw,
                                             time=bv_times,
