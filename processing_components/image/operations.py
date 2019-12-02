@@ -8,6 +8,7 @@ from astropy.wcs import FITSFixedWarning
 warnings.simplefilter('ignore', FITSFixedWarning)
 
 import numpy
+import astropy
 from astropy.io import fits
 from astropy.wcs import WCS
 from astropy.wcs.utils import skycoord_to_pixel
