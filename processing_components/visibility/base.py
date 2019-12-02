@@ -646,9 +646,9 @@ def create_blockvisibility_from_ms(msname, channum=None, start_chan=None, end_ch
                     time_last = time[row]
                 time_index_row[row] = time_index
 
-            bv_times = numpy.unique(time_index_row)
-            ntimes = len(bv_times)
+            ntimes = time_index + 1
             
+            bv_times = numpy.zeros([ntimes])
             bv_vis = numpy.zeros([ntimes, nants, nants, nchan, npol]).astype('complex')
             bv_weight = numpy.zeros([ntimes, nants, nants, nchan, npol])
             bv_imaging_weight = numpy.zeros([ntimes, nants, nants, nchan, npol])
@@ -657,6 +657,7 @@ def create_blockvisibility_from_ms(msname, channum=None, start_chan=None, end_ch
 
             for row, _ in enumerate(time):
                 time_index = time_index_row[row]
+                bv_times = time[time_index]
                 bv_vis[time_index, antenna2[row], antenna1[row], ...] = ms_vis[row, ...]
                 bv_weight[time_index, antenna2[row], antenna1[row], :, ...] = ms_weight[row, numpy.newaxis, ...]
                 bv_imaging_weight[time_index, antenna2[row], antenna1[row], :, ...] = ms_weight[row, numpy.newaxis, ...]
