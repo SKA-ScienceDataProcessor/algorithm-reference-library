@@ -41,7 +41,7 @@ def create_gaintable_from_blockvisibility(vis: BlockVisibility, timeslice=None,
     if timeslice is None or timeslice == 'auto':
         timeslice = numpy.min(vis.integration_time)
     
-    utimes = timeslice * numpy.unique(numpy.round(vis.time / timeslice))
+    utimes = timeslice * numpy.unique(numpy.round((vis.time - vis.time[0]) / timeslice))
     ntimes = len(utimes)
     gain_interval = timeslice * numpy.ones([ntimes])
 
@@ -62,7 +62,7 @@ def create_gaintable_from_blockvisibility(vis: BlockVisibility, timeslice=None,
         gain[..., 1, 0] = 0.0
     
     gain_weight = numpy.ones(gainshape)
-    gain_time = utimes
+    gain_time = utimes + vis.time[0]
     gain_frequency = ufrequency
     gain_residual = numpy.zeros([ntimes, nfrequency, nrec, nrec])
     
