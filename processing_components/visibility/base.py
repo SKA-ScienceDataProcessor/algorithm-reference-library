@@ -657,7 +657,7 @@ def create_blockvisibility_from_ms(msname, channum=None, start_chan=None, end_ch
 
             for row, _ in enumerate(time):
                 time_index = time_index_row[row]
-                bv_times = time[time_index]
+                bv_times[time_index] = time[row]
                 bv_vis[time_index, antenna2[row], antenna1[row], ...] = ms_vis[row, ...]
                 bv_weight[time_index, antenna2[row], antenna1[row], :, ...] = ms_weight[row, numpy.newaxis, ...]
                 bv_imaging_weight[time_index, antenna2[row], antenna1[row], :, ...] = ms_weight[row, numpy.newaxis, ...]
