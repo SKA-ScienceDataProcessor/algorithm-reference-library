@@ -63,6 +63,9 @@ class TestCalibrationPlot(unittest.TestCase):
         fig, ax = plt.subplots(1, 1)
         gaintable_plot(gt, ax, value='phase')
         plt.show(block=False)
+        fig, ax = plt.subplots(1, 1)
+        gaintable_plot(gt, ax, value='residual')
+        plt.show(block=False)
 
 
 if __name__ == '__main__':
