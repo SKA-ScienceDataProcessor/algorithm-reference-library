@@ -208,24 +208,29 @@ def show_components(im, comps, npixels=128, fig=None, vmax=None, vmin=None, titl
         plt.show()
 
 
-def smooth_image(model: Image, width=1.0):
+def smooth_image(model: Image, width=1.0, normalise=True):
     """ Smooth an image with a kernel
     
     :param model: Image
     :param width: Kernel in pixels
+    :param normalise: Normalise kernel peak to unity
     
     """
     assert isinstance(model, Image), model
     
-    kernel = astropy.convolution.kernels.Gaussian2DKernel(width)
+    from astropy.convolution.kernels import Gaussian2DKernel
+    from astropy.convolution import convolve_fft
+    
+    kernel = Gaussian2DKernel(width)
     
     cmodel = create_empty_image_like(model)
     nchan, npol, _, _ = model.shape
     for pol in range(npol):
         for chan in range(nchan):
-            cmodel.data[chan, pol, :, :] = astropy.convolution.convolve(model.data[chan, pol, :, :], kernel,
-                                                                        normalize_kernel=False)
-    if isinstance(kernel, astropy.convolution.kernels.Gaussian2DKernel):
+            cmodel.data[chan, pol, :, :] = convolve_fft(model.data[chan, pol, :, :], kernel,
+                                                                        normalize_kernel=False,
+                                                        allow_huge=True)
+    if normalise and isinstance(kernel, Gaussian2DKernel):
         cmodel.data *= 2 * numpy.pi * width ** 2
     
     return cmodel
