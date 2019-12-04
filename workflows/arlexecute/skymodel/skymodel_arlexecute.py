@@ -34,7 +34,7 @@ def predict_skymodel_list_arlexecute_workflow(obsvis, skymodel_list, context, vi
    """
     
     def ft_cal_sm(ov, sm, g):
-        assert isinstance(ov, Visibility), ov
+        assert isinstance(ov, Visibility) or isinstance(ov, BlockVisibility), ov
         assert isinstance(sm, SkyModel), sm
         if g is not None:
             assert len(g) == 2, g
@@ -66,9 +66,13 @@ def predict_skymodel_list_arlexecute_workflow(obsvis, skymodel_list, context, vi
                                                  **kwargs)[0]
         
         if docal and isinstance(sm.gaintable, GainTable):
-            bv = convert_visibility_to_blockvisibility(v)
-            bv = apply_gaintable(bv, sm.gaintable, inverse=True)
-            v = convert_blockvisibility_to_visibility(bv)
+            if isinstance(ov, Visibility):
+                bv = convert_visibility_to_blockvisibility(v)
+                bv = apply_gaintable(bv, sm.gaintable, inverse=True)
+                v = convert_blockvisibility_to_visibility(bv)
+            else:
+                v = apply_gaintable(v, sm.gaintable, inverse=True)
+
         return v
     
     if gcfcf is None:
@@ -135,7 +139,7 @@ def invert_skymodel_list_arlexecute_workflow(vis_list, skymodel_list, context, v
    """
     
     def ift_ical_sm(v, sm, g):
-        assert isinstance(v, Visibility), v
+        assert isinstance(v, Visibility) or isinstance(v, BlockVisibility), v
         assert isinstance(sm, SkyModel), sm
         if g is not None:
             assert len(g) == 2, g
@@ -143,9 +147,12 @@ def invert_skymodel_list_arlexecute_workflow(vis_list, skymodel_list, context, v
             assert isinstance(g[1], ConvolutionFunction), g[1]
         
         if docal and isinstance(sm.gaintable, GainTable):
-            bv = convert_visibility_to_blockvisibility(v)
-            bv = apply_gaintable(bv, sm.gaintable)
-            v = convert_blockvisibility_to_visibility(bv)
+            if isinstance(v, Visibility):
+                bv = convert_visibility_to_blockvisibility(v)
+                bv = apply_gaintable(bv, sm.gaintable)
+                v = convert_blockvisibility_to_visibility(bv)
+            else:
+                v = apply_gaintable(v, sm.gaintable)
             
         result = invert_list_serial_workflow([v], [sm.image], context=context,
                                              vis_slices=vis_slices, facets=facets, gcfcf=[g],
@@ -209,7 +216,7 @@ def convolve_skymodel_list_arlexecute_workflow(obsvis, skymodel_list, context, v
    """
 
     def ft_ift_sm(ov, sm, g):
-        assert isinstance(ov, Visibility), ov
+        assert isinstance(ov, Visibility) or isinstance(ov, BlockVisibility), ov
         assert isinstance(sm, SkyModel), sm
         if g is not None:
             assert len(g) == 2, g
