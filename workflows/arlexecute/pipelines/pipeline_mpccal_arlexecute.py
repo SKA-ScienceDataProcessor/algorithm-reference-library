@@ -86,7 +86,7 @@ def mpccal_skymodel_list_arlexecute_workflow(visobs, model, theta_list, nmajor=1
                                                                     docal=True, **kwargs)
         vcalibrated_list, gaintable_list = calibrate_list_arlexecute_workflow(vdatamodel_list, vpredicted_list,
                                                                               calibration_context='T',
-                                                                              iteration=0, global_solution=False,
+                                                                              iteration=iteration, global_solution=False,
                                                                               **kwargs)
         if mpccal_progress is not None:
             theta_list = arlexecute.execute(mpccal_progress, nout=len(theta_list))(residual, theta_list,
