@@ -20,8 +20,8 @@ from processing_components.imaging.base import predict_skycomponent_visibility
 from processing_components.visibility.coalesce import convert_blockvisibility_to_visibility
 from processing_components.visibility.operations import append_visibility, qa_visibility, \
     sum_visibility, subtract_visibility, divide_visibility
-from processing_components.visibility.base import copy_visibility, create_visibility, create_blockvisibility, create_visibility_from_rows,\
-    phaserotate_visibility
+from processing_components.visibility.base import copy_visibility, create_visibility, create_blockvisibility, \
+    create_visibility_from_rows, phaserotate_visibility
 
 
 class TestVisibilityOperations(unittest.TestCase):
@@ -174,6 +174,25 @@ class TestVisibilityOperations(unittest.TestCase):
         assert_allclose(rotatedvis.vis, vismodel2.vis, rtol=3e-6)
         assert_allclose(rotatedvis.uvw, vismodel2.uvw, rtol=3e-6)
 
+    def test_phase_rotation_block(self):
+        self.vis = create_blockvisibility(self.lowcore, self.times, self.frequency,
+                                     channel_bandwidth=self.channel_bandwidth,
+                                     phasecentre=self.phasecentre, weight=1.0,
+                                     polarisation_frame=PolarisationFrame("stokesIQUV"))
+        self.vismodel = predict_skycomponent_visibility(self.vis, self.comp)
+        # Predict visibilities with new phase centre independently
+        ha_diff = -(self.compabsdirection.ra - self.phasecentre.ra).to(u.rad).value
+        vispred = create_blockvisibility(self.lowcore, self.times + ha_diff, self.frequency,
+                                    channel_bandwidth=self.channel_bandwidth,
+                                    phasecentre=self.compabsdirection, weight=1.0,
+                                    polarisation_frame=PolarisationFrame("stokesIQUV"))
+        vismodel2 = predict_skycomponent_visibility(vispred, self.comp)
+
+        # Should yield the same results as rotation
+        rotatedvis = phaserotate_visibility(self.vismodel, newphasecentre=self.compabsdirection, tangent=False)
+        assert_allclose(rotatedvis.vis, vismodel2.vis, rtol=3e-6)
+        assert_allclose(rotatedvis.uvw, vismodel2.uvw, rtol=3e-6)
+
     def test_phase_rotation_inverse(self):
         self.vis = create_visibility(self.lowcore, self.times, self.frequency,
                                      channel_bandwidth=self.channel_bandwidth,
@@ -190,6 +209,42 @@ class TestVisibilityOperations(unittest.TestCase):
         assert_allclose(rotatedvis.uvw, original_uvw, rtol=1e-7)
         assert_allclose(rotatedvis.vis, original_vis, rtol=1e-7)
         
+    def test_phase_rotation_block(self):
+        self.vis = create_blockvisibility(self.lowcore, self.times, self.frequency,
+                                     channel_bandwidth=self.channel_bandwidth,
+                                     phasecentre=self.phasecentre, weight=1.0,
+                                     polarisation_frame=PolarisationFrame("stokesIQUV"))
+        self.vismodel = predict_skycomponent_visibility(self.vis, self.comp)
+        # Predict visibilities with new phase centre independently
+        ha_diff = -(self.compabsdirection.ra - self.phasecentre.ra).to(u.rad).value
+        vispred = create_blockvisibility(self.lowcore, self.times + ha_diff, self.frequency,
+                                    channel_bandwidth=self.channel_bandwidth,
+                                    phasecentre=self.compabsdirection, weight=1.0,
+                                    polarisation_frame=PolarisationFrame("stokesIQUV"))
+        vismodel2 = predict_skycomponent_visibility(vispred, self.comp)
+
+        # Should yield the same results as rotation
+        rotatedvis = phaserotate_visibility(self.vismodel, newphasecentre=self.compabsdirection, tangent=False)
+        assert_allclose(rotatedvis.vis, vismodel2.vis, rtol=3e-6)
+        assert_allclose(rotatedvis.uvw, vismodel2.uvw, rtol=3e-6)
+
+    def test_phase_rotation_inverse_block(self):
+        self.vis = create_blockvisibility(self.lowcore, self.times, self.frequency,
+                                     channel_bandwidth=self.channel_bandwidth,
+                                     phasecentre=self.phasecentre, weight=1.0,
+                                     polarisation_frame=PolarisationFrame("stokesIQUV"))
+        self.vismodel = predict_skycomponent_visibility(self.vis, self.comp)
+        there = SkyCoord(ra=+250.0 * u.deg, dec=-60.0 * u.deg, frame='icrs', equinox='J2000')
+        # Phase rotating back should not make a difference
+        original_vis = self.vismodel.vis
+        original_uvw = self.vismodel.uvw
+        rotatedvis = phaserotate_visibility(phaserotate_visibility(self.vismodel, there, tangent=False,
+                                                                   inverse=True),
+                                            self.phasecentre, tangent=False, inverse=True)
+        assert_allclose(rotatedvis.uvw, original_uvw, rtol=1e-7)
+        assert_allclose(rotatedvis.vis, original_vis, rtol=1e-7)
+
+
     def test_subtract(self):
         vis1 = create_visibility(self.lowcore, self.times, self.frequency,
                                      channel_bandwidth=self.channel_bandwidth,

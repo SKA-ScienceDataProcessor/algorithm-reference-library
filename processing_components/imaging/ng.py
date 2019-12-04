@@ -25,6 +25,7 @@ from typing import Union
 import numpy
 
 from data_models.memory_data_models import Visibility, BlockVisibility, Image
+from processing_components.imaging.base import shift_vis_to_image
 from data_models.parameters import get_parameter
 from ..visibility.base import copy_visibility
 from processing_components.image.operations import copy_image
@@ -116,9 +117,7 @@ try:
                             iflat += 1
         
         # Now we can shift the visibility from the image frame to the original visibility frame
-        # sbvis = shift_vis_to_image(bvis, model, tangent=True, inverse=True)
-        
-        return newbvis
+        return shift_vis_to_image(bvis, model, tangent=True, inverse=True)
     
     
     def invert_ng(bvis: BlockVisibility, model: Image, dopsf: bool = False, normalize: bool = True, gcfcf=None,
@@ -154,7 +153,7 @@ try:
 
         sbvis = copy_visibility(bvis)
         
-        # sbvis = shift_vis_to_image(sbvis, im, tangent=True, inverse=False)
+        sbvis = shift_vis_to_image(sbvis, im, tangent=True, inverse=False)
         
         # Extracting data from BlockVisibility
         freq = sbvis.frequency  # frequency, Hz
