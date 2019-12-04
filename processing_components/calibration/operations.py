@@ -228,6 +228,7 @@ def qa_gaintable(gt: GainTable, context=None) -> QA:
     """
     agt = numpy.abs(gt.gain[gt.weight > 0.0])
     pgt = numpy.angle(gt.gain[gt.weight > 0.0])
+    rgt = gt.residual[numpy.sum(gt.weight, axis=1) > 0.0]
     data = {'shape': gt.gain.shape,
             'maxabs-amp': numpy.max(agt),
             'minabs-amp': numpy.min(agt),
@@ -237,7 +238,7 @@ def qa_gaintable(gt: GainTable, context=None) -> QA:
             'minabs-phase': numpy.min(pgt),
             'rms-phase': numpy.std(pgt),
             'medianabs-phase': numpy.median(pgt),
-            'residual': numpy.max(gt.residual)
+            'residual': numpy.max(rgt)
             }
     return QA(origin='qa_gaintable', data=data, context=context)
 
@@ -248,7 +249,7 @@ def gaintable_plot(gt: GainTable, ax, title='', value='amp', ants=None,  channel
 
     :param gt: Gaintable
     :param ax: matplotlib axes
-    :param value: 'amp' or 'phase'
+    :param value: 'amp' or 'phase' or 'residual'
     :param ants: Antennas to plot
     :param channels: Channels to plot
     :param kwargs:
@@ -258,21 +259,27 @@ def gaintable_plot(gt: GainTable, ax, title='', value='amp', ants=None,  channel
         ants = range(gt.nants)
     if channels is None:
         channels = range(gt.nchan)
-    for ant in ants:
-        if gt.configuration is not None:
-            label = gt.configuration.names[ant]
-        else:
-            label = ''
-        amp = numpy.abs(gt.gain[:, ant, channels, 0, 0])
-        if value == 'amp':
-            ax.plot(gt.time, amp, '.', label=label)
-        else:
-            angle = numpy.angle(gt.gain[:, ant, channels, 0, 0])
-            ax.plot(gt.time, angle, '.', label=label)
     
-    if gt.configuration is not None:
-        if len(gt.configuration.names) < label_max:
-            ax.legend()
+    if value == "residual":
+        residual = gt.residual[:, channels, 0, 0]
+        ax.plot(gt.time, residual, '.')
+    else:
+        for ant in ants:
+            if gt.configuration is not None:
+                label = gt.configuration.names[ant]
+            else:
+                label = ''
+            amp = numpy.abs(gt.gain[:, ant, channels, 0, 0])
+            if value == 'amp':
+                ax.plot(gt.time, amp, '.', label=label)
+            else:
+                angle = numpy.angle(gt.gain[:, ant, channels, 0, 0])
+                ax.plot(gt.time, angle, '.', label=label)
+   
+        if gt.configuration is not None:
+            if len(gt.configuration.names) < label_max:
+                ax.legend()
+                
     ax.set_title(title)
     ax.set_xlabel('Time (s)')
     ax.set_ylabel(value)
