@@ -42,6 +42,7 @@ class TestImagingNG(unittest.TestCase):
         self.dir = arl_path('test_results')
         
         self.persist = True
+        self.verbosity = 0
     
     def actualSetUp(self, freqwin=1, block=True, dospectral=True, dopol=False, zerow=False, do_shift=False):
         
@@ -115,17 +116,18 @@ class TestImagingNG(unittest.TestCase):
         
         from processing_components.imaging.ng import predict_ng, invert_ng
         original_vis = copy_visibility(self.blockvis)
-        vis = predict_ng(self.blockvis, self.model, **kwargs)
+        vis = predict_ng(self.blockvis, self.model, verbosity=self.verbosity, **kwargs)
         vis.data['vis'] = vis.data['vis'] - original_vis.data['vis']
-        dirty = invert_ng(vis, self.model, dopsf=False, normalize=True, **kwargs)
+        dirty = invert_ng(vis, self.model, dopsf=False, normalize=True, verbosity=self.verbosity,
+                          **kwargs)
         
-        import matplotlib.pyplot as plt
-        from processing_components.image.operations import show_image
-        npol = dirty[0].shape[1]
-        for pol in range(npol):
-            plt.clf()
-            show_image(dirty[0], pol=pol)
-            plt.show(block=False)
+        # import matplotlib.pyplot as plt
+        # from processing_components.image.operations import show_image
+        # npol = dirty[0].shape[1]
+        # for pol in range(npol):
+        #     plt.clf()
+        #     show_image(dirty[0], pol=pol)
+        #     plt.show(block=False)
 
         if self.persist: export_image_to_fits(dirty[0], '%s/test_imaging_ng_%s_residual.fits' %
                                               (self.dir, name))
@@ -140,18 +142,19 @@ class TestImagingNG(unittest.TestCase):
         
         # dirty = invert_ng(self.blockvis, self.model, dopsf=False, normalize=True, **kwargs)
         from processing_components.imaging.ng import predict_ng, invert_ng
-        dirty = invert_ng(self.blockvis, self.model, normalize=True, verbosity=2, **kwargs)
+        dirty = invert_ng(self.blockvis, self.model, normalize=True, verbosity=self.verbosity,
+                          **kwargs)
 
         if self.persist: export_image_to_fits(dirty[0], '%s/test_imaging_ng_%s_dirty.fits' %
                                               (self.dir, name))
         
-        import matplotlib.pyplot as plt
-        from processing_components.image.operations import show_image
-        npol = dirty[0].shape[1]
-        for pol in range(npol):
-            plt.clf()
-            show_image(dirty[0], pol=pol)
-            plt.show(block=False)
+        # import matplotlib.pyplot as plt
+        # from processing_components.image.operations import show_image
+        # npol = dirty[0].shape[1]
+        # for pol in range(npol):
+        #     plt.clf()
+        #     show_image(dirty[0], pol=pol)
+        #     plt.show(block=False)
 
 
         assert numpy.max(numpy.abs(dirty[0].data)), "Image is empty"

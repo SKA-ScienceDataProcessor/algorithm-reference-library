@@ -166,6 +166,7 @@ try:
         sumwt = numpy.zeros([nchan, npol])
         
         ms = convert_pol_frame(ms, bvis.polarisation_frame, im.polarisation_frame, polaxis=2)
+        # There's a latent problem here with the weights.
         # wgt = numpy.real(convert_pol_frame(wgt, bvis.polarisation_frame, im.polarisation_frame, polaxis=2))
 
         # Set up the conversion from visibility channels to image channels
@@ -173,8 +174,13 @@ try:
         for vchan in range(vnchan):
             ichan = vis_to_im[vchan]
             for pol in range(npol):
+                # Nifty gridder likes to receive contiguous arrays
+                ms_1d = numpy.array([ms[row, vchan:vchan+1, pol] for row in range(nrows * nants * nants)], dtype='complex')
+                ms_1d.reshape([ms_1d.shape[0], 1])
+                wgt_1d = numpy.array([wgt[row, vchan:vchan+1, pol] for row in range(nrows * nants * nants)])
+                wgt_1d.reshape([wgt_1d.shape[0], 1])
                 dirty = ng.ms2dirty(
-                    fuvw, freq[vchan:vchan+1], ms[:, vchan:vchan+1, pol], wgt[:, vchan:vchan+1, pol],
+                    fuvw, freq[vchan:vchan+1], ms_1d, wgt_1d,
                     npixdirty, npixdirty, pixsize, pixsize, epsilon, do_wstacking=do_wstacking,
                     nthreads=nthreads, verbosity=verbosity)
                 sumwt[ichan, pol] += numpy.sum(wgt[:, vchan, pol])
