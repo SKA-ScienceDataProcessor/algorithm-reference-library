@@ -25,10 +25,11 @@ from typing import Union
 import numpy
 
 from data_models.memory_data_models import Visibility, BlockVisibility, Image
-from processing_components.imaging.base import shift_vis_to_image
 from data_models.parameters import get_parameter
-from ..visibility.base import copy_visibility
+from data_models.polarisation import convert_pol_frame
 from processing_components.image.operations import copy_image
+from processing_components.imaging.base import shift_vis_to_image, normalize_sumwt
+from ..visibility.base import copy_visibility
 
 log = logging.getLogger(__name__)
 
@@ -45,45 +46,33 @@ try:
      
         :return: resulting BlockVisibility (in place works)
         """
-        
+
+        assert isinstance(bvis, BlockVisibility), bvis
+
         if model is None:
             return bvis
         
         nthreads = get_parameter(kwargs, "threads", 4)
-        epsilon = get_parameter(kwargs, "epsilon", 6.0e-6)
+        epsilon = get_parameter(kwargs, "epsilon", 1e-12)
         do_wstacking = get_parameter(kwargs, "do_wstacking", True)
-        verbosity = get_parameter(kwargs, "verbosity", 0)
-
-        assert isinstance(bvis, BlockVisibility), bvis
+        verbosity = get_parameter(kwargs, "verbosity", 2)
         
         newbvis = copy_visibility(bvis, zero=True)
         
         # Extracting data from BlockVisibility
         freq = bvis.frequency  # frequency, Hz
-        nants = bvis.uvw.shape[1]
-        ntimes = bvis.uvw.shape[0]
-        nbaselines = nants * (nants - 1) // 2
-        v_nchan = bvis.vis.shape[-2]
-        v_npol = bvis.vis.shape[-1]
+        nrows, nants, _, vnchan, vnpol = bvis.vis.shape
         
-        uvw = numpy.zeros([ntimes * nbaselines, 3])
-        ms = numpy.zeros([ntimes * nbaselines, v_nchan, v_npol], dtype='complex')
+        uvw = newbvis.data['uvw'].reshape([nrows * nants * nants, 3])
+        vis = newbvis.data['vis'].reshape([nrows * nants * nants, vnchan, vnpol])
         
-        iflat = 0
-        for it in range(ntimes):
-            for iant1 in range(nants):
-                for iant2 in range(iant1 + 1, nants):
-                    uvw[iflat, :] = newbvis.data['uvw'][it, iant2, iant1, :]
-                    iflat += 1
-        
-        ms[:, :, :] = 0.0 + 0.0j  # Make all vis data equal to 0 +0j
-        wgt = numpy.ones((ms.shape[0], ms.shape[2]))  # All weights equal to 1.0
+        vis[...] = 0.0 + 0.0j  # Make all vis data equal to 0 +0j
         
         # Get the image properties
         m_nchan, m_npol, ny, nx = model.data.shape
         # Check if the number of frequency channels matches in bvis and a model
-#        assert (m_nchan == v_nchan)
-        assert (m_npol == v_npol)
+        #        assert (m_nchan == v_nchan)
+        assert (m_npol == vnpol)
         
         fuvw = uvw.copy()
         # We need to flip the u and w axes. The flip in w is equivalent to the conjugation of the
@@ -95,29 +84,25 @@ try:
         pixsize = numpy.abs(numpy.radians(model.wcs.wcs.cdelt[0]))
         
         # Make de-gridding over a frequency range and pol fields
-        imchan = numpy.round(model.wcs.sub([4]).wcs_world2pix(freq, 0)[0]).astype('int')
-        for i in range(v_nchan):
-            for j in range(v_npol):
-                ngvis = ng.dirty2ms(fuvw.astype(numpy.float64),
-                                    freq[i:i + 1].astype(numpy.float64),
-                                    model.data[imchan[i], j, :, :].T.astype(numpy.float64),
-                                    wgt=wgt,
+        vis_to_im = numpy.round(model.wcs.sub([4]).wcs_world2pix(freq, 0)[0]).astype('int')
+        for vchan in range(vnchan):
+            imchan = vis_to_im[vchan]
+            for vpol in range(vnpol):
+                vis[..., vchan, vpol] = ng.dirty2ms(fuvw.astype(numpy.float64),
+                                    freq[vchan:vchan + 1].astype(numpy.float64),
+                                    model.data[imchan, vpol, :, :].T.astype(numpy.float64),
                                     pixsize_x=pixsize,
                                     pixsize_y=pixsize,
                                     epsilon=epsilon,
                                     do_wstacking=do_wstacking,
                                     nthreads=nthreads,
-                                    verbosity=verbosity)
-                iflat = 0
-                for it in range(ntimes):
-                    for iant1 in range(nants):
-                        for iant2 in range(iant1 + 1, nants):
-                            newbvis.data['vis'][it, iant2, iant1, i, j] = ngvis[iflat]
-                            newbvis.data['vis'][it, iant1, iant2, i, j] = numpy.conjugate(ngvis[iflat])
-                            iflat += 1
+                                    verbosity=verbosity)[:,0]
         
+        vis = convert_pol_frame(vis, model.polarisation_frame, bvis.polarisation_frame, polaxis=2)
+        newbvis.data['vis'] = vis.reshape([nrows, nants, nants, vnchan, vnpol])
+
         # Now we can shift the visibility from the image frame to the original visibility frame
-        return shift_vis_to_image(bvis, model, tangent=True, inverse=True)
+        return shift_vis_to_image(newbvis, model, tangent=True, inverse=True)
     
     
     def invert_ng(bvis: BlockVisibility, model: Image, dopsf: bool = False, normalize: bool = True, gcfcf=None,
@@ -138,45 +123,30 @@ try:
     
         """
         
-        im = copy_image(model)
-        
-        
-        normalize = True
-        
         assert isinstance(bvis, BlockVisibility), bvis
-        
+
+        im = copy_image(model)
+
         nthreads = get_parameter(kwargs, "threads", 4)
-        epsilon = get_parameter(kwargs, "epsilon", 6.0e-6)
-        datacube = get_parameter(kwargs, "datacube", True)
+        epsilon = get_parameter(kwargs, "epsilon", 1e-12)
         do_wstacking = get_parameter(kwargs, "do_wstacking", True)
         verbosity = get_parameter(kwargs, "verbosity", 0)
-
+        
         sbvis = copy_visibility(bvis)
-        
         sbvis = shift_vis_to_image(sbvis, im, tangent=True, inverse=False)
+
+        vis = bvis.vis
         
-        # Extracting data from BlockVisibility
         freq = sbvis.frequency  # frequency, Hz
-        uvw_nonzero = numpy.nonzero(sbvis.uvw[:, :, :, 0])
-        uvw = sbvis.uvw[uvw_nonzero]  # UVW, meters [:,3]
-        ms = sbvis.vis[uvw_nonzero]  # Visibility data [:,nfreq,npol]
-        # wgt = numpy.ones((ms.shape[0], ms.shape[2]))  # All weights equal to 1.0
-        wgt = sbvis.imaging_weight[uvw_nonzero]
         
-        # Add up XX and YY if polarized data
-        if ms.shape[2] == 1:  # Scalar
-            idx = [0]  # Only I
-        else:  # Polar
-            idx = [0, 3]  # XX and YY
-        ms = numpy.sum(ms[:, :, idx], axis=2)
+        nrows, nants, _, vnchan, vnpol = vis.shape
+        uvw = sbvis.uvw.reshape([nrows * nants * nants, 3])
+        ms = vis.reshape([nrows * nants * nants, vnchan, vnpol])
+        wgt = sbvis.imaging_weight.reshape([nrows * nants * nants, vnchan, vnpol])
+        
         if dopsf:
             ms[...] = 1.0 + 0.0j
-
-        wgt = numpy.sum(wgt[:, :, idx], axis=2)
-        # wgt = 1 / numpy.sum(1 / wgt, axis=1)
         
-        # Assign the weights to all frequencies
-        # wgt = numpy.repeat(wgt[:, None], len(freq), axis=1)
         if epsilon > 5.0e-6:
             ms = ms.astype("c8")
             wgt = wgt.astype("f4")
@@ -185,38 +155,34 @@ try:
         npixdirty = im.nwidth
         pixsize = numpy.abs(numpy.radians(im.wcs.wcs.cdelt[0]))
         
-        # If non-spectral image
-        if im.nchan == 1:
-            datacube = False
-            # Else check if the number of frequencies in the image and MS match
-        else:
-            assert (im.nchan == len(freq))
-        
-        sumwt = numpy.ones((im.nchan, im.npol))
         fuvw = uvw.copy()
         # We need to flip the u and w axes.
         fuvw[:, 0] *= -1.0
         fuvw[:, 2] *= -1.0
-        if not datacube:
-            dirty = ng.ms2dirty(
-                fuvw, freq, ms, wgt, npixdirty, npixdirty, pixsize, pixsize, epsilon,
-                do_wstacking=do_wstacking, nthreads=nthreads, verbosity=verbosity)
-            sumwt[0, 0] = numpy.sum(wgt)
-            if normalize:
-                dirty = dirty / sumwt[0, 0]
-            im.data[0][0] = dirty.T
-        else:
-            for i in range(len(freq)):
-                print(i, freq[i], freq[i:i + 1].shape, ms[:, i:i + 1].shape, wgt[:, i:i + 1].shape)
-                dirty = ng.ms2dirty(
-                    fuvw, freq[i:i + 1], ms[:, i:i + 1], wgt[:, i:i + 1], npixdirty, npixdirty, pixsize, pixsize,
-                    epsilon,
-                    do_wstacking=do_wstacking, nthreads=nthreads, verbosity=verbosity)
-                sumwt[i, 0] = numpy.sum(wgt[:, i:i + 1])
-                if normalize:
-                    dirty = dirty / sumwt[i, 0]
-                im.data[i][0] = dirty.T
         
+        nchan, npol, ny, nx = im.shape
+        im.data[...] = 0.0
+        sumwt = numpy.zeros([nchan, npol])
+        
+        ms = convert_pol_frame(ms, bvis.polarisation_frame, im.polarisation_frame, polaxis=2)
+        # wgt = numpy.real(convert_pol_frame(wgt, bvis.polarisation_frame, im.polarisation_frame, polaxis=2))
+
+        # Set up the conversion from visibility channels to image channels
+        vis_to_im = numpy.round(model.wcs.sub([4]).wcs_world2pix(freq, 0)[0]).astype('int')
+        for vchan in range(vnchan):
+            ichan = vis_to_im[vchan]
+            for pol in range(npol):
+                dirty = ng.ms2dirty(
+                    fuvw, freq[vchan:vchan + 1], ms[:, vchan:vchan + 1, pol], wgt[:, vchan:vchan + 1, pol],
+                    npixdirty, npixdirty, pixsize, pixsize, epsilon, do_wstacking=do_wstacking,
+                    nthreads=nthreads, verbosity=verbosity)
+                sumwt[ichan, pol] += numpy.sum(wgt[:, vchan:vchan + 1, pol])
+                im.data[ichan, pol] += dirty.T
+
+        if normalize:
+            im = normalize_sumwt(im, sumwt)
+
+
         return im, sumwt
 
 except ImportError:

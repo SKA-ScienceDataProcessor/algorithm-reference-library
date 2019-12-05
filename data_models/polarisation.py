@@ -117,6 +117,7 @@ def polmatrixmultiply(cm, vec, polaxis=1):
 
     For an image vec has axes [nchan, npol, ny, nx] and polaxis=1
     For visibility vec has axes [row, nchan, npol] and polaxis=2
+    For blockvisibility vec has axes [row, ant, ant, nchan, npol] and polaxis=4
 
     :param cm: matrix to apply
     :param vec: array to be multiplied [...,:]
@@ -128,8 +129,8 @@ def polmatrixmultiply(cm, vec, polaxis=1):
     else:
         # This tensor swaps the first two axes so we need to tranpose back
         result = numpy.tensordot(cm, vec, axes=(1, polaxis))
-        permut = list(range(len(result.shape)))
-        permut[0], permut[polaxis] = permut[polaxis], permut[0]
+        permut = list(range(len(vec.shape)))
+        permut = permut[1:] + permut[:1]
         return numpy.transpose(result, axes=permut)
 
 
