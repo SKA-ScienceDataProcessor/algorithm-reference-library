@@ -1,5 +1,4 @@
-""" Unit tests for pipelines expressed via dask.delayed
-
+""" Unit tests for imaging using nifty gridder
 
 """
 import logging

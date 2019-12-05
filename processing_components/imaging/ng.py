@@ -1,22 +1,10 @@
 """
-Functions that aid fourier transform processing. These are built on top of the core
-functions in processing_library.fourier_transforms.
+Functions that implement prediction of and imaging from visibilities using the nifty gridder.
 
-The measurement equation for a sufficently narrow field of view interferometer is:
+https://gitlab.mpcdf.mpg.de/ift/nifty_gridder
 
-.. math::
+This performs all necessary w term corrections, to high precision.
 
-    V(u,v,w) =\\int I(l,m) e^{-2 \\pi j (ul+vm)} dl dm
-
-
-The measurement equation for a wide field of view interferometer is:
-
-.. math::
-
-    V(u,v,w) =\\int \\frac{I(l,m)}{\\sqrt{1-l^2-m^2}} e^{-2 \\pi j (ul+vm + w(\\sqrt{1-l^2-m^2}-1))} dl dm
-
-This and related modules contain various approachs for dealing with the wide-field problem where the
-extra phase term in the Fourier transform cannot be ignored.
 """
 
 import logging
@@ -36,14 +24,14 @@ log = logging.getLogger(__name__)
 try:
     import nifty_gridder as ng
     
-    def predict_ng(bvis: Union[BlockVisibility, Visibility], model: Image, gcfcf=None, **kwargs) -> \
+    def predict_ng(bvis: Union[BlockVisibility, Visibility], model: Image, **kwargs) -> \
             Union[BlockVisibility, Visibility]:
         """ Predict using convolutional degridding.
-        Nifty-gridder version.
+        
+        Nifty-gridder version. https://gitlab.mpcdf.mpg.de/ift/nifty_gridder
     
         :param bvis: BlockVisibility to be predicted
         :param model: model image
-     
         :return: resulting BlockVisibility (in place works)
         """
 
@@ -106,10 +94,11 @@ try:
         return shift_vis_to_image(newbvis, model, tangent=True, inverse=True)
     
     
-    def invert_ng(bvis: BlockVisibility, model: Image, dopsf: bool = False, normalize: bool = True, gcfcf=None,
-                  **kwargs) -> (
-            Image, numpy.ndarray):
+    def invert_ng(bvis: BlockVisibility, model: Image, dopsf: bool = False, normalize: bool = True,
+                  **kwargs) -> (Image, numpy.ndarray):
         """ Invert using nifty-gridder module
+        
+        https://gitlab.mpcdf.mpg.de/ift/nifty_gridder
     
         Use the image im as a template. Do PSF in a separate call.
     
@@ -119,8 +108,7 @@ try:
         :param bvis: BlockVisibility to be inverted
         :param im: image template (not changed)
         :param normalize: Normalize by the sum of weights (True)
-        :return: resulting image
-        :return: sum of the weights for each frequency and polarization
+        :return: (resulting image, sum of the weights for each frequency and polarization)
     
         """
         
