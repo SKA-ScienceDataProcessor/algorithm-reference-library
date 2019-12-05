@@ -48,6 +48,7 @@ try:
         """
 
         assert isinstance(bvis, BlockVisibility), bvis
+        
 
         if model is None:
             return bvis
@@ -173,10 +174,10 @@ try:
             ichan = vis_to_im[vchan]
             for pol in range(npol):
                 dirty = ng.ms2dirty(
-                    fuvw, freq[vchan:vchan + 1], ms[:, vchan:vchan + 1, pol], wgt[:, vchan:vchan + 1, pol],
+                    fuvw, freq[vchan:vchan+1], ms[:, vchan:vchan+1, pol], wgt[:, vchan:vchan+1, pol],
                     npixdirty, npixdirty, pixsize, pixsize, epsilon, do_wstacking=do_wstacking,
                     nthreads=nthreads, verbosity=verbosity)
-                sumwt[ichan, pol] += numpy.sum(wgt[:, vchan:vchan + 1, pol])
+                sumwt[ichan, pol] += numpy.sum(wgt[:, vchan, pol])
                 im.data[ichan, pol] += dirty.T
 
         if normalize:

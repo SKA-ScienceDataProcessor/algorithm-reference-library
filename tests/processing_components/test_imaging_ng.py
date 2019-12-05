@@ -53,7 +53,7 @@ class TestImagingNG(unittest.TestCase):
         self.times = numpy.linspace(-3.0, +3.0, self.ntimes) * numpy.pi / 12.0
         
         if freqwin > 1:
-            self.frequency = numpy.linspace(0.8e8, 1.2e8, self.freqwin)
+            self.frequency = numpy.linspace(0.99e8, 1.01e8, self.freqwin)
             self.channelwidth = numpy.array(freqwin * [self.frequency[1] - self.frequency[0]])
         else:
             self.frequency = numpy.array([1e8])
@@ -85,7 +85,7 @@ class TestImagingNG(unittest.TestCase):
         
         self.vis = convert_blockvisibility_to_visibility(self.blockvis)
         
-        self.model = create_unittest_model(self.vis, self.image_pol, npixel=self.npixel)
+        self.model = create_unittest_model(self.vis, self.image_pol, npixel=self.npixel, nchan=freqwin)
         
         self.components = create_unittest_components(self.model, flux)
         
@@ -128,7 +128,7 @@ class TestImagingNG(unittest.TestCase):
             plt.show(block=False)
 
         if self.persist: export_image_to_fits(dirty[0], '%s/test_imaging_ng_%s_residual.fits' %
-                                              (self.dir, dirty[0].polarisation_frame.type))
+                                              (self.dir, name))
 
         # assert numpy.max(numpy.abs(dirty[0].data)), "Residual image is empty"
         
@@ -143,7 +143,7 @@ class TestImagingNG(unittest.TestCase):
         dirty = invert_ng(self.blockvis, self.model, normalize=True, verbosity=2, **kwargs)
 
         if self.persist: export_image_to_fits(dirty[0], '%s/test_imaging_ng_%s_dirty.fits' %
-                                              (self.dir, dirty[0].polarisation_frame.type))
+                                              (self.dir, name))
         
         import matplotlib.pyplot as plt
         from processing_components.image.operations import show_image
@@ -162,22 +162,42 @@ class TestImagingNG(unittest.TestCase):
     @unittest.skipUnless(run_ng_tests, "requires the nifty_gridder module")
     def test_predict_ng(self):
         self.actualSetUp()
-        self._predict_base(name='predict_ng')
+        self._predict_base(name='predict')
 
     @unittest.skipUnless(run_ng_tests, "requires the nifty_gridder module")
     def test_invert_ng(self):
         self.actualSetUp()
-        self._invert_base(name='invert_ng', positionthreshold=2.0, check_components=True)
+        self._invert_base(name='invert', positionthreshold=2.0, check_components=True)
 
     @unittest.skipUnless(run_ng_tests, "requires the nifty_gridder module")
     def test_predict_ng_pol(self):
         self.actualSetUp(dopol=True)
-        self._predict_base(name='predict_ng')
+        self._predict_base(name='predict_pol')
 
     @unittest.skipUnless(run_ng_tests, "requires the nifty_gridder module")
     def test_invert_ng_pol(self):
         self.actualSetUp(dopol=True)
-        self._invert_base(name='invert_ng', positionthreshold=2.0, check_components=False)
+        self._invert_base(name='invert_pol', positionthreshold=2.0, check_components=False)
+
+    @unittest.skipUnless(run_ng_tests, "requires the nifty_gridder module")
+    def test_predict_ng_spec(self):
+        self.actualSetUp(dospectral=True, freqwin=5)
+        self._predict_base(name='predict_spec')
+
+    @unittest.skipUnless(run_ng_tests, "requires the nifty_gridder module")
+    def test_invert_ng_spec(self):
+        self.actualSetUp(dospectral=True, freqwin=5)
+        self._invert_base(name='invert_spec', positionthreshold=2.0, check_components=False)
+
+    @unittest.skipUnless(run_ng_tests, "requires the nifty_gridder module")
+    def test_predict_ng_spec_pol(self):
+        self.actualSetUp(dospectral=True, freqwin=5, dopol=True)
+        self._predict_base(name='predict_spec_pol')
+
+    @unittest.skipUnless(run_ng_tests, "requires the nifty_gridder module")
+    def test_invert_ng_spec_pol(self):
+        self.actualSetUp(dospectral=True, freqwin=5, dopol=True)
+        self._invert_base(name='invert_spec_pol', positionthreshold=2.0, check_components=False)
 
 
 if __name__ == '__main__':
