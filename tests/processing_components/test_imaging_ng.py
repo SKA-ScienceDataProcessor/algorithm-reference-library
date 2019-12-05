@@ -1,5 +1,4 @@
-""" Unit tests for pipelines expressed via dask.delayed
-
+""" Unit tests for imaging using nifty gridder
 
 """
 import logging
@@ -42,8 +41,9 @@ class TestImagingNG(unittest.TestCase):
         self.dir = arl_path('test_results')
         
         self.persist = True
+        self.verbosity = 0
     
-    def actualSetUp(self, freqwin=1, block=True, dospectral=True, dopol=False, zerow=False):
+    def actualSetUp(self, freqwin=1, block=True, dospectral=True, dopol=False, zerow=False, do_shift=False):
         
         self.npixel = 512
         self.low = create_named_configuration('LOWBD2', rmax=750.0)
@@ -53,7 +53,7 @@ class TestImagingNG(unittest.TestCase):
         self.times = numpy.linspace(-3.0, +3.0, self.ntimes) * numpy.pi / 12.0
         
         if freqwin > 1:
-            self.frequency = numpy.linspace(0.8e8, 1.2e8, self.freqwin)
+            self.frequency = numpy.linspace(0.99e8, 1.01e8, self.freqwin)
             self.channelwidth = numpy.array(freqwin * [self.frequency[1] - self.frequency[0]])
         else:
             self.frequency = numpy.array([1e8])
@@ -85,10 +85,9 @@ class TestImagingNG(unittest.TestCase):
         
         self.vis = convert_blockvisibility_to_visibility(self.blockvis)
         
-        self.model = create_unittest_model(self.vis, self.image_pol, npixel=self.npixel)
+        self.model = create_unittest_model(self.vis, self.image_pol, npixel=self.npixel, nchan=freqwin)
         
         self.components = create_unittest_components(self.model, flux)
-        #self.components = [self.components[0]]
         
         self.model = insert_skycomponent(self.model, self.components)
         
@@ -116,18 +115,23 @@ class TestImagingNG(unittest.TestCase):
         
         from processing_components.imaging.ng import predict_ng, invert_ng
         original_vis = copy_visibility(self.blockvis)
-        vis = predict_ng(self.blockvis, self.model, **kwargs)
+        vis = predict_ng(self.blockvis, self.model, verbosity=self.verbosity, **kwargs)
         vis.data['vis'] = vis.data['vis'] - original_vis.data['vis']
-        dirty = invert_ng(vis, self.model, dopsf=False, normalize=True, **kwargs)
+        dirty = invert_ng(vis, self.model, dopsf=False, normalize=True, verbosity=self.verbosity,
+                          **kwargs)
         
-        import matplotlib.pyplot as plt
-        from processing_components.image.operations import show_image
-        show_image(dirty[0])
-        plt.show(block=False)
+        # import matplotlib.pyplot as plt
+        # from processing_components.image.operations import show_image
+        # npol = dirty[0].shape[1]
+        # for pol in range(npol):
+        #     plt.clf()
+        #     show_image(dirty[0], pol=pol)
+        #     plt.show(block=False)
 
-        if self.persist: export_image_to_fits(dirty[0], '%s/test_imaging_ng_residual.fits' %
-                                              (self.dir))
-        assert numpy.max(numpy.abs(dirty[0].data)), "Residual image is empty"
+        if self.persist: export_image_to_fits(dirty[0], '%s/test_imaging_ng_%s_residual.fits' %
+                                              (self.dir, name))
+
+        # assert numpy.max(numpy.abs(dirty[0].data)), "Residual image is empty"
         
         maxabs = numpy.max(numpy.abs(dirty[0].data))
         assert maxabs < fluxthreshold, "Error %.3f greater than fluxthreshold %.3f " % (maxabs, fluxthreshold)
@@ -137,15 +141,20 @@ class TestImagingNG(unittest.TestCase):
         
         # dirty = invert_ng(self.blockvis, self.model, dopsf=False, normalize=True, **kwargs)
         from processing_components.imaging.ng import predict_ng, invert_ng
-        dirty = invert_ng(self.blockvis, self.model, normalize=True, **kwargs)
+        dirty = invert_ng(self.blockvis, self.model, normalize=True, verbosity=self.verbosity,
+                          **kwargs)
 
-        if self.persist: export_image_to_fits(dirty[0], '%s/test_imaging_ng_dirty.fits' %
-                                              (self.dir))
+        if self.persist: export_image_to_fits(dirty[0], '%s/test_imaging_ng_%s_dirty.fits' %
+                                              (self.dir, name))
         
-        import matplotlib.pyplot as plt
-        from processing_components.image.operations import show_image
-        show_image(dirty[0])
-        plt.show(block=False)
+        # import matplotlib.pyplot as plt
+        # from processing_components.image.operations import show_image
+        # npol = dirty[0].shape[1]
+        # for pol in range(npol):
+        #     plt.clf()
+        #     show_image(dirty[0], pol=pol)
+        #     plt.show(block=False)
+
 
         assert numpy.max(numpy.abs(dirty[0].data)), "Image is empty"
 
@@ -155,12 +164,43 @@ class TestImagingNG(unittest.TestCase):
     @unittest.skipUnless(run_ng_tests, "requires the nifty_gridder module")
     def test_predict_ng(self):
         self.actualSetUp()
-        self._predict_base(name='predict_ng')
-    
+        self._predict_base(name='predict')
+
     @unittest.skipUnless(run_ng_tests, "requires the nifty_gridder module")
     def test_invert_ng(self):
         self.actualSetUp()
-        self._invert_base(name='invert_ng', positionthreshold=2.0, check_components=True)
+        self._invert_base(name='invert', positionthreshold=2.0, check_components=True)
+
+    @unittest.skipUnless(run_ng_tests, "requires the nifty_gridder module")
+    def test_predict_ng_pol(self):
+        self.actualSetUp(dopol=True)
+        self._predict_base(name='predict_pol')
+
+    @unittest.skipUnless(run_ng_tests, "requires the nifty_gridder module")
+    def test_invert_ng_pol(self):
+        self.actualSetUp(dopol=True)
+        self._invert_base(name='invert_pol', positionthreshold=2.0, check_components=False)
+
+    @unittest.skipUnless(run_ng_tests, "requires the nifty_gridder module")
+    def test_predict_ng_spec(self):
+        self.actualSetUp(dospectral=True, freqwin=5)
+        self._predict_base(name='predict_spec')
+
+    @unittest.skipUnless(run_ng_tests, "requires the nifty_gridder module")
+    def test_invert_ng_spec(self):
+        self.actualSetUp(dospectral=True, freqwin=5)
+        self._invert_base(name='invert_spec', positionthreshold=2.0, check_components=False)
+
+    @unittest.skipUnless(run_ng_tests, "requires the nifty_gridder module")
+    def test_predict_ng_spec_pol(self):
+        self.actualSetUp(dospectral=True, freqwin=5, dopol=True)
+        self._predict_base(name='predict_spec_pol')
+
+    @unittest.skipUnless(run_ng_tests, "requires the nifty_gridder module")
+    def test_invert_ng_spec_pol(self):
+        self.actualSetUp(dospectral=True, freqwin=5, dopol=True)
+        self._invert_base(name='invert_spec_pol', positionthreshold=2.0, check_components=False)
+
 
 if __name__ == '__main__':
     unittest.main()

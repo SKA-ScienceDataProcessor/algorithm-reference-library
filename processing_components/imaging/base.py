@@ -47,8 +47,8 @@ from ..visibility.base import copy_visibility, phaserotate_visibility
 log = logging.getLogger(__name__)
 
 
-def shift_vis_to_image(vis: Visibility, im: Image, tangent: bool = True, inverse: bool = False) \
-        -> Visibility:
+def shift_vis_to_image(vis: Union[Visibility, BlockVisibility], im: Image, tangent: bool = True, inverse: bool = False) \
+        -> Union[Visibility, BlockVisibility]:
     """Shift visibility to the FFT phase centre of the image in place
 
     :param vis: Visibility data
@@ -77,8 +77,6 @@ def shift_vis_to_image(vis: Visibility, im: Image, tangent: bool = True, inverse
                       (vis.phasecentre, image_phasecentre))
         vis = phaserotate_visibility(vis, image_phasecentre, tangent=tangent, inverse=inverse)
         vis.phasecentre = im.phasecentre
-    
-    assert isinstance(vis, Visibility), "after phase_rotation, vis is not a Visibility"
     
     return vis
 

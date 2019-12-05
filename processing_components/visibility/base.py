@@ -305,16 +305,16 @@ def phaserotate_visibility(vis: Visibility, newphasecentre: SkyCoord, tangent=Tr
     :param inverse: Actually do the opposite
     :return: Visibility
     """
-    assert isinstance(vis, Visibility), "vis is not a Visibility: %r" % vis
-    
     l, m, n = skycoord_to_lmn(newphasecentre, vis.phasecentre)
-    
+
     # No significant change?
-    if numpy.abs(n) > 1e-15:
-        
-        # Make a new copy
-        newvis = copy_visibility(vis)
-        
+    if numpy.abs(n) < 1e-15:
+        return vis
+
+    # Make a new copy
+    newvis = copy_visibility(vis)
+
+    if isinstance(vis, Visibility):
         phasor = simulate_point(newvis.uvw, l, m)
         
         if len(newvis.vis.shape) > len(phasor.shape):
@@ -341,8 +341,45 @@ def phaserotate_visibility(vis: Visibility, newphasecentre: SkyCoord, tangent=Tr
                     ...]
             newvis.phasecentre = newphasecentre
         return newvis
+
+    elif isinstance(vis, BlockVisibility):
+        
+        k = numpy.array(vis.frequency) / constants.c.to('m s^-1').value
+
+        uvw = vis.uvw[..., numpy.newaxis] * k
+        phasor = numpy.ones_like(vis.vis, dtype='complex')
+        _, _, _, nchan, npol = vis.vis.shape
+        for chan in range(nchan):
+            phasor[:, :, :, chan, :] = simulate_point(uvw[..., chan], l, m)[..., numpy.newaxis]
+
+        if inverse:
+            newvis.data['vis'] *= phasor
+        else:
+            newvis.data['vis'] *= numpy.conj(phasor)
+        
+        # To rotate UVW, rotate into the global XYZ coordinate system and back. We have the option of
+        # staying on the tangent plane or not. If we stay on the tangent then the raster will
+        # join smoothly at the edges. If we change the tangent then we will have to reproject to get
+        # the results on the same image, in which case overlaps or gaps are difficult to deal with.
+        if not tangent:
+            # UVW is shape [nants, nants, 3], we want [nants * nants, 3]
+            nrows, nants, _, _ = vis.uvw.shape
+            uvw_linear = vis.uvw.reshape([nrows * nants * nants, 3])
+            if inverse:
+                xyz = uvw_to_xyz(uvw_linear, ha=-newvis.phasecentre.ra.rad, dec=newvis.phasecentre.dec.rad)
+                uvw_linear = \
+                    xyz_to_uvw(xyz, ha=-newphasecentre.ra.rad, dec=newphasecentre.dec.rad)[...]
+            else:
+                # This is the original (non-inverse) code
+                xyz = uvw_to_xyz(uvw_linear, ha=-newvis.phasecentre.ra.rad, dec=newvis.phasecentre.dec.rad)
+                uvw_linear = \
+                    xyz_to_uvw(xyz, ha=-newphasecentre.ra.rad, dec=newphasecentre.dec.rad)[...]
+            newvis.phasecentre = newphasecentre
+            newvis.data['uvw'][...] = uvw_linear.reshape([nrows, nants, nants, 3])
+        return newvis
     else:
-        return vis
+        raise ValueError("vis argument neither Visibility or BlockVisibility")
+
 
 def export_blockvisibility_to_ms(msname, vis_list, source_name=None, ack=False):
     """ Minimal BlockVisibility to MS converter
