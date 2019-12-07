@@ -1,5 +1,6 @@
 """ SDP MPCCAL pipeline expressed as functions.
 """
+__all__ = ['mpccal_skymodel_list_arlexecute_workflow']
 
 import logging
 
@@ -10,10 +11,10 @@ from workflows.arlexecute.skymodel.skymodel_arlexecute import predict_skymodel_l
     invert_skymodel_list_arlexecute_workflow, crosssubtract_datamodels_skymodel_list_arlexecute_workflow
 from wrappers.arlexecute.execution_support.arlexecute import arlexecute
 from wrappers.arlexecute.skymodel.operations import update_skymodel_from_image, update_skymodel_from_gaintables
-from ..calibration.calibration_arlexecute import calibrate_list_arlexecute_workflow
-from ..imaging.imaging_arlexecute import invert_list_arlexecute_workflow, \
+from workflows.arlexecute.calibration.calibration_arlexecute import calibrate_list_arlexecute_workflow
+from workflows.arlexecute.imaging.imaging_arlexecute import invert_list_arlexecute_workflow, \
     deconvolve_list_arlexecute_workflow
-from ..skymodel.skymodel_arlexecute import convolve_skymodel_list_arlexecute_workflow
+from workflows.arlexecute.skymodel.skymodel_arlexecute import convolve_skymodel_list_arlexecute_workflow
 
 log = logging.getLogger(__name__)
 

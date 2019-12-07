@@ -1,5 +1,6 @@
-""" Functions for defining polarisation conventions. These include definitions via classes and
-    conversion functions.
+"""
+Functions for defining polarisation conventions. These include definitions via classes and
+conversion functions.
 
 For example::
 

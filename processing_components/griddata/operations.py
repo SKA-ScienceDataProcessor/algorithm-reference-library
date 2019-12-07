@@ -10,6 +10,9 @@ function can be stored in a GridData, most probably with finer spatial sampling.
 
 
 """
+
+__all__ = ['griddata_sizeof', 'create_griddata_from_image', 'create_griddata_from_array', 'copy_griddata',
+           'convert_griddata_to_image', 'qa_griddata']
 import copy
 import logging
 

@@ -2,6 +2,9 @@
 Functions that define and manipulate kernels
 
 """
+
+__all__ = ['create_pswf_convolutionfunction', 'create_box_convolutionfunction', 'create_awterm_convolutionfunction']
+
 import logging
 
 import numpy

@@ -2,6 +2,8 @@
 
 """
 
+__all__ = ['rcal']
+
 import collections
 
 from data_models.memory_data_models import BlockVisibility, GainTable

@@ -12,6 +12,7 @@ numpy
 scipy
 matplotlib
 Sphinx
+sphinx_automodapi
 reproject
 astropy
 alabaster

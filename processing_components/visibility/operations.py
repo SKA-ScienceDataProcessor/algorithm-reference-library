@@ -14,7 +14,7 @@ from data_models.polarisation import convert_linear_to_stokes, convert_circular_
     convert_circular_to_stokes, PolarisationFrame
 from processing_library.imaging.imaging_params import get_frequency_map
 from processing_library.util.coordinate_support import skycoord_to_lmn, simulate_point
-from ..visibility.base import copy_visibility
+from processing_components.visibility.base import copy_visibility
 
 log = logging.getLogger(__name__)
 

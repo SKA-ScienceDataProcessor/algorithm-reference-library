@@ -2,6 +2,8 @@
 
 """
 
+__all__ = ['hogbom', 'hogbom_complex', 'msclean', 'msmfsclean', 'spheroidal_function']
+
 import numpy
 import logging
 import time

@@ -2,6 +2,10 @@
 
 """
 
+__all__ = ['copy_skymodel', 'partition_skymodel_by_flux', 'show_skymodel', 'initialize_skymodel_voronoi',
+           'calculate_skymodel_equivalent_image', 'update_skymodel_from_gaintables', 'update_skymodel_from_image',
+           'expand_skymodel_by_skycomponents']
+
 import logging
 
 import matplotlib.pyplot as plt
@@ -10,10 +14,10 @@ from astropy.wcs.utils import skycoord_to_pixel
 
 from data_models.memory_data_models import SkyModel, GainTable
 from processing_library.image.operations import copy_image
-from ..calibration.operations import copy_gaintable
-from ..image.operations import smooth_image
-from ..skycomponent.base import copy_skycomponent
-from ..skycomponent.operations import filter_skycomponents_by_flux, insert_skycomponent, image_voronoi_iter
+from processing_components.calibration.operations import copy_gaintable
+from processing_components.image.operations import smooth_image
+from processing_components.skycomponent.base import copy_skycomponent
+from processing_components.skycomponent.operations import filter_skycomponents_by_flux, insert_skycomponent, image_voronoi_iter
 
 log = logging.getLogger(__name__)
 

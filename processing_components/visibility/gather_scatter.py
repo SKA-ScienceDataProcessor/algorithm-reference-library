@@ -16,8 +16,8 @@ from typing import List
 import numpy
 
 from data_models.memory_data_models import Visibility, BlockVisibility
-from ..visibility.base import create_visibility_from_rows
-from ..visibility.iterators import vis_timeslice_iter, vis_wslice_iter
+from processing_components.visibility.base import create_visibility_from_rows
+from processing_components.visibility.iterators import vis_timeslice_iter, vis_wslice_iter
 
 log = logging.getLogger(__name__)
 

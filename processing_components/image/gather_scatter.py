@@ -3,6 +3,8 @@
 Functions that define and manipulate images. Images are just data and a World Coordinate System.
 """
 
+__all__ = ['image_gather_channels', 'image_scatter_channels', 'image_gather_facets', 'image_scatter_facets']
+
 import logging
 from typing import List
 
@@ -10,9 +12,9 @@ import numpy
 
 from data_models.memory_data_models import Image
 
-from ..image.operations import create_image_from_array
-from ..image.iterators import image_raster_iter, image_channel_iter
-from ..image.operations import create_empty_image_like
+from processing_components.image.operations import create_image_from_array
+from processing_components.image.iterators import image_raster_iter, image_channel_iter
+from processing_components.image.operations import create_empty_image_like
 
 log = logging.getLogger(__name__)
 

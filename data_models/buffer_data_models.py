@@ -16,6 +16,15 @@ An explicit sync is required in both cases
 
 """
 
+__all__ = ['BufferGainTable',
+           'BufferPointingTable',
+           'BufferImage',
+           'BufferGridData',
+           'BufferConvolutionFunction',
+           'BufferSkyModel',
+           'BufferBlockVisibility']
+
+
 import collections
 import logging
 

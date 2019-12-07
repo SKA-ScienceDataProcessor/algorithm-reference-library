@@ -10,6 +10,10 @@ function can be stored in a GridData, most probably with finer spatial sampling.
 
 
 """
+
+__all__ = ['create_convolutionfunction_from_image', 'copy_convolutionfunction', 'create_convolutionfunction_from_array',
+           'convolutionfunction_sizeof', 'calculate_bounding_box_convolutionfunction', 'convert_convolutionfunction_to_image',
+           'apply_bounding_box_convolutionfunction', 'qa_convolutionfunction']
 import copy
 import logging
 

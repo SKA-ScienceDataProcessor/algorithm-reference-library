@@ -5,8 +5,8 @@ from data_models.parameters import get_parameter
 from wrappers.serial.griddata.kernels import create_pswf_convolutionfunction
 from wrappers.serial.visibility.base import copy_visibility
 
-from ..calibration.calibration_serial import calibrate_list_serial_workflow
-from ..imaging.imaging_serial import invert_list_serial_workflow, residual_list_serial_workflow, \
+from workflows.serial.calibration.calibration_serial import calibrate_list_serial_workflow
+from workflows.serial.imaging.imaging_serial import invert_list_serial_workflow, residual_list_serial_workflow, \
     predict_list_serial_workflow, subtract_list_serial_workflow, \
     restore_list_serial_workflow, deconvolve_list_serial_workflow
 

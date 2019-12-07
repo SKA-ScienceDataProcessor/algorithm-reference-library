@@ -7,6 +7,9 @@ There are two classes of functions:
 
 """
 
+__all__ = ['weight_visibility', 'taper_visibility_gaussian', 'taper_visibility_tukey']
+
+
 import numpy
 
 from data_models.memory_data_models import Visibility, BlockVisibility

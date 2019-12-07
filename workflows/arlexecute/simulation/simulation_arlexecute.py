@@ -1,6 +1,12 @@
 """ Pipelines expressed as dask components
 """
 
+__all__ = ['simulate_list_arlexecute_workflow', 'corrupt_list_arlexecute_workflow',
+           'calculate_residual_from_gaintables_arlexecute_workflow',
+           'create_pointing_errors_gaintable_arlexecute_workflow',
+           'create_standard_mid_simulation_arlexecute_workflow',
+           'create_surface_errors_gaintable_arlexecute_workflow']
+
 import logging
 
 import numpy

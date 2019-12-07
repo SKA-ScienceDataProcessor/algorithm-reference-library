@@ -2,6 +2,8 @@
 
 """
 
+__all__ = ['copy_skycomponent']
+
 import collections
 import logging
 

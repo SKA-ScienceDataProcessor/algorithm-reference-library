@@ -23,6 +23,8 @@ For example to make dirty image and PSF, deconvolve, and then restore::
 
 """
 
+__all__ = ['deconvolve_cube', 'restore_cube']
+
 import logging
 
 from data_models.polarisation import PolarisationFrame
@@ -35,7 +37,7 @@ from data_models.memory_data_models import Image
 from data_models.parameters import get_parameter
 from processing_library.arrays.cleaners import hogbom, hogbom_complex, msclean, msmfsclean
 from processing_library.image.operations import create_image_from_array, copy_image
-from ..image.operations import calculate_image_frequency_moments, calculate_image_from_frequency_moments
+from processing_components.image.operations import calculate_image_frequency_moments, calculate_image_from_frequency_moments
 
 log = logging.getLogger(__name__)
 

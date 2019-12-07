@@ -1,6 +1,11 @@
 """Useful array functions.
 
 """
+
+__all__ = ['average_chunks', 'average_chunks2', 'tukey_filter', 'insert_array',
+           'insert_function_L', 'insert_function_pswf', 'insert_function_sinc']
+
+
 # import numba
 import numpy
 

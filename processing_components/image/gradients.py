@@ -1,6 +1,8 @@
 """ Image operations visible to the Execution Framework as Components
 """
 
+__all__ = ['image_gradients']
+
 import warnings
 
 from astropy.wcs import FITSFixedWarning

@@ -1,2 +1,7 @@
 
-__all__ = ['calibration', 'calibration_control', 'iterators', 'operations', 'pointing', 'rcal']
+from .calibration import *
+from .calibration_control import *
+from .iterators import *
+from .operations import *
+from .pointing import *
+from .rcal import *

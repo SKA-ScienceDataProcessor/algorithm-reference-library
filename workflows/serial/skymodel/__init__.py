@@ -1,1 +1,2 @@
-__all__ = ['skymodel_serial']
+
+from .skymodel_serial import *

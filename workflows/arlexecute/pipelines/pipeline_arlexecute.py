@@ -1,14 +1,16 @@
 """ Pipeline functions. SDP standard pipelines expressed as functions.
 """
 
+__all__ = ['ical_list_arlexecute_workflow', 'continuum_imaging_list_arlexecute_workflow',
+           'spectral_line_imaging_list_arlexecute_workflow']
 import logging
 
 from data_models.parameters import get_parameter
 from wrappers.arlexecute.execution_support.arlexecute import arlexecute
 from wrappers.arlexecute.griddata.kernels import create_pswf_convolutionfunction
 from wrappers.arlexecute.visibility.base import copy_visibility
-from ..calibration.calibration_arlexecute import calibrate_list_arlexecute_workflow
-from ..imaging.imaging_arlexecute import invert_list_arlexecute_workflow, residual_list_arlexecute_workflow, \
+from workflows.arlexecute.calibration.calibration_arlexecute import calibrate_list_arlexecute_workflow
+from workflows.arlexecute.imaging.imaging_arlexecute import invert_list_arlexecute_workflow, residual_list_arlexecute_workflow, \
     predict_list_arlexecute_workflow, subtract_list_arlexecute_workflow, \
     restore_list_arlexecute_workflow, deconvolve_list_arlexecute_workflow
 

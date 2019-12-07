@@ -2,6 +2,9 @@
 Functions to create primary beam and voltage pattern models
 """
 
+__all__ = ['set_pb_header', 'create_pb', 'create_pb_generic', 'create_vp', 'create_vp_generic',
+           'create_vp_generic_numeric', 'create_low_test_beam', 'create_low_test_vp']
+
 import collections
 import logging
 
@@ -12,7 +15,7 @@ from data_models.memory_data_models import Image
 from data_models.parameters import arl_path
 from processing_components.image.operations import create_empty_image_like
 from processing_library.image.operations import fft_image, pad_image
-from ..image.operations import import_image_from_fits, create_image_from_array, \
+from processing_components.image.operations import import_image_from_fits, create_image_from_array, \
     reproject_image
 
 log = logging.getLogger(__name__)

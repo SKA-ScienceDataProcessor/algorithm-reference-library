@@ -4,42 +4,50 @@
 Algorithm Reference Library
 ***************************
 
+.. the "raw" directive below is used to hide the title in favor of just the logo being visible
+.. raw:: html
+
+    <style media="screen" type="text/css">
+      h1 { display:none; }
+    </style>
+
+#################
+ARL Documentation
+#################
+
 The Algorithm Reference Library expresses radio interferometry calibration and imaging algorithms. The emphasis is on
 capturing the key algorithms and data models. The interfaces all operate with familiar data structures such as
 image, visibility table, gaintable, etc.
 
-The ARL structure maps that used in the SDP processing architecture:
+.. _getting-started:
 
-.. image:: ./ARL_Module_View.png
-   :scale: 100 %
-
-For clarity, not all connections are shown in this diagram.
-
-.. toctree::
-   :maxdepth: 1
-
-   ARL_quickstart
-   ARL_directory
-   ARL_directory_workflows
-   ARL_API
-
-Reference material:
+***************
+Getting Started
+***************
 
 .. toctree::
    :maxdepth: 1
 
-   ARL_background
-   ARL_developing
-   ARL_Fourier_processing
-   ARL_calibration
-   ARL_dask
-   ARL_references
+   ARL_quickstart.rst
+
+.. _api:
+
+***
+API
+***
 
 .. toctree::
-   :maxdepth: 3
+   :maxdepth: 2
+
+   data_models/index.rst
+   processing_components/index.rst
+   processing_library/index.rst
+   workflows/index.rst
+   wrappers/index.rst
 
 
-* :ref:`modindex`
 * :ref:`genindex`
+* :ref:`modindex`
 * :ref:`search`
 
+.. _feedback: mailto:realtimcornwell@gmail.com

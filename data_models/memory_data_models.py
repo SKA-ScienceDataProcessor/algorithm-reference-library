@@ -1,37 +1,33 @@
 """The data models used in ARL:
 
-.. note::
-    There are two visibility formats:
-
-    :class:`BlockVisibility` is conceived as an ingest and calibration format. The visibility
-    data are kept in a block of shape (number antennas, number antennas, number channels,
-    number polarisation). One block is kept per integration. The other columns are time and uvw.
-    The sampling in time is therefore the same for all baselines.
-
-    :class:`Visibility` is designed to hold coalesced data where the integration time and
-    channel width can vary with baseline length. The visibility data are kept in a visibility
-    vector of length equal to the number of polarisations. Everything else is a separate
-    column: time, frequency, uvw, channel_bandwidth, integration time.
-
-
 """
 
-import sys
+__all__ = ['Configuration',
+           'GainTable',
+           'PointingTable',
+           'Image',
+           'GridData',
+           'ConvolutionFunction',
+           'Skycomponent',
+           'SkyModel',
+           'Visibility',
+           'BlockVisibility',
+           'QA',
+           'ScienceDataModel',
+           ]
 
 import logging
-
+import sys
+import warnings
 from copy import deepcopy
 from typing import Union
 
 import numpy
-
-import warnings
-
 from astropy import units as u
 from astropy.coordinates import SkyCoord
 from astropy.utils.exceptions import AstropyDeprecationWarning
-
 from astropy.wcs import FITSFixedWarning
+
 warnings.simplefilter('ignore', FITSFixedWarning)
 warnings.simplefilter('ignore', AstropyDeprecationWarning)
 
@@ -44,12 +40,12 @@ class Configuration:
     """ Describe a Configuration as locations in x,y,z, mount type, diameter, names, and
         overall location
     """
-
+    
     def __init__(self, name='', data=None, location=None,
                  names="%s", xyz=None, mount="alt-az", frame="",
                  receptor_frame=ReceptorFrame("linear"),
                  diameter=None):
-
+        
         """Configuration object describing data for processing
 
         :param name:
@@ -77,13 +73,13 @@ class Configuration:
             data['xyz'] = xyz
             data['mount'] = mount
             data['diameter'] = diameter
-
+        
         self.name = name
         self.data = data
         self.location = location
         self.frame = frame
         self.receptor_frame = receptor_frame
-
+    
     def __str__(self):
         """Default printer for Skycomponent
 
@@ -95,33 +91,33 @@ class Configuration:
         s += "\tDiameter: %s\n" % self.diameter
         s += "\tMount: %s\n" % self.mount
         s += "\tXYZ: %s\n" % self.xyz
-
+        
         return s
-
+    
     def size(self):
         """ Return size in GB
         """
         size = 0
         size += self.data.size * sys.getsizeof(self.data)
         return size / 1024.0 / 1024.0 / 1024.0
-
+    
     @property
     def names(self):
         """ Names of the antennas/stations"""
         return self.data['names']
-
+    
     @property
     def diameter(self):
         """ diameter of antennas/stations
         """
         return self.data['diameter']
-
+    
     @property
     def xyz(self):
         """ XYZ locations of antennas/stations
         """
         return self.data['xyz']
-
+    
     @property
     def mount(self):
         """ Mount type
@@ -134,7 +130,7 @@ class GainTable:
 
     The weight is usually that output from gain solvers.
     """
-
+    
     def __init__(self, data=None, gain: numpy.array = None, time: numpy.array = None, interval=None,
                  weight: numpy.array = None, residual: numpy.array = None, frequency: numpy.array = None,
                  receptor_frame: ReceptorFrame = ReceptorFrame("linear"), phasecentre=None, configuration=None):
@@ -172,56 +168,56 @@ class GainTable:
             data['time'] = time
             data['interval'] = interval
             data['residual'] = residual
-
+        
         self.data = data
         self.frequency = frequency
         self.receptor_frame = receptor_frame
         self.phasecentre = phasecentre
         self.configuration = configuration
-
+    
     def size(self):
         """ Return size in GB
         """
         size = 0
         size += self.data.size * sys.getsizeof(self.data)
         return size / 1024.0 / 1024.0 / 1024.0
-
+    
     @property
     def time(self):
         return self.data['time']
-
+    
     @property
     def interval(self):
         return self.data['interval']
-
+    
     @property
     def gain(self):
         return self.data['gain']
-
+    
     @property
     def weight(self):
         return self.data['weight']
-
+    
     @property
     def residual(self):
         return self.data['residual']
-
+    
     @property
     def ntimes(self):
         return self.data['gain'].shape[0]
-
+    
     @property
     def nants(self):
         return self.data['gain'].shape[1]
-
+    
     @property
     def nchan(self):
         return self.data['gain'].shape[2]
-
+    
     @property
     def nrec(self):
         return self.receptor_frame.nrec
-
+    
     def __str__(self):
         """Default printer for GainTable
 
@@ -239,7 +235,7 @@ class PointingTable:
 
     The weight is usually that output from gain solvers.
     """
-
+    
     def __init__(self, data=None, pointing: numpy.array = None, nominal: numpy.array = None,
                  time: numpy.array = None, interval=None,
                  weight: numpy.array = None, residual: numpy.array = None, frequency: numpy.array = None,
@@ -278,61 +274,61 @@ class PointingTable:
             data['interval'] = interval
             data['residual'] = residual
             data['nominal'] = nominal
-
+        
         self.data = data
         self.frequency = frequency
         self.receptor_frame = receptor_frame
         self.pointing_frame = pointing_frame
         self.pointingcentre = pointingcentre
         self.configuration = configuration
-
+    
     def size(self):
         """ Return size in GB
         """
         size = 0
         size += self.data.size * sys.getsizeof(self.data)
         return size / 1024.0 / 1024.0 / 1024.0
-
+    
     @property
     def time(self):
         return self.data['time']
-
+    
     @property
     def interval(self):
         return self.data['interval']
-
+    
     @property
     def nominal(self):
         return self.data['nominal']
-
+    
     @property
     def pointing(self):
         return self.data['pointing']
-
+    
     @property
     def weight(self):
         return self.data['weight']
-
+    
     @property
     def residual(self):
         return self.data['residual']
-
+    
     @property
     def ntimes(self):
         return self.data['pointing'].shape[0]
-
+    
     @property
     def nants(self):
         return self.data['pointing'].shape[1]
-
+    
     @property
     def nchan(self):
         return self.data['pointing'].shape[2]
-
+    
     @property
     def nrec(self):
         return self.receptor_frame.nrec
-
+    
     def __str__(self):
         """Default printer for GainTable
 
@@ -364,27 +360,27 @@ class Image:
         variable. The latter should be considered definitive.
 
     """
-
+    
     def __init__(self):
         """ Empty image
         """
         self.data = None
         self.wcs = None
         self.polarisation_frame = None
-
+    
     def size(self):
         """ Return size in GB
         """
         size = 0
         size += self.data.nbytes
         return size / 1024.0 / 1024.0 / 1024.0
-
+    
     def __copy__(self):
         cls = self.__class__
         result = cls.__new__(cls)
         result.__dict__.update(self.__dict__)
         return result
-
+    
     # noinspection PyArgumentList
     def __deepcopy__(self, memo):
         cls = self.__class__
@@ -393,36 +389,36 @@ class Image:
         for k, v in self.__dict__.items():
             setattr(result, k, deepcopy(v, memo))
         return result
-
+    
     @property
     def nchan(self):
         return self.data.shape[0]
-
+    
     @property
     def npol(self):
         return self.data.shape[1]
-
+    
     @property
     def nheight(self):
         return self.data.shape[2]
-
+    
     @property
     def nwidth(self):
         return self.data.shape[3]
-
+    
     @property
     def frequency(self):
         w = self.wcs.sub(['spectral'])
         return w.wcs_pix2world(range(self.nchan), 0)[0]
-
+    
     @property
     def shape(self):
         return self.data.shape
-
+    
     @property
     def phasecentre(self):
         return SkyCoord(self.wcs.wcs.crval[0] * u.deg, self.wcs.wcs.crval[1] * u.deg)
-
+    
     def __str__(self):
         """Default printer for Image
 
@@ -447,7 +443,7 @@ class GridData:
         variable. The latter should be considered definitive.
 
     """
-
+    
     def __init__(self):
         """ Empty image
         """
@@ -455,20 +451,20 @@ class GridData:
         self.grid_wcs = None
         self.projection_wcs = None
         self.polarisation_frame = None
-
+    
     def size(self):
         """ Return size in GB
         """
         size = 0
         size += self.data.nbytes
         return size / 1024.0 / 1024.0 / 1024.0
-
+    
     def __copy__(self):
         cls = self.__class__
         result = cls.__new__(cls)
         result.__dict__.update(self.__dict__)
         return result
-
+    
     # noinspection PyArgumentList
     def __deepcopy__(self, memo):
         cls = self.__class__
@@ -477,41 +473,41 @@ class GridData:
         for k, v in self.__dict__.items():
             setattr(result, k, deepcopy(v, memo))
         return result
-
+    
     @property
     def nchan(self):
         return self.data.shape[0]
-
+    
     @property
     def npol(self):
         return self.data.shape[1]
-
+    
     @property
     def nheight(self):
         return self.data.shape[2]
-
+    
     @property
     def nwidth(self):
         return self.data.shape[3]
-
+    
     @property
     def ndepth(self):
         return self.data.shape[4]
-
+    
     @property
     def frequency(self):
         w = self.grid_wcs.sub(['spectral'])
         return w.wcs_pix2world(range(self.nchan), 0)[0]
-
+    
     @property
     def shape(self):
         assert len(self.data.shape) == 5
         return self.data.shape
-
+    
     @property
     def phasecentre(self):
         return SkyCoord(self.projection_wcs.wcs.crval[0] * u.deg, self.projection_wcs.wcs.crval[1] * u.deg)
-
+    
     def __str__(self):
         """Default printer for GriddedData
 
@@ -537,7 +533,7 @@ class ConvolutionFunction:
         variable. The latter should be considered definitive.
 
     """
-
+    
     def __init__(self):
         """ Empty image
         """
@@ -545,20 +541,20 @@ class ConvolutionFunction:
         self.grid_wcs = None
         self.projection_wcs = None
         self.polarisation_frame = None
-
+    
     def size(self):
         """ Return size in GB
         """
         size = 0
         size += self.data.nbytes
         return size / 1024.0 / 1024.0 / 1024.0
-
+    
     def __copy__(self):
         cls = self.__class__
         result = cls.__new__(cls)
         result.__dict__.update(self.__dict__)
         return result
-
+    
     # noinspection PyArgumentList
     def __deepcopy__(self, memo):
         cls = self.__class__
@@ -567,41 +563,41 @@ class ConvolutionFunction:
         for k, v in self.__dict__.items():
             setattr(result, k, deepcopy(v, memo))
         return result
-
+    
     @property
     def nchan(self):
         return self.data.shape[0]
-
+    
     @property
     def npol(self):
         return self.data.shape[1]
-
+    
     @property
     def nheight(self):
         return self.data.shape[2]
-
+    
     @property
     def nwidth(self):
         return self.data.shape[3]
-
+    
     @property
     def ndepth(self):
         return self.data.shape[4]
-
+    
     @property
     def frequency(self):
         w = self.grid_wcs.sub(['spectral'])
         return w.wcs_pix2world(range(self.nchan), 0)[0]
-
+    
     @property
     def shape(self):
         assert len(self.data.shape) == 7
         return self.data.shape
-
+    
     @property
     def phasecentre(self):
         return SkyCoord(self.projection_wcs.wcs.crval[0] * u.deg, self.projection_wcs.wcs.crval[1] * u.deg)
-
+    
     def __str__(self):
         """Default printer for GriddedData
 
@@ -633,7 +629,7 @@ class Skycomponent:
         sc = apply_beam_to_skycomponent(sc, bm)
         vis = predict_skycomponent_visibility(vis, sc)
     """
-
+    
     def __init__(self,
                  direction=None, frequency=None, name=None, flux=None, shape='Point',
                  polarisation_frame=PolarisationFrame('stokesIQUV'), params=None):
@@ -647,7 +643,7 @@ class Skycomponent:
         :param params: numpy.array shape dependent parameters
         :param polarisation_frame: Polarisation_frame
         """
-
+        
         self.direction = direction
         self.frequency = numpy.array(frequency)
         self.name = name
@@ -657,22 +653,22 @@ class Skycomponent:
             params = {}
         self.params = params
         self.polarisation_frame = polarisation_frame
-
+        
         assert len(self.frequency.shape) == 1, frequency
         assert len(self.flux.shape) == 2, flux
         assert self.frequency.shape[0] == self.flux.shape[0], \
             "Frequency shape %s, flux shape %s" % (self.frequency.shape, self.flux.shape)
         assert polarisation_frame.npol == self.flux.shape[1], \
             "Polarisation is %s, flux shape %s" % (polarisation_frame.type, self.flux.shape)
-
+    
     @property
     def nchan(self):
         return self.flux.shape[0]
-
+    
     @property
     def npol(self):
         return self.flux.shape[1]
-
+    
     def __str__(self):
         """Default printer for Skycomponent
 
@@ -683,7 +679,7 @@ class Skycomponent:
         s += "\tFrequency: %s\n" % self.frequency
         s += "\tDirection: %s\n" % self.direction
         s += "\tShape: %s\n" % self.shape
-
+        
         s += "\tParams: %s\n" % self.params
         s += "\tPolarisation frame: %s\n" % str(self.polarisation_frame.type)
         return s
@@ -692,7 +688,7 @@ class Skycomponent:
 class SkyModel:
     """ A model for the sky, including an image, components, gaintable and a mask
     """
-
+    
     def __init__(self, image=None, components=None, gaintable=None, mask=None, fixed=False):
         """ A model of the sky as an image, components, gaintable and a mask
 
@@ -701,27 +697,27 @@ class SkyModel:
         """
         if components is None:
             components = []
-
+        
         if image is not None:
             assert isinstance(image, Image), image
         self.image = image
-
+        
         if components is not None:
             assert isinstance(components, list)
             for comp in components:
                 assert isinstance(comp, Skycomponent), comp
         self.components = [sc for sc in components]
-
+        
         if gaintable is not None:
             assert isinstance(gaintable, GainTable), gaintable
         self.gaintable = gaintable
-
+        
         if mask is not None:
             assert isinstance(mask, Image), mask
         self.mask = mask
-
+        
         self.fixed = fixed
-
+    
     def __str__(self):
         """Default printer for SkyModel
 
@@ -730,15 +726,15 @@ class SkyModel:
         for i, sc in enumerate(self.components):
             s += str(sc)
         s += "\n"
-
+        
         s += str(self.image)
         s += "\n"
-
+        
         s += str(self.mask)
         s += "\n"
-
+        
         s += str(self.gaintable)
-
+        
         return s
 
 
@@ -760,8 +756,21 @@ class Visibility:
     row in the original block visibility that this row has a value for. The original blockvisibility
     is also preserves as n attribute so that decoalescence is expedited. If you don't need that then
     the storage can be released by setting self.blockvis to None
-    """
+    
+    There are two visibility formats:
 
+    :class:`BlockVisibility` is conceived as an ingest and calibration format. The visibility
+    data are kept in a block of shape (number antennas, number antennas, number channels,
+    number polarisation). One block is kept per integration. The other columns are time and uvw.
+    The sampling in time is therefore the same for all baselines.
+
+    :class:`Visibility` is designed to hold coalesced data where the integration time and
+    channel width can vary with baseline length. The visibility data are kept in a visibility
+    vector of length equal to the number of polarisations. Everything else is a separate
+    column: time, frequency, uvw, channel_bandwidth, integration time.
+
+    """
+    
     def __init__(self,
                  data=None, frequency=None, channel_bandwidth=None,
                  phasecentre=None, configuration=None, uvw=None,
@@ -799,7 +808,7 @@ class Visibility:
             assert len(channel_bandwidth) == nvis
             assert len(antenna1) == nvis
             assert len(antenna2) == nvis
-
+            
             npol = polarisation_frame.npol
             desc = [('index', 'i8'),
                     ('uvw', 'f8', (3,)),
@@ -824,7 +833,7 @@ class Visibility:
             data['vis'] = vis
             data['weight'] = weight
             data['imaging_weight'] = imaging_weight
-
+        
         self.data = data  # numpy structured array
         self.cindex = cindex
         self.blockvis = blockvis
@@ -834,7 +843,7 @@ class Visibility:
         self.frequency_map = None
         self.source = source
         self.meta = meta
-
+    
     def __str__(self):
         """Default printer for Visibility
 
@@ -853,9 +862,9 @@ class Visibility:
         s += "\tPhasecentre: %s\n" % self.phasecentre
         s += "\tConfiguration: %s\n" % self.configuration.name
         s += "\tMetadata: %s\n" % self.meta
-
+        
         return s
-
+    
     def size(self):
         """ Return size in GB
         """
@@ -863,75 +872,75 @@ class Visibility:
         for col in self.data.dtype.fields.keys():
             size += self.data[col].nbytes
         return size / 1024.0 / 1024.0 / 1024.0
-
+    
     @property
     def index(self):
         return self.data['index']
-
+    
     @property
     def npol(self):
         return self.polarisation_frame.npol
-
+    
     @property
     def nvis(self):
         return self.data['vis'].shape[0]
-
+    
     @property
     def uvw(self):  # In wavelengths in Visibility
         return self.data['uvw']
-
+    
     @property
     def u(self):
         return self.data['uvw'][:, 0]
-
+    
     @property
     def v(self):
         return self.data['uvw'][:, 1]
-
+    
     @property
     def w(self):
         return self.data['uvw'][:, 2]
-
+    
     @property
     def uvdist(self):
         return numpy.hypot(self.u, self.v)
-
+    
     @property
     def uvwdist(self):
         return numpy.hypot(self.u, self.v, self.w)
-
+    
     @property
     def time(self):
         return self.data['time']
-
+    
     @property
     def integration_time(self):
         return self.data['integration_time']
-
+    
     @property
     def frequency(self):
         return self.data['frequency']
-
+    
     @property
     def channel_bandwidth(self):
         return self.data['channel_bandwidth']
-
+    
     @property
     def antenna1(self):
         return self.data['antenna1']
-
+    
     @property
     def antenna2(self):
         return self.data['antenna2']
-
+    
     @property
     def vis(self):
         return self.data['vis']
-
+    
     @property
     def weight(self):
         return self.data['weight']
-
+    
     @property
     def imaging_weight(self):
         return self.data['imaging_weight']
@@ -953,7 +962,7 @@ class BlockVisibility:
 
     The configuration is also an attribute
     """
-
+    
     def __init__(self,
                  data=None, frequency=None, channel_bandwidth=None,
                  phasecentre=None, configuration=None, uvw=None,
@@ -990,12 +999,12 @@ class BlockVisibility:
             data = numpy.zeros(shape=[ntimes], dtype=desc)
             data['index'] = list(range(ntimes))
             data['uvw'] = uvw
-            data['time'] = time # MJD in seconds
+            data['time'] = time  # MJD in seconds
             data['integration_time'] = integration_time  # seconds
             data['vis'] = vis
             data['weight'] = weight
             data['imaging_weight'] = imaging_weight
-
+        
         self.data = data  # numpy structured array
         self.frequency = frequency
         self.channel_bandwidth = channel_bandwidth
@@ -1004,7 +1013,7 @@ class BlockVisibility:
         self.polarisation_frame = polarisation_frame
         self.source = source
         self.meta = meta
-
+    
     def __str__(self):
         """Default printer for BlockVisibility
 
@@ -1022,9 +1031,9 @@ class BlockVisibility:
         s += "\tPolarisation Frame: %s\n" % self.polarisation_frame.type
         s += "\tConfiguration: %s\n" % self.configuration.name
         s += "\tMetadata: %s\n" % self.meta
-
+        
         return s
-
+    
     def size(self):
         """ Return size in GB
         """
@@ -1032,72 +1041,73 @@ class BlockVisibility:
         for col in self.data.dtype.fields.keys():
             size += self.data[col].nbytes
         return size / 1024.0 / 1024.0 / 1024.0
-
+    
     @property
     def nchan(self):
         return self.data['vis'].shape[3]
-
+    
     @property
     def npol(self):
         return self.data['vis'].shape[4]
-
+    
     @property
     def nants(self):
         return self.data['vis'].shape[1]
-
+    
     @property
     def uvw(self):  # In meters
         return self.data['uvw']
-
+    
     @property
     def u(self):
         return self.data['uvw'][..., 0]
-
+    
     @property
     def v(self):
         return self.data['uvw'][..., 1]
-
+    
     @property
     def w(self):
         return self.data['uvw'][..., 2]
-
+    
     @property
     def uvdist(self):
         return numpy.hypot(self.u, self.v)
-
+    
     @property
     def uvwdist(self):
         return numpy.hypot(self.u, self.v, self.w)
-
+    
     @property
     def vis(self):
         return self.data['vis']
-
+    
     @property
     def weight(self):
         return self.data['weight']
-
+    
     @property
     def time(self):
         return self.data['time']
-
+    
     @property
     def integration_time(self):
         return self.data['integration_time']
-
+    
     @property
     def nvis(self):
         return self.data.size
-
+    
     @property
     def imaging_weight(self):
         return self.data['imaging_weight']
+
 
 class QA:
     """ Quality assessment
 
     """
-
+    
     def __init__(self, origin=None, data=None, context=None):
         """QA
 
@@ -1108,7 +1118,7 @@ class QA:
         self.origin = origin  # Name of function originating QA assessment
         self.data = data  # Dictionary containing standard fields
         self.context = context  # Context string
-
+    
     def __str__(self):
         """Default printer for QA
 
@@ -1124,10 +1134,10 @@ class QA:
 
 class ScienceDataModel:
     """ Science Data Model"""
-
+    
     def __init__(self):
         pass
-
+    
     def __str__(self):
         """ Deflaut printer for Science Data Model
 

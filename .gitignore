@@ -25,3 +25,4 @@ dask-worker-space
 /data_models/.idea
 *.fits
 /sourcetree.txt
+/docs/api

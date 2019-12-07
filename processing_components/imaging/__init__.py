@@ -1,1 +1,7 @@
-__all__ = ['base', 'ng', 'primary_beams', 'timeslice_single', 'weighting', 'wstack_single']
+
+from .base import *
+from .ng import *
+from .primary_beams import *
+from .timeslice_single import *
+from .weighting import *
+from .wstack_single import *

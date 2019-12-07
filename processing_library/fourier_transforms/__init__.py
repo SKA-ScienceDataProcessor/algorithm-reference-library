@@ -13,4 +13,7 @@ This is implemented for reference in
 - `field_of_view * coordinates2(npixel)` yields the `l,m` image coordinate system
    (radians, roughly)
 """
-__all__ = ['convolutional_gridding', 'fft_support']
+
+from .convolutional_gridding import *
+from .fft_support import *
+

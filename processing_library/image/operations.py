@@ -2,6 +2,11 @@
 """
 Functions that define and manipulate images. Images are just data and a World Coordinate System.
 """
+
+__all__ = ['image_sizeof', 'create_image', 'create_empty_image_like', 'create_w_term_like', 'checkwcs',
+           'convert_image_to_kernel', 'copy_image', 'create_image_from_array', 'pad_image',
+           'polarisation_frame_from_wcs', 'fft_image']
+
 import copy
 import logging
 import warnings

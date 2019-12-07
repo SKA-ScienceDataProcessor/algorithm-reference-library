@@ -1,6 +1,8 @@
 # LICENSE: public domain
 # https://gist.github.com/jeromer/2005586
 
+__all__ = ['calculate_initial_compass_bearing']
+
 import math
 
 def calculate_initial_compass_bearing(pointA, pointB):

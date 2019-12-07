@@ -1,1 +1,2 @@
-__all__ = ['pipeline_serial']
+
+from .pipeline_serial import *

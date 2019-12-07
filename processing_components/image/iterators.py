@@ -3,6 +3,8 @@
 Functions that define and manipulate images. Images are just data and a World Coordinate System.
 """
 
+__all__ = ['image_channel_iter', 'image_null_iter', 'image_raster_iter']
+
 import logging
 import collections
 

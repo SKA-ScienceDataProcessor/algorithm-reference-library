@@ -19,6 +19,9 @@ This and related modules contain various approachs for dealing with the wide-fie
 extra phase term in the Fourier transform cannot be ignored.
 """
 
+__all__ = ['shift_vis_to_image', 'normalize_sumwt', 'predict_2d', 'invert_2d', 'predict_skycomponent_visibility',
+           'create_image_from_visibility', 'advise_wide_field']
+
 import collections
 import logging
 from typing import List, Union, Tuple
@@ -38,11 +41,11 @@ from processing_library.imaging.imaging_params import get_frequency_map
 from processing_library.util.coordinate_support import simulate_point, skycoord_to_lmn
 
 from processing_components.griddata.kernels  import create_pswf_convolutionfunction
-from ..griddata.gridding import grid_visibility_to_griddata, \
+from processing_components.griddata.gridding import grid_visibility_to_griddata, \
     fft_griddata_to_image, fft_image_to_griddata, \
     degrid_visibility_from_griddata
-from ..griddata.operations import create_griddata_from_image
-from ..visibility.base import copy_visibility, phaserotate_visibility
+from processing_components.griddata.operations import create_griddata_from_image
+from processing_components.visibility.base import copy_visibility, phaserotate_visibility
 
 log = logging.getLogger(__name__)
 

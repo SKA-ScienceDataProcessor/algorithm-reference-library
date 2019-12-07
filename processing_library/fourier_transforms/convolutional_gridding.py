@@ -8,6 +8,8 @@ This approach may be extended to include image plane effect such as the w term a
 This module contains functions for performing the griddata process and the inverse degridding process.
 """
 
+__all__ = ['w_beam', 'weight_gridding', 'visibility_recentre']
+
 import logging
 
 import numpy

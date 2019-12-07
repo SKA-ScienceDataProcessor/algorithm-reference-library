@@ -1,4 +1,11 @@
 """ Functions for processing visibility. These operate on one or both of BlockVisibility and Visibility.
 
 """
-__all__ = ['base', 'coalesce', 'gather_scatter', 'iterators', 'msv2', 'operations', 'vis_select', 'visibility_fitting']
+
+from .base import *
+from .coalesce import *
+from .gather_scatter import *
+from .iterators import *
+from .operations import *
+from .visibility_fitting import *
+from .vis_select import *

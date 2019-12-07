@@ -8,15 +8,17 @@
 
 """
 
+__all__ = ['create_calibration_controls', 'calibrate_function', 'solve_calibrate_function']
+
 import logging
 
 import numpy
 
 from data_models.memory_data_models import Visibility, BlockVisibility
 
-from ..calibration.operations import create_gaintable_from_blockvisibility, apply_gaintable, qa_gaintable
-from ..calibration.calibration import solve_gaintable
-from ..visibility.coalesce import convert_visibility_to_blockvisibility, convert_blockvisibility_to_visibility
+from processing_components.calibration.operations import create_gaintable_from_blockvisibility, apply_gaintable, qa_gaintable
+from processing_components.calibration.calibration import solve_gaintable
+from processing_components.visibility.coalesce import convert_visibility_to_blockvisibility, convert_blockvisibility_to_visibility
 
 log = logging.getLogger(__name__)
 

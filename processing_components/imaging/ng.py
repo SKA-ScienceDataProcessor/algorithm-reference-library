@@ -7,6 +7,8 @@ This performs all necessary w term corrections, to high precision.
 
 """
 
+__all__ = ['predict_ng', 'invert_ng']
+
 import logging
 from typing import Union
 
@@ -17,7 +19,7 @@ from data_models.parameters import get_parameter
 from data_models.polarisation import convert_pol_frame
 from processing_components.image.operations import copy_image
 from processing_components.imaging.base import shift_vis_to_image, normalize_sumwt
-from ..visibility.base import copy_visibility
+from processing_components.visibility.base import copy_visibility
 
 log = logging.getLogger(__name__)
 

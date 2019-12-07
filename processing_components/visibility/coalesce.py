@@ -27,7 +27,7 @@ from processing_library.util.array_functions import average_chunks, average_chun
 from data_models.memory_data_models import Visibility, BlockVisibility
 from data_models.parameters import get_parameter
 
-from ..visibility.base import vis_summary, copy_visibility
+from processing_components.visibility.base import vis_summary, copy_visibility
 
 import logging
 

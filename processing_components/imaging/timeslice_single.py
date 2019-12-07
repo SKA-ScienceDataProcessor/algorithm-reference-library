@@ -23,6 +23,9 @@ Ignoring changes in the normalisation term, we have:
 
 
 """
+
+__all__ = ['fit_uvwplane', 'fit_uvwplane_only', 'predict_timeslice_single', 'invert_timeslice_single']
+
 import logging
 
 log = logging.getLogger(__name__)

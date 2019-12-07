@@ -9,15 +9,17 @@ approximated as:
 If images constructed from slices in w are added after applying a w-dependent image plane correction, the w term will be corrected.
 """
 
+__all__ = ['predict_wstack_single', 'invert_wstack_single']
+
 import numpy
 
 from data_models.memory_data_models import Visibility, Image, BlockVisibility
 
 from processing_library.image.operations import create_w_term_like
 
-from ..image.operations import copy_image
-from ..visibility.base import copy_visibility
-from ..imaging.base import predict_2d, invert_2d
+from processing_components.image.operations import copy_image
+from processing_components.visibility.base import copy_visibility
+from processing_components.imaging.base import predict_2d, invert_2d
 
 import logging
 log = logging.getLogger(__name__)

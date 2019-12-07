@@ -3,6 +3,95 @@
 These do data conversion and persistence. Functions from processing_library and processing_components are used.
 """
 
+__all__ = ['convert_earthlocation_to_string',
+           'convert_earthlocation_from_string',
+           'convert_direction_to_string',
+           'convert_direction_from_string',
+           'convert_configuration_to_hdf',
+           'convert_configuration_from_hdf',
+           'convert_visibility_to_hdf',
+           'convert_hdf_to_visibility',
+           'convert_blockvisibility_to_hdf',
+           'convert_hdf_to_blockvisibility',
+           'export_visibility_to_hdf5',
+           'import_visibility_from_hdf5',
+           'export_blockvisibility_to_hdf5',
+           'import_blockvisibility_from_hdf5',
+           'convert_gaintable_to_hdf',
+           'convert_hdf_to_gaintable',
+           'export_gaintable_to_hdf5',
+           'import_gaintable_from_hdf5',
+           'convert_pointingtable_to_hdf',
+           'convert_hdf_to_pointingtable',
+           'export_pointingtable_to_hdf5',
+           'import_pointingtable_from_hdf5',
+           'convert_skycomponent_to_hdf',
+           'convert_hdf_to_skycomponent',
+           'export_skycomponent_to_hdf5',
+           'import_skycomponent_from_hdf5',
+           'convert_image_to_hdf',
+           'convert_hdf_to_image',
+           'export_image_to_hdf5',
+           'import_image_from_hdf5',
+           'export_skymodel_to_hdf5',
+           'convert_skymodel_to_hdf',
+           'import_skymodel_from_hdf5',
+           'convert_hdf_to_skymodel',
+           'convert_griddata_to_hdf',
+           'convert_hdf_to_griddata',
+           'export_griddata_to_hdf5',
+           'import_griddata_from_hdf5',
+           'convert_convolutionfunction_to_hdf',
+           'convert_hdf_to_convolutionfunction',
+           'export_convolutionfunction_to_hdf5',
+           'import_convolutionfunction_from_hdf5',
+           'memory_data_model_to_buffer',
+           'buffer_data_model_to_memory',
+           'convert_earthlocation_to_string',
+           'convert_earthlocation_from_string',
+           'convert_direction_to_string',
+           'convert_direction_from_string',
+           'convert_configuration_to_hdf',
+           'convert_configuration_from_hdf',
+           'convert_visibility_to_hdf',
+           'convert_hdf_to_visibility',
+           'convert_blockvisibility_to_hdf',
+           'convert_hdf_to_blockvisibility',
+           'export_visibility_to_hdf5',
+           'import_visibility_from_hdf5',
+           'export_blockvisibility_to_hdf5',
+           'import_blockvisibility_from_hdf5',
+           'convert_gaintable_to_hdf',
+           'convert_hdf_to_gaintable',
+           'export_gaintable_to_hdf5',
+           'import_gaintable_from_hdf5',
+           'convert_pointingtable_to_hdf',
+           'convert_hdf_to_pointingtable',
+           'export_pointingtable_to_hdf5',
+           'import_pointingtable_from_hdf5',
+           'convert_skycomponent_to_hdf',
+           'convert_hdf_to_skycomponent',
+           'export_skycomponent_to_hdf5',
+           'import_skycomponent_from_hdf5',
+           'convert_image_to_hdf',
+           'convert_hdf_to_image',
+           'export_image_to_hdf5',
+           'import_image_from_hdf5',
+           'export_skymodel_to_hdf5',
+           'convert_skymodel_to_hdf',
+           'import_skymodel_from_hdf5',
+           'convert_hdf_to_skymodel',
+           'convert_griddata_to_hdf',
+           'convert_hdf_to_griddata',
+           'export_griddata_to_hdf5',
+           'import_griddata_from_hdf5',
+           'convert_convolutionfunction_to_hdf',
+           'convert_hdf_to_convolutionfunction',
+           'export_convolutionfunction_to_hdf5',
+           'import_convolutionfunction_from_hdf5',
+           'memory_data_model_to_buffer',
+           'buffer_data_model_to_memory']
+
 import ast
 import collections
 
@@ -13,14 +102,13 @@ from astropy.coordinates import SkyCoord, EarthLocation
 from astropy.units import Quantity
 from astropy.wcs import WCS
 
-from processing_library.image.operations import create_image_from_array
-from processing_components.griddata.operations import create_griddata_from_array
-from processing_components.griddata.convolution_functions import create_convolutionfunction_from_array
-
-from processing_components.image.operations import export_image_to_fits, import_image_from_fits
 from data_models.memory_data_models import Visibility, BlockVisibility, Configuration, \
     GainTable, SkyModel, Skycomponent, Image, GridData, ConvolutionFunction, PointingTable
 from data_models.polarisation import PolarisationFrame, ReceptorFrame
+from processing_components.griddata.convolution_functions import create_convolutionfunction_from_array
+from processing_components.griddata.operations import create_griddata_from_array
+from processing_components.image.operations import export_image_to_fits, import_image_from_fits
+from processing_library.image.operations import create_image_from_array
 
 
 def convert_earthlocation_to_string(el: EarthLocation):
@@ -66,7 +154,7 @@ def convert_direction_from_string(s: str):
 
 
 def convert_configuration_to_hdf(config: Configuration, f):
-    """
+    """ Convert a Configuration to HDF
 
     :param config:
     :param f:
@@ -78,7 +166,7 @@ def convert_configuration_to_hdf(config: Configuration, f):
     cf.attrs['location'] = convert_earthlocation_to_string(config.location)
     cf.attrs['frame'] = config.frame
     cf.attrs['receptor_frame'] = config.receptor_frame.type
-
+    
     cf['configuration/xyz'] = config.xyz
     cf['configuration/diameter'] = config.diameter
     cf['configuration/names'] = [numpy.string_(name) for name in config.names]
@@ -87,10 +175,10 @@ def convert_configuration_to_hdf(config: Configuration, f):
 
 
 def convert_configuration_from_hdf(f):
-    """ Extyract configuration from HDF
+    """ Extract configuration from HDF
 
     :param f:
-    :return:
+    :return: Configuration
     """
     cf = f['configuration']
     
@@ -100,7 +188,7 @@ def convert_configuration_from_hdf(f):
     location = convert_earthlocation_from_string(cf.attrs['location'])
     receptor_frame = ReceptorFrame(cf.attrs['receptor_frame'])
     frame = cf.attrs['frame']
-
+    
     xyz = cf['configuration/xyz']
     diameter = cf['configuration/diameter']
     names = [str(n) for n in cf['configuration/names']]
@@ -112,9 +200,9 @@ def convert_configuration_from_hdf(f):
 def convert_visibility_to_hdf(vis, f):
     """ Convert visibility to HDF
 
-    :param vis:
+    :param vis: Visibility
     :param f: HDF root
-    :return:
+    :return: HDF root
     """
     assert isinstance(vis, Visibility)
     
@@ -495,12 +583,11 @@ def convert_image_to_hdf(im: Image, f):
     :return:
     """
     if isinstance(im, Image):
-    
         f.attrs['ARL_data_model'] = 'Image'
         f['data'] = im.data
         f.attrs['wcs'] = numpy.string_(im.wcs.to_header_string())
         f.attrs['polarisation_frame'] = im.polarisation_frame.type
-        
+    
     return f
 
 
@@ -515,7 +602,7 @@ def convert_hdf_to_image(f):
         polarisation_frame = PolarisationFrame(f.attrs['polarisation_frame'])
         wcs = WCS(f.attrs['wcs'])
         im = create_image_from_array(data, wcs=wcs,
-                                 polarisation_frame=polarisation_frame)
+                                     polarisation_frame=polarisation_frame)
         return im
     else:
         return None
@@ -576,7 +663,8 @@ def export_skymodel_to_hdf5(sm, filename):
             convert_skymodel_to_hdf(s, sf)
         f.flush()
         f.close()
-        
+
+
 def convert_skymodel_to_hdf(sm, f):
     """
     
@@ -619,7 +707,8 @@ def import_skymodel_from_hdf5(filename):
             return smlist[0]
         else:
             return smlist
-    
+
+
 def convert_hdf_to_skymodel(f):
     """
     
@@ -627,9 +716,9 @@ def convert_hdf_to_skymodel(f):
     :return:
     """
     assert f.attrs['ARL_data_model'] == "SkyModel", f.attrs['ARL_data_model']
-
+    
     fixed = f.attrs['fixed']
-
+    
     ncomponents = f.attrs['number_skycomponents']
     components = list()
     for i in range(ncomponents):
@@ -650,7 +739,6 @@ def convert_hdf_to_skymodel(f):
         gaintable = convert_hdf_to_gaintable(cf)
     else:
         gaintable = None
-
     
     return SkyModel(image=image, components=components, gaintable=gaintable, mask=mask, fixed=fixed)
 
@@ -684,7 +772,7 @@ def convert_hdf_to_griddata(f):
     grid_wcs = WCS(f.attrs['grid_wcs'])
     projection_wcs = WCS(f.attrs['projection_wcs'])
     gd = create_griddata_from_array(data, grid_wcs=grid_wcs, projection_wcs=projection_wcs,
-                                 polarisation_frame=polarisation_frame)
+                                    polarisation_frame=polarisation_frame)
     return gd
 
 
@@ -753,7 +841,7 @@ def convert_hdf_to_convolutionfunction(f):
     grid_wcs = WCS(f.attrs['grid_wcs'])
     projection_wcs = WCS(f.attrs['projection_wcs'])
     gd = create_convolutionfunction_from_array(data, grid_wcs=grid_wcs, projection_wcs=projection_wcs,
-                                    polarisation_frame=polarisation_frame)
+                                               polarisation_frame=polarisation_frame)
     return gd
 
 
@@ -864,5 +952,3 @@ def buffer_data_model_to_memory(jbuff, dm):
         return import_convolutionfunction_from_hdf5(name)
     else:
         raise ValueError("Data model %s not supported" % dm["data_model"])
-
-

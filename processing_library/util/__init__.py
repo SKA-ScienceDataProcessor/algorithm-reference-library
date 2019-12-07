@@ -1,1 +1,5 @@
-__all__ = ['array_functions', 'compass_bearing', 'coordinate_support', 'sizeof']
+
+from .array_functions import *
+from .compass_bearing import *
+from .coordinate_support import *
+from .sizeof import *

@@ -11,21 +11,20 @@ For example::
 
 """
 
+__all__ = ['solve_gaintable']
+
 import logging
 
 import numpy
 
-from data_models.memory_data_models import Visibility, Image
-from data_models.parameters import get_parameter
 from data_models.memory_data_models import BlockVisibility, GainTable, assert_vis_gt_compatible
-
+from processing_components.calibration.operations import create_gaintable_from_blockvisibility
+from processing_components.visibility.base import create_visibility_from_rows
+from processing_components.visibility.operations import divide_visibility
 from processing_library.calibration.solvers import solve_from_X
 
-from ..visibility.base import create_visibility_from_rows
-from ..calibration.operations import create_gaintable_from_blockvisibility
-from ..visibility.operations import divide_visibility
-
 log = logging.getLogger(__name__)
+
 
 def solve_gaintable(vis: BlockVisibility, modelvis: BlockVisibility = None, gt=None, phase_only=True, niter=30,
                     tol=1e-8, crosspol=False, normalise_gains=True, **kwargs) -> GainTable:
@@ -58,7 +57,7 @@ def solve_gaintable(vis: BlockVisibility, modelvis: BlockVisibility = None, gt=N
         gt = create_gaintable_from_blockvisibility(vis, **kwargs)
     else:
         log.debug("solve_gaintable: starting from existing gaintable")
-
+    
     for row in range(gt.ntimes):
         vis_rows = numpy.abs(vis.time - gt.time[row]) < gt.interval[row] / 2.0
         if numpy.sum(vis_rows) > 0:

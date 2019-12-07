@@ -10,6 +10,8 @@ A typical use would be to make a sequence of snapshot images::
 
 """
 
+__all__ = ['gaintable_timeslice_iter', 'gaintable_null_iter']
+
 import logging
 
 import numpy

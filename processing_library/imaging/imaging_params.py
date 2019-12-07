@@ -2,6 +2,8 @@
 Functions that aid definition of fourier transform processing.
 """
 
+__all__ = ['get_frequency_map', 'get_polarisation_map', 'get_rowmap']
+
 import logging
 import warnings
 

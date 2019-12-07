@@ -2,6 +2,12 @@
 
 """
 
+__all__ = ['export_image_to_fits', 'import_image_from_fits', 'qa_image', 'add_image',
+           'calculate_image_frequency_moments', 'calculate_image_from_frequency_moments',
+           'show_components', 'show_image', 'smooth_image', 'convert_polimage_to_stokes',
+           'convert_stokes_to_polimage', 'remove_continuum_image', 'reproject_image',
+           'create_window']
+
 import copy
 import warnings
 from astropy.wcs import FITSFixedWarning

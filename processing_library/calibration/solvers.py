@@ -12,6 +12,12 @@ For example::
 
 """
 
+__all__ = ['solution_residual_matrix', 'solution_residual_scalar', 'solution_residual_vector',
+           'solve_antenna_gains_itsubs_matrix', 'solve_antenna_gains_itsubs_scalar',
+           'solve_antenna_gains_itsubs_vector',
+           'gain_substitution_matrix', 'gain_substitution_vector', 'gain_substitution_vector',
+           'gain_substitution_scalar', 'solve_from_X']
+
 import logging
 
 import numpy
@@ -98,7 +104,7 @@ def solve_antenna_gains_itsubs_scalar(gain, gwt, x, xwt, niter=30, tol=1e-8, pha
         change = numpy.max(numpy.abs(gain - gainLast))
         if change < tol:
             return gain, gwt, solution_residual_scalar(gain, x, xwt)
-
+    
     return gain, gwt, solution_residual_scalar(gain, x, xwt)
 
 
@@ -117,7 +123,7 @@ def gain_substitution_scalar(gain, x, xwt):
     for ant1 in range(nants):
         top = numpy.sum(gain[:, :, 0, 0] * xxwt[:, ant1, :], axis=0)
         bot = numpy.sum((gcg[:, :] * xwt[:, ant1, :, 0, 0]).real, axis=0)
-    
+        
         if bot.all() > 0.0:
             newgain[ant1, :, 0, 0] = top / bot
             gwt[ant1, :, 0, 0] = bot
@@ -322,10 +328,10 @@ def solution_residual_scalar(gain, x, xwt):
         smueller = numpy.ma.outer(clgain, lgain).reshape([nant, nant])
         error = x[:, :, chan, 0, 0] - smueller
         for i in range(nant):
-            error[i,i]=0.0
+            error[i, i] = 0.0
         residual += numpy.sum(error * xwt[:, :, chan, 0, 0] * numpy.conjugate(error)).real
         sumwt += numpy.sum(xwt[:, :, chan, 0, 0])
-
+    
     residual[sumwt > 0.0] = numpy.sqrt(residual[sumwt > 0.0] / sumwt[sumwt > 0.0])
     residual[sumwt <= 0.0] = 0.0
     
@@ -360,7 +366,7 @@ def solution_residual_vector(gain, x, xwt):
             for chan in range(nchan):
                 for rec in range(nrec):
                     error = x[ant2, ant1, chan, rec, rec] - \
-                        gain[ant1, chan, rec, rec] * numpy.conjugate(gain[ant2, chan, rec, rec])
+                            gain[ant1, chan, rec, rec] * numpy.conjugate(gain[ant2, chan, rec, rec])
                     residual += (error * xwt[ant2, ant1, chan, rec, rec] * numpy.conjugate(error)).real
                     sumwt += xwt[ant2, ant1, chan, rec, rec]
     
@@ -392,7 +398,7 @@ def solution_residual_matrix(gain, x, xwt):
                 for rec1 in range(nrec):
                     for rec2 in range(nrec):
                         error = x[ant2, ant1, chan, rec2, rec1] - \
-                            gain[ant1, chan, rec2, rec1] * numpy.conjugate(gain[ant2, chan, rec2, rec1])
+                                gain[ant1, chan, rec2, rec1] * numpy.conjugate(gain[ant2, chan, rec2, rec1])
                         residual[chan, rec2, rec1] += (error * xwt[ant2, ant1, chan, rec2, rec1] * numpy.conjugate(
                             error)).real
                         sumwt[chan, rec2, rec1] += xwt[ant2, ant1, chan, rec2, rec1]

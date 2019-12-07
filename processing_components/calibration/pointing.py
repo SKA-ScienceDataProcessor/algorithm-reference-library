@@ -3,6 +3,8 @@ merging pointingtables.
 
 """
 
+__all__ = ['create_pointingtable_from_rows', 'create_pointingtable_from_blockvisibility', 'copy_pointingtable']
+
 import copy
 import logging
 

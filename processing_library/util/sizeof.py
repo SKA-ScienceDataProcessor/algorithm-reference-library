@@ -2,6 +2,8 @@
 
 """
 
+__all__ = ['get_size']
+
 import sys
 
 from distributed.protocol import pickle

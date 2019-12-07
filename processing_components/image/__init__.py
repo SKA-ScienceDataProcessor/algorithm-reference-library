@@ -1,1 +1,6 @@
-__all__ = ['deconvolution', 'gather_scatter', 'gradients', 'iterators', 'operations']
+
+from .deconvolution import *
+from .gather_scatter import *
+from .gradients import *
+from .iterators import *
+from .operations import *
