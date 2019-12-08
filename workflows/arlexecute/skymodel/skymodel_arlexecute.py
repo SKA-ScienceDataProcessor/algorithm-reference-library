@@ -1,6 +1,6 @@
 
 __all__ = ['predict_skymodel_list_arlexecute_workflow', 'predict_skymodel_list_compsonly_arlexecute_workflow',
-           'invert_list_serial_workflow', 'crosssubtract_datamodels_skymodel_list_arlexecute_workflow',
+           'crosssubtract_datamodels_skymodel_list_arlexecute_workflow',
            'convolve_skymodel_list_arlexecute_workflow']
 
 import logging

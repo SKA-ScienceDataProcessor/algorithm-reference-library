@@ -25,8 +25,8 @@ from data_models.polarisation import PolarisationFrame
 from data_models.data_model_helpers import import_blockvisibility_from_hdf5
 
 from processing_components.calibration.calibration_control import create_calibration_controls
-from processing_components.image.operations import show_image, export_image_to_fits, qa_image
-from processing_components.imaging.base import create_image_from_visibility
+from processing_components.image import show_image, export_image_to_fits, qa_image
+from processing_components.imaging import create_image_from_visibility
 
 from workflows.arlexecute.pipelines.pipeline_arlexecute import ical_list_arlexecute_workflow
 

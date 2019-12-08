@@ -102,14 +102,9 @@ from astropy.coordinates import SkyCoord, EarthLocation
 from astropy.units import Quantity
 from astropy.wcs import WCS
 
-from data_models import Visibility, BlockVisibility, Configuration, \
+from data_models import Visibility, BlockVisibility, Configuration, GridData, \
     GainTable, SkyModel, Skycomponent, Image, GridData, ConvolutionFunction, PointingTable
 from data_models.polarisation import PolarisationFrame, ReceptorFrame
-from processing_components.griddata import create_convolutionfunction_from_array
-from processing_components.griddata import create_griddata_from_array
-from processing_components.image import export_image_to_fits, import_image_from_fits
-from processing_library.image import create_image_from_array
-
 
 def convert_earthlocation_to_string(el: EarthLocation):
     """Convert Earth Location to string
@@ -601,8 +596,7 @@ def convert_hdf_to_image(f):
         data = numpy.array(f['data'])
         polarisation_frame = PolarisationFrame(f.attrs['polarisation_frame'])
         wcs = WCS(f.attrs['wcs'])
-        im = create_image_from_array(data, wcs=wcs,
-                                     polarisation_frame=polarisation_frame)
+        im = Image(data, wcs=wcs, polarisation_frame=polarisation_frame)
         return im
     else:
         return None
@@ -771,7 +765,7 @@ def convert_hdf_to_griddata(f):
     polarisation_frame = PolarisationFrame(f.attrs['polarisation_frame'])
     grid_wcs = WCS(f.attrs['grid_wcs'])
     projection_wcs = WCS(f.attrs['projection_wcs'])
-    gd = create_griddata_from_array(data, grid_wcs=grid_wcs, projection_wcs=projection_wcs,
+    gd = GridData(data=data, grid_wcs=grid_wcs, projection_wcs=projection_wcs,
                                     polarisation_frame=polarisation_frame)
     return gd
 
@@ -840,7 +834,7 @@ def convert_hdf_to_convolutionfunction(f):
     polarisation_frame = PolarisationFrame(f.attrs['polarisation_frame'])
     grid_wcs = WCS(f.attrs['grid_wcs'])
     projection_wcs = WCS(f.attrs['projection_wcs'])
-    gd = create_convolutionfunction_from_array(data, grid_wcs=grid_wcs, projection_wcs=projection_wcs,
+    gd = ConvolutionFunction(data, grid_wcs=grid_wcs, projection_wcs=projection_wcs,
                                                polarisation_frame=polarisation_frame)
     return gd
 
@@ -884,8 +878,7 @@ def import_convolutionfunction_from_hdf5(filename):
 def memory_data_model_to_buffer(model, jbuff, dm):
     """ Copy a memory data model to a buffer data model
 
-    The file type is derived from the file extension. All are hdf only with the exception of Imaghe which can also be
-    fits.
+    The file type is derived from the file extension. All are hdf only.
 
     :param model: Memory data model to be sent to buffer
     :param jbuff: JSON describing buffer
@@ -899,10 +892,7 @@ def memory_data_model_to_buffer(model, jbuff, dm):
     if dm["data_model"] == "BlockVisibility":
         return export_blockvisibility_to_hdf5(model, name)
     elif dm["data_model"] == "Image":
-        if file_extension == ".fits":
-            return export_image_to_fits(model, name)
-        else:
-            return export_image_to_hdf5(model, name)
+        return export_image_to_hdf5(model, name)
     elif dm["data_model"] == "GridData":
         return export_griddata_to_hdf5(model, name)
     elif dm["data_model"] == "ConvolutionFunction":
@@ -920,8 +910,7 @@ def memory_data_model_to_buffer(model, jbuff, dm):
 def buffer_data_model_to_memory(jbuff, dm):
     """Copy a buffer data model into memory data model
 
-    The file type is derived from the file extension. All are hdf only with the exception of Imaghe which can also be
-    fits.
+    The file type is derived from the file extension. All are hdf only.
 
     :param jbuff: JSON describing buffer
     :param dm: JSON describing data model
@@ -936,10 +925,7 @@ def buffer_data_model_to_memory(jbuff, dm):
     if dm["data_model"] == "BlockVisibility":
         return import_blockvisibility_from_hdf5(name)
     elif dm["data_model"] == "Image":
-        if file_extension == ".fits":
-            return import_image_from_fits(name)
-        else:
-            return import_image_from_hdf5(name)
+        return import_image_from_hdf5(name)
     elif dm["data_model"] == "SkyModel":
         return import_skymodel_from_hdf5(name)
     elif dm["data_model"] == "GainTable":

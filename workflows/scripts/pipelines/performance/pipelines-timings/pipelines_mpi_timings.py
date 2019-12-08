@@ -13,7 +13,7 @@ from astropy import units as u
 from astropy.coordinates import SkyCoord
 
 from data_models.polarisation import PolarisationFrame
-from processing_library.image.operations import create_image
+from processing_library.image import create_image
 from processing_library.util.sizeof import get_size
 from workflows.mpi.imaging.imaging_mpi import invert_list_mpi_workflow, \
     predict_list_mpi_workflow, \
@@ -27,10 +27,10 @@ from workflows.serial.simulation.simulation_serial import simulate_list_serial_w
 #from workflows.mpi.skymodel.skymodel_mpi import predict_skymodel_list_mpi_workflow
 from workflows.serial.skymodel.skymodel_serial import predict_skymodel_list_serial_workflow
 from wrappers.mpi.calibration.calibration_control import create_calibration_controls
-from wrappers.mpi.griddata.kernels import create_awterm_convolutionfunction, create_pswf_convolutionfunction
-from wrappers.mpi.image.gather_scatter import image_gather_channels
-from wrappers.mpi.image.operations import export_image_to_fits, qa_image
-from wrappers.mpi.imaging.base import advise_wide_field
+from wrappers.mpi.griddata import create_awterm_convolutionfunction, create_pswf_convolutionfunction
+from wrappers.mpi.image import image_gather_channels
+from wrappers.mpi.image import export_image_to_fits, qa_image
+from wrappers.mpi.imaging import advise_wide_field
 from simulation import create_low_test_skymodel_from_gleam
 from visibility import convert_blockvisibility_to_visibility
 

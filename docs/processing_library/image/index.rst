@@ -5,5 +5,9 @@
 .. toctree::
    :maxdepth: 3
 
+******
+Images
+******
+
 .. automodapi::    processing_library.image
    :no-inheritance-diagram:

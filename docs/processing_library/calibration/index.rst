@@ -5,6 +5,10 @@
 .. toctree::
    :maxdepth: 3
 
+***********
+Calibration
+***********
+
 .. automodapi::    processing_library.calibration
    :no-inheritance-diagram:
 

@@ -6,11 +6,11 @@ import logging
 
 import numpy
 
-from processing_library.image.operations import create_empty_image_like
+from processing_library.image import create_empty_image_like
 from workflows.arlexecute.skymodel.skymodel_arlexecute import predict_skymodel_list_arlexecute_workflow, \
     invert_skymodel_list_arlexecute_workflow, crosssubtract_datamodels_skymodel_list_arlexecute_workflow
 from wrappers.arlexecute.execution_support.arlexecute import arlexecute
-from processing_components.skymodel.operations import update_skymodel_from_image, update_skymodel_from_gaintables
+from processing_components.skymodel import update_skymodel_from_image, update_skymodel_from_gaintables
 from workflows.arlexecute.calibration.calibration_arlexecute import calibrate_list_arlexecute_workflow
 from workflows.arlexecute.imaging.imaging_arlexecute import invert_list_arlexecute_workflow, \
     deconvolve_list_arlexecute_workflow
@@ -72,7 +72,7 @@ def mpccal_skymodel_list_arlexecute_workflow(visobs, model, theta_list, nmajor=1
                     
             assert numpy.max(numpy.abs(res.data)) > 0.0, "Residual image is zero"
             # import matplotlib.pyplot as plt
-            # from processing_components.image.operations import show_image
+            # from processing_components.image import show_image
             # show_image(res, title='MPCCAL residual image, iteration %d' % it)
             # plt.show()
             return res

@@ -20,7 +20,7 @@ import logging
 import numpy
 from astropy.wcs import WCS
 
-from data_models.memory_data_models import GridData, ConvolutionFunction
+from data_models.memory_data_models import ConvolutionFunction
 from data_models.memory_data_models import QA
 from data_models.polarisation import PolarisationFrame
 from processing_library.image.operations import create_image_from_array

@@ -5,6 +5,10 @@
 .. toctree::
    :maxdepth: 3
 
+******************
+Fourier Transforms
+******************
+
 .. automodapi::    processing_library.fourier_transforms
    :no-inheritance-diagram:
 

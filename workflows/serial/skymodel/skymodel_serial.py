@@ -7,14 +7,14 @@ import logging
 import numpy
 
 from data_models.memory_data_models import Image, GainTable, Visibility, SkyModel, ConvolutionFunction
-from processing_library.image.operations import copy_image
+from processing_library.image import copy_image
 from workflows.serial.imaging.imaging_serial import predict_list_serial_workflow, invert_list_serial_workflow
-from wrappers.serial.calibration.operations import apply_gaintable
-from wrappers.serial.imaging.base import predict_skycomponent_visibility
-from wrappers.serial.skycomponent.base import copy_skycomponent
-from wrappers.serial.skycomponent.operations import apply_beam_to_skycomponent
-from wrappers.serial.visibility.base import copy_visibility
-from wrappers.serial.visibility.coalesce import convert_blockvisibility_to_visibility, \
+from processing_components.calibration import apply_gaintable
+from processing_components.imaging import predict_skycomponent_visibility
+from processing_components.skycomponent import copy_skycomponent
+from processing_components.skycomponent import apply_beam_to_skycomponent
+from processing_components.visibility import copy_visibility
+from processing_components.visibility import  convert_blockvisibility_to_visibility, \
     convert_visibility_to_blockvisibility
 
 log = logging.getLogger(__name__)

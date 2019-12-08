@@ -13,12 +13,12 @@ from astropy.coordinates import SkyCoord
 
 from data_models.polarisation import PolarisationFrame
 from workflows.serial.calibration.calibration_serial import calibrate_list_serial_workflow
-from wrappers.serial.calibration.calibration_control import create_calibration_controls
-from wrappers.serial.calibration.operations import create_gaintable_from_blockvisibility, apply_gaintable
-from wrappers.serial.simulation.testing_support import ingest_unittest_visibility
+from processing_components.calibration.calibration_control import create_calibration_controls
+from processing_components.calibration.operations import create_gaintable_from_blockvisibility, apply_gaintable
+from processing_components.simulation.testing_support import ingest_unittest_visibility
 from processing_components.simulation.configurations import create_named_configuration
-from wrappers.serial.simulation.testing_support import simulate_gaintable
-from wrappers.serial.visibility.base import copy_visibility
+from processing_components.simulation.testing_support import simulate_gaintable
+from processing_components.visibility.base import copy_visibility
 
 log = logging.getLogger(__name__)
 

@@ -6,6 +6,7 @@ imagesize
 markupsafe
 pytz
 jupyter
+jupyter_contrib_nbextensions
 notebook
 ipywidgets
 numpy

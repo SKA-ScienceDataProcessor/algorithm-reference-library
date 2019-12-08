@@ -12,17 +12,17 @@ from astropy.coordinates import SkyCoord
 from data_models.memory_data_models import Image, SkyModel
 from data_models.memory_data_models import Skycomponent
 from data_models.polarisation import PolarisationFrame
-from wrappers.arlexecute.skymodel.operations import expand_skymodel_by_skycomponents
+from processing_components.skymodel.operations import expand_skymodel_by_skycomponents
 from workflows.arlexecute.skymodel.skymodel_arlexecute import predict_skymodel_list_arlexecute_workflow, \
     invert_skymodel_list_arlexecute_workflow, crosssubtract_datamodels_skymodel_list_arlexecute_workflow
 from workflows.shared.imaging.imaging_shared import sum_predict_results
 from wrappers.arlexecute.execution_support.arlexecutebase import ARLExecuteBase
 from wrappers.arlexecute.execution_support.dask_init import get_dask_Client
-from wrappers.arlexecute.simulation.testing_support import ingest_unittest_visibility, \
+from processing_components.simulation.testing_support import ingest_unittest_visibility, \
     create_low_test_skymodel_from_gleam
 from processing_components.simulation.configurations import create_named_configuration
-from wrappers.arlexecute.visibility.base import copy_visibility
-from wrappers.arlexecute.visibility.coalesce import convert_blockvisibility_to_visibility
+from processing_components.visibility.base import copy_visibility
+from processing_components.visibility.coalesce import convert_blockvisibility_to_visibility
 
 log = logging.getLogger(__name__)
 
@@ -153,7 +153,7 @@ class TestMPC(unittest.TestCase):
         assert numpy.max(numpy.abs(results[0][1])) > 0.0
         if self.plot:
             import matplotlib.pyplot as plt
-            from wrappers.arlexecute.image.operations import show_image
+            from processing_components.image.operations import show_image
             show_image(results[0][0], title='Dirty image, no cross-subtraction', vmax=0.1, vmin=-0.01)
             plt.show()
     
@@ -183,7 +183,7 @@ class TestMPC(unittest.TestCase):
         assert numpy.max(numpy.abs(results[0][1])) > 0.0
         if self.plot:
             import matplotlib.pyplot as plt
-            from wrappers.arlexecute.image.operations import show_image
+            from processing_components.image.operations import show_image
             show_image(results[0][0], title='Dirty image after cross-subtraction', vmax=0.1, vmin=-0.01)
             plt.show()
 

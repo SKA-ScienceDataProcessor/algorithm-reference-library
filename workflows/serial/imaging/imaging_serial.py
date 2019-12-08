@@ -19,21 +19,21 @@ import numpy
 
 from data_models.memory_data_models import Image, Visibility, BlockVisibility
 from data_models.parameters import get_parameter
-from processing_library.image.operations import copy_image, create_empty_image_like
-from workflows.shared.imaging.imaging_shared import imaging_context
-from workflows.shared.imaging.imaging_shared import sum_invert_results, remove_sumwt, sum_predict_results, \
+from processing_library.image import copy_image, create_empty_image_like
+from workflows.shared.imaging import imaging_context
+from workflows.shared.imaging import sum_invert_results, remove_sumwt, sum_predict_results, \
     threshold_list
-from wrappers.serial.griddata.gridding import grid_weight_to_griddata, griddata_reweight, griddata_merge_weights
-from wrappers.serial.griddata.kernels import create_pswf_convolutionfunction
-from wrappers.serial.griddata.operations import create_griddata_from_image
-from wrappers.serial.image.deconvolution import deconvolve_cube, restore_cube
-from wrappers.serial.image.gather_scatter import image_scatter_facets, image_gather_facets, \
+from processing_components.griddata import grid_weight_to_griddata, griddata_reweight, griddata_merge_weights
+from processing_components.griddata import create_pswf_convolutionfunction
+from processing_components.griddata import create_griddata_from_image
+from processing_components.image import  deconvolve_cube, restore_cube
+from processing_components.image import image_scatter_facets, image_gather_facets, \
     image_scatter_channels, image_gather_channels
-from wrappers.serial.image.operations import calculate_image_frequency_moments
-from wrappers.serial.imaging.base import normalize_sumwt
-from wrappers.serial.imaging.weighting import taper_visibility_gaussian
-from wrappers.serial.visibility.base import copy_visibility, create_visibility_from_rows
-from wrappers.serial.visibility.gather_scatter import visibility_scatter, visibility_gather
+from processing_components.image import calculate_image_frequency_moments
+from processing_components.imaging import normalize_sumwt
+from processing_components.imaging import  taper_visibility_gaussian
+from processing_components.visibility import copy_visibility, create_visibility_from_rows
+from processing_components.visibility import visibility_scatter, visibility_gather
 
 log = logging.getLogger(__name__)
 

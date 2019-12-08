@@ -6,11 +6,11 @@ __all__ = ['calibrate_list_serial_workflow']
 
 import numpy
 
-from wrappers.serial.calibration.calibration_control import calibrate_function, apply_calibration_function, \
+from processing_components.calibration.calibration_control import calibrate_function, apply_calibration_function, \
     solve_calibrate_function
-from wrappers.serial.visibility.coalesce import convert_visibility_to_blockvisibility
-from wrappers.serial.visibility.gather_scatter import visibility_gather_channel
-from wrappers.serial.visibility.operations import integrate_visibility_by_channel, \
+from processing_components.visibility import  convert_visibility_to_blockvisibility
+from processing_components.visibility import visibility_gather_channel
+from processing_components.visibility import integrate_visibility_by_channel, \
     divide_visibility
 
 

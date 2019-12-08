@@ -14,12 +14,12 @@ from astropy.coordinates import SkyCoord
 from data_models.polarisation import PolarisationFrame
 from workflows.serial.imaging.imaging_serial import invert_list_serial_workflow, deconvolve_list_serial_workflow, \
     residual_list_serial_workflow, restore_list_serial_workflow
-from wrappers.serial.image.operations import export_image_to_fits, smooth_image
-from wrappers.serial.imaging.base import predict_skycomponent_visibility
-from wrappers.serial.simulation.testing_support import ingest_unittest_visibility, \
+from processing_components.image.operations import export_image_to_fits, smooth_image
+from processing_components.imaging.base import predict_skycomponent_visibility
+from processing_components.simulation.testing_support import ingest_unittest_visibility, \
     create_unittest_model, create_unittest_components, insert_unittest_errors
 from processing_components.simulation.configurations import create_named_configuration
-from wrappers.serial.skycomponent.operations import insert_skycomponent
+from processing_components.skycomponent.operations import insert_skycomponent
 
 log = logging.getLogger(__name__)
 

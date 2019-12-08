@@ -2,7 +2,7 @@
 
 .. py:currentmodule:: processing_library
 
-******************
+
 Processing Library
 ******************
 

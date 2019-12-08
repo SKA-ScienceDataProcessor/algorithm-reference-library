@@ -361,12 +361,12 @@ class Image:
 
     """
     
-    def __init__(self):
+    def __init__(self, data=None, wcs=None, polarisation_frame=None):
         """ Empty image
         """
-        self.data = None
-        self.wcs = None
-        self.polarisation_frame = None
+        self.data = data
+        self.wcs = wcs
+        self.polarisation_frame = polarisation_frame
     
     def size(self):
         """ Return size in GB
@@ -444,13 +444,13 @@ class GridData:
 
     """
     
-    def __init__(self):
+    def __init__(self, data=None, grid_wcs=None, projection_wcs=None, polarisation_frame=None):
         """ Empty image
         """
-        self.data = None
-        self.grid_wcs = None
-        self.projection_wcs = None
-        self.polarisation_frame = None
+        self.data = data
+        self.grid_wcs = grid_wcs
+        self.projection_wcs = projection_wcs
+        self.polarisation_frame = polarisation_frame
     
     def size(self):
         """ Return size in GB
@@ -534,13 +534,13 @@ class ConvolutionFunction:
 
     """
     
-    def __init__(self):
+    def __init__(self, data=None, grid_wcs=None, projection_wcs=None, polarisation_frame=None):
         """ Empty image
         """
-        self.data = None
-        self.grid_wcs = None
-        self.projection_wcs = None
-        self.polarisation_frame = None
+        self.data = data
+        self.grid_wcs = grid_wcs
+        self.projection_wcs = projection_wcs
+        self.polarisation_frame = polarisation_frame
     
     def size(self):
         """ Return size in GB

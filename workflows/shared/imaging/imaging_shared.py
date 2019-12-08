@@ -1,22 +1,25 @@
 """ Imaging context definitions, potentially shared by other workflows
 
 """
+
+__all__ = ['imaging_context', 'imaging_contexts', 'sum_invert_results', 'remove_sumwt', 'threshold_list',
+           'sum_predict_results']
+
 import numpy
 
 import logging
 
-from processing_components.imaging.base import normalize_sumwt
-from processing_components.visibility.base import copy_visibility
-from processing_components.image.operations import copy_image, calculate_image_frequency_moments
+from processing_library.image import copy_image, create_empty_image_like
+
+from processing_components.imaging import normalize_sumwt
+from processing_components.visibility import copy_visibility
+from processing_components.image import calculate_image_frequency_moments
+from processing_components.imaging import predict_2d, invert_2d
+from processing_components.visibility import  vis_null_iter, vis_timeslice_iter, vis_wslice_iter
+from processing_components.imaging import  predict_timeslice_single, invert_timeslice_single
+from processing_components.imaging import  predict_wstack_single, invert_wstack_single
 
 log = logging.getLogger(__name__)
-
-from processing_components.imaging.base import predict_2d, invert_2d
-from processing_components.visibility.iterators import vis_null_iter, vis_timeslice_iter, vis_wslice_iter
-from processing_components.imaging.timeslice_single import predict_timeslice_single, invert_timeslice_single
-from processing_components.imaging.wstack_single import predict_wstack_single, invert_wstack_single
-from processing_components.image.operations import create_empty_image_like
-
 
 def imaging_contexts():
     """Contains all the context information for imaging

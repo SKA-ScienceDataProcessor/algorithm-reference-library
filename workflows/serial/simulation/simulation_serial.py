@@ -13,11 +13,11 @@ from data_models.polarisation import PolarisationFrame
 from data_models.memory_data_models import  Visibility, BlockVisibility
 
 
-from wrappers.serial.calibration.operations import apply_gaintable, create_gaintable_from_blockvisibility
-from wrappers.serial.simulation.testing_support import simulate_gaintable
+from processing_components.calibration import apply_gaintable, create_gaintable_from_blockvisibility
+from processing_components.simulation.testing_support import simulate_gaintable
 from processing_components.simulation.configurations import create_named_configuration
-from wrappers.serial.visibility.base import create_blockvisibility, create_visibility
-from wrappers.serial.visibility.coalesce import convert_blockvisibility_to_visibility, \
+from processing_components.visibility import create_blockvisibility, create_visibility
+from processing_components.visibility import  convert_blockvisibility_to_visibility, \
     convert_visibility_to_blockvisibility
 
 log = logging.getLogger(__name__)

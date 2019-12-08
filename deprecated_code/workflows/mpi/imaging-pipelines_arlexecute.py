@@ -34,19 +34,19 @@ from astropy.wcs.utils import pixel_to_skycoord
 
 from data_models.polarisation import PolarisationFrame
 
-from wrappers.serial.calibration.calibration import solve_gaintable
-from wrappers.serial.calibration.operations import apply_gaintable
-from wrappers.serial.calibration.calibration_control import create_calibration_controls
-from wrappers.serial.visibility.base import create_blockvisibility
-from wrappers.serial.visibility.coalesce import convert_blockvisibility_to_visibility,     convert_visibility_to_blockvisibility
-from wrappers.serial.skycomponent.operations import create_skycomponent
-from wrappers.serial.image.deconvolution import deconvolve_cube
-#from wrappers.serial.image.operations import show_image, export_image_to_fits, qa_image
-from wrappers.serial.image.operations import export_image_to_fits, qa_image
-from wrappers.serial.visibility.iterators import vis_timeslice_iter
-from wrappers.serial.simulation.testing_support import create_low_test_image_from_gleam
+from processing_components.calibration.calibration import solve_gaintable
+from processing_components.calibration.operations import apply_gaintable
+from processing_components.calibration.calibration_control import create_calibration_controls
+from processing_components.visibility.base import create_blockvisibility
+from processing_components.visibility.coalesce import convert_blockvisibility_to_visibility,     convert_visibility_to_blockvisibility
+from processing_components.skycomponent.operations import create_skycomponent
+from processing_components.image.deconvolution import deconvolve_cube
+#from processing_components.image.operations import show_image, export_image_to_fits, qa_image
+from processing_components.image.operations import export_image_to_fits, qa_image
+from processing_components.visibility.iterators import vis_timeslice_iter
+from processing_components.simulation.testing_support import create_low_test_image_from_gleam
 from processing_components.simulation.configurations import create_named_configuration
-from wrappers.serial.imaging.base import predict_2d, create_image_from_visibility, advise_wide_field
+from processing_components.imaging.base import predict_2d, create_image_from_visibility, advise_wide_field
 
 from workflows.arlexecute.imaging.imaging_arlexecute import invert_list_arlexecute_workflow,     predict_list_arlexecute_workflow, deconvolve_list_arlexecute_workflow
 from workflows.arlexecute.simulation.simulation_arlexecute import simulate_list_arlexecute_workflow,     corrupt_list_arlexecute_workflow

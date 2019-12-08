@@ -6,8 +6,8 @@ __all__ = ['ical_list_serial_workflow', 'continuum_imaging_list_serial_workflow'
            'spectral_line_imaging_list_serial_workflow']
 
 from data_models.parameters import get_parameter
-from wrappers.serial.griddata.kernels import create_pswf_convolutionfunction
-from wrappers.serial.visibility.base import copy_visibility
+from processing_components.griddata import create_pswf_convolutionfunction
+from processing_components.visibility import copy_visibility
 
 from workflows.serial.calibration.calibration_serial import calibrate_list_serial_workflow
 from workflows.serial.imaging.imaging_serial import invert_list_serial_workflow, residual_list_serial_workflow, \

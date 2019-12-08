@@ -5,6 +5,10 @@
 .. toctree::
    :maxdepth: 3
 
+******
+Arrays
+******
+
 .. automodapi::    processing_library.arrays
    :no-inheritance-diagram:
 

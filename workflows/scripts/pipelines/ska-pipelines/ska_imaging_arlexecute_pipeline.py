@@ -13,13 +13,13 @@ dask_dir = arl_path('test_results/dask-work-space')
 from data_models.polarisation import PolarisationFrame
 from data_models.data_model_helpers import import_blockvisibility_from_hdf5
 
-from processing_components.image.operations import show_image, export_image_to_fits, qa_image
-from processing_components.imaging.base import create_image_from_visibility
+from processing_components.image import show_image, export_image_to_fits, qa_image
+from processing_components.imaging import create_image_from_visibility
 
 from workflows.arlexecute.imaging.imaging_arlexecute import invert_list_arlexecute_workflow
 
 from wrappers.arlexecute.execution_support.arlexecute import arlexecute
-from wrappers.arlexecute.visibility.coalesce import convert_visibility_to_blockvisibility, \
+from processing_components.visibility import  convert_visibility_to_blockvisibility, \
     convert_blockvisibility_to_visibility
 
 import logging
