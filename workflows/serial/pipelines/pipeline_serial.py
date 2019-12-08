@@ -1,6 +1,10 @@
 """ Pipeline functions. SDP standard pipelines expressed as functions. This is quite slow and is provided mainly for
 completeness. Use arlexecute versions pipelines/components.py for speed.
 """
+
+__all__ = ['ical_list_serial_workflow', 'continuum_imaging_list_serial_workflow',
+           'spectral_line_imaging_list_serial_workflow']
+
 from data_models.parameters import get_parameter
 from wrappers.serial.griddata.kernels import create_pswf_convolutionfunction
 from wrappers.serial.visibility.base import copy_visibility

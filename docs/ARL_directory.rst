@@ -33,6 +33,7 @@ Read existing Measurement Set
 Casacore must be installed:
 
 * Creates a list of Visibilities, one per FIELD_ID: :py:mod:`processing_components.visibility.base.create_visibility_from_ms`
+* Creates a list of BlockVisibilities, one per FIELD_ID: :py:mod:`processing_components.visibility.base.create_blockvisibility_from_ms`
 
 Gridding and degridding
 =======================

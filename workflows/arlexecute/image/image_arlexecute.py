@@ -5,7 +5,7 @@ import logging
 
 from processing_library.image.operations import copy_image
 from wrappers.arlexecute.execution_support.arlexecute import arlexecute
-from wrappers.arlexecute.image.gather_scatter import image_scatter_facets, image_gather_facets
+from processing_components.image.gather_scatter import image_scatter_facets, image_gather_facets
 
 log = logging.getLogger(__name__)
 

@@ -22,12 +22,12 @@ from processing_components.visibility.operations import copy_visibility
 from processing_components.simulation.simulation_helpers import plot_pointingtable, plot_gaintable
 from processing_components.simulation.simulation_helpers import find_times_above_elevation_limit
 from processing_library.util.coordinate_support import hadec_to_azel
-from wrappers.arlexecute.calibration.operations import apply_gaintable, create_gaintable_from_blockvisibility
+from processing_components.calibration.operations import apply_gaintable, create_gaintable_from_blockvisibility
 from wrappers.arlexecute.execution_support.arlexecute import arlexecute
-from wrappers.arlexecute.simulation.testing_support import simulate_gaintable
+from processing_components.simulation.testing_support import simulate_gaintable
 from processing_components.simulation.configurations import create_named_configuration
-from wrappers.arlexecute.visibility.base import create_blockvisibility, create_visibility
-from wrappers.arlexecute.visibility.coalesce import convert_blockvisibility_to_visibility, \
+from processing_components.visibility.base import create_blockvisibility, create_visibility
+from processing_components.visibility.coalesce import convert_blockvisibility_to_visibility, \
     convert_visibility_to_blockvisibility
 from wrappers.serial.calibration.pointing import create_pointingtable_from_blockvisibility
 from wrappers.serial.image.operations import import_image_from_fits

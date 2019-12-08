@@ -2,6 +2,8 @@
 
 """
 
+__all__ = ['calibrate_list_serial_workflow']
+
 import numpy
 
 from wrappers.serial.calibration.calibration_control import calibrate_function, apply_calibration_function, \

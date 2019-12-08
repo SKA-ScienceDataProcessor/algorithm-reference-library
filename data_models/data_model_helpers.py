@@ -102,13 +102,13 @@ from astropy.coordinates import SkyCoord, EarthLocation
 from astropy.units import Quantity
 from astropy.wcs import WCS
 
-from data_models.memory_data_models import Visibility, BlockVisibility, Configuration, \
+from data_models import Visibility, BlockVisibility, Configuration, \
     GainTable, SkyModel, Skycomponent, Image, GridData, ConvolutionFunction, PointingTable
 from data_models.polarisation import PolarisationFrame, ReceptorFrame
-from processing_components.griddata.convolution_functions import create_convolutionfunction_from_array
-from processing_components.griddata.operations import create_griddata_from_array
-from processing_components.image.operations import export_image_to_fits, import_image_from_fits
-from processing_library.image.operations import create_image_from_array
+from processing_components.griddata import create_convolutionfunction_from_array
+from processing_components.griddata import create_griddata_from_array
+from processing_components.image import export_image_to_fits, import_image_from_fits
+from processing_library.image import create_image_from_array
 
 
 def convert_earthlocation_to_string(el: EarthLocation):

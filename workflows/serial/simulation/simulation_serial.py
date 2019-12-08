@@ -1,6 +1,8 @@
 """ Pipelines expressed as dask components
 """
 
+__all__ = ['simulate_list_serial_workflow', 'corrupt_list_serial_workflow']
+
 import logging
 
 import numpy

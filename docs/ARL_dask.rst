@@ -56,10 +56,7 @@ In addition there are notebooks that use components in workflows/notebooks.
 These notebooks are scaled to run on a 2017-era laptop (4 cores, 16GB) but can be changed to larger scales. Both
 explicitly create a client and output the URL (usually http://127.0.0.1:8787) for the Dask diagnostics. Of these the
 status page is most useful. If you shrink the browser size enough laterally all of the information appears on one
-page. The image below shows a typical screen for one of the pipelines:
-
-.. image:: ./dask_global.png
-   :scale: 100 %
+page.
 
 Using ARL and Dask
 ==================

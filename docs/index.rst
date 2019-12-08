@@ -66,6 +66,7 @@ Other information
    ARL_developing
    ARL_dask
    ARL_Fourier_processing
+   ARL_SDP
 
 
 * :ref:`genindex`
