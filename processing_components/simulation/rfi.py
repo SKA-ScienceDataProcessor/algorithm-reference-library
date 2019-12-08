@@ -15,6 +15,10 @@ This averaging decorrelates the RFI signal.
 * We want to study the effects of this RFI on statistics of the images: on source and at the pole.
 """
 
+__all__ = ['simulate_DTV', 'create_propagators', 'calculate_averaged_correlation', 'calculate_rfi_at_station',
+           'simulate_rfi_block', 'calculate_station_correlation_rfi']
+
+
 import numpy
 from astropy import constants
 import astropy.units as u

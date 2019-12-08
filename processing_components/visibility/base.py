@@ -2,6 +2,12 @@
 Base simple visibility operations, placed here to avoid circular dependencies
 """
 
+__all__ = ['vis_summary', 'copy_visibility', 'create_visibility', 'create_visibility_from_rows',
+           'create_blockvisibility_from_ms', 'create_blockvisibility_from_uvfits',
+           'create_blockvisibility', 'phaserotate_visibility', 'export_blockvisibility_to_ms',
+           'create_visibility_from_ms', 'create_visibility_from_uvfits',
+           'list_ms']
+
 import os
 import copy
 import logging

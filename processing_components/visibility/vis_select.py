@@ -2,6 +2,7 @@
 
 
 """
+__all__ = ['vis_select_uvrange', 'vis_select_wrange']
 
 import logging
 

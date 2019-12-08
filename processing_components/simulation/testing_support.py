@@ -28,6 +28,13 @@ Functions that aid testing in various ways. A typical use would be::
 
 """
 
+__all__ = ['create_test_image', 'create_test_image_from_s3', 'create_test_skycomponents_from_s3',
+           'create_blockvisibility_iterator', 'ingest_unittest_visibility',
+           'create_low_test_image_from_gleam', 'create_low_test_skymodel_from_gleam',
+           'create_low_test_skycomponents_from_gleam', 'create_unittest_components',
+           'create_unittest_model', 'insert_unittest_errors', 'replicate_image',
+           'simulate_gaintable', 'simulate_pointingtable', 'simulate_pointingtable_from_timeseries']
+
 import csv
 import logging
 from typing import List

@@ -24,11 +24,11 @@ if sys.platform == 'darwin':
 packages = ['data_models', 'processing_library', 'processing_components', 'workflows', 'wrappers']
 package_data = [i for p in packages for i in glob.glob(p + '/*/') + glob.glob(p + '/*/*/')]
 setup(name='algorithm-reference-library',
-      version='0.9',
+      version='0.9.1',
       python_requires='>=3',
       description='Algorithm Reference Library for Radio Interferometry',
       long_description=open('README.md').read(),
-      author='Tim Cornwell, Peter Wortmann, Bojan Nikolic, Montse Farreras, Feng Wang',
+      author='Tim Cornwell, Peter Wortmann, Bojan Nikolic, Feng Wang, Vlad Stolyarov',
       author_email='realtimcornwell@gmail.com',
       url='https://github.com/SKA-ScienceDataProcessor/algorithm-reference-library',
       license='Apache License Version 2.0',

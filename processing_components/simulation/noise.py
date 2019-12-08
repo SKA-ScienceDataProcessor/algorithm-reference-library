@@ -3,6 +3,8 @@ Functions that add noise
 
 """
 
+__all__ = ['calculate_noise_blockvisibility', 'calculate_noise_visibility', 'addnoise_visibility']
+
 import csv
 import logging
 from typing import List

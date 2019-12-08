@@ -10,6 +10,11 @@ A typical use would be to make a sequence of snapshot visibilitys::
 
 """
 
+__all__ = ['visibility_gather', 'visibility_scatter',
+           'visibility_gather_channel', 'visibility_scatter_channel',
+           'visibility_gather_time', 'visibility_scatter_time',
+           'visibility_gather_w', 'visibility_scatter_w']
+
 import logging
 from typing import List
 

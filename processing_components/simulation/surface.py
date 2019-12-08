@@ -2,6 +2,8 @@
 
 """
 
+__all__ = ['simulate_gaintable_from_voltage_patterns']
+
 import logging
 
 import numpy

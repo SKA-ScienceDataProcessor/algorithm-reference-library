@@ -18,6 +18,9 @@ A typical use might be::
 
 """
 
+__all__ = ['convert_visibility_to_blockvisibility', 'convert_blockvisibility_to_visibility',
+           'coalesce_visibility', 'decoalesce_visibility']
+
 import numpy
 
 from astropy import constants

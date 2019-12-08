@@ -49,8 +49,8 @@ See the jupyter note books below:
    :maxdepth: 3
 
    workflows/imaging_serial.rst
+   workflows/imaging-fits_arlexecute.rst
    workflows/imaging-wterm_arlexecute.rst
-   processing_components/rcal.rst
    workflows/simple-dask_arlexecute.rst
    workflows/imaging-pipelines_arlexecute.rst
 

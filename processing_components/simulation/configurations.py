@@ -2,6 +2,9 @@
 
 """
 
+__all__ = ['create_configuration_from_file', 'create_configuration_from_MIDfile', 'create_configuration_from_SKAfile',
+           'create_LOFAR_configuration', 'create_named_configuration', 'limit_rmax']
+
 import numpy
 from astropy import units as u
 from astropy.coordinates import EarthLocation

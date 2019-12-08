@@ -2,6 +2,13 @@
 
 """
 
+__all__ = ['append_visibility', 'sort_visibility', 'concatenate_blockvisibility_frequency',
+           'concatenate_visibility', 'sum_visibility', 'subtract_visibility', 'qa_visibility',
+           'remove_continuum_blockvisibility', 'divide_visibility', 'integrate_visibility_by_channel',
+           'convert_blockvisibility_to_stokes', 'convert_blockvisibility_to_stokes',
+           'convert_blockvisibility_to_stokesI', 'convert_visibility_to_stokesI',
+           'convert_visibility_to_stokes']
+
 import logging
 import warnings
 from typing import Union

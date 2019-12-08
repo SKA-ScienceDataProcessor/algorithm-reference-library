@@ -45,6 +45,28 @@ API
    workflows/index.rst
    wrappers/index.rst
 
+*************
+ARL Directory
+*************
+
+.. toctree::
+   :maxdepth: 2
+
+   ARL_directory
+   ARL_directory_workflows
+
+*****************
+Other information
+*****************
+
+.. toctree::
+   :maxdepth: 2
+
+   ARL_background
+   ARL_developing
+   ARL_dask
+   ARL_Fourier_processing
+
 
 * :ref:`genindex`
 * :ref:`modindex`

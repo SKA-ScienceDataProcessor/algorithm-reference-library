@@ -2,6 +2,8 @@
 
 """
 
+__all__ = ['simulate_gaintable_from_pointingtable']
+
 import logging
 
 import numpy

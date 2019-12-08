@@ -2,6 +2,8 @@
 
 """
 
+__all__ = ['fit_visibility']
+
 import numpy
 
 from scipy.optimize import minimize

@@ -13,11 +13,7 @@ calling the compute method of the graph or by passing the graph to a dask client
 
 A typical graph will flow from a set of input visibility sets to an image or set of images. In the course
 of constructing a graph, we will need to know the data elements and the functions transforming brtween them.
-These are well-modeled in ARL. A example of three cycles of a major/minor cycle deconvolutions is shown below:
-
-.. image:: deconvolution_dask.png
-      :width: 1024px
-
+These are well-modeled in ARL.
 
 In order that Dask.delayed processing can be switched on and off, and that the same code is used for Dask and
 non-Dask processing, we have wrapped Dask.delayed in :py:mod:`wrappers.arlexecute.execution_support.arlexecute.arlexecute`.
@@ -266,3 +262,4 @@ Then to tunnel the pages::
 The diagnostic page is available from your local browser at::
 
       127.0.0.1:8080
+
