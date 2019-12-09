@@ -10,17 +10,14 @@ from data_models.parameters import arl_path
 results_dir = arl_path('test_results')
 dask_dir = arl_path('test_results/dask-work-space')
 
-from data_models.polarisation import PolarisationFrame
-from data_models.data_model_helpers import import_blockvisibility_from_hdf5
+from data_models import PolarisationFrame, import_blockvisibility_from_hdf5
 
-from processing_components.image import show_image, export_image_to_fits, qa_image
-from processing_components.imaging import create_image_from_visibility
+from processing_components import show_image, export_image_to_fits, create_image_from_visibility, \
+    convert_blockvisibility_to_visibility
 
-from workflows.arlexecute.imaging.imaging_arlexecute import invert_list_arlexecute_workflow
+from workflows import invert_list_arlexecute_workflow
 
 from wrappers.arlexecute.execution_support.arlexecute import arlexecute
-from processing_components.visibility import  convert_visibility_to_blockvisibility, \
-    convert_blockvisibility_to_visibility
 
 import logging
 

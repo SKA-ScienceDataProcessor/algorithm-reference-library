@@ -1,7 +1,7 @@
 # coding: utf-8
 
 
-from data_models.parameters import arl_path
+from data_models import arl_path
 
 results_dir = arl_path('test_results')
 dask_dir = arl_path('test_results/dask-work-space')
@@ -12,22 +12,15 @@ import logging
 from astropy.coordinates import SkyCoord
 from astropy import units as u
 
-from data_models.memory_data_models import SkyModel
-from data_models.polarisation import PolarisationFrame
-from data_models.data_model_helpers import export_skymodel_to_hdf5, export_blockvisibility_to_hdf5
+from data_models import SkyModel, PolarisationFrame, export_skymodel_to_hdf5, export_blockvisibility_to_hdf5
 
-from processing_components.simulation import create_low_test_image_from_gleam
-from processing_components.imaging import advise_wide_field
-from processing_components.visibility import  convert_blockvisibility_to_visibility, \
-    convert_visibility_to_blockvisibility
+from processing_library import create_empty_image_like
 
-from workflows.arlexecute.imaging.imaging_arlexecute import predict_list_arlexecute_workflow
-from workflows.arlexecute.simulation.simulation_arlexecute import simulate_list_arlexecute_workflow, \
+from processing_components import create_low_test_image_from_gleam, advise_wide_field, \
+    convert_blockvisibility_to_visibility, convert_visibility_to_blockvisibility
+from workflows import predict_list_arlexecute_workflow, simulate_list_arlexecute_workflow, \
     corrupt_list_arlexecute_workflow
-from processing_library.image import create_empty_image_like
-
 from wrappers.arlexecute.execution_support.arlexecute import arlexecute
-
 
 def init_logging():
     logging.basicConfig(filename='%s/ska-pipeline.log' % results_dir,
@@ -81,7 +74,6 @@ if __name__ == '__main__':
     
     advice_low = advice_list[0]
     advice_high = advice_list[-1]
-    print(advice_list[centre])
     
     vis_slices = advice_low['vis_slices']
     npixel = advice_high['npixels2']
@@ -94,8 +86,7 @@ if __name__ == '__main__':
                                                                          channel_bandwidth=[channel_bandwidth[f]],
                                                                          cellsize=cellsize,
                                                                          phasecentre=phasecentre,
-                                                                         polarisation_frame=PolarisationFrame(
-                                                                             "stokesI"),
+                                                                         polarisation_frame=PolarisationFrame("stokesI"),
                                                                          flux_limit=3.0,
                                                                          applybeam=True)
                     for f, freq in enumerate(frequency)]
@@ -105,7 +96,7 @@ if __name__ == '__main__':
     print('About to make initial skymodel')
     zero_model = [arlexecute.execute(create_empty_image_like)(im) for im in dprepb_model]
     zero_model = arlexecute.compute(zero_model, sync=True)
-    zero_skymodel = SkyModel(image=zero_model)
+    zero_skymodel = SkyModel(image=zero_model[0])
     export_skymodel_to_hdf5(zero_skymodel, arl_path('%s/ska-pipeline_simulation_skymodel.hdf' % results_dir))
     
     #    vis_list = arlexecute.scatter(vis_list)

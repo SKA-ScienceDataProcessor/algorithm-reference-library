@@ -19,36 +19,24 @@ import numpy
 from astropy import units as u
 from astropy.coordinates import SkyCoord
 
-from data_models.memory_data_models import SkyModel
-from data_models.parameters import arl_path
-from data_models.polarisation import PolarisationFrame
-from processing_library.image import create_empty_image_like, copy_image
-from workflows.arlexecute.imaging.imaging_arlexecute import invert_list_arlexecute_workflow
-from workflows.arlexecute.imaging.imaging_arlexecute import restore_list_arlexecute_workflow
-from workflows.arlexecute.pipelines.pipeline_mpccal_arlexecute import mpccal_skymodel_list_arlexecute_workflow
-from workflows.arlexecute.skymodel.skymodel_arlexecute import predict_skymodel_list_arlexecute_workflow
-from workflows.serial.imaging.imaging_serial import weight_list_serial_workflow, taper_list_serial_workflow
-from processing_components.calibration import create_gaintable_from_blockvisibility
+from data_models import SkyModel, arl_path, PolarisationFrame
+
+from processing_library import create_empty_image_like, copy_image
+
+from processing_components import create_gaintable_from_blockvisibility, export_image_to_fits,\
+    remove_neighbouring_components, find_skycomponents, calculate_skymodel_equivalent_image, \
+    initialize_skymodel_voronoi, convert_blockvisibility_to_visibility, \
+    convert_visibility_to_blockvisibility, import_image_from_fits, qa_image, show_image, advise_wide_field, \
+    create_low_test_beam, create_gaintable_from_screen, grid_gaintable_to_screen, plot_gaintable_on_screen, \
+    create_low_test_skycomponents_from_gleam, create_named_configuration, apply_beam_to_skycomponent, \
+    insert_skycomponent, filter_skycomponents_by_flux, create_blockvisibility, copy_visibility
+
+from workflows import invert_list_arlexecute_workflow, restore_list_arlexecute_workflow,\
+    mpccal_skymodel_list_arlexecute_workflow, predict_skymodel_list_arlexecute_workflow,\
+    weight_list_serial_workflow, taper_list_serial_workflow
+
 from wrappers.arlexecute.execution_support.arlexecute import arlexecute
 from wrappers.arlexecute.execution_support.dask_init import get_dask_Client
-from processing_components.image import export_image_to_fits
-from processing_components.skycomponent import remove_neighbouring_components, \
-    find_skycomponents
-from processing_components.skymodel import calculate_skymodel_equivalent_image
-from processing_components.skymodel import initialize_skymodel_voronoi
-from processing_components.visibility import  convert_blockvisibility_to_visibility, \
-    convert_visibility_to_blockvisibility
-from processing_components.image import import_image_from_fits
-from processing_components.image import qa_image, show_image
-from processing_components.imaging import create_image_from_visibility, advise_wide_field
-from processing_components.imaging.primary_beams import create_low_test_beam
-from processing_components.simulation.ionospheric_screen import create_gaintable_from_screen
-from processing_components.simulation.ionospheric_screen import grid_gaintable_to_screen, plot_gaintable_on_screen
-from processing_components.simulation import create_low_test_skycomponents_from_gleam
-from processing_components.simulation import create_named_configuration
-from processing_components.skycomponent import apply_beam_to_skycomponent, insert_skycomponent
-from processing_components.skycomponent import filter_skycomponents_by_flux
-from processing_components.visibility import create_blockvisibility, copy_visibility
 
 if __name__ == '__main__':
     log = logging.getLogger()

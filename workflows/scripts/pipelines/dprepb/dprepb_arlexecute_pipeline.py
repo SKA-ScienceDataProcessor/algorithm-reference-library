@@ -9,18 +9,13 @@ from data_models.parameters import arl_path
 results_dir = arl_path('test_results')
 dask_dir = arl_path('test_results/dask-work-space')
 
-from data_models.polarisation import PolarisationFrame
-from processing_components.visibility import create_visibility_from_ms, create_visibility_from_rows
-from processing_components.visibility import append_visibility, convert_visibility_to_stokes
-from processing_components.visibility import vis_select_uvrange
+from data_models import PolarisationFrame
 
-from processing_components import deconvolve_cube, restore_cube
-from processing_components.image import export_image_to_fits, qa_image
-from processing_components.image import image_gather_channels
-from processing_components.imaging import create_image_from_visibility
+from processing_components import create_visibility_from_ms, create_visibility_from_rows, \
+    append_visibility, convert_visibility_to_stokes, vis_select_uvrange, deconvolve_cube, restore_cube, \
+    export_image_to_fits, qa_image, image_gather_channels, create_image_from_visibility
 
-from workflows.arlexecute.imaging.imaging_arlexecute import invert_list_arlexecute_workflow
-from workflows.serial.imaging.imaging_serial import invert_list_serial_workflow
+from workflows import invert_list_arlexecute_workflow, invert_list_serial_workflow
 
 from wrappers.arlexecute.execution_support.arlexecute import arlexecute
 
