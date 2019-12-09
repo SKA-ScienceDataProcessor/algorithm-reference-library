@@ -13,8 +13,8 @@ from astropy.coordinates import SkyCoord
 from data_models.polarisation import PolarisationFrame
 
 from processing_components.imaging.base import create_image_from_visibility
-from processing_components.simulation.testing_support import ingest_unittest_visibility, create_unittest_model
-from processing_components.simulation.configurations import create_named_configuration
+from processing_components.simulation import ingest_unittest_visibility, create_unittest_model
+from processing_components.simulation import create_named_configuration
 
 log = logging.getLogger(__name__)
 

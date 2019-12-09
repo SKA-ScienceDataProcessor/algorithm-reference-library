@@ -272,7 +272,7 @@ def create_simulation_components(context, phasecentre, frequency, pbtype, offset
         max_flux = 0.0
         total_flux = 0.0
         log.info("create_simulation_components: Constructing s3sky components")
-        from processing_components.simulation.testing_support import create_test_skycomponents_from_s3
+        from processing_components.simulation import create_test_skycomponents_from_s3
         
         original_components = create_test_skycomponents_from_s3(flux_limit=flux_limit / 100.0,
                                                                 phasecentre=phasecentre,

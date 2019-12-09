@@ -11,8 +11,8 @@ from astropy.coordinates import SkyCoord
 
 from data_models.polarisation import PolarisationFrame
 from processing_components.imaging.base import create_image_from_visibility
-from processing_components.simulation.testing_support import create_low_test_image_from_gleam
-from processing_components.simulation.configurations import create_named_configuration
+from processing_components.simulation import create_low_test_image_from_gleam
+from processing_components.simulation import create_named_configuration
 from processing_components.visibility.base import create_visibility
 from processing_library.imaging.imaging_params import get_frequency_map
 

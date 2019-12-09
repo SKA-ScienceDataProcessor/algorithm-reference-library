@@ -10,7 +10,7 @@ The GridData data model is used to hold the specification of the desired result.
 
 __all__ = ['convolution_mapping', 'grid_visibility_to_griddata', 'grid_visibility_to_griddata_fast',
            'grid_weight_to_griddata', 'griddata_merge_weights', 'griddata_reweight', 'fft_griddata_to_image',
-           'degrid_visibility_from_griddata']
+           'degrid_visibility_from_griddata', 'fft_image_to_griddata']
 
 import logging
 
@@ -271,7 +271,7 @@ def degrid_visibility_from_griddata(vis, griddata, cf, **kwargs):
     return newvis
 
 
-def fft_griddata_to_image(griddata, gcf, imaginary=False):
+def fft_griddata_to_image(griddata, gcf=None, imaginary=False):
     """ FFT griddata after applying gcf
 
     :param griddata:
@@ -280,9 +280,12 @@ def fft_griddata_to_image(griddata, gcf, imaginary=False):
     """
    
     projected = numpy.sum(griddata.data, axis=2)
-    _, _, ny, nx = projected.data.shape
+    ny, nx = projected.data.shape[-2], projected.data.shape[-1]
     
-    im_data = ifft(projected) * gcf.data * float(nx) * float(ny)
+    if gcf is None:
+        im_data = ifft(projected) * float(nx) * float(ny)
+    else:
+        im_data = ifft(projected) * gcf.data * float(nx) * float(ny)
     
     im_real = create_image_from_array(im_data.real, griddata.projection_wcs, griddata.polarisation_frame)
     
@@ -293,7 +296,7 @@ def fft_griddata_to_image(griddata, gcf, imaginary=False):
         return im_real
 
 
-def fft_image_to_griddata(im, griddata, gcf):
+def fft_image_to_griddata(im, griddata, gcf=None):
     """Fill griddata with transform of im
 
     :param griddata:
@@ -301,6 +304,9 @@ def fft_image_to_griddata(im, griddata, gcf):
     :return:
     """
     # chan, pol, z, u, v, w
-    griddata.data[:, :, :, ...] = fft(im.data * gcf.data)[:, :, numpy.newaxis, ...]
-    
+    if gcf is None:
+        griddata.data[:, :, :, ...] = fft(im.data)[:, :, numpy.newaxis, ...]
+    else:
+        griddata.data[:, :, :, ...] = fft(im.data * gcf.data)[:, :, numpy.newaxis, ...]
+
     return griddata

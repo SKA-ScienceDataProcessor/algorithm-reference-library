@@ -17,11 +17,11 @@ from processing_components.image.operations import export_image_to_fits, smooth_
 from processing_components.imaging.base import predict_skycomponent_visibility
 from processing_components.skycomponent.operations import find_skycomponents, find_nearest_skycomponent, \
     insert_skycomponent
-from processing_components.griddata.convolution_functions import apply_bounding_box_convolutionfunction
+from processing_components.griddata import apply_bounding_box_convolutionfunction
 from processing_components.griddata.kernels import create_awterm_convolutionfunction
-from processing_components.simulation.testing_support import ingest_unittest_visibility, \
+from processing_components.simulation import ingest_unittest_visibility, \
     create_unittest_model, insert_unittest_errors, create_unittest_components
-from processing_components.simulation.configurations import create_named_configuration
+from processing_components.simulation import create_named_configuration
 
 log = logging.getLogger(__name__)
 

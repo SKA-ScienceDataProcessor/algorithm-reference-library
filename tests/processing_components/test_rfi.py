@@ -10,7 +10,7 @@ import numpy
 import numpy.testing
 from astropy.coordinates import SkyCoord, EarthLocation
 
-from processing_components.simulation.configurations import create_named_configuration
+from processing_components.simulation import create_named_configuration
 from processing_components.simulation.rfi import create_propagators, calculate_rfi_at_station, \
     calculate_station_correlation_rfi, simulate_DTV
 

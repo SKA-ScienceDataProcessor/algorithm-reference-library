@@ -37,15 +37,15 @@ from data_models.polarisation import PolarisationFrame
 
 from processing_components.calibration.calibration import solve_gaintable
 from processing_components.calibration.operations import apply_gaintable
-from processing_components.calibration.calibration_control import create_calibration_controls
+from processing_components.calibration import  create_calibration_controls
 from processing_components.visibility.base import create_blockvisibility
 from processing_components.skycomponent.operations import create_skycomponent
 from processing_components.image.deconvolution import deconvolve_cube
 #from processing_components.image.operations import show_image, export_image_to_fits, qa_image
 from processing_components.image.operations import export_image_to_fits, qa_image
 from processing_components.visibility.iterators import vis_timeslice_iter
-from processing_components.simulation.testing_support import create_low_test_image_from_gleam
-from processing_components.simulation.configurations import create_named_configuration
+from processing_components.simulation import create_low_test_image_from_gleam
+from processing_components.simulation import create_named_configuration
 from processing_components.imaging.base import predict_2d, create_image_from_visibility, advise_wide_field
 
 from workflows.serial.imaging.imaging_serial import invert_list_serial_workflow,     predict_list_serial_workflow, deconvolve_list_serial_workflow

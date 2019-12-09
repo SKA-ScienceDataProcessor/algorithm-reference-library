@@ -3,9 +3,8 @@
 .. py:currentmodule:: processing_library_calibration
 
 .. toctree::
-   :maxdepth: 3
+   :maxdepth: 2
 
-***********
 Calibration
 ***********
 

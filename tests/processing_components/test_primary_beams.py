@@ -15,7 +15,7 @@ from data_models.polarisation import PolarisationFrame
 from processing_components.image.operations import export_image_to_fits
 from processing_components.imaging.base import create_image_from_visibility
 from processing_components.imaging.primary_beams import create_pb, create_vp
-from processing_components.simulation.configurations import create_named_configuration
+from processing_components.simulation import create_named_configuration
 from processing_components.visibility.base import create_visibility
 
 log = logging.getLogger(__name__)

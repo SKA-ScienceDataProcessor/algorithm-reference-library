@@ -12,9 +12,9 @@ dask_dir = arl_path('test_results/dask-work-space')
 from data_models.polarisation import PolarisationFrame
 from processing_components.visibility import create_visibility_from_ms, create_visibility_from_rows
 from processing_components.visibility import append_visibility, convert_visibility_to_stokes
-from processing_components.visibility.vis_select import vis_select_uvrange
+from processing_components.visibility import vis_select_uvrange
 
-from processing_components.image import  deconvolve_cube, restore_cube
+from processing_components import deconvolve_cube, restore_cube
 from processing_components.image import export_image_to_fits, qa_image
 from processing_components.image import image_gather_channels
 from processing_components.imaging import create_image_from_visibility

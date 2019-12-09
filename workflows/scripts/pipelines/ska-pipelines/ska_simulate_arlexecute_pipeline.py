@@ -16,7 +16,7 @@ from data_models.memory_data_models import SkyModel
 from data_models.polarisation import PolarisationFrame
 from data_models.data_model_helpers import export_skymodel_to_hdf5, export_blockvisibility_to_hdf5
 
-from processing_components.simulation.testing_support import create_low_test_image_from_gleam
+from processing_components.simulation import create_low_test_image_from_gleam
 from processing_components.imaging import advise_wide_field
 from processing_components.visibility import  convert_blockvisibility_to_visibility, \
     convert_visibility_to_blockvisibility

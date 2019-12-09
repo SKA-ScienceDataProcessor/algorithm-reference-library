@@ -20,8 +20,8 @@ from processing_library.image.operations import copy_image, create_empty_image_l
 from processing_components.imaging.base import predict_skycomponent_visibility, \
     create_image_from_visibility
 from processing_components.skycomponent.operations import create_skycomponent, insert_skycomponent
-from processing_components.simulation.testing_support import simulate_gaintable
-from processing_components.simulation.configurations import create_named_configuration
+from processing_components.simulation import simulate_gaintable
+from processing_components.simulation import create_named_configuration
 from processing_components.visibility.base import create_blockvisibility, create_visibility
 
 from processing_components.calibration.rcal import rcal

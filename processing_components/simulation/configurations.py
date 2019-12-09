@@ -12,10 +12,10 @@ from astropy.coordinates import EarthLocation
 from processing_library.util.coordinate_support import xyz_at_latitude
 from data_models.memory_data_models import Configuration
 from data_models.parameters import arl_path, get_parameter
-from processing_components.simulation.testing_support import log
-from processing_library.util.coordinate_support import xyz_to_uvw, uvw_to_xyz
 
+import logging
 
+log = logging.getLogger(__name__)
 
 def create_configuration_from_file(antfile: str, location: EarthLocation = None,
                                    mount: str = 'azel',

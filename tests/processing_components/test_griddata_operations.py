@@ -8,7 +8,7 @@ import unittest
 import numpy
 
 from processing_components.griddata.operations import create_griddata_from_image, convert_griddata_to_image
-from processing_components.simulation.testing_support import create_test_image
+from processing_components.simulation import create_test_image
 
 log = logging.getLogger(__name__)
 

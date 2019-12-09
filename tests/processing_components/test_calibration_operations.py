@@ -15,8 +15,8 @@ from data_models.polarisation import PolarisationFrame
 
 from processing_components.calibration.operations import gaintable_summary, apply_gaintable, create_gaintable_from_blockvisibility, \
     create_gaintable_from_rows
-from processing_components.simulation.testing_support import simulate_gaintable
-from processing_components.simulation.configurations import create_named_configuration
+from processing_components.simulation import simulate_gaintable
+from processing_components.simulation import create_named_configuration
 from processing_components.visibility.base import copy_visibility, create_blockvisibility
 from processing_components.imaging.base import predict_skycomponent_visibility
 

@@ -13,7 +13,7 @@ from distributed import Client
 from data_models.polarisation import PolarisationFrame
 from processing_components.imaging.base import create_image_from_visibility
 from processing_components.imaging.primary_beams import create_pb
-from processing_components.simulation.configurations import create_named_configuration
+from processing_components.simulation import create_named_configuration
 from processing_components.visibility.base import create_blockvisibility
 from processing_components.visibility.coalesce import convert_blockvisibility_to_visibility
 from workflows.arlexecute.image.image_arlexecute import image_arlexecute_map_workflow

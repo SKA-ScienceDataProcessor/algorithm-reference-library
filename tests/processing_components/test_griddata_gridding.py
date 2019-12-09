@@ -14,7 +14,7 @@ from astropy.coordinates import SkyCoord
 from data_models.polarisation import PolarisationFrame
 from processing_components.griddata.kernels import create_awterm_convolutionfunction, \
     create_pswf_convolutionfunction, create_box_convolutionfunction
-from processing_components.griddata.convolution_functions import convert_convolutionfunction_to_image
+from processing_components.griddata import convert_convolutionfunction_to_image
 from processing_components.griddata.gridding import grid_visibility_to_griddata, \
     fft_griddata_to_image, fft_image_to_griddata, \
     degrid_visibility_from_griddata, grid_weight_to_griddata, griddata_merge_weights, griddata_reweight, \
@@ -25,9 +25,9 @@ from processing_components.image.operations import smooth_image
 from processing_components.imaging.base import normalize_sumwt
 from processing_components.imaging.base import predict_skycomponent_visibility
 from processing_components.imaging.primary_beams import create_pb_generic
-from processing_components.simulation.testing_support import create_unittest_model, \
+from processing_components.simulation import create_unittest_model, \
     create_unittest_components, ingest_unittest_visibility
-from processing_components.simulation.configurations import create_named_configuration
+from processing_components.simulation import create_named_configuration
 from processing_components.skycomponent.operations import insert_skycomponent
 from processing_components.visibility.operations import qa_visibility
 

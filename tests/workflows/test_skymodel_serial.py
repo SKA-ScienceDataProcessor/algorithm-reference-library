@@ -13,9 +13,9 @@ from workflows.serial.skymodel.skymodel_serial import predict_skymodel_list_seri
 from data_models.memory_data_models import Image
 from data_models.memory_data_models import Skycomponent
 from data_models.polarisation import PolarisationFrame
-from processing_components.simulation.testing_support import ingest_unittest_visibility, \
+from processing_components.simulation import ingest_unittest_visibility, \
     create_low_test_skymodel_from_gleam
-from processing_components.simulation.configurations import create_named_configuration
+from processing_components.simulation import create_named_configuration
 
 log = logging.getLogger(__name__)
 

@@ -26,7 +26,7 @@ from workflows.serial.simulation.simulation_serial import simulate_list_serial_w
     corrupt_list_serial_workflow
 #from workflows.mpi.skymodel.skymodel_mpi import predict_skymodel_list_mpi_workflow
 from workflows.serial.skymodel.skymodel_serial import predict_skymodel_list_serial_workflow
-from wrappers.mpi.calibration.calibration_control import create_calibration_controls
+from wrappers.mpi. calibration import  create_calibration_controls
 from wrappers.mpi.griddata import create_awterm_convolutionfunction, create_pswf_convolutionfunction
 from wrappers.mpi.image import image_gather_channels
 from wrappers.mpi.image import export_image_to_fits, qa_image

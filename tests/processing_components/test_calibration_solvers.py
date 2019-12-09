@@ -15,8 +15,8 @@ from processing_components.calibration.calibration import solve_gaintable
 from processing_components.calibration.operations import apply_gaintable, create_gaintable_from_blockvisibility, \
     gaintable_summary, qa_gaintable
 from processing_components.imaging.base import predict_skycomponent_visibility
-from processing_components.simulation.testing_support import simulate_gaintable
-from processing_components.simulation.configurations import create_named_configuration
+from processing_components.simulation import simulate_gaintable
+from processing_components.simulation import create_named_configuration
 from processing_components.visibility.base import copy_visibility, create_blockvisibility
 from processing_components.visibility.operations import divide_visibility
 

@@ -22,14 +22,14 @@ from workflows.arlexecute.pipelines.pipeline_arlexecute import ical_list_arlexec
 from workflows.arlexecute.simulation.simulation_arlexecute import simulate_list_arlexecute_workflow, \
     corrupt_list_arlexecute_workflow
 from workflows.arlexecute.skymodel.skymodel_arlexecute import predict_skymodel_list_arlexecute_workflow
-from processing_components.calibration.calibration_control import create_calibration_controls
+from processing_components.calibration import  create_calibration_controls
 from wrappers.arlexecute.execution_support.arlexecute import arlexecute
 from wrappers.arlexecute.execution_support.dask_init import findNodes, get_dask_Client
 from processing_components.griddata import create_awterm_convolutionfunction, create_pswf_convolutionfunction
 from processing_components.image import image_gather_channels
 from processing_components.image import export_image_to_fits, qa_image
 from processing_components.imaging import advise_wide_field
-from processing_components.simulation.testing_support import create_low_test_skymodel_from_gleam
+from processing_components.simulation import create_low_test_skymodel_from_gleam
 from processing_components.visibility import  convert_blockvisibility_to_visibility
 
 pp = pprint.PrettyPrinter()

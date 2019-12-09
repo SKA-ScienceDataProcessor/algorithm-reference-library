@@ -8,7 +8,7 @@
 
 """
 
-__all__ = ['create_calibration_controls', 'calibrate_function', 'solve_calibrate_function']
+__all__ = ['create_calibration_controls', 'calibrate_function', 'solve_calibrate_function', 'apply_calibration_function']
 
 import logging
 

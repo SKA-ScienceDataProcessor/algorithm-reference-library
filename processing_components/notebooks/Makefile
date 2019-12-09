@@ -1,2 +1,2 @@
-NBs = rcal.ipynb
+NBs = queue.ipynb
 include ../jupyter.mk

@@ -52,8 +52,8 @@ See the jupyter note books below:
    workflows/imaging-fits_arlexecute.rst
    workflows/imaging-wterm_arlexecute.rst
    workflows/simple-dask_arlexecute.rst
-   workflows/imaging_serial.rst
    workflows/imaging-pipelines_arlexecute.rst
+   workflow/bandpass-calibration_arlexecute.rst
    processing_components/rcal.rst
 
 In addition, there are other notebooks that are not built as part of this documentation.

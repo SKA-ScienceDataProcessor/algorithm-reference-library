@@ -2,4 +2,4 @@
 
 
 """
-from processing_components.visibility.vis_select import vis_select_uvrange, vis_select_wrange
+from processing_components.visibility import vis_select_uvrange, vis_select_wrange

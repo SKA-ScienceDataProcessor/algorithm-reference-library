@@ -12,7 +12,7 @@ import numpy
 from astropy.coordinates import SkyCoord
 
 from data_models.polarisation import PolarisationFrame
-from processing_components.simulation.configurations import create_named_configuration
+from processing_components.simulation import create_named_configuration
 from processing_components.visibility.base import create_visibility
 
 log = logging.getLogger(__name__)

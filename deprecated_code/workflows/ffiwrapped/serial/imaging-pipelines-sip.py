@@ -21,8 +21,8 @@ from processing_components.calibration.operations import apply_gaintable, create
 from processing_components.image.operations import export_image_to_fits, qa_image
 from processing_components.imaging.base import create_image_from_visibility
 from processing_components.imaging.base import advise_wide_field
-from processing_components.simulation.testing_support import create_low_test_image_from_gleam, simulate_gaintable
-from processing_components.simulation.configurations import create_named_configuration
+from processing_components.simulation import create_low_test_image_from_gleam, simulate_gaintable
+from processing_components.simulation import create_named_configuration
 from data_models.polarisation import PolarisationFrame
 from processing_components.visibility.base import create_blockvisibility
 from workflows.serial.imaging.imaging_serial import invert_list_serial_workflow, predict_list_serial_workflow

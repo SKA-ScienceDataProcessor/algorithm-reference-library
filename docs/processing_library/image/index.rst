@@ -3,9 +3,8 @@
 .. py:currentmodule:: processing_library.image
 
 .. toctree::
-   :maxdepth: 3
+   :maxdepth: 2
 
-******
 Images
 ******
 

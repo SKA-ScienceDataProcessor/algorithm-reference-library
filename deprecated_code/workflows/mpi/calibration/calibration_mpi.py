@@ -4,7 +4,7 @@
 
 import numpy
 
-from wrappers.mpi.calibration.calibration_control import apply_calibration_function, \
+from wrappers.mpi. calibration import  apply_calibration_function, \
     solve_calibrate_function
 from visibility import convert_visibility_to_blockvisibility
 from visibility import visibility_gather_channel

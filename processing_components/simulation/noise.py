@@ -21,7 +21,7 @@ from data_models.memory_data_models import Configuration, Image, GainTable, Skyc
 from data_models.memory_data_models import Visibility, BlockVisibility
 from data_models.parameters import arl_path
 from data_models.polarisation import PolarisationFrame
-from processing_components.calibration.calibration_control import create_calibration_controls
+from processing_components.calibration import  create_calibration_controls
 from processing_components.calibration.operations import create_gaintable_from_blockvisibility, apply_gaintable
 from processing_components.image.operations import import_image_from_fits
 from processing_components.imaging.base import predict_2d, predict_skycomponent_visibility, \

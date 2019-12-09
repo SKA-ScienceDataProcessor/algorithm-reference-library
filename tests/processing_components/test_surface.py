@@ -12,7 +12,7 @@ from astropy.coordinates import SkyCoord
 from data_models.memory_data_models import Skycomponent
 from data_models.polarisation import PolarisationFrame
 from processing_components.imaging.primary_beams import create_vp_generic_numeric, create_vp
-from processing_components.simulation.configurations import create_named_configuration
+from processing_components.simulation import create_named_configuration
 from processing_components.simulation.surface import simulate_gaintable_from_voltage_patterns
 from processing_components.visibility.base import create_blockvisibility
 from processing_library.image.operations import create_image

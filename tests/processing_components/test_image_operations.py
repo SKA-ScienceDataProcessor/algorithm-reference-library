@@ -12,7 +12,7 @@ from processing_components.image.operations import copy_image, export_image_to_f
     calculate_image_frequency_moments, calculate_image_from_frequency_moments, create_empty_image_like, \
     create_image_from_array, add_image, qa_image, checkwcs, reproject_image, convert_polimage_to_stokes, \
     convert_stokes_to_polimage, smooth_image
-from processing_components.simulation.testing_support import create_test_image, create_low_test_image_from_gleam
+from processing_components.simulation import create_test_image, create_low_test_image_from_gleam
 from processing_library.image.operations import create_image, create_w_term_like, fft_image, \
     polarisation_frame_from_wcs, pad_image, convert_image_to_kernel
 

@@ -14,13 +14,13 @@ from astropy.coordinates import SkyCoord
 from data_models.polarisation import PolarisationFrame
 from tests.workflows import ARLExecuteTestCase
 from workflows.arlexecute.calibration.calibration_arlexecute import calibrate_list_arlexecute_workflow
-from processing_components.calibration.calibration_control import create_calibration_controls
+from processing_components.calibration import  create_calibration_controls
 from processing_components.calibration.operations import create_gaintable_from_blockvisibility, apply_gaintable
 from wrappers.arlexecute.execution_support.arlexecutebase import ARLExecuteBase
 from wrappers.arlexecute.execution_support.dask_init import get_dask_Client
-from processing_components.simulation.testing_support import ingest_unittest_visibility
-from processing_components.simulation.configurations import create_named_configuration
-from processing_components.simulation.testing_support import simulate_gaintable
+from processing_components.simulation import ingest_unittest_visibility
+from processing_components.simulation import create_named_configuration
+from processing_components.simulation import simulate_gaintable
 from processing_components.visibility.base import copy_visibility
 
 log = logging.getLogger(__name__)

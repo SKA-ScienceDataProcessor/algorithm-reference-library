@@ -6,7 +6,7 @@ __all__ = ['calibrate_list_serial_workflow']
 
 import numpy
 
-from processing_components.calibration.calibration_control import calibrate_function, apply_calibration_function, \
+from processing_components.calibration import  calibrate_function, apply_calibration_function, \
     solve_calibrate_function
 from processing_components.visibility import  convert_visibility_to_blockvisibility
 from processing_components.visibility import visibility_gather_channel

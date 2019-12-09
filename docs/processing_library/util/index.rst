@@ -3,9 +3,8 @@
 .. py:currentmodule:: processing_library.util
 
 .. toctree::
-   :maxdepth: 3
+   :maxdepth: 2
 
-*******
 Utility
 *******
 

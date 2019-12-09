@@ -11,7 +11,7 @@ function can be stored in a GridData, most probably with finer spatial sampling.
 
 """
 
-from processing_components.griddata.convolution_functions import create_convolutionfunction_from_array, \
+from processing_components.griddata import create_convolutionfunction_from_array, \
     create_convolutionfunction_from_image, convert_convolutionfunction_to_image, \
     apply_bounding_box_convolutionfunction, calculate_bounding_box_convolutionfunction, \
     qa_convolutionfunction
