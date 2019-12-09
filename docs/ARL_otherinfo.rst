@@ -9,6 +9,7 @@ Other information
 
    ARL_background
    ARL_developing
+   ARL_documenting
    ARL_dask
    ARL_Fourier_processing
    ARL_SDP
