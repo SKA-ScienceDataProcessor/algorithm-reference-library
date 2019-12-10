@@ -1,3 +1,4 @@
+
 .. toctree::
    :maxdepth: 2
 
@@ -75,6 +76,7 @@ Deconvolution
 -------------
 
 * Deconvolution :py:func:`processing_components.image.deconvolve_cube` wraps:
+
  * Hogbom Clean: :py:func:`processing_library.arrays.hogbom`
  * Hogbom Complex Clean: :py:func:`processing_library.arrays.hogbom_complex`
  * Multi-scale Clean: :py:func:`processing_library.arrays.msclean`
@@ -108,8 +110,10 @@ Image
 * FFT: :py:func:`processing_library.image.fft_image`
 * Remove continuum: :py:func:`processing_components.image.remove_continuum_image`
 * Convert polarisation:
+
  * From Stokes To Polarisation: :py:func:`processing_components.image.convert_stokes_to_polimage`
  * From Polarisation to Stokes: :py:func:`processing_components.image.convert_polimage_to_stokes`
+
 
 Visibility
 ----------

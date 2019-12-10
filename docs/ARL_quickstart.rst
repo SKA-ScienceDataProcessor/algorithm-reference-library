@@ -41,19 +41,18 @@ Running notebooks
 
 The best way to get familiar with ARL is via jupyter notebooks. For example::
 
-   jupyter-notebook imaging.ipynb
+   jupyter-notebook processing_components/notebooks/imaging.ipynb
 
 See the jupyter note books below:
 
 .. toctree::
    :maxdepth: 3
 
-   workflows/imaging_serial.rst
+   processing_components/imaging.rst
    workflows/imaging-fits_arlexecute.rst
    workflows/imaging-wterm_arlexecute.rst
    workflows/simple-dask_arlexecute.rst
    workflows/imaging-pipelines_arlexecute.rst
    workflows/bandpass-calibration_arlexecute.rst
-   processing_components/rcal.rst
 
 In addition, there are other notebooks that are not built as part of this documentation.

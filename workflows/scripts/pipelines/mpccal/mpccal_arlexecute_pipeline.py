@@ -29,7 +29,8 @@ from processing_components import create_gaintable_from_blockvisibility, export_
     convert_visibility_to_blockvisibility, import_image_from_fits, qa_image, show_image, advise_wide_field, \
     create_low_test_beam, create_gaintable_from_screen, grid_gaintable_to_screen, plot_gaintable_on_screen, \
     create_low_test_skycomponents_from_gleam, create_named_configuration, apply_beam_to_skycomponent, \
-    insert_skycomponent, filter_skycomponents_by_flux, create_blockvisibility, copy_visibility
+    insert_skycomponent, filter_skycomponents_by_flux, create_blockvisibility, copy_visibility, \
+    create_image_from_visibility
 
 from workflows import invert_list_arlexecute_workflow, restore_list_arlexecute_workflow,\
     mpccal_skymodel_list_arlexecute_workflow, predict_skymodel_list_arlexecute_workflow,\

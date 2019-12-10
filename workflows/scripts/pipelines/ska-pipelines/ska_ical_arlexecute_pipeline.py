@@ -7,29 +7,24 @@ from data_models.parameters import arl_path
 results_dir = arl_path('test_results')
 dask_dir = arl_path('test_results/dask-work-space')
 
-from data_models.polarisation import PolarisationFrame
-from data_models.data_model_helpers import import_blockvisibility_from_hdf5
+from data_models import PolarisationFrame
+from data_models import import_blockvisibility_from_hdf5
 
-from processing_components.image import export_image_to_fits, qa_image
-from processing_components.imaging import create_image_from_visibility
-from processing_components.calibration import  create_calibration_controls
-
+from processing_components import export_image_to_fits, qa_image, convert_blockvisibility_to_visibility,\
+    create_image_from_visibility, create_calibration_controls
 
 from workflows.arlexecute.pipelines.pipeline_arlexecute import ical_list_arlexecute_workflow
 
 from wrappers.arlexecute.execution_support.arlexecute import arlexecute
-from processing_components.visibility import  convert_blockvisibility_to_visibility
 
 import logging
-
 
 def init_logging():
     logging.basicConfig(filename='%s/ska-pipeline.log' % results_dir,
                         filemode='a',
-                        format='%(asctime)s,%(msecs)d %(name)s %(levelname)s %(message)s',
+                        format='%(asctime)s.%(msecs)d %(name)s %(levelname)s %(message)s',
                         datefmt='%H:%M:%S',
                         level=logging.INFO)
-
 
 if __name__ == '__main__':
     log = logging.getLogger()
@@ -72,11 +67,13 @@ if __name__ == '__main__':
     controls = create_calibration_controls()
 
     controls['T']['first_selfcal'] = 1
-    controls['G']['first_selfcal'] = 3
-    controls['B']['first_selfcal'] = 4
-
+    controls['T']['phase_only'] = True
     controls['T']['timeslice'] = 'auto'
+
+    controls['G']['first_selfcal'] = 3
     controls['G']['timeslice'] = 'auto'
+
+    controls['B']['first_selfcal'] = 4
     controls['B']['timeslice'] = 1e5
 
     ical_list = ical_list_arlexecute_workflow(future_vis_list,

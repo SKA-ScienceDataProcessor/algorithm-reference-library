@@ -81,10 +81,10 @@ nosetests: cleantests  ## run tests using nosetests
 
 nosetests-coverage: inplace cleantests  ## run nosetests with coverage
 	rm -rf coverage .coverage
-	ARL=$$(pwd) $(NOSETESTS) -s -v --with-coverage libs
+	ARL=$$(pwd) $(NOSETESTS) -s -v --with-coverage processing_library
 
 trailing-spaces:
-	find libs -name "*.py" -exec perl -pi -e 's/[ \t]*$$//' {} \;
+	find processing_library -name "*.py" -exec perl -pi -e 's/[ \t]*$$//' {} \;
 	find processing_components -name "*.py" -exec perl -pi -e 's/[ \t]*$$//' {} \;
 	find workflows -name "*.py" -exec perl -pi -e 's/[ \t]*$$//' {} \;
 
@@ -94,12 +94,12 @@ docs: inplace  ## build docs - you must have graphviz installed
 
 code-flake:
 	# flake8 ignore long lines and trailing whitespace
-	$(FLAKE) --ignore=E501,W293,F401 --builtins=ModuleNotFoundError libs
+	$(FLAKE) --ignore=E501,W293,F401 --builtins=ModuleNotFoundError processing_library
 
 code-lint:
 	$(PYLINT) --extension-pkg-whitelist=numpy \
 	  --ignored-classes=astropy.units,astropy.constants,HDUList \
-	  -E libs/ tests/
+	  -E processing_library/ tests/
 
 code-analysis: code-flake code-lint  ## run pylint and flake8 checks
 

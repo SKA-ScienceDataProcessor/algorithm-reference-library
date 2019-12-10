@@ -51,8 +51,7 @@ help:
 
 .PHONY: clean
 clean:
-	rm -rf $(BUILDDIR)/* libs processing_components workflows
-	make -C ../processing_library/notebooks ../processing_components/notebooks ../workflows/notebooks clean
+	rm -rf $(BUILDDIR)/*
 
 make_example_rst = \
  make -C ../$1/notebooks rst && \
@@ -60,7 +59,7 @@ make_example_rst = \
  cp ../$1/notebooks/*.rst $1/ && \
  if ls ../$1/notebooks/$2 1> /dev/null 2>&1; then cp -R ../$1/notebooks/$2 $1/; fi
 
-.PHONY: prepare_libs prepare_processing_components prepare_workflows prepare 
+.PHONY: prepare_processing_library prepare_processing_components prepare_workflows prepare
 prepare_processing_library:
 	+$(call make_example_rst,processing_library,*_files)
 prepare_processing_components:
