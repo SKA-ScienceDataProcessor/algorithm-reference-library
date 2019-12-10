@@ -10,7 +10,7 @@ import astropy.units as u
 import numpy
 from astropy.coordinates import SkyCoord
 
-from data_models.data_model_helpers import import_visibility_from_hdf5, export_visibility_to_hdf5, \
+from arl.data_models.data_model_helpers import import_visibility_from_hdf5, export_visibility_to_hdf5, \
     import_blockvisibility_from_hdf5, export_blockvisibility_to_hdf5, \
     import_gaintable_from_hdf5, export_gaintable_to_hdf5, \
     import_pointingtable_from_hdf5, export_pointingtable_to_hdf5, \
@@ -19,21 +19,21 @@ from data_models.data_model_helpers import import_visibility_from_hdf5, export_v
     import_skymodel_from_hdf5, export_skymodel_to_hdf5, \
     import_griddata_from_hdf5, export_griddata_to_hdf5, \
     import_convolutionfunction_from_hdf5, export_convolutionfunction_to_hdf5
-from data_models.memory_data_models import Skycomponent, SkyModel
-from data_models.polarisation import PolarisationFrame
-from processing_components.calibration.operations import create_gaintable_from_blockvisibility
-from processing_components.calibration.pointing import create_pointingtable_from_blockvisibility
-from processing_components.imaging.base import predict_skycomponent_visibility
-from processing_components.simulation import simulate_gaintable, create_test_image, simulate_pointingtable
-from processing_components.simulation import create_named_configuration
-from processing_components.visibility.base import create_visibility, create_blockvisibility
-from processing_components.griddata.operations import create_griddata_from_image
-from processing_components.griddata import create_convolutionfunction_from_image
+from arl.data_models.memory_data_models import Skycomponent, SkyModel
+from arl.data_models.polarisation import PolarisationFrame
+from arl.processing_components.calibration.operations import create_gaintable_from_blockvisibility
+from arl.processing_components.calibration.pointing import create_pointingtable_from_blockvisibility
+from arl.processing_components.imaging.base import predict_skycomponent_visibility
+from arl.processing_components.simulation import simulate_gaintable, create_test_image, simulate_pointingtable
+from arl.processing_components.simulation import create_named_configuration
+from arl.processing_components.visibility.base import create_visibility, create_blockvisibility
+from arl.processing_components.griddata.operations import create_griddata_from_image
+from arl.processing_components.griddata import create_convolutionfunction_from_image
 
 
 class TestDataModelHelpers(unittest.TestCase):
     def setUp(self):
-        from data_models.parameters import arl_path
+        from arl.data_models.parameters import arl_path
         self.dir = arl_path('test_results')
         
         self.mid = create_named_configuration('MID', rmax=1000.0)

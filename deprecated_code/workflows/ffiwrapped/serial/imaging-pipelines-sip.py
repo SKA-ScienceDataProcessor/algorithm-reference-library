@@ -17,17 +17,17 @@ import numpy
 from astropy.coordinates import SkyCoord
 from astropy import units as u
 
-from processing_components.calibration.operations import apply_gaintable, create_gaintable_from_blockvisibility
-from processing_components.image.operations import export_image_to_fits, qa_image
-from processing_components.imaging.base import create_image_from_visibility
-from processing_components.imaging.base import advise_wide_field
-from processing_components.simulation import create_low_test_image_from_gleam, simulate_gaintable
-from processing_components.simulation import create_named_configuration
+from arl.processing_components.calibration.operations import apply_gaintable, create_gaintable_from_blockvisibility
+from arl.processing_components.image.operations import export_image_to_fits, qa_image
+from arl.processing_components.imaging.base import create_image_from_visibility
+from arl.processing_components.imaging.base import advise_wide_field
+from arl.processing_components.simulation import create_low_test_image_from_gleam, simulate_gaintable
+from arl.processing_components.simulation import create_named_configuration
 from data_models.polarisation import PolarisationFrame
-from processing_components.visibility.base import create_blockvisibility
-from workflows.serial.imaging.imaging_serial import invert_list_serial_workflow, predict_list_serial_workflow
-from processing_components.visibility.coalesce import convert_visibility_to_blockvisibility
-from workflows.serial.pipelines.pipeline_serial import ical_list_serial_workflow
+from arl.processing_components.visibility.base import create_blockvisibility
+from arl.workflows.serial.imaging.imaging_serial import invert_list_serial_workflow, predict_list_serial_workflow
+from arl.processing_components.visibility.coalesce import convert_visibility_to_blockvisibility
+from arl.workflows.serial.pipelines.pipeline_serial import ical_list_serial_workflow
 
 
 import logging

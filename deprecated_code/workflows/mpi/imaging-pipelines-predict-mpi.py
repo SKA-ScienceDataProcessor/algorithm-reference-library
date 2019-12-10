@@ -35,24 +35,24 @@ from astropy.wcs.utils import pixel_to_skycoord
 
 from data_models.polarisation import PolarisationFrame
 
-from processing_components.calibration.calibration import solve_gaintable
-from processing_components.calibration.operations import apply_gaintable
-from processing_components.calibration import  create_calibration_controls
-from processing_components.visibility.base import create_blockvisibility
-from processing_components.skycomponent.operations import create_skycomponent
-from processing_components.image.deconvolution import deconvolve_cube
-#from processing_components.image.operations import show_image, export_image_to_fits, qa_image
-from processing_components.image.operations import export_image_to_fits, qa_image
-from processing_components.visibility.iterators import vis_timeslice_iter
-from processing_components.simulation import create_low_test_image_from_gleam
-from processing_components.simulation import create_named_configuration
-from processing_components.imaging.base import predict_2d, create_image_from_visibility, advise_wide_field
+from arl.processing_components.calibration.calibration import solve_gaintable
+from arl.processing_components.calibration.operations import apply_gaintable
+from arl.processing_components.calibration import  create_calibration_controls
+from arl.processing_components.visibility.base import create_blockvisibility
+from arl.processing_components.skycomponent.operations import create_skycomponent
+from arl.processing_components.image.deconvolution import deconvolve_cube
+#from arl.processing_components.image.operations import show_image, export_image_to_fits, qa_image
+from arl.processing_components.image.operations import export_image_to_fits, qa_image
+from arl.processing_components.visibility.iterators import vis_timeslice_iter
+from arl.processing_components.simulation import create_low_test_image_from_gleam
+from arl.processing_components.simulation import create_named_configuration
+from arl.processing_components.imaging.base import predict_2d, create_image_from_visibility, advise_wide_field
 
-from workflows.serial.imaging.imaging_serial import invert_list_serial_workflow,     predict_list_serial_workflow, deconvolve_list_serial_workflow
-from workflows.serial.simulation.simulation_serial import simulate_list_serial_workflow,     corrupt_list_serial_workflow
-from workflows.serial.pipelines.pipeline_serial import continuum_imaging_list_serial_workflow,     ical_list_serial_workflow
+from arl.workflows.serial.imaging.imaging_serial import invert_list_serial_workflow,     predict_list_serial_workflow, deconvolve_list_serial_workflow
+from arl.workflows.serial.simulation.simulation_serial import simulate_list_serial_workflow,     corrupt_list_serial_workflow
+from arl.workflows.serial.pipelines.pipeline_serial import continuum_imaging_list_serial_workflow,     ical_list_serial_workflow
 
-from workflows.mpi.imaging_mpi import predict_list_mpi_workflow, invert_list_mpi_workflow
+from arl.workflows.mpi.imaging_mpi import predict_list_mpi_workflow, invert_list_mpi_workflow
 
 import pprint
 

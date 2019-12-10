@@ -6,8 +6,8 @@ import unittest
 import numpy
 import logging
 
-from processing_library.util.array_functions import average_chunks_jit as average_chunks
-from processing_library.util.array_functions import average_chunks2, average_chunks_jit
+from arl.processing_library.util.array_functions import average_chunks_jit as average_chunks
+from arl.processing_library.util.array_functions import average_chunks2, average_chunks_jit
 
 log = logging.getLogger(__name__)
 

@@ -5,7 +5,7 @@
 
 import unittest
 
-from data_models.parameters import get_parameter
+from arl.data_models.parameters import get_parameter
 
 import logging
 

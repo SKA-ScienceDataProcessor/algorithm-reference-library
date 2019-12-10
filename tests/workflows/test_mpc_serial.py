@@ -9,18 +9,18 @@ import numpy
 from astropy import units as u
 from astropy.coordinates import SkyCoord
 
-from data_models.memory_data_models import Image, SkyModel
-from data_models.memory_data_models import Skycomponent
-from data_models.polarisation import PolarisationFrame
-from processing_components.skymodel.operations import expand_skymodel_by_skycomponents
-from workflows.serial.skymodel.skymodel_serial import predict_skymodel_list_serial_workflow, \
+from arl.data_models.memory_data_models import Image, SkyModel
+from arl.data_models.memory_data_models import Skycomponent
+from arl.data_models.polarisation import PolarisationFrame
+from arl.processing_components.skymodel.operations import expand_skymodel_by_skycomponents
+from arl.workflows.serial.skymodel.skymodel_serial import predict_skymodel_list_serial_workflow, \
     invert_skymodel_list_serial_workflow, crosssubtract_datamodels_skymodel_list_serial_workflow
-from workflows.shared.imaging.imaging_shared import sum_predict_results
-from processing_components.simulation import ingest_unittest_visibility, \
+from arl.workflows.shared.imaging.imaging_shared import sum_predict_results
+from arl.processing_components.simulation import ingest_unittest_visibility, \
     create_low_test_skymodel_from_gleam
-from processing_components.simulation import create_named_configuration
-from processing_components.visibility.base import copy_visibility
-from processing_components.visibility.coalesce import convert_blockvisibility_to_visibility
+from arl.processing_components.simulation import create_named_configuration
+from arl.processing_components.visibility.base import copy_visibility
+from arl.processing_components.visibility.coalesce import convert_blockvisibility_to_visibility
 
 log = logging.getLogger(__name__)
 
@@ -32,7 +32,7 @@ log.addHandler(logging.StreamHandler(sys.stderr))
 class TestMPC(unittest.TestCase):
     def setUp(self):
         
-        from data_models.parameters import arl_path
+        from arl.data_models.parameters import arl_path
         self.dir = arl_path('test_results')
         self.plot = False
         self.persist = False
@@ -129,7 +129,7 @@ class TestMPC(unittest.TestCase):
         assert numpy.max(numpy.abs(results[0][1])) > 0.0
         if self.plot:
             import matplotlib.pyplot as plt
-            from processing_components.image.operations import show_image
+            from arl.processing_components.image.operations import show_image
             show_image(results[0][0], title='Dirty image, no cross-subtraction', vmax=0.1, vmin=-0.01)
             plt.show()
     
@@ -151,7 +151,7 @@ class TestMPC(unittest.TestCase):
         assert numpy.max(numpy.abs(results[0][1])) > 0.0
         if self.plot:
             import matplotlib.pyplot as plt
-            from processing_components.image.operations import show_image
+            from arl.processing_components.image.operations import show_image
             show_image(results[0][0], title='Dirty image after cross-subtraction', vmax=0.1, vmin=-0.01)
             plt.show()
 

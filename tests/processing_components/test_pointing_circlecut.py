@@ -9,24 +9,24 @@ import astropy.units as u
 import numpy
 from astropy.coordinates import SkyCoord
 
-from data_models.polarisation import PolarisationFrame
+from arl.data_models.polarisation import PolarisationFrame
 
-from processing_components.skycomponent.operations import create_skycomponent
-from processing_components.calibration.pointing import create_pointingtable_from_blockvisibility
-from processing_components.imaging.primary_beams import create_vp
-from processing_components.simulation import create_named_configuration
-from processing_components.simulation.pointing import simulate_gaintable_from_pointingtable
-from processing_components.simulation import create_test_image, simulate_pointingtable
-from processing_components.simulation import create_test_skycomponents_from_s3
-from processing_components.visibility.base import create_blockvisibility
-from processing_library.image.operations import create_image
+from arl.processing_components.skycomponent.operations import create_skycomponent
+from arl.processing_components.calibration.pointing import create_pointingtable_from_blockvisibility
+from arl.processing_components.imaging.primary_beams import create_vp
+from arl.processing_components.simulation import create_named_configuration
+from arl.processing_components.simulation.pointing import simulate_gaintable_from_pointingtable
+from arl.processing_components.simulation import create_test_image, simulate_pointingtable
+from arl.processing_components.simulation import create_test_skycomponents_from_s3
+from arl.processing_components.visibility.base import create_blockvisibility
+from arl.processing_library.image.operations import create_image
 
 log = logging.getLogger(__name__)
 
 
 class TestPointing(unittest.TestCase):
     def setUp(self):
-        from data_models.parameters import arl_path
+        from arl.data_models.parameters import arl_path
         
         self.doplot = True
         

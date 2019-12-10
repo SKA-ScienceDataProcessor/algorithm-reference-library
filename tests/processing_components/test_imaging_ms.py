@@ -10,19 +10,19 @@ import numpy
 from astropy import units as u
 from astropy.coordinates import SkyCoord
 
-from data_models.polarisation import PolarisationFrame
-from processing_components.imaging.base import predict_skycomponent_visibility
-from processing_components.simulation import create_named_configuration
-from processing_components.simulation import ingest_unittest_visibility, \
+from arl.data_models.polarisation import PolarisationFrame
+from arl.processing_components.imaging.base import predict_skycomponent_visibility
+from arl.processing_components.simulation import create_named_configuration
+from arl.processing_components.simulation import ingest_unittest_visibility, \
     create_unittest_model, create_unittest_components
-from processing_components.skycomponent.operations import insert_skycomponent
-from processing_components.visibility.coalesce import convert_blockvisibility_to_visibility
+from arl.processing_components.skycomponent.operations import insert_skycomponent
+from arl.processing_components.visibility.coalesce import convert_blockvisibility_to_visibility
 
 try:
     import casacore
     from casacore.tables import table  # pylint: disable=import-error
-    from processing_components.visibility.base import create_blockvisibility, create_blockvisibility_from_ms
-    from processing_components.visibility.base import export_blockvisibility_to_ms
+    from arl.processing_components.visibility.base import create_blockvisibility, create_blockvisibility_from_ms
+    from arl.processing_components.visibility.base import export_blockvisibility_to_ms
     
     run_ms_tests = True
 #            except ModuleNotFoundError:
@@ -39,7 +39,7 @@ log.addHandler(logging.StreamHandler(sys.stderr))
 class TestImaging(unittest.TestCase):
     def setUp(self):
         
-        from data_models.parameters import arl_path
+        from arl.data_models.parameters import arl_path
         self.dir = arl_path('test_results')
     
     def actualSetUp(self, freqwin=1, block=True, dopol=False):

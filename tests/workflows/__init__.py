@@ -8,7 +8,7 @@ class ARLExecuteTestCase(object):
         super(ARLExecuteTestCase, self).setUp()
         
         import os
-        from wrappers.arlexecute.execution_support.arlexecute import arlexecute
+        from arl.wrappers.arlexecute.execution_support import arlexecute
         use_dlg = os.environ.get('ARL_TESTS_USE_DLG', '0') == '1'
         use_dask = os.environ.get('ARL_TESTS_USE_DASK', '1') == '1'
         arlexecute.set_client(use_dask=use_dask, use_dlg=use_dlg)
@@ -21,7 +21,7 @@ class ARLExecuteTestCase(object):
             self.nm_proc = tool.start_process('nm', ['--dlg-path', arl_root])
     
     def tearDown(self):
-        from wrappers.arlexecute.execution_support.arlexecute import arlexecute
+        from arl.wrappers.arlexecute.execution_support import arlexecute
         arlexecute.close()
         if arlexecute.using_dlg:
             from dlg import utils

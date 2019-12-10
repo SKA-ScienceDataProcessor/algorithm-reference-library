@@ -1,6 +1,6 @@
-.. _processing_library:
+.. _arl_processing_library:
 
-.. py:currentmodule:: processing_library
+.. py:currentmodule:: arl.processing_library
 
 
 Processing Library

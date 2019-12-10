@@ -9,7 +9,7 @@ from astropy import units as u
 from astropy.coordinates import SkyCoord
 from numpy.testing import assert_allclose
 
-from processing_library.util.coordinate_support import xyz_to_uvw, xyz_at_latitude, simulate_point, baselines, uvw_to_xyz, \
+from arl.processing_library.util.coordinate_support import xyz_to_uvw, xyz_at_latitude, simulate_point, baselines, uvw_to_xyz, \
     skycoord_to_lmn, azel_to_hadec, hadec_to_azel
 
 

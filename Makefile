@@ -81,12 +81,12 @@ nosetests: cleantests  ## run tests using nosetests
 
 nosetests-coverage: inplace cleantests  ## run nosetests with coverage
 	rm -rf coverage .coverage
-	ARL=$$(pwd) $(NOSETESTS) -s -v --with-coverage processing_library
+	ARL=$$(pwd) $(NOSETESTS) -s -v --with-coverage arl/processing_library
 
 trailing-spaces:
-	find processing_library -name "*.py" -exec perl -pi -e 's/[ \t]*$$//' {} \;
-	find processing_components -name "*.py" -exec perl -pi -e 's/[ \t]*$$//' {} \;
-	find workflows -name "*.py" -exec perl -pi -e 's/[ \t]*$$//' {} \;
+	find arl/processing_library -name "*.py" -exec perl -pi -e 's/[ \t]*$$//' {} \;
+	find arl/processing_components -name "*.py" -exec perl -pi -e 's/[ \t]*$$//' {} \;
+	find arl/workflows -name "*.py" -exec perl -pi -e 's/[ \t]*$$//' {} \;
 
 docs: inplace  ## build docs - you must have graphviz installed
 	# you must have graphviz installed
@@ -94,19 +94,19 @@ docs: inplace  ## build docs - you must have graphviz installed
 
 code-flake:
 	# flake8 ignore long lines and trailing whitespace
-	$(FLAKE) --ignore=E501,W293,F401 --builtins=ModuleNotFoundError processing_library
+	$(FLAKE) --ignore=E501,W293,F401 --builtins=ModuleNotFoundError arl/processing_library
 
 code-lint:
 	$(PYLINT) --extension-pkg-whitelist=numpy \
 	  --ignored-classes=astropy.units,astropy.constants,HDUList \
-	  -E processing_library/ tests/
+	  -E arl/processing_library/ tests/
 
 code-analysis: code-flake code-lint  ## run pylint and flake8 checks
 
 examples: inplace  ## launch examples
-	$(MAKE) -C processing_library/notebooks
-	$(MAKE) -C processing_components/notebooks
-	$(MAKE) -C workflows/notebooks
+	$(MAKE) -C arl/processing_library/notebooks
+	$(MAKE) -C arl/processing_components/notebooks
+	$(MAKE) -C arl/workflows/notebooks
 
 notebook:  ## launch local jupyter notebook server
 	DEVICE=`ip link | grep -E " ens| wlan| eth" | grep BROADCAST | tail -1 | cut -d : -f 2  | sed "s/ //"` && \

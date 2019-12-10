@@ -1,5 +1,5 @@
-.. _wrappers:
-.. py:currentmodule:: wrappers
+.. _arl_wrappers:
+.. py:currentmodule:: arl.wrappers
 
 
 ********
@@ -10,5 +10,5 @@ Wrappers
 .. toctree::
    :maxdepth: 2
 
-.. automodapi::    wrappers.arlexecute.execution_support
+.. automodapi::    arl.wrappers.arlexecute.execution_support
    :no-inheritance-diagram:

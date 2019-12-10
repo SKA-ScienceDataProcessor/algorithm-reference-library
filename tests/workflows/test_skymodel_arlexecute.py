@@ -9,15 +9,15 @@ import numpy
 from astropy import units as u
 from astropy.coordinates import SkyCoord
 
-from data_models.memory_data_models import Image
-from data_models.memory_data_models import Skycomponent
-from data_models.polarisation import PolarisationFrame
-from workflows.arlexecute.skymodel.skymodel_arlexecute import predict_skymodel_list_arlexecute_workflow
-from wrappers.arlexecute.execution_support.arlexecutebase import ARLExecuteBase
-from wrappers.arlexecute.execution_support.dask_init import get_dask_Client
-from processing_components.simulation import ingest_unittest_visibility, \
+from arl.data_models.memory_data_models import Image
+from arl.data_models.memory_data_models import Skycomponent
+from arl.data_models.polarisation import PolarisationFrame
+from arl.workflows.arlexecute.skymodel.skymodel_arlexecute import predict_skymodel_list_arlexecute_workflow
+from arl.wrappers.arlexecute.execution_support import ARLExecuteBase
+from arl.wrappers.arlexecute.execution_support import get_dask_Client
+from arl.processing_components.simulation import ingest_unittest_visibility, \
     create_low_test_skymodel_from_gleam
-from processing_components.simulation import create_named_configuration
+from arl.processing_components.simulation import create_named_configuration
 
 log = logging.getLogger(__name__)
 
@@ -34,7 +34,7 @@ class TestSkyModel(unittest.TestCase):
         arlexecute = ARLExecuteBase(use_dask=True)
         arlexecute.set_client(client, verbose=True)
         
-        from data_models.parameters import arl_path
+        from arl.data_models.parameters import arl_path
         self.dir = arl_path('test_results')
         
         self.persist = False

@@ -33,16 +33,16 @@ from astropy import units as u
 
 from data_models.polarisation import PolarisationFrame
 
-from processing_components.calibration import  create_calibration_controls
-from processing_components.visibility.coalesce import convert_blockvisibility_to_visibility
-#from processing_components.image.operations import show_image, export_image_to_fits, qa_image
-from processing_components.image.operations import export_image_to_fits, qa_image
-from processing_components.simulation import create_low_test_image_from_gleam
-from processing_components.imaging.base import create_image_from_visibility, advise_wide_field
+from arl.processing_components.calibration import  create_calibration_controls
+from arl.processing_components.visibility.coalesce import convert_blockvisibility_to_visibility
+#from arl.processing_components.image.operations import show_image, export_image_to_fits, qa_image
+from arl.processing_components.image.operations import export_image_to_fits, qa_image
+from arl.processing_components.simulation import create_low_test_image_from_gleam
+from arl.processing_components.imaging.base import create_image_from_visibility, advise_wide_field
 
-from workflows.arlexecute.imaging.imaging_arlexecute import invert_list_arlexecute_workflow,     predict_list_arlexecute_workflow, deconvolve_list_arlexecute_workflow
-from workflows.arlexecute.simulation.simulation_arlexecute import simulate_list_arlexecute_workflow,     corrupt_list_arlexecute_workflow
-from workflows.arlexecute.pipelines.pipeline_arlexecute import continuum_imaging_list_arlexecute_workflow,     ical_list_arlexecute_workflow
+from arl.workflows.arlexecute.imaging.imaging_arlexecute import invert_list_arlexecute_workflow,     predict_list_arlexecute_workflow, deconvolve_list_arlexecute_workflow
+from arl.workflows.arlexecute.simulation.simulation_arlexecute import simulate_list_arlexecute_workflow,     corrupt_list_arlexecute_workflow
+from arl.workflows.arlexecute.pipelines.pipeline_arlexecute import continuum_imaging_list_arlexecute_workflow,     ical_list_arlexecute_workflow
 
 import arlexecute
 from execution_support import findNodes, get_dask_Client

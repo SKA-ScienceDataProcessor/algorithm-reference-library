@@ -11,18 +11,18 @@ import numpy
 from astropy import units as u
 from astropy.coordinates import SkyCoord
 
-from data_models.polarisation import PolarisationFrame
-from processing_components.simulation import create_named_configuration
-from workflows.arlexecute.imaging.imaging_arlexecute import invert_list_arlexecute_workflow, \
+from arl.data_models.polarisation import PolarisationFrame
+from arl.processing_components.simulation import create_named_configuration
+from arl.workflows.arlexecute.imaging.imaging_arlexecute import invert_list_arlexecute_workflow, \
     deconvolve_list_arlexecute_workflow, \
     residual_list_arlexecute_workflow, restore_list_arlexecute_workflow
-from wrappers.arlexecute.execution_support.arlexecutebase import ARLExecuteBase
-from wrappers.arlexecute.execution_support.dask_init import get_dask_Client
-from processing_components.image.operations import export_image_to_fits, smooth_image
-from processing_components.imaging.base import predict_skycomponent_visibility
-from processing_components.simulation import ingest_unittest_visibility, \
+from arl.wrappers.arlexecute.execution_support import ARLExecuteBase
+from arl.wrappers.arlexecute.execution_support import get_dask_Client
+from arl.processing_components.image.operations import export_image_to_fits, smooth_image
+from arl.processing_components.imaging.base import predict_skycomponent_visibility
+from arl.processing_components.simulation import ingest_unittest_visibility, \
     create_unittest_model, create_unittest_components, insert_unittest_errors
-from processing_components.skycomponent.operations import insert_skycomponent
+from arl.processing_components.skycomponent.operations import insert_skycomponent
 
 log = logging.getLogger(__name__)
 
@@ -39,7 +39,7 @@ class TestImagingDeconvolveGraph(unittest.TestCase):
         arlexecute = ARLExecuteBase(use_dask=True)
         arlexecute.set_client(client, verbose=True)
         
-        from data_models.parameters import arl_path
+        from arl.data_models.parameters import arl_path
         self.dir = arl_path('test_results')
         
         self.persist = False

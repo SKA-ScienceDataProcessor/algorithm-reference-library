@@ -11,9 +11,9 @@ import astropy.units as u
 import numpy
 from astropy.coordinates import SkyCoord
 
-from data_models.polarisation import PolarisationFrame
-from processing_components.simulation import create_named_configuration
-from processing_components.visibility.base import create_visibility
+from arl.data_models.polarisation import PolarisationFrame
+from arl.processing_components.simulation import create_named_configuration
+from arl.processing_components.visibility.base import create_visibility
 
 log = logging.getLogger(__name__)
 
@@ -24,7 +24,7 @@ log.addHandler(logging.StreamHandler(sys.stderr))
 
 class TestConfigurations(unittest.TestCase):
     def setUp(self):
-        from data_models.parameters import arl_path
+        from arl.data_models.parameters import arl_path
         self.dir = arl_path('test_results')
         
         self.frequency = numpy.linspace(0.8e8, 1.2e8, 3)

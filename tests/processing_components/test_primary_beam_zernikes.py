@@ -12,20 +12,20 @@ from astropy.coordinates import SkyCoord
 
 import matplotlib.pyplot as plt
 
-from data_models.polarisation import PolarisationFrame
+from arl.data_models.polarisation import PolarisationFrame
 
-from processing_components.image.operations import export_image_to_fits, show_image
-from processing_components.imaging.base import create_image_from_visibility
-from processing_components.imaging.primary_beams import create_pb, create_vp, create_vp_generic_numeric
-from processing_components.simulation import create_named_configuration
-from processing_components.visibility.base import create_visibility
+from arl.processing_components.image.operations import export_image_to_fits, show_image
+from arl.processing_components.imaging.base import create_image_from_visibility
+from arl.processing_components.imaging.primary_beams import create_pb, create_vp, create_vp_generic_numeric
+from arl.processing_components.simulation import create_named_configuration
+from arl.processing_components.visibility.base import create_visibility
 
 log = logging.getLogger(__name__)
 
 
 class TestPrimaryBeams(unittest.TestCase):
     def setUp(self):
-        from data_models.parameters import arl_path
+        from arl.data_models.parameters import arl_path
         self.dir = arl_path('test_results')
     
     def createVis(self, config='MID', dec=-35.0, rmax=1e3, freq=1e9):
@@ -61,15 +61,15 @@ class TestPrimaryBeams(unittest.TestCase):
             vp_data = vp.data
             vp.data = numpy.real(vp_data)
             export_image_to_fits(vp, "%s/test_voltage_pattern_real_%s_NOLL%d.fits" % (self.dir, 'MID_ZERNIKES', noll))
-            row = (noll-1)//7
-            col = (noll-1) - 7 * row
-            ax = axs[row, col]
-            ax.imshow(vp.data[0,0], vmax=0.1, vmin=-0.01)
-            #ax.set_title('Noll %d' % noll)
-            ax.axis('off')
+            # row = (noll-1)//7
+            # col = (noll-1) - 7 * row
+            # ax = axs[row, col]
+            # ax.imshow(vp.data[0,0], vmax=0.1, vmin=-0.01)
+            # #ax.set_title('Noll %d' % noll)
+            # ax.axis('off')
 
-        plt.savefig("zernikes.png")
-        plt.show()
+        # plt.savefig("zernikes.png")
+        # plt.show()
 
 if __name__ == '__main__':
     unittest.main()

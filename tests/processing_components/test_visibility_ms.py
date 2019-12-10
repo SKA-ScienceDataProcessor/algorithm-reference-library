@@ -8,10 +8,10 @@ import logging
 
 import numpy
 
-from data_models.parameters import arl_path
+from arl.data_models.parameters import arl_path
 
-from processing_components.visibility.base import create_blockvisibility_from_ms, create_visibility_from_ms
-from processing_components.visibility.operations import integrate_visibility_by_channel
+from arl.processing_components.visibility.base import create_blockvisibility_from_ms, create_visibility_from_ms
+from arl.processing_components.visibility.operations import integrate_visibility_by_channel
 
 log = logging.getLogger(__name__)
 

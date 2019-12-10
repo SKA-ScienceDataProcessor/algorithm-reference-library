@@ -9,24 +9,24 @@ import astropy.units as u
 import numpy
 from astropy.coordinates import SkyCoord
 
-from data_models.polarisation import PolarisationFrame
+from arl.data_models.polarisation import PolarisationFrame
 
-from processing_library.image.operations import create_image_from_array
+from arl.processing_library.image.operations import create_image_from_array
 
-from processing_components.image.deconvolution import deconvolve_cube, restore_cube
-from processing_components.image.operations import export_image_to_fits
-from processing_components.simulation import create_low_test_image_from_gleam
-from processing_components.simulation import create_named_configuration
-from processing_components.imaging.primary_beams import create_low_test_beam
-from processing_components.visibility.base import create_visibility
-from processing_components.imaging.base import predict_2d, invert_2d, create_image_from_visibility
+from arl.processing_components.image.deconvolution import deconvolve_cube, restore_cube
+from arl.processing_components.image.operations import export_image_to_fits
+from arl.processing_components.simulation import create_low_test_image_from_gleam
+from arl.processing_components.simulation import create_named_configuration
+from arl.processing_components.imaging.primary_beams import create_low_test_beam
+from arl.processing_components.visibility.base import create_visibility
+from arl.processing_components.imaging.base import predict_2d, invert_2d, create_image_from_visibility
 
 log = logging.getLogger(__name__)
 
 
 class TestImageDeconvolutionMSMFS(unittest.TestCase):
     def setUp(self):
-        from data_models.parameters import arl_path
+        from arl.data_models.parameters import arl_path
         self.dir = arl_path('test_results')
         self.persist = False
         self.niter = 1000

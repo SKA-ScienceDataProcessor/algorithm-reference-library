@@ -11,14 +11,14 @@ import numpy
 from astropy import units as u
 from astropy.coordinates import SkyCoord
 
-from data_models.polarisation import PolarisationFrame
-from workflows.serial.calibration.calibration_serial import calibrate_list_serial_workflow
-from processing_components.calibration import  create_calibration_controls
-from processing_components.calibration.operations import create_gaintable_from_blockvisibility, apply_gaintable
-from processing_components.simulation import ingest_unittest_visibility
-from processing_components.simulation import create_named_configuration
-from processing_components.simulation import simulate_gaintable
-from processing_components.visibility.base import copy_visibility
+from arl.data_models.polarisation import PolarisationFrame
+from arl.workflows.serial.calibration.calibration_serial import calibrate_list_serial_workflow
+from arl.processing_components.calibration import  create_calibration_controls
+from arl.processing_components.calibration.operations import create_gaintable_from_blockvisibility, apply_gaintable
+from arl.processing_components.simulation import ingest_unittest_visibility
+from arl.processing_components.simulation import create_named_configuration
+from arl.processing_components.simulation import simulate_gaintable
+from arl.processing_components.visibility.base import copy_visibility
 
 log = logging.getLogger(__name__)
 
@@ -30,7 +30,7 @@ log.addHandler(logging.StreamHandler(sys.stderr))
 class TestCalibrateGraphs(unittest.TestCase):
     
     def setUp(self):
-        from data_models.parameters import arl_path
+        from arl.data_models.parameters import arl_path
         self.dir = arl_path('test_results')
         
         self.persist = False

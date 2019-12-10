@@ -9,20 +9,20 @@ import astropy.units as u
 import numpy
 from astropy.coordinates import SkyCoord
 
-from data_models.memory_data_models import Skycomponent
-from data_models.polarisation import PolarisationFrame
-from processing_components.imaging.primary_beams import create_vp_generic_numeric, create_vp
-from processing_components.simulation import create_named_configuration
-from processing_components.simulation.surface import simulate_gaintable_from_voltage_patterns
-from processing_components.visibility.base import create_blockvisibility
-from processing_library.image.operations import create_image
+from arl.data_models.memory_data_models import Skycomponent
+from arl.data_models.polarisation import PolarisationFrame
+from arl.processing_components.imaging.primary_beams import create_vp_generic_numeric, create_vp
+from arl.processing_components.simulation import create_named_configuration
+from arl.processing_components.simulation.surface import simulate_gaintable_from_voltage_patterns
+from arl.processing_components.visibility.base import create_blockvisibility
+from arl.processing_library.image.operations import create_image
 
 log = logging.getLogger(__name__)
 
 
 class TestSurface(unittest.TestCase):
     def setUp(self):
-        from data_models.parameters import arl_path
+        from arl.data_models.parameters import arl_path
         
         self.doplot = True
         

@@ -1,6 +1,6 @@
-.. _processing_library_imaging:
+.. _arl_processing_library_imaging:
 
-.. py:currentmodule:: processing_library.imaging
+.. py:currentmodule:: arl.processing_library.imaging
 
 .. toctree::
    :maxdepth: 2
@@ -8,5 +8,5 @@
 Imaging
 *******
 
-.. automodapi::    processing_library.imaging
+.. automodapi::    arl.processing_library.imaging
    :no-inheritance-diagram:

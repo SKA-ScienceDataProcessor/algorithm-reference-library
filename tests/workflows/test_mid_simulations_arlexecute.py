@@ -13,7 +13,7 @@ import os
 import sys
 import unittest
 
-from data_models.parameters import arl_path
+from arl.data_models.parameters import arl_path
 
 results_dir = arl_path('test_results')
 
@@ -22,20 +22,20 @@ import numpy
 from astropy.coordinates import SkyCoord
 from astropy import units as u
 
-from data_models.polarisation import PolarisationFrame
+from arl.data_models.polarisation import PolarisationFrame
 
-from processing_components.image.operations import qa_image
-from processing_components.imaging.primary_beams import create_vp
-from processing_components.imaging.base import create_image_from_visibility, advise_wide_field
-from processing_components.simulation.simulation_helpers import find_pb_width_null, create_simulation_components
-from processing_components.visibility.coalesce import convert_blockvisibility_to_visibility
+from arl.processing_components.image.operations import qa_image
+from arl.processing_components.imaging.primary_beams import create_vp
+from arl.processing_components.imaging.base import create_image_from_visibility, advise_wide_field
+from arl.processing_components.simulation.simulation_helpers import find_pb_width_null, create_simulation_components
+from arl.processing_components.visibility.coalesce import convert_blockvisibility_to_visibility
 
-from workflows.arlexecute.imaging.imaging_arlexecute import sum_invert_results_arlexecute
-from workflows.arlexecute.simulation.simulation_arlexecute import \
+from arl.workflows.arlexecute.imaging.imaging_arlexecute import sum_invert_results_arlexecute
+from arl.workflows.arlexecute.simulation.simulation_arlexecute import \
     calculate_residual_from_gaintables_arlexecute_workflow, create_surface_errors_gaintable_arlexecute_workflow, \
     create_pointing_errors_gaintable_arlexecute_workflow, create_standard_mid_simulation_arlexecute_workflow
 
-from wrappers.arlexecute.execution_support.arlexecute import arlexecute
+from arl.wrappers.arlexecute.execution_support import arlexecute
 
 import logging
 

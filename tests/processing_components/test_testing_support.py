@@ -11,19 +11,19 @@ import astropy.units as u
 import numpy
 from astropy.coordinates import SkyCoord
 
-from data_models.memory_data_models import Skycomponent
-from data_models.polarisation import PolarisationFrame
-from processing_components.image.operations import export_image_to_fits
-from processing_components.imaging.base import predict_skycomponent_visibility
-from processing_components.imaging.primary_beams import create_low_test_beam
-from processing_components.simulation import create_test_image_from_s3, create_test_image, \
+from arl.data_models.memory_data_models import Skycomponent
+from arl.data_models.polarisation import PolarisationFrame
+from arl.processing_components.image.operations import export_image_to_fits
+from arl.processing_components.imaging.base import predict_skycomponent_visibility
+from arl.processing_components.imaging.primary_beams import create_low_test_beam
+from arl.processing_components.simulation import create_test_image_from_s3, create_test_image, \
     create_blockvisibility_iterator, create_low_test_image_from_gleam, \
     create_low_test_skycomponents_from_gleam, create_low_test_skymodel_from_gleam, \
     create_test_skycomponents_from_s3
-from processing_components.simulation import create_named_configuration
-from processing_components.visibility.base import create_visibility, create_blockvisibility, copy_visibility
-from processing_components.visibility.coalesce import convert_blockvisibility_to_visibility
-from processing_components.visibility.operations import append_visibility
+from arl.processing_components.simulation import create_named_configuration
+from arl.processing_components.visibility.base import create_visibility, create_blockvisibility, copy_visibility
+from arl.processing_components.visibility.coalesce import convert_blockvisibility_to_visibility
+from arl.processing_components.visibility.operations import append_visibility
 
 log = logging.getLogger(__name__)
 
@@ -34,7 +34,7 @@ log.addHandler(logging.StreamHandler(sys.stderr))
 
 class TestTesting_Support(unittest.TestCase):
     def setUp(self):
-        from data_models.parameters import arl_path
+        from arl.data_models.parameters import arl_path
         self.dir = arl_path('test_results')
         self.persist = False
         

@@ -9,12 +9,12 @@ import numpy
 from astropy import units as u
 from astropy.coordinates import SkyCoord
 
-from processing_components.simulation import create_named_configuration
-from processing_components.visibility.gather_scatter import visibility_gather_time, visibility_gather_w, \
+from arl.processing_components.simulation import create_named_configuration
+from arl.processing_components.visibility.gather_scatter import visibility_gather_time, visibility_gather_w, \
     visibility_scatter_time, visibility_scatter_w, visibility_scatter_channel, \
     visibility_gather_channel
-from processing_components.visibility.iterators import vis_wslices, vis_timeslices
-from processing_components.visibility.base import create_visibility, create_blockvisibility
+from arl.processing_components.visibility.iterators import vis_wslices, vis_timeslices
+from arl.processing_components.visibility.base import create_visibility, create_blockvisibility
 
 import logging
 

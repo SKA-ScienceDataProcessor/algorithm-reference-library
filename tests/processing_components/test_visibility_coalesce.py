@@ -9,15 +9,15 @@ import numpy
 from astropy.coordinates import SkyCoord
 import astropy.units as u
 
-from data_models.polarisation import PolarisationFrame
+from arl.data_models.polarisation import PolarisationFrame
 
-from processing_components.imaging.base import create_image_from_visibility
-from processing_components.simulation import create_named_configuration
-from processing_components.visibility.coalesce import coalesce_visibility, decoalesce_visibility, \
+from arl.processing_components.imaging.base import create_image_from_visibility
+from arl.processing_components.simulation import create_named_configuration
+from arl.processing_components.visibility.coalesce import coalesce_visibility, decoalesce_visibility, \
     convert_blockvisibility_to_visibility
-from processing_components.visibility.base import create_blockvisibility, create_visibility_from_rows
-from processing_components.visibility.iterators import vis_timeslice_iter
-from processing_components.imaging.weighting import weight_visibility
+from arl.processing_components.visibility.base import create_blockvisibility, create_visibility_from_rows
+from arl.processing_components.visibility.iterators import vis_timeslice_iter
+from arl.processing_components.imaging.weighting import weight_visibility
 
 import logging
 

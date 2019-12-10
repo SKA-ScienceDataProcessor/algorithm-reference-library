@@ -10,16 +10,16 @@ import unittest
 
 import numpy
 
-from data_models.memory_data_models import Configuration
-from data_models.polarisation import ReceptorFrame
+from arl.data_models.memory_data_models import Configuration
+from arl.data_models.polarisation import ReceptorFrame
 
 from astropy.coordinates import EarthLocation
 
 try:
     import casacore
     from casacore.tables import table  # pylint: disable=import-error
-    from processing_components.visibility import msv2
-    from processing_components.visibility.msv2fund import Stand, Antenna
+    from arl.processing_components.visibility import msv2
+    from arl.processing_components.visibility.msv2fund import Stand, Antenna
     run_ms_tests = True
 #            except ModuleNotFoundError:
 except:

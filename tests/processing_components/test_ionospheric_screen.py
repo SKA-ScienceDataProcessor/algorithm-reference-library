@@ -9,20 +9,20 @@ import astropy.units as u
 import numpy
 from astropy.coordinates import SkyCoord
 
-from data_models.parameters import arl_path
-from data_models.polarisation import PolarisationFrame
-from processing_components.image.operations import import_image_from_fits, create_empty_image_like, qa_image, \
+from arl.data_models.parameters import arl_path
+from arl.data_models.polarisation import PolarisationFrame
+from arl.processing_components.image.operations import import_image_from_fits, create_empty_image_like, qa_image, \
     export_image_to_fits
-from processing_components.imaging.primary_beams import create_low_test_beam
-from processing_components.simulation.ionospheric_screen import create_gaintable_from_screen, \
+from arl.processing_components.imaging.primary_beams import create_low_test_beam
+from arl.processing_components.simulation.ionospheric_screen import create_gaintable_from_screen, \
     grid_gaintable_to_screen, plot_gaintable_on_screen
-from processing_components.simulation import create_low_test_skycomponents_from_gleam
-from processing_components.simulation import create_named_configuration
-from processing_components.simulation import create_test_image
-from processing_components.skycomponent.operations import apply_beam_to_skycomponent
-from processing_components.skycomponent.operations import filter_skycomponents_by_flux
-from processing_components.visibility.base import create_blockvisibility
-from processing_library.image.operations import create_image
+from arl.processing_components.simulation import create_low_test_skycomponents_from_gleam
+from arl.processing_components.simulation import create_named_configuration
+from arl.processing_components.simulation import create_test_image
+from arl.processing_components.skycomponent.operations import apply_beam_to_skycomponent
+from arl.processing_components.skycomponent.operations import filter_skycomponents_by_flux
+from arl.processing_components.visibility.base import create_blockvisibility
+from arl.processing_library.image.operations import create_image
 
 log = logging.getLogger(__name__)
 
@@ -31,7 +31,7 @@ class TestIonosphericScreen(unittest.TestCase):
     def setUp(self):
         
         self.persist = False
-        from data_models.parameters import arl_path
+        from arl.data_models.parameters import arl_path
         dec = -40.0 * u.deg
         
         self.lowcore = create_named_configuration('LOWBD2', rmax=300.0)

@@ -12,14 +12,14 @@ from astropy import units as u
 from astropy.coordinates import SkyCoord
 
 from data_models.polarisation import PolarisationFrame
-from processing_components.image.operations import export_image_to_fits, smooth_image
-from processing_components.imaging.base import predict_skycomponent_visibility
-from processing_components.simulation import ingest_unittest_visibility, \
+from arl.processing_components.image.operations import export_image_to_fits, smooth_image
+from arl.processing_components.imaging.base import predict_skycomponent_visibility
+from arl.processing_components.simulation import ingest_unittest_visibility, \
     create_unittest_model, insert_unittest_errors, create_unittest_components
-from processing_components.simulation import create_named_configuration
-from processing_components.skycomponent.operations import find_skycomponents, find_nearest_skycomponent, \
+from arl.processing_components.simulation import create_named_configuration
+from arl.processing_components.skycomponent.operations import find_skycomponents, find_nearest_skycomponent, \
     insert_skycomponent
-from workflows.mpi.imaging.imaging_mpi import predict_list_mpi_workflow, invert_list_mpi_workflow, \
+from arl.workflows.mpi.imaging.imaging_mpi import predict_list_mpi_workflow, invert_list_mpi_workflow, \
     subtract_list_mpi_workflow, zero_list_mpi_workflow
 
 log = logging.getLogger(__name__)

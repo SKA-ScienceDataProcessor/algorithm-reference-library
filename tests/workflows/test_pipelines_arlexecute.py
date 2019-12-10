@@ -11,23 +11,23 @@ import numpy
 from astropy import units as u
 from astropy.coordinates import SkyCoord
 
-from data_models.polarisation import PolarisationFrame
-from data_models.data_model_helpers import export_gaintable_to_hdf5
+from arl.data_models.polarisation import PolarisationFrame
+from arl.data_models.data_model_helpers import export_gaintable_to_hdf5
 
-from workflows.arlexecute.pipelines.pipeline_arlexecute import ical_list_arlexecute_workflow, \
+from arl.workflows.arlexecute.pipelines.pipeline_arlexecute import ical_list_arlexecute_workflow, \
     continuum_imaging_list_arlexecute_workflow
-from processing_components.calibration import  create_calibration_controls
-from wrappers.arlexecute.execution_support.arlexecutebase import ARLExecuteBase
-from wrappers.arlexecute.execution_support.dask_init import get_dask_Client
-from processing_components.image.operations import export_image_to_fits, qa_image, smooth_image
-from processing_components.imaging.base import predict_skycomponent_visibility
-from processing_components.simulation import ingest_unittest_visibility, \
-    create_unittest_model, create_unittest_components, insert_unittest_errors
-from processing_components.simulation import create_named_configuration
-from processing_components.skycomponent.operations import insert_skycomponent
-from processing_components.visibility.coalesce import convert_blockvisibility_to_visibility
-from processing_components.simulation import simulate_gaintable
-from processing_components.calibration.operations import create_gaintable_from_blockvisibility, apply_gaintable
+from arl.processing_components.calibration import  create_calibration_controls
+from arl.wrappers.arlexecute.execution_support import ARLExecuteBase
+from arl.wrappers.arlexecute.execution_support import get_dask_Client
+from arl.processing_components.image.operations import export_image_to_fits, qa_image, smooth_image
+from arl.processing_components.imaging.base import predict_skycomponent_visibility
+from arl.processing_components.simulation import ingest_unittest_visibility, \
+    create_unittest_model, create_unittest_components
+from arl.processing_components.simulation import create_named_configuration
+from arl.processing_components.skycomponent.operations import insert_skycomponent
+from arl.processing_components.visibility.coalesce import convert_blockvisibility_to_visibility
+from arl.processing_components.simulation import simulate_gaintable
+from arl.processing_components.calibration.operations import create_gaintable_from_blockvisibility, apply_gaintable
 
 log = logging.getLogger(__name__)
 
@@ -43,7 +43,7 @@ class TestPipelineGraphs(unittest.TestCase):
         global arlexecute
         arlexecute = ARLExecuteBase(use_dask=True)
         arlexecute.set_client(client, verbose=True)
-        from data_models.parameters import arl_path
+        from arl.data_models.parameters import arl_path
         self.dir = arl_path('test_results')
         self.persist = True
     

@@ -9,25 +9,25 @@ import astropy.units as u
 import numpy
 from astropy.coordinates import SkyCoord
 
-from data_models.memory_data_models import SkyModel, Image
-from data_models.polarisation import PolarisationFrame
-from processing_components.imaging.primary_beams import create_low_test_beam
-from processing_components.skymodel.operations import expand_skymodel_by_skycomponents
-from processing_components.simulation import create_low_test_skycomponents_from_gleam
-from processing_components.simulation import create_named_configuration
-from processing_components.simulation import create_test_image
-from processing_components.skycomponent.operations import apply_beam_to_skycomponent, remove_neighbouring_components
-from processing_components.skycomponent.operations import filter_skycomponents_by_flux
-from processing_components.skymodel.operations import image_voronoi_iter
-from processing_components.visibility.base import create_blockvisibility
-from processing_library.image.operations import create_image
+from arl.data_models.memory_data_models import SkyModel, Image
+from arl.data_models.polarisation import PolarisationFrame
+from arl.processing_components.imaging.primary_beams import create_low_test_beam
+from arl.processing_components.skymodel.operations import expand_skymodel_by_skycomponents
+from arl.processing_components.simulation import create_low_test_skycomponents_from_gleam
+from arl.processing_components.simulation import create_named_configuration
+from arl.processing_components.simulation import create_test_image
+from arl.processing_components.skycomponent.operations import apply_beam_to_skycomponent, remove_neighbouring_components
+from arl.processing_components.skycomponent.operations import filter_skycomponents_by_flux
+from arl.processing_components.skymodel.operations import image_voronoi_iter
+from arl.processing_components.visibility.base import create_blockvisibility
+from arl.processing_library.image.operations import create_image
 
 log = logging.getLogger(__name__)
 
 
 class TestSkymodelMPC(unittest.TestCase):
     def setUp(self):
-        from data_models.parameters import arl_path
+        from arl.data_models.parameters import arl_path
         dec = -40.0 * u.deg
         
         self.lowcore = create_named_configuration('LOWBD2', rmax=300.0)
@@ -97,7 +97,7 @@ class TestSkymodelMPC(unittest.TestCase):
             assert mask.data.dtype == "float"
             assert numpy.sum(mask.data) > 1
             # import matplotlib.pyplot as plt
-            # from processing_components.image.operations import show_image
+            # from arl.processing_components.image.operations import show_image
             # show_image(mask)
             # plt.show()
 

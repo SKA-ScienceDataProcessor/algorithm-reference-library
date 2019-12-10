@@ -6,7 +6,7 @@ import unittest
 import numpy
 import logging
 
-from processing_library.arrays.cleaners import create_scalestack, convolve_scalestack, convolve_convolve_scalestack,\
+from arl.processing_library.arrays.cleaners import create_scalestack, convolve_scalestack, convolve_convolve_scalestack,\
     argmax
 
 log = logging.getLogger(__name__)

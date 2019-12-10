@@ -9,11 +9,11 @@ import numpy
 from astropy import units as u
 from astropy.coordinates import SkyCoord
 
-from data_models.memory_data_models import BlockVisibility
-from wrappers.arlexecute.execution_support.arlexecutebase import ARLExecuteBase
-from wrappers.arlexecute.execution_support.dask_init import get_dask_Client
+from arl.data_models.memory_data_models import BlockVisibility
+from arl.wrappers.arlexecute.execution_support import ARLExecuteBase
+from arl.wrappers.arlexecute.execution_support import get_dask_Client
 
-from workflows.arlexecute.simulation.simulation_arlexecute import simulate_list_arlexecute_workflow
+from arl.workflows.arlexecute.simulation.simulation_arlexecute import simulate_list_arlexecute_workflow
 
 log = logging.getLogger(__name__)
 
@@ -25,7 +25,7 @@ class TestSimulationArlexecuteSupport(unittest.TestCase):
         arlexecute = ARLExecuteBase(use_dask=True)
         arlexecute.set_client(client)
 
-        from data_models.parameters import arl_path
+        from arl.data_models.parameters import arl_path
         self.dir = arl_path('test_results')
         
         self.frequency = numpy.linspace(1e8, 1.5e8, 3)

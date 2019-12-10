@@ -7,8 +7,8 @@ import unittest
 
 import numpy
 
-from processing_components.griddata.operations import create_griddata_from_image, convert_griddata_to_image
-from processing_components.simulation import create_test_image
+from arl.processing_components.griddata.operations import create_griddata_from_image, convert_griddata_to_image
+from arl.processing_components.simulation import create_test_image
 
 log = logging.getLogger(__name__)
 
@@ -16,7 +16,7 @@ log = logging.getLogger(__name__)
 class TestGridData(unittest.TestCase):
     
     def setUp(self):
-        from data_models.parameters import arl_path
+        from arl.data_models.parameters import arl_path
         self.dir = arl_path('test_results')
         
         self.m31image = create_test_image(cellsize=0.0001)

@@ -9,16 +9,16 @@ import numpy
 from astropy import units as u
 from astropy.coordinates import SkyCoord
 
-from data_models.polarisation import PolarisationFrame
-from processing_components.image.operations import export_image_to_fits, smooth_image
-from processing_components.imaging.base import predict_skycomponent_visibility
-from processing_components.simulation import create_named_configuration
-from processing_components.simulation import ingest_unittest_visibility, \
+from arl.data_models.polarisation import PolarisationFrame
+from arl.processing_components.image.operations import export_image_to_fits, smooth_image
+from arl.processing_components.imaging.base import predict_skycomponent_visibility
+from arl.processing_components.simulation import create_named_configuration
+from arl.processing_components.simulation import ingest_unittest_visibility, \
     create_unittest_model, create_unittest_components
-from processing_components.skycomponent.operations import find_skycomponents, find_nearest_skycomponent, \
+from arl.processing_components.skycomponent.operations import find_skycomponents, find_nearest_skycomponent, \
     insert_skycomponent
-from processing_components.visibility.coalesce import convert_blockvisibility_to_visibility
-from processing_components.visibility.base import copy_visibility
+from arl.processing_components.visibility.coalesce import convert_blockvisibility_to_visibility
+from arl.processing_components.visibility.base import copy_visibility
 
 try:
     import nifty_gridder
@@ -37,7 +37,7 @@ log.addHandler(logging.StreamHandler(sys.stderr))
 class TestImagingNG(unittest.TestCase):
     def setUp(self):
         
-        from data_models.parameters import arl_path
+        from arl.data_models.parameters import arl_path
         self.dir = arl_path('test_results')
         
         self.persist = True
@@ -113,7 +113,7 @@ class TestImagingNG(unittest.TestCase):
     
     def _predict_base(self, fluxthreshold=1.0, name='predict_ng', **kwargs):
         
-        from processing_components.imaging.ng import predict_ng, invert_ng
+        from arl.processing_components.imaging.ng import predict_ng, invert_ng
         original_vis = copy_visibility(self.blockvis)
         vis = predict_ng(self.blockvis, self.model, verbosity=self.verbosity, **kwargs)
         vis.data['vis'] = vis.data['vis'] - original_vis.data['vis']
@@ -121,7 +121,7 @@ class TestImagingNG(unittest.TestCase):
                           **kwargs)
         
         # import matplotlib.pyplot as plt
-        # from processing_components.image.operations import show_image
+        # from arl.processing_components.image.operations import show_image
         # npol = dirty[0].shape[1]
         # for pol in range(npol):
         #     plt.clf()
@@ -140,7 +140,7 @@ class TestImagingNG(unittest.TestCase):
                      name='predict_ng', **kwargs):
         
         # dirty = invert_ng(self.blockvis, self.model, dopsf=False, normalize=True, **kwargs)
-        from processing_components.imaging.ng import predict_ng, invert_ng
+        from arl.processing_components.imaging.ng import predict_ng, invert_ng
         dirty = invert_ng(self.blockvis, self.model, normalize=True, verbosity=self.verbosity,
                           **kwargs)
 
@@ -148,7 +148,7 @@ class TestImagingNG(unittest.TestCase):
                                               (self.dir, name))
         
         # import matplotlib.pyplot as plt
-        # from processing_components.image.operations import show_image
+        # from arl.processing_components.image.operations import show_image
         # npol = dirty[0].shape[1]
         # for pol in range(npol):
         #     plt.clf()

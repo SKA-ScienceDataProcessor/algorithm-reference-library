@@ -54,10 +54,10 @@ clean:
 	rm -rf $(BUILDDIR)/*
 
 make_example_rst = \
- make -C ../$1/notebooks rst && \
+ make -C ../arl/$1/notebooks rst && \
  if [ ! -d $1 ]; then mkdir $1; fi && \
- cp ../$1/notebooks/*.rst $1/ && \
- if ls ../$1/notebooks/$2 1> /dev/null 2>&1; then cp -R ../$1/notebooks/$2 $1/; fi
+ cp ../arl/$1/notebooks/*.rst $1/ && \
+ if ls ../arl/$1/notebooks/$2 1> /dev/null 2>&1; then cp -R ../arl/$1/notebooks/$2 $1/; fi
 
 .PHONY: prepare_processing_library prepare_processing_components prepare_workflows prepare
 prepare_processing_library:

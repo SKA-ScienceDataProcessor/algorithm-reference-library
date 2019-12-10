@@ -1,6 +1,6 @@
-.. _data_models:
+.. _arl_data_models:
 
-.. py:currentmodule:: data_models
+.. py:currentmodule:: arl.arl.data_models
 
 ===========
 Data models

@@ -11,25 +11,25 @@ import numpy
 from astropy import units as u
 from astropy.coordinates import SkyCoord
 
-from data_models.polarisation import PolarisationFrame
-from processing_components.griddata.kernels import create_awterm_convolutionfunction, \
+from arl.data_models.polarisation import PolarisationFrame
+from arl.processing_components.griddata.kernels import create_awterm_convolutionfunction, \
     create_pswf_convolutionfunction, create_box_convolutionfunction
-from processing_components.griddata import convert_convolutionfunction_to_image
-from processing_components.griddata.gridding import grid_visibility_to_griddata, \
+from arl.processing_components.griddata import convert_convolutionfunction_to_image
+from arl.processing_components.griddata.gridding import grid_visibility_to_griddata, \
     fft_griddata_to_image, fft_image_to_griddata, \
     degrid_visibility_from_griddata, grid_weight_to_griddata, griddata_merge_weights, griddata_reweight, \
     grid_visibility_to_griddata_fast
-from processing_components.griddata.operations import create_griddata_from_image
-from processing_components.image.operations import export_image_to_fits
-from processing_components.image.operations import smooth_image
-from processing_components.imaging.base import normalize_sumwt
-from processing_components.imaging.base import predict_skycomponent_visibility
-from processing_components.imaging.primary_beams import create_pb_generic
-from processing_components.simulation import create_unittest_model, \
+from arl.processing_components.griddata.operations import create_griddata_from_image
+from arl.processing_components.image.operations import export_image_to_fits
+from arl.processing_components.image.operations import smooth_image
+from arl.processing_components.imaging.base import normalize_sumwt
+from arl.processing_components.imaging.base import predict_skycomponent_visibility
+from arl.processing_components.imaging.primary_beams import create_pb_generic
+from arl.processing_components.simulation import create_unittest_model, \
     create_unittest_components, ingest_unittest_visibility
-from processing_components.simulation import create_named_configuration
-from processing_components.skycomponent.operations import insert_skycomponent
-from processing_components.visibility.operations import qa_visibility
+from arl.processing_components.simulation import create_named_configuration
+from arl.processing_components.skycomponent.operations import insert_skycomponent
+from arl.processing_components.visibility.operations import qa_visibility
 
 log = logging.getLogger(__name__)
 
@@ -43,7 +43,7 @@ log = logging.getLogger(__name__)
 class TestGridDataGridding(unittest.TestCase):
     
     def setUp(self):
-        from data_models.parameters import arl_path
+        from arl.data_models.parameters import arl_path
         self.dir = arl_path('test_results')
         self.persist = False
     

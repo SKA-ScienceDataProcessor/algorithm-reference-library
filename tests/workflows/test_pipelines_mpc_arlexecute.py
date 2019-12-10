@@ -6,34 +6,34 @@ import numpy
 from astropy import units as u
 from astropy.coordinates import SkyCoord
 
-from data_models.memory_data_models import SkyModel
-from data_models.parameters import arl_path
-from data_models.polarisation import PolarisationFrame
-from processing_components.image.operations import create_empty_image_like
-from processing_components.simulation import create_named_configuration
-from processing_components.simulation.ionospheric_screen import grid_gaintable_to_screen
-from workflows.arlexecute.imaging.imaging_arlexecute import invert_list_arlexecute_workflow
-from workflows.arlexecute.imaging.imaging_arlexecute import restore_list_arlexecute_workflow
-from workflows.arlexecute.pipelines.pipeline_mpccal_arlexecute import mpccal_skymodel_list_arlexecute_workflow
-from workflows.arlexecute.skymodel.skymodel_arlexecute import predict_skymodel_list_arlexecute_workflow
-from workflows.serial.imaging.imaging_serial import weight_list_serial_workflow, taper_list_serial_workflow
-from wrappers.arlexecute.execution_support.arlexecutebase import ARLExecuteBase
-from wrappers.arlexecute.execution_support.dask_init import get_dask_Client
-from processing_components.image.operations import export_image_to_fits
-from processing_components.skycomponent.operations import remove_neighbouring_components, \
+from arl.data_models.memory_data_models import SkyModel
+from arl.data_models.parameters import arl_path
+from arl.data_models.polarisation import PolarisationFrame
+from arl.processing_components.image.operations import create_empty_image_like
+from arl.processing_components.simulation import create_named_configuration
+from arl.processing_components.simulation.ionospheric_screen import grid_gaintable_to_screen
+from arl.workflows.arlexecute.imaging.imaging_arlexecute import invert_list_arlexecute_workflow
+from arl.workflows.arlexecute.imaging.imaging_arlexecute import restore_list_arlexecute_workflow
+from arl.workflows.arlexecute.pipelines.pipeline_mpccal_arlexecute import mpccal_skymodel_list_arlexecute_workflow
+from arl.workflows.arlexecute.skymodel.skymodel_arlexecute import predict_skymodel_list_arlexecute_workflow
+from arl.workflows.serial.imaging.imaging_serial import weight_list_serial_workflow, taper_list_serial_workflow
+from arl.wrappers.arlexecute.execution_support import ARLExecuteBase
+from arl.wrappers.arlexecute.execution_support import get_dask_Client
+from arl.processing_components.image.operations import export_image_to_fits
+from arl.processing_components.skycomponent.operations import remove_neighbouring_components, \
     find_skycomponents
-from processing_components.skymodel.operations import calculate_skymodel_equivalent_image
-from processing_components.skymodel.operations import initialize_skymodel_voronoi
-from processing_components.visibility.coalesce import convert_blockvisibility_to_visibility, \
+from arl.processing_components.skymodel.operations import calculate_skymodel_equivalent_image
+from arl.processing_components.skymodel.operations import initialize_skymodel_voronoi
+from arl.processing_components.visibility.coalesce import convert_blockvisibility_to_visibility, \
     convert_visibility_to_blockvisibility
-from processing_components.image.operations import import_image_from_fits
-from processing_components.imaging.base import create_image_from_visibility, advise_wide_field
-from processing_components.imaging.primary_beams import create_low_test_beam
-from processing_components.simulation.ionospheric_screen import create_gaintable_from_screen
-from processing_components.simulation import create_low_test_skycomponents_from_gleam
-from processing_components.skycomponent.operations import apply_beam_to_skycomponent
-from processing_components.skycomponent.operations import filter_skycomponents_by_flux
-from processing_components.visibility.base import create_blockvisibility
+from arl.processing_components.image.operations import import_image_from_fits
+from arl.processing_components.imaging.base import create_image_from_visibility, advise_wide_field
+from arl.processing_components.imaging.primary_beams import create_low_test_beam
+from arl.processing_components.simulation.ionospheric_screen import create_gaintable_from_screen
+from arl.processing_components.simulation import create_low_test_skycomponents_from_gleam
+from arl.processing_components.skycomponent.operations import apply_beam_to_skycomponent
+from arl.processing_components.skycomponent.operations import filter_skycomponents_by_flux
+from arl.processing_components.visibility.base import create_blockvisibility
 
 log = logging.getLogger(__name__)
 

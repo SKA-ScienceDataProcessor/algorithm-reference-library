@@ -9,15 +9,15 @@ import astropy.units as u
 import numpy
 from astropy.coordinates import SkyCoord
 
-from data_models.memory_data_models import Skycomponent
-from data_models.polarisation import PolarisationFrame
+from arl.data_models.memory_data_models import Skycomponent
+from arl.data_models.polarisation import PolarisationFrame
 
-from processing_components.calibration import  calibrate_function, create_calibration_controls, apply_gaintable
-from processing_components.calibration.operations import create_gaintable_from_blockvisibility, gaintable_summary
-from processing_components.imaging.base import predict_skycomponent_visibility
-from processing_components.simulation import simulate_gaintable
-from processing_components.simulation import create_named_configuration
-from processing_components.visibility.base import copy_visibility, create_blockvisibility
+from arl.processing_components.calibration import  calibrate_function, create_calibration_controls, apply_gaintable
+from arl.processing_components.calibration.operations import create_gaintable_from_blockvisibility, gaintable_summary
+from arl.processing_components.imaging.base import predict_skycomponent_visibility
+from arl.processing_components.simulation import simulate_gaintable
+from arl.processing_components.simulation import create_named_configuration
+from arl.processing_components.visibility.base import copy_visibility, create_blockvisibility
 
 log = logging.getLogger(__name__)
 

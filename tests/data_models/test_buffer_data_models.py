@@ -10,23 +10,23 @@ import astropy.units as u
 import numpy
 from astropy.coordinates import SkyCoord
 
-from data_models.buffer_data_models import BufferImage, BufferBlockVisibility, BufferGainTable, BufferSkyModel, \
+from arl.data_models.buffer_data_models import BufferImage, BufferBlockVisibility, BufferGainTable, BufferSkyModel, \
     BufferConvolutionFunction, BufferGridData, BufferPointingTable
-from data_models.memory_data_models import Skycomponent, SkyModel, BlockVisibility
-from data_models.polarisation import PolarisationFrame
-from processing_components.griddata.operations import create_griddata_from_image
-from processing_components.griddata import create_convolutionfunction_from_image
-from processing_components.calibration.operations import create_gaintable_from_blockvisibility
-from processing_components.calibration.pointing import create_pointingtable_from_blockvisibility
-from processing_components.imaging.base import predict_skycomponent_visibility
-from processing_components.simulation import simulate_gaintable, simulate_pointingtable, create_test_image
-from processing_components.simulation import create_named_configuration
-from processing_components.visibility.base import create_blockvisibility
+from arl.data_models.memory_data_models import Skycomponent, SkyModel, BlockVisibility
+from arl.data_models.polarisation import PolarisationFrame
+from arl.processing_components.griddata.operations import create_griddata_from_image
+from arl.processing_components.griddata import create_convolutionfunction_from_image
+from arl.processing_components.calibration.operations import create_gaintable_from_blockvisibility
+from arl.processing_components.calibration.pointing import create_pointingtable_from_blockvisibility
+from arl.processing_components.imaging.base import predict_skycomponent_visibility
+from arl.processing_components.simulation import simulate_gaintable, simulate_pointingtable, create_test_image
+from arl.processing_components.simulation import create_named_configuration
+from arl.processing_components.visibility.base import create_blockvisibility
 
 
 class TestBufferDataModelHelpers(unittest.TestCase):
     def setUp(self):
-        from data_models.parameters import arl_path
+        from arl.data_models.parameters import arl_path
         self.dir = arl_path('test_results/')
         
         self.midcore = create_named_configuration('MID', rmax=3000.0)

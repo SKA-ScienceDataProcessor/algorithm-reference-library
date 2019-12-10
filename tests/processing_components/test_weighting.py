@@ -10,23 +10,23 @@ from astropy import units as u
 from astropy.coordinates import SkyCoord
 from photutils import fit_2dgaussian
 
-from data_models.polarisation import PolarisationFrame
+from arl.data_models.polarisation import PolarisationFrame
 
-from processing_library.image.operations import fft_image
+from arl.processing_library.image.operations import fft_image
 
-from processing_components.image.operations import export_image_to_fits
-from processing_components.imaging.base import invert_2d
-from processing_components.imaging.base import create_image_from_visibility
-from processing_components.imaging.weighting import weight_visibility, taper_visibility_gaussian, taper_visibility_tukey
-from processing_components.simulation import create_named_configuration
-from processing_components.visibility.base import create_visibility
+from arl.processing_components.image.operations import export_image_to_fits
+from arl.processing_components.imaging.base import invert_2d
+from arl.processing_components.imaging.base import create_image_from_visibility
+from arl.processing_components.imaging.weighting import weight_visibility, taper_visibility_gaussian, taper_visibility_tukey
+from arl.processing_components.simulation import create_named_configuration
+from arl.processing_components.visibility.base import create_visibility
 
 log = logging.getLogger(__name__)
 
 
 class TestWeighting(unittest.TestCase):
     def setUp(self):
-        from data_models.parameters import arl_path
+        from arl.data_models.parameters import arl_path
         self.dir = arl_path('test_results')
         self.npixel = 512
     

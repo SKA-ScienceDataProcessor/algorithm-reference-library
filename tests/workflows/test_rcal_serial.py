@@ -12,19 +12,19 @@ from astropy import units as u
 from astropy.coordinates import SkyCoord
 from astropy.wcs.utils import pixel_to_skycoord
 
-from data_models.polarisation import PolarisationFrame
+from arl.data_models.polarisation import PolarisationFrame
 
-from processing_components.calibration.operations import qa_gaintable, create_gaintable_from_blockvisibility, apply_gaintable
-from processing_components.image.operations import export_image_to_fits
-from processing_library.image.operations import copy_image, create_empty_image_like
-from processing_components.imaging.base import predict_skycomponent_visibility, \
+from arl.processing_components.calibration.operations import qa_gaintable, create_gaintable_from_blockvisibility, apply_gaintable
+from arl.processing_components.image.operations import export_image_to_fits
+from arl.processing_library.image.operations import copy_image, create_empty_image_like
+from arl.processing_components.imaging.base import predict_skycomponent_visibility, \
     create_image_from_visibility
-from processing_components.skycomponent.operations import create_skycomponent, insert_skycomponent
-from processing_components.simulation import simulate_gaintable
-from processing_components.simulation import create_named_configuration
-from processing_components.visibility.base import create_blockvisibility, create_visibility
+from arl.processing_components.skycomponent.operations import create_skycomponent, insert_skycomponent
+from arl.processing_components.simulation import simulate_gaintable
+from arl.processing_components.simulation import create_named_configuration
+from arl.processing_components.visibility.base import create_blockvisibility, create_visibility
 
-from processing_components.calibration.rcal import rcal
+from arl.processing_components.calibration.rcal import rcal
 
 log = logging.getLogger(__name__)
 
@@ -35,7 +35,7 @@ log.addHandler(logging.StreamHandler(sys.stderr))
 
 class TestPipelinesFunctions(unittest.TestCase):
     def setUp(self):
-        from data_models.parameters import arl_path
+        from arl.data_models.parameters import arl_path
         self.dir = arl_path('test_results')
         
         self.setupVis(add_errors=False, block=True)

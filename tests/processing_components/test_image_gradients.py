@@ -5,16 +5,16 @@
 import logging
 import unittest
 
-from data_models.parameters import arl_path
-from processing_components.image.gradients import image_gradients
-from processing_components.image.operations import export_image_to_fits, show_image, import_image_from_fits
+from arl.data_models.parameters import arl_path
+from arl.processing_components.image.gradients import image_gradients
+from arl.processing_components.image.operations import export_image_to_fits, show_image, import_image_from_fits
 
 log = logging.getLogger(__name__)
 
 
 class TestPrimaryBeams(unittest.TestCase):
     def setUp(self):
-        from data_models.parameters import arl_path
+        from arl.data_models.parameters import arl_path
         self.dir = arl_path('test_results')
     
     def test_create_gradient(self):

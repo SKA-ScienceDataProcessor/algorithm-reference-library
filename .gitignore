@@ -22,7 +22,7 @@ dask-worker-space
 /test_results
 *.so
 *.egg
-/data_models/.idea
+/arl/data_models/.idea
 *.fits
 /sourcetree.txt
 /docs/api

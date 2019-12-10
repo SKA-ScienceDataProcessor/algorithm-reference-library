@@ -9,22 +9,22 @@ import astropy.units as u
 import numpy
 from astropy.coordinates import SkyCoord
 
-from data_models.polarisation import PolarisationFrame
+from arl.data_models.polarisation import PolarisationFrame
 
-from processing_components.image.operations import export_image_to_fits
-from processing_components.imaging.base import predict_2d, invert_2d
-from processing_components.imaging.base import predict_skycomponent_visibility
-from processing_components.skycomponent.operations import insert_skycomponent, create_skycomponent
-from processing_components.simulation import create_test_image
-from processing_components.simulation import create_named_configuration
-from processing_components.visibility.base import create_visibility
+from arl.processing_components.image.operations import export_image_to_fits
+from arl.processing_components.imaging.base import predict_2d, invert_2d
+from arl.processing_components.imaging.base import predict_skycomponent_visibility
+from arl.processing_components.skycomponent.operations import insert_skycomponent, create_skycomponent
+from arl.processing_components.simulation import create_test_image
+from arl.processing_components.simulation import create_named_configuration
+from arl.processing_components.visibility.base import create_visibility
 
 log = logging.getLogger(__name__)
 
 
 class TestSkycomponentInsert(unittest.TestCase):
     def setUp(self):
-        from data_models.parameters import arl_path
+        from arl.data_models.parameters import arl_path
         self.lowcore = create_named_configuration('LOWBD2-CORE')
         self.dir = arl_path('test_results')
         self.times = (numpy.pi / 12.0) * numpy.linspace(-3.0, 3.0, 7)

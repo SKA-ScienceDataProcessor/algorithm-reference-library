@@ -8,14 +8,14 @@ import unittest
 import numpy
 from astropy import units as u
 from astropy.coordinates import SkyCoord
-from workflows.serial.skymodel.skymodel_serial import predict_skymodel_list_serial_workflow
+from arl.workflows.serial.skymodel.skymodel_serial import predict_skymodel_list_serial_workflow
 
-from data_models.memory_data_models import Image
-from data_models.memory_data_models import Skycomponent
-from data_models.polarisation import PolarisationFrame
-from processing_components.simulation import ingest_unittest_visibility, \
+from arl.data_models.memory_data_models import Image
+from arl.data_models.memory_data_models import Skycomponent
+from arl.data_models.polarisation import PolarisationFrame
+from arl.processing_components.simulation import ingest_unittest_visibility, \
     create_low_test_skymodel_from_gleam
-from processing_components.simulation import create_named_configuration
+from arl.processing_components.simulation import create_named_configuration
 
 log = logging.getLogger(__name__)
 
@@ -27,7 +27,7 @@ log.addHandler(logging.StreamHandler(sys.stderr))
 class TestSkyModel(unittest.TestCase):
     def setUp(self):
         
-        from data_models.parameters import arl_path
+        from arl.data_models.parameters import arl_path
         self.dir = arl_path('test_results')
         
         self.persist = False

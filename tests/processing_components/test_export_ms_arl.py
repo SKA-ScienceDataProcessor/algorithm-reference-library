@@ -8,9 +8,9 @@ import unittest
 import logging
 import numpy
 
-from data_models.parameters import arl_path
+from arl.data_models.parameters import arl_path
 
-from processing_components.visibility.coalesce import convert_visibility_to_blockvisibility, convert_blockvisibility_to_visibility
+from arl.processing_components.visibility.coalesce import convert_visibility_to_blockvisibility, convert_blockvisibility_to_visibility
 
 log = logging.getLogger(__name__)
 
@@ -21,8 +21,8 @@ log.addHandler(logging.StreamHandler(sys.stderr))
 run_ms_tests = False
 try:
     import casacore
-    from processing_components.visibility.base import create_blockvisibility, create_blockvisibility_from_ms
-    from processing_components.visibility.base import export_blockvisibility_to_ms
+    from arl.processing_components.visibility.base import create_blockvisibility, create_blockvisibility_from_ms
+    from arl.processing_components.visibility.base import export_blockvisibility_to_ms
 
     run_ms_tests = True
 except ImportError:
@@ -54,15 +54,15 @@ class export_ms_arl_test(unittest.TestCase):
         from astropy.coordinates import SkyCoord
         from astropy import units as u
 
-        from processing_components.image.operations import show_image, export_image_to_fits
-        from processing_components.simulation import create_named_configuration
-        from processing_components.simulation import create_test_image
-        from processing_components.imaging.base import create_image_from_visibility
-        from processing_components.imaging.base import advise_wide_field
+        from arl.processing_components.image.operations import show_image, export_image_to_fits
+        from arl.processing_components.simulation import create_named_configuration
+        from arl.processing_components.simulation import create_test_image
+        from arl.processing_components.imaging.base import create_image_from_visibility
+        from arl.processing_components.imaging.base import advise_wide_field
 
-        from workflows.serial.imaging.imaging_serial import invert_list_serial_workflow, predict_list_serial_workflow
+        from arl.workflows.serial.imaging.imaging_serial import invert_list_serial_workflow, predict_list_serial_workflow
 
-        from data_models.polarisation import PolarisationFrame
+        from arl.data_models.polarisation import PolarisationFrame
 
         lowr3 = create_named_configuration('LOWBD2', rmax=750.0)
 

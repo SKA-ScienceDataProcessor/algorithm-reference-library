@@ -9,27 +9,27 @@ import numpy
 from astropy import units as u
 from astropy.coordinates import SkyCoord
 
-from data_models.polarisation import PolarisationFrame
-from data_models.memory_data_models import BlockVisibility, Visibility
-from processing_components.griddata import apply_bounding_box_convolutionfunction
-from processing_components.griddata.kernels import create_awterm_convolutionfunction
-from workflows.arlexecute.imaging.imaging_arlexecute import zero_list_arlexecute_workflow, \
+from arl.data_models.polarisation import PolarisationFrame
+from arl.data_models.memory_data_models import BlockVisibility
+from arl.processing_components.griddata import apply_bounding_box_convolutionfunction
+from arl.processing_components.griddata.kernels import create_awterm_convolutionfunction
+from arl.workflows.arlexecute.imaging.imaging_arlexecute import zero_list_arlexecute_workflow, \
     predict_list_arlexecute_workflow, invert_list_arlexecute_workflow, subtract_list_arlexecute_workflow, \
     weight_list_arlexecute_workflow, residual_list_arlexecute_workflow, sum_invert_results_arlexecute, \
     restore_list_arlexecute_workflow
-from workflows.shared.imaging.imaging_shared import sum_invert_results, sum_invert_results_local
-from wrappers.arlexecute.execution_support.arlexecutebase import ARLExecuteBase
-from wrappers.arlexecute.execution_support.dask_init import get_dask_Client
+from arl.workflows.shared.imaging.imaging_shared import sum_invert_results
+from arl.wrappers.arlexecute.execution_support import ARLExecuteBase
+from arl.wrappers.arlexecute.execution_support import get_dask_Client
 
-from processing_components.image.operations import export_image_to_fits, smooth_image, qa_image
-from processing_components.imaging.base import predict_skycomponent_visibility
-from processing_components.simulation import ingest_unittest_visibility, \
+from arl.processing_components.image.operations import export_image_to_fits, smooth_image, qa_image
+from arl.processing_components.imaging.base import predict_skycomponent_visibility
+from arl.processing_components.simulation import ingest_unittest_visibility, \
     create_unittest_model, insert_unittest_errors, create_unittest_components
-from processing_components.simulation import create_named_configuration
-from processing_components.skycomponent.operations import find_skycomponents, find_nearest_skycomponent, \
+from arl.processing_components.simulation import create_named_configuration
+from arl.processing_components.skycomponent.operations import find_skycomponents, find_nearest_skycomponent, \
     insert_skycomponent
 
-from processing_components.visibility.coalesce import convert_blockvisibility_to_visibility
+from arl.processing_components.visibility.coalesce import convert_blockvisibility_to_visibility
 
 log = logging.getLogger(__name__)
 
@@ -46,7 +46,7 @@ class TestImaging(unittest.TestCase):
         arlexecute = ARLExecuteBase(use_dask=True)
         arlexecute.set_client(client, verbose=True)
 
-        from data_models.parameters import arl_path
+        from arl.data_models.parameters import arl_path
         self.dir = arl_path('test_results')
     
         self.persist = False

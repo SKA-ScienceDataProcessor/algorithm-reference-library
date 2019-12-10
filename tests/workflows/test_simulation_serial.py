@@ -9,9 +9,9 @@ import numpy
 from astropy import units as u
 from astropy.coordinates import SkyCoord
 
-from data_models.memory_data_models import BlockVisibility
+from arl.data_models.memory_data_models import BlockVisibility
 
-from workflows.serial.simulation.simulation_serial import simulate_list_serial_workflow
+from arl.workflows.serial.simulation.simulation_serial import simulate_list_serial_workflow
 
 log = logging.getLogger(__name__)
 
@@ -19,7 +19,7 @@ log = logging.getLogger(__name__)
 class TestSimulationArlexecuteSupport(unittest.TestCase):
     def setUp(self):
     
-        from data_models.parameters import arl_path
+        from arl.data_models.parameters import arl_path
         self.dir = arl_path('test_results')
         
         self.frequency = numpy.linspace(1e8, 1.5e8, 3)

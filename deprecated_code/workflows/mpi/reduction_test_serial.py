@@ -20,12 +20,12 @@ from astropy.coordinates import SkyCoord
 
 from data_models.polarisation import PolarisationFrame
 
-from processing_library.image.operations import create_empty_image_like
-#from processing_components.image.operations import qa_image, show_image, export_image_to_fits
-from processing_components.image.operations import qa_image
-from processing_components.simulation import create_test_image
-from processing_components.image.gather_scatter import image_gather_facets, image_scatter_facets
-from workflows.shared.imaging.imaging_shared import sum_invert_results_local, remove_sumwt
+from arl.processing_library.image.operations import create_empty_image_like
+#from arl.processing_components.image.operations import qa_image, show_image, export_image_to_fits
+from arl.processing_components.image.operations import qa_image
+from arl.processing_components.simulation import create_test_image
+from arl.processing_components.image.gather_scatter import image_gather_facets, image_scatter_facets
+from arl.workflows.shared.imaging.imaging_shared import sum_invert_results_local, remove_sumwt
 #from matplotlib import pyplot as plt
 #from matplotlib import pylab
 

@@ -13,8 +13,8 @@ import numpy
 
 from data_models.memory_data_models import Image, Visibility
 from data_models.parameters import get_parameter
-from processing_library.image.operations import create_empty_image_like
-from workflows.shared.imaging.imaging_shared import sum_invert_results, remove_sumwt, sum_predict_results
+from arl.processing_library.image.operations import create_empty_image_like
+from arl.workflows.shared.imaging.imaging_shared import sum_invert_results, remove_sumwt, sum_predict_results
 from wrappers.mpi.griddata.gridding import grid_weight_to_griddata, griddata_reweight, griddata_merge_weights
 from wrappers.mpi.griddata.kernels import create_pswf_convolutionfunction
 from wrappers.mpi.griddata.operations import create_griddata_from_image
@@ -60,7 +60,7 @@ def predict_list_mpi_workflow(vis_list, model_imagelist, context, vis_slices=1, 
     assert get_parameter(kwargs, "use_serial_predict", True),"Only freq paralellization implemented"
     #if get_parameter(kwargs, "use_serial_predict", False):
     if get_parameter(kwargs, "use_serial_predict", True):
-        from workflows.serial.imaging.imaging_serial import predict_list_serial_workflow
+        from arl.workflows.serial.imaging.imaging_serial import predict_list_serial_workflow
         
         image_results_list = list()
         # Distribute visibilities and model by freq
@@ -130,7 +130,7 @@ def invert_list_mpi_workflow(vis_list, template_model_imagelist, context, dopsf=
     assert get_parameter(kwargs, "use_serial_invert", True),"Only freq paralellization implemented"
     #if get_parameter(kwargs, "use_serial_invert", False):
     if get_parameter(kwargs, "use_serial_invert", True):
-        from workflows.serial.imaging.imaging_serial import invert_list_serial_workflow
+        from arl.workflows.serial.imaging.imaging_serial import invert_list_serial_workflow
 
         results_vislist = list()
         # Distribute visibilities and model by freq
@@ -200,7 +200,7 @@ def restore_list_mpi_workflow(model_imagelist, psf_imagelist,
     :param kwargs: Parameters for functions in components
     :return:
     """
-    from workflows.serial.imaging.imaging_serial import restore_list_serial_workflow_nosumwt
+    from arl.workflows.serial.imaging.imaging_serial import restore_list_serial_workflow_nosumwt
     rank = comm.Get_rank()
     size = comm.Get_size()
     #TODO Parallelize! and check the dask version, it removes sumwt component
@@ -263,7 +263,7 @@ def deconvolve_list_mpi_workflow(dirty_list, psf_list, model_imagelist,
     nmoment = get_parameter(kwargs, "nmoment", 0)
     assert get_parameter(kwargs, "use_serial_clean", True),"Only serial deconvolution implemented"
     if get_parameter(kwargs, "use_serial_clean", True):
-        from workflows.serial.imaging.imaging_serial import deconvolve_list_serial_workflow
+        from arl.workflows.serial.imaging.imaging_serial import deconvolve_list_serial_workflow
         if rank==0:
             assert isinstance(model_imagelist, list), model_imagelist
             result_list=deconvolve_list_serial_workflow (dirty_list, psf_list, model_imagelist, prefix=prefix, mask=mask, **kwargs)

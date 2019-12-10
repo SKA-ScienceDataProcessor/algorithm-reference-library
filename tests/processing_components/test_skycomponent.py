@@ -9,22 +9,22 @@ import astropy.units as u
 import numpy
 from astropy.coordinates import SkyCoord
 
-from data_models.polarisation import PolarisationFrame
-from processing_components.simulation import create_low_test_skycomponents_from_gleam
-from processing_components.skycomponent.operations import create_skycomponent, find_separation_skycomponents, \
+from arl.data_models.polarisation import PolarisationFrame
+from arl.processing_components.simulation import create_low_test_skycomponents_from_gleam
+from arl.processing_components.skycomponent.operations import create_skycomponent, find_separation_skycomponents, \
     find_skycomponent_matches, find_nearest_skycomponent, find_nearest_skycomponent_index, \
     filter_skycomponents_by_flux, select_neighbouring_components, voronoi_decomposition, \
     apply_beam_to_skycomponent, image_voronoi_iter, partition_skycomponent_neighbours, \
     remove_neighbouring_components
-from processing_library.image.operations import create_image
-from processing_components.imaging.primary_beams import create_low_test_beam
+from arl.processing_library.image.operations import create_image
+from arl.processing_components.imaging.primary_beams import create_low_test_beam
 
 log = logging.getLogger(__name__)
 
 
 class TestSkycomponent(unittest.TestCase):
     def setUp(self):
-        from data_models.parameters import arl_path
+        from arl.data_models.parameters import arl_path
         self.dir = arl_path('test_results')
         
         self.frequency = numpy.array([1e8])

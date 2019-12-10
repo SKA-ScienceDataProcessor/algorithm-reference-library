@@ -9,19 +9,19 @@ import numpy
 from astropy import units as u
 from astropy.coordinates import SkyCoord
 
-from data_models.polarisation import PolarisationFrame
-from processing_components.imaging.base import create_image_from_visibility
-from processing_components.simulation import create_low_test_image_from_gleam
-from processing_components.simulation import create_named_configuration
-from processing_components.visibility.base import create_visibility
-from processing_library.imaging.imaging_params import get_frequency_map
+from arl.data_models.polarisation import PolarisationFrame
+from arl.processing_components.imaging.base import create_image_from_visibility
+from arl.processing_components.simulation import create_low_test_image_from_gleam
+from arl.processing_components.simulation import create_named_configuration
+from arl.processing_components.visibility.base import create_visibility
+from arl.processing_library.imaging.imaging_params import get_frequency_map
 
 log = logging.getLogger(__name__)
 
 
 class TestImagingParams(unittest.TestCase):
     def setUp(self):
-        from data_models.parameters import arl_path
+        from arl.data_models.parameters import arl_path
         self.dir = arl_path('test_results')
         
         self.vnchan = 7

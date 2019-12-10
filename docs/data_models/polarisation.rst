@@ -1,6 +1,6 @@
-.. _data_models_polarisation:
+.. _arl_data_models_polarisation:
 
-.. py:currentmodule:: data_models.polarisation
+.. py:currentmodule:: arl.arl.data_models.polarisation
 
 .. toctree::
    :maxdepth: 3
@@ -9,6 +9,6 @@
 Polarisation
 ============
 
-.. automodapi::    data_models.polarisation
+.. automodapi::    arl.data_models.polarisation
    :no-inheritance-diagram:
 
