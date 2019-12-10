@@ -28,32 +28,24 @@ import numpy
 
 from astropy.coordinates import SkyCoord
 from astropy import units as u
-from astropy.wcs.utils import pixel_to_skycoord
 
 #from matplotlib import pyplot as plt
 
 from data_models.polarisation import PolarisationFrame
 
-from processing_components.calibration.calibration import solve_gaintable
-from processing_components.calibration.operations import apply_gaintable
 from processing_components.calibration import  create_calibration_controls
-from processing_components.visibility.base import create_blockvisibility
-from processing_components.visibility.coalesce import convert_blockvisibility_to_visibility,     convert_visibility_to_blockvisibility
-from processing_components.skycomponent.operations import create_skycomponent
-from processing_components.image.deconvolution import deconvolve_cube
+from processing_components.visibility.coalesce import convert_blockvisibility_to_visibility
 #from processing_components.image.operations import show_image, export_image_to_fits, qa_image
 from processing_components.image.operations import export_image_to_fits, qa_image
-from processing_components.visibility.iterators import vis_timeslice_iter
 from processing_components.simulation import create_low_test_image_from_gleam
-from processing_components.simulation import create_named_configuration
-from processing_components.imaging.base import predict_2d, create_image_from_visibility, advise_wide_field
+from processing_components.imaging.base import create_image_from_visibility, advise_wide_field
 
 from workflows.arlexecute.imaging.imaging_arlexecute import invert_list_arlexecute_workflow,     predict_list_arlexecute_workflow, deconvolve_list_arlexecute_workflow
 from workflows.arlexecute.simulation.simulation_arlexecute import simulate_list_arlexecute_workflow,     corrupt_list_arlexecute_workflow
 from workflows.arlexecute.pipelines.pipeline_arlexecute import continuum_imaging_list_arlexecute_workflow,     ical_list_arlexecute_workflow
 
-from wrappers.arlexecute.execution_support.arlexecute import arlexecute
-from wrappers.arlexecute.execution_support.dask_init import findNodes, get_dask_Client
+import arlexecute
+from execution_support import findNodes, get_dask_Client
 
 import time
 import pprint
@@ -163,14 +155,14 @@ cellsize=min(advice_low['cellsize'], advice_high['cellsize'])
 # In[6]:
 
 gleam_model = [arlexecute.execute(create_low_test_image_from_gleam)(npixel=npixel,
-                                                               frequency=[frequency[f]],
-                                                               channel_bandwidth=[channel_bandwidth[f]],
-                                                               cellsize=cellsize,
-                                                               phasecentre=phasecentre,
-                                                               polarisation_frame=PolarisationFrame("stokesI"),
-                                                               flux_limit=1.0,
-                                                               applybeam=True)
-                     for f, freq in enumerate(frequency)]
+                                                                    frequency=[frequency[f]],
+                                                                    channel_bandwidth=[channel_bandwidth[f]],
+                                                                    cellsize=cellsize,
+                                                                    phasecentre=phasecentre,
+                                                                    polarisation_frame=PolarisationFrame("stokesI"),
+                                                                    flux_limit=1.0,
+                                                                    applybeam=True)
+               for f, freq in enumerate(frequency)]
 log.info('About to make GLEAM model')
 gleam_model = arlexecute.compute(gleam_model, sync=True)
 future_gleam_model = arlexecute.scatter(gleam_model)
@@ -188,7 +180,7 @@ end=time.time()
 corrupted_vislist = corrupt_list_arlexecute_workflow(predicted_vislist, phase_error=1.0)
 log.info('About to run corrupt to get corrupted visibility')
 corrupted_vislist =  arlexecute.compute(corrupted_vislist, sync=True)
-future_predicted_vislist=arlexecute.scatter(predicted_vislist)
+future_predicted_vislist= arlexecute.scatter(predicted_vislist)
 
 
 # Get the LSM. This is currently blank.
@@ -197,13 +189,13 @@ future_predicted_vislist=arlexecute.scatter(predicted_vislist)
 
 print('predict finished in %f seconds'%(end-start),flush=True)
 model_list = [arlexecute.execute(create_image_from_visibility)(vis_list[f],
-                                                     npixel=npixel,
-                                                     frequency=[frequency[f]],
-                                                     channel_bandwidth=[channel_bandwidth[f]],
-                                                     cellsize=cellsize,
-                                                     phasecentre=phasecentre,
-                                                     polarisation_frame=PolarisationFrame("stokesI"))
-               for f, freq in enumerate(frequency)]
+                                                               npixel=npixel,
+                                                               frequency=[frequency[f]],
+                                                               channel_bandwidth=[channel_bandwidth[f]],
+                                                               cellsize=cellsize,
+                                                               phasecentre=phasecentre,
+                                                               polarisation_frame=PolarisationFrame("stokesI"))
+              for f, freq in enumerate(frequency)]
 
 
 # In[9]:
@@ -285,7 +277,7 @@ continuum_imaging_list =     continuum_imaging_list_arlexecute_workflow(future_p
 
 log.info('About to run continuum imaging')
 
-result=arlexecute.compute(continuum_imaging_list, sync=True)
+result= arlexecute.compute(continuum_imaging_list, sync=True)
 end=time.time()
 print('continuum imaging finished in %f sec.'%(end-start),flush=True)
 deconvolved = result[0][0]
