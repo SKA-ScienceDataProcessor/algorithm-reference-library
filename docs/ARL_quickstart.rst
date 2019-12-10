@@ -56,3 +56,8 @@ See the jupyter note books below:
    workflows/bandpass-calibration_arlexecute.rst
 
 In addition, there are other notebooks that are not built as part of this documentation.
+
+* :ref:`genindex`
+* :ref:`modindex`
+
+.. _feedback: mailto:realtimcornwell@gmail.com

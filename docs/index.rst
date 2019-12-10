@@ -26,6 +26,5 @@ Getting Started
 
 * :ref:`genindex`
 * :ref:`modindex`
-* :ref:`search`
 
 .. _feedback: mailto:realtimcornwell@gmail.com

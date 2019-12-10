@@ -14,3 +14,7 @@ Other information
    ARL_Fourier_processing
    ARL_SDP
 
+* :ref:`genindex`
+* :ref:`modindex`
+
+.. _feedback: mailto:realtimcornwell@gmail.com
