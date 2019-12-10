@@ -1,2 +1,2 @@
-NBs = queue.ipynb
+NBs = 
 include ../jupyter.mk
