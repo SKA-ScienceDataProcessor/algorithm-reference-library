@@ -2,12 +2,5 @@
 Framework
 
 """
-__all__ = [
-    'calibration',
-    'griddata',
-    'image',
-    'imaging',
-    'simulation',
-    'skycomponent',
-    'skymodel',
-    'visibility']
+
+from .execution_support import *
