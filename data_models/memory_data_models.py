@@ -14,6 +14,8 @@ __all__ = ['Configuration',
            'BlockVisibility',
            'QA',
            'ScienceDataModel',
+           'assert_same_chan_pol',
+           'assert_vis_gt_compatible'
            ]
 
 import logging
