@@ -4,15 +4,16 @@ merging gaintables.
 """
 
 __all__ = ['gaintable_summary', 'gaintable_plot', 'qa_gaintable', 'apply_gaintable', 'append_gaintable',
-           'create_gaintable_from_blockvisibility', 'create_gaintable_from_rows', 'copy_gaintable']
+           'create_gaintable_from_blockvisibility', 'create_gaintable_from_blockvisibility',
+           'create_gaintable_from_rows', 'copy_gaintable']
 
 import copy
 import logging
 
 import numpy.linalg
 
-from data_models.memory_data_models import GainTable, BlockVisibility, QA, assert_vis_gt_compatible
-from data_models.memory_data_models import ReceptorFrame
+from data_models import GainTable, BlockVisibility, QA, assert_vis_gt_compatible
+from data_models import ReceptorFrame
 from processing_components.visibility.iterators import vis_timeslice_iter
 
 log = logging.getLogger(__name__)
