@@ -10,7 +10,7 @@ from astropy import units as u
 from astropy.coordinates import SkyCoord
 from distributed import Client
 
-from data_models.polarisation import PolarisationFrame
+from arl.data_models.polarisation import PolarisationFrame
 from arl.processing_components.imaging.base import create_image_from_visibility
 from arl.processing_components.imaging.primary_beams import create_pb
 from arl.processing_components.simulation import create_named_configuration
@@ -35,7 +35,7 @@ if __name__ == '__main__':
         client = Client()
     arlexecute.set_client(client=client)
     
-    from data_models.parameters import arl_path
+    from arl.data_models.parameters import arl_path
     
     dir = arl_path('test_results')
     

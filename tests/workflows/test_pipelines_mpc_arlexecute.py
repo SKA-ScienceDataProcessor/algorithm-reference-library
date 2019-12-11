@@ -6,34 +6,23 @@ import numpy
 from astropy import units as u
 from astropy.coordinates import SkyCoord
 
-from arl.data_models.memory_data_models import SkyModel
-from arl.data_models.parameters import arl_path
-from arl.data_models.polarisation import PolarisationFrame
-from arl.processing_components.image.operations import create_empty_image_like
-from arl.processing_components.simulation import create_named_configuration
-from arl.processing_components.simulation.ionospheric_screen import grid_gaintable_to_screen
-from arl.workflows.arlexecute.imaging.imaging_arlexecute import invert_list_arlexecute_workflow
-from arl.workflows.arlexecute.imaging.imaging_arlexecute import restore_list_arlexecute_workflow
-from arl.workflows.arlexecute.pipelines.pipeline_mpccal_arlexecute import mpccal_skymodel_list_arlexecute_workflow
-from arl.workflows.arlexecute.skymodel.skymodel_arlexecute import predict_skymodel_list_arlexecute_workflow
-from arl.workflows.serial.imaging.imaging_serial import weight_list_serial_workflow, taper_list_serial_workflow
+from arl.data_models import SkyModel, arl_path, PolarisationFrame
+
+from arl.processing_library import create_empty_image_like
+
+from arl.processing_components import create_named_configuration, grid_gaintable_to_screen, \
+    export_image_to_fits, remove_neighbouring_components, find_skycomponents, calculate_skymodel_equivalent_image,\
+    initialize_skymodel_voronoi, convert_blockvisibility_to_visibility, convert_visibility_to_blockvisibility,\
+    import_image_from_fits, create_image_from_visibility, advise_wide_field, create_low_test_beam, create_gaintable_from_screen, \
+    create_low_test_skycomponents_from_gleam, apply_beam_to_skycomponent, filter_skycomponents_by_flux,\
+    create_blockvisibility
+
+from arl.workflows import invert_list_arlexecute_workflow, restore_list_arlexecute_workflow, \
+    mpccal_skymodel_list_arlexecute_workflow, predict_skymodel_list_arlexecute_workflow, \
+    weight_list_serial_workflow, taper_list_serial_workflow
+
 from arl.wrappers.arlexecute.execution_support import ARLExecuteBase
 from arl.wrappers.arlexecute.execution_support import get_dask_Client
-from arl.processing_components.image.operations import export_image_to_fits
-from arl.processing_components.skycomponent.operations import remove_neighbouring_components, \
-    find_skycomponents
-from arl.processing_components.skymodel.operations import calculate_skymodel_equivalent_image
-from arl.processing_components.skymodel.operations import initialize_skymodel_voronoi
-from arl.processing_components.visibility.coalesce import convert_blockvisibility_to_visibility, \
-    convert_visibility_to_blockvisibility
-from arl.processing_components.image.operations import import_image_from_fits
-from arl.processing_components.imaging.base import create_image_from_visibility, advise_wide_field
-from arl.processing_components.imaging.primary_beams import create_low_test_beam
-from arl.processing_components.simulation.ionospheric_screen import create_gaintable_from_screen
-from arl.processing_components.simulation import create_low_test_skycomponents_from_gleam
-from arl.processing_components.skycomponent.operations import apply_beam_to_skycomponent
-from arl.processing_components.skycomponent.operations import filter_skycomponents_by_flux
-from arl.processing_components.visibility.base import create_blockvisibility
 
 log = logging.getLogger(__name__)
 
@@ -50,7 +39,7 @@ class TestPipelineMPC(unittest.TestCase):
         arlexecute = ARLExecuteBase(use_dask=True)
         arlexecute.set_client(client)
         
-        self.persist = False
+        self.persist = True
 
     def tearDown(self):
         global arlexecute
@@ -423,7 +412,6 @@ class TestPipelineMPC(unittest.TestCase):
     
         arlexecute.close()
 
-    @unittest.skip("Currently unstable")
     def test_mpccal_MPCCAL_manysources_subimages(self):
     
         self.actualSetup()

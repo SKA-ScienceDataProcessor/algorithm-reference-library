@@ -9,7 +9,7 @@ import astropy.units as u
 import numpy
 from astropy.coordinates import ICRS, EarthLocation, SkyCoord
 
-from data_models.memory_data_models import Visibility, Configuration
+from arl.data_models.memory_data_models import Visibility, Configuration
 
 
 class OskarBinary(object):

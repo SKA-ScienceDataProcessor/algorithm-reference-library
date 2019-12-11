@@ -1,6 +1,6 @@
 
 /.idea
-/examples/experiments
+/examples/numba experiments
 
 /docs/build
 .ipynb_checkpoints

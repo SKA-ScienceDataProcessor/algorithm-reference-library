@@ -1,15 +1,8 @@
 """ Comparison of sim-2.ms casa and ARL dirty images.
 
-im.open('sim-2.ms')
-im.defineimage(cellx='20arcsec', nx=512)
-im.makeimage('sim-2.dirty')
-im.makeimage('observed', 'casa_imaging_sim_2_dirty')
-ia.open('casa_imaging_sim_2_dirty')
-ia.tofits('casa_imaging_sim_2_dirty.fits')
-
 """
 import sys
-from data_models.parameters import arl_path
+from arl.data_models.parameters import arl_path
 
 import numpy
 
@@ -22,7 +15,7 @@ from arl.processing_components.visibility.operations import convert_visibility_t
 
 from arl.workflows.serial.imaging.imaging_serial import invert_list_serial_workflow
 
-from data_models.polarisation import PolarisationFrame
+from arl.data_models.polarisation import PolarisationFrame
 
 import logging
 log = logging.getLogger(__name__)
