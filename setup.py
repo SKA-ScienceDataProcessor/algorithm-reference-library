@@ -21,7 +21,7 @@ if sys.platform == 'darwin':
 # Py_Initialize() and they do define main() ), we are just cheating to
 # re-use the setuptools build support.
 
-packages = ['data_models', 'processing_library', 'processing_components', 'workflows', 'wrappers']
+packages = ['arl']
 package_data = [i for p in packages for i in glob.glob(p + '/*/') + glob.glob(p + '/*/*/')]
 setup(name='algorithm-reference-library',
       version='0.9.1',
