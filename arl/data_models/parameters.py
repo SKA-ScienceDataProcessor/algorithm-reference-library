@@ -71,7 +71,7 @@ def arl_path(path):
     :param path:
     :return: absolute path
     """
-    project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)) + "/../..")
+    project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)) + "/../../")
     arlhome = os.getenv('ARL', project_root)
     return os.path.join(arlhome, path)
 
