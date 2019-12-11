@@ -30,7 +30,7 @@ class TestImageGraph(unittest.TestCase):
         client = get_dask_Client(memory_limit=4 * 1024 * 1024 * 1024, n_workers=4, dashboard_address=None)
         global arlexecute
         arlexecute = ARLExecuteBase(use_dask=True)
-        arlexecute.set_client(client, verbose=True)
+        arlexecute.set_client(client, verbose=False)
 
         from arl.data_models.parameters import arl_path
         self.dir = arl_path('test_results')
