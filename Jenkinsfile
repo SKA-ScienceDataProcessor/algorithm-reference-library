@@ -65,7 +65,8 @@ pipeline {
 		source _build/bin/activate
 		export MPLBACKEND=agg
 		pip install pytest pytest-xdist pytest-cov
-		py.test tests -n 4 --verbose --cov=processing_library --cov=processing_components --cov=workflows --cov-report=html:coverage tests
+		py.test tests -n 4 --verbose --cov=arl/processing_library --cov=arl/processing_components --cov=arl/workflows
+		--cov-report=html:coverage tests
 		'''
  		//Make coverage report
 		//coverage html --include=processing_library/*,processing_components/*,workflows/* -d coverage
