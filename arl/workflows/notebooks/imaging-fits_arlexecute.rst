@@ -14,7 +14,7 @@ closeness in flux and position.
     
     sys.path.append(os.path.join('..', '..'))
     
-    from arl.data_models.parameters import arl_path
+    from data_models.parameters import arl_path
     results_dir = arl_path('test_results')
     
     from matplotlib import pylab
@@ -30,17 +30,17 @@ closeness in flux and position.
     from astropy import units as u
     from astropy.wcs.utils import pixel_to_skycoord
     
-    from arl.data_models import PolarisationFrame
+    from data_models import PolarisationFrame
     
-    from arl.processing_components import create_visibility, sum_visibility, vis_timeslices,create_skycomponent, \
+    from processing_components import create_visibility, sum_visibility, vis_timeslices,create_skycomponent, \
         find_skycomponents, find_nearest_skycomponent, insert_skycomponent, show_image, export_image_to_fits, \
         qa_image, smooth_image, create_named_configuration, advise_wide_field, create_image_from_visibility, \
         predict_skycomponent_visibility, create_awterm_convolutionfunction, apply_bounding_box_convolutionfunction
     
     # Use workflows for imaging
-    from arl.wrappers.arlexecute.execution_support.arlexecute import arlexecute
+    from wrappers.arlexecute.execution_support.arlexecute import arlexecute
     
-    from arl.workflows import  imaging_contexts, predict_list_arlexecute_workflow, \
+    from workflows import  imaging_contexts, predict_list_arlexecute_workflow, \
         invert_list_arlexecute_workflow
     import logging
     
@@ -83,15 +83,6 @@ Use Dask
 
     Using selector: KqueueSelector
     Using selector: KqueueSelector
-
-
-.. parsed-literal::
-
-    /Users/timcornwell/opt/anaconda3/envs/arlenv37/lib/python3.7/site-packages/distributed/dashboard/core.py:72: UserWarning: 
-    Port 8787 is already in use. 
-    Perhaps you already have a cluster running?
-    Hosting the diagnostics dashboard on a random port instead.
-      warnings.warn("\n" + msg)
 
 
 We create the visibility. This just makes the uvw, time, antenna1,
@@ -801,11 +792,11 @@ point of the primary beam.
     		max: '108.2052676771443'
     		min: '-7.218746872709628'
     		maxabs: '108.2052676771443'
-    		rms: '4.886194600492367'
-    		sum: '1981.2706452318657'
-    		medianabs: '1.1714737857311908'
-    		medianabsdevmedian: '1.0443013200662432'
-    		median: '-0.6052575706060346'
+    		rms: '4.886194600492366'
+    		sum: '1981.2706452319446'
+    		medianabs: '1.1714737857311381'
+    		medianabsdevmedian: '1.0443013200662428'
+    		median: '-0.6052575706060335'
     
     find_skycomponents: Finding components in Image by segmentation
     find_skycomponents: Identified 28 segments
@@ -886,14 +877,14 @@ point of the primary beam.
     	Context: imaging-fits notebook, using processor timeslice
     	Data:
     		shape: '(1, 1, 256, 256)'
-    		max: '172.8183586006249'
-    		min: '-5.869581605876337'
-    		maxabs: '172.8183586006249'
-    		rms: '6.4787305159244255'
-    		sum: '3375.3494713451464'
-    		medianabs: '1.1232164892404466'
-    		medianabsdevmedian: '1.0059823897153541'
-    		median: '-0.6422214153609761'
+    		max: '172.81835860062475'
+    		min: '-5.869581605876343'
+    		maxabs: '172.81835860062475'
+    		rms: '6.478730515924426'
+    		sum: '3375.3494713450837'
+    		medianabs: '1.123216489240447'
+    		medianabsdevmedian: '1.0059823897153521'
+    		median: '-0.642221415360976'
     
     find_skycomponents: Finding components in Image by segmentation
     find_skycomponents: Identified 36 segments
@@ -930,17 +921,17 @@ point of the primary beam.
     	Context: imaging-fits notebook, using processor wstack
     	Data:
     		shape: '(1, 1, 256, 256)'
-    		max: '108533.3030815103'
-    		min: '-82112.33103911359'
-    		maxabs: '108533.3030815103'
-    		rms: '10569.562856753762'
-    		sum: '-100689.90302574863'
-    		medianabs: '6195.98153588839'
-    		medianabsdevmedian: '6196.048581747389'
-    		median: '18.162971298437544'
+    		max: '6788.299487523429'
+    		min: '-6546.887366891919'
+    		maxabs: '6788.299487523429'
+    		rms: '1511.5287235044607'
+    		sum: '-39642.3453714347'
+    		medianabs: '1010.5932765878683'
+    		medianabsdevmedian: '1010.1380673274541'
+    		median: '-2.0286270287858574'
     
     find_skycomponents: Finding components in Image by segmentation
-    find_skycomponents: Identified 59 segments
+    find_skycomponents: Identified 28 segments
 
 
 
@@ -974,14 +965,14 @@ point of the primary beam.
     	Context: imaging-fits notebook, using processor wprojection
     	Data:
     		shape: '(1, 1, 256, 256)'
-    		max: '169.93958570049836'
-    		min: '-5.924830370027999'
-    		maxabs: '169.93958570049836'
-    		rms: '6.464558076006849'
-    		sum: '2837.406839132978'
-    		medianabs: '1.1314427317689395'
+    		max: '169.93958570049563'
+    		min: '-5.924830370028082'
+    		maxabs: '169.93958570049563'
+    		rms: '6.464558076006836'
+    		sum: '2837.406839134143'
+    		medianabs: '1.13144273176894'
     		medianabsdevmedian: '1.0134461773467502'
-    		median: '-0.6544929780631099'
+    		median: '-0.6544929780631125'
     
     find_skycomponents: Finding components in Image by segmentation
     find_skycomponents: Identified 36 segments

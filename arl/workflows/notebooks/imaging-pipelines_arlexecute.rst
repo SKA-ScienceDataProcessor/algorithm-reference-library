@@ -85,10 +85,10 @@ We will use dask
 
 .. parsed-literal::
 
-    {'tcp://127.0.0.1:60058': None,
-     'tcp://127.0.0.1:60059': None,
-     'tcp://127.0.0.1:60060': None,
-     'tcp://127.0.0.1:60061': None}
+    {'tcp://127.0.0.1:64890': None,
+     'tcp://127.0.0.1:64895': None,
+     'tcp://127.0.0.1:64899': None,
+     'tcp://127.0.0.1:64901': None}
 
 
 
@@ -176,7 +176,7 @@ Now make a graph to fill with a model drawn from GLEAM
 .. parsed-literal::
 
     /Users/timcornwell/opt/anaconda3/envs/arlenv37/lib/python3.7/site-packages/distributed/worker.py:3285: UserWarning: Large object of size 2.10 MB detected in task graph: 
-      ('getitem-7b0edbed8e4c8b1d0406510328773fcb', <arl. ... -1464832ab864')
+      ('getitem-887a28ac48677cdfd6acdd3626f7ad29', <arl. ... -a787b7ccf00a')
     Consider scattering large objects ahead of time
     with client.scatter to reduce scheduler burden and 
     keep data on workers
@@ -337,14 +337,14 @@ Now deconvolve using msclean
     	Context: Restored clean image - no selfcal
     	Data:
     		shape: '(1, 1, 512, 512)'
-    		max: '234245.7723729235'
-    		min: '-50349.11067392487'
-    		maxabs: '234245.7723729235'
-    		rms: '9184.419610081686'
-    		sum: '4278909.725499539'
-    		medianabs: '5729.086589805513'
-    		medianabsdevmedian: '5731.628920988805'
-    		median: '-55.79275074385701'
+    		max: '108024.51784927267'
+    		min: '-32034.779910556474'
+    		maxabs: '108024.51784927267'
+    		rms: '6088.282138720128'
+    		sum: '746042.0331480699'
+    		medianabs: '3887.3148193650777'
+    		medianabsdevmedian: '3888.6905188964547'
+    		median: '-35.145717123729334'
     
 
 
@@ -359,14 +359,14 @@ Now deconvolve using msclean
     	Context: Residual clean image - no selfcal
     	Data:
     		shape: '(1, 1, 512, 512)'
-    		max: '234245.7723729235'
-    		min: '-50349.11067392487'
-    		maxabs: '234245.7723729235'
-    		rms: '9184.419610081686'
-    		sum: '4278909.725499539'
-    		medianabs: '5729.086589805513'
-    		medianabsdevmedian: '5731.628920988805'
-    		median: '-55.79275074385701'
+    		max: '108024.51784927267'
+    		min: '-32034.779910556474'
+    		maxabs: '108024.51784927267'
+    		rms: '6088.282138720128'
+    		sum: '746042.0331480699'
+    		medianabs: '3887.3148193650777'
+    		medianabsdevmedian: '3888.6905188964547'
+    		median: '-35.145717123729334'
     
 
 

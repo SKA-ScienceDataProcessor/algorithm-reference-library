@@ -274,7 +274,7 @@ phase term including w.
 
 .. parsed-literal::
 
-    <arl.data_models.memory_data_models.Visibility at 0x105d66710>
+    <arl.data_models.memory_data_models.Visibility at 0x11fea5f28>
 
 
 
@@ -296,15 +296,6 @@ the two-dimensional invert.
 
     Using selector: KqueueSelector
     Using selector: KqueueSelector
-
-
-.. parsed-literal::
-
-    /Users/timcornwell/opt/anaconda3/envs/arlenv37/lib/python3.7/site-packages/distributed/dashboard/core.py:72: UserWarning: 
-    Port 8787 is already in use. 
-    Perhaps you already have a cluster running?
-    Hosting the diagnostics dashboard on a random port instead.
-      warnings.warn("\n" + msg)
 
 
 .. code:: ipython3
@@ -338,7 +329,7 @@ the two-dimensional invert.
 .. parsed-literal::
 
     /Users/timcornwell/opt/anaconda3/envs/arlenv37/lib/python3.7/site-packages/distributed/worker.py:3285: UserWarning: Large object of size 2.10 MB detected in task graph: 
-      ('getitem-c549e0cacb9af790eb391fd48a1d54ce', <arl. ... -c45882e6197d')
+      ('getitem-d1e01cde26951bbd3ddef58712e65e8b', <arl. ... -41f8f00b9cdd')
     Consider scattering large objects ahead of time
     with client.scatter to reduce scheduler burden and 
     keep data on workers
@@ -493,7 +484,7 @@ The w-dependent w-beam is:
 
 .. parsed-literal::
 
-    Max, min in dirty image = 1682275.134189, -399852.137286, sumwt = 31701.000000
+    Max, min in dirty image = 2037077.392955, -479538.933276, sumwt = 31701.000000
 
 
 The w-term can also be viewed as a time-variable distortion.
@@ -683,7 +674,7 @@ correct each time slice and then sum the resulting timeslices.
 
 .. parsed-literal::
 
-    Max, min in dirty image = 3557752.468175, -625759.676690, sumwt = 31701.000000
+    Max, min in dirty image = 4047775.530147, -744599.107331, sumwt = 31701.000000
 
 
 Finally we try w-projection. For a fixed w, the measurement equation can
