@@ -17,7 +17,7 @@ class TestARLExecute(unittest.TestCase):
     def setUp(self):
         global arlexecute
         arlexecute = ARLExecuteBase(use_dask=True)
-        arlexecute.set_client(use_dask=True, verbose=True)
+        arlexecute.set_client(use_dask=True, verbose=False)
         
     def tearDown(self):
         arlexecute.close()
